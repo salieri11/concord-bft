@@ -13,13 +13,14 @@
 //
 // Interface for replica state synchronisation.
 
-#ifndef REPLICA_STATE_SYNC_H
-#define REPLICA_STATE_SYNC_H
+#ifndef CONCORD_CONSENSUS_KVB_REPLICA_STATE_SYNC_H
+#define CONCORD_CONSENSUS_KVB_REPLICA_STATE_SYNC_H
 
 #include <log4cplus/loggingmacros.h>
 #include "BlockchainDBAdapter.h"
 
-namespace Blockchain {
+namespace concord {
+namespace consensus {
 
 class ReplicaStateSync {
  public:
@@ -33,6 +34,7 @@ class ReplicaStateSync {
                            uint64_t lastExecutedSeqNum) = 0;
 };
 
-}  // namespace Blockchain
+}  // namespace consensus
+}  // namespace concord
 
-#endif
+#endif  // CONCORD_CONSENSUS_KVB_REPLICA_STATE_SYNC_H

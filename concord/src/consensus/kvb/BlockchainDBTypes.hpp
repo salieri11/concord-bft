@@ -11,8 +11,8 @@
 // terms and conditions of the subcomponent's license, as noted in the LICENSE
 // file.
 
-#ifndef BLOCKCHAIN_DB_TYPES_H
-#define BLOCKCHAIN_DB_TYPES_H
+#ifndef CONCORD_CONSENSUS_KVB_BLOCKCHAIN_DB_TYPES_H_
+#define CONCORD_CONSENSUS_KVB_BLOCKCHAIN_DB_TYPES_H_
 
 #include <cstdint>
 #include <unordered_map>
@@ -20,7 +20,8 @@
 #include "SimpleBCStateTransfer.hpp"
 #include "sliver.hpp"
 
-namespace Blockchain {
+namespace concord {
+namespace consensus {
 
 struct BlockHeader {
   uint32_t numberOfElements;
@@ -54,6 +55,7 @@ typedef std::unordered_map<Key, Value> SetOfKeyValuePairs;
 typedef std::vector<Key> KeysVector;
 typedef KeysVector ValuesVector;
 
-}  // namespace Blockchain
+}  // namespace consensus
+}  // namespace concord
 
-#endif
+#endif  // CONCORD_CONSENSUS_KVB_BLOCKCHAIN_DB_TYPES_H_

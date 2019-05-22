@@ -2,8 +2,8 @@
 //
 // KVBlockchain interface definition
 
-#ifndef BLOCKCHAIN_INTERFACES_H
-#define BLOCKCHAIN_INTERFACES_H
+#ifndef CONCORD_CONSENSUS_KVB_BLOCKCHAIN_INTERFACES_H_
+#define CONCORD_CONSENSUS_KVB_BLOCKCHAIN_INTERFACES_H_
 
 // TODO: write about thread-safety
 
@@ -25,7 +25,8 @@ using std::pair;
 using std::string;
 using std::unordered_map;
 
-namespace Blockchain {
+namespace concord {
+namespace consensus {
 
 // forward declarations
 class ILocalKeyValueStorageReadOnlyIterator;
@@ -167,9 +168,8 @@ class IReplica {
 // constructor/destructor, to make use of RAII.
 
 // creates a new Replica object
-IReplica* createReplica(Blockchain::CommConfig& commConfig,
-                        ReplicaConsensusConfig& config, IDBClient* db,
-                        ReplicaStateSync& replicaStateSync);
+IReplica* createReplica(CommConfig& commConfig, ReplicaConsensusConfig& config,
+                        IDBClient* db, ReplicaStateSync& replicaStateSync);
 
 // deletes a Replica object
 void release(IReplica* r);
@@ -215,7 +215,7 @@ class IClient {
 // make use of RAII?
 
 // creates a new Client object
-IClient* createClient(Blockchain::CommConfig& commConfig,
+IClient* createClient(CommConfig& commConfig,
                       const ClientConsensusConfig& consensusConfig);
 
 // deletes a Client object
@@ -300,6 +300,7 @@ class IBlocksAppender {
 // (2) State transfer in the key-val blockchain (and not in the consensus
 //     module)
 
-}  // namespace Blockchain
+}  // namespace consensus
+}  // namespace concord
 
-#endif
+#endif  // CONCORD_CONSENSUS_KVB_BLOCKCHAIN_INTERFACES_H_

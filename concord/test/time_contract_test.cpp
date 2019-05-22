@@ -21,6 +21,18 @@ using namespace std;
 
 using concord::config::ConcordConfiguration;
 using concord::config::ConfigurationPath;
+using concord::consensus::BlockId;
+using concord::consensus::IBlocksAppender;
+using concord::consensus::IDBClient;
+using concord::consensus::ILocalKeyValueStorageReadOnly;
+using concord::consensus::ILocalKeyValueStorageReadOnlyIterator;
+using concord::consensus::InMemoryDBClient;
+using concord::consensus::Key;
+using concord::consensus::RocksKeyComparator;
+using concord::consensus::SetOfKeyValuePairs;
+using concord::consensus::Sliver;
+using concord::consensus::Status;
+using concord::consensus::Value;
 
 namespace {
 
@@ -28,74 +40,65 @@ namespace {
 // ReplicaImp. (TODO: move the DB interfaces out of ReplicaImp.)
 //
 // This shim just reads and writes to block zero in an in-memory DB.
-class TestStorage : public Blockchain::ILocalKeyValueStorageReadOnly,
-                    public Blockchain::IBlocksAppender {
+class TestStorage : public ILocalKeyValueStorageReadOnly,
+                    public IBlocksAppender {
  private:
-  Blockchain::InMemoryDBClient db_ = Blockchain::InMemoryDBClient(
-      (Blockchain::IDBClient::KeyComparator)&Blockchain::RocksKeyComparator::
-          InMemKeyComp);
+  InMemoryDBClient db_ = InMemoryDBClient(
+      (IDBClient::KeyComparator)&RocksKeyComparator::InMemKeyComp);
 
  public:
-  Blockchain::Status get(Blockchain::Key key,
-                         Blockchain::Value& outValue) const override {
-    Blockchain::BlockId outBlockId;
+  Status get(Key key, Value& outValue) const override {
+    BlockId outBlockId;
     return get(0, key, outValue, outBlockId);
   }
 
-  Blockchain::Status get(Blockchain::BlockId readVersion,
-                         Blockchain::Sliver key, Blockchain::Sliver& outValue,
-                         Blockchain::BlockId& outBlock) const override {
+  Status get(BlockId readVersion, Sliver key, Sliver& outValue,
+             BlockId& outBlock) const override {
     outBlock = 0;
     return db_.get(key, outValue);
   }
 
-  Blockchain::BlockId getLastBlock() const override { return 0; }
+  BlockId getLastBlock() const override { return 0; }
 
-  Blockchain::Status getBlockData(
-      Blockchain::BlockId blockId,
-      Blockchain::SetOfKeyValuePairs& outBlockData) const override {
+  Status getBlockData(BlockId blockId,
+                      SetOfKeyValuePairs& outBlockData) const override {
     EXPECT_TRUE(false) << "Test should not cause getBlockData to be called";
-    return Blockchain::Status::IllegalOperation(
-        "getBlockData not supported in test");
+    return Status::IllegalOperation("getBlockData not supported in test");
   }
 
-  Blockchain::Status mayHaveConflictBetween(Blockchain::Sliver key,
-                                            Blockchain::BlockId fromBlock,
-                                            Blockchain::BlockId toBlock,
-                                            bool& outRes) const override {
+  Status mayHaveConflictBetween(Sliver key, BlockId fromBlock, BlockId toBlock,
+                                bool& outRes) const override {
     EXPECT_TRUE(false)
         << "Test should not cause mayHaveConflictBetween to be called";
-    return Blockchain::Status::IllegalOperation(
+    return Status::IllegalOperation(
         "mayHaveConflictBetween not supported in test");
   }
 
-  Blockchain::ILocalKeyValueStorageReadOnlyIterator* getSnapIterator()
-      const override {
+  ILocalKeyValueStorageReadOnlyIterator* getSnapIterator() const override {
     EXPECT_TRUE(false) << "Test should not cause getSnapIterator to be called";
     return nullptr;
   }
 
-  Blockchain::Status freeSnapIterator(
-      Blockchain::ILocalKeyValueStorageReadOnlyIterator* iter) const override {
+  Status freeSnapIterator(
+      ILocalKeyValueStorageReadOnlyIterator* iter) const override {
     EXPECT_TRUE(false) << "Test should not cause freeSnapIterator to be called";
-    return Blockchain::Status::IllegalOperation(
-        "freeSnapIterator not supported in test");
+    return Status::IllegalOperation("freeSnapIterator not supported in test");
   }
 
   void monitor() const override {
     EXPECT_TRUE(false) << "Test should not cause monitor to be called";
   }
 
-  Blockchain::Status addBlock(const Blockchain::SetOfKeyValuePairs& updates,
-                              Blockchain::BlockId& outBlockId) override {
+  Status addBlock(const SetOfKeyValuePairs& updates,
+                  BlockId& outBlockId) override {
     for (auto u : updates) {
-      Blockchain::Status status = db_.put(u.first, u.second);
+      Status status = db_.put(u.first, u.second);
       if (!status.isOK()) {
         return status;
       }
     }
     outBlockId = 0;
-    return Blockchain::Status::OK();
+    return Status::OK();
   }
 };
 

@@ -2,12 +2,15 @@
 //
 // Hash functions for our Sliver and KeyValuePair types.
 
-#ifndef HASHDEFS_H
-#define HASHDEFS_H
+#ifndef CONCORD_CONSENSUS_KVB_HASHDEFS_H_
+#define CONCORD_CONSENSUS_KVB_HASHDEFS_H_
 
 #include <stdlib.h>
 #include "BlockchainInterfaces.h"
 #include "sliver.hpp"
+
+using concord::consensus::KeyValuePair;
+using concord::consensus::Sliver;
 
 // TODO(GG): do we want this hash function ? See also
 // http://www.cse.yorku.ca/~oz/hash.html
@@ -25,25 +28,25 @@ inline size_t simpleHash(const uint8_t *data, const size_t len) {
 
 namespace std {
 template <>
-struct hash<Blockchain::Sliver> {
-  typedef Blockchain::Sliver argument_type;
+struct hash<Sliver> {
+  typedef Sliver argument_type;
   typedef std::size_t result_type;
 
-  result_type operator()(const Blockchain::Sliver &t) const {
+  result_type operator()(const Sliver &t) const {
     return simpleHash(t.data(), t.length());
   }
 };
 
 template <>
-struct hash<Blockchain::KeyValuePair> {
-  typedef Blockchain::KeyValuePair argument_type;
+struct hash<KeyValuePair> {
+  typedef KeyValuePair argument_type;
   typedef std::size_t result_type;
 
-  result_type operator()(const Blockchain::KeyValuePair &t) const {
+  result_type operator()(const KeyValuePair &t) const {
     size_t keyHash = simpleHash(t.first.data(), t.first.length());
     return keyHash;
   }
 };
 }  // namespace std
 
-#endif
+#endif  // CONCORD_CONSENSUS_KVB_HASHDEFS_H_

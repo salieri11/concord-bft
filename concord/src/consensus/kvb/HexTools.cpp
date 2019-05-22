@@ -1,11 +1,11 @@
 // Copyright 2018 VMware, all rights reserved
 
+#include "HexTools.h"
+
 #include <iomanip>
 #include <ios>
 #include <ostream>
 #include <stdexcept>
-
-#include "HexTools.h"
 
 // Print <size> bytes from <data> to <s> as their 0x<hex> representation.
 std::ostream &hexPrint(std::ostream &s, const uint8_t *data, size_t size) {

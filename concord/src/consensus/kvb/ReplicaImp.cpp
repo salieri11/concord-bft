@@ -2,6 +2,8 @@
 //
 // KV Blockchain replica implementation.
 
+#include "ReplicaImp.h"
+
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -19,21 +21,22 @@
 #include <cstdlib>
 #include "Comparators.h"
 #include "HexTools.h"
-#include "ReplicaImp.h"
 #include "ReplicaStateSync.h"
 #include "RocksDBMetadataStorage.hpp"
 #include "sliver.hpp"
 
 using log4cplus::Logger;
 using namespace bftEngine;
-using namespace Blockchain;
+
+namespace concord {
+namespace consensus {
 
 /**
  * Pure virtual destructor needs to be defined within an abstract class if that
  * very abstract class is used to delete a derived instanciation.
  * See main.cpp for its usage.
  */
-Blockchain::ICommandsHandler::~ICommandsHandler() {}
+ICommandsHandler::~ICommandsHandler() {}
 
 /**
  * Opens the database and creates the replica thread. Replica state moves to
@@ -187,11 +190,11 @@ Status ReplicaImp::addBlock(const SetOfKeyValuePairs &updates,
   return addBlockInternal(updates, outBlockId);
 }
 
-void ReplicaImp::set_command_handler(Blockchain::ICommandsHandler *handler) {
+void ReplicaImp::set_command_handler(ICommandsHandler *handler) {
   m_cmdHandler = handler;
 }
 
-ReplicaImp::ReplicaImp(Blockchain::CommConfig &commConfig,
+ReplicaImp::ReplicaImp(CommConfig &commConfig,
                        ReplicaConsensusConfig &replicaConfig,
                        BlockchainDBAdapter *dbAdapter,
                        ReplicaStateSync &replicaStateSync)
@@ -605,16 +608,13 @@ SetOfKeyValuePairs ReplicaImp::fetchBlockData(Sliver block) {
   return retVal;
 }
 
-IReplica *Blockchain::createReplica(Blockchain::CommConfig &commConfig,
-                                    ReplicaConsensusConfig &config,
-                                    IDBClient *db,
-                                    ReplicaStateSync &replicaStateSync) {
+IReplica *createReplica(CommConfig &commConfig, ReplicaConsensusConfig &config,
+                        IDBClient *db, ReplicaStateSync &replicaStateSync) {
   LOG4CPLUS_DEBUG(Logger::getInstance("com.vmware.concord.kvb"),
                   "Creating replica");
   BlockchainDBAdapter *dbAdapter = new BlockchainDBAdapter(db);
 
-  auto r = new Blockchain::ReplicaImp(commConfig, config, dbAdapter,
-                                      replicaStateSync);
+  auto r = new ReplicaImp(commConfig, config, dbAdapter, replicaStateSync);
 
   // Initialization of the database object is done here so that we can
   // read the latest block number and take a decision regarding
@@ -636,7 +636,7 @@ IReplica *Blockchain::createReplica(Blockchain::CommConfig &commConfig,
   return r;
 }
 
-void Blockchain::release(IReplica *r) { delete r; }
+void release(IReplica *r) { delete r; }
 
 ReplicaImp::StorageIterator::StorageIterator(const ReplicaImp *r)
     : logger(log4cplus::Logger::getInstance("com.vmware.concord.kvb")), rep(r) {
@@ -759,8 +759,7 @@ Status ReplicaImp::StorageIterator::freeInternalIterator() {
 /*
  * These functions are used by the ST module to interact with the KVB
  */
-ReplicaImp::BlockchainAppState::BlockchainAppState(
-    Blockchain::ReplicaImp *const parent)
+ReplicaImp::BlockchainAppState::BlockchainAppState(ReplicaImp *const parent)
     : m_ptrReplicaImpl{parent},
       m_logger{log4cplus::Logger::getInstance("blockchainappstate")} {}
 
@@ -829,3 +828,6 @@ uint64_t ReplicaImp::BlockchainAppState::getLastReachableBlockNum() {
 uint64_t ReplicaImp::BlockchainAppState::getLastBlockNum() {
   return m_ptrReplicaImpl->m_lastBlock;
 }
+
+}  // namespace consensus
+}  // namespace concord

@@ -49,8 +49,8 @@ using concord::utils::RLPBuilder;
 using concord::utils::to_evm_uint256be;
 using concord::common::operator<<;
 
-using Blockchain::IBlocksAppender;
-using Blockchain::ILocalKeyValueStorageReadOnly;
+using concord::consensus::IBlocksAppender;
+using concord::consensus::ILocalKeyValueStorageReadOnly;
 
 namespace concord {
 namespace ethereum {
@@ -59,8 +59,7 @@ EthKvbCommandsHandler::EthKvbCommandsHandler(
     EVM &athevm, EthSign &verifier,
     const concord::config::ConcordConfiguration &config,
     concord::config::ConcordConfiguration &nodeConfig,
-    Blockchain::ILocalKeyValueStorageReadOnly *roStorage,
-    Blockchain::IBlocksAppender *appender)
+    ILocalKeyValueStorageReadOnly *roStorage, IBlocksAppender *appender)
     : logger(log4cplus::Logger::getInstance("com.vmware.concord")),
       athevm_(athevm),
       verifier_(verifier),

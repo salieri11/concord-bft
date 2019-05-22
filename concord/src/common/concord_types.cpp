@@ -160,7 +160,8 @@ size_t EthTransaction::serialize(uint8_t **serialized) {
   return size;
 }
 
-struct EthTransaction EthTransaction::deserialize(Blockchain::Sliver &input) {
+struct EthTransaction EthTransaction::deserialize(
+    concord::consensus::Sliver &input) {
   Transaction intx;
   intx.ParseFromArray(input.data(), input.length());
 
@@ -322,7 +323,7 @@ size_t EthBlock::serialize(uint8_t **serialized) {
   return size;
 }
 
-struct EthBlock EthBlock::deserialize(Blockchain::Sliver &input) {
+struct EthBlock EthBlock::deserialize(concord::consensus::Sliver &input) {
   Block inblk;
   inblk.ParseFromArray(input.data(), input.length());
 

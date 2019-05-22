@@ -13,15 +13,17 @@
  * to navigate through the map.
  */
 
+#include "InMemoryDBClient.h"
+
 #include <log4cplus/loggingmacros.h>
 #include <chrono>
 #include <cstring>
 
 #include "HashDefs.h"
-#include "InMemoryDBClient.h"
 #include "sliver.hpp"
 
-using namespace Blockchain;
+namespace concord {
+namespace consensus {
 
 /**
  * @brief Does nothing.
@@ -274,3 +276,6 @@ Status InMemoryDBClientIterator::getStatus() {
   // TODO Should be used for sanity checks.
   return Status::OK();
 }
+
+}  // namespace consensus
+}  // namespace concord

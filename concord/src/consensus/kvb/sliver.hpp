@@ -1,7 +1,7 @@
 // Copyright 2018 VMware, all rights reserved
 
 /**
- * Blockchain::Sliver -- Zero-copy management of bytes.
+ * Sliver -- Zero-copy management of bytes.
  *
  * Sliver provides a view into an allocated region of memory. Views of
  * sub-regions, or "sub-slivers" do not copy data, but instead reference the
@@ -23,13 +23,15 @@
  * requires an atomic operation that might be considered expensive.
  */
 
-#ifndef SLIVER_HPP
-#define SLIVER_HPP
+#ifndef CONCORD_CONSENSUS_KVB_SLIVER_HPP_
+#define CONCORD_CONSENSUS_KVB_SLIVER_HPP_
 
 #include <ios>
 #include <memory>
 
-namespace Blockchain {
+namespace concord {
+namespace consensus {
+
 class Sliver {
  public:
   Sliver();
@@ -63,10 +65,12 @@ class Sliver {
   static void operator delete[](void*) = delete;
 };
 
-std::ostream& operator<<(std::ostream& s, const Blockchain::Sliver& sliver);
+std::ostream& operator<<(std::ostream& s, const Sliver& sliver);
 
 bool copyToAndAdvance(uint8_t* _buf, size_t* _offset, size_t _maxOffset,
                       uint8_t* _src, size_t _srcSize);
-}  // namespace Blockchain
 
-#endif  // SLIVER_HPP
+}  // namespace consensus
+}  // namespace concord
+
+#endif  // CONCORD_CONSENSUS_KVB_SLIVER_HPP_

@@ -3,8 +3,8 @@
 // Translation between BlockAppender/ILocalkeyValueStorage* to the underlying
 // database.
 
-#ifndef BLOCKCHAINDBADAPTER_H
-#define BLOCKCHAINDBADAPTER_H
+#ifndef CONCORD_CONSENSUS_KVB_BLOCKCHAINDBADAPTER_H_
+#define CONCORD_CONSENSUS_KVB_BLOCKCHAINDBADAPTER_H_
 
 #include <log4cplus/loggingmacros.h>
 
@@ -13,7 +13,8 @@
 #include "DatabaseInterface.h"
 #include "sliver.hpp"
 
-namespace Blockchain {
+namespace concord {
+namespace consensus {
 
 class BlockchainDBAdapter {
  public:
@@ -85,6 +86,7 @@ class KeyManipulator {
   static Sliver generateMetadataKey(ObjectId objectId);
 };
 
-}  // namespace Blockchain
+}  // namespace consensus
+}  // namespace concord
 
-#endif
+#endif  // CONCORD_CONSENSUS_KVB_BLOCKCHAINDBADAPTER_H_

@@ -3,8 +3,8 @@
 // Temporary solution for creating configuration structs for concord-bft
 // Ideally, the ReplicaConfig from BlockchainInterfaces.h
 
-#ifndef CONCORD_CONFIG_PARSER_HPP
-#define CONCORD_CONFIG_PARSER_HPP
+#ifndef CONCORD_CONSENSUS_KVB_CONFIG_PARSER_HPP_
+#define CONCORD_CONSENSUS_KVB_CONFIG_PARSER_HPP_
 
 #include <set>
 #include <string>
@@ -17,9 +17,8 @@
 using concord::config::ConcordConfiguration;
 using concord::config::ConcordPrimaryConfigurationAuxiliaryState;
 
-namespace com {
-namespace vmware {
 namespace concord {
+namespace consensus {
 
 const size_t MAX_ITEM_LENGTH = 4096;
 const std::string MAX_ITEM_LENGTH_STR = std::to_string(MAX_ITEM_LENGTH);
@@ -110,7 +109,7 @@ inline bool initializeSBFTCrypto(
     uint16_t maxSlow, ConcordConfiguration& config,
     ConcordConfiguration& replicaConfig,
     std::set<std::pair<uint16_t, std::string>> publicKeysOfReplicas,
-    Blockchain::ReplicaConsensusConfig* outConfig) {
+    ReplicaConsensusConfig* outConfig) {
   // Threshold signatures
   IThresholdSigner* thresholdSignerForExecution;
   IThresholdVerifier* thresholdVerifierForExecution;
@@ -160,7 +159,7 @@ inline bool initializeSBFTCrypto(
 
 inline bool initializeSBFTPrincipals(
     ConcordConfiguration& config, uint16_t selfNumber, uint16_t numOfPrincipals,
-    uint16_t numOfReplicas, Blockchain::CommConfig* outCommConfig,
+    uint16_t numOfReplicas, CommConfig* outCommConfig,
     std::set<std::pair<uint16_t, std::string>>& outReplicasPublicKeys) {
   uint16_t clientProxiesPerReplica =
       config.getValue<uint16_t>("client_proxies_per_replica");
@@ -211,11 +210,12 @@ inline bool initializeSBFTPrincipals(
   return true;
 }
 
-inline bool initializeSBFTConfiguration(
-    ConcordConfiguration& config, ConcordConfiguration& nodeConfig,
-    Blockchain::CommConfig* commConfig,
-    Blockchain::ClientConsensusConfig* clConf, uint16_t clientIndex,
-    Blockchain::ReplicaConsensusConfig* repConf) {
+inline bool initializeSBFTConfiguration(ConcordConfiguration& config,
+                                        ConcordConfiguration& nodeConfig,
+                                        CommConfig* commConfig,
+                                        ClientConsensusConfig* clConf,
+                                        uint16_t clientIndex,
+                                        ReplicaConsensusConfig* repConf) {
   assert(!clConf != !repConf);
 
   // Initialize random number generator
@@ -272,8 +272,7 @@ inline bool initializeSBFTConfiguration(
   return true;
 }
 
+}  // namespace consensus
 }  // namespace concord
-}  // namespace vmware
-}  // namespace com
 
-#endif  // CONCORD_CONFIG_PARSER_HPP
+#endif  // CONCORD_CONSENSUS_KVB_CONFIG_PARSER_HPP_

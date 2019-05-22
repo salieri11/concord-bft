@@ -4,12 +4,14 @@
  * Status stores the result of an operation.
  */
 
-#ifndef CONCORD_KVB_STATUS_HPP
-#define CONCORD_KVB_STATUS_HPP
+#ifndef CONCORD_CONSENSUS_KVB_STATUS_HPP_
+#define CONCORD_CONSENSUS_KVB_STATUS_HPP_
 
 #include <string>
 
-namespace Blockchain {
+namespace concord {
+namespace consensus {
+
 class Status {
  public:
   static Status OK() { return Status(ok, ""); }
@@ -73,6 +75,8 @@ class Status {
 };
 
 std::ostream& operator<<(std::ostream& s, Status const& status);
-}  // end namespace Blockchain
 
-#endif  // end ifndef CONCORD_KVB_STATUS_HPP
+}  // namespace consensus
+}  // namespace concord
+
+#endif  // CONCORD_CONSENSUS_KVB_STATUS_HPP_

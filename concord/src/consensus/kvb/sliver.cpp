@@ -1,10 +1,12 @@
 // Copyright 2018 VMware, all rights reserved
 
 /**
- * Blockchain::Sliver -- Zero-copy management of bytes.
+ * Sliver -- Zero-copy management of bytes.
  *
  * See sliver.hpp for design details.
  */
+
+#include "sliver.hpp"
 
 #include <algorithm>
 #include <cassert>
@@ -13,12 +15,14 @@
 #include <memory>
 
 #include "HexTools.h"
-#include "sliver.hpp"
+
+namespace concord {
+namespace consensus {
 
 /**
  * Create an empty sliver.
  */
-Blockchain::Sliver::Sliver() : m_data(nullptr), m_offset(0), m_length(0) {}
+Sliver::Sliver() : m_data(nullptr), m_offset(0), m_length(0) {}
 
 /**
  * Create a new sliver that will own the memory pointed to by `data`, which is
@@ -27,7 +31,7 @@ Blockchain::Sliver::Sliver() : m_data(nullptr), m_offset(0), m_length(0) {}
  * Important: the `data` buffer should have been allocated with `new`, and not
  * `malloc`, because the shared pointer will use `delete` and not `free`.
  */
-Blockchain::Sliver::Sliver(uint8_t* data, const size_t length)
+Sliver::Sliver(uint8_t* data, const size_t length)
     : m_data(data, std::default_delete<uint8_t[]>()),
       m_offset(0),
       m_length(length) {
@@ -35,7 +39,7 @@ Blockchain::Sliver::Sliver(uint8_t* data, const size_t length)
   assert(data);
 }
 
-Blockchain::Sliver::Sliver(char* data, const size_t length)
+Sliver::Sliver(char* data, const size_t length)
     : m_data(reinterpret_cast<uint8_t*>(data),
              std::default_delete<uint8_t[]>()),
       m_offset(0),
@@ -47,8 +51,7 @@ Blockchain::Sliver::Sliver(char* data, const size_t length)
 /**
  * Create a sub-sliver that references a region of a base sliver.
  */
-Blockchain::Sliver::Sliver(const Sliver& base, const size_t offset,
-                           const size_t length)
+Sliver::Sliver(const Sliver& base, const size_t offset, const size_t length)
     : m_data(base.m_data),
       // This sliver starts offset bytes from the offset of its base.
       m_offset(base.m_offset + offset),
@@ -62,7 +65,7 @@ Blockchain::Sliver::Sliver(const Sliver& base, const size_t offset,
 /**
  * Get the byte at `offset` in this sliver.
  */
-uint8_t Blockchain::Sliver::operator[](const size_t offset) const {
+uint8_t Sliver::operator[](const size_t offset) const {
   // This offset must be within this sliver.
   assert(offset < m_length);
 
@@ -76,25 +79,23 @@ uint8_t Blockchain::Sliver::operator[](const size_t offset) const {
  * (or its base) still owns the data, so ensure that the lifetime of this Sliver
  * (or its base) is at least as long as the lifetime of the returned pointer.
  */
-uint8_t* Blockchain::Sliver::data() const { return m_data.get() + m_offset; }
+uint8_t* Sliver::data() const { return m_data.get() + m_offset; }
 
 /**
  * Create a subsliver. Syntactic sugar for cases where a function call is more
  * natural than using the sub-sliver constructor directly.
  */
-Blockchain::Sliver Blockchain::Sliver::subsliver(const size_t offset,
-                                                 const size_t length) const {
-  return Blockchain::Sliver(*this, offset, length);
+Sliver Sliver::subsliver(const size_t offset, const size_t length) const {
+  return Sliver(*this, offset, length);
 }
 
-size_t Blockchain::Sliver::length() const { return m_length; }
+size_t Sliver::length() const { return m_length; }
 
-std::ostream& Blockchain::Sliver::operator<<(std::ostream& s) const {
+std::ostream& Sliver::operator<<(std::ostream& s) const {
   return hexPrint(s, data(), length());
 }
 
-std::ostream& Blockchain::operator<<(std::ostream& s,
-                                     const Blockchain::Sliver& sliver) {
+std::ostream& operator<<(std::ostream& s, const Sliver& sliver) {
   return sliver.operator<<(s);
 }
 
@@ -102,7 +103,7 @@ std::ostream& Blockchain::operator<<(std::ostream& s,
  * Slivers are == if their lengths are the same, and each byte of their data is
  * the same.
  */
-bool Blockchain::Sliver::operator==(const Sliver& other) const {
+bool Sliver::operator==(const Sliver& other) const {
   // This could be just "compare(other) == 0", but the short-circuit of checking
   // lengths first can save us many cycles in some cases.
   return length() == other.length() &&
@@ -115,7 +116,7 @@ bool Blockchain::Sliver::operator==(const Sliver& other) const {
  *  - -1 if bytes are the same, but a is shorter
  *  - 1 if bytes are the same, but a is longer
  */
-int Blockchain::Sliver::compare(const Sliver& other) const {
+int Sliver::compare(const Sliver& other) const {
   int comp = memcmp(data(), other.data(), std::min(length(), other.length()));
   if (comp == 0) {
     if (length() < other.length()) {
@@ -126,3 +127,6 @@ int Blockchain::Sliver::compare(const Sliver& other) const {
   }
   return comp;
 }
+
+}  // namespace consensus
+}  // namespace concord

@@ -3,9 +3,11 @@
 // KV Blockchain client implementation.
 
 #include "ClientImp.h"
+
 #include "CommFactory.hpp"
 
-namespace Blockchain {
+namespace concord {
+namespace consensus {
 
 /**
  * in current impl, no start semantics needed
@@ -48,7 +50,7 @@ Status ClientImp::invokeCommandSynch(const char *request, uint32_t requestSize,
     return Status::InvalidArgument("small buffer");
 }
 
-IClient *createClient(Blockchain::CommConfig &commConfig,
+IClient *createClient(CommConfig &commConfig,
                       const ClientConsensusConfig &conf) {
   return new ClientImp(commConfig, conf);
 }
@@ -58,8 +60,7 @@ void release(IClient *r) {
   delete p;
 }
 
-ClientImp::ClientImp(Blockchain::CommConfig &commConfig,
-                     const ClientConsensusConfig &conf)
+ClientImp::ClientImp(CommConfig &commConfig, const ClientConsensusConfig &conf)
     : m_status(Idle) {
   ICommunication *comm = nullptr;
   if (commConfig.commType == "tls") {
@@ -91,4 +92,5 @@ ClientImp::~ClientImp() {
   if (m_SeqNumGenerator) delete m_SeqNumGenerator;
 }
 
-}  // namespace Blockchain
+}  // namespace consensus
+}  // namespace concord

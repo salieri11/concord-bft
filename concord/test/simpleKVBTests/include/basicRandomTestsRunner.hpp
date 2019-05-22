@@ -23,7 +23,8 @@ namespace BasicRandomTests {
 class BasicRandomTestsRunner {
  public:
   BasicRandomTestsRunner(concordlogger::Logger &logger,
-                         Blockchain::IClient &client, size_t numOfOperations);
+                         concord::consensus::IClient &client,
+                         size_t numOfOperations);
   ~BasicRandomTestsRunner() { delete testsBuilder_; }
   void run();
 
@@ -35,7 +36,7 @@ class BasicRandomTestsRunner {
 
  private:
   concordlogger::Logger &logger_;
-  Blockchain::IClient &client_;
+  concord::consensus::IClient &client_;
   const size_t numOfOperations_;
   TestsBuilder *testsBuilder_;
 };

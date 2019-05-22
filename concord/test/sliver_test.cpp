@@ -11,7 +11,7 @@
 #include "gtest/gtest.h"
 
 using namespace std;
-using Blockchain::Sliver;
+using concord::consensus::Sliver;
 
 namespace {
 

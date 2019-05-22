@@ -1,10 +1,15 @@
 // Copyright (c) 2018 VMware. All rights reserved.
 
-#include <ostream>
-
 #include "status.hpp"
 
-std::ostream& Blockchain::operator<<(std::ostream& s,
-                                     Blockchain::Status const& status) {
+#include <ostream>
+
+namespace concord {
+namespace consensus {
+
+std::ostream& operator<<(std::ostream& s, Status const& status) {
   return status.operator<<(s);
 }
+
+}  // namespace consensus
+}  // namespace concord

@@ -2,11 +2,12 @@
 //
 // Storage key comparators implementation.
 
+#include "Comparators.h"
+
 #include <log4cplus/loggingmacros.h>
 
 #include "BlockchainDBAdapter.h"
 #include "BlockchainInterfaces.h"
-#include "Comparators.h"
 #include "HexTools.h"
 #include "RocksDBClient.h"
 #include "sliver.hpp"
@@ -15,8 +16,8 @@
 
 using log4cplus::Logger;
 
-/* Comparators start */
-namespace Blockchain {
+namespace concord {
+namespace consensus {
 
 /*
  * If key a is earlier than key b, return a negative number; if larger, return a
@@ -29,8 +30,7 @@ namespace Blockchain {
 int RocksKeyComparator::ComposedKeyComparison(const Logger& logger,
                                               const Sliver& _a,
                                               const Sliver& _b) {
-  // TODO(BWF): see note about multiple bytes in
-  // Blockchain::extractTypeFromKey
+  // TODO(BWF): see note about multiple bytes in extractTypeFromKey
   char aType = KeyManipulator::extractTypeFromKey(_a);
   char bType = KeyManipulator::extractTypeFromKey(_b);
   if (aType != bType) {
@@ -115,4 +115,6 @@ bool RocksKeyComparator::InMemKeyComp(const Logger& logger, const Sliver& _a,
   // Check: comp < 0 ==> _a < _b
   return comp < 0;
 }
-}  // namespace Blockchain
+
+}  // namespace consensus
+}  // namespace concord

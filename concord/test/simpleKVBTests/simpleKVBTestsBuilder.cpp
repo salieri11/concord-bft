@@ -25,18 +25,18 @@ using std::list;
 using std::map;
 using std::set;
 
+using concord::consensus::BlockId;
+using concord::consensus::IClient;
+
 const int NUMBER_OF_KEYS = 200;
 const int CONFLICT_DISTANCE = 49;
 const int MAX_WRITES_IN_REQ = 12;
 const int MAX_READ_SET_SIZE_IN_REQ = 10;
 const int MAX_READS_IN_REQ = 12;
 
-using namespace Blockchain;
-
 namespace BasicRandomTests {
 
-TestsBuilder::TestsBuilder(concordlogger::Logger &logger,
-                           Blockchain::IClient &client)
+TestsBuilder::TestsBuilder(concordlogger::Logger &logger, IClient &client)
     : logger_(logger), client_(client) {
   prevLastBlockId_ = getInitialLastBlockId();
   lastBlockId_ = prevLastBlockId_;
@@ -51,7 +51,7 @@ TestsBuilder::~TestsBuilder() {
 
 // When working with persistent KVB, we need to retrieve current last block-id
 // and all written keys before starting.
-Blockchain::BlockId TestsBuilder::getInitialLastBlockId() {
+BlockId TestsBuilder::getInitialLastBlockId() {
   auto *request = SimpleGetLastBlockRequest::alloc();
   request->header.type = GET_LAST_BLOCK;
 

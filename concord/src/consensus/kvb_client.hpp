@@ -1,6 +1,6 @@
 // Copyright 2018 VMware, all rights reserved
 //
-// Layer between api_connection and Blockchain::IClient
+// Layer between api_connection and IClient
 
 #ifndef CONSENSUS_KVB_CLIENT_HPP
 #define CONSENSUS_KVB_CLIENT_HPP
@@ -17,19 +17,19 @@ namespace consensus {
 
 class KVBClient {
  private:
-  Blockchain::IClient *client_;
+  IClient *client_;
   log4cplus::Logger logger_;
   static constexpr size_t OUT_BUFFER_SIZE = 512000;
   char m_outBuffer[OUT_BUFFER_SIZE];
 
  public:
-  KVBClient(Blockchain::IClient *client)
+  KVBClient(IClient *client)
       : client_(client),
         logger_(log4cplus::Logger::getInstance("com.vmware.concord")) {}
 
   ~KVBClient() {
     client_->stop();
-    Blockchain::release(client_);
+    release(client_);
   }
 
   bool send_request_sync(com::vmware::concord::ConcordRequest &req,

@@ -14,7 +14,12 @@
 #include "gtest/gtest.h"
 
 using namespace std;
-using namespace Blockchain;
+
+using concord::consensus::KeysVector;
+using concord::consensus::RocksDBClient;
+using concord::consensus::RocksKeyComparator;
+using concord::consensus::SetOfKeyValuePairs;
+using concord::consensus::Status;
 
 namespace {
 

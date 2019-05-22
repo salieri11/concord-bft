@@ -18,11 +18,12 @@
 #include "consensus/kvb/BlockchainInterfaces.h"
 #include "simpleKVBTestsBuilder.hpp"
 
-class InternalCommandsHandler : public Blockchain::ICommandsHandler {
+class InternalCommandsHandler : public concord::consensus::ICommandsHandler {
  public:
-  InternalCommandsHandler(Blockchain::ILocalKeyValueStorageReadOnly *storage,
-                          Blockchain::IBlocksAppender *blocksAppender,
-                          concordlogger::Logger &logger)
+  InternalCommandsHandler(
+      concord::consensus::ILocalKeyValueStorageReadOnly *storage,
+      concord::consensus::IBlocksAppender *blocksAppender,
+      concordlogger::Logger &logger)
       : m_storage(storage),
         m_blocksAppender(blocksAppender),
         m_logger(logger) {}
@@ -52,15 +53,15 @@ class InternalCommandsHandler : public Blockchain::ICommandsHandler {
   bool executeGetLastBlockCommand(uint32_t requestSize, size_t maxReplySize,
                                   char *outReply, uint32_t &outReplySize);
 
-  void addMetadataKeyValue(Blockchain::SetOfKeyValuePairs &updates,
+  void addMetadataKeyValue(concord::consensus::SetOfKeyValuePairs &updates,
                            uint64_t sequenceNum) const;
 
  private:
-  static Blockchain::Sliver buildSliverFromStaticBuf(char *buf);
+  static concord::consensus::Sliver buildSliverFromStaticBuf(char *buf);
 
  private:
-  Blockchain::ILocalKeyValueStorageReadOnly *m_storage;
-  Blockchain::IBlocksAppender *m_blocksAppender;
+  concord::consensus::ILocalKeyValueStorageReadOnly *m_storage;
+  concord::consensus::IBlocksAppender *m_blocksAppender;
   concordlogger::Logger &m_logger;
   size_t m_readsCounter = 0;
   size_t m_writesCounter = 0;
