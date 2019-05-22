@@ -54,7 +54,7 @@ public class ConsortiumController {
      * @return
      */
     @RequestMapping(path = "/api/consortiums", method = RequestMethod.GET)
-    public ResponseEntity<List<ConGetResponse>> listOrgs() {
+    public ResponseEntity<List<ConGetResponse>> lisCons() {
         List<Consortium> orgs = consortiumService.list();
         List<ConGetResponse> rList = orgs.stream().map(c -> new ConGetResponse(c.getId(), c.getConsortiumName()))
                 .collect(Collectors.toList());
@@ -66,7 +66,7 @@ public class ConsortiumController {
      * @return
      */
     @RequestMapping(path = "/api/consortiums/{con_id}", method = RequestMethod.GET)
-    public ResponseEntity<ConGetResponse> getOrg(@PathVariable("con_id") UUID consortiumId) {
+    public ResponseEntity<ConGetResponse> getCon(@PathVariable("con_id") UUID consortiumId) {
         Consortium consortium = consortiumService.get(consortiumId);
         return new ResponseEntity<>(new ConGetResponse(consortium.getId(), consortium.getConsortiumName()), HttpStatus.OK);
     }
@@ -77,7 +77,7 @@ public class ConsortiumController {
      * @return the new consortium
      */
     @RequestMapping(path = "/api/consortiums", method = RequestMethod.POST)
-    public ResponseEntity<ConGetResponse> createOrg(@RequestBody ConPostBody body) {
+    public ResponseEntity<ConGetResponse> createCOn(@RequestBody ConPostBody body) {
         Consortium consortium = new Consortium(body.getConsortiumName());
         consortium = consortiumService.put(consortium);
         return new ResponseEntity<>(new ConGetResponse(consortium.getId(), consortium.getConsortiumName()), HttpStatus.OK);
@@ -89,7 +89,7 @@ public class ConsortiumController {
      * @return the new consortium
      */
     @RequestMapping(path = "/api/consortiums/{con_id}", method = RequestMethod.PATCH)
-    public ResponseEntity<ConGetResponse> updateOrg(@PathVariable("con_id") UUID consortiumId, @RequestBody ConPostBody body) {
+    public ResponseEntity<ConGetResponse> updateCon(@PathVariable("con_id") UUID consortiumId, @RequestBody ConPostBody body) {
         Consortium consortium = consortiumService.get(consortiumId);
         if (body.consortiumName != null) {
             consortium.setConsortiumName(body.getConsortiumName());
