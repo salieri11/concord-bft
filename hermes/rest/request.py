@@ -302,6 +302,18 @@ class Request():
 
       return self._send()
 
+   def getAllContractVersions(self, blockchainId, contractId):
+      '''
+      Returns all versions of a contract.
+      '''
+      self._subPath = "/api/blockchains/" + blockchainId + "/concord/contracts/" \
+                      + contractId
+      self._params = ""
+      self._endpointName = "getAllContractVersions"
+      self._data = None
+
+      return self._send()
+
    def getContractVersion(self, blockchainId, contractId, contractVersion):
       '''
       Returns a contract.

@@ -110,8 +110,6 @@ class HelenAPITests(test_suite.TestSuite):
 
    def _getTests(self):
       return [("getCerts", self._test_getCerts), \
-              ("get_versions", self._test_getAllVersions), \
-              ("get_version", self._test_getVersion), \
               ("block_hash", self._test_blockHash), \
               ("invalid_block_hash", self._test_invalidBlockHash), \
               ("get_transaction_list", self._test_getTransactionList), \
@@ -298,40 +296,6 @@ class HelenAPITests(test_suite.TestSuite):
    #       return (True, None)
    #    else:
    #       return (False, "Transaction send to uploaded contract failed")
-
-   def _test_getAllVersions(self, request):
-      blockchainId = request.getABlockchainId()
-      contractId, contractVersion = self.upload_hello_contract(blockchainId, request)
-      result = self.upload_contract(blockchainId, request,
-                                    "resources/contracts/HelloWorld.sol",
-                                    "HelloWorld",
-                                    contractId = contractId,
-                                    generateDefaults=True)
-
-      uri = '/api/concord/contracts/' + contractId
-      expectedVersionCount = 2
-      result = request.callContractAPI(uri, "")
-      if (result["contract_id"] == contractId and
-          len(result["versions"]) == expectedVersionCount):
-         return (True, None)
-      else:
-         return (False,
-                 "GET /api/concord/contracts/{} did not return correct response" \
-                 " expected {} versions".format(contractId, expectedVersionCount))
-
-   def _test_getVersion(self, request):
-      blockchainId = request.getABlockchainId()
-      contractId, contractVersion = self.upload_hello_contract(blockchainId, request)
-      uri = '/api/concord/contracts/' + contractId \
-            + '/versions/' + contractVersion
-      result = request.callContractAPI(uri, "")
-      if (result["contract_id"] == contractId and
-          result["version"] == contractVersion):
-         return (True, None)
-      else:
-         return (False,
-                 "GET /api/concord/contracts/{}/versions/{} did not return" \
-                 " correct response".format(contractId, contractVersion))
 
    def _mock_transaction(self, request, data = "0x00", ethrpcNode = None, nonce = None):
       ethrpcApiUrl = ethrpcNode if ethrpcNode else self.ethrpcApiUrl

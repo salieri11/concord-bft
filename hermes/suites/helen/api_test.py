@@ -1,3 +1,4 @@
+import difflib
 import inspect
 import json
 import logging
@@ -29,13 +30,16 @@ apiTests = []
 # So the pytest fixture will display sensible names.
 apiTestNames = []
 
-# HelloWorld.sol's hello function
+# These can be generated with https://emn178.github.io/online-tools/keccak_256.html
+# hello()
 helloFunction = "0x19ff1d21"
+# howdy()
+howdyFunction = "0x362810fd"
 
-# "Hello, World!" hex-encoded ASCII
+# These can be generated with https://www.rapidtables.com/convert/number/ascii-to-hex.html
+# "Hello, World!"
 helloHex = "48656c6c6f2c20576f726c6421"
-
-# "Howdy, World!" hex-encoded ASCII
+# "Howdy, World!"
 howdyHex = "486f7764792c20576f726c6421"
 
 # A user.  This will only work until CSP is implemented and
@@ -44,6 +48,11 @@ fromUser = "0x1111111111111111111111111111111111111111"
 
 # The compiler version passed to Helen when uploading contracts.
 compilerVersion = "v0.5.2+commit.1df8f40c"
+
+# Automation's contract and version IDs are generated with random_string_generator(),
+# which creates strings of six uppercase characters and digits.
+nonexistantContractId = "aaaaaaaaaaaaaaaaaaaa"
+nonexistantVersionId = "bbbbbbbbbbbbbbbbbbbb"
 
 # Ideally this would be a fixture.  However, fixtures and
 # parametrize decorations don't play well together.  (There
@@ -445,6 +454,41 @@ def validateContractFields(testObj, blockchainId, contractId, contractVersion):
    # assert testObj["url"] == "/api/blockchains/" + blockchainId + "/concord/contracts/" + \
    #    contractId + "/versions/" + contractVersion
    assert len(testObj.keys()) == 3
+
+
+def verifyContractVersionFields(blockchainId, request, actualDetails, expectedDetails, expectedVersion,
+                                testFunction, testFunctionExpectedResult):
+   '''
+   Verify the details of a specific contract version.
+   expectedVersion varies with every test case, so is determined at run time and passed in.
+   actualDetails is a dictionary of all of the other contract values such as the
+   abi, devdoc, compiler, etc...
+   expectedDetails is loaded from a file and compared to actualDetails.
+   testFunction and testFunctionExpectedResult are the hex encoded function to verify the
+   address and the expected result.
+   '''
+   rpc = createRPC(request, blockchainId)
+   contractCallResult = rpc.callContract(actualDetails["address"], data=testFunction)
+   assert testFunctionExpectedResult in contractCallResult, "The test function {} returned an expected result without {}".format(testFunction, testFunctionExpectedResult)
+
+   assert actualDetails["version"] == expectedVersion, \
+      "Version was {}, expected {}".format(actualDetails["version"], contractVersion)
+
+   # Do a text diff on the rest of the fields.  Remove the items which always differ
+   # first.
+   del actualDetails["address"]
+   del expectedDetails["address"]
+   del actualDetails["version"]
+   del expectedDetails["version"]
+
+   result = json.dumps(actualDetails, sort_keys=True, indent=2).split("\n")
+   expectedResult = json.dumps(expectedDetails, sort_keys=True, indent=2).split("\n")
+   diffs = ""
+
+   for line in difflib.unified_diff(result, expectedResult, lineterm=""):
+      diffs += line + "\n"
+
+   assert not diffs, "Differences found in details: {}".format(diffs)
 
 
 # Runs all of the tests from helen_api_tests.py.
@@ -1027,12 +1071,12 @@ def test_postContract_simple(restRequest):
 
 
 @pytest.mark.smoke
+#@pytest.mark.skip(reason="VB-857")
 def test_postContract_constructor(restRequest):
    '''
    Post a contract with a constructor and run it.
    The constructor data must be even length hex string, no 0x prefix.
    (It gets appended to the bytecode.)
-   VB-857
    '''
    blockchainId = restRequest.getABlockchainId()
    contractId = suiteObject.random_string_generator()
@@ -1170,11 +1214,10 @@ def test_postContract_multiple_second(restRequest):
    assert helloHex not in contract["bytecode"], "HelloWorld! should not be in the bytecode."
 
 
-@pytest.mark.skip
+@pytest.mark.skip(reason="VB-850")
 def test_postContract_noContractId(restRequest):
    '''
    Try to submit a contract without an ID.
-   VB-850
    '''
    blockchainId = restRequest.getABlockchainId()
    contractVersion = suiteObject.random_string_generator()
@@ -1190,11 +1233,10 @@ def test_postContract_noContractId(restRequest):
                                                 generateDefaults=False)
 
 
-@pytest.mark.skip
+@pytest.mark.skip(reason="VB-850")
 def test_postContract_noContractVersion(restRequest):
    '''
    Try to submit a contract without a version.
-   VB-850
    '''
    blockchainId = restRequest.getABlockchainId()
    contractId = suiteObject.random_string_generator()
@@ -1210,11 +1252,10 @@ def test_postContract_noContractVersion(restRequest):
                                                 generateDefaults=False)
 
 
-@pytest.mark.skip
+@pytest.mark.skip(reason="VB-851")
 def test_postContract_noContractFrom(restRequest):
    '''
    Try to submit a contract without a "from".
-   VB-851
    '''
    blockchainId = restRequest.getABlockchainId()
    contractId = suiteObject.random_string_generator()
@@ -1232,11 +1273,10 @@ def test_postContract_noContractFrom(restRequest):
    contract = restRequest.getContractVersion(blockchainId, contractId, contractVersion)
 
 
-@pytest.mark.skip
+@pytest.mark.skip(reason="VB-847")
 def test_postContract_noContractSource(restRequest):
    '''
    Try to submit a contract without source code.
-   VB-847
    '''
    blockchainId = restRequest.getABlockchainId()
    contractId = suiteObject.random_string_generator()
@@ -1254,11 +1294,10 @@ def test_postContract_noContractSource(restRequest):
    contract = restRequest.getContractVersion(blockchainId, contractId, contractVersion)
 
 
-@pytest.mark.skip
+@pytest.mark.skip(reason="VB-854")
 def test_postContract_noContractName(restRequest):
    '''
    Try to submit a contract without a name.
-   VB-854
    '''
    blockchainId = restRequest.getABlockchainId()
    contractId = suiteObject.random_string_generator()
@@ -1276,12 +1315,11 @@ def test_postContract_noContractName(restRequest):
    contract = restRequest.getContractVersion(blockchainId, contractId, contractVersion)
 
 
-@pytest.mark.skip
+@pytest.mark.skip(reason="VB-853")
 def test_postContract_noContractConstructor(restRequest):
    '''
    Try to submit a contract without constructor parameters when the
    constructor requires one.
-   VB-853
    '''
    blockchainId = restRequest.getABlockchainId()
    contractId = suiteObject.random_string_generator()
@@ -1301,11 +1339,10 @@ def test_postContract_noContractConstructor(restRequest):
    assert helloHex in result, "Simple uploaded contract not executed correctly."
 
 
-@pytest.mark.skip
+@pytest.mark.skip(reason="VB-854")
 def test_postContract_noContractCompilerVersion(restRequest):
    '''
    Try to submit a contract without a compiler version.
-   VB-854
    '''
    blockchainId = restRequest.getABlockchainId()
    contractId = suiteObject.random_string_generator()
@@ -1399,3 +1436,327 @@ def test_postContract_newContractDuplicateVersion(restRequest):
    contract = restRequest.getContractVersion(blockchainId, contractId, contractVersion)
    assert howdyHex in contract["bytecode"], "HowdyWorld! should be in the bytecode."
    assert helloHex not in contract["bytecode"], "HelloWorld! should not be in the bytecode."
+
+
+@pytest.mark.smoke
+def test_getContractById_idInvalid(restRequest):
+   '''
+   Try to get a contract by ID when the ID is invalid.
+   '''
+   blockchainId = restRequest.getABlockchainId()
+   result = restRequest.getAllContractVersions(blockchainId, nonexistantContractId)
+   expectedPath = "/api/blockchains/{}/concord/contracts/{}".format(blockchainId, nonexistantContractId)
+
+   assert result["error_code"] == "NotFoundException", \
+      "Error code was {}, expected {}".format(result["error_code"], code)
+
+   assert result["error_message"] == "Contract not found: {}".format(nonexistantContractId), \
+      "Error message was {}, expected {}".format(result["error_message"], message)
+
+   assert result["status"] == 404, \
+      "Status was {}, expected {}".format(result["status"], status)
+
+   assert result["path"] == expectedPath, \
+      "Path was {}, expected {}".format(result["path"], expectedPath)
+
+
+@pytest.mark.smoke
+def test_getContractById_oneVersion(restRequest):
+   '''
+   Upload one version of a contract, get it with /contracts/{id}, and
+   verify that it is correct.
+   '''
+   blockchainId = restRequest.getABlockchainId()
+   contractId = suiteObject.random_string_generator()
+   contractVersion = suiteObject.random_string_generator()
+   suiteObject.upload_contract(blockchainId, restRequest,
+                               "resources/contracts/HelloWorldMultipleWithDoc.sol",
+                               "HelloWorld",
+                               contractId=contractId,
+                               contractVersion=contractVersion)
+   helloExpectedDetails = util.json_helper.readJsonFile("resources/contracts/HelloWorldMultiple_helloExpectedData.json")
+   result = restRequest.getAllContractVersions(blockchainId, contractId)
+
+   # These are properties of the contract, not versions.
+   assert result["contract_id"] == contractId, \
+      "Contract ID was {}, expected {}".format(result["contract_id"], contractId)
+
+   assert result["owner"] == fromUser, \
+      "Contract user was {}, expected {}".format(result["owner"], fromUser)
+
+   assert len(result["versions"]) == 1, \
+      "Contract should have had one version, actually had {}".format(len(result["versions"]))
+
+   # The data returned from this call doesn't include the bytecode or sourcecode fields.
+   assert not hasattr(result["versions"][0], "bytecode"), \
+      "Did not expect to find the bytecode field."
+   assert not hasattr(result["versions"][0], "sourcecode"), \
+      "Did not expect to find the sourcecode field."
+   del helloExpectedDetails["bytecode"]
+   del helloExpectedDetails["sourcecode"]
+
+   verifyContractVersionFields(blockchainId,
+                               restRequest,
+                               result["versions"][0],
+                               helloExpectedDetails,
+                               contractVersion,
+                               helloFunction,
+                               helloHex)
+
+
+@pytest.mark.smoke
+def test_getContractById_multipleVersions(restRequest):
+   '''
+   Upload multiple versions of a contract, get all of them in one call with /contracts/{id},
+   and verify that they are correct.
+   '''
+   blockchainId = restRequest.getABlockchainId()
+   contractId = suiteObject.random_string_generator()
+   helloVersion = suiteObject.random_string_generator()
+
+   # Send Hello.
+   suiteObject.upload_contract(blockchainId, restRequest,
+                               "resources/contracts/HelloWorldMultipleWithDoc.sol",
+                               "HelloWorld",
+                               contractId=contractId,
+                               contractVersion=helloVersion,
+                               optimize=False)
+   helloExpectedDetails = util.json_helper.readJsonFile\
+                          ("resources/contracts/HelloWorldMultiple_helloExpectedData.json")
+
+   # Send Howdy as a new version of the same contract.
+   howdyVersion = suiteObject.random_string_generator(mustNotMatch=helloVersion)
+   suiteObject.upload_contract(blockchainId, restRequest,
+                               "resources/contracts/HelloWorldMultipleWithDoc.sol",
+                               "HowdyWorld",
+                               contractId=contractId,
+                               contractVersion=howdyVersion,
+                               optimize=True,
+                               runs=100)
+   howdyExpectedDetails = util.json_helper.readJsonFile\
+                          ("resources/contracts/HelloWorldMultiple_howdyExpectedData.json")
+   result = restRequest.getAllContractVersions(blockchainId, contractId)
+
+   # These are properties of the contract.
+   assert result["contract_id"] == contractId, \
+      "Contract ID was {}, expected {}".format(result["contract_id"], contractId)
+
+   assert result["owner"] == fromUser, \
+      "Contract user was {}, expected {}".format(result["owner"], fromUser)
+
+   assert len(result["versions"]) == 2, \
+      "Contract should have had two versions, actually had {}".format(len(result["versions"]))
+
+   # The data returned from this call doesn't include the bytecode or sourcecode fields.
+   assert not hasattr(result["versions"][0], "bytecode"), \
+      "Did not expect to find the bytecode field."
+   assert not hasattr(result["versions"][0], "sourcecode"), \
+      "Did not expect to find the sourcecode field."
+   del helloExpectedDetails["bytecode"]
+   del helloExpectedDetails["sourcecode"]
+   verifyContractVersionFields(blockchainId,
+                               restRequest,
+                               result["versions"][0],
+                               helloExpectedDetails,
+                               helloVersion,
+                               helloFunction,
+                               helloHex)
+
+   assert not hasattr(result["versions"][1], "bytecode"), \
+      "Did not expect to find the bytecode field."
+   assert not hasattr(result["versions"][1], "sourcecode"), \
+      "Did not expect to find the sourcecode field."
+   del howdyExpectedDetails["bytecode"]
+   del howdyExpectedDetails["sourcecode"]
+   verifyContractVersionFields(blockchainId,
+                               restRequest,
+                               result["versions"][1],
+                               howdyExpectedDetails,
+                               howdyVersion,
+                               howdyFunction,
+                               howdyHex)
+
+@pytest.mark.smoke
+def test_getContractVersionById_oneVersion(restRequest):
+   '''
+   Upload one version of a contract, fetch it with /contract/{id}/version/{id}, and
+   verify that the fields are correct.
+   '''
+   blockchainId = restRequest.getABlockchainId()
+   contractId = suiteObject.random_string_generator()
+   contractVersion = suiteObject.random_string_generator()
+   suiteObject.upload_contract(blockchainId, restRequest,
+                               "resources/contracts/HelloWorldMultipleWithDoc.sol",
+                               "HelloWorld",
+                               contractId=contractId,
+                               contractVersion=contractVersion,
+                               optimize=False)
+   result = restRequest.getContractVersion(blockchainId, contractId, contractVersion)
+
+   # These are in the contract part of the structure when fetching all versions of a contract.
+   # When fetching version info, they are included with the version.
+   assert result["contract_id"] == contractId, \
+      "Contract ID was {}, expected {}".format(result["contract_id"], contractId)
+   del result["contract_id"]
+
+   assert result["owner"] == fromUser, \
+      "Contract user was {}, expected {}".format(result["owner"], fromUser)
+   del result["owner"]
+
+   helloExpectedDetails = util.json_helper.readJsonFile("resources/contracts/HelloWorldMultiple_helloExpectedData.json")
+
+   verifyContractVersionFields(blockchainId,
+                               restRequest,
+                               result,
+                               helloExpectedDetails,
+                               contractVersion,
+                               helloFunction,
+                               helloHex)
+
+
+@pytest.mark.smoke
+def test_getContractVersionById_firstVersion(restRequest):
+   '''
+   Upload multiple versions of a contract, fetch the first with /contract/{id}/version/{id}, and
+   verify that the fields are correct.
+   '''
+   blockchainId = restRequest.getABlockchainId()
+   contractId = suiteObject.random_string_generator()
+   helloVersion = suiteObject.random_string_generator()
+   howdyVersion = suiteObject.random_string_generator(mustNotMatch=helloVersion)
+   suiteObject.upload_contract(blockchainId, restRequest,
+                               "resources/contracts/HelloWorldMultipleWithDoc.sol",
+                               "HelloWorld",
+                               contractId=contractId,
+                               contractVersion=helloVersion,
+                               optimize=False)
+   suiteObject.upload_contract(blockchainId, restRequest,
+                               "resources/contracts/HelloWorldMultipleWithDoc.sol",
+                               "HelloWorld",
+                               contractId=contractId,
+                               contractVersion=howdyVersion,
+                               optimize=False)
+   result = restRequest.getContractVersion(blockchainId, contractId, helloVersion)
+
+   # These are in the contract part of the structure when fetching all versions of a contract.
+   # When fetching version info, they are included with the version.
+   assert result["contract_id"] == contractId, \
+      "Contract ID was {}, expected {}".format(result["contract_id"], contractId)
+   del result["contract_id"]
+
+   assert result["owner"] == fromUser, \
+      "Contract user was {}, expected {}".format(result["owner"], fromUser)
+   del result["owner"]
+
+   helloExpectedDetails = util.json_helper.readJsonFile("resources/contracts/HelloWorldMultiple_helloExpectedData.json")
+
+   verifyContractVersionFields(blockchainId,
+                               restRequest,
+                               result,
+                               helloExpectedDetails,
+                               helloVersion,
+                               helloFunction,
+                               helloHex)
+
+
+@pytest.mark.smoke
+def test_getContractVersionById_lastVersion(restRequest):
+   '''
+   Upload multiple versions of a contract, fetch the last with /contract/{id}/version/{id}, and
+   verify that the fields are correct.
+   '''
+   blockchainId = restRequest.getABlockchainId()
+   contractId = suiteObject.random_string_generator()
+   helloVersion = suiteObject.random_string_generator()
+   howdyVersion = suiteObject.random_string_generator(mustNotMatch=helloVersion)
+   suiteObject.upload_contract(blockchainId, restRequest,
+                               "resources/contracts/HelloWorldMultipleWithDoc.sol",
+                               "HelloWorld",
+                               contractId=contractId,
+                               contractVersion=helloVersion,
+                               optimize=False)
+   suiteObject.upload_contract(blockchainId, restRequest,
+                               "resources/contracts/HelloWorldMultipleWithDoc.sol",
+                               "HowdyWorld",
+                               contractId=contractId,
+                               contractVersion=howdyVersion,
+                               optimize=True,
+                               runs=100)
+   result = restRequest.getContractVersion(blockchainId, contractId, howdyVersion)
+
+   # These are in the contract part of the structure when fetching all versions of a contract.
+   # When fetching version info, they are included with the version.
+   assert result["contract_id"] == contractId, \
+      "Contract ID was {}, expected {}".format(result["contract_id"], contractId)
+   del result["contract_id"]
+
+   assert result["owner"] == fromUser, \
+      "Contract user was {}, expected {}".format(result["owner"], fromUser)
+   del result["owner"]
+
+   howdyExpectedDetails = util.json_helper.readJsonFile("resources/contracts/HelloWorldMultiple_howdyExpectedData.json")
+
+   verifyContractVersionFields(blockchainId,
+                               restRequest,
+                               result,
+                               howdyExpectedDetails,
+                               howdyVersion,
+                               howdyFunction,
+                               howdyHex)
+
+
+@pytest.mark.smoke
+def test_getContractVersionById_invalidVersion(restRequest):
+   '''
+   Pass an invalid version to /contracts/{id}/versions/{id}.
+   '''
+   blockchainId = restRequest.getABlockchainId()
+   contractId = suiteObject.random_string_generator()
+   contractVersion = suiteObject.random_string_generator()
+   suiteObject.upload_contract(blockchainId, restRequest,
+                               "resources/contracts/HelloWorldMultipleWithDoc.sol",
+                               "HelloWorld",
+                               contractId=contractId,
+                               contractVersion=contractVersion,
+                               optimize=False)
+   result = restRequest.getContractVersion(blockchainId, contractId, nonexistantVersionId)
+
+   assert result["error_code"] == "NotFoundException", \
+      "Expected a 'NotFoundException' error code, got '{}'".format(result["error_code"])
+   expectedMessage = "Contract version not found  {}:{}".format(contractId, nonexistantVersionId)
+   assert result["error_message"] == expectedMessage, \
+      "Expected error message '{}', got '{}'".format(expectedMessage, result["error_message"])
+   assert result["status"] == 404, \
+      "Expected status 404, received {}".format(result["status"])
+   expectedPath = "/api/blockchains/{}/concord/contracts/{}/versions/{}". \
+                  format(blockchainId, contractId, nonexistantVersionId)
+   assert result["path"] == expectedPath, \
+      "Expected path {}, received {}".format(expectedPath, result["path"])
+
+
+@pytest.mark.smoke
+def test_getContractVersionById_invalidContract(restRequest):
+   '''
+   Pass an invalid contract to /contracts/{id}/versions/{id}.
+   '''
+   blockchainId = restRequest.getABlockchainId()
+   contractId = suiteObject.random_string_generator()
+   contractVersion = suiteObject.random_string_generator()
+   suiteObject.upload_contract(blockchainId, restRequest,
+                               "resources/contracts/HelloWorldMultipleWithDoc.sol",
+                               "HelloWorld",
+                               contractId=contractId,
+                               contractVersion=contractVersion,
+                               optimize=False)
+   result = restRequest.getContractVersion(blockchainId, nonexistantContractId, contractVersion)
+   assert result["error_code"] == "NotFoundException", \
+      "Expected a 'NotFoundException' error code, got '{}'".format(result["error_code"])
+   expectedMessage = "Contract version not found  {}:{}".format(nonexistantContractId, contractVersion)
+   assert result["error_message"] == expectedMessage, \
+      "Expected error message '{}', got '{}'".format(expectedMessage, result["error_message"])
+   assert result["status"] == 404, \
+      "Expected status 404, received {}".format(result["status"])
+   expectedPath = "/api/blockchains/{}/concord/contracts/{}/versions/{}". \
+                  format(blockchainId, nonexistantContractId, contractVersion)
+   assert result["path"] == expectedPath, \
+      "Expected path {}, received {}".format(expectedPath, result["path"])
