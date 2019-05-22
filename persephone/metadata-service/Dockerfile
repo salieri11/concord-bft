@@ -7,15 +7,15 @@ COPY ./resources/checkstyle.xml ./persephone/resources/checkstyle.xml
 ## Copy the dependency-related POM files (rarely changing).
 COPY ./pom.xml ./persephone/pom.xml
 COPY ./api/pom.xml ./persephone/api/pom.xml
+COPY ./awsutil/pom.xml ./persephone/awsutil/pom.xml
 COPY ./cli/pom.xml ./persephone/cli/pom.xml
 COPY ./core/pom.xml ./persephone/core/pom.xml
-COPY ./awsutil/pom.xml ./persephone/awsutil/pom.xml
 COPY ./metadata-service/pom.xml ./persephone/metadata-service/pom.xml
 COPY ./metadata-service-client/pom.xml ./persephone/metadata-service-client/pom.xml
 COPY ./orchestration/pom.xml ./persephone/orchestration/pom.xml
 COPY ./orchestration-vmc/pom.xml ./persephone/orchestration-vmc/pom.xml
 COPY ./persistence/pom.xml ./persephone/persistence/pom.xml
-COPY ./provision-service/pom.xml ./persephone/provision-service/pom.xml
+COPY ./provisioning-service/pom.xml ./persephone/provisioning-service/pom.xml
 
 ## Copy the dependency module sources and POM files.
 COPY ./api/src ./persephone/api/src

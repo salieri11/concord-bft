@@ -4,6 +4,7 @@
 
 package com.vmware.blockchain.deployment.client;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -15,6 +16,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
+
+import javax.net.ssl.SSLException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,7 +33,9 @@ import com.vmware.blockchain.deployment.model.MessageHeader;
 
 import io.grpc.CallOptions;
 import io.grpc.ManagedChannel;
-import io.grpc.ManagedChannelBuilder;
+import io.grpc.netty.shaded.io.grpc.netty.GrpcSslContexts;
+import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder;
+import io.grpc.netty.shaded.io.netty.handler.ssl.SslContext;
 import io.grpc.stub.StreamObserver;
 
 /**
@@ -113,13 +118,13 @@ public class ModelServiceClient {
             return false;
         }
         if (argv[0].equals(ADD_MODEL)) {
-            if (argv.length != 5) {
+            if (argv.length != 6) {
                 return false;
             }
             isAddModel = true;
             return true;
         } else if (argv[0].equals(LiST_MODEL)) {
-            if (argv.length != 2) {
+            if (argv.length != 3) {
                 return false;
             }
             isAddModel = false;
@@ -129,13 +134,38 @@ public class ModelServiceClient {
     }
 
 
+    private static SslContext newSslContext(
+            String trustedCertificatesPath,
+            String certificateChainPath,
+            String privateKeyPath
+    ) throws SSLException {
+        return GrpcSslContexts.forClient()
+                .trustManager(new File(trustedCertificatesPath))
+                .keyManager(new File(certificateChainPath), new File(privateKeyPath))
+                .build();
+    }
+
     /**
      * The actual call which will contact server and add the model request.
      */
-    private static boolean addModel(String address, String version, String templateVersion, String images) {
+    private static boolean addModel(
+            String path,
+            String address,
+            String version,
+            String templateVersion,
+            String images
+    ) throws SSLException {
         try {
             // Create a channel
-            ManagedChannel channel = ManagedChannelBuilder.forTarget(address).usePlaintext().build();
+            ManagedChannel channel = NettyChannelBuilder.forTarget(address)
+                    .sslContext(
+                            newSslContext(
+                                  path + "/ca.crt",
+                                  path + "/client.crt",
+                                  path + "/client.pem"
+                            )
+                    )
+                    .build();
 
             // Create a blocking stub with the channel
             var client = new ConcordModelServiceStub(channel, CallOptions.DEFAULT);
@@ -175,10 +205,18 @@ public class ModelServiceClient {
         return true;
     }
 
-    private static boolean listModel(String address) {
+    private static boolean listModel(String path, String address) throws SSLException {
         try {
             // Create a channel
-            ManagedChannel channel = ManagedChannelBuilder.forTarget(address).usePlaintext().build();
+            ManagedChannel channel = NettyChannelBuilder.forTarget(address)
+                    .sslContext(
+                            newSslContext(
+                                    path + "/ca.crt",
+                                    path + "/client.crt",
+                                    path + "/client.pem"
+                            )
+                    )
+                    .build();
 
             // Create a blocking stub with the channel
             var client = new ConcordModelServiceStub(channel, CallOptions.DEFAULT);
@@ -218,16 +256,16 @@ public class ModelServiceClient {
     /**
      * Main - CLI utility function.
      */
-    public static void main(String[] argv) {
+    public static void main(String[] argv) throws SSLException {
         if (!parseInput(argv)) {
             System.out.println("Invalid arguments. Correct usage: " + USAGE);
             log.error("Invalid arguments. Correct usage: " + USAGE);
             return;
         }
         if (isAddModel) {
-            addModel(argv[1], argv[2], argv[3], argv[4]);
+            addModel(argv[1], argv[2], argv[3], argv[4], argv[5]);
         } else {
-            listModel(argv[1]);
+            listModel(argv[1], argv[2]);
         }
     }
 }
