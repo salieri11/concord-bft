@@ -17,6 +17,7 @@ Instruction on how to build, deploy and test Concord can be found [here](../READ
     └── kvb                  # Database connection library linked with the BFT engine
         └── CMakeLists.txt
 ├── ethereum                 # Interface between Concord and EVMJIT
+    └── CMakeLists.txt
 ├── main.cpp
 ├── time                     # Time Service components
     └── CMakeLists.txt

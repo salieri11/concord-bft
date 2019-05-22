@@ -15,8 +15,10 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <fstream>
 #include <sstream>
+#include <string>
 #include "commonKVBTests.hpp"
 
 #define USE_ROCKSDB 1
@@ -26,13 +28,11 @@
 #endif
 
 #include "Logging.hpp"
-#include "blockchain/kvb_storage.hpp"
 #include "consensus/kvb/Comparators.h"
 #include "consensus/kvb/RocksDBClient.h"
 #include "consensus/kvb/RocksDBMetadataStorage.hpp"
 
 using namespace Blockchain;
-using namespace concord::blockchain;
 using namespace bftEngine;
 
 std::stringstream dbPath;
@@ -62,7 +62,7 @@ void printUsageAndExit(char **argv) {
 }
 
 void setupDBEditorParams(int argc, char **argv) {
-  string valStr;
+  std::string valStr;
   char argTempBuffer[PATH_MAX + 10];
   int o = 0;
   int tempNum = 0;
@@ -187,7 +187,7 @@ int main(int argc, char **argv) {
     default:;
   }
 
-  string result = res ? "success" : "fail";
+  std::string result = res ? "success" : "fail";
   LOG_INFO(logger, "*** Operation completed with result: " << result);
   dbClient->close();
   return res;

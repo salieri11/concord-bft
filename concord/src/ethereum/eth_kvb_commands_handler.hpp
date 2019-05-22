@@ -55,61 +55,49 @@ class EthKvbCommandsHandler : public Blockchain::ICommandsHandler {
 
   // Handlers
   bool handle_transaction_request(
-      com::vmware::concord::ConcordRequest &athreq,
-      concord::blockchain::KVBStorage &kvbStorage,
+      com::vmware::concord::ConcordRequest &athreq, EthKvbStorage &kvbStorage,
       com::vmware::concord::ConcordResponse &athresp) const;
   bool handle_transaction_list_request(
-      com::vmware::concord::ConcordRequest &athreq,
-      concord::blockchain::KVBStorage &kvbStorage,
+      com::vmware::concord::ConcordRequest &athreq, EthKvbStorage &kvbStorage,
       com::vmware::concord::ConcordResponse &athresp) const;
   bool handle_logs_request(
-      com::vmware::concord::ConcordRequest &athreq,
-      concord::blockchain::KVBStorage &kvbStorage,
+      com::vmware::concord::ConcordRequest &athreq, EthKvbStorage &kvbStorage,
       com::vmware::concord::ConcordResponse &athresp) const;
   bool handle_block_list_request(
-      com::vmware::concord::ConcordRequest &athreq,
-      concord::blockchain::KVBStorage &kvbStorage,
+      com::vmware::concord::ConcordRequest &athreq, EthKvbStorage &kvbStorage,
       com::vmware::concord::ConcordResponse &athresp) const;
   bool handle_block_request(
-      com::vmware::concord::ConcordRequest &athreq,
-      concord::blockchain::KVBStorage &kvbStorage,
+      com::vmware::concord::ConcordRequest &athreq, EthKvbStorage &kvbStorage,
       com::vmware::concord::ConcordResponse &athresp) const;
   bool handle_time_update(com::vmware::concord::ConcordRequest &athreq,
-                          concord::blockchain::KVBStorage &kvbStorage,
+                          EthKvbStorage &kvbStorage,
                           com::vmware::concord::ConcordResponse &athresp) const;
   bool handle_eth_request(com::vmware::concord::ConcordRequest &athreq,
-                          concord::blockchain::KVBStorage &kvbStorage,
+                          EthKvbStorage &kvbStorage,
                           com::vmware::concord::ConcordResponse &athresp) const;
   bool handle_eth_sendTransaction(
-      com::vmware::concord::ConcordRequest &athreq,
-      concord::blockchain::KVBStorage &kvbStorage,
+      com::vmware::concord::ConcordRequest &athreq, EthKvbStorage &kvbStorage,
       com::vmware::concord::ConcordResponse &athresp) const;
   bool handle_eth_request_read_only(
-      com::vmware::concord::ConcordRequest &athreq,
-      concord::blockchain::KVBStorage &kvbStorage,
+      com::vmware::concord::ConcordRequest &athreq, EthKvbStorage &kvbStorage,
       com::vmware::concord::ConcordResponse &athresp) const;
   bool handle_eth_callContract(
-      com::vmware::concord::ConcordRequest &athreq,
-      concord::blockchain::KVBStorage &kvbStorage,
+      com::vmware::concord::ConcordRequest &athreq, EthKvbStorage &kvbStorage,
       com::vmware::concord::ConcordResponse &athresp) const;
   bool handle_eth_blockNumber(
-      com::vmware::concord::ConcordRequest &athreq,
-      concord::blockchain::KVBStorage &kvbStorage,
+      com::vmware::concord::ConcordRequest &athreq, EthKvbStorage &kvbStorage,
       com::vmware::concord::ConcordResponse &athresp) const;
   bool handle_eth_getCode(com::vmware::concord::ConcordRequest &athreq,
-                          concord::blockchain::KVBStorage &kvbStorage,
+                          EthKvbStorage &kvbStorage,
                           com::vmware::concord::ConcordResponse &athresp) const;
   bool handle_eth_getStorageAt(
-      com::vmware::concord::ConcordRequest &athreq,
-      concord::blockchain::KVBStorage &kvbStorage,
+      com::vmware::concord::ConcordRequest &athreq, EthKvbStorage &kvbStorage,
       com::vmware::concord::ConcordResponse &athresp) const;
   bool handle_eth_getTransactionCount(
-      com::vmware::concord::ConcordRequest &athreq,
-      concord::blockchain::KVBStorage &kvbStorage,
+      com::vmware::concord::ConcordRequest &athreq, EthKvbStorage &kvbStorage,
       com::vmware::concord::ConcordResponse &athresp) const;
   bool handle_eth_getBalance(
-      com::vmware::concord::ConcordRequest &athreq,
-      concord::blockchain::KVBStorage &kvbStorage,
+      com::vmware::concord::ConcordRequest &athreq, EthKvbStorage &kvbStorage,
       com::vmware::concord::ConcordResponse &athresp) const;
 
   // Utilites
@@ -122,22 +110,21 @@ class EthKvbCommandsHandler : public Blockchain::ICommandsHandler {
 
   uint64_t parse_block_parameter(
       const com::vmware::concord::EthRequest &request,
-      concord::blockchain::KVBStorage &kvbStorage) const;
+      EthKvbStorage &kvbStorage) const;
 
   evm_result run_evm(const com::vmware::concord::EthRequest &request,
-                     concord::blockchain::KVBStorage &kvbStorage,
-                     uint64_t timestamp, evm_uint256be &txhash /* OUT */) const;
+                     EthKvbStorage &kvbStorage, uint64_t timestamp,
+                     evm_uint256be &txhash /* OUT */) const;
 
   evm_uint256be record_transaction(
       const evm_message &message,
       const com::vmware::concord::EthRequest &request, const uint64_t nonce,
       const evm_result &result, const uint64_t timestamp,
       const std::vector<::concord::common::EthLog> &logs,
-      concord::blockchain::KVBStorage &kvbStorage) const;
+      EthKvbStorage &kvbStorage) const;
 
   void collect_logs_from_block(
-      const concord::common::EthBlock &block,
-      concord::blockchain::KVBStorage &kvbStorage,
+      const concord::common::EthBlock &block, EthKvbStorage &kvbStorage,
       const com::vmware::concord::LogsRequest &request,
       com::vmware::concord::LogsResponse *response) const;
 };

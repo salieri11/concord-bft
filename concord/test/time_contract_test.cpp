@@ -10,6 +10,7 @@
 #include "consensus/kvb/Comparators.h"
 #include "consensus/kvb/InMemoryDBClient.h"
 #include "consensus/kvb/status.hpp"
+#include "ethereum/eth_kvb_storage.hpp"
 #include "gtest/gtest.h"
 
 #include <log4cplus/configurator.h>
@@ -129,7 +130,7 @@ ConcordConfiguration TestConfiguration(std::vector<string> sourceIDs) {
 // obvious answer.
 TEST(time_contract_test, five_source_happy_path) {
   TestStorage database;
-  concord::blockchain::KVBStorage storage(database, &database, 0);
+  concord::ethereum::EthKvbStorage storage(database, &database, 0);
   ConcordConfiguration config = TestConfiguration({"A", "B", "C", "D", "E"});
   concord::time::TimeContract tc(storage, config);
 
@@ -147,7 +148,7 @@ TEST(time_contract_test, five_source_happy_path) {
 // answer between the middle two.
 TEST(time_contract_test, six_source_happy_path) {
   TestStorage database;
-  concord::blockchain::KVBStorage storage(database, &database, 0);
+  concord::ethereum::EthKvbStorage storage(database, &database, 0);
   ConcordConfiguration config =
       TestConfiguration({"A", "B", "C", "D", "E", "F"});
   concord::time::TimeContract tc(storage, config);
@@ -165,7 +166,7 @@ TEST(time_contract_test, six_source_happy_path) {
 // Verify that a single source moves forward as expected
 TEST(time_contract_test, source_moves_forward) {
   TestStorage database;
-  concord::blockchain::KVBStorage storage(database, &database, 0);
+  concord::ethereum::EthKvbStorage storage(database, &database, 0);
   ConcordConfiguration config = TestConfiguration({"baz"});
 
   std::string source_id = "baz";
@@ -179,7 +180,7 @@ TEST(time_contract_test, source_moves_forward) {
 // Verify that time is saved and restored correctly
 TEST(time_contract_test, save_restore) {
   TestStorage database;
-  concord::blockchain::KVBStorage storage(database, &database, 0);
+  concord::ethereum::EthKvbStorage storage(database, &database, 0);
   ConcordConfiguration config = TestConfiguration({"foo", "bar", "baz", "qux"});
 
   std::string source_foo = "foo";
@@ -208,7 +209,7 @@ TEST(time_contract_test, save_restore) {
 // Verify that the correct source is updated.
 TEST(time_contract_test, update_correct_source) {
   TestStorage database;
-  concord::blockchain::KVBStorage storage(database, &database, 0);
+  concord::ethereum::EthKvbStorage storage(database, &database, 0);
   ConcordConfiguration config = TestConfiguration({"A", "B", "C"});
 
   // The idea here is to exploit the fact that the median of a three-reading
@@ -243,7 +244,7 @@ TEST(time_contract_test, update_correct_source) {
 // Verify that a source cannot move its own time backward.
 TEST(time_contract_test, prevent_source_rollback) {
   TestStorage database;
-  concord::blockchain::KVBStorage storage(database, &database, 0);
+  concord::ethereum::EthKvbStorage storage(database, &database, 0);
   ConcordConfiguration config = TestConfiguration({"foo"});
 
   std::string source_foo = "foo";
@@ -264,7 +265,7 @@ TEST(time_contract_test, prevent_source_rollback) {
 // Only accept times from preconfigured sources.
 TEST(time_contract_test, ignore_unknown_source) {
   TestStorage database;
-  concord::blockchain::KVBStorage storage(database, &database, 0);
+  concord::ethereum::EthKvbStorage storage(database, &database, 0);
   ConcordConfiguration config = TestConfiguration({"A", "B", "C"});
 
   concord::time::TimeContract tc1(storage, config);

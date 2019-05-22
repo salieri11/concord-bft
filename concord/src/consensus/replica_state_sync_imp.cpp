@@ -13,7 +13,7 @@
 //
 
 #include "replica_state_sync_imp.hpp"
-#include "blockchain/kvb_storage.hpp"
+#include "ethereum/eth_kvb_storage.hpp"
 #include "kvb/BlockchainDBAdapter.h"
 
 namespace Blockchain {
@@ -23,7 +23,7 @@ uint64_t ReplicaStateSyncImp::execute(log4cplus::Logger &logger,
                                       ILocalKeyValueStorageReadOnly &kvs,
                                       BlockId lastReachableBlockId,
                                       uint64_t lastExecutedSeqNum) {
-  concord::blockchain::KVBStorage roKvs(kvs);
+  concord::ethereum::EthKvbStorage roKvs(kvs);
   BlockId blockId = lastReachableBlockId;
   uint64_t blockSeqNum = 0;
   uint64_t removedBlocksNum = 0;

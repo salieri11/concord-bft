@@ -2,7 +2,6 @@ file(GLOB concord_src "main.cpp"
   "api/*.cpp"        "api/*.hpp"
   "config/*.cpp"     "config/*.hpp"
   "consensus/*.cpp"  "consensus/*.hpp"
-  "ethereum/*.cpp"   "ethereum/*.hpp"
   "daml/*.cpp"       "daml/*.hpp"
 )
 
@@ -14,7 +13,7 @@ endif()
 add_subdirectory("utils")
 add_subdirectory("common")
 add_subdirectory("consensus/kvb")
-add_subdirectory("blockchain")
+add_subdirectory("ethereum")
 add_subdirectory("time")
 
 add_executable(concord
@@ -36,15 +35,13 @@ target_link_libraries(concord
   proto ${PROTOBUF_LIBRARIES}
   ${Boost_LIBRARIES}
   log4cplus
-  ${EVM_LIBRARIES}
   ${Cryptopp_LIBRARIES}
   ${yaml-cpp_LIBRARIES}
-  LLVMSupport
   concord_utils
   kvblockchain
   secp256k1
   concord_common
-  concord_blockchain
+  concord_ethereum
   concord_time
   gRPC::grpc++_reflection
   protobuf::libprotobuf

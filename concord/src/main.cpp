@@ -29,6 +29,7 @@
 #include "daml_events.grpc.pb.h"
 #include "ethereum/concord_evm.hpp"
 #include "ethereum/eth_kvb_commands_handler.hpp"
+#include "ethereum/eth_kvb_storage.hpp"
 #include "ethereum/evm_init_params.hpp"
 #include "time/time_pusher.hpp"
 #include "time/time_reading.hpp"
@@ -48,13 +49,13 @@ using boost::asio::ip::tcp;
 using log4cplus::Logger;
 
 using concord::api::ApiAcceptor;
-using concord::blockchain::KVBStorage;
 using concord::common::EthLog;
 using concord::common::EthTransaction;
 using concord::common::EVMException;
 using concord::common::StatusAggregator;
 using concord::common::zero_address;
 using concord::common::zero_hash;
+using concord::ethereum::EthKvbStorage;
 using concord::common::operator<<;
 using concord::consensus::KVBClient;
 using concord::consensus::KVBClientPool;
@@ -124,7 +125,7 @@ Blockchain::IDBClient *open_database(ConcordConfiguration &nodeConfig,
 
 /**
  * IdleBlockAppender is a shim to wrap IReplica::addBlocktoIdleReplica in an
- * IBlocksAppender interface, so that it can be rewrapped in a KVBStorage
+ * IBlocksAppender interface, so that it can be rewrapped in a EthKvbStorage
  * object, thus allowing the create_genesis_block function to use the same
  * functions as concord_evm to put data in the genesis block.
  */
@@ -152,7 +153,7 @@ Blockchain::Status create_genesis_block(Blockchain::IReplica *replica,
   const Blockchain::ILocalKeyValueStorageReadOnly &storage =
       replica->getReadOnlyStorage();
   IdleBlockAppender blockAppender(replica);
-  KVBStorage kvbStorage(storage, &blockAppender, 0);
+  EthKvbStorage kvbStorage(storage, &blockAppender, 0);
 
   if (storage.getLastBlock() > 0) {
     LOG4CPLUS_INFO(logger, "Blocks already loaded, skipping genesis");

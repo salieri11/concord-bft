@@ -9,7 +9,6 @@
 #include <map>
 #include <memory>
 #include <vector>
-#include "blockchain/kvb_storage.hpp"
 #include "common/concord_types.hpp"
 #include "consensus/kvb/BlockchainInterfaces.h"
 #include "evm.h"
@@ -35,7 +34,7 @@ typedef struct concord_context {
   /** evmctx must be first, so we can cast to our wrapper */
   struct evm_context evmctx;
   class EVM* ath_object;
-  class concord::blockchain::KVBStorage* kvbStorage;
+  class EthKvbStorage* kvbStorage;
   std::vector<::concord::common::EthLog>* evmLogs;
   log4cplus::Logger* logger;
   uint64_t timestamp;
@@ -97,17 +96,15 @@ class EVM {
   ~EVM();
 
   /* Concord API */
-  void transfer_fund(evm_message& message,
-                     concord::blockchain::KVBStorage& kvbStorage,
+  void transfer_fund(evm_message& message, EthKvbStorage& kvbStorage,
                      evm_result& result);
   evm_result run(evm_message& message, uint64_t timestamp,
-                 concord::blockchain::KVBStorage& kvbStorage,
+                 EthKvbStorage& kvbStorage,
                  std::vector<::concord::common::EthLog>& evmLogs,
                  const evm_address& origin,
                  const evm_address& storage_contract);
   evm_result create(evm_address& contract_address, evm_message& message,
-                    uint64_t timestamp,
-                    concord::blockchain::KVBStorage& kvbStorage,
+                    uint64_t timestamp, EthKvbStorage& kvbStorage,
                     std::vector<::concord::common::EthLog>& evmLogs,
                     const evm_address& origin);
   evm_address contract_destination(evm_address& sender, uint64_t nonce) const;
@@ -120,7 +117,7 @@ class EVM {
   uint64_t chainId;
 
   evm_result execute(evm_message& message, uint64_t timestamp,
-                     concord::blockchain::KVBStorage& kvbStorage,
+                     EthKvbStorage& kvbStorage,
                      std::vector<::concord::common::EthLog>& evmLogs,
                      const std::vector<uint8_t>& code,
                      const evm_address& origin,

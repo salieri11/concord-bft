@@ -34,7 +34,6 @@ using namespace boost::program_options;
 // Protobuf interface
 using namespace com::vmware::concord;
 
-using concord::blockchain::KVBStorage;
 using concord::common::BlockNotFoundException;
 using concord::common::EthBlock;
 using concord::common::EthLog;
@@ -44,7 +43,6 @@ using concord::common::HexPrintBytes;
 using concord::common::TransactionNotFoundException;
 using concord::common::zero_address;
 using concord::common::zero_hash;
-using concord::ethereum::EVM;
 using concord::time::TimeContract;
 using concord::utils::EthSign;
 using concord::utils::RLPBuilder;
@@ -104,7 +102,7 @@ bool EthKvbCommandsHandler::executeReadOnlyCommand(
     uint32_t requestSize, const char *request,
     const ILocalKeyValueStorageReadOnly &roStorage, const size_t maxReplySize,
     char *outReply, uint32_t &outReplySize) const {
-  KVBStorage kvbStorage(roStorage);
+  EthKvbStorage kvbStorage(roStorage);
 
   ConcordRequest command;
   bool result;
@@ -157,7 +155,7 @@ bool EthKvbCommandsHandler::executeCommand(
     const ILocalKeyValueStorageReadOnly &roStorage,
     IBlocksAppender &blockAppender, const size_t maxReplySize, char *outReply,
     uint32_t &outReplySize) const {
-  KVBStorage kvbStorage(roStorage, &blockAppender, sequenceNum);
+  EthKvbStorage kvbStorage(roStorage, &blockAppender, sequenceNum);
 
   ConcordRequest command;
   bool result;
@@ -213,7 +211,7 @@ bool EthKvbCommandsHandler::executeCommand(
  * Handle a TimeUpdate.
  */
 bool EthKvbCommandsHandler::handle_time_update(ConcordRequest &athreq,
-                                               KVBStorage &kvbStorage,
+                                               EthKvbStorage &kvbStorage,
                                                ConcordResponse &athresp) const {
   if (concord::time::IsTimeServiceEnabled(config_)) {
     TimeContract tc(kvbStorage, config_);
@@ -230,7 +228,7 @@ bool EthKvbCommandsHandler::handle_time_update(ConcordRequest &athreq,
  * otherwise.
  */
 bool EthKvbCommandsHandler::handle_eth_request(ConcordRequest &athreq,
-                                               KVBStorage &kvbStorage,
+                                               EthKvbStorage &kvbStorage,
                                                ConcordResponse &athresp) const {
   switch (athreq.eth_request(0).method()) {
     case EthRequest_EthMethod_SEND_TX:
@@ -241,9 +239,9 @@ bool EthKvbCommandsHandler::handle_eth_request(ConcordRequest &athreq,
       // mode, for example if it has failed several times. So, go check the
       // read-only list if othing matched here.
 
-      // Be a little extra cautious, and create a read-only KVBStorage object,
-      // to prvent accidental modifications.
-      KVBStorage roKvbStorage(kvbStorage.getReadOnlyStorage());
+      // Be a little extra cautious, and create a read-only EthKvbStorage
+      // object, to prvent accidental modifications.
+      EthKvbStorage roKvbStorage(kvbStorage.getReadOnlyStorage());
       return handle_eth_request_read_only(athreq, roKvbStorage, athresp);
   }
 }
@@ -252,7 +250,7 @@ bool EthKvbCommandsHandler::handle_eth_request(ConcordRequest &athreq,
  * Handle an eth_sendTransaction request.
  */
 bool EthKvbCommandsHandler::handle_eth_sendTransaction(
-    ConcordRequest &athreq, KVBStorage &kvbStorage,
+    ConcordRequest &athreq, EthKvbStorage &kvbStorage,
     ConcordResponse &athresp) const {
   const EthRequest request = athreq.eth_request(0);
 
@@ -302,7 +300,7 @@ bool EthKvbCommandsHandler::handle_eth_sendTransaction(
  * Fetch a transaction from storage.
  */
 bool EthKvbCommandsHandler::handle_transaction_request(
-    ConcordRequest &athreq, KVBStorage &kvbStorage,
+    ConcordRequest &athreq, EthKvbStorage &kvbStorage,
     ConcordResponse &athresp) const {
   try {
     const TransactionRequest request = athreq.transaction_request();
@@ -328,7 +326,7 @@ bool EthKvbCommandsHandler::handle_transaction_request(
  * Fetch a transaction list from storage.
  */
 bool EthKvbCommandsHandler::handle_transaction_list_request(
-    ConcordRequest &athreq, KVBStorage &kvbStorage,
+    ConcordRequest &athreq, EthKvbStorage &kvbStorage,
     ConcordResponse &athresp) const {
   try {
     const TransactionListRequest request = athreq.transaction_list_request();
@@ -436,7 +434,7 @@ void EthKvbCommandsHandler::build_transaction_response(
  * Get logs from the blockchain
  */
 bool EthKvbCommandsHandler::handle_logs_request(
-    ConcordRequest &athreq, KVBStorage &kvbStorage,
+    ConcordRequest &athreq, EthKvbStorage &kvbStorage,
     ConcordResponse &athresp) const {
   const LogsRequest request = athreq.logs_request();
   LogsResponse *response = athresp.mutable_logs_response();
@@ -498,8 +496,8 @@ bool EthKvbCommandsHandler::handle_logs_request(
  * Get logs from a single block
  */
 void EthKvbCommandsHandler::collect_logs_from_block(
-    const EthBlock &block, KVBStorage &kvbStorage, const LogsRequest &request,
-    LogsResponse *response) const {
+    const EthBlock &block, EthKvbStorage &kvbStorage,
+    const LogsRequest &request, LogsResponse *response) const {
   EthTransaction tx;
   int64_t tx_log_idx{-1};
 
@@ -563,7 +561,7 @@ void EthKvbCommandsHandler::collect_logs_from_block(
  * the chain.
  */
 bool EthKvbCommandsHandler::handle_block_list_request(
-    ConcordRequest &athreq, KVBStorage &kvbStorage,
+    ConcordRequest &athreq, EthKvbStorage &kvbStorage,
     ConcordResponse &athresp) const {
   const BlockListRequest request = athreq.block_list_request();
 
@@ -602,7 +600,7 @@ bool EthKvbCommandsHandler::handle_block_list_request(
  * Fetch a block from the database.
  */
 bool EthKvbCommandsHandler::handle_block_request(
-    ConcordRequest &athreq, KVBStorage &kvbStorage,
+    ConcordRequest &athreq, EthKvbStorage &kvbStorage,
     ConcordResponse &athresp) const {
   const BlockRequest request = athreq.block_request();
 
@@ -686,7 +684,7 @@ bool EthKvbCommandsHandler::handle_block_request(
  * otherwise.
  */
 bool EthKvbCommandsHandler::handle_eth_request_read_only(
-    ConcordRequest &athreq, KVBStorage &kvbStorage,
+    ConcordRequest &athreq, EthKvbStorage &kvbStorage,
     ConcordResponse &athresp) const {
   switch (athreq.eth_request(0).method()) {
     case EthRequest_EthMethod_CALL_CONTRACT:
@@ -722,7 +720,7 @@ bool EthKvbCommandsHandler::handle_eth_request_read_only(
  * as the 'data' of EthResponse.
  */
 bool EthKvbCommandsHandler::handle_eth_callContract(
-    ConcordRequest &athreq, KVBStorage &kvbStorage,
+    ConcordRequest &athreq, EthKvbStorage &kvbStorage,
     ConcordResponse &athresp) const {
   const EthRequest request = athreq.eth_request(0);
 
@@ -759,7 +757,7 @@ bool EthKvbCommandsHandler::handle_eth_callContract(
  * Get the latest written block number.
  */
 bool EthKvbCommandsHandler::handle_eth_blockNumber(
-    ConcordRequest &athreq, KVBStorage &kvbStorage,
+    ConcordRequest &athreq, EthKvbStorage &kvbStorage,
     ConcordResponse &athresp) const {
   const EthRequest request = athreq.eth_request(0);
   EthResponse *response = athresp.add_eth_response();
@@ -775,7 +773,7 @@ bool EthKvbCommandsHandler::handle_eth_blockNumber(
  * Get the code stored for a contract.
  */
 bool EthKvbCommandsHandler::handle_eth_getCode(ConcordRequest &athreq,
-                                               KVBStorage &kvbStorage,
+                                               EthKvbStorage &kvbStorage,
                                                ConcordResponse &athresp) const {
   const EthRequest request = athreq.eth_request(0);
   evm_address account{{0}};
@@ -802,7 +800,7 @@ bool EthKvbCommandsHandler::handle_eth_getCode(ConcordRequest &athreq,
  * Get the data stored for the given contract at the given location
  */
 bool EthKvbCommandsHandler::handle_eth_getStorageAt(
-    ConcordRequest &athreq, KVBStorage &kvbStorage,
+    ConcordRequest &athreq, EthKvbStorage &kvbStorage,
     ConcordResponse &athresp) const {
   const EthRequest request = athreq.eth_request(0);
 
@@ -827,7 +825,7 @@ bool EthKvbCommandsHandler::handle_eth_getStorageAt(
  * Get the nonce for the given account
  */
 bool EthKvbCommandsHandler::handle_eth_getTransactionCount(
-    ConcordRequest &athreq, KVBStorage &kvbStorage,
+    ConcordRequest &athreq, EthKvbStorage &kvbStorage,
     ConcordResponse &athresp) const {
   const EthRequest request = athreq.eth_request(0);
 
@@ -860,7 +858,7 @@ bool EthKvbCommandsHandler::handle_eth_getTransactionCount(
  * Get the balance for the given account
  */
 bool EthKvbCommandsHandler::handle_eth_getBalance(
-    ConcordRequest &athreq, KVBStorage &kvbStorage,
+    ConcordRequest &athreq, EthKvbStorage &kvbStorage,
     ConcordResponse &athresp) const {
   const EthRequest request = athreq.eth_request(0);
 
@@ -976,7 +974,7 @@ void EthKvbCommandsHandler::recover_from(const EthRequest &request,
  * @return block number
  */
 uint64_t EthKvbCommandsHandler::parse_block_parameter(
-    const EthRequest &request, KVBStorage &kvbStorage) const {
+    const EthRequest &request, EthKvbStorage &kvbStorage) const {
   uint64_t block_number = std::numeric_limits<uint64_t>::max();
   if (request.has_block_number()) {
     block_number = request.block_number();
@@ -991,7 +989,7 @@ uint64_t EthKvbCommandsHandler::parse_block_parameter(
  * Pass a transaction or call to the EVM for execution.
  */
 evm_result EthKvbCommandsHandler::run_evm(
-    const EthRequest &request, KVBStorage &kvbStorage, uint64_t timestamp,
+    const EthRequest &request, EthKvbStorage &kvbStorage, uint64_t timestamp,
     evm_uint256be &txhash /* OUT */) const {
   evm_message message;
   evm_result result;
@@ -1153,7 +1151,7 @@ evm_result EthKvbCommandsHandler::run_evm(
 evm_uint256be EthKvbCommandsHandler::record_transaction(
     const evm_message &message, const EthRequest &request, const uint64_t nonce,
     const evm_result &result, const uint64_t timestamp,
-    const std::vector<EthLog> &logs, KVBStorage &kvbStorage) const {
+    const std::vector<EthLog> &logs, EthKvbStorage &kvbStorage) const {
   // "to" is empty if this was a create
   evm_address to =
       message.kind == EVM_CALL ? message.destination : zero_address;

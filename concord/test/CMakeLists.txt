@@ -87,14 +87,14 @@ target_link_libraries(MetadataStorageTests
   gtest_main)
 
 add_executable(ReplicaStateSyncTests
-  ../src/blockchain/kvb_storage.cpp
   ../src/common/concord_log.cpp
   ../src/common/concord_types.cpp
+  ../src/consensus/replica_state_sync_imp.cpp
+  ../src/ethereum/eth_kvb_storage.cpp
   ../src/ethereum/evm_init_params.cpp
   ../src/ethereum/concord_evm.cpp
   ../src/utils/concord_eth_hash.cpp
   ../src/utils/rlp.cpp
-  ../src/consensus/replica_state_sync_imp.cpp
   replicaStateSync_test.cpp)
 
 target_link_libraries(ReplicaStateSyncTests
@@ -123,7 +123,7 @@ target_link_libraries(TimeContractTests
   concord_utils
   kvblockchain
   concord_common
-  concord_blockchain
+  concord_ethereum
   concord_time)
 
 add_subdirectory(simpleKVBTests)

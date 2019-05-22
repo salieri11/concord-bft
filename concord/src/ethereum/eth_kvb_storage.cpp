@@ -4,9 +4,9 @@
 // defines the mapping of EVM object to KVB address. It also records updates to
 // be used in minting a block when a transaction finishes.
 //
-// Initializing a KVBStorage object without an IBlocksAppender causes it to
+// Initializing a EthKvbStorage object without an IBlocksAppender causes it to
 // operate in read-only mode. A ReadOnlyModeException will be thrown if any of
-// the set/add/write functions are called on a KVBStorage object in read-only
+// the set/add/write functions are called on a EthKvbStorage object in read-only
 // mode.
 //
 // To add a block, first call the set/add functions to prepare data for the
@@ -68,7 +68,7 @@
 //   - Value: com::vmware::concord::kvb::Time protobuf
 //   - Notes: serialization is handled in concord::time::TimeContract
 
-#include "kvb_storage.hpp"
+#include "eth_kvb_storage.hpp"
 
 #include <cstring>
 #include <vector>
@@ -95,7 +95,7 @@ using concord::common::zero_hash;
 using concord::common::operator<<;
 
 namespace concord {
-namespace blockchain {
+namespace ethereum {
 
 ////////////////////////////////////////
 // GENERAL
@@ -107,14 +107,14 @@ const int64_t code_storage_version = 1;
 const int64_t block_metadata_version = 1;
 
 // read-only mode
-KVBStorage::KVBStorage(
+EthKvbStorage::EthKvbStorage(
     const Blockchain::ILocalKeyValueStorageReadOnly &roStorage)
     : roStorage_(roStorage),
       blockAppender_(nullptr),
       logger(log4cplus::Logger::getInstance("com.vmware.concord.kvb")) {}
 
 // read-write mode
-KVBStorage::KVBStorage(
+EthKvbStorage::EthKvbStorage(
     const Blockchain::ILocalKeyValueStorageReadOnly &roStorage,
     Blockchain::IBlocksAppender *blockAppender, uint64_t sequenceNum)
     : roStorage_(roStorage),
@@ -122,13 +122,13 @@ KVBStorage::KVBStorage(
       logger(log4cplus::Logger::getInstance("com.vmware.concord.kvb")),
       bftSequenceNum_(sequenceNum) {}
 
-KVBStorage::~KVBStorage() {
+EthKvbStorage::~EthKvbStorage() {
   // Any Slivers in updates will release their memory automatically.
 
   // We don't own the blockAppender we're pointing to, so leave it alone.
 }
 
-bool KVBStorage::is_read_only() {
+bool EthKvbStorage::is_read_only() {
   // if we don't have a blockAppender, we are read-only
   auto res = blockAppender_ == nullptr;
   return res;
@@ -136,10 +136,10 @@ bool KVBStorage::is_read_only() {
 
 /**
  * Allow access to read-only storage object, to enabled downgrades to read-only
- * KVBStorage when convenient.
+ * EthKvbStorage when convenient.
  */
 const Blockchain::ILocalKeyValueStorageReadOnly &
-KVBStorage::getReadOnlyStorage() {
+EthKvbStorage::getReadOnlyStorage() {
   return roStorage_;
 }
 
@@ -150,8 +150,8 @@ KVBStorage::getReadOnlyStorage() {
  * Constructs a key: one byte of `type`, concatenated with `length` bytes of
  * `bytes`.
  */
-Sliver KVBStorage::kvb_key(uint8_t type, const uint8_t *bytes,
-                           size_t length) const {
+Sliver EthKvbStorage::kvb_key(uint8_t type, const uint8_t *bytes,
+                              size_t length) const {
   uint8_t *key = new uint8_t[1 + length];
   key[0] = type;
   std::copy(bytes, bytes + length, key + 1);
@@ -161,40 +161,40 @@ Sliver KVBStorage::kvb_key(uint8_t type, const uint8_t *bytes,
 /**
  * Convenience functions for constructing a key for each object type.
  */
-Sliver KVBStorage::block_key(const EthBlock &blk) const {
+Sliver EthKvbStorage::block_key(const EthBlock &blk) const {
   return kvb_key(TYPE_BLOCK, blk.get_hash().bytes, sizeof(evm_uint256be));
 }
 
-Sliver KVBStorage::block_key(const evm_uint256be &hash) const {
+Sliver EthKvbStorage::block_key(const evm_uint256be &hash) const {
   return kvb_key(TYPE_BLOCK, hash.bytes, sizeof(hash));
 }
 
-Sliver KVBStorage::transaction_key(const EthTransaction &tx) const {
+Sliver EthKvbStorage::transaction_key(const EthTransaction &tx) const {
   return kvb_key(TYPE_TRANSACTION, tx.hash().bytes, sizeof(evm_uint256be));
 }
 
-Sliver KVBStorage::transaction_key(const evm_uint256be &hash) const {
+Sliver EthKvbStorage::transaction_key(const evm_uint256be &hash) const {
   return kvb_key(TYPE_TRANSACTION, hash.bytes, sizeof(hash));
 }
 
-Sliver KVBStorage::balance_key(const evm_address &addr) const {
+Sliver EthKvbStorage::balance_key(const evm_address &addr) const {
   return kvb_key(TYPE_BALANCE, addr.bytes, sizeof(addr));
 }
 
-Sliver KVBStorage::nonce_key(const evm_address &addr) const {
+Sliver EthKvbStorage::nonce_key(const evm_address &addr) const {
   return kvb_key(TYPE_NONCE, addr.bytes, sizeof(addr));
 }
 
-Sliver KVBStorage::code_key(const evm_address &addr) const {
+Sliver EthKvbStorage::code_key(const evm_address &addr) const {
   return kvb_key(TYPE_CODE, addr.bytes, sizeof(addr));
 }
 
-Sliver KVBStorage::block_metadata_key() const {
+Sliver EthKvbStorage::block_metadata_key() const {
   return kvb_key(TYPE_BLOCK_METADATA, nullptr, 0);
 }
 
-Sliver KVBStorage::storage_key(const evm_address &addr,
-                               const evm_uint256be &location) const {
+Sliver EthKvbStorage::storage_key(const evm_address &addr,
+                                  const evm_uint256be &location) const {
   uint8_t combined[sizeof(addr) + sizeof(location)];
   std::copy(addr.bytes, addr.bytes + sizeof(addr), combined);
   std::copy(location.bytes, location.bytes + sizeof(location),
@@ -202,7 +202,9 @@ Sliver KVBStorage::storage_key(const evm_address &addr,
   return kvb_key(TYPE_STORAGE, combined, sizeof(addr) + sizeof(location));
 }
 
-Sliver KVBStorage::time_key() const { return kvb_key(TYPE_TIME, nullptr, 0); }
+Sliver EthKvbStorage::time_key() const {
+  return kvb_key(TYPE_TIME, nullptr, 0);
+}
 
 ////////////////////////////////////////
 // WRITING
@@ -211,7 +213,7 @@ Sliver KVBStorage::time_key() const { return kvb_key(TYPE_TIME, nullptr, 0); }
  * Add a key-value pair to be stored in the block. Throws ReadOnlyModeException
  * if this object is in read-only mode.
  */
-void KVBStorage::put(const Sliver &key, const Sliver &value) {
+void EthKvbStorage::put(const Sliver &key, const Sliver &value) {
   if (!blockAppender_) {
     throw ReadOnlyModeException();
   }
@@ -224,7 +226,7 @@ void KVBStorage::put(const Sliver &key, const Sliver &value) {
  * been prepared. A ReadOnlyModeException will be thrown if this object is in
  * read-only mode.
  */
-Status KVBStorage::write_block(uint64_t timestamp, uint64_t gas_limit) {
+Status EthKvbStorage::write_block(uint64_t timestamp, uint64_t gas_limit) {
   if (!blockAppender_) {
     throw ReadOnlyModeException();
   }
@@ -288,7 +290,7 @@ Status KVBStorage::write_block(uint64_t timestamp, uint64_t gas_limit) {
 /**
  * Drop all pending updates.
  */
-void KVBStorage::reset() {
+void EthKvbStorage::reset() {
   // Slivers release their memory automatically.
   updates.clear();
 }
@@ -297,7 +299,7 @@ void KVBStorage::reset() {
  * Preparation functions for each value type in a block. These creates
  * serialized versions of the objects and store them in a staging area.
  */
-void KVBStorage::add_block(EthBlock &blk) {
+void EthKvbStorage::add_block(EthBlock &blk) {
   Sliver blkaddr = block_key(blk);
   uint8_t *blkser;
   size_t blkser_length = blk.serialize(&blkser);
@@ -305,7 +307,7 @@ void KVBStorage::add_block(EthBlock &blk) {
   put(blkaddr, Sliver(blkser, blkser_length));
 }
 
-void KVBStorage::add_transaction(EthTransaction &tx) {
+void EthKvbStorage::add_transaction(EthTransaction &tx) {
   // Like other add_* methods we don't serialized the transaction here. The
   // reason is that block hash and block number is not known at this point
   // hence we can not serialize the transaction properly. Instead we put the
@@ -315,7 +317,8 @@ void KVBStorage::add_transaction(EthTransaction &tx) {
   pending_transactions.push_back(tx);
 }
 
-void KVBStorage::set_balance(const evm_address &addr, evm_uint256be balance) {
+void EthKvbStorage::set_balance(const evm_address &addr,
+                                evm_uint256be balance) {
   com::vmware::concord::kvb::Balance proto;
   proto.set_version(balance_storage_version);
   proto.set_balance(balance.bytes, sizeof(evm_uint256be));
@@ -326,7 +329,7 @@ void KVBStorage::set_balance(const evm_address &addr, evm_uint256be balance) {
   put(balance_key(addr), Sliver(ser, sersize));
 }
 
-void KVBStorage::set_nonce(const evm_address &addr, uint64_t nonce) {
+void EthKvbStorage::set_nonce(const evm_address &addr, uint64_t nonce) {
   com::vmware::concord::kvb::Nonce proto;
   proto.set_version(nonce_storage_version);
   proto.set_nonce(nonce);
@@ -337,8 +340,8 @@ void KVBStorage::set_nonce(const evm_address &addr, uint64_t nonce) {
   put(nonce_key(addr), Sliver(ser, sersize));
 }
 
-void KVBStorage::set_code(const evm_address &addr, const uint8_t *code,
-                          size_t code_size) {
+void EthKvbStorage::set_code(const evm_address &addr, const uint8_t *code,
+                             size_t code_size) {
   com::vmware::concord::kvb::Code proto;
   proto.set_version(code_storage_version);
   proto.set_code(code, code_size);
@@ -352,16 +355,16 @@ void KVBStorage::set_code(const evm_address &addr, const uint8_t *code,
   put(code_key(addr), Sliver(ser, sersize));
 }
 
-void KVBStorage::set_storage(const evm_address &addr,
-                             const evm_uint256be &location,
-                             const evm_uint256be &data) {
+void EthKvbStorage::set_storage(const evm_address &addr,
+                                const evm_uint256be &location,
+                                const evm_uint256be &data) {
   uint8_t *str = new uint8_t[sizeof(data)];
   std::copy(data.bytes, data.bytes + sizeof(data), str);
   put(storage_key(addr, location), Sliver(str, sizeof(data)));
 }
 
 // Used for Unit Tests, as well.
-Sliver KVBStorage::set_block_metadata_value(uint64_t bftSequenceNum) const {
+Sliver EthKvbStorage::set_block_metadata_value(uint64_t bftSequenceNum) const {
   com::vmware::concord::kvb::BlockMetadata proto;
   proto.set_version(block_metadata_version);
   proto.set_bft_sequence_num(bftSequenceNum);
@@ -371,11 +374,13 @@ Sliver KVBStorage::set_block_metadata_value(uint64_t bftSequenceNum) const {
   return Sliver(ser, serSize);
 }
 
-void KVBStorage::set_block_metadata() {
+void EthKvbStorage::set_block_metadata() {
   put(block_metadata_key(), set_block_metadata_value(bftSequenceNum_));
 }
 
-void KVBStorage::set_time(Blockchain::Sliver &time) { put(time_key(), time); }
+void EthKvbStorage::set_time(Blockchain::Sliver &time) {
+  put(time_key(), time);
+}
 
 ////////////////////////////////////////
 // READING
@@ -383,7 +388,7 @@ void KVBStorage::set_time(Blockchain::Sliver &time) { put(time_key(), time); }
 /**
  * Get the number of the block that will be added when write_block is called.
  */
-uint64_t KVBStorage::next_block_number() {
+uint64_t EthKvbStorage::next_block_number() {
   // Ethereum block number is 1+KVB block number. So, the most recent KVB block
   // number is actually the next Ethereum block number.
   return roStorage_.getLastBlock();
@@ -392,7 +397,7 @@ uint64_t KVBStorage::next_block_number() {
 /**
  * Get the number of the most recent block that was added.
  */
-uint64_t KVBStorage::current_block_number() {
+uint64_t EthKvbStorage::current_block_number() {
   // Ethereum block number is 1+KVB block number. So, the most recent Ethereum
   // block is one less than the most recent KVB block.
   return roStorage_.getLastBlock() - 1;
@@ -404,7 +409,7 @@ uint64_t KVBStorage::current_block_number() {
  * in the staging area, its value in the most recent block in which it was
  * written will be returned.
  */
-Status KVBStorage::get(const Sliver &key, Sliver &value) {
+Status EthKvbStorage::get(const Sliver &key, Sliver &value) {
   uint64_t block_number = current_block_number();
   BlockId out;
   return get(block_number, key, value, out);
@@ -422,8 +427,8 @@ Status KVBStorage::get(const Sliver &key, Sliver &value) {
  * @param outBlock BlockId object where the read version of the result is stored
  * @return
  */
-Status KVBStorage::get(const BlockId readVersion, const Sliver &key,
-                       Sliver &value, BlockId &outBlock) {
+Status EthKvbStorage::get(const BlockId readVersion, const Sliver &key,
+                          Sliver &value, BlockId &outBlock) {
   // TODO(BWF): this search will be very inefficient for a large set of changes
   for (auto &u : updates) {
     if (u.first == key) {
@@ -438,7 +443,7 @@ Status KVBStorage::get(const BlockId readVersion, const Sliver &key,
 /**
  * Fetch functions for each value type.
  */
-EthBlock KVBStorage::get_block(uint64_t number) {
+EthBlock EthKvbStorage::get_block(uint64_t number) {
   SetOfKeyValuePairs outBlockData;
 
   // "1+" == KVBlockchain starts at block 1, but Ethereum starts at 0
@@ -457,7 +462,7 @@ EthBlock KVBStorage::get_block(uint64_t number) {
   throw BlockNotFoundException();
 }
 
-EthBlock KVBStorage::get_block(const evm_uint256be &hash) {
+EthBlock EthKvbStorage::get_block(const evm_uint256be &hash) {
   Sliver kvbkey = block_key(hash);
   Sliver value;
   Status status = get(kvbkey, value);
@@ -475,7 +480,7 @@ EthBlock KVBStorage::get_block(const evm_uint256be &hash) {
   throw BlockNotFoundException();
 }
 
-EthTransaction KVBStorage::get_transaction(const evm_uint256be &hash) {
+EthTransaction EthKvbStorage::get_transaction(const evm_uint256be &hash) {
   Sliver kvbkey = transaction_key(hash);
   Sliver value;
   Status status = get(kvbkey, value);
@@ -492,13 +497,13 @@ EthTransaction KVBStorage::get_transaction(const evm_uint256be &hash) {
   throw TransactionNotFoundException();
 }
 
-evm_uint256be KVBStorage::get_balance(const evm_address &addr) {
+evm_uint256be EthKvbStorage::get_balance(const evm_address &addr) {
   uint64_t block_number = current_block_number();
   return get_balance(addr, block_number);
 }
 
-evm_uint256be KVBStorage::get_balance(const evm_address &addr,
-                                      uint64_t &block_number) {
+evm_uint256be EthKvbStorage::get_balance(const evm_address &addr,
+                                         uint64_t &block_number) {
   Sliver kvbkey = balance_key(addr);
   Sliver value;
   BlockId outBlock;
@@ -532,13 +537,13 @@ evm_uint256be KVBStorage::get_balance(const evm_address &addr,
   return evm_uint256be{0};
 }
 
-uint64_t KVBStorage::get_nonce(const evm_address &addr) {
+uint64_t EthKvbStorage::get_nonce(const evm_address &addr) {
   uint64_t block_number = current_block_number();
   return get_nonce(addr, block_number);
 }
 
-uint64_t KVBStorage::get_nonce(const evm_address &addr,
-                               uint64_t &block_number) {
+uint64_t EthKvbStorage::get_nonce(const evm_address &addr,
+                                  uint64_t &block_number) {
   Sliver kvbkey = nonce_key(addr);
   Sliver value;
   BlockId outBlock;
@@ -566,7 +571,7 @@ uint64_t KVBStorage::get_nonce(const evm_address &addr,
   return 0;
 }
 
-bool KVBStorage::account_exists(const evm_address &addr) {
+bool EthKvbStorage::account_exists(const evm_address &addr) {
   Sliver kvbkey = balance_key(addr);
   Sliver value;
   Status status = get(kvbkey, value);
@@ -587,8 +592,8 @@ bool KVBStorage::account_exists(const evm_address &addr) {
  * Code and hash will be copied to `out`, if found, and `true` will be
  * returned. If no code is found, `false` is returned.
  */
-bool KVBStorage::get_code(const evm_address &addr, std::vector<uint8_t> &out,
-                          evm_uint256be &hash) {
+bool EthKvbStorage::get_code(const evm_address &addr, std::vector<uint8_t> &out,
+                             evm_uint256be &hash) {
   uint64_t block_number = current_block_number();
   return get_code(addr, out, hash, block_number);
 }
@@ -603,8 +608,8 @@ bool KVBStorage::get_code(const evm_address &addr, std::vector<uint8_t> &out,
  *                     'default block parameters'
  * @return
  */
-bool KVBStorage::get_code(const evm_address &addr, std::vector<uint8_t> &out,
-                          evm_uint256be &hash, uint64_t &block_number) {
+bool EthKvbStorage::get_code(const evm_address &addr, std::vector<uint8_t> &out,
+                             evm_uint256be &hash, uint64_t &block_number) {
   Sliver kvbkey = code_key(addr);
   Sliver value;
   BlockId outBlock;
@@ -640,15 +645,15 @@ bool KVBStorage::get_code(const evm_address &addr, std::vector<uint8_t> &out,
   return false;
 }
 
-evm_uint256be KVBStorage::get_storage(const evm_address &addr,
-                                      const evm_uint256be &location) {
+evm_uint256be EthKvbStorage::get_storage(const evm_address &addr,
+                                         const evm_uint256be &location) {
   uint64_t block_number = current_block_number();
   return get_storage(addr, location, block_number);
 }
 
-evm_uint256be KVBStorage::get_storage(const evm_address &addr,
-                                      const evm_uint256be &location,
-                                      uint64_t &block_number) {
+evm_uint256be EthKvbStorage::get_storage(const evm_address &addr,
+                                         const evm_uint256be &location,
+                                         uint64_t &block_number) {
   Sliver kvbkey = storage_key(addr, location);
   Sliver value;
   BlockId outBlock;
@@ -679,7 +684,7 @@ evm_uint256be KVBStorage::get_storage(const evm_address &addr,
   return out;
 }
 
-uint64_t KVBStorage::get_block_metadata(Sliver key) {
+uint64_t EthKvbStorage::get_block_metadata(Sliver key) {
   Sliver outValue;
   Status status = roStorage_.get(key, outValue);
   uint64_t sequenceNum = 0;
@@ -703,12 +708,12 @@ uint64_t KVBStorage::get_block_metadata(Sliver key) {
   return sequenceNum;
 }
 
-Blockchain::Sliver KVBStorage::get_time() {
+Blockchain::Sliver EthKvbStorage::get_time() {
   uint64_t block_number = current_block_number();
   return get_time(block_number);
 }
 
-Blockchain::Sliver KVBStorage::get_time(uint64_t block_number) {
+Blockchain::Sliver EthKvbStorage::get_time(uint64_t block_number) {
   Sliver kvbkey = time_key();
   Sliver value;
   BlockId outBlock;
@@ -729,5 +734,5 @@ Blockchain::Sliver KVBStorage::get_time(uint64_t block_number) {
   }
 }
 
-}  // namespace blockchain
+}  // namespace ethereum
 }  // namespace concord
