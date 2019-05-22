@@ -393,7 +393,7 @@ class ExtendedRPCTests(test_suite.TestSuite):
       # hash (or an error once nonce tracking works); don't consider
       # it an error for now
       if not txResult == expectedHash:
-         log.warn("Receipt hash != expected hash. Was this run on an empty cluster?")
+         return (False, "Receipt hash != expected hash.")
 
       if not self._productMode:
          log.warn("No verification done in ethereum mode")
