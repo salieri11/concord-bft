@@ -98,7 +98,6 @@ std::vector<uint8_t> EthTransaction::rlp() const {
   }
 
   rlpb.add(this->gas_limit);
-  rlpb.add(this->gas_used);
   rlpb.add(this->gas_price);
   rlpb.add(this->nonce);
 
