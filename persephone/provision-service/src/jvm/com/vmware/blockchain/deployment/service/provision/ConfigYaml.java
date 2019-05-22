@@ -24,9 +24,10 @@ public final class ConfigYaml  {
     private static final Logger log = LoggerFactory.getLogger(ConfigYaml.class);
 
     private static final String DEFAULT_PATH_YAML = "/config/dockerConfigurationInput.yaml";
-    private static final String CLUSTER_SIZE = "client_proxies_per_replica: ";
+    private static final String CLIENT_PROXY_PER_REPLICA = "client_proxies_per_replica: ";
     private static final String C_VAL = "c_val: ";
     private static final String F_VAL = "f_val: ";
+    private static final int CLIENT_PROXY_PER_NODE = 4;
     private static final String NODE = "node:";
     private static final String SERVICE_HOST = "  - service_host: ";
     private static final String SERVICE_PORT = "    service_port: ";
@@ -109,7 +110,7 @@ public final class ConfigYaml  {
 
         Path path = Paths.get(configYamlFilePath);
         try (BufferedWriter writer = Files.newBufferedWriter(path)) {
-            writer.write(CLUSTER_SIZE + hostIp.size());
+            writer.write(CLIENT_PROXY_PER_REPLICA + CLIENT_PROXY_PER_NODE);
             writer.newLine();
             writer.write(C_VAL + c_val);
             writer.newLine();
@@ -139,7 +140,7 @@ public final class ConfigYaml  {
                 writer.newLine();
                 writer.write(CLIENT_PROXY);
                 writer.newLine();
-                for (int j = 0; j < hostIp.size(); j++) {
+                for (int j = 0; j < CLIENT_PROXY_PER_NODE; j++) {
                     writer.write(CLIENT_HOST + hostIp.get(i));
                     writer.newLine();
                     writer.write(CLIENT_PORT + (DEFAULT_PORT + j + 1));
