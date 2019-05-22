@@ -5,6 +5,7 @@
 
 #define USE_ROCKSDB
 #include "time/time_contract.hpp"
+#include "config/configuration_manager.hpp"
 #include "consensus/kvb/BlockchainDBTypes.hpp"
 #include "consensus/kvb/Comparators.h"
 #include "consensus/kvb/InMemoryDBClient.h"
@@ -16,6 +17,9 @@
 #include <log4cplus/loggingmacros.h>
 
 using namespace std;
+
+using concord::config::ConcordConfiguration;
+using concord::config::ConfigurationPath;
 
 namespace {
 
@@ -94,12 +98,40 @@ class TestStorage : public Blockchain::ILocalKeyValueStorageReadOnly,
   }
 };
 
+static ConcordConfiguration::ParameterStatus NodeScopeSizer(
+    const ConcordConfiguration& config, const ConfigurationPath& path,
+    size_t* output, void* state) {
+  *output = ((std::vector<string>*)state)->size();
+  return ConcordConfiguration::ParameterStatus::VALID;
+}
+
+// The time contract initializes itself with default values for all known
+// sources. This function generates a configuration object with the test sources
+// named.
+ConcordConfiguration TestConfiguration(std::vector<string> sourceIDs) {
+  ConcordConfiguration config;
+  config.declareScope("node", "Node scope", NodeScopeSizer, &sourceIDs);
+  config.subscope("node");
+  config.instantiateScope("node");
+
+  int i = 0;
+  for (std::string name : sourceIDs) {
+    ConcordConfiguration& nodeScope = config.subscope("node", i);
+    nodeScope.declareParameter("time_source_id", "Time Source ID");
+    nodeScope.loadValue("time_source_id", name);
+    i++;
+  }
+
+  return config;
+}
+
 // Since we're using "median", and odd number of sources gives the most direct,
 // obvious answer.
 TEST(time_contract_test, five_source_happy_path) {
   TestStorage database;
   concord::blockchain::KVBStorage storage(database, &database, 0);
-  concord::time::TimeContract tc(storage);
+  ConcordConfiguration config = TestConfiguration({"A", "B", "C", "D", "E"});
+  concord::time::TimeContract tc(storage, config);
 
   std::vector<std::pair<std::string, uint64_t>> samples = {
       {"A", 1}, {"B", 2}, {"C", 3}, {"D", 4}, {"E", 5}};
@@ -116,7 +148,9 @@ TEST(time_contract_test, five_source_happy_path) {
 TEST(time_contract_test, six_source_happy_path) {
   TestStorage database;
   concord::blockchain::KVBStorage storage(database, &database, 0);
-  concord::time::TimeContract tc(storage);
+  ConcordConfiguration config =
+      TestConfiguration({"A", "B", "C", "D", "E", "F"});
+  concord::time::TimeContract tc(storage, config);
 
   std::vector<std::pair<std::string, uint64_t>> samples = {
       {"A", 1}, {"B", 2}, {"C", 3}, {"D", 5}, {"E", 6}, {"F", 7}};
@@ -132,11 +166,12 @@ TEST(time_contract_test, six_source_happy_path) {
 TEST(time_contract_test, source_moves_forward) {
   TestStorage database;
   concord::blockchain::KVBStorage storage(database, &database, 0);
+  ConcordConfiguration config = TestConfiguration({"baz"});
 
   std::string source_id = "baz";
 
   for (uint64_t fake_time = 1; fake_time < 10; fake_time++) {
-    concord::time::TimeContract tc(storage);
+    concord::time::TimeContract tc(storage, config);
     ASSERT_EQ(tc.Update(source_id, fake_time), fake_time);
   }
 }
@@ -145,6 +180,7 @@ TEST(time_contract_test, source_moves_forward) {
 TEST(time_contract_test, save_restore) {
   TestStorage database;
   concord::blockchain::KVBStorage storage(database, &database, 0);
+  ConcordConfiguration config = TestConfiguration({"foo", "bar", "baz", "qux"});
 
   std::string source_foo = "foo";
   std::string source_bar = "bar";
@@ -153,7 +189,7 @@ TEST(time_contract_test, save_restore) {
 
   uint64_t expected_time;
   {
-    concord::time::TimeContract tc(storage);
+    concord::time::TimeContract tc(storage, config);
     tc.Update(source_foo, 12345);
     tc.Update(source_bar, 54321);
     tc.Update(source_baz, 10293);
@@ -165,7 +201,7 @@ TEST(time_contract_test, save_restore) {
   // TimeContract object would reinitialize itself from storage anyway, but
   // we've done so for completeness, and now we get to reuse the name anyway.
 
-  concord::time::TimeContract tc(storage);
+  concord::time::TimeContract tc(storage, config);
   ASSERT_EQ(tc.GetTime(), expected_time);
 }
 
@@ -173,6 +209,7 @@ TEST(time_contract_test, save_restore) {
 TEST(time_contract_test, update_correct_source) {
   TestStorage database;
   concord::blockchain::KVBStorage storage(database, &database, 0);
+  ConcordConfiguration config = TestConfiguration({"A", "B", "C"});
 
   // The idea here is to exploit the fact that the median of a three-reading
   // system will always be equal to one of those three reading. So, by asserting
@@ -183,7 +220,7 @@ TEST(time_contract_test, update_correct_source) {
   std::string source_B = "B";
   std::string source_C = "C";
 
-  concord::time::TimeContract tc(storage);
+  concord::time::TimeContract tc(storage, config);
   tc.Update(source_A, 1);
   tc.Update(source_B, 10);
   tc.Update(source_C, 20);
@@ -207,10 +244,11 @@ TEST(time_contract_test, update_correct_source) {
 TEST(time_contract_test, prevent_source_rollback) {
   TestStorage database;
   concord::blockchain::KVBStorage storage(database, &database, 0);
+  ConcordConfiguration config = TestConfiguration({"foo"});
 
   std::string source_foo = "foo";
 
-  concord::time::TimeContract tc1(storage);
+  concord::time::TimeContract tc1(storage, config);
   const uint64_t first_time = tc1.Update(source_foo, 1000);
 
   // first make sure a source can't rollback a cached copy
@@ -218,9 +256,25 @@ TEST(time_contract_test, prevent_source_rollback) {
   ASSERT_EQ(second_time, first_time);
 
   // then make sure a fresh read is also protected
-  concord::time::TimeContract tc2(storage);
+  concord::time::TimeContract tc2(storage, config);
   const uint64_t third_time = tc2.Update(source_foo, 250);
   ASSERT_EQ(third_time, first_time);
+}
+
+// Only accept times from preconfigured sources.
+TEST(time_contract_test, ignore_unknown_source) {
+  TestStorage database;
+  concord::blockchain::KVBStorage storage(database, &database, 0);
+  ConcordConfiguration config = TestConfiguration({"A", "B", "C"});
+
+  concord::time::TimeContract tc1(storage, config);
+  tc1.Update("X", 1000);
+  tc1.Update("Y", 1000);
+  tc1.Update("Z", 1000);
+
+  // Config specified A,B,C as sources, so all of X,Y,Z updates should be
+  // ignored.
+  ASSERT_EQ(tc1.GetTime(), 0);
 }
 
 }  // end namespace

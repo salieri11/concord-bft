@@ -19,6 +19,7 @@
 #include <utility>
 
 #include "blockchain/kvb_storage.hpp"
+#include "config/configuration_manager.hpp"
 
 namespace concord {
 namespace time {
@@ -37,9 +38,11 @@ const int64_t kTimeStorageVersion = 1;
 
 class TimeContract {
  public:
-  explicit TimeContract(concord::blockchain::KVBStorage& storage)
+  explicit TimeContract(concord::blockchain::KVBStorage& storage,
+                        const concord::config::ConcordConfiguration& config)
       : logger_(log4cplus::Logger::getInstance("concord.time")),
         storage_(storage),
+        config_(config),
         samples_(nullptr) {}
 
   ~TimeContract() {
@@ -55,6 +58,7 @@ class TimeContract {
  private:
   log4cplus::Logger logger_;
   concord::blockchain::KVBStorage& storage_;
+  const concord::config::ConcordConfiguration& config_;
   std::unordered_map<std::string, uint64_t>* samples_;
 
   void LoadLatestSamples();

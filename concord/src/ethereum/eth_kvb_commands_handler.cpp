@@ -172,7 +172,7 @@ bool EthKvbCommandsHandler::executeCommand(
       result = handle_eth_request(command, kvbStorage, athresp);
     } else if (command.has_time_update()) {
       // This was a time-update-only command. Just write the block.
-      TimeContract tc(kvbStorage);
+      TimeContract tc(kvbStorage, config_);
       // divide by 1000, because time service is in milliseconds, but ethereum
       // is in seconds
       uint64_t timestamp = tc.GetTime() / 1000;
@@ -216,7 +216,7 @@ bool EthKvbCommandsHandler::handle_time_update(ConcordRequest &athreq,
                                                KVBStorage &kvbStorage,
                                                ConcordResponse &athresp) const {
   if (concord::time::IsTimeServiceEnabled(config_)) {
-    TimeContract tc(kvbStorage);
+    TimeContract tc(kvbStorage, config_);
     std::pair<std::string, uint64_t> cmd_time =
         concord::time::GetTimeFromCommand(athreq);
     tc.Update(cmd_time.first, cmd_time.second);
@@ -258,7 +258,7 @@ bool EthKvbCommandsHandler::handle_eth_sendTransaction(
 
   uint64_t timestamp = 0;
   if (concord::time::IsTimeServiceEnabled(config_)) {
-    TimeContract tc(kvbStorage);
+    TimeContract tc(kvbStorage, config_);
     // divide by 1000, because time service is in milliseconds, but ethereum is
     // in seconds
     timestamp = tc.GetTime() / 1000;
@@ -1122,7 +1122,7 @@ evm_result EthKvbCommandsHandler::run_evm(
     // checking the feature flag. We need the instance to live from the time of
     // read to the time of write, so that we can save the time service state
     // across this storage reset.
-    TimeContract tc(kvbStorage);
+    TimeContract tc(kvbStorage, config_);
 
     if (concord::time::IsTimeServiceEnabled(config_)) {
       // cache latest time contract state
