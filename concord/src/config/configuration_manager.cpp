@@ -3765,7 +3765,7 @@ void loadNodeConfiguration(ConcordConfiguration& config,
 
 size_t detectLocalNode(ConcordConfiguration& config) {
   size_t nodeDetected;
-  bool hasDetectedNode;
+  bool hasDetectedNode = false;
 
   for (auto iterator =
            config.begin(ConcordConfiguration::kIterateAllInstanceParameters);
