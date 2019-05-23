@@ -49,7 +49,7 @@ public class OrganizationContoller {
 
     /**
      * List all orgs.
-     * @return
+     * @return list of all orgs
      */
     @RequestMapping(path = "/api/organizations", method = RequestMethod.GET)
     public ResponseEntity<List<OrgGetResponse>> listOrgs() {
@@ -61,7 +61,7 @@ public class OrganizationContoller {
 
     /**
      * List all orgs with id.
-     * @return
+     * @return a particular org with id
      */
     @RequestMapping(path = "/api/organizations/{org_id}", method = RequestMethod.GET)
     public ResponseEntity<OrgGetResponse> getOrg(@PathVariable("org_id") UUID orgId) {

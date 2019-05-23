@@ -4,7 +4,6 @@
 
 package com.vmware.blockchain.services.profiles;
 
-import java.lang.String;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -41,7 +40,8 @@ public class ConsortiumController {
     @Data
     static class ConPostBody {
         String consortiumName;
-       // String consortiumType;
+        String consortiumType;
+        private UUID organization;
     }
 
     @Autowired
@@ -51,7 +51,7 @@ public class ConsortiumController {
 
     /**
      * List all consortium.
-     * @return
+     * @return the list of consortium
      */
     @RequestMapping(path = "/api/consortiums", method = RequestMethod.GET)
     public ResponseEntity<List<ConGetResponse>> lisCons() {
@@ -62,13 +62,14 @@ public class ConsortiumController {
     }
 
     /**
-     * List all consortiums.
-     * @return
+     * List all consortiums specific to consortium id.
+     * @return specific consortium
      */
     @RequestMapping(path = "/api/consortiums/{con_id}", method = RequestMethod.GET)
     public ResponseEntity<ConGetResponse> getCon(@PathVariable("con_id") UUID consortiumId) {
         Consortium consortium = consortiumService.get(consortiumId);
-        return new ResponseEntity<>(new ConGetResponse(consortium.getId(), consortium.getConsortiumName()), HttpStatus.OK);
+        return new ResponseEntity<>(new ConGetResponse(consortium.getId(),
+                                                       consortium.getConsortiumName()), HttpStatus.OK);
     }
 
     /**
@@ -77,24 +78,28 @@ public class ConsortiumController {
      * @return the new consortium
      */
     @RequestMapping(path = "/api/consortiums", method = RequestMethod.POST)
-    public ResponseEntity<ConGetResponse> createCOn(@RequestBody ConPostBody body) {
-        Consortium consortium = new Consortium(body.getConsortiumName());
+    public ResponseEntity<ConGetResponse> createCon(@RequestBody ConPostBody body) {
+        Consortium consortium = new Consortium(body.getConsortiumName(),
+                                               body.getConsortiumType(), body.getOrganization());
         consortium = consortiumService.put(consortium);
-        return new ResponseEntity<>(new ConGetResponse(consortium.getId(), consortium.getConsortiumName()), HttpStatus.OK);
+        return new ResponseEntity<>(new ConGetResponse(consortium.getId(),
+                                                       consortium.getConsortiumName()), HttpStatus.OK);
     }
 
     /**
-     * Updates an organization.
+     * Updates a consortium.
      * @param body request body with consortium name
-     * @return the new consortium
+     * @return the updated consortium
      */
     @RequestMapping(path = "/api/consortiums/{con_id}", method = RequestMethod.PATCH)
-    public ResponseEntity<ConGetResponse> updateCon(@PathVariable("con_id") UUID consortiumId, @RequestBody ConPostBody body) {
+    public ResponseEntity<ConGetResponse> updateCon(@PathVariable("con_id") UUID consortiumId,
+                                                    @RequestBody ConPostBody body) {
         Consortium consortium = consortiumService.get(consortiumId);
-        if (body.consortiumName != null) {
+        if (body.consortiumName != null)
             consortium.setConsortiumName(body.getConsortiumName());
-        }
+
         consortium = consortiumService.put(consortium);
-        return new ResponseEntity<>(new ConGetResponse(consortium.getId(), consortium.getConsortiumName()), HttpStatus.OK);
+        return new ResponseEntity<>(new ConGetResponse(consortium.getId(),
+                                                       consortium.getConsortiumName()), HttpStatus.OK);
     }
 }
