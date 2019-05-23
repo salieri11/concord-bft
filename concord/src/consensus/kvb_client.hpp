@@ -2,15 +2,15 @@
 //
 // Layer between api_connection and IClient
 
-#ifndef CONSENSUS_KVB_CLIENT_HPP
-#define CONSENSUS_KVB_CLIENT_HPP
+#ifndef CONSENSUS_KVB_CLIENT_HPP_
+#define CONSENSUS_KVB_CLIENT_HPP_
 
 #include <log4cplus/loggingmacros.h>
 #include <boost/lockfree/queue.hpp>
 #include <vector>
 
 #include "concord.pb.h"
-#include "kvb/BlockchainInterfaces.h"
+#include "consensus/blockchain_interfaces.h"
 
 namespace concord {
 namespace consensus {
@@ -54,4 +54,4 @@ class KVBClientPool {
 }  // namespace consensus
 }  // namespace concord
 
-#endif  // CONSENSUS_KVB_CLIENT_HPP
+#endif  // CONSENSUS_KVB_CLIENT_HPP_

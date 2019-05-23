@@ -2,7 +2,7 @@
 //
 // KV Blockchain replica implementation.
 
-#include "ReplicaImp.h"
+#include "replica_imp.h"
 
 #include <signal.h>
 #include <stdio.h>
@@ -19,11 +19,11 @@
 #include <cassert>
 #include <chrono>
 #include <cstdlib>
-#include "Comparators.h"
-#include "HexTools.h"
-#include "ReplicaStateSync.h"
-#include "RocksDBMetadataStorage.hpp"
-#include "sliver.hpp"
+#include "consensus/comparators.h"
+#include "consensus/hex_tools.h"
+#include "consensus/replica_state_sync.h"
+#include "consensus/rocksdb_metadata_storage.h"
+#include "consensus/sliver.hpp"
 
 using log4cplus::Logger;
 using namespace bftEngine;

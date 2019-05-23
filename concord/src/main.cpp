@@ -15,12 +15,12 @@
 #include "common/concord_exception.hpp"
 #include "common/status_aggregator.hpp"
 #include "config/configuration_manager.hpp"
-#include "consensus/kvb/BlockchainDBAdapter.h"
-#include "consensus/kvb/Comparators.h"
-#include "consensus/kvb/DatabaseInterface.h"
-#include "consensus/kvb/InMemoryDBClient.h"
-#include "consensus/kvb/ReplicaImp.h"
-#include "consensus/kvb/bft_configuration.hpp"
+#include "consensus/bft_configuration.hpp"
+#include "consensus/blockchain_db_adapter.h"
+#include "consensus/comparators.h"
+#include "consensus/database_interface.h"
+#include "consensus/in_memory_db_client.h"
+#include "consensus/replica_imp.h"
 #include "consensus/replica_state_sync_imp.hpp"
 #include "daml/blocking_queue.h"
 #include "daml/cmd_handler.hpp"
@@ -36,7 +36,7 @@
 #include "utils/concord_eth_sign.hpp"
 
 #ifdef USE_ROCKSDB
-#include "consensus/kvb/RocksDBClient.h"
+#include "consensus/rocksdb_client.h"
 #endif
 
 using namespace boost::program_options;

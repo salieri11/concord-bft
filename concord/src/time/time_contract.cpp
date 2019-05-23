@@ -8,7 +8,7 @@
 
 #include "concord_storage.pb.h"
 #include "config/configuration_manager.hpp"
-#include "consensus/kvb/sliver.hpp"
+#include "consensus/sliver.hpp"
 
 using concord::config::ConcordConfiguration;
 using concord::config::ConfigurationPath;

@@ -1,6 +1,6 @@
 // Copyright 2018 VMware, all rights reserved
 
-#include "HexTools.h"
+#include "hex_tools.h"
 
 #include <iomanip>
 #include <ios>

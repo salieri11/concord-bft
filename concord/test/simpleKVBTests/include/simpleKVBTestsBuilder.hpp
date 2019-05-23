@@ -15,7 +15,7 @@
 #define SIMPLE_KVB_TESTS_HPP
 
 #include <list>
-#include "consensus/kvb/BlockchainDBTypes.hpp"
+#include "consensus/blockchain_db_types.h"
 
 namespace BasicRandomTests {
 

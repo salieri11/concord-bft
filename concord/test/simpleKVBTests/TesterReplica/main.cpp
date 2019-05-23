@@ -25,10 +25,10 @@
 
 #include "commonKVBTests.hpp"
 #include "config/configuration_manager.hpp"
-#include "consensus/kvb/Comparators.h"
-#include "consensus/kvb/ReplicaImp.h"
-#include "consensus/kvb/RocksDBClient.h"
+#include "consensus/comparators.h"
+#include "consensus/replica_imp.h"
 #include "consensus/replica_state_sync_imp.hpp"
+#include "consensus/rocksdb_client.h"
 #include "ethereum/eth_kvb_storage.hpp"
 #include "internalCommandsHandler.hpp"
 #include "test_comm_config.hpp"

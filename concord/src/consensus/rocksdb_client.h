@@ -15,12 +15,12 @@
  *
  */
 
-#ifndef CONCORD_CONSENSUS_KVB_ROCKSDBCLIENT_H_
-#define CONCORD_CONSENSUS_KVB_ROCKSDBCLIENT_H_
+#ifndef CONCORD_CONSENSUS_ROCKSDB_CLIENT_H_
+#define CONCORD_CONSENSUS_ROCKSDB_CLIENT_H_
 
 #ifdef USE_ROCKSDB
 #include <log4cplus/loggingmacros.h>
-#include "DatabaseInterface.h"
+#include "consensus/database_interface.h"
 #include "rocksdb/db.h"
 
 namespace concord {
@@ -107,4 +107,4 @@ Sliver copyRocksdbSlice(rocksdb::Slice _s);
 }  // namespace concord
 
 #endif  // USE_ROCKSDB
-#endif  // CONCORD_CONSENSUS_KVB_ROCKSDBCLIENT_H_
+#endif  // CONCORD_CONSENSUS_ROCKSDB_CLIENT_H_

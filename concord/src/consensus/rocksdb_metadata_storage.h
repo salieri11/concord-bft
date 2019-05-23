@@ -11,15 +11,15 @@
 // terms and conditions of the subcomponent's license, as noted in the LICENSE
 // file.
 
-#ifndef CONCORD_CONSENSUS_KVB_ROCKS_DB_METADATA_STORAGE_HPP_
-#define CONCORD_CONSENSUS_KVB_ROCKS_DB_METADATA_STORAGE_HPP_
+#ifndef CONCORD_CONSENSUS_ROCKS_DB_METADATA_STORAGE_H_
+#define CONCORD_CONSENSUS_ROCKS_DB_METADATA_STORAGE_H_
 
 #ifdef USE_ROCKSDB
 
 #include <log4cplus/loggingmacros.h>
 #include <mutex>
-#include "DatabaseInterface.h"
 #include "MetadataStorage.hpp"
+#include "consensus/database_interface.h"
 
 namespace concord {
 namespace consensus {
@@ -65,4 +65,4 @@ class RocksDBMetadataStorage : public bftEngine::MetadataStorage {
 }  // namespace concord
 
 #endif  // USE_ROCKSDB
-#endif  // CONCORD_CONSENSUS_KVB_ROCKS_DB_METADATA_STORAGE_HPP_
+#endif  // CONCORD_CONSENSUS_ROCKS_DB_METADATA_STORAGE_H_

@@ -13,11 +13,11 @@
 
 #ifdef USE_ROCKSDB
 
-#include "RocksDBClient.h"
+#include "rocksdb_client.h"
 
 #include <log4cplus/loggingmacros.h>
 
-#include "HashDefs.h"
+#include "consensus/hash_defs.h"
 #include "rocksdb/comparator.h"
 
 namespace concord {

@@ -2,23 +2,23 @@
 //
 // KV Blockchain replica definition.
 
-#ifndef CONCORD_CONSENSUS_KVB_REPLICAIMP_H_
-#define CONCORD_CONSENSUS_KVB_REPLICAIMP_H_
+#ifndef CONCORD_CONSENSUS_REPLICA_IMP_H_
+#define CONCORD_CONSENSUS_REPLICA_IMP_H_
 
 #include <functional>
 #include <map>
 #include <string>
 
 #include <log4cplus/loggingmacros.h>
-#include "BlockchainDBAdapter.h"
-#include "BlockchainInterfaces.h"
 #include "CommFactory.hpp"
-#include "HashDefs.h"
 #include "ICommunication.hpp"
-#include "InMemoryDBClient.h"
 #include "Replica.hpp"
 #include "ReplicaConfig.hpp"
 #include "StatusInfo.h"
+#include "consensus/blockchain_db_adapter.h"
+#include "consensus/blockchain_interfaces.h"
+#include "consensus/hash_defs.h"
+#include "consensus/in_memory_db_client.h"
 
 namespace concord {
 namespace consensus {
@@ -294,4 +294,4 @@ class ReplicaImp : public IReplica,
 }  // namespace consensus
 }  // namespace concord
 
-#endif  // CONCORD_CONSENSUS_KVB_REPLICAIMP_H_
+#endif  // CONCORD_CONSENSUS_REPLICA_IMP_H_

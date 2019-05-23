@@ -7,7 +7,7 @@
 
 #include "concord_log.hpp"
 #include "concord_types.hpp"
-#include "consensus/kvb/sliver.hpp"
+#include "consensus/sliver.hpp"
 
 namespace concord {
 namespace common {

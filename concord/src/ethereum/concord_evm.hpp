@@ -10,7 +10,7 @@
 #include <memory>
 #include <vector>
 #include "common/concord_types.hpp"
-#include "consensus/kvb/BlockchainInterfaces.h"
+#include "consensus/blockchain_interfaces.h"
 #include "evm.h"
 #include "evm_init_params.hpp"
 #include "utils/concord_utils.hpp"

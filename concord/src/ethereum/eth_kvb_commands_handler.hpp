@@ -2,15 +2,15 @@
 //
 // KVBlockchain replica command handler interface for EVM.
 
-#ifndef ETHEREUM_KVB_COMMANDS_HANDLER_HPP
-#define ETHEREUM_KVB_COMMANDS_HANDLER_HPP
+#ifndef ETHEREUM_KVB_COMMANDS_HANDLER_HPP_
+#define ETHEREUM_KVB_COMMANDS_HANDLER_HPP_
 
 #include <log4cplus/loggingmacros.h>
 #include <boost/program_options.hpp>
 
 #include "concord.pb.h"
 #include "config/configuration_manager.hpp"
-#include "consensus/kvb/BlockchainInterfaces.h"
+#include "consensus/blockchain_interfaces.h"
 #include "ethereum/concord_evm.hpp"
 #include "utils/concord_eth_sign.hpp"
 
@@ -132,4 +132,4 @@ class EthKvbCommandsHandler : public concord::consensus::ICommandsHandler {
 }  // namespace ethereum
 }  // namespace concord
 
-#endif  // ETHEREUM_KVB_COMMANDS_HANDLER_HPP
+#endif  // ETHEREUM_KVB_COMMANDS_HANDLER_HPP_

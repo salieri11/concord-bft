@@ -4,8 +4,8 @@
 
 #include <string>
 
-#include "consensus/kvb/BlockchainDBTypes.hpp"
-#include "consensus/kvb/BlockchainInterfaces.h"
+#include "consensus/blockchain_db_types.h"
+#include "consensus/blockchain_interfaces.h"
 #include "daml/cmd_handler.hpp"
 
 using grpc::ServerContext;

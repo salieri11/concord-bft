@@ -2,15 +2,15 @@
 //
 // Storage key comparators implementation.
 
-#include "Comparators.h"
+#include "comparators.h"
 
 #include <log4cplus/loggingmacros.h>
 
-#include "BlockchainDBAdapter.h"
-#include "BlockchainInterfaces.h"
-#include "HexTools.h"
-#include "RocksDBClient.h"
-#include "sliver.hpp"
+#include "consensus/blockchain_db_adapter.h"
+#include "consensus/blockchain_interfaces.h"
+#include "consensus/hex_tools.h"
+#include "consensus/rocksdb_client.h"
+#include "consensus/sliver.hpp"
 
 #include <chrono>
 

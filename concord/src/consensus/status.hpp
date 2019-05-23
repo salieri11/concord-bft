@@ -4,8 +4,8 @@
  * Status stores the result of an operation.
  */
 
-#ifndef CONCORD_CONSENSUS_KVB_STATUS_HPP_
-#define CONCORD_CONSENSUS_KVB_STATUS_HPP_
+#ifndef CONCORD_CONSENSUS_STATUS_HPP_
+#define CONCORD_CONSENSUS_STATUS_HPP_
 
 #include <string>
 
@@ -79,4 +79,4 @@ std::ostream& operator<<(std::ostream& s, Status const& status);
 }  // namespace consensus
 }  // namespace concord
 
-#endif  // CONCORD_CONSENSUS_KVB_STATUS_HPP_
+#endif  // CONCORD_CONSENSUS_STATUS_HPP_

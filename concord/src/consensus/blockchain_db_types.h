@@ -11,14 +11,14 @@
 // terms and conditions of the subcomponent's license, as noted in the LICENSE
 // file.
 
-#ifndef CONCORD_CONSENSUS_KVB_BLOCKCHAIN_DB_TYPES_H_
-#define CONCORD_CONSENSUS_KVB_BLOCKCHAIN_DB_TYPES_H_
+#ifndef CONCORD_CONSENSUS_BLOCKCHAIN_DB_TYPES_H_
+#define CONCORD_CONSENSUS_BLOCKCHAIN_DB_TYPES_H_
 
 #include <cstdint>
 #include <unordered_map>
 #include <vector>
 #include "SimpleBCStateTransfer.hpp"
-#include "sliver.hpp"
+#include "consensus/sliver.hpp"
 
 namespace concord {
 namespace consensus {
@@ -58,4 +58,4 @@ typedef KeysVector ValuesVector;
 }  // namespace consensus
 }  // namespace concord
 
-#endif  // CONCORD_CONSENSUS_KVB_BLOCKCHAIN_DB_TYPES_H_
+#endif  // CONCORD_CONSENSUS_BLOCKCHAIN_DB_TYPES_H_

@@ -15,7 +15,7 @@
 #define BASIC_RANDOM_TESTS_HPP
 
 #include "Logging.hpp"
-#include "consensus/kvb/BlockchainInterfaces.h"
+#include "consensus/blockchain_interfaces.h"
 #include "simpleKVBTestsBuilder.hpp"
 
 namespace BasicRandomTests {

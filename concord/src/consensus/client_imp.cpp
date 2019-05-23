@@ -2,7 +2,7 @@
 //
 // KV Blockchain client implementation.
 
-#include "ClientImp.h"
+#include "client_imp.h"
 
 #include "CommFactory.hpp"
 

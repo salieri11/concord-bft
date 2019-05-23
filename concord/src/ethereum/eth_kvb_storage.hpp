@@ -11,9 +11,9 @@
 #include <vector>
 
 #include "common/concord_types.hpp"
-#include "consensus/kvb/BlockchainInterfaces.h"
-#include "consensus/kvb/HashDefs.h"
-#include "consensus/kvb/sliver.hpp"
+#include "consensus/blockchain_interfaces.h"
+#include "consensus/hash_defs.h"
+#include "consensus/sliver.hpp"
 #include "evm.h"
 
 namespace concord {

@@ -15,7 +15,7 @@
 #define INTERNAL_COMMANDS_HANDLER_HPP
 
 #include "Logging.hpp"
-#include "consensus/kvb/BlockchainInterfaces.h"
+#include "consensus/blockchain_interfaces.h"
 #include "simpleKVBTestsBuilder.hpp"
 
 class InternalCommandsHandler : public concord::consensus::ICommandsHandler {

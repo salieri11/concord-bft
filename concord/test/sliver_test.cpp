@@ -7,7 +7,7 @@
  * leaks/double-frees/etc. `valgrind --leak-check=full test/SliverTests`
  */
 
-#include "consensus/kvb/sliver.hpp"
+#include "consensus/sliver.hpp"
 #include "gtest/gtest.h"
 
 using namespace std;

@@ -1,9 +1,12 @@
 // Copyright 2019 VMware, all rights reserved
 
+#ifndef CONCORD_DAML_GRPC_SERVICES_HPP_
+#define CONCORD_DAML_GRPC_SERVICES_HPP_
+
 #include <grpcpp/grpcpp.h>
 #include <log4cplus/loggingmacros.h>
 
-#include "consensus/kvb/BlockchainInterfaces.h"
+#include "consensus/blockchain_interfaces.h"
 #include "consensus/kvb_client.hpp"
 #include "daml/blocking_queue.h"
 #include "daml_commit.grpc.pb.h"
@@ -76,3 +79,5 @@ class EventsServiceImpl final
 
 }  // namespace daml
 }  // namespace concord
+
+#endif  // CONCORD_DAML_GRPC_SERVICES_HPP_

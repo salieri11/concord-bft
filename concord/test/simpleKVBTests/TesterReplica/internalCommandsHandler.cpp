@@ -13,7 +13,7 @@
 
 #include "internalCommandsHandler.hpp"
 #include <assert.h>
-#include "consensus/kvb/HashDefs.h"
+#include "consensus/hash_defs.h"
 #include "ethereum/eth_kvb_storage.hpp"
 
 using namespace BasicRandomTests;

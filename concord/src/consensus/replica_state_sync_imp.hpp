@@ -15,7 +15,7 @@
 #ifndef CONCORD_CONSENSUS_REPLICA_STATE_SYNC_IMP_H_
 #define CONCORD_CONSENSUS_REPLICA_STATE_SYNC_IMP_H_
 
-#include "consensus/kvb/ReplicaStateSync.h"
+#include "consensus/replica_state_sync.h"
 
 namespace concord {
 namespace consensus {

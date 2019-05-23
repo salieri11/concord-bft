@@ -11,7 +11,7 @@
 // terms and conditions of the subcomponent's license, as noted in the LICENSE
 // file.
 
-#include "BlockchainDBTypes.hpp"
+#include "consensus/blockchain_db_types.h"
 
 #include <cstring>
 
