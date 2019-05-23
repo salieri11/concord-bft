@@ -780,11 +780,11 @@ public class ProvisionService extends ProvisionServiceImplBase {
         return new DeploymentSessionEvent(
                 DeploymentSessionEvent.Type.ACKNOWLEDGED,
                 sessionId,
+                DeploymentSession.Status.ACTIVE,
+                ProvisionedResource.Companion.getDefaultValue(),
                 ConcordNode.Companion.getDefaultValue(),
                 ConcordNodeStatus.Companion.getDefaultValue(),
-                ConcordCluster.Companion.getDefaultValue(),
-                DeploymentSession.Status.ACTIVE,
-                ProvisionedResource.Companion.getDefaultValue()
+                ConcordCluster.Companion.getDefaultValue()
         );
     }
 
@@ -807,11 +807,11 @@ public class ProvisionService extends ProvisionServiceImplBase {
         return new DeploymentSessionEvent(
                 DeploymentSessionEvent.Type.COMPLETED,
                 sessionId,
+                status,
+                ProvisionedResource.Companion.getDefaultValue(),
                 ConcordNode.Companion.getDefaultValue(),
                 ConcordNodeStatus.Companion.getDefaultValue(),
-                ConcordCluster.Companion.getDefaultValue(),
-                status,
-                ProvisionedResource.Companion.getDefaultValue()
+                ConcordCluster.Companion.getDefaultValue()
         );
     }
 
@@ -837,11 +837,11 @@ public class ProvisionService extends ProvisionServiceImplBase {
         return new DeploymentSessionEvent(
                 DeploymentSessionEvent.Type.RESOURCE,
                 sessionId,
+                status,
+                resource,
                 ConcordNode.Companion.getDefaultValue(),
                 ConcordNodeStatus.Companion.getDefaultValue(),
-                ConcordCluster.Companion.getDefaultValue(),
-                status,
-                resource
+                ConcordCluster.Companion.getDefaultValue()
         );
     }
 
@@ -867,11 +867,11 @@ public class ProvisionService extends ProvisionServiceImplBase {
         return new DeploymentSessionEvent(
                 DeploymentSessionEvent.Type.NODE_DEPLOYED,
                 sessionId,
+                status,
+                ProvisionedResource.Companion.getDefaultValue(),
                 node,
                 ConcordNodeStatus.Companion.getDefaultValue(),
-                ConcordCluster.Companion.getDefaultValue(),
-                status,
-                ProvisionedResource.Companion.getDefaultValue()
+                ConcordCluster.Companion.getDefaultValue()
         );
     }
 
@@ -897,11 +897,11 @@ public class ProvisionService extends ProvisionServiceImplBase {
         return new DeploymentSessionEvent(
                 DeploymentSessionEvent.Type.CLUSTER_DEPLOYED,
                 sessionId,
+                status,
+                ProvisionedResource.Companion.getDefaultValue(),
                 ConcordNode.Companion.getDefaultValue(),
                 ConcordNodeStatus.Companion.getDefaultValue(),
-                cluster,
-                status,
-                ProvisionedResource.Companion.getDefaultValue()
+                cluster
         );
     }
 
