@@ -77,4 +77,10 @@ public class AwsS3ClientTest {
         service.getObject(BUCKET_NAME, KEY_NAME);
         verify(s3).getObject(BUCKET_NAME, KEY_NAME);
     }
+
+    @Test
+    public void whenVerifyingDeleteObject_thenCorrect() {
+        service.deleteObject(BUCKET_NAME, KEY_NAME);
+        verify(s3).deleteObject(BUCKET_NAME, KEY_NAME);
+    }
 }

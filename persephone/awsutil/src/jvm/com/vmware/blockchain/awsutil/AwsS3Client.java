@@ -53,4 +53,9 @@ public final class AwsS3Client {
     public S3Object getObject(String bucketName, String objectKey) {
         return s3client.getObject(bucketName, objectKey);
     }
+
+    //deleting an object
+    public void deleteObject(String bucketName, String objectKey) {
+        s3client.deleteObject(bucketName, objectKey);
+    }
 }
