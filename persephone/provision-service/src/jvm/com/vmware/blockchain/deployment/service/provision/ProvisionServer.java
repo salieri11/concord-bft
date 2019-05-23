@@ -18,8 +18,8 @@ import javax.inject.Singleton;
 import org.slf4j.LoggerFactory;
 
 import com.vmware.blockchain.deployment.model.OrchestrationSiteIdentifier;
-import com.vmware.blockchain.deployment.model.orchestration.OrchestrationSiteInfo;
-import com.vmware.blockchain.deployment.model.orchestration.OrchestrationSiteInfoKt;
+import com.vmware.blockchain.deployment.model.OrchestrationSiteInfo;
+import com.vmware.blockchain.deployment.orchestration.OrchestrationSiteInfosKt;
 
 import dagger.BindsInstance;
 import dagger.Component;
@@ -83,7 +83,7 @@ interface ProvisionServer {
                 ),
                 EmptyModule.INSTANCE
         );
-        var serializer = OrchestrationSiteInfoKt.getOrchestrationSiteMapSerializer();
+        var serializer = OrchestrationSiteInfosKt.getOrchestrationSiteMapSerializer();
         var orchestrations = Collections.<OrchestrationSiteIdentifier, OrchestrationSiteInfo>emptyMap();
 
         if (args.length == 1 && Files.exists(Paths.get(args[0]))) {

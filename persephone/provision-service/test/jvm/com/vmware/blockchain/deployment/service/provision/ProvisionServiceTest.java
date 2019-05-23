@@ -4,7 +4,6 @@
 
 package com.vmware.blockchain.deployment.service.provision;
 
-import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.Map;
@@ -22,20 +21,21 @@ import org.junit.jupiter.api.Test;
 
 import com.vmware.blockchain.deployment.model.ConcordModelSpecification;
 import com.vmware.blockchain.deployment.model.CreateClusterRequest;
+import com.vmware.blockchain.deployment.model.Credential;
 import com.vmware.blockchain.deployment.model.DeploymentSession;
 import com.vmware.blockchain.deployment.model.DeploymentSessionEvent;
 import com.vmware.blockchain.deployment.model.DeploymentSessionIdentifier;
 import com.vmware.blockchain.deployment.model.DeploymentSpecification;
+import com.vmware.blockchain.deployment.model.Endpoint;
 import com.vmware.blockchain.deployment.model.MessageHeader;
 import com.vmware.blockchain.deployment.model.OrchestrationSiteIdentifier;
+import com.vmware.blockchain.deployment.model.OrchestrationSiteInfo;
 import com.vmware.blockchain.deployment.model.PlacementSpecification;
 import com.vmware.blockchain.deployment.model.PlacementSpecification.Entry;
 import com.vmware.blockchain.deployment.model.ProvisionedResource;
 import com.vmware.blockchain.deployment.model.StreamClusterDeploymentSessionEventRequest;
-import com.vmware.blockchain.deployment.model.core.Credential;
-import com.vmware.blockchain.deployment.model.core.Endpoint;
+import com.vmware.blockchain.deployment.model.VmcOrchestrationSiteInfo;
 import com.vmware.blockchain.deployment.model.ethereum.Genesis;
-import com.vmware.blockchain.deployment.model.orchestration.OrchestrationSiteInfo;
 
 import io.grpc.stub.StreamObserver;
 
@@ -196,12 +196,12 @@ class ProvisionServiceTest {
         var datacenter = "datacenter-" + i;
         return new OrchestrationSiteInfo(
                 OrchestrationSiteInfo.Type.VMC,
-                new OrchestrationSiteInfo.Vmc(
-                        new Endpoint(URI.create("https://authserver"), new Credential()),
-                        new Endpoint(URI.create(apiEndpoint), new Credential()),
+                new VmcOrchestrationSiteInfo(
+                        new Endpoint("https://authserver", new Credential()),
+                        new Endpoint(apiEndpoint, new Credential()),
+                        new Endpoint("https://registry", new Credential()),
                         "test-org",
                         datacenter,
-                        new Endpoint(URI.create("https://registry"), new Credential()),
                         "resource-pool",
                         "vm-folder",
                         "vmware-vpn",

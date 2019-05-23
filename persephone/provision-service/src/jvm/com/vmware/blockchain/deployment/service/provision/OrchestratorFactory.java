@@ -10,7 +10,7 @@ import java.util.concurrent.ExecutorService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.vmware.blockchain.deployment.model.orchestration.OrchestrationSiteInfo;
+import com.vmware.blockchain.deployment.model.OrchestrationSiteInfo;
 import com.vmware.blockchain.deployment.orchestration.InactiveOrchestrator;
 import com.vmware.blockchain.deployment.orchestration.Orchestrator;
 import com.vmware.blockchain.deployment.reactive.ReactiveStream;

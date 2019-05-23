@@ -6,7 +6,7 @@ package com.vmware.blockchain.deployment.service.provision;
 
 import java.util.concurrent.CompletableFuture;
 
-import com.vmware.blockchain.deployment.model.orchestration.OrchestrationSiteInfo;
+import com.vmware.blockchain.deployment.model.OrchestrationSiteInfo;
 import com.vmware.blockchain.deployment.orchestration.Orchestrator;
 
 /**

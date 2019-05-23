@@ -10,7 +10,7 @@ import java.util.concurrent.ForkJoinPool;
 import javax.inject.Singleton;
 
 import com.vmware.blockchain.deployment.model.OrchestrationSiteIdentifier;
-import com.vmware.blockchain.deployment.model.orchestration.OrchestrationSiteInfo;
+import com.vmware.blockchain.deployment.model.OrchestrationSiteInfo;
 
 import dagger.Module;
 import dagger.Provides;

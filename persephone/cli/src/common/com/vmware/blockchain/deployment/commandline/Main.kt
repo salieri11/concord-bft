@@ -13,7 +13,7 @@ import com.vmware.blockchain.deployment.model.ConcordNodeIdentifier
 import com.vmware.blockchain.deployment.model.core.URI
 import com.vmware.blockchain.deployment.model.core.UUID
 import com.vmware.blockchain.deployment.model.ethereum.Genesis
-import com.vmware.blockchain.deployment.model.orchestration.getOrchestrationSiteMapSerializer
+import com.vmware.blockchain.deployment.orchestration.getOrchestrationSiteMapSerializer
 import com.vmware.blockchain.deployment.orchestration.Orchestrator
 import com.vmware.blockchain.deployment.reactive.BaseSubscriber
 import com.vmware.blockchain.deployment.vmc.VmcOrchestrator

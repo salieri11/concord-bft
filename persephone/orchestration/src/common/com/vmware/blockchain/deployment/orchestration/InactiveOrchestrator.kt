@@ -3,7 +3,7 @@
  * *************************************************************************/
 package com.vmware.blockchain.deployment.orchestration
 
-import com.vmware.blockchain.deployment.model.orchestration.OrchestrationSiteInfo
+import com.vmware.blockchain.deployment.model.OrchestrationSiteInfo
 import com.vmware.blockchain.deployment.reactive.ErrorPublisher
 import com.vmware.blockchain.deployment.reactive.Publisher
 

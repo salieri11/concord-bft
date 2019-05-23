@@ -6,8 +6,9 @@ package com.vmware.blockchain.deployment.vm
 import com.vmware.blockchain.deployment.http.JsonSerializer
 import com.vmware.blockchain.deployment.model.ConcordComponent
 import com.vmware.blockchain.deployment.model.ConcordModelSpecification
-import com.vmware.blockchain.deployment.model.core.Credential
-import com.vmware.blockchain.deployment.model.core.Endpoint
+import com.vmware.blockchain.deployment.model.Credential
+import com.vmware.blockchain.deployment.model.Endpoint
+import com.vmware.blockchain.deployment.model.core.URI
 import com.vmware.blockchain.deployment.model.ethereum.Genesis
 import kotlinx.serialization.modules.serializersModuleOf
 import java.util.Base64
@@ -32,7 +33,7 @@ class InitScript(
     /** Consolidated Docker PULL command. */
     private val dockerPullCommand: String = model.components.asSequence()
             .filter { it.type == ConcordComponent.Type.DOCKER_IMAGE }
-            .map { "docker pull ${containerRegistry.address.authority}/${it.name}" }
+            .map { "docker pull ${URI.create(containerRegistry.address).authority}/${it.name}" }
             .joinToString(separator = "\n", postfix = "\n")
 
     private val networkAddressCommand: String = ipAddress

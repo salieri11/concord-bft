@@ -4,13 +4,14 @@
 package com.vmware.blockchain.deployment.vmc
 
 import com.vmware.blockchain.deployment.vm.InitScript
+import com.vmware.blockchain.deployment.model.OrchestrationSiteInfo
+import com.vmware.blockchain.deployment.model.VmcOrchestrationSiteInfo
 import com.vmware.blockchain.deployment.model.core.URI
 import com.vmware.blockchain.deployment.model.core.UUID
 import com.vmware.blockchain.deployment.model.nsx.NatRule
 import com.vmware.blockchain.deployment.model.nsx.PublicIP
 import com.vmware.blockchain.deployment.model.nsx.Segment
 import com.vmware.blockchain.deployment.model.nsx.SegmentSubnet
-import com.vmware.blockchain.deployment.model.orchestration.OrchestrationSiteInfo
 import com.vmware.blockchain.deployment.model.vsphere.GetDatastoreResponse
 import com.vmware.blockchain.deployment.model.vsphere.GetFolderResponse
 import com.vmware.blockchain.deployment.model.vsphere.GetNetworkResponse
@@ -58,7 +59,7 @@ import kotlin.coroutines.EmptyCoroutineContext
  *   vSphere API client handle.
  */
 class VmcOrchestrator private constructor(
-    private val info: OrchestrationSiteInfo.Vmc,
+    private val info: VmcOrchestrationSiteInfo,
     private val vmc: VmcClient,
     private val vSphere: VSphereClient,
     private val nsx: VmcClient,
@@ -130,8 +131,8 @@ class VmcOrchestrator private constructor(
 
             // Create new VMC client.
             val vmcContext = VmcClient.Context(
-                    endpoint = info.api.address,
-                    authenticationEndpoint = info.authentication.address,
+                    endpoint = URI.create(info.api.address),
+                    authenticationEndpoint = URI.create(info.authentication.address),
                     refreshToken = token,
                     organization = info.organization,
                     datacenter = info.datacenter
@@ -145,7 +146,7 @@ class VmcOrchestrator private constructor(
                     // Use VMC SDDC info to create NSX client.
                     val nsx = VmcClient.Context(
                             endpoint = URI(resource_config.nsx_api_public_endpoint_url),
-                            authenticationEndpoint = info.authentication.address,
+                            authenticationEndpoint = URI.create(info.authentication.address),
                             refreshToken = token,
                             organization = info.organization,
                             datacenter = info.datacenter
