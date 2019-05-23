@@ -1,5 +1,8 @@
 // Copyright 2018-2019 VMware, all rights reserved
 
+#ifndef CONCORD_CONSENSUS_HLF_GRPC_SERVICE_H_
+#define CONCORD_CONSENSUS_HLF_GRPC_SERVICE_H_
+
 #include <grpc++/grpc++.h>
 #include <grpc/grpc.h>
 #include <grpcpp/server.h>
@@ -15,22 +18,23 @@
 namespace concord {
 namespace hlf {
 
-class GrpcServiceImpl final
-    : public com::vmware::concord::hlf::services::GrpcService::Service {
+class ConcordKeyValueServiceImpl final
+    : public com::vmware::concord::hlf::services::ConcordKeyValueService::
+          Service {
  private:
-  concord::hlf::HlfHandler* _hlfHandler;
-  concord::consensus::KVBClientPool& _pool;
-  log4cplus::Logger _logger;
+  concord::hlf::HlfHandler* hlf_handler_;
+  concord::consensus::KVBClientPool& pool_;
+  log4cplus::Logger logger_;
 
  public:
-  GrpcServiceImpl(HlfHandler* hlfHandler,
-                  concord::consensus::KVBClientPool& pool)
-      : _hlfHandler(hlfHandler),
-        _pool(pool),
-        _logger(log4cplus::Logger::getInstance("com.vmware.concord.hlf.grpc")) {
+  ConcordKeyValueServiceImpl(HlfHandler* hlf_handler,
+                             concord::consensus::KVBClientPool& pool)
+      : hlf_handler_(hlf_handler),
+        pool_(pool),
+        logger_(log4cplus::Logger::getInstance("com.vmware.concord.hlf.grpc")) {
   }
 
-  ~GrpcServiceImpl() {}
+  ~ConcordKeyValueServiceImpl() {}
 
   // APIs for HLF peer
   grpc::Status GetState(
@@ -52,11 +56,13 @@ class GrpcServiceImpl final
       com::vmware::concord::ConcordResponse*) override;
 
   // General functions to check tx's input
-  bool isValidManageOpt(const com::vmware::concord::HlfRequest&);
-  bool isValidInvokeOpt(const com::vmware::concord::HlfRequest&);
+  bool IsValidManageOpt(const com::vmware::concord::HlfRequest&);
+  bool IsValidInvokeOpt(const com::vmware::concord::HlfRequest&);
 };
 
 void RunHlfServer(concord::hlf::HlfHandler*,
                   concord::consensus::KVBClientPool&);
 }  // namespace hlf
 }  // namespace concord
+
+#endif  // CONCORD_CONSENSUS_HLF_GRPC_SERVICE_H_

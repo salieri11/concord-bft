@@ -3245,36 +3245,38 @@ void specifyConfiguration(ConcordConfiguration& config) {
   config.addValidator("hlf_enable", validateBoolean, nullptr);
 
   node.declareParameter("hlf_peer_command_tool_path",
-                        "Location of peer command tool.");
-  node.tagParameter("hlf_peer_command_tool_path", privateOptionalTags);
+                        "Location of peer command tool.", "/peer");
+  node.tagParameter("hlf_peer_command_tool_path", publicDefaultableTags);
 
   node.declareParameter("hlf_peer_command_tool_config_path",
-                        "Config file for peer command tool.");
-  node.tagParameter("hlf_peer_command_tool_config_path", privateOptionalTags);
+                        "Config file for peer command tool.", "/");
+  node.tagParameter("hlf_peer_command_tool_config_path", publicDefaultableTags);
 
   node.declareParameter("hlf_peer_msp_dir_path",
-                        "Location of Membership Service Provider diretory.");
-  node.tagParameter("hlf_peer_msp_dir_path", privateOptionalTags);
+                        "Location of Membership Service Provider diretory.",
+                        "/msp");
+  node.tagParameter("hlf_peer_msp_dir_path", publicDefaultableTags);
 
   node.declareParameter("hlf_peer_msp_id",
-                        "MSP ID used to communicate with HLF peer.");
-  node.tagParameter("hlf_peer_msp_id", privateOptionalTags);
+                        "MSP ID used to communicate with HLF peer.", "Org1MSP");
+  node.tagParameter("hlf_peer_msp_id", publicDefaultableTags);
 
   node.declareParameter("hlf_peer_address",
                         "Public IP address of HLF peer to communicate with "
-                        "(chaincode life cycle managment).");
-  node.tagParameter("hlf_peer_address", privateOptionalTags);
+                        "(chaincode life cycle managment).",
+                        "peer.example.com:7051");
+  node.tagParameter("hlf_peer_address", publicDefaultableTags);
 
   node.declareParameter("hlf_orderer_address",
                         "Public IP address of HLF orderer to communicate with "
-                        "(channel management).");
-  node.tagParameter("hlf_orderer_address", privateOptionalTags);
+                        "(channel management).",
+                        "orderer.example.com:7050");
+  node.tagParameter("hlf_orderer_address", publicDefaultableTags);
 
-  node.declareParameter("hlf_concord_kv_service_port",
-                        "Port number of Concord to provide KV service.");
-  node.tagParameter("hlf_concord_kv_service_port", privateOptionalTags);
-
-  // END of HLF Configuration
+  node.declareParameter("hlf_concord_kv_service_address",
+                        "Address of Concord to provide KV service.",
+                        "0.0.0.0:50051");
+  node.tagParameter("hlf_concord_kv_service_address", publicDefaultableTags);
 
   // TLS
   config.declareParameter("tls_cipher_suite_list",

@@ -1,15 +1,9 @@
 // Copyright 2018-2019 VMware, all rights reserved
 
-// functions:
-// put_state
-// get_state
-// write_block(reuse the evm write block)
-
-#ifndef CONCORD_HLF_HANDLER_HPP
-#define CONCORD_HLF_HANDLER_HPP
+#ifndef CONCORD_HLF_HANDLER_H_
+#define CONCORD_HLF_HANDLER_H_
 
 #include <log4cplus/loggingmacros.h>
-#include <cstring>
 #include "common/concord_types.hpp"
 #include "consensus/kvb/BlockchainInterfaces.h"
 #include "hlf/concord_hlf_chaincode_invoker.hpp"
@@ -19,31 +13,32 @@ namespace concord {
 namespace hlf {
 class HlfHandler {
  public:
-  HlfHandler(ChaincodeInvoker *);
+  HlfHandler(ChaincodeInvoker*);
   ~HlfHandler();
 
-  // APIs for set/revoke KVBHlfStorage
-  Blockchain::Status setKVBHlfStoragePointer(
-      concord::blockchain::hlf::KVBHlfStorage *);
-  Blockchain::Status revokeKVBHlfStoragePointer();
+  // APIs for set/revoke KvbStorageForHlf
+  Blockchain::Status SetKvbHlfStoragePointer(
+      concord::blockchain::hlf::KvbStorageForHlf*);
+  Blockchain::Status RevokeKvbHlfStoragePointer();
 
   // APIs for kv service
   // return 0 if success
-  string getConcordKvService();
-  Blockchain::Status putState(string, string);
-  string getState(string);
-  Blockchain::Status writeBlock();
+  std::string GetConcordKvService();
+  Blockchain::Status PutState(std::string, std::string);
+  std::string GetState(std::string);
+  Blockchain::Status WriteBlock();
 
   // APIs for chaincode invoker
-  Blockchain::Status installChaincode(string, string, string);
-  Blockchain::Status instantiateChaincode(string, string, string);
-  Blockchain::Status upgradeChaincode(string, string, string);
-  Blockchain::Status invokeChaincode(string, string);
-  string queryChaincode(string, string);
+  Blockchain::Status InstallChaincode(std::string, std::string, std::string);
+  Blockchain::Status InstantiateChaincode(std::string, std::string,
+                                          std::string);
+  Blockchain::Status UpgradeChaincode(std::string, std::string, std::string);
+  Blockchain::Status InvokeChaincode(std::string, std::string);
+  std::string QueryChaincode(std::string, std::string);
 
  private:
-  concord::blockchain::hlf::KVBHlfStorage *kvbHlfStorage_ = nullptr;
-  ChaincodeInvoker *chaincodeInvoker_ = nullptr;
+  concord::blockchain::hlf::KvbStorageForHlf* kvb_hlf_storage_ = nullptr;
+  ChaincodeInvoker* chaincode_invoker_ = nullptr;
   log4cplus::Logger logger_;
 };
 }  // namespace hlf

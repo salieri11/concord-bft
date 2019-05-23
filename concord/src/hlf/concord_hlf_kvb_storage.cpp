@@ -30,48 +30,46 @@ namespace hlf {
 ////////////////////////////////////////
 // General
 
-/* Current storage versions. */
-const int64_t hlf_state_storage_version = 1;
+// Current storage versions.
+const int64_t KHlfStateStorageVersion = 1;
 
 // read-only mode
-KVBHlfStorage::KVBHlfStorage(
-    const Blockchain::ILocalKeyValueStorageReadOnly &roStorage)
-    : roStorage_(roStorage),
-      blockAppender_(nullptr),
-      logger(log4cplus::Logger::getInstance("com.vmware.concord.hlf.storage")) {
-}
+KvbStorageForHlf::KvbStorageForHlf(
+    const Blockchain::ILocalKeyValueStorageReadOnly &ro_storage)
+    : ro_storage_(ro_storage),
+      ptr_block_appender_(nullptr),
+      logger_(
+          log4cplus::Logger::getInstance("com.vmware.concord.hlf.storage")) {}
 
 // read-write mode
-KVBHlfStorage::KVBHlfStorage(
-    const Blockchain::ILocalKeyValueStorageReadOnly &roStorage,
-    Blockchain::IBlocksAppender *blockAppender, uint64_t sequenceNum)
-    : roStorage_(roStorage),
-      blockAppender_(blockAppender),
-      logger(log4cplus::Logger::getInstance("com.vmware.concord.hlf.storage")),
-      bftSequenceNum_(sequenceNum) {}
+KvbStorageForHlf::KvbStorageForHlf(
+    const Blockchain::ILocalKeyValueStorageReadOnly &ro_storage,
+    Blockchain::IBlocksAppender *ptr_block_appender, uint64_t sequence_num)
+    : ro_storage_(ro_storage),
+      ptr_block_appender_(ptr_block_appender),
+      logger_(log4cplus::Logger::getInstance("com.vmware.concord.hlf.storage")),
+      bft_sequence_num_(sequence_num) {}
 
-KVBHlfStorage::~KVBHlfStorage() {}
+KvbStorageForHlf::~KvbStorageForHlf() {}
 
-bool KVBHlfStorage::is_read_only() {
-  // if we don't have a blockAppender, we are read-only
-  auto res = blockAppender_ == nullptr;
+bool KvbStorageForHlf::is_read_only() {
+  // if we don't have a ptr_block_appender, we are read-only
+  auto res = ptr_block_appender_ == nullptr;
   return res;
 }
 
-/**
- * Allow access to read-only storage object, to enabled downgrades to read-only
- * KVBHlfStorage when convenient.
- */
+// Allow access to read-only storage object, to enabled downgrades to read-only
+// KvbStorageForHlf when convenient.
 const Blockchain::ILocalKeyValueStorageReadOnly &
-KVBHlfStorage::getReadOnlyStorage() {
-  return roStorage_;
+KvbStorageForHlf::getReadOnlyStorage() {
+  return ro_storage_;
 }
 
 ////////////////////////////////////////
 // ADDRESSING
 
-Sliver KVBHlfStorage::kvb_key(uint8_t type, const uint8_t *bytes,
-                              size_t length) const {
+Sliver KvbStorageForHlf::KvbKey(uint8_t type, const uint8_t *bytes,
+                                size_t length) const {
   uint8_t *key = new uint8_t[1 + length];
   key[0] = type;
   if (length) {
@@ -80,39 +78,35 @@ Sliver KVBHlfStorage::kvb_key(uint8_t type, const uint8_t *bytes,
   return Sliver(key, length + 1);
 }
 
-Sliver KVBHlfStorage::hlf_state_key(const uint8_t *key, size_t length) const {
-  return kvb_key(TYPE_HLF_STATE, key, length);
+Sliver KvbStorageForHlf::HlfStateKey(const uint8_t *key, size_t length) const {
+  return KvbKey(kTypeHlfState, key, length);
 }
 
-Sliver KVBHlfStorage::hlf_transaction_key(const uint8_t *key,
-                                          size_t length) const {
-  return kvb_key(TYPE_HLF_TRANSACTION, key, length);
+Sliver KvbStorageForHlf::HlfTransactionKey(const uint8_t *key,
+                                           size_t length) const {
+  return KvbKey(kTypeHlfTransaction, key, length);
 }
 
-Sliver KVBHlfStorage::hlf_block_key(const uint8_t *key, size_t length) const {
-  return kvb_key(TYPE_HLF_BLOCK, key, length);
+Sliver KvbStorageForHlf::HlfBlockKey(const uint8_t *key, size_t length) const {
+  return KvbKey(kTypeHlfBlock, key, length);
 }
 
 ////////////////////////////////////////
 // WRITING
 
-/**
- * Add a key-value pair to be stored in the block. Throws ReadOnlyModeException
- * if this object is in read-only mode.
- */
-void KVBHlfStorage::put(const Sliver &key, const Sliver &value) {
-  if (!blockAppender_) {
+// Add a key-value pair to be stored in the block. Throws ReadOnlyModeException
+// if this object is in read-only mode.
+void KvbStorageForHlf::put(const Sliver &key, const Sliver &value) {
+  if (!ptr_block_appender_) {
     throw ReadOnlyModeException();
   }
 
-  updates[key] = value;
+  updates_[key] = value;
 }
 
-/*
- * Add hlf transaction will append newly incoming
- * HLF transaction to queue for later handling.
- */
-Status KVBHlfStorage::add_hlf_transaction(
+// Add hlf transaction will append newly incoming
+// HLF transaction to queue for later handling.
+Status KvbStorageForHlf::AddHlfTransaction(
     const com::vmware::concord::HlfRequest &hlfRequest) {
   com::vmware::concord::hlf::storage::HlfTransaction tx;
 
@@ -125,24 +119,24 @@ Status KVBHlfStorage::add_hlf_transaction(
   } else {
     tx.set_chaincode_version("0");
   }
-  pending_hlf_transactions.push_back(tx);
+  pending_hlf_transactions_.push_back(tx);
 
   return Status::OK();
 }
 
-com::vmware::concord::hlf::storage::HlfBlock KVBHlfStorage::get_hlf_block(
+com::vmware::concord::hlf::storage::HlfBlock KvbStorageForHlf::GetHlfBlock(
     uint64_t blockNumber) {
-  SetOfKeyValuePairs outBlockData;
+  SetOfKeyValuePairs out_blockData;
 
-  Status status = roStorage_.getBlockData(blockNumber, outBlockData);
+  Status status = ro_storage_.getBlockData(blockNumber, out_blockData);
 
-  LOG4CPLUS_DEBUG(logger, "Getting block number "
-                              << blockNumber << " status: " << status
-                              << " value.size: " << outBlockData.size());
+  LOG4CPLUS_DEBUG(logger_, "Getting block number "
+                               << blockNumber << " status: " << status
+                               << " value.size: " << out_blockData.size());
 
   if (status.isOK()) {
-    for (auto kvp : outBlockData) {
-      if (kvp.first.data()[0] == TYPE_HLF_BLOCK) {
+    for (auto kvp : out_blockData) {
+      if (kvp.first.data()[0] == kTypeHlfBlock) {
         com::vmware::concord::hlf::storage::HlfBlock hlfBlock;
         hlfBlock.ParseFromArray(kvp.second.data(), kvp.second.length());
         return hlfBlock;
@@ -152,33 +146,31 @@ com::vmware::concord::hlf::storage::HlfBlock KVBHlfStorage::get_hlf_block(
   throw BlockNotFoundException();
 }
 
-/*
- * Add block of hlf type to the database, this API should have more
- * functionalities in the future.
- */
-Status KVBHlfStorage::write_hlf_block() {
-  if (!blockAppender_) {
+// Add block of hlf type to the database, this API should have more
+// functionalities in the future.
+Status KvbStorageForHlf::WriteHlfBlock() {
+  if (!ptr_block_appender_) {
     throw ReadOnlyModeException();
   }
 
   com::vmware::concord::hlf::storage::HlfBlock block;
   // hlf block number start from 1
   block.set_number(next_block_number());
-  block.set_version(hlf_state_storage_version);
+  block.set_version(KHlfStateStorageVersion);
 
-  LOG4CPLUS_INFO(logger,
+  LOG4CPLUS_INFO(logger_,
                  "Get Current Block number: " << current_block_number());
   // it means no block has been committed yet
   if (block.number() == 1) {
     block.set_parent_hash(zero_hash.bytes, sizeof(evm_uint256be));
   } else {
     com::vmware::concord::hlf::storage::HlfBlock parent =
-        get_hlf_block(current_block_number());
+        GetHlfBlock(current_block_number());
     block.set_parent_hash(parent.hash());
   }
 
   // handle transactions
-  for (auto tx : pending_hlf_transactions) {
+  for (auto tx : pending_hlf_transactions_) {
     tx.set_block_id(block.number());
     tx.set_tx_index(0);  // hard code 0
     tx.set_status(0);    // find out how to
@@ -192,7 +184,7 @@ Status KVBHlfStorage::write_hlf_block() {
     // TODO(lukec) replace the EthHash with the way that
     // HLF calculates the hash
     evm_uint256be txId = concord::utils::eth_hash::keccak_hash(txTarget, size);
-    Sliver txAddr = hlf_transaction_key(txId.bytes, sizeof(evm_uint256be));
+    Sliver txAddr = HlfTransactionKey(txId.bytes, sizeof(evm_uint256be));
 
     put(txAddr, Sliver(txTarget, size));
 
@@ -211,92 +203,86 @@ Status KVBHlfStorage::write_hlf_block() {
   block.set_hash(blockId.bytes, sizeof(evm_uint256be));
 
   // key = TYPE_HLF_BLOCK + block hash
-  Sliver blockAddr = hlf_block_key(blockId.bytes, sizeof(evm_uint256be));
+  Sliver blockAddr = HlfBlockKey(blockId.bytes, sizeof(evm_uint256be));
   put(blockAddr, Sliver(blkTarget, size));
 
-  pending_hlf_transactions.clear();
+  pending_hlf_transactions_.clear();
 
   // Actually write the block
-  BlockId outBlockId;
-  Status status = blockAppender_->addBlock(updates, outBlockId);
+  BlockId out_blockId;
+  Status status = ptr_block_appender_->addBlock(updates_, out_blockId);
   if (status.isOK()) {
-    LOG4CPLUS_DEBUG(logger, "Appended block number " << outBlockId);
+    LOG4CPLUS_DEBUG(logger_, "Appended block number " << out_blockId);
   } else {
-    LOG4CPLUS_ERROR(logger, "Failed to append block");
+    LOG4CPLUS_ERROR(logger_, "Failed to append block");
   }
 
   // Prepare to stage another block
-  LOG4CPLUS_DEBUG(logger, "ready to reset");
+  LOG4CPLUS_DEBUG(logger_, "ready to reset");
   reset();
-  LOG4CPLUS_DEBUG(logger, "finished the reset");
+  LOG4CPLUS_DEBUG(logger_, "finished the reset");
   return status;
 }
 
-/**
- * Drop all pending updates.
- */
-void KVBHlfStorage::reset() {
+// Drop all pending updates_.
+void KvbStorageForHlf::reset() {
   // Slivers release their memory automatically.
-  updates.clear();
+  updates_.clear();
 }
 
 // HLF extent
-void KVBHlfStorage::set_hlf_state(const uint8_t *key, size_t length,
-                                  string value) {
+void KvbStorageForHlf::SetHlfState(const uint8_t *key, size_t length,
+                                   string value) {
   com::vmware::concord::hlf::storage::HlfState proto;
-  proto.set_version(hlf_state_storage_version);
+  proto.set_version(KHlfStateStorageVersion);
   proto.set_state(value);
 
   size_t sersize = proto.ByteSize();
   uint8_t *ser = new uint8_t[sersize];
   proto.SerializeToArray(ser, sersize);
-  put(hlf_state_key(key, length), Sliver(ser, sersize));
+  put(HlfStateKey(key, length), Sliver(ser, sersize));
 }
 
 ////////////////////////////////////////
 // READING
 
-/**
- * Get the number of the block that will be added when write_block is called.
- */
-uint64_t KVBHlfStorage::next_block_number() {
+//  Get the number of the block that will be added when write_block is called.
+uint64_t KvbStorageForHlf::next_block_number() {
   // HLF block number equals KVB block number.
-  return roStorage_.getLastBlock() + 1;
+  return ro_storage_.getLastBlock() + 1;
 }
 
-/**
- * Get the number of the most recent block that was added.
- */
-uint64_t KVBHlfStorage::current_block_number() {
+//  Get the number of the most recent block that was added.
+uint64_t KvbStorageForHlf::current_block_number() {
   // HLF block number equals KVB block number.
-  return roStorage_.getLastBlock();
+  return ro_storage_.getLastBlock();
 }
 
 // HLF extent
-string KVBHlfStorage::get_hlf_state(const uint8_t *key, size_t length) {
+string KvbStorageForHlf::GetHlfState(const uint8_t *key, size_t length) {
   uint64_t block_number = current_block_number();
-  return get_hlf_state(key, length, block_number);
+  return GetHlfState(key, length, block_number);
 }
 
-string KVBHlfStorage::get_hlf_state(const uint8_t *key, size_t length,
-                                    uint64_t &block_number) {
-  Sliver kvbkey = hlf_state_key(key, length);
+string KvbStorageForHlf::GetHlfState(const uint8_t *key, size_t length,
+                                     uint64_t &block_number) {
+  Sliver kvbkey = HlfStateKey(key, length);
   Sliver value;
-  BlockId outBlock;
+  BlockId out_block;
 
   // get concord's lastest block
-  Status status = get(block_number, kvbkey, value, outBlock);
+  Status status = get(block_number, kvbkey, value, out_block);
   // convert proto binary to string
-  LOG4CPLUS_DEBUG(logger, "Getting HLF State by Key:"
-                              << key << " looking block at: " << block_number
-                              << " status: " << status << " key: " << kvbkey
-                              << " value.length: " << value.length()
-                              << " out block at: " << outBlock);
+  LOG4CPLUS_DEBUG(logger_, "Getting HLF State by Key:"
+                               << key << " looking block at: " << block_number
+                               << " status: " << status << " key: " << kvbkey
+                               << " value.length: " << value.length()
+                               << " out block at: " << out_block);
 
   if (status.isOK() && value.length() > 0) {
     com::vmware::concord::hlf::storage::HlfState state;
     if (state.ParseFromArray(value.data(), value.length())) {
-      if (state.version() == hlf_state_storage_version) {
+      if (state.version() == KHlfStateStorageVersion) {
         return state.state();
       } else {
         // should use other exception, like HLFException
@@ -307,23 +293,23 @@ string KVBHlfStorage::get_hlf_state(const uint8_t *key, size_t length,
   return "";
 }
 
-Status KVBHlfStorage::get(const Sliver &key, Sliver &value) {
+Status KvbStorageForHlf::get(const Sliver &key, Sliver &value) {
   uint64_t block_number = current_block_number();
   BlockId out;
   return get(block_number, key, value, out);
 }
 
-Status KVBHlfStorage::get(const BlockId readVersion, const Sliver &key,
-                          Sliver &value, BlockId &outBlock) {
+Status KvbStorageForHlf::get(const BlockId read_version, const Sliver &key,
+                             Sliver &value, BlockId &out_block) {
   // TODO(BWF): this search will be very inefficient for a large set of changes
-  for (auto &u : updates) {
+  for (auto &u : updates_) {
     if (u.first == key) {
       value = u.second;
       return Status::OK();
     }
   }
   // HLF block number equals KVB block number
-  return roStorage_.get(readVersion, key, value, outBlock);
+  return ro_storage_.get(read_version, key, value, out_block);
 }
 
 }  // namespace hlf

@@ -2,17 +2,13 @@ syntax = "proto2";
 package com.vmware.concord.hlf.services;
 import "concord.proto";
 
-service GrpcService {
-  // ***** APIs for HLF peer
-  // *****
+service ConcordKeyValueService {
+  // APIs for HLF peer
   rpc GetState (KvbMessage) returns (KvbMessage) {}
   rpc PutState (KvbMessage) returns (KvbMessage) {}
   rpc WriteBlock (KvbMessage) returns (KvbMessage) {}
-  // use chaincode name + key as the KEY
-  rpc GetHistoryForKey (KvbMessage) returns (QueryResponseConcord) {}
 
-  // ***** APIs for Concord client
-  // *****
+  // APIs for Concord client
   rpc TriggerChaincode(ConcordRequest) returns (ConcordResponse) {}
 }
 
@@ -25,26 +21,4 @@ message KvbMessage {
   optional type state = 1;
   optional string key = 2;
   optional string value = 3;
-}
-
-// For the purpose of Range query
-message QueryResponseConcord {
-  repeated bytes results = 1;
-  optional bool has_more = 2;
-  optional string id = 3;
-  optional bytes metadata = 4;
-}
-
-message QueryResultBytesConcord {
-  optional bytes result_bytes = 1;
-}
-
-// In GetHistoryForKey, the bytes in QueryResultBytes are marshalled from
-// KeyModification
-message KeyModification {
-  optional string tx_id = 1;  // tx_id is mismatched between Concord and HLF,
-                              // return the Concord one
-  optional bytes value = 2;
-  optional int64 timestamp = 3;
-  optional bool is_delete = 4;
 }

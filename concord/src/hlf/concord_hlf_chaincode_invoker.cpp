@@ -6,57 +6,52 @@ using concord::config::ConcordConfiguration;
 using log4cplus::Logger;
 using std::string;
 
-concord::hlf::ChaincodeInvoker::ChaincodeInvoker(
-    ConcordConfiguration &nodeConfig)
-    : logger(Logger::getInstance("com.vmware.concord.hlf.invoker")) {
+namespace concord {
+namespace hlf {
+ChaincodeInvoker::ChaincodeInvoker(ConcordConfiguration& node_config)
+    : logger_(Logger::getInstance("com.vmware.concord.hlf.invoker")) {
   // Make sure all following parameters are existed
-  hlfPeerTool = nodeConfig.getValue<string>("hlf_peer_command_tool_path");
-  LOG4CPLUS_INFO(logger, "Got peer command tool path: " << hlfPeerTool);
 
-  hlfPeerToolConfig =
-      nodeConfig.getValue<string>("hlf_peer_command_tool_config_path");
-  LOG4CPLUS_INFO(logger,
-                 "Got config of peer command tool path: " << hlfPeerToolConfig);
+  hlf_peer_tool_ = node_config.getValue<string>("hlf_peer_command_tool_path");
+  hlf_peer_tool_config_ =
+      node_config.getValue<string>("hlf_peer_command_tool_config_path");
+  hlf_peer_address_ = node_config.getValue<string>("hlf_peer_address");
+  hlf_orderer_address_ = node_config.getValue<string>("hlf_orderer_address");
+  hlf_local_msp_id_ = node_config.getValue<string>("hlf_peer_msp_id");
+  hlf_local_msp_dir_ = node_config.getValue<string>("hlf_peer_msp_dir_path");
+  hlf_concord_kv_service_address_ =
+      node_config.getValue<string>("hlf_concord_kv_service_address");
 
-  hlfPeerAddress = nodeConfig.getValue<string>("hlf_peer_address");
-  LOG4CPLUS_INFO(logger, "Got peer address: " << hlfPeerAddress);
-
-  hlfOrdererAddress = nodeConfig.getValue<string>("hlf_orderer_address");
-  LOG4CPLUS_INFO(logger, "Got orderer address: " << hlfOrdererAddress);
-
-  hlfLocalMspId = nodeConfig.getValue<string>("hlf_peer_msp_id");
-  LOG4CPLUS_INFO(logger, "Got local msp id: " << hlfLocalMspId);
-
-  hlfLocalMspDir = nodeConfig.getValue<string>("hlf_peer_msp_dir_path");
-  LOG4CPLUS_INFO(logger, "Got local msp dir: " << hlfLocalMspDir);
-
-  hlfConcordKvServiceAddress =
-      "0.0.0.0:" + nodeConfig.getValue<string>("hlf_concord_kv_service_port");
-
-  LOG4CPLUS_INFO(logger,
-                 "Got concord kv service: " << hlfConcordKvServiceAddress);
+  LOG4CPLUS_INFO(
+      logger_,
+      "Got peer command tool path: "
+          << hlf_peer_tool_ << "Got config of peer command tool path: "
+          << hlf_peer_tool_config_ << "Got peer address: " << hlf_peer_address_
+          << "Got orderer address: " << hlf_orderer_address_
+          << "Got local msp id: " << hlf_local_msp_id_
+          << "Got local msp dir: " << hlf_local_msp_dir_
+          << "Got concord kv service: " << hlf_concord_kv_service_address_);
 }
 
-concord::hlf::ChaincodeInvoker::ChaincodeInvoker(string hlfPeerToolPath)
-    : hlfPeerTool(hlfPeerToolPath),
-      logger(Logger::getInstance("com.vmware.concord.hlf.invoker")) {}
+ChaincodeInvoker::ChaincodeInvoker(string hlf_peer_tool_Path)
+    : hlf_peer_tool_(hlf_peer_tool_Path),
+      logger_(Logger::getInstance("com.vmware.concord.hlf.invoker")) {}
 
-concord::hlf::ChaincodeInvoker::~ChaincodeInvoker() {}
+ChaincodeInvoker::~ChaincodeInvoker() {}
 
-// function of system call
-string concord::hlf::ChaincodeInvoker::systemCall(string cmd) {
-  FILE *fp;
+string ChaincodeInvoker::SubProcess(string cmd) {
+  FILE* fp;
   char output[1024];
   string result = "";
 
   // catch stderr
-  cmd = constructCmdPrefix() + cmd;
+  cmd = ConstructCmdPrefix() + cmd;
   cmd += " 2>&1";
 
   fp = popen(cmd.c_str(), "r");
 
   if (fp == nullptr) {
-    LOG4CPLUS_ERROR(logger, "Failed to execute command: " << cmd);
+    LOG4CPLUS_ERROR(logger_, "Failed to execute command: " << cmd);
     return result;
   }
 
@@ -69,49 +64,44 @@ string concord::hlf::ChaincodeInvoker::systemCall(string cmd) {
   return result;
 }
 
-int concord::hlf::ChaincodeInvoker::setHlfPeerTool(string hlfPeerToolPath) {
-  hlfPeerTool = hlfPeerToolPath;
+int ChaincodeInvoker::SetHlfPeerTool(string hlf_peer_tool_path) {
+  hlf_peer_tool_ = hlf_peer_tool_path;
   return 0;
 }
 
-int concord::hlf::ChaincodeInvoker::setHlfConcordKvServiceAddress(
-    string kvServiceAddress) {
-  hlfConcordKvServiceAddress = kvServiceAddress;
+int ChaincodeInvoker::SetHlfConcordKvServiceAddress(string kv_service_address) {
+  hlf_concord_kv_service_address_ = kv_service_address;
   return 0;
 }
 
-string concord::hlf::ChaincodeInvoker::getHlfPeerTool() const {
-  return hlfPeerTool;
-}
+string ChaincodeInvoker::GetHlfPeerTool() const { return hlf_peer_tool_; }
 
 // params
 // chaincode: chaincode to call
 // input: args for calling chaincode
-// return "" if any error happened during the sendQuery
-string concord::hlf::ChaincodeInvoker::sendQuery(string chaincodeName,
-                                                 string input) {
+// return "" if any error happened during the SendQuery
+string ChaincodeInvoker::SendQuery(string chaincode_name, string input) {
   // hardcoded channel name
   // we need "\'" here
-  string command = hlfPeerTool + " chaincode query  -C mychannel -n " +
-                   chaincodeName + " -c " + "\'" + input + "\'";
+  string command = hlf_peer_tool_ + " chaincode query  -C mychannel -n " +
+                   chaincode_name + " -c " + "\'" + input + "\'";
 
-  return systemCall(command);
+  return SubProcess(command);
 }
 
-int concord::hlf::ChaincodeInvoker::sendInvoke(string chaincodeName,
-                                               string input) {
-  // invoke won't send any message to orderer, we keep it here
+int ChaincodeInvoker::SendInvoke(string chaincode_name, string input) {
+  // invoke won't Send any message to orderer, we keep it here
   // to avoid modifying the API
-  string command = hlfPeerTool + " chaincode invoke -o " + hlfOrdererAddress +
-                   " -C mychannel -n " + chaincodeName + " -c " + "\'" + input +
-                   "\'";
+  string command = hlf_peer_tool_ + " chaincode invoke -o " +
+                   hlf_orderer_address_ + " -C mychannel -n " + chaincode_name +
+                   " -c " + "\'" + input + "\'";
 
   // parse output before return
   // log the details of invoke
-  string result = systemCall(command);
+  string result = SubProcess(command);
 
   // should be logged
-  LOG4CPLUS_INFO(logger, "Result from chaincode invoke" << result);
+  LOG4CPLUS_INFO(logger_, "Result from chaincode invoke" << result);
 
   if (result.find("200") != string::npos) {
     return 0;
@@ -121,14 +111,14 @@ int concord::hlf::ChaincodeInvoker::sendInvoke(string chaincodeName,
   }
 }
 
-int concord::hlf::ChaincodeInvoker::sendInstall(string chaincodeName,
-                                                string path, string version) {
-  string command = hlfPeerTool + " chaincode install -n " + chaincodeName +
+int ChaincodeInvoker::SendInstall(string chaincode_name, string path,
+                                  string version) {
+  string command = hlf_peer_tool_ + " chaincode install -n " + chaincode_name +
                    " -p" + path + " -v" + version;
-  string result = systemCall(command);
+  string result = SubProcess(command);
 
   // should be logged
-  LOG4CPLUS_INFO(logger, "Result from chaincode install" << result);
+  LOG4CPLUS_INFO(logger_, "Result from chaincode install" << result);
 
   if (result.find("200") != string::npos) {
     return 0;
@@ -138,17 +128,16 @@ int concord::hlf::ChaincodeInvoker::sendInstall(string chaincodeName,
   }
 }
 
-int concord::hlf::ChaincodeInvoker::sendInstantiate(string chaincodeName,
-                                                    string input,
-                                                    string version) {
+int ChaincodeInvoker::SendInstantiate(string chaincode_name, string input,
+                                      string version) {
   // instantiate need orderer address
 
-  string command = hlfPeerTool + " chaincode instantiate -C mychannel -o " +
-                   hlfOrdererAddress + " -n " + chaincodeName + " -c " + "\'" +
-                   input + "\'" + " -v " + version;
-  string result = systemCall(command);
+  string command = hlf_peer_tool_ + " chaincode instantiate -C mychannel -o " +
+                   hlf_orderer_address_ + " -n " + chaincode_name + " -c " +
+                   "\'" + input + "\'" + " -v " + version;
+  string result = SubProcess(command);
   // should be logged
-  LOG4CPLUS_INFO(logger, "Result from chaincode instantiate" << result);
+  LOG4CPLUS_INFO(logger_, "Result from chaincode instantiate" << result);
 
   if (result.find("200") != string::npos) {
     return 0;
@@ -158,17 +147,17 @@ int concord::hlf::ChaincodeInvoker::sendInstantiate(string chaincodeName,
   }
 }
 
-int concord::hlf::ChaincodeInvoker::sendUpgrade(string chaincodeName,
-                                                string input, string version) {
+int ChaincodeInvoker::SendUpgrade(string chaincode_name, string input,
+                                  string version) {
   // upgrade need orderer address
 
-  string command = hlfPeerTool + " chaincode upgrade -C mychannel -o " +
-                   hlfOrdererAddress + " -n " + chaincodeName + " -c " + "\'" +
-                   input + "\'" + " -v " + version;
+  string command = hlf_peer_tool_ + " chaincode upgrade -C mychannel -o " +
+                   hlf_orderer_address_ + " -n " + chaincode_name + " -c " +
+                   "\'" + input + "\'" + " -v " + version;
 
-  string result = systemCall(command);
+  string result = SubProcess(command);
   // should be logged
-  LOG4CPLUS_INFO(logger, "Result from chaincode upgrade" << result);
+  LOG4CPLUS_INFO(logger_, "Result from chaincode upgrade" << result);
 
   if (result.find("200") != string::npos) {
     return 0;
@@ -178,18 +167,21 @@ int concord::hlf::ChaincodeInvoker::sendUpgrade(string chaincodeName,
   }
 }
 
-string concord::hlf::ChaincodeInvoker::constructCmdPrefix() {
+string ChaincodeInvoker::ConstructCmdPrefix() {
   string prefix = "";
 
-  prefix += "FABRIC_CFG_PATH=" + hlfPeerToolConfig;
-  prefix += " CORE_PEER_ADDRESS=" + hlfPeerAddress;
-  prefix += " CORE_PEER_LOCALMSPID=" + hlfLocalMspId;
-  prefix += " CORE_PEER_MSPCONFIGPATH=" + hlfLocalMspDir;
-  prefix += " CORE_CONCORD_ADDRESS=" + hlfConcordKvServiceAddress;
+  prefix += "FABRIC_CFG_PATH=" + hlf_peer_tool_config_;
+  prefix += " CORE_PEER_ADDRESS=" + hlf_peer_address_;
+  prefix += " CORE_PEER_LOCALMSPID=" + hlf_local_msp_id_;
+  prefix += " CORE_PEER_MSPCONFIGPATH=" + hlf_local_msp_dir_;
+  prefix += " CORE_CONCORD_ADDRESS=" + hlf_concord_kv_service_address_;
 
   return prefix + " ";
 }
 
-string concord::hlf::ChaincodeInvoker::getHlfConcordKvServiceAddress() const {
-  return hlfConcordKvServiceAddress;
+string ChaincodeInvoker::GetHlfConcordKvServiceAddress() const {
+  return hlf_concord_kv_service_address_;
 }
+
+}  // namespace hlf
+}  // namespace concord

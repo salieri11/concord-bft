@@ -1,5 +1,8 @@
 // Copyright 2018-2019 VMware, all rights reserved
 
+#ifndef CONCORD_CONSENSUS_HLF_CHAINCODE_INVOKER_H_
+#define CONCORD_CONSENSUS_HLF_CHAINCODE_INVOKER_H_
+
 #include <log4cplus/loggingmacros.h>
 #include <iostream>
 #include "config/configuration_manager.hpp"
@@ -15,38 +18,35 @@ class ChaincodeInvoker {
   ~ChaincodeInvoker();
 
   // functions to config command tool
-  int setHlfPeerTool(std::string);
-  int setHlfConcordKvServiceAddress(std::string);
+  int SetHlfPeerTool(std::string);
+  int SetHlfConcordKvServiceAddress(std::string);
 
-  std::string getHlfPeerTool() const;
-  std::string getHlfConcordKvServiceAddress() const;
+  std::string GetHlfPeerTool() const;
+  std::string GetHlfConcordKvServiceAddress() const;
 
   // general functions
-  std::string systemCall(std::string);
-  std::string constructCmdPrefix();
+  std::string SubProcess(std::string);
+  std::string ConstructCmdPrefix();
 
   // functions to call hlf peer:
-  // TODO replace int with Blockchain::status
-  int sendInvoke(std::string, std::string);
-  std::string sendQuery(std::string, std::string);
-  int sendInstall(std::string, std::string, std::string);
-  int sendInstantiate(std::string, std::string, std::string);
-  int sendUpgrade(std::string, std::string, std::string);
+  int SendInvoke(std::string, std::string);
+  std::string SendQuery(std::string, std::string);
+  int SendInstall(std::string, std::string, std::string);
+  int SendInstantiate(std::string, std::string, std::string);
+  int SendUpgrade(std::string, std::string, std::string);
 
  private:
-  // std::string peerConfig
-  // set config according to the enviroment variable
-  std::string hlfPeerTool;
-  std::string hlfPeerToolConfig;
-  std::string hlfPeerAddress;
-  std::string hlfOrdererAddress;
-  std::string hlfConcordKvServiceAddress;
-  std::string hlfLocalMspId;
-  std::string hlfLocalMspDir;
+  std::string hlf_peer_tool_;
+  std::string hlf_peer_tool_config_;
+  std::string hlf_peer_address_;
+  std::string hlf_orderer_address_;
+  std::string hlf_concord_kv_service_address_;
+  std::string hlf_local_msp_id_;
+  std::string hlf_local_msp_dir_;
 
-  // TODO(lukec)
-  // channel
-  log4cplus::Logger logger;
+  log4cplus::Logger logger_;
 };
 }  // namespace hlf
 }  // namespace concord
+
+#endif  // CONCORD_CONSENSUS_HLF_CHAINCODE_INVOKER_H_

@@ -21,7 +21,7 @@
 using namespace boost::program_options;
 using namespace com::vmware::concord;
 
-using com::vmware::concord::hlf::services::GrpcService;
+using com::vmware::concord::hlf::services::ConcordKeyValueService;
 using grpc::Channel;
 using grpc::ClientContext;
 using grpc::Status;
@@ -41,7 +41,7 @@ void add_options(options_description &desc) {
 class ConcordClient {
  public:
   ConcordClient(std::shared_ptr<Channel> channel)
-      : stub_(GrpcService::NewStub(channel)) {}
+      : stub_(ConcordKeyValueService::NewStub(channel)) {}
 
   grpc::Status TriggerChaincode(const ConcordRequest &concordRequest,
                                 ConcordResponse &concordResponse) {
@@ -51,7 +51,7 @@ class ConcordClient {
   }
 
  private:
-  std::unique_ptr<GrpcService::Stub> stub_;
+  std::unique_ptr<ConcordKeyValueService::Stub> stub_;
 };
 
 int main(int argc, char *argv[]) {
@@ -61,17 +61,17 @@ int main(int argc, char *argv[]) {
       return 0;
     }
     /*** init grpc client ***/
-    std::string grpcServer;
+    std::string grpc_service_address;
     std::string addr = opts[OPT_ADDRESS].as<std::string>();
     std::string port = opts[OPT_PORT].as<std::string>();
-    grpcServer = addr + ":" + port;
+    grpc_service_address = addr + ":" + port;
 
-    ConcordClient concordClient(
-        grpc::CreateChannel(grpcServer, grpc::InsecureChannelCredentials()));
+    ConcordClient concordClient(grpc::CreateChannel(
+        grpc_service_address, grpc::InsecureChannelCredentials()));
     /*** create request ***/
 
-    ConcordRequest athReq;
-    HlfRequest *hlfReq = athReq.add_hlf_request();
+    ConcordRequest ath_req;
+    HlfRequest *hlf_req = ath_req.add_hlf_request();
 
     if (opts.count(OPT_METHOD) > 0) {
       HlfRequest_HlfMethod method;
@@ -92,7 +92,7 @@ int main(int argc, char *argv[]) {
         return 0;
       }
 
-      hlfReq->set_method(method);
+      hlf_req->set_method(method);
 
     } else {
       std::cout << "Need to provide chaincode method (install, instantiate, "
@@ -102,43 +102,43 @@ int main(int argc, char *argv[]) {
     }
 
     if (opts.count(OPT_CHAINCODE) > 0) {
-      hlfReq->set_chaincode_name(opts[OPT_CHAINCODE].as<std::string>());
+      hlf_req->set_chaincode_name(opts[OPT_CHAINCODE].as<std::string>());
     }
 
     if (opts.count(OPT_INPUT) > 0) {
-      hlfReq->set_input(opts[OPT_INPUT].as<std::string>());
+      hlf_req->set_input(opts[OPT_INPUT].as<std::string>());
     }
 
     if (opts.count(OPT_VERSION) > 0) {
-      hlfReq->set_version(opts[OPT_VERSION].as<std::string>());
+      hlf_req->set_version(opts[OPT_VERSION].as<std::string>());
     }
 
     // hard code my channel here
-    hlfReq->set_chain_id("mychannel");
+    hlf_req->set_chain_id("mychannel");
 
     std::string pbtext;
-    google::protobuf::TextFormat::PrintToString(athReq, &pbtext);
+    google::protobuf::TextFormat::PrintToString(ath_req, &pbtext);
     std::cout << "Message Prepared: " << pbtext << std::endl;
 
     /*** Send and Receive ***/
 
-    ConcordResponse athResp;
-    if (concordClient.TriggerChaincode(athReq, athResp).ok()) {
-      google::protobuf::TextFormat::PrintToString(athResp, &pbtext);
+    ConcordResponse ath_resp;
+    if (concordClient.TriggerChaincode(ath_req, ath_resp).ok()) {
+      google::protobuf::TextFormat::PrintToString(ath_resp, &pbtext);
       std::cout << "Received response: " << pbtext << std::endl;
 
       /*** Handle Response ***/
 
-      if (athResp.hlf_response_size() == 1) {
-        HlfResponse hlfResp = athResp.hlf_response(0);
-        if (hlfResp.has_data()) {
-          std::cout << "Transaction Receipt: " << hlfResp.data() << std::endl;
+      if (ath_resp.hlf_response_size() == 1) {
+        HlfResponse hlf_resp = ath_resp.hlf_response(0);
+        if (hlf_resp.has_data()) {
+          std::cout << "Transaction Receipt: " << hlf_resp.data() << std::endl;
         } else {
           std::cerr << "HlfResponse has no data" << std::endl;
           return -1;
         }
-      } else if (athResp.error_response_size() == 1) {
-        ErrorResponse errorResp = athResp.error_response(0);
+      } else if (ath_resp.error_response_size() == 1) {
+        ErrorResponse errorResp = ath_resp.error_response(0);
         if (errorResp.has_description()) {
           std::cout << "Error Response: " << errorResp.description()
                     << std::endl;
@@ -149,8 +149,8 @@ int main(int argc, char *argv[]) {
         }
       } else {
         std::cerr << "Wrong number of hlf_responses ("
-                  << athResp.hlf_response_size() << ") or errors ("
-                  << athResp.error_response_size() << ")"
+                  << ath_resp.hlf_response_size() << ") or errors ("
+                  << ath_resp.error_response_size() << ")"
                   << " (expected 1)" << std::endl;
         return -1;
       }

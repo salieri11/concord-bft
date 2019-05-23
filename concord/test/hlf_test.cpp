@@ -27,7 +27,7 @@ string testHlfPeerToolPath1 = "test/peer1";
 string testHlfPeerToolPath2 = "test/peer2";
 
 ChaincodeInvoker chaincodeInvoker(testHlfPeerToolPath1);
-HlfHandler hlfHandler(&chaincodeInvoker);
+HlfHandler hlf_handler(&chaincodeInvoker);
 Logger* logger = nullptr;
 
 // Define TestStorage
@@ -105,11 +105,11 @@ class TestStorage : public Blockchain::ILocalKeyValueStorageReadOnly,
 // Single unit test for chaincode invoker
 TEST(hlf_test, chaincode_invoker_peer_command_tool) {
   // Verify constructor
-  ASSERT_EQ(testHlfPeerToolPath1, chaincodeInvoker.getHlfPeerTool());
+  ASSERT_EQ(testHlfPeerToolPath1, chaincodeInvoker.GetHlfPeerTool());
 
   // Call and verify set function
-  chaincodeInvoker.setHlfPeerTool(testHlfPeerToolPath2);
-  ASSERT_EQ(testHlfPeerToolPath2, chaincodeInvoker.getHlfPeerTool());
+  chaincodeInvoker.SetHlfPeerTool(testHlfPeerToolPath2);
+  ASSERT_EQ(testHlfPeerToolPath2, chaincodeInvoker.GetHlfPeerTool());
 }
 
 // Unit tests for HLF handler
@@ -117,49 +117,49 @@ TEST(hlf_test, hlf_handler_kv_service_port) {
   string listenAddress = "0.0.0.0:50051";
 
   // service address should not be set
-  ASSERT_EQ(hlfHandler.getConcordKvService(), "");
+  ASSERT_EQ(hlf_handler.GetConcordKvService(), "");
 
   // set service address
-  chaincodeInvoker.setHlfConcordKvServiceAddress(listenAddress);
+  chaincodeInvoker.SetHlfConcordKvServiceAddress(listenAddress);
 
   // Fetch service address by hlf handler
-  ASSERT_EQ(listenAddress, hlfHandler.getConcordKvService());
+  ASSERT_EQ(listenAddress, hlf_handler.GetConcordKvService());
 }
 
 TEST(hlf_test, hlf_handler_kv_service_api_put) {
   TestStorage testStorage;
-  concord::blockchain::hlf::KVBHlfStorage kvbHlfStorage(testStorage,
-                                                        &testStorage, 0);
-  hlfHandler.setKVBHlfStoragePointer(&kvbHlfStorage);
-  EXPECT_TRUE(hlfHandler.putState("key1", "value1").isOK());
-  hlfHandler.revokeKVBHlfStoragePointer();
+  concord::blockchain::hlf::KvbStorageForHlf kvbHlfStorage(testStorage,
+                                                           &testStorage, 0);
+  hlf_handler.SetKvbHlfStoragePointer(&kvbHlfStorage);
+  EXPECT_TRUE(hlf_handler.PutState("key1", "value1").isOK());
+  hlf_handler.RevokeKvbHlfStoragePointer();
 }
 
 TEST(hlf_test, hlf_handler_kv_service_api_get) {
   TestStorage testStorage;
-  concord::blockchain::hlf::KVBHlfStorage kvbHlfStorage(testStorage,
-                                                        &testStorage, 0);
+  concord::blockchain::hlf::KvbStorageForHlf kvbHlfStorage(testStorage,
+                                                           &testStorage, 0);
 
-  hlfHandler.setKVBHlfStoragePointer(&kvbHlfStorage);
-  ASSERT_EQ("", hlfHandler.getState("key1"));
-  hlfHandler.revokeKVBHlfStoragePointer();
+  hlf_handler.SetKvbHlfStoragePointer(&kvbHlfStorage);
+  ASSERT_EQ("", hlf_handler.GetState("key1"));
+  hlf_handler.RevokeKvbHlfStoragePointer();
 }
 
 TEST(hlf_test, hlf_handler_kvb_service_api_write_block) {
   TestStorage testStorage;
-  concord::blockchain::hlf::KVBHlfStorage kvbHlfStorage(testStorage,
-                                                        &testStorage, 0);
+  concord::blockchain::hlf::KvbStorageForHlf kvbHlfStorage(testStorage,
+                                                           &testStorage, 0);
 
-  hlfHandler.setKVBHlfStoragePointer(&kvbHlfStorage);
-  EXPECT_TRUE(hlfHandler.writeBlock().isOK());
-  hlfHandler.revokeKVBHlfStoragePointer();
+  hlf_handler.SetKvbHlfStoragePointer(&kvbHlfStorage);
+  EXPECT_TRUE(hlf_handler.WriteBlock().isOK());
+  hlf_handler.RevokeKvbHlfStoragePointer();
 }
 
 // Unit tests for KVB HLF Storage
 TEST(hlf_test, hlf_handler_kvb_storage_add_tx) {
   TestStorage testStorage;
-  concord::blockchain::hlf::KVBHlfStorage kvbHlfStorage(testStorage,
-                                                        &testStorage, 0);
+  concord::blockchain::hlf::KvbStorageForHlf kvbHlfStorage(testStorage,
+                                                           &testStorage, 0);
   // mock up HLFRequest
   HlfRequest hlfRequest;
   hlfRequest.set_input("input");
@@ -167,7 +167,7 @@ TEST(hlf_test, hlf_handler_kvb_storage_add_tx) {
   hlfRequest.set_chaincode_name("chaincode_name");
   hlfRequest.set_chain_id("chain_id");
 
-  EXPECT_TRUE(kvbHlfStorage.add_hlf_transaction(hlfRequest).isOK());
+  EXPECT_TRUE(kvbHlfStorage.AddHlfTransaction(hlfRequest).isOK());
 }
 
 };  // namespace

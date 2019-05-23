@@ -2,7 +2,7 @@
 
 #include "concord_hlf_grpc_services.hpp"
 
-using com::vmware::concord::hlf::services::GrpcService;
+using com::vmware::concord::hlf::services::ConcordKeyValueService;
 using com::vmware::concord::hlf::services::KvbMessage;
 using com::vmware::concord::hlf::services::KvbMessage_type_INVALID;
 using com::vmware::concord::hlf::services::KvbMessage_type_VALID;
@@ -33,13 +33,13 @@ using com::vmware::concord::HlfResponse;
 namespace concord {
 namespace hlf {
 
-Status GrpcServiceImpl::GetState(ServerContext* context,
-                                 const KvbMessage* request,
-                                 KvbMessage* response) {
+Status ConcordKeyValueServiceImpl::GetState(ServerContext* context,
+                                            const KvbMessage* request,
+                                            KvbMessage* response) {
   if (request->key() != "") {
-    string value = _hlfHandler->getState(request->key());
+    string value = hlf_handler_->GetState(request->key());
 
-    LOG4CPLUS_DEBUG(_logger, "[GET] " << request->key() << ":" << value);
+    LOG4CPLUS_DEBUG(logger_, "[GET] " << request->key() << ":" << value);
 
     response->set_value(value);
     response->set_state(KvbMessage_type_VALID);
@@ -50,14 +50,14 @@ Status GrpcServiceImpl::GetState(ServerContext* context,
   }
 }
 
-Status GrpcServiceImpl::PutState(ServerContext* context,
-                                 const KvbMessage* request,
-                                 KvbMessage* response) {
+Status ConcordKeyValueServiceImpl::PutState(ServerContext* context,
+                                            const KvbMessage* request,
+                                            KvbMessage* response) {
   if (request->key() != "" and request->value() != "") {
     Blockchain::Status status =
-        _hlfHandler->putState(request->key(), request->value());
+        hlf_handler_->PutState(request->key(), request->value());
 
-    LOG4CPLUS_DEBUG(_logger,
+    LOG4CPLUS_DEBUG(logger_,
                     "[PUT] " << request->key() << ":" << request->value());
 
     if (status.isOK()) {
@@ -71,10 +71,10 @@ Status GrpcServiceImpl::PutState(ServerContext* context,
 }
 
 // WriteBlock is only called by Client
-Status GrpcServiceImpl::WriteBlock(ServerContext* context,
-                                   const KvbMessage* request,
-                                   KvbMessage* response) {
-  Blockchain::Status status = _hlfHandler->writeBlock();
+Status ConcordKeyValueServiceImpl::WriteBlock(ServerContext* context,
+                                              const KvbMessage* request,
+                                              KvbMessage* response) {
+  Blockchain::Status status = hlf_handler_->WriteBlock();
   if (status.isOK()) {
     response->set_state(KvbMessage_type_VALID);
     return Status::OK;
@@ -84,66 +84,66 @@ Status GrpcServiceImpl::WriteBlock(ServerContext* context,
   }
 }
 
-Status GrpcServiceImpl::TriggerChaincode(ServerContext* context,
-                                         const ConcordRequest* concordRequest,
-                                         ConcordResponse* concordResponse) {
-  if (concordRequest->hlf_request_size() == 0) {
-    ErrorResponse* e = concordResponse->add_error_response();
+Status ConcordKeyValueServiceImpl::TriggerChaincode(
+    ServerContext* context, const ConcordRequest* concord_request,
+    ConcordResponse* concord_response) {
+  if (concord_request->hlf_request_size() == 0) {
+    ErrorResponse* e = concord_response->add_error_response();
     e->mutable_description()->assign(
         "Concord request did not contain any HLF requset");
     return Status::CANCELLED;
   }
 
-  for (int i = 0; i < concordRequest->hlf_request_size(); i++) {
-    const HlfRequest hlfRequest = concordRequest->hlf_request(i);
+  for (int i = 0; i < concord_request->hlf_request_size(); i++) {
+    const HlfRequest hlf_request = concord_request->hlf_request(i);
 
     // verify the input
-    bool validRequest;
-    bool isReadOnly = true;
+    bool valid_request;
+    bool is_read_only = true;
 
-    switch (hlfRequest.method()) {
+    switch (hlf_request.method()) {
       case HlfRequest_HlfMethod_INSTALL:
-        validRequest = isValidManageOpt(hlfRequest);
-        isReadOnly = false;
+        valid_request = IsValidManageOpt(hlf_request);
+        is_read_only = false;
         break;
 
       case HlfRequest_HlfMethod_INSTANTIATE:
-        validRequest = isValidManageOpt(hlfRequest);
-        isReadOnly = false;
+        valid_request = IsValidManageOpt(hlf_request);
+        is_read_only = false;
         break;
 
       case HlfRequest_HlfMethod_UPGRADE:
-        validRequest = isValidManageOpt(hlfRequest);
-        isReadOnly = false;
+        valid_request = IsValidManageOpt(hlf_request);
+        is_read_only = false;
         break;
 
       case HlfRequest_HlfMethod_INVOKE:
-        validRequest = isValidInvokeOpt(hlfRequest);
-        isReadOnly = false;
+        valid_request = IsValidInvokeOpt(hlf_request);
+        is_read_only = false;
         break;
 
       case HlfRequest_HlfMethod_QUERY:
-        validRequest = isValidInvokeOpt(hlfRequest);
+        valid_request = IsValidInvokeOpt(hlf_request);
         break;
 
       default:
-        validRequest = false;
-        ErrorResponse* e = concordResponse->add_error_response();
+        valid_request = false;
+        ErrorResponse* e = concord_response->add_error_response();
         e->mutable_description()->assign("HLF Method Not Implemented");
     }
 
-    if (validRequest) {
-      ConcordRequest internalRequest;
-      HlfRequest* internalHlfRequest = internalRequest.add_hlf_request();
-      internalHlfRequest->CopyFrom(hlfRequest);
+    if (valid_request) {
+      ConcordRequest internal_request;
+      HlfRequest* internal_hlfRequest = internal_request.add_hlf_request();
+      internal_hlfRequest->CopyFrom(hlf_request);
 
-      ConcordResponse internalResponse;
-      if (_pool.send_request_sync(internalRequest, isReadOnly,
-                                  internalResponse)) {
-        concordResponse->MergeFrom(internalResponse);
+      ConcordResponse internal_response;
+      if (pool_.send_request_sync(internal_request, is_read_only,
+                                  internal_response)) {
+        concord_response->MergeFrom(internal_response);
       } else {
-        LOG4CPLUS_ERROR(_logger, "Error parsing response");
-        ErrorResponse* resp = concordResponse->add_error_response();
+        LOG4CPLUS_ERROR(logger_, "Error parsing response");
+        ErrorResponse* resp = concord_response->add_error_response();
         resp->set_description("Internal concord Error");
       }
     }
@@ -151,7 +151,7 @@ Status GrpcServiceImpl::TriggerChaincode(ServerContext* context,
   return Status::OK;
 }
 
-bool GrpcServiceImpl::isValidManageOpt(
+bool ConcordKeyValueServiceImpl::IsValidManageOpt(
     const com::vmware::concord::HlfRequest& request) {
   if (request.has_chaincode_name() && request.has_input() &&
       request.has_version()) {
@@ -160,7 +160,7 @@ bool GrpcServiceImpl::isValidManageOpt(
   return false;
 }
 
-bool GrpcServiceImpl::isValidInvokeOpt(
+bool ConcordKeyValueServiceImpl::IsValidInvokeOpt(
     const com::vmware::concord::HlfRequest& request) {
   if (request.has_chaincode_name() && request.has_input()) {
     return true;
@@ -168,12 +168,13 @@ bool GrpcServiceImpl::isValidInvokeOpt(
   return false;
 }
 
-void RunHlfServer(HlfHandler* hlfHandler, KVBClientPool& pool) {
+void RunHlfServer(HlfHandler* hlf_handler, KVBClientPool& pool) {
   // get server address from the HLF handler
-  string server_address = hlfHandler->getConcordKvService();
+  string server_address = hlf_handler->GetConcordKvService();
 
   ServerBuilder builder;
-  GrpcServiceImpl* service = new GrpcServiceImpl(hlfHandler, pool);
+  ConcordKeyValueServiceImpl* service =
+      new ConcordKeyValueServiceImpl(hlf_handler, pool);
   builder.AddListeningPort(server_address, grpc::InsecureServerCredentials());
   builder.RegisterService(service);
   std::unique_ptr<Server> server(builder.BuildAndStart());
@@ -185,5 +186,6 @@ void RunHlfServer(HlfHandler* hlfHandler, KVBClientPool& pool) {
 
   server->Wait();
 }
+
 }  // namespace hlf
 }  // namespace concord

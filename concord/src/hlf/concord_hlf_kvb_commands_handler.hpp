@@ -1,8 +1,8 @@
 // Copyright 2018-2019 VMware, all rights reserved
 //
 
-#ifndef CONCORD_CONSENSUS_HLF_KVB_COMMANDS_HANDLER_HPP
-#define CONCORD_CONSENSUS_HLF_KVB_COMMANDS_HANDLER_HPP
+#ifndef CONCORD_CONSENSUS_HLF_KVB_COMMANDS_HANDLER_H_
+#define CONCORD_CONSENSUS_HLF_KVB_COMMANDS_HANDLER_H_
 
 #include <log4cplus/loggingmacros.h>
 #include <boost/program_options.hpp>
@@ -17,76 +17,79 @@
 namespace concord {
 namespace hlf {
 
-class KVBCommandsHandlerForHlf : public Blockchain::ICommandsHandler {
+class KvbCommandsHandlerForHlf : public Blockchain::ICommandsHandler {
  private:
-  log4cplus::Logger logger;
-  concord::hlf::HlfHandler *hlfHandler_ = nullptr;
-  const concord::config::ConcordConfiguration &config_;
-  concord::config::ConcordConfiguration &nodeConfiguration;
+  log4cplus::Logger logger_;
+  concord::hlf::HlfHandler* hlf_handler_ = nullptr;
+  const concord::config::ConcordConfiguration& config_;
+  concord::config::ConcordConfiguration& node_config_;
 
-  Blockchain::ILocalKeyValueStorageReadOnly *m_ptrRoStorage = nullptr;
-  Blockchain::IBlocksAppender *m_ptrBlockAppender = nullptr;
+  Blockchain::ILocalKeyValueStorageReadOnly* ptr_ro_storage_ = nullptr;
+  Blockchain::IBlocksAppender* ptr_block_appender_ = nullptr;
 
  public:
-  KVBCommandsHandlerForHlf(HlfHandler *hlfHandler,
-                           const concord::config::ConcordConfiguration &config,
-                           concord::config::ConcordConfiguration &nodeConfig,
-                           Blockchain::ILocalKeyValueStorageReadOnly *roStorage,
-                           Blockchain::IBlocksAppender *appendder);
+  KvbCommandsHandlerForHlf(
+      HlfHandler* hlf_handler,
+      const concord::config::ConcordConfiguration& config,
+      concord::config::ConcordConfiguration& node_config,
+      Blockchain::ILocalKeyValueStorageReadOnly* ptr_ro_storage,
+      Blockchain::IBlocksAppender* ptr_block_appender);
 
-  ~KVBCommandsHandlerForHlf();
+  ~KvbCommandsHandlerForHlf();
 
-  int execute(uint16_t clientId, uint64_t sequenceNum, bool readOnly,
-              uint32_t requestSize, const char *request, uint32_t maxReplySize,
-              char *outReply, uint32_t &outActualReplySize) override;
+  int execute(uint16_t client_id, uint64_t sequence_num, bool read_only,
+              uint32_t request_size, const char* request,
+              uint32_t max_reply_size, char* out_reply,
+              uint32_t& out_actual_reply_size) override;
 
  private:
-  bool executeCommand(
-      uint32_t requestSize, const char *request, uint64_t sequenceNum,
-      const Blockchain::ILocalKeyValueStorageReadOnly &roStorage,
-      Blockchain::IBlocksAppender &blockAppender, const size_t maxReplySize,
-      char *outReply, uint32_t &outReplySize) const;
+  bool ExecuteCommand(
+      uint32_t request_size, const char* request, uint64_t sequence_num,
+      const Blockchain::ILocalKeyValueStorageReadOnly& ro_storage,
+      Blockchain::IBlocksAppender& block_appender, const size_t max_reply_size,
+      char* out_reply, uint32_t& out_reply_size) const;
 
-  bool executeReadOnlyCommand(
-      uint32_t requestSize, const char *request,
-      const Blockchain::ILocalKeyValueStorageReadOnly &roStorage,
-      const size_t maxReplySize, char *outReply, uint32_t &outReplySize) const;
+  bool ExecuteReadOnlyCommand(
+      uint32_t request_size, const char* request,
+      const Blockchain::ILocalKeyValueStorageReadOnly& ro_storage,
+      const size_t max_reply_size, char* out_reply,
+      uint32_t& out_reply_size) const;
 
   // HLF extent
-  bool handle_hlf_request(
-      com::vmware::concord::ConcordRequest &athreq,
-      concord::blockchain::hlf::KVBHlfStorage *kvbHlfStorage,
-      com::vmware::concord::ConcordResponse &athresp) const;
+  bool HandleHlfRequest(
+      com::vmware::concord::ConcordRequest& concord_request,
+      concord::blockchain::hlf::KvbStorageForHlf* kvb_hlf_storage,
+      com::vmware::concord::ConcordResponse& concord_response) const;
 
-  bool handle_hlf_request_read_only(
-      com::vmware::concord::ConcordRequest &athreq,
-      concord::blockchain::hlf::KVBHlfStorage *kvbHlfStorage,
-      com::vmware::concord::ConcordResponse &athresp) const;
+  bool HandleHlfRequestReadOnly(
+      com::vmware::concord::ConcordRequest& concord_request,
+      concord::blockchain::hlf::KvbStorageForHlf* kvb_hlf_storage,
+      com::vmware::concord::ConcordResponse& concord_response) const;
 
-  bool handle_hlf_install_chaincode(
-      com::vmware::concord::ConcordRequest &athreq,
-      concord::blockchain::hlf::KVBHlfStorage *kvbHlfStorage,
-      com::vmware::concord::ConcordResponse &athresp) const;
+  bool HandleHlfInstallChaincode(
+      com::vmware::concord::ConcordRequest& concord_request,
+      concord::blockchain::hlf::KvbStorageForHlf* kvb_hlf_storage,
+      com::vmware::concord::ConcordResponse& concord_response) const;
 
-  bool handle_hlf_instantiate_chaincode(
-      com::vmware::concord::ConcordRequest &athreq,
-      concord::blockchain::hlf::KVBHlfStorage *kvbHlfStorage,
-      com::vmware::concord::ConcordResponse &athresp) const;
+  bool HandleHlfInstantiateChaincode(
+      com::vmware::concord::ConcordRequest& concord_request,
+      concord::blockchain::hlf::KvbStorageForHlf* kvb_hlf_storage,
+      com::vmware::concord::ConcordResponse& concord_response) const;
 
-  bool handle_hlf_upgrade_chaincode(
-      com::vmware::concord::ConcordRequest &athreq,
-      concord::blockchain::hlf::KVBHlfStorage *kvbHlfStorage,
-      com::vmware::concord::ConcordResponse &athresp) const;
+  bool HandleHlfUpgradeChaincode(
+      com::vmware::concord::ConcordRequest& concord_request,
+      concord::blockchain::hlf::KvbStorageForHlf* kvb_hlf_storage,
+      com::vmware::concord::ConcordResponse& concord_response) const;
 
-  bool handle_hlf_invoke_chaincode(
-      com::vmware::concord::ConcordRequest &athreq,
-      concord::blockchain::hlf::KVBHlfStorage *kvbHlfStorage,
-      com::vmware::concord::ConcordResponse &athresp) const;
+  bool HandleHlfInvokeChaincode(
+      com::vmware::concord::ConcordRequest& concord_request,
+      concord::blockchain::hlf::KvbStorageForHlf* kvb_hlf_storage,
+      com::vmware::concord::ConcordResponse& concord_response) const;
 
-  bool handle_hlf_query_chaincode(
-      com::vmware::concord::ConcordRequest &athreq,
-      concord::blockchain::hlf::KVBHlfStorage *kvbHlfStorage,
-      com::vmware::concord::ConcordResponse &athresp) const;
+  bool HandleHlfQueryChaincode(
+      com::vmware::concord::ConcordRequest& concord_request,
+      concord::blockchain::hlf::KvbStorageForHlf* kvb_hlf_storage,
+      com::vmware::concord::ConcordResponse& concord_response) const;
 };
 
 }  // namespace hlf

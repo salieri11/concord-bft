@@ -83,7 +83,7 @@ using concord::storage::SetOfKeyValuePairs;
 
 using concord::hlf::ChaincodeInvoker;
 using concord::hlf::HlfHandler;
-using concord::hlf::KVBCommandsHandlerForHlf;
+using concord::hlf::KvbCommandsHandlerForHlf;
 using concord::hlf::RunHlfServer;
 
 using concord::time::TimePusher;
@@ -270,7 +270,7 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
   BlockingPersistentQueue<CommittedTx> committedTxs;
   bool daml_enabled = config.getValue<bool>("daml_enable");
 
-  HlfHandler *hlfHandler = nullptr;
+  HlfHandler *ptr_hlf_handler = nullptr;
   bool hlf_enabled = config.getValue<bool>("hlf_enable");
 
   try {
@@ -326,10 +326,10 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
       ChaincodeInvoker *chaincodeInvoker = new ChaincodeInvoker(nodeConfig);
 
       // Init Hlf handler
-      hlfHandler = new HlfHandler(chaincodeInvoker);
+      ptr_hlf_handler = new HlfHandler(chaincodeInvoker);
 
-      kvb_commands_handler = new KVBCommandsHandlerForHlf(
-          hlfHandler, config, nodeConfig, replica, replica);
+      kvb_commands_handler = new KvbCommandsHandlerForHlf(
+          ptr_hlf_handler, config, nodeConfig, replica, replica);
     } else {
       kvb_commands_handler = new EthKvbCommandsHandler(
           *athevm, *ethVerifier, config, nodeConfig, &replica, &replica);
@@ -386,7 +386,7 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
       daml_grpc_server->Wait();
     } else if (hlf_enabled) {
       // Start HLF gRPC service
-      RunHlfServer(hlfHandler, pool);
+      RunHlfServer(ptr_hlf_handler, pool);
     } else {
       std::string ip = nodeConfig.getValue<std::string>("service_host");
       short port = nodeConfig.getValue<short>("service_port");
