@@ -1,26 +1,13 @@
 // Copyright 2018 VMware, all rights reserved
 
-/**
- * @file InMemoryDBClient.cc
- *
- * @brief Contains helper functions for the InMemoryDBClient and
- * InMemoryDBClientIterator classes.
- *
- * The in memory database is implemented using a standard map object. Objects
- * of the Sliver class are used to maintain keys and values. The map does not
- * contain references to the keys and values. They are always copied into the
- * store. Functions are included for creating, using, and destroying iterators
- * to navigate through the map.
- */
-
-#include "InMemoryDBClient.h"
+#include "in_memory_db_client.h"
 
 #include <log4cplus/loggingmacros.h>
 #include <chrono>
 #include <cstring>
 
-#include "HashDefs.h"
-#include "sliver.hpp"
+#include "consensus/hash_defs.h"
+#include "consensus/sliver.hpp"
 
 namespace concord {
 namespace consensus {

@@ -2,8 +2,8 @@
 //
 // Storage key comparators definition.
 
-#ifndef CONCORD_CONSENSUS_KVB_COMPARATORS_H_
-#define CONCORD_CONSENSUS_KVB_COMPARATORS_H_
+#ifndef CONCORD_CONSENSUS_COMPARATORS_H_
+#define CONCORD_CONSENSUS_COMPARATORS_H_
 
 #include <log4cplus/loggingmacros.h>
 
@@ -48,4 +48,4 @@ class RocksKeyComparator : public rocksdb::Comparator {
 }  // namespace consensus
 }  // namespace concord
 
-#endif  // CONCORD_CONSENSUS_KVB_COMPARATORS_H_
+#endif  // CONCORD_CONSENSUS_COMPARATORS_H_

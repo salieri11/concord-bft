@@ -17,15 +17,15 @@
  *       -> Descending order of Block Id
  */
 
-#include "BlockchainDBAdapter.h"
+#include "blockchain_db_adapter.h"
 
 #include <log4cplus/loggingmacros.h>
 
 #include <chrono>
 #include <limits>
-#include "BlockchainInterfaces.h"
-#include "HashDefs.h"
-#include "sliver.hpp"
+#include "consensus/blockchain_interfaces.h"
+#include "consensus/hash_defs.h"
+#include "consensus/sliver.hpp"
 
 using log4cplus::Logger;
 

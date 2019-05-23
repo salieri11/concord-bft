@@ -1,19 +1,21 @@
 set(kvblockchain_sources
-  BlockchainDBAdapter.cpp BlockchainDBAdapter.h
-  BlockchainDBHelpers.cpp
-  BlockchainInterfaces.h
-  ClientImp.cpp ClientImp.h
-  Comparators.cpp Comparators.h
-  DatabaseInterface.h
-  HashDefs.h
-  HexTools.cpp HexTools.h
-  InMemoryDBClient.cpp InMemoryDBClient.h
-  ReplicaImp.cpp ReplicaImp.h
-  RocksDBClient.cpp RocksDBClient.h
-  RocksDBMetadataStorage.cpp
+  blockchain_db_adapter.cpp blockchain_db_adapter.h
+  blockchain_db_helpers.cpp
+  blockchain_interfaces.h
+  client_imp.cpp client_imp.h
+  comparators.cpp comparators.h
+  database_interface.h
+  hash_defs.h
+  hex_tools.cpp hex_tools.h
+  in_memory_db_client.cpp in_memory_db_client.h
+  replica_imp.cpp replica_imp.h
+  rocksdb_client.cpp rocksdb_client.h
+  rocksdb_metadata_storage.cpp
   status.cpp status.hpp
   sliver.cpp sliver.hpp
   bft_configuration.hpp)
+
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/..)
 
 add_library(kvblockchain ${kvblockchain_sources})
 

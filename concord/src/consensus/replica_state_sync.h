@@ -17,7 +17,7 @@
 #define CONCORD_CONSENSUS_KVB_REPLICA_STATE_SYNC_H
 
 #include <log4cplus/loggingmacros.h>
-#include "BlockchainDBAdapter.h"
+#include "consensus/blockchain_db_adapter.h"
 
 namespace concord {
 namespace consensus {

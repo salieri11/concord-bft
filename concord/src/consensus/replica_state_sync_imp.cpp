@@ -13,8 +13,9 @@
 //
 
 #include "replica_state_sync_imp.hpp"
+
+#include "consensus/blockchain_db_adapter.h"
 #include "ethereum/eth_kvb_storage.hpp"
-#include "kvb/BlockchainDBAdapter.h"
 
 namespace concord {
 namespace consensus {

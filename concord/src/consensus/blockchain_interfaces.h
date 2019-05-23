@@ -2,8 +2,8 @@
 //
 // KVBlockchain interface definition
 
-#ifndef CONCORD_CONSENSUS_KVB_BLOCKCHAIN_INTERFACES_H_
-#define CONCORD_CONSENSUS_KVB_BLOCKCHAIN_INTERFACES_H_
+#ifndef CONCORD_CONSENSUS_BLOCKCHAIN_INTERFACES_H_
+#define CONCORD_CONSENSUS_BLOCKCHAIN_INTERFACES_H_
 
 // TODO: write about thread-safety
 
@@ -13,13 +13,13 @@
 #include <string>
 #include <unordered_map>
 #include "CommDefs.hpp"
-#include "DatabaseInterface.h"
 #include "ICommunication.hpp"
 #include "SimpleBCStateTransfer.hpp"
 #include "StatusInfo.h"
 #include "ThresholdSignaturesSchemes.h"
-#include "sliver.hpp"
-#include "status.hpp"
+#include "consensus/database_interface.h"
+#include "consensus/sliver.hpp"
+#include "consensus/status.hpp"
 
 using std::pair;
 using std::string;
@@ -303,4 +303,4 @@ class IBlocksAppender {
 }  // namespace consensus
 }  // namespace concord
 
-#endif  // CONCORD_CONSENSUS_KVB_BLOCKCHAIN_INTERFACES_H_
+#endif  // CONCORD_CONSENSUS_BLOCKCHAIN_INTERFACES_H_

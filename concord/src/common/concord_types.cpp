@@ -11,8 +11,8 @@
 #include "common/concord_exception.hpp"
 #include "common/concord_log.hpp"
 #include "concord_storage.pb.h"
-#include "consensus/kvb/HexTools.h"
-#include "consensus/kvb/sliver.hpp"
+#include "consensus/hex_tools.h"
+#include "consensus/sliver.hpp"
 #include "utils/concord_eth_hash.hpp"
 #include "utils/rlp.hpp"
 

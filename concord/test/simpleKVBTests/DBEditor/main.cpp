@@ -28,9 +28,9 @@
 #endif
 
 #include "Logging.hpp"
-#include "consensus/kvb/Comparators.h"
-#include "consensus/kvb/RocksDBClient.h"
-#include "consensus/kvb/RocksDBMetadataStorage.hpp"
+#include "consensus/comparators.h"
+#include "consensus/rocksdb_client.h"
+#include "consensus/rocksdb_metadata_storage.h"
 
 using namespace bftEngine;
 

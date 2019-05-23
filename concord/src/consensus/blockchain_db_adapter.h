@@ -3,15 +3,15 @@
 // Translation between BlockAppender/ILocalkeyValueStorage* to the underlying
 // database.
 
-#ifndef CONCORD_CONSENSUS_KVB_BLOCKCHAINDBADAPTER_H_
-#define CONCORD_CONSENSUS_KVB_BLOCKCHAINDBADAPTER_H_
+#ifndef CONCORD_CONSENSUS_BLOCKCHAIN_DB_ADAPTER_H_
+#define CONCORD_CONSENSUS_BLOCKCHAIN_DB_ADAPTER_H_
 
 #include <log4cplus/loggingmacros.h>
 
-#include "BlockchainDBTypes.hpp"
-#include "BlockchainInterfaces.h"
-#include "DatabaseInterface.h"
-#include "sliver.hpp"
+#include "consensus/blockchain_db_types.h"
+#include "consensus/blockchain_interfaces.h"
+#include "consensus/database_interface.h"
+#include "consensus/sliver.hpp"
 
 namespace concord {
 namespace consensus {
@@ -89,4 +89,4 @@ class KeyManipulator {
 }  // namespace consensus
 }  // namespace concord
 
-#endif  // CONCORD_CONSENSUS_KVB_BLOCKCHAINDBADAPTER_H_
+#endif  // CONCORD_CONSENSUS_BLOCKCHAIN_DB_ADAPTER_H_

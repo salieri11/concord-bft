@@ -2,14 +2,14 @@
 //
 // KV Blockchain client definition.
 
-#ifndef CONCORD_CONSENSUS_KVB_CLIENTIMP_H_
-#define CONCORD_CONSENSUS_KVB_CLIENTIMP_H_
+#ifndef CONCORD_CONSENSUS_CLIENT_IMP_H_
+#define CONCORD_CONSENSUS_CLIENT_IMP_H_
 
 #include <boost/thread.hpp>
 #include <map>
-#include "BlockchainInterfaces.h"
 #include "ICommunication.hpp"
 #include "SimpleClient.hpp"
+#include "consensus/blockchain_interfaces.h"
 
 using namespace bftEngine;
 
@@ -48,4 +48,4 @@ class ClientImp : public IClient {
 }  // namespace consensus
 }  // namespace concord
 
-#endif  // CONCORD_CONSENSUS_KVB_CLIENTIMP_H_
+#endif  // CONCORD_CONSENSUS_CLIENT_IMP_H_

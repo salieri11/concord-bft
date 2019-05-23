@@ -2,12 +2,12 @@
 //
 // Hash functions for our Sliver and KeyValuePair types.
 
-#ifndef CONCORD_CONSENSUS_KVB_HASHDEFS_H_
-#define CONCORD_CONSENSUS_KVB_HASHDEFS_H_
+#ifndef CONCORD_CONSENSUS_HASH_DEFS_H_
+#define CONCORD_CONSENSUS_HASH_DEFS_H_
 
 #include <stdlib.h>
-#include "BlockchainInterfaces.h"
-#include "sliver.hpp"
+#include "consensus/blockchain_interfaces.h"
+#include "consensus/sliver.hpp"
 
 using concord::consensus::KeyValuePair;
 using concord::consensus::Sliver;
@@ -49,4 +49,4 @@ struct hash<KeyValuePair> {
 };
 }  // namespace std
 
-#endif  // CONCORD_CONSENSUS_KVB_HASHDEFS_H_
+#endif  // CONCORD_CONSENSUS_HASH_DEFS_H_

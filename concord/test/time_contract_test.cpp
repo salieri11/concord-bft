@@ -6,10 +6,10 @@
 #define USE_ROCKSDB
 #include "time/time_contract.hpp"
 #include "config/configuration_manager.hpp"
-#include "consensus/kvb/BlockchainDBTypes.hpp"
-#include "consensus/kvb/Comparators.h"
-#include "consensus/kvb/InMemoryDBClient.h"
-#include "consensus/kvb/status.hpp"
+#include "consensus/blockchain_db_types.h"
+#include "consensus/comparators.h"
+#include "consensus/in_memory_db_client.h"
+#include "consensus/status.hpp"
 #include "ethereum/eth_kvb_storage.hpp"
 #include "gtest/gtest.h"
 

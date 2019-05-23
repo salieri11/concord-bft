@@ -9,7 +9,7 @@
 
 #include <boost/thread.hpp>
 
-#include "consensus/kvb/BlockchainInterfaces.h"
+#include "consensus/blockchain_interfaces.h"
 
 using com::vmware::concord::ConcordRequest;
 using com::vmware::concord::ConcordResponse;

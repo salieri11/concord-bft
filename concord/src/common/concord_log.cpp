@@ -6,7 +6,7 @@
 
 #include <ios>
 
-#include "consensus/kvb/HexTools.h"
+#include "consensus/hex_tools.h"
 #include "evm.h"
 
 namespace concord {

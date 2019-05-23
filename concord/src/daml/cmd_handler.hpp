@@ -1,12 +1,13 @@
-#pragma once
+#ifndef CONCORD_DAML_CMD_HANDLER_HPP_
+#define CONCORD_DAML_CMD_HANDLER_HPP_
 
 #include <log4cplus/loggingmacros.h>
 
 #include "blocking_queue.h"
-#include "consensus/kvb/BlockchainDBTypes.hpp"
-#include "consensus/kvb/BlockchainInterfaces.h"
-#include "consensus/kvb/HashDefs.h"
-#include "consensus/kvb/sliver.hpp"
+#include "consensus/blockchain_db_types.h"
+#include "consensus/blockchain_interfaces.h"
+#include "consensus/hash_defs.h"
+#include "consensus/sliver.hpp"
 #include "daml_commit.grpc.pb.h"
 #include "daml_data.grpc.pb.h"
 #include "daml_events.grpc.pb.h"
@@ -66,3 +67,5 @@ class KVBCCommandsHandler : public concord::consensus::ICommandsHandler {
 
 }  // namespace daml
 }  // namespace concord
+
+#endif  // CONCORD_DAML_CMD_HANDLER_HPP_

@@ -18,7 +18,7 @@
 #include <string.h>
 
 #include "basicRandomTestsRunner.hpp"
-#include "consensus/kvb/bft_configuration.hpp"
+#include "consensus/bft_configuration.hpp"
 #include "test_comm_config.hpp"
 #include "test_parameters.hpp"
 

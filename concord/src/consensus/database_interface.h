@@ -1,19 +1,11 @@
 // Copyright 2018 VMware, all rights reserved
 
-/**
- * @file DatabaseInterface.h
- *
- * @brief Header file containing the IDBClient and IDBClientIterator class
- * definitions.
- *
- */
+#ifndef CONCORD_CONSENSUS_DATABASE_INTERFACE_H_
+#define CONCORD_CONSENSUS_DATABASE_INTERFACE_H_
 
-#ifndef CONCORD_CONSENSUS_KVB_DATABASE_INTERFACE_H_
-#define CONCORD_CONSENSUS_KVB_DATABASE_INTERFACE_H_
-
-#include "BlockchainDBTypes.hpp"
-#include "sliver.hpp"
-#include "status.hpp"
+#include "consensus/blockchain_db_types.h"
+#include "consensus/sliver.hpp"
+#include "consensus/status.hpp"
 
 #define OUT
 

@@ -23,8 +23,8 @@
  * requires an atomic operation that might be considered expensive.
  */
 
-#ifndef CONCORD_CONSENSUS_KVB_SLIVER_HPP_
-#define CONCORD_CONSENSUS_KVB_SLIVER_HPP_
+#ifndef CONCORD_CONSENSUS_SLIVER_HPP_
+#define CONCORD_CONSENSUS_SLIVER_HPP_
 
 #include <ios>
 #include <memory>
@@ -73,4 +73,4 @@ bool copyToAndAdvance(uint8_t* _buf, size_t* _offset, size_t _maxOffset,
 }  // namespace consensus
 }  // namespace concord
 
-#endif  // CONCORD_CONSENSUS_KVB_SLIVER_HPP_
+#endif  // CONCORD_CONSENSUS_SLIVER_HPP_

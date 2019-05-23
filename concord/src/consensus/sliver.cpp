@@ -14,7 +14,7 @@
 #include <ios>
 #include <memory>
 
-#include "HexTools.h"
+#include "consensus/hex_tools.h"
 
 namespace concord {
 namespace consensus {

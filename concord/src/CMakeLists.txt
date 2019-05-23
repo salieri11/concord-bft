@@ -1,7 +1,10 @@
 file(GLOB concord_src "main.cpp"
   "api/*.cpp"        "api/*.hpp"
   "config/*.cpp"     "config/*.hpp"
-  "consensus/*.cpp"  "consensus/*.hpp"
+  "consensus/kvb_client.cpp"
+  "consensus/kvb_client.hpp"
+  "consensus/replica_state_sync_imp.cpp"
+  "consensus/replica_state_sync_imp.hpp"
   "daml/*.cpp"       "daml/*.hpp"
 )
 
@@ -12,7 +15,7 @@ endif()
 
 add_subdirectory("utils")
 add_subdirectory("common")
-add_subdirectory("consensus/kvb")
+add_subdirectory("consensus")
 add_subdirectory("ethereum")
 add_subdirectory("time")
 

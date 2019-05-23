@@ -3,16 +3,16 @@
 // Temporary solution for creating configuration structs for concord-bft
 // Ideally, the ReplicaConfig from BlockchainInterfaces.h
 
-#ifndef CONCORD_CONSENSUS_KVB_CONFIG_PARSER_HPP_
-#define CONCORD_CONSENSUS_KVB_CONFIG_PARSER_HPP_
+#ifndef CONCORD_CONSENSUS_BFT_CONFIGURATION_HPP_
+#define CONCORD_CONSENSUS_BFT_CONFIGURATION_HPP_
 
 #include <set>
 #include <string>
-#include "BlockchainInterfaces.h"
 #include "IThresholdFactory.h"
 #include "IThresholdSigner.h"
 #include "IThresholdVerifier.h"
 #include "config/configuration_manager.hpp"
+#include "consensus/blockchain_interfaces.h"
 
 using concord::config::ConcordConfiguration;
 using concord::config::ConcordPrimaryConfigurationAuxiliaryState;
@@ -275,4 +275,4 @@ inline bool initializeSBFTConfiguration(ConcordConfiguration& config,
 }  // namespace consensus
 }  // namespace concord
 
-#endif  // CONCORD_CONSENSUS_KVB_CONFIG_PARSER_HPP_
+#endif  // CONCORD_CONSENSUS_BFT_CONFIGURATION_HPP_

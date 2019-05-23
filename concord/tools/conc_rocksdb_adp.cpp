@@ -11,9 +11,9 @@
 #include <iomanip>
 #include <iostream>
 #include <string>
-#include "consensus/kvb/BlockchainDBAdapter.h"
-#include "consensus/kvb/Comparators.h"
-#include "consensus/kvb/RocksDBClient.h"
+#include "consensus/blockchain_db_adapter.h"
+#include "consensus/comparators.h"
+#include "consensus/rocksdb_client.h"
 
 using namespace std;
 using concord::consensus::BlockchainDBAdapter;

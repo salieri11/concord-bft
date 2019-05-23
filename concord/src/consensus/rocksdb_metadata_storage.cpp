@@ -11,11 +11,11 @@
 // terms and conditions of the subcomponent's license, as noted in the LICENSE
 // file.
 
-#include "RocksDBMetadataStorage.hpp"
+#include "rocksdb_metadata_storage.h"
 
 #include <exception>
-#include "BlockchainDBAdapter.h"
-#include "HashDefs.h"
+#include "consensus/blockchain_db_adapter.h"
+#include "consensus/hash_defs.h"
 
 using namespace std;
 
