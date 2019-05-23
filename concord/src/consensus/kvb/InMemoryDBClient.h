@@ -17,15 +17,17 @@
  *
  */
 
-#ifndef INMEMBORYDBCLIENT_H
-#define INMEMBORYDBCLIENT_H
+#ifndef CONCORD_CONSENSUS_KVB_IN_MEMBORY_DB_CLIENT_H_
+#define CONCORD_CONSENSUS_KVB_IN_MEMBORY_DB_CLIENT_H_
 
 #include <log4cplus/loggingmacros.h>
 
 #include <map>
 #include "DatabaseInterface.h"
 
-namespace Blockchain {
+namespace concord {
+namespace consensus {
+
 class InMemoryDBClient;
 
 typedef std::map<Sliver, Sliver, IDBClient::KeyComparator> TKVStore;
@@ -89,6 +91,8 @@ class InMemoryDBClient : public IDBClient {
   // map that stores the in memory database.
   TKVStore map;
 };
-}  // namespace Blockchain
 
-#endif
+}  // namespace consensus
+}  // namespace concord
+
+#endif  // CONCORD_CONSENSUS_KVB_IN_MEMBORY_DB_CLIENT_H_

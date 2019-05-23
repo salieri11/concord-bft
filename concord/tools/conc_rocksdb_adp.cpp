@@ -16,7 +16,11 @@
 #include "consensus/kvb/RocksDBClient.h"
 
 using namespace std;
-using namespace Blockchain;
+using concord::consensus::BlockchainDBAdapter;
+using concord::consensus::BlockId;
+using concord::consensus::RocksDBClient;
+using concord::consensus::RocksKeyComparator;
+using concord::consensus::Sliver;
 
 enum class OpType { GetBlockRaw, GetBlockDigest };
 
@@ -125,7 +129,7 @@ int main(int argc, char **argv) {
   assert(op.length() > 0);
   assert(p.length() > 0);
 
-  auto comp = new Blockchain::RocksKeyComparator();
+  auto comp = new RocksKeyComparator();
   auto client = RocksDBClient(path, comp);
   auto adapter = BlockchainDBAdapter(&client);
 

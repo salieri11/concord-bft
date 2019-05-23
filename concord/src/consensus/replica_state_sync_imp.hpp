@@ -12,12 +12,13 @@
 // file.
 //
 
-#ifndef REPLICA_STATE_SYNC_IMP_H
-#define REPLICA_STATE_SYNC_IMP_H
+#ifndef CONCORD_CONSENSUS_REPLICA_STATE_SYNC_IMP_H_
+#define CONCORD_CONSENSUS_REPLICA_STATE_SYNC_IMP_H_
 
 #include "consensus/kvb/ReplicaStateSync.h"
 
-namespace Blockchain {
+namespace concord {
+namespace consensus {
 
 class ReplicaStateSyncImp : public ReplicaStateSync {
  public:
@@ -29,6 +30,7 @@ class ReplicaStateSyncImp : public ReplicaStateSync {
                    uint64_t lastExecutedSeqNum) override;
 };
 
-}  // namespace Blockchain
+}  // namespace consensus
+}  // namespace concord
 
-#endif
+#endif  // CONCORD_CONSENSUS_REPLICA_STATE_SYNC_IMP_H_

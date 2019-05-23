@@ -15,16 +15,16 @@
  *
  */
 
-#ifndef ROCKSDBCLIENT_H
-#define ROCKSDBCLIENT_H
+#ifndef CONCORD_CONSENSUS_KVB_ROCKSDBCLIENT_H_
+#define CONCORD_CONSENSUS_KVB_ROCKSDBCLIENT_H_
 
 #ifdef USE_ROCKSDB
 #include <log4cplus/loggingmacros.h>
 #include "DatabaseInterface.h"
 #include "rocksdb/db.h"
 
-namespace Blockchain {
-// Measurements
+namespace concord {
+namespace consensus {
 
 class RocksDBClient;
 
@@ -102,6 +102,9 @@ class RocksDBClient : public IDBClient {
 rocksdb::Slice toRocksdbSlice(Sliver _s);
 Sliver fromRocksdbSlice(rocksdb::Slice _s);
 Sliver copyRocksdbSlice(rocksdb::Slice _s);
-}  // namespace Blockchain
-#endif
-#endif
+
+}  // namespace consensus
+}  // namespace concord
+
+#endif  // USE_ROCKSDB
+#endif  // CONCORD_CONSENSUS_KVB_ROCKSDBCLIENT_H_

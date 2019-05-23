@@ -17,17 +17,20 @@
  *       -> Descending order of Block Id
  */
 
+#include "BlockchainDBAdapter.h"
+
 #include <log4cplus/loggingmacros.h>
 
 #include <chrono>
 #include <limits>
-#include "BlockchainDBAdapter.h"
 #include "BlockchainInterfaces.h"
 #include "HashDefs.h"
+#include "sliver.hpp"
 
 using log4cplus::Logger;
 
-namespace Blockchain {
+namespace concord {
+namespace consensus {
 
 /**
  * @brief Generates a Composite Database Key from a Sliver object.
@@ -781,4 +784,5 @@ BlockId BlockchainDBAdapter::getLastReachableBlock() {
   return lastReachableId;
 }
 
-}  // namespace Blockchain
+}  // namespace consensus
+}  // namespace concord

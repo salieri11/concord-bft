@@ -11,8 +11,8 @@
 // terms and conditions of the subcomponent's license, as noted in the LICENSE
 // file.
 
-#ifndef ROCKS_DB_METADATA_STORAGE_HPP
-#define ROCKS_DB_METADATA_STORAGE_HPP
+#ifndef CONCORD_CONSENSUS_KVB_ROCKS_DB_METADATA_STORAGE_HPP_
+#define CONCORD_CONSENSUS_KVB_ROCKS_DB_METADATA_STORAGE_HPP_
 
 #ifdef USE_ROCKSDB
 
@@ -21,13 +21,14 @@
 #include "DatabaseInterface.h"
 #include "MetadataStorage.hpp"
 
-namespace Blockchain {
+namespace concord {
+namespace consensus {
 
 typedef std::vector<uint16_t> ObjectIdsVector;
 
 class RocksDBMetadataStorage : public bftEngine::MetadataStorage {
  public:
-  explicit RocksDBMetadataStorage(Blockchain::IDBClient *dbClient)
+  explicit RocksDBMetadataStorage(IDBClient *dbClient)
       : logger_(log4cplus::Logger::getInstance(
             "com.concord.vmware.metadatastorage")),
         dbClient_(dbClient) {}
@@ -60,7 +61,8 @@ class RocksDBMetadataStorage : public bftEngine::MetadataStorage {
   uint16_t objectsNum_ = 0;
 };
 
-}  // namespace Blockchain
+}  // namespace consensus
+}  // namespace concord
 
-#endif  // ifdef USE_ROCKSDB
-#endif
+#endif  // USE_ROCKSDB
+#endif  // CONCORD_CONSENSUS_KVB_ROCKS_DB_METADATA_STORAGE_HPP_

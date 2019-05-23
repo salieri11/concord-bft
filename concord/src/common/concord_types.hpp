@@ -45,7 +45,7 @@ typedef struct EthTransaction {
   std::vector<uint8_t> rlp() const;
   evm_uint256be hash() const;
   size_t serialize(uint8_t **out);
-  static struct EthTransaction deserialize(Blockchain::Sliver &input);
+  static struct EthTransaction deserialize(concord::consensus::Sliver &input);
 } EthTransaction;
 
 typedef struct EthBlock {
@@ -59,7 +59,7 @@ typedef struct EthBlock {
 
   evm_uint256be get_hash() const;
   size_t serialize(uint8_t **out);
-  static struct EthBlock deserialize(Blockchain::Sliver &input);
+  static struct EthBlock deserialize(concord::consensus::Sliver &input);
 } EthBlock;
 
 }  // namespace common

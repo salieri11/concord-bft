@@ -18,7 +18,7 @@
 #include <unistd.h>
 #endif
 
-using namespace Blockchain;
+using concord::consensus::IClient;
 
 namespace BasicRandomTests {
 

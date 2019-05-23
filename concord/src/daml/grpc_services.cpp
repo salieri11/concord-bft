@@ -24,11 +24,11 @@ using com::vmware::concord::ConcordResponse;
 using com::vmware::concord::DamlRequest;
 using com::vmware::concord::DamlResponse;
 
-using Blockchain::BlockId;
-using Blockchain::IClient;
-using Blockchain::ILocalKeyValueStorageReadOnly;
-using Blockchain::Key;
-using Blockchain::Value;
+using concord::consensus::BlockId;
+using concord::consensus::IClient;
+using concord::consensus::ILocalKeyValueStorageReadOnly;
+using concord::consensus::Key;
+using concord::consensus::Value;
 
 using namespace std;
 
@@ -57,7 +57,7 @@ grpc::Status DataServiceImpl::ReadTransaction(
     Key key = createSliver(keyStr);
     Value value;
     BlockId outBlockId;
-    Blockchain::Status status =
+    concord::consensus::Status status =
         ro_storage_->get(readBlockId, key, value, outBlockId);
     if (status.isOK()) {
       kvbc::KeyValuePair* kv = reply->add_results();

@@ -10,9 +10,9 @@
 // notices and license terms. Your use of these subcomponents is subject to the
 // terms and conditions of the subcomponent's license, as noted in the LICENSE
 // file.
-// This module creates an instance of Blockchain::ClientImp class using input
+// This module creates an instance of ClientImp class using input
 // parameters and launches a bunch of tests created by TestsBuilder towards
-// Blockchain::ReplicaImp objects.
+// concord::consensus::ReplicaImp objects.
 
 #include <stdio.h>
 #include <string.h>
@@ -29,11 +29,16 @@
 #include "winUtils.h"
 #endif
 
-using namespace Blockchain;
 using namespace bftEngine;
 using namespace BasicRandomTests;
 
 using std::string;
+
+using concord::consensus::BlockId;
+using concord::consensus::ClientConsensusConfig;
+using concord::consensus::CommConfig;
+using concord::consensus::createClient;
+using concord::consensus::IClient;
 
 #if defined(_WIN32)
 initWinSock();

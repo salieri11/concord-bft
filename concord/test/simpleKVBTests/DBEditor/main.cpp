@@ -32,8 +32,13 @@
 #include "consensus/kvb/RocksDBClient.h"
 #include "consensus/kvb/RocksDBMetadataStorage.hpp"
 
-using namespace Blockchain;
 using namespace bftEngine;
+
+using concord::consensus::ObjectIdsVector;
+using concord::consensus::RocksDBClient;
+using concord::consensus::RocksDBMetadataStorage;
+using concord::consensus::RocksKeyComparator;
+using concord::consensus::Status;
 
 std::stringstream dbPath;
 RocksDBClient *dbClient = nullptr;

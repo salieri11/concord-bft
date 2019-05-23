@@ -99,7 +99,7 @@ void TimeContract::LoadLatestSamples() {
 
   samples_ = new std::unordered_map<std::string, uint64_t>();
 
-  Blockchain::Sliver raw_time = storage_.get_time();
+  concord::consensus::Sliver raw_time = storage_.get_time();
   if (raw_time.length() > 0) {
     com::vmware::concord::kvb::Time time_storage;
     if (time_storage.ParseFromArray(raw_time.data(), raw_time.length())) {
@@ -150,7 +150,8 @@ void TimeContract::StoreLatestSamples() {
   }
 
   size_t storage_size = proto.ByteSize();
-  Blockchain::Sliver time_storage(new uint8_t[storage_size], storage_size);
+  concord::consensus::Sliver time_storage(new uint8_t[storage_size],
+                                          storage_size);
   proto.SerializeToArray(time_storage.data(), storage_size);
 
   storage_.set_time(time_storage);

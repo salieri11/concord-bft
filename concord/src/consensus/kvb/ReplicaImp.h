@@ -2,8 +2,8 @@
 //
 // KV Blockchain replica definition.
 
-#ifndef REPLICAIMP_H
-#define REPLICAIMP_H
+#ifndef CONCORD_CONSENSUS_KVB_REPLICAIMP_H_
+#define CONCORD_CONSENSUS_KVB_REPLICAIMP_H_
 
 #include <functional>
 #include <map>
@@ -20,7 +20,8 @@
 #include "ReplicaConfig.hpp"
 #include "StatusInfo.h"
 
-namespace Blockchain {
+namespace concord {
+namespace consensus {
 
 class RocksDBMetadataStorage;
 
@@ -49,8 +50,7 @@ class ReplicaImp : public IReplica,
   virtual Status addBlockToIdleReplica(
       const SetOfKeyValuePairs &updates) override;
 
-  virtual void set_command_handler(
-      Blockchain::ICommandsHandler *handler) override;
+  virtual void set_command_handler(ICommandsHandler *handler) override;
 
   // ILocalKeyValueStorageReadOnly methods
   virtual Status get(Sliver key, Sliver &outValue) const override;
@@ -86,7 +86,7 @@ class ReplicaImp : public IReplica,
  protected:
   // CTOR & DTOR
 
-  ReplicaImp(Blockchain::CommConfig &commConfig, ReplicaConsensusConfig &config,
+  ReplicaImp(CommConfig &commConfig, ReplicaConsensusConfig &config,
              BlockchainDBAdapter *dbAdapter,
              ReplicaStateSync &replicaStateSync);
   virtual ~ReplicaImp() override;
@@ -251,7 +251,7 @@ class ReplicaImp : public IReplica,
     std::atomic<BlockId> m_lastReachableBlock{0};
 
     friend class ReplicaImp;
-    friend IReplica *createReplica(Blockchain::CommConfig &commConfig,
+    friend IReplica *createReplica(CommConfig &commConfig,
                                    ReplicaConsensusConfig &config,
                                    IDBClient *db,
                                    ReplicaStateSync &replicaStateSync);
@@ -285,11 +285,13 @@ class ReplicaImp : public IReplica,
   static SetOfKeyValuePairs fetchBlockData(Sliver block);
 
   // FRIENDS
-  friend IReplica *createReplica(Blockchain::CommConfig &commConfig,
+  friend IReplica *createReplica(CommConfig &commConfig,
                                  ReplicaConsensusConfig &config, IDBClient *db,
                                  ReplicaStateSync &replicaStateSync);
   friend void release(IReplica *r);
 };
-}  // namespace Blockchain
 
-#endif
+}  // namespace consensus
+}  // namespace concord
+
+#endif  // CONCORD_CONSENSUS_KVB_REPLICAIMP_H_

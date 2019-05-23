@@ -17,11 +17,11 @@ class DataServiceImpl final
     : public com::digitalasset::kvbc::DataService::Service {
  private:
   log4cplus::Logger logger;
-  const Blockchain::ILocalKeyValueStorageReadOnly* ro_storage_;
+  const concord::consensus::ILocalKeyValueStorageReadOnly* ro_storage_;
 
  public:
   DataServiceImpl(concord::consensus::KVBClientPool& p,
-                  const Blockchain::ILocalKeyValueStorageReadOnly* ro)
+                  const concord::consensus::ILocalKeyValueStorageReadOnly* ro)
       : logger(log4cplus::Logger::getInstance("com.vmware.concord.daml")),
         ro_storage_(ro) {}
 

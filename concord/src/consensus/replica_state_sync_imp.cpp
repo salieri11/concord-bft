@@ -16,7 +16,8 @@
 #include "ethereum/eth_kvb_storage.hpp"
 #include "kvb/BlockchainDBAdapter.h"
 
-namespace Blockchain {
+namespace concord {
+namespace consensus {
 
 uint64_t ReplicaStateSyncImp::execute(log4cplus::Logger &logger,
                                       BlockchainDBAdapter &bcDBAdapter,
@@ -46,4 +47,5 @@ uint64_t ReplicaStateSyncImp::execute(log4cplus::Logger &logger,
   return removedBlocksNum;
 }
 
-}  // namespace Blockchain
+}  // namespace consensus
+}  // namespace concord

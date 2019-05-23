@@ -13,13 +13,16 @@
 
 #ifdef USE_ROCKSDB
 
+#include "RocksDBClient.h"
+
 #include <log4cplus/loggingmacros.h>
 
 #include "HashDefs.h"
-#include "RocksDBClient.h"
 #include "rocksdb/comparator.h"
 
-namespace Blockchain {
+namespace concord {
+namespace consensus {
+
 // Counter for number of read requests
 static unsigned int g_rocksdb_called_read;
 static bool g_rocksdb_print_measurements;
@@ -514,5 +517,8 @@ bool RocksDBClientIterator::isEnd() { return !m_iter->Valid(); }
  * @return The latest Status logged.
  */
 Status RocksDBClientIterator::getStatus() { return m_status; }
-}  // namespace Blockchain
+
+}  // namespace consensus
+}  // namespace concord
+
 #endif

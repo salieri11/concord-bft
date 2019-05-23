@@ -17,8 +17,24 @@
 #include "gtest/gtest.h"
 
 using namespace std;
-using namespace Blockchain;
 using namespace log4cplus;
+
+using concord::consensus::BlockchainDBAdapter;
+using concord::consensus::BlockEntry;
+using concord::consensus::BlockHeader;
+using concord::consensus::BlockId;
+using concord::consensus::IBlocksAppender;
+using concord::consensus::ILocalKeyValueStorageReadOnly;
+using concord::consensus::ILocalKeyValueStorageReadOnlyIterator;
+using concord::consensus::Key;
+using concord::consensus::KeyManipulator;
+using concord::consensus::ReplicaStateSyncImp;
+using concord::consensus::RocksDBClient;
+using concord::consensus::RocksKeyComparator;
+using concord::consensus::SetOfKeyValuePairs;
+using concord::consensus::Sliver;
+using concord::consensus::Status;
+using concord::consensus::Value;
 
 namespace {
 

@@ -10,9 +10,9 @@
 // notices and license terms. Your use of these subcomponents is subject to the
 // terms and conditions of the subcomponent's license, as noted in the LICENSE
 // file.
-// This module creates an instance of Blockchain::ReplicaImp class using input
-// parameters and launches it. ReplicaImp object serves requests received from
-// Blockchain::ClientImp object via communication layer.
+// This module creates an instance of concord::consensus::ReplicaImp class using
+// input parameters and launches it. ReplicaImp object serves requests received
+// from concord::consensus::ClientImp object via communication layer.
 
 #include <signal.h>
 #include <stdio.h>
@@ -41,9 +41,16 @@
 #include "winUtils.h"
 #endif
 
-using namespace Blockchain;
 using namespace bftEngine;
 using namespace concord::config;
+
+using concord::consensus::CommConfig;
+using concord::consensus::ILocalKeyValueStorageReadOnly;
+using concord::consensus::ReplicaConsensusConfig;
+using concord::consensus::ReplicaImp;
+using concord::consensus::ReplicaStateSyncImp;
+using concord::consensus::RocksDBClient;
+using concord::consensus::RocksKeyComparator;
 using concord::ethereum::EthKvbStorage;
 
 using ::TestCommConfig;

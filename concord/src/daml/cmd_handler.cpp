@@ -18,14 +18,14 @@ using std::set;
 
 using namespace com::digitalasset;
 
-using Blockchain::BlockId;
-using Blockchain::IBlocksAppender;
-using Blockchain::ILocalKeyValueStorageReadOnly;
-using Blockchain::Key;
-using Blockchain::KeyValuePair;
-using Blockchain::SetOfKeyValuePairs;
-using Blockchain::Sliver;
-using Blockchain::Value;
+using concord::consensus::BlockId;
+using concord::consensus::IBlocksAppender;
+using concord::consensus::ILocalKeyValueStorageReadOnly;
+using concord::consensus::Key;
+using concord::consensus::KeyValuePair;
+using concord::consensus::SetOfKeyValuePairs;
+using concord::consensus::Sliver;
+using concord::consensus::Value;
 
 using com::vmware::concord::ConcordRequest;
 using com::vmware::concord::ConcordResponse;

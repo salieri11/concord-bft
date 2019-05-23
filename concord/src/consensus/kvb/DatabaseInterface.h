@@ -8,8 +8,8 @@
  *
  */
 
-#ifndef DATABASEINTERFACE_H
-#define DATABASEINTERFACE_H
+#ifndef CONCORD_CONSENSUS_KVB_DATABASE_INTERFACE_H_
+#define CONCORD_CONSENSUS_KVB_DATABASE_INTERFACE_H_
 
 #include "BlockchainDBTypes.hpp"
 #include "sliver.hpp"
@@ -17,7 +17,9 @@
 
 #define OUT
 
-namespace Blockchain {
+namespace concord {
+namespace consensus {
+
 class IDBClient {
  public:
   typedef bool (*KeyComparator)(const Sliver &, const Sliver &);
@@ -56,6 +58,8 @@ class IDBClient {
   virtual IDBClientIterator *getIterator() const = 0;
   virtual Status freeIterator(IDBClientIterator *_iter) const = 0;
 };
-}  // namespace Blockchain
 
-#endif
+}  // namespace consensus
+}  // namespace concord
+
+#endif  // CONCORD_CONSENSUS_KVB_DATABASE_INTERFACE_H_

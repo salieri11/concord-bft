@@ -36,7 +36,7 @@
  * Keys must be at least 12 bytes in length:
  *  - sizeof(EDBKeyType)=4 bytes for the key type, and
  *  - sizeof(BlockId)=8 bytes for the block ID
- * (See Blockchain::genDbKey in BlockchainDBAdapter.cpp)
+ * (See concord::consensus::genDbKey in BlockchainDBAdapter.cpp)
  *
  * The type goes in the first bytes, and the block id goes in the last bytes,
  * with whatever key you want to generate in the middle.
@@ -46,8 +46,12 @@
 #define MAX_VALUE 100000      // Max unique values
 #define NUMBER_OF_TESTS 5000  // Total number of random operations
 
-using namespace Blockchain;
 using namespace std;
+
+using concord::consensus::EDBKeyType;
+using concord::consensus::RocksDBClient;
+using concord::consensus::RocksKeyComparator;
+using concord::consensus::Status;
 
 struct SimpleKey {
   char key[KV_LEN];

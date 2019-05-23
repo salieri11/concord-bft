@@ -82,9 +82,6 @@
 #include "evm.h"
 #include "utils/concord_eth_hash.hpp"
 
-using namespace Blockchain;
-using Blockchain::Sliver;
-
 using concord::common::BlockNotFoundException;
 using concord::common::EthBlock;
 using concord::common::EthTransaction;
@@ -93,6 +90,12 @@ using concord::common::ReadOnlyModeException;
 using concord::common::TransactionNotFoundException;
 using concord::common::zero_hash;
 using concord::common::operator<<;
+using concord::consensus::BlockId;
+using concord::consensus::IBlocksAppender;
+using concord::consensus::ILocalKeyValueStorageReadOnly;
+using concord::consensus::SetOfKeyValuePairs;
+using concord::consensus::Sliver;
+using concord::consensus::Status;
 
 namespace concord {
 namespace ethereum {
@@ -107,16 +110,15 @@ const int64_t code_storage_version = 1;
 const int64_t block_metadata_version = 1;
 
 // read-only mode
-EthKvbStorage::EthKvbStorage(
-    const Blockchain::ILocalKeyValueStorageReadOnly &roStorage)
+EthKvbStorage::EthKvbStorage(const ILocalKeyValueStorageReadOnly &roStorage)
     : roStorage_(roStorage),
       blockAppender_(nullptr),
       logger(log4cplus::Logger::getInstance("com.vmware.concord.kvb")) {}
 
 // read-write mode
-EthKvbStorage::EthKvbStorage(
-    const Blockchain::ILocalKeyValueStorageReadOnly &roStorage,
-    Blockchain::IBlocksAppender *blockAppender, uint64_t sequenceNum)
+EthKvbStorage::EthKvbStorage(const ILocalKeyValueStorageReadOnly &roStorage,
+                             IBlocksAppender *blockAppender,
+                             uint64_t sequenceNum)
     : roStorage_(roStorage),
       blockAppender_(blockAppender),
       logger(log4cplus::Logger::getInstance("com.vmware.concord.kvb")),
@@ -138,8 +140,7 @@ bool EthKvbStorage::is_read_only() {
  * Allow access to read-only storage object, to enabled downgrades to read-only
  * EthKvbStorage when convenient.
  */
-const Blockchain::ILocalKeyValueStorageReadOnly &
-EthKvbStorage::getReadOnlyStorage() {
+const ILocalKeyValueStorageReadOnly &EthKvbStorage::getReadOnlyStorage() {
   return roStorage_;
 }
 
@@ -378,9 +379,7 @@ void EthKvbStorage::set_block_metadata() {
   put(block_metadata_key(), set_block_metadata_value(bftSequenceNum_));
 }
 
-void EthKvbStorage::set_time(Blockchain::Sliver &time) {
-  put(time_key(), time);
-}
+void EthKvbStorage::set_time(Sliver &time) { put(time_key(), time); }
 
 ////////////////////////////////////////
 // READING
@@ -708,12 +707,12 @@ uint64_t EthKvbStorage::get_block_metadata(Sliver key) {
   return sequenceNum;
 }
 
-Blockchain::Sliver EthKvbStorage::get_time() {
+Sliver EthKvbStorage::get_time() {
   uint64_t block_number = current_block_number();
   return get_time(block_number);
 }
 
-Blockchain::Sliver EthKvbStorage::get_time(uint64_t block_number) {
+Sliver EthKvbStorage::get_time(uint64_t block_number) {
   Sliver kvbkey = time_key();
   Sliver value;
   BlockId outBlock;

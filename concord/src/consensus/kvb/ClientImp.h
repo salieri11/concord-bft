@@ -2,8 +2,8 @@
 //
 // KV Blockchain client definition.
 
-#ifndef CLIENTIMP_H
-#define CLIENTIMP_H
+#ifndef CONCORD_CONSENSUS_KVB_CLIENTIMP_H_
+#define CONCORD_CONSENSUS_KVB_CLIENTIMP_H_
 
 #include <boost/thread.hpp>
 #include <map>
@@ -13,7 +13,9 @@
 
 using namespace bftEngine;
 
-namespace Blockchain {
+namespace concord {
+namespace consensus {
+
 class ClientImp : public IClient {
  public:
   // IClient methods
@@ -29,13 +31,12 @@ class ClientImp : public IClient {
 
  protected:
   // ctor & dtor
-  ClientImp(Blockchain::CommConfig &commConfig,
-            const ClientConsensusConfig &conf);
+  ClientImp(CommConfig &commConfig, const ClientConsensusConfig &conf);
   virtual ~ClientImp();
 
   int m_status;
 
-  friend IClient *createClient(Blockchain::CommConfig &commConfig,
+  friend IClient *createClient(CommConfig &commConfig,
                                const ClientConsensusConfig &conf);
   friend void release(IClient *r);
 
@@ -43,6 +44,8 @@ class ClientImp : public IClient {
   SimpleClient *m_bftClient = nullptr;
   SeqNumberGeneratorForClientRequests *m_SeqNumGenerator = nullptr;
 };
-}  // namespace Blockchain
 
-#endif
+}  // namespace consensus
+}  // namespace concord
+
+#endif  // CONCORD_CONSENSUS_KVB_CLIENTIMP_H_

@@ -16,11 +16,14 @@
 #include "consensus/kvb/HashDefs.h"
 #include "ethereum/eth_kvb_storage.hpp"
 
-using namespace Blockchain;
 using namespace BasicRandomTests;
+
+using concord::consensus::BlockId;
+using concord::consensus::SetOfKeyValuePairs;
+using concord::consensus::Status;
 using concord::ethereum::EthKvbStorage;
 
-const auto KEY_TYPE = Blockchain::EDBKeyType::E_DB_KEY_TYPE_KEY;
+const auto KEY_TYPE = concord::consensus::EDBKeyType::E_DB_KEY_TYPE_KEY;
 
 int InternalCommandsHandler::execute(uint16_t clientId, uint64_t sequenceNum,
                                      bool readOnly, uint32_t requestSize,

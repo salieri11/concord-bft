@@ -12,14 +12,15 @@
 // file.
 
 #include "RocksDBMetadataStorage.hpp"
+
 #include <exception>
 #include "BlockchainDBAdapter.h"
 #include "HashDefs.h"
 
-using namespace Blockchain;
 using namespace std;
 
-namespace Blockchain {
+namespace concord {
+namespace consensus {
 
 void RocksDBMetadataStorage::verifyOperation(uint32_t dataLen,
                                              const char *buffer) const {
@@ -128,4 +129,5 @@ Status RocksDBMetadataStorage::multiDel(const ObjectIdsVector &objectIds) {
   return dbClient_->multiDel(keysVec);
 }
 
-}  // namespace Blockchain
+}  // namespace consensus
+}  // namespace concord

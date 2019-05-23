@@ -2,8 +2,8 @@
 //
 // Storage key comparators definition.
 
-#ifndef COMPARATORS_H
-#define COMPARATORS_H
+#ifndef CONCORD_CONSENSUS_KVB_COMPARATORS_H_
+#define CONCORD_CONSENSUS_KVB_COMPARATORS_H_
 
 #include <log4cplus/loggingmacros.h>
 
@@ -13,7 +13,8 @@
 #endif
 #include "sliver.hpp"
 
-namespace Blockchain {
+namespace concord {
+namespace consensus {
 /*
  * Basic comparator. Decomposes storage key into parts (type, version,
  * application key).
@@ -44,7 +45,7 @@ class RocksKeyComparator : public rocksdb::Comparator {
 };
 #endif
 
-}  // namespace Blockchain
-/* Comparators end */
+}  // namespace consensus
+}  // namespace concord
 
-#endif
+#endif  // CONCORD_CONSENSUS_KVB_COMPARATORS_H_
