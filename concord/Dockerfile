@@ -68,6 +68,7 @@ WORKDIR /concord/resources
 COPY --from=0 /concord/build/src/concord /concord/concord
 COPY --from=0 /concord/build/tools/conc_* /concord/
 COPY --from=0 /concord/build/tools/ec* /concord/
+COPY ./concord/test/concord.supp /concord/concord.supp
 
 # Ethereum RPC port.
 EXPOSE 5458
