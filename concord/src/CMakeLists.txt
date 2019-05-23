@@ -1,10 +1,6 @@
 file(GLOB concord_src "main.cpp"
   "api/*.cpp"        "api/*.hpp"
   "config/*.cpp"     "config/*.hpp"
-  "consensus/kvb_client.cpp"
-  "consensus/kvb_client.hpp"
-  "consensus/replica_state_sync_imp.cpp"
-  "consensus/replica_state_sync_imp.hpp"
   "daml/*.cpp"       "daml/*.hpp"
 )
 
@@ -13,11 +9,11 @@ if(NOT APPLE)
 string(APPEND CMAKE_CXX_FLAGS " -Werror")
 endif()
 
-add_subdirectory("utils")
 add_subdirectory("common")
 add_subdirectory("consensus")
 add_subdirectory("ethereum")
 add_subdirectory("time")
+add_subdirectory("utils")
 
 add_executable(concord
   ${concord_src}
@@ -35,17 +31,14 @@ endif()
 target_compile_definitions(concord PRIVATE __BASE=1 SPARSE_STATE=1 USE_TLS=1)
 
 target_link_libraries(concord
-  proto ${PROTOBUF_LIBRARIES}
+  proto
   ${Boost_LIBRARIES}
   log4cplus
-  ${Cryptopp_LIBRARIES}
   ${yaml-cpp_LIBRARIES}
-  concord_utils
-  kvblockchain
-  secp256k1
   concord_common
+  concord_consensus
   concord_ethereum
   concord_time
+  concord_utils
   gRPC::grpc++_reflection
-  protobuf::libprotobuf
 )

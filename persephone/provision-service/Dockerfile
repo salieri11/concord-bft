@@ -38,6 +38,7 @@ RUN mvn -f persephone/pom.xml package -pl provision-service -am -B
 ## Get the C++ part
 FROM athena-docker-local.artifactory.eng.vmware.com/concord-core:prereqs-v8 as builder1
 
+COPY ./communication /communication
 COPY .git /.git
 
 WORKDIR /concord

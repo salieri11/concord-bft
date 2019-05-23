@@ -40,7 +40,7 @@ target_include_directories(skvb_db_editor PUBLIC
 target_link_libraries(skvb_client
   ${yaml-cpp_LIBRARIES}
   log4cplus
-  kvblockchain
+  concord_consensus
   ${Boost_LIBRARIES})
 
 target_link_libraries(skvb_replica
@@ -49,12 +49,12 @@ target_link_libraries(skvb_replica
   ${EVM_LIBRARIES}
   LLVMSupport
   concord_utils
-  kvblockchain)
+  concord_consensus)
 
 target_link_libraries(skvb_db_editor
   log4cplus
   concord_common
-  kvblockchain)
+  concord_consensus)
 
 add_custom_target(copy_blockchain_scripts3 ALL COMMENT "Copying scripts abcd")
 

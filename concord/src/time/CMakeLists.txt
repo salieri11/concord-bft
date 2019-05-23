@@ -5,6 +5,6 @@ set(concord_time_sources
 
 add_library(concord_time ${concord_time_sources})
 
-target_link_libraries(concord_time PUBLIC kvblockchain proto)
+target_link_libraries(concord_time PUBLIC concord_consensus proto)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/..)
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/..)
