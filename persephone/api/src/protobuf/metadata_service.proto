@@ -58,7 +58,6 @@ message ListModelsRequest {
     OrderBy order_by = 2;
     uint32 result_limit = 3;
 }
-/* [END messages] */
 
 /**
  * Response stream event definition for operation to list [ConcordModelSpecification]s
@@ -75,6 +74,20 @@ message ListModelsResponseEvent {
     ConcordModelIdentifier id = 2;
     ConcordModelSpecification specification = 3;
 }
+
+/**
+ * Model definition for metadata server configuration settings.
+ *
+ * @property[port]
+ *   port number to use for server instance.
+ * @property[transport_security]
+ *   transport security setting.
+ */
+message MetadataServerConfiguration {
+    int32 port = 1;
+    TransportSecurity transport_security = 2;
+}
+/* [END messages] */
 
 /* [START services] */
 /**

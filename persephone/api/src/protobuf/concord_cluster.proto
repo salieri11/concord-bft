@@ -3,7 +3,6 @@ syntax = "proto3";
 package com.vmware.blockchain.deployment.model;
 
 import "concord_model.proto";
-import "core.proto";
 import "orchestration.proto";
 /* [END declaration] */
 
