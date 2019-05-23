@@ -840,17 +840,24 @@
     }
   },
   "examples": {
-    "title": "Samples",
+    "title" : "Samples",
     "subTitle": "Choose dApp",
-    "deploy": "Deploy",
     "alert": "This application is already deployed, click links below to either open or redeploy.",
-    "dappName": "Supply Chain",
-    "dappDesc": "This is a sample supply chain application that covers contract permissions, versioning and document storage.",
     "deploy": "Deploy",
     "open": "Open",
     "redeploy": "Redeploy",
     "loading": "Deploying dApp",
-    "source": "View Source"
+    "source": "View Source",
+    "supply_chain" : {
+      "title": "Supply Chain",
+      "dappName": "Supply Chain",
+      "dappDesc": "This is a sample supply chain application that covers contract permissions, versioning and document storage."
+    },
+    "asset_transfer" : {
+      "title": "Asset Transfer",
+      "dappName": "Asset Transfer",
+      "dappDesc": "This is a simple smart contract example of compiling and deploying with solidity and web3."
+    }
   },
   "welcome": {
     "title": "Welcome to VMware Blockchain",
