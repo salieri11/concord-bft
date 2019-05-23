@@ -56,8 +56,8 @@ public class ConsortiumController {
     @RequestMapping(path = "/api/consortiums", method = RequestMethod.GET)
     public ResponseEntity<List<ConGetResponse>> lisCons() {
         List<Consortium> orgs = consortiumService.list();
-        List<ConGetResponse> rList = orgs.stream().map(c -> new ConGetResponse(c.getId(), c.getConsortiumName()))
-                .collect(Collectors.toList());
+        List<ConGetResponse> rList = orgs.stream().map(c -> new ConGetResponse(c.getId(),
+                                                                 c.getConsortiumName())).collect(Collectors.toList());
         return new ResponseEntity<>(rList, HttpStatus.OK);
     }
 
@@ -95,9 +95,9 @@ public class ConsortiumController {
     public ResponseEntity<ConGetResponse> updateCon(@PathVariable("con_id") UUID consortiumId,
                                                     @RequestBody ConPostBody body) {
         Consortium consortium = consortiumService.get(consortiumId);
-        if (body.consortiumName != null)
+        if (body.consortiumName != null) {
             consortium.setConsortiumName(body.getConsortiumName());
-
+        }
         consortium = consortiumService.put(consortium);
         return new ResponseEntity<>(new ConGetResponse(consortium.getId(),
                                                        consortium.getConsortiumName()), HttpStatus.OK);

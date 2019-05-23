@@ -94,5 +94,6 @@ public class OrganizationContoller {
         }
         org = orgService.put(org);
         return new ResponseEntity<>(new OrgGetResponse(org.getId(), org.getOrganizationName()), HttpStatus.OK);
+
     }
 }
