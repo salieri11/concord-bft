@@ -31,8 +31,8 @@ public class ServiceContext {
     private static final String ANON_USER = "Anonymous User";
 
     @Autowired
-    public ServiceContext(@Value("${vmb.service.id}") UUID serviceId,
-            @Value("${vmb.service.name}") String serviceName) {
+    public ServiceContext(@Value("${vmbc.service.id}") UUID serviceId,
+            @Value("${vmbc.service.name}") String serviceName) {
         this.systemDetails = new HelenUserDetails(serviceId, serviceName, "", true, true, true, true,
                 Collections.singletonList(Roles.SYSTEM));
         this.anonymousDetails = new HelenUserDetails(ANON_ID, ANON_USER, "", true, true, true, true,

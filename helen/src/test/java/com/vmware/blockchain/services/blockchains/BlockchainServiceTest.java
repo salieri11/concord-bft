@@ -67,15 +67,16 @@ public class BlockchainServiceTest {
     void testCreateAndUpdate() {
         Blockchain b = manager.create(new Consortium(), "ip4:20,ip2:30,ip3:40,ip1:50",
                                       "a=ip4:20,b=ip2:30, c=ip3:40,d=ip1:50",
-                                      "a=acert,b=bcert, c=ccert,d=dcert");
+                                      "a=src/test/resources/certs/acert.txt,b=src/test/resources/certs/bcert.txt, "
+                                      + "c=src/test/resources/certs/ccert.txt,d=src/test/resources/certs/dcert.txt");
 
         List<String> expectedIps = ImmutableList.of("ip4:20", "ip2:30", "ip3:40", "ip1:50");
         List<String> expectedUrls = ImmutableList.of("ip4:20", "ip2:30", "ip3:40", "ip1:50");
-        List<String> expectedCerts = ImmutableList.of("acert", "bcert", "ccert", "dcert");
+        List<String> expectedCerts = ImmutableList.of("Cert A", "Cert B", "Cert C", "Cert D");
 
         List<String> actualIps = b.getNodeList().stream().map(n -> n.getIp()).collect(Collectors.toList());
         List<String> actualUrls = b.getNodeList().stream().map(n -> n.getUrl()).collect(Collectors.toList());
-        List<String> actualCerts = b.getNodeList().stream().map(n -> n.getCert()).collect(Collectors.toList());
+        List<String> actualCerts = b.getNodeList().stream().map(n -> n.getCert().strip()).collect(Collectors.toList());
 
         Assertions.assertEquals(expectedIps, actualIps);
         Assertions.assertEquals(expectedUrls, actualUrls);

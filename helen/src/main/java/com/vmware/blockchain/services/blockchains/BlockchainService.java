@@ -5,6 +5,9 @@
 package com.vmware.blockchain.services.blockchains;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -109,10 +112,30 @@ public class BlockchainService {
             String[] urlParts = i >= urls.length ? new String[2] : urls[i].split("=");
             n.setHostName(urlParts[0]);
             n.setUrl(urlParts[1]);
-            n.setCert(i >= certs.length ? "" : certs[i].split("=")[1]);
+            String certFileName = i >= certs.length ? "" : certs[i].split("=")[1];
+            String cert = readCertFile(certFileName);
+            n.setCert(cert);
             entries.add(n);
         }
         return create(consortium, entries);
+    }
+
+    /**
+     * Read the certificate file, for inclusion in the JSON response. If the argument is null, or any error occurs,
+     * return an empty string.
+     */
+    private String readCertFile(String filename) {
+        if (filename == null) {
+            return "";
+        }
+
+        try {
+            byte[] certBytes = Files.readAllBytes(FileSystems.getDefault().getPath(filename));
+            return new String(certBytes, StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            logger.warn("Problem reading cert file '{}'", filename);
+            return "";
+        }
     }
 
     /**
