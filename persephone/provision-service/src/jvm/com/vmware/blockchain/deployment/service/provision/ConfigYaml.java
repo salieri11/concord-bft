@@ -1,6 +1,7 @@
 /* **************************************************************************
- * Copyright (c) 2019 VMware, Inc.  All rights reserved. VMware Confidential
- * *************************************************************************/
+ * Copyright (c) 2019 VMware, Inc. All rights reserved. VMware Confidential
+ * **************************************************************************/
+
 package com.vmware.blockchain.deployment.service.provision;
 
 import java.io.BufferedWriter;
@@ -12,7 +13,7 @@ import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
- 
+
 /**
  * Utility class for generating the input for Configuration Yaml file.
  * TODO: Looked at Snake YAML package which is a much cleaner way but
@@ -39,7 +40,7 @@ public final class ConfigYaml  {
     private static final String CLIENT_PORT  = "        client_port: ";
     private static final int DEFAULT_PORT = 3501;
     private final String configYamlFilePath;
-    
+
 
     /**
      * Empty constructor.
@@ -59,6 +60,9 @@ public final class ConfigYaml  {
         return configYamlFilePath;
     }
 
+    /**
+     * Helper method to calculate f_val for cluster.
+     */
     public static int getFVal(int clusterSize) {
         int realSize = clusterSize - 1;
         int fSize = realSize / 3;
@@ -68,6 +72,9 @@ public final class ConfigYaml  {
         return fSize;
     }
 
+    /**
+     * Helper method to calculate c_val for cluster.
+     */
     public static int getCVal(int clusterSize, int fVal) {
         //return ((clusterSize-1) - 3*fVal )/ 2;
         return 0;
@@ -86,15 +93,15 @@ public final class ConfigYaml  {
             return false;
         }
         int clusterSize = hostIp.size();
-        int f_val = getFVal(clusterSize);
-        int c_val = getCVal(clusterSize, f_val);
-        return generateConfigUtil(hostIp, f_val, c_val);
+        int fVal = getFVal(clusterSize);
+        int cVal = getCVal(clusterSize, fVal);
+        return generateConfigUtil(hostIp, fVal, cVal);
     }
-    
+
     /**
      * Utility method for generating the file.
      */
-    public boolean generateConfigUtil(List<String> hostIp, int f_val, int c_val) {
+    public boolean generateConfigUtil(List<String> hostIp, int fVal, int cVal) {
         if (hostIp == null) {
             log.error("generateConfigUtil: List of host IP provided is NULL!");
             return false;
@@ -103,8 +110,8 @@ public final class ConfigYaml  {
             log.error("generateConfigUtil: Minimum cluster size is 4!");
             return false;
         }
-        if ((3*f_val + 2*c_val + 1) > hostIp.size()) {
-            log.error("generateConfigUtil: f_val / c_val are invalid for the list of host IP provided");
+        if ((3 * fVal + 2 * cVal + 1) > hostIp.size()) {
+            log.error("generateConfigUtil: fVal / cVal are invalid for the list of host IP provided");
             return false;
         }
 
@@ -112,9 +119,9 @@ public final class ConfigYaml  {
         try (BufferedWriter writer = Files.newBufferedWriter(path)) {
             writer.write(CLIENT_PROXY_PER_REPLICA + CLIENT_PROXY_PER_NODE);
             writer.newLine();
-            writer.write(C_VAL + c_val);
+            writer.write(C_VAL + cVal);
             writer.newLine();
-            writer.write(F_VAL + f_val);
+            writer.write(F_VAL + fVal);
             writer.newLine();
             writer.write("comm_to_use: udp");
             writer.newLine();
@@ -146,9 +153,9 @@ public final class ConfigYaml  {
                     writer.write(CLIENT_PORT + (DEFAULT_PORT + j + 1));
                     writer.newLine();
                 }
-            }    
+            }
             writer.flush();
-            writer.close();    
+            writer.close();
             return true;
         } catch (IOException x) {
             log.error("IOException: %s%n", x);

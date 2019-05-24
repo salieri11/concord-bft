@@ -1,9 +1,12 @@
 /* **************************************************************************
- * Copyright (c) 2019 VMware, Inc.  All rights reserved. VMware Confidential
- * *************************************************************************/
+ * Copyright (c) 2019 VMware, Inc. All rights reserved. VMware Confidential
+ * **************************************************************************/
+
 package com.vmware.blockchain.deployment.service.provision;
 
 import java.util.Collections;
+
+import org.reactivestreams.Publisher;
 
 import com.vmware.blockchain.deployment.model.ConcordClusterIdentifier;
 import com.vmware.blockchain.deployment.model.DeploymentSession;
@@ -15,16 +18,21 @@ import com.vmware.blockchain.deployment.persistence.kv.KeyValueStore;
 import com.vmware.blockchain.deployment.persistence.kv.KeyValueStore.Versioned;
 import com.vmware.blockchain.deployment.persistence.kv.MonotonicInt;
 import com.vmware.blockchain.deployment.reactive.MappingPublisher;
-import org.reactivestreams.Publisher;
 
+/**
+ * Provisioning service log/event related class.
+ */
 public class DeploymentLog {
 
-    /** Initial version value of all stored {@link DeploymentSession}s. */
+    /** Initial version value of all stored deployment sessions. */
     private static MonotonicInt initialVersion = new MonotonicInt().next();
 
     /** Internal storage for deployment session log entries. */
     private final KeyValueStore<DeploymentSessionIdentifier, DeploymentSession, MonotonicInt> store;
 
+    /**
+     * Constructor.
+     */
     public DeploymentLog(
             KeyValueStore<DeploymentSessionIdentifier, DeploymentSession, MonotonicInt> store
     ) {

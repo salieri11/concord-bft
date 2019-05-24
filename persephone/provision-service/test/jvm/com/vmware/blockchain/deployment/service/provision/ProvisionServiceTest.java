@@ -1,6 +1,7 @@
 /* **************************************************************************
- * Copyright (c) 2019 VMware, Inc.  All rights reserved. VMware Confidential
- * *************************************************************************/
+ * Copyright (c) 2019 VMware, Inc. All rights reserved. VMware Confidential
+ * **************************************************************************/
+
 package com.vmware.blockchain.deployment.service.provision;
 
 import java.net.URI;
@@ -15,26 +16,29 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import org.assertj.core.api.Assertions;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+
 import com.vmware.blockchain.deployment.model.ConcordModelSpecification;
 import com.vmware.blockchain.deployment.model.CreateClusterRequest;
 import com.vmware.blockchain.deployment.model.DeploymentSession;
 import com.vmware.blockchain.deployment.model.DeploymentSessionEvent;
 import com.vmware.blockchain.deployment.model.DeploymentSessionIdentifier;
 import com.vmware.blockchain.deployment.model.DeploymentSpecification;
+import com.vmware.blockchain.deployment.model.MessageHeader;
+import com.vmware.blockchain.deployment.model.OrchestrationSiteIdentifier;
 import com.vmware.blockchain.deployment.model.PlacementSpecification;
 import com.vmware.blockchain.deployment.model.PlacementSpecification.Entry;
 import com.vmware.blockchain.deployment.model.ProvisionedResource;
 import com.vmware.blockchain.deployment.model.StreamClusterDeploymentSessionEventRequest;
-import com.vmware.blockchain.deployment.model.MessageHeader;
-import com.vmware.blockchain.deployment.model.OrchestrationSiteIdentifier;
 import com.vmware.blockchain.deployment.model.core.Credential;
 import com.vmware.blockchain.deployment.model.core.Endpoint;
 import com.vmware.blockchain.deployment.model.ethereum.Genesis;
 import com.vmware.blockchain.deployment.model.orchestration.OrchestrationSiteInfo;
+
 import io.grpc.stub.StreamObserver;
-import org.assertj.core.api.Assertions;
-import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Test;
+
 
 /**
  * Various test verifying functionality and semantics of {@link ProvisionService}.
@@ -114,7 +118,7 @@ class ProvisionServiceTest {
     private static <T> StreamObserver<T> newResultObserver(CompletableFuture<T> result) {
         return new StreamObserver<>() {
             /** Holder of result value. */
-            volatile T value = null;
+            volatile T value;
 
             @Override
             public void onNext(T value) {
@@ -153,7 +157,6 @@ class ProvisionServiceTest {
         return new StreamObserver<>() {
             /**
              * Holder of result values.
-             *
              * Note: A map is used here to to leverage existing SDK concurrent data structures
              * without writing a new one. ConcurrentSkipList does not exist in the JDK.
              */

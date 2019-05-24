@@ -1,6 +1,7 @@
 /*
  * Copyright (c) 2019 VMware, Inc. All rights reserved. VMware Confidential
  */
+
 package com.vmware.blockchain.deployment.service.provision;
 
 import java.io.IOException;
@@ -9,7 +10,11 @@ import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import org.assertj.core.api.Assertions;
+import org.junit.jupiter.api.Test;
+
 import com.vmware.blockchain.deployment.model.ethereum.Genesis;
+
 import kotlinx.serialization.json.Json;
 import kotlinx.serialization.json.JsonConfiguration;
 import kotlinx.serialization.modules.EmptyModule;
@@ -20,8 +25,6 @@ import net.jqwik.api.Combinators;
 import net.jqwik.api.ForAll;
 import net.jqwik.api.Property;
 import net.jqwik.api.Provide;
-import org.assertj.core.api.Assertions;
-import org.junit.jupiter.api.Test;
 
 /**
  * Various unit-test testing serialization correctness of {@link Genesis}.
@@ -29,8 +32,7 @@ import org.junit.jupiter.api.Test;
 class EthereumGenesisSerializationTest {
 
     /** Static array of hexadecimal digits. */
-    private static char[] hexdigits =
-            { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' };
+    private static char[] hexdigits = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
 
     private static Json json = new Json(JsonConfiguration.getDefault(), EmptyModule.INSTANCE);
     private static ProtoBuf protobuf = new ProtoBuf();

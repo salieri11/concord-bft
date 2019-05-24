@@ -1,6 +1,7 @@
 /* **************************************************************************
- * Copyright (c) 2019 VMware, Inc.  All rights reserved. VMware Confidential
- * *************************************************************************/
+ * Copyright (c) 2019 VMware, Inc. All rights reserved. VMware Confidential
+ * **************************************************************************/
+
 package com.vmware.blockchain.deployment.service.provision;
 
 import java.io.IOException;
@@ -14,9 +15,12 @@ import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import javax.inject.Singleton;
 
+import org.slf4j.LoggerFactory;
+
 import com.vmware.blockchain.deployment.model.OrchestrationSiteIdentifier;
 import com.vmware.blockchain.deployment.model.orchestration.OrchestrationSiteInfo;
 import com.vmware.blockchain.deployment.model.orchestration.OrchestrationSiteInfoKt;
+
 import dagger.BindsInstance;
 import dagger.Component;
 import io.grpc.Server;
@@ -25,7 +29,7 @@ import kotlinx.serialization.UpdateMode;
 import kotlinx.serialization.json.Json;
 import kotlinx.serialization.json.JsonConfiguration;
 import kotlinx.serialization.modules.EmptyModule;
-import org.slf4j.LoggerFactory;
+
 
 /**
  * gRPC server that serves provisioning-related API operations.
@@ -40,7 +44,7 @@ interface ProvisionServer {
     /** Default configuration files path. */
     URI DEFAULT_SERVER_CONFIG = URI.create("file:/config/persephone/provision-service/config.json");
 
-    /** Retrieve server's {@link ProvisionService} singleton component. */
+    /** Singleton service instance for provisioning Concord clusters. */
     ProvisionService provisionService();
 
     @Component.Builder

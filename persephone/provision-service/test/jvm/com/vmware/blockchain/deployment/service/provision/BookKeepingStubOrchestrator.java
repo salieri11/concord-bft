@@ -1,6 +1,7 @@
 /* **************************************************************************
- * Copyright (c) 2019 VMware, Inc.  All rights reserved. VMware Confidential
- * *************************************************************************/
+ * Copyright (c) 2019 VMware, Inc. All rights reserved. VMware Confidential
+ * **************************************************************************/
+
 package com.vmware.blockchain.deployment.service.provision;
 
 import java.net.URI;
@@ -10,12 +11,14 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ForkJoinPool;
 
+import org.reactivestreams.Publisher;
+
 import com.vmware.blockchain.deployment.model.orchestration.OrchestrationSiteInfo;
 import com.vmware.blockchain.deployment.orchestration.Orchestrator;
 import com.vmware.blockchain.deployment.reactive.ErrorPublisher;
 import com.vmware.blockchain.deployment.reactive.IteratingPublisher;
+
 import kotlinx.coroutines.ExecutorsKt;
-import org.reactivestreams.Publisher;
 
 /**
  * Implementation of {@link Orchestrator} that allocates virtual resources and retains book-keeping
