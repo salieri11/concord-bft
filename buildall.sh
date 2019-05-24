@@ -49,6 +49,23 @@ isRunning(){
   return $?
 }
 
+# Checks to see if the target passed in has already succeeded.
+# Used instead of asking the OS for the exit status of a process
+# once we already know the answer.
+alreadySucceeded() {
+  TARGET="${1}"
+
+  for SUCCESS_ITEM in "${SUCCESSES[@]}"
+  do
+    if [ "${SUCCESS_ITEM}" == "${TARGET}" ]
+    then
+      return 0
+    fi
+  done
+
+  return 1
+}
+
 # Waits for all processes in the BUILD_PROCS associative array to end.
 waitForProcesses(){
   DONE=false
@@ -60,19 +77,19 @@ waitForProcesses(){
     info "-------- Status --------"
     printMemory
 
-    for i in "${!BUILD_PROCS[@]}"
+    for BUILD_PROC in "${!BUILD_PROCS[@]}"
     do
-      STATUS_STRING=""
-
-      if isRunning ${BUILD_PROCS[$i]}
+      if alreadySucceeded "${BUILD_PROC}"
+      then
+        info "${BUILD_PROC}: done"
+      elif isRunning "${BUILD_PROCS[$BUILD_PROC]}"
       then
         DONE=false
-        STATUS_STRING="waiting"
-	info "${i}: ${STATUS_STRING}"
+	info "${BUILD_PROC}: waiting"
       else
-        STATUS_STRING="done"
-        info "${i}: ${STATUS_STRING}"
-        dieOnFailure "${i}" ${BUILD_PROCS[$i]}
+        info "${BUILD_PROC}: done"
+        dieOnFailure "${BUILD_PROC}" ${BUILD_PROCS[$BUILD_PROC]}
+        SUCCESSES+=("${BUILD_PROC}")
       fi
     done
 
@@ -211,7 +228,7 @@ PerformanceTests() {
 BuildPersephoneGRPCpyBindings() {
     pushd .
     ./hermes/util/generate_gRPC_bindings_for_py3.sh --protobufSrc persephone/api/src/protobuf > persephone_generate_gRPC_py_bindings.log 2>&1 &
-    addToProcList "Persephone gRPC Python Buildings" $!
+    addToProcList "Persephone gRPC Python Bindings" $!
     popd
 }
 
@@ -233,7 +250,11 @@ printMemory() {
     fi
 }
 
+# TODO: Associative arrays don't work in OSX's default shell.
 declare -A BUILD_PROCS
+
+# Array of successful build targets.
+SUCCESSES=()
 
 while [ "$1" != "" ] ; do
    case $1 in
