@@ -13,8 +13,8 @@ Instruction on how to build, deploy and test Concord can be found [here](../READ
 ├── common                   # Shared utility code used by all parts of Concord
     └── CMakeLists.txt
 ├── config                   # Configuration manager
-├── consensus                # Replica & Client interface between Concord and the BFT engine
-    └── CMakeLists.txt       # kvblockchain library
+├── consensus                # Replica & Client interface for the BFT consensus engine
+    └── CMakeLists.txt
 ├── ethereum                 # Interface between Concord and EVMJIT
     └── CMakeLists.txt
 ├── main.cpp

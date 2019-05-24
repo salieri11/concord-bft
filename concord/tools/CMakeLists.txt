@@ -69,7 +69,7 @@ target_link_libraries(ecsign
                       ${Cryptopp_LIBRARIES})
 
 add_executable(conc_rocksdb_adp "conc_rocksdb_adp.cpp")
-target_link_libraries(conc_rocksdb_adp kvblockchain log4cplus)
+target_link_libraries(conc_rocksdb_adp concord_consensus log4cplus)
 
 # conc_genconfig also needs to see "../src" to find its includes.
 add_executable(conc_genconfig
@@ -78,5 +78,5 @@ add_executable(conc_genconfig
 target_link_libraries(conc_genconfig
                       ${Boost_LIBRARIES}
                       ${yaml-cpp_LIBRARIES}
-                      kvblockchain
+                      concord_consensus
                       log4cplus)

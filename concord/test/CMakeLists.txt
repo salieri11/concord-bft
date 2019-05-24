@@ -48,7 +48,7 @@ add_executable(SliverTests
 target_link_libraries(SliverTests
   ${GTEST_LIBRARIES}
   concord_utils
-  kvblockchain
+  concord_consensus
   gtest
   gtest_main)
 
@@ -61,7 +61,7 @@ target_link_libraries(ConfigTests
   ${GTEST_LIBRARIES}
   ${yaml-cpp_LIBRARIES}
   concord_utils
-  kvblockchain
+  concord_consensus
   gtest
   gtest_main
   log4cplus)
@@ -71,7 +71,7 @@ add_executable(MultiIOTests
 
 target_link_libraries(MultiIOTests
   ${GTEST_LIBRARIES}
-  kvblockchain
+  concord_consensus
   log4cplus
   gtest
   gtest_main)
@@ -81,7 +81,7 @@ add_executable(MetadataStorageTests
 
 target_link_libraries(MetadataStorageTests
   ${GTEST_LIBRARIES}
-  kvblockchain
+  concord_consensus
   log4cplus
   gtest
   gtest_main)
@@ -106,7 +106,7 @@ target_link_libraries(ReplicaStateSyncTests
   ${EVM_LIBRARIES}
   LLVMSupport
   concord_utils
-  kvblockchain)
+  concord_consensus)
 
 add_executable(TimeContractTests
   time_contract_test.cpp
@@ -121,7 +121,7 @@ target_link_libraries(TimeContractTests
   gtest_main
   proto
   concord_utils
-  kvblockchain
+  concord_consensus
   concord_common
   concord_ethereum
   concord_time)
