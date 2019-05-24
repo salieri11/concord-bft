@@ -83,6 +83,14 @@ def get_docker_compose_value(docker_compose_files, service_name, key):
          docker_compose_files))
 
 def ssh_connect(host, username, password, command):
+   '''
+   Helper method to execute a command on a host via SSH
+   :param host: IP of the destination host
+   :param username: username for SSH connection
+   :param password: password for username
+   :param command: command to be executed on the remote host
+   :return: Output of the command
+   '''
    resp = None
    try:
       ssh = paramiko.SSHClient()

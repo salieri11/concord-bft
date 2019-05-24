@@ -89,7 +89,7 @@ class PersephoneTests(test_suite.TestSuite):
          ("list_models", self._test_list_models),
          ("4_Node_Blockchain_UNSPECIFIED_Site", self._test_create_blockchain_4_node_unspecified_site),
          ("get_deployment_events", self._test_stream_deployment_events),
-         # ("7_Node_Blockchain_FIXED_Site", self._test_create_blockchain_7_node_fixed_site)
+         ("7_Node_Blockchain_FIXED_Site", self._test_create_blockchain_7_node_fixed_site)
       ]
 
    def get_json_object(self, message_obj):
