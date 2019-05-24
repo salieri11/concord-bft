@@ -101,6 +101,7 @@ def call(){
                   dir('blockchain') {
                     script {
                       env.commit = getRepoCode("git@gitlab.eng.vmware.com:blockchain/vmwathena_blockchain.git", params.blockchain_branch_or_commit)
+                      env.blockchain_root = new File(env.WORKSPACE, "blockchain").toString()
                     }
                   }
                 }catch(Exception ex){
@@ -401,6 +402,12 @@ EOF
                         echo "${PASSWORD}" | sudo -S rm -rf ../docker/devdata/cockroachDB
                         "${python}" main.py UiTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${ui_test_logs}" --runConcordConfigurationGeneration
                       '''
+                      if (has_repo_changed('persephone')) {
+                        sh '''
+                          echo "Run persephone tests too"
+                          # echo "${PASSWORD}" | sudo -SE "${python}" main.py PersephoneTests --dockerComposeFile ../docker/docker-compose-persephone.yml --resultsDir "${persephone_test_logs}"
+                      '''
+                      }
                     }
                     if (env.JOB_NAME.contains(memory_leak_job_name)) {
                       sh '''
@@ -1041,3 +1048,21 @@ void handleKnownHosts(host){
     }
   }
 }
+
+Boolean has_repo_changed(directory){
+  // Check if arg: directory had a diff change with master
+  absolute_path = new File(env.blockchain_root, directory).toString()
+  status = sh (
+    script: "git diff origin/master --name-only --exit-code '" + absolute_path + "'",
+    returnStatus: true
+  )
+
+  if(status != 0){
+    // There was a change in git diff
+    return true
+  } else{
+    // There was NO change in git diff
+    return false
+  }
+}
+
