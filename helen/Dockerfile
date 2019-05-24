@@ -9,6 +9,7 @@ FROM athena-docker-local.artifactory.eng.vmware.com/build-images/maven-builder:v
 COPY ./helen/developer-config/checkstyle.xml ./helen/developer-config/checkstyle.xml
 COPY ./blockchain-build/pom.xml ./blockchain-build/pom.xml
 COPY ./communication/pom.xml ./communication/pom.xml
+COPY ./persephone/resources/checkstyle.xml ./persephone/resources/checkstyle.xml
 COPY ./persephone/pom.xml ./persephone/pom.xml
 COPY ./persephone/api/pom.xml ./persephone/api/pom.xml
 COPY ./persephone/cli/pom.xml ./persephone/cli/pom.xml
