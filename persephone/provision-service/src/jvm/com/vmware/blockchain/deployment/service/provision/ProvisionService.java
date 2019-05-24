@@ -1,6 +1,7 @@
 /* **************************************************************************
- * Copyright (c) 2019 VMware, Inc.  All rights reserved. VMware Confidential
- * *************************************************************************/
+ * Copyright (c) 2019 VMware, Inc. All rights reserved. VMware Confidential
+ * **************************************************************************/
+
 package com.vmware.blockchain.deployment.service.provision;
 
 import java.io.IOException;
@@ -25,6 +26,11 @@ import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import org.apache.commons.io.FileUtils;
+import org.reactivestreams.Publisher;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.vmware.blockchain.awsutil.AwsS3Client;
 import com.vmware.blockchain.deployment.model.ConcordCluster;
@@ -51,6 +57,7 @@ import com.vmware.blockchain.deployment.model.ProvisionedResource;
 import com.vmware.blockchain.deployment.model.StreamClusterDeploymentSessionEventRequest;
 import com.vmware.blockchain.deployment.model.ethereum.Genesis;
 import com.vmware.blockchain.deployment.model.orchestration.OrchestrationSiteInfo;
+import com.vmware.blockchain.deployment.orchestration.InactiveOrchestrator;
 import com.vmware.blockchain.deployment.orchestration.NetworkAddress;
 import com.vmware.blockchain.deployment.orchestration.Orchestrator;
 import com.vmware.blockchain.deployment.orchestration.Orchestrator.ComputeResourceEvent;
@@ -60,17 +67,14 @@ import com.vmware.blockchain.deployment.orchestration.Orchestrator.CreateNetwork
 import com.vmware.blockchain.deployment.orchestration.Orchestrator.NetworkAllocationEvent;
 import com.vmware.blockchain.deployment.orchestration.Orchestrator.NetworkResourceEvent;
 import com.vmware.blockchain.deployment.orchestration.Orchestrator.OrchestrationEvent;
-import com.vmware.blockchain.deployment.orchestration.InactiveOrchestrator;
 import com.vmware.blockchain.deployment.reactive.ReactiveStream;
 
 import io.grpc.stub.StreamObserver;
 
-import org.apache.commons.io.FileUtils;
-import org.reactivestreams.Publisher;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-
+/**
+ * Implementation of ProvisioningService server.
+ */
 public class ProvisionService extends ProvisionServiceImplBase {
 
     /**
@@ -90,7 +94,7 @@ public class ProvisionService extends ProvisionServiceImplBase {
     private static final AtomicReferenceFieldUpdater<ProvisionService, State> STATE =
             AtomicReferenceFieldUpdater.newUpdater(ProvisionService.class, State.class, "state");
 
-    /** Default {@link Orchestrator} instance's {@link OrchestrationSiteIdentifier} */
+    /** Default Orchestrator instance's OrchestrationSiteIdentifier. */
     private static final OrchestrationSiteIdentifier defaultOrchestratorId =
             OrchestrationSiteIdentifier.Companion.getDefaultValue();
 
@@ -117,13 +121,16 @@ public class ProvisionService extends ProvisionServiceImplBase {
     /** Default application.properties file. */
     private String propertyFile = "applications.properties";
 
-    /** S3 Client */
+    /** S3 Client. */
     private AwsS3Client awsClient;
 
-    /** S3 bucket */
+    /** S3 bucket. */
     private String s3bucket;
 
 
+    /**
+     * Constructor.
+     */
     public ProvisionService(
             ExecutorService executor,
             OrchestratorProvider orchestratorProvider,
@@ -219,8 +226,8 @@ public class ProvisionService extends ProvisionServiceImplBase {
      *   {@link CompletableFuture} that completes when shutdown is done.
      */
     public CompletableFuture<Void> shutdown() {
-        if (STATE.compareAndSet(this, State.ACTIVE, State.STOPPING) ||
-                STATE.compareAndSet(this, State.INITIALIZING, State.STOPPING)) {
+        if (STATE.compareAndSet(this, State.ACTIVE, State.STOPPING)
+            || STATE.compareAndSet(this, State.INITIALIZING, State.STOPPING)) {
             return CompletableFuture.runAsync(() -> {
                 log.info("Service instance shutting down");
 
@@ -545,14 +552,13 @@ public class ProvisionService extends ProvisionServiceImplBase {
 
         CompletableFuture.allOf(networkAddressPromises)
                 // Generate cluster configuration for every node.
-                .thenComposeAsync(
-                        __ -> generateClusterConfig(
-                                // Note: Preserve the original listing order.
-                                session.getAssignment().getEntries().stream()
-                                        .map(entry -> Map.entry(entry, privateNetworkAddressMap.get(entry)))
-                                        .collect(Collectors.toUnmodifiableList())
-                        ),
-                        executor
+                .thenComposeAsync(__ -> generateClusterConfig(
+                    // Note: Preserve the original listing order.
+                    session.getAssignment().getEntries().stream()
+                        .map(entry -> Map.entry(entry, privateNetworkAddressMap.get(entry)))
+                                      .collect(Collectors.toUnmodifiableList())
+                    ),
+                    executor
                 )
                 // Setup node deployment workflow with its assigned network address.
                 .thenComposeAsync(configMap -> {
@@ -562,7 +568,7 @@ public class ProvisionService extends ProvisionServiceImplBase {
                                 var placement = entry.getKey();
                                 var config = entry.getValue();
                                 // TODO: Have only one place to compute cluster-id.
-                                // Cluster-id is computed else where. 
+                                // Cluster-id is computed else where.
                                 var id = new ConcordClusterIdentifier(session.getId().getLow(),
                                                                       session.getId().getHigh());
                                 deployS3Config(id, placement.getNode(), config);
@@ -669,7 +675,7 @@ public class ProvisionService extends ProvisionServiceImplBase {
 
 
     /**
-     * Helper method to write to s3-bucket. We use the path as /concord-config/<cluster-id>/<nodeId>/concord.config 
+     * Helper method to write to s3-bucket. We use the path as /concord-config/cluster/node/concord.config
      * to write config file for each node.
      */
     private void deployS3Config(ConcordClusterIdentifier clusterId,
@@ -937,8 +943,7 @@ public class ProvisionService extends ProvisionServiceImplBase {
 
     /**
      * Create a new {@link ConcordNodeInfo} instance based on input parameters.
-     * <p>NOTE: This is a stub function right now, and therefore takes no parameters yet.
-     *
+     * NOTE: This is a stub function right now, and therefore takes no parameters yet.
      * @return
      *   a new instance of {@link ConcordNodeInfo}.
      */
@@ -1084,10 +1089,8 @@ public class ProvisionService extends ProvisionServiceImplBase {
                 Stream.concat(
                         first.getIpv4Addresses().entrySet().stream(),
                         second.getIpv4Addresses().entrySet().stream()
-                ).collect(Collectors.toMap(
-                        Map.Entry::getKey,
-                        Map.Entry::getValue,
-                        (oldEntry, newEntry) -> oldEntry // Preserve existing value.
+                ).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue,
+                    (oldEntry, newEntry) -> oldEntry // Preserve existing value.
                 ))
         );
     }
@@ -1110,18 +1113,14 @@ public class ProvisionService extends ProvisionServiceImplBase {
                 Stream.concat(
                         first.getIpv4AddressMap().entrySet().stream(),
                         second.getIpv4AddressMap().entrySet().stream()
-                ).collect(Collectors.toMap(
-                        Map.Entry::getKey,
-                        Map.Entry::getValue,
-                        (oldEntry, newEntry) -> oldEntry // Preserve existing value.
+                ).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue,
+                    (oldEntry, newEntry) -> oldEntry // Preserve existing value.
                 )),
                 Stream.concat(
                         first.getEndpoints().entrySet().stream(),
                         second.getEndpoints().entrySet().stream()
-                ).collect(Collectors.toMap(
-                        Map.Entry::getKey,
-                        Map.Entry::getValue,
-                        (oldEntry, newEntry) -> oldEntry // Preserve existing value.
+                ).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue,
+                    (oldEntry, newEntry) -> oldEntry // Preserve existing value.
                 ))
         );
     }
