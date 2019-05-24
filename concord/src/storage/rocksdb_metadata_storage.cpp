@@ -14,13 +14,15 @@
 #include "rocksdb_metadata_storage.h"
 
 #include <exception>
-#include "consensus/blockchain_db_adapter.h"
 #include "consensus/hash_defs.h"
+#include "storage/blockchain_db_adapter.h"
 
 using namespace std;
 
+using concord::consensus::Status;
+
 namespace concord {
-namespace consensus {
+namespace storage {
 
 void RocksDBMetadataStorage::verifyOperation(uint32_t dataLen,
                                              const char *buffer) const {
@@ -129,5 +131,5 @@ Status RocksDBMetadataStorage::multiDel(const ObjectIdsVector &objectIds) {
   return dbClient_->multiDel(keysVec);
 }
 
-}  // namespace consensus
+}  // namespace storage
 }  // namespace concord

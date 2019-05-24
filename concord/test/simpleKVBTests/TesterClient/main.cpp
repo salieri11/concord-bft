@@ -19,6 +19,7 @@
 
 #include "basicRandomTestsRunner.hpp"
 #include "consensus/bft_configuration.hpp"
+#include "consensus/client_imp.h"
 #include "test_comm_config.hpp"
 #include "test_parameters.hpp"
 
@@ -34,11 +35,11 @@ using namespace BasicRandomTests;
 
 using std::string;
 
-using concord::consensus::BlockId;
-using concord::consensus::ClientConsensusConfig;
-using concord::consensus::CommConfig;
 using concord::consensus::createClient;
-using concord::consensus::IClient;
+using concord::storage::BlockId;
+using concord::storage::ClientConsensusConfig;
+using concord::storage::CommConfig;
+using concord::storage::IClient;
 
 #if defined(_WIN32)
 initWinSock();

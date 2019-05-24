@@ -18,14 +18,14 @@ using std::set;
 
 using namespace com::digitalasset;
 
-using concord::consensus::BlockId;
-using concord::consensus::IBlocksAppender;
-using concord::consensus::ILocalKeyValueStorageReadOnly;
-using concord::consensus::Key;
-using concord::consensus::KeyValuePair;
-using concord::consensus::SetOfKeyValuePairs;
 using concord::consensus::Sliver;
-using concord::consensus::Value;
+using concord::storage::BlockId;
+using concord::storage::IBlocksAppender;
+using concord::storage::ILocalKeyValueStorageReadOnly;
+using concord::storage::Key;
+using concord::storage::KeyValuePair;
+using concord::storage::SetOfKeyValuePairs;
+using concord::storage::Value;
 
 using com::vmware::concord::ConcordRequest;
 using com::vmware::concord::ConcordResponse;

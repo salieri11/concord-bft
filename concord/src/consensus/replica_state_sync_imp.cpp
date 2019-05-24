@@ -14,8 +14,14 @@
 
 #include "replica_state_sync_imp.hpp"
 
-#include "consensus/blockchain_db_adapter.h"
 #include "ethereum/eth_kvb_storage.hpp"
+
+using concord::ethereum::EthKvbStorage;
+using concord::storage::BlockchainDBAdapter;
+using concord::storage::BlockId;
+using concord::storage::ILocalKeyValueStorageReadOnly;
+using concord::storage::Key;
+using concord::storage::KeyManipulator;
 
 namespace concord {
 namespace consensus {
@@ -25,7 +31,7 @@ uint64_t ReplicaStateSyncImp::execute(log4cplus::Logger &logger,
                                       ILocalKeyValueStorageReadOnly &kvs,
                                       BlockId lastReachableBlockId,
                                       uint64_t lastExecutedSeqNum) {
-  concord::ethereum::EthKvbStorage roKvs(kvs);
+  EthKvbStorage roKvs(kvs);
   BlockId blockId = lastReachableBlockId;
   uint64_t blockSeqNum = 0;
   uint64_t removedBlocksNum = 0;

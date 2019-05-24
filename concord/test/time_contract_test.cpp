@@ -6,12 +6,12 @@
 #define USE_ROCKSDB
 #include "time/time_contract.hpp"
 #include "config/configuration_manager.hpp"
-#include "consensus/blockchain_db_types.h"
-#include "consensus/comparators.h"
-#include "consensus/in_memory_db_client.h"
 #include "consensus/status.hpp"
 #include "ethereum/eth_kvb_storage.hpp"
 #include "gtest/gtest.h"
+#include "storage/blockchain_db_types.h"
+#include "storage/comparators.h"
+#include "storage/in_memory_db_client.h"
 
 #include <log4cplus/configurator.h>
 #include <log4cplus/hierarchy.h>
@@ -21,18 +21,18 @@ using namespace std;
 
 using concord::config::ConcordConfiguration;
 using concord::config::ConfigurationPath;
-using concord::consensus::BlockId;
-using concord::consensus::IBlocksAppender;
-using concord::consensus::IDBClient;
-using concord::consensus::ILocalKeyValueStorageReadOnly;
-using concord::consensus::ILocalKeyValueStorageReadOnlyIterator;
-using concord::consensus::InMemoryDBClient;
-using concord::consensus::Key;
-using concord::consensus::RocksKeyComparator;
-using concord::consensus::SetOfKeyValuePairs;
 using concord::consensus::Sliver;
 using concord::consensus::Status;
-using concord::consensus::Value;
+using concord::storage::BlockId;
+using concord::storage::IBlocksAppender;
+using concord::storage::IDBClient;
+using concord::storage::ILocalKeyValueStorageReadOnly;
+using concord::storage::ILocalKeyValueStorageReadOnlyIterator;
+using concord::storage::InMemoryDBClient;
+using concord::storage::Key;
+using concord::storage::RocksKeyComparator;
+using concord::storage::SetOfKeyValuePairs;
+using concord::storage::Value;
 
 namespace {
 

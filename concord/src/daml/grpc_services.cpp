@@ -4,31 +4,31 @@
 
 #include <string>
 
-#include "consensus/blockchain_db_types.h"
-#include "consensus/blockchain_interfaces.h"
 #include "daml/cmd_handler.hpp"
+#include "storage/blockchain_db_types.h"
 
-using grpc::ServerContext;
-using grpc::ServerWriter;
-using namespace com::digitalasset;
 using com::digitalasset::kvbc::Command;
 using com::digitalasset::kvbc::CommandReply;
+using com::digitalasset::kvbc::CommitRequest;
 using com::digitalasset::kvbc::CommitResponse;
 using com::digitalasset::kvbc::CommitResponse_CommitStatus;
 using com::digitalasset::kvbc::CommitResponse_CommitStatus_OK;
 using com::digitalasset::kvbc::CommittedTx;
+using com::digitalasset::kvbc::CommittedTxsRequest;
+using com::digitalasset::kvbc::GetLatestBlockIdRequest;
 using com::digitalasset::kvbc::ReadTransactionRequest;
 using com::digitalasset::kvbc::ReadTransactionResponse;
 using com::vmware::concord::ConcordRequest;
 using com::vmware::concord::ConcordResponse;
 using com::vmware::concord::DamlRequest;
 using com::vmware::concord::DamlResponse;
+using grpc::ServerContext;
+using grpc::ServerWriter;
 
-using concord::consensus::BlockId;
-using concord::consensus::IClient;
-using concord::consensus::ILocalKeyValueStorageReadOnly;
-using concord::consensus::Key;
-using concord::consensus::Value;
+using concord::storage::IClient;
+using concord::storage::ILocalKeyValueStorageReadOnly;
+using concord::storage::Key;
+using concord::storage::Value;
 
 using namespace std;
 
@@ -36,8 +36,8 @@ namespace concord {
 namespace daml {
 
 grpc::Status DataServiceImpl::GetLatestBlockId(
-    ServerContext* context, const kvbc::GetLatestBlockIdRequest* request,
-    kvbc::BlockId* reply) {
+    ServerContext* context, const GetLatestBlockIdRequest* request,
+    com::digitalasset::kvbc::BlockId* reply) {
   reply->set_block_id(ro_storage_->getLastBlock());
   return grpc::Status::OK;
 }
@@ -47,7 +47,7 @@ grpc::Status DataServiceImpl::ReadTransaction(
     ReadTransactionResponse* reply) {
   LOG4CPLUS_INFO(logger, "DataService: ReadTransaction...");
 
-  BlockId readBlockId = request->block_id();
+  concord::storage::BlockId readBlockId = request->block_id();
   if (readBlockId <= 0) {
     readBlockId = ro_storage_->getLastBlock();
   }
@@ -56,11 +56,11 @@ grpc::Status DataServiceImpl::ReadTransaction(
     const string& keyStr = request->keys(i);
     Key key = createSliver(keyStr);
     Value value;
-    BlockId outBlockId;
+    concord::storage::BlockId outBlockId;
     concord::consensus::Status status =
         ro_storage_->get(readBlockId, key, value, outBlockId);
     if (status.isOK()) {
-      kvbc::KeyValuePair* kv = reply->add_results();
+      com::digitalasset::kvbc::KeyValuePair* kv = reply->add_results();
       kv->set_key(keyStr);
       kv->set_value(value.data(), value.length());
     } else {
@@ -73,9 +73,9 @@ grpc::Status DataServiceImpl::ReadTransaction(
   return grpc::Status::OK;
 }
 
-grpc::Status CommitServiceImpl::CommitTransaction(
-    ServerContext* context, const kvbc::CommitRequest* request,
-    kvbc::CommitResponse* reply) {
+grpc::Status CommitServiceImpl::CommitTransaction(ServerContext* context,
+                                                  const CommitRequest* request,
+                                                  CommitResponse* reply) {
   LOG4CPLUS_INFO(logger, "CommitService: Transactions...");
 
   ConcordResponse resp;
@@ -109,8 +109,8 @@ grpc::Status CommitServiceImpl::CommitTransaction(
 }
 
 grpc::Status EventsServiceImpl::CommittedTxs(
-    ServerContext* context, const kvbc::CommittedTxsRequest* request,
-    ServerWriter<kvbc::CommittedTx>* writer) {
+    ServerContext* context, const CommittedTxsRequest* request,
+    ServerWriter<CommittedTx>* writer) {
   LOG4CPLUS_INFO(logger, "EventsService: CommittedTxs...");
 
   BlockingPersistentQueueReader<CommittedTx> reader =

@@ -20,8 +20,11 @@
 #include "consensus/hash_defs.h"
 #include "rocksdb/comparator.h"
 
+using concord::consensus::Sliver;
+using concord::consensus::Status;
+
 namespace concord {
-namespace consensus {
+namespace storage {
 
 // Counter for number of read requests
 static unsigned int g_rocksdb_called_read;
@@ -518,7 +521,7 @@ bool RocksDBClientIterator::isEnd() { return !m_iter->Valid(); }
  */
 Status RocksDBClientIterator::getStatus() { return m_status; }
 
-}  // namespace consensus
+}  // namespace storage
 }  // namespace concord
 
 #endif

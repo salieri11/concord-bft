@@ -9,8 +9,11 @@
 #include "consensus/hash_defs.h"
 #include "consensus/sliver.hpp"
 
+using concord::consensus::Sliver;
+using concord::consensus::Status;
+
 namespace concord {
-namespace consensus {
+namespace storage {
 
 /**
  * @brief Does nothing.
@@ -264,5 +267,5 @@ Status InMemoryDBClientIterator::getStatus() {
   return Status::OK();
 }
 
-}  // namespace consensus
+}  // namespace storage
 }  // namespace concord

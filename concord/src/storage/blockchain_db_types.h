@@ -11,8 +11,8 @@
 // terms and conditions of the subcomponent's license, as noted in the LICENSE
 // file.
 
-#ifndef CONCORD_CONSENSUS_BLOCKCHAIN_DB_TYPES_H_
-#define CONCORD_CONSENSUS_BLOCKCHAIN_DB_TYPES_H_
+#ifndef CONCORD_STORAGE_BLOCKCHAIN_DB_TYPES_H_
+#define CONCORD_STORAGE_BLOCKCHAIN_DB_TYPES_H_
 
 #include <cstdint>
 #include <unordered_map>
@@ -21,7 +21,7 @@
 #include "consensus/sliver.hpp"
 
 namespace concord {
-namespace consensus {
+namespace storage {
 
 struct BlockHeader {
   uint32_t numberOfElements;
@@ -48,14 +48,14 @@ enum class EDBKeyType : std::uint8_t {
 
 typedef uint64_t BlockId;
 typedef uint16_t ObjectId;
-typedef Sliver Key;
-typedef Sliver Value;
+typedef concord::consensus::Sliver Key;
+typedef concord::consensus::Sliver Value;
 typedef std::pair<Key, Value> KeyValuePair;
 typedef std::unordered_map<Key, Value> SetOfKeyValuePairs;
 typedef std::vector<Key> KeysVector;
 typedef KeysVector ValuesVector;
 
-}  // namespace consensus
+}  // namespace storage
 }  // namespace concord
 
-#endif  // CONCORD_CONSENSUS_BLOCKCHAIN_DB_TYPES_H_
+#endif  // CONCORD_STORAGE_BLOCKCHAIN_DB_TYPES_H_

@@ -10,14 +10,14 @@
 
 #include "concord.pb.h"
 #include "config/configuration_manager.hpp"
-#include "consensus/blockchain_interfaces.h"
 #include "ethereum/concord_evm.hpp"
+#include "storage/blockchain_interfaces.h"
 #include "utils/concord_eth_sign.hpp"
 
 namespace concord {
 namespace ethereum {
 
-class EthKvbCommandsHandler : public concord::consensus::ICommandsHandler {
+class EthKvbCommandsHandler : public concord::storage::ICommandsHandler {
  private:
   log4cplus::Logger logger;
   concord::ethereum::EVM &athevm_;
@@ -25,16 +25,16 @@ class EthKvbCommandsHandler : public concord::consensus::ICommandsHandler {
   const concord::config::ConcordConfiguration &config_;
   concord::config::ConcordConfiguration &nodeConfiguration;
 
-  concord::consensus::ILocalKeyValueStorageReadOnly *m_ptrRoStorage = nullptr;
-  concord::consensus::IBlocksAppender *m_ptrBlockAppender = nullptr;
+  concord::storage::ILocalKeyValueStorageReadOnly *m_ptrRoStorage = nullptr;
+  concord::storage::IBlocksAppender *m_ptrBlockAppender = nullptr;
 
  public:
   EthKvbCommandsHandler(
       concord::ethereum::EVM &athevm, concord::utils::EthSign &verifier,
       const concord::config::ConcordConfiguration &config,
       concord::config::ConcordConfiguration &nodeConfig,
-      concord::consensus::ILocalKeyValueStorageReadOnly *roStorage,
-      concord::consensus::IBlocksAppender *appender);
+      concord::storage::ILocalKeyValueStorageReadOnly *roStorage,
+      concord::storage::IBlocksAppender *appender);
   ~EthKvbCommandsHandler();
 
   int execute(uint16_t clientId, uint64_t sequenceNum, bool readOnly,
@@ -44,13 +44,13 @@ class EthKvbCommandsHandler : public concord::consensus::ICommandsHandler {
  private:
   bool executeCommand(
       uint32_t requestSize, const char *request, uint64_t sequenceNum,
-      const concord::consensus::ILocalKeyValueStorageReadOnly &roStorage,
-      concord::consensus::IBlocksAppender &blockAppender,
+      const concord::storage::ILocalKeyValueStorageReadOnly &roStorage,
+      concord::storage::IBlocksAppender &blockAppender,
       const size_t maxReplySize, char *outReply, uint32_t &outReplySize) const;
 
   bool executeReadOnlyCommand(
       uint32_t requestSize, const char *request,
-      const concord::consensus::ILocalKeyValueStorageReadOnly &roStorage,
+      const concord::storage::ILocalKeyValueStorageReadOnly &roStorage,
       const size_t maxReplySize, char *outReply, uint32_t &outReplySize) const;
 
   // Handlers

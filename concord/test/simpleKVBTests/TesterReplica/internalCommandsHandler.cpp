@@ -18,12 +18,12 @@
 
 using namespace BasicRandomTests;
 
-using concord::consensus::BlockId;
-using concord::consensus::SetOfKeyValuePairs;
 using concord::consensus::Status;
 using concord::ethereum::EthKvbStorage;
+using concord::storage::BlockId;
+using concord::storage::SetOfKeyValuePairs;
 
-const auto KEY_TYPE = concord::consensus::EDBKeyType::E_DB_KEY_TYPE_KEY;
+const auto KEY_TYPE = concord::storage::EDBKeyType::E_DB_KEY_TYPE_KEY;
 
 int InternalCommandsHandler::execute(uint16_t clientId, uint64_t sequenceNum,
                                      bool readOnly, uint32_t requestSize,

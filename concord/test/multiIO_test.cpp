@@ -8,18 +8,18 @@
 #include <log4cplus/configurator.h>
 #include <log4cplus/hierarchy.h>
 #include <log4cplus/loggingmacros.h>
-#include "consensus/comparators.h"
 #include "consensus/hash_defs.h"
-#include "consensus/rocksdb_client.h"
 #include "gtest/gtest.h"
+#include "storage/comparators.h"
+#include "storage/rocksdb_client.h"
 
 using namespace std;
 
-using concord::consensus::KeysVector;
-using concord::consensus::RocksDBClient;
-using concord::consensus::RocksKeyComparator;
-using concord::consensus::SetOfKeyValuePairs;
 using concord::consensus::Status;
+using concord::storage::KeysVector;
+using concord::storage::RocksDBClient;
+using concord::storage::RocksKeyComparator;
+using concord::storage::SetOfKeyValuePairs;
 
 namespace {
 

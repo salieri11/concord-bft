@@ -20,7 +20,6 @@
 #include "common/concord_exception.hpp"
 #include "concord.pb.h"
 #include "config/configuration_manager.hpp"
-#include "consensus/blockchain_interfaces.h"
 #include "consensus/hex_tools.h"
 #include "ethereum/concord_evm.hpp"
 #include "time/time_contract.hpp"
@@ -49,8 +48,8 @@ using concord::utils::RLPBuilder;
 using concord::utils::to_evm_uint256be;
 using concord::common::operator<<;
 
-using concord::consensus::IBlocksAppender;
-using concord::consensus::ILocalKeyValueStorageReadOnly;
+using concord::storage::IBlocksAppender;
+using concord::storage::ILocalKeyValueStorageReadOnly;
 
 namespace concord {
 namespace ethereum {

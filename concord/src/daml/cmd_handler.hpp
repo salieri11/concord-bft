@@ -4,15 +4,13 @@
 #include <log4cplus/loggingmacros.h>
 
 #include "blocking_queue.h"
-#include "consensus/blockchain_db_types.h"
-#include "consensus/blockchain_interfaces.h"
 #include "consensus/hash_defs.h"
 #include "consensus/sliver.hpp"
 #include "daml_commit.grpc.pb.h"
 #include "daml_data.grpc.pb.h"
 #include "daml_events.grpc.pb.h"
-
-using namespace com::digitalasset;
+#include "storage/blockchain_db_types.h"
+#include "storage/blockchain_interfaces.h"
 
 namespace concord {
 namespace daml {
@@ -20,17 +18,19 @@ namespace daml {
 concord::consensus::Sliver createSliver(char* content, const size_t size);
 concord::consensus::Sliver createSliver(const std::string& content);
 
-class KVBCCommandsHandler : public concord::consensus::ICommandsHandler {
+class KVBCCommandsHandler : public concord::storage::ICommandsHandler {
  private:
   log4cplus::Logger logger_;
-  concord::consensus::ILocalKeyValueStorageReadOnly* ro_storage_;
-  concord::consensus::IBlocksAppender* blocks_appender_;
-  BlockingPersistentQueue<kvbc::CommittedTx>& committedTxs_;
+  concord::storage::ILocalKeyValueStorageReadOnly* ro_storage_;
+  concord::storage::IBlocksAppender* blocks_appender_;
+  BlockingPersistentQueue<com::digitalasset::kvbc::CommittedTx>& committedTxs_;
 
  public:
-  KVBCCommandsHandler(concord::consensus::ILocalKeyValueStorageReadOnly* ros,
-                      concord::consensus::IBlocksAppender* ba,
-                      BlockingPersistentQueue<kvbc::CommittedTx>& committedTxs)
+  KVBCCommandsHandler(
+      concord::storage::ILocalKeyValueStorageReadOnly* ros,
+      concord::storage::IBlocksAppender* ba,
+      BlockingPersistentQueue<com::digitalasset::kvbc::CommittedTx>&
+          committedTxs)
       : logger_(log4cplus::Logger::getInstance("com.vmware.concord.daml")),
         ro_storage_(ros),
         blocks_appender_(ba),
@@ -41,21 +41,22 @@ class KVBCCommandsHandler : public concord::consensus::ICommandsHandler {
               char* outReply, uint32_t& outActualReplySize) override;
 
  private:
-  bool executeKVBCRead(const kvbc::ReadTransactionRequest& readCmd,
-                       const size_t maxReplySize, char* outReply,
-                       uint32_t& outReplySize);
-  concord::consensus::Key absContractIdToKey(std::string prefix,
-                                             kvbc::AbsContractId coid);
-  concord::consensus::Key relContractIdToKey(std::string prefix, int64_t txId,
-                                             kvbc::RelContractId coid);
-  bool contractIsActive(const concord::consensus::Key& coid);
-  concord::consensus::KeyValuePair contractActiveKV(
-      const concord::consensus::Key& coid);
-  concord::consensus::KeyValuePair contractArchivedKV(
-      const concord::consensus::Key& coid);
-  bool executeKVBCCommit(const kvbc::CommitRequest& commitReq,
-                         const size_t maxReplySize, char* outReply,
-                         uint32_t& outReplySize);
+  bool executeKVBCRead(
+      const com::digitalasset::kvbc::ReadTransactionRequest& readCmd,
+      const size_t maxReplySize, char* outReply, uint32_t& outReplySize);
+  concord::storage::Key absContractIdToKey(
+      std::string prefix, com::digitalasset::kvbc::AbsContractId coid);
+  concord::storage::Key relContractIdToKey(
+      std::string prefix, int64_t txId,
+      com::digitalasset::kvbc::RelContractId coid);
+  bool contractIsActive(const concord::storage::Key& coid);
+  concord::storage::KeyValuePair contractActiveKV(
+      const concord::storage::Key& coid);
+  concord::storage::KeyValuePair contractArchivedKV(
+      const concord::storage::Key& coid);
+  bool executeKVBCCommit(
+      const com::digitalasset::kvbc::CommitRequest& commitReq,
+      const size_t maxReplySize, char* outReply, uint32_t& outReplySize);
 
   bool executeCommand(uint32_t requestSize, const char* request,
                       const size_t maxReplySize, char* outReply,

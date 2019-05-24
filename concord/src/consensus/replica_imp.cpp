@@ -19,24 +19,34 @@
 #include <cassert>
 #include <chrono>
 #include <cstdlib>
-#include "consensus/comparators.h"
 #include "consensus/hex_tools.h"
 #include "consensus/replica_state_sync.h"
-#include "consensus/rocksdb_metadata_storage.h"
 #include "consensus/sliver.hpp"
+#include "storage/blockchain_db_types.h"
+#include "storage/blockchain_interfaces.h"
+#include "storage/rocksdb_metadata_storage.h"
 
 using log4cplus::Logger;
 using namespace bftEngine;
 
+using concord::storage::BlockchainDBAdapter;
+using concord::storage::BlockEntry;
+using concord::storage::BlockHeader;
+using concord::storage::BlockId;
+using concord::storage::CommConfig;
+using concord::storage::ICommandsHandler;
+using concord::storage::IDBClient;
+using concord::storage::ILocalKeyValueStorageReadOnly;
+using concord::storage::ILocalKeyValueStorageReadOnlyIterator;
+using concord::storage::IReplica;
+using concord::storage::Key;
+using concord::storage::ReplicaConsensusConfig;
+using concord::storage::RocksDBMetadataStorage;
+using concord::storage::SetOfKeyValuePairs;
+using concord::storage::Value;
+
 namespace concord {
 namespace consensus {
-
-/**
- * Pure virtual destructor needs to be defined within an abstract class if that
- * very abstract class is used to delete a derived instanciation.
- * See main.cpp for its usage.
- */
-ICommandsHandler::~ICommandsHandler() {}
 
 /**
  * Opens the database and creates the replica thread. Replica state moves to
@@ -636,7 +646,7 @@ IReplica *createReplica(CommConfig &commConfig, ReplicaConsensusConfig &config,
   return r;
 }
 
-void release(IReplica *r) { delete r; }
+void releaseReplica(IReplica *r) { delete r; }
 
 ReplicaImp::StorageIterator::StorageIterator(const ReplicaImp *r)
     : logger(log4cplus::Logger::getInstance("com.vmware.concord.kvb")), rep(r) {

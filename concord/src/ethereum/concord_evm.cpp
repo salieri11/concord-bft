@@ -13,7 +13,6 @@
 #include "common/concord_exception.hpp"
 #include "common/concord_log.hpp"
 #include "common/concord_types.hpp"
-#include "consensus/blockchain_interfaces.h"
 #include "consensus/hash_defs.h"
 #include "consensus/hex_tools.h"
 #include "ethereum/eth_kvb_storage.hpp"

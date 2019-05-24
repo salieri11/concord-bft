@@ -15,7 +15,8 @@
 #define SIMPLE_KVB_TESTS_HPP
 
 #include <list>
-#include "consensus/blockchain_db_types.h"
+#include <map>
+#include "storage/blockchain_interfaces.h"
 
 namespace BasicRandomTests {
 
@@ -37,7 +38,7 @@ struct SimpleKV {
 };
 
 struct SimpleBlock {
-  concord::consensus::BlockId id = 0;
+  concord::storage::BlockId id = 0;
   size_t numOfItems = 0;
   SimpleKV items[1];
 
@@ -106,7 +107,7 @@ struct SimpleCondWriteRequest {
   SimpleRequest header;
   size_t numOfKeysInReadSet = 0;
   size_t numOfWrites = 0;
-  concord::consensus::BlockId readVersion = 0;
+  concord::storage::BlockId readVersion = 0;
 };
 
 struct SimpleReadRequest {
@@ -129,7 +130,7 @@ struct SimpleReadRequest {
   SimpleKey* keysArray() { return ((SimpleKey*)keys); }
 
   SimpleRequest header;
-  concord::consensus::BlockId readVersion =
+  concord::storage::BlockId readVersion =
       0;  // If 0, read from the latest version
   size_t numberOfKeysToRead = 0;
   SimpleKey keys[1];
@@ -164,7 +165,7 @@ struct SimpleReply_ConditionalWrite {
   static void free(SimpleReply_ConditionalWrite* buf) { delete[] buf; }
 
   SimpleReply header;
-  concord::consensus::BlockId latestBlock = 0;
+  concord::storage::BlockId latestBlock = 0;
   bool success = false;
 };
 
@@ -244,7 +245,7 @@ struct SimpleReply_GetLastBlock {
   static void free(SimpleReply_GetLastBlock* buf) { delete[] buf; }
 
   SimpleReply header;
-  concord::consensus::BlockId latestBlock = 0;
+  concord::storage::BlockId latestBlock = 0;
 };
 
 #pragma pack(pop)
@@ -253,10 +254,10 @@ class SimpleKeyBlockIdPair  // Represents <key, blockId>
 {
  public:
   const SimpleKey key;
-  const concord::consensus::BlockId blockId;
+  const concord::storage::BlockId blockId;
 
   SimpleKeyBlockIdPair(const SimpleKey& simpleKey,
-                       concord::consensus::BlockId bId)
+                       concord::storage::BlockId bId)
       : key(simpleKey), blockId(bId) {}
 
   bool operator<(const SimpleKeyBlockIdPair& other) const {
@@ -281,7 +282,7 @@ typedef std::list<SimpleReply*> RepliesList;
 class TestsBuilder {
  public:
   explicit TestsBuilder(concordlogger::Logger& logger,
-                        concord::consensus::IClient& client);
+                        concord::storage::IClient& client);
   ~TestsBuilder();
 
   static size_t sizeOfRequest(SimpleRequest* req);
@@ -297,21 +298,21 @@ class TestsBuilder {
   void createAndInsertRandomRead();
   void createAndInsertGetLastBlock();
   void addExpectedWriteReply(bool foundConflict);
-  bool lookForConflicts(concord::consensus::BlockId readVersion,
+  bool lookForConflicts(concord::storage::BlockId readVersion,
                         size_t numOfKeysInReadSet, SimpleKey* readKeysArray);
   void addNewBlock(size_t numOfWrites, SimpleKV* writesKVArray);
   void retrieveExistingBlocksFromKVB();
-  concord::consensus::BlockId getInitialLastBlockId();
+  concord::storage::BlockId getInitialLastBlockId();
 
  private:
   concordlogger::Logger& logger_;
-  concord::consensus::IClient& client_;
+  concord::storage::IClient& client_;
   RequestsList requests_;
   RepliesList replies_;
-  std::map<concord::consensus::BlockId, SimpleBlock*> internalBlockchain_;
+  std::map<concord::storage::BlockId, SimpleBlock*> internalBlockchain_;
   KeyBlockIdToValueMap allKeysToValueMap_;
-  concord::consensus::BlockId prevLastBlockId_ = 0;
-  concord::consensus::BlockId lastBlockId_ = 0;
+  concord::storage::BlockId prevLastBlockId_ = 0;
+  concord::storage::BlockId lastBlockId_ = 0;
 };
 
 }  // namespace BasicRandomTests
