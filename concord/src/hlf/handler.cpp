@@ -1,9 +1,9 @@
 // Copyright 2018-2019 VMware, all rights reserved
 
-#include "concord_hlf_handler.hpp"
+#include "hlf/handler.hpp"
 
 using Blockchain::Status;
-using concord::blockchain::hlf::KvbStorageForHlf;
+using concord::hlf::HlfKvbStorage;
 
 using log4cplus::Logger;
 
@@ -17,7 +17,7 @@ concord::hlf::HlfHandler::HlfHandler(ChaincodeInvoker* chaincode_invoker)
 concord::hlf::HlfHandler::~HlfHandler() {}
 
 Status concord::hlf::HlfHandler::SetKvbHlfStoragePointer(
-    KvbStorageForHlf* kvb_hlf_storage_instance) {
+    HlfKvbStorage* kvb_hlf_storage_instance) {
   kvb_hlf_storage_ = kvb_hlf_storage_instance;
   return Status::OK();
 }
@@ -27,29 +27,26 @@ Status concord::hlf::HlfHandler::RevokeKvbHlfStoragePointer() {
   return Status::OK();
 }
 
-// APIS FOR HlfHandler KV SERVICE
 Status concord::hlf::HlfHandler::PutState(string key, string value) {
-  // check KvbStorageForHlf to avoid illeagal call
+  // check HlfKvbStorage to avoid illeagal call
   if (!kvb_hlf_storage_) {
-    return Status::IllegalOperation("KvbStorageForHlf instance not found");
+    return Status::IllegalOperation("HlfKvbStorage instance not found");
   }
 
-  const char* c = key.c_str();
-  const uint8_t* p = reinterpret_cast<const uint8_t*>(c);
-  kvb_hlf_storage_->SetHlfState(p, strlen(c), value);
+  // const char* c = key.c_str();
+  // const uint8_t* p = reinterpret_cast<const uint8_t*>(c);
+  kvb_hlf_storage_->SetHlfState(key, value);
   LOG4CPLUS_DEBUG(logger_, "Successfully set " << key << ":" << value);
   return Status::OK();
 }
 
-string concord::hlf::HlfHandler::GetState(string key) {
+string concord::hlf::HlfHandler::GetState(const string& key) {
   if (!kvb_hlf_storage_) {
-    LOG4CPLUS_ERROR(logger_, "KvbStorageForHlf instance not found");
+    LOG4CPLUS_ERROR(logger_, "HlfKvbStorage instance not found");
     return "";
   }
 
-  const char* c = key.c_str();
-  const uint8_t* p = reinterpret_cast<const uint8_t*>(c);
-  string value = kvb_hlf_storage_->GetHlfState(p, strlen(c));
+  string value = kvb_hlf_storage_->GetHlfState(key);
   if (value != "") {
     LOG4CPLUS_DEBUG(logger_, "Successfully get " << key << ":" << value);
     return value;
@@ -61,16 +58,16 @@ string concord::hlf::HlfHandler::GetState(string key) {
 // write concord block directly
 Status concord::hlf::HlfHandler::WriteBlock() {
   if (!kvb_hlf_storage_) {
-    return Status::IllegalOperation("KvbStorageForHlf instance not found");
+    return Status::IllegalOperation("HlfKvbStorage instance not found");
   }
 
   // return status to client in gRPC module
   return kvb_hlf_storage_->WriteHlfBlock();
 }
 
-string concord::hlf::HlfHandler::GetConcordKvService() {
+string concord::hlf::HlfHandler::GetHlfKvService() {
   if (chaincode_invoker_ != nullptr) {
-    return chaincode_invoker_->GetHlfConcordKvServiceAddress();
+    return chaincode_invoker_->GetHlfKvServiceAddress();
   }
   return "";
 }
@@ -80,8 +77,9 @@ string concord::hlf::HlfHandler::GetConcordKvService() {
 // 1. install
 Status concord::hlf::HlfHandler::InstallChaincode(string chaincode_name,
                                                   string path, string version) {
-  int status = chaincode_invoker_->SendInstall(chaincode_name, path, version);
-  if (!status) {
+  Status status =
+      chaincode_invoker_->SendInstall(chaincode_name, path, version);
+  if (status.isOK()) {
     return Status::OK();
   }
   return Status::IllegalOperation("Unable to install chaincode: " +
@@ -92,9 +90,9 @@ Status concord::hlf::HlfHandler::InstallChaincode(string chaincode_name,
 Status concord::hlf::HlfHandler::InstantiateChaincode(string chaincode_name,
                                                       string input,
                                                       string version) {
-  int status =
+  Status status =
       chaincode_invoker_->SendInstantiate(chaincode_name, input, version);
-  if (!status) {
+  if (status.isOK()) {
     return Status::OK();
   }
   return Status::IllegalOperation("Unable to instantiate chaincode: " +
@@ -104,8 +102,8 @@ Status concord::hlf::HlfHandler::InstantiateChaincode(string chaincode_name,
 // 3. invoke
 Status concord::hlf::HlfHandler::InvokeChaincode(string chaincode_name,
                                                  string input) {
-  int status = chaincode_invoker_->SendInvoke(chaincode_name, input);
-  if (!status) {
+  Status status = chaincode_invoker_->SendInvoke(chaincode_name, input);
+  if (status.isOK()) {
     return Status::OK();
   }
   return Status::IllegalOperation("Unable to invoke chaincode: " +
@@ -122,8 +120,9 @@ string concord::hlf::HlfHandler::QueryChaincode(string chaincode_name,
 Status concord::hlf::HlfHandler::UpgradeChaincode(string chaincode_name,
                                                   string input,
                                                   string version) {
-  int status = chaincode_invoker_->SendUpgrade(chaincode_name, input, version);
-  if (!status) {
+  Status status =
+      chaincode_invoker_->SendUpgrade(chaincode_name, input, version);
+  if (status.isOK()) {
     return Status::OK();
   }
   return Status::IllegalOperation("Unable to upgrade chaincode: " +

@@ -1,10 +1,8 @@
 // Copyright 2018 VMware, all rights reserved
 
-#include "concord_hlf_kvb_storage.hpp"
-
+#include "hlf/kvb_storage.hpp"
 #include <cstring>
 #include <vector>
-
 #include "common/concord_exception.hpp"
 #include "concord_storage.pb.h"
 #include "consensus/kvb/BlockchainInterfaces.h"
@@ -24,7 +22,6 @@ using concord::common::zero_hash;
 using concord::common::operator<<;
 
 namespace concord {
-namespace blockchain {
 namespace hlf {
 
 ////////////////////////////////////////
@@ -34,7 +31,7 @@ namespace hlf {
 const int64_t KHlfStateStorageVersion = 1;
 
 // read-only mode
-KvbStorageForHlf::KvbStorageForHlf(
+HlfKvbStorage::HlfKvbStorage(
     const Blockchain::ILocalKeyValueStorageReadOnly &ro_storage)
     : ro_storage_(ro_storage),
       ptr_block_appender_(nullptr),
@@ -42,7 +39,7 @@ KvbStorageForHlf::KvbStorageForHlf(
           log4cplus::Logger::getInstance("com.vmware.concord.hlf.storage")) {}
 
 // read-write mode
-KvbStorageForHlf::KvbStorageForHlf(
+HlfKvbStorage::HlfKvbStorage(
     const Blockchain::ILocalKeyValueStorageReadOnly &ro_storage,
     Blockchain::IBlocksAppender *ptr_block_appender, uint64_t sequence_num)
     : ro_storage_(ro_storage),
@@ -50,45 +47,56 @@ KvbStorageForHlf::KvbStorageForHlf(
       logger_(log4cplus::Logger::getInstance("com.vmware.concord.hlf.storage")),
       bft_sequence_num_(sequence_num) {}
 
-KvbStorageForHlf::~KvbStorageForHlf() {}
+HlfKvbStorage::~HlfKvbStorage() {}
 
-bool KvbStorageForHlf::is_read_only() {
+bool HlfKvbStorage::is_read_only() {
   // if we don't have a ptr_block_appender, we are read-only
   auto res = ptr_block_appender_ == nullptr;
   return res;
 }
 
 // Allow access to read-only storage object, to enabled downgrades to read-only
-// KvbStorageForHlf when convenient.
+// HlfKvbStorage when convenient.
 const Blockchain::ILocalKeyValueStorageReadOnly &
-KvbStorageForHlf::getReadOnlyStorage() {
+HlfKvbStorage::getReadOnlyStorage() {
   return ro_storage_;
 }
 
 ////////////////////////////////////////
 // ADDRESSING
 
-Sliver KvbStorageForHlf::KvbKey(uint8_t type, const uint8_t *bytes,
-                                size_t length) const {
+Sliver HlfKvbStorage::KvbKey(uint8_t type, const string &key) const {
+  const char *c = key.c_str();
+  const uint8_t *p = reinterpret_cast<const uint8_t *>(c);
+  int length = strlen(c);
+
+  uint8_t *kvb_key = new uint8_t[1 + length];
+  kvb_key[0] = type;
+
+  if (length) {
+    std::copy(p, p + length, kvb_key + 1);
+  }
+  return Sliver(kvb_key, length + 1);
+}
+
+Sliver HlfKvbStorage::KvbKey(uint8_t type, const uint8_t *bytes,
+                             size_t length) const {
   uint8_t *key = new uint8_t[1 + length];
   key[0] = type;
-  if (length) {
-    std::copy(bytes, bytes + length, key + 1);
-  }
+  std::copy(bytes, bytes + length, key + 1);
   return Sliver(key, length + 1);
 }
 
-Sliver KvbStorageForHlf::HlfStateKey(const uint8_t *key, size_t length) const {
-  return KvbKey(kTypeHlfState, key, length);
+Sliver HlfKvbStorage::HlfStateKey(const string &key) const {
+  return KvbKey(kTypeHlfState, key);
 }
 
-Sliver KvbStorageForHlf::HlfTransactionKey(const uint8_t *key,
-                                           size_t length) const {
-  return KvbKey(kTypeHlfTransaction, key, length);
+Sliver HlfKvbStorage::HlfTransactionKey(const evm_uint256be &hash) const {
+  return KvbKey(kTypeHlfTransaction, hash.bytes, sizeof(evm_uint256be));
 }
 
-Sliver KvbStorageForHlf::HlfBlockKey(const uint8_t *key, size_t length) const {
-  return KvbKey(kTypeHlfBlock, key, length);
+Sliver HlfKvbStorage::HlfBlockKey(const evm_uint256be &hash) const {
+  return KvbKey(kTypeHlfBlock, hash.bytes, sizeof(evm_uint256be));
 }
 
 ////////////////////////////////////////
@@ -96,7 +104,7 @@ Sliver KvbStorageForHlf::HlfBlockKey(const uint8_t *key, size_t length) const {
 
 // Add a key-value pair to be stored in the block. Throws ReadOnlyModeException
 // if this object is in read-only mode.
-void KvbStorageForHlf::put(const Sliver &key, const Sliver &value) {
+void HlfKvbStorage::put(const Sliver &key, const Sliver &value) {
   if (!ptr_block_appender_) {
     throw ReadOnlyModeException();
   }
@@ -106,7 +114,7 @@ void KvbStorageForHlf::put(const Sliver &key, const Sliver &value) {
 
 // Add hlf transaction will append newly incoming
 // HLF transaction to queue for later handling.
-Status KvbStorageForHlf::AddHlfTransaction(
+Status HlfKvbStorage::AddHlfTransaction(
     const com::vmware::concord::HlfRequest &hlfRequest) {
   com::vmware::concord::hlf::storage::HlfTransaction tx;
 
@@ -124,7 +132,7 @@ Status KvbStorageForHlf::AddHlfTransaction(
   return Status::OK();
 }
 
-com::vmware::concord::hlf::storage::HlfBlock KvbStorageForHlf::GetHlfBlock(
+com::vmware::concord::hlf::storage::HlfBlock HlfKvbStorage::GetHlfBlock(
     uint64_t blockNumber) {
   SetOfKeyValuePairs out_blockData;
 
@@ -148,7 +156,7 @@ com::vmware::concord::hlf::storage::HlfBlock KvbStorageForHlf::GetHlfBlock(
 
 // Add block of hlf type to the database, this API should have more
 // functionalities in the future.
-Status KvbStorageForHlf::WriteHlfBlock() {
+Status HlfKvbStorage::WriteHlfBlock() {
   if (!ptr_block_appender_) {
     throw ReadOnlyModeException();
   }
@@ -184,7 +192,7 @@ Status KvbStorageForHlf::WriteHlfBlock() {
     // TODO(lukec) replace the EthHash with the way that
     // HLF calculates the hash
     evm_uint256be txId = concord::utils::eth_hash::keccak_hash(txTarget, size);
-    Sliver txAddr = HlfTransactionKey(txId.bytes, sizeof(evm_uint256be));
+    Sliver txAddr = HlfTransactionKey(txId);
 
     put(txAddr, Sliver(txTarget, size));
 
@@ -203,7 +211,7 @@ Status KvbStorageForHlf::WriteHlfBlock() {
   block.set_hash(blockId.bytes, sizeof(evm_uint256be));
 
   // key = TYPE_HLF_BLOCK + block hash
-  Sliver blockAddr = HlfBlockKey(blockId.bytes, sizeof(evm_uint256be));
+  Sliver blockAddr = HlfBlockKey(blockId);
   put(blockAddr, Sliver(blkTarget, size));
 
   pending_hlf_transactions_.clear();
@@ -225,14 +233,13 @@ Status KvbStorageForHlf::WriteHlfBlock() {
 }
 
 // Drop all pending updates_.
-void KvbStorageForHlf::reset() {
+void HlfKvbStorage::reset() {
   // Slivers release their memory automatically.
   updates_.clear();
 }
 
 // HLF extent
-void KvbStorageForHlf::SetHlfState(const uint8_t *key, size_t length,
-                                   string value) {
+void HlfKvbStorage::SetHlfState(string key, string value) {
   com::vmware::concord::hlf::storage::HlfState proto;
   proto.set_version(KHlfStateStorageVersion);
   proto.set_state(value);
@@ -240,33 +247,32 @@ void KvbStorageForHlf::SetHlfState(const uint8_t *key, size_t length,
   size_t sersize = proto.ByteSize();
   uint8_t *ser = new uint8_t[sersize];
   proto.SerializeToArray(ser, sersize);
-  put(HlfStateKey(key, length), Sliver(ser, sersize));
+  put(HlfStateKey(key), Sliver(ser, sersize));
 }
 
 ////////////////////////////////////////
 // READING
 
 //  Get the number of the block that will be added when write_block is called.
-uint64_t KvbStorageForHlf::next_block_number() {
+uint64_t HlfKvbStorage::next_block_number() {
   // HLF block number equals KVB block number.
   return ro_storage_.getLastBlock() + 1;
 }
 
 //  Get the number of the most recent block that was added.
-uint64_t KvbStorageForHlf::current_block_number() {
+uint64_t HlfKvbStorage::current_block_number() {
   // HLF block number equals KVB block number.
   return ro_storage_.getLastBlock();
 }
 
 // HLF extent
-string KvbStorageForHlf::GetHlfState(const uint8_t *key, size_t length) {
+string HlfKvbStorage::GetHlfState(const string &key) {
   uint64_t block_number = current_block_number();
-  return GetHlfState(key, length, block_number);
+  return GetHlfState(key, block_number);
 }
 
-string KvbStorageForHlf::GetHlfState(const uint8_t *key, size_t length,
-                                     uint64_t &block_number) {
-  Sliver kvbkey = HlfStateKey(key, length);
+string HlfKvbStorage::GetHlfState(const string &key, uint64_t &block_number) {
+  Sliver kvbkey = HlfStateKey(key);
   Sliver value;
   BlockId out_block;
 
@@ -293,14 +299,14 @@ string KvbStorageForHlf::GetHlfState(const uint8_t *key, size_t length,
   return "";
 }
 
-Status KvbStorageForHlf::get(const Sliver &key, Sliver &value) {
+Status HlfKvbStorage::get(const Sliver &key, Sliver &value) {
   uint64_t block_number = current_block_number();
   BlockId out;
   return get(block_number, key, value, out);
 }
 
-Status KvbStorageForHlf::get(const BlockId read_version, const Sliver &key,
-                             Sliver &value, BlockId &out_block) {
+Status HlfKvbStorage::get(const BlockId read_version, const Sliver &key,
+                          Sliver &value, BlockId &out_block) {
   // TODO(BWF): this search will be very inefficient for a large set of changes
   for (auto &u : updates_) {
     if (u.first == key) {
@@ -313,5 +319,4 @@ Status KvbStorageForHlf::get(const BlockId read_version, const Sliver &key,
 }
 
 }  // namespace hlf
-}  // namespace blockchain
 }  // namespace concord

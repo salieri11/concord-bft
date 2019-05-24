@@ -1,8 +1,8 @@
 // Copyright 2018-2019 VMware, all rights reserved
 
-#include "concord_hlf_grpc_services.hpp"
+#include "hlf/grpc_services.hpp"
 
-using com::vmware::concord::hlf::services::ConcordKeyValueService;
+using com::vmware::concord::hlf::services::HlfKeyValueService;
 using com::vmware::concord::hlf::services::KvbMessage;
 using com::vmware::concord::hlf::services::KvbMessage_type_INVALID;
 using com::vmware::concord::hlf::services::KvbMessage_type_VALID;
@@ -33,9 +33,9 @@ using com::vmware::concord::HlfResponse;
 namespace concord {
 namespace hlf {
 
-Status ConcordKeyValueServiceImpl::GetState(ServerContext* context,
-                                            const KvbMessage* request,
-                                            KvbMessage* response) {
+Status HlfKeyValueServiceImpl::GetState(ServerContext* context,
+                                        const KvbMessage* request,
+                                        KvbMessage* response) {
   if (request->key() != "") {
     string value = hlf_handler_->GetState(request->key());
 
@@ -50,10 +50,10 @@ Status ConcordKeyValueServiceImpl::GetState(ServerContext* context,
   }
 }
 
-Status ConcordKeyValueServiceImpl::PutState(ServerContext* context,
-                                            const KvbMessage* request,
-                                            KvbMessage* response) {
-  if (request->key() != "" and request->value() != "") {
+Status HlfKeyValueServiceImpl::PutState(ServerContext* context,
+                                        const KvbMessage* request,
+                                        KvbMessage* response) {
+  if (request->key() != "" && request->value() != "") {
     Blockchain::Status status =
         hlf_handler_->PutState(request->key(), request->value());
 
@@ -71,9 +71,9 @@ Status ConcordKeyValueServiceImpl::PutState(ServerContext* context,
 }
 
 // WriteBlock is only called by Client
-Status ConcordKeyValueServiceImpl::WriteBlock(ServerContext* context,
-                                              const KvbMessage* request,
-                                              KvbMessage* response) {
+Status HlfKeyValueServiceImpl::WriteBlock(ServerContext* context,
+                                          const KvbMessage* request,
+                                          KvbMessage* response) {
   Blockchain::Status status = hlf_handler_->WriteBlock();
   if (status.isOK()) {
     response->set_state(KvbMessage_type_VALID);
@@ -84,7 +84,7 @@ Status ConcordKeyValueServiceImpl::WriteBlock(ServerContext* context,
   }
 }
 
-Status ConcordKeyValueServiceImpl::TriggerChaincode(
+Status HlfKeyValueServiceImpl::TriggerChaincode(
     ServerContext* context, const ConcordRequest* concord_request,
     ConcordResponse* concord_response) {
   if (concord_request->hlf_request_size() == 0) {
@@ -151,7 +151,7 @@ Status ConcordKeyValueServiceImpl::TriggerChaincode(
   return Status::OK;
 }
 
-bool ConcordKeyValueServiceImpl::IsValidManageOpt(
+bool HlfKeyValueServiceImpl::IsValidManageOpt(
     const com::vmware::concord::HlfRequest& request) {
   if (request.has_chaincode_name() && request.has_input() &&
       request.has_version()) {
@@ -160,7 +160,7 @@ bool ConcordKeyValueServiceImpl::IsValidManageOpt(
   return false;
 }
 
-bool ConcordKeyValueServiceImpl::IsValidInvokeOpt(
+bool HlfKeyValueServiceImpl::IsValidInvokeOpt(
     const com::vmware::concord::HlfRequest& request) {
   if (request.has_chaincode_name() && request.has_input()) {
     return true;
@@ -170,11 +170,11 @@ bool ConcordKeyValueServiceImpl::IsValidInvokeOpt(
 
 void RunHlfServer(HlfHandler* hlf_handler, KVBClientPool& pool) {
   // get server address from the HLF handler
-  string server_address = hlf_handler->GetConcordKvService();
+  string server_address = hlf_handler->GetHlfKvService();
 
   ServerBuilder builder;
-  ConcordKeyValueServiceImpl* service =
-      new ConcordKeyValueServiceImpl(hlf_handler, pool);
+  HlfKeyValueServiceImpl* service =
+      new HlfKeyValueServiceImpl(hlf_handler, pool);
   builder.AddListeningPort(server_address, grpc::InsecureServerCredentials());
   builder.RegisterService(service);
   std::unique_ptr<Server> server(builder.BuildAndStart());

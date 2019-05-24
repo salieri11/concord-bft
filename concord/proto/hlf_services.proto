@@ -2,7 +2,7 @@ syntax = "proto2";
 package com.vmware.concord.hlf.services;
 import "concord.proto";
 
-service ConcordKeyValueService {
+service HlfKeyValueService {
   // APIs for HLF peer
   rpc GetState (KvbMessage) returns (KvbMessage) {}
   rpc PutState (KvbMessage) returns (KvbMessage) {}

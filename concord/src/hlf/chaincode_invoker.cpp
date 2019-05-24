@@ -1,7 +1,8 @@
 // Copyright 2018-2019 VMware, all rights reserved
 
-#include "concord_hlf_chaincode_invoker.hpp"
+#include "hlf/chaincode_invoker.hpp"
 
+using Blockchain::Status;
 using concord::config::ConcordConfiguration;
 using log4cplus::Logger;
 using std::string;
@@ -10,7 +11,7 @@ namespace concord {
 namespace hlf {
 ChaincodeInvoker::ChaincodeInvoker(ConcordConfiguration& node_config)
     : logger_(Logger::getInstance("com.vmware.concord.hlf.invoker")) {
-  // Make sure all following parameters are existed
+  // Make sure all following parameters exist
 
   hlf_peer_tool_ = node_config.getValue<string>("hlf_peer_command_tool_path");
   hlf_peer_tool_config_ =
@@ -59,60 +60,53 @@ string ChaincodeInvoker::SubProcess(string cmd) {
     result += string(output);
   }
 
-  // Maybe we should check state before return
+  // TODO(lukec):
+  // check the state before return.
   fclose(fp);
   return result;
 }
 
-int ChaincodeInvoker::SetHlfPeerTool(string hlf_peer_tool_path) {
+Status ChaincodeInvoker::SetHlfPeerTool(string hlf_peer_tool_path) {
   hlf_peer_tool_ = hlf_peer_tool_path;
-  return 0;
+  return Status::OK();
 }
 
-int ChaincodeInvoker::SetHlfConcordKvServiceAddress(string kv_service_address) {
+Status ChaincodeInvoker::SetHlfKvServiceAddress(string kv_service_address) {
   hlf_concord_kv_service_address_ = kv_service_address;
-  return 0;
+  return Status::OK();
 }
 
 string ChaincodeInvoker::GetHlfPeerTool() const { return hlf_peer_tool_; }
 
-// params
-// chaincode: chaincode to call
-// input: args for calling chaincode
-// return "" if any error happened during the SendQuery
 string ChaincodeInvoker::SendQuery(string chaincode_name, string input) {
-  // hardcoded channel name
-  // we need "\'" here
+  // hardcoded channel name and we need "\'" here
   string command = hlf_peer_tool_ + " chaincode query  -C mychannel -n " +
                    chaincode_name + " -c " + "\'" + input + "\'";
 
   return SubProcess(command);
 }
 
-int ChaincodeInvoker::SendInvoke(string chaincode_name, string input) {
+Status ChaincodeInvoker::SendInvoke(string chaincode_name, string input) {
   // invoke won't Send any message to orderer, we keep it here
   // to avoid modifying the API
   string command = hlf_peer_tool_ + " chaincode invoke -o " +
                    hlf_orderer_address_ + " -C mychannel -n " + chaincode_name +
                    " -c " + "\'" + input + "\'";
 
-  // parse output before return
-  // log the details of invoke
   string result = SubProcess(command);
 
-  // should be logged
   LOG4CPLUS_INFO(logger_, "Result from chaincode invoke" << result);
 
   if (result.find("200") != string::npos) {
-    return 0;
+    return Status::OK();
   } else {
     // invalid
-    return 1;
+    return Status::NotFound("Failed to execute chaincode");
   }
 }
 
-int ChaincodeInvoker::SendInstall(string chaincode_name, string path,
-                                  string version) {
+Status ChaincodeInvoker::SendInstall(string chaincode_name, string path,
+                                     string version) {
   string command = hlf_peer_tool_ + " chaincode install -n " + chaincode_name +
                    " -p" + path + " -v" + version;
   string result = SubProcess(command);
@@ -121,34 +115,33 @@ int ChaincodeInvoker::SendInstall(string chaincode_name, string path,
   LOG4CPLUS_INFO(logger_, "Result from chaincode install" << result);
 
   if (result.find("200") != string::npos) {
-    return 0;
+    return Status::OK();
   } else {
     // invalid
-    return 1;
+    return Status::NotFound("Failed to execute chaincode");
   }
 }
 
-int ChaincodeInvoker::SendInstantiate(string chaincode_name, string input,
-                                      string version) {
+Status ChaincodeInvoker::SendInstantiate(string chaincode_name, string input,
+                                         string version) {
   // instantiate need orderer address
 
   string command = hlf_peer_tool_ + " chaincode instantiate -C mychannel -o " +
                    hlf_orderer_address_ + " -n " + chaincode_name + " -c " +
                    "\'" + input + "\'" + " -v " + version;
   string result = SubProcess(command);
-  // should be logged
   LOG4CPLUS_INFO(logger_, "Result from chaincode instantiate" << result);
 
   if (result.find("200") != string::npos) {
-    return 0;
+    return Status::OK();
   } else {
     // invalid
-    return 1;
+    return Status::NotFound("Failed to execute chaincode");
   }
 }
 
-int ChaincodeInvoker::SendUpgrade(string chaincode_name, string input,
-                                  string version) {
+Status ChaincodeInvoker::SendUpgrade(string chaincode_name, string input,
+                                     string version) {
   // upgrade need orderer address
 
   string command = hlf_peer_tool_ + " chaincode upgrade -C mychannel -o " +
@@ -156,14 +149,13 @@ int ChaincodeInvoker::SendUpgrade(string chaincode_name, string input,
                    "\'" + input + "\'" + " -v " + version;
 
   string result = SubProcess(command);
-  // should be logged
   LOG4CPLUS_INFO(logger_, "Result from chaincode upgrade" << result);
 
   if (result.find("200") != string::npos) {
-    return 0;
+    return Status::OK();
   } else {
     // invalid
-    return 1;
+    return Status::NotFound("Failed to execute chaincode");
   }
 }
 
@@ -179,7 +171,7 @@ string ChaincodeInvoker::ConstructCmdPrefix() {
   return prefix + " ";
 }
 
-string ChaincodeInvoker::GetHlfConcordKvServiceAddress() const {
+string ChaincodeInvoker::GetHlfKvServiceAddress() const {
   return hlf_concord_kv_service_address_;
 }
 

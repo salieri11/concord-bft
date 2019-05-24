@@ -1,7 +1,7 @@
 // Copyright 2018-2019 VMware, all rights reserved
 
-#ifndef CONCORD_CONSENSUS_HLF_GRPC_SERVICE_H_
-#define CONCORD_CONSENSUS_HLF_GRPC_SERVICE_H_
+#ifndef CONCORD_HLF_GRPC_SERVICE_H_
+#define CONCORD_HLF_GRPC_SERVICE_H_
 
 #include <grpc++/grpc++.h>
 #include <grpc/grpc.h>
@@ -11,30 +11,29 @@
 #include <log4cplus/loggingmacros.h>
 #include <iostream>
 #include "concord.pb.h"
-#include "concord_hlf_handler.hpp"
 #include "consensus/kvb_client.hpp"
+#include "hlf/handler.hpp"
 #include "hlf_services.grpc.pb.h"
 
 namespace concord {
 namespace hlf {
 
-class ConcordKeyValueServiceImpl final
-    : public com::vmware::concord::hlf::services::ConcordKeyValueService::
-          Service {
+class HlfKeyValueServiceImpl final
+    : public com::vmware::concord::hlf::services::HlfKeyValueService::Service {
  private:
-  concord::hlf::HlfHandler* hlf_handler_;
+  HlfHandler* hlf_handler_ = nullptr;
   concord::consensus::KVBClientPool& pool_;
   log4cplus::Logger logger_;
 
  public:
-  ConcordKeyValueServiceImpl(HlfHandler* hlf_handler,
-                             concord::consensus::KVBClientPool& pool)
+  HlfKeyValueServiceImpl(HlfHandler* hlf_handler,
+                         concord::consensus::KVBClientPool& pool)
       : hlf_handler_(hlf_handler),
         pool_(pool),
         logger_(log4cplus::Logger::getInstance("com.vmware.concord.hlf.grpc")) {
   }
 
-  ~ConcordKeyValueServiceImpl() {}
+  ~HlfKeyValueServiceImpl() {}
 
   // APIs for HLF peer
   grpc::Status GetState(
@@ -62,7 +61,10 @@ class ConcordKeyValueServiceImpl final
 
 void RunHlfServer(concord::hlf::HlfHandler*,
                   concord::consensus::KVBClientPool&);
+
+void RunHlfServer(std::unique_ptr<concord::hlf::HlfHandler>& ptr_hlf_handler,
+                  concord::consensus::KVBClientPool& pool);
 }  // namespace hlf
 }  // namespace concord
 
-#endif  // CONCORD_CONSENSUS_HLF_GRPC_SERVICE_H_
+#endif  // CONCORD_HLF_GRPC_SERVICE_H_

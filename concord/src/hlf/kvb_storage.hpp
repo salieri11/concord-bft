@@ -1,11 +1,10 @@
 // Copyright 2018 VMware, all rights reserved
 
-#ifndef BLOCKCHAIN_HLF_KVB_STORAGE_H_
-#define BLOCKCHAIN_HLF_KVB_STORAGE_H_
+#ifndef CONCORD_HLF_KVB_STORAGE_H_
+#define CONCORD_HLF_KVB_STORAGE_H_
 
 #include <log4cplus/loggingmacros.h>
 #include <vector>
-
 #include "common/concord_types.hpp"
 #include "concord.pb.h"
 #include "concord_storage.pb.h"
@@ -16,10 +15,9 @@
 #include "hlf_storage.pb.h"
 
 namespace concord {
-namespace blockchain {
 namespace hlf {
 
-class KvbStorageForHlf {
+class HlfKvbStorage {
  private:
   const Blockchain::ILocalKeyValueStorageReadOnly& ro_storage_;
   Blockchain::IBlocksAppender* ptr_block_appender_;
@@ -38,14 +36,14 @@ class KvbStorageForHlf {
   const uint8_t kTypeHlfState = 0x12;
 
   // read-only mode
-  KvbStorageForHlf(const Blockchain::ILocalKeyValueStorageReadOnly& ro_storage);
+  HlfKvbStorage(const Blockchain::ILocalKeyValueStorageReadOnly& ro_storage);
 
   // read-write mode
-  KvbStorageForHlf(const Blockchain::ILocalKeyValueStorageReadOnly& ro_storage,
-                   Blockchain::IBlocksAppender* block_appender,
-                   uint64_t sequence_num);
+  HlfKvbStorage(const Blockchain::ILocalKeyValueStorageReadOnly& ro_storage,
+                Blockchain::IBlocksAppender* block_appender,
+                uint64_t sequence_num);
 
-  ~KvbStorageForHlf();
+  ~HlfKvbStorage();
 
   bool is_read_only();
   uint64_t next_block_number();
@@ -63,28 +61,34 @@ class KvbStorageForHlf {
                          Blockchain::Sliver& value,
                          Blockchain::BlockId& out_block);
 
+  Blockchain::Sliver KvbKey(uint8_t type, const std::string& key) const;
+
   Blockchain::Sliver KvbKey(uint8_t type, const uint8_t* bytes,
                             size_t length) const;
 
-  Blockchain::Sliver HlfStateKey(const uint8_t* key, size_t length) const;
-  Blockchain::Sliver HlfTransactionKey(const uint8_t* key, size_t length) const;
-  Blockchain::Sliver HlfBlockKey(const uint8_t* key, size_t length) const;
+  Blockchain::Sliver HlfStateKey(const std::string& key) const;
+
+  Blockchain::Sliver HlfTransactionKey(const evm_uint256be& hash) const;
+
+  Blockchain::Sliver HlfBlockKey(const evm_uint256be& hash) const;
 
   void put(const Blockchain::Sliver& key, const Blockchain::Sliver& value);
 
-  string GetHlfState(const uint8_t* key, size_t length);
-  string GetHlfState(const uint8_t* key, size_t length, uint64_t& block_number);
+  string GetHlfState(const std::string& key);
+
+  string GetHlfState(const std::string& key, uint64_t& block_number);
+
+  void SetHlfState(const string key, string value);
+
   Blockchain::Status AddHlfTransaction(
       const com::vmware::concord::HlfRequest& hlf_request);
 
   Blockchain::Status WriteHlfBlock();
 
   com::vmware::concord::hlf::storage::HlfBlock GetHlfBlock(uint64_t);
-  void SetHlfState(const uint8_t* key, size_t length, string value);
 };
 
 }  // namespace hlf
-}  // namespace blockchain
 }  // namespace concord
 
 #endif  // BLOCKCHAIN_HLF_KVB_STORAGE_H_

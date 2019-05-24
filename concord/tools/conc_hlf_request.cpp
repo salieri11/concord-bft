@@ -2,26 +2,24 @@
 //
 // Send a transaction to concord directly.
 
-#include <google/protobuf/text_format.h>
-#include <inttypes.h>
 #include <boost/program_options.hpp>
-#include <iostream>
 
+#include <google/protobuf/text_format.h>
+#include <grpc/support/log.h>
+#include <grpcpp/grpcpp.h>
+#include <inttypes.h>
+#include <iostream>
 #include "concmdconn.hpp"
 #include "concmdex.hpp"
 #include "concmdfmt.hpp"
 #include "concmdopt.hpp"
-
 #include "concord.pb.h"
 #include "hlf_services.grpc.pb.h"
-
-#include <grpc/support/log.h>
-#include <grpcpp/grpcpp.h>
 
 using namespace boost::program_options;
 using namespace com::vmware::concord;
 
-using com::vmware::concord::hlf::services::ConcordKeyValueService;
+using com::vmware::concord::hlf::services::HlfKeyValueService;
 using grpc::Channel;
 using grpc::ClientContext;
 using grpc::Status;
@@ -41,7 +39,7 @@ void add_options(options_description &desc) {
 class ConcordClient {
  public:
   ConcordClient(std::shared_ptr<Channel> channel)
-      : stub_(ConcordKeyValueService::NewStub(channel)) {}
+      : stub_(HlfKeyValueService::NewStub(channel)) {}
 
   grpc::Status TriggerChaincode(const ConcordRequest &concordRequest,
                                 ConcordResponse &concordResponse) {
@@ -51,7 +49,7 @@ class ConcordClient {
   }
 
  private:
-  std::unique_ptr<ConcordKeyValueService::Stub> stub_;
+  std::unique_ptr<HlfKeyValueService::Stub> stub_;
 };
 
 int main(int argc, char *argv[]) {
@@ -60,7 +58,7 @@ int main(int argc, char *argv[]) {
     if (!parse_options(argc, argv, &add_options, opts)) {
       return 0;
     }
-    /*** init grpc client ***/
+    // init grpc client
     std::string grpc_service_address;
     std::string addr = opts[OPT_ADDRESS].as<std::string>();
     std::string port = opts[OPT_PORT].as<std::string>();
@@ -68,7 +66,7 @@ int main(int argc, char *argv[]) {
 
     ConcordClient concordClient(grpc::CreateChannel(
         grpc_service_address, grpc::InsecureChannelCredentials()));
-    /*** create request ***/
+    // create request
 
     ConcordRequest ath_req;
     HlfRequest *hlf_req = ath_req.add_hlf_request();
@@ -120,14 +118,14 @@ int main(int argc, char *argv[]) {
     google::protobuf::TextFormat::PrintToString(ath_req, &pbtext);
     std::cout << "Message Prepared: " << pbtext << std::endl;
 
-    /*** Send and Receive ***/
+    // Send and Receive
 
     ConcordResponse ath_resp;
     if (concordClient.TriggerChaincode(ath_req, ath_resp).ok()) {
       google::protobuf::TextFormat::PrintToString(ath_resp, &pbtext);
       std::cout << "Received response: " << pbtext << std::endl;
 
-      /*** Handle Response ***/
+      // Handle Response
 
       if (ath_resp.hlf_response_size() == 1) {
         HlfResponse hlf_resp = ath_resp.hlf_response(0);

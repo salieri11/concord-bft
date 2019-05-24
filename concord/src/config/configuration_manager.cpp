@@ -3273,7 +3273,7 @@ void specifyConfiguration(ConcordConfiguration& config) {
                         "orderer.example.com:7050");
   node.tagParameter("hlf_orderer_address", publicDefaultableTags);
 
-  node.declareParameter("hlf_concord_kv_service_address",
+  node.declareParameter("hlf_kv_service_address",
                         "Address of Concord to provide KV service.",
                         "0.0.0.0:50051");
   node.tagParameter("hlf_concord_kv_service_address", publicDefaultableTags);

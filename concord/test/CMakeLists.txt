@@ -129,9 +129,9 @@ target_link_libraries(TimeContractTests
 
 add_executable(HlfTest
   hlf_test.cpp
-  ../src/hlf/concord_hlf_chaincode_invoker.cpp
-  ../src/hlf/concord_hlf_handler.cpp
-  ../src/hlf/concord_hlf_kvb_storage.cpp
+  ../src/hlf/chaincode_invoker.cpp
+  ../src/hlf/handler.cpp
+  ../src/hlf/kvb_storage.cpp
   ../src/config/configuration_manager.cpp
   )
 

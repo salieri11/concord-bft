@@ -1,7 +1,6 @@
 // Copyright 2018-2019 VMware, all rights reserved
 
-#include "concord_hlf_kvb_commands_handler.hpp"
-
+#include "hlf/kvb_commands_handler.hpp"
 #include <boost/predef/detail/endian_compat.h>
 #include <google/protobuf/text_format.h>
 #include <iterator>
@@ -17,7 +16,6 @@ using namespace boost::program_options;
 // Protobuf interface
 using namespace com::vmware::concord;
 
-using concord::blockchain::hlf::KvbStorageForHlf;
 using concord::common::BlockNotFoundException;
 using concord::common::HexPrintBytes;
 using concord::common::TransactionNotFoundException;
@@ -28,13 +26,14 @@ using concord::common::operator<<;
 using Blockchain::IBlocksAppender;
 using Blockchain::ILocalKeyValueStorageReadOnly;
 using Blockchain::Status;
+using concord::hlf::HlfKvbStorage;
 
 using concord::hlf::HlfHandler;
 
 namespace concord {
 namespace hlf {
 
-KvbCommandsHandlerForHlf::KvbCommandsHandlerForHlf(
+HlfKvbCommandsHandler::HlfKvbCommandsHandler(
     HlfHandler* hlf_handler,
     const concord::config::ConcordConfiguration& config,
     concord::config::ConcordConfiguration& node_config,
@@ -50,15 +49,15 @@ KvbCommandsHandlerForHlf::KvbCommandsHandlerForHlf(
   assert(ptr_ro_storage_);
 }
 
-KvbCommandsHandlerForHlf::~KvbCommandsHandlerForHlf() {
+HlfKvbCommandsHandler::~HlfKvbCommandsHandler() {
   // no other deinitialization necessary
 }
 
-int KvbCommandsHandlerForHlf::execute(uint16_t client_id, uint64_t sequence_num,
-                                      bool read_only, uint32_t request_size,
-                                      const char* request,
-                                      uint32_t max_reply_size, char* out_reply,
-                                      uint32_t& out_actual_reply_size) {
+int HlfKvbCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
+                                   bool read_only, uint32_t request_size,
+                                   const char* request, uint32_t max_reply_size,
+                                   char* out_reply,
+                                   uint32_t& out_actual_reply_size) {
   bool res;
   if (read_only) {
     res = ExecuteReadOnlyCommand(request_size, request, *ptr_ro_storage_,
@@ -75,12 +74,12 @@ int KvbCommandsHandlerForHlf::execute(uint16_t client_id, uint64_t sequence_num,
 
 // Callback from SBFT/KVB. Process the request Returns
 // false if the command is illegal or invalid; true otherwise.
-bool KvbCommandsHandlerForHlf::ExecuteReadOnlyCommand(
+bool HlfKvbCommandsHandler::ExecuteReadOnlyCommand(
     uint32_t request_size, const char* request,
     const ILocalKeyValueStorageReadOnly& ro_storage,
     const size_t max_reply_size, char* out_reply,
     uint32_t& out_reply_size) const {
-  KvbStorageForHlf kvb_hlf_storage(ro_storage);
+  HlfKvbStorage kvb_hlf_storage(ro_storage);
 
   ConcordRequest command;
   bool result;
@@ -117,12 +116,12 @@ bool KvbCommandsHandlerForHlf::ExecuteReadOnlyCommand(
 
 // Callback from SBFT/KVB. Process the request Returns
 // false if the command is illegal or invalid; true otherwise.
-bool KvbCommandsHandlerForHlf::ExecuteCommand(
+bool HlfKvbCommandsHandler::ExecuteCommand(
     uint32_t request_size, const char* request, const uint64_t sequence_num,
     const ILocalKeyValueStorageReadOnly& ro_storage,
     IBlocksAppender& block_appender, const size_t max_reply_size,
     char* out_reply, uint32_t& out_reply_size) const {
-  KvbStorageForHlf kvb_hlf_storage(ro_storage, &block_appender, sequence_num);
+  HlfKvbStorage kvb_hlf_storage(ro_storage, &block_appender, sequence_num);
 
   ConcordRequest command;
   bool result;
@@ -158,8 +157,8 @@ bool KvbCommandsHandlerForHlf::ExecuteCommand(
 }
 
 //  Handle a HLF gRPC request. Return false if the command was invalid
-bool KvbCommandsHandlerForHlf::HandleHlfRequest(
-    ConcordRequest& command, KvbStorageForHlf* kvb_hlf_storage,
+bool HlfKvbCommandsHandler::HandleHlfRequest(
+    ConcordRequest& command, HlfKvbStorage* kvb_hlf_storage,
     ConcordResponse& command_response) const {
   LOG4CPLUS_INFO(logger_, "Triggered the chaincode invoke operation");
   switch (command.hlf_request(0).method()) {
@@ -186,8 +185,8 @@ bool KvbCommandsHandlerForHlf::HandleHlfRequest(
   }
 }
 
-bool KvbCommandsHandlerForHlf::HandleHlfRequestReadOnly(
-    ConcordRequest& command, KvbStorageForHlf* kvb_hlf_storage,
+bool HlfKvbCommandsHandler::HandleHlfRequestReadOnly(
+    ConcordRequest& command, HlfKvbStorage* kvb_hlf_storage,
     ConcordResponse& command_response) const {
   LOG4CPLUS_INFO(logger_, "Triggered the chaincode query operation");
   switch (command.hlf_request(0).method()) {
@@ -202,8 +201,8 @@ bool KvbCommandsHandlerForHlf::HandleHlfRequestReadOnly(
   }
 }
 
-bool KvbCommandsHandlerForHlf::HandleHlfInstallChaincode(
-    ConcordRequest& command, KvbStorageForHlf* kvb_hlf_storage,
+bool HlfKvbCommandsHandler::HandleHlfInstallChaincode(
+    ConcordRequest& command, HlfKvbStorage* kvb_hlf_storage,
     ConcordResponse& command_response) const {
   // fetch the first hlf request
   const HlfRequest request = command.hlf_request(0);
@@ -237,8 +236,8 @@ bool KvbCommandsHandlerForHlf::HandleHlfInstallChaincode(
   return true;
 }
 
-bool KvbCommandsHandlerForHlf::HandleHlfInstantiateChaincode(
-    ConcordRequest& command, KvbStorageForHlf* kvb_hlf_storage,
+bool HlfKvbCommandsHandler::HandleHlfInstantiateChaincode(
+    ConcordRequest& command, HlfKvbStorage* kvb_hlf_storage,
     ConcordResponse& command_response) const {
   // fetch the first hlf request
   const HlfRequest request = command.hlf_request(0);
@@ -270,8 +269,8 @@ bool KvbCommandsHandlerForHlf::HandleHlfInstantiateChaincode(
   return true;
 }
 
-bool KvbCommandsHandlerForHlf::HandleHlfUpgradeChaincode(
-    ConcordRequest& command, KvbStorageForHlf* kvb_hlf_storage,
+bool HlfKvbCommandsHandler::HandleHlfUpgradeChaincode(
+    ConcordRequest& command, HlfKvbStorage* kvb_hlf_storage,
     ConcordResponse& command_response) const {
   // fetch the first hlf request
   const HlfRequest request = command.hlf_request(0);
@@ -303,8 +302,8 @@ bool KvbCommandsHandlerForHlf::HandleHlfUpgradeChaincode(
   return true;
 }
 
-bool KvbCommandsHandlerForHlf::HandleHlfInvokeChaincode(
-    ConcordRequest& command, KvbStorageForHlf* kvb_hlf_storage,
+bool HlfKvbCommandsHandler::HandleHlfInvokeChaincode(
+    ConcordRequest& command, HlfKvbStorage* kvb_hlf_storage,
     ConcordResponse& command_response) const {
   // fetch the first hlf request
   const HlfRequest request = command.hlf_request(0);
@@ -337,8 +336,8 @@ bool KvbCommandsHandlerForHlf::HandleHlfInvokeChaincode(
 }
 
 // should be read-only
-bool KvbCommandsHandlerForHlf::HandleHlfQueryChaincode(
-    ConcordRequest& command, KvbStorageForHlf* kvb_hlf_storage,
+bool HlfKvbCommandsHandler::HandleHlfQueryChaincode(
+    ConcordRequest& command, HlfKvbStorage* kvb_hlf_storage,
     ConcordResponse& command_response) const {
   // fetch the first hlf request
   const HlfRequest request = command.hlf_request(0);

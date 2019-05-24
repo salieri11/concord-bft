@@ -37,6 +37,9 @@
 #include "hlf/concord_hlf_grpc_services.hpp"
 #include "hlf/concord_hlf_handler.hpp"
 #include "hlf/concord_hlf_kvb_commands_handler.hpp"
+#include "hlf/grpc_services.hpp"
+#include "hlf/handler.hpp"
+#include "hlf/kvb_commands_handler.hpp"
 #include "time/time_pusher.hpp"
 #include "time/time_reading.hpp"
 #include "utils/concord_eth_sign.hpp"
@@ -83,7 +86,7 @@ using concord::storage::SetOfKeyValuePairs;
 
 using concord::hlf::ChaincodeInvoker;
 using concord::hlf::HlfHandler;
-using concord::hlf::KvbCommandsHandlerForHlf;
+using concord::hlf::HlfKvbCommandsHandler;
 using concord::hlf::RunHlfServer;
 
 using concord::time::TimePusher;
@@ -328,7 +331,7 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
       // Init Hlf handler
       ptr_hlf_handler = new HlfHandler(chaincodeInvoker);
 
-      kvb_commands_handler = new KvbCommandsHandlerForHlf(
+      kvb_commands_handler = new HlfKvbCommandsHandler(
           ptr_hlf_handler, config, nodeConfig, replica, replica);
     } else {
       kvb_commands_handler = new EthKvbCommandsHandler(

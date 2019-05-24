@@ -1,11 +1,12 @@
 // Copyright 2018-2019 VMware, all rights reserved
 
-#ifndef CONCORD_CONSENSUS_HLF_CHAINCODE_INVOKER_H_
-#define CONCORD_CONSENSUS_HLF_CHAINCODE_INVOKER_H_
+#ifndef CONCORD_HLF_CHAINCODE_INVOKER_H_
+#define CONCORD_HLF_CHAINCODE_INVOKER_H_
 
 #include <log4cplus/loggingmacros.h>
 #include <iostream>
 #include "config/configuration_manager.hpp"
+#include "consensus/kvb/BlockchainInterfaces.h"
 #include "stdio.h"
 #include "stdlib.h"
 
@@ -13,27 +14,27 @@ namespace concord {
 namespace hlf {
 class ChaincodeInvoker {
  public:
-  ChaincodeInvoker(concord::config::ConcordConfiguration&);
-  ChaincodeInvoker(std::string);
+  ChaincodeInvoker(concord::config::ConcordConfiguration& config);
+  ChaincodeInvoker(std::string path);
   ~ChaincodeInvoker();
 
   // functions to config command tool
-  int SetHlfPeerTool(std::string);
-  int SetHlfConcordKvServiceAddress(std::string);
+  Blockchain::Status SetHlfPeerTool(std::string tool_path);
+  Blockchain::Status SetHlfKvServiceAddress(std::string address);
 
   std::string GetHlfPeerTool() const;
-  std::string GetHlfConcordKvServiceAddress() const;
+  std::string GetHlfKvServiceAddress() const;
 
   // general functions
   std::string SubProcess(std::string);
   std::string ConstructCmdPrefix();
 
   // functions to call hlf peer:
-  int SendInvoke(std::string, std::string);
   std::string SendQuery(std::string, std::string);
-  int SendInstall(std::string, std::string, std::string);
-  int SendInstantiate(std::string, std::string, std::string);
-  int SendUpgrade(std::string, std::string, std::string);
+  Blockchain::Status SendInvoke(std::string, std::string);
+  Blockchain::Status SendInstall(std::string, std::string, std::string);
+  Blockchain::Status SendInstantiate(std::string, std::string, std::string);
+  Blockchain::Status SendUpgrade(std::string, std::string, std::string);
 
  private:
   std::string hlf_peer_tool_;
