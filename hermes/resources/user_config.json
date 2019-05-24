@@ -142,5 +142,23 @@
         "../docker/config-concord2/concord_with_hostnames.config",
         "../docker/config-concord3/concord_with_hostnames.config",
         "../docker/config-concord4/concord_with_hostnames.config"]
+  },
+  "persephoneTests": {
+    "modelService": {
+      "defaults": {
+        "concord_model_version": "1.0",
+        "concord_model_template_id": "8abc7fda-9576-4b13-9beb-06f867cf2c7c",
+        "concord_components": [
+          "vmwblockchain/concord-core:latest",
+          "vmwblockchain/ethrpc:latest"
+        ]
+      }
+    },
+    "provisioningService": {
+      "concordNode": {
+        "username": "root",
+        "password": "c0nc0rd"
+      }
+    }
   }
 }
