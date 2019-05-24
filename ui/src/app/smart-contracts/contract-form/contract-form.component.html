@@ -73,7 +73,7 @@
             <label for="smartContractFile" class="clr-control-label required">{{'smartContracts.file' | translate}}</label>
             <div class="clr-control-container">
               <div class="clr-input-wrapper">
-                <input id="smartContractFile" type="file" name="userFile" required #fileInput (change)="onSmartContractFileChange($event)">
+                <input id="smartContractFile" type="file" name="userFile" required #fileInput (change)="onSmartContractFileChange($event)" accept=".sol">
               </div>
             </div>
           </div>

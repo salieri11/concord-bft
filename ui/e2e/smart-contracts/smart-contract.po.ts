@@ -36,6 +36,10 @@ export class SmartContractPage {
     return element(by.css('div[formgroupname="contractForm"]'));
   }
 
+  send() {
+    element(by.css('#transactionSubmit')).click();
+  }
+
   fillParameterForm(from, type) {
     element(by.cssContainingText('option', 'chairperson')).click();
     element(by.css('input[formcontrolname="from"]')).sendKeys(from);
