@@ -22,6 +22,7 @@ import org.springframework.test.web.servlet.MvcResult;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 import com.vmware.blockchain.MvcConfig;
+import com.vmware.blockchain.utils.ControllerTestConfig;
 
 import lombok.Data;
 import lombok.Value;
@@ -31,7 +32,7 @@ import lombok.Value;
  */
 @ExtendWith(SpringExtension.class)
 @WebMvcTest(secure = false, controllers = ExceptionHandlerTestController.class)
-@ContextConfiguration(classes = MvcConfig.class)
+@ContextConfiguration(classes = { MvcConfig.class, ControllerTestConfig.class })
 @ComponentScan(basePackageClasses = { ExceptionHandlerTest.class, HelenExceptionHandler.class })
 public class ExceptionHandlerTest {
 

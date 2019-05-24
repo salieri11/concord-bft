@@ -9,9 +9,9 @@ import org.apache.logging.log4j.Logger;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import com.vmware.blockchain.auth.AuthHelper;
 import com.vmware.blockchain.common.Constants;
 import com.vmware.blockchain.common.ErrorCode;
 import com.vmware.blockchain.services.profiles.ApplicationContextHolder;
@@ -40,6 +40,12 @@ import com.vmware.concord.Concord;
 public class EthLocalResponseHandler extends AbstractEthRpcHandler {
 
     private static Logger logger = LogManager.getLogger(EthLocalResponseHandler.class);
+
+    private AuthHelper authHelper;
+
+    public EthLocalResponseHandler(AuthHelper authHelper) {
+        this.authHelper = authHelper;
+    }
 
     /**
      * The *local* response handler shouldn't need to send a request ... except that it does in some very specific cases
@@ -148,8 +154,7 @@ public class EthLocalResponseHandler extends AbstractEthRpcHandler {
             String address = (String) wallet.get("address");
             KeystoreService krm = ApplicationContextHolder.getContext()
                     .getBean(KeystoreService.class);
-            UserDetails userDetails = (UserDetails) SecurityContextHolder.getContext().getAuthentication()
-                    .getPrincipal();
+            UserDetails userDetails = (UserDetails) authHelper.getDetails();
             krm.storeKeystore(userDetails.getUsername(), address, wallet.toJSONString());
             localData = "0x" + address;
         } else if (ethMethodName.equals(Constants.ACCOUNTS_NAME)) {

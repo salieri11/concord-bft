@@ -8,6 +8,7 @@ import static com.vmware.blockchain.security.SecurityTestUtils.BC_ID;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.httpBasic;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -32,7 +33,7 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
-import com.vmware.blockchain.WebSecurityConfig;
+import com.vmware.blockchain.auth.AuthHelper;
 import com.vmware.blockchain.services.blockchains.Blockchain;
 import com.vmware.blockchain.services.blockchains.BlockchainService;
 import com.vmware.blockchain.services.profiles.Consortium;
@@ -48,7 +49,7 @@ import com.vmware.blockchain.services.profiles.UserService;
  * Test the JwtTokenFilter.  Make sure this filter populates the auth context.
  */
 @ExtendWith(SpringExtension.class)
-@SpringBootTest(classes = {WebSecurityConfig.class, JwtTestContoller.class, AuthHelper.class})
+@SpringBootTest(classes = {OldJwtSecurityConfig.class, JwtTestContoller.class, AuthHelper.class})
 public class JwtTokenFilterTest {
 
     @Autowired
@@ -142,17 +143,33 @@ public class JwtTokenFilterTest {
     }
 
     @Test
+    public void testAccessToRestrictedResourceWithNewAuthorization() throws Exception {
+        MvcResult result = mockMvc.perform(get("/api/concord/eth")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isOk()).andReturn();
+        Assertions.assertEquals("Tests passed", result.getResponse().getContentAsString());
+    }
+
+    @Test
     public void testAccessToRestrictedResourceWithoutAuthorization() throws Exception {
         mockMvc.perform(get("/api/users").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
             .andExpect(status().isForbidden());
     }
 
     @Test
-    public void testAccessToRestrictedResourceWithNewAuthorization() throws Exception {
+    public void testAccessToRestrictedResourceWithBasicAuthorization() throws Exception {
         user.setRoles(Arrays.asList(Roles.SYSTEM_ADMIN));
         mockMvc.perform(
-                get("/api/users").header(HttpHeaders.AUTHORIZATION, "Bearer " + jwtTokenProvider.createToken(user)))
+                get("/api/users").with(httpBasic("user@test.com", "1234")))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    public void testAccessToRestrictedResourceWithBadBasicAuthorization() throws Exception {
+        user.setRoles(Arrays.asList(Roles.SYSTEM_ADMIN));
+        mockMvc.perform(
+                get("/api/users").with(httpBasic("user@test.com", "5678")))
+                .andExpect(status().isUnauthorized());
     }
 
     @Test

@@ -252,7 +252,7 @@ public class ProfilesService {
                 .name(user.getName())
                 .email(user.getEmail())
                 .role(user.getRoles().get(0).toString())
-                .consortium(new ConsortiumData(c.getId(), c.getConsortiumName()))
+                .consortium(c == null ? null : new ConsortiumData(c.getId(), c.getConsortiumName()))
                 .organization(new OrganizationData(o.getId(), o.getOrganizationName()))
                 .details(new Details(user.getFirstName(), user.getLastName()))
                 .lastLogin(user.getLastLogin() == null ? 0 : user.getLastLogin().toEpochMilli())

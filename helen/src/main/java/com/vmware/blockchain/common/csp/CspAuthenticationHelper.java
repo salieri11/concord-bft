@@ -5,10 +5,16 @@
 package com.vmware.blockchain.common.csp;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.vmware.blockchain.common.csp.CspConstants.CLIENT_CREDENTIALS;
+import static com.vmware.blockchain.common.csp.CspConstants.CSP_OAUTH_TOKEN;
+import static com.vmware.blockchain.common.csp.CspConstants.GRANT_TYPE;
 
+import java.nio.charset.Charset;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.Date;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -22,12 +28,16 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.retry.backoff.ExponentialBackOffPolicy;
 import org.springframework.retry.policy.SimpleRetryPolicy;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
+import org.springframework.web.util.UriTemplate;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.ImmutableList;
 import com.vmware.blockchain.common.restclient.RestClientBuilder;
 import com.vmware.blockchain.common.restclient.interceptor.retry.DefaultHttpRequestRetryInterceptor;
 
@@ -47,6 +57,12 @@ public class CspAuthenticationHelper {
     private static final Logger logger = LoggerFactory.getLogger(CspAuthenticationHelper.class);
 
     private RestTemplate restTemplate;
+
+
+    public static final List<UriTemplate> NOLOGURLS =
+            ImmutableList.of(new UriTemplate(CspConstants.CSP_LOGIN_API),
+                               new UriTemplate(CspConstants.CSP_LOGIN_API_KEY),
+                               new UriTemplate(CspConstants.CSP_VALIDATE_TOKEN));
 
     /**
      * Holds the response from the csp authorize call.
@@ -93,10 +109,32 @@ public class CspAuthenticationHelper {
     }
 
     /**
+     * Return a restemplate that will retry on POST failure.  Used by TokenRefreshFilter and
+     * Oauth2Controller (currently).  Note that this is a little different than the restTemplate
+     * used in the common init above.
+     * @param retries How many times to retry
+     * @param millisToWait How many millis to wait until you retry again
+     * @return restTemplate
+     */
+    public static RestTemplate getOauthRestTemplate(int retries, long millisToWait) {
+
+        // This is a little different than the restTemplate used in common
+        SimpleRetryPolicy retryPolicy = new SimpleRetryPolicy(retries);
+        ExponentialBackOffPolicy backOffPolicy = new ExponentialBackOffPolicy();
+        backOffPolicy.setMaxInterval(millisToWait);
+        DefaultHttpRequestRetryInterceptor retry =
+                new DefaultHttpRequestRetryInterceptor(retryPolicy, backOffPolicy,
+                      Arrays.stream(HttpStatus.values())
+                              .filter(s -> !s.is5xxServerError()).collect(Collectors.toList()),
+                      Collections.singletonList(HttpMethod.POST));
+        return new RestClientBuilder().withInterceptor(retry).build();
+    }
+
+    /**
      * Check whether authToken is valid for at least requireTtlMillis.
      * N.B. This does NOT validate token - just parses it and looks at expiration time.
      */
-    public boolean isTokenValidFor(String authToken, long requiredTtlMillis) {
+    public static boolean isTokenValidFor(String authToken, long requiredTtlMillis) {
 
         if (authToken == null) {
             return false;
@@ -139,6 +177,32 @@ public class CspAuthenticationHelper {
         ResponseEntity<CspAuthorizeResponse> resp = restTemplate.exchange(loginUri, HttpMethod.POST, loginReq,
                 CspAuthorizeResponse.class);
         return resp.getBody().getCspAuthToken();
+    }
+
+    /**
+     * Generate a token using the client_credentials grant. This is essentially a token that is used to identify a
+     * service, instead of a user.
+     *
+     * @param clientId     - The client_id.
+     * @param clientSecret - the secret.
+     * @return The client credentials auth token.
+     */
+    public String getClientCredentialsGrant(String clientId, String clientSecret) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+        Charset charset = Charset.defaultCharset();
+        byte[] clientBasicAuth = Base64.getEncoder().encode(
+                (clientId + ":" + clientSecret).getBytes(charset));
+        headers.add("Authorization", "Basic " + new String(clientBasicAuth, charset));
+        MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
+        formData.add(GRANT_TYPE, CLIENT_CREDENTIALS);
+        HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(formData, headers);
+
+        ResponseEntity<CspAuthorizeResponse> cspLoginResponseResponseEntity =
+                restTemplate
+                        .exchange(CSP_OAUTH_TOKEN, HttpMethod.POST, request, CspAuthorizeResponse.class);
+        return cspLoginResponseResponseEntity.getBody().getCspAuthToken();
+
     }
 
 

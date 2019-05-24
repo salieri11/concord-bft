@@ -39,8 +39,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.client.RestTemplate;
 
 import com.vmware.blockchain.MvcConfig;
+import com.vmware.blockchain.auth.AuthHelper;
 import com.vmware.blockchain.common.csp.CspAuthenticationHelper;
-import com.vmware.blockchain.security.AuthHelper;
 
 /**
  * Tests for the LintProxyController.

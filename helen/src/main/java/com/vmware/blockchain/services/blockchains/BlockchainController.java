@@ -25,6 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.vmware.blockchain.auth.AuthHelper;
 import com.vmware.blockchain.common.ErrorCode;
 import com.vmware.blockchain.common.ForbiddenException;
 import com.vmware.blockchain.common.NotFoundException;
@@ -40,7 +41,6 @@ import com.vmware.blockchain.deployment.model.PlacementSpecification.Entry;
 import com.vmware.blockchain.deployment.model.ProvisioningServiceStub;
 import com.vmware.blockchain.deployment.model.StreamClusterDeploymentSessionEventRequest;
 import com.vmware.blockchain.deployment.model.ethereum.Genesis;
-import com.vmware.blockchain.security.AuthHelper;
 import com.vmware.blockchain.services.blockchains.Blockchain.NodeEntry;
 import com.vmware.blockchain.services.profiles.Consortium;
 import com.vmware.blockchain.services.profiles.ConsortiumService;

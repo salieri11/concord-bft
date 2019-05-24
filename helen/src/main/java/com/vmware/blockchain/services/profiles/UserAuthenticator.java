@@ -172,7 +172,7 @@ public class UserAuthenticator {
             }
             Authentication auth = jwtTokenProvider.getAuthentication(token);
             SecurityContextHolder.getContext().setAuthentication(auth);
-            HelenUserDetails details = (HelenUserDetails) auth.getPrincipal();
+            HelenUserDetails details = (HelenUserDetails) auth.getDetails();
 
             String email = details.getUsername();
             User u = userService.getByEmail(email);

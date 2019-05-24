@@ -59,6 +59,7 @@ import com.fasterxml.jackson.datatype.jsr310.ser.ZonedDateTimeSerializer;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.vmware.blockchain.MvcConfig;
+import com.vmware.blockchain.auth.AuthHelper;
 import com.vmware.blockchain.common.BadRequestException;
 import com.vmware.blockchain.common.DateTimeUtils;
 import com.vmware.blockchain.common.InternalFailureException;
@@ -69,7 +70,6 @@ import com.vmware.blockchain.db.Entity;
 import com.vmware.blockchain.db.TestMapper;
 import com.vmware.blockchain.db.mapper.EntityMapper;
 import com.vmware.blockchain.db.mapper.LinkMapper;
-import com.vmware.blockchain.security.AuthHelper;
 import com.vmware.blockchain.services.profiles.Roles;
 
 import io.zonky.test.db.AutoConfigureEmbeddedDatabase;

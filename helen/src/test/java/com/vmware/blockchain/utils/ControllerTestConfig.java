@@ -4,15 +4,22 @@
 
 package com.vmware.blockchain.utils;
 
+import org.mockito.Mockito;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.cache.CacheManager;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-import com.vmware.blockchain.common.ConcordProperties;
+import com.vmware.blockchain.BaseCacheHelper;
+import com.vmware.blockchain.auth.AuthHelper;
+import com.vmware.blockchain.common.DatabaseService;
+import com.vmware.blockchain.common.csp.CspJwksSigningKeyResolver;
+import com.vmware.blockchain.common.csp.VmbcTokenValidator;
 import com.vmware.blockchain.connections.ConcordConnectionPool;
 import com.vmware.blockchain.connections.ConnectionPoolManager;
 import com.vmware.blockchain.dao.GenericDao;
-import com.vmware.blockchain.security.AuthHelper;
 import com.vmware.blockchain.security.JwtTokenProvider;
 import com.vmware.blockchain.security.ServiceContext;
 import com.vmware.blockchain.services.blockchains.BlockchainService;
@@ -20,6 +27,7 @@ import com.vmware.blockchain.services.ethereum.EthDispatcher;
 import com.vmware.blockchain.services.profiles.ConsortiumService;
 import com.vmware.blockchain.services.profiles.DefaultProfiles;
 import com.vmware.blockchain.services.profiles.KeystoreService;
+import com.vmware.blockchain.services.profiles.OrganizationService;
 import com.vmware.blockchain.services.profiles.ProfilesService;
 import com.vmware.blockchain.services.profiles.UserService;
 import com.vmware.blockchain.services.tasks.TaskService;
@@ -44,9 +52,6 @@ public class ControllerTestConfig {
     private JwtTokenProvider jwtTokenProvider;
 
     @MockBean
-    private ConcordProperties concordProperties;
-
-    @MockBean
     private ConcordConnectionPool connectionPool;
 
     @MockBean
@@ -60,6 +65,9 @@ public class ControllerTestConfig {
 
     @MockBean
     private ConsortiumService consortiumService;
+
+    @MockBean
+    private OrganizationService organizationService;
 
     @MockBean
     AuthHelper authHelper;
@@ -81,5 +89,26 @@ public class ControllerTestConfig {
 
     @MockBean
     ConnectionPoolManager connectionPoolManager;
+
+    @MockBean
+    BaseCacheHelper baseCacheHelper;
+
+    @MockBean
+    DatabaseService databaseService;
+
+    @MockBean
+    CacheManager cacheManager;
+
+    @Bean
+    @Primary
+    VmbcTokenValidator cspAuthService() {
+        return Mockito.mock(VmbcTokenValidator.class);
+    }
+
+    @Bean
+    @Primary
+    CspJwksSigningKeyResolver cspJwksSigningKeyResolver() {
+        return Mockito.mock(CspJwksSigningKeyResolver.class);
+    }
 
 }
