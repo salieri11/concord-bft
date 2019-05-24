@@ -37,6 +37,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
   firstBlockTransactionCount: number = 0;
   pollIntervalId: any;
   nodeHealth: number = 1;
+  nodeData: {name: string, value: number}[] = [];
+  colorScheme = {
+    domain: ['#60B515', '#60B515']
+  };
 
   constructor(
     private transactionsService: TransactionsService,
@@ -80,6 +84,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
       }
     });
 
+    this.setNodeData();
   }
 
   ngOnDestroy() {
@@ -90,6 +95,23 @@ export class DashboardComponent implements OnInit, OnDestroy {
     clearInterval(this.pollIntervalId);
   }
 
+  private setNodeData() {
+    this.nodeData = [{
+      name: this.translate.instant('dashboard.nodeHealth'),
+      value: this.healthyNodesCount
+    }];
+  }
+
+  valueFormatting(value) {
+    return `${value}/${this.max}`;
+  }
+
+  customColors() {
+    console.log('this')
+    console.log(this)
+    return ['#60B515', '#60B515', '#60B515', '#60B515', '#60B515'];
+  }
+
   get transactionCount() {
     const blockCount = this.blocks[0] ? this.blocks[0].number : 0;
     const firstBlockTransactionCount = this.firstBlockTransactionCount;
@@ -98,9 +120,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   get healthyNodesCount() {
-    return this.nodes.filter((node) => {
+    const healthyNodeCount = this.nodes.filter((node) => {
       return node.millis_since_last_message < node.millis_since_last_message_threshold;
     }).length;
+
+    return healthyNodeCount;
   }
 
   get nodesConfig(): DashboardListConfig {
@@ -169,6 +193,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.nodesService.getNodes().subscribe((resp) => {
       this.nodes = resp;
       this.nodeHealth = this.healthyNodesCount / this.nodes.length;
+      this.setNodeData();
+      console.log(this.nodeData)
     });
   }
 

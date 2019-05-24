@@ -3,14 +3,22 @@
     <div class="card p-1">
       <div class="media" tourAnchor="onboardingTour.dashStats">
         <div class="dashboard-stat-container">
-          <div>{{'dashboard.nodeHealth' | translate}}</div>
-          <h2 class="mt-0" [ngClass]="{
-            'green': nodeHealth >= .9,
-            'yellow': nodeHealth >= .7,
-            'red': nodeHealth <= .69
-          }">
-            {{healthyNodesCount}}/{{nodes.length}}
-          </h2>
+          <!-- <div>{{'dashboard.nodeHealth' | translate}}</div> -->
+
+          <ngx-charts-gauge
+            [view]="[300, 300]"
+            [min]="0"
+            [results]="nodeData"
+            [max]="nodes.length"
+            [showAxis]="false"
+            [units]="Nodes"
+            [valueFormatting]="valueFormatting"
+            [scheme]="colorScheme"
+            [startAngle]="-180"
+            [angleSpan]="360"
+            [tooltipDisabled]="true"
+            ></ngx-charts-gauge>
+
         </div>
         <div class="dashboard-stat-container">
           <div>{{'dashboard.deployedContracts' | translate}}</div>
