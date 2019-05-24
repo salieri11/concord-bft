@@ -1,6 +1,8 @@
 /* [START declaration] */
 syntax = "proto3";
 package com.vmware.blockchain.deployment.model;
+
+import "core.proto";
 /* [END declaration] */
 
 /* [START java_declaration] */
@@ -20,5 +22,54 @@ option java_multiple_files = true;
 message OrchestrationSiteIdentifier {
     uint64 low = 1;
     uint64 high = 2;
+}
+
+/**
+ * Model definition of an orchestration site.
+ *
+ * @param[type]
+ *   type of the the endpoint.
+ * @param[vmc]
+ *   information pertaining to a [Type.VMC] type endpoint.
+ */
+message OrchestrationSiteInfo {
+    enum Type {
+        NONE = 0;
+        VMC = 1;
+    }
+
+    Type type = 1;
+    VmcOrchestrationSiteInfo vmc = 2;
+}
+
+/**
+ * Model definition of a VMware Cloud-based orchestration site.
+ *
+ * @param[authentication]
+ *   authentication endpoint information.
+ * @param[api]
+ *   API endpoint information.
+ * @param[containerRegistry]
+ *   container registry endpoint information.
+ * @param[organization]
+ *   VMC organization identifier.
+ * @param[datacenter]
+ *   SDDC datacenter identifier owned by the organization.
+ * @param[resourcePool]
+ *   name of the resource pool to use compute deployment.
+ * @param[folder]
+ *   name of the inventory folder to use compute deployment.
+ */
+message VmcOrchestrationSiteInfo {
+    Endpoint authentication = 1;
+    Endpoint api = 2;
+    Endpoint container_registry = 3;
+    string organization = 4;
+    string datacenter = 5;
+    string resource_pool = 6;
+    string folder = 7;
+    string control_network = 8;
+    fixed32 control_network_prefix = 9;
+    int32 control_network_subnet = 10;
 }
 /* [END messages] */

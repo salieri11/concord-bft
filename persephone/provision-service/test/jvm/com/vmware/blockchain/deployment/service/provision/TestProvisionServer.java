@@ -9,7 +9,7 @@ import java.util.Map;
 import javax.inject.Singleton;
 
 import com.vmware.blockchain.deployment.model.OrchestrationSiteIdentifier;
-import com.vmware.blockchain.deployment.model.orchestration.OrchestrationSiteInfo;
+import com.vmware.blockchain.deployment.model.OrchestrationSiteInfo;
 
 import dagger.BindsInstance;
 import dagger.Component;

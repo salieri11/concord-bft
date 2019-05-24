@@ -13,7 +13,7 @@ import java.util.concurrent.ForkJoinPool;
 
 import org.reactivestreams.Publisher;
 
-import com.vmware.blockchain.deployment.model.orchestration.OrchestrationSiteInfo;
+import com.vmware.blockchain.deployment.model.OrchestrationSiteInfo;
 import com.vmware.blockchain.deployment.orchestration.Orchestrator;
 import com.vmware.blockchain.deployment.reactive.ErrorPublisher;
 import com.vmware.blockchain.deployment.reactive.IteratingPublisher;

@@ -32,3 +32,62 @@ message PublicKey {
     string algorithm = 1;
     string base64_encoding = 2;
 }
+
+/**
+ * Model definition of a service endpoint.
+ *
+ * @param[address]
+ *   address of the server endpoint URI as a string.
+ * @param[credential]
+ *   credential to present to the endpoint upon connection.
+ */
+message Endpoint {
+    string address = 1;
+    Credential credential = 2;
+}
+
+/**
+ * Model definition of a credential.
+ *
+ * @property[type]
+ *   type of the credential.
+ * @property[password_credential]
+ *   content of password-based credential.
+ * @property[token_credential]
+ *   content of token-based credential.
+ */
+message Credential {
+    enum Type {
+        NONE = 0;
+        PASSWORD = 1;
+        BEARER = 2;
+    }
+
+    Type type = 1;
+    PasswordCredential password_credential = 2;
+    BearerTokenCredential token_credential = 3;
+}
+
+/**
+ * Denote a basic authentication credential.
+ *
+ * @property[username]
+ *   login username to present to the endpoint.
+ * @property[password]
+ *   login password to present to the endpoint.
+ */
+message PasswordCredential {
+    string username = 1;
+    string password = 2;
+}
+
+/**
+ * Denote a token authentication credential.
+ *
+ * @property[token]
+ *   token value to present to the endpoint.
+ */
+message BearerTokenCredential {
+    string token = 1;
+}
+
