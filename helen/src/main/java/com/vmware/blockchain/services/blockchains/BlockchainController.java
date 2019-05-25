@@ -37,7 +37,7 @@ import com.vmware.blockchain.deployment.model.MessageHeader;
 import com.vmware.blockchain.deployment.model.OrchestrationSiteIdentifier;
 import com.vmware.blockchain.deployment.model.PlacementSpecification;
 import com.vmware.blockchain.deployment.model.PlacementSpecification.Entry;
-import com.vmware.blockchain.deployment.model.ProvisionServiceStub;
+import com.vmware.blockchain.deployment.model.ProvisioningServiceStub;
 import com.vmware.blockchain.deployment.model.StreamClusterDeploymentSessionEventRequest;
 import com.vmware.blockchain.deployment.model.ethereum.Genesis;
 import com.vmware.blockchain.security.AuthHelper;
@@ -226,7 +226,7 @@ public class BlockchainController {
     /**
      * The actual call which will contact server and add the model request.
      */
-    private DeploymentSessionIdentifier createFixedSizeCluster(ProvisionServiceStub client,
+    private DeploymentSessionIdentifier createFixedSizeCluster(ProvisioningServiceStub client,
             int clusterSize) throws Exception {
         // Create a blocking stub with the channel
         List<Entry> list = new ArrayList<Entry>(clusterSize);
@@ -276,7 +276,7 @@ public class BlockchainController {
         if (!authHelper.hasAnyAuthority(Roles.operatorRoles())) {
             throw new ForbiddenException(ErrorCode.UNALLOWED);
         }
-        final ProvisionServiceStub client = new ProvisionServiceStub(channel, CallOptions.DEFAULT);
+        final ProvisioningServiceStub client = new ProvisioningServiceStub(channel, CallOptions.DEFAULT);
         // start the deployment
         int clusterSize = body.getFCount() * 3 + body.getCCount() * 2 + 1;
         logger.info("Creating new blockchain. Cluster size {}", clusterSize);
