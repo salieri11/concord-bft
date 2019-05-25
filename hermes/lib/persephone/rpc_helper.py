@@ -94,7 +94,7 @@ class RPCHelper():
       if self.service_name is Product.PERSEPHONE_SERVICE_METADATA:
          stub = model_service_pb2_grpc.ConcordModelServiceStub(channel)
       if self.service_name is Product.PERSEPHONE_SERVICE_PROVISIONING:
-         stub = provision_service_pb2_grpc.ProvisionServiceStub(channel)
+         stub = provision_service_pb2_grpc.ProvisioningServiceStub(channel)
       # if self.service_name is Product.PERSEPHONE_SERVICE_FLEET:
       #    stub = fleet_service_pb2_grpc.FleetServiceStub(channel)
 
