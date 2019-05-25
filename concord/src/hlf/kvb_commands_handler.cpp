@@ -8,7 +8,6 @@
 #include "common/concord_exception.hpp"
 #include "concord.pb.h"
 #include "config/configuration_manager.hpp"
-#include "consensus/kvb/BlockchainInterfaces.h"
 #include "utils/concord_eth_hash.hpp"
 
 using namespace boost::program_options;
@@ -23,10 +22,10 @@ using concord::common::zero_address;
 using concord::common::zero_hash;
 using concord::common::operator<<;
 
-using Blockchain::IBlocksAppender;
-using Blockchain::ILocalKeyValueStorageReadOnly;
-using Blockchain::Status;
+using concord::consensus::Status;
 using concord::hlf::HlfKvbStorage;
+using concord::storage::IBlocksAppender;
+using concord::storage::ILocalKeyValueStorageReadOnly;
 
 using concord::hlf::HlfHandler;
 
@@ -37,8 +36,8 @@ HlfKvbCommandsHandler::HlfKvbCommandsHandler(
     HlfHandler* hlf_handler,
     const concord::config::ConcordConfiguration& config,
     concord::config::ConcordConfiguration& node_config,
-    Blockchain::ILocalKeyValueStorageReadOnly* ptr_ro_storage,
-    Blockchain::IBlocksAppender* ptr_block_appender)
+    ILocalKeyValueStorageReadOnly* ptr_ro_storage,
+    IBlocksAppender* ptr_block_appender)
     : logger_(log4cplus::Logger::getInstance("com.vmware.concord.hlf.handler")),
       hlf_handler_(hlf_handler),
       config_(config),

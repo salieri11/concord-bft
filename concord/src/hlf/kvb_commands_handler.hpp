@@ -8,31 +8,31 @@
 #include <boost/program_options.hpp>
 #include "concord.pb.h"
 #include "config/configuration_manager.hpp"
-#include "consensus/kvb/BlockchainInterfaces.h"
 #include "hlf/handler.hpp"
 #include "hlf_services.pb.h"
 #include "hlf_storage.pb.h"
+#include "storage/blockchain_interfaces.h"
 
 namespace concord {
 namespace hlf {
 
-class HlfKvbCommandsHandler : public Blockchain::ICommandsHandler {
+class HlfKvbCommandsHandler : public concord::storage::ICommandsHandler {
  private:
   log4cplus::Logger logger_;
   HlfHandler* hlf_handler_ = nullptr;
   const concord::config::ConcordConfiguration& config_;
   concord::config::ConcordConfiguration& node_config_;
 
-  Blockchain::ILocalKeyValueStorageReadOnly* ptr_ro_storage_ = nullptr;
-  Blockchain::IBlocksAppender* ptr_block_appender_ = nullptr;
+  concord::storage::ILocalKeyValueStorageReadOnly* ptr_ro_storage_ = nullptr;
+  concord::storage::IBlocksAppender* ptr_block_appender_ = nullptr;
 
  public:
   HlfKvbCommandsHandler(
       HlfHandler* hlf_handler,
       const concord::config::ConcordConfiguration& config,
       concord::config::ConcordConfiguration& node_config,
-      Blockchain::ILocalKeyValueStorageReadOnly* ptr_ro_storage,
-      Blockchain::IBlocksAppender* ptr_block_appender);
+      concord::storage::ILocalKeyValueStorageReadOnly* ptr_ro_storage,
+      concord::storage::IBlocksAppender* ptr_block_appender);
 
   ~HlfKvbCommandsHandler();
 
@@ -44,13 +44,14 @@ class HlfKvbCommandsHandler : public Blockchain::ICommandsHandler {
  private:
   bool ExecuteCommand(
       uint32_t request_size, const char* request, uint64_t sequence_num,
-      const Blockchain::ILocalKeyValueStorageReadOnly& ro_storage,
-      Blockchain::IBlocksAppender& block_appender, const size_t max_reply_size,
-      char* out_reply, uint32_t& out_reply_size) const;
+      const concord::storage::ILocalKeyValueStorageReadOnly& ro_storage,
+      concord::storage::IBlocksAppender& block_appender,
+      const size_t max_reply_size, char* out_reply,
+      uint32_t& out_reply_size) const;
 
   bool ExecuteReadOnlyCommand(
       uint32_t request_size, const char* request,
-      const Blockchain::ILocalKeyValueStorageReadOnly& ro_storage,
+      const concord::storage::ILocalKeyValueStorageReadOnly& ro_storage,
       const size_t max_reply_size, char* out_reply,
       uint32_t& out_reply_size) const;
 

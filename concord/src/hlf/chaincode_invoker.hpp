@@ -6,7 +6,7 @@
 #include <log4cplus/loggingmacros.h>
 #include <iostream>
 #include "config/configuration_manager.hpp"
-#include "consensus/kvb/BlockchainInterfaces.h"
+#include "consensus/status.hpp"
 #include "stdio.h"
 #include "stdlib.h"
 
@@ -19,8 +19,8 @@ class ChaincodeInvoker {
   ~ChaincodeInvoker();
 
   // functions to config command tool
-  Blockchain::Status SetHlfPeerTool(std::string tool_path);
-  Blockchain::Status SetHlfKvServiceAddress(std::string address);
+  concord::consensus::Status SetHlfPeerTool(std::string tool_path);
+  concord::consensus::Status SetHlfKvServiceAddress(std::string address);
 
   std::string GetHlfPeerTool() const;
   std::string GetHlfKvServiceAddress() const;
@@ -31,10 +31,11 @@ class ChaincodeInvoker {
 
   // functions to call hlf peer:
   std::string SendQuery(std::string, std::string);
-  Blockchain::Status SendInvoke(std::string, std::string);
-  Blockchain::Status SendInstall(std::string, std::string, std::string);
-  Blockchain::Status SendInstantiate(std::string, std::string, std::string);
-  Blockchain::Status SendUpgrade(std::string, std::string, std::string);
+  concord::consensus::Status SendInvoke(std::string, std::string);
+  concord::consensus::Status SendInstall(std::string, std::string, std::string);
+  concord::consensus::Status SendInstantiate(std::string, std::string,
+                                             std::string);
+  concord::consensus::Status SendUpgrade(std::string, std::string, std::string);
 
  private:
   std::string hlf_peer_tool_;

@@ -5,21 +5,19 @@
 #include <vector>
 #include "common/concord_exception.hpp"
 #include "concord_storage.pb.h"
-#include "consensus/kvb/BlockchainInterfaces.h"
-#include "consensus/kvb/HashDefs.h"
-#include "consensus/kvb/HexTools.h"
-#include "consensus/kvb/sliver.hpp"
 #include "utils/concord_eth_hash.hpp"
 
-using namespace Blockchain;
-using Blockchain::Sliver;
+using concord::consensus::Sliver;
+using concord::consensus::Status;
 
 using concord::common::BlockNotFoundException;
 using concord::common::EVMException;
 using concord::common::ReadOnlyModeException;
-
 using concord::common::zero_hash;
-using concord::common::operator<<;
+
+using concord::storage::BlockId;
+using concord::storage::IBlocksAppender;
+using concord::storage::ILocalKeyValueStorageReadOnly;
 
 namespace concord {
 namespace hlf {
@@ -31,17 +29,16 @@ namespace hlf {
 const int64_t KHlfStateStorageVersion = 1;
 
 // read-only mode
-HlfKvbStorage::HlfKvbStorage(
-    const Blockchain::ILocalKeyValueStorageReadOnly &ro_storage)
+HlfKvbStorage::HlfKvbStorage(const ILocalKeyValueStorageReadOnly &ro_storage)
     : ro_storage_(ro_storage),
       ptr_block_appender_(nullptr),
       logger_(
           log4cplus::Logger::getInstance("com.vmware.concord.hlf.storage")) {}
 
 // read-write mode
-HlfKvbStorage::HlfKvbStorage(
-    const Blockchain::ILocalKeyValueStorageReadOnly &ro_storage,
-    Blockchain::IBlocksAppender *ptr_block_appender, uint64_t sequence_num)
+HlfKvbStorage::HlfKvbStorage(const ILocalKeyValueStorageReadOnly &ro_storage,
+                             IBlocksAppender *ptr_block_appender,
+                             uint64_t sequence_num)
     : ro_storage_(ro_storage),
       ptr_block_appender_(ptr_block_appender),
       logger_(log4cplus::Logger::getInstance("com.vmware.concord.hlf.storage")),
@@ -57,7 +54,7 @@ bool HlfKvbStorage::is_read_only() {
 
 // Allow access to read-only storage object, to enabled downgrades to read-only
 // HlfKvbStorage when convenient.
-const Blockchain::ILocalKeyValueStorageReadOnly &
+const concord::storage::ILocalKeyValueStorageReadOnly &
 HlfKvbStorage::getReadOnlyStorage() {
   return ro_storage_;
 }
@@ -134,7 +131,7 @@ Status HlfKvbStorage::AddHlfTransaction(
 
 com::vmware::concord::hlf::storage::HlfBlock HlfKvbStorage::GetHlfBlock(
     uint64_t blockNumber) {
-  SetOfKeyValuePairs out_blockData;
+  concord::storage::SetOfKeyValuePairs out_blockData;
 
   Status status = ro_storage_.getBlockData(blockNumber, out_blockData);
 

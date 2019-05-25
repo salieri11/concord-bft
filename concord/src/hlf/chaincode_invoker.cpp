@@ -2,8 +2,8 @@
 
 #include "hlf/chaincode_invoker.hpp"
 
-using Blockchain::Status;
 using concord::config::ConcordConfiguration;
+using concord::consensus::Status;
 using log4cplus::Logger;
 using std::string;
 

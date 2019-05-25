@@ -139,13 +139,12 @@ target_link_libraries(HlfTest
   ${GTEST_LIBRARIES}
   ${Boost_LIBRARIES}
   ${yaml-cpp_LIBRARIES}
+  concord_consensus
   concord_utils
   concord_common
   gtest
   gtest_main
   proto
-  concord_blockchain
-  kvblockchain
   log4cplus)
 
 add_subdirectory(simpleKVBTests)

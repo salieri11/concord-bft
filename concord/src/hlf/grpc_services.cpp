@@ -12,7 +12,6 @@ using grpc::ServerContext;
 using grpc::ServerReader;
 using grpc::ServerReaderWriter;
 using grpc::ServerWriter;
-using grpc::Status;
 
 using concord::consensus::KVBClientPool;
 using concord::hlf::HlfHandler;
@@ -33,9 +32,9 @@ using com::vmware::concord::HlfResponse;
 namespace concord {
 namespace hlf {
 
-Status HlfKeyValueServiceImpl::GetState(ServerContext* context,
-                                        const KvbMessage* request,
-                                        KvbMessage* response) {
+grpc::Status HlfKeyValueServiceImpl::GetState(ServerContext* context,
+                                              const KvbMessage* request,
+                                              KvbMessage* response) {
   if (request->key() != "") {
     string value = hlf_handler_->GetState(request->key());
 
@@ -43,18 +42,18 @@ Status HlfKeyValueServiceImpl::GetState(ServerContext* context,
 
     response->set_value(value);
     response->set_state(KvbMessage_type_VALID);
-    return Status::OK;
+    return grpc::Status::OK;
   } else {
     response->set_state(KvbMessage_type_INVALID);
-    return Status::CANCELLED;
+    return grpc::Status::CANCELLED;
   }
 }
 
-Status HlfKeyValueServiceImpl::PutState(ServerContext* context,
-                                        const KvbMessage* request,
-                                        KvbMessage* response) {
+grpc::Status HlfKeyValueServiceImpl::PutState(ServerContext* context,
+                                              const KvbMessage* request,
+                                              KvbMessage* response) {
   if (request->key() != "" && request->value() != "") {
-    Blockchain::Status status =
+    concord::consensus::Status status =
         hlf_handler_->PutState(request->key(), request->value());
 
     LOG4CPLUS_DEBUG(logger_,
@@ -62,36 +61,36 @@ Status HlfKeyValueServiceImpl::PutState(ServerContext* context,
 
     if (status.isOK()) {
       response->set_state(KvbMessage_type_VALID);
-      return Status::OK;
+      return grpc::Status::OK;
     }
   }
 
   response->set_state(KvbMessage_type_INVALID);
-  return Status::CANCELLED;
+  return grpc::Status::CANCELLED;
 }
 
 // WriteBlock is only called by Client
-Status HlfKeyValueServiceImpl::WriteBlock(ServerContext* context,
-                                          const KvbMessage* request,
-                                          KvbMessage* response) {
-  Blockchain::Status status = hlf_handler_->WriteBlock();
+grpc::Status HlfKeyValueServiceImpl::WriteBlock(ServerContext* context,
+                                                const KvbMessage* request,
+                                                KvbMessage* response) {
+  concord::consensus::Status status = hlf_handler_->WriteBlock();
   if (status.isOK()) {
     response->set_state(KvbMessage_type_VALID);
-    return Status::OK;
+    return grpc::Status::OK;
   } else {
     response->set_state(KvbMessage_type_INVALID);
-    return Status::CANCELLED;
+    return grpc::Status::CANCELLED;
   }
 }
 
-Status HlfKeyValueServiceImpl::TriggerChaincode(
+grpc::Status HlfKeyValueServiceImpl::TriggerChaincode(
     ServerContext* context, const ConcordRequest* concord_request,
     ConcordResponse* concord_response) {
   if (concord_request->hlf_request_size() == 0) {
     ErrorResponse* e = concord_response->add_error_response();
     e->mutable_description()->assign(
         "Concord request did not contain any HLF requset");
-    return Status::CANCELLED;
+    return grpc::Status::CANCELLED;
   }
 
   for (int i = 0; i < concord_request->hlf_request_size(); i++) {
@@ -148,7 +147,7 @@ Status HlfKeyValueServiceImpl::TriggerChaincode(
       }
     }
   }
-  return Status::OK;
+  return grpc::Status::OK;
 }
 
 bool HlfKeyValueServiceImpl::IsValidManageOpt(

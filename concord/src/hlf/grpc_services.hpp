@@ -12,6 +12,7 @@
 #include <iostream>
 #include "concord.pb.h"
 #include "consensus/kvb_client.hpp"
+//#include "consensus/status.hpp"
 #include "hlf/handler.hpp"
 #include "hlf_services.grpc.pb.h"
 
@@ -62,8 +63,6 @@ class HlfKeyValueServiceImpl final
 void RunHlfServer(concord::hlf::HlfHandler*,
                   concord::consensus::KVBClientPool&);
 
-void RunHlfServer(std::unique_ptr<concord::hlf::HlfHandler>& ptr_hlf_handler,
-                  concord::consensus::KVBClientPool& pool);
 }  // namespace hlf
 }  // namespace concord
 

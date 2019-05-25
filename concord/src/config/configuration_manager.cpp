@@ -3276,7 +3276,7 @@ void specifyConfiguration(ConcordConfiguration& config) {
   node.declareParameter("hlf_kv_service_address",
                         "Address of Concord to provide KV service.",
                         "0.0.0.0:50051");
-  node.tagParameter("hlf_concord_kv_service_address", publicDefaultableTags);
+  node.tagParameter("hlf_kv_service_address", publicDefaultableTags);
 
   // TLS
   config.declareParameter("tls_cipher_suite_list",

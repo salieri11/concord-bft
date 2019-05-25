@@ -2,7 +2,7 @@
 
 #include "hlf/handler.hpp"
 
-using Blockchain::Status;
+using concord::consensus::Status;
 using concord::hlf::HlfKvbStorage;
 
 using log4cplus::Logger;
