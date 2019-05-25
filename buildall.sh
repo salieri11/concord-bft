@@ -305,7 +305,7 @@ docker_build ethrpc ethrpc/packaging.Dockerfile ${ethrpc_repo} ${ethrpc_tag}
 docker_build helen helen/packaging.Dockerfile ${helen_repo} ${helen_tag}
 
 docker_build persephone persephone/metadata-service/Dockerfile ${persephone_metadata_repo} ${persephone_tag}
-docker_build . persephone/provision-service/Dockerfile ${persephone_provisioning_repo} ${persephone_tag}
+docker_build . persephone/provisioning-service/Dockerfile ${persephone_provisioning_repo} ${persephone_tag}
 # docker_build persephone persephone/fleet/Dockerfile ${persephone_fleet_repo} ${persephone_tag}
 
 docker_pull cockroachdb/cockroach:v2.0.2 Cockroach_DB

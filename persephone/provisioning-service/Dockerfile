@@ -15,7 +15,7 @@ COPY ./persephone/metadata-service-client/pom.xml ./persephone/metadata-service-
 COPY ./persephone/orchestration/pom.xml ./persephone/orchestration/pom.xml
 COPY ./persephone/orchestration-vmc/pom.xml ./persephone/orchestration-vmc/pom.xml
 COPY ./persephone/persistence/pom.xml ./persephone/persistence/pom.xml
-COPY ./persephone/provision-service/pom.xml ./persephone/provision-service/pom.xml
+COPY ./persephone/provisioning-service/pom.xml ./persephone/provisioning-service/pom.xml
 
 ## Copy the dependency module sources and POM files.
 COPY ./persephone/api/src ./persephone/api/src
@@ -29,11 +29,11 @@ COPY ./persephone/persistence/src ./persephone/persistence/src
 COPY ./persephone/persistence/test ./persephone/persistence/test
 
 ## Copy the module sources and POM file.
-COPY ./persephone/provision-service/src ./persephone/provision-service/src
-COPY ./persephone/provision-service/test ./persephone/provision-service/test
+COPY ./persephone/provisioning-service/src ./persephone/provisioning-service/src
+COPY ./persephone/provisioning-service/test ./persephone/provisioning-service/test
 
 ## Build persephone modules.
-RUN mvn -f persephone/pom.xml package -pl provision-service -am -B
+RUN mvn -f persephone/pom.xml package -pl provisioning-service -am -B
 
 ## Get the C++ part
 FROM athena-docker-local.artifactory.eng.vmware.com/concord-core:prereqs-v8 as builder1
@@ -65,12 +65,12 @@ COPY --from=builder1 /concord/build/tools/conc_genconfig /app/
 
 RUN sed -i "/jdk.tls.disabledAlgorithms=/ s/=.*/=TLSv1.3, SSLv3, RC4, MD5withRSA, DH keySize < 1024, EC keySize < 224, DES40_CBC, RC4_40, 3DES_EDE_CBC/" $(readlink -f /usr/bin/java | sed "s:bin/java::")/conf/security/java.security
 
-WORKDIR /persephone/provision-service
-COPY --from=0 ./persephone/provision-service/target/persephone-provision-service*with-dependencies.jar ./provision-service.jar
+WORKDIR /persephone/provisioning-service
+COPY --from=0 ./persephone/provisioning-service/target/persephone-provisioning-service*with-dependencies.jar ./provisioning-service.jar
 
 
 EXPOSE 9002
 
 VOLUME ["/config"]
 
-CMD ["java", "-jar", "provision-service.jar"]
+CMD ["java", "-jar", "provisioning-service.jar"]

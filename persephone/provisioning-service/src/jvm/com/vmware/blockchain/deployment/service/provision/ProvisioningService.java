@@ -49,12 +49,13 @@ import com.vmware.blockchain.deployment.model.DeploymentSessionEvent;
 import com.vmware.blockchain.deployment.model.DeploymentSessionIdentifier;
 import com.vmware.blockchain.deployment.model.DeploymentSpecification;
 import com.vmware.blockchain.deployment.model.MessageHeader;
+import com.vmware.blockchain.deployment.model.OrchestrationSite;
 import com.vmware.blockchain.deployment.model.OrchestrationSiteIdentifier;
 import com.vmware.blockchain.deployment.model.OrchestrationSiteInfo;
 import com.vmware.blockchain.deployment.model.PlacementAssignment;
 import com.vmware.blockchain.deployment.model.PlacementSpecification;
-import com.vmware.blockchain.deployment.model.ProvisionServiceImplBase;
 import com.vmware.blockchain.deployment.model.ProvisionedResource;
+import com.vmware.blockchain.deployment.model.ProvisioningServiceImplBase;
 import com.vmware.blockchain.deployment.model.StreamClusterDeploymentSessionEventRequest;
 import com.vmware.blockchain.deployment.model.ethereum.Genesis;
 import com.vmware.blockchain.deployment.orchestration.InactiveOrchestrator;
@@ -75,7 +76,7 @@ import io.grpc.stub.StreamObserver;
 /**
  * Implementation of ProvisioningService server.
  */
-public class ProvisionService extends ProvisionServiceImplBase {
+public class ProvisioningService extends ProvisioningServiceImplBase {
 
     /**
      * Enumeration of possible service instance state.
@@ -88,11 +89,11 @@ public class ProvisionService extends ProvisionServiceImplBase {
     }
 
     /** Logger instance. */
-    private static final Logger log = LoggerFactory.getLogger(ProvisionService.class);
+    private static final Logger log = LoggerFactory.getLogger(ProvisioningService.class);
 
     /** Atomic update for service instance state. */
-    private static final AtomicReferenceFieldUpdater<ProvisionService, State> STATE =
-            AtomicReferenceFieldUpdater.newUpdater(ProvisionService.class, State.class, "state");
+    private static final AtomicReferenceFieldUpdater<ProvisioningService, State> STATE =
+            AtomicReferenceFieldUpdater.newUpdater(ProvisioningService.class, State.class, "state");
 
     /** Default Orchestrator instance's OrchestrationSiteIdentifier. */
     private static final OrchestrationSiteIdentifier defaultOrchestratorId =
@@ -131,16 +132,16 @@ public class ProvisionService extends ProvisionServiceImplBase {
     /**
      * Constructor.
      */
-    public ProvisionService(
+    ProvisioningService(
             ExecutorService executor,
             OrchestratorProvider orchestratorProvider,
-            Map<OrchestrationSiteIdentifier, OrchestrationSiteInfo> orchestrations
+            List<OrchestrationSite> orchestrations
     ) {
         this.executor = executor;
         this.orchestratorProvider = orchestratorProvider;
-        this.orchestrations = orchestrations;
+        this.orchestrations = orchestrations.stream()
+                .collect(Collectors.toMap(OrchestrationSite::getId, OrchestrationSite::getInfo));
     }
-
 
     /**
      * Helper method which initializes the connection with S3-bucket.
@@ -182,7 +183,7 @@ public class ProvisionService extends ProvisionServiceImplBase {
      * @return
      *   {@link CompletableFuture} that completes when initialization is done.
      */
-    public CompletableFuture<Void> initialize() {
+    CompletableFuture<Void> initialize() {
         // Provisioning service should be able to initialize with s3 bucket, else we can't proceed.
         if (!initializeS3Client()) {
             return CompletableFuture.failedFuture(
@@ -225,7 +226,7 @@ public class ProvisionService extends ProvisionServiceImplBase {
      * @return
      *   {@link CompletableFuture} that completes when shutdown is done.
      */
-    public CompletableFuture<Void> shutdown() {
+    CompletableFuture<Void> shutdown() {
         if (STATE.compareAndSet(this, State.ACTIVE, State.STOPPING)
             || STATE.compareAndSet(this, State.INITIALIZING, State.STOPPING)) {
             return CompletableFuture.runAsync(() -> {

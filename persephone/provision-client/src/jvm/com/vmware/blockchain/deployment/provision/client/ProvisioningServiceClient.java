@@ -24,7 +24,7 @@ import com.vmware.blockchain.deployment.model.MessageHeader;
 import com.vmware.blockchain.deployment.model.OrchestrationSiteIdentifier;
 import com.vmware.blockchain.deployment.model.PlacementSpecification;
 import com.vmware.blockchain.deployment.model.PlacementSpecification.Entry;
-import com.vmware.blockchain.deployment.model.ProvisionServiceStub;
+import com.vmware.blockchain.deployment.model.ProvisioningServiceStub;
 import com.vmware.blockchain.deployment.model.ethereum.Genesis;
 
 import io.grpc.CallOptions;
@@ -35,9 +35,9 @@ import io.grpc.stub.StreamObserver;
 /**
  * Simple gRPC client for accessing Provisioning-Service.
  */
-public class ProvisionServiceClient {
+public class ProvisioningServiceClient {
 
-    private static Logger log = LoggerFactory.getLogger(ProvisionServiceClient.class);
+    private static Logger log = LoggerFactory.getLogger(ProvisioningServiceClient.class);
     private static String USAGE = "provision-client createCluster <server:port> <JSON>";
     private static String CREATE_CLUSTER = "createCluster";
     private static long awaitTime = 10000;
@@ -110,7 +110,7 @@ public class ProvisionServiceClient {
 
 
             // Create a blocking stub with the channel
-            var client = new ProvisionServiceStub(channel, CallOptions.DEFAULT);
+            var client = new ProvisioningServiceStub(channel, CallOptions.DEFAULT);
             var clusterSize = 7;
             var list = List.of(
                     new Entry(PlacementSpecification.Type.FIXED, new OrchestrationSiteIdentifier(1, 0)),
