@@ -167,12 +167,9 @@ class Product():
 
          if not self._cmdlineArgs.keepconcordDB:
             self.clearDBsForDockerLaunch(dockerCfg)
+
             if self._isHelenInDockerCompose(dockerCfg):
                self.initializeHelenDockerDB(dockerCfg)
-
-            # DB init is handled by docker-compose now; I think this can be removed.
-            # Do it in a separate checkin.
-            self.initializeHelenDockerDB(dockerCfg)
 
          self._startContainers()
          self._startLogCollection()
