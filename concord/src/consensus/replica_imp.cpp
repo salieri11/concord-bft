@@ -26,8 +26,11 @@
 #include "storage/blockchain_interfaces.h"
 #include "storage/rocksdb_metadata_storage.h"
 
+using bftEngine::PlainUdpConfig;
+using bftEngine::TlsTcpConfig;
+using bftEngine::SimpleBlockchainStateTransfer::BLOCK_DIGEST_SIZE;
+using bftEngine::SimpleBlockchainStateTransfer::StateTransferDigest;
 using log4cplus::Logger;
-using namespace bftEngine;
 
 using concord::storage::BlockchainDBAdapter;
 using concord::storage::BlockEntry;
@@ -267,7 +270,8 @@ ReplicaImp::ReplicaImp(CommConfig &commConfig,
   c.fVal = m_replicaConfig.fVal;
 
   m_appState = new BlockchainAppState(this);
-  m_stateTransfer = SimpleBlockchainStateTransfer::create(c, m_appState, false);
+  m_stateTransfer =
+      bftEngine::SimpleBlockchainStateTransfer::create(c, m_appState, false);
 }
 
 ReplicaImp::~ReplicaImp() {
@@ -297,7 +301,7 @@ Status ReplicaImp::addBlockInternal(const SetOfKeyValuePairs &updates,
   LOG4CPLUS_DEBUG(logger,
                   "addBlockInternal: Got " << updates.size() << " updates");
 
-  SimpleBlockchainStateTransfer::StateTransferDigest stDigest;
+  StateTransferDigest stDigest;
   if (block > 1) {
     Sliver parentBlockData;
     bool found;
@@ -309,12 +313,11 @@ Status ReplicaImp::addBlockInternal(const SetOfKeyValuePairs &updates,
       exit(1);
     }
 
-    SimpleBlockchainStateTransfer::computeBlockDigest(
+    bftEngine::SimpleBlockchainStateTransfer::computeBlockDigest(
         block - 1, reinterpret_cast<const char *>(parentBlockData.data()),
         parentBlockData.length(), &stDigest);
   } else {
-    memset(stDigest.content, 0,
-           SimpleBlockchainStateTransfer::BLOCK_DIGEST_SIZE);
+    memset(stDigest.content, 0, BLOCK_DIGEST_SIZE);
   }
 
   Sliver blockRaw =
@@ -527,7 +530,7 @@ void ReplicaImp::StorageWrapperForIdleMode::monitor() const {
 
 Sliver ReplicaImp::createBlockFromUpdates(
     const SetOfKeyValuePairs &updates, SetOfKeyValuePairs &outUpdatesInNewBlock,
-    SimpleBlockchainStateTransfer::StateTransferDigest &parentDigest) {
+    StateTransferDigest &parentDigest) {
   // TODO(GG): overflow handling ....
   // TODO(SG): How? Right now - will put empty block instead
 
@@ -551,10 +554,8 @@ Sliver ReplicaImp::createBlockFromUpdates(
     Sliver blockSliver(blockBuffer, blockSize);
 
     BlockHeader *header = (BlockHeader *)blockBuffer;
-    memcpy(header->parentDigest, parentDigest.content,
-           SimpleBlockchainStateTransfer::BLOCK_DIGEST_SIZE);
-    header->parentDigestLength =
-        SimpleBlockchainStateTransfer::BLOCK_DIGEST_SIZE;
+    memcpy(header->parentDigest, parentDigest.content, BLOCK_DIGEST_SIZE);
+    header->parentDigestLength = BLOCK_DIGEST_SIZE;
 
     int16_t idx = 0;
     header->numberOfElements = numOfElements;
@@ -798,8 +799,7 @@ bool ReplicaImp::BlockchainAppState::hasBlock(uint64_t blockId) {
 }
 
 bool ReplicaImp::BlockchainAppState::getPrevDigestFromBlock(
-    uint64_t blockId,
-    SimpleBlockchainStateTransfer::StateTransferDigest *outPrevBlockDigest) {
+    uint64_t blockId, StateTransferDigest *outPrevBlockDigest) {
   assert(blockId > 0);
   Sliver result;
   bool found;
