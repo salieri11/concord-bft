@@ -1,6 +1,6 @@
 // Copyright 2018 VMware, all rights reserved
 //
-// Layer between api_connection and concord::consensus::IClient
+// Layer between api_connection and concord::storage::IClient
 //
 // This is the end of the client side of Concord. Commands sent from here will
 // end up at KVBCommandsHandler.
@@ -8,8 +8,6 @@
 #include "kvb_client.hpp"
 
 #include <boost/thread.hpp>
-
-#include "consensus/blockchain_interfaces.h"
 
 using com::vmware::concord::ConcordRequest;
 using com::vmware::concord::ConcordResponse;

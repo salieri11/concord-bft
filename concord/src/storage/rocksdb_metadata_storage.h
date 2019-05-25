@@ -11,18 +11,18 @@
 // terms and conditions of the subcomponent's license, as noted in the LICENSE
 // file.
 
-#ifndef CONCORD_CONSENSUS_ROCKS_DB_METADATA_STORAGE_H_
-#define CONCORD_CONSENSUS_ROCKS_DB_METADATA_STORAGE_H_
+#ifndef CONCORD_STORAGE_ROCKSDB_METADATA_STORAGE_H_
+#define CONCORD_STORAGE_ROCKSDB_METADATA_STORAGE_H_
 
 #ifdef USE_ROCKSDB
 
 #include <log4cplus/loggingmacros.h>
 #include <mutex>
 #include "MetadataStorage.hpp"
-#include "consensus/database_interface.h"
+#include "storage/database_interface.h"
 
 namespace concord {
-namespace consensus {
+namespace storage {
 
 typedef std::vector<uint16_t> ObjectIdsVector;
 
@@ -43,7 +43,7 @@ class RocksDBMetadataStorage : public bftEngine::MetadataStorage {
   void writeInTransaction(uint16_t objectId, char *data,
                           uint32_t dataLength) override;
   void commitAtomicWriteOnlyTransaction() override;
-  Status multiDel(const ObjectIdsVector &objectIds);
+  concord::consensus::Status multiDel(const ObjectIdsVector &objectIds);
 
  private:
   void verifyOperation(uint32_t dataLen, const char *buffer) const;
@@ -61,8 +61,8 @@ class RocksDBMetadataStorage : public bftEngine::MetadataStorage {
   uint16_t objectsNum_ = 0;
 };
 
-}  // namespace consensus
+}  // namespace storage
 }  // namespace concord
 
 #endif  // USE_ROCKSDB
-#endif  // CONCORD_CONSENSUS_ROCKS_DB_METADATA_STORAGE_H_
+#endif  // CONCORD_STORAGE_ROCKSDB_METADATA_STORAGE_H_

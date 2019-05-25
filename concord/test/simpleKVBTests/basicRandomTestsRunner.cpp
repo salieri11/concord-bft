@@ -18,7 +18,7 @@
 #include <unistd.h>
 #endif
 
-using concord::consensus::IClient;
+using concord::storage::IClient;
 
 namespace BasicRandomTests {
 

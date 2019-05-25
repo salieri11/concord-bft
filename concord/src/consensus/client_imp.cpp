@@ -6,6 +6,15 @@
 
 #include "CommFactory.hpp"
 
+using bftEngine::ICommunication;
+using bftEngine::PlainUdpConfig;
+using bftEngine::SeqNumberGeneratorForClientRequests;
+using bftEngine::SimpleClient;
+using bftEngine::TlsTcpConfig;
+using concord::storage::ClientConsensusConfig;
+using concord::storage::CommConfig;
+using concord::storage::IClient;
+
 namespace concord {
 namespace consensus {
 
@@ -55,7 +64,7 @@ IClient *createClient(CommConfig &commConfig,
   return new ClientImp(commConfig, conf);
 }
 
-void release(IClient *r) {
+void releaseClient(IClient *r) {
   ClientImp *p = (ClientImp *)r;
   delete p;
 }

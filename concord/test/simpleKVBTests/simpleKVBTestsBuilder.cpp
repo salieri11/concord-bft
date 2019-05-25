@@ -25,8 +25,8 @@ using std::list;
 using std::map;
 using std::set;
 
-using concord::consensus::BlockId;
-using concord::consensus::IClient;
+using concord::storage::BlockId;
+using concord::storage::IClient;
 
 const int NUMBER_OF_KEYS = 200;
 const int CONFLICT_DISTANCE = 49;

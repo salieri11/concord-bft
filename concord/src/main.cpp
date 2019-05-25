@@ -16,10 +16,7 @@
 #include "common/status_aggregator.hpp"
 #include "config/configuration_manager.hpp"
 #include "consensus/bft_configuration.hpp"
-#include "consensus/blockchain_db_adapter.h"
-#include "consensus/comparators.h"
-#include "consensus/database_interface.h"
-#include "consensus/in_memory_db_client.h"
+#include "consensus/client_imp.h"
 #include "consensus/replica_imp.h"
 #include "consensus/replica_state_sync_imp.hpp"
 #include "daml/blocking_queue.h"
@@ -31,13 +28,15 @@
 #include "ethereum/eth_kvb_commands_handler.hpp"
 #include "ethereum/eth_kvb_storage.hpp"
 #include "ethereum/evm_init_params.hpp"
+#include "storage/blockchain_db_adapter.h"
+#include "storage/blockchain_interfaces.h"
+#include "storage/comparators.h"
+#include "storage/database_interface.h"
+#include "storage/in_memory_db_client.h"
+#include "storage/rocksdb_client.h"
 #include "time/time_pusher.hpp"
 #include "time/time_reading.hpp"
 #include "utils/concord_eth_sign.hpp"
-
-#ifdef USE_ROCKSDB
-#include "consensus/rocksdb_client.h"
-#endif
 
 using namespace boost::program_options;
 using namespace std;
@@ -54,13 +53,31 @@ using concord::common::EVMException;
 using concord::common::StatusAggregator;
 using concord::common::zero_address;
 using concord::common::zero_hash;
+using concord::config::ConcordConfiguration;
 using concord::ethereum::EthKvbStorage;
 using concord::common::operator<<;
 using concord::consensus::KVBClient;
 using concord::consensus::KVBClientPool;
+using concord::consensus::releaseReplica;
+using concord::consensus::ReplicaImp;
 using concord::ethereum::EthKvbCommandsHandler;
 using concord::ethereum::EVM;
 using concord::ethereum::EVMInitParams;
+using concord::storage::BlockchainDBAdapter;
+using concord::storage::BlockId;
+using concord::storage::ClientConsensusConfig;
+using concord::storage::CommConfig;
+using concord::storage::IBlocksAppender;
+using concord::storage::IClient;
+using concord::storage::ICommandsHandler;
+using concord::storage::IDBClient;
+using concord::storage::ILocalKeyValueStorageReadOnly;
+using concord::storage::InMemoryDBClient;
+using concord::storage::IReplica;
+using concord::storage::ReplicaConsensusConfig;
+using concord::storage::RocksDBClient;
+using concord::storage::RocksKeyComparator;
+using concord::storage::SetOfKeyValuePairs;
 using concord::time::TimePusher;
 using concord::utils::EthSign;
 
@@ -96,8 +113,7 @@ void signalHandler(int signum) {
   }
 }
 
-concord::consensus::IDBClient *open_database(ConcordConfiguration &nodeConfig,
-                                             Logger logger) {
+IDBClient *open_database(ConcordConfiguration &nodeConfig, Logger logger) {
   if (!nodeConfig.hasValue<std::string>("blockchain_db_impl")) {
     LOG4CPLUS_FATAL(logger, "Missing blockchain_db_impl config");
     throw EVMException("Missing blockchain_db_impl config");
@@ -106,15 +122,13 @@ concord::consensus::IDBClient *open_database(ConcordConfiguration &nodeConfig,
   string db_impl_name = nodeConfig.getValue<std::string>("blockchain_db_impl");
   if (db_impl_name == "memory") {
     LOG4CPLUS_INFO(logger, "Using memory blockchain database");
-    return new concord::consensus::InMemoryDBClient(
-        (concord::consensus::IDBClient::KeyComparator)&concord::consensus::
-            RocksKeyComparator::InMemKeyComp);
+    return new InMemoryDBClient(
+        (IDBClient::KeyComparator)&RocksKeyComparator::InMemKeyComp);
 #ifdef USE_ROCKSDB
   } else if (db_impl_name == "rocksdb") {
     LOG4CPLUS_INFO(logger, "Using rocksdb blockchain database");
     string rocks_path = nodeConfig.getValue<std::string>("blockchain_db_path");
-    return new concord::consensus::RocksDBClient(
-        rocks_path, new concord::consensus::RocksKeyComparator());
+    return new RocksDBClient(rocks_path, new RocksKeyComparator());
 #endif
   } else {
     LOG4CPLUS_FATAL(logger, "Unknown blockchain_db_impl " << db_impl_name);
@@ -128,17 +142,15 @@ concord::consensus::IDBClient *open_database(ConcordConfiguration &nodeConfig,
  * object, thus allowing the create_genesis_block function to use the same
  * functions as concord_evm to put data in the genesis block.
  */
-class IdleBlockAppender : public concord::consensus::IBlocksAppender {
+class IdleBlockAppender : public IBlocksAppender {
  private:
-  concord::consensus::IReplica *replica_;
+  IReplica *replica_;
 
  public:
-  IdleBlockAppender(concord::consensus::IReplica *replica)
-      : replica_(replica) {}
+  IdleBlockAppender(IReplica *replica) : replica_(replica) {}
 
-  virtual concord::consensus::Status addBlock(
-      const concord::consensus::SetOfKeyValuePairs &updates,
-      concord::consensus::BlockId &outBlockId) override {
+  concord::consensus::Status addBlock(const SetOfKeyValuePairs &updates,
+                                      BlockId &outBlockId) override {
     outBlockId = 0;  // genesis only!
     return replica_->addBlockToIdleReplica(updates);
   }
@@ -148,11 +160,10 @@ class IdleBlockAppender : public concord::consensus::IBlocksAppender {
  * Create the initial transactions and a genesis block based on the
  * genesis file.
  */
-concord::consensus::Status create_genesis_block(
-    concord::consensus::IReplica *replica, EVMInitParams params,
-    Logger logger) {
-  const concord::consensus::ILocalKeyValueStorageReadOnly &storage =
-      replica->getReadOnlyStorage();
+concord::consensus::Status create_genesis_block(IReplica *replica,
+                                                EVMInitParams params,
+                                                Logger logger) {
+  const ILocalKeyValueStorageReadOnly &storage = replica->getReadOnlyStorage();
   IdleBlockAppender blockAppender(replica);
   EthKvbStorage kvbStorage(storage, &blockAppender, 0);
 
@@ -223,7 +234,7 @@ void start_worker_threads(int number) {
 
 unique_ptr<grpc::Server> RunDamlGrpcServer(
     std::string server_address, KVBClientPool &pool,
-    const concord::consensus::ILocalKeyValueStorageReadOnly *ro_storage,
+    const ILocalKeyValueStorageReadOnly *ro_storage,
     BlockingPersistentQueue<CommittedTx> &committedTxs) {
   DataServiceImpl *dataService = new DataServiceImpl(pool, ro_storage);
   CommitServiceImpl *commitService = new CommitServiceImpl(pool);
@@ -269,14 +280,14 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
       }
     }
 
-    concord::consensus::IDBClient *dbclient = open_database(nodeConfig, logger);
-    concord::consensus::BlockchainDBAdapter db(dbclient);
+    IDBClient *dbclient = open_database(nodeConfig, logger);
+    BlockchainDBAdapter db(dbclient);
 
     // Replica and communication config
-    concord::consensus::CommConfig commConfig;
+    CommConfig commConfig;
     StatusAggregator sag;
     commConfig.statusCallback = sag.get_update_connectivity_fn();
-    concord::consensus::ReplicaConsensusConfig replicaConsensusConfig;
+    ReplicaConsensusConfig replicaConsensusConfig;
 
     // TODO(IG): check return value and shutdown concord if false
     initializeSBFTConfiguration(config, nodeConfig, &commConfig, nullptr, 0,
@@ -290,14 +301,12 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
     // restructure the code, to split interfaces implementation and to construct
     // objects in more clear way
     auto *replicaStateSync = new concord::consensus::ReplicaStateSyncImp;
-    concord::consensus::ReplicaImp *replica =
-        dynamic_cast<concord::consensus::ReplicaImp *>(
-            concord::consensus::createReplica(commConfig,
-                                              replicaConsensusConfig, dbclient,
-                                              *replicaStateSync));
+    ReplicaImp *replica =
+        dynamic_cast<ReplicaImp *>(concord::consensus::createReplica(
+            commConfig, replicaConsensusConfig, dbclient, *replicaStateSync));
 
     // TODO(RM): Use unique pointer
-    concord::consensus::ICommandsHandler *kvb_commands_handler;
+    ICommandsHandler *kvb_commands_handler;
     if (daml_enabled) {
       kvb_commands_handler =
           new KVBCCommandsHandler(replica, replica, committedTxs);
@@ -323,14 +332,14 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
 
     for (uint16_t i = 0;
          i < config.getValue<uint16_t>("client_proxies_per_replica"); ++i) {
-      concord::consensus::ClientConsensusConfig clientConsensusConfig;
+      ClientConsensusConfig clientConsensusConfig;
       // TODO(IG): check return value and shutdown concord if false
-      concord::consensus::CommConfig clientCommConfig;
+      CommConfig clientCommConfig;
       initializeSBFTConfiguration(config, nodeConfig, &clientCommConfig,
                                   &clientConsensusConfig, i, nullptr);
 
-      concord::consensus::IClient *client = concord::consensus::createClient(
-          clientCommConfig, clientConsensusConfig);
+      IClient *client = concord::consensus::createClient(clientCommConfig,
+                                                         clientConsensusConfig);
       client->start();
       KVBClient *kvbClient = new KVBClient(client);
       clients.push_back(kvbClient);
@@ -385,7 +394,7 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
       delete athevm;
     }
     delete kvb_commands_handler;
-    concord::consensus::release(replica);
+    releaseReplica(replica);
     delete replicaStateSync;
   } catch (std::exception &ex) {
     LOG4CPLUS_FATAL(logger, ex.what());

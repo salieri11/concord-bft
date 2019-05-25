@@ -17,7 +17,8 @@
 #define CONCORD_CONSENSUS_KVB_REPLICA_STATE_SYNC_H
 
 #include <log4cplus/loggingmacros.h>
-#include "consensus/blockchain_db_adapter.h"
+#include "storage/blockchain_db_adapter.h"
+#include "storage/blockchain_db_types.h"
 
 namespace concord {
 namespace consensus {
@@ -28,9 +29,9 @@ class ReplicaStateSync {
 
   // Synchronises replica state and returns a number of deleted blocks.
   virtual uint64_t execute(log4cplus::Logger &logger,
-                           BlockchainDBAdapter &bcDBAdapter,
-                           ILocalKeyValueStorageReadOnly &kvs,
-                           BlockId lastReachableBlockId,
+                           concord::storage::BlockchainDBAdapter &bcDBAdapter,
+                           concord::storage::ILocalKeyValueStorageReadOnly &kvs,
+                           concord::storage::BlockId lastReachableBlockId,
                            uint64_t lastExecutedSeqNum) = 0;
 };
 

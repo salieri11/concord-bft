@@ -12,10 +12,7 @@
 #include "IThresholdSigner.h"
 #include "IThresholdVerifier.h"
 #include "config/configuration_manager.hpp"
-#include "consensus/blockchain_interfaces.h"
-
-using concord::config::ConcordConfiguration;
-using concord::config::ConcordPrimaryConfigurationAuxiliaryState;
+#include "storage/blockchain_interfaces.h"
 
 namespace concord {
 namespace consensus {
@@ -24,14 +21,15 @@ const size_t MAX_ITEM_LENGTH = 4096;
 const std::string MAX_ITEM_LENGTH_STR = std::to_string(MAX_ITEM_LENGTH);
 
 void initializeSBFTThresholdPublicKeys(
-    ConcordConfiguration& config, bool isClient, uint16_t f, uint16_t c,
-    bool supportDirectProofs,
+    concord::config::ConcordConfiguration& config, bool isClient, uint16_t f,
+    uint16_t c, bool supportDirectProofs,
     IThresholdVerifier*& thresholdVerifierForExecution,
     IThresholdVerifier*& thresholdVerifierForSlowPathCommit,
     IThresholdVerifier*& thresholdVerifierForCommit,
     IThresholdVerifier*& thresholdVerifierForOptimisticCommit) {
-  ConcordPrimaryConfigurationAuxiliaryState* auxState;
-  assert(auxState = dynamic_cast<ConcordPrimaryConfigurationAuxiliaryState*>(
+  concord::config::ConcordPrimaryConfigurationAuxiliaryState* auxState;
+  assert(auxState = dynamic_cast<
+             concord::config::ConcordPrimaryConfigurationAuxiliaryState*>(
              config.getAuxiliaryState()));
 
   if (supportDirectProofs) {
@@ -64,14 +62,15 @@ void initializeSBFTThresholdPublicKeys(
  * Reads the secret keys for the multisig and threshold schemes!
  */
 void initializeSBFTThresholdPrivateKeys(
-    ConcordConfiguration& config, uint16_t myReplicaId, uint16_t f, uint16_t c,
-    IThresholdSigner*& thresholdSignerForExecution,
+    concord::config::ConcordConfiguration& config, uint16_t myReplicaId,
+    uint16_t f, uint16_t c, IThresholdSigner*& thresholdSignerForExecution,
     IThresholdSigner*& thresholdSignerForSlowPathCommit,
     IThresholdSigner*& thresholdSignerForCommit,
     IThresholdSigner*& thresholdSignerForOptimisticCommit,
     bool supportDirectProofs) {
-  ConcordPrimaryConfigurationAuxiliaryState* auxState;
-  assert(auxState = dynamic_cast<ConcordPrimaryConfigurationAuxiliaryState*>(
+  concord::config::ConcordPrimaryConfigurationAuxiliaryState* auxState;
+  assert(auxState = dynamic_cast<
+             concord::config::ConcordPrimaryConfigurationAuxiliaryState*>(
              config.getAuxiliaryState()));
 
   // f + 1
@@ -106,10 +105,10 @@ void initializeSBFTThresholdPrivateKeys(
 
 inline bool initializeSBFTCrypto(
     uint16_t nodeId, uint16_t numOfReplicas, uint16_t maxFaulty,
-    uint16_t maxSlow, ConcordConfiguration& config,
-    ConcordConfiguration& replicaConfig,
+    uint16_t maxSlow, concord::config::ConcordConfiguration& config,
+    concord::config::ConcordConfiguration& replicaConfig,
     std::set<std::pair<uint16_t, std::string>> publicKeysOfReplicas,
-    ReplicaConsensusConfig* outConfig) {
+    concord::storage::ReplicaConsensusConfig* outConfig) {
   // Threshold signatures
   IThresholdSigner* thresholdSignerForExecution;
   IThresholdVerifier* thresholdVerifierForExecution;
@@ -158,14 +157,17 @@ inline bool initializeSBFTCrypto(
 }
 
 inline bool initializeSBFTPrincipals(
-    ConcordConfiguration& config, uint16_t selfNumber, uint16_t numOfPrincipals,
-    uint16_t numOfReplicas, CommConfig* outCommConfig,
+    concord::config::ConcordConfiguration& config, uint16_t selfNumber,
+    uint16_t numOfPrincipals, uint16_t numOfReplicas,
+    concord::storage::CommConfig* outCommConfig,
     std::set<std::pair<uint16_t, std::string>>& outReplicasPublicKeys) {
   uint16_t clientProxiesPerReplica =
       config.getValue<uint16_t>("client_proxies_per_replica");
   for (uint16_t i = 0; i < numOfReplicas; ++i) {
-    ConcordConfiguration& nodeConfig = config.subscope("node", i);
-    ConcordConfiguration& replicaConfig = nodeConfig.subscope("replica", 0);
+    concord::config::ConcordConfiguration& nodeConfig =
+        config.subscope("node", i);
+    concord::config::ConcordConfiguration& replicaConfig =
+        nodeConfig.subscope("replica", 0);
     uint16_t replicaId = replicaConfig.getValue<uint16_t>("principal_id");
     uint16_t replicaPort = replicaConfig.getValue<uint16_t>("replica_port");
     outReplicasPublicKeys.insert(
@@ -179,7 +181,7 @@ inline bool initializeSBFTPrincipals(
         outCommConfig->listenPort = replicaPort;
       }
       for (uint16_t j = 0; j < clientProxiesPerReplica; ++j) {
-        ConcordConfiguration& clientConfig =
+        concord::config::ConcordConfiguration& clientConfig =
             nodeConfig.subscope("client_proxy", j);
         uint16_t clientId = clientConfig.getValue<uint16_t>("principal_id");
         uint16_t clientPort = clientConfig.getValue<uint16_t>("client_port");
@@ -210,18 +212,19 @@ inline bool initializeSBFTPrincipals(
   return true;
 }
 
-inline bool initializeSBFTConfiguration(ConcordConfiguration& config,
-                                        ConcordConfiguration& nodeConfig,
-                                        CommConfig* commConfig,
-                                        ClientConsensusConfig* clConf,
-                                        uint16_t clientIndex,
-                                        ReplicaConsensusConfig* repConf) {
+inline bool initializeSBFTConfiguration(
+    concord::config::ConcordConfiguration& config,
+    concord::config::ConcordConfiguration& nodeConfig,
+    concord::storage::CommConfig* commConfig,
+    concord::storage::ClientConsensusConfig* clConf, uint16_t clientIndex,
+    concord::storage::ReplicaConsensusConfig* repConf) {
   assert(!clConf != !repConf);
 
   // Initialize random number generator
   srand48(getpid());
 
-  ConcordConfiguration& replicaConfig = nodeConfig.subscope("replica", 0);
+  concord::config::ConcordConfiguration& replicaConfig =
+      nodeConfig.subscope("replica", 0);
   uint16_t selfNumber = (repConf)
                             ? (replicaConfig.getValue<uint16_t>("principal_id"))
                             : (nodeConfig.subscope("client_proxy", clientIndex)

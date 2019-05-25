@@ -11,16 +11,16 @@
 #include <iomanip>
 #include <iostream>
 #include <string>
-#include "consensus/blockchain_db_adapter.h"
-#include "consensus/comparators.h"
-#include "consensus/rocksdb_client.h"
+#include "storage/blockchain_db_adapter.h"
+#include "storage/comparators.h"
+#include "storage/rocksdb_client.h"
 
 using namespace std;
-using concord::consensus::BlockchainDBAdapter;
-using concord::consensus::BlockId;
-using concord::consensus::RocksDBClient;
-using concord::consensus::RocksKeyComparator;
 using concord::consensus::Sliver;
+using concord::storage::BlockchainDBAdapter;
+using concord::storage::BlockId;
+using concord::storage::RocksDBClient;
+using concord::storage::RocksKeyComparator;
 
 enum class OpType { GetBlockRaw, GetBlockDigest };
 

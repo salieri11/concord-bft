@@ -6,18 +6,20 @@
 
 #include <log4cplus/loggingmacros.h>
 
-#include "consensus/blockchain_db_adapter.h"
-#include "consensus/blockchain_interfaces.h"
 #include "consensus/hex_tools.h"
-#include "consensus/rocksdb_client.h"
 #include "consensus/sliver.hpp"
+#include "storage/blockchain_db_adapter.h"
+#include "storage/blockchain_db_types.h"
+#include "storage/blockchain_interfaces.h"
+#include "storage/rocksdb_client.h"
 
 #include <chrono>
 
+using concord::consensus::Sliver;
 using log4cplus::Logger;
 
 namespace concord {
-namespace consensus {
+namespace storage {
 
 /*
  * If key a is earlier than key b, return a negative number; if larger, return a
@@ -116,5 +118,5 @@ bool RocksKeyComparator::InMemKeyComp(const Logger& logger, const Sliver& _a,
   return comp < 0;
 }
 
-}  // namespace consensus
+}  // namespace storage
 }  // namespace concord

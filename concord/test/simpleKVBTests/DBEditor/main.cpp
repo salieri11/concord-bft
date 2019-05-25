@@ -28,17 +28,17 @@
 #endif
 
 #include "Logging.hpp"
-#include "consensus/comparators.h"
-#include "consensus/rocksdb_client.h"
-#include "consensus/rocksdb_metadata_storage.h"
+#include "storage/comparators.h"
+#include "storage/rocksdb_client.h"
+#include "storage/rocksdb_metadata_storage.h"
 
 using namespace bftEngine;
 
-using concord::consensus::ObjectIdsVector;
-using concord::consensus::RocksDBClient;
-using concord::consensus::RocksDBMetadataStorage;
-using concord::consensus::RocksKeyComparator;
 using concord::consensus::Status;
+using concord::storage::ObjectIdsVector;
+using concord::storage::RocksDBClient;
+using concord::storage::RocksDBMetadataStorage;
+using concord::storage::RocksKeyComparator;
 
 std::stringstream dbPath;
 RocksDBClient *dbClient = nullptr;

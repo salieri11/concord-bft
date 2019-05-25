@@ -11,19 +11,20 @@
 #include <vector>
 
 #include "common/concord_types.hpp"
-#include "consensus/blockchain_interfaces.h"
 #include "consensus/hash_defs.h"
 #include "consensus/sliver.hpp"
 #include "evm.h"
+#include "storage/blockchain_db_types.h"
+#include "storage/blockchain_interfaces.h"
 
 namespace concord {
 namespace ethereum {
 
 class EthKvbStorage {
  private:
-  const concord::consensus::ILocalKeyValueStorageReadOnly &roStorage_;
-  concord::consensus::IBlocksAppender *blockAppender_;
-  concord::consensus::SetOfKeyValuePairs updates;
+  const concord::storage::ILocalKeyValueStorageReadOnly &roStorage_;
+  concord::storage::IBlocksAppender *blockAppender_;
+  concord::storage::SetOfKeyValuePairs updates;
   std::vector<concord::common::EthTransaction> pending_transactions;
   log4cplus::Logger logger;
   // BFT sequence number associated with EVM contract execution.
@@ -60,10 +61,10 @@ class EthKvbStorage {
   concord::consensus::Sliver time_key() const;
   concord::consensus::Status get(const concord::consensus::Sliver &key,
                                  concord::consensus::Sliver &out);
-  concord::consensus::Status get(const concord::consensus::BlockId readVersion,
+  concord::consensus::Status get(const concord::storage::BlockId readVersion,
                                  const concord::consensus::Sliver &key,
                                  concord::consensus::Sliver &value,
-                                 concord::consensus::BlockId &outBlock);
+                                 concord::storage::BlockId &outBlock);
   void put(const concord::consensus::Sliver &key,
            const concord::consensus::Sliver &value);
 
@@ -73,17 +74,17 @@ class EthKvbStorage {
  public:
   // read-only mode
   EthKvbStorage(
-      const concord::consensus::ILocalKeyValueStorageReadOnly &roStorage);
+      const concord::storage::ILocalKeyValueStorageReadOnly &roStorage);
 
   // read-write mode
   EthKvbStorage(
-      const concord::consensus::ILocalKeyValueStorageReadOnly &roStorage,
-      concord::consensus::IBlocksAppender *blockAppender, uint64_t sequenceNum);
+      const concord::storage::ILocalKeyValueStorageReadOnly &roStorage,
+      concord::storage::IBlocksAppender *blockAppender, uint64_t sequenceNum);
 
   ~EthKvbStorage();
 
   bool is_read_only();
-  const concord::consensus::ILocalKeyValueStorageReadOnly &getReadOnlyStorage();
+  const concord::storage::ILocalKeyValueStorageReadOnly &getReadOnlyStorage();
 
   uint64_t current_block_number();
   concord::common::EthBlock get_block(const evm_uint256be &hash);

@@ -15,15 +15,15 @@
 #define BASIC_RANDOM_TESTS_HPP
 
 #include "Logging.hpp"
-#include "consensus/blockchain_interfaces.h"
 #include "simpleKVBTestsBuilder.hpp"
+#include "storage/blockchain_interfaces.h"
 
 namespace BasicRandomTests {
 
 class BasicRandomTestsRunner {
  public:
   BasicRandomTestsRunner(concordlogger::Logger &logger,
-                         concord::consensus::IClient &client,
+                         concord::storage::IClient &client,
                          size_t numOfOperations);
   ~BasicRandomTestsRunner() { delete testsBuilder_; }
   void run();
@@ -36,7 +36,7 @@ class BasicRandomTestsRunner {
 
  private:
   concordlogger::Logger &logger_;
-  concord::consensus::IClient &client_;
+  concord::storage::IClient &client_;
   const size_t numOfOperations_;
   TestsBuilder *testsBuilder_;
 };

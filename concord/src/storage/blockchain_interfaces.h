@@ -1,9 +1,7 @@
 // Copyright 2018 VMware, all rights reserved
-//
-// KVBlockchain interface definition
 
-#ifndef CONCORD_CONSENSUS_BLOCKCHAIN_INTERFACES_H_
-#define CONCORD_CONSENSUS_BLOCKCHAIN_INTERFACES_H_
+#ifndef CONCORD_STORAGE_BLOCKCHAIN_INTERFACES_H_
+#define CONCORD_STORAGE_BLOCKCHAIN_INTERFACES_H_
 
 // TODO: write about thread-safety
 
@@ -17,16 +15,16 @@
 #include "SimpleBCStateTransfer.hpp"
 #include "StatusInfo.h"
 #include "ThresholdSignaturesSchemes.h"
-#include "consensus/database_interface.h"
 #include "consensus/sliver.hpp"
 #include "consensus/status.hpp"
+#include "storage/database_interface.h"
 
 using std::pair;
 using std::string;
 using std::unordered_map;
 
 namespace concord {
-namespace consensus {
+namespace storage {
 
 // forward declarations
 class ILocalKeyValueStorageReadOnlyIterator;
@@ -164,16 +162,6 @@ class IReplica {
   virtual void set_command_handler(ICommandsHandler* handler) = 0;
 };
 
-// TODO(BWF): It would be nice to migrate createReplica/release to
-// constructor/destructor, to make use of RAII.
-
-// creates a new Replica object
-IReplica* createReplica(CommConfig& commConfig, ReplicaConsensusConfig& config,
-                        IDBClient* db, ReplicaStateSync& replicaStateSync);
-
-// deletes a Replica object
-void release(IReplica* r);
-
 // CLIENT
 
 // configuration
@@ -210,16 +198,6 @@ class IClient {
                                     char* outReply,
                                     uint32_t* outActualReplySize) = 0;
 };
-
-// TODO(BWF): Can create/release be migrated to constructor/destructor, to
-// make use of RAII?
-
-// creates a new Client object
-IClient* createClient(CommConfig& commConfig,
-                      const ClientConsensusConfig& consensusConfig);
-
-// deletes a Client object
-void release(IClient* r);
 
 // COMMANDS HANDLER
 
@@ -300,7 +278,7 @@ class IBlocksAppender {
 // (2) State transfer in the key-val blockchain (and not in the consensus
 //     module)
 
-}  // namespace consensus
+}  // namespace storage
 }  // namespace concord
 
-#endif  // CONCORD_CONSENSUS_BLOCKCHAIN_INTERFACES_H_
+#endif  // CONCORD_STORAGE_BLOCKCHAIN_INTERFACES_H_

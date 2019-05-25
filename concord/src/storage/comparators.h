@@ -2,8 +2,8 @@
 //
 // Storage key comparators definition.
 
-#ifndef CONCORD_CONSENSUS_COMPARATORS_H_
-#define CONCORD_CONSENSUS_COMPARATORS_H_
+#ifndef CONCORD_STORAGE_COMPARATORS_H_
+#define CONCORD_STORAGE_COMPARATORS_H_
 
 #include <log4cplus/loggingmacros.h>
 
@@ -11,16 +11,14 @@
 #include "rocksdb/comparator.h"
 #include "rocksdb/slice.h"
 #endif
-#include "sliver.hpp"
+#include "consensus/sliver.hpp"
 
 namespace concord {
-namespace consensus {
-/*
- * Basic comparator. Decomposes storage key into parts (type, version,
- * application key).
- */
+namespace storage {
+// Basic comparator. Decomposes storage key into parts (type, version,
+// application key).
 
-/* RocksDB */
+// RocksDB
 #ifdef USE_ROCKSDB
 class RocksKeyComparator : public rocksdb::Comparator {
  public:
@@ -33,19 +31,21 @@ class RocksKeyComparator : public rocksdb::Comparator {
   const char* Name() const { return "RocksKeyComparator"; }
   void FindShortestSeparator(std::string*, const rocksdb::Slice&) const {}
   void FindShortSuccessor(std::string*) const {}
-  static bool InMemKeyComp(const log4cplus::Logger& logger, const Sliver& _a,
-                           const Sliver& _b);
+  static bool InMemKeyComp(const log4cplus::Logger& logger,
+                           const concord::consensus::Sliver& _a,
+                           const concord::consensus::Sliver& _b);
 
  private:
   static int ComposedKeyComparison(const log4cplus::Logger& logger,
-                                   const Sliver& _a, const Sliver& _b);
+                                   const concord::consensus::Sliver& _a,
+                                   const concord::consensus::Sliver& _b);
 
  private:
   log4cplus::Logger logger;
 };
 #endif
 
-}  // namespace consensus
+}  // namespace storage
 }  // namespace concord
 
-#endif  // CONCORD_CONSENSUS_COMPARATORS_H_
+#endif  // CONCORD_STORAGE_COMPARATORS_H_

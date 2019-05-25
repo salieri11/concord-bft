@@ -1,21 +1,19 @@
 // Copyright 2018 VMware, all rights reserved
 
-/**
- * @file BlockChainDBAdapter.cpp
- *
- * @brief Contains helper functions for working with composite database keys and
- * using these keys to perform basic database operations.
- *
- * Data is stored in the form of key value pairs. However, the key used is a
- * composite database key. Its composition is : Key Type | Key | Block Id
- *
- * Block Id is functionally equivalent to the version of the block.
- *
- * For the purposes of iteration, the keys appear in the following order:
- *    Ascending order of Key Type
- *    -> Ascending order of Key
- *       -> Descending order of Block Id
- */
+// @file blockchain_db_adapter.cpp
+//
+// @brief Contains helper functions for working with composite database keys and
+// using these keys to perform basic database operations.
+//
+// Data is stored in the form of key value pairs. However, the key used is a
+// composite database key. Its composition is : Key Type | Key | Block Id
+//
+// Block Id is functionally equivalent to the version of the block.
+//
+// For the purposes of iteration, the keys appear in the following order:
+//    Ascending order of Key Type
+//    -> Ascending order of Key
+//       -> Descending order of Block Id
 
 #include "blockchain_db_adapter.h"
 
@@ -23,14 +21,15 @@
 
 #include <chrono>
 #include <limits>
-#include "consensus/blockchain_interfaces.h"
 #include "consensus/hash_defs.h"
 #include "consensus/sliver.hpp"
+#include "storage/blockchain_db_helpers.h"
+#include "storage/blockchain_interfaces.h"
 
 using log4cplus::Logger;
 
 namespace concord {
-namespace consensus {
+namespace storage {
 
 /**
  * @brief Generates a Composite Database Key from a Sliver object.
@@ -784,5 +783,5 @@ BlockId BlockchainDBAdapter::getLastReachableBlock() {
   return lastReachableId;
 }
 
-}  // namespace consensus
+}  // namespace storage
 }  // namespace concord

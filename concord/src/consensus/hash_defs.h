@@ -6,11 +6,11 @@
 #define CONCORD_CONSENSUS_HASH_DEFS_H_
 
 #include <stdlib.h>
-#include "consensus/blockchain_interfaces.h"
 #include "consensus/sliver.hpp"
+#include "storage/blockchain_db_types.h"
 
-using concord::consensus::KeyValuePair;
 using concord::consensus::Sliver;
+using concord::storage::KeyValuePair;
 
 // TODO(GG): do we want this hash function ? See also
 // http://www.cse.yorku.ca/~oz/hash.html

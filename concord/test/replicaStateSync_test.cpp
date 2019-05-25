@@ -8,33 +8,33 @@
 #include <log4cplus/configurator.h>
 #include <log4cplus/hierarchy.h>
 #include <log4cplus/loggingmacros.h>
-#include "consensus/blockchain_db_adapter.h"
-#include "consensus/comparators.h"
 #include "consensus/hash_defs.h"
 #include "consensus/replica_state_sync_imp.hpp"
-#include "consensus/rocksdb_client.h"
 #include "ethereum/eth_kvb_storage.hpp"
 #include "gtest/gtest.h"
+#include "storage/blockchain_db_adapter.h"
+#include "storage/comparators.h"
+#include "storage/rocksdb_client.h"
 
 using namespace std;
 using namespace log4cplus;
 
-using concord::consensus::BlockchainDBAdapter;
-using concord::consensus::BlockEntry;
-using concord::consensus::BlockHeader;
-using concord::consensus::BlockId;
-using concord::consensus::IBlocksAppender;
-using concord::consensus::ILocalKeyValueStorageReadOnly;
-using concord::consensus::ILocalKeyValueStorageReadOnlyIterator;
-using concord::consensus::Key;
-using concord::consensus::KeyManipulator;
 using concord::consensus::ReplicaStateSyncImp;
-using concord::consensus::RocksDBClient;
-using concord::consensus::RocksKeyComparator;
-using concord::consensus::SetOfKeyValuePairs;
 using concord::consensus::Sliver;
 using concord::consensus::Status;
-using concord::consensus::Value;
+using concord::storage::BlockchainDBAdapter;
+using concord::storage::BlockEntry;
+using concord::storage::BlockHeader;
+using concord::storage::BlockId;
+using concord::storage::IBlocksAppender;
+using concord::storage::ILocalKeyValueStorageReadOnly;
+using concord::storage::ILocalKeyValueStorageReadOnlyIterator;
+using concord::storage::Key;
+using concord::storage::KeyManipulator;
+using concord::storage::RocksDBClient;
+using concord::storage::RocksKeyComparator;
+using concord::storage::SetOfKeyValuePairs;
+using concord::storage::Value;
 
 namespace {
 

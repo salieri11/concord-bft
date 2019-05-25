@@ -1,16 +1,19 @@
 // Copyright 2018 VMware, all rights reserved
 
-#ifndef CONCORD_CONSENSUS_DATABASE_INTERFACE_H_
-#define CONCORD_CONSENSUS_DATABASE_INTERFACE_H_
+#ifndef CONCORD_STORAGE_DATABASE_INTERFACE_H_
+#define CONCORD_STORAGE_DATABASE_INTERFACE_H_
 
-#include "consensus/blockchain_db_types.h"
 #include "consensus/sliver.hpp"
 #include "consensus/status.hpp"
+#include "storage/blockchain_db_types.h"
 
 #define OUT
 
+using concord::consensus::Sliver;
+using concord::consensus::Status;
+
 namespace concord {
-namespace consensus {
+namespace storage {
 
 class IDBClient {
  public:
@@ -51,7 +54,7 @@ class IDBClient {
   virtual Status freeIterator(IDBClientIterator *_iter) const = 0;
 };
 
-}  // namespace consensus
+}  // namespace storage
 }  // namespace concord
 
-#endif  // CONCORD_CONSENSUS_KVB_DATABASE_INTERFACE_H_
+#endif  // CONCORD_STORAGE_DATABASE_INTERFACE_H_

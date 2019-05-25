@@ -2,12 +2,10 @@ file(GLOB concord_consensus_src "*.cpp" "*.hpp" "*.h")
 
 add_library(concord_consensus ${concord_consensus_src})
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/..)
-
 get_property(thresh_include GLOBAL PROPERTY thresh_include_folder)
 target_include_directories(concord_consensus PUBLIC ${thresh_include})
 
-target_link_libraries(concord_consensus PUBLIC corebft proto)
+target_link_libraries(concord_consensus PUBLIC corebft concord_storage proto)
 
 if(USE_ROCKSDB)
 find_library(ROCKSDB rocksdb)

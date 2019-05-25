@@ -25,12 +25,12 @@
 
 #include "commonKVBTests.hpp"
 #include "config/configuration_manager.hpp"
-#include "consensus/comparators.h"
 #include "consensus/replica_imp.h"
 #include "consensus/replica_state_sync_imp.hpp"
-#include "consensus/rocksdb_client.h"
 #include "ethereum/eth_kvb_storage.hpp"
 #include "internalCommandsHandler.hpp"
+#include "storage/comparators.h"
+#include "storage/rocksdb_client.h"
 #include "test_comm_config.hpp"
 #include "test_parameters.hpp"
 
@@ -44,14 +44,14 @@
 using namespace bftEngine;
 using namespace concord::config;
 
-using concord::consensus::CommConfig;
-using concord::consensus::ILocalKeyValueStorageReadOnly;
-using concord::consensus::ReplicaConsensusConfig;
 using concord::consensus::ReplicaImp;
 using concord::consensus::ReplicaStateSyncImp;
-using concord::consensus::RocksDBClient;
-using concord::consensus::RocksKeyComparator;
 using concord::ethereum::EthKvbStorage;
+using concord::storage::CommConfig;
+using concord::storage::ILocalKeyValueStorageReadOnly;
+using concord::storage::ReplicaConsensusConfig;
+using concord::storage::RocksDBClient;
+using concord::storage::RocksKeyComparator;
 
 using ::TestCommConfig;
 using std::string;
