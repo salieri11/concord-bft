@@ -2,11 +2,14 @@
  * Copyright 2018-2019 VMware, all rights reserved.
  */
 
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { TranslateService } from '@ngx-translate/core';
 import { Subscription } from 'rxjs';
 
+import { GaugeComponent } from '@swimlane/ngx-charts';
+
+import { WorldMapComponent } from '../../graphs/world-map/world-map.component';
 import { BlockListingBlock } from '../../blocks/shared/blocks.model';
 import { TransactionsService } from '../../transactions/shared/transactions.service';
 import { TourService } from '../../shared/tour.service';
@@ -26,20 +29,24 @@ const BLOCK_TRANSACTION_LIMIT = 20;
   styleUrls: ['./dashboard.component.scss']
 })
 export class DashboardComponent implements OnInit, OnDestroy {
+  @ViewChild('nodeGuage') nodeGuage: GaugeComponent;
+  @ViewChild('worldMap') worldMap: WorldMapComponent;
 
   blockchainId: string;
   blocks: BlockListingBlock[] = [];
   transactions: any[] = [];
   nodes: any[] = [];
+  nodesByLocation: any[] = [];
   smartContracts = [];
   nodeGeoJson: any = NodeGeoJson;
   routerFragmentChange: Subscription;
   firstBlockTransactionCount: number = 0;
   pollIntervalId: any;
   nodeHealth: number = 1;
-  nodeData: {name: string, value: number}[] = [];
+  nodeColor: string;
+  nodeData: { name: string, value: number }[] = [];
   colorScheme = {
-    domain: ['#60B515', '#60B515']
+    domain: ['#60B515']
   };
 
   constructor(
@@ -55,19 +62,19 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
-      this.blockchainId = this.route.snapshot.parent.parent.params['consortiumId'];
+    this.blockchainId = this.route.snapshot.parent.parent.params['consortiumId'];
 
+    this.loadTransactions();
+    this.loadSmartContracts();
+    this.loadNodes();
+    this.loadBlocks();
+
+    this.pollIntervalId = setInterval(() => {
       this.loadTransactions();
-      this.loadSmartContracts();
       this.loadNodes();
       this.loadBlocks();
-
-      this.pollIntervalId = setInterval(() => {
-        this.loadTransactions();
-        this.loadNodes();
-        this.loadBlocks();
-        this.loadSmartContracts();
-      }, LONG_POLL_INTERVAL);
+      this.loadSmartContracts();
+    }, LONG_POLL_INTERVAL);
 
 
     this.tourService.initialDashboardUrl = this.router.url.substr(1);
@@ -85,6 +92,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     });
 
     this.setNodeData();
+    this.nodeGuage.margin = [20, 0, 0, 10];
   }
 
   ngOnDestroy() {
@@ -103,13 +111,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   valueFormatting(value) {
+    // @ts-ignore
     return `${value}/${this.max}`;
-  }
-
-  customColors() {
-    console.log('this')
-    console.log(this)
-    return ['#60B515', '#60B515', '#60B515', '#60B515', '#60B515'];
   }
 
   get transactionCount() {
@@ -121,7 +124,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   get healthyNodesCount() {
     const healthyNodeCount = this.nodes.filter((node) => {
-      return node.millis_since_last_message < node.millis_since_last_message_threshold;
+      return node.healthy;
     }).length;
 
     return healthyNodeCount;
@@ -130,20 +133,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   get nodesConfig(): DashboardListConfig {
     return {
       headers: ['nodes.hostname', 'nodes.address', 'nodes.health'],
-      displayProperties: ['hostname', 'address', (node) => {
-        let text = '';
-        let labelClass = '';
-
-        if (node.millis_since_last_message < node.millis_since_last_message_threshold) {
-          text = this.translate.instant('nodes.healthy');
-          labelClass = 'label-success';
-        } else {
-          text = this.translate.instant('nodes.unhealthy');
-          labelClass = 'label-danger';
-        }
-
-        return `<span class="label ${labelClass}">${text}</span>`;
-      }],
+      displayProperties: ['hostname', 'address', 'healthHTML'],
       tableHeader: 'nodes.nodes',
       paginationSummary: 'nodes.paginationSummary'
     };
@@ -191,11 +181,25 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   private loadNodes() {
     this.nodesService.getNodes().subscribe((resp) => {
-      this.nodes = resp;
+      this.nodes = resp.nodes;
+      this.nodesByLocation = resp.nodesByLocation;
       this.nodeHealth = this.healthyNodesCount / this.nodes.length;
       this.setNodeData();
-      console.log(this.nodeData)
+      this.setNodeColor();
     });
+  }
+
+  setNodeColor() {
+    if (this.nodeHealth >= .9) {
+      this.nodeColor = 'green';
+      this.colorScheme.domain[0] = '#60b515';
+    } else if (this.nodeHealth >= .7) {
+      this.nodeColor = 'yellow';
+      this.colorScheme.domain[0] = '#ffdc0b';
+    } else if (this.nodeHealth <= .69) {
+      this.nodeColor = 'red';
+      this.colorScheme.domain[0] = '#c92100';
+    }
   }
 
   private loadBlocks() {

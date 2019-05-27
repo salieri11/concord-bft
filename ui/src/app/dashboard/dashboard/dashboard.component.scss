@@ -1,22 +1,80 @@
 @import "~@clr/ui/src/color/utils/_colors.clarity.scss";
 
+.stats .clr-col-6 {
+  margin-top: .4rem;
+}
+.col-gauge {
+  width: 250px !important;
+  max-width: 250px !important;
+  margin: 0 auto;
+}
 .dashboard-stat-container {
-  flex: 1 1 25%;
   text-align: center;
-  border-right: 1px solid $clr-light-midtone-gray;
-  &:last-child {
-    border: none;
+  width: 100%;
+  height: 100%;
+  margin-right: .5rem;
+  padding: .7rem 0rem;
+
+  .title {
+    font-weight: 500;
+  }
+
+  h2 {
+    line-height: 2.5rem;
+    font-size: 1.3rem;
   }
 }
+
+.node-health {
+  position: relative;
+  width: 240px;
+  text-align: center;
+
+  .title {
+    position: absolute;
+    margin-top: 2.7rem;
+    width: 100%;
+    font-weight: 500;
+  }
+
+  .health-number {
+    position: absolute;
+    margin-top: 4.5rem;
+    width: 100%;
+    font-size: 2.3rem;
+  }
+
+  ::ng-deep .ngx-charts text {
+    margin-top: 2rem;
+    fill: #60B515;
+    display: none;
+  }
+}
+
+.b-r {
+  border-right: 1px solid $clr-light-gray;
+}
+
+.b-b {
+  border-bottom: 1px solid $clr-light-gray
+}
+
+.p-1-2 {
+  padding: .5rem;
+}
+
 .ps-1 {
   padding: 0 1rem;
 }
+
 .red {
   color: $clr-red;
 }
+
 .yellow {
   color: $clr-yellow;
 }
+
 .green {
   color: $clr-green-light-midtone;
 }

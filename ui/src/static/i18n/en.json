@@ -134,7 +134,7 @@
     "totalActiveNodes": "Total Active Nodes",
     "inactiveNodes": "Inactive Nodes",
     "nodeHealth": "Node Health",
-    "deployedContracts": "Deployed Contracts",
+    "deployedContracts": "Contracts",
     "transactionsPerSecond": "Transactions/second",
     "averageValidationTime": "Avg Validation Time",
     "xSeconds": "{{seconds}} <small>seconds</small>"
@@ -352,7 +352,7 @@
     }
   },
   "organization": {
-    "title": "Organization Management",
+    "title": "Organizations",
     "actions": {
       "title": "Actions",
       "options": {
