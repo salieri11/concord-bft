@@ -31,6 +31,21 @@ using log4cplus::Logger;
 namespace concord {
 namespace storage {
 
+BlockchainDBAdapter::BlockchainDBAdapter(IDBClient *db) {
+  logger =
+      log4cplus::Logger::getInstance("concord.storage.BlockchainDBAdapter");
+  m_isEnd = false;
+  m_db = db;
+  concord::consensus::Status status = m_db->init();
+  if (!status.isOK()) {
+    LOG4CPLUS_FATAL(logger,
+                    "Failure in Database Initialization, status: " << status);
+    throw std::runtime_error("Failure in Database Initialization");
+  }
+}
+
+BlockchainDBAdapter::~BlockchainDBAdapter() { m_db->close(); }
+
 /**
  * @brief Generates a Composite Database Key from a Sliver object.
  *

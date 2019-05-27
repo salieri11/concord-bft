@@ -191,10 +191,11 @@ int main(int argc, char **argv) {
   config.configure();
   const string dbPath = "./replicaStateSync_test";
   dbClient = new RocksDBClient(dbPath, new RocksKeyComparator());
-  dbClient->init();
   bcDBAdapter = new BlockchainDBAdapter(dbClient);
+
   int res = RUN_ALL_TESTS();
-  dbClient->close();
+
   delete bcDBAdapter;
+  delete dbClient;
   return res;
 }

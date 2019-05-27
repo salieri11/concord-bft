@@ -58,7 +58,6 @@ using concord::ethereum::EthKvbStorage;
 using concord::common::operator<<;
 using concord::consensus::KVBClient;
 using concord::consensus::KVBClientPool;
-using concord::consensus::releaseReplica;
 using concord::consensus::ReplicaImp;
 using concord::ethereum::EthKvbCommandsHandler;
 using concord::ethereum::EVM;
@@ -280,9 +279,6 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
       }
     }
 
-    IDBClient *dbclient = open_database(nodeConfig, logger);
-    BlockchainDBAdapter db(dbclient);
-
     // Replica and communication config
     CommConfig commConfig;
     StatusAggregator sag;
@@ -293,6 +289,9 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
     initializeSBFTConfiguration(config, nodeConfig, &commConfig, nullptr, 0,
                                 &replicaConsensusConfig);
 
+    auto db_client = open_database(nodeConfig, logger);
+    BlockchainDBAdapter db_adapter(db_client);
+
     // Replica
     //
     // TODO(IG): since ReplicaImpl is used as an implementation of few
@@ -300,22 +299,21 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
     // EthKvbCommandsHandler and thus we cant use IReplica here. Need to
     // restructure the code, to split interfaces implementation and to construct
     // objects in more clear way
-    auto *replicaStateSync = new concord::consensus::ReplicaStateSyncImp;
-    ReplicaImp *replica =
-        dynamic_cast<ReplicaImp *>(concord::consensus::createReplica(
-            commConfig, replicaConsensusConfig, dbclient, *replicaStateSync));
+    concord::consensus::ReplicaStateSyncImp replicaStateSync;
+    ReplicaImp replica(commConfig, replicaConsensusConfig, &db_adapter,
+                       replicaStateSync);
 
     // TODO(RM): Use unique pointer
     ICommandsHandler *kvb_commands_handler;
     if (daml_enabled) {
       kvb_commands_handler =
-          new KVBCCommandsHandler(replica, replica, committedTxs);
+          new KVBCCommandsHandler(&replica, &replica, committedTxs);
     } else {
       kvb_commands_handler = new EthKvbCommandsHandler(
-          *athevm, *ethVerifier, config, nodeConfig, replica, replica);
+          *athevm, *ethVerifier, config, nodeConfig, &replica, &replica);
       // Genesis must be added before the replica is started.
       concord::consensus::Status genesis_status =
-          create_genesis_block(replica, params, logger);
+          create_genesis_block(&replica, params, logger);
       if (!genesis_status.isOK()) {
         LOG4CPLUS_FATAL(logger,
                         "Unable to load genesis block: " << genesis_status);
@@ -323,8 +321,8 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
       }
     }
 
-    replica->set_command_handler(kvb_commands_handler);
-    replica->start();
+    replica.set_command_handler(kvb_commands_handler);
+    replica.start();
 
     // Clients
 
@@ -360,7 +358,7 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
       std::string daml_addr{
           nodeConfig.getValue<std::string>("daml_service_addr")};
       daml_grpc_server =
-          RunDamlGrpcServer(daml_addr, pool, replica, committedTxs);
+          RunDamlGrpcServer(daml_addr, pool, &replica, committedTxs);
       LOG4CPLUS_INFO(logger, "DAML grpc server listening on " << daml_addr);
 
       daml_grpc_server->Wait();
@@ -387,15 +385,14 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
       timePusher.Stop();
     }
 
-    replica->stop();
+    replica.stop();
 
     if (!daml_enabled) {
       delete ethVerifier;
       delete athevm;
     }
     delete kvb_commands_handler;
-    releaseReplica(replica);
-    delete replicaStateSync;
+    delete db_client;
   } catch (std::exception &ex) {
     LOG4CPLUS_FATAL(logger, ex.what());
     return -1;
