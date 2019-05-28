@@ -302,18 +302,26 @@ export class WorldMapComponent implements AfterViewInit, OnChanges, OnDestroy {
    * @returns {(feature) => ol.style.Style} A per-node generating style function
    */
   private nodeFeatureStyle(fill) {
+
     return (feature) => {
       const nodeCount = (feature.getProperties() as NodeProperties).nodes.length;
       const unhealthyNodes = (feature.getProperties() as NodeProperties)
-        .nodes.filter(node => node.status === 'Unhealthy').length > 0;
+        .nodes.filter(node => node.status === 'unhealthy').length > 0;
+
+     if (unhealthyNodes) {
+       fill.color_ = this.theme.unhealthyNode;
+     } else {
+       fill.color_ = this.theme.nodeFill;
+     }
+
       return new Style({
         image: new Circle({
           fill,
           stroke: unhealthyNodes ? new Stroke({
             color: this.theme.unhealthyNode,
-            width: 2
+            width: 3
           }) : null,
-          radius: nodeCount * 4
+          radius: 5
         })
       });
     };

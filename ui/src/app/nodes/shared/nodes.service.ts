@@ -54,20 +54,27 @@ export class NodesService extends ConcordApiService {
           node['geo'] = locations[i].geo;
           node['location'] = locations[i].region;
           node['organization'] = locations[i].organization;
-
           let text = '';
           let labelClass = '';
+
           if (node.millis_since_last_message < node.millis_since_last_message_threshold) {
             text = this.translate.instant('nodes.healthy');
             labelClass = 'label-success';
             node['healthy'] = true;
-            node['status'] = 'Healthy';
+            node['status'] = text;
           } else {
             text = this.translate.instant('nodes.unhealthy');
             labelClass = 'label-danger';
             node['healthy'] = false;
-            node['status'] = 'Unhealthy';
+            node['status'] = text;
           }
+
+          // if (Math.random() >= 0.5) {
+          //   text = this.translate.instant('nodes.unhealthy');
+          //   labelClass = 'label-danger';
+          //   node['healthy'] = false;
+          //   node['status'] = text;
+          // }
 
           node['healthHTML'] = `<div class="label-container"><span class="label ${labelClass}">${text}</span></div>`;
 

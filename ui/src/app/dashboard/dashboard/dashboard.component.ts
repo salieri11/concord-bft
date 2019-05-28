@@ -92,7 +92,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     });
 
     this.setNodeData();
-    this.nodeGuage.margin = [20, 0, 0, 10];
+    this.nodeGuage.margin = [20, 0, 10, 10];
   }
 
   ngOnDestroy() {
