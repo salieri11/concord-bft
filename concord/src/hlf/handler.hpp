@@ -25,14 +25,20 @@ class HlfHandler {
   // APIs for set/revoke HlfKvbStorage
   concord::consensus::Status SetKvbHlfStoragePointer(
       concord::hlf::HlfKvbStorage* kvb_hlf_storage);
+
   concord::consensus::Status RevokeKvbHlfStoragePointer();
 
   // APIs for kv service
-  // return 0 if success
   std::string GetHlfKvService();
+
   concord::consensus::Status PutState(std::string key, std::string value);
+
   std::string GetState(const std::string& key);
+
   concord::consensus::Status WriteBlock();
+
+  concord::consensus::Status AddTransaction(
+      const com::vmware::concord::HlfRequest& hlf_request);
 
   // APIs for chaincode invoker
   concord::consensus::Status InstallChaincode(std::string name,

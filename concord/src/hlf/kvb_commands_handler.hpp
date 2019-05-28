@@ -58,37 +58,30 @@ class HlfKvbCommandsHandler : public concord::storage::ICommandsHandler {
   // HLF extent
   bool HandleHlfRequest(
       com::vmware::concord::ConcordRequest& concord_request,
-      concord::hlf::HlfKvbStorage* kvb_hlf_storage,
       com::vmware::concord::ConcordResponse& concord_response) const;
 
   bool HandleHlfRequestReadOnly(
       com::vmware::concord::ConcordRequest& concord_request,
-      concord::hlf::HlfKvbStorage* kvb_hlf_storage,
       com::vmware::concord::ConcordResponse& concord_response) const;
 
   bool HandleHlfInstallChaincode(
       com::vmware::concord::ConcordRequest& concord_request,
-      concord::hlf::HlfKvbStorage* kvb_hlf_storage,
       com::vmware::concord::ConcordResponse& concord_response) const;
 
   bool HandleHlfInstantiateChaincode(
       com::vmware::concord::ConcordRequest& concord_request,
-      concord::hlf::HlfKvbStorage* kvb_hlf_storage,
       com::vmware::concord::ConcordResponse& concord_response) const;
 
   bool HandleHlfUpgradeChaincode(
       com::vmware::concord::ConcordRequest& concord_request,
-      concord::hlf::HlfKvbStorage* kvb_hlf_storage,
       com::vmware::concord::ConcordResponse& concord_response) const;
 
   bool HandleHlfInvokeChaincode(
       com::vmware::concord::ConcordRequest& concord_request,
-      concord::hlf::HlfKvbStorage* kvb_hlf_storage,
       com::vmware::concord::ConcordResponse& concord_response) const;
 
   bool HandleHlfQueryChaincode(
       com::vmware::concord::ConcordRequest& concord_request,
-      concord::hlf::HlfKvbStorage* kvb_hlf_storage,
       com::vmware::concord::ConcordResponse& concord_response) const;
 };
 
