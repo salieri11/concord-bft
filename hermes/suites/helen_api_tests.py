@@ -112,11 +112,6 @@ class HelenAPITests(test_suite.TestSuite):
       return [("getCerts", self._test_getCerts), \
               ("block_hash", self._test_blockHash), \
               ("invalid_block_hash", self._test_invalidBlockHash), \
-              ("get_transaction_list", self._test_getTransactionList), \
-              ("get_transaction_list_max_size", self._test_getTransactionListMaxSize), \
-              ("get_transaction_list_fields", self._test_transactionListFields), \
-              ("get_transaction_list_invalid_latest", self._test_getTransactionListInvalidLatest), \
-              ("get_transaction_list_next_url", self._test_getTransactionListNextUrl), \
               ("large_reply", self._test_largeReply), \
               ("get_multiple_users", self._test_get_multiple_users), \
               ("create_user", self._test_createUser), \
@@ -140,13 +135,13 @@ class HelenAPITests(test_suite.TestSuite):
          self.product.resume_concord_replica(concordIndex)
 
 
-   def _test_getCerts(self, request):
+   def _test_getCerts(self, fx):
       '''
       Test that if we pass "?certs=true" to the Members endpoint, we get at
       least one non-empty rpc_cert in the response.
       '''
-      blockchains = request.getBlockchains()
-      result = request.getMemberList(blockchains[0]["id"],certs=True)
+      blockchains = fx.request.getBlockchains()
+      result = fx.request.getMemberList(blockchains[0]["id"],certs=True)
 
       if not type(result) is list:
          return (False, "Response was not a list")
@@ -311,92 +306,24 @@ class HelenAPITests(test_suite.TestSuite):
       return response;
 
 
-   def _test_blockHash(self, request):
-      txReceipt = self._mock_transaction(request)
+   def _test_blockHash(self, fx):
+      txReceipt = self._mock_transaction(fx.request)
       blockNumber = txReceipt['blockNumber']
       blockHash = txReceipt['blockHash']
       # query same block with hash and number and compare results
-      block1 = request.getBlockByUrl("/api/concord/blocks/{}".format(int(blockNumber, 16)))
-      block2 = request.getBlockByUrl("/api/concord/blocks/{}".format(blockHash))
+      block1 = fx.request.getBlockByUrl("/api/concord/blocks/{}".format(int(blockNumber, 16)))
+      block2 = fx.request.getBlockByUrl("/api/concord/blocks/{}".format(blockHash))
       if (block1 == block2):
          return (True, None)
       return (False, "Block returned with block hash API doesn't match with block returned by block Number")
 
 
-   def _test_invalidBlockHash(self, request):
+   def _test_invalidBlockHash(self, fx):
       try:
-         block = request.getBlockByUrl("/api/concord/blocks/0xbadbeef")
+         block = fx.request.getBlockByUrl("/api/concord/blocks/0xbadbeef")
       except Exception as e:
          return(True, None)
       return (False, "invalid block hash exception should be thrown")
-
-
-   def _test_getTransactionList(self, request):
-      txReceipt = self._mock_transaction(request)
-      txList = request.getTransactionList(count=1)
-      txList = txList['transactions']
-      if (len(txList) == 1 and
-          txList[0]['hash'] == txReceipt['transactionHash']):
-         return (True, None)
-      return (False, "Trasaction list response did not follow count & latest parameters")
-
-   def _test_transactionListFields(self, request):
-      tr_count = 10
-      first_tr = self._mock_transaction(request)
-      for i in range(1, tr_count):
-         tr = self._mock_transaction(request)
-
-      txList = request.getTransactionList(count=tr_count - 1)
-      for i in range(tr_count - 1):
-         (present, missing) = self.requireFields(txList['transactions'][i],
-                                                 ["from", "to", "value", "nonce", "hash", "url"]);
-         if not present:
-            return (False, "{} field is missing from response".format(missing))
-      if first_tr['transactionHash'] not in txList['next']:
-         return (False, "next field does not refer to correct next transaction")
-      return (True, None)
-
-
-   def _test_getTransactionListMaxSize(self, request):
-      txReceipt = self._mock_transaction(request)
-      txList = request.getTransactionList(count=1000)
-      txList = txList['transactions']
-      if (len(txList) < 1000 and
-          txList[0]['hash'] == txReceipt['transactionHash']):
-         return (True, None)
-      return (False, "Trasaction list response should limit maximum number of transactions returned")
-
-   def _test_getTransactionListInvalidLatest(self, request):
-      txReceipt = self._mock_transaction(request)
-      try:
-         txList = request.getTransactionList(latest="0xabq")
-      except Exception as e:
-         return (True, None)
-      return (False, "Error should be returned on invalid latest value")
-
-   def _test_getTransactionListNextUrl(self, request):
-      sentTrList = []
-      tr_count = 10
-      for i in range(tr_count):
-         tr = self._mock_transaction(request)
-         sentTrList.append(tr)
-      sentTrList = list(map(lambda x : x['transactionHash'], sentTrList))
-      sentTrList.reverse()
-
-      receivedTrList1 = request.getTransactionList(count=int((tr_count / 2)))
-      nextUrl = receivedTrList1['next']
-      receivedTrList1 = list(map(lambda x : x['hash'], receivedTrList1['transactions']))
-
-      if sentTrList[:5] != receivedTrList1:
-         return (False, "transaction list query did not return correct transactions")
-
-      receivedTrList2 = request.getNextTransactionList(nextUrl)
-      receivedTrList2 = list(map(lambda x : x['hash'], receivedTrList2['transactions']))
-
-      if sentTrList[5:] != receivedTrList2[:5]:
-         return (False, "transaction list query did not return correct transactions")
-      return (True, None)
-
 
    def email_generator(self, size=6, chars=string.ascii_uppercase + string.digits):
       return ''.join(random.choice(chars) for _ in range(size))
@@ -440,12 +367,12 @@ class HelenAPITests(test_suite.TestSuite):
       return request.callUserAPI("/users/{}/".format(user_id))
 
 
-   def _test_createUser(self, request):
+   def _test_createUser(self, fx):
       mock = self._get_mock_user_data()
-      response = self._create_mock_user(request, mock)
+      response = self._create_mock_user(fx.request, mock)
       print(response)
       user_id = response['user_id']
-      user = self._get_user(request, user_id)
+      user = self._get_user(fx.request, user_id)
       milliseconds_since_epoch = 0
       if (mock['name'] == user['name'] and mock['email'] == user['email']
           and mock['details']['first_name'] == user['details']['first_name']
@@ -455,15 +382,15 @@ class HelenAPITests(test_suite.TestSuite):
       else:
          return (False, "Returned valeus don't match with mock values")
 
-   def _test_get_non_existing_user(self, request):
-      response = self._create_mock_user(request)
+   def _test_get_non_existing_user(self, fx):
+      response = self._create_mock_user(fx.request)
       user_id = response['user_id']
-      response = self._get_user(request, str(uuid4()))
+      response = self._get_user(fx.request, str(uuid4()))
       if "error_message" in response:
          return (True, None)
       return (False, "Incorrect response for invalid user")
 
-   def _test_user_login(self, request):
+   def _test_user_login(self, fx):
       user = self._userConfig.get('product').get('db_users')[0]
       username = user['username']
       password = user['password']
@@ -471,9 +398,9 @@ class HelenAPITests(test_suite.TestSuite):
       loginData['email'] = username
       loginData['password'] = password
 
-      response = request.callUserAPI("/auth/login", data=loginData)
+      response = fx.request.callUserAPI("/auth/login", data=loginData)
       after = int(round(time.time() * 1000))
-      user = self._get_user(request, response['user_id'])
+      user = self._get_user(fx.request, response['user_id'])
       message = ''
       # Newly created users last_login value will return 0
       # to signify they are a new user
@@ -497,27 +424,27 @@ class HelenAPITests(test_suite.TestSuite):
 
       return (False, message)
 
-   def _test_patch_user(self, request):
-      response = self._create_mock_user(request);
+   def _test_patch_user(self, fx):
+      response = self._create_mock_user(fx.request);
       user_id = response['user_id']
       patchData = {}
       patchData['email'] = 'patched@email.com'
-      request.callUserAPI("/users/{}/".format(user_id), "PATCH", data=patchData)
-      user = self._get_user(request, user_id)
+      fx.request.callUserAPI("/users/{}/".format(user_id), "PATCH", data=patchData)
+      user = self._get_user(fx.request, user_id)
       if user['email'] != 'patched@email.com':
          return (False, "Patch didn't update email")
 
       patchData = {}
       patchData['name'] = 'patchedName'
-      request.callUserAPI("/users/{}/".format(user_id), "PATCH", data=patchData)
-      user = self._get_user(request, user_id)
+      fx.request.callUserAPI("/users/{}/".format(user_id), "PATCH", data=patchData)
+      user = self._get_user(fx.request, user_id)
       if user['name'] != 'patchedName':
          return (False, "Patch didn't update name")
 
       patchData = {}
       patchData['role'] = 'vmbc-org:user'
-      request.callUserAPI("/users/{}/".format(user_id), "PATCH", data=patchData)
-      user = self._get_user(request, user_id)
+      fx.request.callUserAPI("/users/{}/".format(user_id), "PATCH", data=patchData)
+      user = self._get_user(fx.request, user_id)
       if user['role'] != 'vmbc-org:user':
          return (False, "Patch didn't update role")
 
@@ -527,30 +454,30 @@ class HelenAPITests(test_suite.TestSuite):
       details['first_name'] = 'patchedFirstName'
       details['last_name'] = 'patchedLastName'
       patchData['details'] = details
-      request.callUserAPI("/users/{}/".format(user_id), "PATCH", data=patchData)
-      user = self._get_user(request, user_id)
+      fx.request.callUserAPI("/users/{}/".format(user_id), "PATCH", data=patchData)
+      user = self._get_user(fx.request, user_id)
       if (user['details']['first_name'] != 'patchedFirstName' and
          user['details']['last_name'] != 'patchedLastName'):
          return (False, "Patch didn't update details")
 
       return (True, None)
 
-   def _test_get_multiple_users(self, request):
+   def _test_get_multiple_users(self, fx):
       created_user_id = []
       user_count = 5
       for i in range(1, user_count):
-         response = self._create_mock_user(request);
+         response = self._create_mock_user(fx.request);
          created_user_id.append(response['user_id'])
-      user = self._get_user(request, created_user_id[0])
+      user = self._get_user(fx.request, created_user_id[0])
       params = "?consortium={}&organization={}".format(user['consortium']['consortium_id'],
                                                       user['organization']['organization_id'])
-      user_list = request.callUserAPI("/users/", params=params)
+      user_list = fx.request.callUserAPI("/users/", params=params)
       user_list = list(map(lambda u : u['user_id'], user_list))
       if not all(u in user_list for u in created_user_id):
          return (False, "All created users in consortium+organization not returned")
 
       # also try with no consortium and organization specified
-      all_user_list = request.callUserAPI("/users/")
+      all_user_list = fx.request.callUserAPI("/users/")
       all_user_list = list(map(lambda u : u['user_id'], all_user_list))
       if not all(u in all_user_list for u in created_user_id):
          return (False, "All created users not returned")
@@ -558,7 +485,7 @@ class HelenAPITests(test_suite.TestSuite):
       return (True, None)
 
 
-   def _test_largeReply(self, request):
+   def _test_largeReply(self, fx):
       ### 1. Create three contracts, each 16kb in size
       ### 2. Request latest transaction list
       ### 3. Reply will be 48k+ in size
@@ -574,12 +501,12 @@ class HelenAPITests(test_suite.TestSuite):
       sentTrList = []
       tr_count = 3
       for i in range(tr_count):
-         tr = self._mock_transaction(request, data=largeContract)
+         tr = self._mock_transaction(fx.request, data=largeContract)
          sentTrList.append(tr)
       sentTrList = list(map(lambda x : x['transactionHash'], sentTrList))
       sentTrList.reverse()
 
-      receivedTrList = request.getTransactionList(count=tr_count)
+      receivedTrList = fx.request.getTransactionList(fx.blockchainId, count=tr_count)
       receivedTrHashes = list(map(lambda x : x['hash'], receivedTrList['transactions']))
       receivedDataSum = sum(len(x['input']) for x in receivedTrList['transactions'])
 
