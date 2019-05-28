@@ -80,6 +80,12 @@ bool HlfKvbCommandsHandler::ExecuteReadOnlyCommand(
     uint32_t& out_reply_size) const {
   HlfKvbStorage kvb_hlf_storage(ro_storage);
 
+  // Set storage pointer
+  if (!hlf_handler_->SetKvbHlfStoragePointer(&kvb_hlf_storage).isOK()) {
+    LOG4CPLUS_ERROR(logger_, "Unable to set storage pointer");
+    return false;
+  }
+
   ConcordRequest command;
   bool result;
   ConcordResponse command_response;
@@ -110,6 +116,9 @@ bool HlfKvbCommandsHandler::ExecuteReadOnlyCommand(
     out_reply_size = 0;
   }
 
+  // Set storage pointer to null
+  hlf_handler_->RevokeKvbHlfStoragePointer();
+
   return result;
 }
 
@@ -121,6 +130,12 @@ bool HlfKvbCommandsHandler::ExecuteCommand(
     IBlocksAppender& block_appender, const size_t max_reply_size,
     char* out_reply, uint32_t& out_reply_size) const {
   HlfKvbStorage kvb_hlf_storage(ro_storage, &block_appender, sequence_num);
+
+  // Set storage pointer
+  if (!hlf_handler_->SetKvbHlfStoragePointer(&kvb_hlf_storage).isOK()) {
+    LOG4CPLUS_ERROR(logger_, "Unable to set storage pointer");
+    return false;
+  }
 
   ConcordRequest command;
   bool result;
@@ -151,6 +166,9 @@ bool HlfKvbCommandsHandler::ExecuteCommand(
     LOG4CPLUS_ERROR(logger_, "Reply is too large");
     out_reply_size = 0;
   }
+
+  // Set storage pointer to null
+  hlf_handler_->RevokeKvbHlfStoragePointer();
 
   return result;
 }
@@ -207,25 +225,22 @@ bool HlfKvbCommandsHandler::HandleHlfInstallChaincode(
   const HlfRequest request = command.hlf_request(0);
   HlfResponse* response = command_response.add_hlf_response();
 
-  if (hlf_handler_->SetKvbHlfStoragePointer(kvb_hlf_storage).isOK()) {
-    // input stores path
-    if (request.has_chaincode_name() && request.has_input() &&
-        request.has_version()) {
-      kvb_hlf_storage->AddHlfTransaction(request);
+  // input stores path
+  if (request.has_chaincode_name() && request.has_input() &&
+      request.has_version()) {
+    kvb_hlf_storage->AddHlfTransaction(request);
 
-      Status status = hlf_handler_->InstallChaincode(
-          request.chaincode_name(), request.input(), request.version());
+    Status status = hlf_handler_->InstallChaincode(
+        request.chaincode_name(), request.input(), request.version());
 
-      // revoke KVB storage pointer
-      hlf_handler_->RevokeKvbHlfStoragePointer();
+    // revoke KVB storage pointer
 
-      if (status.isOK()) {
-        response->set_data("Successfully installed chaincode: " +
-                           request.chaincode_name());
-        // 0 indeicate request is valid
-        response->set_status(0);
-        return true;
-      }
+    if (status.isOK()) {
+      response->set_data("Successfully installed chaincode: " +
+                         request.chaincode_name());
+      // 0 indeicate request is valid
+      response->set_status(0);
+      return true;
     }
   }
 
@@ -242,23 +257,18 @@ bool HlfKvbCommandsHandler::HandleHlfInstantiateChaincode(
   const HlfRequest request = command.hlf_request(0);
   HlfResponse* response = command_response.add_hlf_response();
 
-  if (hlf_handler_->SetKvbHlfStoragePointer(kvb_hlf_storage).isOK()) {
-    if (request.has_chaincode_name() && request.has_input() &&
-        request.has_version()) {
-      kvb_hlf_storage->AddHlfTransaction(request);
+  if (request.has_chaincode_name() && request.has_input() &&
+      request.has_version()) {
+    kvb_hlf_storage->AddHlfTransaction(request);
 
-      Status status = hlf_handler_->InstantiateChaincode(
-          request.chaincode_name(), request.input(), request.version());
+    Status status = hlf_handler_->InstantiateChaincode(
+        request.chaincode_name(), request.input(), request.version());
 
-      // revoke KVB storage pointer
-      hlf_handler_->RevokeKvbHlfStoragePointer();
-
-      if (status.isOK()) {
-        response->set_data("Successfully instantiated chaincode: " +
-                           request.chaincode_name());
-        response->set_status(0);
-        return true;
-      }
+    if (status.isOK()) {
+      response->set_data("Successfully instantiated chaincode: " +
+                         request.chaincode_name());
+      response->set_status(0);
+      return true;
     }
   }
 
@@ -275,23 +285,18 @@ bool HlfKvbCommandsHandler::HandleHlfUpgradeChaincode(
   const HlfRequest request = command.hlf_request(0);
   HlfResponse* response = command_response.add_hlf_response();
 
-  if (hlf_handler_->SetKvbHlfStoragePointer(kvb_hlf_storage).isOK()) {
-    if (request.has_chaincode_name() && request.has_input() &&
-        request.has_version()) {
-      kvb_hlf_storage->AddHlfTransaction(request);
+  if (request.has_chaincode_name() && request.has_input() &&
+      request.has_version()) {
+    kvb_hlf_storage->AddHlfTransaction(request);
 
-      Status status = hlf_handler_->UpgradeChaincode(
-          request.chaincode_name(), request.input(), request.version());
+    Status status = hlf_handler_->UpgradeChaincode(
+        request.chaincode_name(), request.input(), request.version());
 
-      // revoke KVB storage pointer
-      hlf_handler_->RevokeKvbHlfStoragePointer();
-
-      if (status.isOK()) {
-        response->set_data("Successfully upgraded chaincode: " +
-                           request.chaincode_name());
-        response->set_status(0);
-        return true;
-      }
+    if (status.isOK()) {
+      response->set_data("Successfully upgraded chaincode: " +
+                         request.chaincode_name());
+      response->set_status(0);
+      return true;
     }
   }
 
@@ -308,23 +313,18 @@ bool HlfKvbCommandsHandler::HandleHlfInvokeChaincode(
   const HlfRequest request = command.hlf_request(0);
   HlfResponse* response = command_response.add_hlf_response();
 
-  if (hlf_handler_->SetKvbHlfStoragePointer(kvb_hlf_storage).isOK()) {
-    if (request.has_chaincode_name() && request.has_input()) {
-      // Add transaction
-      kvb_hlf_storage->AddHlfTransaction(request);
-      Status status = hlf_handler_->InvokeChaincode(request.chaincode_name(),
-                                                    request.input());
+  if (request.has_chaincode_name() && request.has_input()) {
+    // Add transaction
+    kvb_hlf_storage->AddHlfTransaction(request);
+    Status status = hlf_handler_->InvokeChaincode(request.chaincode_name(),
+                                                  request.input());
 
-      // revoke KVB storage pointer
-      hlf_handler_->RevokeKvbHlfStoragePointer();
-
-      if (status.isOK()) {
-        response->set_data(
-            "Successfully invoked chaincode: " + request.chaincode_name() +
-            " with input: " + request.input());
-        response->set_status(0);
-        return true;
-      }
+    if (status.isOK()) {
+      response->set_data(
+          "Successfully invoked chaincode: " + request.chaincode_name() +
+          " with input: " + request.input());
+      response->set_status(0);
+      return true;
     }
   }
 
@@ -342,22 +342,17 @@ bool HlfKvbCommandsHandler::HandleHlfQueryChaincode(
   const HlfRequest request = command.hlf_request(0);
   HlfResponse* response = command_response.add_hlf_response();
 
-  if (hlf_handler_->SetKvbHlfStoragePointer(kvb_hlf_storage).isOK()) {
-    if (request.has_chaincode_name() && request.has_input()) {
-      string result = hlf_handler_->QueryChaincode(request.chaincode_name(),
-                                                   request.input());
+  if (request.has_chaincode_name() && request.has_input()) {
+    string result =
+        hlf_handler_->QueryChaincode(request.chaincode_name(), request.input());
 
-      // revoke KVB storage pointer
-      hlf_handler_->RevokeKvbHlfStoragePointer();
-
-      if (result != "") {
-        response->set_data(
-            "Successfully queried chaincode: " + request.chaincode_name() +
-            "\n The input is : " + request.input() +
-            "\n The result is : " + result);
-        response->set_status(0);
-        return true;
-      }
+    if (result != "") {
+      response->set_data(
+          "Successfully queried chaincode: " + request.chaincode_name() +
+          "\n The input is : " + request.input() +
+          "\n The result is : " + result);
+      response->set_status(0);
+      return true;
     }
   }
 
