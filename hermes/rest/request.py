@@ -243,11 +243,11 @@ class Request():
       return self._send()
 
 
-   def getTransactionList(self, latest=None, count=None):
+   def getTransactionList(self, blockchainId, latest=None, count=None):
       '''
       Get a list of transactions
       '''
-      self._subPath = '/api/concord/transactions/'
+      self._subPath = "/api/blockchains/" + blockchainId + "/concord/transactions"
       if latest:
          self._addParam("latest=" + latest)
 
