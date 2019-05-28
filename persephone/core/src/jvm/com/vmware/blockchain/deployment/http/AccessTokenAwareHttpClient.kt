@@ -384,7 +384,7 @@ actual abstract class AccessTokenAwareHttpClient(
             }
         }
         val logging = JdkHttpResponse.BodySubscribers.mapping<String, T?>(upstream) { value ->
-            log.info { "API: raw response body($value)"}
+            log.info { "API: raw response body($value)" }
             null
         }
 
