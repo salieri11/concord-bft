@@ -304,7 +304,6 @@ export class WorldMapComponent implements AfterViewInit, OnChanges, OnDestroy {
   private nodeFeatureStyle(fill) {
 
     return (feature) => {
-      const nodeCount = (feature.getProperties() as NodeProperties).nodes.length;
       const unhealthyNodes = (feature.getProperties() as NodeProperties)
         .nodes.filter(node => node.status === 'unhealthy').length > 0;
 
