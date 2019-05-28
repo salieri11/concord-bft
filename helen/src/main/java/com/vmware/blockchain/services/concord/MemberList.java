@@ -4,9 +4,6 @@
 
 package com.vmware.blockchain.services.concord;
 
-import java.nio.charset.StandardCharsets;
-import java.nio.file.FileSystems;
-import java.nio.file.Files;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -112,7 +109,7 @@ public final class MemberList extends ConcordServlet {
             peerJson.put("millis_since_last_message_threshold", peer.getMillisSinceLastMessageThreshold());
             peerJson.put("rpc_url", rpcUrls.getOrDefault(peer.getHostname(), ""));
             if (includeRpcCerts.get()) {
-                peerJson.put("rpc_cert", readCertFile(rpcCerts.get(peer.getHostname())));
+                peerJson.put("rpc_cert", rpcCerts.get(peer.getHostname()));
             }
 
             // Store into a JSON array of all peers.
@@ -122,22 +119,4 @@ public final class MemberList extends ConcordServlet {
         return peerArr;
     }
 
-    /**
-     * Read the certificate file, for inclusion in the JSON response. If the argument is null, or any error occurs,
-     * return an empty string.
-     */
-    private String readCertFile(String filename) {
-        if (filename == null) {
-            return "";
-        }
-
-        try {
-            // TODO: caching
-            byte[] certBytes = Files.readAllBytes(FileSystems.getDefault().getPath(filename));
-            return new String(certBytes, StandardCharsets.UTF_8);
-        } catch (Exception e) {
-            logger.warn("Problem reading cert file '" + filename + "'", e);
-            return "";
-        }
-    }
 }

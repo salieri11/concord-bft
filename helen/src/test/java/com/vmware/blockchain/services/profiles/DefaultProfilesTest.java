@@ -114,7 +114,8 @@ class DefaultProfilesTest {
         testUser.setRoles(Collections.singletonList(Roles.SYSTEM_ADMIN));
 
         profiles = new DefaultProfiles(userService, organizationService, consortiumService, passwordEncoder,
-                                       blockchainService, agreementService, serviceContext, ipList, rpcUrls, rpcCerts);
+                                       blockchainService, agreementService, serviceContext, ipList, rpcUrls, rpcCerts,
+                                        true);
 
         when(passwordEncoder.encode(anyString())).then(a -> a.getArguments().toString());
     }

@@ -6,6 +6,7 @@ package com.vmware.blockchain.services.profiles;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -61,6 +62,8 @@ public class DefaultProfiles {
 
     private String blockchainRpcCerts;
 
+    private boolean createDefaultBlockchain;
+
 
     @Autowired
     public DefaultProfiles(
@@ -73,7 +76,8 @@ public class DefaultProfiles {
             ServiceContext serviceContext,
             @Value("${ConcordAuthorities}") String blockchainIpList,
             @Value("${ConcordRpcUrls}") String blockchainRpcUrls,
-            @Value("${ConcordRpcCerts}") String blockchainRpcCerts) {
+            @Value("${ConcordRpcCerts}") String blockchainRpcCerts,
+            @Value("${vmbc.default.blockchain:false}") boolean createDefaultBlockchain) {
         this.userService = userService;
         this.organizationService = organizationService;
         this.consortiumService = consortiumService;
@@ -84,6 +88,7 @@ public class DefaultProfiles {
         this.blockchainIpList = blockchainIpList;
         this.blockchainRpcUrls = blockchainRpcUrls;
         this.blockchainRpcCerts = blockchainRpcCerts;
+        this.createDefaultBlockchain = createDefaultBlockchain;
     }
 
     // TODO: These next few methords are just testing convenience methods and should be removed
@@ -102,11 +107,17 @@ public class DefaultProfiles {
         createAgreementIfNotExist();
         organization = createOrgIfNotExist();
         consortium = createConsortiumIfNotExist();
-        blockchain = createBlockchainIfNotExist();
+        if (createDefaultBlockchain) {
+            blockchain = createBlockchainIfNotExist();
+        }
         user = createUserIfNotExist();
         serviceContext.clearServiceContext();
+        // For blockchain, don't log the node cert
+        List<String> nodeInfo = blockchain.getNodeList().stream()
+                .map(n -> String.format("%s %s %s", n.getHostName(), n.getIp(), n.getUrl()))
+                .collect(Collectors.toList());
         logger.info("Profiles -- Org {}, Cons: {}, BC: {}, User: {}", organization.getOrganizationName(),
-                consortium.getConsortiumName(), blockchain.getNodeList(), user.getEmail());
+                consortium.getConsortiumName(), nodeInfo, user.getEmail());
     }
 
     private User createUserIfNotExist() {
