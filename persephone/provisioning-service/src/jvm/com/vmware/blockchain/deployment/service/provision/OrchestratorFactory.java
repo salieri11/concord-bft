@@ -42,7 +42,7 @@ public class OrchestratorFactory implements OrchestratorProvider {
             return ReactiveStream.toFuture(publisher)
                     .handle((result, error) -> {
                         if (error != null) {
-                            log.info("Cannot initialize orchestrator, site({})", site);
+                            log.error("Cannot initialize orchestrator, site({})", site, error);
 
                             // Return an inactive orchestrator instance.
                             return new InactiveOrchestrator(site);

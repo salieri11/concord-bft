@@ -56,7 +56,9 @@ class ProvisioningServiceTest {
      * @return
      *   a newly created {@link ProvisioningService} instance.
      */
-    private static ProvisioningService newProvisionService(List<OrchestrationSite> orchestrations) {
+    private static ProvisioningService newProvisioningService(
+            List<OrchestrationSite> orchestrations
+    ) {
         return DaggerTestProvisioningServer.builder()
                 .orchestrations(orchestrations)
                 .build()
@@ -234,7 +236,7 @@ class ProvisioningServiceTest {
     @Disabled("ProvisionService#generateClusterConfig() expects generation utility to be locally installed.")
     void clusterCreateShouldGenerateSession() throws Exception {
         var orchestrations = newOrchestrationSites();
-        var service = newProvisionService(orchestrations);
+        var service = newProvisioningService(orchestrations);
         var initialized = service.initialize();
         initialized.get(awaitTime, TimeUnit.MILLISECONDS);
         Assertions.assertThat(initialized).isCompleted();

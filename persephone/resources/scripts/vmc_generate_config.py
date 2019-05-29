@@ -30,6 +30,17 @@ def parse_arguments() -> Dict[str, Any]:
         default="Compute-ResourcePool",
         help="Resource pool to utilize for every SDDC"
     )
+    parser.add_argument(
+        "--container-registry",
+        default="https://registry-1.docker.io/v2",
+        help="Container registry to use for an orchestration site"
+    )
+    parser.add_argument(
+        "--container-registry-username",
+        default="blockchainrepositoryreader",
+        help="Container registry user login"
+    )
+    parser.add_argument("--container-registry-password", help="Container registry user password")
 
     return vars(parser.parse_args())
 
@@ -42,9 +53,13 @@ def new_orchestration_site(
         resource_pool: str,
         network: str,
         network_prefix: int,
-        network_subnet: int
+        network_subnet: int,
+        container_registry: str,
+        container_registry_username: str,
+        container_registry_password: str
 ) -> orchestration.OrchestrationSite:
     """
+    Create a new OrchestrationSite instance based on supplied parameters.
 
     Args:
         organization (str): VMware Cloud organization account ID.
@@ -55,6 +70,9 @@ def new_orchestration_site(
         network (str): VM network to utilize for VM deployment.
         network_prefix (int): Network CIDR prefix for VM network, if VM network does not exist.
         network_subnet (int): Network subnet size for VM network, if VM network does not exist.
+        container_registry (str): Container registry to use to obtain model images.
+        container_registry_username (str): Container registry user login.
+        container_registry_password (str): Container registry user password.
 
     Returns:
         orchestration.OrchestrationSite: a new instance of the corresponding orchestration site.
@@ -78,12 +96,12 @@ def new_orchestration_site(
                 ),
                 api=core.Endpoint(address="https://vmc.vmware.com"),
                 container_registry=core.Endpoint(
-                    address="https://registry-1.docker.io/v2",
+                    address=container_registry,
                     credential=core.Credential(
                         type=core.Credential.PASSWORD,
                         password_credential=core.PasswordCredential(
-                            username="blockchainrepositoryreader",
-                            password="j4jshdh$@ED2R$*Trf8"
+                            username=container_registry_username,
+                            password=container_registry_password
                         )
                     )
                 ),
@@ -105,13 +123,16 @@ def main():
 
     Example:
         $ python vmc_generate_config.py
-            --org=c56e116e-c36f-4f7d-b504-f9a33955b853
+            --organization=c56e116e-c36f-4f7d-b504-f9a33955b853
             --data-centers a890ac97-941d-4479-a90c-98061c1e3639 3656526b-c74e-4f87-8e1f-a667975273c2
-            --api-token=572c696a-298c-4e73-bc7d-868a3179f70a
+            --api-token=00000000-0000-0000-0000-000000000000
             --folder=Workloads
             --network=vmware-vpn
             --network-prefix=172518400
             --network-subnet=24
+            --container-registry=https://registry-1.docker.io/v2,
+            --container-registry-username=blockchainrepositoryreader
+            --container-registry-password=some_password
 
     Returns:
         None
@@ -131,7 +152,10 @@ def main():
                 resource_pool=args["resource_pool"],
                 network=args["network"],
                 network_prefix=args["network_prefix"],
-                network_subnet=args["network_subnet"]
+                network_subnet=args["network_subnet"],
+                container_registry=args["container_registry"],
+                container_registry_username=args["container_registry_username"],
+                container_registry_password=args["container_registry_password"]
             ) for site in args["data_centers"]
         ]
     )
