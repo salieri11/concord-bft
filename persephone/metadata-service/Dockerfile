@@ -17,18 +17,18 @@ COPY ./orchestration-vmc/pom.xml ./persephone/orchestration-vmc/pom.xml
 COPY ./persistence/pom.xml ./persephone/persistence/pom.xml
 COPY ./provisioning-service/pom.xml ./persephone/provisioning-service/pom.xml
 
-## Copy the dependency module sources and POM files.
-COPY ./api/src ./persephone/api/src
-COPY ./core/src ./persephone/core/src
-COPY ./core/test ./persephone/core/test
-COPY ./persistence/src ./persephone/persistence/src
-COPY ./persistence/test ./persephone/persistence/test
+## Run an empty package step to keep as much exogenous dependencies in a cached layer as possible.
+RUN mvn -f persephone/pom.xml dependency:resolve-plugins dependency:resolve clean package -B
 
-## Copy the module sources and POM file.
-COPY ./metadata-service/src ./persephone/metadata-service/src
-COPY ./metadata-service/test ./persephone/metadata-service/test
+## Copy the dependent module sources.
+COPY ./api ./persephone/api
+COPY ./core ./persephone/core
+COPY ./persistence ./persephone/persistence
 
-## Build persephone modules.
+## Copy the module sources.
+COPY ./metadata-service ./persephone/metadata-service
+
+## Build module with all of its dependencies.
 RUN mvn -f persephone/pom.xml package -pl metadata-service -am -B
 
 # Runtime image (Metadata Service).

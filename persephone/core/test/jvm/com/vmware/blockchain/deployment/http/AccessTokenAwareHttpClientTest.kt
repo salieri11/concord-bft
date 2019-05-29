@@ -145,7 +145,6 @@ class AccessTokenAwareHttpClientTest {
                             .willReturn(WireMock.aResponse().withStatus(200))
             )
 
-
             // Start the server.
             server.start()
         }

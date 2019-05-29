@@ -37,7 +37,7 @@ class InMemoryUntypedKeyValueStoreTest {
         private fun servers(): Stream<UntypedKeyValueStore<MonotonicInt>> {
             var counter = -1
             return Stream.generate<UntypedKeyValueStore<MonotonicInt>> {
-                when(counter++.rem(3)) {
+                when (counter++.rem(3)) {
                     0 -> InMemoryUntypedKeyValueStore(Dispatchers.Default)
                     1 -> InMemoryUntypedKeyValueStore(Dispatchers.Unconfined)
                     else -> InMemoryUntypedKeyValueStore(

@@ -17,22 +17,21 @@ COPY ./persephone/orchestration-vmc/pom.xml ./persephone/orchestration-vmc/pom.x
 COPY ./persephone/persistence/pom.xml ./persephone/persistence/pom.xml
 COPY ./persephone/provisioning-service/pom.xml ./persephone/provisioning-service/pom.xml
 
-## Copy the dependency module sources and POM files.
-COPY ./persephone/api/src ./persephone/api/src
-COPY ./persephone/awsutil/src ./persephone/awsutil/src
-COPY ./persephone/awsutil/test ./persephone/awsutil/test
-COPY ./persephone/core/src ./persephone/core/src
-COPY ./persephone/core/test ./persephone/core/test
-COPY ./persephone/orchestration/src ./persephone/orchestration/src
-COPY ./persephone/orchestration-vmc/src ./persephone/orchestration-vmc/src
-COPY ./persephone/persistence/src ./persephone/persistence/src
-COPY ./persephone/persistence/test ./persephone/persistence/test
+## Run an empty package step to keep as much exogenous dependencies in a cached layer as possible.
+RUN mvn -f persephone/pom.xml dependency:resolve-plugins dependency:resolve clean package -B
 
-## Copy the module sources and POM file.
-COPY ./persephone/provisioning-service/src ./persephone/provisioning-service/src
-COPY ./persephone/provisioning-service/test ./persephone/provisioning-service/test
+## Copy the dependent module sources.
+COPY ./persephone/api ./persephone/api
+COPY ./persephone/awsutil ./persephone/awsutil
+COPY ./persephone/core ./persephone/core
+COPY ./persephone/orchestration ./persephone/orchestration
+COPY ./persephone/orchestration-vmc ./persephone/orchestration-vmc
+COPY ./persephone/persistence ./persephone/persistence
 
-## Build persephone modules.
+## Copy the module sources.
+COPY ./persephone/provisioning-service ./persephone/provisioning-service
+
+## Build module with all of its dependencies.
 RUN mvn -f persephone/pom.xml package -pl provisioning-service -am -B
 
 ## Get the C++ part
@@ -51,13 +50,13 @@ RUN cmake -DCMAKE_CXX_FLAGS="-march=x86-64 -mtune=generic" .. && make -j$(nproc)
 FROM openjdk:11.0.2-jdk-slim
 LABEL description="VMware Blockchain Fleet Management Provisioning Service"
 
-# Install libs build from source
+## Install libs build from source
 COPY --from=builder1 /usr/local/lib/liblog4cplus* /usr/local/lib/
 COPY --from=builder1 /usr/lib/x86_64-linux-gnu/libboost_program_options.so.* /usr/local/lib/
 COPY --from=builder1 /usr/lib/x86_64-linux-gnu/libgmp* /usr/local/lib/
 COPY --from=builder1 /usr/lib/x86_64-linux-gnu/libyaml* /usr/local/lib/
 
-# Ensure configtool can find it
+## Ensure configtool can find it
 ENV LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/usr/local/lib"
 
 WORKDIR /app
@@ -67,7 +66,6 @@ RUN sed -i "/jdk.tls.disabledAlgorithms=/ s/=.*/=TLSv1.3, SSLv3, RC4, MD5withRSA
 
 WORKDIR /persephone/provisioning-service
 COPY --from=0 ./persephone/provisioning-service/target/persephone-provisioning-service*with-dependencies.jar ./provisioning-service.jar
-
 
 EXPOSE 9002
 

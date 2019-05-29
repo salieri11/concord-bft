@@ -91,6 +91,7 @@
         <maven.plugin.compiler>3.8.0</maven.plugin.compiler>
         <maven.plugin.jar>3.1.1</maven.plugin.jar>
         <maven.plugin.javadoc>3.0.0</maven.plugin.javadoc>
+        <maven.plugin.ktlint>1.0.2</maven.plugin.ktlint>
         <maven.plugin.os>1.3.0.Final</maven.plugin.os>
         <maven.plugin.protobuf>0.6.1</maven.plugin.protobuf>
         <maven.plugin.resources>3.0.2</maven.plugin.resources>
@@ -484,6 +485,20 @@
                             </configuration>
                             <goals>
                                 <goal>checkstyle</goal>
+                                <goal>check</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
+                <plugin>
+                    <groupId>com.github.gantsign.maven</groupId>
+                    <artifactId>ktlint-maven-plugin</artifactId>
+                    <version>${maven.plugin.ktlint}</version>
+                    <executions>
+                        <execution>
+                            <id>check</id>
+                            <phase>validate</phase>
+                            <goals>
                                 <goal>check</goal>
                             </goals>
                         </execution>
