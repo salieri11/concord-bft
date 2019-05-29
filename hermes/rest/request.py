@@ -186,6 +186,15 @@ class Request():
       blockchains = self.getBlockchains()
       return blockchains[0]["id"]
 
+   def getBlockchainDetails(self, blockchainId):
+      '''
+      Get the details for a given blockchain ID.
+      '''
+      self._subPath = "/api/blockchains/" + blockchainId
+      self._params = ""
+      self._endpointName = "blockchain"
+      return self._send()
+
    def getBlockList(self, blockchainId, nextUrl=None, latest=None, count=None):
       '''
       Get the list of blocks for the passed in blockchain.
