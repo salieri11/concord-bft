@@ -26,6 +26,7 @@ def parse_arguments() -> Dict[str, Any]:
     )
     parser.add_argument(
         "--trusted-certs",
+        default=None,
         help="File path to trusted server certificates"
     )
 
@@ -37,16 +38,19 @@ def main():
     Main program entry-point.
 
     Example:
-        $ python metadata_client.py --server localhost:9001 --trusted-certs /tmp/sslcerts/server.crt
+        $ python metadata_client.py --server localhost:9001 --trusted-certs /tmp/server.crt
 
     Returns:
         None
     """
     args = parse_arguments()
-    with io.open(args["trusted_certs"], "rb") as f:
-        trusted_certs = f.read()
-    credentials = grpc.ssl_channel_credentials(root_certificates=trusted_certs)
-    channel = grpc.secure_channel(args["server"], credentials)
+    if args["trusted_certs"]:
+        with io.open(args["trusted_certs"], "rb") as f:
+            trusted_certs = f.read()
+        credentials = grpc.ssl_channel_credentials(root_certificates=trusted_certs)
+        channel = grpc.secure_channel(args["server"], credentials)
+    else:
+        channel = grpc.insecure_channel(args["server"])
     stub = metadata_service_rpc.ConcordModelServiceStub(channel)
 
     add_model_request = metadata_service.AddModelRequest(
