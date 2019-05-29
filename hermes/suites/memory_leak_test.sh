@@ -42,6 +42,7 @@ HERMES_PID_FILE="/tmp/hermes_pid"
 # memory leak summary data gets saved in repo: hermes-data
 MEMORY_LEAK_SUMMARY_FILE="../../../hermes-data/memory_leak_test/memory_leak_summary.csv"
 MEMORY_LEAK_ALERT_FILE="${RESULTS_DIR}/memory_leak_spiked.log"
+NONLEAK_ALERT_FILE="${RESULTS_DIR}/nonleak_alerts.log"
 LEAK_SPIKE_BUFFER=500
 
 check_usage() {
@@ -168,6 +169,17 @@ check_for_spiked_mem_leak() {
     fi
 }
 
+# Alert about non-leak warnings
+check_nonleak_warnings() {
+    uninitialised_variables=`grep -A3 -F "Conditional jump or move depends on uninitialised value" "${RESULTS_DIR}/${VALGRIND_LOG_FILENAME}"`
+
+    if [ ! -z "${uninitialised_variables}" ]
+    then
+        echo "\n\t**** Uninitialised variables found in this run ***"
+        echo "Uninitialised variable warnings:\n$uninitialised_variables" > "${NONLEAK_ALERT_FILE}"
+        echo "Creating log file for Alert Notification: ${NONLEAK_ALERT_FILE}"
+    fi
+}
 
 trap "trap_ctrlc" 2
 check_usage
@@ -182,9 +194,16 @@ then
     rm -f "${MEMORY_LEAK_ALERT_FILE}"
 fi
 
+if [ -f "${NONLEAK_ALERT_FILE}" ]
+then
+    rm -f "${NONLEAK_ALERT_FILE}"
+fi
+
 launch_memory_test 2>&1 | tee "${MEMORY_INFO_LOG_FILE}"
 
-if [ -f "${MEMORY_LEAK_PASS_FILE}" ]
+check_nonleak_warnings
+
+if ( [ -f "${MEMORY_LEAK_PASS_FILE}" ] && [ ! -f "${NONLEAK_ALERT_FILE}" ] )
 then
     echo "Memory Leak Test Passed"
     fetch_leak_summary
@@ -198,4 +217,3 @@ rm -f "${HERMES_PID_FILE}"
 
 echo "Exit status: $retVal"
 exit $retVal
-
