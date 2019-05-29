@@ -227,13 +227,29 @@ message StreamClusterDeploymentSessionEventRequest {
     MessageHeader header = 1;
     DeploymentSessionIdentifier session = 2;
 }
+
+/**
+ * Model definition for provisioning server configuration settings.
+ *
+ * @property[port]
+ *   port number to use for server instance.
+ * @property[transport_security]
+ *   transport security setting.
+ * @property[sites]
+ *   list of orchestration sites to utilize for provisioning resources.
+ */
+message ProvisioningServerConfiguration {
+    int32 port = 1;
+    TransportSecurity transport_security = 2;
+    repeated OrchestrationSite sites = 3 [packed=false];
+}
 /* [END messages] */
 
 /* [START services] */
 /**
  * Service definition pertaining to operations on Concord cluster provisioning.
  */
-service ProvisionService {
+service ProvisioningService {
     /**
      * Operation to create a cluster based on a [CreateClusterRequest].
      */

@@ -13,6 +13,7 @@
 
     <modules>
         <module>api</module>
+        <module>awsutil</module>
         <module>core</module>
         <module>cli</module>
         <module>metadata-service</module>
@@ -20,8 +21,7 @@
         <module>orchestration</module>
         <module>orchestration-vmc</module>
         <module>persistence</module>
-        <module>awsutil</module>
-        <module>provision-service</module>
+        <module>provisioning-service</module>
     </modules>
 
     <distributionManagement>

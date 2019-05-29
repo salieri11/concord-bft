@@ -6,6 +6,7 @@ package com.vmware.blockchain.deployment.service.provision;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -28,6 +29,7 @@ import com.vmware.blockchain.deployment.model.DeploymentSessionIdentifier;
 import com.vmware.blockchain.deployment.model.DeploymentSpecification;
 import com.vmware.blockchain.deployment.model.Endpoint;
 import com.vmware.blockchain.deployment.model.MessageHeader;
+import com.vmware.blockchain.deployment.model.OrchestrationSite;
 import com.vmware.blockchain.deployment.model.OrchestrationSiteIdentifier;
 import com.vmware.blockchain.deployment.model.OrchestrationSiteInfo;
 import com.vmware.blockchain.deployment.model.PlacementSpecification;
@@ -41,23 +43,21 @@ import io.grpc.stub.StreamObserver;
 
 
 /**
- * Various test verifying functionality and semantics of {@link ProvisionService}.
+ * Various test verifying functionality and semantics of {@link ProvisioningService}.
  */
-class ProvisionServiceTest {
+class ProvisioningServiceTest {
 
     /** Default await-time value in milliseconds. */
     private static long awaitTime = 10000;
 
     /**
-     * Create a new {@link ProvisionService}.
+     * Create a new {@link ProvisioningService}.
      *
      * @return
-     *   a newly created {@link ProvisionService} instance.
+     *   a newly created {@link ProvisioningService} instance.
      */
-    private static ProvisionService newProvisionService(
-            Map<OrchestrationSiteIdentifier, OrchestrationSiteInfo> orchestrations
-    ) {
-        return DaggerTestProvisionServer.builder()
+    private static ProvisioningService newProvisionService(List<OrchestrationSite> orchestrations) {
+        return DaggerTestProvisioningServer.builder()
                 .orchestrations(orchestrations)
                 .build()
                 .provisionService();
@@ -69,12 +69,24 @@ class ProvisionServiceTest {
      * @return
      *   a mapping of {@link OrchestrationSiteIdentifier} to {@link OrchestrationSiteInfo}.
      */
-    private static Map<OrchestrationSiteIdentifier, OrchestrationSiteInfo> newOrchestrationSites() {
-        return Map.of(
-                new OrchestrationSiteIdentifier(1, 0), newOrchestrationSiteInfo(1),
-                new OrchestrationSiteIdentifier(2, 0), newOrchestrationSiteInfo(2),
-                new OrchestrationSiteIdentifier(3, 0), newOrchestrationSiteInfo(3),
-                new OrchestrationSiteIdentifier(4, 0), newOrchestrationSiteInfo(4)
+    private static List<OrchestrationSite> newOrchestrationSites() {
+        return List.of(
+                new OrchestrationSite(
+                        new OrchestrationSiteIdentifier(1, 0),
+                        newOrchestrationSiteInfo(1)
+                ),
+                new OrchestrationSite(
+                        new OrchestrationSiteIdentifier(2, 0),
+                        newOrchestrationSiteInfo(2)
+                ),
+                new OrchestrationSite(
+                        new OrchestrationSiteIdentifier(3, 0),
+                        newOrchestrationSiteInfo(3)
+                ),
+                new OrchestrationSite(
+                        new OrchestrationSiteIdentifier(4, 0),
+                        newOrchestrationSiteInfo(4)
+                )
         );
     }
 
@@ -212,7 +224,7 @@ class ProvisionServiceTest {
     }
 
     /**
-     * Test that {@link ProvisionService#createCluster} operation generation a valid deployment
+     * Test that {@link ProvisioningService#createCluster} operation generation a valid deployment
      * session with {@link DeploymentSessionEvent}s.
      *
      * @throws Exception

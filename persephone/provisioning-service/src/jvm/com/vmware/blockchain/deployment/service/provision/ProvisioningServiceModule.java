@@ -4,19 +4,18 @@
 
 package com.vmware.blockchain.deployment.service.provision;
 
-import java.util.Map;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ForkJoinPool;
 import javax.inject.Singleton;
 
-import com.vmware.blockchain.deployment.model.OrchestrationSiteIdentifier;
-import com.vmware.blockchain.deployment.model.OrchestrationSiteInfo;
+import com.vmware.blockchain.deployment.model.OrchestrationSite;
 
 import dagger.Module;
 import dagger.Provides;
 
 @Module
-class ProvisionServiceModule {
+class ProvisioningServiceModule {
 
     /**
      * Provide an {@link ExecutorService} instance.
@@ -31,18 +30,18 @@ class ProvisionServiceModule {
     }
 
     /**
-     * Provide an {@link ProvisionService} instance.
+     * Provide an {@link ProvisioningService} instance.
      *
      * @return
-     *   a singleton {@link ProvisionService} instance.
+     *   a singleton {@link ProvisioningService} instance.
      */
     @Provides
     @Singleton
-    static ProvisionService providesProvisionService(
+    static ProvisioningService providesProvisioningService(
             ExecutorService executor,
             OrchestratorProvider orchestratorProvider,
-            Map<OrchestrationSiteIdentifier, OrchestrationSiteInfo> sites
+            List<OrchestrationSite> sites
     ) {
-        return new ProvisionService(executor, orchestratorProvider, sites);
+        return new ProvisioningService(executor, orchestratorProvider, sites);
     }
 }

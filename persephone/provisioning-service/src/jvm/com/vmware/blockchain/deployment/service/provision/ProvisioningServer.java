@@ -1,24 +1,27 @@
 /* **************************************************************************
  * Copyright (c) 2019 VMware, Inc. All rights reserved. VMware Confidential
- * *************************************************************************/
+ * **************************************************************************/
 
-package com.vmware.blockchain.deployment.service.metadata;
+package com.vmware.blockchain.deployment.service.provision;
 
 import java.io.IOException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import javax.inject.Singleton;
-import javax.net.ssl.SSLException;
 
 import org.slf4j.LoggerFactory;
 
-import com.vmware.blockchain.deployment.model.MetadataServerConfiguration;
+import com.vmware.blockchain.deployment.model.OrchestrationSite;
+import com.vmware.blockchain.deployment.model.ProvisioningServerConfiguration;
 import com.vmware.blockchain.deployment.model.TransportSecurity;
 
+import dagger.BindsInstance;
 import dagger.Component;
 import io.grpc.Server;
 import io.grpc.netty.shaded.io.grpc.netty.GrpcSslContexts;
@@ -31,30 +34,40 @@ import kotlinx.serialization.json.Json;
 import kotlinx.serialization.json.JsonConfiguration;
 import kotlinx.serialization.modules.EmptyModule;
 
+
 /**
- * gRPC server that serves metadata-related API operations.
+ * gRPC server that serves provisioning-related API operations.
  */
-@Component(modules = ConcordModelServiceModule.class)
+@Component(modules = {ProvisioningServiceModule.class, OrchestratorModule.class})
 @Singleton
-interface MetadataServer {
+interface ProvisioningServer {
 
     /** Default server port number. */
-    int DEFAULT_SERVER_PORT = 9001;
+    int DEFAULT_SERVER_PORT = 9002;
 
-    /** Default configuration files path. */
-    URI DEFAULT_SERVER_CONFIG = URI.create("file:/config/persephone/metadata/config.json");
+    /** Default configuration file path. */
+    URI DEFAULT_SERVER_CONFIG = URI.create("file:/config/persephone/provisioning/config.json");
 
     /** Default certificate chain file path. */
-    URI DEFAULT_CERTIFICATE_CHAIN = URI.create("file:/config/persephone/metadata/server.crt");
+    URI DEFAULT_CERTIFICATE_CHAIN = URI.create("file:/config/persephone/provisioning/server.crt");
 
     /** Default private key file path. */
-    URI DEFAULT_PRIVATE_KEY = URI.create("file:/config/persephone/metadata/server.pem");
+    URI DEFAULT_PRIVATE_KEY = URI.create("file:/config/persephone/provisioning/server.pem");
 
     /** Default trusted certificate collection file path. */
-    URI DEFAULT_TRUST_CERTIFICATES = URI.create("file:/config/persephone/metadata/ca.crt");
+    URI DEFAULT_TRUST_CERTIFICATES = URI.create("file:/config/persephone/provisioning/ca.crt");
 
-    /** Singleton service instance for serving metadata pertaining Concord model information. */
-    ConcordModelService concordModelService();
+    /** Singleton service instance for provisioning Concord clusters. */
+    ProvisioningService provisioningService();
+
+    @Component.Builder
+    interface Builder {
+
+        @BindsInstance
+        Builder orchestrations(List<OrchestrationSite> entries);
+
+        ProvisioningServer build();
+    }
 
     /**
      * Create a new {@link SslContext}.
@@ -98,8 +111,8 @@ interface MetadataServer {
      * @return
      *   {@link CompletableFuture} that completes when shutdown is done.
      */
-    static CompletableFuture<Void> shutdownServer(MetadataServer server) {
-        return server.concordModelService().shutdown();
+    static CompletableFuture<Void> shutdownServer(ProvisioningServer server) {
+        return server.provisioningService().shutdown();
     }
 
     /**
@@ -110,16 +123,12 @@ interface MetadataServer {
      *
      * @throws InterruptedException
      *   if process is interrupted while awaiting termination.
-     * @throws IOException
-     *   if configuration cannot be loaded from file.
-     * @throws SSLException
-     *   if server SSL context cannot be constructed due to SSL provider exception.
      */
-    static void main(String[] args) throws InterruptedException, IOException, SSLException {
+    static void main(String[] args) throws InterruptedException, IOException {
         // Initialize logging.
-        var log = LoggerFactory.getLogger(MetadataServer.class);
+        var log = LoggerFactory.getLogger(ProvisioningServer.class);
 
-        // Construct server configuration from input parameters.
+        // Construct orchestration mapping from input parameters.
         var json = new Json(
                 new JsonConfiguration(
                         false, /* encodeDefaults */
@@ -133,8 +142,8 @@ interface MetadataServer {
                 ),
                 EmptyModule.INSTANCE
         );
-        var serializer = MetadataServerConfiguration.getSerializer();
-        MetadataServerConfiguration config;
+        var serializer = ProvisioningServerConfiguration.getSerializer();
+        ProvisioningServerConfiguration config;
         if (args.length == 1 && Files.exists(Paths.get(args[0]))) {
             var configJson = Files.lines(Paths.get(args[0]), StandardCharsets.UTF_8)
                     .collect(Collectors.joining());
@@ -144,21 +153,23 @@ interface MetadataServer {
                     .collect(Collectors.joining());
             config = json.parse(serializer, configJson);
         } else {
-            config = new MetadataServerConfiguration(
+            config = new ProvisioningServerConfiguration(
                     DEFAULT_SERVER_PORT,
                     new TransportSecurity(
                             TransportSecurity.Type.TLSv1_2,
                             DEFAULT_TRUST_CERTIFICATES.toString(),
                             DEFAULT_CERTIFICATE_CHAIN.toString(),
                             DEFAULT_PRIVATE_KEY.toString()
-                    )
-
+                    ),
+                    Collections.emptyList()
             );
         }
 
         // Build the server and start.
-        var metadataServer = DaggerMetadataServer.create();
-        var sslContext = (config.getTransportSecurity().getType() != TransportSecurity.Type.NONE)
+        var provisioningServer = DaggerProvisioningServer.builder()
+                .orchestrations(config.getSites())
+                .build();
+        var sslContext = config.getTransportSecurity().getType() != TransportSecurity.Type.NONE
                 ? newSslContext(
                         URI.create(config.getTransportSecurity().getTrustedCertificatesUrl()),
                         URI.create(config.getTransportSecurity().getCertificateUrl()),
@@ -166,15 +177,15 @@ interface MetadataServer {
                 )
                 : null;
         Server server = NettyServerBuilder.forPort(config.getPort())
-                .addService(metadataServer.concordModelService())
+                .addService(provisioningServer.provisioningService())
                 .sslContext(sslContext)
                 .build();
         try {
-            log.info("Initializing concord model service");
-            metadataServer.concordModelService().initialize()
+            log.info("Initializing provisioning service");
+            provisioningServer.provisioningService().initialize()
                     .whenComplete((result, error) -> {
                         if (error != null) {
-                            log.error("Error initializing concord model service", error);
+                            log.error("Error initializing provision service", error);
                             server.shutdown();
                         }
                     });
@@ -192,7 +203,7 @@ interface MetadataServer {
             server.awaitTermination();
 
             // Once the server loop is closed, make sure the rest of logical shutdown is done too.
-            shutdownServer(metadataServer).join();
+            shutdownServer(provisioningServer).join();
         }
     }
 }

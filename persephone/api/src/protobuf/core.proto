@@ -91,3 +91,26 @@ message BearerTokenCredential {
     string token = 1;
 }
 
+/**
+ * Denote a transport security configuration setting.
+ *
+ * @property[type]
+ *   type of transport security specified.
+ * @property[trusted_certificates_url]
+ *   file URL for trusted certificates (.crt format).
+ * @property[certificate_url]
+ *   file URL for server's certificate (.crt format).
+ * @property[private_key_url]
+ *   file URL for server's private key (.pem format).
+ */
+message TransportSecurity {
+    enum Type {
+        NONE = 0;
+        TLSv1_2 = 1;
+    }
+
+    Type type = 1;
+    string trusted_certificates_url = 2;
+    string certificate_url = 3;
+    string private_key_url = 4;
+}

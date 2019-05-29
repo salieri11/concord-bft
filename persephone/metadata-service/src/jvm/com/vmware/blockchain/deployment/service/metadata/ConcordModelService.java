@@ -85,7 +85,7 @@ public class ConcordModelService extends ConcordModelServiceImplBase {
      */
     private BaseSubscriber<Event<ConcordModelIdentifier, ConcordModelSpecification, MonotonicInt>> eventSink;
 
-    public ConcordModelService(
+    ConcordModelService(
             ExecutorService executor,
             KeyValueStore<ConcordModelIdentifier, ConcordModelSpecification, MonotonicInt> storage
     ) {
@@ -99,7 +99,7 @@ public class ConcordModelService extends ConcordModelServiceImplBase {
      * @return
      *   {@link CompletableFuture} that completes when initialization is done.
      */
-    public CompletableFuture<Void> initialize() {
+    CompletableFuture<Void> initialize() {
         if (STATE.compareAndSet(this, State.STOPPED, State.INITIALIZING)) {
             return CompletableFuture.runAsync(() -> {
                 // Create a new event sink instance.
@@ -135,7 +135,7 @@ public class ConcordModelService extends ConcordModelServiceImplBase {
      * @return
      *   {@link CompletableFuture} that completes when shutdown is done.
      */
-    public CompletableFuture<Void> shutdown() {
+    CompletableFuture<Void> shutdown() {
         if (STATE.compareAndSet(this, State.ACTIVE, State.STOPPING)) {
             return CompletableFuture.runAsync(() -> {
                 log.info("Service instance shutting down");

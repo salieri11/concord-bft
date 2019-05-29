@@ -4,12 +4,11 @@
 
 package com.vmware.blockchain.deployment.service.provision;
 
-import java.util.Map;
+import java.util.List;
 
 import javax.inject.Singleton;
 
-import com.vmware.blockchain.deployment.model.OrchestrationSiteIdentifier;
-import com.vmware.blockchain.deployment.model.OrchestrationSiteInfo;
+import com.vmware.blockchain.deployment.model.OrchestrationSite;
 
 import dagger.BindsInstance;
 import dagger.Component;
@@ -17,10 +16,10 @@ import dagger.Component;
 /**
  * Test interface for provisioning server.
  */
-@Component(modules = {ProvisionServiceModule.class, TestOrchestratorModule.class})
+@Component(modules = {ProvisioningServiceModule.class, TestOrchestratorModule.class})
 @Singleton
-public interface TestProvisionServer {
-    ProvisionService provisionService();
+public interface TestProvisioningServer {
+    ProvisioningService provisionService();
 
     /**
      * Builder class for testing.
@@ -29,8 +28,8 @@ public interface TestProvisionServer {
     interface Builder {
 
         @BindsInstance
-        Builder orchestrations(Map<OrchestrationSiteIdentifier, OrchestrationSiteInfo> entries);
+        Builder orchestrations(List<OrchestrationSite> entries);
 
-        TestProvisionServer build();
+        TestProvisioningServer build();
     }
 }
