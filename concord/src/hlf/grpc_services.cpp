@@ -16,6 +16,7 @@ using grpc::ServerWriter;
 using concord::consensus::KVBClientPool;
 using concord::hlf::HlfKvbStorage;
 using log4cplus::Logger;
+using std::endl;
 using std::string;
 
 using com::vmware::concord::ConcordRequest;
@@ -159,31 +160,45 @@ void RunHlfGrpcServer(HlfKvbStorage& kvb_storage,
                       KVBClientPool& kvb_client_pool,
                       string key_value_service_address,
                       string chaincode_service_address) {
-  ServerBuilder builder;
+  log4cplus::Logger logger;
+
+  logger = Logger::getInstance("com.vmware.concord.hlf");
+
   // build key value grpc service
+  ServerBuilder key_value_service_builder;
+
   HlfKeyValueServiceImpl* key_value_service =
       new HlfKeyValueServiceImpl(kvb_storage);
-  builder.AddListeningPort(key_value_service_address,
-                           grpc::InsecureServerCredentials());
-  builder.RegisterService(key_value_service);
+
+  key_value_service_builder.AddListeningPort(key_value_service_address,
+                                             grpc::InsecureServerCredentials());
+
+  key_value_service_builder.RegisterService(key_value_service);
+
+  std::unique_ptr<Server> key_value_server(
+      key_value_service_builder.BuildAndStart());
 
   // build chaincode grpc service
+  ServerBuilder chaincode_service_builder;
+
   HlfChaincodeServiceImpl* chaincode_service =
       new HlfChaincodeServiceImpl(kvb_client_pool);
-  builder.AddListeningPort(chaincode_service_address,
-                           grpc::InsecureServerCredentials());
-  builder.RegisterService(chaincode_service);
 
-  log4cplus::Logger logger;
-  logger = Logger::getInstance("com.vmware.concord.hlf");
+  chaincode_service_builder.AddListeningPort(chaincode_service_address,
+                                             grpc::InsecureServerCredentials());
+
+  chaincode_service_builder.RegisterService(chaincode_service);
+
+  std::unique_ptr<Server> chaincode_server(
+      chaincode_service_builder.BuildAndStart());
+
   LOG4CPLUS_INFO(logger,
                  "Concord HLF chaincode gRPC service is listening on: "
-                     << chaincode_service_address
+                     << chaincode_service_address << endl
                      << " Concord HLF Key Value gRPC service is listening on: "
-                     << key_value_service_address);
+                     << key_value_service_address << endl);
 
-  std::unique_ptr<Server> server(builder.BuildAndStart());
-  server->Wait();
+  chaincode_server->Wait();
 }
 
 }  // namespace hlf
