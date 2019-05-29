@@ -3,12 +3,13 @@ package com.vmware.concord.hlf.services;
 import "concord.proto";
 
 service HlfKeyValueService {
-  // APIs for HLF peer
+  // APIs for HLF peer to access state on Concord
   rpc GetState (KvbMessage) returns (KvbMessage) {}
   rpc PutState (KvbMessage) returns (KvbMessage) {}
-  rpc WriteBlock (KvbMessage) returns (KvbMessage) {}
+}
 
-  // APIs for Concord client
+service HlfChaincodeService {
+  // APIs for Concord client to trigger chaincode
   rpc TriggerChaincode(ConcordRequest) returns (ConcordResponse) {}
 }
 

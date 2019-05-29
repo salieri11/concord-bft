@@ -14,7 +14,7 @@ using grpc::ServerReaderWriter;
 using grpc::ServerWriter;
 
 using concord::consensus::KVBClientPool;
-using concord::hlf::HlfHandler;
+using concord::hlf::HlfKvbStorage;
 using log4cplus::Logger;
 using std::string;
 
@@ -32,11 +32,12 @@ using com::vmware::concord::HlfResponse;
 namespace concord {
 namespace hlf {
 
+// service of chaincode
 grpc::Status HlfKeyValueServiceImpl::GetState(ServerContext* context,
                                               const KvbMessage* request,
                                               KvbMessage* response) {
   if (request->key() != "") {
-    string value = hlf_handler_->GetState(request->key());
+    string value = kvb_storage_.GetHlfState(request->key());
 
     LOG4CPLUS_DEBUG(logger_, "[GET] " << request->key() << ":" << value);
 
@@ -54,7 +55,7 @@ grpc::Status HlfKeyValueServiceImpl::PutState(ServerContext* context,
                                               KvbMessage* response) {
   if (request->key() != "" && request->value() != "") {
     concord::consensus::Status status =
-        hlf_handler_->PutState(request->key(), request->value());
+        kvb_storage_.SetHlfState(request->key(), request->value());
 
     LOG4CPLUS_DEBUG(logger_,
                     "[PUT] " << request->key() << ":" << request->value());
@@ -69,21 +70,8 @@ grpc::Status HlfKeyValueServiceImpl::PutState(ServerContext* context,
   return grpc::Status::CANCELLED;
 }
 
-// WriteBlock is only called by Client
-grpc::Status HlfKeyValueServiceImpl::WriteBlock(ServerContext* context,
-                                                const KvbMessage* request,
-                                                KvbMessage* response) {
-  concord::consensus::Status status = hlf_handler_->WriteBlock();
-  if (status.isOK()) {
-    response->set_state(KvbMessage_type_VALID);
-    return grpc::Status::OK;
-  } else {
-    response->set_state(KvbMessage_type_INVALID);
-    return grpc::Status::CANCELLED;
-  }
-}
-
-grpc::Status HlfKeyValueServiceImpl::TriggerChaincode(
+// service of client
+grpc::Status HlfChaincodeServiceImpl::TriggerChaincode(
     ServerContext* context, const ConcordRequest* concord_request,
     ConcordResponse* concord_response) {
   if (concord_request->hlf_request_size() == 0) {
@@ -150,7 +138,7 @@ grpc::Status HlfKeyValueServiceImpl::TriggerChaincode(
   return grpc::Status::OK;
 }
 
-bool HlfKeyValueServiceImpl::IsValidManageOpt(
+bool HlfChaincodeServiceImpl::IsValidManageOpt(
     const com::vmware::concord::HlfRequest& request) {
   if (request.has_chaincode_name() && request.has_input() &&
       request.has_version()) {
@@ -159,7 +147,7 @@ bool HlfKeyValueServiceImpl::IsValidManageOpt(
   return false;
 }
 
-bool HlfKeyValueServiceImpl::IsValidInvokeOpt(
+bool HlfChaincodeServiceImpl::IsValidInvokeOpt(
     const com::vmware::concord::HlfRequest& request) {
   if (request.has_chaincode_name() && request.has_input()) {
     return true;
@@ -167,22 +155,34 @@ bool HlfKeyValueServiceImpl::IsValidInvokeOpt(
   return false;
 }
 
-void RunHlfServer(HlfHandler* hlf_handler, KVBClientPool& pool) {
-  // get server address from the HLF handler
-  string server_address = hlf_handler->GetHlfKvService();
-
+void RunHlfGrpcServer(HlfKvbStorage& kvb_storage,
+                      KVBClientPool& kvb_client_pool,
+                      string key_value_service_address,
+                      string chaincode_service_address) {
   ServerBuilder builder;
-  HlfKeyValueServiceImpl* service =
-      new HlfKeyValueServiceImpl(hlf_handler, pool);
-  builder.AddListeningPort(server_address, grpc::InsecureServerCredentials());
-  builder.RegisterService(service);
-  std::unique_ptr<Server> server(builder.BuildAndStart());
+  // build key value grpc service
+  HlfKeyValueServiceImpl* key_value_service =
+      new HlfKeyValueServiceImpl(kvb_storage);
+  builder.AddListeningPort(key_value_service_address,
+                           grpc::InsecureServerCredentials());
+  builder.RegisterService(key_value_service);
+
+  // build chaincode grpc service
+  HlfChaincodeServiceImpl* chaincode_service =
+      new HlfChaincodeServiceImpl(kvb_client_pool);
+  builder.AddListeningPort(chaincode_service_address,
+                           grpc::InsecureServerCredentials());
+  builder.RegisterService(chaincode_service);
 
   log4cplus::Logger logger;
   logger = Logger::getInstance("com.vmware.concord.hlf");
-  LOG4CPLUS_INFO(
-      logger, "Concord HLF gRPC service is listening on: " << server_address);
+  LOG4CPLUS_INFO(logger,
+                 "Concord HLF chaincode gRPC service is listening on: "
+                     << chaincode_service_address
+                     << " Concord HLF Key Value gRPC service is listening on: "
+                     << key_value_service_address);
 
+  std::unique_ptr<Server> server(builder.BuildAndStart());
   server->Wait();
 }
 

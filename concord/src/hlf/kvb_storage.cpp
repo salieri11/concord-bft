@@ -236,7 +236,7 @@ void HlfKvbStorage::reset() {
 }
 
 // HLF extent
-void HlfKvbStorage::SetHlfState(string key, string value) {
+Status HlfKvbStorage::SetHlfState(string key, string value) {
   com::vmware::concord::hlf::storage::HlfState proto;
   proto.set_version(KHlfStateStorageVersion);
   proto.set_state(value);
@@ -245,6 +245,7 @@ void HlfKvbStorage::SetHlfState(string key, string value) {
   uint8_t *ser = new uint8_t[sersize];
   proto.SerializeToArray(ser, sersize);
   put(HlfStateKey(key), Sliver(ser, sersize));
+  return Status::OK();
 }
 
 ////////////////////////////////////////

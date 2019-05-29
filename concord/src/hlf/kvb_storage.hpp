@@ -81,7 +81,7 @@ class HlfKvbStorage {
 
   string GetHlfState(const std::string& key, uint64_t& block_number);
 
-  void SetHlfState(const string key, string value);
+  concord::consensus::Status SetHlfState(const string key, string value);
 
   concord::consensus::Status AddHlfTransaction(
       const com::vmware::concord::HlfRequest& hlf_request);

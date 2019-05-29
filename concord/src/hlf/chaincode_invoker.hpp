@@ -42,7 +42,7 @@ class ChaincodeInvoker {
   std::string hlf_peer_tool_config_;
   std::string hlf_peer_address_;
   std::string hlf_orderer_address_;
-  std::string hlf_concord_kv_service_address_;
+  std::string hlf_kv_service_address_;
   std::string hlf_local_msp_id_;
   std::string hlf_local_msp_dir_;
 

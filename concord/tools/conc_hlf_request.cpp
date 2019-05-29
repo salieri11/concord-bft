@@ -19,7 +19,7 @@
 using namespace boost::program_options;
 using namespace com::vmware::concord;
 
-using com::vmware::concord::hlf::services::HlfKeyValueService;
+using com::vmware::concord::hlf::services::HlfChaincodeService;
 using grpc::Channel;
 using grpc::ClientContext;
 using grpc::Status;
@@ -39,7 +39,7 @@ void add_options(options_description &desc) {
 class ConcordClient {
  public:
   ConcordClient(std::shared_ptr<Channel> channel)
-      : stub_(HlfKeyValueService::NewStub(channel)) {}
+      : stub_(HlfChaincodeService::NewStub(channel)) {}
 
   grpc::Status TriggerChaincode(const ConcordRequest &concordRequest,
                                 ConcordResponse &concordResponse) {
@@ -49,7 +49,7 @@ class ConcordClient {
   }
 
  private:
-  std::unique_ptr<HlfKeyValueService::Stub> stub_;
+  std::unique_ptr<HlfChaincodeService::Stub> stub_;
 };
 
 int main(int argc, char *argv[]) {

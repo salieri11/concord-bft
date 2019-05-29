@@ -5,6 +5,7 @@
 using concord::config::ConcordConfiguration;
 using concord::consensus::Status;
 using log4cplus::Logger;
+using std::endl;
 using std::string;
 
 namespace concord {
@@ -20,18 +21,20 @@ ChaincodeInvoker::ChaincodeInvoker(ConcordConfiguration& node_config)
   hlf_orderer_address_ = node_config.getValue<string>("hlf_orderer_address");
   hlf_local_msp_id_ = node_config.getValue<string>("hlf_peer_msp_id");
   hlf_local_msp_dir_ = node_config.getValue<string>("hlf_peer_msp_dir_path");
-  hlf_concord_kv_service_address_ =
-      node_config.getValue<string>("hlf_concord_kv_service_address");
+  hlf_kv_service_address_ =
+      node_config.getValue<string>("hlf_kv_service_address");
 
   LOG4CPLUS_INFO(
       logger_,
       "Got peer command tool path: "
-          << hlf_peer_tool_ << "Got config of peer command tool path: "
-          << hlf_peer_tool_config_ << "Got peer address: " << hlf_peer_address_
-          << "Got orderer address: " << hlf_orderer_address_
-          << "Got local msp id: " << hlf_local_msp_id_
-          << "Got local msp dir: " << hlf_local_msp_dir_
-          << "Got concord kv service: " << hlf_concord_kv_service_address_);
+          << hlf_peer_tool_ << endl
+          << "Got config of peer command tool path: " << hlf_peer_tool_config_
+          << endl
+          << "Got peer address: " << hlf_peer_address_ << endl
+          << "Got orderer address: " << hlf_orderer_address_ << endl
+          << "Got local msp id: " << hlf_local_msp_id_ << endl
+          << "Got local msp dir: " << hlf_local_msp_dir_ << endl
+          << "Got concord kv service: " << hlf_kv_service_address_ << endl);
 }
 
 ChaincodeInvoker::ChaincodeInvoker(string hlf_peer_tool_Path)
@@ -72,7 +75,7 @@ Status ChaincodeInvoker::SetHlfPeerTool(string hlf_peer_tool_path) {
 }
 
 Status ChaincodeInvoker::SetHlfKvServiceAddress(string kv_service_address) {
-  hlf_concord_kv_service_address_ = kv_service_address;
+  hlf_kv_service_address_ = kv_service_address;
   return Status::OK();
 }
 
@@ -166,13 +169,13 @@ string ChaincodeInvoker::ConstructCmdPrefix() {
   prefix += " CORE_PEER_ADDRESS=" + hlf_peer_address_;
   prefix += " CORE_PEER_LOCALMSPID=" + hlf_local_msp_id_;
   prefix += " CORE_PEER_MSPCONFIGPATH=" + hlf_local_msp_dir_;
-  prefix += " CORE_CONCORD_ADDRESS=" + hlf_concord_kv_service_address_;
+  prefix += " CORE_CONCORD_ADDRESS=" + hlf_kv_service_address_;
 
   return prefix + " ";
 }
 
 string ChaincodeInvoker::GetHlfKvServiceAddress() const {
-  return hlf_concord_kv_service_address_;
+  return hlf_kv_service_address_;
 }
 
 }  // namespace hlf

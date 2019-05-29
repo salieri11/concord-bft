@@ -29,8 +29,8 @@
 #include "ethereum/eth_kvb_storage.hpp"
 #include "ethereum/evm_init_params.hpp"
 #include "hlf/grpc_services.hpp"
-#include "hlf/handler.hpp"
 #include "hlf/kvb_commands_handler.hpp"
+#include "hlf/kvb_storage.hpp"
 #include "storage/blockchain_db_adapter.h"
 #include "storage/blockchain_interfaces.h"
 #include "storage/comparators.h"
@@ -82,9 +82,9 @@ using concord::storage::RocksKeyComparator;
 using concord::storage::SetOfKeyValuePairs;
 
 using concord::hlf::ChaincodeInvoker;
-using concord::hlf::HlfHandler;
 using concord::hlf::HlfKvbCommandsHandler;
-using concord::hlf::RunHlfServer;
+using concord::hlf::HlfKvbStorage;
+using concord::hlf::RunHlfGrpcServer;
 
 using concord::time::TimePusher;
 using concord::utils::EthSign;
@@ -270,7 +270,6 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
   BlockingPersistentQueue<CommittedTx> committedTxs;
   bool daml_enabled = config.getValue<bool>("daml_enable");
 
-  HlfHandler *ptr_hlf_handler = nullptr;
   bool hlf_enabled = config.getValue<bool>("hlf_enable");
 
   try {
@@ -323,13 +322,10 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
     } else if (hlf_enabled) {
       LOG4CPLUS_INFO(logger, "Hyperledger Fabric feature is enabled");
       // Init chaincode invoker
-      ChaincodeInvoker *chaincodeInvoker = new ChaincodeInvoker(nodeConfig);
-
-      // Init Hlf handler
-      ptr_hlf_handler = new HlfHandler(chaincodeInvoker);
+      ChaincodeInvoker *chaincode_invoker = new ChaincodeInvoker(nodeConfig);
 
       kvb_commands_handler = new HlfKvbCommandsHandler(
-          ptr_hlf_handler, config, nodeConfig, replica, replica);
+          chaincode_invoker, config, nodeConfig, replica, replica);
     } else {
       kvb_commands_handler = new EthKvbCommandsHandler(
           *athevm, *ethVerifier, config, nodeConfig, &replica, &replica);
@@ -385,8 +381,23 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
 
       daml_grpc_server->Wait();
     } else if (hlf_enabled) {
-      // Start HLF gRPC service
-      RunHlfServer(ptr_hlf_handler, pool);
+      // Get listening address for services
+      std::string key_value_service_addr =
+          nodeConfig.getValue<std::string>("hlf_kv_service_address");
+      std::string chaincode_service_addr =
+          nodeConfig.getValue<std::string>("hlf_chaincode_service_address");
+
+      // Create Hlf Kvb Storage instance for Hlf key value service
+      // key value service could put updates to cache, but it is not allowed to
+      // write block
+      const ILocalKeyValueStorageReadOnly &storage =
+          replica->getReadOnlyStorage();
+      IdleBlockAppender block_appender(replica);
+      HlfKvbStorage kvb_storage = HlfKvbStorage(storage, &block_appender, 0);
+
+      // Start HLF gRPC services
+      RunHlfGrpcServer(kvb_storage, pool, key_value_service_addr,
+                       chaincode_service_addr);
     } else {
       std::string ip = nodeConfig.getValue<std::string>("service_host");
       short port = nodeConfig.getValue<short>("service_port");

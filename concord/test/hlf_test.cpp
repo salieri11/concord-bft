@@ -7,7 +7,8 @@
 #include "consensus/sliver.hpp"
 #include "consensus/status.hpp"
 #include "gtest/gtest.h"
-#include "hlf/handler.hpp"
+#include "hlf/chaincode_invoker.hpp"
+#include "hlf/kvb_storage.hpp"
 #include "storage/blockchain_db_types.h"
 #include "storage/comparators.h"
 #include "storage/in_memory_db_client.h"
@@ -17,14 +18,12 @@ using namespace log4cplus;
 
 using com::vmware::concord::HlfRequest;
 using concord::hlf::ChaincodeInvoker;
-using concord::hlf::HlfHandler;
 
 namespace {
 const string kTestHlfPeerToolPath1 = "test/peer1";
 const string kTestHlfPeerToolPath2 = "test/peer2";
 
 ChaincodeInvoker chaincode_invoker(kTestHlfPeerToolPath1);
-HlfHandler hlf_handler(&chaincode_invoker);
 Logger* logger = nullptr;
 
 // Define TestStorage
@@ -112,48 +111,26 @@ TEST(hlf_test, chaincode_invoker_peer_command_tool) {
   ASSERT_EQ(kTestHlfPeerToolPath2, chaincode_invoker.GetHlfPeerTool());
 }
 
-// Unit tests for HLF handler
-TEST(hlf_test, hlf_handler_kv_service_port) {
-  string listen_address = "0.0.0.0:50051";
-
-  // service address should not be set
-  ASSERT_EQ(hlf_handler.GetHlfKvService(), "");
-
-  // set service address
-  chaincode_invoker.SetHlfKvServiceAddress(listen_address);
-
-  // Fetch service address by hlf handler
-  ASSERT_EQ(listen_address, hlf_handler.GetHlfKvService());
-}
-
-TEST(hlf_test, hlf_handler_kv_service_api_put) {
-  TestStorage test_storage;
-  concord::hlf::HlfKvbStorage kvb_hlf_storage(test_storage, &test_storage, 0);
-  hlf_handler.SetKvbHlfStoragePointer(&kvb_hlf_storage);
-  EXPECT_TRUE(hlf_handler.PutState("key1", "value1").isOK());
-  hlf_handler.RevokeKvbHlfStoragePointer();
-}
-
-TEST(hlf_test, hlf_handler_kv_service_api_get) {
-  TestStorage test_storage;
-  concord::hlf::HlfKvbStorage kvb_hlf_storage(test_storage, &test_storage, 0);
-
-  hlf_handler.SetKvbHlfStoragePointer(&kvb_hlf_storage);
-  ASSERT_EQ("", hlf_handler.GetState("key1"));
-  hlf_handler.RevokeKvbHlfStoragePointer();
-}
-
-TEST(hlf_test, hlf_handler_kvb_service_api_write_block) {
-  TestStorage test_storage;
-  concord::hlf::HlfKvbStorage kvb_hlf_storage(test_storage, &test_storage, 0);
-
-  hlf_handler.SetKvbHlfStoragePointer(&kvb_hlf_storage);
-  EXPECT_TRUE(hlf_handler.WriteBlock().isOK());
-  hlf_handler.RevokeKvbHlfStoragePointer();
-}
-
 // Unit tests for KVB HLF Storage
-TEST(hlf_test, hlf_handler_kvb_storage_add_tx) {
+TEST(hlf_test, hlf_kvb_storage_put) {
+  TestStorage test_storage;
+  concord::hlf::HlfKvbStorage kvb_hlf_storage(test_storage, &test_storage, 0);
+  EXPECT_TRUE(kvb_hlf_storage.SetHlfState("key1", "value1").isOK());
+}
+
+TEST(hlf_test, hlf_kvb_storage_get) {
+  TestStorage test_storage;
+  concord::hlf::HlfKvbStorage kvb_hlf_storage(test_storage, &test_storage, 0);
+  ASSERT_EQ("", kvb_hlf_storage.GetHlfState("key1"));
+}
+
+TEST(hlf_test, hlf_kvb_storage_write_block) {
+  TestStorage test_storage;
+  concord::hlf::HlfKvbStorage kvb_hlf_storage(test_storage, &test_storage, 0);
+  EXPECT_TRUE(kvb_hlf_storage.WriteHlfBlock().isOK());
+}
+
+TEST(hlf_test, hlf_kvb_storage_add_tx) {
   TestStorage test_storage;
   concord::hlf::HlfKvbStorage kvb_hlf_storage(test_storage, &test_storage, 0);
   // mock up HLFRequest
