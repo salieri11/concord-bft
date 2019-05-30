@@ -7,10 +7,10 @@
 import yaml
 import json
 import grpc
-from grpc_python_bindings import model_service_pb2
-from grpc_python_bindings import model_service_pb2_grpc
-from grpc_python_bindings import provision_service_pb2
-from grpc_python_bindings import provision_service_pb2_grpc
+from grpc_python_bindings import metadata_service_pb2
+from grpc_python_bindings import metadata_service_pb2_grpc
+from grpc_python_bindings import provisioning_service_pb2
+from grpc_python_bindings import provisioning_service_pb2_grpc
 from grpc_python_bindings import fleet_service_pb2
 from grpc_python_bindings import fleet_service_pb2_grpc
 from google.protobuf.json_format import MessageToJson
@@ -92,9 +92,9 @@ class RPCHelper():
       stub = None
       log.info("  Creating stub for {}".format(self.service_name))
       if self.service_name is Product.PERSEPHONE_SERVICE_METADATA:
-         stub = model_service_pb2_grpc.ConcordModelServiceStub(channel)
+         stub = metadata_service_pb2_grpc.ConcordModelServiceStub(channel)
       if self.service_name is Product.PERSEPHONE_SERVICE_PROVISIONING:
-         stub = provision_service_pb2_grpc.ProvisioningServiceStub(channel)
+         stub = provisioning_service_pb2_grpc.ProvisioningServiceStub(channel)
       # if self.service_name is Product.PERSEPHONE_SERVICE_FLEET:
       #    stub = fleet_service_pb2_grpc.FleetServiceStub(channel)
 
