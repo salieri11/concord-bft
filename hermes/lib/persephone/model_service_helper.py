@@ -6,8 +6,8 @@
 
 import sys
 sys.path.append('lib/persephone')
-from grpc_python_bindings import model_service_pb2
-from grpc_python_bindings import model_service_pb2_grpc
+from grpc_python_bindings import metadata_service_pb2
+from grpc_python_bindings import metadata_service_pb2_grpc
 from rpc_helper import RPCHelper
 from grpc_python_bindings import concord_model_pb2
 sys.path.append('../../')
@@ -42,7 +42,7 @@ class ModelServiceRPCHelper(RPCHelper):
       self.close_channel(self.service_name)
 
    def create_add_model_request(self, header, concord_model_specification):
-      add_model_request = model_service_pb2.AddModelRequest(
+      add_model_request = metadata_service_pb2.AddModelRequest(
          header=header,
          specification=concord_model_specification)
       return add_model_request
@@ -103,7 +103,7 @@ class ModelServiceRPCHelper(RPCHelper):
       response = None
       try:
          response = self.call_api(self.stub.ListModels,
-                                  model_service_pb2.ListModelsRequest(),
+                                  metadata_service_pb2.ListModelsRequest(),
                                   stream=True)
       except Exception as e:
          self.handle_exception(e)

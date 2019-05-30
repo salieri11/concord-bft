@@ -1,0 +1,46 @@
+{
+  "port": 9002,
+  "transportSecurity": {},
+  "sites": [
+    {
+      "id": {
+        "low": 0,
+        "high": 4
+      },
+      "info": {
+        "type": "VMC",
+        "vmc": {
+          "authentication": {
+            "address": "https://console.cloud.vmware.com",
+            "credential": {
+              "type": "BEARER",
+              "tokenCredential": {
+                "token": "<VMC_API_TOKEN>"
+              }
+            }
+          },
+          "api": {
+            "address": "https://vmc.vmware.com"
+          },
+          "containerRegistry": {
+            "address": "https://registry-1.docker.io/v2",
+            "credential": {
+              "type": "PASSWORD",
+              "passwordCredential": {
+                "username": "blockchainrepositoryreader",
+                "password": "<DOCKERHUB_REPO_READER_PASSWORD>"
+              }
+            }
+          },
+          "organization": "c56e116e-c36f-4f7d-b504-f9a33955b853",
+          "datacenter": "abb0fe0e-1f2f-470c-a427-774aa08ce2ea",
+          "resourcePool": "Compute-ResourcePool",
+          "folder": "rsg",
+          "controlNetwork": "vmware-vpn",
+          "controlNetworkPrefix": 172321024,
+          "controlNetworkSubnet": 24
+        }
+      }
+    }
+  ]
+}

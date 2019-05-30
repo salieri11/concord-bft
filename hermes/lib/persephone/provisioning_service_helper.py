@@ -7,7 +7,7 @@
 import sys
 import json
 sys.path.append('lib/persephone')
-from grpc_python_bindings import provision_service_pb2
+from grpc_python_bindings import provisioning_service_pb2
 from grpc_python_bindings import orchestration_pb2
 from rpc_helper import RPCHelper
 from model_service_helper import ModelServiceRPCHelper
@@ -47,28 +47,28 @@ class ProvisioningServiceRPCHelper(RPCHelper):
       entries = []
       if placement_type == self.PLACEMENT_TYPE_UNSPECIFIED:
          for placement_count in range(0, cluster_size):
-            placement_entry = provision_service_pb2.PlacementSpecification.Entry(
-               type=provision_service_pb2.PlacementSpecification.UNSPECIFIED)
+            placement_entry = provisioning_service_pb2.PlacementSpecification.Entry(
+               type=provisioning_service_pb2.PlacementSpecification.UNSPECIFIED)
             entries.append(placement_entry)
       else:
          persephone_config_file = self.get_provisioning_config_file(self.service_name)
          with open(persephone_config_file, "r") as confile_fp:
             data = json.load(confile_fp)
          deployment_sites = []
-         for index, site in enumerate(data):
-            if (index % 2) == 0:
-               deployment_sites.append(site)
+         for site in data["sites"]:
+            log.debug("Site ID: {}".format(site["id"]))
+            deployment_sites.append(site["id"])
 
          for placement_count in range(0, cluster_size):
             site_number = placement_count % len(deployment_sites)
             deployment_site = deployment_sites[site_number]
             log.debug("Placing concord[{}] on {}".format(placement_count, deployment_site))
-            placement_entry = provision_service_pb2.PlacementSpecification.Entry(
-               type=provision_service_pb2.PlacementSpecification.FIXED,
+            placement_entry = provisioning_service_pb2.PlacementSpecification.Entry(
+               type=provisioning_service_pb2.PlacementSpecification.FIXED,
                site=orchestration_pb2.OrchestrationSiteIdentifier(low=deployment_site["low"],high=deployment_site["high"]))
             entries.append(placement_entry)
 
-      placement_specification = provision_service_pb2.PlacementSpecification(
+      placement_specification = provisioning_service_pb2.PlacementSpecification(
          entries=entries
       )
       return placement_specification
@@ -81,7 +81,7 @@ class ProvisioningServiceRPCHelper(RPCHelper):
       :param placement: placement site/SDDC
       :return: deployment specifcation
       '''
-      deployment_specification = provision_service_pb2.DeploymentSpecification(
+      deployment_specification = provisioning_service_pb2.DeploymentSpecification(
          cluster_size=cluster_size, model=model, placement=placement)
       return deployment_specification
 
@@ -92,7 +92,7 @@ class ProvisioningServiceRPCHelper(RPCHelper):
       :param specification: deployment specification
       :return: cluster request spec
       '''
-      create_cluster_request = provision_service_pb2.CreateClusterRequest(
+      create_cluster_request = provisioning_service_pb2.CreateClusterRequest(
          header=header, specification=specification)
       return create_cluster_request
 
@@ -104,7 +104,7 @@ class ProvisioningServiceRPCHelper(RPCHelper):
       :param session_id: deployment session ID
       :return: event request spec
       '''
-      events_request = provision_service_pb2.StreamClusterDeploymentSessionEventRequest(
+      events_request = provisioning_service_pb2.StreamClusterDeploymentSessionEventRequest(
          header=header, session=session_id)
       return events_request
 
