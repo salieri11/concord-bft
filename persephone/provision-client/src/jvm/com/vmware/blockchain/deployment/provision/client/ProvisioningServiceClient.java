@@ -4,13 +4,12 @@
 
 package com.vmware.blockchain.deployment.provision.client;
 
-import java.util.Collection;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,11 +25,12 @@ import com.vmware.blockchain.deployment.model.PlacementSpecification;
 import com.vmware.blockchain.deployment.model.PlacementSpecification.Entry;
 import com.vmware.blockchain.deployment.model.ProvisioningServiceStub;
 import com.vmware.blockchain.deployment.model.ethereum.Genesis;
+import com.vmware.blockchain.deployment.provision.common.Observers;
+import com.vmware.blockchain.deployment.provision.deletedeployment.ResourceDeprovisioner;
 
 import io.grpc.CallOptions;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
-import io.grpc.stub.StreamObserver;
 
 /**
  * Simple gRPC client for accessing Provisioning-Service.
@@ -38,70 +38,11 @@ import io.grpc.stub.StreamObserver;
 public class ProvisioningServiceClient {
 
     private static Logger log = LoggerFactory.getLogger(ProvisioningServiceClient.class);
-    private static String USAGE = "provision-client createCluster <server:port> <JSON>";
     private static String CREATE_CLUSTER = "createCluster";
-    private static long awaitTime = 10000;
-
-
-    /**
-     * Taken from "Test" code.
-     */
-    private static <T> StreamObserver<T> newResultObserver(CompletableFuture<T> result) {
-        return new StreamObserver<>() {
-            /** Holder of result value. */
-            volatile T value;
-
-            @Override
-            public void onNext(T value) {
-                this.value = value;
-            }
-
-            @Override
-            public void onError(Throwable error) {
-                result.completeExceptionally(error);
-            }
-
-            @Override
-            public void onCompleted() {
-                result.complete(value);
-            }
-        };
-    }
-
-    /**
-     * Another listener for collection kind of response.
-     */
-    private static <T> StreamObserver<T> newCollectingObserver(CompletableFuture<Collection<T>> result) {
-        return new StreamObserver<>() {
-            /**
-             * Holder of result values.
-             * Note: A map is used here to to leverage existing SDK concurrent data structures
-             * without writing a new one. ConcurrentSkipList does not exist in the JDK.
-             */
-            Map<Integer, T> values = new ConcurrentHashMap<>();
-
-            /** Integer counter. */
-            AtomicInteger counter = new AtomicInteger(0);
-
-            @Override
-            public void onNext(T value) {
-                values.put(counter.getAndIncrement(), value);
-            }
-
-            @Override
-            public void onError(Throwable error) {
-                result.completeExceptionally(error);
-            }
-
-            @Override
-            public void onCompleted() {
-                result.complete(values.values());
-            }
-        };
-    }
 
     /**
      * The actual call which will contact server and add the model request.
+     * TODO: Make more generic taking in the size and move to different file
      */
     private static boolean createFixedSizeCluster(String address) {
         try {
@@ -111,15 +52,12 @@ public class ProvisioningServiceClient {
 
             // Create a blocking stub with the channel
             var client = new ProvisioningServiceStub(channel, CallOptions.DEFAULT);
-            var clusterSize = 7;
+            var clusterSize = 4;
             var list = List.of(
-                    new Entry(PlacementSpecification.Type.FIXED, new OrchestrationSiteIdentifier(1, 0)),
-                    new Entry(PlacementSpecification.Type.FIXED, new OrchestrationSiteIdentifier(2, 0)),
-                    new Entry(PlacementSpecification.Type.FIXED, new OrchestrationSiteIdentifier(1, 0)),
-                    new Entry(PlacementSpecification.Type.FIXED, new OrchestrationSiteIdentifier(2, 0)),
-                    new Entry(PlacementSpecification.Type.FIXED, new OrchestrationSiteIdentifier(1, 0)),
-                    new Entry(PlacementSpecification.Type.FIXED, new OrchestrationSiteIdentifier(2, 0)),
-                    new Entry(PlacementSpecification.Type.FIXED, new OrchestrationSiteIdentifier(1, 0))
+                    new Entry(PlacementSpecification.Type.FIXED, new OrchestrationSiteIdentifier(4, 0)),
+                    new Entry(PlacementSpecification.Type.FIXED, new OrchestrationSiteIdentifier(4, 0)),
+                    new Entry(PlacementSpecification.Type.FIXED, new OrchestrationSiteIdentifier(4, 0)),
+                    new Entry(PlacementSpecification.Type.FIXED, new OrchestrationSiteIdentifier(4, 0))
             );
             var placementSpec = new PlacementSpecification(list);
             var components = List.of(
@@ -151,8 +89,8 @@ public class ProvisioningServiceClient {
             var request = new CreateClusterRequest(new MessageHeader(), deploySpec);
             // Check that the API can be serviced normally after service initialization.
             var promise = new CompletableFuture<DeploymentSessionIdentifier>();
-            client.createCluster(request, newResultObserver(promise));
-            var response = promise.get(awaitTime, TimeUnit.MILLISECONDS);
+            client.createCluster(request, Observers.newResultObserver(promise));
+            var response = promise.get();
             log.info("response.getLow:" + response.getLow());
             log.info("response.getHigh:" + response.getHigh());
             return true;
@@ -162,7 +100,37 @@ public class ProvisioningServiceClient {
         }
     }
 
+    /**
+     * CLI to create and delete cluster.
+     * @param argv (provision-client server:port) OR
+     *             (provision-client deleteCluster
+     *             deploymentSessionId-low deploymentSessionId-high
+     *             configJSON server:port)
+     */
     public static void main(String[] argv) {
-        createFixedSizeCluster(argv[0]);
+        // TODO:
+        //  - use picocli
+        //  - move createCluster to its own class with generic functionality
+        if (argv[0].equals("deleteCluster")) {
+            String config = null;
+            try {
+                config = Files.readString(Paths.get(argv[3]));
+            } catch (IOException e) {
+                log.info("Config passed is a string");
+                config = argv[3];
+            }
+
+            DeploymentSessionIdentifier id = new DeploymentSessionIdentifier(Long.parseLong(argv[1]),
+                    Long.parseLong(argv[2]));
+            var cliObj = new ResourceDeprovisioner(id, config, argv[4]);
+            try {
+                cliObj.delete();
+            } catch (RuntimeException e) {
+                log.error("DeleteCluster CLI failed");
+                e.printStackTrace();
+            }
+        } else {
+            createFixedSizeCluster(argv[0]);
+        }
     }
 }
