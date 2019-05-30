@@ -114,7 +114,8 @@ export class ContractFormComponent implements OnInit {
 
   open(smartContract?: SmartContract, version?: SmartContractVersion) {
     this.fileInput.nativeElement.value = '';
-    if (version && Object.keys(version.metadata).length === 0 && version.sourcecode === '') {
+    if (version && (Object.keys(version.metadata).length === 0 || Object.values(version.metadata)[0] === 'Could not read metadata') &&
+      version.sourcecode === '') {
       // Update external mode
       this.modalTitle = this.translate.instant('smartContracts.verifyContract');
       this.modalState.isUpdateExternal = true;
@@ -308,7 +309,7 @@ export class ContractFormComponent implements OnInit {
     this.modalState.loading = false;
     this.modalState.completed = false;
     this.modalState.error = true;
-    this.modalState.errorMessage = response.error;
+    this.modalState.errorMessage = response.error ? response.error : response.error_message;
   }
 
   private handleSmartContract(response) {

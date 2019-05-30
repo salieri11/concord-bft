@@ -328,6 +328,13 @@ public class ContractsController extends ConcordServlet {
             throw new BadRequestException(
                     "Verification failure: The uploaded contract does not match this contract.");
         }
+        List<Contract> verifiedcontracts = contractService.getContractVersion(
+                contractId,
+                existingVersionName, getBlockchainId(id));
+        if (!verifiedcontracts.isEmpty() && !contractId.equals(existingContractId)) {
+            throw new BadRequestException(
+                    "Verification failure: The contract name already exists.");
+        }
         Contract c = contractService.updateExistingContractVersion(existingContractId, existingVersionName,
                 contractId, result.getMetadataMap().get(selectedContract), solidityCode, getBlockchainId(id));
         return new ResponseEntity<>(new FullVersionInfo(c), HttpStatus.OK);
