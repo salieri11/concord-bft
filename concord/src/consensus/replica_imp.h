@@ -25,13 +25,6 @@
 namespace concord {
 namespace consensus {
 
-concord::storage::IReplica *createReplica(
-    concord::storage::CommConfig &commConfig,
-    concord::storage::ReplicaConsensusConfig &config,
-    concord::storage::IDBClient *db, ReplicaStateSync &replicaStateSync);
-
-void releaseReplica(concord::storage::IReplica *r);
-
 class ReplicaInitException : public std::exception {
  public:
   explicit ReplicaInitException(const std::string &what) : msg(what){};
@@ -96,15 +89,13 @@ class ReplicaImp : public concord::storage::IReplica,
     return (m_currentRepStatus == RepStatus::Running);
   }
 
- protected:
-  // CTOR & DTOR
-
   ReplicaImp(concord::storage::CommConfig &commConfig,
              concord::storage::ReplicaConsensusConfig &config,
              concord::storage::BlockchainDBAdapter *dbAdapter,
              ReplicaStateSync &replicaStateSync);
-  virtual ~ReplicaImp() override;
+  ~ReplicaImp() override;
 
+ protected:
   // METHODS
 
   Status addBlockInternal(const concord::storage::SetOfKeyValuePairs &updates,
@@ -277,10 +268,6 @@ class ReplicaImp : public concord::storage::IReplica,
     std::atomic<concord::storage::BlockId> m_lastReachableBlock{0};
 
     friend class ReplicaImp;
-    friend concord::storage::IReplica *createReplica(
-        concord::storage::CommConfig &commConfig,
-        concord::storage::ReplicaConsensusConfig &config,
-        concord::storage::IDBClient *db, ReplicaStateSync &replicaStateSync);
   };
 
   // DATA
@@ -309,13 +296,6 @@ class ReplicaImp : public concord::storage::IReplica,
       bftEngine::SimpleBlockchainStateTransfer::StateTransferDigest
           &parentDigest);
   static concord::storage::SetOfKeyValuePairs fetchBlockData(Sliver block);
-
-  // FRIENDS
-  friend concord::storage::IReplica *createReplica(
-      concord::storage::CommConfig &commConfig,
-      concord::storage::ReplicaConsensusConfig &config,
-      concord::storage::IDBClient *db, ReplicaStateSync &replicaStateSync);
-  friend void releaseReplica(concord::storage::IReplica *r);
 };
 
 }  // namespace consensus

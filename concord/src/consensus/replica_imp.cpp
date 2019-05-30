@@ -215,7 +215,7 @@ ReplicaImp::ReplicaImp(CommConfig &commConfig,
       m_currentRepStatus(RepStatus::Idle),
       m_InternalStorageWrapperForIdleMode(this),
       m_bcDbAdapter(dbAdapter),
-      m_lastBlock(0),
+      m_lastBlock(dbAdapter->getLatestBlock()),
       m_replicaStateSync(replicaStateSync) {
   m_replicaConfig.cVal = replicaConfig.cVal;
   m_replicaConfig.fVal = replicaConfig.fVal;
@@ -619,36 +619,6 @@ SetOfKeyValuePairs ReplicaImp::fetchBlockData(Sliver block) {
   return retVal;
 }
 
-IReplica *createReplica(CommConfig &commConfig, ReplicaConsensusConfig &config,
-                        IDBClient *db, ReplicaStateSync &replicaStateSync) {
-  LOG4CPLUS_DEBUG(Logger::getInstance("com.vmware.concord.kvb"),
-                  "Creating replica");
-  BlockchainDBAdapter *dbAdapter = new BlockchainDBAdapter(db);
-
-  auto r = new ReplicaImp(commConfig, config, dbAdapter, replicaStateSync);
-
-  // Initialization of the database object is done here so that we can
-  // read the latest block number and take a decision regarding
-  // genesis block creation.
-  Status s = db->init();
-
-  if (!s.isOK()) {
-    LOG4CPLUS_FATAL(Logger::getInstance("com.vmware.concord.kvb"),
-                    "Failure in Database Initialization, status: " << s);
-    throw ReplicaInitException("Failure in Database Initialization");
-  }
-
-  // Get the latest block count from persistence.
-  // Will always be 0 for either InMemory mode or for persistence mode
-  // when no database files exist.
-  r->m_lastBlock = dbAdapter->getLatestBlock();
-  r->m_appState->m_lastReachableBlock = dbAdapter->getLastReachableBlock();
-
-  return r;
-}
-
-void releaseReplica(IReplica *r) { delete r; }
-
 ReplicaImp::StorageIterator::StorageIterator(const ReplicaImp *r)
     : logger(log4cplus::Logger::getInstance("com.vmware.concord.kvb")), rep(r) {
   m_iter = r->getBcDbAdapter()->getIterator();
@@ -772,7 +742,8 @@ Status ReplicaImp::StorageIterator::freeInternalIterator() {
  */
 ReplicaImp::BlockchainAppState::BlockchainAppState(ReplicaImp *const parent)
     : m_ptrReplicaImpl{parent},
-      m_logger{log4cplus::Logger::getInstance("blockchainappstate")} {}
+      m_logger{log4cplus::Logger::getInstance("blockchainappstate")},
+      m_lastReachableBlock{parent->getBcDbAdapter()->getLastReachableBlock()} {}
 
 /*
  * This method assumes that *outBlock is big enough to hold block content

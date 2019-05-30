@@ -18,10 +18,8 @@ namespace storage {
 
 class BlockchainDBAdapter {
  public:
-  explicit BlockchainDBAdapter(IDBClient *_db)
-      : logger(log4cplus::Logger::getInstance("com.vmware.concord.kvb")),
-        m_db(_db),
-        m_isEnd(false) {}
+  explicit BlockchainDBAdapter(IDBClient *db);
+  ~BlockchainDBAdapter();
 
   IDBClient *getDb() { return m_db; }
 
