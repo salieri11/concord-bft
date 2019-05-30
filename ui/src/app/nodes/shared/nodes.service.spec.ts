@@ -4,6 +4,7 @@
 
 import { TestBed, inject } from '@angular/core/testing';
 import { HttpClient, HttpHandler } from '@angular/common/http';
+import { MockTranslateModule } from '../../mocks/mock-translate.module';
 
 import { NodesService } from './nodes.service';
 import { CONCORD_API_PREFIX } from '../../shared/shared.config';
@@ -11,11 +12,12 @@ import { CONCORD_API_PREFIX } from '../../shared/shared.config';
 describe('NodesService', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
+      imports: [MockTranslateModule],
       providers: [
         NodesService,
         {provide: CONCORD_API_PREFIX, useValue: 'api/concord'},
         HttpClient,
-        HttpHandler
+        HttpHandler,
       ]
     });
   });

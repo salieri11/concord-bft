@@ -12,6 +12,7 @@ import { MockTranslateModule } from '../mocks/mock-translate.module';
 import { VmwContextualHelpModule } from '@vmw/ngx-contextual-help';
 import { CspComponentsModule } from '@vmw/csp-ngx-components';
 import { VmwComponentsModule } from '@vmw/ngx-components';
+import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 
 import { AuthenticationService } from './authentication.service';
 import { AuthenticatedGuard } from './authenticated-guard.service';
@@ -111,6 +112,7 @@ export class SharedModule {
     MockTranslateModule,
     ClarityModule,
     ReactiveFormsModule,
+    BrowserAnimationsModule,
     VmwContextualHelpModule.forRoot(),
     CspComponentsModule.forRoot(),
     VmwComponentsModule.forRoot(),

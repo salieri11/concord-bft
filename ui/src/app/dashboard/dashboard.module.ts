@@ -5,6 +5,7 @@
 import { NgModule } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { TourNgxPopperModule } from 'ngx-tour-ngx-popper';
+import { NgxChartsModule } from '@swimlane/ngx-charts';
 
 import { SharedModule } from '../shared/shared.module';
 import { TransactionsModule } from '../transactions/transactions.module';
@@ -22,7 +23,8 @@ import { DashboardListComponent } from './dashboard-list/dashboard-list.componen
     NodesModule,
     BlocksModule,
     GraphsModule,
-    TourNgxPopperModule
+    TourNgxPopperModule,
+    NgxChartsModule,
   ],
   declarations: [
     DashboardComponent,

@@ -7,6 +7,7 @@ import { RouterTestingModule } from '@angular/router/testing';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 
 import { WorldMapComponent } from './world-map.component';
+import { VmwClarityThemeService } from './../../shared/theme.provider';
 
 describe('WorldMapComponent', () => {
   let component: WorldMapComponent;
@@ -15,7 +16,8 @@ describe('WorldMapComponent', () => {
   beforeEach(async(() => {
     TestBed.configureTestingModule({
       imports: [ HttpClientTestingModule, RouterTestingModule ],
-      declarations: [ WorldMapComponent ]
+      declarations: [ WorldMapComponent ],
+      providers: [ VmwClarityThemeService ]
     })
     .compileComponents();
   }));

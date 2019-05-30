@@ -1,40 +1,77 @@
 <ng-container>
   <div class="ps-1">
-    <div class="card p-1">
-      <div class="media" tourAnchor="onboardingTour.dashStats">
-        <div class="dashboard-stat-container">
-          <div>{{'dashboard.nodeHealth' | translate}}</div>
-          <h2 class="mt-0" [ngClass]="{
-            'green': nodeHealth >= .9,
-            'yellow': nodeHealth >= .7,
-            'red': nodeHealth <= .69
-          }">
-            {{healthyNodesCount}}/{{nodes.length}}
-          </h2>
+    <div class="card p-1-2">
+      <div class="clr-row" tourAnchor="onboardingTour.dashStats">
+          <div class="clr-col-lg-3 clr-col-xl-2 col-gauge">
+            <div class="node-health">
+              <div class="title">{{'dashboard.nodeHealth' | translate}}</div>
+              <h2 class="health-number {{nodeColor}}">
+                {{healthyNodesCount}}/{{nodes.length}}
+              </h2>
+              <ngx-charts-gauge
+                #nodeGuage
+                [view]="[230, 230]"
+                [min]="0"
+                [results]="nodeData"
+                [max]="nodes.length"
+                [showAxis]="false"
+                [valueFormatting]="valueFormatting"
+                [scheme]="colorScheme"
+                [startAngle]="-180"
+                [angleSpan]="360"
+                [tooltipDisabled]="true"
+                ></ngx-charts-gauge>
+            </div>
+          </div>
+        <div class="clr-col-lg clr-col-md-12 stats">
+          <div class="clr-row">
+            <div class="clr-col-6 b-r">
+              <div class="dashboard-stat-container b-b">
+              <div class="title">{{'organization.title' | translate}}</div>
+                <h2 class="mt-0">
+                  <a [routerLink]="['/', blockchainId,'organizations']">
+                    5
+                  </a>
+                </h2>
+              </div>
+            </div>
+            <div class="clr-col-6">
+              <div class="dashboard-stat-container b-b">
+                <div class="title">{{'blocks.blocks' | translate}}</div>
+                <h2 class="mt-0">
+                  <a [routerLink]="['/', blockchainId,'blocks']">
+                    {{blocks[0] ? blocks[0].number : 0}}
+                  </a>
+                </h2>
+              </div>
+            </div>
+          </div>
+          <div class="clr-row">
+            <div class="clr-col-6 b-r">
+              <div class="dashboard-stat-container">
+
+              <div class="title">{{'dashboard.deployedContracts' | translate}}</div>
+              <h2 class="mt-0">
+                <a [routerLink]="['/', blockchainId,'smart-contracts']">
+                  {{smartContracts.length}}
+                </a>
+              </h2>
+              </div>
+            </div>
+            <div class="clr-col-6">
+              <div class="dashboard-stat-container">
+              <div class="title">{{'transactions.transactions' | translate}}</div>
+              <h2 class="mt-0">
+                <a [routerLink]="['/', blockchainId,'transactions']">
+                  {{transactionCount}}
+                </a>
+              </h2>
+            </div>
+            </div>
+          </div>
         </div>
-        <div class="dashboard-stat-container">
-          <div>{{'dashboard.deployedContracts' | translate}}</div>
-          <h2 class="mt-0">
-            <a routerLink="/smart-contracts">
-              {{smartContracts.length}}
-            </a>
-          </h2>
-        </div>
-        <div class="dashboard-stat-container">
-          <div>{{'blocks.blocks' | translate}}</div>
-          <h2 class="mt-0">
-            <a routerLink="/blocks">
-              {{blocks[0] ? blocks[0].number : 0}}
-            </a>
-          </h2>
-        </div>
-        <div class="dashboard-stat-container">
-          <div>{{'transactions.transactions' | translate}}</div>
-          <h2 class="mt-0">
-            <a routerLink="/transactions">
-              {{transactionCount}}
-            </a>
-          </h2>
+        <div class="clr-col-lg-5 clr-col-md-12">
+          <concord-world-map #worldMap [features]="nodesByLocation"></concord-world-map>
         </div>
       </div>
     </div>
@@ -42,18 +79,18 @@
 
   <div class="ps-1">
     <div class="clr-row">
-      <div class="clr-col-sm-6 mt-1 pb-1">
+      <div class="clr-col-sm-6 mt-1">
         <concord-dashboard-list [listConfig]="nodesConfig" [items]="nodes"></concord-dashboard-list>
       </div>
-      <div class="clr-col-sm-6 mt-1 pb-1" tourAnchor="onboardingTour.contractList">
+      <div class="clr-col-sm-6 mt-1" tourAnchor="onboardingTour.contractList">
         <concord-dashboard-list [listConfig]="contractsConfig" [items]="smartContracts"></concord-dashboard-list>
       </div>
     </div>
     <div class="clr-row">
-      <div class="clr-col-sm-6 mt-1 pb-1">
+      <div class="clr-col-sm-6 mt-1">
         <concord-dashboard-list [listConfig]="blocksConfig" [items]="blocks"></concord-dashboard-list>
       </div>
-      <div class="clr-col-sm-6 mt-1 pb-1">
+      <div class="clr-col-sm-6 mt-1">
         <concord-dashboard-list [listConfig]="transactionsConfig" [items]="transactions"></concord-dashboard-list>
       </div>
     </div>

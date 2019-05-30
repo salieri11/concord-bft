@@ -3,6 +3,7 @@
  */
 
 import { Component, Input, OnInit } from '@angular/core';
+import { DomSanitizer } from '@angular/platform-browser';
 
 export interface DashboardListConfig {
   headers: string[];
@@ -22,16 +23,15 @@ export class DashboardListComponent implements OnInit {
   @Input('listConfig') listConfig: DashboardListConfig;
   @Input('items') items: any[];
 
-  constructor() { }
+  constructor(private santizer: DomSanitizer) { }
 
-  ngOnInit() {
-  }
+  ngOnInit() {}
 
   getItemProp(item, propName) {
     if (typeof propName === 'function') {
-      return propName(item);
+      return this.santizer.bypassSecurityTrustHtml(propName(item));
     } else {
-      return item[propName];
+      return this.santizer.bypassSecurityTrustHtml(item[propName]);
     }
   }
 }
