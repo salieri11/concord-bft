@@ -4,8 +4,8 @@
   "sites": [
     {
       "id": {
-        "low": "0",
-        "high": "4"
+        "low": 0,
+        "high": 4
       },
       "info": {
         "type": "VMC",
