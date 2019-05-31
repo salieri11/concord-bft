@@ -117,7 +117,10 @@
           "configurations": {
             "csp-dev": {
               "browserTarget": "concord-ui:build:csp-dev"
-            }
+            },
+            "production": {
+              "browserTarget": "concord-ui:build:csp-dev"
+            },
           }
         },
         "extract-i18n": {

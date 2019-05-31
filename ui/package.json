@@ -4,7 +4,8 @@
   "license": "UNLICENSED",
   "scripts": {
     "ng": "ng",
-    "start": "npm run copy-clarity && ng serve --ssl --proxy-config proxy.conf.json",
+    "start": "npm run copy-clarity && npm run ng-high-memory -- serve --ssl --proxy-config proxy.conf.json",
+    "start:prod": "npm run copy-clarity && ng serve --ssl --proxy-config proxy.conf.json --prod",
     "start:csp": "npm run copy-clarity && ng serve --ssl --proxy-config proxy.conf.json -c csp-dev",
     "build:prod": "npm run copy-clarity && npm run ng-high-memory -- build --prod ",
     "build:csp:prod": "npm run copy-clarity && ng build --prod -c csp-production",
@@ -68,7 +69,7 @@
     "ngx-popper": "^4.1.0",
     "ngx-tour-core": "^3.0.0",
     "ngx-tour-ngx-popper": "^3.0.1",
-    "ol": "^5.0.0",
+    "ol": "^5.3.3",
     "popper.js": "^1.14.3",
     "prismjs": "^1.15.0",
     "protractor-flake": "^3.3.0",

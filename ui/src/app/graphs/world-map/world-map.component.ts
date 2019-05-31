@@ -14,7 +14,6 @@ import {
   OnDestroy,
   HostListener
 } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
 
 import geojsonvt from 'geojson-vt';
 import { Map, View, Overlay, VectorTile, Collection } from 'ol';
@@ -33,10 +32,12 @@ import { getCenter } from 'ol/extent';
 import { defaults as interactionDefaults } from 'ol/interaction';
 import { unByKey } from 'ol/Observable';
 import { easeOut } from 'ol/easing';
+import { addCommon as addCommonProjections } from 'ol/proj.js';
 
 import { NodeProperties } from './world-map.model';
 import { VmwClarityThemeService } from './../../shared/theme.provider';
 
+import WorldData from './countries-110m.json';
 @Component({
   selector: 'concord-world-map',
   templateUrl: './world-map.component.html',
@@ -69,7 +70,6 @@ export class WorldMapComponent implements AfterViewInit, OnChanges, OnDestroy {
   private theme: any;
 
   constructor(
-    private http: HttpClient,
     private ref: ChangeDetectorRef,
     private themeService: VmwClarityThemeService,
   ) {
@@ -77,6 +77,9 @@ export class WorldMapComponent implements AfterViewInit, OnChanges, OnDestroy {
   }
 
   ngAfterViewInit() {
+    // This is a patch for an angular build issue
+    // https://github.com/openlayers/openlayers/issues/9019#issuecomment-444441291
+    addCommonProjections();
     this.initMap();
 
     this.themeService.themeChange.subscribe(theme => {
@@ -178,15 +181,15 @@ export class WorldMapComponent implements AfterViewInit, OnChanges, OnDestroy {
       interactions: interactionDefaults({ mouseWheelZoom: false })
     });
     this.map.addInteraction(nodeFeatureHoverInteraction);
-
     // Set up pulsing animation on map features
     this.checkAndSchedulePulseAnimation();
     this.animationInterval = setInterval(this.checkAndSchedulePulseAnimation.bind(this), this.animationDuration + 1000);
 
-    // Fetch and set up GeoJSON backed country layer
-    this.http.get('static/countries-110m.json').subscribe(result => {
-      // Convert GeoJSON source to vector tiles
-      const tileSource = geojsonvt(result, {
+    // Convert GeoJSON source to vector tiles
+
+    setTimeout(() => {
+
+      const tileSource = geojsonvt(WorldData, {
         extent: 4096,
         debug: 0
       });
@@ -221,7 +224,7 @@ export class WorldMapComponent implements AfterViewInit, OnChanges, OnDestroy {
       this.map.getLayers().insertAt(0, countryOutlineLayer);
       this.map.updateSize();
       this.viewFit();
-    });
+    }, 700);
   }
 
   /**
@@ -236,7 +239,7 @@ export class WorldMapComponent implements AfterViewInit, OnChanges, OnDestroy {
   private viewFit() {
     this.view.fit(
       this.vectorSource.getExtent(),
-      {padding: [10, 60, 10, 20], constrainResolution: false}
+      { padding: [10, 60, 10, 20], constrainResolution: false }
     );
   }
   /**
@@ -307,11 +310,11 @@ export class WorldMapComponent implements AfterViewInit, OnChanges, OnDestroy {
       const unhealthyNodes = (feature.getProperties() as NodeProperties)
         .nodes.filter(node => node.status === 'unhealthy').length > 0;
 
-     if (unhealthyNodes) {
-       fill.color_ = this.theme.unhealthyNode;
-     } else {
-       fill.color_ = this.theme.nodeFill;
-     }
+      if (unhealthyNodes) {
+        fill.color_ = this.theme.unhealthyNode;
+      } else {
+        fill.color_ = this.theme.nodeFill;
+      }
 
       return new Style({
         image: new Circle({
@@ -334,7 +337,7 @@ export class WorldMapComponent implements AfterViewInit, OnChanges, OnDestroy {
         nodeFill: '#60B515',
         unhealthyNode: '#F52F22',
         nodeFillSelected: '#00ffff',
-        nodeAnimation: '#00ffff'
+        nodeAnimation: '#003D79'
       };
     } else {
       this.theme = {
