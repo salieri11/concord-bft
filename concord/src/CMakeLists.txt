@@ -2,6 +2,7 @@ file(GLOB concord_src "main.cpp"
   "api/*.cpp"        "api/*.hpp"
   "config/*.cpp"     "config/*.hpp"
   "daml/*.cpp"       "daml/*.hpp"
+  "hlf/*.cpp"        "hlf/*.hpp"
 )
 
 string(APPEND CMAKE_CXX_FLAGS " -Wall")

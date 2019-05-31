@@ -16,6 +16,7 @@ message ConcordRequest {
    optional TransactionListRequest transaction_list_request = 7;
    optional LogsRequest logs_request = 8;
    optional TimeUpdate time_update = 9; // internal only!
+   repeated HlfRequest hlf_request = 10;
    optional DamlRequest daml_request = 11;
 
    // 8-2045 open for definition
@@ -34,6 +35,7 @@ message ConcordResponse {
    optional TransactionListResponse transaction_list_response = 7;
    optional LogsResponse logs_response = 8;
    optional TimeResponse time_response = 9;
+   repeated HlfResponse hlf_response = 10;
    optional DamlResponse daml_response = 11;
 
    // 8-2045 open for definition
@@ -239,4 +241,28 @@ message TransactionResponse {
    optional bytes sig_r = 16;
    optional bytes sig_s = 17;
    optional uint64 gas_used = 18;
+}
+
+message HlfRequest {
+  enum HlfMethod {
+    INSTALL = 1;
+    INSTANTIATE = 2;
+    INVOKE = 3;
+    QUERY = 4;
+    UPGRADE = 5;
+  }
+
+  optional HlfMethod method = 1;
+  optional string chain_id = 2;
+  optional string chaincode_name = 3;
+  // input stores path if method was INSTALL
+  optional string input = 4;
+  optional string version = 5;
+}
+
+message HlfResponse {
+  // transaction id
+  optional string id = 1;
+  optional string data = 2;
+  optional int32 status = 3;
 }

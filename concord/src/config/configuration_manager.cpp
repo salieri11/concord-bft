@@ -3239,6 +3239,50 @@ void specifyConfiguration(ConcordConfiguration& config) {
   clientProxy.addValidator("public_key", validateRSAPublicKey, nullptr);
   clientProxy.addGenerator("public_key", getRSAPublicKey, nullptr);
 
+  // Configuration of HLF
+  config.declareParameter("hlf_enable", "Flag to enable HLF feature.", "false");
+  config.tagParameter("hlf_enable", publicDefaultableTags);
+  config.addValidator("hlf_enable", validateBoolean, nullptr);
+
+  node.declareParameter("hlf_peer_command_tool_path",
+                        "Location of peer command tool.", "/peer");
+  node.tagParameter("hlf_peer_command_tool_path", privateOptionalTags);
+
+  node.declareParameter("hlf_peer_command_tool_config_path",
+                        "Config file for peer command tool.", "/");
+  node.tagParameter("hlf_peer_command_tool_config_path", privateOptionalTags);
+
+  node.declareParameter("hlf_peer_msp_dir_path",
+                        "Location of Membership Service Provider diretory.",
+                        "/msp");
+  node.tagParameter("hlf_peer_msp_dir_path", privateOptionalTags);
+
+  node.declareParameter("hlf_peer_msp_id",
+                        "MSP ID used to communicate with HLF peer.", "Org1MSP");
+  node.tagParameter("hlf_peer_msp_id", privateOptionalTags);
+
+  node.declareParameter("hlf_peer_address",
+                        "Public IP address of HLF peer to communicate with "
+                        "(chaincode life cycle managment).",
+                        "peer.example.com:7051");
+  node.tagParameter("hlf_peer_address", privateOptionalTags);
+
+  node.declareParameter("hlf_orderer_address",
+                        "Public IP address of HLF orderer to communicate with "
+                        "(channel management).",
+                        "orderer.example.com:7050");
+  node.tagParameter("hlf_orderer_address", privateOptionalTags);
+
+  node.declareParameter("hlf_kv_service_address",
+                        "Address of Concord to provide KV service.",
+                        "0.0.0.0:50051");
+  node.tagParameter("hlf_kv_service_address", privateOptionalTags);
+
+  node.declareParameter("hlf_chaincode_service_address",
+                        "Address of Concord to provide KV service.",
+                        "0.0.0.0:50052");
+  node.tagParameter("hlf_chaincode_service_address", privateOptionalTags);
+
   // TLS
   config.declareParameter("tls_cipher_suite_list",
                           "TLS cipher suite list to use");
