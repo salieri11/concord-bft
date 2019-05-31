@@ -325,7 +325,7 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
       ChaincodeInvoker *chaincode_invoker = new ChaincodeInvoker(nodeConfig);
 
       kvb_commands_handler = new HlfKvbCommandsHandler(
-          chaincode_invoker, config, nodeConfig, replica, replica);
+          chaincode_invoker, config, nodeConfig, &replica, &replica);
     } else {
       kvb_commands_handler = new EthKvbCommandsHandler(
           *athevm, *ethVerifier, config, nodeConfig, &replica, &replica);
@@ -391,8 +391,8 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
       // key value service could put updates to cache, but it is not allowed to
       // write block
       const ILocalKeyValueStorageReadOnly &storage =
-          replica->getReadOnlyStorage();
-      IdleBlockAppender block_appender(replica);
+          replica.getReadOnlyStorage();
+      IdleBlockAppender block_appender(&replica);
       HlfKvbStorage kvb_storage = HlfKvbStorage(storage, &block_appender, 0);
 
       // Start HLF gRPC services
