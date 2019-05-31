@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import argparse
+import json
 import persephone.core_pb2 as core
 import persephone.orchestration_pb2 as orchestration
 import persephone.provisioning_service_pb2 as provision_service
@@ -45,6 +46,23 @@ def parse_arguments() -> Dict[str, Any]:
     return vars(parser.parse_args())
 
 
+def to_signed_int(value: int, bits: int = 64) -> int:
+    """
+    Interpret an integer input as an unsigned value of specified bit precision, and return the
+    byte-content equivalent signed value.
+
+    Args:
+        value (int): input value.
+        bits (int): bit precision to use to interpret the input value as unsigned value.
+    
+    Returns:
+        int: value reinterpreted as signed integer of specified bit precision.
+    """
+    mask = (1 << bits) - 1
+
+    return (value | ~mask) if value & (1 << (bits - 1)) else (value & mask)
+
+
 def new_orchestration_site(
         organization: str,
         data_center: str,
@@ -65,14 +83,14 @@ def new_orchestration_site(
         organization (str): VMware Cloud organization account ID.
         data_center (str): SDDC data center ID.
         api_token (str): API token used for connecting to VMC.
-        folder (str): Folder within SDDC data center to use for VM deployment.
-        resource_pool (str): Resource pool to utilize for VM deployment.
+        folder (str): folder within SDDC data center to use for VM deployment.
+        resource_pool (str): resource pool to utilize for VM deployment.
         network (str): VM network to utilize for VM deployment.
-        network_prefix (int): Network CIDR prefix for VM network, if VM network does not exist.
-        network_subnet (int): Network subnet size for VM network, if VM network does not exist.
-        container_registry (str): Container registry to use to obtain model images.
-        container_registry_username (str): Container registry user login.
-        container_registry_password (str): Container registry user password.
+        network_prefix (int): network CIDR prefix for VM network, if VM network does not exist.
+        network_subnet (int): network subnet size for VM network, if VM network does not exist.
+        container_registry (str): container registry to use to obtain model images.
+        container_registry_username (str): container registry user login.
+        container_registry_password (str): container registry user password.
 
     Returns:
         orchestration.OrchestrationSite: a new instance of the corresponding orchestration site.
@@ -159,7 +177,24 @@ def main():
             ) for site in args["data_centers"]
         ]
     )
-    print(MessageToJson(config))
+
+    # Generate JSON according to Protocol Buffer's JSON codec.
+    config_json = json.loads(MessageToJson(config))
+
+    # Adapt "Protocol Buffer JSON":
+    # 1. Change uint64 to signed since JVM (server side) does not have unsigned type.
+    # 2. Protocol Buffer's JSON codec converts 64-bit precision integer to JSON string literals.
+    #    Convert the string back to int/number for JSON output.
+    for site in config_json["sites"]:
+        unsigned = site["id"]
+        signed = {
+            "low": to_signed_int(int(unsigned["low"])),
+            "high": to_signed_int(int(unsigned["high"]))
+        }
+        site["id"] = signed
+
+    # Dump JSON to STDOUT.
+    print(json.dumps(config_json, indent=4))
 
 
 if __name__ == "__main__":
