@@ -20,6 +20,7 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.reactive.publish
+import kotlinx.serialization.KSerializer
 import kotlin.coroutines.AbstractCoroutineContextElement
 import kotlin.coroutines.CoroutineContext
 
@@ -35,7 +36,8 @@ import kotlin.coroutines.CoroutineContext
  *   coroutine context to use as basis for underlying coroutine-based operations.
  */
 abstract class AbstractUntypedKeyValueStore<T : Version<T>>(
-    private val context: CoroutineContext = Dispatchers.Default
+    private val context: CoroutineContext = Dispatchers.Default,
+    protected val versionSerializer: KSerializer<T>
 ) : UntypedKeyValueStore<T>, CoroutineScope {
 
     /**

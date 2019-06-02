@@ -19,6 +19,7 @@ import com.vmware.blockchain.deployment.persistence.kv.UntypedKeyValueStore;
 
 import dagger.Module;
 import dagger.Provides;
+import kotlinx.coroutines.Dispatchers;
 
 /**
  * {@link Singleton}-scoped Dagger {@link Module} that declares the components and dependencies
@@ -48,7 +49,10 @@ class ConcordModelServiceModule {
     @Provides
     @Singleton
     static UntypedKeyValueStore<MonotonicInt> providesUntypedKeyValueStore() {
-        return new InMemoryUntypedKeyValueStore<>();
+        return new InMemoryUntypedKeyValueStore<>(
+                Dispatchers.getDefault(),
+                MonotonicInt.Companion.getSerializer()
+        );
     }
 
     /**
