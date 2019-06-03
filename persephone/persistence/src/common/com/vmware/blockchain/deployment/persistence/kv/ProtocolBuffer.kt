@@ -1,7 +1,10 @@
+/* **************************************************************************
+ * Copyright (c) 2019 VMware, Inc.  All rights reserved. VMware Confidential
+ * *************************************************************************/
 package com.vmware.blockchain.deployment.persistence.kv
 
+import com.vmware.blockchain.protobuf.kotlinx.serialization.ProtoBuf
 import kotlinx.serialization.KSerializer
-import kotlinx.serialization.protobuf.ProtoBuf
 
 /**
  * Wrapper object type denoting a protocol buffer, which is a [ByteArray] encoded in Protocol

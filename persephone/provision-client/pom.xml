@@ -37,6 +37,10 @@
             <artifactId>grpc-runtime-kotlinx-serialization</artifactId>
         </dependency>
         <dependency>
+            <groupId>com.vmware.blockchain.protobuf</groupId>
+            <artifactId>protobuf-runtime-kotlinx-serialization</artifactId>
+        </dependency>
+        <dependency>
             <groupId>io.grpc</groupId>
             <artifactId>grpc-core</artifactId>
         </dependency>

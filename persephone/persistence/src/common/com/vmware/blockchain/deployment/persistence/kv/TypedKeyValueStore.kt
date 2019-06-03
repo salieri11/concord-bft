@@ -10,8 +10,8 @@ import com.vmware.blockchain.deployment.persistence.kv.KeyValueStore.Versioned
 import com.vmware.blockchain.deployment.reactive.ErrorPublisher
 import com.vmware.blockchain.deployment.reactive.MappingPublisher
 import com.vmware.blockchain.deployment.reactive.Publisher
+import com.vmware.blockchain.protobuf.kotlinx.serialization.ProtoBuf
 import kotlinx.serialization.KSerializer
-import kotlinx.serialization.protobuf.ProtoBuf
 
 /**
  * A strongly-typed implementation of [KeyValueStore] interface.

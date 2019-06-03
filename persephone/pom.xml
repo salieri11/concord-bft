@@ -99,7 +99,7 @@
         <maven.plugin.surefire>2.22.1</maven.plugin.surefire>
 
         <!-- First-party dependency-related properties. -->
-        <blockchain.protobuf.version>0.0.1</blockchain.protobuf.version>
+        <blockchain.protobuf.version>0.0.2</blockchain.protobuf.version>
 
         <!-- Dependency-related properties. -->
         <assertj.version>3.11.1</assertj.version>
@@ -183,6 +183,11 @@
             <dependency>
                 <groupId>com.vmware.blockchain.protobuf</groupId>
                 <artifactId>grpc-runtime-kotlinx-serialization</artifactId>
+                <version>${blockchain.protobuf.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.vmware.blockchain.protobuf</groupId>
+                <artifactId>protobuf-runtime-kotlinx-serialization</artifactId>
                 <version>${blockchain.protobuf.version}</version>
             </dependency>
             <dependency>

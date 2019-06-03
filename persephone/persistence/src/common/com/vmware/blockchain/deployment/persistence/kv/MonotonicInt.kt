@@ -3,10 +3,10 @@
  * *************************************************************************/
 package com.vmware.blockchain.deployment.persistence.kv
 
+import com.vmware.blockchain.protobuf.kotlinx.serialization.ProtoBuf
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerialId
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.protobuf.ProtoBuf
 
 /**
  * A monotonic integer implementation of [KeyValueStore.Version].
