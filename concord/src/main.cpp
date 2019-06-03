@@ -121,7 +121,8 @@ void signalHandler(int signum) {
   }
 }
 
-IDBClient *open_database(ConcordConfiguration &nodeConfig, Logger logger) {
+unique_ptr<IDBClient> open_database(ConcordConfiguration &nodeConfig,
+                                    Logger logger) {
   if (!nodeConfig.hasValue<std::string>("blockchain_db_impl")) {
     LOG4CPLUS_FATAL(logger, "Missing blockchain_db_impl config");
     throw EVMException("Missing blockchain_db_impl config");
@@ -130,13 +131,14 @@ IDBClient *open_database(ConcordConfiguration &nodeConfig, Logger logger) {
   string db_impl_name = nodeConfig.getValue<std::string>("blockchain_db_impl");
   if (db_impl_name == "memory") {
     LOG4CPLUS_INFO(logger, "Using memory blockchain database");
-    return new InMemoryDBClient(
-        (IDBClient::KeyComparator)&RocksKeyComparator::InMemKeyComp);
+    return unique_ptr<IDBClient>(new InMemoryDBClient(
+        (IDBClient::KeyComparator)&RocksKeyComparator::InMemKeyComp));
 #ifdef USE_ROCKSDB
   } else if (db_impl_name == "rocksdb") {
     LOG4CPLUS_INFO(logger, "Using rocksdb blockchain database");
     string rocks_path = nodeConfig.getValue<std::string>("blockchain_db_path");
-    return new RocksDBClient(rocks_path, new RocksKeyComparator());
+    return unique_ptr<IDBClient>(
+        new RocksDBClient(rocks_path, new RocksKeyComparator()));
 #endif
   } else {
     LOG4CPLUS_FATAL(logger, "Unknown blockchain_db_impl " << db_impl_name);
@@ -263,8 +265,8 @@ unique_ptr<grpc::Server> RunDamlGrpcServer(
  */
 int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
                 Logger &logger) {
-  EVM *athevm;
-  EthSign *ethVerifier;
+  unique_ptr<EVM> athevm;
+  unique_ptr<EthSign> ethVerifier;
   EVMInitParams params;
   uint64_t chainID;
   BlockingPersistentQueue<CommittedTx> committedTxs;
@@ -283,8 +285,8 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
         params = EVMInitParams(genesis_file_path);
         chainID = params.get_chainID();
         // throws an exception if it fails
-        athevm = new EVM(params);
-        ethVerifier = new EthSign();
+        athevm = unique_ptr<EVM>(new EVM(params));
+        ethVerifier = unique_ptr<EthSign>(new EthSign());
       } else {
         LOG4CPLUS_WARN(logger, "No genesis block provided");
       }
@@ -301,7 +303,7 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
                                 &replicaConsensusConfig);
 
     auto db_client = open_database(nodeConfig, logger);
-    BlockchainDBAdapter db_adapter(db_client);
+    BlockchainDBAdapter db_adapter(db_client.get());
 
     // Replica
     //
@@ -314,21 +316,22 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
     ReplicaImp replica(commConfig, replicaConsensusConfig, &db_adapter,
                        replicaStateSync);
 
-    // TODO(RM): Use unique pointer
-    ICommandsHandler *kvb_commands_handler;
+    unique_ptr<ICommandsHandler> kvb_commands_handler;
     if (daml_enabled) {
-      kvb_commands_handler =
-          new KVBCCommandsHandler(&replica, &replica, committedTxs);
+      kvb_commands_handler = unique_ptr<ICommandsHandler>(
+          new KVBCCommandsHandler(&replica, &replica, committedTxs));
     } else if (hlf_enabled) {
       LOG4CPLUS_INFO(logger, "Hyperledger Fabric feature is enabled");
       // Init chaincode invoker
       ChaincodeInvoker *chaincode_invoker = new ChaincodeInvoker(nodeConfig);
 
-      kvb_commands_handler = new HlfKvbCommandsHandler(
-          chaincode_invoker, config, nodeConfig, &replica, &replica);
+      kvb_commands_handler =
+          unique_ptr<ICommandsHandler>(new HlfKvbCommandsHandler(
+              chaincode_invoker, config, nodeConfig, &replica, &replica));
     } else {
-      kvb_commands_handler = new EthKvbCommandsHandler(
-          *athevm, *ethVerifier, config, nodeConfig, &replica, &replica);
+      kvb_commands_handler =
+          unique_ptr<ICommandsHandler>(new EthKvbCommandsHandler(
+              *athevm, *ethVerifier, config, nodeConfig, &replica, &replica));
       // Genesis must be added before the replica is started.
       concord::consensus::Status genesis_status =
           create_genesis_block(&replica, params, logger);
@@ -339,7 +342,7 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
       }
     }
 
-    replica.set_command_handler(kvb_commands_handler);
+    replica.set_command_handler(kvb_commands_handler.get());
     replica.start();
 
     // Clients
@@ -422,13 +425,6 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
     }
 
     replica.stop();
-
-    if (!daml_enabled) {
-      delete ethVerifier;
-      delete athevm;
-    }
-    delete kvb_commands_handler;
-    delete db_client;
   } catch (std::exception &ex) {
     LOG4CPLUS_FATAL(logger, ex.what());
     return -1;
