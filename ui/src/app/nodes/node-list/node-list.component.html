@@ -1,6 +1,12 @@
-<clr-datagrid>
+<clr-datagrid [(clrDgSelected)]="selected">
+    <clr-dg-action-bar>
+      <div class="btn-group pull-right">
+        <button class="btn btn-sm btn-outline-danger" [disabled]="selected.length === 0" (click)="confirmAction('start', selected)">{{'nodes.start' | translate}}</button>
+        <button class="btn btn-sm btn-outline-danger" [disabled]="selected.length === 0" (click)="confirmAction('restart', selected)">{{'nodes.restart' | translate}}</button>
+        <button class="btn btn-sm btn-outline-danger" [disabled]="selected.length === 0" (click)="confirmAction('stop', selected)">{{'nodes.stop' | translate}}</button>
+      </div>
+    </clr-dg-action-bar>
   <clr-dg-column [clrDgField]="'hostname'">{{'nodes.hostname' | translate}}</clr-dg-column>
-  <clr-dg-column>{{'nodes.address' | translate}}</clr-dg-column>
   <clr-dg-column>
     {{'nodes.status' | translate}}
     <clr-dg-filter [clrDgFilter]="statusFilter">
@@ -10,17 +16,21 @@
   <clr-dg-column>
     {{'nodes.health' | translate}}
   </clr-dg-column>
-  <clr-dg-row *clrDgItems="let node of nodes">
+  <clr-dg-column>{{'nodes.address' | translate}}</clr-dg-column>
+
+  <clr-dg-row *clrDgItems="let node of nodes" [clrDgItem]="node">
+    <clr-dg-action-overflow>
+      <button class="action-item" (click)="downloadCert()">{{'nodes.getCert' | translate}}</button>
+      <button class="action-item" (click)="confirmAction('start', node)">{{'nodes.start' | translate}}</button>
+      <button class="action-item" (click)="confirmAction('restart', node)">{{'nodes.restart' | translate}}</button>
+      <button class="action-item" (click)="confirmAction('stop', node)">{{'nodes.stop' | translate}}</button>
+    </clr-dg-action-overflow>
     <clr-dg-cell>{{node.hostname}}</clr-dg-cell>
+    <clr-dg-cell>{{node.state}}</clr-dg-cell>
+    <clr-dg-cell [innerHTML]="node.healthHTML"></clr-dg-cell>
     <clr-dg-cell>{{node.address}}</clr-dg-cell>
-    <clr-dg-cell>{{node.status}}</clr-dg-cell>
-    <clr-dg-cell>
-      <span *ngIf="node.millis_since_last_message < node.millis_since_last_message_threshold" class="label label-success">
-        {{'nodes.healthy' | translate}}
-      </span>
-      <span *ngIf="node.millis_since_last_message >= node.millis_since_last_message_threshold" class="label label-danger">
-        {{'nodes.unhealthy' | translate}}
-      </span>
-    </clr-dg-cell>
   </clr-dg-row>
+
 </clr-datagrid>
+
+<concord-confirm-action #confirm></concord-confirm-action>

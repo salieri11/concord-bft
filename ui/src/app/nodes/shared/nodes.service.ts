@@ -4,7 +4,7 @@
 
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, forkJoin } from 'rxjs';
 import { TranslateService } from '@ngx-translate/core';
 import { map } from 'rxjs/operators';
 
@@ -130,6 +130,7 @@ export class NodesService {
           node['geo'] = locations[i].geo;
           node['location'] = locations[i].region;
           node['organization'] = locations[i].organization;
+          node['state'] = node['status'];
           let text = '';
           let labelClass = '';
 
@@ -178,4 +179,19 @@ export class NodesService {
       })
     );
   }
+
+  action(action: string, node: any): Observable<any> {
+    if (node.length) {
+      const actions = [];
+
+      node.forEach(n => {
+        actions.push(this.httpClient.post(this.resourcePath(n.id), {action: action}));
+      });
+
+      return forkJoin(actions);
+    } else {
+      return this.httpClient.post(this.resourcePath(node.id), {action: action});
+    }
+  }
+
 }

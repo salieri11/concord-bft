@@ -61,6 +61,11 @@
           <clr-icon clrVerticalNavIcon shape="home"></clr-icon>
           {{'nav.dashboard' | translate}}
         </a>
+        <a clrVerticalNavLink [routerLink]="['nodes']" routerLinkActive="active">
+          <clr-icon clrVerticalNavIcon shape="cluster"></clr-icon>
+          {{'nav.nodeList' | translate}}
+        </a>
+
         <a clrVerticalNavLink [routerLink]="['organizations']" routerLinkActive="active">
           <clr-icon clrVerticalNavIcon shape="organization"></clr-icon>
           {{'nav.organizations' | translate}}

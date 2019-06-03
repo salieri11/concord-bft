@@ -11,6 +11,7 @@ import { TransactionsModule } from '../transactions/transactions.module';
 import { NodesComponent } from './nodes/nodes.component';
 import { NodesStatusFilterComponent } from './nodes-status-filter/nodes-status-filter.component';
 import { NodeListComponent } from './node-list/node-list.component';
+import { ConfirmActionComponent } from './confirm-action/confirm-action.component';
 
 @NgModule({
   imports: [
@@ -19,7 +20,7 @@ import { NodeListComponent } from './node-list/node-list.component';
     SharedModule,
     GraphsModule
   ],
-  declarations: [NodesComponent, NodesStatusFilterComponent, NodeListComponent],
+  declarations: [NodesComponent, NodesStatusFilterComponent, NodeListComponent, ConfirmActionComponent],
   exports: [NodeListComponent]
 })
 export class NodesModule { }

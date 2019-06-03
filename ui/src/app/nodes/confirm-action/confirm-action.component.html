@@ -1,0 +1,17 @@
+<clr-modal [(clrModalOpen)]="opened">
+    <h3 class="modal-title">{{'nodes.confirmModal.title' | translate}}</h3>
+    <div class="modal-body">
+      <p>{{'nodes.confirmModal.body' | translate}}</p>
+      <clr-input-container>
+        <input clrInput [placeholder]="'nodes.confirmModal.body' | translate" name="name" [(ngModel)]="confirmation" />
+      </clr-input-container>
+    </div>
+    <div class="modal-footer">
+        <button type="button" class="btn btn-link" (click)="close()">
+            {{'common.cancel' | translate}}
+        </button>
+        <button type="button" class="btn btn-danger" (click)="confirm()" [disabled]="confirmation !== expectedConfirmation">
+            {{'nodes.stop' | translate}}
+        </button>
+    </div>
+</clr-modal>

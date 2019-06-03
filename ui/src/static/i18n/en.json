@@ -43,6 +43,7 @@
     "deploy": "Deploy Consortium",
     "zones": "Zones",
     "dashboard": "Dashboard",
+
     "organizations": "Organizations/Users",
     "nodeList": "Replica List",
     "blockList": "Block Explorer",
@@ -181,6 +182,10 @@
     "transactionsPerSecond": "Transactions/second",
     "averageValidationTime": "Avg Validation Time",
     "xSeconds": "{{seconds}} <small>seconds</small>",
+    "getCert": "Download Certificate",
+    "start": "Start",
+    "stop": "Stop",
+    "restart": "Restart",
     "status": "Status",
     "live": "Live",
     "offline": "Offline",
@@ -203,7 +208,12 @@
     "amount": "Amount",
     "trans": "Trans",
     "length": "Length",
-    "paginationSummary": "{{start}} - {{finish}} of {{total}} replicas"
+    "paginationSummary": "{{start}} - {{finish}} of {{total}} replicas",
+    "confirmModal": {
+      "title": "Confirm Replica Action",
+      "body": "Please type REPLICA STOP to confirm replica stoppage.",
+      "placeholder": "Type confirmation here"
+    }
   },
   "blocks": {
     "title": "Block",
