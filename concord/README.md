@@ -28,7 +28,7 @@ sudo apt-get install cmake clang g++ parallel autoconf doxygen automake llvm-5.0
   llvm-5.0-dev libgmp3-dev libtool libboost1.65-dev \
   libboost-program-options1.65-dev libboost-program-options1.65.1 \
   libboost-filesystem1.65-dev libboost-system1.65.1 libboost-thread1.65-dev \
-  libboost-thread1.65.1 libyaml-cpp0.5v5 libyaml-cpp-dev doxygen
+  libboost-thread1.65.1 libyaml-cpp0.5v5 libyaml-cpp-dev
 ```
 	
 #### Relic
@@ -315,7 +315,7 @@ On a successful build you have a `concord` executable.
 
 Run the executable to start concord:
 
-```shell	
+```shell
 concord/build$ ./src/concord -c test/resources/concord1.config
 2019-01-29T22:52:38.742 [140149696604672] INFO  concord.main %% VMware Project concord starting [/home/bfink/vmwathena/blockchain/concord/src/main.cpp:353]
 2019-01-29T22:52:38.742 [140149696604672] INFO  concord.main %% Reading genesis block from ./test/resources/genesis.json [/home/bfink/vmwathena/blockchain/concord/src/main.cpp:204]
