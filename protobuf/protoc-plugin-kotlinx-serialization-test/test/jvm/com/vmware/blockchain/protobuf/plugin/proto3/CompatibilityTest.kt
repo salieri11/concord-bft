@@ -5,6 +5,7 @@ package com.vmware.blockchain.protobuf.plugin.proto3
 
 import com.google.protobuf.Message
 import com.google.protobuf.Parser
+import com.vmware.blockchain.protobuf.kotlinx.serialization.ByteString
 import com.vmware.blockchain.protobuf.kotlinx.serialization.ProtoBuf
 import com.vmware.blockchain.protobuf.plugin.proto3.java.EnumMessage as EnumMessageJava
 import com.vmware.blockchain.protobuf.plugin.proto3.java.NestedMessage as NestedMessageJava
@@ -69,6 +70,7 @@ class CompatibilityTest {
                 .setBoolField(true)
                 .setStringField("test string")
                 .setFixed32Field(1)
+                .setBytesField(com.google.protobuf.ByteString.copyFrom("test bytes".toByteArray()))
                 .build()
     }
 
@@ -81,7 +83,8 @@ class CompatibilityTest {
         return ScalarsMessage(
                 boolField = true,
                 stringField = "test string",
-                fixed32Field = 1
+                fixed32Field = 1,
+                bytesField = ByteString.of(*"test bytes".toByteArray())
         )
     }
 
