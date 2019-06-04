@@ -20,6 +20,7 @@ import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.asClassName
 import com.squareup.kotlinpoet.asTypeName
 import com.vmware.blockchain.protobuf.kotlinx.serialization.ByteString
+import com.vmware.blockchain.protobuf.kotlinx.serialization.GeneratedModel
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerialId
 import kotlinx.serialization.Serializable
@@ -136,6 +137,7 @@ class MessageGenerator(private val descriptor: DescriptorProtos.DescriptorProto)
                 .build()
         return TypeSpec.classBuilder(selfTypeName)
                 .addAnnotation(AnnotationSpec.builder(Serializable::class).build())
+                .addAnnotation(AnnotationSpec.builder(GeneratedModel::class).build())
                 .apply {
                     /* Data class must have at least 1 field declared. */
                     if (descriptor.fieldCount > 0) {
@@ -170,6 +172,7 @@ class EnumGenerator(private val descriptor: DescriptorProtos.EnumDescriptorProto
                                      .build())
                 .build()
         return TypeSpec.enumBuilder(selfTypeName)
+                .addAnnotation(AnnotationSpec.builder(GeneratedModel::class).build())
                 .primaryConstructor(FunSpec.constructorBuilder()
                                             .addParameter("value", Int::class)
                                             .build())
