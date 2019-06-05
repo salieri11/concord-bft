@@ -128,6 +128,7 @@ public class ProvisioningServiceClient {
             } catch (RuntimeException e) {
                 log.error("DeleteCluster CLI failed");
                 e.printStackTrace();
+                throw e;
             }
         } else {
             createFixedSizeCluster(argv[0]);
