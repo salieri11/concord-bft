@@ -28,6 +28,7 @@ message RequiredScalarsMessage {
     required sfixed64 sfixed64_field = 12;
     required sint64 sint64_field = 13;
     required uint64 uint64_field = 14;
+    required bytes bytes_field = 15;
 }
 
 message RequiredEnumMessage {

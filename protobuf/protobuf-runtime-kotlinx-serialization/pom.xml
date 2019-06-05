@@ -10,9 +10,9 @@
         <version>${revision}</version>
     </parent>
 
-    <artifactId>grpc-runtime-kotlinx-serialization</artifactId>
+    <artifactId>protobuf-runtime-kotlinx-serialization</artifactId>
     <packaging>jar</packaging>
-    <name>GRPC Runtime Support (kotlinx.serializaton)</name>
+    <name>Protocol Buffer Runtime Support (kotlinx.serializaton)</name>
 
     <dependencies>
         <!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -23,26 +23,34 @@
             <artifactId>kotlin-stdlib-jdk8</artifactId>
         </dependency>
         <!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        ~ Internal dependencies.                                    ~
-        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
-        <dependency>
-            <groupId>com.vmware.blockchain.protobuf</groupId>
-            <artifactId>protobuf-runtime-kotlinx-serialization</artifactId>
-        </dependency>
-        <!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         ~ External dependencies.                                    ~
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
         <dependency>
             <groupId>org.jetbrains.kotlinx</groupId>
             <artifactId>kotlinx-serialization-runtime</artifactId>
         </dependency>
+        <!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        ~ External test dependencies.                               ~
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
         <dependency>
-            <groupId>io.grpc</groupId>
-            <artifactId>grpc-core</artifactId>
+            <groupId>net.jqwik</groupId>
+            <artifactId>jqwik</artifactId>
+            <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>io.grpc</groupId>
-            <artifactId>grpc-stub</artifactId>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-api</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-engine</artifactId>
+            <scope>test</scope>
         </dependency>
     </dependencies>
     <build>
