@@ -27,10 +27,10 @@ we use program-options, system, and thread), and yaml-cpp:
 sudo apt-get install cmake clang g++ parallel autoconf doxygen automake llvm-5.0 \
   llvm-5.0-dev libgmp3-dev libtool libboost1.65-dev \
   libboost-program-options1.65-dev libboost-program-options1.65.1 \
-  libboost-filesystem1.65-dev libboost-system1.65.1 libboost-thread1.65-dev \
-  libboost-thread1.65.1 libyaml-cpp0.5v5 libyaml-cpp-dev
+  libboost-system1.65-dev libboost-system1.65.1 libboost-thread1.65-dev \
+  libboost-filesystem1.65-dev libboost-thread1.65.1 libyaml-cpp0.5v5 libyaml-cpp-dev
 ```
-	
+
 #### Relic
 
 Then clone and build [Relic](https://github.com/relic-toolkit/relic):
@@ -214,7 +214,7 @@ Concord uses [OpenSSL](https://github.com/openssl/openssl) for TLS communication
    git clone https://github.com/openssl/openssl.git
    cd openssl
    git checkout OpenSSL_1_1_1a
-   ./config   
+   ./config
    make
    make test
    sudo make install
@@ -234,7 +234,8 @@ You should get 1_1_1a as your version.
 
 ### gRPC 
 
-Concord uses [gRPC](https://github.com/grpc/grpc) for DAML and HLF api server. You will need to install grpc version v1.17.x 
+Concord uses [gRPC](https://github.com/grpc/grpc) for DAML and HLF api server. You will need to install grpc version v1.17.x:
+
 ```shell
    git clone https://github.com/grpc/grpc
    cd grpc
