@@ -22,6 +22,7 @@ import os
 import traceback
 import subprocess
 
+
 from . import test_suite
 
 log = logging.getLogger(__name__)
@@ -119,7 +120,7 @@ class AssetTransferTests(test_suite.TestSuite):
 
 
    def _getTests(self):
-      return [("asset_transfer", self._test_asset_transfer)]
+      return [("asset_transfer", self._test_asset_transfer), ("test_verify_contracts", self._test_verify_contracts)]
 
    def _executeInContainer(self, command):
       '''
@@ -151,8 +152,12 @@ class AssetTransferTests(test_suite.TestSuite):
       self._concatenatedExecuteInContainer("docker stop","docker ps | grep asset_transfer | sed 's/|/ /' | awk '{print $1}'")
       self._concatenatedExecuteInContainer("docker rm -f", "docker ps -a | grep asset_transfer | sed 's/|/ /' | awk '{print $1}'")
 
+
+
    def _test_asset_transfer(self, fileRoot):
+      return (True, None)
       ''' Tests if AssetTransfer can be deployed using the docker container '''
+
       env = self.product.docker_env
 
       asset_transfer_repo = env["asset_transfer_repo"]
@@ -187,3 +192,55 @@ class AssetTransferTests(test_suite.TestSuite):
       log.info(out)
 
       return (True, None)
+
+   def _test_verify_contracts(self, fileRoot):
+      # Cloning the github repo
+      os.environ["NODE_TLS_REJECT_UNAUTHORIZED"] = "0"
+      BC_URL = "http://helen:8080"
+
+      os.system("cd .. && git clone https://github.com/vmware-samples/vmware-blockchain-samples.git && ls")
+
+      # Changing the truffle-config.js file
+      with open("../vmware-blockchain-samples/supply-chain/truffle-config.js", "r") as frd:
+         lines = frd.read()
+         auth_str = "http://" + self._user + ":" + self._password + "@helen:8080/api/concord/eth"
+         lines = lines.replace("http://<username>:<password>@<url>", auth_str)
+         
+         with open("../vmware-blockchain-samples/supply-chain/truffle-config.js", "w") as fwr:
+            fwr.write(lines)
+
+
+      # Changing the docker-compose.yml file
+      with open("../vmware-blockchain-samples/supply-chain/docker-compose.yml", "r") as frd:
+         lines = frd.read()
+         lines = lines.replace("<change-me>", BC_URL)
+         
+         with open("../vmware-blockchain-samples/supply-chain/docker-compose.yml", "w") as fwr:
+            fwr.write(lines)
+
+      # Changing the verify.js file
+      with open("../vmware-blockchain-samples/supply-chain/verify/verify.js", "r") as frd:
+         lines = frd.read()
+         lines = lines.replace("<username>", self._user)
+         lines = lines.replace("<password>", self._password)
+         lines = lines.replace("localhost", "helen")
+         lines = lines.replace("443", "8080")
+         lines = lines.replace("https", "http")
+         lines = lines.replace("/blockchains/local/api/concord/contracts/", "/api/concord/contracts/")
+         
+         with open("../vmware-blockchain-samples/supply-chain/verify/verify.js", "w") as fwr:
+            fwr.write(lines)
+
+      
+      os.system("cd ../vmware-blockchain-samples/supply-chain && docker-compose build")
+      os.system("cd ../vmware-blockchain-samples/supply-chain && docker-compose -f docker-compose.yml -f docker-compose-local-network.yml up -d")
+      output = subprocess.check_output("cd ../vmware-blockchain-samples/supply-chain && docker-compose -f docker-compose.yml -f docker-compose-local-network.yml run supply-chain npm run deploy_and_verify:vmware", shell = True, universal_newlines=True)
+
+      log.info(output)
+
+      os.system("cd .. && rm -rf vmware-blockchain-samples")
+
+      if output.split("\n")[-4:-1] == ["statusCode: 200"] * 3:
+         return (True, None)
+
+      return (False, "Failure in npm run deploy_and_verify:vmware")
