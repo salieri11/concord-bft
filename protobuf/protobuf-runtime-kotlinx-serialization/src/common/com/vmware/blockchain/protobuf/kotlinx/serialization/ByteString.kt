@@ -14,7 +14,7 @@ import kotlinx.serialization.Transient
  * Value-type implementation that represents an immutable sequence of bytes.
  */
 @Serializable(with = ByteString.ByteStringSerializer::class)
-data class ByteString(
+open class ByteString(
     val data: ByteArray = EMPTY_ARRAY,
     @Transient val offset: Int = 0,
     @Transient val length: Int = data.size
