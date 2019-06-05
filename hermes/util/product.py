@@ -54,8 +54,10 @@ class Product():
    docker_env = helper.get_docker_env()
 
    PERSEPHONE_SERVICE_METADATA = docker_env["persephone_metadata_repo"]
-   PERSEPHONE_SERVICE_PROVISIONING = docker_env["persephone_provisioning_repo"]
+   PERSEPHONE_SERVICE_PROVISIONING = "deploymentservice" # name as seen by helen
    # PERSEPHONE_SERVICE_FLEET = docker_env["persephone_fleet_repo"]
+   PERSEPHONE_PROVISIONING_CLIENT_UNDEPLOY = docker_env[
+      "persephone_provisioning_client_repo"]
 
    def __init__(self, cmdlineArgs, userConfig):
       self._cmdlineArgs = cmdlineArgs

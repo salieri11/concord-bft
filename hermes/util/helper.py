@@ -4,6 +4,8 @@ import yaml
 import shutil
 import logging
 import paramiko
+import subprocess
+from . import product as p
 
 log = logging.getLogger(__name__)
 docker_env_file = ".env"
@@ -108,3 +110,75 @@ def ssh_connect(host, username, password, command):
       raise
 
    return resp
+
+def execute_ext_command(command):
+   '''
+   Helper method to execute an external command
+   :param command: command to be executed
+   :return: True if command exit status is 0, else False
+   '''
+   log.info("Executing external command: {}".format(command))
+
+   completedProcess = subprocess.run(command, stdout=subprocess.PIPE,
+                                     stderr=subprocess.STDOUT)
+   try:
+      completedProcess.check_returncode()
+      log.debug("stdout: {}".format(
+         completedProcess.stdout.decode().replace(os.linesep, "")))
+      if completedProcess.stderr:
+         log.info("stderr: {}".format(completedProcess.stderr))
+   except subprocess.CalledProcessError as e:
+      log.error(
+         "Command '{}' failed to execute: {}".format(command, e.returncode))
+      log.error("stdout: '{}', stderr: '{}'".format(completedProcess.stdout,
+                                                    completedProcess.stderr))
+      return False
+
+   return True
+
+def to_signed_int(value: int, bits: int = 64) -> int:
+    """
+    Interpret an integer input as an unsigned value of specified bit precision,
+    and return the byte-content equivalent signed value.
+    Args:
+        value (int): input value.
+        bits (int): bit precision to use to interpret the input value as
+        unsigned value.
+    Returns:
+        int: value reinterpreted as signed integer of specified bit precision.
+    """
+    mask = (1 << bits) - 1
+    return (value | ~mask) if value & (1 << (bits - 1)) else (value & mask)
+
+def undeploy_blockchain_cluster(provisioning_config_file, grpc_server, session_id_json):
+   '''
+   Helper method to undeploy blockchain cluster deployed by deployment service
+   :param provisioning_config_file: provisioning service config file
+   :param grpc_server: provisioning service:port gRPC server
+   :param session_id_json: deployment session ID
+   :return: True if successful, else False
+   '''
+
+   if session_id_json:
+      log.info("Undeploying session ID: {}".format(session_id_json))
+
+      undeploy_docker_container = p.Product.PERSEPHONE_PROVISIONING_CLIENT_UNDEPLOY
+      provisioning_config_file_abspath = os.path.abspath(provisioning_config_file)
+      undeploy_command = ["docker",
+                          "run",
+                          "--net=host",
+                          "-v"
+                          "{}:{}".format(provisioning_config_file_abspath, provisioning_config_file_abspath),
+                          "{}".format(undeploy_docker_container),
+                          "deleteCluster"
+                          ]
+      undeploy_command_params = [str(to_signed_int(int(session_id_json[0]["low"]))),
+                                 str(to_signed_int(int(session_id_json[0]["high"]))),
+                                 provisioning_config_file_abspath, grpc_server]
+      command_to_execute = undeploy_command + undeploy_command_params
+      log.debug("Executing Undeploy command: {}".format(command_to_execute))
+
+      return execute_ext_command(command_to_execute)
+
+   return True
+

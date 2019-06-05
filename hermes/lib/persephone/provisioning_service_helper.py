@@ -27,6 +27,8 @@ class ProvisioningServiceRPCHelper(RPCHelper):
       super().__init__(cmdlineArgs)
       self.service_name = Product.PERSEPHONE_SERVICE_PROVISIONING
       self.service_port = self.get_persephone_service_port(self.service_name)
+      self.persephone_config_file = self.get_provisioning_config_file(
+         self.service_name)
 
       self.grpc_server = "localhost:{}".format(self.service_port)
       self.channel = self.create_channel(self.service_name)
@@ -51,8 +53,7 @@ class ProvisioningServiceRPCHelper(RPCHelper):
                type=provisioning_service_pb2.PlacementSpecification.UNSPECIFIED)
             entries.append(placement_entry)
       else:
-         persephone_config_file = self.get_provisioning_config_file(self.service_name)
-         with open(persephone_config_file, "r") as confile_fp:
+         with open(self.persephone_config_file, "r") as confile_fp:
             data = json.load(confile_fp)
          deployment_sites = []
          for site in data["sites"]:
