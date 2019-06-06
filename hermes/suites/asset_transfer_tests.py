@@ -120,7 +120,7 @@ class AssetTransferTests(test_suite.TestSuite):
 
 
    def _getTests(self):
-      return [("asset_transfer", self._test_asset_transfer), ("test_verify_contracts", self._test_verify_contracts)]
+      return [("asset_transfer", self._test_asset_transfer), ("test_verify_contracts", self._test_supply_chain_and_verify_contracts)]
 
    def _executeInContainer(self, command):
       '''
@@ -193,7 +193,7 @@ class AssetTransferTests(test_suite.TestSuite):
 
       return (True, None)
 
-   def _test_verify_contracts(self, fileRoot):
+   def _test_supply_chain_and_verify_contracts(self, fileRoot):
       # Cloning the github repo
       os.environ["NODE_TLS_REJECT_UNAUTHORIZED"] = "0"
       BC_URL = "http://helen:8080"
