@@ -18,6 +18,8 @@
 #include <string.h>
 #include <chrono>
 #include <mutex>
+#include <deque>
+#include <condition_variable>
 
 #if defined(_WIN32)
 #include <windows.h>
@@ -74,6 +76,16 @@ enum ConnType : uint8_t {
   Outgoing
 };
 
+struct InMessage {
+  char *data;
+  size_t length;
+
+  ~InMessage() {
+    if(data)
+      delete[] data;
+  }
+};
+
 /** this class will handle single connection using boost::make_shared idiom
  * will receive the IReceiver as a parameter and call it when new message
  * is available
@@ -106,6 +118,12 @@ class AsyncTcpConnection :
   bool _connecting = false;
   UPDATE_CONNECTIVITY_FN _statusCallback = nullptr;
   NodeMap _nodes;
+  mutex _incomingGuard;
+  std::deque<InMessage*> _inQueue;
+  mutex _inSignalGuard;
+  condition_variable _inSignal;
+  thread *_dispatchThread = nullptr;
+  
   recursive_mutex _connectionsGuard;
 
  public:
@@ -148,6 +166,29 @@ class AsyncTcpConnection :
 
     LOG_TRACE(_logger, "exit, node " << _selfId << ", dest: " << _destId);
   }
+ 
+  void dispatch() {
+    while(!_closed) {
+      std::unique_lock<std::mutex> lk(_inSignalGuard);
+      _inSignal.wait(lk, [this]{
+        return _closed || _inQueue.size() > 0;
+      });
+
+      size_t qSize = 0;
+      _incomingGuard.lock();
+      qSize = _inQueue.size();
+      _incomingGuard.unlock();
+      for(int i =0; i < qSize; i++) {
+        InMessage *msg = _inQueue.at(i);
+        _receiver->onNewMessage(_destId, msg->data, msg->length);
+      }
+      _inQueue.erase(_inQueue.begin(), _inQueue.begin() + qSize);
+    }
+  }
+
+   void start_dispatch() {
+    _dispatchThread = new thread(std::bind(&AsyncTcpConnection::dispatch, this));
+   }
 
   bool check_replica(NodeNum node) {
     auto it = _nodes.find(node);
@@ -323,7 +364,7 @@ class AsyncTcpConnection :
               << ", connected: " << connected
               << "is_open: " << socket.is_open());
 
-    memset(_inBuffer, 0, _bufferLength);
+    //memset(_inBuffer, 0, _bufferLength);
     async_read(socket,
                buffer(_inBuffer, LENGTH_FIELD_SIZE),
                boost::bind(&AsyncTcpConnection::read_header_async_completed,
@@ -379,12 +420,29 @@ class AsyncTcpConnection :
     }
 
     if (!is_service_message()) {
-      LOG_DEBUG(_logger, "data msg received, msgLen: " << bytesRead);
-      _receiver->
-          onNewMessage(_destId,
-                       _inBuffer + LENGTH_FIELD_SIZE +
-                           MSGTYPE_FIELD_SIZE,
-                       bytesRead - MSGTYPE_FIELD_SIZE);
+      /*
+       LOG_INFO(_logger, "data msg received, msgLen: " << bytesRead - MSGTYPE_FIELD_SIZE << 
+                          ", " << (int8_t)_inBuffer[LENGTH_FIELD_SIZE +
+                            MSGTYPE_FIELD_SIZE] << ", " << (int8_t)_inBuffer[LENGTH_FIELD_SIZE +
+                            MSGTYPE_FIELD_SIZE + 1]);
+                            */
+       /*                            
+       _receiver->
+           onNewMessage(_destId,
+                        _inBuffer + LENGTH_FIELD_SIZE +
+                            MSGTYPE_FIELD_SIZE,
+                        bytesRead - MSGTYPE_FIELD_SIZE);
+      */
+      
+      InMessage *in = new InMessage();
+      in->data = new char[bytesRead - MSGTYPE_FIELD_SIZE];
+      memcpy(in->data, _inBuffer + LENGTH_FIELD_SIZE +  MSGTYPE_FIELD_SIZE,
+            bytesRead - MSGTYPE_FIELD_SIZE);
+      in->length = bytesRead - MSGTYPE_FIELD_SIZE;
+      _incomingGuard.lock();
+      _inQueue.push_back(in);
+      _incomingGuard.unlock();
+      _inSignal.notify_all();
     }
 
     read_header_async();
@@ -421,8 +479,9 @@ class AsyncTcpConnection :
   }
 
   void write_async_completed(const B_ERROR_CODE &err,
-                             size_t bytesTransferred) {
-    LOG_TRACE(_logger, "enter, node " << _selfId << ", dest: " << _destId);
+                             size_t bytesTransferred, const char* data) {
+    if(data)
+      delete[] data;
 
     if (_wasError) {
       LOG_TRACE(_logger,
@@ -436,29 +495,28 @@ class AsyncTcpConnection :
       _wasError = true;
       return;
     }
-
-    LOG_TRACE(_logger, "exit, node " << _selfId << ", dest: " << _destId);
   }
 
-  uint16_t prepare_output_buffer(uint16_t msgType, uint32_t dataLength) {
-    memset(_outBuffer, 0, _bufferLength);
+  uint16_t prepare_output_buffer(uint16_t msgType, uint32_t dataLength, char* data) {
+    //sendmemset(_outBuffer, 0, _bufferLength);
     uint32_t size = sizeof(msgType) + dataLength;
-    memcpy(_outBuffer, &size, LENGTH_FIELD_SIZE);
-    memcpy(_outBuffer + LENGTH_FIELD_SIZE,
+    memcpy(data, &size, LENGTH_FIELD_SIZE);
+    memcpy(data + LENGTH_FIELD_SIZE,
            &msgType,
            MSGTYPE_FIELD_SIZE);
     return LENGTH_FIELD_SIZE + MSGTYPE_FIELD_SIZE;
   }
 
   void send_hello() {
-    auto offset = prepare_output_buffer(MessageType::Hello, sizeof(_selfId));
-    memcpy(_outBuffer + offset, &_selfId, sizeof(_selfId));
+    char* t = new char[LENGTH_FIELD_SIZE + MSGTYPE_FIELD_SIZE + sizeof(_selfId)];
+    auto offset = prepare_output_buffer(MessageType::Hello, sizeof(_selfId), t);
+    memcpy(t + offset, &_selfId, sizeof(_selfId));
 
     LOG_DEBUG(_logger, "sending hello from:" << _selfId
               << " to: " << _destId
               << ", size: " << (offset + sizeof(_selfId)));
 
-    AsyncTcpConnection::write_async((const char *) _outBuffer,
+    AsyncTcpConnection::write_async(t,
                                     offset + sizeof(_selfId));
   }
 
@@ -534,6 +592,14 @@ class AsyncTcpConnection :
       _connecting = false;
       _connectTimer.expires_at(boost::posix_time::pos_infin);
       _currentTimeout = _minTimeout;
+      
+      // Verify no_delay is enabled.
+      tcp::no_delay no_delay_option(false);
+      socket.get_option(no_delay_option);
+      assert(true == no_delay_option.value());
+
+
+      start_dispatch();
       send_hello();
       read_header_async();
     }
@@ -545,12 +611,22 @@ class AsyncTcpConnection :
     if (!connected)
       return;
 
+    /*
     B_ERROR_CODE ec;
     write(socket, buffer(data, length), ec);
     auto err = was_error(ec, __func__);
     if (err) {
       handle_error(ec);
     }
+    */
+
+    boost::asio::async_write(socket,
+                            boost::asio::buffer(data,length),
+                            boost::bind(&AsyncTcpConnection::write_async_completed,
+                            shared_from_this(),
+                            boost::asio::placeholders::error,
+                            boost::asio::placeholders::bytes_transferred,
+                            data));
   }
 
   void init() {
@@ -580,6 +656,18 @@ class AsyncTcpConnection :
     _connectTimer.expires_from_now(
         boost::posix_time::millisec(_currentTimeout));
 
+    socket.open(boost::asio::ip::tcp::v4());
+
+    // Verify no_delay is disabled.
+    tcp::no_delay no_delay_option(true);
+    socket.get_option(no_delay_option);
+    assert(false == no_delay_option.value());
+
+    // Verify no_delay is enabled.
+    socket.set_option(tcp::no_delay(true));
+    socket.get_option(no_delay_option);
+    assert(true == no_delay_option.value());
+
     socket.async_connect(ep,
                          boost::bind(&AsyncTcpConnection::connect_completed,
                                      shared_from_this(),
@@ -591,17 +679,28 @@ class AsyncTcpConnection :
   }
 
   void start() {
+    // Verify no_delay is disabled.
+    tcp::no_delay no_delay_option(true);
+    socket.get_option(no_delay_option);
+    assert(false == no_delay_option.value());
+
+    // Verify no_delay is enabled.
+    socket.set_option(tcp::no_delay(true));
+    socket.get_option(no_delay_option);
+    assert(true == no_delay_option.value());
+
+    start_dispatch();
     read_header_async();
   }
 
   void send(const char *data, uint32_t length) {
-    LOG_TRACE(_logger, "enter, node " << _selfId << ", dest: " << _destId);
-
     lock_guard<recursive_mutex> lock(_connectionsGuard);
+    //memcpy(_outBuffer + offset, data, length);
+    char* t = new char[LENGTH_FIELD_SIZE + MSGTYPE_FIELD_SIZE + length];
     auto offset = prepare_output_buffer(MessageType::Regular,
-                                        length);
-    memcpy(_outBuffer + offset, data, length);
-    write_async(_outBuffer, offset + length);
+                                        length,t);
+    memcpy(t + offset, data, length);
+    write_async(t, LENGTH_FIELD_SIZE + MSGTYPE_FIELD_SIZE + length);
 
     if (_statusCallback && _isReplica) {
       PeerConnectivityStatus pcs;
@@ -613,10 +712,7 @@ class AsyncTcpConnection :
       _statusCallback(pcs);
     }
 
-    LOG_DEBUG(_logger, "send exit, from: " << ", to: " << _destId
-              << ", offset: " << offset
-              << ", length: " << length);
-    LOG_TRACE(_logger, "exit, node " << _selfId << ", dest: " << _destId);
+   
   }
 
   static ASYNC_CONN_PTR create(io_service *service,
@@ -656,6 +752,11 @@ class AsyncTcpConnection :
 
     delete[] _inBuffer;
     delete[] _outBuffer;
+    _closed = true;
+    _inSignal.notify_all();
+    if(_dispatchThread && _dispatchThread->joinable()) {
+      _dispatchThread->join();
+    }
 
     LOG_TRACE(_logger, "exit, node " << _selfId
               << ", dest: " << _destId
@@ -848,6 +949,8 @@ class PlainTCPCommunication::PlainTcpImpl {
                             (static_cast<size_t(boost::asio::io_service::*)()>(
                                  &boost::asio::io_service::run),
                              std::ref(_service)));
+                                                          
+                             
     return 0;
   }
 
@@ -888,27 +991,16 @@ class PlainTCPCommunication::PlainTcpImpl {
   int sendAsyncMessage(const NodeNum destNode,
                        const char *const message,
                        const size_t messageLength) {
-    LOG_TRACE(_logger, "enter, from: " << _selfId
-              << ", to: " << to_string(destNode));
-
     lock_guard<recursive_mutex> lock(_connectionsGuard);
     auto temp = _connections.find(destNode);
     if (temp != _connections.end()) {
-      LOG_TRACE(_logger, "conncection found, from: " << _selfId
-                << ", to: " << destNode);
-
-      if (temp->second->connected) {
-        temp->second->send(message, messageLength);
+        if (temp->second->connected) {
+         temp->second->send(message, messageLength);
       } else {
-        LOG_TRACE(_logger,
-           "conncection found but disconnected, from: " << _selfId
-           << ", to: " << destNode);
+    
       }
     }
-
-    LOG_TRACE(_logger, "exit, from: " << _selfId
-              << ", to: " << destNode);
-
+    
     return 0;
   }
 
