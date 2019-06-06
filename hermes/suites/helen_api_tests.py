@@ -78,10 +78,10 @@ class HelenAPITests(test_suite.TestSuite):
 
          if testResult["outcome"] == "passed":
             passed = True
-         elif testResult["outcome"] == "failed":
-            passed = False
          elif testResult["outcome"] == "skipped":
             passed = "skipped"
+         else:
+            passed = False
 
          info = "" if passed else json.dumps(testResult, indent=2)
          testName = self.parsePytestTestName(testResult["name"])
