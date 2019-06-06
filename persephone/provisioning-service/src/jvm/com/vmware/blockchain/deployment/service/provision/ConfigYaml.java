@@ -38,6 +38,7 @@ public final class ConfigYaml  {
     private static final String CLIENT_PROXY = "    client_proxy:";
     private static final String CLIENT_HOST  = "      - client_host: ";
     private static final String CLIENT_PORT  = "        client_port: ";
+    private static final String PRINCIPAL_ID = "        principal_id: ";
     private static final int DEFAULT_PORT = 3501;
     private final String configYamlFilePath;
 
@@ -115,6 +116,7 @@ public final class ConfigYaml  {
             return false;
         }
 
+        var maxPrincipalId = (CLIENT_PROXY_PER_NODE * hostIp.size()) - 1;
         Path path = Paths.get(configYamlFilePath);
         try (BufferedWriter writer = Files.newBufferedWriter(path)) {
             writer.write(CLIENT_PROXY_PER_REPLICA + CLIENT_PROXY_PER_NODE);
@@ -151,6 +153,8 @@ public final class ConfigYaml  {
                     writer.write(CLIENT_HOST + hostIp.get(i));
                     writer.newLine();
                     writer.write(CLIENT_PORT + (DEFAULT_PORT + j + 1));
+                    writer.newLine();
+                    writer.write(PRINCIPAL_ID + (maxPrincipalId - j)); // could be randomized later
                     writer.newLine();
                 }
             }
