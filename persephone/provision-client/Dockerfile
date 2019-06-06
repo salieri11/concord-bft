@@ -1,40 +1,41 @@
 # Build time image.
 FROM maven:3.6.0-jdk-11 as builder
 
-## Build protobuf module.
-COPY ./protobuf ./protobuf
-RUN mvn -f protobuf/pom.xml install
+## Copy build-dependent resource files.
+COPY ./resources/checkstyle.xml ./persephone/resources/checkstyle.xml
 
 ## Copy the dependency-related POM files (rarely changing).
-COPY ./persephone/pom.xml ./persephone/pom.xml
-COPY ./persephone/api/pom.xml ./persephone/api/pom.xml
-COPY ./persephone/cli/pom.xml ./persephone/cli/pom.xml
-COPY ./persephone/core/pom.xml ./persephone/core/pom.xml
-COPY ./persephone/awsutil/pom.xml ./persephone/awsutil/pom.xml
-COPY ./persephone/provision-service/pom.xml ./persephone/provision-service/pom.xml
-COPY ./persephone/provision-client/pom.xml ./persephone/provision-client/pom.xml
-COPY ./persephone/orchestration/pom.xml ./persephone/orchestration/pom.xml
-COPY ./persephone/orchestration-vmc/pom.xml ./persephone/orchestration-vmc/pom.xml
-COPY ./persephone/persistence/pom.xml ./persephone/persistence/pom.xml
+COPY ./pom.xml ./persephone/pom.xml
+COPY ./api/pom.xml ./persephone/api/pom.xml
+COPY ./awsutil/pom.xml ./persephone/awsutil/pom.xml
+COPY ./cli/pom.xml ./persephone/cli/pom.xml
+COPY ./core/pom.xml ./persephone/core/pom.xml
+COPY ./metadata-service/pom.xml ./persephone/metadata-service/pom.xml
+COPY ./metadata-service-client/pom.xml ./persephone/metadata-service-client/pom.xml
+COPY ./orchestration/pom.xml ./persephone/orchestration/pom.xml
+COPY ./orchestration-vmc/pom.xml ./persephone/orchestration-vmc/pom.xml
+COPY ./persistence/pom.xml ./persephone/persistence/pom.xml
+COPY ./provisioning-service/pom.xml ./persephone/provisioning-service/pom.xml
+COPY ./provision-client/pom.xml ./persephone/provision-client/pom.xml
 
 ## Copy the dependency module sources and POM files.
-COPY ./persephone/api/src ./persephone/api/src
-COPY ./persephone/core/src ./persephone/core/src
-COPY ./persephone/core/test ./persephone/core/test
-COPY ./persephone/persistence/src ./persephone/persistence/src
-COPY ./persephone/persistence/test ./persephone/persistence/test
+COPY ./api ./persephone/api
+COPY ./core ./persephone/core
+COPY ./orchestration ./persephone/orchestration
+COPY ./orchestration-vmc ./persephone/orchestration-vmc
 
 ## Copy the module sources and POM file.
-COPY ./persephone/provision-client/src ./persephone/provision-client/src
+COPY ./provision-client/src ./persephone/provision-client/src
 
 ## Build persephone modules.
-RUN mvn -f persephone/pom.xml package -pl provision-client -am -B
+RUN mvn -f persephone/pom.xml install -pl 'api,core,orchestration,orchestration-vmc' -am -B
+RUN mvn -f persephone/provision-client/pom.xml package -B
 
 # Runtime image (Metadata Service).
 FROM athena-docker-local.artifactory.eng.vmware.com/helen:prereqs-v2
-LABEL description="VMware Blockchain Fleet Management Metadata Service Client"
+LABEL description="VMware Blockchain Fleet Management Provisioning Service Client"
 
-WORKDIR /persephone/provision-client
-COPY --from=0 ./persephone/provision-client/target/persephone-client*with-dependencies.jar ./provision-client.jar
+WORKDIR /provisioning-client
+COPY --from=0 ./persephone/provision-client/target/persephone-provisioning-client*with-dependencies.jar ./provisioning-client.jar
 
-ENTRYPOINT ["java", "-jar", "provision-client.jar"]
+ENTRYPOINT ["java", "-jar", "provisioning-client.jar"]
