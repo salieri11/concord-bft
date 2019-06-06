@@ -14,11 +14,11 @@ import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import com.vmware.blockchain.deployment.model.ethereum.Genesis;
+import com.vmware.blockchain.protobuf.kotlinx.serialization.ProtoBuf;
 
 import kotlinx.serialization.json.Json;
 import kotlinx.serialization.json.JsonConfiguration;
 import kotlinx.serialization.modules.EmptyModule;
-import kotlinx.serialization.protobuf.ProtoBuf;
 import net.jqwik.api.Arbitraries;
 import net.jqwik.api.Arbitrary;
 import net.jqwik.api.Combinators;

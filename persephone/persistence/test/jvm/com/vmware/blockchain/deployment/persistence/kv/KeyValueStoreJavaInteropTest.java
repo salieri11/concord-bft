@@ -23,6 +23,8 @@ import com.vmware.blockchain.deployment.persistence.kv.KeyValueStore.Versioned;
 import com.vmware.blockchain.deployment.reactive.BaseSubscriber;
 import com.vmware.blockchain.deployment.reactive.ReactiveStream;
 
+import kotlinx.coroutines.Dispatchers;
+
 /**
  * Basic functionality test of {@link KeyValueStore} operations, in Java.
  */
@@ -46,7 +48,6 @@ class KeyValueStoreJavaInteropTest {
         }
 
         @Override
-        @SuppressWarnings("all")
         public byte[] asByteArray() {
             return value;
         }
@@ -322,10 +323,13 @@ class KeyValueStoreJavaInteropTest {
         var value = new PBSerializable("value-1", 2, 2);
         var valueSerializer = PBSerializable.getSerializer();
 
-        var server = new TypedKeyValueStore<PBSerializable, PBSerializable, MonotonicInt>(
+        var server = new TypedKeyValueStore<>(
                 keySerializer,
                 valueSerializer,
-                new InMemoryUntypedKeyValueStore<>()
+                new InMemoryUntypedKeyValueStore<>(
+                        Dispatchers.getDefault(),
+                        MonotonicInt.Companion.getSerializer()
+                )
         );
 
         performTypedCrudWithEventSourcing(server, key, value, new MonotonicInt());
@@ -339,7 +343,10 @@ class KeyValueStoreJavaInteropTest {
      */
     @Test
     void untypedCrud() throws InterruptedException {
-        var server = new InMemoryUntypedKeyValueStore<MonotonicInt>();
+        var server = new InMemoryUntypedKeyValueStore<>(
+                Dispatchers.getDefault(),
+                MonotonicInt.Companion.getSerializer()
+        );
         var key = ByteArrayValue.of("key-1");
         var value = ByteArrayValue.of("value-1");
 

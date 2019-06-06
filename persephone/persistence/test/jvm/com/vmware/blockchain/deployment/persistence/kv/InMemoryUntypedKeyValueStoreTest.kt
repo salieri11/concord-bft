@@ -36,12 +36,14 @@ class InMemoryUntypedKeyValueStoreTest {
         @JvmStatic
         private fun servers(): Stream<UntypedKeyValueStore<MonotonicInt>> {
             var counter = -1
+            val serializer = MonotonicInt.serializer()
             return Stream.generate<UntypedKeyValueStore<MonotonicInt>> {
                 when (counter++.rem(3)) {
-                    0 -> InMemoryUntypedKeyValueStore(Dispatchers.Default)
-                    1 -> InMemoryUntypedKeyValueStore(Dispatchers.Unconfined)
+                    0 -> InMemoryUntypedKeyValueStore(Dispatchers.Default, serializer)
+                    1 -> InMemoryUntypedKeyValueStore(Dispatchers.Unconfined, serializer)
                     else -> InMemoryUntypedKeyValueStore(
-                            Executors.newSingleThreadExecutor().asCoroutineDispatcher()
+                            Executors.newSingleThreadExecutor().asCoroutineDispatcher(),
+                            serializer
                     )
                 }
             }.limit(100)

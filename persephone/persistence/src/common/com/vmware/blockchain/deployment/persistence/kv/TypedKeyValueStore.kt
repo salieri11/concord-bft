@@ -10,8 +10,8 @@ import com.vmware.blockchain.deployment.persistence.kv.KeyValueStore.Versioned
 import com.vmware.blockchain.deployment.reactive.ErrorPublisher
 import com.vmware.blockchain.deployment.reactive.MappingPublisher
 import com.vmware.blockchain.deployment.reactive.Publisher
+import com.vmware.blockchain.protobuf.kotlinx.serialization.ProtoBuf
 import kotlinx.serialization.KSerializer
-import kotlinx.serialization.protobuf.ProtoBuf
 
 /**
  * A strongly-typed implementation of [KeyValueStore] interface.
@@ -31,29 +31,8 @@ import kotlinx.serialization.protobuf.ProtoBuf
 class TypedKeyValueStore<K, V, T : Version<T>>(
     private val keySerializer: KSerializer<K>,
     private val valueSerializer: KSerializer<V>,
-    private val keyValueStore: UntypedKeyValueStore<T> = InMemoryUntypedKeyValueStore()
+    private val keyValueStore: UntypedKeyValueStore<T>
 ) : KeyValueStore<K, V, T> {
-
-    /**
-     * Wrapper object type denoting a protocol buffer, which is a [ByteArray] encoded in Protocol
-     * Buffer wiring encoding.
-     *
-     * @param[typedValue]
-     *   typed value entity to be represented as Protocol Buffer encoded.
-     * @param[serializer]
-     *   serializer capable of encoding the [typedValue] into Protocol Buffer wire encoding.
-     */
-    data class ProtocolBuffer<T>(
-        private val typedValue: T,
-        private val serializer: KSerializer<T>
-    ) : Value {
-
-        private val untypedValue: ByteArray by lazy {
-            ProtoBuf.plain.dump(serializer, typedValue)
-        }
-
-        override fun asByteArray(): ByteArray = untypedValue
-    }
 
     /**
      * Extension function to deserialize the content within a [ByteArray] to a typed value by

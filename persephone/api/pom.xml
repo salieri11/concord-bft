@@ -41,6 +41,11 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
+            <groupId>com.vmware.blockchain.protobuf</groupId>
+            <artifactId>protobuf-runtime-kotlinx-serialization</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
             <groupId>io.grpc</groupId>
             <artifactId>grpc-core</artifactId>
             <version>${grpc.runtime.java.version}</version>
