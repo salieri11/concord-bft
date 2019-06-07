@@ -15,7 +15,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
-import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -110,7 +109,7 @@ abstract class AbstractUntypedKeyValueStore<T : Version<T>>(
         }
     }
 
-    override fun set(key: Value, expected: Version<T>, value: Value): Publisher<Versioned<Value, T>> {
+    override fun set(key: Value, expected: T, value: Value): Publisher<Versioned<Value, T>> {
         return try {
             // Setup request with a response channel buffer of 1 (expecting only 1 message back).
             val request = Channel<UntypedKeyValueStore.Response<T>>(Channel.CONFLATED)
@@ -140,7 +139,7 @@ abstract class AbstractUntypedKeyValueStore<T : Version<T>>(
         }
     }
 
-    override fun delete(key: Value, expected: Version<T>): Publisher<Versioned<Value, T>> {
+    override fun delete(key: Value, expected: T): Publisher<Versioned<Value, T>> {
         return try {
             // Setup request with a response channel buffer of 1 (expecting only 1 message back).
             val request = Channel<UntypedKeyValueStore.Response<T>>(Channel.CONFLATED)
@@ -187,9 +186,8 @@ abstract class AbstractUntypedKeyValueStore<T : Version<T>>(
 
                 // Send the request and block-receive in a suspendable coroutine.
                 requestChannel.send(request)
-                val message = request.response.receive()
 
-                when (message) {
+                when (val message = request.response.receive()) {
                     is UntypedKeyValueStore.Response.Subscribe -> {
                         val upstreamChannel = message.subscription
 

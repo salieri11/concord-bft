@@ -30,12 +30,12 @@ interface UntypedKeyValueStore<T : Version<T>> : KeyValueStore<Value, Value, T> 
             val response: Channel<Response<T>>,
             val key: Value,
             val value: Value,
-            val expected: Version<T>
+            val expected: T
         ) : Request<T>()
         data class Delete<T : Version<T>>(
             val response: Channel<Response<T>>,
             val key: Value,
-            val expected: Version<T>
+            val expected: T
         ) : Request<T>()
         data class Subscribe<T : Version<T>>(
             val response: Channel<Response<T>>,
@@ -60,9 +60,9 @@ interface UntypedKeyValueStore<T : Version<T>> : KeyValueStore<Value, Value, T> 
 
     override operator fun get(key: Value): Publisher<Versioned<Value, T>>
 
-    override fun set(key: Value, expected: Version<T>, value: Value): Publisher<Versioned<Value, T>>
+    override fun set(key: Value, expected: T, value: Value): Publisher<Versioned<Value, T>>
 
-    override fun delete(key: Value, expected: Version<T>): Publisher<Versioned<Value, T>>
+    override fun delete(key: Value, expected: T): Publisher<Versioned<Value, T>>
 
     override fun subscribe(capacity: Int, state: Boolean): Publisher<Event<Value, Value, T>>
 

@@ -64,7 +64,7 @@ class TypedKeyValueStore<K, V, T : Version<T>>(
         }
     }
 
-    override fun set(key: K, expected: Version<T>, value: V): Publisher<Versioned<V, T>> {
+    override fun set(key: K, expected: T, value: V): Publisher<Versioned<V, T>> {
         return try {
             val keyBytes = ProtocolBuffer(key, keySerializer)
             val valueBytes = ProtocolBuffer(value, valueSerializer)
@@ -77,7 +77,7 @@ class TypedKeyValueStore<K, V, T : Version<T>>(
         }
     }
 
-    override fun delete(key: K, expected: Version<T>): Publisher<Versioned<V, T>> {
+    override fun delete(key: K, expected: T): Publisher<Versioned<V, T>> {
         return try {
             val keyBytes = ProtocolBuffer(key, keySerializer)
             MappingPublisher(keyValueStore.delete(keyBytes, expected)) { element ->
