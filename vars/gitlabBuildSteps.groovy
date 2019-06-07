@@ -102,6 +102,9 @@ def call(){
                     script {
                       env.commit = getRepoCode("git@gitlab.eng.vmware.com:blockchain/vmwathena_blockchain.git", params.blockchain_branch_or_commit)
                       env.blockchain_root = new File(env.WORKSPACE, "blockchain").toString()
+
+                      // Check if persephone tests be executed in this run
+                      env.run_persephone_tests = has_repo_changed('persephone') || has_repo_changed('hermes') || env.JOB_NAME.contains(master_branch_job_name)
                     }
                   }
                 }catch(Exception ex){
@@ -403,10 +406,10 @@ EOF
                         echo "${PASSWORD}" | sudo -S rm -rf ../docker/devdata/cockroachDB
                         "${python}" main.py UiTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${ui_test_logs}" --runConcordConfigurationGeneration
                       '''
-                      if (has_repo_changed('persephone')) {
+                      if (env.run_persephone_tests.toBoolean()) {
                         sh '''
-                          echo "Run persephone tests too"
-                          # echo "${PASSWORD}" | sudo -SE "${python}" main.py PersephoneTests --dockerComposeFile ../docker/docker-compose-persephone.yml --resultsDir "${persephone_test_logs}"
+                          echo "Running persephone testsuite as either this is a Master run or there is a code change in blockchain/persephone (or) blockchain/hermes"
+                          echo "${PASSWORD}" | sudo -SE "${python}" main.py PersephoneTests --dockerComposeFile ../docker/docker-compose-persephone.yml --resultsDir "${persephone_test_logs}"
                       '''
                       }
                     }
