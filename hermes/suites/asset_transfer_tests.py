@@ -204,6 +204,8 @@ class AssetTransferTests(test_suite.TestSuite):
          lines = file.read()
          auth_str = "http://" + self._user + ":" + self._password + "@helen:8080/api/concord/eth"
          lines = lines.replace("http://<username>:<password>@<url>", auth_str)
+         file.truncate(0)
+         file.seek(0)
          file.write(lines)
 
 
@@ -211,6 +213,8 @@ class AssetTransferTests(test_suite.TestSuite):
       with open("../vmware-blockchain-samples/supply-chain/docker-compose.yml", "r+") as file:
          lines = file.read()
          lines = lines.replace("<change-me>", BC_URL)
+         file.truncate(0)
+         file.seek(0)
          file.write(lines)
 
       # Changing the verify.js file
@@ -222,6 +226,8 @@ class AssetTransferTests(test_suite.TestSuite):
          lines = lines.replace("443", "8080")
          lines = lines.replace("https", "http")
          lines = lines.replace("/blockchains/local/api/concord/contracts/", "/api/concord/contracts/")
+         file.truncate(0)
+         file.seek(0)
          file.write(lines)
 
       
