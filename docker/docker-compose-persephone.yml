@@ -6,7 +6,7 @@ services:
       - 9001:9001
     volumes:
       - ../hermes/resources/persephone/metadata/config.json:/config/persephone/metadata/config.json:ro
-  persephone-provisioning:
+  deploymentservice:
     image: "${persephone_provisioning_repo}:${persephone_provisioning_tag}"
     ports:
       - 9002:9002

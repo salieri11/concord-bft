@@ -28,6 +28,7 @@ class PersephoneTests(test_suite.TestSuite):
 
    def __init__(self, passedArgs):
       super().__init__(passedArgs)
+      self.cmdlineArgs = passedArgs
 
    def getName(self):
       return "PersephoneTests"
@@ -73,8 +74,31 @@ class PersephoneTests(test_suite.TestSuite):
                                                      testLogDir)
          self.writeResult(testName, result, info)
 
+      if self.rpc_test_helper.deployed_session_ids:
+         self.undeploy_blockchain_cluster()
+
       log.info("Tests are done.")
       return self._resultFile
+
+   def undeploy_blockchain_cluster(self):
+      '''
+      Undeploy all deployed blockchain clusters in PersephoneTests run
+      '''
+      log.info("Undeploy all created blockchain clusters...")
+      undeployed_status = True
+      for session_id in self.rpc_test_helper.deployed_session_ids:
+         cleaned_up = helper.undeploy_blockchain_cluster(
+            self.rpc_test_helper.persephone_config_file,
+            self.rpc_test_helper.grpc_server, self.get_json_object(session_id))
+         if not cleaned_up:
+            undeployed_status = False
+
+      if undeployed_status:
+         status_message = "Undeployed Successfully!"
+      else:
+         status_message = "Undeploy Failed"
+      log.info(status_message)
+      self.writeResult("Undeploy", undeployed_status, status_message)
 
    def _runTest(self, testName, testFun):
       log.info("Starting test '{}'".format(testName))
@@ -87,9 +111,13 @@ class PersephoneTests(test_suite.TestSuite):
       return [
          ("add_model", self._test_add_model),
          ("list_models", self._test_list_models),
-         ("4_Node_Blockchain_UNSPECIFIED_Site", self._test_create_blockchain_4_node_unspecified_site),
-         ("get_deployment_events", self._test_stream_deployment_events),
-         ("7_Node_Blockchain_FIXED_Site", self._test_create_blockchain_7_node_fixed_site)
+         # ("4_Node_Blockchain_UNSPECIFIED_Site",
+         #  self._test_create_blockchain_4_node_unspecified_site),
+         # ("get_deployment_events", self._test_stream_deployment_events),
+         ("4_Node_Blockchain_FIXED_Site",
+          self._test_create_blockchain_4_node_fixed_site),
+         ("7_Node_Blockchain_FIXED_Site",
+          self._test_create_blockchain_7_node_fixed_site)
       ]
 
    def get_json_object(self, message_obj):
@@ -272,6 +300,30 @@ class PersephoneTests(test_suite.TestSuite):
          return (status, msg)
       else:
          return (False, "Failed to fetch Deployment Events")
+
+   # TODO: When bug VB-1000 is fixed, enable 4 node-UNSPECIFIED test and modify
+   # TODO: this test to be part of concurent deployment
+   def _test_create_blockchain_4_node_fixed_site(self, cluster_size=4):
+      '''
+      Test to create a blockchain cluster with 7 nodes on FIXED sites
+      :param cluster_size: No. of concord nodes on the cluster
+      '''
+
+      response = self.rpc_test_helper.rpc_create_cluster(cluster_size=cluster_size)
+      if response:
+         response_session_id_json = self.get_json_object(response[0])
+         if "low" in response_session_id_json:
+            response_deployment_session_id = response[0]
+
+            events = self.rpc_test_helper.rpc_stream_cluster_deployment_session_events(
+               response_deployment_session_id)
+            if events:
+               status, msg = self.perform_post_deployment_validations(events,
+                                                                      cluster_size)
+               return (status, msg)
+            return (False, "Failed to fetch Deployment Events")
+
+      return (False, "Failed to get a valid deployment session ID")
 
 
    def _test_create_blockchain_7_node_fixed_site(self, cluster_size=7):

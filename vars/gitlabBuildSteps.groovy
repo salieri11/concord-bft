@@ -259,6 +259,7 @@ def call(){
                 env.release_persephone_metadata_repo = env.release_repo + "/persephone-metadata"
                 env.release_persephone_provisioning_repo = env.release_repo + "/persephone-provisioning"
                 env.release_persephone_fleet_repo = env.release_repo + "/persephone-fleet"
+                env.release_persephone_provisioning_client_repo = env.release_repo + "/persephone-provisioning-client"
                 env.release_ui_repo = env.release_repo + "/ui"
                 env.release_contract_compiler_repo = env.release_repo + "/contract-compiler"
 
@@ -273,6 +274,7 @@ def call(){
                 env.internal_persephone_metadata_repo = env.release_persephone_metadata_repo.replace(env.release_repo, env.internal_repo)
                 env.internal_persephone_provisioning_repo = env.release_persephone_provisioning_repo.replace(env.release_repo, env.internal_repo)
                 env.internal_persephone_fleet_repo = env.release_persephone_fleet_repo.replace(env.release_repo, env.internal_repo)
+                env.internal_persephone_provisioning_client_repo = env.release_persephone_provisioning_client_repo.replace(env.release_repo, env.internal_repo)
                 env.internal_ui_repo = env.release_ui_repo.replace(env.release_repo, env.internal_repo)
                 env.internal_contract_compiler_repo = env.release_contract_compiler_repo.replace(env.release_repo, env.internal_repo)
               }
@@ -306,6 +308,9 @@ persephone_metadata_tag=${docker_tag}
 persephone_provisioning_repo=${internal_persephone_provisioning_repo}
 persephone_provisioning_tag=${docker_tag}
 persephone_fleet_repo=${internal_persephone_fleet_repo}
+persephone_fleet_tag=${docker_tag}
+persephone_provisioning_client_repo=${internal_persephone_provisioning_client_repo}
+persephone_provisioning_client_tag=${docker_tag}
 ui_repo=${internal_ui_repo}
 ui_tag=${docker_tag}
 contract_compiler_repo=${internal_contract_compiler_repo}

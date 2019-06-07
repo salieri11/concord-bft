@@ -33,6 +33,10 @@ class RPCTestHelper():
 
          self.PLACEMENT_TYPE_FIXED = self.provision_rpc_helper.PLACEMENT_TYPE_FIXED
          self.PLACEMENT_TYPE_UNSPECIFIED = self.provision_rpc_helper.PLACEMENT_TYPE_UNSPECIFIED
+         self.persephone_config_file = self.provision_rpc_helper.persephone_config_file
+         self.grpc_server = self.provision_rpc_helper.grpc_server
+
+         self.deployed_session_ids = []
       except Exception as e:
          raise Exception(e)
 
@@ -81,6 +85,7 @@ class RPCTestHelper():
 
       session_id = self.provision_rpc_helper.rpc_CreateCluster(
          create_cluster_request)
+      self.deployed_session_ids.append(session_id)
       log.info("Session ID: ")
       for item in session_id:
          log.info(item)
