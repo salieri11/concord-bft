@@ -155,7 +155,6 @@ class AssetTransferTests(test_suite.TestSuite):
 
 
    def _test_asset_transfer(self, fileRoot):
-      return (True, None)
       ''' Tests if AssetTransfer can be deployed using the docker container '''
 
       env = self.product.docker_env
@@ -201,35 +200,29 @@ class AssetTransferTests(test_suite.TestSuite):
       os.system("cd .. && git clone https://github.com/vmware-samples/vmware-blockchain-samples.git && ls")
 
       # Changing the truffle-config.js file
-      with open("../vmware-blockchain-samples/supply-chain/truffle-config.js", "r") as frd:
-         lines = frd.read()
+      with open("../vmware-blockchain-samples/supply-chain/truffle-config.js", "r+") as file:
+         lines = file.read()
          auth_str = "http://" + self._user + ":" + self._password + "@helen:8080/api/concord/eth"
          lines = lines.replace("http://<username>:<password>@<url>", auth_str)
-         
-         with open("../vmware-blockchain-samples/supply-chain/truffle-config.js", "w") as fwr:
-            fwr.write(lines)
+         file.write(lines)
 
 
       # Changing the docker-compose.yml file
-      with open("../vmware-blockchain-samples/supply-chain/docker-compose.yml", "r") as frd:
-         lines = frd.read()
+      with open("../vmware-blockchain-samples/supply-chain/docker-compose.yml", "r+") as file:
+         lines = file.read()
          lines = lines.replace("<change-me>", BC_URL)
-         
-         with open("../vmware-blockchain-samples/supply-chain/docker-compose.yml", "w") as fwr:
-            fwr.write(lines)
+         file.write(lines)
 
       # Changing the verify.js file
-      with open("../vmware-blockchain-samples/supply-chain/verify/verify.js", "r") as frd:
-         lines = frd.read()
+      with open("../vmware-blockchain-samples/supply-chain/verify/verify.js", "r+") as file:
+         lines = file.read()
          lines = lines.replace("<username>", self._user)
          lines = lines.replace("<password>", self._password)
          lines = lines.replace("localhost", "helen")
          lines = lines.replace("443", "8080")
          lines = lines.replace("https", "http")
          lines = lines.replace("/blockchains/local/api/concord/contracts/", "/api/concord/contracts/")
-         
-         with open("../vmware-blockchain-samples/supply-chain/verify/verify.js", "w") as fwr:
-            fwr.write(lines)
+         file.write(lines)
 
       
       os.system("cd ../vmware-blockchain-samples/supply-chain && docker-compose build")
