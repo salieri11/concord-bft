@@ -264,7 +264,7 @@
                       "params": {
                         "type": "array",
                         "items": {
-                            "type": "object"
+                          "type": "object"
                         }
                       }
                     }
@@ -307,7 +307,7 @@
                   "params": {
                     "type": "array",
                     "items": {
-                        "type": "object"
+                      "type": "object"
                     }
                   }
                 }
@@ -399,7 +399,7 @@
                   "sourcecode",
                   "contract_name",
                   "constructor_params",
-                  "compiler_version",
+                  "compiler_version"
                 ],
                 "properties": {
                   "contract_id": {
@@ -744,33 +744,33 @@
                         "description": "ID of owning consortium"
                       },
                       "node_list": {
-                    	  "type": "array",
-                    	  "items": {
-                    		  "type": "object",
-                    		  "properties": {
-                    			  "node_id": {
-                    				  "type": "string",
-                    				  "format": "uuid",
-                    				  "description": "Node ID"
-                    			  },
-                    			  "ip": {
-                    				  "type": "string",
-                    				  "description": "IP address of node"
-                    			  },
-                    			  "url": {
-                    				  "type": "string",
-                    				  "description": "EthRPC url of node"
-                    			  },
-                    			  "cert": {
-                    				  "type": "string",
-                    				  "description": "SSL certificate to talk to ethrpc"
-                    			  },
-                    			  "region": {
-                    				  "type": "string",
-                    				  "description": "Region (SDDC) this node is doploy in"
-                    			  }
-                    		  }
-                    	  }
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "node_id": {
+                              "type": "string",
+                              "format": "uuid",
+                              "description": "Node ID"
+                            },
+                            "ip": {
+                              "type": "string",
+                              "description": "IP address of node"
+                            },
+                            "url": {
+                              "type": "string",
+                              "description": "EthRPC url of node"
+                            },
+                            "cert": {
+                              "type": "string",
+                              "description": "SSL certificate to talk to ethrpc"
+                            },
+                            "region": {
+                              "type": "string",
+                              "description": "Region (SDDC) this node is doploy in"
+                            }
+                          }
+                        }
                       }
                     }
                   }
@@ -802,24 +802,27 @@
                     "description": "ID of owning consortium"
                   },
                   "f_count": {
-                	  "type": "integer",
-                	  "description": "Number of f nodes, cluser size will be 3f +2c + 1"
+                    "type": "integer",
+                    "description": "Number of f nodes, cluser size will be 3f +2c + 1"
                   },
                   "c_count": {
-                	  "type": "integer",
-                	  "description": "Number of c nodes, cluser size will be 3f +2c + 1"
+                    "type": "integer",
+                    "description": "Number of c nodes, cluser size will be 3f +2c + 1"
                   },
                   "deployment_type": {
-                	  "type": "string",
-                	  "enum": ["FIXED", "UNSPECIFIED"],
-                	  "description": "FIXED or UNSPECIFIED, determines site locations"
+                    "type": "string",
+                    "enum": [
+                      "FIXED",
+                      "UNSPECIFIED"
+                    ],
+                    "description": "FIXED or UNSPECIFIED, determines site locations"
                   },
                   "site_ids": {
-                	  "type": "array",
-                	  "items": {
-                		  "type": "string"
-                	  },
-                	  "description": "List of site ids.  Required if deployment type is fixed"
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "List of site ids.  Required if deployment type is fixed"
                   }
                 }
               }
@@ -870,49 +873,49 @@
             "content": {
               "application/json": {
                 "schema": {
-                    "type": "object",
-                    "properties": {
-                      "id": {
-                        "type": "string",
-                        "format": "uuid",
-                        "description": "Blockchain ID"
-                      },
-                      "consortium_id": {
-                        "type": "string",
-                        "format": "uuid",
-                        "description": "ID of owning consortium"
-                      },
-                      "node_list": {
-                    	  "type": "array",
-                    	  "items": {
-                    		  "type": "object",
-                    		  "properties": {
-                    			  "node_id": {
-                    				  "type": "string",
-                    				  "format": "uuid",
-                    				  "description": "Node ID"
-                    			  },
-                    			  "ip": {
-                    				  "type": "string",
-                    				  "description": "IP address of node"
-                    			  },
-                    			  "url": {
-                    				  "type": "string",
-                    				  "description": "EthRPC url of node"
-                    			  },
-                    			  "cert": {
-                    				  "type": "string",
-                    				  "description": "SSL certificate to talk to ethrpc"
-                    			  },
-                    			  "region": {
-                    				  "type": "string",
-                    				  "description": "Region (SDDC) this node is doploy in"
-                    			  }
-                    		  }
-                    	  }
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid",
+                      "description": "Blockchain ID"
+                    },
+                    "consortium_id": {
+                      "type": "string",
+                      "format": "uuid",
+                      "description": "ID of owning consortium"
+                    },
+                    "node_list": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "node_id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": "Node ID"
+                          },
+                          "ip": {
+                            "type": "string",
+                            "description": "IP address of node"
+                          },
+                          "url": {
+                            "type": "string",
+                            "description": "EthRPC url of node"
+                          },
+                          "cert": {
+                            "type": "string",
+                            "description": "SSL certificate to talk to ethrpc"
+                          },
+                          "region": {
+                            "type": "string",
+                            "description": "Region (SDDC) this node is doploy in"
+                          }
+                        }
                       }
                     }
                   }
+                }
               }
             }
           }
@@ -1734,90 +1737,14 @@
         }
       }
     },
-    "/tasks/{task_id}": {
-        "summary": "Tasks",
-        "get": {
-          "summary": "Get the status of the specified task",
-          "operationId": "getTask",
-          "parameters": [
-            {
-              "name": "task_id",
-              "in": "path",
-              "description": "Task ID",
-              "schema": {
-                "type": "string",
-                "format": "uuid"
-              }
-            }
-          ],
-          "responses": {
-            "200": {
-              "description": "Returns the current task status",
-              "content": {
-                "application/json": {
-                  "schema": {
-                      "type": "object",
-                      "properties": {
-                    	"task_id": {
-                        	  "type": "string",
-                          	  "format": "uuid",
-                          	  "description": "Task ID"
-                    	},
-                        "state": {
-                          "type": "string",
-                          "enum": ["RUNNING", "SUCCEEDED", "FAILED"],
-                          "description": "Current state of of the task"
-                        },
-                        "message": {
-                          "type": "string",
-                          "description": "Additional information from the task"
-                        },
-                        "resource_id": {
-                      	  "type": "string",
-                      	  "format": "uuid",
-                      	  "description": "The resoruce created or updated by this task.  May not be accurate until state is FAILED or SUCCEEDED."
-                        },
-                        "resource_link": {
-                        	"type": "string",
-                        	"format": "uri",
-                        	"description": "Link to the resource created or updated by this task."
-                        }
-                      }
-                    }
-                }
-              }
-            }
-          }
-        }
-    },
-    "/users": {
-      "summary": "Helen User management",
+    "/consortiums": {
+      "summary": "GetConsortium",
       "get": {
-        "summary": "Get a list of user which belong to specific organization and specific consortium",
-        "operationId": "usersGet",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "consortium",
-            "description": "ID of the consortium",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "query",
-            "name": "organization",
-            "description": "ID of the organization",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
+        "summary": "List all consortiums",
+        "operationId": "getConsortiums",
         "responses": {
           "200": {
-            "description": "Returns a list of all users who are part of given consortium and given organization",
+            "description": "Returns a list of all consortiums",
             "content": {
               "application/json": {
                 "schema": {
@@ -1825,67 +1752,60 @@
                   "items": {
                     "type": "object",
                     "properties": {
-                      "user_id": {
+                      "consortiumId": {
                         "type": "string",
                         "format": "uuid",
-                        "description": "UUID value representing ID of this user"
+                        "description": " Consortium ID"
                       },
-                      "name": {
+                      "organizationName": {
                         "type": "string",
-                        "description": "string representing name of this user"
-                      },
-                      "email": {
+                        "format": "string",
+                        "description": "Name of Consortium"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/consortiums{con_id}": {
+      "summary": "GetConsortium_byID",
+      "get": {
+        "summary": "Get Consortium by its ID",
+        "operationId": "getConsortium",
+        "parameters": [
+          {
+            "name": "con_id",
+            "in": "path",
+            "description": "Consortium ID",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns the specified consortium",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "orgId": {
                         "type": "string",
-                        "description": "string representing email of this user"
+                        "format": "uuid",
+                        "description": " Consortium ID"
                       },
-                      "role": {
+                      "organizationName": {
                         "type": "string",
-                        "description": "string representing role of this user"
-                      },
-                      "last_login": {
-                        "type": "integer",
-                        "description": "integer value representing the time (in milliseconds since epoch) when this user last logged in"
-                      },
-                      "details": {
-                        "type": "object",
-                        "properties": {
-                          "first_name": {
-                            "type": "string",
-                            "description": "first name of this user"
-                          },
-                          "last_name": {
-                            "type": "string",
-                            "description": "last name of this user"
-                          }
-                        }
-                      },
-                      "consortium": {
-                        "type": "object",
-                        "properties": {
-                          "consortium_id": {
-                            "type": "string",
-                            "format": "uuid",
-                            "description": "ID of consortium to which this user belongs"
-                          },
-                          "consortium_name": {
-                            "type": "string",
-                            "description": "name of consortium to which this user belongs"
-                          }
-                        }
-                      },
-                      "organization": {
-                        "type": "object",
-                        "properties": {
-                          "organization_id": {
-                            "type": "string",
-                            "format": "uuid",
-                            "description": "ID of organization to which this user belongs"
-                          },
-                          "organization_name": {
-                            "type": "string",
-                            "description": "name of organization to which this user belongs"
-                          }
-                        }
+                        "format": "string",
+                        "description": "Name of Consortium"
                       }
                     }
                   }
@@ -1896,237 +1816,232 @@
         }
       },
       "post": {
-        "summary": "Create a new user in Helen",
-        "operationId": "usersPost",
+        "summary": "Creates a new Consortium",
+        "operationId": "consortiumPost",
         "requestBody": {
-          "description": "User creation POST request body",
+          "description": "New consortium POST request body",
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
+                "required": [
+                  "consortiumName",
+                  "consortiumType",
+                  "organization"
+                ],
                 "properties": {
-                  "name": {
+                  "consortiumName": {
                     "type": "string",
-                    "description": "string representing name of this user",
-                    "required": true
+                    "format": "string",
+                    "description": "Name of consortium"
                   },
-                  "email": {
+                  "consortiumType": {
                     "type": "string",
-                    "description": "string representing email of this user",
-                    "required": true
-                  },
-                  "role": {
-                    "type": "string",
-                    "description": "string representing role of this user",
-                    "required": true
-                  },
-                  "details": {
-                    "type": "object",
-                    "properties": {
-                      "first_name": {
-                        "type": "string",
-                        "description": "first name of this user"
-                      },
-                      "last_name": {
-                        "type": "string",
-                        "description": "last name of this user"
-                      }
-                    }
-                  },
-                  "consortium": {
-                    "type": "object",
-                    "properties": {
-                      "consortium_id": {
-                        "type": "string",
-                        "format": "uuid",
-                        "description": "ID of consortium to which this user belongs",
-                        "required": true
-                      }
-                    }
+                    "format": "string",
+                    "description": "Type of consortium"
                   },
                   "organization": {
+                    "type": "string",
+                    "format": "UUID",
+                    "description": "Organization that the consortium is a part of"
+                  }
+                }
+              }
+            }
+          },
+          "requestBody": {
+            "description": "Consortium items to post",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ConsortiumName": {
+                      "type": "string",
+                      "description": "create name of the consortium"
+                    },
+                    "consortiumType": {
+                      "type": "string",
+                      "description": "Type of consortium"
+                    },
+                    "organization": {
+                      "type": "string",
+                      "description": "Organization that the consortium is a part of"
+                    }
+                  }
+                }
+              }
+            },
+            "required": true
+          },
+          "responses": {
+            "202": {
+              "description": "Returns the consortium ID and Name",
+              "content": {
+                "application/json": {
+                  "schema": {
                     "type": "object",
                     "properties": {
-                      "organization_id": {
+                      "con_id": {
+                        "type": "string",
+                        "format": "UUID",
+                        "description": "Consortium ID"
+                      },
+                      "consortiumName": {
+                        "type": "string",
+                        "format": "string",
+                        "description": " Consortium Name"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "patch": {
+          "summary": "Update an existing consortium",
+          "operationId": "consortiumPatch",
+          "parameters": [
+            {
+              "name": "con_id",
+              "in": "patch",
+              "description": "Consortium ID",
+              "schema": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          ],
+          "requestBody": {
+            "description": "Consortium items to patch",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "consortiumName",
+                    "consortiumType",
+                    "organization"
+                  ],
+                  "properties": {
+                    "consortiumName": {
+                      "type": "string",
+                      "format": "string",
+                      "description": "Name of consortium"
+                    },
+                    "consortiumType": {
+                      "type": "string",
+                      "format": "string",
+                      "description": "Type of consortium"
+                    },
+                    "organization": {
+                      "type": "string",
+                      "format": "UUID",
+                      "description": "Organization that the consortium is a part of"
+                    }
+                  }
+                }
+              }
+            },
+            "required": true
+          },
+          "responses": {
+            "202": {
+              "description": "Returns the Consortium ID and Name",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "con_id": {
                         "type": "string",
                         "format": "uuid",
-                        "required": true,
-                        "description": "ID of organization to which this user belongs"
-                      }
-                    }
-                  },
-                  "password": {
-                    "type": "string",
-                    "required": true,
-                    "description": "password of this user"
-                  }
-                }
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "User ID of newly created user",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "user_id": {
-                      "type": "string",
-                      "format": "uuid",
-                      "description": "User ID of newly created user"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/users/{user_id}": {
-      "summary": "Helen User management",
-      "get": {
-        "summary": "Get the user identified by given user_id",
-        "operationId": "GetUserById",
-        "parameters": [
-          {
-            "name": "user_id",
-            "in": "path",
-            "description": "the id of the user to get",
-            "required": "true",
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "style": "simple"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Returns a json object describing specified user",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "user_id": {
-                      "type": "string",
-                      "format": "uuid",
-                      "description": "UUID value representing ID of this user"
-                    },
-                    "name": {
-                      "type": "string",
-                      "description": "string representing name of this user"
-                    },
-                    "email": {
-                      "type": "string",
-                      "description": "string representing email of this user"
-                    },
-                    "role": {
-                      "type": "string",
-                      "description": "string representing role of this user"
-                    },
-                    "last_login": {
-                      "type": "integer",
-                      "description": "integer value representing the time (in milliseconds since epoch) when this user last logged in"
-                    },
-                    "details": {
-                      "type": "object",
-                      "properties": {
-                        "first_name": {
-                          "type": "string",
-                          "description": "first name of this user"
-                        },
-                        "last_name": {
-                          "type": "string",
-                          "description": "last name of this user"
-                        }
-                      }
-                    },
-                    "consortium": {
-                      "type": "object",
-                      "properties": {
-                        "consortium_id": {
-                          "type": "string",
-                          "format": "uuid",
-                          "description": "ID of consortium to which this user belongs"
-                        },
-                        "consortium_name": {
-                          "type": "string",
-                          "description": "name of consortium to which this user belongs"
-                        }
-                      }
-                    },
-                    "organization": {
-                      "type": "object",
-                      "properties": {
-                        "organization_id": {
-                          "type": "string",
-                          "format": "uuid",
-                          "description": "ID of organization to which this user belongs"
-                        },
-                        "organization_name": {
-                          "type": "string",
-                          "description": "name of organization to which this user belongs"
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      },
-      "patch": {
-        "summary": "Update user information",
-        "operationId": "UpdateUser",
-        "parameters": [
-          {
-            "name": "user_id",
-            "in": "path",
-            "description": "the id of the user to update",
-            "required": "true",
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "style": "simple"
-          }
-        ],
-        "requestBody": {
-          "description": "User PATCH request body",
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "name": {
-                    "type": "string",
-                    "description": "new name of the user"
-                  },
-                  "email": {
-                    "type": "string",
-                    "description": "new email of the user"
-                  },
-                  "role": {
-                    "type": "string",
-                    "description": "new role of the user"
-                  },
-                  "details": {
-                    "type": "object",
-                    "properties": {
-                      "first_name": {
-                        "type": "string",
-                        "description": "new first name of the user"
+                        "description": "Consortium ID"
                       },
-                      "last_name": {
+                      "consortiumName": {
                         "type": "string",
-                        "description": "new last name of the user"
+                        "format": "string",
+                        "description": "Consortium Name"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "/organizations": {
+          "summary": "GetOrganization",
+          "get": {
+            "summary": "List all organizations",
+            "operationId": "getOrganizations",
+            "responses": {
+              "200": {
+                "description": "Returns a list of all organizations",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "orgId": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": " Organization ID"
+                          },
+                          "organizationName": {
+                            "type": "string",
+                            "format": "string",
+                            "description": "Name of organization"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "/organizations{org_id}": {
+          "summary": "GetOrganization_byid",
+          "get": {
+            "summary": "Get Organization by its id",
+            "operationId": "getOrganization",
+            "parameters": [
+              {
+                "name": "orgid",
+                "in": "path",
+                "description": "Organization ID",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            ],
+            "responses": {
+              "200": {
+                "description": "Returns the specified organization",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "orgId": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": " Organization ID"
+                          },
+                          "organizationName": {
+                            "type": "string",
+                            "format": "string",
+                            "description": "Name of organization"
+                          }
+                        }
                       }
                     }
                   }
@@ -2134,294 +2049,821 @@
               }
             }
           },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    
+          "post": {
+            "summary": "Creates a new organization",
+            "operationId": "organizationPost",
+            "requestBody": {
+              "description": "New organization POST request body",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "required": [
+                      "organizationName"
+                    ],
+                    "properties": {
+                      "organizationName": {
+                        "type": "string",
+                        "format": "string",
+                        "description": "Name of organization"
+                      }
+                    }
+                  }
+                }
+              },
+              "requestBody": {
+                "description": "Organization items to post",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "type": "object",
+                      "properties": {
+                        "OrganizationName": {
+                          "type": "string",
+                          "description": "create name of the organization"
+                        }
+                      }
+                    }
+                  }
+                },
+                "required": true
+              },
+              "responses": {
+                "202": {
+                  "description": "Returns the organization ID and Name",
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "type": "object",
+                        "properties": {
+                          "org_id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": "Organization ID"
+                          },
+                          "OrganizationName": {
+                            "type": "string",
+                            "format": "string",
+                            "description": "Organization Name"
+                          }
+                        }
+                      }
+                    }
                   }
                 }
               }
-            }
-          }
-        }
-      }
-    },
-    "/auth/login": {
-      "summary": "Helen User management",
-      "post": {
-        "summary": "Authenticate a user",
-        "operationId": "AuthenticateUser",
-        "parameters": [
-          {
-            "name": "user_id",
-            "in": "path",
-            "description": "the id of the user to authenticate",
-            "required": "true",
-            "schema": {
-              "type": "string",
-              "format": "uuid"
             },
-            "style": "simple"
-          }
-        ],
-        "requestBody": {
-          "description": "Authenticate user POST request body",
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "password": {
+            "patch": {
+              "summary": "Update an existing organization",
+              "operationId": "organizationPatch",
+              "parameters": [
+                {
+                  "name": "org_id",
+                  "in": "patch",
+                  "description": "Organization ID",
+                  "schema": {
                     "type": "string",
-                    "description": "password of the user",
-                    "required": true
+                    "format": "uuid"
                   }
                 }
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Returns an object with at least an `isAuthenticated` field. If login failed, the value of this field is `false`. If login succeeded, the value of this field is `true`, and the rest of the fields of a user-GET response are also included.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "user_id": {
-                      "type": "string",
-                      "format": "uuid",
-                      "description": "integer value representing ID of this user"
-                    },
-                    "name": {
-                      "type": "string",
-                      "description": "string representing name of this user"
-                    },
-                    "email": {
-                      "type": "string",
-                      "description": "string representing email of this user"
-                    },
-                    "role": {
-                      "type": "string",
-                      "description": "string representing role of this user"
-                    },
-                    "last_login": {
-                      "type": "integer",
-                      "description": "integer value representing the time (in milliseconds since epoch) when this user last logged in"
-                    },
-                    "details": {
+              ],
+              "requestBody": {
+                "description": "Organization items to patch",
+                "content": {
+                  "application/json": {
+                    "schema": {
                       "type": "object",
                       "properties": {
-                        "first_name": {
+                        "OrganizationName": {
                           "type": "string",
-                          "description": "first name of this user"
-                        },
-                        "last_name": {
-                          "type": "string",
-                          "description": "last name of this user"
+                          "description": "Updating name of the organization"
                         }
                       }
-                    },
-                    "consortium": {
-                      "type": "object",
-                      "properties": {
-                        "consortium_id": {
-                          "type": "string",
-                          "format": "uuid",
-                          "description": "ID of consortium to which this user belongs"
-                        },
-                        "consortium_name": {
-                          "type": "string",
-                          "description": "name of consortium to which this user belongs"
+                    }
+                  }
+                },
+                "required": true
+              },
+              "responses": {
+                "202": {
+                  "description": "Returns the organization ID and Name",
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "type": "object",
+                        "properties": {
+                          "org_id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": "Organization ID"
+                          },
+                          "OrganizationName": {
+                            "type": "string",
+                            "format": "string",
+                            "description": "Organization Name"
+                          }
                         }
                       }
-                    },
-                    "organization": {
-                      "type": "object",
-                      "properties": {
-                        "organization_id": {
-                          "type": "string",
-                          "format": "uuid",
-                          "description": "ID of organization to which this user belongs"
-                        },
-                        "organization_name": {
-                          "type": "string",
-                          "description": "name of organization to which this user belongs"
-                        }
-                      }
-                    },
-                    "isAuthenticated": {
-                      "type": "boolean",
-                      "description": "True if login succeeded. False otherwise."
                     }
                   }
                 }
               }
-            }
-          }
-        }
-      }
-    },
-    "/auth/change-password": {
-      "summary": "Change user password",
-      "post": {
-        "summary": "Change a user password",
-        "operationId": "ChangePassword",
-        "requestBody": {
-          "description": "Authenticate user POST request body",
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "email": {
-                    "type": "string",
-                    "description": "email of the user",
-                    "required": true
+            },
+            "/tasks/{task_id}": {
+              "summary": "Tasks",
+              "get": {
+                "summary": "Get the status of the specified task",
+                "operationId": "getTask",
+                "parameters": [
+                  {
+                    "name": "task_id",
+                    "in": "path",
+                    "description": "Task ID",
+                    "schema": {
+                      "type": "string",
+                      "format": "uuid"
+                    }
+                  }
+                ],
+                "responses": {
+                  "200": {
+                    "description": "Returns the current task status",
+                    "content": {
+                      "application/json": {
+                        "schema": {
+                          "type": "object",
+                          "properties": {
+                            "task_id": {
+                              "type": "string",
+                              "format": "uuid",
+                              "description": "Task ID"
+                            },
+                            "state": {
+                              "type": "string",
+                              "enum": [
+                                "RUNNING",
+                                "SUCCEEDED",
+                                "FAILED"
+                              ],
+                              "description": "Current state of of the task"
+                            },
+                            "message": {
+                              "type": "string",
+                              "description": "Additional information from the task"
+                            },
+                            "resource_id": {
+                              "type": "string",
+                              "format": "uuid",
+                              "description": "The resoruce created or updated by this task.  May not be accurate until state is FAILED or SUCCEEDED."
+                            },
+                            "resource_link": {
+                              "type": "string",
+                              "format": "uri",
+                              "description": "Link to the resource created or updated by this task."
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "/users": {
+              "summary": "Helen User management",
+              "get": {
+                "summary": "Get a list of user which belong to specific organization and specific consortium",
+                "operationId": "usersGet",
+                "parameters": [
+                  {
+                    "in": "query",
+                    "name": "consortium",
+                    "description": "ID of the consortium",
+                    "required": true,
+                    "schema": {
+                      "type": "string"
+                    }
                   },
-                  "password": {
-                    "type": "string",
-                    "description": "new password of the user",
-                    "required": true
+                  {
+                    "in": "query",
+                    "name": "organization",
+                    "description": "ID of the organization",
+                    "required": true,
+                    "schema": {
+                      "type": "string"
+                    }
+                  }
+                ],
+                "responses": {
+                  "200": {
+                    "description": "Returns a list of all users who are part of given consortium and given organization",
+                    "content": {
+                      "application/json": {
+                        "schema": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "user_id": {
+                                "type": "string",
+                                "format": "uuid",
+                                "description": "UUID value representing ID of this user"
+                              },
+                              "name": {
+                                "type": "string",
+                                "description": "string representing name of this user"
+                              },
+                              "email": {
+                                "type": "string",
+                                "description": "string representing email of this user"
+                              },
+                              "role": {
+                                "type": "string",
+                                "description": "string representing role of this user"
+                              },
+                              "last_login": {
+                                "type": "integer",
+                                "description": "integer value representing the time (in milliseconds since epoch) when this user last logged in"
+                              },
+                              "details": {
+                                "type": "object",
+                                "properties": {
+                                  "first_name": {
+                                    "type": "string",
+                                    "description": "first name of this user"
+                                  },
+                                  "last_name": {
+                                    "type": "string",
+                                    "description": "last name of this user"
+                                  }
+                                }
+                              },
+                              "consortium": {
+                                "type": "object",
+                                "properties": {
+                                  "consortium_id": {
+                                    "type": "string",
+                                    "format": "uuid",
+                                    "description": "ID of consortium to which this user belongs"
+                                  },
+                                  "consortium_name": {
+                                    "type": "string",
+                                    "description": "name of consortium to which this user belongs"
+                                  }
+                                }
+                              },
+                              "organization": {
+                                "type": "object",
+                                "properties": {
+                                  "organization_id": {
+                                    "type": "string",
+                                    "format": "uuid",
+                                    "description": "ID of organization to which this user belongs"
+                                  },
+                                  "organization_name": {
+                                    "type": "string",
+                                    "description": "name of organization to which this user belongs"
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
                   }
                 }
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Returns an object with at least an `isAuthenticated` field. If login failed, the value of this field is `false`. If login succeeded, the value of this field is `true`, and the rest of the fields of a user-GET response are also included.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "user_id": {
-                      "type": "string",
-                      "format": "uuid",
-                      "description": "integer value representing ID of this user"
-                    },
-                    "name": {
-                      "type": "string",
-                      "description": "string representing name of this user"
-                    },
-                    "email": {
-                      "type": "string",
-                      "description": "string representing email of this user"
-                    },
-                    "role": {
-                      "type": "string",
-                      "description": "string representing role of this user"
-                    },
-                    "last_login": {
-                      "type": "integer",
-                      "description": "integer value representing the time (in milliseconds since epoch) when this user last logged in"
-                    },
-                    "details": {
-                      "type": "object",
-                      "properties": {
-                        "first_name": {
-                          "type": "string",
-                          "description": "first name of this user"
-                        },
-                        "last_name": {
-                          "type": "string",
-                          "description": "last name of this user"
+              },
+              "post": {
+                "summary": "Create a new user in Helen",
+                "operationId": "usersPost",
+                "requestBody": {
+                  "description": "User creation POST request body",
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "type": "object",
+                        "properties": {
+                          "name": {
+                            "type": "string",
+                            "description": "string representing name of this user",
+                            "required": true
+                          },
+                          "email": {
+                            "type": "string",
+                            "description": "string representing email of this user",
+                            "required": true
+                          },
+                          "role": {
+                            "type": "string",
+                            "description": "string representing role of this user",
+                            "required": true
+                          },
+                          "details": {
+                            "type": "object",
+                            "properties": {
+                              "first_name": {
+                                "type": "string",
+                                "description": "first name of this user"
+                              },
+                              "last_name": {
+                                "type": "string",
+                                "description": "last name of this user"
+                              }
+                            }
+                          },
+                          "consortium": {
+                            "type": "object",
+                            "properties": {
+                              "consortium_id": {
+                                "type": "string",
+                                "format": "uuid",
+                                "description": "ID of consortium to which this user belongs",
+                                "required": true
+                              }
+                            }
+                          },
+                          "organization": {
+                            "type": "object",
+                            "properties": {
+                              "organization_id": {
+                                "type": "string",
+                                "format": "uuid",
+                                "required": true,
+                                "description": "ID of organization to which this user belongs"
+                              }
+                            }
+                          },
+                          "password": {
+                            "type": "string",
+                            "required": true,
+                            "description": "password of this user"
+                          }
                         }
                       }
-                    },
-                    "consortium": {
-                      "type": "object",
-                      "properties": {
-                        "consortium_id": {
-                          "type": "string",
-                          "format": "uuid",
-                          "description": "ID of consortium to which this user belongs"
-                        },
-                        "consortium_name": {
-                          "type": "string",
-                          "description": "name of consortium to which this user belongs"
+                    }
+                  },
+                  "required": true
+                },
+                "responses": {
+                  "200": {
+                    "description": "User ID of newly created user",
+                    "content": {
+                      "application/json": {
+                        "schema": {
+                          "type": "object",
+                          "properties": {
+                            "user_id": {
+                              "type": "string",
+                              "format": "uuid",
+                              "description": "User ID of newly created user"
+                            }
+                          }
                         }
                       }
-                    },
-                    "organization": {
-                      "type": "object",
-                      "properties": {
-                        "organization_id": {
-                          "type": "string",
-                          "format": "uuid",
-                          "description": "ID of organization to which this user belongs"
-                        },
-                        "organization_name": {
-                          "type": "string",
-                          "description": "name of organization to which this user belongs"
-                        }
-                      }
-                    },
-                    "isAuthenticated": {
-                      "type": "boolean",
-                      "description": "True if login succeeded. False otherwise."
                     }
                   }
                 }
               }
-            }
-          }
-        }
-      }
-    },
-    "/auth/token": {
-      "summary": "Refresh auth token",
-      "post": {
-        "summary": "Refresh authentication token",
-        "operationId": "RefreshToken",
-        "requestBody": {
-          "description": "Refresh authentication token",
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "refresh_token": {
-                    "type": "string",
-                    "description": "Token needed to generate new authentication token.",
-                    "required": true
+            },
+            "/users/{user_id}": {
+              "summary": "Helen User management",
+              "get": {
+                "summary": "Get the user identified by given user_id",
+                "operationId": "GetUserById",
+                "parameters": [
+                  {
+                    "name": "user_id",
+                    "in": "path",
+                    "description": "the id of the user to get",
+                    "required": "true",
+                    "schema": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "style": "simple"
+                  }
+                ],
+                "responses": {
+                  "200": {
+                    "description": "Returns a json object describing specified user",
+                    "content": {
+                      "application/json": {
+                        "schema": {
+                          "type": "object",
+                          "properties": {
+                            "user_id": {
+                              "type": "string",
+                              "format": "uuid",
+                              "description": "UUID value representing ID of this user"
+                            },
+                            "name": {
+                              "type": "string",
+                              "description": "string representing name of this user"
+                            },
+                            "email": {
+                              "type": "string",
+                              "description": "string representing email of this user"
+                            },
+                            "role": {
+                              "type": "string",
+                              "description": "string representing role of this user"
+                            },
+                            "last_login": {
+                              "type": "integer",
+                              "description": "integer value representing the time (in milliseconds since epoch) when this user last logged in"
+                            },
+                            "details": {
+                              "type": "object",
+                              "properties": {
+                                "first_name": {
+                                  "type": "string",
+                                  "description": "first name of this user"
+                                },
+                                "last_name": {
+                                  "type": "string",
+                                  "description": "last name of this user"
+                                }
+                              }
+                            },
+                            "consortium": {
+                              "type": "object",
+                              "properties": {
+                                "consortium_id": {
+                                  "type": "string",
+                                  "format": "uuid",
+                                  "description": "ID of consortium to which this user belongs"
+                                },
+                                "consortium_name": {
+                                  "type": "string",
+                                  "description": "name of consortium to which this user belongs"
+                                }
+                              }
+                            },
+                            "organization": {
+                              "type": "object",
+                              "properties": {
+                                "organization_id": {
+                                  "type": "string",
+                                  "format": "uuid",
+                                  "description": "ID of organization to which this user belongs"
+                                },
+                                "organization_name": {
+                                  "type": "string",
+                                  "description": "name of organization to which this user belongs"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "patch": {
+                "summary": "Update user information",
+                "operationId": "UpdateUser",
+                "parameters": [
+                  {
+                    "name": "user_id",
+                    "in": "path",
+                    "description": "the id of the user to update",
+                    "required": "true",
+                    "schema": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "style": "simple"
+                  }
+                ],
+                "requestBody": {
+                  "description": "User PATCH request body",
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "type": "object",
+                        "properties": {
+                          "name": {
+                            "type": "string",
+                            "description": "new name of the user"
+                          },
+                          "email": {
+                            "type": "string",
+                            "description": "new email of the user"
+                          },
+                          "role": {
+                            "type": "string",
+                            "description": "new role of the user"
+                          },
+                          "details": {
+                            "type": "object",
+                            "properties": {
+                              "first_name": {
+                                "type": "string",
+                                "description": "new first name of the user"
+                              },
+                              "last_name": {
+                                "type": "string",
+                                "description": "new last name of the user"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "required": true
+                },
+                "responses": {
+                  "200": {
+                    "content": {
+                      "application/json": {
+                        "schema": {
+                          "type": "object",
+                          "properties": {
+                          }
+                        }
+                      }
+                    }
                   }
                 }
               }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Returns an object with a token, token_expires and refresh_token.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "token": {
+            },
+            "/auth/login": {
+              "summary": "Helen User management",
+              "post": {
+                "summary": "Authenticate a user",
+                "operationId": "AuthenticateUser",
+                "parameters": [
+                  {
+                    "name": "user_id",
+                    "in": "path",
+                    "description": "the id of the user to authenticate",
+                    "required": "true",
+                    "schema": {
                       "type": "string",
-                      "description": "Token used for authentication."
+                      "format": "uuid"
                     },
-                    "refresh_token": {
-                      "type": "string",
-                      "description": "Token used to regenerate a token, token_expires and refresh_token"
-                    },
-                    "token_expires": {
-                      "type": "string",
-                      "description": "Amount of time till your token expires."
+                    "style": "simple"
+                  }
+                ],
+                "requestBody": {
+                  "description": "Authenticate user POST request body",
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "type": "object",
+                        "properties": {
+                          "password": {
+                            "type": "string",
+                            "description": "password of the user",
+                            "required": true
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "required": true
+                },
+                "responses": {
+                  "200": {
+                    "description": "Returns an object with at least an `isAuthenticated` field. If login failed, the value of this field is `false`. If login succeeded, the value of this field is `true`, and the rest of the fields of a user-GET response are also included.",
+                    "content": {
+                      "application/json": {
+                        "schema": {
+                          "type": "object",
+                          "properties": {
+                            "user_id": {
+                              "type": "string",
+                              "format": "uuid",
+                              "description": "integer value representing ID of this user"
+                            },
+                            "name": {
+                              "type": "string",
+                              "description": "string representing name of this user"
+                            },
+                            "email": {
+                              "type": "string",
+                              "description": "string representing email of this user"
+                            },
+                            "role": {
+                              "type": "string",
+                              "description": "string representing role of this user"
+                            },
+                            "last_login": {
+                              "type": "integer",
+                              "description": "integer value representing the time (in milliseconds since epoch) when this user last logged in"
+                            },
+                            "details": {
+                              "type": "object",
+                              "properties": {
+                                "first_name": {
+                                  "type": "string",
+                                  "description": "first name of this user"
+                                },
+                                "last_name": {
+                                  "type": "string",
+                                  "description": "last name of this user"
+                                }
+                              }
+                            },
+                            "consortium": {
+                              "type": "object",
+                              "properties": {
+                                "consortium_id": {
+                                  "type": "string",
+                                  "format": "uuid",
+                                  "description": "ID of consortium to which this user belongs"
+                                },
+                                "consortium_name": {
+                                  "type": "string",
+                                  "description": "name of consortium to which this user belongs"
+                                }
+                              }
+                            },
+                            "organization": {
+                              "type": "object",
+                              "properties": {
+                                "organization_id": {
+                                  "type": "string",
+                                  "format": "uuid",
+                                  "description": "ID of organization to which this user belongs"
+                                },
+                                "organization_name": {
+                                  "type": "string",
+                                  "description": "name of organization to which this user belongs"
+                                }
+                              }
+                            },
+                            "isAuthenticated": {
+                              "type": "boolean",
+                              "description": "True if login succeeded. False otherwise."
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "/auth/change-password": {
+              "summary": "Change user password",
+              "post": {
+                "summary": "Change a user password",
+                "operationId": "ChangePassword",
+                "requestBody": {
+                  "description": "Authenticate user POST request body",
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "type": "object",
+                        "properties": {
+                          "email": {
+                            "type": "string",
+                            "description": "email of the user",
+                            "required": true
+                          },
+                          "password": {
+                            "type": "string",
+                            "description": "new password of the user",
+                            "required": true
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "required": true
+                },
+                "responses": {
+                  "200": {
+                    "description": "Returns an object with at least an `isAuthenticated` field. If login failed, the value of this field is `false`. If login succeeded, the value of this field is `true`, and the rest of the fields of a user-GET response are also included.",
+                    "content": {
+                      "application/json": {
+                        "schema": {
+                          "type": "object",
+                          "properties": {
+                            "user_id": {
+                              "type": "string",
+                              "format": "uuid",
+                              "description": "integer value representing ID of this user"
+                            },
+                            "name": {
+                              "type": "string",
+                              "description": "string representing name of this user"
+                            },
+                            "email": {
+                              "type": "string",
+                              "description": "string representing email of this user"
+                            },
+                            "role": {
+                              "type": "string",
+                              "description": "string representing role of this user"
+                            },
+                            "last_login": {
+                              "type": "integer",
+                              "description": "integer value representing the time (in milliseconds since epoch) when this user last logged in"
+                            },
+                            "details": {
+                              "type": "object",
+                              "properties": {
+                                "first_name": {
+                                  "type": "string",
+                                  "description": "first name of this user"
+                                },
+                                "last_name": {
+                                  "type": "string",
+                                  "description": "last name of this user"
+                                }
+                              }
+                            },
+                            "consortium": {
+                              "type": "object",
+                              "properties": {
+                                "consortium_id": {
+                                  "type": "string",
+                                  "format": "uuid",
+                                  "description": "ID of consortium to which this user belongs"
+                                },
+                                "consortium_name": {
+                                  "type": "string",
+                                  "description": "name of consortium to which this user belongs"
+                                }
+                              }
+                            },
+                            "organization": {
+                              "type": "object",
+                              "properties": {
+                                "organization_id": {
+                                  "type": "string",
+                                  "format": "uuid",
+                                  "description": "ID of organization to which this user belongs"
+                                },
+                                "organization_name": {
+                                  "type": "string",
+                                  "description": "name of organization to which this user belongs"
+                                }
+                              }
+                            },
+                            "isAuthenticated": {
+                              "type": "boolean",
+                              "description": "True if login succeeded. False otherwise."
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "/auth/token": {
+              "summary": "Refresh auth token",
+              "post": {
+                "summary": "Refresh authentication token",
+                "operationId": "RefreshToken",
+                "requestBody": {
+                  "description": "Refresh authentication token",
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "type": "object",
+                        "properties": {
+                          "refresh_token": {
+                            "type": "string",
+                            "description": "Token needed to generate new authentication token.",
+                            "required": true
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "required": true
+                },
+                "responses": {
+                  "200": {
+                    "description": "Returns an object with a token, token_expires and refresh_token.",
+                    "content": {
+                      "application/json": {
+                        "schema": {
+                          "type": "object",
+                          "properties": {
+                            "token": {
+                              "type": "string",
+                              "description": "Token used for authentication."
+                            },
+                            "refresh_token": {
+                              "type": "string",
+                              "description": "Token used to regenerate a token, token_expires and refresh_token"
+                            },
+                            "token_expires": {
+                              "type": "string",
+                              "description": "Amount of time till your token expires."
+                            }
+                          }
+                        }
+                      }
                     }
                   }
                 }
@@ -2433,3 +2875,4 @@
     }
   }
 }
+
