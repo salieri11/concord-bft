@@ -40,7 +40,7 @@ import kotlinx.serialization.protobuf.ProtobufDecodingException
  */
 class ProtoBuf(context: SerialModule = EmptyModule) : AbstractSerialFormat(context), BinaryFormat {
 
-    internal open inner class ProtobufWriter(val encoder: ProtobufEncoder) : TaggedEncoder<ProtoDesc>() {
+    open inner class ProtobufWriter(val encoder: ProtobufEncoder) : TaggedEncoder<ProtoDesc>() {
         public override val context
             get() = this@ProtoBuf.context
 
@@ -105,7 +105,7 @@ class ProtoBuf(context: SerialModule = EmptyModule) : AbstractSerialFormat(conte
         override fun SerialDescriptor.getTag(index: Int) = curTag
     }
 
-    internal class ProtobufEncoder(val out: ByteArrayOutputStream) {
+    class ProtobufEncoder(val out: ByteArrayOutputStream) {
 
         fun writeObject(bytes: ByteArray, tag: Int) {
             val header = encode32((tag shl 3) or SIZE_DELIMITED)
@@ -170,7 +170,7 @@ class ProtoBuf(context: SerialModule = EmptyModule) : AbstractSerialFormat(conte
                 }
     }
 
-    internal open inner class ProtobufReader(val decoder: ProtobufDecoder) : TaggedDecoder<ProtoDesc>() {
+    open inner class ProtobufReader(val decoder: ProtobufDecoder) : TaggedDecoder<ProtoDesc>() {
         override val context: SerialModule
             get() = this@ProtoBuf.context
 
@@ -245,7 +245,7 @@ class ProtoBuf(context: SerialModule = EmptyModule) : AbstractSerialFormat(conte
                 else 2 to (parentTag?.second ?: ProtoNumberType.DEFAULT)
     }
 
-    internal class ProtobufDecoder(val inp: ByteArrayInputStream) {
+    class ProtobufDecoder(val inp: ByteArrayInputStream) {
         val curId
             get() = curTag.first
         private var curTag: Pair<Int, Int> = -1 to -1
