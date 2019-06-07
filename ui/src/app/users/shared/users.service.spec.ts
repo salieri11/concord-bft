@@ -6,7 +6,6 @@ import { TestBed, inject } from '@angular/core/testing';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 
 import { UsersService } from './users.service';
-import { ANDES_API_PREFIX } from '../../shared/shared.config';
 import { Personas } from '../../shared/persona.service';
 
 const payload = {
@@ -30,7 +29,6 @@ describe('UsersService', () => {
       ],
       providers: [
         UsersService,
-        {provide: ANDES_API_PREFIX, useValue: 'api'},
       ]
     });
 

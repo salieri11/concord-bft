@@ -17,7 +17,7 @@ import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { AuthenticationService } from './authentication.service';
 import { AuthenticatedGuard } from './authenticated-guard.service';
 import { AgreementGuard } from './agreement-guard.service';
-import { ANDES_API_PREFIX, CONCORD_API_PREFIX, CSP_API_PREFIX, ETHEREUM_API_PREFIX, LOG_API_PREFIX } from './shared.config';
+import { CONCORD_API_PREFIX, CSP_API_PREFIX, ETHEREUM_API_PREFIX, LOG_API_PREFIX } from './shared.config';
 import { TransactionsStatusFilterComponent } from './components/transactions-status-filter/transactions-status-filter.component';
 import { RouterModule } from '@angular/router';
 import { PersonaService } from './persona.service';
@@ -94,7 +94,6 @@ export class SharedModule {
         AuthenticationService,
         AuthenticatedGuard,
         AgreementGuard,
-        {provide: ANDES_API_PREFIX, useValue: 'api'},
         {provide: CONCORD_API_PREFIX, useValue: 'api/concord'},
         {provide: ETHEREUM_API_PREFIX, useValue: 'api/concord/eth'},
         {provide: LOG_API_PREFIX, useValue: 'logging/api'},
@@ -120,7 +119,6 @@ export class SharedModule {
   providers: [
     AuthenticationService,
     AuthenticatedGuard,
-    {provide: ANDES_API_PREFIX, useValue: 'api'},
     {provide: CONCORD_API_PREFIX, useValue: 'api/concord'},
     {provide: ETHEREUM_API_PREFIX, useValue: 'api/concord/eth'},
     {provide: LOG_API_PREFIX, useValue: 'logging/api'},

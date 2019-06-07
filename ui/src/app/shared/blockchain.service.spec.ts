@@ -5,11 +5,13 @@
 import { TestBed } from '@angular/core/testing';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { BlockchainService } from './blockchain.service';
+import { ConsortiumService } from './../consortium/shared/consortium.service';
 
 describe('BlockchainService', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
-      imports: [HttpClientTestingModule]
+      imports: [HttpClientTestingModule],
+      providers: [ConsortiumService]
     });
   });
 

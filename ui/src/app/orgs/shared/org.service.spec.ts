@@ -6,7 +6,6 @@ import { TestBed, inject } from '@angular/core/testing';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 
 import { OrgService } from './org.service';
-import { ANDES_API_PREFIX } from '../../shared/shared.config';
 
 describe('OrgService', () => {
   beforeEach(() => {
@@ -14,7 +13,6 @@ describe('OrgService', () => {
       imports: [HttpClientTestingModule],
       providers: [
         OrgService,
-        {provide: ANDES_API_PREFIX, useValue: 'api'},
       ]
     });
   });

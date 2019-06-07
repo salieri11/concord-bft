@@ -5,12 +5,9 @@
 import {
   Component,
   OnInit,
-  ViewChild,
 } from '@angular/core';
 
 import { Personas } from '../shared/persona.service';
-import { ConsortiumFormComponent } from './consortium-form/consortium-form.component';
-import { ConsortiumListComponent } from './consortium-list/consortium-list.component';
 import { Consortium } from './shared/consortium.model';
 
 @Component({
@@ -20,8 +17,6 @@ import { Consortium } from './shared/consortium.model';
 })
 export class ConsortiumComponent implements OnInit {
   static personasAllowed: Personas[] = [Personas.SystemsAdmin, Personas.ConsortiumAdmin];
-  @ViewChild('consortiumForm') consortiumForm: ConsortiumFormComponent;
-  @ViewChild('consortiumsList') consortiumsList: ConsortiumListComponent;
 
   selected: Array<Consortium>;
 
@@ -29,15 +24,4 @@ export class ConsortiumComponent implements OnInit {
 
   ngOnInit() {}
 
-  selectedRowChange(rows: Array<Consortium>): void {
-    this.selected = rows;
-  }
-
-  addToConsortiumsList(response) {
-    this.consortiumsList.grid.addRow(response);
-  }
-
-  deleteFromConsortiumsList() {
-    this.consortiumsList.grid.reload();
-  }
 }

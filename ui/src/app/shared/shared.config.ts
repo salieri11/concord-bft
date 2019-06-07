@@ -4,7 +4,6 @@
 
 import { InjectionToken } from '@angular/core';
 
-export const ANDES_API_PREFIX = new InjectionToken<string>('AndesApiPrefix');
 export const CONCORD_API_PREFIX = new InjectionToken<string>('ConcordApiPrefix');
 export const ETHEREUM_API_PREFIX = new InjectionToken<string>('EthereumApiPrefix');
 export const LOG_API_PREFIX = new InjectionToken<string>('LogApiPrefix');
