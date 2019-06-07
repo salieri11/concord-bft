@@ -59,3 +59,15 @@ def epochToLegible(t):
    Given an epoch time number, return a human readable string.
    '''
    return time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(t))
+
+
+def to_signed_int(value: int, bits: int = 64) -> int:
+   '''
+   Interpret an integer input as an unsigned value of specified bit precision,
+   and return the byte-content equivalent signed value
+   :param value: int input
+   :param bits: bit precision to use to interpret the input value as unsigned value
+   :return: value reinterpreted as signed integer of specified bit precision
+   '''
+   mask = (1 << bits) - 1
+   return (value | ~mask) if value & (1 << (bits - 1)) else (value & mask)

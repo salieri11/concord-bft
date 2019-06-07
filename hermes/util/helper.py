@@ -5,6 +5,7 @@ import shutil
 import logging
 import paramiko
 import subprocess
+from . import numbers_strings
 from . import product as p
 
 log = logging.getLogger(__name__)
@@ -136,20 +137,6 @@ def execute_ext_command(command):
 
    return True
 
-def to_signed_int(value: int, bits: int = 64) -> int:
-    """
-    Interpret an integer input as an unsigned value of specified bit precision,
-    and return the byte-content equivalent signed value.
-    Args:
-        value (int): input value.
-        bits (int): bit precision to use to interpret the input value as
-        unsigned value.
-    Returns:
-        int: value reinterpreted as signed integer of specified bit precision.
-    """
-    mask = (1 << bits) - 1
-    return (value | ~mask) if value & (1 << (bits - 1)) else (value & mask)
-
 def undeploy_blockchain_cluster(provisioning_config_file, grpc_server, session_id_json):
    '''
    Helper method to undeploy blockchain cluster deployed by deployment service
@@ -172,9 +159,10 @@ def undeploy_blockchain_cluster(provisioning_config_file, grpc_server, session_i
                           "{}".format(undeploy_docker_container),
                           "deleteCluster"
                           ]
-      undeploy_command_params = [str(to_signed_int(int(session_id_json[0]["low"]))),
-                                 str(to_signed_int(int(session_id_json[0]["high"]))),
-                                 provisioning_config_file_abspath, grpc_server]
+      undeploy_command_params = [
+         str(numbers_strings.to_signed_int(int(session_id_json[0]["low"]))),
+         str(numbers_strings.to_signed_int(int(session_id_json[0]["high"]))),
+         provisioning_config_file_abspath, grpc_server]
       command_to_execute = undeploy_command + undeploy_command_params
       log.debug("Executing Undeploy command: {}".format(command_to_execute))
 
