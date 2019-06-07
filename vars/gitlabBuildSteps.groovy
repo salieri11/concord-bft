@@ -455,7 +455,7 @@ EOF
                       '''
                       if (env.run_persephone_tests.toBoolean()) {
                         sh '''
-                          echo "Running persephone testsuite as either this is a Master run or there is a code change in blockchain/persephone (or) blockchain/hermes"
+                          echo "Running persephone testsuite as either this is a Master run or there is a code change in blockchain/persephone/ (or) blockchain/hermes/"
                           echo "${PASSWORD}" | sudo -SE "${python}" main.py PersephoneTests --dockerComposeFile ../docker/docker-compose-persephone.yml --resultsDir "${persephone_test_logs}"
                       '''
                       }
