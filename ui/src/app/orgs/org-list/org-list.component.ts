@@ -3,7 +3,6 @@
  */
 
 import {
-  Input,
   Component,
   OnInit,
   ViewChild, Output, EventEmitter,
@@ -24,7 +23,6 @@ import { Personas } from '../../shared/persona.service';
 export class OrgListComponent implements OnInit {
   static personasAllowed: Personas[] = [Personas.SystemsAdmin, Personas.ConsortiumAdmin];
   @ViewChild('grid') grid: GridComponent;
-  @Input('url') url: string;
   @Output('selected') selected: EventEmitter<any> = new EventEmitter<any>();
 
   gridOptions: GridOptions = new GridOptions();
@@ -37,8 +35,8 @@ export class OrgListComponent implements OnInit {
     this.translate.setDefaultLang('en');
     this.translate.use(browserLang);
 
-    this.gridOptions.getData = (params: any) => {
-      return this.orgService.getList(params, this.url);
+    this.gridOptions.getData = () => {
+      return this.orgService.getList();
     };
 
     this.handleGrid();

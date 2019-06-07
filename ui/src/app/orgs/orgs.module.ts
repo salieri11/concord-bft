@@ -18,7 +18,6 @@ import { TranslateModule } from '@ngx-translate/core';
 import { OrgsComponent } from './orgs.component';
 import { OrgService } from './shared/org.service';
 import { OrgListComponent } from './org-list/org-list.component';
-import { OrgFormComponent } from './org-form/org-form.component';
 
 @NgModule({
   imports: [
@@ -36,7 +35,6 @@ import { OrgFormComponent } from './org-form/org-form.component';
   declarations: [
     OrgsComponent,
     OrgListComponent,
-    OrgFormComponent
   ],
   providers: [
     OrgService

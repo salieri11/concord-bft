@@ -38,6 +38,7 @@ import { NodeProperties } from './world-map.model';
 import { VmwClarityThemeService } from './../../shared/theme.provider';
 
 import WorldData from './countries-110m.json';
+
 @Component({
   selector: 'concord-world-map',
   templateUrl: './world-map.component.html',
@@ -239,7 +240,7 @@ export class WorldMapComponent implements AfterViewInit, OnChanges, OnDestroy {
   private viewFit() {
     this.view.fit(
       this.vectorSource.getExtent(),
-      { padding: [10, 60, 10, 20], constrainResolution: false }
+      { padding: [20, 60, 20, 30], constrainResolution: false }
     );
   }
   /**

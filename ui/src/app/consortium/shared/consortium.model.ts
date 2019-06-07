@@ -12,13 +12,6 @@ export interface Consortium {
 }
 
 export interface ConsortiumResponse {
-  _embedded: {
-    organizations: Array<Consortium>,
-    _links: any,
-  };
-  page: {
-    size: number,
-    totalElements: number,
-    totalPages: number
-  };
+  consortium_id: string;
+  consortium_name: string;
 }

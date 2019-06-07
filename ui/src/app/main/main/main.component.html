@@ -26,7 +26,7 @@
 
       <select clrSelect name="cosortiums" [(ngModel)]="selectedConsortium" class="consortium-select" (change)="consortiumChange()">
         <option *ngFor="let consortium of blockchains" [value]="consortium.id">
-          {{ consortium.id }}
+          {{ consortium.consortium_name }}
         </option>
       </select>
       <a clrVerticalNavLink [routerLink]="['dashboard']" routerLinkActive="active">
