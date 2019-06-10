@@ -36,9 +36,9 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.vmware.blockchain.auth.AuthHelper;
 import com.vmware.blockchain.common.csp.CspAuthenticationHelper;
 import com.vmware.blockchain.common.restclient.RestClientBuilder;
-import com.vmware.blockchain.security.AuthHelper;
 
 /**
  * Proxy requests to Log Intelligence.  We currently make queries using a Log Intelligence service user with admin

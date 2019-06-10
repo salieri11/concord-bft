@@ -39,6 +39,7 @@ import com.fasterxml.jackson.databind.ser.FilterProvider;
 import com.fasterxml.jackson.databind.ser.impl.SimpleFilterProvider;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.datatype.jsr310.ser.ZonedDateTimeSerializer;
+import com.vmware.blockchain.auth.AuthHelper;
 import com.vmware.blockchain.common.BadRequestException;
 import com.vmware.blockchain.common.DateTimeUtils;
 import com.vmware.blockchain.common.ErrorCode;
@@ -49,7 +50,6 @@ import com.vmware.blockchain.db.Entity;
 import com.vmware.blockchain.db.Link;
 import com.vmware.blockchain.db.mapper.EntityMapper;
 import com.vmware.blockchain.db.mapper.LinkMapper;
-import com.vmware.blockchain.security.AuthHelper;
 import com.vmware.blockchain.services.profiles.Roles;
 
 import io.micrometer.core.instrument.Metrics;

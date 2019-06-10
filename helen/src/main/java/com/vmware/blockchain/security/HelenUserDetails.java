@@ -46,4 +46,33 @@ public class HelenUserDetails extends User {
         this.userId = userId;
     }
 
+    /**
+     * Create a new instance of HelenUserDetails, default all the booleans.
+     */
+    public HelenUserDetails(UUID userId, String username, String password,
+                            Collection<? extends GrantedAuthority> authorities) {
+        super(username, password, true, true, true, true, authorities);
+        this.userId = userId;
+    }
+
+    /**
+     * Create a new instance of HelenUserDetails, default all the booleans,
+     * and set the orgId and authtoken.
+     */
+    public HelenUserDetails(UUID userId, UUID orgId, String username, String authToken,
+                            Collection<? extends GrantedAuthority> authorities) {
+        super(username, "", true, true, true, true, authorities);
+        this.userId = userId;
+        this.orgId = orgId;
+        this.authToken = authToken;
+    }
+
+
+    /**
+     * Create a new instance of HelenUserDetails, default all the booleans and the password.
+     */
+    public HelenUserDetails(UUID userId, String username, Collection<? extends GrantedAuthority> authorities) {
+        super(username, "", true, true, true, true, authorities);
+        this.userId = userId;
+    }
 }

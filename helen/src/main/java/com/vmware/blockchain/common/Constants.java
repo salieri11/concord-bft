@@ -11,10 +11,23 @@ public class Constants {
     //API Endpoints
     // Below endpoints are needed because some servlets still use this information
     public static final String TRANSACTION_LIST_ENDPOINT = "/api/concord/transactions";
-    public static final String CONTRACTS_ENDPOINT = "/api/concord/contracts";
-    public static final String API_URI_PREFIX = "/api";
-    public static final String STATIC_RESOURCE_LOCATION = "classpath:/static/";
-    public static final String HOME_PAGE_LOCATION = "classpath:/static/index.html";
+
+    public static final String API_PREFIX = "/api";
+
+    public static final String AUTH_HEADER_NAME = "csp-auth-token";
+    public static final String OAUTH = "/api/oauth";
+    public static final String AUTH_LOGIN = OAUTH + "/login";
+    public static final String AUTH_LOGOUT = OAUTH + "/logout";
+    public static final String API_AUTH_TOKEN = OAUTH + "/token";
+    // callback is only used by the server and csp
+    public static final String OAUTH_CALLBACK = OAUTH + "/oauth";
+    public static final String CSP_API_DEFAULT_CLIENT = "csp-api-default-client";
+    public static final String CSP_TOKEN_CACHE = "CspTokenCache";
+    public static final String TOKEN_CACHE = "TokenCache";
+    public static final String TOKEN_EXPIRES_AT = "token-expires-at";
+    public static final String TOKEN_REFRESH = "refresh-token";
+    public static final String TOKEN_ID = "token-id";
+
 
 
     // Static content configurations
@@ -96,5 +109,10 @@ public class Constants {
     public static final String ESTIMATE_GAS_NAME = "eth_estimateGas";
     public static final String SYNCING_NAME = "eth_syncing";
     public static final String GET_LOGS_NAME = "eth_getLogs";
+
+    public static final String URI_PATH_CHAR = "/";
+
+    public static final String USE_CSP_AUTH = "vmbc.auth.csp";
+
 
 }

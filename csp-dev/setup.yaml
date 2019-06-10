@@ -1,0 +1,39 @@
+base:
+  csp_url: https://console-stg.cloud.vmware.com
+  service_template_link: /csp/gateway/slc/api/definitions/external/9a414820-3f52-4621-9577-b858b72c7e27
+  service_template_id: 9a414820-3f52-4621-9577-b858b72c7e27
+  service_owner_org_link: /csp/gateway/am/api/orgs/ab29b4a8-40c8-4173-ba74-15e76f8f35e0
+  service_owner_org_id: ab29b4a8-40c8-4173-ba74-15e76f8f35e0
+  service_owner: admin-blockchain-dev@csp.local
+  service_owner_token: d4cc1994-d3c5-45ea-9c9a-50a11a4642ab
+create_user:
+  - name: mwa-test-user
+    password: VMware@123
+  - name: mwa-test-user2
+    password: VMware@123
+create_org:
+  - name: MWA Helen Org
+create_service:
+  name: MWA Helen Service
+patch_service:
+  service: MWA Helen Service
+  body:
+    serviceUrls:
+      serviceHome: 192.168.73.134
+invite_to_service:
+  service: MWA Helen Service
+  orgs:
+    - MWA Helen Org
+invite_to_orgs:
+  - org: MWA Helen Org
+    org_roles:
+      - org_member
+    service_roles:
+      service_def_link: MWA Helen Service
+      role_names:
+        - blockchain-org:dev
+        - blockchain-org:user
+    users:
+      - mwa-test-user
+      - mwa-test-user2
+create_oauth:

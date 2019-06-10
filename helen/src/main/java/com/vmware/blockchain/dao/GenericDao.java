@@ -16,9 +16,9 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.TransactionException;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.vmware.blockchain.auth.AuthHelper;
 import com.vmware.blockchain.common.ErrorCode;
 import com.vmware.blockchain.common.InternalFailureException;
-import com.vmware.blockchain.security.AuthHelper;
 
 /**
  * Generic DAO implementation.

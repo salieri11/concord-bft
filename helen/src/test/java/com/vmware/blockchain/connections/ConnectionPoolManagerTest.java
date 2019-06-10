@@ -14,7 +14,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.test.context.ContextConfiguration;
@@ -25,26 +24,18 @@ import org.springframework.test.util.ReflectionTestUtils;
 import com.google.common.base.Splitter;
 import com.vmware.blockchain.common.ConcordProperties;
 import com.vmware.blockchain.connections.ConcordConnectionPool.ConnectionType;
+import com.vmware.blockchain.connections.ConnectionPoolManagerTest.Config;
 import com.vmware.blockchain.services.blockchains.Blockchain;
-
-import io.grpc.ManagedChannel;
+import com.vmware.blockchain.utils.ControllerTestConfig;
 
 /**
  * Test the ConnectionPoolManger.
  */
 @ExtendWith(SpringExtension.class)
 @TestPropertySource(locations = "classpath:test.properties")
-@ContextConfiguration(classes = {ConnectionPoolManagerTest.Config.class})
+@ContextConfiguration(classes = { Config.class, ControllerTestConfig.class })
 public class ConnectionPoolManagerTest {
 
-    // Mock out the current ConcordConnectionpool bean.  This can be removed when that is.
-    @MockBean
-    ConcordConnectionPool concordConnectionPool;
-
-    @MockBean
-    ManagedChannel channel;
-
-    @Autowired
     ConnectionPoolManager manager;
 
     @Autowired
@@ -61,6 +52,7 @@ public class ConnectionPoolManagerTest {
      */
     @BeforeEach
     void init() throws IOException {
+        manager = new ConnectionPoolManager(config);
         // This is the only reason the "type" field exists in the ConnectionPoolManager.
         ReflectionTestUtils.setField(manager, "type", ConnectionType.Mock);
         chain1 = Blockchain.builder()
@@ -108,12 +100,8 @@ public class ConnectionPoolManagerTest {
 
     }
 
-    /**
-     * Test config.
-     */
     @Configuration
     @ComponentScan(basePackageClasses = {ConnectionPoolManager.class, ConcordProperties.class})
-    public static class Config {
-
+    static class Config {
     }
 }

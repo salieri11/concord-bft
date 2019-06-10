@@ -34,6 +34,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import com.vmware.blockchain.auth.AuthHelper;
 import com.vmware.blockchain.common.BadRequestException;
 import com.vmware.blockchain.common.ConflictException;
 import com.vmware.blockchain.common.Constants;
@@ -42,7 +43,6 @@ import com.vmware.blockchain.common.ForbiddenException;
 import com.vmware.blockchain.common.InternalFailureException;
 import com.vmware.blockchain.common.NotFoundException;
 import com.vmware.blockchain.connections.ConnectionPoolManager;
-import com.vmware.blockchain.security.AuthHelper;
 import com.vmware.blockchain.services.ConcordControllerHelper;
 import com.vmware.blockchain.services.ConcordServlet;
 import com.vmware.blockchain.services.ethereum.EthDispatcher;

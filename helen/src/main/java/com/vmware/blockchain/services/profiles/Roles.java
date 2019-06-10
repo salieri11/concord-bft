@@ -4,8 +4,11 @@
 
 package com.vmware.blockchain.services.profiles;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.springframework.security.core.GrantedAuthority;
 
@@ -14,22 +17,50 @@ import org.springframework.security.core.GrantedAuthority;
  */
 public enum Roles implements GrantedAuthority {
 
-    ORG_USER("vmbc-org:user"),
-    ORG_DEVELOPER("vmbc-org:dev"),
-    ORG_ADMIN("vmbc-org:admin"),
-    CONSORTIUM_ADMIN("vmbc-consortium:admin"),
-    SYSTEM_ADMIN("vmbc-system:admin"),
-    SYSTEM("SYSTEM"),
-    ANONYMOUS("ANONYMOUS");
+    ORG_USER("vmbc-org:user", "Organization User", true, false, false),
+    ORG_DEVELOPER("vmbc-org:dev", "Organization Developer", false, false, false),
+    ORG_ADMIN("vmbc-org:admin", "Organization Admin", false, false, false),
+    CONSORTIUM_ADMIN("vmbc-consortium:admin", "Consortium Admin", false, false, false),
+    SYSTEM_ADMIN("vmbc-system:admin", "System Admin", false, false, false),
+    SYSTEM("SYSTEM", "Internal System User", false, true, true),
+    ANONYMOUS("ANONYMOUS", "Temporary ananymous user", false, true, true);
 
     private final String name;
+    private final String displayName;
+    private final boolean isDefault;
+    private final boolean isHidden; // should this show in CSP usermgmt UI.
+    // If true - don't register with CSP - this role will be assigned based on other criteria e.g. Org property
+    private final boolean isInternal;
 
-    Roles(String name) {
+
+    Roles(String name, String displayName,
+          boolean isDefault, boolean isHidden,
+          boolean isInternal) {
         this.name = name;
+        this.displayName = displayName;
+        this.isDefault = isDefault;
+        this.isHidden = isHidden;
+        this.isInternal = isInternal;
     }
 
     public String getName() {
         return name;
+    }
+
+    public String getDisplayName() {
+        return displayName;
+    }
+
+    public boolean isDefault() {
+        return isDefault;
+    }
+
+    public boolean isHidden() {
+        return isHidden;
+    }
+
+    public boolean isInternal() {
+        return isInternal;
     }
 
     /**
@@ -73,6 +104,11 @@ public enum Roles implements GrantedAuthority {
         for (Roles role : Roles.values()) {
             lookup.put(role.getName(), role);
         }
+    }
+
+    // get the set of service roles that are visible.
+    public static Set<Roles> getServiceRoles() {
+        return Arrays.stream(Roles.values()).filter(r -> !r.isInternal).collect(Collectors.toSet());
     }
 
     // This method can be used for reverse lookup purpose

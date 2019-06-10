@@ -14,6 +14,7 @@ import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 
 import com.google.protobuf.ByteString;
+import com.vmware.blockchain.auth.AuthHelper;
 import com.vmware.blockchain.common.Constants;
 import com.vmware.blockchain.common.ErrorCode;
 import com.vmware.blockchain.connections.ConnectionPoolManager;
@@ -40,13 +41,15 @@ public class EthSendTxHandler extends AbstractEthRpcHandler {
     private DefaultProfiles defaultProfiles;
     private ProfilesService profilesRegistryManager;
     private Optional<UUID> blockchain;
+    private AuthHelper authHelper;
 
     /**
      * Send transaction constructor.
      */
     public EthSendTxHandler(ConnectionPoolManager connectionPoolManager, DefaultProfiles defaultProfiles,
             ProfilesService profilesRegistryManager,
-            Optional<UUID> blockchain, ContractService registryManager, boolean isInternalContract) {
+            Optional<UUID> blockchain, ContractService registryManager, boolean isInternalContract,
+            AuthHelper authHelper) {
         // If isInternalContract is true, the handler is processing a contract created from the Helen UI.
         this.isInternalContract = isInternalContract;
         this.registryManager = registryManager;
@@ -54,6 +57,7 @@ public class EthSendTxHandler extends AbstractEthRpcHandler {
         this.profilesRegistryManager = profilesRegistryManager;
         this.defaultProfiles = defaultProfiles;
         this.blockchain = blockchain;
+        this.authHelper = authHelper;
     }
 
     /**
@@ -275,7 +279,8 @@ public class EthSendTxHandler extends AbstractEthRpcHandler {
         paramsArray.add(transactionHash);
         ethRequest.put("params", paramsArray);
         String responseString =
-                new EthDispatcher(registryManager, connectionPoolManager, profilesRegistryManager, defaultProfiles)
+                new EthDispatcher(registryManager, connectionPoolManager, profilesRegistryManager, defaultProfiles,
+                                  authHelper)
                         .dispatch(blockchain, ethRequest).toJSONString();
         try {
             JSONObject txReceipt = (JSONObject) new JSONParser().parse(responseString);

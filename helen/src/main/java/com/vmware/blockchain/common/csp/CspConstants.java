@@ -61,7 +61,7 @@ public class CspConstants {
     public static final String CSP_ROLE_PREFIX = "csp:";
     public static final String CSP_ROLE_ORG_OWNER = "csp:org_owner";
     public static final String CSP_ROLE_PLATFORM_OPERATOR = "csp:platform_operator";
-    public static final String CSP_VMC_ROLE_PREFIX = "external/";
+    public static final String CSP_VMBC_ROLE_PREFIX = "external/";
 
     // Usage metering constants
     // Max size in batch of records is 100 records.
@@ -70,4 +70,6 @@ public class CspConstants {
     public static final String HEADER_CSP_REQUEST_ID = "csp-request-id";
     // Authorized party
     public static final Set<String> CSP_CALLBACK_AZPS = ImmutableSet.of("csp-billing");
+    public static final String SUPPORTED_PK_ALGORITHM = "RSA";
+
 }

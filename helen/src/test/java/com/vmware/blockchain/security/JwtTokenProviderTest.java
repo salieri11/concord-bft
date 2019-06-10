@@ -17,8 +17,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.MockitoAnnotations;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -37,7 +35,7 @@ import io.jsonwebtoken.Jwts;
  * Tests for the JWT Token Provider.
  */
 @ExtendWith(SpringExtension.class)
-@ContextConfiguration
+@ContextConfiguration(classes = {JwtTokenProvider.class, HelenUserDetailsService.class})
 public class JwtTokenProviderTest {
 
     @Autowired
@@ -46,7 +44,7 @@ public class JwtTokenProviderTest {
     private User user;
 
     @MockBean
-    private HelenUserDetailsService myUserDetails;
+    private HelenUserDetailsService myUserDetailsService;
 
     @MockBean
     private UserService userService;
@@ -95,11 +93,5 @@ public class JwtTokenProviderTest {
         Assertions.assertNotEquals(Base64.getEncoder().encodeToString(z), secretKey);
     }
 
-    /**
-     * Component scan needs to go on configuration.
-     */
-    @Configuration
-    @ComponentScan(basePackageClasses = JwtTokenProvider.class)
-    public static class TestConfig {}
 
 }

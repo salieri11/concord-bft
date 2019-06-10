@@ -24,12 +24,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.servlet.MockMvc;
@@ -39,21 +37,14 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 import com.vmware.blockchain.MvcConfig;
-import com.vmware.blockchain.common.ConcordProperties;
+import com.vmware.blockchain.auth.AuthHelper;
 import com.vmware.blockchain.common.HelenExceptionHandler;
 import com.vmware.blockchain.common.NotFoundException;
-import com.vmware.blockchain.connections.ConcordConnectionPool;
-import com.vmware.blockchain.dao.GenericDao;
-import com.vmware.blockchain.security.AuthHelper;
-import com.vmware.blockchain.security.JwtTokenProvider;
 import com.vmware.blockchain.security.SecurityTestUtils;
-import com.vmware.blockchain.security.ServiceContext;
 import com.vmware.blockchain.services.blockchains.BlockchainController.BlockchainTaskResponse;
 import com.vmware.blockchain.services.profiles.Consortium;
 import com.vmware.blockchain.services.profiles.ConsortiumService;
 import com.vmware.blockchain.services.profiles.DefaultProfiles;
-import com.vmware.blockchain.services.profiles.KeystoreService;
-import com.vmware.blockchain.services.profiles.ProfilesService;
 import com.vmware.blockchain.services.profiles.Roles;
 import com.vmware.blockchain.services.profiles.User;
 import com.vmware.blockchain.services.profiles.UserService;
@@ -61,15 +52,14 @@ import com.vmware.blockchain.services.tasks.Task;
 import com.vmware.blockchain.services.tasks.Task.State;
 import com.vmware.blockchain.services.tasks.TaskController;
 import com.vmware.blockchain.services.tasks.TaskService;
-
-import io.grpc.ManagedChannel;
+import com.vmware.blockchain.utils.ControllerTestConfig;
 
 /**
  * Tests for the blockchain controller.
  */
 @ExtendWith(SpringExtension.class)
 @WebMvcTest(secure = false, controllers = { BlockchainController.class, TaskController.class })
-@ContextConfiguration(classes = MvcConfig.class)
+@ContextConfiguration(classes = { MvcConfig.class, ControllerTestConfig.class })
 @ComponentScan(basePackageClasses = { BlockchainControllerTest.class, HelenExceptionHandler.class,
         TaskController.class })
 public class BlockchainControllerTest {
@@ -90,56 +80,26 @@ public class BlockchainControllerTest {
     @Autowired
     private MockMvc mockMvc;
 
-    @MockBean
-    private UserService userService;
-
-    @MockBean
-    private ProfilesService prm;
-
-    @MockBean
-    private PasswordEncoder passwordEncoder;
-
-    @MockBean
-    private JwtTokenProvider jwtTokenProvider;
-
-    @MockBean
-    private ConcordProperties concordProperties;
-
-    @MockBean
-    private ConcordConnectionPool connectionPool;
-
-    @MockBean
-    private KeystoreService keystoreService;
-
-    @MockBean
-    private DefaultProfiles profiles;
-
-    @MockBean
-    private BlockchainService blockchainService;
-
-    @MockBean
-    private ConsortiumService consortiumService;
-
-    @MockBean
-    AuthHelper authHelper;
-
-    @MockBean
-    GenericDao genericDao;
-
-    @MockBean
-    ServiceContext serviceContext;
-
-    @MockBean
-    TaskService taskService;
-
-    @MockBean
-    ManagedChannel channel;
-
     @Autowired
     DefaultProfiles defaultProfiles;
 
     @Autowired
     Jackson2ObjectMapperBuilder jacksonBuilder;
+
+    @Autowired
+    UserService userService;
+
+    @Autowired
+    ConsortiumService consortiumService;
+
+    @Autowired
+    BlockchainService blockchainService;
+
+    @Autowired
+    TaskService taskService;
+
+    @Autowired
+    AuthHelper authHelper;
 
     private String token;
     private User user;
