@@ -5,6 +5,12 @@
 # containers.
 FROM athena-docker-local.artifactory.eng.vmware.com/build-images/maven-builder:v1
 
+# env variable for parameterizing application profile
+ENV APPCONTEXT test
+
+# config volume for exposing app profiles
+VOLUME ["/config"]
+
 # Copy the POM files (rarely changing).
 COPY ./helen/developer-config/checkstyle.xml ./helen/developer-config/checkstyle.xml
 COPY ./blockchain-build/pom.xml ./blockchain-build/pom.xml
@@ -68,12 +74,6 @@ COPY ./helen/src/main/resources/application.properties ./application.properties
 COPY ./helen/src/main/resources/database/schema.sql ./db-schema.sql
 COPY --from=0 /home/test/helen/target/blockchain-helen*.jar ./blockchain-helen.jar
 
-# prepare for docker-compose, where concord is available from a virtual
-# hosts named "concord1", "concord2", ...
-RUN echo "ConcordAuthorities=concord1:5458,concord2:5458,concord3:5458,concord4:5458" > ./application-test.properties
-# and CockroachDB is available from a virtual host named db-server
-RUN echo "DB_IP=db-server" >> ./application-test.properties
-
-CMD ["java", "-Dspring.profiles.active=test", "-jar", "blockchain-helen.jar"]
+CMD ["java", "-Dspring.config.location=/config/app/profiles/,./", "-Dspring.profiles.active=${APPCONTEXT}", "-jar", "blockchain-helen.jar"]
 
 EXPOSE 8080
