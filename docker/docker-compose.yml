@@ -136,14 +136,13 @@ services:
     image: "${helen_repo}:${helen_tag}"
     ports:
       - 8080:8080
-    environment:
-      - LINT_API_TOKEN=${LINT_API_TOKEN}
     depends_on:
       - db-server
     volumes:
       - ./config-helen:/config:ro
     environment:
       - "LINT_API_TOKEN=${LINT_API_KEY}"
+      - APPCONTEXT=test
 
   ui:
     image: "${ui_repo}:${ui_tag}"
