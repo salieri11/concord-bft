@@ -65,13 +65,8 @@ services:
       - ./config-public:/concord/config-public:ro
       - ./tls_certs:/concord/tls_certs:ro
 
-  # Steps to build the image:
-  # $> git clone https://gitlab.eng.vmware.com/bfink/daml-on-vmware
-  # $> cd daml-on-vmware
-  # $> git checkout vmw
-  # $> docker build . -f DockerfileLedgerApi -t daml_ledgerapi:latest
   daml_ledgerapi:
-    image: "daml_ledgerapi:latest"
+    image: "${daml_ledgerapi_repo}:${daml_ledgerapi_tag}"
     links:
       - concord1
     expose:

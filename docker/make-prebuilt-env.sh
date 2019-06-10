@@ -53,6 +53,10 @@ do
         SERVICE=${SERVICE_REPO%_repo}
         IMAGE_BASE_NAME=`echo ${LINE} | cut -d "=" -f 2 -`
 
+        if [[ ${SERVICE} == daml_ledgerapi ]]; then
+            continue
+        fi
+
         # try not to double-up artifactory prefixes if someone runs this twice
         if [[ $IMAGE_BASE_NAME =~ $ARTIFACTORY_BASE_IMAGE_PATH ]]; then
             IMAGE_BASE_NAME=`echo ${IMAGE_BASE_NAME} | cut -d "/" -f 2 -`
@@ -60,5 +64,17 @@ do
 
         echo "${SERVICE}_repo=${ARTIFACTORY_BASE_IMAGE_PATH}${IMAGE_BASE_NAME}"
         echo "${SERVICE}_tag=${LATEST_TAG}"
+    fi
+
+    # The DAML LedgerAPI service is in a separate repo and needs to be updated manually
+    # 1) Get the commit hash: Run `git rev-parse --short HEAD` in
+    #    repo: https://gitlab.eng.vmware.com/bfink/daml-on-vmware branch: vmw
+    # 2) Build image locally:
+    #    docker build . -f DockerfileLedgerApi -t athena-docker-local.artifactory.eng.vmware.com/daml-ledgerapi:478f46d
+    # 3) Login and then upload to artifactory
+    #    docker push athena-docker-local.artifactory.eng.vmware.com/daml-ledgerapi:478f46d
+    if [[ $LINE =~ daml_ledgerapi_tag ]]; then
+        echo "daml_ledgerapi_repo=${ARTIFACTORY_BASE_IMAGE_PATH}daml-ledgerapi"
+        echo $LINE
     fi
 done < $SOURCE_FILE

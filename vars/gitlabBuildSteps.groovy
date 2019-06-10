@@ -99,6 +99,8 @@ def call(){
                 try{
                   sh 'mkdir blockchain'
                   dir('blockchain') {
+                    // After the checkout, the content of the repo is directly under 'blockchain'.
+                    // There is no extra 'vmwathena_blockchain' directory.
                     script {
                       env.commit = getRepoCode("git@gitlab.eng.vmware.com:blockchain/vmwathena_blockchain.git", params.blockchain_branch_or_commit)
                       env.blockchain_root = new File(env.WORKSPACE, "blockchain").toString()
@@ -168,7 +170,7 @@ def call(){
               }
             }
           }
-          stage("Copy etherium tests") {
+          stage("Copy ethereum tests") {
             steps() {
               script{
                 try{
@@ -265,6 +267,7 @@ def call(){
                 env.release_persephone_provisioning_client_repo = env.release_repo + "/persephone-provisioning-client"
                 env.release_ui_repo = env.release_repo + "/ui"
                 env.release_contract_compiler_repo = env.release_repo + "/contract-compiler"
+                env.release_daml_ledgerapi_repo = env.release_repo + "/daml-ledgerapi"
 
                 // These are constants which mirror the internal artifactory repos.  We put all merges
                 // to master in the internal VMware artifactory.
@@ -280,6 +283,7 @@ def call(){
                 env.internal_persephone_provisioning_client_repo = env.release_persephone_provisioning_client_repo.replace(env.release_repo, env.internal_repo)
                 env.internal_ui_repo = env.release_ui_repo.replace(env.release_repo, env.internal_repo)
                 env.internal_contract_compiler_repo = env.release_contract_compiler_repo.replace(env.release_repo, env.internal_repo)
+                env.internal_daml_ledgerapi_repo = env.release_daml_ledgerapi_repo.replace(env.release_repo, env.internal_repo)
               }
 
               // Docker-compose picks up values from the .env file in the directory from which
@@ -293,6 +297,7 @@ def call(){
                 ]) {
                 sh '''
                   echo "${PASSWORD}" | sudo -S ls
+                  DAML_LEDGERAPI_TAG=$(grep daml_ledgerapi_tag blockchain/docker/.env | cut -d'=' -f2)
                   sudo cat >blockchain/docker/.env <<EOF
 agent_repo=${internal_agent_repo}
 agent_tag=${docker_tag}
@@ -318,6 +323,8 @@ ui_repo=${internal_ui_repo}
 ui_tag=${docker_tag}
 contract_compiler_repo=${internal_contract_compiler_repo}
 contract_compiler_tag=${docker_tag}
+daml_ledgerapi_repo=${internal_daml_ledgerapi_repo}
+daml_ledgerapi_tag=${DAML_LEDGERAPI_TAG}
 commit_hash=${commit}
 LINT_API_KEY=${LINT_API_KEY}
 EOF
@@ -384,6 +391,7 @@ EOF
                     env.persephone_test_logs = new File(env.test_log_root, "PersephoneTest").toString()
                     env.lint_test_logs = new File(env.test_log_root, "LintTest").toString()
                     env.contract_compiler_test_logs = new File(env.test_log_root, "ContractCompilerTests").toString()
+                    env.daml_test_logs = new File(env.test_log_root, "DamlTests").toString()
 
                     if (genericTests) {
                       sh '''
@@ -395,6 +403,7 @@ EOF
                         echo "${PASSWORD}" | sudo -S "${python}" main.py ExtendedRPCTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${extended_rpc_test_logs}" --runConcordConfigurationGeneration
                         echo "${PASSWORD}" | sudo -S "${python}" main.py ExtendedRPCTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${extended_rpc_test_helen_logs}" --ethrpcApiUrl https://localhost/blockchains/local/api/concord/eth --runConcordConfigurationGeneration
                         echo "${PASSWORD}" | sudo -S "${python}" main.py RegressionTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${regression_test_logs}" --runConcordConfigurationGeneration
+                        echo "${PASSWORD}" | sudo -S "${python}" main.py DamlTests --dockerComposeFile ../docker/docker-compose-daml.yml --resultsDir "${daml_test_logs}" --runConcordConfigurationGeneration --concordConfigurationInput ../concord/config/dockerConfigurationInput-daml.yaml
 
                         # RV, March 21, 2019: Commenting out this suite because it relies on a native Concord build, which is becoming problematic.
                         #                     Uncomment when it no longer relies on that.
