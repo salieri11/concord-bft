@@ -39,8 +39,6 @@ HlfKvbCommandsHandler::HlfKvbCommandsHandler(
     IBlocksAppender* ptr_block_appender)
     : logger_(log4cplus::Logger::getInstance("com.vmware.concord.hlf.handler")),
       chaincode_invoker_(chaincode_invoker),
-      config_(config),
-      node_config_(node_config),
       ptr_ro_storage_(ptr_ro_storage),
       ptr_block_appender_(ptr_block_appender) {
   assert(ptr_block_appender_);
