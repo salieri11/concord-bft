@@ -89,6 +89,7 @@ public class VmbcTokenValidator implements TokenValidator {
             HelenUserDetails userInfo;
             Jws<Claims> claimsJws = parseJwt(token, signingKeyResolver);
             userInfo = getUserInfo(claimsJws);
+            userInfo.setAuthToken(token);
 
 
             // Get the userid for this user

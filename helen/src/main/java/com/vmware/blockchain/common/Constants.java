@@ -18,7 +18,7 @@ public class Constants {
     public static final String OAUTH = "/api/oauth";
     public static final String AUTH_LOGIN = OAUTH + "/login";
     public static final String AUTH_LOGOUT = OAUTH + "/logout";
-    public static final String API_AUTH_TOKEN = API_PREFIX + OAUTH + "/token";
+    public static final String API_AUTH_TOKEN = OAUTH + "/token";
     // callback is only used by the server and csp
     public static final String OAUTH_CALLBACK = OAUTH + "/oauth";
     public static final String CSP_API_DEFAULT_CLIENT = "csp-api-default-client";
