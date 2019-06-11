@@ -27,6 +27,17 @@ Dev server with CSP flavor
 ```bash
 npm run start:csp
 ```
+
+Also add `localhost.vmware.com` to your `/etc/hosts`, so csp can easily make CORS.
+
+```bash
+0.0.0.0 localhost.vmware.com
+```
+
+Then open http://localhost.vmware.com:4200 .
+
+
+
 ### Running Tests
 Two ways of running tests.
 

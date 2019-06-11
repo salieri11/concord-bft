@@ -18,6 +18,8 @@ export class AuthenticationService {
   readonly user: Observable<User>;
   agreement: any = { accepted: false };
   redirectUrl: string;
+  accessToken: string;
+
   constructor(
     private personaService: PersonaService,
     private usersService: UsersService,
@@ -47,6 +49,16 @@ export class AuthenticationService {
       user_id: localStorage['helen.user_id'],
       wallet_address: localStorage['helen.wallet_address']
     };
+  }
+
+  getAccessToken(): Observable<any> {
+    const url = 'api/oauth/token';
+    return this.http.get<{ auth_token: string, last_login: number, email: string }>(url).pipe(
+      map(response => {
+        this.accessToken = response.auth_token;
+        return response;
+      })
+    );
   }
 
   refreshToken(): Observable<any> {

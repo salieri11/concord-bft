@@ -10,23 +10,29 @@ import { AuthenticationService } from './authentication.service';
 import { Personas, PersonaService } from './persona.service';
 import { ErrorAlertService } from './global-error-handler.service';
 import { BlockchainService, BlockchainResponse } from './blockchain.service';
+import { environment } from '../../environments/environment';
+
 
 @Injectable()
 export class AuthenticatedGuard implements CanActivateChild, CanActivate {
+  env = environment;
+
   constructor(
     private router: Router,
     private authenticationService: AuthenticationService,
     private personaService: PersonaService,
     private errorService: ErrorAlertService,
     private translateService: TranslateService,
-    private blockchainService: BlockchainService
+    private blockchainService: BlockchainService,
   ) { }
 
-  canActivateChild(childRoute: ActivatedRouteSnapshot): boolean {
+  canActivateChild(childRoute: ActivatedRouteSnapshot) {
     const personasAllowed: Personas[] = childRoute.component ? (childRoute.component as any).personasAllowed : null;
     const blockchain: BlockchainResponse = this.blockchainService.selectedBlockchain;
 
-    if (localStorage.getItem('changePassword') || !this.authenticationService.isAuthenticated()) {
+    if (this.env.csp) {
+      return true;
+    } else if (localStorage.getItem('changePassword') || !this.authenticationService.isAuthenticated()) {
       this.router.navigate(['auth', 'login']);
       return false;
     } else if (personasAllowed && !this.personaService.hasAuthorization(personasAllowed)) {
@@ -38,11 +44,24 @@ export class AuthenticatedGuard implements CanActivateChild, CanActivate {
     }
   }
 
-  canActivate(route: ActivatedRouteSnapshot): boolean {
+  async canActivate(route: ActivatedRouteSnapshot) {
     const personasAllowed: Personas[] = (route.component as any).personasAllowed;
     const blockchain: BlockchainResponse = this.blockchainService.selectedBlockchain;
 
-    if (localStorage.getItem('changePassword') || this.authenticationService.isAuthenticated()) {
+    if (this.env.csp) {
+      if (!this.authenticationService.accessToken) {
+        const auth = await this.authenticationService.getAccessToken().toPromise();
+        const recent = localStorage.getItem('welcome');
+
+        if (auth.last_login === 0 && recent !== auth.email) {
+          localStorage.setItem('welcome', auth.email);
+          this.router.navigate(['/', 'welcome'], {fragment: 'welcome'});
+        } else {
+          this.router.navigate(['/' + blockchain.id, 'dashboard']);
+        }
+      }
+      return true;
+    } else if (localStorage.getItem('changePassword') || this.authenticationService.isAuthenticated()) {
       this.router.navigate(['auth', 'login']);
       return false;
     } else if (personasAllowed && !this.personaService.hasAuthorization(personasAllowed)) {

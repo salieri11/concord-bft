@@ -1,7 +1,9 @@
 <csp-header
   *ngIf="env.csp; else notCSP"
+  #header
   [serviceRefLink]="serviceRefLink"
   [options]="headerOptions"
+  [environment]="'stg'"
   [authToken]="authToken">
 </csp-header>
 <nav *ngIf="env.csp" class="subnav">
