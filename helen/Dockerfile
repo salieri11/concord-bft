@@ -27,11 +27,6 @@ COPY ./persephone/orchestration/pom.xml ./persephone/orchestration/pom.xml
 COPY ./persephone/orchestration-vmc/pom.xml ./persephone/orchestration-vmc/pom.xml
 COPY ./persephone/persistence/pom.xml ./persephone/persistence/pom.xml
 COPY ./persephone/provisioning-service/pom.xml ./persephone/provisioning-service/pom.xml
-COPY ./protobuf/pom.xml ./protobuf/pom.xml
-COPY ./protobuf/grpc-runtime-kotlinx-serialization/pom.xml ./protobuf/grpc-runtime-kotlinx-serialization/pom.xml
-COPY ./protobuf/protoc-plugin-grpc-kotlinx-serialization/pom.xml ./protobuf/protoc-plugin-grpc-kotlinx-serialization/pom.xml
-COPY ./protobuf/protoc-plugin-kotlinx-serialization/pom.xml ./protobuf/protoc-plugin-kotlinx-serialization/pom.xml
-COPY ./protobuf/protoc-plugin-kotlinx-serialization-test/pom.xml ./protobuf/protoc-plugin-kotlinx-serialization-test/pom.xml
 
 ## Copy the dependency-related POM files (rarely changing).
 COPY ./helen/pom.xml ./helen/pom.xml
@@ -40,12 +35,6 @@ COPY ./helen/pom.xml ./helen/pom.xml
 USER root
 RUN chown -R test:test .
 USER test
-
-# Build protobuf module.
-COPY ./protobuf/grpc-runtime-kotlinx-serialization/src ./protobuf/grpc-runtime-kotlinx-serialization/src
-COPY ./protobuf/protoc-plugin-grpc-kotlinx-serialization/src ./protobuf/protoc-plugin-grpc-kotlinx-serialization/src
-COPY ./protobuf/protoc-plugin-kotlinx-serialization/src ./protobuf/protoc-plugin-kotlinx-serialization/src
-RUN mvn -f protobuf/pom.xml install
 
 # Resolve / fetch all dependencies for communication module.
 RUN mvn -f communication/pom.xml dependency:go-offline -B
