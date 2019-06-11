@@ -29,6 +29,7 @@ COPY ./persephone/persistence/pom.xml ./persephone/persistence/pom.xml
 COPY ./persephone/provisioning-service/pom.xml ./persephone/provisioning-service/pom.xml
 COPY ./protobuf/pom.xml ./protobuf/pom.xml
 COPY ./protobuf/grpc-runtime-kotlinx-serialization/pom.xml ./protobuf/grpc-runtime-kotlinx-serialization/pom.xml
+COPY ./protobuf/protobuf-runtime-kotlinx-serialization/pom.xml ./protobuf/protobuf-runtime-kotlinx-serialization/pom.xml
 COPY ./protobuf/protoc-plugin-grpc-kotlinx-serialization/pom.xml ./protobuf/protoc-plugin-grpc-kotlinx-serialization/pom.xml
 COPY ./protobuf/protoc-plugin-kotlinx-serialization/pom.xml ./protobuf/protoc-plugin-kotlinx-serialization/pom.xml
 COPY ./protobuf/protoc-plugin-kotlinx-serialization-test/pom.xml ./protobuf/protoc-plugin-kotlinx-serialization-test/pom.xml
@@ -43,6 +44,7 @@ USER test
 
 # Build protobuf module.
 COPY ./protobuf/grpc-runtime-kotlinx-serialization/src ./protobuf/grpc-runtime-kotlinx-serialization/src
+COPY ./protobuf/protobuf-runtime-kotlinx-serialization/src ./protobuf/protobuf-runtime-kotlinx-serialization/src
 COPY ./protobuf/protoc-plugin-grpc-kotlinx-serialization/src ./protobuf/protoc-plugin-grpc-kotlinx-serialization/src
 COPY ./protobuf/protoc-plugin-kotlinx-serialization/src ./protobuf/protoc-plugin-kotlinx-serialization/src
 RUN mvn -f protobuf/pom.xml install
