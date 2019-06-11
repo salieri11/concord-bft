@@ -112,6 +112,7 @@ void RocksDBMetadataStorage::commitAtomicWriteOnlyTransaction() {
     throw runtime_error("RocksDB multiPut operation failed");
   }
   delete transaction_;
+  transaction_ = nullptr;
 }
 
 Status RocksDBMetadataStorage::multiDel(const ObjectIdsVector &objectIds) {
