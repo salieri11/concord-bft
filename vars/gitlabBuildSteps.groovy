@@ -267,6 +267,9 @@ def call(){
                 env.release_persephone_provisioning_client_repo = env.release_repo + "/persephone-provisioning-client"
                 env.release_ui_repo = env.release_repo + "/ui"
                 env.release_contract_compiler_repo = env.release_repo + "/contract-compiler"
+                env.release_hlf_tools_repo = env.release_repo + "/hyperledger-fabric-tools"
+                env.release_hlf_peer_repo = env.release_repo + "/hyperledger-fabric-peer"
+                env.release_hlf_orderer_repo = env.release_repo + "/hyperledger-fabric-orderer"
                 env.release_daml_ledgerapi_repo = env.release_repo + "/daml-ledgerapi"
 
                 // These are constants which mirror the internal artifactory repos.  We put all merges
@@ -283,6 +286,9 @@ def call(){
                 env.internal_persephone_provisioning_client_repo = env.release_persephone_provisioning_client_repo.replace(env.release_repo, env.internal_repo)
                 env.internal_ui_repo = env.release_ui_repo.replace(env.release_repo, env.internal_repo)
                 env.internal_contract_compiler_repo = env.release_contract_compiler_repo.replace(env.release_repo, env.internal_repo)
+                env.internal_hlf_tools_repo = env.release_hlf_tools_repo.replace(env.release_repo, env.internal_repo)
+                env.internal_hlf_peer_repo = env.release_hlf_peer_repo.replace(env.release_repo, env.internal_repo)
+                env.internal_hlf_orderer_repo = env.release_hlf_orderer_repo.replace(env.release_repo, env.internal_repo)
                 env.internal_daml_ledgerapi_repo = env.release_daml_ledgerapi_repo.replace(env.release_repo, env.internal_repo)
               }
 
@@ -323,6 +329,12 @@ ui_repo=${internal_ui_repo}
 ui_tag=${docker_tag}
 contract_compiler_repo=${internal_contract_compiler_repo}
 contract_compiler_tag=${docker_tag}
+hlf_tools_repo=${internal_hlf_tools_repo}
+hlf_tools_tag=${docker_tag}
+hlf_peer_repo=${internal_hlf_peer_repo}
+hlf_peer_tag=${docker_tag}
+hlf_orderer_repo=${internal_hlf_orderer_repo}
+hlf_orderer_tag=${docker_tag}
 daml_ledgerapi_repo=${internal_daml_ledgerapi_repo}
 daml_ledgerapi_tag=${DAML_LEDGERAPI_TAG}
 commit_hash=${commit}
@@ -391,6 +403,7 @@ EOF
                     env.persephone_test_logs = new File(env.test_log_root, "PersephoneTest").toString()
                     env.lint_test_logs = new File(env.test_log_root, "LintTest").toString()
                     env.contract_compiler_test_logs = new File(env.test_log_root, "ContractCompilerTests").toString()
+                    env.hlf_test_logs = new File(env.test_log_root, "HlfTests").toString()
                     env.daml_test_logs = new File(env.test_log_root, "DamlTests").toString()
 
                     if (genericTests) {
@@ -410,6 +423,7 @@ EOF
                         # echo "${PASSWORD}" | sudo -S "${python}" main.py SimpleStateTransferTest --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${statetransfer_test_logs}" --runConcordConfigurationGeneration
                         echo "${PASSWORD}" | sudo -S "${python}" main.py TruffleTests --logLevel debug --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${truffle_test_logs}" --runConcordConfigurationGeneration
                         echo "${PASSWORD}" | sudo -S "${python}" main.py ContractCompilerTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${contract_compiler_test_logs}" --runConcordConfigurationGeneration
+                        echo "${PASSWORD}" | sudo -S "${python}" main.py --runConcordConfigurationGeneration --concordConfigurationInput /concord/config/dockerConfigurationInput-hlf.yaml --dockerComposeFile=../docker/docker-compose-hlf.yml HlfTests
 
                         cd suites ; echo "${PASSWORD}" | sudo -SE ./memory_leak_test.sh --testSuite CoreVMTests --repeatSuiteRun 2 --tests vmArithmeticTest/add0.json --resultsDir "${mem_leak_test_logs}" ; cd ..
 
