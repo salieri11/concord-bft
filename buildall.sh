@@ -313,7 +313,7 @@ docker_pull cockroachdb/cockroach:v2.0.2 Cockroach_DB
 
 docker_pull athena-docker-local.artifactory.eng.vmware.com/reverse-proxy:0.1.2 "Reverse_proxy"
 
-docker_build asset-transfer asset-transfer/Dockerfile ${asset_transfer_repo} ${asset_transfer_tag}
+docker_build vmware-blockchain-samples/asset-transfer vmware-blockchain-samples/asset-transfer/Dockerfile ${asset_transfer_repo} ${asset_transfer_tag}
 
 docker_build agent agent/packaging.Dockerfile ${agent_repo} ${agent_tag}
 

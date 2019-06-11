@@ -138,6 +138,25 @@ def call(){
         }
       }
 
+      stage('Fetch samples from github.') {
+        steps {
+          script {
+            try {
+              dir('blockchain') {
+                script {
+                  sh '''
+                  git clone https://github.com/vmware-samples/vmware-blockchain-samples.git
+                  '''
+                }
+              }
+            } catch(Exception ex) {
+              failRun()
+              throw ex
+            }
+          }
+        }
+      }
+
       stage("Copy dependencies") {
         parallel {
           stage("Copy googletest") {
@@ -256,7 +275,7 @@ def call(){
 
                 // These are constants which mirror the DockerHub repos.  DockerHub is only used for publishing releases.
                 env.release_agent_repo = env.release_repo + "/agent"
-                env.release_asset_transfer_repo = env.release_repo + "/asset-transfer"
+                env.release_asset_transfer_repo = env.release_repo + "/vmware-blockchain-samples/asset-transfer"
                 env.release_concord_repo = env.release_repo + "/concord-core"
                 env.release_ethrpc_repo = env.release_repo + "/ethrpc"
                 env.release_fluentd_repo = env.release_repo + "/fluentd"
