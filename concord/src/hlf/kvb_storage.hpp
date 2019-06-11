@@ -27,9 +27,6 @@ class HlfKvbStorage {
       pending_hlf_transactions_;
   log4cplus::Logger logger_;
 
-  // BFT sequence number associated with HLF chaincode execution.
-  uint64_t bft_sequence_num_ = 0;
-
  public:
   // 0x10 - 0x1F reserved for HLF
   const uint8_t kTypeHlfBlock = 0x10;

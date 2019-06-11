@@ -21,8 +21,6 @@ class HlfKvbCommandsHandler : public concord::storage::ICommandsHandler {
  private:
   log4cplus::Logger logger_;
   concord::hlf::ChaincodeInvoker* chaincode_invoker_ = nullptr;
-  const concord::config::ConcordConfiguration& config_;
-  concord::config::ConcordConfiguration& node_config_;
 
   concord::storage::ILocalKeyValueStorageReadOnly* ptr_ro_storage_ = nullptr;
   concord::storage::IBlocksAppender* ptr_block_appender_ = nullptr;

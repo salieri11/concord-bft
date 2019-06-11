@@ -41,8 +41,8 @@ HlfKvbStorage::HlfKvbStorage(const ILocalKeyValueStorageReadOnly &ro_storage,
                              uint64_t sequence_num)
     : ro_storage_(ro_storage),
       ptr_block_appender_(ptr_block_appender),
-      logger_(log4cplus::Logger::getInstance("com.vmware.concord.hlf.storage")),
-      bft_sequence_num_(sequence_num) {}
+      logger_(
+          log4cplus::Logger::getInstance("com.vmware.concord.hlf.storage")) {}
 
 HlfKvbStorage::~HlfKvbStorage() {}
 
