@@ -112,6 +112,16 @@ def main():
            "Note: The path specified is the absolute path within a Concord container",
       default="/concord/config/dockerConfigurationInput.yaml")
 
+   parser.add_argument("--deployNewBlockchain",
+                       help="Triggers deployment of and testing against a blockchain "
+                            "deployed to an SDDC via Persephone instead of using the"
+                            "blockchain deployed by docker-compose.  Currently only "
+                            "applies to HelenAPITests.  CURRENTLY FAILS.  ALSO, REQUIRES "
+                            "MANUAL DELETION OF THE CONCORD NODES FROM THE SDDC WHEN "
+                            "FINISHED.",
+                       default=False,
+                       action='store_true')
+
    args = parser.parse_args()
    parent_results_dir = args.resultsDir
 

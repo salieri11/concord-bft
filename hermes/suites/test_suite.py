@@ -155,7 +155,7 @@ class TestSuite(ABC):
       launches the product.  Passing in force=True means the
       product will always be launched.
       '''
-      self.product = Product(cmdlineArgs, userConfig)
+      self.product = Product(cmdlineArgs, userConfig, self)
 
       if force or (self._productMode and not self._noLaunch):
          try:
@@ -164,6 +164,14 @@ class TestSuite(ABC):
             log.error(str(e))
             self.writeResult("All Tests", False, "The product did not start.")
             raise(e)
+
+   def validateLaunchConfig(self, dockerCfg):
+      '''
+      When the the product is being launched, it can call into a test suite
+      to identify configuration issues before continuing with the launch.
+      Implement this in a child class if needed.
+      '''
+      pass
 
    def launchPersephone(self, cmdlineArgs, userConfig, force=False):
       '''
@@ -215,7 +223,7 @@ class TestSuite(ABC):
       return (abi.strip(), hex_str.strip())
 
 
-   def setEthrpcNode(self):
+   def setEthrpcNode(self, request=None, blockchainId=None):
       '''
       Changes the ethRpcNode that a test suite uses.  Expected usage
       is that this function gets called at the beginning of every
@@ -224,15 +232,16 @@ class TestSuite(ABC):
       if self._args.ethrpcApiUrl:
          self.ethrpcApiUrl = self._args.ethrpcApiUrl
       else:
-         self.ethrpcApiUrl = self._getEthrpcApiUrl()
+         self.ethrpcApiUrl = self._getEthrpcApiUrl(request, blockchainId)
 
-   def _getEthrpcApiUrl(self):
+
+   def _getEthrpcApiUrl(self, request=None, blockchainId=None):
       '''
       Fetches a random ethRpc node.  This uses the Product class
       which gets the nodes by using Helen's getMembers API.
       '''
       if not self.ethrpcNodes:
-         self.ethrpcNodes = self.product.getEthrpcNodes()
+         self.ethrpcNodes = self.product.getEthrpcNodes(request, blockchainId)
 
       if self.ethrpcNodes:
          node = random.choice(self.ethrpcNodes)
