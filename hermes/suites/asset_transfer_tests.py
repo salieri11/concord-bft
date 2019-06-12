@@ -206,8 +206,6 @@ class AssetTransferTests(test_suite.TestSuite):
 
       contracts_before = requests.get(url = "http://" + self._user + ":" + self._password + "@localhost/api/concord/contracts").content
 
-      os.system("cd .. && git clone https://github.com/vmware-samples/vmware-blockchain-samples.git && ls")
-
       # Changing the truffle-config.js file
       with open("../vmware-blockchain-samples/supply-chain/truffle-config.js", "r+") as file:
          lines = file.read()
