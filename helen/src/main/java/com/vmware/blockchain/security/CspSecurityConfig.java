@@ -45,6 +45,8 @@ public class CspSecurityConfig extends WebSecurityConfigurerAdapter {
     protected void configure(HttpSecurity http) throws Exception {
         // Disable CSRF (cross site request forgery)
         http.csrf().disable().sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS).and()
+                // Session fixation is a problem with the ui due to concurrency
+                .sessionManagement().sessionFixation().none().and()
                 .authorizeRequests()
                 .antMatchers("/api/auth/login", "/api/auth/token", "/api/agreements/1", "/", "/assets/**")
                 .permitAll()
