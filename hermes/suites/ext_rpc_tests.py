@@ -768,8 +768,8 @@ class ExtendedRPCTests(test_suite.TestSuite):
 
       expected = [0xdeadbeef, 0xc0ffee]
       for l in logs:
-         if int(l["blockNumber"], 16) != from_block \
-            and int(l["blockNumber"], 16) != to_block:
+         if int(l["blockNumber"], 16) < from_block \
+            or int(l["blockNumber"], 16) > to_block:
             return (False, "Unexpected block")
          if len(l["topics"]) == 2:
             val = int(l["topics"][1], 16)

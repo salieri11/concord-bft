@@ -14,7 +14,8 @@
 
 using com::vmware::concord::ConcordRequest;
 using com::vmware::concord::ConcordResponse;
-using com::vmware::concord::TimeUpdate;
+using com::vmware::concord::TimeRequest;
+using com::vmware::concord::TimeSample;
 using concord::time::TimePusher;
 
 TimePusher::TimePusher(const concord::config::ConcordConfiguration &config,
@@ -90,9 +91,10 @@ void TimePusher::AddTimeToCommand(ConcordRequest &command) {
 }
 
 void TimePusher::AddTimeToCommand(ConcordRequest &command, uint64_t time) {
-  TimeUpdate *tu = command.mutable_time_update();
-  tu->set_source(timeSourceId_);
-  tu->set_time(time);
+  TimeRequest *tr = command.mutable_time_request();
+  TimeSample *ts = tr->mutable_sample();
+  ts->set_source(timeSourceId_);
+  ts->set_time(time);
   lastPublishTimeMs_ = time;
 }
 

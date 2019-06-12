@@ -118,6 +118,8 @@ bool EthKvbCommandsHandler::executeReadOnlyCommand(
       result = handle_block_request(command, kvbStorage, athresp);
     } else if (command.eth_request_size() > 0) {
       result = handle_eth_request_read_only(command, kvbStorage, athresp);
+    } else if (command.has_time_request()) {
+      result = handle_time_request(command, kvbStorage, athresp);
     } else {
       std::string pbtext;
       google::protobuf::TextFormat::PrintToString(command, &pbtext);
@@ -160,13 +162,13 @@ bool EthKvbCommandsHandler::executeCommand(
   ConcordResponse athresp;
   if (command.ParseFromArray(request, requestSize)) {
     // Time must come first, if any other commands are to use the updated time.
-    if (command.has_time_update()) {
-      result = handle_time_update(command, kvbStorage, athresp);
+    if (command.has_time_request()) {
+      result = handle_time_request(command, kvbStorage, athresp);
     }
 
     if (command.eth_request_size() > 0) {
       result = handle_eth_request(command, kvbStorage, athresp);
-    } else if (command.has_time_update()) {
+    } else if (command.has_time_request()) {
       // This was a time-update-only command. Just write the block.
       TimeContract tc(kvbStorage, config_);
       // divide by 1000, because time service is in milliseconds, but ethereum
@@ -175,9 +177,11 @@ bool EthKvbCommandsHandler::executeCommand(
       kvbStorage.write_block(timestamp,
                              config_.getValue<uint64_t>("gas_limit"));
 
-      // concord-bft does not like zero-byte responses, so we're including a
-      // small empty message to make it happy
-      athresp.mutable_time_response();
+      if (!athresp.has_time_response() && athresp.error_response_size() == 0) {
+        // concord-bft does not like zero-byte responses, so we're including a
+        // small empty message to make it happy
+        athresp.mutable_time_response();
+      }
       result = true;
     } else {
       // SBFT may decide to try one of our read-only commands in read-write
@@ -206,16 +210,48 @@ bool EthKvbCommandsHandler::executeCommand(
 }
 
 /*
- * Handle a TimeUpdate.
+ * Handle a TimeRequest.
  */
-bool EthKvbCommandsHandler::handle_time_update(ConcordRequest &athreq,
-                                               EthKvbStorage &kvbStorage,
-                                               ConcordResponse &athresp) const {
+bool EthKvbCommandsHandler::handle_time_request(ConcordRequest &req,
+                                                EthKvbStorage &kvbStorage,
+                                                ConcordResponse &resp) const {
   if (concord::time::IsTimeServiceEnabled(config_)) {
     TimeContract tc(kvbStorage, config_);
-    std::pair<std::string, uint64_t> cmd_time =
-        concord::time::GetTimeFromCommand(athreq);
-    tc.Update(cmd_time.first, cmd_time.second);
+
+    TimeRequest tr = req.time_request();
+
+    // Only apply the new sample if the command was issued in read-write mode.
+    if (!kvbStorage.is_read_only() && tr.has_sample()) {
+      TimeSample ts = tr.sample();
+      if (ts.has_source() && ts.has_time()) {
+        tc.Update(ts.source(), ts.time());
+      } else {
+        LOG4CPLUS_WARN(
+            logger,
+            "Time Sample is missing "
+                << (ts.has_source() ? "" : "source")
+                << (ts.has_time() ? ""
+                                  : (ts.has_source() ? " and time" : "time")));
+      }
+    }
+
+    if (tr.return_summary()) {
+      TimeResponse *tp = resp.mutable_time_response();
+      tp->set_summary(tc.GetTime());
+    }
+
+    if (tr.return_samples()) {
+      TimeResponse *tp = resp.mutable_time_response();
+
+      for (auto s : tc.GetSamples()) {
+        TimeSample *ts = tp->add_sample();
+        ts->set_source(s.first);
+        ts->set_time(s.second);
+      }
+    }
+  } else {
+    ErrorResponse *e = resp.add_error_response();
+    e->set_description("Time service is disabled.");
   }
 
   return true;

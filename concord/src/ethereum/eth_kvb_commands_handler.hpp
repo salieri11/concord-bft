@@ -69,9 +69,9 @@ class EthKvbCommandsHandler : public concord::storage::ICommandsHandler {
   bool handle_block_request(
       com::vmware::concord::ConcordRequest &athreq, EthKvbStorage &kvbStorage,
       com::vmware::concord::ConcordResponse &athresp) const;
-  bool handle_time_update(com::vmware::concord::ConcordRequest &athreq,
-                          EthKvbStorage &kvbStorage,
-                          com::vmware::concord::ConcordResponse &athresp) const;
+  bool handle_time_request(com::vmware::concord::ConcordRequest &req,
+                           EthKvbStorage &kvbStorage,
+                           com::vmware::concord::ConcordResponse &resp) const;
   bool handle_eth_request(com::vmware::concord::ConcordRequest &athreq,
                           EthKvbStorage &kvbStorage,
                           com::vmware::concord::ConcordResponse &athresp) const;
