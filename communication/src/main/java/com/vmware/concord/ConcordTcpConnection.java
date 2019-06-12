@@ -43,7 +43,16 @@ public final class ConcordTcpConnection implements IConcordConnection {
         throws IOException {
         this.receiveTimeoutMs = receiveTimeoutMs;
         this.receiveHeaderSizeBytes = receiveHeaderSizeBytes;
-        maxMessageSizeBytes = (1 << (receiveHeaderSizeBytes * 8)) - 1;
+
+        /* This limit has been temporarily lowered to 60000 (from (1 <<
+         * (receivedHeaderSizeBytes * 8) - 1)) as a quick fix (VB-962) to
+         * prevent Concord from crashing when large transactions are sent, as
+         * Concord currently does not handle such cases correctly. This limit
+         * should be restored to its original value once the underlying issues
+         * have actually been fixed.
+         */
+        maxMessageSizeBytes = 60000; // (1 << (receiveHeaderSizeBytes * 8)) - 1;
+
         disposed = new AtomicBoolean(false);
 
         // Create the TCP connection and input and output streams

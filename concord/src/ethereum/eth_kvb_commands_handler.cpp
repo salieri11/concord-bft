@@ -137,8 +137,38 @@ bool EthKvbCommandsHandler::executeReadOnlyCommand(
   if (athresp.SerializeToArray(outReply, maxReplySize)) {
     outReplySize = athresp.ByteSize();
   } else {
-    LOG4CPLUS_ERROR(logger, "Reply is too large");
-    outReplySize = 0;
+    size_t replySize = athresp.ByteSizeLong();
+    LOG4CPLUS_ERROR(logger,
+                    "Cannot send reply to a client request: Reply is too large "
+                    "(size of this reply: " +
+                        std::to_string(replySize) +
+                        ", maximum size allowed for this reply: " +
+                        std::to_string(maxReplySize) + ").");
+
+    athresp = ConcordResponse();
+    ErrorResponse *errorResp = athresp.add_error_response();
+    errorResp->set_description(
+        "Concord could not send reply: Reply is too large (size of this "
+        "reply: " +
+        std::to_string(replySize) + ", maximum size allowed for this reply: " +
+        std::to_string(maxReplySize) + ").");
+
+    if (athresp.SerializeToArray(outReply, maxReplySize)) {
+      outReplySize = athresp.ByteSize();
+    } else {
+      // This case should never occur; we intend to enforce a minimum buffer
+      // size for the communication buffer size that Concord-BFT is configured
+      // with, and this minimum should be significantly higher than the size of
+      // this error messsage.
+      LOG4CPLUS_FATAL(
+          logger,
+          "Cannot send error reply indicating reply is too large: The error "
+          "reply itself is too large (error reply size: " +
+              std::to_string(athresp.ByteSizeLong()) +
+              ", maximum size allowed for this reply: " +
+              std::to_string(maxReplySize) + ").");
+      outReplySize = 0;
+    }
   }
 
   return result;
@@ -198,8 +228,34 @@ bool EthKvbCommandsHandler::executeCommand(
   if (athresp.SerializeToArray(outReply, maxReplySize)) {
     outReplySize = athresp.ByteSize();
   } else {
-    LOG4CPLUS_ERROR(logger, "Reply is too large");
-    outReplySize = 0;
+    size_t replySize = athresp.ByteSizeLong();
+    LOG4CPLUS_ERROR(logger,
+                    "Cannot send reply to a client request: Reply is too large "
+                    "(size of this reply: " +
+                        std::to_string(replySize) +
+                        ", maximum size allowed for this reply: " +
+                        std::to_string(maxReplySize) + ").");
+
+    athresp = ConcordResponse();
+    ErrorResponse *errorResp = athresp.add_error_response();
+    errorResp->set_description(
+        "Concord could not send reply: Reply is too large (size of this "
+        "reply: " +
+        std::to_string(replySize) + ", maximum size allowed for this reply: " +
+        std::to_string(maxReplySize) + ").");
+
+    if (athresp.SerializeToArray(outReply, maxReplySize)) {
+      outReplySize = athresp.ByteSize();
+    } else {
+      LOG4CPLUS_FATAL(
+          logger,
+          "Cannot send error reply indicating reply is too large: The error "
+          "reply itself is too large (error reply size: " +
+              std::to_string(athresp.ByteSizeLong()) +
+              ", maximum size allowed for this reply: " +
+              std::to_string(maxReplySize) + ").");
+      outReplySize = 0;
+    }
   }
 
   return result;

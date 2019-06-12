@@ -15,6 +15,7 @@ import time
 import traceback
 import re
 import random
+import web3
 
 from . import test_suite
 from rpc.rpc_call import RPC
@@ -24,8 +25,34 @@ from util.product import Product
 import util.json_helper
 from rest.request import Request
 from datetime import datetime
+from web3 import Web3
 
 log = logging.getLogger(__name__)
+
+# Constants used in the large transaction test.
+
+# A known size to start with as the upper bound for a binary search for the
+# point at which EthRPC rejects transactions. Ideally, EthRPC should reject
+# transactions of this size, but the test will automatically use a larger size
+# if it finds it doesn't.
+MIN_ETHRPC_REJECTION_SIZE_TO_START_WITH = 70000
+
+# Size after which to give up on the large transaction test in the event no
+# EthRPC rejection can be found without testing above this size. This limit
+# exits mostly to attempt the test from trying to generate transactions of
+# arbitrary size and possibly running out of memory in the event Concord and
+# EthRPC actually handle transactions much larger than Hermes has been given
+# memory to handle.
+MAX_TESTABLE_TRANSACTION_SIZE = 10000000
+
+# Number of maximally-sized transactions admissible to EthRPC to send during the
+# large transaction tests. This number should be designed such that it is
+# sufficient to crash the entire Concord cluster or render it unresponsive in
+# the event that poorly handled large transactions cause node crashes or
+# resource leaks. At the very least, this number should exceed the number of
+# nodes in the Concord cluster, the number of SBFT replicas, and the number of
+# SBFT client proxies.
+LARGE_TRANSACTIONS_TO_SEND = 100
 
 class RegressionTests(test_suite.TestSuite):
    _args = None
@@ -86,7 +113,8 @@ class RegressionTests(test_suite.TestSuite):
    def _getTests(self):
       return [("nested_contract_creation", self._test_nested_contract_creation), \
               ("invalid_addresses", self._test_invalid_addresses), \
-              ("call_writer", self._test_call_writer)]
+              ("call_writer", self._test_call_writer),
+              ("large_transactions", self._test_large_transactions)]
 
    def _runRpcTest(self, testName, testFun, testLogDir):
       ''' Runs one test. '''
@@ -252,4 +280,155 @@ class RegressionTests(test_suite.TestSuite):
 
       else:
          #Skip the test if running in Ethereum mode
+         return (None, None)
+  
+   def _test_large_transactions(self, rpc):
+      '''
+      Tests that Concord does not appear to gracelessly handle any large
+      transactions in ways that cause unexpected exceptions in EthRPC or crash
+      Concord; this test is intended to detect regressions re-introducing a
+      class of bugs we have made a fix to prevent, involving Concord partially
+      or completely crashing upon being sent transactions in a size range just
+      below the point at which EthRPC will reject the requests before they reach
+      Concord.
+
+      Specifically, this test expects the behavior that EthRPC will return
+      exceptions complaining that requests are too large past a certain point,
+      but will never throw an exception below that point, and that submitting a
+      large number of transactions just below that point will not cause Concord
+      to crash.
+      '''
+      if self._productMode:
+
+         # Get Web3 instance and load and deploy StringStorage contract.
+         # Please see hermes/resources/contracts/StringStorage.sol for details
+         # about this contract.
+         w3 = self.getWeb3Instance()
+         abi, bin = self.loadContract("StringStorage")
+         contract = w3.eth.contract(abi=abi, bytecode=bin)
+
+         # Note that, in this test, we specify explicit values here for every
+         # parameter to eth_sendTransaction except data; this is because this
+         # test relies on sending specific sizes of transactions to EthRPC by
+         # modulating the size of the string parameter it passes to the contract
+         # function it is calling; we do not want to allow Web3 to introduce
+         # variability in the request size by allowing it to pick things like
+         # the gas and gas price.
+         txArgs = {"from": "0x61C5E2A298f40DBB2adEE3b27C584AdAD6833BaC",
+                   "gas": "0xFFFFFFFF",
+                   "gasPrice": "0x1",
+                   "value": 0}
+
+         contractTx = contract.constructor().transact(txArgs)
+         contractTxReceipt = w3.eth.waitForTransactionReceipt(contractTx)
+         contract = w3.eth.contract(address=contractTxReceipt.contractAddress, \
+               abi=abi)
+
+         # Check that the contract appears to be working.
+         contract.functions.setString("Example string.").transact(txArgs)
+         storedString = contract.functions.storedString().call()
+         
+         if (storedString != "Example string."):
+           return (False, "String storage contract failed to store a string.")
+
+         # Search for the maximum size of transaction that EthRPC will allow
+         # to go through to Concord.
+         maximumAdmittedSize = 1
+         minimumRejectedSize = MIN_ETHRPC_REJECTION_SIZE_TO_START_WITH
+         
+         # This test attempts to make minimal assumptions about the minimum size
+         # EthRPC rejects, so it will bump up the limit it starts with if it
+         # doesn't find transactions of this size to be rejected.
+         confirmedRejection = False
+         while ((not confirmedRejection) \
+               and (minimumRejectedSize <= MAX_TESTABLE_TRANSACTION_SIZE)):
+            stringInput = "A" * minimumRejectedSize
+            try:
+               result = \
+                     contract.functions.setString(stringInput).transact(txArgs)
+
+            # Note to detect size rejections from EthRPC, we examine the
+            # exception message. This is necessary because Web3 can throw us
+            # ValueErrors for several types of errors it gets back from EthRPC,
+            # some of which imply non-graceful failures on Concord's part. Note
+            # any exception other than the one we expect will be assumed to
+            # result from Concord crashing or failing to respond to large
+            # requests it gets from EthRPC and therefore grounds for failing
+            # this test case.
+            except ValueError as e:
+               if (re.search("[Tt]oo.*(([Ll]arge)|([Bb]ig))", str(e))):
+                  confirmedRejection = True
+               else:
+                  return (False, \
+                        "Unexpected exception when sending transaction with"
+                        " parameter of size " + str(minimumRejectedSize) + ": "
+                        + str(e))
+
+            if (not confirmedRejection):
+               wasMaximal = \
+                     (minimumRejectedSize >= MAX_TESTABLE_TRANSACTION_SIZE)
+               minimumRejectedSize *= 2
+               if ((minimumRejectedSize > MAX_TESTABLE_TRANSACTION_SIZE) \
+                     and (not wasMaximal)):
+                  minimumRejectedSize = MAX_TESTABLE_TRANSACTION_SIZE
+         
+         # Note we give up on this test if no transaction within
+         # MAX_TESTABLE_TRANSACTION_SIZE is rejected by EthRPC; giving up on the
+         # test in this case is interest of not attempting to handle the case
+         # or generate transactions of arbitrary size when Concord and EthRPC
+         # can handle transactions much larger than Hermes has been given the
+         # memory to generate.
+         if (not confirmedRejection):
+            return (None, "Unable to detect EthRPC transaction rejection" \
+                  + " within test size cap.")
+
+         while (maximumAdmittedSize < (minimumRejectedSize - 1)):
+            mid = int((maximumAdmittedSize + minimumRejectedSize) / 2)
+            rejected = False
+            stringInput = "A" * mid
+            try:
+               result = \
+                     contract.functions.setString(stringInput).transact(txArgs)
+
+            # For the same reasons as the except clause in the previous loop, we
+            # must look at the exception message to determine whether we
+            # consider this a graceful EthRPC rejection.
+            except ValueError as e:
+               if (re.search("[Tt]oo.*(([Ll]arge)|([Bb]ig))", str(e))):
+                  rejected = True
+               else:
+                  return (False, \
+                        "Unexpected exception when sending transaction with"
+                        " parameter of size " + str(minimumRejectedSize) + ": "
+                        + str(e))
+
+            if rejected:
+              minimumRejectedSize = mid
+            else:
+              maximumAdmittedSize = mid
+
+         assert(maximumAdmittedSize == (minimumRejectedSize - 1))
+
+         # Send some transactions of the largest size that EthRPC won't reject.
+         # Concord may accept or reject these transactions, but it should give a
+         # timely response and should not crash as a result of these
+         # transactions.
+         stringInput = "A" * maximumAdmittedSize
+         for i in range(0, LARGE_TRANSACTIONS_TO_SEND):
+            result = contract.functions.setString(stringInput).transact(txArgs)
+
+         # Double-check that the Concord cluster still apears to be working.
+         # Ideally, this test case should fail if sending the large transactions
+         # above cause the Concord cluster to crash.
+         contract.functions.setString("Final string.").transact(txArgs)
+         storedString = contract.functions.storedString().call()
+         
+         if (storedString != "Final string."):
+           return (False, "Concord cluster does not seem to work any more after"
+                 + " sending a number of large transactions.")
+
+         return (True, None)
+
+      else:
+         # We skip this test if running in Ethereum mode.
          return (None, None)
