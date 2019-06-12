@@ -53,6 +53,10 @@ class CspClient:
         url = self.csp_url + "/csp/gateway/slc/api/definitions/external/{id}".format(id=service_id)
         return json.loads(self._do_method(patch, url, patch_body))["refLink"]
 
+    def delete_service_def(self, service_id):
+        url = self.csp_url + "/csp/gateway/slc/api/definitions/external/{id}".format(id=service_id)
+        return json.loads(self._do_method(delete, url))["refLink"]
+
     def create_service_invitations(self, service_id, invitation_count):
         """Create the requested number of invitations to the service.  Returns a list of invitation ids"""
         url = self.csp_url + "/csp/gateway/slc/api/service-invitations"
@@ -78,7 +82,7 @@ class CspClient:
         url = self.csp_url + "/csp/gateway/am/api/orgs/{org_id}/oauth-apps".format(org_id=org_id)
         return json.loads(self._do_method(post, url, body))
 
-    def create_oauth_default(self, org_id, service_id, display_name, client_id, client_secret, redirect_uris):
+    def create_oauth_default(self, org_id, service_id, display_name, redirect_uris):
         """Create an oauth client with most of the fields defaulted"""
         body = {
             "accessTokenTTL": 1800,
@@ -100,16 +104,19 @@ class CspClient:
                 "authorization_code",
                 "refresh_token"
             ],
-            "id": client_id,
             "maxGroupsInIdToken": 20,
             "redirectUris": redirect_uris,
             "refreshTokenTTL": 15552000,
-            "secret": client_secret
         }
 
         print(json.dumps(body))
 
         return self.create_oauth_client(org_id, body)
+
+    def delete_oauth_client(self, org_id, client_id):
+        url = self.csp_url + "/csp/gateway/am/api/orgs/{org_id}/oauth-apps".format(org_id=org_id)
+        body = {"clientIdsToDelete": [client_id]}
+        return json.loads(self._do_method(delete, url, body))
 
     def _do_method(self, method, url, body = None):
         access_token = self.get_access_token()["access_token"]
