@@ -5,6 +5,7 @@
 package com.vmware.blockchain.oauth2;
 
 import java.io.IOException;
+import java.time.Instant;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -250,6 +251,8 @@ public class Oauth2Controller {
     static class CurrentToken {
         String authToken;
         String idToken;
+        String email;
+        long lastLogin;
     }
 
     /**
@@ -265,7 +268,10 @@ public class Oauth2Controller {
         if (session != null) {
             idToken = (String) session.getAttribute(Constants.TOKEN_ID);
         }
-        return new CurrentToken(authHelper.getAuthToken(), idToken);
+        String email = authHelper.getDetails().getUsername();
+        Instant n = authHelper.getDetails().getLastLogin();
+        long lastLogin = n == null ? 0 : n.toEpochMilli();
+        return new CurrentToken(authHelper.getAuthToken(), idToken, email, lastLogin);
     }
 
 

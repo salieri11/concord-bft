@@ -4,6 +4,7 @@
 
 package com.vmware.blockchain.security;
 
+import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
@@ -35,6 +36,10 @@ public class HelenUserDetails extends User {
     @Getter
     @Setter
     private UUID userId;
+
+    @Getter
+    @Setter
+    private Instant lastLogin;
 
     /**
      * Create a new instance of HelenUserDetails.

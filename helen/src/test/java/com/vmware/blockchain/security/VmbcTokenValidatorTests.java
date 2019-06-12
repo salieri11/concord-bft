@@ -2,7 +2,7 @@
  * Copyright (c) 2019 VMware, Inc. All rights reserved. VMware Confidential
  */
 
-package com.vmware.blockchain.common.csp;
+package com.vmware.blockchain.security;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.anyString;
@@ -31,9 +31,9 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import com.vmware.blockchain.BaseCacheHelper;
+import com.vmware.blockchain.common.csp.CspCommon.CspUser;
+import com.vmware.blockchain.common.csp.CspJwksSigningKeyResolver;
 import com.vmware.blockchain.common.csp.api.client.CspApiClient;
-import com.vmware.blockchain.security.HelenUserDetails;
-import com.vmware.blockchain.security.ServiceContext;
 import com.vmware.blockchain.services.blockchains.BlockchainService;
 import com.vmware.blockchain.services.profiles.OrganizationService;
 import com.vmware.blockchain.services.profiles.Roles;
@@ -63,7 +63,7 @@ public class VmbcTokenValidatorTests {
     private BlockchainService blockchainService;
 
     private String userName;
-    private CspCommon.CspUser user;
+    private CspUser user;
     private KeyPair keyPair;
     private ServiceContext serviceContext;
 
@@ -89,7 +89,7 @@ public class VmbcTokenValidatorTests {
                         serviceContext, "serviceId");
 
         userName = "batman@wayneenterprises.com";
-        user = new CspCommon.CspUser();
+        user = new CspUser();
         user.setFirstName("Bruce");
         user.setLastName("Wayne");
         user.setUsername(userName);

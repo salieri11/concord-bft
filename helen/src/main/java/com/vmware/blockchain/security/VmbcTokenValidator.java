@@ -2,8 +2,9 @@
  * Copyright (c) 2019 VMware, Inc. All rights reserved. VMware Confidential
  */
 
-package com.vmware.blockchain.common.csp;
+package com.vmware.blockchain.security;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -22,9 +23,11 @@ import com.vmware.blockchain.BaseCacheHelper;
 import com.vmware.blockchain.auth.TokenValidator;
 import com.vmware.blockchain.common.Constants;
 import com.vmware.blockchain.common.NotFoundException;
+import com.vmware.blockchain.common.csp.CspCommon.CspOrg;
+import com.vmware.blockchain.common.csp.CspCommon.CspUser;
+import com.vmware.blockchain.common.csp.CspConstants;
+import com.vmware.blockchain.common.csp.CspJwksSigningKeyResolver;
 import com.vmware.blockchain.common.csp.api.client.CspApiClient;
-import com.vmware.blockchain.security.HelenUserDetails;
-import com.vmware.blockchain.security.ServiceContext;
 import com.vmware.blockchain.services.blockchains.BlockchainService;
 import com.vmware.blockchain.services.profiles.Organization;
 import com.vmware.blockchain.services.profiles.OrganizationService;
@@ -95,6 +98,8 @@ public class VmbcTokenValidator implements TokenValidator {
             // Get the userid for this user
             User u = getOrCreateUser(userInfo, token, claimsJws);
             userInfo.setUserId(u.getId());
+            userInfo.setLastLogin(u.getLastLogin());
+            updateLogin(u);
 
             List<UUID> ids =
                     organizationService.getConsortiums(userInfo.getOrgId()).stream()
@@ -188,7 +193,7 @@ public class VmbcTokenValidator implements TokenValidator {
 
             Organization org = forceGetOrg(userInfo.getOrgId(), token);
 
-            CspCommon.CspUser cspUser = cspApiClient.getUser(token);
+            CspUser cspUser = cspApiClient.getUser(token);
             User user = User.builder().email(userInfo.getUsername())
                     .firstName(cspUser.getFirstName())
                     .lastName(cspUser.getLastName())
@@ -206,12 +211,22 @@ public class VmbcTokenValidator implements TokenValidator {
         try {
             return organizationService.get(orgId);
         } catch (NotFoundException e) {
-            CspCommon.CspOrg cspOrg = cspApiClient.getCspOrg(orgId.toString(), token);
+            CspOrg cspOrg = cspApiClient.getCspOrg(orgId.toString(), token);
             Organization org = new Organization();
             org.setId(orgId);
             org.setOrganizationName(cspOrg.getDisplayName());
             serviceContext.setSystemContext();
             return organizationService.put(org);
+        } finally {
+            serviceContext.clearServiceContext();
+        }
+    }
+
+    private User updateLogin(User user) {
+        try {
+            serviceContext.setSystemContext();
+            user.setLastLogin(Instant.now());
+            return userService.put(user);
         } finally {
             serviceContext.clearServiceContext();
         }
