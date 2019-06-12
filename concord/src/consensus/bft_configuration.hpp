@@ -197,8 +197,10 @@ inline bool initializeSBFTPrincipals(
   }
 
   if (outCommConfig) {
+    outCommConfig->bufferLength =
+        config.getValue<uint32_t>("concord-bft_communication_buffer_length");
+
     /// TODO(IG): add to config file
-    outCommConfig->bufferLength = 64000;
     outCommConfig->listenIp = "0.0.0.0";
     outCommConfig->maxServerId = numOfReplicas - 1;
     outCommConfig->selfId = selfNumber;

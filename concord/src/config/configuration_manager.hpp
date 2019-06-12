@@ -334,6 +334,7 @@ struct ConfigurationAuxiliaryState {
 //   - short
 //   - std::string
 //   - uint16_t
+//   - uint32_t
 //   - uint64_t
 //   - bool
 //
