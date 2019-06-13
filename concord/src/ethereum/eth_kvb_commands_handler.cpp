@@ -55,12 +55,12 @@ namespace concord {
 namespace ethereum {
 
 EthKvbCommandsHandler::EthKvbCommandsHandler(
-    EVM &athevm, EthSign &verifier,
+    EVM &concevm, EthSign &verifier,
     const concord::config::ConcordConfiguration &config,
     concord::config::ConcordConfiguration &nodeConfig,
     ILocalKeyValueStorageReadOnly *roStorage, IBlocksAppender *appender)
     : logger(log4cplus::Logger::getInstance("com.vmware.concord")),
-      athevm_(athevm),
+      concevm_(concevm),
       verifier_(verifier),
       config_(config),
       nodeConfiguration(nodeConfig),
@@ -104,42 +104,42 @@ bool EthKvbCommandsHandler::executeReadOnlyCommand(
 
   ConcordRequest command;
   bool result;
-  ConcordResponse athresp;
+  ConcordResponse concresp;
   if (command.ParseFromArray(request, requestSize)) {
     if (command.has_transaction_request()) {
-      result = handle_transaction_request(command, kvbStorage, athresp);
+      result = handle_transaction_request(command, kvbStorage, concresp);
     } else if (command.has_transaction_list_request()) {
-      result = handle_transaction_list_request(command, kvbStorage, athresp);
+      result = handle_transaction_list_request(command, kvbStorage, concresp);
     } else if (command.has_logs_request()) {
-      result = handle_logs_request(command, kvbStorage, athresp);
+      result = handle_logs_request(command, kvbStorage, concresp);
     } else if (command.has_block_list_request()) {
-      result = handle_block_list_request(command, kvbStorage, athresp);
+      result = handle_block_list_request(command, kvbStorage, concresp);
     } else if (command.has_block_request()) {
-      result = handle_block_request(command, kvbStorage, athresp);
+      result = handle_block_request(command, kvbStorage, concresp);
     } else if (command.eth_request_size() > 0) {
-      result = handle_eth_request_read_only(command, kvbStorage, athresp);
+      result = handle_eth_request_read_only(command, kvbStorage, concresp);
     } else if (command.has_time_request()) {
-      result = handle_time_request(command, kvbStorage, athresp);
+      result = handle_time_request(command, kvbStorage, concresp);
     } else {
       std::string pbtext;
       google::protobuf::TextFormat::PrintToString(command, &pbtext);
       LOG4CPLUS_ERROR(logger, "Unknown read-only command: " << pbtext);
-      ErrorResponse *resp = athresp.add_error_response();
+      ErrorResponse *resp = concresp.add_error_response();
       resp->set_description("Internal concord Error");
       result = false;
     }
   } else {
     LOG4CPLUS_ERROR(logger, "Unable to parse read-only command: "
                                 << (HexPrintBytes{request, requestSize}));
-    ErrorResponse *resp = athresp.add_error_response();
+    ErrorResponse *resp = concresp.add_error_response();
     resp->set_description("Internal concord Error");
     result = false;
   }
 
-  if (athresp.SerializeToArray(outReply, maxReplySize)) {
-    outReplySize = athresp.ByteSize();
+  if (concresp.SerializeToArray(outReply, maxReplySize)) {
+    outReplySize = concresp.ByteSize();
   } else {
-    size_t replySize = athresp.ByteSizeLong();
+    size_t replySize = concresp.ByteSizeLong();
     LOG4CPLUS_ERROR(logger,
                     "Cannot send reply to a client request: Reply is too large "
                     "(size of this reply: " +
@@ -147,16 +147,16 @@ bool EthKvbCommandsHandler::executeReadOnlyCommand(
                         ", maximum size allowed for this reply: " +
                         std::to_string(maxReplySize) + ").");
 
-    athresp = ConcordResponse();
-    ErrorResponse *errorResp = athresp.add_error_response();
+    concresp = ConcordResponse();
+    ErrorResponse *errorResp = concresp.add_error_response();
     errorResp->set_description(
         "Concord could not send reply: Reply is too large (size of this "
         "reply: " +
         std::to_string(replySize) + ", maximum size allowed for this reply: " +
         std::to_string(maxReplySize) + ").");
 
-    if (athresp.SerializeToArray(outReply, maxReplySize)) {
-      outReplySize = athresp.ByteSize();
+    if (concresp.SerializeToArray(outReply, maxReplySize)) {
+      outReplySize = concresp.ByteSize();
     } else {
       // This case should never occur; we intend to enforce a minimum buffer
       // size for the communication buffer size that Concord-BFT is configured
@@ -166,7 +166,7 @@ bool EthKvbCommandsHandler::executeReadOnlyCommand(
           logger,
           "Cannot send error reply indicating reply is too large: The error "
           "reply itself is too large (error reply size: " +
-              std::to_string(athresp.ByteSizeLong()) +
+              std::to_string(concresp.ByteSizeLong()) +
               ", maximum size allowed for this reply: " +
               std::to_string(maxReplySize) + ").");
       outReplySize = 0;
@@ -189,15 +189,15 @@ bool EthKvbCommandsHandler::executeCommand(
 
   ConcordRequest command;
   bool result;
-  ConcordResponse athresp;
+  ConcordResponse concresp;
   if (command.ParseFromArray(request, requestSize)) {
     // Time must come first, if any other commands are to use the updated time.
     if (command.has_time_request()) {
-      result = handle_time_request(command, kvbStorage, athresp);
+      result = handle_time_request(command, kvbStorage, concresp);
     }
 
     if (command.eth_request_size() > 0) {
-      result = handle_eth_request(command, kvbStorage, athresp);
+      result = handle_eth_request(command, kvbStorage, concresp);
     } else if (command.has_time_request()) {
       // This was a time-update-only command. Just write the block.
       TimeContract tc(kvbStorage, config_);
@@ -207,10 +207,11 @@ bool EthKvbCommandsHandler::executeCommand(
       kvbStorage.write_block(timestamp,
                              config_.getValue<uint64_t>("gas_limit"));
 
-      if (!athresp.has_time_response() && athresp.error_response_size() == 0) {
+      if (!concresp.has_time_response() &&
+          concresp.error_response_size() == 0) {
         // concord-bft does not like zero-byte responses, so we're including a
         // small empty message to make it happy
-        athresp.mutable_time_response();
+        concresp.mutable_time_response();
       }
       result = true;
     } else {
@@ -224,15 +225,15 @@ bool EthKvbCommandsHandler::executeCommand(
   } else {
     LOG4CPLUS_ERROR(logger, "Unable to parse command: "
                                 << (HexPrintBytes{request, requestSize}));
-    ErrorResponse *resp = athresp.add_error_response();
+    ErrorResponse *resp = concresp.add_error_response();
     resp->set_description("Internal concord Error");
     result = false;
   }
 
-  if (athresp.SerializeToArray(outReply, maxReplySize)) {
-    outReplySize = athresp.ByteSize();
+  if (concresp.SerializeToArray(outReply, maxReplySize)) {
+    outReplySize = concresp.ByteSize();
   } else {
-    size_t replySize = athresp.ByteSizeLong();
+    size_t replySize = concresp.ByteSizeLong();
     LOG4CPLUS_ERROR(logger,
                     "Cannot send reply to a client request: Reply is too large "
                     "(size of this reply: " +
@@ -240,22 +241,22 @@ bool EthKvbCommandsHandler::executeCommand(
                         ", maximum size allowed for this reply: " +
                         std::to_string(maxReplySize) + ").");
 
-    athresp = ConcordResponse();
-    ErrorResponse *errorResp = athresp.add_error_response();
+    concresp = ConcordResponse();
+    ErrorResponse *errorResp = concresp.add_error_response();
     errorResp->set_description(
         "Concord could not send reply: Reply is too large (size of this "
         "reply: " +
         std::to_string(replySize) + ", maximum size allowed for this reply: " +
         std::to_string(maxReplySize) + ").");
 
-    if (athresp.SerializeToArray(outReply, maxReplySize)) {
-      outReplySize = athresp.ByteSize();
+    if (concresp.SerializeToArray(outReply, maxReplySize)) {
+      outReplySize = concresp.ByteSize();
     } else {
       LOG4CPLUS_FATAL(
           logger,
           "Cannot send error reply indicating reply is too large: The error "
           "reply itself is too large (error reply size: " +
-              std::to_string(athresp.ByteSizeLong()) +
+              std::to_string(concresp.ByteSizeLong()) +
               ", maximum size allowed for this reply: " +
               std::to_string(maxReplySize) + ").");
       outReplySize = 0;
@@ -317,12 +318,12 @@ bool EthKvbCommandsHandler::handle_time_request(ConcordRequest &req,
  * Handle an ETH RPC request. Returns false if the command was invalid; true
  * otherwise.
  */
-bool EthKvbCommandsHandler::handle_eth_request(ConcordRequest &athreq,
-                                               EthKvbStorage &kvbStorage,
-                                               ConcordResponse &athresp) const {
-  switch (athreq.eth_request(0).method()) {
+bool EthKvbCommandsHandler::handle_eth_request(
+    ConcordRequest &concreq, EthKvbStorage &kvbStorage,
+    ConcordResponse &concresp) const {
+  switch (concreq.eth_request(0).method()) {
     case EthRequest_EthMethod_SEND_TX:
-      return handle_eth_sendTransaction(athreq, kvbStorage, athresp);
+      return handle_eth_sendTransaction(concreq, kvbStorage, concresp);
       break;
     default:
       // SBFT may decide to try one of our read-only commands in read-write
@@ -332,7 +333,7 @@ bool EthKvbCommandsHandler::handle_eth_request(ConcordRequest &athreq,
       // Be a little extra cautious, and create a read-only EthKvbStorage
       // object, to prvent accidental modifications.
       EthKvbStorage roKvbStorage(kvbStorage.getReadOnlyStorage());
-      return handle_eth_request_read_only(athreq, roKvbStorage, athresp);
+      return handle_eth_request_read_only(concreq, roKvbStorage, concresp);
   }
 }
 
@@ -340,9 +341,9 @@ bool EthKvbCommandsHandler::handle_eth_request(ConcordRequest &athreq,
  * Handle an eth_sendTransaction request.
  */
 bool EthKvbCommandsHandler::handle_eth_sendTransaction(
-    ConcordRequest &athreq, EthKvbStorage &kvbStorage,
-    ConcordResponse &athresp) const {
-  const EthRequest request = athreq.eth_request(0);
+    ConcordRequest &concreq, EthKvbStorage &kvbStorage,
+    ConcordResponse &concresp) const {
+  const EthRequest request = concreq.eth_request(0);
 
   uint64_t timestamp = 0;
   if (concord::time::IsTimeServiceEnabled(config_)) {
@@ -358,19 +359,19 @@ bool EthKvbCommandsHandler::handle_eth_sendTransaction(
   evm_result &&result = run_evm(request, kvbStorage, timestamp, txhash);
 
   if (result.status_code == EVM_REVERT && result.output_data != nullptr) {
-    ErrorResponse *response = athresp.add_error_response();
+    ErrorResponse *response = concresp.add_error_response();
     std::string error_msg(result.output_data,
                           result.output_data + result.output_size);
     response->set_description(error_msg);
   } else if (txhash != zero_hash) {
-    EthResponse *response = athresp.add_eth_response();
+    EthResponse *response = concresp.add_eth_response();
     response->set_id(request.id());
     response->set_data(txhash.bytes, sizeof(evm_uint256be));
   } else {
     std::ostringstream description;
     description << "An error occurred running the transaction (status="
                 << result.status_code << ")";
-    ErrorResponse *response = athresp.add_error_response();
+    ErrorResponse *response = concresp.add_error_response();
     response->set_description(description.str());
   }
 
@@ -390,21 +391,21 @@ bool EthKvbCommandsHandler::handle_eth_sendTransaction(
  * Fetch a transaction from storage.
  */
 bool EthKvbCommandsHandler::handle_transaction_request(
-    ConcordRequest &athreq, EthKvbStorage &kvbStorage,
-    ConcordResponse &athresp) const {
+    ConcordRequest &concreq, EthKvbStorage &kvbStorage,
+    ConcordResponse &concresp) const {
   try {
-    const TransactionRequest request = athreq.transaction_request();
+    const TransactionRequest request = concreq.transaction_request();
     evm_uint256be hash{{0}};
     std::copy(request.hash().begin(), request.hash().end(), hash.bytes);
     EthTransaction tx = kvbStorage.get_transaction(hash);
 
-    TransactionResponse *response = athresp.mutable_transaction_response();
+    TransactionResponse *response = concresp.mutable_transaction_response();
     build_transaction_response(hash, tx, response);
   } catch (TransactionNotFoundException) {
-    ErrorResponse *resp = athresp.add_error_response();
+    ErrorResponse *resp = concresp.add_error_response();
     resp->set_description("transaction not found");
   } catch (EVMException) {
-    ErrorResponse *resp = athresp.add_error_response();
+    ErrorResponse *resp = concresp.add_error_response();
     resp->set_description("error retrieving transaction");
   }
 
@@ -416,15 +417,15 @@ bool EthKvbCommandsHandler::handle_transaction_request(
  * Fetch a transaction list from storage.
  */
 bool EthKvbCommandsHandler::handle_transaction_list_request(
-    ConcordRequest &athreq, EthKvbStorage &kvbStorage,
-    ConcordResponse &athresp) const {
+    ConcordRequest &concreq, EthKvbStorage &kvbStorage,
+    ConcordResponse &concresp) const {
   try {
-    const TransactionListRequest request = athreq.transaction_list_request();
+    const TransactionListRequest request = concreq.transaction_list_request();
     uint16_t remaining =
         std::min(nodeConfiguration.getValue<int>("transaction_list_max_count"),
                  static_cast<int>(request.count()));
     TransactionListResponse *response =
-        athresp.mutable_transaction_list_response();
+        concresp.mutable_transaction_list_response();
     std::vector<evm_uint256be>::iterator it;
     EthBlock curr_block;
 
@@ -465,10 +466,10 @@ bool EthKvbCommandsHandler::handle_transaction_list_request(
     }
 
   } catch (TransactionNotFoundException) {
-    ErrorResponse *resp = athresp.add_error_response();
+    ErrorResponse *resp = concresp.add_error_response();
     resp->set_description("latest transaction not found");
   } catch (EVMException) {
-    ErrorResponse *resp = athresp.add_error_response();
+    ErrorResponse *resp = concresp.add_error_response();
     resp->set_description("error retrieving transactions");
   }
 
@@ -524,10 +525,10 @@ void EthKvbCommandsHandler::build_transaction_response(
  * Get logs from the blockchain
  */
 bool EthKvbCommandsHandler::handle_logs_request(
-    ConcordRequest &athreq, EthKvbStorage &kvbStorage,
-    ConcordResponse &athresp) const {
-  const LogsRequest request = athreq.logs_request();
-  LogsResponse *response = athresp.mutable_logs_response();
+    ConcordRequest &concreq, EthKvbStorage &kvbStorage,
+    ConcordResponse &concresp) const {
+  const LogsRequest request = concreq.logs_request();
+  LogsResponse *response = concresp.mutable_logs_response();
   EthBlock block;
 
   assert(request.has_from_block() && request.has_to_block());
@@ -561,7 +562,7 @@ bool EthKvbCommandsHandler::handle_logs_request(
 
       if (block_start > current_block_number ||
           block_end > current_block_number) {
-        ErrorResponse *resp = athresp.add_error_response();
+        ErrorResponse *resp = concresp.add_error_response();
         resp->set_description("block doesn't exist yet");
         return true;
       }
@@ -574,7 +575,7 @@ bool EthKvbCommandsHandler::handle_logs_request(
       }
     }
   } catch (BlockNotFoundException) {
-    ErrorResponse *resp = athresp.add_error_response();
+    ErrorResponse *resp = concresp.add_error_response();
     resp->set_description("block not found");
     return true;
   }
@@ -651,9 +652,9 @@ void EthKvbCommandsHandler::collect_logs_from_block(
  * the chain.
  */
 bool EthKvbCommandsHandler::handle_block_list_request(
-    ConcordRequest &athreq, EthKvbStorage &kvbStorage,
-    ConcordResponse &athresp) const {
-  const BlockListRequest request = athreq.block_list_request();
+    ConcordRequest &concreq, EthKvbStorage &kvbStorage,
+    ConcordResponse &concresp) const {
+  const BlockListRequest request = concreq.block_list_request();
 
   uint64_t latest = std::numeric_limits<uint64_t>::max();
   if (request.has_latest()) {
@@ -674,7 +675,7 @@ bool EthKvbCommandsHandler::handle_block_list_request(
   LOG4CPLUS_DEBUG(logger, "Getting block list from " << latest << " to "
                                                      << (latest - count));
 
-  BlockListResponse *response = athresp.mutable_block_list_response();
+  BlockListResponse *response = concresp.mutable_block_list_response();
   for (uint64_t i = 0; i < count; i++) {
     EthBlock b = kvbStorage.get_block(latest - i);
     BlockBrief *bb = response->add_block();
@@ -690,9 +691,9 @@ bool EthKvbCommandsHandler::handle_block_list_request(
  * Fetch a block from the database.
  */
 bool EthKvbCommandsHandler::handle_block_request(
-    ConcordRequest &athreq, EthKvbStorage &kvbStorage,
-    ConcordResponse &athresp) const {
-  const BlockRequest request = athreq.block_request();
+    ConcordRequest &concreq, EthKvbStorage &kvbStorage,
+    ConcordResponse &concresp) const {
+  const BlockRequest request = concreq.block_request();
 
   // According to ethRPC requests the block number string can be either a hex
   // number or it can be one of "latest", "earliest", "pending". Since concord
@@ -726,7 +727,7 @@ bool EthKvbCommandsHandler::handle_block_request(
       block = kvbStorage.get_block(blkhash);
     }
 
-    BlockResponse *response = athresp.mutable_block_response();
+    BlockResponse *response = concresp.mutable_block_response();
     response->set_number(block.number);
     response->set_hash(block.hash.bytes, sizeof(evm_uint256be));
     response->set_parent_hash(block.parent_hash.bytes, sizeof(evm_uint256be));
@@ -761,7 +762,7 @@ bool EthKvbCommandsHandler::handle_block_request(
       }
     }
   } catch (BlockNotFoundException) {
-    ErrorResponse *resp = athresp.add_error_response();
+    ErrorResponse *resp = concresp.add_error_response();
     resp->set_description("block not found");
   }
 
@@ -774,29 +775,29 @@ bool EthKvbCommandsHandler::handle_block_request(
  * otherwise.
  */
 bool EthKvbCommandsHandler::handle_eth_request_read_only(
-    ConcordRequest &athreq, EthKvbStorage &kvbStorage,
-    ConcordResponse &athresp) const {
-  switch (athreq.eth_request(0).method()) {
+    ConcordRequest &concreq, EthKvbStorage &kvbStorage,
+    ConcordResponse &concresp) const {
+  switch (concreq.eth_request(0).method()) {
     case EthRequest_EthMethod_CALL_CONTRACT:
-      return handle_eth_callContract(athreq, kvbStorage, athresp);
+      return handle_eth_callContract(concreq, kvbStorage, concresp);
       break;
     case EthRequest_EthMethod_BLOCK_NUMBER:
-      return handle_eth_blockNumber(athreq, kvbStorage, athresp);
+      return handle_eth_blockNumber(concreq, kvbStorage, concresp);
       break;
     case EthRequest_EthMethod_GET_CODE:
-      return handle_eth_getCode(athreq, kvbStorage, athresp);
+      return handle_eth_getCode(concreq, kvbStorage, concresp);
       break;
     case EthRequest_EthMethod_GET_STORAGE_AT:
-      return handle_eth_getStorageAt(athreq, kvbStorage, athresp);
+      return handle_eth_getStorageAt(concreq, kvbStorage, concresp);
       break;
     case EthRequest_EthMethod_GET_TX_COUNT:
-      return handle_eth_getTransactionCount(athreq, kvbStorage, athresp);
+      return handle_eth_getTransactionCount(concreq, kvbStorage, concresp);
       break;
     case EthRequest_EthMethod_GET_BALANCE:
-      return handle_eth_getBalance(athreq, kvbStorage, athresp);
+      return handle_eth_getBalance(concreq, kvbStorage, concresp);
       break;
     default:
-      ErrorResponse *e = athresp.add_error_response();
+      ErrorResponse *e = concresp.add_error_response();
       e->mutable_description()->assign("ETH Method Not Implemented");
       return false;
   }
@@ -810,9 +811,9 @@ bool EthKvbCommandsHandler::handle_eth_request_read_only(
  * as the 'data' of EthResponse.
  */
 bool EthKvbCommandsHandler::handle_eth_callContract(
-    ConcordRequest &athreq, EthKvbStorage &kvbStorage,
-    ConcordResponse &athresp) const {
-  const EthRequest request = athreq.eth_request(0);
+    ConcordRequest &concreq, EthKvbStorage &kvbStorage,
+    ConcordResponse &concresp) const {
+  const EthRequest request = concreq.eth_request(0);
 
   // Time service readings are only added to write-commands (call is
   // read-only). TODO: look up time from most recent block, or block specified
@@ -825,13 +826,13 @@ bool EthKvbCommandsHandler::handle_eth_callContract(
   // recorded, instead we focus on the result object and the
   // output_data field in it.
   if (result.status_code == EVM_SUCCESS) {
-    EthResponse *response = athresp.add_eth_response();
+    EthResponse *response = concresp.add_eth_response();
     response->set_id(request.id());
     if (result.output_data != NULL && result.output_size > 0) {
       response->set_data(result.output_data, result.output_size);
     }
   } else {
-    ErrorResponse *err = athresp.add_error_response();
+    ErrorResponse *err = concresp.add_error_response();
     err->mutable_description()->assign("Error while calling contract");
   }
 
@@ -847,10 +848,10 @@ bool EthKvbCommandsHandler::handle_eth_callContract(
  * Get the latest written block number.
  */
 bool EthKvbCommandsHandler::handle_eth_blockNumber(
-    ConcordRequest &athreq, EthKvbStorage &kvbStorage,
-    ConcordResponse &athresp) const {
-  const EthRequest request = athreq.eth_request(0);
-  EthResponse *response = athresp.add_eth_response();
+    ConcordRequest &concreq, EthKvbStorage &kvbStorage,
+    ConcordResponse &concresp) const {
+  const EthRequest request = concreq.eth_request(0);
+  EthResponse *response = concresp.add_eth_response();
   evm_uint256be current_block{{0}};
   to_evm_uint256be(kvbStorage.current_block_number(), &current_block);
   response->set_data(current_block.bytes, sizeof(evm_uint256be));
@@ -862,10 +863,10 @@ bool EthKvbCommandsHandler::handle_eth_blockNumber(
 /**
  * Get the code stored for a contract.
  */
-bool EthKvbCommandsHandler::handle_eth_getCode(ConcordRequest &athreq,
-                                               EthKvbStorage &kvbStorage,
-                                               ConcordResponse &athresp) const {
-  const EthRequest request = athreq.eth_request(0);
+bool EthKvbCommandsHandler::handle_eth_getCode(
+    ConcordRequest &concreq, EthKvbStorage &kvbStorage,
+    ConcordResponse &concresp) const {
+  const EthRequest request = concreq.eth_request(0);
   evm_address account{{0}};
   std::copy(request.addr_to().begin(), request.addr_to().end(), account.bytes);
 
@@ -875,11 +876,11 @@ bool EthKvbCommandsHandler::handle_eth_getCode(ConcordRequest &athreq,
   std::vector<uint8_t> code;
   evm_uint256be hash{{0}};
   if (kvbStorage.get_code(account, code, hash, block_number)) {
-    EthResponse *response = athresp.add_eth_response();
+    EthResponse *response = concresp.add_eth_response();
     response->set_data(std::string(code.begin(), code.end()));
     response->set_id(request.id());
   } else {
-    ErrorResponse *error = athresp.add_error_response();
+    ErrorResponse *error = concresp.add_error_response();
     error->set_description("No code found at given address");
   }
 
@@ -890,9 +891,9 @@ bool EthKvbCommandsHandler::handle_eth_getCode(ConcordRequest &athreq,
  * Get the data stored for the given contract at the given location
  */
 bool EthKvbCommandsHandler::handle_eth_getStorageAt(
-    ConcordRequest &athreq, EthKvbStorage &kvbStorage,
-    ConcordResponse &athresp) const {
-  const EthRequest request = athreq.eth_request(0);
+    ConcordRequest &concreq, EthKvbStorage &kvbStorage,
+    ConcordResponse &concresp) const {
+  const EthRequest request = concreq.eth_request(0);
 
   evm_address account{{0}};
   std::copy(request.addr_to().begin(), request.addr_to().end(), account.bytes);
@@ -904,7 +905,7 @@ bool EthKvbCommandsHandler::handle_eth_getStorageAt(
   uint64_t block_number = parse_block_parameter(request, kvbStorage);
 
   evm_uint256be data = kvbStorage.get_storage(account, key, block_number);
-  EthResponse *response = athresp.add_eth_response();
+  EthResponse *response = concresp.add_eth_response();
   response->set_id(request.id());
   response->set_data(data.bytes, sizeof(data));
 
@@ -915,9 +916,9 @@ bool EthKvbCommandsHandler::handle_eth_getStorageAt(
  * Get the nonce for the given account
  */
 bool EthKvbCommandsHandler::handle_eth_getTransactionCount(
-    ConcordRequest &athreq, EthKvbStorage &kvbStorage,
-    ConcordResponse &athresp) const {
-  const EthRequest request = athreq.eth_request(0);
+    ConcordRequest &concreq, EthKvbStorage &kvbStorage,
+    ConcordResponse &concresp) const {
+  const EthRequest request = concreq.eth_request(0);
 
   evm_address account{{0}};
   std::copy(request.addr_to().begin(), request.addr_to().end(), account.bytes);
@@ -937,7 +938,7 @@ bool EthKvbCommandsHandler::handle_eth_getTransactionCount(
             bignonce.bytes + (sizeof(bignonce) - sizeof(nonce)));
 #endif
 
-  EthResponse *response = athresp.add_eth_response();
+  EthResponse *response = concresp.add_eth_response();
   response->set_id(request.id());
   response->set_data(bignonce.bytes, sizeof(bignonce));
 
@@ -948,9 +949,9 @@ bool EthKvbCommandsHandler::handle_eth_getTransactionCount(
  * Get the balance for the given account
  */
 bool EthKvbCommandsHandler::handle_eth_getBalance(
-    ConcordRequest &athreq, EthKvbStorage &kvbStorage,
-    ConcordResponse &athresp) const {
-  const EthRequest request = athreq.eth_request(0);
+    ConcordRequest &concreq, EthKvbStorage &kvbStorage,
+    ConcordResponse &concresp) const {
+  const EthRequest request = concreq.eth_request(0);
 
   evm_address account;
   std::copy(request.addr_to().begin(), request.addr_to().end(), account.bytes);
@@ -958,7 +959,7 @@ bool EthKvbCommandsHandler::handle_eth_getBalance(
   uint64_t block_number = parse_block_parameter(request, kvbStorage);
   evm_uint256be balance = kvbStorage.get_balance(account, block_number);
 
-  EthResponse *response = athresp.add_eth_response();
+  EthResponse *response = concresp.add_eth_response();
   response->set_id(request.id());
   response->set_data(balance.bytes, sizeof(balance));
 
@@ -1183,18 +1184,18 @@ evm_result EthKvbCommandsHandler::run_evm(
     memcpy(message.destination.bytes, request.addr_to().c_str(),
            sizeof(message.destination));
 
-    result = athevm_.run(message, timestamp, kvbStorage, logs, message.sender,
-                         message.destination);
+    result = concevm_.run(message, timestamp, kvbStorage, logs, message.sender,
+                          message.destination);
   } else {
     message.kind = EVM_CREATE;
 
     assert(!kvbStorage.is_read_only());
 
     evm_address contract_address =
-        athevm_.contract_destination(message.sender, nonce);
+        concevm_.contract_destination(message.sender, nonce);
 
-    result = athevm_.create(contract_address, message, timestamp, kvbStorage,
-                            logs, message.sender);
+    result = concevm_.create(contract_address, message, timestamp, kvbStorage,
+                             logs, message.sender);
   }
 
   LOG4CPLUS_INFO(logger, "Execution result -"

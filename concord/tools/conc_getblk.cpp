@@ -29,8 +29,8 @@ void add_options(options_description &desc) {
       OPT_HASH ",s", value<std::string>(), "Hash of block to get");
 }
 
-void prepare_block_list_request(variables_map &opts, ConcordRequest &athReq) {
-  BlockListRequest *blkReq = athReq.mutable_block_list_request();
+void prepare_block_list_request(variables_map &opts, ConcordRequest &concReq) {
+  BlockListRequest *blkReq = concReq.mutable_block_list_request();
 
   if (opts.count(OPT_NUMBER)) {
     blkReq->set_latest(opts[OPT_NUMBER].as<std::uint64_t>());
@@ -40,8 +40,8 @@ void prepare_block_list_request(variables_map &opts, ConcordRequest &athReq) {
   }
 }
 
-void prepare_block_request(variables_map &opts, ConcordRequest &athReq) {
-  BlockRequest *blkReq = athReq.mutable_block_request();
+void prepare_block_request(variables_map &opts, ConcordRequest &concReq) {
+  BlockRequest *blkReq = concReq.mutable_block_request();
 
   if (opts.count(OPT_NUMBER)) {
     blkReq->set_number(opts[OPT_NUMBER].as<std::uint64_t>());
@@ -52,16 +52,16 @@ void prepare_block_request(variables_map &opts, ConcordRequest &athReq) {
   }
 }
 
-void handle_block_list_response(ConcordResponse &athResp) {
-  if (!athResp.has_block_list_response()) {
+void handle_block_list_response(ConcordResponse &concResp) {
+  if (!concResp.has_block_list_response()) {
     std::cerr << "No block list response found." << std::endl;
-    if (athResp.error_response_size() == 1) {
+    if (concResp.error_response_size() == 1) {
       std::cerr << "Error response: '"
-                << athResp.error_response(0).description() << std::endl;
+                << concResp.error_response(0).description() << std::endl;
     }
   }
 
-  BlockListResponse blkResp = athResp.block_list_response();
+  BlockListResponse blkResp = concResp.block_list_response();
 
   std::cout << "Blocks: (" << blkResp.block_size() << ")" << std::endl;
 
@@ -73,16 +73,16 @@ void handle_block_list_response(ConcordResponse &athResp) {
   }
 }
 
-void handle_block_response(ConcordResponse &athResp) {
-  if (!athResp.has_block_response()) {
+void handle_block_response(ConcordResponse &concResp) {
+  if (!concResp.has_block_response()) {
     std::cerr << "No block response found." << std::endl;
-    if (athResp.error_response_size() == 1) {
+    if (concResp.error_response_size() == 1) {
       std::cerr << "Error response: '"
-                << athResp.error_response(0).description() << std::endl;
+                << concResp.error_response(0).description() << std::endl;
     }
   }
 
-  BlockResponse blkResp = athResp.block_response();
+  BlockResponse blkResp = concResp.block_response();
 
   std::string hash, parent;
   hex0x(blkResp.hash(), hash);
@@ -133,30 +133,30 @@ int main(int argc, char **argv) {
       }
     }
 
-    ConcordRequest athReq;
+    ConcordRequest concReq;
     if (opts.count(OPT_LIST)) {
-      prepare_block_list_request(opts, athReq);
+      prepare_block_list_request(opts, concReq);
     } else {
-      prepare_block_request(opts, athReq);
+      prepare_block_request(opts, concReq);
     }
 
     std::string pbtext;
-    google::protobuf::TextFormat::PrintToString(athReq, &pbtext);
+    google::protobuf::TextFormat::PrintToString(concReq, &pbtext);
     std::cout << "Message Prepared: " << pbtext << std::endl;
 
     /*** Send & Receive ***/
 
-    ConcordResponse athResp;
-    if (call_concord(opts, athReq, athResp)) {
-      google::protobuf::TextFormat::PrintToString(athResp, &pbtext);
+    ConcordResponse concResp;
+    if (call_concord(opts, concReq, concResp)) {
+      google::protobuf::TextFormat::PrintToString(concResp, &pbtext);
       std::cout << "Received response: " << pbtext << std::endl;
 
       /*** Handle Response ***/
 
       if (opts.count(OPT_LIST)) {
-        handle_block_list_response(athResp);
+        handle_block_list_response(concResp);
       } else {
-        handle_block_response(athResp);
+        handle_block_response(concResp);
       }
     } else {
       return -1;

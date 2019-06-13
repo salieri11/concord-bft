@@ -265,7 +265,7 @@ unique_ptr<grpc::Server> RunDamlGrpcServer(
  */
 int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
                 Logger &logger) {
-  unique_ptr<EVM> athevm;
+  unique_ptr<EVM> concevm;
   unique_ptr<EthSign> ethVerifier;
   EVMInitParams params;
   uint64_t chainID;
@@ -285,7 +285,7 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
         params = EVMInitParams(genesis_file_path);
         chainID = params.get_chainID();
         // throws an exception if it fails
-        athevm = unique_ptr<EVM>(new EVM(params));
+        concevm = unique_ptr<EVM>(new EVM(params));
         ethVerifier = unique_ptr<EthSign>(new EthSign());
       } else {
         LOG4CPLUS_WARN(logger, "No genesis block provided");
@@ -331,7 +331,7 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
     } else {
       kvb_commands_handler =
           unique_ptr<ICommandsHandler>(new EthKvbCommandsHandler(
-              *athevm, *ethVerifier, config, nodeConfig, &replica, &replica));
+              *concevm, *ethVerifier, config, nodeConfig, &replica, &replica));
       // Genesis must be added before the replica is started.
       concord::consensus::Status genesis_status =
           create_genesis_block(&replica, params, logger);

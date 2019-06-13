@@ -495,15 +495,15 @@ bool ApiConnection::is_valid_eth_sendTransaction(const EthRequest &request) {
 void ApiConnection::handle_block_list_request() {
   const BlockListRequest request = concordRequest_.block_list_request();
 
-  ConcordRequest internalAthRequest;
+  ConcordRequest internalConcRequest;
   BlockListRequest *internalBlockRequest =
-      internalAthRequest.mutable_block_list_request();
+      internalConcRequest.mutable_block_list_request();
   internalBlockRequest->CopyFrom(request);
-  ConcordResponse internalAthResponse;
+  ConcordResponse internalConcResponse;
 
-  if (clientPool_.send_request_sync(internalAthRequest, true /* read only */,
-                                    internalAthResponse)) {
-    concordResponse_.MergeFrom(internalAthResponse);
+  if (clientPool_.send_request_sync(internalConcRequest, true /* read only */,
+                                    internalConcResponse)) {
+    concordResponse_.MergeFrom(internalConcResponse);
   } else {
     ErrorResponse *error = concordResponse_.add_error_response();
     error->set_description("Internal concord Error");
