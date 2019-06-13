@@ -63,8 +63,8 @@ std::string status_to_string(int32_t status) {
 }
 
 void prepare_transaction_list_request(variables_map &opts,
-                                      ConcordRequest &athReq) {
-  TransactionListRequest *tReq = athReq.mutable_transaction_list_request();
+                                      ConcordRequest &concReq) {
+  TransactionListRequest *tReq = concReq.mutable_transaction_list_request();
 
   if (opts.count(OPT_RECEIPT)) {
     std::string rcpthash;
@@ -77,8 +77,8 @@ void prepare_transaction_list_request(variables_map &opts,
   }
 }
 
-void prepare_transaction_request(variables_map &opts, ConcordRequest &athReq) {
-  TransactionRequest *tReq = athReq.mutable_transaction_request();
+void prepare_transaction_request(variables_map &opts, ConcordRequest &concReq) {
+  TransactionRequest *tReq = concReq.mutable_transaction_request();
   std::string rcpthash;
   dehex0x(opts[OPT_RECEIPT].as<std::string>(), rcpthash);
   tReq->set_hash(rcpthash);
@@ -100,9 +100,9 @@ void print_transaction(TransactionResponse &tResp) {
   }
 }
 
-void handle_transaction_list_response(ConcordResponse &athResp) {
-  if (athResp.has_transaction_list_response()) {
-    TransactionListResponse tlResp = athResp.transaction_list_response();
+void handle_transaction_list_response(ConcordResponse &concResp) {
+  if (concResp.has_transaction_list_response()) {
+    TransactionListResponse tlResp = concResp.transaction_list_response();
 
     if (tlResp.has_next()) {
       std::string next;
@@ -122,9 +122,9 @@ void handle_transaction_list_response(ConcordResponse &athResp) {
   }
 }
 
-void handle_transaction_response(ConcordResponse &athResp) {
-  if (athResp.has_transaction_response()) {
-    TransactionResponse tResp = athResp.transaction_response();
+void handle_transaction_response(ConcordResponse &concResp) {
+  if (concResp.has_transaction_response()) {
+    TransactionResponse tResp = concResp.transaction_response();
     print_transaction(tResp);
   } else {
     std::cerr << "transaction response not found" << std::endl;
@@ -140,7 +140,7 @@ int main(int argc, char **argv) {
 
     /*** Create request ***/
 
-    ConcordRequest athReq;
+    ConcordRequest concReq;
     if (opts.count(OPT_LIST) == 0) {
       // list not requested
       if (opts.count(OPT_COUNT)) {
@@ -153,28 +153,28 @@ int main(int argc, char **argv) {
         std::cerr << "Please provide a transaction receipt." << std::endl;
         return -1;
       }
-      prepare_transaction_request(opts, athReq);
+      prepare_transaction_request(opts, concReq);
     } else {
-      prepare_transaction_list_request(opts, athReq);
+      prepare_transaction_list_request(opts, concReq);
     }
 
     std::string pbtext;
-    google::protobuf::TextFormat::PrintToString(athReq, &pbtext);
+    google::protobuf::TextFormat::PrintToString(concReq, &pbtext);
     std::cout << "Message Prepared: " << pbtext << std::endl;
 
     /*** Send & Receive ***/
 
-    ConcordResponse athResp;
-    if (call_concord(opts, athReq, athResp)) {
-      google::protobuf::TextFormat::PrintToString(athResp, &pbtext);
+    ConcordResponse concResp;
+    if (call_concord(opts, concReq, concResp)) {
+      google::protobuf::TextFormat::PrintToString(concResp, &pbtext);
       std::cout << "Received response: " << pbtext << std::endl;
 
       /*** Handle Response ***/
 
       if (opts.count(OPT_LIST)) {
-        handle_transaction_list_response(athResp);
+        handle_transaction_list_response(concResp);
       } else {
-        handle_transaction_response(athResp);
+        handle_transaction_response(concResp);
       }
     } else {
       return -1;

@@ -21,7 +21,7 @@ namespace ethereum {
 class EVM;
 
 /**
- * This extern block of ath_* functions are callbacks that the EVM uses to
+ * This extern block of conc_* functions are callbacks that the EVM uses to
  * interact with our state-keeping layer.
  */
 extern "C" {
@@ -32,7 +32,7 @@ extern "C" {
 typedef struct concord_context {
   /** evmctx must be first, so we can cast to our wrapper */
   struct evm_context evmctx;
-  class EVM* ath_object;
+  class EVM* conc_object;
   class EthKvbStorage* kvbStorage;
   std::vector<::concord::common::EthLog>* evmLogs;
   log4cplus::Logger* logger;
@@ -49,44 +49,46 @@ typedef struct concord_context {
   struct evm_address storage_contract;
 } concord_context;
 
-EVM* ath_object(const struct evm_context* evmctx);
-const concord_context* ath_context(const struct evm_context* evmctx);
+EVM* conc_object(const struct evm_context* evmctx);
+const concord_context* conc_context(const struct evm_context* evmctx);
 
-int ath_account_exists(struct evm_context* evmctx,
-                       const struct evm_address* address);
-void ath_get_storage(struct evm_uint256be* result, struct evm_context* evmctx,
-                     const struct evm_address* address,
-                     const struct evm_uint256be* key);
-void ath_set_storage(struct evm_context* evmctx,
-                     const struct evm_address* address,
-                     const struct evm_uint256be* key,
-                     const struct evm_uint256be* value);
-void ath_get_balance(struct evm_uint256be* result, struct evm_context* evmctx,
-                     const struct evm_address* address);
-size_t ath_get_code_size(struct evm_context* evmctx,
-                         const struct evm_address* address);
-size_t ath_get_code(const uint8_t** result_code, struct evm_context* evmctx,
-                    const struct evm_address* address);
-void ath_selfdestruct(struct evm_context* evmctx,
+int conc_account_exists(struct evm_context* evmctx,
+                        const struct evm_address* address);
+void conc_get_storage(struct evm_uint256be* result, struct evm_context* evmctx,
                       const struct evm_address* address,
-                      const struct evm_address* beneficiary);
-void ath_emit_log(struct evm_context* evmctx, const struct evm_address* address,
-                  const uint8_t* data, size_t data_size,
-                  const struct evm_uint256be topics[], size_t topics_count);
-void ath_call(struct evm_result* result, struct evm_context* evmctx,
-              const struct evm_message* msg);
-void ath_get_block_hash(struct evm_uint256be* result,
-                        struct evm_context* evmctx, int64_t number);
-void ath_get_tx_context(struct evm_tx_context* result,
-                        struct evm_context* evmctx);
+                      const struct evm_uint256be* key);
+void conc_set_storage(struct evm_context* evmctx,
+                      const struct evm_address* address,
+                      const struct evm_uint256be* key,
+                      const struct evm_uint256be* value);
+void conc_get_balance(struct evm_uint256be* result, struct evm_context* evmctx,
+                      const struct evm_address* address);
+size_t conc_get_code_size(struct evm_context* evmctx,
+                          const struct evm_address* address);
+size_t conc_get_code(const uint8_t** result_code, struct evm_context* evmctx,
+                     const struct evm_address* address);
+void conc_selfdestruct(struct evm_context* evmctx,
+                       const struct evm_address* address,
+                       const struct evm_address* beneficiary);
+void conc_emit_log(struct evm_context* evmctx,
+                   const struct evm_address* address, const uint8_t* data,
+                   size_t data_size, const struct evm_uint256be topics[],
+                   size_t topics_count);
+void conc_call(struct evm_result* result, struct evm_context* evmctx,
+               const struct evm_message* msg);
+void conc_get_block_hash(struct evm_uint256be* result,
+                         struct evm_context* evmctx, int64_t number);
+void conc_get_tx_context(struct evm_tx_context* result,
+                         struct evm_context* evmctx);
 
 /*
  * Function dispatch table for EVM. Specified by EEI.
  */
 const static struct evm_context_fn_table concord_fn_table = {
-    ath_account_exists, ath_get_storage,    ath_set_storage,  ath_get_balance,
-    ath_get_code_size,  ath_get_code,       ath_selfdestruct, ath_call,
-    ath_get_tx_context, ath_get_block_hash, ath_emit_log};
+    conc_account_exists, conc_get_storage,   conc_set_storage,
+    conc_get_balance,    conc_get_code_size, conc_get_code,
+    conc_selfdestruct,   conc_call,          conc_get_tx_context,
+    conc_get_block_hash, conc_emit_log};
 }
 
 class EVM {

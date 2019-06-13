@@ -43,8 +43,8 @@ int main(int argc, char **argv) {
 
     /*** Create request ***/
 
-    ConcordRequest athReq;
-    EthRequest *ethReq = athReq.add_eth_request();
+    ConcordRequest concReq;
+    EthRequest *ethReq = concReq.add_eth_request();
     std::string address;
     std::string location;
 
@@ -68,20 +68,20 @@ int main(int argc, char **argv) {
     ethReq->set_data(location);
 
     std::string pbtext;
-    google::protobuf::TextFormat::PrintToString(athReq, &pbtext);
+    google::protobuf::TextFormat::PrintToString(concReq, &pbtext);
     std::cout << "Message Prepared: " << pbtext << std::endl;
 
     /*** Send & Receive ***/
 
-    ConcordResponse athResp;
-    if (call_concord(opts, athReq, athResp)) {
-      google::protobuf::TextFormat::PrintToString(athResp, &pbtext);
+    ConcordResponse concResp;
+    if (call_concord(opts, concReq, concResp)) {
+      google::protobuf::TextFormat::PrintToString(concResp, &pbtext);
       std::cout << "Received response: " << pbtext << std::endl;
 
       /*** Handle Response ***/
 
-      if (athResp.eth_response_size() == 1) {
-        EthResponse ethResp = athResp.eth_response(0);
+      if (concResp.eth_response_size() == 1) {
+        EthResponse ethResp = concResp.eth_response(0);
         if (ethResp.has_data()) {
           std::string result;
           hex0x(ethResp.data(), result);
@@ -89,7 +89,7 @@ int main(int argc, char **argv) {
         }
       } else {
         std::cerr << "Wrong number of eth_responses: "
-                  << athResp.eth_response_size() << " (expected 1)"
+                  << concResp.eth_response_size() << " (expected 1)"
                   << std::endl;
         return -1;
       }

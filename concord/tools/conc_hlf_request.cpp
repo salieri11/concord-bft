@@ -68,8 +68,8 @@ int main(int argc, char *argv[]) {
         grpc_service_address, grpc::InsecureChannelCredentials()));
     // create request
 
-    ConcordRequest ath_req;
-    HlfRequest *hlf_req = ath_req.add_hlf_request();
+    ConcordRequest conc_req;
+    HlfRequest *hlf_req = conc_req.add_hlf_request();
 
     if (opts.count(OPT_METHOD) > 0) {
       HlfRequest_HlfMethod method;
@@ -115,28 +115,28 @@ int main(int argc, char *argv[]) {
     hlf_req->set_chain_id("mychannel");
 
     std::string pbtext;
-    google::protobuf::TextFormat::PrintToString(ath_req, &pbtext);
+    google::protobuf::TextFormat::PrintToString(conc_req, &pbtext);
     std::cout << "Message Prepared: " << pbtext << std::endl;
 
     // Send and Receive
 
-    ConcordResponse ath_resp;
-    if (concordClient.TriggerChaincode(ath_req, ath_resp).ok()) {
-      google::protobuf::TextFormat::PrintToString(ath_resp, &pbtext);
+    ConcordResponse conc_resp;
+    if (concordClient.TriggerChaincode(conc_req, conc_resp).ok()) {
+      google::protobuf::TextFormat::PrintToString(conc_resp, &pbtext);
       std::cout << "Received response: " << pbtext << std::endl;
 
       // Handle Response
 
-      if (ath_resp.hlf_response_size() == 1) {
-        HlfResponse hlf_resp = ath_resp.hlf_response(0);
+      if (conc_resp.hlf_response_size() == 1) {
+        HlfResponse hlf_resp = conc_resp.hlf_response(0);
         if (hlf_resp.has_data()) {
           std::cout << "Transaction Receipt: " << hlf_resp.data() << std::endl;
         } else {
           std::cerr << "HlfResponse has no data" << std::endl;
           return -1;
         }
-      } else if (ath_resp.error_response_size() == 1) {
-        ErrorResponse errorResp = ath_resp.error_response(0);
+      } else if (conc_resp.error_response_size() == 1) {
+        ErrorResponse errorResp = conc_resp.error_response(0);
         if (errorResp.has_description()) {
           std::cout << "Error Response: " << errorResp.description()
                     << std::endl;
@@ -147,8 +147,8 @@ int main(int argc, char *argv[]) {
         }
       } else {
         std::cerr << "Wrong number of hlf_responses ("
-                  << ath_resp.hlf_response_size() << ") or errors ("
-                  << ath_resp.error_response_size() << ")"
+                  << conc_resp.hlf_response_size() << ") or errors ("
+                  << conc_resp.error_response_size() << ")"
                   << " (expected 1)" << std::endl;
         return -1;
       }

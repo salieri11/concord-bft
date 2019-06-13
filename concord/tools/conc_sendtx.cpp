@@ -45,8 +45,8 @@ int main(int argc, char **argv) {
 
     /*** Create request ***/
 
-    ConcordRequest athReq;
-    EthRequest *ethReq = athReq.add_eth_request();
+    ConcordRequest concReq;
+    EthRequest *ethReq = concReq.add_eth_request();
     std::string from;
     std::string to;
     std::string data;
@@ -90,20 +90,20 @@ int main(int argc, char **argv) {
     }
 
     std::string pbtext;
-    google::protobuf::TextFormat::PrintToString(athReq, &pbtext);
+    google::protobuf::TextFormat::PrintToString(concReq, &pbtext);
     std::cout << "Message Prepared: " << pbtext << std::endl;
 
     /*** Send & Receive ***/
 
-    ConcordResponse athResp;
-    if (call_concord(opts, athReq, athResp)) {
-      google::protobuf::TextFormat::PrintToString(athResp, &pbtext);
+    ConcordResponse concResp;
+    if (call_concord(opts, concReq, concResp)) {
+      google::protobuf::TextFormat::PrintToString(concResp, &pbtext);
       std::cout << "Received response: " << pbtext << std::endl;
 
       /*** Handle Response ***/
 
-      if (athResp.eth_response_size() == 1) {
-        EthResponse ethResp = athResp.eth_response(0);
+      if (concResp.eth_response_size() == 1) {
+        EthResponse ethResp = concResp.eth_response(0);
         if (ethResp.has_data()) {
           std::string result;
           hex0x(ethResp.data(), result);
@@ -112,8 +112,8 @@ int main(int argc, char **argv) {
           std::cerr << "EthResponse has no data" << std::endl;
           return -1;
         }
-      } else if (athResp.error_response_size() == 1) {
-        ErrorResponse errorResp = athResp.error_response(0);
+      } else if (concResp.error_response_size() == 1) {
+        ErrorResponse errorResp = concResp.error_response(0);
         if (errorResp.has_description()) {
           std::cout << "Error Response: " << errorResp.description()
                     << std::endl;
@@ -124,8 +124,8 @@ int main(int argc, char **argv) {
         }
       } else {
         std::cerr << "Wrong number of eth_responses ("
-                  << athResp.eth_response_size() << ") or errors ("
-                  << athResp.error_response_size() << ")"
+                  << concResp.eth_response_size() << ") or errors ("
+                  << concResp.error_response_size() << ")"
                   << " (expected 1)" << std::endl;
         return -1;
       }
