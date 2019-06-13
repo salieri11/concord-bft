@@ -56,13 +56,6 @@ export class AppHeaderComponent implements OnDestroy, AfterViewInit {
       this.themeService.themeChange
         .subscribe(() => this.setTheme());
 
-      if (window.location.search.indexOf('org_link') !== -1) {
-        window.location.href = `https://${window.location.host}/api/oauth/login${window.location.search}`;
-      } else {
-        // this.authenticationService.getAccessToken().subscribe(token => {
-        //   this.authToken = token.auth_token;
-        // }, error => this.handleCSPError(error));
-      }
     } else {
       this.userProfileMenuToggleChanges = this.tourService.userProfileDropdownChanges$.subscribe((openMenu) => {
         setTimeout(() => {

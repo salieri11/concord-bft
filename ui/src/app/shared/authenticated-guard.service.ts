@@ -59,6 +59,7 @@ export class AuthenticatedGuard implements CanActivateChild, CanActivate {
         }
       }
       return true;
+
     } else if (localStorage.getItem('changePassword') || this.authenticationService.isAuthenticated()) {
       this.router.navigate(['auth', 'login']);
       return false;

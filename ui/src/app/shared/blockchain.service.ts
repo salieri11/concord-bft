@@ -102,7 +102,7 @@ export class BlockchainService {
 
           if (this.isUUID(bId) && bId) {
             this.select(bId);
-          } else {
+          } else if (this.blockchains.length) {
             this.select(this.blockchains[0].id);
           }
 

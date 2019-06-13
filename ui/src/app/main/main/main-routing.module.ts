@@ -5,7 +5,6 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 
-import { environment } from './../../../environments/environment';
 import { MainComponent } from './main.component';
 import { dashboardRoutes } from '../../dashboard/dashboard-routing';
 import { AuthenticatedGuard } from '../../shared/authenticated-guard.service';
@@ -21,17 +20,10 @@ import { loggingRoutes } from '../../logging/logging-routing';
 import { developerRoutes } from '../../developer/developer-routing';
 
 
-const guards = [];
-
-if (environment.csp) {
-  guards.push(AuthenticatedGuard);
-} else {
-  guards.push(AgreementGuard);
-}
 const routes: Routes = [{
     path: ':consortiumId',
     component: MainComponent,
-    canActivate: guards,
+    canActivate: [AuthenticatedGuard, AgreementGuard],
     canActivateChild: [AuthenticatedGuard],
     children: [
       { path: 'dashboard', children: dashboardRoutes },
@@ -46,10 +38,6 @@ const routes: Routes = [{
       { path: 'developer', children: developerRoutes },
     ]
   }];
-
-if (environment.csp) {
-  routes.push({ path: '', component: MainComponent, canActivate: guards});
-}
 
 
 @NgModule({
