@@ -24,7 +24,7 @@ You will need cmake, clang, and g++, gmp, GNU Parallel, autoconf, automake, LLVM
 we use program-options, system, and thread), and yaml-cpp:
 
 ```
-sudo apt-get install cmake clang g++ parallel autoconf doxygen automake llvm-5.0 \
+sudo apt-get install cmake clang g++ parallel autoconf automake llvm-5.0 \
   llvm-5.0-dev libgmp3-dev libtool libboost1.65-dev \
   libboost-program-options1.65-dev libboost-program-options1.65.1 \
   libboost-system1.65-dev libboost-system1.65.1 libboost-thread1.65-dev \
