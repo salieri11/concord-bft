@@ -28,9 +28,7 @@ if (environment.csp) {
 } else {
   guards.push(AgreementGuard);
 }
-
-const routes: Routes = [
-  {
+const routes: Routes = [{
     path: ':consortiumId',
     component: MainComponent,
     canActivate: guards,
@@ -47,12 +45,10 @@ const routes: Routes = [
       { path: 'transactions', children: transactionsRoutes },
       { path: 'developer', children: developerRoutes },
     ]
-  },
-
-];
+  }];
 
 if (environment.csp) {
-  routes.push({ path: '', component: MainComponent });
+  routes.push({ path: '', component: MainComponent, canActivate: guards});
 }
 
 

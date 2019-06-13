@@ -37,13 +37,17 @@ export class RequestInterceptor implements HttpInterceptor {
             switch ((<HttpErrorResponse>error).status) {
               case 401:
                 this.cspErrors.push(error);
-                if (this.cspErrors.length > 2) {
-                  this.cspErrors = [];
-                  window.location.href = this.env.loginPath;
-                }
+                  if (window.location.search.indexOf('org_link') !== -1) {
+                    window.location.href = `https://${window.location.host}/api/oauth/login${window.location.search}`;
+                    return;
+                    break;
+                  }
+
+                this.cspErrors = [];
+                window.location.href = this.env.loginPath;
                 return throwError(error);
 
-                break
+                break;
 
               default:
                 return throwError(error);

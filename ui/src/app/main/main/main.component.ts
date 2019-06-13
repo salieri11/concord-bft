@@ -48,6 +48,7 @@ export class MainComponent implements OnInit, OnDestroy {
     private tourService: TourService,
     private blockchainService: BlockchainService
   ) {
+    console.log('Main Component Init');
     const consortiumId = this.route.snapshot.params['consortiumId'];
     this.selectedConsortium = this.blockchainService.select(consortiumId);
 
@@ -89,6 +90,7 @@ export class MainComponent implements OnInit, OnDestroy {
     });
 
     this.route.params.subscribe(param => {
+
       if (param.consortiumId && param.consortiumId === 'login-return') {
         // Do nothing
       } else if (param.consortiumId && param.consortiumId.length > 8) {

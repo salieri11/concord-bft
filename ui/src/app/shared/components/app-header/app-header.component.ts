@@ -59,9 +59,9 @@ export class AppHeaderComponent implements OnDestroy, AfterViewInit {
       if (window.location.search.indexOf('org_link') !== -1) {
         window.location.href = `https://${window.location.host}/api/oauth/login${window.location.search}`;
       } else {
-        this.authenticationService.getAccessToken().subscribe(token => {
-          this.authToken = token.auth_token;
-        }, error => this.handleCSPError(error));
+        // this.authenticationService.getAccessToken().subscribe(token => {
+        //   this.authToken = token.auth_token;
+        // }, error => this.handleCSPError(error));
       }
     } else {
       this.userProfileMenuToggleChanges = this.tourService.userProfileDropdownChanges$.subscribe((openMenu) => {
@@ -80,6 +80,7 @@ export class AppHeaderComponent implements OnDestroy, AfterViewInit {
 
   ngAfterViewInit() {
     if (this.env.csp) {
+      this.authToken = this.authenticationService.accessToken;
       this.header.switchOrg.subscribe(org => {
         console.log('org', org);
       });
@@ -138,8 +139,8 @@ export class AppHeaderComponent implements OnDestroy, AfterViewInit {
     this.headerOptions.theme = CspHeaderTheme[theme];
   }
 
-  private handleCSPError(error) {
-    console.log(error);
-  }
+  // private handleCSPError(error) {
+  //   console.log(error);
+  // }
 
 }

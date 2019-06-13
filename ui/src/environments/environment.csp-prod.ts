@@ -5,5 +5,5 @@
 export const environment = {
   production: true,
   csp: true,
-  loginPath: 'https://console.cloud.vmware.com/csp/gateway/portal/'
+  loginPath: 'https://console-stg.cloud.vmware.com/csp/gateway/portal/'
 };

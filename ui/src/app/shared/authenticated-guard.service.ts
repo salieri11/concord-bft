@@ -56,8 +56,6 @@ export class AuthenticatedGuard implements CanActivateChild, CanActivate {
         if (auth.last_login === 0 && recent !== auth.email) {
           localStorage.setItem('welcome', auth.email);
           this.router.navigate(['/', 'welcome'], {fragment: 'welcome'});
-        } else {
-          this.router.navigate(['/' + blockchain.id, 'dashboard']);
         }
       }
       return true;

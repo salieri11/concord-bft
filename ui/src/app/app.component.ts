@@ -2,6 +2,7 @@
  * Copyright 2018-2019 VMware, all rights reserved.
  */
 
+import { environment } from './../environments/environment';
 import { Component, OnInit } from '@angular/core';
 import { Title } from '@angular/platform-browser';
 
@@ -21,6 +22,13 @@ export class AppComponent implements OnInit {
 
   ngOnInit() {
     this.setTitle();
+    if (environment.csp) {
+      if (window.location.search.indexOf('org_link') !== -1) {
+        window.location.href = `https://${window.location.host}/api/oauth/login${window.location.search}`;
+      } else if (window.location.pathname === '/') {
+        window.location.href = `${window.location.pathname}/dashboard`;
+      }
+    }
   }
 
   private setTitle() {
