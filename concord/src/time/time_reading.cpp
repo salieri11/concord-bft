@@ -5,11 +5,8 @@
 #include <log4cplus/loggingmacros.h>
 #include <chrono>
 
-#include "concord.pb.h"
 #include "config/configuration_manager.hpp"
 
-using com::vmware::concord::ConcordRequest;
-using com::vmware::concord::TimeUpdate;
 using concord::config::ConcordConfiguration;
 using std::chrono::system_clock;
 
@@ -30,16 +27,6 @@ uint64_t ReadTime() {
   system_clock::duration since_epoch = now.time_since_epoch();
   return std::chrono::duration_cast<std::chrono::milliseconds>(since_epoch)
       .count();
-}
-
-std::pair<std::string, uint64_t> GetTimeFromCommand(
-    const ConcordRequest &command) {
-  if (!command.has_time_update()) {
-    return std::make_pair("", 0);
-  }
-
-  TimeUpdate tu = command.time_update();
-  return std::make_pair(tu.source(), tu.time());
 }
 
 }  // namespace time

@@ -15,7 +15,7 @@ message ConcordRequest {
    optional TransactionRequest transaction_request = 6;
    optional TransactionListRequest transaction_list_request = 7;
    optional LogsRequest logs_request = 8;
-   optional TimeUpdate time_update = 9; // internal only!
+   optional TimeRequest time_request = 9;
    repeated HlfRequest hlf_request = 10;
    optional DamlRequest daml_request = 11;
 
@@ -200,12 +200,20 @@ message TestResponse {
    optional string echo = 1;
 }
 
-message TimeUpdate {
-   optional bytes source = 1;
-   optional uint64 time = 2;
+message TimeRequest {
+   optional TimeSample sample = 1;
+   optional bool return_summary = 2;
+   optional bool return_samples = 3;
 }
 
 message TimeResponse {
+   optional uint64 summary = 1;
+   repeated TimeSample sample = 2;
+}
+
+message TimeSample {
+   optional bytes source = 1;
+   optional uint64 time = 2;
 }
 
 message TransactionListRequest {

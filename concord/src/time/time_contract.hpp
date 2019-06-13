@@ -54,6 +54,7 @@ class TimeContract {
   uint64_t Update(const std::string& source, uint64_t time);
   uint64_t GetTime();
   void StoreLatestSamples();
+  const std::unordered_map<std::string, uint64_t>& GetSamples();
 
  private:
   log4cplus::Logger logger_;
