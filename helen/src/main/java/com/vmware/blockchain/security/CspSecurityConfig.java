@@ -4,6 +4,8 @@
 
 package com.vmware.blockchain.security;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
@@ -28,6 +30,9 @@ import com.vmware.blockchain.common.Constants;
 @EnableWebSecurity
 @ConditionalOnProperty(value = Constants.USE_CSP_AUTH, havingValue = "true")
 public class CspSecurityConfig extends WebSecurityConfigurerAdapter {
+    static final Logger logger = LogManager.getLogger(CspSecurityConfig.class);
+
+
 
     @Autowired
     TokenAuthenticationProvider tokenAuthenticationProvider;
@@ -43,6 +48,7 @@ public class CspSecurityConfig extends WebSecurityConfigurerAdapter {
 
     @Override
     protected void configure(HttpSecurity http) throws Exception {
+        logger.info("Configure security with CSP enabled");
         // Disable CSRF (cross site request forgery)
         http.csrf().disable().sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS).and()
                 // Session fixation is a problem with the ui due to concurrency
