@@ -31,7 +31,7 @@ log = logging.getLogger(__name__)
 
 
 class HelenAPITests(test_suite.TestSuite):
-   _args = None
+   args = None
    _userConfig = None
    _ethereumMode = False
    _productMode = True
@@ -45,8 +45,8 @@ class HelenAPITests(test_suite.TestSuite):
 
    def run(self):
       try:
-         p = self.launchProduct(self._args,
-                                self._userConfig)
+         self.launchProduct(self._args,
+                            self._userConfig)
       except Exception as e:
          log.error(traceback.format_exc())
          return self._resultFile
@@ -65,7 +65,7 @@ class HelenAPITests(test_suite.TestSuite):
       # Notes on command line usage:
       # -m "performance and smoke" will run tests which are both performance and smoke.
       # -m performance -m smoke will run all peformance tests and all smoke tests.
-      params = ["-v", "suites/helen", "--json", "report.json"]
+      params = ["-s", "-v", "suites/helen", "--json", "report.json"]
 
       if self._args.tests:
          params += self._args.tests.split(" ")
@@ -97,6 +97,43 @@ class HelenAPITests(test_suite.TestSuite):
          self.product.stopProduct()
 
       return self._resultFile
+
+
+   def validateLaunchConfig(self, dockerCfg):
+      '''
+      When the product is being launched, a Product can pass a docker config into
+      a test suite to identify configuration issues before continuing with the launch.
+
+      - If we're running tests which integrate Helen and Persephone, make sure we have
+        a docker config that includes Persephone.
+      - Be sure replaceable values in the Persephone config.json file have been replaced
+        with real values.
+      '''
+      if self._args.deployNewBlockchain:
+         foundPersephoneDockerConfig = False
+
+         for key in dockerCfg["services"].keys():
+            if "deploymentservice" in key:
+               foundPersephoneDockerConfig = True
+               provisioningConfig = None
+               provisioningConfigFile = "resources/persephone/provisioning/config.json"
+               invalidValues = ["<VMC_API_TOKEN>", "<DOCKERHUB_REPO_READER_PASSWORD>"]
+
+               with open(provisioningConfigFile, "r") as f:
+                  provisioningConfig = f.read()
+
+               for invalid in invalidValues:
+                  if invalid in provisioningConfig:
+                     msg = "Invalid Persephone provisioning value(s) in {}.".format(provisioningConfigFile)
+                     msg += "  Check instance(s) of: {}".format(invalidValues)
+                     raise Exception(msg)
+
+         if not foundPersephoneDockerConfig:
+            raise Exception("Deploying a new blockchain was requested, but there is no "
+                            "docker config for Persephone. It is likely you should add "
+                            "this to your command: '"
+                            "--dockerComposeFile ../docker/docker-compose.yml ../docker/docker-compose-persephone.yml'")
+
 
    def parsePytestTestName(self, parseMe):
       '''
@@ -135,7 +172,7 @@ class HelenAPITests(test_suite.TestSuite):
          self.product.resume_concord_replica(concordIndex)
 
 
-   def _test_getCerts(self, fx):
+   def _test_getCerts(self, fx, fxBlockchain):
       '''
       Test that if we pass "?certs=true" to the Members endpoint, we get at
       least one non-empty rpc_cert in the response.
@@ -306,7 +343,7 @@ class HelenAPITests(test_suite.TestSuite):
       return response;
 
 
-   def _test_blockHash(self, fx):
+   def _test_blockHash(self, fx, fxBlockchain):
       txReceipt = self._mock_transaction(fx.request)
       blockNumber = txReceipt['blockNumber']
       blockHash = txReceipt['blockHash']
@@ -318,7 +355,7 @@ class HelenAPITests(test_suite.TestSuite):
       return (False, "Block returned with block hash API doesn't match with block returned by block Number")
 
 
-   def _test_invalidBlockHash(self, fx):
+   def _test_invalidBlockHash(self, fx, fxBlockchain):
       try:
          block = fx.request.getBlockByUrl("/api/concord/blocks/0xbadbeef")
       except Exception as e:
@@ -367,7 +404,7 @@ class HelenAPITests(test_suite.TestSuite):
       return request.callUserAPI("/users/{}/".format(user_id))
 
 
-   def _test_createUser(self, fx):
+   def _test_createUser(self, fx, fxBlockchain):
       mock = self._get_mock_user_data()
       response = self._create_mock_user(fx.request, mock)
       print(response)
@@ -382,7 +419,7 @@ class HelenAPITests(test_suite.TestSuite):
       else:
          return (False, "Returned valeus don't match with mock values")
 
-   def _test_get_non_existing_user(self, fx):
+   def _test_get_non_existing_user(self, fx, fxBlockchain):
       response = self._create_mock_user(fx.request)
       user_id = response['user_id']
       response = self._get_user(fx.request, str(uuid4()))
@@ -390,7 +427,7 @@ class HelenAPITests(test_suite.TestSuite):
          return (True, None)
       return (False, "Incorrect response for invalid user")
 
-   def _test_user_login(self, fx):
+   def _test_user_login(self, fx, fxBlockchain):
       user = self._userConfig.get('product').get('db_users')[0]
       username = user['username']
       password = user['password']
@@ -424,7 +461,7 @@ class HelenAPITests(test_suite.TestSuite):
 
       return (False, message)
 
-   def _test_patch_user(self, fx):
+   def _test_patch_user(self, fx, fxBlockchain):
       response = self._create_mock_user(fx.request);
       user_id = response['user_id']
       patchData = {}
@@ -462,7 +499,7 @@ class HelenAPITests(test_suite.TestSuite):
 
       return (True, None)
 
-   def _test_get_multiple_users(self, fx):
+   def _test_get_multiple_users(self, fx, fxBlockchain):
       created_user_id = []
       user_count = 5
       for i in range(1, user_count):
@@ -485,7 +522,7 @@ class HelenAPITests(test_suite.TestSuite):
       return (True, None)
 
 
-   def _test_largeReply(self, fx):
+   def _test_largeReply(self, fx, fxBlockchain):
       ### 1. Create three contracts, each 16kb in size
       ### 2. Request latest transaction list
       ### 3. Reply will be 48k+ in size
@@ -506,7 +543,7 @@ class HelenAPITests(test_suite.TestSuite):
       sentTrList = list(map(lambda x : x['transactionHash'], sentTrList))
       sentTrList.reverse()
 
-      receivedTrList = fx.request.getTransactionList(fx.blockchainId, count=tr_count)
+      receivedTrList = fx.request.getTransactionList(fxBlockchain.blockchainId, count=tr_count)
       receivedTrHashes = list(map(lambda x : x['hash'], receivedTrList['transactions']))
       receivedDataSum = sum(len(x['input']) for x in receivedTrList['transactions'])
 
