@@ -12,10 +12,17 @@ import kotlinx.serialization.Transient
 
 /**
  * Value-type implementation that represents an immutable sequence of bytes.
+ *
+ * @property[data]
+ *   underlying data buffer containing content of this instance.
+ * @property[offset]
+ *   offset to [data] that marks the beginning of the content.
+ * @property[length]
+ *   length of the data content starting from [offset].
  */
 @Serializable(with = ByteString.ByteStringSerializer::class)
 open class ByteString(
-    val data: ByteArray = EMPTY_ARRAY,
+    open val data: ByteArray = EMPTY_ARRAY,
     @Transient val offset: Int = 0,
     @Transient val length: Int = data.size
 ) : Comparable<ByteString> {
@@ -110,7 +117,7 @@ open class ByteString(
         val size1 = length
         val size2 = other.length
         val size = kotlin.math.min(size1, size2)
-        for (i in 0..size) {
+        for (i in 0 until size) {
             val byteA = data[offset + i].toInt() and 0xFF
             val byteB = other.data[other.offset + i].toInt() and 0xff
             if (byteA == byteB) {
