@@ -1,0 +1,22 @@
+# Dockerfile for building daml-on-concord.
+
+# daml_execution_engine
+
+FROM ubuntu:18.04
+
+RUN apt update && apt install -y gnupg2 ca-certificates && \
+    echo "deb https://dl.bintray.com/sbt/debian /" > /etc/apt/sources.list.d/sbt.list && \
+    apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 2EE0EA64E40A89B84B2DF73499E82A75642AC823 && \
+    apt update && apt install -y openjdk-8-jdk-headless sbt && \
+    rm -rf /var/lib/apt/lists/*
+
+COPY build.sbt /doc/
+COPY project /doc/project
+WORKDIR /doc
+RUN sbt update
+
+COPY protos /doc/protos
+COPY kvbc_sync_backend /doc/kvbc_sync_backend
+COPY kvbc_validator /doc/kvbc_validator
+
+RUN sbt stage

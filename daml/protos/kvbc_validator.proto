@@ -1,0 +1,30 @@
+// Copyright (c) 2019 Digital Asset (Switzerland) GmbH and/or its affiliates. All rights reserved.
+//
+// KVBlockChain submission validation service
+//
+
+syntax = "proto3";
+package kvbc;
+option java_package = "com.digitalasset.kvbc";
+
+import "google/protobuf/timestamp.proto";
+import "kvbc_data.proto";
+
+// The validation service provides a gRPC API taking the `DamlSubmission` message, along
+// with the inputs to the submission and returns the resulting log entry and state updates.
+service ValidationService {
+  rpc ValidateSubmission (ValidateRequest) returns (ValidateResponse) {}
+}
+
+message ValidateRequest {
+  bytes entry_id = 1;
+  bytes submission = 2;
+  google.protobuf.Timestamp record_time = 3;
+  repeated KeyValuePair input_log_entries = 4;
+  repeated KeyValuePair input_state = 5;
+}
+
+message ValidateResponse {
+  bytes log_entry = 1;
+  repeated KeyValuePair state_updates = 2;
+}

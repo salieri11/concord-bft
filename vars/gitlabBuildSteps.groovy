@@ -289,7 +289,8 @@ def call(){
                 env.release_hlf_tools_repo = env.release_repo + "/hyperledger-fabric-tools"
                 env.release_hlf_peer_repo = env.release_repo + "/hyperledger-fabric-peer"
                 env.release_hlf_orderer_repo = env.release_repo + "/hyperledger-fabric-orderer"
-                env.release_daml_ledgerapi_repo = env.release_repo + "/daml-ledgerapi"
+                env.release_daml_ledger_api_repo = env.release_repo + "/daml-ledger-api"
+                env.release_daml_execution_engine_repo = env.release_repo + "/daml-execution-engine"
 
                 // These are constants which mirror the internal artifactory repos.  We put all merges
                 // to master in the internal VMware artifactory.
@@ -308,7 +309,8 @@ def call(){
                 env.internal_hlf_tools_repo = env.release_hlf_tools_repo.replace(env.release_repo, env.internal_repo)
                 env.internal_hlf_peer_repo = env.release_hlf_peer_repo.replace(env.release_repo, env.internal_repo)
                 env.internal_hlf_orderer_repo = env.release_hlf_orderer_repo.replace(env.release_repo, env.internal_repo)
-                env.internal_daml_ledgerapi_repo = env.release_daml_ledgerapi_repo.replace(env.release_repo, env.internal_repo)
+                env.internal_daml_ledger_api_repo = env.release_daml_ledger_api_repo.replace(env.release_repo, env.internal_repo)
+                env.internal_daml_execution_engine_repo = env.release_daml_execution_engine_repo.replace(env.release_repo, env.internal_repo)
               }
 
               // Docker-compose picks up values from the .env file in the directory from which
@@ -322,7 +324,6 @@ def call(){
                 ]) {
                 sh '''
                   echo "${PASSWORD}" | sudo -S ls
-                  DAML_LEDGERAPI_TAG=$(grep daml_ledgerapi_tag blockchain/docker/.env | cut -d'=' -f2)
                   sudo cat >blockchain/docker/.env <<EOF
 agent_repo=${internal_agent_repo}
 agent_tag=${docker_tag}
@@ -354,8 +355,10 @@ hlf_peer_repo=${internal_hlf_peer_repo}
 hlf_peer_tag=${docker_tag}
 hlf_orderer_repo=${internal_hlf_orderer_repo}
 hlf_orderer_tag=${docker_tag}
-daml_ledgerapi_repo=${internal_daml_ledgerapi_repo}
-daml_ledgerapi_tag=${DAML_LEDGERAPI_TAG}
+daml_ledger_api_repo=${internal_daml_ledger_api_repo}
+daml_ledger_api_tag=${docker_tag}
+daml_execution_engine_repo=${internal_daml_execution_engine_repo}
+daml_execution_engine_tag=${docker_tag}
 commit_hash=${commit}
 LINT_API_KEY=${LINT_API_KEY}
 EOF
