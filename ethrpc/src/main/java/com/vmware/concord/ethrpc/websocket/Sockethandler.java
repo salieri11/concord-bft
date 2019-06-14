@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2018-2019 VMware, Inc. All rights reserved. VMware Confidential
+ */
+
 package com.vmware.concord.ethrpc.websocket;
 
 import java.io.IOException;
@@ -18,10 +22,12 @@ import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 
 import com.vmware.concord.Concord;
-import com.vmware.concord.ConcordHelper;
-import com.vmware.concord.IConcordConnection;
+
 import com.vmware.concord.Concord.ConcordResponse;
 import com.vmware.concord.Concord.ErrorResponse;
+import com.vmware.concord.ConcordHelper;
+import com.vmware.concord.IConcordConnection;
+
 import com.vmware.concord.connections.ConcordConnectionPool;
 import com.vmware.concord.ethrpc.AbstractEthRpcHandler;
 import com.vmware.concord.ethrpc.ApiHelper;
@@ -41,6 +47,12 @@ import com.vmware.concord.ethrpc.EthLocalResponseHandler;
 import com.vmware.concord.ethrpc.EthRpcHandlerException;
 import com.vmware.concord.ethrpc.EthSendTxHandler;
 
+/**
+ * <p>
+ * Websocket handler for Eth RPCs.
+ * url endpoint : ws:localhost:8545/ws/
+ * </p>
+ */
 @Component
 public class Sockethandler extends TextWebSocketHandler {
     private static final long serialVersionUID = 1L;
@@ -66,7 +78,10 @@ public class Sockethandler extends TextWebSocketHandler {
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
         sessions.add(session);
     }
-    
+
+    /**
+     * Services the websocket request for listing currently exposed Eth RPCs.
+     */
     @SuppressWarnings("unchecked")
     public JSONAware getConcordMessage(String paramString) {
         // Retrieve the request fields
@@ -118,7 +133,7 @@ public class Sockethandler extends TextWebSocketHandler {
         logger.debug("Response: " + responseBody.toJSONString());
         return responseBody;
     }
-    
+
     /**
      * Creates the appropriate handler object and calls its functions to construct an ConcordRequest object. Sends this
      * request to Concord and converts its response into a format required by the user.
@@ -347,5 +362,5 @@ public class Sockethandler extends TextWebSocketHandler {
         } else {
             throw new EthRpcHandlerException("request must contain an id");
         }
-    }    
+    }
 }
