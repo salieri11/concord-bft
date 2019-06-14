@@ -26,6 +26,7 @@ COPY ./persephone/metadata-service-client/pom.xml ./persephone/metadata-service-
 COPY ./persephone/orchestration/pom.xml ./persephone/orchestration/pom.xml
 COPY ./persephone/orchestration-vmc/pom.xml ./persephone/orchestration-vmc/pom.xml
 COPY ./persephone/persistence/pom.xml ./persephone/persistence/pom.xml
+COPY ./persephone/persistence-rocksdb/pom.xml ./persephone/persistence-rocksdb/pom.xml
 COPY ./persephone/provisioning-service/pom.xml ./persephone/provisioning-service/pom.xml
 
 ## Copy the dependency-related POM files (rarely changing).
