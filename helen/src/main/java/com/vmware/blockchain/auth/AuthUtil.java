@@ -7,6 +7,8 @@ package com.vmware.blockchain.auth;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.provider.authentication.BearerTokenExtractor;
 
@@ -16,6 +18,7 @@ import com.vmware.blockchain.common.Constants;
  * AuthUtil Some Authentication utilities, different than the authconext in AuthHelper.
  */
 public class AuthUtil {
+    public static Logger logger = LogManager.getLogger(AuthUtil.class);
 
     /**
      * Get the token from http request.
@@ -30,6 +33,8 @@ public class AuthUtil {
             if (token != null) {
                 return token;
             }
+        } else {
+            logger.info("No session present");
         }
 
         // Add support for standard Authorization: Bearer xxx token type
