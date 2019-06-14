@@ -13,9 +13,9 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.slf4j.MDC;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.ThreadContext;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.core.Authentication;
@@ -35,7 +35,7 @@ import com.vmware.blockchain.common.BadRequestException;
  */
 public class TokenAuthenticationFilter extends GenericFilterBean {
 
-    private static Logger logger = LoggerFactory.getLogger(TokenAuthenticationFilter.class);
+    private static Logger logger = LogManager.getLogger(TokenAuthenticationFilter.class);
     private AuthenticationManager authManager;
 
     /**
@@ -65,9 +65,11 @@ public class TokenAuthenticationFilter extends GenericFilterBean {
                 authentication = authManager.authenticate(authToken);
                 logger.debug("Successfully authenticated API request:{} for user:{}", requestUri,
                              ((AuthenticationContext) authentication).getUserName());
-                MDC.put("userName", ((AuthenticationContext) authentication).getUserName());
-                MDC.put("orgName", ((AuthenticationContext) authentication).getOrgId().toString());
+                ThreadContext.put("userName", ((AuthenticationContext) authentication).getUserName());
+                ThreadContext.put("orgName", ((AuthenticationContext) authentication).getOrgId().toString());
                 SecurityContextHolder.getContext().setAuthentication(authentication);
+            } else {
+                logger.info("No token present");
             }
         } catch (AuthenticationException authenticationException) {
             logger.info("Authentication failed for request:{} - {}", requestUri, authenticationException.getMessage());
@@ -79,8 +81,8 @@ public class TokenAuthenticationFilter extends GenericFilterBean {
             SecurityContextHolder.clearContext();
         }
         filterChain.doFilter(request, response);
-        MDC.remove("userName");
-        MDC.remove("orgName");
+        ThreadContext.remove("userName");
+        ThreadContext.remove("orgName");
     }
 
 }
