@@ -4,8 +4,8 @@
 
 package com.vmware.blockchain.auth;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.security.authentication.BadCredentialsException;
 
 import com.vmware.blockchain.security.HelenUserDetails;
@@ -31,7 +31,7 @@ public interface TokenValidator {
      * In cases where API calls are made across tenant (impersonation, operator) we need to
      * fetch some org-related data that is put into the authentication context.
      */
-    Logger logger = LoggerFactory.getLogger(TokenValidator.class);
+    Logger logger = LogManager.getLogger(TokenValidator.class);
     JwtParser jwtParser = Jwts.parser();
     JwtParser jwksJwtParser = Jwts.parser();
 

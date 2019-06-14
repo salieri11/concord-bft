@@ -15,8 +15,8 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.http.HttpRequest;
 import org.springframework.http.client.ClientHttpRequestExecution;
 import org.springframework.http.client.ClientHttpRequestInterceptor;
@@ -36,7 +36,7 @@ import lombok.Data;
  */
 public class LoggingInterceptor implements ClientHttpRequestInterceptor {
 
-    private static Logger logger = LoggerFactory.getLogger(LoggingInterceptor.class);
+    private static Logger logger = LogManager.getLogger(LoggingInterceptor.class);
     public static final String BASE_MESSAGE = "The {} request to url {} completed with status {} "
                                               + "and response headers {}";
 

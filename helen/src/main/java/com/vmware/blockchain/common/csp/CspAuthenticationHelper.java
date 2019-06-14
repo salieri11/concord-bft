@@ -18,8 +18,8 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -54,7 +54,7 @@ import lombok.Data;
  * client that uses CSP authentication (refresh) tokens.
  */
 public class CspAuthenticationHelper {
-    private static final Logger logger = LoggerFactory.getLogger(CspAuthenticationHelper.class);
+    private static final Logger logger = LogManager.getLogger(CspAuthenticationHelper.class);
 
     private RestTemplate restTemplate;
 

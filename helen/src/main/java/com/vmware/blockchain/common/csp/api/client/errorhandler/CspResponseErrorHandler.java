@@ -9,7 +9,8 @@ import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.util.Optional;
 
-import org.slf4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.client.ClientHttpResponse;
@@ -30,7 +31,7 @@ import com.vmware.blockchain.common.csp.exception.CspApiServerErrorException;
  */
 public class CspResponseErrorHandler extends DefaultResponseErrorHandler {
 
-    private final Logger logger = org.slf4j.LoggerFactory.getLogger(DefaultResponseErrorHandler.class);
+    private final Logger logger = LogManager.getLogger(DefaultResponseErrorHandler.class);
 
     // TODO define global mapper
     private ObjectMapper cspMapper;

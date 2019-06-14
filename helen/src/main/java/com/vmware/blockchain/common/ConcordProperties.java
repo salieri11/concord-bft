@@ -7,9 +7,8 @@ package com.vmware.blockchain.common;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -70,7 +69,7 @@ public class ConcordProperties {
                 concordRpcUrlsMap = Splitter.on(",").withKeyValueSeparator("=").split(concordRpcUrls);
             } catch (IllegalArgumentException e) {
                 // swallow this exception: if the format was invalid, just don't expose URLs
-                Logger log = LoggerFactory.getLogger(ConcordProperties.class);
+                Logger log = LogManager.getLogger(ConcordProperties.class);
                 log.warn("Unable to parse concordRpcUrls", e);
 
                 // also set concordRpcUrlsMap so we don't waste cycles re-evaluating this string
@@ -91,7 +90,7 @@ public class ConcordProperties {
                 concordRpcCertsMap = Splitter.on(",").withKeyValueSeparator("=").split(concordRpcCerts);
             } catch (IllegalArgumentException e) {
                 // swallow this exception: if the format was invalid, just don't expose URLs
-                Logger log = LoggerFactory.getLogger(ConcordProperties.class);
+                Logger log = LogManager.getLogger(ConcordProperties.class);
                 log.warn("Unable to parse concordRpcCerts", e);
 
                 // also set concordRpcCertsMap so we don't waste cycles re-evaluating this string

@@ -6,8 +6,8 @@ package com.vmware.blockchain.db;
 
 import java.lang.annotation.Annotation;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.SerializerProvider;
@@ -21,7 +21,7 @@ import com.vmware.blockchain.dao.AbstractEntity;
  */
 public class DbEntityPropertyFilter extends SimpleBeanPropertyFilter {
 
-    private static final Logger logger = LoggerFactory.getLogger(DbEntityPropertyFilter.class);
+    private static final Logger logger = LogManager.getLogger(DbEntityPropertyFilter.class);
 
     /**
      * Initializes property filter to be used for DB Entity serialization.

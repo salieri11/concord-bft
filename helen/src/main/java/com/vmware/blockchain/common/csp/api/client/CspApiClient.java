@@ -27,8 +27,8 @@ import javax.validation.constraints.NotNull;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -83,7 +83,7 @@ public class CspApiClient {
 
     private ObjectMapper objectMapper;
 
-    private static final Logger logger = LoggerFactory.getLogger(CspApiClient.class);
+    private static final Logger logger = LogManager.getLogger(CspApiClient.class);
 
     //CSP API base url.
     static final String CSP_GATEWAY = "/csp/gateway";
