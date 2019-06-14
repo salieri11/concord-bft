@@ -10,9 +10,9 @@ import java.util.UUID;
 import javax.annotation.PostConstruct;
 import javax.servlet.http.HttpServletRequest;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.slf4j.MDC;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.ThreadContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationProvider;
@@ -34,7 +34,7 @@ import lombok.Data;
  */
 @Component
 public class TokenAuthenticationProvider implements AuthenticationProvider {
-    private static Logger logger = LoggerFactory.getLogger(TokenAuthenticationProvider.class);
+    private static Logger logger = LogManager.getLogger(TokenAuthenticationProvider.class);
 
     private HttpServletRequest request;
     private CspConfig cspConfig;
@@ -97,7 +97,7 @@ public class TokenAuthenticationProvider implements AuthenticationProvider {
 
         HelenUserDetails userInfo = tokenValidator.validateAndGetAuthz(authToken);
         // Add this as soon as we can so that logging messages for Access denied etc can show username.
-        MDC.put("userName", userInfo.getUsername());
+        ThreadContext.put("userName", userInfo.getUsername());
         UUID userId = userInfo.getUserId();
         // set the current tenant based on tenantId in url.
 

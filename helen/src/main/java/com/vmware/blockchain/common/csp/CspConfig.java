@@ -8,8 +8,8 @@ import java.net.URISyntaxException;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.utils.URIBuilder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -18,7 +18,7 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class CspConfig {
-    private static Logger logger = LoggerFactory.getLogger(CspConfig.class);
+    private static Logger logger = LogManager.getLogger(CspConfig.class);
 
     @Value("${csp.port:#{null}}")
     private String cspPort;

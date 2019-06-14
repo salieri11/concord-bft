@@ -8,8 +8,8 @@ import java.io.IOException;
 import java.net.URI;
 import java.util.Objects;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.http.HttpRequest;
 import org.springframework.http.client.ClientHttpRequestExecution;
 import org.springframework.http.client.ClientHttpRequestInterceptor;
@@ -32,7 +32,7 @@ public abstract class BaseRetryInterceptor implements ClientHttpRequestIntercept
 
     private RetryPolicy retryPolicy;
 
-    private final Logger logger = LoggerFactory.getLogger(DefaultHttpRequestRetryInterceptor.class);
+    private final Logger logger = LogManager.getLogger(DefaultHttpRequestRetryInterceptor.class);
 
     /**
      * Construct a retry interceptor.

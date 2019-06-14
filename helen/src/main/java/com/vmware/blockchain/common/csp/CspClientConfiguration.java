@@ -7,8 +7,8 @@ package com.vmware.blockchain.common.csp;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -23,7 +23,7 @@ import com.vmware.blockchain.common.restclient.interceptor.LoggingInterceptor;
  */
 @Configuration
 public class CspClientConfiguration {
-    private static Logger logger = LoggerFactory.getLogger(CspClientConfiguration.class);
+    private static Logger logger = LogManager.getLogger(CspClientConfiguration.class);
 
     @Value("${csp.url:http:/csp}")
     private String cspUrl;

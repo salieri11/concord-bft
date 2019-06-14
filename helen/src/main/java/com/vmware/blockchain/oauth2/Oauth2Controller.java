@@ -14,8 +14,8 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.Cache;
@@ -52,7 +52,7 @@ import lombok.Data;
  */
 @RestController
 public class Oauth2Controller {
-    private static Logger logger = LoggerFactory.getLogger(Oauth2Controller.class);
+    private static Logger logger = LogManager.getLogger(Oauth2Controller.class);
 
     private String ssUrl;
 

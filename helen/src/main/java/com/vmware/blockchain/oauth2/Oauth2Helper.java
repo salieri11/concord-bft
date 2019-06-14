@@ -19,8 +19,8 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -44,7 +44,7 @@ import com.vmware.blockchain.common.restclient.interceptor.retry.DefaultHttpRequ
  */
 public class Oauth2Helper {
 
-    private static Logger logger = LoggerFactory.getLogger(Oauth2Helper.class);
+    private static Logger logger = LogManager.getLogger(Oauth2Helper.class);
     private static final RestTemplate restTemplate = getOauthRestTemplate(3, TimeUnit.SECONDS.toMillis(1));
 
     /**
