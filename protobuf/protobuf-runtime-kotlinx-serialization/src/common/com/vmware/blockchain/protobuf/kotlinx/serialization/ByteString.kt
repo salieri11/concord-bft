@@ -117,7 +117,7 @@ open class ByteString(
         val size1 = length
         val size2 = other.length
         val size = kotlin.math.min(size1, size2)
-        for (i in 0..size) {
+        for (i in 0 until size) {
             val byteA = data[offset + i].toInt() and 0xFF
             val byteB = other.data[other.offset + i].toInt() and 0xff
             if (byteA == byteB) {
