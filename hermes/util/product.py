@@ -996,6 +996,12 @@ class Product():
         return False
       return True
 
+   def exec_in_concord_container(self, containerName, args):
+      command = "docker exec {0} {1}".format(containerName, args)
+      output = subprocess.Popen(command,stderr=subprocess.PIPE, shell=True, stdout=subprocess.PIPE).stdout.read().decode("UTF-8")
+      log.info("Exec on " + containerName + ": " + args)
+      return output
+
    def start_concord_replica(self, id):
        if len(self._concordProcessesMetaData) == 0:
           containerName = "docker_concord{}_1".format(id)
