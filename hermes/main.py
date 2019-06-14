@@ -196,6 +196,8 @@ def createTestSuite(args):
       return helen_api_tests.HelenAPITests(args)
    elif (args.suite == "ExtendedRPCTests"):
       return ext_rpc_tests.ExtendedRPCTests(args)
+   elif (args.suite == "WebSocketRPCTests"):
+      return ext_rpc_tests.WebSocketRPCTests(args)
    elif (args.suite == "PerformanceTests"):
       return performance_tests.PerformanceTests(args)
    elif (args.suite == "PersephoneTests"):
