@@ -107,7 +107,7 @@ RUN ./autogen.sh && ./configure --enable-module-recovery CFLAGS="-march=x86-64 -
 RUN make -j4 && make install
 
 WORKDIR /
-RUN git clone https://github.com/openssl/openssl.git && \
+RUN git clone https://svc.blockhain_1:Nn2NPdU6Ny9ZaYyXs3DB@gitlab.eng.vmware.com/core-build/openssl.git && \
     cd /openssl && \
     git checkout OpenSSL_1_1_1a
 WORKDIR /openssl
