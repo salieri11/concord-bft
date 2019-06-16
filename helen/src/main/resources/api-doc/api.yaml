@@ -1,6 +1,6 @@
 ﻿openapi: "3.0.0"
 info: 
- title: "VMware Blockchain API"
+ title: "VMware Blockchain API -Helen"
  description: "A Scalable Byzantine Fault Tolerant Ledger"
  version: "1.0.0"
 servers: 
