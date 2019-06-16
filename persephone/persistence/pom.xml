@@ -124,6 +124,19 @@
                 <groupId>com.github.gantsign.maven</groupId>
                 <artifactId>ktlint-maven-plugin</artifactId>
             </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <executions>
+                    <!-- Special execution to also package test-jar for plug-able storage back-end
+                         modules to be able to utilize the test-driver. -->
+                    <execution>
+                        <goals>
+                            <goal>test-jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
 </project>
