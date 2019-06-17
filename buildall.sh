@@ -325,6 +325,10 @@ docker_build submodules/hlf-chaincode-engine submodules/hlf-chaincode-engine/Doc
 
 docker_build submodules/hlf-chaincode-engine submodules/hlf-chaincode-engine/Dockerfile-orderer ${hlf_orderer_repo} ${hlf_orderer_tag}
 
+docker_build daml daml/DockerfileLedgerApi ${daml_ledger_api_repo} ${daml_ledger_api_tag}
+
+docker_build daml daml/DockerfileExecutionEngine ${daml_execution_engine_repo} ${daml_execution_engine_tag}
+
 BuildPersephoneGRPCpyBindings
 
 if [ ! -z "${ADDITIONAL_BUILDS}" ]
