@@ -1,5 +1,5 @@
 #########################################################################
-# Copyright 2019 - 2020 VMware, Inc.  All rights reserved. -- VMware Confidential
+# Copyright 2018 - 2019 VMware, Inc.  All rights reserved. -- VMware Confidential
 #
 # Test the parts of the Ethereum JSON RPC Websocket beyond what the
 # CoreVMTests cover. This checks things like web3_sha3,
@@ -20,7 +20,7 @@ log = logging.getLogger(__name__)
 
 
 class WebSocketRPCTests(test_suite.TestSuite):
-   _endpoint = "ws://localhost:8545/ws"
+   _endpoint = "wss://localhost:8545/ws"
    _ws = websocket.WebSocket()
 
    def __init__(self, passedArgs):

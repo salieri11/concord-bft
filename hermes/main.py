@@ -13,8 +13,8 @@ from time import strftime, localtime
 
 from suites import (asset_transfer_tests, contract_compiler_tests, core_vm_tests, daml_tests,
                     ext_rpc_tests, lint_e2e_tests, helen_api_tests, hlf_tests, performance_tests,
-                    websocket_rpc_tests, persephone_tests, regression_tests, simple_st_test, time_tests, truffle_tests,
-                    ui_tests)
+                    persephone_tests, regression_tests, simple_st_test, time_tests, truffle_tests,
+                    ui_tests, websocket_rpc_tests)
 
 from util import html, json_helper
 

@@ -4,6 +4,9 @@
 
 package com.vmware.concord.ethrpc.websocket;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.json.simple.parser.ParseException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.socket.config.annotation.EnableWebSocket;
@@ -11,6 +14,7 @@ import org.springframework.web.socket.config.annotation.WebSocketConfigurer;
 import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry;
 
 import com.vmware.concord.connections.ConcordConnectionPool;
+import com.vmware.concord.ethrpc.EthDispatcher;
 
 /**
  * Temporary configuration to serve websocket.
@@ -18,6 +22,7 @@ import com.vmware.concord.connections.ConcordConnectionPool;
 @Configuration
 @EnableWebSocket
 public class WebSocketConfig implements WebSocketConfigurer {
+    private static Logger logger = LogManager.getLogger("WebSocketConfig");
     private ConcordConnectionPool concordConnectionPool;
 
     @Autowired
@@ -25,8 +30,15 @@ public class WebSocketConfig implements WebSocketConfigurer {
         concordConnectionPool = connectionPool;
     }
 
+    /**
+     * Regist websocket handlers.
+     */
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
-        registry.addHandler(new Sockethandler(concordConnectionPool), "/ws").setAllowedOrigins("*");
+        try {
+            registry.addHandler(new EthDispatcher(concordConnectionPool), "/ws").setAllowedOrigins("*");
+        } catch (ParseException e) {
+            logger.error("Failed to regist websocket handler", e);
+        }
     }
 
 }
