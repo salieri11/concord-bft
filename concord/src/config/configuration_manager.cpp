@@ -3053,10 +3053,16 @@ void specifyConfiguration(ConcordConfiguration& config) {
   config.addValidator("daml_enable", validateBoolean, nullptr);
 
   node.declareParameter("daml_service_addr",
-                        "Public IP address and port (<IP>:<PORT>) on which the "
-                        "DAML serice can be reached.",
+                        "IP address and port (<IP>:<PORT>) on which Concord's "
+                        "DAML service can be reached.",
                         "0.0.0.0:50051");
-  node.tagParameter("daml_service_addr", publicDefaultableTags);
+  node.tagParameter("daml_service_addr", defaultableByReplicaTags);
+
+  node.declareParameter("daml_execution_engine_addr",
+                        "IP address and port (<IP>:<PORT>) to reach DAMLe. "
+                        "Concord is a client to DAML's execution engine.",
+                        "0.0.0.0:55000");
+  node.tagParameter("daml_execution_engine_addr", defaultableByReplicaTags);
 
   node.declareParameter("api_worker_pool_size",
                         "Number of threads to create to handle TCP connections "

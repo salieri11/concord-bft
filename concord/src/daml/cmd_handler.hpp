@@ -24,17 +24,20 @@ class KVBCCommandsHandler : public concord::storage::ICommandsHandler {
   concord::storage::ILocalKeyValueStorageReadOnly* ro_storage_;
   concord::storage::IBlocksAppender* blocks_appender_;
   BlockingPersistentQueue<com::digitalasset::kvbc::CommittedTx>& committedTxs_;
+  std::string execution_engine_addr_;
 
  public:
   KVBCCommandsHandler(
       concord::storage::ILocalKeyValueStorageReadOnly* ros,
       concord::storage::IBlocksAppender* ba,
       BlockingPersistentQueue<com::digitalasset::kvbc::CommittedTx>&
-          committedTxs)
+          committedTxs,
+      std::string damle_addr)
       : logger_(log4cplus::Logger::getInstance("com.vmware.concord.daml")),
         ro_storage_(ros),
         blocks_appender_(ba),
-        committedTxs_(committedTxs) {}
+        committedTxs_(committedTxs),
+        execution_engine_addr_(damle_addr) {}
 
   int execute(uint16_t clientId, uint64_t sequenceNum, bool readOnly,
               uint32_t requestSize, const char* request, uint32_t maxReplySize,
