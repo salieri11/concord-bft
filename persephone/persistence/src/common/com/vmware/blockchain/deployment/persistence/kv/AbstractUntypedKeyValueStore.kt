@@ -15,10 +15,12 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.reactive.publish
+import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.KSerializer
 import kotlin.coroutines.AbstractCoroutineContextElement
 import kotlin.coroutines.CoroutineContext
@@ -75,8 +77,11 @@ abstract class AbstractUntypedKeyValueStore<T : Version<T>>(
      * Shutdown the [UntypedKeyValueStore] instance and closes all resources.
      */
     override fun close() {
-        requestChannel.close()
-        job.cancel()
+        // Run with default coroutine dispatcher (in order to block the caller's thread).
+        runBlocking {
+            requestChannel.close()
+            job.cancelAndJoin()
+        }
     }
 
     override operator fun get(key: Value): Publisher<Versioned<Value, T>> {
