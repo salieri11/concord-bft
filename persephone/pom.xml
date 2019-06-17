@@ -16,6 +16,7 @@
         <module>awsutil</module>
         <module>core</module>
         <module>cli</module>
+        <module>ip-allocation-service</module>
         <module>metadata-service</module>
         <module>metadata-service-client</module>
         <module>orchestration</module>
@@ -167,6 +168,11 @@
             <dependency>
                 <groupId>com.vmware.blockchain</groupId>
                 <artifactId>persephone-persistence</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.vmware.blockchain</groupId>
+                <artifactId>persephone-persistence-rocksdb</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
