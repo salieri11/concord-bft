@@ -22,12 +22,13 @@ using namespace com::vmware::concord;
 #define OPT_RECEIPT "receipt"
 
 void add_options(options_description &desc) {
-  desc.add_options()(OPT_LIST ",l",
-                     "List transactions from receipt to receipt-count")(
-      OPT_COUNT ",c", value<std::uint64_t>(),
-      "Number of transactionss to list")(
-      OPT_RECEIPT ",r", value<std::string>(),
-      "The transaction hash returned from eth_sendTransaction");
+  // clang-format off
+  desc.add_options()
+    (OPT_LIST ",l", "List transactions from receipt to receipt-count")
+    (OPT_COUNT ",c", value<std::uint64_t>(), "Number of transactionss to list")
+    (OPT_RECEIPT ",r", value<std::string>(),
+     "The transaction hash returned from eth_sendTransaction");
+  // clang-format on
 }
 
 std::string status_to_string(int32_t status) {

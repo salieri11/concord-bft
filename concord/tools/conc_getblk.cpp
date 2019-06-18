@@ -21,11 +21,14 @@ using namespace com::vmware::concord;
 #define OPT_HASH "hash"
 
 void add_options(options_description &desc) {
-  desc.add_options()(OPT_LIST ",l", "List blocks from index to index-count")(
-      OPT_NUMBER ",n", value<std::uint64_t>(),
-      "Number of block to get (latest if listing)")(
-      OPT_COUNT ",c", value<std::uint64_t>(), "Number of blocks to list")(
-      OPT_HASH ",s", value<std::string>(), "Hash of block to get");
+  // clang-format off
+  desc.add_options()
+    (OPT_LIST ",l", "List blocks from index to index-count")
+    (OPT_NUMBER ",n", value<std::uint64_t>(),
+     "Number of block to get (latest if listing)")
+    (OPT_COUNT ",c", value<std::uint64_t>(), "Number of blocks to list")
+    (OPT_HASH ",s", value<std::string>(), "Hash of block to get");
+  // clang-format on
 }
 
 void prepare_block_list_request(variables_map &opts, ConcordRequest &concReq) {

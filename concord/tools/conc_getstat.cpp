@@ -19,10 +19,12 @@ using namespace com::vmware::concord;
 #define OPT_LOCATION "location"
 
 void add_options(options_description &desc) {
-  desc.add_options()(OPT_CONTRACT ",c", value<std::string>(),
-                     "Address of the contract")(
-      OPT_LOCATION ",l", value<std::string>(),
-      "Location in storage to read from");
+  // clang-format off
+  desc.add_options()
+    (OPT_CONTRACT ",c", value<std::string>(), "Address of the contract")
+    (OPT_LOCATION ",l", value<std::string>(),
+     "Location in storage to read from");
+  // clang-format on
 }
 
 // left padding with zeros
