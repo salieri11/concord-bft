@@ -21,11 +21,17 @@ bool parse_options(int argc, char **argv, options_adder adder,
                    boost::program_options::variables_map &opts) {
   boost::program_options::options_description desc{"Options"};
 
-  desc.add_options()(OPT_HELP ",h", "Print this help message")(
-      OPT_ADDRESS ",a", value<std::string>()->default_value(DEFAULT_CONCORD_IP),
-      "IP address of concord node")(
-      OPT_PORT ",p", value<std::string>()->default_value(DEFAULT_CONCORD_PORT),
-      "Port of concord node");
+  // clang-format off
+  desc.add_options()
+    (OPT_HELP ",h", "Print this help message")
+    (OPT_ADDRESS ",a", value<std::string>()->default_value(DEFAULT_CONCORD_IP),
+     "IP address of concord node")
+    (OPT_PORT ",p", value<std::string>()->default_value(DEFAULT_CONCORD_PORT),
+     "Port of concord node")
+    (OPT_FORMAT ",o", value<std::string>()->default_value(DEFAULT_FORMAT),
+     "Output format. \"" OPT_FORMAT_TEXT "\" (default) or \""
+     OPT_FORMAT_JSON "\"");
+  // clang-format on
 
   // add tool-specific options
   (*adder)(desc);
@@ -40,6 +46,13 @@ bool parse_options(int argc, char **argv, options_adder adder,
 
   // After help-check, so that required params are not required for help.
   notify(opts);
+
+  if (opts[OPT_FORMAT].as<std::string>() != OPT_FORMAT_TEXT &&
+      opts[OPT_FORMAT].as<std::string>() != OPT_FORMAT_JSON) {
+    std::cerr << "Unknown output format \""
+              << opts[OPT_FORMAT].as<std::string>() << "\"" << std::endl;
+    return false;
+  }
 
   // help was not requested, program should continue
   return true;

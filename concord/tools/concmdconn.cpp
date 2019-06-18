@@ -4,6 +4,7 @@
 
 #include "concmdconn.hpp"
 #include <google/protobuf/text_format.h>
+#include <google/protobuf/util/json_util.h>
 #include <boost/asio.hpp>
 #include <iostream>
 #include "concmdopt.hpp"
@@ -13,6 +14,18 @@ using boost::asio::io_service;
 using boost::asio::ip::address;
 using boost::asio::ip::tcp;
 
+void format_message(boost::program_options::variables_map &opts,
+                    google::protobuf::Message &message, std::string &pbtext) {
+  if (opts[OPT_FORMAT].as<std::string>() == OPT_FORMAT_TEXT) {
+    google::protobuf::TextFormat::PrintToString(message, &pbtext);
+  } else if (opts[OPT_FORMAT].as<std::string>() == OPT_FORMAT_JSON) {
+    pbtext.clear();
+    google::protobuf::util::MessageToJsonString(message, &pbtext);
+  } else {
+    pbtext = "Unknown output format";
+  }
+}
+
 /**
  * Send a request to concord, and wait for the response. Returns true if a valid
  * response was received, or false if any error happened.
@@ -21,8 +34,8 @@ bool call_concord(boost::program_options::variables_map &opts,
                   com::vmware::concord::ConcordRequest &request,
                   com::vmware::concord::ConcordResponse &response) {
   std::string pbtext;
-  google::protobuf::TextFormat::PrintToString(request, &pbtext);
-  std::cout << "Message Prepared: " << pbtext << std::endl;
+  format_message(opts, request, pbtext);
+  std::cout << "Message prepared: " << pbtext << std::endl;
 
   /*** Open connection ***/
 
@@ -71,7 +84,7 @@ bool call_concord(boost::program_options::variables_map &opts,
         std::cerr << "Failed to parse respons" << std::endl;
         result = false;
       } else {
-        google::protobuf::TextFormat::PrintToString(response, &pbtext);
+        format_message(opts, response, pbtext);
         std::cout << "Received response: " << pbtext << std::endl;
       }
     }
