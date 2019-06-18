@@ -111,6 +111,8 @@ public class Oauth2ControllerTests {
 
     private String targetUri;
 
+    private String ivitationUri;
+
     private String logoutRedirectUri;
 
     private String logoutCspDiscovery;
@@ -214,6 +216,7 @@ public class Oauth2ControllerTests {
         oauthCallbackUrl =
                 UriComponentsBuilder.fromUriString(vmbcUrl).path(vmbcOauthCallback).build().toUriString();
         targetUri = UriComponentsBuilder.fromUriString(vmbcUrl).path("/login-return").build().toUriString();
+        ivitationUri = UriComponentsBuilder.fromUriString(Constants.AUTH_INVITATION).build().toUriString();
         cspConfig = mock(CspConfig.class);
         server = new WireMockServer(options().dynamicPort());
         server.start();
@@ -270,26 +273,26 @@ public class Oauth2ControllerTests {
 
     @Test
     public void testLoginOrg() throws Exception {
-        String orgId = UUID.randomUUID().toString();
+        String orgId = CspConstants.CSP_ORG_API + "/" + UUID.randomUUID().toString();
         String redirectUri = UriComponentsBuilder.fromUriString(cspConfig.getCspUrl())
                 .path(CspConstants.CSP_DISCOVERY_PAGE).queryParam("client_id", "vmbc-client")
                 .queryParam("redirect_uri", oauthCallbackUrl).queryParam("state", "*")
-                .queryParam("org_link", CspConstants.CSP_ORG_API + "/" + orgId).build().toUriString();
+                .queryParam("orgLink", orgId).build().toUriString();
 
-        String getUri = String.format("%s?org_id=%s", vmbcAuthLogin, orgId);
+        String getUri = String.format("%s?orgLink=%s", vmbcAuthLogin, orgId);
 
         mockMvc.perform(get(getUri)).andDo(print()).andExpect(redirectedUrlPattern(redirectUri));
     }
 
     @Test
     public void testLoginWithSessionAndOrg() throws Exception {
-        String orgId = UUID.randomUUID().toString();
+        String orgLink = CspConstants.CSP_ORG_API + "/" + UUID.randomUUID().toString();
         String redirectUri = UriComponentsBuilder.fromUriString(cspConfig.getCspUrl())
                 .path(CspConstants.CSP_DISCOVERY_PAGE).queryParam("client_id", "vmbc-client")
                 .queryParam("redirect_uri", oauthCallbackUrl).queryParam("state", "*")
-                .queryParam("org_link", CspConstants.CSP_ORG_API + "/" + orgId).build().toUriString();
+                .queryParam("orgLink", orgLink).build().toUriString();
 
-        String getUri = String.format("%s?org_id=%s&session_cleaned=true", vmbcAuthLogin, orgId);
+        String getUri = String.format("%s?orgLink=%s&session_cleaned=true", vmbcAuthLogin, orgLink);
 
         mockMvc.perform(get(getUri)).andExpect(redirectedUrlPattern(redirectUri));
     }
@@ -334,6 +337,17 @@ public class Oauth2ControllerTests {
         verify(1, postRequestedFor(urlPathEqualTo(CspConstants.CSP_OAUTH_TOKEN)));
     }
 
+    @Test
+    public void testInvitationCallback() throws Exception {
+        WireMock.reset();
+        stubFor(cspAuthGoodReturn());
+        String getUri = String.format("%s?code=%s&state=%s", vmbcOauthCallback, code, state);
+        session.setAttribute(Constants.CSP_INVIATION_LINK, "invitation");
+
+        mockMvc.perform(get(getUri).session(session)).andExpect(redirectedUrl(ivitationUri));
+
+        verify(1, postRequestedFor(urlPathEqualTo(CspConstants.CSP_OAUTH_TOKEN)));
+    }
 
     @Test
     public void testCallbackWithSingleFail() throws Exception {
@@ -397,6 +411,8 @@ public class Oauth2ControllerTests {
         String body = mockMvc.perform(get(vmbcAuthToken).sessionAttr("token-id", "id-token"))
                 .andExpect(status().is2xxSuccessful()).andReturn().getResponse()
                 .getContentAsString();
-        Assertions.assertEquals("{\"auth_token\":\"atoken\",\"id_token\":\"id-token\"}", body);
+        Assertions.assertEquals(
+                "{\"auth_token\":\"atoken\",\"id_token\":\"id-token\",\"email\":\"user@domain\",\"last_login\":0}",
+                body);
     }
 }

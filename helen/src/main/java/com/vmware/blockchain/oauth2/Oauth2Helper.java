@@ -75,7 +75,7 @@ public class Oauth2Helper {
             }
             String orgId = oauth2AuthCodeRequestParams.getOrgId();
             if (orgId != null && orgId.length() > 0) {
-                builder = builder.queryParam("org_link", Oauth2CommonUtility.CSP_ORG_API + "/" + orgId);
+                builder = builder.queryParam("orgLink", orgId);
             }
             Map<String, List<String>> extraQueryParams = oauth2AuthCodeRequestParams.getExtraQueryParams();
             if (extraQueryParams != null) {

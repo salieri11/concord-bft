@@ -102,11 +102,12 @@ public class Oauth2Controller {
      * page for the flow. This redirects to the CSP discovery page with the client id, oauth callback, and target URI
      * filled in. org_link
      *
-     * @param orgId Org ID to log in as
+     * @param orgLink Org ID to log in as
      * @throws Exception redirect failure
      */
     @RequestMapping(method = RequestMethod.GET, value = {Constants.AUTH_LOGIN})
-    public void login(@RequestParam(name = "org_id", required = false) String orgId,
+    public void login(@RequestParam(name = Constants.CSP_ORG_LINK, required = false) String orgLink,
+                      @RequestParam(name = Constants.CSP_INVIATION_LINK, required = false) String serviceInvitation,
                       @RequestParam(name = Oauth2CommonUtility.SESSION_CLEANED, required = false,
                               defaultValue = "false") boolean sessionRedirect,
                       HttpServletRequest request, HttpServletResponse response) throws Exception {
@@ -132,9 +133,12 @@ public class Oauth2Controller {
             String state = UUID.randomUUID().toString();
             // and save it as an attribute in the session
             request.getSession().setAttribute(Oauth2CommonUtility.STATE_KEY, state);
+            if (serviceInvitation != null) {
+                request.getSession().setAttribute(Constants.CSP_INVIATION_LINK, serviceInvitation);
+            }
             authCodeParamsBuilder.state(state).baseUrl(cspConfig.getCspUrl())
                     .relativePath(CspConstants.CSP_DISCOVERY_PAGE).clientId(clientId)
-                    .redirectUri(oauthCallbackUrl).orgId(orgId);
+                    .redirectUri(oauthCallbackUrl).orgId(orgLink);
         }
         Oauth2Helper helper = new Oauth2Helper();
         helper.handleAuthorizationCodeRequest(request, response, authCodeParamsBuilder.build());
@@ -163,7 +167,7 @@ public class Oauth2Controller {
         }
 
         // we don't know if org or projects is controlling things, so get the cache manager
-        Cache cache = cacheManager.getCache(Constants.TOKEN_CACHE);
+        Cache cache = cacheManager.getCache(Constants.CSP_TOKEN_CACHE);
         cache.evict(token);
         // invalidate the current session
         request.getSession().invalidate();
@@ -233,15 +237,23 @@ public class Oauth2Controller {
         session.setAttribute(Constants.TOKEN_ID, authResponse.getIdToken());
         session.setAttribute(Constants.TOKEN_EXPIRES_AT,
                              now + TimeUnit.SECONDS.toMillis(authResponse.getExpiresIn()));
+        // We are going to redirect either to the login return, or to the invitation return
+        // The invitation return handles the setting permissions from the invitation.
+        String redirect;
+        if (session.getAttribute(Constants.CSP_INVIATION_LINK) != null) {
+            redirect = UriComponentsBuilder.fromUriString(Constants.AUTH_INVITATION).build().toString();
+        } else {
+            redirect = targetUri;
+        }
         try {
             /*
                 Removed code here that added the auth token as a query param to redirect.  I think I added that
                 in originally for UI guys, but Venkat added a feature to leave it off.  Negotiate with Matt
                 on how to get thee token.
              */
-            response.sendRedirect(UriComponentsBuilder.fromUriString(targetUri).build().toUriString());
+            response.sendRedirect(redirect);
         } catch (IOException e) {
-            throw new InternalFailureException(ErrorCode.CANNOT_REDIRECT_TO_TARGET, targetUri);
+            throw new InternalFailureException(ErrorCode.CANNOT_REDIRECT_TO_TARGET, redirect);
         }
     }
 

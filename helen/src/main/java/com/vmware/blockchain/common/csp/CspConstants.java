@@ -22,7 +22,6 @@ public class CspConstants {
     public static final String CSP_ORG_API = CSP_ACCOUNT_MANAGEMENT + "/orgs";
     public static final String CSP_API_ORG_ID = CSP_ORG_API + "/{orgId}";
     public static final String CSP_USER_API = CSP_ACCOUNT_MANAGEMENT + "/users";
-    public static final String SKYSCRAPER_INSTANCE_NAME = "Skyscraper Instance";
     public static final String CSP_SERVICE_TYPES_URL = CSP_LIFECYCLE + "/definitions";
     public static final String CSP_REGISTERED_SERVICE_INSTANCES_URL = CSP_LIFECYCLE + "/services/registered/";
     public static final String CSP_SUBSCRIPTION_ACTIVATION = CSP_LIFECYCLE + "/service-subscriptions/{id}/activate";
