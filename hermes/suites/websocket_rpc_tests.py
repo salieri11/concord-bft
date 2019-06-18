@@ -43,7 +43,7 @@ class WebSocketRPCTests(test_suite.TestSuite):
 
       self._connect
       for (testName, testFun) in tests:
-
+         log.info("Starting test '{}'".format(testName))
          testLogDir = os.path.join(self._testLogDir, testName)
 
          try:
@@ -65,7 +65,7 @@ class WebSocketRPCTests(test_suite.TestSuite):
          self.writeResult(testName, result, info)
 
       self._close
-      log.info("Tests are done.")
+      log.info("Websocket Tests are done.")
 
       if self._shouldStop():
          self.product.stopProduct()
