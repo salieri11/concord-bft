@@ -149,14 +149,15 @@ def undeploy_blockchain_cluster(provisioning_config_file, grpc_server, session_i
    if session_id_json:
       log.info("Undeploying session ID: {}".format(session_id_json))
 
-      undeploy_docker_container = p.Product.PERSEPHONE_PROVISIONING_CLIENT_UNDEPLOY
+      undeploy_docker_container = p.Product.PERSEPHONE_PROVISIONING_CLIENT_UNDEPLOY_DOCKER_REPO
+      undeploy_docker_container_tag = p.Product.PERSEPHONE_PROVISIONING_CLIENT_UNDEPLOY_DOCKER_TAG
       provisioning_config_file_abspath = os.path.abspath(provisioning_config_file)
       undeploy_command = ["docker",
                           "run",
                           "--net=host",
                           "-v"
                           "{}:{}".format(provisioning_config_file_abspath, provisioning_config_file_abspath),
-                          "{}".format(undeploy_docker_container),
+                          "{}:{}".format(undeploy_docker_container, undeploy_docker_container_tag),
                           "deleteCluster"
                           ]
       undeploy_command_params = [
