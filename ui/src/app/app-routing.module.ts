@@ -7,9 +7,7 @@ import { RouterModule, Routes } from '@angular/router';
 import { AgreementGuard } from './shared/agreement-guard.service';
 import { MarketingComponent } from './marketing/marketing.component';
 
-const appRoutes: Routes = [
-  { path: '', component: MarketingComponent, canActivate: [AgreementGuard] },
-];
+const appRoutes: Routes = [{ path: '', component: MarketingComponent, canActivate: [AgreementGuard] }];
 
 @NgModule({
   imports: [

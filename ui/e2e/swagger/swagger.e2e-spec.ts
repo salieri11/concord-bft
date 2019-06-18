@@ -22,10 +22,6 @@ describe('concord-ui Swagger Docs', () => {
     browser.sleep(1000);
   });
 
-  afterAll(() => {
-    authHelper.logOut();
-  });
-
   beforeEach(() => {
     swaggerPage = new SwaggerPage();
     browser.waitForAngularEnabled(false);

@@ -6,6 +6,7 @@ import { Component, NgZone, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { Router, ActivatedRoute } from '@angular/router';
 import { Subscription } from 'rxjs';
 
+import { environment } from '../../../environments/environment';
 import { AuthenticationService } from '../../shared/authentication.service';
 import { ErrorAlertService } from '../../shared/global-error-handler.service';
 import { BlockchainService, BlockchainResponse } from '../../shared/blockchain.service';
@@ -47,20 +48,28 @@ export class MainComponent implements OnInit, OnDestroy {
     private tourService: TourService,
     private blockchainService: BlockchainService
   ) {
+    console.log('Main Component Init');
     const consortiumId = this.route.snapshot.params['consortiumId'];
     this.selectedConsortium = this.blockchainService.select(consortiumId);
 
     this.alertService.notify
       .subscribe(error => this.addAlert(error));
-    this.setInactivityTimeout();
+
+    if (!environment.csp) {
+      this.setInactivityTimeout();
+    }
+
     this.blockchainService.set(
       this.selectedConsortium
-    ).subscribe();
+    ).subscribe(() => {
+      if (this.blockchainService.blockchainId) {
+        this.router.navigate(['/', this.blockchainService.blockchainId, 'dashboard']);
+      }
+    });
   }
 
   ngOnInit() {
     this.tourService.initialUrl = this.router.url.substr(1);
-
 
     this.blockchainService.notify
       .subscribe(notification => this.handleConsortiumNotification(notification));
@@ -81,7 +90,10 @@ export class MainComponent implements OnInit, OnDestroy {
     });
 
     this.route.params.subscribe(param => {
-      if (param.consortiumId && param.consortiumId.length > 8) {
+
+      if (param.consortiumId && param.consortiumId === 'login-return') {
+        // Do nothing
+      } else if (param.consortiumId && param.consortiumId.length > 8) {
         this.selectedConsortium = param.consortiumId;
         this.blockchainService.select(this.selectedConsortium);
       }
@@ -89,7 +101,7 @@ export class MainComponent implements OnInit, OnDestroy {
 
     this.blockchainWizard.setupComplete.subscribe(
       response => {
-        this.router.navigate(['/deploying'], {replaceUrl: true});
+        this.router.navigate(['/deploying'], { replaceUrl: true });
         this.enableRouterOutlet = false;
         this.deployLoader.startLoading(response);
       }

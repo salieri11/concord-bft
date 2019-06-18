@@ -12,6 +12,8 @@ import {
 import { Observable, throwError, of, BehaviorSubject } from 'rxjs';
 import { tap, catchError, switchMap, take, finalize, filter } from 'rxjs/operators';
 import { AuthenticationService } from './shared/authentication.service';
+import { environment } from './../environments/environment';
+
 /**
  * Checks for successful HTTP responses (status code 2XX) that are actually errors and throws.
  *
@@ -20,12 +22,43 @@ import { AuthenticationService } from './shared/authentication.service';
  */
 @Injectable()
 export class RequestInterceptor implements HttpInterceptor {
+  env = environment;
   isRefreshingToken: boolean = false;
   tokenSubject: BehaviorSubject<string> = new BehaviorSubject<string>(null);
-
+  cspErrors = [];
   constructor(private authService: AuthenticationService) { }
 
   intercept(request: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
+    if (this.env.csp) {
+      return next.handle(request).pipe(
+
+        catchError((error) => {
+          if (error instanceof HttpErrorResponse) {
+            switch ((<HttpErrorResponse>error).status) {
+              case 401:
+                this.cspErrors.push(error);
+                  if (window.location.search.indexOf('org_link') !== -1) {
+                    window.location.href = `https://${window.location.host}/api/oauth/login${window.location.search}`;
+                    return;
+                    break;
+                  }
+
+                this.cspErrors = [];
+                window.location.href = this.env.loginPath;
+                return throwError(error);
+
+                break;
+
+              default:
+                return throwError(error);
+            }
+          } else {
+            return throwError(error);
+          }
+        })
+      );
+    }
+
     return next.handle(this.addTokenToRequest(request, localStorage.getItem('jwtToken'))).pipe(
       catchError((error) => {
         if (error instanceof HttpErrorResponse) {
@@ -36,10 +69,10 @@ export class RequestInterceptor implements HttpInterceptor {
               }
               return this.handle401Error(request, next);
             case 400:
-                if ( error.url.indexOf('api/auth/refresh' ) !== -1 ) {
-                  this.authService.logOut();
-                }
-                return throwError(error);
+              if (error.url.indexOf('api/auth/refresh') !== -1) {
+                this.authService.logOut();
+              }
+              return throwError(error);
             default:
               return throwError(error);
           }

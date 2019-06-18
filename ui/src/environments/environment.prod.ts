@@ -4,5 +4,6 @@
 
 export const environment = {
   production: true,
-  csp: false
+  csp: false,
+  loginPath: undefined
 };
