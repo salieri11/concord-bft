@@ -44,9 +44,7 @@ export class AuthenticatedGuard implements CanActivateChild, CanActivate {
     }
   }
 
-  async canActivate(route: ActivatedRouteSnapshot) {
-    const personasAllowed: Personas[] = (route.component as any).personasAllowed;
-    const blockchain: BlockchainResponse = this.blockchainService.selectedBlockchain;
+  async canActivate() {
 
     if (this.env.csp) {
       if (!this.authenticationService.accessToken) {
@@ -60,13 +58,6 @@ export class AuthenticatedGuard implements CanActivateChild, CanActivate {
       }
       return true;
 
-    } else if (localStorage.getItem('changePassword') || this.authenticationService.isAuthenticated()) {
-      this.router.navigate(['auth', 'login']);
-      return false;
-    } else if (personasAllowed && !this.personaService.hasAuthorization(personasAllowed)) {
-      this.handleRoutingFailure();
-      this.router.navigate(['/' + blockchain.id, 'dashboard']);
-      return false;
     } else {
       return true;
     }

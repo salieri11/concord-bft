@@ -2,7 +2,6 @@
  * Copyright 2018-2019 VMware, all rights reserved.
  */
 
-import { environment } from './../environments/environment';
 import { Component, OnInit } from '@angular/core';
 import { Title } from '@angular/platform-browser';
 
@@ -22,8 +21,6 @@ export class AppComponent implements OnInit {
 
   ngOnInit() {
     this.setTitle();
-    if (environment.csp) {
-    }
   }
 
   private setTitle() {
