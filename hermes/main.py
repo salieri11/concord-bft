@@ -13,14 +13,15 @@ from time import strftime, localtime
 
 from suites import (asset_transfer_tests, contract_compiler_tests, core_vm_tests, daml_tests,
                     ext_rpc_tests, lint_e2e_tests, helen_api_tests, hlf_tests, performance_tests,
-                    persephone_tests, regression_tests, simple_st_test, truffle_tests, ui_tests)
+                    persephone_tests, regression_tests, simple_st_test, time_tests, truffle_tests,
+                    ui_tests)
 
 from util import html, json_helper
 
 log = None
 suites = ["AssetTransferTests", "ContractCompilerTests", "CoreVMTests",
           "LintTests", "ExtendedRPCTests", "HelenAPITests", "HlfTests", "PerformanceTests", "PersephoneTests",
-          "RegressionTests", "SimpleStateTransferTest", "TruffleTests", "UiTests"]
+          "RegressionTests", "SimpleStateTransferTest", "TimeTests", "TruffleTests", "UiTests"]
 
 def main():
    startTime = datetime.datetime.now()
@@ -203,6 +204,8 @@ def createTestSuite(args):
       return regression_tests.RegressionTests(args)
    elif (args.suite == "SimpleStateTransferTest"):
       return simple_st_test.SimpleStateTransferTest(args)
+   elif (args.suite == "TimeTests"):
+      return time_tests.TimeTests(args)
    elif (args.suite == "TruffleTests"):
       return truffle_tests.TruffleTests(args)
    elif (args.suite == "UiTests"):
