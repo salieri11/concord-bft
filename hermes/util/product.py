@@ -469,12 +469,8 @@ class Product():
                members.append(m)
          # End workaround
 
-      log.info("Ethrpc members reported by Helen:")
-      if members:
-         for m in members:
-           log.info("  {}".format(m))
-      else:
-         log.info("  None were found.")
+      if not members:
+         log.info("No ethrpc nodes were returned by Helen.")
 
       return members
 

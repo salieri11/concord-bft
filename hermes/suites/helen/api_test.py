@@ -27,9 +27,6 @@ defaultTxInAPage = 10
 # The HelenAPITests object.
 suiteObject = None
 
-# Holds the results of the _getTests() method.
-apiTests = []
-
 # So the pytest fixture will display sensible names.
 apiTestNames = []
 
@@ -66,9 +63,6 @@ BlockchainFixture = collections.namedtuple("BlockchainFixture", "blockchainId, c
 # and shove the info into global variables.  :(
 with open("pickled_helen_api_tests", "rb") as f:
    suiteObject = pickle.load(f)
-   apiTests = suiteObject._getTests()
-   for test in apiTests:
-      apiTestNames.append(test[0])
 
 
 @pytest.fixture(scope="module")
@@ -131,33 +125,29 @@ def getAnEthrpcNode(request, blockchainId):
    '''
    members = suiteObject.product.getEthrpcNodes(request, blockchainId)
 
-   log.info("getAnEthrpcNode found members: {}".format(members))
-
    if members:
       return members[0]
    else:
       raise Exception("getAnEthrpcNode could not get an ethrpc node.")
 
 
-def ensureEnoughBlocksForPaging(request, blockchainId):
+def ensureEnoughBlocksForPaging(fxConnection, blockchainId):
    '''
    Make sure the passed in blockchain has enough blocks to page multiple
    times with the default page size.
    '''
-   latestBlockNumber = getLatestBlockNumber(request, blockchainId)
+   latestBlockNumber = getLatestBlockNumber(fxConnection.request, blockchainId)
    numBlocks = latestBlockNumber + 1
    minBlocks = defaultBlocksInAPage * 3
    blocksToAdd = minBlocks - numBlocks
 
    if blocksToAdd > 0:
       log.info("ensureEnoughBocksForPaging is adding {} blocks.".format(blocksToAdd))
-      ethrpcNode = getAnEthrpcNode(request, blockchainId)
 
       for i in range(blocksToAdd):
-         suiteObject._mock_transaction(request, data=util.numbers_strings.decToEvenHex(i),
-                                       ethrpcNode=ethrpcNode["rpc_url"])
+         suiteObject.mock_transaction(fxConnection.rpc, data=util.numbers_strings.decToEvenHex(i))
 
-      latestBlockNumber = getLatestBlockNumber(request, blockchainId)
+      latestBlockNumber = getLatestBlockNumber(fxConnection.request, blockchainId)
       assert latestBlockNumber + 1 >= minBlocks, "Failed to add enough blocks for paging."
 
 
@@ -534,21 +524,6 @@ def verifyContractVersionFields(blockchainId, request, rpc, actualDetails, expec
 
    assert not diffs, "Differences found in details: {}".format(diffs)
 
-# Runs all of the tests from helen_api_tests.py.
-@pytest.mark.smoke
-@pytest.mark.oldFormat
-@pytest.mark.parametrize("testName", apiTestNames)
-def test_oldFormat(testName, fxConnection, fxBlockchain):
-   testLogDir = os.path.join(suiteObject._testLogDir, testName)
-   testFn = None
-   for apiTest in apiTests:
-      if testName in apiTest:
-         testFn = apiTest[1]
-   assert testFn, "Test named {} not found.".format(testName)
-   suiteObject.setEthrpcNode(fxConnection.request, fxBlockchain.blockchainId)
-   result, info = testFn(fxConnection, fxBlockchain)
-   assert result, info
-
 
 @pytest.mark.smoke
 def test_blockchains_fields(fxConnection):
@@ -664,7 +639,7 @@ def test_members_millis_since_last_message(fxConnection, fxBlockchain):
    expectedMinimum = sleepTime * 1000
 
    try:
-      suiteObject._resumeMembers(allMembers)
+      suiteObject.resumeMembers(allMembers)
 
       log.info("Pausing concord{}".format(concordIndex))
       paused = suiteObject.product.pause_concord_replica(str(concordIndex))
@@ -695,7 +670,7 @@ def test_members_millis_since_last_message(fxConnection, fxBlockchain):
             assert testTimeResumed < testTime, "Expected millis_since_last_message " \
                "to be less than {}, received {}.".format(testTime, finalTime)
    finally:
-      suiteObject._resumeMembers(allMembers)
+      suiteObject.resumeMembers(allMembers)
 
 
 @pytest.mark.smoke
@@ -703,7 +678,7 @@ def test_blockList_noNextField_allBlocks(fxConnection, fxBlockchain):
    '''
    Cause no "next" paging by requesting all blocks.
    '''
-   ensureEnoughBlocksForPaging(fxConnection.request, fxBlockchain.blockchainId)
+   ensureEnoughBlocksForPaging(fxConnection, fxBlockchain.blockchainId)
    latestBlock = getLatestBlockNumber(fxConnection.request, fxBlockchain.blockchainId)
    # Time service may add blocks in between these requests, so +10
    # ensures that we account for a few rounds of that.
@@ -741,21 +716,21 @@ def test_newBlocks_spanPages(fxConnection, fxBlockchain):
 
 @pytest.mark.smoke
 def test_pageSize_zero(fxConnection, fxBlockchain):
-   ensureEnoughBlocksForPaging(fxConnection.request, fxBlockchain.blockchainId)
+   ensureEnoughBlocksForPaging(fxConnection, fxBlockchain.blockchainId)
    result = fxConnection.request.getBlockList(fxBlockchain.blockchainId, count=0)
    assert len(result["blocks"]) == 0, "Expected zero blocks returned."
 
 
 @pytest.mark.smoke
 def test_pageSize_negative(fxConnection, fxBlockchain):
-   ensureEnoughBlocksForPaging(fxConnection.request, fxBlockchain.blockchainId)
+   ensureEnoughBlocksForPaging(fxConnection, fxBlockchain.blockchainId)
    result = fxConnection.request.getBlockList(fxBlockchain.blockchainId, count=-1)
    assert len(result["blocks"]) == defaultBlocksInAPage, "Expected {} blocks returned.".format(defaultBlocksInAPage)
 
 
 @pytest.mark.smoke
 def test_pageSize_exceedsBlockCount(fxConnection, fxBlockchain):
-   ensureEnoughBlocksForPaging(fxConnection.request, fxBlockchain.blockchainId)
+   ensureEnoughBlocksForPaging(fxConnection, fxBlockchain.blockchainId)
    blockCount = getLatestBlockNumber(fxConnection.request, fxBlockchain.blockchainId) + 1
    result = fxConnection.request.getBlockList(fxBlockchain.blockchainId, count=blockCount+1)
    assert len(result["blocks"]) == blockCount, "Expected {} blocks returned.".format(blockCount)
@@ -763,7 +738,7 @@ def test_pageSize_exceedsBlockCount(fxConnection, fxBlockchain):
 
 @pytest.mark.smoke
 def test_paging_latest_negative(fxConnection, fxBlockchain):
-   ensureEnoughBlocksForPaging(fxConnection.request, fxBlockchain.blockchainId)
+   ensureEnoughBlocksForPaging(fxConnection, fxBlockchain.blockchainId)
    # Reminder that time service might append blocks between these
    # operations, so we can't assert that they all return the same
    # number; only that they're in order
@@ -778,7 +753,7 @@ def test_paging_latest_negative(fxConnection, fxBlockchain):
 
 @pytest.mark.smoke
 def test_paging_latest_exceedsBlockCount(fxConnection, fxBlockchain):
-   ensureEnoughBlocksForPaging(fxConnection.request, fxBlockchain.blockchainId)
+   ensureEnoughBlocksForPaging(fxConnection, fxBlockchain.blockchainId)
    # Reminder that time service might append blocks between these
    # operations, so we can't assert that they all return the same
    # number; only that they're in order
@@ -2183,3 +2158,90 @@ def test_consortiums_change_name(fxConnection):
    response = fxConnection.request.renameConsortium(con["consortium_id"], "Fred")
    con = fxConnection.request.getConsortium(con["consortium_id"])
    assert con["consortium_name"] == "Fred", "Expected the consortium to have been renamed to 'Fred'."
+
+
+@pytest.mark.smoke
+def test_getCerts(fxConnection, fxBlockchain):
+   '''
+   Test that if we pass "?certs=true" to the Members endpoint, we get at
+   least one non-empty rpc_cert in the response.
+   '''
+   blockchains = fxConnection.request.getBlockchains()
+   result = fxConnection.request.getMemberList(blockchains[0]["id"],certs=True)
+
+   assert type(result) is list, "Response was not a list"
+   assert len(result) > 1, "No members returned"
+
+   foundACert = False
+   for m in result:
+      # rpc_cert must be present
+      assert isinstance(m["rpc_cert"], str), "'rpc_cert' field in member entry is not a string"
+      if m["rpc_cert"] != "":
+         foundACert = True
+
+   assert foundACert, "No non-empty rpc_cert found in response"
+
+
+@pytest.mark.smoke
+def test_blockHash(fxConnection, fxBlockchain):
+   txReceipt = suiteObject.mock_transaction(fxConnection.rpc)
+   blockNumber = txReceipt['blockNumber']
+   blockHash = txReceipt['blockHash']
+   # query same block with hash and number and compare results
+   block1 = fxConnection.request.getBlockByUrl("/api/concord/blocks/{}".format(int(blockNumber, 16)))
+   block2 = fxConnection.request.getBlockByUrl("/api/concord/blocks/{}".format(blockHash))
+   assert block1 == block2, \
+      "Block returned with block hash API doesn't match with block returned by block Number"
+
+
+@pytest.mark.smoke
+def test_invalidBlockHash(fxConnection, fxBlockchain):
+   try:
+      block = fx.request.getBlockByUrl("/api/concord/blocks/0xbadbeef")
+      assert False, "invalid block hash exception should be thrown"
+   except Exception as e:
+      pass
+
+
+@pytest.mark.smoke
+def test_largeReply(fxConnection, fxBlockchain):
+   ### 1. Create three contracts, each 16kb in size
+   ### 2. Request latest transaction list
+   ### 3. Reply will be 48k+ in size
+   ###
+   ### This will require the highest bit in the size prefix of the
+   ### concord->Helen response to be set, which makes the length look
+   ### negative to Java's signed short type. If we get a response, then
+   ### HEL-34 remains fixed.
+
+   # Contract bytecode that is 16kb
+   largeContract = "0x"+("aa" * 16384)
+
+   sentTrList = []
+   tr_count = 3
+   for i in range(tr_count):
+      tr = suiteObject.mock_transaction(fxConnection.rpc, data=largeContract)
+      sentTrList.append(tr)
+   sentTrList = list(map(lambda x : x['transactionHash'], sentTrList))
+   sentTrList.reverse()
+
+   receivedTrList = fxConnection.request.getTransactionList(fxBlockchain.blockchainId, count=tr_count)
+   receivedTrHashes = list(map(lambda x : x['hash'], receivedTrList['transactions']))
+   receivedDataSum = sum(len(x['input']) for x in receivedTrList['transactions'])
+
+   assert sentTrList == receivedTrHashes, \
+      "transaction list query did not return correct transactions"
+
+   expectedDataSum = len(largeContract)*tr_count
+   assert receivedDataSum == expectedDataSum, \
+      "received only %d bytes, but expected %d" % (receviedDataSum, expectedDataSum)
+
+
+@pytest.mark.smoke
+def test_user_login(fxConnection, fxBlockchain):
+   '''
+   TODO: With the change to CSP, this, as writen, was no longer needed.
+   Leaving the test here as a placeholder.
+   '''
+   assert True, "This test needs to be implemented to use CSP."
+
