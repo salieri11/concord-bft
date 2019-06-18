@@ -230,15 +230,14 @@ public final class EthDispatcher extends TextWebSocketHandler {
         JSONArray batchRequest = null;
         JSONArray batchResponse = new JSONArray();
         JSONParser parser = new JSONParser();
-        JSONAware responseBody;
         boolean isBatch = false;
         ResponseEntity<JSONAware> responseEntity;
-        responseBody = getResponse(paramString);
         // TODO change the organization_id and consortium_id to real ones in future
         ThreadContext.put("organization_id", "1234");
         ThreadContext.put("consortium_id", "1234");
         ThreadContext.put("method", "POST");
         ThreadContext.put("uri", "/");
+        JSONAware responseBody = getResponse(paramString);
         logger.debug("Response: " + responseBody.toJSONString());
         return new ResponseEntity<>(responseBody, standardHeaders, HttpStatus.OK);
     }

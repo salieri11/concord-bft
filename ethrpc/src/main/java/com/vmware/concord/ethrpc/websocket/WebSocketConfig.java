@@ -31,7 +31,7 @@ public class WebSocketConfig implements WebSocketConfigurer {
     }
 
     /**
-     * Regist websocket handlers.
+     * Register websocket handlers.
      */
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
         try {
