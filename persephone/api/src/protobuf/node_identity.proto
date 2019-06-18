@@ -1,0 +1,52 @@
+/* [START declaration] */
+syntax = "proto3";
+package com.vmware.blockchain.deployment.model;
+
+/* [START java_declaration] */
+option java_package = "com.vmware.blockchain.deployment.model";
+option java_multiple_files = true;
+/* [END java_declaration] */
+
+/* [START messages] */
+/**
+ * Denote the identity comnponent for security key or certificate.
+ *
+ * @param[type]
+ *  Type of the component: key/certificate
+ * @param[component_url]
+ *   String url where the key/certificate should reside
+ * @param[component]
+ *   String value of the key/certificate
+ */
+message IdentityComponent {
+    enum Type {
+        UNKNOWN = 0;
+        KEY = 1;
+        CERTIFICATE = 2;
+    }
+    Type type = 1;
+    string component_url = 2;
+    string component = 3;
+}
+
+/**
+ * Denote a key-certificate pair.
+ *
+ * @param[type]
+ *   Type of identity : tls/ethrpc
+ * @param[key]
+ *   identity component for key
+ * @param[certificate]
+ *   identity component for certificate
+ */
+message Identity {
+    enum Type {
+        UNKNOWN = 0;
+        ETHRPC = 1;
+        TLS = 2;
+    }
+    Type type = 1;
+    IdentityComponent key = 2;
+    IdentityComponent certificate = 3;
+}
+/* [END messages] */
