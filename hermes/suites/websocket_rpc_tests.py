@@ -15,6 +15,7 @@ import re
 import os
 import traceback
 import websocket
+from . import test_suite
 
 log = logging.getLogger(__name__)
 
