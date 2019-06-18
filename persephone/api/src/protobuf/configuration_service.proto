@@ -33,8 +33,9 @@ message TlsConfigurationServiceResponse {
  *   list of host ips for the cluster
  */
 message TlsConfigurationServiceRequest {
-    string cert_path = 1;
-    repeated string hostIps = 2;
+    MessageHeader header = 1;
+    string cert_path = 2;
+    repeated string hostIps = 3;
 }
 
 /**
@@ -44,6 +45,7 @@ message TlsConfigurationServiceRequest {
  *   list of paths where each certificate would be placed
  */
 message EthRpcConfigurationServiceRequest {
+    MessageHeader header = 1;
     repeated string cert_path = 2;
 }
 

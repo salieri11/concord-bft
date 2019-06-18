@@ -31,6 +31,7 @@ import org.junit.jupiter.api.Test;
 import com.vmware.blockchain.deployment.model.EthRpcConfigurationServiceRequest;
 import com.vmware.blockchain.deployment.model.EthRpcConfigurationServiceResponse;
 import com.vmware.blockchain.deployment.model.Identity;
+import com.vmware.blockchain.deployment.model.MessageHeader;
 import com.vmware.blockchain.deployment.model.TlsConfigurationServiceRequest;
 import com.vmware.blockchain.deployment.model.TlsConfigurationServiceResponse;
 import com.vmware.blockchain.deployment.service.util.TestUtil;
@@ -157,7 +158,10 @@ public class ConfigurationServiceTest {
         hostIps.add("10.0.0.3");
         hostIps.add("10.0.0.4");
 
-        TlsConfigurationServiceRequest request = new TlsConfigurationServiceRequest(filePath, hostIps);
+        var messageId = "id1";
+
+        TlsConfigurationServiceRequest request = new TlsConfigurationServiceRequest(new MessageHeader(messageId),
+                filePath, hostIps);
 
         var promise = new CompletableFuture<TlsConfigurationServiceResponse>();
         service.generateTlsConfiguration(request, newResultObserver(promise));
@@ -208,7 +212,9 @@ public class ConfigurationServiceTest {
     void testgenerateEthRpcConfiguration() throws ExecutionException, InterruptedException,
             CertificateException, TimeoutException {
         List<String> paths = Arrays.asList(filePath + "/node0", filePath + "/node1", filePath + "/node2");
-        EthRpcConfigurationServiceRequest request = new EthRpcConfigurationServiceRequest(paths);
+        var messageId = "id1";
+        EthRpcConfigurationServiceRequest request = new EthRpcConfigurationServiceRequest(new MessageHeader(messageId),
+                paths);
 
         var promise = new CompletableFuture<EthRpcConfigurationServiceResponse>();
         service.generateEthRpcConfiguration(request, newResultObserver(promise));
