@@ -2,7 +2,6 @@
 //
 // Read contract storage from concord directly.
 
-#include <google/protobuf/text_format.h>
 #include <inttypes.h>
 #include <boost/program_options.hpp>
 #include <iostream>
@@ -41,7 +40,7 @@ int main(int argc, char **argv) {
       return 0;
     }
 
-    /*** Create request ***/
+    // Create request
 
     ConcordRequest concReq;
     EthRequest *ethReq = concReq.add_eth_request();
@@ -67,19 +66,10 @@ int main(int argc, char **argv) {
     pad(location, 32);
     ethReq->set_data(location);
 
-    std::string pbtext;
-    google::protobuf::TextFormat::PrintToString(concReq, &pbtext);
-    std::cout << "Message Prepared: " << pbtext << std::endl;
-
-    /*** Send & Receive ***/
+    // Send & Receive
 
     ConcordResponse concResp;
     if (call_concord(opts, concReq, concResp)) {
-      google::protobuf::TextFormat::PrintToString(concResp, &pbtext);
-      std::cout << "Received response: " << pbtext << std::endl;
-
-      /*** Handle Response ***/
-
       if (concResp.eth_response_size() == 1) {
         EthResponse ethResp = concResp.eth_response(0);
         if (ethResp.has_data()) {

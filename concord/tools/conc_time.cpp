@@ -2,7 +2,6 @@
 //
 // Update and/or read the time contract.
 
-#include <google/protobuf/text_format.h>
 #include <inttypes.h>
 #include <boost/program_options.hpp>
 #include <chrono>
@@ -72,19 +71,10 @@ int main(int argc, char **argv) {
       timeReq->set_return_summary(true);
     }
 
-    std::string pbtext;
-    google::protobuf::TextFormat::PrintToString(concReq, &pbtext);
-    std::cout << "Message Prepared: " << pbtext << std::endl;
-
     // Send & Receive
 
     ConcordResponse concResp;
     if (call_concord(opts, concReq, concResp)) {
-      google::protobuf::TextFormat::PrintToString(concResp, &pbtext);
-      std::cout << "Received response: " << pbtext << std::endl;
-
-      // Handle Response
-
       if (concResp.has_time_response()) {
         TimeResponse tr = concResp.time_response();
         if (tr.has_summary()) {

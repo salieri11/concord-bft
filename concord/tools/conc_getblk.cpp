@@ -2,7 +2,6 @@
 //
 // Get a block or block list from concord.
 
-#include <google/protobuf/text_format.h>
 #include <inttypes.h>
 #include <boost/program_options.hpp>
 #include <iostream>
@@ -106,7 +105,7 @@ int main(int argc, char **argv) {
       return 0;
     }
 
-    /*** Create request ***/
+    // Create request
 
     if (opts.count(OPT_LIST) == 0) {
       // list not requested
@@ -140,19 +139,10 @@ int main(int argc, char **argv) {
       prepare_block_request(opts, concReq);
     }
 
-    std::string pbtext;
-    google::protobuf::TextFormat::PrintToString(concReq, &pbtext);
-    std::cout << "Message Prepared: " << pbtext << std::endl;
-
-    /*** Send & Receive ***/
+    // Send & Receive
 
     ConcordResponse concResp;
     if (call_concord(opts, concReq, concResp)) {
-      google::protobuf::TextFormat::PrintToString(concResp, &pbtext);
-      std::cout << "Received response: " << pbtext << std::endl;
-
-      /*** Handle Response ***/
-
       if (opts.count(OPT_LIST)) {
         handle_block_list_response(concResp);
       } else {

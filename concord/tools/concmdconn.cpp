@@ -3,6 +3,7 @@
 // concord connection for command line tools.
 
 #include "concmdconn.hpp"
+#include <google/protobuf/text_format.h>
 #include <boost/asio.hpp>
 #include <iostream>
 #include "concmdopt.hpp"
@@ -19,6 +20,10 @@ using boost::asio::ip::tcp;
 bool call_concord(boost::program_options::variables_map &opts,
                   com::vmware::concord::ConcordRequest &request,
                   com::vmware::concord::ConcordResponse &response) {
+  std::string pbtext;
+  google::protobuf::TextFormat::PrintToString(request, &pbtext);
+  std::cout << "Message Prepared: " << pbtext << std::endl;
+
   /*** Open connection ***/
 
   io_service io_service;
@@ -65,6 +70,9 @@ bool call_concord(boost::program_options::variables_map &opts,
       if (!response.ParseFromString(std::string(reply, msglen))) {
         std::cerr << "Failed to parse respons" << std::endl;
         result = false;
+      } else {
+        google::protobuf::TextFormat::PrintToString(response, &pbtext);
+        std::cout << "Received response: " << pbtext << std::endl;
       }
     }
   }
