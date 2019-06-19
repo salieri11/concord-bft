@@ -27,7 +27,7 @@ from . import test_suite
 
 log = logging.getLogger(__name__)
 
-class AssetTransferTests(test_suite.TestSuite):
+class SampleDappTests(test_suite.TestSuite):
    # Set in init based on whether an endpoint was passed in.
    _apiServerUrl = None
 
@@ -41,7 +41,7 @@ class AssetTransferTests(test_suite.TestSuite):
    _password = None
 
    def __init__(self, passedArgs):
-      super(AssetTransferTests, self).__init__(passedArgs)
+      super(SampleDappTests, self).__init__(passedArgs)
       self._args = passedArgs
 
       user = self._userConfig.get('product').get('db_users')[0]
