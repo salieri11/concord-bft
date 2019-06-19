@@ -89,7 +89,7 @@ class PersephoneTests(test_suite.TestSuite):
       for session_id in self.rpc_test_helper.deployed_session_ids:
          cleaned_up = helper.undeploy_blockchain_cluster(
             self.rpc_test_helper.persephone_config_file,
-            self.rpc_test_helper.grpc_server, self.get_json_object(session_id))
+            self.rpc_test_helper.grpc_server, helper.protobuf_message_to_json(session_id))
          if not cleaned_up:
             undeployed_status = False
 
@@ -104,6 +104,7 @@ class PersephoneTests(test_suite.TestSuite):
       log.info("Starting test '{}'".format(testName))
       fileRoot = os.path.join(self._testLogDir, testName)
       os.makedirs(fileRoot, exist_ok=True)
+      self.cmdlineArgs.fileRoot = fileRoot
 
       return testFun()
 
@@ -119,18 +120,6 @@ class PersephoneTests(test_suite.TestSuite):
          ("7_Node_Blockchain_FIXED_Site",
           self._test_create_blockchain_7_node_fixed_site)
       ]
-
-   def get_json_object(self, message_obj):
-      from google.protobuf.json_format import MessageToJson
-      if isinstance(message_obj, (list,)):
-         list_of_json_objects = []
-         for message in message_obj:
-            json_object = json.loads(MessageToJson(message))
-            list_of_json_objects.append(json_object)
-         return list_of_json_objects
-      else:
-         json_object = json.loads(MessageToJson(message_obj))
-         return json_object
 
    def validate_cluster_deployment_events(self, cluster_size,
                                           response_events_json):
@@ -182,7 +171,7 @@ class PersephoneTests(test_suite.TestSuite):
       '''
       log.info("Performing Post deployment validations...")
       expected_docker_containers = ["concord", "ethrpc", "agent"]
-      response_events_json = self.get_json_object(events)
+      response_events_json = helper.protobuf_message_to_json(events)
       if self.validate_cluster_deployment_events(cluster_size,
                                                  response_events_json):
          log.info("Deployment Events validated")
@@ -248,9 +237,9 @@ class PersephoneTests(test_suite.TestSuite):
       Test to add metadata and validate AddModel RPC
       '''
       request, response = self.rpc_test_helper.rpc_add_model()
-      response_add_model_json = self.get_json_object(response[0])
+      response_add_model_json = helper.protobuf_message_to_json(response[0])
       if "id" in response_add_model_json:
-         self.request_add_model = self.get_json_object(request)
+         self.request_add_model = helper.protobuf_message_to_json(request)
          self.response_add_model_id = response_add_model_json["id"]
          return (True, None)
       return (False, "AddModel RPC Call Failed")
@@ -261,7 +250,7 @@ class PersephoneTests(test_suite.TestSuite):
       '''
       time.sleep(2)
       response = self.rpc_test_helper.rpc_list_models()
-      response_list_models_json = self.get_json_object(response)
+      response_list_models_json = helper.protobuf_message_to_json(response)
       for metadata in response_list_models_json:
          if self.response_add_model_id == metadata["id"]:
             if self.request_add_model["specification"] == metadata[
@@ -281,7 +270,7 @@ class PersephoneTests(test_suite.TestSuite):
          cluster_size=cluster_size,
          placement_type=self.rpc_test_helper.PLACEMENT_TYPE_UNSPECIFIED)
       if response:
-         response_session_id_json = self.get_json_object(response[0])
+         response_session_id_json = helper.protobuf_message_to_json(response[0])
          if "low" in response_session_id_json:
             self.response_deployment_session_id = response[0]
             return (True, None)
@@ -311,7 +300,7 @@ class PersephoneTests(test_suite.TestSuite):
 
       response = self.rpc_test_helper.rpc_create_cluster(cluster_size=cluster_size)
       if response:
-         response_session_id_json = self.get_json_object(response[0])
+         response_session_id_json = helper.protobuf_message_to_json(response[0])
          if "low" in response_session_id_json:
             response_deployment_session_id = response[0]
 
@@ -334,7 +323,7 @@ class PersephoneTests(test_suite.TestSuite):
 
       response = self.rpc_test_helper.rpc_create_cluster(cluster_size=cluster_size)
       if response:
-         response_session_id_json = self.get_json_object(response[0])
+         response_session_id_json = helper.protobuf_message_to_json(response[0])
          if "low" in response_session_id_json:
             response_deployment_session_id = response[0]
 

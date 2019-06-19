@@ -4,6 +4,8 @@
 # This class is a helper file to test persephone gRPC
 #########################################################################
 
+import os
+import time
 import yaml
 import json
 import grpc
@@ -127,7 +129,6 @@ class RPCHelper():
          "**** Calling rpc {}/[response=stream: {}] ****".format(rpc, stream))
       # TODO: Introduce thread and MAX TIMEOUT when waiting for stream
       response = rpc(rpc_request)
-      log.info("**** Response:")
       if stream:
          if response:
             for rsp in response:
@@ -138,7 +139,23 @@ class RPCHelper():
          response_list.append(response)
 
       log.debug("gRPC Response from server: {}".format(response_list))
-      # TODO: Copy the response to a json file for logging
+
+      request_file = os.path.join(self.cmdlineArgs.fileRoot,
+                                  "{}_request.json".format(
+                                     time.time()))
+      log.info("gRPC Request: {}".format(request_file))
+      rpc_request_json = helper.protobuf_message_to_json(rpc_request)
+      with open(request_file, "w") as f:
+         json.dump(rpc_request_json, f, indent=4, sort_keys=True)
+
+      response_file = os.path.join(self.cmdlineArgs.fileRoot,
+                                   "{}_response.json".format(
+                                      time.time()))
+      log.info("gRPC Response: {}".format(response_file))
+      response_json = helper.protobuf_message_to_json(response_list)
+      with open(response_file, "w") as f:
+         json.dump(response_json,f, indent=4, sort_keys=True)
+
       return response_list
 
    def handle_exception(self, e):
