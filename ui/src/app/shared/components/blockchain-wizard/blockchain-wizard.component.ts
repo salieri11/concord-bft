@@ -11,10 +11,24 @@ import {
   ElementRef
 } from '@angular/core';
 import { Router } from '@angular/router';
-import { FormControl, FormGroup, Validators } from '@angular/forms';
+import { FormControl, FormGroup, Validators, ValidatorFn, ValidationErrors } from '@angular/forms';
 import { ClrWizard, ClrWizardPage } from '@clr/angular';
 import { PersonaService } from '../../persona.service';
 import { BlockchainService, BlockchainRequestParams } from '../../blockchain.service';
+
+
+const RegionCountValidator: ValidatorFn = (fg: FormGroup): ValidationErrors | null => {
+  const nodes = fg['controls'].numberOfNodes.value;
+  const regions = fg['controls'].regions;
+  let count = 0;
+
+  Object.keys(regions.value).forEach(key => {
+    count = count + Number(regions.value[key]);
+  });
+
+  return nodes === count ? { 'countIsCorrect': true } : { 'countIsCorrect': false };
+};
+
 
 @Component({
   selector: 'concord-blockchain-wizard',
@@ -30,11 +44,27 @@ export class BlockchainWizardComponent implements OnInit {
 
   isOpen = false;
   form: FormGroup;
+  nodeForm: FormGroup;
   userForm: FormGroup;
 
   personaOptions = PersonaService.getOptions();
   numbersOfNodes = [4, 7];
-  fCountMapping = {'4': 1, '7': 2};
+  fCountMapping = { '4': 1, '7': 2 };
+  regions = [{
+    label: 'US West - Oregon',
+    id: 'us-west'
+  }, {
+    label: 'US East - N Virginia',
+    id: 'us-east'
+  }, {
+    label: 'EMEA - Frankfurt',
+    id: 'emea'
+  },
+  {
+    label: 'Pacific - Sydney',
+    id: 'pacific'
+  }
+  ];
 
   constructor(
     private router: Router,
@@ -43,10 +73,19 @@ export class BlockchainWizardComponent implements OnInit {
     this.form = new FormGroup({
       details: new FormGroup({
         consortium_name: new FormControl('', Validators.required),
-        numberOfNodes: new FormControl(this.numbersOfNodes[1], Validators.required)
+        consortium_desc: new FormControl('', Validators.required),
       }),
-      users: new FormControl([], Validators.required)
+      nodes: new FormGroup({
+        numberOfNodes: new FormControl('', Validators.required),
+        regions: this.regionGroup(),
+      }, { validators: RegionCountValidator })
     });
+
+    this.nodeForm = new FormGroup({
+      nodes: new FormGroup({
+      }),
+    });
+
     this.userForm = new FormGroup({
       email: new FormControl('', [Validators.required, Validators.email]),
       role: new FormControl('', Validators.required)
@@ -88,17 +127,17 @@ export class BlockchainWizardComponent implements OnInit {
     });
     this.userForm.reset();
 
-    setTimeout( () => {
+    setTimeout(() => {
       this.consortiumInput.nativeElement.focus();
-    }, 1000);
+    }, 500);
   }
 
   onSubmit() {
     const params = new BlockchainRequestParams();
-    params.f_count = Number(this.fCountMapping[this.form.value.details.numberOfNodes.toString()]);
+    params.f_count = Number(this.fCountMapping[this.form.value.nodes.numberOfNodes.toString()]);
     params.consortium_name = this.form.value.details.consortium_name;
 
-    this.blockchainService.notify.next({message: 'deploying'});
+    this.blockchainService.notify.next({ message: 'deploying' });
     this.blockchainService.deploy(params).subscribe(response => {
       this.setupComplete.emit(response);
     }, error => {
@@ -109,4 +148,44 @@ export class BlockchainWizardComponent implements OnInit {
   close() {
     this.isOpen = false;
   }
+
+  distributeRegions() {
+    const regions = this.form.controls.nodes['controls'].regions;
+    const nodes = this.form.controls.nodes['controls'].numberOfNodes;
+    const regionKeys = Object.keys(regions.value);
+    const ratio = regionKeys.length;
+    const spread = [];
+    // Clear out previous distribution
+    regions.reset();
+
+    // Create regional spread
+    for (let index = 0; index < nodes.value; index++) {
+      const idx = index % ratio;
+      let val = spread[idx];
+
+      if (val) {
+        spread[idx] = ++val;
+      } else {
+        spread[idx] = 1;
+      }
+    }
+
+    // Two loops so we don't patch the value multiple times on the same item,
+    // because it fires off events each time we do that. This is more efficient.
+    for (let index = 0; index < spread.length; index++) {
+      const item = regions.controls[regionKeys[index]];
+      item.patchValue(spread[index]);
+    }
+  }
+
+  private regionGroup() {
+    const group = {};
+
+    this.regions.forEach(region => {
+      group[region.id] = new FormControl('');
+    });
+
+    return new FormGroup(group);
+  }
+
 }

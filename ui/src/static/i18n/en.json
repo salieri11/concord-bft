@@ -30,7 +30,7 @@
       "resetTasks": "Reset Tasks"
     },
     "consortium": "Current Consortium",
-    "deploy": "Deploy",
+    "deploy": "Deploy Blockchain",
     "dashboard": "Dashboard",
     "organizations": "Organizations/Users",
     "nodeList": "Node List",
@@ -811,12 +811,21 @@
     },
     "details": {
       "help": {
-        "numberOfNodes": "Number of nodes are optimized for SBFT consensus engine"
+        "numberOfNodes": "Nodes options are optimized for ConcordBFT consensus engine."
       },
-      "pageTitle": "Consortium and Blockchain Details",
+      "pageTitle": "Consortium Details",
       "navTitle": "Details",
       "consortiumPlaceholder": "My Consortium",
       "consortiumDescriptionPlaceholder": "Describe the intent of the consortium"
+    },
+    "nodes": {
+      "help": {
+        "numberOfNodes": "Number of nodes are optimized for SBFT consensus engine"
+      },
+      "pageTitle": "Nodes and Regional Distribution",
+      "navTitle": "Nodes",
+      "regionalTitle": "Regional Distribution",
+      "regionInfo": "Even distribution of nodes across regions is recommended for best network resiliency.  The cumulative amount in regions must equal number of nodes to continue to the next step."
     },
     "users": {
       "pageTitle": "Invite Users",
@@ -835,6 +844,7 @@
       "navTitle": "Deploy",
       "consortiumName": "Consortium Name",
       "consortiumSetup": "Consortium Setup",
+      "consortiumSetup": "Nodes",
       "users": "Users"
     }
   },

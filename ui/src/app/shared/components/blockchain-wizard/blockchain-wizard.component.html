@@ -1,6 +1,6 @@
 <form [formGroup]="form" class="clr-form-horizontal">
-  <clr-wizard #wizard clrWizardSize="lg" [(clrWizardOpen)]="isOpen" (clrWizardOnFinish)="onSubmit()" (clrWizardOnCancel)="resetFragment()"
-              class="blockchain-wizard">
+  <clr-wizard #wizard clrWizardSize="lg" [(clrWizardOpen)]="isOpen" (clrWizardOnFinish)="onSubmit()"
+    (clrWizardOnCancel)="resetFragment()" class="blockchain-wizard">
     <clr-wizard-title>{{'blockchainWizard.title' | translate}}</clr-wizard-title>
 
     <clr-wizard-button [type]="'cancel'">{{'common.cancel' | translate}}</clr-wizard-button>
@@ -8,90 +8,62 @@
     <clr-wizard-button [type]="'next'">{{'common.next' | translate}}</clr-wizard-button>
     <clr-wizard-button [type]="'finish'">{{'common.deploy' | translate}}</clr-wizard-button>
 
-    <clr-wizard-page #detailPage formGroupName="details"
-                     [clrWizardPageNextDisabled]="form.controls.details.invalid">
+    <clr-wizard-page #detailPage formGroupName="details" [clrWizardPageNextDisabled]="form.controls.details.invalid">
       <ng-template clrPageTitle>{{'blockchainWizard.details.pageTitle' | translate}}</ng-template>
       <ng-template clrPageNavTitle>{{'blockchainWizard.details.navTitle' | translate}}</ng-template>
-      <div clrForm class="form-block blockchain-form">
+      <div clrForm class="form-block detail-form">
         <clr-input-container>
-          <label class="clr-col-12 clr-col-md-4" for="consortiumName">{{'blockchainWizard.common.consortiumName' | translate}}</label>
-          <input clrInput #consortiumInput id="consortiumName" type="text" formControlName="consortium_name" class="form-control clr-col-12 clr-col-md-8"
-                 size="43" [placeholder]="'blockchainWizard.details.consortiumPlaceholder' | translate">
+          <label class="clr-col-12 clr-col-md-4"
+            for="consortiumName">{{'blockchainWizard.common.consortiumName' | translate}}</label>
+          <input clrInput #consortiumInput id="consortiumName" type="text" formControlName="consortium_name"
+            class="form-control clr-col-12 clr-col-md-8" size="43"
+            [placeholder]="'blockchainWizard.details.consortiumPlaceholder' | translate">
         </clr-input-container>
+        <clr-textarea-container>
+          <label class="clr-col-12 clr-col-md-4"
+            for="consortiumName">{{'blockchainWizard.common.consortiumDescription' | translate}}</label>
+          <textarea clrTextarea formControlName="consortium_desc"
+            class="clr-col-12 clr-col-md-8" rows="4"
+            [placeholder]="'blockchainWizard.details.consortiumPlaceholder' | translate"></textarea>
+        </clr-textarea-container>
+      </div>
+    </clr-wizard-page>
+
+    <clr-wizard-page formGroupName="nodes" [clrWizardPageNextDisabled]="!form.controls.nodes.errors?.countIsCorrect">
+      <ng-template clrPageTitle>{{'blockchainWizard.nodes.pageTitle' | translate}}</ng-template>
+      <ng-template clrPageNavTitle>{{'blockchainWizard.nodes.navTitle' | translate}}</ng-template>
+      <div clrForm class="form-block blockchain-form nodes">
         <clr-select-container>
-          <label class="clr-col-12 clr-col-md-4" for="numberOfNodes">{{'blockchainWizard.common.numberOfNodes' | translate}}</label>
-          <select clrSelect formControlName="numberOfNodes" class="clr-col-12 clr-col-md-8">
+          <label class="clr-col-12 clr-col-md-4"
+            for="numberOfNodes">{{'blockchainWizard.common.numberOfNodes' | translate}}</label>
+          <select clrSelect formControlName="numberOfNodes" class="clr-col-12 clr-col-md-8" (change)="distributeRegions()">
             <option *ngFor="let num of numbersOfNodes" [ngValue]="num">{{num}}
             </option>
           </select>
           <clr-control-helper>{{'blockchainWizard.details.help.numberOfNodes' | translate}}</clr-control-helper>
         </clr-select-container>
-      </div>
-    </clr-wizard-page>
-
-    <!--clr-wizard-page #usersPage [clrWizardPageNextDisabled]="!form.controls.users.valid" formGroupName="users">
-      <ng-template clrPageTitle>{{'blockchainWizard.users.pageTitle' | translate}}</ng-template>
-      <ng-template clrPageNavTitle>{{'blockchainWizard.users.navTitle' | translate}}</ng-template>
-      <div clrForm [formGroup]="userForm" class="user-form form-block">
-        <div class="clr-row">
-          <div class="clr-col-5">
-            <clr-input-container>
-              <label for="userEmail">{{'blockchainWizard.users.email' | translate}}</label>
-              <input clrInput id="userEmail" type="email" formControlName="email" class="form-control"
-                     [placeholder]="'blockchainWizard.users.emailPlaceholder' | translate">
-              <clr-control-error>{{'blockchainWizard.users.errors.email' | translate}}</clr-control-error>
-            </clr-input-container>
-          </div>
-          <div class="clr-col-5">
-            <clr-select-container>
-              <label for="userRole">{{'blockchainWizard.users.role' | translate}}</label>
-              <select clrSelect id="userRole" formControlName="role">
-                <option *ngFor="let persona of personaOptions" value="{{persona.value}}">{{persona.name | translate}}
-                </option>
-              </select>
-            </clr-select-container>
-          </div>
-          <div class="clr-col-2">
-            <button id="inviteUserButton" class="btn btn-sm btn-primary" type="button" (click)="addUser()" [disabled]="!userForm.valid">
-              {{'blockchainWizard.users.invite' | translate}}
-            </button>
-          </div>
+        <div class="regions" formGroupName="regions">
+          <h6 class="sub-title">{{'blockchainWizard.nodes.regionalTitle' | translate}}</h6>
+          <clr-alert [clrAlertClosable]="false">
+            <clr-alert-item>
+              <span class="alert-text">
+                {{'blockchainWizard.nodes.regionInfo' | translate}}
+              </span>
+            </clr-alert-item>
+          </clr-alert>
+          <clr-input-container *ngFor="let region of regions">
+            <label class="clr-col-12 clr-col-md-4">{{ region.label }}</label>
+            <input clrInput type="text" class="clr-col-12 clr-col-md-8" [formControlName]="region.id" />
+          </clr-input-container>
         </div>
       </div>
-
-      <table class="table users-table">
-        <thead>
-        <tr>
-          <th class="left">{{'blockchainWizard.users.email' | translate}}</th>
-          <th class="left">{{'blockchainWizard.users.role' | translate}}</th>
-          <th class="left"></th>
-        </tr>
-        </thead>
-        <tbody>
-        <tr *ngFor="let user of form?.value.users; let i = index">
-          <td class="left overflow-ellipsis">
-            {{user.email}}
-          </td>
-          <td class="left overflow-ellipsis">
-            {{ personaName(user.role) | translate }}
-          </td>
-          <td class="left">
-            <span class="float-xs-right table-actions">
-              <clr-icon shape="trash" (click)="deleteUser(i)"></clr-icon>
-            </span>
-          </td>
-        </tr>
-        <tr *ngIf="form?.value.users.length === 0">
-          <td colspan="3">{{'blockchainWizard.users.noUsers' | translate}}</td>
-        </tr>
-        </tbody>
-      </table>
-    </clr-wizard-page-->
+    </clr-wizard-page>
 
     <clr-wizard-page>
       <ng-template clrPageTitle>{{'blockchainWizard.reviewDeployment.pageTitle' | translate}}</ng-template>
       <ng-template clrPageNavTitle>{{'blockchainWizard.reviewDeployment.navTitle' | translate}}</ng-template>
-      <div class="clr-row">
+      <div class="clr-row review">
+        <h6 class="sub-title clr-col-12">{{'blockchainWizard.details.navTitle' | translate}}</h6>
         <div class="clr-col-4 summary-label">
           {{'blockchainWizard.common.consortiumName' | translate}}
         </div>
@@ -99,32 +71,28 @@
           {{ form.value.details.consortium_name }}
         </div>
         <div class="clr-col-4 summary-label">
+          {{'blockchainWizard.common.consortiumDescription' | translate}}
+        </div>
+        <div class="clr-col-8 summary-value">
+          {{ form.value.details.consortium_desc }}
+        </div>
+        <h6 class="sub-title clr-col-12">{{'blockchainWizard.nodes.navTitle' | translate}}</h6>
+        <div class="clr-col-4 summary-label">
           {{'blockchainWizard.common.numberOfNodes' | translate}}
         </div>
         <div class="clr-col-8 summary-value">
-          {{ form.value.details.numberOfNodes }}
+          {{ form.value.nodes.numberOfNodes }}
         </div>
+        <h6 class="sub-title clr-col-12">{{'blockchainWizard.nodes.regionalTitle' | translate}}</h6>
+        <ng-container *ngFor="let region of regions">
+          <div class="clr-col-4 summary-label">
+            {{ region.label }}
+          </div>
+          <div class="clr-col-8 summary-value">
+            {{ form.controls.nodes['controls'].regions.value[region.id] || '--' }}
+          </div>
+        </ng-container>
       </div>
-
-      <!--div class="summary-label">{{ 'blockchainWizard.reviewDeployment.users' | translate }}</div>
-      <table class="table users-table">
-        <thead>
-          <tr>
-            <th class="left">{{'blockchainWizard.users.role' | translate}}</th>
-            <th class="left">{{'blockchainWizard.users.email' | translate}}</th>
-          </tr>
-        </thead>
-        <tbody>
-        <tr *ngFor="let user of form?.value.users; let i = index">
-          <td class="left cell-full overflow-ellipsis">
-            {{user.email}}
-          </td>
-          <td class="left cell-full overflow-ellipsis">
-            {{ personaName(user.role) | translate }}
-          </td>
-        </tr>
-        </tbody>
-      </table-->
     </clr-wizard-page>
   </clr-wizard>
 </form>
