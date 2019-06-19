@@ -57,10 +57,10 @@ public class SingleBouncyCertificateGenerator {
      * @param path : string path to where it should be generated in
      * @return : {@link Identity}
      */
-    static Identity generateIdentity(String cn, String path, Identity.Type type) {
+    static Identity generateIdentity(String cn, String path) {
         KeyPair keyPair = generateEcKeyPair();
         X509Certificate certificate = generateSelfSignedCertificate(keyPair, cn);
-        return getIdentity(keyPair, certificate, path, type);
+        return getIdentity(keyPair, certificate, path);
     }
 
     /**
@@ -143,7 +143,7 @@ public class SingleBouncyCertificateGenerator {
      * @param path root path to dump certs and keys
      * @return {@link Identity}
      */
-    private static Identity getIdentity(KeyPair keyPair, X509Certificate certificate, String path, Identity.Type type) {
+    private static Identity getIdentity(KeyPair keyPair, X509Certificate certificate, String path) {
         // get string private key
         String keyPath = String.join("/", path, "pk.pem");
         String key = returnPemString(keyPair.getPrivate());
@@ -159,7 +159,7 @@ public class SingleBouncyCertificateGenerator {
         IdentityComponent certIdentity = new IdentityComponent(
                 IdentityComponent.Type.CERTIFICATE, certPath, cert);
 
-        return new Identity(type, keyIdentity, certIdentity);
+        return new Identity(keyIdentity, certIdentity);
     }
 
     /**

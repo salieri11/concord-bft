@@ -53,25 +53,23 @@ def main():
 
     stub = configuration_service_rpc.ConfigurationServiceStub(channel)
     host_ips = ["10.0.0.1", "10.0.0.2", "10.0.0.3", "10.0.0.4"]
-    filePath = "/tmp/tlsCerts"
-    tls_certs_request = configuration_service.TlsConfigurationServiceRequest(
+    config_service_request = configuration_service.ConfigurationServiceRequest(
             header=core.MessageHeader(),
-            cert_path=filePath,
             hostIps=host_ips
             )
 
-    tls_certs_response = stub.GenerateTlsConfiguration(tls_certs_request)
+    config_session_id = stub.GenerateConfiguration(config_service_request)
 
-    print("generateTlsConfiguration: ", tls_certs_response)
+    print("GenerateConfiguration: ", config_session_id)
 
-    ethrpc_paths = [filePath + "/node0", filePath + "/node1", filePath + "/node2"]
-    etrpc_certs_request = configuration_service.EthRpcConfigurationServiceRequest(
-             header=core.MessageHeader(),
-             cert_path=ethrpc_paths)
+    node_request = configuration_service.NodeConfigurationRequest(
+            header=core.MessageHeader(),
+            identifier=config_session_id,
+            node=0)
 
-    ethrpc_certs_response = stub.GenerateEthRpcConfiguration(etrpc_certs_request)
+    node_response = stub.GetNodeConfiguration(node_request)
 
-    print("generateEthRpcConfiguration: ", ethrpc_certs_response)
+    print("GetNodeConfiguration: ", node_response)
 
 
 if __name__ == "__main__":

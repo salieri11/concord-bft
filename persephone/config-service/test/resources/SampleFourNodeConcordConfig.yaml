@@ -35,16 +35,16 @@ node:
     client_proxy:
       - client_host: 10.0.0.2
         client_port: 3502
-        principal_id: 19
-      - client_host: 10.0.0.2
-        client_port: 3503
         principal_id: 18
       - client_host: 10.0.0.2
-        client_port: 3504
+        client_port: 3503
         principal_id: 17
       - client_host: 10.0.0.2
-        client_port: 3505
+        client_port: 3504
         principal_id: 16
+      - client_host: 10.0.0.2
+        client_port: 3505
+        principal_id: 15
   - service_host: 0.0.0.0
     service_port: 5458
     replica:
@@ -53,16 +53,16 @@ node:
     client_proxy:
       - client_host: 10.0.0.3
         client_port: 3502
-        principal_id: 19
-      - client_host: 10.0.0.3
-        client_port: 3503
-        principal_id: 18
-      - client_host: 10.0.0.3
-        client_port: 3504
         principal_id: 17
       - client_host: 10.0.0.3
-        client_port: 3505
+        client_port: 3503
         principal_id: 16
+      - client_host: 10.0.0.3
+        client_port: 3504
+        principal_id: 15
+      - client_host: 10.0.0.3
+        client_port: 3505
+        principal_id: 14
   - service_host: 0.0.0.0
     service_port: 5458
     replica:
@@ -71,13 +71,13 @@ node:
     client_proxy:
       - client_host: 10.0.0.4
         client_port: 3502
-        principal_id: 19
+        principal_id: 16
       - client_host: 10.0.0.4
         client_port: 3503
-        principal_id: 18
+        principal_id: 15
       - client_host: 10.0.0.4
         client_port: 3504
-        principal_id: 17
+        principal_id: 14
       - client_host: 10.0.0.4
         client_port: 3505
-        principal_id: 16
+        principal_id: 13

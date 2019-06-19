@@ -2,7 +2,7 @@
  * Copyright (c) 2019 VMware, Inc. All rights reserved. VMware Confidential
  */
 
-package com.vmware.blockchain.deployment.service.util;
+package com.vmware.blockchain.deployment.service.testutilitilies;
 
 import java.io.BufferedReader;
 import java.io.IOException;

@@ -4,14 +4,7 @@
 
 package com.vmware.blockchain.deployment.service.server;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.security.cert.CertificateException;
-import java.security.cert.CertificateFactory;
-import java.security.cert.X509Certificate;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -21,20 +14,20 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
 
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import com.vmware.blockchain.deployment.model.EthRpcConfigurationServiceRequest;
-import com.vmware.blockchain.deployment.model.EthRpcConfigurationServiceResponse;
-import com.vmware.blockchain.deployment.model.Identity;
+import com.vmware.blockchain.deployment.model.ComponentConfiguration;
+import com.vmware.blockchain.deployment.model.ConfigurationServiceRequest;
+import com.vmware.blockchain.deployment.model.ConfigurationServiceType;
+import com.vmware.blockchain.deployment.model.ConfigurationSessionIdentifier;
 import com.vmware.blockchain.deployment.model.MessageHeader;
-import com.vmware.blockchain.deployment.model.TlsConfigurationServiceRequest;
-import com.vmware.blockchain.deployment.model.TlsConfigurationServiceResponse;
-import com.vmware.blockchain.deployment.service.util.TestUtil;
+import com.vmware.blockchain.deployment.model.NodeConfigurationRequest;
+import com.vmware.blockchain.deployment.model.NodeConfigurationResponse;
+import com.vmware.blockchain.deployment.service.util.Constants;
 
 import io.grpc.stub.StreamObserver;
 
@@ -45,8 +38,6 @@ public class ConfigurationServiceTest {
 
     /** Default await-time value in milliseconds. */
     private static long awaitTime = 10000;
-
-    private static String filePath = "/tmp/tlsCerts";
 
     private static ConfigurationService service = newConfigurationService();
 
@@ -150,8 +141,7 @@ public class ConfigurationServiceTest {
     }
 
     @Test
-    void testgenerateTlsConfiguration() throws InterruptedException, ExecutionException,
-            TimeoutException, IOException, CertificateException {
+    void testgenerateConfiguration() throws InterruptedException, ExecutionException, TimeoutException {
         List<String> hostIps = new ArrayList<String>();
         hostIps.add("10.0.0.1");
         hostIps.add("10.0.0.2");
@@ -160,83 +150,45 @@ public class ConfigurationServiceTest {
 
         var messageId = "id1";
 
-        TlsConfigurationServiceRequest request = new TlsConfigurationServiceRequest(new MessageHeader(messageId),
-                filePath, hostIps);
+        ConfigurationServiceRequest request = new ConfigurationServiceRequest(new MessageHeader(messageId), hostIps);
 
-        var promise = new CompletableFuture<TlsConfigurationServiceResponse>();
-        service.generateTlsConfiguration(request, newResultObserver(promise));
+        var promise = new CompletableFuture<ConfigurationSessionIdentifier>();
+        service.generateConfiguration(request, newResultObserver(promise));
 
-        var response = promise.get(awaitTime, TimeUnit.MILLISECONDS);
+        var identifier = promise.get(awaitTime, TimeUnit.MILLISECONDS);
 
-        assert response.getIdentity().size() == 8;
+        assert identifier != null;
 
-        var certList = response.getIdentity();
-        List<Identity> serverList = certList.stream().limit(4).collect(Collectors.toList());
-        List<Identity> clientList = certList.subList(certList.size() - 4, certList.size());
-        for (int index = 0; index < serverList.size(); index++) {
-            Identity server = serverList.get(index);
+        for (int i = 0; i < hostIps.size(); i++) {
+            var promise1 = new CompletableFuture<NodeConfigurationResponse>();
+            NodeConfigurationRequest request1 = new NodeConfigurationRequest(new MessageHeader(),
+                    identifier, i);
+            service.getNodeConfiguration(request1, newResultObserver(promise1));
+            var response = promise1.get(awaitTime, TimeUnit.MILLISECONDS);
 
-            assert server.getType().equals(Identity.Type.TLS);
-            assert server.getCertificate().getComponentUrl().equalsIgnoreCase(
-                    String.format("%s/%s/server/server.cert", filePath, index));
-            assert server.getKey().getComponentUrl().equalsIgnoreCase(String.format("%s/%s/server/pk.pem",
-                    filePath, index));
+            int totalTlsIdentities = hostIps.size() + Constants.CLIENT_PROXY_PER_NODE * hostIps.size();
 
-            CertificateFactory fact = CertificateFactory.getInstance("X.509");
-            InputStream inputStream = new ByteArrayInputStream(server.getCertificate().getComponent().getBytes());
-            X509Certificate cert = (X509Certificate) fact.generateCertificate(inputStream);
-            assert cert.getIssuerDN().getName().equalsIgnoreCase("CN=node" + index + "ser");
-        }
+            int tlsComponentCount = 2 // key and certificate for self node
+                    // client certificates (only) for non principals
+                    + (totalTlsIdentities - Constants.CLIENT_PROXY_PER_NODE)
+                    // server certificates (only) for non principals
+                    + (totalTlsIdentities - Constants.CLIENT_PROXY_PER_NODE)
+                    + Constants.CLIENT_PROXY_PER_NODE * (1 // certificate for client
+                        + 1 // key for client
+                        + 1 // certificate for server
+                        + 1); // key for server
 
-        for (int index = 0; index < clientList.size(); index++) {
-            Identity client = clientList.get(index);
+            assert response.getComponentconfiguration().size() == 2; // one each for tls and ethrpc
 
-            assert client.getType().equals(Identity.Type.TLS);
-            assert client.getCertificate().getComponentUrl().equalsIgnoreCase(
-                    String.format("%s/%s/client/client.cert", filePath, index));
-            assert client.getKey().getComponentUrl()
-                    .equalsIgnoreCase(String.format("%s/%s/client/pk.pem", filePath, index));
+            for (ComponentConfiguration component : response.getComponentconfiguration()) {
+                if (component.getType().equals(ConfigurationServiceType.Type.TLS)) {
+                    assert component.getIdentitycomponent().size() == tlsComponentCount;
+                }
+                if (component.getType().equals(ConfigurationServiceType.Type.ETHRPC)) {
+                    assert component.getIdentitycomponent().size() == 2;
+                }
+            }
 
-            CertificateFactory fact = CertificateFactory.getInstance("X.509");
-            InputStream inputStream = new ByteArrayInputStream(client.getCertificate().getComponent().getBytes());
-            X509Certificate cert = (X509Certificate) fact.generateCertificate(inputStream);
-            assert cert.getIssuerDN().getName().equalsIgnoreCase("CN=node" + index + "cli");
-        }
-
-        ClassLoader classLoader = getClass().getClassLoader();
-        InputStream expectedStream = classLoader.getResourceAsStream("SampleFourNodeConcordConfig.yaml");
-        Assertions.assertThat(response.getConfig()).isEqualTo(TestUtil.readFromInputStream(expectedStream));
-    }
-
-    @Test
-    void testgenerateEthRpcConfiguration() throws ExecutionException, InterruptedException,
-            CertificateException, TimeoutException {
-        List<String> paths = Arrays.asList(filePath + "/node0", filePath + "/node1", filePath + "/node2");
-        var messageId = "id1";
-        EthRpcConfigurationServiceRequest request = new EthRpcConfigurationServiceRequest(new MessageHeader(messageId),
-                paths);
-
-        var promise = new CompletableFuture<EthRpcConfigurationServiceResponse>();
-        service.generateEthRpcConfiguration(request, newResultObserver(promise));
-
-        var response = promise.get(awaitTime, TimeUnit.MILLISECONDS);
-
-        assert response.getIdentity().size() == 3;
-
-        var certList = response.getIdentity();
-        for (int index = 0; index < certList.size(); index++) {
-            Identity identity = certList.get(index);
-
-            assert identity.getType().equals(Identity.Type.ETHRPC);
-            assert identity.getCertificate().getComponentUrl().equalsIgnoreCase(
-                    String.format("%s/node%s.cert", paths.get(index), index));
-            assert identity.getKey().getComponentUrl().equalsIgnoreCase(
-                    String.format("%s/pk.pem", paths.get(index)));
-
-            CertificateFactory fact = CertificateFactory.getInstance("X.509");
-            InputStream inputStream = new ByteArrayInputStream(identity.getCertificate().getComponent().getBytes());
-            X509Certificate cert = (X509Certificate) fact.generateCertificate(inputStream);
-            assert cert.getIssuerDN().getName().equalsIgnoreCase("CN=node" + index);
         }
     }
 

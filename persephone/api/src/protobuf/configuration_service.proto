@@ -11,52 +11,32 @@ option java_multiple_files = true;
 /* [END java_declaration] */
 
 /* [START messages] */
+
 /**
- * Model definition for ConfigurationService Tls response.
- *
- * @param[config]
- *   concord configuration
- * @param[identity]
- *   list of identity for each concord node
- */
-message TlsConfigurationServiceResponse {
-    string config = 1;
-    repeated Identity identity = 2;
+* Type definition of configuration service request/response
+* @property[type]
+*   type of service requested
+*/
+message ConfigurationServiceType {
+    enum Type {
+        UNKNOWN = 0;
+        TLS = 1;
+        ETHRPC = 2;
+    }
+    Type type = 1;
 }
 
 /**
- * Model definition for ConfigurationService Tls request.
+ * Model definition for ConfigurationService request.
  *
- * @param[cert_path]
- *   root path where certificates would be placed
- * @param[hostIps]
+ * @property[header]
+ *   message header.
+ * @property[hostIps]
  *   list of host ips for the cluster
  */
-message TlsConfigurationServiceRequest {
+message ConfigurationServiceRequest {
     MessageHeader header = 1;
-    string cert_path = 2;
-    repeated string hostIps = 3;
-}
-
-/**
- * Model definition for ConfigurationService EthRpc request.
- *
- * @param[cert_path]
- *   list of paths where each certificate would be placed
- */
-message EthRpcConfigurationServiceRequest {
-    MessageHeader header = 1;
-    repeated string cert_path = 2;
-}
-
-/**
- * Model definition for ConfigurationService EthRpc response.
- *
- * @param[identity]
- *   list of identity for each concord node
- */
-message EthRpcConfigurationServiceResponse {
-    repeated Identity identity = 1;
+    repeated string hostIps = 2;
 }
 
 /**
@@ -71,6 +51,57 @@ message ConfigurationServerConfiguration {
     int32 port = 1;
     TransportSecurity transport_security = 2;
 }
+
+/**
+ * Denote the identifier of a configuration session.
+ *
+ * @property[identifier]
+ *   integer identifier;
+ */
+message ConfigurationSessionIdentifier {
+    int64 identifier = 1;
+}
+
+/**
+* Denote the node configuration response
+*
+* @property[componentConfiguration]
+*   list of componentconfigurations
+*/
+message NodeConfigurationResponse {
+    repeated ComponentConfiguration componentConfiguration = 1;
+}
+
+/**
+* Denote the node configuration request
+*
+* @property[identifier]
+*   the session identifier
+* @property[node]
+*   the node id whose configuration is needed
+*/
+message NodeConfigurationRequest {
+    MessageHeader header = 1;
+    ConfigurationSessionIdentifier identifier = 2;
+    int32 node = 3;
+}
+
+/**
+* Denotes ethrpc or tls configuration
+*
+* @property[type]
+*   type of configuration - ethrpc or tls
+* @property[config]
+*   the configuration file
+* @property[identityComponent]
+*   the key or certificate identity
+*/
+message ComponentConfiguration {
+    ConfigurationServiceType.Type type = 1;
+    string config = 2;
+    repeated IdentityComponent identityComponent = 3;
+}
+
 /* [END messages] */
 /* [START services] */
 /**
@@ -81,12 +112,11 @@ service ConfigurationService {
      * Operation to generate Tls key/certificate pairs for each node in a cluster
      * based on a [TlsConfigurationServiceRequest].
      */
-    rpc GenerateTlsConfiguration (TlsConfigurationServiceRequest) returns (TlsConfigurationServiceResponse);
+    rpc GenerateConfiguration (ConfigurationServiceRequest) returns (ConfigurationSessionIdentifier);
 
     /**
-     * Operation to generate EthRpc key/certificate pairs for each node in a cluster
-     * based on a [EthRpcConfigurationServiceRequest].
-     */
-    rpc GenerateEthRpcConfiguration (EthRpcConfigurationServiceRequest) returns (EthRpcConfigurationServiceResponse);
+    * Operation to get node configuration for given node
+    */
+    rpc GetNodeConfiguration (NodeConfigurationRequest) returns (NodeConfigurationResponse);
 }
 /* [END services] */

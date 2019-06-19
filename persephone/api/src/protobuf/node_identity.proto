@@ -32,21 +32,13 @@ message IdentityComponent {
 /**
  * Denote a key-certificate pair.
  *
- * @param[type]
- *   Type of identity : tls/ethrpc
  * @param[key]
  *   identity component for key
  * @param[certificate]
  *   identity component for certificate
  */
 message Identity {
-    enum Type {
-        UNKNOWN = 0;
-        ETHRPC = 1;
-        TLS = 2;
-    }
-    Type type = 1;
-    IdentityComponent key = 2;
-    IdentityComponent certificate = 3;
+    IdentityComponent key = 1;
+    IdentityComponent certificate = 2;
 }
 /* [END messages] */

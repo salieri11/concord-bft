@@ -51,7 +51,7 @@ class SingleBouncyCertificateGeneratorTest {
     public void testCertificateGenerationPositive() {
         assertDoesNotThrow(() -> {
             Identity ks = SingleBouncyCertificateGenerator
-                    .generateIdentity("test", filePath, Identity.Type.TLS);
+                    .generateIdentity("test", filePath);
 
             assert ks.getCertificate().getComponentUrl().equalsIgnoreCase(filePath + "/tlsCerts.cert");
             assert ks.getKey().getComponentUrl().equalsIgnoreCase(filePath + "/pk.pem");
@@ -78,7 +78,7 @@ class SingleBouncyCertificateGeneratorTest {
     public void testCertificateGenerationExpiredValidity() {
         assertThrows(CertificateExpiredException.class, () -> {
             Identity ks = SingleBouncyCertificateGenerator
-                    .generateIdentity("test", filePath, Identity.Type.TLS);
+                    .generateIdentity("test", filePath);
             assert ks.getCertificate().getComponentUrl().equalsIgnoreCase(filePath + "/tlsCerts.cert");
             assert ks.getKey().getComponentUrl().equalsIgnoreCase(filePath + "/pk.pem");
 
@@ -97,7 +97,7 @@ class SingleBouncyCertificateGeneratorTest {
     public void testCertificateGenerationNotValidCertificate() {
         assertThrows(CertificateNotYetValidException.class, () -> {
             Identity ks = SingleBouncyCertificateGenerator
-                    .generateIdentity("test", filePath, Identity.Type.TLS);
+                    .generateIdentity("test", filePath);
             assert ks.getCertificate().getComponentUrl().equalsIgnoreCase(filePath + "/tlsCerts.cert");
             assert ks.getKey().getComponentUrl().equalsIgnoreCase(filePath + "/pk.pem");
 
@@ -118,11 +118,11 @@ class SingleBouncyCertificateGeneratorTest {
             String fp1 = filePath + "/c1";
             String fp2 = filePath + "/c2";
 
-            Identity ks1 = SingleBouncyCertificateGenerator.generateIdentity("test", fp1, Identity.Type.TLS);
+            Identity ks1 = SingleBouncyCertificateGenerator.generateIdentity("test", fp1);
             assert ks1.getKey().getComponentUrl().equalsIgnoreCase(fp1 + "/pk.pem");
             assert ks1.getCertificate().getComponentUrl().equalsIgnoreCase((fp1 + "/c1.cert"));
 
-            Identity ks2 = SingleBouncyCertificateGenerator.generateIdentity("test", fp2, Identity.Type.TLS);
+            Identity ks2 = SingleBouncyCertificateGenerator.generateIdentity("test", fp2);
             assert ks2.getKey().getComponentUrl().equalsIgnoreCase(fp2 + "/pk.pem");
             assert ks2.getCertificate().getComponentUrl().equalsIgnoreCase(fp2 + "/c2.cert");
 
