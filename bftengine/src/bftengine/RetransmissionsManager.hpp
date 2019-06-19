@@ -12,15 +12,13 @@
 
 #include "PrimitiveTypes.hpp"
 #include "TimeUtils.hpp"
+#include "SimpleThreadPool.hpp"
 
-namespace util
-{
-class SimpleThreadPool;
-}
 namespace bftEngine
 {
 	namespace impl
 	{
+
 		class IncomingMsgsStorage;
 		class InternalReplicaApi;
 

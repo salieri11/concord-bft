@@ -155,7 +155,7 @@ class PlainUDPCommunication::PlainUdpImpl {
     LOG_DEBUG(_logger, "Starting UDP communication. Port = %" << udpListenPort);
     LOG_DEBUG(_logger, "#endpoints = " << nodes2adresses.size());
 
-    bufferForIncomingMessages = (char *) std::malloc(maxMsgSize);
+//    bufferForIncomingMessages = (char *) std::malloc(maxMsgSize);
 
     udpSockFd = 0;
   }
@@ -176,6 +176,8 @@ class PlainUDPCommunication::PlainUdpImpl {
     }
 
     std::lock_guard<std::mutex> guard(runningLock);
+	
+	bufferForIncomingMessages = (char *) std::malloc(maxMsgSize);
 
     if (running == true) {
       LOG_DEBUG(_logger, "Cannot Start(): already running!");
@@ -335,9 +337,9 @@ class PlainUDPCommunication::PlainUdpImpl {
 
   void
   stopRecvThread() {
-    //LOG_DEBUG("Stopping the receiving thread..");
+//    LOG_ERROR(_logger,"Stopping the receiving thread..");
     recvThreadRef->join();
-    //LOG_DEBUG("Stopping the receiving thread..");
+//    LOG_ERROR(_logger,"Stopping the receiving thread..");
   }
 
   void
@@ -404,6 +406,7 @@ class PlainUDPCommunication::PlainUdpImpl {
       }
 
     } while (running);
+	LOG_ERROR(_logger,"bbbbbbbbbbbbbbbbbbbbb");
   }
 };
 

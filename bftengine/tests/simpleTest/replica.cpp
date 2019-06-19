@@ -70,12 +70,33 @@
 #include <log4cplus/configurator.h>
 #endif
 
+#define REPLICA2_RESTART_NO_VC (1)
+#define ALL_REPLICAS_RESTART_NO_VC (0)
+#define REPLICA2_RESTART_VC (0)
+#define ALL_REPLICAS_RESTART_VC (0)
+#define PRIMARY_REPLICA_RESTART (0)
+
+static_assert(REPLICA2_RESTART_NO_VC + ALL_REPLICAS_RESTART_NO_VC + REPLICA2_RESTART_VC + ALL_REPLICAS_RESTART_VC + PRIMARY_REPLICA_RESTART <= 1, "");
+
+
+
+
 using namespace std;
 
 concordlogger::Logger replicaLogger =
     concordlogger::Logger::getLogger("simpletest.replica");
 bftEngine::Replica* replica = nullptr;
 ReplicaParams rp;
+
+/*
+void signalHandler( int signum ) {
+  if(replica)
+    replica->stop();
+
+  LOG_INFO(replicaLogger, "replica " << rp.replicaId << " stopped");
+  exit(0);
+}
+*/
 
 #define test_assert(statement, message) \
 { if (!(statement)) { \
@@ -99,6 +120,7 @@ void parse_params(int argc, char** argv) {
 
   uint16_t min16_t_u = std::numeric_limits<uint16_t>::min();
   uint16_t max16_t_u = std::numeric_limits<uint16_t>::max();
+  uint32_t min32_t_u = std::numeric_limits<uint32_t>::min();
   uint32_t max32_t_u = std::numeric_limits<uint32_t>::max();
 
   rp.keysFilePrefix = "private_replica_";
@@ -152,11 +174,12 @@ void parse_params(int argc, char** argv) {
           i++;
         } else if (p == "-vct") {
           auto vct = std::stoi(argv[i + 1]);
-          if (vct < 0 || (uint32_t)vct > max32_t_u) {
-            printf("-vct value is out of range (%u - %u)", 0, max32_t_u);
+          if (vct < min32_t_u || vct > max32_t_u) {
+            printf("-vct value is out of range (%u - %u)", min16_t_u,
+                   max16_t_u);
             exit(-1);
           }
-          rp.viewChangeTimeout = (uint32_t)vct;
+          rp.viewChangeTimeout = vct;
           i += 2;
         } else if (p == "-cf") {
           rp.configFileName = argv[i + 1];
@@ -295,9 +318,12 @@ int main(int argc, char **argv) {
   parse_params(argc, argv);
 
   // allows to attach debugger
-  if(rp.debug) {
+  if(rp.debug)
     std::this_thread::sleep_for(chrono::seconds(20));
-  }
+       
+//  signal(SIGABRT, signalHandler);
+//  signal(SIGTERM, signalHandler);
+//  signal(SIGKILL, signalHandler);
 
   ReplicaConfig replicaConfig;
   TestCommConfig testCommConfig(replicaLogger);
@@ -307,6 +333,14 @@ int main(int argc, char **argv) {
   replicaConfig.autoViewChangeEnabled = rp.viewChangeEnabled;
   replicaConfig.viewChangeTimerMillisec = rp.viewChangeTimeout;
 
+#if REPLICA2_RESTART_NO_VC || ALL_REPLICAS_RESTART_NO_VC 
+  replicaConfig.autoViewChangeEnabled = false;
+#elif REPLICA2_RESTART_VC || ALL_REPLICAS_RESTART_VC || PRIMARY_REPLICA_RESTART
+  replicaConfig.autoViewChangeEnabled = true;
+#endif
+
+  
+  
 #ifdef USE_COMM_PLAIN_TCP
   PlainTcpConfig conf = testCommConfig.GetTCPConfig(true, rp.replicaId,
                                                     rp.numOfClients,
@@ -368,8 +402,42 @@ int main(int argc, char **argv) {
   // The replica is now running in its own thread. Block the main thread until
   // sigabort, sigkill or sigterm are not raised and then exit gracefully
 
+/*  
+  if(replicaConfig.replicaId == 2)
+  {
+	  std::this_thread::sleep_for(std::chrono::seconds(10));
+	  replica->restartForDebug();	  
+  }
+  
   while (replica->isRunning())
     std::this_thread::sleep_for(std::chrono::seconds(1));
+*/
+
+  while (replica->isRunning()) {
+
+  
+#if REPLICA2_RESTART_NO_VC
+    std::this_thread::sleep_for(std::chrono::seconds(10));
+	if(replicaConfig.replicaId == 2)
+	  replica->restartForDebug();	  
+#elif REPLICA2_RESTART_VC
+    std::this_thread::sleep_for(std::chrono::seconds(60));
+	if(replicaConfig.replicaId == 2)
+	  replica->restartForDebug();	  
+#elif ALL_REPLICAS_RESTART_NO_VC  
+  std::this_thread::sleep_for(std::chrono::seconds(3 * (2+replicaConfig.replicaId)*(2+replicaConfig.replicaId)));
+  replica->restartForDebug();
+#elif ALL_REPLICAS_RESTART_VC  
+  std::this_thread::sleep_for(std::chrono::seconds(18 * (2+replicaConfig.replicaId)*(2+replicaConfig.replicaId)));
+  replica->restartForDebug();
+#elif PRIMARY_REPLICA_RESTART
+#error not implemented  
+#else
+  std::this_thread::sleep_for(std::chrono::seconds(10));
+#endif
+  
+  }
+
 
   return 0;
 }

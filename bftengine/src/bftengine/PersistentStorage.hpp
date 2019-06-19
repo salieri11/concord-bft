@@ -60,6 +60,14 @@ class PersistentStorage {
     // elements.size() <= kWorkWindowSize
     // The messages in elements[i] may be null
     std::vector<ViewsManager::PrevViewInfo> elements;
+
+		// myViewChangeMsg!=nullptr OR view==0
+		// this message was relevant when the view became active
+		ViewChangeMsg* myViewChangeMsg;
+
+		// last stable when the view became active
+		// lastStable >= stableLowerBoundWhenEnteredToView
+		SeqNum stableLowerBoundWhenEnteredToView;
   };
 
   struct DescriptorOfLastNewView {
@@ -72,6 +80,13 @@ class PersistentStorage {
     // viewChangeMsgs.size() == 2*F + 2*C + 1
     // The messages in viewChangeMsgs will never be null
     std::vector<ViewChangeMsg*> viewChangeMsgs;
+
+		// this message was relevant when the view became active
+		// if myViewChangeMsg == nullptr, then the replica has message in viewChangeMsgs
+		ViewChangeMsg* myViewChangeMsg;
+
+		// last stable when the view became active
+		SeqNum stableLowerBoundWhenEnteredToView;
 
     // maxSeqNumTransferredFromPrevViews >= 0
     SeqNum maxSeqNumTransferredFromPrevViews;

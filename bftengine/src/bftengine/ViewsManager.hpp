@@ -34,9 +34,40 @@ using std::vector;
 
 class ViewsManager {
  public:
-  ViewsManager(const ReplicasInfo* const r,
-               IThresholdVerifier* const preparedCertificateVerifier);
+
+  struct PrevViewInfo {
+	  PrePrepareMsg* prePrepare;
+	  bool hasAllRequests;
+		PrepareFullMsg* prepareFull;
+	};
+
+	ViewsManager(const ReplicasInfo* const r,
+               IThresholdVerifier* const preparedCertificateVerifier); // TODO(GG): move to protected
   ~ViewsManager();
+
+	static ViewsManager* createOutsideView(
+		const ReplicasInfo* const r,
+		IThresholdVerifier* const preparedCertificateVerifier,
+		ViewNum lastActiveView,
+		SeqNum lastStable,
+		SeqNum lastExecuted,
+		SeqNum stableLowerBound,
+		ViewChangeMsg* myLastViewChange,
+		std::vector<PrevViewInfo>& elementsOfPrevView);
+
+	static ViewsManager* createInsideViewZero(
+		const ReplicasInfo* const r,
+		IThresholdVerifier* const preparedCertificateVerifier);
+
+	static ViewsManager* createInsideView(
+		const ReplicasInfo* const r,
+		IThresholdVerifier* const preparedCertificateVerifier,
+		ViewNum view,
+		SeqNum stableLowerBound,
+		NewViewMsg* newViewMsg,
+		ViewChangeMsg* myLastViewChange,	 // nullptr IFF the replica has a VC message in viewChangeMsgs
+		std::vector<ViewChangeMsg*> viewChangeMsgs);
+
 
   ViewNum latestActiveView() const { return myLatestActiveView; }
   bool viewIsActive(ViewNum v) const {
@@ -74,11 +105,6 @@ class ViewsManager {
 
   SeqNum stableLowerBoundWhenEnteredToView() const;
 
-  struct PrevViewInfo {
-    PrePrepareMsg* prePrepare;
-    bool hasAllRequests;
-    PrepareFullMsg* prepareFull;
-  };
   ViewChangeMsg* exitFromCurrentView(
     SeqNum currentLastStable,
     SeqNum currentLastExecuted,

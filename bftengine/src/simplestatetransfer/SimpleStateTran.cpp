@@ -420,10 +420,10 @@ void SimpleStateTran::init(uint64_t maxNumOfRequiredStoredCheckpoints,
 
 void SimpleStateTran::startRunning(IReplicaForStateTransfer* r) {
   Assert(isInitialized());
-  Assert(!internalST_->isRunning());
-  Assert(updateAppPages_.empty());
+//  Assert(!internalST_->isRunning());
+//  Assert(updateAppPages_.empty());
 
-  Assert(replicaWrapper_.realInterface_ == nullptr);
+//  Assert(replicaWrapper_.realInterface_ == nullptr);
   replicaWrapper_.realInterface_ = r;
 
   internalST_->startRunning(&replicaWrapper_);

@@ -16,7 +16,6 @@
 #include "Crypto.hpp"
 #include "assertUtils.hpp"
 #include "InternalReplicaApi.hpp"
-#include "SimpleThreadPool.hpp"
 
 namespace bftEngine
 {

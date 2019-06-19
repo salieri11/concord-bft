@@ -97,9 +97,7 @@ namespace BasicRandomTests
 
 		struct SimpleRequestHeader
 		{
-                        // 1 == conditional write , 2 == read, 3 == get last block,
-                        // 4 = get block data
-			char type;
+			char type; // 1 == conditional write , 2 == read, 3 == get last block
 
 			static void free(SimpleRequestHeader* p)
 			{
@@ -153,6 +151,7 @@ namespace BasicRandomTests
 				return (SimpleKV*)(((char*)this) + sizeof(SimpleConditionalWriteHeader) + numberOfKeysInReadSet * sizeof(SimpleKey));
 			}
 		};
+
 
 		struct SimpleReadHeader
 		{
@@ -218,31 +217,7 @@ namespace BasicRandomTests
 			SimpleRequestHeader h;
 		};
 
-                // A SimpleGetBlockDataHeader returns a read response, except
-                // all keys are for the specific block requested.
-                struct SimpleGetBlockDataHeader {
-			SimpleRequestHeader h;
-			BlockId block_id;
 
-			static SimpleGetBlockDataHeader* alloc()
-			{
-				size_t size = sizeof(SimpleGetBlockDataHeader);
-				char* pBuf = new char[size];
-				memset(pBuf, 0, size);
-				return (SimpleGetBlockDataHeader*)(pBuf);
-			}
-
-			static void free(SimpleGetBlockDataHeader* p)
-			{
-				char* p1 = (char*)p;
-				delete[] p1;
-			}
-
-			static size_t size()
-			{
-				return sizeof(SimpleGetBlockDataHeader);
-			}
-                };
 
 
 		struct SimpleReplyHeader
@@ -832,34 +807,6 @@ namespace BasicRandomTests
 
 					return true;
 				}
-                                else if (p->type == 4) {
-					CHECK(command.size >= sizeof(SimpleGetBlockDataHeader), "small message");
-					SimpleGetBlockDataHeader* pGetBlock = (SimpleGetBlockDataHeader*)command.data;
-                                        auto block_id = pGetBlock->block_id;
-                                        SetOfKeyValuePairs outBlockData;
-                                        if (!roStorage.getBlockData(block_id, outBlockData).ok()) {
-                                          return false;
-                                        }
-
-                                        auto numOfElements = outBlockData.size();
-					size_t replySize = SimpleReplyHeader_Read::size(numOfElements);
-					CHECK(maxReplySize >= replySize, "small message");
-
-					SimpleReplyHeader_Read* pReply = (SimpleReplyHeader_Read*)(outReply);
-					outReplySize = replySize;
-					memset(pReply, 0, replySize);
-					pReply->h.type = 2;
-					pReply->numberOfElements = numOfElements;
-
-                                        auto i = 0;
-                                        for (auto kv: outBlockData) {
-                                          memcpy(pReply->elements[i].key, kv.first.data, KV_LEN);
-                                          memcpy(pReply->elements[i].val, kv.second.data, KV_LEN);
-                                          ++i;
-                                        }
-                                        return true;
-                                }
-
 				else
 				{
 					outReplySize = 0;
@@ -887,10 +834,6 @@ namespace BasicRandomTests
 			else if (req->type == 3)
 			{
 				return SimpleGetLastBlockHeader::size();
-			}
-			else if (req->type == 4)
-			{
-				return SimpleGetBlockDataHeader::size();
 			}
 			assert(0); 
 			return 0;

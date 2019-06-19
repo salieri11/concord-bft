@@ -18,6 +18,7 @@
 #include "Crypto.hpp"
 #include "DebugStatistics.hpp"
 #include "SimpleThreadPool.hpp"
+#include "SimpleAutoResetEvent.hpp"
 #include "ControllerBase.hpp"
 #include "CheckpointMsg.hpp"
 #include "RetransmissionsManager.hpp"
@@ -31,8 +32,12 @@
 #include "CheckpointInfo.hpp"
 #include "ICommunication.hpp"
 #include "Replica.hpp"
-#include "SimpleAutoResetEvent.hpp"
+#include "SimpleThreadPool.hpp"
+#include "PersistentStorage.hpp"
+#include "ReplicaLoader.hpp"
 #include "Metrics.hpp"
+
+
 #include <thread>
 
 
@@ -87,6 +92,7 @@ namespace bftEngine
 			std::thread mainThread;
 			bool mainThreadStarted;
 			bool mainThreadShouldStop;
+			bool mainThreadShouldStopWhenStateIsNotCollected;
 
 			// thread pool of this replica
 			util::SimpleThreadPool internalThreadPool; // TODO(GG): !!!! rename
@@ -197,9 +203,14 @@ namespace bftEngine
 			Timer* statusReportTimer;
 			Timer* viewChangeTimer;
 			Timer* debugStatTimer = nullptr;
-                        Timer* metricsTimer_;
 
 			int viewChangeTimerMilli;
+
+			PersistentStorage* ps_ = nullptr;
+
+			bool recoveringFromExecutionOfRequests = false;
+			Bitmap mapOfRequestsThatAreBeingRecovered;
+
 
 			class MsgReceiver : public IReceiver
 			{
@@ -229,6 +240,17 @@ namespace bftEngine
 			};
 
 			friend class StopInternalMsg;
+
+			class StopWhenStateIsNotCollectedInternalMsg : public InternalMessage
+			{
+			public:
+				StopWhenStateIsNotCollectedInternalMsg(ReplicaImp* myReplica);
+				virtual void handle();
+			protected:
+				ReplicaImp* replica;
+			};
+
+			friend class StopWhenStateIsNotCollectedInternalMsg;
 
 			// this event is signalled iff the start() method has completed
 			// and the process_message() method has not start working yet
@@ -277,16 +299,25 @@ namespace bftEngine
 
 		public:
 
-
 			ReplicaImp(const ReplicaConfig&, RequestsHandler* requestsHandler,
-				IStateTransfer* stateTransfer, ICommunication* communication);
+				IStateTransfer* stateTransfer, ICommunication* communication, PersistentStorage* persistentStorage);
+
+			ReplicaImp(const LoadedReplicaData&, RequestsHandler* requestsHandler,
+				IStateTransfer* stateTransfer, ICommunication* communication, PersistentStorage* persistentStorage);
+
 			virtual ~ReplicaImp();
 
 			void start();
-			void stop(); // TODO(GG): support "restart"
+			void stop(); 
+			void stopWhenStateIsNotCollected();
 			bool isRunning() const;
 			SeqNum getLastExecutedSequenceNum() const;
+			bool isRecoveringFromExecutionOfRequests() const { return recoveringFromExecutionOfRequests; }
 
+			PersistentStorage* getPersistentStorage() const { return ps_; }
+			RequestsHandler* getRequestsHandler() const { return userRequestsHandler; }
+			IStateTransfer* getStateTransfer() const { return stateTransfer; }
+			ICommunication* getCommunication() const { return communication; }
 
 
 			void recvMsg(void*& item, bool& external);
@@ -306,6 +337,9 @@ namespace bftEngine
                         void SetAggregator(std::shared_ptr<concordMetrics::Aggregator> a);
 
 		protected:
+
+			ReplicaImp(bool firstTime, const ReplicaConfig&, RequestsHandler* requestsHandler,
+				IStateTransfer* stateTransfer, SigManager* sigMgr, ReplicasInfo* replicasInfo, ViewsManager* viewsMgr);
 
 			static std::unordered_map<uint16_t, PtrToMetaMsgHandler> createMapOfMetaMsgHandlers();
 
@@ -368,13 +402,14 @@ namespace bftEngine
 
 			void executeReadOnlyRequest(ClientRequestMsg *m);
 
-			void executeReadWriteRequests(const bool requestMissingInfo = false);
+			void executeNextCommittedRequests(const bool requestMissingInfo = false);
 
-			void executeRequestsInPrePrepareMsg(PrePrepareMsg *pp);
+			void executeRequestsInPrePrepareMsg(PrePrepareMsg *pp, bool recoverFromErrorInRequestsExecution = false);
 
-			void onSeqNumIsStable(SeqNum);
-
-			void onSeqNumIsStableWithoutRefCheckpoint(SeqNum);
+			void onSeqNumIsStable(SeqNum newStableSeqNum, 
+				                    bool hasStateInformation = true, // true IFF we have checkpoint Or digest in the state transfer
+				                    bool oldSeqNum = false // true IFF sequence number newStableSeqNum+kWorkWindowSize has already been executed 
+			                     );
 
 			void onTransferringCompleteImp(SeqNum);
 
@@ -393,9 +428,6 @@ namespace bftEngine
 			void onReportAboutInvalidMessage(MessageBase* msg);
 
 			void sendCheckpointIfNeeded();
-
-			void  commitFullCommitProof(SeqNum seqNum, SeqNumInfo& seqNumInfo);
-			void commitAndSendFullCommitProof(SeqNum seqNum, SeqNumInfo& seqNumInfo, PartialProofsSet& partialProofs);
 
 			virtual IncomingMsgsStorage& getIncomingMsgsStorage() override
 			{
@@ -467,10 +499,6 @@ namespace bftEngine
 				return *debugStatTimer;
 			}
 
-			virtual Timer& getMetricsTimer() override
-			{
-				return *metricsTimer_;
-			}
 
 
 			virtual void onViewsChangeTimer(Time cTime, Timer& timer) override;
@@ -480,7 +508,6 @@ namespace bftEngine
 			virtual void onSlowPathTimer(Time cTime, Timer& timer) override;
 			virtual void onInfoRequestTimer(Time cTime, Timer& timer) override;
 			virtual void onDebugStatTimer(Time cTime, Timer& timer) override;
-			virtual void onMetricsTimer(Time cTime, Timer& timer) override;
 
 			// handlers for internal messages
 

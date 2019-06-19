@@ -143,8 +143,8 @@ class AsyncTlsConnection : public
   uint32_t _bufferLength;
   NodeNum _destId = AsyncTlsConnection::UNKNOWN_NODE_ID;
   NodeNum _selfId;
-  string _ip = "";
-  uint16_t _port = 0;
+  string _ip;
+  uint16_t _port;
   asio::deadline_timer _connectTimer;
   asio::deadline_timer _writeTimer;
   asio::deadline_timer _readTimer;
@@ -297,7 +297,7 @@ class AsyncTlsConnection : public
     if (_statusCallback) {
       bool isReplica = check_replica(_destId);
       if (isReplica) {
-        PeerConnectivityStatus pcs{};
+        PeerConnectivityStatus pcs;
         pcs.peerId = _destId;
         pcs.statusType = StatusType::Broken;
 
@@ -509,7 +509,7 @@ class AsyncTlsConnection : public
     // the certificate must have node id, as we put it in OU field on creation.
     // since we use pinning we must know who is the remote peer.
     // peerIdPrefixLength stands for the length of 'OU=' substring
-    int peerIdPrefixLength = 3;
+    size_t peerIdPrefixLength = 3;
     std::regex r("OU=\\d*", std::regex_constants::icase);
     std::smatch sm;
     regex_search(subject, sm, r);
@@ -801,8 +801,10 @@ class AsyncTlsConnection : public
     read_msg_length_async();
 
     if (_statusCallback && _destIsReplica) {
-      PeerConnectivityStatus pcs{};
+      PeerConnectivityStatus pcs;
       pcs.peerId = _destId;
+      pcs.peerIp = _ip;
+      pcs.peerPort = _port;
       pcs.statusType = StatusType::MessageReceived;
 
       // pcs.statusTime = we dont set it since it is set by the aggregator
@@ -1008,7 +1010,7 @@ class AsyncTlsConnection : public
                                 << ", length: " << length);
 
     if (_statusCallback && _isReplica) {
-      PeerConnectivityStatus pcs{};
+      PeerConnectivityStatus pcs;
       pcs.peerId = _selfId;
       pcs.statusType = StatusType::MessageSent;
 
@@ -1305,15 +1307,6 @@ class TlsTCPCommunication::TlsTcpImpl :
     // and all nodes with higher ID will connect to this node
     // we don't want that clients will connect to other clients
     for (auto it = _nodes.begin(); it != _nodes.end(); it++) {
-      if (_statusCallback && it->second.isReplica) {
-        PeerConnectivityStatus pcs{};
-        pcs.peerId = it->first;
-        pcs.peerIp = it->second.ip;
-        pcs.peerPort = it->second.port;
-        pcs.statusType = StatusType::Started;
-        _statusCallback(pcs);
-      }
-
       // connect only to nodes with ID higher than selfId
       // and all nodes with lower ID will connect to this node
       if (it->first < _selfId && it->first <= _maxServerId) {
