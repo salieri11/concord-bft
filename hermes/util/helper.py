@@ -172,7 +172,12 @@ def undeploy_blockchain_cluster(provisioning_config_file, grpc_server, session_i
 
    return True
 
-def get_json_object(message_obj):
+def protobuf_message_to_json(message_obj):
+   '''
+   Helper method to convert a protobuf message to json
+   :param message_obj: protobuf message
+   :return: json
+   '''
    from google.protobuf.json_format import MessageToJson
    if isinstance(message_obj, (list,)):
       list_of_json_objects = []

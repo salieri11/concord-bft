@@ -144,7 +144,7 @@ class RPCHelper():
                                   "{}_request.json".format(
                                      time.time()))
       log.info("gRPC Request: {}".format(request_file))
-      rpc_request_json = helper.get_json_object(rpc_request)
+      rpc_request_json = helper.protobuf_message_to_json(rpc_request)
       with open(request_file, "w") as f:
          json.dump(rpc_request_json, f, indent=4, sort_keys=True)
 
@@ -152,7 +152,7 @@ class RPCHelper():
                                    "{}_response.json".format(
                                       time.time()))
       log.info("gRPC Response: {}".format(response_file))
-      response_json = helper.get_json_object(response_list)
+      response_json = helper.protobuf_message_to_json(response_list)
       with open(response_file, "w") as f:
          json.dump(response_json,f, indent=4, sort_keys=True)
 
