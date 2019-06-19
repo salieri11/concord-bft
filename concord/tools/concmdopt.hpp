@@ -9,10 +9,16 @@
 
 static const std::string DEFAULT_CONCORD_IP = "127.0.0.1";
 static const std::string DEFAULT_CONCORD_PORT = "5458";
+static const std::string DEFAULT_FORMAT = "text";
 
 #define OPT_HELP "help"
 #define OPT_ADDRESS "address"
 #define OPT_PORT "port"
+#define OPT_FORMAT "format"
+
+// Valid values for the "format" option.
+#define OPT_FORMAT_TEXT "text"
+#define OPT_FORMAT_JSON "json"
 
 /**
  * Tool-specific options adding function. When passed to the parse_options

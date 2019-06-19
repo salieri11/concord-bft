@@ -107,12 +107,13 @@ def skip_if_disabled(output):
    '''
    If we received an error saying the time service is disabled, skip the rest of the test.
    '''
-   if re.findall("error_response", output):
+   # text format uses snake_case, json format uses camelCase
+   if re.findall("error_response", output) or re.findall("errorResponse", output):
       if re.findall("Time service is disabled", output):
          pytest.skip("Time service is disabled.")
 
 @pytest.mark.smoke
-def test_cli_get(fxConnection):
+def test_cli_get():
    '''
    Attempt to use conc_time to get the current blockchain
    time. Passes if there is no error_response, and there is a
@@ -125,3 +126,72 @@ def test_cli_get(fxConnection):
 
    assert re.findall("time_response", output), "No time response found: {}".format(output)
    assert re.findall("summary: ([:digit:]*)", output), "Summary with time not found: {}".format(output)
+
+def extract_samples_from_response(output):
+   '''
+   Dig through conc_time output to find a TimeResponse message, and
+   extract samples from it. The conc_time script should have been
+   exected with `-l` and `-o json` flags.
+   '''
+   responseText = re.findall("Received response: (.*)", output)[0]
+   responseJson = json.loads(responseText)
+   sampleList = responseJson["timeResponse"]["sample"]
+
+   sampleMap = {}
+   for sample in sampleList:
+      sampleMap[sample["source"]] = sample["time"]
+
+   return sampleMap
+
+def test_low_load_updates():
+   '''
+   Try to observe time updates happening with no input being
+   generated. It is assumed that all sources are configured to publish
+   regularly, without transactions being sent to the system
+   (i.e. `time_pusher_period_ms` is greater than zero for all
+   sources). Note: if anything else is submitting transactions to the
+   system, what is really being tested is that updates to time service
+   happen at all, and not necessarily that the low-load system is
+   functioning.
+   '''
+   concordContainer = suiteObject.product.get_concord_container_name(1)
+   output = suiteObject.product.exec_in_concord_container(concordContainer,
+                                                          "./conc_time -l -o json")
+
+   skip_if_disabled(output)
+
+   startTimes = extract_samples_from_response(output)
+   assert startTimes.keys(), "No sources found"
+
+   # What we expect time_pusher_period_ms to be, but in seconds.
+   expectedUpdatePeriodSec = 1
+
+   # How many times we're going to query before giving up. This
+   # shouldn't need to be larger than 2, if we sleep for
+   # expectedUpdatePeriodSec between attempts, but using 3 for now for
+   # extra stability.
+   maxAttempts = 3
+
+   # How often we want to remind the log that we're waiting, in
+   # attempts. This is really only applicable if maxAttempts >
+   # logPeriod, but including it now even with a smaller maxAttempts,
+   # to fight spew before debugging beings.
+   logPeriod = 5
+
+   for attempt in range(1,maxAttempts+1):
+      output = suiteObject.product.exec_in_concord_container(concordContainer,
+                                                             "./conc_time -l -o json")
+      newTimes = extract_samples_from_response(output)
+      for k,v in newTimes.items():
+         if startTimes[k] == newTimes[k]:
+            if (attempt % logPeriod) == 1:
+               log.info("Waiting for time samples to update... (attempt {})".format(attempt))
+            time.sleep(expectedUpdatePeriodSec)
+            break
+      else:
+         # if the loop exited without break-ing, we don't need to read again
+         break
+
+   assert len(newTimes.keys()) == len(startTimes.keys()), "All sources should be present in the update"
+   for k,v in newTimes.items():
+      assert startTimes[k] != newTimes[k], "All sources should have updated"

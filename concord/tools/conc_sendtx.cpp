@@ -2,7 +2,6 @@
 //
 // Send a transaction to concord directly.
 
-#include <google/protobuf/text_format.h>
 #include <inttypes.h>
 #include <boost/program_options.hpp>
 #include <iostream>
@@ -25,15 +24,16 @@ using namespace com::vmware::concord;
 #define OPT_SIG_S "sigs"
 
 void add_options(options_description &desc) {
-  desc.add_options()(OPT_FROM ",f", value<std::string>(),
-                     "Address to send the TX from")(
-      OPT_TO ",t", value<std::string>(), "Address to send the TX to")(
-      OPT_VALUE ",v", value<std::string>(), "Amount to pass as value")(
-      OPT_DATA ",d", value<std::string>(),
-      "Hex-encoded string to pass as data")(OPT_SIG_V, value<std::string>(),
-                                            "Signature V")(
-      OPT_SIG_R, value<std::string>(), "Signature R")(
-      OPT_SIG_S, value<std::string>(), "Signature S");
+  // clang-format off
+  desc.add_options()
+    (OPT_FROM ",f", value<std::string>(), "Address to send the TX from")
+    (OPT_TO ",t", value<std::string>(), "Address to send the TX to")
+    (OPT_VALUE ",v", value<std::string>(), "Amount to pass as value")
+    (OPT_DATA ",d", value<std::string>(), "Hex-encoded string to pass as data")
+    (OPT_SIG_V, value<std::string>(),"Signature V")
+    (OPT_SIG_R, value<std::string>(), "Signature R")
+    (OPT_SIG_S, value<std::string>(), "Signature S");
+  // clang-format on
 }
 
 int main(int argc, char **argv) {
@@ -43,7 +43,7 @@ int main(int argc, char **argv) {
       return 0;
     }
 
-    /*** Create request ***/
+    // Create request
 
     ConcordRequest concReq;
     EthRequest *ethReq = concReq.add_eth_request();
@@ -89,19 +89,10 @@ int main(int argc, char **argv) {
       ethReq->set_sig_s(sig_s);
     }
 
-    std::string pbtext;
-    google::protobuf::TextFormat::PrintToString(concReq, &pbtext);
-    std::cout << "Message Prepared: " << pbtext << std::endl;
-
-    /*** Send & Receive ***/
+    // Send & Receive
 
     ConcordResponse concResp;
     if (call_concord(opts, concReq, concResp)) {
-      google::protobuf::TextFormat::PrintToString(concResp, &pbtext);
-      std::cout << "Received response: " << pbtext << std::endl;
-
-      /*** Handle Response ***/
-
       if (concResp.eth_response_size() == 1) {
         EthResponse ethResp = concResp.eth_response(0);
         if (ethResp.has_data()) {

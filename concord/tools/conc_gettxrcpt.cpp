@@ -2,7 +2,6 @@
 //
 // Get a transaction receipt from concord directly.
 
-#include <google/protobuf/text_format.h>
 #include <inttypes.h>
 #include <boost/program_options.hpp>
 #include <iostream>
@@ -23,12 +22,13 @@ using namespace com::vmware::concord;
 #define OPT_RECEIPT "receipt"
 
 void add_options(options_description &desc) {
-  desc.add_options()(OPT_LIST ",l",
-                     "List transactions from receipt to receipt-count")(
-      OPT_COUNT ",c", value<std::uint64_t>(),
-      "Number of transactionss to list")(
-      OPT_RECEIPT ",r", value<std::string>(),
-      "The transaction hash returned from eth_sendTransaction");
+  // clang-format off
+  desc.add_options()
+    (OPT_LIST ",l", "List transactions from receipt to receipt-count")
+    (OPT_COUNT ",c", value<std::uint64_t>(), "Number of transactionss to list")
+    (OPT_RECEIPT ",r", value<std::string>(),
+     "The transaction hash returned from eth_sendTransaction");
+  // clang-format on
 }
 
 std::string status_to_string(int32_t status) {
@@ -138,7 +138,7 @@ int main(int argc, char **argv) {
       return 0;
     }
 
-    /*** Create request ***/
+    // Create request
 
     ConcordRequest concReq;
     if (opts.count(OPT_LIST) == 0) {
@@ -158,19 +158,10 @@ int main(int argc, char **argv) {
       prepare_transaction_list_request(opts, concReq);
     }
 
-    std::string pbtext;
-    google::protobuf::TextFormat::PrintToString(concReq, &pbtext);
-    std::cout << "Message Prepared: " << pbtext << std::endl;
-
-    /*** Send & Receive ***/
+    // Send & Receive
 
     ConcordResponse concResp;
     if (call_concord(opts, concReq, concResp)) {
-      google::protobuf::TextFormat::PrintToString(concResp, &pbtext);
-      std::cout << "Received response: " << pbtext << std::endl;
-
-      /*** Handle Response ***/
-
       if (opts.count(OPT_LIST)) {
         handle_transaction_list_response(concResp);
       } else {
