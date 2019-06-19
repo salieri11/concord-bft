@@ -1,6 +1,7 @@
 # Helper file with common utility methods
 import os
 import yaml
+import json
 import shutil
 import logging
 import paramiko
@@ -171,3 +172,14 @@ def undeploy_blockchain_cluster(provisioning_config_file, grpc_server, session_i
 
    return True
 
+def get_json_object(message_obj):
+   from google.protobuf.json_format import MessageToJson
+   if isinstance(message_obj, (list,)):
+      list_of_json_objects = []
+      for message in message_obj:
+         json_object = json.loads(MessageToJson(message))
+         list_of_json_objects.append(json_object)
+      return list_of_json_objects
+   else:
+      json_object = json.loads(MessageToJson(message_obj))
+      return json_object
