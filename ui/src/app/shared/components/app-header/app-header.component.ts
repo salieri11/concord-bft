@@ -68,12 +68,13 @@ export class AppHeaderComponent implements OnDestroy, AfterViewInit {
       this.username = user.email;
       this.personaService.currentPersona = user.persona;
     });
-
+    if (this.env.csp) {
+      this.authToken = this.authenticationService.accessToken;
+    }
   }
 
   ngAfterViewInit() {
     if (this.env.csp) {
-      this.authToken = this.authenticationService.accessToken;
       this.header.switchOrg.subscribe(org => {
         console.log('org', org);
       });
