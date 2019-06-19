@@ -186,7 +186,7 @@ def test_low_load_updates():
          if startTimes[k] == newTimes[k]:
             if (attempt % logPeriod) == 1:
                log.info("Waiting for time samples to update... (attempt {})".format(attempt))
-            time.sleep(1)
+            time.sleep(expectedUpdatePeriodSec)
             break
       else:
          # if the loop exited without break-ing, we don't need to read again
