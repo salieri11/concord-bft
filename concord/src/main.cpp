@@ -318,8 +318,11 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
 
     unique_ptr<ICommandsHandler> kvb_commands_handler;
     if (daml_enabled) {
-      kvb_commands_handler = unique_ptr<ICommandsHandler>(
-          new KVBCCommandsHandler(&replica, &replica, committedTxs));
+      std::string damle_addr{
+          nodeConfig.getValue<std::string>("daml_execution_engine_addr")};
+      kvb_commands_handler =
+          unique_ptr<ICommandsHandler>(new KVBCCommandsHandler(
+              &replica, &replica, committedTxs, damle_addr));
     } else if (hlf_enabled) {
       LOG4CPLUS_INFO(logger, "Hyperledger Fabric feature is enabled");
       // Init chaincode invoker
