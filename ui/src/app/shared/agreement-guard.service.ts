@@ -23,6 +23,14 @@ export class AgreementGuard implements CanActivate {
   canActivate(route: ActivatedRouteSnapshot, state: RouterStateSnapshot): any {
     const url: string = state.url;
     if (this.env.csp) {
+      if (url.indexOf('org_link') !== -1) {
+        window.location.href = `https://${window.location.host}${environment.loginPath}${window.location.search}`;
+        return false;
+      } else if (url === '/') {
+        window.location.href = `https://${window.location.host}${environment.loginPath}`;
+        return false;
+      }
+
       return true;
     } else if (this.authenticationService.agreement.accepted) {
       return true;
