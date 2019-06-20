@@ -75,11 +75,11 @@ def main():
                        type=int,
                        help="Number of times to repeat test runs")
    parser.add_argument("--endpoint",
-                       help="Endpoint for SampleDapp tests")
+                       help="Endpoint for Sample dApp tests")
    parser.add_argument("--user",
-                       help="User name for SampleDapp tests")
+                       help="User name for Sample dApp tests")
    parser.add_argument("--password",
-                       help="Password for SampleDapp tests")
+                       help="Password for Sample dApp tests")
    parser.add_argument("--reverseProxyApiBaseUrl",
                        default="https://localhost/blockchains/local",
                        help="Base URL for Helen REST API calls. Test cases drill "
