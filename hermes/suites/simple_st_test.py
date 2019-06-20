@@ -29,7 +29,6 @@ import re
 import random
 from shutil import rmtree
 import subprocess
-from . import helen_api_tests
 from threading import Thread
 
 from . import test_suite
@@ -38,6 +37,7 @@ from util.debug import pp as pp
 from util.numbers_strings import trimHexIndicator, decToEvenHexNo0x
 from util.product import Product
 import util.json_helper
+import util.numbers_strings
 from rest.request import Request
 from datetime import datetime
 
@@ -47,14 +47,12 @@ def wait():
     input('Press enter to continue...')
 
 class SimpleStateTransferTest(test_suite.TestSuite):
-   _helenApiTestInstance = None
    _to = "0x262c0d7ab5ffd4ede2199f6ea793f819e1abb019" #from genesis file
    _funcPref = "0xe4b421f2000000000000000000000000000000000000000000000000000000000000"
    _gas = "100000000"
 
    def __init__(self, passedArgs):
       super(SimpleStateTransferTest, self).__init__(passedArgs)
-      self._helenApiTestInstance = helen_api_tests.HelenAPITests(passedArgs)
       self.existing_transactions = 2
 
    def getName(self):
@@ -119,11 +117,16 @@ class SimpleStateTransferTest(test_suite.TestSuite):
                self.getName(),
                self.reverseProxyApiBaseUrl,
                self._userConfig)
-      cCode = open("resources/contracts/LargeBlockStorage.sol", 'r').read()
-      cVersion = self._helenApiTestInstance.random_string_generator()
-      cId = self._helenApiTestInstance.random_string_generator()
+      cFile = "resources/contracts/LargeBlockStorage.sol"
+      cVersion = utils.numbers_strings.random_string_generator()
+      cId = utils.numbers_strings.random_string_generator()
       cName = "LargeBlockStorage"
-      res = self._helenApiTestInstance.contract_upload_util_generic(request, cId, cVersion, cCode, self._to, cName, "", "v0.5.2+commit.1df8f40c")
+      blockchainId = request.getBlockchains()[0]["id"]
+      res = utils.blockchain.upload_contract(blockchainId, request, cFile, cName,
+                                             contractId = cId,
+                                             contractVersion = cVersion,
+                                             compilerVersion = "v0.5.2+commit.1df8f40c",
+                                             fromAddr = self._to)
 
       result = request.callContractAPI('/api/concord/contracts/' + cId
                                       + '/versions/' + cVersion, "")

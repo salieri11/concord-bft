@@ -1,3 +1,7 @@
+#########################################################################
+# Copyright 2019 VMware, Inc.  All rights reserved. -- VMware Confidential
+#########################################################################
+
 # Helper file with common utility methods
 import os
 import yaml
@@ -188,3 +192,17 @@ def protobuf_message_to_json(message_obj):
    else:
       json_object = json.loads(MessageToJson(message_obj))
       return json_object
+
+
+def requireFields(ob, fieldList):
+   '''
+   Verifies that the pased in ob contains the fields fieldList.
+   Returns whether everything is present, and if not, the first
+   missing field.
+   '''
+   for f in fieldList:
+      if not f in ob:
+         return (False, f)
+   return (True, None)
+
+   
