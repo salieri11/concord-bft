@@ -374,6 +374,16 @@ class RPC():
       response = self._call()
       return self.getResultFromResponse(response)
 
+   def getBlockByHash(self, hash, includeTransactions=False):
+      '''
+      Gets the given block.
+      '''
+      self._rpcData["method"] = "eth_getBlockByHash"
+      self._rpcData["params"] = [hash, includeTransactions]
+
+      response = self._call()
+      return self.getResultFromResponse(response)
+
    def _getTransactionReceipt(self, txHash):
       '''
       NOTE: This is the bare RPC call.  You probably want to call
