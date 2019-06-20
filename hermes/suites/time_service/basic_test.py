@@ -35,6 +35,9 @@ BlockchainFixture = collections.namedtuple("BlockchainFixture", "blockchainId, c
 with open("pickled_time_service_basic_tests", "rb") as f:
    suiteObject = pickle.load(f)
 
+# What we expect time_pusher_period_ms to be, but in seconds.
+expectedUpdatePeriodSec = 1
+
 
 @pytest.fixture(scope="module")
 def fxBlockchain(request):
@@ -167,9 +170,6 @@ def test_low_load_updates():
    startTimes = extract_samples_from_response(output)
    assert startTimes.keys(), "No sources found"
 
-   # What we expect time_pusher_period_ms to be, but in seconds.
-   expectedUpdatePeriodSec = 1
-
    # How many times we're going to query before giving up. This
    # shouldn't need to be larger than 2, if we sleep for
    # expectedUpdatePeriodSec between attempts, but using 3 for now for
@@ -212,6 +212,37 @@ def extract_time_summary_response(output):
    return int(responseJson["timeResponse"]["summary"])
 
 
+def test_time_is_recent():
+   '''
+   Test that the latest time from the time service is "recent". We'll
+   defined recent as within 2x low-load update period. If the
+   time-pusher threads are running, no sample should be much more than
+   1 update period out of date. If 1/2 or more sources have just
+   updated, time should be between now and 1 update period ago. If 1/2
+   or more sources are just about to update, time should be between 1
+   update period ago and 2 update periods ago. If the time-pusher
+   threads can't get updates through within one period, we have a bug
+   (performance or otherwise) that should be investigated.
+   '''
+   concordContainer = suiteObject.product.get_concord_container_name(1)
+   currentHermesTimeBefore = int(time.time())
+   output = suiteObject.product.exec_in_concord_container(concordContainer,
+                                                          "./conc_time -g -o json")
+   currentHermesTimeAfter = int(time.time())
+
+   skip_if_disabled(output)
+
+   currentServiceTime = extract_time_summary_response(output)
+
+   # These comparisons are not safe if hermes and concord are not
+   # running on the same hardware. If/when we run in that environment,
+   # we'll need to add an acceptable skew value to the tests.
+   assert currentServiceTime // 1000 <= currentHermesTimeAfter, \
+      "Time service cannot run ahead of the system clock"
+   assert (currentServiceTime // 1000 - currentHermesTimeBefore) <= 2 * expectedUpdatePeriodSec, \
+      "Time service should be within 2x update period of system clock"
+
+
 def test_time_service_in_ethereum_block(fxConnection):
    '''
    Test that the value stored as the timestamp in an ethereum block
@@ -229,7 +260,8 @@ def test_time_service_in_ethereum_block(fxConnection):
    # block was created.
    preTxTime = extract_time_summary_response(output)
    caller = "0x1111111111111111111111111111111111111111" # fake address
-   data = suiteObject._addCodePrefix("f3")
+   # Create a contract that does nothing but STOP (opcode 00) when called.
+   data = suiteObject._addCodePrefix("00")
    receipt = fxConnection.rpc.getTransactionReceipt(
       fxConnection.rpc.sendTransaction(caller, data))
    output = suiteObject.product.exec_in_concord_container(concordContainer,
@@ -283,3 +315,72 @@ def test_time_service_in_ethereum_code(fxConnection):
    # timestamps are in seconds
    assert preTxTime // 1000 <= contractTime, "Opcode time should be no earlier than pre-call check"
    assert contractTime <= postTxTime // 1000, "Opcode time should be no later than post-call check"
+
+
+def ensureEnoughBlocksToTest(fxConnection, minBlocksToTest):
+   '''
+   Submit transactions, if necessary, to cause blocks to be created
+   if there are not already minBlocksToTest available.
+   '''
+   latestBlockNumber = int(fxConnection.rpc.getBlockNumber(), 16)
+   blocksToAdd = minBlocksToTest - latestBlockNumber
+   if blocksToAdd > 0:
+      log.info("Adding {} additional blocks for testing".format(blocksToAdd))
+      for i in range(0, blocksToAdd):
+         caller = "0x1111111111111111111111111111111111111111" # fake address
+         data = suiteObject._addCodePrefix("f3")
+         fxConnection.rpc.sendTransaction(caller, data)
+      latestBlockNumber = int(fxConnection.rpc.getBlockNumber(), 16)
+      assert latestBlockNumber >= minBlocksToTest
+   return latestBlockNumber
+
+
+def test_ethereum_time_does_not_reverse(fxConnection):
+   '''
+   Test that the timestamp in block N is always later than or equal
+   to the timestamp in block N-1 (i.e. time never goes backward.
+   '''
+   concordContainer = suiteObject.product.get_concord_container_name(1)
+   output = suiteObject.product.exec_in_concord_container(concordContainer,
+                                                          "./conc_time -g -o json")
+
+   skip_if_disabled(output)
+
+   minBlocksToTest = 100
+   latestBlockNumber = ensureEnoughBlocksToTest(fxConnection, minBlocksToTest)
+
+   blockNm1Time = int(fxConnection.rpc.getBlockByNumber(0)["timestamp"], 16)
+   firstTrueNonZeroTimeBlock = 0 if blockNm1Time > 0 else -1
+   firstTrueNonZeroTime = max(0, blockNm1Time)
+
+   # let's not accidentally read the whole blockchain, if earlier
+   # testing has added hundreds more blocks.
+   maxBlocksToTest = min(minBlocksToTest * 2, latestBlockNumber)
+
+   for n in range(1, maxBlocksToTest + 1):
+      blockNTime = int(fxConnection.rpc.getBlockByNumber(n)["timestamp"], 16)
+      assert blockNTime >= blockNm1Time, "Block N's timestamp should be >= block N-1's"
+      blockNm1Time = blockNTime
+
+      # Until the time service has received 1/2 of the sources'
+      # samples, its value will be zero. Right at 1/2, on an even
+      # number of sources, the time will be "now" / 2 (as the
+      # definition of "median"). We really want the first block that
+      # has a "real" time. We use the fact that it's not possible for
+      # this test to run for 0.01 * (seconds since the UNIX epoch) to
+      # weed out the ramp-up time.
+      if firstTrueNonZeroTime == 0 and blockNTime >= 0.99 * time.time():
+         firstTrueNonZeroTimeBlock = n
+         firstTrueNonZeroTime = blockNTime
+
+   log.info("Tested {}/{} blocks covering {} seconds".format(maxBlocksToTest-firstTrueNonZeroTimeBlock, maxBlocksToTest, blockNTime-firstTrueNonZeroTime))
+
+   # If we're not testing that much, log a warning to encourage us to
+   # expand this test.
+   if latestBlockNumber - firstTrueNonZeroTimeBlock < minBlocksToTest:
+      log.warn("Only {} blocks we really tested here.".format(latestBlockNumber - firstTrueNonZeroTimeBlock))
+
+   # If all blocks are happening within one time-pusher window, log a
+   # warning to encourage us to expand the test to cover more time.
+   if blockNTime - firstTrueNonZeroTime < 2 * expectedUpdatePeriodSec:
+      log.warn("Only {} seconds passed between first and last timestamped block".format(blockNTime - firstTrueNonZeroTime))
