@@ -815,10 +815,15 @@ bool EthKvbCommandsHandler::handle_eth_callContract(
     ConcordResponse &concresp) const {
   const EthRequest request = concreq.eth_request(0);
 
-  // Time service readings are only added to write-commands (call is
-  // read-only). TODO: look up time from most recent block, or block specified
-  // by call RPC.
   uint64_t timestamp = 0;
+  if (concord::time::IsTimeServiceEnabled(config_)) {
+    // VB-1069: load time from the block specified by the call parameters,
+    // instead of always loading "latest"
+    TimeContract tc(kvbStorage, config_);
+    // divide by 1000, because time service is in milliseconds, but ethereum is
+    // in seconds
+    timestamp = tc.GetTime() / 1000;
+  }
 
   evm_uint256be txhash{{0}};
   evm_result &&result = run_evm(request, kvbStorage, timestamp, txhash);

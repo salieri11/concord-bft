@@ -103,6 +103,7 @@ def getAnEthrpcNode(request, blockchainId):
    else:
       raise Exception("getAnEthrpcNode could not get an ethrpc node.")
 
+
 def skip_if_disabled(output):
    '''
    If we received an error saying the time service is disabled, skip the rest of the test.
@@ -111,6 +112,7 @@ def skip_if_disabled(output):
    if re.findall("error_response", output) or re.findall("errorResponse", output):
       if re.findall("Time service is disabled", output):
          pytest.skip("Time service is disabled.")
+
 
 @pytest.mark.smoke
 def test_cli_get():
@@ -127,6 +129,7 @@ def test_cli_get():
    assert re.findall("time_response", output), "No time response found: {}".format(output)
    assert re.findall("summary: ([:digit:]*)", output), "Summary with time not found: {}".format(output)
 
+
 def extract_samples_from_response(output):
    '''
    Dig through conc_time output to find a TimeResponse message, and
@@ -142,6 +145,7 @@ def extract_samples_from_response(output):
       sampleMap[sample["source"]] = sample["time"]
 
    return sampleMap
+
 
 def test_low_load_updates():
    '''
@@ -195,3 +199,87 @@ def test_low_load_updates():
    assert len(newTimes.keys()) == len(startTimes.keys()), "All sources should be present in the update"
    for k,v in newTimes.items():
       assert startTimes[k] != newTimes[k], "All sources should have updated"
+
+
+def extract_time_summary_response(output):
+   '''
+   Dig through conc_time output to find a TimeResponse message, and
+   extract the summary from it. The conc_time script should have been
+   exected with `-g` and `-o json` flags.
+   '''
+   responseText = re.findall("Received response: (.*)", output)[0]
+   responseJson = json.loads(responseText)
+   return int(responseJson["timeResponse"]["summary"])
+
+
+def test_time_service_in_ethereum_block(fxConnection):
+   '''
+   Test that the value stored as the timestamp in an ethereum block
+   is [likely] sourced from the time service.
+   '''
+   concordContainer = suiteObject.product.get_concord_container_name(1)
+   output = suiteObject.product.exec_in_concord_container(concordContainer,
+                                                          "./conc_time -g -o json")
+
+   skip_if_disabled(output)
+
+   # Since low-load time updates may move the time service forward at
+   # any moment, we check to make sure that a block's timestamp is
+   # between the time service's state before and its state after the
+   # block was created.
+   preTxTime = extract_time_summary_response(output)
+   caller = "0x1111111111111111111111111111111111111111" # fake address
+   data = suiteObject._addCodePrefix("f3")
+   receipt = fxConnection.rpc.getTransactionReceipt(
+      fxConnection.rpc.sendTransaction(caller, data))
+   output = suiteObject.product.exec_in_concord_container(concordContainer,
+                                                          "./conc_time -g -o json")
+   postTxTime = extract_time_summary_response(output)
+
+   block = fxConnection.rpc.getBlockByHash(receipt["blockHash"])
+   blockTime = int(block["timestamp"], 16)
+
+   # "//1000" = the time service reports in milliseconds, but ethereum
+   # block timestamps are in seconds
+   assert preTxTime // 1000 <= blockTime, "Block timestamp should be no earlier than pre-tx check"
+   assert blockTime <= postTxTime // 1000, "Block timestamp should be no later than post-tx check"
+
+
+def test_time_service_in_ethereum_code(fxConnection):
+   '''
+   Test that the time returned from executing a TIMESTAMP ethereum
+   opcode is [likely] sourced from the time service.
+   '''
+   concordContainer = suiteObject.product.get_concord_container_name(1)
+   output = suiteObject.product.exec_in_concord_container(concordContainer,
+                                                          "./conc_time -g -o json")
+
+   skip_if_disabled(output)
+
+   # This contract just returns the ethereum timestamp when called.
+   bytecode = "4260005260206000f3"
+   #           ^ ^   ^ ^   ^   ^-- RETURN
+   #           | |   | |   +-- PUSH1 0x00 (where the timestamp is stored)
+   #           | |   | +-- PUSH1 0x20 (length of the timestamp)
+   #           | |   +-- MSTORE (save the timestamp in memory)
+   #           | +-- PUSH1 0x00 (where to store the timestamp)
+   #           +-- TIMESTAMP
+   caller = "0x1111111111111111111111111111111111111111" # fake address
+   receipt = fxConnection.rpc.getTransactionReceipt(
+      fxConnection.rpc.sendTransaction(caller, suiteObject._addCodePrefix(bytecode)))
+   address = receipt["contractAddress"]
+
+   # Since low-load time updates may move the time service forward at
+   # any moment, we check to make sure that an execution's timestamp is
+   # between the time service's state before and its state after the
+   # call was executed.
+   preTxTime = extract_time_summary_response(output)
+   contractTime = int(fxConnection.rpc.callContract(address), 16)
+   output = suiteObject.product.exec_in_concord_container(concordContainer,
+                                                          "./conc_time -g -o json")
+   postTxTime = extract_time_summary_response(output)
+
+   # "//1000" = the time service reports in milliseconds, but ethereum
+   # timestamps are in seconds
+   assert preTxTime // 1000 <= contractTime, "Opcode time should be no earlier than pre-call check"
+   assert contractTime <= postTxTime // 1000, "Opcode time should be no later than post-call check"
