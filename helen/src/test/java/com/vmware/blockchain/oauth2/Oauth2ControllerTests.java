@@ -111,7 +111,7 @@ public class Oauth2ControllerTests {
 
     private String targetUri;
 
-    private String ivitationUri;
+    private String invitationUri;
 
     private String logoutRedirectUri;
 
@@ -216,7 +216,7 @@ public class Oauth2ControllerTests {
         oauthCallbackUrl =
                 UriComponentsBuilder.fromUriString(vmbcUrl).path(vmbcOauthCallback).build().toUriString();
         targetUri = UriComponentsBuilder.fromUriString(vmbcUrl).path("/login-return").build().toUriString();
-        ivitationUri = UriComponentsBuilder.fromUriString(Constants.AUTH_INVITATION).build().toUriString();
+        invitationUri = UriComponentsBuilder.fromUriString(Constants.AUTH_INVITATION).build().toUriString();
         cspConfig = mock(CspConfig.class);
         server = new WireMockServer(options().dynamicPort());
         server.start();
@@ -342,9 +342,9 @@ public class Oauth2ControllerTests {
         WireMock.reset();
         stubFor(cspAuthGoodReturn());
         String getUri = String.format("%s?code=%s&state=%s", vmbcOauthCallback, code, state);
-        session.setAttribute(Constants.CSP_INVIATION_LINK, "invitation");
+        session.setAttribute(Constants.CSP_INVITATION_LINK, "invitation");
 
-        mockMvc.perform(get(getUri).session(session)).andExpect(redirectedUrl(ivitationUri));
+        mockMvc.perform(get(getUri).session(session)).andExpect(redirectedUrl(invitationUri));
 
         verify(1, postRequestedFor(urlPathEqualTo(CspConstants.CSP_OAUTH_TOKEN)));
     }

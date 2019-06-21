@@ -58,7 +58,7 @@ class InvitationServiceTest {
 
 
     private String serviceDefLink =
-            CspConstants.CSP_SERVICE_DEFINTION + "/external/57df0bf1-69fd-4770-9313-ffab602d9f00";
+            CspConstants.CSP_SERVICE_DEFINITION + "/external/57df0bf1-69fd-4770-9313-ffab602d9f00";
     private String orgLink = CspConstants.CSP_ORG_API + "/31ff9608-dbf7-4daf-a13b-82ba443e7721";
     private UUID orgId = UUID.fromString("31ff9608-dbf7-4daf-a13b-82ba443e7721");
     private String invitationLink = "csp/inviation/20bc66aa-9332-499b-9697-904577257945";

@@ -48,10 +48,10 @@ public class InvitationController {
         HttpSession session = httpRequest.getSession(false);
         if (session != null) {
             // See if there is a service invitation
-            String serviceInvitation = (String) httpRequest.getSession().getAttribute(Constants.CSP_INVIATION_LINK);
+            String serviceInvitation = (String) httpRequest.getSession().getAttribute(Constants.CSP_INVITATION_LINK);
             if (serviceInvitation != null) {
                 // remove the property, just to be safe
-                session.removeAttribute(Constants.CSP_INVIATION_LINK);
+                session.removeAttribute(Constants.CSP_INVITATION_LINK);
                 logger.info("Invitation: {}", serviceInvitation);
                 invitationService.handleServiceInvitation(serviceInvitation);
             }

@@ -23,7 +23,7 @@ public class Constants {
     // callback is only used by the server and csp
     public static final String OAUTH_CALLBACK = OAUTH + "/oauth";
     public static final String CSP_API_DEFAULT_CLIENT = "csp-api-default-client";
-    public static final String CSP_INVIATION_LINK = "serviceInvitationLink";
+    public static final String CSP_INVITATION_LINK = "serviceInvitationLink";
     public static final String CSP_ORG_LINK = "orgLink";
     public static final String CSP_TOKEN_CACHE = "CspTokenCache";
     public static final String TOKEN_CACHE = "TokenCache";

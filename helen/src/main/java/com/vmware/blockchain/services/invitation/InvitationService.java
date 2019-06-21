@@ -39,7 +39,7 @@ public class InvitationService {
                              @Value("${vmbc.service.id:#null}") String serviceId) {
         this.cspApiClient = cspApiClient;
         this.authHelper = authHelper;
-        this.serviceDefinitionLink = CspConstants.CSP_SERVICE_DEFINTION + "/external/" + serviceId;
+        this.serviceDefinitionLink = CspConstants.CSP_SERVICE_DEFINITION + "/external/" + serviceId;
     }
 
     /**

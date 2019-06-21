@@ -28,7 +28,7 @@ public class CspConstants {
     public static final String CSP_SUBSCRIPTION_CANCEL = CSP_LIFECYCLE + "/service-subscriptions/{id}/cancel";
     public static final String CSP_SERVICE_LIFECYCLE_ORCHESTRATION =
             CSP_LIFECYCLE + "/lifecycle/register";
-    public static final String CSP_SERVICE_DEFINTION = CSP_LIFECYCLE + "/definitions";
+    public static final String CSP_SERVICE_DEFINITION = CSP_LIFECYCLE + "/definitions";
     public static final String CSP_BUSINESS_PLAN = CSP_COMMON + "/billing/api/business-plans";
     public static final String CSP_A_BUSINESS_PLAN = CSP_COMMON + "/billing/api/business-plans/{id}";
     public static final String CSP_BUSINESS_PLAN_FOR_SERVICE = CSP_BUSINESS_PLAN + "?serviceDefinitionLink=";

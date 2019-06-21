@@ -107,7 +107,7 @@ public class Oauth2Controller {
      */
     @RequestMapping(method = RequestMethod.GET, value = {Constants.AUTH_LOGIN})
     public void login(@RequestParam(name = Constants.CSP_ORG_LINK, required = false) String orgLink,
-                      @RequestParam(name = Constants.CSP_INVIATION_LINK, required = false) String serviceInvitation,
+                      @RequestParam(name = Constants.CSP_INVITATION_LINK, required = false) String serviceInvitation,
                       @RequestParam(name = Oauth2CommonUtility.SESSION_CLEANED, required = false,
                               defaultValue = "false") boolean sessionRedirect,
                       HttpServletRequest request, HttpServletResponse response) throws Exception {
@@ -134,7 +134,7 @@ public class Oauth2Controller {
             // and save it as an attribute in the session
             request.getSession().setAttribute(Oauth2CommonUtility.STATE_KEY, state);
             if (serviceInvitation != null) {
-                request.getSession().setAttribute(Constants.CSP_INVIATION_LINK, serviceInvitation);
+                request.getSession().setAttribute(Constants.CSP_INVITATION_LINK, serviceInvitation);
             }
             authCodeParamsBuilder.state(state).baseUrl(cspConfig.getCspUrl())
                     .relativePath(CspConstants.CSP_DISCOVERY_PAGE).clientId(clientId)
@@ -240,7 +240,7 @@ public class Oauth2Controller {
         // We are going to redirect either to the login return, or to the invitation return
         // The invitation return handles the setting permissions from the invitation.
         String redirect;
-        if (session.getAttribute(Constants.CSP_INVIATION_LINK) != null) {
+        if (session.getAttribute(Constants.CSP_INVITATION_LINK) != null) {
             redirect = UriComponentsBuilder.fromUriString(Constants.AUTH_INVITATION).build().toString();
         } else {
             redirect = targetUri;
