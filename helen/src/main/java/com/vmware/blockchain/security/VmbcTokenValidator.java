@@ -168,10 +168,11 @@ public class VmbcTokenValidator implements TokenValidator {
         @SuppressWarnings("unchecked")
         ArrayList<String> perms = (ArrayList<String>) parsedToken.getBody().get("perms");
         // Just keep our Roles. Our roles are prefixed with 'external/<servicedeflink>/'
-        // For the time being, ignore CSP roles
+        // Map CSP org owner to our org admin, but otherwise ignore csp roles
         String rolePrefix = CspConstants.CSP_VMBC_ROLE_PREFIX
                             + serviceId + "/";
         return perms.stream()
+                .map(r -> r.equals("csp:org_owner") ? rolePrefix + Roles.ORG_ADMIN.toString() : r)
                 .filter(r -> r.startsWith(rolePrefix))
                 .map(r -> r.substring(rolePrefix.length()))
                 .map(n -> Roles.get(n))

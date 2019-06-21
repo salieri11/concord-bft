@@ -52,15 +52,6 @@ public class TokenRefreshFilter extends GenericFilterBean {
         this.clientSecret = clientSecret;
     }
 
-    /**
-     * Strictly for backwards compatibility.  Does nothing now.
-     * @param value Who cares?
-     */
-    @Deprecated
-    public void setOauthFormsEnabled(boolean value) {
-        // do nothing
-    }
-
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
             throws IOException, ServletException {

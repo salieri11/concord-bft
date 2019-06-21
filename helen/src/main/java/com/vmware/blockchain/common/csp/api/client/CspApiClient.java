@@ -80,6 +80,7 @@ public class CspApiClient {
     //Use this rest template if calls require a service owner auth access
     private RestTemplate serviceOwnerAuthRestTemplate;
     private RestTemplate clientCredentialsAuthRestTemplate;
+    private RestTemplate noAuthRestTemplate;
 
     private ObjectMapper objectMapper;
 
@@ -184,6 +185,7 @@ public class CspApiClient {
         this.clientCredentialsAuthRestTemplate =
                 restClientBuilder.withAuthentication(clientCredentialsAuthProvider).build();
         this.serviceOwnerAuthRestTemplate = restClientBuilder.withAuthentication(serviceOwnerAuthProvider).build();
+        this.noAuthRestTemplate = restClientBuilder.build();
         this.objectMapper = restClientBuilder.getObjectMapper();
     }
 
@@ -256,15 +258,25 @@ public class CspApiClient {
 
     /**
      * Patch service roles for a user for an org.
-     * @param orgId - The org id for which roles need to be looked up.
-     * @param authToken - auth token of the user.
      */
     @Timed("csp.api")
-    public void patchOrgServiceRoles(UUID orgId, String userName, String authToken,
+    public void patchOrgServiceRoles(UUID orgId, String userName, CspCommon.CspPatchServiceRolesRequest body) {
+        HttpEntity<CspCommon.CspPatchServiceRolesRequest> request =
+                new HttpEntity<>(body);
+        serviceOwnerAuthRestTemplate.exchange(
+                PATH_USER + "/" + userName + "/orgs/{orgId}/service-roles", HttpMethod.PATCH,
+                request, CspCommon.CspUserServiceRolesResponse.class, orgId);
+    }
+
+    /**
+     * Patch service roles for a user for an org, with a specific authtoken.
+     */
+    @Timed("csp.api")
+    public void patchOrgServiceRoles(String token, UUID orgId, String userName,
                                      CspCommon.CspPatchServiceRolesRequest body) {
         HttpEntity<CspCommon.CspPatchServiceRolesRequest> request =
-                new HttpEntity<>(body, getLoggedinUserAuthHeader(authToken));
-        serviceOwnerAuthRestTemplate.exchange(
+                new HttpEntity<>(body, getLoggedinUserAuthHeader(token));
+        noAuthRestTemplate.exchange(
                 PATH_USER + "/" + userName + "/orgs/{orgId}/service-roles", HttpMethod.PATCH,
                 request, CspCommon.CspUserServiceRolesResponse.class, orgId);
     }
