@@ -4,15 +4,15 @@ base:
   service_owner_org_id: ab29b4a8-40c8-4173-ba74-15e76f8f35e0
   service_owner: admin-blockchain-dev@csp.local
   service_owner_token: a3674390-edb6-4c93-915e-daf741909541
-vmbc_url: http://192.168.73.138
+vmbc_url: {service_url}
 create_service:
-  name: MWA Test Service
+  name: localhost.vmware.com:4200 - s
 patch_service:
-  service: MWA Test Service
+  service: localhost.vmware.com:4200 - s
   body:
     serviceUrls:
-      serviceHome: http://192.168.73.138
+      serviceHome: {service_url}
 create_oauth:
-  name: MWA Test Oauth
+  name: localhost.vmware.com Oauth
   redirect_uris:
-    - http://192.168.73.138/api/oauth/oauth
+    - {service_url}/api/oauth/oauth

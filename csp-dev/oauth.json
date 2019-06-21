@@ -1,0 +1,26 @@
+{
+  "accessTokenTTL": 1800,
+  "allowedScopes": {
+    "allRoles": false,
+    "organizationScopes": {
+      "allRoles": true
+    },
+    "servicesScopes": [
+      {
+        "allRoles": true,
+        "serviceDefinitionId": "c43c09e3-4b00-4e2a-9cc8-9f21d88b9c8b"
+      }
+    ]
+  },
+  "description": "MWA Test Oauth",
+  "displayName": "MWA Test Oauth",
+  "grantTypes": [
+    "authorization_code",
+    "refresh_token"
+  ],
+  "id": "MWA-BC-Client",
+  "maxGroupsInIdToken": 20,
+  "redirectUris": "http://192.168.73.134/auth/login",
+  "refreshTokenTTL": 15552000,
+  "secret": "HzKR6ljkqnu0O2oKzorta3qttaGy17xa4q20eYFpkBec2biB7m"
+}
