@@ -9,7 +9,7 @@
 ##         from parent: docker build -f concord/Dockerfile .
 
 ## Build image
-FROM athena-docker-local.artifactory.eng.vmware.com/concord-core:prereqs-v8
+FROM athena-docker-local.artifactory.eng.vmware.com/concord-core:prereqs-v9
 
 ## Remember context is the parent of this directory
 COPY ./communication /communication
@@ -25,7 +25,7 @@ COPY .git /.git
 WORKDIR /concord
 COPY ./concord /concord
 WORKDIR /concord/build
-RUN cmake -DCMAKE_CXX_FLAGS="-march=x86-64 -mtune=generic" .. && CTEST_OUTPUT_ON_FAILURE=true make -j$(nproc) all test
+RUN cmake -DCMAKE_C_COMPILER=/usr/bin/clang-7 -DCMAKE_CXX_COMPILER=/usr/bin/clang++-7 -DCMAKE_CXX_FLAGS="-march=x86-64 -mtune=generic" .. && CTEST_OUTPUT_ON_FAILURE=true make -j$(nproc) all test
 
 ## Base Run image
 FROM ubuntu:18.04
@@ -40,18 +40,22 @@ ENV memleak_util_cmd="${memleak_util_cmd}"
 RUN apt-get update \
     && apt-get -y install ${memleak_util} \
     bind9-host \
+    dnsutils \
+    libboost-atomic1.65.1 \
+    libboost-chrono1.65.1 \
+    libboost-date-time1.65.1 \
+    libboost-filesystem1.65.1 \
+    libboost-program-options1.65.1 \
+    libboost-system1.65.1 \
+    libboost-thread1.65.1 \
     libbz2-1.0 \
     libgmp10 \
     liblz4-1 \
     libprotobuf10 \
     libsnappy1v5 \
     libzstd1 \
-    llvm-5.0 \
-    dnsutils \
-    libboost-program-options1.65.1 \
-    libboost-system1.65.1 \
-    libboost-thread1.65.1 \
     libyaml-cpp0.5v5 \
+    llvm-5.0 \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=0 /usr/local/lib/libcryptopp* /usr/local/lib/

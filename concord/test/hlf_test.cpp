@@ -39,7 +39,7 @@ class TestStorage : public concord::storage::ILocalKeyValueStorageReadOnly,
       concord::storage::Key key,
       concord::storage::Value& outValue) const override {
     concord::storage::BlockId outBlockId;
-    get(0, key, outValue, outBlockId);
+    return get(0, key, outValue, outBlockId);
   }
 
   concord::consensus::Status get(
