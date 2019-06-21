@@ -70,7 +70,7 @@ public class ContractsControllerTest {
     @BeforeEach
     void setUp() {
         objectMapper = jacksonBuilder.build();
-        when(authHelper.hasAnyAuthority(Roles.operatorRoles())).thenReturn(true);
+        when(authHelper.hasAnyAuthority(Roles.systemAdmin())).thenReturn(true);
         // need this for a default method.
         Blockchain bc = new Blockchain();
         bc.setId(DEFAULT_BC);

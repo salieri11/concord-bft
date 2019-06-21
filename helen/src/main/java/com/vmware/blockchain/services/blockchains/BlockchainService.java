@@ -11,6 +11,7 @@ import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -153,6 +154,11 @@ public class BlockchainService {
 
     public List<Blockchain> listByConsortium(Consortium consortium) {
         return genericDao.getByParentId(consortium.getId(), Blockchain.class);
+    }
+
+    // Returns the list of Blockchains from the permitted chain list
+    public List<Blockchain> listByIds(List<UUID> ids) {
+        return ids.stream().map(this::get).collect(Collectors.toList());
     }
 
     public Blockchain get(UUID id) {

@@ -14,6 +14,7 @@ import java.util.UUID;
 import org.junit.Assert;
 import org.junit.jupiter.api.Assertions;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -22,6 +23,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.vmware.blockchain.auth.AuthHelper;
+import com.vmware.blockchain.services.profiles.DefaultProfiles;
 import com.vmware.blockchain.services.profiles.Roles;
 
 
@@ -30,6 +32,9 @@ import com.vmware.blockchain.services.profiles.Roles;
  */
 @RestController
 public class JwtTestContoller {
+
+    @MockBean
+    DefaultProfiles defaultProfiles;
 
     private AuthHelper authHelper;
 
@@ -71,7 +76,7 @@ public class JwtTestContoller {
      */
     @RequestMapping(path = "/api/operator", method = RequestMethod.GET)
     public ResponseEntity<String> doOperator() {
-        if (authHelper.hasAnyAuthority(Roles.operatorRoles())) {
+        if (authHelper.hasAnyAuthority(Roles.systemAdmin())) {
             return new ResponseEntity<String>("operator", HttpStatus.OK);
         } else {
             return new ResponseEntity<String>("I'm sorry, Dave.  I can't do that", HttpStatus.FORBIDDEN);
@@ -83,7 +88,7 @@ public class JwtTestContoller {
      */
     @RequestMapping(path = "/api/blockchain/{id}", method = RequestMethod.GET)
     public ResponseEntity<String> doBlockchain(@PathVariable UUID id) {
-        if (!authHelper.hasAnyAuthority(Roles.operatorRoles()) && !authHelper.getPermittedChains().contains(id)) {
+        if (!authHelper.hasAnyAuthority(Roles.systemAdmin()) && !authHelper.getPermittedChains().contains(id)) {
             return new ResponseEntity<String>("I'm sorry, Dave.  I can't do that", HttpStatus.FORBIDDEN);
         }
         return new ResponseEntity<String>("operator", HttpStatus.OK);

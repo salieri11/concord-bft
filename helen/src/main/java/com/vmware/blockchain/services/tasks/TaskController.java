@@ -11,6 +11,7 @@ import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -55,6 +56,7 @@ public class TaskController {
      * @return List of tasks.
      */
     @RequestMapping(path = "/api/tasks", method = RequestMethod.GET)
+    @PreAuthorize("hasAnyAuthority(T(com.vmware.blockchain.services.profiles.Roles).systemAdmin())")
     public ResponseEntity<List<TaskGetResponse>> listTasks() {
         List<Task> tasks = taskService.list();
         List<TaskGetResponse> response = tasks.stream().map(TaskGetResponse::new).collect(Collectors.toList());
@@ -62,6 +64,7 @@ public class TaskController {
     }
 
     @RequestMapping(path = "/api/tasks/{id}", method = RequestMethod.GET)
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<TaskGetResponse> getTask(@PathVariable UUID id) {
         return new ResponseEntity<>(new TaskGetResponse(taskService.get(id)), HttpStatus.OK);
     }

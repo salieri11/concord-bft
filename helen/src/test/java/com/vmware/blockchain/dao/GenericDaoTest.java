@@ -390,7 +390,7 @@ public class GenericDaoTest {
     void testGetEntityByTenantAuthOperator() throws Exception {
         try {
             when(authHelper.getOrganizationId()).thenReturn(UUID.randomUUID());
-            when(authHelper.hasAnyAuthority(Roles.operatorRoles())).thenReturn(true);
+            when(authHelper.hasAnyAuthority(Roles.systemAdmin())).thenReturn(true);
             entity4.setAge(105);
             genericDao.put(entity4, entity4);
             TestEntity entity = genericDao.getEntityByTenant(entity4.getId(), TestEntity.class);

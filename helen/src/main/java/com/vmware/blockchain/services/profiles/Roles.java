@@ -20,8 +20,13 @@ public enum Roles implements GrantedAuthority {
     ORG_USER("vmbc-org:user", "Organization User", true, false, false),
     ORG_DEVELOPER("vmbc-org:dev", "Organization Developer", false, false, false),
     ORG_ADMIN("vmbc-org:admin", "Organization Admin", false, false, false),
-    CONSORTIUM_ADMIN("vmbc-consortium:admin", "Consortium Admin", false, false, false),
-    SYSTEM_ADMIN("vmbc-system:admin", "System Admin", false, false, false),
+    CONSORTIUM_ADMIN("vmbc-consortium:admin", "Consortium Admin", false, true, false),
+    CONSORTIUM_OPERATOR("vmbc-consortium:operator", "Consortium Operator", false, true, false),
+    CONSORTIUM_PARTICIPANT("vmbc-consortium:participant", "Consortium Participant", false, true, false),
+    SYSTEM_ADMIN("vmbc-system:admin", "VMware SRE Admin", false, true, false),
+    INFRA_ADMIN("vmbc-system:infra", "External Infrastructure Admin", false, true, false),
+    // These are not service roles, but are used internally
+    CSP_ORG_OWNER("csp:org_owner",  "CSP Org Owner", false, true, true),
     SYSTEM("SYSTEM", "Internal System User", false, true, true),
     ANONYMOUS("ANONYMOUS", "Temporary ananymous user", false, true, true);
 
@@ -116,9 +121,28 @@ public enum Roles implements GrantedAuthority {
         return lookup.get(name);
     }
 
-    // String list of operator role names.
-    public static String[] operatorRoles() {
-        String[] r = {ORG_ADMIN.name, CONSORTIUM_ADMIN.name, SYSTEM_ADMIN.name};
+    public static String[] devloper() {
+        String[] r = {SYSTEM_ADMIN.name, CONSORTIUM_ADMIN.name, ORG_ADMIN.name, ORG_DEVELOPER.name};
+        return r;
+    }
+
+    public static String[] systemAdmin() {
+        String[] r = {SYSTEM_ADMIN.name};
+        return r;
+    }
+
+    public static String[] consortiumAdmin() {
+        String[] r = {SYSTEM_ADMIN.name, CONSORTIUM_ADMIN.name};
+        return r;
+    }
+
+    public static String[] orgAdmin() {
+        String[] r = {SYSTEM_ADMIN.name, ORG_ADMIN.name};
+        return r;
+    }
+
+    public static String[] user() {
+        String[] r = {ORG_USER.name};
         return r;
     }
 

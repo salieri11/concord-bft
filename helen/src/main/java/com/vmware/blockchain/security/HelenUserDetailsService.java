@@ -54,6 +54,10 @@ public class HelenUserDetailsService implements UserDetailsService {
             Organization o = userService.getDefaultOrganization(u);
             details.setOrgId(o.getId());
             details.setAuthToken("");
+            List<UUID> consortiums =
+                    organizationService.getConsortiums(o.getId()).stream()
+                            .map(c -> c.getId()).collect(Collectors.toList());
+            details.setConsortiums(consortiums);
             List<UUID> ids =
                     organizationService.getConsortiums(o.getId()).stream()
                             .map(blockchainService::listByConsortium)

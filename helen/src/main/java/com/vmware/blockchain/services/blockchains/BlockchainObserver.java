@@ -126,6 +126,8 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
         SecurityContextHolder.getContext().setAuthentication(auth);
         // Just log this.  Looking to see how often this happens.
         logger.info("Task {} completed, status {}", taskId, status);
+        // We need to evict the auth token from the cache, since the available blockchains has just changed
+        authHelper.evictToken();
         final Task task = taskService.get(taskId);
         task.setMessage("Operation finished");
 
@@ -199,4 +201,5 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
 
         return String.format("%d.%d.%d.%d", first, second, third, fourth);
     }
+
 }

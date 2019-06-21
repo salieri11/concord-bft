@@ -13,6 +13,7 @@ import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -40,6 +41,7 @@ public class WalletController {
      * @return the list of wallet addresses
      */
     @RequestMapping(path = "/api/users/{user_id}/wallet", method = RequestMethod.GET)
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<String>> getWalletsForUser(@PathVariable("user_id") UUID userId) {
         List<String> wallets =
                 krm.getWalletsForUser(userId).stream().map(Keystore::getAddress).collect(Collectors.toList());
@@ -53,6 +55,7 @@ public class WalletController {
      * @return the wallet
      */
     @RequestMapping(path = "/api/users/{user_id}/wallet/{address}", method = RequestMethod.GET)
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<String> getWalletFromAddress(@PathVariable("user_id") UUID userId,
                                                    @PathVariable("address") String address) {
         return new ResponseEntity<>(krm.getWalletByAddress(address), HttpStatus.OK);

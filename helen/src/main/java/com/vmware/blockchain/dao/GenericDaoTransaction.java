@@ -334,7 +334,7 @@ class GenericDaoTransaction  {
                         logger.warn("getEntityByType orgId requested {} not equal to authContent {} for column {}",
                                     tenantId, authHelper.getOrganizationId(), getColumnName(entityClass));
                     }
-                    if (authHelper.hasAnyAuthority(Roles.operatorRoles())) {
+                    if (authHelper.hasAnyAuthority(Roles.systemAdmin())) {
                         // if we are operator, just get the entity
                         entity = retrieveEntity(id, entityClass);
                     } else {
@@ -624,7 +624,7 @@ class GenericDaoTransaction  {
                     List<E> result = new ArrayList<>();
                     // if this is our tenant, or we are operator, get the values
                     if ((tenantId == authHelper.getOrganizationId())
-                            || authHelper.hasAnyAuthority(Roles.operatorRoles())) {
+                            || authHelper.hasAnyAuthority(Roles.systemAdmin())) {
                         List<Entity> dbEntities = callEntityMapperWithRetry(m -> m.getByParent(tenantId, columnName),
                                 String.format("getByParent({%s}, {%s})", tenantId, columnName));
 

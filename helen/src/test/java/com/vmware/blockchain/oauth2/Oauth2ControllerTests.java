@@ -13,17 +13,20 @@ import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.verify;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options;
+import static com.vmware.blockchain.security.MvcTestSecurityConfig.createContext;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
+import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrlPattern;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import static org.springframework.test.web.servlet.setup.MockMvcBuilders.webAppContextSetup;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Assertions;
@@ -33,6 +36,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.context.annotation.ComponentScan;
@@ -44,6 +48,7 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -54,6 +59,7 @@ import com.github.tomakehurst.wiremock.client.MappingBuilder;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.http.Fault;
 import com.github.tomakehurst.wiremock.stubbing.Scenario;
+import com.google.common.collect.ImmutableList;
 import com.vmware.blockchain.MvcConfig;
 import com.vmware.blockchain.auth.AuthHelper;
 import com.vmware.blockchain.auth.AuthenticationContext;
@@ -62,8 +68,9 @@ import com.vmware.blockchain.common.HelenExceptionHandler;
 import com.vmware.blockchain.common.csp.CspCommon;
 import com.vmware.blockchain.common.csp.CspConfig;
 import com.vmware.blockchain.common.csp.CspConstants;
+import com.vmware.blockchain.security.MvcTestSecurityConfig;
+import com.vmware.blockchain.services.profiles.DefaultProfiles;
 import com.vmware.blockchain.services.profiles.Roles;
-import com.vmware.blockchain.utils.ControllerTestConfig;
 
 /**
  * Unit tests for Oauth2Controller.
@@ -71,10 +78,9 @@ import com.vmware.blockchain.utils.ControllerTestConfig;
 @ExtendWith(SpringExtension.class)
 @WebMvcTest(controllers = { Oauth2Controller.class })
 @TestPropertySource(locations = "classpath:test.properties")
-@ContextConfiguration(classes = { ControllerTestConfig.class, MvcConfig.class })
+@ContextConfiguration(classes = {MvcTestSecurityConfig.class, MvcConfig.class })
 @ComponentScan(basePackageClasses = { Oauth2ControllerTests.class, HelenExceptionHandler.class })
 public class Oauth2ControllerTests {
-    @Autowired
     private MockMvc mockMvc;
 
     @Autowired
@@ -83,11 +89,14 @@ public class Oauth2ControllerTests {
     @Autowired
     private Oauth2Controller oauth2Controller;
 
+    @Autowired
     private AuthHelper authHelper;
 
     @Autowired
     Jackson2ObjectMapperBuilder jacksonBuilder;
 
+    @MockBean
+    DefaultProfiles defaultProfiles;
 
     private CspConfig cspConfig;
 
@@ -130,6 +139,8 @@ public class Oauth2ControllerTests {
                 + "&redirect_uri=http://localhost:9090/sample/auth/oauth";
     private MockHttpSession session;
     private ObjectMapper objectMapper;
+
+    private AuthenticationContext authctx;
 
 
     // These are various Wiremock return mappings
@@ -213,6 +224,10 @@ public class Oauth2ControllerTests {
      */
     @BeforeEach
     public void setup() throws Exception {
+        mockMvc = MockMvcBuilders
+                .webAppContextSetup(webApplicationContext)
+                .apply(springSecurity())
+                .build();
         oauthCallbackUrl =
                 UriComponentsBuilder.fromUriString(vmbcUrl).path(vmbcOauthCallback).build().toUriString();
         targetUri = UriComponentsBuilder.fromUriString(vmbcUrl).path("/login-return").build().toUriString();
@@ -228,13 +243,10 @@ public class Oauth2ControllerTests {
                 .build().toUriString();
         logoutCspDiscovery = UriComponentsBuilder.fromUriString(cspUrl).path(CspConstants.CSP_DISCOVERY_PAGE)
                 .build().toUriString();
-        authHelper = new AuthHelper();
-        AuthenticationContext authctx =
-                new AuthenticationContext(UUID.randomUUID(), UUID.randomUUID(), "user@domain",
-                                          "atoken", Arrays.asList(Roles.ORG_USER));
-        authHelper.setAuthenticationContext(authctx);
-        SecurityContextHolder.getContext().setAuthentication(authctx);
-        mockMvc = webAppContextSetup(webApplicationContext).build();
+        authctx = createContext("user@domain", UUID.randomUUID(),
+                                              ImmutableList.of(Roles.ORG_USER),
+                                              Collections.emptyList(), Collections.emptyList(),
+                                              "atoken");
         session = new MockHttpSession();
         session.setAttribute("oauth-state", state);
         CacheManager cacheManger = mock(CacheManager.class);
@@ -243,7 +255,6 @@ public class Oauth2ControllerTests {
         ReflectionTestUtils.setField(oauth2Controller, "clientId", clientId);
         ReflectionTestUtils.setField(oauth2Controller, "clientSecret", clientSecret);
         ReflectionTestUtils.setField(oauth2Controller, "cacheManager", cacheManger);
-        ReflectionTestUtils.setField(oauth2Controller, "authHelper", authHelper);
         objectMapper = jacksonBuilder.build();
     }
 
@@ -300,7 +311,7 @@ public class Oauth2ControllerTests {
     @Test
     public void testLogout() throws Exception {
         server.stubFor(cspPostLogout());
-        mockMvc.perform(get(vmbcAuthLogout)
+        mockMvc.perform(get(vmbcAuthLogout).with(authentication(authctx))
                 .sessionAttr("csp-auth-token", "atoken")
                 .sessionAttr("token-id", "atoken"))
                 .andExpect(redirectedUrl(logoutRedirectUri));
@@ -311,7 +322,7 @@ public class Oauth2ControllerTests {
     public void testLogoutNoSession() throws Exception {
         WireMock.reset();
         stubFor(cspPostLogout());
-        mockMvc.perform(get(vmbcAuthLogout))
+        mockMvc.perform(get(vmbcAuthLogout).with(authentication(authctx)))
                 .andExpect(redirectedUrl(logoutCspDiscovery));
         verify(0, postRequestedFor(urlPathEqualTo(CspConstants.CSP_LOGOUT)));
     }
@@ -320,7 +331,7 @@ public class Oauth2ControllerTests {
     public void testBadLogout() throws Exception {
         WireMock.reset();
         stubFor(cspPostBadLogout());
-        mockMvc.perform(get(vmbcAuthLogout)
+        mockMvc.perform(get(vmbcAuthLogout).with(authentication(authctx))
                 .sessionAttr("csp-auth-token", "atoken")
                 .sessionAttr("token-id", "atoken"))
                 .andExpect(status().is5xxServerError());
@@ -408,7 +419,8 @@ public class Oauth2ControllerTests {
 
     @Test
     public void testGetAuthToken() throws Exception {
-        String body = mockMvc.perform(get(vmbcAuthToken).sessionAttr("token-id", "id-token"))
+        String body = mockMvc.perform(get(vmbcAuthToken).sessionAttr("token-id", "id-token")
+                                              .with(authentication(authctx)))
                 .andExpect(status().is2xxSuccessful()).andReturn().getResponse()
                 .getContentAsString();
         Assertions.assertEquals(

@@ -26,6 +26,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -105,6 +106,7 @@ public class Oauth2Controller {
      * @param orgLink Org ID to log in as
      * @throws Exception redirect failure
      */
+    @PreAuthorize("permitAll()")
     @RequestMapping(method = RequestMethod.GET, value = {Constants.AUTH_LOGIN})
     public void login(@RequestParam(name = Constants.CSP_ORG_LINK, required = false) String orgLink,
                       @RequestParam(name = Constants.CSP_INVITATION_LINK, required = false) String serviceInvitation,
@@ -147,6 +149,7 @@ public class Oauth2Controller {
     /**
      * Logout page. Invalidate the session and call the CSP logout method
      */
+    @PreAuthorize("isAuthenticated()")
     @RequestMapping(method = RequestMethod.GET, value = {Constants.AUTH_LOGOUT})
     public void logout(HttpServletRequest request, HttpServletResponse response) throws Exception {
         // Replace the header token with get token
@@ -208,6 +211,7 @@ public class Oauth2Controller {
      * @param state Original target URL we will redirect to
      * @throws Exception kvStore failure
      */
+    @PreAuthorize("permitAll()")
     @RequestMapping(method = RequestMethod.GET, value = Constants.OAUTH_CALLBACK)
     public void oauthCallback(@RequestParam String code, @RequestParam String state, HttpServletRequest request,
                               HttpServletResponse response) throws Exception {
@@ -273,6 +277,7 @@ public class Oauth2Controller {
      *
      * @return current authtoken.
      */
+    @PreAuthorize("isAuthenticated()")
     @RequestMapping(method = RequestMethod.GET, value = Constants.API_AUTH_TOKEN)
     public CurrentToken getAuthToken(HttpServletRequest request, HttpServletResponse response) {
         String idToken = "";

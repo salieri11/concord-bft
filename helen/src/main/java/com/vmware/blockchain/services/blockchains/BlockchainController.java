@@ -17,6 +17,7 @@ import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -26,8 +27,6 @@ import org.springframework.web.bind.annotation.RestController;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.vmware.blockchain.auth.AuthHelper;
-import com.vmware.blockchain.common.ErrorCode;
-import com.vmware.blockchain.common.ForbiddenException;
 import com.vmware.blockchain.common.NotFoundException;
 import com.vmware.blockchain.deployment.model.ConcordComponent;
 import com.vmware.blockchain.deployment.model.ConcordModelSpecification;
@@ -42,7 +41,6 @@ import com.vmware.blockchain.deployment.model.ProvisioningServiceStub;
 import com.vmware.blockchain.deployment.model.StreamClusterDeploymentSessionEventRequest;
 import com.vmware.blockchain.deployment.model.ethereum.Genesis;
 import com.vmware.blockchain.services.blockchains.Blockchain.NodeEntry;
-import com.vmware.blockchain.services.profiles.Consortium;
 import com.vmware.blockchain.services.profiles.ConsortiumService;
 import com.vmware.blockchain.services.profiles.DefaultProfiles;
 import com.vmware.blockchain.services.profiles.Roles;
@@ -191,19 +189,15 @@ public class BlockchainController {
      * Get the list of all blockchains.
      */
     @RequestMapping(path = "/api/blockchains", method = RequestMethod.GET)
+    @PreAuthorize("hasAnyAuthority(T(com.vmware.blockchain.services.profiles.Roles).user())")
     ResponseEntity<List<BlockchainGetResponse>> list() {
         List<Blockchain> chains = Collections.emptyList();
         // if we are operator, we can get all blockchains.
-        if (authHelper.hasAnyAuthority(Roles.operatorRoles())) {
+        if (authHelper.hasAnyAuthority(Roles.systemAdmin())) {
             chains = manager.list();
         } else {
             // Otherwise, we can only see our consortium.
-            try {
-                Consortium c = consortiumService.get(authHelper.getOrganizationId());
-                chains = manager.listByConsortium(c);
-            } catch (NotFoundException e) {
-                // Just ignore
-            }
+            chains = manager.listByIds(authHelper.getPermittedChains());
         }
         List<BlockchainGetResponse> idList = chains.stream().map(BlockchainGetResponse::new)
                 .collect(Collectors.toList());
@@ -211,13 +205,11 @@ public class BlockchainController {
     }
 
     /**
-     * Get the list of all blockchains.
+     * Get the blckchain details.
      */
     @RequestMapping(path = "/api/blockchains/{id}", method = RequestMethod.GET)
+    @PreAuthorize("@authHelper.canAccessChain(#id)")
     ResponseEntity<BlockchainGetResponse> get(@PathVariable UUID id) throws NotFoundException {
-        if (!authHelper.hasAnyAuthority(Roles.operatorRoles()) && !authHelper.getPermittedChains().contains(id)) {
-            throw new ForbiddenException(id + ErrorCode.UNALLOWED);
-        }
         Blockchain b = manager.get(id);
         BlockchainGetResponse br = new BlockchainGetResponse(b);
         return new ResponseEntity<>(br, HttpStatus.OK);
@@ -269,13 +261,13 @@ public class BlockchainController {
 
     /**
      * Create a new blockchain in the given consortium, with the specified nodes.
+     * Note that after deployment we must remove the authtoken from the cache, since the user will
+     * now have access to this blockchain
      * @throws Exception any exception
      */
     @RequestMapping(path = "/api/blockchains", method = RequestMethod.POST)
+    @PreAuthorize("hasAnyAuthority(T(com.vmware.blockchain.services.profiles.Roles).consortiumAdmin())")
     public ResponseEntity<BlockchainTaskResponse> createBlockchain(@RequestBody BlockchainPost body) throws Exception {
-        if (!authHelper.hasAnyAuthority(Roles.operatorRoles())) {
-            throw new ForbiddenException(ErrorCode.UNALLOWED);
-        }
         final ProvisioningServiceStub client = new ProvisioningServiceStub(channel, CallOptions.DEFAULT);
         // start the deployment
         int clusterSize = body.getFCount() * 3 + body.getCCount() * 2 + 1;
@@ -301,12 +293,9 @@ public class BlockchainController {
      * Update the given blockchain.
      */
     @RequestMapping(path = "/api/blockchains/{id}", method = RequestMethod.PATCH)
+    @PreAuthorize("@authHelper.canUpdateChain(#id)")
     public ResponseEntity<BlockchainTaskResponse> updateBlockchain(@PathVariable UUID id,
             @RequestBody BlockchainPatch body) throws NotFoundException {
-        if (!authHelper.hasAnyAuthority(Roles.operatorRoles()) && !authHelper.getPermittedChains().contains(id)) {
-            throw new ForbiddenException(ErrorCode.UNALLOWED);
-        }
-
 
         // Temporary: create a completed task that points to the default bockchain
         Task task = new Task();

@@ -17,6 +17,7 @@ import org.json.simple.JSONAware;
 import org.json.simple.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -34,7 +35,7 @@ import com.vmware.concord.Concord;
  * Controller for member list.
  */
 @Controller
-public final class MemberList extends ConcordServlet {
+public class MemberList extends ConcordServlet {
     private static final long serialVersionUID = 1L;
     private static final Logger logger = LogManager.getLogger(MemberList.class);
     private BlockchainService blockchainService;
@@ -59,6 +60,7 @@ public final class MemberList extends ConcordServlet {
      */
     @RequestMapping(method = RequestMethod.GET,
             path = {"/api/concord/members", "/api/blockchains/{id}/concord/members"})
+    @PreAuthorize("@authHelper.canAccessChain(#id)")
     public ResponseEntity<JSONAware> doGet(
         @PathVariable(name = "id", required = false) Optional<UUID> id,
         @RequestParam(name = "certs", defaultValue = "false") String includeRpcCerts) {

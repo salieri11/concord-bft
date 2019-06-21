@@ -14,6 +14,7 @@ import org.json.simple.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -30,7 +31,7 @@ import com.vmware.concord.Concord;
  * Servlet class.
  */
 @Controller
-public final class Transaction extends ConcordServlet {
+public class Transaction extends ConcordServlet {
     private static final long serialVersionUID = 1L;
     private static final Logger logger = LogManager.getLogger(Transaction.class);
 
@@ -78,6 +79,7 @@ public final class Transaction extends ConcordServlet {
      */
     @RequestMapping(path = {"/api/concord/transactions/{hash}", "/api/blockchains/{id}/concord/transactions/{hash}"},
             method = RequestMethod.GET)
+    @PreAuthorize("@authHelper.canAccessChain(#id)")
     protected ResponseEntity<JSONAware> doGet(@PathVariable(name = "id", required = false) Optional<UUID> id,
             @PathVariable(value = "hash", required = true) String hash) {
         ResponseEntity<JSONAware> responseEntity;
