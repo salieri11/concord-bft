@@ -163,7 +163,7 @@ abstract class AbstractUntypedKeyValueStore<T : Version<T>>(
                     is UntypedKeyValueStore.Response.Error -> throw message.throwable
                     else ->
                         throw UnexpectedResponseException(
-                                UntypedKeyValueStore.Response.Set::class,
+                                UntypedKeyValueStore.Response.Delete::class,
                                 message
                         )
                 }
