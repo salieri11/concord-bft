@@ -2,7 +2,7 @@
  * Copyright (c) 2019 VMware, Inc. All rights reserved. VMware Confidential
  */
 
-package com.vmware.blockchain.deployment.service.eccerts;
+package com.vmware.blockchain.deployment.service.configuration.eccerts;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -53,18 +53,18 @@ class SingleBouncyCertificateGeneratorTest {
             Identity ks = SingleBouncyCertificateGenerator
                     .generateIdentity("test", filePath);
 
-            assert ks.getCertificate().getComponentUrl().equalsIgnoreCase(filePath + "/tlsCerts.cert");
-            assert ks.getKey().getComponentUrl().equalsIgnoreCase(filePath + "/pk.pem");
+            assert ks.getCertificate().getUrl().equalsIgnoreCase(filePath + "/tlsCerts.cert");
+            assert ks.getKey().getUrl().equalsIgnoreCase(filePath + "/pk.pem");
 
             CertificateFactory fact = CertificateFactory.getInstance("X.509");
-            InputStream inputStream = new ByteArrayInputStream(ks.getCertificate().getComponent().getBytes());
+            InputStream inputStream = new ByteArrayInputStream(ks.getCertificate().getBase64Value().getBytes());
             X509Certificate cert = (X509Certificate) fact.generateCertificate(inputStream);
             cert.checkValidity(new Date());
             cert.verify(cert.getPublicKey());
             assert cert.getPublicKey().getAlgorithm().equalsIgnoreCase("EC");
             assert cert.getSigAlgName().equalsIgnoreCase("SHA384WITHECDSA");
 
-            byte[] keyBytes = ks.getKey().getComponent().getBytes();
+            byte[] keyBytes = ks.getKey().getBase64Value().getBytes();
             KeyFactory factory = KeyFactory.getInstance("ECDSA", "BC");
             ECNamedCurveParameterSpec spec = ECNamedCurveTable.getParameterSpec("secp384r1");
             ECPrivateKeySpec ecPrivateKeySpec = new ECPrivateKeySpec(new BigInteger(1, keyBytes), spec);
@@ -79,11 +79,11 @@ class SingleBouncyCertificateGeneratorTest {
         assertThrows(CertificateExpiredException.class, () -> {
             Identity ks = SingleBouncyCertificateGenerator
                     .generateIdentity("test", filePath);
-            assert ks.getCertificate().getComponentUrl().equalsIgnoreCase(filePath + "/tlsCerts.cert");
-            assert ks.getKey().getComponentUrl().equalsIgnoreCase(filePath + "/pk.pem");
+            assert ks.getCertificate().getUrl().equalsIgnoreCase(filePath + "/tlsCerts.cert");
+            assert ks.getKey().getUrl().equalsIgnoreCase(filePath + "/pk.pem");
 
             CertificateFactory fact = CertificateFactory.getInstance("X.509");
-            InputStream inputStream = new ByteArrayInputStream(ks.getCertificate().getComponent().getBytes());
+            InputStream inputStream = new ByteArrayInputStream(ks.getCertificate().getBase64Value().getBytes());
             X509Certificate cert = (X509Certificate) fact.generateCertificate(inputStream);
 
             Calendar cal = Calendar.getInstance();
@@ -98,11 +98,11 @@ class SingleBouncyCertificateGeneratorTest {
         assertThrows(CertificateNotYetValidException.class, () -> {
             Identity ks = SingleBouncyCertificateGenerator
                     .generateIdentity("test", filePath);
-            assert ks.getCertificate().getComponentUrl().equalsIgnoreCase(filePath + "/tlsCerts.cert");
-            assert ks.getKey().getComponentUrl().equalsIgnoreCase(filePath + "/pk.pem");
+            assert ks.getCertificate().getUrl().equalsIgnoreCase(filePath + "/tlsCerts.cert");
+            assert ks.getKey().getUrl().equalsIgnoreCase(filePath + "/pk.pem");
 
             CertificateFactory fact = CertificateFactory.getInstance("X.509");
-            InputStream inputStream = new ByteArrayInputStream(ks.getCertificate().getComponent().getBytes());
+            InputStream inputStream = new ByteArrayInputStream(ks.getCertificate().getBase64Value().getBytes());
             X509Certificate cert = (X509Certificate) fact.generateCertificate(inputStream);
 
             Calendar cal = Calendar.getInstance();
@@ -119,19 +119,19 @@ class SingleBouncyCertificateGeneratorTest {
             String fp2 = filePath + "/c2";
 
             Identity ks1 = SingleBouncyCertificateGenerator.generateIdentity("test", fp1);
-            assert ks1.getKey().getComponentUrl().equalsIgnoreCase(fp1 + "/pk.pem");
-            assert ks1.getCertificate().getComponentUrl().equalsIgnoreCase((fp1 + "/c1.cert"));
+            assert ks1.getKey().getUrl().equalsIgnoreCase(fp1 + "/pk.pem");
+            assert ks1.getCertificate().getUrl().equalsIgnoreCase((fp1 + "/c1.cert"));
 
             Identity ks2 = SingleBouncyCertificateGenerator.generateIdentity("test", fp2);
-            assert ks2.getKey().getComponentUrl().equalsIgnoreCase(fp2 + "/pk.pem");
-            assert ks2.getCertificate().getComponentUrl().equalsIgnoreCase(fp2 + "/c2.cert");
+            assert ks2.getKey().getUrl().equalsIgnoreCase(fp2 + "/pk.pem");
+            assert ks2.getCertificate().getUrl().equalsIgnoreCase(fp2 + "/c2.cert");
 
             CertificateFactory fact = CertificateFactory.getInstance("X.509");
-            InputStream inputStream1 = new ByteArrayInputStream(ks1.getCertificate().getComponent().getBytes());
+            InputStream inputStream1 = new ByteArrayInputStream(ks1.getCertificate().getBase64Value().getBytes());
             X509Certificate cert1 = (X509Certificate) fact.generateCertificate(inputStream1);
 
             fact = CertificateFactory.getInstance("X.509");
-            InputStream inputStream2 = new ByteArrayInputStream(ks2.getCertificate().getComponent().getBytes());
+            InputStream inputStream2 = new ByteArrayInputStream(ks2.getCertificate().getBase64Value().getBytes());
             X509Certificate cert2 = (X509Certificate) fact.generateCertificate(inputStream2);
 
             cert1.verify(cert2.getPublicKey());

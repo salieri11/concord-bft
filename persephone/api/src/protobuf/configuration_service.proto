@@ -2,8 +2,8 @@
 syntax = "proto3";
 package com.vmware.blockchain.deployment.model;
 
-import "node_identity.proto";
 import "core.proto";
+import "security_identity.proto";
 
 /* [START java_declaration] */
 option java_package = "com.vmware.blockchain.deployment.model";
@@ -13,17 +13,39 @@ option java_multiple_files = true;
 /* [START messages] */
 
 /**
-* Type definition of configuration service request/response
-* @property[type]
-*   type of service requested
+* Denotes the type of identity - ethrpc/tls/etc
+* Note: This will later move outside to be leveraged by concord model
+*
+* @property[DockerType]
+*   docker image type - concord or ethrpc
 */
 message ConfigurationServiceType {
-    enum Type {
+    enum DockerType {
         UNKNOWN = 0;
-        TLS = 1;
+        CONCORD_TLS = 1;
         ETHRPC = 2;
     }
-    Type type = 1;
+}
+
+/**
+* Denotes the configuration component
+*
+* @param[type]
+*  Type of the docker component
+* @param[component_url]
+*   String url where the component should reside
+* @param[component]
+*   String value of the component
+* @param [identity_factors]
+*   Algorithms and curves used if used
+*   Note: this is only for testing purpose. In future, this could
+*   be an input to generator to generate certain type of certs (RSA/EC)
+*/
+message ConfigurationComponent {
+    ConfigurationServiceType.DockerType type = 1;
+    string component_url = 2;
+    string component = 3;
+    IdentityFactors identity_factors = 4;
 }
 
 /**
@@ -36,7 +58,7 @@ message ConfigurationServiceType {
  */
 message ConfigurationServiceRequest {
     MessageHeader header = 1;
-    repeated string hostIps = 2;
+    repeated string hosts = 2;
 }
 
 /**
@@ -65,11 +87,11 @@ message ConfigurationSessionIdentifier {
 /**
 * Denote the node configuration response
 *
-* @property[componentConfiguration]
-*   list of componentconfigurations
+* @property[IdentityComponent]
+*   list of IdentityComponent
 */
 message NodeConfigurationResponse {
-    repeated ComponentConfiguration componentConfiguration = 1;
+    repeated ConfigurationComponent configurationComponent = 1;
 }
 
 /**
@@ -86,22 +108,6 @@ message NodeConfigurationRequest {
     int32 node = 3;
 }
 
-/**
-* Denotes ethrpc or tls configuration
-*
-* @property[type]
-*   type of configuration - ethrpc or tls
-* @property[config]
-*   the configuration file
-* @property[identityComponent]
-*   the key or certificate identity
-*/
-message ComponentConfiguration {
-    ConfigurationServiceType.Type type = 1;
-    string config = 2;
-    repeated IdentityComponent identityComponent = 3;
-}
-
 /* [END messages] */
 /* [START services] */
 /**
@@ -112,7 +118,7 @@ service ConfigurationService {
      * Operation to generate Tls key/certificate pairs for each node in a cluster
      * based on a [TlsConfigurationServiceRequest].
      */
-    rpc GenerateConfiguration (ConfigurationServiceRequest) returns (ConfigurationSessionIdentifier);
+    rpc CreateConfiguration (ConfigurationServiceRequest) returns (ConfigurationSessionIdentifier);
 
     /**
     * Operation to get node configuration for given node

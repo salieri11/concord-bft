@@ -15,13 +15,13 @@ COPY ./persephone/metadata-service-client/pom.xml ./persephone/metadata-service-
 COPY ./persephone/orchestration/pom.xml ./persephone/orchestration/pom.xml
 COPY ./persephone/orchestration-vmc/pom.xml ./persephone/orchestration-vmc/pom.xml
 COPY ./persephone/persistence/pom.xml ./persephone/persistence/pom.xml
+COPY ./persephone/persistence-rocksdb/pom.xml ./persephone/persistence-rocksdb/pom.xml
 COPY ./persephone/provisioning-service/pom.xml ./persephone/provisioning-service/pom.xml
 COPY ./persephone/config-service/pom.xml ./persephone/config-service/pom.xml
 
 ## Copy the dependent module sources.
 COPY ./persephone/api ./persephone/api
 COPY ./persephone/core ./persephone/core
-COPY ./persephone/persistence ./persephone/persistence
 
 ## Copy the module sources.
 COPY ./persephone/config-service ./persephone/config-service

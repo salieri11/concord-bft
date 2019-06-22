@@ -55,10 +55,10 @@ def main():
     host_ips = ["10.0.0.1", "10.0.0.2", "10.0.0.3", "10.0.0.4"]
     config_service_request = configuration_service.ConfigurationServiceRequest(
             header=core.MessageHeader(),
-            hostIps=host_ips
+            hosts=host_ips
             )
 
-    config_session_id = stub.GenerateConfiguration(config_service_request)
+    config_session_id = stub.CreateConfiguration(config_service_request)
 
     print("GenerateConfiguration: ", config_session_id)
 

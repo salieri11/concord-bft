@@ -2,7 +2,7 @@
  * Copyright (c) 2019 VMware, Inc. All rights reserved. VMware Confidential
  */
 
-package com.vmware.blockchain.deployment.service.generateconfig;
+package com.vmware.blockchain.deployment.service.configuration.generateconfig;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -12,8 +12,7 @@ import java.util.List;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import com.vmware.blockchain.deployment.service.testutilitilies.TestUtil;
-import com.vmware.blockchain.deployment.service.util.Constants;
+import com.vmware.blockchain.deployment.service.configuration.testutilitilies.TestUtil;
 
 /**
  * ConfigYaml Unit test configuration.
@@ -34,7 +33,7 @@ public class ConcordConfigUtilTest {
         Assertions.assertThat(config).isEqualTo(TestUtil.readFromInputStream(expectedStream));
 
         assert util.nodePrincipal.size() == 4;
-        assert util.maxPrincipalId == (hostIps.size() + Constants.CLIENT_PROXY_PER_NODE * hostIps.size()) - 1;
+        assert util.maxPrincipalId == (hostIps.size() + util.CLIENT_PROXY_PER_NODE * hostIps.size()) - 1;
         for (int node : util.nodePrincipal.keySet()) {
             assert util.nodePrincipal.get(node).size() == 4;
         }
@@ -85,7 +84,7 @@ public class ConcordConfigUtilTest {
         Assertions.assertThat(config).isEqualTo(TestUtil.readFromInputStream(expectedStream));
 
         assert util.nodePrincipal.size() == 4;
-        assert util.maxPrincipalId == (hostIps.size() + Constants.CLIENT_PROXY_PER_NODE * hostIps.size()) - 1;
+        assert util.maxPrincipalId == (hostIps.size() + util.CLIENT_PROXY_PER_NODE * hostIps.size()) - 1;
         for (int node : util.nodePrincipal.keySet()) {
             assert util.nodePrincipal.get(node).size() == 4;
         }
@@ -108,7 +107,7 @@ public class ConcordConfigUtilTest {
         Assertions.assertThat(config).isEqualTo(TestUtil.readFromInputStream(expectedStream));
 
         assert util.nodePrincipal.size() == 7;
-        assert util.maxPrincipalId == (hostIps.size() + Constants.CLIENT_PROXY_PER_NODE * hostIps.size()) - 1;
+        assert util.maxPrincipalId == (hostIps.size() + util.CLIENT_PROXY_PER_NODE * hostIps.size()) - 1;
         for (int node : util.nodePrincipal.keySet()) {
             assert util.nodePrincipal.get(node).size() == 4;
         }

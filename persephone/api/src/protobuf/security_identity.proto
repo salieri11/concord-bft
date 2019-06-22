@@ -25,15 +25,15 @@ message IdentityComponent {
         CERTIFICATE = 2;
     }
     Type type = 1;
-    string component_url = 2;
-    string component = 3;
+    string url = 2;
+    string base64_value = 3;
 }
 
 /**
  * Denote a key-certificate pair.
  *
  * @param[key]
- *   identity component for key
+ *   identity component for private key
  * @param[certificate]
  *   identity component for certificate
  */
@@ -41,4 +41,21 @@ message Identity {
     IdentityComponent key = 1;
     IdentityComponent certificate = 2;
 }
+
+/**
+* Denotes the security algorithms and other factors
+*
+* @param[algorithm]
+*   security algorithm
+* @param[curve]
+*   curve
+* @param[signing_algorithm]
+*   signing algorithm
+*/
+message IdentityFactors {
+    string algorithm = 1;
+    string curve = 2;
+    string signing_algorithm = 3;
+}
+
 /* [END messages] */

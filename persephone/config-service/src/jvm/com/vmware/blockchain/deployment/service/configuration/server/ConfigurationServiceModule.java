@@ -2,7 +2,7 @@
  * Copyright (c) 2019 VMware, Inc. All rights reserved. VMware Confidential
  */
 
-package com.vmware.blockchain.deployment.service.server;
+package com.vmware.blockchain.deployment.service.configuration.server;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ForkJoinPool;

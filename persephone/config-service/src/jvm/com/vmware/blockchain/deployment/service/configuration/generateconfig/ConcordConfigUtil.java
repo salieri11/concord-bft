@@ -2,7 +2,7 @@
  * Copyright (c) 2019 VMware, Inc. All rights reserved. VMware Confidential
  */
 
-package com.vmware.blockchain.deployment.service.generateconfig;
+package com.vmware.blockchain.deployment.service.configuration.generateconfig;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -12,7 +12,7 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.vmware.blockchain.deployment.service.util.Constants;
+import com.vmware.blockchain.deployment.service.configuration.generatecerts.CertificatesGenerator;
 
 /**
  * Utility class for generating the input for Configuration Yaml file.
@@ -38,6 +38,11 @@ public class ConcordConfigUtil {
     private static final String CLIENT_PORT  = "        client_port: ";
     private static final String PRINCIPAL_ID = "        principal_id: ";
     private static final int DEFAULT_PORT = 3501;
+
+    public static final int CLIENT_PROXY_PER_NODE = 4;
+
+    /** file path. */
+    public final String configPath = "/concord/config-local/concord.config";
 
     /** persistence. */
     public final Map<Integer, List<Integer>> nodePrincipal = new HashMap<>();
@@ -99,9 +104,9 @@ public class ConcordConfigUtil {
             return "";
         }
 
-        maxPrincipalId = (hostIp.size() + Constants.CLIENT_PROXY_PER_NODE * hostIp.size()) - 1;
+        maxPrincipalId = (hostIp.size() + CLIENT_PROXY_PER_NODE * hostIp.size()) - 1;
         StringBuilder configString = new StringBuilder();
-        configString.append(CLIENT_PROXY_PER_REPLICA + Constants.CLIENT_PROXY_PER_NODE);
+        configString.append(CLIENT_PROXY_PER_REPLICA + CLIENT_PROXY_PER_NODE);
         configString.append("\n");
         configString.append(C_VAL + cVal);
         configString.append("\n");
@@ -111,7 +116,8 @@ public class ConcordConfigUtil {
         configString.append("\n");
         configString.append("tls_cipher_suite_list: ECDHE-ECDSA-AES256-GCM-SHA384");
         configString.append("\n");
-        configString.append("tls_certificates_folder_path: " + Constants.TLS_IDENTITY_PATH);
+        configString.append("tls_certificates_folder_path: "
+                + CertificatesGenerator.CONCORD_TLS_SECURITY_IDENTITY_PATH);
         configString.append("\n");
         configString.append("node__TEMPLATE:\n  logger_config: /concord/config-local/log4cplus.properties\n"
                 + "  genesis_block: /concord/config-public/genesis.json\n  blockchain_db_path: /concord/rocksdbdata/");
@@ -133,7 +139,7 @@ public class ConcordConfigUtil {
             configString.append("\n");
 
             List<Integer> principalList = new ArrayList<>();
-            for (int j = 0; j < Constants.CLIENT_PROXY_PER_NODE; j++) {
+            for (int j = 0; j < CLIENT_PROXY_PER_NODE; j++) {
                 configString.append(CLIENT_HOST + hostIp.get(i));
                 configString.append("\n");
                 configString.append(CLIENT_PORT + (DEFAULT_PORT + j + 1));

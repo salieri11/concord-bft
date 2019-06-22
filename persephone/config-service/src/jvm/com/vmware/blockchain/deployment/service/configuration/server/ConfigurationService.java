@@ -2,11 +2,10 @@
  * Copyright (c) 2019 VMware, Inc. All rights reserved. VMware Confidential
  */
 
-package com.vmware.blockchain.deployment.service.server;
+package com.vmware.blockchain.deployment.service.configuration.server;
 
 import java.security.Security;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -23,18 +22,18 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.vmware.blockchain.deployment.model.ComponentConfiguration;
+import com.vmware.blockchain.deployment.model.ConfigurationComponent;
 import com.vmware.blockchain.deployment.model.ConfigurationServiceImplBase;
 import com.vmware.blockchain.deployment.model.ConfigurationServiceRequest;
 import com.vmware.blockchain.deployment.model.ConfigurationServiceType;
 import com.vmware.blockchain.deployment.model.ConfigurationSessionIdentifier;
 import com.vmware.blockchain.deployment.model.Identity;
 import com.vmware.blockchain.deployment.model.IdentityComponent;
+import com.vmware.blockchain.deployment.model.IdentityFactors;
 import com.vmware.blockchain.deployment.model.NodeConfigurationRequest;
 import com.vmware.blockchain.deployment.model.NodeConfigurationResponse;
-import com.vmware.blockchain.deployment.service.eccerts.ConcordCertificatesGenerator;
-import com.vmware.blockchain.deployment.service.generatecerts.CertificatesGenerator;
-import com.vmware.blockchain.deployment.service.generateconfig.ConcordConfigUtil;
+import com.vmware.blockchain.deployment.service.configuration.eccerts.ConcordEcCertificatesGenerator;
+import com.vmware.blockchain.deployment.service.configuration.generateconfig.ConcordConfigUtil;
 
 import io.grpc.stub.StreamObserver;
 
@@ -66,16 +65,9 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
     /** Service state. */
     private volatile State state = State.STOPPED;
 
-    /** per node configuration response. */
-    private final Map<Integer, NodeConfigurationResponse> nodeConfig = new ConcurrentHashMap<>();
-
     /** per session all node tls configuration. */
     private final Map<ConfigurationSessionIdentifier,
-            Map<Integer, ComponentConfiguration>> tlsSessionConfig = new ConcurrentHashMap<>();
-
-    /** per session all node ethrpc configuration. */
-    private final Map<ConfigurationSessionIdentifier,
-            Map<Integer, ComponentConfiguration>> ethrpcSessionConfig = new ConcurrentHashMap<>();
+            Map<Integer, List<ConfigurationComponent>>> sessionConfig = new ConcurrentHashMap<>();
 
     /**
      * Constructor.
@@ -131,7 +123,7 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
     }
 
     @Override
-    public void generateConfiguration(ConfigurationServiceRequest message,
+    public void createConfiguration(ConfigurationServiceRequest message,
                                          StreamObserver<ConfigurationSessionIdentifier> observer) {
 
         var request = Objects.requireNonNull(message);
@@ -139,45 +131,63 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
 
         var sessionId = newSessionId();
 
-        CertificatesGenerator certGen = new ConcordCertificatesGenerator();
+        var certGen = new ConcordEcCertificatesGenerator();
+        var identityFactor = certGen.getIdentityFactor();
+        Map<Integer, List<ConfigurationComponent>> nodeComponent = new HashMap<>();
 
         // Generate TLS Configuration
-        Map<Integer, ComponentConfiguration> tlsNodeComponent = new HashMap<>();
-        ConcordConfigUtil configUtil = new ConcordConfigUtil();
-        String tlsConfig = configUtil.generateConfigUtil(request.getHostips());
+        var configUtil = new ConcordConfigUtil();
+        var tlsConfig = configUtil.generateConfigUtil(request.getHosts());
 
         List<Identity> tlsIdentityList = certGen.generateSelfSignedCertificates(configUtil.maxPrincipalId + 1,
-                ConfigurationServiceType.Type.TLS);
+                ConfigurationServiceType.DockerType.CONCORD_TLS);
 
-        Map<Integer, List<IdentityComponent>> nodeIdentities = buildTlsIdentity(tlsIdentityList,
+        Map<Integer, List<IdentityComponent>> tlsNodeIdentities = buildTlsIdentity(tlsIdentityList,
                 configUtil.nodePrincipal, configUtil.maxPrincipalId + 1);
 
-        for (int node : nodeIdentities.keySet()) {
-            ComponentConfiguration tlsComponentConfiguration = new ComponentConfiguration(
-                    ConfigurationServiceType.Type.TLS, tlsConfig, nodeIdentities.get(node));
-            tlsNodeComponent.putIfAbsent(node, tlsComponentConfiguration);
-        }
-        var tlsPersist = tlsSessionConfig.putIfAbsent(sessionId, tlsNodeComponent);
-
         //Generate EthRPC Configuration
-        Map<Integer, ComponentConfiguration> ethrpcNodeComponent = new HashMap<>();
-        List<Identity> ethrpcIdentityList = certGen.generateSelfSignedCertificates(request.getHostips().size(),
-                ConfigurationServiceType.Type.ETHRPC);
-        String ethrpcConfig = "";
+        List<Identity> ethrpcIdentityList = certGen.generateSelfSignedCertificates(request.getHosts().size(),
+                ConfigurationServiceType.DockerType.ETHRPC);
 
-        int index = 0;
-        for (Identity iden : ethrpcIdentityList) {
-            List<IdentityComponent> ethrpcIdentityComponents = new ArrayList<>(
-                    Arrays.asList(iden.getCertificate(), iden.getKey()));
-            ComponentConfiguration ethrpcComponentConfiguration = new ComponentConfiguration(
-                    ConfigurationServiceType.Type.ETHRPC, ethrpcConfig, ethrpcIdentityComponents);
-            ethrpcNodeComponent.putIfAbsent(index, ethrpcComponentConfiguration);
-            index++;
+        for (int node = 0; node < request.getHosts().size(); node++) {
+            List<ConfigurationComponent> componentList = new ArrayList<>();
+
+            // TLS list
+            componentList.add(new ConfigurationComponent(
+                    ConfigurationServiceType.DockerType.CONCORD_TLS,
+                    configUtil.configPath, tlsConfig, new IdentityFactors()));
+
+            tlsNodeIdentities.get(node).stream().forEach(entry -> {
+                componentList.add(new ConfigurationComponent(
+                        ConfigurationServiceType.DockerType.CONCORD_TLS,
+                        entry.getUrl(),
+                        entry.getBase64Value(),
+                        identityFactor));
+            });
+
+            // ETHRPC list
+            componentList.add(new ConfigurationComponent(
+                    ConfigurationServiceType.DockerType.ETHRPC,
+                    ethrpcIdentityList.get(node).getCertificate().getUrl(),
+                    ethrpcIdentityList.get(node).getCertificate().getBase64Value(),
+                    identityFactor
+            ));
+
+            componentList.add(new ConfigurationComponent(
+                    ConfigurationServiceType.DockerType.ETHRPC,
+                    ethrpcIdentityList.get(node).getKey().getUrl(),
+                    ethrpcIdentityList.get(node).getKey().getBase64Value(),
+                    identityFactor
+            ));
+
+            // put per node configs
+            nodeComponent.putIfAbsent(node, componentList);
+
         }
 
-        var ethrpcPersist = ethrpcSessionConfig.putIfAbsent(sessionId, ethrpcNodeComponent);
+        var persist = sessionConfig.putIfAbsent(sessionId, nodeComponent);
 
-        if (tlsPersist == null && ethrpcPersist == null) {
+        if (persist == null && persist == null) {
             response.onNext(sessionId);
             response.onCompleted();
         } else {
@@ -192,16 +202,12 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
         var request = Objects.requireNonNull(nodeRequest);
         var response = Objects.requireNonNull(observer);
 
-        Map<Integer, ComponentConfiguration> tlsComponents = tlsSessionConfig.get(request.getIdentifier());
-        Map<Integer, ComponentConfiguration> ethrpcConfig = ethrpcSessionConfig.get(request.getIdentifier());
+        var components = sessionConfig.get(nodeRequest.getIdentifier());
 
-        List<ComponentConfiguration> componentConfigurations = new ArrayList<>();
+        var nodeComponents = components.get(request.getNode());
 
-        componentConfigurations.add(tlsComponents.get(request.getNode()));
-        componentConfigurations.add(ethrpcConfig.get(request.getNode()));
-
-        if (componentConfigurations.size() != 0) {
-            response.onNext(new NodeConfigurationResponse(componentConfigurations));
+        if (nodeComponents.size() != 0) {
+            response.onNext(new NodeConfigurationResponse(nodeComponents));
             response.onCompleted();
         } else {
             response.onError(new IllegalStateException("Could not retrieve configuration results"));
@@ -215,7 +221,7 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
      *   a new {@link ConfigurationSessionIdentifier} instance.
      */
     private static ConfigurationSessionIdentifier newSessionId() {
-        return new ConfigurationSessionIdentifier(new Random().nextLong());
+        return new ConfigurationSessionIdentifier(new Random().nextLong()); //use secure random
     }
 
     /**
@@ -226,8 +232,10 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
      * @param  numCerts : number of total certificate/keys
      * @return : map of node vs identity component list
      */
-    private Map<Integer, List<IdentityComponent>>  buildTlsIdentity(List<Identity> identities,
-                                                     Map<Integer, List<Integer>> principals, int numCerts) {
+    private Map<Integer, List<IdentityComponent>>  buildTlsIdentity(
+            List<Identity> identities,
+            Map<Integer, List<Integer>> principals,
+            int numCerts) {
 
         Map<Integer, List<IdentityComponent>> result = new HashMap<>();
         for (int node : principals.keySet()) {

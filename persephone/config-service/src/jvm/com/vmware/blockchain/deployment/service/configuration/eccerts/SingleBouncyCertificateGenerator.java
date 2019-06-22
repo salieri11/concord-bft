@@ -2,7 +2,7 @@
  * Copyright (c) 2019 VMware, Inc. All rights reserved. VMware Confidential
  */
 
-package com.vmware.blockchain.deployment.service.eccerts;
+package com.vmware.blockchain.deployment.service.configuration.eccerts;
 
 import java.io.IOException;
 import java.io.StringWriter;

@@ -2,7 +2,7 @@
  * Copyright (c) 2019 VMware, Inc. All rights reserved. VMware Confidential
  */
 
-package com.vmware.blockchain.deployment.service.server;
+package com.vmware.blockchain.deployment.service.configuration.server;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -20,14 +20,14 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import com.vmware.blockchain.deployment.model.ComponentConfiguration;
+import com.vmware.blockchain.deployment.model.ConfigurationComponent;
 import com.vmware.blockchain.deployment.model.ConfigurationServiceRequest;
 import com.vmware.blockchain.deployment.model.ConfigurationServiceType;
 import com.vmware.blockchain.deployment.model.ConfigurationSessionIdentifier;
 import com.vmware.blockchain.deployment.model.MessageHeader;
 import com.vmware.blockchain.deployment.model.NodeConfigurationRequest;
 import com.vmware.blockchain.deployment.model.NodeConfigurationResponse;
-import com.vmware.blockchain.deployment.service.util.Constants;
+import com.vmware.blockchain.deployment.service.configuration.generateconfig.ConcordConfigUtil;
 
 import io.grpc.stub.StreamObserver;
 
@@ -153,7 +153,7 @@ public class ConfigurationServiceTest {
         ConfigurationServiceRequest request = new ConfigurationServiceRequest(new MessageHeader(messageId), hostIps);
 
         var promise = new CompletableFuture<ConfigurationSessionIdentifier>();
-        service.generateConfiguration(request, newResultObserver(promise));
+        service.createConfiguration(request, newResultObserver(promise));
 
         var identifier = promise.get(awaitTime, TimeUnit.MILLISECONDS);
 
@@ -166,29 +166,35 @@ public class ConfigurationServiceTest {
             service.getNodeConfiguration(request1, newResultObserver(promise1));
             var response = promise1.get(awaitTime, TimeUnit.MILLISECONDS);
 
-            int totalTlsIdentities = hostIps.size() + Constants.CLIENT_PROXY_PER_NODE * hostIps.size();
+            int totalTlsIdentities = hostIps.size() + ConcordConfigUtil.CLIENT_PROXY_PER_NODE * hostIps.size();
 
             int tlsComponentCount = 2 // key and certificate for self node
                     // client certificates (only) for non principals
-                    + (totalTlsIdentities - Constants.CLIENT_PROXY_PER_NODE)
+                    + (totalTlsIdentities - ConcordConfigUtil.CLIENT_PROXY_PER_NODE)
                     // server certificates (only) for non principals
-                    + (totalTlsIdentities - Constants.CLIENT_PROXY_PER_NODE)
-                    + Constants.CLIENT_PROXY_PER_NODE * (1 // certificate for client
+                    + (totalTlsIdentities - ConcordConfigUtil.CLIENT_PROXY_PER_NODE)
+                    + ConcordConfigUtil.CLIENT_PROXY_PER_NODE * (1 // certificate for client
                         + 1 // key for client
                         + 1 // certificate for server
                         + 1); // key for server
 
-            assert response.getComponentconfiguration().size() == 2; // one each for tls and ethrpc
+            int ethRpcConfig = 0;
+            int tlsConfig = 0;
+            int unknown = 0;
 
-            for (ComponentConfiguration component : response.getComponentconfiguration()) {
-                if (component.getType().equals(ConfigurationServiceType.Type.TLS)) {
-                    assert component.getIdentitycomponent().size() == tlsComponentCount;
-                }
-                if (component.getType().equals(ConfigurationServiceType.Type.ETHRPC)) {
-                    assert component.getIdentitycomponent().size() == 2;
+            for (ConfigurationComponent component : response.getConfigurationcomponent()) {
+                if (component.getType().equals(ConfigurationServiceType.DockerType.CONCORD_TLS)) {
+                    tlsConfig++;
+                } else if (component.getType().equals(ConfigurationServiceType.DockerType.ETHRPC)) {
+                    ethRpcConfig++;
+                } else {
+                    unknown++;
                 }
             }
 
+            assert tlsConfig == tlsComponentCount + 1; // one for config
+            assert ethRpcConfig == 2; //ethrpc does not have config
+            assert unknown == 0;
         }
     }
 
