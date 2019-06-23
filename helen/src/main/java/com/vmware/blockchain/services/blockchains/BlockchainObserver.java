@@ -36,6 +36,7 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
     private BlockchainService blockchainService;
     private TaskService taskService;
     private UUID taskId;
+    private UUID consortiumId;
     private final List<NodeEntry> nodeList = new ArrayList<>();
     private DeploymentSession.Status status = DeploymentSession.Status.UNKNOWN;
     private UUID clusterId;
@@ -46,17 +47,21 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
      * @param blockchainService Blockchain service
      * @param taskService       Task service
      * @param taskId            The task ID we are reporting this on.
+     * @param consortiumId      ID for the consortium creating this blockchain
      */
     public BlockchainObserver(
             AuthHelper authHelper,
             BlockchainService blockchainService,
             TaskService taskService,
-            UUID taskId) {
+            UUID taskId,
+            UUID consortiumId) {
         this.authHelper = authHelper;
         this.blockchainService = blockchainService;
         this.taskService = taskService;
         this.taskId = taskId;
+        this.consortiumId = consortiumId;
         auth = SecurityContextHolder.getContext().getAuthentication();
+
     }
 
     @Override
@@ -64,38 +69,40 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
         logger.info("On Next: {}", value.getType());
         // Set auth in this thread to whoever invoked the observer
         SecurityContextHolder.getContext().setAuthentication(auth);
+        try {
+            switch (value.getType()) {
+                case CLUSTER_DEPLOYED:
+                    ConcordCluster cluster = value.getCluster();
+                    // force the blockchain id to be the same as the cluster id
+                    clusterId = new UUID(cluster.getId().getHigh(), cluster.getId().getLow());
+                    logger.info("Blockchain ID: {}", clusterId);
 
-        switch (value.getType()) {
-            case CLUSTER_DEPLOYED:
-                ConcordCluster cluster = value.getCluster();
-                // force the blockchain id to be the same as the cluster id
-                clusterId = new UUID(cluster.getId().getHigh(), cluster.getId().getLow());
-                logger.info("Blockchain ID: {}", clusterId);
-
-                cluster.getInfo().getMembers().stream()
-                        .map(BlockchainObserver::toNodeEntry)
-                        .peek(node -> logger.info("Node entry, id {}", node.getNodeId()))
-                        .forEach(nodeList::add);
-                break;
-            case COMPLETED:
-                status = value.getStatus();
-                logger.info("On Next(COMPLETED): status({})", status);
-                break;
-            default:
-                break;
-        }
-
-        // Persist the current state of the task.
-        final Task task = taskService.get(taskId);
-        // Not clear if we need the merge here,
-        taskService.merge(task, m -> {
-            // if the latest entry is in completed, don't change anything
-            if (m.getState() != Task.State.SUCCEEDED && m.getState() != Task.State.FAILED) {
-                // Otherwise, set the fields
-                m.setMessage(value.getType().name());
+                    cluster.getInfo().getMembers().stream()
+                            .map(BlockchainObserver::toNodeEntry)
+                            .peek(node -> logger.info("Node entry, id {}", node.getNodeId()))
+                            .forEach(nodeList::add);
+                    break;
+                case COMPLETED:
+                    status = value.getStatus();
+                    logger.info("On Next(COMPLETED): status({})", status);
+                    break;
+                default:
+                    break;
             }
-        });
-        SecurityContextHolder.getContext().setAuthentication(null);
+
+            // Persist the current state of the task.
+            final Task task = taskService.get(taskId);
+            // Not clear if we need the merge here,
+            taskService.merge(task, m -> {
+                // if the latest entry is in completed, don't change anything
+                if (m.getState() != Task.State.SUCCEEDED && m.getState() != Task.State.FAILED) {
+                    // Otherwise, set the fields
+                    m.setMessage(value.getType().name());
+                }
+            });
+        } finally {
+            SecurityContextHolder.getContext().setAuthentication(null);
+        }
     }
 
     @Override
@@ -103,11 +110,13 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
         logger.info("On Error", t);
         // Set auth in this thread to whoever invoked the observer
         SecurityContextHolder.getContext().setAuthentication(auth);
-        /* Check on this
+        final Task task = taskService.get(taskId);
         task.setState(Task.State.FAILED);
         task.setMessage(t.getMessage());
-        task = taskService.put(task);
-        */
+        taskService.merge(task, m -> {
+            m.setState(task.getState());
+            m.setMessage(task.getMessage());
+        });
         SecurityContextHolder.getContext().setAuthentication(null);
     }
 
@@ -116,13 +125,13 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
         // Set auth in this thread to whoever invoked the observer
         SecurityContextHolder.getContext().setAuthentication(auth);
         // Just log this.  Looking to see how often this happens.
-        logger.info("On Completed");
+        logger.info("Task {} completed, status {}", taskId, status);
         final Task task = taskService.get(taskId);
         task.setMessage("Operation finished");
 
         if (status == DeploymentSession.Status.SUCCESS) {
             // Create blockchain entity based on collected information.
-            Blockchain blockchain = blockchainService.create(clusterId, authHelper.getOrganizationId(), nodeList);
+            Blockchain blockchain = blockchainService.create(clusterId, consortiumId, nodeList);
             task.setResourceId(blockchain.getId());
             task.setResourceLink(String.format("/api/blockchains/%s", blockchain.getId()));
             task.setState(Task.State.SUCCEEDED);
