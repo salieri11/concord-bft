@@ -225,7 +225,7 @@ export class WorldMapComponent implements AfterViewInit, OnChanges, OnDestroy {
       this.map.getLayers().insertAt(0, countryOutlineLayer);
       this.map.updateSize();
       this.viewFit();
-    }, 700);
+    }, 1000);
   }
 
   /**

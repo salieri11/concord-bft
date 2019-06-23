@@ -48,7 +48,6 @@ export class MainComponent implements OnInit, OnDestroy {
     private tourService: TourService,
     private blockchainService: BlockchainService
   ) {
-    console.log('Main Component Init');
     const consortiumId = this.route.snapshot.params['consortiumId'];
     this.selectedConsortium = this.blockchainService.select(consortiumId);
 
@@ -62,7 +61,7 @@ export class MainComponent implements OnInit, OnDestroy {
     this.blockchainService.set(
       this.selectedConsortium
     ).subscribe(() => {
-      if (this.blockchainService.blockchainId) {
+      if (!this.selectedConsortium && this.blockchainService.blockchainId) {
         this.router.navigate(['/', this.blockchainService.blockchainId, 'dashboard']);
       }
     });

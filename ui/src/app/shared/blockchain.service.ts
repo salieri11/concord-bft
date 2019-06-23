@@ -33,6 +33,13 @@ export interface BlockchainResponse {
   [key: string]: any;
 }
 
+export enum DeployStates {
+  RUNNING = 'RUNNING',
+  NODE_DEPLOYED = 'NODE_DEPLOYED',
+  SUCCEEDED = 'SUCCEEDED',
+  FAILED = 'FAILED',
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -75,7 +82,7 @@ export class BlockchainService {
     return timer(0, 2500)
       .pipe(concatMap(() => from(this.check(taskId))))
       .pipe(filter(backendData => {
-        return backendData.message !== null;
+        return backendData.state === DeployStates.SUCCEEDED || backendData.state === DeployStates.FAILED;
       }))
       .pipe(take(1));
   }
