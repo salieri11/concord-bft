@@ -5,7 +5,7 @@
 import { Component } from '@angular/core';
 import { Router } from '@angular/router';
 import { HttpResponse, HttpErrorResponse } from '@angular/common/http';
-import { BlockchainService } from '../../shared/blockchain.service';
+import { BlockchainService, DeployStates } from '../../shared/blockchain.service';
 
 @Component({
   selector: 'concord-deploying-interstitial',
@@ -46,7 +46,7 @@ export class DeployingInterstialComponent {
   private pollUntilDeployFinished(taskId: string) {
     this.blockchainService.pollDeploy(taskId)
       .subscribe((response) => {
-        if (response.message === 'COMPLETED') {
+        if (response.state === DeployStates.SUCCEEDED) {
           this.blockchainService.set().subscribe(() => {
             // TODO: enable the dashboard to show a toast - response.resource_id is the bid
             this.router.navigate([`/${response.resource_id}`, 'dashboard'], {fragment: 'orgTour'});
@@ -58,6 +58,10 @@ export class DeployingInterstialComponent {
           this.error = response.message;
           this.loading = false;
         }
+      }, error => {
+          this.title = 'Error';
+          this.error = error;
+          this.loading = false;
       });
   }
 }
