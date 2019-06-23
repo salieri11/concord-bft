@@ -1,5 +1,5 @@
 # Build time image.
-FROM maven:3.6.0-jdk-11 as builder
+FROM maven:3.6.1-jdk-11 as builder
 
 ## Copy build-dependent resource files.
 COPY ./resources/checkstyle.xml ./persephone/resources/checkstyle.xml
@@ -15,6 +15,7 @@ COPY ./metadata-service-client/pom.xml ./persephone/metadata-service-client/pom.
 COPY ./orchestration/pom.xml ./persephone/orchestration/pom.xml
 COPY ./orchestration-vmc/pom.xml ./persephone/orchestration-vmc/pom.xml
 COPY ./persistence/pom.xml ./persephone/persistence/pom.xml
+COPY ./persistence-rocksdb/pom.xml ./persephone/persistence-rocksdb/pom.xml
 COPY ./provisioning-service/pom.xml ./persephone/provisioning-service/pom.xml
 COPY ./provision-client/pom.xml ./persephone/provision-client/pom.xml
 

@@ -113,7 +113,7 @@ interface KeyValueStore<K, V, T : KeyValueStore.Version<T>> {
      *   or publishes [Versioned.None] if there was no previous value associated, or publishes an
      *   [IllegalStateException] if update fails due to version mismatch.
      */
-    fun set(key: K, expected: Version<T>, value: V): Publisher<Versioned<V, T>>
+    fun set(key: K, expected: T, value: V): Publisher<Versioned<V, T>>
 
     /**
      * Retrieve the key-value association for a given [key].
@@ -126,7 +126,7 @@ interface KeyValueStore<K, V, T : KeyValueStore.Version<T>> {
      *   or publishes [Versioned.None] if key was not found, or publishes an [IllegalStateException]
      *   if delete fails due to version mismatch.
      */
-    fun delete(key: K, expected: Version<T>): Publisher<Versioned<V, T>>
+    fun delete(key: K, expected: T): Publisher<Versioned<V, T>>
 
     /**
      * Create an event-sourcing publication channel.

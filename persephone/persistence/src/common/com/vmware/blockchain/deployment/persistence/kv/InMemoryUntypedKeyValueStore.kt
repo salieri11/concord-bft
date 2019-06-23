@@ -80,7 +80,7 @@ class InMemoryUntypedKeyValueStore<T : Version<T>>(
                     is UntypedKeyValueStore.Request.Delete<T> -> {
                         val existing = storage[message.key]
                         val responseMessage: UntypedKeyValueStore.Response<T> = when {
-                            existing == null -> UntypedKeyValueStore.Response.Set(Versioned.None)
+                            existing == null -> UntypedKeyValueStore.Response.Delete(Versioned.None)
                             existing.version == message.expected -> {
                                 storage.remove(message.key, existing)
                                 Event.DeleteEvent<Value, Value, T>(message.key, existing.version)

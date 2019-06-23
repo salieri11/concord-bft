@@ -21,6 +21,7 @@
         <module>orchestration</module>
         <module>orchestration-vmc</module>
         <module>persistence</module>
+        <module>persistence-rocksdb</module>
         <module>provisioning-service</module>
     </modules>
 
@@ -99,7 +100,7 @@
         <maven.plugin.surefire>2.22.1</maven.plugin.surefire>
 
         <!-- First-party dependency-related properties. -->
-        <blockchain.protobuf.version>0.0.2</blockchain.protobuf.version>
+        <blockchain.protobuf.version>0.0.3-SNAPSHOT</blockchain.protobuf.version>
 
         <!-- Dependency-related properties. -->
         <assertj.version>3.11.1</assertj.version>
@@ -113,6 +114,7 @@
         <kotlinpoet.version>1.0.1</kotlinpoet.version>
         <protobuf.runtime.java.version>3.6.1</protobuf.runtime.java.version>
         <reactive.stream.version>1.0.2</reactive.stream.version>
+        <rocksdb.version>6.0.1</rocksdb.version>
         <slf4j.version>1.7.26</slf4j.version>
         <wiremock.version>2.23.2</wiremock.version>
     </properties>
@@ -211,6 +213,13 @@
                 <version>${jqwik.version}</version>
             </dependency>
             <dependency>
+                <groupId>org.apache.logging.log4j</groupId>
+                <artifactId>log4j-bom</artifactId>
+                <version>${log4j.version}</version>
+                <scope>import</scope>
+                <type>pom</type>
+            </dependency>
+            <dependency>
                 <groupId>org.assertj</groupId>
                 <artifactId>assertj-core</artifactId>
                 <version>${assertj.version}</version>
@@ -261,16 +270,14 @@
                 <version>${junit.jupiter.version}</version>
             </dependency>
             <dependency>
-                <groupId>org.apache.logging.log4j</groupId>
-                <artifactId>log4j-bom</artifactId>
-                <version>${log4j.version}</version>
-                <scope>import</scope>
-                <type>pom</type>
-            </dependency>
-            <dependency>
                 <groupId>org.reactivestreams</groupId>
                 <artifactId>reactive-streams</artifactId>
                 <version>${reactive.stream.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.rocksdb</groupId>
+                <artifactId>rocksdbjni</artifactId>
+                <version>${rocksdb.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.slf4j</groupId>

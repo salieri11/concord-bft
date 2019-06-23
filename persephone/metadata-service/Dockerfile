@@ -15,6 +15,7 @@ COPY ./metadata-service-client/pom.xml ./persephone/metadata-service-client/pom.
 COPY ./orchestration/pom.xml ./persephone/orchestration/pom.xml
 COPY ./orchestration-vmc/pom.xml ./persephone/orchestration-vmc/pom.xml
 COPY ./persistence/pom.xml ./persephone/persistence/pom.xml
+COPY ./persistence-rocksdb/pom.xml ./persephone/persistence-rocksdb/pom.xml
 COPY ./provisioning-service/pom.xml ./persephone/provisioning-service/pom.xml
 
 ## Run an empty package step to keep as much exogenous dependencies in a cached layer as possible.

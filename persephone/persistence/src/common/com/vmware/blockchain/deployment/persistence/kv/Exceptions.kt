@@ -3,7 +3,6 @@
  * *************************************************************************/
 package com.vmware.blockchain.deployment.persistence.kv
 
-import com.vmware.blockchain.deployment.persistence.kv.UntypedKeyValueStore.Response
 import kotlin.reflect.KClass
 
 /**
@@ -33,7 +32,8 @@ data class BufferFullException(
 ) : RuntimeException("Internal buffer is full, capacity($capacity).")
 
 /**
- * Error denoting the condition when a received [Response] is not the expected response type.
+ * Error denoting the condition when a received [UntypedKeyValueStore.Response] is not the expected
+ * response type.
  *
  * @param[expected]
  *   [KClass] of the expected response type.
@@ -41,7 +41,7 @@ data class BufferFullException(
  *   actual response instance received.
  */
 data class UnexpectedResponseException(
-    val expected: KClass<out Response<*>>,
+    val expected: KClass<out UntypedKeyValueStore.Response<*>>,
     val response: UntypedKeyValueStore.Response<*>
 ) : RuntimeException("Unexpected response(${response::class} != $expected)")
 
@@ -55,3 +55,8 @@ object InterruptedEventStreamException: RuntimeException("Server stream is inter
  * already closed (shut down).
  */
 object ServerClosedException: IllegalStateException("Server is closed")
+
+/**
+ * Error denoting the condition when the server instance cannot be initialized.
+ */
+object ServerInitializationException: RuntimeException("Server cannot be initialized")
