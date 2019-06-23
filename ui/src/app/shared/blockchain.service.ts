@@ -34,8 +34,8 @@ export interface BlockchainResponse {
 }
 
 export enum DeployStates {
+  NONE = 'NONE',
   RUNNING = 'RUNNING',
-  NODE_DEPLOYED = 'NODE_DEPLOYED',
   SUCCEEDED = 'SUCCEEDED',
   FAILED = 'FAILED',
 }
@@ -82,7 +82,7 @@ export class BlockchainService {
     return timer(0, 2500)
       .pipe(concatMap(() => from(this.check(taskId))))
       .pipe(filter(backendData => {
-        return backendData.state === DeployStates.SUCCEEDED || backendData.state === DeployStates.FAILED;
+        return backendData.state !== DeployStates.RUNNING;
       }))
       .pipe(take(1));
   }
