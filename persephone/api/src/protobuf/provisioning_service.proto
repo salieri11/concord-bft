@@ -229,6 +229,19 @@ message StreamClusterDeploymentSessionEventRequest {
 }
 
 /**
+ * Request definition to deprovision cluster
+ *
+ * @property[header]
+ *   message header.
+ * @property[session]
+ *   identifier for the cluster deployment session.
+ */
+message DeprovisionCluster {
+    MessageHeader header = 1;
+    DeploymentSessionIdentifier session = 2;
+}
+
+/**
  * Model definition for provisioning server configuration settings.
  *
  * @property[port]

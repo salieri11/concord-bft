@@ -484,6 +484,22 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
         return promise;
     }
 
+    private void deleteCluster(DeploymentSessionIdentifier sessionId) {
+
+        if (STATE.get(this) != State.ACTIVE) {
+            throw new IllegalStateException("Service instance is not active");
+        }
+
+        CompletableFuture.runAsync(() -> {});
+
+        CompletableFuture<DeploymentSession> sessionEventTask = deploymentLog.get(sessionId);
+        if (sessionEventTask != null) {
+            //sessionEventTask.thenAcceptAsync();
+        } else {
+            throw new IllegalStateException("Session does not have a background task");
+        }
+    }
+
     /**
      * Execute a Concord cluster deployment workflow.
      *
