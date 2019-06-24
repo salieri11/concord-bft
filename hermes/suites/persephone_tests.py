@@ -392,7 +392,7 @@ class PersephoneTests(test_suite.TestSuite):
 
       else:
          result_queue.put([False, "Failed to get a valid deployment session ID"])
-      log.info("Thread {}: Deployemnt Status put in request queue".format(thread_name))
+      log.info("Thread {}: Deployment Status put in request queue".format(thread_name))
 
    def _test_concurrent_deployments_fixed_site(self, cluster_1_size=4,
                                                cluster_2_size=7):
