@@ -24,8 +24,8 @@ You will need cmake, clang, and g++, gmp, GNU Parallel, autoconf, automake, LLVM
 we use program-options, system, and thread), and yaml-cpp:
 
 ```
-sudo apt-get install cmake clang g++ parallel autoconf automake llvm-5.0 \
-  llvm-5.0-dev libgmp3-dev libtool libboost1.65-dev \
+sudo apt-get install cmake clang-7 clang-format-7 g++ parallel autoconf \
+  automake llvm-5.0 llvm-5.0-dev libgmp3-dev libtool libboost1.65-dev \
   libboost-program-options1.65-dev libboost-program-options1.65.1 \
   libboost-system1.65-dev libboost-system1.65.1 libboost-thread1.65-dev \
   libboost-thread1.65.1 libyaml-cpp0.5v5 libyaml-cpp-dev
@@ -214,7 +214,7 @@ Concord uses [OpenSSL](https://github.com/openssl/openssl) for TLS communication
    git clone https://github.com/openssl/openssl.git
    cd openssl
    git checkout OpenSSL_1_1_1a
-   ./config   
+   ./config
    make
    make test
    sudo make install
@@ -234,7 +234,7 @@ You should get 1_1_1a as your version.
 
 ### Concord
 
-At build-time, concord takes advantage of clang-format (v6.0) to check code
+At build-time, concord takes advantage of clang-format (v7) to check code
 formatting. Make sure you have it installed as well.
 
 Once dependencies are installed, make sure you have initialized the
@@ -453,7 +453,7 @@ appropriate configuration volume and giving the configuration generation
 command, for example, to run configuration generation for the 4-node Docker
 test cluster we currently use, you can run this command from the
 `vmwathena_blockchain/docker` directory (assuming your Concord image is tagged
-`concord-core:latest`): 
+`concord-core:latest`):
 
 ```
 vmwathena_blockchain$ docker run \
