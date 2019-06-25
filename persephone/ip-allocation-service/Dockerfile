@@ -26,20 +26,21 @@ RUN mvn -f persephone/pom.xml dependency:resolve-plugins dependency:resolve clea
 COPY ./api ./persephone/api
 COPY ./core ./persephone/core
 COPY ./persistence ./persephone/persistence
+COPY ./persistence/rocksdb ./persephone/persistence/rocksdb
 
 ## Copy the module sources.
-COPY ./metadata-service ./persephone/metadata-service
+COPY ./ip-allocation-service ./persephone/ip-allocation-service
 
 ## Build module with all of its dependencies.
-RUN mvn -f persephone/pom.xml package -pl metadata-service -am -B
+RUN mvn -f persephone/pom.xml package -pl ip-allocation-service -am -B
 
 # Runtime image (Metadata Service).
 FROM athena-docker-local.artifactory.eng.vmware.com/helen:prereqs-v2
-LABEL description="VMware Blockchain Fleet Management Metadata Service"
+LABEL description="VMware Blockchain Fleet Management IP Allocation Service"
 
-WORKDIR /persephone/metadata-service
-COPY --from=0 ./persephone/metadata-service/target/persephone-metadata-service*with-dependencies.jar ./metadata-service.jar
+WORKDIR /persephone/ip-allocation-service
+COPY --from=0 ./persephone/ip-allocation-service/target/persephone-ip-allocation-service*with-dependencies.jar ./ip-allocation-service.jar
 
-CMD ["java", "-jar", "metadata-service.jar"]
+CMD ["java", "-jar", "ip-allocation-service.jar"]
 
-EXPOSE 9001
+EXPOSE 9099

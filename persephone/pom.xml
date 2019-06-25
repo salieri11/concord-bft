@@ -16,6 +16,7 @@
         <module>awsutil</module>
         <module>core</module>
         <module>cli</module>
+        <module>ip-allocation-service</module>
         <module>metadata-service</module>
         <module>metadata-service-client</module>
         <module>orchestration</module>
@@ -167,6 +168,11 @@
             <dependency>
                 <groupId>com.vmware.blockchain</groupId>
                 <artifactId>persephone-persistence</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.vmware.blockchain</groupId>
+                <artifactId>persephone-persistence-rocksdb</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -341,6 +347,27 @@
                     </dependencies>
                     <executions>
                         <execution>
+                            <id>kapt</id>
+                            <goals>
+                                <goal>kapt</goal>
+                            </goals>
+                            <configuration>
+                                <sourceDirs>
+                                    <sourceDir>${project.basedir}/src/common</sourceDir>
+                                    <sourceDir>${project.basedir}/src/jvm</sourceDir>
+                                    <sourceDir>${project.basedir}/target/generated-sources/protobuf/common</sourceDir>
+                                    <sourceDir>${project.basedir}/target/generated-sources/protobuf/jvm</sourceDir>
+                                </sourceDirs>
+                                <annotationProcessorPaths>
+                                    <annotationProcessorPath>
+                                        <groupId>com.google.dagger</groupId>
+                                        <artifactId>dagger-compiler</artifactId>
+                                        <version>${dagger.version}</version>
+                                    </annotationProcessorPath>
+                                </annotationProcessorPaths>
+                            </configuration>
+                        </execution>
+                        <execution>
                             <id>kotlin-compile</id>
                             <phase>compile</phase>
                             <goals>
@@ -379,6 +406,7 @@
                     <version>${atomicfu.version}</version>
                     <executions>
                         <execution>
+                            <phase>compile</phase>
                             <goals>
                                 <goal>transform</goal>
                             </goals>
