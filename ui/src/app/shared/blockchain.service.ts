@@ -4,12 +4,15 @@
 
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, from, timer } from 'rxjs';
-import { concatMap, filter, map, take } from 'rxjs/operators';
+import { Observable, from, timer, zip } from 'rxjs';
+import { concatMap, filter, map, take, flatMap } from 'rxjs/operators';
 import { BehaviorSubject } from 'rxjs';
 
+import { ConsortiumService } from '../consortium/shared/consortium.service';
+
 export class BlockchainRequestParams {
-  consortium_id: string;
+  consortium_id?: string;
+  consortium_name: string;
   f_count: number;
   c_count: number = 0;
   deployment_type: string = 'UNSPECIFIED';
@@ -30,6 +33,13 @@ export interface BlockchainResponse {
   [key: string]: any;
 }
 
+export enum DeployStates {
+  NONE = 'NONE',
+  RUNNING = 'RUNNING',
+  SUCCEEDED = 'SUCCEEDED',
+  FAILED = 'FAILED',
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -40,13 +50,19 @@ export class BlockchainService {
   selectedBlockchain: BlockchainResponse;
   blockchains: BlockchainResponse[];
 
-  constructor(private http: HttpClient) {}
+  constructor(
+    private http: HttpClient,
+    private consortiumService: ConsortiumService,
+  ) { }
 
   deploy(params: BlockchainRequestParams): Observable<any> {
-    this.notify.next({message: 'deploying'});
+    this.notify.next({ message: 'deploying' });
 
-    return this.http.post('api/blockchains', params)
-    .pipe(
+    return this.consortiumService.create(params.consortium_name).pipe(
+      flatMap(consort => {
+        params.consortium_id = consort.consortium_id;
+        return this.http.post('api/blockchains', params);
+      }),
       map(response => {
         this.blockchainId = response['resource_id'];
         return response;
@@ -66,27 +82,41 @@ export class BlockchainService {
     return timer(0, 2500)
       .pipe(concatMap(() => from(this.check(taskId))))
       .pipe(filter(backendData => {
-        return backendData.message !== null;
+        return backendData.state !== DeployStates.RUNNING;
       }))
       .pipe(take(1));
   }
 
   set(bId?: string): Observable<BlockchainResponse[]> {
-    return this.http.get('api/blockchains')
+    const consortiumList = this.consortiumService.getList();
+    const blockchainList = this.http.get('api/blockchains');
+
+    return zip(consortiumList, blockchainList)
       .pipe(
         map(response => {
-          this.blockchains = JSON.parse(JSON.stringify(response));
+          const cList = response[0] as Array<any>;
+          const bList = response[1] as Array<any>;
+
+          cList.forEach(consortium => {
+            bList.forEach(blockchain => {
+              if (consortium['consortium_id'] === blockchain['consortium_id']) {
+                blockchain['consortium_name'] = consortium['consortium_name'];
+              }
+            });
+          });
+
+          this.blockchains = JSON.parse(JSON.stringify(bList));
 
           if (this.isUUID(bId) && bId) {
             this.select(bId);
-          } else {
+          } else if (this.blockchains.length) {
             this.select(this.blockchains[0].id);
           }
 
           if (this.selectedBlockchain) {
-            this.notify.next({message: 'deployed'});
+            this.notify.next({ message: 'deployed' });
           } else {
-            this.notify.next({message: 'non-deployed'});
+            this.notify.next({ message: 'non-deployed' });
           }
 
           return this.blockchains;

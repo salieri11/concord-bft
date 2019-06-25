@@ -18,6 +18,8 @@ public final class ErrorCode {
     public static final String BAD_UUID_FORMAT = "Error converting {0} to UUID";
     public static final String BLOCKCHAIN_UNSPECIFIED = "No blockchain specified";
     public static final String BYTECODE_OR_METADATA_ALLOWED = "Only bytecode or metadata file path are supported";
+    public static final String CANNOT_EXCHANGE_TOKEN = "Cannot exchange access code";
+    public static final String CANNOT_REDIRECT_TO_TARGET = "Cannot redirect to {0}";
     public static final String CONCORD_CONNECTION = "Unable to get concord connection";
     public static final String CONCORD_INVALID_RESPONSE = "Concord sent invalid response";
     public static final String CONCORD_INTERNAL_ERROR = "Concord internal error: ";
@@ -31,6 +33,7 @@ public final class ErrorCode {
     public static final String CONTRACT_NOT_FOUND = "Contract not found: {0}";
     public static final String CONTRACT_NOT_OWNER = "Only original owner can deploy the new version of a contract";
     public static final String CONTRACT_VERSION_NOT_FOUND = "Contract version not found  {0}:{1}";
+    public static final String CSP_INVALID_JWT_KEY_ID = "Invalid Key ID {0}";
     public static final String DATABASE_UNAVAILABLE = "Database service is not available";
     public static final String DELETE_INTEGRITY_ERROR =
             "Cannot delete entity with id {0} and column name {1}. It is referenced by other entities.";
@@ -43,6 +46,7 @@ public final class ErrorCode {
     public static final String ENTITY_CONVERSION_UNSUCCESSFUL = "Could not convert from DB to Entity {0}";
     public static final String ELEMENTS_SPECIFIED_LESS = "Params should contain 2 elements for this request type";
     public static final String EXCEPTION_NOT_ALLOWED = "Not allowed";
+    public static final String EXPECTED_AZPS_NULL_OR_EMPTY = "Expected list of Athentication Providers is missing";
     public static final String FAILED_TO_PARSE_DATE =
             "Failed to parse a date: {0}. Date format: {1}. Error message: {2}.";
     public static final String FROM_UNSPECIFIED = "'from' must be specified";
@@ -87,6 +91,7 @@ public final class ErrorCode {
     public static final String UNMATCHED_QUERY = "Could not match query {0}";
     public static final String UNSUPPORTED_TYPE = "Type not supported {0}";
     public static final String USER_ID_NOT_FOUND = "No user found with ID: {0}";
+    public static final String USER_NOT_AUTHENTICATED = "User {0} is not authenticated";
     public static final String USER_NOT_FOUND = "No user with email {0}";
     public static final String UNKNOWN_FILTER = "Unknown filter type ";
     public static final String UNSUITABLE_PARAMETER_NUMBERS = "Too many parameters. Either none or a JSON object.";

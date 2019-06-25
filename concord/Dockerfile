@@ -59,6 +59,10 @@ COPY --from=0 /usr/local/lib/liblog4cplus* /usr/local/lib/
 COPY --from=0 /opt/protobuf /opt/protobuf
 COPY --from=0 /opt/grpc /opt/grpc
 
+# Go is required because chaincode installation will
+# compile the chaincode source file to binary.
+COPY --from=0 /usr/local/go /usr/local/go
+
 # evmjit is statically compiled, so we don't need to copy
 COPY --from=0 /usr/local/lib/librelic* /usr/local/lib/
 COPY --from=0 /usr/local/lib/librocksdb.* /usr/local/lib/
@@ -82,6 +86,8 @@ EXPOSE 3505/tcp
 
 # ENV
 ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib:/opt/grpc/lib:/opt/protobuf/lib
+ENV GOPATH=/concord
+ENV PATH=$PATH:/usr/local/go/bin
 
 # Mountable volumes.
 VOLUME [ "/concord/config", "/concord/rocksdbdata", "/concord/log", "/concord/tls_certs" ]

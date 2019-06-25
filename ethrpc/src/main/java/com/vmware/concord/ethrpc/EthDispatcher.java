@@ -4,6 +4,8 @@
 
 package com.vmware.concord.ethrpc;
 
+import java.io.IOException;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.ThreadContext;
@@ -22,6 +24,9 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.socket.TextMessage;
+import org.springframework.web.socket.WebSocketSession;
+import org.springframework.web.socket.handler.TextWebSocketHandler;
 
 import com.vmware.concord.Concord;
 import com.vmware.concord.Concord.ConcordResponse;
@@ -48,7 +53,7 @@ import com.vmware.concord.connections.ConcordConnectionPool;
  */
 @Controller
 @ComponentScan("com.vmware.concord.connections")
-public final class EthDispatcher {
+public final class EthDispatcher extends TextWebSocketHandler {
     private static final long serialVersionUID = 1L;
     public static long netVersion;
     public static boolean netVersionSet;
@@ -72,6 +77,69 @@ public final class EthDispatcher {
 
         standardHeaders = new HttpHeaders();
         standardHeaders.setContentType(MediaType.APPLICATION_JSON_UTF8);
+    }
+
+    /**
+     * Handling websocket requests.
+     */
+    @Override
+    public void handleTextMessage(WebSocketSession session, TextMessage message)
+            throws InterruptedException, IOException {
+        ThreadContext.put("organization_id", "1234");
+        ThreadContext.put("consortium_id", "1234");
+        ThreadContext.put("method", "websocket");
+        ThreadContext.put("uri", "/ws");
+        JSONAware aware = getResponse(message.getPayload());
+        session.sendMessage(new TextMessage(aware.toJSONString()));
+    }
+
+    /**
+     * Builds the response for sending to client.
+     */
+    public JSONAware getResponse(String paramString) {
+        JSONArray batchRequest = null;
+        JSONArray batchResponse = new JSONArray();
+        JSONParser parser = new JSONParser();
+        JSONAware responseBody;
+        boolean isBatch = false;
+        try {
+            logger.debug("Request Parameters: " + paramString);
+
+            // If we receive a single request, add it to a JSONArray for the sake
+            // of uniformity.
+            if (paramString.startsWith("[")) {
+                isBatch = true;
+                batchRequest = (JSONArray) parser.parse(paramString);
+                if (batchRequest == null || batchRequest.size() == 0) {
+                    throw new Exception("Invalid request");
+                }
+            } else {
+                batchRequest = new JSONArray();
+                batchRequest.add(parser.parse(paramString));
+            }
+
+            for (Object params : batchRequest) {
+                JSONObject requestParams = (JSONObject) params;
+
+                // Dispatch requests to the corresponding handlers
+                batchResponse.add(dispatch(requestParams));
+            }
+            if (isBatch) {
+                responseBody = batchResponse;
+            } else {
+                responseBody = (JSONObject) batchResponse.get(0);
+            }
+        } catch (ParseException e) {
+            logger.error("Invalid request", e);
+            responseBody = errorMessage("Unable to parse request", -1, jsonRpc);
+        } catch (Exception e) {
+            logger.error(ApiHelper.exceptionToString(e));
+            responseBody = errorMessage(e.getMessage(), -1, jsonRpc);
+        } finally {
+            ThreadContext.clearAll();
+        }
+        logger.debug("Response: " + responseBody.toJSONString());
+        return responseBody;
     }
 
     /**
@@ -162,7 +230,6 @@ public final class EthDispatcher {
         JSONArray batchRequest = null;
         JSONArray batchResponse = new JSONArray();
         JSONParser parser = new JSONParser();
-        JSONAware responseBody;
         boolean isBatch = false;
         ResponseEntity<JSONAware> responseEntity;
         // TODO change the organization_id and consortium_id to real ones in future
@@ -170,42 +237,7 @@ public final class EthDispatcher {
         ThreadContext.put("consortium_id", "1234");
         ThreadContext.put("method", "POST");
         ThreadContext.put("uri", "/");
-        try {
-            logger.debug("Request Parameters: " + paramString);
-
-            // If we receive a single request, add it to a JSONArray for the sake
-            // of uniformity.
-            if (paramString.startsWith("[")) {
-                isBatch = true;
-                batchRequest = (JSONArray) parser.parse(paramString);
-                if (batchRequest == null || batchRequest.size() == 0) {
-                    throw new Exception("Invalid request");
-                }
-            } else {
-                batchRequest = new JSONArray();
-                batchRequest.add(parser.parse(paramString));
-            }
-
-            for (Object params : batchRequest) {
-                JSONObject requestParams = (JSONObject) params;
-
-                // Dispatch requests to the corresponding handlers
-                batchResponse.add(dispatch(requestParams));
-            }
-            if (isBatch) {
-                responseBody = batchResponse;
-            } else {
-                responseBody = (JSONObject) batchResponse.get(0);
-            }
-        } catch (ParseException e) {
-            logger.error("Invalid request", e);
-            responseBody = errorMessage("Unable to parse request", -1, jsonRpc);
-        } catch (Exception e) {
-            logger.error(ApiHelper.exceptionToString(e));
-            responseBody = errorMessage(e.getMessage(), -1, jsonRpc);
-        } finally {
-            ThreadContext.clearAll();
-        }
+        JSONAware responseBody = getResponse(paramString);
         logger.debug("Response: " + responseBody.toJSONString());
         return new ResponseEntity<>(responseBody, standardHeaders, HttpStatus.OK);
     }

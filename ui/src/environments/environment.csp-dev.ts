@@ -5,4 +5,5 @@
 export const environment = {
   production: false,
   csp: true,
+  loginPath: '/api/oauth/login'
 };

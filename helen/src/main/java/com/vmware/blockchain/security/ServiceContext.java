@@ -9,10 +9,10 @@ import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
+import com.vmware.blockchain.auth.AuthenticationContext;
 import com.vmware.blockchain.services.profiles.Roles;
 
 /**
@@ -31,12 +31,10 @@ public class ServiceContext {
     private static final String ANON_USER = "Anonymous User";
 
     @Autowired
-    public ServiceContext(@Value("${vmb.service.id}") UUID serviceId,
-            @Value("${vmb.service.name}") String serviceName) {
-        this.systemDetails = new HelenUserDetails(serviceId, serviceName, "", true, true, true, true,
-                Collections.singletonList(Roles.SYSTEM));
-        this.anonymousDetails = new HelenUserDetails(ANON_ID, ANON_USER, "", true, true, true, true,
-                Collections.singletonList(Roles.ANONYMOUS));
+    public ServiceContext(@Value("${vmbc.service.id}") UUID serviceId,
+            @Value("${vmbc.service.name}") String serviceName) {
+        this.systemDetails = new HelenUserDetails(serviceId, serviceName, Collections.singletonList(Roles.SYSTEM));
+        this.anonymousDetails = new HelenUserDetails(ANON_ID, ANON_USER, Collections.singletonList(Roles.ANONYMOUS));
     }
 
     /**
@@ -44,7 +42,7 @@ public class ServiceContext {
      */
     public void setSystemContext() {
         SecurityContextHolder.getContext().setAuthentication(
-                new UsernamePasswordAuthenticationToken(systemDetails, "", systemDetails.getAuthorities()));
+                new AuthenticationContext(systemDetails, systemDetails.getAuthorities()));
     }
 
 
@@ -53,7 +51,7 @@ public class ServiceContext {
      */
     public void setAnonymousContext() {
         SecurityContextHolder.getContext().setAuthentication(
-                new UsernamePasswordAuthenticationToken(anonymousDetails, "", anonymousDetails.getAuthorities()));
+                new AuthenticationContext(anonymousDetails, anonymousDetails.getAuthorities()));
     }
 
 

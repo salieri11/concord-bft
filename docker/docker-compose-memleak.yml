@@ -6,8 +6,11 @@ services:
       - /tmp:/tmp
       - ./tls_certs:/concord/tls_certs:ro
   helen:
+    volumes:
+      - ./config-helen:/config:ro
     command:
       - java
+      - -Dspring.config.location=/config/app/profiles/,./
       - -Dspring.profiles.active=test
       - -jar
       - blockchain-helen.jar

@@ -1,9 +1,13 @@
 # Helper file with common utility methods
 import os
 import yaml
+import json
 import shutil
 import logging
 import paramiko
+import subprocess
+from . import numbers_strings
+from . import product as p
 
 log = logging.getLogger(__name__)
 docker_env_file = ".env"
@@ -108,3 +112,79 @@ def ssh_connect(host, username, password, command):
       raise
 
    return resp
+
+def execute_ext_command(command):
+   '''
+   Helper method to execute an external command
+   :param command: command to be executed
+   :return: True if command exit status is 0, else False
+   '''
+   log.info("Executing external command: {}".format(command))
+
+   completedProcess = subprocess.run(command, stdout=subprocess.PIPE,
+                                     stderr=subprocess.STDOUT)
+   try:
+      completedProcess.check_returncode()
+      log.debug("stdout: {}".format(
+         completedProcess.stdout.decode().replace(os.linesep, "")))
+      if completedProcess.stderr:
+         log.info("stderr: {}".format(completedProcess.stderr))
+   except subprocess.CalledProcessError as e:
+      log.error(
+         "Command '{}' failed to execute: {}".format(command, e.returncode))
+      log.error("stdout: '{}', stderr: '{}'".format(completedProcess.stdout,
+                                                    completedProcess.stderr))
+      return False
+
+   return True
+
+def undeploy_blockchain_cluster(provisioning_config_file, grpc_server, session_id_json):
+   '''
+   Helper method to undeploy blockchain cluster deployed by deployment service
+   :param provisioning_config_file: provisioning service config file
+   :param grpc_server: provisioning service:port gRPC server
+   :param session_id_json: deployment session ID
+   :return: True if successful, else False
+   '''
+
+   if session_id_json:
+      log.info("Undeploying session ID: {}".format(session_id_json))
+
+      undeploy_docker_container = p.Product.PERSEPHONE_PROVISIONING_CLIENT_UNDEPLOY_DOCKER_REPO
+      undeploy_docker_container_tag = p.Product.PERSEPHONE_PROVISIONING_CLIENT_UNDEPLOY_DOCKER_TAG
+      provisioning_config_file_abspath = os.path.abspath(provisioning_config_file)
+      undeploy_command = ["docker",
+                          "run",
+                          "--net=host",
+                          "-v"
+                          "{}:{}".format(provisioning_config_file_abspath, provisioning_config_file_abspath),
+                          "{}:{}".format(undeploy_docker_container, undeploy_docker_container_tag),
+                          "deleteCluster"
+                          ]
+      undeploy_command_params = [
+         str(numbers_strings.to_signed_int(int(session_id_json[0]["low"]))),
+         str(numbers_strings.to_signed_int(int(session_id_json[0]["high"]))),
+         provisioning_config_file_abspath, grpc_server]
+      command_to_execute = undeploy_command + undeploy_command_params
+      log.debug("Executing Undeploy command: {}".format(command_to_execute))
+
+      return execute_ext_command(command_to_execute)
+
+   return True
+
+def protobuf_message_to_json(message_obj):
+   '''
+   Helper method to convert a protobuf message to json
+   :param message_obj: protobuf message
+   :return: json
+   '''
+   from google.protobuf.json_format import MessageToJson
+   if isinstance(message_obj, (list,)):
+      list_of_json_objects = []
+      for message in message_obj:
+         json_object = json.loads(MessageToJson(message))
+         list_of_json_objects.append(json_object)
+      return list_of_json_objects
+   else:
+      json_object = json.loads(MessageToJson(message_obj))
+      return json_object

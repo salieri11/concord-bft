@@ -39,7 +39,20 @@
         </repository>
         <repository>
             <!-- Use VMware Artifactory for first-party artifacts. -->
-            <id>blockchain-snapshot</id>
+            <id>athena-release</id>
+            <name>athena</name>
+            <url>https://build-artifactory.eng.vmware.com/artifactory/athena-maven-release/</url>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+            <releases>
+                <checksumPolicy>fail</checksumPolicy>
+            </releases>
+        </repository>
+        <repository>
+            <!-- Use VMware Artifactory for first-party artifacts. -->
+            <id>athena-snapshot</id>
+            <name>athena</name>
             <url>https://build-artifactory.eng.vmware.com/artifactory/athena-maven-snapshot/</url>
             <snapshots>
                 <enabled>true</enabled>

@@ -18,13 +18,11 @@ import * as Vivus from 'vivus';
 export class MarketingComponent implements OnInit {
   logo: Vivus;
   onGoing: Vivus;
-
   constructor(
     private authenticationService: AuthenticationService,
     private router: Router,
     private blockchainService: BlockchainService,
   ) {
-
   }
 
   ngOnInit() {

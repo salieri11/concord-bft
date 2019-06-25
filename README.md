@@ -21,7 +21,7 @@ pre-built images produced by our CI/CD pipeline.
 ## Building via Docker
 
 The easiest way to use this system is via docker. Please install the
-(community edition)[https://www.docker.com/community-edition].
+(community edition)[https://docs.docker.com/install/linux/docker-ce/ubuntu/].
 
 > Note: The build instructions listed here was verified with Docker
 > 18.09+. There are known issues with the current set of build

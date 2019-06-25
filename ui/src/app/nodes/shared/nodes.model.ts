@@ -11,4 +11,21 @@ export interface Node {
   address: string;
   millis_since_last_message: number;
   millis_since_last_message_threshold: number;
+  health?: boolean;
+  healthHTML?: string;
+  id?: string;
+  organization?: string;
+  location?: string;
+  geo?: string;
+}
+
+export interface NodeProperties {
+  location: string;
+  geo: string;
+  nodes: Node[];
+}
+
+export interface NodesResponse {
+  nodes: Node[];
+  nodesByLocation: NodeProperties[];
 }

@@ -53,6 +53,10 @@ do
         SERVICE=${SERVICE_REPO%_repo}
         IMAGE_BASE_NAME=`echo ${LINE} | cut -d "=" -f 2 -`
 
+        if [[ ${SERVICE} == daml_ledgerapi ]]; then
+            continue
+        fi
+
         # try not to double-up artifactory prefixes if someone runs this twice
         if [[ $IMAGE_BASE_NAME =~ $ARTIFACTORY_BASE_IMAGE_PATH ]]; then
             IMAGE_BASE_NAME=`echo ${IMAGE_BASE_NAME} | cut -d "/" -f 2 -`

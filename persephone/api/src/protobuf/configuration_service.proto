@@ -1,0 +1,128 @@
+/* [START declaration] */
+syntax = "proto3";
+package com.vmware.blockchain.deployment.model;
+
+import "core.proto";
+import "security_identity.proto";
+
+/* [START java_declaration] */
+option java_package = "com.vmware.blockchain.deployment.model";
+option java_multiple_files = true;
+/* [END java_declaration] */
+
+/* [START messages] */
+
+/**
+* Denotes the type of identity - ethrpc/tls/etc
+* Note: This will later move outside to be leveraged by concord model
+*
+* @property[DockerType]
+*   docker image type - concord or ethrpc
+*/
+message ConfigurationServiceType {
+    enum DockerType {
+        UNKNOWN = 0;
+        CONCORD_TLS = 1;
+        ETHRPC = 2;
+    }
+}
+
+/**
+* Denotes the configuration component
+*
+* @param[type]
+*  Type of the docker component
+* @param[component_url]
+*   String url where the component should reside
+* @param[component]
+*   String value of the component
+* @param [identity_factors]
+*   Algorithms and curves used if used
+*   Note: this is only for testing purpose. In future, this could
+*   be an input to generator to generate certain type of certs (RSA/EC)
+*/
+message ConfigurationComponent {
+    ConfigurationServiceType.DockerType type = 1;
+    string component_url = 2;
+    string component = 3;
+    IdentityFactors identity_factors = 4;
+}
+
+/**
+ * Model definition for ConfigurationService request.
+ *
+ * @property[header]
+ *   message header.
+ * @property[hostIps]
+ *   list of host ips for the cluster
+ */
+message ConfigurationServiceRequest {
+    MessageHeader header = 1;
+    repeated string hosts = 2;
+}
+
+/**
+ * Model definition for metadata server configuration settings.
+ *
+ * @property[port]
+ *   port number to use for server instance.
+ * @property[transport_security]
+ *   transport security setting.
+ */
+message ConfigurationServerConfiguration {
+    int32 port = 1;
+    TransportSecurity transport_security = 2;
+}
+
+/**
+ * Denote the identifier of a configuration session.
+ *
+ * @property[identifier]
+ *   integer identifier;
+ */
+message ConfigurationSessionIdentifier {
+    int64 identifier = 1;
+}
+
+/**
+* Denote the node configuration response
+*
+* @property[IdentityComponent]
+*   list of IdentityComponent
+*/
+message NodeConfigurationResponse {
+    repeated ConfigurationComponent configurationComponent = 1;
+}
+
+/**
+* Denote the node configuration request
+*
+* @property[identifier]
+*   the session identifier
+* @property[node]
+*   the node id whose configuration is needed
+*/
+message NodeConfigurationRequest {
+    MessageHeader header = 1;
+    ConfigurationSessionIdentifier identifier = 2;
+    int32 node = 3;
+}
+
+/* [END messages] */
+/* [START services] */
+/**
+ * Service definition pertaining to operations on Concord configurations.
+ */
+service ConfigurationService {
+    /**
+     * Operation to generate Tls key/certificate pairs for each node in a cluster
+     * based on a [TlsConfigurationServiceRequest].
+     */
+    rpc CreateConfiguration (ConfigurationServiceRequest) returns (ConfigurationSessionIdentifier);
+
+    /**
+    * Operation to get node configuration for given node
+    */
+    rpc GetNodeConfiguration (NodeConfigurationRequest) returns (NodeConfigurationResponse);
+}
+/* [END services] */

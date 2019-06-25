@@ -1,0 +1,76 @@
+{
+  "name": "Blockchain Service Base",
+  "displayName": "Blockchain Management Service",
+  "descriptionLong": "Base Template for Blockchain Services",
+  "productIdentifier": "VMBC",
+  "visible": true,
+  "subscriptionLifecycleEventHandlers": {
+    "onFulfillment": "http://localhost:8080/api/callbacks/csp/subscription/fulfill",
+    "onExpiration": "http://localhost:8080/api/callbacks/csp/subscription/expire",
+    "onCancellation": "http://localhost:8080/api/callbacks/csp/subscription/cancel"
+  },
+  "serviceUrls": {
+    "offerConfiguration": "http://localhost:8080/vmc/ss/invitations/business-plan-invite",
+    "serviceHome": "http://192.168.73.134",
+    "requestAccess": "https://console-stg.cloud.vmware.com/sales-request"
+  },
+  "serviceRoles": [
+    {
+      "refLink": "/csp/gateway/slc/api/definitions/external/0eeff270-2f7a-4d9f-b161-659fb4e61160/service-roles/vmbc-org:user",
+      "name": "vmbc-org:user",
+      "displayName": "Blockchain Org User",
+      "status": "ACTIVE",
+      "isHidden": false,
+      "isDefault": true
+    },
+    {
+      "refLink": "/csp/gateway/slc/api/definitions/external/0eeff270-2f7a-4d9f-b161-659fb4e61160/service-roles/vmbc-org:dev",
+      "name": "vmbc-org:dev",
+      "displayName": "Blockchain Org Developer",
+      "status": "ACTIVE",
+      "isHidden": false,
+      "isDefault": false
+    },
+    {
+      "refLink": "/csp/gateway/slc/api/definitions/external/0eeff270-2f7a-4d9f-b161-659fb4e61160/service-roles/vmbc-org:admin",
+      "name": "vmbc-org:admin",
+      "displayName": "Blockchain Org Admin",
+      "status": "ACTIVE",
+      "isHidden": false,
+      "isDefault": false
+    },
+    {
+      "refLink": "/csp/gateway/slc/api/definitions/external/0eeff270-2f7a-4d9f-b161-659fb4e61160/service-roles/vmbc-consortium:admin",
+      "name": "vmbc-consortium:admin",
+      "displayName": "Blockchain Consortium Admin",
+      "status": "ACTIVE",
+      "isHidden": false,
+      "isDefault": false
+    },
+    {
+      "refLink": "/csp/gateway/slc/api/definitions/external/0eeff270-2f7a-4d9f-b161-659fb4e61160/service-roles/vmbc-system:admin",
+      "name": "vmbc-system:admin",
+      "displayName": "Blockchain System Admin",
+      "status": "ACTIVE",
+      "isHidden": false,
+      "isDefault": false
+    }
+  ],
+  "organizationLink": "/csp/gateway/am/api/orgs/ab29b4a8-40c8-4173-ba74-15e76f8f35e0",
+  "documentSelfLink": "/csp/gateway/slc/api/definitions/external/0eeff270-2f7a-4d9f-b161-659fb4e61160",
+  "healthCheckURL": "/api/management/health",
+  "campaignId": null,
+  "serviceIcon": null,
+  "serviceNavBarIcon": null,
+  "subscriptionStatusChangeNotificationUrl": "http://localhost:8080/api/callbacks/csp/v2/subscription/notify",
+  "orderCreatedNotifyUrl": null,
+  "billingEngine": "SDP",
+  "supportedBillingEngines": [],
+  "usageModel": "SUBSCRIPTION",
+  "assignedInstance": null,
+  "serviceType": "PAID",
+  "trialDetails": null,
+  "isPrimary": false,
+  "isBeta": false,
+  "isGated": true
+}

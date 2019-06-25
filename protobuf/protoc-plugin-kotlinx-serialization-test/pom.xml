@@ -31,6 +31,11 @@
             <artifactId>grpc-runtime-kotlinx-serialization</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>com.vmware.blockchain.protobuf</groupId>
+            <artifactId>protobuf-runtime-kotlinx-serialization</artifactId>
+            <scope>test</scope>
+        </dependency>
         <!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         ~ External test dependencies.                               ~
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->

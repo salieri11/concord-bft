@@ -18,12 +18,13 @@ import javax.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.Cacheable;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.stereotype.Component;
 
+import com.vmware.blockchain.auth.AuthenticationContext;
+import com.vmware.blockchain.common.Constants;
 import com.vmware.blockchain.common.ErrorCode;
 import com.vmware.blockchain.common.UnauthorizedException;
 import com.vmware.blockchain.services.blockchains.BlockchainService;
@@ -113,7 +114,7 @@ public class JwtTokenProvider {
      * Return an Authentication for the give token.  Note that this always returns a value.
      * Throws HelenException if anything is wrong.
      */
-    @Cacheable("TokenCache")
+    @Cacheable(Constants.TOKEN_CACHE)
     public Authentication getAuthentication(String token) {
         // throws exception if token not valid
         Claims claims = validateToken(token);
@@ -135,7 +136,7 @@ public class JwtTokenProvider {
                         .map(b -> b.getId()).distinct().collect(Collectors.toList());
         userDetails.setPermittedChains(ids);
 
-        return new UsernamePasswordAuthenticationToken(userDetails, "", authorities);
+        return new AuthenticationContext(userDetails,  authorities);
     }
 
     /**

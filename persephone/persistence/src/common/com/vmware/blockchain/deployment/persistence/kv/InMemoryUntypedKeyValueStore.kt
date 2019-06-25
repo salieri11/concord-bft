@@ -11,6 +11,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.SendChannel
 import kotlinx.coroutines.launch
+import kotlinx.serialization.KSerializer
 import kotlin.coroutines.CoroutineContext
 
 /**
@@ -22,8 +23,9 @@ import kotlin.coroutines.CoroutineContext
  *   coroutine context to use as basis for underlying coroutine-based operations.
  */
 class InMemoryUntypedKeyValueStore<T : Version<T>>(
-    context: CoroutineContext = Dispatchers.Default
-) : AbstractUntypedKeyValueStore<T>(context) {
+    context: CoroutineContext = Dispatchers.Default,
+    versionSerializer: KSerializer<T>
+) : AbstractUntypedKeyValueStore<T>(context, versionSerializer) {
 
     /**
      * An actor coroutine that maintains internal in-memory versioned key-value storage as state.
@@ -78,7 +80,7 @@ class InMemoryUntypedKeyValueStore<T : Version<T>>(
                     is UntypedKeyValueStore.Request.Delete<T> -> {
                         val existing = storage[message.key]
                         val responseMessage: UntypedKeyValueStore.Response<T> = when {
-                            existing == null -> UntypedKeyValueStore.Response.Set(Versioned.None)
+                            existing == null -> UntypedKeyValueStore.Response.Delete(Versioned.None)
                             existing.version == message.expected -> {
                                 storage.remove(message.key, existing)
                                 Event.DeleteEvent<Value, Value, T>(message.key, existing.version)

@@ -144,7 +144,6 @@ buildMavenTargets(){
   dieOnFailure "Maven" ${MVN_BUILD}
 }
 
-
 install_node_dependency() {
   NAME="${1}"
   COMPONENT_DIR="${2}"
@@ -304,19 +303,31 @@ docker_build ethrpc ethrpc/packaging.Dockerfile ${ethrpc_repo} ${ethrpc_tag}
 
 docker_build helen helen/packaging.Dockerfile ${helen_repo} ${helen_tag}
 
-docker_build persephone persephone/metadata-service/Dockerfile ${persephone_metadata_repo} ${persephone_tag}
-docker_build . persephone/provision-service/Dockerfile ${persephone_provisioning_repo} ${persephone_tag}
+docker_build persephone persephone/metadata-service/Dockerfile ${persephone_metadata_repo} ${persephone_metadata_tag}
+docker_build . persephone/provisioning-service/Dockerfile ${persephone_provisioning_repo} ${persephone_provisioning_tag}
 # docker_build persephone persephone/fleet/Dockerfile ${persephone_fleet_repo} ${persephone_tag}
+# Docker build for persephone - undeploy CLI
+docker_build persephone persephone/provision-client/Dockerfile ${persephone_provisioning_client_repo} ${persephone_provisioning_client_tag}
 
 docker_pull cockroachdb/cockroach:v2.0.2 Cockroach_DB
 
 docker_pull athena-docker-local.artifactory.eng.vmware.com/reverse-proxy:0.1.2 "Reverse_proxy"
 
-docker_build asset-transfer asset-transfer/Dockerfile ${asset_transfer_repo} ${asset_transfer_tag}
+docker_build vmware-blockchain-samples/asset-transfer vmware-blockchain-samples/asset-transfer/Dockerfile ${asset_transfer_repo} ${asset_transfer_tag}
 
 docker_build agent agent/packaging.Dockerfile ${agent_repo} ${agent_tag}
 
 docker_build contract-compiler contract-compiler/Dockerfile ${contract_compiler_repo} ${contract_compiler_tag}
+
+docker_build submodules/hlf-chaincode-engine submodules/hlf-chaincode-engine/Dockerfile-tools ${hlf_tools_repo} ${hlf_tools_tag}
+
+docker_build submodules/hlf-chaincode-engine submodules/hlf-chaincode-engine/Dockerfile-peer ${hlf_peer_repo} ${hlf_peer_tag}
+
+docker_build submodules/hlf-chaincode-engine submodules/hlf-chaincode-engine/Dockerfile-orderer ${hlf_orderer_repo} ${hlf_orderer_tag}
+
+docker_build daml daml/DockerfileLedgerApi ${daml_ledger_api_repo} ${daml_ledger_api_tag}
+
+docker_build daml daml/DockerfileExecutionEngine ${daml_execution_engine_repo} ${daml_execution_engine_tag}
 
 BuildPersephoneGRPCpyBindings
 

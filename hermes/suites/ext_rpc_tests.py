@@ -398,7 +398,7 @@ class ExtendedRPCTests(test_suite.TestSuite):
       if not self._productMode:
          log.warn("No verification done in ethereum mode")
       else:
-         blockchainId = request.getABlockchainId()
+         blockchainId = request.getBlockchains()[0]["id"]
          tx = request.getTransaction(blockchainId, txResult)
          if not tx:
             return (False, "No transaction receipt found")
@@ -573,7 +573,7 @@ class ExtendedRPCTests(test_suite.TestSuite):
       if not self._productMode:
          log.warn("No verification done in ethereum mode")
       else:
-         blockchainId = request.getABlockchainId()
+         blockchainId = request.getBlockchains()[0]["id"]
          tx = request.getTransaction(blockchainId, txResult)
          if not tx:
             return (False, "No transaction receipt found")
@@ -768,8 +768,8 @@ class ExtendedRPCTests(test_suite.TestSuite):
 
       expected = [0xdeadbeef, 0xc0ffee]
       for l in logs:
-         if int(l["blockNumber"], 16) != from_block \
-            and int(l["blockNumber"], 16) != to_block:
+         if int(l["blockNumber"], 16) < from_block \
+            or int(l["blockNumber"], 16) > to_block:
             return (False, "Unexpected block")
          if len(l["topics"]) == 2:
             val = int(l["topics"][1], 16)
@@ -849,7 +849,7 @@ class ExtendedRPCTests(test_suite.TestSuite):
       if not self._productMode:
          log.warn("No verification done in ethereum mode")
       else:
-         blockchainId = request.getABlockchainId()
+         blockchainId = request.getBlockchains()[0]["id"]
          tx = request.getTransaction(blockchainId, txResult)
          if not tx:
             return (False, "No transaction receipt found")
@@ -956,7 +956,7 @@ class ExtendedRPCTests(test_suite.TestSuite):
       # transactions and blocks should be in the same order, so we can
       # just iterate and skip blocks that aren't relatvant, instead of
       # having to start the search over again every time
-      blockchainId = request.getABlockchainId()
+      blockchainId = request.getBlockchains()[0]["id"]
       blocksCopy = blocks[:]
       for t in transactions[1:]:
          tx = request.getTransaction(blockchainId, t)
@@ -1115,7 +1115,7 @@ class ExtendedRPCTests(test_suite.TestSuite):
          log.warn("No verification done in ethereum mode")
       else:
          hexstring = txResult.hex()
-         blockchainId = request.getABlockchainId()
+         blockchainId = request.getBlockchains()[0]["id"]
          tx = request.getTransaction(blockchainId, hexstring)
          if not tx:
             return (False, "No transaction receipt found")

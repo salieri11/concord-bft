@@ -4,6 +4,7 @@
 
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 import { FormsModule } from '@angular/forms';
+import { NgxChartsModule } from '@swimlane/ngx-charts';
 
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { RouterTestingModule } from '@angular/router/testing';
@@ -26,6 +27,7 @@ import { DashboardListComponent } from '../dashboard-list/dashboard-list.compone
 
 import { WorldMapComponent } from '../../graphs/world-map/world-map.component';
 import { TourService } from '../../shared/tour.service';
+import { VmwClarityThemeService } from './../../shared/theme.provider';
 
 describe('DashboardComponent', () => {
   let component: DashboardComponent;
@@ -37,7 +39,8 @@ describe('DashboardComponent', () => {
         RouterTestingModule,
         HttpClientTestingModule,
         MockSharedModule,
-        FormsModule
+        FormsModule,
+        NgxChartsModule,
       ],
       declarations: [
         DashboardComponent,
@@ -51,12 +54,14 @@ describe('DashboardComponent', () => {
         VmwAccordionComponent,
         VmwAccordionGroupComponent,
         VmwCopyToClipboardButtonComponent,
-        DashboardListComponent
+        DashboardListComponent,
+
       ],
       providers: [
         VmwTasksService,
         TourService,
         NgxTourService,
+        VmwClarityThemeService,
         {
           provide: ActivatedRoute,
           useValue: {

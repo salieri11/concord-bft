@@ -1,0 +1,264 @@
+/* [START declaration] */
+syntax = "proto3";
+package com.vmware.blockchain.deployment.model;
+
+import "concord_cluster.proto";
+import "concord_model.proto";
+import "core.proto";
+import "ethereum.proto";
+import "orchestration.proto";
+/* [END declaration] */
+
+/* [START java_declaration] */
+option java_package = "com.vmware.blockchain.deployment.model";
+option java_multiple_files = true;
+/* [END java_declaration] */
+
+/* [START messages] */
+/**
+ * Model definition of Concord cluster placement specification.
+ *
+ * @property[entries]
+ *   list of placement entries mapping node deployment to orchestration site targets. The
+ *   positional sequence in the collection corresponds to the index of the Concord replica to be
+ *   placed.
+ */
+message PlacementSpecification {
+    /**
+     * Type of placement strategy to use for a given Concord node in [PlacementSpecification].
+     */
+    enum Type {
+        UNSPECIFIED = 0;
+        FIXED = 1;
+    }
+
+    /**
+     * Model definition of a Concord node placement in [PlacementSpecification].
+     *
+     * @property[type]
+     *   type of placement strategy to utilize for this node slot.
+     * @property[site]
+     *   orchestration site to use as deployment target for the node corresponding to the slot.
+     */
+    message Entry {
+        Type type = 1;
+        OrchestrationSiteIdentifier site = 2;
+    }
+
+    repeated Entry entries = 1 [packed=false];
+}
+
+/**
+ * Model definition of a Concord node placement assignment derived from [PlacementSpecification].
+ *
+ * @property[entries]
+ *   list of placement assignments mapping node deployment to orchestration site targets. The
+ *   positional sequence in the collection corresponds to the index of the Concord replica to be
+ *   placed.
+ */
+message PlacementAssignment {
+    /**
+     * Model definition of a Concord node placement in [PlacementAssignment].
+     *
+     * @property[node]
+     *   identifier of the Concord node replica that is placed.
+     * @property[site]
+     *   orchestration site used as deployment target for the node corresponding to the slot.
+     */
+    message Entry {
+        ConcordNodeIdentifier node = 1;
+        OrchestrationSiteIdentifier site = 2;
+    }
+
+    repeated Entry entries = 1 [packed=false];
+}
+
+/**
+ * Model definition of cluster deployment specification.
+ *
+ * @property[cluster_size]
+ *   size of the cluster to deploy.
+ * @property[model]
+ *   versioned Concord model to use for nodes in the cluster.
+ * @property[placement]
+ *   cluster placement specification.
+ */
+message DeploymentSpecification {
+    uint32 cluster_size = 1;
+    ConcordModelSpecification model = 2;
+    PlacementSpecification placement = 3;
+    ethereum.Genesis genesis = 4;
+}
+
+/**
+ * Denote the identifier of a deployment session.
+ *
+ * @property[low]
+ *   lower order bits of a 128-bit identifier;
+ * @property[high]
+ *   higher order bits of a 128-bit identifier;
+ */
+message DeploymentSessionIdentifier {
+    uint64 low = 1;
+    uint64 high = 2;
+}
+
+/**
+ * Model definition of a deployment session.
+ *
+ * @property[id]
+ *   identifier for this deployment session.
+ * @property[specification]
+ *   deployment specification used to carry out the operation associated with this session.
+ * @property[cluster]
+ *   identifier of the Concord cluster associated with this deployment session.
+ * @property[assignment]
+ *   reified node placement derived from deployment specification.
+ * @property[complete]
+ *   terminal indicator for the deployment session (whether successful or failure).
+ * @property[events]
+ *   deployment events occurred in this deployment session.
+ */
+message DeploymentSession {
+    /**
+     * Status of a [DeploymentSession].
+     */
+    enum Status {
+        UNKNOWN = 0; // Default value, should not be used.
+        ACTIVE = 1; // Session is still on-going and has not reached final state.
+        SUCCESS = 2; // Session has completed without error.
+        FAILURE = 3; // Session has completed with error.
+    }
+
+    DeploymentSessionIdentifier id = 1;
+    DeploymentSpecification specification = 2;
+    ConcordClusterIdentifier cluster = 3;
+    PlacementAssignment assignment = 4;
+    Status status = 5;
+    repeated DeploymentSessionEvent events = 6 [packed=false];
+}
+
+/**
+ * Model definition for events pertaining to a [DeploymentSession].
+ *
+ * @property[header]
+ *   message header.
+ * @property[type]
+ *   type of event.
+ * @property[session]
+ *   identifier for the cluster deployment session.
+ * @property[node]
+ *   Concord node information for node-related events.
+ * @property[cluster]
+ *   Concord cluster information for the created cluster resource.
+ */
+message DeploymentSessionEvent {
+    /**
+     * Type of [DeploymentSessionEvent] emitted.
+     */
+    enum Type {
+        NOOP = 0; // Default value, should not be used.
+        ACKNOWLEDGED = 1; // Request acknowledged (session associated with [deployment] is recorded).
+        COMPLETED = 2; // Session completed (plan associated with [deployment] is marked complete).
+        RESOURCE = 3; // Resource provisioned event. (INTERNAL USE FOR INFRASTRUCTURE MANAGEMENT)
+        NODE_DEPLOYED = 4; // Node specified by [node] is deployed.
+        NODE_STATUS = 5; // Status update for a node specified in [node_status].
+        CLUSTER_DEPLOYED = 6; // Cluster specified by [cluster] is fully deployed.
+    }
+
+    Type type = 1;
+    DeploymentSessionIdentifier session = 2;
+    DeploymentSession.Status status = 3; /* type == ACKNOWLEDGED | COMPLETED */
+    ProvisionedResource resource = 4; /* type == RESOURCE */
+    ConcordNode node = 5; /* type == NODE_DEPLOYED */
+    ConcordNodeStatus node_status = 6; /* type == NODE_STATUS */
+    ConcordCluster cluster = 7; /* type == CLUSTER_DEPLOYED */
+}
+
+/**
+ * Model definition for a resource provisioned from an orchestration site.
+ *
+ * @property[name]
+ *   name of the resource.
+ * @property[site]
+ *   identifier of the hosting orchestration site.
+ * @property[cluster]
+ *   identifier of the Concord cluster that the resource is provisioned for.
+ * @property[node]
+ *   identifier of the Concord node that the resource is provisioned for.
+ */
+message ProvisionedResource {
+    enum Type {
+        GENERIC = 0; // Default value, denoting an unspecified resource type.
+        COMPUTE_RESOURCE = 1; // Compute resource (e.g. VM, kubernetes POD).
+        NETWORK_RESOURCE = 2; // Network resource (e.g. IP address).
+        NETWORK_ALLOCATION = 3; // Network allocation (e.g. NAT rules, kubernetes cluster IP).
+    }
+
+    Type type = 1;
+    string name = 2;
+    OrchestrationSiteIdentifier site = 3;
+    ConcordClusterIdentifier cluster = 4;
+    ConcordNodeIdentifier node = 5;
+}
+
+/**
+ * Request definition for operation to create a Concord cluster.
+ *
+ * @property[header]
+ *   message header.
+ * @property[specification]
+ *   cluster deployment specification.
+ */
+message CreateClusterRequest {
+    MessageHeader header = 1;
+    DeploymentSpecification specification = 2;
+}
+
+/**
+ * Request definition for operation to retrieve [DeploymentEvent]s related to a deployment session.
+ *
+ * @property[header]
+ *   message header.
+ * @property[session]
+ *   identifier for the cluster deployment session.
+ */
+message StreamClusterDeploymentSessionEventRequest {
+    MessageHeader header = 1;
+    DeploymentSessionIdentifier session = 2;
+}
+
+/**
+ * Model definition for provisioning server configuration settings.
+ *
+ * @property[port]
+ *   port number to use for server instance.
+ * @property[transport_security]
+ *   transport security setting.
+ * @property[sites]
+ *   list of orchestration sites to utilize for provisioning resources.
+ */
+message ProvisioningServerConfiguration {
+    int32 port = 1;
+    TransportSecurity transport_security = 2;
+    repeated OrchestrationSite sites = 3 [packed=false];
+}
+/* [END messages] */
+
+/* [START services] */
+/**
+ * Service definition pertaining to operations on Concord cluster provisioning.
+ */
+service ProvisioningService {
+    /**
+     * Operation to create a cluster based on a [CreateClusterRequest].
+     */
+    rpc CreateCluster (CreateClusterRequest) returns (DeploymentSessionIdentifier) {};
+
+    /**
+     * Operation to retrieve [DeploymentSessionEvent]s of a [DeploymentSession] as a stream.
+     */
+    rpc StreamClusterDeploymentSessionEvents (StreamClusterDeploymentSessionEventRequest)
+        returns (stream DeploymentSessionEvent) {};
+}
+/* [END services] */

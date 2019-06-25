@@ -26,8 +26,11 @@
 #include "storage/blockchain_interfaces.h"
 #include "storage/rocksdb_metadata_storage.h"
 
+using bftEngine::PlainUdpConfig;
+using bftEngine::TlsTcpConfig;
+using bftEngine::SimpleBlockchainStateTransfer::BLOCK_DIGEST_SIZE;
+using bftEngine::SimpleBlockchainStateTransfer::StateTransferDigest;
 using log4cplus::Logger;
-using namespace bftEngine;
 
 using concord::storage::BlockchainDBAdapter;
 using concord::storage::BlockEntry;
@@ -212,7 +215,7 @@ ReplicaImp::ReplicaImp(CommConfig &commConfig,
       m_currentRepStatus(RepStatus::Idle),
       m_InternalStorageWrapperForIdleMode(this),
       m_bcDbAdapter(dbAdapter),
-      m_lastBlock(0),
+      m_lastBlock(dbAdapter->getLatestBlock()),
       m_replicaStateSync(replicaStateSync) {
   m_replicaConfig.cVal = replicaConfig.cVal;
   m_replicaConfig.fVal = replicaConfig.fVal;
@@ -267,7 +270,8 @@ ReplicaImp::ReplicaImp(CommConfig &commConfig,
   c.fVal = m_replicaConfig.fVal;
 
   m_appState = new BlockchainAppState(this);
-  m_stateTransfer = SimpleBlockchainStateTransfer::create(c, m_appState, false);
+  m_stateTransfer =
+      bftEngine::SimpleBlockchainStateTransfer::create(c, m_appState, false);
 }
 
 ReplicaImp::~ReplicaImp() {
@@ -297,7 +301,7 @@ Status ReplicaImp::addBlockInternal(const SetOfKeyValuePairs &updates,
   LOG4CPLUS_DEBUG(logger,
                   "addBlockInternal: Got " << updates.size() << " updates");
 
-  SimpleBlockchainStateTransfer::StateTransferDigest stDigest;
+  StateTransferDigest stDigest;
   if (block > 1) {
     Sliver parentBlockData;
     bool found;
@@ -309,12 +313,11 @@ Status ReplicaImp::addBlockInternal(const SetOfKeyValuePairs &updates,
       exit(1);
     }
 
-    SimpleBlockchainStateTransfer::computeBlockDigest(
+    bftEngine::SimpleBlockchainStateTransfer::computeBlockDigest(
         block - 1, reinterpret_cast<const char *>(parentBlockData.data()),
         parentBlockData.length(), &stDigest);
   } else {
-    memset(stDigest.content, 0,
-           SimpleBlockchainStateTransfer::BLOCK_DIGEST_SIZE);
+    memset(stDigest.content, 0, BLOCK_DIGEST_SIZE);
   }
 
   Sliver blockRaw =
@@ -527,7 +530,7 @@ void ReplicaImp::StorageWrapperForIdleMode::monitor() const {
 
 Sliver ReplicaImp::createBlockFromUpdates(
     const SetOfKeyValuePairs &updates, SetOfKeyValuePairs &outUpdatesInNewBlock,
-    SimpleBlockchainStateTransfer::StateTransferDigest &parentDigest) {
+    StateTransferDigest &parentDigest) {
   // TODO(GG): overflow handling ....
   // TODO(SG): How? Right now - will put empty block instead
 
@@ -551,10 +554,8 @@ Sliver ReplicaImp::createBlockFromUpdates(
     Sliver blockSliver(blockBuffer, blockSize);
 
     BlockHeader *header = (BlockHeader *)blockBuffer;
-    memcpy(header->parentDigest, parentDigest.content,
-           SimpleBlockchainStateTransfer::BLOCK_DIGEST_SIZE);
-    header->parentDigestLength =
-        SimpleBlockchainStateTransfer::BLOCK_DIGEST_SIZE;
+    memcpy(header->parentDigest, parentDigest.content, BLOCK_DIGEST_SIZE);
+    header->parentDigestLength = BLOCK_DIGEST_SIZE;
 
     int16_t idx = 0;
     header->numberOfElements = numOfElements;
@@ -617,36 +618,6 @@ SetOfKeyValuePairs ReplicaImp::fetchBlockData(Sliver block) {
   }
   return retVal;
 }
-
-IReplica *createReplica(CommConfig &commConfig, ReplicaConsensusConfig &config,
-                        IDBClient *db, ReplicaStateSync &replicaStateSync) {
-  LOG4CPLUS_DEBUG(Logger::getInstance("com.vmware.concord.kvb"),
-                  "Creating replica");
-  BlockchainDBAdapter *dbAdapter = new BlockchainDBAdapter(db);
-
-  auto r = new ReplicaImp(commConfig, config, dbAdapter, replicaStateSync);
-
-  // Initialization of the database object is done here so that we can
-  // read the latest block number and take a decision regarding
-  // genesis block creation.
-  Status s = db->init();
-
-  if (!s.isOK()) {
-    LOG4CPLUS_FATAL(Logger::getInstance("com.vmware.concord.kvb"),
-                    "Failure in Database Initialization, status: " << s);
-    throw ReplicaInitException("Failure in Database Initialization");
-  }
-
-  // Get the latest block count from persistence.
-  // Will always be 0 for either InMemory mode or for persistence mode
-  // when no database files exist.
-  r->m_lastBlock = dbAdapter->getLatestBlock();
-  r->m_appState->m_lastReachableBlock = dbAdapter->getLastReachableBlock();
-
-  return r;
-}
-
-void releaseReplica(IReplica *r) { delete r; }
 
 ReplicaImp::StorageIterator::StorageIterator(const ReplicaImp *r)
     : logger(log4cplus::Logger::getInstance("com.vmware.concord.kvb")), rep(r) {
@@ -771,7 +742,8 @@ Status ReplicaImp::StorageIterator::freeInternalIterator() {
  */
 ReplicaImp::BlockchainAppState::BlockchainAppState(ReplicaImp *const parent)
     : m_ptrReplicaImpl{parent},
-      m_logger{log4cplus::Logger::getInstance("blockchainappstate")} {}
+      m_logger{log4cplus::Logger::getInstance("blockchainappstate")},
+      m_lastReachableBlock{parent->getBcDbAdapter()->getLastReachableBlock()} {}
 
 /*
  * This method assumes that *outBlock is big enough to hold block content
@@ -798,8 +770,7 @@ bool ReplicaImp::BlockchainAppState::hasBlock(uint64_t blockId) {
 }
 
 bool ReplicaImp::BlockchainAppState::getPrevDigestFromBlock(
-    uint64_t blockId,
-    SimpleBlockchainStateTransfer::StateTransferDigest *outPrevBlockDigest) {
+    uint64_t blockId, StateTransferDigest *outPrevBlockDigest) {
   assert(blockId > 0);
   Sliver result;
   bool found;

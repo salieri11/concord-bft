@@ -18,6 +18,8 @@ import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.cache.ehcache.EhCacheCacheManager;
 import org.springframework.context.annotation.Bean;
 
+import com.vmware.blockchain.common.Constants;
+
 import net.sf.ehcache.config.CacheConfiguration;
 
 /**
@@ -71,13 +73,20 @@ public class Server {
         config.addCache(cacheConfiguration);
 
         CacheConfiguration tokenConfiguration = new CacheConfiguration();
-        tokenConfiguration.setName("TokenCache");
+        tokenConfiguration.setName(Constants.TOKEN_CACHE);
         tokenConfiguration.setMemoryStoreEvictionPolicy("LRU");
         tokenConfiguration.setMaxEntriesLocalHeap(500);
         tokenConfiguration.timeToIdleSeconds(TimeUnit.MINUTES.toSeconds(5));
         tokenConfiguration.timeToLiveSeconds(TimeUnit.MINUTES.toSeconds(5));
         config.addCache(tokenConfiguration);
 
+        CacheConfiguration cspTokenConfiguration = new CacheConfiguration();
+        cspTokenConfiguration.setName(Constants.CSP_TOKEN_CACHE);
+        cspTokenConfiguration.setMemoryStoreEvictionPolicy("LRU");
+        cspTokenConfiguration.setMaxEntriesLocalHeap(500);
+        cspTokenConfiguration.timeToIdleSeconds(TimeUnit.MINUTES.toSeconds(5));
+        cspTokenConfiguration.timeToLiveSeconds(TimeUnit.MINUTES.toSeconds(5));
+        config.addCache(cspTokenConfiguration);
         return net.sf.ehcache.CacheManager.newInstance(config);
     }
 

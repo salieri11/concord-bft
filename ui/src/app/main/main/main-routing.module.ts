@@ -19,12 +19,11 @@ import { transactionsRoutes } from '../../transactions/transactions-routing';
 import { loggingRoutes } from '../../logging/logging-routing';
 import { developerRoutes } from '../../developer/developer-routing';
 
-const routes: Routes = [
-  {
-    path: ':consortiumId',
 
+const routes: Routes = [{
+    path: ':consortiumId',
     component: MainComponent,
-    canActivate: [AgreementGuard],
+    canActivate: [AuthenticatedGuard, AgreementGuard],
     canActivateChild: [AuthenticatedGuard],
     children: [
       { path: 'dashboard', children: dashboardRoutes },
@@ -38,8 +37,8 @@ const routes: Routes = [
       { path: 'transactions', children: transactionsRoutes },
       { path: 'developer', children: developerRoutes },
     ]
-  }
-];
+  }];
+
 
 @NgModule({
   imports: [RouterModule.forChild(routes)],

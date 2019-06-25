@@ -15,14 +15,9 @@
       <div clrForm class="form-block blockchain-form">
         <clr-input-container>
           <label class="clr-col-12 clr-col-md-4" for="consortiumName">{{'blockchainWizard.common.consortiumName' | translate}}</label>
-          <input clrInput #consortiumInput id="consortiumName" type="text" formControlName="name" class="form-control clr-col-12 clr-col-md-8"
+          <input clrInput #consortiumInput id="consortiumName" type="text" formControlName="consortium_name" class="form-control clr-col-12 clr-col-md-8"
                  size="43" [placeholder]="'blockchainWizard.details.consortiumPlaceholder' | translate">
         </clr-input-container>
-        <clr-textarea-container>
-          <label class="clr-col-12 clr-col-md-4" for="consortiumDescription">{{'blockchainWizard.common.consortiumDescription' | translate}}</label>
-          <textarea cols="40" clrTextarea id="consortiumDescription" formControlName="description" class="form-control clr-col-12 clr-col-md-8"
-                    [placeholder]="'blockchainWizard.details.consortiumDescriptionPlaceholder' | translate"></textarea>
-        </clr-textarea-container>
         <clr-select-container>
           <label class="clr-col-12 clr-col-md-4" for="numberOfNodes">{{'blockchainWizard.common.numberOfNodes' | translate}}</label>
           <select clrSelect formControlName="numberOfNodes" class="clr-col-12 clr-col-md-8">
@@ -101,13 +96,7 @@
           {{'blockchainWizard.common.consortiumName' | translate}}
         </div>
         <div class="clr-col-8 summary-value">
-          {{ form.value.details.name }}
-        </div>
-        <div class="clr-col-4 summary-label">
-          {{'blockchainWizard.common.consortiumDescription' | translate}}
-        </div>
-        <div class="clr-col-8 summary-value">
-          {{ form.value.details.description }}
+          {{ form.value.details.consortium_name }}
         </div>
         <div class="clr-col-4 summary-label">
           {{'blockchainWizard.common.numberOfNodes' | translate}}

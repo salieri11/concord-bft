@@ -37,6 +37,10 @@
         ~ External dependencies.                                    ~
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
         <dependency>
+            <groupId>com.vmware.blockchain.protobuf</groupId>
+            <artifactId>protobuf-runtime-kotlinx-serialization</artifactId>
+        </dependency>
+        <dependency>
             <!-- Scope is provided to not propagate dependency. -->
             <groupId>org.jetbrains.kotlinx</groupId>
             <artifactId>atomicfu</artifactId>
@@ -115,6 +119,23 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-checkstyle-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>com.github.gantsign.maven</groupId>
+                <artifactId>ktlint-maven-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <executions>
+                    <!-- Special execution to also package test-jar for plug-able storage back-end
+                         modules to be able to utilize the test-driver. -->
+                    <execution>
+                        <goals>
+                            <goal>test-jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>

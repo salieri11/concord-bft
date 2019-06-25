@@ -22,14 +22,13 @@ public class CspConstants {
     public static final String CSP_ORG_API = CSP_ACCOUNT_MANAGEMENT + "/orgs";
     public static final String CSP_API_ORG_ID = CSP_ORG_API + "/{orgId}";
     public static final String CSP_USER_API = CSP_ACCOUNT_MANAGEMENT + "/users";
-    public static final String SKYSCRAPER_INSTANCE_NAME = "Skyscraper Instance";
     public static final String CSP_SERVICE_TYPES_URL = CSP_LIFECYCLE + "/definitions";
     public static final String CSP_REGISTERED_SERVICE_INSTANCES_URL = CSP_LIFECYCLE + "/services/registered/";
     public static final String CSP_SUBSCRIPTION_ACTIVATION = CSP_LIFECYCLE + "/service-subscriptions/{id}/activate";
     public static final String CSP_SUBSCRIPTION_CANCEL = CSP_LIFECYCLE + "/service-subscriptions/{id}/cancel";
     public static final String CSP_SERVICE_LIFECYCLE_ORCHESTRATION =
             CSP_LIFECYCLE + "/lifecycle/register";
-    public static final String CSP_SERVICE_DEFINTION = CSP_LIFECYCLE + "/definitions";
+    public static final String CSP_SERVICE_DEFINITION = CSP_LIFECYCLE + "/definitions";
     public static final String CSP_BUSINESS_PLAN = CSP_COMMON + "/billing/api/business-plans";
     public static final String CSP_A_BUSINESS_PLAN = CSP_COMMON + "/billing/api/business-plans/{id}";
     public static final String CSP_BUSINESS_PLAN_FOR_SERVICE = CSP_BUSINESS_PLAN + "?serviceDefinitionLink=";
@@ -61,7 +60,7 @@ public class CspConstants {
     public static final String CSP_ROLE_PREFIX = "csp:";
     public static final String CSP_ROLE_ORG_OWNER = "csp:org_owner";
     public static final String CSP_ROLE_PLATFORM_OPERATOR = "csp:platform_operator";
-    public static final String CSP_VMC_ROLE_PREFIX = "external/";
+    public static final String CSP_VMBC_ROLE_PREFIX = "external/";
 
     // Usage metering constants
     // Max size in batch of records is 100 records.
@@ -70,4 +69,6 @@ public class CspConstants {
     public static final String HEADER_CSP_REQUEST_ID = "csp-request-id";
     // Authorized party
     public static final Set<String> CSP_CALLBACK_AZPS = ImmutableSet.of("csp-billing");
+    public static final String SUPPORTED_PK_ALGORITHM = "RSA";
+
 }

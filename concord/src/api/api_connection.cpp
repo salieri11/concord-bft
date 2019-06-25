@@ -274,6 +274,9 @@ void ApiConnection::dispatch() {
   if (concordRequest_.has_logs_request()) {
     handle_logs_request();
   }
+  if (concordRequest_.has_time_request()) {
+    handle_time_request();
+  }
   if (concordRequest_.has_test_request()) {
     handle_test_request();
   }
@@ -492,15 +495,15 @@ bool ApiConnection::is_valid_eth_sendTransaction(const EthRequest &request) {
 void ApiConnection::handle_block_list_request() {
   const BlockListRequest request = concordRequest_.block_list_request();
 
-  ConcordRequest internalAthRequest;
+  ConcordRequest internalConcRequest;
   BlockListRequest *internalBlockRequest =
-      internalAthRequest.mutable_block_list_request();
+      internalConcRequest.mutable_block_list_request();
   internalBlockRequest->CopyFrom(request);
-  ConcordResponse internalAthResponse;
+  ConcordResponse internalConcResponse;
 
-  if (clientPool_.send_request_sync(internalAthRequest, true /* read only */,
-                                    internalAthResponse)) {
-    concordResponse_.MergeFrom(internalAthResponse);
+  if (clientPool_.send_request_sync(internalConcRequest, true /* read only */,
+                                    internalConcResponse)) {
+    concordResponse_.MergeFrom(internalConcResponse);
   } else {
     ErrorResponse *error = concordResponse_.add_error_response();
     error->set_description("Internal concord Error");
@@ -594,6 +597,30 @@ void ApiConnection::handle_logs_request() {
     LOG4CPLUS_ERROR(logger_, "Error parsing read-only response");
     ErrorResponse *resp = concordResponse_.add_error_response();
     resp->set_description("Internal concord Error");
+  }
+}
+
+/**
+ * Handle a request for time.
+ */
+void ApiConnection::handle_time_request() {
+  const TimeRequest request = concordRequest_.time_request();
+
+  ConcordRequest internalConcRequest;
+  TimeRequest *internalTimeRequest = internalConcRequest.mutable_time_request();
+  internalTimeRequest->CopyFrom(request);
+  ConcordResponse internalConcResponse;
+
+  // If a sample was provided, this is a request to update the contract. If no
+  // sample was provided, this is just a request to read the latest state.
+  bool readOnly = !request.has_sample();
+
+  if (clientPool_.send_request_sync(internalConcRequest, readOnly,
+                                    internalConcResponse)) {
+    concordResponse_.MergeFrom(internalConcResponse);
+  } else {
+    ErrorResponse *error = concordResponse_.add_error_response();
+    error->set_description("Internal concord Error");
   }
 }
 

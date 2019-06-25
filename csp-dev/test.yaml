@@ -1,0 +1,18 @@
+base:
+  csp_url: https://console-stg.cloud.vmware.com
+  service_template_id: 0eeff270-2f7a-4d9f-b161-659fb4e61160
+  service_owner_org_id: ab29b4a8-40c8-4173-ba74-15e76f8f35e0
+  service_owner: admin-blockchain-dev@csp.local
+  service_owner_token: a3674390-edb6-4c93-915e-daf741909541
+vmbc_url: {service_url}
+create_service:
+  name: localhost.vmware.com:4200 - s
+patch_service:
+  service: localhost.vmware.com:4200 - s
+  body:
+    serviceUrls:
+      serviceHome: {service_url}
+create_oauth:
+  name: localhost.vmware.com Oauth
+  redirect_uris:
+    - {service_url}/api/oauth/oauth

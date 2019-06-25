@@ -11,7 +11,6 @@ import {
 import { OrgListComponent } from './org-list/org-list.component';
 import { Personas } from '../shared/persona.service';
 import { Org } from './shared/org.model';
-import { OrgFormComponent } from './org-form/org-form.component';
 
 
 @Component({
@@ -22,7 +21,6 @@ import { OrgFormComponent } from './org-form/org-form.component';
 export class OrgsComponent implements OnInit {
   static personasAllowed: Personas[] = [Personas.SystemsAdmin, Personas.ConsortiumAdmin];
   @ViewChild('orgList') orgList: OrgListComponent;
-  @ViewChild('orgForm') orgForm: OrgFormComponent;
 
   selected: Array<Org>;
 

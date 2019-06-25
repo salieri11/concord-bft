@@ -8,7 +8,7 @@ namespace storage {
 // Pure virtual destructors need to be defined within an abstract class if that
 // very abstract class is used to delete a derived instanciation.
 // See main.cpp for its usage.
-ICommandsHandler::~ICommandsHandler() {}
+ICommandsHandler::~ICommandsHandler() = default;
 
 }  // namespace storage
 }  // namespace concord

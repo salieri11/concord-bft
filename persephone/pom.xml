@@ -13,6 +13,7 @@
 
     <modules>
         <module>api</module>
+        <module>awsutil</module>
         <module>core</module>
         <module>cli</module>
         <module>metadata-service</module>
@@ -20,8 +21,8 @@
         <module>orchestration</module>
         <module>orchestration-vmc</module>
         <module>persistence</module>
-        <module>awsutil</module>
-        <module>provision-service</module>
+        <module>persistence-rocksdb</module>
+        <module>provisioning-service</module>
     </modules>
 
     <distributionManagement>
@@ -91,6 +92,7 @@
         <maven.plugin.compiler>3.8.0</maven.plugin.compiler>
         <maven.plugin.jar>3.1.1</maven.plugin.jar>
         <maven.plugin.javadoc>3.0.0</maven.plugin.javadoc>
+        <maven.plugin.ktlint>1.0.2</maven.plugin.ktlint>
         <maven.plugin.os>1.3.0.Final</maven.plugin.os>
         <maven.plugin.protobuf>0.6.1</maven.plugin.protobuf>
         <maven.plugin.resources>3.0.2</maven.plugin.resources>
@@ -98,7 +100,7 @@
         <maven.plugin.surefire>2.22.1</maven.plugin.surefire>
 
         <!-- First-party dependency-related properties. -->
-        <blockchain.protobuf.version>0.0.1</blockchain.protobuf.version>
+        <blockchain.protobuf.version>0.0.3-SNAPSHOT</blockchain.protobuf.version>
 
         <!-- Dependency-related properties. -->
         <assertj.version>3.11.1</assertj.version>
@@ -112,6 +114,7 @@
         <kotlinpoet.version>1.0.1</kotlinpoet.version>
         <protobuf.runtime.java.version>3.6.1</protobuf.runtime.java.version>
         <reactive.stream.version>1.0.2</reactive.stream.version>
+        <rocksdb.version>6.0.1</rocksdb.version>
         <slf4j.version>1.7.26</slf4j.version>
         <wiremock.version>2.23.2</wiremock.version>
     </properties>
@@ -185,6 +188,11 @@
                 <version>${blockchain.protobuf.version}</version>
             </dependency>
             <dependency>
+                <groupId>com.vmware.blockchain.protobuf</groupId>
+                <artifactId>protobuf-runtime-kotlinx-serialization</artifactId>
+                <version>${blockchain.protobuf.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>io.grpc</groupId>
                 <artifactId>grpc-core</artifactId>
                 <version>${grpc.runtime.java.version}</version>
@@ -203,6 +211,13 @@
                 <groupId>net.jqwik</groupId>
                 <artifactId>jqwik</artifactId>
                 <version>${jqwik.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.logging.log4j</groupId>
+                <artifactId>log4j-bom</artifactId>
+                <version>${log4j.version}</version>
+                <scope>import</scope>
+                <type>pom</type>
             </dependency>
             <dependency>
                 <groupId>org.assertj</groupId>
@@ -255,16 +270,14 @@
                 <version>${junit.jupiter.version}</version>
             </dependency>
             <dependency>
-                <groupId>org.apache.logging.log4j</groupId>
-                <artifactId>log4j-bom</artifactId>
-                <version>${log4j.version}</version>
-                <scope>import</scope>
-                <type>pom</type>
-            </dependency>
-            <dependency>
                 <groupId>org.reactivestreams</groupId>
                 <artifactId>reactive-streams</artifactId>
                 <version>${reactive.stream.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.rocksdb</groupId>
+                <artifactId>rocksdbjni</artifactId>
+                <version>${rocksdb.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.slf4j</groupId>
@@ -484,6 +497,20 @@
                             </configuration>
                             <goals>
                                 <goal>checkstyle</goal>
+                                <goal>check</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
+                <plugin>
+                    <groupId>com.github.gantsign.maven</groupId>
+                    <artifactId>ktlint-maven-plugin</artifactId>
+                    <version>${maven.plugin.ktlint}</version>
+                    <executions>
+                        <execution>
+                            <id>check</id>
+                            <phase>validate</phase>
+                            <goals>
                                 <goal>check</goal>
                             </goals>
                         </execution>

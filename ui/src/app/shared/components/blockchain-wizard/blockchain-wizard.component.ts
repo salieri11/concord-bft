@@ -13,7 +13,6 @@ import {
 import { Router } from '@angular/router';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { ClrWizard, ClrWizardPage } from '@clr/angular';
-import { AuthenticationService } from '../../authentication.service';
 import { PersonaService } from '../../persona.service';
 import { BlockchainService, BlockchainRequestParams } from '../../blockchain.service';
 
@@ -39,13 +38,11 @@ export class BlockchainWizardComponent implements OnInit {
 
   constructor(
     private router: Router,
-    private authenticationService: AuthenticationService,
     private blockchainService: BlockchainService
   ) {
     this.form = new FormGroup({
       details: new FormGroup({
-        name: new FormControl('', Validators.required),
-        description: new FormControl('', Validators.required),
+        consortium_name: new FormControl('', Validators.required),
         numberOfNodes: new FormControl(this.numbersOfNodes[1], Validators.required)
       }),
       users: new FormControl([], Validators.required)
@@ -99,7 +96,7 @@ export class BlockchainWizardComponent implements OnInit {
   onSubmit() {
     const params = new BlockchainRequestParams();
     params.f_count = Number(this.fCountMapping[this.form.value.details.numberOfNodes.toString()]);
-    params.consortium_id = this.authenticationService.currentUser.consortium_id;
+    params.consortium_name = this.form.value.details.consortium_name;
 
     this.blockchainService.notify.next({message: 'deploying'});
     this.blockchainService.deploy(params).subscribe(response => {

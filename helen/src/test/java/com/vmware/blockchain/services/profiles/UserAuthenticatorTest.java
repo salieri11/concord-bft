@@ -26,10 +26,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.AdditionalMatchers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.http.MediaType;
-import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ContextConfiguration;
@@ -38,17 +36,13 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.result.MockMvcResultHandlers;
 
 import com.vmware.blockchain.MvcConfig;
-import com.vmware.blockchain.common.ConcordProperties;
+import com.vmware.blockchain.auth.AuthenticationContext;
 import com.vmware.blockchain.common.ErrorCode;
 import com.vmware.blockchain.common.HelenExceptionHandler;
 import com.vmware.blockchain.common.NotFoundException;
-import com.vmware.blockchain.connections.ConcordConnectionPool;
-import com.vmware.blockchain.dao.GenericDao;
-import com.vmware.blockchain.security.AuthHelper;
 import com.vmware.blockchain.security.HelenUserDetails;
 import com.vmware.blockchain.security.JwtTokenProvider;
-import com.vmware.blockchain.security.ServiceContext;
-import com.vmware.blockchain.services.blockchains.BlockchainService;
+import com.vmware.blockchain.utils.ControllerTestConfig;
 
 /**
  * User Authenticator tests.
@@ -56,7 +50,7 @@ import com.vmware.blockchain.services.blockchains.BlockchainService;
  */
 @ExtendWith(SpringExtension.class)
 @WebMvcTest(secure = false, controllers = UserAuthenticator.class)
-@ContextConfiguration(classes = MvcConfig.class)
+@ContextConfiguration(classes = {MvcConfig.class, ControllerTestConfig.class})
 @ComponentScan(basePackageClasses = { UserAuthenticatorTest.class, HelenExceptionHandler.class })
 class UserAuthenticatorTest {
 
@@ -68,44 +62,20 @@ class UserAuthenticatorTest {
     @Autowired
     private MockMvc mvc;
 
-    @MockBean
-    private UserService userService;
+    @Autowired
+    UserService userService;
 
-    @MockBean
-    private ProfilesService prm;
+    @Autowired
+    KeystoreService keystoreService;
 
-    @MockBean
-    private PasswordEncoder passwordEncoder;
+    @Autowired
+    PasswordEncoder passwordEncoder;
 
-    @MockBean
-    private JwtTokenProvider jwtTokenProvider;
+    @Autowired
+    JwtTokenProvider jwtTokenProvider;
 
-    @MockBean
-    private ConcordProperties concordProperties;
-
-    @MockBean
-    private ConcordConnectionPool connectionPool;
-
-    @MockBean
-    private KeystoreService keystoreSerivce;
-
-    @MockBean
-    private DefaultProfiles profiles;
-
-    @MockBean
-    private BlockchainService blockchainService;
-
-    @MockBean
-    private ConsortiumService consortiumService;
-
-    @MockBean
-    GenericDao genericDao;
-
-    @MockBean
-    AuthHelper authHelper;
-
-    @MockBean
-    private ServiceContext serviceContext;
+    @Autowired
+    ProfilesService prm;
 
     private User testUser;
 
@@ -136,19 +106,19 @@ class UserAuthenticatorTest {
         when(userService.getByEmail(AdditionalMatchers.not(eq("user@test.com"))))
                 .thenThrow(new NotFoundException(ErrorCode.NOT_FOUND));
         when(userService.getByEmail("user@test.com")).thenReturn(testUser);
-        when(keystoreSerivce.getWalletsForUser(any(UUID.class))).thenReturn(Collections.emptyList());
+        when(keystoreService.getWalletsForUser(any(UUID.class))).thenReturn(Collections.emptyList());
 
         when(passwordEncoder.matches(anyString(), anyString())).thenReturn(false);
         when(passwordEncoder.matches("1234", "1234")).thenReturn(true);
         when(passwordEncoder.encode(anyString())).then(a -> a.getArguments().toString());
 
-        HelenUserDetails details = new HelenUserDetails(USER_ID, "user@test.com", "1234", true, true,
-                true, true, Arrays.asList(new SimpleGrantedAuthority("SYSTEM_ADMIN")));
+        HelenUserDetails details = new HelenUserDetails(USER_ID, "user@test.com", "1234",
+                                                        Arrays.asList(new SimpleGrantedAuthority("SYSTEM_ADMIN")));
 
         when(jwtTokenProvider.createToken(any(User.class))).thenReturn("token");
         when(jwtTokenProvider.createRefreshToken(any(User.class))).thenReturn("refresh_token");
         when(jwtTokenProvider.getAuthentication("token"))
-            .thenReturn(new TestingAuthenticationToken(details, null));
+            .thenReturn(new AuthenticationContext(details, null));
         when(jwtTokenProvider.getValidityInMilliseconds()).thenReturn(1800000L);
 
         doAnswer(invocation -> {

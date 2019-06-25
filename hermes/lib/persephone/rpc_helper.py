@@ -4,13 +4,15 @@
 # This class is a helper file to test persephone gRPC
 #########################################################################
 
+import os
+import time
 import yaml
 import json
 import grpc
-from grpc_python_bindings import model_service_pb2
-from grpc_python_bindings import model_service_pb2_grpc
-from grpc_python_bindings import provision_service_pb2
-from grpc_python_bindings import provision_service_pb2_grpc
+from grpc_python_bindings import metadata_service_pb2
+from grpc_python_bindings import metadata_service_pb2_grpc
+from grpc_python_bindings import provisioning_service_pb2
+from grpc_python_bindings import provisioning_service_pb2_grpc
 from grpc_python_bindings import fleet_service_pb2
 from grpc_python_bindings import fleet_service_pb2_grpc
 from google.protobuf.json_format import MessageToJson
@@ -92,9 +94,9 @@ class RPCHelper():
       stub = None
       log.info("  Creating stub for {}".format(self.service_name))
       if self.service_name is Product.PERSEPHONE_SERVICE_METADATA:
-         stub = model_service_pb2_grpc.ConcordModelServiceStub(channel)
+         stub = metadata_service_pb2_grpc.ConcordModelServiceStub(channel)
       if self.service_name is Product.PERSEPHONE_SERVICE_PROVISIONING:
-         stub = provision_service_pb2_grpc.ProvisionServiceStub(channel)
+         stub = provisioning_service_pb2_grpc.ProvisioningServiceStub(channel)
       # if self.service_name is Product.PERSEPHONE_SERVICE_FLEET:
       #    stub = fleet_service_pb2_grpc.FleetServiceStub(channel)
 
@@ -127,7 +129,6 @@ class RPCHelper():
          "**** Calling rpc {}/[response=stream: {}] ****".format(rpc, stream))
       # TODO: Introduce thread and MAX TIMEOUT when waiting for stream
       response = rpc(rpc_request)
-      log.info("**** Response:")
       if stream:
          if response:
             for rsp in response:
@@ -138,7 +139,23 @@ class RPCHelper():
          response_list.append(response)
 
       log.debug("gRPC Response from server: {}".format(response_list))
-      # TODO: Copy the response to a json file for logging
+
+      request_file = os.path.join(self.cmdlineArgs.fileRoot,
+                                  "{}_request.json".format(
+                                     time.time()))
+      log.info("gRPC Request: {}".format(request_file))
+      rpc_request_json = helper.protobuf_message_to_json(rpc_request)
+      with open(request_file, "w") as f:
+         json.dump(rpc_request_json, f, indent=4, sort_keys=True)
+
+      response_file = os.path.join(self.cmdlineArgs.fileRoot,
+                                   "{}_response.json".format(
+                                      time.time()))
+      log.info("gRPC Response: {}".format(response_file))
+      response_json = helper.protobuf_message_to_json(response_list)
+      with open(response_file, "w") as f:
+         json.dump(response_json,f, indent=4, sort_keys=True)
+
       return response_list
 
    def handle_exception(self, e):

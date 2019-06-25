@@ -33,6 +33,10 @@ class RPCTestHelper():
 
          self.PLACEMENT_TYPE_FIXED = self.provision_rpc_helper.PLACEMENT_TYPE_FIXED
          self.PLACEMENT_TYPE_UNSPECIFIED = self.provision_rpc_helper.PLACEMENT_TYPE_UNSPECIFIED
+         self.persephone_config_file = self.provision_rpc_helper.persephone_config_file
+         self.grpc_server = self.provision_rpc_helper.grpc_server
+
+         self.deployed_session_ids = []
       except Exception as e:
          raise Exception(e)
 
@@ -48,9 +52,9 @@ class RPCTestHelper():
 
       add_model_response = self.model_rpc_helper.rpc_AddModel(
          add_model_request)
-      log.info("AddModel response:")
+      log.debug("AddModel response:")
       for item in add_model_response:
-         log.info(item)
+         log.debug(item)
       return add_model_request, add_model_response
 
    def rpc_list_models(self):
@@ -60,7 +64,7 @@ class RPCTestHelper():
       '''
       metadata = self.model_rpc_helper.rpc_ListModels()
       for item in metadata:
-         log.info("Metadata: {}".format(item))
+         log.debug("Metadata: {}".format(item))
       return metadata
 
    def rpc_create_cluster(self, cluster_size=4, placement_type="FIXED"):
@@ -81,9 +85,10 @@ class RPCTestHelper():
 
       session_id = self.provision_rpc_helper.rpc_CreateCluster(
          create_cluster_request)
-      log.info("Session ID: ")
+      self.deployed_session_ids.append(session_id)
+      log.debug("Session ID: ")
       for item in session_id:
-         log.info(item)
+         log.debug(item)
 
       return session_id
 
@@ -99,6 +104,6 @@ class RPCTestHelper():
       events = self.provision_rpc_helper.rpc_StreamClusterDeploymentSessionEvents(
          get_events_request)
       for event in events:
-         log.info("Event: {}".format(event))
+         log.debug("Event: {}".format(event))
 
       return events

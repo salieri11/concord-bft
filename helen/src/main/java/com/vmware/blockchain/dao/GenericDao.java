@@ -9,16 +9,16 @@ import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.TransactionException;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.vmware.blockchain.auth.AuthHelper;
 import com.vmware.blockchain.common.ErrorCode;
 import com.vmware.blockchain.common.InternalFailureException;
-import com.vmware.blockchain.security.AuthHelper;
 
 /**
  * Generic DAO implementation.
@@ -48,7 +48,7 @@ import com.vmware.blockchain.security.AuthHelper;
 @Transactional
 public class GenericDao {
 
-    private static final Logger logger = LoggerFactory.getLogger(GenericDao.class);
+    private static final Logger logger = LogManager.getLogger(GenericDao.class);
     static final int MAX_RETRIES = 3;
     private AuthHelper authHelper;
     private GenericDaoTransaction genericDaoTransaction;

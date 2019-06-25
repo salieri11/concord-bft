@@ -22,6 +22,9 @@ from util import helper
 PRODUCT_LOGS_DIR = "product_logs"
 log = logging.getLogger(__name__)
 
+# Persephone config file for testing.  We read the SDDC IDs from this.
+persephoneConfigFile = "resources/persephone/provisioning/config.json"
+
 class ConcordInstsanceMetaData():
    _processIndex = None
    _processCmd = None
@@ -50,20 +53,26 @@ class Product():
    _cmdlineArgs = None
    userProductConfig = None
    _servicesToLogLater = ["db-server-init1", "db-server-init2", "fluentd"]
+   _suite = None
    _numProductStarts = 0
    docker_env = helper.get_docker_env()
 
    PERSEPHONE_SERVICE_METADATA = docker_env["persephone_metadata_repo"]
-   PERSEPHONE_SERVICE_PROVISIONING = docker_env["persephone_provisioning_repo"]
+   PERSEPHONE_SERVICE_PROVISIONING = "deploymentservice" # name as seen by helen
    # PERSEPHONE_SERVICE_FLEET = docker_env["persephone_fleet_repo"]
+   PERSEPHONE_PROVISIONING_CLIENT_UNDEPLOY_DOCKER_REPO = docker_env[
+      "persephone_provisioning_client_repo"]
+   PERSEPHONE_PROVISIONING_CLIENT_UNDEPLOY_DOCKER_TAG = docker_env[
+      "persephone_provisioning_client_tag"]
 
-   def __init__(self, cmdlineArgs, userConfig):
+   def __init__(self, cmdlineArgs, userConfig, suite=None):
       self._cmdlineArgs = cmdlineArgs
       self._userConfig = userConfig
       self.userProductConfig = userConfig["product"]
       self._productLogsDir = os.path.join(self._cmdlineArgs.resultsDir, PRODUCT_LOGS_DIR)
       pathlib.Path(self._productLogsDir).mkdir(parents=True, exist_ok=True)
       self.concordNodesDeployed = []
+      self._suite = suite
 
 
    def launchProduct(self):
@@ -156,8 +165,11 @@ class Product():
       if self.validatePaths(self._cmdlineArgs.dockerComposeFile):
          for cfgFile in self._cmdlineArgs.dockerComposeFile:
             with open(cfgFile, "r") as f:
-               newCfg = yaml.load(f)
+               newCfg = yaml.load(f, Loader=yaml.FullLoader)
                self.mergeDictionaries(dockerCfg, newCfg)
+
+         if self._suite:
+            self._suite.validateLaunchConfig(dockerCfg)
 
          helper.copy_docker_env_file()
 
@@ -167,12 +179,9 @@ class Product():
 
          if not self._cmdlineArgs.keepconcordDB:
             self.clearDBsForDockerLaunch(dockerCfg)
+
             if self._isHelenInDockerCompose(dockerCfg):
                self.initializeHelenDockerDB(dockerCfg)
-
-            # DB init is handled by docker-compose now; I think this can be removed.
-            # Do it in a separate checkin.
-            self.initializeHelenDockerDB(dockerCfg)
 
          self._startContainers()
          self._startLogCollection()
@@ -183,6 +192,7 @@ class Product():
          self.concordNodesDeployed = self._getConcordNodes(dockerCfg)
       else:
          raise Exception("The docker compose file list contains an invalid value.")
+
 
    def _generateConcordConfiguration(self, concordCfg):
        '''
@@ -221,7 +231,7 @@ class Product():
            configDistributionScriptCommand += \
                concordConfigConfig["configDistributionArgs"];
        except KeyError as key:
-           raise Exception ('User config field "{}" is missing.'.format(key)) 
+           raise Exception ('User config field "{}" is missing.'.format(key))
        print(os.getcwd())
        print(os.path.basename(os.getcwd()))
        if not os.path.isabs(configVolumePath):
@@ -254,7 +264,7 @@ class Product():
       if self.validatePaths(self._cmdlineArgs.dockerComposeFile):
          for cfgFile in self._cmdlineArgs.dockerComposeFile:
             with open(cfgFile, "r") as f:
-               newCfg = yaml.load(f)
+               newCfg = yaml.load(f, Loader=yaml.FullLoader)
                self.mergeDictionaries(dockerCfg, newCfg)
 
          helper.copy_docker_env_file()
@@ -263,7 +273,7 @@ class Product():
 
          for dockerComposeFile in self._cmdlineArgs.dockerComposeFile:
             with open(dockerComposeFile, "r") as yamlFile:
-               composeData = yaml.load(yamlFile)
+               composeData = yaml.load(yamlFile, Loader=yaml.FullLoader)
 
             for service in list(composeData["services"]):
                if not self._waitForPersephoneStartup(service):
@@ -301,7 +311,7 @@ class Product():
          logLaunchThreads = []
 
          with open(dockerComposeFile, "r") as yamlFile:
-            composeData = yaml.load(yamlFile)
+            composeData = yaml.load(yamlFile, Loader=yaml.FullLoader)
 
          for service in list(composeData["services"]):
             if service in self._servicesToLogLater.copy():
@@ -412,28 +422,55 @@ class Product():
 
 
    def getUrlFromEthrpcNode(self, node):
-      return node["rpc_url"]
+      '''
+      Helps work around VB-1006.
+      '''
+      if "rpc_url" in node.keys():
+         return node["rpc_url"]
+      elif "ip" in node.keys():
+         return node["url"]
+      else:
+         raise Exception("Unable to find an ethrpc url in {}".format(node))
 
 
-   def getEthrpcNodes(self):
+   def getEthrpcNodes(self, request=None, blockchainId=None):
+      '''
+      request: Optional request to interact with Helen's REST APIs.
+      blockchainId: Optional blockchain id, in case one needs to be specified.
+      Uses Helen's /concord/members API to get the blockchain members.
+      Uses /api/blockchains/{blockchainId} if /concord/members does not work.
+      '''
       members = []
-      request = Request(self._productLogsDir,
-                        "getMembers",
-                        self._cmdlineArgs.reverseProxyApiBaseUrl,
-                        self._userConfig)
-      blockchains = request.getBlockchains()
-      result = request.getMemberList(blockchains[0]["id"])
+
+      if not request:
+         request = Request(self._productLogsDir,
+                           "getMembers",
+                           self._cmdlineArgs.reverseProxyApiBaseUrl,
+                           self._userConfig)
+
+      if not blockchainId:
+         blockchains = request.getBlockchains()
+         blockchainId = blockchains[0]["id"]
+
+      result = request.getMemberList(blockchainId)
 
       for m in result:
          if m["rpc_url"]:
             members.append(m)
 
-      log.info("Ethrpc members reported by Helen:")
-      if members:
-         for m in members:
-           log.info("  {}: {}".format(m["hostname"],m["rpc_url"]))
-      else:
-         log.info("  None were found.")
+      if not members:
+         # Work around VB-1006
+         log.info("No members found from the concord member list. "
+                  "Getting blockchain details via /api/blockchains instead.")
+         result = request.getBlockchainDetails(blockchainId)
+
+         for m in result["node_list"]:
+            if m["ip"]:
+               members.append(m)
+         # End workaround
+
+      if not members:
+         log.info("No ethrpc nodes were returned by Helen.")
 
       return members
 
@@ -927,7 +964,7 @@ class Product():
       if len(self._concordProcessesMetaData) == 0:
          if os.path.isfile(self._cmdlineArgs.dockerComposeFile[0]):
             with open(self._cmdlineArgs.dockerComposeFile[0], "r") as f:
-               dockerCfg = yaml.load(f)
+               dockerCfg = yaml.load(f, Loader=yaml.FullLoader)
                res= self.clearDBsForDockerLaunch(dockerCfg, "concord{}".format(instanceId))
                return res
       else:
@@ -954,6 +991,12 @@ class Product():
       if output != containerName:
         return False
       return True
+
+   def exec_in_concord_container(self, containerName, args):
+      command = "docker exec {0} {1}".format(containerName, args)
+      output = subprocess.Popen(command,stderr=subprocess.PIPE, shell=True, stdout=subprocess.PIPE).stdout.read().decode("UTF-8")
+      log.info("Exec on " + containerName + ": " + args)
+      return output
 
    def start_concord_replica(self, id):
        if len(self._concordProcessesMetaData) == 0:
@@ -1020,3 +1063,88 @@ class Product():
                os.kill(self._processes[meta._processIndex].pid, signal.SIGCONT)
                log.info("Resumed concord replica with ID {}".format(id))
        return True
+
+
+   def deployBlockchain(self, request, conName, orgName):
+      '''
+      request: A Rest request object which uses Helen.
+      conName: Consortium name
+      orgName: Org name, obsolete after CSP integration
+      Uses Helen's APIs to create an org and consortium, then
+      have Persephone deploy a blockchain on an SDDC.
+      Returns tuple of (blockchain id, consortium id)
+      '''
+      log.info("Deploying a new blockchain.")
+      org = request.createOrg(orgName)
+      con = request.createConsortium(conName, org["org_id"])
+      conId = con["consortium_id"]
+      sddcs = self.getSDDCIds()
+      response = request.createBlockchain(conId, sddcs)
+      taskId = response["task_id"]
+      success, response = self.waitForTask(request, taskId)
+
+      if not success:
+         raise Exception("Failed to deploy a blockchain to the SDDC.")
+      else:
+         blockchainId = response["resource_id"]
+         self.getEthrpcNodes(request, blockchainId)
+         return(blockchainId, conId)
+
+
+   def getSDDCIds(self):
+      '''
+      Returns an array of SDDC IDs used for Persephone testing from
+      hermes/resources/persephone/provisioning/config.json
+      '''
+      with open(persephoneConfigFile, "r") as f:
+         siteIds = []
+         config = json.loads(f.read())
+
+         for site in config["sites"]:
+            siteIds.append(site["info"]["vmc"]["datacenter"])
+
+         return siteIds
+
+
+   def waitForTask(self, request, taskId, expectSuccess=True, timeout=600):
+      '''
+      request: A Rest request object which uses Helen.
+      taskId: ID of the task to wait for, returned by Helen.
+      expectSuccess: Whether we expect the task to be successful.
+      timeout: Seconds to wait before timing out.
+
+      Returns a tuple of:
+         1. Boolean for whether the task completed with the expected success status,
+            or None if timed out.
+         2. The structure returned by the final call to the api.
+      '''
+      sleepTime = 10
+      elapsedTime = 0
+      success = False
+      finished = False
+      response = None
+      expectedFinishState = "SUCCEEDED" if expectSuccess else "FAILED"
+
+      while not finished:
+         response = request.getTaskStatus(taskId)
+
+         log.info("Current state of task {}: {}".format(taskId, response["state"]))
+
+         if response["state"] == "RUNNING":
+            if elapsedTime >= timeout:
+               log.info("Task '{}' did not finish in {} seconds".format(taskId, timeout))
+               finished = True
+            else:
+               log.info("Waiting for task '{}' to finish. " \
+                        "Elapsed time: {}".format(taskId, elapsedTime))
+               time.sleep(sleepTime)
+               elapsedTime += sleepTime
+         else:
+            finished = True
+            success = response["state"] == expectedFinishState
+            log.info("Task has finished.")
+
+            if not success:
+               log.info("Task did not finish as expected.  Details: {}".format(response))
+
+      return (success, response)

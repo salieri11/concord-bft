@@ -10,17 +10,20 @@ import {
   AfterViewInit,
   ChangeDetectionStrategy,
   ChangeDetectorRef,
-  SimpleChanges, OnDestroy
+  SimpleChanges,
+  OnDestroy,
+  HostListener
 } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
 
 import geojsonvt from 'geojson-vt';
 import { Map, View, Overlay, VectorTile, Collection } from 'ol';
+import Feature from 'ol/Feature';
+import Point from 'ol/geom/Point';
 import { Style, Fill, Stroke, Circle } from 'ol/style';
 import { Vector as VectorLayer, VectorTile as VectorTileLayer } from 'ol/layer';
 import VectorSource from 'ol/source/Vector';
 import VectorTileSource from 'ol/source/VectorTile';
-import { get as getProjection, fromLonLat } from 'ol/proj';
+import { fromLonLat } from 'ol/proj';
 import Projection from 'ol/proj/Projection';
 import Select from 'ol/interaction/Select';
 import GeoJSON from 'ol/format/GeoJSON';
@@ -29,8 +32,12 @@ import { getCenter } from 'ol/extent';
 import { defaults as interactionDefaults } from 'ol/interaction';
 import { unByKey } from 'ol/Observable';
 import { easeOut } from 'ol/easing';
+import { addCommon as addCommonProjections } from 'ol/proj.js';
 
 import { NodeProperties } from './world-map.model';
+import { VmwClarityThemeService } from './../../shared/theme.provider';
+
+import WorldData from './countries-110m.json';
 
 @Component({
   selector: 'concord-world-map',
@@ -46,8 +53,10 @@ export class WorldMapComponent implements AfterViewInit, OnChanges, OnDestroy {
   @ViewChild('tooltipContainer') tooltipContainer;
 
   // The map and its map's tooltip/overlay layer
-  private map;
-  private overlay;
+  private map: Map;
+  private overlay: Overlay;
+  private view: View;
+  private vectorSource: VectorSource;
 
   // The pulse animation duration and its interval
   private animationDuration = 3000;
@@ -59,20 +68,36 @@ export class WorldMapComponent implements AfterViewInit, OnChanges, OnDestroy {
   // An observable collection of features for the map
   private featureCollection = new Collection();
 
-  constructor(private http: HttpClient, private ref: ChangeDetectorRef) {
+  private theme: any;
+
+  constructor(
+    private ref: ChangeDetectorRef,
+    private themeService: VmwClarityThemeService,
+  ) {
+    this.setTheme(this.themeService.theme);
   }
 
   ngAfterViewInit() {
+    // This is a patch for an angular build issue
+    // https://github.com/openlayers/openlayers/issues/9019#issuecomment-444441291
+    addCommonProjections();
     this.initMap();
+
+    this.themeService.themeChange.subscribe(theme => {
+      this.setTheme(theme);
+    });
   }
 
   ngOnChanges(changes: SimpleChanges): void {
+
     if (changes.features) {
       this.featureCollection.clear();
-      this.featureCollection.extend(new GeoJSON().readFeatures(changes.features.currentValue, {
-        dataProjection: null,
-        featureProjection: getProjection('EPSG:3857')
-      }));
+
+      changes.features.currentValue.forEach(cluster => {
+        const feature = new Feature(new Point(fromLonLat(cluster.geo)));
+        feature.setProperties(cluster);
+        this.featureCollection.push(feature);
+      });
     }
   }
 
@@ -80,6 +105,11 @@ export class WorldMapComponent implements AfterViewInit, OnChanges, OnDestroy {
     if (this.animationInterval) {
       clearInterval(this.animationInterval);
     }
+  }
+
+  @HostListener('window:resize', ['$event'])
+  onResize() {
+    this.viewFit();
   }
 
   private initMap() {
@@ -91,16 +121,16 @@ export class WorldMapComponent implements AfterViewInit, OnChanges, OnDestroy {
     // Styles for the country layer - same fill and stroke for flat earth look
     const countryStyle = new Style({
       fill: new Fill({
-        color: '#204454'
+        color: this.theme.countryFill
       }),
       stroke: new Stroke({
-        color: '#204454',
+        color: this.theme.countryBorder,
         width: 1
       })
     });
     // Fill color for feature bubbles
-    const nodeFeatureFill = new Fill({color: '#00ffffaa'});
-    const nodeFeatureFillSelected = new Fill({color: '#00ffff'});
+    const nodeFeatureFill = new Fill({ color: this.theme.nodeFill });
+    const nodeFeatureFillSelected = new Fill({ color: this.theme.nodeFillSelected });
 
     // Overlay container for the tooltip on node hover
     this.overlay = new Overlay({
@@ -113,13 +143,14 @@ export class WorldMapComponent implements AfterViewInit, OnChanges, OnDestroy {
       }
     });
 
+    this.vectorSource = new VectorSource({
+      wrapX: false,
+      features: this.featureCollection
+    });
     // A layer to hold the nodes
     const nodeFeatureLayer = new VectorLayer({
-      source: new VectorSource({
-        wrapX: false,
-        features: this.featureCollection
-      }),
-      style: nodeFeatureStyle(nodeFeatureFill)
+      source: this.vectorSource,
+      style: this.nodeFeatureStyle(nodeFeatureFill)
     });
 
     // Set up a hover interaction with the node layer to show the overlay/tooltip
@@ -127,7 +158,7 @@ export class WorldMapComponent implements AfterViewInit, OnChanges, OnDestroy {
       wrapX: false,
       layers: [nodeFeatureLayer],
       condition: pointerMove,
-      style: nodeFeatureStyle(nodeFeatureFillSelected)
+      style: this.nodeFeatureStyle(nodeFeatureFillSelected)
     });
 
     nodeFeatureHoverInteraction.on('select', (event: any) => {
@@ -142,27 +173,24 @@ export class WorldMapComponent implements AfterViewInit, OnChanges, OnDestroy {
       this.ref.markForCheck();
     });
 
+    this.view = new View();
     this.map = new Map({
       layers: [nodeFeatureLayer],
       overlays: [this.overlay],
       target: this.mapContainer.nativeElement,
-      view: new View({
-        center: fromLonLat([0, 30]),
-        zoom: 2.75,
-        zoomFactor: 1.75
-      }),
-      interactions: interactionDefaults({mouseWheelZoom: false})
+      view: this.view,
+      interactions: interactionDefaults({ mouseWheelZoom: false })
     });
     this.map.addInteraction(nodeFeatureHoverInteraction);
-
     // Set up pulsing animation on map features
     this.checkAndSchedulePulseAnimation();
     this.animationInterval = setInterval(this.checkAndSchedulePulseAnimation.bind(this), this.animationDuration + 1000);
 
-    // Fetch and set up GeoJSON backed country layer
-    this.http.get('static/countries-110m.json').subscribe(result => {
-      // Convert GeoJSON source to vector tiles
-      const tileSource = geojsonvt(result, {
+    // Convert GeoJSON source to vector tiles
+
+    setTimeout(() => {
+
+      const tileSource = geojsonvt(WorldData, {
         extent: 4096,
         debug: 0
       });
@@ -196,7 +224,8 @@ export class WorldMapComponent implements AfterViewInit, OnChanges, OnDestroy {
       // Insert this layer behind all other layers
       this.map.getLayers().insertAt(0, countryOutlineLayer);
       this.map.updateSize();
-    });
+      this.viewFit();
+    }, 1000);
   }
 
   /**
@@ -207,6 +236,13 @@ export class WorldMapComponent implements AfterViewInit, OnChanges, OnDestroy {
     this.overlay.setPosition(undefined);
   }
 
+
+  private viewFit() {
+    this.view.fit(
+      this.vectorSource.getExtent(),
+      { padding: [20, 60, 20, 30], constrainResolution: false }
+    );
+  }
   /**
    * Checks for any deploying nodes and schedules their animation. Meant to be called on an interval.
    */
@@ -245,7 +281,7 @@ export class WorldMapComponent implements AfterViewInit, OnChanges, OnDestroy {
           radius: radius,
           snapToPixel: false,
           stroke: new Stroke({
-            color: `#00ffff${opacity}`,
+            color: `${this.theme.nodeAnimation}${opacity}`,
             width: 1
           })
         })
@@ -261,6 +297,66 @@ export class WorldMapComponent implements AfterViewInit, OnChanges, OnDestroy {
     });
     this.map.render();
   }
+
+  /**
+   * An ol.style.Style generating function. Needs to be generated per node to show difference in size according to how
+   * many nodes at the location.
+   *
+   * @param fill ol.style.Fill A
+   * @returns {(feature) => ol.style.Style} A per-node generating style function
+   */
+  private nodeFeatureStyle(fill) {
+
+    return (feature) => {
+      const unhealthyNodes = (feature.getProperties() as NodeProperties)
+        .nodes.filter(node => node.status === 'unhealthy').length > 0;
+
+      if (unhealthyNodes) {
+        fill.color_ = this.theme.unhealthyNode;
+      } else {
+        fill.color_ = this.theme.nodeFill;
+      }
+
+      return new Style({
+        image: new Circle({
+          fill,
+          stroke: unhealthyNodes ? new Stroke({
+            color: this.theme.unhealthyNode,
+            width: 3
+          }) : null,
+          radius: 5
+        })
+      });
+    };
+  }
+
+  private setTheme(type: string) {
+    if (type === 'Light') {
+      this.theme = {
+        countryFill: '#ECEAE6',
+        countryBorder: '#ECEAE6', // #DCDBD8
+        nodeFill: '#60B515',
+        unhealthyNode: '#F52F22',
+        nodeFillSelected: '#00ffff',
+        nodeAnimation: '#003D79'
+      };
+    } else {
+      this.theme = {
+        countryFill: '#204454',
+        countryBorder: '#204454',
+        nodeFill: '#00ffffaa',
+        unhealthyNode: '#e62700aa',
+        nodeFillSelected: '#00ffff',
+        nodeAnimation: '#00ffff'
+      };
+    }
+
+    if (this.map) {
+      this.map.setTarget(null);
+      this.map = null;
+      this.initMap();
+    }
+  }
 }
 
 /**
@@ -273,30 +369,6 @@ export class WorldMapComponent implements AfterViewInit, OnChanges, OnDestroy {
  */
 function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value));
-}
-
-/**
- * An ol.style.Style generating function. Needs to be generated per node to show difference in size according to how
- * many nodes at the location.
- *
- * @param fill ol.style.Fill A
- * @returns {(feature) => ol.style.Style} A per-node generating style function
- */
-function nodeFeatureStyle(fill) {
-  return function(feature) {
-    const nodeCount = (feature.getProperties() as NodeProperties).nodes.length;
-    const unhealthyNodes = (feature.getProperties() as NodeProperties).nodes.filter(node => node.status === 'Unhealthy').length > 0;
-    return new Style({
-      image: new Circle({
-        fill,
-        stroke: unhealthyNodes ? new Stroke({
-          color: '#e62700aa',
-          width: 3
-        }) : null,
-        radius: nodeCount * 10
-      })
-    });
-  };
 }
 
 /**

@@ -1,13 +1,15 @@
 version: '3'
 services:
   persephone-metadata:
-    image: "${persephone_metadata_repo}:${persephone_tag}"
+    image: "${persephone_metadata_repo}:${persephone_metadata_tag}"
     ports:
       - 9001:9001
-  persephone-provisioning:
-    image: "${persephone_provisioning_repo}:${persephone_tag}"
+    volumes:
+      - ../hermes/resources/persephone/metadata/config.json:/config/persephone/metadata/config.json:ro
+  deploymentservice:
+    image: "${persephone_provisioning_repo}:${persephone_provisioning_tag}"
     ports:
       - 9002:9002
     volumes:
-      - ../hermes/resources/persephone/provision-service/config.json:/config/persephone/provision-service/config.json:ro
+      - ../hermes/resources/persephone/provisioning/config.json:/config/persephone/provisioning/config.json:ro
 

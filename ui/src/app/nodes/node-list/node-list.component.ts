@@ -3,7 +3,7 @@
  */
 
 import { Component, OnInit } from '@angular/core';
-import { Node } from '../shared/nodes.model';
+import { NodesResponse } from '../shared/nodes.model';
 import { NodesService } from '../shared/nodes.service';
 
 @Component({
@@ -12,7 +12,7 @@ import { NodesService } from '../shared/nodes.service';
   styleUrls: ['./node-list.component.scss']
 })
 export class NodeListComponent implements OnInit {
-  nodes: Node[];
+  nodes: NodesResponse;
 
   constructor(private nodesService: NodesService) { }
 

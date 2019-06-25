@@ -99,9 +99,14 @@ def call(){
                 try{
                   sh 'mkdir blockchain'
                   dir('blockchain') {
+                    // After the checkout, the content of the repo is directly under 'blockchain'.
+                    // There is no extra 'vmwathena_blockchain' directory.
                     script {
                       env.commit = getRepoCode("git@gitlab.eng.vmware.com:blockchain/vmwathena_blockchain.git", params.blockchain_branch_or_commit)
                       env.blockchain_root = new File(env.WORKSPACE, "blockchain").toString()
+
+                      // Check if persephone tests be executed in this run
+                      env.run_persephone_tests = has_repo_changed('persephone') || has_repo_changed('hermes') || env.JOB_NAME.contains(master_branch_job_name)
                     }
                   }
                 }catch(Exception ex){
@@ -128,6 +133,25 @@ def call(){
                   throw ex
                 }
               }
+            }
+          }
+        }
+      }
+
+      stage('Fetch samples from github.') {
+        steps {
+          script {
+            try {
+              dir('blockchain') {
+                script {
+                  sh '''
+                  git clone https://github.com/vmware-samples/vmware-blockchain-samples.git
+                  '''
+                }
+              }
+            } catch(Exception ex) {
+              failRun()
+              throw ex
             }
           }
         }
@@ -165,7 +189,7 @@ def call(){
               }
             }
           }
-          stage("Copy etherium tests") {
+          stage("Copy ethereum tests") {
             steps() {
               script{
                 try{
@@ -259,8 +283,14 @@ def call(){
                 env.release_persephone_metadata_repo = env.release_repo + "/persephone-metadata"
                 env.release_persephone_provisioning_repo = env.release_repo + "/persephone-provisioning"
                 env.release_persephone_fleet_repo = env.release_repo + "/persephone-fleet"
+                env.release_persephone_provisioning_client_repo = env.release_repo + "/persephone-provisioning-client"
                 env.release_ui_repo = env.release_repo + "/ui"
                 env.release_contract_compiler_repo = env.release_repo + "/contract-compiler"
+                env.release_hlf_tools_repo = env.release_repo + "/hyperledger-fabric-tools"
+                env.release_hlf_peer_repo = env.release_repo + "/hyperledger-fabric-peer"
+                env.release_hlf_orderer_repo = env.release_repo + "/hyperledger-fabric-orderer"
+                env.release_daml_ledger_api_repo = env.release_repo + "/daml-ledger-api"
+                env.release_daml_execution_engine_repo = env.release_repo + "/daml-execution-engine"
 
                 // These are constants which mirror the internal artifactory repos.  We put all merges
                 // to master in the internal VMware artifactory.
@@ -273,8 +303,14 @@ def call(){
                 env.internal_persephone_metadata_repo = env.release_persephone_metadata_repo.replace(env.release_repo, env.internal_repo)
                 env.internal_persephone_provisioning_repo = env.release_persephone_provisioning_repo.replace(env.release_repo, env.internal_repo)
                 env.internal_persephone_fleet_repo = env.release_persephone_fleet_repo.replace(env.release_repo, env.internal_repo)
+                env.internal_persephone_provisioning_client_repo = env.release_persephone_provisioning_client_repo.replace(env.release_repo, env.internal_repo)
                 env.internal_ui_repo = env.release_ui_repo.replace(env.release_repo, env.internal_repo)
                 env.internal_contract_compiler_repo = env.release_contract_compiler_repo.replace(env.release_repo, env.internal_repo)
+                env.internal_hlf_tools_repo = env.release_hlf_tools_repo.replace(env.release_repo, env.internal_repo)
+                env.internal_hlf_peer_repo = env.release_hlf_peer_repo.replace(env.release_repo, env.internal_repo)
+                env.internal_hlf_orderer_repo = env.release_hlf_orderer_repo.replace(env.release_repo, env.internal_repo)
+                env.internal_daml_ledger_api_repo = env.release_daml_ledger_api_repo.replace(env.release_repo, env.internal_repo)
+                env.internal_daml_execution_engine_repo = env.release_daml_execution_engine_repo.replace(env.release_repo, env.internal_repo)
               }
 
               // Docker-compose picks up values from the .env file in the directory from which
@@ -302,13 +338,27 @@ fluentd_tag=${docker_tag}
 helen_repo=${internal_helen_repo}
 helen_tag=${docker_tag}
 persephone_metadata_repo=${internal_persephone_metadata_repo}
+persephone_metadata_tag=${docker_tag}
 persephone_provisioning_repo=${internal_persephone_provisioning_repo}
+persephone_provisioning_tag=${docker_tag}
 persephone_fleet_repo=${internal_persephone_fleet_repo}
-persephone_tag=${docker_tag}
+persephone_fleet_tag=${docker_tag}
+persephone_provisioning_client_repo=${internal_persephone_provisioning_client_repo}
+persephone_provisioning_client_tag=${docker_tag}
 ui_repo=${internal_ui_repo}
 ui_tag=${docker_tag}
 contract_compiler_repo=${internal_contract_compiler_repo}
 contract_compiler_tag=${docker_tag}
+hlf_tools_repo=${internal_hlf_tools_repo}
+hlf_tools_tag=${docker_tag}
+hlf_peer_repo=${internal_hlf_peer_repo}
+hlf_peer_tag=${docker_tag}
+hlf_orderer_repo=${internal_hlf_orderer_repo}
+hlf_orderer_tag=${docker_tag}
+daml_ledger_api_repo=${internal_daml_ledger_api_repo}
+daml_ledger_api_tag=${docker_tag}
+daml_execution_engine_repo=${internal_daml_execution_engine_repo}
+daml_execution_engine_tag=${docker_tag}
 commit_hash=${commit}
 LINT_API_KEY=${LINT_API_KEY}
 EOF
@@ -319,14 +369,23 @@ EOF
                   sed -i -e 's/'"<ADD-LOGINTELLIGENCE-KEY-HERE>"'/'"${FLUENTD_AUTHORIZATION_BEARER}"'/g' blockchain/docker/fluentd/fluentd.conf
 
                   # Update hermes/resources/persephone/provision-service/config.json for persephone (deployment service) testing
-                  sed -i -e 's/'"<VMC_API_TOKEN>"'/'"${VMC_API_TOKEN}"'/g' blockchain/hermes/resources/persephone/provision-service/config.json
-                  sed -i -e 's/'"<DOCKERHUB_REPO_READER_PASSWORD>"'/'"${DOCKERHUB_REPO_READER_PASSWORD}"'/g' blockchain/hermes/resources/persephone/provision-service/config.json
+                  sed -i -e 's/'"<VMC_API_TOKEN>"'/'"${VMC_API_TOKEN}"'/g' blockchain/hermes/resources/persephone/provisioning/config.json
+                  sed -i -e 's/'"<DOCKERHUB_REPO_READER_PASSWORD>"'/'"${DOCKERHUB_REPO_READER_PASSWORD}"'/g' blockchain/hermes/resources/persephone/provisioning/config.json
                 '''
               }
 
               // Set up python.
               script{
-                env.python = "/var/jenkins/workspace/venv_py37/bin/python"
+                env.python_bin = "/var/jenkins/workspace/venv_py37/bin"
+                env.python = env.python_bin + "/python"
+
+                sh '''
+                   # Adding websocket-client  0.56.0 to Artifactory: https://servicedesk.eng.vmware.com/servicedesk/customer/portal/12/INTSVC-549
+                   # When that is done, then start passing in -i <url to artifactory>
+                   . ${python_bin}/activate
+                   pip3 install -r blockchain/hermes/requirements.txt
+                   deactivate
+                '''
               }
             }catch(Exception ex){
               failRun()
@@ -375,6 +434,9 @@ EOF
                     env.persephone_test_logs = new File(env.test_log_root, "PersephoneTest").toString()
                     env.lint_test_logs = new File(env.test_log_root, "LintTest").toString()
                     env.contract_compiler_test_logs = new File(env.test_log_root, "ContractCompilerTests").toString()
+                    env.hlf_test_logs = new File(env.test_log_root, "HlfTests").toString()
+                    env.daml_test_logs = new File(env.test_log_root, "DamlTests").toString()
+                    env.time_test_logs = new File(env.test_log_root, "TimeTests").toString()
 
                     if (genericTests) {
                       sh '''
@@ -386,12 +448,23 @@ EOF
                         echo "${PASSWORD}" | sudo -S "${python}" main.py ExtendedRPCTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${extended_rpc_test_logs}" --runConcordConfigurationGeneration
                         echo "${PASSWORD}" | sudo -S "${python}" main.py ExtendedRPCTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${extended_rpc_test_helen_logs}" --ethrpcApiUrl https://localhost/blockchains/local/api/concord/eth --runConcordConfigurationGeneration
                         echo "${PASSWORD}" | sudo -S "${python}" main.py RegressionTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${regression_test_logs}" --runConcordConfigurationGeneration
+                        echo "${PASSWORD}" | sudo -S "${python}" main.py DamlTests --dockerComposeFile ../docker/docker-compose-daml.yml --resultsDir "${daml_test_logs}" --runConcordConfigurationGeneration --concordConfigurationInput /concord/config/dockerConfigurationInput-daml.yaml
 
                         # RV, March 21, 2019: Commenting out this suite because it relies on a native Concord build, which is becoming problematic.
                         #                     Uncomment when it no longer relies on that.
                         # echo "${PASSWORD}" | sudo -S "${python}" main.py SimpleStateTransferTest --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${statetransfer_test_logs}" --runConcordConfigurationGeneration
                         echo "${PASSWORD}" | sudo -S "${python}" main.py TruffleTests --logLevel debug --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${truffle_test_logs}" --runConcordConfigurationGeneration
                         echo "${PASSWORD}" | sudo -S "${python}" main.py ContractCompilerTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${contract_compiler_test_logs}" --runConcordConfigurationGeneration
+                        echo "${PASSWORD}" | sudo -S "${python}" main.py HlfTests --dockerComposeFile=../docker/docker-compose-hlf.yml --resultsDir "${hlf_test_logs}" --runConcordConfigurationGeneration --concordConfigurationInput /concord/config/dockerConfigurationInput-hlf.yaml
+
+                        # Turn the time service on. When the feature flag is removed, we can remove this sed.
+                        # The path to ...-time_service.yaml is different between the sed command and
+                        # the hermes command, because the sed command is run outside of a container,
+                        # but the configuration generation is run inside of a
+                        # container. `../docker/config-public/` is mounted as `/concord/config/`
+                        # during config generation.
+                        sed -- \'s/\\(FEATURE_time_service: \\)false/\\1true/\' ../docker/config-public/dockerConfigurationInput.yaml > ../docker/config-public/dockerConfigurationInput-time_service.yaml
+                        echo "${PASSWORD}" | sudo -S "${python}" main.py TimeTests --dockerComposeFile=../docker/docker-compose.yml --resultsDir "${time_test_logs}" --runConcordConfigurationGeneration --concordConfigurationInput /concord/config/dockerConfigurationInput-time_service.yaml
 
                         cd suites ; echo "${PASSWORD}" | sudo -SE ./memory_leak_test.sh --testSuite CoreVMTests --repeatSuiteRun 2 --tests vmArithmeticTest/add0.json --resultsDir "${mem_leak_test_logs}" ; cd ..
 
@@ -402,9 +475,10 @@ EOF
                         echo "${PASSWORD}" | sudo -S rm -rf ../docker/devdata/cockroachDB
                         "${python}" main.py UiTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${ui_test_logs}" --runConcordConfigurationGeneration
                       '''
-                      if (has_repo_changed('persephone')) {
+                      if (env.run_persephone_tests.toBoolean()) {
                         sh '''
-                          echo "Run persephone tests too"
+                          echo "DISABLED - Running persephone testsuite as either this is a Master run or there is a code change in blockchain/persephone/ (or) blockchain/hermes/"
+                          # echo "Running persephone testsuite as either this is a Master run or there is a code change in blockchain/persephone/ (or) blockchain/hermes/"
                           # echo "${PASSWORD}" | sudo -SE "${python}" main.py PersephoneTests --dockerComposeFile ../docker/docker-compose-persephone.yml --resultsDir "${persephone_test_logs}"
                       '''
                       }
@@ -1065,4 +1139,3 @@ Boolean has_repo_changed(directory){
     return false
   }
 }
-

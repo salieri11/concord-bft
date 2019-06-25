@@ -77,6 +77,12 @@ uint64_t TimeContract::SummarizeTime() {
   return result;
 }
 
+// Get the list of samples.
+const std::unordered_map<std::string, uint64_t> &TimeContract::GetSamples() {
+  LoadLatestSamples();
+  return *samples_;
+}
+
 // Find node[*].time_source_id fields in the config.
 static bool TimeSourceIdSelector(const ConcordConfiguration &config,
                                  const ConfigurationPath &path, void *state) {

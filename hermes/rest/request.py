@@ -178,13 +178,37 @@ class Request():
 
       return self._send()
 
-   def getABlockchainId(self):
+   def createBlockchain(self, consortiumId,  siteIds, f=1, c=0, fixed=True):
       '''
-      Returns the first blockchain.
-      Will be enhanced when user/org/consortia work is done in Helen.
+      Create a blockchain.  Values are simply passed through to persephone.
+      consortiumId: The consoritum UUID.
+      f: # of faulty nodes.
+      c: # of slow nodes.
+      siteIds: Array of SDDC IDs to use.  e.g. Go to vmc.vmware.com, pick an SDDC, Support tab, SDDC ID field.
+      fixed: Affects the way Persehone distributes nodes. If false, "UNSPECIFIED" is used, and there is debate
+             about whether that is a use case.
       '''
-      blockchains = self.getBlockchains()
-      return blockchains[0]["id"]
+      self._subPath = "/api/blockchains"
+      self._params = ""
+      self._data = {
+         "consortium_id": consortiumId,
+         "f_count": f,
+         "c_count": c,
+         "deployment_type": "FIXED" if fixed else "UNSPECIFIED",
+         "site_ids": siteIds
+      }
+      self._endpointName = "create_blockchain"
+
+      return self._send()
+
+   def getBlockchainDetails(self, blockchainId):
+      '''
+      Get the details for a given blockchain ID.
+      '''
+      self._subPath = "/api/blockchains/" + blockchainId
+      self._params = ""
+      self._endpointName = "blockchain"
+      return self._send()
 
    def getBlockList(self, blockchainId, nextUrl=None, latest=None, count=None):
       '''
@@ -243,11 +267,11 @@ class Request():
       return self._send()
 
 
-   def getTransactionList(self, latest=None, count=None):
+   def getTransactionList(self, blockchainId, latest=None, count=None):
       '''
       Get a list of transactions
       '''
-      self._subPath = '/api/concord/transactions/'
+      self._subPath = "/api/blockchains/" + blockchainId + "/concord/transactions"
       if latest:
          self._addParam("latest=" + latest)
 
@@ -371,4 +395,80 @@ class Request():
       self._endpointName = "microserviceVerifyContract"
       self._data = data
 
+      return self._send()
+
+   def getTaskStatus(self, taskId):
+      '''
+      Returns the given task's status.
+      '''
+      self._subPath = "/api/tasks/{}".format(taskId)
+      self._params = ""
+      self._endpointName = "get_task"
+      self._data = None
+      return self._send()
+
+   def createConsortium(self, conName, orgId):
+      '''
+      Given an org ID, creates a consortium in that org.
+
+      Once CSP integration is done, a consortium will contain orgs,
+      so passing in an org should no longer be needed.
+      '''
+      self._subPath = "/api/consortiums/"
+      self._params = ""
+      self._endpointName = "create_consortiums"
+      self._data = {"organization": orgId}
+
+      if conName != None:
+         self._data["consortium_name"] = conName
+
+      return self._send()
+
+   def getConsortium(self, conId):
+      '''
+      Retrieve one consortium.
+      '''
+      self._subPath = "/api/consortiums/{}".format(conId)
+      self._params = ""
+      self._data = None
+      self._endpointName = "retrieve_consortium"
+      return self._send()
+
+   def getConsortiums(self):
+      '''
+      Retrieve a list of all consortiums.
+      '''
+      self._subPath = "/api/consortiums/"
+      self._params = ""
+      self._data = None
+      self._endpointName = "retrieve_consortiums"
+      return self._send()
+
+   def renameConsortium(self, conId, newName):
+      '''
+      Change a consortium's name.
+      '''
+      self._subPath = "/api/consortiums/{}".format(conId)
+      self._params = ""
+      self._data = {"consortium_name": newName}
+      self._endpointName = "rename_consortium"
+      return self._send(verb="PATCH")
+
+   '''
+   =================================================================
+   =================================================================
+   THESE ARE TEMPORARY FUNCTIONS TO BE REMOVED WHEN CSP INTEGRATION
+   IS COMPLETE.
+   =================================================================
+   =================================================================
+   '''
+   def createOrg(self, orgName):
+      '''
+      Creates an organization and returns a structure containing the
+      organiztion_id and organization_name.
+      '''
+      self._subPath = "/api/organizations/"
+      self._params = ""
+      self._endpointName = "organizations"
+      self._data = {"organization_name": orgName}
       return self._send()

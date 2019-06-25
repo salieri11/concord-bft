@@ -16,10 +16,4 @@
       </clr-dropdown-menu>
     </clr-dropdown>
   </h2>
-  <concord-consortium-list #consortiusmList (selected)="selectedRowChange($event)"></concord-consortium-list>
-  <concord-consortium-form #consortiumForm
-                          [selected]="selected"
-                          (consortiumAdd)="addToConsortiumsList($event)"
-                          (consortiumDelete)="deleteFromConsortiumsList()">
-  </concord-consortium-form>
 </div>

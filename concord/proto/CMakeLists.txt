@@ -7,14 +7,22 @@ set(DAML_PROTO
   daml_events.proto
 )
 
+set(HLF_PROTO
+  hlf_services.proto
+  hlf_storage.proto
+)
+
+set(PROTOBUF_IMPORT_DIRS ${COMMUNICATION_PATH}/src/main/proto/)
+
 protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS
   ${CMAKE_CURRENT_BINARY_DIR}
   ${COMMUNICATION_PATH}/src/main/proto/concord.proto
   concord_storage.proto
   ${DAML_PROTO}
+  ${HLF_PROTO}
 )
 
-grpc_generate_cpp(GRPC_SRCS GRPC_HDRS ${CMAKE_CURRENT_BINARY_DIR} ${DAML_PROTO})
+grpc_generate_cpp(GRPC_SRCS GRPC_HDRS ${CMAKE_CURRENT_BINARY_DIR} ${DAML_PROTO} ${HLF_PROTO})
 
 add_library(proto STATIC ${PROTO_SRCS} ${PROTO_HDRS} ${GRPC_SRCS} ${GRPC_SRCS})
 target_link_libraries(proto protobuf::libprotobuf)

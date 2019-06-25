@@ -28,6 +28,9 @@
 #include "ethereum/eth_kvb_commands_handler.hpp"
 #include "ethereum/eth_kvb_storage.hpp"
 #include "ethereum/evm_init_params.hpp"
+#include "hlf/grpc_services.hpp"
+#include "hlf/kvb_commands_handler.hpp"
+#include "hlf/kvb_storage.hpp"
 #include "storage/blockchain_db_adapter.h"
 #include "storage/blockchain_interfaces.h"
 #include "storage/comparators.h"
@@ -58,7 +61,6 @@ using concord::ethereum::EthKvbStorage;
 using concord::common::operator<<;
 using concord::consensus::KVBClient;
 using concord::consensus::KVBClientPool;
-using concord::consensus::releaseReplica;
 using concord::consensus::ReplicaImp;
 using concord::ethereum::EthKvbCommandsHandler;
 using concord::ethereum::EVM;
@@ -78,6 +80,12 @@ using concord::storage::ReplicaConsensusConfig;
 using concord::storage::RocksDBClient;
 using concord::storage::RocksKeyComparator;
 using concord::storage::SetOfKeyValuePairs;
+
+using concord::hlf::ChaincodeInvoker;
+using concord::hlf::HlfKvbCommandsHandler;
+using concord::hlf::HlfKvbStorage;
+using concord::hlf::RunHlfGrpcServer;
+
 using concord::time::TimePusher;
 using concord::utils::EthSign;
 
@@ -113,7 +121,8 @@ void signalHandler(int signum) {
   }
 }
 
-IDBClient *open_database(ConcordConfiguration &nodeConfig, Logger logger) {
+unique_ptr<IDBClient> open_database(ConcordConfiguration &nodeConfig,
+                                    Logger logger) {
   if (!nodeConfig.hasValue<std::string>("blockchain_db_impl")) {
     LOG4CPLUS_FATAL(logger, "Missing blockchain_db_impl config");
     throw EVMException("Missing blockchain_db_impl config");
@@ -122,13 +131,14 @@ IDBClient *open_database(ConcordConfiguration &nodeConfig, Logger logger) {
   string db_impl_name = nodeConfig.getValue<std::string>("blockchain_db_impl");
   if (db_impl_name == "memory") {
     LOG4CPLUS_INFO(logger, "Using memory blockchain database");
-    return new InMemoryDBClient(
-        (IDBClient::KeyComparator)&RocksKeyComparator::InMemKeyComp);
+    return unique_ptr<IDBClient>(new InMemoryDBClient(
+        (IDBClient::KeyComparator)&RocksKeyComparator::InMemKeyComp));
 #ifdef USE_ROCKSDB
   } else if (db_impl_name == "rocksdb") {
     LOG4CPLUS_INFO(logger, "Using rocksdb blockchain database");
     string rocks_path = nodeConfig.getValue<std::string>("blockchain_db_path");
-    return new RocksDBClient(rocks_path, new RocksKeyComparator());
+    return unique_ptr<IDBClient>(
+        new RocksDBClient(rocks_path, new RocksKeyComparator()));
 #endif
   } else {
     LOG4CPLUS_FATAL(logger, "Unknown blockchain_db_impl " << db_impl_name);
@@ -255,15 +265,17 @@ unique_ptr<grpc::Server> RunDamlGrpcServer(
  */
 int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
                 Logger &logger) {
-  EVM *athevm;
-  EthSign *ethVerifier;
+  unique_ptr<EVM> concevm;
+  unique_ptr<EthSign> ethVerifier;
   EVMInitParams params;
   uint64_t chainID;
   BlockingPersistentQueue<CommittedTx> committedTxs;
   bool daml_enabled = config.getValue<bool>("daml_enable");
 
+  bool hlf_enabled = config.getValue<bool>("hlf_enable");
+
   try {
-    if (!daml_enabled) {
+    if (!daml_enabled && !hlf_enabled) {
       // The genesis parsing is Eth specific.
       if (nodeConfig.hasValue<std::string>("genesis_block")) {
         string genesis_file_path =
@@ -273,15 +285,12 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
         params = EVMInitParams(genesis_file_path);
         chainID = params.get_chainID();
         // throws an exception if it fails
-        athevm = new EVM(params);
-        ethVerifier = new EthSign();
+        concevm = unique_ptr<EVM>(new EVM(params));
+        ethVerifier = unique_ptr<EthSign>(new EthSign());
       } else {
         LOG4CPLUS_WARN(logger, "No genesis block provided");
       }
     }
-
-    IDBClient *dbclient = open_database(nodeConfig, logger);
-    BlockchainDBAdapter db(dbclient);
 
     // Replica and communication config
     CommConfig commConfig;
@@ -293,6 +302,9 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
     initializeSBFTConfiguration(config, nodeConfig, &commConfig, nullptr, 0,
                                 &replicaConsensusConfig);
 
+    auto db_client = open_database(nodeConfig, logger);
+    BlockchainDBAdapter db_adapter(db_client.get());
+
     // Replica
     //
     // TODO(IG): since ReplicaImpl is used as an implementation of few
@@ -300,22 +312,32 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
     // EthKvbCommandsHandler and thus we cant use IReplica here. Need to
     // restructure the code, to split interfaces implementation and to construct
     // objects in more clear way
-    auto *replicaStateSync = new concord::consensus::ReplicaStateSyncImp;
-    ReplicaImp *replica =
-        dynamic_cast<ReplicaImp *>(concord::consensus::createReplica(
-            commConfig, replicaConsensusConfig, dbclient, *replicaStateSync));
+    concord::consensus::ReplicaStateSyncImp replicaStateSync;
+    ReplicaImp replica(commConfig, replicaConsensusConfig, &db_adapter,
+                       replicaStateSync);
 
-    // TODO(RM): Use unique pointer
-    ICommandsHandler *kvb_commands_handler;
+    unique_ptr<ICommandsHandler> kvb_commands_handler;
     if (daml_enabled) {
+      std::string damle_addr{
+          nodeConfig.getValue<std::string>("daml_execution_engine_addr")};
       kvb_commands_handler =
-          new KVBCCommandsHandler(replica, replica, committedTxs);
+          unique_ptr<ICommandsHandler>(new KVBCCommandsHandler(
+              &replica, &replica, committedTxs, damle_addr));
+    } else if (hlf_enabled) {
+      LOG4CPLUS_INFO(logger, "Hyperledger Fabric feature is enabled");
+      // Init chaincode invoker
+      ChaincodeInvoker *chaincode_invoker = new ChaincodeInvoker(nodeConfig);
+
+      kvb_commands_handler =
+          unique_ptr<ICommandsHandler>(new HlfKvbCommandsHandler(
+              chaincode_invoker, config, nodeConfig, &replica, &replica));
     } else {
-      kvb_commands_handler = new EthKvbCommandsHandler(
-          *athevm, *ethVerifier, config, nodeConfig, replica, replica);
+      kvb_commands_handler =
+          unique_ptr<ICommandsHandler>(new EthKvbCommandsHandler(
+              *concevm, *ethVerifier, config, nodeConfig, &replica, &replica));
       // Genesis must be added before the replica is started.
       concord::consensus::Status genesis_status =
-          create_genesis_block(replica, params, logger);
+          create_genesis_block(&replica, params, logger);
       if (!genesis_status.isOK()) {
         LOG4CPLUS_FATAL(logger,
                         "Unable to load genesis block: " << genesis_status);
@@ -323,8 +345,8 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
       }
     }
 
-    replica->set_command_handler(kvb_commands_handler);
-    replica->start();
+    replica.set_command_handler(kvb_commands_handler.get());
+    replica.start();
 
     // Clients
 
@@ -360,10 +382,28 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
       std::string daml_addr{
           nodeConfig.getValue<std::string>("daml_service_addr")};
       daml_grpc_server =
-          RunDamlGrpcServer(daml_addr, pool, replica, committedTxs);
+          RunDamlGrpcServer(daml_addr, pool, &replica, committedTxs);
       LOG4CPLUS_INFO(logger, "DAML grpc server listening on " << daml_addr);
 
       daml_grpc_server->Wait();
+    } else if (hlf_enabled) {
+      // Get listening address for services
+      std::string key_value_service_addr =
+          nodeConfig.getValue<std::string>("hlf_kv_service_address");
+      std::string chaincode_service_addr =
+          nodeConfig.getValue<std::string>("hlf_chaincode_service_address");
+
+      // Create Hlf Kvb Storage instance for Hlf key value service
+      // key value service could put updates to cache, but it is not allowed to
+      // write block
+      const ILocalKeyValueStorageReadOnly &storage =
+          replica.getReadOnlyStorage();
+      IdleBlockAppender block_appender(&replica);
+      HlfKvbStorage kvb_storage = HlfKvbStorage(storage, &block_appender, 0);
+
+      // Start HLF gRPC services
+      RunHlfGrpcServer(kvb_storage, pool, key_value_service_addr,
+                       chaincode_service_addr);
     } else {
       std::string ip = nodeConfig.getValue<std::string>("service_host");
       short port = nodeConfig.getValue<short>("service_port");
@@ -387,15 +427,7 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
       timePusher.Stop();
     }
 
-    replica->stop();
-
-    if (!daml_enabled) {
-      delete ethVerifier;
-      delete athevm;
-    }
-    delete kvb_commands_handler;
-    releaseReplica(replica);
-    delete replicaStateSync;
+    replica.stop();
   } catch (std::exception &ex) {
     LOG4CPLUS_FATAL(logger, ex.what());
     return -1;

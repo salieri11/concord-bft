@@ -3,13 +3,13 @@
  * *********************************************************************/
 package com.vmware.blockchain.grpc.kotlinx.serialization
 
+import com.vmware.blockchain.protobuf.kotlinx.serialization.ProtoBuf
 import io.grpc.MethodDescriptor
 import io.grpc.stub.ServerCalls
 import io.grpc.stub.StreamObserver
 import kotlinx.io.ByteArrayInputStream
 import kotlinx.io.InputStream
 import kotlinx.serialization.KSerializer
-import kotlinx.serialization.protobuf.ProtoBuf
 
 /**
  * Class enclosure of various static utility functions pertaining to GRPC's Java runtime support.

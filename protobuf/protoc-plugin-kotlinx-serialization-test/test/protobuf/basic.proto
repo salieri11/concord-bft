@@ -26,6 +26,7 @@ message ScalarsMessage {
     sfixed64 sfixed64_field = 12;
     sint64 sint64_field = 13;
     uint64 uint64_field = 14;
+    bytes bytes_field = 15;
 }
 
 enum TopLevelEnum {

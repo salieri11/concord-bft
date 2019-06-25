@@ -5,6 +5,8 @@ package com.vmware.blockchain.protobuf.plugin.proto2
 
 import com.google.protobuf.Message
 import com.google.protobuf.Parser
+import com.vmware.blockchain.protobuf.kotlinx.serialization.ByteString
+import com.vmware.blockchain.protobuf.kotlinx.serialization.ProtoBuf
 import com.vmware.blockchain.protobuf.plugin.proto2.java.EnumMessage as EnumMessageJava
 import com.vmware.blockchain.protobuf.plugin.proto2.java.NestedMessage as NestedMessageJava
 import com.vmware.blockchain.protobuf.plugin.proto2.java.RepeatFieldAndMapMessage as RepeatFieldAndMapMessageJava
@@ -14,7 +16,6 @@ import com.vmware.blockchain.protobuf.plugin.proto2.java.RequiredScalarsMessage 
 import com.vmware.blockchain.protobuf.plugin.proto2.java.ScalarsMessage as ScalarsMessageJava
 import com.vmware.blockchain.protobuf.plugin.proto2.java.TopLevelEnum as TopLevelEnumJava
 import kotlinx.serialization.KSerializer
-import kotlinx.serialization.protobuf.ProtoBuf
 import org.assertj.core.api.Assertions
 import org.junit.jupiter.api.Test
 
@@ -55,7 +56,7 @@ class CompatibilityTest {
         serializer: KSerializer<T>,
         parser: Parser<R>
     ): T {
-        val encodedWithKotlin = kotlinx.serialization.protobuf.ProtoBuf.dump(serializer, message)
+        val encodedWithKotlin = ProtoBuf.dump(serializer, message)
         val decodedWithJava = parser.parseFrom(encodedWithKotlin)
         val encodedWithJava = decodedWithJava.toByteArray()
 
@@ -72,6 +73,7 @@ class CompatibilityTest {
                 .setBoolField(true)
                 .setStringField("test string")
                 .setFixed32Field(1)
+                .setBytesField(com.google.protobuf.ByteString.copyFrom("test bytes".toByteArray()))
                 .build()
     }
 
@@ -84,7 +86,8 @@ class CompatibilityTest {
         return ScalarsMessage(
                 boolField = true,
                 stringField = "test string",
-                fixed32Field = 1
+                fixed32Field = 1,
+                bytesField = ByteString.of(*"test bytes".toByteArray())
         )
     }
 
@@ -249,6 +252,7 @@ class CompatibilityTest {
                 .setUint64Field(6)
                 .setSfixed64Field(-2)
                 .setSint64Field(-4)
+                .setBytesField(com.google.protobuf.ByteString.copyFrom("test bytes".toByteArray()))
                 .build()
     }
 
@@ -272,7 +276,8 @@ class CompatibilityTest {
                 fixed64Field = 4,
                 uint64Field = 6,
                 sfixed64Field = -2,
-                sint64Field = -4
+                sint64Field = -4,
+                bytesField = ByteString.of(*"test bytes".toByteArray())
         )
     }
 

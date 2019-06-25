@@ -20,8 +20,8 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.ObjectUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DuplicateKeyException;
@@ -39,6 +39,7 @@ import com.fasterxml.jackson.databind.ser.FilterProvider;
 import com.fasterxml.jackson.databind.ser.impl.SimpleFilterProvider;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.datatype.jsr310.ser.ZonedDateTimeSerializer;
+import com.vmware.blockchain.auth.AuthHelper;
 import com.vmware.blockchain.common.BadRequestException;
 import com.vmware.blockchain.common.DateTimeUtils;
 import com.vmware.blockchain.common.ErrorCode;
@@ -49,7 +50,6 @@ import com.vmware.blockchain.db.Entity;
 import com.vmware.blockchain.db.Link;
 import com.vmware.blockchain.db.mapper.EntityMapper;
 import com.vmware.blockchain.db.mapper.LinkMapper;
-import com.vmware.blockchain.security.AuthHelper;
 import com.vmware.blockchain.services.profiles.Roles;
 
 import io.micrometer.core.instrument.Metrics;
@@ -64,7 +64,7 @@ import io.micrometer.core.instrument.Timer;
 @Repository
 class GenericDaoTransaction  {
 
-    private static final Logger logger = LoggerFactory.getLogger(GenericDaoTransaction.class);
+    private static final Logger logger = LogManager.getLogger(GenericDaoTransaction.class);
     private static final int MAX_RETRIES = 3;
     private static final int LOG_LARGE_RESULTS = 1000;
 

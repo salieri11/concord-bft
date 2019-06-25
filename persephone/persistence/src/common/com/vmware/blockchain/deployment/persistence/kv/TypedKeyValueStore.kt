@@ -10,8 +10,8 @@ import com.vmware.blockchain.deployment.persistence.kv.KeyValueStore.Versioned
 import com.vmware.blockchain.deployment.reactive.ErrorPublisher
 import com.vmware.blockchain.deployment.reactive.MappingPublisher
 import com.vmware.blockchain.deployment.reactive.Publisher
+import com.vmware.blockchain.protobuf.kotlinx.serialization.ProtoBuf
 import kotlinx.serialization.KSerializer
-import kotlinx.serialization.protobuf.ProtoBuf
 
 /**
  * A strongly-typed implementation of [KeyValueStore] interface.
@@ -31,29 +31,8 @@ import kotlinx.serialization.protobuf.ProtoBuf
 class TypedKeyValueStore<K, V, T : Version<T>>(
     private val keySerializer: KSerializer<K>,
     private val valueSerializer: KSerializer<V>,
-    private val keyValueStore: UntypedKeyValueStore<T> = InMemoryUntypedKeyValueStore()
+    private val keyValueStore: UntypedKeyValueStore<T>
 ) : KeyValueStore<K, V, T> {
-
-    /**
-     * Wrapper object type denoting a protocol buffer, which is a [ByteArray] encoded in Protocol
-     * Buffer wiring encoding.
-     *
-     * @param[typedValue]
-     *   typed value entity to be represented as Protocol Buffer encoded.
-     * @param[serializer]
-     *   serializer capable of encoding the [typedValue] into Protocol Buffer wire encoding.
-     */
-    data class ProtocolBuffer<T>(
-        private val typedValue: T,
-        private val serializer: KSerializer<T>
-    ) : Value {
-
-        private val untypedValue: ByteArray by lazy {
-            ProtoBuf.plain.dump(serializer, typedValue)
-        }
-
-        override fun asByteArray(): ByteArray = untypedValue
-    }
 
     /**
      * Extension function to deserialize the content within a [ByteArray] to a typed value by
@@ -85,7 +64,7 @@ class TypedKeyValueStore<K, V, T : Version<T>>(
         }
     }
 
-    override fun set(key: K, expected: Version<T>, value: V): Publisher<Versioned<V, T>> {
+    override fun set(key: K, expected: T, value: V): Publisher<Versioned<V, T>> {
         return try {
             val keyBytes = ProtocolBuffer(key, keySerializer)
             val valueBytes = ProtocolBuffer(value, valueSerializer)
@@ -98,7 +77,7 @@ class TypedKeyValueStore<K, V, T : Version<T>>(
         }
     }
 
-    override fun delete(key: K, expected: Version<T>): Publisher<Versioned<V, T>> {
+    override fun delete(key: K, expected: T): Publisher<Versioned<V, T>> {
         return try {
             val keyBytes = ProtocolBuffer(key, keySerializer)
             MappingPublisher(keyValueStore.delete(keyBytes, expected)) { element ->

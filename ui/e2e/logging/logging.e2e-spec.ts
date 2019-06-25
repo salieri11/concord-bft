@@ -24,10 +24,6 @@ describe('concord-ui Logging', () => {
     browser.sleep(1000);
   });
 
-  afterAll(() => {
-    authHelper.logOut();
-  });
-
   beforeEach(() => {
     loggingPage = new LoggingPage();
     loggingPage.navigateTo();

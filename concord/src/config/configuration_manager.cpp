@@ -387,7 +387,7 @@ bool ConcordConfiguration::interpretAs<short>(std::string value,
   if ((intVal < SHRT_MIN) || (intVal > SHRT_MAX)) {
     return false;
   }
-  output = (short)intVal;
+  output = static_cast<short>(intVal);
   return true;
 }
 
@@ -428,13 +428,42 @@ bool ConcordConfiguration::interpretAs<uint16_t>(std::string value,
   if (intVal > UINT16_MAX) {
     return false;
   }
-  output = (uint16_t)intVal;
+  output = static_cast<uint16_t>(intVal);
   return true;
 }
 
 template <>
 std::string ConcordConfiguration::getTypeName<uint16_t>() const {
   return "uint16_t";
+}
+
+template <>
+bool ConcordConfiguration::interpretAs<uint32_t>(std::string value,
+                                                 uint32_t& output) const {
+  // This check is necessary because stoul/stoull actually have semantics for if
+  // their input is preceded with a '-' other than throwing an exception.
+  if ((value.length() > 0) && value[0] == '-') {
+    return false;
+  }
+
+  unsigned long long intVal;
+  try {
+    intVal = std::stoull(value);
+  } catch (std::invalid_argument& e) {
+    return false;
+  } catch (std::out_of_range& e) {
+    return false;
+  }
+  if (intVal > UINT32_MAX) {
+    return false;
+  }
+  output = static_cast<uint32_t>(intVal);
+  return true;
+}
+
+template <>
+std::string ConcordConfiguration::getTypeName<uint32_t>() const {
+  return "uint32_t";
 }
 
 template <>
@@ -457,7 +486,7 @@ bool ConcordConfiguration::interpretAs<uint64_t>(std::string value,
   if (intVal > UINT64_MAX) {
     return false;
   }
-  output = (uint64_t)intVal;
+  output = static_cast<uint64_t>(intVal);
   return true;
 }
 
@@ -1969,6 +1998,11 @@ static const std::pair<unsigned long long, unsigned long long>
 static const std::pair<unsigned long long, unsigned long long> kUInt16Limits(
     {0, UINT16_MAX});
 
+// We enforce a minimum size on communication buffers to ensure at least
+// minimal error responses can be passed through them.
+static const std::pair<unsigned long long, unsigned long long>
+    kConcordBFTCommunicationBufferSizeLimits({512, UINT32_MAX});
+
 static ConcordConfiguration::ParameterStatus validateBoolean(
     const std::string& value, const ConcordConfiguration& config,
     const ConfigurationPath& path, std::string* failureMessage, void* state) {
@@ -2854,6 +2888,19 @@ void specifyConfiguration(ConcordConfiguration& config) {
   config.addGenerator("commit_public_key", getThresholdPublicKey,
                       &(auxState->commitCryptosys));
 
+  config.declareParameter(
+      "concord-bft_communication_buffer_length",
+      "Size of buffers to be used for messages exchanged with and within "
+      "Concord-BFT. Note that the capacity of these buffers may limit things "
+      "like the maximum sizes of transactions or replies to requests that can "
+      "be handled.",
+      "64000");
+  config.tagParameter("concord-bft_communication_buffer_length",
+                      defaultableByUtilityTags);
+  config.addValidator("concord-bft_communication_buffer_length", validateUInt,
+                      const_cast<void*>(reinterpret_cast<const void*>(
+                          &kConcordBFTCommunicationBufferSizeLimits)));
+
   config.declareParameter("concurrency_level",
                           "Number of consensus operations that Concord-BFT may "
                           "execute in parallel.",
@@ -3006,10 +3053,16 @@ void specifyConfiguration(ConcordConfiguration& config) {
   config.addValidator("daml_enable", validateBoolean, nullptr);
 
   node.declareParameter("daml_service_addr",
-                        "Public IP address and port (<IP>:<PORT>) on which the "
-                        "DAML serice can be reached.",
+                        "IP address and port (<IP>:<PORT>) on which Concord's "
+                        "DAML service can be reached.",
                         "0.0.0.0:50051");
-  node.tagParameter("daml_service_addr", publicDefaultableTags);
+  node.tagParameter("daml_service_addr", defaultableByReplicaTags);
+
+  node.declareParameter("daml_execution_engine_addr",
+                        "IP address and port (<IP>:<PORT>) to reach DAMLe. "
+                        "Concord is a client to DAML's execution engine.",
+                        "0.0.0.0:55000");
+  node.tagParameter("daml_execution_engine_addr", defaultableByReplicaTags);
 
   node.declareParameter("api_worker_pool_size",
                         "Number of threads to create to handle TCP connections "
@@ -3238,6 +3291,50 @@ void specifyConfiguration(ConcordConfiguration& config) {
   clientProxy.tagParameter("public_key", publicGeneratedTags);
   clientProxy.addValidator("public_key", validateRSAPublicKey, nullptr);
   clientProxy.addGenerator("public_key", getRSAPublicKey, nullptr);
+
+  // Configuration of HLF
+  config.declareParameter("hlf_enable", "Flag to enable HLF feature.", "false");
+  config.tagParameter("hlf_enable", publicDefaultableTags);
+  config.addValidator("hlf_enable", validateBoolean, nullptr);
+
+  node.declareParameter("hlf_peer_command_tool_path",
+                        "Location of peer command tool.", "/peer");
+  node.tagParameter("hlf_peer_command_tool_path", privateOptionalTags);
+
+  node.declareParameter("hlf_peer_command_tool_config_path",
+                        "Config file for peer command tool.", "/");
+  node.tagParameter("hlf_peer_command_tool_config_path", privateOptionalTags);
+
+  node.declareParameter("hlf_peer_msp_dir_path",
+                        "Location of Membership Service Provider diretory.",
+                        "/msp");
+  node.tagParameter("hlf_peer_msp_dir_path", privateOptionalTags);
+
+  node.declareParameter("hlf_peer_msp_id",
+                        "MSP ID used to communicate with HLF peer.", "Org1MSP");
+  node.tagParameter("hlf_peer_msp_id", privateOptionalTags);
+
+  node.declareParameter("hlf_peer_address",
+                        "Public IP address of HLF peer to communicate with "
+                        "(chaincode life cycle managment).",
+                        "peer.example.com:7051");
+  node.tagParameter("hlf_peer_address", privateOptionalTags);
+
+  node.declareParameter("hlf_orderer_address",
+                        "Public IP address of HLF orderer to communicate with "
+                        "(channel management).",
+                        "orderer.example.com:7050");
+  node.tagParameter("hlf_orderer_address", privateOptionalTags);
+
+  node.declareParameter("hlf_kv_service_address",
+                        "Address of Concord to provide KV service.",
+                        "0.0.0.0:50051");
+  node.tagParameter("hlf_kv_service_address", privateOptionalTags);
+
+  node.declareParameter("hlf_chaincode_service_address",
+                        "Address of Concord to provide KV service.",
+                        "0.0.0.0:50052");
+  node.tagParameter("hlf_chaincode_service_address", privateOptionalTags);
 
   // TLS
   config.declareParameter("tls_cipher_suite_list",

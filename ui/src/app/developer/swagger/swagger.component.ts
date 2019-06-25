@@ -4,6 +4,7 @@
 
 import { AfterViewInit, Component, ElementRef } from '@angular/core';
 
+import { environment } from './../../../environments/environment';
 // Due to issues with SwaggerUI being undefined in certain scenarios
 // https://github.com/swagger-api/swagger-ui/issues/4303
 declare var require: any;
@@ -20,13 +21,17 @@ export class SwaggerComponent implements AfterViewInit {
 
   ngAfterViewInit() {
     const jwt = localStorage.getItem('jwtToken');
+    let loginPath;
     let apiPath = '/static/swagger/swagger.json';
-    let loginPath = '/auth/login';
     const pathArray = window.location.pathname.split('/');
     pathArray.splice(-3);
     const basePath = pathArray.join('/');
     apiPath = `${basePath}${apiPath}`;
-    loginPath = `${basePath}${loginPath}`;
+    if (environment.csp) {
+      loginPath = environment.loginPath;
+    } else {
+      loginPath = `${basePath}/auth/login`;
+    }
 
     SwaggerUI({
       url: apiPath,

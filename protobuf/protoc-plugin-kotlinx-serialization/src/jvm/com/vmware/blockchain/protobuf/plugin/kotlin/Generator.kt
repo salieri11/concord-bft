@@ -19,6 +19,8 @@ import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.asClassName
 import com.squareup.kotlinpoet.asTypeName
+import com.vmware.blockchain.protobuf.kotlinx.serialization.ByteString
+import com.vmware.blockchain.protobuf.kotlinx.serialization.GeneratedModel
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerialId
 import kotlinx.serialization.Serializable
@@ -135,6 +137,7 @@ class MessageGenerator(private val descriptor: DescriptorProtos.DescriptorProto)
                 .build()
         return TypeSpec.classBuilder(selfTypeName)
                 .addAnnotation(AnnotationSpec.builder(Serializable::class).build())
+                .addAnnotation(AnnotationSpec.builder(GeneratedModel::class).build())
                 .apply {
                     /* Data class must have at least 1 field declared. */
                     if (descriptor.fieldCount > 0) {
@@ -169,6 +172,7 @@ class EnumGenerator(private val descriptor: DescriptorProtos.EnumDescriptorProto
                                      .build())
                 .build()
         return TypeSpec.enumBuilder(selfTypeName)
+                .addAnnotation(AnnotationSpec.builder(GeneratedModel::class).build())
                 .primaryConstructor(FunSpec.constructorBuilder()
                                             .addParameter("value", Int::class)
                                             .build())
@@ -279,7 +283,7 @@ private fun getFieldBaseType(field: DescriptorProtos.FieldDescriptorProto): Clas
         DescriptorProtos.FieldDescriptorProto.Type.TYPE_BOOL -> Boolean::class.asTypeName()
         DescriptorProtos.FieldDescriptorProto.Type.TYPE_STRING -> String::class.asTypeName()
         DescriptorProtos.FieldDescriptorProto.Type.TYPE_ENUM -> ClassName.bestGuess(typeName)
-        DescriptorProtos.FieldDescriptorProto.Type.TYPE_BYTES -> String::class.asTypeName()
+        DescriptorProtos.FieldDescriptorProto.Type.TYPE_BYTES -> ByteString::class.asTypeName()
         DescriptorProtos.FieldDescriptorProto.Type.TYPE_GROUP -> Any::class.asTypeName()
         DescriptorProtos.FieldDescriptorProto.Type.TYPE_MESSAGE ->
             ClassName.bestGuess(typeName)
@@ -397,7 +401,7 @@ private fun getFieldDefaultValue(
             DescriptorProtos.FieldDescriptorProto.Type.TYPE_ENUM ->
                 CodeBlock.of("%T.%L", ClassName.bestGuess(typeName), "defaultValue")
             DescriptorProtos.FieldDescriptorProto.Type.TYPE_BYTES ->
-                CodeBlock.of("%L", "0.toByte()")
+                CodeBlock.of("%T.%L", ByteString::class, "empty()")
             DescriptorProtos.FieldDescriptorProto.Type.TYPE_GROUP -> CodeBlock.of("%L", "null")
             DescriptorProtos.FieldDescriptorProto.Type.TYPE_MESSAGE ->
                 CodeBlock.of("%T.%L", ClassName.bestGuess(typeName), "defaultValue")

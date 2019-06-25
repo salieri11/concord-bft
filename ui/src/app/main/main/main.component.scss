@@ -54,12 +54,13 @@
 
 :host ::ng-deep clr-vertical-nav clr-select-container {
   display: flex;
-  flex: 0 0 1.5rem;
+  flex: 0 0 1.8rem;
   margin: 0 .5rem 0 1rem;
 }
 
 :host ::ng-deep .consortium-select {
   width: 100%;
+  min-width: 204px;
   height: 1.3rem;
   border-style: solid;
   border-width: 1px;

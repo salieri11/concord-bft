@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 
-import com.vmware.blockchain.security.AuthHelper;
+import com.vmware.blockchain.auth.AuthHelper;
 import com.vmware.blockchain.security.ServiceContext;
 
 import lombok.Getter;

@@ -985,6 +985,7 @@ TEST(config_test, type_interpretation) {
   EXPECT_FALSE(config.hasValue<int>("parameter_a") ||
                config.hasValue<short>("parameter_a") ||
                config.hasValue<uint16_t>("parameter_a") ||
+               config.hasValue<uint32_t>("parameter_a") ||
                config.hasValue<uint64_t>("parameter_a"))
       << "ConcordConfiguration::hasValue fails to reject a non-integer value "
          "when interpreting the parameter as an integer.";
@@ -994,6 +995,7 @@ TEST(config_test, type_interpretation) {
     short aShort = config.getValue<short>("parameter_a");
     int aInt = config.getValue<int>("parameter_a");
     uint16_t aUInt16 = config.getValue<uint16_t>("parameter_a");
+    uint32_t aUInt32 = config.getValue<uint32_t>("parameter_a");
     uint64_t aUInt64 = config.getValue<uint64_t>("parameter_a");
     bool aBool = config.getValue<bool>("parameter_a");
     FAIL() << "ConcordConfiguration::getValue fails to throw an exception when "
@@ -1037,6 +1039,17 @@ TEST(config_test, type_interpretation) {
               !(config.hasValue<uint16_t>("too_high")))
       << "ConcordConfiguration::hasValue fails to correctly enforce the limits "
          "of uint16_ts.";
+
+  config.loadValue("too_low", "-1");
+  config.loadValue("low", "0");
+  config.loadValue("high", std::to_string(UINT32_MAX));
+  config.loadValue("too_high", std::to_string(((uint64_t)UINT32_MAX) + 1));
+  EXPECT_TRUE(!(config.hasValue<uint32_t>("too_low")) &&
+              (config.hasValue<uint32_t>("low")) &&
+              (config.hasValue<uint32_t>("high")) &&
+              !(config.hasValue<uint32_t>("too_high")))
+      << "ConcordConfiguration::hasValue fails to correctly enforce the limits "
+         "of uint32_ts.";
 
   config.loadValue("high", std::to_string(UINT64_MAX));
   // String value of UINT64_MAX + 1; this is hardcoded rather than computed

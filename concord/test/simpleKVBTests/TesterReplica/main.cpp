@@ -47,6 +47,7 @@ using namespace concord::config;
 using concord::consensus::ReplicaImp;
 using concord::consensus::ReplicaStateSyncImp;
 using concord::ethereum::EthKvbStorage;
+using concord::storage::BlockchainDBAdapter;
 using concord::storage::CommConfig;
 using concord::storage::ILocalKeyValueStorageReadOnly;
 using concord::storage::ReplicaConsensusConfig;
@@ -228,10 +229,11 @@ int main(int argc, char **argv) {
   std::stringstream dbPath;
   dbPath << BasicRandomTests::DB_FILE_PREFIX << replicaParams.replicaId;
   auto dbClient = new RocksDBClient(dbPath.str(), new RocksKeyComparator());
+  BlockchainDBAdapter dbAdapter(dbClient);
 
-  auto *replicaStateSync = new ReplicaStateSyncImp;
-  replica = dynamic_cast<ReplicaImp *>(
-      createReplica(commConfig, consensusConfig, dbClient, *replicaStateSync));
+  ReplicaStateSyncImp replicaStateSync;
+  replica =
+      new ReplicaImp(commConfig, consensusConfig, &dbAdapter, replicaStateSync);
 
   InternalCommandsHandler cmdHandler(replica, replica, logger);
   replica->set_command_handler(&cmdHandler);
@@ -242,5 +244,6 @@ int main(int argc, char **argv) {
   while (replica->isRunning())
     std::this_thread::sleep_for(std::chrono::seconds(3));
 
-  dbClient->close();
+  delete replica;
+  delete dbClient;
 }

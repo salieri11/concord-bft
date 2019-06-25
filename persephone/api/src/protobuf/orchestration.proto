@@ -25,7 +25,7 @@ message OrchestrationSiteIdentifier {
 }
 
 /**
- * Model definition of an orchestration site.
+ * Model definition of information pertaining to an [OrchestrationSite].
  *
  * @param[type]
  *   type of the the endpoint.
@@ -40,6 +40,19 @@ message OrchestrationSiteInfo {
 
     Type type = 1;
     VmcOrchestrationSiteInfo vmc = 2;
+}
+
+/**
+ * Model definition of an orchestration site.
+ *
+ * @param[id]
+ *   identifier of the site.
+ * @param[info]
+ *   information about the site.
+ */
+message OrchestrationSite {
+    OrchestrationSiteIdentifier id = 1;
+    OrchestrationSiteInfo info = 2;
 }
 
 /**

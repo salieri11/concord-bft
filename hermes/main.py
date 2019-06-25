@@ -12,15 +12,16 @@ import tempfile
 from time import strftime, localtime
 
 from suites import (asset_transfer_tests, contract_compiler_tests, core_vm_tests, daml_tests,
-                    ext_rpc_tests, lint_e2e_tests, helen_api_tests, performance_tests, persephone_tests,
-                    regression_tests, simple_st_test, truffle_tests, ui_tests)
+                    ext_rpc_tests, lint_e2e_tests, helen_api_tests, hlf_tests, performance_tests,
+                    persephone_tests, regression_tests, simple_st_test, time_tests, truffle_tests,
+                    ui_tests, websocket_rpc_tests)
 
 from util import html, json_helper
 
 log = None
 suites = ["AssetTransferTests", "ContractCompilerTests", "CoreVMTests",
-          "LintTests", "ExtendedRPCTests", "HelenAPITests", "PerformanceTests", "PersephoneTests",
-          "RegressionTests", "SimpleStateTransferTest", "TruffleTests", "UiTests"]
+          "LintTests", "ExtendedRPCTests", "HelenAPITests", "HlfTests", "PerformanceTests", "PersephoneTests",
+          "RegressionTests", "SimpleStateTransferTest", "TimeTests", "TruffleTests", "UiTests", "WebSocketRPCTests"]
 
 def main():
    startTime = datetime.datetime.now()
@@ -112,6 +113,16 @@ def main():
            "Note: The path specified is the absolute path within a Concord container",
       default="/concord/config/dockerConfigurationInput.yaml")
 
+   parser.add_argument("--deployNewBlockchain",
+                       help="Triggers deployment of and testing against a blockchain "
+                            "deployed to an SDDC via Persephone instead of using the"
+                            "blockchain deployed by docker-compose.  Currently only "
+                            "applies to HelenAPITests.  CURRENTLY FAILS.  ALSO, REQUIRES "
+                            "MANUAL DELETION OF THE CONCORD NODES FROM THE SDDC WHEN "
+                            "FINISHED.",
+                       default=False,
+                       action='store_true')
+
    args = parser.parse_args()
    parent_results_dir = args.resultsDir
 
@@ -185,6 +196,8 @@ def createTestSuite(args):
       return helen_api_tests.HelenAPITests(args)
    elif (args.suite == "ExtendedRPCTests"):
       return ext_rpc_tests.ExtendedRPCTests(args)
+   elif (args.suite == "WebSocketRPCTests"):
+      return websocket_rpc_tests.WebSocketRPCTests(args)
    elif (args.suite == "PerformanceTests"):
       return performance_tests.PerformanceTests(args)
    elif (args.suite == "PersephoneTests"):
@@ -193,6 +206,8 @@ def createTestSuite(args):
       return regression_tests.RegressionTests(args)
    elif (args.suite == "SimpleStateTransferTest"):
       return simple_st_test.SimpleStateTransferTest(args)
+   elif (args.suite == "TimeTests"):
+      return time_tests.TimeTests(args)
    elif (args.suite == "TruffleTests"):
       return truffle_tests.TruffleTests(args)
    elif (args.suite == "UiTests"):
@@ -201,6 +216,8 @@ def createTestSuite(args):
       return lint_e2e_tests.LintTests(args)
    elif (args.suite == "DamlTests"):
       return daml_tests.DamlTests(args)
+   elif (args.suite == "HlfTests"):
+      return hlf_tests.HlfTests(args)
    else:
       return None
 

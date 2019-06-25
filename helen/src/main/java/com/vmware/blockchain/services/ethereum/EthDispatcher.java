@@ -18,8 +18,6 @@ import org.json.simple.parser.ParseException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -27,6 +25,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 
+import com.vmware.blockchain.auth.AuthHelper;
 import com.vmware.blockchain.common.BadRequestException;
 import com.vmware.blockchain.common.Constants;
 import com.vmware.blockchain.common.ErrorCode;
@@ -68,14 +67,19 @@ public class EthDispatcher extends ConcordServlet {
     private String jsonRpc;
     private ContractService registryManager;
     private ProfilesService profilesRegistryManager;
+    private AuthHelper authHelper;
 
     @Autowired
-    public EthDispatcher(ContractService registryManager, ConnectionPoolManager connectionPoolManager,
-            ProfilesService profilesRegistryManager, DefaultProfiles defaultProfiles) throws ParseException {
+    public EthDispatcher(ContractService registryManager,
+            ConnectionPoolManager connectionPoolManager,
+            ProfilesService profilesRegistryManager,
+            DefaultProfiles defaultProfiles,
+                         AuthHelper authHelper) throws ParseException {
         super(connectionPoolManager, defaultProfiles);
         JSONParser p = new JSONParser();
         this.registryManager = registryManager;
         this.profilesRegistryManager = profilesRegistryManager;
+        this.authHelper = authHelper;
         try {
             rpcList = (JSONArray) p.parse(Constants.ETHRPC_LIST);
             jsonRpc = Constants.JSONRPC;
@@ -147,8 +151,7 @@ public class EthDispatcher extends ConcordServlet {
      */
     @RequestMapping(path = "/api/concord/eth", method = RequestMethod.GET)
     public ResponseEntity<JSONAware> doGet() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+        UserDetails userDetails = (UserDetails) authHelper.getDetails();
         UUID organizationId = profilesRegistryManager.getUserOrganizationIdWithEmail(userDetails.getUsername());
         UUID consortiumId = profilesRegistryManager.getUserConsortiumIdWithEmail(userDetails.getUsername());
         ThreadContext.put("organization_id", organizationId.toString());
@@ -181,8 +184,7 @@ public class EthDispatcher extends ConcordServlet {
         boolean isBatch = false;
         ResponseEntity<JSONAware> responseEntity;
 
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+        UserDetails userDetails = (UserDetails) authHelper.getDetails();
         UUID organizationId = profilesRegistryManager.getUserOrganizationIdWithEmail(userDetails.getUsername());
         UUID consortiumId = profilesRegistryManager.getUserConsortiumIdWithEmail(userDetails.getUsername());
         ThreadContext.put("organization_id", organizationId.toString());
@@ -262,10 +264,10 @@ public class EthDispatcher extends ConcordServlet {
                     if (requestJson.containsKey("isInternalContract")) {
                         requestJson.remove("isInternalContract");
                         handler = new EthSendTxHandler(connectionPoolManager, defaultProfiles,
-                                profilesRegistryManager, blockchain, registryManager, true);
+                                profilesRegistryManager, blockchain, registryManager, true, authHelper);
                     } else {
                         handler = new EthSendTxHandler(connectionPoolManager, defaultProfiles, profilesRegistryManager,
-                                blockchain, registryManager, false);
+                                blockchain, registryManager, false, authHelper);
                     }
                     break;
 
@@ -311,7 +313,7 @@ public class EthDispatcher extends ConcordServlet {
                     break;
 
                 case Constants.NETVERSION_NAME:
-                    handler = new EthLocalResponseHandler();
+                    handler = new EthLocalResponseHandler(authHelper);
                     isLocal = netVersionSet;
                     break;
 
@@ -325,7 +327,7 @@ public class EthDispatcher extends ConcordServlet {
                 case Constants.GAS_PRICE_NAME:
                 case Constants.ESTIMATE_GAS_NAME:
                 case Constants.SYNCING_NAME:
-                    handler = new EthLocalResponseHandler();
+                    handler = new EthLocalResponseHandler(authHelper);
                     isLocal = true;
                     break;
 
