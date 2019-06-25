@@ -442,7 +442,7 @@ EOF
                       sh '''
                         # So test suites not using sudo can write to test_logs.
                         mkdir "${test_log_root}"
-                        echo "${PASSWORD}" | sudo -S "${python}" main.py SampleDappTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${sample_dapp_test_logs}" --runConcordConfigurationGeneration
+                        echo "${PASSWORD}" | sudo -S "${python}" main.py SampleDAppTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${sample_dapp_test_logs}" --runConcordConfigurationGeneration
                         echo "${PASSWORD}" | sudo -S "${python}" main.py CoreVMTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${core_vm_test_logs}" --runConcordConfigurationGeneration
                         echo "${PASSWORD}" | sudo -S "${python}" main.py HelenAPITests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${helen_api_test_logs}" --runConcordConfigurationGeneration
                         echo "${PASSWORD}" | sudo -S "${python}" main.py ExtendedRPCTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${extended_rpc_test_logs}" --runConcordConfigurationGeneration
