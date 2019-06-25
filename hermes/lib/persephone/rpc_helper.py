@@ -126,7 +126,7 @@ class RPCHelper():
       '''
       response_list = []
       log.info(
-         "**** Calling rpc {}/[response=stream: {}] ****".format(rpc, stream))
+         "Calling rpc {}/[response=stream: {}] ****".format(rpc, stream))
       # TODO: Introduce thread and MAX TIMEOUT when waiting for stream
       response = rpc(rpc_request)
       if stream:
