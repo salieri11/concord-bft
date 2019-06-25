@@ -164,6 +164,7 @@ message DeploymentSessionEvent {
         NODE_DEPLOYED = 4; // Node specified by [node] is deployed.
         NODE_STATUS = 5; // Status update for a node specified in [node_status].
         CLUSTER_DEPLOYED = 6; // Cluster specified by [cluster] is fully deployed.
+        CLUSTER_DEPROVISIONED = 7; // Cluster specified is deprovisioned
     }
 
     Type type = 1;
@@ -236,7 +237,7 @@ message StreamClusterDeploymentSessionEventRequest {
  * @property[session]
  *   identifier for the cluster deployment session.
  */
-message DeprovisionCluster {
+message DeprovisionClusterRequest {
     MessageHeader header = 1;
     DeploymentSessionIdentifier session = 2;
 }
@@ -273,5 +274,11 @@ service ProvisioningService {
      */
     rpc StreamClusterDeploymentSessionEvents (StreamClusterDeploymentSessionEventRequest)
         returns (stream DeploymentSessionEvent) {};
+
+    /**
+    * Operation to deprovision cluster based on a [DeprovisionClusterRequest]
+    */
+    rpc DeprovisionCluster (DeprovisionClusterRequest) returns (DeploymentSessionIdentifier) {};
+
 }
 /* [END services] */
