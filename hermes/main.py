@@ -11,17 +11,17 @@ import os
 import tempfile
 from time import strftime, localtime
 
-from suites import (sample_dapp_tests, contract_compiler_tests, core_vm_tests, daml_tests,
+from suites import (contract_compiler_tests, core_vm_tests, daml_tests,
                     ext_rpc_tests, lint_e2e_tests, helen_api_tests, hlf_tests, performance_tests,
-                    persephone_tests, regression_tests, simple_st_test, time_tests, truffle_tests,
+                    persephone_tests, regression_tests, sample_dapp_tests, simple_st_test, time_tests, truffle_tests,
                     ui_tests, websocket_rpc_tests)
 
 from util import html, json_helper
 
 log = None
-suites = ["SampleDappTests", "ContractCompilerTests", "CoreVMTests",
+suites = ["ContractCompilerTests", "CoreVMTests",
           "LintTests", "ExtendedRPCTests", "HelenAPITests", "HlfTests", "PerformanceTests", "PersephoneTests",
-          "RegressionTests", "SimpleStateTransferTest", "TimeTests", "TruffleTests", "UiTests", "WebSocketRPCTests"]
+          "RegressionTests", "SampleDAppTests", "SimpleStateTransferTest", "TimeTests", "TruffleTests", "UiTests", "WebSocketRPCTests"]
 
 def main():
    startTime = datetime.datetime.now()
@@ -75,11 +75,11 @@ def main():
                        type=int,
                        help="Number of times to repeat test runs")
    parser.add_argument("--endpoint",
-                       help="Endpoint for Sample dApp tests")
+                       help="Endpoint for Sample DApp tests")
    parser.add_argument("--user",
-                       help="User name for Sample dApp tests")
+                       help="User name for Sample DApp tests")
    parser.add_argument("--password",
-                       help="Password for Sample dApp tests")
+                       help="Password for Sample DApp tests")
    parser.add_argument("--reverseProxyApiBaseUrl",
                        default="https://localhost/blockchains/local",
                        help="Base URL for Helen REST API calls. Test cases drill "
@@ -186,8 +186,8 @@ def setUpLogging(args):
       exit(1)
 
 def createTestSuite(args):
-   if (args.suite == "SampleDappTests"):
-      return sample_dapp_tests.SampleDappTests(args)
+   if (args.suite == "SampleDAppTests"):
+      return sample_dapp_tests.SampleDAppTests(args)
    elif (args.suite == "ContractCompilerTests"):
        return contract_compiler_tests.ContractCompilerTests(args)
    elif (args.suite == "CoreVMTests"):
