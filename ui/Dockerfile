@@ -9,7 +9,7 @@ RUN npm install
 RUN node patch.js
 
 ARG env=prod
-ARG UI_BUILD=build:prod
+ARG UI_BUILD=build:prod:csp
 
 RUN npm run $UI_BUILD
 

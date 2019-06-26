@@ -112,11 +112,11 @@ export class TourService {
       }
     ];
 
-    if ((this.personaService.currentPersona === Personas.OrgDeveloper )) {
+    if ((this.personaService.hasAuthorization(Personas.OrgDeveloper))) {
       this.steps.splice(4, 2);
     }
 
-    if ((this.personaService.currentPersona === Personas.OrgUser )) {
+    if (this.personaService.hasAuthorization(Personas.OrgUser)) {
       this.steps.splice(3, 3);
     }
 

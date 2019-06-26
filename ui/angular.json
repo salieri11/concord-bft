@@ -13,6 +13,11 @@
           "configurations": {
             "noserve": {
               "devServerTarget": ""
+            },
+            "csp-dev": {
+              "devServerTarget": "concord-ui:serve:csp-dev",
+              "host": "localhost.vmware.com",
+              "port": 443
             }
           },
           "builder": "@angular-devkit/build-angular:protractor",
@@ -116,7 +121,12 @@
           },
           "configurations": {
             "csp-dev": {
-              "browserTarget": "concord-ui:build:csp-dev"
+              "host": "0.0.0.0",
+              "ssl": true,
+              "disableHostCheck": true,
+              "port": 443,
+              "browserTarget": "concord-ui:build:csp-dev",
+              "proxyConfig": "proxy.conf.json"
             },
             "production": {
               "browserTarget": "concord-ui:build:csp-dev"

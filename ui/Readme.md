@@ -34,7 +34,7 @@ Also add `localhost.vmware.com` to your `/etc/hosts`, so csp can easily make COR
 0.0.0.0 localhost.vmware.com
 ```
 
-Then open http://localhost.vmware.com:4200 .
+Then open https://localhost.vmware.com
 
 
 
@@ -50,7 +50,7 @@ Two ways of running tests.
 Authorization Bearer <ADD-LOGINTELLIGENCE-KEY-HERE>
 ```
 
-- Now we need to extend the original docker-compose file with our fluentd config on helen 
+- Now we need to extend the original docker-compose file with our fluentd config on helen
 
 ```shell
 docker-compose -f docker-compose.yml -f docker-compose-fluentd.yml up -d

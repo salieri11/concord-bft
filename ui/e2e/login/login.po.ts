@@ -3,6 +3,39 @@
  */
 
 import { browser, by, element } from 'protractor';
+import { waitFor, waitForURLContains } from '../helpers/utils';
+
+
+const CSP_LOGIN_EMAIL = 'admin-blockchain-dev@csp.local';
+const CSP_PASSWORD = 'Admin!23';
+
+export class CSPLogin {
+  navigateTo() {
+    return browser.get('/');
+  }
+
+  // When on this page
+  // https://console-stg.cloud.vmware.com/csp/gateway/discovery
+  // login with email address
+  fillInEmail() {
+    const el = '#discovery_username';
+    waitFor(el);
+    element(by.css(el)).sendKeys(CSP_LOGIN_EMAIL);
+    element(by.css('#next-btn-text')).click();
+  }
+
+  // Password page
+  // https://csp-local.vidmpreview.com/SAAS/auth/login
+  fillInPassword() {
+    const el = '#password';
+    waitFor(el);
+    element(by.css(el)).sendKeys(CSP_PASSWORD);
+    element(by.css('#signIn')).click();
+  }
+
+
+}
+
 
 export class LoginPage {
   navigateTo() {
@@ -25,6 +58,7 @@ export class LoginPage {
   getChangeSubmit() {
     return element(by.css('#changePassword'));
   }
+
   changePasswordSubmit() {
     element(by.css('#changePassword')).click();
   }

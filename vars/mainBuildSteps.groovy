@@ -105,7 +105,6 @@ def call(){
           }
         }
       }
-
       stage("Copy dependencies") {
         parallel {
           stage("Copy googletest") {
@@ -143,6 +142,13 @@ def call(){
             steps() {
               dir('blockchain/contract-compiler') {
                 sh 'npm install'
+              }
+            }
+          }
+          stage("Add localhost.vmware.com") {
+            steps {
+              dir('blockchain/vars') {
+                sh './add-localhost-vmware-com.sh'
               }
             }
           }

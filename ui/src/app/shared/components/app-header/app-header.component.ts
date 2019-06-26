@@ -56,21 +56,21 @@ export class AppHeaderComponent implements OnDestroy, AfterViewInit {
       this.themeService.themeChange
         .subscribe(() => this.setTheme());
 
+        this.authToken = this.authenticationService.accessToken;
+
     } else {
       this.userProfileMenuToggleChanges = this.tourService.userProfileDropdownChanges$.subscribe((openMenu) => {
         setTimeout(() => {
           this.userProfileMenu.ifOpenService.open = openMenu;
         });
       });
+
+      this.authenticationChange = authenticationService.user.subscribe(user => {
+        this.username = user.email;
+        this.personaService.currentPersonas.push(user.persona);
+      });
     }
 
-    this.authenticationChange = authenticationService.user.subscribe(user => {
-      this.username = user.email;
-      this.personaService.currentPersona = user.persona;
-    });
-    if (this.env.csp) {
-      this.authToken = this.authenticationService.accessToken;
-    }
   }
 
   ngAfterViewInit() {
@@ -91,7 +91,7 @@ export class AppHeaderComponent implements OnDestroy, AfterViewInit {
 
   onPersonaChange(persona: Personas) {
     localStorage.setItem('helen.persona', persona);
-    this.personaService.currentPersona = persona;
+    this.personaService.currentPersonas.push(persona);
     location.reload();
   }
 
@@ -120,8 +120,6 @@ export class AppHeaderComponent implements OnDestroy, AfterViewInit {
     this.headerOptions.showOrgSwitcher = true;
     this.headerOptions.showHelpMenu = true;
     this.headerOptions.enableChangeDefaultOrg = true;
-    // this.headerOptions.enableEditProfileLink = true;
-    // this.headerOptions.showUserSettingsSection = true;
     this.headerOptions.globalBranding = true;
     this.headerOptions.isMasked = false;
     this.headerOptions.showSupportTab = true;
@@ -132,9 +130,5 @@ export class AppHeaderComponent implements OnDestroy, AfterViewInit {
     const theme = this.themeService.theme.toUpperCase();
     this.headerOptions.theme = CspHeaderTheme[theme];
   }
-
-  // private handleCSPError(error) {
-  //   console.log(error);
-  // }
 
 }

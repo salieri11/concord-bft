@@ -6,19 +6,22 @@ import { Injectable } from '@angular/core';
 
 export enum Personas {
   SystemsAdmin = 'SYSTEM_ADMIN',
+  SystemsInfra = 'SYSTEM_INFRA',
   ConsortiumAdmin = 'CONSORTIUM_ADMIN',
+  ConsortiumOperator = 'CONSORTIUM_OPERATOR',
+  ConsortiumParticipant = 'CONSORTIUM_PARTICIPANT',
   OrgAdmin = 'ORG_ADMIN',
   OrgDeveloper = 'ORG_DEVELOPER',
   OrgUser = 'ORG_USER'
 }
 
+
 @Injectable()
 export class PersonaService {
 
-  private _currentPersona: Personas;
+  currentPersonas: Personas[] = [];
 
-  constructor() {
-  }
+  constructor() {}
 
   static getOptions(): Array<{ name?: string; value: Personas; }> {
     const personaOptions: Array<{ name?: string; value: Personas; }> = [
@@ -36,17 +39,15 @@ export class PersonaService {
     return matches.length ? matches[0].name : null;
   }
 
-  get currentPersona() {
-    return this._currentPersona;
-  }
-
-  set currentPersona(persona: Personas) {
-    this._currentPersona = persona;
-    localStorage.setItem('helen.persona', persona);
-  }
-
   public hasAuthorization(roles: Personas | Personas[]): boolean {
     roles = Array.isArray(roles) ? roles : [roles];
-    return roles.indexOf(this.currentPersona) !== -1;
+    let isPresent = false;
+
+    roles.forEach(role => {
+      if (this.currentPersonas.indexOf(role) !== -1) {
+        isPresent = true;
+      }
+    });
+    return isPresent;
   }
 }

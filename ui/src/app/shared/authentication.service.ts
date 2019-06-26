@@ -34,7 +34,7 @@ export class AuthenticationService {
       wallet_address: localStorage['helen.wallet_address']
     });
     this.user = this.userSubject.asObservable();
-    this.personaService.currentPersona = localStorage['helen.persona'];
+    // this.personaService.currentPersona.push(localStorage['helen.persona']);
   }
 
   isAuthenticated() {
@@ -56,6 +56,9 @@ export class AuthenticationService {
     return this.http.get<{ auth_token: string, last_login: number, email: string }>(url).pipe(
       map(response => {
         this.accessToken = response.auth_token;
+        const parsedToken = this.parseJwt(this.accessToken);
+        this.setPersona(parsedToken.perms);
+
         return response;
       })
     );
@@ -106,7 +109,7 @@ export class AuthenticationService {
     localStorage.removeItem('helen.persona');
     localStorage.removeItem('helen.user_id');
     localStorage.removeItem('helen.wallet_address');
-    this.personaService.currentPersona = undefined;
+    this.personaService.currentPersonas = undefined;
     this.userSubject.next({
       email: localStorage['helen.email'],
       consortium_id: localStorage['helen.consortium_id'],
@@ -147,7 +150,7 @@ export class AuthenticationService {
     localStorage.setItem('helen.email', response.email);
     localStorage.setItem('helen.wallet_address', walletAddress);
     this.setToken(response);
-    this.personaService.currentPersona = persona;
+    this.personaService.currentPersonas.push(persona);
     this.usersService.getList().subscribe((users) => {
       const consortiumId = users[0].consortium.consortium_id;
       localStorage.setItem('helen.consortium_id', consortiumId);
@@ -161,6 +164,43 @@ export class AuthenticationService {
     });
   }
 
+  private setPersona(perms: string[]) {
+    perms.forEach(perm => {
+      if (perm.startsWith('external')) {
+        const permList = perm.split('/');
+
+        switch (permList[2]) {
+          case 'vmbc-system:admin':
+            this.personaService.currentPersonas.push(Personas.SystemsAdmin);
+            break;
+          case 'vmbc-system:infra':
+            this.personaService.currentPersonas.push(Personas.SystemsInfra);
+            break;
+          case 'vmbc-org:user':
+            this.personaService.currentPersonas.push(Personas.OrgUser);
+            break;
+          case 'vmbc-org:dev':
+            this.personaService.currentPersonas.push(Personas.OrgDeveloper);
+            break;
+          case 'vmbc-org:admin':
+            this.personaService.currentPersonas.push(Personas.OrgAdmin);
+            break;
+          case 'vmbc-consortium:admin':
+            this.personaService.currentPersonas.push(Personas.ConsortiumAdmin);
+            break;
+          case 'vmbc-consortium:operator':
+            this.personaService.currentPersonas.push(Personas.ConsortiumOperator);
+            break;
+          case 'vmbc-consortium:participant':
+            this.personaService.currentPersonas.push(Personas.ConsortiumParticipant);
+            break;
+
+          default:
+            break;
+        }
+      }
+    });
+  }
   private setToken(response): void {
     const expiresAt = Date.now() + response.token_expires;
     const refreshExpiresAt = Date.now() + (response.token_expires * 2);
@@ -170,6 +210,16 @@ export class AuthenticationService {
     localStorage.setItem('jwtTokenExpiresAt', expiresAt.toString());
     localStorage.setItem('jwtRefreshTokenExpiresAt', refreshExpiresAt.toString());
   }
+
+  private parseJwt(token: string): any {
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(atob(base64).split('').map(function (c) {
+      return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+    }).join(''));
+
+    return JSON.parse(jsonPayload);
+  };
 
   // TODO: Use country list from CSP VIP
   getCountryList(): Array<string> {
