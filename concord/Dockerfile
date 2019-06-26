@@ -88,6 +88,12 @@ EXPOSE 3503/tcp
 EXPOSE 3504/tcp
 EXPOSE 3505/tcp
 
+EXPOSE 3501/udp
+EXPOSE 3502/udp
+EXPOSE 3503/udp
+EXPOSE 3504/udp
+EXPOSE 3505/udp
+
 # ENV
 ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib:/opt/grpc/lib:/opt/protobuf/lib
 ENV GOPATH=/concord
