@@ -34,7 +34,7 @@
         <!-- Dependency-related properties. -->
         <assertj.version>3.11.1</assertj.version>
         <grpc.runtime.java.version>1.18.0</grpc.runtime.java.version>
-        <grpc.runtime.kotlinx.serialization.version>1.0.0-SNAPSHOT</grpc.runtime.kotlinx.serialization.version>
+        <grpc.runtime.kotlinx.serialization.version>0.0.2</grpc.runtime.kotlinx.serialization.version>
         <junit.jupiter.version>5.2.0</junit.jupiter.version>
         <junit.platform.version>1.2.0</junit.platform.version>
         <persephone.version>1.0.0-SNAPSHOT</persephone.version>
@@ -49,6 +49,11 @@
         <dependency>
             <groupId>com.vmware.blockchain</groupId>
             <artifactId>persephone-api</artifactId>
+            <version>${persephone.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.vmware.blockchain</groupId>
+            <artifactId>persephone-core</artifactId>
             <version>${persephone.version}</version>
         </dependency>
         <dependency>
