@@ -1,6 +1,8 @@
 #########################################################################
 # Copyright 2018 VMware, Inc.  All rights reserved. -- VMware Confidential
 #########################################################################
+import random
+import string
 import time
 
 hexIndicator = "0x"
@@ -71,3 +73,12 @@ def to_signed_int(value: int, bits: int = 64) -> int:
    '''
    mask = (1 << bits) - 1
    return (value | ~mask) if value & (1 << (bits - 1)) else (value & mask)
+
+
+def random_string_generator(size=6, chars=string.ascii_uppercase + string.digits, mustNotMatch=None):
+   while True:
+      ret = ''.join(random.choice(chars) for _ in range(size))
+
+      if ret != mustNotMatch:
+         return ret
+

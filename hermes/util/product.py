@@ -17,7 +17,9 @@ from threading import Thread
 import time
 import yaml
 import signal
-from util import helper
+
+import util.blockchain.eth
+import util.helper
 
 PRODUCT_LOGS_DIR = "product_logs"
 log = logging.getLogger(__name__)
@@ -55,7 +57,7 @@ class Product():
    _servicesToLogLater = ["db-server-init1", "db-server-init2", "fluentd"]
    _suite = None
    _numProductStarts = 0
-   docker_env = helper.get_docker_env()
+   docker_env = util.helper.get_docker_env()
 
    PERSEPHONE_SERVICE_METADATA = docker_env["persephone_metadata_repo"]
    PERSEPHONE_SERVICE_PROVISIONING = "deploymentservice" # name as seen by helen
@@ -171,7 +173,7 @@ class Product():
          if self._suite:
             self._suite.validateLaunchConfig(dockerCfg)
 
-         helper.copy_docker_env_file()
+         util.helper.copy_docker_env_file()
 
          if (self._cmdlineArgs.runConcordConfigurationGeneration):
             self._generateConcordConfiguration(
@@ -267,7 +269,7 @@ class Product():
                newCfg = yaml.load(f, Loader=yaml.FullLoader)
                self.mergeDictionaries(dockerCfg, newCfg)
 
-         helper.copy_docker_env_file()
+         util.helper.copy_docker_env_file()
          self._startContainers(product="persephone")
          self._startLogCollection()
 
@@ -419,60 +421,6 @@ class Product():
                concordNodes.append(service)
 
       return concordNodes
-
-
-   def getUrlFromEthrpcNode(self, node):
-      '''
-      Helps work around VB-1006.
-      '''
-      if "rpc_url" in node.keys():
-         return node["rpc_url"]
-      elif "ip" in node.keys():
-         return node["url"]
-      else:
-         raise Exception("Unable to find an ethrpc url in {}".format(node))
-
-
-   def getEthrpcNodes(self, request=None, blockchainId=None):
-      '''
-      request: Optional request to interact with Helen's REST APIs.
-      blockchainId: Optional blockchain id, in case one needs to be specified.
-      Uses Helen's /concord/members API to get the blockchain members.
-      Uses /api/blockchains/{blockchainId} if /concord/members does not work.
-      '''
-      members = []
-
-      if not request:
-         request = Request(self._productLogsDir,
-                           "getMembers",
-                           self._cmdlineArgs.reverseProxyApiBaseUrl,
-                           self._userConfig)
-
-      if not blockchainId:
-         blockchains = request.getBlockchains()
-         blockchainId = blockchains[0]["id"]
-
-      result = request.getMemberList(blockchainId)
-
-      for m in result:
-         if m["rpc_url"]:
-            members.append(m)
-
-      if not members:
-         # Work around VB-1006
-         log.info("No members found from the concord member list. "
-                  "Getting blockchain details via /api/blockchains instead.")
-         result = request.getBlockchainDetails(blockchainId)
-
-         for m in result["node_list"]:
-            if m["ip"]:
-               members.append(m)
-         # End workaround
-
-      if not members:
-         log.info("No ethrpc nodes were returned by Helen.")
-
-      return members
 
 
    def clearconcordDBForCmdlineLaunch(self, concordSection, serviceName=None):
@@ -878,8 +826,12 @@ class Product():
       nodes = None
 
       while attempts < retries:
+         request = Request(self._productLogsDir,
+                           "getMembers",
+                           self._cmdlineArgs.reverseProxyApiBaseUrl,
+                           self._userConfig)
          try:
-            nodes = self.getEthrpcNodes()
+            nodes = util.blockchain.eth.getEthrpcNodes(request)
             if self.nodesReady(nodes):
                break
             else:
@@ -898,7 +850,7 @@ class Product():
       if self._cmdlineArgs.ethrpcApiUrl:
          self._ethrpcApiUrl = self._cmdlineArgs.ethrpcApiUrl
       else:
-         self._ethrpcApiUrl = self.getUrlFromEthrpcNode(nodes[0])
+         self._ethrpcApiUrl = util.blockchain.eth.getUrlFromEthrpcNode(nodes[0])
 
       rpc = RPC(startupLogDir,
                 "addApiUser",
@@ -979,11 +931,6 @@ class Product():
                  path = self.clearconcordDBForCmdlineLaunch(launchElement[project], "concord" + str(instanceId))
                  return path
 
-   def get_concord_container_name(self, replicaId):
-      command = 'docker ps --format "{0}" | grep concord{1}'.format("{{ .Names }}", replicaId)
-      output = subprocess.Popen(command,stderr=subprocess.PIPE, shell=True, stdout=subprocess.PIPE).stdout.read().decode().replace(os.linesep,"")
-      return output
-
    def action_on_concord_container(self, containerName, action):
       command = "docker {0} {1}".format(action, containerName)
       output = subprocess.Popen(command,stderr=subprocess.PIPE, shell=True, stdout=subprocess.PIPE).stdout.read().decode().replace(os.linesep,"")
@@ -991,12 +938,6 @@ class Product():
       if output != containerName:
         return False
       return True
-
-   def exec_in_concord_container(self, containerName, args):
-      command = "docker exec {0} {1}".format(containerName, args)
-      output = subprocess.Popen(command,stderr=subprocess.PIPE, shell=True, stdout=subprocess.PIPE).stdout.read().decode("UTF-8")
-      log.info("Exec on " + containerName + ": " + args)
-      return output
 
    def start_concord_replica(self, id):
        if len(self._concordProcessesMetaData) == 0:
@@ -1023,7 +964,7 @@ class Product():
 
    def kill_concord_replica(self, id):
        if len(self._concordProcessesMetaData) == 0:
-          containerName = self.get_concord_container_name(id)
+          containerName = util.blockchain.eth.get_concord_container_name(id)
           if len(containerName) == 0:
              return False
           return self.action_on_concord_container(containerName, "kill")
@@ -1039,7 +980,7 @@ class Product():
 
    def pause_concord_replica(self, id):
        if len(self._concordProcessesMetaData) == 0:
-          containerName = self.get_concord_container_name(id)
+          containerName = util.blockchain.eth.get_concord_container_name(id)
           if len(containerName) == 0:
              return False
           return self.action_on_concord_container(containerName, "pause")
@@ -1065,6 +1006,19 @@ class Product():
        return True
 
 
+   def resumeMembers(self, members):
+      '''
+      Given a list of items returned from the members Helen API call, unpauses
+      them.
+      Note that this currently assumes all members are running locally in
+      docker.  We aren't running on SDDCs yet, so this won't apply to that
+      setup.
+      '''
+      for m in members:
+         concordIndex = int(m["hostname"][len("replica"):]) + 1
+         self.resume_concord_replica(concordIndex)
+
+
    def deployBlockchain(self, request, conName, orgName):
       '''
       request: A Rest request object which uses Helen.
@@ -1087,7 +1041,7 @@ class Product():
          raise Exception("Failed to deploy a blockchain to the SDDC.")
       else:
          blockchainId = response["resource_id"]
-         self.getEthrpcNodes(request, blockchainId)
+         util.blockchain.eth.getEthrpcNodes(request, blockchainId)
          return(blockchainId, conId)
 
 
@@ -1148,3 +1102,4 @@ class Product():
                log.info("Task did not finish as expected.  Details: {}".format(response))
 
       return (success, response)
+

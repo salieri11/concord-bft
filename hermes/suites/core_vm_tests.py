@@ -20,6 +20,7 @@ from rpc.rpc_call import RPC
 from util.debug import pp as pp
 from util.numbers_strings import trimHexIndicator, stringOnlyContains
 from util.product import Product
+import util.blockchain.eth
 import util.json_helper
 
 log = logging.getLogger(__name__)
@@ -217,7 +218,7 @@ class CoreVMTests(test_suite.TestSuite):
       log.info("Starting test '{}'".format(testPath))
 
       if expectTxSuccess:
-         testExecutionCode = self._addCodePrefix(testExecutionCode)
+         testExecutionCode = util.blockchain.eth.addCodePrefix(testExecutionCode)
          txReceipt = self._createContract(user, rpc, testExecutionCode, gas)
 
          if txReceipt:

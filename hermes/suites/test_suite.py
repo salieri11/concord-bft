@@ -1,6 +1,6 @@
-#########################################################################
+###############################################################################
 # Copyright 2018-2019 VMware, Inc.  All rights reserved. -- VMware Confidential
-#########################################################################
+###############################################################################
 from abc import ABC
 from abc import abstractmethod
 import collections
@@ -9,14 +9,16 @@ import json
 import logging
 import os
 import random
-from util.bytecode import getPushInstruction, addBytePadding
-import util.json_helper
-from util.numbers_strings import trimHexIndicator, decToEvenHexNo0x
-from util.product import Product
-
 import web3
 from web3 import Web3, HTTPProvider
 from requests.auth import HTTPBasicAuth
+
+import util.json_helper
+import util.blockchain.eth
+import rest.request
+from util.bytecode import getPushInstruction, addBytePadding
+from util.numbers_strings import trimHexIndicator, decToEvenHexNo0x
+from util.product import Product
 
 # Suppress security warnings
 import urllib3
@@ -71,6 +73,7 @@ class TestSuite(ABC):
       else:
          self._repeatSuiteRun = False
       self._hermes_home = self._args.hermes_dir
+
 
    def loadConfigFile(self):
       '''
@@ -165,13 +168,41 @@ class TestSuite(ABC):
             self.writeResult("All Tests", False, "The product did not start.")
             raise(e)
 
+
    def validateLaunchConfig(self, dockerCfg):
       '''
-      When the the product is being launched, it can call into a test suite
-      to identify configuration issues before continuing with the launch.
-      Implement this in a child class if needed.
+      When the product is being launched, a Product can pass a docker config into
+      a test suite to identify configuration issues before continuing with the launch.
+      - If we're running tests which deploy a new blockchain (e.g. Helen invoking
+        Persephone), be sure we have a docker config that includes Persephone.
+      - Be sure replaceable values in the Persephone config.json file have been replaced
+        with real values.
       '''
-      pass
+      if self._args.deployNewBlockchain:
+         foundPersephoneDockerConfig = False
+
+         for key in dockerCfg["services"].keys():
+            if "deploymentservice" in key:
+               foundPersephoneDockerConfig = True
+               provisioningConfig = None
+               provisioningConfigFile = "resources/persephone/provisioning/config.json"
+               invalidValues = ["<VMC_API_TOKEN>", "<DOCKERHUB_REPO_READER_PASSWORD>"]
+
+               with open(provisioningConfigFile, "r") as f:
+                  provisioningConfig = f.read()
+
+               for invalid in invalidValues:
+                  if invalid in provisioningConfig:
+                     msg = "Invalid Persephone provisioning value(s) in {}.".format(provisioningConfigFile)
+                     msg += "  Check instance(s) of: {}".format(invalidValues)
+                     raise Exception(msg)
+
+         if not foundPersephoneDockerConfig:
+            raise Exception("Deploying a new blockchain was requested, but there is no "
+                            "docker config for Persephone. It is likely you should add "
+                            "this to your command: '"
+                            "--dockerComposeFile ../docker/docker-compose.yml ../docker/docker-compose-persephone.yml'")
+
 
    def launchPersephone(self, cmdlineArgs, userConfig, force=False):
       '''
@@ -241,14 +272,20 @@ class TestSuite(ABC):
       which gets the nodes by using Helen's getMembers API.
       '''
       if not self.ethrpcNodes:
-         self.ethrpcNodes = self.product.getEthrpcNodes(request, blockchainId)
+         if not request:
+            request = rest.request.Request(self.product._productLogsDir,
+                                           "getMembers",
+                                           self._args.reverseProxyApiBaseUrl,
+                                           self._userConfig)
+         self.ethrpcNodes = util.blockchain.eth.getEthrpcNodes(request, blockchainId)
 
       if self.ethrpcNodes:
          node = random.choice(self.ethrpcNodes)
-         url = self.product.getUrlFromEthrpcNode(node)
+         url = util.blockchain.eth.getUrlFromEthrpcNode(node)
          return url
       else:
          raise Exception("Error: No ethrpc nodes were reported by Helen.")
+
 
    def _getAUser(self):
       '''
@@ -279,68 +316,6 @@ class TestSuite(ABC):
          log.debug("Unlocking account '{}'".format(user["hash"]))
          rpc.unlockAccount(user["hash"], user["password"])
          self._userUnlocked = True
-
-   def _addCodePrefix(self, code):
-      '''
-      When creating a contract with some code, that code will run the first time
-      only.  If we want to invoke code in a contract after running it, the code
-      needs to return the code to run.  For example, say we want to test code
-      which adds 5 to storage every time it is invoked:
-
-      PUSH1 00
-      SLOAD
-      PUSH1 05
-      ADD
-      PUSH1 00
-      SSTORE
-
-      600054600501600055
-
-      As-is, 5 will be put in storage on contract creation, and further
-      invocations of the contract will do nothing.  To invoke the code in
-      subsequent calls, add code to return that code in front:
-
-      Prefix                   Code we want to test
-      600980600c6000396000f300 600054600501600055
-
-      The prefix instructions are:
-      60: PUSH1 (Could be PUSH2, PUSH3, etc... depending on the next nunber.
-      09: Hex number of bytes of the code we want to test.
-      80: DUP1 because we're going to use the above number once for CODECOPY,
-          then again for RETURN.
-      60: PUSH
-      0c: Hex number of bytes offset where the code we want to test starts.
-          (In other words, the length of this prefix so that it is skipped.)
-      60: PUSH
-      00: Destination offset for the upcoming CODECOPY.  It's zero because we're
-          going to start writing at the beginning of memory.
-      39: CODECOPY (destOffset, offset, length).  These are three of the numbers
-          we put on the stack with the above code.
-      60: PUSH
-      00: Offset for the upcoming RETURN. (We want to return all of the code
-          copied to memory by the CODECOPY.)
-      f3: RETURN (offset, length).  The length param is the first PUSH.
-      00: STOP
-      '''
-      code = trimHexIndicator(code)
-
-      # Tests may have more than 0xff bytes (the byte1 test), so we may end
-      # up with three digits, like 0x9b0. We must have an even number of digits
-      # in the bytecode, so pad it if necessary.
-      numCodeBytes = int(len(code)/2)
-      numCodeBytesString = decToEvenHexNo0x(numCodeBytes)
-      codeLengthPush = getPushInstruction(numCodeBytes)
-      codeLengthPush = trimHexIndicator(codeLengthPush)
-
-      # Calculate the length of this prefix.  What makes it variable is the
-      # length of numCodeBytesString.  The prefix is 11 bytes without it.
-      prefixLength = 11 + int(len(numCodeBytesString)/2)
-      prefixLength = decToEvenHexNo0x(prefixLength)
-
-      prefix = "0x{}{}8060{}6000396000f300".format(codeLengthPush,
-                                                   numCodeBytesString,
-                                                   prefixLength)
-      return prefix + code
 
    def _createContract(self, user, rpc, testExecutionCode, gas):
       '''
@@ -471,12 +446,6 @@ class TestSuite(ABC):
 
    def _shouldStop(self):
       return self._productMode and not self._noLaunch and not self._repeatSuiteRun
-
-   def requireFields(self, ob, fieldList):
-      for f in fieldList:
-         if not f in ob:
-            return (False, f)
-      return (True, None)
 
    def _isDATA(self, value):
       # Hex-encoded string
