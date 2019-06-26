@@ -24,6 +24,7 @@ from util.debug import pp as pp
 from util.numbers_strings import trimHexIndicator, decToEvenHexNo0x
 from util.product import Product
 import util.json_helper
+import util.helper
 from requests.auth import HTTPBasicAuth
 
 import web3
@@ -277,7 +278,7 @@ class ExtendedRPCTests(test_suite.TestSuite):
                         "transactionIndex", "value", "v"]
       expectedFields = dataFields + quantityFields
 
-      (success, field) = self.requireFields(tx, expectedFields)
+      (success, field) = util.helper.requireFields(tx, expectedFields)
       if not success:
          return (False, 'Field "{}" not found in getTransactionByHash'
                         .format(field))
@@ -352,7 +353,7 @@ class ExtendedRPCTests(test_suite.TestSuite):
                         "gasUsed", "status"]
       expectedFields = dataFields + quantityFields + ["logs"]
 
-      (success, field) = self.requireFields(tx, expectedFields)
+      (success, field) = util.helper.requireFields(tx, expectedFields)
       if not success:
          return (False, 'Field "{}" not found in getTransactionByHash'
                         .format(field))
@@ -511,7 +512,7 @@ class ExtendedRPCTests(test_suite.TestSuite):
       dataFields = ["hash", "parentHash"]
       quantityFields = ["number","timestamp","gasLimit","gasUsed"]
       expectedFields = dataFields + quantityFields
-      (present, missing) = self.requireFields(latestBlock, expectedFields)
+      (present, missing) = util.helper.requireFields(latestBlock, expectedFields)
       if not present:
          return (False, "No '{}' field in block response.".format(missing))
 

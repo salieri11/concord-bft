@@ -15,32 +15,14 @@ from uuid import UUID
 from suites import test_suite
 from rest.request import Request
 from rpc.rpc_call import RPC
+
+from fixtures.common_fixtures import fxBlockchain, fxConnection, fxHermesRunSettings
+import util.blockchain.eth
+import util.helper
 import util.numbers_strings
+import util.product
 
 log = logging.getLogger(__name__)
-
-# The number if blocks/transactions in a page when invoking the
-# concord/blocks or concord/transactions calls.
-defaultBlocksInAPage = 10
-defaultTxInAPage = 10
-
-# The HelenAPITests object.
-suiteObject = None
-
-# So the pytest fixture will display sensible names.
-apiTestNames = []
-
-# These can be generated with https://emn178.github.io/online-tools/keccak_256.html
-# hello()
-helloFunction = "0x19ff1d21"
-# howdy()
-howdyFunction = "0x362810fd"
-
-# These can be generated with https://www.rapidtables.com/convert/number/ascii-to-hex.html
-# "Hello, World!"
-helloHex = "48656c6c6f2c20576f726c6421"
-# "Howdy, World!"
-howdyHex = "486f7764792c20576f726c6421"
 
 # A user.  This will only work until CSP is implemented and
 # concord starts requiring signed transactions.
@@ -54,159 +36,6 @@ compilerVersion = "v0.5.2+commit.1df8f40c"
 nonexistantContractId = "aaaaaaaaaaaaaaaaaaaa"
 nonexistantVersionId = "bbbbbbbbbbbbbbbbbbbb"
 
-ConnectionFixture = collections.namedtuple("ConnectionFixture", "request, rpc")
-BlockchainFixture = collections.namedtuple("BlockchainFixture", "blockchainId, consortiumId")
-
-# Ideally this would be a fixture.  However, fixtures and
-# parametrize decorations don't play well together.  (There
-# are threads about it.) So just brute force run this code
-# and shove the info into global variables.  :(
-with open("pickled_helen_api_tests", "rb") as f:
-   suiteObject = pickle.load(f)
-
-
-@pytest.fixture(scope="module")
-def fxBlockchain(request):
-   '''
-   This module level fixture returns a BlockchainFixture namedtuple.
-   If --deployNewBlockchain was set on the command line, Helen will be invoked to create a
-   consortium, then deploy a blockchain onto an SDDC via Persephone.
-   Otherwise, the default consortium pre-added to Helen, and the blockchain running in concord
-   nodes on the local system via docker-compose, will be returned.
-   The accepted parameter, "request", is an internal PyTest name and must be that.
-   '''
-   logDir = os.path.join(suiteObject._testLogDir, "fxBlockchain")
-   request = Request(logDir,
-                     "fxBlockchain",
-                     suiteObject.reverseProxyApiBaseUrl,
-                     suiteObject._userConfig)
-   if suiteObject._args.deployNewBlockchain:
-      # CSP integration: Won't need to involve an org.
-      suffix = suiteObject.random_string_generator()
-      orgName = "org_{}".format(suffix)
-      conName = "con_{}".format(suffix)
-      blockchainId, conId = suiteObject.product.deployBlockchain(request, conName, orgName)
-   else:
-      blockchain = request.getBlockchains()[0]
-      blockchainId = blockchain["id"]
-      conId = blockchain["consortium_id"]
-
-   return BlockchainFixture(blockchainId=blockchainId, consortiumId=conId)
-
-
-@pytest.fixture
-def fxConnection(request, fxBlockchain):
-   '''
-   This returns a basic fixture containing a Hermes Request object,
-   and RPC object.
-   The accepted parameter, "request", is an internal PyTest name and must be that.
-   '''
-   longName = os.environ.get('PYTEST_CURRENT_TEST')
-   shortName = longName[longName.rindex(":")+1:longName.rindex(" ")]
-   testLogDir = os.path.join(suiteObject._testLogDir, shortName)
-   request = Request(testLogDir,
-                     shortName,
-                     suiteObject.reverseProxyApiBaseUrl,
-                     suiteObject._userConfig)
-
-   ethrpcNode = getAnEthrpcNode(request, fxBlockchain.blockchainId)
-   ethrpcUrl = suiteObject.product.getUrlFromEthrpcNode(ethrpcNode)
-   rpc = RPC(request.logDir,
-             request.testName,
-             ethrpcUrl,
-             suiteObject._userConfig)
-
-   return ConnectionFixture(request=request, rpc=rpc)
-
-
-def getAnEthrpcNode(request, blockchainId):
-   '''
-   Return the first ethrpc node for the given blockchain.
-   '''
-   members = suiteObject.product.getEthrpcNodes(request, blockchainId)
-
-   if members:
-      return members[0]
-   else:
-      raise Exception("getAnEthrpcNode could not get an ethrpc node.")
-
-
-def ensureEnoughBlocksForPaging(fxConnection, blockchainId):
-   '''
-   Make sure the passed in blockchain has enough blocks to page multiple
-   times with the default page size.
-   '''
-   latestBlockNumber = getLatestBlockNumber(fxConnection.request, blockchainId)
-   numBlocks = latestBlockNumber + 1
-   minBlocks = defaultBlocksInAPage * 3
-   blocksToAdd = minBlocks - numBlocks
-
-   if blocksToAdd > 0:
-      log.info("ensureEnoughBocksForPaging is adding {} blocks.".format(blocksToAdd))
-
-      for i in range(blocksToAdd):
-         suiteObject.mock_transaction(fxConnection.rpc, data=util.numbers_strings.decToEvenHex(i))
-
-      latestBlockNumber = getLatestBlockNumber(fxConnection.request, blockchainId)
-      assert latestBlockNumber + 1 >= minBlocks, "Failed to add enough blocks for paging."
-
-
-def getLatestBlock(request, blockchainId):
-   '''
-   Returns the latest block on the given blockchain.
-   '''
-   blockNumber = getLatestBlockNumber(request, blockchainId)
-   return request.getBlockByNumber(blockchainId, blockNumber)
-
-
-def getLatestBlockNumber(request, blockchainId):
-   '''
-   Returns the newest block's number for the passed in blockchain.
-   '''
-   blockList = request.getBlockList(blockchainId)
-   return blockList["blocks"][0]["number"]
-
-
-def addBlocks(request, rpc, blockchainId, numIterations, invokeContracts=False):
-   '''
-   Adds blocks to the given blockchain.
-   numIterations: How many times to loop.  How many blocks you get depends on the value
-      of invokeContracts. (n or 2n)
-   invokeContracts: If False, only blocks containing contracts will be added (one block
-      per iteration). If True, contracts will be added and invoked (two blocks per
-      iteration).
-   Returns a list of transaction receipts, each with an extra field called "apiCallTime"
-   for testing.
-   '''
-   ethrpcNode = getAnEthrpcNode(request, blockchainId)
-   txHashes = []
-   txReceipts = []
-
-   for i in range(numIterations):
-      contractId, contractVersion = suiteObject.upload_hello_contract(blockchainId, request)
-      contractResult = request.callContractAPI('/api/concord/contracts/' + contractId
-                                               + '/versions/' + contractVersion, "")
-      # Getting the latest block is a workaround for VB-812, "No way to get a transaction
-      # receipt for submitting a contract via contract API."
-      block = getLatestBlock(request, blockchainId)
-      # Time service may have added a block after the contract
-      # creation, so look for a block with a transaction in it
-      while not block["transactions"]:
-         block = request.getBlockByNumber(blockchainId, block["number"]-1)
-      txHashes.append(block["transactions"][0]["hash"])
-
-      if invokeContracts:
-         txHashes.append(rpc.sendTransaction("0x1111111111111111111111111111111111111111",
-                                             helloFunction,
-                                             to=contractResult["address"]))
-
-   for txHash in txHashes:
-      txReceipt = rpc._getTransactionReceipt(txHash)
-      txReceipt["apiCallTime"] = int(time.time())
-      txReceipts.append(txReceipt)
-
-   return txReceipts
-
 
 def addBlocksAndSearchForThem(request, blockchainId, rpc, numBlocks, pageSize):
    '''
@@ -214,9 +43,9 @@ def addBlocksAndSearchForThem(request, blockchainId, rpc, numBlocks, pageSize):
    of blocks at a time.  This calls a method which handles
    the asserts.
    '''
-   origBlockNumber = getLatestBlockNumber(request, blockchainId)
-   txResponses = addBlocks(request, rpc, blockchainId, numBlocks)
-   newBlockNumber = getLatestBlockNumber(request, blockchainId)
+   origBlockNumber = util.blockchain.eth.getLatestBlockNumber(request, blockchainId)
+   txResponses = util.blockchain.eth.addBlocks(request, rpc, blockchainId, numBlocks)
+   newBlockNumber = util.blockchain.eth.getLatestBlockNumber(request, blockchainId)
    # If time service is running, there may be additional blocks that
    # were not added by addBlocks
    assert newBlockNumber - origBlockNumber >= numBlocks, \
@@ -254,7 +83,7 @@ def verifyBlocksWithPaging(restRequest, blockchainId, txResponses, pageSize=None
          "Block retrieved via URL has an incorrect number"
       assert isinstance(blockFromUrl["transactions"], list), \
          "'transactions' field is not a list."
-      present, missing = suiteObject.requireFields(blockFromUrl, ["number", "hash",
+      present, missing = util.helper.requireFields(blockFromUrl, ["number", "hash",
                                                                   "parentHash", "nonce",
                                                                   "size", "transactions",
                                                                   "timestamp"])
@@ -328,21 +157,6 @@ def checkInvalidIndex(restRequest, blockchainId, index, messageContents):
       "Incorrect error message for invalid index '{}'.".format(index)
 
 
-def loadGenesisJson():
-   '''
-   Loads the genesis.json file that is used when launching via Docker.
-   Won't work when launching in a real environment.
-   '''
-   hermes = os.getcwd()
-   genFile = os.path.join(hermes, "..", "docker", "config-public", "genesis.json")
-   genObject = None
-
-   with open(genFile, "r") as f:
-      genObject = json.loads(f.read())
-
-   return genObject
-
-
 def checkTimestamp(expectedTime, actualTime):
    '''
    Checks that actualTime is near the expectedTime.  The buffer is to
@@ -404,7 +218,7 @@ def verifyContractInvocationTx(request, blockchainId, contractCreationTx,
    We also verify some fields by comparing to fields in transaction which
    created the contract.
    '''
-   assert contractInvocationTx["input"] == helloFunction, \
+   assert contractInvocationTx["input"] == util.blockchain.eth.helloFunction, \
       "Input field was not correct"
 
    block = request.getBlockByNumber(blockchainId, contractInvocationTx["block_number"])
@@ -545,7 +359,7 @@ def test_members_fields(fxConnection):
    assert len(result) >= 1, "No members returned"
 
    for m in result:
-      (present, missing) = suiteObject.requireFields(m, ["hostname", "status", "address",
+      (present, missing) = util.helper.requireFields(m, ["hostname", "status", "address",
                                                          "millis_since_last_message",
                                                          "millis_since_last_message_threshold",
                                                          "rpc_url" ])
@@ -563,7 +377,7 @@ def test_members_fields(fxConnection):
 
 
 @pytest.mark.smoke
-def test_members_rpc_url(fxConnection, fxBlockchain):
+def test_members_rpc_url(fxConnection, fxBlockchain, fxHermesRunSettings):
    '''
    Test that the returned value for "rpc_url" is an ethrpc node.
    We'll do that by invoking the API. At the moment, Helen still
@@ -583,10 +397,11 @@ def test_members_rpc_url(fxConnection, fxBlockchain):
 
       # Ensure that the rpc_url isn't Helen.  This will give a 404
       # and throw an exception.
+      userConfig = fxHermesRunSettings["hermesUserConfig"]
       invalidRequest = Request(fxConnection.request.logDir,
                                fxConnection.request.testName,
                                ethrpcUrl + "blockchains/local",
-                               suiteObject._userConfig)
+                               userConfig)
       try:
          result = invalidRequest.getBlockList(fxBlockchain.blockchainId)
          assert False, "An exception should have been thrown when asking an ethrpc node for blocks."
@@ -618,7 +433,7 @@ def test_members_hostname(fxConnection):
 
 
 @pytest.mark.smoke
-def test_members_millis_since_last_message(fxConnection, fxBlockchain):
+def test_members_millis_since_last_message(fxConnection, fxBlockchain, fxHermesRunSettings):
    '''
    Pause a node, get sleep time millis, and make sure it is at least as long as we slept.
    Unpause it, and make sure it decreased.
@@ -626,7 +441,8 @@ def test_members_millis_since_last_message(fxConnection, fxBlockchain):
    testing that Helen is receiving/communicating new values, not always
    showing a default, etc...
    '''
-   if suiteObject._args.deployNewBlockchain:
+   deployNewBlockchain = fxHermesRunSettings["hermesCmdlineArgs"]["deployNewBlockchain"]
+   if deployNewBlockchain:
       pytest.skip("Skipping because this test requires pausing a Concord node, and " \
                   "this Concord deployment is on an SDDC.")
 
@@ -638,11 +454,18 @@ def test_members_millis_since_last_message(fxConnection, fxBlockchain):
    sleepTime = 5
    expectedMinimum = sleepTime * 1000
 
-   try:
-      suiteObject.resumeMembers(allMembers)
+   # The functionality we need in Product is a bit tied into it, so make
+   # a patchy object so we can use what we need.
+   HermesArgs = collections.namedtuple("HermesArgs", "resultsDir")
+   hermesArgs = HermesArgs(resultsDir = fxHermesRunSettings["hermesCmdlineArgs"]["resultsDir"])
+   product = util.product.Product(hermesArgs,
+                                  fxHermesRunSettings["hermesUserConfig"],
+                                  fxHermesRunSettings["hermesCmdlineArgs"]["suite"])
 
+   try:
+      product.resumeMembers(allMembers)
       log.info("Pausing concord{}".format(concordIndex))
-      paused = suiteObject.product.pause_concord_replica(str(concordIndex))
+      paused = product.pause_concord_replica(str(concordIndex))
       assert paused, "Unable to pause the container.  Hostname: {}, concord #: {}". \
          format(hostName, concordIndex)
       time.sleep(sleepTime)
@@ -657,7 +480,7 @@ def test_members_millis_since_last_message(fxConnection, fxBlockchain):
          "at least {}, got {}.".format(expectedMinimum, testTime)
 
       log.info("Resuming concord{}".format(concordIndex))
-      resumed = suiteObject.product.resume_concord_replica(str(concordIndex))
+      resumed = product.resume_concord_replica(str(concordIndex))
       assert resumed, "Unable to resume the container.  Hostname: {}, concord #: {}". \
          format(hostName, concordIndex)
 
@@ -670,7 +493,7 @@ def test_members_millis_since_last_message(fxConnection, fxBlockchain):
             assert testTimeResumed < testTime, "Expected millis_since_last_message " \
                "to be less than {}, received {}.".format(testTime, finalTime)
    finally:
-      suiteObject.resumeMembers(allMembers)
+      product.resumeMembers(allMembers)
 
 
 @pytest.mark.smoke
@@ -678,8 +501,10 @@ def test_blockList_noNextField_allBlocks(fxConnection, fxBlockchain):
    '''
    Cause no "next" paging by requesting all blocks.
    '''
-   ensureEnoughBlocksForPaging(fxConnection, fxBlockchain.blockchainId)
-   latestBlock = getLatestBlockNumber(fxConnection.request, fxBlockchain.blockchainId)
+   util.blockchain.eth.ensureEnoughBlocksForPaging(fxConnection,
+                                               fxBlockchain.blockchainId)
+   latestBlock = util.blockchain.eth.getLatestBlockNumber(fxConnection.request,
+                                                      fxBlockchain.blockchainId)
    # Time service may add blocks in between these requests, so +10
    # ensures that we account for a few rounds of that.
    result = fxConnection.request.getBlockList(fxBlockchain.blockchainId, count=latestBlock+10)
@@ -703,7 +528,9 @@ def test_newBlocks_onePage(fxConnection, fxBlockchain):
    Add a bunch of blocks and get them all back in a page which is
    larger than the default.
    '''
-   addBlocksAndSearchForThem(fxConnection.request, fxBlockchain.blockchainId, fxConnection.rpc, 11, 11)
+   addBlocksAndSearchForThem(fxConnection.request,
+                             fxBlockchain.blockchainId,
+                             fxConnection.rpc, 11, 11)
 
 
 @pytest.mark.smoke
@@ -711,40 +538,43 @@ def test_newBlocks_spanPages(fxConnection, fxBlockchain):
    '''
    Add multiple blocks and get them all back via checking many small pages.
    '''
-   addBlocksAndSearchForThem(fxConnection.request, fxBlockchain.blockchainId, fxConnection.rpc, 5, 2)
+   addBlocksAndSearchForThem(fxConnection.request,
+                             fxBlockchain.blockchainId,
+                             fxConnection.rpc, 5, 2)
 
 
 @pytest.mark.smoke
 def test_pageSize_zero(fxConnection, fxBlockchain):
-   ensureEnoughBlocksForPaging(fxConnection, fxBlockchain.blockchainId)
+   util.blockchain.eth.ensureEnoughBlocksForPaging(fxConnection, fxBlockchain.blockchainId)
    result = fxConnection.request.getBlockList(fxBlockchain.blockchainId, count=0)
    assert len(result["blocks"]) == 0, "Expected zero blocks returned."
 
 
 @pytest.mark.smoke
 def test_pageSize_negative(fxConnection, fxBlockchain):
-   ensureEnoughBlocksForPaging(fxConnection, fxBlockchain.blockchainId)
+   util.blockchain.eth.ensureEnoughBlocksForPaging(fxConnection, fxBlockchain.blockchainId)
    result = fxConnection.request.getBlockList(fxBlockchain.blockchainId, count=-1)
-   assert len(result["blocks"]) == defaultBlocksInAPage, "Expected {} blocks returned.".format(defaultBlocksInAPage)
+   assert len(result["blocks"]) == util.blockchain.eth.defaultBlocksInAPage, \
+      "Expected {} blocks returned.".format(util.blockchain.eth.defaultBlocksInAPage)
 
 
 @pytest.mark.smoke
 def test_pageSize_exceedsBlockCount(fxConnection, fxBlockchain):
-   ensureEnoughBlocksForPaging(fxConnection, fxBlockchain.blockchainId)
-   blockCount = getLatestBlockNumber(fxConnection.request, fxBlockchain.blockchainId) + 1
+   util.blockchain.eth.ensureEnoughBlocksForPaging(fxConnection, fxBlockchain.blockchainId)
+   blockCount = util.blockchain.eth.getLatestBlockNumber(fxConnection.request, fxBlockchain.blockchainId) + 1
    result = fxConnection.request.getBlockList(fxBlockchain.blockchainId, count=blockCount+1)
    assert len(result["blocks"]) == blockCount, "Expected {} blocks returned.".format(blockCount)
 
 
 @pytest.mark.smoke
 def test_paging_latest_negative(fxConnection, fxBlockchain):
-   ensureEnoughBlocksForPaging(fxConnection, fxBlockchain.blockchainId)
+   util.blockchain.eth.ensureEnoughBlocksForPaging(fxConnection, fxBlockchain.blockchainId)
    # Reminder that time service might append blocks between these
    # operations, so we can't assert that they all return the same
    # number; only that they're in order
-   highestBlockNumberBefore = getLatestBlockNumber(fxConnection.request, fxBlockchain.blockchainId)
+   highestBlockNumberBefore = util.blockchain.eth.getLatestBlockNumber(fxConnection.request, fxBlockchain.blockchainId)
    result = fxConnection.request.getBlockList(fxBlockchain.blockchainId, latest=-1)
-   highestBlockNumberAfter = getLatestBlockNumber(fxConnection.request, fxBlockchain.blockchainId)
+   highestBlockNumberAfter = util.blockchain.eth.getLatestBlockNumber(fxConnection.request, fxBlockchain.blockchainId)
    assert (result["blocks"][0]["number"] >= highestBlockNumberBefore and
            result["blocks"][0]["number"] <= highestBlockNumberAfter), \
            "Expected the latest block to be {}-{}".format(
@@ -753,13 +583,13 @@ def test_paging_latest_negative(fxConnection, fxBlockchain):
 
 @pytest.mark.smoke
 def test_paging_latest_exceedsBlockCount(fxConnection, fxBlockchain):
-   ensureEnoughBlocksForPaging(fxConnection, fxBlockchain.blockchainId)
+   util.blockchain.eth.ensureEnoughBlocksForPaging(fxConnection, fxBlockchain.blockchainId)
    # Reminder that time service might append blocks between these
    # operations, so we can't assert that they all return the same
    # number; only that they're in order
-   highestBlockNumberBefore = getLatestBlockNumber(fxConnection.request, fxBlockchain.blockchainId)
+   highestBlockNumberBefore = util.blockchain.eth.getLatestBlockNumber(fxConnection.request, fxBlockchain.blockchainId)
    result = fxConnection.request.getBlockList(fxBlockchain.blockchainId, latest=highestBlockNumberBefore+1)
-   highestBlockNumberAfter = getLatestBlockNumber(fxConnection.request, fxBlockchain.blockchainId)
+   highestBlockNumberAfter = util.blockchain.eth.getLatestBlockNumber(fxConnection.request, fxBlockchain.blockchainId)
    assert (result["blocks"][0]["number"] >= highestBlockNumberBefore and
            result["blocks"][0]["number"] <= highestBlockNumberAfter), \
            "Expected the latest block to be {}-{}".format(
@@ -773,7 +603,7 @@ def test_blockIndex_negative(fxConnection, fxBlockchain):
 
 @pytest.mark.smoke
 def test_blockIndex_outOfRange(fxConnection, fxBlockchain):
-   latestBlockNumber = getLatestBlockNumber(fxConnection.request, fxBlockchain.blockchainId)
+   latestBlockNumber = util.blockchain.eth.getLatestBlockNumber(fxConnection.request, fxBlockchain.blockchainId)
    # Time service may add blocks between these requests, so +10
    # accounts for a few rounds of that.
    checkInvalidIndex(fxConnection.request, fxBlockchain.blockchainId, latestBlockNumber+10, "block not found")
@@ -809,7 +639,7 @@ def test_blockIndex_zero(fxConnection, fxBlockchain):
    - Block 0 is created from genesis.json.  e.g. Some accounts are
      preloaded with ether.
    '''
-   genObject = loadGenesisJson()
+   genObject = util.blockchain.eth.loadGenesisJson()
    block = fxConnection.request.getBlockByNumber(fxBlockchain.blockchainId, 0)
    foundAccounts = []
    expectedNonce = 0
@@ -881,7 +711,7 @@ def test_blockIndex_basic(fxConnection, fxBlockchain):
    }
    '''
    numBlocks = 3
-   txResponses = addBlocks(fxConnection.request, fxConnection.rpc, fxBlockchain.blockchainId, numBlocks)
+   txResponses = util.blockchain.eth.addBlocks(fxConnection.request, fxConnection.rpc, fxBlockchain.blockchainId, numBlocks)
    parentHash = None
 
    for txResponse in txResponses:
@@ -928,7 +758,7 @@ def test_transactionHash_basic(fxConnection, fxBlockchain):
    Add a contract, invoke it, and check that the two transactions added can be
    retrieved as well as contain appropriate values.
    '''
-   txReceipts = addBlocks(fxConnection.request, fxConnection.rpc, fxBlockchain.blockchainId, 1, True)
+   txReceipts = util.blockchain.eth.addBlocks(fxConnection.request, fxConnection.rpc, fxBlockchain.blockchainId, 1, True)
    contractCreationTxHash = txReceipts[0]["transactionHash"]
    contractInvocationTxHash = txReceipts[1]["transactionHash"]
    contractCreationTx = fxConnection.request.getTransaction(fxBlockchain.blockchainId, contractCreationTxHash)
@@ -1066,7 +896,7 @@ def test_getContracts(fxConnection, fxBlockchain):
    newContractResults = []
 
    for _ in range(numNew):
-      newContractResults.append(suiteObject.upload_contract(fxBlockchain.blockchainId, fxConnection.request,
+      newContractResults.append(util.blockchain.eth.upload_contract(fxBlockchain.blockchainId, fxConnection.request,
                                                             "resources/contracts/HelloWorld.sol",
                                                             "HelloWorld",
                                                             fromAddr=fromUser,
@@ -1095,9 +925,9 @@ def test_postContract_simple(fxConnection, fxBlockchain):
    '''
    Post a basic contract, check the result values, and run it.
    '''
-   contractId = suiteObject.random_string_generator()
-   contractVersion = suiteObject.random_string_generator()
-   contractResult = suiteObject.upload_contract(fxBlockchain.blockchainId, fxConnection.request,
+   contractId = util.numbers_strings.random_string_generator()
+   contractVersion = util.numbers_strings.random_string_generator()
+   contractResult = util.blockchain.eth.upload_contract(fxBlockchain.blockchainId, fxConnection.request,
                                                 "resources/contracts/HelloWorld.sol",
                                                 "HelloWorld",
                                                 fromAddr=fromUser,
@@ -1107,8 +937,8 @@ def test_postContract_simple(fxConnection, fxBlockchain):
    validateContractFields(contractResult, fxBlockchain, contractId, contractVersion)
    contract = fxConnection.request.getContractVersion(fxBlockchain.blockchainId, contractId, contractVersion)
 
-   result = fxConnection.rpc.callContract(contract["address"], data=helloFunction)
-   assert helloHex in result, "Simple uploaded contract not executed correctly."
+   result = fxConnection.rpc.callContract(contract["address"], data=util.blockchain.eth.helloFunction)
+   assert util.blockchain.eth.helloHex in result, "Simple uploaded contract not executed correctly."
 
 
 @pytest.mark.smoke
@@ -1120,10 +950,10 @@ def test_postContract_constructor(fxConnection, fxBlockchain):
    (It gets appended to the bytecode.)
    '''
 
-   contractId = suiteObject.random_string_generator()
-   contractVersion = suiteObject.random_string_generator()
+   contractId = util.numbers_strings.random_string_generator()
+   contractVersion = util.numbers_strings.random_string_generator()
    constructorParam = util.numbers_strings.decToInt256HexNo0x(10)
-   contractResult = suiteObject.upload_contract(fxBlockchain.blockchainId, fxConnection.request,
+   contractResult = util.blockchain.eth.upload_contract(fxBlockchain.blockchainId, fxConnection.request,
                                                 "resources/contracts/CounterWithConstructorParam.sol",
                                                 "Counter",
                                                 fromAddr=fromUser,
@@ -1144,9 +974,9 @@ def test_postContract_optimized(fxConnection, fxBlockchain):
    Post a contract that is optimized.  Prove that Helen used the optimize
    flag by comparing to bytecode which is not optimized.
    '''
-   contractId = suiteObject.random_string_generator()
-   contractVersion = suiteObject.random_string_generator()
-   contractResult = suiteObject.upload_contract(fxBlockchain.blockchainId, fxConnection.request,
+   contractId = util.numbers_strings.random_string_generator()
+   contractVersion = util.numbers_strings.random_string_generator()
+   contractResult = util.blockchain.eth.upload_contract(fxBlockchain.blockchainId, fxConnection.request,
                                                 "resources/contracts/CounterWithConstructorParam.sol",
                                                 "Counter",
                                                 fromAddr=fromUser,
@@ -1158,9 +988,9 @@ def test_postContract_optimized(fxConnection, fxBlockchain):
    contract = fxConnection.request.getContractVersion(fxBlockchain.blockchainId, contractId, contractVersion)
    unoptimizedBytecode = contract["bytecode"]
 
-   contractId = suiteObject.random_string_generator()
-   contractVersion = suiteObject.random_string_generator()
-   contractResult = suiteObject.upload_contract(fxBlockchain.blockchainId, fxConnection.request,
+   contractId = util.numbers_strings.random_string_generator()
+   contractVersion = util.numbers_strings.random_string_generator()
+   contractResult = util.blockchain.eth.upload_contract(fxBlockchain.blockchainId, fxConnection.request,
                                                 "resources/contracts/CounterWithConstructorParam.sol",
                                                 "Counter",
                                                 fromAddr=fromUser,
@@ -1181,9 +1011,9 @@ def test_postContract_optimizeRuns(fxConnection, fxBlockchain):
    Optimize the contract for different run frequencies. Prove
    that Helen used the run parameter by comparing bytecode.
    '''
-   contractId = suiteObject.random_string_generator()
-   contractVersion = suiteObject.random_string_generator()
-   contractResult = suiteObject.upload_contract(fxBlockchain.blockchainId, fxConnection.request,
+   contractId = util.numbers_strings.random_string_generator()
+   contractVersion = util.numbers_strings.random_string_generator()
+   contractResult = util.blockchain.eth.upload_contract(fxBlockchain.blockchainId, fxConnection.request,
                                                 "resources/contracts/HelloWorld.sol",
                                                 "HelloWorld",
                                                 fromAddr=fromUser,
@@ -1195,9 +1025,9 @@ def test_postContract_optimizeRuns(fxConnection, fxBlockchain):
    contract = fxConnection.request.getContractVersion(fxBlockchain.blockchainId, contractId, contractVersion)
    optimizedBytecode1Run = contract["bytecode"]
 
-   contractId = suiteObject.random_string_generator()
-   contractVersion = suiteObject.random_string_generator()
-   contractResult = suiteObject.upload_contract(fxBlockchain.blockchainId, fxConnection.request,
+   contractId = util.numbers_strings.random_string_generator()
+   contractVersion = util.numbers_strings.random_string_generator()
+   contractResult = util.blockchain.eth.upload_contract(fxBlockchain.blockchainId, fxConnection.request,
                                                 "resources/contracts/HelloWorld.sol",
                                                 "HelloWorld",
                                                 fromAddr=fromUser,
@@ -1218,9 +1048,9 @@ def test_postContract_multiple_first(fxConnection, fxBlockchain):
    '''
    Submit a file with multiple contracts, specifying the first as the contract.
    '''
-   contractId = suiteObject.random_string_generator()
-   contractVersion = suiteObject.random_string_generator()
-   contractResult = suiteObject.upload_contract(fxBlockchain.blockchainId, fxConnection.request,
+   contractId = util.numbers_strings.random_string_generator()
+   contractVersion = util.numbers_strings.random_string_generator()
+   contractResult = util.blockchain.eth.upload_contract(fxBlockchain.blockchainId, fxConnection.request,
                                                 "resources/contracts/HelloWorldMultiple.sol",
                                                 "HelloWorld",
                                                 fromAddr=fromUser,
@@ -1228,8 +1058,8 @@ def test_postContract_multiple_first(fxConnection, fxBlockchain):
                                                 contractId=contractId,
                                                 contractVersion=contractVersion)
    contract = fxConnection.request.getContractVersion(fxBlockchain.blockchainId, contractId, contractVersion)
-   assert helloHex in contract["bytecode"], "HelloWorld! is not present in bytecode."
-   assert howdyHex not in contract["bytecode"], "HowdyWorld! should not be in the bytecode."
+   assert util.blockchain.eth.helloHex in contract["bytecode"], "HelloWorld! is not present in bytecode."
+   assert util.blockchain.eth.howdyHex not in contract["bytecode"], "HowdyWorld! should not be in the bytecode."
 
 
 @pytest.mark.smoke
@@ -1237,9 +1067,9 @@ def test_postContract_multiple_second(fxConnection, fxBlockchain):
    '''
    Submit a file with multiple contracts, specifying the second as the contract.
    '''
-   contractId = suiteObject.random_string_generator()
-   contractVersion = suiteObject.random_string_generator()
-   contractResult = suiteObject.upload_contract(fxBlockchain.blockchainId, fxConnection.request,
+   contractId = util.numbers_strings.random_string_generator()
+   contractVersion = util.numbers_strings.random_string_generator()
+   contractResult = util.blockchain.eth.upload_contract(fxBlockchain.blockchainId, fxConnection.request,
                                                 "resources/contracts/HelloWorldMultiple.sol",
                                                 "HowdyWorld",
                                                 fromAddr=fromUser,
@@ -1247,8 +1077,8 @@ def test_postContract_multiple_second(fxConnection, fxBlockchain):
                                                 contractId=contractId,
                                                 contractVersion=contractVersion)
    contract = fxConnection.request.getContractVersion(fxBlockchain.blockchainId, contractId, contractVersion)
-   assert howdyHex in contract["bytecode"], "HowdyWorld! is not present in the bytecode."
-   assert helloHex not in contract["bytecode"], "HelloWorld! should not be in the bytecode."
+   assert util.blockchain.eth.howdyHex in contract["bytecode"], "HowdyWorld! is not present in the bytecode."
+   assert util.blockchain.eth.helloHex not in contract["bytecode"], "HelloWorld! should not be in the bytecode."
 
 
 @pytest.mark.skip(reason="VB-850")
@@ -1256,8 +1086,8 @@ def test_postContract_noContractId(fxConnection, fxBlockchain):
    '''
    Try to submit a contract without an ID.
    '''
-   contractVersion = suiteObject.random_string_generator()
-   contractResult = suiteObject.upload_contract(fxBlockchain.blockchainId, fxConnection.request,
+   contractVersion = util.numbers_strings.random_string_generator()
+   contractResult = util.blockchain.eth.upload_contract(fxBlockchain.blockchainId, fxConnection.request,
                                                 "resources/contracts/HelloWorld.sol",
                                                 "HelloWorld",
                                                 contractId=None,
@@ -1274,8 +1104,8 @@ def test_postContract_noContractVersion(fxConnection, fxBlockchain):
    '''
    Try to submit a contract without a version.
    '''
-   contractId = suiteObject.random_string_generator()
-   contractResult = suiteObject.upload_contract(fxBlockchain.blockchainId, fxConnection.request,
+   contractId = util.numbers_strings.random_string_generator()
+   contractResult = util.blockchain.eth.upload_contract(fxBlockchain.blockchainId, fxConnection.request,
                                                 "resources/contracts/HelloWorld.sol",
                                                 "HelloWorld",
                                                 contractId=contractId,
@@ -1292,9 +1122,9 @@ def test_postContract_noContractFrom(fxConnection, fxBlockchain):
    '''
    Try to submit a contract without a "from".
    '''
-   contractId = suiteObject.random_string_generator()
-   contractVersion = suiteObject.random_string_generator()
-   contractResult = suiteObject.upload_contract(fxBlockchain.blockchainId, fxConnection.request,
+   contractId = util.numbers_strings.random_string_generator()
+   contractVersion = util.numbers_strings.random_string_generator()
+   contractResult = util.blockchain.eth.upload_contract(fxBlockchain.blockchainId, fxConnection.request,
                                                 "resources/contracts/HelloWorld.sol",
                                                 "HelloWorld",
                                                 contractId=contractId,
@@ -1312,9 +1142,9 @@ def test_postContract_noContractSource(fxConnection, fxBlockchain):
    '''
    Try to submit a contract without source code.
    '''
-   contractId = suiteObject.random_string_generator()
-   contractVersion = suiteObject.random_string_generator()
-   contractResult = suiteObject.upload_contract(fxBlockchain.blockchainId, fxConnection.request,
+   contractId = util.numbers_strings.random_string_generator()
+   contractVersion = util.numbers_strings.random_string_generator()
+   contractResult = util.blockchain.eth.upload_contract(fxBlockchain.blockchainId, fxConnection.request,
                                                 None,
                                                 "HelloWorld",
                                                 contractId=contractId,
@@ -1332,9 +1162,9 @@ def test_postContract_noContractName(fxConnection, fxBlockchain):
    '''
    Try to submit a contract without a name.
    '''
-   contractId = suiteObject.random_string_generator()
-   contractVersion = suiteObject.random_string_generator()
-   contractResult = suiteObject.upload_contract(fxBlockchain.blockchainId, fxConnection.request,
+   contractId = util.numbers_strings.random_string_generator()
+   contractVersion = util.numbers_strings.random_string_generator()
+   contractResult = util.blockchain.eth.upload_contract(fxBlockchain.blockchainId, fxConnection.request,
                                                 "resources/contracts/HelloWorld.sol",
                                                 None,
                                                 contractId=contractId,
@@ -1353,9 +1183,9 @@ def test_postContract_noContractConstructor(fxConnection, fxBlockchain):
    Try to submit a contract without constructor parameters when the
    constructor requires one.
    '''
-   contractId = suiteObject.random_string_generator()
-   contractVersion = suiteObject.random_string_generator()
-   contractResult = suiteObject.upload_contract(fxBlockchain.blockchainId, fxConnection.request,
+   contractId = util.numbers_strings.random_string_generator()
+   contractVersion = util.numbers_strings.random_string_generator()
+   contractResult = util.blockchain.eth.upload_contract(fxBlockchain.blockchainId, fxConnection.request,
                                                 "resources/contracts/HelloWorld.sol",
                                                 "HelloWorld",
                                                 contractId=contractId,
@@ -1366,8 +1196,8 @@ def test_postContract_noContractConstructor(fxConnection, fxBlockchain):
                                                 optimize=False,
                                                 generateDefaults=False)
    contract = fxConnection.request.getContractVersion(fxBlockchain.blockchainId, contractId, contractVersion)
-   result = fxConnection.rpc.callContract(contract["address"], data=helloFunction)
-   assert helloHex in result, "Simple uploaded contract not executed correctly."
+   result = fxConnection.rpc.callContract(contract["address"], data=util.blockchain.eth.helloFunction)
+   assert util.blockchain.eth.helloHex in result, "Simple uploaded contract not executed correctly."
 
 
 @pytest.mark.skip(reason="VB-854")
@@ -1375,9 +1205,9 @@ def test_postContract_noContractCompilerVersion(fxConnection, fxBlockchain):
    '''
    Try to submit a contract without a compiler version.
    '''
-   contractId = suiteObject.random_string_generator()
-   contractVersion = suiteObject.random_string_generator()
-   contractResult = suiteObject.upload_contract(fxBlockchain.blockchainId, fxConnection.request,
+   contractId = util.numbers_strings.random_string_generator()
+   contractVersion = util.numbers_strings.random_string_generator()
+   contractResult = util.blockchain.eth.upload_contract(fxBlockchain.blockchainId, fxConnection.request,
                                                 "resources/contracts/HelloWorld.sol",
                                                 "HelloWorld",
                                                 contractId=contractId,
@@ -1395,17 +1225,17 @@ def test_postContract_duplicateContractAndVersion(fxConnection, fxBlockchain):
    '''
    Try to submit a contract with an id/version matching one that exists.
    '''
-   contractId = suiteObject.random_string_generator()
-   contractVersion = suiteObject.random_string_generator()
-   contractResult = suiteObject.upload_contract(fxBlockchain.blockchainId, fxConnection.request,
+   contractId = util.numbers_strings.random_string_generator()
+   contractVersion = util.numbers_strings.random_string_generator()
+   contractResult = util.blockchain.eth.upload_contract(fxBlockchain.blockchainId, fxConnection.request,
                                                 "resources/contracts/HelloWorld.sol",
                                                 "HelloWorld",
                                                 contractId=contractId,
                                                 contractVersion=contractVersion)
    contract = fxConnection.request.getContractVersion(fxBlockchain.blockchainId, contractId, contractVersion)
-   assert helloHex in contract["bytecode"], "HelloWorld! should be in the bytecode."
+   assert util.blockchain.eth.helloHex in contract["bytecode"], "HelloWorld! should be in the bytecode."
 
-   contractResult = suiteObject.upload_contract(fxBlockchain.blockchainId, fxConnection.request,
+   contractResult = util.blockchain.eth.upload_contract(fxBlockchain.blockchainId, fxConnection.request,
                                                 "resources/contracts/HelloWorld.sol",
                                                 "HelloWorld",
                                                 contractId=contractId,
@@ -1422,23 +1252,23 @@ def test_postContract_duplicateContractNewVersion(fxConnection, fxBlockchain):
    '''
    Try to submit a contract with the same ID and a new version.
    '''
-   contractId = suiteObject.random_string_generator()
-   contractVersion = suiteObject.random_string_generator()
-   contractResult = suiteObject.upload_contract(fxBlockchain.blockchainId, fxConnection.request,
+   contractId = util.numbers_strings.random_string_generator()
+   contractVersion = util.numbers_strings.random_string_generator()
+   contractResult = util.blockchain.eth.upload_contract(fxBlockchain.blockchainId, fxConnection.request,
                                                 "resources/contracts/HelloWorldMultiple.sol",
                                                 "HelloWorld",
                                                 contractId=contractId,
                                                 contractVersion=contractVersion)
 
-   contractVersion = suiteObject.random_string_generator(mustNotMatch=contractVersion)
-   contractResult = suiteObject.upload_contract(fxBlockchain.blockchainId, fxConnection.request,
+   contractVersion = util.numbers_strings.random_string_generator(mustNotMatch=contractVersion)
+   contractResult = util.blockchain.eth.upload_contract(fxBlockchain.blockchainId, fxConnection.request,
                                                 "resources/contracts/HelloWorldMultiple.sol",
                                                 "HowdyWorld",
                                                 contractId=contractId,
                                                 contractVersion=contractVersion)
    contract = fxConnection.request.getContractVersion(fxBlockchain.blockchainId, contractId, contractVersion)
-   assert howdyHex in contract["bytecode"], "HowdyWorld! should be in the bytecode."
-   assert helloHex not in contract["bytecode"], "HelloWorld! should not be in the bytecode."
+   assert util.blockchain.eth.howdyHex in contract["bytecode"], "HowdyWorld! should be in the bytecode."
+   assert util.blockchain.eth.helloHex not in contract["bytecode"], "HelloWorld! should not be in the bytecode."
 
 
 @pytest.mark.smoke
@@ -1446,23 +1276,23 @@ def test_postContract_newContractDuplicateVersion(fxConnection, fxBlockchain):
    '''
    Submit a contract with a new ID and the same version.
    '''
-   contractId = suiteObject.random_string_generator()
-   contractVersion = suiteObject.random_string_generator()
-   contractResult = suiteObject.upload_contract(fxBlockchain.blockchainId, fxConnection.request,
+   contractId = util.numbers_strings.random_string_generator()
+   contractVersion = util.numbers_strings.random_string_generator()
+   contractResult = util.blockchain.eth.upload_contract(fxBlockchain.blockchainId, fxConnection.request,
                                                 "resources/contracts/HelloWorldMultiple.sol",
                                                 "HelloWorld",
                                                 contractId=contractId,
                                                 contractVersion=contractVersion)
 
-   contractId = suiteObject.random_string_generator(mustNotMatch=contractId)
-   contractResult = suiteObject.upload_contract(fxBlockchain.blockchainId, fxConnection.request,
+   contractId = util.numbers_strings.random_string_generator(mustNotMatch=contractId)
+   contractResult = util.blockchain.eth.upload_contract(fxBlockchain.blockchainId, fxConnection.request,
                                                 "resources/contracts/HelloWorldMultiple.sol",
                                                 "HowdyWorld",
                                                 contractId=contractId,
                                                 contractVersion=contractVersion)
    contract = fxConnection.request.getContractVersion(fxBlockchain.blockchainId, contractId, contractVersion)
-   assert howdyHex in contract["bytecode"], "HowdyWorld! should be in the bytecode."
-   assert helloHex not in contract["bytecode"], "HelloWorld! should not be in the bytecode."
+   assert util.blockchain.eth.howdyHex in contract["bytecode"], "HowdyWorld! should be in the bytecode."
+   assert util.blockchain.eth.helloHex not in contract["bytecode"], "HelloWorld! should not be in the bytecode."
 
 
 @pytest.mark.smoke
@@ -1492,9 +1322,9 @@ def test_getContractById_oneVersion(fxConnection, fxBlockchain):
    Upload one version of a contract, get it with /contracts/{id}, and
    verify that it is correct.
    '''
-   contractId = suiteObject.random_string_generator()
-   contractVersion = suiteObject.random_string_generator()
-   suiteObject.upload_contract(fxBlockchain.blockchainId, fxConnection.request,
+   contractId = util.numbers_strings.random_string_generator()
+   contractVersion = util.numbers_strings.random_string_generator()
+   util.blockchain.eth.upload_contract(fxBlockchain.blockchainId, fxConnection.request,
                                "resources/contracts/HelloWorldMultipleWithDoc.sol",
                                "HelloWorld",
                                contractId=contractId,
@@ -1526,8 +1356,8 @@ def test_getContractById_oneVersion(fxConnection, fxBlockchain):
                                result["versions"][0],
                                helloExpectedDetails,
                                contractVersion,
-                               helloFunction,
-                               helloHex)
+                               util.blockchain.eth.helloFunction,
+                               util.blockchain.eth.helloHex)
 
 
 @pytest.mark.smoke
@@ -1536,11 +1366,11 @@ def test_getContractById_multipleVersions(fxConnection, fxBlockchain):
    Upload multiple versions of a contract, get all of them in one call with /contracts/{id},
    and verify that they are correct.
    '''
-   contractId = suiteObject.random_string_generator()
-   helloVersion = suiteObject.random_string_generator()
+   contractId = util.numbers_strings.random_string_generator()
+   helloVersion = util.numbers_strings.random_string_generator()
 
    # Send Hello.
-   suiteObject.upload_contract(fxBlockchain.blockchainId, fxConnection.request,
+   util.blockchain.eth.upload_contract(fxBlockchain.blockchainId, fxConnection.request,
                                "resources/contracts/HelloWorldMultipleWithDoc.sol",
                                "HelloWorld",
                                contractId=contractId,
@@ -1550,8 +1380,8 @@ def test_getContractById_multipleVersions(fxConnection, fxBlockchain):
                           ("resources/contracts/HelloWorldMultiple_helloExpectedData.json")
 
    # Send Howdy as a new version of the same contract.
-   howdyVersion = suiteObject.random_string_generator(mustNotMatch=helloVersion)
-   suiteObject.upload_contract(fxBlockchain.blockchainId, fxConnection.request,
+   howdyVersion = util.numbers_strings.random_string_generator(mustNotMatch=helloVersion)
+   util.blockchain.eth.upload_contract(fxBlockchain.blockchainId, fxConnection.request,
                                "resources/contracts/HelloWorldMultipleWithDoc.sol",
                                "HowdyWorld",
                                contractId=contractId,
@@ -1585,8 +1415,8 @@ def test_getContractById_multipleVersions(fxConnection, fxBlockchain):
                                result["versions"][0],
                                helloExpectedDetails,
                                helloVersion,
-                               helloFunction,
-                               helloHex)
+                               util.blockchain.eth.helloFunction,
+                               util.blockchain.eth.helloHex)
 
    assert not hasattr(result["versions"][1], "bytecode"), \
       "Did not expect to find the bytecode field."
@@ -1600,8 +1430,8 @@ def test_getContractById_multipleVersions(fxConnection, fxBlockchain):
                                result["versions"][1],
                                howdyExpectedDetails,
                                howdyVersion,
-                               howdyFunction,
-                               howdyHex)
+                               util.blockchain.eth.howdyFunction,
+                               util.blockchain.eth.howdyHex)
 
 @pytest.mark.smoke
 def test_getContractVersionById_oneVersion(fxConnection, fxBlockchain):
@@ -1609,9 +1439,9 @@ def test_getContractVersionById_oneVersion(fxConnection, fxBlockchain):
    Upload one version of a contract, fetch it with /contract/{id}/version/{id}, and
    verify that the fields are correct.
    '''
-   contractId = suiteObject.random_string_generator()
-   contractVersion = suiteObject.random_string_generator()
-   suiteObject.upload_contract(fxBlockchain.blockchainId, fxConnection.request,
+   contractId = util.numbers_strings.random_string_generator()
+   contractVersion = util.numbers_strings.random_string_generator()
+   util.blockchain.eth.upload_contract(fxBlockchain.blockchainId, fxConnection.request,
                                "resources/contracts/HelloWorldMultipleWithDoc.sol",
                                "HelloWorld",
                                contractId=contractId,
@@ -1637,8 +1467,8 @@ def test_getContractVersionById_oneVersion(fxConnection, fxBlockchain):
                                result,
                                helloExpectedDetails,
                                contractVersion,
-                               helloFunction,
-                               helloHex)
+                               util.blockchain.eth.helloFunction,
+                               util.blockchain.eth.helloHex)
 
 
 @pytest.mark.smoke
@@ -1647,16 +1477,16 @@ def test_getContractVersionById_firstVersion(fxConnection, fxBlockchain):
    Upload multiple versions of a contract, fetch the first with /contract/{id}/version/{id}, and
    verify that the fields are correct.
    '''
-   contractId = suiteObject.random_string_generator()
-   helloVersion = suiteObject.random_string_generator()
-   howdyVersion = suiteObject.random_string_generator(mustNotMatch=helloVersion)
-   suiteObject.upload_contract(fxBlockchain.blockchainId, fxConnection.request,
+   contractId = util.numbers_strings.random_string_generator()
+   helloVersion = util.numbers_strings.random_string_generator()
+   howdyVersion = util.numbers_strings.random_string_generator(mustNotMatch=helloVersion)
+   util.blockchain.eth.upload_contract(fxBlockchain.blockchainId, fxConnection.request,
                                "resources/contracts/HelloWorldMultipleWithDoc.sol",
                                "HelloWorld",
                                contractId=contractId,
                                contractVersion=helloVersion,
                                optimize=False)
-   suiteObject.upload_contract(fxBlockchain.blockchainId, fxConnection.request,
+   util.blockchain.eth.upload_contract(fxBlockchain.blockchainId, fxConnection.request,
                                "resources/contracts/HelloWorldMultipleWithDoc.sol",
                                "HelloWorld",
                                contractId=contractId,
@@ -1682,8 +1512,8 @@ def test_getContractVersionById_firstVersion(fxConnection, fxBlockchain):
                                result,
                                helloExpectedDetails,
                                helloVersion,
-                               helloFunction,
-                               helloHex)
+                               util.blockchain.eth.helloFunction,
+                               util.blockchain.eth.helloHex)
 
 
 @pytest.mark.smoke
@@ -1692,16 +1522,16 @@ def test_getContractVersionById_lastVersion(fxConnection, fxBlockchain):
    Upload multiple versions of a contract, fetch the last with /contract/{id}/version/{id}, and
    verify that the fields are correct.
    '''
-   contractId = suiteObject.random_string_generator()
-   helloVersion = suiteObject.random_string_generator()
-   howdyVersion = suiteObject.random_string_generator(mustNotMatch=helloVersion)
-   suiteObject.upload_contract(fxBlockchain.blockchainId, fxConnection.request,
+   contractId = util.numbers_strings.random_string_generator()
+   helloVersion = util.numbers_strings.random_string_generator()
+   howdyVersion = util.numbers_strings.random_string_generator(mustNotMatch=helloVersion)
+   util.blockchain.eth.upload_contract(fxBlockchain.blockchainId, fxConnection.request,
                                "resources/contracts/HelloWorldMultipleWithDoc.sol",
                                "HelloWorld",
                                contractId=contractId,
                                contractVersion=helloVersion,
                                optimize=False)
-   suiteObject.upload_contract(fxBlockchain.blockchainId, fxConnection.request,
+   util.blockchain.eth.upload_contract(fxBlockchain.blockchainId, fxConnection.request,
                                "resources/contracts/HelloWorldMultipleWithDoc.sol",
                                "HowdyWorld",
                                contractId=contractId,
@@ -1728,8 +1558,8 @@ def test_getContractVersionById_lastVersion(fxConnection, fxBlockchain):
                                result,
                                howdyExpectedDetails,
                                howdyVersion,
-                               howdyFunction,
-                               howdyHex)
+                               util.blockchain.eth.howdyFunction,
+                               util.blockchain.eth.howdyHex)
 
 
 @pytest.mark.smoke
@@ -1737,9 +1567,9 @@ def test_getContractVersionById_invalidVersion(fxConnection, fxBlockchain):
    '''
    Pass an invalid version to /contracts/{id}/versions/{id}.
    '''
-   contractId = suiteObject.random_string_generator()
-   contractVersion = suiteObject.random_string_generator()
-   suiteObject.upload_contract(fxBlockchain.blockchainId, fxConnection.request,
+   contractId = util.numbers_strings.random_string_generator()
+   contractVersion = util.numbers_strings.random_string_generator()
+   util.blockchain.eth.upload_contract(fxBlockchain.blockchainId, fxConnection.request,
                                "resources/contracts/HelloWorldMultipleWithDoc.sol",
                                "HelloWorld",
                                contractId=contractId,
@@ -1765,9 +1595,9 @@ def test_getContractVersionById_invalidContract(fxConnection, fxBlockchain):
    '''
    Pass an invalid contract to /contracts/{id}/versions/{id}.
    '''
-   contractId = suiteObject.random_string_generator()
-   contractVersion = suiteObject.random_string_generator()
-   suiteObject.upload_contract(fxBlockchain.blockchainId, fxConnection.request,
+   contractId = util.numbers_strings.random_string_generator()
+   contractVersion = util.numbers_strings.random_string_generator()
+   util.blockchain.eth.upload_contract(fxBlockchain.blockchainId, fxConnection.request,
                                "resources/contracts/HelloWorldMultipleWithDoc.sol",
                                "HelloWorld",
                                contractId=contractId,
@@ -1793,7 +1623,7 @@ def test_transactionList_noNextField_allTransactions(fxConnection, fxBlockchain)
    '''
    Cause there to be no "next" field by requesting all transactions.
    '''
-   # txResponses = addBlocks(fxConnection.request, fxConnection.rpc, fxBlockchain.blockchainId, 1)
+   # txResponses = util.blockchain.eth.addBlocks(fxConnection.request, fxConnection.rpc, fxBlockchain.blockchainId, 1)
    # txList = fxConnection.request.getTransactionList(fxBlockchain.blockchainId, count=12)
    pass
 
@@ -1840,7 +1670,7 @@ def test_transactionList_newItems_onePage(fxConnection, fxBlockchain):
    expectedTxHashes = []
    receivedTxHashes = []
 
-   for receipt in addBlocks(fxConnection.request, fxConnection.rpc, fxBlockchain.blockchainId, 3):
+   for receipt in util.blockchain.eth.addBlocks(fxConnection.request, fxConnection.rpc, fxBlockchain.blockchainId, 3):
       expectedTxHashes.append(receipt["transactionHash"])
 
    for tx in fxConnection.request.getTransactionList(fxBlockchain.blockchainId)["transactions"]:
@@ -1860,7 +1690,7 @@ def test_transactionList_spanPages(fxConnection, fxBlockchain):
    trCount = 10
    expectedTxHashes = []
 
-   for receipt in addBlocks(fxConnection.request, fxConnection.rpc, fxBlockchain.blockchainId, trCount):
+   for receipt in util.blockchain.eth.addBlocks(fxConnection.request, fxConnection.rpc, fxBlockchain.blockchainId, trCount):
       expectedTxHashes.append(receipt["transactionHash"])
 
    expectedTxHashes.reverse()
@@ -1887,16 +1717,16 @@ def _test_transactionList_pageSize_invalid(fxConnection, fxBlockchain, testCount
    expectedTxHashes = []
    receivedTxHashes = []
 
-   addBlocks(fxConnection.request, fxConnection.rpc, fxBlockchain.blockchainId, defaultTxInAPage-3)
+   util.blockchain.eth.addBlocks(fxConnection.request, fxConnection.rpc, fxBlockchain.blockchainId, util.blockchain.eth.defaultTxInAPage-3)
 
-   for receipt in addBlocks(fxConnection.request, fxConnection.rpc, fxBlockchain.blockchainId, 3):
+   for receipt in util.blockchain.eth.addBlocks(fxConnection.request, fxConnection.rpc, fxBlockchain.blockchainId, 3):
       expectedTxHashes.append(receipt["transactionHash"])
 
    for tx in fxConnection.request.getTransactionList(fxBlockchain.blockchainId, count=testCount)["transactions"]:
       receivedTxHashes.append(tx["hash"])
 
-   assert len(receivedTxHashes) == defaultTxInAPage, \
-      "Expected {} transactions returned".format(defaultTxInAPage)
+   assert len(receivedTxHashes) == util.blockchain.eth.defaultTxInAPage, \
+      "Expected {} transactions returned".format(util.blockchain.eth.defaultTxInAPage)
 
    for expectedTx in expectedTxHashes:
       assert expectedTx in receivedTxHashes, \
@@ -1905,7 +1735,7 @@ def _test_transactionList_pageSize_invalid(fxConnection, fxBlockchain, testCount
 
 @pytest.mark.smoke
 def test_transactionList_count(fxConnection, fxBlockchain):
-   txReceipt = addBlocks(fxConnection.request, fxConnection.rpc, fxBlockchain.blockchainId, 1)[0]
+   txReceipt = util.blockchain.eth.addBlocks(fxConnection.request, fxConnection.rpc, fxBlockchain.blockchainId, 1)[0]
    txList = fxConnection.request.getTransactionList(fxBlockchain.blockchainId, count=1)
    txList = txList['transactions']
 
@@ -1952,25 +1782,24 @@ def test_transactionList_paging_latest_invalid(fxConnection, fxBlockchain):
 
 @pytest.mark.smoke
 def test_transactionList_max_size(fxConnection, fxBlockchain):
-   addBlocks(fxConnection.request, fxConnection.rpc, fxBlockchain.blockchainId, defaultTxInAPage+1)
+   util.blockchain.eth.addBlocks(fxConnection.request, fxConnection.rpc, fxBlockchain.blockchainId, util.blockchain.eth.defaultTxInAPage+1)
    txList = fxConnection.request.getTransactionList(fxBlockchain.blockchainId, count=1000)
    txList = txList['transactions']
-   assert len(txList) == defaultTxInAPage, \
-      "Expected maximum page size to be {}".format(defaultTxInAPage)
+   assert len(txList) == util.blockchain.eth.defaultTxInAPage, \
+      "Expected maximum page size to be {}".format(util.blockchain.eth.defaultTxInAPage)
 
 
-# szczescie
 @pytest.mark.smoke
 def test_transactionList_fields(fxConnection, fxBlockchain):
-   txReceipt = addBlocks(fxConnection.request, fxConnection.rpc, fxBlockchain.blockchainId, 1)[0]
+   txReceipt = util.blockchain.eth.addBlocks(fxConnection.request, fxConnection.rpc, fxBlockchain.blockchainId, 1)[0]
    txList = fxConnection.request.getTransactionList(fxBlockchain.blockchainId)
    found = False
 
    for tx in txList["transactions"]:
       if txReceipt["transactionHash"] == tx["hash"]:
          found = True
-         assert util.numbers_strings.trimHexIndicator(helloFunction) in tx["input"], \
-            "Expected the hello function '{}' to be in the input '{}'.".format(helloFunction,tx["input"])
+         assert util.numbers_strings.trimHexIndicator(util.blockchain.eth.helloFunction) in tx["input"], \
+            "Expected the hello function '{}' to be in the input '{}'.".format(util.blockchain.eth.helloFunction,tx["input"])
          assert tx["block_hash"] == txReceipt["blockHash"], "Block hash did not match."
          assert int(tx["block_number"]) == int(txReceipt["blockNumber"], 16), "Block number did not match."
          assert tx["from"] == txReceipt["from"], "From user did not match."
@@ -1988,7 +1817,7 @@ def test_consortiums_add(fxConnection):
    '''
    Basic consortium creation test.
    '''
-   suffix = suiteObject.random_string_generator()
+   suffix = util.numbers_strings.random_string_generator()
 
    # CSP integration: Remove references to org.
    org = fxConnection.request.createOrg("org_{}".format(suffix))
@@ -2006,7 +1835,7 @@ def test_consortiums_add_same_name(fxConnection):
    '''
    Multiple consortiums can have the same name, but IDs must be different.
    '''
-   suffix = suiteObject.random_string_generator()
+   suffix = util.numbers_strings.random_string_generator()
    # CSP integration: Remove references to org.
    org = fxConnection.request.createOrg("org_{}".format(suffix))
    conName = "con_{}".format(suffix)
@@ -2043,7 +1872,7 @@ def test_consortiums_empty_name(fxConnection):
    '''
    Create a consortium with an empty string as a name.
    '''
-   suffix = suiteObject.random_string_generator()
+   suffix = util.numbers_strings.random_string_generator()
 
    # CSP integration: Remove references to org.
    org = fxConnection.request.createOrg("org_{}".format(suffix))
@@ -2059,7 +1888,7 @@ def test_consortiums_no_name(fxConnection):
    '''
    Create a consortium with no name field.
    '''
-   suffix = suiteObject.random_string_generator()
+   suffix = util.numbers_strings.random_string_generator()
 
    # CSP integration: Remove references to org.
    org = fxConnection.request.createOrg("org_{}".format(suffix))
@@ -2077,7 +1906,7 @@ def test_consortiums_get_all(fxConnection):
    savedCons = []
 
    for i  in range(3):
-      suffix = suiteObject.random_string_generator()
+      suffix = util.numbers_strings.random_string_generator()
 
       # CSP integration: Remove references to org.
       org = fxConnection.request.createOrg("org_{}".format(suffix))
@@ -2104,7 +1933,7 @@ def test_consortiums_get_specific(fxConnection):
    '''
    Test the API to retrieve a specific consortium.
    '''
-   suffix = suiteObject.random_string_generator()
+   suffix = util.numbers_strings.random_string_generator()
 
    # CSP integration: Remove references to org.
    org = fxConnection.request.createOrg("org_{}".format(suffix))
@@ -2150,7 +1979,7 @@ def test_consortiums_get_bad_format(fxConnection):
 @pytest.mark.smoke
 @pytest.mark.consortiums
 def test_consortiums_change_name(fxConnection):
-   suffix = suiteObject.random_string_generator()
+   suffix = util.numbers_strings.random_string_generator()
 
    # CSP integration: Remove references to org.
    org = fxConnection.request.createOrg("org_{}".format(suffix))
@@ -2184,7 +2013,7 @@ def test_getCerts(fxConnection, fxBlockchain):
 
 @pytest.mark.smoke
 def test_blockHash(fxConnection, fxBlockchain):
-   txReceipt = suiteObject.mock_transaction(fxConnection.rpc)
+   txReceipt = util.blockchain.eth.mock_transaction(fxConnection.rpc)
    blockNumber = txReceipt['blockNumber']
    blockHash = txReceipt['blockHash']
    # query same block with hash and number and compare results
@@ -2220,7 +2049,7 @@ def test_largeReply(fxConnection, fxBlockchain):
    sentTrList = []
    tr_count = 3
    for i in range(tr_count):
-      tr = suiteObject.mock_transaction(fxConnection.rpc, data=largeContract)
+      tr = util.blockchain.eth.mock_transaction(fxConnection.rpc, data=largeContract)
       sentTrList.append(tr)
    sentTrList = list(map(lambda x : x['transactionHash'], sentTrList))
    sentTrList.reverse()
@@ -2244,4 +2073,3 @@ def test_user_login(fxConnection, fxBlockchain):
    Leaving the test here as a placeholder.
    '''
    assert True, "This test needs to be implemented to use CSP."
-

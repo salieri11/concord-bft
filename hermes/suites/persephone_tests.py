@@ -9,6 +9,8 @@ import json
 import time
 import logging
 import traceback
+import threading
+import queue
 import util.helper as helper
 from . import test_suite
 sys.path.append('lib')
@@ -101,7 +103,8 @@ class PersephoneTests(test_suite.TestSuite):
       self.writeResult("Undeploy", undeployed_status, status_message)
 
    def _runTest(self, testName, testFun):
-      log.info("Starting test '{}'".format(testName))
+      log.info("****************************************")
+      log.info("**** Starting test '{}' ****".format(testName))
       fileRoot = os.path.join(self._testLogDir, testName)
       os.makedirs(fileRoot, exist_ok=True)
       self.cmdlineArgs.fileRoot = fileRoot
@@ -118,7 +121,9 @@ class PersephoneTests(test_suite.TestSuite):
          ("4_Node_Blockchain_FIXED_Site",
           self._test_create_blockchain_4_node_fixed_site),
          ("7_Node_Blockchain_FIXED_Site",
-          self._test_create_blockchain_7_node_fixed_site)
+          self._test_create_blockchain_7_node_fixed_site),
+         ("concurrent_deployments_fixed_site",
+          self._test_concurrent_deployments_fixed_site)
       ]
 
    def validate_cluster_deployment_events(self, cluster_size,
@@ -290,14 +295,14 @@ class PersephoneTests(test_suite.TestSuite):
       else:
          return (False, "Failed to fetch Deployment Events")
 
-   # TODO: When bug VB-1000 is fixed, enable 4 node-UNSPECIFIED test and modify
-   # TODO: this test to be part of concurent deployment
    def _test_create_blockchain_4_node_fixed_site(self, cluster_size=4):
       '''
-      Test to create a blockchain cluster with 7 nodes on FIXED sites
+      Test to create a blockchain cluster with 4 nodes on FIXED sites
       :param cluster_size: No. of concord nodes on the cluster
       '''
 
+      start_time = time.time()
+      log.info("Deployment Start Time: {}".format(start_time))
       response = self.rpc_test_helper.rpc_create_cluster(cluster_size=cluster_size)
       if response:
          response_session_id_json = helper.protobuf_message_to_json(response[0])
@@ -306,6 +311,11 @@ class PersephoneTests(test_suite.TestSuite):
 
             events = self.rpc_test_helper.rpc_stream_cluster_deployment_session_events(
                response_deployment_session_id)
+            end_time = time.time()
+            log.info("Deployment End Time: {}".format(end_time))
+            log.info("**** Time taken for this deployment: {} mins".format(
+               (end_time - start_time) / 60))
+
             if events:
                status, msg = self.perform_post_deployment_validations(events,
                                                                       cluster_size)
@@ -321,6 +331,8 @@ class PersephoneTests(test_suite.TestSuite):
       :param cluster_size: No. of concord nodes on the cluster
       '''
 
+      start_time = time.time()
+      log.info("Deployment Start Time: {}".format(start_time))
       response = self.rpc_test_helper.rpc_create_cluster(cluster_size=cluster_size)
       if response:
          response_session_id_json = helper.protobuf_message_to_json(response[0])
@@ -329,6 +341,11 @@ class PersephoneTests(test_suite.TestSuite):
 
             events = self.rpc_test_helper.rpc_stream_cluster_deployment_session_events(
                response_deployment_session_id)
+            end_time = time.time()
+            log.info("Deployment End Time: {}".format(end_time))
+            log.info("**** Time taken for this deployment: {} mins".format(
+               (end_time - start_time) / 60))
+
             if events:
                status, msg = self.perform_post_deployment_validations(events,
                                                                       cluster_size)
@@ -336,4 +353,84 @@ class PersephoneTests(test_suite.TestSuite):
             return (False, "Failed to fetch Deployment Events")
 
       return (False, "Failed to get a valid deployment session ID")
+
+   def _thread_deploy_blockchain_cluster(self, cluster_size, placement_type, result_queue):
+      '''
+      This method is to support concurrent deployments and and do post deploy
+      validations, and save the status in result queue.
+      :param cluster_size: Blockchain cluster size
+      :param placement_type: Node placement type
+      :param result_queue: Result queue to save the status for each thread
+      :return: Result status
+      '''
+      thread_name = threading.current_thread().name
+      log.info("Thread: {}".format(thread_name))
+      start_time = time.time()
+      log.info("Deployment Start Time: {}".format(start_time))
+      response = self.rpc_test_helper.rpc_create_cluster(cluster_size=cluster_size,
+                                                         placement_type=placement_type)
+      if response:
+         response_session_id_json = helper.protobuf_message_to_json(response[0])
+         if "low" in response_session_id_json:
+            response_deployment_session_id = response[0]
+
+            events = self.rpc_test_helper.rpc_stream_cluster_deployment_session_events(
+               response_deployment_session_id)
+            end_time = time.time()
+            log.info(
+               "**** Thread '{}' Time taken for this deployment: {} mins".format(
+                  thread_name, (end_time - start_time) / 60))
+            if events:
+               status, msg = self.perform_post_deployment_validations(events,
+                                                                      cluster_size)
+               log.info(
+                  "Thread {}: Deployment & Validation Completed Successfully".format(
+                     thread_name))
+               result_queue.put([status, msg])
+            else:
+               result_queue.put([False, "Failed to fetch Deployment Events"])
+
+      else:
+         result_queue.put([False, "Failed to get a valid deployment session ID"])
+      log.info("Thread {}: Deployment Status put in request queue".format(thread_name))
+
+   def _test_concurrent_deployments_fixed_site(self, cluster_1_size=4,
+                                               cluster_2_size=7):
+      '''
+      Test to perform concurrent deployments, both 4 node and 7 node
+      :param cluster_1_size: Cluster 1 size
+      :param cluster_2_size: Cluster 2 size
+      :return: Test Status
+      '''
+      log.info("Performing concurrent deployments")
+
+      result_queue = queue.Queue()
+      cluster_1 = threading.Thread(target=self._thread_deploy_blockchain_cluster,
+                                   name="Deployment_1", args=(
+         cluster_1_size, self.rpc_test_helper.PLACEMENT_TYPE_FIXED,
+         result_queue))
+      cluster_2 = threading.Thread(target=self._thread_deploy_blockchain_cluster,
+                                   name="Deployment_2", args=(
+         cluster_2_size, self.rpc_test_helper.PLACEMENT_TYPE_FIXED,
+         result_queue))
+
+      log.info("Starting Deployment 1")
+      cluster_1.start()
+      log.info("Starting Deployment 2")
+      cluster_2.start()
+
+      cluster1_status = result_queue.get()[0]
+      cluster_1.join()
+
+      cluster2_status = result_queue.get()[0]
+      cluster_2.join()
+
+      log.info("**** Deployment 1 Status: {}".format(cluster1_status))
+      log.info("**** Deployment 2 Status: {}".format(cluster2_status))
+
+      if cluster1_status and cluster2_status:
+         log.info("Concurrent Deployments: Completed Successfully")
+         return (True, None)
+      else:
+         return (False, "Failed to deploy concurrent Clusters")
 

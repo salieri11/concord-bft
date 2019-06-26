@@ -13,8 +13,7 @@ import com.daml.ledger.api.server.damlonx.Server
 import com.daml.ledger.participant.state.index.v1.impl.reference.ReferenceIndexService
 import com.digitalasset.daml.lf.archive.DarReader
 import com.digitalasset.daml_lf.DamlLf.Archive
-import com.digitalasset.platform.server.services.testing.TimeServiceBackend
-import com.digitalasset.platform.services.time.TimeModel
+import com.daml.ledger.participant.state.backport.TimeModel
 import org.slf4j.LoggerFactory
 
 import scala.util.Try
@@ -36,10 +35,9 @@ object KvbcLedgerServer extends App {
       })
 
   val timeModel = TimeModel.reasonableDefault
-  val tsb = TimeServiceBackend.simple(Instant.EPOCH)
 
   def archivesFromDar(file: File): List[Archive] = {
-    DarReader[Archive](x => Try(Archive.parseFrom(x)))
+    DarReader[Archive] { case (_, x) => Try(Archive.parseFrom(x)) }
       .readArchive(new ZipFile(file))
       .fold(t => throw new RuntimeException(s"Failed to parse DAR from $file", t), dar => dar.all)
   }

@@ -208,7 +208,7 @@ class RocksDBUntypedKeyValueStore<T : Version<T>>(
             val existing = db[message.key.asByteArray()]
                     ?.let { TypedValue(it, VersionedValue.serializer()).asTyped() }
             val response: Response<T> = when (val existingVersion = existing?.typedVersion) {
-                null -> Response.Set(Versioned.None)
+                null -> Response.Delete(Versioned.None)
                 message.expected -> {
                     // Delete the value.
                     val finalValue = TypedValue(

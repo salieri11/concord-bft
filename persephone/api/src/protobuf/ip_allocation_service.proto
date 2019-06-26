@@ -1,0 +1,257 @@
+/* [START declaration] */
+syntax = "proto3";
+package com.vmware.blockchain.deployment.model;
+
+import "core.proto";
+/* [END declaration] */
+
+/* [START java_declaration] */
+option java_package = "com.vmware.blockchain.deployment.model";
+option java_multiple_files = true;
+/* [END java_declaration] */
+
+/* [START messages] */
+/**
+ * Resource definition of an IP address block.
+ *
+ * @property[name]
+ *   resource name of the address block.
+ * @property[epoch]
+ *   uniqueness value assigned to the resource during creation.
+ * @property[state]
+ *   existential state of the address block.
+ * @property[specification]
+ *   model specification of the address block.
+ */
+message AddressBlock {
+    /**
+     * Denote the existential state of an [AddressBlock]
+     */
+    enum State {
+        ACTIVE = 0;
+        CREATING = 1;
+        DELETING = 2;
+    }
+
+    string name = 1;
+    int32 epoch = 2;
+    State state = 3;
+    AddressBlockSpecification specification = 4;
+}
+
+/**
+ * Resource definition of an IP address block segment.
+ *
+ * @property[name]
+ *   resource name of the address block segment.
+ * @property[epoch]
+ *   uniqueness value assigned to the resource during creation.
+ * @property[segment]
+ *   starting address of this block segment.
+ * @property[allocations]
+ *   address allocations in segments of 32-bytes bitmap (256 bits), where the key is the starting
+ *   address of the segment, and the value is the bitmap marking allocations as set/unset bits.
+ */
+message AddressBlockSegment {
+    string name = 1;
+    int32 epoch = 2;
+    int32 segment = 3;
+    bytes allocations = 4;
+}
+
+/**
+ * Model definition of an IP address block specification.
+ *
+ * @property[prefix]
+ *   address prefix of the address block (i.e. starting address).
+ * @property[subnet]
+ *   subnet size. (e.g. /16, /24, /30)
+ */
+message AddressBlockSpecification {
+    int32 prefix = 1;
+    int32 subnet = 2;
+}
+
+/**
+ * Model definition of an IP address resource.
+ *
+ * @property[name]
+ *   resource name of the address.
+ * @property[value]
+ *   IP address value.
+ */
+message Address {
+    string name = 1;
+    int32 value = 2;
+}
+
+/**
+ * Request definition for operation to create an [AddressBlock].
+ *
+ * @property[header]
+ *   message header.
+ * @property[block_id]
+ *   identifier of the address block resource.
+ * @property[block]
+ *   address block specification.
+ * @property[reserved_allocations]
+ *   reserved / non-allocatable addresses within the block to be created.
+ */
+message CreateAddressBlockRequest {
+    MessageHeader header = 1;
+    string block_id = 2;
+    AddressBlockSpecification block = 3;
+    map<int32, bytes> reserved_allocations = 4;
+}
+
+/**
+ * Response definition for operation to create an [AddressBlock].
+ *
+ * @property[header]
+ *   message header.
+ * @property[name]
+ *   resource name of the address block created.
+ */
+message CreateAddressBlockResponse {
+    MessageHeader header = 1;
+    string name = 2;
+}
+
+/**
+ * Request definition for operation to delete an [AddressBlock].
+ *
+ * @property[header]
+ *   message header.
+ * @property[name]
+ *   resource name of the address block to be deleted.
+ */
+message DeleteAddressBlockRequest {
+    MessageHeader header = 1;
+    string name = 2;
+}
+
+/**
+ * Response definition for operation to delete an [AddressBlock].
+ *
+ * @property[header]
+ *   message header.
+ */
+message DeleteAddressBlockResponse {
+    MessageHeader header = 1;
+}
+
+/**
+ * Request definition for operation to allocate from an [AddressBlock].
+ *
+ * @property[header]
+ *   message header.
+ * @property[parent]
+ *   resource name of the address block to allocate from.
+ */
+message AllocateAddressRequest {
+    MessageHeader header = 1;
+    string parent = 2;
+}
+
+/**
+ * Response definition for operation to allocate from an [AddressBlock].
+ *
+ * @property[header]
+ *   message header.
+ * @property[status]
+ *   operation status.
+ * @property[address]
+ *   IP address resource that was allocated, if operation was successful.
+ */
+message AllocateAddressResponse {
+    /**
+     * Denote the operation result status.
+     */
+    enum Status {
+        OK = 0;
+        RESOURCE_NOT_FOUND = 1;
+        RESOURCE_FULL = 2;
+    }
+
+    MessageHeader header = 1;
+    Status status = 2;
+    Address address = 3;
+}
+
+/**
+ * Request definition for operation to release an address back to an [AddressBlock].
+ *
+ * @property[header]
+ *   message header.
+ * @property[name]
+ *   resource name of the address to be released.
+ */
+message ReleaseAddressRequest {
+    MessageHeader header = 1;
+    string name = 2;
+}
+
+/**
+ * Response definition for operation to release an address back to an [AddressBlock].
+ *
+ * @property[header]
+ *   message header.
+ * @property[status]
+ *   operation status.
+ */
+message ReleaseAddressResponse {
+    /**
+     * Denote the operation result status.
+     */
+    enum Status {
+        OK = 0;
+        RESOURCE_NOT_FOUND = 1;
+    }
+
+    MessageHeader header = 1;
+    Status status = 2;
+}
+
+/**
+ * Model definition for server configuration settings.
+ *
+ * @property[port]
+ *   port number to use for server instance.
+ * @property[transport_security]
+ *   transport security setting.
+ * @property[storage_url]
+ *   base URL path to place any persistent storage in.
+ */
+message IPAllocationServerConfiguration {
+    int32 port = 1;
+    TransportSecurity transport_security = 2;
+    string storage_url = 3;
+}
+/* [END messages] */
+
+/* [START services] */
+/**
+ * Service definition pertaining to operations on IP allocation management.
+ */
+service IPAllocationService {
+    /**
+     * Operation to create an IP block.
+     */
+    rpc CreateAddressBlock (CreateAddressBlockRequest) returns (CreateAddressBlockResponse) {};
+
+    /**
+     * Operation to delete an IP block.
+     */
+    rpc DeleteAddressBlock (DeleteAddressBlockRequest) returns (DeleteAddressBlockResponse) {};
+
+    /**
+     * Operation to allocate an IP address from an IP block.
+     */
+    rpc AllocateAddress (AllocateAddressRequest) returns (AllocateAddressResponse) {};
+
+    /**
+     * Operation to release an IP address back to an IP block.
+     */
+    rpc ReleaseAddress (ReleaseAddressRequest) returns (ReleaseAddressResponse) {};
+}
+/* [END services] */

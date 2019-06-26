@@ -11,9 +11,9 @@ import os
 import tempfile
 from time import strftime, localtime
 
-from suites import (contract_compiler_tests, core_vm_tests, daml_tests,
-                    ext_rpc_tests, lint_e2e_tests, helen_api_tests, hlf_tests, performance_tests,
-                    persephone_tests, regression_tests, sample_dapp_tests, simple_st_test, time_tests, truffle_tests,
+from suites import (asset_transfer_tests, contract_compiler_tests, core_vm_tests, daml_tests,
+                    ext_rpc_tests, lint_e2e_tests, hlf_tests, performance_tests, persephone_tests,
+                    pytest_suite, regression_tests, simple_st_test, truffle_tests,
                     ui_tests, websocket_rpc_tests)
 
 from util import html, json_helper
@@ -21,7 +21,9 @@ from util import html, json_helper
 log = None
 suites = ["ContractCompilerTests", "CoreVMTests",
           "LintTests", "ExtendedRPCTests", "HelenAPITests", "HlfTests", "PerformanceTests", "PersephoneTests",
-          "RegressionTests", "SampleDAppTests", "SimpleStateTransferTest", "TimeTests", "TruffleTests", "UiTests", "WebSocketRPCTests"]
+          "RegressionTests", "SampleSuite", "SimpleStateTransferTest", "TimeTests", "TruffleTests", "UiTests",
+          "WebSocketRPCTests"]
+
 
 def main():
    startTime = datetime.datetime.now()
@@ -143,7 +145,7 @@ def main():
          log.error("Unknown test suite")
          exit(3)
 
-      log.info("Running suite {}".format(suite.getName()))
+      log.info("Running {}".format(args.suite))
       success = processResults(suite.run())
       endTime = datetime.datetime.now()
       log.info("End time: {}".format(endTime))
@@ -193,7 +195,7 @@ def createTestSuite(args):
    elif (args.suite == "CoreVMTests"):
       return core_vm_tests.CoreVMTests(args)
    elif (args.suite == "HelenAPITests"):
-      return helen_api_tests.HelenAPITests(args)
+      return pytest_suite.PytestSuite(args, "suites/helen/api_test.py")
    elif (args.suite == "ExtendedRPCTests"):
       return ext_rpc_tests.ExtendedRPCTests(args)
    elif (args.suite == "WebSocketRPCTests"):
@@ -204,10 +206,12 @@ def createTestSuite(args):
       return persephone_tests.PersephoneTests(args)
    elif (args.suite == "RegressionTests"):
       return regression_tests.RegressionTests(args)
+   elif (args.suite == "SampleSuite"):
+      return pytest_suite.PytestSuite(args, "suites/sample_suite.py")
    elif (args.suite == "SimpleStateTransferTest"):
       return simple_st_test.SimpleStateTransferTest(args)
    elif (args.suite == "TimeTests"):
-      return time_tests.TimeTests(args)
+      return pytest_suite.PytestSuite(args, "suites/time_service/basic_test.py")
    elif (args.suite == "TruffleTests"):
       return truffle_tests.TruffleTests(args)
    elif (args.suite == "UiTests"):
