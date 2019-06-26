@@ -7,6 +7,7 @@ package com.vmware.blockchain.deployment.service.provision;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
@@ -16,18 +17,19 @@ import org.slf4j.LoggerFactory;
 import com.vmware.blockchain.deployment.orchestration.Orchestrator;
 import com.vmware.blockchain.deployment.reactive.ReactiveStream;
 
-import kotlin.Pair;
-
+/**
+ * Class implementation for deleting resources of a cluster.
+ */
 class DeleteResource {
     private static Logger log = LoggerFactory.getLogger(DeleteResource.class);
 
     static List<Orchestrator.NetworkAllocationEvent> deleteNetworkAllocations(
-        List<Pair<Orchestrator, URI>> networkAllocList
+        List<Map.Entry<Orchestrator, URI>> networkAllocList
     ) {
         List<CompletableFuture<Orchestrator.NetworkAllocationEvent>> works = new ArrayList<>();
         networkAllocList.stream().forEach(entry -> {
-            var orchestrator = entry.getFirst();
-            var resourceUri = entry.getSecond();
+            var orchestrator = entry.getKey();
+            var resourceUri = entry.getValue();
             Orchestrator.DeleteNetworkAllocationRequest networkDeallocReq =
                     new Orchestrator.DeleteNetworkAllocationRequest(resourceUri);
             var deleteNetworkPublisher = orchestrator.deleteNetworkAllocation(networkDeallocReq);
@@ -41,12 +43,12 @@ class DeleteResource {
     }
 
     static List<Orchestrator.ComputeResourceEvent> deleteDeployments(
-            List<Pair<Orchestrator, URI>> computeList
+            List<Map.Entry<Orchestrator, URI>> computeList
     ) {
         List<CompletableFuture<Orchestrator.ComputeResourceEvent>> works = new ArrayList<>();
         computeList.stream().forEach(entry -> {
-            var orchestrator = entry.getFirst();
-            var resourceUri = entry.getSecond();
+            var orchestrator = entry.getKey();
+            var resourceUri = entry.getValue();
             Orchestrator.DeleteComputeResourceRequest delComputeResReq =
                     new Orchestrator.DeleteComputeResourceRequest(resourceUri);
             var deleteDeploymentPublisher = orchestrator.deleteDeployment(delComputeResReq);
@@ -60,12 +62,12 @@ class DeleteResource {
     }
 
     static List<Orchestrator.NetworkResourceEvent> deleteNetworkAddresses(
-            List<Pair<Orchestrator, URI>> networkAddrList
+            List<Map.Entry<Orchestrator, URI>> networkAddrList
     ) {
         List<CompletableFuture<Orchestrator.NetworkResourceEvent>> works = new ArrayList<>();
         networkAddrList.stream().forEach(entry -> {
-            var orchestrator = entry.getFirst();
-            var resourceUri = entry.getSecond();
+            var orchestrator = entry.getKey();
+            var resourceUri = entry.getValue();
             Orchestrator.DeleteNetworkResourceRequest delNetworkResReq =
                     new Orchestrator.DeleteNetworkResourceRequest(resourceUri);
             var deleteNetworkAddrPublisher = orchestrator.deleteNetworkAddress(delNetworkResReq);

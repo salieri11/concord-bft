@@ -7,14 +7,12 @@ package com.vmware.blockchain.deployment.service.provision;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
-import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -50,7 +48,6 @@ import com.vmware.blockchain.deployment.model.DeploymentSession;
 import com.vmware.blockchain.deployment.model.DeploymentSessionEvent;
 import com.vmware.blockchain.deployment.model.DeploymentSessionIdentifier;
 import com.vmware.blockchain.deployment.model.DeploymentSpecification;
-import com.vmware.blockchain.deployment.model.DeprovisionClusterRequest;
 import com.vmware.blockchain.deployment.model.MessageHeader;
 import com.vmware.blockchain.deployment.model.OrchestrationSite;
 import com.vmware.blockchain.deployment.model.OrchestrationSiteIdentifier;
@@ -60,6 +57,7 @@ import com.vmware.blockchain.deployment.model.PlacementSpecification;
 import com.vmware.blockchain.deployment.model.ProvisionedResource;
 import com.vmware.blockchain.deployment.model.ProvisioningServiceImplBase;
 import com.vmware.blockchain.deployment.model.StreamClusterDeploymentSessionEventRequest;
+import com.vmware.blockchain.deployment.model.UpdateDeploymentSessionRequest;
 import com.vmware.blockchain.deployment.model.ethereum.Genesis;
 import com.vmware.blockchain.deployment.orchestration.InactiveOrchestrator;
 import com.vmware.blockchain.deployment.orchestration.NetworkAddress;
@@ -74,7 +72,6 @@ import com.vmware.blockchain.deployment.orchestration.Orchestrator.Orchestration
 import com.vmware.blockchain.deployment.reactive.ReactiveStream;
 
 import io.grpc.stub.StreamObserver;
-import kotlin.Pair;
 
 
 /**
@@ -489,7 +486,7 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
     }
 
     @Override
-    public void deprovisionCluster(DeprovisionClusterRequest message,
+    public void updateDeploymentSession(UpdateDeploymentSessionRequest message,
                                    StreamObserver<DeploymentSessionIdentifier> observer) {
         var request = Objects.requireNonNull(message);
         var response = Objects.requireNonNull(observer);
@@ -544,39 +541,35 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
      */
     private void deprovision(DeploymentSessionIdentifier requestSession, DeploymentSession deprovSession) {
 
-        List<Pair<Orchestrator, URI>> networkAllocList = new ArrayList<>();
-        List<Pair<Orchestrator, URI>> computeList = new ArrayList<>();
-        List<Pair<Orchestrator, URI>> networkAddrList = new ArrayList<>();
+        List<Map.Entry<Orchestrator, URI>> networkAllocList = new ArrayList<>();
+        List<Map.Entry<Orchestrator, URI>> computeList = new ArrayList<>();
+        List<Map.Entry<Orchestrator, URI>> networkAddrList = new ArrayList<>();
 
         CompletableFuture<DeploymentSession> sessionEventTask = deploymentLog.get(requestSession);
         if (sessionEventTask != null) {
             sessionEventTask.thenAcceptAsync(deploymentSession -> {
                 final var deleteEvents = ConcurrentHashMap.<OrchestrationEvent>newKeySet();
                 var events = deploymentSession.getEvents();
-                Iterator it = events.iterator();
 
-                while (it.hasNext()) {
-                    DeploymentSessionEvent val = (DeploymentSessionEvent) it.next();
-
-                    if (!val.getType().equals(DeploymentSessionEvent.Type.RESOURCE)) {
+                for (DeploymentSessionEvent event : events) {
+                    if (!event.getType().equals(DeploymentSessionEvent.Type.RESOURCE)) {
                         continue;
                     }
 
-                    String base64Uri = val.getResource().getName();
+                    URI resourceUri = getUrl(event.getResource().getName());
 
-                    if (isValid(base64Uri)) {
-                        URI resourceUri = URI.create(base64Uri);
-                        OrchestrationSiteIdentifier site = val.getResource().getSite();
-                        ProvisionedResource.Type resourceType = val.getResource().getType();
+                    if (resourceUri != null) {
+                        OrchestrationSiteIdentifier site = event.getResource().getSite();
+                        ProvisionedResource.Type resourceType = event.getResource().getType();
 
                         if (resourceType.equals(ProvisionedResource.Type.NETWORK_ALLOCATION)) {
-                            networkAllocList.add(new Pair<>(orchestrators.get(site), resourceUri));
+                            networkAllocList.add(Map.entry(orchestrators.get(site), resourceUri));
                         }
                         if (resourceType.equals(ProvisionedResource.Type.COMPUTE_RESOURCE)) {
-                            computeList.add(new Pair<>(orchestrators.get(site), resourceUri));
+                            computeList.add(Map.entry(orchestrators.get(site), resourceUri));
                         }
                         if (resourceType.equals(ProvisionedResource.Type.NETWORK_RESOURCE)) {
-                            networkAddrList.add(new Pair<>(orchestrators.get(site), resourceUri));
+                            networkAddrList.add(Map.entry(orchestrators.get(site), resourceUri));
                         }
                     }
                 }
@@ -611,10 +604,11 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
         }
     }
 
-    private DeploymentSession toDeprovisioningSession(DeploymentSession session,
-                                                      Collection<OrchestrationEvent> events,
-                                                      DeploymentSessionIdentifier deprovisioningId,
-                                                      DeploymentSession.Status status) {
+    private DeploymentSession toDeprovisioningSession(
+            DeploymentSession session,
+            Collection<OrchestrationEvent> events,
+            DeploymentSessionIdentifier deprovisioningId,
+            DeploymentSession.Status status) {
 
         List<DeploymentSessionEvent> deprovisioningEvent = new ArrayList<>();
         events.stream().forEach(event -> {
@@ -645,7 +639,7 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
                 throw new RuntimeException("Incorrect event type passed to deprovisioning session buildder");
             }
 
-            deprovisioningEvent.add(new DeploymentSessionEvent(DeploymentSessionEvent.Type.CLUSTER_DEPROVISIONED,
+            deprovisioningEvent.add(new DeploymentSessionEvent(DeploymentSessionEvent.Type.RESOURCE_DEPROVISIONED,
                     deprovisioningId, status, resource,
                     ConcordNode.Companion.getDefaultValue(),
                     ConcordNodeStatus.Companion.getDefaultValue(),
@@ -660,12 +654,11 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
                 deprovisioningEvent);
     }
 
-    private boolean isValid(String url) {
+    private URI getUrl(String url) {
         try {
-            new URL(url).toURI();
-            return true;
+            return URI.create(url);
         } catch (Exception e) {
-            return false;
+            return null;
         }
     }
 
