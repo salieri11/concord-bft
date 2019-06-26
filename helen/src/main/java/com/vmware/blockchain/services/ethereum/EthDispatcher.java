@@ -155,7 +155,7 @@ public class EthDispatcher extends ConcordServlet {
         UUID organizationId = profilesRegistryManager.getUserOrganizationIdWithEmail(userDetails.getUsername());
         UUID consortiumId = profilesRegistryManager.getUserConsortiumIdWithEmail(userDetails.getUsername());
         ThreadContext.put("organization_id", organizationId.toString());
-        ThreadContext.put("consortium_id", consortiumId.toString());
+        ThreadContext.put("consortium_id", consortiumId == null ? "Unknown" : consortiumId.toString());
         ThreadContext.put("uri", "/api/concord/eth");
         ThreadContext.put("source", "rpcList");
         ThreadContext.put("method", "GET");
@@ -188,7 +188,7 @@ public class EthDispatcher extends ConcordServlet {
         UUID organizationId = profilesRegistryManager.getUserOrganizationIdWithEmail(userDetails.getUsername());
         UUID consortiumId = profilesRegistryManager.getUserConsortiumIdWithEmail(userDetails.getUsername());
         ThreadContext.put("organization_id", organizationId.toString());
-        ThreadContext.put("consortium_id", consortiumId.toString());
+        ThreadContext.put("consortium_id", consortiumId == null ? "Unknown" : consortiumId.toString());
         ThreadContext.put("method", "POST");
         ThreadContext.put("uri", "/api/concord/eth");
         try {
