@@ -30,8 +30,8 @@ import lombok.NoArgsConstructor;
 @RestController
 public class ConsortiumController {
 
-    public ConsortiumService consortiumService;
-    public AuthHelper authHelper;
+    private ConsortiumService consortiumService;
+    private AuthHelper authHelper;
 
     @Data
     @NoArgsConstructor
@@ -49,8 +49,9 @@ public class ConsortiumController {
     }
 
     @Autowired
-    public ConsortiumController(ConsortiumService consortiumService) {
+    public ConsortiumController(ConsortiumService consortiumService, AuthHelper authHelper) {
         this.consortiumService = consortiumService;
+        this.authHelper = authHelper;
     }
 
     /**
