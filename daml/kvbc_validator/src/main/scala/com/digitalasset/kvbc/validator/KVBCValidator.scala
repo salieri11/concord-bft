@@ -10,7 +10,7 @@ import com.daml.ledger.participant.state.kvutils._
 import com.daml.ledger.participant.state.v1.Configuration
 import com.digitalasset.daml.lf.data.Time
 import com.digitalasset.daml.lf.engine.Engine
-import com.digitalasset.platform.services.time.TimeModel
+import com.daml.ledger.participant.state.backport.TimeModel
 import org.slf4j.LoggerFactory
 
 import scala.concurrent.Future

@@ -6,7 +6,7 @@ ThisBuild / organization     := "com.daml"
 ThisBuild / organizationName := "Digital Asset, LLC"
 
 lazy val akkaVersion = "2.5.13"
-lazy val sdkVersion = "100.12.22"
+lazy val sdkVersion = "100.13.6"
 
 lazy val protobuf = "com.google.protobuf" % "protobuf-java" % "3.2.0"
 lazy val scalapb_runtime  = "com.thesamet.scalapb" %% "scalapb-runtime" % scalapb.compiler.Version.scalapbVersion % "protobuf"
@@ -42,9 +42,9 @@ lazy val kvbc_validator = (project in file("kvbc_validator"))
       "com.digitalasset" % "daml-lf-archive" % sdkVersion,
       "com.digitalasset" %% "daml-lf-data" % sdkVersion,
       "com.digitalasset" %% "daml-lf-engine" % sdkVersion,
-      "com.digitalasset" %% "daml-lf-package" % sdkVersion,
+      "com.digitalasset" %% "daml-lf-language" % sdkVersion,
 
-      "com.daml.ledger" %% "participant-state" % sdkVersion,
+      "com.daml.ledger" %% "participant-state-v1" % sdkVersion,
       "com.daml.ledger" %% "participant-state-kvutils" % sdkVersion,
 
       // Akka
@@ -71,9 +71,9 @@ lazy val kvbc_sync_backend = (project in file("kvbc_sync_backend"))
       "com.digitalasset" % "daml-lf-archive" % sdkVersion,
       "com.digitalasset" %% "daml-lf-data" % sdkVersion,
       "com.digitalasset" %% "daml-lf-engine" % sdkVersion,
-      "com.digitalasset" %% "daml-lf-package" % sdkVersion,
+      "com.digitalasset" %% "daml-lf-language" % sdkVersion,
 
-      "com.daml.ledger" %% "participant-state" % sdkVersion,
+      "com.daml.ledger" %% "participant-state-v1" % sdkVersion,
       "com.daml.ledger" %% "participant-state-kvutils" % sdkVersion,
 
       // Akka
@@ -102,13 +102,13 @@ lazy val kvbc_ledger_server = (project in file("kvbc_ledger_server"))
       "com.digitalasset" % "daml-lf-archive" % sdkVersion,
       "com.digitalasset" %% "daml-lf-data" % sdkVersion,
       "com.digitalasset" %% "daml-lf-engine" % sdkVersion,
-      "com.digitalasset" %% "daml-lf-package" % sdkVersion,
+      "com.digitalasset" %% "daml-lf-language" % sdkVersion,
 
       "com.daml.ledger" %% "api-server-damlonx" % sdkVersion,
-      "com.daml.ledger" %% "participant-state" % sdkVersion,
+      "com.daml.ledger" %% "participant-state-v1" % sdkVersion,
       "com.daml.ledger" %% "reference-participant-state-index" % sdkVersion,
       "com.daml.ledger" %% "participant-state-kvutils" % sdkVersion,
-      "com.daml.ledger" %% "participant-state-index" % sdkVersion,
+      "com.daml.ledger" %% "participant-state-index-v1" % sdkVersion,
 
       // Akka
       "com.typesafe.akka" %% "akka-stream" % akkaVersion,
@@ -124,3 +124,15 @@ lazy val kvbc_ledger_server = (project in file("kvbc_ledger_server"))
   )
   .dependsOn(protos, kvbc_sync_backend)
 
+// Dummy target to depend on the ledger-api-test-tool.
+// Run with: "sbt 'test_tool / run --argument-goes-here'".
+// To get the jar, run "sbt stage". Runnable jar will be e.g.:
+// test_tool/target/universal/stage/lib/com.daml.ledger.testtool.ledger-api-test-tool_2.12-100.13.6.jar
+// Run it with "java -jar ..."
+lazy val test_tool = (project in file("test_tool"))
+  .enablePlugins(JavaAppPackaging)
+  .settings(
+    mainClass in (Compile, run) := Some("com.daml.ledger.api.testtool.LedgerApiTestTool"),
+    mainClass in (Compile, packageBin) := Some("com.daml.ledger.api.testtool.LedgerApiTestTool"),
+    libraryDependencies ++= Seq("com.daml.ledger.testtool" %% "ledger-api-test-tool" % sdkVersion)
+  )

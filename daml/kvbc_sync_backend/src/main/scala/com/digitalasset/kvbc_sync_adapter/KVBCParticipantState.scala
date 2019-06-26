@@ -15,7 +15,7 @@ import com.digitalasset.kvbc.kvbc_data.ReadTransactionRequest
 import scala.util.{Failure, Success}
 import com.daml.ledger.participant.state.kvutils._
 import com.digitalasset.platform.common.util.DirectExecutionContext
-import com.digitalasset.platform.services.time.TimeModel
+import com.daml.ledger.participant.state.backport.TimeModel
 import org.slf4j.LoggerFactory
 import scala.collection.JavaConverters._
 import scala.concurrent.{ExecutionContext, Future}
@@ -23,13 +23,7 @@ import java.util.concurrent.CompletionStage
 import java.util.concurrent.CompletableFuture
 
 /**
- * Sync adapter for the KVBC backend
- *
- * Notes/TODOs:
- * - We're mixing scalapb and java protobuf. The KVBC gRPC is in scalapb, but the
- *   payload is java's protobuf. This is because all daml-lf protobuf stuff is using
- *   java protobuf and we want to be able to embed them.
- * - Error handling is non-existent. Will crash if wrong/bad payload is hit.
+ * DAML Participant State implementation on top of VMware Blockchain.
  */
 @SuppressWarnings(
   Array(
@@ -61,7 +55,7 @@ class KVBCParticipantState(
   def uploadArchive(archive: Archive): Future[Unit] = {
     logger.info(s"Uploading archive ${archive.getHash}...")
     val submission = KeyValueSubmission.packDamlSubmission(
-      KeyValueSubmission.archiveToSubmission(archive)
+      KeyValueSubmission.archivesToSubmission(List(archive), "example source description", "example participant id")
     )
     val commitReq = CommitRequest(submission)
     client
@@ -76,6 +70,21 @@ class KVBCParticipantState(
             sys.error("unknown commitTransaction result")
         })
   }
+
+
+  /** Allocate a party on the ledger */
+  override def allocateParty(
+      hint: Option[String],
+      displayName: Option[String]): CompletionStage[PartyAllocationResult] =
+    // TODO: Implement party management
+    CompletableFuture.completedFuture(PartyAllocationResult.NotSupported)
+
+  /** Upload a collection of DAML-LF packages to the ledger. */
+  override def uploadPublicPackages(
+      archives: List[Archive],
+      sourceDescription: String): CompletionStage[SubmissionResult] =
+    // TODO: Implement this, and remove [[uploadArchive]].
+    CompletableFuture.completedFuture(SubmissionResult.NotSupported)
 
   override def submitTransaction(
     submitterInfo: SubmitterInfo,
