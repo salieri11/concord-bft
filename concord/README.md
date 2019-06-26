@@ -28,7 +28,7 @@ sudo apt-get install cmake clang-7 clang-format-7 g++ parallel autoconf \
   automake llvm-5.0 llvm-5.0-dev libgmp3-dev libtool libboost1.65-dev \
   libboost-program-options1.65-dev libboost-program-options1.65.1 \
   libboost-system1.65-dev libboost-system1.65.1 libboost-thread1.65-dev \
-  libboost-thread1.65.1 libyaml-cpp0.5v5 libyaml-cpp-dev
+  libboost-filesystem1.65-dev libboost-thread1.65.1 libyaml-cpp0.5v5 libyaml-cpp-dev
 ```
 
 #### Relic
@@ -231,6 +231,26 @@ If you get an error then run:
 ```
 
 You should get 1_1_1a as your version.
+
+### gRPC 
+
+Concord uses [gRPC](https://github.com/grpc/grpc) for DAML and HLF api server. You will need to install grpc version v1.17.x:
+
+```shell
+   git clone https://github.com/grpc/grpc
+   cd grpc
+   git checkout v1.17.x
+   git submodule update --init
+   cd third_party/protobuf
+   git checkout 3.6.x
+   ./autogen.sh
+   ./configure --prefix=/opt/protobuf
+   make -j4
+   sudo make install
+   cd ../..
+   make -j4 PROTOC=/opt/protobuf/bin/protoc
+   sudo make prefix=/opt/grpc install
+```
 
 ### Concord
 
