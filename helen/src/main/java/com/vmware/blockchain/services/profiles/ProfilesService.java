@@ -129,7 +129,8 @@ public class ProfilesService {
      */
     public UUID getUserConsortiumIdWithEmail(String email) {
         User user = userService.getByEmail(email);
-        return userService.getDefaultConsortium(user).getId();
+        Consortium c = userService.getDefaultConsortium(user);
+        return c == null ? null : c.getId();
     }
 
     /**
