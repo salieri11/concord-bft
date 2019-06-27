@@ -11,9 +11,9 @@ import os
 import tempfile
 from time import strftime, localtime
 
-from suites import (asset_transfer_tests, contract_compiler_tests, core_vm_tests, daml_tests,
+from suites import (contract_compiler_tests, core_vm_tests, daml_tests,
                     ext_rpc_tests, lint_e2e_tests, hlf_tests, performance_tests, persephone_tests,
-                    pytest_suite, regression_tests, simple_st_test, truffle_tests,
+                    pytest_suite, regression_tests, sample_dapp_tests, simple_st_test, truffle_tests,
                     ui_tests, websocket_rpc_tests)
 
 from util import html, json_helper
@@ -21,7 +21,7 @@ from util import html, json_helper
 log = None
 suites = ["ContractCompilerTests", "CoreVMTests",
           "LintTests", "ExtendedRPCTests", "HelenAPITests", "HlfTests", "PerformanceTests", "PersephoneTests",
-          "RegressionTests", "SampleSuite", "SimpleStateTransferTest", "TimeTests", "TruffleTests", "UiTests",
+          "RegressionTests", "SampleDAppTests" "SampleSuite", "SimpleStateTransferTest", "TimeTests", "TruffleTests", "UiTests",
           "WebSocketRPCTests"]
 
 
