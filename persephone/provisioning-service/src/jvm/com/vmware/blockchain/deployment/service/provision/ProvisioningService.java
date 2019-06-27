@@ -541,42 +541,12 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
      */
     private void deprovision(DeploymentSessionIdentifier requestSession, DeploymentSession deprovSession) {
 
-        List<Map.Entry<Orchestrator, URI>> networkAllocList = new ArrayList<>();
-        List<Map.Entry<Orchestrator, URI>> computeList = new ArrayList<>();
-        List<Map.Entry<Orchestrator, URI>> networkAddrList = new ArrayList<>();
-
         CompletableFuture<DeploymentSession> sessionEventTask = deploymentLog.get(requestSession);
         if (sessionEventTask != null) {
             sessionEventTask.thenAcceptAsync(deploymentSession -> {
-                final var deleteEvents = ConcurrentHashMap.<OrchestrationEvent>newKeySet();
                 var events = deploymentSession.getEvents();
 
-                for (DeploymentSessionEvent event : events) {
-                    if (!event.getType().equals(DeploymentSessionEvent.Type.RESOURCE)) {
-                        continue;
-                    }
-
-                    URI resourceUri = getUrl(event.getResource().getName());
-
-                    if (resourceUri != null) {
-                        OrchestrationSiteIdentifier site = event.getResource().getSite();
-                        ProvisionedResource.Type resourceType = event.getResource().getType();
-
-                        if (resourceType.equals(ProvisionedResource.Type.NETWORK_ALLOCATION)) {
-                            networkAllocList.add(Map.entry(orchestrators.get(site), resourceUri));
-                        }
-                        if (resourceType.equals(ProvisionedResource.Type.COMPUTE_RESOURCE)) {
-                            computeList.add(Map.entry(orchestrators.get(site), resourceUri));
-                        }
-                        if (resourceType.equals(ProvisionedResource.Type.NETWORK_RESOURCE)) {
-                            networkAddrList.add(Map.entry(orchestrators.get(site), resourceUri));
-                        }
-                    }
-                }
-
-                deleteEvents.addAll(DeleteResource.deleteNetworkAllocations(networkAllocList));
-                deleteEvents.addAll(DeleteResource.deleteDeployments(computeList));
-                deleteEvents.addAll(DeleteResource.deleteNetworkAddresses(networkAddrList));
+                final var deleteEvents = deleteResourceEvents(events);
 
                 // Create deprovisioning session instance
                 var updatedSession = toDeprovisioningSession(deploymentSession, deleteEvents,
@@ -602,6 +572,45 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
         } else {
             throw new IllegalStateException("Session does not have a background task");
         }
+    }
+
+    private ConcurrentHashMap.KeySetView<OrchestrationEvent, Boolean> deleteResourceEvents(
+            List<DeploymentSessionEvent> events
+    ) {
+        final var deleteEvents = ConcurrentHashMap.<OrchestrationEvent>newKeySet();
+
+        List<Map.Entry<Orchestrator, URI>> networkAllocList = new ArrayList<>();
+        List<Map.Entry<Orchestrator, URI>> computeList = new ArrayList<>();
+        List<Map.Entry<Orchestrator, URI>> networkAddrList = new ArrayList<>();
+
+        for (DeploymentSessionEvent event : events) {
+            if (!event.getType().equals(DeploymentSessionEvent.Type.RESOURCE)) {
+                continue;
+            }
+
+            URI resourceUri = getUrl(event.getResource().getName());
+
+            if (resourceUri != null) {
+                OrchestrationSiteIdentifier site = event.getResource().getSite();
+                ProvisionedResource.Type resourceType = event.getResource().getType();
+
+                if (resourceType.equals(ProvisionedResource.Type.NETWORK_ALLOCATION)) {
+                    networkAllocList.add(Map.entry(orchestrators.get(site), resourceUri));
+                }
+                if (resourceType.equals(ProvisionedResource.Type.COMPUTE_RESOURCE)) {
+                    computeList.add(Map.entry(orchestrators.get(site), resourceUri));
+                }
+                if (resourceType.equals(ProvisionedResource.Type.NETWORK_RESOURCE)) {
+                    networkAddrList.add(Map.entry(orchestrators.get(site), resourceUri));
+                }
+            }
+        }
+
+        deleteEvents.addAll(DeleteResource.deleteNetworkAllocations(networkAllocList));
+        deleteEvents.addAll(DeleteResource.deleteDeployments(computeList));
+        deleteEvents.addAll(DeleteResource.deleteNetworkAddresses(networkAddrList));
+
+        return deleteEvents;
     }
 
     private DeploymentSession toDeprovisioningSession(
@@ -831,6 +840,13 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
                 }, executor)
                 .exceptionally(error -> {
                     // Create the updated deployment session instance.
+                    var deleteEvents = deleteResourceEvents(session.getEvents());
+
+                    var deprovisioningSession = toDeprovisioningSession(
+                            session, deleteEvents, session.getId(), DeploymentSession.Status.FAILURE);
+
+                    session.getEvents().addAll(deprovisioningSession.getEvents());
+
                     var event = newCompleteEvent(session.getId(), DeploymentSession.Status.FAILURE);
                     var updatedSession = new DeploymentSession(
                             session.getId(),
