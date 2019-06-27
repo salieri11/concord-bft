@@ -29,19 +29,20 @@ add_executable(skvb_replica ${replica_sources})
 add_executable(skvb_db_editor ${db_editor_sources})
 
 target_include_directories(skvb_client PUBLIC
-  ${PROJECT_SOURCE_DIR}/src config include)
+  ${PROJECT_SOURCE_DIR}/src config include $<TARGET_PROPERTY:logging,INTERFACE_INCLUDE_DIRECTORIES>)
 
 target_include_directories(skvb_replica PUBLIC
-  ${PROJECT_SOURCE_DIR}/src config include)
+  ${PROJECT_SOURCE_DIR}/src config include $<TARGET_PROPERTY:logging,INTERFACE_INCLUDE_DIRECTORIES>)
 
 target_include_directories(skvb_db_editor PUBLIC
-  ${PROJECT_SOURCE_DIR}/src include)
+  ${PROJECT_SOURCE_DIR}/src include $<TARGET_PROPERTY:logging,INTERFACE_INCLUDE_DIRECTORIES>)
 
 target_link_libraries(skvb_client
   ${yaml-cpp_LIBRARIES}
   log4cplus
   concord_consensus
-  ${Boost_LIBRARIES})
+  ${Boost_LIBRARIES}
+ $<TARGET_OBJECTS:logging_dev>)
 
 target_link_libraries(skvb_replica
   log4cplus
@@ -49,7 +50,8 @@ target_link_libraries(skvb_replica
   ${EVM_LIBRARIES}
   LLVMSupport
   concord_utils
-  concord_consensus)
+  concord_consensus
+  $<TARGET_OBJECTS:logging_dev>)
 
 target_link_libraries(skvb_db_editor
   log4cplus

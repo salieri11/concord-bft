@@ -88,7 +88,8 @@ target_link_libraries(conc_genconfig
                       ${Boost_LIBRARIES}
                       ${yaml-cpp_LIBRARIES}
                       concord_consensus
-                      log4cplus)
+                      log4cplus
+                      $<TARGET_OBJECTS:logging_dev>)
 
 add_executable(conc_hlf_request
                "conc_hlf_request.cpp"

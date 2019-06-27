@@ -27,7 +27,7 @@
 #include <log4cplus/configurator.h>
 #endif
 
-#include "Logging.hpp"
+#include "Logger.hpp"
 #include "storage/comparators.h"
 #include "storage/rocksdb_client.h"
 #include "storage/rocksdb_metadata_storage.h"
@@ -57,7 +57,7 @@ enum DB_OPERATION {
 
 DB_OPERATION dbOperation = NO_OPERATION;
 
-auto logger = concordlogger::Logger::getLogger("skvbtest.db_editor");
+auto logger = concordlogger::Log::getLogger("skvbtest.db_editor");
 
 void printUsageAndExit(char **argv) {
   LOG_ERROR(logger, "Wrong usage! \nRequired parameters: "

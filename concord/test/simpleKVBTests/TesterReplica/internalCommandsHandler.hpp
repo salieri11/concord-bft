@@ -14,7 +14,7 @@
 #ifndef INTERNAL_COMMANDS_HANDLER_HPP
 #define INTERNAL_COMMANDS_HANDLER_HPP
 
-#include "Logging.hpp"
+#include "Logger.hpp"
 #include "consensus/sliver.hpp"
 #include "simpleKVBTestsBuilder.hpp"
 #include "storage/blockchain_interfaces.h"

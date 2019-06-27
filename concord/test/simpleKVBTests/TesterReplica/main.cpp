@@ -60,7 +60,7 @@ using std::string;
 ReplicaImp *replica = nullptr;
 ReplicaParams replicaParams;
 
-auto logger = concordlogger::Logger::getLogger("skvbtest.replica");
+auto logger = concordlogger::Log::getLogger("skvbtest.replica");
 
 void setupReplicaParams(int argc, char **argv) {
   string idStr;

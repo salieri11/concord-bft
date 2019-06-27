@@ -17,7 +17,7 @@
 #include <string>
 
 #include "CommDefs.hpp"
-#include "Logging.hpp"
+#include "Logger.hpp"
 #include "ReplicaConfig.hpp"
 
 class ITestCommConfig {
