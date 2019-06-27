@@ -57,6 +57,7 @@ import com.vmware.blockchain.deployment.model.PlacementSpecification;
 import com.vmware.blockchain.deployment.model.ProvisionedResource;
 import com.vmware.blockchain.deployment.model.ProvisioningServiceImplBase;
 import com.vmware.blockchain.deployment.model.StreamClusterDeploymentSessionEventRequest;
+import com.vmware.blockchain.deployment.model.UpdateDeploymentSessionRequest;
 import com.vmware.blockchain.deployment.model.ethereum.Genesis;
 import com.vmware.blockchain.deployment.orchestration.InactiveOrchestrator;
 import com.vmware.blockchain.deployment.orchestration.NetworkAddress;
@@ -482,6 +483,183 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
         });
 
         return promise;
+    }
+
+    @Override
+    public void updateDeploymentSession(UpdateDeploymentSessionRequest message,
+                                   StreamObserver<DeploymentSessionIdentifier> observer) {
+        var request = Objects.requireNonNull(message);
+        var response = Objects.requireNonNull(observer);
+
+        try {
+            if (STATE.get(this) != State.ACTIVE) {
+                response.onError(new IllegalStateException("Service instance is not active"));
+            } else {
+                CompletableFuture.runAsync(() -> {
+                    var sessionId = newSessionId(request.getHeader());
+
+                    var session = new DeploymentSession(
+                            sessionId,
+                            DeploymentSpecification.Companion.getDefaultValue(),
+                            ConcordClusterIdentifier.Companion.getDefaultValue(),
+                            PlacementAssignment.Companion.getDefaultValue(),
+                            DeploymentSession.Status.ACTIVE,
+                            Collections.singletonList(newInitialEvent(sessionId))
+                    );
+
+                    var oldSession = deploymentLog.putIfAbsent(sessionId, new CompletableFuture<>());
+
+                    if (oldSession == null) {
+                        // Emit the acknowledgement and signal completion of the request.
+                        response.onNext(sessionId);
+                        response.onCompleted();
+
+                        deprovision(request.getSession(), session);
+                    } else {
+                        // Cannot record this session for some reason.
+                        // TODO: Need to think more about what to return in this case.
+                        response.onError(
+                                new IllegalStateException("Cannot record deployment session")
+                        );
+                    }
+                }, executor).exceptionally(error -> {
+                    response.onError(error);
+                    return null; // To satisfy type signature (Void).
+                });
+            }
+        } catch (Throwable error) {
+            response.onError(error);
+        }
+
+    }
+
+    /**
+     * Execute a Concord cluster deprovisioning workflow.
+     *
+     * @param requestSession
+     *   deploymentSessionIdentifier to carry out the workflow for.
+     */
+    private void deprovision(DeploymentSessionIdentifier requestSession, DeploymentSession deprovSession) {
+
+        List<Map.Entry<Orchestrator, URI>> networkAllocList = new ArrayList<>();
+        List<Map.Entry<Orchestrator, URI>> computeList = new ArrayList<>();
+        List<Map.Entry<Orchestrator, URI>> networkAddrList = new ArrayList<>();
+
+        CompletableFuture<DeploymentSession> sessionEventTask = deploymentLog.get(requestSession);
+        if (sessionEventTask != null) {
+            sessionEventTask.thenAcceptAsync(deploymentSession -> {
+                final var deleteEvents = ConcurrentHashMap.<OrchestrationEvent>newKeySet();
+                var events = deploymentSession.getEvents();
+
+                for (DeploymentSessionEvent event : events) {
+                    if (!event.getType().equals(DeploymentSessionEvent.Type.RESOURCE)) {
+                        continue;
+                    }
+
+                    URI resourceUri = getUrl(event.getResource().getName());
+
+                    if (resourceUri != null) {
+                        OrchestrationSiteIdentifier site = event.getResource().getSite();
+                        ProvisionedResource.Type resourceType = event.getResource().getType();
+
+                        if (resourceType.equals(ProvisionedResource.Type.NETWORK_ALLOCATION)) {
+                            networkAllocList.add(Map.entry(orchestrators.get(site), resourceUri));
+                        }
+                        if (resourceType.equals(ProvisionedResource.Type.COMPUTE_RESOURCE)) {
+                            computeList.add(Map.entry(orchestrators.get(site), resourceUri));
+                        }
+                        if (resourceType.equals(ProvisionedResource.Type.NETWORK_RESOURCE)) {
+                            networkAddrList.add(Map.entry(orchestrators.get(site), resourceUri));
+                        }
+                    }
+                }
+
+                deleteEvents.addAll(DeleteResource.deleteNetworkAllocations(networkAllocList));
+                deleteEvents.addAll(DeleteResource.deleteDeployments(computeList));
+                deleteEvents.addAll(DeleteResource.deleteNetworkAddresses(networkAddrList));
+
+                // Create deprovisioning session instance
+                var updatedSession = toDeprovisioningSession(deploymentSession, deleteEvents,
+                        deprovSession.getId(), DeploymentSession.Status.SUCCESS);
+
+                deploymentLog.get(deprovSession.getId()).complete(updatedSession);
+
+                log.info("Deprovisioning completed");
+            }, executor)
+                    .exceptionally(error -> {
+                        var updatedSession = new DeploymentSession(deprovSession.getId(),
+                                DeploymentSpecification.Companion.getDefaultValue(),
+                                ConcordClusterIdentifier.Companion.getDefaultValue(),
+                                PlacementAssignment.Companion.getDefaultValue(),
+                                DeploymentSession.Status.FAILURE,
+                                Collections.singletonList(newCompleteEvent(deprovSession.getId(),
+                                        DeploymentSession.Status.FAILURE)));
+
+                        deploymentLog.get(deprovSession.getId()).complete(updatedSession);
+                        return null;
+                    });
+            sessionEventTask.join();
+        } else {
+            throw new IllegalStateException("Session does not have a background task");
+        }
+    }
+
+    private DeploymentSession toDeprovisioningSession(
+            DeploymentSession session,
+            Collection<OrchestrationEvent> events,
+            DeploymentSessionIdentifier deprovisioningId,
+            DeploymentSession.Status status) {
+
+        List<DeploymentSessionEvent> deprovisioningEvent = new ArrayList<>();
+        events.stream().forEach(event -> {
+            ProvisionedResource resource = null;
+            if (event instanceof NetworkAllocationEvent.Deleted) {
+                var resEvent = (NetworkAllocationEvent.Deleted) event;
+                var type = ProvisionedResource.Type.NETWORK_ALLOCATION;
+                resource = new ProvisionedResource(type,
+                        resEvent.getResource().toString(),
+                        OrchestrationSiteIdentifier.Companion.getDefaultValue(),
+                        session.getCluster(),
+                        ConcordNodeIdentifier.Companion.getDefaultValue());
+            } else if (event instanceof NetworkResourceEvent.Deleted) {
+                var resEvent = (NetworkResourceEvent.Deleted) event;
+                resource = new ProvisionedResource(ProvisionedResource.Type.NETWORK_RESOURCE,
+                        resEvent.getResource().toString(),
+                        OrchestrationSiteIdentifier.Companion.getDefaultValue(),
+                        session.getCluster(),
+                        ConcordNodeIdentifier.Companion.getDefaultValue());
+            } else if (event instanceof ComputeResourceEvent.Deleted) {
+                var resEvent = (ComputeResourceEvent.Deleted) event;
+                resource = new ProvisionedResource(ProvisionedResource.Type.COMPUTE_RESOURCE,
+                        resEvent.getResource().toString(),
+                        OrchestrationSiteIdentifier.Companion.getDefaultValue(),
+                        session.getCluster(),
+                        ConcordNodeIdentifier.Companion.getDefaultValue());
+            } else {
+                throw new RuntimeException("Incorrect event type passed to deprovisioning session buildder");
+            }
+
+            deprovisioningEvent.add(new DeploymentSessionEvent(DeploymentSessionEvent.Type.RESOURCE_DEPROVISIONED,
+                    deprovisioningId, status, resource,
+                    ConcordNode.Companion.getDefaultValue(),
+                    ConcordNodeStatus.Companion.getDefaultValue(),
+                    ConcordCluster.Companion.getDefaultValue()));
+        });
+
+        return new DeploymentSession(deprovisioningId,
+                session.getSpecification(),
+                session.getCluster(),
+                session.getAssignment(),
+                status,
+                deprovisioningEvent);
+    }
+
+    private URI getUrl(String url) {
+        try {
+            return URI.create(url);
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     /**
