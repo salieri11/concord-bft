@@ -6,6 +6,7 @@ package com.vmware.blockchain.services;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 
@@ -19,6 +20,7 @@ public class StaticContent {
     private static final Logger logger = LogManager.getLogger(StaticContent.class);
 
     // TODO: move these strings to properties file
+    @PreAuthorize("isAuthenticated()")
     @RequestMapping(path = "/api")
     public String handleApiRequest() {
         return "swagger.json";

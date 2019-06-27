@@ -7,6 +7,7 @@ package com.vmware.blockchain.security;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -101,6 +102,11 @@ public class VmbcTokenValidator implements TokenValidator {
             userInfo.setLastLogin(u.getLastLogin());
             updateLogin(u);
 
+            List<UUID> consortiums =
+                    organizationService.getConsortiums(userInfo.getOrgId()).stream()
+                            .map(c -> c.getId()).collect(Collectors.toList());
+            userInfo.setConsortiums(consortiums);
+
             List<UUID> ids =
                     organizationService.getConsortiums(userInfo.getOrgId()).stream()
                             .map(blockchainService::listByConsortium)
@@ -167,15 +173,14 @@ public class VmbcTokenValidator implements TokenValidator {
     private List<Roles> getRoles(Jws<Claims> parsedToken) {
         @SuppressWarnings("unchecked")
         ArrayList<String> perms = (ArrayList<String>) parsedToken.getBody().get("perms");
-        // Just keep our Roles. Our roles are prefixed with 'external/<servicedeflink>/'
-        // Map CSP org owner to our org admin, but otherwise ignore csp roles
+        // strip off the role prefix, if it's there, than map the role name to our roles.
+        // The only non-service role we want is csp:org-owner
         String rolePrefix = CspConstants.CSP_VMBC_ROLE_PREFIX
                             + serviceId + "/";
         return perms.stream()
-                .map(r -> r.equals("csp:org_owner") ? rolePrefix + Roles.ORG_ADMIN.toString() : r)
-                .filter(r -> r.startsWith(rolePrefix))
-                .map(r -> r.substring(rolePrefix.length()))
+                .map(r -> r.startsWith(rolePrefix) ?  r.substring(rolePrefix.length()) : r)
                 .map(n -> Roles.get(n))
+                .filter(Objects::nonNull)
                 .collect(Collectors.toList());
     }
 

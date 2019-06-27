@@ -14,6 +14,7 @@ import static org.mockito.Mockito.when;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
@@ -26,6 +27,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -110,8 +112,10 @@ public class VmbcTokenValidatorTests {
         Assertions.assertNotNull(userInfo);
         Assertions.assertEquals("vmc_testuser2_dev", userInfo.getUsername());
         Assertions.assertEquals(orgId, userInfo.getOrgId());
-        List<Roles> expectedRoles = Arrays.asList(Roles.ORG_USER);
-        Assertions.assertTrue(userInfo.getAuthorities().containsAll(expectedRoles));
+        List<GrantedAuthority> expectedRoles = Arrays.asList(Roles.CSP_ORG_OWNER, Roles.ORG_USER);
+        List<GrantedAuthority> actualRoles = new ArrayList<GrantedAuthority>(userInfo.getAuthorities());
+        Assertions.assertEquals(expectedRoles, actualRoles);
+
         verify(cspApiClient, never()).getUser(any());
     }
 
@@ -133,6 +137,7 @@ public class VmbcTokenValidatorTests {
         Assertions.assertNotNull(userInfo);
         verify(cspApiClient, never()).getUser(any());
     }
+
 
     @Test
     public void testBadSig() throws Exception {
@@ -182,6 +187,7 @@ public class VmbcTokenValidatorTests {
         claims.put("context_name", orgId.toString());
         claims.put("acct", "vmc_testuser2_dev");
         claims.put("perms", Arrays.asList("csp:org_owner",
+                                          "csp:org_memeber",
                                           "external/serviceId/vmbc-org:user"));
         String authToken = Jwts.builder()
                 .signWith(SignatureAlgorithm.RS256, keyPair.getPrivate())

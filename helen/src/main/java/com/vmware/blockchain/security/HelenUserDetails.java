@@ -35,6 +35,10 @@ public class HelenUserDetails extends User {
 
     @Getter
     @Setter
+    private List<UUID> consortiums;
+
+    @Getter
+    @Setter
     private UUID userId;
 
     @Getter

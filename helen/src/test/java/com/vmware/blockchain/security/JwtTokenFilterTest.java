@@ -33,6 +33,7 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
+import com.vmware.blockchain.BaseCacheHelper;
 import com.vmware.blockchain.auth.AuthHelper;
 import com.vmware.blockchain.services.blockchains.Blockchain;
 import com.vmware.blockchain.services.blockchains.BlockchainService;
@@ -72,6 +73,9 @@ public class JwtTokenFilterTest {
     @MockBean
     private OrganizationService organizationService;
 
+    @MockBean
+    private BaseCacheHelper baseCacheHelper;
+
     private MockMvc mockMvc;
 
     @Autowired
@@ -79,6 +83,8 @@ public class JwtTokenFilterTest {
 
     @Autowired
     private Filter springSecurityFilterChain;
+
+
 
     /*    {
             "sub": "user@test.com",
@@ -152,8 +158,8 @@ public class JwtTokenFilterTest {
 
     @Test
     public void testAccessToRestrictedResourceWithoutAuthorization() throws Exception {
-        mockMvc.perform(get("/api/users").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
-            .andExpect(status().isForbidden());
+        mockMvc.perform(get("/api/users"))
+            .andExpect(status().isUnauthorized());
     }
 
     @Test

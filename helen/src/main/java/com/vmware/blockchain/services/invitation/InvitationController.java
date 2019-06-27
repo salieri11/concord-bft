@@ -13,6 +13,7 @@ import javax.servlet.http.HttpSession;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
@@ -42,6 +43,7 @@ public class InvitationController {
      * login flow.
      */
     @RequestMapping(method = RequestMethod.GET, path = Constants.AUTH_INVITATION)
+    @PreAuthorize("hasAnyAuthority(T(com.vmware.blockchain.services.profiles.Roles).CSP_ORG_OWNER.name())")
     public void handleInvitation(HttpServletRequest httpRequest,
                                  HttpServletResponse httpResponse) throws IOException {
 

@@ -15,6 +15,7 @@ import org.json.simple.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -51,6 +52,7 @@ public class TransactionList extends ConcordServlet {
      */
     @RequestMapping(path = {"/api/concord/transactions", "/api/blockchains/{id}/concord/transactions"},
             method = RequestMethod.GET)
+    @PreAuthorize("@authHelper.canAccessChain(#id)")
     public ResponseEntity<JSONAware> doGet(
             @PathVariable(name = "id", required = false) Optional<UUID> id,
             @RequestParam(name = "latest", defaultValue = "", required = false) String latestHash,

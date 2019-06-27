@@ -11,6 +11,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
+import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.builders.WebSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -28,6 +29,7 @@ import com.vmware.blockchain.common.Constants;
  */
 @Configuration
 @EnableWebSecurity
+@EnableGlobalMethodSecurity(prePostEnabled = true)
 @ConditionalOnProperty(value = Constants.USE_CSP_AUTH, havingValue = "true")
 public class CspSecurityConfig extends WebSecurityConfigurerAdapter {
     static final Logger logger = LogManager.getLogger(CspSecurityConfig.class);
@@ -54,14 +56,8 @@ public class CspSecurityConfig extends WebSecurityConfigurerAdapter {
                 // Session fixation is a problem with the ui due to concurrency
                 .sessionManagement().sessionFixation().none().and()
                 .authorizeRequests()
-                .antMatchers("/api/auth/login", "/api/auth/token", "/api/agreements/1", "/", "/assets/**")
-                .permitAll()
+                .antMatchers("/api/auth/login", "/api/auth/token", "/api/agreements/1", "/", "/assets/**").permitAll()
                 .antMatchers("/api/oauth/login", "/api/oauth/oauth").permitAll()
-                .antMatchers("/api/users")
-                .hasAnyAuthority("vmbc-consortium:admin", "vmbc-system:admin", "vmbc-org:admin")
-                .antMatchers("/api/concord/**", "/api/blockchains/**", "/api/tasks/**")
-                .hasAnyAuthority("vmbc-consortium:admin", "vmbc-system:admin", "vmbc-org:admin", "vmbc-org:dev",
-                                 "vmbc-org:user")
                 .anyRequest()
                 .authenticated().and().exceptionHandling()
                 .authenticationEntryPoint(restAuthticationEntryPoint)

@@ -18,6 +18,7 @@ import org.json.simple.parser.ParseException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -150,6 +151,7 @@ public class EthDispatcher extends ConcordServlet {
      * and returns it to the client.
      */
     @RequestMapping(path = "/api/concord/eth", method = RequestMethod.GET)
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<JSONAware> doGet() {
         UserDetails userDetails = (UserDetails) authHelper.getDetails();
         UUID organizationId = profilesRegistryManager.getUserOrganizationIdWithEmail(userDetails.getUsername());
@@ -174,6 +176,7 @@ public class EthDispatcher extends ConcordServlet {
      */
     @SuppressWarnings("unchecked")
     @RequestMapping(path = {"/api/concord/eth", "/api/blockchains/{id}/concord/eth"}, method = RequestMethod.POST)
+    @PreAuthorize("@authHelper.canAccessChain(#id)")
     public ResponseEntity<JSONAware> doPost(@PathVariable(name = "id", required = false) Optional<UUID> id,
                                             @RequestBody String paramString) {
         // Retrieve the request fields

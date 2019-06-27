@@ -24,6 +24,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -47,7 +48,6 @@ import com.vmware.blockchain.services.ConcordControllerHelper;
 import com.vmware.blockchain.services.ConcordServlet;
 import com.vmware.blockchain.services.ethereum.EthDispatcher;
 import com.vmware.blockchain.services.profiles.DefaultProfiles;
-import com.vmware.blockchain.services.profiles.Roles;
 import com.vmware.concord.Concord.ConcordResponse;
 
 import lombok.Data;
@@ -135,14 +135,10 @@ public class ContractsController extends ConcordServlet {
      */
     @RequestMapping(method = RequestMethod.GET,
             path = {"/api/concord/contracts", "/api/blockchains/{id}/concord/contracts"})
+    @PreAuthorize("@authHelper.canAccessChain(#id)")
     public ResponseEntity<List<BriefContractInfo>> handleGetContracts(
             @PathVariable(name = "id", required = false) Optional<UUID> id) {
 
-        // Make sure we can access this
-        if (!authHelper.hasAnyAuthority(Roles.operatorRoles())
-                && !authHelper.getPermittedChains().contains(getBlockchainId(id))) {
-            throw new ForbiddenException(ErrorCode.NOT_ALLOWED);
-        }
         return new ResponseEntity<>(
                 contractService.list(getBlockchainId(id)).stream()
                     .map(BriefContractInfo::new)
@@ -161,14 +157,10 @@ public class ContractsController extends ConcordServlet {
      */
     @RequestMapping(method = RequestMethod.GET,
             path = {"/api/concord/contracts/{contract_id}", "/api/blockchains/{id}/concord/contracts/{contract_id}"})
+    @PreAuthorize("@authHelper.canAccessChain(#id)")
     public ResponseEntity<BriefContractInfo> handleGetContract(
             @PathVariable(name = "id", required = false) Optional<UUID> id,
             @PathVariable("contract_id") String contractId) {
-
-        if (!authHelper.hasAnyAuthority(Roles.operatorRoles())
-                && !authHelper.getPermittedChains().contains(getBlockchainId(id))) {
-            throw new ForbiddenException(ErrorCode.NOT_ALLOWED);
-        }
 
         List<Contract> contracts = contractService.listByName(contractId, getBlockchainId(id));
         if (contracts.isEmpty()) {
@@ -192,16 +184,12 @@ public class ContractsController extends ConcordServlet {
      */
     @RequestMapping(method = RequestMethod.GET, path = {"/api/concord/contracts/{contract_id}/versions/{version_id}",
             "/api/blockchains/{id}/concord/contracts/{contract_id}/versions/{version_id}"})
+    @PreAuthorize("@authHelper.canAccessChain(#id)")
     public ResponseEntity<FullVersionInfo> handleGetVersion(
             @PathVariable(name = "id", required = false) Optional<UUID> id,
             @PathVariable("contract_id") String contractId, @PathVariable("version_id") String contractVersion) {
 
         List<Contract> contracts = contractService.getContractVersion(contractId, contractVersion, getBlockchainId(id));
-
-        if (!authHelper.hasAnyAuthority(Roles.operatorRoles())
-                && !authHelper.getPermittedChains().contains(getBlockchainId(id))) {
-            throw new ForbiddenException(ErrorCode.NOT_ALLOWED);
-        }
 
         if (contracts.isEmpty()) {
             throw new NotFoundException(ErrorCode.CONTRACT_VERSION_NOT_FOUND, contractId, contractVersion);
@@ -288,14 +276,11 @@ public class ContractsController extends ConcordServlet {
      */
     @RequestMapping(method = RequestMethod.PUT, path = {"/api/concord/contracts/{contract_address}",
             "/api/blockchains/{id}/concord/contracts/{contract_address}"})
+    @PreAuthorize("@authHelper.canAccessChain(#id) "
+                  + "&& hasAnyAuthority(T(com.vmware.blockchain.services.profiles.Roles).devloper())")
     public ResponseEntity<FullVersionInfo> handleUpdateVersion(@RequestBody PutRequestBody body,
             @PathVariable(name = "id", required = false) Optional<UUID> id,
             @PathVariable("contract_address") String existingContractId) {
-
-        if (!authHelper.hasAnyAuthority(Roles.operatorRoles())
-                && !authHelper.getPermittedChains().contains(getBlockchainId(id))) {
-            throw new ForbiddenException(ErrorCode.NOT_ALLOWED);
-        }
 
         String contractId = body.getContractId();
         String solidityCode = body.getSourcecode();
@@ -440,6 +425,7 @@ public class ContractsController extends ConcordServlet {
      * @return The RESTResult object containing result of this request
      */
     @RequestMapping(path = "/api/concord/contracts/compile", method = RequestMethod.POST)
+    @PreAuthorize("hasAnyAuthority(T(com.vmware.blockchain.services.profiles.Roles).devloper())")
     public ResponseEntity<JSONAware> handlePostSource(@RequestBody String paramString) {
 
         // TODO: See if we can convert this into the new style
@@ -505,13 +491,10 @@ public class ContractsController extends ConcordServlet {
      */
     @RequestMapping(path = {"/api/concord/contracts", "/api/blockchains/{id}/concord/contracts"},
             method = RequestMethod.POST)
+    @PreAuthorize("@authHelper.canAccessChain(#id) "
+                  + "&& hasAnyAuthority(T(com.vmware.blockchain.services.profiles.Roles).devloper())")
     public ResponseEntity<PostResult> handlePost(@PathVariable(name = "id", required = false) Optional<UUID> id,
                 @RequestBody PostRequestBody body) {
-
-        if (!authHelper.hasAnyAuthority(Roles.operatorRoles())
-                && !authHelper.getPermittedChains().contains(getBlockchainId(id))) {
-            throw new ForbiddenException(ErrorCode.NOT_ALLOWED);
-        }
 
         final ConcordControllerHelper helper = getHelper(id);
 
@@ -575,6 +558,7 @@ public class ContractsController extends ConcordServlet {
      */
     @RequestMapping(method = RequestMethod.GET,
                     path = "/api/concord/contracts/compiler_versions")
+    @PreAuthorize("hasAnyAuthority(T(com.vmware.blockchain.services.profiles.Roles).devloper())")
     public ResponseEntity<JSONAware> handleGetCompilerVersions() {
         return new ResponseEntity<>(Compiler.getCompilerVersions(compilerServiceUrl),
                                     HttpStatus.OK);

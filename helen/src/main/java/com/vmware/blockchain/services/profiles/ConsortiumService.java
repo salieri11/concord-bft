@@ -11,6 +11,7 @@ import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.vmware.blockchain.auth.AuthHelper;
 import com.vmware.blockchain.dao.GenericDao;
 
 /**
@@ -20,10 +21,12 @@ import com.vmware.blockchain.dao.GenericDao;
 public class ConsortiumService {
 
     private GenericDao genericDao;
+    private AuthHelper authHelper;
 
     @Autowired
-    public ConsortiumService(GenericDao genericDao) {
+    public ConsortiumService(GenericDao genericDao, AuthHelper authHelper) {
         this.genericDao = genericDao;
+        this.authHelper = authHelper;
     }
 
     public Consortium get(UUID id) {
@@ -34,8 +37,16 @@ public class ConsortiumService {
         return genericDao.put(c, null);
     }
 
+    /**
+     * list consortiums to which this user has access.
+     * @return List of consoritums user can see
+     */
     public List<Consortium> list() {
-        return genericDao.getAllByType(Consortium.class);
+        if (authHelper.hasAnyAuthority(Roles.systemAdmin())) {
+            return genericDao.getAllByType(Consortium.class);
+        } else {
+            return genericDao.getByParentId(authHelper.getOrganizationId(), Consortium.class);
+        }
     }
 
     public void addOrganization(Consortium c, Organization org) {

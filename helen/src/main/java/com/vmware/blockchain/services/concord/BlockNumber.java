@@ -16,6 +16,7 @@ import org.json.simple.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -52,6 +53,7 @@ public class BlockNumber extends ConcordServlet {
      */
     @RequestMapping(method = RequestMethod.GET,
             path = {"/api/concord/blocks/{block}", "/api/blockchains/{id}/concord/blocks/{block}"})
+    @PreAuthorize("@authHelper.canAccessChain(#id)")
     public ResponseEntity<JSONAware> getBlock(@PathVariable(name = "id", required = false) Optional<UUID> id,
             @PathVariable("block") String block) {
         ConcordControllerHelper helper = getHelper(id);

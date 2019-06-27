@@ -15,6 +15,7 @@ import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -54,6 +55,7 @@ public class ProfileController {
      * Get list of users, optionaly filtered on org and consortium.
      */
     @RequestMapping(path = "/api/users", method = RequestMethod.GET)
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<UsersGetResponse>> getUsers(
             @RequestParam(name = "consortium", required = false) String consortium,
             @RequestParam(name = "organization", required = false) String organization) {
@@ -70,6 +72,7 @@ public class ProfileController {
      * @return the user
      */
     @RequestMapping(path = "/api/users/{user_id}", method = RequestMethod.GET)
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<UsersGetResponse> getUserFromId(@PathVariable("user_id") String userId) {
         return new ResponseEntity<>(prm.getReponse(prm.getUserWithId(userId)), HttpStatus.OK);
     }
@@ -108,6 +111,7 @@ public class ProfileController {
      * Create a new user.
      */
     @RequestMapping(path = "/api/users", method = RequestMethod.POST)
+    @PreAuthorize("hasAnyAuthority(T(com.vmware.blockchain.services.profiles.Roles).systemAdmin())")
     public ResponseEntity<UsersCreateResponse> doPost(@RequestBody UserCreateRequest ucr) throws IOException {
         defaultUcrFields(ucr);
         validateCreateRequest(ucr);
@@ -139,6 +143,7 @@ public class ProfileController {
      * Update user information.
      */
     @RequestMapping(path = "/api/users/{user_id}", method = RequestMethod.PATCH)
+    @PreAuthorize("hasAnyAuthority(T(com.vmware.blockchain.services.profiles.Roles).systemAdmin())")
     public ResponseEntity<String> doPatch(@PathVariable(name = "user_id") String userId,
             @RequestBody UserPatchRequest upr) {
         upr.setUserId(UUID.fromString(userId));

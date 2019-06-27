@@ -7,9 +7,13 @@ package com.vmware.blockchain.auth;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
-import org.slf4j.MDC;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.ThreadContext;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.expression.SecurityExpressionRoot;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -18,13 +22,26 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
+import com.vmware.blockchain.BaseCacheHelper;
+import com.vmware.blockchain.common.Constants;
 import com.vmware.blockchain.security.HelenUserDetails;
+import com.vmware.blockchain.services.profiles.DefaultProfiles;
+import com.vmware.blockchain.services.profiles.Roles;
 
 /**
  * A few helper functions for getting fields of Auth.
  */
 @Component
 public class AuthHelper {
+
+    private static Logger logger = LogManager.getLogger(AuthHelper.class);
+
+    // Can't use constructor autowired in the component, due to circular dependencies.
+    @Autowired
+    private DefaultProfiles defaultProfiles;
+
+    @Autowired
+    private BaseCacheHelper baseCacheHelper;
 
     /**
      * Get the current Authentication.  Return null if none.
@@ -84,6 +101,11 @@ public class AuthHelper {
         return details == null ? Collections.emptyList() : details.getPermittedChains();
     }
 
+    public List<UUID> getConsortiums() {
+        HelenUserDetails details = getDetails();
+        return details == null ? Collections.emptyList() : details.getConsortiums();
+    }
+
     public Collection<GrantedAuthority> getAuthorities() {
         HelenUserDetails details = getDetails();
         return details == null ? null : details.getAuthorities();
@@ -94,6 +116,59 @@ public class AuthHelper {
         return security.hasAnyAuthority(authorities);
     }
 
+    public boolean canAccessChain(UUID id) {
+        logger.info("can access chain {}", id);
+        return hasAnyAuthority(Roles.systemAdmin()) || getPermittedChains().contains(id);
+    }
+
+    /**
+     * Back compat with old system.
+     */
+    public boolean canAccessChain(Optional<UUID> oid) {
+        UUID id = oid.orElse(defaultProfiles.getBlockchain().getId());
+        return hasAnyAuthority(Roles.systemAdmin()) || getPermittedChains().contains(id);
+    }
+
+    /**
+     * Can update chain.
+     */
+    public boolean canUpdateChain(UUID id) {
+        logger.debug("can update chain {}", id);
+        return hasAnyAuthority(Roles.systemAdmin())
+                               || (hasAnyAuthority(Roles.consortiumAdmin()) && getPermittedChains().contains(id));
+    }
+
+    /**
+     * Back compat with old system.
+     */
+    public boolean canUpdateChain(Optional<UUID> oid) {
+        UUID id = oid.orElse(defaultProfiles.getBlockchain().getId());
+        return hasAnyAuthority(Roles.systemAdmin())
+               || (hasAnyAuthority(Roles.consortiumAdmin()) && getPermittedChains().contains(id));
+    }
+
+    public boolean canAccessConsortium(UUID id) {
+        return hasAnyAuthority(Roles.systemAdmin()) || getConsortiums().contains(id);
+    }
+
+    public boolean canUpdateConsortium(UUID id) {
+        return hasAnyAuthority(Roles.systemAdmin())
+               || (hasAnyAuthority(Roles.consortiumAdmin()) && getConsortiums().contains(id));
+    }
+
+    public boolean canAccessOrg(UUID id) {
+        return hasAnyAuthority(Roles.systemAdmin()) || getOrganizationId().equals(id);
+    }
+
+    public boolean canUpdateOrg(UUID id) {
+        return hasAnyAuthority(Roles.systemAdmin())
+               || (hasAnyAuthority(Roles.orgAdmin()) && getOrganizationId().equals(id));
+    }
+
+    public void evictToken() {
+        baseCacheHelper.evict(Constants.CSP_TOKEN_CACHE, getAuthToken());
+    }
+
     /**
      * Mostly used for testing.  Set the context.
      * @param authenticationContext Authoriztion context.
@@ -101,7 +176,7 @@ public class AuthHelper {
     public void setAuthenticationContext(AuthenticationContext authenticationContext) {
         SecurityContextHolder.getContext().setAuthentication(authenticationContext);
         if (authenticationContext != null) {
-            MDC.put("userName", authenticationContext.getUserName());
+            ThreadContext.put("userName", authenticationContext.getUserName());
         }
     }
 
@@ -110,7 +185,7 @@ public class AuthHelper {
      */
     public void clearAuthenticationContext() {
         SecurityContextHolder.clearContext();
-        MDC.remove("userName");
+        ThreadContext.remove("userName");
     }
 
 

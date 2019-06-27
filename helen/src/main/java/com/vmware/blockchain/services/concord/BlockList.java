@@ -16,6 +16,7 @@ import org.json.simple.JSONAware;
 import org.json.simple.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -53,6 +54,7 @@ public class BlockList extends ConcordServlet {
      */
     // ** - tells spring to match anything in path
     @RequestMapping(method = RequestMethod.GET, path = {"/api/concord/blocks", "/api/blockchains/{id}/concord/blocks"})
+    @PreAuthorize("@authHelper.canAccessChain(#id)")
     public ResponseEntity<JSONAware> getBlockList(
             @PathVariable(name = "id", required = false) Optional<UUID> id,
             @RequestParam(name = "latest", defaultValue = "-1", required = false) long latest,

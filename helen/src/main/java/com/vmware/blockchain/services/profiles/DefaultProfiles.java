@@ -15,6 +15,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
+import com.google.common.collect.ImmutableList;
 import com.vmware.blockchain.common.NotFoundException;
 import com.vmware.blockchain.security.ServiceContext;
 import com.vmware.blockchain.services.blockchains.Blockchain;
@@ -112,10 +113,13 @@ public class DefaultProfiles {
         }
         user = createUserIfNotExist();
         serviceContext.clearServiceContext();
-        // For blockchain, don't log the node cert
-        List<String> nodeInfo = blockchain.getNodeList().stream()
-                .map(n -> String.format("%s %s %s", n.getHostName(), n.getIp(), n.getUrl()))
-                .collect(Collectors.toList());
+        List<String> nodeInfo = Collections.emptyList();
+        if (blockchain != null) {
+            // For blockchain, don't log the node cert
+            nodeInfo = blockchain.getNodeList().stream()
+                    .map(n -> String.format("%s %s %s", n.getHostName(), n.getIp(), n.getUrl()))
+                    .collect(Collectors.toList());
+        }
         logger.info("Profiles -- Org {}, Cons: {}, BC: {}, User: {}", organization.getOrganizationName(),
                 consortium.getConsortiumName(), nodeInfo, user.getEmail());
     }
@@ -131,7 +135,7 @@ public class DefaultProfiles {
             u.setName("ADMIN");
             u.setEmail(email);
             u.setPassword(passwordEncoder.encode(password));
-            u.setRoles(Collections.singletonList(Roles.get("vmbc-system:admin")));
+            u.setRoles(ImmutableList.of(Roles.ORG_USER, Roles.SYSTEM_ADMIN));
             u.setOrganization(organization.getId());
             // Note: The order of next 5 statements is very important, The user
             // object must be saved before it can be added and saved into

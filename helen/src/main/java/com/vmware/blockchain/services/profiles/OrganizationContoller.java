@@ -11,6 +11,7 @@ import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -52,6 +53,7 @@ public class OrganizationContoller {
      * @return list of all orgs
      */
     @RequestMapping(path = "/api/organizations", method = RequestMethod.GET)
+    @PreAuthorize("hasAnyAuthority(T(com.vmware.blockchain.services.profiles.Roles).systemAdmin())")
     public ResponseEntity<List<OrgGetResponse>> listOrgs() {
         List<Organization> orgs = orgService.list();
         List<OrgGetResponse> rList = orgs.stream().map(o -> new OrgGetResponse(o.getId(), o.getOrganizationName()))
@@ -64,6 +66,7 @@ public class OrganizationContoller {
      * @return a particular org with id
      */
     @RequestMapping(path = "/api/organizations/{org_id}", method = RequestMethod.GET)
+    @PreAuthorize("@authHelper.canAccessOrg(#orgId)")
     public ResponseEntity<OrgGetResponse> getOrg(@PathVariable("org_id") UUID orgId) {
         Organization org = orgService.get(orgId);
         return new ResponseEntity<>(new OrgGetResponse(org.getId(), org.getOrganizationName()), HttpStatus.OK);
@@ -71,10 +74,12 @@ public class OrganizationContoller {
 
     /**
      * Creates a new organization.
+     * Note.  Using CSP is this is not valid.
      * @param body request body with org name
      * @return the new org
      */
     @RequestMapping(path = "/api/organizations", method = RequestMethod.POST)
+    @PreAuthorize("hasAnyAuthority(T(com.vmware.blockchain.services.profiles.Roles).systemAdmin())")
     public ResponseEntity<OrgGetResponse> createOrg(@RequestBody OrgPostBody body) {
         Organization org = new Organization(body.getOrganizationName());
         org = orgService.put(org);
@@ -87,6 +92,7 @@ public class OrganizationContoller {
      * @return the new org
      */
     @RequestMapping(path = "/api/organizations/{org_id}", method = RequestMethod.PATCH)
+    @PreAuthorize("@authHelper.canUpdateOrg(#orgId)")
     public ResponseEntity<OrgGetResponse> updateOrg(@PathVariable("org_id") UUID orgId, @RequestBody OrgPostBody body) {
         Organization org = orgService.get(orgId);
         if (body.getOrganizationName() != null) {
