@@ -23,7 +23,7 @@ import com.vmware.blockchain.deployment.reactive.ReactiveStream;
 class DeleteResource {
     private static Logger log = LoggerFactory.getLogger(DeleteResource.class);
 
-    static CompletableFuture<List<? extends Orchestrator.OrchestrationEvent>> deleteNetworkAllocations(
+    static CompletableFuture<List<Orchestrator.NetworkAllocationEvent>> deleteNetworkAllocations(
         List<Map.Entry<Orchestrator, URI>> networkAllocList
     ) {
         List<CompletableFuture<Orchestrator.NetworkAllocationEvent>> works = new ArrayList<>();
@@ -40,7 +40,7 @@ class DeleteResource {
                 .thenApply(res -> works.stream().map(CompletableFuture::join).collect(Collectors.toList()));
     }
 
-    static CompletableFuture<List<? extends Orchestrator.OrchestrationEvent>> deleteDeployments(
+    static CompletableFuture<List<Orchestrator.ComputeResourceEvent>> deleteDeployments(
             List<Map.Entry<Orchestrator, URI>> computeList
     ) {
         List<CompletableFuture<Orchestrator.ComputeResourceEvent>> works = new ArrayList<>();
@@ -57,7 +57,7 @@ class DeleteResource {
                 .thenApply(res -> works.stream().map(CompletableFuture::join).collect(Collectors.toList()));
     }
 
-    static CompletableFuture<List<? extends Orchestrator.OrchestrationEvent>> deleteNetworkAddresses(
+    static CompletableFuture<List<Orchestrator.NetworkResourceEvent>> deleteNetworkAddresses(
             List<Map.Entry<Orchestrator, URI>> networkAddrList
     ) {
         List<CompletableFuture<Orchestrator.NetworkResourceEvent>> works = new ArrayList<>();

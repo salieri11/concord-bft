@@ -577,9 +577,12 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
 
         var work = DeleteResource.deleteNetworkAllocations(networkAllocList).whenComplete((natEvents, natError) -> {
             deleteEvents.addAll(natEvents);
+            log.info("IIII GOTTTTT NETALLLL EVENTSSSSSSSSSS-------------------------------------------" + deleteEvents);
             DeleteResource.deleteDeployments(computeList).whenComplete((computeEvents, computeError) -> {
                 deleteEvents.addAll(computeEvents);
+                log.info("IIII GOTTTTT COMPUTEE EVENTSSSSSSSSSS---------------------------------  ----" + deleteEvents);
                 DeleteResource.deleteNetworkAddresses(networkAddrList).whenComplete((networkAddrEvents, addrError) -> {
+                    log.info("IIII GOTTTTT NETADDDD EVENTSSSSSSSSSS-----------------------------------" + deleteEvents);
                     deleteEvents.addAll(networkAddrEvents);
                 });
             });
@@ -595,10 +598,13 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
             Collection<OrchestrationEvent> events,
             DeploymentSession.Status status) {
 
+        log.info("_________________________________________EVENTS INSIDE BUG " + events.size() + " contents " + events);
+
         List<DeploymentSessionEvent> deprovisioningEvent = new ArrayList<>();
         events.stream().forEach(event -> {
             ProvisionedResource resource = null;
             if (event instanceof NetworkAllocationEvent.Deleted) {
+                log.info("IIII AAAMMM INNNNN NEETTALLLLLLLLL --------------------------------------------------------");
                 var resEvent = (NetworkAllocationEvent.Deleted) event;
                 var type = ProvisionedResource.Type.NETWORK_ALLOCATION;
                 resource = new ProvisionedResource(type,
@@ -607,6 +613,7 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
                         session.getCluster(),
                         ConcordNodeIdentifier.Companion.getDefaultValue());
             } else if (event instanceof NetworkResourceEvent.Deleted) {
+                log.info("IIII AAAMMM INNNNN NEETTRRRRRRRRRR --------------------------------------------------------");
                 var resEvent = (NetworkResourceEvent.Deleted) event;
                 resource = new ProvisionedResource(ProvisionedResource.Type.NETWORK_RESOURCE,
                         resEvent.getResource().toString(),
@@ -614,6 +621,7 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
                         session.getCluster(),
                         ConcordNodeIdentifier.Companion.getDefaultValue());
             } else if (event instanceof ComputeResourceEvent.Deleted) {
+                log.info("IIII AAAMMM INNNNN COMPUTEEEEEEEEE --------------------------------------------------------");
                 var resEvent = (ComputeResourceEvent.Deleted) event;
                 resource = new ProvisionedResource(ProvisionedResource.Type.COMPUTE_RESOURCE,
                         resEvent.getResource().toString(),
@@ -621,6 +629,7 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
                         session.getCluster(),
                         ConcordNodeIdentifier.Companion.getDefaultValue());
             } else {
+                log.info("IIII AAAMMM NOWHEREEEEE!!!!! --------------------------------------------------------");
                 throw new RuntimeException("Incorrect event type passed to deprovisioning session buildder");
             }
 
