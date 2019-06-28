@@ -17,7 +17,6 @@
     <properties>
         <!-- Project properties. -->
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <java.version>1.8</java.version>
 
         <!-- Maven-related properties. -->
         <maven.plugin.assembly>3.1.0</maven.plugin.assembly>

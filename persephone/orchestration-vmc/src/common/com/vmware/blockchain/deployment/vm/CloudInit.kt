@@ -4,6 +4,7 @@
 package com.vmware.blockchain.deployment.vm
 
 import com.vmware.blockchain.deployment.http.JsonSerializer
+import com.vmware.blockchain.deployment.model.ConcordAgentConfiguration
 import com.vmware.blockchain.deployment.model.ConcordComponent
 import com.vmware.blockchain.deployment.model.ConcordModelSpecification
 import com.vmware.blockchain.deployment.model.Credential
@@ -30,6 +31,13 @@ class InitScript(
     object GenesisSerializer
         : JsonSerializer(serializersModuleOf(Genesis::class, Genesis.serializer()))
 
+    object ConcordAgentConfigurationSerializer
+        : JsonSerializer(
+            serializersModuleOf(
+                    ConcordAgentConfiguration::class, ConcordAgentConfiguration.serializer()
+            )
+    )
+
     /** Consolidated Docker PULL command. */
     private val dockerPullCommand: String = model.components.asSequence()
             .filter { it.type == ConcordComponent.Type.DOCKER_IMAGE }
@@ -39,7 +47,16 @@ class InitScript(
     private val networkAddressCommand: String = ipAddress
             .takeIf { it.isNotBlank() }
             ?.let { "netmgr ip4_address --set --interface eth0 --mode static --addr $ipAddress/$subnet --gateway $gateway" }
-            ?:"" // No-action defaults to DHCP.
+            ?: "" // No-action defaults to DHCP.
+
+    /** Concord agent startup configuration parameters. */
+    private val configuration: ConcordAgentConfiguration = ConcordAgentConfiguration (
+            model = model,
+            containerRegistry = containerRegistry,
+            fleetService = Endpoint(), // TODO: need to inject fleet service endpoint info.
+            cluster = clusterId,
+            node = nodeId
+    )
 
     private val script =
             """
@@ -56,6 +73,10 @@ class InitScript(
             mkdir -p /concord/config-public
             echo '{{staticIp}}' > /concord/ipaddr
             echo '{{gateway}}' > /concord/gateway
+            
+            # Output the node's model specification.
+            mkdir -p /concord/agent
+            echo '{{agentConfig}}' > /concord/agent/config.json
            
             tdnf install netmgmt -y
             {{networkAddressCommand}}
@@ -70,12 +91,13 @@ class InitScript(
             chmod 777 /concord/config-public/find-docker-instances.sh
 
             echo '{{genesis}}' > /concord/config-public/genesis.json
-            docker run -d --name=agent -e CID={{XXX}} -e NID={{YYY}} -v /concord/config-public:/concord-public -v /concord/config-local:/concord/config-local -v /var/run/docker.sock:/var/run/docker.sock -p 8546:8546 registry-1.docker.io/vmwblockchain/agent-testing:latest
+            docker run -d --name=agent -e CID={{XXX}} -e NID={{YYY}} -v /concord/agent:/agent -v /concord/config-public:/concord/config-public -v /concord/config-local:/concord/config-local -v /var/run/docker.sock:/var/run/docker.sock -p 8546:8546 registry-1.docker.io/vmwblockchain/agent-testing:latest
             echo 'done'
             """.trimIndent()
                     .replace("{{dockerLoginCommand}}", containerRegistry.toRegistryLoginCommand())
                     .replace("{{dockerPullCommand}}", dockerPullCommand)
                     .replace("{{genesis}}", GenesisSerializer.toJson(genesis))
+                    .replace("{{agentConfig}}", ConcordAgentConfigurationSerializer.toJson(configuration))
                     .replace("{{networkAddressCommand}}", networkAddressCommand)
                     .replace("{{staticIp}}", ipAddress)
                     .replace("{{gateway}}", gateway)

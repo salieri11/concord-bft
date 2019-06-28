@@ -1,0 +1,23 @@
+/* [START declaration] */
+syntax = "proto3";
+package com.vmware.blockchain.deployment.model;
+
+import "concord_cluster.proto";
+import "concord_model.proto";
+import "core.proto";
+/* [END declaration] */
+
+/* [START java_declaration] */
+option java_package = "com.vmware.blockchain.deployment.model";
+option java_multiple_files = true;
+/* [END java_declaration] */
+
+/* [START messages] */
+message ConcordAgentConfiguration {
+    ConcordModelSpecification model = 1;
+    Endpoint container_registry = 2;
+    Endpoint fleet_service = 3;
+    string cluster = 4;
+    string node = 5;
+}
+/* [END messages] */
