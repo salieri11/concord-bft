@@ -238,8 +238,13 @@ message StreamClusterDeploymentSessionEventRequest {
  *   identifier for the cluster deployment session.
  */
 message UpdateDeploymentSessionRequest {
+    enum Action {
+        NOOP = 0;
+        DEPROVISION_ALL = 1;
+    }
     MessageHeader header = 1;
-    DeploymentSessionIdentifier session = 2;
+    Action action = 2;
+    DeploymentSessionIdentifier session = 3;
 }
 
 /**

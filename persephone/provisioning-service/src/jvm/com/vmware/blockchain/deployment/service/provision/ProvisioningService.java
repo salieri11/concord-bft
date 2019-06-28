@@ -367,6 +367,37 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
         }
     }
 
+
+    @Override
+    public void updateDeploymentSession(UpdateDeploymentSessionRequest message,
+                                        StreamObserver<DeploymentSessionIdentifier> observer) {
+        var request = Objects.requireNonNull(message);
+        var response = Objects.requireNonNull(observer);
+
+        try {
+            if (STATE.get(this) != State.ACTIVE) {
+                response.onError(new IllegalStateException("Service instance is not active"));
+            } else {
+                CompletableFuture.runAsync(() -> {
+                    if (request.getAction().equals(UpdateDeploymentSessionRequest.Action.NOOP)) {
+                        response.onError(
+                                new IllegalStateException("No action is provided. No update action thus taken."));
+                    } else if (request.getAction().equals(UpdateDeploymentSessionRequest.Action.DEPROVISION_ALL)) {
+                        deprovision(request.getSession());
+                        response.onNext(request.getSession());
+                        response.onCompleted();
+                    }
+                }, executor).exceptionally(error -> {
+                    response.onError(error);
+                    return null; // To satisfy type signature (Void).
+                });
+            }
+        } catch (Throwable error) {
+            response.onError(error);
+        }
+
+    }
+
     /**
      * Create a placement resolution for a given {@link DeploymentSpecification} such that all
      * placement entries have a specific designated orchestration site target.
@@ -485,88 +516,26 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
         return promise;
     }
 
-    @Override
-    public void updateDeploymentSession(UpdateDeploymentSessionRequest message,
-                                   StreamObserver<DeploymentSessionIdentifier> observer) {
-        var request = Objects.requireNonNull(message);
-        var response = Objects.requireNonNull(observer);
-
-        try {
-            if (STATE.get(this) != State.ACTIVE) {
-                response.onError(new IllegalStateException("Service instance is not active"));
-            } else {
-                CompletableFuture.runAsync(() -> {
-                    var sessionId = newSessionId(request.getHeader());
-
-                    var session = new DeploymentSession(
-                            sessionId,
-                            DeploymentSpecification.Companion.getDefaultValue(),
-                            ConcordClusterIdentifier.Companion.getDefaultValue(),
-                            PlacementAssignment.Companion.getDefaultValue(),
-                            DeploymentSession.Status.ACTIVE,
-                            Collections.singletonList(newInitialEvent(sessionId))
-                    );
-
-                    var oldSession = deploymentLog.putIfAbsent(sessionId, new CompletableFuture<>());
-
-                    if (oldSession == null) {
-                        // Emit the acknowledgement and signal completion of the request.
-                        response.onNext(sessionId);
-                        response.onCompleted();
-
-                        deprovision(request.getSession(), session);
-                    } else {
-                        // Cannot record this session for some reason.
-                        // TODO: Need to think more about what to return in this case.
-                        response.onError(
-                                new IllegalStateException("Cannot record deployment session")
-                        );
-                    }
-                }, executor).exceptionally(error -> {
-                    response.onError(error);
-                    return null; // To satisfy type signature (Void).
-                });
-            }
-        } catch (Throwable error) {
-            response.onError(error);
-        }
-
-    }
-
     /**
      * Execute a Concord cluster deprovisioning workflow.
      *
      * @param requestSession
      *   deploymentSessionIdentifier to carry out the workflow for.
      */
-    private void deprovision(DeploymentSessionIdentifier requestSession, DeploymentSession deprovSession) {
+    private void deprovision(DeploymentSessionIdentifier requestSession) {
 
         CompletableFuture<DeploymentSession> sessionEventTask = deploymentLog.get(requestSession);
         if (sessionEventTask != null) {
             sessionEventTask.thenAcceptAsync(deploymentSession -> {
-                var events = deploymentSession.getEvents();
+                final var deleteEvents = deleteResourceEvents(deploymentSession.getEvents());
+                deploymentSession.getEvents().addAll(toDeprovisioningEvents(deploymentSession, deleteEvents,
+                        DeploymentSession.Status.SUCCESS));
 
-                final var deleteEvents = deleteResourceEvents(events);
-
-                // Create deprovisioning session instance
-                var updatedSession = toDeprovisioningSession(deploymentSession, deleteEvents,
-                        deprovSession.getId(), DeploymentSession.Status.SUCCESS);
-
-                deploymentLog.get(deprovSession.getId()).complete(updatedSession);
-
+                deploymentLog.get(requestSession).complete(deploymentSession);
                 log.info("Deprovisioning completed");
             }, executor)
                     .exceptionally(error -> {
-                        var updatedSession = new DeploymentSession(deprovSession.getId(),
-                                DeploymentSpecification.Companion.getDefaultValue(),
-                                ConcordClusterIdentifier.Companion.getDefaultValue(),
-                                PlacementAssignment.Companion.getDefaultValue(),
-                                DeploymentSession.Status.FAILURE,
-                                Collections.singletonList(newCompleteEvent(deprovSession.getId(),
-                                        DeploymentSession.Status.FAILURE)));
-
-                        deploymentLog.get(deprovSession.getId()).complete(updatedSession);
-                        return null;
+                        throw new IllegalStateException("Deprovisioning failed for id: " + requestSession, error);
                     });
             sessionEventTask.join();
         } else {
@@ -606,17 +575,24 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
             }
         }
 
-        deleteEvents.addAll(DeleteResource.deleteNetworkAllocations(networkAllocList));
-        deleteEvents.addAll(DeleteResource.deleteDeployments(computeList));
-        deleteEvents.addAll(DeleteResource.deleteNetworkAddresses(networkAddrList));
+        var work = DeleteResource.deleteNetworkAllocations(networkAllocList).whenComplete((natEvents, natError) -> {
+            deleteEvents.addAll(natEvents);
+            DeleteResource.deleteDeployments(computeList).whenComplete((computeEvents, computeError) -> {
+                deleteEvents.addAll(computeEvents);
+                DeleteResource.deleteNetworkAddresses(networkAddrList).whenComplete((networkAddrEvents, addrError) -> {
+                    deleteEvents.addAll(networkAddrEvents);
+                });
+            });
+        });
+
+        work.join();
 
         return deleteEvents;
     }
 
-    private DeploymentSession toDeprovisioningSession(
+    private List<DeploymentSessionEvent> toDeprovisioningEvents(
             DeploymentSession session,
             Collection<OrchestrationEvent> events,
-            DeploymentSessionIdentifier deprovisioningId,
             DeploymentSession.Status status) {
 
         List<DeploymentSessionEvent> deprovisioningEvent = new ArrayList<>();
@@ -649,18 +625,13 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
             }
 
             deprovisioningEvent.add(new DeploymentSessionEvent(DeploymentSessionEvent.Type.RESOURCE_DEPROVISIONED,
-                    deprovisioningId, status, resource,
+                    session.getId(), status, resource,
                     ConcordNode.Companion.getDefaultValue(),
                     ConcordNodeStatus.Companion.getDefaultValue(),
                     ConcordCluster.Companion.getDefaultValue()));
         });
 
-        return new DeploymentSession(deprovisioningId,
-                session.getSpecification(),
-                session.getCluster(),
-                session.getAssignment(),
-                status,
-                deprovisioningEvent);
+        return deprovisioningEvent;
     }
 
     private URI getUrl(String url) {
@@ -842,10 +813,10 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
                     // Create the updated deployment session instance.
                     var deleteEvents = deleteResourceEvents(session.getEvents());
 
-                    var deprovisioningSession = toDeprovisioningSession(
-                            session, deleteEvents, session.getId(), DeploymentSession.Status.FAILURE);
+                    var deprovisioningSessionEvents = toDeprovisioningEvents(
+                            session, deleteEvents, DeploymentSession.Status.FAILURE);
 
-                    session.getEvents().addAll(deprovisioningSession.getEvents());
+                    session.getEvents().addAll(deprovisioningSessionEvents);
 
                     var event = newCompleteEvent(session.getId(), DeploymentSession.Status.FAILURE);
                     var updatedSession = new DeploymentSession(
