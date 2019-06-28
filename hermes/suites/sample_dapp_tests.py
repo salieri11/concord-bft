@@ -1,18 +1,18 @@
 #########################################################################
 # Copyright 2018 - 2019 VMware, Inc.  All rights reserved. -- VMware Confidential
 #
-# Tests covering AssetTransfer DApp compatibility.
+# Tests covering Sample DApp compatibility.
 #########################################################################
 
 
 #########################################################################
 # Example executions
 # 1) Passing an endpoint runs tests in --noLaunch mode
-# ./main.py AssetTransferTests --endpoint='https://mgmt.blockchain.vmware.com/
+# ./main.py SampleDAppTests --endpoint='https://mgmt.blockchain.vmware.com/
 # blockchains/c3e4c911-9f9d-4899-9c92-6ced72d3ded3/api/concord/eth'
 # --user='admin@blockchain.local' --password='Passw0rd!'
 # 2) Passing no endpoint launches the product
-# ./main.py AssetTransferTests
+# ./main.py SampleDAppTests
 # 3) You can also pass username and/or password, skipping the endpoint;
 # this runs tests on the locally launched product
 #########################################################################
@@ -27,7 +27,7 @@ from . import test_suite
 
 log = logging.getLogger(__name__)
 
-class AssetTransferTests(test_suite.TestSuite):
+class SampleDAppTests(test_suite.TestSuite):
    # Set in init based on whether an endpoint was passed in.
    _apiServerUrl = None
 
@@ -41,7 +41,7 @@ class AssetTransferTests(test_suite.TestSuite):
    _password = None
 
    def __init__(self, passedArgs):
-      super(AssetTransferTests, self).__init__(passedArgs)
+      super(SampleDAppTests, self).__init__(passedArgs)
       self._args = passedArgs
 
       user = self._userConfig.get('product').get('db_users')[0]
@@ -70,7 +70,7 @@ class AssetTransferTests(test_suite.TestSuite):
 
 
    def getName(self):
-      return "AssetTransferTests"
+      return "SampleDAppTests"
 
 
    def _runTest(self, testName, testFun, testLogDir):

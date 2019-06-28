@@ -1,4 +1,4 @@
-# VMW Blockchain
+# VMware Blockchain
 
 This is the code for the VMware blockchain. It is broken into a few
 components:
@@ -290,8 +290,8 @@ usage: main.py [-h] [--ethereumMode] [--logLevel LOGLEVEL]
 
 positional arguments:
   suite                 Test suite name. Available suites: [
-                        'AssetTransferTests', 'ContractCompilerTests',
-                        'CoreVMTests', 'LintTests', 'ExtendedRPCTests',
-                        'HelenAPITests', 'PerformanceTests', 'RegressionTests',
+                        'ContractCompilerTests', 'CoreVMTests',
+                        'LintTests', 'ExtendedRPCTests', 'HelenAPITests',
+                        'PerformanceTests', 'RegressionTests', 'SampleDAppTests',
                         'SimpleStateTransferTest', 'TruffleTests', 'UiTests']
 ```

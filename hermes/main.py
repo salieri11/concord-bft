@@ -11,17 +11,17 @@ import os
 import tempfile
 from time import strftime, localtime
 
-from suites import (asset_transfer_tests, contract_compiler_tests, core_vm_tests, daml_tests,
+from suites import (contract_compiler_tests, core_vm_tests, daml_tests,
                     ext_rpc_tests, lint_e2e_tests, hlf_tests, performance_tests, persephone_tests,
-                    pytest_suite, regression_tests, simple_st_test, truffle_tests,
+                    pytest_suite, regression_tests, sample_dapp_tests, simple_st_test, truffle_tests,
                     ui_tests, websocket_rpc_tests)
 
 from util import html, json_helper
 
 log = None
-suites = ["AssetTransferTests", "ContractCompilerTests", "CoreVMTests",
+suites = ["ContractCompilerTests", "CoreVMTests",
           "LintTests", "ExtendedRPCTests", "HelenAPITests", "HlfTests", "PerformanceTests", "PersephoneTests",
-          "RegressionTests", "SampleSuite", "SimpleStateTransferTest", "TimeTests", "TruffleTests", "UiTests",
+          "RegressionTests", "SampleDAppTests" "SampleSuite", "SimpleStateTransferTest", "TimeTests", "TruffleTests", "UiTests",
           "WebSocketRPCTests"]
 
 
@@ -77,11 +77,11 @@ def main():
                        type=int,
                        help="Number of times to repeat test runs")
    parser.add_argument("--endpoint",
-                       help="Endpoint for AssetTransfer tests")
+                       help="Endpoint for Sample DApp tests")
    parser.add_argument("--user",
-                       help="User name for AssetTransfer tests")
+                       help="User name for Sample DApp tests")
    parser.add_argument("--password",
-                       help="Password for AssetTransfer tests")
+                       help="Password for Sample DApp tests")
    parser.add_argument("--reverseProxyApiBaseUrl",
                        default="https://localhost/blockchains/local",
                        help="Base URL for Helen REST API calls. Test cases drill "
@@ -188,8 +188,8 @@ def setUpLogging(args):
       exit(1)
 
 def createTestSuite(args):
-   if (args.suite == "AssetTransferTests"):
-      return asset_transfer_tests.AssetTransferTests(args)
+   if (args.suite == "SampleDAppTests"):
+      return sample_dapp_tests.SampleDAppTests(args)
    elif (args.suite == "ContractCompilerTests"):
        return contract_compiler_tests.ContractCompilerTests(args)
    elif (args.suite == "CoreVMTests"):

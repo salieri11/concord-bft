@@ -423,7 +423,7 @@ EOF
                     env.test_log_root = new File(env.WORKSPACE, "testLogs").toString()
                     env.sample_suite_test_logs = new File(env.test_log_root, "SampleSuite").toString()
                     env.ui_test_logs = new File(env.test_log_root, "UI").toString()
-                    env.asset_transfer_test_logs = new File(env.test_log_root, "AssetTransfer").toString()
+                    env.sample_dapp_test_logs = new File(env.test_log_root, "SampleDApp").toString()
                     env.core_vm_test_logs = new File(env.test_log_root, "CoreVM").toString()
                     env.helen_api_test_logs = new File(env.test_log_root, "HelenAPI").toString()
                     env.extended_rpc_test_logs = new File(env.test_log_root, "ExtendedRPC").toString()
@@ -446,7 +446,7 @@ EOF
 
                         # Make sure the test framework itself can run a basic test suite.
                         echo "${PASSWORD}" | sudo -S "${python}" main.py SampleSuite --resultsDir "${sample_suite_test_logs}"
-                        echo "${PASSWORD}" | sudo -S "${python}" main.py AssetTransferTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${asset_transfer_test_logs}" --runConcordConfigurationGeneration
+                        echo "${PASSWORD}" | sudo -S "${python}" main.py SampleDAppTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${sample_dapp_test_logs}" --runConcordConfigurationGeneration
                         echo "${PASSWORD}" | sudo -S "${python}" main.py CoreVMTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${core_vm_test_logs}" --runConcordConfigurationGeneration
                         echo "${PASSWORD}" | sudo -S "${python}" main.py HelenAPITests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${helen_api_test_logs}" --runConcordConfigurationGeneration
                         echo "${PASSWORD}" | sudo -S "${python}" main.py ExtendedRPCTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${extended_rpc_test_logs}" --runConcordConfigurationGeneration
