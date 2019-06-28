@@ -21,6 +21,7 @@ import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 import java.util.function.Consumer;
@@ -58,6 +59,7 @@ import com.vmware.blockchain.deployment.model.ProvisionedResource;
 import com.vmware.blockchain.deployment.model.ProvisioningServiceImplBase;
 import com.vmware.blockchain.deployment.model.StreamClusterDeploymentSessionEventRequest;
 import com.vmware.blockchain.deployment.model.UpdateDeploymentSessionRequest;
+import com.vmware.blockchain.deployment.model.UpdateDeploymentSessionResponse;
 import com.vmware.blockchain.deployment.model.ethereum.Genesis;
 import com.vmware.blockchain.deployment.orchestration.InactiveOrchestrator;
 import com.vmware.blockchain.deployment.orchestration.NetworkAddress;
@@ -66,6 +68,7 @@ import com.vmware.blockchain.deployment.orchestration.Orchestrator.ComputeResour
 import com.vmware.blockchain.deployment.orchestration.Orchestrator.CreateComputeResourceRequest;
 import com.vmware.blockchain.deployment.orchestration.Orchestrator.CreateNetworkAllocationRequest;
 import com.vmware.blockchain.deployment.orchestration.Orchestrator.CreateNetworkResourceRequest;
+import com.vmware.blockchain.deployment.orchestration.Orchestrator.FailureEvent;
 import com.vmware.blockchain.deployment.orchestration.Orchestrator.NetworkAllocationEvent;
 import com.vmware.blockchain.deployment.orchestration.Orchestrator.NetworkResourceEvent;
 import com.vmware.blockchain.deployment.orchestration.Orchestrator.OrchestrationEvent;
@@ -370,7 +373,7 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
 
     @Override
     public void updateDeploymentSession(UpdateDeploymentSessionRequest message,
-                                        StreamObserver<DeploymentSessionIdentifier> observer) {
+                                        StreamObserver<UpdateDeploymentSessionResponse> observer) {
         var request = Objects.requireNonNull(message);
         var response = Objects.requireNonNull(observer);
 
@@ -380,11 +383,12 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
             } else {
                 CompletableFuture.runAsync(() -> {
                     if (request.getAction().equals(UpdateDeploymentSessionRequest.Action.NOOP)) {
-                        response.onError(
-                                new IllegalStateException("No action is provided. No update action thus taken."));
+                        log.info("No action was provided. No action was taken.");
+                        response.onNext(new UpdateDeploymentSessionResponse());
+                        response.onCompleted();
                     } else if (request.getAction().equals(UpdateDeploymentSessionRequest.Action.DEPROVISION_ALL)) {
                         deprovision(request.getSession());
-                        response.onNext(request.getSession());
+                        response.onNext(new UpdateDeploymentSessionResponse());
                         response.onCompleted();
                     }
                 }, executor).exceptionally(error -> {
@@ -528,9 +532,9 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
         if (sessionEventTask != null) {
             sessionEventTask.thenAcceptAsync(deploymentSession -> {
                 final var deleteEvents = deleteResourceEvents(deploymentSession.getEvents());
-                deploymentSession.getEvents().addAll(toDeprovisioningEvents(deploymentSession, deleteEvents,
-                        DeploymentSession.Status.SUCCESS));
-
+                var deprovEv = toDeprovisioningEvents(deploymentSession, deleteEvents,
+                        DeploymentSession.Status.SUCCESS);
+                deploymentSession.getEvents().addAll(deprovEv);
                 deploymentLog.get(requestSession).complete(deploymentSession);
                 log.info("Deprovisioning completed");
             }, executor)
@@ -575,20 +579,32 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
             }
         }
 
-        var work = DeleteResource.deleteNetworkAllocations(networkAllocList).whenComplete((natEvents, natError) -> {
-            deleteEvents.addAll(natEvents);
-            log.info("IIII GOTTTTT NETALLLL EVENTSSSSSSSSSS-------------------------------------------" + deleteEvents);
-            DeleteResource.deleteDeployments(computeList).whenComplete((computeEvents, computeError) -> {
-                deleteEvents.addAll(computeEvents);
-                log.info("IIII GOTTTTT COMPUTEE EVENTSSSSSSSSSS---------------------------------  ----" + deleteEvents);
-                DeleteResource.deleteNetworkAddresses(networkAddrList).whenComplete((networkAddrEvents, addrError) -> {
-                    log.info("IIII GOTTTTT NETADDDD EVENTSSSSSSSSSS-----------------------------------" + deleteEvents);
-                    deleteEvents.addAll(networkAddrEvents);
-                });
-            });
-        });
+        // FIXME: 1. populating deleteEvents inside whenComplete/handle is not behaving correctly. Investigate and fix
+        // FIXME: 2. exception handling from event generator rather than here having one exception for all
+        // [https://jira.eng.vmware.com/browse/VB-1146]
+        try {
+            deleteEvents.addAll(DeleteResource.deleteNetworkAllocations(networkAllocList).get());
+        } catch (InterruptedException | ExecutionException e) {
+            deleteEvents.add(new Orchestrator.FailureEvent.Failed(
+                    DeploymentSessionEvent.Type.RESOURCE_DEPROVISIONED,
+                    e.toString()));
+        }
 
-        work.join();
+        try {
+            deleteEvents.addAll(DeleteResource.deleteDeployments(computeList).get());
+        } catch (InterruptedException | ExecutionException e) {
+            deleteEvents.add(new Orchestrator.FailureEvent.Failed(
+                    DeploymentSessionEvent.Type.RESOURCE_DEPROVISIONED,
+                    e.toString()));
+        }
+
+        try {
+            deleteEvents.addAll(DeleteResource.deleteNetworkAddresses(networkAddrList).get());
+        } catch (InterruptedException | ExecutionException e) {
+            deleteEvents.add(new Orchestrator.FailureEvent.Failed(
+                    DeploymentSessionEvent.Type.RESOURCE_DEPROVISIONED,
+                    e.toString()));
+        }
 
         return deleteEvents;
     }
@@ -598,13 +614,11 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
             Collection<OrchestrationEvent> events,
             DeploymentSession.Status status) {
 
-        log.info("_________________________________________EVENTS INSIDE BUG " + events.size() + " contents " + events);
 
         List<DeploymentSessionEvent> deprovisioningEvent = new ArrayList<>();
         events.stream().forEach(event -> {
             ProvisionedResource resource = null;
             if (event instanceof NetworkAllocationEvent.Deleted) {
-                log.info("IIII AAAMMM INNNNN NEETTALLLLLLLLL --------------------------------------------------------");
                 var resEvent = (NetworkAllocationEvent.Deleted) event;
                 var type = ProvisionedResource.Type.NETWORK_ALLOCATION;
                 resource = new ProvisionedResource(type,
@@ -613,7 +627,6 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
                         session.getCluster(),
                         ConcordNodeIdentifier.Companion.getDefaultValue());
             } else if (event instanceof NetworkResourceEvent.Deleted) {
-                log.info("IIII AAAMMM INNNNN NEETTRRRRRRRRRR --------------------------------------------------------");
                 var resEvent = (NetworkResourceEvent.Deleted) event;
                 resource = new ProvisionedResource(ProvisionedResource.Type.NETWORK_RESOURCE,
                         resEvent.getResource().toString(),
@@ -621,16 +634,19 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
                         session.getCluster(),
                         ConcordNodeIdentifier.Companion.getDefaultValue());
             } else if (event instanceof ComputeResourceEvent.Deleted) {
-                log.info("IIII AAAMMM INNNNN COMPUTEEEEEEEEE --------------------------------------------------------");
                 var resEvent = (ComputeResourceEvent.Deleted) event;
                 resource = new ProvisionedResource(ProvisionedResource.Type.COMPUTE_RESOURCE,
                         resEvent.getResource().toString(),
                         OrchestrationSiteIdentifier.Companion.getDefaultValue(),
                         session.getCluster(),
                         ConcordNodeIdentifier.Companion.getDefaultValue());
-            } else {
-                log.info("IIII AAAMMM NOWHEREEEEE!!!!! --------------------------------------------------------");
-                throw new RuntimeException("Incorrect event type passed to deprovisioning session buildder");
+            } else if (event instanceof FailureEvent.Failed) {
+                var resEvent = (FailureEvent.Failed) event;
+                resource = new ProvisionedResource(ProvisionedResource.Type.GENERIC,
+                        resEvent.getException(),
+                        OrchestrationSiteIdentifier.Companion.getDefaultValue(),
+                        session.getCluster(),
+                        ConcordNodeIdentifier.Companion.getDefaultValue());
             }
 
             deprovisioningEvent.add(new DeploymentSessionEvent(DeploymentSessionEvent.Type.RESOURCE_DEPROVISIONED,

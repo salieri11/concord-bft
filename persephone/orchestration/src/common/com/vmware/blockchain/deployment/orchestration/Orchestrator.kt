@@ -6,6 +6,7 @@ package com.vmware.blockchain.deployment.orchestration
 import com.vmware.blockchain.deployment.model.ConcordClusterIdentifier
 import com.vmware.blockchain.deployment.model.ConcordModelSpecification
 import com.vmware.blockchain.deployment.model.ConcordNodeIdentifier
+import com.vmware.blockchain.deployment.model.DeploymentSessionEvent;
 import com.vmware.blockchain.deployment.model.core.URI
 import com.vmware.blockchain.deployment.model.ethereum.Genesis
 import com.vmware.blockchain.deployment.reactive.Publisher
@@ -84,6 +85,20 @@ interface Orchestrator {
         ) : ComputeResourceEvent()
         data class Started(override val resource: URI) : ComputeResourceEvent()
         data class Deleted(override val resource: URI) : ComputeResourceEvent()
+    }
+
+    /**
+     * Events corresponding to failure in execution of deployment session.
+     * Note: This is a placeholder implementation subject to change
+     * FIXME If we decide to keep this, we need URI and need other events to send this on failure
+     * https://jira.eng.vmware.com/browse/VB-1146
+     */
+    sealed class FailureEvent : OrchestrationEvent {
+
+        data class Failed(
+                val action: DeploymentSessionEvent.Type,
+                val exception: String
+        ) : FailureEvent()
     }
 
     /**

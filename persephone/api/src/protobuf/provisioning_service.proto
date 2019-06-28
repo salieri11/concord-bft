@@ -248,6 +248,13 @@ message UpdateDeploymentSessionRequest {
 }
 
 /**
+* Placeholder for any response update action might give out
+*/
+message UpdateDeploymentSessionResponse {
+    MessageHeader header = 1;
+}
+
+/**
  * Model definition for provisioning server configuration settings.
  *
  * @property[port]
@@ -281,10 +288,9 @@ service ProvisioningService {
         returns (stream DeploymentSessionEvent) {};
 
     /**
-     * Operation to update a [DeploymentSession] based on a [UpdateDeploymentSessionRequest]
-     */
+    * Operation to deprovision cluster based on a [DeprovisionClusterRequest]
+    */
     rpc UpdateDeploymentSession (UpdateDeploymentSessionRequest)
-        returns (DeploymentSessionIdentifier) {};
-
+	returns (UpdateDeploymentSessionResponse) {};
 }
 /* [END services] */
