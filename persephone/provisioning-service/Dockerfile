@@ -37,7 +37,7 @@ COPY ./persephone/provisioning-service ./persephone/provisioning-service
 RUN mvn -f persephone/pom.xml package -pl provisioning-service -am -B
 
 ## Get the C++ part
-FROM athena-docker-local.artifactory.eng.vmware.com/concord-core:prereqs-v8 as builder1
+FROM athena-docker-local.artifactory.eng.vmware.com/concord-core:prereqs-v9 as builder1
 
 COPY ./communication /communication
 COPY .git /.git
@@ -46,7 +46,7 @@ WORKDIR /concord
 COPY ./concord /concord
 
 WORKDIR /concord/build
-RUN cmake -DCMAKE_CXX_FLAGS="-march=x86-64 -mtune=generic" .. && make -j$(nproc) conc_genconfig
+RUN cmake -DCMAKE_C_COMPILER=/usr/bin/clang-7 -DCMAKE_CXX_COMPILER=/usr/bin/clang++-7 -DCMAKE_CXX_FLAGS="-march=x86-64 -mtune=generic" .. && make -j$(nproc) logging_dev conc_genconfig
 
 # Runtime image (Metadata Service).
 FROM openjdk:11.0.2-jdk-slim

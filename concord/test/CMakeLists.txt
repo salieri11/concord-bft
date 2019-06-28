@@ -65,7 +65,8 @@ target_link_libraries(ConfigTests
   concord_consensus
   gtest
   gtest_main
-  log4cplus)
+  log4cplus
+  $<TARGET_OBJECTS:logging_dev>)
 
 add_executable(MultiIOTests
   multiIO_test.cpp)
@@ -125,7 +126,8 @@ target_link_libraries(TimeContractTests
   concord_consensus
   concord_common
   concord_ethereum
-  concord_time)
+  concord_time
+  $<TARGET_OBJECTS:logging_dev>)
 
 add_executable(HlfTest
   hlf_test.cpp
@@ -144,6 +146,7 @@ target_link_libraries(HlfTest
   gtest
   gtest_main
   proto
-  log4cplus)
+  log4cplus
+  $<TARGET_OBJECTS:logging_dev>)
 
 add_subdirectory(simpleKVBTests)

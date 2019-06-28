@@ -44,4 +44,5 @@ target_link_libraries(concord
   concord_time
   concord_utils
   gRPC::grpc++_reflection
+  $<TARGET_OBJECTS:logging_dev>
 )

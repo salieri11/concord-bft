@@ -14,7 +14,7 @@
 #ifndef BASIC_RANDOM_TESTS_HPP
 #define BASIC_RANDOM_TESTS_HPP
 
-#include "Logging.hpp"
+#include "Logger.hpp"
 #include "simpleKVBTestsBuilder.hpp"
 #include "storage/blockchain_interfaces.h"
 

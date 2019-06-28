@@ -3,7 +3,7 @@ file(GLOB concord_consensus_src "*.cpp" "*.hpp" "*.h")
 add_library(concord_consensus ${concord_consensus_src})
 
 get_property(thresh_include GLOBAL PROPERTY thresh_include_folder)
-target_include_directories(concord_consensus PUBLIC ${thresh_include})
+target_include_directories(concord_consensus PUBLIC ${thresh_include} $<TARGET_PROPERTY:logging,INTERFACE_INCLUDE_DIRECTORIES>)
 
 target_link_libraries(concord_consensus PUBLIC corebft concord_storage proto)
 
