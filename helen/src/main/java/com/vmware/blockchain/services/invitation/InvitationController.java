@@ -43,7 +43,7 @@ public class InvitationController {
      * login flow.
      */
     @RequestMapping(method = RequestMethod.GET, path = Constants.AUTH_INVITATION)
-    @PreAuthorize("hasAnyAuthority(T(com.vmware.blockchain.services.profiles.Roles).CSP_ORG_OWNER.name())")
+    @PreAuthorize("hasAnyAuthority(T(com.vmware.blockchain.services.profiles.Roles).CSP_ORG_OWNER.getName())")
     public void handleInvitation(HttpServletRequest httpRequest,
                                  HttpServletResponse httpResponse) throws IOException {
 
@@ -62,6 +62,7 @@ public class InvitationController {
         String orgLink = CspConstants.CSP_ORG_API + "/" + authHelper.getOrganizationId().toString();
         String redirect = UriComponentsBuilder.fromUriString(Constants.AUTH_LOGIN)
                 .queryParam(Constants.CSP_ORG_LINK, orgLink).build().toString();
+        authHelper.evictToken();
         httpResponse.sendRedirect(redirect);
     }
 
