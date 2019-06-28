@@ -230,7 +230,7 @@ message StreamClusterDeploymentSessionEventRequest {
 }
 
 /**
- * Request definition to deprovision cluster
+ * Request definition for operation to update a completed deployment session.
  *
  * @property[header]
  *   message header.
@@ -276,9 +276,10 @@ service ProvisioningService {
         returns (stream DeploymentSessionEvent) {};
 
     /**
-    * Operation to deprovision cluster based on a [DeprovisionClusterRequest]
-    */
-    rpc UpdateDeploymentSession (UpdateDeploymentSessionRequest) returns (DeploymentSessionIdentifier) {};
+     * Operation to update a [DeploymentSession] based on a [UpdateDeploymentSessionRequest]
+     */
+    rpc UpdateDeploymentSession (UpdateDeploymentSessionRequest)
+        returns (DeploymentSessionIdentifier) {};
 
 }
 /* [END services] */

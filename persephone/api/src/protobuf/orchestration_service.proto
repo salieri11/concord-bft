@@ -1,0 +1,59 @@
+/* [START declaration] */
+syntax = "proto3";
+package com.vmware.blockchain.deployment.model;
+
+import "core.proto";
+import "orchestration.proto";
+/* [END declaration] */
+
+/* [START java_declaration] */
+option java_package = "com.vmware.blockchain.deployment.model";
+option java_multiple_files = true;
+/* [END java_declaration] */
+
+/* [START messages] */
+/*
+ * Request definition for operation to list orchestration sites.
+ *
+ * @property[header]
+ *   message header.
+ * @property[page_size]
+ *   maximum size of the result to be prepared from the start of a page. (0 => server-determined)
+ * @property[page_token]
+ *   page token returned from a previous call to indicate where this listing should resume from.
+ */
+message ListOrchestrationSitesRequest {
+    MessageHeader header = 1;
+    int32 page_size = 2;
+    string page_token = 3;
+}
+
+/**
+ * Response definition for operation to list orchestration sites.
+ *
+ * @property[header]
+ *   message header.
+ * @property[sites]
+ *   list of view information pertaining to orchestration sites.
+ * @property[page_token]
+ *   page token for the next call to resume listing results from.
+ */
+message ListOrchestrationSitesResponse {
+    MessageHeader header = 1;
+    repeated OrchestrationSiteView sites = 2 [packed = false];
+    string next_page_token = 3;
+}
+/* [END messages] */
+
+/* [START services] */
+/**
+ * Service definition pertaining to operations on [OrchestrationSite] resources.
+ */
+service OrchestrationSiteService {
+    /**
+     * Operation to retrieve a list of [OrchestrationSite] information.
+     */
+    rpc ListOrchestrationSites (ListOrchestrationSitesRequest)
+    returns (ListOrchestrationSitesResponse) {};
+}
+/* [END services] */
