@@ -22,21 +22,17 @@ import org.junit.jupiter.api.Test;
 
 import com.vmware.blockchain.deployment.model.ConcordModelSpecification;
 import com.vmware.blockchain.deployment.model.CreateClusterRequest;
-import com.vmware.blockchain.deployment.model.Credential;
 import com.vmware.blockchain.deployment.model.DeploymentSession;
 import com.vmware.blockchain.deployment.model.DeploymentSessionEvent;
 import com.vmware.blockchain.deployment.model.DeploymentSessionIdentifier;
 import com.vmware.blockchain.deployment.model.DeploymentSpecification;
-import com.vmware.blockchain.deployment.model.Endpoint;
 import com.vmware.blockchain.deployment.model.MessageHeader;
 import com.vmware.blockchain.deployment.model.OrchestrationSite;
 import com.vmware.blockchain.deployment.model.OrchestrationSiteIdentifier;
-import com.vmware.blockchain.deployment.model.OrchestrationSiteInfo;
 import com.vmware.blockchain.deployment.model.PlacementSpecification;
 import com.vmware.blockchain.deployment.model.PlacementSpecification.Entry;
 import com.vmware.blockchain.deployment.model.ProvisionedResource;
 import com.vmware.blockchain.deployment.model.StreamClusterDeploymentSessionEventRequest;
-import com.vmware.blockchain.deployment.model.VmcOrchestrationSiteInfo;
 import com.vmware.blockchain.deployment.model.ethereum.Genesis;
 
 import io.grpc.stub.StreamObserver;
@@ -63,33 +59,6 @@ class ProvisioningServiceTest {
                 .orchestrations(orchestrations)
                 .build()
                 .provisionService();
-    }
-
-    /**
-     * Create a new set of mappings that denote all available orchestration sites.
-     *
-     * @return
-     *   a mapping of {@link OrchestrationSiteIdentifier} to {@link OrchestrationSiteInfo}.
-     */
-    private static List<OrchestrationSite> newOrchestrationSites() {
-        return List.of(
-                new OrchestrationSite(
-                        new OrchestrationSiteIdentifier(1, 0),
-                        newOrchestrationSiteInfo(1)
-                ),
-                new OrchestrationSite(
-                        new OrchestrationSiteIdentifier(2, 0),
-                        newOrchestrationSiteInfo(2)
-                ),
-                new OrchestrationSite(
-                        new OrchestrationSiteIdentifier(3, 0),
-                        newOrchestrationSiteInfo(3)
-                ),
-                new OrchestrationSite(
-                        new OrchestrationSiteIdentifier(4, 0),
-                        newOrchestrationSiteInfo(4)
-                )
-        );
     }
 
     /**
@@ -197,36 +166,6 @@ class ProvisioningServiceTest {
     }
 
     /**
-     * Create a mock {@link OrchestrationSiteInfo} instance based on an integer parameter.
-     *
-     * @param i
-     *   integer value to be stamped into the orchestration site's various identifiers.
-     *
-     * @return
-     *   a new instance of {@link OrchestrationSiteInfo}.
-     */
-    private static OrchestrationSiteInfo newOrchestrationSiteInfo(int i) {
-        var apiEndpoint = "https://apiserver-" + i;
-        var datacenter = "datacenter-" + i;
-        return new OrchestrationSiteInfo(
-                OrchestrationSiteInfo.Type.VMC,
-                Map.of("test-label", "label-value"),
-                new VmcOrchestrationSiteInfo(
-                        new Endpoint("https://authserver", new Credential()),
-                        new Endpoint(apiEndpoint, new Credential()),
-                        new Endpoint("https://registry", new Credential()),
-                        "test-org",
-                        datacenter,
-                        "resource-pool",
-                        "vm-folder",
-                        "vmware-vpn",
-                        0xA0A0A000,
-                        24
-                )
-        );
-    }
-
-    /**
      * Test that {@link ProvisioningService#createCluster} operation generation a valid deployment
      * session with {@link DeploymentSessionEvent}s.
      *
@@ -236,7 +175,7 @@ class ProvisioningServiceTest {
     @Test
     @Disabled("ProvisionService#generateClusterConfig() expects generation utility to be locally installed.")
     void clusterCreateShouldGenerateSession() throws Exception {
-        var orchestrations = newOrchestrationSites();
+        var orchestrations = TestProvisioningServerKt.newOrchestrationSites();
         var service = newProvisioningService(orchestrations);
         var initialized = service.initialize();
         initialized.get(awaitTime, TimeUnit.MILLISECONDS);
