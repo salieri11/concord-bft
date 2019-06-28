@@ -1,9 +1,9 @@
-name: VMBC-Prod
-display_name: VMware Blockchain Service
-desc_short: VMware Blockchain Service
-desc_long: VMware Blockchain Service
+name: VMBC-Prod-Beta
+display-name: VMware Blockchain Service
+desc-short: VMware Blockchain Service
+desc-long: VMware Blockchain Service
 service-urls:
-  service-home: https://vmbc.us-west-2.vdp-stg.vmware.com/api/oauth/login
+  service-home: https://vmbc.vdp.vmware.com/api/oauth/login
 service-roles:
   - name: vmbc-org:user
     display-name: VMware Blockchain Organization User
@@ -37,7 +37,7 @@ service-roles:
     display-name: VMware Blockchain Partner Infrastructure Admin
     hidden: true
     default: false
-org-id: /csp/gateway/am/api/orgs/d63c3b73-ac78-4827-b0ba-203a082df7d3
+org-id: /csp/gateway/am/api/orgs/89d445eb-150c-4c7d-999e-2dd035d83799
 health-check-path: "/api/management/health"
 isBeta: true
 gated: true

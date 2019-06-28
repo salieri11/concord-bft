@@ -191,13 +191,13 @@ public class VmbcTokenValidator implements TokenValidator {
         TODO: Find a better way to do this.
      */
     private User getOrCreateUser(HelenUserDetails userInfo, String token, Jws<Claims> parsedToken) {
+        Organization org = forceGetOrg(userInfo.getOrgId(), token);
         try {
             return userService.getByEmail(userInfo.getUsername());
         } catch (NotFoundException e) {
             // Hack for now.  User has been authenticated, but doesn't exist in our system yet.
             // Get the user info from CSP
 
-            Organization org = forceGetOrg(userInfo.getOrgId(), token);
 
             CspUser cspUser = cspApiClient.getUser(token);
             User user = User.builder().email(userInfo.getUsername())

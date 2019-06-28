@@ -15,6 +15,7 @@ import java.util.stream.Collectors;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -138,12 +139,13 @@ public class BlockchainController {
         private UUID taskId;
     }
 
-    private BlockchainService manager;
+    private BlockchainService blockchainService;
     private ConsortiumService consortiumService;
     private AuthHelper authHelper;
     private DefaultProfiles defaultProfiles;
     private TaskService taskService;
     private ManagedChannel channel;
+    private boolean mockDeployment;
 
     /**
      * An observer to fake a blocked call.
@@ -171,18 +173,20 @@ public class BlockchainController {
     }
 
     @Autowired
-    public BlockchainController(BlockchainService manager,
-            ConsortiumService consortiumService,
-            AuthHelper authHelper,
-            DefaultProfiles defaultProfiles,
-            TaskService taskService,
-            ManagedChannel channel) {
-        this.manager = manager;
+    public BlockchainController(BlockchainService blockchainService,
+                                ConsortiumService consortiumService,
+                                AuthHelper authHelper,
+                                DefaultProfiles defaultProfiles,
+                                TaskService taskService,
+                                ManagedChannel channel,
+                                @Value("${mock.deployment:false}") boolean mockDeployment) {
+        this.blockchainService = blockchainService;
         this.consortiumService = consortiumService;
         this.authHelper = authHelper;
         this.defaultProfiles = defaultProfiles;
         this.taskService = taskService;
         this.channel = channel;
+        this.mockDeployment = mockDeployment;
     }
 
     /**
@@ -194,10 +198,10 @@ public class BlockchainController {
         List<Blockchain> chains = Collections.emptyList();
         // if we are operator, we can get all blockchains.
         if (authHelper.hasAnyAuthority(Roles.systemAdmin())) {
-            chains = manager.list();
+            chains = blockchainService.list();
         } else {
             // Otherwise, we can only see our consortium.
-            chains = manager.listByIds(authHelper.getPermittedChains());
+            chains = blockchainService.listByIds(authHelper.getPermittedChains());
         }
         List<BlockchainGetResponse> idList = chains.stream().map(BlockchainGetResponse::new)
                 .collect(Collectors.toList());
@@ -210,7 +214,7 @@ public class BlockchainController {
     @RequestMapping(path = "/api/blockchains/{id}", method = RequestMethod.GET)
     @PreAuthorize("@authHelper.canAccessChain(#id)")
     ResponseEntity<BlockchainGetResponse> get(@PathVariable UUID id) throws NotFoundException {
-        Blockchain b = manager.get(id);
+        Blockchain b = blockchainService.get(id);
         BlockchainGetResponse br = new BlockchainGetResponse(b);
         return new ResponseEntity<>(br, HttpStatus.OK);
     }
@@ -268,23 +272,36 @@ public class BlockchainController {
     @RequestMapping(path = "/api/blockchains", method = RequestMethod.POST)
     @PreAuthorize("hasAnyAuthority(T(com.vmware.blockchain.services.profiles.Roles).consortiumAdmin())")
     public ResponseEntity<BlockchainTaskResponse> createBlockchain(@RequestBody BlockchainPost body) throws Exception {
-        final ProvisioningServiceStub client = new ProvisioningServiceStub(channel, CallOptions.DEFAULT);
         // start the deployment
-        int clusterSize = body.getFCount() * 3 + body.getCCount() * 2 + 1;
+        final int clusterSize = body.getFCount() * 3 + body.getCCount() * 2 + 1;
         logger.info("Creating new blockchain. Cluster size {}", clusterSize);
-        DeploymentSessionIdentifier dsId = createFixedSizeCluster(client, clusterSize);
-        logger.info("Deployment started, id {}", dsId);
 
         Task task = new Task();
         task.setState(Task.State.RUNNING);
         task = taskService.put(task);
-        BlockchainObserver bo =
-                new BlockchainObserver(authHelper, manager, taskService, task.getId(), body.getConsortiumId());
-        // Watch for the event stream
-        StreamClusterDeploymentSessionEventRequest request =
-                new StreamClusterDeploymentSessionEventRequest(new MessageHeader(), dsId);
-        client.streamClusterDeploymentSessionEvents(request, bo);
-        logger.info("Deployment scheduled");
+        if (mockDeployment) {
+            Blockchain bc = blockchainService.get(defaultProfiles.getBlockchain().getId());
+            bc.setConsortium(body.getConsortiumId());
+            blockchainService.put(bc);
+            task.setResourceId(bc.getId());
+            task.setResourceLink(String.format("/api/blockchains/%s", bc.getId()));
+            task.setMessage("Operation finished");
+            task.setState(Task.State.SUCCEEDED);
+            taskService.put(task);
+            logger.info("Deployment mocked");
+        } else {
+            final ProvisioningServiceStub client = new ProvisioningServiceStub(channel, CallOptions.DEFAULT);
+            DeploymentSessionIdentifier dsId = createFixedSizeCluster(client, clusterSize);
+            logger.info("Deployment started, id {}", dsId);
+            BlockchainObserver bo =
+                    new BlockchainObserver(authHelper, blockchainService, taskService, task.getId(),
+                                           body.getConsortiumId());
+            // Watch for the event stream
+            StreamClusterDeploymentSessionEventRequest request =
+                    new StreamClusterDeploymentSessionEventRequest(new MessageHeader(), dsId);
+            client.streamClusterDeploymentSessionEvents(request, bo);
+            logger.info("Deployment scheduled");
+        }
 
         return new ResponseEntity<>(new BlockchainTaskResponse(task.getId()), HttpStatus.ACCEPTED);
     }
