@@ -210,6 +210,7 @@ class ProvisioningServiceTest {
         var datacenter = "datacenter-" + i;
         return new OrchestrationSiteInfo(
                 OrchestrationSiteInfo.Type.VMC,
+                Map.of("test-label", "label-value"),
                 new VmcOrchestrationSiteInfo(
                         new Endpoint("https://authserver", new Credential()),
                         new Endpoint(apiEndpoint, new Credential()),

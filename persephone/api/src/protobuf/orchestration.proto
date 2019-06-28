@@ -29,6 +29,8 @@ message OrchestrationSiteIdentifier {
  *
  * @param[type]
  *   type of the the endpoint.
+ * @param[labels]
+ *   a collection of key-value entries containing metadata information.
  * @param[vmc]
  *   information pertaining to a [Type.VMC] type endpoint.
  */
@@ -39,7 +41,8 @@ message OrchestrationSiteInfo {
     }
 
     Type type = 1;
-    VmcOrchestrationSiteInfo vmc = 2;
+    map<string, string> labels = 2;
+    VmcOrchestrationSiteInfo vmc = 3;
 }
 
 /**
@@ -53,6 +56,22 @@ message OrchestrationSiteInfo {
 message OrchestrationSite {
     OrchestrationSiteIdentifier id = 1;
     OrchestrationSiteInfo info = 2;
+}
+
+/**
+ * Model definition of an reportable view of an orchestration site.
+ *
+ * @param[id]
+ *   identifier of the site.
+ * @param[type]
+ *   type of the the endpoint.
+ * @param[labels]
+ *   a collection of key-value entries containing metadata information.
+ */
+message OrchestrationSiteView {
+    OrchestrationSiteIdentifier id = 1;
+    OrchestrationSiteInfo.Type type = 2;
+    map<string, string> labels = 3;
 }
 
 /**
