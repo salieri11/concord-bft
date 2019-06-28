@@ -1,4 +1,4 @@
-# VMW Blockchain
+# VMware Blockchain
 
 This is the code for the VMware blockchain. It is broken into a few
 components:
