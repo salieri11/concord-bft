@@ -531,6 +531,8 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
         CompletableFuture<DeploymentSession> sessionEventTask = deploymentLog.get(requestSession);
         if (sessionEventTask != null) {
             sessionEventTask.thenAcceptAsync(deploymentSession -> {
+                log.info("ALL REQUEST RES -----------------------------------------------------------------------------"
+                        + deploymentSession.getEvents());
                 final var deleteEvents = deleteResourceEvents(deploymentSession.getEvents());
                 var deprovEv = toDeprovisioningEvents(deploymentSession, deleteEvents,
                         DeploymentSession.Status.SUCCESS);
@@ -550,6 +552,8 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
     private ConcurrentHashMap.KeySetView<OrchestrationEvent, Boolean> deleteResourceEvents(
             List<DeploymentSessionEvent> events
     ) {
+        log.info("events sent---------------------------------------------------------------------------------"
+                + events);
         final var deleteEvents = ConcurrentHashMap.<OrchestrationEvent>newKeySet();
 
         List<Map.Entry<Orchestrator, URI>> networkAllocList = new ArrayList<>();
@@ -575,6 +579,8 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
                 }
                 if (resourceType.equals(ProvisionedResource.Type.NETWORK_RESOURCE)) {
                     networkAddrList.add(Map.entry(orchestrators.get(site), resourceUri));
+                    log.info("netAddr list-----------------------------------------------------------------------------"
+                            + networkAddrList);
                 }
             }
         }
@@ -600,6 +606,7 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
 
         try {
             deleteEvents.addAll(DeleteResource.deleteNetworkAddresses(networkAddrList).get());
+            log.info("After netR deletion ------------------------------------------------------------" + deleteEvents);
         } catch (InterruptedException | ExecutionException e) {
             deleteEvents.add(new Orchestrator.FailureEvent.Failed(
                     DeploymentSessionEvent.Type.RESOURCE_DEPROVISIONED,
