@@ -217,6 +217,8 @@ class PersephoneTests(test_suite.TestSuite):
          else:
             log.error("{} ethrpc endpoint not fetched".format(cluster_size))
             return (False, "ethrpc endpoint not fetched")
+      else:
+         return (False, "Deployment Event validation Failed")
 
    def get_ethrpc_endpoints(self, response_events_json):
       '''
@@ -383,16 +385,22 @@ class PersephoneTests(test_suite.TestSuite):
             if events:
                status, msg = self.perform_post_deployment_validations(events,
                                                                       cluster_size)
-               log.info(
-                  "Thread {}: Deployment & Validation Completed Successfully".format(
-                     thread_name))
+               if status:
+                  log.info(
+                     "Thread {}: Deployment & Validation Completed Successfully".format(
+                        thread_name))
+               else:
+                  log.info(
+                     "Thread {}: Post Deployment Failed".format(thread_name))
                result_queue.put([status, msg])
             else:
                result_queue.put([False, "Failed to fetch Deployment Events"])
 
       else:
          result_queue.put([False, "Failed to get a valid deployment session ID"])
-      log.info("Thread {}: Deployment Status put in request queue".format(thread_name))
+
+      log.info("Thread {}: Deployment Status '{}' put in request queue".format(
+         thread_name, status))
 
    def _test_concurrent_deployments_fixed_site(self, cluster_1_size=4,
                                                cluster_2_size=7):
@@ -419,18 +427,26 @@ class PersephoneTests(test_suite.TestSuite):
       log.info("Starting Deployment 2")
       cluster_2.start()
 
-      cluster1_status = result_queue.get()[0]
       cluster_1.join()
-
-      cluster2_status = result_queue.get()[0]
       cluster_2.join()
 
-      log.info("**** Deployment 1 Status: {}".format(cluster1_status))
-      log.info("**** Deployment 2 Status: {}".format(cluster2_status))
+      overall_status = False
+      while not result_queue.empty():
+         deployment_status = result_queue.get()[0]
+         result_queue.task_done()
 
-      if cluster1_status and cluster2_status:
+         if deployment_status:
+            overall_status = True
+         else:
+            overall_status = False
+            break
+
+      log.info("Overall status : {}".format(overall_status))
+
+      if overall_status:
          log.info("Concurrent Deployments: Completed Successfully")
          return (True, None)
       else:
+         log.error("Concurrent Deployments: Failed")
          return (False, "Failed to deploy concurrent Clusters")
 
