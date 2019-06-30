@@ -52,11 +52,24 @@ RUN cmake -DCMAKE_C_COMPILER=/usr/bin/clang-7 -DCMAKE_CXX_COMPILER=/usr/bin/clan
 FROM openjdk:11.0.2-jdk-slim
 LABEL description="VMware Blockchain Fleet Management Provisioning Service"
 
-## Install libs build from source
+## Install native library dependencies from Concord's build environment.
 COPY --from=builder1 /usr/local/lib/liblog4cplus* /usr/local/lib/
+COPY --from=builder1 /usr/local/lib/librocksdb.so.* /usr/local/lib/
+COPY --from=builder1 /usr/lib/x86_64-linux-gnu/libboost_atomic.so.* /usr/local/lib/
+COPY --from=builder1 /usr/lib/x86_64-linux-gnu/libboost_chrono.so.* /usr/local/lib/
+COPY --from=builder1 /usr/lib/x86_64-linux-gnu/libboost_date_time.so.* /usr/local/lib/
+COPY --from=builder1 /usr/lib/x86_64-linux-gnu/libboost_filesystem.so.* /usr/local/lib/
 COPY --from=builder1 /usr/lib/x86_64-linux-gnu/libboost_program_options.so.* /usr/local/lib/
+COPY --from=builder1 /usr/lib/x86_64-linux-gnu/libboost_system.so.* /usr/local/lib/
+COPY --from=builder1 /usr/lib/x86_64-linux-gnu/libboost_thread.so.* /usr/local/lib/
 COPY --from=builder1 /usr/lib/x86_64-linux-gnu/libgmp* /usr/local/lib/
+COPY --from=builder1 /usr/lib/x86_64-linux-gnu/libsnappy.so.* /usr/local/lib/
 COPY --from=builder1 /usr/lib/x86_64-linux-gnu/libyaml* /usr/local/lib/
+COPY --from=builder1 /usr/lib/x86_64-linux-gnu/libzstd.so.* /usr/local/lib/
+COPY --from=builder1 /opt/protobuf/lib/libprotobuf.so.* /usr/local/lib/
+
+## Replace / update libstdc++ (Concord environment updated libstdc++).
+COPY --from=builder1 ["/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.25", "/usr/lib/x86_64-linux-gnu/libstdc++.so.6"]
 
 ## Ensure configtool can find it
 ENV LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/usr/local/lib"
