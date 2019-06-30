@@ -75,8 +75,8 @@ class InitScript(
             echo '{{gateway}}' > /concord/gateway
             
             # Output the node's model specification.
-            mkdir -p /concord/agent
-            echo '{{agentConfig}}' > /concord/agent/config.json
+            mkdir -p /concord/agent/config
+            echo '{{agentConfig}}' > /concord/agent/config/config.json
            
             tdnf install netmgmt -y
             {{networkAddressCommand}}
@@ -91,7 +91,7 @@ class InitScript(
             chmod 777 /concord/config-public/find-docker-instances.sh
 
             echo '{{genesis}}' > /concord/config-public/genesis.json
-            docker run -d --name=agent -e CID={{XXX}} -e NID={{YYY}} -v /concord/agent:/agent -v /concord/config-public:/concord/config-public -v /concord/config-local:/concord/config-local -v /var/run/docker.sock:/var/run/docker.sock -p 8546:8546 registry-1.docker.io/vmwblockchain/agent-testing:latest
+            docker run -d --name=agent -e CID={{XXX}} -e NID={{YYY}} -v /concord/agent/config:/config -v /concord/config-public:/concord/config-public -v /concord/config-local:/concord/config-local -v /var/run/docker.sock:/var/run/docker.sock -p 8546:8546 registry-1.docker.io/vmwblockchain/agent-testing:latest
             echo 'done'
             """.trimIndent()
                     .replace("{{dockerLoginCommand}}", containerRegistry.toRegistryLoginCommand())
