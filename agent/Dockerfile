@@ -55,6 +55,8 @@ COPY ./agent/src/main/resources/log4j2.xml ./log4j2.xml
 #COPY --from=0 ./agent/target/concord-agent*with-dependencies.jar ./concord-agent.jar
 COPY --from=0 ./agent/target/concord-agent-1.0-SNAPSHOT.jar ./concord-agent.jar
 
+VOLUME ["/config"]
+
 CMD ["java", "-jar", "concord-agent.jar"]
 
 # Must match server.port in application.properties!
