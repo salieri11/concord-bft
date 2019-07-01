@@ -17,7 +17,7 @@ message ConcordAgentConfiguration {
     ConcordModelSpecification model = 1;
     Endpoint container_registry = 2;
     Endpoint fleet_service = 3;
-    string cluster = 4;
-    string node = 5;
+    ConcordClusterIdentifier cluster = 4;
+    ConcordNodeIdentifier node = 5;
 }
 /* [END messages] */

@@ -14,6 +14,28 @@ option java_multiple_files = true;
 
 /* [START messages] */
 /**
+ * Model definition of information regarding a [ConcordComponent.ServiceType] and its state status.
+ *
+ * @property[service_type]
+ *   service type that information is regarding.
+ * @property[state]
+ *   state status of the service.
+ */
+message ServiceState {
+    /**
+     * Enumeration of possible states for [ConcordComponent.ServiceType] within a deployed instance.
+     */
+    enum State {
+        UNKNOWN = 0;
+        ACTIVE = 1;
+        INACTIVE = 2;
+    }
+
+    ConcordComponent.ServiceType service_type = 1;
+    State state = 2;
+}
+
+/**
  * Aggregate request definition of all messages exchanged between the fleet service and a managed
  * instance that is sent from the managed instance.
  *
@@ -34,16 +56,17 @@ message InstanceMessage {
      */
     enum Type {
         NOOP = 0;
-        STATUS = 1;
-        CREATE_SESSION_REQUEST = 2;
+        CREATE_SESSION_REQUEST = 1;
+        STATUS = 2;
         CONFIGURATION = 3;
+        UPDATE_SERVICE_STATE_RESPONSE = 4;
     }
 
     /**
      * Model definition of information regarding the status of an instance monitored by the fleet.
      *
-     * @property[status]
-     *   status of the instance.
+     * @property[state]
+     *   state status of the instance.
      */
     message Status {
         /**
@@ -53,7 +76,7 @@ message InstanceMessage {
             UNKNOWN = 0; // This status should not be emitted unless the instance is confused.
             ACTIVE = 1;
             INACTIVE = 2;
-            UNHEALTHY = 3;
+            FATAL = 3; // Status message may be sent before crashing, best-effort delivery.
         }
 
         State state = 1;
@@ -111,9 +134,10 @@ message FleetMessage {
      */
     enum Type {
         NOOP = 0;
-        GET_STATUS = 1;
-        CREATE_SESSION_RESPONSE = 2;
+        CREATE_SESSION_RESPONSE = 1;
+        GET_STATUS = 2;
         GET_CONFIGURATION = 3;
+        UPDATE_SERVICE_STATE_REQUEST = 4;
     }
 
     /**
@@ -134,9 +158,20 @@ message FleetMessage {
         string name = 2;
     }
 
+    /**
+     * Request definition for operation to update the service states of a managed instance.
+     *
+     * @property[service_states]
+     *   desired states of service components to update for the managed instance.
+     */
+    message UpdateServiceStateRequest {
+        repeated ServiceState service_states = 1 [packed = false];
+    }
+
     MessageHeader header = 1;
     Type type = 2;
     CreateSessionResponse session_response = 3;
+    UpdateServiceStateRequest service_state_request = 4;
 }
 
 /**
@@ -148,23 +183,14 @@ message FleetMessage {
  *   identifier of the Concord cluster network that this instance belongs to.
  * @property[node]
  *   identifier of the Concord node member that this instance is registering as.
- * @property[service]
- *   service component within the instance to perform the [Action] on.
- * @property[action]
- *   update action to perform.
+ * @property[service_states]
+ *   desired states of service components to update for the target managed instance.
  */
 message UpdateInstanceRequest {
-    enum Action {
-        NOOP = 0; // Default value. Should not be used.
-        STOP = 1; // Execute command with intent to put component into a stopped state.
-        START = 2; // Execute command with intent to put component into an active state.
-    }
-
     MessageHeader header = 1;
     ConcordClusterIdentifier cluster = 2;
     ConcordNodeIdentifier node = 3;
-    ConcordComponent.ServiceType service = 4;
-    Action action = 5;
+    repeated ServiceState service_states = 4 [packed = false];
 }
 
 /**
