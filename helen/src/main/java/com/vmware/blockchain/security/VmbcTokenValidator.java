@@ -177,11 +177,16 @@ public class VmbcTokenValidator implements TokenValidator {
         // The only non-service role we want is csp:org-owner
         String rolePrefix = CspConstants.CSP_VMBC_ROLE_PREFIX
                             + serviceId + "/";
-        return perms.stream()
+        List<Roles> roles = perms.stream()
                 .map(r -> r.startsWith(rolePrefix) ?  r.substring(rolePrefix.length()) : r)
                 .map(n -> Roles.get(n))
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
+        // Spring uses Role system admln.
+        if (roles.contains(Roles.SYSTEM_ADMIN)) {
+            roles.add(Roles.ROLE_SYSTEM_ADMIN);
+        }
+        return roles;
     }
 
 

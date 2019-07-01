@@ -27,6 +27,8 @@ public enum Roles implements GrantedAuthority {
     INFRA_ADMIN("vmbc-system:infra", "External Infrastructure Admin", false, true, false),
     // These are not service roles, but are used internally
     CSP_ORG_OWNER("csp:org_owner",  "CSP Org Owner", false, true, true),
+    // Spring uses ROLE_permission in many cases
+    ROLE_SYSTEM_ADMIN("ROLE_vmbc-system:admin", "VMware SRE Admin", true, true, true),
     SYSTEM("SYSTEM", "Internal System User", false, true, true),
     ANONYMOUS("ANONYMOUS", "Temporary ananymous user", false, true, true);
 
