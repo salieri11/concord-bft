@@ -25,14 +25,28 @@ class FleetServiceModule {
     }
 
     /**
-     * Provide an [FleetService] instance.
+     * Provide an [FleetControlService] instance.
      *
      * @return
-     * a singleton [FleetService] instance.
+     * a singleton [FleetControlService] instance.
      */
     @Provides
     @Singleton
-    fun providesFleetService(dispatcher: CoroutineDispatcher): FleetService {
-        return FleetService(dispatcher)
+    fun providesFleetControlService(dispatcher: CoroutineDispatcher): FleetControlService {
+        return FleetControlService(dispatcher)
+    }
+
+    /**
+     * Provide an [FleetManagementService] instance.
+     *
+     * @return
+     * a singleton [FleetManagementService] instance.
+     */
+    @Provides
+    @Singleton
+    fun provideFleetManagementService(
+        dispatcher: CoroutineDispatcher
+    ): FleetManagementService {
+        return FleetManagementService(dispatcher)
     }
 }
