@@ -6,7 +6,7 @@
 #
 # python3 main.py --runConcordConfigurationGeneration --concordConfigurationInput /concord/config/dockerConfigurationInput-hlf.yaml --dockerComposeFile=../docker/docker-compose-hlf.yml HlfTests
 
-# The tests will login to the Concord node, call "conc_hlf_request" tool to send request and check the response.
+# The tests will login to the Concord node, call "conc_hlf_client" tool to send request and check the response.
 
 import logging
 import os
@@ -21,6 +21,7 @@ log = logging.getLogger(__name__)
 
 # The status is set by the kvb command handler.
 StatusOk = "status: 0"
+StatusFailed = "status: 1"
 
 class HlfProduct(Product):
    def _waitForProductStartup(self):
@@ -108,7 +109,6 @@ class HlfTests(test_suite.TestSuite):
 
    def _getTests(self):
       return [("chaincode_fabcar_install", self._test_chaincode_fabcar_install),
-              ("chaincode_fabcar_instantiate", self._test_chaincode_fabcar_instantiate),
               ("chaincode_fabcar_invoke_init_ledger",
                   self._test_chaincode_fabcar_invoke_init_ledger),
               ("chaincode_fabcar_invoke_change_car_owner",
@@ -121,9 +121,7 @@ class HlfTests(test_suite.TestSuite):
        '''
        Test the installation of chaincode "fabcar"
 
-       This test will install "fabcar" two times with different versions(1.0, 2.0).
-       The test cases after this one will test chaincode instantiation, invocation
-       and query against version 1.0, version 2.0 is used to test the chaincode upgrade.
+       The test cases after this one will test chaincode invocation and query against version 1.0.
 
        The expected output is as follow:
          '{"data": "Successfully installed chaincode: mycc", "status": 0}'
@@ -137,10 +135,10 @@ class HlfTests(test_suite.TestSuite):
        https://hyperledger-fabric.readthedocs.io/en/release-1.3/chaincode4noah.html
        '''
 
-       cmds = ["docker exec -t concord1 " \
-             "./conc_hlf_request -p 50051 -m install -c mycc -i chaincode/fabcar/go -v 1.0",
-             "docker exec -t concord1 " \
-             "./conc_hlf_request -p 50051 -m install -c mycc -i chaincode/fabcar/go -v 2.0"]
+       cmds = ["docker exec -t concord-client " \
+             "./conc_hlf_client -a concord1 -p 50051 -i {\"Args\":[\"init\"]} " \
+             "-f src/chaincode/fabcar/go/fabcar.go " \
+             "-m install -c mycc -v 1.0"]
 
        for cmd in cmds:
           try:
@@ -159,36 +157,6 @@ class HlfTests(test_suite.TestSuite):
 
        return (True, None)
 
-   def _test_chaincode_fabcar_instantiate(self):
-       ''' 
-       Test the Instantiation of the chaincode "fabcar" 
-
-       This test will instantiate the chaincode "fabcar", it will trigger the build 
-       of chaincode image, and then run the container to host the chaincode process.
-
-       The expected output is as follow:
-         '{"data": "Successfully instantiated chaincode: mycc", "status": 0}'
-
-       '''
-
-       cmd = "docker exec -t concord1 " \
-             "./conc_hlf_request -p 50051 -m instantiate -c mycc -i {\"Args\":[\"init\"]} -v 1.0"
-       try:
-          c = subprocess.run(cmd.split(), check=True, timeout=10000, stdout=subprocess.PIPE)
-       except subprocess.TimeoutExpired as e:
-          log.error("Chaincode instantiate timeout: %s", str(e))
-          return (False, str(e))
-       except subprocess.CalledProcessError as e:
-          log.error("Chaincode instantiate returned error code: %s", str(e))
-          return (False, str(e))
-
-       result = str(c.stdout)
-       log.debug(result)
-       if StatusOk in result:
-          return (True, None)
-       else:
-          return (False, "Concord returned Non-zero status.")
-
    def _test_chaincode_fabcar_upgrade(self):
        '''
        Test the upgrade of the chaincode "fabcar"
@@ -202,8 +170,9 @@ class HlfTests(test_suite.TestSuite):
          '{"data": "Successfully upgraded chaincode: mycc", "status": 0}'
        '''
 
-       cmd = "docker exec -t concord1 " \
-             "./conc_hlf_request -p 50051 -m upgrade -c mycc -i {\"Args\":[\"init\"]} -v 2.0"
+       cmd = "docker exec -t concord-client " \
+             "./conc_hlf_client -a concord1 -p 50051 -m upgrade " \
+             "-f src/chaincode/fabcar/go/fabcar.go -c mycc -i {\"Args\":[\"init\"]} -v 2.0"
        try:
           c = subprocess.run(cmd.split(), check=True, timeout=10000, stdout=subprocess.PIPE)
        except subprocess.TimeoutExpired as e:
@@ -241,8 +210,8 @@ class HlfTests(test_suite.TestSuite):
        # sleep 3 secodes for peer to commit the block
        time.sleep(3)
 
-       cmd = "docker exec -t concord1 " \
-             "./conc_hlf_request -p 50051 -m invoke -c mycc -i {\"Function\":\"initLedger\",\"Args\":[]}"
+       cmd = "docker exec -t concord-client " \
+             "./conc_hlf_client -a concord1 -p 50051 -m invoke -c mycc -i {\"Function\":\"initLedger\",\"Args\":[]}"
        try:
           c = subprocess.run(cmd.split(), check=True, timeout=1000, stdout=subprocess.PIPE)
        except subprocess.TimeoutExpired as e:
@@ -275,8 +244,8 @@ class HlfTests(test_suite.TestSuite):
        If invoke successfully, then call chaincode query to verify the data.
        '''
 
-       cmd = "docker exec -t concord1 " \
-             "./conc_hlf_request -p 50051 -m invoke -c mycc -i {\"Function\":\"changeCarOwner\",\"Args\":[\"CAR0\",\"Luke\"]}"
+       cmd = "docker exec -t concord-client " \
+             "./conc_hlf_client -a concord1 -p 50051 -m invoke -c mycc -i {\"Function\":\"changeCarOwner\",\"Args\":[\"CAR0\",\"Luke\"]}"
        try:
           c = subprocess.run(cmd.split(), check=True, timeout=1000, stdout=subprocess.PIPE)
        except subprocess.TimeoutExpired as e:
@@ -310,8 +279,8 @@ class HlfTests(test_suite.TestSuite):
        If invoke successfully, then call chaincode query to verify the data.
        '''
 
-       cmd = "docker exec -t concord1 " \
-             "./conc_hlf_request -p 50051 -m invoke -c mycc -i {\"Function\":\"createCar\",\"Args\":[\"CAR99\",\"Make99\",\"Model99\",\"Colour99\",\"Owner99\"]}"
+       cmd = "docker exec -t concord-client " \
+             "./conc_hlf_client -a concord1 -p 50051 -m invoke -c mycc -i {\"Function\":\"createCar\",\"Args\":[\"CAR99\",\"Make99\",\"Model99\",\"Colour99\",\"Owner99\"]}"
        try:
           c = subprocess.run(cmd.split(), check=True, timeout=1000, stdout=subprocess.PIPE)
        except subprocess.TimeoutExpired as e:
@@ -339,8 +308,8 @@ class HlfTests(test_suite.TestSuite):
        verify the result.
 
        '''
-       cmd = "docker exec -t concord1 " \
-             "./conc_hlf_request -p 50051 -m query -c mycc -i " + query_input
+       cmd = "docker exec -t concord-client " \
+             "./conc_hlf_client -a concord1 -p 50051 -m query -c mycc -i " + query_input
        try:
           c = subprocess.run(cmd.split(), check=True, timeout=1000, stdout=subprocess.PIPE)
        except subprocess.TimeoutExpired as e:
@@ -353,6 +322,31 @@ class HlfTests(test_suite.TestSuite):
        result = str(c.stdout)
        log.debug(result)
        if expected_result in result:
+          return (True, None)
+       else:
+          return (False, "Concord returned Non-zero status.")
+
+   def _test_chaincode_fabcar_initial(self):
+       '''
+       Test the "initial" API
+
+       "initial" combines upload, install, instantiate three steps into one.
+       '''
+       cmd = "docker exec -t concord-client " \
+             "./conc_hlf_client -p 50051 -a concord1 -m initial -c mycc2 -i {\"Function\":\"initLedger\",\"Args\":[]} \
+             -v 1.0 -f src/chaincode/fabcar/go/fabcar.go"
+       try:
+          c = subprocess.run(cmd.split(), check=True, timeout=1000, stdout=subprocess.PIPE)
+       except subprocess.TimeoutExpired as e:
+          log.error("Chaincode initial timeout: %s", str(e))
+          return (False, str(e))
+       except subprocess.CalledProcessError as e:
+          log.error("Chaincode initial returned error code: %s", str(e))
+          return (False, str(e))
+
+       result = str(c.stdout)
+       log.debug(result)
+       if StatusFailed not in result:
           return (True, None)
        else:
           return (False, "Concord returned Non-zero status.")

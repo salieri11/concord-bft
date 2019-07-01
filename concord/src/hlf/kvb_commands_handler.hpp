@@ -5,7 +5,9 @@
 #define CONCORD_HLF_KVB_COMMANDS_HANDLER_H_
 
 #include <log4cplus/loggingmacros.h>
+#include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>
+#include <iostream>
 #include "concord.pb.h"
 #include "config/configuration_manager.hpp"
 #include "hlf/chaincode_invoker.hpp"
@@ -22,6 +24,7 @@ class HlfKvbCommandsHandler : public concord::storage::ICommandsHandler {
   log4cplus::Logger logger_;
   concord::hlf::ChaincodeInvoker* chaincode_invoker_ = nullptr;
 
+  concord::config::ConcordConfiguration& node_config_;
   concord::storage::ILocalKeyValueStorageReadOnly* ptr_ro_storage_ = nullptr;
   concord::storage::IBlocksAppender* ptr_block_appender_ = nullptr;
 
@@ -61,6 +64,17 @@ class HlfKvbCommandsHandler : public concord::storage::ICommandsHandler {
       const com::vmware::concord::HlfRequest& hlf_request,
       HlfKvbStorage* kvb_hlf_storage) const;
 
+  // This function will write the chaincode raw bytes to a temporary chaincode
+  // file of the local file system, and then use the peer command tool to
+  // send HLF chaincode install request to HLF peer, after then,
+  // remove the temporary chaincode file
+  concord::consensus::Status HandleIntermediateChaincodeFile(
+      const com::vmware::concord::HlfRequest& hlf_request,
+      std::string& error_msg) const;
+
+  // The chaincode path must be under the GOPATH
+  const std::string GetChaincodePath() const;
+
   bool HandleHlfRequest(
       com::vmware::concord::ConcordRequest& concord_request,
       concord::hlf::HlfKvbStorage* kvb_hlf_storage,
@@ -72,11 +86,6 @@ class HlfKvbCommandsHandler : public concord::storage::ICommandsHandler {
       com::vmware::concord::ConcordResponse& concord_response) const;
 
   bool HandleHlfInstallChaincode(
-      com::vmware::concord::ConcordRequest& concord_request,
-      concord::hlf::HlfKvbStorage* kvb_hlf_storage,
-      com::vmware::concord::ConcordResponse& concord_response) const;
-
-  bool HandleHlfInstantiateChaincode(
       com::vmware::concord::ConcordRequest& concord_request,
       concord::hlf::HlfKvbStorage* kvb_hlf_storage,
       com::vmware::concord::ConcordResponse& concord_response) const;

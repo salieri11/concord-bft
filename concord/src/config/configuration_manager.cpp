@@ -3336,6 +3336,12 @@ void specifyConfiguration(ConcordConfiguration& config) {
                         "0.0.0.0:50052");
   node.tagParameter("hlf_chaincode_service_address", privateOptionalTags);
 
+  node.declareParameter("hlf_chaincode_path",
+                        "Directory to store temporary chaincode file, "
+                        "this must be the $GOPATH/src for chaincode in golang",
+                        "/concord/src");
+  node.tagParameter("hlf_chaincode_path", privateOptionalTags);
+
   // TLS
   config.declareParameter("tls_cipher_suite_list",
                           "TLS cipher suite list to use");

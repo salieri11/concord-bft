@@ -84,7 +84,6 @@ services:
     command: /bin/bash initialize_channel.sh
     volumes:
       - /var/run/:/host/var/run/
-      - ../hermes/resources/chaincode/:/opt/gopath/src/github.com/chaincode
       - ./hlf/crypto-config:/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/
       - ./hlf/configtx-peer1/:/etc/hyperledger/configtx
       - ./hlf/scripts/initialize_channel.sh:/opt/gopath/src/github.com/hyperledger/fabric/peer/initialize_channel.sh
@@ -117,7 +116,6 @@ services:
       - ./config-concord1:/concord/config-local
       - ./hlf/core.yaml:/concord/core.yaml
       - ./hlf/peer:/concord/peer:ro
-      - ../hermes/resources/chaincode:/concord/src/chaincode:ro
       - ./hlf/crypto-config:/concord/crypto-config
       - ./tls_certs:/concord/tls_certs:ro
     networks:
@@ -198,7 +196,6 @@ services:
     command: /bin/bash initialize_channel.sh
     volumes:
       - /var/run/:/host/var/run/
-      - ../hermes/resources/chaincode/:/opt/gopath/src/github.com/chaincode
       - ./hlf/crypto-config:/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/
       - ./hlf/configtx-peer2/:/etc/hyperledger/configtx
       - ./hlf/scripts/initialize_channel.sh:/opt/gopath/src/github.com/hyperledger/fabric/peer/initialize_channel.sh
@@ -231,7 +228,6 @@ services:
       - ./config-concord2:/concord/config-local
       - ./hlf/core.yaml:/concord/core.yaml
       - ./hlf/peer:/concord/peer:ro
-      - ../hermes/resources/chaincode:/concord/src/chaincode:ro
       - ./hlf/crypto-config:/concord/crypto-config
       - ./tls_certs:/concord/tls_certs:ro
     networks:
@@ -311,7 +307,6 @@ services:
     volumes:
       - /var/run/:/host/var/run/
       - ./hlf/configtx-peer3:/etc/hyperledger/configtx
-      - ../hermes/resources/chaincode/:/opt/gopath/src/github.com/chaincode
       - ./hlf/crypto-config:/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/
       - ./hlf/scripts/initialize_channel.sh:/opt/gopath/src/github.com/hyperledger/fabric/peer/initialize_channel.sh
     networks:
@@ -343,7 +338,6 @@ services:
       - ./config-concord3:/concord/config-local
       - ./hlf/core.yaml:/concord/core.yaml
       - ./hlf/peer:/concord/peer:ro
-      - ../hermes/resources/chaincode:/concord/src/chaincode:ro
       - ./hlf/crypto-config:/concord/crypto-config
       - ./tls_certs:/concord/tls_certs:ro
     networks:
@@ -423,7 +417,6 @@ services:
     volumes:
       - /var/run/:/host/var/run/
       - ./hlf/configtx-peer4/:/etc/hyperledger/configtx
-      - ../hermes/resources/chaincode/:/opt/gopath/src/github.com/chaincode
       - ./hlf/crypto-config:/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/
       - ./hlf/scripts/initialize_channel.sh:/opt/gopath/src/github.com/hyperledger/fabric/peer/initialize_channel.sh
 
@@ -456,10 +449,24 @@ services:
       - ./config-concord4:/concord/config-local
       - ./hlf/core.yaml:/concord/core.yaml
       - ./hlf/peer:/concord/peer:ro
-      - ../hermes/resources/chaincode:/concord/src/chaincode:ro
       - ./hlf/crypto-config:/concord/crypto-config
       - ./tls_certs:/concord/tls_certs:ro
     networks:
       - basic-1
     depends_on:
       - initial
+
+  concord-client:
+    container_name: concord-client
+    image: "${concord_repo}:${concord_tag}"
+    volumes:
+      - ../hermes/resources/chaincode:/concord/src/chaincode
+    networks:
+      - basic-1
+    command: /bin/bash -c 'sleep 99999999;'
+    depends_on:
+      - concord1
+      - concord2
+      - concord3
+      - concord4
+

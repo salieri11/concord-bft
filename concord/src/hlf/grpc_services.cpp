@@ -24,7 +24,6 @@ using com::vmware::concord::ConcordResponse;
 using com::vmware::concord::ErrorResponse;
 using com::vmware::concord::HlfRequest;
 using com::vmware::concord::HlfRequest_HlfMethod_INSTALL;
-using com::vmware::concord::HlfRequest_HlfMethod_INSTANTIATE;
 using com::vmware::concord::HlfRequest_HlfMethod_INVOKE;
 using com::vmware::concord::HlfRequest_HlfMethod_QUERY;
 using com::vmware::concord::HlfRequest_HlfMethod_UPGRADE;
@@ -83,26 +82,50 @@ grpc::Status HlfChaincodeServiceImpl::TriggerChaincode(
   }
 
   for (int i = 0; i < concord_request->hlf_request_size(); i++) {
-    const HlfRequest hlf_request = concord_request->hlf_request(i);
+    HlfRequest hlf_request = concord_request->hlf_request(i);
 
-    // verify the input
+    // verify the request
     bool valid_request;
     bool is_read_only = true;
 
+    // variables to store intermediate status
+    bool valid_input;
+    bool valid_chaincode;
+
+    // default error message
+    string error_msg = "Unable to handle request";
+
     switch (hlf_request.method()) {
       case HlfRequest_HlfMethod_INSTALL:
-        valid_request = IsValidManageOpt(hlf_request);
         is_read_only = false;
-        break;
 
-      case HlfRequest_HlfMethod_INSTANTIATE:
-        valid_request = IsValidManageOpt(hlf_request);
-        is_read_only = false;
+        valid_input = IsValidManageOpt(hlf_request);
+        valid_chaincode = VerifyChaincodeBytes(hlf_request, error_msg);
+
+        if (!valid_input || !valid_chaincode) {
+          valid_request = false;
+          ErrorResponse* resp = concord_response->add_error_response();
+          resp->set_description(error_msg);
+        } else {
+          valid_request = true;
+        }
+
         break;
 
       case HlfRequest_HlfMethod_UPGRADE:
-        valid_request = IsValidManageOpt(hlf_request);
         is_read_only = false;
+
+        valid_input = IsValidManageOpt(hlf_request);
+        valid_chaincode = VerifyChaincodeBytes(hlf_request, error_msg);
+
+        if (!valid_input || !valid_chaincode) {
+          valid_request = false;
+          ErrorResponse* resp = concord_response->add_error_response();
+          resp->set_description(error_msg);
+        } else {
+          valid_request = true;
+        }
+
         break;
 
       case HlfRequest_HlfMethod_INVOKE:
@@ -142,7 +165,7 @@ grpc::Status HlfChaincodeServiceImpl::TriggerChaincode(
 bool HlfChaincodeServiceImpl::IsValidManageOpt(
     const com::vmware::concord::HlfRequest& request) {
   if (request.has_chaincode_name() && request.has_input() &&
-      request.has_version()) {
+      request.has_version() && request.has_type()) {
     return true;
   }
   return false;
@@ -154,6 +177,63 @@ bool HlfChaincodeServiceImpl::IsValidInvokeOpt(
     return true;
   }
   return false;
+}
+
+bool HlfChaincodeServiceImpl::VerifyChaincodeBytes(HlfRequest& hlf_request,
+                                                   string& msg) {
+  if (!hlf_request.has_chaincode_source_bytes()) {
+    LOG4CPLUS_ERROR(logger_, "chaincode is empty");
+    msg = "Failed to upload since the chaincode field empty";
+    return false;
+  }
+
+  // check size of chaincode
+  if (hlf_request.chaincode_source_bytes().length() >
+      HlfKeyValueServiceImpl::kMaxChaincodeBytesize) {
+    LOG4CPLUS_ERROR(
+        logger_, "Size of Chaincode file is too large."
+                     << " The chaincode size is "
+                     << to_string(hlf_request.chaincode_source_bytes().length())
+                     << " Bytes");
+
+    msg =
+        "Failed to upload because the chaincode size is larger "
+        "than MAX allowed size: " +
+        to_string(HlfKeyValueServiceImpl::kMaxChaincodeBytesize / 1024) + " MB";
+
+    return false;
+  }
+
+  // check chaincode type
+  if (hlf_request.type() != "go") {
+    if (hlf_request.type() == "js" || hlf_request.type() == "java")
+      msg = hlf_request.type() + " chaincode type is not supported";
+    else
+      msg = "Unknown chaincode type: " + hlf_request.type();
+    return false;
+  }
+
+  // define a path to store the chaincode source file
+  string chaincode_path = GenerateRandomString(5);
+  string chaincode_name = chaincode_path + "." + hlf_request.type();
+  boost::filesystem::path chaincode = boost::filesystem::path(chaincode_path) /
+                                      boost::filesystem::path(chaincode_name);
+
+  hlf_request.set_path(chaincode.string());
+
+  return true;
+}
+
+string HlfChaincodeServiceImpl::GenerateRandomString(int len) {
+  static const std::string letter = "abcdefghijklmnopqrstuvwxyz";
+  std::string result = "";
+
+  srand(time(nullptr));
+  for (int i = 0; i < len; i++) {
+    int pos = rand() % letter.length();
+    result += letter[pos];
+  }
+  return result;
 }
 
 void RunHlfGrpcServer(HlfKvbStorage& kvb_storage,

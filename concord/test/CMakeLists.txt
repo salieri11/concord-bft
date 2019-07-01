@@ -133,6 +133,7 @@ add_executable(HlfTest
   hlf_test.cpp
   ../src/hlf/chaincode_invoker.cpp
   ../src/hlf/kvb_storage.cpp
+  ../src/hlf/kvb_commands_handler.cpp
   ../src/config/configuration_manager.cpp
   )
 
