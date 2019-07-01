@@ -33,7 +33,7 @@ import kotlinx.serialization.modules.EmptyModule;
 @SpringBootApplication
 public class Application {
 
-    private static final URI CONCORD_MODEL_URI = URI.create("file:/agent/config.json");
+    private static final URI CONCORD_MODEL_URI = URI.create("file:/config/config.json");
 
     /**
      * Main - Entry into SpringBoot application.
