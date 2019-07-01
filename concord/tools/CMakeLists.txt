@@ -91,11 +91,11 @@ target_link_libraries(conc_genconfig
                       log4cplus
                       $<TARGET_OBJECTS:logging_dev>)
 
-add_executable(conc_hlf_request
-               "conc_hlf_request.cpp"
+add_executable(conc_hlf_client
+               "conc_hlf_client.cpp"
                ${PROTO_SRCS} ${PROTO_HDRS})
 
-target_link_libraries(conc_hlf_request
+target_link_libraries(conc_hlf_client
                       concmdutil
                       proto
                       gRPC::grpc++_reflection

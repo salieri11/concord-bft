@@ -254,18 +254,23 @@ message TransactionResponse {
 message HlfRequest {
   enum HlfMethod {
     INSTALL = 1;
-    INSTANTIATE = 2;
+    UPGRADE = 2;
     INVOKE = 3;
     QUERY = 4;
-    UPGRADE = 5;
   }
 
   optional HlfMethod method = 1;
   optional string chain_id = 2;
   optional string chaincode_name = 3;
-  // input stores path if method was INSTALL
   optional string input = 4;
   optional string version = 5;
+  optional bytes chaincode_source_bytes = 6;
+  // 'path' indicates the path to store chaincode
+  // if method was INSTALL or UPGRADE
+  optional string path = 7;
+  // type indicates the chaincode type, could be
+  // go, js and java
+  optional string type = 8;
 }
 
 message HlfResponse {

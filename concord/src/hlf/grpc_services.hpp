@@ -9,6 +9,7 @@
 #include <grpcpp/server_builder.h>
 #include <grpcpp/server_context.h>
 #include <log4cplus/loggingmacros.h>
+#include <boost/filesystem.hpp>
 #include <iostream>
 #include "concord.pb.h"
 #include "consensus/kvb_client.hpp"
@@ -27,6 +28,9 @@ class HlfKeyValueServiceImpl final
   log4cplus::Logger logger_;
 
  public:
+  // restrict the max chaincode size to 1 MB
+  const static long kMaxChaincodeBytesize = 1024 * 1024 * 1;
+
   HlfKeyValueServiceImpl(concord::hlf::HlfKvbStorage& kvb_storage)
       : kvb_storage_(kvb_storage),
         logger_(log4cplus::Logger::getInstance("com.vmware.concord.hlf.grpc")) {
@@ -69,6 +73,11 @@ class HlfChaincodeServiceImpl final
   bool IsValidManageOpt(const com::vmware::concord::HlfRequest&);
 
   bool IsValidInvokeOpt(const com::vmware::concord::HlfRequest&);
+
+ private:
+  bool VerifyChaincodeBytes(com::vmware::concord::HlfRequest&, std::string&);
+
+  std::string GenerateRandomString(int len);
 };
 
 void RunHlfGrpcServer(concord::hlf::HlfKvbStorage& hlf_storage,
