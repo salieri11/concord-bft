@@ -39,6 +39,7 @@ public class ConsortiumController {
     static class ConGetResponse {
         UUID consortiumId;
         String consortiumName;
+        UUID organizationId;
     }
 
     @Data
@@ -63,7 +64,9 @@ public class ConsortiumController {
     public ResponseEntity<List<ConGetResponse>> listCons() {
         List<Consortium> orgs = consortiumService.list();
         List<ConGetResponse> rList = orgs.stream().map(c -> new ConGetResponse(c.getId(),
-                                                                 c.getConsortiumName())).collect(Collectors.toList());
+                                                                               c.getConsortiumName(),
+                                                                               c.getOrganization()))
+                .collect(Collectors.toList());
         return new ResponseEntity<>(rList, HttpStatus.OK);
     }
 
@@ -76,7 +79,8 @@ public class ConsortiumController {
     public ResponseEntity<ConGetResponse> getCon(@PathVariable("con_id") UUID consortiumId) {
         Consortium consortium = consortiumService.get(consortiumId);
         return new ResponseEntity<>(new ConGetResponse(consortium.getId(),
-                                                       consortium.getConsortiumName()), HttpStatus.OK);
+                                                       consortium.getConsortiumName(),
+                                                       consortium.getOrganization()), HttpStatus.OK);
     }
 
     /**
@@ -88,12 +92,13 @@ public class ConsortiumController {
     @PreAuthorize("hasAnyAuthority(T(com.vmware.blockchain.services.profiles.Roles).consortiumAdmin())")
     public ResponseEntity<ConGetResponse> createCon(@RequestBody ConPostBody body) {
         Consortium consortium = new Consortium(body.getConsortiumName(),
-                                               body.getConsortiumType(), body.getOrganization());
+                                               "default", authHelper.getOrganizationId());
         consortium = consortiumService.put(consortium);
         // Need to evict the auth token so we get access to the new consortium
         authHelper.evictToken();
         return new ResponseEntity<>(new ConGetResponse(consortium.getId(),
-                                                       consortium.getConsortiumName()), HttpStatus.OK);
+                                                       consortium.getConsortiumName(),
+                                                       consortium.getOrganization()), HttpStatus.OK);
     }
 
     /**
@@ -111,6 +116,7 @@ public class ConsortiumController {
         }
         consortium = consortiumService.put(consortium);
         return new ResponseEntity<>(new ConGetResponse(consortium.getId(),
-                                                       consortium.getConsortiumName()), HttpStatus.OK);
+                                                       consortium.getConsortiumName(),
+                                                       consortium.getOrganization()), HttpStatus.OK);
     }
 }

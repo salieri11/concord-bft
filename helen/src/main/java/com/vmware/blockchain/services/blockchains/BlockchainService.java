@@ -147,6 +147,9 @@ public class BlockchainService {
         return genericDao.put(newBlockchain, null);
     }
 
+    public Blockchain put(Blockchain b) {
+        return genericDao.put(b, null);
+    }
 
     public List<Blockchain> list() {
         return genericDao.getAllByType(Blockchain.class);
