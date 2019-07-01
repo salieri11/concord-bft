@@ -73,11 +73,13 @@ public class Application {
                     "template",
                     List.of(
                             new ConcordComponent(
-                                    ConcordComponent.Type.DOCKER_IMAGE,
+                                    ConcordComponent.Type.CONTAINER_IMAGE,
+                                    ConcordComponent.ServiceType.CONCORD,
                                     "registry-1.docker.io/vmwblockchain/concord-core:latest"
                             ),
                             new ConcordComponent(
-                                    ConcordComponent.Type.DOCKER_IMAGE,
+                                    ConcordComponent.Type.CONTAINER_IMAGE,
+                                    ConcordComponent.ServiceType.ETHEREUM_API,
                                     "registry-1.docker.io/vmwblockchain/ethrpc:latest"
                             )
                     )
