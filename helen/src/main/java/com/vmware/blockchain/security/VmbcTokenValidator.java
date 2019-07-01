@@ -191,6 +191,8 @@ public class VmbcTokenValidator implements TokenValidator {
         TODO: Find a better way to do this.
      */
     private User getOrCreateUser(HelenUserDetails userInfo, String token, Jws<Claims> parsedToken) {
+        // Make sure the org exists.  If a user is a member of multiple orgs, the user may already exist,
+        // but org may not.
         Organization org = forceGetOrg(userInfo.getOrgId(), token);
         try {
             return userService.getByEmail(userInfo.getUsername());
