@@ -3,6 +3,7 @@ syntax = "proto3";
 package com.vmware.blockchain.deployment.model;
 
 import "concord_cluster.proto";
+import "concord_model.proto";
 import "core.proto";
 /* [END declaration] */
 
@@ -13,48 +14,180 @@ option java_multiple_files = true;
 
 /* [START messages] */
 /**
- * Request definition for operation to register a deployed Concord node.
- *
- * @property[header]
- *   message header.
- * @property[registration_token]
- *   registration token mapped uniquely to a deployment session.
- * @property[info]
- *   node information to be register.
- */
-message RegisterInstanceRequest {
-    MessageHeader header = 1;
-    string registration_token = 2;
-    ConcordNodeInfo info = 3;
-}
-
-/**
- * Response definition for operation to register a deployed Concord node.
+ * Aggregate request definition of all messages exchanged between the fleet service and a managed
+ * instance that is sent from the managed instance.
  *
  * @property[header]
  *   message header.
  * @property[type]
- *   type of event.
- * @property[host_info]
- *   information pertaining to Concord node instance's host environment.
+ *   subtype of message contained in the payload.
+ * @property[session_request]
+ *   payload for message type [Type.CREATE_SESSION_REQUEST].
+ * @property[status]
+ *   payload for message type [Type.STATUS].
  * @property[configuration]
- *   information pertaining to Concord node instance's configuration.
+ *   payload for message type [Type.CONFIGURATION].
  */
-message RegisterInstanceResponseEvent {
+message InstanceMessage {
     /**
-     * Type of [RegisterInstanceResponseEvent] emitted.
+     * Enumeration of payload subtypes of [InstanceMessage].
      */
     enum Type {
-        NOOP = 0; // Default value, should not be used.
-        ACKNOWLEDGED = 1; // Request acknowledged (registration recorded).
-        HOST_INFO = 2; // Information about the node's host environment is updated.
-        NODE_CONFIGURATION = 3; // Configuration for node is updated.
+        NOOP = 0;
+        STATUS = 1;
+        CREATE_SESSION_REQUEST = 2;
+        CONFIGURATION = 3;
+    }
+
+    /**
+     * Model definition of information regarding the status of an instance monitored by the fleet.
+     *
+     * @property[status]
+     *   status of the instance.
+     */
+    message Status {
+        /**
+         * Enumeration of possible state emitted by a monitored instance.
+         */
+        enum State {
+            UNKNOWN = 0; // This status should not be emitted unless the instance is confused.
+            ACTIVE = 1;
+            INACTIVE = 2;
+            UNHEALTHY = 3;
+        }
+
+        State state = 1;
+    }
+
+    /**
+     * Model definition of information regarding the current configuration of an instance monitored
+     * by the fleet.
+     */
+    message Configuration {
+    }
+
+    /**
+     * Request definition for operation to create a managed session with the calling instance.
+     *
+     * Note:
+     *   Message header's ID field serves as the epoch identifier for this session request, in the
+     *   event that the fleet management service needs to establish temporal relationship between
+     *   two session requests with the same instance name.
+     *
+     * @property[instance_id]
+     *   calling instance's self-identifier.
+     * @property[cluster]
+     *   identifier of the Concord cluster network that this instance belongs to.
+     * @property[node]
+     *   identifier of the Concord node member that this instance is registering as.
+     */
+    message CreateSessionRequest {
+        string instance_id = 1;
+        ConcordClusterIdentifier cluster = 2;
+        ConcordNodeIdentifier node = 3;
     }
 
     MessageHeader header = 1;
     Type type = 2;
-    ConcordNodeHostInfo host_info = 3;
-    ConcordNodeConfiguration configuration = 4;
+    CreateSessionRequest session_request = 3;
+    Status status = 4;
+    Configuration configuration = 5;
+}
+
+/**
+ * Aggregate request definition of all messages exchanged between the fleet service and a managed
+ * instance that is sent from the fleet service.
+ *
+ * @property[header]
+ *   message header.
+ * @property[type]
+ *   subtype of message contained in the payload.
+ * @property[session_response]
+ *   payload for message type [Type.CREATE_SESSION_RESPONSE].
+ */
+message FleetMessage {
+    /**
+     * Enumeration of payload subtypes of [FleetMessage].
+     */
+    enum Type {
+        NOOP = 0;
+        GET_STATUS = 1;
+        CREATE_SESSION_RESPONSE = 2;
+        GET_CONFIGURATION = 3;
+    }
+
+    /**
+     * Response definition for operation to create a managed session with the calling instance.
+     *
+     * @property[status]
+     *   status outcome of the session creation request.
+     * @property[name]
+     *   resource name of the created session, if successful.
+     */
+    message CreateSessionResponse {
+        enum Status {
+            OK = 0; // Session was created.
+            FAILED = 1; // Session creation failed.
+        }
+
+        Status status = 1;
+        string name = 2;
+    }
+
+    MessageHeader header = 1;
+    Type type = 2;
+    CreateSessionResponse session_response = 3;
+}
+
+/**
+ * Request definition for operation to update a managed session.
+ *
+ * @property[header]
+ *   message header.
+ * @property[cluster]
+ *   identifier of the Concord cluster network that this instance belongs to.
+ * @property[node]
+ *   identifier of the Concord node member that this instance is registering as.
+ * @property[service]
+ *   service component within the instance to perform the [Action] on.
+ * @property[action]
+ *   update action to perform.
+ */
+message UpdateInstanceRequest {
+    enum Action {
+        NOOP = 0; // Default value. Should not be used.
+        STOP = 1; // Execute command with intent to put component into a stopped state.
+        START = 2; // Execute command with intent to put component into an active state.
+    }
+
+    MessageHeader header = 1;
+    ConcordClusterIdentifier cluster = 2;
+    ConcordNodeIdentifier node = 3;
+    ConcordComponent.ServiceType service = 4;
+    Action action = 5;
+}
+
+/**
+ * Response definition for operation to update a managed session.
+ *
+ * @property[header]
+ *   message header.
+ */
+message UpdateInstanceResponse {
+    MessageHeader header = 1;
+}
+
+/**
+ * Model definition for fleet management server configuration settings.
+ *
+ * @property[port]
+ *   port number to use for server instance.
+ * @property[transport_security]
+ *   transport security setting.
+ */
+message FleetServerConfiguration {
+    int32 port = 1;
+    TransportSecurity transport_security = 2;
 }
 /* [END messages] */
 
@@ -64,8 +197,13 @@ message RegisterInstanceResponseEvent {
  */
 service FleetService {
     /**
-     * Operation to register a deployed Concord node based on a [RegisterInstanceRequest].
+     * Operation to create a persistent managed session of a fleet instance.
      */
-    rpc RegisterInstance (RegisterInstanceRequest) returns (stream RegisterInstanceResponseEvent) {};
+    rpc CreateManagedSession (stream InstanceMessage) returns (stream FleetMessage) {};
+
+    /**
+      * Operation to update a deployed Concord node based on an [UpdateInstanceRequest].
+      */
+    rpc UpdateInstance (UpdateInstanceRequest) returns (UpdateInstanceResponse) {};
 }
 /* [END services] */

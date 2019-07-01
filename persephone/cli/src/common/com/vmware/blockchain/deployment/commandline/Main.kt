@@ -85,15 +85,18 @@ fun main(args: Array<String>) {
                             template = "8abc7fda-9576-4b13-9beb-06f867cf2c7c",
                             components = listOf(
                                     ConcordComponent(
-                                            ConcordComponent.Type.DOCKER_IMAGE,
+                                            ConcordComponent.Type.CONTAINER_IMAGE,
+                                            ConcordComponent.ServiceType.CONCORD,
                                             "vmwblockchain/concord-core:latest"
                                     ),
                                     ConcordComponent(
-                                            ConcordComponent.Type.DOCKER_IMAGE,
+                                            ConcordComponent.Type.CONTAINER_IMAGE,
+                                            ConcordComponent.ServiceType.ETHEREUM_API,
                                             "vmwblockchain/ethrpc:latest"
                                     ),
                                     ConcordComponent(
-                                            ConcordComponent.Type.DOCKER_IMAGE,
+                                            ConcordComponent.Type.CONTAINER_IMAGE,
+                                            ConcordComponent.ServiceType.GENERIC,
                                             "vmwblockchain/agent-testing:latest"
                                     )
                             )

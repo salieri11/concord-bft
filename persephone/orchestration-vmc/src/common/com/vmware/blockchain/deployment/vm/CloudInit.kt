@@ -39,7 +39,7 @@ class CloudInit(
 
     /** Consolidated Docker PULL command. */
     private val dockerPullCommand: String = model.components.asSequence()
-            .filter { it.type == ConcordComponent.Type.DOCKER_IMAGE }
+            .filter { it.type == ConcordComponent.Type.CONTAINER_IMAGE }
             .map { "docker pull ${URI.create(containerRegistry.address).authority}/${it.name}" }
             .joinToString(separator = "\n", postfix = "\n")
 

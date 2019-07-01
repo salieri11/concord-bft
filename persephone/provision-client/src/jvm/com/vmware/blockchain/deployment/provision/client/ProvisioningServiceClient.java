@@ -61,9 +61,21 @@ public class ProvisioningServiceClient {
             );
             var placementSpec = new PlacementSpecification(list);
             var components = List.of(
-                    new ConcordComponent(ConcordComponent.Type.DOCKER_IMAGE, "vmwblockchain/concord-core:latest"),
-                    new ConcordComponent(ConcordComponent.Type.DOCKER_IMAGE, "vmwblockchain/ethrpc:latest"),
-                    new ConcordComponent(ConcordComponent.Type.DOCKER_IMAGE, "vmwblockchain/agent-testing:latest")
+                    new ConcordComponent(
+                            ConcordComponent.Type.CONTAINER_IMAGE,
+                            ConcordComponent.ServiceType.CONCORD,
+                            "vmwblockchain/concord-core:latest"
+                    ),
+                    new ConcordComponent(
+                            ConcordComponent.Type.CONTAINER_IMAGE,
+                            ConcordComponent.ServiceType.ETHEREUM_API,
+                            "vmwblockchain/ethrpc:latest"
+                    ),
+                    new ConcordComponent(
+                            ConcordComponent.Type.CONTAINER_IMAGE,
+                            ConcordComponent.ServiceType.GENERIC,
+                            "vmwblockchain/agent-testing:latest"
+                    )
             );
             var genesis = new Genesis(
                     new Genesis.Config(1, 0, 0, 0),
