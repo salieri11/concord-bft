@@ -21,6 +21,7 @@ import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 import java.util.function.Consumer;
@@ -58,6 +59,7 @@ import com.vmware.blockchain.deployment.model.ProvisionedResource;
 import com.vmware.blockchain.deployment.model.ProvisioningServiceImplBase;
 import com.vmware.blockchain.deployment.model.StreamClusterDeploymentSessionEventRequest;
 import com.vmware.blockchain.deployment.model.UpdateDeploymentSessionRequest;
+import com.vmware.blockchain.deployment.model.UpdateDeploymentSessionResponse;
 import com.vmware.blockchain.deployment.model.ethereum.Genesis;
 import com.vmware.blockchain.deployment.orchestration.InactiveOrchestrator;
 import com.vmware.blockchain.deployment.orchestration.NetworkAddress;
@@ -367,6 +369,38 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
         }
     }
 
+
+    @Override
+    public void updateDeploymentSession(UpdateDeploymentSessionRequest message,
+                                        StreamObserver<UpdateDeploymentSessionResponse> observer) {
+        var request = Objects.requireNonNull(message);
+        var response = Objects.requireNonNull(observer);
+
+        try {
+            if (STATE.get(this) != State.ACTIVE) {
+                response.onError(new IllegalStateException("Service instance is not active"));
+            } else {
+                CompletableFuture.runAsync(() -> {
+                    if (request.getAction().equals(UpdateDeploymentSessionRequest.Action.NOOP)) {
+                        log.info("No action was provided. No action was taken.");
+                        response.onNext(new UpdateDeploymentSessionResponse());
+                        response.onCompleted();
+                    } else if (request.getAction().equals(UpdateDeploymentSessionRequest.Action.DEPROVISION_ALL)) {
+                        deprovision(request.getSession());
+                        response.onNext(new UpdateDeploymentSessionResponse());
+                        response.onCompleted();
+                    }
+                }, executor).exceptionally(error -> {
+                    response.onError(error);
+                    return null; // To satisfy type signature (Void).
+                });
+            }
+        } catch (Throwable error) {
+            response.onError(error);
+        }
+
+    }
+
     /**
      * Create a placement resolution for a given {@link DeploymentSpecification} such that all
      * placement entries have a specific designated orchestration site target.
@@ -485,118 +519,26 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
         return promise;
     }
 
-    @Override
-    public void updateDeploymentSession(UpdateDeploymentSessionRequest message,
-                                   StreamObserver<DeploymentSessionIdentifier> observer) {
-        var request = Objects.requireNonNull(message);
-        var response = Objects.requireNonNull(observer);
-
-        try {
-            if (STATE.get(this) != State.ACTIVE) {
-                response.onError(new IllegalStateException("Service instance is not active"));
-            } else {
-                CompletableFuture.runAsync(() -> {
-                    var sessionId = newSessionId(request.getHeader());
-
-                    var session = new DeploymentSession(
-                            sessionId,
-                            DeploymentSpecification.Companion.getDefaultValue(),
-                            ConcordClusterIdentifier.Companion.getDefaultValue(),
-                            PlacementAssignment.Companion.getDefaultValue(),
-                            DeploymentSession.Status.ACTIVE,
-                            Collections.singletonList(newInitialEvent(sessionId))
-                    );
-
-                    var oldSession = deploymentLog.putIfAbsent(sessionId, new CompletableFuture<>());
-
-                    if (oldSession == null) {
-                        // Emit the acknowledgement and signal completion of the request.
-                        response.onNext(sessionId);
-                        response.onCompleted();
-
-                        deprovision(request.getSession(), session);
-                    } else {
-                        // Cannot record this session for some reason.
-                        // TODO: Need to think more about what to return in this case.
-                        response.onError(
-                                new IllegalStateException("Cannot record deployment session")
-                        );
-                    }
-                }, executor).exceptionally(error -> {
-                    response.onError(error);
-                    return null; // To satisfy type signature (Void).
-                });
-            }
-        } catch (Throwable error) {
-            response.onError(error);
-        }
-
-    }
-
     /**
      * Execute a Concord cluster deprovisioning workflow.
      *
      * @param requestSession
      *   deploymentSessionIdentifier to carry out the workflow for.
      */
-    private void deprovision(DeploymentSessionIdentifier requestSession, DeploymentSession deprovSession) {
-
-        List<Map.Entry<Orchestrator, URI>> networkAllocList = new ArrayList<>();
-        List<Map.Entry<Orchestrator, URI>> computeList = new ArrayList<>();
-        List<Map.Entry<Orchestrator, URI>> networkAddrList = new ArrayList<>();
+    private void deprovision(DeploymentSessionIdentifier requestSession) {
 
         CompletableFuture<DeploymentSession> sessionEventTask = deploymentLog.get(requestSession);
         if (sessionEventTask != null) {
             sessionEventTask.thenAcceptAsync(deploymentSession -> {
-                final var deleteEvents = ConcurrentHashMap.<OrchestrationEvent>newKeySet();
-                var events = deploymentSession.getEvents();
-
-                for (DeploymentSessionEvent event : events) {
-                    if (!event.getType().equals(DeploymentSessionEvent.Type.RESOURCE)) {
-                        continue;
-                    }
-
-                    URI resourceUri = getUrl(event.getResource().getName());
-
-                    if (resourceUri != null) {
-                        OrchestrationSiteIdentifier site = event.getResource().getSite();
-                        ProvisionedResource.Type resourceType = event.getResource().getType();
-
-                        if (resourceType.equals(ProvisionedResource.Type.NETWORK_ALLOCATION)) {
-                            networkAllocList.add(Map.entry(orchestrators.get(site), resourceUri));
-                        }
-                        if (resourceType.equals(ProvisionedResource.Type.COMPUTE_RESOURCE)) {
-                            computeList.add(Map.entry(orchestrators.get(site), resourceUri));
-                        }
-                        if (resourceType.equals(ProvisionedResource.Type.NETWORK_RESOURCE)) {
-                            networkAddrList.add(Map.entry(orchestrators.get(site), resourceUri));
-                        }
-                    }
-                }
-
-                deleteEvents.addAll(DeleteResource.deleteNetworkAllocations(networkAllocList));
-                deleteEvents.addAll(DeleteResource.deleteDeployments(computeList));
-                deleteEvents.addAll(DeleteResource.deleteNetworkAddresses(networkAddrList));
-
-                // Create deprovisioning session instance
-                var updatedSession = toDeprovisioningSession(deploymentSession, deleteEvents,
-                        deprovSession.getId(), DeploymentSession.Status.SUCCESS);
-
-                deploymentLog.get(deprovSession.getId()).complete(updatedSession);
-
+                final var deleteEvents = deleteResourceEvents(deploymentSession.getEvents());
+                var deprovEv = toDeprovisioningEvents(deploymentSession, deleteEvents,
+                        DeploymentSession.Status.SUCCESS);
+                deploymentSession.getEvents().addAll(deprovEv);
+                deploymentLog.get(requestSession).complete(deploymentSession);
                 log.info("Deprovisioning completed");
             }, executor)
                     .exceptionally(error -> {
-                        var updatedSession = new DeploymentSession(deprovSession.getId(),
-                                DeploymentSpecification.Companion.getDefaultValue(),
-                                ConcordClusterIdentifier.Companion.getDefaultValue(),
-                                PlacementAssignment.Companion.getDefaultValue(),
-                                DeploymentSession.Status.FAILURE,
-                                Collections.singletonList(newCompleteEvent(deprovSession.getId(),
-                                        DeploymentSession.Status.FAILURE)));
-
-                        deploymentLog.get(deprovSession.getId()).complete(updatedSession);
-                        return null;
+                        throw new IllegalStateException("Deprovisioning failed for id: " + requestSession, error);
                     });
             sessionEventTask.join();
         } else {
@@ -604,11 +546,69 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
         }
     }
 
-    private DeploymentSession toDeprovisioningSession(
+    private ConcurrentHashMap.KeySetView<OrchestrationEvent, Boolean> deleteResourceEvents(
+            List<DeploymentSessionEvent> events
+    ) {
+        final var deleteEvents = ConcurrentHashMap.<OrchestrationEvent>newKeySet();
+
+        final List<DeploymentSessionEvent> eventList = new ArrayList<>();
+
+        List<Map.Entry<Orchestrator, URI>> networkAllocList = new ArrayList<>();
+        List<Map.Entry<Orchestrator, URI>> computeList = new ArrayList<>();
+        List<Map.Entry<Orchestrator, URI>> networkAddrList = new ArrayList<>();
+
+        for (DeploymentSessionEvent event : events) {
+            if (!event.getType().equals(DeploymentSessionEvent.Type.RESOURCE)) {
+                continue;
+            }
+
+            URI resourceUri = getUrl(event.getResource().getName());
+
+            if (resourceUri != null) {
+                OrchestrationSiteIdentifier site = event.getResource().getSite();
+                ProvisionedResource.Type resourceType = event.getResource().getType();
+
+                if (resourceType.equals(ProvisionedResource.Type.NETWORK_ALLOCATION)) {
+                    networkAllocList.add(Map.entry(orchestrators.get(site), resourceUri));
+                }
+                if (resourceType.equals(ProvisionedResource.Type.COMPUTE_RESOURCE)) {
+                    computeList.add(Map.entry(orchestrators.get(site), resourceUri));
+                }
+                if (resourceType.equals(ProvisionedResource.Type.NETWORK_RESOURCE)) {
+                    networkAddrList.add(Map.entry(orchestrators.get(site), resourceUri));
+                }
+            }
+        }
+
+        // FIXME: 1. populating deleteEvents inside whenComplete/handle is not behaving correctly. Investigate and fix
+        // FIXME: 2. exception handling from event generator rather than here having one exception for all
+        // [https://jira.eng.vmware.com/browse/VB-1146]
+        try {
+            deleteEvents.addAll(DeleteResource.deleteNetworkAllocations(networkAllocList).get());
+        } catch (InterruptedException | ExecutionException e) {
+            log.error("NAT deletion failed with exception: " + e);
+        }
+
+        try {
+            deleteEvents.addAll(DeleteResource.deleteDeployments(computeList).get());
+        } catch (InterruptedException | ExecutionException e) {
+            log.error("Compute Resource deletion failed with exception: " + e);
+        }
+
+        try {
+            deleteEvents.addAll(DeleteResource.deleteNetworkAddresses(networkAddrList).get());
+        } catch (InterruptedException | ExecutionException e) {
+            log.error("Network Address deletion failed with exception: " + e);
+        }
+
+        return deleteEvents;
+    }
+
+    private List<DeploymentSessionEvent> toDeprovisioningEvents(
             DeploymentSession session,
             Collection<OrchestrationEvent> events,
-            DeploymentSessionIdentifier deprovisioningId,
             DeploymentSession.Status status) {
+
 
         List<DeploymentSessionEvent> deprovisioningEvent = new ArrayList<>();
         events.stream().forEach(event -> {
@@ -635,23 +635,16 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
                         OrchestrationSiteIdentifier.Companion.getDefaultValue(),
                         session.getCluster(),
                         ConcordNodeIdentifier.Companion.getDefaultValue());
-            } else {
-                throw new RuntimeException("Incorrect event type passed to deprovisioning session buildder");
             }
 
-            deprovisioningEvent.add(new DeploymentSessionEvent(DeploymentSessionEvent.Type.RESOURCE_DEPROVISIONED,
-                    deprovisioningId, status, resource,
+            deprovisioningEvent.add(new DeploymentSessionEvent(DeploymentSessionEvent.Type.RESOURCE_DEPROVISIONING,
+                    session.getId(), status, resource,
                     ConcordNode.Companion.getDefaultValue(),
                     ConcordNodeStatus.Companion.getDefaultValue(),
                     ConcordCluster.Companion.getDefaultValue()));
         });
 
-        return new DeploymentSession(deprovisioningId,
-                session.getSpecification(),
-                session.getCluster(),
-                session.getAssignment(),
-                status,
-                deprovisioningEvent);
+        return deprovisioningEvent;
     }
 
     private URI getUrl(String url) {
@@ -831,6 +824,13 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
                 }, executor)
                 .exceptionally(error -> {
                     // Create the updated deployment session instance.
+                    var deleteEvents = deleteResourceEvents(session.getEvents());
+
+                    var deprovisioningSessionEvents = toDeprovisioningEvents(
+                            session, deleteEvents, DeploymentSession.Status.FAILURE);
+
+                    session.getEvents().addAll(deprovisioningSessionEvents);
+
                     var event = newCompleteEvent(session.getId(), DeploymentSession.Status.FAILURE);
                     var updatedSession = new DeploymentSession(
                             session.getId(),

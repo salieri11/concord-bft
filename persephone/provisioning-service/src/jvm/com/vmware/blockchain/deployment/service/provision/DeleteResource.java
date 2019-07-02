@@ -23,7 +23,7 @@ import com.vmware.blockchain.deployment.reactive.ReactiveStream;
 class DeleteResource {
     private static Logger log = LoggerFactory.getLogger(DeleteResource.class);
 
-    static List<Orchestrator.NetworkAllocationEvent> deleteNetworkAllocations(
+    static CompletableFuture<List<Orchestrator.NetworkAllocationEvent>> deleteNetworkAllocations(
         List<Map.Entry<Orchestrator, URI>> networkAllocList
     ) {
         List<CompletableFuture<Orchestrator.NetworkAllocationEvent>> works = new ArrayList<>();
@@ -36,13 +36,11 @@ class DeleteResource {
             works.add(ReactiveStream.toFuture(deleteNetworkPublisher));
         });
 
-        CompletableFuture<List<Orchestrator.NetworkAllocationEvent>> results =
-                CompletableFuture.allOf(works.toArray(new CompletableFuture[works.size()]))
+        return CompletableFuture.allOf(works.toArray(new CompletableFuture[works.size()]))
                 .thenApply(res -> works.stream().map(CompletableFuture::join).collect(Collectors.toList()));
-        return results.join();
     }
 
-    static List<Orchestrator.ComputeResourceEvent> deleteDeployments(
+    static CompletableFuture<List<Orchestrator.ComputeResourceEvent>> deleteDeployments(
             List<Map.Entry<Orchestrator, URI>> computeList
     ) {
         List<CompletableFuture<Orchestrator.ComputeResourceEvent>> works = new ArrayList<>();
@@ -55,13 +53,11 @@ class DeleteResource {
             works.add(ReactiveStream.toFuture(deleteDeploymentPublisher));
         });
 
-        CompletableFuture<List<Orchestrator.ComputeResourceEvent>> results =
-                CompletableFuture.allOf(works.toArray(new CompletableFuture[works.size()]))
-                        .thenApply(res -> works.stream().map(CompletableFuture::join).collect(Collectors.toList()));
-        return results.join();
+        return CompletableFuture.allOf(works.toArray(new CompletableFuture[works.size()]))
+                .thenApply(res -> works.stream().map(CompletableFuture::join).collect(Collectors.toList()));
     }
 
-    static List<Orchestrator.NetworkResourceEvent> deleteNetworkAddresses(
+    static CompletableFuture<List<Orchestrator.NetworkResourceEvent>> deleteNetworkAddresses(
             List<Map.Entry<Orchestrator, URI>> networkAddrList
     ) {
         List<CompletableFuture<Orchestrator.NetworkResourceEvent>> works = new ArrayList<>();
@@ -74,9 +70,7 @@ class DeleteResource {
             works.add(ReactiveStream.toFuture(deleteNetworkAddrPublisher));
         });
 
-        CompletableFuture<List<Orchestrator.NetworkResourceEvent>> results =
-                CompletableFuture.allOf(works.toArray(new CompletableFuture[works.size()]))
-                        .thenApply(res -> works.stream().map(CompletableFuture::join).collect(Collectors.toList()));
-        return results.join();
+        return CompletableFuture.allOf(works.toArray(new CompletableFuture[works.size()]))
+                 .thenApply(res -> works.stream().map(CompletableFuture::join).collect(Collectors.toList()));
     }
 }
