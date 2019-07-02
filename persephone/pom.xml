@@ -368,6 +368,27 @@
                             </configuration>
                         </execution>
                         <execution>
+                            <id>test-kapt</id>
+                            <goals>
+                                <goal>test-kapt</goal>
+                            </goals>
+                            <configuration>
+                                <sourceDirs>
+                                    <sourceDir>${project.basedir}/test/common</sourceDir>
+                                    <sourceDir>${project.basedir}/test/jvm</sourceDir>
+                                    <sourceDir>${project.basedir}/target/generated-sources/test-protobuf/common</sourceDir>
+                                    <sourceDir>${project.basedir}/target/generated-sources/test-protobuf/jvm</sourceDir>
+                                </sourceDirs>
+                                <annotationProcessorPaths>
+                                    <annotationProcessorPath>
+                                        <groupId>com.google.dagger</groupId>
+                                        <artifactId>dagger-compiler</artifactId>
+                                        <version>${dagger.version}</version>
+                                    </annotationProcessorPath>
+                                </annotationProcessorPaths>
+                            </configuration>
+                        </execution>
+                        <execution>
                             <id>kotlin-compile</id>
                             <phase>compile</phase>
                             <goals>
@@ -377,6 +398,8 @@
                                 <sourceDirs>
                                     <sourceDir>${project.basedir}/src/common</sourceDir>
                                     <sourceDir>${project.basedir}/src/jvm</sourceDir>
+                                    <sourceDir>${project.basedir}/target/generated-sources/kapt/compile</sourceDir>
+                                    <sourceDir>${project.basedir}/target/generated-sources/kaptKotlin/compile</sourceDir>
                                     <sourceDir>${project.basedir}/target/generated-sources/protobuf/common</sourceDir>
                                     <sourceDir>${project.basedir}/target/generated-sources/protobuf/jvm</sourceDir>
                                 </sourceDirs>
@@ -393,6 +416,8 @@
                                 <sourceDirs>
                                     <sourceDir>${project.basedir}/test/common</sourceDir>
                                     <sourceDir>${project.basedir}/test/jvm</sourceDir>
+                                    <sourceDir>${project.basedir}/target/generated-sources/kapt/test</sourceDir>
+                                    <sourceDir>${project.basedir}/target/generated-sources/kaptKotlin/test</sourceDir>
                                     <sourceDir>${project.basedir}/target/generated-sources/test-protobuf/common</sourceDir>
                                     <sourceDir>${project.basedir}/target/generated-sources/test-protobuf/jvm</sourceDir>
                                 </sourceDirs>
