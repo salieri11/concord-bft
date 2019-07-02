@@ -88,20 +88,6 @@ interface Orchestrator {
     }
 
     /**
-     * Events corresponding to failure in execution of deployment session.
-     * Note: This is a placeholder implementation subject to change
-     * FIXME If we decide to keep this, we need URI and need other events to send this on failure
-     * https://jira.eng.vmware.com/browse/VB-1146
-     */
-    sealed class FailureEvent : OrchestrationEvent {
-
-        data class Failed(
-                val action: DeploymentSessionEvent.Type,
-                val exception: String
-        ) : FailureEvent()
-    }
-
-    /**
      * Network resource provisioning request specification.
      *
      * @param[name]

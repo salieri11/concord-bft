@@ -164,13 +164,13 @@ message DeploymentSessionEvent {
         NODE_DEPLOYED = 4; // Node specified by [node] is deployed.
         NODE_STATUS = 5; // Status update for a node specified in [node_status].
         CLUSTER_DEPLOYED = 6; // Cluster specified by [cluster] is fully deployed.
-        RESOURCE_DEPROVISIONED = 7; // Cluster specified is deprovisioned
+        RESOURCE_DEPROVISIONING = 7; // Cluster specified is deprovisioned
     }
 
     Type type = 1;
     DeploymentSessionIdentifier session = 2;
     DeploymentSession.Status status = 3; /* type == ACKNOWLEDGED | COMPLETED */
-    ProvisionedResource resource = 4; /* type == RESOURCE */
+    ProvisionedResource resource = 4; /* type == RESOURCE | RESOURCE_DEPROVISIONING */
     ConcordNode node = 5; /* type == NODE_DEPLOYED */
     ConcordNodeStatus node_status = 6; /* type == NODE_STATUS */
     ConcordCluster cluster = 7; /* type == CLUSTER_DEPLOYED */

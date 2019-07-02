@@ -68,7 +68,6 @@ import com.vmware.blockchain.deployment.orchestration.Orchestrator.ComputeResour
 import com.vmware.blockchain.deployment.orchestration.Orchestrator.CreateComputeResourceRequest;
 import com.vmware.blockchain.deployment.orchestration.Orchestrator.CreateNetworkAllocationRequest;
 import com.vmware.blockchain.deployment.orchestration.Orchestrator.CreateNetworkResourceRequest;
-import com.vmware.blockchain.deployment.orchestration.Orchestrator.FailureEvent;
 import com.vmware.blockchain.deployment.orchestration.Orchestrator.NetworkAllocationEvent;
 import com.vmware.blockchain.deployment.orchestration.Orchestrator.NetworkResourceEvent;
 import com.vmware.blockchain.deployment.orchestration.Orchestrator.OrchestrationEvent;
@@ -531,8 +530,6 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
         CompletableFuture<DeploymentSession> sessionEventTask = deploymentLog.get(requestSession);
         if (sessionEventTask != null) {
             sessionEventTask.thenAcceptAsync(deploymentSession -> {
-                log.info("ALL REQUEST RES -----------------------------------------------------------------------------"
-                        + deploymentSession.getEvents());
                 final var deleteEvents = deleteResourceEvents(deploymentSession.getEvents());
                 var deprovEv = toDeprovisioningEvents(deploymentSession, deleteEvents,
                         DeploymentSession.Status.SUCCESS);
@@ -552,9 +549,9 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
     private ConcurrentHashMap.KeySetView<OrchestrationEvent, Boolean> deleteResourceEvents(
             List<DeploymentSessionEvent> events
     ) {
-        log.info("events sent---------------------------------------------------------------------------------"
-                + events);
         final var deleteEvents = ConcurrentHashMap.<OrchestrationEvent>newKeySet();
+
+        final List<DeploymentSessionEvent> eventList = new ArrayList<>();
 
         List<Map.Entry<Orchestrator, URI>> networkAllocList = new ArrayList<>();
         List<Map.Entry<Orchestrator, URI>> computeList = new ArrayList<>();
@@ -579,8 +576,6 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
                 }
                 if (resourceType.equals(ProvisionedResource.Type.NETWORK_RESOURCE)) {
                     networkAddrList.add(Map.entry(orchestrators.get(site), resourceUri));
-                    log.info("netAddr list-----------------------------------------------------------------------------"
-                            + networkAddrList);
                 }
             }
         }
@@ -591,26 +586,19 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
         try {
             deleteEvents.addAll(DeleteResource.deleteNetworkAllocations(networkAllocList).get());
         } catch (InterruptedException | ExecutionException e) {
-            deleteEvents.add(new Orchestrator.FailureEvent.Failed(
-                    DeploymentSessionEvent.Type.RESOURCE_DEPROVISIONED,
-                    e.toString()));
+            log.error("NAT deletion failed with exception: " + e);
         }
 
         try {
             deleteEvents.addAll(DeleteResource.deleteDeployments(computeList).get());
         } catch (InterruptedException | ExecutionException e) {
-            deleteEvents.add(new Orchestrator.FailureEvent.Failed(
-                    DeploymentSessionEvent.Type.RESOURCE_DEPROVISIONED,
-                    e.toString()));
+            log.error("Compute Resource deletion failed with exception: " + e);
         }
 
         try {
             deleteEvents.addAll(DeleteResource.deleteNetworkAddresses(networkAddrList).get());
-            log.info("After netR deletion ------------------------------------------------------------" + deleteEvents);
         } catch (InterruptedException | ExecutionException e) {
-            deleteEvents.add(new Orchestrator.FailureEvent.Failed(
-                    DeploymentSessionEvent.Type.RESOURCE_DEPROVISIONED,
-                    e.toString()));
+            log.error("Network Address deletion failed with exception: " + e);
         }
 
         return deleteEvents;
@@ -647,16 +635,9 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
                         OrchestrationSiteIdentifier.Companion.getDefaultValue(),
                         session.getCluster(),
                         ConcordNodeIdentifier.Companion.getDefaultValue());
-            } else if (event instanceof FailureEvent.Failed) {
-                var resEvent = (FailureEvent.Failed) event;
-                resource = new ProvisionedResource(ProvisionedResource.Type.GENERIC,
-                        resEvent.getException(),
-                        OrchestrationSiteIdentifier.Companion.getDefaultValue(),
-                        session.getCluster(),
-                        ConcordNodeIdentifier.Companion.getDefaultValue());
             }
 
-            deprovisioningEvent.add(new DeploymentSessionEvent(DeploymentSessionEvent.Type.RESOURCE_DEPROVISIONED,
+            deprovisioningEvent.add(new DeploymentSessionEvent(DeploymentSessionEvent.Type.RESOURCE_DEPROVISIONING,
                     session.getId(), status, resource,
                     ConcordNode.Companion.getDefaultValue(),
                     ConcordNodeStatus.Companion.getDefaultValue(),
