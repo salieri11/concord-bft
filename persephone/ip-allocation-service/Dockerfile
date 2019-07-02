@@ -28,7 +28,7 @@ RUN mvn -f persephone/pom.xml dependency:resolve-plugins dependency:resolve clea
 COPY ./api ./persephone/api
 COPY ./core ./persephone/core
 COPY ./persistence ./persephone/persistence
-COPY ./persistence/rocksdb ./persephone/persistence/rocksdb
+COPY ./persistence-rocksdb ./persephone/persistence-rocksdb
 
 ## Copy the module sources.
 COPY ./ip-allocation-service ./persephone/ip-allocation-service
@@ -43,6 +43,8 @@ LABEL description="VMware Blockchain Fleet Management IP Allocation Service"
 WORKDIR /persephone/ip-allocation-service
 COPY --from=0 ./persephone/ip-allocation-service/target/persephone-ip-allocation-service*with-dependencies.jar ./ip-allocation-service.jar
 
-CMD ["java", "-jar", "ip-allocation-service.jar"]
+VOLUME ["/config"]
 
 EXPOSE 9099
+
+CMD ["java", "-jar", "ip-allocation-service.jar"]
