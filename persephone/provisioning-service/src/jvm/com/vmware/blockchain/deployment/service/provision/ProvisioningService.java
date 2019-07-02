@@ -21,8 +21,11 @@ import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -57,6 +60,7 @@ import com.vmware.blockchain.deployment.model.PlacementAssignment;
 import com.vmware.blockchain.deployment.model.PlacementSpecification;
 import com.vmware.blockchain.deployment.model.ProvisionedResource;
 import com.vmware.blockchain.deployment.model.ProvisioningServiceImplBase;
+import com.vmware.blockchain.deployment.model.StreamAllClusterDeploymentSessionEventRequest;
 import com.vmware.blockchain.deployment.model.StreamClusterDeploymentSessionEventRequest;
 import com.vmware.blockchain.deployment.model.UpdateDeploymentSessionRequest;
 import com.vmware.blockchain.deployment.model.UpdateDeploymentSessionResponse;
@@ -121,6 +125,16 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
     /** FIXME: In-Memory stand-in/crutches to keep track of deployment log. */
     private final Map<DeploymentSessionIdentifier, CompletableFuture<DeploymentSession>> deploymentLog =
             new ConcurrentHashMap<>();
+
+    /** list of all observers for StreamAllClusterDeploymentSessionEvents. */
+    private static CopyOnWriteArrayList<StreamObserver<DeploymentSessionEvent>> eventsObserver =
+            new CopyOnWriteArrayList<>();
+
+    /** Queue for all deployment session events. */
+    private static final ConcurrentLinkedQueue<DeploymentSessionEvent> eventQueue = new ConcurrentLinkedQueue<>();
+
+    /** Background thread executor. */
+    ExecutorService backgroundExecutor = Executors.newFixedThreadPool(5);
 
     /** Default application.properties file. */
     private String propertyFile = "applications.properties";
@@ -194,6 +208,25 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
             );
         }
         if (STATE.compareAndSet(this, State.STOPPED, State.INITIALIZING)) {
+
+            //Create background tasks
+            // Continuous polling of events happen, given out to observers whenever available
+            Runnable task = () -> {
+                while (true) {
+                    if (eventQueue.size() > 0) {
+                        DeploymentSessionEvent event = eventQueue.poll();
+                        if (!eventsObserver.isEmpty()) {
+                            eventsObserver.forEach(observer -> {
+                                log.info("sending " + event + " to streamObserver " + observer.toString());
+                                observer.onNext(event);
+                            });
+                        }
+                    }
+                }
+            };
+
+            var backgroundFut = backgroundExecutor.submit(task);
+
             // Spawn off sub-tasks to async-create the orchestrator instances.
             return CompletableFuture.allOf(
                     // Initialize all orchestrator, then on completion insert into orchestrator map.
@@ -215,6 +248,16 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
                 STATE.set(this, State.ACTIVE);
 
                 log.info("Service instance initialized");
+            }).thenRunAsync(() -> {
+                try {
+                    backgroundFut.get();
+                } catch (InterruptedException | ExecutionException e) {
+                    log.error("background task failed with exception: " + e);
+                    if (!backgroundExecutor.isTerminated()) {
+                        log.info("background tasks shutting down");
+                        backgroundExecutor.shutdownNow();
+                    }
+                }
             }, executor);
         } else {
             return CompletableFuture.failedFuture(
@@ -243,6 +286,15 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
                     // There may be a need for an awaitable-contract on Orchestrator interface.
                     site.close();
                 });
+
+                log.info("Background tasks shutting down");
+                backgroundExecutor.shutdown();
+
+                // pessimistic shutdown
+                if (!backgroundExecutor.isTerminated()) {
+                    log.info("Cancelling ongoing background tasks, background tasks shutting down");
+                    backgroundExecutor.shutdownNow();
+                }
 
                 // Set instance to STOPPED state.
                 STATE.set(this, State.STOPPED);
@@ -319,6 +371,16 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
         } catch (Throwable error) {
             response.onError(error);
         }
+    }
+
+    @Override
+    public void streamAllClusterDeploymentSessionEvents(
+            StreamAllClusterDeploymentSessionEventRequest message,
+            StreamObserver<DeploymentSessionEvent> observer
+    ) {
+        var response = Objects.requireNonNull(observer);
+        log.info("Adding observer " + response.toString() + " to event observer list");
+        eventsObserver.add(response);
     }
 
     @Override
@@ -644,6 +706,7 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
                     ConcordCluster.Companion.getDefaultValue()));
         });
 
+        eventQueue.addAll(deprovisioningEvent);
         return deprovisioningEvent;
     }
 
@@ -1502,7 +1565,7 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
         // (Existing events, all node events, cluster event, and completion event)
         var nodeEventStream = nodes.stream()
                 .map(node -> newNodeDeploymentEvent(session.getId(), session.getStatus(), node));
-        return Stream
+        var results = Stream
                 .concat(
                         Stream.concat(
                                 Stream.concat(session.getEvents().stream(), resourceEventStream),
@@ -1514,5 +1577,7 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
                         )
                 )
                 .collect(Collectors.toList());
+        eventQueue.addAll(results);
+        return results;
     }
 }
