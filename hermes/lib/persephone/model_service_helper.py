@@ -35,8 +35,10 @@ class ModelServiceRPCHelper(RPCHelper):
       #  directly from persephone's config
       self.DEFAULT_CONCORD_MODEL_VERSION = "1.0"
       self.DEFAULT_CONCORD_MODEL_TEMPLATE = "8abc7fda-9576-4b13-9beb-06f867cf2c7c"
-      self.DEFAULT_CONCORD_COMPONENTS = ["vmwblockchain/concord-core:latest",
-                                         "vmwblockchain/ethrpc:latest"]
+      self.DEFAULT_CONCORD_COMPONENTS = [
+         (concord_model_pb2.ConcordComponent.CONCORD, "vmwblockchain/concord-core:latest"),
+         (concord_model_pb2.ConcordComponent.ETHEREUM_API, "vmwblockchain/ethrpc:latest")
+      ]
 
    def __del__(self):
       self.close_channel(self.service_name)
@@ -75,9 +77,10 @@ class ModelServiceRPCHelper(RPCHelper):
       specific metadata
       '''
       components = []
-      for name in concord_components:
+      for service_type, name in concord_components:
          component = concord_model_pb2.ConcordComponent(
-            type=concord_model_pb2.ConcordComponent.DOCKER_IMAGE,
+            type=concord_model_pb2.ConcordComponent.CONTAINER_IMAGE,
+            service_type=service_type,
             name=name
          )
          components.append(component)

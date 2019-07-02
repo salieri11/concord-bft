@@ -17,7 +17,7 @@ import java.util.Base64
 /**
  * Initialization script run either on first-boot of a deployed virtual machine.
  */
-class InitScript(
+class CloudInit(
     containerRegistry: Endpoint,
     model: ConcordModelSpecification,
     genesis: Genesis,
@@ -27,7 +27,6 @@ class InitScript(
     clusterId: String,
     nodeId: String
 ) {
-
     object GenesisSerializer
         : JsonSerializer(serializersModuleOf(Genesis::class, Genesis.serializer()))
 
@@ -40,7 +39,7 @@ class InitScript(
 
     /** Consolidated Docker PULL command. */
     private val dockerPullCommand: String = model.components.asSequence()
-            .filter { it.type == ConcordComponent.Type.DOCKER_IMAGE }
+            .filter { it.type == ConcordComponent.Type.CONTAINER_IMAGE }
             .map { "docker pull ${URI.create(containerRegistry.address).authority}/${it.name}" }
             .joinToString(separator = "\n", postfix = "\n")
 
@@ -124,7 +123,7 @@ class InitScript(
     }
 
     /**
-     * Express the content of the [InitScript] instance as a base64-encoded [ByteArray].
+     * Express the content of the [CloudInit] instance as a base64-encoded [ByteArray].
      */
     fun base64(): ByteArray = Base64.getEncoder().encode(script.toByteArray(Charsets.UTF_8))
 }

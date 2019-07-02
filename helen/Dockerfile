@@ -17,11 +17,13 @@ COPY ./blockchain-build/pom.xml ./blockchain-build/pom.xml
 COPY ./communication/pom.xml ./communication/pom.xml
 COPY ./persephone/resources/checkstyle.xml ./persephone/resources/checkstyle.xml
 COPY ./persephone/pom.xml ./persephone/pom.xml
+COPY ./persephone/agent/pom.xml ./persephone/agent/pom.xml
 COPY ./persephone/api/pom.xml ./persephone/api/pom.xml
 COPY ./persephone/awsutil/pom.xml ./persephone/awsutil/pom.xml
 COPY ./persephone/cli/pom.xml ./persephone/cli/pom.xml
 COPY ./persephone/config-service/pom.xml ./persephone/config-service/pom.xml
 COPY ./persephone/core/pom.xml ./persephone/core/pom.xml
+COPY ./persephone/fleet-service/pom.xml ./persephone/fleet-service/pom.xml
 COPY ./persephone/ip-allocation-service/pom.xml ./persephone/ip-allocation-service/pom.xml
 COPY ./persephone/metadata-service/pom.xml ./persephone/metadata-service/pom.xml
 COPY ./persephone/orchestration/pom.xml ./persephone/orchestration/pom.xml

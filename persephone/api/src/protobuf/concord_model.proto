@@ -23,11 +23,26 @@ message ConcordComponent {
      */
     enum Type {
         INVALID = 0;
-        DOCKER_IMAGE = 1;
+        CONTAINER_IMAGE = 1; // Container image retrievable from a container registry.
+    }
+
+    /**
+     * Denote the types of component service functions.
+     *
+     * Note: Well-known service types are explicitly defined whereas a specific Concord model *may*
+     * declare additional [ConcordComponent] that does not have a well-known service type, but can
+     * nevertheless be deployed in a context-unaware manner provided that the component type and
+     * name specifies a reachable artifact.
+     */
+    enum ServiceType {
+        GENERIC = 0; // Service function is unspecified. Useful only to convey information.
+        CONCORD = 1;
+        ETHEREUM_API = 2;
     }
 
     Type type = 1;
-    string name = 2;
+    ServiceType service_type = 2;
+    string name = 3;
 }
 
 /**

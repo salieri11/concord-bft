@@ -3,7 +3,7 @@
  * *************************************************************************/
 package com.vmware.blockchain.deployment.vmc
 
-import com.vmware.blockchain.deployment.vm.InitScript
+import com.vmware.blockchain.deployment.vm.CloudInit
 import com.vmware.blockchain.deployment.model.OrchestrationSiteInfo
 import com.vmware.blockchain.deployment.model.VmcOrchestrationSiteInfo
 import com.vmware.blockchain.deployment.model.core.URI
@@ -223,7 +223,7 @@ class VmcOrchestrator private constructor(
                             folder = requireNotNull(folder),
                             controlNetwork = controlNetwork,
                             dataNetwork = dataNetwork,
-                            initScript = InitScript(
+                            initScript = CloudInit(
                                     info.containerRegistry,
                                     request.model,
                                     request.genesis,
@@ -741,7 +741,7 @@ class VmcOrchestrator private constructor(
         folder: String,
         controlNetwork: String,
         dataNetwork: String,
-        initScript: InitScript
+        initScript: CloudInit
     ): String? {
         val deployRequest = LibraryItemDeployRequest(
                 LibraryItemDeploymentSpec(

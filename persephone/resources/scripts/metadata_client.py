@@ -60,11 +60,13 @@ def main():
             template="8abc7fda-9576-4b13-9beb-06f867cf2c7c",
             components=[
                 concord_model.ConcordComponent(
-                    type=concord_model.ConcordComponent.DOCKER_IMAGE,
+                    type=concord_model.ConcordComponent.CONTAINER_IMAGE,
+                    service_type=concord_model.ConcordComponent.CONCORD,
                     name="vmwblockchain/concord-core:latest"
                 ),
                 concord_model.ConcordComponent(
-                    type=concord_model.ConcordComponent.DOCKER_IMAGE,
+                    type=concord_model.ConcordComponent.CONTAINER_IMAGE,
+                    service_type=concord_model.ConcordComponent.ETHEREUM_API,
                     name="vmwblockchain/ethrpc:latest"
                 )
             ]
