@@ -47,6 +47,8 @@ public class OldJwtSecurityConfig extends WebSecurityConfigurerAdapter {
         // Disable CSRF (cross site request forgery)
         http.csrf().disable().sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS).and()
                 .authorizeRequests()
+                // anyone can look at the health
+                .antMatchers("/api/management/health").permitAll()
                 .antMatchers("/api/auth/login", "/api/auth/token", "/api/agreements/1", "/", "/assets/**")
                 .permitAll().anyRequest()
                 .authenticated().and().exceptionHandling()
