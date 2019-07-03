@@ -55,12 +55,9 @@
 #include <csignal>
 
 // bftEngine includes
-#include "CommFactory.hpp"
-#include "Replica.hpp"
-#include "ReplicaConfig.hpp"
-#include "SimpleStateTransfer.hpp"
 #include "test_comm_config.hpp"
 #include "test_parameters.hpp"
+<<<<<<< HEAD
 #include "Logging.hpp"
 
 // simpleTest includes
@@ -92,6 +89,21 @@ ReplicaParams rp;
 #define test_assert(statement, message) \
 { if (!(statement)) { \
 LOG_FATAL(logger, "assert fail with message: " << message); assert(false);}}
+=======
+#include "simple_test_replica.hpp"
+#include "Logging.hpp"
+
+#ifdef USE_LOG4CPP
+#include <log4cplus/configurator.h>
+#endif
+
+#define REPLICA2_RESTART_NO_VC (0)
+#define ALL_REPLICAS_RESTART_NO_VC (0)
+#define REPLICA2_RESTART_VC (1)
+#define ALL_REPLICAS_RESTART_VC (0)
+#define PRIMARY_REPLICA_RESTART (0)
+static_assert(REPLICA2_RESTART_NO_VC + ALL_REPLICAS_RESTART_NO_VC + REPLICA2_RESTART_VC + ALL_REPLICAS_RESTART_VC + PRIMARY_REPLICA_RESTART <= 1, "");
+>>>>>>> 189edf4... unit test partially work, first attempt
 
 using bftEngine::ICommunication;
 using bftEngine::PlainUDPCommunication;
@@ -103,9 +115,15 @@ using bftEngine::Replica;
 using bftEngine::ReplicaConfig;
 using bftEngine::RequestsHandler;
 using namespace std;
+using namespace bftEngine;
 
+<<<<<<< HEAD
 void parse_params(int argc, char **argv) {
   if (argc < 2) {
+=======
+void parse_params(int argc, char** argv, ReplicaParams &rp) {
+  if(argc < 2) {
+>>>>>>> 189edf4... unit test partially work, first attempt
     throw std::runtime_error("Unable to read replica id");
   }
 
@@ -186,6 +204,7 @@ void parse_params(int argc, char **argv) {
     } catch (std::out_of_range &e) {
       printf("One of the parameters is out of range\n");
       exit(-1);
+<<<<<<< HEAD
     }
   }
 
@@ -273,11 +292,12 @@ class SimpleAppState : public RequestsHandler {
       outActualReplySize = sizeof(uint64_t);
 
       st->markUpdate(statePtr, sizeof(State) * numOfClients);
+=======
+>>>>>>> 189edf4... unit test partially work, first attempt
     }
-
-    return 0;
   }
 
+<<<<<<< HEAD
   struct State {
     // Number of modifications made.
     uint64_t stateNum = 0;
@@ -293,6 +313,15 @@ class SimpleAppState : public RequestsHandler {
 
   bftEngine::SimpleInMemoryStateTransfer::ISimpleInMemoryStateTransfer *st = nullptr;
 };
+=======
+}
+
+SimpleTestReplica *replica;
+void signalHandler( int signum ) {
+  if(replica)
+    replica->stop();
+}
+>>>>>>> 189edf4... unit test partially work, first attempt
 
 int main(int argc, char **argv) {
 #ifdef USE_LOG4CPP
@@ -301,6 +330,7 @@ int main(int argc, char **argv) {
   BasicConfigurator config;
   config.configure();
 #endif
+<<<<<<< HEAD
   parse_params(argc, argv);
 
   // allows to attach debugger
@@ -309,6 +339,17 @@ int main(int argc, char **argv) {
 
 //  signal(SIGABRT, signalHandler);
 //  signal(SIGTERM, signalHandler);
+=======
+  ReplicaParams rp;
+  parse_params(argc, argv, rp);
+
+  // allows to attach debugger
+  if(rp.debug)
+    std::this_thread::sleep_for(chrono::seconds(20));
+
+  signal(SIGABRT, signalHandler);
+  signal(SIGTERM, signalHandler);
+>>>>>>> 189edf4... unit test partially work, first attempt
 
   ReplicaConfig replicaConfig;
   TestCommConfig testCommConfig(replicaLogger);
@@ -323,6 +364,26 @@ int main(int argc, char **argv) {
   replicaConfig.autoViewChangeEnabled = true;
 #endif
 
+<<<<<<< HEAD
+=======
+  PersistencyTestInfo pti;
+#if REPLICA2_RESTART_NO_VC
+  pti.replica2RestartNoVC = true;
+#endif
+#if REPLICA2_RESTART_VC
+  pti.replica2RestartVC = true;
+#endif
+#if ALL_REPLICAS_RESTART_NO_VC
+  pti.allReplicasRestartNoVC = true;
+#endif
+#if ALL_REPLICAS_RESTART_VC
+  pti.allReplicasRestartVC = true;
+#endif
+#if PRIMARY_REPLICA_RESTART
+  pti.primaryReplicaRestart = true;
+#endif
+
+>>>>>>> 189edf4... unit test partially work, first attempt
 #ifdef USE_COMM_PLAIN_TCP
   PlainTcpConfig conf = testCommConfig.GetTCPConfig(true, rp.replicaId,
                                                     rp.numOfClients,
@@ -362,7 +423,11 @@ int main(int argc, char **argv) {
   // This is the state machine that the replica will drive.
   SimpleAppState simpleAppState(rp.numOfClients, rp.numOfReplicas);
 
+<<<<<<< HEAD
   bftEngine::SimpleInMemoryStateTransfer::ISimpleInMemoryStateTransfer *st =
+=======
+  bftEngine::SimpleInMemoryStateTransfer::ISimpleInMemoryStateTransfer* st =
+>>>>>>> 189edf4... unit test partially work, first attempt
       bftEngine::SimpleInMemoryStateTransfer::create(
           simpleAppState.statePtr,
           sizeof(SimpleAppState::State) * rp.numOfClients,
@@ -371,15 +436,10 @@ int main(int argc, char **argv) {
           replicaConfig.cVal, true);
 
   simpleAppState.st = st;
-
-  replica = Replica::createNewReplica(
-      &replicaConfig,
-      &simpleAppState,
-      st,
-      comm,
-      nullptr);
-
+  SimpleTestReplica *replica = new SimpleTestReplica(comm, simpleAppState,
+                                                     &replicaConfig, pti, st);
   replica->start();
+<<<<<<< HEAD
 
   while (replica->isRunning()) {
 
@@ -405,5 +465,10 @@ int main(int argc, char **argv) {
 
   }
 
+=======
+  // The replica is now running in its own thread. Block the main thread until
+  // sigabort, sigkill or sigterm are not raised and then exit gracefully
+  replica->run();
+>>>>>>> 189edf4... unit test partially work, first attempt
   return 0;
 }
