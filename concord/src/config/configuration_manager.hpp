@@ -32,8 +32,7 @@
 #include <map>
 #include <unordered_set>
 
-#include <boost/program_options.hpp>
-
+#include <cryptopp/dll.h>
 #include <log4cplus/configurator.h>
 #include <log4cplus/loggingmacros.h>
 #include <boost/program_options.hpp>
@@ -1368,6 +1367,18 @@ struct ConcordPrimaryConfigurationAuxiliaryState
   virtual ~ConcordPrimaryConfigurationAuxiliaryState();
   virtual ConfigurationAuxiliaryState* clone();
 };
+
+const unsigned int kRSAKeyLength = 2048;
+
+// Generates an RSA private/public key pair for use within Concord. This
+// function is used primarily at configuration generation time, and, at the time
+// of this writing, this function generally should not be used elsewhere within
+// Concord's actual code, however, we are currently exposing this functionally
+// to facilitate unit testing of components using RSA keys without requiring
+// those unit tests to configure an entire Concord cluster. Note the keys are
+// returned through an std::pair in the order (private key, public key).
+std::pair<std::string, std::string> generateRSAKeyPair(
+    CryptoPP::RandomPool& randomnessSource);
 
 // Builds a ConcordConfiguration object to contain the definition of the current
 // configuration we are using. This function is intended to serve as a single

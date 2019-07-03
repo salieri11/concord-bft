@@ -33,6 +33,8 @@ using namespace boost::program_options;
 // Protobuf interface
 using namespace com::vmware::concord;
 
+using std::vector;
+
 using concord::common::BlockNotFoundException;
 using concord::common::EthBlock;
 using concord::common::EthLog;
@@ -280,8 +282,9 @@ bool EthKvbCommandsHandler::handle_time_request(ConcordRequest &req,
     // Only apply the new sample if the command was issued in read-write mode.
     if (!kvbStorage.is_read_only() && tr.has_sample()) {
       TimeSample ts = tr.sample();
-      if (ts.has_source() && ts.has_time()) {
-        tc.Update(ts.source(), ts.time());
+      if (ts.has_source() && ts.has_time() && ts.has_signature()) {
+        vector<uint8_t> signature(ts.signature().begin(), ts.signature().end());
+        tc.Update(ts.source(), ts.time(), signature);
       } else {
         LOG4CPLUS_WARN(
             logger,
@@ -303,7 +306,8 @@ bool EthKvbCommandsHandler::handle_time_request(ConcordRequest &req,
       for (auto s : tc.GetSamples()) {
         TimeSample *ts = tp->add_sample();
         ts->set_source(s.first);
-        ts->set_time(s.second);
+        ts->set_time(s.second.time);
+        ts->set_signature(s.second.signature.data(), s.second.signature.size());
       }
     }
   } else {
@@ -426,7 +430,7 @@ bool EthKvbCommandsHandler::handle_transaction_list_request(
                  static_cast<int>(request.count()));
     TransactionListResponse *response =
         concresp.mutable_transaction_list_response();
-    std::vector<evm_uint256be>::iterator it;
+    vector<evm_uint256be>::iterator it;
     EthBlock curr_block;
 
     if (request.has_latest()) {
@@ -878,7 +882,7 @@ bool EthKvbCommandsHandler::handle_eth_getCode(
   // handle the block number parameter
   uint64_t block_number = parse_block_parameter(request, kvbStorage);
 
-  std::vector<uint8_t> code;
+  vector<uint8_t> code;
   evm_uint256be hash{{0}};
   if (kvbStorage.get_code(account, code, hash, block_number)) {
     EthResponse *response = concresp.add_eth_response();
@@ -976,7 +980,7 @@ bool EthKvbCommandsHandler::handle_eth_getBalance(
  */
 void EthKvbCommandsHandler::recover_from(const EthRequest &request,
                                          evm_address *sender) const {
-  static const std::vector<uint8_t> empty;
+  static const vector<uint8_t> empty;
 
   if (request.has_sig_v() && request.has_sig_r() &&
       request.sig_r().size() == sizeof(evm_uint256be) && request.has_sig_s() &&
@@ -1049,7 +1053,7 @@ void EthKvbCommandsHandler::recover_from(const EthRequest &request,
       rlpb.add(empty);
     }
 
-    std::vector<uint8_t> rlp = rlpb.build();
+    vector<uint8_t> rlp = rlpb.build();
     evm_uint256be rlp_hash = concord::utils::eth_hash::keccak_hash(rlp);
 
     // Then we can check it against the signature.
@@ -1176,7 +1180,7 @@ evm_result EthKvbCommandsHandler::run_evm(
     message.flags |= EVM_STATIC;
   }
 
-  std::vector<EthLog> logs;
+  vector<EthLog> logs;
 
   if (request.has_addr_to()) {
     message.kind = EVM_CALL;
@@ -1247,7 +1251,7 @@ evm_result EthKvbCommandsHandler::run_evm(
 evm_uint256be EthKvbCommandsHandler::record_transaction(
     const evm_message &message, const EthRequest &request, const uint64_t nonce,
     const evm_result &result, const uint64_t timestamp,
-    const std::vector<EthLog> &logs, EthKvbStorage &kvbStorage) const {
+    const vector<EthLog> &logs, EthKvbStorage &kvbStorage) const {
   // "to" is empty if this was a create
   evm_address to =
       message.kind == EVM_CALL ? message.destination : zero_address;
@@ -1278,24 +1282,23 @@ evm_uint256be EthKvbCommandsHandler::record_transaction(
   uint64_t gas_left = static_cast<uint64_t>(result.gas_left);
   uint64_t gas_used = gas_limit - gas_left;
 
-  EthTransaction tx = {
-      nonce,
-      zero_hash,       // block_hash: will be set during write_block
-      0,               // block_number: will be set during write_block
-      message.sender,  // from
-      to,
-      create_address,
-      std::vector<uint8_t>(message.input_data,
-                           message.input_data + message.input_size),
-      result.status_code,
-      message.value,  // value
-      gas_price,
-      gas_limit,
-      gas_used,
-      logs,
-      sig_r,
-      sig_s,
-      sig_v};
+  EthTransaction tx = {nonce,
+                       zero_hash,  // block_hash: will be set during write_block
+                       0,  // block_number: will be set during write_block
+                       message.sender,  // from
+                       to,
+                       create_address,
+                       vector<uint8_t>(message.input_data,
+                                       message.input_data + message.input_size),
+                       result.status_code,
+                       message.value,  // value
+                       gas_price,
+                       gas_limit,
+                       gas_used,
+                       logs,
+                       sig_r,
+                       sig_s,
+                       sig_v};
   kvbStorage.add_transaction(tx);
   kvbStorage.set_nonce(message.sender, nonce + 1);
 

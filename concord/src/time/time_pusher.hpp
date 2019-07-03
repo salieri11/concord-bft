@@ -19,12 +19,24 @@
 #include "concord.pb.h"
 #include "config/configuration_manager.hpp"
 #include "consensus/kvb_client.hpp"
+#include "time/time_signing.hpp"
 
 namespace concord {
 namespace time {
 
 class TimePusher {
  public:
+  // Constructor for TimePusher. Arguments:
+  //   - config: ConcordConfiguration for this Concord cluster.
+  //   - nodeConfig: node-specific configuration for the node for which this
+  //   time pusher will submit updates. Note that the time source ID and
+  //   associated private key will be read from this configuration. An
+  //   std::invalid_argument may be thrown if an appropriate source ID and
+  //   private key cannot be founde in nodeConfig or either of the
+  //   ConcordConfigurations passed to the constructor otherwise do not meet the
+  //   expectations of the time service.
+  //   - clientPool: KVBClientPool through which this TimePusher will publish
+  //   its updates.
   explicit TimePusher(const concord::config::ConcordConfiguration &config,
                       const concord::config::ConcordConfiguration &nodeConfig,
                       concord::consensus::KVBClientPool &clientPool);
@@ -48,6 +60,7 @@ class TimePusher {
   bool timeServiceEnabled_;
   int periodMilliseconds_;
   std::string timeSourceId_;
+  concord::time::TimeSigner signer_;
 
   std::thread pusherThread_;
   std::mutex threadMutex_;
