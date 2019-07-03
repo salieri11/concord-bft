@@ -7,7 +7,6 @@ package com.vmware.blockchain.security;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.actuate.autoconfigure.security.servlet.EndpointRequest;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -53,6 +52,7 @@ public class CspSecurityConfig extends WebSecurityConfigurerAdapter {
     @Override
     protected void configure(HttpSecurity http) throws Exception {
         logger.info("Configure security with CSP enabled");
+
         // Disable CSRF (cross site request forgery)
         http.csrf().disable().sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS).and()
                 // Session fixation is a problem with the ui due to concurrency
@@ -62,6 +62,7 @@ public class CspSecurityConfig extends WebSecurityConfigurerAdapter {
                 .antMatchers("/api/oauth/login", "/api/oauth/oauth").permitAll()
                 // anyone can look at the health
                 .antMatchers("/api/management/health").permitAll()
+                .antMatchers("/api/management/**").hasAnyRole(Roles.SYSTEM_ADMIN.getName())
                 .anyRequest()
                 .authenticated().and().exceptionHandling()
                 .authenticationEntryPoint(restAuthticationEntryPoint)
@@ -69,10 +70,6 @@ public class CspSecurityConfig extends WebSecurityConfigurerAdapter {
         http.addFilterBefore(new TokenAuthenticationFilter(authenticationManager()),
                              UsernamePasswordAuthenticationFilter.class);
         http.addFilterBefore(tokenRefreshFilter, TokenAuthenticationFilter.class);
-        // Only system admin can look at general management endpoints.
-        http.requestMatcher(EndpointRequest.toAnyEndpoint()).authorizeRequests().anyRequest().hasAnyRole(
-                Roles.SYSTEM_ADMIN.getName());
-
 
     }
 
