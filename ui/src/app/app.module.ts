@@ -21,6 +21,8 @@ import { MarketingModule } from './marketing/marketing.module';
 import { VmwClarityThemeService } from './shared/theme.provider';
 import { VIPModule } from '@vmw/ngx-vip';
 
+import { AppInitService } from './app.init';
+
 export function HttpLoaderFactory(http: HttpClient) {
   return new TranslateHttpLoader(http, 'static/i18n/', '.json');
 }
@@ -63,9 +65,13 @@ function initLanguage(translate: TranslateService, languages: string[], resolve:
   });
 }
 
+export function init_app(appLoadService: AppInitService) {
+  return () => appLoadService.init();
+}
+
 @NgModule({
   declarations: [
-    AppComponent
+    AppComponent,
   ],
   imports: [
     BrowserModule,
@@ -86,6 +92,13 @@ function initLanguage(translate: TranslateService, languages: string[], resolve:
     })
   ],
   providers: [
+    AppInitService,
+    {
+      provide: APP_INITIALIZER,
+      useFactory: init_app,
+      deps: [AppInitService],
+      multi: true
+    },
     VmwClarityThemeService,
     {
       provide: APP_INITIALIZER,
