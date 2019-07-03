@@ -26,6 +26,9 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -77,6 +80,7 @@ import com.vmware.blockchain.deployment.orchestration.Orchestrator.NetworkResour
 import com.vmware.blockchain.deployment.orchestration.Orchestrator.OrchestrationEvent;
 import com.vmware.blockchain.deployment.reactive.ReactiveStream;
 
+import io.grpc.stub.ServerCallStreamObserver;
 import io.grpc.stub.StreamObserver;
 
 
@@ -134,7 +138,10 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
     private static final ConcurrentLinkedQueue<DeploymentSessionEvent> eventQueue = new ConcurrentLinkedQueue<>();
 
     /** Background thread executor. */
-    ExecutorService backgroundExecutor = Executors.newFixedThreadPool(5);
+    private static final ScheduledExecutorService backgroundExecutor = Executors.newSingleThreadScheduledExecutor();
+
+    /** Background task future. */
+    private ScheduledFuture<?> backgroundTask;
 
     /** Default application.properties file. */
     private String propertyFile = "applications.properties";
@@ -212,20 +219,40 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
             //Create background tasks
             // Continuous polling of events happen, given out to observers whenever available
             Runnable task = () -> {
-                while (true) {
-                    if (eventQueue.size() > 0) {
-                        DeploymentSessionEvent event = eventQueue.poll();
-                        if (!eventsObserver.isEmpty()) {
-                            eventsObserver.forEach(observer -> {
-                                log.info("sending " + event + " to streamObserver " + observer.toString());
+                if (eventQueue.size() > 0 && !eventsObserver.isEmpty()) {
+                    DeploymentSessionEvent event = eventQueue.poll();
+                    List<Map.Entry<StreamObserver, Exception>> cleanupList = new ArrayList<>();
+                    eventsObserver.forEach(observer -> {
+                        try {
+                            ServerCallStreamObserver callStreamObs = (ServerCallStreamObserver) observer;
+                            if (callStreamObs.isCancelled()) {
+                                log.info("streamObserver ({}) cancelled", observer);
+                                cleanupList.add(Map.entry(observer, new Exception("Observer connection lost")));
+                            } else {
+                                log.info("sending ({}) to streamObserver ({})", event, observer.toString());
                                 observer.onNext(event);
-                            });
+                            }
+                        } catch (Exception e) {
+                            log.info("Observer ({}) had error {}", observer, e);
+                            cleanupList.add(Map.entry(observer, e));
                         }
+                    });
+
+                    if (!cleanupList.isEmpty()) {
+                        cleanupList.forEach(cleanObs -> {
+                            try {
+                                var obs = cleanObs.getKey();
+                                log.info("Removing observer: {} from list", obs);
+                                eventsObserver.remove(obs);
+                                obs.onError(cleanObs.getValue());
+                            } catch (Exception e) {
+                                log.error("Error sending Error message to observer ({}). Original Exception: {}."
+                                        + " Exception: {}", cleanObs.getKey(), cleanObs.getValue(), e);
+                            }
+                        });
                     }
                 }
             };
-
-            var backgroundFut = backgroundExecutor.submit(task);
 
             // Spawn off sub-tasks to async-create the orchestrator instances.
             return CompletableFuture.allOf(
@@ -249,15 +276,9 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
 
                 log.info("Service instance initialized");
             }).thenRunAsync(() -> {
-                try {
-                    backgroundFut.get();
-                } catch (InterruptedException | ExecutionException e) {
-                    log.error("background task failed with exception: " + e);
-                    if (!backgroundExecutor.isTerminated()) {
-                        log.info("background tasks shutting down");
-                        backgroundExecutor.shutdownNow();
-                    }
-                }
+                backgroundTask = backgroundExecutor
+                        .scheduleAtFixedRate(task, 30, 1, TimeUnit.SECONDS);
+                log.info("Background task scheduled to run at 1 second interval after 30sec of initial wait.");
             }, executor);
         } else {
             return CompletableFuture.failedFuture(
@@ -287,14 +308,10 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
                     site.close();
                 });
 
+                // background task shutdown
                 log.info("Background tasks shutting down");
+                backgroundTask.cancel(false);
                 backgroundExecutor.shutdown();
-
-                // pessimistic shutdown
-                if (!backgroundExecutor.isTerminated()) {
-                    log.info("Cancelling ongoing background tasks, background tasks shutting down");
-                    backgroundExecutor.shutdownNow();
-                }
 
                 // Set instance to STOPPED state.
                 STATE.set(this, State.STOPPED);
