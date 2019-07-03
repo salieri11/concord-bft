@@ -780,6 +780,7 @@ BlockId BlockchainDBAdapter::getLastReachableBlock() {
   Sliver blockKey = KeyManipulator::genBlockDbKey(1);
   KeyValuePair kvp = iter->seekAtLeast(blockKey);
   if (kvp.first.length() == 0) {
+    m_db->freeIterator(iter);
     return 0;
   }
 
