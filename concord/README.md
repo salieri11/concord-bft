@@ -524,9 +524,18 @@ A new "time service" is under development in concord. Its code is
 primarily in the src/time/ directory. Details about the design of this
 service are here: https://confluence.eng.vmware.com/display/BLOC/Time+Service.
 
-The service is disabled by default. To enable it, set the config
-parameter `FEATURE_time_service` to `true` in all of your node config
-files, and then assign each node a unique `time_source_id` in its node
-scope. Defaults of `false` and `concord[1..4]` have been added to the
-example config input files in `test/resources/config_input/` to help
-with this process.
+The service is disabled by default. To enable it, set the config parameter
+`FEATURE_time_service` to `true` in all of your node config files, and then
+assign each node a unique `time_source_id` in its node scope. Defaults of
+`false` and `concord[1..4]` have been added to the example config input files in
+`test/resources/config_input/` to help with this process. At the time of this
+writing, the replicas' existing RSA keys will be used to sign and verify time
+samples exchanged in the time service, so currently it is not necessary to add
+any additional cryptographic keys to the configuration files when enabling the
+time service.
+
+Note that the time service's current implementation relies on the assumption
+that the `time_source_id` for any particular time source will not differ in its
+in-memory representation at a byte level on any pair of replicas or time
+sources; this effectively requires that the time source IDs are stored in the
+memory of each node with the same or at least compatible character encodings.

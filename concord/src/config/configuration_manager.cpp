@@ -1876,6 +1876,27 @@ ConcordPrimaryConfigurationAuxiliaryState::clone() {
   return copy;
 }
 
+// generateRSAKeyPair implementation, which itself just uses an implementation
+// for RSA key generation from CryptoPP.
+std::pair<std::string, std::string> generateRSAKeyPair(
+    CryptoPP::RandomPool& randomnessSource) {
+  std::pair<std::string, std::string> keyPair;
+
+  CryptoPP::RSAES<CryptoPP::OAEP<CryptoPP::SHA256>>::Decryptor privateKey(
+      randomnessSource, kRSAKeyLength);
+  CryptoPP::HexEncoder privateEncoder(new CryptoPP::StringSink(keyPair.first));
+  privateKey.DEREncode(privateEncoder);
+  privateEncoder.MessageEnd();
+
+  CryptoPP::RSAES<CryptoPP::OAEP<CryptoPP::SHA256>>::Encryptor publicKey(
+      privateKey);
+  CryptoPP::HexEncoder publicEncoder(new CryptoPP::StringSink(keyPair.second));
+  publicKey.DEREncode(publicEncoder);
+  publicEncoder.MessageEnd();
+
+  return keyPair;
+}
+
 // Helper functions to the validation, generation, and sizing functions to
 // follow.
 
@@ -3557,29 +3578,6 @@ void loadConfigurationInputParameters(YAMLConfigurationInput& input,
   }
 }
 
-static unsigned int kRSAKeyLength = 2048;
-
-// Helper function to generateConfigurationKeys for generating RSA keys; this
-// function uses CryptoPP's implementation of RSA key generation.
-static std::pair<std::string, std::string> generateRSAKeyPair(
-    CryptoPP::RandomPool& randomnessSource) {
-  std::pair<std::string, std::string> keyPair;
-
-  CryptoPP::RSAES<CryptoPP::OAEP<CryptoPP::SHA256>>::Decryptor privateKey(
-      randomnessSource, kRSAKeyLength);
-  CryptoPP::HexEncoder privateEncoder(new CryptoPP::StringSink(keyPair.first));
-  privateKey.DEREncode(privateEncoder);
-  privateEncoder.MessageEnd();
-
-  CryptoPP::RSAES<CryptoPP::OAEP<CryptoPP::SHA256>>::Encryptor publicKey(
-      privateKey);
-  CryptoPP::HexEncoder publicEncoder(new CryptoPP::StringSink(keyPair.second));
-  publicKey.DEREncode(publicEncoder);
-  publicEncoder.MessageEnd();
-
-  return keyPair;
-}
-
 void generateConfigurationKeys(ConcordConfiguration& config) {
   log4cplus::Logger logger =
       log4cplus::Logger::getInstance("com.vmware.concord.configuration");
@@ -3683,7 +3681,7 @@ void generateConfigurationKeys(ConcordConfiguration& config) {
   auxState->clientProxyRSAKeys.clear();
 
   LOG4CPLUS_INFO(logger, "Generating Concord-BFT principal RSA keys...");
-  CryptoPP::RandomPool randomPool;
+  CryptoPP::AutoSeededRandomPool randomPool;
   for (uint16_t i = 0; i < numReplicas; ++i) {
     auxState->replicaRSAKeys.push_back(generateRSAKeyPair(randomPool));
     auxState->clientProxyRSAKeys.push_back(

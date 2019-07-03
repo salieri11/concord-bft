@@ -68,6 +68,7 @@ message Time {
    message Sample {
      optional bytes source = 1;
      optional int64 time = 2;
+     optional bytes signature = 3;
    }
    optional int64 version = 1;
    repeated Sample sample = 2;

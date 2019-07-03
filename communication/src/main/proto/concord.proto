@@ -214,6 +214,7 @@ message TimeResponse {
 message TimeSample {
    optional bytes source = 1;
    optional uint64 time = 2;
+   optional bytes signature = 3;
 }
 
 message TransactionListRequest {

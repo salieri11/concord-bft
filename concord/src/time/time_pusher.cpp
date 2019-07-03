@@ -24,7 +24,8 @@ TimePusher::TimePusher(const concord::config::ConcordConfiguration &config,
     : logger_(log4cplus::Logger::getInstance("concord.time.pusher")),
       clientPool_(clientPool),
       stop_(false),
-      lastPublishTimeMs_(0) {
+      lastPublishTimeMs_(0),
+      signer_(nodeConfig) {
   // memoizing enable flag, to make checking faster later
   timeServiceEnabled_ = concord::time::IsTimeServiceEnabled(config);
 
@@ -91,10 +92,13 @@ void TimePusher::AddTimeToCommand(ConcordRequest &command) {
 }
 
 void TimePusher::AddTimeToCommand(ConcordRequest &command, uint64_t time) {
+  std::vector<uint8_t> signature = signer_.Sign(time);
+
   TimeRequest *tr = command.mutable_time_request();
   TimeSample *ts = tr->mutable_sample();
   ts->set_source(timeSourceId_);
   ts->set_time(time);
+  ts->set_signature(signature.data(), signature.size());
   lastPublishTimeMs_ = time;
 }
 
