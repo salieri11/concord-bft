@@ -8,6 +8,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
+import java.util.UUID;
 import java.util.regex.Pattern;
 
 import org.apache.commons.io.FileUtils;
@@ -153,9 +154,13 @@ final class AgentDockerClient {
 
     private void populateConfig() {
         try {
-            String clusterId = configuration.getCluster();
-            String nodeId = configuration.getNode();
+            var clusterId = new UUID(configuration.getCluster().getHigh(),
+                                   configuration.getCluster().getLow()).toString();
+            var nodeId = new UUID(configuration.getNode().getHigh(),
+                                configuration.getNode().getLow()).toString();
             String configPath = clusterId + "/" + nodeId;
+            log.info("Configuration path: {}", configPath);
+
             S3Object s3object = awsClient.getObject(s3bucket, configPath);
             S3ObjectInputStream inputStream = s3object.getObjectContent();
             FileUtils.copyInputStreamToFile(inputStream, new File("/concord/config-local/concord.config"));
@@ -207,10 +212,16 @@ final class AgentDockerClient {
 
                 var imageId = docker.listImagesCmd().exec().stream()
                         .filter(image -> {
-                            for (var tag : image.getRepoTags()) {
-                                if (tag.contains(componentImage.getRepository())
-                                        && tag.contains(componentImage.getTag())) {
-                                    return true;
+                            log.info("Image: id({}), created({})", image.getId(), image.getCreated());
+
+                            if (image.getRepoTags() != null) {
+                                for (var tag : image.getRepoTags()) {
+                                    log.info("Tag: {}", tag);
+
+                                    if (tag.contains(componentImage.getRepository())
+                                            && tag.contains(componentImage.getTag())) {
+                                        return true;
+                                    }
                                 }
                             }
                             return false;

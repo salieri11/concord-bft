@@ -16,8 +16,10 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.http.converter.protobuf.ProtobufHttpMessageConverter;
 
 import com.vmware.blockchain.deployment.model.ConcordAgentConfiguration;
+import com.vmware.blockchain.deployment.model.ConcordClusterIdentifier;
 import com.vmware.blockchain.deployment.model.ConcordComponent;
 import com.vmware.blockchain.deployment.model.ConcordModelSpecification;
+import com.vmware.blockchain.deployment.model.ConcordNodeIdentifier;
 import com.vmware.blockchain.deployment.model.Credential;
 import com.vmware.blockchain.deployment.model.Endpoint;
 
@@ -90,8 +92,8 @@ public class Application {
                     model,
                     registryEndpoint,
                     fleetEndpoint,
-                    "default-cluster",
-                    "default-node"
+                    ConcordClusterIdentifier.Companion.getDefaultValue(),
+                    ConcordNodeIdentifier.Companion.getDefaultValue()
             );
         }
 

@@ -751,7 +751,6 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
                                         placement.getNode(),
                                         model,
                                         session.getSpecification().getGenesis(),
-                                        config,
                                         privateNetworkAddressMap.get(entry.getKey())
                                 );
 
@@ -882,8 +881,6 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
      *   identifier of the Concord node to deploy.
      * @param model
      *   model to use to setup the node.
-     * @param configuration
-     *   payload to the node's initial configuration data.
      *
      * @return
      *   a {@link Publisher} of {@link OrchestrationEvent}s corresponding to the execution
@@ -895,7 +892,6 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
             ConcordNodeIdentifier nodeId,
             ConcordModelSpecification model,
             Genesis genesis,
-            String configuration,
             NetworkResourceEvent.Created networkResourceEvent
     ) {
         var computeRequest = new CreateComputeResourceRequest(
@@ -903,7 +899,6 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
                 nodeId,
                 model,
                 genesis,
-                configuration,
                 networkResourceEvent.getAddress()
         );
         return orchestrator.createDeployment(computeRequest);

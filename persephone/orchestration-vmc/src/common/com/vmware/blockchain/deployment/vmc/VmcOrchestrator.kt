@@ -3,7 +3,7 @@
  * *************************************************************************/
 package com.vmware.blockchain.deployment.vmc
 
-import com.vmware.blockchain.deployment.vm.CloudInit
+import com.vmware.blockchain.deployment.vm.CloudInitConfiguration
 import com.vmware.blockchain.deployment.model.OrchestrationSiteInfo
 import com.vmware.blockchain.deployment.model.VmcOrchestrationSiteInfo
 import com.vmware.blockchain.deployment.model.core.URI
@@ -36,6 +36,8 @@ import com.vmware.blockchain.deployment.orchestration.Orchestrator
 import com.vmware.blockchain.deployment.orchestration.randomSubnet
 import com.vmware.blockchain.deployment.orchestration.toIPv4Address
 import com.vmware.blockchain.deployment.reactive.Publisher
+import com.vmware.blockchain.protobuf.kotlinx.serialization.ByteString
+import com.vmware.blockchain.protobuf.kotlinx.serialization.encodeBase64
 import kotlinx.atomicfu.atomic
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -191,7 +193,7 @@ class VmcOrchestrator private constructor(
                 try {
                     val clusterId = UUID(request.cluster.high, request.cluster.low)
                     val nodeId = UUID(request.node.high, request.node.low)
-                    val subnetMask = (1 shl (32 - info.controlNetworkSubnet)) - 1
+                    val subnetMask = ((1 shl (32 - info.controlNetworkSubnet)) - 1).inv()
 
                     val getFolder = async { getFolder(name = info.folder) }
                     val getDatastore = async { getDatastore() }
@@ -200,7 +202,7 @@ class VmcOrchestrator private constructor(
                         ensureLogicalNetwork(
                                 "cgw",
                                 info.controlNetwork,
-                                info.controlNetworkGateway and subnetMask.inv(),
+                                info.controlNetworkGateway and subnetMask,
                                 info.controlNetworkSubnet,
                                 info.controlNetworkSubnet
                         )
@@ -225,15 +227,15 @@ class VmcOrchestrator private constructor(
                             folder = requireNotNull(folder),
                             controlNetwork = controlNetwork,
                             dataNetwork = dataNetwork,
-                            initScript = CloudInit(
+                            cloudInit = CloudInitConfiguration(
                                     info.containerRegistry,
                                     request.model,
                                     request.genesis,
                                     request.privateNetworkAddress,
-                                    toIPv4Address(staticIpGateway),
+                                    staticIpGateway.toIPv4Address(),
                                     info.controlNetworkSubnet,
-                                    clusterId.toString(),
-                                    nodeId.toString()
+                                    request.cluster,
+                                    request.node
                             )
                     )
 
@@ -298,9 +300,9 @@ class VmcOrchestrator private constructor(
                     //   using VM's public IP address.
                     val privateIp = staticIpCounter.getAndIncrement()
                     send(Orchestrator.NetworkResourceEvent.Created(
-                            URI.create(toIPv4Address(privateIp)),
+                            URI.create(privateIp.toIPv4Address()),
                             request.name,
-                            toIPv4Address(privateIp),
+                            privateIp.toIPv4Address(),
                             false))
 
                     val publicIp = createPublicIP(request.name)
@@ -599,8 +601,10 @@ class VmcOrchestrator private constructor(
         val subnet = randomSubnet(prefix, prefixSubnet, subnetSize)
         val subnetMax = subnet + (1 shl (Int.SIZE_BITS - subnetSize)) - 1
         val segmentSubnet = SegmentSubnet(
-                gateway_address = "${toIPv4Address(subnet + 1)}/$subnetSize",
-                dhcp_ranges = listOf("${toIPv4Address(subnet + 2)}-${toIPv4Address(subnetMax - 1)}")
+                gateway_address = "${(subnet + 1).toIPv4Address()}/$subnetSize",
+                dhcp_ranges = listOf(
+                        "${(subnet + 2).toIPv4Address()}-${(subnetMax - 1).toIPv4Address()}"
+                )
         )
         val segment = Segment(subnets = listOf(segmentSubnet))
 
@@ -743,8 +747,9 @@ class VmcOrchestrator private constructor(
         folder: String,
         controlNetwork: String,
         dataNetwork: String,
-        initScript: CloudInit
+        cloudInit: CloudInitConfiguration
     ): String? {
+        val encodedUserData = ByteString(cloudInit.userData().toByteArray()).encodeBase64()
         val deployRequest = LibraryItemDeployRequest(
                 LibraryItemDeploymentSpec(
                         name = name,
@@ -762,7 +767,10 @@ class VmcOrchestrator private constructor(
                                         properties = listOf(
                                                 OvfProperty("instance-id", name),
                                                 OvfProperty("hostname", "replica"),
-                                                OvfProperty("user-data", String(initScript.base64()))
+                                                OvfProperty(
+                                                        "user-data",
+                                                        String(encodedUserData.asByteArray())
+                                                )
                                         )
                                 )
                         )
