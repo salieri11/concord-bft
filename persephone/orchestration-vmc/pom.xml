@@ -41,6 +41,10 @@
         ~ External dependencies.                                    ~
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
         <dependency>
+            <groupId>com.vmware.blockchain.protobuf</groupId>
+            <artifactId>protobuf-runtime-kotlinx-serialization</artifactId>
+        </dependency>
+        <dependency>
             <!-- Scope is provided to not propagate dependency. -->
             <groupId>org.jetbrains.kotlinx</groupId>
             <artifactId>atomicfu</artifactId>

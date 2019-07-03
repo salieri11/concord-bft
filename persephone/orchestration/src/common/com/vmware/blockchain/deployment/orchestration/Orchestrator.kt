@@ -48,15 +48,16 @@ interface Orchestrator {
      *   identifier of the member node.
      * @param[model]
      *   metadata specification of versioned Concord model template to deploy.
+     * @param[genesis]
+     *   common genesis block information to be deployed on the resource.
+     * @param[privateNetworkAddress]
+     *   network address to be statically assigned on the compute resource.
      */
     data class CreateComputeResourceRequest(
         val cluster: ConcordClusterIdentifier,
         val node: ConcordNodeIdentifier,
         val model: ConcordModelSpecification,
         val genesis: Genesis,
-
-        // FIXME: THIS IS TEMPORARY UNTIL CONFIGURATION IS FETCHED BY PERSEPHONE-AGENT.
-        val configuration: String = "",
         val privateNetworkAddress: String = ""
     )
 
