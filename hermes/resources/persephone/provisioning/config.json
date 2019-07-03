@@ -37,7 +37,7 @@
           "resourcePool": "Compute-ResourcePool",
           "folder": "HermesTesting",
           "controlNetwork": "vmware-vpn",
-          "controlNetworkPrefix": 172321024,
+          "controlNetworkGateway": 172321025,
           "controlNetworkSubnet": 24
         }
       }
