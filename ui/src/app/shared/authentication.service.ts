@@ -219,7 +219,7 @@ export class AuthenticationService {
     }).join(''));
 
     return JSON.parse(jsonPayload);
-  };
+  }
 
   // TODO: Use country list from CSP VIP
   getCountryList(): Array<string> {

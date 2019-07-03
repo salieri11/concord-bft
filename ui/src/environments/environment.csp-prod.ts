@@ -13,6 +13,6 @@ class Environment extends DynamicEnvironment {
     super();
   }
 
-};
+}
 
 export const environment = new Environment();

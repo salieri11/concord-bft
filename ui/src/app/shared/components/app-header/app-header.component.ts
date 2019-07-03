@@ -47,7 +47,6 @@ export class AppHeaderComponent implements OnDestroy, AfterViewInit {
     private translateService: TranslateService,
     private themeService: VmwClarityThemeService,
   ) {
-    console.log(this.env.cspEnv)
     if (this.env.csp) {
       if (this.env.cspEnv === 'staging') {
         this.cspApiService.setCspEnvironment(CspEnvironment.STAGING);
