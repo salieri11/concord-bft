@@ -24,7 +24,7 @@ def parse_arguments() -> Dict[str, Any]:
     parser.add_argument("--data-centers", nargs='*', help="List of SDDC IDs")
     parser.add_argument("--folder", help="VM folder within each SDDC to place VMs under")
     parser.add_argument("--network", help="VM network to utilize for every SDDC")
-    parser.add_argument("--network-prefix", type=int, help="VM network prefix address")
+    parser.add_argument("--network-gateway", type=int, help="VM network gateway address")
     parser.add_argument("--network-subnet", type=int, help="VM network subnet size")
     parser.add_argument(
         "--resource-pool",
@@ -70,7 +70,7 @@ def new_orchestration_site(
         folder: str,
         resource_pool: str,
         network: str,
-        network_prefix: int,
+        network_gateway: int,
         network_subnet: int,
         container_registry: str,
         container_registry_username: str,
@@ -86,7 +86,7 @@ def new_orchestration_site(
         folder (str): folder within SDDC data center to use for VM deployment.
         resource_pool (str): resource pool to utilize for VM deployment.
         network (str): VM network to utilize for VM deployment.
-        network_prefix (int): network CIDR prefix for VM network, if VM network does not exist.
+        network_gateway (int): network CIDR gateway for VM network, if VM network does not exist.
         network_subnet (int): network subnet size for VM network, if VM network does not exist.
         container_registry (str): container registry to use to obtain model images.
         container_registry_username (str): container registry user login.
@@ -128,7 +128,7 @@ def new_orchestration_site(
                 resource_pool=resource_pool,
                 folder=folder,
                 control_network=network,
-                control_network_prefix=network_prefix,
+                control_network_gateway=network_gateway,
                 control_network_subnet=network_subnet
             )
         )
@@ -146,7 +146,7 @@ def main():
             --api-token=00000000-0000-0000-0000-000000000000
             --folder=Workloads
             --network=vmware-vpn
-            --network-prefix=172518400
+            --network-gateway=172518401
             --network-subnet=24
             --container-registry=https://registry-1.docker.io/v2,
             --container-registry-username=blockchainrepositoryreader
@@ -169,7 +169,7 @@ def main():
                 folder=args["folder"],
                 resource_pool=args["resource_pool"],
                 network=args["network"],
-                network_prefix=args["network_prefix"],
+                network_gateway=args["network_gateway"],
                 network_subnet=args["network_subnet"],
                 container_registry=args["container_registry"],
                 container_registry_username=args["container_registry_username"],

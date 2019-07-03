@@ -175,8 +175,9 @@ class VmcOrchestrator private constructor(
 
     /** TEMPORARY WORK-AROUND FOR STATIC PRIVATE IP ALLOCATION. */
     // Assume DHCP starts at beginning subnet range and ends at 1/2 the range.
-    private val staticIpGateway = info.controlNetworkPrefix + 1
-    private val staticIpCounter = atomic(staticIpGateway + (1 shl (32-info.controlNetworkSubnet-1)))
+    private val staticIpGateway = info.controlNetworkGateway
+    private val staticIpPrefix = staticIpGateway and ((1 shl (32 - info.controlNetworkSubnet)) - 1).inv()
+    private val staticIpCounter = atomic(staticIpPrefix + (1 shl (32 - info.controlNetworkSubnet - 1)))
 
     override fun close() {
         job.cancel()
@@ -190,6 +191,7 @@ class VmcOrchestrator private constructor(
                 try {
                     val clusterId = UUID(request.cluster.high, request.cluster.low)
                     val nodeId = UUID(request.node.high, request.node.low)
+                    val subnetMask = (1 shl (32 - info.controlNetworkSubnet)) - 1
 
                     val getFolder = async { getFolder(name = info.folder) }
                     val getDatastore = async { getDatastore() }
@@ -198,7 +200,7 @@ class VmcOrchestrator private constructor(
                         ensureLogicalNetwork(
                                 "cgw",
                                 info.controlNetwork,
-                                info.controlNetworkPrefix,
+                                info.controlNetworkGateway and subnetMask.inv(),
                                 info.controlNetworkSubnet,
                                 info.controlNetworkSubnet
                         )

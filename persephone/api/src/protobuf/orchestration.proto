@@ -91,6 +91,12 @@ message OrchestrationSiteView {
  *   name of the resource pool to use compute deployment.
  * @param[folder]
  *   name of the inventory folder to use compute deployment.
+ * @param[control_network]
+ *   name of the network segment to use as control network.
+ * @param[control_network_gateway]
+ *   gateway address of the control network segment.
+ * @param[control_network_subnet]
+ *   subnet value of the control network segment CIDR (e.g. 24, 28 etc).
  */
 message VmcOrchestrationSiteInfo {
     Endpoint authentication = 1;
@@ -101,7 +107,7 @@ message VmcOrchestrationSiteInfo {
     string resource_pool = 6;
     string folder = 7;
     string control_network = 8;
-    fixed32 control_network_prefix = 9;
+    int32 control_network_gateway = 9;
     int32 control_network_subnet = 10;
 }
 /* [END messages] */
