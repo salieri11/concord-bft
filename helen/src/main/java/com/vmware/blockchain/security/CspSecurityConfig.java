@@ -22,6 +22,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 import com.vmware.blockchain.common.Constants;
+import com.vmware.blockchain.services.profiles.Roles;
 
 
 /**
@@ -61,6 +62,7 @@ public class CspSecurityConfig extends WebSecurityConfigurerAdapter {
                 .antMatchers("/api/oauth/login", "/api/oauth/oauth").permitAll()
                 // anyone can look at the health
                 .antMatchers("/api/management/health").permitAll()
+                .antMatchers("/api/management/**").hasAnyRole(Roles.SYSTEM_ADMIN.getName())
                 .anyRequest()
                 .authenticated().and().exceptionHandling()
                 .authenticationEntryPoint(restAuthticationEntryPoint)
