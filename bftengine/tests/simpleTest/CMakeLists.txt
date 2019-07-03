@@ -2,21 +2,23 @@ set(simpleTest_client_source_files
     client.cpp
         ${CONFIG_FOLDER_PATH_VALUE}/test_comm_config.cpp
         ${CONFIG_FOLDER_PATH_VALUE}/config_file_parser.cpp
-    ${concord_bft_tools_SOURCE_DIR}/KeyfileIOUtils.cpp
-)
+        ${concord_bft_tools_SOURCE_DIR}/KeyfileIOUtils.cpp
+        simple_test_client.hpp
+        )
 
 set(simpleTest_replica_source_files
-    replica.cpp
-    ${CONFIG_FOLDER_PATH_VALUE}/test_comm_config.cpp
-    ${CONFIG_FOLDER_PATH_VALUE}/config_file_parser.cpp
-    ${concord_bft_tools_SOURCE_DIR}/KeyfileIOUtils.cpp
-)
+        replica.cpp
+        ${CONFIG_FOLDER_PATH_VALUE}/test_comm_config.cpp
+        ${CONFIG_FOLDER_PATH_VALUE}/config_file_parser.cpp
+        ${concord_bft_tools_SOURCE_DIR}/KeyfileIOUtils.cpp
+        simple_test_replica.hpp
+        )
 
 # This target should be moved to UT infrastructure code when created.
 set(config_source_files
-    ${CONFIG_FOLDER_PATH_VALUE}/config_file_parser.cpp
-    ${CONFIG_FOLDER_PATH_VALUE}/config_file_parser_test.cpp
-)
+        ${CONFIG_FOLDER_PATH_VALUE}/config_file_parser.cpp
+        ${CONFIG_FOLDER_PATH_VALUE}/config_file_parser_test.cpp
+        )
 
 add_executable(simpleTest_client
     ${simpleTest_client_source_files}
@@ -30,6 +32,28 @@ add_executable(configTest
     ${config_source_files}
 )
 
+add_executable(persistency_test persistency_test.cpp
+        ${concord_bft_tools_SOURCE_DIR}/KeyfileIOUtils.cpp)
+target_include_directories(persistency_test PUBLIC
+        ${CONFIG_FOLDER_PATH_VALUE}
+        ${bftengine_SOURCE_DIR}/include/communication
+        ${concord_bft_tools_SOURCE_DIR})
+target_link_libraries(persistency_test PUBLIC corebft gtest gtest_main
+        test_config_lib)
+add_test( persistency_test persistency_test )
+add_custom_target(copy_simple_test_config ALL COMMENT "Copying config files of
+simpleTest")
+add_custom_command(TARGET copy_simple_test_config
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${CMAKE_CURRENT_SOURCE_DIR}/test_config
+        $<TARGET_FILE_DIR:simpleTest_client>/)
+
+if(USE_LOG4CPP)
+    target_compile_definitions(simpleTest_server PUBLIC USE_LOG4CPP=1)
+    target_compile_definitions(simpleTest_client PUBLIC USE_LOG4CPP=1)
+    target_compile_definitions(configTest PUBLIC USE_LOG4CPP=1)
+endif()
+
 if(USE_LOG4CPP)
     target_compile_definitions(simpleTest_server PUBLIC USE_LOG4CPP=1)
     target_compile_definitions(simpleTest_client PUBLIC USE_LOG4CPP=1)
@@ -37,13 +61,13 @@ if(USE_LOG4CPP)
 endif()
 
 if(${USE_COMM_PLAIN_TCP})
-    target_compile_definitions(simnpleTest_client PUBLIC USE_COMM_PLAIN_TCP)
-    target_compile_definitions(simnpleTest_server PUBLIC USE_COMM_PLAIN_TCP)
+    target_compile_definitions(simpleTest_client PUBLIC USE_COMM_PLAIN_TCP)
+    target_compile_definitions(simpleTest_server PUBLIC USE_COMM_PLAIN_TCP)
 endif()
 
 if(${USE_COMM_TLS_TCP})
-    target_compile_definitions(simnpleTest_client PUBLIC USE_COMM_TLS_TCP)
-    target_compile_definitions(simnpleTest_server PUBLIC USE_COMM_TLS_TCP)
+    target_compile_definitions(simpleTest_client PUBLIC USE_COMM_TLS_TCP)
+    target_compile_definitions(simpleTest_server PUBLIC USE_COMM_TLS_TCP)
 endif()
 
 set_target_properties(simpleTest_client PROPERTIES OUTPUT_NAME client)
@@ -88,9 +112,3 @@ configure_file (
     "${CMAKE_CURRENT_SOURCE_DIR}/scripts/simpleTest.py.in"
     "${CMAKE_CURRENT_BINARY_DIR}/scripts/simpleTest.py"
 )
-
-add_custom_target(copy_tls_script ALL COMMENT "Copying TLS script")
-add_custom_command(TARGET copy_tls_script
-        COMMAND ${CMAKE_COMMAND} -E copy
-        ${PROJECT_SOURCE_DIR}/scripts/linux/create_tls_certs.sh
-     $<TARGET_FILE_DIR:simpleTest_client>/scripts/create_tls_certs.sh)

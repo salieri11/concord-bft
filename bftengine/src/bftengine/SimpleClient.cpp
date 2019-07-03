@@ -230,6 +230,7 @@ namespace bftEngine
 				queue<MessageBase*> newMsgs;
 				{
 					std::unique_lock<std::mutex> mlock(_lock);
+					auto b  = mlock.owns_lock();
 					_condVar.wait_for(mlock, timersRes);
 					_msgQueue.swap(newMsgs);
 				}
