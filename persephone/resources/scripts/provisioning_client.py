@@ -7,7 +7,8 @@ import io
 import persephone.core_pb2 as core
 import persephone.concord_model_pb2 as concord_model
 import persephone.ethereum_pb2 as ethereum
-import persephone.orchestration_pb2 as orchestration
+import persephone.orchestration_service_pb2 as orchestration_service
+import persephone.orchestration_service_pb2_grpc as orchestration_service_rpc
 import persephone.provisioning_service_pb2 as provisioning_service
 import persephone.provisioning_service_pb2_grpc as provisioning_service_rpc
 from typing import Any, Dict
@@ -53,15 +54,30 @@ def main():
         channel = grpc.secure_channel(args["server"], credentials)
     else:
         channel = grpc.insecure_channel(args["server"])
-    stub = provisioning_service_rpc.ProvisioningServiceStub(channel)
+    provisioning_stub = provisioning_service_rpc.ProvisioningServiceStub(channel)
+    orchestration_site_stub = orchestration_service_rpc.OrchestrationSiteServiceStub(channel)
 
+    orchestration_site_list_request = orchestration_service.ListOrchestrationSitesRequest(
+        header=core.MessageHeader(),
+        page_size=0  # Server-decide on sizing.
+    )
+    orchestration_site_list_response = orchestration_site_stub.ListOrchestrationSites(
+        orchestration_site_list_request
+    )
+
+    print("Orchestration Sites:")
+    for site in orchestration_site_list_response.sites:
+        print("Site: ({}|{}), type({})".format(site.id.high, site.id.low, site.type))
+
+    site = orchestration_site_list_response.sites[0]
     create_cluster_request = provisioning_service.CreateClusterRequest(
         header=core.MessageHeader(),
         specification=provisioning_service.DeploymentSpecification(
             cluster_size=4,
             model=concord_model.ConcordModelSpecification(
                 version="photon-3.0-64",
-                template="8abc7fda-9576-4b13-9beb-06f867cf2c7c",
+                # template="4452ea31-fe1c-4e83-b1f7-6aeb12ca9a9b",  # Ubuntu 18.04 Server.
+                template="8abc7fda-9576-4b13-9beb-06f867cf2c7c",  # Photon OS 3.0.
                 components=[
                     concord_model.ConcordComponent(
                         type=concord_model.ConcordComponent.CONTAINER_IMAGE,
@@ -84,31 +100,19 @@ def main():
                 entries=[
                     provisioning_service.PlacementSpecification.Entry(
                         type=provisioning_service.PlacementSpecification.FIXED,
-                        site=orchestration.OrchestrationSiteIdentifier(
-                            low=3915407548904001415,
-                            high=10241087041514402754
-                        )
+                        site=site.id
                     ),
                     provisioning_service.PlacementSpecification.Entry(
                         type=provisioning_service.PlacementSpecification.FIXED,
-                        site=orchestration.OrchestrationSiteIdentifier(
-                            low=3915407548904001415,
-                            high=10241087041514402754
-                        )
+                        site=site.id
                     ),
                     provisioning_service.PlacementSpecification.Entry(
                         type=provisioning_service.PlacementSpecification.FIXED,
-                        site=orchestration.OrchestrationSiteIdentifier(
-                            low=3915407548904001415,
-                            high=10241087041514402754
-                        )
+                        site=site.id
                     ),
                     provisioning_service.PlacementSpecification.Entry(
                         type=provisioning_service.PlacementSpecification.FIXED,
-                        site=orchestration.OrchestrationSiteIdentifier(
-                            low=3915407548904001415,
-                            high=10241087041514402754
-                        )
+                        site=site.id
                     )
                 ]
             ),
@@ -135,14 +139,14 @@ def main():
             )
         )
     )
-    session_id = stub.CreateCluster(create_cluster_request)
-    print("CreateCluster(): ", session_id)
+    session_id = provisioning_stub.CreateCluster(create_cluster_request)
+    print("CreateCluster(): ", session_id.low, session_id.high)
 
     get_events_request = provisioning_service.StreamClusterDeploymentSessionEventRequest(
         header=core.MessageHeader(),
         session=session_id
     )
-    events = stub.StreamClusterDeploymentSessionEvents(get_events_request)
+    events = provisioning_stub.StreamClusterDeploymentSessionEvents(get_events_request)
     print("StreamClusterDeploymentSessionEvents():")
     for event in events:
         print("DeploymentEvent: ", event)
