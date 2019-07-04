@@ -97,7 +97,7 @@ class CloudInitConfiguration(
 
             # Update guest-info's network information in vSphere.
             touch /etc/vmware-tools/tools.conf
-            echo -e '[guestinfo]\nprimary-nics=eth*\nexclude-nics=docker*,veth*' > /etc/vmware-tools/tools.conf
+            printf '[guestinfo]\nprimary-nics=eth*\nexclude-nics=docker*,veth*' > /etc/vmware-tools/tools.conf
             /usr/bin/vmware-toolbox-cmd info update network
 
             touch /concord/config-local/concord.config

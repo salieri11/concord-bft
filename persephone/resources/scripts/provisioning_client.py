@@ -4,6 +4,7 @@
 import argparse
 import grpc
 import io
+import logging
 import persephone.core_pb2 as core
 import persephone.concord_model_pb2 as concord_model
 import persephone.ethereum_pb2 as ethereum
@@ -11,6 +12,7 @@ import persephone.orchestration_service_pb2 as orchestration_service
 import persephone.orchestration_service_pb2_grpc as orchestration_service_rpc
 import persephone.provisioning_service_pb2 as provisioning_service
 import persephone.provisioning_service_pb2_grpc as provisioning_service_rpc
+from google.protobuf.json_format import MessageToJson
 from typing import Any, Dict
 
 
@@ -46,6 +48,15 @@ def main():
     Returns:
         None
     """
+    # Setup logging.
+    log = logging.getLogger(__name__)
+    log.setLevel(logging.DEBUG)
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.DEBUG)
+    log_formatter = logging.Formatter("[%(asctime)s] [%(levelname)s] [%(name)s]: %(message)s")
+    console_handler.setFormatter(log_formatter)
+    log.addHandler(console_handler)
+
     args = parse_arguments()
     if args["trusted_certs"]:
         with io.open(args["trusted_certs"], "rb") as f:
@@ -65,9 +76,9 @@ def main():
         orchestration_site_list_request
     )
 
-    print("Orchestration Sites:")
+    log.info("ListOrchestrationSites():")
     for site in orchestration_site_list_response.sites:
-        print("Site: ({}|{}), type({})".format(site.id.high, site.id.low, site.type))
+        log.info("Site: id(%d|%d), type(%s)", site.id.high, site.id.low, site.type)
 
     site = orchestration_site_list_response.sites[0]
     create_cluster_request = provisioning_service.CreateClusterRequest(
@@ -140,16 +151,16 @@ def main():
         )
     )
     session_id = provisioning_stub.CreateCluster(create_cluster_request)
-    print("CreateCluster(): ", session_id.low, session_id.high)
+    log.info("CreateCluster(): id(%d|%d)", session_id.high, session_id.low)
 
     get_events_request = provisioning_service.StreamClusterDeploymentSessionEventRequest(
         header=core.MessageHeader(),
         session=session_id
     )
     events = provisioning_stub.StreamClusterDeploymentSessionEvents(get_events_request)
-    print("StreamClusterDeploymentSessionEvents():")
+    log.info("StreamClusterDeploymentSessionEvents(): id(%d|%d)", session_id.high, session_id.low)
     for event in events:
-        print("DeploymentEvent: ", event)
+        log.info("DeploymentEvent: %s", MessageToJson(event))
 
     return
 
