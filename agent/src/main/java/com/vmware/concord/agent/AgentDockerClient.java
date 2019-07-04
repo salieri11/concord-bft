@@ -4,19 +4,18 @@
 
 package com.vmware.concord.agent;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.Properties;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
-import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.amazonaws.services.s3.model.S3Object;
-import com.amazonaws.services.s3.model.S3ObjectInputStream;
 import com.github.dockerjava.api.DockerClient;
 import com.github.dockerjava.api.model.AuthConfig;
 import com.github.dockerjava.api.model.Bind;
@@ -104,16 +103,11 @@ final class AgentDockerClient {
 
     /** Configuration parameters for this agent instance. */
     private final ConcordAgentConfiguration configuration;
-    private String concordImageId;
-    private String ethrpcImageId;
 
-    /** S3 Client. */
-    private AwsS3Client awsClient;
+    /** Path to retrieve configuration. */
+    private String configurationPath;
 
-    /** S3 bucket. */
-    private String s3bucket;
-
-    private void initializeS3Client() {
+    private AwsS3Client newS3Client() {
         /* Default application.properties file. */
         String propertyFile = "applications.properties";
 
@@ -124,7 +118,7 @@ final class AgentDockerClient {
             String awsKey = "AKIATWKQRJCJPZPBH4PK";
             String secretKey = "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";
             String region = "us-west-2";
-            s3bucket = "concord-config";
+            configurationPath = "concord-config";
 
             Properties prop = new Properties();
             if (input != null) {
@@ -132,14 +126,17 @@ final class AgentDockerClient {
                 awsKey = prop.getProperty("aws.accessKey");
                 secretKey = prop.getProperty("aws.secretKey");
                 region = prop.getProperty("aws.region");
-                s3bucket = prop.getProperty("aws.bucket");
+                configurationPath = prop.getProperty("aws.bucket");
             } else {
                 log.error("Unable to find property file: " + propertyFile);
             }
-            awsClient = new AwsS3Client(awsKey, secretKey, region);
             log.info("Create s3 client successfully");
+
+            return new AwsS3Client(awsKey, secretKey, region);
         } catch (IOException ex) {
             log.error("Unable to read the property file: " + propertyFile);
+
+            throw new RuntimeException(ex);
         }
     }
 
@@ -148,29 +145,33 @@ final class AgentDockerClient {
      */
     AgentDockerClient(ConcordAgentConfiguration configuration) {
         this.configuration = configuration;
-
-        initializeS3Client();
     }
 
     private void populateConfig() {
-        try {
-            var clusterId = new UUID(configuration.getCluster().getHigh(),
-                                   configuration.getCluster().getLow()).toString();
-            var nodeId = new UUID(configuration.getNode().getHigh(),
-                                configuration.getNode().getLow()).toString();
-            String configPath = clusterId + "/" + nodeId;
-            log.info("Configuration path: {}", configPath);
+        Path localConfigPath = Path.of("/concord/config-local/concord.config");
 
-            S3Object s3object = awsClient.getObject(s3bucket, configPath);
-            S3ObjectInputStream inputStream = s3object.getObjectContent();
-            FileUtils.copyInputStreamToFile(inputStream, new File("/concord/config-local/concord.config"));
+        // Do not over-write existing configuration.
+        // As an intended side-effect, do not engage in network IO unless absolutely needed.
+        if (!Files.exists(localConfigPath)) {
+            try {
+                var s3Client = newS3Client();
+                var clusterId = new UUID(configuration.getCluster().getHigh(),
+                                         configuration.getCluster().getLow()).toString();
+                var nodeId = new UUID(configuration.getNode().getHigh(),
+                                      configuration.getNode().getLow()).toString();
+                var sourceConfigPath = clusterId + "/" + nodeId;
+                log.info("Configuration path: {}", sourceConfigPath);
 
-            log.info("Copied the " + configPath + "to concord.config");
-            File src = new File("/concord/config-local/concord.config");
-            File copied = new File("/concord/config-local/concord_with_hostnames.config");
-            FileUtils.copyFile(src, copied);
-        } catch (IOException ex) {
-            log.error("Couldn't write to s3 bucket");
+                var s3object = s3Client.getObject(configurationPath, sourceConfigPath);
+                var inputStream = s3object.getObjectContent();
+                Files.copy(inputStream, localConfigPath, StandardCopyOption.ATOMIC_MOVE);
+
+                log.info("Copied {} to {}", sourceConfigPath, localConfigPath);
+                var withHostConfig = Path.of("/concord/config-local/concord_with_hostnames.config");
+                Files.copy(localConfigPath, withHostConfig);
+            } catch (IOException ex) {
+                log.error("Couldn't read from configuration source");
+            }
         }
     }
 
@@ -178,6 +179,9 @@ final class AgentDockerClient {
      * Create the dockerClient volume in the root node.
      */
     void startConcord() {
+        String concordImageId = null;
+        String ethrpcImageId = null;
+
         log.info("Reading config file");
 
         populateConfig();
@@ -186,8 +190,11 @@ final class AgentDockerClient {
 
         var registryUsername = configuration.getContainerRegistry()
                 .getCredential().getPasswordCredential().getUsername();
+        registryUsername = registryUsername.isBlank() ? null : registryUsername;
         var registryPassword = configuration.getContainerRegistry()
                 .getCredential().getPasswordCredential().getPassword();
+        registryPassword = registryPassword.isBlank() ? null : registryPassword;
+
         for (var component : configuration.getModel().getComponents()) {
             var componentImage = new ContainerImage(component.getName());
             var clientConfig = DefaultDockerClientConfig.createDefaultConfigBuilder()
@@ -207,8 +214,16 @@ final class AgentDockerClient {
                         )
                         .exec(new PullImageResultCallback());
 
-                // For now, just block synchronously (can't proceed without successful completion).
-                command.awaitCompletion();
+                // For now, just block synchronously.
+                try {
+                    command.awaitCompletion();
+                } catch (Throwable error) {
+                    // If imaging fetching fails, try to proceed forward anyway.
+                    log.error("Pulling image({}:{}) from registry({}) failed",
+                              componentImage.getRepository(),
+                              componentImage.getTag(),
+                              componentImage.getRegistry());
+                }
 
                 var imageId = docker.listImagesCmd().exec().stream()
                         .filter(image -> {
