@@ -883,6 +883,9 @@ class Product():
                log.error("\n**** persephone server is already running. "
                          "Check logs for more info")
                return False
+            if "503 Service Temporarily Unavailable" in persephone_log:
+               log.error("503 Service Temporarily Unavailable")
+               return False
 
          attempts += 1
          log.info(
