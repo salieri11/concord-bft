@@ -5,7 +5,6 @@
 package com.vmware.concord.agent;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -16,7 +15,6 @@ import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.github.dockerjava.api.DockerClient;
 import com.github.dockerjava.api.model.AuthConfig;
 import com.github.dockerjava.api.model.Bind;
 import com.github.dockerjava.api.model.ExposedPort;
@@ -109,18 +107,18 @@ final class AgentDockerClient {
 
     private AwsS3Client newS3Client() {
         /* Default application.properties file. */
-        String propertyFile = "applications.properties";
+        var propertyFile = "applications.properties";
 
         log.info("Reading the application properties file");
 
-        try (InputStream input = getClass().getClassLoader().getResourceAsStream(propertyFile)) {
+        try (var input = getClass().getClassLoader().getResourceAsStream(propertyFile)) {
             // TODO - these default values needs to be specific to CICD pipeline account.
-            String awsKey = "AKIATWKQRJCJPZPBH4PK";
-            String secretKey = "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";
-            String region = "us-west-2";
+            var awsKey = "AKIATWKQRJCJPZPBH4PK";
+            var secretKey = "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";
+            var region = "us-west-2";
             configurationPath = "concord-config";
 
-            Properties prop = new Properties();
+            var prop = new Properties();
             if (input != null) {
                 prop.load(input);
                 awsKey = prop.getProperty("aws.accessKey");
@@ -130,9 +128,12 @@ final class AgentDockerClient {
             } else {
                 log.error("Unable to find property file: " + propertyFile);
             }
+
+            var client = new AwsS3Client(awsKey, secretKey, region);
+
             log.info("Create s3 client successfully");
 
-            return new AwsS3Client(awsKey, secretKey, region);
+            return client;
         } catch (IOException ex) {
             log.error("Unable to read the property file: " + propertyFile);
 
@@ -147,12 +148,25 @@ final class AgentDockerClient {
         this.configuration = configuration;
     }
 
+    /**
+     * Retrieve the configuration for this node.
+     */
     private void populateConfig() {
-        Path localConfigPath = Path.of("/concord/config-local/concord.config");
+        var localConfigPath = Path.of("/concord/config-local/concord.config");
+        var withHostConfig = Path.of("/concord/config-local/concord_with_hostnames.config");
+        var localConfigFileSize = 0L;
+
+        // Try to determine the file size of the config file.
+        // Note: This is done here instead of in-line check because of potential exceptions.
+        try {
+            localConfigFileSize = Files.size(localConfigPath);
+        } catch (Throwable error) {
+            log.info("Cannot determine file size of {}", localConfigPath);
+        }
 
         // Do not over-write existing configuration.
         // As an intended side-effect, do not engage in network IO unless absolutely needed.
-        if (!Files.exists(localConfigPath)) {
+        if (!Files.exists(localConfigPath) || localConfigFileSize == 0) {
             try {
                 var s3Client = newS3Client();
                 var clusterId = new UUID(configuration.getCluster().getHigh(),
@@ -164,19 +178,28 @@ final class AgentDockerClient {
 
                 var s3object = s3Client.getObject(configurationPath, sourceConfigPath);
                 var inputStream = s3object.getObjectContent();
-                Files.copy(inputStream, localConfigPath, StandardCopyOption.ATOMIC_MOVE);
+                Files.copy(inputStream, localConfigPath, StandardCopyOption.REPLACE_EXISTING);
 
                 log.info("Copied {} to {}", sourceConfigPath, localConfigPath);
-                var withHostConfig = Path.of("/concord/config-local/concord_with_hostnames.config");
-                Files.copy(localConfigPath, withHostConfig);
-            } catch (IOException ex) {
-                log.error("Couldn't read from configuration source");
+            } catch (IOException error) {
+                log.error("Cannot read from configuration source", error);
+            }
+        }
+
+        // Do not over-write existing configuration.
+        if (!Files.exists(withHostConfig)) {
+            try {
+                Files.copy(localConfigPath, withHostConfig, StandardCopyOption.REPLACE_EXISTING);
+
+                log.info("Copied {} to {}", localConfigPath, withHostConfig);
+            } catch (IOException error) {
+                log.error("Cannot write to {}", withHostConfig, error);
             }
         }
     }
 
     /**
-     * Create the dockerClient volume in the root node.
+     * Start the local setup as a Concord node.
      */
     void startConcord() {
         String concordImageId = null;
@@ -261,7 +284,7 @@ final class AgentDockerClient {
             }
         }
 
-        DockerClient dockerClient = DockerClientBuilder.getInstance().build();
+        var dockerClient = DockerClientBuilder.getInstance().build();
         if (concordImageId != null) {
             var container = dockerClient.createContainerCmd("concord-core")
                     .withName("concord")
