@@ -193,7 +193,7 @@ final class AgentDockerClient {
 
                 log.info("Copied {} to {}", localConfigPath, withHostConfig);
             } catch (IOException error) {
-                log.error("Cannot write to {}", withHostConfig, error);
+                log.error("Cannot write to " + withHostConfig, error);
             }
         }
     }

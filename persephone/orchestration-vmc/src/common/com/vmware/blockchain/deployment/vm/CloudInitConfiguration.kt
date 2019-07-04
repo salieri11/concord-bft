@@ -105,7 +105,7 @@ class CloudInitConfiguration(
             chmod 777 /concord/config-public/find-docker-instances.sh
 
             echo '{{genesis}}' > /concord/config-public/genesis.json
-            docker run -d --name=agent -v /concord/agent/config:/config -v /concord:/concord -v /var/run/docker.sock:/var/run/docker.sock -p 8546:8546 registry-1.docker.io/vmwblockchain/agent-testing:latest
+            docker run -d --name=agent --restart=always -v /concord/agent/config:/config -v /concord:/concord -v /var/run/docker.sock:/var/run/docker.sock -p 8546:8546 registry-1.docker.io/vmwblockchain/agent-testing:latest
             echo 'done'
             """.trimIndent()
                     .replace("{{dockerLoginCommand}}", containerRegistry.toRegistryLoginCommand())
