@@ -161,6 +161,7 @@ fun main(args: Array<String>) {
             }
     val server = NettyServerBuilder.forPort(config.port)
             .addService(provisioningServer.provisioningService())
+            .addService(provisioningServer.orchestrationSiteService())
             .sslContext(sslContext)
             .build()
     try {
