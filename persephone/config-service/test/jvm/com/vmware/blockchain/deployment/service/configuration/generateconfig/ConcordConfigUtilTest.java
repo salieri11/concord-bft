@@ -5,19 +5,21 @@
 package com.vmware.blockchain.deployment.service.configuration.generateconfig;
 
 import java.io.IOException;
-import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.assertj.core.api.Assertions;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
-
-import com.vmware.blockchain.deployment.service.configuration.testutilitilies.TestUtil;
 
 /**
  * ConfigYaml Unit test configuration.
  */
 public class ConcordConfigUtilTest {
+
+    private static String filePath = "/tmp/concordConfigUtilTest";
 
     @Test
     void testConfigUtilPositive() throws IOException {
@@ -27,10 +29,7 @@ public class ConcordConfigUtilTest {
         hostIps.add("10.0.0.3");
         hostIps.add("10.0.0.4");
         ConcordConfigUtil util = new ConcordConfigUtil();
-        String config = util.generateConfigUtil(hostIps);
-        ClassLoader classLoader = getClass().getClassLoader();
-        InputStream expectedStream = classLoader.getResourceAsStream("SampleFourNodeConcordConfig.yaml");
-        Assertions.assertThat(config).isEqualTo(TestUtil.readFromInputStream(expectedStream));
+        Assertions.assertThat(util.generateInputConfigYaml(hostIps, filePath)).isTrue();
 
         assert util.nodePrincipal.size() == 4;
         assert util.maxPrincipalId == (hostIps.size() + util.CLIENT_PROXY_PER_NODE * hostIps.size()) - 1;
@@ -43,8 +42,7 @@ public class ConcordConfigUtilTest {
     @Test
     void testConfigUtilNegative() {
         ConcordConfigUtil util = new ConcordConfigUtil();
-        Assertions.assertThat(util
-                .generateConfigUtil(null)).isBlank();
+        Assertions.assertThat(util.generateInputConfigYaml(null, filePath)).isFalse();
     }
 
     @Test
@@ -54,8 +52,7 @@ public class ConcordConfigUtilTest {
         hostIps.add("10.0.0.2");
         hostIps.add("10.0.0.3");
         ConcordConfigUtil util = new ConcordConfigUtil();
-        Assertions.assertThat(util
-                .generateConfigUtil(hostIps)).isBlank();
+        Assertions.assertThat(util.generateInputConfigYaml(hostIps, filePath)).isFalse();
     }
 
     @Test
@@ -66,8 +63,7 @@ public class ConcordConfigUtilTest {
         hostIps.add("10.0.0.3");
         hostIps.add("10.0.0.4");
         ConcordConfigUtil util = new ConcordConfigUtil();
-        Assertions.assertThat(util
-                .generateConfigUtil(hostIps, 1, 2)).isBlank();
+        Assertions.assertThat(util.generateInputConfigYaml(hostIps, 1, 2, filePath)).isFalse();
     }
 
     @Test
@@ -78,10 +74,7 @@ public class ConcordConfigUtilTest {
         hostIps.add("concord3");
         hostIps.add("concord4");
         ConcordConfigUtil util = new ConcordConfigUtil();
-        String config = util.generateConfigUtil(hostIps);
-        ClassLoader classLoader = getClass().getClassLoader();
-        InputStream expectedStream = classLoader.getResourceAsStream("SampleFourNodeConcordNamedConfig.yaml");
-        Assertions.assertThat(config).isEqualTo(TestUtil.readFromInputStream(expectedStream));
+        Assertions.assertThat(util.generateInputConfigYaml(hostIps, filePath)).isTrue();
 
         assert util.nodePrincipal.size() == 4;
         assert util.maxPrincipalId == (hostIps.size() + util.CLIENT_PROXY_PER_NODE * hostIps.size()) - 1;
@@ -101,16 +94,18 @@ public class ConcordConfigUtilTest {
         hostIps.add("10.0.0.6");
         hostIps.add("10.0.0.7");
         ConcordConfigUtil util = new ConcordConfigUtil();
-        String config = util.generateConfigUtil(hostIps);
-        ClassLoader classLoader = getClass().getClassLoader();
-        InputStream expectedStream = classLoader.getResourceAsStream("SampleSevenNodeConcordConfig.yaml");
-        Assertions.assertThat(config).isEqualTo(TestUtil.readFromInputStream(expectedStream));
+        Assertions.assertThat(util.generateInputConfigYaml(hostIps, filePath)).isTrue();
 
         assert util.nodePrincipal.size() == 7;
         assert util.maxPrincipalId == (hostIps.size() + util.CLIENT_PROXY_PER_NODE * hostIps.size()) - 1;
         for (int node : util.nodePrincipal.keySet()) {
             assert util.nodePrincipal.get(node).size() == 4;
         }
+    }
+
+    @AfterEach
+    void cleanup() throws IOException {
+        Files.deleteIfExists(Paths.get(filePath));
     }
 }
 

@@ -18,6 +18,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import com.vmware.blockchain.deployment.model.ConfigurationComponent;
@@ -40,6 +41,8 @@ public class ConfigurationServiceTest {
     private static long awaitTime = 10000;
 
     private static ConfigurationService service = newConfigurationService();
+
+
 
     /**
      * Create a new {@link ConfigurationService}.
@@ -141,6 +144,7 @@ public class ConfigurationServiceTest {
     }
 
     @Test
+    @Disabled("ConcordConfigUtil#getConcordConfig() expects generation utility to be locally installed.")
     void testgenerateConfiguration() throws InterruptedException, ExecutionException, TimeoutException {
         List<String> hostIps = new ArrayList<String>();
         hostIps.add("10.0.0.1");

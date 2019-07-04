@@ -4,10 +4,18 @@
 
 package com.vmware.blockchain.deployment.service.configuration.generateconfig;
 
+import java.io.BufferedWriter;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,6 +32,7 @@ public class ConcordConfigUtil {
 
     private static final Logger log = LoggerFactory.getLogger(ConcordConfigUtil.class);
 
+    private static final String DEFAULT_PATH_YAML = "/config/dockerConfigurationInput.yaml";
     private static final String CLIENT_PROXY_PER_REPLICA = "client_proxies_per_replica: ";
     private static final String C_VAL = "c_val: ";
     private static final String F_VAL = "f_val: ";
@@ -70,90 +79,141 @@ public class ConcordConfigUtil {
     }
 
     /**
-     * Utility method for generating the file.
+     * Utility to generate concord config.
      */
-    public String generateConfigUtil(List<String> hostIp) {
-        if (hostIp == null) {
-            log.error("generateConfigUtil: List of host IP provided is NULL!");
-            return "";
+    public Map<Integer, String> getConcordConfig(List<String> hostIps) {
+        try {
+            var result = new HashMap<Integer, String>();
+            generateInputConfigYaml(hostIps, DEFAULT_PATH_YAML);
+
+            var outputPath = Files.createTempDirectory(null);
+            var configFuture = new ProcessBuilder("/app/conc_genconfig",
+                    "--configuration-input",
+                    DEFAULT_PATH_YAML)
+                    .directory(outputPath.toFile())
+                    .start()
+                    .onExit();
+
+            var work = configFuture.whenCompleteAsync((process, error) -> {
+                if (error == null) {
+                    try {
+                        for (int num = 0; num < hostIps.size(); num++) {
+                            var path = outputPath.resolve("concord" + (num + 1) + ".config");
+                            result.put(num, Files.readString(path));
+                        }
+                    } catch (Throwable collectError) {
+                        log.error("Cannot collect generated cluster configuration",
+                                collectError);
+                    }
+                } else {
+                    log.error("Cannot run config generation process", error);
+                }
+            });
+
+            work.join();
+            return result;
+
+        } catch (IOException e) {
+            log.error("Exception while generating concord config {}", e.getLocalizedMessage());
+            return null;
         }
-        if (hostIp.size() < 4) {
-            log.error("generateConfigUtil: Minimum cluster size is 4!");
-            return "";
-        }
-        int clusterSize = hostIp.size();
-        int fVal = getFVal(clusterSize);
-        int cVal = getCVal(clusterSize, fVal);
-        return generateConfigUtil(hostIp, fVal, cVal);
     }
 
     /**
-     * Utility method for generating the file.
+     * Utility method for generating input config yaml file.
      */
-    String generateConfigUtil(List<String> hostIp, int fVal, int cVal) {
+    boolean generateInputConfigYaml(List<String> hostIps, String configYamlPath) {
+        if (hostIps == null) {
+            log.error("generateInputConfigYaml: List of host IP provided is NULL!");
+            return false;
+        }
+        if (hostIps.size() < 4) {
+            log.error("generateInputConfigYaml: Minimum cluster size is 4!");
+            return false;
+        }
+        int clusterSize = hostIps.size();
+        int fVal = getFVal(clusterSize);
+        int cVal = getCVal(clusterSize, fVal);
+        return generateInputConfigYaml(hostIps, fVal, cVal, configYamlPath);
+    }
+
+    /**
+     * Utility method for generating input config yaml file.
+     */
+    boolean generateInputConfigYaml(List<String> hostIp, int fVal, int cVal, String configYamlPath) {
         if (hostIp == null) {
-            log.error("generateConfigUtil: List of host IP provided is NULL!");
-            return "";
+            log.error("generateInputConfigYaml: List of host IP provided is NULL!");
+            return false;
         }
         if (hostIp.size() < 4) {
-            log.error("generateConfigUtil: Minimum cluster size is 4!");
-            return "";
+            log.error("generateInputConfigYaml: Minimum cluster size is 4!");
+            return false;
         }
         if ((3 * fVal + 2 * cVal + 1) > hostIp.size()) {
-            log.error("generateConfigUtil: fVal / cVal are invalid for the list of host IP provided");
-            return "";
+            log.error("generateInputConfigYaml: fVal / cVal are invalid for the list of host IP provided");
+            return false;
         }
 
         maxPrincipalId = (hostIp.size() + CLIENT_PROXY_PER_NODE * hostIp.size()) - 1;
-        StringBuilder configString = new StringBuilder();
-        configString.append(CLIENT_PROXY_PER_REPLICA + CLIENT_PROXY_PER_NODE);
-        configString.append("\n");
-        configString.append(C_VAL + cVal);
-        configString.append("\n");
-        configString.append(F_VAL + fVal);
-        configString.append("\n");
-        configString.append("comm_to_use: udp");
-        configString.append("\n");
-        configString.append("tls_cipher_suite_list: ECDHE-ECDSA-AES256-GCM-SHA384");
-        configString.append("\n");
-        configString.append("tls_certificates_folder_path: "
-                + CertificatesGenerator.CONCORD_TLS_SECURITY_IDENTITY_PATH);
-        configString.append("\n");
-        configString.append("node__TEMPLATE:\n  logger_config: /concord/config-local/log4cplus.properties\n"
-                + "  genesis_block: /concord/config-public/genesis.json\n  blockchain_db_path: /concord/rocksdbdata/");
-        configString.append("\n");
-        configString.append(NODE);
-        configString.append("\n");
-        for (int i = 0; i < hostIp.size(); i++) {
-            configString.append(SERVICE_HOST + "0.0.0.0");
-            configString.append("\n");
-            configString.append(SERVICE_PORT + "5458");
-            configString.append("\n");
-            configString.append(REPLICA);
-            configString.append("\n");
-            configString.append(REPLICA_HOST + hostIp.get(i));
-            configString.append("\n");
-            configString.append(REPLICA_PORT + DEFAULT_PORT);
-            configString.append("\n");
-            configString.append(CLIENT_PROXY);
-            configString.append("\n");
+        var principals = IntStream.range(0, maxPrincipalId + 1).boxed().collect(Collectors.toList());
+        Collections.shuffle(principals);
 
-            List<Integer> principalList = new ArrayList<>();
-            for (int j = 0; j < CLIENT_PROXY_PER_NODE; j++) {
-                configString.append(CLIENT_HOST + hostIp.get(i));
-                configString.append("\n");
-                configString.append(CLIENT_PORT + (DEFAULT_PORT + j + 1));
-                configString.append("\n");
+        Path path = Paths.get(configYamlPath);
+        try (BufferedWriter writer = Files.newBufferedWriter(path)) {
+            writer.write(CLIENT_PROXY_PER_REPLICA + CLIENT_PROXY_PER_NODE);
+            writer.newLine();
+            writer.write(C_VAL + cVal);
+            writer.newLine();
+            writer.write(F_VAL + fVal);
+            writer.newLine();
+            writer.write("comm_to_use: udp");
+            writer.newLine();
+            writer.write("tls_cipher_suite_list: ECDHE-ECDSA-AES256-GCM-SHA384");
+            writer.newLine();
+            writer.write("tls_certificates_folder_path: "
+                    + CertificatesGenerator.CONCORD_TLS_SECURITY_IDENTITY_PATH);
+            writer.newLine();
+            writer.write("node__TEMPLATE:\n  logger_config: /concord/config-local/log4cplus.properties\n"
+                    + "  genesis_block: /concord/config-public/genesis.json\n  "
+                    + "blockchain_db_path: /concord/rocksdbdata/");
+            writer.newLine();
+            writer.write(NODE);
+            writer.newLine();
+            for (int i = 0; i < hostIp.size(); i++) {
+                writer.write(SERVICE_HOST + "0.0.0.0");
+                writer.newLine();
+                writer.write(SERVICE_PORT + "5458");
+                writer.newLine();
+                writer.write(REPLICA);
+                writer.newLine();
+                writer.write(REPLICA_HOST + hostIp.get(i));
+                writer.newLine();
+                writer.write(REPLICA_PORT + DEFAULT_PORT);
+                writer.newLine();
+                writer.write(CLIENT_PROXY);
+                writer.newLine();
 
-                int principalId = maxPrincipalId - i - j; // could be randomized later
-                principalList.add(principalId);
+                List<Integer> principalList = new ArrayList<>();
+                for (int j = 0; j < CLIENT_PROXY_PER_NODE; j++) {
+                    writer.write(CLIENT_HOST + hostIp.get(i));
+                    writer.newLine();
+                    writer.write(CLIENT_PORT + (DEFAULT_PORT + j + 1));
+                    writer.newLine();
 
-                configString.append(PRINCIPAL_ID + principalId);
-                configString.append("\n");
+                    int principalId = principals.get(i * CLIENT_PROXY_PER_NODE + j);
+                    principalList.add(principalId);
+
+                    writer.write(PRINCIPAL_ID + principalId);
+                    writer.newLine();
+                }
+                nodePrincipal.put(i, principalList);
             }
-            nodePrincipal.put(i, principalList);
+            writer.flush();
+            writer.close();
+            return true;
+        } catch (IOException x) {
+            log.error("IOException: %s%n", x);
+            return false;
         }
-
-        return configString.toString();
     }
 }

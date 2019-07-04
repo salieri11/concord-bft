@@ -137,7 +137,7 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
 
         // Generate TLS Configuration
         var configUtil = new ConcordConfigUtil();
-        var tlsConfig = configUtil.generateConfigUtil(request.getHosts());
+        var tlsConfig = configUtil.getConcordConfig(request.getHosts());
 
         List<Identity> tlsIdentityList = certGen.generateSelfSignedCertificates(configUtil.maxPrincipalId + 1,
                 ConfigurationServiceType.DockerType.CONCORD_TLS);
@@ -155,7 +155,7 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
             // TLS list
             componentList.add(new ConfigurationComponent(
                     ConfigurationServiceType.DockerType.CONCORD_TLS,
-                    configUtil.configPath, tlsConfig, new IdentityFactors()));
+                    configUtil.configPath, tlsConfig.get(node), new IdentityFactors()));
 
             tlsNodeIdentities.get(node).stream().forEach(entry -> {
                 componentList.add(new ConfigurationComponent(
