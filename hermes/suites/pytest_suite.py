@@ -63,7 +63,7 @@ class PytestSuite(test_suite.TestSuite):
       for testResult in results["report"]["tests"]:
          passed = None
 
-         if testResult["outcome"] == "passed":
+         if testResult["outcome"] == "passed" or testResult["outcome"] == "xfailed":
             passed = True
          elif testResult["outcome"] == "skipped":
             passed = "skipped"

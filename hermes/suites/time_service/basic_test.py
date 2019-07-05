@@ -4,12 +4,12 @@
 # "Basic" Time Service tests (i.e. the happy-path, non-evil ones)
 #########################################################################
 import collections
+from base64 import b64decode
 import difflib
 import inspect
 import json
 import logging
 import os
-import pickle
 import pytest
 import queue
 import re
@@ -27,34 +27,36 @@ import util.numbers_strings
 
 log = logging.getLogger(__name__)
 
-# What we expect time_pusher_period_ms to be, but in seconds.
-expectedUpdatePeriodSec = 1
+def run_conc_time(concordContainer=None, args=""):
+   '''
+   Run the `conc_time` utility in a concord container. Appends the
+   string `args` to the command. Returns the text output.
+
+   '''
+   if not concordContainer:
+      concordContainer = util.blockchain.eth.get_concord_container_name(1)
+
+   return util.blockchain.eth.exec_in_concord_container(concordContainer,
+                                                        "./conc_time -o json {}".format(args))
 
 
-def skip_if_disabled(output):
+def time_service_is_disabled():
    '''
-   If we received an error saying the time service is disabled, skip the rest of the test.
+   If we receive an error saying the time service is disabled, return
+   true. Useful for skipping tests that need the time service to be
+   enabled.
    '''
+   output = run_conc_time()
+
    # text format uses snake_case, json format uses camelCase
    if re.findall("error_response", output) or re.findall("errorResponse", output):
-      if re.findall("Time service is disabled", output):
-         pytest.skip("Time service is disabled.")
+      return bool(re.findall("Time service is disabled", output))
 
 
-@pytest.mark.smoke
-def test_cli_get():
-   '''
-   Attempt to use conc_time to get the current blockchain
-   time. Passes if there is no error_response, and there is a
-   time_response that contains a summary field filled with digits.
-   '''
-   concordContainer = util.blockchain.eth.get_concord_container_name(1)
-   output = util.blockchain.eth.exec_in_concord_container(concordContainer, "./conc_time -g")
+pytestmark = pytest.mark.skipif(time_service_is_disabled(), reason="Time service is disabled")
 
-   skip_if_disabled(output)
-
-   assert re.findall("time_response", output), "No time response found: {}".format(output)
-   assert re.findall("summary: ([:digit:]*)", output), "Summary with time not found: {}".format(output)
+# What we expect time_pusher_period_ms to be, but in seconds.
+expectedUpdatePeriodSec = 1
 
 
 def extract_samples_from_response(output):
@@ -69,9 +71,51 @@ def extract_samples_from_response(output):
 
    sampleMap = {}
    for sample in sampleList:
-      sampleMap[sample["source"]] = sample["time"]
+      text_source = b64decode(sample["source"]).decode("utf-8")
+      sampleMap[text_source] = int(sample["time"])
 
    return sampleMap
+
+
+def get_samples(concordContainer=None):
+   '''
+   Use the `conc_time` tool to read the latest state of the time contract.
+   '''
+   output = run_conc_time(concordContainer, "-l")
+   return extract_samples_from_response(output)
+
+
+def extract_time_summary_response(output):
+   '''
+   Dig through conc_time output to find a TimeResponse message, and
+   extract the summary from it. The conc_time script should have been
+   exected with `-g` and `-o json` flags.
+   '''
+   responseText = re.findall("Received response: (.*)", output)[0]
+   responseJson = json.loads(responseText)
+   return int(responseJson["timeResponse"]["summary"])
+
+
+def get_summary(concordContainer=None):
+   '''
+   Use the `conc_time` tool to read the latest state of the time contract.
+   '''
+   output = run_conc_time(concordContainer, "-g")
+   return extract_time_summary_response(output)
+
+
+@pytest.mark.smoke
+def test_cli_get():
+   '''
+   Attempt to use conc_time to get the current blockchain
+   time. Passes if there is no error_response, and there is a
+   time_response that contains a summary field filled with digits.
+   '''
+   concordContainer = util.blockchain.eth.get_concord_container_name(1)
+   output = util.blockchain.eth.exec_in_concord_container(concordContainer, "./conc_time -g")
+
+   assert re.findall("time_response", output), "No time response found: {}".format(output)
+   assert re.findall("summary: ([:digit:]*)", output), "Summary with time not found: {}".format(output)
 
 
 def test_low_load_updates():
@@ -86,12 +130,7 @@ def test_low_load_updates():
    functioning.
    '''
    concordContainer = util.blockchain.eth.get_concord_container_name(1)
-   output = util.blockchain.eth.exec_in_concord_container(concordContainer,
-                                                          "./conc_time -l -o json")
-
-   skip_if_disabled(output)
-
-   startTimes = extract_samples_from_response(output)
+   startTimes = get_samples(concordContainer)
    assert startTimes.keys(), "No sources found"
 
    # How many times we're going to query before giving up. This
@@ -107,9 +146,7 @@ def test_low_load_updates():
    logPeriod = 5
 
    for attempt in range(1,maxAttempts+1):
-      output = util.blockchain.eth.exec_in_concord_container(concordContainer,
-                                                             "./conc_time -l -o json")
-      newTimes = extract_samples_from_response(output)
+      newTimes = get_samples(concordContainer)
       for k,v in newTimes.items():
          if startTimes[k] == newTimes[k]:
             if (attempt % logPeriod) == 1:
@@ -123,17 +160,6 @@ def test_low_load_updates():
    assert len(newTimes.keys()) == len(startTimes.keys()), "All sources should be present in the update"
    for k,v in newTimes.items():
       assert startTimes[k] != newTimes[k], "All sources should have updated"
-
-
-def extract_time_summary_response(output):
-   '''
-   Dig through conc_time output to find a TimeResponse message, and
-   extract the summary from it. The conc_time script should have been
-   exected with `-g` and `-o json` flags.
-   '''
-   responseText = re.findall("Received response: (.*)", output)[0]
-   responseJson = json.loads(responseText)
-   return int(responseJson["timeResponse"]["summary"])
 
 
 def test_time_is_recent():
@@ -154,8 +180,10 @@ def test_time_is_recent():
                                                           "./conc_time -g -o json")
    currentHermesTimeAfter = int(time.time())
 
-   skip_if_disabled(output)
-
+   # Doing the extraction after the current time check, in an effort
+   # to make the bounds as tight as possible. Since times are compared
+   # in seconds, there is likely too much slop for this to be
+   # necessary, but it's good practice anyway.
    currentServiceTime = extract_time_summary_response(output)
 
    # These comparisons are not safe if hermes and concord are not
@@ -173,25 +201,19 @@ def test_time_service_in_ethereum_block(fxConnection):
    is [likely] sourced from the time service.
    '''
    concordContainer = util.blockchain.eth.get_concord_container_name(1)
-   output = util.blockchain.eth.exec_in_concord_container(concordContainer,
-                                                          "./conc_time -g -o json")
-
-   skip_if_disabled(output)
 
    # Since low-load time updates may move the time service forward at
    # any moment, we check to make sure that a block's timestamp is
    # between the time service's state before and its state after the
    # block was created.
-   preTxTime = extract_time_summary_response(output)
+   preTxTime = get_summary(concordContainer)
    caller = "0x1111111111111111111111111111111111111111" # fake address
 
    # Create a contract that does nothing but STOP (opcode 00) when called.
    data = util.blockchain.eth.addCodePrefix("00")
    receipt = fxConnection.rpc.getTransactionReceipt(
       fxConnection.rpc.sendTransaction(caller, data))
-   output = util.blockchain.eth.exec_in_concord_container(concordContainer,
-                                                          "./conc_time -g -o json")
-   postTxTime = extract_time_summary_response(output)
+   postTxTime = get_summary(concordContainer)
 
    block = fxConnection.rpc.getBlockByHash(receipt["blockHash"])
    blockTime = int(block["timestamp"], 16)
@@ -208,10 +230,12 @@ def test_time_service_in_ethereum_code(fxConnection):
    opcode is [likely] sourced from the time service.
    '''
    concordContainer = util.blockchain.eth.get_concord_container_name(1)
-   output = util.blockchain.eth.exec_in_concord_container(concordContainer,
-                                                          "./conc_time -g -o json")
 
-   skip_if_disabled(output)
+   # Since low-load time updates may move the time service forward at
+   # any moment, we check to make sure that an execution's timestamp is
+   # between the time service's state before and its state after the
+   # call was executed.
+   preTxTime = get_summary(concordContainer)
 
    # This contract just returns the ethereum timestamp when called.
    bytecode = "4260005260206000f3"
@@ -226,15 +250,8 @@ def test_time_service_in_ethereum_code(fxConnection):
       fxConnection.rpc.sendTransaction(caller, util.blockchain.eth.addCodePrefix(bytecode)))
    address = receipt["contractAddress"]
 
-   # Since low-load time updates may move the time service forward at
-   # any moment, we check to make sure that an execution's timestamp is
-   # between the time service's state before and its state after the
-   # call was executed.
-   preTxTime = extract_time_summary_response(output)
    contractTime = int(fxConnection.rpc.callContract(address), 16)
-   output = util.blockchain.eth.exec_in_concord_container(concordContainer,
-                                                          "./conc_time -g -o json")
-   postTxTime = extract_time_summary_response(output)
+   postTxTime = get_summary(concordContainer)
 
    # "//1000" = the time service reports in milliseconds, but ethereum
    # timestamps are in seconds
@@ -265,12 +282,6 @@ def test_ethereum_time_does_not_reverse(fxConnection):
    Test that the timestamp in block N is always later than or equal
    to the timestamp in block N-1 (i.e. time never goes backward.
    '''
-   concordContainer = util.blockchain.eth.get_concord_container_name(1)
-   output = util.blockchain.eth.exec_in_concord_container(concordContainer,
-                                                          "./conc_time -g -o json")
-
-   skip_if_disabled(output)
-
    minBlocksToTest = 100
    latestBlockNumber = ensureEnoughBlocksToTest(fxConnection, minBlocksToTest)
 
