@@ -13,7 +13,7 @@ node__TEMPLATE:
 node:
   - service_host: 0.0.0.0
     service_port: 5458
-    time_source_id: concord1-time
+    time_source_id: time-source1
     replica:
       - replica_host: concord1
         replica_port: 3501
@@ -28,7 +28,7 @@ node:
         client_port: 3505
   - service_host: 0.0.0.0
     service_port: 5458
-    time_source_id: concord2-time
+    time_source_id: time-source2
     replica:
       - replica_host: concord2
         replica_port: 3501
@@ -43,7 +43,7 @@ node:
         client_port: 3505
   - service_host: 0.0.0.0
     service_port: 5458
-    time_source_id: concord3-time
+    time_source_id: time-source3
     replica:
       - replica_host: concord3
         replica_port: 3501
@@ -58,7 +58,7 @@ node:
         client_port: 3505
   - service_host: 0.0.0.0
     service_port: 5458
-    time_source_id: concord4-time
+    time_source_id: time-source4
     replica:
       - replica_host: concord4
         replica_port: 3501
