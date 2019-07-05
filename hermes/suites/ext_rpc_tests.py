@@ -25,6 +25,7 @@ from util.numbers_strings import trimHexIndicator, decToEvenHexNo0x
 from util.product import Product
 import util.json_helper
 import util.helper
+from util.auth import getAccessToken
 from requests.auth import HTTPBasicAuth
 
 import web3
@@ -40,8 +41,19 @@ class ExtendedRPCTests(test_suite.TestSuite):
    _resultFile = None
    _unintentionallySkippedFile = None
    _userUnlocked = False
+   _httpProvider = None
+   _reverseProxyhttpProvider = None
 
    def __init__(self, passedArgs):
+      accessToken = getAccessToken()
+      authHeader = {'Authorization': 'Bearer {0}'.format(accessToken)}
+      self._reverseProxyhttpProvider = HTTPProvider(
+         "https://localhost/blockchains/local/api/concord/eth/",
+         request_kwargs={
+            'headers': authHeader,
+            'verify': False
+         }
+      )
       super(ExtendedRPCTests, self).__init__(passedArgs)
 
    def getName(self):
@@ -451,9 +463,7 @@ class ExtendedRPCTests(test_suite.TestSuite):
       expectedBalance = 20
 
       user = self._userConfig.get('product').get('db_users')[0]
-      web3 = Web3(HTTPProvider(self.ethrpcApiUrl,
-                               request_kwargs={'auth': HTTPBasicAuth(user['username'], user['password']),
-                                               'verify': False}))
+      web3 = self.getWeb3Instance()
 
       Counter = web3.eth.contract(abi=contract_interface['abi'], bytecode=contract_interface['bin'])
       private_key = web3.eth.account.decrypt(wallet, password)
@@ -1040,10 +1050,7 @@ class ExtendedRPCTests(test_suite.TestSuite):
       '''
       user_id = request.getUsers()[0]['user_id']
       user = self._userConfig.get('product').get('db_users')[0]
-      web3 = Web3(HTTPProvider(self.reverseProxyApiBaseUrl + "/api/concord/eth/", \
-	          request_kwargs= \
-	          {'auth': HTTPBasicAuth(user['username'], user['password']), \
-	          'verify': False}))
+      web3 = Web3(self._reverseProxyhttpProvider)
       password = "123456"
       address = web3.personal.newAccount(password)
       wallet = request.getWallet(user_id, address[2:].lower())
@@ -1092,9 +1099,7 @@ class ExtendedRPCTests(test_suite.TestSuite):
       '''
       user_id = request.getUsers()[0]['user_id']
       user = self._userConfig.get('product').get('db_users')[0]
-      web3 = Web3(HTTPProvider(self.reverseProxyApiBaseUrl + "/api/concord/eth/",
-                               request_kwargs={'auth': HTTPBasicAuth(user['username'], user['password']),
-                                               'verify': False}))
+      web3 = Web3(self._reverseProxyhttpProvider)
       password = "123456"
       address = web3.personal.newAccount(password)
       wallet = request.getWallet(user_id, address[2:].lower())
@@ -1160,9 +1165,7 @@ class ExtendedRPCTests(test_suite.TestSuite):
       expectedCount = 1000
 
       user = self._userConfig.get('product').get('db_users')[0]
-      web3 = Web3(HTTPProvider(self.ethrpcApiUrl,
-                               request_kwargs={'auth': HTTPBasicAuth(user['username'], user['password']),
-                                               'verify': False}))
+      web3 = self.getWeb3Instance()
 
       Counter = web3.eth.contract(abi=contract_interface['abi'], bytecode=contract_interface['bin'])
       private_key = web3.eth.account.decrypt(wallet, password)

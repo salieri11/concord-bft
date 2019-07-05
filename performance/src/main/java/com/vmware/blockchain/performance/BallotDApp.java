@@ -1,6 +1,7 @@
 package com.vmware.blockchain.performance;
 
 import com.vmware.blockchain.samples.Ballot;
+import com.vmware.blockchain.performance.BlockchainCredentials;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.web3j.abi.datatypes.Int;
@@ -91,7 +92,7 @@ public class BallotDApp {
         for (Credentials credential : credentials){
             if (BallotDApp.ENABLE_AUTH) {
                 HttpService httpServiceEth = new HttpService(BallotDApp.ENDPOINT);
-                httpServiceEth.addHeader("Authorization", okhttp3.Credentials.basic("admin@blockchain.local", "Admin!23"));
+                httpServiceEth.addHeader("Authorization", okhttp3.Credentials.basic(BlockchainCredentials.USER, BlockchainCredentials.KEY));
                 web3j = Web3j.build(httpServiceEth);
             } else {
                 web3j = Web3j.build(new HttpService(BallotDApp.ENDPOINT));

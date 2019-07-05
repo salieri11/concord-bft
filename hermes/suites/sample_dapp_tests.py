@@ -24,6 +24,7 @@ import subprocess
 import requests
 
 from . import test_suite
+from util.auth import refresh_token
 
 log = logging.getLogger(__name__)
 
@@ -46,17 +47,12 @@ class SampleDAppTests(test_suite.TestSuite):
 
       user = self._userConfig.get('product').get('db_users')[0]
       username = user['username']
-      password = user['password']
+      self._password = refresh_token
 
       if self._args.user != None:
          self._user = self._args.user
       else:
          self._user = username
-
-      if self._args.password != None:
-         self._password = self._args.password
-      else:
-         self._password = password
 
       # Test does not launch the product if a URL is passed to it
       if self._args.endpoint != None:
@@ -237,7 +233,7 @@ class SampleDAppTests(test_suite.TestSuite):
          file.seek(0)
          file.write(lines)
 
-      
+
       os.system("cd ../vmware-blockchain-samples/supply-chain && docker-compose build")
       os.system("cd ../vmware-blockchain-samples/supply-chain && docker-compose -f docker-compose.yml -f docker-compose-local-network.yml up -d")
       output = subprocess.check_output("cd ../vmware-blockchain-samples/supply-chain && docker-compose -f docker-compose.yml -f docker-compose-local-network.yml run supply-chain npm run deploy_and_verify:vmware", shell = True, universal_newlines=True)

@@ -14,6 +14,9 @@ import time
 
 from util.debug import pp as pp
 
+from util.auth import getAccessToken
+
+
 log = logging.getLogger(__name__)
 
 class Request():
@@ -32,6 +35,7 @@ class Request():
    _subPath = None
    _params = ""
    _data = None
+   _accessToken = None
 
    def __init__(self, logDir, testName, baseUrl, userConfig):
       self.logDir = logDir
@@ -42,6 +46,7 @@ class Request():
       self._subPath = ""
       self._params = ""
       self._userConfig = userConfig
+      self._accessToken = getAccessToken()
 
    def _send(self, verb=None):
       '''
@@ -58,9 +63,7 @@ class Request():
       Request._idCounter += 1
       lock.release()
       user = self._userConfig.get('product').get('db_users')[0]
-      username = user['username']
-      password = user['password']
-      url = self._baseUrl+self._subPath
+      url = '{0}{1}'.format(self._baseUrl, self._subPath)
 
       if self._params:
          if "?" in url:
@@ -72,8 +75,7 @@ class Request():
          if self._data is None:
             curlCmd = ["curl",
                        "-H", "Accept: application/json",
-                       "--user", "{0}:{1}".format(
-                        username, password),
+                       "-H", "Authorization: Bearer {0}".format(self._accessToken),
                        url,
                        "--output", self._responseFile,
                        "--verbose",
@@ -82,8 +84,7 @@ class Request():
             curlCmd = ["curl",
                        "-H", "Accept: application/json",
                        "-H", "Content-Type: application/json",
-                       "--user", "{0}:{1}".format(
-                        username, password),
+                       "-H", "Authorization: Bearer {0}".format(self._accessToken),
                        "--data", json.dumps(self._data),
                        url,
                        "--output", self._responseFile,
@@ -94,8 +95,7 @@ class Request():
                     "--request", verb,
                     "-H", "Accept: application/json",
                     "-H", "Content-Type: application/json",
-                    "--user", "{0}:{1}".format(
-                        username, password),
+                    "-H", "Authorization: Bearer {0}".format(self._accessToken),
                     "--data", json.dumps(self._data),
                     url,
                     "--output", self._responseFile,

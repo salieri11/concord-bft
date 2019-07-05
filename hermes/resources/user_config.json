@@ -115,7 +115,7 @@
       }
     ],
     "db_users": [{
-      "username": "admin@blockchain.local",
+      "username": "admin-blockchain-dev@csp.local",
       "password": "Admin!23"
     }]
   },

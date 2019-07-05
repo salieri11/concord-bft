@@ -42,7 +42,7 @@ export class EthApiService extends ConcordApiService {
   }
 
   get apiSubPath() {
-    return 'eth';
+    return '';
   }
 
   createWallet(params: PersonalNewAccountParams): Observable<PersonalNewAccountResponse> {

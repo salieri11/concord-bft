@@ -19,7 +19,7 @@ import rest.request
 from util.bytecode import getPushInstruction, addBytePadding
 from util.numbers_strings import trimHexIndicator, decToEvenHexNo0x
 from util.product import Product
-
+from util.auth import getAccessToken
 # Suppress security warnings
 import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -224,9 +224,15 @@ class TestSuite(ABC):
       '''
       Connect the web3 framework to an ethrpc node
       '''
-      user = self._userConfig.get('product').get('db_users')[0]
-      args = {'auth': HTTPBasicAuth(user['username'], user['password']),'verify': False}
-      return Web3(HTTPProvider(self.ethrpcApiUrl, request_kwargs=args))
+      accessToken = getAccessToken()
+      authHeader = {'Authorization': 'Bearer {0}'.format(accessToken)}
+      return Web3(HTTPProvider(
+               self.ethrpcApiUrl,
+               request_kwargs={
+                  'headers': authHeader,
+                  'verify': False
+               }
+            ))
 
    def loadContract(self, name):
       '''
