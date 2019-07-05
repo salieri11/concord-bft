@@ -82,7 +82,9 @@ class CloudInitConfiguration(
             # Enable when there are multiple interfaces for separate networks.
             # route add default gw `ip route show | grep "dev eth0" | grep -v kernel | grep -v default | cut -d' ' -f 1` eth0
 
-            systemctl start docker
+            sed -i 's_/usr/bin/dockerd_/usr/bin/dockerd -H tcp://127.0.0.1:2375 -H unix:///var/run/docker.sock_g' /lib/systemd/system/docker.service
+            systemctl daemon-reload
+            systemctl restart docker
             systemctl enable docker
             {{dockerLoginCommand}}
             {{dockerPullCommand}}
