@@ -6,26 +6,24 @@ package com.vmware.blockchain.deployment.service.fleet
 import com.vmware.blockchain.deployment.logging.error
 import com.vmware.blockchain.deployment.logging.info
 import com.vmware.blockchain.deployment.logging.logger
-import com.vmware.blockchain.deployment.model.FleetMessage
-import com.vmware.blockchain.deployment.model.FleetServiceImplBase
-import com.vmware.blockchain.deployment.model.InstanceMessage
+import com.vmware.blockchain.deployment.model.FleetManagementServiceImplBase
 import com.vmware.blockchain.deployment.model.UpdateInstanceRequest
 import com.vmware.blockchain.deployment.model.UpdateInstanceResponse
 import io.grpc.stub.StreamObserver
+import kotlin.coroutines.CoroutineContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.launch
-import kotlin.coroutines.CoroutineContext
 
 /**
- * An implementation of [com.vmware.blockchain.deployment.model.FleetService].
+ * An implementation of [com.vmware.blockchain.deployment.model.FleetManagementService].
  */
-class FleetService(
+class FleetManagementService(
     private val context: CoroutineContext = Dispatchers.Default
-) : FleetServiceImplBase(), CoroutineScope {
+) : FleetManagementServiceImplBase(), CoroutineScope {
 
     /** Logging instance. */
     private val log by logger()
@@ -42,12 +40,6 @@ class FleetService(
      */
     suspend fun shutdown() {
         job.cancelAndJoin()
-    }
-
-    override fun createManagedSession(
-        responseObserver: StreamObserver<FleetMessage>
-    ): StreamObserver<InstanceMessage> {
-        return super.createManagedSession(responseObserver)
     }
 
     override fun updateInstance(

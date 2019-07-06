@@ -66,7 +66,9 @@ message InstanceMessage {
      * Model definition of information regarding the status of an instance monitored by the fleet.
      *
      * @property[state]
-     *   state status of the instance.
+     *   status state of the instance.
+     * @property[service_states]
+     *   status states of service components
      */
     message Status {
         /**
@@ -80,6 +82,7 @@ message InstanceMessage {
         }
 
         State state = 1;
+        repeated ServiceState service_states = 2 [packed = false];
     }
 
     /**
@@ -211,7 +214,7 @@ message UpdateInstanceResponse {
  * @property[transport_security]
  *   transport security setting.
  */
-message FleetServerConfiguration {
+message FleetManagementServerConfiguration {
     int32 port = 1;
     TransportSecurity transport_security = 2;
 }
@@ -219,14 +222,19 @@ message FleetServerConfiguration {
 
 /* [START services] */
 /**
- * Service definition pertaining to operations on Concord nodes fleet management.
+ * Service definition pertaining to operations on being managed by fleet controller.
  */
-service FleetService {
+service FleetControlService {
     /**
      * Operation to create a persistent managed session of a fleet instance.
      */
     rpc CreateManagedSession (stream InstanceMessage) returns (stream FleetMessage) {};
+}
 
+/**
+ * Service definition pertaining to operations on managing resources under fleet's control.
+ */
+service FleetManagementService {
     /**
       * Operation to update a deployed Concord node based on an [UpdateInstanceRequest].
       */

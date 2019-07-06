@@ -6,7 +6,7 @@ package com.vmware.blockchain.deployment.service.fleet
 import com.vmware.blockchain.deployment.logging.error
 import com.vmware.blockchain.deployment.logging.info
 import com.vmware.blockchain.deployment.logging.logger
-import com.vmware.blockchain.deployment.model.FleetServerConfiguration
+import com.vmware.blockchain.deployment.model.FleetManagementServerConfiguration
 import com.vmware.blockchain.deployment.model.TransportSecurity
 import dagger.Component
 import io.grpc.netty.shaded.io.grpc.netty.GrpcSslContexts
@@ -50,7 +50,8 @@ interface FleetServer {
         fun build(): FleetServer
     }
 
-    fun fleetService(): FleetService
+    fun fleetControlService(): FleetControlService
+    fun fleetManagementService(): FleetManagementService
 }
 
 /**
@@ -90,8 +91,9 @@ private fun newSslContext(
  * Shutdown the server instance.
  */
 private suspend fun FleetServer.shutdown() {
-    // Stop the service instance first.
-    fleetService().shutdown()
+    // Stop the service instances first.
+    fleetControlService().shutdown()
+    fleetManagementService().shutdown()
 }
 
 /**
@@ -109,13 +111,13 @@ fun main(args: Array<String>) {
     val config = when {
         (args.size == 1 && Files.exists(Paths.get(args[0]))) -> {
             val configJson = Paths.get(args[0]).toUri().toURL().readText()
-            json.parse(FleetServerConfiguration.serializer(), configJson)
+            json.parse(FleetManagementServerConfiguration.serializer(), configJson)
         }
         (Files.exists(Paths.get(DEFAULT_SERVER_CONFIG))) -> {
             val configJson = DEFAULT_SERVER_CONFIG.toURL().readText()
-            json.parse(FleetServerConfiguration.serializer(), configJson)
+            json.parse(FleetManagementServerConfiguration.serializer(), configJson)
         }
-        else -> FleetServerConfiguration(
+        else -> FleetManagementServerConfiguration(
                 DEFAULT_SERVER_PORT,
                 TransportSecurity(
                         TransportSecurity.Type.TLSv1_2,
@@ -138,7 +140,8 @@ fun main(args: Array<String>) {
                 )
             }
     val server = NettyServerBuilder.forPort(config.port)
-            .addService(fleetServer.fleetService())
+            .addService(fleetServer.fleetControlService())
+            .addService(fleetServer.fleetManagementService())
             .sslContext(sslContext)
             .build()
     try {
