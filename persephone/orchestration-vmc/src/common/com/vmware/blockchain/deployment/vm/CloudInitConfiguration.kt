@@ -82,7 +82,9 @@ class CloudInitConfiguration(
             # Enable when there are multiple interfaces for separate networks.
             # route add default gw `ip route show | grep "dev eth0" | grep -v kernel | grep -v default | cut -d' ' -f 1` eth0
 
-            systemctl start docker
+            sed -i 's_/usr/bin/dockerd_/usr/bin/dockerd -H tcp://127.0.0.1:2375 -H unix:///var/run/docker.sock_g' /lib/systemd/system/docker.service
+            systemctl daemon-reload
+            systemctl restart docker
             systemctl enable docker
             {{dockerLoginCommand}}
             {{dockerPullCommand}}
@@ -97,7 +99,7 @@ class CloudInitConfiguration(
 
             # Update guest-info's network information in vSphere.
             touch /etc/vmware-tools/tools.conf
-            echo -e '[guestinfo]\nprimary-nics=eth*\nexclude-nics=docker*,veth*' > /etc/vmware-tools/tools.conf
+            printf '[guestinfo]\nprimary-nics=eth*\nexclude-nics=docker*,veth*' > /etc/vmware-tools/tools.conf
             /usr/bin/vmware-toolbox-cmd info update network
 
             touch /concord/config-local/concord.config
@@ -105,7 +107,7 @@ class CloudInitConfiguration(
             chmod 777 /concord/config-public/find-docker-instances.sh
 
             echo '{{genesis}}' > /concord/config-public/genesis.json
-            docker run -d --name=agent -v /concord/agent/config:/config -v /concord:/concord -v /var/run/docker.sock:/var/run/docker.sock -p 8546:8546 registry-1.docker.io/vmwblockchain/agent-testing:latest
+            docker run -d --name=agent --restart=always -v /concord/agent/config:/config -v /concord:/concord -v /var/run/docker.sock:/var/run/docker.sock -p 8546:8546 registry-1.docker.io/vmwblockchain/agent-testing:latest
             echo 'done'
             """.trimIndent()
                     .replace("{{dockerLoginCommand}}", containerRegistry.toRegistryLoginCommand())
