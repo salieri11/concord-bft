@@ -54,6 +54,9 @@ actual abstract class AccessTokenAwareHttpClient(
     /** Last-known API access token value. */
     @Volatile private var accessToken: String? = null
 
+    /** Specify whether HTTP request should specify access token in HTTP header. */
+    actual open val useAccessToken: Boolean = true
+
     /**
      * Retrieve the API session token from a given session response.
      *
@@ -149,10 +152,9 @@ actual abstract class AccessTokenAwareHttpClient(
      *   API session token as a [String].
      */
     @PublishedApi internal suspend fun token(useCache: Boolean = true): String {
-        return accessToken
-                ?.takeIf { useCache }
-                ?.let { it }
-                ?: retrieveAccessToken(connect().toHttpResponse()).also { accessToken = it }
+        return accessToken?.takeIf { useCache }
+                ?: (if (useAccessToken) retrieveAccessToken(connect().toHttpResponse()) else "")
+                        .also { accessToken = it }
     }
 
     /**
@@ -186,14 +188,67 @@ actual abstract class AccessTokenAwareHttpClient(
         contentType: String,
         headers: List<Pair<String, String>>
     ): HttpResponse<T?> {
-        return requestWith { token ->
+        val response = requestWith { token ->
             JdkHttpRequest.newBuilder()
                     .GET()
                     .uri(serviceEndpoint.resolve(path))
-                    .header("Content-Type", contentType)
-                    .header(internalAccessTokenHeader(), token)
+                    .header(HTTP_HEADER_CONTENT_TYPE, contentType)
+                    .apply {
+                        takeIf { useAccessToken }?.header(internalAccessTokenHeader(), token)
+                    }
                     .also { builder -> headers.forEach { builder.header(it.first, it.second) } }
                     .build()
+        }
+
+        return object : HttpResponse<T?> {
+            override fun statusCode(): Int = response.statusCode()
+            override fun body(): T? = response.body().toTypedInstance()
+        }
+    }
+
+    /**
+     * Send a HTTP GET with content specified by parameter and return the response with response
+     * body mapped to a typed instance if request was successful.
+     *
+     * @param[path]
+     *   path to be resolved against the base service endpoint.
+     * @param[contentType]
+     *   HTTP content type.
+     * @param[headers]
+     *   list of HTTP headers to be set for the request.
+     * @param[arrayResponse]
+     *   specify whether to expect the HTTP response body as an array of elements.
+     *
+     * @return
+     *   the response of the request as a parameterized (data-bound) [HttpResponse] instance.
+     */
+    actual suspend inline fun <reified T : Any> get(
+        path: String,
+        contentType: String,
+        headers: List<Pair<String, String>>,
+        arrayResponse: Boolean
+    ): HttpResponse<List<T>?> {
+        val response = requestWith { token ->
+            JdkHttpRequest.newBuilder()
+                    .GET()
+                    .uri(serviceEndpoint.resolve(path))
+                    .header(HTTP_HEADER_CONTENT_TYPE, contentType)
+                    .apply {
+                        takeIf { useAccessToken }?.header(internalAccessTokenHeader(), token)
+                    }
+                    .also { builder -> headers.forEach { builder.header(it.first, it.second) } }
+                    .build()
+        }
+
+        return object : HttpResponse<List<T>?> {
+            override fun statusCode(): Int = response.statusCode()
+            override fun body(): List<T>? {
+                return if (arrayResponse) {
+                    response.body().toTypedInstanceList()
+                } else {
+                    response.body().toTypedInstance<T>()?.let { listOf(it) }
+                }
+            }
         }
     }
 
@@ -225,14 +280,21 @@ actual abstract class AccessTokenAwareHttpClient(
                 ?.let { JdkHttpRequest.BodyPublishers.ofString(it) }
                 ?: JdkHttpRequest.BodyPublishers.noBody()
 
-        return requestWith { token ->
+        val response = requestWith { token ->
             JdkHttpRequest.newBuilder()
                     .PUT(bodyPublisher)
                     .uri(serviceEndpoint.resolve(path))
-                    .header("Content-Type", contentType)
-                    .header(internalAccessTokenHeader(), token)
+                    .header(HTTP_HEADER_CONTENT_TYPE, contentType)
+                    .apply {
+                        takeIf { useAccessToken }?.header(internalAccessTokenHeader(), token)
+                    }
                     .also { builder -> headers.forEach { builder.header(it.first, it.second) } }
                     .build()
+        }
+
+        return object : HttpResponse<T?> {
+            override fun statusCode(): Int = response.statusCode()
+            override fun body(): T? = response.body().toTypedInstance()
         }
     }
 
@@ -264,14 +326,21 @@ actual abstract class AccessTokenAwareHttpClient(
                 ?.let { JdkHttpRequest.BodyPublishers.ofString(it) }
                 ?: JdkHttpRequest.BodyPublishers.noBody()
 
-        return requestWith { token ->
+        val response = requestWith { token ->
             JdkHttpRequest.newBuilder()
                     .method("PATCH", bodyPublisher)
                     .uri(serviceEndpoint.resolve(path))
-                    .header("Content-Type", contentType)
-                    .header(internalAccessTokenHeader(), token)
+                    .header(HTTP_HEADER_CONTENT_TYPE, contentType)
+                    .apply {
+                        takeIf { useAccessToken }?.header(internalAccessTokenHeader(), token)
+                    }
                     .also { builder -> headers.forEach { builder.header(it.first, it.second) } }
                     .build()
+        }
+
+        return object : HttpResponse<T?> {
+            override fun statusCode(): Int = response.statusCode()
+            override fun body(): T? = response.body().toTypedInstance()
         }
     }
 
@@ -303,14 +372,21 @@ actual abstract class AccessTokenAwareHttpClient(
                 ?.let { JdkHttpRequest.BodyPublishers.ofString(it) }
                 ?: JdkHttpRequest.BodyPublishers.noBody()
 
-        return requestWith { token ->
+        val response = requestWith { token ->
             JdkHttpRequest.newBuilder()
                     .POST(bodyPublisher)
                     .uri(serviceEndpoint.resolve(path))
-                    .header("Content-Type", contentType)
-                    .header(internalAccessTokenHeader(), token)
+                    .header(HTTP_HEADER_CONTENT_TYPE, contentType)
+                    .apply {
+                        takeIf { useAccessToken }?.header(internalAccessTokenHeader(), token)
+                    }
                     .also { builder -> headers.forEach { builder.header(it.first, it.second) } }
                     .build()
+        }
+
+        return object : HttpResponse<T?> {
+            override fun statusCode(): Int = response.statusCode()
+            override fun body(): T? = response.body().toTypedInstance()
         }
     }
 
@@ -332,22 +408,84 @@ actual abstract class AccessTokenAwareHttpClient(
         contentType: String,
         headers: List<Pair<String, String>>
     ): HttpResponse<T?> {
-        return requestWith { token ->
+        val response = requestWith { token ->
             JdkHttpRequest.newBuilder()
                     .DELETE()
                     .uri(serviceEndpoint.resolve(path))
-                    .header("Content-Type", contentType)
-                    .header(internalAccessTokenHeader(), token)
+                    .header(HTTP_HEADER_CONTENT_TYPE, contentType)
+                    .apply {
+                        takeIf { useAccessToken }?.header(internalAccessTokenHeader(), token)
+                    }
                     .also { builder -> headers.forEach { builder.header(it.first, it.second) } }
                     .build()
         }
+
+        return object : HttpResponse<T?> {
+            override fun statusCode(): Int = response.statusCode()
+            override fun body(): T? = response.body().toTypedInstance()
+        }
     }
 
-    @PublishedApi internal suspend inline fun <reified T : Any> requestWith(
-        supplier: (String) -> JdkHttpRequest
-    ): HttpResponse<T?> {
+    /**
+     * Convenient extension function on [String] to deserialize to an instance of type [T].
+     *
+     * @param[T]
+     *   type of instance to deserialize to.
+     *
+     * @return
+     *   an instance of [T] if string is not empty and successfully deserialized, `null` otherwise.
+     */
+    @PublishedApi
+    internal inline fun <reified T : Any> String.toTypedInstance(): T? {
+        return try {
+            takeIf { it.isNotEmpty() }?.let { serializer.fromJson<T>(it) }
+        } catch (error: Exception) {
+            log.error { "Exception while parsing string, error(${error.message})" }
+
+            // Since string cannot be deserialized, return no value.
+            null
+        }
+    }
+
+    /**
+     * Convenient extension function on [String] to deserialize to an instance of type [T].
+     *
+     * @param[T]
+     *   type of instance to deserialize to.
+     *
+     * @return
+     *   a list of instances of type [T] if string is not empty and successfully deserialized,
+     *   `null` otherwise.
+     */
+    @PublishedApi
+    internal inline fun <reified T : Any> String.toTypedInstanceList(): List<T>? {
+        return try {
+            takeIf { it.isNotEmpty() }?.let { serializer.fromJsonArray(it) }
+        } catch (error: Exception) {
+            log.error { "Exception while parsing string, error(${error.message})" }
+
+            // Since string cannot be deserialized, return no value.
+            null
+        }
+    }
+
+    /**
+     * Pipeline the HTTP request with a request factory-supplier lambda such that when called with
+     * an access token, creates an HTTP request that is then used for outbound HTTP call.
+     *
+     * Note: The function takes care of retrying the request in the event of status 401 response
+     * upon first attempt.
+     *
+     * @param[supplier]
+     *   supplier function to create the HTTP request payload when given an access token.
+     *
+     * @return
+     *   the [HttpResponse] as a result of the HTTP request.
+     */
+    @PublishedApi
+    internal suspend fun requestWith(supplier: (String) -> JdkHttpRequest): HttpResponse<String> {
         val message = supplier(token())
-        val response = request<T>(message)
+        val response = request(message)
         return if (response.statusCode() == 401) {
             // Request failed due to authorization. Force-refresh access token and try again.
             val retryMessage = supplier(token(useCache = false))
@@ -367,34 +505,20 @@ actual abstract class AccessTokenAwareHttpClient(
      * @return
      *   the response of the request as a parameterized (data-bound) [HttpResponse] instance.
      */
-    @PublishedApi internal suspend inline fun <reified T : Any> request(
-        httpRequest: JdkHttpRequest
-    ): HttpResponse<T?> {
+    private suspend fun request(httpRequest: JdkHttpRequest): HttpResponse<String> {
         val upstream = JdkHttpResponse.BodySubscribers.ofString(StandardCharsets.UTF_8)
-        val bindToResult = JdkHttpResponse.BodySubscribers.mapping(upstream) { value ->
-            try {
-                log.info { "API: response body($value)" }
-                value?.takeIf { it.isNotEmpty() }
-                        ?.let { serializer.fromJson<T>(it) }
-            } catch (error: Exception) {
-                log.error { "Exception while parsing API response, error(${error.message})" }
-
-                // Since response cannot be deserialized, return no value.
-                null
-            }
+        val success = JdkHttpResponse.BodySubscribers.mapping<String, String>(upstream) { value ->
+            log.info { "API: response body($value)" }
+            value
         }
-        val logging = JdkHttpResponse.BodySubscribers.mapping<String, T?>(upstream) { value ->
-            log.info { "API: raw response body($value)" }
-            null
+        val error = JdkHttpResponse.BodySubscribers.mapping<String, String>(upstream) { value ->
+            log.info { "API: response body($value)" }
+            ""
         }
-
-        val handler: JdkHttpResponse.BodyHandler<T?> = JdkHttpResponse.BodyHandler { response ->
+        val handler: JdkHttpResponse.BodyHandler<String> = JdkHttpResponse.BodyHandler { response ->
             when (response.statusCode()) {
-                200 -> bindToResult
-                201 -> bindToResult
-                202 -> bindToResult
-                203 -> bindToResult
-                else -> logging // no logging => JdkHttpResponse.BodySubscribers.replacing(null)
+                200, 201, 202, 203 -> success
+                else -> error // no logging => JdkHttpResponse.BodySubscribers.replacing("")
             }
         }
 
@@ -403,7 +527,7 @@ actual abstract class AccessTokenAwareHttpClient(
                     .apply { log.info { "API: $this" } }
                     .let { client.sendAsync(it, handler).await() }
                     .also { response ->
-                        log.info { "API: status(${response.statusCode()} ${response.request()}" }
+                        log.info { "API: status(${response.statusCode()}) ${response.request()}" }
                     }
                     .let { response -> response.toHttpResponse() }
         } catch (error: IOException) {
@@ -421,9 +545,9 @@ actual abstract class AccessTokenAwareHttpClient(
             // fixed, this workaround can be removed.
             //
             // Reference: https://jira.eng.vmware.com/browse/VAPI-1195
-            object : HttpResponse<T?> {
+            object : HttpResponse<String> {
                 override fun statusCode(): Int = 401
-                override fun body(): T? = null
+                override fun body(): String = ""
             }
         }
     }
