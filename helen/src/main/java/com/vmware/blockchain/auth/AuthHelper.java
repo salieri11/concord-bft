@@ -98,14 +98,24 @@ public class AuthHelper {
         return details == null ? null : details.getAuthToken();
     }
 
-    public List<UUID> getPermittedChains() {
+    public List<UUID> getAccessChains() {
         HelenUserDetails details = getDetails();
-        return details == null ? Collections.emptyList() : details.getPermittedChains();
+        return details == null ? Collections.emptyList() : details.getAccessChains();
     }
 
-    public List<UUID> getConsortiums() {
+    public List<UUID> getUpdateChains() {
         HelenUserDetails details = getDetails();
-        return details == null ? Collections.emptyList() : details.getConsortiums();
+        return details == null ? Collections.emptyList() : details.getUpdateChains();
+    }
+
+    public List<UUID> getAccessConsortiums() {
+        HelenUserDetails details = getDetails();
+        return details == null ? Collections.emptyList() : details.getAccessConsortiums();
+    }
+
+    public List<UUID> getUpdateConsortiums() {
+        HelenUserDetails details = getDetails();
+        return details == null ? Collections.emptyList() : details.getUpdateConsortiums();
     }
 
     public Collection<GrantedAuthority> getAuthorities() {
@@ -120,7 +130,7 @@ public class AuthHelper {
 
     public boolean canAccessChain(UUID id) {
         logger.info("can access chain {}", id);
-        return hasAnyAuthority(Roles.systemAdmin()) || getPermittedChains().contains(id);
+        return hasAnyAuthority(Roles.systemAdmin()) || getAccessChains().contains(id);
     }
 
     /**
@@ -128,7 +138,7 @@ public class AuthHelper {
      */
     public boolean canAccessChain(Optional<UUID> oid) {
         UUID id = oid.orElse(defaultProfiles.getBlockchain().getId());
-        return hasAnyAuthority(Roles.systemAdmin()) || getPermittedChains().contains(id);
+        return hasAnyAuthority(Roles.systemAdmin()) || getAccessChains().contains(id);
     }
 
     /**
@@ -137,7 +147,7 @@ public class AuthHelper {
     public boolean canUpdateChain(UUID id) {
         logger.debug("can update chain {}", id);
         return hasAnyAuthority(Roles.systemAdmin())
-                               || (hasAnyAuthority(Roles.consortiumAdmin()) && getPermittedChains().contains(id));
+                               || (hasAnyAuthority(Roles.consortiumAdmin()) && getUpdateChains().contains(id));
     }
 
     /**
@@ -146,16 +156,16 @@ public class AuthHelper {
     public boolean canUpdateChain(Optional<UUID> oid) {
         UUID id = oid.orElse(defaultProfiles.getBlockchain().getId());
         return hasAnyAuthority(Roles.systemAdmin())
-               || (hasAnyAuthority(Roles.consortiumAdmin()) && getPermittedChains().contains(id));
+               || (hasAnyAuthority(Roles.consortiumAdmin()) && getAccessChains().contains(id));
     }
 
     public boolean canAccessConsortium(UUID id) {
-        return hasAnyAuthority(Roles.systemAdmin()) || getConsortiums().contains(id);
+        return hasAnyAuthority(Roles.systemAdmin()) || getAccessConsortiums().contains(id);
     }
 
     public boolean canUpdateConsortium(UUID id) {
         return hasAnyAuthority(Roles.systemAdmin())
-               || (hasAnyAuthority(Roles.consortiumAdmin()) && getConsortiums().contains(id));
+               || (hasAnyAuthority(Roles.consortiumAdmin()) && getUpdateConsortiums().contains(id));
     }
 
     public boolean canAccessOrg(UUID id) {

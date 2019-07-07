@@ -13,10 +13,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -28,7 +30,7 @@ public class TaskController {
 
     @Data
     @NoArgsConstructor
-    private static class TaskGetResponse {
+    static class TaskGetResponse {
         private UUID taskId;
         private Task.State state;
         private String message;
@@ -44,7 +46,19 @@ public class TaskController {
         }
     }
 
-    private TaskService taskService;
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    static class TaskListResponse {
+        List<TaskGetResponse> states;
+    }
+
+    @Data
+    static class TaskIdList {
+        List<UUID> taskIds;
+    }
+
+    private ITaskService taskService;
 
     @Autowired
     public TaskController(TaskService taskService) {
@@ -67,6 +81,19 @@ public class TaskController {
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<TaskGetResponse> getTask(@PathVariable UUID id) {
         return new ResponseEntity<>(new TaskGetResponse(taskService.get(id)), HttpStatus.OK);
+    }
+
+    /**
+     * Get the task states from a list of taskIds.  Note that the query param get_states is required
+     * by default, so not including it will produce a 400 error.
+\     */
+    @RequestMapping(path = "/api/tasks", method = RequestMethod.POST, params = {"get_states"})
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<TaskListResponse> getTaskStates(@RequestBody TaskIdList idList) {
+        List<TaskGetResponse> states = idList.getTaskIds().stream()
+                .map(taskService::get).map(TaskGetResponse::new)
+                .collect(Collectors.toList());
+        return new ResponseEntity<>(new TaskListResponse(states), HttpStatus.OK);
     }
 
 }

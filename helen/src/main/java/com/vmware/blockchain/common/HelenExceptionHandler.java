@@ -11,6 +11,7 @@ import javax.servlet.http.HttpServletRequest;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.springframework.core.NestedExceptionUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -51,8 +52,10 @@ public class HelenExceptionHandler {
 
     private ErrorMessage getErrorMessage(Throwable ex, String path) {
         String errorCode = ex.getClass().getSimpleName();
+        // get the innermost problem (or the exception itself)
+        Throwable root = NestedExceptionUtils.getMostSpecificCause(ex);
         // if the exception class is in the map, use that type
-        HttpStatus status = statusCodes.getOrDefault(ex.getClass(), HttpStatus.INTERNAL_SERVER_ERROR);
+        HttpStatus status = statusCodes.getOrDefault(root.getClass(), HttpStatus.INTERNAL_SERVER_ERROR);
         // However, if this is a helen exception, pull the code from exception
         if (ex instanceof HelenException) {
             status = ((HelenException) ex).getHttpStatus();

@@ -1,2043 +1,2133 @@
-﻿openapi: "3.0.0"
-info: 
- title: "VMware Blockchain API -Helen"
- description: "A Scalable Byzantine Fault Tolerant Ledger"
- version: "1.0.0"
-servers: 
- - 
-   url: "/api"
-  description: "Local API endpoint"
-paths: 
- "/concord/members": 
-  summary: "Blockchain Consensus Membership List"
-  get: 
-   summary: "List nodes that are members"
-   operationId: memberListGet
-   responses: 
-    200: 
-     description: Members
-     content: 
-      "application/json": 
-       schema: 
-        type: array
-        items: 
-         type: object
-         properties: 
-          hostname: 
-           type: string
-          address: 
-           type: string
-          status: 
-           type: string
-          millis_since_last_message: 
-           type: integer
-          millis_since_last_message_threshold: 
-           type: integer
-          rpc_url: 
-           type: string
-           format: url
- "/concord/blocks": 
-  summary: "Blockchain Blocks"
-  get: 
-   summary: "List blocks in the chain, most recent first"
-   operationId: blockListGet
-   parameters: 
-    - 
-   name: latest
-     in: query
-     description: "most recent block to start with"
-     required: false
-     schema: 
-      type: integer
-      format: string
-    - 
-   name: count
-     in: query
-     description: "number of blocks to return"
-     required: false
-     schema: 
-      type: integer
-      format: string
-   responses: 
-    200: 
-     description: Blocks
-     content: 
-      "application/json": 
-       schema: 
-        type: object
-        properties: 
-         blocks: 
-          type: array
-          items: 
-           type: object
-           properties: 
-            number: 
-             type: integer
-            hash: 
-             type: string
-            url: 
-             type: string
-         next: 
-          type: string
- "/concord/blocks/{index}": 
-  summary: "Specific Blockchain Block"
-  get: 
-   summary: "Get a specific block, by its number in the chain"
-   operationId: blockGet
-   parameters: 
-    - 
-   name: index
-     in: path
-     description: "the index of the block to get"
-     required: false
-     schema: 
-      type: integer
-      format: string
-     style: simple
-   responses: 
-    200: 
-     description: Block
-     content: 
-      "application/json": 
-       schema: 
-        type: object
-        properties: 
-         number: 
-          type: integer
-         hash: 
-          type: string
-         parentHash: 
-          type: string
-         nonce: 
-          type: string
-         size: 
-          type: integer
-         timestamp: 
-          type: integer
-          description: "The proposing node's local system time. (In seconds since the UNIX epoch.)"
-         transactions: 
-          type: array
-          items: 
-           type: string
- "/concord/transactions/{hash}": 
-  summary: "Specific Blockchain Block"
-  get: 
-   summary: "Get a specific transaction, by its hash"
-   operationId: txGet
-   parameters: 
-    - 
-   name: hash
-     in: path
-     description: "the hash of the index to get"
-     required: false
-     schema: 
-      type: string
-     style: simple
-   responses: 
-    200: 
-     description: Transaction
-     content: 
-      "application/json": 
-       schema: 
-        type: object
-        properties: 
-         hash: 
-          type: string
-         from: 
-          type: string
-         to: 
-          type: string
-         contract_address: 
-          type: string
-         value: 
-          type: integer
-         input: 
-          type: string
-         block_hash: 
-          type: string
-         block_number: 
-          type: integer
-         transaction_index: 
-          type: integer
-         nonce: 
-          type: integer
-         status: 
-          type: integer
- "/concord/eth": 
-  summary: "Ethereum JSON RPC API"
-  get: 
-   summary: "List available RPC methods"
-   operationId: ethJsonRpcGet
-   responses: 
-    200: 
-     description: "RPC Method List"
-     content: 
-      "application/json": 
-       schema: 
-        type: array
-        items: 
-         type: object
-         properties: 
-          name: 
-           type: string
-          params: 
-           type: array
-           items: 
-            type: object
-  post: 
-   summary: "Call the named procedure"
-   externalDocs: 
-    description: "Ethereum JSON RPC Docs"
-    url: "https://ethereum.gitbooks.io/frontier-guide/content/rpc.html"
-   operationId: ethJsonRpcPost
-   requestBody: 
-    description: "RPC Request"
-    content: 
-     "application/json": 
-      schema: 
-       type: object
-       required: 
-        - 
-   id
-        - 
-   jsonrpc
-        - 
-   method
-        - 
-   params
-       properties: 
-        id: 
-         type: integer
-        jsonrpc: 
-         type: string
-        method: 
-         type: string
-        params: 
-         type: array
-         items: 
-          type: object
-    required: true
-   responses: 
-    200: 
-     description: "RPC Result"
-     content: 
-      "application/json": 
-       schema: 
-        type: object
-        required: 
-         - 
-   id
-         - 
-   jsonrpc
-        properties: 
-         id: 
-          type: integer
-         jsonrpc: 
-          type: string
-         result: 
-          type: null
-         error: 
-          type: string
- "/concord/contracts": 
-  summary: "Blockchain contracts"
-  get: 
-   summary: "List all deployed contracts"
-   operationId: contractsGet
-   responses: 
-    200: 
-     description: "Returns a list of all contracts deployed to concord"
-     content: 
-      "application/json": 
-       schema: 
-        type: array
-        items: 
-         type: object
-         properties: 
-          contract_id: 
-           type: string
-           description: "string representing id of this contract"
-          owner: 
-           type: string
-           description: "string representing address of the owner of this contract"
-          url: 
-           type: string
-           description: "The URI representing this specific contract"
-  post: 
-   summary: "Deploy a new contract to concord"
-   operationId: contractsPost
-   requestBody: 
-    description: "New contract POST request body"
-    content: 
-     "application/json": 
-      schema: 
-       type: object
-       required: 
-        - 
-   contract_id
-        - 
-   version
-        - 
-   from
-        - 
-   sourcecode
-        - 
-   contract_name
-        - 
-   constructor_params
-        - 
-   compiler_version
-       properties: 
-        contract_id: 
-         type: string
-         description: "string representing contract id"
-        version: 
-         type: string
-         description: "string representing version number of this contract"
-        from: 
-         type: string
-         description: "string representing owners address"
-        sourcecode: 
-         type: string
-         description: "string representing solidity source code of this version"
-        contract_name: 
-         type: string
-         description: "string representing contract name you used to deploy the contract"
-        constructor_params: 
-         type: string
-         description: "string representing constructor parameters needed to deploy this contract, if your contract does not require constructor parameters, set this to \"\""
-        compiler_version: 
-         type: string
-         description: "string representing solc version you used to deploy the contract"
-        is_optimize: 
-         type: boolean
-         description: "True if using the optimizer. False otherwise"
-        runs: 
-         type: string
-         description: "string representing optimize for how many times you intend to run the code"
-    required: true
-   responses: 
-    200: 
-     description: "description of deployed contract"
-     content: 
-      "application/json": 
-       schema: 
-        type: array
-        items: 
-         properties: 
-          contract_id: 
-           type: string
-           description: "string representing id of this contract"
-          version: 
-           type: string
-           description: "string representing name of this version"
-          url: 
-           type: string
-           description: "The URI representing this specific version"
-          error: 
-           type: string
-           description: "Error message if any error occured during deployment, null otherwise"
- "/concord/contracts/{contract_id}": 
-  get: 
-   summary: "Get a contract with id `contract_id`"
-   operationId: GetContractById
-   parameters: 
-    - 
-   name: contract_id
-     in: path
-     description: "the id of the contract to get"
-     required: true
-     schema: 
-      type: string
-      format: string
-     style: simple
-   responses: 
-    200: 
-     description: "Details of the particular contract"
-     content: 
-      "application/json": 
-       schema: 
-        type: object
-        properties: 
-         contract_id: 
-          type: string
-          description: "string representing id of this contract"
-         owner: 
-          type: string
-          description: "string representing address of the owner of this contract"
-         versions: 
-          type: array
-          items: 
-           properties: 
-            address: 
-             type: string
-             description: "string representing address at which this version is deployed"
-            metadata: 
-             type: object
-             description: "A metadata JSON object about source code of this version generated by solidity compiler"
-            version: 
-             type: string
-             description: "string representing name of this version"
-            url: 
-             type: string
-             description: "The URI representing this specific version"
- "/concord/contracts/{contract_id}/versions/{version_name}": 
-  get: 
-   summary: "Get a contract identified by given `contract_id` and `version_name`"
-   operationId: GetContractByIdAndVersion
-   parameters: 
-    - 
-   name: contract_id
-     in: path
-     description: "the id of the contract to get"
-     required: true
-     schema: 
-      type: string
-      format: string
-     style: simple
-    - 
-   name: version_name
-     in: path
-     description: "name of the version of contract to get"
-     required: true
-     schema: 
-      type: string
-      format: string
-     style: simple
-   responses: 
-    200: 
-     description: "All details of a particular version of this particular contract "
-     content: 
-      "application/json": 
-       schema: 
-        type: object
-        properties: 
-         contract_id: 
-          type: string
-          description: "string representing id of this contract"
-         owner: 
-          type: string
-          description: "string representing address of the owner of this contract"
-         version: 
-          type: string
-          description: "string representing name of this version"
-         metadata: 
-          type: object
-          description: "A metadata JSON object about source code of this version generated by solidity compiler"
-         address: 
-          type: string
-          description: "string representing address at which this version is deployed"
-         bytecode: 
-          type: string
-          description: "string representing compiled bytecode of this version"
-         sourcecode: 
-          type: string
-          description: "string representing the actual source code of this version"
- "/concord/contracts/{contract_address}": 
-  put: 
-   summary: "Verify a contract identified by given `contract_address`"
-   operationId: PutContractByIdAndVersion
-   parameters: 
-    - 
-   name: contract_address
-     in: path
-     description: "the address of the contract"
-     required: true
-     schema: 
-      type: string
-      format: string
-     style: simple
-   requestBody: 
-    description: "Verify contract PUT request body"
-    content: 
-     "application/json": 
-      schema: 
-       type: object
-       required: 
-        - 
-   contract_id
-        - 
-   compiler_version
-        - 
-   sourcecode
-        - 
-   contract_name
-       properties: 
-        contract_id: 
-         type: string
-         description: "string representing contract name"
-        compiler_version: 
-         type: string
-         description: "string representing solc version you used to deploy the contract"
-        sourcecode: 
-         type: string
-         description: "string representing solidity source code of this version"
-        contract_name: 
-         type: string
-         description: "string representing contract name you used to deploy the contract"
-        is_optimize: 
-         type: boolean
-         description: "True if using the optimizer. False otherwise"
-        runs: 
-         type: string
-         description: "string representing optimize for how many times you intend to run the code"
-    required: true
-   responses: 
-    200: 
-     description: "All details of a particular version of this particular contract "
-     content: 
-      "application/json": 
-       schema: 
-        type: object
-        properties: 
-         contract_id: 
-          type: string
-          description: "string representing id of this contract"
-         owner: 
-          type: string
-          description: "string representing address of the owner of this contract"
-         version: 
-          type: string
-          description: "string representing name of this version"
-         metadata: 
-          type: object
-          description: "A metadata JSON object about source code of this version generated by solidity compiler"
-         address: 
-          type: string
-          description: "string representing address at which this version is deployed"
-         bytecode: 
-          type: string
-          description: "string representing compiled bytecode of this version"
-         sourcecode: 
-          type: string
-          description: "string representing the actual source code of this version"
- "/blockchains": 
-  summary: Blockchain
-  get: 
-   summary: "List all blockchains"
-   operationId: getBlockchains
-   responses: 
-    200: 
-     description: "Returns a list of all blockchains"
-     content: 
-      "application/json": 
-       schema: 
-        type: array
-        items: 
-         type: object
-         properties: 
-          id: 
-           type: string
-           format: uuid
-           description: "Blockchain ID"
-          consortium_id: 
-           type: string
-           format: uuid
-           description: "ID of owning consortium"
-          node_list: 
-           type: array
-           items: 
-            type: object
-            properties: 
-             node_id: 
+openapi: 3.0.0
+info:
+  title: VMware Blockchain API
+  description: A Scalable Byzantine Fault Tolerant Ledger
+  version: 1.0.0
+servers:
+  - url: /api
+    description: Local API endpoint
+paths:
+  /concord/members:
+    summary: Blockchain Consensus Membership List
+    get:
+      summary: List nodes that are members
+      operationId: memberListGet
+      responses:
+        '200':
+          description: Members
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    hostname:
+                      type: string
+                    address:
+                      type: string
+                    status:
+                      type: string
+                    millis_since_last_message:
+                      type: integer
+                    millis_since_last_message_threshold:
+                      type: integer
+                    rpc_url:
+                      type: string
+                      format: url
+  /concord/blocks:
+    summary: Blockchain Blocks
+    get:
+      summary: 'List blocks in the chain, most recent first'
+      operationId: blockListGet
+      parameters:
+        - name: latest
+          in: query
+          description: most recent block to start with
+          schema:
+            type: integer
+            format: string
+        - name: count
+          in: query
+          description: number of blocks to return
+          schema:
+            type: integer
+            format: string
+      responses:
+        '200':
+          description: Blocks
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  blocks:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        number:
+                          type: integer
+                        hash:
+                          type: string
+                        url:
+                          type: string
+                  next:
+                    type: string
+  '/concord/blocks/{index}':
+    summary: Specific Blockchain Block
+    get:
+      summary: 'Get a specific block, by its number in the chain'
+      operationId: blockGet
+      parameters:
+        - name: index
+          in: path
+          description: the index of the block to get
+          required: true
+          schema:
+            type: integer
+            format: string
+          style: simple
+      responses:
+        '200':
+          description: Block
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  number:
+                    type: integer
+                  hash:
+                    type: string
+                  parentHash:
+                    type: string
+                  nonce:
+                    type: string
+                  size:
+                    type: integer
+                  timestamp:
+                    type: integer
+                    description: The proposing node's local system time. (In seconds since the UNIX epoch.)
+                  transactions:
+                    type: array
+                    items:
+                      type: string
+  '/concord/transactions/{hash}':
+    summary: Specific Blockchain Block
+    get:
+      summary: 'Get a specific transaction, by its hash'
+      operationId: txGet
+      parameters:
+        - name: hash
+          in: path
+          description: the hash of the index to get
+          required: true
+          schema:
+            type: string
+          style: simple
+      responses:
+        '200':
+          description: Transaction
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  hash:
+                    type: string
+                  from:
+                    type: string
+                  to:
+                    type: string
+                  contract_address:
+                    type: string
+                  value:
+                    type: integer
+                  input:
+                    type: string
+                  block_hash:
+                    type: string
+                  block_number:
+                    type: integer
+                  transaction_index:
+                    type: integer
+                  nonce:
+                    type: integer
+                  status:
+                    type: integer
+  /concord/eth:
+    summary: Ethereum JSON RPC API
+    get:
+      summary: List available RPC methods
+      operationId: ethJsonRpcGet
+      responses:
+        '200':
+          description: RPC Method List
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                    params:
+                      type: array
+                      items:
+                        type: object
+    post:
+      summary: Call the named procedure
+      externalDocs:
+        description: Ethereum JSON RPC Docs
+        url: 'https://ethereum.gitbooks.io/frontier-guide/content/rpc.html'
+      operationId: ethJsonRpcPost
+      requestBody:
+        description: RPC Request
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - id
+                - jsonrpc
+                - method
+                - params
+              properties:
+                id:
+                  type: integer
+                jsonrpc:
+                  type: string
+                method:
+                  type: string
+                params:
+                  type: array
+                  items:
+                    type: object
+      responses:
+        '200':
+          description: RPC Result
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - id
+                  - jsonrpc
+                properties:
+                  id:
+                    type: integer
+                  jsonrpc:
+                    type: string
+                  result:
+                    type: string
+                  error:
+                    type: string
+  /concord/contracts:
+    summary: Blockchain contracts
+    get:
+      summary: List all deployed contracts
+      operationId: contractsGet
+      responses:
+        '200':
+          description: Returns a list of all contracts deployed to concord
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    contract_id:
+                      type: string
+                      description: string representing id of this contract
+                    owner:
+                      type: string
+                      description: string representing address of the owner of this contract
+                    url:
+                      type: string
+                      description: The URI representing this specific contract
+    post:
+      summary: Deploy a new contract to concord
+      operationId: contractsPost
+      requestBody:
+        description: New contract POST request body
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - contract_id
+                - version
+                - from
+                - sourcecode
+                - contract_name
+                - constructor_params
+                - compiler_version
+              properties:
+                contract_id:
+                  type: string
+                  description: string representing contract id
+                version:
+                  type: string
+                  description: string representing version number of this contract
+                from:
+                  type: string
+                  description: string representing owners address
+                sourcecode:
+                  type: string
+                  description: string representing solidity source code of this version
+                contract_name:
+                  type: string
+                  description: string representing contract name you used to deploy the contract
+                constructor_params:
+                  type: string
+                  description: 'string representing constructor parameters needed to deploy this contract, if your contract does not require constructor parameters, set this to ""'
+                compiler_version:
+                  type: string
+                  description: string representing solc version you used to deploy the contract
+                is_optimize:
+                  type: boolean
+                  description: True if using the optimizer. False otherwise
+                runs:
+                  type: string
+                  description: string representing optimize for how many times you intend to run the code
+      responses:
+        '200':
+          description: description of deployed contract
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  properties:
+                    contract_id:
+                      type: string
+                      description: string representing id of this contract
+                    version:
+                      type: string
+                      description: string representing name of this version
+                    url:
+                      type: string
+                      description: The URI representing this specific version
+                    error:
+                      type: string
+                      description: 'Error message if any error occurred during deployment, null otherwise'
+  '/concord/contracts/{contract_id}':
+    get:
+      summary: Get a contract with id `contract_id`
+      operationId: GetContractById
+      parameters:
+        - name: contract_id
+          in: path
+          description: the id of the contract to get
+          required: true
+          schema:
+            type: string
+            format: string
+          style: simple
+      responses:
+        '200':
+          description: Details of the particular contract
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  contract_id:
+                    type: string
+                    description: string representing id of this contract
+                  owner:
+                    type: string
+                    description: string representing address of the owner of this contract
+                  versions:
+                    type: array
+                    items:
+                      properties:
+                        address:
+                          type: string
+                          description: string representing address at which this version is deployed
+                        metadata:
+                          type: object
+                          description: A metadata JSON object about source code of this version generated by solidity compiler
+                        version:
+                          type: string
+                          description: string representing name of this version
+                        url:
+                          type: string
+                          description: The URI representing this specific version
+  '/concord/contracts/{contract_id}/versions/{version_name}':
+    get:
+      summary: Get a contract identified by given `contract_id` and `version_name`
+      operationId: GetContractByIdAndVersion
+      parameters:
+        - name: contract_id
+          in: path
+          description: the id of the contract to get
+          required: true
+          schema:
+            type: string
+            format: string
+          style: simple
+        - name: version_name
+          in: path
+          description: name of the version of contract to get
+          required: true
+          schema:
+            type: string
+            format: string
+          style: simple
+      responses:
+        '200':
+          description: 'All details of a particular version of this particular contract '
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  contract_id:
+                    type: string
+                    description: string representing id of this contract
+                  owner:
+                    type: string
+                    description: string representing address of the owner of this contract
+                  version:
+                    type: string
+                    description: string representing name of this version
+                  metadata:
+                    type: object
+                    description: A metadata JSON object about source code of this version generated by solidity compiler
+                  address:
+                    type: string
+                    description: string representing address at which this version is deployed
+                  bytecode:
+                    type: string
+                    description: string representing compiled bytecode of this version
+                  sourcecode:
+                    type: string
+                    description: string representing the actual source code of this version
+  '/concord/contracts/{contract_address}':
+    put:
+      summary: Verify a contract identified by given `contract_address`
+      operationId: PutContractByIdAndVersion
+      parameters:
+        - name: contract_address
+          in: path
+          description: the address of the contract
+          required: true
+          schema:
+            type: string
+            format: string
+          style: simple
+      requestBody:
+        description: Verify contract PUT request body
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - contract_id
+                - compiler_version
+                - sourcecode
+                - contract_name
+              properties:
+                contract_id:
+                  type: string
+                  description: string representing contract name
+                compiler_version:
+                  type: string
+                  description: string representing solc version you used to deploy the contract
+                sourcecode:
+                  type: string
+                  description: string representing solidity source code of this version
+                contract_name:
+                  type: string
+                  description: string representing contract name you used to deploy the contract
+                is_optimize:
+                  type: boolean
+                  description: True if using the optimizer. False otherwise
+                runs:
+                  type: string
+                  description: string representing optimize for how many times you intend to run the code
+      responses:
+        '200':
+          description: 'All details of a particular version of this particular contract '
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  contract_id:
+                    type: string
+                    description: string representing id of this contract
+                  owner:
+                    type: string
+                    description: string representing address of the owner of this contract
+                  version:
+                    type: string
+                    description: string representing name of this version
+                  metadata:
+                    type: object
+                    description: A metadata JSON object about source code of this version generated by solidity compiler
+                  address:
+                    type: string
+                    description: string representing address at which this version is deployed
+                  bytecode:
+                    type: string
+                    description: string representing compiled bytecode of this version
+                  sourcecode:
+                    type: string
+                    description: string representing the actual source code of this version
+  /blockchains:
+    summary: Blockchain
+    get:
+      summary: List all blockchains
+      operationId: getBlockchains
+      responses:
+        '200':
+          description: Returns a list of all blockchains
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                      format: uuid
+                      description: Blockchain ID
+                    consortium_id:
+                      type: string
+                      format: uuid
+                      description: ID of owning consortium
+                    node_list:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          node_id:
+                            type: string
+                            format: uuid
+                            description: Node ID
+                          ip:
+                            type: string
+                            description: IP address of node
+                          url:
+                            type: string
+                            description: EthRPC url of node
+                          cert:
+                            type: string
+                            description: SSL certificate to talk to ethrpc
+                          region:
+                            type: string
+                            description: Region (SDDC) this node is doploy in
+    post:
+      summary: Create a new blockchain
+      operationId: blockchainPost
+      requestBody:
+        description: New blockchain POST request body
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - concortium_id
+                - f_count
+                - c_count
+                - deployment_type
+              properties:
+                consortium_id:
+                  type: string
+                  format: uuid
+                  description: ID of owning consortium
+                f_count:
+                  type: integer
+                  description: 'Number of f nodes, cluster size will be 3f +2c + 1'
+                c_count:
+                  type: integer
+                  description: 'Number of c nodes, cluster size will be 3f +2c + 1'
+                deployment_type:
+                  type: string
+                  enum:
+                    - FIXED
+                    - UNSPECIFIED
+                  description: 'FIXED or UNSPECIFIED, determines site locations'
+                site_ids:
+                  type: array
+                  items:
+                    type: string
+                  description: List of site ids.  Required if deployment type is fixed
+      responses:
+        '202':
+          description: Returns the deployment task ID
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  task_id:
+                    type: string
+                    format: uuid
+                    description: Task ID
+  '/blockchains/{bid}':
+    summary: Blockchain
+    get:
+      summary: Get Blockchain information
+      operationId: getBlockchain
+      parameters:
+        - name: bid
+          required: true
+          in: path
+          description: Blockchain ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Returns the specified blockchain
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                    description: Blockchain ID
+                  consortium_id:
+                    type: string
+                    format: uuid
+                    description: ID of owning consortium
+                  node_list:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        node_id:
+                          type: string
+                          format: uuid
+                          description: Node ID
+                        ip:
+                          type: string
+                          description: IP address of node
+                        url:
+                          type: string
+                          description: EthRPC url of node
+                        cert:
+                          type: string
+                          description: SSL certificate to talk to ethrpc
+                        region:
+                          type: string
+                          description: Region (SDDC) this node is doploy in
+    patch:
+      summary: Update an existing blockchain
+      operationId: blockchainPatch
+      parameters:
+        - name: bid
+          required: true
+          in: path
+          description: Blockchain ID
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        description: Blockchain items to patch
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ip_list:
+                  type: string
+                  description: comma separated list of addresses of blockchain nodes
+                rpc_urls:
+                  type: string
+                  description: 'string represent url map, comma separated list of hostname=url'
+      responses:
+        '200':
+          description: Returns the specified blockchain
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                    description: Blockchain ID
+                  consortium_id:
+                    type: string
+                    format: uuid
+                    description: ID of owning consortium
+                  ip_list:
+                    type: string
+                    description: Addresses of nodes in this blockchain
+                  rpc_urls:
+                    type: string
+                    description: List of addreses with node names
+  '/blockchains/{bid}/nodes':
+      post:
+        summary: start/stop a list of nodes
+        operationId: nodeListStartStop
+        parameters:
+          - name: bid
+            required: true
+            in: path
+            description: Blockchain ID
+            schema:
               type: string
               format: uuid
-              description: "Node ID"
-             ip: 
+          - name: action
+            in: query
+            description: start/stop
+            schema:
               type: string
-              description: "IP address of node"
-             url: 
-              type: string
-              description: "EthRPC url of node"
-             cert: 
-              type: string
-              description: "SSL certificate to talk to ethrpc"
-             region: 
-              type: string
-              description: "Region (SDDC) this node is doploy in"
-  post: 
-   summary: "Create a new blockchain"
-   operationId: blockchainPost
-   requestBody: 
-    description: "New blockchain POST request body"
-    content: 
-     "application/json": 
-      schema: 
-       type: object
-       required: 
-        - 
-   concortium_id
-        - 
-   f_count
-        - 
-   c_count
-        - 
-   deployment_type
-       properties: 
-        consortium_id: 
-         type: string
-         format: uuid
-         description: "ID of owning consortium"
-        f_count: 
-         type: integer
-         description: "Number of f nodes, cluser size will be 3f +2c + 1"
-        c_count: 
-         type: integer
-         description: "Number of c nodes, cluser size will be 3f +2c + 1"
-        deployment_type: 
-         type: string
-         enum: 
-          - 
-   FIXED
-          - 
-   UNSPECIFIED
-         description: "FIXED or UNSPECIFIED, determines site locations"
-        site_ids: 
-         type: array
-         items: 
-          type: string
-         description: "List of site ids.  Required if deployment type is fixed"
-    required: true
-   responses: 
-    202: 
-     description: "Returns the deployment task ID"
-     content: 
-      "application/json": 
-       schema: 
-        type: object
-        properties: 
-         task_id: 
-          type: string
-          format: uuid
-          description: "Task ID"
- "/blockchains/{bid}": 
-  summary: Blockchain
-  get: 
-   summary: "Get Blockchain information"
-   operationId: getBlockchain
-   parameters: 
-    - 
-   name: bid
-     in: path
-     description: "Blockchain ID"
-     schema: 
-      type: string
-      format: uuid
-   responses: 
-    200: 
-     description: "Returns the specified blockchain"
-     content: 
-      "application/json": 
-       schema: 
-        type: object
-        properties: 
-         id: 
-          type: string
-          format: uuid
-          description: "Blockchain ID"
-         consortium_id: 
-          type: string
-          format: uuid
-          description: "ID of owning consortium"
-         node_list: 
-          type: array
-          items: 
-           type: object
-           properties: 
-            node_id: 
-             type: string
-             format: uuid
-             description: "Node ID"
-            ip: 
-             type: string
-             description: "IP address of node"
-            url: 
-             type: string
-             description: "EthRPC url of node"
-            cert: 
-             type: string
-             description: "SSL certificate to talk to ethrpc"
-            region: 
-             type: string
-             description: "Region (SDDC) this node is doploy in"
-  patch: 
-   summary: "Update an existing blockchain"
-   operationId: blockchainPatch
-   parameters: 
-    - 
-   name: bid
-     in: path
-     description: "Blockchain ID"
-     schema: 
-      type: string
-      format: uuid
-   requestBody: 
-    description: "Blockchain items to patch"
-    content: 
-     "application/json": 
-      schema: 
-       type: object
-       properties: 
-        ip_list: 
-         type: string
-         description: "comma separated list of addresses of blockchain nodes"
-        rpc_urls: 
-         type: string
-         description: "string represent url map, comma separated list of hostname=url"
-    required: true
-   responses: 
-    200: 
-     description: "Returns the specified blockchain"
-     content: 
-      "application/json": 
-       schema: 
-        type: object
-        properties: 
-         id: 
-          type: string
-          format: uuid
-          description: "Blockchain ID"
-         consortium_id: 
-          type: string
-          format: uuid
-          description: "ID of owning consortium"
-         ip_list: 
-          type: string
-          description: "Addresses of nodes in this blockchain"
-         rpc_urls: 
-          type: string
-          description: "List of addreses with node names"
- "/blockchains/{bid}/concord/members": 
-  summary: "Blockchain Consensus Membership List"
-  get: 
-   summary: "List nodes that are members"
-   operationId: memberListGet
-   parameters: 
-    - 
-   name: bid
-     in: path
-     description: "Blockchain ID"
-     schema: 
-      type: string
-      format: uuid
-   responses: 
-    200: 
-     description: Members
-     content: 
-      "application/json": 
-       schema: 
-        type: array
-        items: 
-         type: object
-         properties: 
-          hostname: 
-           type: string
-          address: 
-           type: string
-          status: 
-           type: string
-          millis_since_last_message: 
-           type: integer
-          millis_since_last_message_threshold: 
-           type: integer
-          rpc_url: 
-           type: string
-           format: url
- "/blockchains/{bid}/concord/blocks": 
-  summary: "Blockchain Blocks"
-  get: 
-   summary: "List blocks in the chain, most recent first"
-   operationId: blockListGet
-   parameters: 
-    - 
-   name: bid
-     in: path
-     description: "Blockchain ID"
-     schema: 
-      type: string
-      format: uuid
-    - 
-   name: latest
-     in: query
-     description: "most recent block to start with"
-     required: false
-     schema: 
-      type: integer
-      format: string
-    - 
-   name: count
-     in: query
-     description: "number of blocks to return"
-     required: false
-     schema: 
-      type: integer
-      format: string
-   responses: 
-    200: 
-     description: Blocks
-     content: 
-      "application/json": 
-       schema: 
-        type: object
-        properties: 
-         blocks: 
-          type: array
-          items: 
-           type: object
-           properties: 
-            number: 
-             type: integer
-            hash: 
-             type: string
-            url: 
-             type: string
-         next: 
-          type: string
- "/blockchains/{bid}/concord/blocks/{index}": 
-  summary: "Specific Blockchain Block"
-  get: 
-   summary: "Get a specific block, by its number in the chain"
-   operationId: blockGet
-   parameters: 
-    - 
-   name: bid
-     in: path
-     description: "Blockchain ID"
-     schema: 
-      type: string
-      format: uuid
-    - 
-   name: index
-     in: path
-     description: "the index of the block to get"
-     required: false
-     schema: 
-      type: integer
-      format: string
-   responses: 
-    200: 
-     description: Block
-     content: 
-      "application/json": 
-       schema: 
-        type: object
-        properties: 
-         number: 
-          type: integer
-         hash: 
-          type: string
-         parentHash: 
-          type: string
-         nonce: 
-          type: string
-         size: 
-          type: integer
-         timestamp: 
-          type: integer
-          description: "The proposing node's local system time. (In seconds since the UNIX epoch.)"
-         transactions: 
-          type: array
-          items: 
-           type: string
- "/blockchains/{bid}/concord/transactions/{hash}": 
-  summary: "Specific Blockchain Block"
-  get: 
-   summary: "Get a specific transaction, by its hash"
-   operationId: txGet
-   parameters: 
-    - 
-   name: bid
-     in: path
-     description: "Blockchain ID"
-     schema: 
-      type: string
-      format: uuid
-    - 
-   name: hash
-     in: path
-     description: "the hash of the index to get"
-     required: false
-     schema: 
-      type: string
-   responses: 
-    200: 
-     description: Transaction
-     content: 
-      "application/json": 
-       schema: 
-        type: object
-        properties: 
-         hash: 
-          type: string
-         from: 
-          type: string
-         to: 
-          type: string
-         contract_address: 
-          type: string
-         value: 
-          type: integer
-         input: 
-          type: string
-         block_hash: 
-          type: string
-         block_number: 
-          type: integer
-         transaction_index: 
-          type: integer
-         nonce: 
-          type: integer
-         status: 
-          type: integer
- "/blockchains/{bid}/concord/eth": 
-  summary: "Ethereum JSON RPC API"
-  post: 
-   summary: "Call the named procedure"
-   externalDocs: 
-    description: "Ethereum JSON RPC Docs"
-    url: "https://ethereum.gitbooks.io/frontier-guide/content/rpc.html"
-   operationId: ethJsonRpcPost
-   requestBody: 
-    description: "RPC Request"
-    content: 
-     "application/json": 
-      schema: 
-       type: object
-       required: 
-        - 
-   id
-        - 
-   jsonrpc
-        - 
-   method
-        - 
-   params
-       properties: 
-        id: 
-         type: integer
-        jsonrpc: 
-         type: string
-        method: 
-         type: string
-        params: 
-         type: array
-         items: object
-    required: true
-   responses: 
-    200: 
-     description: "RPC Result"
-     content: 
-      "application/json": 
-       schema: 
-        type: object
-        required: 
-         - 
-   id
-         - 
-   jsonrpc
-        properties: 
-         id: 
-          type: integer
-         jsonrpc: 
-          type: string
-         result: 
-          type: null
-         error: 
-          type: string
- "/blockchains/{bid}/concord/contracts": 
-  summary: "Blockchain contracts"
-  get: 
-   summary: "List all deployed contracts"
-   operationId: contractsGet
-   parameters: 
-    - 
-   name: bid
-     in: path
-     description: "Blockchain ID"
-     schema: 
-      type: string
-      format: uuid
-   responses: 
-    200: 
-     description: "Returns a list of all contracts deployed to concord"
-     content: 
-      "application/json": 
-       schema: 
-        type: array
-        items: 
-         type: object
-         properties: 
-          contract_id: 
-           type: string
-           description: "string representing id of this contract"
-          owner: 
-           type: string
-           description: "string representing address of the owner of this contract"
-          url: 
-           type: string
-           description: "The URI representing this specific contract"
-  post: 
-   summary: "Deploy a new contract to concord"
-   operationId: contractsPost
-   requestBody: 
-    description: "New contract POST request body"
-    content: 
-     "application/json": 
-      schema: 
-       type: object
-       required: 
-        - 
-   contract_id
-        - 
-   version
-        - 
-   from
-        - 
-   sourcecode
-        - 
-   contract_name
-        - 
-   compiler_version
-       properties: 
-        contract_id: 
-         type: string
-         description: "string representing contract id"
-        version: 
-         type: string
-         description: "string representing version number of this contract"
-        from: 
-         type: string
-         description: "string representing owners address"
-        sourcecode: 
-         type: string
-         description: "string representing solidity source code of this version"
-        contract_name: 
-         type: string
-         description: "string representing contract name you used to deploy the contract"
-        constructor_params: 
-         type: string
-         description: "string representing constructor parameters needed to deploy this contract, if your contract does not require constructor parameters, set this to \"\""
-        compiler_version: 
-         type: string
-         description: "string representing solc version you used to deploy the contract"
-        is_optimize: 
-         type: boolean
-         description: "True if using the optimizer. False otherwise"
-        runs: 
-         type: string
-         description: "string representing optimize for how many times you intend to run the code"
-    required: true
-   responses: 
-    200: 
-     description: "description of deployed contract"
-     content: 
-      "application/json": 
-       schema: 
-        type: array
-        items: 
-         properties: 
-          contract_id: 
-           type: string
-           description: "string representing id of this contract"
-          version: 
-           type: string
-           description: "string representing name of this version"
-          url: 
-           type: string
-           description: "The URI representing this specific version"
-          error: 
-           type: string
-           description: "Error message if any error occured during deployment, null otherwise"
- "/blockchains/{bid}/concord/contracts/{contract_id}": 
-  get: 
-   summary: "Get a contract with id `contract_id`"
-   operationId: GetContractById
-   parameters: 
-    - 
-   name: bid
-     in: path
-     description: "Blockchain ID"
-     schema: 
-      type: string
-      format: uuid
-    - 
-   name: contract_id
-     in: path
-     description: "the id of the contract to get"
-     required: true
-     schema: 
-      type: string
-      format: string
-     style: simple
-   responses: 
-    200: 
-     description: "Details of the particular contract"
-     content: 
-      "application/json": 
-       schema: 
-        type: object
-        properties: 
-         contract_id: 
-          type: string
-          description: "string representing id of this contract"
-         owner: 
-          type: string
-          description: "string representing address of the owner of this contract"
-         versions: 
-          type: array
-          items: 
-           properties: 
-            address: 
-             type: string
-             description: "string representing address at which this version is deployed"
-            metadata: 
-             type: object
-             description: "A metadata JSON object about source code of this version generated by solidity compiler"
-            version: 
-             type: string
-             description: "string representing name of this version"
-            url: 
-             type: string
-             description: "The URI representing this specific version"
- "/blockchains/{bid}/concord/contracts/{contract_id}/versions/{version_name}": 
-  get: 
-   summary: "Get a contract identified by given `contract_id` and `version_name`"
-   operationId: GetContractByIdAndVersion
-   parameters: 
-    - 
-   name: bid
-     in: path
-     description: "Blockchain ID"
-     schema: 
-      type: string
-      format: uuid
-    - 
-   name: contract_id
-     in: path
-     description: "the id of the contract to get"
-     required: true
-     schema: 
-      type: string
-      format: string
-     style: simple
-    - 
-   name: version_name
-     in: path
-     description: "name of the version of contract to get"
-     required: true
-     schema: 
-      type: string
-      format: string
-     style: simple
-   responses: 
-    200: 
-     description: "All details of a particular version of this particular contract "
-     content: 
-      "application/json": 
-       schema: 
-        type: object
-        properties: 
-         contract_id: 
-          type: string
-          description: "string representing id of this contract"
-         owner: 
-          type: string
-          description: "string representing address of the owner of this contract"
-         version: 
-          type: string
-          description: "string representing name of this version"
-         metadata: 
-          type: object
-          description: "A metadata JSON object about source code of this version generated by solidity compiler"
-         address: 
-          type: string
-          description: "string representing address at which this version is deployed"
-         bytecode: 
-          type: string
-          description: "string representing compiled bytecode of this version"
-         sourcecode: 
-          type: string
-          description: "string representing the actual source code of this version"
- "/blockchains/{bid}/concord/contracts/{contract_address}": 
-  put: 
-   summary: "Verify a contract identified by given `contract_address`"
-   operationId: PutContractByIdAndVersion
-   parameters: 
-    - 
-   name: bid
-     in: path
-     description: "Blockchain ID"
-     schema: 
-      type: string
-      format: uuid
-    - 
-   name: contract_address
-     in: path
-     description: "the address of the contract"
-     required: true
-     schema: 
-      type: string
-      format: string
-     style: simple
-   requestBody: 
-    description: "Verify contract PUT request body"
-    content: 
-     "application/json": 
-      schema: 
-       type: object
-       required: 
-        - 
-   contract_id
-        - 
-   compiler_version
-        - 
-   sourcecode
-        - 
-   contract_name
-       properties: 
-        contract_id: 
-         type: string
-         description: "string representing contract name"
-        compiler_version: 
-         type: string
-         description: "string representing solc version you used to deploy the contract"
-        sourcecode: 
-         type: string
-         description: "string representing solidity source code of this version"
-        contract_name: 
-         type: string
-         description: "string representing contract name you used to deploy the contract"
-        is_optimize: 
-         type: boolean
-         description: "True if using the optimizer. False otherwise"
-        runs: 
-         type: string
-         description: "string representing optimize for how many times you intend to run the code"
-    required: true
-   responses: 
-    200: 
-     description: "All details of a particular version of this particular contract "
-     content: 
-      "application/json": 
-       schema: 
-        type: object
-        properties: 
-         contract_id: 
-          type: string
-          description: "string representing id of this contract"
-         owner: 
-          type: string
-          description: "string representing address of the owner of this contract"
-         version: 
-          type: string
-          description: "string representing name of this version"
-         metadata: 
-          type: object
-          description: "A metadata JSON object about source code of this version generated by solidity compiler"
-         address: 
-          type: string
-          description: "string representing address at which this version is deployed"
-         bytecode: 
-          type: string
-          description: "string representing compiled bytecode of this version"
-         sourcecode: 
-          type: string
-          description: "string representing the actual source code of this version"
- "/consortiums": 
-  summary: GetConsortium
-  get: 
-   summary: "List all consortiums"
-   operationId: getConsortiums
-   responses: 
-    200: 
-     description: "Returns a list of all consortiums"
-     content: 
-      "application/json": 
-       schema: 
-        type: array
-        items: 
-         type: object
-         properties: 
-          consortiumId: 
-           type: string
-           format: uuid
-           description: " Consortium ID"
-          organizationName: 
-           type: string
-           format: string
-           description: "Name of Consortium"
- "/consortiums{con_id}": 
-  summary: GetConsortium_byID
-  get: 
-   summary: "Get Consortium by its ID"
-   operationId: getConsortium
-   parameters: 
-    - 
-   name: con_id
-     in: path
-     description: "Consortium ID"
-     schema: 
-      type: string
-      format: uuid
-   responses: 
-    200: 
-     description: "Returns the specified consortium"
-     content: 
-      "application/json": 
-       schema: 
-        type: array
-        items: 
-         type: object
-         properties: 
-          orgId: 
-           type: string
-           format: uuid
-           description: " Consortium ID"
-          organizationName: 
-           type: string
-           format: string
-           description: "Name of Consortium"
-  post: 
-   summary: "Creates a new Consortium"
-   operationId: consortiumPost
-   requestBody: 
-    description: "New consortium POST request body"
-    content: 
-     "application/json": 
-      schema: 
-       type: object
-       required: 
-        - 
-   consortiumName
-        - 
-   consortiumType
-        - 
-   organization
-       properties: 
-        consortiumName: 
-         type: string
-         format: string
-         description: "Name of consortium"
-        consortiumType: 
-         type: string
-         format: string
-         description: "Type of consortium"
-        organization: 
-         type: string
-         format: UUID
-         description: "Organization that the consortium is a part of"
-    requestBody: 
-     description: "Consortium items to post"
-     content: 
-      "application/json": 
-       schema: 
-        type: object
-        properties: 
-         ConsortiumName: 
-          type: string
-          description: "create name of the consortium"
-         consortiumType: 
-          type: string
-          description: "Type of consortium"
-         organization: 
-          type: string
-          description: "Organization that the consortium is a part of"
-     required: true
-    responses: 
-     202: 
-      description: "Returns the consortium ID and Name"
-      content: 
-       "application/json": 
-        schema: 
-         type: object
-         properties: 
-          con_id: 
-           type: string
-           format: UUID
-           description: "Consortium ID"
-          consortiumName: 
-           type: string
-           format: string
-           description: " Consortium Name"
-   patch: 
-    summary: "Update an existing consortium"
-    operationId: consortiumPatch
-    parameters: 
-     - 
-   name: con_id
-      in: patch
-      description: "Consortium ID"
-      schema: 
-       type: string
-       format: uuid
-    requestBody: 
-     description: "Consortium items to patch"
-     content: 
-      "application/json": 
-       schema: 
-        type: object
-        required: 
-         - 
-   consortiumName
-         - 
-   consortiumType
-         - 
-   organization
-        properties: 
-         consortiumName: 
-          type: string
-          format: string
-          description: "Name of consortium"
-         consortiumType: 
-          type: string
-          format: string
-          description: "Type of consortium"
-         organization: 
-          type: string
-          format: UUID
-          description: "Organization that the consortium is a part of"
-     required: true
-    responses: 
-     202: 
-      description: "Returns the Consortium ID and Name"
-      content: 
-       "application/json": 
-        schema: 
-         type: object
-         properties: 
-          con_id: 
-           type: string
-           format: uuid
-           description: "Consortium ID"
-          consortiumName: 
-           type: string
-           format: string
-           description: "Consortium Name"
-   "/organizations": 
+              enum: [start, stop]
+        requestBody:
+          description: Nodes to stop/start
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  node_ips:
+                    type: array
+                    items:
+                      type: string
+                      format: uuid
+          required: true
+        responses:
+          202:
+            description: task ids
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    task_ids:
+                      type: array
+                      items:
+                        type: string
+                        format: uuid
+  '/blockchains/{bid}/nodes/{node_id}':
+    post:
+      summary: start/stop a list of nodes
+      operationId: nodeStartStop
+      parameters:
+        - name: bid
+          required: true
+          in: path
+          description: Blockchain ID
+          schema:
+            type: string
+            format: uuid
+        - name: node_id
+          required: true
+          in: path
+          description: Node ID
+          schema:
+            type: string
+            format: uuid
+        - name: action
+          required: true
+          in: query
+          description: start/stop
+          schema:
+            type: string
+            enum: [start, stop]
+      responses:
+        202:
+          description: task ids
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  task_id:
+                    type: string
+                    format: uuid
+  '/blockchains/{bid}/concord/members':
+    summary: Blockchain Consensus Membership List
+    get:
+      summary: List nodes that are members
+      operationId: memberListGetBlk
+      parameters:
+        - name: bid
+          required: true
+          in: path
+          description: Blockchain ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Members
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    hostname:
+                      type: string
+                    address:
+                      type: string
+                    status:
+                      type: string
+                    millis_since_last_message:
+                      type: integer
+                    millis_since_last_message_threshold:
+                      type: integer
+                    rpc_url:
+                      type: string
+                      format: url
+  '/blockchains/{bid}/concord/blocks':
+    summary: Blockchain Blocks
+    get:
+      summary: 'List blocks in the chain, most recent first'
+      operationId: blockListGetBlk
+      parameters:
+        - name: bid
+          required: true
+          in: path
+          description: Blockchain ID
+          schema:
+            type: string
+            format: uuid
+        - name: latest
+          in: query
+          description: most recent block to start with
+          required: false
+          schema:
+            type: integer
+            format: string
+        - name: count
+          in: query
+          description: number of blocks to return
+          required: false
+          schema:
+            type: integer
+            format: string
+      responses:
+        '200':
+          description: Blocks
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  blocks:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        number:
+                          type: integer
+                        hash:
+                          type: string
+                        url:
+                          type: string
+                  next:
+                    type: string
+  '/blockchains/{bid}/concord/blocks/{index}':
+    summary: Specific Blockchain Block
+    get:
+      summary: 'Get a specific block, by its number in the chain'
+      operationId: blockGetBlk
+      parameters:
+        - name: bid
+          required: true
+          in: path
+          description: Blockchain ID
+          schema:
+            type: string
+            format: uuid
+        - name: index
+          in: path
+          description: the index of the block to get
+          required: true
+          schema:
+            type: integer
+            format: string
+      responses:
+        '200':
+          description: Block
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  number:
+                    type: integer
+                  hash:
+                    type: string
+                  parentHash:
+                    type: string
+                  nonce:
+                    type: string
+                  size:
+                    type: integer
+                  timestamp:
+                    type: integer
+                    description: The proposing node's local system time. (In seconds since the UNIX epoch.)
+                  transactions:
+                    type: array
+                    items:
+                      type: string
+  '/blockchains/{bid}/concord/transactions/{hash}':
+    summary: Specific Blockchain Block
+    get:
+      summary: 'Get a specific transaction, by its hash'
+      operationId: txGetBlk
+      parameters:
+        - name: bid
+          required: true
+          in: path
+          description: Blockchain ID
+          schema:
+            type: string
+            format: uuid
+        - name: hash
+          in: path
+          description: the hash of the index to get
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Transaction
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  hash:
+                    type: string
+                  from:
+                    type: string
+                  to:
+                    type: string
+                  contract_address:
+                    type: string
+                  value:
+                    type: integer
+                  input:
+                    type: string
+                  block_hash:
+                    type: string
+                  block_number:
+                    type: integer
+                  transaction_index:
+                    type: integer
+                  nonce:
+                    type: integer
+                  status:
+                    type: integer
+  '/blockchains/{bid}/concord/eth':
+    summary: Ethereum JSON RPC API
+    post:
+      summary: Call the named procedure
+      externalDocs:
+        description: Ethereum JSON RPC Docs
+        url: 'https://ethereum.gitbooks.io/frontier-guide/content/rpc.html'
+      operationId: ethJsonRpcPostBlk
+      parameters:
+        - name: bid
+          required: true
+          in: path
+          description: Blockchain ID
+          schema:
+            type: string
+            format: uuid
+
+
+      requestBody:
+        description: RPC Request
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - id
+                - jsonrpc
+                - method
+                - params
+              properties:
+                id:
+                  type: integer
+                jsonrpc:
+                  type: string
+                method:
+                  type: string
+                params:
+                  type: array
+                  items:
+                    type: object
+      responses:
+        '200':
+          description: RPC Result
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - id
+                  - jsonrpc
+                properties:
+                  id:
+                    type: integer
+                  jsonrpc:
+                    type: string
+                  result:
+                    type: string
+                  error:
+                    type: string
+  '/blockchains/{bid}/concord/contracts':
+    summary: Blockchain contracts
+    get:
+      summary: List all deployed contracts
+      operationId: contractsGetBlk
+      parameters:
+        - name: bid
+          required: true
+          in: path
+          description: Blockchain ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Returns a list of all contracts deployed to concord
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    contract_id:
+                      type: string
+                      description: string representing id of this contract
+                    owner:
+                      type: string
+                      description: string representing address of the owner of this contract
+                    url:
+                      type: string
+                      description: The URI representing this specific contract
+    post:
+      summary: Deploy a new contract to concord
+      operationId: ContractsPostBlk
+      parameters:
+        - name: bid
+          required: true
+          in: path
+          description: Blockchain ID
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        description: New contract POST request body
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - contract_id
+                - version
+                - from
+                - sourcecode
+                - contract_name
+                - compiler_version
+              properties:
+                contract_id:
+                  type: string
+                  description: string representing contract id
+                version:
+                  type: string
+                  description: string representing version number of this contract
+                from:
+                  type: string
+                  description: string representing owners address
+                sourcecode:
+                  type: string
+                  description: string representing solidity source code of this version
+                contract_name:
+                  type: string
+                  description: string representing contract name you used to deploy the contract
+                constructor_params:
+                  type: string
+                  description: 'string representing constructor parameters needed to deploy this contract, if your contract does not require constructor parameters, set this to ""'
+                compiler_version:
+                  type: string
+                  description: string representing solc version you used to deploy the contract
+                is_optimize:
+                  type: boolean
+                  description: True if using the optimizer. False otherwise
+                runs:
+                  type: string
+                  description: string representing optimize for how many times you intend to run the code
+      responses:
+        '200':
+          description: description of deployed contract
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  properties:
+                    contract_id:
+                      type: string
+                      description: string representing id of this contract
+                    version:
+                      type: string
+                      description: string representing name of this version
+                    url:
+                      type: string
+                      description: The URI representing this specific version
+                    error:
+                      type: string
+                      description: 'Error message if any error occurred during deployment, null otherwise'
+  '/blockchains/{bid}/concord/contracts/{contract_id}':
+    get:
+      summary: Get a contract with id `contract_id`
+      operationId: GetContractByIdBlk
+      parameters:
+        - name: bid
+          required: true
+          in: path
+          description: Blockchain ID
+          schema:
+            type: string
+            format: uuid
+        - name: contract_id
+          in: path
+          description: the id of the contract to get
+          required: true
+          schema:
+            type: string
+            format: string
+          style: simple
+      responses:
+        '200':
+          description: Details of the particular contract
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  contract_id:
+                    type: string
+                    description: string representing id of this contract
+                  owner:
+                    type: string
+                    description: string representing address of the owner of this contract
+                  versions:
+                    type: array
+                    items:
+                      properties:
+                        address:
+                          type: string
+                          description: string representing address at which this version is deployed
+                        metadata:
+                          type: object
+                          description: A metadata JSON object about source code of this version generated by solidity compiler
+                        version:
+                          type: string
+                          description: string representing name of this version
+                        url:
+                          type: string
+                          description: The URI representing this specific version
+  '/blockchains/{bid}/concord/contracts/{contract_id}/versions/{version_name}':
+    get:
+      summary: Get a contract identified by given `contract_id` and `version_name`
+      operationId: GetContractByIdAndVersionBlk
+      parameters:
+        - name: bid
+          required: true
+          in: path
+          description: Blockchain ID
+          schema:
+            type: string
+            format: uuid
+        - name: contract_id
+          in: path
+          description: the id of the contract to get
+          required: true
+          schema:
+            type: string
+            format: string
+          style: simple
+        - name: version_name
+          in: path
+          description: name of the version of contract to get
+          required: true
+          schema:
+            type: string
+            format: string
+          style: simple
+      responses:
+        '200':
+          description: 'All details of a particular version of this particular contract '
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  contract_id:
+                    type: string
+                    description: string representing id of this contract
+                  owner:
+                    type: string
+                    description: string representing address of the owner of this contract
+                  version:
+                    type: string
+                    description: string representing name of this version
+                  metadata:
+                    type: object
+                    description: A metadata JSON object about source code of this version generated by solidity compiler
+                  address:
+                    type: string
+                    description: string representing address at which this version is deployed
+                  bytecode:
+                    type: string
+                    description: string representing compiled bytecode of this version
+                  sourcecode:
+                    type: string
+                    description: string representing the actual source code of this version
+  '/blockchains/{bid}/concord/contracts/{contract_address}':
+    put:
+      summary: Verify a contract identified by given `contract_address`
+      operationId: PutContractByIdAndVersionBlk
+      parameters:
+        - name: bid
+          in: path
+          description: Blockchain ID
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: contract_address
+          in: path
+          description: the address of the contract
+          required: true
+          schema:
+            type: string
+            format: string
+          style: simple
+      requestBody:
+        description: Verify contract PUT request body
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - contract_id
+                - compiler_version
+                - sourcecode
+                - contract_name
+              properties:
+                contract_id:
+                  type: string
+                  description: string representing contract name
+                compiler_version:
+                  type: string
+                  description: string representing solc version you used to deploy the contract
+                sourcecode:
+                  type: string
+                  description: string representing solidity source code of this version
+                contract_name:
+                  type: string
+                  description: string representing contract name you used to deploy the contract
+                is_optimize:
+                  type: boolean
+                  description: True if using the optimizer. False otherwise
+                runs:
+                  type: string
+                  description: string representing optimize for how many times you intend to run the code
+        required: true
+      responses:
+        '200':
+          description: 'All details of a particular version of this particular contract '
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  contract_id:
+                    type: string
+                    description: string representing id of this contract
+                  owner:
+                    type: string
+                    description: string representing address of the owner of this contract
+                  version:
+                    type: string
+                    description: string representing name of this version
+                  metadata:
+                    type: object
+                    description: A metadata JSON object about source code of this version generated by solidity compiler
+                  address:
+                    type: string
+                    description: string representing address at which this version is deployed
+                  bytecode:
+                    type: string
+                    description: string representing compiled bytecode of this version
+                  sourcecode:
+                    type: string
+                    description: string representing the actual source code of this version
+  /consortiums:
+    summary: GetConsortium
+    get:
+      summary: List all consortiums
+      operationId: getConsortiums
+      responses:
+        '200':
+          description: Returns a list of all consortiums
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    consortiumId:
+                      type: string
+                      format: uuid
+                      description: ' Consortium ID'
+                    organizationName:
+                      type: string
+                      format: string
+                      description: Name of Consortium
+    post:
+      summary: Creates a new Consortium
+      operationId: consortiumPost
+      requestBody:
+        description: New consortium POST request body
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - consortiumName
+                - consortiumType
+                - organization
+              properties:
+                consortiumName:
+                  type: string
+                  format: string
+                  description: Name of consortium
+                consortiumType:
+                  type: string
+                  format: string
+                  description: Type of consortium
+                organization:
+                  type: string
+                  format: UUID
+                  description: Organization that the consortium is a part of
+      responses:
+        '202':
+          description: Returns the consortium ID and Name
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  con_id:
+                    type: string
+                    format: UUID
+                    description: Consortium ID
+                  consortiumName:
+                    type: string
+                    format: string
+                    description: ' Consortium Name'
+  '/consortiums/{con_id}':
+    summary: GetConsortium_byID
+    get:
+      summary: Get Consortium by its ID
+      operationId: getConsortium
+      parameters:
+        - name: con_id
+          in: path
+          description: Consortium ID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Returns the specified consortium
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    orgId:
+                      type: string
+                      format: uuid
+                      description: ' Consortium ID'
+                    organizationName:
+                      type: string
+                      format: string
+                      description: Name of Consortium
+    patch:
+      summary: Update an existing consortium
+      operationId: consortiumPatch
+      parameters:
+        - name: con_id
+          in: path
+          description: Consortium ID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        description: Consortium items to patch
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - consortiumName
+                - consortiumType
+                - organization
+              properties:
+                consortiumName:
+                  type: string
+                  format: string
+                  description: Name of consortium
+                consortiumType:
+                  type: string
+                  format: string
+                  description: Type of consortium
+                organization:
+                  type: string
+                  format: UUID
+                  description: Organization that the consortium is a part of
+        required: true
+      responses:
+        '202':
+          description: Returns the Consortium ID and Name
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  con_id:
+                    type: string
+                    format: uuid
+                    description: Consortium ID
+                  consortiumName:
+                    type: string
+                    format: string
+                    description: Consortium Name
+  /organizations:
     summary: GetOrganization
-    get: 
-     summary: "List all organizations"
-     operationId: getOrganizations
-     responses: 
-      200: 
-       description: "Returns a list of all organizations"
-       content: 
-        "application/json": 
-         schema: 
-          type: array
-          items: 
-           type: object
-           properties: 
-            orgId: 
-             type: string
-             format: uuid
-             description: " Organization ID"
-            organizationName: 
-             type: string
-             format: string
-             description: "Name of organization"
-   "/organizations{org_id}": 
+    get:
+      summary: List all organizations
+      operationId: getOrganizations
+      responses:
+        '200':
+          description: Returns a list of all organizations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    orgId:
+                      type: string
+                      format: uuid
+                      description: ' Organization ID'
+                    organizationName:
+                      type: string
+                      format: string
+                      description: Name of organization
+    post:
+      summary: Creates a new organization
+      operationId: organizationPost
+      requestBody:
+        description: New organization POST request body
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - organizationName
+              properties:
+                organizationName:
+                  type: string
+                  format: string
+                  description: Name of organization
+        required: true
+      responses:
+        '202':
+          description: Returns the organization ID and Name
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  org_id:
+                    type: string
+                    format: uuid
+                    description: Organization ID
+                  OrganizationName:
+                    type: string
+                    format: string
+                    description: Organization Name
+  '/organizations/{org_id}':
     summary: GetOrganization_byid
-    get: 
-     summary: "Get Organization by its id"
-     operationId: getOrganization
-     parameters: 
-      - 
-   name: orgid
-       in: path
-       description: "Organization ID"
-       schema: 
-        type: string
-        format: uuid
-     responses: 
-      200: 
-       description: "Returns the specified organization"
-       content: 
-        "application/json": 
-         schema: 
-          type: array
-          items: 
-           type: object
-           properties: 
-            orgId: 
-             type: string
-             format: uuid
-             description: " Organization ID"
-            organizationName: 
-             type: string
-             format: string
-             description: "Name of organization"
-    post: 
-     summary: "Creates a new organization"
-     operationId: organizationPost
-     requestBody: 
-      description: "New organization POST request body"
-      content: 
-       "application/json": 
-        schema: 
-         type: object
-         required: 
-          - 
-   organizationName
-         properties: 
-          organizationName: 
-           type: string
-           format: string
-           description: "Name of organization"
-      requestBody: 
-       description: "Organization items to post"
-       content: 
-        "application/json": 
-         schema: 
-          type: object
-          properties: 
-           OrganizationName: 
+    get:
+      summary: Get Organization by its id
+      operationId: getOrganization
+      parameters:
+        - name: org_id
+          in: path
+          description: Organization ID
+          required: true
+          schema:
             type: string
-            description: "create name of the organization"
-       required: true
-      responses: 
-       202: 
-        description: "Returns the organization ID and Name"
-        content: 
-         "application/json": 
-          schema: 
-           type: object
-           properties: 
-            org_id: 
-             type: string
-             format: uuid
-             description: "Organization ID"
-            OrganizationName: 
-             type: string
-             format: string
-             description: "Organization Name"
-     patch: 
-      summary: "Update an existing organization"
+            format: uuid
+      responses:
+        '200':
+          description: Returns the specified organization
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    orgId:
+                      type: string
+                      format: uuid
+                      description: ' Organization ID'
+                    organizationName:
+                      type: string
+                      format: string
+                      description: Name of organization
+    patch:
+      summary: Update an existing organization
       operationId: organizationPatch
-      parameters: 
-       - 
-   name: org_id
-        in: patch
-        description: "Organization ID"
-        schema: 
-         type: string
-         format: uuid
-      requestBody: 
-       description: "Organization items to patch"
-       content: 
-        "application/json": 
-         schema: 
-          type: object
-          properties: 
-           OrganizationName: 
+      parameters:
+        - name: org_id
+          in: path
+          description: Organization ID
+          required: true
+          schema:
             type: string
-            description: "Updating name of the organization"
-       required: true
-      responses: 
-       202: 
-        description: "Returns the organization ID and Name"
-        content: 
-         "application/json": 
-          schema: 
-           type: object
-           properties: 
-            org_id: 
-             type: string
-             format: uuid
-             description: "Organization ID"
-            OrganizationName: 
-             type: string
-             format: string
-             description: "Organization Name"
-     "/tasks/{task_id}": 
-      summary: Tasks
-      get: 
-       summary: "Get the status of the specified task"
-       operationId: getTask
-       parameters: 
-        - 
-   name: task_id
-         in: path
-         description: "Task ID"
-         schema: 
-          type: string
-          format: uuid
-       responses: 
-        200: 
-         description: "Returns the current task status"
-         content: 
-          "application/json": 
-           schema: 
-            type: object
-            properties: 
-             task_id: 
-              type: string
-              format: uuid
-              description: "Task ID"
-             state: 
-              type: string
-              enum: 
-               - 
-   RUNNING
-               - 
-   SUCCEEDED
-               - 
-   FAILED
-              description: "Current state of of the task"
-             message: 
-              type: string
-              description: "Additional information from the task"
-             resource_id: 
-              type: string
-              format: uuid
-              description: "The resoruce created or updated by this task.  May not be accurate until state is FAILED or SUCCEEDED."
-             resource_link: 
-              type: string
-              format: uri
-              description: "Link to the resource created or updated by this task."
-     "/users": 
-      summary: "Helen User management"
-      get: 
-       summary: "Get a list of user which belong to specific organization and specific consortium"
-       operationId: usersGet
-       parameters: 
-        - 
-   in: query
-         name: consortium
-         description: "ID of the consortium"
-         required: true
-         schema: 
-          type: string
-        - 
-   in: query
-         name: organization
-         description: "ID of the organization"
-         required: true
-         schema: 
-          type: string
-       responses: 
-        200: 
-         description: "Returns a list of all users who are part of given consortium and given organization"
-         content: 
-          "application/json": 
-           schema: 
-            type: array
-            items: 
-             type: object
-             properties: 
-              user_id: 
-               type: string
-               format: uuid
-               description: "UUID value representing ID of this user"
-              name: 
-               type: string
-               description: "string representing name of this user"
-              email: 
-               type: string
-               description: "string representing email of this user"
-              role: 
-               type: string
-               description: "string representing role of this user"
-              last_login: 
-               type: integer
-               description: "integer value representing the time (in milliseconds since epoch) when this user last logged in"
-              details: 
-               type: object
-               properties: 
-                first_name: 
-                 type: string
-                 description: "first name of this user"
-                last_name: 
-                 type: string
-                 description: "last name of this user"
-              consortium: 
-               type: object
-               properties: 
-                consortium_id: 
-                 type: string
-                 format: uuid
-                 description: "ID of consortium to which this user belongs"
-                consortium_name: 
-                 type: string
-                 description: "name of consortium to which this user belongs"
-              organization: 
-               type: object
-               properties: 
-                organization_id: 
-                 type: string
-                 format: uuid
-                 description: "ID of organization to which this user belongs"
-                organization_name: 
-                 type: string
-                 description: "name of organization to which this user belongs"
-      post: 
-       summary: "Create a new user in Helen"
-       operationId: usersPost
-       requestBody: 
-        description: "User creation POST request body"
-        content: 
-         "application/json": 
-          schema: 
-           type: object
-           properties: 
-            name: 
-             type: string
-             description: "string representing name of this user"
-             required: true
-            email: 
-             type: string
-             description: "string representing email of this user"
-             required: true
-            role: 
-             type: string
-             description: "string representing role of this user"
-             required: true
-            details: 
-             type: object
-             properties: 
-              first_name: 
-               type: string
-               description: "first name of this user"
-              last_name: 
-               type: string
-               description: "last name of this user"
-            consortium: 
-             type: object
-             properties: 
-              consortium_id: 
-               type: string
-               format: uuid
-               description: "ID of consortium to which this user belongs"
-               required: true
-            organization: 
-             type: object
-             properties: 
-              organization_id: 
-               type: string
-               format: uuid
-               required: true
-               description: "ID of organization to which this user belongs"
-            password: 
-             type: string
-             required: true
-             description: "password of this user"
+            format: uuid
+      requestBody:
+        description: Organization items to patch
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                OrganizationName:
+                  type: string
+                  description: Updating name of the organization
         required: true
-       responses: 
-        200: 
-         description: "User ID of newly created user"
-         content: 
-          "application/json": 
-           schema: 
-            type: object
-            properties: 
-             user_id: 
-              type: string
-              format: uuid
-              description: "User ID of newly created user"
-     "/users/{user_id}": 
-      summary: "Helen User management"
-      get: 
-       summary: "Get the user identified by given user_id"
-       operationId: GetUserById
-       parameters: 
-        - 
-   name: user_id
-         in: path
-         description: "the id of the user to get"
-         required: true
-         schema: 
-          type: string
-          format: uuid
-         style: simple
-       responses: 
-        200: 
-         description: "Returns a json object describing specified user"
-         content: 
-          "application/json": 
-           schema: 
-            type: object
-            properties: 
-             user_id: 
-              type: string
-              format: uuid
-              description: "UUID value representing ID of this user"
-             name: 
-              type: string
-              description: "string representing name of this user"
-             email: 
-              type: string
-              description: "string representing email of this user"
-             role: 
-              type: string
-              description: "string representing role of this user"
-             last_login: 
-              type: integer
-              description: "integer value representing the time (in milliseconds since epoch) when this user last logged in"
-             details: 
-              type: object
-              properties: 
-               first_name: 
-                type: string
-                description: "first name of this user"
-               last_name: 
-                type: string
-                description: "last name of this user"
-             consortium: 
-              type: object
-              properties: 
-               consortium_id: 
-                type: string
-                format: uuid
-                description: "ID of consortium to which this user belongs"
-               consortium_name: 
-                type: string
-                description: "name of consortium to which this user belongs"
-             organization: 
-              type: object
-              properties: 
-               organization_id: 
-                type: string
-                format: uuid
-                description: "ID of organization to which this user belongs"
-               organization_name: 
-                type: string
-                description: "name of organization to which this user belongs"
-      patch: 
-       summary: "Update user information"
-       operationId: UpdateUser
-       parameters: 
-        - 
-   name: user_id
-         in: path
-         description: "the id of the user to update"
-         required: true
-         schema: 
-          type: string
-          format: uuid
-         style: simple
-       requestBody: 
-        description: "User PATCH request body"
-        content: 
-         "application/json": 
-          schema: 
-           type: object
-           properties: 
-            name: 
-             type: string
-             description: "new name of the user"
-            email: 
-             type: string
-             description: "new email of the user"
-            role: 
-             type: string
-             description: "new role of the user"
-            details: 
-             type: object
-             properties: 
-              first_name: 
-               type: string
-               description: "new first name of the user"
-              last_name: 
-               type: string
-               description: "new last name of the user"
+      responses:
+        '202':
+          description: Returns the organization ID and Name
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  org_id:
+                    type: string
+                    format: uuid
+                    description: Organization ID
+                  OrganizationName:
+                    type: string
+                    format: string
+                    description: Organization Name
+  '/tasks':
+    summary: Get all Tasks
+    get:
+      summary: Get the statuses of all tasks
+      operationId: listTask
+      responses:
+        '200':
+          description: Returns the current task status
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    task_id:
+                      type: string
+                      format: uuid
+                      description: Task ID
+                    state:
+                      type: string
+                      enum:
+                        - RUNNING
+                        - SUCCEEDED
+                        - FAILED
+                      description: Current state of of the task
+                    message:
+                      type: string
+                      description: Additional information from the task
+                    resource_id:
+                      type: string
+                      format: uuid
+                      description: The resoruce created or updated by this task.  May not be accurate until state is FAILED or SUCCEEDED.
+                    resource_link:
+                      type: string
+                      format: uri
+                      description: Link to the resource created or updated by this task.
+    post:
+      summary: Get the statuses of listed tasks
+      operationId: getTaskList
+      parameters:
+        - name: get_state
+          in: query
+          description: get states
+          required: true
+          schema:
+            type: string
+      requestBody:
         required: true
-       responses: 
-        200: 
-         content: 
-          "application/json": 
-           schema: 
-            type: object
-            properties: 
-     "/auth/login": 
-      summary: "Helen User management"
-      post: 
-       summary: "Authenticate a user"
-       operationId: AuthenticateUser
-       parameters: 
-        - 
-   name: user_id
-         in: path
-         description: "the id of the user to authenticate"
-         required: true
-         schema: 
-          type: string
-          format: uuid
-         style: simple
-       requestBody: 
-        description: "Authenticate user POST request body"
-        content: 
-         "application/json": 
-          schema: 
-           type: object
-           properties: 
-            password: 
-             type: string
-             description: "password of the user"
-             required: true
+        description: List of task ids
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                task_ids:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+      responses:
+        '200':
+          description: Returns the current task status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  states:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        task_id:
+                          type: string
+                          format: uuid
+                          description: Task ID
+                        state:
+                          type: string
+                          enum:
+                            - RUNNING
+                            - SUCCEEDED
+                            - FAILED
+                          description: Current state of of the task
+                        message:
+                          type: string
+                          description: Additional information from the task
+                        resource_id:
+                          type: string
+                          format: uuid
+                          description: The resoruce created or updated by this task.  May not be accurate until state is FAILED or SUCCEEDED.
+                        resource_link:
+                          type: string
+                          format: uri
+                          description: Link to the resource created or updated by this task.
+  '/tasks/{task_id}':
+    summary: Tasks
+    get:
+      summary: Get the status of the specified task
+      operationId: getTask
+      parameters:
+        - name: task_id
+          in: path
+          description: Task ID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Returns the current task status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  task_id:
+                    type: string
+                    format: uuid
+                    description: Task ID
+                  state:
+                    type: string
+                    enum:
+                      - RUNNING
+                      - SUCCEEDED
+                      - FAILED
+                    description: Current state of of the task
+                  message:
+                    type: string
+                    description: Additional information from the task
+                  resource_id:
+                    type: string
+                    format: uuid
+                    description: The resoruce created or updated by this task.  May not be accurate until state is FAILED or SUCCEEDED.
+                  resource_link:
+                    type: string
+                    format: uri
+                    description: Link to the resource created or updated by this task.
+  /users:
+    summary: Helen User management
+    get:
+      summary: Get a list of user which belong to specific organization and specific consortium
+      operationId: usersGet
+      parameters:
+        - in: query
+          name: consortium
+          description: ID of the consortium
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: organization
+          description: ID of the organization
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Returns a list of all users who are part of given consortium and given organization
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    user_id:
+                      type: string
+                      format: uuid
+                      description: UUID value representing ID of this user
+                    name:
+                      type: string
+                      description: string representing name of this user
+                    email:
+                      type: string
+                      description: string representing email of this user
+                    role:
+                      type: string
+                      description: string representing role of this user
+                    last_login:
+                      type: integer
+                      description: integer value representing the time (in milliseconds since epoch) when this user last logged in
+                    details:
+                      type: object
+                      properties:
+                        first_name:
+                          type: string
+                          description: first name of this user
+                        last_name:
+                          type: string
+                          description: last name of this user
+                    consortium:
+                      type: object
+                      properties:
+                        consortium_id:
+                          type: string
+                          format: uuid
+                          description: ID of consortium to which this user belongs
+                        consortium_name:
+                          type: string
+                          description: name of consortium to which this user belongs
+                    organization:
+                      type: object
+                      properties:
+                        organization_id:
+                          type: string
+                          format: uuid
+                          description: ID of organization to which this user belongs
+                        organization_name:
+                          type: string
+                          description: name of organization to which this user belongs
+    post:
+      summary: Create a new user in Helen
+      operationId: usersPost
+      requestBody:
+        description: User creation POST request body
         required: true
-       responses: 
-        200: 
-         description: "Returns an object with at least an `isAuthenticated` field. If login failed, the value of this field is `false`. If login succeeded, the value of this field is `true`, and the rest of the fields of a user-GET response are also included."
-         content: 
-          "application/json": 
-           schema: 
-            type: object
-            properties: 
-             user_id: 
-              type: string
-              format: uuid
-              description: "integer value representing ID of this user"
-             name: 
-              type: string
-              description: "string representing name of this user"
-             email: 
-              type: string
-              description: "string representing email of this user"
-             role: 
-              type: string
-              description: "string representing role of this user"
-             last_login: 
-              type: integer
-              description: "integer value representing the time (in milliseconds since epoch) when this user last logged in"
-             details: 
+        content:
+          application/json:
+            schema:
+              required:
+                - name
+                - email
+                - role
+                - consortium
+                - organization
+                - password
               type: object
-              properties: 
-               first_name: 
-                type: string
-                description: "first name of this user"
-               last_name: 
-                type: string
-                description: "last name of this user"
-             consortium: 
+              properties:
+                name:
+                  type: string
+                  description: string representing name of this user
+                email:
+                  type: string
+                  description: string representing email of this user
+                role:
+                  type: string
+                  description: string representing role of this user
+                details:
+                  type: object
+                  properties:
+                    first_name:
+                      type: string
+                      description: first name of this user
+                    last_name:
+                      type: string
+                      description: last name of this user
+                consortium:
+                  type: object
+                  properties:
+                    consortium_id:
+                      type: string
+                      format: uuid
+                      description: ID of consortium to which this user belongs
+                organization:
+                  type: object
+                  properties:
+                    organization_id:
+                      type: string
+                      format: uuid
+                      description: ID of organization to which this user belongs
+                password:
+                  type: string
+                  description: password of this user
+      responses:
+        '200':
+          description: User ID of newly created user
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user_id:
+                    type: string
+                    format: uuid
+                    description: User ID of newly created user
+  '/users/{user_id}':
+    summary: Helen User management
+    get:
+      summary: Get the user identified by given user_id
+      operationId: GetUserById
+      parameters:
+        - name: user_id
+          in: path
+          description: the id of the user to get
+          required: true
+          schema:
+            type: string
+            format: uuid
+          style: simple
+      responses:
+        '200':
+          description: Returns a json object describing specified user
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user_id:
+                    type: string
+                    format: uuid
+                    description: UUID value representing ID of this user
+                  name:
+                    type: string
+                    description: string representing name of this user
+                  email:
+                    type: string
+                    description: string representing email of this user
+                  role:
+                    type: string
+                    description: string representing role of this user
+                  last_login:
+                    type: integer
+                    description: integer value representing the time (in milliseconds since epoch) when this user last logged in
+                  details:
+                    type: object
+                    properties:
+                      first_name:
+                        type: string
+                        description: first name of this user
+                      last_name:
+                        type: string
+                        description: last name of this user
+                  consortium:
+                    type: object
+                    properties:
+                      consortium_id:
+                        type: string
+                        format: uuid
+                        description: ID of consortium to which this user belongs
+                      consortium_name:
+                        type: string
+                        description: name of consortium to which this user belongs
+                  organization:
+                    type: object
+                    properties:
+                      organization_id:
+                        type: string
+                        format: uuid
+                        description: ID of organization to which this user belongs
+                      organization_name:
+                        type: string
+                        description: name of organization to which this user belongs
+    patch:
+      summary: Update user information
+      operationId: UpdateUser
+      parameters:
+        - name: user_id
+          in: path
+          description: the id of the user to update
+          required: true
+          schema:
+            type: string
+            format: uuid
+          style: simple
+      requestBody:
+        description: User PATCH request body
+        content:
+          application/json:
+            schema:
               type: object
-              properties: 
-               consortium_id: 
-                type: string
-                format: uuid
-                description: "ID of consortium to which this user belongs"
-               consortium_name: 
-                type: string
-                description: "name of consortium to which this user belongs"
-             organization: 
-              type: object
-              properties: 
-               organization_id: 
-                type: string
-                format: uuid
-                description: "ID of organization to which this user belongs"
-               organization_name: 
-                type: string
-                description: "name of organization to which this user belongs"
-             isAuthenticated: 
-              type: boolean
-              description: "True if login succeeded. False otherwise."
-     "/auth/change-password": 
-      summary: "Change user password"
-      post: 
-       summary: "Change a user password"
-       operationId: ChangePassword
-       requestBody: 
-        description: "Authenticate user POST request body"
-        content: 
-         "application/json": 
-          schema: 
-           type: object
-           properties: 
-            email: 
-             type: string
-             description: "email of the user"
-             required: true
-            password: 
-             type: string
-             description: "new password of the user"
-             required: true
+              properties:
+                name:
+                  type: string
+                  description: new name of the user
+                email:
+                  type: string
+                  description: new email of the user
+                role:
+                  type: string
+                  description: new role of the user
+                details:
+                  type: object
+                  properties:
+                    first_name:
+                      type: string
+                      description: new first name of the user
+                    last_name:
+                      type: string
+                      description: new last name of the user
         required: true
-       responses: 
-        200: 
-         description: "Returns an object with at least an `isAuthenticated` field. If login failed, the value of this field is `false`. If login succeeded, the value of this field is `true`, and the rest of the fields of a user-GET response are also included."
-         content: 
-          "application/json": 
-           schema: 
-            type: object
-            properties: 
-             user_id: 
-              type: string
-              format: uuid
-              description: "integer value representing ID of this user"
-             name: 
-              type: string
-              description: "string representing name of this user"
-             email: 
-              type: string
-              description: "string representing email of this user"
-             role: 
-              type: string
-              description: "string representing role of this user"
-             last_login: 
-              type: integer
-              description: "integer value representing the time (in milliseconds since epoch) when this user last logged in"
-             details: 
+      responses:
+        '200':
+          description: Successful patch
+          content:
+            application/json:
+              schema:
+                type: object
+                properties: {}
+  /auth/login:
+    summary: Helen User management
+    post:
+      summary: Authenticate a user
+      operationId: AuthenticateUser
+      parameters:
+        - name: user_id
+          in: path
+          description: the id of the user to authenticate
+          required: true
+          schema:
+            type: string
+            format: uuid
+          style: simple
+      requestBody:
+        description: Authenticate user POST request body
+        content:
+          application/json:
+            schema:
+              required:
+                - password
               type: object
-              properties: 
-               first_name: 
-                type: string
-                description: "first name of this user"
-               last_name: 
-                type: string
-                description: "last name of this user"
-             consortium: 
+              properties:
+                password:
+                  type: string
+                  description: password of the user
+      responses:
+        '200':
+          description: 'Returns an object with at least an `isAuthenticated` field. If login failed, the value of this field is `false`. If login succeeded, the value of this field is `true`, and the rest of the fields of a user-GET response are also included.'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user_id:
+                    type: string
+                    format: uuid
+                    description: integer value representing ID of this user
+                  name:
+                    type: string
+                    description: string representing name of this user
+                  email:
+                    type: string
+                    description: string representing email of this user
+                  role:
+                    type: string
+                    description: string representing role of this user
+                  last_login:
+                    type: integer
+                    description: integer value representing the time (in milliseconds since epoch) when this user last logged in
+                  details:
+                    type: object
+                    properties:
+                      first_name:
+                        type: string
+                        description: first name of this user
+                      last_name:
+                        type: string
+                        description: last name of this user
+                  consortium:
+                    type: object
+                    properties:
+                      consortium_id:
+                        type: string
+                        format: uuid
+                        description: ID of consortium to which this user belongs
+                      consortium_name:
+                        type: string
+                        description: name of consortium to which this user belongs
+                  organization:
+                    type: object
+                    properties:
+                      organization_id:
+                        type: string
+                        format: uuid
+                        description: ID of organization to which this user belongs
+                      organization_name:
+                        type: string
+                        description: name of organization to which this user belongs
+                  isAuthenticated:
+                    type: boolean
+                    description: True if login succeeded. False otherwise.
+  /auth/change-password:
+    summary: Change user password
+    post:
+      summary: Change a user password
+      operationId: ChangePassword
+      requestBody:
+        description: Authenticate user POST request body
+        content:
+          application/json:
+            schema:
+              required:
+                - email
+                - password
               type: object
-              properties: 
-               consortium_id: 
-                type: string
-                format: uuid
-                description: "ID of consortium to which this user belongs"
-               consortium_name: 
-                type: string
-                description: "name of consortium to which this user belongs"
-             organization: 
+              properties:
+                email:
+                  type: string
+                  description: email of the user
+                password:
+                  type: string
+                  description: new password of the user
+      responses:
+        '200':
+          description: 'Returns an object with at least an `isAuthenticated` field. If login failed, the value of this field is `false`. If login succeeded, the value of this field is `true`, and the rest of the fields of a user-GET response are also included.'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user_id:
+                    type: string
+                    format: uuid
+                    description: integer value representing ID of this user
+                  name:
+                    type: string
+                    description: string representing name of this user
+                  email:
+                    type: string
+                    description: string representing email of this user
+                  role:
+                    type: string
+                    description: string representing role of this user
+                  last_login:
+                    type: integer
+                    description: integer value representing the time (in milliseconds since epoch) when this user last logged in
+                  details:
+                    type: object
+                    properties:
+                      first_name:
+                        type: string
+                        description: first name of this user
+                      last_name:
+                        type: string
+                        description: last name of this user
+                  consortium:
+                    type: object
+                    properties:
+                      consortium_id:
+                        type: string
+                        format: uuid
+                        description: ID of consortium to which this user belongs
+                      consortium_name:
+                        type: string
+                        description: name of consortium to which this user belongs
+                  organization:
+                    type: object
+                    properties:
+                      organization_id:
+                        type: string
+                        format: uuid
+                        description: ID of organization to which this user belongs
+                      organization_name:
+                        type: string
+                        description: name of organization to which this user belongs
+                  isAuthenticated:
+                    type: boolean
+                    description: True if login succeeded. False otherwise.
+  /auth/token:
+    summary: Refresh auth token
+    post:
+      summary: Refresh authentication token
+      operationId: RefreshToken
+      requestBody:
+        description: Refresh authentication token
+        content:
+          application/json:
+            schema:
+              required:
+                - refresh_token
               type: object
-              properties: 
-               organization_id: 
-                type: string
-                format: uuid
-                description: "ID of organization to which this user belongs"
-               organization_name: 
-                type: string
-                description: "name of organization to which this user belongs"
-             isAuthenticated: 
-              type: boolean
-              description: "True if login succeeded. False otherwise."
-     "/auth/token": 
-      summary: "Refresh auth token"
-      post: 
-       summary: "Refresh authentication token"
-       operationId: RefreshToken
-       requestBody: 
-        description: "Refresh authentication token"
-        content: 
-         "application/json": 
-          schema: 
-           type: object
-           properties: 
-            refresh_token: 
-             type: string
-             description: "Token needed to generate new authentication token."
-             required: true
-        required: true
-       responses: 
-        200: 
-         description: "Returns an object with a token, token_expires and refresh_token."
-         content: 
-          "application/json": 
-           schema: 
-            type: object
-            properties: 
-             token: 
-              type: string
-              description: "Token used for authentication."
-             refresh_token: 
-              type: string
-              description: "Token used to regenerate a token, token_expires and refresh_token"
-             token_expires: 
-              type: string
-              description: "Amount of time till your token expires."
+              properties:
+                refresh_token:
+                  type: string
+                  description: Token needed to generate new authentication token.
+      responses:
+        '200':
+          description: 'Returns an object with a token, token_expires and refresh_token.'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                    description: Token used for authentication.
+                  refresh_token:
+                    type: string
+                    description: 'Token used to regenerate a token, token_expires and refresh_token'
+                  token_expires:
+                    type: string
+                    description: Amount of time till your token expires.
