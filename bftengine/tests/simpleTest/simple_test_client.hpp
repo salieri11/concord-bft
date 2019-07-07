@@ -16,7 +16,7 @@
 using namespace bftEngine;
 using namespace std;
 
-#define test_assert(statement, message) \
+#define test_assert_client(statement, message) \
 { if (!(statement)) { \
 LOG_FATAL(clientLogger, "assert fail with message: " << message); assert(false);}}
 
@@ -133,12 +133,12 @@ class SimpleTestClient {
                             kReplyBufferLength, replyBuffer, actualReplyLength);
 
         // Read should respond with eight bytes of data.
-        test_assert(actualReplyLength == sizeof(uint64_t),
+        test_assert_client(actualReplyLength == sizeof(uint64_t),
                     "actualReplyLength != " << sizeof(uint64_t));
 
         // Only assert the last expected value if we have previous set a value.
         if (hasExpectedLastValue)
-          test_assert(
+          test_assert_client(
               *reinterpret_cast<uint64_t*>(replyBuffer) == expectedLastValue,
               "*reinterpret_cast<uint64_t*>(replyBuffer)!=" << expectedLastValue);
       } else {
@@ -176,7 +176,7 @@ class SimpleTestClient {
         hasExpectedLastValue = true;
 
         // Write should respond with eight bytes of data.
-        test_assert(actualReplyLength == sizeof(uint64_t),
+        test_assert_client(actualReplyLength == sizeof(uint64_t),
                     "actualReplyLength != " << sizeof(uint64_t));
 
         uint64_t retVal = *reinterpret_cast<uint64_t*>(replyBuffer);
@@ -187,7 +187,7 @@ class SimpleTestClient {
           // If we had done a previous write, then this write should return the
           // state number right after the state number that that write returned.
           expectedStateNum++;
-          test_assert(retVal == expectedStateNum,
+          test_assert_client(retVal == expectedStateNum,
                       "retVal != " << expectedLastValue);
         } else {
           hasExpectedStateNum = true;

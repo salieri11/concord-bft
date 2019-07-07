@@ -31,6 +31,26 @@ class PersistencyTest: public testing::Test
     }
   }
 
+  void run_replica(SimpleTestReplica *rep) {
+    rep->start();
+    rep->run();
+  }
+
+  void create_client(int numOfOperations) {
+    ClientParams cp;
+    cp.numOfOperations = numOfOperations;
+    bftEngine::SimpleClientParams scp;
+    client = new SimpleTestClient(cp, clientLogger);
+  }
+
+  void create_and_run_replica(ReplicaParams rp, PersistencyTestInfo pti) {
+    rp.keysFilePrefix = "private_replica_";
+    SimpleTestReplica *replica = SimpleTestReplica::create_replica(pti, rp);
+    replicas.push_back(replica);
+    std::thread *t = new std::thread(std::bind(&PersistencyTest::run_replica, this ,replica));
+    replicaThreads.push_back(t);
+  }
+
   SimpleTestClient *client;
   vector<SimpleTestReplica*> replicas;
   vector<std::thread*> replicaThreads;
@@ -40,69 +60,49 @@ class PersistencyTest: public testing::Test
       ("replicalogger");
 };
 
-void run_replica(SimpleTestReplica *rep) {
-  rep->start();
-  rep->run();
-}
-
-TEST_F(PersistencyTest, RegressionNoPersistency) {
-  ClientParams cp;
-  bftEngine::SimpleClientParams scp;
-  client = new SimpleTestClient(cp, clientLogger);
-
-  for(int i = 0; i < 4;i++) {
-    PersistencyTestInfo pti;
-    ReplicaParams rp;
-    rp.keysFilePrefix = "private_replica_";
-    rp.replicaId = i;
-    SimpleTestReplica *replica = SimpleTestReplica::create_replica(pti, rp);
-    replicas.push_back(replica);
-    std::thread *t = new std::thread(run_replica, replica);
-    replicaThreads.push_back(t);
-  }
-
-  ASSERT_TRUE(client->run());
-}
-
-TEST_F(PersistencyTest, Replica2RestartNoVC) {
-  ClientParams cp;
-  cp.numOfOperations = 5000;
-  bftEngine::SimpleClientParams scp;
-  client = new SimpleTestClient(cp, clientLogger);
-  for(int i = 0; i < 4;i++) {
-    PersistencyTestInfo pti;
-    pti.replica2RestartNoVC = true;
-    ReplicaParams rp;
-    rp.keysFilePrefix = "private_replica_";
-    rp.replicaId = i;
-    SimpleTestReplica *replica = SimpleTestReplica::create_replica(pti, rp);
-    replicas.push_back(replica);
-    std::thread *t = new std::thread(run_replica, replica);
-    replicaThreads.push_back(t);
-  }
-
-  ASSERT_TRUE(client->run());
-}
-
 /*
-TEST_F(PersistencyTest, Replica2RestartVC) {
+TEST_F(PersistencyTest, RegressionNoPersistency) {
+  create_client(2800);
   for(int i = 0; i < 4;i++) {
     PersistencyTestInfo pti;
-    pti.replica2RestartVC = true;
     ReplicaParams rp;
-    rp.viewChangeEnabled = true;
-    rp.viewChangeTimeout = 10000;
-    rp.keysFilePrefix = "private_replica_";
     rp.replicaId = i;
-    SimpleTestReplica *replica = SimpleTestReplica::create_replica(pti, rp);
-    replicas.push_back(replica);
-    std::thread *t = new std::thread(run_replica, replica);
-    replicaThreads.push_back(t);
+    create_and_run_replica(rp, pti);
   }
 
   ASSERT_TRUE(client->run());
 }
 */
+
+/*
+TEST_F(PersistencyTest, Replica2RestartNoVC) {
+  create_client(5000);
+  for(int i = 0; i < 4;i++) {
+    PersistencyTestInfo pti;
+    pti.replica2RestartNoVC = true;
+    ReplicaParams rp;
+    rp.replicaId = i;
+    create_and_run_replica(rp, pti);
+  }
+
+  ASSERT_TRUE(client->run());
+}
+*/
+
+TEST_F(PersistencyTest, Replica2RestartVC) {
+  create_client(20000);
+
+  for(int i = 0; i < 4;i++) {
+    PersistencyTestInfo pti;
+    pti.replica2RestartVC = true;
+    ReplicaParams rp;
+    rp.viewChangeEnabled = true;
+    rp.replicaId = i;
+    create_and_run_replica(rp, pti);
+  }
+
+  ASSERT_TRUE(client->run());
+}
 
 }
 }
