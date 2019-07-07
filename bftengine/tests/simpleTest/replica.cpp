@@ -64,9 +64,9 @@
 #include <log4cplus/configurator.h>
 #endif
 
-#define REPLICA2_RESTART_NO_VC (1)
+#define REPLICA2_RESTART_NO_VC (0)
 #define ALL_REPLICAS_RESTART_NO_VC (0)
-#define REPLICA2_RESTART_VC (0)
+#define REPLICA2_RESTART_VC (1)
 #define ALL_REPLICAS_RESTART_VC (0)
 #define PRIMARY_REPLICA_RESTART (0)
 static_assert(REPLICA2_RESTART_NO_VC + ALL_REPLICAS_RESTART_NO_VC + REPLICA2_RESTART_VC + ALL_REPLICAS_RESTART_VC + PRIMARY_REPLICA_RESTART <= 1, "");
@@ -224,34 +224,6 @@ int main(int argc, char **argv) {
   pti.primaryReplicaRestart = true;
 #endif
 
-#ifdef USE_COMM_PLAIN_TCP
-  PlainTcpConfig conf = testCommConfig.GetTCPConfig(true, rp.replicaId,
-                                                    rp.numOfClients,
-                                                    rp.numOfReplicas,
-                                                    rp.configFileName);
-#elif USE_COMM_TLS_TCP
-  TlsTcpConfig conf = testCommConfig.GetTlsTCPConfig(true, rp.replicaId,
-                                                     rp.numOfClients,
-                                                     rp.numOfReplicas,
-                                                     rp.configFileName);
-#else
-  PlainUdpConfig conf = testCommConfig.GetUDPConfig(true, rp.replicaId,
-                                                    rp.numOfClients,
-                                                    rp.numOfReplicas,
-                                                    rp.configFileName);
-#endif
-
-  LOG_DEBUG(replicaLogger, "ReplicaConfig: replicaId: "
-      << replicaConfig.replicaId
-      << ", fVal: " << replicaConfig.fVal
-      << ", cVal: " << replicaConfig.cVal
-      << ", autoViewChangeEnabled: "
-      << replicaConfig.autoViewChangeEnabled
-      << ", viewChangeTimerMillisec: "
-      << rp.viewChangeTimeout);
-
-  ICommunication *comm = bftEngine::CommFactory::create(conf);
-
   LOG_INFO(replicaLogger, "ReplicaParams: replicaId: "
       << rp.replicaId
       << ", numOfReplicas: " << rp.numOfReplicas
@@ -272,9 +244,6 @@ int main(int argc, char **argv) {
           replicaConfig.cVal, true);
 
   simpleAppState.st = st;
-  SimpleTestReplica *replica = new SimpleTestReplica(comm, simpleAppState,
-                                                     &replicaConfig, pti, st);
-
   SimpleTestReplica *replica = SimpleTestReplica::create_replica(pti, rp);
   replica->start();
   // The replica is now running in its own thread. Block the main thread until

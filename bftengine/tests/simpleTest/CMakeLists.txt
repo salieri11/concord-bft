@@ -20,15 +20,6 @@ set(config_source_files
         ${CONFIG_FOLDER_PATH_VALUE}/config_file_parser_test.cpp
         )
 
-<<<<<<< HEAD
-add_executable(simpleTest_client $<TARGET_OBJECTS:logging_dev>
-    ${simpleTest_client_source_files}
-)
-
-add_executable(simpleTest_server $<TARGET_OBJECTS:logging_dev>
-    ${simpleTest_replica_source_files}
-)
-=======
 add_executable(simpleTest_client
         ${simpleTest_client_source_files}
         )
@@ -36,7 +27,6 @@ add_executable(simpleTest_client
 add_executable(simpleTest_server
         ${simpleTest_replica_source_files}
         )
->>>>>>> 189edf4... unit test partially work, first attempt
 
 add_executable(configTest
         ${config_source_files}
