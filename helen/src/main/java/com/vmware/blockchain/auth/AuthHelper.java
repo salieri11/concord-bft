@@ -14,6 +14,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.ThreadContext;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.security.access.expression.SecurityExpressionRoot;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -38,6 +39,7 @@ public class AuthHelper {
 
     // Can't use constructor autowired in the component, due to circular dependencies.
     @Autowired
+    @Lazy
     private DefaultProfiles defaultProfiles;
 
     @Autowired

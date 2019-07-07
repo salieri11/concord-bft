@@ -31,6 +31,7 @@ import org.springframework.http.MediaType;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.result.MockMvcResultHandlers;
@@ -52,6 +53,7 @@ import com.vmware.blockchain.utils.ControllerTestConfig;
 @WebMvcTest(secure = false, controllers = UserAuthenticator.class)
 @ContextConfiguration(classes = {MvcConfig.class, ControllerTestConfig.class})
 @ComponentScan(basePackageClasses = { UserAuthenticatorTest.class, HelenExceptionHandler.class })
+@TestPropertySource(properties = "spring.main.allow-bean-definition-overriding=true")
 class UserAuthenticatorTest {
 
     // Just some random UUIDs
