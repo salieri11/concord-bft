@@ -22,8 +22,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 import com.vmware.blockchain.common.Constants;
+import com.vmware.blockchain.operation.OperationContext;
+import com.vmware.blockchain.operation.RequestTrackingFilter;
 import com.vmware.blockchain.services.profiles.Roles;
-
 
 /**
  * Security Configuration for Helen.
@@ -35,6 +36,7 @@ import com.vmware.blockchain.services.profiles.Roles;
 public class CspSecurityConfig extends WebSecurityConfigurerAdapter {
     static final Logger logger = LogManager.getLogger(CspSecurityConfig.class);
 
+    private OperationContext operationContext = new OperationContext();
 
 
     @Autowired
@@ -71,6 +73,9 @@ public class CspSecurityConfig extends WebSecurityConfigurerAdapter {
                              UsernamePasswordAuthenticationFilter.class);
         http.addFilterBefore(tokenRefreshFilter, TokenAuthenticationFilter.class);
 
+        RequestTrackingFilter requestTrackingFilter = new RequestTrackingFilter(operationContext);
+
+        http.addFilterBefore(requestTrackingFilter, TokenRefreshFilter.class);
     }
 
     @Override
