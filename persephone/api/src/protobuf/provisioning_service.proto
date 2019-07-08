@@ -230,6 +230,15 @@ message StreamClusterDeploymentSessionEventRequest {
 }
 
 /**
+ * This is a default empty request to stream all events of an ongoing session
+ * @property[header]
+ *   message header.
+ */
+message StreamAllClusterDeploymentSessionEventRequest {
+    MessageHeader header = 1;
+}
+
+/**
  * Request definition for operation to update a completed deployment session.
  *
  * @property[header]
@@ -288,9 +297,18 @@ service ProvisioningService {
         returns (stream DeploymentSessionEvent) {};
 
     /**
+     * Operation to retrieve all [DeploymentSessionEvent] as a stream for an ongoing session.
+     * FIXME: Keeping this as a separate API so that the response type (as implemented)for
+     * StreamClusterDeploymentSessionEvents is homogenous. This is due for removal once
+     * StreamClusterDeploymentSessionEvents also returns a stream instead.
+     */
+    rpc StreamAllClusterDeploymentSessionEvents (StreamAllClusterDeploymentSessionEventRequest)
+        returns (stream DeploymentSessionEvent) {};
+
+    /**
     * Operation to deprovision cluster based on a [DeprovisionClusterRequest]
     */
     rpc UpdateDeploymentSession (UpdateDeploymentSessionRequest)
-	returns (UpdateDeploymentSessionResponse) {};
+	    returns (UpdateDeploymentSessionResponse) {};
 }
 /* [END services] */
