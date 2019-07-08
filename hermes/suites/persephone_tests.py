@@ -77,6 +77,9 @@ class PersephoneTests(test_suite.TestSuite):
          self.writeResult(testName, result, info)
 
       if self.rpc_test_helper.deployed_session_ids:
+         fileRoot = os.path.join(self._testLogDir, "undeploy_all_clusters")
+         os.makedirs(fileRoot, exist_ok=True)
+         self.cmdlineArgs.fileRoot = fileRoot
          self.undeploy_blockchain_cluster()
 
       log.info("Tests are done.")
@@ -87,11 +90,38 @@ class PersephoneTests(test_suite.TestSuite):
       Undeploy all deployed blockchain clusters in PersephoneTests run
       '''
       log.info("Undeploy all created blockchain clusters...")
-      undeployed_status = True
+      undeployed_status = None
       for session_id in self.rpc_test_helper.deployed_session_ids:
-         cleaned_up = helper.undeploy_blockchain_cluster(
-            self.rpc_test_helper.persephone_config_file,
-            self.rpc_test_helper.grpc_server, helper.protobuf_message_to_json(session_id))
+         cleaned_up = False
+
+         # TODO: Remove call to CLI undeploy, once gRPC calls are validated to
+         # be stable
+         # cleaned_up = helper.undeploy_blockchain_cluster(
+         #    self.rpc_test_helper.persephone_config_file,
+         #    self.rpc_test_helper.grpc_server, helper.protobuf_message_to_json(session_id))
+
+         # gRPC call to Undeploy
+         log.info("Undeploying Session ID:\n{}".format(session_id[0]))
+         response = self.rpc_test_helper.rpc_update_deployment_session(
+            session_id[0],
+            action=self.rpc_test_helper.UPDATE_DEPLOYMENT_ACTION_DEPROVISION_ALL)
+
+         max_timeout = 120 # secsonds
+         sleep_time = 30 # seconds
+         start_time = time.time()
+         while ((time.time() - start_time) < max_timeout) and not cleaned_up:
+            events = self.rpc_test_helper.rpc_stream_cluster_deployment_session_events(
+               session_id[0])
+            response_events_json = helper.protobuf_message_to_json(events)
+            for event in response_events_json:
+               if "RESOURCE_DEPROVISIONING" in event["type"]:
+                  # TODO: Add more validation to API response
+                  cleaned_up = True
+            log.info("Sleep for {} seconds and retry".format(sleep_time))
+            time.sleep(sleep_time)
+
+         if cleaned_up and undeployed_status is None:
+            undeployed_status = True
          if not cleaned_up:
             undeployed_status = False
 

@@ -33,6 +33,11 @@ class RPCTestHelper():
 
          self.PLACEMENT_TYPE_FIXED = self.provision_rpc_helper.PLACEMENT_TYPE_FIXED
          self.PLACEMENT_TYPE_UNSPECIFIED = self.provision_rpc_helper.PLACEMENT_TYPE_UNSPECIFIED
+
+         self.UPDATE_DEPLOYMENT_ACTION_NOOP = self.provision_rpc_helper.UPDATE_DEPLOYMENT_ACTION_NOOP
+         self.UPDATE_DEPLOYMENT_ACTION_DEPROVISION_ALL = \
+            self.provision_rpc_helper.UPDATE_DEPLOYMENT_ACTION_DEPROVISION_ALL
+
          self.persephone_config_file = self.provision_rpc_helper.persephone_config_file
          self.grpc_server = self.provision_rpc_helper.grpc_server
 
@@ -107,3 +112,23 @@ class RPCTestHelper():
          log.debug("Event: {}".format(event))
 
       return events
+
+   def rpc_update_deployment_session(self, session_id, action):
+      '''
+      Helper method to call undeploy rpc
+      :param session_id: deployment session ID
+      :param action: action to be performed ()
+      :return: session ID
+      '''
+      header = core_pb2.MessageHeader()
+      update_deployment_session_request = self.provision_rpc_helper.update_deployment_session_request(
+         header, session_id, action=action)
+
+      session_id = self.provision_rpc_helper.rpc_UpdateDeploymentSession(
+         update_deployment_session_request)
+
+      log.debug("Session ID: ")
+      for item in session_id:
+         log.debug(item)
+
+      return session_id

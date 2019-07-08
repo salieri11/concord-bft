@@ -23,6 +23,9 @@ class ProvisioningServiceRPCHelper(RPCHelper):
    PLACEMENT_TYPE_FIXED = "FIXED"
    PLACEMENT_TYPE_UNSPECIFIED = "UNSPECIFIED"
 
+   UPDATE_DEPLOYMENT_ACTION_NOOP = "NOOP"
+   UPDATE_DEPLOYMENT_ACTION_DEPROVISION_ALL = "DEPROVISION_ALL"
+
    def __init__(self, cmdlineArgs):
       super().__init__(cmdlineArgs)
       self.service_name = Product.PERSEPHONE_SERVICE_PROVISIONING
@@ -109,6 +112,24 @@ class ProvisioningServiceRPCHelper(RPCHelper):
          header=header, session=session_id)
       return events_request
 
+   def update_deployment_session_request(self, header, session_id,
+                                         action=UPDATE_DEPLOYMENT_ACTION_NOOP):
+      '''
+      Helper method to call gRPC UpdateDeploymentSessionRequest
+      :param header: concord core header
+      :param session_id: Deployment Session ID
+      :param action: action to perform like DEPROVISION_ALL
+      :return: Update deployment session request
+      '''
+      if action == self.UPDATE_DEPLOYMENT_ACTION_DEPROVISION_ALL:
+         action_obj = provisioning_service_pb2.UpdateDeploymentSessionRequest.DEPROVISION_ALL
+      else:
+         action_obj = provisioning_service_pb2.UpdateDeploymentSessionRequest.NOOP
+
+      update_deployment_session_request = provisioning_service_pb2.UpdateDeploymentSessionRequest(
+         header=header, action=action_obj, session=session_id)
+      return update_deployment_session_request
+
    def rpc_CreateCluster(self, create_cluster_request):
       '''
       Helper method to call gRPC CreateCluster
@@ -135,6 +156,21 @@ class ProvisioningServiceRPCHelper(RPCHelper):
       try:
          response = self.call_api(self.stub.StreamClusterDeploymentSessionEvents,
                                   get_events_request, stream=True)
+      except Exception as e:
+         self.handle_exception(e)
+      return response
+
+   def rpc_UpdateDeploymentSession(self, update_deployment_session_request):
+      '''
+      Helper method to call gRPC UpdateDeploymentSession
+      :param update_deployment_session_request: Update cluster request spec
+      :return: Empty protobug message {}
+      '''
+      log.info("UpdateDeploymentSession RPC")
+      response = None
+      try:
+         response = self.call_api(self.stub.UpdateDeploymentSession,
+                                  update_deployment_session_request)
       except Exception as e:
          self.handle_exception(e)
       return response
