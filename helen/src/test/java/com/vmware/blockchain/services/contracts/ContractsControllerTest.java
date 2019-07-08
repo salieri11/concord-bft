@@ -23,6 +23,7 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -44,6 +45,7 @@ import com.vmware.blockchain.utils.ControllerTestConfig;
 @WebMvcTest(secure = false, controllers = {ContractsController.class})
 @ContextConfiguration(classes = {ControllerTestConfig.class, MvcConfig.class })
 @ComponentScan(basePackageClasses = {ContractsControllerTest.class, HelenExceptionHandler.class })
+@TestPropertySource(properties = "spring.main.allow-bean-definition-overriding=true")
 public class ContractsControllerTest {
 
     static final UUID BC_ID = UUID.fromString("81024ec4-83fe-4893-a870-311ad4716743");

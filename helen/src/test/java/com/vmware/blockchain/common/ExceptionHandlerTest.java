@@ -15,6 +15,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -34,6 +35,7 @@ import lombok.Value;
 @WebMvcTest(secure = false, controllers = ExceptionHandlerTestController.class)
 @ContextConfiguration(classes = { MvcConfig.class, ControllerTestConfig.class })
 @ComponentScan(basePackageClasses = { ExceptionHandlerTest.class, HelenExceptionHandler.class })
+@TestPropertySource(properties = "spring.main.allow-bean-definition-overriding=true")
 public class ExceptionHandlerTest {
 
     @Data
