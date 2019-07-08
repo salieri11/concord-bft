@@ -1,5 +1,6 @@
 set(concord_time_sources
   time_contract.cpp time_contract.hpp
+  time_exception.hpp
   time_pusher.cpp time_pusher.hpp
   time_reading.cpp time_reading.hpp
   time_signing.cpp time_signing.hpp)

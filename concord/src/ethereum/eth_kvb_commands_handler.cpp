@@ -287,11 +287,11 @@ bool EthKvbCommandsHandler::handle_time_request(ConcordRequest &req,
         tc.Update(ts.source(), ts.time(), signature);
       } else {
         LOG4CPLUS_WARN(
-            logger,
-            "Time Sample is missing "
-                << (ts.has_source() ? "" : "source")
-                << (ts.has_time() ? ""
-                                  : (ts.has_source() ? " and time" : "time")));
+            logger, "Time Sample is missing:"
+                        << " [" << (ts.has_source() ? " " : "X") << "] source"
+                        << " [" << (ts.has_time() ? " " : "X") << "] time"
+                        << " [" << (ts.has_signature() ? " " : "X")
+                        << "] signature");
       }
     }
 

@@ -49,12 +49,17 @@ target_link_libraries(conc_getblk
 
 add_executable(conc_time
                "conc_time.cpp"
+               ${PROJECT_SOURCE_DIR}/src/config/configuration_manager.cpp
                ${PROTO_SRCS} ${PROTO_HDRS})
 target_link_libraries(conc_time
                       concmdutil
+                      concord_consensus
+                      concord_time
+                      ${yaml-cpp_LIBRARIES}
                       protobuf::libprotobuf
                       proto ${PROTOBUF_LIBRARIES}
-                      ${Boost_LIBRARIES})
+                      ${Boost_LIBRARIES}
+                      $<TARGET_OBJECTS:logging_dev>)
 
 # ecrecover and ecsign need to find src/common/concord_eth_sign.h
 include_directories("../src")

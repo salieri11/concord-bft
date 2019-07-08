@@ -24,30 +24,16 @@
 
 #include "config/configuration_manager.hpp"
 #include "ethereum/eth_kvb_storage.hpp"
-#include "time/time_signing.hpp"
+#include "time_exception.hpp"
+#include "time_signing.hpp"
 
 namespace concord {
 namespace time {
-
-class TimeException : public std::exception {
- public:
-  explicit TimeException(const std::string& what) : msg_(what) {}
-
-  const char* what() const noexcept override { return msg_.c_str(); }
-
- private:
-  std::string msg_;
-};
 
 const int64_t kTimeStorageVersion = 1;
 
 class TimeContract {
  public:
-  // Given the logical content of a time update, computes the data that we
-  // expect a signature over to validate that time update.
-  static std::vector<uint8_t> GetSignableUpdateData(const std::string& source,
-                                                    uint64_t time);
-
   // Constructor for TimeContract. Arguments:
   //   - storage: KVB Storage backend to persist the state of the time contract
   //   to.

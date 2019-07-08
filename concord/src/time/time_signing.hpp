@@ -20,12 +20,18 @@
 #define TIME_TIME_SIGNING_HPP
 
 #include <unordered_map>
+#include <vector>
 
 #include "config/configuration_manager.hpp"
 #include "src/bftengine/Crypto.hpp"
 
 namespace concord {
 namespace time {
+
+// Given the logical content of a time update, computes the data that we
+// expect a signature over to validate that time update.
+std::vector<uint8_t> GetSignableUpdateData(const std::string& source,
+                                           uint64_t time);
 
 // A TimeSigner handles signing the time updates for a particular time source. A
 // TimeSigner should produce signatures that can be validated with a
