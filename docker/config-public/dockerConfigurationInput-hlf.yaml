@@ -14,7 +14,7 @@ node__TEMPLATE:
 node:
   - service_host: 0.0.0.0
     service_port: 5458
-    time_source_id: concord1-time
+    time_source_id: time-source1
     hlf_peer_command_tool_path: /concord/peer
     hlf_peer_command_tool_config_path: /concord
     hlf_peer_msp_id: Org1MSP
@@ -37,7 +37,7 @@ node:
         client_port: 3505
   - service_host: 0.0.0.0
     service_port: 5458
-    time_source_id: concord2-time
+    time_source_id: time-source2
     hlf_peer_command_tool_path: /concord/peer
     hlf_peer_command_tool_config_path: /concord
     hlf_peer_msp_id: Org1MSP
@@ -60,7 +60,7 @@ node:
         client_port: 3505
   - service_host: 0.0.0.0
     service_port: 5458
-    time_source_id: concord3-time
+    time_source_id: time-source3
     hlf_peer_command_tool_path: /concord/peer
     hlf_peer_command_tool_config_path: /concord
     hlf_peer_msp_id: Org1MSP
@@ -83,7 +83,7 @@ node:
         client_port: 3505
   - service_host: 0.0.0.0
     service_port: 5458
-    time_source_id: concord4-time
+    time_source_id: time-source4
     hlf_peer_command_tool_path: /concord/peer
     hlf_peer_command_tool_config_path: /concord
     hlf_peer_msp_id: Org1MSP
