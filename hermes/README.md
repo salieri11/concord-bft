@@ -19,6 +19,22 @@ Hermes is the testing framework for VMW Blockchain.
   apparent, move those files from util to a new directory.
 
 ## How to add a test suite:
+Pytest:
+- Pytest doc: https://docs.pytest.org/en/latest/
+- Create new suites using pytest.  See "SampleSuite" as a basic, functional
+  example.
+- Add a friendly, human readable name to the "suites" array near the top of
+  main.py.
+- Add a mapping of the friendly name to your pytest file in createTestSuite()
+  in main.py.  Be sure it returns a PytestSuite object.  e.g.
+  ```
+   elif (args.suite == "SampleSuite"):
+      return pytest_suite.PytestSuite(args, "suites/sample_suite.py")
+  ```
+- Write your test cases in your pytest file.
+
+Non-pytest:
+- This is not preferred and should only be used if pytest cannot be used.
 - Create a new class under suites.
 - The new class should extend TestSuite and implement the abstract methods
   defined in it.
