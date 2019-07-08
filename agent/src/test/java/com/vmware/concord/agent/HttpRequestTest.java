@@ -27,8 +27,6 @@ import org.springframework.test.web.servlet.MvcResult;
 
 import com.vmware.blockchain.agent.ConcordAgent;
 
-//import org.springframework.test.web.client.RestTemplate;
-
 /**
  *  Test for REST based Agent Controller.
  */
