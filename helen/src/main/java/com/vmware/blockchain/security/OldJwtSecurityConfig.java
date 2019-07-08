@@ -23,6 +23,9 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 import com.vmware.blockchain.common.Constants;
 
+import com.vmware.blockchain.operation.OperationContext;
+import com.vmware.blockchain.operation.RequestTrackingFilter;
+
 
 /**
  * Security Configuration for Helen.
@@ -32,6 +35,8 @@ import com.vmware.blockchain.common.Constants;
 @EnableGlobalMethodSecurity(prePostEnabled = true)
 @ConditionalOnProperty(value = Constants.USE_CSP_AUTH, havingValue = "false", matchIfMissing = true)
 public class OldJwtSecurityConfig extends WebSecurityConfigurerAdapter {
+
+    private OperationContext operationContext = new OperationContext();
 
     static final Logger logger = LogManager.getLogger(OldJwtSecurityConfig.class);
 
@@ -56,6 +61,9 @@ public class OldJwtSecurityConfig extends WebSecurityConfigurerAdapter {
         // Non-csp version of token filter
         JwtTokenFilter customFilter = new JwtTokenFilter(jwtTokenProvider);
         http.addFilterBefore(customFilter, UsernamePasswordAuthenticationFilter.class);
+
+        RequestTrackingFilter requestTrackingFilter = new RequestTrackingFilter(operationContext);
+        http.addFilterBefore(requestTrackingFilter, JwtTokenFilter.class);
 
     }
 
