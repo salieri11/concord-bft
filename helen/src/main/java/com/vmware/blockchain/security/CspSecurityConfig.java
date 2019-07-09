@@ -43,7 +43,7 @@ public class CspSecurityConfig extends WebSecurityConfigurerAdapter {
     TokenAuthenticationProvider tokenAuthenticationProvider;
 
     @Autowired
-    VmbcBasicAuthProver vmbcBasicAuthProver;
+    VmbcBasicAuthProvider vmbcBasicAuthProvider;
 
     @Autowired
     private RestAuthenticationEntryPoint restAuthticationEntryPoint;
@@ -87,7 +87,7 @@ public class CspSecurityConfig extends WebSecurityConfigurerAdapter {
     @Override
     protected void configure(AuthenticationManagerBuilder auth) throws Exception {
         auth.authenticationProvider(tokenAuthenticationProvider);
-        auth.authenticationProvider(vmbcBasicAuthProver);
+        auth.authenticationProvider(vmbcBasicAuthProvider);
     }
 
     @Bean

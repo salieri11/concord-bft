@@ -13,6 +13,7 @@ import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -235,12 +236,18 @@ public class VmbcTokenValidator implements TokenValidator {
         }
     }
 
-    private User updateLogin(User user) {
+    private void updateLogin(User user) {
         try {
             serviceContext.setSystemContext();
             user.setLastLogin(Instant.now());
-            return userService.put(user);
-        } finally {
+            userService.merge(user, m -> {
+                m.setLastLogin(user.getLastLogin());
+            });
+        } catch (Exception e) {
+            // If anything goes wrong, log it, but don't blow up authorization
+            logger.warn(new ParameterizedMessage("Could not update last login for {}", user), e);
+        }
+        finally {
             serviceContext.clearServiceContext();
         }
     }
