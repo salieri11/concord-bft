@@ -6,6 +6,7 @@ package com.vmware.blockchain.security;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -13,6 +14,7 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.stereotype.Component;
 
 import com.vmware.blockchain.auth.AuthenticationContext;
+import com.vmware.blockchain.common.Constants;
 import com.vmware.blockchain.common.csp.CspAuthenticationHelper;
 
 /**
@@ -20,13 +22,13 @@ import com.vmware.blockchain.common.csp.CspAuthenticationHelper;
  * username given.
  */
 @Component
-public class VmbcBasicAuthProver implements AuthenticationProvider {
+public class VmbcBasicAuthProvider implements AuthenticationProvider {
     private CspAuthenticationHelper cspAuthenticationHelper;
     private TokenAuthenticationProvider tokenAuthenticationProvider;
 
     @Autowired
-    public VmbcBasicAuthProver(TokenAuthenticationProvider tokenAuthenticationProvider,
-                               @Value("${csp.url:http://csp}") String cspUrl) {
+    public VmbcBasicAuthProvider(TokenAuthenticationProvider tokenAuthenticationProvider,
+                                 @Value("${csp.url:http://csp}") String cspUrl) {
         this.cspAuthenticationHelper = new CspAuthenticationHelper(cspUrl);
         this.tokenAuthenticationProvider = tokenAuthenticationProvider;
 
@@ -37,8 +39,8 @@ public class VmbcBasicAuthProver implements AuthenticationProvider {
         UsernamePasswordAuthenticationToken upt = (UsernamePasswordAuthenticationToken) authentication;
         // The api token will be in the credentials.
         try {
-            String token = cspAuthenticationHelper.fetchAuthTokenFromRefreshToken((String) upt.getCredentials());
-            AuthenticationContext context = tokenAuthenticationProvider.populateAuthContext(token);
+            String apiToken = (String) upt.getCredentials();
+            AuthenticationContext context = getAuthenticationContext(apiToken);
             // make sure the name is the same.
             if (!context.getDetails().getUsername().equals(upt.getPrincipal())) {
                 return null;
@@ -48,6 +50,12 @@ public class VmbcBasicAuthProver implements AuthenticationProvider {
             // if anything went wrong, return no auth.
             return null;
         }
+    }
+
+    @Cacheable(Constants.TOKEN_CACHE)
+    public AuthenticationContext getAuthenticationContext(String apiToken) {
+        String token = cspAuthenticationHelper.fetchAuthTokenFromRefreshToken(apiToken);
+        return tokenAuthenticationProvider.populateAuthContext(token);
     }
 
     @Override

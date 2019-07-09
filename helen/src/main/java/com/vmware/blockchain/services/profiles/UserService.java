@@ -7,6 +7,7 @@ package com.vmware.blockchain.services.profiles;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import org.json.simple.JSONObject;
@@ -36,6 +37,10 @@ public class UserService {
 
     public User put(User user) {
         return genericDao.put(user, null);
+    }
+
+    public User merge(User user, Consumer<User> merger) {
+        return genericDao.mergeWithRetry(user, User.class, merger);
     }
 
     public List<User> list() {

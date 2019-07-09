@@ -6,6 +6,7 @@ package com.vmware.blockchain.security;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -21,6 +22,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.Consumer;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -33,6 +35,7 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import com.vmware.blockchain.BaseCacheHelper;
+import com.vmware.blockchain.common.ConflictException;
 import com.vmware.blockchain.common.csp.CspCommon.CspUser;
 import com.vmware.blockchain.common.csp.CspJwksSigningKeyResolver;
 import com.vmware.blockchain.common.csp.api.client.CspApiClient;
@@ -105,6 +108,23 @@ public class VmbcTokenValidatorTests {
 
     @Test
     public void testGazToken() throws Exception {
+        UUID orgId = UUID.randomUUID();
+        String authToken = createAuthToken(orgId, null);
+
+        HelenUserDetails userInfo = cspAuthService.validateAndGetAuthz(authToken);
+        Assertions.assertNotNull(userInfo);
+        Assertions.assertEquals("vmc_testuser2_dev", userInfo.getUsername());
+        Assertions.assertEquals(orgId, userInfo.getOrgId());
+        List<GrantedAuthority> expectedRoles = Arrays.asList(Roles.CSP_ORG_OWNER, Roles.ORG_USER);
+        List<GrantedAuthority> actualRoles = new ArrayList<GrantedAuthority>(userInfo.getAuthorities());
+        Assertions.assertEquals(expectedRoles, actualRoles);
+
+        verify(cspApiClient, never()).getUser(any());
+    }
+
+    @Test
+    public void testCantUpdateLogin() throws Exception {
+        doThrow(new ConflictException("conflict")).when(userService).merge(any(User.class), any(Consumer.class));
         UUID orgId = UUID.randomUUID();
         String authToken = createAuthToken(orgId, null);
 
