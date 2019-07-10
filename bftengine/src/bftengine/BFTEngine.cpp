@@ -38,7 +38,7 @@ struct ReplicaInternal : public Replica {
 
   virtual void SetAggregator(std::shared_ptr<concordMetrics::Aggregator> a) override;
 
-  virtual void restartForDebug() override;
+  virtual void restartForDebug(uint32_t delayMillis) override;
 
   ReplicaImp *rep;
 };
@@ -73,7 +73,7 @@ void ReplicaInternal::SetAggregator(std::shared_ptr<concordMetrics::Aggregator> 
   return rep->SetAggregator(a);
 }
 
-void ReplicaInternal::restartForDebug() {
+void ReplicaInternal::restartForDebug(uint32_t delayMillis) {
   Assert(debugPersistentStorageEnabled);
   rep->stopWhenStateIsNotCollected();
 
@@ -93,6 +93,9 @@ void ReplicaInternal::restartForDebug() {
 
   rep = new ReplicaImp(ld, requestsHandler, stateTransfer, comm, persistentStorage);
 
+  if(delayMillis > 0) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(delayMillis));
+  }
   rep->start();
 }
 }

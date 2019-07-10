@@ -66,10 +66,9 @@
 
 #define REPLICA2_RESTART_NO_VC (0)
 #define ALL_REPLICAS_RESTART_NO_VC (0)
-#define REPLICA2_RESTART_VC (1)
 #define ALL_REPLICAS_RESTART_VC (0)
-#define PRIMARY_REPLICA_RESTART (0)
-static_assert(REPLICA2_RESTART_NO_VC + ALL_REPLICAS_RESTART_NO_VC + REPLICA2_RESTART_VC + ALL_REPLICAS_RESTART_VC + PRIMARY_REPLICA_RESTART <= 1, "");
+#define PRIMARY_REPLICA_RESTART_VC (1)
+static_assert(REPLICA2_RESTART_NO_VC + ALL_REPLICAS_RESTART_NO_VC + ALL_REPLICAS_RESTART_VC + PRIMARY_REPLICA_RESTART_VC <= 1, "");
 
 using bftEngine::ICommunication;
 using bftEngine::PlainUDPCommunication;
@@ -201,9 +200,7 @@ int main(int argc, char **argv) {
   replicaConfig.autoViewChangeEnabled = rp.viewChangeEnabled;
   replicaConfig.viewChangeTimerMillisec = rp.viewChangeTimeout;
 
-#if REPLICA2_RESTART_NO_VC || ALL_REPLICAS_RESTART_NO_VC
-  rp.viewChangeEnabled = false;
-#elif REPLICA2_RESTART_VC || ALL_REPLICAS_RESTART_VC || PRIMARY_REPLICA_RESTART
+#if REPLICA2_RESTART_VC || ALL_REPLICAS_RESTART_VC || PRIMARY_REPLICA_RESTART_VC
   rp.viewChangeEnabled = true;
 #endif
 
@@ -216,12 +213,15 @@ int main(int argc, char **argv) {
 #endif
 #if ALL_REPLICAS_RESTART_NO_VC
   pti.allReplicasRestartNoVC = true;
+  pti.restartDelay = 5000;
 #endif
 #if ALL_REPLICAS_RESTART_VC
   pti.allReplicasRestartVC = true;
+  pti.restartDelay = 65000;
 #endif
-#if PRIMARY_REPLICA_RESTART
-  pti.primaryReplicaRestart = true;
+#if PRIMARY_REPLICA_RESTART_VC
+  pti.primaryReplicaRestartVC = true;
+  pti.restartDelay = 120000;
 #endif
 
   LOG_INFO(replicaLogger, "ReplicaParams: replicaId: "
