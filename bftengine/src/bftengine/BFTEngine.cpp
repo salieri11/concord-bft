@@ -47,7 +47,7 @@ namespace bftEngine
 
 			virtual void SetAggregator(std::shared_ptr<concordMetrics::Aggregator> a) override;
 
-			virtual void restartForDebug() override;
+			virtual void restartForDebug(uint32_t delay) override;
 
 			ReplicaImp* rep;
 		};
@@ -93,7 +93,7 @@ namespace bftEngine
      }
 
 		
-		void ReplicaInternal::restartForDebug()
+		void ReplicaInternal::restartForDebug(uint32_t delay)
 		{
 			Assert(debugPersistentStorageEnabled);
 			rep->stopWhenStateIsNotCollected();
@@ -114,6 +114,9 @@ namespace bftEngine
 
 			rep = new ReplicaImp(ld, requestsHandler, stateTransfer, comm, persistentStorage);
 
+			if(delay > 0) {
+				std::this_thread::sleep_for(std::chrono::milliseconds(delay));
+			}
 			rep->start();
 		}
 	}

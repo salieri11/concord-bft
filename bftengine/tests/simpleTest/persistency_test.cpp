@@ -9,6 +9,8 @@
 #include "Logging.hpp"
 #include <thread>
 #include <chrono>
+#include <cstdlib>
+#include <time.h>
 
 namespace test
 {
@@ -89,12 +91,32 @@ TEST_F(PersistencyTest, Replica2RestartNoVC) {
 }
 */
 
-TEST_F(PersistencyTest, Replica2RestartVC) {
+TEST_F(PersistencyTest, AllReplicasRestartNoVC) {
   create_client(20000);
-
+  srand (time(NULL));
+  
   for(int i = 0; i < 4;i++) {
+    auto delay = rand() % 8;
     PersistencyTestInfo pti;
-    pti.replica2RestartVC = true;
+    pti.allReplicasRestartNoVC = true;
+    pti.restartDelay = delay * 1000;
+    ReplicaParams rp;
+    rp.replicaId = i;
+    create_and_run_replica(rp, pti);
+  }
+
+  ASSERT_TRUE(client->run());
+}
+
+TEST_F(PersistencyTest, PrimaryRestartVC) {
+  create_client(20000);
+  srand (time(NULL));
+  
+  for(int i = 0; i < 4;i++) {
+    auto delay = rand() % 20 + 60;
+    PersistencyTestInfo pti;
+    pti.restartDelay = delay * 1000;
+    pti.primaryReplicaRestartVC = true;
     ReplicaParams rp;
     rp.viewChangeEnabled = true;
     rp.replicaId = i;

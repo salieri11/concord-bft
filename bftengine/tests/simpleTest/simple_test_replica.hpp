@@ -133,9 +133,9 @@ class SimpleAppState : public RequestsHandler {
 struct PersistencyTestInfo {
   bool replica2RestartNoVC = false;
   bool allReplicasRestartNoVC = false;
-  bool replica2RestartVC = false;
   bool allReplicasRestartVC = false;
-  bool primaryReplicaRestart = false;
+  bool primaryReplicaRestartVC = false;
+  uint32_t restartDelay = 0;
 };
 
 class SimpleTestReplica {
@@ -194,15 +194,9 @@ class SimpleTestReplica {
         if (replicaConfig.replicaId == 2) {
           std::this_thread::sleep_for(std::chrono::seconds(10));
           if(replica && replica->isRunning()) {
-            replica->restartForDebug();
-          }
-        }
-      }
-      else if (pti.replica2RestartVC) {
-        if (replicaConfig.replicaId == 2) {
-          std::this_thread::sleep_for(std::chrono::seconds(60));
-          if(replica && replica->isRunning()) {
-            replica->restartForDebug();
+            LOG_INFO(replicaLogger, "Restarting");
+            replica->restartForDebug(pti.restartDelay);
+            LOG_INFO(replicaLogger, "Restarted");
           }
         }
       }
@@ -210,21 +204,32 @@ class SimpleTestReplica {
         std::this_thread::sleep_for(std::chrono::seconds(3 *
             (2 + replicaConfig.replicaId) * (2 + replicaConfig.replicaId)));
         if(replica && replica->isRunning()) {
-            replica->restartForDebug();
+            LOG_INFO(replicaLogger, "Restarting");
+            replica->restartForDebug(pti.restartDelay);
+            LOG_INFO(replicaLogger, "Restarted");
           }
       }
       else if (pti.allReplicasRestartVC) {
         std::this_thread::sleep_for(std::chrono::seconds(18 *
             (2 + replicaConfig.replicaId) * (2 + replicaConfig.replicaId)));
        if(replica && replica->isRunning()) {
-            replica->restartForDebug();
+            LOG_INFO(replicaLogger, "Restarting");
+            replica->restartForDebug(pti.restartDelay);
+            LOG_INFO(replicaLogger, "Restarted");
           }
       }
-      else if(pti.primaryReplicaRestart) {
-        throw std::logic_error("not implemented");
+      else if(pti.primaryReplicaRestartVC) {
+        if(replicaConfig.replicaId == 0) {
+          std::this_thread::sleep_for(std::chrono::seconds(5));
+          if(replica && replica->isRunning()) {
+            LOG_INFO(replicaLogger, "Restarting");
+            replica->restartForDebug(pti.restartDelay);
+            LOG_INFO(replicaLogger, "Restarted");
+          }
+        }
       }
       else {
-        std::this_thread::sleep_for(std::chrono::seconds(10));
+        std::this_thread::sleep_for(std::chrono::seconds(1));
       }
     }
   }
