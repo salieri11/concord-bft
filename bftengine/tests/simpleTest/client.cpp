@@ -52,7 +52,8 @@ using bftEngine::TlsTcpConfig;
 using bftEngine::SeqNumberGeneratorForClientRequests;
 using bftEngine::SimpleClient;
 
-concordlogger::Logger clientLogger = concordlogger::Log::getLogger("simpletest.client");
+concordlogger::Logger clientLogger = concordlogger::Logger::getLogger
+    ("simpletest.client");
 
 void parse_params(int argc, char** argv, ClientParams &cp,
                   bftEngine::SimpleClientParams &scp) {
@@ -150,7 +151,7 @@ void parse_params(int argc, char** argv, ClientParams &cp,
       } else if (p == "-cf") {
         cp.configFileName = argv[i + 1];
       } else if (p == "-p") {
-        cp.measurePerfomance = true;
+        //cp.measurePerfomance = true;
         i += 1;
         continue; //skip i+=2
       } else {
