@@ -38,6 +38,7 @@ export class AppHeaderComponent implements OnDestroy, AfterViewInit {
 
   serviceRefLink: string;
   env: any = environment;
+  cspEnvironment: CspEnvironment;
 
   constructor(
     private authenticationService: AuthenticationService,
@@ -48,10 +49,13 @@ export class AppHeaderComponent implements OnDestroy, AfterViewInit {
     private themeService: VmwClarityThemeService,
   ) {
     if (this.env.csp) {
+      console.log(this.env.cspEnv);
       if (this.env.cspEnv === 'staging') {
         this.cspApiService.setCspEnvironment(CspEnvironment.STAGING);
+        this.cspEnvironment = CspEnvironment.STAGING;
       } else if (this.env.cspEnv === 'production') {
         this.cspApiService.setCspEnvironment(CspEnvironment.PRODUCTION);
+        this.cspEnvironment = CspEnvironment.PRODUCTION;
       }
       this.setupCSP();
       // Init theme for csp
