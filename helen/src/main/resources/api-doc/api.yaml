@@ -668,49 +668,49 @@ paths:
                     type: string
                     description: List of addreses with node names
   '/blockchains/{bid}/nodes':
-      post:
-        summary: start/stop a list of nodes
-        operationId: nodeListStartStop
-        parameters:
-          - name: bid
-            required: true
-            in: path
-            description: Blockchain ID
+    post:
+      summary: start/stop a list of nodes
+      operationId: nodeListStartStop
+      parameters:
+        - name: bid
+          required: true
+          in: path
+          description: Blockchain ID
+          schema:
+            type: string
+            format: uuid
+        - name: action
+          in: query
+          description: start/stop
+          schema:
+            type: string
+            enum: [start, stop]
+      requestBody:
+        description: Nodes to stop/start
+        content:
+          application/json:
             schema:
-              type: string
-              format: uuid
-          - name: action
-            in: query
-            description: start/stop
-            schema:
-              type: string
-              enum: [start, stop]
-        requestBody:
-          description: Nodes to stop/start
+              type: object
+              properties:
+                node_ips:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+        required: true
+      responses:
+        202:
+          description: task ids
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  node_ips:
+                  task_ids:
                     type: array
                     items:
                       type: string
                       format: uuid
-          required: true
-        responses:
-          202:
-            description: task ids
-            content:
-              application/json:
-                schema:
-                  type: object
-                  properties:
-                    task_ids:
-                      type: array
-                      items:
-                        type: string
-                        format: uuid
   '/blockchains/{bid}/nodes/{node_id}':
     post:
       summary: start/stop a list of nodes
@@ -1390,10 +1390,6 @@ paths:
           application/json:
             schema:
               type: object
-              required:
-                - consortiumName
-                - consortiumType
-                - organization
               properties:
                 consortiumName:
                   type: string
@@ -1403,10 +1399,18 @@ paths:
                   type: string
                   format: string
                   description: Type of consortium
-                organization:
-                  type: string
-                  format: UUID
-                  description: Organization that the consortium is a part of
+                orgs_to_add:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+                    description: Organizations to add as members of this consortium
+                orgs_to_remove:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+                    description: Organizations to remove as members of this consortium
         required: true
       responses:
         '202':
@@ -1424,6 +1428,52 @@ paths:
                     type: string
                     format: string
                     description: Consortium Name
+                  organization:
+                    type: string
+                    format: uuid
+                    description: Owning organization
+                  members:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        org_id:
+                          type: string
+                          format: uuid
+                          description: Organization Id
+                        organization_name:
+                          type: string
+                          description: Organization name
+  '/consortiums/{con_id}/organizations':
+    summary: Get consortium members
+    get:
+      summary: Get Consortium by its ID
+      operationId: getConsortiumMembers
+      parameters:
+        - name: con_id
+          in: path
+          description: Consortium ID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Returns the specified consortium
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    org_id:
+                      type: string
+                      format: uuid
+                      description: Organization Id
+                    organization_name:
+                      type: string
+                      description: Organization name
   /organizations:
     summary: GetOrganization
     get:

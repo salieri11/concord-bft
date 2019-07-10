@@ -146,7 +146,20 @@ public class ConsortiumServiceTests {
     }
 
     @Test
-    void addOrg() throws Exception {
+    void removeOwner() throws Exception {
+        Organization o = organizationService.put(new Organization("test name"));
+        Consortium c = consortiumService.put(new Consortium("Consort", "test", o.getId()));
+        Assertions.assertThrows(IllegalArgumentException.class,
+            () -> consortiumService.removeOrganization(c, o.getId()));
+        // make sure nothing change
+        List<Consortium> allc = organizationService.getConsortiums(o.getId());
+        List<Organization> allo = consortiumService.getOrganizations(c.getId());
+        Assertions.assertEquals(1, allc.size());
+        Assertions.assertEquals(1, allo.size());
+    }
+
+    @Test
+    void addRemoveOrg() throws Exception {
         Organization o = new Organization("test name");
         o.setId(ORG_ID);
         o = organizationService.put(o);
@@ -155,13 +168,22 @@ public class ConsortiumServiceTests {
         o2 = organizationService.put(o2);
         Consortium c = new Consortium("Consort", "test", o.getId());
         c = consortiumService.put(c);
-        consortiumService.addOrganization(c, o2);
+        consortiumService.addOrganization(c, o2.getId());
+        // let's make sure the add worked
         List<Consortium> allc = organizationService.getConsortiums(ORG_ID);
         List<Consortium> allc2 = organizationService.getConsortiums(ORG2_ID);
         List<Organization> allo = consortiumService.getOrganizations(c.getId());
         Assertions.assertEquals(1, allc2.size());
         Assertions.assertEquals(1, allc.size());
         Assertions.assertEquals(2, allo.size());
+        // Now remove org 2
+        consortiumService.removeOrganization(c, ORG2_ID);
+        allc = organizationService.getConsortiums(ORG_ID);
+        allc2 = organizationService.getConsortiums(ORG2_ID);
+        allo = consortiumService.getOrganizations(c.getId());
+        Assertions.assertEquals(0, allc2.size());
+        Assertions.assertEquals(1, allc.size());
+        Assertions.assertEquals(1, allo.size());
     }
 
     @Test
