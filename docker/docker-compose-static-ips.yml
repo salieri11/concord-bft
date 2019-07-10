@@ -1,0 +1,52 @@
+# Overlay for docker-compose.yml that assigns static IPs to each
+# concord container. This is required for tests that stop and restart
+# concord nodes. Without it, docker may change the IP address of the
+# restarted node, which is not currently supported by concord - the
+# other nodes don't know to look for the new IP.
+version: '3'
+services:
+  concord1:
+    networks:
+      static-network:
+        ipv4_address: 172.20.0.11
+  concord2:
+    networks:
+      static-network:
+        ipv4_address: 172.20.0.12
+  concord3:
+    networks:
+      static-network:
+        ipv4_address: 172.20.0.13
+  concord4:
+    networks:
+      static-network:
+        ipv4_address: 172.20.0.14
+
+  ethrpc1:
+    networks:
+      static-network:
+        ipv4_address: 172.20.0.21
+  ethrpc2:
+    networks:
+      static-network:
+        ipv4_address: 172.20.0.22
+  ethrpc3:
+    networks:
+      static-network:
+        ipv4_address: 172.20.0.23
+  ethrpc4:
+    networks:
+      static-network:
+        ipv4_address: 172.20.0.24
+
+  helen:
+    networks:
+      default:
+      static-network:
+        ipv4_address: 172.20.0.30
+
+networks:
+  static-network:
+    ipam:
+      config:
+        - subnet: 172.20.0.0/24

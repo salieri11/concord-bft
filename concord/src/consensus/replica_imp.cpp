@@ -359,8 +359,8 @@ void ReplicaImp::insertBlockInternal(BlockId blockId, Sliver block) {
   }
 
   bool found = false;
-  Sliver blockRaw;
-  Status s = m_bcDbAdapter->getBlockById(blockId, blockRaw, found);
+  Sliver existingBlock;
+  Status s = m_bcDbAdapter->getBlockById(blockId, existingBlock, found);
   if (!s.isOK()) {
     // the replica is corrupted!
     // TODO(GG): what do we want to do now?
@@ -370,21 +370,21 @@ void ReplicaImp::insertBlockInternal(BlockId blockId, Sliver block) {
   }
 
   // if we already have a block with the same ID
-  if (found && blockRaw.length() > 0) {
-    if (blockRaw.length() != block.length() ||
-        memcmp(blockRaw.data(), block.data(), block.length())) {
+  if (found && existingBlock.length() > 0) {
+    if (existingBlock.length() != block.length() ||
+        memcmp(existingBlock.data(), block.data(), block.length())) {
       // the replica is corrupted !
       // TODO(GG): what do we want to do now ?
-      LOG4CPLUS_ERROR(logger, "found block "
-                                  << blockId << ", size in db is "
-                                  << blockRaw.length() << ", inserted is "
-                                  << block.length() << ", data in db "
-                                  << blockRaw << ", data inserted " << block);
       LOG4CPLUS_ERROR(
-          logger,
-          "Block size test "
-              << (blockRaw.length() != block.length()) << ", block data test "
-              << (memcmp(blockRaw.data(), block.data(), block.length())));
+          logger, "found block "
+                      << blockId << ", size in db is " << existingBlock.length()
+                      << ", inserted is " << block.length() << ", data in db "
+                      << existingBlock << ", data inserted " << block);
+      LOG4CPLUS_ERROR(logger, "Block size test "
+                                  << (existingBlock.length() != block.length())
+                                  << ", block data test "
+                                  << (memcmp(existingBlock.data(), block.data(),
+                                             block.length())));
 
       m_bcDbAdapter->deleteBlockAndItsKeys(blockId);
 
@@ -394,9 +394,8 @@ void ReplicaImp::insertBlockInternal(BlockId blockId, Sliver block) {
     }
   } else {
     if (block.length() > 0) {
-      uint16_t numOfElements =
-          ((BlockHeader *)blockRaw.data())->numberOfElements;
-      auto *entries = (BlockEntry *)(blockRaw.data() + sizeof(BlockHeader));
+      uint16_t numOfElements = ((BlockHeader *)block.data())->numberOfElements;
+      auto *entries = (BlockEntry *)(block.data() + sizeof(BlockHeader));
       for (size_t i = 0; i < numOfElements; i++) {
         const Sliver keySliver(block, entries[i].keyOffset, entries[i].keySize);
         const Sliver valSliver(block, entries[i].valOffset, entries[i].valSize);

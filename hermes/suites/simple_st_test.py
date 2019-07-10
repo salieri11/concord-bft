@@ -84,22 +84,23 @@ class SimpleStateTransferTest(test_suite.TestSuite):
       blocksData = []
       blocksDataLength = []
 
-      toolPath = os.path.abspath(os.path.join("..","concord","build","tools", "conc_rocksdb_adp"))
-      cmd = [toolPath]
+      log.info("Checking data from {} to {}".format(blockToStart, blockToStart+blocksCount))
+
+      toolPath = "/concord/conc_rocksdb_adp"
+      pathParam = "-path=/concord/rocksdbdata"
+      opParam = "-op=getDigest"
       for replicaId in range(1,5):
-         pathParam = "-path={0}{1}".format(os.path.join(path,"devdata/rocksdbdata"), replicaId)
-         opParam = "-op=getDigest"
          pParam = "-p={0}:{1}".format(blockToStart,blockToStart + blocksCount)
-         cmd.append(pathParam)
-         cmd.append(opParam)
-         cmd.append(pParam)
-         blockData = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE).stdout.read()
+         cmd = ' '.join([toolPath, pathParam, opParam, pParam])
+         container = util.blockchain.eth.get_concord_container_name(replicaId)
+         blockData = util.blockchain.eth.exec_in_concord_container(container, cmd)
+
          blocksData.append(blockData)
          length = int(str(blockData).split(":")[1].replace("\\n", "").replace("'", ""))
          if length == 0:
             log.error("Blocks length 0")
             return False
-         log.debug("Data length from replica {0} is {1} bytes".format(replicaId, length))
+         log.info("Data length from replica {0} is {1} bytes".format(replicaId, length))
          blocksDataLength.append(length)
 
       # is there better way to do it?
@@ -118,15 +119,15 @@ class SimpleStateTransferTest(test_suite.TestSuite):
                self.reverseProxyApiBaseUrl,
                self._userConfig)
       cFile = "resources/contracts/LargeBlockStorage.sol"
-      cVersion = utils.numbers_strings.random_string_generator()
-      cId = utils.numbers_strings.random_string_generator()
+      cVersion = util.numbers_strings.random_string_generator()
+      cId = util.numbers_strings.random_string_generator()
       cName = "LargeBlockStorage"
       blockchainId = request.getBlockchains()[0]["id"]
-      res = utils.blockchain.upload_contract(blockchainId, request, cFile, cName,
-                                             contractId = cId,
-                                             contractVersion = cVersion,
-                                             compilerVersion = "v0.5.2+commit.1df8f40c",
-                                             fromAddr = self._to)
+      res = util.blockchain.eth.upload_contract(blockchainId, request, cFile, cName,
+                                                contractId = cId,
+                                                contractVersion = cVersion,
+                                                compilerVersion = "v0.5.2+commit.1df8f40c",
+                                                fromAddr = self._to)
 
       result = request.callContractAPI('/api/concord/contracts/' + cId
                                       + '/versions/' + cVersion, "")
@@ -166,7 +167,7 @@ class SimpleStateTransferTest(test_suite.TestSuite):
       if not res:
          return (False, "Failed to start replica 2")
 
-      sleepTime = int(120)
+      sleepTime = int(180)
       log.info(
       "Waiting for State Transfer to finish, estimated time {0} seconds".format(sleepTime))
       time.sleep(sleepTime)
@@ -239,7 +240,7 @@ class SimpleStateTransferTest(test_suite.TestSuite):
          return (False, "Failed to resume replica")
 
       # wait for ST to complete
-      sleepTime = int(30)
+      sleepTime = int(120)
       log.info(
       "Waiting for State Transfer to finish, estimated time {0} seconds".format(sleepTime))
       time.sleep(sleepTime)
