@@ -20,7 +20,7 @@ from util import html, json_helper
 
 log = None
 suites = ["ContractCompilerTests", "CoreVMTests",
-          "LintTests", "ExtendedRPCTests", "HelenAPITests", "HlfTests", "PerformanceTests", "PersephoneTests",
+          "LintTests", "EvilTimeTests", "ExtendedRPCTests", "HelenAPITests", "HlfTests", "PerformanceTests", "PersephoneTests",
           "RegressionTests", "SampleDAppTests" "SampleSuite", "SimpleStateTransferTest", "TimeTests", "TruffleTests", "UiTests",
           "WebSocketRPCTests"]
 
@@ -212,6 +212,8 @@ def createTestSuite(args):
       return simple_st_test.SimpleStateTransferTest(args)
    elif (args.suite == "TimeTests"):
       return pytest_suite.PytestSuite(args, "suites/time_service/basic_test.py")
+   elif (args.suite == "EvilTimeTests"):
+      return pytest_suite.PytestSuite(args, "suites/time_service/evil_test.py")
    elif (args.suite == "TruffleTests"):
       return truffle_tests.TruffleTests(args)
    elif (args.suite == "UiTests"):
