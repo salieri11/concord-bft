@@ -145,13 +145,6 @@ def call(){
               }
             }
           }
-          stage("Add localhost.vmware.com") {
-            steps {
-              dir('blockchain/vars') {
-                sh './add-localhost-vmware-com.sh'
-              }
-            }
-          }
         }
       }
 
