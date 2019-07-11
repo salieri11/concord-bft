@@ -159,7 +159,6 @@ int main(int argc, char **argv) {
   }
 
 exit:
-  client.close();
   delete comp;
   return 0;
 }

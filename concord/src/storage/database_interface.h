@@ -21,7 +21,6 @@ class IDBClient {
 
   virtual ~IDBClient() = 0;
   virtual Status init(bool readOnly = false) = 0;
-  virtual Status close() = 0;
   virtual Status get(Sliver _key, OUT Sliver &_outValue) const = 0;
   virtual Status get(Sliver _key, OUT char *&buf, uint32_t bufSize,
                      OUT uint32_t &_size) const = 0;

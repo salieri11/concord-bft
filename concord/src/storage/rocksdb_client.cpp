@@ -69,10 +69,10 @@ Sliver copyRocksdbSlice(rocksdb::Slice _s) {
 }
 
 bool RocksDBClient::isNew() {
+  rocksdb::DB *db;
   rocksdb::Options options;
   options.error_if_exists = true;
-  rocksdb::Status s = rocksdb::DB::Open(options, m_dbPath, &m_dbInstance);
-  if (s.ok()) delete m_dbInstance;
+  rocksdb::Status s = rocksdb::DB::Open(options, m_dbPath, &db);
   return s.IsNotFound();
 }
 
@@ -85,16 +85,18 @@ bool RocksDBClient::isNew() {
  *  @return GeneralError in case of error in connection, else OK.
  */
 Status RocksDBClient::init(bool readOnly) {
+  rocksdb::DB *db;
   rocksdb::Options options;
   options.create_if_missing = true;
   options.comparator = m_comparator;
 
   rocksdb::Status s;
   if (readOnly) {
-    s = rocksdb::DB::OpenForReadOnly(options, m_dbPath, &m_dbInstance);
+    s = rocksdb::DB::OpenForReadOnly(options, m_dbPath, &db);
   } else {
-    s = rocksdb::DB::Open(options, m_dbPath, &m_dbInstance);
+    s = rocksdb::DB::Open(options, m_dbPath, &db);
   }
+  m_dbInstance.reset(db);
 
   if (!s.ok()) {
     LOG4CPLUS_ERROR(logger, "Failed to open rocksdb database at "
@@ -108,18 +110,6 @@ Status RocksDBClient::init(bool readOnly) {
   // g_rocksdb_* variables.
   g_rocksdb_print_measurements = false;
 
-  return Status::OK();
-}
-
-/**
- * @brief Closes a RocksDB connection.
- *
- * Deletes the RocksDB object to close the database connection.
- *
- * @return Status OK.
- */
-Status RocksDBClient::close() {
-  delete m_dbInstance;
   return Status::OK();
 }
 

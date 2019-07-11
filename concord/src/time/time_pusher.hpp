@@ -40,7 +40,6 @@ class TimePusher {
   explicit TimePusher(const concord::config::ConcordConfiguration &config,
                       const concord::config::ConcordConfiguration &nodeConfig,
                       concord::consensus::KVBClientPool &clientPool);
-  ~TimePusher();
 
   void Start();
   void Stop();
@@ -61,7 +60,7 @@ class TimePusher {
   bool timeServiceEnabled_;
   int periodMilliseconds_;
   std::string timeSourceId_;
-  concord::time::TimeSigner *signer_;
+  std::unique_ptr<concord::time::TimeSigner> signer_;
 
   std::thread pusherThread_;
   std::mutex threadMutex_;

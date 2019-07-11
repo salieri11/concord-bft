@@ -107,6 +107,5 @@ int main(int argc, char **argv) {
   dbClient = new RocksDBClient(dbPath, new RocksKeyComparator());
   dbClient->init();
   int res = RUN_ALL_TESTS();
-  dbClient->close();
   return res;
 }
