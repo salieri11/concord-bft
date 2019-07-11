@@ -15,9 +15,10 @@ import com.vmware.blockchain.dao.GenericDao;
 
 /**
  * Perform any businees logic for a task.  At this point, there isn't much.
+ * Interface for task service pulled out for use in testing.
  */
 @Service
-public class TaskService {
+public class TaskService implements ITaskService {
 
     private GenericDao genericDao;
 
@@ -26,18 +27,22 @@ public class TaskService {
         this.genericDao = genericDao;
     }
 
+    @Override
     public Task get(UUID taskId) {
         return genericDao.getEntityByTenant(taskId, Task.class);
     }
 
+    @Override
     public Task put(Task task) {
         return genericDao.putUnderTenant(task, null);
     }
 
+    @Override
     public Task merge(Task task, Consumer<Task> merger) {
         return genericDao.mergeWithRetry(task, Task.class, merger);
     }
 
+    @Override
     public List<Task> list() {
         return genericDao.getAllByType(Task.class);
     }

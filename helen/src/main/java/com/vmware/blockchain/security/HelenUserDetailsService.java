@@ -57,13 +57,15 @@ public class HelenUserDetailsService implements UserDetailsService {
             List<UUID> consortiums =
                     organizationService.getConsortiums(o.getId()).stream()
                             .map(c -> c.getId()).collect(Collectors.toList());
-            details.setConsortiums(consortiums);
+            details.setAccessConsortiums(consortiums);
+            details.setUpdateConsortiums(consortiums);
             List<UUID> ids =
                     organizationService.getConsortiums(o.getId()).stream()
                             .map(blockchainService::listByConsortium)
                             .flatMap(c -> c.stream())
                             .map(b -> b.getId()).distinct().collect(Collectors.toList());
-            details.setPermittedChains(ids);
+            details.setAccessChains(ids);
+            details.setUpdateChains(ids);
             return details;
         } catch (NotFoundException e) {
             throw new UnauthorizedException(ErrorCode.BAD_LOGIN_REQUEST);

@@ -201,7 +201,7 @@ public class BlockchainController {
             chains = blockchainService.list();
         } else {
             // Otherwise, we can only see our consortium.
-            chains = blockchainService.listByIds(authHelper.getPermittedChains());
+            chains = blockchainService.listByIds(authHelper.getAccessChains());
         }
         List<BlockchainGetResponse> idList = chains.stream().map(BlockchainGetResponse::new)
                 .collect(Collectors.toList());

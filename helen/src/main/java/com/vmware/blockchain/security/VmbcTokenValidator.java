@@ -106,15 +106,28 @@ public class VmbcTokenValidator implements TokenValidator {
             List<UUID> consortiums =
                     organizationService.getConsortiums(userInfo.getOrgId()).stream()
                             .map(c -> c.getId()).collect(Collectors.toList());
-            userInfo.setConsortiums(consortiums);
+            userInfo.setAccessConsortiums(consortiums);
 
-            List<UUID> ids =
+            // to update a consortium, we must be a member of the consortium org.
+            List<UUID> updateConsortiums =
+                    organizationService.getConsortiums(userInfo.getOrgId()).stream()
+                            .filter(c -> c.getOrganization() == userInfo.getOrgId())
+                            .map(c -> c.getId()).collect(Collectors.toList());
+            userInfo.setUpdateConsortiums(updateConsortiums);
+
+            List<UUID> chains =
                     organizationService.getConsortiums(userInfo.getOrgId()).stream()
                             .map(blockchainService::listByConsortium)
                             .flatMap(c -> c.stream())
                             .map(b -> b.getId()).distinct().collect(Collectors.toList());
-            userInfo.setPermittedChains(ids);
+            userInfo.setAccessChains(chains);
 
+            List<UUID> updateChains =
+                    organizationService.getConsortiums(userInfo.getOrgId()).stream()
+                            .filter(c -> c.getOrganization() == userInfo.getOrgId())
+                            .map(blockchainService::listByConsortium)
+                            .flatMap(c -> c.stream())
+                            .map(b -> b.getId()).distinct().collect(Collectors.toList());
             // Check for presence of OrgId from the GAZ auth Token.
             logger.debug("Org {} in jwt for the user {}", userInfo.getOrgId(), userInfo.getUsername());
             return userInfo;

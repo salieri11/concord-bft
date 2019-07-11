@@ -55,7 +55,7 @@ public class JwtTestContoller {
         List<Roles> expected = Arrays.asList(Roles.ORG_USER);
         Assert.assertTrue(expected.containsAll(authHelper.getAuthorities()));
         Assert.assertEquals(expected.size(), authHelper.getAuthorities().size());
-        List<UUID> chains = authHelper.getPermittedChains();
+        List<UUID> chains = authHelper.getAccessChains();
         Assertions.assertEquals(1, chains.size());
         Assertions.assertEquals(BC_ID, chains.get(0));
         return new ResponseEntity<String>("Tests passed", HttpStatus.OK);
@@ -88,7 +88,7 @@ public class JwtTestContoller {
      */
     @RequestMapping(path = "/api/blockchain/{id}", method = RequestMethod.GET)
     public ResponseEntity<String> doBlockchain(@PathVariable UUID id) {
-        if (!authHelper.hasAnyAuthority(Roles.systemAdmin()) && !authHelper.getPermittedChains().contains(id)) {
+        if (!authHelper.hasAnyAuthority(Roles.systemAdmin()) && !authHelper.getAccessChains().contains(id)) {
             return new ResponseEntity<String>("I'm sorry, Dave.  I can't do that", HttpStatus.FORBIDDEN);
         }
         return new ResponseEntity<String>("operator", HttpStatus.OK);

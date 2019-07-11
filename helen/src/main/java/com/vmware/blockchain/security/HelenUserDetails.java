@@ -31,11 +31,19 @@ public class HelenUserDetails extends User {
 
     @Getter
     @Setter
-    private List<UUID> permittedChains;
+    private List<UUID> accessChains;
 
     @Getter
     @Setter
-    private List<UUID> consortiums;
+    private List<UUID> updateChains;
+
+    @Getter
+    @Setter
+    private List<UUID> accessConsortiums;
+
+    @Getter
+    @Setter
+    private List<UUID> updateConsortiums;
 
     @Getter
     @Setter

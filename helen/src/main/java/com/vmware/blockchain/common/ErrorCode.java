@@ -66,6 +66,7 @@ public final class ErrorCode {
     public static final String INVALID_METHOD_NAME = "Invalid method name";
     public static final String INVALID_METHOD_TYPE = "method must be a string";
     public static final String INVALID_NAME = "invalid name specified";
+    public static final String INVALID_NODE = "Invalid Node {0}";
     public static final String INVALID_PARAMETER = "'invalid param";
     public static final String INVALID_PASSWORD = "invalid password specified";
     public static final String INVALID_RAW_TRANSACTION = "Invalid raw transaction (signature R too large)";

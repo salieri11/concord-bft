@@ -60,11 +60,34 @@ public class MvcTestSecurityConfig extends WebSecurityConfigurerAdapter {
      * Utility funtion to create an auth contrext for testing.
      */
     public static  AuthenticationContext createContext(String userName, UUID orgId, List<Roles> perms,
-                                                List<UUID> cons, List<UUID> chains, String authToken) {
+                                                       List<UUID> cons, List<UUID> chains, String authToken) {
+        return createContext(userName, orgId, perms, cons, cons, chains, chains, authToken);
+    }
+
+
+    /**
+     * Create a new authentication context to be used in MockMvc calls.
+     * @param userName      User name
+     * @param orgId         Organization
+     * @param perms         Permissions of this user
+     * @param cons          Accessable consortium IDs
+     * @param updateCons    Updatable consoritium IDs
+     * @param chains        Accessable blockchains IDs
+     * @param updateChains  Updateable blockchain IDs
+     * @param authToken     Auth token.  Actaully not used much.
+     * @return              An auth context that can be passed in the invokation.
+     */
+    public static  AuthenticationContext createContext(String userName, UUID orgId, List<Roles> perms,
+                                                       List<UUID> cons, List<UUID> updateCons,
+                                                       List<UUID> chains, List<UUID> updateChains,
+                                                       String authToken) {
         HelenUserDetails details = new HelenUserDetails(UUID.randomUUID(), userName, "", perms);
+        details.setOrgId(orgId);
         details.setAuthToken(authToken);
-        details.setConsortiums(cons);
-        details.setPermittedChains(chains);
+        details.setAccessConsortiums(cons);
+        details.setUpdateConsortiums(updateCons);
+        details.setAccessChains(chains);
+        details.setUpdateChains(updateChains);
         return new AuthenticationContext(details, perms);
     }
 

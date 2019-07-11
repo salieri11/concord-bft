@@ -134,7 +134,7 @@ public class JwtTokenProvider {
                         .map(blockchainService::listByConsortium)
                         .flatMap(c -> c.stream())
                         .map(b -> b.getId()).distinct().collect(Collectors.toList());
-        userDetails.setPermittedChains(ids);
+        userDetails.setAccessChains(ids);
 
         return new AuthenticationContext(userDetails,  authorities);
     }
