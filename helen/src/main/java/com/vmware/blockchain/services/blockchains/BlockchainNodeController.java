@@ -138,7 +138,7 @@ public class BlockchainNodeController {
         public void onCompleted() {
             SecurityContextHolder.getContext().setAuthentication(auth);
             try {
-                logger.info("Start/stop comleted");
+                logger.info("Start/stop completed");
                 Task task = taskService.get(taskId);
                 task.setState(State.SUCCEEDED);
                 task.setMessage("Operation Complete");
