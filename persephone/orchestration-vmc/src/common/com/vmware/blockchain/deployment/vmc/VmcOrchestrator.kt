@@ -10,6 +10,7 @@ import com.vmware.blockchain.deployment.model.AllocateAddressRequest
 import com.vmware.blockchain.deployment.model.AllocateAddressResponse
 import com.vmware.blockchain.deployment.model.IPAllocationServiceStub
 import com.vmware.blockchain.deployment.model.MessageHeader
+import com.vmware.blockchain.deployment.model.ConfigurationSessionIdentifier
 import com.vmware.blockchain.deployment.model.OrchestrationSiteInfo
 import com.vmware.blockchain.deployment.model.ReleaseAddressRequest
 import com.vmware.blockchain.deployment.model.ReleaseAddressResponse
@@ -157,7 +158,8 @@ class VmcOrchestrator private constructor(
     }
 
     override fun createDeployment(
-        request: Orchestrator.CreateComputeResourceRequest
+        request: Orchestrator.CreateComputeResourceRequest,
+        configurationSessionIdentifier: ConfigurationSessionIdentifier
     ): Publisher<Orchestrator.ComputeResourceEvent> {
         return publish(coroutineContext) {
             withTimeout(ORCHESTRATOR_TIMEOUT_MILLIS) {
@@ -207,7 +209,8 @@ class VmcOrchestrator private constructor(
                                     info.controlNetworkGateway.toIPv4Address(),
                                     info.controlNetworkSubnet,
                                     request.cluster,
-                                    request.node
+                                    request.node,
+                                    configurationSessionIdentifier
                             )
                     )
 

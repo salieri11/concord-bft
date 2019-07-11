@@ -6,6 +6,7 @@ package com.vmware.blockchain.deployment.orchestration
 import com.vmware.blockchain.deployment.model.ConcordClusterIdentifier
 import com.vmware.blockchain.deployment.model.ConcordModelSpecification
 import com.vmware.blockchain.deployment.model.ConcordNodeIdentifier
+import com.vmware.blockchain.deployment.model.ConfigurationSessionIdentifier
 import com.vmware.blockchain.deployment.model.core.URI
 import com.vmware.blockchain.deployment.model.ethereum.Genesis
 import com.vmware.blockchain.deployment.reactive.Publisher
@@ -177,7 +178,8 @@ interface Orchestrator {
      *   a [Publisher] of [ComputeResourceEvent] corresponding to side-effects engendered by the
      *   request.
      */
-    fun createDeployment(request: CreateComputeResourceRequest): Publisher<ComputeResourceEvent>
+    fun createDeployment(request: CreateComputeResourceRequest,
+                         configGenIdentifier: ConfigurationSessionIdentifier): Publisher<ComputeResourceEvent>
 
     /**
      * Delete a Concord deployment based on a given [DeleteComputeResourceRequest].

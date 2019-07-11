@@ -4,13 +4,7 @@
 package com.vmware.blockchain.deployment.vm
 
 import com.vmware.blockchain.deployment.http.JsonSerializer
-import com.vmware.blockchain.deployment.model.ConcordAgentConfiguration
-import com.vmware.blockchain.deployment.model.ConcordClusterIdentifier
-import com.vmware.blockchain.deployment.model.ConcordComponent
-import com.vmware.blockchain.deployment.model.ConcordModelSpecification
-import com.vmware.blockchain.deployment.model.ConcordNodeIdentifier
-import com.vmware.blockchain.deployment.model.Credential
-import com.vmware.blockchain.deployment.model.Endpoint
+import com.vmware.blockchain.deployment.model.*
 import com.vmware.blockchain.deployment.model.core.URI
 import com.vmware.blockchain.deployment.model.ethereum.Genesis
 import com.vmware.blockchain.deployment.orchestration.toIPv4Address
@@ -28,7 +22,8 @@ class CloudInitConfiguration(
     gateway: String,
     subnet: Int,
     clusterId: ConcordClusterIdentifier,
-    nodeId: ConcordNodeIdentifier
+    nodeId: ConcordNodeIdentifier,
+    configGenId: ConfigurationSessionIdentifier
 ) {
     object GenesisSerializer
         : JsonSerializer(serializersModuleOf(Genesis::class, Genesis.serializer()))
@@ -64,7 +59,10 @@ class CloudInitConfiguration(
             containerRegistry = containerRegistry,
             fleetService = Endpoint(), // TODO: need to inject fleet service endpoint info.
             cluster = clusterId,
-            node = nodeId
+            node = nodeId,
+            configService = Endpoint(), // FIXME: need to inject config service endpoint.
+            configGenerationId =  configGenId.identifier.toString()
+
     )
 
     private val script =
@@ -92,7 +90,10 @@ class CloudInitConfiguration(
             # Output the node's configuration.
             mkdir -p /config/concord/config-local
             mkdir -p /config/concord/config-public
-            
+
+            # create dir for tls certs
+            mkdir -p /concord/config-local/cert
+
             # Output the node's model specification.
             mkdir -p /config/agent
             echo '{{agentConfig}}' > /config/agent/config.json

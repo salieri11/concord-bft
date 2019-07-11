@@ -34,39 +34,14 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import com.vmware.blockchain.deployment.model.*;
+import io.grpc.CallOptions;
 import org.apache.commons.io.FileUtils;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.vmware.blockchain.awsutil.AwsS3Client;
-import com.vmware.blockchain.deployment.model.ConcordCluster;
-import com.vmware.blockchain.deployment.model.ConcordClusterIdentifier;
-import com.vmware.blockchain.deployment.model.ConcordClusterInfo;
-import com.vmware.blockchain.deployment.model.ConcordModelSpecification;
-import com.vmware.blockchain.deployment.model.ConcordNode;
-import com.vmware.blockchain.deployment.model.ConcordNodeEndpoint;
-import com.vmware.blockchain.deployment.model.ConcordNodeHostInfo;
-import com.vmware.blockchain.deployment.model.ConcordNodeIdentifier;
-import com.vmware.blockchain.deployment.model.ConcordNodeInfo;
-import com.vmware.blockchain.deployment.model.ConcordNodeStatus;
-import com.vmware.blockchain.deployment.model.CreateClusterRequest;
-import com.vmware.blockchain.deployment.model.DeploymentSession;
-import com.vmware.blockchain.deployment.model.DeploymentSessionEvent;
-import com.vmware.blockchain.deployment.model.DeploymentSessionIdentifier;
-import com.vmware.blockchain.deployment.model.DeploymentSpecification;
-import com.vmware.blockchain.deployment.model.MessageHeader;
-import com.vmware.blockchain.deployment.model.OrchestrationSite;
-import com.vmware.blockchain.deployment.model.OrchestrationSiteIdentifier;
-import com.vmware.blockchain.deployment.model.OrchestrationSiteInfo;
-import com.vmware.blockchain.deployment.model.PlacementAssignment;
-import com.vmware.blockchain.deployment.model.PlacementSpecification;
-import com.vmware.blockchain.deployment.model.ProvisionedResource;
-import com.vmware.blockchain.deployment.model.ProvisioningServiceImplBase;
-import com.vmware.blockchain.deployment.model.StreamAllClusterDeploymentSessionEventRequest;
-import com.vmware.blockchain.deployment.model.StreamClusterDeploymentSessionEventRequest;
-import com.vmware.blockchain.deployment.model.UpdateDeploymentSessionRequest;
-import com.vmware.blockchain.deployment.model.UpdateDeploymentSessionResponse;
 import com.vmware.blockchain.deployment.model.ethereum.Genesis;
 import com.vmware.blockchain.deployment.orchestration.InactiveOrchestrator;
 import com.vmware.blockchain.deployment.orchestration.NetworkAddress;
@@ -80,6 +55,8 @@ import com.vmware.blockchain.deployment.orchestration.Orchestrator.NetworkResour
 import com.vmware.blockchain.deployment.orchestration.Orchestrator.OrchestrationEvent;
 import com.vmware.blockchain.deployment.reactive.ReactiveStream;
 
+import io.grpc.ManagedChannel;
+import io.grpc.ManagedChannelBuilder;
 import io.grpc.stub.ServerCallStreamObserver;
 import io.grpc.stub.StreamObserver;
 
@@ -146,11 +123,14 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
     /** Default application.properties file. */
     private String propertyFile = "applications.properties";
 
-    /** S3 Client. */
+    /** FIXME: Dead code. S3 Client. */
     private AwsS3Client awsClient;
 
-    /** S3 bucket. */
+    /** FIXME: Dead code. S3 bucket. */
     private String s3bucket;
+
+    /** Configuration service client. */
+    private ConfigurationServiceStub configService;
 
 
     /**
@@ -170,6 +150,7 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
     /**
      * Helper method which initializes the connection with S3-bucket.
      * TODO: Use CI-CD pipeline user's AWS access keys.
+     * FIXME: Dead Code.
      */
     private boolean initializeS3Client() {
         log.info("Reading the application properties file");
@@ -202,6 +183,22 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
     }
 
     /**
+     * Initialize Configuration Service rpc connectivity.
+     */
+    private boolean InitializeConfigService() {
+
+        try {
+            ManagedChannel channel = ManagedChannelBuilder.forTarget("localhost:9003").usePlaintext().build();
+            configService = new ConfigurationServiceStub(channel, CallOptions.DEFAULT);
+        } catch (Exception e) {
+            log.error("failed to create configration service client: " + e.getLocalizedMessage());
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
      * Initialize the service instance asynchronously.
      *
      * @return
@@ -209,7 +206,7 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
      */
     CompletableFuture<Void> initialize() {
         // Provisioning service should be able to initialize with s3 bucket, else we can't proceed.
-        if (!initializeS3Client()) {
+        if (!InitializeConfigService()) {
             return CompletableFuture.failedFuture(
                     new IllegalStateException("Service instance is not in stopped state")
             );
@@ -517,6 +514,21 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
         return new PlacementAssignment(assignments);
     }
 
+    private CompletableFuture<ConfigurationSessionIdentifier> generateConfigurationId(
+            ConcurrentHashMap<PlacementAssignment.Entry, NetworkResourceEvent.Created> privateNetworkAddressMap) {
+        List<String> nodeIps = new ArrayList<>();
+        privateNetworkAddressMap.forEach((key, value) -> {
+            nodeIps.add(value.getAddress());
+        });
+        var request = new ConfigurationServiceRequest(
+                new MessageHeader(),
+                nodeIps);
+
+        var promise = new CompletableFuture<ConfigurationSessionIdentifier>();
+        configService.createConfiguration(request, newResultObserver(promise));
+        return promise;
+    }
+
     /**
      * Generate a Concord cluster configuration based on a listing of
      * {@link PlacementAssignment.Entry} of Concord nodes with the intended network address resource
@@ -530,6 +542,8 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
      * @return
      *   an awaitable future of the mapping of {@link PlacementAssignment.Entry} with the Concord
      *   node configuration associated with that entry.
+     *
+     *   FIXME: Dead Code.
      */
     private CompletableFuture<Map<PlacementAssignment.Entry, String>> generateClusterConfig(
             List<Map.Entry<PlacementAssignment.Entry, NetworkResourceEvent.Created>> addresses
@@ -801,27 +815,19 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
                 .toArray(CompletableFuture[]::new);
 
         CompletableFuture.allOf(networkAddressPromises)
-                // Generate cluster configuration for every node.
-                .thenComposeAsync(__ -> generateClusterConfig(
-                    // Note: Preserve the original listing order.
-                    session.getAssignment().getEntries().stream()
-                        .map(entry -> Map.entry(entry, privateNetworkAddressMap.get(entry)))
-                                      .collect(Collectors.toUnmodifiableList())
-                    ),
-                    executor
+                .thenComposeAsync(__ -> generateConfigurationId(
+                        privateNetworkAddressMap),
+                        executor
                 )
                 // Setup node deployment workflow with its assigned network address.
-                .thenComposeAsync(configMap -> {
+                .thenComposeAsync(configGenId -> {
                     var model = session.getSpecification().getModel();
-                    var nodePublishers = configMap.entrySet().parallelStream()
-                            .map(entry -> {
-                                var placement = entry.getKey();
-                                var config = entry.getValue();
+                    var nodePublishers = session.getAssignment().getEntries().stream()
+                            .map(placement -> {
                                 // TODO: Have only one place to compute cluster-id.
                                 // Cluster-id is computed else where.
                                 var id = new ConcordClusterIdentifier(session.getId().getLow(),
-                                                                      session.getId().getHigh());
-                                deployS3Config(id, placement.getNode(), config);
+                                        session.getId().getHigh());
 
                                 var publisher = deployNode(
                                         orchestrators.get(placement.getSite()),
@@ -829,12 +835,14 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
                                         placement.getNode(),
                                         model,
                                         session.getSpecification().getGenesis(),
-                                        privateNetworkAddressMap.get(entry.getKey())
+                                        privateNetworkAddressMap.get(placement),
+                                        configGenId
                                 );
 
-                                return Map.entry(entry.getKey(), publisher);
+                                return Map.entry(placement, publisher);
                             })
                             .collect(Collectors.toUnmodifiableList());
+
 
                     var nodePromises = nodePublishers.stream()
                             .map(entry -> ReactiveStream.toFuture(entry.getValue(), ArrayList::new)
@@ -965,7 +973,8 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
             ConcordNodeIdentifier nodeId,
             ConcordModelSpecification model,
             Genesis genesis,
-            NetworkResourceEvent.Created networkResourceEvent
+            NetworkResourceEvent.Created networkResourceEvent,
+            ConfigurationSessionIdentifier configGenId
     ) {
         var computeRequest = new CreateComputeResourceRequest(
                 new ConcordClusterIdentifier(sessionId.getLow(), sessionId.getHigh()),
@@ -974,7 +983,7 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
                 genesis,
                 networkResourceEvent.getAddress()
         );
-        return orchestrator.createDeployment(computeRequest);
+        return orchestrator.createDeployment(computeRequest, configGenId);
     }
 
     /**
@@ -1589,5 +1598,27 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
                 .collect(Collectors.toList());
         eventQueue.addAll(results);
         return results;
+    }
+
+    private static <T> StreamObserver<T> newResultObserver(CompletableFuture<T> result) {
+        return new StreamObserver<>() {
+            /** Holder of result value. */
+            volatile T value;
+
+            @Override
+            public void onNext(T value) {
+                this.value = value;
+            }
+
+            @Override
+            public void onError(Throwable error) {
+                result.completeExceptionally(error);
+            }
+
+            @Override
+            public void onCompleted() {
+                result.complete(value);
+            }
+        };
     }
 }
