@@ -24,7 +24,7 @@ import subprocess
 import requests
 
 from . import test_suite
-from util.auth import refresh_token
+from util.auth import DEV_ADMIN_TOKEN
 
 log = logging.getLogger(__name__)
 
@@ -47,7 +47,7 @@ class SampleDAppTests(test_suite.TestSuite):
 
       user = self._userConfig.get('product').get('db_users')[0]
       username = user['username']
-      self._password = refresh_token
+      self._password = DEV_ADMIN_TOKEN
 
       if self._args.user != None:
          self._user = self._args.user

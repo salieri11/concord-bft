@@ -14,8 +14,7 @@ import time
 
 from util.debug import pp as pp
 
-from util.auth import getAccessToken
-
+from util.auth import getAccessToken, TESTING_TOKEN
 
 log = logging.getLogger(__name__)
 
@@ -37,7 +36,7 @@ class Request():
    _data = None
    _accessToken = None
 
-   def __init__(self, logDir, testName, baseUrl, userConfig):
+   def __init__(self, logDir, testName, baseUrl, userConfig, tokenType=TESTING_TOKEN):
       self.logDir = logDir
       os.makedirs(self.logDir, exist_ok=True)
 
@@ -46,7 +45,7 @@ class Request():
       self._subPath = ""
       self._params = ""
       self._userConfig = userConfig
-      self._accessToken = getAccessToken()
+      self._accessToken = getAccessToken(tokenType)
 
    def _send(self, verb=None):
       '''

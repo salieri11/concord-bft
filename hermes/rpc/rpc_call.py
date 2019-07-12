@@ -10,7 +10,7 @@ import time
 from numbers import Number
 
 import util.json_helper
-from util.auth import getAccessToken
+from util.auth import getAccessToken, TESTING_TOKEN
 
 log = logging.getLogger(__name__)
 
@@ -31,7 +31,7 @@ class RPC():
    _url = None
    _accessToken = None
 
-   def __init__(self, logDir, testName, url, userConfig):
+   def __init__(self, logDir, testName, url, userConfig, tokenType=TESTING_TOKEN):
       self._logDir = logDir
       os.makedirs(self._logDir, exist_ok=True)
 
@@ -42,7 +42,7 @@ class RPC():
       self._testName = testName
       self._url = url
       self._userConfig = userConfig
-      self._accessToken = getAccessToken()
+      self._accessToken = getAccessToken(tokenType)
 
    @staticmethod
    def searchResponse(searchMe, findMe):
@@ -185,7 +185,6 @@ class RPC():
                  reverseProxyApiBaseUrl + "/api/auth/login",
                  "--verbose",
                  "--insecure",]
-
       curlProc = subprocess.run(curlCmd)
 
    def _setUpOutput(self, method):

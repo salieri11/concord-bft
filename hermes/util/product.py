@@ -15,6 +15,7 @@ import socket
 import subprocess
 from threading import Thread
 import time
+import traceback
 import yaml
 import signal
 
@@ -829,9 +830,11 @@ class Product():
          request = Request(self._productLogsDir,
                            "getMembers",
                            self._cmdlineArgs.reverseProxyApiBaseUrl,
-                           self._userConfig)
+                           self._userConfig,
+                           util.auth.UTILITY_TOKEN)
          try:
             nodes = util.blockchain.eth.getEthrpcNodes(request)
+
             if self.nodesReady(nodes):
                break
             else:
@@ -839,6 +842,7 @@ class Product():
          except Exception as e:
             attempts += 1
             log.info("Caught an exception, probably because Helen is still starting up: {}".format(e))
+            log.info(traceback.format_exc())
 
             if attempts <= retries:
                time.sleep(sleepTime)
@@ -855,7 +859,8 @@ class Product():
       rpc = RPC(startupLogDir,
                 "addApiUser",
                 self._ethrpcApiUrl,
-                self._userConfig)
+                self._userConfig,
+                util.auth.UTILITY_TOKEN)
 
       log.info("Adding an API user via Helen...")
       rpc.addUser(self._cmdlineArgs.reverseProxyApiBaseUrl)
