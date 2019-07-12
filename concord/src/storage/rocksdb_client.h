@@ -77,7 +77,6 @@ class RocksDBClient : public concord::storage::IDBClient {
       IDBClientIterator *_iter) const override;
   concord::consensus::Status put(concord::consensus::Sliver _key,
                                  concord::consensus::Sliver _value) override;
-  concord::consensus::Status close() override;
   concord::consensus::Status del(concord::consensus::Sliver _key) override;
   concord::consensus::Status multiGet(
       const concord::storage::KeysVector &_keysVec,
@@ -106,7 +105,7 @@ class RocksDBClient : public concord::storage::IDBClient {
   std::string m_dbPath;
 
   // Database object (created on connection).
-  rocksdb::DB *m_dbInstance;
+  std::unique_ptr<rocksdb::DB> m_dbInstance;
 
   // Comparator object.
   rocksdb::Comparator *m_comparator;

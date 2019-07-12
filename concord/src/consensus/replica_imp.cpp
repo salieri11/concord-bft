@@ -104,7 +104,6 @@ void ReplicaImp::createNewOrLoadExistingReplica() {
  */
 Status ReplicaImp::stop() {
   m_currentRepStatus = RepStatus::Stopping;
-  m_bcDbAdapter->getDb()->close();
   m_replicaPtr->stop();
   m_currentRepStatus = RepStatus::Idle;
   return Status::OK();

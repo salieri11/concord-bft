@@ -69,9 +69,6 @@ class InMemoryDBClient : public IDBClient {
   virtual concord::consensus::Status freeIterator(
       IDBClientIterator *_iter) const override;
   virtual concord::consensus::Status put(Sliver _key, Sliver _value) override;
-  virtual concord::consensus::Status close() override {
-    return concord::consensus::Status::OK();
-  };
   virtual concord::consensus::Status del(Sliver _key) override;
   concord::consensus::Status multiGet(const KeysVector &_keysVec,
                                       OUT ValuesVector &_valuesVec) override;

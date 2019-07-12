@@ -98,8 +98,6 @@ TimeSigner::TimeSigner(const TimeSigner& original)
       signer_(new RSASigner(original.private_key_.c_str())),
       private_key_(original.private_key_.c_str()) {}
 
-TimeSigner::~TimeSigner() {}
-
 TimeSigner& TimeSigner::operator=(const TimeSigner& original) {
   sourceID_ = original.sourceID_;
   signer_.reset(new RSASigner(original.private_key_.c_str()));

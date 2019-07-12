@@ -47,7 +47,6 @@ class TimeSigner {
   explicit TimeSigner(const concord::config::ConcordConfiguration& node_config);
 
   explicit TimeSigner(const TimeSigner& original);
-  ~TimeSigner();
   TimeSigner& operator=(const TimeSigner& original);
 
   // Create/compute a cryptographic signature for a time update from the time

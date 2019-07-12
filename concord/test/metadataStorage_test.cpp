@@ -112,6 +112,5 @@ int main(int argc, char **argv) {
   dbClient->init();
   metadataStorage = new RocksDBMetadataStorage(dbClient);
   int res = RUN_ALL_TESTS();
-  dbClient->close();
   return res;
 }

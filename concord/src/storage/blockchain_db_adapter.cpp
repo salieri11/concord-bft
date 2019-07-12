@@ -44,8 +44,6 @@ BlockchainDBAdapter::BlockchainDBAdapter(IDBClient *db) {
   }
 }
 
-BlockchainDBAdapter::~BlockchainDBAdapter() { m_db->close(); }
-
 /**
  * @brief Generates a Composite Database Key from a Sliver object.
  *

@@ -194,6 +194,5 @@ int main(int argc, char **argv) {
 
   std::string result = res ? "success" : "fail";
   LOG_INFO(logger, "*** Operation completed with result: " << result);
-  dbClient->close();
   return res;
 }
