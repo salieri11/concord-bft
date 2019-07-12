@@ -396,8 +396,7 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
       // Create Hlf Kvb Storage instance for Hlf key value service
       // key value service could put updates to cache, but it is not allowed to
       // write block
-      const ILocalKeyValueStorageReadOnly &storage =
-          replica.getReadOnlyStorage();
+      const ILocalKeyValueStorageReadOnly &storage = replica;
       IdleBlockAppender block_appender(&replica);
       HlfKvbStorage kvb_storage = HlfKvbStorage(storage, &block_appender, 0);
 

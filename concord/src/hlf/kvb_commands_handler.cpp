@@ -204,7 +204,6 @@ Status HlfKvbCommandsHandler::StorageUpdate(
   if (status_transaction.isOK() && status_block.isOK()) {
     return Status::OK();
   } else {
-    kvb_hlf_storage->reset();
     LOG4CPLUS_ERROR(logger_, "Failed to write block");
     return Status::NotFound("undable to update storage");
   }
@@ -230,6 +229,9 @@ bool HlfKvbCommandsHandler::HandleHlfInstallChaincode(
       StorageUpdate(request, kvb_hlf_storage).isOK()) {
     data = "Successfully installed chaincode: " + request.chaincode_name();
     status = 0;
+  } else {
+    // clean the cache
+    kvb_hlf_storage->reset();
   }
 
   response->set_status(status);
@@ -258,6 +260,9 @@ bool HlfKvbCommandsHandler::HandleHlfUpgradeChaincode(
       StorageUpdate(request, kvb_hlf_storage).isOK()) {
     data = "Successfully upgraded chaincode: " + request.chaincode_name();
     status = 0;
+  } else {
+    // clean the cache
+    kvb_hlf_storage->reset();
   }
 
   response->set_status(status);
@@ -273,19 +278,24 @@ bool HlfKvbCommandsHandler::HandleHlfInvokeChaincode(
   const HlfRequest request = command.hlf_request(0);
   HlfResponse* response = command_response.add_hlf_response();
 
-  Status status =
+  // set default response
+  string data = "Failed to invoke chaincode";
+  int status = 1;
+
+  Status invoke_status =
       chaincode_invoker_->SendInvoke(request.chaincode_name(), request.input());
 
-  if (status.isOK() && StorageUpdate(request, kvb_hlf_storage).isOK()) {
-    response->set_data(
-        "Successfully invoked chaincode: " + request.chaincode_name() +
-        " with input: " + request.input());
-    response->set_status(0);
-    return true;
+  if (invoke_status.isOK() && StorageUpdate(request, kvb_hlf_storage).isOK()) {
+    data = "Successfully invoked chaincode: " + request.chaincode_name() +
+           " with input: " + request.input();
+    status = 0;
+  } else {
+    // clean the cache
+    kvb_hlf_storage->reset();
   }
 
-  response->set_status(1);
-  response->set_data("Failed to invoke chaincode");
+  response->set_status(status);
+  response->set_data(data);
 
   return true;
 }
@@ -297,20 +307,22 @@ bool HlfKvbCommandsHandler::HandleHlfQueryChaincode(
   const HlfRequest request = command.hlf_request(0);
   HlfResponse* response = command_response.add_hlf_response();
 
+  // set default response
+  string data = "Failed to query chaincode";
+  int status = 1;
+
   string result =
       chaincode_invoker_->SendQuery(request.chaincode_name(), request.input());
 
   if (result != "") {
-    response->set_data(
-        "Successfully queried chaincode: " + request.chaincode_name() +
-        "\n The input is : " + request.input() +
-        "\n The result is : " + result);
-    response->set_status(0);
-    return true;
+    data = "Successfully queried chaincode: " + request.chaincode_name() +
+           "\n The input is : " + request.input() +
+           "\n The result is : " + result;
+    status = 0;
   }
 
-  response->set_status(1);
-  response->set_data("Failed to query chaincode");
+  response->set_status(status);
+  response->set_data(data);
 
   return true;
 }

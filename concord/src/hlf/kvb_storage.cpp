@@ -19,6 +19,8 @@ using concord::storage::BlockId;
 using concord::storage::IBlocksAppender;
 using concord::storage::ILocalKeyValueStorageReadOnly;
 
+using std::to_string;
+
 namespace concord {
 namespace hlf {
 
@@ -65,12 +67,12 @@ HlfKvbStorage::getReadOnlyStorage() {
 Sliver HlfKvbStorage::KvbKey(uint8_t type, const string &key) const {
   const char *c = key.c_str();
   const uint8_t *p = reinterpret_cast<const uint8_t *>(c);
-  int length = strlen(c);
+  int length = std::strlen(c);
 
   uint8_t *kvb_key = new uint8_t[1 + length];
   kvb_key[0] = type;
 
-  if (length) {
+  if (length > 0) {
     std::copy(p, p + length, kvb_key + 1);
   }
   return Sliver(kvb_key, length + 1);
@@ -78,10 +80,11 @@ Sliver HlfKvbStorage::KvbKey(uint8_t type, const string &key) const {
 
 Sliver HlfKvbStorage::KvbKey(uint8_t type, const uint8_t *bytes,
                              size_t length) const {
-  uint8_t *key = new uint8_t[1 + length];
-  key[0] = type;
-  std::copy(bytes, bytes + length, key + 1);
-  return Sliver(key, length + 1);
+  uint8_t *kvb_key = new uint8_t[1 + length];
+  kvb_key[0] = type;
+
+  std::copy(bytes, bytes + length, kvb_key + 1);
+  return Sliver(kvb_key, length + 1);
 }
 
 Sliver HlfKvbStorage::HlfStateKey(const string &key) const {
@@ -287,7 +290,7 @@ string HlfKvbStorage::GetHlfState(const string &key, uint64_t &block_number) {
     com::vmware::concord::hlf::storage::HlfState state;
     if (state.ParseFromArray(value.data(), value.length())) {
       if (state.version() == KHlfStateStorageVersion) {
-        return state.state();
+        return state.state() + kStateSeparator + to_string(out_block);
       } else {
         // should use other exception, like HLFException
         throw EVMException("Unknown hlf state version");
@@ -309,12 +312,17 @@ Status HlfKvbStorage::get(const BlockId read_version, const Sliver &key,
   for (auto &u : updates_) {
     if (u.first == key) {
       value = u.second;
+
+      // indicates read from cache
+      out_block = read_version;
       return Status::OK();
     }
   }
   // HLF block number equals KVB block number
   return ro_storage_.get(read_version, key, value, out_block);
 }
+
+storage::SetOfKeyValuePairs HlfKvbStorage::updates_;
 
 }  // namespace hlf
 }  // namespace concord

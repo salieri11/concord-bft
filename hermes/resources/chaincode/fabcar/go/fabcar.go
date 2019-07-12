@@ -77,7 +77,9 @@ func (s *SmartContract) Invoke(APIstub shim.ChaincodeStubInterface) sc.Response 
 		return s.queryAllCars(APIstub)
 	} else if function == "changeCarOwner" {
 		return s.changeCarOwner(APIstub, args)
-	}
+	} else if function == "queryCarHistory" {
+    return s.queryCarHistory(APIstub, args)
+  }
 
 	return shim.Error("Invalid Smart Contract function name.")
 }
@@ -191,6 +193,40 @@ func (s *SmartContract) changeCarOwner(APIstub shim.ChaincodeStubInterface, args
 	APIstub.PutState(args[0], carAsBytes)
 
 	return shim.Success(nil)
+}
+
+func(s *SmartContract) queryCarHistory(APIstub shim.ChaincodeStubInterface, args []string) sc.Response {
+	if len(args) != 1 {
+		return shim.Error("Incorrect number of arguments. Expecting 1")
+	}
+  key := args[0]
+  keysIter, err := APIstub.GetHistoryForKey(key)
+  if err != nil {
+    return shim.Error(fmt.Sprintf("get history operation failed. Error accessing state: %s", err))
+  }
+  defer keysIter.Close()
+
+  var keys []string
+  for keysIter.HasNext() {
+    response, iterErr := keysIter.Next()
+    if iterErr != nil {
+      return shim.Error(fmt.Sprintf("get history operation failed. Error accessing state: %s", err))
+    }
+    keys = append(keys, string(response.Value))
+  }
+
+  for key, value := range keys {
+    fmt.Printf("key %d contains %s\n", key, value)
+  }
+
+  jsonKeys, err := json.Marshal(keys)
+
+  if err != nil {
+    return shim.Error(fmt.Sprintf("get history operation failed. Error marshaling JSON: %s", err))
+  }
+
+  return shim.Success(jsonKeys)
+
 }
 
 // The main function is only relevant in unit test mode. Only included here for completeness.
