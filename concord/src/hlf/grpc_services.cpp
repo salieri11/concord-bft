@@ -1,6 +1,7 @@
 // Copyright 2018-2019 VMware, all rights reserved
 
 #include "hlf/grpc_services.hpp"
+#include "storage/blockchain_db_types.h"
 
 using com::vmware::concord::hlf::services::HlfKeyValueService;
 using com::vmware::concord::hlf::services::KvbMessage;
@@ -37,7 +38,17 @@ grpc::Status HlfKeyValueServiceImpl::GetState(ServerContext* context,
                                               const KvbMessage* request,
                                               KvbMessage* response) {
   if (request->key() != "") {
-    string value = kvb_storage_.GetHlfState(request->key());
+    string value;
+
+    // if the value is not empty, the query is restricted by
+    // the upper bound(block number)
+    if (request->value() != "") {
+      // convert the block number from string in unsigned long type
+      storage::BlockId block_number = std::stoul(request->value());
+      value = kvb_storage_.GetHlfState(request->key(), block_number);
+    } else {
+      value = kvb_storage_.GetHlfState(request->key());
+    }
 
     LOG4CPLUS_DEBUG(logger_, "[GET] " << request->key() << ":" << value);
 

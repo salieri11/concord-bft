@@ -18,6 +18,9 @@ using namespace log4cplus;
 
 using com::vmware::concord::HlfRequest;
 using concord::hlf::ChaincodeInvoker;
+using concord::storage::IDBClient;
+using concord::storage::InMemoryDBClient;
+using concord::storage::RocksKeyComparator;
 
 namespace {
 const string kTestHlfPeerToolPath1 = "test/peer1";
@@ -30,9 +33,8 @@ Logger* logger = nullptr;
 class TestStorage : public concord::storage::ILocalKeyValueStorageReadOnly,
                     public concord::storage::IBlocksAppender {
  private:
-  concord::storage::InMemoryDBClient db_ = concord::storage::InMemoryDBClient(
-      (concord::storage::IDBClient::KeyComparator)&concord::storage::
-          RocksKeyComparator::InMemKeyComp);
+  InMemoryDBClient db_ = InMemoryDBClient(
+      (IDBClient::KeyComparator)&RocksKeyComparator::InMemKeyComp);
 
  public:
   concord::consensus::Status get(
@@ -90,14 +92,9 @@ class TestStorage : public concord::storage::ILocalKeyValueStorageReadOnly,
   concord::consensus::Status addBlock(
       const concord::storage::SetOfKeyValuePairs& updates,
       concord::storage::BlockId& outBlockId) override {
-    for (auto u : updates) {
-      concord::consensus::Status status = db_.put(u.first, u.second);
-      if (!status.isOK()) {
-        return status;
-      }
-    }
-    outBlockId = 1;
-    return concord::consensus::Status::OK();
+    concord::consensus::Status status = db_.multiPut(updates);
+    outBlockId = 0;
+    return status;
   }
 };
 
@@ -112,22 +109,23 @@ TEST(hlf_test, chaincode_invoker_peer_command_tool) {
 }
 
 // Unit tests for KVB HLF Storage
-TEST(hlf_test, hlf_kvb_storage_put) {
-  TestStorage test_storage;
-  concord::hlf::HlfKvbStorage kvb_hlf_storage(test_storage, &test_storage, 0);
-  EXPECT_TRUE(kvb_hlf_storage.SetHlfState("key1", "value1").isOK());
-}
-
-TEST(hlf_test, hlf_kvb_storage_get) {
-  TestStorage test_storage;
-  concord::hlf::HlfKvbStorage kvb_hlf_storage(test_storage, &test_storage, 0);
-  ASSERT_EQ("", kvb_hlf_storage.GetHlfState("key1"));
-}
 
 TEST(hlf_test, hlf_kvb_storage_write_block) {
   TestStorage test_storage;
   concord::hlf::HlfKvbStorage kvb_hlf_storage(test_storage, &test_storage, 0);
   EXPECT_TRUE(kvb_hlf_storage.WriteHlfBlock().isOK());
+}
+
+TEST(hlf_test, hlf_kvb_storage_get) {
+  TestStorage test_storage;
+  concord::hlf::HlfKvbStorage kvb_hlf_storage(test_storage, &test_storage, 0);
+  ASSERT_EQ("", kvb_hlf_storage.GetHlfState("mycc-key"));
+}
+
+TEST(hlf_test, hlf_kvb_storage_put) {
+  TestStorage test_storage;
+  concord::hlf::HlfKvbStorage kvb_hlf_storage(test_storage, &test_storage, 0);
+  EXPECT_TRUE(kvb_hlf_storage.SetHlfState("mycc-key", "abcefg").isOK());
 }
 
 TEST(hlf_test, hlf_kvb_storage_add_tx) {
@@ -139,7 +137,6 @@ TEST(hlf_test, hlf_kvb_storage_add_tx) {
   hlf_request.set_version("version");
   hlf_request.set_chaincode_name("chaincode_name");
   hlf_request.set_chain_id("chain_id");
-
   EXPECT_TRUE(kvb_hlf_storage.AddHlfTransaction(hlf_request).isOK());
 }
 
@@ -151,7 +148,7 @@ int main(int argc, char* argv[]) {
   logger = new Logger(Logger::getInstance("com.vmware.test"));
   initialize();
   Hierarchy& hierarchy = Logger::getDefaultHierarchy();
-  // hierarchy.disableDebug();
+  hierarchy.disableDebug();
   BasicConfigurator config(hierarchy, false);
   config.configure();
 

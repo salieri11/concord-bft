@@ -22,7 +22,7 @@ class HlfKvbStorage {
  private:
   const concord::storage::ILocalKeyValueStorageReadOnly& ro_storage_;
   concord::storage::IBlocksAppender* ptr_block_appender_;
-  concord::storage::SetOfKeyValuePairs updates_;
+  static concord::storage::SetOfKeyValuePairs updates_;
   std::vector<com::vmware::concord::hlf::storage::HlfTransaction>
       pending_hlf_transactions_;
   log4cplus::Logger logger_;
@@ -32,6 +32,10 @@ class HlfKvbStorage {
   const uint8_t kTypeHlfBlock = 0x10;
   const uint8_t kTypeHlfTransaction = 0x11;
   const uint8_t kTypeHlfState = 0x12;
+
+  // This is used for adding block id to the
+  // result of GetHlfState
+  const std::string kStateSeparator = "%%";
 
   // read-only mode
   HlfKvbStorage(

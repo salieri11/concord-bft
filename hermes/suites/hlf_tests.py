@@ -115,7 +115,10 @@ class HlfTests(test_suite.TestSuite):
                   self._test_chaincode_fabcar_invoke_change_car_owner),
               ("chaincode_fabcar_invoke_create_car",
                   self._test_chaincode_fabcar_invoke_create_car),
-              ("chaincode_fabcar_upgrade", self._test_chaincode_fabcar_upgrade)]
+              ("chaincode_fabcar_query_history",
+                  self._test_chaincode_fabcar_query_history),
+              ("chaincode_fabcar_upgrade", self._test_chaincode_fabcar_upgrade)
+              ]
 
    def _test_chaincode_fabcar_install(self):
        '''
@@ -325,6 +328,31 @@ class HlfTests(test_suite.TestSuite):
           return (True, None)
        else:
           return (False, "Concord returned Non-zero status.")
+
+   def _test_chaincode_fabcar_query_history(self):
+    '''
+    Test the Query History of the chaincode "fabcar"
+
+    Query the historical value of the "CAR0" key.
+
+    '''
+    cmd = "docker exec -t concord-client " \
+          "./conc_hlf_client -a concord1 -p 50051 -m query -c mycc -i {\"function\":\"queryCarHistory\",\"Args\":[\"CAR0\"]}" 
+    try:
+       c = subprocess.run(cmd.split(), check=True, timeout=1000, stdout=subprocess.PIPE)
+    except subprocess.TimeoutExpired as e:
+       log.error("Chaincode query timeout: %s", str(e))
+       return (False, str(e))
+    except subprocess.CalledProcessError as e:
+       log.error("Chaincode query returned error code: %s", str(e))
+       return (False, str(e))
+
+    result = str(c.stdout)
+    log.debug(result)
+    if "Tomoko" in result and "Luke" in result:
+       return (True, None)
+    else:
+       return (False, "Concord returned Non-zero status.")
 
    def _test_chaincode_fabcar_initial(self):
        '''
