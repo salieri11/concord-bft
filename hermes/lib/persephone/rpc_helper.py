@@ -17,6 +17,8 @@ from grpc_python_bindings import fleet_service_pb2
 from grpc_python_bindings import fleet_service_pb2_grpc
 from google.protobuf.json_format import MessageToJson
 import sys
+import queue
+import threading
 
 sys.path.append('../../')
 from util.product import Product as Product
@@ -116,27 +118,66 @@ class RPCHelper():
       else:
          log.error("Channel not open to be closed")
 
-   def call_api(self, rpc, rpc_request=None, stream=False):
+   def collect_responses(self, response_iterator, response_queue):
       '''
-      Helper method to call the acutal gRPC using python bindings
-      :param rpc: gRPC name
+      Collects the items/events from a gRPC stream and adds to a queue
+      :param response_iterator: gRPC stream
+      :param response_queue: response queue
+      '''
+      try:
+         for response in response_iterator:
+            log.debug("Adding to response queue: {}".format(response))
+            response_queue.put(response)
+      except Exception as e:
+         pass
+
+   def call_api(self, rpc, rpc_request=None, stream=False, stream_forever=False,
+                stream_timeout=300):
+      '''
+      Helper method to call the actual gRPC using python bindings
+      :param rpc: gRPC
       :param rpc_request: gRPC request
       :param stream: boolean to expect a stream/non-stream
+      :param stream_forever: stream open until cancelled (Default False)
+      :param stream_timeout: Max timeout when the stream would be CANCELLED
       :return: gRPC response
       '''
       response_list = []
-      log.info(
-         "Calling rpc {}/[response=stream: {}] ****".format(rpc, stream))
-      # TODO: Introduce thread and MAX TIMEOUT when waiting for stream
-      response = rpc(rpc_request)
+      log.info("Calling rpc {}/[stream: {} / Run forever: {}] ****".format(rpc,
+                                                                           stream,
+                                                                           stream_forever))
+      response_stream = rpc(rpc_request, stream_timeout)
       if stream:
-         if response:
-            for rsp in response:
+         if stream_forever:
+            response_queue = queue.Queue()
+            thread = threading.Thread(target=self.collect_responses,
+                                      args=(response_stream, response_queue))
+            thread.start()
+
+            sleep_time = 30
+            time_slept = 0
+            while time_slept < stream_timeout and not self.cmdlineArgs.cancel_stream:
+               log.debug("Trigger status to cancel stream: {}".format(
+                  self.cmdlineArgs.cancel_stream))
+               log.debug(
+                  "Sleep for {} secs ({}/{}) and check if 'cancel background "
+                  "stream collection' trigger is enabled.".format(
+                     sleep_time, time_slept, stream_timeout))
+               time.sleep(sleep_time)
+               time_slept += sleep_time
+
+            log.info("**** Trigger received to Cancel Stream")
+            response_stream.cancel()
+            thread.join()
+
+            while not response_queue.empty():
+               rsp = response_queue.get()
                response_list.append(rsp)
          else:
-            log.error("Error reading stream")
+            for rsp in response_stream:
+               response_list.append(rsp)
       else:
-         response_list.append(response)
+         response_list.append(response_stream)
 
       log.debug("gRPC Response from server: {}".format(response_list))
 
@@ -165,3 +206,11 @@ class RPCHelper():
       :param e: Exception
       '''
       log.error("Error: {}".format(e))
+      try:
+         status_code = e.code()
+         if status_code == grpc.StatusCode.DEADLINE_EXCEEDED:
+            log.error("gRPC Call TIMED OUT")
+      except Exception as err:
+         pass
+
+
