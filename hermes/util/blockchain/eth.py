@@ -148,7 +148,7 @@ def upload_contract(blockchainId, request, sourceFile, contractName,
       contractVersion = contractVersion or util.numbers_strings.random_string_generator()
       fromAddr = fromAddr or "0x1111111111111111111111111111111111111111"
       compilerVersion = compilerVersion or "v0.5.2+commit.1df8f40c"
-      ctorParams = ctorParams or ""
+      ctorParams = ctorParams or None
       optimize = optimize or False
       runs = runs or "200"
 
