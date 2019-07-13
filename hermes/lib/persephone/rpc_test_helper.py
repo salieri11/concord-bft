@@ -79,14 +79,16 @@ class RPCTestHelper():
       :param placement_type: FIXED/UNSPECIFIED to place the concord memebers on site
       :return: deployment session ID
       '''
+      header = core_pb2.MessageHeader()
       concord_model_specification = self.model_rpc_helper.create_concord_model_specification()
       placement_specification = self.provision_rpc_helper.create_placement_specification(
          cluster_size, placement_type=placement_type)
-      concord_deployment_specification = self.provision_rpc_helper.create_deployment_specification(
-         cluster_size, concord_model_specification, placement_specification)
-      header = core_pb2.MessageHeader()
+      genesis_spec = self.provision_rpc_helper.create_genesis_specification()
+      deployment_specification = self.provision_rpc_helper.create_deployment_specification(
+         cluster_size, concord_model_specification, placement_specification,
+         genesis_spec)
       create_cluster_request = self.provision_rpc_helper.create_cluster_request(
-         header, concord_deployment_specification)
+         header, deployment_specification)
 
       session_id = self.provision_rpc_helper.rpc_CreateCluster(
          create_cluster_request)
