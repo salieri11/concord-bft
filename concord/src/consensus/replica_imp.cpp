@@ -247,6 +247,17 @@ ReplicaImp::ReplicaImp(CommConfig &commConfig,
   m_replicaConfig.thresholdVerifierForSlowPathCommit =
       replicaConfig.thresholdVerifierForSlowPathCommit;
 
+  bftEngine::SimpleBlockchainStateTransfer::Config state_transfer_config;
+
+  // Fall back to the default if values are '0'
+#define SET_CFG_DEFAULT(s1, s2, f) \
+  { s1.f = (s2.f > 0) ? s2.f : s1.f; }
+  SET_CFG_DEFAULT(m_replicaConfig, replicaConfig, maxExternalMessageSize);
+  SET_CFG_DEFAULT(m_replicaConfig, replicaConfig, maxReplyMessageSize);
+  SET_CFG_DEFAULT(state_transfer_config, replicaConfig, maxNumOfReservedPages);
+  SET_CFG_DEFAULT(state_transfer_config, replicaConfig, sizeOfReservedPage);
+#undef SET_CFG_DEFAULT
+
   if (commConfig.commType == "tls") {
     TlsTcpConfig config(commConfig.listenIp, commConfig.listenPort,
                         commConfig.bufferLength, commConfig.nodes,
@@ -264,13 +275,13 @@ ReplicaImp::ReplicaImp(CommConfig &commConfig,
                                 commConfig.commType);
   }
 
-  bftEngine::SimpleBlockchainStateTransfer::Config c;
-  c.myReplicaId = m_replicaConfig.replicaId, c.cVal = m_replicaConfig.cVal,
-  c.fVal = m_replicaConfig.fVal;
+  state_transfer_config.myReplicaId = m_replicaConfig.replicaId;
+  state_transfer_config.cVal = m_replicaConfig.cVal;
+  state_transfer_config.fVal = m_replicaConfig.fVal;
 
   m_appState = new BlockchainAppState(this);
-  m_stateTransfer =
-      bftEngine::SimpleBlockchainStateTransfer::create(c, m_appState, false);
+  m_stateTransfer = bftEngine::SimpleBlockchainStateTransfer::create(
+      state_transfer_config, m_appState, false);
 }
 
 ReplicaImp::~ReplicaImp() {
