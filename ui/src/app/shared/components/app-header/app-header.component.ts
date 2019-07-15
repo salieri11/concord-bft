@@ -62,7 +62,7 @@ export class AppHeaderComponent implements OnDestroy, AfterViewInit {
       this.setTheme();
       // Update theme based on theme changes
       this.themeService.themeChange
-        .subscribe(() => this.setTheme());
+        .subscribe(theme => this.setTheme(theme));
 
         this.authToken = this.authenticationService.accessToken;
 
@@ -134,9 +134,12 @@ export class AppHeaderComponent implements OnDestroy, AfterViewInit {
     this.headerOptions.showDocCenterButton = true;
   }
 
-  private setTheme() {
+  private setTheme(themes) {
     const theme = this.themeService.theme.toUpperCase();
-    this.headerOptions.theme = CspHeaderTheme[theme];
+    console.log('theme')
+    console.log(theme)
+    console.log(themes)
+    // this.headerOptions.theme = CspHeaderTheme[theme];
   }
 
 }
