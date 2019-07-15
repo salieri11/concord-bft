@@ -38,6 +38,7 @@ export class MainComponent implements OnInit, OnDestroy {
   blockchains: BlockchainResponse[] = [];
   selectedConsortium: string;
   enableRouterOutlet: boolean = true;
+  env: any;
 
   constructor(
     private authenticationService: AuthenticationService,
@@ -46,8 +47,9 @@ export class MainComponent implements OnInit, OnDestroy {
     private alertService: ErrorAlertService,
     public zone: NgZone,
     private tourService: TourService,
-    private blockchainService: BlockchainService
+    private blockchainService: BlockchainService,
   ) {
+    this.env = environment;
     const consortiumId = this.route.snapshot.params['consortiumId'];
     this.selectedConsortium = this.blockchainService.select(consortiumId);
 
