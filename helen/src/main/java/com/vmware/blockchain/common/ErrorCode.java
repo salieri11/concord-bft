@@ -63,6 +63,7 @@ public final class ErrorCode {
     public static final String INTERNAL_ERROR = "An internal error has occurred. Please retry again later";
     public static final String INVALID_HEXCHAR = "Invalid hex character";
     public static final String INVALID_INPUT_SIZE = "Input is too large to put in byte array of size ";
+    public static final String INVALID_INVITATION = "Invalid Invitation Link";
     public static final String INVALID_JWT_TOKEN = "Expired or invalid JWT token";
     public static final String INVALID_METHOD_NAME = "Invalid method name";
     public static final String INVALID_METHOD_TYPE = "method must be a string";

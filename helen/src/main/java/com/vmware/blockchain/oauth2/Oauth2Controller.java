@@ -94,8 +94,7 @@ public class Oauth2Controller {
         this.clientId = clientId;
         this.clientSecret = clientSecret;
         this.vmbcOauthCallback = vmbcOauthCallback;
-        this.targetUri = UriComponentsBuilder.fromUriString(ssUrl).path("/login-return").build().toUriString();
-        logger.info("Oauth initialized with target URI {}", targetUri);
+        logger.info("Oauth initialized");
     }
 
     /**
@@ -112,6 +111,7 @@ public class Oauth2Controller {
                       @RequestParam(name = Constants.CSP_INVITATION_LINK, required = false) String serviceInvitation,
                       @RequestParam(name = Oauth2CommonUtility.SESSION_CLEANED, required = false,
                               defaultValue = "false") boolean sessionRedirect,
+                      @RequestParam(name = Constants.NEW_USER_PARAM, required = false) String userParam,
                       HttpServletRequest request, HttpServletResponse response) throws Exception {
         // VSKS-4629: If we have a session already, clean it up, and clear any authtokens
         // from the cache.
@@ -137,6 +137,9 @@ public class Oauth2Controller {
             request.getSession().setAttribute(Oauth2CommonUtility.STATE_KEY, state);
             if (serviceInvitation != null) {
                 request.getSession().setAttribute(Constants.CSP_INVITATION_LINK, serviceInvitation);
+            }
+            if (userParam != null) {
+                request.getSession().setAttribute(Constants.NEW_USER_PARAM, userParam);
             }
             authCodeParamsBuilder.state(state).baseUrl(cspConfig.getCspUrl())
                     .relativePath(CspConstants.CSP_DISCOVERY_PAGE).clientId(clientId)
@@ -241,14 +244,22 @@ public class Oauth2Controller {
         session.setAttribute(Constants.TOKEN_ID, authResponse.getIdToken());
         session.setAttribute(Constants.TOKEN_EXPIRES_AT,
                              now + TimeUnit.SECONDS.toMillis(authResponse.getExpiresIn()));
-        // We are going to redirect either to the login return, or to the invitation return
-        // The invitation return handles the setting permissions from the invitation.
-        String redirect;
+
+        // create the build for the redirect.  If there is an invitation, this will redirect to the
+        // invitaion handler, otherwize redirect to login-return
+        UriComponentsBuilder redirectBuilder;
         if (session.getAttribute(Constants.CSP_INVITATION_LINK) != null) {
-            redirect = UriComponentsBuilder.fromUriString(Constants.AUTH_INVITATION).build().toString();
+            redirectBuilder = UriComponentsBuilder.fromUriString(Constants.AUTH_INVITATION);
         } else {
-            redirect = targetUri;
+            redirectBuilder = UriComponentsBuilder.fromUriString(Constants.AUTH_LOGIN_RETURN);
         }
+
+        // Add the user flag, if there.
+        String userparam = (String) session.getAttribute(Constants.NEW_USER_PARAM);
+        if (userparam != null) {
+            redirectBuilder.queryParam(Constants.NEW_USER_PARAM, userparam);
+        }
+        String redirect = redirectBuilder.build().toUriString();
         try {
             /*
                 Removed code here that added the auth token as a query param to redirect.  I think I added that

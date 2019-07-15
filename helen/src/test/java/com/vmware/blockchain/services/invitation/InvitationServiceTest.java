@@ -21,15 +21,19 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import com.google.common.collect.ImmutableList;
 import com.vmware.blockchain.auth.AuthHelper;
+import com.vmware.blockchain.common.BadRequestException;
 import com.vmware.blockchain.common.csp.CspCommon;
 import com.vmware.blockchain.common.csp.CspCommon.CspPatchServiceRolesRequest;
 import com.vmware.blockchain.common.csp.CspCommon.CspServiceInvitation;
 import com.vmware.blockchain.common.csp.CspConstants;
 import com.vmware.blockchain.common.csp.api.client.CspApiClient;
+import com.vmware.blockchain.common.csp.exception.CspApiClientErrorException;
 import com.vmware.blockchain.services.profiles.Roles;
 
 /**
@@ -72,7 +76,8 @@ class InvitationServiceTest {
         invitation.setServiceDefinitionLink(serviceDefLink);
         invitation.setOrgLink(orgLink);
         invitation.setInvitationLink(invitationLink);
-        doThrow(RuntimeException.class).when(cspApiClient).getInvitation("argle");
+        doThrow(new CspApiClientErrorException(HttpStatus.BAD_REQUEST, "", new HttpHeaders()))
+                .when(cspApiClient).getInvitation("argle");
         when(cspApiClient.getInvitation(invitationLink)).thenReturn(invitation);
         when(authHelper.getOrganizationId()).thenReturn(orgId);
         when(authHelper.getEmail()).thenReturn("test@email.com");
@@ -96,7 +101,7 @@ class InvitationServiceTest {
 
     @Test
     void testBadInvite() throws Exception {
-        invitationService.handleServiceInvitation("argle");
+        Assertions.assertThrows(BadRequestException.class, () -> invitationService.handleServiceInvitation("argle"));
         verify(cspApiClient, times(0)).patchOrgServiceRoles(anyString(), any(UUID.class), anyString(),
                                                             any(CspPatchServiceRolesRequest.class));
     }
@@ -104,7 +109,8 @@ class InvitationServiceTest {
     @Test
     void testBadOrg() throws Exception {
         when(authHelper.getOrganizationId()).thenReturn(UUID.fromString("5e93e41c-3d1c-43ac-bec7-a8c13670e72e"));
-        invitationService.handleServiceInvitation(invitationLink);
+        Assertions.assertThrows(BadRequestException.class,
+            () -> invitationService.handleServiceInvitation(invitationLink));
         verify(cspApiClient, times(0)).patchOrgServiceRoles(anyString(), any(UUID.class), anyString(),
                                                             any(CspPatchServiceRolesRequest.class));
     }
