@@ -139,7 +139,7 @@ export class BlockchainService {
     }
   }
 
-  private isUUID(uuid: string): boolean {
+  isUUID(uuid: string): boolean {
     return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(uuid);
   }
 

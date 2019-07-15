@@ -2,7 +2,7 @@
  * Copyright 2018-2019 VMware, all rights reserved.
  */
 
-import { Component, NgZone } from '@angular/core';
+import { Component } from '@angular/core';
 
 import { VmwClarityThemeService, VmwClarityTheme } from '../../theme.provider';
 

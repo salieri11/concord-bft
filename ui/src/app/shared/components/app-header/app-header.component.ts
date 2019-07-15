@@ -8,11 +8,9 @@ import { ClrDropdown } from '@clr/angular';
 import { TranslateService } from '@ngx-translate/core';
 import {
   CspApiService,
-  CspHeaderTheme,
   CspHeaderOptions,
   CspEnvironment,
 } from '@vmw/csp-ngx-components';
-import { VmwClarityThemeService } from '../../theme.provider';
 
 import { environment } from '../../../../environments/environment';
 import { AuthenticationService } from '../../authentication.service';
@@ -46,26 +44,9 @@ export class AppHeaderComponent implements OnDestroy, AfterViewInit {
     private tourService: TourService,
     private cspApiService: CspApiService,
     private translateService: TranslateService,
-    private themeService: VmwClarityThemeService,
   ) {
     if (this.env.csp) {
-      console.log(this.env.cspEnv);
-      if (this.env.cspEnv === 'staging') {
-        this.cspApiService.setCspEnvironment(CspEnvironment.STAGING);
-        this.cspEnvironment = CspEnvironment.STAGING;
-      } else if (this.env.cspEnv === 'production') {
-        this.cspApiService.setCspEnvironment(CspEnvironment.PRODUCTION);
-        this.cspEnvironment = CspEnvironment.PRODUCTION;
-      }
       this.setupCSP();
-      // Init theme for csp
-      this.setTheme();
-      // Update theme based on theme changes
-      this.themeService.themeChange
-        .subscribe(theme => this.setTheme(theme));
-
-        this.authToken = this.authenticationService.accessToken;
-
     } else {
       this.userProfileMenuToggleChanges = this.tourService.userProfileDropdownChanges$.subscribe((openMenu) => {
         setTimeout(() => {
@@ -78,13 +59,16 @@ export class AppHeaderComponent implements OnDestroy, AfterViewInit {
         this.personaService.currentPersonas.push(user.persona);
       });
     }
-
   }
 
   ngAfterViewInit() {
     if (this.env.csp) {
       this.header.switchOrg.subscribe(org => {
-        console.log('org', org);
+        window.location.href = `${this.env.loginPath}?org_link=/csp/gateway/am/api/orgs/${org.id}&orgLink=/csp/gateway/am/api/orgs/${org.id}`;
+      });
+
+      this.header.signOut.subscribe(() => {
+        window.location.href = this.authenticationService.logoutPath;
       });
     }
   }
@@ -104,6 +88,15 @@ export class AppHeaderComponent implements OnDestroy, AfterViewInit {
   }
 
   private setupCSP() {
+    if (this.env.cspEnv === 'staging') {
+      this.cspApiService.setCspEnvironment(CspEnvironment.STAGING);
+      this.cspEnvironment = CspEnvironment.STAGING;
+    } else if (this.env.cspEnv === 'production') {
+      this.cspApiService.setCspEnvironment(CspEnvironment.PRODUCTION);
+      this.cspEnvironment = CspEnvironment.PRODUCTION;
+    }
+    this.authToken = this.authenticationService.accessToken;
+
     // TODO: Most of this is fake data until we can get
     // these services setup.
     this.serviceRefLink = 'https://blockchain-stage.vmware.com';
@@ -119,7 +112,7 @@ export class AppHeaderComponent implements OnDestroy, AfterViewInit {
     this.headerOptions.showNotificationsMenu = true;
     this.headerOptions.helpPinnable = true;
     this.headerOptions.docCenterLink = 'https://docs-staging.vmware.com/en/VMware-Blockchain/index.html';
-    this.headerOptions.docsProducts = ['Blockchain'];
+    this.headerOptions.docsProducts = ['VMware Blockchain'];
     this.headerOptions.docsDefaultSearch = 'Blockchain';
     this.headerOptions.userMenuIconified = true;
     this.headerOptions.notifications = null;
@@ -128,18 +121,12 @@ export class AppHeaderComponent implements OnDestroy, AfterViewInit {
     this.headerOptions.showOrgSwitcher = true;
     this.headerOptions.showHelpMenu = true;
     this.headerOptions.enableChangeDefaultOrg = true;
+    this.headerOptions.enableEventTracking = true;
+    this.headerOptions.enableIntercom = true;
     this.headerOptions.globalBranding = true;
     this.headerOptions.isMasked = false;
     this.headerOptions.showSupportTab = true;
     this.headerOptions.showDocCenterButton = true;
-  }
-
-  private setTheme(themes) {
-    const theme = this.themeService.theme.toUpperCase();
-    console.log('theme')
-    console.log(theme)
-    console.log(themes)
-    // this.headerOptions.theme = CspHeaderTheme[theme];
   }
 
 }

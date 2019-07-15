@@ -92,9 +92,9 @@ export class MainComponent implements OnInit, OnDestroy {
 
     this.route.params.subscribe(param => {
 
-      if (param.consortiumId && param.consortiumId === 'login-return') {
+      if (param.consortiumId && param.consortiumId === this.authenticationService.loginReturn) {
         // Do nothing
-      } else if (param.consortiumId && param.consortiumId.length > 8) {
+      } else if (param.consortiumId && this.blockchainService.isUUID(param.consortiumId)) {
         this.selectedConsortium = param.consortiumId;
         this.blockchainService.select(this.selectedConsortium);
       }
