@@ -12,6 +12,7 @@ from grpc_python_bindings import orchestration_pb2
 from rpc_helper import RPCHelper
 from model_service_helper import ModelServiceRPCHelper
 from grpc_python_bindings import core_pb2
+from grpc_python_bindings import ethereum_pb2
 sys.path.append('../../')
 from util.product import Product as Product
 import logging
@@ -77,16 +78,47 @@ class ProvisioningServiceRPCHelper(RPCHelper):
       )
       return placement_specification
 
-   def create_deployment_specification(self, cluster_size, model, placement):
+   def create_genesis_specification(self):
+      '''
+      Helper method to create genesis bspec
+      :return: genesis spec
+      '''
+      log.debug("Creating genesis spec")
+      genesis_spec=ethereum_pb2.Genesis(
+          config=ethereum_pb2.Genesis.Config(
+              chain_id=1,
+              homestead_block=0,
+              eip155_block=0,
+              eip158_block=0
+          ),
+          nonce="0x0000000000000000",
+          difficulty="0x400",
+          mixhash="0x0000000000000000000000000000000000000000000000000000000000000000",
+          parent_hash="0x0000000000000000000000000000000000000000000000000000000000000000",
+          gas_limit="0xf4240",
+          alloc={
+              "262c0d7ab5ffd4ede2199f6ea793f819e1abb019":
+                  ethereum_pb2.Genesis.Wallet(balance="12345"),
+              "5bb088f57365907b1840e45984cae028a82af934":
+                  ethereum_pb2.Genesis.Wallet(balance="0xabcdef"),
+              "0000a12b3f3d6c9b0d3f126a83ec2dd3dad15f39":
+                  ethereum_pb2.Genesis.Wallet(balance="0x7fffffffffffffff")
+          }
+      )
+      return genesis_spec
+
+   def create_deployment_specification(self, cluster_size, model, placement, genesis_spec):
       '''
       Helper method to create deployment specification
       :param cluster_size: Number of concord members on the cluster cluster
       :param model: Metadata for deployment
       :param placement: placement site/SDDC
+      :param genesis_spec: genesis spec
       :return: deployment specifcation
       '''
       deployment_specification = provisioning_service_pb2.DeploymentSpecification(
-         cluster_size=cluster_size, model=model, placement=placement)
+         cluster_size=cluster_size, model=model, placement=placement,
+         genesis=genesis_spec)
       return deployment_specification
 
    def create_cluster_request(self, header, specification):
