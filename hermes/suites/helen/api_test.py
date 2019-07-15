@@ -339,6 +339,18 @@ def verifyContractVersionFields(blockchainId, request, rpc, actualDetails, expec
    assert not diffs, "Differences found in details: {}".format(diffs)
 
 
+def validateBadRequest(result, expectedPath):
+   '''
+   Validates the returned result of a Bad Request error.
+   The error code, error message, and status are the same.
+   Accepts the result to evaluate and the expected value for "path".
+   '''
+   assert result["error_code"] == "BadRequestException", "Expected different error code."
+   assert result["error_message"] == "Bad request (e.g. missing request body).", "Expected different error message."
+   assert result["status"] == 400, "Expected HTTP status 400."
+   assert result["path"] == expectedPath, "Expected different path."
+
+
 @pytest.mark.smoke
 def test_blockchains_fields(fxConnection):
    blockchains = fxConnection.request.getBlockchains()
@@ -857,31 +869,47 @@ def test_getABlockhain_invalid_uuid_format(fxConnection):
    '''
    blockchainId = "aa"
    response = fxConnection.request.getBlockchainDetails(blockchainId)
-   # ...
+   validateBadRequest(response, "/api/blockchains/{}".format(fxBlockchain.blockchainId))
 
 
-@pytest.mark.skip(reason="Not implemented")
-def test_blockchains_none(fxConnection):
+@pytest.mark.skip(reason="Need Hermes ability to stop/start the product.")
+def test_blockchains_none(fxConnection, fxHermesRunSettings):
    '''
    How to start the product with no blockchains?
    Filed VB-841: Not able to start Helen with no blockchains.
    '''
    # restartTheProductWithNoBlockchains()
-   # blockchains = fxConnection.request.getBlockchains()
-   # assert len(blockchains) == 0, "Expected zero blockchains to be returned"
-   pass
+   product = util.product.Product(hermesArgs,
+                                  fxHermesRunSettings["hermesUserConfig"],
+                                  fxHermesRunSettings["hermesCmdlineArgs"]["suite"])
+   product.stopProduct()
+   util.helper.setHelenProperty("vmbc.default.blockchain", "false")
+
+   # Something goes wrong launching the product.  This is not a super high priority
+   # test case because it will only be possible in the product the first time it is
+   # ever launched.  Come back to it.
+   product.launchProduct()
+   blockchains = fxConnection.request.getBlockchains()
+   assert len(blockchains) == 0, "Expected zero blockchains to be returned"
+
+   # Clean up
+   product.stopProduct()
+   util.helper.setHelenProperty("vmbc.default.blockchain", "true")
+   product.launchProduct()
 
 
-@pytest.mark.skip(reason="Not implemented")
+@pytest.mark.skip(reason="Waiting for blockchain deletion capability")
 def test_blockchains_multiple(fxConnection):
    '''
-   Currently, there is no way to deploy multiple blockchains.
+   Ensure > 1 blockchains, and be sure they are really different.
    '''
-   # addAnotherBlockchain()
-   # blockchains = fxConnection.request.getBlockchains()
-   # assert len(blockchains) == 2, "Expected zero blockchains to be returned"
-   # beSureTheBlockchainsAreDifferentAndUsingTheCorrectConcordNodes()
-   # verifyBlockchainFields(fxConnection.request, blockchain)
+   # while len(fxConnection.request.getBlockchains()) < 2:
+   #    addAnotherBlockchain()
+   #
+   # beSureTheBlockchainsAreDifferentAndUsingDifferentConcordNodes()
+   #
+   # for blockchain in fxConnection.request.getBlockchains():
+   #    verifyBlockchainFields(fxConnection.request, blockchain)
    pass
 
 
@@ -942,7 +970,6 @@ def test_postContract_simple(fxConnection, fxBlockchain):
 
 
 @pytest.mark.smoke
-#@pytest.mark.skip(reason="VB-857")
 def test_postContract_constructor(fxConnection, fxBlockchain):
    '''
    Post a contract with a constructor and run it.
@@ -1081,7 +1108,7 @@ def test_postContract_multiple_second(fxConnection, fxBlockchain):
    assert util.blockchain.eth.helloHex not in contract["bytecode"], "HelloWorld! should not be in the bytecode."
 
 
-@pytest.mark.skip(reason="VB-850")
+@pytest.mark.smoke
 def test_postContract_noContractId(fxConnection, fxBlockchain):
    '''
    Try to submit a contract without an ID.
@@ -1097,9 +1124,11 @@ def test_postContract_noContractId(fxConnection, fxBlockchain):
                                                 ctorParams="",
                                                 optimize=False,
                                                 generateDefaults=False)
+   validateBadRequest(contractResult,
+                      "/api/blockchains/{}/concord/contracts".format(fxBlockchain.blockchainId))
 
 
-@pytest.mark.skip(reason="VB-850")
+@pytest.mark.smoke
 def test_postContract_noContractVersion(fxConnection, fxBlockchain):
    '''
    Try to submit a contract without a version.
@@ -1115,9 +1144,11 @@ def test_postContract_noContractVersion(fxConnection, fxBlockchain):
                                                 ctorParams="",
                                                 optimize=False,
                                                 generateDefaults=False)
+   validateBadRequest(contractResult,
+                      "/api/blockchains/{}/concord/contracts".format(fxBlockchain.blockchainId))
 
 
-@pytest.mark.skip(reason="VB-851")
+@pytest.mark.smoke
 def test_postContract_noContractFrom(fxConnection, fxBlockchain):
    '''
    Try to submit a contract without a "from".
@@ -1137,7 +1168,7 @@ def test_postContract_noContractFrom(fxConnection, fxBlockchain):
    contract = fxConnection.request.getContractVersion(fxBlockchain.blockchainId, contractId, contractVersion)
 
 
-@pytest.mark.skip(reason="VB-847")
+@pytest.mark.smoke
 def test_postContract_noContractSource(fxConnection, fxBlockchain):
    '''
    Try to submit a contract without source code.
@@ -1154,10 +1185,11 @@ def test_postContract_noContractSource(fxConnection, fxBlockchain):
                                                 ctorParams="",
                                                 optimize=False,
                                                 generateDefaults=False)
-   contract = fxConnection.request.getContractVersion(fxBlockchain.blockchainId, contractId, contractVersion)
+   validateBadRequest(contractResult,
+                      "/api/blockchains/{}/concord/contracts".format(fxBlockchain.blockchainId))
 
 
-@pytest.mark.skip(reason="VB-854")
+@pytest.mark.smoke
 def test_postContract_noContractName(fxConnection, fxBlockchain):
    '''
    Try to submit a contract without a name.
@@ -1175,13 +1207,15 @@ def test_postContract_noContractName(fxConnection, fxBlockchain):
                                                 optimize=False,
                                                 generateDefaults=False)
    contract = fxConnection.request.getContractVersion(fxBlockchain.blockchainId, contractId, contractVersion)
+   validateBadRequest(contractResult,
+                      "/api/blockchains/{}/concord/contracts".format(fxBlockchain.blockchainId))
 
 
-@pytest.mark.skip(reason="VB-853")
-def test_postContract_noContractConstructor(fxConnection, fxBlockchain):
+@pytest.mark.smoke
+def test_postContract_noContractConstructorOK(fxConnection, fxBlockchain):
    '''
    Try to submit a contract without constructor parameters when the
-   constructor requires one.
+   constructor is not needed.
    '''
    contractId = util.numbers_strings.random_string_generator()
    contractVersion = util.numbers_strings.random_string_generator()
@@ -1200,7 +1234,32 @@ def test_postContract_noContractConstructor(fxConnection, fxBlockchain):
    assert util.blockchain.eth.helloHex in result, "Simple uploaded contract not executed correctly."
 
 
-@pytest.mark.skip(reason="VB-854")
+@pytest.mark.skip(reson="What should happen?  Helen accepts it with no error.")
+def test_postContract_noContractConstructorFail(fxConnection, fxBlockchain):
+   '''
+   Try to submit a contract without constructor parameters when the
+   constructor requires one.
+   '''
+   contractId = util.numbers_strings.random_string_generator()
+   contractVersion = util.numbers_strings.random_string_generator()
+   contractResult = util.blockchain.eth.upload_contract(fxBlockchain.blockchainId, fxConnection.request,
+                                                        "resources/contracts/CounterWithConstructorParam.sol",
+                                                        "Counter",
+                                                        contractId=contractId,
+                                                        contractVersion=contractVersion,
+                                                        fromAddr=fromUser,
+                                                        compilerVersion=compilerVersion,
+                                                        ctorParams=None,
+                                                        optimize=False,
+                                                        generateDefaults=False)
+   # contract = fxConnection.request.getContractVersion(fxBlockchain.blockchainId, contractId, contractVersion)
+   # result = fxConnection.rpc.callContract(contract["address"], data=util.blockchain.eth.helloFunction)
+   # validateBadRequest(contractResult,
+   #                    "/api/blockchains/{}/concord/contracts".format(fxBlockchain.blockchainId))
+   #   assert util.blockchain.eth.helloHex in result, "Simple uploaded contract not executed correctly."
+
+
+@pytest.mark.smoke
 def test_postContract_noContractCompilerVersion(fxConnection, fxBlockchain):
    '''
    Try to submit a contract without a compiler version.
@@ -1214,10 +1273,12 @@ def test_postContract_noContractCompilerVersion(fxConnection, fxBlockchain):
                                                 contractVersion=contractVersion,
                                                 fromAddr=fromUser,
                                                 compilerVersion=None,
-                                                ctorParams="",
+                                                ctorParams=None,
                                                 optimize=False,
                                                 generateDefaults=False)
    contract = fxConnection.request.getContractVersion(fxBlockchain.blockchainId, contractId, contractVersion)
+   validateBadRequest(contractResult,
+                      "/api/blockchains/{}/concord/contracts".format(fxBlockchain.blockchainId))
 
 
 @pytest.mark.smoke
@@ -1618,7 +1679,7 @@ def test_getContractVersionById_invalidContract(fxConnection, fxBlockchain):
 
 
 @pytest.mark.smoke
-@pytest.mark.skip(reason="Count cannot exceed ten")
+@pytest.mark.skip(reason="Unlike blocks, tx count cannot exceed ten, so this is an invalid test. Probably.")
 def test_transactionList_noNextField_allTransactions(fxConnection, fxBlockchain):
    '''
    Cause there to be no "next" field by requesting all transactions.
@@ -1626,6 +1687,7 @@ def test_transactionList_noNextField_allTransactions(fxConnection, fxBlockchain)
    # txResponses = util.blockchain.eth.addBlocks(fxConnection.request, fxConnection.rpc, fxBlockchain.blockchainId, 1)
    # txList = fxConnection.request.getTransactionList(fxBlockchain.blockchainId, count=12)
    pass
+
 
 @pytest.mark.smoke
 def test_transactionList_genesisBlockTransactions(fxConnection, fxBlockchain):
@@ -1830,27 +1892,13 @@ def test_consortiums_add(fxConnection):
 
 @pytest.mark.smoke
 @pytest.mark.consortiums
-@pytest.mark.skip(reason="VB-995")
+@pytest.mark.skip(reason="Need to have general CSP integration in the test framework.")
 def test_consortiums_add_same_name(fxConnection):
    '''
    Multiple consortiums can have the same name, but IDs must be different.
    '''
-   suffix = util.numbers_strings.random_string_generator()
-   # CSP integration: Remove references to org.
-   org = fxConnection.request.createOrg("org_{}".format(suffix))
-   conName = "con_{}".format(suffix)
-   con = fxConnection.request.createConsortium(conName, org["org_id"])
-   con = fxConnection.request.createConsortium(conName, org["org_id"])
-
-   # Should be a 400 Bad Request. Check with fix for specifics.
-   assert "consortium_name" not in con.keys(), \
-      "Expected to be prevented from creating consortiums with the same name."
-
-   # This block of code is in case we decide multiple consortiums with the
-   # same name is acceptable.  In that case, this test will check that
-   # the IDs are different
-
-   # CSP integration: Remove references to org.
+   pass
+   # CSP integration: Helen will not create orgs.  We will need orgs specifically for this test.
    # org = fxConnection.request.createOrg("org_{}".format(suffix))
    # conName = "con_{}".format(suffix)
    # con = fxConnection.request.createConsortium(conName, org["org_id"])
@@ -1867,34 +1915,36 @@ def test_consortiums_add_same_name(fxConnection):
 
 @pytest.mark.smoke
 @pytest.mark.consortiums
-@pytest.mark.skip(reason="VB-994")
+@pytest.mark.skip(reason="Need to have general CSP integration in the test framework.")
 def test_consortiums_empty_name(fxConnection):
    '''
    Create a consortium with an empty string as a name.
    '''
-   suffix = util.numbers_strings.random_string_generator()
+   pass
+   # CSP integration: Helen will not create orgs.  We will need orgs specifically for this test.
+   #suffix = util.numbers_strings.random_string_generator()
 
    # CSP integration: Remove references to org.
-   org = fxConnection.request.createOrg("org_{}".format(suffix))
-   con = fxConnection.request.createConsortium("", org["org_id"])
-   # Should be a 400 Bad Request. Check with fix for specifics.
-   assert "consortium_name" not in con.keys()
+   # org = fxConnection.request.createOrg("org_{}".format(suffix))
+   # con = fxConnection.request.createConsortium("", org["org_id"])
+   # Should be a 400 Bad Request.
 
 
 @pytest.mark.smoke
 @pytest.mark.consortiums
-@pytest.mark.skip(reason="VB-994")
+@pytest.mark.skip(reason="Need to have general CSP integration in the test framework.")
 def test_consortiums_no_name(fxConnection):
    '''
    Create a consortium with no name field.
    '''
-   suffix = util.numbers_strings.random_string_generator()
+   pass
+   # CSP integration: Helen will not create orgs.  We will need orgs specifically for this test.
+   # suffix = util.numbers_strings.random_string_generator()
 
    # CSP integration: Remove references to org.
-   org = fxConnection.request.createOrg("org_{}".format(suffix))
-   con = fxConnection.request.createConsortium(None, org["org_id"])
+   # org = fxConnection.request.createOrg("org_{}".format(suffix))
+   # con = fxConnection.request.createConsortium(None, org["org_id"])
    # Should be a 400 Bad Request. Check with fix for specifics.
-   assert "consortium_name" not in con.keys()
 
 
 @pytest.mark.smoke
@@ -1968,12 +2018,12 @@ def test_consortiums_get_nonexistant(fxConnection):
 
 @pytest.mark.smoke
 @pytest.mark.consortiums
-@pytest.mark.skip(reason="VB-954")
+@pytest.mark.skip(reason="Need to have general CSP integration in the test framework.")
 def test_consortiums_get_bad_format(fxConnection):
    '''
    Try to retrieve a consortium using an incorrect ID format.
    '''
-   response = fxConnection.request.getConsortium("hello")
+   pass
 
 
 @pytest.mark.smoke

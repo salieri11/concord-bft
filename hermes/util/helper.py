@@ -205,4 +205,22 @@ def requireFields(ob, fieldList):
          return (False, f)
    return (True, None)
 
-   
+
+def setHelenProperty(key, val):
+   '''
+   Sets a property in Helen's application-test.properties.
+   Only applicable when running from docker.
+   '''
+   testProperties = {}
+
+   with open("../docker/config-helen/app/profiles/application-test.properties") as f:
+      for line in f:
+         if line.strip():
+            k, v = line.split("=", 1)
+            testProperties[k] = v.strip()
+
+   testProperties[key] = val
+
+   with open("../docker/config-helen/app/profiles/application-test.properties", "w") as f:
+      for prop in testProperties:
+         f.write(prop + "=" + testProperties[prop] + "\n")

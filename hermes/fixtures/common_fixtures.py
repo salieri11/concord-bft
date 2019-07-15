@@ -63,10 +63,15 @@ def fxBlockchain(request):
                      hermesData["userConfig"],
                      hermesData["hermesCmdlineArgs"]["suite"])
       blockchainId, conId = prod.deployBlockchain(blockchainRequest, conName, orgName)
-   else:
+   elif len(blockchainRequest.getBlockchains()) > 0:
+      # We're using the default built in test blockchain.
       blockchain = blockchainRequest.getBlockchains()[0]
       blockchainId = blockchain["id"]
       conId = blockchain["consortium_id"]
+   else:
+      # The product was started with no blockchains.
+      blockchainId = None
+      conId = None
 
    return BlockchainFixture(blockchainId=blockchainId, consortiumId=conId)
 
@@ -87,11 +92,14 @@ def fxConnection(request, fxBlockchain):
                      hermesData["hermesCmdlineArgs"]["reverseProxyApiBaseUrl"],
                      hermesData["hermesUserConfig"])
 
-   ethrpcNode = util.blockchain.eth.getAnEthrpcNode(request, fxBlockchain.blockchainId)
-   ethrpcUrl = util.blockchain.eth.getUrlFromEthrpcNode(ethrpcNode)
-   rpc = RPC(request.logDir,
-             request.testName,
-             ethrpcUrl,
-             hermesData["hermesUserConfig"])
+   if fxBlockchain.blockchainId:
+      ethrpcNode = util.blockchain.eth.getAnEthrpcNode(request, fxBlockchain.blockchainId)
+      ethrpcUrl = util.blockchain.eth.getUrlFromEthrpcNode(ethrpcNode)
+      rpc = RPC(request.logDir,
+                request.testName,
+                ethrpcUrl,
+                hermesData["hermesUserConfig"])
+   else:
+       rpc = None
 
    return ConnectionFixture(request=request, rpc=rpc)
