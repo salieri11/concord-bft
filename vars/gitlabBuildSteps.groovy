@@ -457,9 +457,7 @@ EOF
                         echo "${PASSWORD}" | sudo -S "${python}" main.py RegressionTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${regression_test_logs}" --runConcordConfigurationGeneration
                         echo "${PASSWORD}" | sudo -S "${python}" main.py DamlTests --dockerComposeFile ../docker/docker-compose-daml.yml --resultsDir "${daml_test_logs}" --runConcordConfigurationGeneration --concordConfigurationInput /concord/config/dockerConfigurationInput-daml.yaml
 
-                        # RV, March 21, 2019: Commenting out this suite because it relies on a native Concord build, which is becoming problematic.
-                        #                     Uncomment when it no longer relies on that.
-                        # echo "${PASSWORD}" | sudo -S "${python}" main.py SimpleStateTransferTest --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${statetransfer_test_logs}" --runConcordConfigurationGeneration
+                        echo "${PASSWORD}" | sudo -S "${python}" main.py SimpleStateTransferTest --dockerComposeFile ../docker/docker-compose.yml ../docker/docker-compose-static-ips.yml --resultsDir "${statetransfer_test_logs}" --runConcordConfigurationGeneration
                         echo "${PASSWORD}" | sudo -S "${python}" main.py TruffleTests --logLevel debug --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${truffle_test_logs}" --runConcordConfigurationGeneration
                         echo "${PASSWORD}" | sudo -S "${python}" main.py ContractCompilerTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${contract_compiler_test_logs}" --runConcordConfigurationGeneration
                         echo "${PASSWORD}" | sudo -S "${python}" main.py HlfTests --dockerComposeFile=../docker/docker-compose-hlf.yml --resultsDir "${hlf_test_logs}" --runConcordConfigurationGeneration --concordConfigurationInput /concord/config/dockerConfigurationInput-hlf.yaml

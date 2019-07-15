@@ -34,14 +34,14 @@ string get_arg_value(string arg) {
   return arg.substr(idx + 1, arg.length() - idx - 1);
 }
 
-bool get_block(BlockId id, BlockchainDBAdapter adapter, Sliver &res) {
+bool get_block(BlockId id, const BlockchainDBAdapter *adapter, Sliver &res) {
   bool found = false;
-  adapter.getBlockById(id, res, found);
+  adapter->getBlockById(id, res, found);
   return found;
 }
 
 std::vector<Sliver> get_data(BlockId from, BlockId to,
-                             BlockchainDBAdapter adapter) {
+                             const BlockchainDBAdapter *adapter) {
   std::vector<Sliver> result;
   for (BlockId i = from; i <= to; i++) {
     Sliver res;
@@ -103,7 +103,7 @@ int main(int argc, char **argv) {
   initialize();
   BasicConfigurator config;
   config.configure();
-  log4cplus::Logger::getRoot().setLogLevel(OFF_LOG_LEVEL);
+  log4cplus::Logger::getRoot().setLogLevel(ERROR_LOG_LEVEL);
 
   if (argc < 2) {
     cout << "Usage: conc_rocksdb_adp"
@@ -129,36 +129,34 @@ int main(int argc, char **argv) {
   assert(op.length() > 0);
   assert(p.length() > 0);
 
-  auto comp = new RocksKeyComparator();
-  auto client = RocksDBClient(path, comp);
-  auto adapter = BlockchainDBAdapter(&client);
-
   if (opTypes.find(op) == opTypes.end()) {
     cout << "Error, operation not supported" << endl;
-    goto exit;
+    return -1;
   }
 
+  bool readOnly = false;
   if (opTypes[op] == OpType::GetBlockRaw ||
       opTypes[op] == OpType::GetBlockDigest) {
-    client.init(true);
-  } else {
-    client.init();
+    readOnly = true;
   }
+
+  std::unique_ptr<RocksKeyComparator> comp(new RocksKeyComparator());
+  std::unique_ptr<RocksDBClient> client(new RocksDBClient(path, comp.get()));
+  std::unique_ptr<BlockchainDBAdapter> adapter(
+      new BlockchainDBAdapter(client.get(), readOnly));
 
   switch (opTypes[op]) {
     case OpType::GetBlockDigest: {
-      std::vector<Sliver> results = get_data(from, to, adapter);
+      std::vector<Sliver> results = get_data(from, to, adapter.get());
       print_result(results, compute_digest);
       break;
     }
     case OpType::GetBlockRaw: {
-      std::vector<Sliver> results = get_data(from, to, adapter);
+      std::vector<Sliver> results = get_data(from, to, adapter.get());
       print_result(results);
       break;
     }
   }
 
-exit:
-  delete comp;
   return 0;
 }

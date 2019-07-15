@@ -18,7 +18,7 @@ namespace storage {
 
 class BlockchainDBAdapter {
  public:
-  explicit BlockchainDBAdapter(IDBClient *db);
+  explicit BlockchainDBAdapter(IDBClient *db, bool readOnly = false);
 
   IDBClient *getDb() { return m_db; }
 

@@ -31,12 +31,12 @@ using log4cplus::Logger;
 namespace concord {
 namespace storage {
 
-BlockchainDBAdapter::BlockchainDBAdapter(IDBClient *db) {
+BlockchainDBAdapter::BlockchainDBAdapter(IDBClient *db, bool readOnly) {
   logger =
       log4cplus::Logger::getInstance("concord.storage.BlockchainDBAdapter");
   m_isEnd = false;
   m_db = db;
-  concord::consensus::Status status = m_db->init();
+  concord::consensus::Status status = m_db->init(readOnly);
   if (!status.isOK()) {
     LOG4CPLUS_FATAL(logger,
                     "Failure in Database Initialization, status: " << status);
