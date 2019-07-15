@@ -14,6 +14,7 @@ public final class ErrorCode {
     public static final String BAD_PASSWORD_CHANGE = "Can't use same password!";
     public static final String BAD_REQUEST = "Bad request (e.g. missing request body).";
     public static final String BAD_NUMBER_FORMAT = "Bad number format {0}";
+    public static final String BAD_ORG_REMOVE = "Cannot remove the Consortium Owner Org";
     public static final String BAD_TOKEN = "Bad token";
     public static final String BAD_UUID_FORMAT = "Error converting {0} to UUID";
     public static final String BLOCKCHAIN_UNSPECIFIED = "No blockchain specified";

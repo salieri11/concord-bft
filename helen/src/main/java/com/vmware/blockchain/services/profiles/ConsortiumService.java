@@ -8,10 +8,13 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.vmware.blockchain.auth.AuthHelper;
+import com.vmware.blockchain.common.ErrorCode;
 import com.vmware.blockchain.dao.GenericDao;
 
 /**
@@ -19,6 +22,7 @@ import com.vmware.blockchain.dao.GenericDao;
  */
 @Service
 public class ConsortiumService {
+    private final Logger logger = LogManager.getLogger(ConsortiumService.class);
 
     private GenericDao genericDao;
     private AuthHelper authHelper;
@@ -49,8 +53,22 @@ public class ConsortiumService {
         }
     }
 
-    public void addOrganization(Consortium c, Organization org) {
-        genericDao.saveBiDirectionalRelation(c.getId(), org.getId());
+    /**
+     * remove an organization from the Consortium.
+     * @param c     Consortium
+     * @param org   Org ID to remove
+     * @throws IllegalArgumentException Removiing consortium owner org
+     */
+    public void removeOrganization(Consortium c, UUID org) {
+        if (c.getOrganization() == org) {
+            throw new IllegalArgumentException(ErrorCode.BAD_ORG_REMOVE);
+        }
+        genericDao.deleteRelation(c.getId(), org);
+        genericDao.deleteRelation(org, c.getId());
+    }
+
+    public void addOrganization(Consortium c, UUID org) {
+        genericDao.saveBiDirectionalRelation(c.getId(), org);
     }
 
     public List<Organization> getOrganizations(UUID id) {

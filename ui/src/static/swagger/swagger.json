@@ -1383,7 +1383,6 @@
           "content" : {
             "application/json" : {
               "schema" : {
-                "required" : [ "consortiumName", "consortiumType", "organization" ],
                 "type" : "object",
                 "properties" : {
                   "consortiumName" : {
@@ -1396,10 +1395,21 @@
                     "description" : "Type of consortium",
                     "format" : "string"
                   },
-                  "organization" : {
-                    "type" : "string",
-                    "description" : "Organization that the consortium is a part of",
-                    "format" : "UUID"
+                  "orgs_to_add" : {
+                    "type" : "array",
+                    "items" : {
+                      "type" : "string",
+                      "description" : "Organizations to add as members of this consortium",
+                      "format" : "uuid"
+                    }
+                  },
+                  "orgs_to_remove" : {
+                    "type" : "array",
+                    "items" : {
+                      "type" : "string",
+                      "description" : "Organizations to remove as members of this consortium",
+                      "format" : "uuid"
+                    }
                   }
                 }
               }
@@ -1415,6 +1425,40 @@
               "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/inline_response_202_4"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/consortiums/{con_id}/organizations" : {
+      "summary" : "Get consortium members",
+      "get" : {
+        "summary" : "Get Consortium by its ID",
+        "operationId" : "getConsortiumMembers",
+        "parameters" : [ {
+          "name" : "con_id",
+          "in" : "path",
+          "description" : "Consortium ID",
+          "required" : true,
+          "style" : "simple",
+          "explode" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "Returns the specified consortium",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/inline_response_202_4_members"
+                  }
                 }
               }
             }
@@ -1980,7 +2024,6 @@
   "components" : {
     "schemas" : {
       "inline_object_10" : {
-        "required" : [ "consortiumName", "consortiumType", "organization" ],
         "type" : "object",
         "properties" : {
           "consortiumName" : {
@@ -1993,10 +2036,21 @@
             "description" : "Type of consortium",
             "format" : "string"
           },
-          "organization" : {
-            "type" : "string",
-            "description" : "Organization that the consortium is a part of",
-            "format" : "UUID"
+          "orgs_to_add" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string",
+              "description" : "Organizations to add as members of this consortium",
+              "format" : "uuid"
+            }
+          },
+          "orgs_to_remove" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string",
+              "description" : "Organizations to remove as members of this consortium",
+              "format" : "uuid"
+            }
           }
         }
       },
@@ -2219,11 +2273,30 @@
             "type" : "string",
             "description" : "Consortium Name",
             "format" : "string"
+          },
+          "organization" : {
+            "type" : "string",
+            "description" : "Owning organization",
+            "format" : "uuid"
+          },
+          "members" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/inline_response_202_4_members"
+            }
           }
         },
         "example" : {
           "consortiumName" : "consortiumName",
-          "con_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91"
+          "con_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+          "organization" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+          "members" : [ {
+            "org_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+            "organization_name" : "organization_name"
+          }, {
+            "org_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+            "organization_name" : "organization_name"
+          } ]
         }
       },
       "inline_response_200_7" : {
@@ -3208,6 +3281,23 @@
               "type" : "object"
             }
           }
+        }
+      },
+      "inline_response_202_4_members" : {
+        "properties" : {
+          "org_id" : {
+            "type" : "string",
+            "description" : "Organization Id",
+            "format" : "uuid"
+          },
+          "organization_name" : {
+            "type" : "string",
+            "description" : "Organization name"
+          }
+        },
+        "example" : {
+          "org_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+          "organization_name" : "organization_name"
         }
       }
     },

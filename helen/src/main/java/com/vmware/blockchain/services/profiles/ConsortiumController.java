@@ -19,6 +19,9 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.vmware.blockchain.auth.AuthHelper;
+import com.vmware.blockchain.common.BadRequestException;
+import com.vmware.blockchain.common.ErrorCode;
+import com.vmware.blockchain.services.profiles.OrganizationContoller.OrgGetResponse;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -43,10 +46,28 @@ public class ConsortiumController {
     }
 
     @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    static class ConPatchResponse {
+        UUID consortiumId;
+        String consortiumName;
+        UUID organizationId;
+        List<OrgGetResponse> members;
+    }
+
+    @Data
     static class ConPostBody {
         String consortiumName;
         String consortiumType;
         private UUID organization;
+    }
+
+    @Data
+    static class ConPatchBody {
+        String consortiumName;
+        String consortiumType;
+        List<UUID> orgsToAdd;
+        List<UUID> orgsToRemove;
     }
 
     @Autowired
@@ -108,15 +129,50 @@ public class ConsortiumController {
      */
     @RequestMapping(path = "/api/consortiums/{con_id}", method = RequestMethod.PATCH)
     @PreAuthorize("@authHelper.canUpdateConsortium(#consortiumId)")
-    public ResponseEntity<ConGetResponse> updateCon(@PathVariable("con_id") UUID consortiumId,
-                                                    @RequestBody ConPostBody body) {
+    public ResponseEntity<ConPatchResponse> updateCon(@PathVariable("con_id") UUID consortiumId,
+                                                    @RequestBody ConPatchBody body) {
         Consortium consortium = consortiumService.get(consortiumId);
         if (body.consortiumName != null) {
             consortium.setConsortiumName(body.getConsortiumName());
+            consortium = consortiumService.put(consortium);
         }
-        consortium = consortiumService.put(consortium);
-        return new ResponseEntity<>(new ConGetResponse(consortium.getId(),
-                                                       consortium.getConsortiumName(),
-                                                       consortium.getOrganization()), HttpStatus.OK);
+        // check if the remove would blow up, and fail before we do anything else
+        if (body.getOrgsToRemove() != null && body.getOrgsToRemove().contains(consortium.getOrganization())) {
+            // consortium sesvice will look for this, but we might partially process a list
+            throw new BadRequestException(ErrorCode.BAD_ORG_REMOVE);
+        }
+
+        // we need this for the lambdas
+        final Consortium c = consortium;
+        if (body.getOrgsToAdd() != null) {
+            body.getOrgsToAdd().forEach(o -> consortiumService.addOrganization(c, o));
+        }
+        if (body.getOrgsToRemove() != null) {
+            body.getOrgsToRemove().forEach(o -> consortiumService.removeOrganization(c, o));
+        }
+
+        return new ResponseEntity<>(new ConPatchResponse(consortium.getId(),
+                                                         consortium.getConsortiumName(),
+                                                         consortium.getOrganization(),
+                                                         getMembers(consortium)),
+                                    HttpStatus.OK);
     }
+
+    /**
+     * Return a list of consortium memmbers.
+     */
+    @RequestMapping(path = "/api/consortiums/{con_id}/organizations")
+    @PreAuthorize("@authHelper.canAccessConsortium(#consortiumId)")
+    public ResponseEntity<List<OrgGetResponse>> getOrgs(@PathVariable("con_id") UUID consortiumId) {
+        Consortium consortium = consortiumService.get(consortiumId);
+        return new ResponseEntity<>(getMembers(consortium),
+                                    HttpStatus.OK);
+    }
+
+    private List<OrgGetResponse> getMembers(Consortium consortium) {
+        return consortiumService.getOrganizations(consortium.getId()).stream()
+                .map(o -> new OrgGetResponse(o.getId(), o.getOrganizationName()))
+                .collect(Collectors.toList());
+    }
+
 }
