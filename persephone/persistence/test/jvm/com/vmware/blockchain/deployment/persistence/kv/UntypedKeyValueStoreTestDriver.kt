@@ -21,7 +21,7 @@ open class UntypedKeyValueStoreTestDriver {
 
     companion object {
         /** Default await-time value in milliseconds. */
-        const val awaitTime: Long = 5000
+        const val awaitTime: Long = 60000
     }
 
     /**
