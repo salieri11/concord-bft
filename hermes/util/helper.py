@@ -12,7 +12,6 @@ import paramiko
 import subprocess
 from . import numbers_strings
 from . import product as p
-import requests
 
 log = logging.getLogger(__name__)
 docker_env_file = ".env"
