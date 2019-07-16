@@ -124,8 +124,11 @@ export class BlockchainService {
       );
   }
 
-  select(bId: string): string {
-    if (!this.isUUID(bId)) { return; }
+  select(bId: string): boolean {
+    if (!this.isUUID(bId)) {
+      this.blockchainId = undefined;
+      return false;
+    }
 
     this.blockchainId = bId;
 
@@ -135,8 +138,8 @@ export class BlockchainService {
           this.selectedBlockchain = bc;
         }
       });
-      return bId;
     }
+    return true;
   }
 
   isUUID(uuid: string): boolean {

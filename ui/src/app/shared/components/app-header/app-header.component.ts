@@ -64,7 +64,8 @@ export class AppHeaderComponent implements OnDestroy, AfterViewInit {
   ngAfterViewInit() {
     if (this.env.csp) {
       this.header.switchOrg.subscribe(org => {
-        window.location.href = `${this.env.loginPath}?org_link=/csp/gateway/am/api/orgs/${org.id}&orgLink=/csp/gateway/am/api/orgs/${org.id}`;
+        const orgLink = `/csp/gateway/am/api/orgs/${org.id}`;
+        window.location.href = `${this.env.loginPath}?org_link=${orgLink}&orgLink=${orgLink}`;
       });
 
       this.header.signOut.subscribe(() => {
@@ -99,7 +100,7 @@ export class AppHeaderComponent implements OnDestroy, AfterViewInit {
 
     // TODO: Most of this is fake data until we can get
     // these services setup.
-    this.serviceRefLink = 'https://blockchain-stage.vmware.com';
+    this.serviceRefLink = this.env.refLink;
 
     // HeaderOptions
     this.headerOptions.baseRoute = '/';
@@ -111,22 +112,23 @@ export class AppHeaderComponent implements OnDestroy, AfterViewInit {
     this.headerOptions.enableSignout = true;
     this.headerOptions.showNotificationsMenu = true;
     this.headerOptions.helpPinnable = true;
-    this.headerOptions.docCenterLink = 'https://docs-staging.vmware.com/en/VMware-Blockchain/index.html';
-    this.headerOptions.docsProducts = ['VMware Blockchain'];
-    this.headerOptions.docsDefaultSearch = 'Blockchain';
+    // this.headerOptions.docCenterLink = 'https://docs-staging.vmware.com/en/VMware-Blockchain/index.html';
+    // this.headerOptions.docsProducts = ['VMware Blockchain'];
+    // this.headerOptions.docsDefaultSearch = 'VMware Blockchain';
+    this.headerOptions.disableDocsSearch = true;
     this.headerOptions.userMenuIconified = true;
     this.headerOptions.notifications = null;
     this.headerOptions.alerts = null;
     this.headerOptions.context = null;
     this.headerOptions.showOrgSwitcher = true;
-    this.headerOptions.showHelpMenu = true;
+    this.headerOptions.showHelpMenu = false;
     this.headerOptions.enableChangeDefaultOrg = true;
     this.headerOptions.enableEventTracking = true;
-    this.headerOptions.enableIntercom = true;
+    this.headerOptions.enableIntercom = false;
     this.headerOptions.globalBranding = true;
     this.headerOptions.isMasked = false;
-    this.headerOptions.showSupportTab = true;
-    this.headerOptions.showDocCenterButton = true;
+    this.headerOptions.showSupportTab = false;
+    this.headerOptions.showDocCenterButton = false;
   }
 
 }
