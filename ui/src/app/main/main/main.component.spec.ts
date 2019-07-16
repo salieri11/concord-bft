@@ -21,8 +21,8 @@ import { DeployingInterstialComponent } from '../deploying-interstitial/deployin
 import { SetupModalComponent } from '../setup-modal/setup-modal.component';
 
 import { ErrorAlertService } from '../../shared/global-error-handler.service';
-import { AuthenticationService } from '../../shared/authentication.service';
-import { Personas } from '../../shared/persona.service';
+// import { AuthenticationService } from '../../shared/authentication.service';
+// import { Personas } from '../../shared/persona.service';
 import { VmwClarityThemeService } from '../../shared/theme.provider';
 import { VmwTasksService } from '../../shared/components/task-panel/tasks.service';
 import { TourService } from '../../shared/tour.service';
@@ -88,19 +88,19 @@ describe('MainComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  describe('when authenticated', () => {
-    beforeEach(() => {
-      (TestBed.get(AuthenticationService) as AuthenticationService).logIn('test@vmware.com', 'asdfasdf', Personas.SystemsAdmin);
-    });
-    afterEach(() => {
-      (TestBed.get(AuthenticationService) as AuthenticationService).logOut();
-    });
+  // describe('when authenticated', () => {
+  //   beforeEach(() => {
+  //     (TestBed.get(AuthenticationService) as AuthenticationService).logIn('test@vmware.com', 'asdfasdf', Personas.SystemsAdmin);
+  //   });
+  //   afterEach(() => {
+  //     (TestBed.get(AuthenticationService) as AuthenticationService).logOut();
+  //   });
 
-    it('should render a nav bar title', async(() => {
-      const testFixture = TestBed.createComponent(MainComponent);
-      testFixture.detectChanges();
-      const compiled = testFixture.debugElement.nativeElement;
-      expect(compiled.querySelector('.branding .title').textContent).toContain('title');
-    }));
-  });
+  //   it('should render a nav bar title', async(() => {
+  //     const testFixture = TestBed.createComponent(MainComponent);
+  //     testFixture.detectChanges();
+  //     const compiled = testFixture.debugElement.nativeElement;
+  //     expect(compiled.querySelector('.branding .title').textContent).toContain('title');
+  //   }));
+  // });
 });

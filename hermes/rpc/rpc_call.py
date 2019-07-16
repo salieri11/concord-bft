@@ -10,6 +10,7 @@ import time
 from numbers import Number
 
 import util.json_helper
+from util.auth import getAccessToken, TESTING_TOKEN
 
 log = logging.getLogger(__name__)
 
@@ -28,8 +29,9 @@ class RPC():
    _responseFile = None
    _outputFile = None
    _url = None
+   _accessToken = None
 
-   def __init__(self, logDir, testName, url, userConfig):
+   def __init__(self, logDir, testName, url, userConfig, tokenType=TESTING_TOKEN):
       self._logDir = logDir
       os.makedirs(self._logDir, exist_ok=True)
 
@@ -40,6 +42,7 @@ class RPC():
       self._testName = testName
       self._url = url
       self._userConfig = userConfig
+      self._accessToken = getAccessToken(tokenType)
 
    @staticmethod
    def searchResponse(searchMe, findMe):
@@ -122,12 +125,10 @@ class RPC():
       RPC._idCounter += 1
       lock.release()
       user = self._userConfig.get('product').get('db_users')[0]
-      username = user['username']
-      password = user['password']
+
       curlCmd = ["curl",
                  "-H", "Content-Type: application/json",
-                 "--user", "{0}:{1}".format(
-                  username, password),
+                 "-H", "Authorization: Bearer {0}".format(self._accessToken),
                  "--data", json.dumps(self._rpcData),
                  self._url,
                  "--output", self._responseFile,
@@ -184,7 +185,6 @@ class RPC():
                  reverseProxyApiBaseUrl + "/api/auth/login",
                  "--verbose",
                  "--insecure",]
-
       curlProc = subprocess.run(curlCmd)
 
    def _setUpOutput(self, method):

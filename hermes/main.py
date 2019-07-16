@@ -21,9 +21,8 @@ from util import html, json_helper
 log = None
 suites = ["ContractCompilerTests", "CoreVMTests",
           "LintTests", "EvilTimeTests", "ExtendedRPCTests", "HelenAPITests", "HlfTests", "PerformanceTests", "PersephoneTests",
-          "RegressionTests", "SampleDAppTests" "SampleSuite", "SimpleStateTransferTest", "TimeTests", "TruffleTests", "UiTests",
+          "RegressionTests", "SampleDAppTests", "SampleSuite", "SimpleStateTransferTest", "TimeTests", "TruffleTests", "UiTests",
           "WebSocketRPCTests"]
-
 
 def main():
    startTime = datetime.datetime.now()

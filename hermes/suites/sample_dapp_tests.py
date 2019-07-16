@@ -24,6 +24,7 @@ import subprocess
 import requests
 
 from . import test_suite
+from util.auth import DEV_ADMIN_TOKEN
 
 log = logging.getLogger(__name__)
 
@@ -46,17 +47,12 @@ class SampleDAppTests(test_suite.TestSuite):
 
       user = self._userConfig.get('product').get('db_users')[0]
       username = user['username']
-      password = user['password']
+      self._password = DEV_ADMIN_TOKEN
 
       if self._args.user != None:
          self._user = self._args.user
       else:
          self._user = username
-
-      if self._args.password != None:
-         self._password = self._args.password
-      else:
-         self._password = password
 
       # Test does not launch the product if a URL is passed to it
       if self._args.endpoint != None:
@@ -120,7 +116,8 @@ class SampleDAppTests(test_suite.TestSuite):
 
 
    def _getTests(self):
-      return [("asset_transfer", self._test_asset_transfer), ("test_verify_contracts", self._test_supply_chain_and_verify_contracts)]
+      return [("asset_transfer", self._test_asset_transfer),
+              ("test_verify_contracts", self._test_supply_chain_and_verify_contracts)]
 
    def _executeInContainer(self, command):
       '''
@@ -172,21 +169,26 @@ class SampleDAppTests(test_suite.TestSuite):
          pass_endpoint = self._apiServerUrl.replace('/','\/');
 
          # Edit placeholders with actual values inside the container
+         log.debug("Replacing ADDRESS_PLACEHOLDER with {} in test/test_AssetTransfer.js.".format(pass_endpoint))
          comm = 'docker exec asset_transfer-test sed -i -e \'s/ADDRESS_PLACEHOLDER/' + pass_endpoint + '/g\' test/test_AssetTransfer.js'
          out1, err1 = self._executeInContainer(comm)
          if err1 != None:
             return (False, err1)
 
+         log.debug("Replacing USER_PLACEHOLDER with {} in test/test_AssetTransfer.js.".format(self._user))
          out2, err2 = self._executeInContainer("docker exec asset_transfer-test sed -i -e 's/USER_PLACEHOLDER/" + self._user + "/g' test/test_AssetTransfer.js")
          if err2 != None:
             return (False, err2)
 
+         log.debug("Replacing PASSWORD_PLACEHOLDER with {} in test/test_AssetTransfer.js.".format(self._password))
          out3, err3 = self._executeInContainer("docker exec asset_transfer-test sed -i -e 's/PASSWORD_PLACEHOLDER/" + self._password + "/g' test/test_AssetTransfer.js")
          if err3 != None:
             return (False, err3)
 
       # Run the test script(s)
+      log.debug("Running 'docker exec asset_transfer-test mocha'")
       out, err = self._executeInContainer("docker exec asset_transfer-test mocha")
+      log.debug("Done running 'docker exec asset_transfer-test mocha'.  err: '{}', out: '{}'".format(err, out))
       if err != None or out == "":
          return (False, err)
 
@@ -195,6 +197,7 @@ class SampleDAppTests(test_suite.TestSuite):
       if contracts_after == contracts_before:
          return (False, "Contracts have not changed after asset transfer deployment.")
 
+      log.debug("Contracts changed after asset transfer deployment, as expected.")
       log.info(out)
 
       return (True, None)
@@ -237,7 +240,7 @@ class SampleDAppTests(test_suite.TestSuite):
          file.seek(0)
          file.write(lines)
 
-      
+
       os.system("cd ../vmware-blockchain-samples/supply-chain && docker-compose build")
       os.system("cd ../vmware-blockchain-samples/supply-chain && docker-compose -f docker-compose.yml -f docker-compose-local-network.yml up -d")
       output = subprocess.check_output("cd ../vmware-blockchain-samples/supply-chain && docker-compose -f docker-compose.yml -f docker-compose-local-network.yml run supply-chain npm run deploy_and_verify:vmware", shell = True, universal_newlines=True)

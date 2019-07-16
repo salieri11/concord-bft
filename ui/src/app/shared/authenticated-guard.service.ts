@@ -49,9 +49,9 @@ export class AuthenticatedGuard implements CanActivateChild, CanActivate {
     if (this.env.csp) {
       if (!this.authenticationService.accessToken) {
         const auth = await this.authenticationService.getAccessToken().toPromise();
-        const recent = localStorage.getItem('welcome');
+        // const recent = localStorage.getItem('welcome');
 
-        if (auth.last_login === 0 && recent !== auth.email) {
+        if (auth.last_login === 0) {
           localStorage.setItem('welcome', auth.email);
           this.router.navigate(['/', 'welcome'], {fragment: 'welcome'});
         }

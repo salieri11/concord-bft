@@ -150,6 +150,8 @@ services:
       - 80:80
     depends_on:
       - helen
+    volumes:
+      - ./ui/app-config.json:/usr/share/nginx/html/static/app-config.json
 
   contract-compiler:
     image: "${contract_compiler_repo}:${contract_compiler_tag}"

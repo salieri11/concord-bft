@@ -5,21 +5,13 @@
 import { browser } from 'protractor';
 
 import { SwaggerPage } from './swagger.po';
-import { AuthHelper } from '../helpers/auth';
-import { LoginPage } from '../login/login.po';
 import { waitFor } from '../helpers/utils';
 
 describe('concord-ui Swagger Docs', () => {
-  let authHelper: AuthHelper;
-  let loginPage: LoginPage;
   let swaggerPage: SwaggerPage;
 
   beforeAll(() => {
-    loginPage = new LoginPage();
-    authHelper = new AuthHelper();
-    loginPage.navigateTo();
-    loginPage.fillLogInForm('admin@blockchain.local', 'T3sting!');
-    browser.sleep(1000);
+    browser.waitForAngularEnabled(false);
   });
 
   beforeEach(() => {

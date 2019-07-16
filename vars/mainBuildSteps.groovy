@@ -105,7 +105,6 @@ def call(){
           }
         }
       }
-
       stage("Copy dependencies") {
         parallel {
           stage("Copy googletest") {

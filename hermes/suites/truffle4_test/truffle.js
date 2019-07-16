@@ -19,7 +19,7 @@ module.exports = {
             return 'Basic ' + toBase64(header)
           }
 
-          const basicAuth = basicAuthEncode("admin@blockchain.local", "Admin!23");
+          const basicAuth = basicAuthEncode("USER_PLACEHOLDER", "KEY_PLACEHOLDER");
           const header = {'authorization': basicAuth};
           const provider = new HttpHeaderProvider('http://localhost:8080/api/concord/eth/', header);
           return provider;

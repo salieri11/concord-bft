@@ -1,6 +1,7 @@
 package com.vmware.blockchain.performance;
 
 import com.vmware.blockchain.samples.Ballot;
+import com.vmware.blockchain.performance.BlockchainCredentials;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.web3j.crypto.Credentials;
@@ -31,14 +32,14 @@ public class BallotDeployer {
         // create the web3j interface to interact with Helen, here is the ENDPOINT is Ethereum JSON API endpoint defined in Helen
         if (BallotDApp.ENABLE_AUTH) {
             HttpService httpServiceEth = new HttpService(BallotDApp.ENDPOINT);
-            httpServiceEth.addHeader("Authorization", okhttp3.Credentials.basic("admin@blockchain.local", "Admin!23"));
+            httpServiceEth.addHeader("Authorization", okhttp3.Credentials.basic(BlockchainCredentials.USER, BlockchainCredentials.KEY));
             web3j = Web3j.build(httpServiceEth);
         } else {
             web3j = Web3j.build(new HttpService(BallotDApp.ENDPOINT));
         } 
 
       HttpService httpServiceEth = new HttpService(BallotDApp.ENDPOINT);
-      httpServiceEth.addHeader("Authorization", okhttp3.Credentials.basic("admin@blockchain.local", "Admin!23"));
+      httpServiceEth.addHeader("Authorization", okhttp3.Credentials.basic(BlockchainCredentials.USER, BlockchainCredentials.KEY));
       Web3j web3j = Web3j.build(httpServiceEth);
 
       log.info("Connected to Ethereum client version: "

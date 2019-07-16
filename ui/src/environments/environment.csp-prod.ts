@@ -1,9 +1,18 @@
 /*
  * Copyright 2018-2019 VMware, all rights reserved.
  */
+import { DynamicEnvironment } from './dynamic-environment';
 
-export const environment = {
-  production: true,
-  csp: true,
-  loginPath: '/api/oauth/login'
-};
+class Environment extends DynamicEnvironment {
+  production: boolean = true;
+  csp: boolean = true;
+  cspEnv: string;
+  loginPath: string = '/api/oauth/login';
+
+  constructor() {
+    super();
+  }
+
+}
+
+export const environment = new Environment();

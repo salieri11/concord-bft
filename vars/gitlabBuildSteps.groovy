@@ -174,6 +174,15 @@ def call(){
               }
             }
           }
+          stage("Add localhost.vmware.com") {
+            steps {
+              dir('blockchain/vars') {
+                withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
+                  sh 'echo "${PASSWORD}" | sudo -S ./add-localhost-vmware-com.sh'
+                }
+              }
+            }
+          }
           stage("Copy evmjit") {
             steps() {
               script{

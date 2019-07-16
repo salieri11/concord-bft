@@ -8,6 +8,20 @@ do
     sed -i 's?/var/jenkins/workspace/truffle4_resources?`pwd`?g' "${i}"
 done
 
+# Credentials are stored in credentials.txt and put into truffle.js at run time.
+# This is done so that we can put placeholders in credentials.txt and have CI/CD
+# overwrite them (later).
+# Having them in a file called "credentials.txt" makes it easier for people who
+# are running the tests on their local systems; they don't have to fish for where
+# the credentials go.
+read -d '' -a credentials < "credentials.txt"
+
+USR=${credentials[0]}
+KEY=${credentials[1]}
+cp truffle.js truffle.js.bkp
+sed "s/USER_PLACEHOLDER/$USR/g" truffle.js > truffle_tmp.js
+sed "s/KEY_PLACEHOLDER/$KEY/g" truffle_tmp.js > truffle.js
+
 EXEC=./node_modules/.bin/truffle
 echo Truffle: ${EXEC}
 

@@ -6,8 +6,6 @@ import { browser, protractor, ProtractorExpectedConditions, element } from 'prot
 
 import { SmartContractsPage } from './smart-contracts.po';
 import { SmartContractPage } from './smart-contract.po';
-import { AuthHelper } from '../helpers/auth';
-import { LoginPage } from '../login/login.po';
 import { BROWSER_WAIT_TIME } from '../helpers/constants';
 import { waitFor, waitForText, waitToDisappear } from '../helpers/utils';
 
@@ -16,8 +14,6 @@ declare var require: any;
 const path = require('path');
 
 describe('concord-ui Smart Contracts', () => {
-  let authHelper: AuthHelper;
-  let loginPage: LoginPage;
   let smartContractsPage: SmartContractsPage;
   let smartContractPage: SmartContractPage;
   let from: string;
@@ -29,11 +25,7 @@ describe('concord-ui Smart Contracts', () => {
 
   beforeAll(() => {
     until = protractor.ExpectedConditions;
-    loginPage = new LoginPage();
-    authHelper = new AuthHelper();
-    loginPage.navigateTo();
-    browser.sleep(1000);
-    loginPage.fillLogInForm('admin@blockchain.local', 'T3sting!');
+    browser.waitForAngularEnabled(false);
   });
 
   beforeEach(() => {
