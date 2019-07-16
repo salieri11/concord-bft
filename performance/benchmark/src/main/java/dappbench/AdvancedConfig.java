@@ -1,17 +1,19 @@
 package dappbench;
 
+import java.util.List;
+
 public class AdvancedConfig {
-    private String esxtop;
+    private List<Object> esxtopCommand = null;
     private int numberThreads = 0;
     private String concordUsername = "admin@blockchain.local";
     private String concordPassword = "Admin!23";
 
-    public String getEsxtop() {
-        return esxtop;
+    public List<Object> getEsxtopCommand() {
+        return esxtopCommand;
     }
 
-    public void setEsxtop(String esxtop) {
-        this.esxtop = esxtop;
+    public void setEsxtopCommand(List<Object> esxtopCommand) {
+        this.esxtopCommand = esxtopCommand;
     }
     
     public int getNumberThreads() {

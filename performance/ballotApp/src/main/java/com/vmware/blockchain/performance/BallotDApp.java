@@ -20,6 +20,8 @@ import org.web3j.utils.Numeric;
 
 import java.io.*;
 import java.math.BigInteger;
+import java.text.DecimalFormat;
+import java.util.*;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -53,6 +55,9 @@ public class BallotDApp {
 	public static int NUMBER_THREADS = Runtime.getRuntime().availableProcessors()*2;
 	private List<Entry<String, Integer>> weightedEndpoints = null;
 	public static boolean CONCORD = true;
+	private Map<String,List<String> > stats;
+	private String testName;
+	DecimalFormat df = new DecimalFormat("#.00");
 	public static int PORT = 8545;
 	public static String CONCORD_USERNAME = "admin@blockchain.local";
 	public static String CONCORD_PASSWORD = "Admin!23";
@@ -84,6 +89,14 @@ public class BallotDApp {
 
 	public String getContractDataPath() {
 		return BallotDApp.CONTRACT_DATA_PATH;
+	}
+
+	public Map<String,List<String> > getStats() {
+		return this.stats;
+	}
+
+	public void setTestName(String name){
+		this.testName = name;
 	}
 
 	//Logging interceptor to see JSON_RPC callls
@@ -118,9 +131,10 @@ public class BallotDApp {
 				TimeUnit.NANOSECONDS.sleep(diff);
 			}
 
-			if (diff < 0 && idx != 0) {
-				logger.debug("Transaction " + idx + " is late.");
-			}
+//			if (diff < 0 && idx != 0) {
+//				logger.debug("Transaction " + idx + " is late.");
+//			}
+
 
 		} catch (InterruptedException e){
 			e.printStackTrace();
@@ -366,15 +380,20 @@ public class BallotDApp {
 			latencies.add(duration);
 
 			writerCSV.println(time.get(i).getDriverId() + "," + time.get(i).getNodeIp() + "," + time.get(i).getId() + "," + (time.get(i).start-minStartTime) + "," + (time.get(i).end-minStartTime) + "," + duration);
-			waveFrontFileWriter.write("ballot.app.tx" + time.get(i).getId() + ".latency " + String.format("%.02f", duration/1000000.0) + " source=" + time.get(i).getDriverId()+ " driverId="+DRIVERID+ " runId="+RUNID+ " nodeIP="+ parseIP(time.get(i).getNodeIp()) + "\n");
+			waveFrontFileWriter.write("ballot.app.tx" + time.get(i).getId() + ".latency " + String.format("%.02f", duration/1000000.0) + " " + java.time.Instant.now().getEpochSecond() + " " + " source=" + time.get(i).getDriverId()+ " driverId="+DRIVERID+ " runId="+RUNID+ " nodeIP="+ parseIP(time.get(i).getNodeIp()) + "\n");
 			totalSum += duration;
 		}
+		int numSuccessfulTransactions = latencies.size();
 		Collections.sort(latencies);
-		waveFrontFileWriter.write("ballot.app.transaction.p50 " + String.format("%.02f", latencies.get(NUMBER/2)/1000000.0) + " source=" + DRIVERID+"\n");
-		waveFrontFileWriter.write("ballot.app.transaction.p95 " + String.format("%.02f", latencies.get(NUMBER*95/100)/1000000.0) + " source=" + DRIVERID +"\n");
-		waveFrontFileWriter.write("ballot.app.transaction.p99 " + String.format("%.02f", latencies.get(NUMBER*99/100)/1000000.0) + " source=" + DRIVERID+"\n");
+		waveFrontFileWriter.write("ballot.app.transaction.p50 " + String.format("%.02f", latencies.get(numSuccessfulTransactions/2)/1000000.0) + " " + java.time.Instant.now().getEpochSecond() + " " + " source=" + DRIVERID+"\n");
+		waveFrontFileWriter.write("ballot.app.transaction.p95 " + String.format("%.02f", latencies.get(numSuccessfulTransactions*95/100)/1000000.0) + " " + java.time.Instant.now().getEpochSecond() + " " + " source=" + DRIVERID +"\n");
+		waveFrontFileWriter.write("ballot.app.transaction.p99 " + String.format("%.02f", latencies.get(numSuccessfulTransactions*99/100)/1000000.0) + " " + java.time.Instant.now().getEpochSecond() + " " + " source=" + DRIVERID+"\n");
 		waveFrontFileWriter.close();
 
+		//Populate stats
+		stats = new HashMap<>();
+		stats.put("tableRow", Arrays.asList(testName, String.valueOf(numSuccessfulTransactions), df.format(100*numSuccessfulTransactions*1.0/NUMBER) + "%" ,String.valueOf(NUMBER - numSuccessfulTransactions), RATE_CONTROL + " tps", df.format(latencies.get(NUMBER - 1)/1000000.0) + " ms",
+				df.format(latencies.get(0)/1000000.0) + " ms", df.format(totalSum/(1000000.0*NUMBER)) + " ms", df.format(NUMBER/((timeEndLoop - timeStartLoop)/1000000000.0)) + " tx/sec"));
 
 		logger.info("Average time response time: " + totalSum*1.0/NUMBER);
 		logger.info("Start time of processing Voting: " + minStartTime);

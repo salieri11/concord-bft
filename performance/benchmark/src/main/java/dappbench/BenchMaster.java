@@ -1,16 +1,23 @@
 package dappbench;
 
+import com.jcraft.jsch.ChannelExec;
+import com.jcraft.jsch.JSch;
+import com.jcraft.jsch.JSchException;
+import com.jcraft.jsch.Session;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.Constructor;
-
+import java.io.IOException;
 import org.web3j.crypto.Credentials;
+
+import java.util.*;
+import java.util.Map.Entry;
+
 
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Random;
 
 import java.io.*;
@@ -24,6 +31,7 @@ import java.text.SimpleDateFormat;
 public class BenchMaster {
 	private static final Logger logger = LogManager.getLogger(BenchMaster.class);
 
+	@SuppressWarnings("unchecked")
 	public static void main(String[] args) {
 		System.out.println("Starting DAppBench...");
 		Yaml yaml = new Yaml(new Constructor(Benchmark.class));
@@ -31,7 +39,9 @@ public class BenchMaster {
 			InputStream inputStream = new FileInputStream(new File(args[0]));
 			Benchmark benchmark = yaml.load(inputStream);
 			SimpleConfig simpleConfig = benchmark.getSimpleConfig();
+
 			AdvancedConfig advancedConfig = benchmark.getAdvancedConfig();
+			
 			List<Workload> workloads = simpleConfig.getWorkloads();
 			int sleepTime = simpleConfig.getSleepTime();
 			int totalWorkloads = 0;
@@ -45,12 +55,66 @@ public class BenchMaster {
 
 			//generate a unique driverID for this run
 			BallotDApp.DRIVERID = new Random().nextInt(999999);
+
+			List<String> hostnames = new ArrayList<>();
+			Map<Integer, ChannelExec> channel = new HashMap<>();
+			Map<Integer, Session> session = new HashMap<>();
+			Map<Integer, Boolean> esxSuccess = new HashMap<>();
+
+			//esxtop is optional
+			if(advancedConfig.getEsxtopCommand() != null) {
+				String filenameTimestamp = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
+				hostnames = (List<String>) advancedConfig.getEsxtopCommand().get(0);
+				List<String> usernames = (List<String>) advancedConfig.getEsxtopCommand().get(1);
+				List<String> passwords = (List<String>) advancedConfig.getEsxtopCommand().get(2);
+				String command;
+				for (int host = 0; host < hostnames.size(); host++) {
+					try {
+						command = "esxtop ";
+						for (int i = 4; i < advancedConfig.getEsxtopCommand().size(); i++)
+							command += advancedConfig.getEsxtopCommand().get(i) + " ";
+
+						command += ">" + advancedConfig.getEsxtopCommand().get(3) + " &";
+						command = command.replace("timestamp", filenameTimestamp);
+
+						//Creating a SSH session to run the esxtop command
+						Properties config = new Properties();
+						config.put("StrictHostKeyChecking", "no");
+						JSch jsch = new JSch();
+						session.put(host, jsch.getSession(usernames.get(host), hostnames.get(host), 22));
+						session.get(host).setPassword(passwords.get(host));
+						session.get(host).setConfig(config);
+						// Establish the connection
+						session.get(host).connect();
+						logger.info("Connected...");
+
+						channel.put(host, (ChannelExec) session.get(host).openChannel("exec"));
+						channel.get(host).setCommand(command);
+						logger.info("EsxTopCommand: " + command);
+						channel.get(host).connect();
+						esxSuccess.put(host, true);
+					} catch (JSchException jschX) {
+						logger.warn(jschX.getMessage());
+						esxSuccess.put(host, false);
+					}
+				}
+			}
+
+
 			List<Node> nodes = benchmark.getSimpleConfig().getNodes();
+
+			Data data = new Data();
+			data.setSummaryTableHeader(Arrays.asList("Name", "Succ", "Succ Rate", "Fail", "Send Rate", "Max Latency", "Min Latency", "Avg Latency", "Throughput"));
+			data.setConfigFilePath("../" + args[0]);
+			data.addBasicInformation("DLT", simpleConfig.getBlockchain());
+
 			BallotDApp.PORT = simpleConfig.getPort();
 			
 			//advanced configuration
 			BallotDApp.CONCORD_USERNAME = advancedConfig.getConcordUsername();
 			BallotDApp.CONCORD_PASSWORD = advancedConfig.getConcordUsername();
+
+			int workloadNum = 1;
 
 			for (Workload workload : workloads) {
 				if (workload.getDapp().equals("Ballot")) {
@@ -116,7 +180,9 @@ public class BenchMaster {
 					}
 
 					for (int i = 0; i < workload.getNumOfRuns(); i++) {
-						BallotDApp.RUNID = new SimpleDateFormat("yyyyMMddHHmm").format(new Date());
+                        dapp.setTestName(workloadNum + "-" + (i + 1));
+						BallotDApp.RUNID = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
+
 						BallotDApp.RATE_CONTROL = workload.getRateControl();
 						dapp.setEndpoints(weightedEndpoints);
 						if (advancedConfig.getNumberThreads() != 0) {
@@ -164,6 +230,29 @@ public class BenchMaster {
 						System.gc();
 						Thread.sleep(sleepTime);
 						totalWorkloads++;
+						data.addSummaryTableData(dapp.getStats());
+					}
+                  workloadNum++;
+				}
+			}
+			Reporting report = new Reporting(data);
+			report.process(simpleConfig.getOutputDir());
+
+			if(advancedConfig.getEsxtopCommand() != null) {
+				for (int host = 0; host < hostnames.size(); host++) {
+					try {
+						if (esxSuccess.get(host)) {
+							channel.get(host).disconnect();
+							ChannelExec terminationChannel = (ChannelExec) session.get(host).openChannel("exec");
+							String terminationCommand = "kill $(ps | grep esxtop | awk '{print $2}')";
+							terminationChannel.setCommand(terminationCommand);
+							logger.info("esxtop termination command: " + terminationCommand);
+							terminationChannel.connect();
+							session.get(host).disconnect();
+							logger.info("Terminated the esxtop process");
+						}
+					} catch (JSchException jschX) {
+						logger.warn(jschX.getMessage());
 					}
 				}
 			}
