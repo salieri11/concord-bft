@@ -1,5 +1,4 @@
 # Performance Evaluation between Concord and Ethereum
-![Performance Environment Overview](performance_environment.jpg?raw=true "Performance Environment Overview")
 
 In order to measure the performance of Concord, several Concord nodes (4 or 16), one Helen node, and one driver node are needed. Each node is basically an Ubuntu-16.04 VM with at least 2 CPUs. To proceed with the measurement, first set up the Blockchain SaaS (which includes the Concord nodes and Helen node), then run the performance measurement tool on driver node. For the 4-nodes Concord as an example, 4 VMs for the 4 Concord nodes, 1 VM for the Helen node and 1 VM for the driver node are required; total of 6 VMs. Please prepare the VMs before proceeding with the following steps. Concord VMs and Helen VM should have the same username (e.g. `blockchain`).
 
@@ -45,17 +44,20 @@ During the execution of the script, the script prompts for docker username/passw
 This requires maven (for Ubuntu, sudo apt install maven) and JDK (for Ubuntu, sudo apt install default-jdk) preinstalled on the driver VM.
 
 A build script can be used to build ballotApp and benchmark. To do it manually, follow the instructions after this.
+
 ```bash
 cd <blockchain repo>/performance/benchmark
 sh build.sh
 ```
+
 After a successful build using the script, skip to step 3
 
 ```bash
+cd <blockchain repo>
+git checkout blockchainPerformance
 cd <blockchain repo>/performance/ballotApp
 mvn clean install assembly:single
 ```
-
 ## Build benchmark project
 This is a benchmark frame work in order to run all the workloads together given a yaml config file.
 The config file include node information, number of threads, java executables of single test, and the output directory.
