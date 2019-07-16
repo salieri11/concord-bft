@@ -15,15 +15,16 @@
       <concord-deploying-interstitial #deployLoader> </concord-deploying-interstitial>
     </main>
     <clr-vertical-nav>
-      <a clrVerticalNavLink [routerLink]="['dashboard']" [ngClass]="{'disable': blockchains.length === 1}" fragment="deploy">
-        <clr-icon clrVerticalNavIcon shape="deploy"></clr-icon>
-        {{'nav.deploy' | translate}}
-      </a>
-      <div class="nav-divider"></div>
+      <ng-container *concordCanView="[personas.SystemsAdmin, personas.ConsortiumAdmin]">
+        <a clrVerticalNavLink [routerLink]="['dashboard']" [ngClass]="{'disable': blockchains.length === 1}" fragment="deploy">
+          <clr-icon clrVerticalNavIcon shape="deploy"></clr-icon>
+          {{'nav.deploy' | translate}}
+        </a>
+        <div class="nav-divider"></div>
+      </ng-container>
       <label class="nav-header">
         {{ 'nav.consortium' | translate }}
       </label>
-
       <select clrSelect name="cosortiums" [(ngModel)]="selectedConsortium" class="consortium-select" (change)="consortiumChange()">
         <option *ngFor="let consortium of blockchains" [value]="consortium.id">
           {{ consortium.consortium_name }}
@@ -73,7 +74,7 @@
           </a>
         </ng-container>
       </ng-container>
-      <div *ngIf="navDisabled" class="nav-overlay {{ navOption }}"></div>
+      <div *ngIf="blockchains.length === 0" class="nav-overlay {{ navOption }}"></div>
     </clr-vertical-nav>
   </div>
 </clr-main-container>
