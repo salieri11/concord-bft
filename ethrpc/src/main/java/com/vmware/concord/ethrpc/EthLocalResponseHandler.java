@@ -4,11 +4,14 @@
 
 package com.vmware.concord.ethrpc;
 
+import java.util.Collections;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
+import org.springframework.util.StringUtils;
 
 import com.vmware.concord.Concord;
 
@@ -141,9 +144,13 @@ public class EthLocalResponseHandler extends AbstractEthRpcHandler {
         } else if (ethMethodName.equals(Constants.ACCOUNTS_NAME)) {
             // HACK: Atm, Helen has all the account information but if Ethrpc is queried directly we at least want to
             // return something. This is used to connect `truffle console` to Ethrpc directly.
-            JSONArray accs = new JSONArray();
-            accs.add(0);
-            localData = accs;
+            JSONArray usersJsonArr = new JSONArray();
+            String usersStr = Constants.USERS;
+            if (!StringUtils.isEmpty(usersStr)) {
+                String[] usersArr = usersStr.split(",");
+                Collections.addAll(usersJsonArr, usersArr);
+            }
+            localData = usersJsonArr;
         }
 
         result.put("result", localData);
