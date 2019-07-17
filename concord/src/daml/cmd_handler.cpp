@@ -2,21 +2,25 @@
 
 #include "cmd_handler.hpp"
 
+#include <google/protobuf/timestamp.pb.h>
+#include <google/protobuf/util/time_util.h>
+#include <grpcpp/grpcpp.h>
 #include <inttypes.h>
 #include <log4cplus/loggingmacros.h>
 #include <list>
 #include <map>
 #include <set>
+#include <string>
 
 #include "concord.pb.h"
 #include "daml_commit.grpc.pb.h"
 #include "daml_data.grpc.pb.h"
+#include "daml_validator.grpc.pb.h"
 
 using std::list;
 using std::map;
 using std::set;
-
-using namespace com::digitalasset;
+using std::string;
 
 using concord::consensus::Sliver;
 using concord::storage::BlockId;
@@ -32,171 +36,152 @@ using com::vmware::concord::ConcordResponse;
 using com::vmware::concord::DamlRequest;
 using com::vmware::concord::DamlResponse;
 
+namespace da_kvbc = com::digitalasset::kvbc;
+
 namespace concord {
 namespace daml {
 
-Sliver createSliver(char* content, const size_t size) {
+Sliver CreateSliver(const char* content, size_t size) {
   char* val = new char[size];
   memcpy(val, content, size);
   return Sliver(val, size);
 }
 
-Sliver createSliver(const std::string& content) {
-  return createSliver(const_cast<char*>(content.c_str()), content.size());
+Sliver CreateSliver(const string& content) {
+  return CreateSliver(content.c_str(), content.size());
 }
 
-bool KVBCCommandsHandler::executeKVBCRead(
-    const kvbc::ReadTransactionRequest& request, const size_t maxReplySize,
-    char* outReply, uint32_t& outReplySize) {
+grpc::Status KVBCValidatorClient::Validate(
+    string entryId, string submission, google::protobuf::Timestamp& record_time,
+    const map<string, string>& input_log_entries,
+    const map<string, string>& input_state_entries,
+    da_kvbc::ValidateResponse* out) {
+  da_kvbc::ValidateRequest req;
+  req.set_submission(submission);
+  req.set_entry_id(entryId);
+  *req.mutable_record_time() = record_time;
+  for (auto const& entry : input_log_entries) {
+    da_kvbc::KeyValuePair* kvpair = req.add_input_log_entries();
+    kvpair->set_key(entry.first);
+    kvpair->set_value(entry.second);
+  }
+  for (auto const& entry : input_state_entries) {
+    da_kvbc::KeyValuePair* kvpair = req.add_input_state();
+    kvpair->set_key(entry.first);
+    kvpair->set_value(entry.second);
+  }
+
+  grpc::ClientContext context;
+  return stub_->ValidateSubmission(&context, req, out);
+}
+
+bool KVBCCommandsHandler::ExecuteKVBCRead(const da_kvbc::ReadCommand& request,
+                                          const size_t maxReplySize,
+                                          char* outReply,
+                                          uint32_t& outReplySize) {
   LOG4CPLUS_INFO(logger_, "NOT IMPLEMENTED");
   return false;
 }
 
-Key KVBCCommandsHandler::absContractIdToKey(std::string prefix,
-                                            kvbc::AbsContractId coid) {
-  std::string cid = prefix + "/activeContracts/" + coid.tx_id() + "/" +
-                    std::to_string(coid.rel_id().node_id());
-  LOG4CPLUS_INFO(logger_, "KEY '" << cid << "'");
-  return createSliver(cid);
-}
-
-Key KVBCCommandsHandler::relContractIdToKey(std::string prefix, int64_t txId,
-                                            kvbc::RelContractId coid) {
-  std::string cid = prefix + "/activeContracts/" + std::to_string(txId) + "/" +
-                    std::to_string(coid.node_id());
-  LOG4CPLUS_INFO(logger_, "KEY '" << cid << "'");
-  return createSliver(cid);
-}
-
-bool KVBCCommandsHandler::contractIsActive(const Key& coid) {
-  Value out;
-  if (ro_storage_->get(coid, out).isOK()) {
-    if (!strncmp((const char*)out.data(), "active", out.length())) {
-      return true;
+std::map<string, string> KVBCCommandsHandler::GetFromStorage(
+    const google::protobuf::RepeatedPtrField<da_kvbc::KVKey>& keys) {
+  std::map<string, string> result;
+  for (const auto& kv_key : keys) {
+    Value out;
+    Key key = CreateSliver(kv_key.key());
+    if (ro_storage_->get(key, out).isOK()) {
+      result[kv_key.key()] = string((const char*)out.data(), out.length());
+    } else {
+      // FIXME(JM): We likely should construct a command rejection from this,
+      // for which we again would need the C++ protobuf definitions of kvutils.
+      LOG4CPLUS_ERROR(logger_,
+                      "input '" << kv_key.key() << "' not found in storage!");
     }
   }
-  return false;
+  return result;
 }
 
-KeyValuePair KVBCCommandsHandler::contractActiveKV(const Key& coid) {
-  std::string active = std::string{"active"};
-  return KeyValuePair(coid, createSliver(active));
-}
+bool KVBCCommandsHandler::ExecuteKVBCCommit(
+    const da_kvbc::CommitRequest& commit_req, const size_t max_reply_size,
+    char* out_reply, uint32_t& out_reply_size) {
+  LOG4CPLUS_DEBUG(logger_, "Handle DAML commit command");
 
-KeyValuePair KVBCCommandsHandler::contractArchivedKV(const Key& coid) {
-  std::string archived = std::string{"archived"};
-  return KeyValuePair(coid, createSliver(archived));
-}
-
-bool KVBCCommandsHandler::executeKVBCCommit(
-    const kvbc::CommitRequest& commitReq, const size_t maxReplySize,
-    char* outReply, uint32_t& outReplySize) {
-  std::string prefix = "daml";
-  BlockId currentBlockId = ro_storage_->getLastBlock();
+  string prefix = "daml";
+  BlockId current_block_id = ro_storage_->getLastBlock();
   SetOfKeyValuePairs updates;
-  bool hasConflicts = false;
 
-  // Construct the updates to set the head to new value
-  // and to set the transaction. We use the following key schema:
-  // XYZ-HEAD records the pointer to last added transaction (64-bit unsigned
-  // int, as decimal string) XYZ/0 is the first transaction, and so on.
-  std::string headKeyStr = std::string(prefix + "-HEAD");
-  Key headKey = createSliver(headKeyStr);
+  // Since we're not batching, lets keep it simple and use the next block id as
+  // the DAML log entry id.
+  string entryId = prefix + "/" + std::to_string(current_block_id + 1);
 
-  // Try to read the head pointer, otherwise default to 0.
-  int64_t newHead = 0;
-  Value headOut;
-  if (ro_storage_->get(headKey, headOut).isOK()) {
-    std::string headStr((const char*)headOut.data(), headOut.length());
-    try {
-      newHead = std::stoll(headStr) + 1;
-    } catch (std::invalid_argument) {
-      LOG4CPLUS_ERROR(logger_, "INVALID ARGUMENT for " << headStr);
-      newHead = 0;
-    }
+  google::protobuf::Timestamp record_time =
+      google::protobuf::util::TimeUtil::GetEpoch();
+
+  // Resolve the inputs
+  std::map<string, string> input_log_entries =
+      GetFromStorage(commit_req.input_log_entries());
+  std::map<string, string> input_state_entries =
+      GetFromStorage(commit_req.input_state());
+
+  // Send the submission for validation.
+  da_kvbc::ValidateResponse response;
+  grpc::Status status = validator_client_->Validate(
+      entryId, commit_req.submission(), record_time, input_log_entries,
+      input_state_entries, &response);
+  if (!status.ok()) {
+    LOG4CPLUS_ERROR(logger_, "Validation failed " << status.error_code() << ": "
+                                                  << status.error_message());
+    return false;
   }
 
-  // Add the update to set the head to new value.
-  std::string newHeadStr = std::to_string(newHead);
-  LOG4CPLUS_INFO(logger_,
-                 "UPDATE k'" << headKeyStr << "' v'" << newHeadStr << "'");
-  updates.insert(KeyValuePair(headKey, createSliver(newHeadStr)));
+  // Insert the DAML log entry into the store.
+  auto logEntry = response.log_entry();
+  updates.insert(KeyValuePair(CreateSliver(entryId), CreateSliver(logEntry)));
 
-  // Add the update to insert the transaction.
-  std::string txKeyStr =
-      std::string(prefix + "/transactions/" + std::to_string(newHead));
-  Key txKey = createSliver(txKeyStr);
-  auto txBlob = commitReq.tx();
-  Value txBlobValue =
-      createSliver(const_cast<char*>(txBlob.data()), txBlob.size());
-  LOG4CPLUS_INFO(logger_, "UPDATE k'" << txKeyStr << "' v TX");
-  updates.insert(KeyValuePair(txKey, txBlobValue));
-
-  // Check that input contracts to the transaction are active.
-  // FIXME(JM): This does not verify the activeness of the contract at the
-  // ledger effective time of the transaction!
-  for (int i = 0; i < commitReq.input_contracts_size() && !hasConflicts; i++) {
-    const kvbc::AbsContractId& coid = commitReq.input_contracts(i);
-    hasConflicts = !contractIsActive(absContractIdToKey(prefix, coid));
-  }
-
-  // Mark consumed contracts inactive.
-  for (int i = 0; i < commitReq.consumed_contracts_size() && !hasConflicts;
-       i++) {
-    Key coidKey = absContractIdToKey(prefix, commitReq.consumed_contracts(i));
-    updates.insert(contractArchivedKV(coidKey));
-  }
-
-  // Mark created contracts active.
-  for (int i = 0; i < commitReq.created_contracts_size() && !hasConflicts;
-       i++) {
-    Key coidKey =
-        relContractIdToKey(prefix, newHead, commitReq.created_contracts(i));
-    updates.insert(contractActiveKV(coidKey));
+  // Insert the DAML state updates into the store.
+  // Currently just using the serialization of the DamlStateKey as the key
+  // without any prefix.
+  for (auto kv : response.state_updates()) {
+    updates.insert(
+        KeyValuePair(CreateSliver(kv.key()), CreateSliver(kv.value())));
   }
 
   // Commit the block, if there were no conflicts.
   ConcordResponse concord_response;
   DamlResponse* daml_response = concord_response.mutable_daml_response();
 
-  kvbc::CommandReply reply;
-  kvbc::CommitResponse* commitResponse = reply.mutable_commit();
+  da_kvbc::CommandReply command_reply;
+  da_kvbc::CommitResponse* commit_response = command_reply.mutable_commit();
 
-  if (!hasConflicts) {
-    LOG4CPLUS_INFO(logger_, "No conflicts, committing...");
+  BlockId new_block_id = 0;
+  Status res = blocks_appender_->addBlock(updates, new_block_id);
+  assert(res.isOK());
+  assert(new_block_id == current_block_id + 1);
 
-    BlockId newBlockId = 0;
-    assert(blocks_appender_->addBlock(updates, newBlockId).isOK());
-    assert(newBlockId == currentBlockId + 1);
+  // Inform consumers that a transaction has been committed.
+  da_kvbc::CommittedTx commited_tx;
+  commited_tx.set_transaction_id(entryId);
+  commited_tx.set_block_id(new_block_id);
+  committed_txs_.push(commited_tx);
 
-    // Inform consumers that a transaction has been committed.
-    kvbc::CommittedTx committedTx;
-    committedTx.set_transaction_id(txKeyStr);
-    committedTx.set_block_id(newBlockId);
-    committedTxs_.push(committedTx);
+  commit_response->set_status(da_kvbc::CommitResponse_CommitStatus_OK);
+  commit_response->set_block_id(new_block_id);
 
-    commitResponse->set_status(kvbc::CommitResponse_CommitStatus_OK);
-    commitResponse->set_block_id(newBlockId);
-  } else {
-    LOG4CPLUS_ERROR(logger_, "Conflict!");
-    commitResponse->set_status(kvbc::CommitResponse_CommitStatus_CONFLICT);
-  }
-
-  std::string cmd_string;
-  reply.SerializeToString(&cmd_string);
+  string cmd_string;
+  command_reply.SerializeToString(&cmd_string);
   daml_response->set_command_reply(cmd_string.c_str(), cmd_string.size());
 
-  std::string out;
+  string out;
   concord_response.SerializeToString(&out);
-  assert(out.size() <= maxReplySize);
-  memcpy(outReply, out.data(), out.size());
-  outReplySize = out.size();
+  assert(out.size() <= max_reply_size);
+  memcpy(out_reply, out.data(), out.size());
+  out_reply_size = out.size();
 
-  LOG4CPLUS_INFO(logger_, "COMMIT CMD RETURN");
+  LOG4CPLUS_DEBUG(logger_, "Done: Handle DAML commit command.");
   return true;
 }
 
-bool KVBCCommandsHandler::executeCommand(uint32_t requestSize,
+bool KVBCCommandsHandler::ExecuteCommand(uint32_t requestSize,
                                          const char* request,
                                          const size_t maxReplySize,
                                          char* outReply,
@@ -217,18 +202,18 @@ bool KVBCCommandsHandler::executeCommand(uint32_t requestSize,
     return false;
   }
 
-  kvbc::Command cmd;
+  da_kvbc::Command cmd;
   if (!cmd.ParseFromString(daml_req.command())) {
     LOG4CPLUS_ERROR(logger_, "Failed to parse DAML/Command request");
     return false;
   }
 
   switch (cmd.cmd_case()) {
-    case kvbc::Command::kRead:
-      return executeKVBCRead(cmd.read(), maxReplySize, outReply, outReplySize);
+    case da_kvbc::Command::kRead:
+      return ExecuteKVBCRead(cmd.read(), maxReplySize, outReply, outReplySize);
 
-    case kvbc::Command::kCommit:
-      return executeKVBCCommit(cmd.commit(), maxReplySize, outReply,
+    case da_kvbc::Command::kCommit:
+      return ExecuteKVBCCommit(cmd.commit(), maxReplySize, outReply,
                                outReplySize);
 
     default:
@@ -236,7 +221,7 @@ bool KVBCCommandsHandler::executeCommand(uint32_t requestSize,
   }
 }
 
-bool KVBCCommandsHandler::executeReadOnlyCommand(uint32_t requestSize,
+bool KVBCCommandsHandler::ExecuteReadOnlyCommand(uint32_t requestSize,
                                                  const char* request,
                                                  const size_t maxReplySize,
                                                  char* outReply,
@@ -258,17 +243,17 @@ bool KVBCCommandsHandler::executeReadOnlyCommand(uint32_t requestSize,
     return false;
   }
 
-  kvbc::Command cmd;
+  da_kvbc::Command cmd;
   if (!cmd.ParseFromString(daml_req.command())) {
     LOG4CPLUS_ERROR(logger_, "Failed to parse DAML/Command request");
     return false;
   }
 
   switch (cmd.cmd_case()) {
-    case kvbc::Command::kRead:
-      return executeKVBCRead(cmd.read(), maxReplySize, outReply, outReplySize);
-    case kvbc::Command::kCommit:
-      LOG4CPLUS_ERROR(logger_, "executeReadOnlyCommand got write command!");
+    case da_kvbc::Command::kRead:
+      return ExecuteKVBCRead(cmd.read(), maxReplySize, outReply, outReplySize);
+    case da_kvbc::Command::kCommit:
+      LOG4CPLUS_ERROR(logger_, "ExecuteReadOnlyCommand got write command!");
       return false;
     default:
       return false;
@@ -281,10 +266,10 @@ int KVBCCommandsHandler::execute(uint16_t clientId, uint64_t sequenceNum,
                                  char* outReply, uint32_t& outActualReplySize) {
   bool res;
   if (readOnly) {
-    res = executeReadOnlyCommand(requestSize, request, maxReplySize, outReply,
+    res = ExecuteReadOnlyCommand(requestSize, request, maxReplySize, outReply,
                                  outActualReplySize);
   } else {
-    res = executeCommand(requestSize, request, maxReplySize, outReply,
+    res = ExecuteCommand(requestSize, request, maxReplySize, outReply,
                          outActualReplySize);
   }
 

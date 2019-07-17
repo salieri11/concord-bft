@@ -65,16 +65,16 @@ class EventsServiceImpl final
  public:
   explicit EventsServiceImpl(
       BlockingPersistentQueue<com::digitalasset::kvbc::CommittedTx>&
-          committedTxs)
+          committed_txs)
       : logger(log4cplus::Logger::getInstance("com.vmware.concord.daml")),
-        committedTxs_(committedTxs) {}
+        committed_txs_(committed_txs) {}
 
   grpc::Status CommittedTxs(
       grpc::ServerContext* context,
       const com::digitalasset::kvbc::CommittedTxsRequest* request,
       grpc::ServerWriter<com::digitalasset::kvbc::CommittedTx>* writer);
 
-  BlockingPersistentQueue<com::digitalasset::kvbc::CommittedTx>& committedTxs_;
+  BlockingPersistentQueue<com::digitalasset::kvbc::CommittedTx>& committed_txs_;
 };
 
 }  // namespace daml

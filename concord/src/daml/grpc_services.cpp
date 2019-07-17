@@ -54,7 +54,7 @@ grpc::Status DataServiceImpl::ReadTransaction(
 
   for (int i = 0; i < request->keys_size(); i++) {
     const string& keyStr = request->keys(i);
-    Key key = createSliver(keyStr);
+    Key key = CreateSliver(keyStr);
     Value value;
     concord::storage::BlockId outBlockId;
     concord::consensus::Status status =
@@ -114,14 +114,14 @@ grpc::Status EventsServiceImpl::CommittedTxs(
   LOG4CPLUS_INFO(logger, "EventsService: CommittedTxs...");
 
   BlockingPersistentQueueReader<CommittedTx> reader =
-      committedTxs_.newReader(0);
+      committed_txs_.newReader(0);
 
   while (1) {
-    CommittedTx committedTx = reader.pop();
+    CommittedTx committed_tx = reader.pop();
     LOG4CPLUS_INFO(logger, "KVBCEventsService: Sending event for blockId "
-                               << committedTx.block_id());
+                               << committed_tx.block_id());
 
-    if (!writer->Write(committedTx)) {
+    if (!writer->Write(committed_tx)) {
       break;
     }
   }

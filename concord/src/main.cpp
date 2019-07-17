@@ -95,6 +95,7 @@ using concord::daml::CommitServiceImpl;
 using concord::daml::DataServiceImpl;
 using concord::daml::EventsServiceImpl;
 using concord::daml::KVBCCommandsHandler;
+using concord::daml::KVBCValidatorClient;
 
 // Parse BFT configuration
 using concord::consensus::initializeSBFTConfiguration;
@@ -271,7 +272,6 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
   uint64_t chainID;
   BlockingPersistentQueue<CommittedTx> committedTxs;
   bool daml_enabled = config.getValue<bool>("daml_enable");
-
   bool hlf_enabled = config.getValue<bool>("hlf_enable");
 
   try {
@@ -318,11 +318,13 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
 
     unique_ptr<ICommandsHandler> kvb_commands_handler;
     if (daml_enabled) {
-      std::string damle_addr{
-          nodeConfig.getValue<std::string>("daml_execution_engine_addr")};
+      unique_ptr<KVBCValidatorClient> daml_validator(
+          new KVBCValidatorClient(grpc::CreateChannel(
+              nodeConfig.getValue<string>("daml_execution_engine_addr"),
+              grpc::InsecureChannelCredentials())));
       kvb_commands_handler =
           unique_ptr<ICommandsHandler>(new KVBCCommandsHandler(
-              &replica, &replica, committedTxs, damle_addr));
+              &replica, &replica, committedTxs, std::move(daml_validator)));
     } else if (hlf_enabled) {
       LOG4CPLUS_INFO(logger, "Hyperledger Fabric feature is enabled");
       // Init chaincode invoker

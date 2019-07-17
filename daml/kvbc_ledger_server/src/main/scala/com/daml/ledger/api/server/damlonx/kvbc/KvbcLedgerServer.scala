@@ -52,17 +52,17 @@ object KvbcLedgerServer extends App {
 
   implicit val ec: ExecutionContext = DirectExecutionContext
   kvbcPS.getLedgerInitialConditions.runWith(Sink.head)
-      .flatMap { initialConditions =>
-        // Upload archives.
-        Future.sequence(
-          args.drop(1)
-            .flatMap { arg => archivesFromDar(new File(arg)) }
-            .map { archive => kvbcPS.uploadArchive(archive) }
-            .toList
-        ).map { _ =>
-          initialConditions
-        }
+    .flatMap { initialConditions =>
+      // Upload archives.
+      Future.sequence(
+        args.drop(1)
+          .flatMap { arg => archivesFromDar(new File(arg)) }
+          .map { archive => kvbcPS.uploadArchive(archive) }
+          .toList
+      ).map { _ =>
+        initialConditions
       }
+    }
     .foreach { initialConditions =>
       val indexService = ReferenceIndexService(kvbcPS, initialConditions)
 

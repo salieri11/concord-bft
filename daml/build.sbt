@@ -23,9 +23,11 @@ lazy val protos = (project in file("protos"))
     libraryDependencies ++=
       Seq(protobuf, scalapb_runtime, scalapb_runtime_grpc),
     PB.protoSources in Compile := Seq(
-      target.value / "protobuf_external",
-      baseDirectory.value
+      target.value / "protobuf_external" / "protobuf",
+      baseDirectory.value / "../../concord/proto",
     ),
+    //excludeFilter in PB.generate := "*.proto",
+    includeFilter in PB.generate := "daml*.proto",
     PB.targets in Compile := Seq(
       scalapb.gen() -> (sourceManaged in Compile).value
     ),
