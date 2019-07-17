@@ -7,13 +7,20 @@ import okhttp3.OkHttpClient;
 import org.apache.logging.log4j.*;
 
 import org.web3j.crypto.Credentials;
+import org.web3j.crypto.RawTransaction;
+import org.web3j.crypto.TransactionEncoder;
 import org.web3j.protocol.Web3j;
+import org.web3j.protocol.core.DefaultBlockParameterName;
+import org.web3j.protocol.core.methods.response.EthGetBalance;
+import org.web3j.protocol.core.methods.response.EthGetTransactionCount;
+import org.web3j.protocol.core.methods.response.EthSendTransaction;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
 import org.web3j.protocol.http.HttpService;
 import org.web3j.tx.gas.DefaultGasProvider;
+import org.web3j.utils.Numeric;
 
 import java.io.*;
-
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -22,15 +29,23 @@ import java.util.concurrent.Executors;
 
 public class BallotDeployer {
 
+	private BigInteger nonce;
+
 	private static final Logger logger = LogManager.getLogger(BallotDApp.class);
 
-	private Credentials credentials;
+	private static Credentials credentials;
+
 	private Ballot ballot;
+
 	public BallotDeployer() {
 
 	}
 
-	public void deploy(String proposalPath, String contractPath) throws Exception {
+	public static Credentials getChairperson() {
+		return credentials;
+	}
+
+	public void deploy(String proposalPath, String contractPath, String password, String path) throws Exception {
 
 		OkHttpClient client = BallotDApp.CLIENT;
 
@@ -42,8 +57,8 @@ public class BallotDeployer {
 		logger.info("Connected to Ethereum client version: "
 				+ web3j.web3ClientVersion().send().getWeb3ClientVersion());
 
-		// load credential
-		credentials = Utils.loadCredential(BallotDApp.PASSWORD, BallotDApp.DEPLOYER_KEY_PATH);
+		//load credentials
+		credentials = Utils.loadCredential(password, path);
 
 		List<byte[]> proposals = Utils.getProposals(proposalPath);
 
@@ -100,9 +115,9 @@ public class BallotDeployer {
 			return (endTime - startTime) *(1.0e-9) / BallotDApp.NUMBER;
 		}
 		return 0;
-		
+
 	}
-	
+
 	public CompletableFuture<TransactionReceipt> execute(ExecutorService executor, Ballot ballot, String voter) {
 		final CompletableFuture<TransactionReceipt> promise = new CompletableFuture<>();
 		CompletableFuture.runAsync(() -> {
@@ -111,10 +126,84 @@ public class BallotDeployer {
 			} catch (Exception e) {
 				promise.completeExceptionally(e);
 			}
-			
+
 		}, executor).thenRun(() -> {
 			promise.complete(new TransactionReceipt());
 		});
 		return promise;
+	}
+
+	public double grantRightToVoteEthereum(Credentials[] credentials) throws Exception {
+
+		OkHttpClient client = BallotDApp.CLIENT;
+
+		HttpService httpServiceEth = new HttpService(BallotDApp.ENDPOINT, client, false);
+		Web3j web3j = Web3j.build(httpServiceEth);
+
+
+		// Transferring funds to every account
+		// This does not count to transaction time
+
+		// Calculate initial nonce
+		EthGetTransactionCount ethGetTransactionCount = web3j.ethGetTransactionCount(getChairperson().getAddress(), DefaultBlockParameterName.PENDING).sendAsync().get();
+		nonce = ethGetTransactionCount.getTransactionCount();
+
+		long start = System.nanoTime();
+
+		logger.info("Transfering funds to all accounts");
+
+		// Transferring funds to all accounts
+		for (Credentials credential : credentials) {
+			RawTransaction rawTransaction = RawTransaction.createEtherTransaction(nonce, DefaultGasProvider.GAS_PRICE, DefaultGasProvider.GAS_LIMIT, credential.getAddress(), new BigInteger("1000000000000000000"));//BigDecimal.valueOf(10))
+			byte[] signedMsg = TransactionEncoder.signMessage(rawTransaction, getChairperson());
+			String hexValue = Numeric.toHexString(signedMsg);
+			EthSendTransaction ethSendFundTransaction = web3j.ethSendRawTransaction(hexValue).sendAsync().get();
+			if (BallotDApp.ENABLE_LOGGING) {
+				logger.info("Transfer details - ");
+				logger.info("ID = " + ethSendFundTransaction.getId());
+				logger.info("JSON RPC = " + ethSendFundTransaction.getJsonrpc());
+				logger.info("Result = " + ethSendFundTransaction.getResult());
+			}
+			if (ethSendFundTransaction.getError() != null) 
+				logger.info("Error = " + ethSendFundTransaction.getError().getMessage());
+			if (BallotDApp.ENABLE_LOGGING) {
+				logger.info("Raw response = " + ethSendFundTransaction.getRawResponse());
+				String transactionHash = ethSendFundTransaction.getTransactionHash();
+				logger.info("TxHash = " + transactionHash);
+				logger.info("Nonce = " + nonce);
+			}
+			
+			nonce = nonce.add(new BigInteger("1"));
+		}
+
+		int numberOfTransfersCompleted = 0;
+		int prevNumberOfTransfersCompleted = -1;
+		boolean[] isTransferDone = new boolean[BallotDApp.NUMBER];
+		for(int i=0; i<BallotDApp.NUMBER; ++i) {
+			isTransferDone[i] = false;
+		}
+		while (numberOfTransfersCompleted != BallotDApp.NUMBER) {
+			for (int i=0; i<BallotDApp.NUMBER; ++i) {
+				if(isTransferDone[i]) continue;
+				Credentials credential = credentials[i];
+				EthGetBalance ethGetBalance = web3j
+						.ethGetBalance(credential.getAddress(), DefaultBlockParameterName.LATEST)
+						.sendAsync()
+						.get();
+				BigInteger balance = ethGetBalance.getBalance();
+				if(balance.compareTo(BigInteger.valueOf(0)) == 1) {
+					isTransferDone[i] = true;
+					++numberOfTransfersCompleted;
+				}
+			}
+			if(numberOfTransfersCompleted != prevNumberOfTransfersCompleted) {
+				prevNumberOfTransfersCompleted = numberOfTransfersCompleted;
+			}
+			Thread.sleep(100);
+		}
+		long end = System.nanoTime();
+		logger.info("All transfers completed in " + (end - start) + " nanosec");
+		
+		return (end-start) *(1.0e-9) / BallotDApp.NUMBER;
 	}
 }

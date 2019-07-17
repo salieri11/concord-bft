@@ -8,6 +8,7 @@ public class AdvancedConfig {
     private String concordUsername = "admin@blockchain.local";
     private String concordPassword = "Admin!23";
 
+
     public List<Object> getEsxtopCommand() {
         return esxtopCommand;
     }
@@ -15,7 +16,7 @@ public class AdvancedConfig {
     public void setEsxtopCommand(List<Object> esxtopCommand) {
         this.esxtopCommand = esxtopCommand;
     }
-    
+
     public int getNumberThreads() {
     	return numberThreads;
     }

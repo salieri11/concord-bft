@@ -4,23 +4,25 @@ import com.jcraft.jsch.ChannelExec;
 import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
+
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.Constructor;
+
 import java.io.IOException;
+import java.io.*;
+
 import org.web3j.crypto.Credentials;
 
-import java.util.*;
 import java.util.Map.Entry;
-
-
+import java.util.Properties;
 import java.util.AbstractMap;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
-
-import java.io.*;
 
 import org.apache.logging.log4j.*;
 
@@ -41,7 +43,7 @@ public class BenchMaster {
 			SimpleConfig simpleConfig = benchmark.getSimpleConfig();
 
 			AdvancedConfig advancedConfig = benchmark.getAdvancedConfig();
-			
+
 			List<Workload> workloads = simpleConfig.getWorkloads();
 			int sleepTime = simpleConfig.getSleepTime();
 			int totalWorkloads = 0;
@@ -49,7 +51,7 @@ public class BenchMaster {
 			String outputDir = simpleConfig.getOutputDir();
 
 			File directory = new File(outputDir);
-			if (! directory.exists()){
+			if (!directory.exists()){
 				directory.mkdir();
 			}
 
@@ -100,8 +102,12 @@ public class BenchMaster {
 				}
 			}
 
-
 			List<Node> nodes = benchmark.getSimpleConfig().getNodes();
+			BallotDApp.PORT = simpleConfig.getPort();
+			
+			//advanced configuration
+			BallotDApp.CONCORD_USERNAME = advancedConfig.getConcordUsername();
+			BallotDApp.CONCORD_PASSWORD = advancedConfig.getConcordUsername();
 
 			Data data = new Data();
 			data.setSummaryTableHeader(Arrays.asList("Name", "Succ", "Succ Rate", "Fail", "Send Rate", "Max Latency", "Min Latency", "Avg Latency", "Throughput"));
@@ -109,7 +115,7 @@ public class BenchMaster {
 			data.addBasicInformation("DLT", simpleConfig.getBlockchain());
 
 			BallotDApp.PORT = simpleConfig.getPort();
-			
+
 			//advanced configuration
 			BallotDApp.CONCORD_USERNAME = advancedConfig.getConcordUsername();
 			BallotDApp.CONCORD_PASSWORD = advancedConfig.getConcordUsername();
@@ -127,9 +133,14 @@ public class BenchMaster {
 						BallotDApp.ENDPOINT = "http://" + helenIP + ":8080/api/concord/eth";
 						logger.debug("Connected to Helen at " + BallotDApp.ENDPOINT);
 						BallotDApp.CONCORD = false;
-					} else if (workloadParams.get(1).equals("--concord")) {
+					} else if (workloadParams.get(1).equals("--concord") || workloadParams.get(1).equals("--ethereum")) {
 						String concordIP = workloadParams.get(2);
-						BallotDApp.ENDPOINT = "https://" + concordIP + ":" + simpleConfig.getPort();
+						if (workloadParams.get(1).equals("--concord")) {
+							BallotDApp.ENDPOINT = "https://" + concordIP + ":" + simpleConfig.getPort();
+						} else if (workloadParams.get(1).equals("--ethereum")) {
+							BallotDApp.ENDPOINT = "http://" + concordIP + ":" + simpleConfig.getPort();
+						}
+						
 						int sumOfPercentages = 0;
 						for (Node node : nodes) {
 							sumOfPercentages += node.getPercentage();
@@ -175,12 +186,13 @@ public class BenchMaster {
 						BallotDApp.NUMBER = sumOfTx;
 
 					} else {
-						logger.error("Please specify the connection endpoint. (--helen or --concord as 1st arg)");
+						logger.error("Please specify the connection endpoint. (--helen, --ethereum, or --concord as 1st arg)");
 						return;
 					}
 
 					for (int i = 0; i < workload.getNumOfRuns(); i++) {
-                        dapp.setTestName(workloadNum + "-" + (i + 1));
+
+						dapp.setTestName(workloadNum + "-" + (i + 1));
 						BallotDApp.RUNID = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
 
 						BallotDApp.RATE_CONTROL = workload.getRateControl();
@@ -217,22 +229,31 @@ public class BenchMaster {
 							e.printStackTrace();
 						}
 						try {
-							BallotDeployer deployer = new BallotDeployer();
-							deployer.deploy(PROPOSAL_DATA_PATH, dapp.getContractDataPath());
+							if (simpleConfig.getBlockchain().equals("ethereum")) {
+								BallotDeployer deployer = new BallotDeployer();
+								deployer.deploy(PROPOSAL_DATA_PATH, dapp.getContractDataPath(), "Aca$hc0w", "data/deployer_keystore");
+								Credentials[] credentials = dapp.getCredentials();
+								deployer.grantRightToVoteEthereum(credentials);
+								dapp.processingVotingEthereum(credentials);
+							} else {
+								BallotDeployer deployer = new BallotDeployer();
+								deployer.deploy(PROPOSAL_DATA_PATH, dapp.getContractDataPath(), BallotDApp.PASSWORD, BallotDApp.DEPLOYER_KEY_PATH);
 
-							Credentials[] credentials = dapp.getCredentials();
-							deployer.grantRightToVote(credentials);
-							dapp.process(credentials);
+								Credentials[] credentials = dapp.getCredentials();
+								deployer.grantRightToVote(credentials);
+								dapp.process(credentials);
+							}
 
 						} catch (Exception e) {
 							e.printStackTrace();
 						}
+						
 						System.gc();
 						Thread.sleep(sleepTime);
 						totalWorkloads++;
 						data.addSummaryTableData(dapp.getStats());
 					}
-                  workloadNum++;
+					workloadNum++;
 				}
 			}
 			Reporting report = new Reporting(data);
@@ -264,7 +285,7 @@ public class BenchMaster {
 		} catch (Exception e) {
 			System.out.println(e.getMessage());
 		}
-		System.out.println("Finish benchmark!");
+		logger.info("Finished benchmark!");
 	}
 
 	public static String getExecutionLog(BufferedReader op, BufferedReader error, int exitVal) {
