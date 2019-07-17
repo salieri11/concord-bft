@@ -21,11 +21,10 @@ import java.util.Date;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x500.X500NameBuilder;
 import org.bouncycastle.asn1.x500.style.BCStyle;
+import org.bouncycastle.asn1.x509.AuthorityKeyIdentifier;
 import org.bouncycastle.asn1.x509.BasicConstraints;
-import org.bouncycastle.asn1.x509.ExtendedKeyUsage;
 import org.bouncycastle.asn1.x509.Extension;
-import org.bouncycastle.asn1.x509.KeyPurposeId;
-import org.bouncycastle.asn1.x509.KeyUsage;
+import org.bouncycastle.asn1.x509.SubjectKeyIdentifier;
 import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cert.X509v3CertificateBuilder;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
@@ -43,6 +42,7 @@ import org.slf4j.LoggerFactory;
 import com.vmware.blockchain.deployment.model.Identity;
 import com.vmware.blockchain.deployment.model.IdentityComponent;
 
+
 /**
  * Class to generate keypair and certificate using {@link BouncyCastleProvider}.
  */
@@ -53,28 +53,36 @@ public class SingleBouncyCertificateGenerator {
 
     /**
      * Generates the X509Certificate and private key pair.
-     * @param cn : string name of node
      * @param path : string path to where it should be generated in
+     * @param cn : subject cn value
+     * @param ou : subject ou value
      * @return : {@link Identity}
      */
-    static Identity generateIdentity(String cn, String path) {
+    static Identity generateIdentity(String path, String cn, String ou) {
         KeyPair keyPair = generateEcKeyPair();
-        X509Certificate certificate = generateSelfSignedCertificate(keyPair, cn);
+        X509Certificate certificate = generateSelfSignedCertificate(keyPair, cn, ou);
         return getIdentity(keyPair, certificate, path);
     }
 
     /**
      * Generates {@link X509Certificate}.
      * @param keypair {@link KeyPair}
-     * @param cn String to be used as subject name
+     * @param cn : subject cn value
+     * @param ou : subject ou value
      * @return {@link X509Certificate}
      */
-    private static X509Certificate generateSelfSignedCertificate(KeyPair keypair, String cn) {
+    private static X509Certificate generateSelfSignedCertificate(KeyPair keypair, String cn, String ou) {
 
         byte[] id = new byte[20];
         BigInteger serial = new BigInteger(160, random);
         X500Name subject = new X500NameBuilder()
-                .addRDN(BCStyle.CN, cn).build();
+                .addRDN(BCStyle.C, "NA")
+                .addRDN(BCStyle.ST, "NA")
+                .addRDN(BCStyle.L, "NA")
+                .addRDN(BCStyle.O, "NA")
+                .addRDN(BCStyle.OU, ou)
+                .addRDN(BCStyle.CN, cn)
+                .build();
         Date fromDate = new Date();
         Calendar c = Calendar.getInstance();
         c.setTime(fromDate);
@@ -83,24 +91,19 @@ public class SingleBouncyCertificateGenerator {
 
         X509v3CertificateBuilder certificateBuilder = new JcaX509v3CertificateBuilder(
                 subject, serial, fromDate, toDate, subject, keypair.getPublic());
-        try {
-            certificateBuilder.addExtension(Extension.subjectKeyIdentifier, false, id);
 
-            certificateBuilder.addExtension(Extension.authorityKeyIdentifier, false, id);
+        try {
+            SubjectKeyIdentifier subjKeyId = new SubjectKeyIdentifier(keypair.getPublic().getEncoded());
+            certificateBuilder.addExtension(Extension.subjectKeyIdentifier, false, subjKeyId);
+
+            AuthorityKeyIdentifier authKeyId = new AuthorityKeyIdentifier(keypair.getPublic().getEncoded());
+            certificateBuilder.addExtension(Extension.authorityKeyIdentifier, false, authKeyId);
 
             BasicConstraints constraints = new BasicConstraints(true);
             certificateBuilder.addExtension(Extension.basicConstraints,
                     true, constraints.getEncoded());
 
-            KeyUsage usage = new KeyUsage(KeyUsage.keyCertSign | KeyUsage.digitalSignature);
-            certificateBuilder.addExtension(Extension.keyUsage,
-                    false, usage.getEncoded());
-
-            ExtendedKeyUsage usageEx = new ExtendedKeyUsage(
-                    new KeyPurposeId[]{KeyPurposeId.id_kp_serverAuth, KeyPurposeId.id_kp_clientAuth});
-            certificateBuilder.addExtension(Extension.extendedKeyUsage, false, usageEx.getEncoded());
-
-            ContentSigner signer = new JcaContentSignerBuilder("SHA384withECDSA").build(keypair.getPrivate());
+            ContentSigner signer = new JcaContentSignerBuilder("SHA256withECDSA").build(keypair.getPrivate());
             X509CertificateHolder holder = certificateBuilder.build(signer);
 
             JcaX509CertificateConverter converter = new JcaX509CertificateConverter();

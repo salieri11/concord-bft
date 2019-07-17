@@ -6,6 +6,7 @@ package com.vmware.blockchain.deployment.service.configuration.eccerts;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -28,30 +29,33 @@ public class ConcordEcCertificatesGenerator implements CertificatesGenerator {
     @Override
     public List<Identity> generateSelfSignedCertificates(int numCerts, ConfigurationServiceType.DockerType type) {
 
-        List<String> cnList;
+        List<Map.Entry<Integer, String>> certSubjectVars;
         List<String> directoryList;
 
         if (type.equals(ConfigurationServiceType.DockerType.CONCORD_TLS)) {
             directoryList = getCertDirectories(numCerts, CONCORD_TLS_SECURITY_IDENTITY_PATH);
 
-            cnList = IntStream.range(0, numCerts).boxed()
-                    .map(entry -> "node" + entry + "ser").collect(Collectors.toList());
-            cnList.addAll(IntStream.range(0, numCerts).boxed()
-                    .map(entry -> "node" + entry + "cli").collect(Collectors.toList()));
+            certSubjectVars = IntStream.range(0, numCerts).boxed()
+                    .map(entry -> Map.entry(entry, "node" + entry + "ser"))
+                    .collect(Collectors.toList());
+            certSubjectVars.addAll(IntStream.range(0, numCerts).boxed()
+                    .map(entry -> Map.entry(entry, "node" + entry + "cli"))
+                    .collect(Collectors.toList()));
         } else if (type.equals(ConfigurationServiceType.DockerType.ETHRPC)) {
-            directoryList = getCertDirectories(numCerts, CONCORD_ETHRPC_SECURITY_IDENTITY_PATH);
-            cnList = IntStream.range(0, directoryList.size()).boxed()
-                    .map(entry -> "node" + entry).collect(Collectors.toList());
+            directoryList = new ArrayList<>(getCertDirectories(numCerts, CONCORD_ETHRPC_SECURITY_IDENTITY_PATH));
+            certSubjectVars = IntStream.range(0, numCerts).boxed()
+                    .map(entry -> Map.entry(entry, "node" + entry))
+                    .collect(Collectors.toList());
         } else {
             throw new IllegalStateException("Only type TLS and EthRPC are supported currently.");
         }
 
         List<CompletableFuture<Identity>> futList = new ArrayList<>();
         int dirIndex = 0;
-        for (String cn : cnList) {
+        for (Map.Entry<Integer, String> subjVar : certSubjectVars) {
             String path = directoryList.get(dirIndex);
             futList.add(CompletableFuture.supplyAsync(() -> SingleBouncyCertificateGenerator
-                    .generateIdentity(cn, path)));
+                    .generateIdentity(path, subjVar.getValue(), Integer.toString(subjVar.getKey()))));
             dirIndex++;
         }
         return getWorkResult(futList);

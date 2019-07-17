@@ -10,17 +10,16 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.vmware.blockchain.deployment.service.configuration.generatecerts.CertificatesGenerator;
+
 
 /**
  * Utility class for generating the input for Configuration Yaml file.
@@ -100,6 +99,8 @@ public class ConcordConfigUtil {
                         for (int num = 0; num < hostIps.size(); num++) {
                             var path = outputPath.resolve("concord" + (num + 1) + ".config");
                             result.put(num, Files.readString(path));
+
+                            // TODO: Fill nodePrincipal from config output once available
                         }
                     } catch (Throwable collectError) {
                         log.error("Cannot collect generated cluster configuration",
@@ -155,8 +156,6 @@ public class ConcordConfigUtil {
         }
 
         maxPrincipalId = (hostIp.size() + CLIENT_PROXY_PER_NODE * hostIp.size()) - 1;
-        var principals = IntStream.range(0, maxPrincipalId + 1).boxed().collect(Collectors.toList());
-        Collections.shuffle(principals);
 
         Path path = Paths.get(configYamlPath);
         try (BufferedWriter writer = Files.newBufferedWriter(path)) {
@@ -193,20 +192,13 @@ public class ConcordConfigUtil {
                 writer.write(CLIENT_PROXY);
                 writer.newLine();
 
-                List<Integer> principalList = new ArrayList<>();
                 for (int j = 0; j < CLIENT_PROXY_PER_NODE; j++) {
                     writer.write(CLIENT_HOST + hostIp.get(i));
                     writer.newLine();
                     writer.write(CLIENT_PORT + (DEFAULT_PORT + j + 1));
                     writer.newLine();
-
-                    int principalId = principals.get(i * CLIENT_PROXY_PER_NODE + j);
-                    principalList.add(principalId);
-
-                    writer.write(PRINCIPAL_ID + principalId);
-                    writer.newLine();
                 }
-                nodePrincipal.put(i, principalList);
+                nodePrincipal.put(i, new ArrayList<>(Arrays.asList(5, 10, 15, 17)));
             }
             writer.flush();
             writer.close();
