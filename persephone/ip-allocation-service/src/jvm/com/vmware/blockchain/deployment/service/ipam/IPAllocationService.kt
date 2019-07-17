@@ -296,7 +296,8 @@ class IPAllocationService(
         // Attempt to allocate from this segment as long as:
         // 1. Segment still exists.
         // 2. Segment has space and the write-attempt to ink-in the allocation succeeds.
-        while (allocation == null) {
+        var isSegmentFull = false
+        while (allocation == null && !isSegmentFull) {
             allocation = when (val versioned = segmentStore[name].awaitSingle()) {
                 is Versioned.None -> {
                     // Brand new segment, use the first address.
@@ -316,23 +317,30 @@ class IPAllocationService(
                 }
                 is Versioned.Just -> {
                     // Only proceed if latest value corresponded to the epoch parameter.
-                    versioned.takeIf { versioned.value.epoch == block.epoch }
-                            ?.let { (segment, version) ->
-                                val subnetMask = (1 shl (32 - block.specification.subnet)) - 1
-                                val blockEnd = block.specification.prefix + subnetMask - 1
-                                val limit = min(blockEnd, segment.segment + 255)
+                    if (versioned.value.epoch != block.epoch) {
+                        isSegmentFull = true
+                        null
+                    } else {
+                        val (segment, version) = versioned
+                        val subnetMask = (1 shl (32 - block.specification.subnet)) - 1
+                        val blockEnd = block.specification.prefix + subnetMask - 1
+                        val limit = min(blockEnd, segment.segment + 255)
 
-                                allocateFromSegment(segment, limit)?.let { (newSegment, address) ->
-                                    try {
-                                        segmentStore.set(name, version, newSegment).awaitSingle()
-                                        Address(addressName(name, address).value, address)
-                                    } catch (error: VersionMismatchException) {
-                                        /* Version mismatch, re-fetch the record and try again.*/
-                                        null
-                                    }
-                                } ?: return null
+                        val allocated = allocateFromSegment(segment, limit)
+                        if (allocated != null) {
+                            val (newSegment, address) = allocated
+                            try {
+                                segmentStore.set(name, version, newSegment).awaitSingle()
+                                Address(addressName(name, address).value, address)
+                            } catch (error: VersionMismatchException) {
+                                /* Version mismatch, re-fetch the record and try again.*/
+                                null
                             }
-                            ?: return null
+                        } else {
+                            isSegmentFull = true
+                            null
+                        }
+                    }
                 }
             }
         }
