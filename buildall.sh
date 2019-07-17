@@ -306,8 +306,6 @@ docker_build helen helen/packaging.Dockerfile ${helen_repo} ${helen_tag}
 docker_build persephone persephone/metadata-service/Dockerfile ${persephone_metadata_repo} ${persephone_metadata_tag}
 docker_build . persephone/provisioning-service/Dockerfile ${persephone_provisioning_repo} ${persephone_provisioning_tag}
 # docker_build persephone persephone/fleet/Dockerfile ${persephone_fleet_repo} ${persephone_tag}
-# Docker build for persephone - undeploy CLI
-docker_build persephone persephone/provision-client/Dockerfile ${persephone_provisioning_client_repo} ${persephone_provisioning_client_tag}
 
 docker_pull cockroachdb/cockroach:v2.0.2 Cockroach_DB
 
