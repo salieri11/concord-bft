@@ -6,6 +6,7 @@ package com.vmware.blockchain.services.profiles;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
@@ -65,6 +66,8 @@ public class DefaultProfiles {
 
     private boolean createDefaultBlockchain;
 
+    private UUID defaultOrgId;
+
 
     @Autowired
     public DefaultProfiles(
@@ -78,7 +81,8 @@ public class DefaultProfiles {
             @Value("${ConcordAuthorities}") String blockchainIpList,
             @Value("${ConcordRpcUrls}") String blockchainRpcUrls,
             @Value("${ConcordRpcCerts}") String blockchainRpcCerts,
-            @Value("${vmbc.default.blockchain:false}") boolean createDefaultBlockchain) {
+            @Value("${vmbc.default.blockchain:false}") boolean createDefaultBlockchain,
+            @Value("${default.profile.org.id:#{null}}") UUID defaultOrgId) {
         this.userService = userService;
         this.organizationService = organizationService;
         this.consortiumService = consortiumService;
@@ -90,6 +94,7 @@ public class DefaultProfiles {
         this.blockchainRpcUrls = blockchainRpcUrls;
         this.blockchainRpcCerts = blockchainRpcCerts;
         this.createDefaultBlockchain = createDefaultBlockchain;
+        this.defaultOrgId = defaultOrgId;
     }
 
     // TODO: These next few methords are just testing convenience methods and should be removed
@@ -153,7 +158,11 @@ public class DefaultProfiles {
         if (oList.isEmpty()) {
             Organization o = new Organization();
             o.setOrganizationName("ADMIN");
+            if (defaultOrgId != null) {
+                o.setId(defaultOrgId);
+            }
             o = organizationService.put(o);
+            logger.info("Org created, orgId: {}", o.getId());
             return o;
         } else {
             return oList.get(0);

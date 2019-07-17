@@ -115,7 +115,7 @@ class DefaultProfilesTest {
 
         profiles = new DefaultProfiles(userService, organizationService, consortiumService, passwordEncoder,
                                        blockchainService, agreementService, serviceContext, ipList, rpcUrls, rpcCerts,
-                                        true);
+                                        true, null);
 
         when(passwordEncoder.encode(anyString())).then(a -> a.getArguments().toString());
     }
