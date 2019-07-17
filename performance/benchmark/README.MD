@@ -40,8 +40,6 @@ During the execution of the script, the script prompts for docker username/passw
 ## Build Application project
 **NOTE:** The following commands are to be run as non-root user
 
-1. On the driver VM, change directory to <blockchain repo>/performance/ballotApp and do a maven build of the `ballotApp` project. 
-This requires maven (for Ubuntu, sudo apt install maven) and JDK (for Ubuntu, sudo apt install default-jdk) preinstalled on the driver VM.
 
 A build script can be used to build ballotApp and benchmark. To do it manually, follow the instructions after this.
 
@@ -52,12 +50,21 @@ sh build.sh
 
 After a successful build using the script, skip to step 3
 
+1. On the driver VM, change directory to <blockchain repo>/performance/ballotApp and do a maven build of the `ballotApp` project. 
+This requires maven (for Ubuntu, sudo apt install maven) and JDK (for Ubuntu, sudo apt install default-jdk) preinstalled on the driver VM.
+
+A build script can be used to build ballotApp and benchmark. To do it manually, follow the instructions after this.
 ```bash
-cd <blockchain repo>
-git checkout blockchainPerformance
+cd <blockchain repo>/performance/benchmark
+sh build.sh
+```
+After a successful build using the script, skip to step 3
+
+```bash
 cd <blockchain repo>/performance/ballotApp
 mvn clean install assembly:single
 ```
+
 ## Build benchmark project
 This is a benchmark frame work in order to run all the workloads together given a yaml config file.
 The config file include node information, number of threads, java executables of single test, and the output directory.
@@ -65,7 +72,7 @@ You need to setup your config file and put in the .config/ directory.
 
 2. On the driver VM, change directory to <blockchain repo>/performance/benchmark and do a maven build of the `benchmark` project. 
    This requires maven (for Ubuntu, sudo apt install maven) and JDK (for Ubuntu, sudo apt install default-jdk) preinstalled on the driver VM.
-   
+
 ```bash
 cd <blockchain repo>/performance/benchmark
 mvn clean package

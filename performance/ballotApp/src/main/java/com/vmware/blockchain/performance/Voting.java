@@ -35,7 +35,6 @@ public class Voting {
 
 	public String nodeIp;
 
-
 	public Voting(Web3j web3j, Ballot ballot, Credentials credentials, String nodeIp) {
 		this.web3j = web3j;
 		this.ballot = ballot;
@@ -59,6 +58,23 @@ public class Voting {
 		final CompletableFuture<AsyncTransaction> promise = new CompletableFuture<>();
 		CompletableFuture.runAsync(tx, executor).thenRun(() -> {
 			tx.setEndTime(System.nanoTime());
+			promise.complete(tx);
+		});
+		return promise;
+	}
+	
+	public CompletableFuture<AsyncTransaction> executeEthereum(ExecutorService executor, int id) throws Exception {
+		AsyncTransaction tx = new AsyncTransaction(web3j, signedMsg);
+		tx.setId(id);
+		tx.setNodeIp(nodeIp);
+		final CompletableFuture<AsyncTransaction> promise = new CompletableFuture<>();
+		CompletableFuture.runAsync(tx, executor).thenRun(() -> {
+			try {
+				tx.finishedTx = tx.ethSendTransaction.get();
+				tx.ethSendTransaction = null;
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
 			promise.complete(tx);
 		});
 		return promise;

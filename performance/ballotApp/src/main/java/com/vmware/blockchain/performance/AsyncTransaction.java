@@ -1,6 +1,9 @@
 package com.vmware.blockchain.performance;
 
+import java.util.concurrent.CompletableFuture;
+
 import org.web3j.protocol.Web3j;
+import org.web3j.protocol.core.methods.response.EthSendTransaction;
 
 public class AsyncTransaction implements Runnable {
 
@@ -11,6 +14,10 @@ public class AsyncTransaction implements Runnable {
 	private int id;
 	private String nodeIp;
 	private int driverId;
+	
+	private boolean completed = false;
+	public CompletableFuture<EthSendTransaction> ethSendTransaction;
+	public EthSendTransaction finishedTx;
 
 	public AsyncTransaction(Web3j web3j, String signedMsg) {
 		this.signedMsg = signedMsg;
@@ -20,7 +27,7 @@ public class AsyncTransaction implements Runnable {
 	@Override
 	public void run() {
 		start = System.nanoTime();
-		web3j.ethSendRawTransaction(signedMsg).sendAsync();	
+		ethSendTransaction = web3j.ethSendRawTransaction(signedMsg).sendAsync();	
 	}
 
 	public long getStartTime() {
@@ -61,5 +68,13 @@ public class AsyncTransaction implements Runnable {
 
 	public int getDriverId() {
 		return driverId;
+	}
+	
+	public void setCompleted(boolean completed) {
+		this.completed = completed;
+	}
+	
+	public boolean getCompleted() {
+		return completed;
 	}
 }

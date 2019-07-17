@@ -1,6 +1,7 @@
 package dappbench;
 
 public class Benchmark {
+
     private SimpleConfig simpleConfig;
     private AdvancedConfig advancedConfig;
 
