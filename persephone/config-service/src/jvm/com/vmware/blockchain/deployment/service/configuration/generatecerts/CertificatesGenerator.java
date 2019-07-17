@@ -16,7 +16,7 @@ import com.vmware.blockchain.deployment.model.IdentityFactors;
 public interface CertificatesGenerator {
 
     /** concord security certificates generation path. */
-    String CONCORD_TLS_SECURITY_IDENTITY_PATH = "/concord/config-local/cert";
+    String CONCORD_TLS_SECURITY_IDENTITY_PATH = "/tmp/concord/config-local/cert";
 
     /** ethrpc security certificates generation path. */
     String CONCORD_ETHRPC_SECURITY_IDENTITY_PATH = "/ethrpc/cert";

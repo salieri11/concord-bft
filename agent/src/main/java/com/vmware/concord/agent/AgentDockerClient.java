@@ -294,6 +294,11 @@ final class AgentDockerClient {
                                     // .withNetworkMode("host")
                                     .withPortBindings(
                                             new PortBinding(Ports.Binding.bindPort(5458), ExposedPort.tcp(5458)),
+                                            new PortBinding(Ports.Binding.bindPort(3501), ExposedPort.tcp(3501)),
+                                            new PortBinding(Ports.Binding.bindPort(3502), ExposedPort.tcp(3502)),
+                                            new PortBinding(Ports.Binding.bindPort(3503), ExposedPort.tcp(3503)),
+                                            new PortBinding(Ports.Binding.bindPort(3504), ExposedPort.tcp(3504)),
+                                            new PortBinding(Ports.Binding.bindPort(3505), ExposedPort.tcp(3505)),
                                             new PortBinding(Ports.Binding.bindPort(3501), ExposedPort.udp(3501)),
                                             new PortBinding(Ports.Binding.bindPort(3502), ExposedPort.udp(3502)),
                                             new PortBinding(Ports.Binding.bindPort(3503), ExposedPort.udp(3503)),
