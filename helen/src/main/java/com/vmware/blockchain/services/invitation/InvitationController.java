@@ -20,7 +20,9 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import com.vmware.blockchain.auth.AuthHelper;
+import com.vmware.blockchain.common.BadRequestException;
 import com.vmware.blockchain.common.Constants;
+import com.vmware.blockchain.common.ErrorCode;
 import com.vmware.blockchain.common.csp.CspConstants;
 
 /**
@@ -39,8 +41,7 @@ public class InvitationController {
     }
 
     /**
-     * This is the invitation return from Oauth2Controller.  All it does is redirect us back through the
-     * login flow.
+     * This is the invitation return from Oauth2Controller.
      */
     @RequestMapping(method = RequestMethod.GET, path = Constants.AUTH_INVITATION)
     @PreAuthorize("hasAnyAuthority(T(com.vmware.blockchain.services.profiles.Roles).CSP_ORG_OWNER.getName())")
@@ -48,20 +49,27 @@ public class InvitationController {
                                  HttpServletResponse httpResponse) throws IOException {
 
         HttpSession session = httpRequest.getSession(false);
-        if (session != null) {
-            // See if there is a service invitation
-            String serviceInvitation = (String) httpRequest.getSession().getAttribute(Constants.CSP_INVITATION_LINK);
-            if (serviceInvitation != null) {
-                // remove the property, just to be safe
-                session.removeAttribute(Constants.CSP_INVITATION_LINK);
-                logger.info("Invitation: {}", serviceInvitation);
-                invitationService.handleServiceInvitation(serviceInvitation);
-            }
-        }
 
-        String orgLink = CspConstants.CSP_ORG_API + "/" + authHelper.getOrganizationId().toString();
+        // We shouldn't be here with a null session
+        if (session == null) {
+            throw new BadRequestException(ErrorCode.INVALID_INVITATION);
+        }
+        // See if there is a service invitation
+        String serviceInvitation = (String) httpRequest.getSession().getAttribute(Constants.CSP_INVITATION_LINK);
+        if (serviceInvitation == null) {
+            throw new BadRequestException(ErrorCode.INVALID_INVITATION);
+        }
+        // remove the property, just to be safe
+        session.removeAttribute(Constants.CSP_INVITATION_LINK);
+        logger.info("Invitation: {}", serviceInvitation);
+        // Handle the invitation.  At the moment this adds constortium admin privilege.
+        invitationService.handleServiceInvitation(serviceInvitation);
+
+        // redirect back through the loggin flow.  We need this so the user gets the new permisuons.
+        String orgLink = String.format("%s/%s", CspConstants.CSP_ORG_API, authHelper.getOrganizationId().toString());
         String redirect = UriComponentsBuilder.fromUriString(Constants.AUTH_LOGIN)
-                .queryParam(Constants.CSP_ORG_LINK, orgLink).build().toString();
+                .queryParam(Constants.CSP_ORG_LINK, orgLink)
+                .queryParam(Constants.NEW_USER_PARAM, "new").build().toString();
         authHelper.evictToken();
         httpResponse.sendRedirect(redirect);
     }

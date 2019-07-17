@@ -230,7 +230,7 @@ public class Oauth2ControllerTests {
                 .build();
         oauthCallbackUrl =
                 UriComponentsBuilder.fromUriString(vmbcUrl).path(vmbcOauthCallback).build().toUriString();
-        targetUri = UriComponentsBuilder.fromUriString(vmbcUrl).path("/login-return").build().toUriString();
+        targetUri = UriComponentsBuilder.fromUriString(Constants.AUTH_LOGIN_RETURN).build().toUriString();
         invitationUri = UriComponentsBuilder.fromUriString(Constants.AUTH_INVITATION).build().toUriString();
         cspConfig = mock(CspConfig.class);
         server = new WireMockServer(options().dynamicPort());
@@ -296,7 +296,7 @@ public class Oauth2ControllerTests {
     }
 
     @Test
-    public void testLoginWithSessionAndOrg() throws Exception {
+    public void testDiscoveryWithOrg() throws Exception {
         String orgLink = CspConstants.CSP_ORG_API + "/" + UUID.randomUUID().toString();
         String redirectUri = UriComponentsBuilder.fromUriString(cspConfig.getCspUrl())
                 .path(CspConstants.CSP_DISCOVERY_PAGE).queryParam("client_id", "vmbc-client")
@@ -306,6 +306,37 @@ public class Oauth2ControllerTests {
         String getUri = String.format("%s?orgLink=%s&session_cleaned=true", vmbcAuthLogin, orgLink);
 
         mockMvc.perform(get(getUri)).andExpect(redirectedUrlPattern(redirectUri));
+    }
+
+    @Test
+    public void testDiscoveryWithUser() throws Exception {
+        String orgLink = CspConstants.CSP_ORG_API + "/" + UUID.randomUUID().toString();
+        MockHttpSession session = new MockHttpSession();
+        String redirectUri = UriComponentsBuilder.fromUriString(cspConfig.getCspUrl())
+                .path(CspConstants.CSP_DISCOVERY_PAGE).queryParam("client_id", "vmbc-client")
+                .queryParam("redirect_uri", oauthCallbackUrl).queryParam("state", "*")
+                .queryParam("orgLink", orgLink).build().toUriString();
+
+        String getUri = String.format("%s?orgLink=%s&session_cleaned=true&user=new", vmbcAuthLogin, orgLink);
+
+        mockMvc.perform(get(getUri).session((session))).andExpect(redirectedUrlPattern(redirectUri));
+        Assertions.assertEquals("new", session.getAttribute("user"));
+    }
+
+    @Test
+    public void testDiscoveryWithInvitation() throws Exception {
+        String orgLink = CspConstants.CSP_ORG_API + "/" + UUID.randomUUID().toString();
+        MockHttpSession session = new MockHttpSession();
+        String redirectUri = UriComponentsBuilder.fromUriString(cspConfig.getCspUrl())
+                .path(CspConstants.CSP_DISCOVERY_PAGE).queryParam("client_id", "vmbc-client")
+                .queryParam("redirect_uri", oauthCallbackUrl).queryParam("state", "*")
+                .queryParam("orgLink", orgLink).build().toUriString();
+
+        String getUri = String.format("%s?orgLink=%s&session_cleaned=true&serviceInvitationLink=service-invitation",
+                                      vmbcAuthLogin, orgLink);
+
+        mockMvc.perform(get(getUri).session((session))).andExpect(redirectedUrlPattern(redirectUri));
+        Assertions.assertEquals("service-invitation", session.getAttribute("serviceInvitationLink"));
     }
 
     @Test
@@ -343,6 +374,21 @@ public class Oauth2ControllerTests {
         stubFor(cspAuthGoodReturn());
         String getUri = String.format("%s?code=%s&state=%s", vmbcOauthCallback, code, state);
 
+        mockMvc.perform(get(getUri).session(session)).andExpect(redirectedUrl(targetUri));
+
+        verify(1, postRequestedFor(urlPathEqualTo(CspConstants.CSP_OAUTH_TOKEN)));
+    }
+
+    @Test
+    public void testCallbackUserFlag() throws Exception {
+        WireMock.reset();
+        stubFor(cspAuthGoodReturn());
+        String getUri = String.format("%s?code=%s&state=%s", vmbcOauthCallback, code, state);
+
+        session.setAttribute(Constants.NEW_USER_PARAM, "new");
+        targetUri =
+                UriComponentsBuilder.fromUriString(targetUri).queryParam(Constants.NEW_USER_PARAM, "new")
+                        .build().toUriString();
         mockMvc.perform(get(getUri).session(session)).andExpect(redirectedUrl(targetUri));
 
         verify(1, postRequestedFor(urlPathEqualTo(CspConstants.CSP_OAUTH_TOKEN)));

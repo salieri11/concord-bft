@@ -19,6 +19,7 @@ public class Constants {
     public static final String AUTH_INVITATION = OAUTH + "/invitation-return";
     public static final String AUTH_LOGIN = OAUTH + "/login";
     public static final String AUTH_LOGOUT = OAUTH + "/logout";
+    public static final String AUTH_LOGIN_RETURN = "/login-return";
     public static final String API_AUTH_TOKEN = OAUTH + "/token";
     // callback is only used by the server and csp
     public static final String OAUTH_CALLBACK = OAUTH + "/oauth";
@@ -26,6 +27,7 @@ public class Constants {
     public static final String CSP_INVITATION_LINK = "serviceInvitationLink";
     public static final String CSP_ORG_LINK = "orgLink";
     public static final String CSP_TOKEN_CACHE = "CspTokenCache";
+    public static final String NEW_USER_PARAM = "user";
     public static final String TOKEN_CACHE = "TokenCache";
     public static final String TOKEN_EXPIRES_AT = "token-expires-at";
     public static final String TOKEN_REFRESH = "refresh-token";
