@@ -441,6 +441,7 @@ EOF
                     env.lint_test_logs = new File(env.test_log_root, "LintTest").toString()
                     env.contract_compiler_test_logs = new File(env.test_log_root, "ContractCompilerTests").toString()
                     env.hlf_test_logs = new File(env.test_log_root, "HlfTests").toString()
+                    env.daml_test_logs = new File(env.test_log_root, "DamlTests").toString()
                     env.time_test_logs = new File(env.test_log_root, "TimeTests").toString()
 
                     if (genericTests) {
@@ -459,6 +460,7 @@ EOF
                         echo "${PASSWORD}" | sudo -S "${python}" main.py ExtendedRPCTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${extended_rpc_test_logs}" --runConcordConfigurationGeneration
                         echo "${PASSWORD}" | sudo -S "${python}" main.py ExtendedRPCTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${extended_rpc_test_helen_logs}" --ethrpcApiUrl https://localhost/blockchains/local/api/concord/eth --runConcordConfigurationGeneration
                         echo "${PASSWORD}" | sudo -S "${python}" main.py RegressionTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${regression_test_logs}" --runConcordConfigurationGeneration
+                        echo "${PASSWORD}" | sudo -S "${python}" main.py DamlTests --dockerComposeFile ../docker/docker-compose-daml.yml --resultsDir "${daml_test_logs}" --runConcordConfigurationGeneration --concordConfigurationInput /concord/config/dockerConfigurationInput-daml.yaml
 
                         echo "${PASSWORD}" | sudo -S "${python}" main.py SimpleStateTransferTest --dockerComposeFile ../docker/docker-compose.yml ../docker/docker-compose-static-ips.yml --resultsDir "${statetransfer_test_logs}" --runConcordConfigurationGeneration
                         echo "${PASSWORD}" | sudo -S "${python}" main.py TruffleTests --logLevel debug --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${truffle_test_logs}" --runConcordConfigurationGeneration

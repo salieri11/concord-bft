@@ -10,6 +10,11 @@ RUN apt update && apt install -y gnupg2 ca-certificates && \
     apt update && apt install -y openjdk-8-jdk-headless sbt && \
     rm -rf /var/lib/apt/lists/*
 
+# Pull the test tool and extract the *.dar packages
+COPY --from=athena-docker-local.artifactory.eng.vmware.com/daml-ledger-api-test-tool:100.13.8 \
+    /ledger-api-test-tool_2.12-100.13.8.jar /
+RUN java -jar ledger-api-test-tool_2.12-100.13.8.jar -x
+
 COPY daml/build.sbt /doc/daml/
 COPY daml/project /doc/daml/project
 WORKDIR /doc/daml
@@ -18,9 +23,5 @@ RUN sbt update
 COPY concord/proto /doc/concord/proto
 COPY daml/kvbc_sync_backend /doc/daml/kvbc_sync_backend
 COPY daml/kvbc_ledger_server /doc/daml/kvbc_ledger_server
-
-COPY daml/ledger-api-test-tool_2.12-100.13.8.jar /doc/daml/
-COPY daml/SemanticTests.dar /doc/daml/
-COPY daml/Test.dar /doc/daml/
 
 RUN sbt stage
