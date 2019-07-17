@@ -130,7 +130,7 @@ buildMavenTargets(){
     -v "$(pwd)":/workspace \
     -w /workspace \
     athena-docker-local.artifactory.eng.vmware.com/build-images/maven-builder:v1 \
-    mvn clean install > mvn_build.log 2>&1 &
+    mvn --debug --errors clean install > mvn_build.log 2>&1 &
   MVN_BUILD=$!
 
   addToProcList "Maven" $!
