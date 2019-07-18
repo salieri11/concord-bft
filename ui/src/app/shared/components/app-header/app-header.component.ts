@@ -16,6 +16,7 @@ import { environment } from '../../../../environments/environment';
 import { AuthenticationService } from '../../authentication.service';
 import { Personas, PersonaService } from '../../persona.service';
 import { TourService } from '../../tour.service';
+import { CspAPIs } from '../../../shared/csp-apis';
 
 @Component({
   selector: 'concord-app-header',
@@ -64,7 +65,7 @@ export class AppHeaderComponent implements OnDestroy, AfterViewInit {
   ngAfterViewInit() {
     if (this.env.csp) {
       this.header.switchOrg.subscribe(org => {
-        const orgLink = `/csp/gateway/am/api/orgs/${org.id}`;
+        const orgLink = `${CspAPIs.orgs}${org.id}`;
         window.location.href = `${this.env.loginPath}?org_link=${orgLink}&orgLink=${orgLink}`;
       });
 
