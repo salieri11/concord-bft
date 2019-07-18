@@ -9,8 +9,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -44,7 +42,6 @@ public class ConcordConfigUtil {
     private static final String CLIENT_PROXY = "    client_proxy:";
     private static final String CLIENT_HOST  = "      - client_host: ";
     private static final String CLIENT_PORT  = "        client_port: ";
-    private static final String PRINCIPAL_ID = "        principal_id: ";
     private static final int DEFAULT_PORT = 3501;
 
     public static final int CLIENT_PROXY_PER_NODE = 4;
@@ -198,7 +195,6 @@ public class ConcordConfigUtil {
                     writer.write(CLIENT_PORT + (DEFAULT_PORT + j + 1));
                     writer.newLine();
                 }
-                nodePrincipal.put(i, new ArrayList<>(Arrays.asList(5, 10, 15, 17)));
             }
             writer.flush();
             writer.close();

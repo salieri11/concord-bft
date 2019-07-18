@@ -143,7 +143,7 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
                 ConfigurationServiceType.DockerType.CONCORD_TLS);
 
         Map<Integer, List<IdentityComponent>> tlsNodeIdentities = buildTlsIdentity(tlsIdentityList,
-                configUtil.nodePrincipal, configUtil.maxPrincipalId + 1);
+                configUtil.nodePrincipal, configUtil.maxPrincipalId + 1, request.getHosts().size());
 
         //Generate EthRPC Configuration
         List<Identity> ethrpcIdentityList = certGen.generateSelfSignedCertificates(request.getHosts().size(),
@@ -235,9 +235,23 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
     private Map<Integer, List<IdentityComponent>>  buildTlsIdentity(
             List<Identity> identities,
             Map<Integer, List<Integer>> principals,
-            int numCerts) {
+            int numCerts, int numHosts) {
 
         Map<Integer, List<IdentityComponent>> result = new HashMap<>();
+
+        // TODO: May remove logic once principals are available
+        if (principals.size() == 0) {
+            IntStream.range(0, numHosts).forEach(node -> {
+                List<IdentityComponent> identityComponents = new ArrayList<>();
+                identities.forEach(identity -> {
+                    identityComponents.add(identity.getCertificate());
+                    identityComponents.add(identity.getKey());
+                });
+                result.put(node, identityComponents);
+            });
+            return result;
+        }
+
         for (int node : principals.keySet()) {
             List<IdentityComponent> nodeIdentities = new ArrayList<>();
 
@@ -248,7 +262,7 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
             List<Identity> serverList = new ArrayList<>(identities.subList(0, identities.size() / 2));
             List<Identity> clientList = new ArrayList<>(identities.subList(identities.size() / 2, identities.size()));
 
-            notPrincipal.stream().forEach(entry -> {
+            notPrincipal.forEach(entry -> {
                 nodeIdentities.add(serverList.get(entry).getCertificate());
                 nodeIdentities.add(clientList.get(entry).getCertificate());
             });
