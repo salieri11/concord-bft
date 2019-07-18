@@ -6,6 +6,7 @@ import persephone.concord_model_pb2 as concord_model
 import persephone.configuration_service_pb2 as configuration_service
 import persephone.configuration_service_pb2_grpc as configuration_service_rpc
 from typing import Any, Dict
+import os
 
 
 def get_arguments():
@@ -62,12 +63,27 @@ def main():
 
     print("GenerateConfiguration: ", config_session_id)
 
-    node_request = configuration_service.NodeConfigurationRequest(
-            header=core.MessageHeader(),
-            identifier=config_session_id,
-            node=0)
+    for i in range(4):
+        node_request = configuration_service.NodeConfigurationRequest(header=core.MessageHeader(), identifier=config_session_id, node=i)
+        filename = "/tmp/config-output/node-certs/node_" + str(i)
+        # import pdb; pdb.set_trace()
+        node_response = stub.GetNodeConfiguration(node_request)
+        for item in node_response.configurationComponent:
+            if(item.type == 1):
+                print(item.component_url)
+                component_url_list = item.component_url.split("/")
+                # print("/".join(component_url_list[:-1]))
+                path = "/tmp/config-output/temp/certs/" + str(i) + "/".join(component_url_list[:-1])
+                if not os.path.isdir(path):
+                    os.makedirs(path, exist_ok=True)
+                with open(path + "/" + component_url_list[-1], "w+") as f:
+                    f.write(item.component)
+        # print(item.component)
 
-    node_response = stub.GetNodeConfiguration(node_request)
+        with open(filename, "w+") as f:
+            node_response = stub.GetNodeConfiguration(node_request)
+            f.write(str(node_response))
+
 
     print("GetNodeConfiguration: ", node_response)
 
