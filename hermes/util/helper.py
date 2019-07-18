@@ -9,6 +9,8 @@ import json
 import shutil
 import logging
 import paramiko
+import warnings
+import cryptography
 import subprocess
 from . import numbers_strings
 from . import product as p
@@ -99,6 +101,9 @@ def ssh_connect(host, username, password, command):
    :param command: command to be executed on the remote host
    :return: Output of the command
    '''
+   warnings.simplefilter("ignore", cryptography.utils.CryptographyDeprecationWarning)
+   logging.getLogger("paramiko").setLevel(logging.WARNING)
+
    resp = None
    try:
       ssh = paramiko.SSHClient()
@@ -224,3 +229,48 @@ def setHelenProperty(key, val):
    with open("../docker/config-helen/app/profiles/application-test.properties", "w") as f:
       for prop in testProperties:
          f.write(prop + "=" + testProperties[prop] + "\n")
+
+
+def add_ethrpc_port_forwarding(host, username, password):
+   '''
+   Enable port forwarding on concord node to facilititate hitting ethrpc endpoint
+   on port 443, which redirects to 8545. This is a workaround to support hitting
+   ethrpc end points from within vmware network, as non 443/80 ports are blocked.
+   Bug/Story: VB-1170
+   :param host: concord host IP
+   :param username: concord node login - username
+   :param password: concord node login - password
+   :return: Port forward status (True/False)
+   '''
+   src_port= 443
+   dest_port = 8545
+   try:
+      log.info("Adding port forwarding to enable ethrpc listen on {}".format(src_port))
+      cmd_get_docker_ethrpc_ip = "iptables -t nat -vnL | grep {} | grep docker | cut -d':' -f3".format(
+         dest_port)
+      docker_ethrpc_ip = ssh_connect(host, username, password,
+                                     cmd_get_docker_ethrpc_ip)
+
+      if docker_ethrpc_ip:
+         docker_ethrpc_ip = docker_ethrpc_ip.rstrip()
+         cmd_port_forward = "iptables -t nat -A PREROUTING -p tcp --dport {} -j DNAT --to-destination {}:{}".format(
+            src_port, docker_ethrpc_ip, dest_port)
+         output = ssh_connect(host, username, password, cmd_port_forward)
+
+         cmd_check_port_forward = "iptables -t nat -vnL | grep {}".format(
+            src_port)
+         port_forward_output = ssh_connect(host, username, password,
+                                           cmd_check_port_forward)
+         log.debug("Port Forwarded output: {}".format(port_forward_output))
+
+         check_str_port_forward = "dpt:{} to:{}:{}".format(src_port,
+                                                           docker_ethrpc_ip,
+                                                           dest_port)
+         if check_str_port_forward in port_forward_output:
+            log.debug("Port forwarded successfully")
+            return True
+   except Exception as e:
+      log.debug(e)
+
+   log.debug("Port forwarding failed")
+   return False

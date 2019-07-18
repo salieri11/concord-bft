@@ -198,6 +198,26 @@ class PersephoneTests(test_suite.TestSuite):
 
       return True
 
+   def add_ethrpc_port_forwarding(self, concord_ip, concord_username,
+                                     concord_password):
+      '''
+      This is a workaround to enable ethrpc to listen on port 443, so tests and
+      other users like performance team can hit ethrpc over vmware network.
+      Bug/Story: VB-1170
+      :param concord_ip: Concord node IP
+      :param concord_username: concord node login - username
+      :param concord_password: concord node login - password
+      :return: Port forwarding Status (True/False)
+      '''
+      port_forwarding_status = helper.add_ethrpc_port_forwarding(concord_ip,
+                                                                 concord_username,
+                                                                 concord_password)
+      if port_forwarding_status:
+         log.info("Port 443 forwarded to ethrpc:8545 - Successful")
+      else:
+         log.warning("Port 443 forwarding to ethrpc:8545 - Failed")
+
+
    def perform_post_deployment_validations(self, events, cluster_size):
       '''
       Perform post deploy validation, including validating EVENTS, Get ethrpc
@@ -244,6 +264,14 @@ class PersephoneTests(test_suite.TestSuite):
                      log.debug(
                         "Container {} found in Concord node '{}'".format(
                            container_name, concord_ip))
+
+               # This is a workaround to enable ethrpc to listen on port 443, so
+               # tests and other users like performance team can hit ethroc over
+               # vmware network. Bug/Story: VB-1170
+               self.add_ethrpc_port_forwarding(concord_ip,
+                                               concord_username,
+                                               concord_password)
+
             log.info("SSH Verification on all concord nodes are successful")
             return (True, None)
          else:
