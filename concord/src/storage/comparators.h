@@ -23,16 +23,15 @@ namespace storage {
 class RocksKeyComparator : public rocksdb::Comparator {
  public:
   RocksKeyComparator()
-      : logger(log4cplus::Logger::getInstance("com.vmware"
-                                              ".concord.kvb")) {}
+      : logger(log4cplus::Logger::getInstance(
+            "concord.storage.RocksKeyComparator")) {}
   int Compare(const rocksdb::Slice& _a, const rocksdb::Slice& _b) const;
 
   // GG: Ignore the following methods for now:
   const char* Name() const { return "RocksKeyComparator"; }
   void FindShortestSeparator(std::string*, const rocksdb::Slice&) const {}
   void FindShortSuccessor(std::string*) const {}
-  static bool InMemKeyComp(const log4cplus::Logger& logger,
-                           const concord::consensus::Sliver& _a,
+  static bool InMemKeyComp(const concord::consensus::Sliver& _a,
                            const concord::consensus::Sliver& _b);
 
  private:

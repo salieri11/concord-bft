@@ -125,7 +125,6 @@ target_link_libraries(TimeContractTests
   concord_utils
   concord_consensus
   concord_common
-  concord_ethereum
   concord_time
   $<TARGET_OBJECTS:logging_dev>)
 

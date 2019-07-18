@@ -6,9 +6,10 @@
 #define USE_ROCKSDB
 #include "time/time_contract.hpp"
 #include "config/configuration_manager.hpp"
+#include "consensus/hash_defs.h"
 #include "consensus/status.hpp"
-#include "ethereum/eth_kvb_storage.hpp"
 #include "gtest/gtest.h"
+#include "storage/blockchain_db_adapter.h"
 #include "storage/blockchain_db_types.h"
 #include "storage/comparators.h"
 #include "storage/in_memory_db_client.h"
@@ -23,7 +24,6 @@ using concord::config::ConcordConfiguration;
 using concord::config::ConfigurationPath;
 using concord::consensus::Sliver;
 using concord::consensus::Status;
-using concord::ethereum::EthKvbStorage;
 using concord::storage::BlockId;
 using concord::storage::IBlocksAppender;
 using concord::storage::IDBClient;
@@ -31,6 +31,7 @@ using concord::storage::ILocalKeyValueStorageReadOnly;
 using concord::storage::ILocalKeyValueStorageReadOnlyIterator;
 using concord::storage::InMemoryDBClient;
 using concord::storage::Key;
+using concord::storage::KeyManipulator;
 using concord::storage::RocksKeyComparator;
 using concord::storage::SetOfKeyValuePairs;
 using concord::storage::Value;
@@ -61,7 +62,7 @@ class TestStorage : public ILocalKeyValueStorageReadOnly,
   Status get(BlockId readVersion, Sliver key, Sliver& outValue,
              BlockId& outBlock) const override {
     outBlock = 0;
-    return db_.get(key, outValue);
+    return db_.get(KeyManipulator::genDataDbKey(key, 0), outValue);
   }
 
   BlockId getLastBlock() const override { return 0; }
@@ -98,7 +99,8 @@ class TestStorage : public ILocalKeyValueStorageReadOnly,
   Status addBlock(const SetOfKeyValuePairs& updates,
                   BlockId& outBlockId) override {
     for (auto u : updates) {
-      Status status = db_.put(u.first, u.second);
+      Status status =
+          db_.put(KeyManipulator::genDataDbKey(u.first, 0), u.second);
       if (!status.isOK()) {
         return status;
       }
@@ -158,9 +160,8 @@ ConcordConfiguration TestConfiguration(std::vector<string> sourceIDs) {
 // obvious answer.
 TEST(time_contract_test, five_source_happy_path) {
   TestStorage database;
-  EthKvbStorage storage(database, &database, 0);
   ConcordConfiguration config = TestConfiguration({"A", "B", "C", "D", "E"});
-  TimeContract tc(storage, config);
+  TimeContract tc(database, config);
 
   std::vector<std::pair<std::string, uint64_t>> samples = {
       {"A", 1}, {"B", 2}, {"C", 3}, {"D", 4}, {"E", 5}};
@@ -181,10 +182,9 @@ TEST(time_contract_test, five_source_happy_path) {
 // answer between the middle two.
 TEST(time_contract_test, six_source_happy_path) {
   TestStorage database;
-  EthKvbStorage storage(database, &database, 0);
   ConcordConfiguration config =
       TestConfiguration({"A", "B", "C", "D", "E", "F"});
-  TimeContract tc(storage, config);
+  TimeContract tc(database, config);
 
   std::vector<std::pair<std::string, uint64_t>> samples = {
       {"A", 1}, {"B", 2}, {"C", 3}, {"D", 5}, {"E", 6}, {"F", 7}};
@@ -204,7 +204,6 @@ TEST(time_contract_test, six_source_happy_path) {
 // Verify that a single source moves forward as expected
 TEST(time_contract_test, source_moves_forward) {
   TestStorage database;
-  EthKvbStorage storage(database, &database, 0);
   ConcordConfiguration config = TestConfiguration({"baz"});
   const ConcordConfiguration& node_config = config.subscope("node", 0);
   TimeSigner ts(node_config);
@@ -212,7 +211,7 @@ TEST(time_contract_test, source_moves_forward) {
   std::string source_id = "baz";
 
   for (uint64_t fake_time = 1; fake_time < 10; fake_time++) {
-    TimeContract tc(storage, config);
+    TimeContract tc(database, config);
     vector<uint8_t> signature = ts.Sign(fake_time);
     ASSERT_EQ(tc.Update(source_id, fake_time, signature), fake_time);
   }
@@ -221,7 +220,6 @@ TEST(time_contract_test, source_moves_forward) {
 // Verify that time is saved and restored correctly
 TEST(time_contract_test, save_restore) {
   TestStorage database;
-  EthKvbStorage storage(database, &database, 0);
   ConcordConfiguration config = TestConfiguration({"foo", "bar", "baz", "qux"});
 
   std::string source_foo = "foo";
@@ -235,7 +233,7 @@ TEST(time_contract_test, save_restore) {
 
   uint64_t expected_time;
   {
-    TimeContract tc(storage, config);
+    TimeContract tc(database, config);
     vector<uint8_t> signature;
     signature = ts_foo.Sign(12345);
     tc.Update(source_foo, 12345, signature);
@@ -246,20 +244,24 @@ TEST(time_contract_test, save_restore) {
     signature = ts_qux.Sign(48576);
     tc.Update(source_qux, 48576, signature);
     expected_time = tc.GetTime();
+
+    SetOfKeyValuePairs updates({tc.Serialize()});
+    BlockId block_id;
+    Status result = database.addBlock(updates, block_id);
+    ASSERT_EQ(result.isOK(), true);
   }
 
   // It's not actually necessary to push tc out of scope, since a new
   // TimeContract object would reinitialize itself from storage anyway, but
   // we've done so for completeness, and now we get to reuse the name anyway.
 
-  TimeContract tc(storage, config);
+  TimeContract tc(database, config);
   ASSERT_EQ(tc.GetTime(), expected_time);
 }
 
 // Verify that the correct source is updated.
 TEST(time_contract_test, update_correct_source) {
   TestStorage database;
-  EthKvbStorage storage(database, &database, 0);
   ConcordConfiguration config = TestConfiguration({"A", "B", "C"});
 
   // The idea here is to exploit the fact that the median of a three-reading
@@ -274,7 +276,7 @@ TEST(time_contract_test, update_correct_source) {
   std::string source_C = "C";
   TimeSigner ts_c(config.subscope("node", 2));
 
-  TimeContract tc(storage, config);
+  TimeContract tc(database, config);
   vector<uint8_t> signature;
   signature = ts_a.Sign(1);
   tc.Update(source_A, 1, signature);
@@ -305,13 +307,12 @@ TEST(time_contract_test, update_correct_source) {
 // Verify that a source cannot move its own time backward.
 TEST(time_contract_test, prevent_source_rollback) {
   TestStorage database;
-  EthKvbStorage storage(database, &database, 0);
   ConcordConfiguration config = TestConfiguration({"foo"});
 
   std::string source_foo = "foo";
   TimeSigner ts(config.subscope("node", 0));
 
-  TimeContract tc1(storage, config);
+  TimeContract tc1(database, config);
   vector<uint8_t> signature;
   signature = ts.Sign(1000);
   const uint64_t first_time = tc1.Update(source_foo, 1000, signature);
@@ -322,7 +323,12 @@ TEST(time_contract_test, prevent_source_rollback) {
   ASSERT_EQ(second_time, first_time);
 
   // then make sure a fresh read is also protected
-  TimeContract tc2(storage, config);
+  SetOfKeyValuePairs updates({tc1.Serialize()});
+  BlockId block_id;
+  Status result = database.addBlock(updates, block_id);
+  ASSERT_EQ(result.isOK(), true);
+
+  TimeContract tc2(database, config);
   signature = ts.Sign(250);
   const uint64_t third_time = tc2.Update(source_foo, 250, signature);
   ASSERT_EQ(third_time, first_time);
@@ -331,11 +337,10 @@ TEST(time_contract_test, prevent_source_rollback) {
 // Only accept times from preconfigured sources.
 TEST(time_contract_test, ignore_unknown_source) {
   TestStorage database;
-  EthKvbStorage storage(database, &database, 0);
   ConcordConfiguration config = TestConfiguration({"A", "B", "C"});
   ConcordConfiguration fakeConfig = TestConfiguration({"X", "Y", "Z"});
 
-  TimeContract tc1(storage, config);
+  TimeContract tc1(database, config);
   vector<uint8_t> signature;
   signature = TimeSigner(fakeConfig.subscope("node", 0)).Sign(1000);
   tc1.Update("X", 1000, signature);
@@ -465,10 +470,9 @@ TEST(time_contract_test, time_signature_enforcement) {
   // barring misconfiguration of the the randomness source.
 
   TestStorage database;
-  EthKvbStorage storage(database, &database, 0);
   ConcordConfiguration config = TestConfiguration({"A", "B"});
   ConcordConfiguration fake_config = TestConfiguration({"A", "B"});
-  TimeContract tc(storage, config);
+  TimeContract tc(database, config);
   TimeSigner a_signer(config.subscope("node", 0));
   TimeSigner b_signer(config.subscope("node", 1));
   TimeSigner fake_a_signer(fake_config.subscope("node", 0));

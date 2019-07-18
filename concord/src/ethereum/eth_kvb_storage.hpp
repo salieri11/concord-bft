@@ -41,8 +41,7 @@ class EthKvbStorage {
 
   // 0x10 - 0x1F reserved for HLF
 
-  // used by concord::time::TimeContract
-  const uint8_t TYPE_TIME = 0x20;
+  // 0x20 used by concord::time::TimeContract
 
   concord::consensus::Sliver kvb_key(uint8_t type, const uint8_t *bytes,
                                      size_t length) const;
@@ -58,7 +57,6 @@ class EthKvbStorage {
   concord::consensus::Sliver code_key(const evm_address &addr) const;
   concord::consensus::Sliver storage_key(const evm_address &addr,
                                          const evm_uint256be &location) const;
-  concord::consensus::Sliver time_key() const;
   concord::consensus::Status get(const concord::consensus::Sliver &key,
                                  concord::consensus::Sliver &out);
   concord::consensus::Status get(const concord::storage::BlockId readVersion,
@@ -106,8 +104,6 @@ class EthKvbStorage {
                             uint64_t &block_number);
   concord::consensus::Sliver block_metadata_key() const;
   uint64_t get_block_metadata(concord::consensus::Sliver key);
-  concord::consensus::Sliver get_time();
-  concord::consensus::Sliver get_time(uint64_t block_number);
 
   concord::consensus::Status write_block(uint64_t timestamp,
                                          uint64_t gas_limit);
@@ -121,7 +117,6 @@ class EthKvbStorage {
   concord::consensus::Sliver set_block_metadata_value(
       uint64_t bftSequenceNum) const;
   void set_block_metadata();
-  void set_time(concord::consensus::Sliver &time);
 };
 
 }  // namespace ethereum

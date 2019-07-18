@@ -334,7 +334,7 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
     } else {
       kvb_commands_handler =
           unique_ptr<ICommandsHandler>(new EthKvbCommandsHandler(
-              *concevm, *ethVerifier, config, nodeConfig, &replica, &replica));
+              *concevm, *ethVerifier, config, nodeConfig, replica, replica));
       // Genesis must be added before the replica is started.
       concord::consensus::Status genesis_status =
           create_genesis_block(&replica, params, logger);

@@ -30,7 +30,7 @@ uint64_t TimeContract::Update(const string &source, uint64_t time,
       if (time > old_sample->second.time) {
         old_sample->second.time = time;
         old_sample->second.signature = signature;
-        StoreLatestSamples();
+        changed = true;
       }
     } else {
       LOG4CPLUS_WARN(logger_,
@@ -106,6 +106,14 @@ static bool TimeSourceIdSelector(const ConcordConfiguration &config,
          path.subpath->name == "time_source_id";
 }
 
+// Produce the key used to store the time contract state.
+Sliver TimeKey() {
+  // TODO: make a static sliver that we can just copy? Copying Sliver doesn't
+  // reallocate the buffer, which may be nice.
+  uint8_t *key = new uint8_t[1]{kTimeKey};
+  return Sliver(key, 1);
+}
+
 // Load samples from storage, if they haven't been already.
 //
 // An exception is thrown if data was found in the time key in storage, but that
@@ -127,8 +135,10 @@ void TimeContract::LoadLatestSamples() {
 
   samples_ = new unordered_map<string, SampleBody>();
 
-  concord::consensus::Sliver raw_time = storage_.get_time();
-  if (raw_time.length() > 0) {
+  concord::consensus::Sliver raw_time;
+  Status read_status = storage_.get(TimeKey(), raw_time);
+
+  if (read_status.isOK() && raw_time.length() > 0) {
     com::vmware::concord::kvb::Time time_storage;
     if (time_storage.ParseFromArray(raw_time.data(), raw_time.length())) {
       if (time_storage.version() == kTimeStorageVersion) {
@@ -188,8 +198,8 @@ void TimeContract::LoadLatestSamples() {
   }
 }
 
-// Write the map to storage.
-void TimeContract::StoreLatestSamples() {
+// Prepare a key/value pair for storage.
+pair<Sliver, Sliver> TimeContract::Serialize() {
   com::vmware::concord::kvb::Time proto;
   proto.set_version(kTimeStorageVersion);
 
@@ -206,7 +216,9 @@ void TimeContract::StoreLatestSamples() {
                                           storage_size);
   proto.SerializeToArray(time_storage.data(), storage_size);
 
-  storage_.set_time(time_storage);
+  changed = false;
+
+  return pair<Sliver, Sliver>(TimeKey(), time_storage);
 }
 
 }  // namespace time

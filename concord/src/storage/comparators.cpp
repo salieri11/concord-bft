@@ -107,8 +107,9 @@ int RocksKeyComparator::Compare(const rocksdb::Slice& _a,
 #endif
 
 /* In memory */
-bool RocksKeyComparator::InMemKeyComp(const Logger& logger, const Sliver& _a,
-                                      const Sliver& _b) {
+bool RocksKeyComparator::InMemKeyComp(const Sliver& _a, const Sliver& _b) {
+  Logger logger(
+      log4cplus::Logger::getInstance("concord.storage.RocksKeyComparator"));
   int comp = ComposedKeyComparison(logger, _a, _b);
 
   LOG4CPLUS_DEBUG(logger, "Compared " << _a << " with " << _b
