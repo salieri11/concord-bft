@@ -133,6 +133,7 @@ def main():
    args.hermes_dir = dir_path
 
    setUpLogging(args)
+
    for run_count in range(1, args.repeatSuiteRun+1):
       log.info("\nTestrun: {0}/{1}".format(run_count, args.repeatSuiteRun))
       log.info("Start time: {}".format(startTime))
