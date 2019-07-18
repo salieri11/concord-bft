@@ -122,13 +122,15 @@ class PersephoneTests(test_suite.TestSuite):
 
          if cleaned_up and undeployed_status is None:
             undeployed_status = True
+            log.info("**** Deprovisioned Successfully")
          if not cleaned_up:
             undeployed_status = False
+            log.info("**** Deprovisioning Failed!")
 
       if undeployed_status:
-         status_message = "Undeployed Successfully!"
+         status_message = "Undeployed all sessions Successfully!"
       else:
-         status_message = "Undeploy Failed"
+         status_message = "Failed to Undeploy all Sessions"
       log.info(status_message)
       self.writeResult("Undeploy", undeployed_status, status_message)
 
@@ -145,9 +147,9 @@ class PersephoneTests(test_suite.TestSuite):
       return [
          ("add_model", self._test_add_model),
          ("list_models", self._test_list_models),
-         # ("4_Node_Blockchain_UNSPECIFIED_Site",
-         #  self._test_create_blockchain_4_node_unspecified_site),
-         # ("get_deployment_events", self._test_stream_deployment_events),
+         ("4_Node_Blockchain_UNSPECIFIED_Site",
+          self._test_create_blockchain_4_node_unspecified_site),
+         ("get_deployment_events", self._test_stream_deployment_events),
          ("4_Node_Blockchain_FIXED_Site",
           self._test_create_blockchain_4_node_fixed_site),
          ("7_Node_Blockchain_FIXED_Site",
