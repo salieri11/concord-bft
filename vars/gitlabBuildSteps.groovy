@@ -380,6 +380,7 @@ EOF
                   # Update hermes/resources/persephone/provision-service/config.json for persephone (deployment service) testing
                   sed -i -e 's/'"<VMC_API_TOKEN>"'/'"${VMC_API_TOKEN}"'/g' blockchain/hermes/resources/persephone/provisioning/config.json
                   sed -i -e 's/'"<DOCKERHUB_REPO_READER_PASSWORD>"'/'"${DOCKERHUB_REPO_READER_PASSWORD}"'/g' blockchain/hermes/resources/persephone/provisioning/config.json
+                  sed -i -e 's/'"<PROD_IPAM_CLIENT_CERT>"'/'"${PROD_IPAM_CLIENT_CERT}"'/g' blockchain/hermes/resources/persephone/provisioning/ipam.crt
                 '''
               }
 
