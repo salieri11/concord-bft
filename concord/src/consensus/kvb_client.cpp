@@ -24,6 +24,10 @@ namespace consensus {
  */
 bool KVBClient::send_request_sync(ConcordRequest &req, bool isReadOnly,
                                   ConcordResponse &resp) {
+  if (!isReadOnly && timePusher_) {
+    timePusher_->AddTimeToCommand(req);
+  }
+
   std::string command;
   req.SerializeToString(&command);
   memset(m_outBuffer, 0, OUT_BUFFER_SIZE);

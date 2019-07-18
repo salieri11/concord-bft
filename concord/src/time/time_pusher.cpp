@@ -10,6 +10,7 @@
 #include "concord.pb.h"
 #include "config/configuration_manager.hpp"
 #include "consensus/kvb_client.hpp"
+#include "time/time_exception.hpp"
 #include "time/time_reading.hpp"
 
 using com::vmware::concord::ConcordRequest;
@@ -19,15 +20,15 @@ using com::vmware::concord::TimeSample;
 using concord::time::TimePusher;
 
 TimePusher::TimePusher(const concord::config::ConcordConfiguration &config,
-                       const concord::config::ConcordConfiguration &nodeConfig,
-                       concord::consensus::KVBClientPool &clientPool)
+                       const concord::config::ConcordConfiguration &nodeConfig)
     : logger_(log4cplus::Logger::getInstance("concord.time.pusher")),
-      clientPool_(clientPool),
       stop_(false),
       lastPublishTimeMs_(0),
       signer_(std::unique_ptr<TimeSigner>{}) {
-  // memoizing enable flag, to make checking faster later
-  timeServiceEnabled_ = concord::time::IsTimeServiceEnabled(config);
+  if (!concord::time::IsTimeServiceEnabled(config)) {
+    throw TimeException(
+        "Time service is not enabled. TimePusher should not be created.");
+  }
 
   if (nodeConfig.hasValue<int>("time_pusher_period_ms")) {
     periodMilliseconds_ = nodeConfig.getValue<int>("time_pusher_period_ms");
@@ -41,14 +42,14 @@ TimePusher::TimePusher(const concord::config::ConcordConfiguration &config,
     timeSourceId_ = "";
   }
 
-  if (timeServiceEnabled_) {
-    signer_.reset(new TimeSigner(nodeConfig));
-  }
+  signer_.reset(new TimeSigner(nodeConfig));
 }
 
-void TimePusher::Start() {
-  if (!timeServiceEnabled_) {
-    LOG4CPLUS_INFO(logger_, "Not starting thread: time service not enabled.");
+void TimePusher::Start(concord::consensus::KVBClientPool *clientPool) {
+  clientPool_ = clientPool;
+  if (!clientPool_) {
+    LOG4CPLUS_ERROR(logger_,
+                    "Not starting thread: no clientPool to push with.");
     return;
   }
 
@@ -87,12 +88,8 @@ void TimePusher::Stop() {
   stop_ = false;
 }
 
-bool TimePusher::IsTimeServiceEnabled() const { return timeServiceEnabled_; }
-
 void TimePusher::AddTimeToCommand(ConcordRequest &command) {
-  if (timeServiceEnabled_) {
-    AddTimeToCommand(command, ReadTime());
-  }
+  AddTimeToCommand(command, ReadTime());
 }
 
 void TimePusher::AddTimeToCommand(ConcordRequest &command, uint64_t time) {
@@ -100,10 +97,16 @@ void TimePusher::AddTimeToCommand(ConcordRequest &command, uint64_t time) {
   std::vector<uint8_t> signature = signer_->Sign(time);
 
   TimeRequest *tr = command.mutable_time_request();
-  TimeSample *ts = tr->mutable_sample();
-  ts->set_source(timeSourceId_);
-  ts->set_time(time);
-  ts->set_signature(signature.data(), signature.size());
+
+  // Only add a sample if there isn't one, to allow tests to specify samples for
+  // their requests.
+  if (!tr->has_sample()) {
+    TimeSample *ts = tr->mutable_sample();
+    ts->set_source(timeSourceId_);
+    ts->set_time(time);
+    ts->set_signature(signature.data(), signature.size());
+  }
+
   lastPublishTimeMs_ = time;
 }
 
@@ -129,7 +132,7 @@ void TimePusher::ThreadFunction() {
 
     try {
       AddTimeToCommand(req, time);
-      clientPool_.send_request_sync(req, false /* not read-only */, resp);
+      clientPool_->send_request_sync(req, false /* not read-only */, resp);
       req.Clear();
       resp.Clear();
     } catch (...) {

@@ -239,7 +239,7 @@ string HlfChaincodeServiceImpl::GenerateRandomString(int len) {
   static const std::string letter = "abcdefghijklmnopqrstuvwxyz";
   std::string result = "";
 
-  srand(time(nullptr));
+  srand(std::time(nullptr));
   for (int i = 0; i < len; i++) {
     int pos = rand() % letter.length();
     result += letter[pos];

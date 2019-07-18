@@ -12,20 +12,31 @@
 #include "concord.pb.h"
 #include "consensus/client_imp.h"
 #include "storage/blockchain_interfaces.h"
+#include "time/time_pusher.hpp"
 
 namespace concord {
+
+// This breaks the circular dependency between TimePusher and
+// KVBClient/KVBClientPool
+namespace time {
+class TimePusher;
+}  // namespace time
+
 namespace consensus {
 
 class KVBClient {
  private:
   concord::storage::IClient *client_;
+  std::shared_ptr<concord::time::TimePusher> timePusher_;
   log4cplus::Logger logger_;
   static constexpr size_t OUT_BUFFER_SIZE = 512000;
   char m_outBuffer[OUT_BUFFER_SIZE];
 
  public:
-  KVBClient(concord::storage::IClient *client)
+  KVBClient(concord::storage::IClient *client,
+            std::shared_ptr<concord::time::TimePusher> timePusher)
       : client_(client),
+        timePusher_(timePusher),
         logger_(log4cplus::Logger::getInstance("com.vmware.concord")) {}
 
   ~KVBClient() {

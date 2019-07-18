@@ -22,6 +22,13 @@
 #include "time/time_signing.hpp"
 
 namespace concord {
+
+// This breaks the circular dependency between TimePusher and
+// KVBClient/KVBClientPool
+namespace consensus {
+class KVBClientPool;
+}  // namespace consensus
+
 namespace time {
 
 class TimePusher {
@@ -38,13 +45,11 @@ class TimePusher {
   //   - clientPool: KVBClientPool through which this TimePusher will publish
   //   its updates.
   explicit TimePusher(const concord::config::ConcordConfiguration &config,
-                      const concord::config::ConcordConfiguration &nodeConfig,
-                      concord::consensus::KVBClientPool &clientPool);
+                      const concord::config::ConcordConfiguration &nodeConfig);
 
-  void Start();
+  void Start(concord::consensus::KVBClientPool *clientPool);
   void Stop();
 
-  bool IsTimeServiceEnabled() const;
   void AddTimeToCommand(com::vmware::concord::ConcordRequest &command);
 
  private:
@@ -53,11 +58,10 @@ class TimePusher {
 
  private:
   log4cplus::Logger logger_;
-  concord::consensus::KVBClientPool &clientPool_;
+  concord::consensus::KVBClientPool *clientPool_;
   bool stop_;
   std::atomic_uint64_t lastPublishTimeMs_;
 
-  bool timeServiceEnabled_;
   int periodMilliseconds_;
   std::string timeSourceId_;
   std::unique_ptr<concord::time::TimeSigner> signer_;
