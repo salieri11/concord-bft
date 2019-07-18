@@ -8,6 +8,7 @@ class Environment extends DynamicEnvironment {
   csp: boolean = true;
   cspEnv: string;
   loginPath: string = '/api/oauth/login';
+  iamLink: string = 'https://console.cloud.vmware.com/csp/gateway/portal/#/consumer/usermgmt/users';
 
   constructor() {
     super();

@@ -32,6 +32,7 @@
     "consortium": "Current Consortium",
     "deploy": "Deploy",
     "dashboard": "Dashboard",
+    "organizations": "Organizations/Users",
     "nodeList": "Node List",
     "blockList": "Blocks",
     "transactionList": "Transactions",
@@ -357,86 +358,17 @@
   },
   "organization": {
     "title": "Organizations",
+    "paginationSummary": "{{start}} - {{finish}} of {{total}} orgs",
+    "columns": {
+      "name":  "Name",
+      "domain": "Domain",
+      "type":  "Type",
+      "created": "Created On"
+    },
     "actions": {
-      "title": "Actions",
-      "options": {
-        "add": {
-          "title": "Add Org"
-        },
-        "import": {
-          "title": "Import Org"
-        },
-        "delete": {
-          "title": "Delete Org"
-        }
-      }
-    },
-    "grid": {
-      "pagination": {
-        "title": "Orgs"
-      },
-      "columns": {
-        "name": {
-          "title": "Name"
-        },
-        "domain": {
-          "title": "Domain"
-        },
-        "type": {
-          "title": "Type"
-        },
-        "created": {
-          "title": "Created On"
-        }
-      }
-    },
-    "addOrgForm": {
-      "title": "Add Organization",
-      "inputs": {
-        "name": {
-          "title": "Name",
-          "placeholder": "MyOrganization"
-        },
-        "peerNumber": {
-          "title": "Peer Number",
-          "placeholder": "1234"
-        },
-        "domain": {
-          "title": "Domain",
-          "placeholder": "MyDomain"
-        },
-        "type": {
-          "title": "Type",
-          "placeholder": "peer1"
-        }
-      },
-      "submit": {
-        "title": "Add"
-      }
-    },
-    "importOrgForm": {
-      "title": "Import Organization",
-      "inputs": {
-        "name": {
-          "title": "Name",
-          "placeholder": "Org1"
-        },
-        "certificate": {
-          "title": "Upload Certificate"
-        },
-        "privateKey": {
-          "title": "Upload Private Key"
-        }
-      },
-      "submit": {
-        "title": "Import"
-      }
-    },
-    "deleteOrgForm": {
-      "title": "Delete Org(s)",
-      "submit": {
-        "title": "Yes"
-      }
+      "users": "Manage Users",
+      "invite": "Invite",
+      "inviteToOrg": "Invite User(s) To My Organization"
     }
   },
   "consortium": {

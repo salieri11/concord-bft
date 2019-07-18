@@ -4,6 +4,7 @@
 
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { Resolve, ActivatedRouteSnapshot } from '@angular/router';
 import { Observable, from, timer, zip } from 'rxjs';
 import { concatMap, filter, map, take, flatMap } from 'rxjs/operators';
 import { BehaviorSubject } from 'rxjs';
@@ -29,8 +30,8 @@ export interface Node {
 export interface BlockchainResponse {
   id: string;
   consortium_id: string;
+  consortium_name: string;
   node_list: Node[];
-  [key: string]: any;
 }
 
 export enum DeployStates {
@@ -39,6 +40,9 @@ export enum DeployStates {
   SUCCEEDED = 'SUCCEEDED',
   FAILED = 'FAILED',
 }
+
+
+
 
 @Injectable({
   providedIn: 'root'
@@ -113,12 +117,6 @@ export class BlockchainService {
             this.select(this.blockchains[0].id);
           }
 
-          if (this.selectedBlockchain) {
-            this.notify.next({ message: 'deployed' });
-          } else {
-            this.notify.next({ message: 'non-deployed' });
-          }
-
           return this.blockchains;
         })
       );
@@ -146,4 +144,17 @@ export class BlockchainService {
     return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(uuid);
   }
 
+}
+
+@Injectable({
+   providedIn: 'root'
+})
+export class BlockchainResolver implements Resolve<BlockchainResponse[]> {
+  constructor(private blockchainService: BlockchainService) {}
+
+  resolve(
+    route: ActivatedRouteSnapshot
+  ): Observable<BlockchainResponse[]> {
+    return this.blockchainService.set(route.params['consortiumId']);
+  }
 }

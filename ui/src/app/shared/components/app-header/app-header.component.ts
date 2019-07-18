@@ -4,7 +4,6 @@
 
 import { Component, OnDestroy, ViewChild, AfterViewInit } from '@angular/core';
 import { Subscription } from 'rxjs';
-import { ClrDropdown } from '@clr/angular';
 import { TranslateService } from '@ngx-translate/core';
 import {
   CspApiService,
@@ -15,7 +14,7 @@ import {
 import { environment } from '../../../../environments/environment';
 import { AuthenticationService } from '../../authentication.service';
 import { Personas, PersonaService } from '../../persona.service';
-import { TourService } from '../../tour.service';
+
 import { CspAPIs } from '../../../shared/csp-apis';
 
 @Component({
@@ -25,7 +24,6 @@ import { CspAPIs } from '../../../shared/csp-apis';
 })
 export class AppHeaderComponent implements OnDestroy, AfterViewInit {
   @ViewChild('header') header: any;
-  @ViewChild('userProfileMenu') userProfileMenu: ClrDropdown;
   authenticationChange: Subscription;
   userProfileMenuToggleChanges: Subscription;
   personas = Personas;
@@ -42,18 +40,12 @@ export class AppHeaderComponent implements OnDestroy, AfterViewInit {
   constructor(
     private authenticationService: AuthenticationService,
     private personaService: PersonaService,
-    private tourService: TourService,
     private cspApiService: CspApiService,
     private translateService: TranslateService,
   ) {
     if (this.env.csp) {
       this.setupCSP();
     } else {
-      this.userProfileMenuToggleChanges = this.tourService.userProfileDropdownChanges$.subscribe((openMenu) => {
-        setTimeout(() => {
-          this.userProfileMenu.ifOpenService.open = openMenu;
-        });
-      });
 
       this.authenticationChange = authenticationService.user.subscribe(user => {
         this.username = user.email;

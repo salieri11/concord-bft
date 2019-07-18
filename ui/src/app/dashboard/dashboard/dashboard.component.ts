@@ -11,7 +11,7 @@ import { GaugeComponent } from '@swimlane/ngx-charts';
 
 import { WorldMapComponent } from '../../graphs/world-map/world-map.component';
 import { BlockListingBlock } from '../../blocks/shared/blocks.model';
-import { TransactionsService } from '../../transactions/shared/transactions.service';
+import { OrgService } from '../../orgs/shared/org.service';
 import { TourService } from '../../shared/tour.service';
 import { SmartContractsService } from '../../smart-contracts/shared/smart-contracts.service';
 import { BlocksService } from '../../blocks/shared/blocks.service';
@@ -34,7 +34,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   blockchainId: string;
   blocks: BlockListingBlock[] = [];
-  transactions: any[] = [];
+  orgs: any[] = [];
   nodes: any[] = [];
   nodesByLocation: any[] = [];
   smartContracts = [];
@@ -50,7 +50,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   };
 
   constructor(
-    private transactionsService: TransactionsService,
+    private orgService: OrgService,
     private smartContractsService: SmartContractsService,
     private blocksService: BlocksService,
     private nodesService: NodesService,
@@ -58,19 +58,17 @@ export class DashboardComponent implements OnInit, OnDestroy {
     private router: Router,
     private translate: TranslateService,
     private tourService: TourService
-  ) {
-  }
+  ) {}
 
   ngOnInit() {
     this.blockchainId = this.route.snapshot.parent.parent.params['consortiumId'];
-
-    this.loadTransactions();
-    this.loadSmartContracts();
+    this.loadOrgs();
     this.loadNodes();
     this.loadBlocks();
+    this.loadSmartContracts();
 
     this.pollIntervalId = setInterval(() => {
-      this.loadTransactions();
+      this.loadOrgs();
       this.loadNodes();
       this.loadBlocks();
       this.loadSmartContracts();
@@ -115,6 +113,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
     return `${value}/${this.max}`;
   }
 
+  get orgCount() {
+    return this.orgs.length;
+  }
+
   get transactionCount() {
     const blockCount = this.blocks[0] ? this.blocks[0].number : 0;
     const firstBlockTransactionCount = this.firstBlockTransactionCount;
@@ -139,6 +141,15 @@ export class DashboardComponent implements OnInit, OnDestroy {
     };
   }
 
+  get organizationsConfig(): DashboardListConfig {
+    return {
+      headers: ['organization.columns.name'],
+      displayProperties: ['organization_name'],
+      tableHeader: 'organization.title',
+      paginationSummary: 'organization.paginationSummary'
+    };
+  }
+
   get blocksConfig(): DashboardListConfig {
     return {
       headers: ['blocks.index', 'blocks.hash'],
@@ -148,18 +159,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
         return [`/${this.blockchainId}`, 'blocks', block.number];
       },
       paginationSummary: 'blocks.paginationSummary'
-    };
-  }
-
-  get transactionsConfig(): DashboardListConfig {
-    return {
-      headers: ['transactions.hash', 'transactions.nonce'],
-      displayProperties: ['hash', 'nonce'],
-      tableHeader: 'transactions.transactions',
-      itemLink: (transaction) => {
-        return [`/${this.blockchainId}`, 'blocks', transaction.block_number, 'transactions', transaction.hash];
-      },
-      paginationSummary: 'transactions.paginationSummary'
     };
   }
 
@@ -211,9 +210,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     });
   }
 
-  private loadTransactions() {
-    this.transactionsService.getTransactions(BLOCK_TRANSACTION_LIMIT).subscribe((resp) => {
-      this.transactions = resp.transactions;
-    });
+  private loadOrgs() {
+    this.orgService.getList().subscribe(resp => this.orgs = resp);
   }
 }

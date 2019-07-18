@@ -1,3 +1,23 @@
 <div class="list-container">
-  <concord-grid #grid [options]="gridOptions" (selectedRowsEvent)="selectedRowChange($event)"></concord-grid>
+  <clr-datagrid>
+    <clr-dg-action-bar>
+      <div class="btn-group">
+        <a href="{{ env.iamLink }}" target="_blank" class="btn btn-sm">
+          <clr-icon shape="users"></clr-icon> {{ 'organization.actions.users' | translate }}
+        </a>
+      </div>
+    </clr-dg-action-bar>
+    <clr-dg-column>{{'organization.columns.name' | translate}}</clr-dg-column>
+    <clr-dg-row *clrDgItems="let org of orgs">
+      <clr-dg-cell>
+        {{org.organization_name}}
+      </clr-dg-cell>
+    </clr-dg-row>
+    <clr-dg-footer>
+      <clr-dg-pagination #pagination [clrDgPageSize]="10">
+        {{'organization.paginationSummary' | translate: { start: pagination.firstItem + 1, finish: pagination.lastItem + 1,
+        total: pagination.totalItems} }}
+      </clr-dg-pagination>
+    </clr-dg-footer>
+  </clr-datagrid>
 </div>

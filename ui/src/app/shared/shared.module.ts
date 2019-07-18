@@ -36,6 +36,8 @@ import { CodeHighlighterComponent } from './components/code-highlighter/code-hig
 import { AppHeaderComponent } from './components/app-header/app-header.component';
 import { VersionComponent } from './components/version/version.component';
 
+import { BlockchainService, BlockchainResolver } from './blockchain.service';
+
 @NgModule({
   imports: [
     CommonModule,
@@ -71,6 +73,7 @@ import { VersionComponent } from './components/version/version.component';
     TransactionsStatusFilterComponent,
     FormsModule,
     ReactiveFormsModule,
+    CspComponentsModule,
     CanViewDirective,
     VmwTaskComponent,
     VmwTaskPanelComponent,
@@ -94,6 +97,8 @@ export class SharedModule {
         AuthenticationService,
         AuthenticatedGuard,
         AgreementGuard,
+        BlockchainService,
+        BlockchainResolver,
         {provide: CONCORD_API_PREFIX, useValue: 'api/concord'},
         {provide: ETHEREUM_API_PREFIX, useValue: 'api/concord/eth'},
         {provide: LOG_API_PREFIX, useValue: 'logging/api'},
@@ -119,6 +124,25 @@ export class SharedModule {
   providers: [
     AuthenticationService,
     AuthenticatedGuard,
+    //         {
+    //       provide: BlockchainService,
+    //       useValue: {
+    //         selectedBlockchain: {
+    //           consortium_id: 1
+    //         },
+    //         blockchains: [],
+    //         blockchaindId: 1,
+    //         select: () => {
+    //           return true;
+    //         },
+    //         notify: {
+    //           subscribe: (fn: (value) => void) => fn(
+    //             {'message': null}
+    //           ),
+    //         },
+    //       },
+    //     },
+    // BlockchainResolver,
     {provide: CONCORD_API_PREFIX, useValue: 'api/concord'},
     {provide: ETHEREUM_API_PREFIX, useValue: 'api/concord/eth'},
     {provide: LOG_API_PREFIX, useValue: 'logging/api'},

@@ -27,6 +27,7 @@ import { DashboardListComponent } from '../dashboard-list/dashboard-list.compone
 
 import { WorldMapComponent } from '../../graphs/world-map/world-map.component';
 import { TourService } from '../../shared/tour.service';
+import { BlockchainService } from '../../shared/blockchain.service';
 import { VmwClarityThemeService } from './../../shared/theme.provider';
 
 describe('DashboardComponent', () => {
@@ -72,7 +73,26 @@ describe('DashboardComponent', () => {
               ),
             },
           },
-        }
+        },
+           {
+          provide: BlockchainService,
+          useValue: {
+            selectedBlockchain: {
+              consortium_id: 1
+            },
+            blockchains: [],
+            blockchaindId: 1,
+            select: () => {
+              return true;
+            },
+            notify: {
+              subscribe: (fn: (value) => void) => fn(
+                {'message': null}
+              ),
+            },
+          },
+        },
+
       ]
     })
       .compileComponents();

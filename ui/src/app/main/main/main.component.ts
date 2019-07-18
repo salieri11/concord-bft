@@ -36,12 +36,15 @@ export class MainComponent implements OnInit, OnDestroy {
   navOption: string;
   openDeployDapp: boolean;
   routerFragmentChange: Subscription;
-  blockchains: BlockchainResponse[] = [];
   enableRouterOutlet: boolean = false;
   env: any;
   showErrorMessage: boolean = false;
   error: HttpErrorResponse;
+  routeDataSub: Subscription;
+  alertSub: Subscription;
+  blockNotifySub: Subscription;
 
+  // Blockchain Service is resolved in the router before loading
   get selectedConsortium() {
     return this.blockchainService.blockchainId;
   }
@@ -49,6 +52,10 @@ export class MainComponent implements OnInit, OnDestroy {
   set selectedConsortium(id: string) {
     const selected = this.blockchainService.select(id);
     this.enableRouterOutlet = selected;
+  }
+
+  get blockchains(): BlockchainResponse[] {
+    return this.blockchainService.blockchains || [];
   }
 
   constructor(
@@ -63,24 +70,22 @@ export class MainComponent implements OnInit, OnDestroy {
     this.env = environment;
     this.selectedConsortium = this.route.snapshot.params['consortiumId'];
 
-    this.alertService.notify
+    this.alertSub = this.alertService.notify
       .subscribe(error => this.addAlert(error));
 
     if (!environment.csp) {
       this.setInactivityTimeout();
     }
 
-    this.blockchainService.set(
-      this.selectedConsortium
-    ).subscribe(
-      () => this.handleInitialization(),
+    this.routeDataSub = this.route.data
+      .subscribe(() => this.handleInitialization(),
       error => this.handleInitError(error));
   }
 
   ngOnInit() {
     this.tourService.initialUrl = this.router.url.substr(1);
 
-    this.blockchainService.notify
+    this.blockNotifySub = this.blockchainService.notify
       .subscribe(notification => this.handleConsortiumNotification(notification));
 
     this.routerFragmentChange = this.route.fragment.subscribe(fragment => {
@@ -106,7 +111,7 @@ export class MainComponent implements OnInit, OnDestroy {
 
     this.blockchainWizard.setupComplete.subscribe(
       response => {
-        this.router.navigate(['/deploying'], { replaceUrl: true });
+        this.router.navigate(['/deploying', 'dashboard']);
         this.enableRouterOutlet = false;
         this.deployLoader.startLoading(response);
       }
@@ -115,7 +120,13 @@ export class MainComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.routerFragmentChange.unsubscribe();
-    this.deregisterWindowListeners();
+    this.blockNotifySub.unsubscribe();
+    this.routeDataSub.unsubscribe();
+    this.alertSub.unsubscribe();
+
+    if (!environment.csp) {
+      this.deregisterWindowListeners();
+    }
   }
 
   consortiumChange() {
@@ -165,10 +176,10 @@ export class MainComponent implements OnInit, OnDestroy {
     switch (notification.message) {
       case 'deploying':
         this.navDisabled = true;
+        this.enableRouterOutlet = false;
         break;
 
       case 'deployed':
-        this.blockchains = this.blockchainService.blockchains;
         this.navDisabled = false;
         this.enableRouterOutlet = true;
         break;

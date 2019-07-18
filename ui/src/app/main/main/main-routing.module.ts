@@ -18,13 +18,14 @@ import { usersRoutes } from '../../users/users-routing';
 import { transactionsRoutes } from '../../transactions/transactions-routing';
 import { loggingRoutes } from '../../logging/logging-routing';
 import { developerRoutes } from '../../developer/developer-routing';
-
+import { BlockchainResolver } from '../../shared/blockchain.service';
 
 const routes: Routes = [{
     path: ':consortiumId',
     component: MainComponent,
     canActivate: [AuthenticatedGuard, AgreementGuard],
     canActivateChild: [AuthenticatedGuard],
+    resolve: {blockchain: BlockchainResolver},
     children: [
       { path: 'dashboard', children: dashboardRoutes },
       { path: 'blocks', children: blockRoutes },
@@ -32,7 +33,7 @@ const routes: Routes = [{
       { path: 'smart-contracts', children: smartContractRoutes },
       { path: 'logging', children: loggingRoutes },
       { path: 'consortium', children: consortiumRoutes },
-      { path: 'organization', children: orgRoutes },
+      { path: 'organizations', children: orgRoutes },
       { path: 'users', children: usersRoutes },
       { path: 'transactions', children: transactionsRoutes },
       { path: 'developer', children: developerRoutes },

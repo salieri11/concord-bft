@@ -7,6 +7,7 @@ import { RouterTestingModule } from '@angular/router/testing';
 import { TourService as NgxTourService } from 'ngx-tour-ngx-popper';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { ActivatedRoute } from '@angular/router';
+import { Subscription } from 'rxjs';
 
 import { MockSharedModule } from '../../shared/shared.module';
 
@@ -21,8 +22,6 @@ import { DeployingInterstialComponent } from '../deploying-interstitial/deployin
 import { SetupModalComponent } from '../setup-modal/setup-modal.component';
 
 import { ErrorAlertService } from '../../shared/global-error-handler.service';
-// import { AuthenticationService } from '../../shared/authentication.service';
-// import { Personas } from '../../shared/persona.service';
 import { VmwClarityThemeService } from '../../shared/theme.provider';
 import { VmwTasksService } from '../../shared/components/task-panel/tasks.service';
 import { TourService } from '../../shared/tour.service';
@@ -62,9 +61,14 @@ describe('MainComponent', () => {
           provide: ActivatedRoute,
           useValue: {
             snapshot: {params: {consortiumId: '1234'}},
+            data: {
+              subscribe: (fn: (value) => void) => fn(
+                {blockchains: []}
+              ),
+            },
             params: {
               subscribe: (fn: (value) => void) => fn(
-                ''
+                {consortiumId: 1}
               ),
             },
             fragment: {
@@ -81,6 +85,7 @@ describe('MainComponent', () => {
   beforeEach(() => {
     fixture = TestBed.createComponent(MainComponent);
     component = fixture.componentInstance;
+    component.routerFragmentChange = new Subscription();
     fixture.detectChanges();
   });
 
@@ -88,19 +93,4 @@ describe('MainComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  // describe('when authenticated', () => {
-  //   beforeEach(() => {
-  //     (TestBed.get(AuthenticationService) as AuthenticationService).logIn('test@vmware.com', 'asdfasdf', Personas.SystemsAdmin);
-  //   });
-  //   afterEach(() => {
-  //     (TestBed.get(AuthenticationService) as AuthenticationService).logOut();
-  //   });
-
-  //   it('should render a nav bar title', async(() => {
-  //     const testFixture = TestBed.createComponent(MainComponent);
-  //     testFixture.detectChanges();
-  //     const compiled = testFixture.debugElement.nativeElement;
-  //     expect(compiled.querySelector('.branding .title').textContent).toContain('title');
-  //   }));
-  // });
 });
