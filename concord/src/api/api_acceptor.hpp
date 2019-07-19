@@ -12,7 +12,6 @@
 #include "api/connection_manager.hpp"
 #include "common/status_aggregator.hpp"
 #include "consensus/kvb_client.hpp"
-#include "time/time_pusher.hpp"
 
 namespace concord {
 namespace api {
@@ -23,7 +22,7 @@ class ApiAcceptor {
               boost::asio::ip::tcp::endpoint endpoint,
               concord::consensus::KVBClientPool &clientPool,
               concord::common::StatusAggregator &sag, uint64_t gasLimit,
-              uint64_t chainID, concord::time::TimePusher &timePusher);
+              uint64_t chainID);
 
  private:
   boost::asio::ip::tcp::acceptor acceptor_;
@@ -33,7 +32,6 @@ class ApiAcceptor {
   concord::common::StatusAggregator sag_;
   uint64_t gasLimit_;
   uint64_t chainID_;
-  concord::time::TimePusher &timePusher_;
 
   void start_accept();
 

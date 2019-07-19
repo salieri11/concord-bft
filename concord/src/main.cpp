@@ -352,6 +352,11 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
 
     // Clients
 
+    std::shared_ptr<TimePusher> timePusher;
+    if (concord::time::IsTimeServiceEnabled(config)) {
+      timePusher.reset(new TimePusher(config, nodeConfig));
+    }
+
     std::vector<KVBClient *> clients;
 
     for (uint16_t i = 0;
@@ -365,15 +370,14 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
       IClient *client = concord::consensus::createClient(clientCommConfig,
                                                          clientConsensusConfig);
       client->start();
-      KVBClient *kvbClient = new KVBClient(client);
+      KVBClient *kvbClient = new KVBClient(client, timePusher);
       clients.push_back(kvbClient);
     }
 
     KVBClientPool pool(clients);
 
-    TimePusher timePusher(config, nodeConfig, pool);
-    if (concord::time::IsTimeServiceEnabled(config)) {
-      timePusher.Start();
+    if (timePusher) {
+      timePusher->Start(&pool);
     }
 
     signal(SIGINT, signalHandler);
@@ -412,8 +416,8 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
       api_service = new io_service();
       tcp::endpoint endpoint(address::from_string(ip), port);
       uint64_t gasLimit = config.getValue<uint64_t>("gas_limit");
-      ApiAcceptor acceptor(*api_service, endpoint, pool, sag, gasLimit, chainID,
-                           timePusher);
+      ApiAcceptor acceptor(*api_service, endpoint, pool, sag, gasLimit,
+                           chainID);
       LOG4CPLUS_INFO(logger, "API Listening on " << endpoint);
 
       start_worker_threads(nodeConfig.getValue<int>("api_worker_pool_size") -
@@ -424,8 +428,8 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
       worker_pool.join_all();
     }
 
-    if (concord::time::IsTimeServiceEnabled(config)) {
-      timePusher.Stop();
+    if (timePusher) {
+      timePusher->Stop();
     }
 
     replica.stop();
