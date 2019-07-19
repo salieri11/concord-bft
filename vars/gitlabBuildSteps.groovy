@@ -329,7 +329,8 @@ def call(){
                 string(credentialsId: 'LINT_API_KEY', variable: 'LINT_API_KEY'),
                 string(credentialsId: 'FLUENTD_AUTHORIZATION_BEARER', variable: 'FLUENTD_AUTHORIZATION_BEARER'),
                 string(credentialsId: 'VMC_API_TOKEN', variable: 'VMC_API_TOKEN'),
-                string(credentialsId: 'DOCKERHUB_REPO_READER_PASSWORD', variable: 'DOCKERHUB_REPO_READER_PASSWORD')
+                string(credentialsId: 'DOCKERHUB_REPO_READER_PASSWORD', variable: 'DOCKERHUB_REPO_READER_PASSWORD'),
+                string(credentialsId: 'PROD_IPAM_CLIENT_CERT', variable: 'PROD_IPAM_CLIENT_CERT')
                 ]) {
                 sh '''
                   echo "${PASSWORD}" | sudo -S ls
