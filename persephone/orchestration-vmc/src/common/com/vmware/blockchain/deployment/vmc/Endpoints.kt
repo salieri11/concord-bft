@@ -3,16 +3,17 @@
  * *************************************************************************/
 package com.vmware.blockchain.deployment.vmc
 
-import com.vmware.blockchain.deployment.model.core.URI
+import com.vmware.blockchain.deployment.http.EndpointEnumeration
 
 /**
  * Enumeration of URI endpoint with expected parameter names.
  */
 enum class Endpoints(
-    private val path: String,
-    private val parameterMappings: Set<String>,
-    private val pathMappings: Set<String> = emptySet()
-) {
+    override val path: String,
+    override val parameterMappings: Set<String>,
+    override val pathMappings: Set<String> = emptySet()
+) : EndpointEnumeration {
+
     NSX_API_ROOT(
             "policy/api/v1/{resource}",
             emptySet(),
@@ -62,54 +63,4 @@ enum class Endpoints(
     VSPHERE_VM_POWER_STOP("/rest/vcenter/vm/{vm}/power/stop", emptySet(), setOf("{vm}")),
     VSPHERE_VM_POWER_SUSPEND("/rest/vcenter/vm/{vm}/power/suspend", emptySet(), setOf("{vm}")),
     VSPHERE_VMS("/rest/vcenter/vm", setOf("filter.vms"), emptySet());
-
-    /**
-     * Interpolate the expected URL by associating the given set of parameters with values.
-     *
-     * @param[parameters]
-     *   list of pairs of parameter name and values.
-     * @param[pathVariables]
-     *   list of pairs of path variable name and values.
-     *
-     * @return
-     *   the expected URL, as a [String].
-     */
-    fun interpolate(
-        parameters: List<Pair<String, String>> = emptyList(),
-        pathVariables: List<Pair<String, String>> = emptyList()
-    ): String {
-        val unresolved = path
-        val resolved = pathVariables
-                .filter { pathMappings.contains(it.first) }
-                .fold(unresolved) {
-                    current, mapping -> current.replace(mapping.first, mapping.second)
-                }
-        return parameters
-                .filter { parameterMappings.contains(it.first) }
-                .takeIf { it.isNotEmpty() }
-                ?.joinToString(prefix = "$resolved?", separator = "&",
-                               transform = { (key, value) -> "$key=$value" })
-                ?: resolved
-    }
-
-    /**
-     * Resolve the endpoint.
-     *
-     * @param[base]
-     *   base URI of the endpoint.
-     * @param[parameters]
-     *   list of pairs of parameter name and values.
-     * @param[pathVariables]
-     *   list of pairs of path variable name and values.
-     *
-     * @return
-     *   a resolved URL, as a [URI].
-     */
-    fun resolve(
-        base: URI,
-        parameters: List<Pair<String, String>> = emptyList(),
-        pathVariables: List<Pair<String, String>> = emptyList()
-    ): URI {
-        return base.resolve(interpolate(parameters, pathVariables))
-    }
 }

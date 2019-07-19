@@ -3,6 +3,8 @@
  * *************************************************************************/
 package com.vmware.blockchain.deployment.agent
 
+import com.vmware.blockchain.deployment.agent.docker.DockerClient
+import com.vmware.blockchain.deployment.agent.docker.DockerOrchestrator
 import com.vmware.blockchain.deployment.logging.error
 import com.vmware.blockchain.deployment.logging.info
 import com.vmware.blockchain.deployment.logging.logger
@@ -65,7 +67,7 @@ private val DEFAULT_CONCORD_AGENT_CONFIGURATION by lazy {
                     )
             )
     )
-    val registryEndpoint = Endpoint("https://registry-1.docker.io/v2", Credential())
+    val registryEndpoint = DockerClient.DEFAULT_CONTAINER_REGISTRY
     val fleetEndpoint = Endpoint("localhost:9004", Credential())
 
     ConcordAgentConfiguration(
@@ -98,6 +100,16 @@ class Application(private val configuration: ConcordAgentConfiguration) : Corout
     /** [StatusReporter] instance for all deployed components associated with this agent. */
     private val statusCollector: StatusReporter = StatusReporter()
 
+    /** [DockerOrchestrator] instance to be used for all container orchestration actions. */
+    private val orchestrator: DockerOrchestrator = DockerOrchestrator(
+            docker = DockerClient(
+                    DockerClient.Context(
+                            DockerClient.DEFAULT_DOCKER_ENGINE,
+                            configuration.containerRegistry
+                    )
+            )
+    )
+
     /**
      * Start the Concord agent.
      */
@@ -105,6 +117,10 @@ class Application(private val configuration: ConcordAgentConfiguration) : Corout
         launch(coroutineContext) {
             // Each iteration of an established session does not propagate failure to parent.
             supervisorScope {
+                val controllers = configuration.model.components
+                        .groupBy { it.serviceType }
+                        .mapValues { ServiceController(orchestrator, it.value) }
+
                 while (isActive) {
                     // Start a new session and wait for the session coroutine to close.
                     establishNewSession()

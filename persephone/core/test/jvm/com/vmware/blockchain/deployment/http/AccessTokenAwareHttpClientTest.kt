@@ -95,7 +95,7 @@ class AccessTokenAwareHttpClientTest {
                             .withQueryParam("refresh_token", EqualToPattern("bearer"))
                             .willReturn(
                                     WireMock.aResponse()
-                                            .withHeader("Content-Type", "text/plain")
+                                            .withHeader(HTTP_HEADER_CONTENT_TYPE, "text/plain")
                                             .withStatus(200)
                                             .withBody(SCENARIO_EXPIRE_ACCESS_TOKEN)
                             )
@@ -108,7 +108,7 @@ class AccessTokenAwareHttpClientTest {
                             .withQueryParam("refresh_token", EqualToPattern("bearer"))
                             .willReturn(
                                     WireMock.aResponse()
-                                            .withHeader("Content-Type", "text/plain")
+                                            .withHeader(HTTP_HEADER_CONTENT_TYPE, "text/plain")
                                             .withStatus(200)
                                             .withBody(SCENARIO_EXPIRE_ACCESS_TOKEN)
                             )

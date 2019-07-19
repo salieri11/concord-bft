@@ -6,6 +6,7 @@ package com.vmware.blockchain.deployment.http
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonConfiguration
+import kotlinx.serialization.list
 import kotlinx.serialization.modules.SerialModule
 import kotlin.reflect.KClass
 
@@ -18,7 +19,10 @@ import kotlin.reflect.KClass
 open class JsonSerializer(private val context: SerialModule) {
 
     /** Internal serializer. */
-    val json: Json = Json(JsonConfiguration.Stable.copy(strictMode = false), context)
+    val json: Json = Json(
+            JsonConfiguration.Stable.copy(encodeDefaults = false, strictMode = false),
+            context
+    )
 
     /**
      * Resolve the [KSerializer] for a given [KClass] type.
@@ -29,7 +33,7 @@ open class JsonSerializer(private val context: SerialModule) {
      * @return
      *   [KSerializer] corresponding to the type.
      */
-    fun <T : Any> serializerFor(type: KClass<T>): KSerializer<T> {
+    fun <T : Any> serializerForType(type: KClass<T>): KSerializer<T> {
         return requireNotNull(context.getContextual(type))
     }
 
@@ -43,7 +47,7 @@ open class JsonSerializer(private val context: SerialModule) {
      *   the JSON value as a [String].
      */
     inline fun <reified T : Any> toJson(value: T): String {
-        return json.stringify(serializerFor(T::class), value)
+        return json.stringify(serializerForType(T::class), value)
     }
 
     /**
@@ -56,6 +60,19 @@ open class JsonSerializer(private val context: SerialModule) {
      *   an instance of type [T] corresponding to the JSON value.
      */
     inline fun <reified T : Any> fromJson(value: String): T {
-        return json.parse(serializerFor(T::class), value)
+        return json.parse(serializerForType(T::class), value)
+    }
+
+    /**
+     * Parse a JSON value and map the result to an array of type [T] instances.
+     *
+     * @param[value]
+     *   UTF-8 encoded JSON string to deserialize.
+     *
+     * @return
+     *   an array of type [T] instances corresponding to the JSON value.
+     */
+    inline fun <reified T : Any> fromJsonArray(value: String): List<T> {
+        return json.parse(serializerForType(T::class).list, value)
     }
 }

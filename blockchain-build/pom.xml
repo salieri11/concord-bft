@@ -22,20 +22,9 @@
 
     <repositories>
         <repository>
-            <!-- Use VMware Nexus repository for third-party artifacts. -->
-            <id>vmware-nexus</id>
-            <url>http://build-squid.eng.vmware.com/nexus/content/groups/repo</url>
-        </repository>
-        <repository>
-            <!-- Explicitly disable Maven's central repository. -->
             <id>central</id>
-            <url>http://build-squid.eng.vmware.com/nexus/content/groups/repo</url>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-            <releases>
-                <enabled>false</enabled>
-            </releases>
+            <name>maven</name>
+            <url>https://build-artifactory.eng.vmware.com/artifactory/maven</url>
         </repository>
         <repository>
             <!-- Use VMware Artifactory for first-party artifacts. -->
