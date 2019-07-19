@@ -10,94 +10,98 @@
 
 #include "concord.pb.h"
 #include "config/configuration_manager.hpp"
+#include "consensus/concord_commands_handler.hpp"
 #include "ethereum/concord_evm.hpp"
 #include "storage/blockchain_interfaces.h"
+#include "time/time_contract.hpp"
 #include "utils/concord_eth_sign.hpp"
 
 namespace concord {
 namespace ethereum {
 
-class EthKvbCommandsHandler : public concord::storage::ICommandsHandler {
+class EthKvbCommandsHandler
+    : public concord::consensus::ConcordCommandsHandler {
  private:
   log4cplus::Logger logger;
   concord::ethereum::EVM &concevm_;
   concord::utils::EthSign &verifier_;
-  const concord::config::ConcordConfiguration &config_;
-  concord::config::ConcordConfiguration &nodeConfiguration;
-
-  concord::storage::ILocalKeyValueStorageReadOnly *m_ptrRoStorage = nullptr;
-  concord::storage::IBlocksAppender *m_ptrBlockAppender = nullptr;
+  const concord::config::ConcordConfiguration &nodeConfiguration;
+  const uint64_t gas_limit_;
 
  public:
   EthKvbCommandsHandler(
       concord::ethereum::EVM &concevm, concord::utils::EthSign &verifier,
       const concord::config::ConcordConfiguration &config,
-      concord::config::ConcordConfiguration &nodeConfig,
-      concord::storage::ILocalKeyValueStorageReadOnly *roStorage,
-      concord::storage::IBlocksAppender *appender);
+      const concord::config::ConcordConfiguration &nodeConfig,
+      const concord::storage::ILocalKeyValueStorageReadOnly &storage,
+      concord::storage::IBlocksAppender &appender);
   ~EthKvbCommandsHandler();
 
-  int execute(uint16_t clientId, uint64_t sequenceNum, bool readOnly,
-              uint32_t requestSize, const char *request, uint32_t maxReplySize,
-              char *outReply, uint32_t &outActualReplySize) override;
+  // concord::consensus::ConcordStateMachine
+  bool Execute(const com::vmware::concord::ConcordRequest &request,
+               uint64_t sequence_num, bool read_only,
+               concord::time::TimeContract *time,
+               com::vmware::concord::ConcordResponse &response) override;
+  void WriteEmptyBlock(uint64_t sequence_num,
+                       concord::time::TimeContract *time) override;
 
  private:
-  bool executeCommand(
-      uint32_t requestSize, const char *request, uint64_t sequenceNum,
-      const concord::storage::ILocalKeyValueStorageReadOnly &roStorage,
-      concord::storage::IBlocksAppender &blockAppender,
-      const size_t maxReplySize, char *outReply, uint32_t &outReplySize) const;
-
-  bool executeReadOnlyCommand(
-      uint32_t requestSize, const char *request,
-      const concord::storage::ILocalKeyValueStorageReadOnly &roStorage,
-      const size_t maxReplySize, char *outReply, uint32_t &outReplySize) const;
-
   // Handlers
   bool handle_transaction_request(
-      com::vmware::concord::ConcordRequest &concreq, EthKvbStorage &kvbStorage,
+      const com::vmware::concord::ConcordRequest &concreq,
+      EthKvbStorage &kvbStorage,
       com::vmware::concord::ConcordResponse &concresp) const;
   bool handle_transaction_list_request(
-      com::vmware::concord::ConcordRequest &concreq, EthKvbStorage &kvbStorage,
+      const com::vmware::concord::ConcordRequest &concreq,
+      EthKvbStorage &kvbStorage,
       com::vmware::concord::ConcordResponse &concresp) const;
   bool handle_logs_request(
-      com::vmware::concord::ConcordRequest &concreq, EthKvbStorage &kvbStorage,
+      const com::vmware::concord::ConcordRequest &concreq,
+      EthKvbStorage &kvbStorage,
       com::vmware::concord::ConcordResponse &concresp) const;
   bool handle_block_list_request(
-      com::vmware::concord::ConcordRequest &concreq, EthKvbStorage &kvbStorage,
+      const com::vmware::concord::ConcordRequest &concreq,
+      EthKvbStorage &kvbStorage,
       com::vmware::concord::ConcordResponse &concresp) const;
   bool handle_block_request(
-      com::vmware::concord::ConcordRequest &concreq, EthKvbStorage &kvbStorage,
+      const com::vmware::concord::ConcordRequest &concreq,
+      EthKvbStorage &kvbStorage,
       com::vmware::concord::ConcordResponse &concresp) const;
-  bool handle_time_request(com::vmware::concord::ConcordRequest &req,
-                           EthKvbStorage &kvbStorage,
-                           com::vmware::concord::ConcordResponse &resp) const;
   bool handle_eth_request(
-      com::vmware::concord::ConcordRequest &concreq, EthKvbStorage &kvbStorage,
+      const com::vmware::concord::ConcordRequest &concreq,
+      EthKvbStorage &kvb_storage, concord::time::TimeContract *time,
       com::vmware::concord::ConcordResponse &concresp) const;
   bool handle_eth_sendTransaction(
-      com::vmware::concord::ConcordRequest &concreq, EthKvbStorage &kvbStorage,
+      const com::vmware::concord::ConcordRequest &concreq,
+      EthKvbStorage &kvbStorage, concord::time::TimeContract *time,
       com::vmware::concord::ConcordResponse &concresp) const;
   bool handle_eth_request_read_only(
-      com::vmware::concord::ConcordRequest &concreq, EthKvbStorage &kvbStorage,
+      const com::vmware::concord::ConcordRequest &concreq,
+      EthKvbStorage &kvbStorage, concord::time::TimeContract *time,
       com::vmware::concord::ConcordResponse &concresp) const;
   bool handle_eth_callContract(
-      com::vmware::concord::ConcordRequest &concreq, EthKvbStorage &kvbStorage,
+      const com::vmware::concord::ConcordRequest &concreq,
+      EthKvbStorage &kvbStorage, concord::time::TimeContract *time,
       com::vmware::concord::ConcordResponse &concresp) const;
   bool handle_eth_blockNumber(
-      com::vmware::concord::ConcordRequest &concreq, EthKvbStorage &kvbStorage,
+      const com::vmware::concord::ConcordRequest &concreq,
+      EthKvbStorage &kvbStorage,
       com::vmware::concord::ConcordResponse &concresp) const;
   bool handle_eth_getCode(
-      com::vmware::concord::ConcordRequest &concreq, EthKvbStorage &kvbStorage,
+      const com::vmware::concord::ConcordRequest &concreq,
+      EthKvbStorage &kvbStorage,
       com::vmware::concord::ConcordResponse &concresp) const;
   bool handle_eth_getStorageAt(
-      com::vmware::concord::ConcordRequest &concreq, EthKvbStorage &kvbStorage,
+      const com::vmware::concord::ConcordRequest &concreq,
+      EthKvbStorage &kvbStorage,
       com::vmware::concord::ConcordResponse &concresp) const;
   bool handle_eth_getTransactionCount(
-      com::vmware::concord::ConcordRequest &concreq, EthKvbStorage &kvbStorage,
+      const com::vmware::concord::ConcordRequest &concreq,
+      EthKvbStorage &kvbStorage,
       com::vmware::concord::ConcordResponse &concresp) const;
   bool handle_eth_getBalance(
-      com::vmware::concord::ConcordRequest &concreq, EthKvbStorage &kvbStorage,
+      const com::vmware::concord::ConcordRequest &concreq,
+      EthKvbStorage &kvbStorage,
       com::vmware::concord::ConcordResponse &concresp) const;
 
   // Utilites

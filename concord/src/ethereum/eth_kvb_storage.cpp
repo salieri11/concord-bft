@@ -62,11 +62,6 @@
 //   - Key: TYPE_BLOCK_METADATA
 //   - Value: com::vmware::concord::kvb::BlockMetadata protobuf
 //   - Notes: As with balance, using protobuf solves encoding issues.
-//
-// * Time
-//   - Key: TYPE_TIME
-//   - Value: com::vmware::concord::kvb::Time protobuf
-//   - Notes: serialization is handled in concord::time::TimeContract
 
 #include "eth_kvb_storage.hpp"
 
@@ -201,10 +196,6 @@ Sliver EthKvbStorage::storage_key(const evm_address &addr,
   std::copy(location.bytes, location.bytes + sizeof(location),
             combined + sizeof(addr));
   return kvb_key(TYPE_STORAGE, combined, sizeof(addr) + sizeof(location));
-}
-
-Sliver EthKvbStorage::time_key() const {
-  return kvb_key(TYPE_TIME, nullptr, 0);
 }
 
 ////////////////////////////////////////
@@ -378,8 +369,6 @@ Sliver EthKvbStorage::set_block_metadata_value(uint64_t bftSequenceNum) const {
 void EthKvbStorage::set_block_metadata() {
   put(block_metadata_key(), set_block_metadata_value(bftSequenceNum_));
 }
-
-void EthKvbStorage::set_time(Sliver &time) { put(time_key(), time); }
 
 ////////////////////////////////////////
 // READING
@@ -705,32 +694,6 @@ uint64_t EthKvbStorage::get_block_metadata(Sliver key) {
   LOG4CPLUS_INFO(logger, "key = " << key << ", status: " << status
                                   << ", sequenceNum = " << sequenceNum);
   return sequenceNum;
-}
-
-Sliver EthKvbStorage::get_time() {
-  uint64_t block_number = current_block_number();
-  return get_time(block_number);
-}
-
-Sliver EthKvbStorage::get_time(uint64_t block_number) {
-  Sliver kvbkey = time_key();
-  Sliver value;
-  BlockId outBlock;
-  Status status = get(block_number, kvbkey, value, outBlock);
-
-  LOG4CPLUS_DEBUG(logger, "Getting time - "
-                              << " lookup block starting at: " << block_number
-                              << " status: " << status << " key: " << kvbkey
-                              << " value.length: " << value.length()
-                              << " out block at: " << outBlock);
-
-  if (status.isOK()) {
-    return value;
-  } else if (status.isNotFound()) {
-    return Sliver();
-  } else {
-    throw EVMException("Time storage corrupted");
-  }
 }
 
 }  // namespace ethereum

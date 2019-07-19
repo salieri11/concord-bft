@@ -17,13 +17,14 @@
 // most recent readings. See TimeContract::SummarizeTime.
 
 #ifndef TIME_TIME_CONTRACT_HPP
+#define TIME_TIME_CONTRACT_HPP
 
 #include <unordered_map>
 #include <utility>
 #include <vector>
 
 #include "config/configuration_manager.hpp"
-#include "ethereum/eth_kvb_storage.hpp"
+#include "storage/blockchain_interfaces.h"
 #include "time_exception.hpp"
 #include "time_signing.hpp"
 
@@ -31,6 +32,7 @@ namespace concord {
 namespace time {
 
 const int64_t kTimeStorageVersion = 1;
+const uint8_t kTimeKey = 0x20;
 
 class TimeContract {
  public:
@@ -43,13 +45,15 @@ class TimeContract {
   //   argument may be thrown if a time source is found in this configuration
   //   without a corresponding public key or the configuration otherwise differs
   //   from the Time Service's expectations.
-  explicit TimeContract(concord::ethereum::EthKvbStorage& storage,
-                        const concord::config::ConcordConfiguration& config)
+  explicit TimeContract(
+      const concord::storage::ILocalKeyValueStorageReadOnly& storage,
+      const concord::config::ConcordConfiguration& config)
       : logger_(log4cplus::Logger::getInstance("concord.time")),
         storage_(storage),
         config_(config),
         verifier_(config),
-        samples_(nullptr) {}
+        samples_(nullptr),
+        changed(false) {}
 
   ~TimeContract() {
     if (samples_) {
@@ -83,7 +87,21 @@ class TimeContract {
   // loaded is corrupted or otherwise invalid.
   uint64_t GetTime();
 
-  void StoreLatestSamples();
+  // Has the contract been updated since being loaded or since last
+  // serialization?
+  bool Changed() { return changed; }
+
+  // Produce a key-value pair that encodes the state of the time contract for
+  // KVB.
+  pair<Sliver, Sliver> Serialize();
+
+  // Clear all cached data.
+  void Reset() {
+    if (samples_) {
+      delete samples_;
+    }
+    changed = false;
+  }
 
   // Struct containing the data stored for the latest time sample known from
   // each source. SampleBody specifically excludes the name of the source the
@@ -109,10 +127,11 @@ class TimeContract {
 
  private:
   log4cplus::Logger logger_;
-  concord::ethereum::EthKvbStorage& storage_;
+  const concord::storage::ILocalKeyValueStorageReadOnly& storage_;
   const concord::config::ConcordConfiguration& config_;
   concord::time::TimeVerifier verifier_;
   std::unordered_map<std::string, SampleBody>* samples_;
+  bool changed;
 
   void LoadLatestSamples();
   uint64_t SummarizeTime();
