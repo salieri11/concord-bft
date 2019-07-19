@@ -4,8 +4,8 @@ package com.digitalasset.kvbc.validator
 
 import java.time.Instant
 
-import com.digitalasset.kvbc.kvbc_validator._
-import com.digitalasset.kvbc.kvbc_data._
+import com.digitalasset.kvbc.daml_validator._
+import com.digitalasset.kvbc.daml_data._
 import com.daml.ledger.participant.state.kvutils._
 import com.daml.ledger.participant.state.v1.Configuration
 import com.digitalasset.daml.lf.data.Time

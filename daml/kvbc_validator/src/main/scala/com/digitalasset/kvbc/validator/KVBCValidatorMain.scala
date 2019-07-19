@@ -3,7 +3,7 @@
 package com.digitalasset.kvbc.validator
 
 import io.grpc.{Server, ServerBuilder}
-import com.digitalasset.kvbc.kvbc_validator._
+import com.digitalasset.kvbc.daml_validator._
 import org.slf4j.LoggerFactory
 
 import scala.concurrent.ExecutionContext

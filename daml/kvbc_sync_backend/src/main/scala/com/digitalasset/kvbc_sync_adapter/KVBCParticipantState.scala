@@ -10,8 +10,8 @@ import com.daml.ledger.participant.state.v1._
 import com.digitalasset.daml.lf.data.Time
 import com.digitalasset.daml_lf.DamlLf.Archive
 import com.digitalasset.grpc.adapter.AkkaExecutionSequencerPool
-import com.digitalasset.kvbc.kvbc_commit._
-import com.digitalasset.kvbc.kvbc_data.ReadTransactionRequest
+import com.digitalasset.kvbc.daml_commit._
+import com.digitalasset.kvbc.daml_data.ReadTransactionRequest
 import scala.util.{Failure, Success}
 import com.daml.ledger.participant.state.kvutils._
 import com.digitalasset.platform.common.util.DirectExecutionContext

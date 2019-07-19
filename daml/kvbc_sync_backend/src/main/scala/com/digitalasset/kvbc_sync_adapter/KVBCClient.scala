@@ -2,9 +2,9 @@
 
 package com.digitalasset.kvbc_sync_adapter
 
-import com.digitalasset.kvbc.kvbc_commit._
-import com.digitalasset.kvbc.kvbc_data._
-import com.digitalasset.kvbc.kvbc_events._
+import com.digitalasset.kvbc.daml_commit._
+import com.digitalasset.kvbc.daml_data._
+import com.digitalasset.kvbc.daml_events._
 import io.grpc.ManagedChannelBuilder
 import scala.concurrent.Future
 import com.digitalasset.grpc.adapter.ExecutionSequencerFactory

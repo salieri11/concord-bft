@@ -268,6 +268,14 @@ inline bool initializeSBFTConfiguration(
     // TODO(IG): add to config file
     repConf->autoViewChangeEnabled = true;
 
+    repConf->maxExternalMessageSize =
+        config.getValue<uint32_t>("concord-bft_max_external_message_size");
+    repConf->maxReplyMessageSize =
+        config.getValue<uint32_t>("concord-bft_max_reply_message_size");
+    repConf->maxNumOfReservedPages =
+        config.getValue<uint32_t>("concord-bft_max_num_of_reserved_pages");
+    repConf->sizeOfReservedPage =
+        config.getValue<uint32_t>("concord-bft_size_of_reserved_page");
   } else {
     clConf->clientId = selfNumber;
     clConf->maxFaulty = maxFaulty;

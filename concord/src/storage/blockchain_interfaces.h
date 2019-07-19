@@ -117,6 +117,14 @@ struct ReplicaConsensusConfig {
   // signer and verifier of a threshold signature (for threshold N out of N)
   IThresholdSigner* thresholdSignerForOptimisticCommit;
   IThresholdVerifier* thresholdVerifierForOptimisticCommit;
+
+  // Messages
+  uint32_t maxExternalMessageSize = 0;
+  uint32_t maxReplyMessageSize = 0;
+
+  // StateTransfer
+  uint32_t maxNumOfReservedPages = 0;
+  uint32_t sizeOfReservedPage = 0;
 };
 
 // Represents a replica of the blockchain database

@@ -5,6 +5,7 @@ set(DAML_PROTO
   daml_commit.proto
   daml_data.proto
   daml_events.proto
+  daml_validator.proto
 )
 
 set(HLF_PROTO

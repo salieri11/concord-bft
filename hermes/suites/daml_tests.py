@@ -10,9 +10,9 @@
 
 import logging
 import os
-import traceback
 import subprocess
 import time
+import traceback
 
 from . import test_suite
 from util.product import Product
@@ -22,9 +22,13 @@ log = logging.getLogger(__name__)
 class DamlProduct(Product):
    def _waitForProductStartup(self):
       """Wait for DAML ledger api server to be up and running.
+
+      Note: We depend on the test packages (*.dar files) to be uploaded on
+      start up. This will change in the future but for now we have to check
+      the server that is uploading the test packages. See docker-compose.
       """
       LOG_READY = "listening on localhost:6865"
-      LOG_FILE = self._createLogPath('daml_ledgerapi_1')
+      LOG_FILE = self._createLogPath("daml_ledger_api1_1")
 
       with open(LOG_FILE) as f:
          timeout = 0
@@ -34,8 +38,7 @@ class DamlProduct(Product):
             time.sleep(1)
             timeout += 1
 
-      log.error("DAML ledger api service didn't start in time. %s",
-                self._createLogPath('daml_ledgerapi_1'))
+      log.error("DAML ledger api service 1 didn't start in time.")
       return False
 
 class DamlTests(test_suite.TestSuite):
@@ -95,24 +98,22 @@ class DamlTests(test_suite.TestSuite):
       return self._resultFile
 
    def _getTests(self):
-      return [("semantic_test_runner", self._test_semantic_test_runner)]
+      return [("ledger_api_test_tool", self._test_ledger_api_test_tool)]
 
-   def _test_semantic_test_runner(self):
-      """Run semantic test runner
-
-      See daml-on-vmware repo README.md
+   def _test_ledger_api_test_tool(self):
+      """Run ledger_api_test_tool
       """
-      cmd = "docker exec -t docker_daml_ledgerapi_1 " \
-            "bin/bazel run @com_github_digital_asset_daml//" \
-            "ledger/ledger-api-integration-tests:semantic-test-runner" \
-            " -- /daml-on-vmware/quickstart.dar"
+      cmd = "docker exec -t docker_daml_ledger_api1_1 " \
+            "java -jar /ledger-api-test-tool_2.12-100.13.8.jar"
       try:
-         c = subprocess.run(cmd.split(), check=True, timeout=300, stdout=subprocess.PIPE)
+         subprocess.check_call(cmd.split(), timeout=120)
       except subprocess.TimeoutExpired as e:
-         log.error("Semantic test runner timed out: %s", str(e))
+         log.error("Ledger API test tool timed out: %s", str(e))
+         log.error(str(e.output))
          return (False, str(e))
       except subprocess.CalledProcessError as e:
-         log.error("Semantic test runner returned error code: %s", str(e))
+         log.error("Ledger API test tool returned an error: %s", str(e))
+         log.error(str(e.output))
          return (False, str(e))
 
       log.info("Semantic test runner passed.")
