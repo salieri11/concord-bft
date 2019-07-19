@@ -19,6 +19,8 @@ export class AuthenticationService {
   agreement: any = { accepted: false };
   redirectUrl: string;
   accessToken: string;
+  logoutPath: string = '/api/oauth/logout';
+  loginReturnPath: string = 'login-return';
 
   constructor(
     private personaService: PersonaService,

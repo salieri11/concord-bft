@@ -8,16 +8,15 @@ import { ClrDropdown } from '@clr/angular';
 import { TranslateService } from '@ngx-translate/core';
 import {
   CspApiService,
-  CspHeaderTheme,
   CspHeaderOptions,
   CspEnvironment,
 } from '@vmw/csp-ngx-components';
-import { VmwClarityThemeService } from '../../theme.provider';
 
 import { environment } from '../../../../environments/environment';
 import { AuthenticationService } from '../../authentication.service';
 import { Personas, PersonaService } from '../../persona.service';
 import { TourService } from '../../tour.service';
+import { CspAPIs } from '../../../shared/csp-apis';
 
 @Component({
   selector: 'concord-app-header',
@@ -46,26 +45,9 @@ export class AppHeaderComponent implements OnDestroy, AfterViewInit {
     private tourService: TourService,
     private cspApiService: CspApiService,
     private translateService: TranslateService,
-    private themeService: VmwClarityThemeService,
   ) {
     if (this.env.csp) {
-      console.log(this.env.cspEnv);
-      if (this.env.cspEnv === 'staging') {
-        this.cspApiService.setCspEnvironment(CspEnvironment.STAGING);
-        this.cspEnvironment = CspEnvironment.STAGING;
-      } else if (this.env.cspEnv === 'production') {
-        this.cspApiService.setCspEnvironment(CspEnvironment.PRODUCTION);
-        this.cspEnvironment = CspEnvironment.PRODUCTION;
-      }
       this.setupCSP();
-      // Init theme for csp
-      this.setTheme();
-      // Update theme based on theme changes
-      this.themeService.themeChange
-        .subscribe(() => this.setTheme());
-
-        this.authToken = this.authenticationService.accessToken;
-
     } else {
       this.userProfileMenuToggleChanges = this.tourService.userProfileDropdownChanges$.subscribe((openMenu) => {
         setTimeout(() => {
@@ -78,13 +60,17 @@ export class AppHeaderComponent implements OnDestroy, AfterViewInit {
         this.personaService.currentPersonas.push(user.persona);
       });
     }
-
   }
 
   ngAfterViewInit() {
     if (this.env.csp) {
       this.header.switchOrg.subscribe(org => {
-        console.log('org', org);
+        const orgLink = `${CspAPIs.orgs}${org.id}`;
+        window.location.href = `${this.env.loginPath}?org_link=${orgLink}&orgLink=${orgLink}`;
+      });
+
+      this.header.signOut.subscribe(() => {
+        window.location.href = this.authenticationService.logoutPath;
       });
     }
   }
@@ -104,9 +90,18 @@ export class AppHeaderComponent implements OnDestroy, AfterViewInit {
   }
 
   private setupCSP() {
+    if (this.env.cspEnv === 'staging') {
+      this.cspApiService.setCspEnvironment(CspEnvironment.STAGING);
+      this.cspEnvironment = CspEnvironment.STAGING;
+    } else if (this.env.cspEnv === 'production') {
+      this.cspApiService.setCspEnvironment(CspEnvironment.PRODUCTION);
+      this.cspEnvironment = CspEnvironment.PRODUCTION;
+    }
+    this.authToken = this.authenticationService.accessToken;
+
     // TODO: Most of this is fake data until we can get
     // these services setup.
-    this.serviceRefLink = 'https://blockchain-stage.vmware.com';
+    this.serviceRefLink = this.env.refLink;
 
     // HeaderOptions
     this.headerOptions.baseRoute = '/';
@@ -118,25 +113,23 @@ export class AppHeaderComponent implements OnDestroy, AfterViewInit {
     this.headerOptions.enableSignout = true;
     this.headerOptions.showNotificationsMenu = true;
     this.headerOptions.helpPinnable = true;
-    this.headerOptions.docCenterLink = 'https://docs-staging.vmware.com/en/VMware-Blockchain/index.html';
-    this.headerOptions.docsProducts = ['Blockchain'];
-    this.headerOptions.docsDefaultSearch = 'Blockchain';
+    // this.headerOptions.docCenterLink = 'https://docs-staging.vmware.com/en/VMware-Blockchain/index.html';
+    // this.headerOptions.docsProducts = ['VMware Blockchain'];
+    // this.headerOptions.docsDefaultSearch = 'VMware Blockchain';
+    this.headerOptions.disableDocsSearch = true;
     this.headerOptions.userMenuIconified = true;
     this.headerOptions.notifications = null;
     this.headerOptions.alerts = null;
     this.headerOptions.context = null;
     this.headerOptions.showOrgSwitcher = true;
-    this.headerOptions.showHelpMenu = true;
+    this.headerOptions.showHelpMenu = false;
     this.headerOptions.enableChangeDefaultOrg = true;
+    this.headerOptions.enableEventTracking = true;
+    this.headerOptions.enableIntercom = false;
     this.headerOptions.globalBranding = true;
     this.headerOptions.isMasked = false;
-    this.headerOptions.showSupportTab = true;
-    this.headerOptions.showDocCenterButton = true;
-  }
-
-  private setTheme() {
-    const theme = this.themeService.theme.toUpperCase();
-    this.headerOptions.theme = CspHeaderTheme[theme];
+    this.headerOptions.showSupportTab = false;
+    this.headerOptions.showDocCenterButton = false;
   }
 
 }

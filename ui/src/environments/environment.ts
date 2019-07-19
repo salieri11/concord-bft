@@ -10,5 +10,6 @@
 export const environment = {
   production: false,
   csp: false,
-  loginPath: undefined
+  loginPath: undefined,
+  refLink: undefined
 };

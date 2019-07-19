@@ -17,6 +17,10 @@
     "copyToClip": "Copy to clipboard",
     "help": "Need Help? Email"
   },
+  "error": {
+    "title": "Error",
+    "403": "You are unable to access this service, please contact your service owner for more information."
+  },
   "nav": {
     "personaSelector": {
       "title": "Role"

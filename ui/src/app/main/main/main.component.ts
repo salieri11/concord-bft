@@ -4,6 +4,7 @@
 
 import { Component, NgZone, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { Router, ActivatedRoute } from '@angular/router';
+import { HttpErrorResponse } from '@angular/common/http';
 import { Subscription } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
@@ -36,8 +37,19 @@ export class MainComponent implements OnInit, OnDestroy {
   openDeployDapp: boolean;
   routerFragmentChange: Subscription;
   blockchains: BlockchainResponse[] = [];
-  selectedConsortium: string;
-  enableRouterOutlet: boolean = true;
+  enableRouterOutlet: boolean = false;
+  env: any;
+  showErrorMessage: boolean = false;
+  error: HttpErrorResponse;
+
+  get selectedConsortium() {
+    return this.blockchainService.blockchainId;
+  }
+
+  set selectedConsortium(id: string) {
+    const selected = this.blockchainService.select(id);
+    this.enableRouterOutlet = selected;
+  }
 
   constructor(
     private authenticationService: AuthenticationService,
@@ -46,10 +58,10 @@ export class MainComponent implements OnInit, OnDestroy {
     private alertService: ErrorAlertService,
     public zone: NgZone,
     private tourService: TourService,
-    private blockchainService: BlockchainService
+    private blockchainService: BlockchainService,
   ) {
-    const consortiumId = this.route.snapshot.params['consortiumId'];
-    this.selectedConsortium = this.blockchainService.select(consortiumId);
+    this.env = environment;
+    this.selectedConsortium = this.route.snapshot.params['consortiumId'];
 
     this.alertService.notify
       .subscribe(error => this.addAlert(error));
@@ -60,11 +72,9 @@ export class MainComponent implements OnInit, OnDestroy {
 
     this.blockchainService.set(
       this.selectedConsortium
-    ).subscribe(() => {
-      if (!this.selectedConsortium && this.blockchainService.blockchainId) {
-        this.router.navigate(['/', this.blockchainService.blockchainId, 'dashboard']);
-      }
-    });
+    ).subscribe(
+      () => this.handleInitialization(),
+      error => this.handleInitError(error));
   }
 
   ngOnInit() {
@@ -89,12 +99,8 @@ export class MainComponent implements OnInit, OnDestroy {
     });
 
     this.route.params.subscribe(param => {
-
-      if (param.consortiumId && param.consortiumId === 'login-return') {
-        // Do nothing
-      } else if (param.consortiumId && param.consortiumId.length > 8) {
+      if (param.consortiumId && this.blockchainService.isUUID(param.consortiumId)) {
         this.selectedConsortium = param.consortiumId;
-        this.blockchainService.select(this.selectedConsortium);
       }
     });
 
@@ -117,13 +123,15 @@ export class MainComponent implements OnInit, OnDestroy {
     this.navDisabled = false;
     this.deployLoader.showInterstitial = false;
 
-    this.router.navigate([`/${this.selectedConsortium}`, 'dashboard'])
-      .then(() => {
-        // This is to refresh all child components
-        setTimeout(() => {
-          this.enableRouterOutlet = true;
-        }, 10);
-      });
+    if (this.selectedConsortium) {
+      this.router.navigate([`/${this.selectedConsortium}`, 'dashboard'])
+        .then(() => {
+          // This is to refresh all child components
+          setTimeout(() => {
+            this.enableRouterOutlet = true;
+          }, 10);
+        });
+    }
   }
 
   deployDapp() {
@@ -138,6 +146,18 @@ export class MainComponent implements OnInit, OnDestroy {
     this.blockchainWizard.open();
   }
 
+  private handleInitialization() {
+    if (this.selectedConsortium && this.selectedConsortium !== this.route.snapshot.params['consortiumId']) {
+      this.router.navigate(['/', this.blockchainService.blockchainId, 'dashboard']);
+    }
+  }
+
+  private handleInitError(error: HttpErrorResponse) {
+    if (error.status === 403) {
+      this.error = error;
+      this.showErrorMessage = true;
+    }
+  }
 
   private handleConsortiumNotification(notification: any): void {
     if (!notification) { return; }

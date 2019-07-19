@@ -13,10 +13,17 @@ import { VmwClarityThemeService, VmwClarityTheme } from '../../theme.provider';
 })
 export class VmwThemeSwitchButtonComponent {
     public VmwClarityTheme = VmwClarityTheme;
+    theme: string;
 
-    constructor(public themeService: VmwClarityThemeService) {}
+    constructor(public themeService: VmwClarityThemeService) {
+      this.theme = themeService.theme;
+      this.themeService.themeChange
+        .subscribe(theme => this.theme = theme);
+    }
 
     themeChanged(newTheme: string) {
-        this.themeService.theme = newTheme;
+         this.themeService.theme = newTheme;
     }
+
+
 }
