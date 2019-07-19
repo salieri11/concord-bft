@@ -1474,7 +1474,16 @@ bool hasAllParametersRequiredAtConfigurationGeneration(
 // included in the given replica's configuration file. Note this function may
 // throw any I/O or YAML serialization exceptions that occur while attempting
 // this operation.
-void outputConcordNodeConfiguration(ConcordConfiguration& config,
+//
+// Note that, at the time of this writing, Concord supports a feature (see the
+// use_loopback_for_local_hosts configuration parameter) whereby loopback
+// IPs (i.e. 127.0.0.1) are inserted into each node's configuration file for
+// hosts used for internal Concord communication which are on that node. Note
+// that, if this feature is enabled in config, this function will handle
+// substitution of the loopback IPs as appropriate in the configuration file it
+// outputs. Throws an std::invalid_argument if this feature is enabled but the
+// loopback IP is rejected by the node's configuration object.
+void outputConcordNodeConfiguration(const ConcordConfiguration& config,
                                     YAMLConfigurationOutput& output,
                                     size_t node);
 
