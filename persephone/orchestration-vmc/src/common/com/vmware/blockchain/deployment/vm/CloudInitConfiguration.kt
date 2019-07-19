@@ -4,7 +4,14 @@
 package com.vmware.blockchain.deployment.vm
 
 import com.vmware.blockchain.deployment.http.JsonSerializer
-import com.vmware.blockchain.deployment.model.*
+import com.vmware.blockchain.deployment.model.ConcordAgentConfiguration
+import com.vmware.blockchain.deployment.model.ConcordClusterIdentifier
+import com.vmware.blockchain.deployment.model.ConcordComponent
+import com.vmware.blockchain.deployment.model.ConcordModelSpecification
+import com.vmware.blockchain.deployment.model.ConcordNodeIdentifier
+import com.vmware.blockchain.deployment.model.ConfigurationSessionIdentifier
+import com.vmware.blockchain.deployment.model.Credential
+import com.vmware.blockchain.deployment.model.Endpoint
 import com.vmware.blockchain.deployment.model.core.URI
 import com.vmware.blockchain.deployment.model.ethereum.Genesis
 import com.vmware.blockchain.deployment.orchestration.toIPv4Address
@@ -61,7 +68,7 @@ class CloudInitConfiguration(
             cluster = clusterId,
             node = nodeId,
             configService = Endpoint(), // FIXME: need to inject config service endpoint.
-            configGenerationId =  configGenId.identifier.toString()
+            configurationSession =  configGenId
 
     )
 

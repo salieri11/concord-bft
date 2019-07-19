@@ -34,7 +34,6 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import com.vmware.blockchain.deployment.model.*;
 import io.grpc.CallOptions;
 import org.apache.commons.io.FileUtils;
 import org.reactivestreams.Publisher;
@@ -42,6 +41,36 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.vmware.blockchain.awsutil.AwsS3Client;
+import com.vmware.blockchain.deployment.model.ConcordCluster;
+import com.vmware.blockchain.deployment.model.ConcordClusterIdentifier;
+import com.vmware.blockchain.deployment.model.ConcordClusterInfo;
+import com.vmware.blockchain.deployment.model.ConcordModelSpecification;
+import com.vmware.blockchain.deployment.model.ConcordNode;
+import com.vmware.blockchain.deployment.model.ConcordNodeEndpoint;
+import com.vmware.blockchain.deployment.model.ConcordNodeHostInfo;
+import com.vmware.blockchain.deployment.model.ConcordNodeIdentifier;
+import com.vmware.blockchain.deployment.model.ConcordNodeInfo;
+import com.vmware.blockchain.deployment.model.ConcordNodeStatus;
+import com.vmware.blockchain.deployment.model.ConfigurationServiceRequest;
+import com.vmware.blockchain.deployment.model.ConfigurationServiceStub;
+import com.vmware.blockchain.deployment.model.ConfigurationSessionIdentifier;
+import com.vmware.blockchain.deployment.model.CreateClusterRequest;
+import com.vmware.blockchain.deployment.model.DeploymentSession;
+import com.vmware.blockchain.deployment.model.DeploymentSessionEvent;
+import com.vmware.blockchain.deployment.model.DeploymentSessionIdentifier;
+import com.vmware.blockchain.deployment.model.DeploymentSpecification;
+import com.vmware.blockchain.deployment.model.MessageHeader;
+import com.vmware.blockchain.deployment.model.OrchestrationSite;
+import com.vmware.blockchain.deployment.model.OrchestrationSiteIdentifier;
+import com.vmware.blockchain.deployment.model.OrchestrationSiteInfo;
+import com.vmware.blockchain.deployment.model.PlacementAssignment;
+import com.vmware.blockchain.deployment.model.PlacementSpecification;
+import com.vmware.blockchain.deployment.model.ProvisionedResource;
+import com.vmware.blockchain.deployment.model.ProvisioningServiceImplBase;
+import com.vmware.blockchain.deployment.model.StreamAllClusterDeploymentSessionEventRequest;
+import com.vmware.blockchain.deployment.model.StreamClusterDeploymentSessionEventRequest;
+import com.vmware.blockchain.deployment.model.UpdateDeploymentSessionRequest;
+import com.vmware.blockchain.deployment.model.UpdateDeploymentSessionResponse;
 import com.vmware.blockchain.deployment.model.ethereum.Genesis;
 import com.vmware.blockchain.deployment.orchestration.InactiveOrchestrator;
 import com.vmware.blockchain.deployment.orchestration.NetworkAddress;
@@ -981,9 +1010,10 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
                 nodeId,
                 model,
                 genesis,
-                networkResourceEvent.getAddress()
+                networkResourceEvent.getAddress(),
+                configGenId
         );
-        return orchestrator.createDeployment(computeRequest, configGenId);
+        return orchestrator.createDeployment(computeRequest);
     }
 
     /**

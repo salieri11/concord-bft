@@ -158,8 +158,7 @@ class VmcOrchestrator private constructor(
     }
 
     override fun createDeployment(
-        request: Orchestrator.CreateComputeResourceRequest,
-        configurationSessionIdentifier: ConfigurationSessionIdentifier
+        request: Orchestrator.CreateComputeResourceRequest
     ): Publisher<Orchestrator.ComputeResourceEvent> {
         return publish(coroutineContext) {
             withTimeout(ORCHESTRATOR_TIMEOUT_MILLIS) {
@@ -210,7 +209,7 @@ class VmcOrchestrator private constructor(
                                     info.controlNetworkSubnet,
                                     request.cluster,
                                     request.node,
-                                    configurationSessionIdentifier
+                                    request.configurationSessionIdentifier
                             )
                     )
 

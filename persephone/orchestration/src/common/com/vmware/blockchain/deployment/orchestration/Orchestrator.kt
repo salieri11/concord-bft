@@ -58,7 +58,8 @@ interface Orchestrator {
         val node: ConcordNodeIdentifier,
         val model: ConcordModelSpecification,
         val genesis: Genesis,
-        val privateNetworkAddress: String = ""
+        val privateNetworkAddress: String = "",
+        val configurationSessionIdentifier: ConfigurationSessionIdentifier
     )
 
     /**
@@ -178,8 +179,7 @@ interface Orchestrator {
      *   a [Publisher] of [ComputeResourceEvent] corresponding to side-effects engendered by the
      *   request.
      */
-    fun createDeployment(request: CreateComputeResourceRequest,
-                         configGenIdentifier: ConfigurationSessionIdentifier): Publisher<ComputeResourceEvent>
+    fun createDeployment(request: CreateComputeResourceRequest): Publisher<ComputeResourceEvent>
 
     /**
      * Delete a Concord deployment based on a given [DeleteComputeResourceRequest].
