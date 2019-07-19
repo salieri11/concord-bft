@@ -28,9 +28,9 @@ class PersephoneTests(test_suite.TestSuite):
    _unintentionallySkippedFile = None
    default_cluster_size = 4
 
-   def __init__(self, passedArgs):
-      super().__init__(passedArgs)
-      self.cmdlineArgs = passedArgs
+   def __init__(self, cmdlineArgs):
+      super().__init__(cmdlineArgs)
+      self.args = self._args
 
    def getName(self):
       return "PersephoneTests"
@@ -52,14 +52,14 @@ class PersephoneTests(test_suite.TestSuite):
             "****gRPC Python bindings not generated. Execute util/generate_gRPC_bindings_for_py3.sh")
          raise Exception("gRPC Python bindings not generated")
 
-      self.rpc_test_helper = RPCTestHelper(self._args)
+      self.rpc_test_helper = RPCTestHelper(self.args)
 
       # Call gRPC to Stream Al Deployment Events in a background thread
-      self.cmdlineArgs.cancel_stream = False
+      self.args.cancel_stream = False
       self.logs_for_stream_all_deploy_events = os.path.join(self._testLogDir,
                                                             "stream_all_deploy_events")
       os.makedirs(self.logs_for_stream_all_deploy_events, exist_ok=True)
-      self.cmdlineArgs.fileRoot = self.logs_for_stream_all_deploy_events
+      self.args.fileRoot = self.logs_for_stream_all_deploy_events
       self._stream_all_deployment_events()
 
       tests = self._get_tests()
@@ -87,12 +87,12 @@ class PersephoneTests(test_suite.TestSuite):
       if self.rpc_test_helper.deployed_session_ids:
          fileRoot = os.path.join(self._testLogDir, "undeploy_all_clusters")
          os.makedirs(fileRoot, exist_ok=True)
-         self.cmdlineArgs.fileRoot = fileRoot
+         self.args.fileRoot = fileRoot
          self.undeploy_blockchain_cluster()
 
       # Trigger to cancel stream
-      self.cmdlineArgs.fileRoot = self.logs_for_stream_all_deploy_events
-      self.cmdlineArgs.cancel_stream = True
+      self.args.fileRoot = self.logs_for_stream_all_deploy_events
+      self.args.cancel_stream = True
       self.background_thread.join()
 
       log.info("Tests are done.")
@@ -148,7 +148,7 @@ class PersephoneTests(test_suite.TestSuite):
       log.info("**** Starting test '{}' ****".format(testName))
       fileRoot = os.path.join(self._testLogDir, testName)
       os.makedirs(fileRoot, exist_ok=True)
-      self.cmdlineArgs.fileRoot = fileRoot
+      self.args.fileRoot = fileRoot
 
       return testFun()
 
@@ -525,6 +525,8 @@ class PersephoneTests(test_suite.TestSuite):
       Call gRPC to stream all deployment events since the start of provisioning
       service
       '''
+      status = None
+      status_message = "Skipped"
       all_events = self.rpc_test_helper.rpc_stream_all_cluster_deployment_session_events()
 
       if all_events:

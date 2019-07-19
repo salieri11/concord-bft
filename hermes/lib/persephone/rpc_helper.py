@@ -29,8 +29,8 @@ log = logging.getLogger(__name__)
 
 
 class RPCHelper():
-   def __init__(self, cmdlineArgs):
-      self.cmdlineArgs = cmdlineArgs
+   def __init__(self, args):
+      self.args = args
       self.channel_connect_timeout = 5  # seconds
       self.channel_connect_status = False
 
@@ -41,7 +41,7 @@ class RPCHelper():
       :return: port number
       '''
       ports = helper.get_docker_compose_value(
-         self.cmdlineArgs.dockerComposeFile, service_name, "ports")
+         self.args.dockerComposeFile, service_name, "ports")
       try:
          port = ports[0].split(':')[0]
       except Exception as e:
@@ -55,7 +55,7 @@ class RPCHelper():
       :return: configl file
       '''
       config_file = helper.get_docker_compose_value(
-         self.cmdlineArgs.dockerComposeFile, service_name, "volumes")
+         self.args.dockerComposeFile, service_name, "volumes")
       try:
          config_file = config_file[0].split(':')[0]
       except Exception as e:
@@ -156,9 +156,9 @@ class RPCHelper():
 
             sleep_time = 30
             time_slept = 0
-            while time_slept < stream_timeout and not self.cmdlineArgs.cancel_stream:
+            while time_slept < stream_timeout and not self.args.cancel_stream:
                log.debug("Trigger status to cancel stream: {}".format(
-                  self.cmdlineArgs.cancel_stream))
+                  self.args.cancel_stream))
                log.debug(
                   "Sleep for {} secs ({}/{}) and check if 'cancel background "
                   "stream collection' trigger is enabled.".format(
@@ -181,7 +181,7 @@ class RPCHelper():
 
       log.debug("gRPC Response from server: {}".format(response_list))
 
-      request_file = os.path.join(self.cmdlineArgs.fileRoot,
+      request_file = os.path.join(self.args.fileRoot,
                                   "{}_request.json".format(
                                      time.time()))
       log.info("gRPC Request: {}".format(request_file))
@@ -189,7 +189,7 @@ class RPCHelper():
       with open(request_file, "w") as f:
          json.dump(rpc_request_json, f, indent=4, sort_keys=True)
 
-      response_file = os.path.join(self.cmdlineArgs.fileRoot,
+      response_file = os.path.join(self.args.fileRoot,
                                    "{}_response.json".format(
                                       time.time()))
       log.info("gRPC Response: {}".format(response_file))

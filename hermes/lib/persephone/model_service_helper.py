@@ -19,8 +19,8 @@ log = logging.getLogger(__name__)
 
 
 class ModelServiceRPCHelper(RPCHelper):
-   def __init__(self, cmdlineArgs):
-      super().__init__(cmdlineArgs)
+   def __init__(self, args):
+      super().__init__(args)
       self.service_name = Product.PERSEPHONE_SERVICE_METADATA
       self.service_port = self.get_persephone_service_port(self.service_name)
 

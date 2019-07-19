@@ -27,8 +27,8 @@ class ProvisioningServiceRPCHelper(RPCHelper):
    UPDATE_DEPLOYMENT_ACTION_NOOP = "NOOP"
    UPDATE_DEPLOYMENT_ACTION_DEPROVISION_ALL = "DEPROVISION_ALL"
 
-   def __init__(self, cmdlineArgs):
-      super().__init__(cmdlineArgs)
+   def __init__(self, args):
+      super().__init__(args)
       self.service_name = Product.PERSEPHONE_SERVICE_PROVISIONING
       self.service_port = self.get_persephone_service_port(self.service_name)
       self.persephone_config_file = self.get_provisioning_config_file(

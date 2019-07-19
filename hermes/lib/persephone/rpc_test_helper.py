@@ -21,15 +21,15 @@ log = logging.getLogger(__name__)
 
 
 class RPCTestHelper():
-   def __init__(self, cmdlineArgs):
-      self.cmdlineArgs = cmdlineArgs
+   def __init__(self, args):
+      self.args = args
       try:
          self.model_rpc_helper = ModelServiceRPCHelper(
-            self.cmdlineArgs)
+            self.args)
          self.provision_rpc_helper = ProvisioningServiceRPCHelper(
-            self.cmdlineArgs)
+            self.args)
          # self.fleet_rpc_helper = FleetServiceRPCHelper(
-         #    self.cmdlineArgs)
+         #    self.args)
 
          self.PLACEMENT_TYPE_FIXED = self.provision_rpc_helper.PLACEMENT_TYPE_FIXED
          self.PLACEMENT_TYPE_UNSPECIFIED = self.provision_rpc_helper.PLACEMENT_TYPE_UNSPECIFIED
