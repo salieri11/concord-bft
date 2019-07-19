@@ -9,6 +9,8 @@
 #include "common/concord_exception.hpp"
 #include "concord.pb.h"
 #include "config/configuration_manager.hpp"
+#include "consensus/concord_commands_handler.hpp"
+#include "time/time_contract.hpp"
 #include "utils/concord_eth_hash.hpp"
 
 using namespace boost::program_options;
@@ -29,8 +31,11 @@ using concord::common::operator<<;
 using concord::consensus::Status;
 using concord::hlf::ChaincodeInvoker;
 using concord::hlf::HlfKvbStorage;
+using concord::storage::BlockId;
 using concord::storage::IBlocksAppender;
 using concord::storage::ILocalKeyValueStorageReadOnly;
+using concord::storage::SetOfKeyValuePairs;
+using concord::time::TimeContract;
 
 namespace concord {
 namespace hlf {
@@ -39,127 +44,79 @@ HlfKvbCommandsHandler::HlfKvbCommandsHandler(
     ChaincodeInvoker* chaincode_invoker,
     const concord::config::ConcordConfiguration& config,
     concord::config::ConcordConfiguration& node_config,
-    ILocalKeyValueStorageReadOnly* ptr_ro_storage,
-    IBlocksAppender* ptr_block_appender)
-    : logger_(log4cplus::Logger::getInstance("com.vmware.concord.hlf.handler")),
+    const ILocalKeyValueStorageReadOnly& ro_storage,
+    IBlocksAppender& block_appender)
+    : ConcordCommandsHandler(config, ro_storage, block_appender),
+      logger_(log4cplus::Logger::getInstance("com.vmware.concord.hlf.handler")),
       chaincode_invoker_(chaincode_invoker),
-      node_config_(node_config),
-      ptr_ro_storage_(ptr_ro_storage),
-      ptr_block_appender_(ptr_block_appender) {
-  assert(ptr_block_appender_);
-  assert(ptr_ro_storage_);
-}
+      node_config_(node_config) {}
 
 HlfKvbCommandsHandler::~HlfKvbCommandsHandler() {
   // no other deinitialization necessary
 }
 
-int HlfKvbCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
-                                   bool read_only, uint32_t request_size,
-                                   const char* request, uint32_t max_reply_size,
-                                   char* out_reply,
-                                   uint32_t& out_actual_reply_size) {
-  bool res;
+bool HlfKvbCommandsHandler::Execute(const ConcordRequest& request,
+                                    uint64_t sequence_num, bool read_only,
+                                    TimeContract* time_contract,
+                                    ConcordResponse& response) {
   if (read_only) {
-    res = ExecuteReadOnlyCommand(request_size, request, *ptr_ro_storage_,
-                                 max_reply_size, out_reply,
-                                 out_actual_reply_size);
+    return ExecuteReadOnlyCommand(request, time_contract, response);
   } else {
-    res = ExecuteCommand(request_size, request, sequence_num, *ptr_ro_storage_,
-                         *ptr_block_appender_, max_reply_size, out_reply,
-                         out_actual_reply_size);
+    return ExecuteCommand(request, sequence_num, time_contract, response);
   }
+}
 
-  return res ? 0 : 1;
+void HlfKvbCommandsHandler::WriteEmptyBlock(uint64_t sequence_num,
+                                            TimeContract* time_contract) {
+  HlfKvbStorage kvb_hlf_storage(storage_, this, sequence_num);
+  kvb_hlf_storage.WriteHlfBlock();
 }
 
 // Callback from SBFT/KVB. Process the request Returns
 // false if the command is illegal or invalid; true otherwise.
 bool HlfKvbCommandsHandler::ExecuteReadOnlyCommand(
-    uint32_t request_size, const char* request,
-    const ILocalKeyValueStorageReadOnly& ro_storage,
-    const size_t max_reply_size, char* out_reply,
-    uint32_t& out_reply_size) const {
-  HlfKvbStorage kvb_hlf_storage(ro_storage);
+    const ConcordRequest& command, TimeContract* time_contract,
+    ConcordResponse& command_response) const {
+  HlfKvbStorage kvb_hlf_storage(storage_);
 
-  ConcordRequest command;
-  bool result;
-  ConcordResponse command_response;
-  if (command.ParseFromArray(request, request_size)) {
-    if (command.hlf_request_size() > 0) {
-      result =
-          HandleHlfRequestReadOnly(command, &kvb_hlf_storage, command_response);
-    } else {
-      std::string pbtext;
-      google::protobuf::TextFormat::PrintToString(command, &pbtext);
-      LOG4CPLUS_ERROR(logger_, "Unknown read-only command: " << pbtext);
-      ErrorResponse* resp = command_response.add_error_response();
-      resp->set_description("Internal concord Error");
-      result = false;
-    }
+  if (command.hlf_request_size() > 0) {
+    return HandleHlfRequestReadOnly(command, &kvb_hlf_storage,
+                                    command_response);
   } else {
-    LOG4CPLUS_ERROR(logger_, "Unable to parse read-only command: "
-                                 << (HexPrintBytes{request, request_size}));
+    std::string pbtext;
+    google::protobuf::TextFormat::PrintToString(command, &pbtext);
+    LOG4CPLUS_ERROR(logger_, "Unknown read-only command: " << pbtext);
     ErrorResponse* resp = command_response.add_error_response();
     resp->set_description("Internal concord Error");
-    result = false;
+    return false;
   }
-
-  if (command_response.SerializeToArray(out_reply, max_reply_size)) {
-    out_reply_size = command_response.ByteSize();
-  } else {
-    LOG4CPLUS_ERROR(logger_, "Reply is too large");
-    out_reply_size = 0;
-  }
-
-  return result;
 }
 
 // Callback from SBFT/KVB. Process the request Returns
 // false if the command is illegal or invalid; true otherwise.
-bool HlfKvbCommandsHandler::ExecuteCommand(
-    uint32_t request_size, const char* request, const uint64_t sequence_num,
-    const ILocalKeyValueStorageReadOnly& ro_storage,
-    IBlocksAppender& block_appender, const size_t max_reply_size,
-    char* out_reply, uint32_t& out_reply_size) const {
-  HlfKvbStorage kvb_hlf_storage(ro_storage, &block_appender, sequence_num);
+bool HlfKvbCommandsHandler::ExecuteCommand(const ConcordRequest& command,
+                                           uint64_t sequence_num,
+                                           TimeContract* time_contract,
+                                           ConcordResponse& command_response) {
+  HlfKvbStorage kvb_hlf_storage(storage_, this, sequence_num);
 
-  ConcordRequest command;
-  bool result;
-  ConcordResponse command_response;
-  if (command.ParseFromArray(request, request_size)) {
-    if (command.hlf_request_size() > 0) {
-      // pass the addr of kvb_hlf_storage
-      result = HandleHlfRequest(command, &kvb_hlf_storage, command_response);
-    } else {
-      // SBFT may decide to try one of our read-only commands in read-write
-      // mode, for example if it has failed several times. So, go check the
-      // read-only list if othing matched here.
-      LOG4CPLUS_DEBUG(logger_, "Unknown read-write command. Trying read-only.");
-      return ExecuteReadOnlyCommand(request_size, request, ro_storage,
-                                    max_reply_size, out_reply, out_reply_size);
-    }
+  if (command.hlf_request_size() > 0) {
+    // pass the addr of kvb_hlf_storage
+    return HandleHlfRequest(command, &kvb_hlf_storage, command_response);
   } else {
-    LOG4CPLUS_ERROR(logger_, "Unable to parse command: "
-                                 << (HexPrintBytes{request, request_size}));
-    ErrorResponse* resp = command_response.add_error_response();
-    resp->set_description("Internal concord Error");
-    result = false;
+    std::string pbtext;
+    google::protobuf::TextFormat::PrintToString(command, &pbtext);
+    LOG4CPLUS_DEBUG(logger_, "Unknown command: " << pbtext);
+    // We have to silently ignore this command if there is nothing in it we
+    // recognize. It might be a request that only contained something like a
+    // time update, which is handled by the calling layer.
+    return true;
   }
-
-  if (command_response.SerializeToArray(out_reply, max_reply_size)) {
-    out_reply_size = command_response.ByteSize();
-  } else {
-    LOG4CPLUS_ERROR(logger_, "Reply is too large");
-    out_reply_size = 0;
-  }
-
-  return result;
 }
 
 //  Handle a HLF gRPC request. Return false if the command was invalid
 bool HlfKvbCommandsHandler::HandleHlfRequest(
-    ConcordRequest& command, HlfKvbStorage* kvb_hlf_storage,
+    const ConcordRequest& command, HlfKvbStorage* kvb_hlf_storage,
     ConcordResponse& command_response) const {
   LOG4CPLUS_DEBUG(logger_, "Triggered the chaincode invoke operation");
   switch (command.hlf_request(0).method()) {
@@ -183,7 +140,7 @@ bool HlfKvbCommandsHandler::HandleHlfRequest(
 }
 
 bool HlfKvbCommandsHandler::HandleHlfRequestReadOnly(
-    ConcordRequest& command, HlfKvbStorage* kvb_hlf_storage,
+    const ConcordRequest& command, HlfKvbStorage* kvb_hlf_storage,
     ConcordResponse& command_response) const {
   switch (command.hlf_request(0).method()) {
     case HlfRequest_HlfMethod_QUERY:
@@ -210,7 +167,7 @@ Status HlfKvbCommandsHandler::StorageUpdate(
 }
 
 bool HlfKvbCommandsHandler::HandleHlfInstallChaincode(
-    ConcordRequest& command, HlfKvbStorage* kvb_hlf_storage,
+    const ConcordRequest& command, HlfKvbStorage* kvb_hlf_storage,
     ConcordResponse& command_response) const {
   // fetch the first hlf request
   const HlfRequest request = command.hlf_request(0);
@@ -241,7 +198,7 @@ bool HlfKvbCommandsHandler::HandleHlfInstallChaincode(
 }
 
 bool HlfKvbCommandsHandler::HandleHlfUpgradeChaincode(
-    ConcordRequest& command, HlfKvbStorage* kvb_hlf_storage,
+    const ConcordRequest& command, HlfKvbStorage* kvb_hlf_storage,
     ConcordResponse& command_response) const {
   // fetch the first hlf request
   const HlfRequest request = command.hlf_request(0);
@@ -272,7 +229,7 @@ bool HlfKvbCommandsHandler::HandleHlfUpgradeChaincode(
 }
 
 bool HlfKvbCommandsHandler::HandleHlfInvokeChaincode(
-    ConcordRequest& command, HlfKvbStorage* kvb_hlf_storage,
+    const ConcordRequest& command, HlfKvbStorage* kvb_hlf_storage,
     ConcordResponse& command_response) const {
   // fetch the first hlf request
   const HlfRequest request = command.hlf_request(0);
@@ -302,7 +259,7 @@ bool HlfKvbCommandsHandler::HandleHlfInvokeChaincode(
 
 // should be read-only
 bool HlfKvbCommandsHandler::HandleHlfQueryChaincode(
-    ConcordRequest& command, ConcordResponse& command_response) const {
+    const ConcordRequest& command, ConcordResponse& command_response) const {
   // fetch the first hlf request
   const HlfRequest request = command.hlf_request(0);
   HlfResponse* response = command_response.add_hlf_response();
