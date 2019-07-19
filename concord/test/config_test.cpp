@@ -6,7 +6,18 @@
 #include "config/configuration_manager.hpp"
 #include "gtest/gtest.h"
 
-using namespace concord::config;
+using std::unique_ptr;
+
+using concord::config::ConcordConfiguration;
+using concord::config::ConfigurationAuxiliaryState;
+using concord::config::ConfigurationPath;
+using concord::config::ConfigurationRedefinitionException;
+using concord::config::ConfigurationResourceNotFoundException;
+using concord::config::InvalidIteratorException;
+using concord::config::kYAMLScopeTemplateSuffix;
+using concord::config::ParameterSelection;
+using concord::config::YAMLConfigurationInput;
+using concord::config::YAMLConfigurationOutput;
 
 namespace {
 
@@ -2460,6 +2471,40 @@ TEST(config_test, yaml_configuration_io) {
               "parameter names endin in the YAML scope template suffix.";
   } catch (std::invalid_argument) {
   }
+}
+
+TEST(config_test, regression_config_copy_invalidates_original_iterator) {
+  // This is a regression test for a previous bug in which changes to a copied
+  // ConcordConfiguraion object could invalidate iterators belonging to the
+  // original from which it was copied.
+
+  ConcordConfiguration config;
+  config.declareParameter("parameter_a", "A parameter.");
+  config.declareScope("scope_a", "A scope", mockScopeSizer, nullptr);
+  ConcordConfiguration& scope_a = config.subscope("scope_a");
+  scope_a.declareParameter("parameter_aa", "A parameter.");
+  mockScopeSizerResult = 3;
+  config.instantiateScope("scope_a");
+
+  ConcordConfiguration::Iterator it =
+      config.begin(ConcordConfiguration::kIterateAllParameters);
+  ConcordConfiguration::Iterator end =
+      config.end(ConcordConfiguration::kIterateAllParameters);
+  ASSERT_NE(it, end)
+      << "Iterator created over a non-empty ConcordConfiguration does not have "
+         "anything to return.";
+
+  unique_ptr<ConcordConfiguration> configCopy(new ConcordConfiguration(config));
+  ConcordConfiguration& scope_a1_copy = configCopy->subscope("scope_a", 1);
+
+  // This operation should invalidate iterators over the copy (though there are
+  // none in this test), but should not invalidate the iterator we have over the
+  // original.
+  scope_a1_copy.declareParameter("parameter_ba", "A parameter.");
+
+  EXPECT_NO_THROW(++it)
+      << "Iterator created over a configuration gets invalidated when a copy "
+         "of that configuration is modified.";
 }
 
 }  // namespace

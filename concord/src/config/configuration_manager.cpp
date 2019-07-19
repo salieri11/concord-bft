@@ -8,9 +8,18 @@
 
 #include "configuration_manager.hpp"
 
-using namespace boost::program_options;
+using std::invalid_argument;
+using std::string;
+using std::to_string;
+using std::vector;
 
-using namespace std;
+using boost::program_options::command_line_parser;
+using boost::program_options::options_description;
+using boost::program_options::variables_map;
+
+using log4cplus::Logger;
+
+using concord::config::detectLocalNode;
 
 variables_map initialize_config(concord::config::ConcordConfiguration& config,
                                 int argc, char** argv) {
@@ -26,9 +35,14 @@ variables_map initialize_config(concord::config::ConcordConfiguration& config,
   // These are not available via configuration files
   // only allowed to be passed on command line
   options_description generic{"Generic Options"};
-  generic.add_options()("help,h", "Print this help message")(
-      "config,c", value<string>(&configFile), "Path for configuration file")(
-      "debug", "Sleep for 20 seconds to attach debug");
+
+  // clang-format off
+  generic.add_options()
+      ("help,h", "Print this help message")
+      ("config,c", boost::program_options::value<string>(&configFile),
+       "Path for configuration file")
+      ("debug", "Sleep for 20 seconds to attach debug");
+  // clang-format on
 
   // First we parse command line options and see if --help
   // options was provided. In this case we don't need to
@@ -53,6 +67,7 @@ variables_map initialize_config(concord::config::ConcordConfiguration& config,
   // Parse configuration file.
   std::ifstream fileInput(configFile);
   concord::config::specifyConfiguration(config);
+  config.setConfigurationStateLabel("concord_node");
   concord::config::YAMLConfigurationInput input(fileInput);
 
   try {
@@ -78,10 +93,10 @@ namespace config {
 ConfigurationPath::ConfigurationPath()
     : isScope(false), useInstance(false), name(), index(0), subpath() {}
 
-ConfigurationPath::ConfigurationPath(const std::string& name, bool isScope)
+ConfigurationPath::ConfigurationPath(const string& name, bool isScope)
     : isScope(isScope), useInstance(false), name(name), index(0), subpath() {}
 
-ConfigurationPath::ConfigurationPath(const std::string& name, size_t index)
+ConfigurationPath::ConfigurationPath(const string& name, size_t index)
     : isScope(true), useInstance(true), name(name), index(index), subpath() {}
 
 ConfigurationPath::ConfigurationPath(const ConfigurationPath& other)
@@ -130,10 +145,10 @@ bool ConfigurationPath::operator!=(const ConfigurationPath& other) const {
   return !(*this == other);
 }
 
-std::string ConfigurationPath::toString() const {
-  std::string str = name;
+string ConfigurationPath::toString() const {
+  string str = name;
   if (isScope && useInstance) {
-    str += "[" + std::to_string(index) + "]";
+    str += "[" + to_string(index) + "]";
   }
   if (isScope && subpath) {
     str += "/" + subpath->toString();
@@ -160,7 +175,7 @@ bool ConfigurationPath::contains(const ConfigurationPath& other) const {
 ConfigurationPath ConfigurationPath::concatenate(
     const ConfigurationPath& other) const {
   if (!isScope) {
-    throw std::invalid_argument(
+    throw invalid_argument(
         "Attempting to concatenate a configuration path (" + other.toString() +
         ") to a non-scope ConfigurationPath (" + toString() + ").");
   } else {
@@ -205,7 +220,7 @@ ConfigurationPath ConfigurationPath::trimLeaf() const {
 // Hash function for ConfigurationPath
 size_t std::hash<concord::config::ConfigurationPath>::operator()(
     const concord::config::ConfigurationPath& path) const {
-  std::hash<std::string> stringHash;
+  std::hash<string> stringHash;
   size_t hash = stringHash(path.name);
   if (path.isScope) {
     hash ^= ((size_t)0x01) << (sizeof(size_t) * 4);
@@ -281,7 +296,7 @@ ConcordConfiguration::ConfigurationParameter::operator=(
 }
 
 void ConcordConfiguration::invalidateIterators() {
-  for (auto iterator : iterators) {
+  for (ConcordConfiguration::Iterator* iterator : iterators) {
     iterator->invalidate();
   }
   iterators.clear();
@@ -299,27 +314,26 @@ ConfigurationPath* ConcordConfiguration::getCompletePath(
   }
 }
 
-std::string ConcordConfiguration::printCompletePath(
+string ConcordConfiguration::printCompletePath(
     const ConfigurationPath& localPath) const {
   std::unique_ptr<ConfigurationPath> completePath(getCompletePath(localPath));
   return completePath->toString();
 }
 
-std::string ConcordConfiguration::printCompletePath(
-    const std::string& localParameter) const {
+string ConcordConfiguration::printCompletePath(
+    const string& localParameter) const {
   std::unique_ptr<ConfigurationPath> completePath(
       getCompletePath(ConfigurationPath(localParameter, false)));
   return completePath->toString();
 }
 
 void ConcordConfiguration::updateSubscopePaths() {
-  for (auto scope : scopes) {
+  for (auto& scope : scopes) {
     ConfigurationPath templatePath(scope.first, true);
     scopes[scope.first].instanceTemplate->scopePath.reset(
         getCompletePath(templatePath));
     scopes[scope.first].instanceTemplate->updateSubscopePaths();
-    std::vector<ConcordConfiguration>& instances =
-        scopes[scope.first].instances;
+    vector<ConcordConfiguration>& instances = scopes[scope.first].instances;
     for (size_t i = 0; i < instances.size(); ++i) {
       ConfigurationPath instancePath(scope.first, i);
       instances[i].scopePath.reset(getCompletePath(instancePath));
@@ -329,16 +343,16 @@ void ConcordConfiguration::updateSubscopePaths() {
 }
 
 ConcordConfiguration::ConfigurationParameter&
-ConcordConfiguration::getParameter(const std::string& parameter,
-                                   const std::string& failureMessage) {
+ConcordConfiguration::getParameter(const string& parameter,
+                                   const string& failureMessage) {
   return const_cast<ConfigurationParameter&>(
       (const_cast<const ConcordConfiguration*>(this))
           ->getParameter(parameter, failureMessage));
 }
 
 const ConcordConfiguration::ConfigurationParameter&
-ConcordConfiguration::getParameter(const std::string& parameter,
-                                   const std::string& failureMessage) const {
+ConcordConfiguration::getParameter(const string& parameter,
+                                   const string& failureMessage) const {
   if (!contains(parameter)) {
     ConfigurationPath path(parameter, false);
     throw ConfigurationResourceNotFoundException(
@@ -356,12 +370,11 @@ const ConcordConfiguration* ConcordConfiguration::getRootConfig() const {
 }
 
 template <>
-bool ConcordConfiguration::interpretAs<int>(std::string value,
-                                            int& output) const {
+bool ConcordConfiguration::interpretAs<int>(string value, int& output) const {
   try {
     output = std::stoi(value);
     return true;
-  } catch (std::invalid_argument& e) {
+  } catch (invalid_argument& e) {
     return false;
   } catch (std::out_of_range& e) {
     return false;
@@ -369,17 +382,17 @@ bool ConcordConfiguration::interpretAs<int>(std::string value,
 }
 
 template <>
-std::string ConcordConfiguration::getTypeName<int>() const {
+string ConcordConfiguration::getTypeName<int>() const {
   return "int";
 }
 
 template <>
-bool ConcordConfiguration::interpretAs<short>(std::string value,
+bool ConcordConfiguration::interpretAs<short>(string value,
                                               short& output) const {
   int intVal;
   try {
     intVal = std::stoi(value);
-  } catch (std::invalid_argument& e) {
+  } catch (invalid_argument& e) {
     return false;
   } catch (std::out_of_range& e) {
     return false;
@@ -392,24 +405,24 @@ bool ConcordConfiguration::interpretAs<short>(std::string value,
 }
 
 template <>
-std::string ConcordConfiguration::getTypeName<short>() const {
+string ConcordConfiguration::getTypeName<short>() const {
   return "short";
 }
 
 template <>
-bool ConcordConfiguration::interpretAs<std::string>(std::string value,
-                                                    std::string& output) const {
+bool ConcordConfiguration::interpretAs<string>(string value,
+                                               string& output) const {
   output = value;
   return true;
 }
 
 template <>
-std::string ConcordConfiguration::getTypeName<std::string>() const {
-  return "std::string";
+string ConcordConfiguration::getTypeName<string>() const {
+  return "string";
 }
 
 template <>
-bool ConcordConfiguration::interpretAs<uint16_t>(std::string value,
+bool ConcordConfiguration::interpretAs<uint16_t>(string value,
                                                  uint16_t& output) const {
   // This check is necessary because stoul/stoull actually have semantics for if
   // their input is preceded with a '-' other than throwing an exception.
@@ -420,7 +433,7 @@ bool ConcordConfiguration::interpretAs<uint16_t>(std::string value,
   unsigned long long intVal;
   try {
     intVal = std::stoull(value);
-  } catch (std::invalid_argument& e) {
+  } catch (invalid_argument& e) {
     return false;
   } catch (std::out_of_range& e) {
     return false;
@@ -433,12 +446,12 @@ bool ConcordConfiguration::interpretAs<uint16_t>(std::string value,
 }
 
 template <>
-std::string ConcordConfiguration::getTypeName<uint16_t>() const {
+string ConcordConfiguration::getTypeName<uint16_t>() const {
   return "uint16_t";
 }
 
 template <>
-bool ConcordConfiguration::interpretAs<uint32_t>(std::string value,
+bool ConcordConfiguration::interpretAs<uint32_t>(string value,
                                                  uint32_t& output) const {
   // This check is necessary because stoul/stoull actually have semantics for if
   // their input is preceded with a '-' other than throwing an exception.
@@ -449,7 +462,7 @@ bool ConcordConfiguration::interpretAs<uint32_t>(std::string value,
   unsigned long long intVal;
   try {
     intVal = std::stoull(value);
-  } catch (std::invalid_argument& e) {
+  } catch (invalid_argument& e) {
     return false;
   } catch (std::out_of_range& e) {
     return false;
@@ -462,12 +475,12 @@ bool ConcordConfiguration::interpretAs<uint32_t>(std::string value,
 }
 
 template <>
-std::string ConcordConfiguration::getTypeName<uint32_t>() const {
+string ConcordConfiguration::getTypeName<uint32_t>() const {
   return "uint32_t";
 }
 
 template <>
-bool ConcordConfiguration::interpretAs<uint64_t>(std::string value,
+bool ConcordConfiguration::interpretAs<uint64_t>(string value,
                                                  uint64_t& output) const {
   // This check is necessary because stoul/stoull actually have semantics for if
   // their input is preceded with a '-' other than throwing an exception.
@@ -478,7 +491,7 @@ bool ConcordConfiguration::interpretAs<uint64_t>(std::string value,
   unsigned long long intVal;
   try {
     intVal = std::stoull(value);
-  } catch (std::invalid_argument& e) {
+  } catch (invalid_argument& e) {
     return false;
   } catch (std::out_of_range& e) {
     return false;
@@ -491,18 +504,17 @@ bool ConcordConfiguration::interpretAs<uint64_t>(std::string value,
 }
 
 template <>
-std::string ConcordConfiguration::getTypeName<uint64_t>() const {
+string ConcordConfiguration::getTypeName<uint64_t>() const {
   return "uint64_t";
 }
 
-static const std::vector<std::string> kValidBooleansTrue({"t", "T", "true",
-                                                          "True", "TRUE"});
-static const std::vector<std::string> kValidBooleansFalse({"f", "F", "false",
-                                                           "False", "FALSE"});
+static const vector<string> kValidBooleansTrue({"t", "T", "true", "True",
+                                                "TRUE"});
+static const vector<string> kValidBooleansFalse({"f", "F", "false", "False",
+                                                 "FALSE"});
 
 template <>
-bool ConcordConfiguration::interpretAs<bool>(std::string value,
-                                             bool& output) const {
+bool ConcordConfiguration::interpretAs<bool>(string value, bool& output) const {
   if (std::find(kValidBooleansTrue.begin(), kValidBooleansTrue.end(), value) !=
       kValidBooleansTrue.end()) {
     output = true;
@@ -517,7 +529,7 @@ bool ConcordConfiguration::interpretAs<bool>(std::string value,
 }
 
 template <>
-std::string ConcordConfiguration::getTypeName<bool>() const {
+string ConcordConfiguration::getTypeName<bool>() const {
   return "bool";
 }
 
@@ -893,9 +905,9 @@ ConcordConfiguration::ConcordConfiguration(const ConcordConfiguration& original)
   if (original.scopePath) {
     scopePath.reset(new ConfigurationPath(*(original.scopePath)));
   }
-  for (auto scopeEntry : scopes) {
+  for (auto& scopeEntry : scopes) {
     scopes[scopeEntry.first].instanceTemplate->parentScope = this;
-    for (auto instance : scopes[scopeEntry.first].instances) {
+    for (auto& instance : scopes[scopeEntry.first].instances) {
       instance.parentScope = this;
     }
   }
@@ -928,9 +940,9 @@ ConcordConfiguration& ConcordConfiguration::operator=(
   parameters = original.parameters;
   scopes = original.scopes;
 
-  for (auto scopeEntry : scopes) {
+  for (auto& scopeEntry : scopes) {
     scopes[scopeEntry.first].instanceTemplate->parentScope = this;
-    for (auto instance : scopes[scopeEntry.first].instances) {
+    for (auto& instance : scopes[scopeEntry.first].instances) {
       instance.parentScope = this;
     }
   }
@@ -959,21 +971,20 @@ const ConfigurationAuxiliaryState* ConcordConfiguration::getAuxiliaryState()
   return auxiliaryState.get();
 }
 
-void ConcordConfiguration::setConfigurationStateLabel(
-    const std::string& state) {
+void ConcordConfiguration::setConfigurationStateLabel(const string& state) {
   configurationState = state;
 }
 
-std::string ConcordConfiguration::getConfigurationStateLabel() const {
+string ConcordConfiguration::getConfigurationStateLabel() const {
   return configurationState;
 }
 
-void ConcordConfiguration::declareScope(const std::string& scope,
-                                        const std::string& description,
+void ConcordConfiguration::declareScope(const string& scope,
+                                        const string& description,
                                         ScopeSizer size, void* sizerState) {
   ConfigurationPath requestedScope(scope, true);
   if (scope.size() < 1) {
-    throw std::invalid_argument(
+    throw invalid_argument(
         "Unable to create configuration scope: the empty string is not a valid "
         "name for a configuration scope.");
   }
@@ -981,11 +992,10 @@ void ConcordConfiguration::declareScope(const std::string& scope,
   if ((scope.length() >= kYAMLScopeTemplateSuffix.length()) &&
       ((scope.substr(scope.length() - kYAMLScopeTemplateSuffix.length())) ==
        kYAMLScopeTemplateSuffix)) {
-    throw std::invalid_argument("Cannot declare scope " + scope +
-                                ": to facilitate configuration serialization, "
-                                "scope names ending in \"" +
-                                kYAMLScopeTemplateSuffix +
-                                "\" are disallowed.");
+    throw invalid_argument("Cannot declare scope " + scope +
+                           ": to facilitate configuration serialization, "
+                           "scope names ending in \"" +
+                           kYAMLScopeTemplateSuffix + "\" are disallowed.");
   }
   if (containsScope(scope)) {
     throw ConfigurationRedefinitionException(
@@ -999,9 +1009,9 @@ void ConcordConfiguration::declareScope(const std::string& scope,
         " is already used for a parameter.");
   }
   if (!size) {
-    throw std::invalid_argument("Unable to create configuration scope " +
-                                printCompletePath(requestedScope) +
-                                ": provided scope sizer function is null.");
+    throw invalid_argument("Unable to create configuration scope " +
+                           printCompletePath(requestedScope) +
+                           ": provided scope sizer function is null.");
   }
   invalidateIterators();
   scopes[scope] = ConfigurationScope();
@@ -1022,8 +1032,7 @@ void ConcordConfiguration::declareScope(const std::string& scope,
   scopes[scope].instanceTemplate->scopePath.reset(path);
 }
 
-std::string ConcordConfiguration::getScopeDescription(
-    const std::string& scope) const {
+string ConcordConfiguration::getScopeDescription(const string& scope) const {
   if (!containsScope(scope)) {
     ConfigurationPath path(scope, true);
     throw ConfigurationResourceNotFoundException(
@@ -1034,7 +1043,7 @@ std::string ConcordConfiguration::getScopeDescription(
 }
 
 ConcordConfiguration::ParameterStatus ConcordConfiguration::instantiateScope(
-    const std::string& scope) {
+    const string& scope) {
   ConfigurationPath relativePath(scope, true);
   if (!containsScope(scope)) {
     throw ConfigurationResourceNotFoundException(
@@ -1043,9 +1052,9 @@ ConcordConfiguration::ParameterStatus ConcordConfiguration::instantiateScope(
   }
   ConfigurationScope& scopeEntry = scopes[scope];
   if (!(scopeEntry.size)) {
-    throw std::invalid_argument("Unable to instantiate configuration scope " +
-                                printCompletePath(relativePath) +
-                                ": scope does not have a size function.");
+    throw invalid_argument("Unable to instantiate configuration scope " +
+                           printCompletePath(relativePath) +
+                           ": scope does not have a size function.");
   }
   size_t scopeSize;
   std::unique_ptr<ConfigurationPath> fullPath(getCompletePath(relativePath));
@@ -1069,7 +1078,7 @@ ConcordConfiguration::ParameterStatus ConcordConfiguration::instantiateScope(
   return result;
 }
 
-ConcordConfiguration& ConcordConfiguration::subscope(const std::string& scope) {
+ConcordConfiguration& ConcordConfiguration::subscope(const string& scope) {
   // This cast avoids duplicating code between the const and non-const versions
   // of this function.
   return const_cast<ConcordConfiguration&>(
@@ -1077,7 +1086,7 @@ ConcordConfiguration& ConcordConfiguration::subscope(const std::string& scope) {
 }
 
 const ConcordConfiguration& ConcordConfiguration::subscope(
-    const std::string& scope) const {
+    const string& scope) const {
   if (!containsScope(scope)) {
     ConfigurationPath path(scope, true);
     throw ConfigurationResourceNotFoundException("Could not find scope " +
@@ -1086,7 +1095,7 @@ const ConcordConfiguration& ConcordConfiguration::subscope(
   return *(scopes.at(scope).instanceTemplate);
 }
 
-ConcordConfiguration& ConcordConfiguration::subscope(const std::string& scope,
+ConcordConfiguration& ConcordConfiguration::subscope(const string& scope,
                                                      size_t index) {
   // This cast avoids duplicating code between the const and non-const versions
   // of this function.
@@ -1094,8 +1103,8 @@ ConcordConfiguration& ConcordConfiguration::subscope(const std::string& scope,
       (const_cast<const ConcordConfiguration*>(this))->subscope(scope, index));
 }
 
-const ConcordConfiguration& ConcordConfiguration::subscope(
-    const std::string& scope, size_t index) const {
+const ConcordConfiguration& ConcordConfiguration::subscope(const string& scope,
+                                                           size_t index) const {
   if ((scopes.count(scope) < 1) || (!(scopes.at(scope).instantiated)) ||
       (index >= scopes.at(scope).instances.size())) {
     ConfigurationPath path(scope, index);
@@ -1135,7 +1144,7 @@ const ConcordConfiguration& ConcordConfiguration::subscope(
   }
 }
 
-bool ConcordConfiguration::containsScope(const std::string& name) const {
+bool ConcordConfiguration::containsScope(const string& name) const {
   return (scopes.count(name) > 0);
 }
 
@@ -1157,11 +1166,11 @@ bool ConcordConfiguration::containsScope(const ConfigurationPath& path) const {
   }
 }
 
-bool ConcordConfiguration::scopeIsInstantiated(const std::string& name) const {
+bool ConcordConfiguration::scopeIsInstantiated(const string& name) const {
   return containsScope(name) && scopes.at(name).instantiated;
 }
 
-size_t ConcordConfiguration::scopeSize(const std::string& scope) const {
+size_t ConcordConfiguration::scopeSize(const string& scope) const {
   if (!scopeIsInstantiated(scope)) {
     ConfigurationPath path(scope, true);
     throw ConfigurationResourceNotFoundException("Cannot get size of scope " +
@@ -1171,10 +1180,10 @@ size_t ConcordConfiguration::scopeSize(const std::string& scope) const {
   return scopes.at(scope).instances.size();
 }
 
-void ConcordConfiguration::declareParameter(const std::string& name,
-                                            const std::string& description) {
+void ConcordConfiguration::declareParameter(const string& name,
+                                            const string& description) {
   if (name.size() < 1) {
-    throw std::invalid_argument(
+    throw invalid_argument(
         "Cannot declare parameter: the empty string is not a valid name for a "
         "configuration parameter.");
   }
@@ -1182,11 +1191,10 @@ void ConcordConfiguration::declareParameter(const std::string& name,
   if ((name.length() >= kYAMLScopeTemplateSuffix.length()) &&
       ((name.substr(name.length() - kYAMLScopeTemplateSuffix.length())) ==
        kYAMLScopeTemplateSuffix)) {
-    throw std::invalid_argument("Cannot declare parameter " + name +
-                                ": to facilitate configuration serialization, "
-                                "parameter names ending in \"" +
-                                kYAMLScopeTemplateSuffix +
-                                "\" are disallowed.");
+    throw invalid_argument("Cannot declare parameter " + name +
+                           ": to facilitate configuration serialization, "
+                           "parameter names ending in \"" +
+                           kYAMLScopeTemplateSuffix + "\" are disallowed.");
   }
   if (contains(name)) {
     ConfigurationPath path(name, false);
@@ -1209,76 +1217,71 @@ void ConcordConfiguration::declareParameter(const std::string& name,
   parameter.defaultValue = "";
   parameter.initialized = false;
   parameter.value = "";
-  parameter.tags = std::unordered_set<std::string>();
+  parameter.tags = std::unordered_set<string>();
   parameter.validator = nullptr;
   parameter.validatorState = nullptr;
   parameter.generator = nullptr;
   parameter.generatorState = nullptr;
 }
 
-void ConcordConfiguration::declareParameter(const std::string& name,
-                                            const std::string& description,
-                                            const std::string& defaultValue) {
+void ConcordConfiguration::declareParameter(const string& name,
+                                            const string& description,
+                                            const string& defaultValue) {
   declareParameter(name, description);
   ConfigurationParameter& parameter = parameters[name];
   parameter.defaultValue = defaultValue;
   parameter.hasDefaultValue = true;
 }
 
-void ConcordConfiguration::tagParameter(const std::string& name,
-                                        const std::vector<string>& tags) {
+void ConcordConfiguration::tagParameter(const string& name,
+                                        const vector<string>& tags) {
   ConfigurationParameter& parameter =
       getParameter(name, "Cannot tag parameter ");
-  for (auto tag : tags) {
+  for (auto&& tag : tags) {
     parameter.tags.emplace(tag);
   }
 }
 
-bool ConcordConfiguration::isTagged(const std::string& name,
-                                    const std::string& tag) const {
+bool ConcordConfiguration::isTagged(const string& name,
+                                    const string& tag) const {
   const ConfigurationParameter& parameter =
       getParameter(name, "Cannot check tags for parameter ");
   return parameter.tags.count(tag) > 0;
 }
 
-std::string ConcordConfiguration::getDescription(
-    const std::string& name) const {
+string ConcordConfiguration::getDescription(const string& name) const {
   const ConfigurationParameter& parameter =
       getParameter(name, "Cannot get description for parameter ");
   return parameter.description;
 }
 
-void ConcordConfiguration::addValidator(const std::string& name,
-                                        Validator validator,
+void ConcordConfiguration::addValidator(const string& name, Validator validator,
                                         void* validatorState) {
   ConfigurationParameter& parameter =
       getParameter(name, "Cannot add validator to parameter ");
   if (!validator) {
-    throw std::invalid_argument(
-        "Cannot add validator to parameter " +
-        printCompletePath(ConfigurationPath(name, false)) +
-        ": validator given points to null.");
+    throw invalid_argument("Cannot add validator to parameter " +
+                           printCompletePath(ConfigurationPath(name, false)) +
+                           ": validator given points to null.");
   }
   parameter.validator = validator;
   parameter.validatorState = validatorState;
 }
 
-void ConcordConfiguration::addGenerator(const std::string& name,
-                                        Generator generator,
+void ConcordConfiguration::addGenerator(const string& name, Generator generator,
                                         void* generatorState) {
   ConfigurationParameter& parameter =
       getParameter(name, "Cannot add generator to parameter ");
   if (!generator) {
-    throw std::invalid_argument(
-        "Cannot add generator to parameter " +
-        printCompletePath(ConfigurationPath(name, false)) +
-        ": generator given points to null.");
+    throw invalid_argument("Cannot add generator to parameter " +
+                           printCompletePath(ConfigurationPath(name, false)) +
+                           ": generator given points to null.");
   }
   parameter.generator = generator;
   parameter.generatorState = generatorState;
 }
 
-bool ConcordConfiguration::contains(const std::string& name) const {
+bool ConcordConfiguration::contains(const string& name) const {
   return parameters.count(name) > 0;
 }
 
@@ -1303,14 +1306,14 @@ bool ConcordConfiguration::contains(const ConfigurationPath& path) const {
 }
 
 ConcordConfiguration::ParameterStatus ConcordConfiguration::loadValue(
-    const std::string& name, const std::string& value,
-    std::string* failureMessage, bool overwrite, std::string* prevValue) {
+    const string& name, const string& value, string* failureMessage,
+    bool overwrite, string* prevValue) {
   ConfigurationParameter& parameter =
       getParameter(name, "Could not load value for parameter ");
   std::unique_ptr<ConfigurationPath> path(
       getCompletePath(ConfigurationPath(name, false)));
   ParameterStatus status = ParameterStatus::VALID;
-  std::string message;
+  string message;
   if (parameter.validator) {
     status = parameter.validator(value, *(getRootConfig()), *path, &message,
                                  parameter.validatorState);
@@ -1336,8 +1339,7 @@ ConcordConfiguration::ParameterStatus ConcordConfiguration::loadValue(
   return status;
 }
 
-void ConcordConfiguration::eraseValue(const std::string& name,
-                                      std::string* prevValue) {
+void ConcordConfiguration::eraseValue(const string& name, string* prevValue) {
   ConfigurationParameter& parameter =
       getParameter(name, "Could not erase value for parameter ");
   if (prevValue && parameter.initialized) {
@@ -1362,8 +1364,8 @@ void ConcordConfiguration::eraseAllValues() {
 }
 
 ConcordConfiguration::ParameterStatus ConcordConfiguration::loadDefault(
-    const std::string& name, std::string* failureMessage, bool overwrite,
-    std::string* prevValue) {
+    const string& name, string* failureMessage, bool overwrite,
+    string* prevValue) {
   ConfigurationParameter& parameter =
       getParameter(name, "Could not load default value for parameter ");
 
@@ -1407,7 +1409,7 @@ ConcordConfiguration::ParameterStatus ConcordConfiguration::loadAllDefaults(
 }
 
 ConcordConfiguration::ParameterStatus ConcordConfiguration::validate(
-    const std::string& name, std::string* failureMessage) const {
+    const string& name, string* failureMessage) const {
   const ConfigurationParameter& parameter =
       getParameter(name, "Could not validate contents of parameter ");
   std::unique_ptr<ConfigurationPath> path(
@@ -1416,7 +1418,7 @@ ConcordConfiguration::ParameterStatus ConcordConfiguration::validate(
     return ParameterStatus::INSUFFICIENT_INFORMATION;
   }
   ParameterStatus status = ParameterStatus::VALID;
-  std::string message;
+  string message;
   if (parameter.validator) {
     status = parameter.validator(parameter.value, *(getRootConfig()), *path,
                                  &message, parameter.validatorState);
@@ -1468,8 +1470,8 @@ ConcordConfiguration::ParameterStatus ConcordConfiguration::validateAll(
 }
 
 ConcordConfiguration::ParameterStatus ConcordConfiguration::generate(
-    const std::string& name, std::string* failureMessage, bool overwrite,
-    std::string* prevValue) {
+    const string& name, string* failureMessage, bool overwrite,
+    string* prevValue) {
   ConfigurationParameter& parameter =
       getParameter(name, "Cannot generate value for parameter ");
   std::unique_ptr<ConfigurationPath> path(
@@ -1480,11 +1482,11 @@ ConcordConfiguration::ParameterStatus ConcordConfiguration::generate(
         "Cannot generate value for parameter " + printCompletePath(*path) +
         ": no generator function has been specified for this parameter.");
   }
-  std::string generatedValue;
+  string generatedValue;
   ParameterStatus status = parameter.generator(
       *(getRootConfig()), *path, &generatedValue, parameter.generatorState);
   if (status == ParameterStatus::VALID) {
-    std::string message;
+    string message;
     if (parameter.validator) {
       status = parameter.validator(generatedValue, *(getRootConfig()), *path,
                                    &message, parameter.validatorState);
@@ -1693,7 +1695,7 @@ void ParameterSelection::deregisterIterator(
 }
 
 void ParameterSelection::invalidateIterators() {
-  for (auto iterator : iterators) {
+  for (ParameterSelection::Iterator* iterator : iterators) {
     iterator->invalidate();
   }
   iterators.clear();
@@ -1707,7 +1709,7 @@ ParameterSelection::ParameterSelection(ConcordConfiguration& config,
       selectorState(selectorState),
       iterators() {
   if (!selector) {
-    throw std::invalid_argument(
+    throw invalid_argument(
         "Attempting to construct a ParameterSelection with a null parameter "
         "selction function.");
   }
@@ -1736,8 +1738,7 @@ ParameterSelection::Iterator ParameterSelection::end() {
 void YAMLConfigurationInput::loadParameter(ConcordConfiguration& config,
                                            const ConfigurationPath& path,
                                            const YAML::Node& obj,
-                                           log4cplus::Logger* errorOut,
-                                           bool overwrite) {
+                                           Logger* errorOut, bool overwrite) {
   // Note cases in this function where we return without either writing a value
   // to the configuration or making a recursive call indicate we have concluded
   // that the parameter indicated by path is not given in the input.
@@ -1757,7 +1758,7 @@ void YAMLConfigurationInput::loadParameter(ConcordConfiguration& config,
       }
       subObj.reset(subObj[path.index]);
     } else {
-      std::string templateName = path.name + kYAMLScopeTemplateSuffix;
+      string templateName = path.name + kYAMLScopeTemplateSuffix;
       if (!obj[templateName]) {
         return;
       }
@@ -1773,7 +1774,7 @@ void YAMLConfigurationInput::loadParameter(ConcordConfiguration& config,
       return;
     }
 
-    std::string failureMessage;
+    string failureMessage;
     ConcordConfiguration::ParameterStatus status = config.loadValue(
         path.name, obj[path.name].Scalar(), &failureMessage, overwrite);
     if (errorOut &&
@@ -1800,14 +1801,14 @@ void YAMLConfigurationOutput::addParameterToYAML(
   // Note this helper function expects that it has already been validated or
   // otherwise guaranteed that path is a valid path to a declared parameter in
   // config and yaml is an associative array.
-  if (!config.contains(path) || !config.hasValue<std::string>(path) ||
+  if (!config.contains(path) || !config.hasValue<string>(path) ||
       !yaml.IsMap()) {
     return;
   }
 
   if (path.isScope && path.subpath) {
     YAML::Node subscope;
-    std::string pathName;
+    string pathName;
     if (path.useInstance) {
       pathName = path.name;
       if (!yaml[pathName]) {
@@ -1832,7 +1833,7 @@ void YAMLConfigurationOutput::addParameterToYAML(
     addParameterToYAML(config.subscope(subscopePath), *(path.subpath),
                        subscope);
   } else {
-    yaml[path.name] = config.getValue<std::string>(path.name);
+    yaml[path.name] = config.getValue<string>(path.name);
   }
 }
 
@@ -1878,9 +1879,9 @@ ConcordPrimaryConfigurationAuxiliaryState::clone() {
 
 // generateRSAKeyPair implementation, which itself just uses an implementation
 // for RSA key generation from CryptoPP.
-std::pair<std::string, std::string> generateRSAKeyPair(
+std::pair<string, string> generateRSAKeyPair(
     CryptoPP::RandomPool& randomnessSource) {
-  std::pair<std::string, std::string> keyPair;
+  std::pair<string, string> keyPair;
 
   CryptoPP::RSAES<CryptoPP::OAEP<CryptoPP::SHA256>>::Decryptor privateKey(
       randomnessSource, kRSAKeyLength);
@@ -1902,7 +1903,7 @@ std::pair<std::string, std::string> generateRSAKeyPair(
 
 static ConcordConfiguration::ParameterStatus validateNumberOfPrincipalsInBounds(
     uint16_t fVal, uint16_t cVal, uint16_t clientProxiesPerReplica,
-    std::string* failureMessage) {
+    string* failureMessage) {
   // Conditions which should have been validated before this function was
   // called.
   assert((fVal > 0) && (clientProxiesPerReplica > 0));
@@ -1916,22 +1917,21 @@ static ConcordConfiguration::ParameterStatus validateNumberOfPrincipalsInBounds(
   if (numPrincipals > UINT16_MAX) {
     if (failureMessage) {
       *failureMessage =
-          "Invalid combination of values for f_val (" + std::to_string(fVal) +
-          "), c_val (" + std::to_string(cVal) +
+          "Invalid combination of values for f_val (" + to_string(fVal) +
+          "), c_val (" + to_string(cVal) +
           "), and client_proxies_per_replica (" +
-          std::to_string(clientProxiesPerReplica) +
-          "): these parameters imply too many (" +
-          std::to_string(numPrincipals) + ") SBFT principals; a maximum of " +
-          std::to_string(UINT16_MAX) + " principals are currently supported.";
+          to_string(clientProxiesPerReplica) +
+          "): these parameters imply too many (" + to_string(numPrincipals) +
+          ") SBFT principals; a maximum of " + to_string(UINT16_MAX) +
+          " principals are currently supported.";
     }
     return ConcordConfiguration::ParameterStatus::INVALID;
   }
   return ConcordConfiguration::ParameterStatus::VALID;
 }
 
-static std::pair<std::string, std::string> parseCryptosystemSelection(
-    std::string selection) {
-  std::pair<std::string, std::string> parseRes({"", ""});
+static std::pair<string, string> parseCryptosystemSelection(string selection) {
+  std::pair<string, string> parseRes({"", ""});
   boost::trim(selection);
   size_t spaceLoc = selection.find_first_of(" ");
   parseRes.first = selection.substr(0, spaceLoc);
@@ -2025,8 +2025,8 @@ static const std::pair<unsigned long long, unsigned long long>
     kConcordBFTCommunicationBufferSizeLimits({512, UINT32_MAX});
 
 static ConcordConfiguration::ParameterStatus validateBoolean(
-    const std::string& value, const ConcordConfiguration& config,
-    const ConfigurationPath& path, std::string* failureMessage, void* state) {
+    const string& value, const ConcordConfiguration& config,
+    const ConfigurationPath& path, string* failureMessage, void* state) {
   if (std::find(kValidBooleansTrue.begin(), kValidBooleansTrue.end(), value) !=
           kValidBooleansTrue.end() ||
       std::find(kValidBooleansFalse.begin(), kValidBooleansFalse.end(),
@@ -2043,8 +2043,8 @@ static ConcordConfiguration::ParameterStatus validateBoolean(
 }
 
 static ConcordConfiguration::ParameterStatus validateUInt(
-    const std::string& value, const ConcordConfiguration& config,
-    const ConfigurationPath& path, std::string* failureMessage, void* state) {
+    const string& value, const ConcordConfiguration& config,
+    const ConfigurationPath& path, string* failureMessage, void* state) {
   assert(state);
   const std::pair<unsigned long long, unsigned long long>* limits =
       static_cast<std::pair<unsigned long long, unsigned long long>*>(state);
@@ -2053,7 +2053,7 @@ static ConcordConfiguration::ParameterStatus validateUInt(
   unsigned long long intVal;
   try {
     intVal = std::stoull(value);
-  } catch (std::invalid_argument& e) {
+  } catch (invalid_argument& e) {
     if (failureMessage) {
       *failureMessage = "Invalid value for parameter " + path.toString() +
                         ": \"" + value + "\". An integer is required.";
@@ -2063,8 +2063,8 @@ static ConcordConfiguration::ParameterStatus validateUInt(
     if (failureMessage) {
       *failureMessage =
           "Invalid value for parameter " + path.toString() + ": \"" + value +
-          "\". An integer in the range (" + std::to_string(limits->first) +
-          ", " + std::to_string(limits->second) + "), inclusive, is required.";
+          "\". An integer in the range (" + to_string(limits->first) + ", " +
+          to_string(limits->second) + "), inclusive, is required.";
     }
     return ConcordConfiguration::ParameterStatus::INVALID;
   }
@@ -2072,8 +2072,8 @@ static ConcordConfiguration::ParameterStatus validateUInt(
     if (failureMessage) {
       *failureMessage =
           "Invalid value for parameter " + path.toString() + ": \"" + value +
-          "\". An integer in the range (" + std::to_string(limits->first) +
-          ", " + std::to_string(limits->second) + "), inclusive, is required.";
+          "\". An integer in the range (" + to_string(limits->first) + ", " +
+          to_string(limits->second) + "), inclusive, is required.";
     }
     return ConcordConfiguration::ParameterStatus::INVALID;
   }
@@ -2081,8 +2081,8 @@ static ConcordConfiguration::ParameterStatus validateUInt(
 }
 
 static ConcordConfiguration::ParameterStatus validateClientProxiesPerReplica(
-    const std::string& value, const ConcordConfiguration& config,
-    const ConfigurationPath& path, std::string* failureMessage, void* state) {
+    const string& value, const ConcordConfiguration& config,
+    const ConfigurationPath& path, string* failureMessage, void* state) {
   ConcordConfiguration::ParameterStatus res = validateUInt(
       value, config, path, failureMessage,
       const_cast<void*>(reinterpret_cast<const void*>(&kPositiveUInt16Limits)));
@@ -2107,10 +2107,9 @@ static ConcordConfiguration::ParameterStatus validateClientProxiesPerReplica(
 }
 
 static ConcordConfiguration::ParameterStatus validateCryptosys(
-    const std::string& value, const ConcordConfiguration& config,
-    const ConfigurationPath& path, std::string* failureMessage, void* state) {
-  std::pair<std::string, std::string> cryptoSelection =
-      parseCryptosystemSelection(value);
+    const string& value, const ConcordConfiguration& config,
+    const ConfigurationPath& path, string* failureMessage, void* state) {
+  std::pair<string, string> cryptoSelection = parseCryptosystemSelection(value);
   if (!Cryptosystem::isValidCryptosystemSelection(cryptoSelection.first,
                                                   cryptoSelection.second)) {
     if (failureMessage) {
@@ -2141,12 +2140,12 @@ static ConcordConfiguration::ParameterStatus validateCryptosys(
     if (failureMessage) {
       *failureMessage =
           "Cryptosystem selection for " + path.toString() +
-          " cannot be valid: f_val(" + std::to_string(fVal) + ") and c_val(" +
-          std::to_string(cVal) + ") imply the number of SBFT replicas(" +
-          std::to_string(unvalidatedNumSigners) +
+          " cannot be valid: f_val(" + to_string(fVal) + ") and c_val(" +
+          to_string(cVal) + ") imply the number of SBFT replicas(" +
+          to_string(unvalidatedNumSigners) +
           "), and by extension the number of threshold signers for this "
           "cryptosystem, exceeds the currently supported limit of " +
-          std::to_string(UINT16_MAX) + ".";
+          to_string(UINT16_MAX) + ".";
     }
     return ConcordConfiguration::ParameterStatus::INVALID;
   }
@@ -2159,7 +2158,7 @@ static ConcordConfiguration::ParameterStatus validateCryptosys(
   // cryptosystem here will hopefully be factored out into its own function in a
   // futre round of code cleanup in which we intend to replace
   // validator/generator/scopesizer function pointers with objects.
-  std::string sysName = path.getLeaf().name;
+  string sysName = path.getLeaf().name;
   if (sysName == "execution_cryptosys") {
     threshold = fVal + 1;
   } else if (sysName == "slow_commit_cryptosys") {
@@ -2186,8 +2185,8 @@ static ConcordConfiguration::ParameterStatus validateCryptosys(
       *failureMessage = "Invalid cryptosystem selection for " +
                         path.toString() + ": cryptosytem selection \"" + value +
                         "\" is not supported with the required threshold(" +
-                        std::to_string(threshold) + ") and number of signers(" +
-                        std::to_string(numSigners) + ") for this system.";
+                        to_string(threshold) + ") and number of signers(" +
+                        to_string(numSigners) + ") for this system.";
     }
     return ConcordConfiguration::ParameterStatus::INVALID;
   }
@@ -2195,8 +2194,8 @@ static ConcordConfiguration::ParameterStatus validateCryptosys(
 }
 
 static ConcordConfiguration::ParameterStatus validatePublicKey(
-    const std::string& value, const ConcordConfiguration& config,
-    const ConfigurationPath& path, std::string* failureMessage, void* state) {
+    const string& value, const ConcordConfiguration& config,
+    const ConfigurationPath& path, string* failureMessage, void* state) {
   assert(state);
   std::unique_ptr<Cryptosystem>* cryptosystemPointer =
       static_cast<std::unique_ptr<Cryptosystem>*>(state);
@@ -2221,7 +2220,7 @@ static ConcordConfiguration::ParameterStatus validatePublicKey(
 
 static ConcordConfiguration::ParameterStatus getThresholdPublicKey(
     const ConcordConfiguration& config, const ConfigurationPath& path,
-    std::string* output, void* state) {
+    string* output, void* state) {
   assert(state);
   std::unique_ptr<Cryptosystem>* cryptosystemPointer =
       static_cast<std::unique_ptr<Cryptosystem>*>(state);
@@ -2238,8 +2237,8 @@ static ConcordConfiguration::ParameterStatus getThresholdPublicKey(
 }
 
 static ConcordConfiguration::ParameterStatus validateCVal(
-    const std::string& value, const ConcordConfiguration& config,
-    const ConfigurationPath& path, std::string* failureMessage, void* state) {
+    const string& value, const ConcordConfiguration& config,
+    const ConfigurationPath& path, string* failureMessage, void* state) {
   ConcordConfiguration::ParameterStatus res = validateUInt(
       value, config, path, failureMessage,
       const_cast<void*>(reinterpret_cast<const void*>(&kUInt16Limits)));
@@ -2265,8 +2264,8 @@ static ConcordConfiguration::ParameterStatus validateCVal(
 }
 
 static ConcordConfiguration::ParameterStatus validateFVal(
-    const std::string& value, const ConcordConfiguration& config,
-    const ConfigurationPath& path, std::string* failureMessage, void* state) {
+    const string& value, const ConcordConfiguration& config,
+    const ConfigurationPath& path, string* failureMessage, void* state) {
   ConcordConfiguration::ParameterStatus res = validateUInt(
       value, config, path, failureMessage,
       const_cast<void*>(reinterpret_cast<const void*>(&kPositiveUInt16Limits)));
@@ -2290,8 +2289,8 @@ static ConcordConfiguration::ParameterStatus validateFVal(
 }
 
 static ConcordConfiguration::ParameterStatus validateNumClientProxies(
-    const std::string& value, const ConcordConfiguration& config,
-    const ConfigurationPath& path, std::string* failureMessage, void* state) {
+    const string& value, const ConcordConfiguration& config,
+    const ConfigurationPath& path, string* failureMessage, void* state) {
   ConcordConfiguration::ParameterStatus res = validateUInt(
       value, config, path, failureMessage,
       const_cast<void*>(reinterpret_cast<const void*>(&kPositiveUInt16Limits)));
@@ -2327,22 +2326,21 @@ static ConcordConfiguration::ParameterStatus validateNumClientProxies(
 
 static ConcordConfiguration::ParameterStatus computeNumClientProxies(
     const ConcordConfiguration& config, const ConfigurationPath& path,
-    std::string* output, void* state) {
+    string* output, void* state) {
   if (!config.hasValue<uint16_t>("f_val") ||
       !config.hasValue<uint16_t>("c_val") ||
       !config.hasValue<uint16_t>("client_proxies_per_replica")) {
     return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
   }
-  *output =
-      std::to_string(config.getValue<uint16_t>("client_proxies_per_replica") *
-                     (3 * config.getValue<uint16_t>("f_val") +
-                      2 * config.getValue<uint16_t>("c_val") + 1));
+  *output = to_string(config.getValue<uint16_t>("client_proxies_per_replica") *
+                      (3 * config.getValue<uint16_t>("f_val") +
+                       2 * config.getValue<uint16_t>("c_val") + 1));
   return ConcordConfiguration::ParameterStatus::VALID;
 }
 
 static ConcordConfiguration::ParameterStatus validateNumPrincipals(
-    const std::string& value, const ConcordConfiguration& config,
-    const ConfigurationPath& path, std::string* failureMessage, void* state) {
+    const string& value, const ConcordConfiguration& config,
+    const ConfigurationPath& path, string* failureMessage, void* state) {
   ConcordConfiguration::ParameterStatus res = validateUInt(
       value, config, path, failureMessage,
       const_cast<void*>(reinterpret_cast<const void*>(&kPositiveUInt16Limits)));
@@ -2378,22 +2376,22 @@ static ConcordConfiguration::ParameterStatus validateNumPrincipals(
 
 static ConcordConfiguration::ParameterStatus computeNumPrincipals(
     const ConcordConfiguration& config, const ConfigurationPath& path,
-    std::string* output, void* state) {
+    string* output, void* state) {
   if (!config.hasValue<uint16_t>("f_val") ||
       !config.hasValue<uint16_t>("c_val") ||
       !config.hasValue<uint16_t>("client_proxies_per_replica")) {
     return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
   }
-  *output = std::to_string(
-      (1 + config.getValue<uint16_t>("client_proxies_per_replica")) *
-      (3 * config.getValue<uint16_t>("f_val") +
-       2 * config.getValue<uint16_t>("c_val") + 1));
+  *output =
+      to_string((1 + config.getValue<uint16_t>("client_proxies_per_replica")) *
+                (3 * config.getValue<uint16_t>("f_val") +
+                 2 * config.getValue<uint16_t>("c_val") + 1));
   return ConcordConfiguration::ParameterStatus::VALID;
 }
 
 static ConcordConfiguration::ParameterStatus validateNumReplicas(
-    const std::string& value, const ConcordConfiguration& config,
-    const ConfigurationPath& path, std::string* failureMessage, void* state) {
+    const string& value, const ConcordConfiguration& config,
+    const ConfigurationPath& path, string* failureMessage, void* state) {
   ConcordConfiguration::ParameterStatus res = validateUInt(
       value, config, path, failureMessage,
       const_cast<void*>(reinterpret_cast<const void*>(&kPositiveUInt16Limits)));
@@ -2426,20 +2424,20 @@ static ConcordConfiguration::ParameterStatus validateNumReplicas(
 
 static ConcordConfiguration::ParameterStatus computeNumReplicas(
     const ConcordConfiguration& config, const ConfigurationPath& path,
-    std::string* output, void* state) {
+    string* output, void* state) {
   if (!config.hasValue<uint16_t>("f_val") ||
       !config.hasValue<uint16_t>("c_val") ||
       !config.hasValue<uint16_t>("client_proxies_per_replica")) {
     return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
   }
-  *output = std::to_string(3 * config.getValue<uint16_t>("f_val") +
-                           2 * config.getValue<uint16_t>("c_val") + 1);
+  *output = to_string(3 * config.getValue<uint16_t>("f_val") +
+                      2 * config.getValue<uint16_t>("c_val") + 1);
   return ConcordConfiguration::ParameterStatus::VALID;
 }
 
 static ConcordConfiguration::ParameterStatus validatePositiveReplicaInt(
-    const std::string& value, const ConcordConfiguration& config,
-    const ConfigurationPath& path, std::string* failureMessage, void* state) {
+    const string& value, const ConcordConfiguration& config,
+    const ConfigurationPath& path, string* failureMessage, void* state) {
   const std::pair<unsigned long long, unsigned long long>* limits;
   if (config.getConfigurationStateLabel() == "concord_node") {
     limits = &kPositiveIntLimits;
@@ -2451,8 +2449,8 @@ static ConcordConfiguration::ParameterStatus validatePositiveReplicaInt(
 }
 
 static ConcordConfiguration::ParameterStatus validateDatabaseImplementation(
-    const std::string& value, const ConcordConfiguration& config,
-    const ConfigurationPath& path, std::string* failureMessage, void* state) {
+    const string& value, const ConcordConfiguration& config,
+    const ConfigurationPath& path, string* failureMessage, void* state) {
   if (!((value == "memory") || (value == "rocksdb"))) {
     if (failureMessage) {
       *failureMessage =
@@ -2464,16 +2462,16 @@ static ConcordConfiguration::ParameterStatus validateDatabaseImplementation(
 }
 
 static ConcordConfiguration::ParameterStatus validatePortNumber(
-    const std::string& value, const ConcordConfiguration& config,
-    const ConfigurationPath& path, std::string* failureMessage, void* state) {
+    const string& value, const ConcordConfiguration& config,
+    const ConfigurationPath& path, string* failureMessage, void* state) {
   return validateUInt(
       value, config, path, failureMessage,
       const_cast<void*>(reinterpret_cast<const void*>(&kUInt16Limits)));
 }
 
 static ConcordConfiguration::ParameterStatus validatePrivateKey(
-    const std::string& value, const ConcordConfiguration& config,
-    const ConfigurationPath& path, std::string* failureMessage, void* state) {
+    const string& value, const ConcordConfiguration& config,
+    const ConfigurationPath& path, string* failureMessage, void* state) {
   assert(state);
   std::unique_ptr<Cryptosystem>* cryptosystemPointer =
       static_cast<std::unique_ptr<Cryptosystem>*>(state);
@@ -2498,7 +2496,7 @@ static ConcordConfiguration::ParameterStatus validatePrivateKey(
 
 static ConcordConfiguration::ParameterStatus getThresholdPrivateKey(
     const ConcordConfiguration& config, const ConfigurationPath& path,
-    std::string* output, void* state) {
+    string* output, void* state) {
   assert(state);
   std::unique_ptr<Cryptosystem>* cryptosystemPointer =
       static_cast<std::unique_ptr<Cryptosystem>*>(state);
@@ -2527,8 +2525,8 @@ static ConcordConfiguration::ParameterStatus getThresholdPrivateKey(
 }
 
 static ConcordConfiguration::ParameterStatus validateVerificationKey(
-    const std::string& value, const ConcordConfiguration& config,
-    const ConfigurationPath& path, std::string* failureMessage, void* state) {
+    const string& value, const ConcordConfiguration& config,
+    const ConfigurationPath& path, string* failureMessage, void* state) {
   assert(state);
   std::unique_ptr<Cryptosystem>* cryptosystemPointer =
       static_cast<std::unique_ptr<Cryptosystem>*>(state);
@@ -2553,7 +2551,7 @@ static ConcordConfiguration::ParameterStatus validateVerificationKey(
 
 static ConcordConfiguration::ParameterStatus getThresholdVerificationKey(
     const ConcordConfiguration& config, const ConfigurationPath& path,
-    std::string* output, void* state) {
+    string* output, void* state) {
   assert(state);
   std::unique_ptr<Cryptosystem>* cryptosystemPointer =
       static_cast<std::unique_ptr<Cryptosystem>*>(state);
@@ -2582,8 +2580,8 @@ static ConcordConfiguration::ParameterStatus getThresholdVerificationKey(
 }
 
 static ConcordConfiguration::ParameterStatus validatePrincipalId(
-    const std::string& value, const ConcordConfiguration& config,
-    const ConfigurationPath& path, std::string* failureMessage, void* state) {
+    const string& value, const ConcordConfiguration& config,
+    const ConfigurationPath& path, string* failureMessage, void* state) {
   ConcordConfiguration::ParameterStatus res = validateUInt(
       value, config, path, failureMessage,
       const_cast<void*>(reinterpret_cast<const void*>(&kUInt16Limits)));
@@ -2621,7 +2619,7 @@ static ConcordConfiguration::ParameterStatus validatePrincipalId(
       if (failureMessage) {
         *failureMessage =
             "Invalid principal ID for " + path.toString() + ": " +
-            std::to_string(principalID) +
+            to_string(principalID) +
             ". Principal IDs for replicas must be less than num_replicas.";
       }
       return ConcordConfiguration::ParameterStatus::INVALID;
@@ -2634,7 +2632,7 @@ static ConcordConfiguration::ParameterStatus validatePrincipalId(
       if (failureMessage) {
         *failureMessage =
             "Invalid principal ID for " + path.toString() + ": " +
-            std::to_string(principalID) +
+            to_string(principalID) +
             ". Principal IDs for client proxies should be in the range "
             "(num_replicas, num_principals - 1), inclusive.";
       }
@@ -2656,7 +2654,7 @@ static ConcordConfiguration::ParameterStatus validatePrincipalId(
                (replicaPath != path)) {
       if (failureMessage) {
         *failureMessage = "Invalid principal ID for " + path.toString() + ": " +
-                          std::to_string(principalID) +
+                          to_string(principalID) +
                           ". This ID is non-unique; it duplicates the ID for " +
                           replicaPath.toString() + ".";
       }
@@ -2677,7 +2675,7 @@ static ConcordConfiguration::ParameterStatus validatePrincipalId(
         if (failureMessage) {
           *failureMessage =
               "Invalid principal ID for " + path.toString() + ": " +
-              std::to_string(principalID) +
+              to_string(principalID) +
               ". This ID is non-unique; it duplicates the ID for " +
               clientProxyPath.toString() + ".";
         }
@@ -2699,7 +2697,7 @@ static ConcordConfiguration::ParameterStatus validatePrincipalId(
 
 static ConcordConfiguration::ParameterStatus computePrincipalId(
     const ConcordConfiguration& config, const ConfigurationPath& path,
-    std::string* output, void* state) {
+    string* output, void* state) {
   // The path to a principal Id should be of one of these forms:
   //   node[i]/replica[0]/principal_id
   //   node[i]/client_proxy[j]/principal_id
@@ -2707,7 +2705,7 @@ static ConcordConfiguration::ParameterStatus computePrincipalId(
   assert(path.isScope && path.subpath && path.useInstance);
 
   if (path.subpath->name == "replica") {
-    *output = std::to_string(path.index);
+    *output = to_string(path.index);
   } else {
     assert((path.subpath->name == "client_proxy") && path.subpath->isScope &&
            path.subpath->useInstance);
@@ -2719,8 +2717,7 @@ static ConcordConfiguration::ParameterStatus computePrincipalId(
     uint16_t numReplicas = 3 * config.getValue<uint16_t>("f_val") +
                            2 * config.getValue<uint16_t>("c_val") + 1;
 
-    *output =
-        std::to_string(path.index + numReplicas * (1 + path.subpath->index));
+    *output = to_string(path.index + numReplicas * (1 + path.subpath->index));
   }
 
   return ConcordConfiguration::ParameterStatus::VALID;
@@ -2732,8 +2729,8 @@ const size_t kRSAPublicKeyHexadecimalLength = 584;
 // little in the current serialization of them.
 
 static ConcordConfiguration::ParameterStatus validateRSAPrivateKey(
-    const std::string& value, const ConcordConfiguration& config,
-    const ConfigurationPath& path, std::string* failureMessage, void* state) {
+    const string& value, const ConcordConfiguration& config,
+    const ConfigurationPath& path, string* failureMessage, void* state) {
   if (!(std::regex_match(value, std::regex("[0-9A-Fa-f]+")))) {
     return ConcordConfiguration::ParameterStatus::INVALID;
   }
@@ -2742,7 +2739,7 @@ static ConcordConfiguration::ParameterStatus validateRSAPrivateKey(
 
 static ConcordConfiguration::ParameterStatus getRSAPrivateKey(
     const ConcordConfiguration& config, const ConfigurationPath& path,
-    std::string* output, void* state) {
+    string* output, void* state) {
   // The path to an RSA private key should be of one of these forms:
   //   node[i]/replica[0]/private_key
   //   node[i]/client_proxy[j]/private_key
@@ -2775,8 +2772,8 @@ static ConcordConfiguration::ParameterStatus getRSAPrivateKey(
 }
 
 static ConcordConfiguration::ParameterStatus validateRSAPublicKey(
-    const std::string& value, const ConcordConfiguration& config,
-    const ConfigurationPath& path, std::string* failureMessage, void* state) {
+    const string& value, const ConcordConfiguration& config,
+    const ConfigurationPath& path, string* failureMessage, void* state) {
   if (!((value.length() == kRSAPublicKeyHexadecimalLength) &&
         std::regex_match(value, std::regex("[0-9A-Fa-f]+")))) {
     return ConcordConfiguration::ParameterStatus::INVALID;
@@ -2786,7 +2783,7 @@ static ConcordConfiguration::ParameterStatus validateRSAPublicKey(
 
 static ConcordConfiguration::ParameterStatus getRSAPublicKey(
     const ConcordConfiguration& config, const ConfigurationPath& path,
-    std::string* output, void* state) {
+    string* output, void* state) {
   // The path to an RSA public key should be of one of these forms:
   //   node[i]/replica[0]/public_key
   //   node[i]/client_proxy[j]/public_key
@@ -2816,6 +2813,48 @@ static ConcordConfiguration::ParameterStatus getRSAPublicKey(
     *output = auxState->clientProxyRSAKeys[nodeIndex][clientProxyIndex].second;
   }
   return ConcordConfiguration::ParameterStatus::VALID;
+}
+
+// We generally do not validate hosts as we want to allow use of either
+// hostnames or IP addresses in the configuration files in various contexts
+// without the configuration generation utility concerning itself about this;
+// however, one constraint we do want to validate is that, when a node reads its
+// configuration file, node-local hosts are set to loopback if the
+// "use_loopback_for_local_hosts" option is enabled.
+static ConcordConfiguration::ParameterStatus validatePrincipalHost(
+    const string& value, const ConcordConfiguration& config,
+    const ConfigurationPath& path, string* failureMessage, void* state) {
+  // Enforcing that loopback is expected for node-local hosts does not make
+  // sense unless we have a specific node's configuration and this principal
+  // host belongs to a particular node.
+  if ((config.getConfigurationStateLabel() != "concord_node") ||
+      !path.isScope || !path.useInstance || (path.name != "node")) {
+    return ConcordConfiguration::ParameterStatus::VALID;
+  }
+
+  // We make a copy of the configuration to use for determining which node is
+  // local because this process may require iteration of the configuration, and,
+  // under the implementations at the time of this writing, a const
+  // ConcordConfiguration cannot be iterated.
+  ConcordConfiguration nonConstConfig = config;
+
+  // Note detectLocalNode may throw an exception if it cannot determine what
+  // node this configuration belongs to, but we do not handle this in this
+  // function because we have validated that this configuration belongs to a
+  // particular node by the time detectLocalNode is called.
+  if (config.hasValue<bool>("use_loopback_for_local_hosts") &&
+      config.getValue<bool>("use_loopback_for_local_hosts") &&
+      (path.index == detectLocalNode(nonConstConfig)) &&
+      (value != "127.0.0.1")) {
+    *failureMessage = "Invalid host address for " + path.toString() + ": " +
+                      value +
+                      "; the value 127.0.0.1 (i.e. loopback) is expected for "
+                      "this host since it is local to this node and "
+                      "use_loopback_for_local_hosts is enabled.";
+    return ConcordConfiguration::ParameterStatus::INVALID;
+  } else {
+    return ConcordConfiguration::ParameterStatus::VALID;
+  }
 }
 
 // Implementation of specifyConfiguration and other utility functions that
@@ -2866,19 +2905,20 @@ void specifyConfiguration(ConcordConfiguration& config) {
       sizeClientProxies, nullptr);
   ConcordConfiguration& clientProxy = node.subscope("client_proxy");
 
-  std::vector<std::string> privateGeneratedTags(
+  vector<string> privateGeneratedTags(
       {"config_generation_time", "generated", "private"});
-  std::vector<std::string> publicGeneratedTags(
+  vector<string> publicGeneratedTags(
       {"config_generation_time", "generated", "public"});
-  std::vector<std::string> publicInputTags(
-      {"config_generation_time", "input", "public"});
-  std::vector<std::string> defaultableByUtilityTags(
+  vector<string> publicInputTags({"config_generation_time", "input", "public"});
+  vector<string> principalHostTags(
+      {"config_generation_time", "could_be_loopback", "input", "public"});
+  vector<string> defaultableByUtilityTags(
       {"config_generation_time", "defaultable", "public"});
-  std::vector<std::string> privateInputTags({"input", "private"});
-  std::vector<std::string> defaultableByReplicaTags({"defaultable", "private"});
-  std::vector<std::string> privateOptionalTags({"optional", "private"});
-  std::vector<std::string> publicOptionalTags({"optional", "public"});
-  std::vector<std::string> publicDefaultableTags({"defaultable", "public"});
+  vector<string> privateInputTags({"input", "private"});
+  vector<string> defaultableByReplicaTags({"defaultable", "private"});
+  vector<string> privateOptionalTags({"optional", "private"});
+  vector<string> publicOptionalTags({"optional", "public"});
+  vector<string> publicDefaultableTags({"defaultable", "public"});
 
   // Parameter declarations
   config.declareParameter("client_proxies_per_replica",
@@ -3049,6 +3089,24 @@ void specifyConfiguration(ConcordConfiguration& config) {
   config.addValidator(
       "status_time_interval", validateUInt,
       const_cast<void*>(reinterpret_cast<const void*>(&kPositiveUInt16Limits)));
+
+  config.declareParameter(
+      "use_loopback_for_local_hosts",
+      "If this parameter is set to true, Concord will expect to use the "
+      "loopback IP (i.e. 127.0.0.1) for all host addresses used for internal "
+      "Concord communication. Specifically, if this parameter is set to true, "
+      "the configuration generation utility will replace hosts used in "
+      "internal Concord communication with \"127.0.0.1\" in the configuration "
+      "file belonging to the node on which that host is located; furthermore, "
+      "when Concord nodes load their configuration, they will expect every "
+      "host on their own node to have this IP address, and will reject their "
+      "configuration otherwise. Note this parameter should not be set to true "
+      "in deployments which do not guarantee that all hosts contained in a "
+      "single Concord node are on the same machine such that they can reach "
+      "each other via the loopback IP.",
+      "false");
+  config.tagParameter("use_loopback_for_local_hosts", defaultableByUtilityTags);
+  config.addValidator("use_loopback_for_local_hosts", validateBoolean, nullptr);
 
   config.declareParameter(
       "view_change_timeout",
@@ -3252,7 +3310,8 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "replica_host",
       "Public IP address or host name with which other replicas can reach this "
       "one for consensus communication.");
-  replica.tagParameter("replica_host", publicInputTags);
+  replica.tagParameter("replica_host", principalHostTags);
+  replica.addValidator("replica_host", validatePrincipalHost, nullptr);
 
   replica.declareParameter("replica_port",
                            "Port number on which other replicas can reach this "
@@ -3283,7 +3342,8 @@ void specifyConfiguration(ConcordConfiguration& config) {
   clientProxy.declareParameter("client_host",
                                "Public IP address or host name with which this "
                                "client proxy can be reached.");
-  clientProxy.tagParameter("client_host", publicInputTags);
+  clientProxy.tagParameter("client_host", principalHostTags);
+  clientProxy.addValidator("client_host", validatePrincipalHost, nullptr);
 
   clientProxy.declareParameter(
       "client_port", "Port on which this client proxy can be reached.");
@@ -3376,8 +3436,7 @@ void specifyConfiguration(ConcordConfiguration& config) {
 
 void loadClusterSizeParameters(YAMLConfigurationInput& input,
                                ConcordConfiguration& config) {
-  log4cplus::Logger logger =
-      log4cplus::Logger::getInstance("com.vmware.concord.configuration");
+  Logger logger = Logger::getInstance("com.vmware.concord.configuration");
 
   ConfigurationPath fValPath("f_val", false);
   ConfigurationPath cValPath("c_val", false);
@@ -3390,7 +3449,7 @@ void loadClusterSizeParameters(YAMLConfigurationInput& input,
                           requiredParameters.end(), &logger, true);
 
   bool missingValue = false;
-  for (auto parameter : requiredParameters) {
+  for (auto&& parameter : requiredParameters) {
     if (!config.hasValue<uint16_t>(parameter)) {
       missingValue = true;
       LOG4CPLUS_ERROR(
@@ -3450,8 +3509,7 @@ static bool selectInstancedInstancedParameters(
 
 void instantiateTemplatedConfiguration(YAMLConfigurationInput& input,
                                        ConcordConfiguration& config) {
-  log4cplus::Logger logger =
-      log4cplus::Logger::getInstance("com.vmware.concord.configuration");
+  Logger logger = Logger::getInstance("com.vmware.concord.configuration");
 
   if (!config.hasValue<uint16_t>("f_val") ||
       !config.hasValue<uint16_t>("c_val") ||
@@ -3510,11 +3568,11 @@ void instantiateTemplatedConfiguration(YAMLConfigurationInput& input,
     ConfigurationPath containingScopeOfInstancePath(instancePath);
     containingScopeOfInstancePath.subpath->subpath.reset();
 
-    if (config.hasValue<std::string>(templatePath)) {
-      std::string value = config.getValue<std::string>(templatePath);
+    if (config.hasValue<string>(templatePath)) {
+      string value = config.getValue<string>(templatePath);
       ConcordConfiguration& subscope =
           config.subscope(containingScopeOfInstancePath);
-      std::string failureMessage;
+      string failureMessage;
       if (subscope.loadValue(instancePath.subpath->subpath->name, value,
                              &failureMessage, true) ==
           ConcordConfiguration::ParameterStatus::INVALID) {
@@ -3534,7 +3592,7 @@ static bool selectInputParameters(const ConcordConfiguration& config,
   if (path.isScope) {
     containingScope = &(config.subscope(path.trimLeaf()));
   }
-  std::string name = path.getLeaf().name;
+  string name = path.getLeaf().name;
 
   return containingScope->isTagged(name, "input") ||
          containingScope->isTagged(name, "defaultable") ||
@@ -3543,8 +3601,7 @@ static bool selectInputParameters(const ConcordConfiguration& config,
 
 void loadConfigurationInputParameters(YAMLConfigurationInput& input,
                                       ConcordConfiguration& config) {
-  log4cplus::Logger logger =
-      log4cplus::Logger::getInstance("com.vmware.concord.configuration");
+  Logger logger = Logger::getInstance("com.vmware.concord.configuration");
 
   ParameterSelection inputParameterSelection(config, selectInputParameters,
                                              nullptr);
@@ -3562,9 +3619,9 @@ void loadConfigurationInputParameters(YAMLConfigurationInput& input,
     if (path.isScope) {
       containingScope = &(config.subscope(path.trimLeaf()));
     }
-    std::string name = path.getLeaf().name;
+    string name = path.getLeaf().name;
     if (containingScope->isTagged(name, "input") &&
-        !config.hasValue<std::string>(path)) {
+        !config.hasValue<string>(path)) {
       missingParameter = true;
       LOG4CPLUS_ERROR(logger,
                       "Configuration input is missing value for required input "
@@ -3579,8 +3636,7 @@ void loadConfigurationInputParameters(YAMLConfigurationInput& input,
 }
 
 void generateConfigurationKeys(ConcordConfiguration& config) {
-  log4cplus::Logger logger =
-      log4cplus::Logger::getInstance("com.vmware.concord.configuration");
+  Logger logger = Logger::getInstance("com.vmware.concord.configuration");
 
   if (!config.hasValue<uint16_t>("f_val") ||
       !config.hasValue<uint16_t>("c_val") ||
@@ -3589,10 +3645,10 @@ void generateConfigurationKeys(ConcordConfiguration& config) {
         "Cannot generate keys for Concord cluster: required cluster size "
         "parameters are not loaded.");
   }
-  if (!config.hasValue<std::string>("execution_cryptosys") ||
-      !config.hasValue<std::string>("slow_commit_cryptosys") ||
-      !config.hasValue<std::string>("commit_cryptosys") ||
-      !config.hasValue<std::string>("optimistic_commit_cryptosys")) {
+  if (!config.hasValue<string>("execution_cryptosys") ||
+      !config.hasValue<string>("slow_commit_cryptosys") ||
+      !config.hasValue<string>("commit_cryptosys") ||
+      !config.hasValue<string>("optimistic_commit_cryptosys")) {
     throw ConfigurationResourceNotFoundException(
         "Cannot generate keys for Concord cluster: required cryptosystem "
         "selections have not been loaded.");
@@ -3633,18 +3689,17 @@ void generateConfigurationKeys(ConcordConfiguration& config) {
       dynamic_cast<ConcordPrimaryConfigurationAuxiliaryState*>(
           config.getAuxiliaryState());
 
-  std::pair<std::string, std::string> executionCryptoSelection =
+  std::pair<string, string> executionCryptoSelection =
       parseCryptosystemSelection(
-          config.getValue<std::string>("execution_cryptosys"));
-  std::pair<std::string, std::string> slowCommitCryptoSelection =
+          config.getValue<string>("execution_cryptosys"));
+  std::pair<string, string> slowCommitCryptoSelection =
       parseCryptosystemSelection(
-          config.getValue<std::string>("slow_commit_cryptosys"));
-  std::pair<std::string, std::string> commitCryptoSelection =
+          config.getValue<string>("slow_commit_cryptosys"));
+  std::pair<string, string> commitCryptoSelection =
+      parseCryptosystemSelection(config.getValue<string>("commit_cryptosys"));
+  std::pair<string, string> optimisticCommitCryptoSelection =
       parseCryptosystemSelection(
-          config.getValue<std::string>("commit_cryptosys"));
-  std::pair<std::string, std::string> optimisticCommitCryptoSelection =
-      parseCryptosystemSelection(
-          config.getValue<std::string>("optimistic_commit_cryptosys"));
+          config.getValue<string>("optimistic_commit_cryptosys"));
 
   auxState->executionCryptosys.reset(new Cryptosystem(
       executionCryptoSelection.first, executionCryptoSelection.second,
@@ -3684,8 +3739,7 @@ void generateConfigurationKeys(ConcordConfiguration& config) {
   CryptoPP::AutoSeededRandomPool randomPool;
   for (uint16_t i = 0; i < numReplicas; ++i) {
     auxState->replicaRSAKeys.push_back(generateRSAKeyPair(randomPool));
-    auxState->clientProxyRSAKeys.push_back(
-        std::vector<std::pair<std::string, std::string>>());
+    auxState->clientProxyRSAKeys.push_back(vector<std::pair<string, string>>());
     for (uint16_t j = 0; j < clientProxiesPerReplica; ++j) {
       auxState->clientProxyRSAKeys[i].push_back(generateRSAKeyPair(randomPool));
     }
@@ -3715,8 +3769,7 @@ static bool selectParametersRequiredAtConfigurationGeneration(
 
 bool hasAllParametersRequiredAtConfigurationGeneration(
     ConcordConfiguration& config) {
-  log4cplus::Logger logger =
-      log4cplus::Logger::getInstance("com.vmware.concord.configuration");
+  Logger logger = Logger::getInstance("com.vmware.concord.configuration");
 
   ParameterSelection requiredConfiguration(
       config, selectParametersRequiredAtConfigurationGeneration, nullptr);
@@ -3725,7 +3778,7 @@ bool hasAllParametersRequiredAtConfigurationGeneration(
   for (auto iterator = requiredConfiguration.begin();
        iterator != requiredConfiguration.end(); ++iterator) {
     ConfigurationPath path = *iterator;
-    if (!config.hasValue<std::string>(path)) {
+    if (!config.hasValue<string>(path)) {
       LOG4CPLUS_ERROR(logger,
                       "Missing value for required configuration parameter: " +
                           path.toString() + ".");
@@ -3733,6 +3786,22 @@ bool hasAllParametersRequiredAtConfigurationGeneration(
     }
   }
   return hasAllRequired;
+}
+
+static bool selectHostsToMakeLoopback(const ConcordConfiguration& config,
+                                      const ConfigurationPath& path,
+                                      void* state) {
+  assert(state);
+  size_t node = *(static_cast<size_t*>(state));
+
+  if (!path.isScope || !path.subpath || !path.useInstance ||
+      (path.index != node)) {
+    return false;
+  }
+
+  const ConcordConfiguration& containing_scope =
+      config.subscope(path.trimLeaf());
+  return containing_scope.isTagged(path.getLeaf().name, "could_be_loopback");
 }
 
 static bool selectNodeConfiguration(const ConcordConfiguration& config,
@@ -3765,19 +3834,40 @@ static bool selectNodeConfiguration(const ConcordConfiguration& config,
   return !(containingScope->isTagged(path.getLeaf().name, "private"));
 }
 
-void outputConcordNodeConfiguration(ConcordConfiguration& config,
+void outputConcordNodeConfiguration(const ConcordConfiguration& config,
                                     YAMLConfigurationOutput& output,
                                     size_t node) {
-  ParameterSelection nodeConfiguration(config, selectNodeConfiguration,
-                                       &(node));
-  output.outputConfiguration(config, nodeConfiguration.begin(),
-                             nodeConfiguration.end());
+  Logger logger = Logger::getInstance("com.vmware.concord.configuration");
+  ConcordConfiguration node_config = config;
+  if (config.hasValue<bool>("use_loopback_for_local_hosts") &&
+      config.getValue<bool>("use_loopback_for_local_hosts")) {
+    ParameterSelection node_local_hosts(node_config, selectHostsToMakeLoopback,
+                                        &(node));
+    for (auto& path : node_local_hosts) {
+      ConcordConfiguration* containing_scope = &node_config;
+      if (path.isScope && path.subpath) {
+        containing_scope = &(node_config.subscope(path.trimLeaf()));
+      }
+      string failure_message;
+      if (containing_scope->loadValue(path.getLeaf().name, "127.0.0.1",
+                                      &failure_message, true) ==
+          ConcordConfiguration::ParameterStatus::INVALID) {
+        throw invalid_argument("Failed to load 127.0.0.1 for host " +
+                               path.toString() + " for node " +
+                               to_string(node) +
+                               "\'s configuration: " + failure_message);
+      }
+    }
+  }
+  ParameterSelection node_config_params(node_config, selectNodeConfiguration,
+                                        &(node));
+  output.outputConfiguration(node_config, node_config_params.begin(),
+                             node_config_params.end());
 }
 
 void loadNodeConfiguration(ConcordConfiguration& config,
                            YAMLConfigurationInput& input) {
-  log4cplus::Logger logger =
-      log4cplus::Logger::getInstance("com.vmware.concord.configuration");
+  Logger logger = Logger::getInstance("com.vmware.concord.configuration");
 
   loadClusterSizeParameters(input, config);
   instantiateTemplatedConfiguration(input, config);
@@ -3809,14 +3899,14 @@ void loadNodeConfiguration(ConcordConfiguration& config,
     if (path.isScope && path.subpath) {
       containingScope = &(config.subscope(path.trimLeaf()));
     }
-    std::string name = path.getLeaf().name;
+    string name = path.getLeaf().name;
 
-    if (!(containingScope->hasValue<std::string>(name)) &&
+    if (!(containingScope->hasValue<string>(name)) &&
         !(containingScope->isTagged(name, "config_generation_time"))) {
       if (containingScope->isTagged(name, "defaultable")) {
         containingScope->loadDefault(name);
       } else if (containingScope->isTagged(name, "generated")) {
-        std::string failureMessage;
+        string failureMessage;
         if (containingScope->generate(name, &failureMessage) !=
             ConcordConfiguration::ParameterStatus::VALID) {
           LOG4CPLUS_ERROR(logger, "Cannot generate value for " +
@@ -3844,7 +3934,7 @@ void loadNodeConfiguration(ConcordConfiguration& config,
   for (auto iterator = nodeConfiguration.begin();
        iterator != nodeConfiguration.end(); ++iterator) {
     ConfigurationPath path = *iterator;
-    if (!config.hasValue<std::string>(path)) {
+    if (!config.hasValue<string>(path)) {
       ConcordConfiguration* containingScope = &config;
       if (path.isScope && path.subpath) {
         containingScope = &(config.subscope(path.trimLeaf()));
@@ -3874,7 +3964,7 @@ size_t detectLocalNode(ConcordConfiguration& config) {
        config.end(ConcordConfiguration::kIterateAllInstanceParameters);
        ++iterator) {
     ConfigurationPath path = *iterator;
-    if (config.hasValue<std::string>(path) && path.isScope) {
+    if (config.hasValue<string>(path) && path.isScope) {
       // If this path is not to a parameter in the root scope, we expect it to
       // have the form node[i]/... (Note we have selected an iterator that
       // returns paths to only instanced parameters).
@@ -3904,8 +3994,7 @@ size_t detectLocalNode(ConcordConfiguration& config) {
 }
 
 void loadSBFTCryptosystems(ConcordConfiguration& config) {
-  log4cplus::Logger logger =
-      log4cplus::Logger::getInstance("com.vmware.concord.configuration");
+  Logger logger = Logger::getInstance("com.vmware.concord.configuration");
 
   // Note we do not validate that the cryptosystem selections here are valid as
   // long as they exist, as we expect this has been handled by the parameter
@@ -3921,8 +4010,8 @@ void loadSBFTCryptosystems(ConcordConfiguration& config) {
        ConfigurationPath("commit_public_key", false),
        ConfigurationPath("optimistic_commit_public_key", false)});
   bool hasRequired = true;
-  for (auto path : requiredCryptosystemParameters) {
-    if (!config.hasValue<std::string>(path)) {
+  for (auto&& path : requiredCryptosystemParameters) {
+    if (!config.hasValue<string>(path)) {
       hasRequired = false;
       LOG4CPLUS_ERROR(
           logger,
@@ -3948,18 +4037,17 @@ void loadSBFTCryptosystems(ConcordConfiguration& config) {
   uint16_t optimisticCommitThresh = 3 * fVal + 2 * cVal + 1;
   uint16_t numSigners = 3 * fVal + 2 * cVal + 1;
 
-  std::pair<std::string, std::string> executionCryptoSelection =
+  std::pair<string, string> executionCryptoSelection =
       parseCryptosystemSelection(
-          config.getValue<std::string>("execution_cryptosys"));
-  std::pair<std::string, std::string> slowCommitCryptoSelection =
+          config.getValue<string>("execution_cryptosys"));
+  std::pair<string, string> slowCommitCryptoSelection =
       parseCryptosystemSelection(
-          config.getValue<std::string>("slow_commit_cryptosys"));
-  std::pair<std::string, std::string> commitCryptoSelection =
+          config.getValue<string>("slow_commit_cryptosys"));
+  std::pair<string, string> commitCryptoSelection =
+      parseCryptosystemSelection(config.getValue<string>("commit_cryptosys"));
+  std::pair<string, string> optimisticCommitCryptoSelection =
       parseCryptosystemSelection(
-          config.getValue<std::string>("commit_cryptosys"));
-  std::pair<std::string, std::string> optimisticCommitCryptoSelection =
-      parseCryptosystemSelection(
-          config.getValue<std::string>("optimistic_commit_cryptosys"));
+          config.getValue<string>("optimistic_commit_cryptosys"));
 
   auxState->executionCryptosys.reset(new Cryptosystem(
       executionCryptoSelection.first, executionCryptoSelection.second,
@@ -3977,10 +4065,10 @@ void loadSBFTCryptosystems(ConcordConfiguration& config) {
 
   // Note these vectors will be given to Cryptosystems, which consider them to
   // be 1-indexed.
-  std::vector<std::string> executionVerificationKeys(numSigners + 1);
-  std::vector<std::string> slowCommitVerificationKeys(numSigners + 1);
-  std::vector<std::string> commitVerificationKeys(numSigners + 1);
-  std::vector<std::string> optimisticCommitVerificationKeys(numSigners + 1);
+  vector<string> executionVerificationKeys(numSigners + 1);
+  vector<string> slowCommitVerificationKeys(numSigners + 1);
+  vector<string> commitVerificationKeys(numSigners + 1);
+  vector<string> optimisticCommitVerificationKeys(numSigners + 1);
 
   assert(config.containsScope("node") && config.scopeIsInstantiated("node") &&
          (config.scopeSize("node") == numSigners));
@@ -3992,47 +4080,45 @@ void loadSBFTCryptosystems(ConcordConfiguration& config) {
     ConcordConfiguration& replicaConfig = nodeConfig.subscope("replica", 0);
     uint16_t replicaID = replicaConfig.getValue<uint16_t>("principal_id");
 
-    if (!replicaConfig.hasValue<std::string>("execution_verification_key")) {
+    if (!replicaConfig.hasValue<string>("execution_verification_key")) {
       hasRequired = false;
       LOG4CPLUS_ERROR(logger,
                       "Configuration missing required threshold verification "
                       "key: execution_verification_key for replica " +
-                          std::to_string(i) + ".");
+                          to_string(i) + ".");
     } else {
       executionVerificationKeys[replicaID + 1] =
-          replicaConfig.getValue<std::string>("execution_verification_key");
+          replicaConfig.getValue<string>("execution_verification_key");
     }
-    if (!replicaConfig.hasValue<std::string>("slow_commit_verification_key")) {
+    if (!replicaConfig.hasValue<string>("slow_commit_verification_key")) {
       hasRequired = false;
       LOG4CPLUS_ERROR(logger,
                       "Configuration missing required threshold verification "
                       "key: slow_commit_verification_key for replica " +
-                          std::to_string(i) + ".");
+                          to_string(i) + ".");
     } else {
       slowCommitVerificationKeys[replicaID + 1] =
-          replicaConfig.getValue<std::string>("slow_commit_verification_key");
+          replicaConfig.getValue<string>("slow_commit_verification_key");
     }
-    if (!replicaConfig.hasValue<std::string>("commit_verification_key")) {
+    if (!replicaConfig.hasValue<string>("commit_verification_key")) {
       hasRequired = false;
       LOG4CPLUS_ERROR(logger,
                       "Configuration missing required threshold verification "
                       "key: commit_verification_key for replica " +
-                          std::to_string(i) + ".");
+                          to_string(i) + ".");
     } else {
       commitVerificationKeys[replicaID + 1] =
-          replicaConfig.getValue<std::string>("commit_verification_key");
+          replicaConfig.getValue<string>("commit_verification_key");
     }
-    if (!replicaConfig.hasValue<std::string>(
-            "optimistic_commit_verification_key")) {
+    if (!replicaConfig.hasValue<string>("optimistic_commit_verification_key")) {
       hasRequired = false;
       LOG4CPLUS_ERROR(logger,
                       "Configuration missing required threshold verification "
                       "key: optimistic_commit_verification_key for replica " +
-                          std::to_string(i) + ".");
+                          to_string(i) + ".");
     } else {
       optimisticCommitVerificationKeys[replicaID + 1] =
-          replicaConfig.getValue<std::string>(
-              "optimistic_commit_verification_key");
+          replicaConfig.getValue<string>("optimistic_commit_verification_key");
     }
   }
   if (!hasRequired) {
@@ -4042,23 +4128,22 @@ void loadSBFTCryptosystems(ConcordConfiguration& config) {
   }
 
   auxState->executionCryptosys->loadKeys(
-      config.getValue<std::string>("execution_public_key"),
+      config.getValue<string>("execution_public_key"),
       executionVerificationKeys);
   auxState->slowCommitCryptosys->loadKeys(
-      config.getValue<std::string>("slow_commit_public_key"),
+      config.getValue<string>("slow_commit_public_key"),
       slowCommitVerificationKeys);
   auxState->commitCryptosys->loadKeys(
-      config.getValue<std::string>("commit_public_key"),
-      commitVerificationKeys);
+      config.getValue<string>("commit_public_key"), commitVerificationKeys);
   auxState->optimisticCommitCryptosys->loadKeys(
-      config.getValue<std::string>("optimistic_commit_public_key"),
+      config.getValue<string>("optimistic_commit_public_key"),
       optimisticCommitVerificationKeys);
 
   ConcordConfiguration& localReplicaConfig =
       config.subscope("node", detectLocalNode(config)).subscope("replica", 0);
   uint16_t localReplicaID =
       localReplicaConfig.getValue<uint16_t>("principal_id");
-  if (!localReplicaConfig.hasValue<std::string>("execution_private_key")) {
+  if (!localReplicaConfig.hasValue<string>("execution_private_key")) {
     hasRequired = false;
     LOG4CPLUS_ERROR(logger,
                     "Configuration missing required threshold private key: "
@@ -4066,9 +4151,9 @@ void loadSBFTCryptosystems(ConcordConfiguration& config) {
   } else {
     auxState->executionCryptosys->loadPrivateKey(
         (localReplicaID + 1),
-        localReplicaConfig.getValue<std::string>("execution_private_key"));
+        localReplicaConfig.getValue<string>("execution_private_key"));
   }
-  if (!localReplicaConfig.hasValue<std::string>("slow_commit_private_key")) {
+  if (!localReplicaConfig.hasValue<string>("slow_commit_private_key")) {
     hasRequired = false;
     LOG4CPLUS_ERROR(logger,
                     "Configuration missing required threshold private key: "
@@ -4076,9 +4161,9 @@ void loadSBFTCryptosystems(ConcordConfiguration& config) {
   } else {
     auxState->slowCommitCryptosys->loadPrivateKey(
         (localReplicaID + 1),
-        localReplicaConfig.getValue<std::string>("slow_commit_private_key"));
+        localReplicaConfig.getValue<string>("slow_commit_private_key"));
   }
-  if (!localReplicaConfig.hasValue<std::string>("commit_private_key")) {
+  if (!localReplicaConfig.hasValue<string>("commit_private_key")) {
     hasRequired = false;
     LOG4CPLUS_ERROR(logger,
                     "Configuration missing required threshold private key: "
@@ -4086,18 +4171,17 @@ void loadSBFTCryptosystems(ConcordConfiguration& config) {
   } else {
     auxState->commitCryptosys->loadPrivateKey(
         (localReplicaID + 1),
-        localReplicaConfig.getValue<std::string>("commit_private_key"));
+        localReplicaConfig.getValue<string>("commit_private_key"));
   }
-  if (!localReplicaConfig.hasValue<std::string>(
-          "optimistic_commit_private_key")) {
+  if (!localReplicaConfig.hasValue<string>("optimistic_commit_private_key")) {
     hasRequired = false;
     LOG4CPLUS_ERROR(logger,
                     "Configuration missing required threshold private key: "
                     "optimistic_commit_private_key for this node.");
   } else {
     auxState->optimisticCommitCryptosys->loadPrivateKey(
-        (localReplicaID + 1), localReplicaConfig.getValue<std::string>(
-                                  "optimistic_commit_private_key"));
+        (localReplicaID + 1),
+        localReplicaConfig.getValue<string>("optimistic_commit_private_key"));
   }
   if (!hasRequired) {
     throw ConfigurationResourceNotFoundException(
