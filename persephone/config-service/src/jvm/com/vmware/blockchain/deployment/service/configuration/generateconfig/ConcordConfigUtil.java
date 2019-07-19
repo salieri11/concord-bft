@@ -162,7 +162,9 @@ public class ConcordConfigUtil {
             writer.newLine();
             writer.write(F_VAL + fVal);
             writer.newLine();
-            writer.write("comm_to_use: udp");
+            writer.write("comm_to_use: tls");
+            writer.newLine();
+            writer.write("use_loopback_for_local_hosts: true");
             writer.newLine();
             writer.write("tls_cipher_suite_list: ECDHE-ECDSA-AES256-GCM-SHA384");
             writer.newLine();
