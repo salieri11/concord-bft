@@ -16,6 +16,7 @@
 #include "daml_commit.grpc.pb.h"
 #include "daml_data.grpc.pb.h"
 #include "daml_validator.grpc.pb.h"
+#include "time/time_contract.hpp"
 
 using std::list;
 using std::map;
@@ -30,6 +31,7 @@ using concord::storage::Key;
 using concord::storage::KeyValuePair;
 using concord::storage::SetOfKeyValuePairs;
 using concord::storage::Value;
+using concord::time::TimeContract;
 
 using com::vmware::concord::ConcordRequest;
 using com::vmware::concord::ConcordResponse;
@@ -76,9 +78,7 @@ grpc::Status KVBCValidatorClient::Validate(
 }
 
 bool KVBCCommandsHandler::ExecuteKVBCRead(const da_kvbc::ReadCommand& request,
-                                          const size_t maxReplySize,
-                                          char* outReply,
-                                          uint32_t& outReplySize) {
+                                          ConcordResponse& response) {
   LOG4CPLUS_INFO(logger_, "NOT IMPLEMENTED");
   return false;
 }
@@ -89,7 +89,7 @@ std::map<string, string> KVBCCommandsHandler::GetFromStorage(
   for (const auto& kv_key : keys) {
     Value out;
     Key key = CreateSliver(kv_key.key());
-    if (ro_storage_->get(key, out).isOK()) {
+    if (storage_.get(key, out).isOK()) {
       result[kv_key.key()] = string((const char*)out.data(), out.length());
     } else {
       // FIXME(JM): We likely should construct a command rejection from this,
@@ -102,12 +102,12 @@ std::map<string, string> KVBCCommandsHandler::GetFromStorage(
 }
 
 bool KVBCCommandsHandler::ExecuteKVBCCommit(
-    const da_kvbc::CommitRequest& commit_req, const size_t max_reply_size,
-    char* out_reply, uint32_t& out_reply_size) {
+    const da_kvbc::CommitRequest& commit_req, TimeContract* time_contract,
+    ConcordResponse& concord_response) {
   LOG4CPLUS_DEBUG(logger_, "Handle DAML commit command");
 
   string prefix = "daml";
-  BlockId current_block_id = ro_storage_->getLastBlock();
+  BlockId current_block_id = storage_.getLastBlock();
   SetOfKeyValuePairs updates;
 
   // Since we're not batching, lets keep it simple and use the next block id as
@@ -147,14 +147,13 @@ bool KVBCCommandsHandler::ExecuteKVBCCommit(
   }
 
   // Commit the block, if there were no conflicts.
-  ConcordResponse concord_response;
   DamlResponse* daml_response = concord_response.mutable_daml_response();
 
   da_kvbc::CommandReply command_reply;
   da_kvbc::CommitResponse* commit_response = command_reply.mutable_commit();
 
   BlockId new_block_id = 0;
-  Status res = blocks_appender_->addBlock(updates, new_block_id);
+  Status res = addBlock(updates, new_block_id);
   assert(res.isOK());
   assert(new_block_id == current_block_id + 1);
 
@@ -171,29 +170,18 @@ bool KVBCCommandsHandler::ExecuteKVBCCommit(
   command_reply.SerializeToString(&cmd_string);
   daml_response->set_command_reply(cmd_string.c_str(), cmd_string.size());
 
-  string out;
-  concord_response.SerializeToString(&out);
-  assert(out.size() <= max_reply_size);
-  memcpy(out_reply, out.data(), out.size());
-  out_reply_size = out.size();
-
   LOG4CPLUS_DEBUG(logger_, "Done: Handle DAML commit command.");
   return true;
 }
 
-bool KVBCCommandsHandler::ExecuteCommand(uint32_t requestSize,
-                                         const char* request,
-                                         const size_t maxReplySize,
-                                         char* outReply,
-                                         uint32_t& outReplySize) {
-  LOG4CPLUS_INFO(logger_, "Got message of size " << requestSize);
-  ConcordRequest concord_req;
+bool KVBCCommandsHandler::ExecuteCommand(const ConcordRequest& concord_req,
+                                         TimeContract* time_contract,
+                                         ConcordResponse& response) {
   DamlRequest daml_req;
 
-  if (!concord_req.ParseFromArray(request, requestSize) ||
-      !concord_req.has_daml_request()) {
-    LOG4CPLUS_ERROR(logger_, "No legit Concord / DAML request");
-    return false;
+  if (!concord_req.has_daml_request()) {
+    // we have to ignore this, to allow time-only updates
+    return true;
   }
 
   daml_req = concord_req.daml_request();
@@ -210,29 +198,21 @@ bool KVBCCommandsHandler::ExecuteCommand(uint32_t requestSize,
 
   switch (cmd.cmd_case()) {
     case da_kvbc::Command::kRead:
-      return ExecuteKVBCRead(cmd.read(), maxReplySize, outReply, outReplySize);
+      return ExecuteKVBCRead(cmd.read(), response);
 
     case da_kvbc::Command::kCommit:
-      return ExecuteKVBCCommit(cmd.commit(), maxReplySize, outReply,
-                               outReplySize);
+      return ExecuteKVBCCommit(cmd.commit(), time_contract, response);
 
     default:
       return false;
   }
 }
 
-bool KVBCCommandsHandler::ExecuteReadOnlyCommand(uint32_t requestSize,
-                                                 const char* request,
-                                                 const size_t maxReplySize,
-                                                 char* outReply,
-                                                 uint32_t& outReplySize) {
-  LOG4CPLUS_INFO(logger_, "Got message of size " << requestSize);
-
-  ConcordRequest concord_req;
+bool KVBCCommandsHandler::ExecuteReadOnlyCommand(
+    const ConcordRequest& concord_req, ConcordResponse& response) {
   DamlRequest daml_req;
 
-  if (!concord_req.ParseFromArray(request, requestSize) ||
-      !concord_req.has_daml_request()) {
+  if (!concord_req.has_daml_request()) {
     LOG4CPLUS_ERROR(logger_, "No legit Concord / DAML request");
     return false;
   }
@@ -251,7 +231,7 @@ bool KVBCCommandsHandler::ExecuteReadOnlyCommand(uint32_t requestSize,
 
   switch (cmd.cmd_case()) {
     case da_kvbc::Command::kRead:
-      return ExecuteKVBCRead(cmd.read(), maxReplySize, outReply, outReplySize);
+      return ExecuteKVBCRead(cmd.read(), response);
     case da_kvbc::Command::kCommit:
       LOG4CPLUS_ERROR(logger_, "ExecuteReadOnlyCommand got write command!");
       return false;
@@ -260,20 +240,24 @@ bool KVBCCommandsHandler::ExecuteReadOnlyCommand(uint32_t requestSize,
   }
 }
 
-int KVBCCommandsHandler::execute(uint16_t clientId, uint64_t sequenceNum,
-                                 bool readOnly, uint32_t requestSize,
-                                 const char* request, uint32_t maxReplySize,
-                                 char* outReply, uint32_t& outActualReplySize) {
-  bool res;
-  if (readOnly) {
-    res = ExecuteReadOnlyCommand(requestSize, request, maxReplySize, outReply,
-                                 outActualReplySize);
+bool KVBCCommandsHandler::Execute(const ConcordRequest& request,
+                                  uint64_t sequence_num, bool read_only,
+                                  TimeContract* time_contract,
+                                  ConcordResponse& response) {
+  if (read_only) {
+    return ExecuteReadOnlyCommand(request, response);
   } else {
-    res = ExecuteCommand(requestSize, request, maxReplySize, outReply,
-                         outActualReplySize);
+    return ExecuteCommand(request, time_contract, response);
   }
+}
 
-  return res ? 0 : 1;
+void KVBCCommandsHandler::WriteEmptyBlock(uint64_t sequence_num,
+                                          TimeContract* time_contract) {
+  BlockId currentBlockId = storage_.getLastBlock();
+  SetOfKeyValuePairs empty_updates;
+  BlockId newBlockId = 0;
+  assert(addBlock(empty_updates, newBlockId).isOK());
+  assert(newBlockId == currentBlockId + 1);
 }
 
 }  // namespace daml

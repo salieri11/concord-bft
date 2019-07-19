@@ -322,9 +322,9 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
           new KVBCValidatorClient(grpc::CreateChannel(
               nodeConfig.getValue<string>("daml_execution_engine_addr"),
               grpc::InsecureChannelCredentials())));
-      kvb_commands_handler =
-          unique_ptr<ICommandsHandler>(new KVBCCommandsHandler(
-              &replica, &replica, committedTxs, std::move(daml_validator)));
+      kvb_commands_handler = unique_ptr<ICommandsHandler>(
+          new KVBCCommandsHandler(config, replica, replica, committedTxs,
+                                  std::move(daml_validator)));
     } else if (hlf_enabled) {
       LOG4CPLUS_INFO(logger, "Hyperledger Fabric feature is enabled");
       // Init chaincode invoker

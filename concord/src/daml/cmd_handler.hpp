@@ -6,6 +6,7 @@
 #include <log4cplus/loggingmacros.h>
 
 #include "blocking_queue.h"
+#include "consensus/concord_commands_handler.hpp"
 #include "consensus/hash_defs.h"
 #include "consensus/sliver.hpp"
 #include "daml_commit.grpc.pb.h"
@@ -37,45 +38,46 @@ class KVBCValidatorClient {
   std::unique_ptr<com::digitalasset::kvbc::ValidationService::Stub> stub_;
 };
 
-class KVBCCommandsHandler : public concord::storage::ICommandsHandler {
+class KVBCCommandsHandler : public concord::consensus::ConcordCommandsHandler {
  private:
   log4cplus::Logger logger_;
-  concord::storage::ILocalKeyValueStorageReadOnly* ro_storage_;
-  concord::storage::IBlocksAppender* blocks_appender_;
   BlockingPersistentQueue<com::digitalasset::kvbc::CommittedTx>& committed_txs_;
   std::unique_ptr<KVBCValidatorClient> validator_client_;
 
  public:
   KVBCCommandsHandler(
-      concord::storage::ILocalKeyValueStorageReadOnly* ros,
-      concord::storage::IBlocksAppender* ba,
+      const concord::config::ConcordConfiguration& config,
+      const concord::storage::ILocalKeyValueStorageReadOnly& ros,
+      concord::storage::IBlocksAppender& ba,
       BlockingPersistentQueue<com::digitalasset::kvbc::CommittedTx>&
           committed_txs,
       std::unique_ptr<KVBCValidatorClient> validator)
-      : logger_(log4cplus::Logger::getInstance("com.vmware.concord.daml")),
-        ro_storage_(ros),
-        blocks_appender_(ba),
+      : ConcordCommandsHandler(config, ros, ba),
+        logger_(log4cplus::Logger::getInstance("com.vmware.concord.daml")),
         committed_txs_(committed_txs),
         validator_client_(std::move(validator)) {}
 
-  int execute(uint16_t clientId, uint64_t sequenceNum, bool readOnly,
-              uint32_t requestSize, const char* request, uint32_t maxReplySize,
-              char* outReply, uint32_t& outActualReplySize) override;
+  bool Execute(const com::vmware::concord::ConcordRequest& request,
+               uint64_t sequence_num, bool read_only,
+               concord::time::TimeContract* time_contract,
+               com::vmware::concord::ConcordResponse& response) override;
+  void WriteEmptyBlock(uint64_t sequence_num,
+                       concord::time::TimeContract* time_contract) override;
 
  private:
   bool ExecuteKVBCRead(const com::digitalasset::kvbc::ReadCommand& readCmd,
-                       const size_t maxReplySize, char* outReply,
-                       uint32_t& outReplySize);
+                       com::vmware::concord::ConcordResponse& concord_response);
   bool ExecuteKVBCCommit(
       const com::digitalasset::kvbc::CommitRequest& commitReq,
-      const size_t maxReplySize, char* outReply, uint32_t& outReplySize);
+      concord::time::TimeContract* time_contract,
+      com::vmware::concord::ConcordResponse& concord_response);
 
-  bool ExecuteCommand(uint32_t requestSize, const char* request,
-                      const size_t maxReplySize, char* outReply,
-                      uint32_t& outReplySize);
-  bool ExecuteReadOnlyCommand(uint32_t requestSize, const char* request,
-                              const size_t maxReplySize, char* outReply,
-                              uint32_t& outReplySize);
+  bool ExecuteCommand(const com::vmware::concord::ConcordRequest& request,
+                      concord::time::TimeContract* time_contract,
+                      com::vmware::concord::ConcordResponse& response);
+  bool ExecuteReadOnlyCommand(
+      const com::vmware::concord::ConcordRequest& request,
+      com::vmware::concord::ConcordResponse& response);
   std::map<string, string> GetFromStorage(
       const google::protobuf::RepeatedPtrField<com::digitalasset::kvbc::KVKey>&
           keys);
