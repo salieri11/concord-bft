@@ -30,13 +30,6 @@ public class ConcordConfigUtilTest {
         hostIps.add("10.0.0.4");
         ConcordConfigUtil util = new ConcordConfigUtil();
         Assertions.assertThat(util.generateInputConfigYaml(hostIps, filePath)).isTrue();
-
-        assert util.nodePrincipal.size() == 4;
-        assert util.maxPrincipalId == (hostIps.size() + util.CLIENT_PROXY_PER_NODE * hostIps.size()) - 1;
-        for (int node : util.nodePrincipal.keySet()) {
-            assert util.nodePrincipal.get(node).size() == 4;
-        }
-
     }
 
     @Test
@@ -75,12 +68,6 @@ public class ConcordConfigUtilTest {
         hostIps.add("concord4");
         ConcordConfigUtil util = new ConcordConfigUtil();
         Assertions.assertThat(util.generateInputConfigYaml(hostIps, filePath)).isTrue();
-
-        assert util.nodePrincipal.size() == 4;
-        assert util.maxPrincipalId == (hostIps.size() + util.CLIENT_PROXY_PER_NODE * hostIps.size()) - 1;
-        for (int node : util.nodePrincipal.keySet()) {
-            assert util.nodePrincipal.get(node).size() == 4;
-        }
     }
 
     @Test
@@ -95,12 +82,6 @@ public class ConcordConfigUtilTest {
         hostIps.add("10.0.0.7");
         ConcordConfigUtil util = new ConcordConfigUtil();
         Assertions.assertThat(util.generateInputConfigYaml(hostIps, filePath)).isTrue();
-
-        assert util.nodePrincipal.size() == 7;
-        assert util.maxPrincipalId == (hostIps.size() + util.CLIENT_PROXY_PER_NODE * hostIps.size()) - 1;
-        for (int node : util.nodePrincipal.keySet()) {
-            assert util.nodePrincipal.get(node).size() == 4;
-        }
     }
 
     @AfterEach

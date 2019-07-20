@@ -51,7 +51,7 @@ class SingleBouncyCertificateGeneratorTest {
     public void testCertificateGenerationPositive() {
         assertDoesNotThrow(() -> {
             Identity ks = SingleBouncyCertificateGenerator
-                    .generateIdentity("test", filePath);
+                    .generateIdentity(filePath, "test-cn", "test-ou");
 
             assert ks.getCertificate().getUrl().equalsIgnoreCase(filePath + "/tlsCerts.cert");
             assert ks.getKey().getUrl().equalsIgnoreCase(filePath + "/pk.pem");
@@ -62,7 +62,9 @@ class SingleBouncyCertificateGeneratorTest {
             cert.checkValidity(new Date());
             cert.verify(cert.getPublicKey());
             assert cert.getPublicKey().getAlgorithm().equalsIgnoreCase("EC");
-            assert cert.getSigAlgName().equalsIgnoreCase("SHA384WITHECDSA");
+            assert cert.getSigAlgName().equalsIgnoreCase("SHA256WITHECDSA");
+            assert cert.getIssuerDN().getName().equalsIgnoreCase(
+                    "CN=test-cn, OU=test-ou, O=NA, L=NA, ST=NA, C=NA");
 
             byte[] keyBytes = ks.getKey().getBase64Value().getBytes();
             KeyFactory factory = KeyFactory.getInstance("ECDSA", "BC");
@@ -78,7 +80,7 @@ class SingleBouncyCertificateGeneratorTest {
     public void testCertificateGenerationExpiredValidity() {
         assertThrows(CertificateExpiredException.class, () -> {
             Identity ks = SingleBouncyCertificateGenerator
-                    .generateIdentity("test", filePath);
+                    .generateIdentity(filePath, "test-cn", "test-ou");
             assert ks.getCertificate().getUrl().equalsIgnoreCase(filePath + "/tlsCerts.cert");
             assert ks.getKey().getUrl().equalsIgnoreCase(filePath + "/pk.pem");
 
@@ -97,7 +99,7 @@ class SingleBouncyCertificateGeneratorTest {
     public void testCertificateGenerationNotValidCertificate() {
         assertThrows(CertificateNotYetValidException.class, () -> {
             Identity ks = SingleBouncyCertificateGenerator
-                    .generateIdentity("test", filePath);
+                    .generateIdentity(filePath, "test-cn", "test-ou");
             assert ks.getCertificate().getUrl().equalsIgnoreCase(filePath + "/tlsCerts.cert");
             assert ks.getKey().getUrl().equalsIgnoreCase(filePath + "/pk.pem");
 
@@ -118,11 +120,11 @@ class SingleBouncyCertificateGeneratorTest {
             String fp1 = filePath + "/c1";
             String fp2 = filePath + "/c2";
 
-            Identity ks1 = SingleBouncyCertificateGenerator.generateIdentity("test", fp1);
+            Identity ks1 = SingleBouncyCertificateGenerator.generateIdentity(fp1, "test-cn", "test-ou");
             assert ks1.getKey().getUrl().equalsIgnoreCase(fp1 + "/pk.pem");
             assert ks1.getCertificate().getUrl().equalsIgnoreCase((fp1 + "/c1.cert"));
 
-            Identity ks2 = SingleBouncyCertificateGenerator.generateIdentity("test", fp2);
+            Identity ks2 = SingleBouncyCertificateGenerator.generateIdentity(fp2, "test-cn", "test-ou");
             assert ks2.getKey().getUrl().equalsIgnoreCase(fp2 + "/pk.pem");
             assert ks2.getCertificate().getUrl().equalsIgnoreCase(fp2 + "/c2.cert");
 

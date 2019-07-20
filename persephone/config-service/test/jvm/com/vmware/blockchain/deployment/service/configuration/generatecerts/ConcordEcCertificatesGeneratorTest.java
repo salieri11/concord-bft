@@ -62,7 +62,8 @@ class ConcordEcCertificatesGeneratorTest {
                 CertificateFactory fact = CertificateFactory.getInstance("X.509");
                 InputStream inputStream = new ByteArrayInputStream(server.getCertificate().getBase64Value().getBytes());
                 X509Certificate cert = (X509Certificate) fact.generateCertificate(inputStream);
-                assert cert.getIssuerDN().getName().equalsIgnoreCase("CN=node" + index + "ser");
+                assert cert.getIssuerDN().getName().equalsIgnoreCase(
+                        "CN=node" + index + "ser, OU=" + index + ", O=NA, L=NA, ST=NA, C=NA");
             }
 
             for (int index = 0; index < clientList.size(); index++) {
@@ -77,7 +78,8 @@ class ConcordEcCertificatesGeneratorTest {
                 CertificateFactory fact = CertificateFactory.getInstance("X.509");
                 InputStream inputStream = new ByteArrayInputStream(client.getCertificate().getBase64Value().getBytes());
                 X509Certificate cert = (X509Certificate) fact.generateCertificate(inputStream);
-                assert cert.getIssuerDN().getName().equalsIgnoreCase("CN=node" + index + "cli");
+                assert cert.getIssuerDN().getName().equalsIgnoreCase(
+                        "CN=node" + index + "cli, OU=" + index + ", O=NA, L=NA, ST=NA, C=NA");
             }
         });
     }
@@ -108,7 +110,8 @@ class ConcordEcCertificatesGeneratorTest {
                 InputStream inputStream = new ByteArrayInputStream(identity.getCertificate()
                         .getBase64Value().getBytes());
                 X509Certificate cert = (X509Certificate) fact.generateCertificate(inputStream);
-                assert cert.getIssuerDN().getName().equalsIgnoreCase("CN=node" + index);
+                assert cert.getIssuerDN().getName().equalsIgnoreCase(
+                        "CN=node" + index + ", OU=" + index + ", O=NA, L=NA, ST=NA, C=NA");
             }
         });
     }
