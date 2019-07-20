@@ -64,10 +64,11 @@ class DockerOrchestrator(private val docker: DockerClient) {
      *   `true` if image was successfully created locally, `false` otherwise.
      */
     suspend fun createImage(repository: String, tag: String): Boolean {
+        val image = "${docker.registryAddress}/$repository:$tag"
         val response = docker
                 .post<Unit, String>(
                         path = Endpoints.IMAGES_CREATE.interpolate(
-                                parameters = listOf("fromImage" to "$repository:$tag")
+                                parameters = listOf("fromImage" to image)
                         ),
                         contentType = "application/json",
                         headers = listOf("X-Registry-Auth" to docker.registryAuthenticationHeader),
@@ -78,6 +79,35 @@ class DockerOrchestrator(private val docker: DockerClient) {
             200 -> true
             404, 500 -> false // Possible errors. (Not handling for now)
             else -> false
+        }
+    }
+
+    /**
+     * Look up the identifier of a container image specified by the given name.
+     *
+     * @param[repository]
+     *   image repository to look up from.
+     * @param[tag]
+     *   tag of the image to lookup.
+     *
+     * @return
+     *   identifier of the container image if found, `null` otherwise.
+     */
+    suspend fun getImageIdentifier(repository: String, tag: String): String? {
+        val image = "${docker.registryAddress}/$repository:$tag"
+        val response = docker.get<Image>(
+                path = Endpoints.IMAGES_INSPECT
+                        .interpolate(pathVariables = listOf("{name}" to image)),
+                contentType = "application/json",
+                headers = emptyList()
+        )
+
+        return when (response.statusCode()) {
+            200 -> {
+                response.body()?.Id
+            }
+            400, 500 -> null // Possible errors. (Not handling for now)
+            else -> null
         }
     }
 
@@ -137,41 +167,16 @@ class DockerOrchestrator(private val docker: DockerClient) {
     }
 
     /**
-     * Look up the identifier of a container image specified by the given name.
+     * Find all containers that is created from a given image specified by the given identifier,
+     * sorted by container creation time.
      *
-     * @param[name]
-     *   name of the image to look up.
-     *
-     * @return
-     *   identifier of the container image if found, `null` otherwise.
-     */
-    suspend fun getImageIdentifier(name: String): String? {
-        val response = docker.get<Image>(
-                            path = Endpoints.IMAGES_INSPECT
-                                    .interpolate(pathVariables = listOf("{name}" to name)),
-                            contentType = "application/json",
-                            headers = emptyList()
-        )
-
-        return when (response.statusCode()) {
-            200 -> {
-                response.body()?.Id
-            }
-            400, 500 -> null // Possible errors. (Not handling for now)
-            else -> null
-        }
-    }
-
-    /**
-     * Find all containers that is created from a given image specified by the given identifier.
-     *
-     * @param[imageIdentifier]
+     * @param[image]
      *   identifier of the container image.
      *
      * @return
      *   a [List] of identifiers of containers created using the specified image identifier.
      */
-    suspend fun getContainers(imageIdentifier: String): List<String> {
+    suspend fun getContainers(image: String): List<String> {
         val response = docker.get<ContainerSummary>(
                 path = Endpoints.CONTAINERS_LIST.interpolate(parameters = listOf("all" to "true")),
                 contentType = "application/json",
@@ -182,7 +187,8 @@ class DockerOrchestrator(private val docker: DockerClient) {
         return when (response.statusCode()) {
             200 -> {
                 response.body().orEmpty().asSequence()
-                        .filter { container -> container.ImageID == imageIdentifier }
+                        .filter { container -> container.ImageID == image }
+                        .sortedBy { container -> container.Created }
                         .map { it.Id }
                         .toList()
             }
