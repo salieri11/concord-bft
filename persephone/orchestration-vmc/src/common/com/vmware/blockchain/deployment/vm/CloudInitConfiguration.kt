@@ -9,6 +9,7 @@ import com.vmware.blockchain.deployment.model.ConcordClusterIdentifier
 import com.vmware.blockchain.deployment.model.ConcordComponent
 import com.vmware.blockchain.deployment.model.ConcordModelSpecification
 import com.vmware.blockchain.deployment.model.ConcordNodeIdentifier
+import com.vmware.blockchain.deployment.model.ConfigurationServiceEndpoint
 import com.vmware.blockchain.deployment.model.ConfigurationSessionIdentifier
 import com.vmware.blockchain.deployment.model.Credential
 import com.vmware.blockchain.deployment.model.Endpoint
@@ -67,7 +68,7 @@ class CloudInitConfiguration(
             fleetService = Endpoint(), // TODO: need to inject fleet service endpoint info.
             cluster = clusterId,
             node = nodeId,
-            configService = Endpoint(), // FIXME: need to inject config service endpoint.
+            configServiceEndpoint = ConfigurationServiceEndpoint(), // FIXME: need to inject config service endpoint.
             configurationSession =  configGenId
 
     )

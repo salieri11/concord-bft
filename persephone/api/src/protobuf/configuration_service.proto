@@ -133,6 +133,16 @@ message DeleteConfigurationResponse {
     MessageHeader header = 1;
 }
 
+/**
+* Denotes the Configuration service endpoint
+*
+* @property[Endpoint]
+*   endpoint for configuration service
+*/
+message ConfigurationServiceEndpoint {
+    Endpoint endpoint = 1;
+}
+
 /* [END messages] */
 /* [START services] */
 /**

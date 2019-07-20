@@ -34,7 +34,6 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import io.grpc.CallOptions;
 import org.apache.commons.io.FileUtils;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
@@ -84,8 +83,6 @@ import com.vmware.blockchain.deployment.orchestration.Orchestrator.NetworkResour
 import com.vmware.blockchain.deployment.orchestration.Orchestrator.OrchestrationEvent;
 import com.vmware.blockchain.deployment.reactive.ReactiveStream;
 
-import io.grpc.ManagedChannel;
-import io.grpc.ManagedChannelBuilder;
 import io.grpc.stub.ServerCallStreamObserver;
 import io.grpc.stub.StreamObserver;
 
@@ -168,12 +165,14 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
     ProvisioningService(
             ExecutorService executor,
             OrchestratorProvider orchestratorProvider,
-            List<OrchestrationSite> orchestrations
+            List<OrchestrationSite> orchestrations,
+            ConfigurationServiceStub configService
     ) {
         this.executor = executor;
         this.orchestratorProvider = orchestratorProvider;
         this.orchestrations = orchestrations.stream()
                 .collect(Collectors.toMap(OrchestrationSite::getId, OrchestrationSite::getInfo));
+        this.configService = configService;
     }
 
     /**
@@ -212,34 +211,12 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
     }
 
     /**
-     * Initialize Configuration Service rpc connectivity.
-     */
-    private boolean InitializeConfigService() {
-
-        try {
-            ManagedChannel channel = ManagedChannelBuilder.forTarget("localhost:9003").usePlaintext().build();
-            configService = new ConfigurationServiceStub(channel, CallOptions.DEFAULT);
-        } catch (Exception e) {
-            log.error("failed to create configration service client: " + e.getLocalizedMessage());
-            return false;
-        }
-
-        return true;
-    }
-
-    /**
      * Initialize the service instance asynchronously.
      *
      * @return
      *   {@link CompletableFuture} that completes when initialization is done.
      */
     CompletableFuture<Void> initialize() {
-        // Provisioning service should be able to initialize with s3 bucket, else we can't proceed.
-        if (!InitializeConfigService()) {
-            return CompletableFuture.failedFuture(
-                    new IllegalStateException("Service instance is not in stopped state")
-            );
-        }
         if (STATE.compareAndSet(this, State.STOPPED, State.INITIALIZING)) {
 
             //Create background tasks
