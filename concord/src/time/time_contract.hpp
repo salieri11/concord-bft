@@ -53,7 +53,8 @@ class TimeContract {
         config_(config),
         verifier_(config),
         samples_(nullptr),
-        changed(false) {}
+        changed(false),
+        time_key_(new uint8_t[1]{kTimeKey}, 1) {}
 
   ~TimeContract() {
     if (samples_) {
@@ -132,6 +133,7 @@ class TimeContract {
   concord::time::TimeVerifier verifier_;
   std::unordered_map<std::string, SampleBody>* samples_;
   bool changed;
+  const Sliver time_key_;
 
   void LoadLatestSamples();
   uint64_t SummarizeTime();
