@@ -1,11 +1,12 @@
-#ifndef CONCORD_DAML_CMD_HANDLER_HPP_
-#define CONCORD_DAML_CMD_HANDLER_HPP_
+// Copyright 2019 VMware, all rights reserved
 
-#include <google/protobuf/timestamp.pb.h>
+#ifndef CONCORD_DAML_KVB_COMMANDS_HANDLER_HPP_
+#define CONCORD_DAML_KVB_COMMANDS_HANDLER_HPP_
+
 #include <grpcpp/grpcpp.h>
-#include <log4cplus/loggingmacros.h>
 
 #include "blocking_queue.h"
+#include "concord.pb.h"
 #include "consensus/concord_commands_handler.hpp"
 #include "consensus/hash_defs.h"
 #include "consensus/sliver.hpp"
@@ -13,8 +14,7 @@
 #include "daml_data.grpc.pb.h"
 #include "daml_events.grpc.pb.h"
 #include "daml_validator.grpc.pb.h"
-#include "storage/blockchain_db_types.h"
-#include "storage/blockchain_interfaces.h"
+#include "daml_validator_client.hpp"
 
 namespace concord {
 namespace daml {
@@ -22,36 +22,21 @@ namespace daml {
 concord::consensus::Sliver CreateSliver(char* content, const size_t size);
 concord::consensus::Sliver CreateSliver(const std::string& content);
 
-class KVBCValidatorClient {
- public:
-  KVBCValidatorClient(std::shared_ptr<grpc::ChannelInterface> channel)
-      : stub_(com::digitalasset::kvbc::ValidationService::NewStub(channel)) {}
-
-  grpc::Status Validate(
-      std::string entryId, std::string submission,
-      google::protobuf::Timestamp& recordTime,
-      const std::map<std::string, std::string>& input_log_entries,
-      const std::map<std::string, std::string>& input_state_entries,
-      com::digitalasset::kvbc::ValidateResponse* out);
-
- private:
-  std::unique_ptr<com::digitalasset::kvbc::ValidationService::Stub> stub_;
-};
-
-class KVBCCommandsHandler : public concord::consensus::ConcordCommandsHandler {
+class DamlKvbCommandsHandler
+    : public concord::consensus::ConcordCommandsHandler {
  private:
   log4cplus::Logger logger_;
   BlockingPersistentQueue<com::digitalasset::kvbc::CommittedTx>& committed_txs_;
-  std::unique_ptr<KVBCValidatorClient> validator_client_;
+  std::unique_ptr<DamlValidatorClient> validator_client_;
 
  public:
-  KVBCCommandsHandler(
+  DamlKvbCommandsHandler(
       const concord::config::ConcordConfiguration& config,
       const concord::storage::ILocalKeyValueStorageReadOnly& ros,
       concord::storage::IBlocksAppender& ba,
       BlockingPersistentQueue<com::digitalasset::kvbc::CommittedTx>&
           committed_txs,
-      std::unique_ptr<KVBCValidatorClient> validator)
+      std::unique_ptr<DamlValidatorClient> validator)
       : ConcordCommandsHandler(config, ros, ba),
         logger_(log4cplus::Logger::getInstance("com.vmware.concord.daml")),
         committed_txs_(committed_txs),
@@ -65,12 +50,11 @@ class KVBCCommandsHandler : public concord::consensus::ConcordCommandsHandler {
                        concord::time::TimeContract* time_contract) override;
 
  private:
-  bool ExecuteKVBCRead(const com::digitalasset::kvbc::ReadCommand& readCmd,
-                       com::vmware::concord::ConcordResponse& concord_response);
-  bool ExecuteKVBCCommit(
-      const com::digitalasset::kvbc::CommitRequest& commitReq,
-      concord::time::TimeContract* time_contract,
-      com::vmware::concord::ConcordResponse& concord_response);
+  bool ExecuteRead(const com::digitalasset::kvbc::ReadCommand& readCmd,
+                   com::vmware::concord::ConcordResponse& concord_response);
+  bool ExecuteCommit(const com::digitalasset::kvbc::CommitRequest& commitReq,
+                     concord::time::TimeContract* time_contract,
+                     com::vmware::concord::ConcordResponse& concord_response);
 
   bool ExecuteCommand(const com::vmware::concord::ConcordRequest& request,
                       concord::time::TimeContract* time_contract,
@@ -86,4 +70,4 @@ class KVBCCommandsHandler : public concord::consensus::ConcordCommandsHandler {
 }  // namespace daml
 }  // namespace concord
 
-#endif  // CONCORD_DAML_CMD_HANDLER_HPP_
+#endif  // CONCORD_DAML_KVB_COMMANDS_HANDLER_HPP_

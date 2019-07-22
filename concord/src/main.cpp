@@ -20,7 +20,8 @@
 #include "consensus/replica_imp.h"
 #include "consensus/replica_state_sync_imp.hpp"
 #include "daml/blocking_queue.h"
-#include "daml/cmd_handler.hpp"
+#include "daml/daml_kvb_commands_handler.hpp"
+#include "daml/daml_validator_client.hpp"
 #include "daml/grpc_services.hpp"
 #include "daml_commit.grpc.pb.h"
 #include "daml_events.grpc.pb.h"
@@ -92,10 +93,10 @@ using concord::utils::EthSign;
 using com::digitalasset::kvbc::CommittedTx;
 using concord::daml::BlockingPersistentQueue;
 using concord::daml::CommitServiceImpl;
+using concord::daml::DamlKvbCommandsHandler;
+using concord::daml::DamlValidatorClient;
 using concord::daml::DataServiceImpl;
 using concord::daml::EventsServiceImpl;
-using concord::daml::KVBCCommandsHandler;
-using concord::daml::KVBCValidatorClient;
 
 // Parse BFT configuration
 using concord::consensus::initializeSBFTConfiguration;
@@ -318,13 +319,13 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
 
     unique_ptr<ICommandsHandler> kvb_commands_handler;
     if (daml_enabled) {
-      unique_ptr<KVBCValidatorClient> daml_validator(
-          new KVBCValidatorClient(grpc::CreateChannel(
+      unique_ptr<DamlValidatorClient> daml_validator(
+          new DamlValidatorClient(grpc::CreateChannel(
               nodeConfig.getValue<string>("daml_execution_engine_addr"),
               grpc::InsecureChannelCredentials())));
       kvb_commands_handler = unique_ptr<ICommandsHandler>(
-          new KVBCCommandsHandler(config, replica, replica, committedTxs,
-                                  std::move(daml_validator)));
+          new DamlKvbCommandsHandler(config, replica, replica, committedTxs,
+                                     std::move(daml_validator)));
     } else if (hlf_enabled) {
       LOG4CPLUS_INFO(logger, "Hyperledger Fabric feature is enabled");
       // Init chaincode invoker
