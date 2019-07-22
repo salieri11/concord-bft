@@ -10,10 +10,10 @@
 #include <log4cplus/loggingmacros.h>
 #include "consensus/hash_defs.h"
 #include "consensus/replica_state_sync_imp.hpp"
-#include "ethereum/eth_kvb_storage.hpp"
 #include "gtest/gtest.h"
 #include "storage/blockchain_db_adapter.h"
 #include "storage/comparators.h"
+#include "storage/concord_metadata_storage.h"
 #include "storage/rocksdb_client.h"
 
 using namespace std;
@@ -26,6 +26,7 @@ using concord::storage::BlockchainDBAdapter;
 using concord::storage::BlockEntry;
 using concord::storage::BlockHeader;
 using concord::storage::BlockId;
+using concord::storage::ConcordMetadataStorage;
 using concord::storage::IBlocksAppender;
 using concord::storage::ILocalKeyValueStorageReadOnly;
 using concord::storage::ILocalKeyValueStorageReadOnlyIterator;
@@ -115,29 +116,25 @@ const BlockId prevPrevBlockId = lastBlockId - 2;
 MockILocalKeyValueStorageReadOnly keyValueStorageMock;
 MockIBlocksAppender blocksAppenderMock;
 
-concord::ethereum::EthKvbStorage kvbStorage(keyValueStorageMock,
-                                            &blocksAppenderMock, lastSeqNum);
+ConcordMetadataStorage kvbStorage(keyValueStorageMock);
 
-const Sliver blockMetadataInternalKey = kvbStorage.block_metadata_key();
+const Sliver blockMetadataInternalKey = kvbStorage.BlockMetadataKey();
 
 const Key lastBlockFullKey =
     KeyManipulator::genDataDbKey(blockMetadataInternalKey, lastBlockId);
-const Value lastBlockValue =
-    kvbStorage.set_block_metadata_value(lastSeqNum + 2);
+const Value lastBlockValue = kvbStorage.SerializeBlockMetadata(lastSeqNum + 2);
 
 const Key prevBlockFullKey =
     KeyManipulator::genDataDbKey(blockMetadataInternalKey, prevBlockId);
-const Value prevBlockValue =
-    kvbStorage.set_block_metadata_value(lastSeqNum + 1);
+const Value prevBlockValue = kvbStorage.SerializeBlockMetadata(lastSeqNum + 1);
 
 const Key prevPrevBlockFullKey =
     KeyManipulator::genDataDbKey(blockMetadataInternalKey, prevPrevBlockId);
-const Value prevPrevBlockValue =
-    kvbStorage.set_block_metadata_value(lastSeqNum);
+const Value prevPrevBlockValue = kvbStorage.SerializeBlockMetadata(lastSeqNum);
 
 const Key singleBlockValueFullKey =
     KeyManipulator::genDataDbKey(blockMetadataInternalKey, singleBlockId);
-const Value singleBlockValue = kvbStorage.set_block_metadata_value(lastSeqNum);
+const Value singleBlockValue = kvbStorage.SerializeBlockMetadata(lastSeqNum);
 
 Status MockILocalKeyValueStorageReadOnly::get(Key key, Value &outValue) const {
   if (key == lastBlockFullKey)
@@ -154,7 +151,7 @@ Status MockILocalKeyValueStorageReadOnly::get(Key key, Value &outValue) const {
 TEST(replicaStateSync_test, state_in_sync) {
   uint64_t removedBlocks = replicaStateSync.execute(
       *logger, *bcDBAdapter, keyValueStorageMock, singleBlockId, lastSeqNum);
-  ASSERT_TRUE(removedBlocks == 0);
+  ASSERT_EQ(removedBlocks, 0);
 }
 
 TEST(replicaStateSync_test, block_removed) {
@@ -176,7 +173,7 @@ TEST(replicaStateSync_test, block_removed) {
   uint64_t removedBlocks = replicaStateSync.execute(
       *logger, *bcDBAdapter, keyValueStorageMock, lastBlockId, lastSeqNum);
 
-  ASSERT_TRUE(removedBlocks == 2);
+  ASSERT_EQ(removedBlocks, 2);
 }
 
 }  // end namespace

@@ -180,7 +180,7 @@ CommConfig setupCommunicationParams(ReplicaConfig &replicaConfig) {
 
 void createFirstBlock() {
   const ILocalKeyValueStorageReadOnly &storage = replica->getReadOnlyStorage();
-  EthKvbStorage kvbStorage(storage, replica, 0);
+  EthKvbStorage kvbStorage(storage, replica);
 
   auto blockId = storage.getLastBlock();
   if (blockId == 0)

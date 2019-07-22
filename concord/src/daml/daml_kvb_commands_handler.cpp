@@ -212,7 +212,7 @@ bool DamlKvbCommandsHandler::ExecuteReadOnlyCommand(
 }
 
 bool DamlKvbCommandsHandler::Execute(const ConcordRequest& request,
-                                     uint64_t sequence_num, bool read_only,
+                                     bool read_only,
                                      TimeContract* time_contract,
                                      ConcordResponse& response) {
   if (read_only) {
@@ -222,8 +222,7 @@ bool DamlKvbCommandsHandler::Execute(const ConcordRequest& request,
   }
 }
 
-void DamlKvbCommandsHandler::WriteEmptyBlock(uint64_t sequence_num,
-                                             TimeContract* time_contract) {
+void DamlKvbCommandsHandler::WriteEmptyBlock(TimeContract* time_contract) {
   BlockId currentBlockId = storage_.getLastBlock();
   SetOfKeyValuePairs empty_updates;
   BlockId newBlockId = 0;

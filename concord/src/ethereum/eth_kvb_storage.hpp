@@ -27,8 +27,6 @@ class EthKvbStorage {
   concord::storage::SetOfKeyValuePairs updates;
   std::vector<concord::common::EthTransaction> pending_transactions;
   log4cplus::Logger logger;
-  // BFT sequence number associated with EVM contract execution.
-  uint64_t bftSequenceNum_ = 0;
 
   /* Value of "type" byte, at the start of each key. */
   const uint8_t TYPE_BLOCK = 0x01;
@@ -37,11 +35,11 @@ class EthKvbStorage {
   const uint8_t TYPE_CODE = 0x04;
   const uint8_t TYPE_STORAGE = 0x05;
   const uint8_t TYPE_NONCE = 0x06;
-  const uint8_t TYPE_BLOCK_METADATA = 0x07;
 
   // 0x10 - 0x1F reserved for HLF
 
   // 0x20 used by concord::time::TimeContract
+  // 0x21 used by concord::storage::ConcordMetadataStorage
 
   concord::consensus::Sliver kvb_key(uint8_t type, const uint8_t *bytes,
                                      size_t length) const;
@@ -77,7 +75,7 @@ class EthKvbStorage {
   // read-write mode
   EthKvbStorage(
       const concord::storage::ILocalKeyValueStorageReadOnly &roStorage,
-      concord::storage::IBlocksAppender *blockAppender, uint64_t sequenceNum);
+      concord::storage::IBlocksAppender *blockAppender);
 
   ~EthKvbStorage();
 
@@ -102,8 +100,6 @@ class EthKvbStorage {
   evm_uint256be get_storage(const evm_address &addr,
                             const evm_uint256be &location,
                             uint64_t &block_number);
-  concord::consensus::Sliver block_metadata_key() const;
-  uint64_t get_block_metadata(concord::consensus::Sliver key);
 
   concord::consensus::Status write_block(uint64_t timestamp,
                                          uint64_t gas_limit);
@@ -114,9 +110,6 @@ class EthKvbStorage {
   void set_code(const evm_address &addr, const uint8_t *code, size_t code_size);
   void set_storage(const evm_address &addr, const evm_uint256be &location,
                    const evm_uint256be &data);
-  concord::consensus::Sliver set_block_metadata_value(
-      uint64_t bftSequenceNum) const;
-  void set_block_metadata();
 };
 
 }  // namespace ethereum

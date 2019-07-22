@@ -39,8 +39,7 @@ HlfKvbStorage::HlfKvbStorage(const ILocalKeyValueStorageReadOnly &ro_storage)
 
 // read-write mode
 HlfKvbStorage::HlfKvbStorage(const ILocalKeyValueStorageReadOnly &ro_storage,
-                             IBlocksAppender *ptr_block_appender,
-                             uint64_t sequence_num)
+                             IBlocksAppender *ptr_block_appender)
     : ro_storage_(ro_storage),
       ptr_block_appender_(ptr_block_appender),
       logger_(
