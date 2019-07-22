@@ -630,8 +630,6 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
     ) {
         final var deleteEvents = ConcurrentHashMap.<OrchestrationEvent>newKeySet();
 
-        final List<DeploymentSessionEvent> eventList = new ArrayList<>();
-
         List<Map.Entry<Orchestrator, URI>> networkAllocList = new ArrayList<>();
         List<Map.Entry<Orchestrator, URI>> computeList = new ArrayList<>();
         List<Map.Entry<Orchestrator, URI>> networkAddrList = new ArrayList<>();

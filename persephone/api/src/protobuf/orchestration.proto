@@ -109,5 +109,6 @@ message VmcOrchestrationSiteInfo {
     string control_network = 8;
     int32 control_network_gateway = 9;
     int32 control_network_subnet = 10;
+    Endpoint ipam_api = 11;
 }
 /* [END messages] */
