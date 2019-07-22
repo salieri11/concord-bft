@@ -623,7 +623,7 @@ class GenericDaoTransaction  {
                     logger.trace("Start retrieving entities for tenant {}, column name {}", tenantId, columnName);
                     List<E> result = new ArrayList<>();
                     // if this is our tenant, or we are operator, get the values
-                    if ((tenantId == authHelper.getOrganizationId())
+                    if ((tenantId.equals(authHelper.getOrganizationId()))
                             || authHelper.hasAnyAuthority(Roles.systemAdmin())) {
                         List<Entity> dbEntities = callEntityMapperWithRetry(m -> m.getByParent(tenantId, columnName),
                                 String.format("getByParent({%s}, {%s})", tenantId, columnName));

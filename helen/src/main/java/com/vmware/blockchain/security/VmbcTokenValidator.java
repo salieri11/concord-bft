@@ -111,7 +111,7 @@ public class VmbcTokenValidator implements TokenValidator {
             // to update a consortium, we must be a member of the consortium org.
             List<UUID> updateConsortiums =
                     organizationService.getConsortiums(userInfo.getOrgId()).stream()
-                            .filter(c -> c.getOrganization() == userInfo.getOrgId())
+                            .filter(c -> c.getOrganization().equals(userInfo.getOrgId()))
                             .map(c -> c.getId()).collect(Collectors.toList());
             userInfo.setUpdateConsortiums(updateConsortiums);
 
@@ -124,7 +124,7 @@ public class VmbcTokenValidator implements TokenValidator {
 
             List<UUID> updateChains =
                     organizationService.getConsortiums(userInfo.getOrgId()).stream()
-                            .filter(c -> c.getOrganization() == userInfo.getOrgId())
+                            .filter(c -> c.getOrganization().equals(userInfo.getOrgId()))
                             .map(blockchainService::listByConsortium)
                             .flatMap(c -> c.stream())
                             .map(b -> b.getId()).distinct().collect(Collectors.toList());
