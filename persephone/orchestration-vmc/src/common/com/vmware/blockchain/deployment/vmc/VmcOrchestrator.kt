@@ -318,11 +318,12 @@ class VmcOrchestrator private constructor(
         return publish<Orchestrator.NetworkResourceEvent>(coroutineContext) {
             withTimeout(ORCHESTRATOR_TIMEOUT_MILLIS) {
                 try {
-                    /*
-                     * FIXME: Workaround to allow Concord to communicate via private IP instead of
-                     * public IP. Remove this once VMC networking allows hair-pinned NAT traffic
-                     * using VM's public IP address.
-                     */
+
+                     // FIXME: Workaround to allow Concord to communicate via private IP instead of
+                     // public IP. Remove this once VMC networking allows hair-pinned NAT traffic
+                     // using VM's public IP address.
+                    
+
                     val privateIpAddress = allocatedPrivateIP()
                     privateIpAddress?.takeIf { privateIpAddress.value != null }
                             ?.apply {
@@ -363,12 +364,13 @@ class VmcOrchestrator private constructor(
                 /**
                  * TODO Evaluate the need to have a dedicated event handling for private IPs.
                  */
-                if (request.resource.toString().startsWith(ipamBlocksPrefix)) {
+                if (request.resource.toString().contains(ipamBlocksPrefix)) {
                     try {
-
                         val observer = ChannelStreamObserver<ReleaseAddressResponse>(1)
+
+                        val resourceId = request.resource.toString().substringAfter(ipamBlocksPrefix)
                         val requestAllocateAddress = ReleaseAddressRequest(header = MessageHeader(),
-                                name = request.resource.toString())
+                                name = ipamBlocksPrefix + resourceId)
                         ipAllocationService.releaseAddress(requestAllocateAddress, observer)
 
                         observer.asReceiveChannel().receive().takeIf { it.status == ReleaseAddressResponse.Status.OK }
