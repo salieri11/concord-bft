@@ -703,6 +703,8 @@ EOF
                 // pushDockerImage(env.internal_persephone_fleet_repo, env.docker_tag, false)
                 pushDockerImage(env.internal_ui_repo, env.docker_tag, false)
                 pushDockerImage(env.internal_contract_compiler_repo, env.docker_tag, false)
+                pushDockerImage(env.internal_daml_ledger_api_repo, env.docker_tag, false)
+                pushDockerImage(env.internal_daml_execution_engine_repo, env.docker_tag, false)
               }
             }catch(Exception ex){
               failRun()
@@ -754,6 +756,8 @@ EOF
                 // pushDockerImage(env.release_persephone_fleet_repo, env.docker_tag, true)
                 pushDockerImage(env.release_ui_repo, env.docker_tag, true)
                 pushDockerImage(env.release_contract_compiler_repo, env.docker_tag, true)
+                pushDockerImage(env.release_daml_ledger_api_repo, env.docker_tag, true)
+                pushDockerImage(env.release_daml_execution_engine_repo, env.docker_tag, true)
               }
 
               dir('blockchain/vars') {
