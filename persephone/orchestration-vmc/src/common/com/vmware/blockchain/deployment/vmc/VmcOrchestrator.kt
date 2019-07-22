@@ -3,8 +3,16 @@
  * *************************************************************************/
 package com.vmware.blockchain.deployment.vmc
 
-import com.vmware.blockchain.deployment.vm.CloudInitConfiguration
+import com.vmware.blockchain.deployment.logging.info
+import com.vmware.blockchain.deployment.logging.logger
+import com.vmware.blockchain.deployment.model.Address
+import com.vmware.blockchain.deployment.model.AllocateAddressRequest
+import com.vmware.blockchain.deployment.model.AllocateAddressResponse
+import com.vmware.blockchain.deployment.model.IPAllocationServiceStub
+import com.vmware.blockchain.deployment.model.MessageHeader
 import com.vmware.blockchain.deployment.model.OrchestrationSiteInfo
+import com.vmware.blockchain.deployment.model.ReleaseAddressRequest
+import com.vmware.blockchain.deployment.model.ReleaseAddressResponse
 import com.vmware.blockchain.deployment.model.VmcOrchestrationSiteInfo
 import com.vmware.blockchain.deployment.model.core.URI
 import com.vmware.blockchain.deployment.model.core.UUID
@@ -12,6 +20,7 @@ import com.vmware.blockchain.deployment.model.nsx.NatRule
 import com.vmware.blockchain.deployment.model.nsx.PublicIP
 import com.vmware.blockchain.deployment.model.nsx.Segment
 import com.vmware.blockchain.deployment.model.nsx.SegmentSubnet
+import com.vmware.blockchain.deployment.model.vmc.Sddc
 import com.vmware.blockchain.deployment.model.vsphere.GetDatastoreResponse
 import com.vmware.blockchain.deployment.model.vsphere.GetFolderResponse
 import com.vmware.blockchain.deployment.model.vsphere.GetNetworkResponse
@@ -20,14 +29,13 @@ import com.vmware.blockchain.deployment.model.vsphere.LibraryItemDeployRequest
 import com.vmware.blockchain.deployment.model.vsphere.LibraryItemDeployResponse
 import com.vmware.blockchain.deployment.model.vsphere.LibraryItemDeploymentSpec
 import com.vmware.blockchain.deployment.model.vsphere.LibraryItemDeploymentTarget
+import com.vmware.blockchain.deployment.model.vsphere.LibraryItemFindRequest
+import com.vmware.blockchain.deployment.model.vsphere.LibraryItemFindResponse
+import com.vmware.blockchain.deployment.model.vsphere.LibraryItemFindSpec
 import com.vmware.blockchain.deployment.model.vsphere.NetworkMapping
 import com.vmware.blockchain.deployment.model.vsphere.OvfParameter
 import com.vmware.blockchain.deployment.model.vsphere.OvfParameterTypes
 import com.vmware.blockchain.deployment.model.vsphere.OvfProperty
-import com.vmware.blockchain.deployment.model.vmc.Sddc
-import com.vmware.blockchain.deployment.model.vsphere.LibraryItemFindRequest
-import com.vmware.blockchain.deployment.model.vsphere.LibraryItemFindResponse
-import com.vmware.blockchain.deployment.model.vsphere.LibraryItemFindSpec
 import com.vmware.blockchain.deployment.model.vsphere.VirtualMachineGuestIdentityInfo
 import com.vmware.blockchain.deployment.model.vsphere.VirtualMachineGuestIdentityResponse
 import com.vmware.blockchain.deployment.model.vsphere.VirtualMachinePowerResponse
@@ -36,9 +44,13 @@ import com.vmware.blockchain.deployment.orchestration.Orchestrator
 import com.vmware.blockchain.deployment.orchestration.randomSubnet
 import com.vmware.blockchain.deployment.orchestration.toIPv4Address
 import com.vmware.blockchain.deployment.reactive.Publisher
+import com.vmware.blockchain.deployment.vm.CloudInitConfiguration
+import com.vmware.blockchain.grpc.kotlinx.serialization.ChannelStreamObserver
 import com.vmware.blockchain.protobuf.kotlinx.serialization.ByteString
 import com.vmware.blockchain.protobuf.kotlinx.serialization.encodeBase64
-import kotlinx.atomicfu.atomic
+import io.grpc.CallOptions
+import io.grpc.netty.shaded.io.grpc.netty.GrpcSslContexts
+import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -61,12 +73,15 @@ import kotlin.coroutines.EmptyCoroutineContext
  *   vSphere API client handle.
  */
 class VmcOrchestrator private constructor(
-    private val info: VmcOrchestrationSiteInfo,
-    private val vmc: VmcClient,
-    private val vSphere: VSphereClient,
-    private val nsx: VmcClient,
-    private val context: CoroutineContext = Dispatchers.Default
+        private val info: VmcOrchestrationSiteInfo,
+        private val vmc: VmcClient,
+        private val vSphere: VSphereClient,
+        private val nsx: VmcClient,
+        private val ipAllocationService: IPAllocationServiceStub,
+        private val context: CoroutineContext = Dispatchers.Default
 ) : Orchestrator, CoroutineScope {
+
+    private val log by logger()
 
     /**
      * Global singleton companion to [VmcOrchestrator] that also provides a global-scoped process-
@@ -161,8 +176,20 @@ class VmcOrchestrator private constructor(
                             password = resource_config.cloud_password
                     ).let { VSphereClient(it, ModelSerializer) } // vSphere client.
 
+
+                    // TODO Remove this one of cert path reference and consolidate it as part of initialization.
+                    val ipamTrustCertificate = URI.create("file:/config/persephone/provisioning/ipam.crt")
+
+                    val channel = NettyChannelBuilder
+                            .forTarget(info.ipamApi.address)
+                            .sslContext(
+                                    GrpcSslContexts.forClient()
+                                            .trustManager(java.io.File(ipamTrustCertificate)).build())
+                            .build()
+                    val ipAllocationService = IPAllocationServiceStub(channel, CallOptions.DEFAULT)
+
                     // New Orchestrator instance.
-                    send(VmcOrchestrator(info, vmc, vsphere, nsx, executionContext))
+                    send(VmcOrchestrator(info, vmc, vsphere, nsx, ipAllocationService, executionContext))
                 }?: close(RuntimeException("Cannot retrieve site authorization information"))
             }
         }
@@ -175,11 +202,7 @@ class VmcOrchestrator private constructor(
     /** Parent [Job] of all coroutines associated with this instance's operation. */
     private val job: Job = SupervisorJob()
 
-    /** TEMPORARY WORK-AROUND FOR STATIC PRIVATE IP ALLOCATION. */
-    // Assume DHCP starts at beginning subnet range and ends at 1/2 the range.
-    private val staticIpGateway = info.controlNetworkGateway
-    private val staticIpPrefix = staticIpGateway and ((1 shl (32 - info.controlNetworkSubnet)) - 1).inv()
-    private val staticIpCounter = atomic(staticIpPrefix + (1 shl (32 - info.controlNetworkSubnet - 1)))
+    private val ipamBlocksPrefix = "blocks/"
 
     override fun close() {
         job.cancel()
@@ -232,7 +255,7 @@ class VmcOrchestrator private constructor(
                                     request.model,
                                     request.genesis,
                                     request.privateNetworkAddress,
-                                    staticIpGateway.toIPv4Address(),
+                                    info.controlNetworkGateway.toIPv4Address(),
                                     info.controlNetworkSubnet,
                                     request.cluster,
                                     request.node
@@ -295,16 +318,24 @@ class VmcOrchestrator private constructor(
         return publish<Orchestrator.NetworkResourceEvent>(coroutineContext) {
             withTimeout(ORCHESTRATOR_TIMEOUT_MILLIS) {
                 try {
-                    // FIXME: Workaround to allow Concord to communicate via private IP instead of
-                    //   public IP. Remove this once VMC networking allows hair-pinned NAT traffic
-                    //   using VM's public IP address.
-                    val privateIp = staticIpCounter.getAndIncrement()
-                    send(Orchestrator.NetworkResourceEvent.Created(
-                            URI.create(privateIp.toIPv4Address()),
-                            request.name,
-                            privateIp.toIPv4Address(),
-                            false))
+                    /*
+                     * FIXME: Workaround to allow Concord to communicate via private IP instead of
+                     * public IP. Remove this once VMC networking allows hair-pinned NAT traffic
+                     * using VM's public IP address.
+                     */
+                    val privateIpAddress = allocatedPrivateIP()
+                    privateIpAddress?.takeIf { privateIpAddress.value != null }
+                            ?.apply {
+                                send(Orchestrator.NetworkResourceEvent.Created(
+                                        URI.create(info.ipamApi.address + "/" + privateIpAddress.name),
+                                        request.name,
+                                        privateIpAddress.value.toIPv4Address(),
+                                        false))
+                            }
+                            ?: close(Orchestrator.ResourceCreationFailedException(request))
 
+                    log.info {"Assigned private ip ($privateIpAddress)."}
+                    
                     val publicIp = createPublicIP(request.name)
                     publicIp?.takeIf { it.ip != null }
                             ?.apply {
@@ -328,20 +359,43 @@ class VmcOrchestrator private constructor(
     ): Publisher<Orchestrator.NetworkResourceEvent> {
         return publish<Orchestrator.NetworkResourceEvent>(coroutineContext) {
             withTimeout(ORCHESTRATOR_TIMEOUT_MILLIS) {
-                try {
-                    // Issue DELETE against the IP resource via its URI.
-                    val response = nsx.delete<Unit>(
-                            request.resource.toString(),
-                            contentType = "application/json",
-                            headers = emptyList()
-                    )
-                    response.takeIf { it.statusCode() == 200 }
-                            ?.run {
-                                send(Orchestrator.NetworkResourceEvent.Deleted(request.resource))
-                            }
-                            ?: close(Orchestrator.ResourceDeletionFailedException(request))
-                } catch (error: CancellationException) {
-                    close(Orchestrator.ResourceDeletionFailedException(request))
+
+                /**
+                 * TODO Evaluate the need to have a dedicated event handling for private IPs.
+                 */
+                if (request.resource.toString().startsWith(ipamBlocksPrefix)) {
+                    try {
+
+                        val observer = ChannelStreamObserver<ReleaseAddressResponse>(1)
+                        val requestAllocateAddress = ReleaseAddressRequest(header = MessageHeader(),
+                                name = request.resource.toString())
+                        ipAllocationService.releaseAddress(requestAllocateAddress, observer)
+
+                        observer.asReceiveChannel().receive().takeIf { it.status == ReleaseAddressResponse.Status.OK }
+                                ?.run {
+                                    send(Orchestrator.NetworkResourceEvent.Deleted(request.resource))
+                                }
+                                ?: close(Orchestrator.ResourceDeletionFailedException(request))
+                    } catch (error: Exception) {
+                        close(Orchestrator.ResourceDeletionFailedException(request))
+                    }
+                } else {
+                    try {
+                        // Issue DELETE against the IP resource via its URI.
+                        val response = nsx.delete<Unit>(
+                                request.resource.toString(),
+                                contentType = "application/json",
+                                headers = emptyList()
+                        )
+
+                        response.takeIf { it.statusCode() == 200 }
+                                ?.run {
+                                    send(Orchestrator.NetworkResourceEvent.Deleted(request.resource))
+                                }
+                                ?: close(Orchestrator.ResourceDeletionFailedException(request))
+                    } catch (error: CancellationException) {
+                        close(Orchestrator.ResourceDeletionFailedException(request))
+                    }
                 }
             }
         }
@@ -989,6 +1043,25 @@ class VmcOrchestrator private constructor(
                 .takeIf { it.statusCode() == 200 }
                 ?.let { it.body() }
                 ?.let { it.value }
+    }
+
+    /**
+     * Allocate a new private IP address for use from IPAM service.
+     *
+     * @return
+     *   allocated IP address resource as a instance of [Address], if created, `null` otherwise.
+     */
+    private suspend fun allocatedPrivateIP(): Address? {
+        val requestAllocateAddress = AllocateAddressRequest(header = MessageHeader(),
+                parent = ipamBlocksPrefix + info.datacenter + "-" + info.controlNetwork)
+
+        val observer = ChannelStreamObserver<AllocateAddressResponse>(1)
+        ipAllocationService.allocateAddress(requestAllocateAddress, observer)
+        val response = observer.asReceiveChannel().receive()
+
+        return response
+                .takeIf { it.status == AllocateAddressResponse.Status.OK }
+                ?.let { it.address }
     }
 
     /**

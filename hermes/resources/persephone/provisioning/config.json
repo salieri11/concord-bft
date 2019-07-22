@@ -32,13 +32,17 @@
               }
             }
           },
+          "ipamApi": {
+            "address": "ipam-vmbc.vdp.vmware.com"
+          },
           "organization": "c56e116e-c36f-4f7d-b504-f9a33955b853",
           "datacenter": "abb0fe0e-1f2f-470c-a427-774aa08ce2ea",
           "resourcePool": "Compute-ResourcePool",
           "folder": "HermesTesting",
           "controlNetwork": "vmware-vpn",
           "controlNetworkGateway": 172321025,
-          "controlNetworkSubnet": 24
+          "controlNetworkSubnet": 24,
+          "ipamEndpoint": "ipam-vmbc.vdp.vmware.com"
         }
       }
     }

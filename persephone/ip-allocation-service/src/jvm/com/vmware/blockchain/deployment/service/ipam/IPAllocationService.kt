@@ -284,7 +284,7 @@ class IPAllocationService(
      * @param[block]
      *   address block to allocate address from.
      * @param[segmentAddress]
-     *   block segment within the address block to alloate address from.
+     *   block segment within the address block to allocate address from.
      *
      * @return
      *   an [Address] if allocation was successful, `null` otherwise.
