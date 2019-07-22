@@ -44,7 +44,7 @@ public class InvitationController {
      * This is the invitation return from Oauth2Controller.
      */
     @RequestMapping(method = RequestMethod.GET, path = Constants.AUTH_INVITATION)
-    @PreAuthorize("hasAnyAuthority(T(com.vmware.blockchain.services.profiles.Roles).CSP_ORG_OWNER.getName())")
+    @PreAuthorize("@authHelper.isCspOrgOwner()")
     public void handleInvitation(HttpServletRequest httpRequest,
                                  HttpServletResponse httpResponse) throws IOException {
 

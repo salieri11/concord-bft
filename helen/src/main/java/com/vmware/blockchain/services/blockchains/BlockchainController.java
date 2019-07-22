@@ -179,7 +179,7 @@ public class BlockchainController {
      * Get the list of all blockchains.
      */
     @RequestMapping(path = "/api/blockchains", method = RequestMethod.GET)
-    @PreAuthorize("hasAnyAuthority(T(com.vmware.blockchain.services.profiles.Roles).user())")
+    @PreAuthorize("@authHelper.isUser()")
     ResponseEntity<List<BlockchainGetResponse>> list() {
         List<Blockchain> chains = Collections.emptyList();
         // if we are operator, we can get all blockchains.
@@ -275,7 +275,7 @@ public class BlockchainController {
      * @throws Exception any exception
      */
     @RequestMapping(path = "/api/blockchains", method = RequestMethod.POST)
-    @PreAuthorize("hasAnyAuthority(T(com.vmware.blockchain.services.profiles.Roles).consortiumAdmin())")
+    @PreAuthorize("@authHelper.isConsortiumAdmin()")
     public ResponseEntity<BlockchainTaskResponse> createBlockchain(@RequestBody BlockchainPost body) throws Exception {
         // start the deployment
         final int clusterSize = body.getFCount() * 3 + body.getCCount() * 2 + 1;

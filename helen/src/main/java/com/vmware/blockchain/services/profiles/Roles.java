@@ -144,7 +144,12 @@ public enum Roles implements GrantedAuthority {
     }
 
     public static String[] user() {
-        String[] r = {ORG_USER.name};
+        String[] r = {SYSTEM_ADMIN.name, ORG_USER.name};
+        return r;
+    }
+
+    public static String[] cspOrgOwner() {
+        String[] r = {CSP_ORG_OWNER.name};
         return r;
     }
 

@@ -277,7 +277,7 @@ public class ContractsController extends ConcordServlet {
     @RequestMapping(method = RequestMethod.PUT, path = {"/api/concord/contracts/{contract_address}",
             "/api/blockchains/{id}/concord/contracts/{contract_address}"})
     @PreAuthorize("@authHelper.canAccessChain(#id) "
-                  + "&& hasAnyAuthority(T(com.vmware.blockchain.services.profiles.Roles).devloper())")
+                  + "&& @authHelper.isDeveloper()")
     public ResponseEntity<FullVersionInfo> handleUpdateVersion(@RequestBody PutRequestBody body,
             @PathVariable(name = "id", required = false) Optional<UUID> id,
             @PathVariable("contract_address") String existingContractId) {
@@ -425,7 +425,7 @@ public class ContractsController extends ConcordServlet {
      * @return The RESTResult object containing result of this request
      */
     @RequestMapping(path = "/api/concord/contracts/compile", method = RequestMethod.POST)
-    @PreAuthorize("hasAnyAuthority(T(com.vmware.blockchain.services.profiles.Roles).devloper())")
+    @PreAuthorize("@authHelper.isDeveloper()")
     public ResponseEntity<JSONAware> handlePostSource(@RequestBody String paramString) {
 
         // TODO: See if we can convert this into the new style
@@ -492,7 +492,7 @@ public class ContractsController extends ConcordServlet {
     @RequestMapping(path = {"/api/concord/contracts", "/api/blockchains/{id}/concord/contracts"},
             method = RequestMethod.POST)
     @PreAuthorize("@authHelper.canAccessChain(#id) "
-                  + "&& hasAnyAuthority(T(com.vmware.blockchain.services.profiles.Roles).devloper())")
+                  + "&& @authHelper.isDeveloper()")
     public ResponseEntity<PostResult> handlePost(@PathVariable(name = "id", required = false) Optional<UUID> id,
                 @RequestBody PostRequestBody body) {
 
@@ -558,7 +558,7 @@ public class ContractsController extends ConcordServlet {
      */
     @RequestMapping(method = RequestMethod.GET,
                     path = "/api/concord/contracts/compiler_versions")
-    @PreAuthorize("hasAnyAuthority(T(com.vmware.blockchain.services.profiles.Roles).devloper())")
+    @PreAuthorize("@authHelper.isDeveloper()")
     public ResponseEntity<JSONAware> handleGetCompilerVersions() {
         return new ResponseEntity<>(Compiler.getCompilerVersions(compilerServiceUrl),
                                     HttpStatus.OK);

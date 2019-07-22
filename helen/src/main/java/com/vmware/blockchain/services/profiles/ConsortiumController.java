@@ -110,7 +110,7 @@ public class ConsortiumController {
      * @return the new consortium
      */
     @RequestMapping(path = "/api/consortiums", method = RequestMethod.POST)
-    @PreAuthorize("hasAnyAuthority(T(com.vmware.blockchain.services.profiles.Roles).consortiumAdmin())")
+    @PreAuthorize("@authHelper.isConsortiumAdmin()")
     public ResponseEntity<ConGetResponse> createCon(@RequestBody ConPostBody body) {
         Consortium consortium = new Consortium(body.getConsortiumName(),
                                                "default", authHelper.getOrganizationId());
