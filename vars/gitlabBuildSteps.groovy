@@ -327,7 +327,8 @@ def call(){
                 string(credentialsId: 'LINT_API_KEY', variable: 'LINT_API_KEY'),
                 string(credentialsId: 'FLUENTD_AUTHORIZATION_BEARER', variable: 'FLUENTD_AUTHORIZATION_BEARER'),
                 string(credentialsId: 'VMC_API_TOKEN', variable: 'VMC_API_TOKEN'),
-                string(credentialsId: 'DOCKERHUB_REPO_READER_PASSWORD', variable: 'DOCKERHUB_REPO_READER_PASSWORD')
+                string(credentialsId: 'DOCKERHUB_REPO_READER_PASSWORD', variable: 'DOCKERHUB_REPO_READER_PASSWORD'),
+                file(credentialsId: 'PROD_IPAM_CLIENT_CERT_FILE', variable: 'PROD_IPAM_CLIENT_CERT_FILE')
                 ]) {
                 sh '''
                   echo "${PASSWORD}" | sudo -S ls
@@ -376,6 +377,7 @@ EOF
                   # Update hermes/resources/persephone/provision-service/config.json for persephone (deployment service) testing
                   sed -i -e 's/'"<VMC_API_TOKEN>"'/'"${VMC_API_TOKEN}"'/g' blockchain/hermes/resources/persephone/provisioning/config.json
                   sed -i -e 's/'"<DOCKERHUB_REPO_READER_PASSWORD>"'/'"${DOCKERHUB_REPO_READER_PASSWORD}"'/g' blockchain/hermes/resources/persephone/provisioning/config.json
+                  cat "${PROD_IPAM_CLIENT_CERT_FILE}" > blockchain/hermes/resources/persephone/provisioning/ipam.crt
                 '''
               }
 
