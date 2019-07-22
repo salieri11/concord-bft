@@ -24,3 +24,9 @@ export interface User {
     last_name: string
   };
 }
+
+export interface UserAuthResponse {
+   auth_token: string;
+   last_login: number;
+   email: string;
+}

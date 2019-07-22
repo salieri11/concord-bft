@@ -5,3 +5,8 @@
 export enum CspAPIs {
   orgs = '/csp/gateway/am/api/orgs/'
 }
+
+export enum QueryParams {
+  userKey = 'user',
+  userNewValue = 'new'
+}
