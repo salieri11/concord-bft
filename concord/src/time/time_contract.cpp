@@ -30,7 +30,7 @@ uint64_t TimeContract::Update(const string &source, uint64_t time,
       if (time > old_sample->second.time) {
         old_sample->second.time = time;
         old_sample->second.signature = signature;
-        changed = true;
+        changed_ = true;
       }
     } else {
       LOG4CPLUS_WARN(logger_,
@@ -208,7 +208,7 @@ pair<Sliver, Sliver> TimeContract::Serialize() {
                                           storage_size);
   proto.SerializeToArray(time_storage.data(), storage_size);
 
-  changed = false;
+  changed_ = false;
 
   return pair<Sliver, Sliver>(time_key_, time_storage);
 }
