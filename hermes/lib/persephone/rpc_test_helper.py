@@ -21,15 +21,15 @@ log = logging.getLogger(__name__)
 
 
 class RPCTestHelper():
-   def __init__(self, cmdlineArgs):
-      self.cmdlineArgs = cmdlineArgs
+   def __init__(self, args):
+      self.args = args
       try:
          self.model_rpc_helper = ModelServiceRPCHelper(
-            self.cmdlineArgs)
+            self.args)
          self.provision_rpc_helper = ProvisioningServiceRPCHelper(
-            self.cmdlineArgs)
+            self.args)
          # self.fleet_rpc_helper = FleetServiceRPCHelper(
-         #    self.cmdlineArgs)
+         #    self.args)
 
          self.PLACEMENT_TYPE_FIXED = self.provision_rpc_helper.PLACEMENT_TYPE_FIXED
          self.PLACEMENT_TYPE_UNSPECIFIED = self.provision_rpc_helper.PLACEMENT_TYPE_UNSPECIFIED
@@ -58,8 +58,10 @@ class RPCTestHelper():
       add_model_response = self.model_rpc_helper.rpc_AddModel(
          add_model_request)
       log.debug("AddModel response:")
-      for item in add_model_response:
-         log.debug(item)
+      if add_model_response:
+         for item in add_model_response:
+            log.debug(item)
+
       return add_model_request, add_model_response
 
    def rpc_list_models(self):
@@ -68,8 +70,11 @@ class RPCTestHelper():
       :return: Metadata
       '''
       metadata = self.model_rpc_helper.rpc_ListModels()
-      for item in metadata:
-         log.debug("Metadata: {}".format(item))
+
+      if metadata:
+         for item in metadata:
+            log.debug("Metadata: {}".format(item))
+
       return metadata
 
    def rpc_create_cluster(self, cluster_size=4, placement_type="FIXED"):
@@ -92,10 +97,12 @@ class RPCTestHelper():
 
       session_id = self.provision_rpc_helper.rpc_CreateCluster(
          create_cluster_request)
-      self.deployed_session_ids.append(session_id)
-      log.debug("Session ID: ")
-      for item in session_id:
-         log.debug(item)
+
+      if session_id:
+         self.deployed_session_ids.append(session_id)
+         log.debug("Session ID: ")
+         for item in session_id:
+            log.debug(item)
 
       return session_id
 
@@ -110,8 +117,27 @@ class RPCTestHelper():
          header, session_id)
       events = self.provision_rpc_helper.rpc_StreamClusterDeploymentSessionEvents(
          get_events_request)
-      for event in events:
-         log.debug("Event: {}".format(event))
+
+      if events:
+         for event in events:
+            log.debug("Event: {}".format(event))
+
+      return events
+
+   def rpc_stream_all_cluster_deployment_session_events(self):
+      '''
+      Helper method to stream All deployment session events
+      :return: All deployment Session events
+      '''
+      header = core_pb2.MessageHeader()
+      all_events_request = self.provision_rpc_helper.create_all_cluster_deployment_session_event_request(
+         header)
+      events = self.provision_rpc_helper.rpc_StreamAllClusterDeploymentSessionEvents(
+         all_events_request)
+
+      if events:
+         for event in events:
+            log.debug("Event: {}".format(event))
 
       return events
 
@@ -129,8 +155,9 @@ class RPCTestHelper():
       session_id = self.provision_rpc_helper.rpc_UpdateDeploymentSession(
          update_deployment_session_request)
 
-      log.debug("Session ID: ")
-      for item in session_id:
-         log.debug(item)
+      if session_id:
+         log.debug("Session ID: ")
+         for item in session_id:
+            log.debug(item)
 
       return session_id

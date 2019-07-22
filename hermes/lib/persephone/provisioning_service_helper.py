@@ -27,8 +27,8 @@ class ProvisioningServiceRPCHelper(RPCHelper):
    UPDATE_DEPLOYMENT_ACTION_NOOP = "NOOP"
    UPDATE_DEPLOYMENT_ACTION_DEPROVISION_ALL = "DEPROVISION_ALL"
 
-   def __init__(self, cmdlineArgs):
-      super().__init__(cmdlineArgs)
+   def __init__(self, args):
+      super().__init__(args)
       self.service_name = Product.PERSEPHONE_SERVICE_PROVISIONING
       self.service_port = self.get_persephone_service_port(self.service_name)
       self.persephone_config_file = self.get_provisioning_config_file(
@@ -144,6 +144,16 @@ class ProvisioningServiceRPCHelper(RPCHelper):
          header=header, session=session_id)
       return events_request
 
+   def create_all_cluster_deployment_session_event_request(self, header):
+      '''
+      Helper method to create cluster deployment session event request
+      :param header: cocnord core header
+      :return: Deployment event session request
+      '''
+      all_events_request = provisioning_service_pb2.StreamAllClusterDeploymentSessionEventRequest(
+         header=header)
+      return all_events_request
+
    def update_deployment_session_request(self, header, session_id,
                                          action=UPDATE_DEPLOYMENT_ACTION_NOOP):
       '''
@@ -188,6 +198,26 @@ class ProvisioningServiceRPCHelper(RPCHelper):
       try:
          response = self.call_api(self.stub.StreamClusterDeploymentSessionEvents,
                                   get_events_request, stream=True)
+      except Exception as e:
+         self.handle_exception(e)
+      return response
+
+   def rpc_StreamAllClusterDeploymentSessionEvents(self, all_events_request):
+      '''
+      Helper method to call gRPC rpc_StreamAllClusterDeploymentSessionEvents
+      This rpc call returns a stream and could be called to run in background
+      when provisioning service starts.
+      NOTE: Stream timeout is set to 1800 seconds (30 mins) to capture all events
+      :param get_events_request: Deployment Session Events Request
+      :return: All Deployement Events Stream
+      '''
+      log.info("StreamAllClusterDeploymentSessionEvents RPC")
+      response = None
+      try:
+         response = self.call_api(
+            self.stub.StreamAllClusterDeploymentSessionEvents,
+            all_events_request, stream=True, stream_forever=True,
+            stream_timeout=1800)
       except Exception as e:
          self.handle_exception(e)
       return response

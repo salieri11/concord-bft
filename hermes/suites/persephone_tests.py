@@ -28,9 +28,9 @@ class PersephoneTests(test_suite.TestSuite):
    _unintentionallySkippedFile = None
    default_cluster_size = 4
 
-   def __init__(self, passedArgs):
-      super().__init__(passedArgs)
-      self.cmdlineArgs = passedArgs
+   def __init__(self, cmdlineArgs):
+      super().__init__(cmdlineArgs)
+      self.args = self._args
 
    def getName(self):
       return "PersephoneTests"
@@ -52,9 +52,17 @@ class PersephoneTests(test_suite.TestSuite):
             "****gRPC Python bindings not generated. Execute util/generate_gRPC_bindings_for_py3.sh")
          raise Exception("gRPC Python bindings not generated")
 
-      self.rpc_test_helper = RPCTestHelper(self._args)
-      tests = self._get_tests()
+      self.rpc_test_helper = RPCTestHelper(self.args)
 
+      # Call gRPC to Stream Al Deployment Events in a background thread
+      self.args.cancel_stream = False
+      self.logs_for_stream_all_deploy_events = os.path.join(self._testLogDir,
+                                                            "stream_all_deploy_events")
+      os.makedirs(self.logs_for_stream_all_deploy_events, exist_ok=True)
+      self.args.fileRoot = self.logs_for_stream_all_deploy_events
+      self._stream_all_deployment_events()
+
+      tests = self._get_tests()
       for (testName, testFun) in tests:
          testLogDir = os.path.join(self._testLogDir, testName)
          try:
@@ -79,8 +87,13 @@ class PersephoneTests(test_suite.TestSuite):
       if self.rpc_test_helper.deployed_session_ids:
          fileRoot = os.path.join(self._testLogDir, "undeploy_all_clusters")
          os.makedirs(fileRoot, exist_ok=True)
-         self.cmdlineArgs.fileRoot = fileRoot
+         self.args.fileRoot = fileRoot
          self.undeploy_blockchain_cluster()
+
+      # Trigger to cancel stream
+      self.args.fileRoot = self.logs_for_stream_all_deploy_events
+      self.args.cancel_stream = True
+      self.background_thread.join()
 
       log.info("Tests are done.")
       return self._resultFile
@@ -89,25 +102,21 @@ class PersephoneTests(test_suite.TestSuite):
       '''
       Undeploy all deployed blockchain clusters in PersephoneTests run
       '''
-      log.info("Undeploy all created blockchain clusters...")
+      log.info("****************************************")
+      log.info("**** Undeploy all created blockchain clusters ****")
+
       undeployed_status = None
       for session_id in self.rpc_test_helper.deployed_session_ids:
          cleaned_up = False
 
-         # TODO: Remove call to CLI undeploy, once gRPC calls are validated to
-         # be stable
-         # cleaned_up = helper.undeploy_blockchain_cluster(
-         #    self.rpc_test_helper.persephone_config_file,
-         #    self.rpc_test_helper.grpc_server, helper.protobuf_message_to_json(session_id))
-
-         # gRPC call to Undeploy
+         # gRPC call to Undeploy resources
          log.info("Undeploying Session ID:\n{}".format(session_id[0]))
          response = self.rpc_test_helper.rpc_update_deployment_session(
             session_id[0],
             action=self.rpc_test_helper.UPDATE_DEPLOYMENT_ACTION_DEPROVISION_ALL)
 
-         max_timeout = 120 # secsonds
-         sleep_time = 30 # seconds
+         max_timeout = 120 # seconds
+         sleep_time = 15 # seconds
          start_time = time.time()
          while ((time.time() - start_time) < max_timeout) and not cleaned_up:
             events = self.rpc_test_helper.rpc_stream_cluster_deployment_session_events(
@@ -139,7 +148,7 @@ class PersephoneTests(test_suite.TestSuite):
       log.info("**** Starting test '{}' ****".format(testName))
       fileRoot = os.path.join(self._testLogDir, testName)
       os.makedirs(fileRoot, exist_ok=True)
-      self.cmdlineArgs.fileRoot = fileRoot
+      self.args.fileRoot = fileRoot
 
       return testFun()
 
@@ -509,4 +518,49 @@ class PersephoneTests(test_suite.TestSuite):
       else:
          log.error("Concurrent Deployments: Failed")
          return (False, "Failed to deploy concurrent Clusters")
+
+
+   def _thread_stream_all_deployment_events(self):
+      '''
+      Call gRPC to stream all deployment events since the start of provisioning
+      service
+      '''
+      status = None
+      status_message = "Skipped"
+      all_events = self.rpc_test_helper.rpc_stream_all_cluster_deployment_session_events()
+
+      if all_events:
+         all_deployment_session_ids_from_stream = []
+         all_events = helper.protobuf_message_to_json(all_events)
+         for event in all_events:
+            if "COMPLETED" in event["type"]:
+               all_deployment_session_ids_from_stream.append(event["session"])
+         log.info("List of all session IDs from stream: {}".format(
+            all_deployment_session_ids_from_stream))
+
+         status = False
+         for session_id in self.rpc_test_helper.deployed_session_ids:
+            if helper.protobuf_message_to_json(
+                  session_id[0]) in all_deployment_session_ids_from_stream:
+               status = True
+               status_message = "Fetched all deployment Events Successfully!"
+            else:
+               status = False
+               status_message = "Failed to fetch All Deployment Events"
+               break
+      self.writeResult("StreamAllDeploymentEvents", status, status_message)
+
+   def _stream_all_deployment_events(self):
+      '''
+      Stream all deployment events on a background thread
+      :return:
+      '''
+      log.info("****************************************")
+      log.info("**** Starting StreamAllDeploymentEvents Thread ****")
+
+      self.background_thread = threading.Thread(
+         target=self._thread_stream_all_deployment_events,
+         name="StreamAllDeploymentEvents")
+      self.background_thread.start()
+
 
