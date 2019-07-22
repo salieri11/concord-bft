@@ -332,7 +332,7 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
 
       kvb_commands_handler =
           unique_ptr<ICommandsHandler>(new HlfKvbCommandsHandler(
-              chaincode_invoker, config, nodeConfig, &replica, &replica));
+              chaincode_invoker, config, nodeConfig, replica, replica));
     } else {
       kvb_commands_handler =
           unique_ptr<ICommandsHandler>(new EthKvbCommandsHandler(

@@ -10,52 +10,52 @@
 #include <iostream>
 #include "concord.pb.h"
 #include "config/configuration_manager.hpp"
+#include "consensus/concord_commands_handler.hpp"
 #include "hlf/chaincode_invoker.hpp"
 #include "hlf/kvb_storage.hpp"
 #include "hlf_services.pb.h"
 #include "hlf_storage.pb.h"
 #include "storage/blockchain_interfaces.h"
+#include "time/time_contract.hpp"
 
 namespace concord {
 namespace hlf {
 
-class HlfKvbCommandsHandler : public concord::storage::ICommandsHandler {
+class HlfKvbCommandsHandler
+    : public concord::consensus::ConcordCommandsHandler {
  private:
   log4cplus::Logger logger_;
   concord::hlf::ChaincodeInvoker* chaincode_invoker_ = nullptr;
 
   concord::config::ConcordConfiguration& node_config_;
-  concord::storage::ILocalKeyValueStorageReadOnly* ptr_ro_storage_ = nullptr;
-  concord::storage::IBlocksAppender* ptr_block_appender_ = nullptr;
 
  public:
   HlfKvbCommandsHandler(
       ChaincodeInvoker* chaincode_invoker,
       const concord::config::ConcordConfiguration& config,
       concord::config::ConcordConfiguration& node_config,
-      concord::storage::ILocalKeyValueStorageReadOnly* ptr_ro_storage,
-      concord::storage::IBlocksAppender* ptr_block_appender);
+      const concord::storage::ILocalKeyValueStorageReadOnly& ro_storage,
+      concord::storage::IBlocksAppender& block_appender);
 
   ~HlfKvbCommandsHandler();
 
-  int execute(uint16_t client_id, uint64_t sequence_num, bool read_only,
-              uint32_t request_size, const char* request,
-              uint32_t max_reply_size, char* out_reply,
-              uint32_t& out_actual_reply_size) override;
+  bool Execute(const com::vmware::concord::ConcordRequest& request,
+               uint64_t sequence_num, bool read_only,
+               concord::time::TimeContract* time_contract,
+               com::vmware::concord::ConcordResponse& response) override;
+  void WriteEmptyBlock(uint64_t sequence_num,
+                       concord::time::TimeContract* time_contract) override;
 
  private:
-  bool ExecuteCommand(
-      uint32_t request_size, const char* request, uint64_t sequence_num,
-      const concord::storage::ILocalKeyValueStorageReadOnly& ro_storage,
-      concord::storage::IBlocksAppender& block_appender,
-      const size_t max_reply_size, char* out_reply,
-      uint32_t& out_reply_size) const;
+  bool ExecuteCommand(const com::vmware::concord::ConcordRequest& request,
+                      uint64_t sequence_num,
+                      concord::time::TimeContract* time_contract,
+                      com::vmware::concord::ConcordResponse& response);
 
   bool ExecuteReadOnlyCommand(
-      uint32_t request_size, const char* request,
-      const concord::storage::ILocalKeyValueStorageReadOnly& ro_storage,
-      const size_t max_reply_size, char* out_reply,
-      uint32_t& out_reply_size) const;
+      const com::vmware::concord::ConcordRequest& request,
+      concord::time::TimeContract* time_contract,
+      com::vmware::concord::ConcordResponse& response) const;
 
   // HLF extent
 
@@ -76,32 +76,32 @@ class HlfKvbCommandsHandler : public concord::storage::ICommandsHandler {
   const std::string GetChaincodePath() const;
 
   bool HandleHlfRequest(
-      com::vmware::concord::ConcordRequest& concord_request,
+      const com::vmware::concord::ConcordRequest& concord_request,
       concord::hlf::HlfKvbStorage* kvb_hlf_storage,
       com::vmware::concord::ConcordResponse& concord_response) const;
 
   bool HandleHlfRequestReadOnly(
-      com::vmware::concord::ConcordRequest& concord_request,
+      const com::vmware::concord::ConcordRequest& concord_request,
       concord::hlf::HlfKvbStorage* kvb_hlf_storage,
       com::vmware::concord::ConcordResponse& concord_response) const;
 
   bool HandleHlfInstallChaincode(
-      com::vmware::concord::ConcordRequest& concord_request,
+      const com::vmware::concord::ConcordRequest& concord_request,
       concord::hlf::HlfKvbStorage* kvb_hlf_storage,
       com::vmware::concord::ConcordResponse& concord_response) const;
 
   bool HandleHlfUpgradeChaincode(
-      com::vmware::concord::ConcordRequest& concord_request,
+      const com::vmware::concord::ConcordRequest& concord_request,
       concord::hlf::HlfKvbStorage* kvb_hlf_storage,
       com::vmware::concord::ConcordResponse& concord_response) const;
 
   bool HandleHlfInvokeChaincode(
-      com::vmware::concord::ConcordRequest& concord_request,
+      const com::vmware::concord::ConcordRequest& concord_request,
       concord::hlf::HlfKvbStorage* kvb_hlf_storage,
       com::vmware::concord::ConcordResponse& concord_response) const;
 
   bool HandleHlfQueryChaincode(
-      com::vmware::concord::ConcordRequest& concord_request,
+      const com::vmware::concord::ConcordRequest& concord_request,
       com::vmware::concord::ConcordResponse& concord_response) const;
 };
 
