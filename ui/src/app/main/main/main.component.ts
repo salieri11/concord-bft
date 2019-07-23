@@ -160,7 +160,7 @@ export class MainComponent implements OnInit, OnDestroy {
 
   private handleInitialization() {
     if (this.selectedConsortium && this.selectedConsortium !== this.route.snapshot.params['consortiumId']) {
-      this.router.navigate(['/', this.blockchainService.blockchainId, 'dashboard']);
+      this.router.navigate(['/', this.selectedConsortium, 'dashboard']);
     }
   }
 

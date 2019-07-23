@@ -6,7 +6,7 @@
     "ng": "ng",
     "start": "npm run copy-clarity && npm run ng-high-memory -- serve --ssl --proxy-config proxy.conf.json",
     "start:prod": "npm run copy-clarity && ng serve --ssl --proxy-config proxy.conf.json --prod",
-    "start:csp": "npm run copy-clarity && ng serve --proxy-config proxy.conf.json -c csp-dev --ssl --host 0.0.0.0 --disableHostCheck --port 443",
+    "start:csp": "npm run copy-clarity && ng serve -c csp-dev",
     "build:prod": "npm run copy-clarity && npm run ng-high-memory -- build --prod ",
     "build:prod:csp": "npm run copy-clarity && npm run ng-high-memory -- build --prod -c csp-production",
     "build:local:prod": "ng build --prod --deploy-url assets/ && npm run copy-clarity && npm run build:move",
