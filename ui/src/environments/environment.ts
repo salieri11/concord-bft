@@ -11,5 +11,6 @@ export const environment = {
   production: false,
   csp: false,
   loginPath: undefined,
-  refLink: undefined
+  refLink: undefined,
+  iamLink: undefined
 };

@@ -242,3 +242,13 @@ body.dark {
     background-color: rgba(0, 0, 0, 0.5);
   }
 }
+
+.list-container .datagrid-action-bar {
+  margin-top: -2rem;
+  margin-bottom: 1rem;
+
+  .btn-group {
+    float: right;
+  }
+}
+

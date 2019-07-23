@@ -5,15 +5,11 @@
 import {
   Component,
   OnInit,
-  ViewChild, Output, EventEmitter,
 } from '@angular/core';
-import { TranslateService } from '@ngx-translate/core';
 
-import { GridOptions } from '../../grid/shared/grid.model';
-import { GridComponent } from '../../grid/grid.component';
+import { environment } from '../../../environments/environment';
 import { OrgService } from '../shared/org.service';
 import { Org } from '../shared/org.model';
-import { Personas } from '../../shared/persona.service';
 
 @Component({
   selector: 'concord-org-list',
@@ -21,53 +17,14 @@ import { Personas } from '../../shared/persona.service';
   styleUrls: ['./org-list.component.scss']
 })
 export class OrgListComponent implements OnInit {
-  static personasAllowed: Personas[] = [Personas.SystemsAdmin, Personas.ConsortiumAdmin];
-  @ViewChild('grid') grid: GridComponent;
-  @Output('selected') selected: EventEmitter<any> = new EventEmitter<any>();
-
-  gridOptions: GridOptions = new GridOptions();
+  orgs: Org[] = [];
+  env = environment;
 
   constructor(
     private orgService: OrgService,
-    private translate: TranslateService,
   ) {
-    const browserLang = translate.getBrowserLang();
-    this.translate.setDefaultLang('en');
-    this.translate.use(browserLang);
-
-    this.gridOptions.getData = () => {
-      return this.orgService.getList();
-    };
-
-    this.handleGrid();
+    this.orgService.getList().subscribe(orgs => this.orgs = orgs);
   }
 
-  ngOnInit() {
-  }
-
-  selectedRowChange(rows: Array<Org>): void {
-    this.selected.emit(rows);
-  }
-
-  private handleGrid(): void {
-    this.gridOptions.paginationTitle = this.translate.instant('organization.grid.pagination.title');
-
-    this.gridOptions.columns = [{
-      id: 'name',
-      name: this.translate.instant('organization.grid.columns.name.title'),
-      type: 'string'
-    }, {
-      id: 'domain',
-      name: this.translate.instant('organization.grid.columns.domain.title'),
-      type: 'string'
-    }, {
-      id: 'type',
-      name: this.translate.instant('organization.grid.columns.type.title'),
-      type: 'string'
-    }, {
-      id: 'createdOn',
-      name: this.translate.instant('organization.grid.columns.created.title'),
-      type: 'date'
-    }];
-  }
+  ngOnInit() {}
 }

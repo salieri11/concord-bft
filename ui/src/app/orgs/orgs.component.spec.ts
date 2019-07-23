@@ -6,12 +6,13 @@ import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { BrowserModule } from '@angular/platform-browser';
 import { FormsModule } from '@angular/forms';  // <-- #1 import module
-import { HttpClientModule } from '@angular/common/http';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 
 import { GridModule } from '../grid/grid.module';
 import { OrgListComponent } from './org-list/org-list.component';
 import { OrgService } from './shared/org.service';
+import { BlockchainService } from '../shared/blockchain.service';
 import { MockSharedModule } from '../shared/shared.module';
 import { OrgsComponent } from './orgs.component';
 
@@ -25,7 +26,7 @@ describe('OrgsComponent', () => {
         MockSharedModule,
         BrowserAnimationsModule,
         BrowserModule,
-        HttpClientModule,
+        HttpClientTestingModule,
         FormsModule,
         GridModule
       ],
@@ -44,7 +45,16 @@ describe('OrgsComponent', () => {
               ),
             },
           },
+        },
+        {
+          provide: BlockchainService,
+          useValue: {
+            selectedBlockchain: {
+              consortium_id: 1
+            },
+          },
         }
+
       ]
     })
       .overrideModule(GridModule, {set: {
@@ -61,6 +71,7 @@ describe('OrgsComponent', () => {
     fixture = TestBed.createComponent(OrgsComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
+
   });
 
   it('should create', () => {

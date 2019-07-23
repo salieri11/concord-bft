@@ -8,6 +8,7 @@ import { BrowserModule } from '@angular/platform-browser';
 import { ReactiveFormsModule } from '@angular/forms';  // <-- #1 import module
 import { FormsModule } from '@angular/forms';  // <-- #1 import module
 import { RouterModule } from '@angular/router';
+import { SharedModule } from '../shared/shared.module';
 
 import { HttpClientModule } from '@angular/common/http';
 import { ClarityModule } from '@clr/angular';
@@ -30,7 +31,8 @@ import { OrgListComponent } from './org-list/org-list.component';
     FormsModule,
     GridModule,
     RouterModule,
-    TranslateModule
+    TranslateModule,
+    SharedModule.forRoot()
   ],
   declarations: [
     OrgsComponent,

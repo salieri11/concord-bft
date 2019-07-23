@@ -12,6 +12,8 @@ import { MockSharedModule } from '../../shared/shared.module';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 
+import { BlockchainService } from '../../shared/blockchain.service';
+
 describe('OrgListComponent', () => {
   let component: OrgListComponent;
   let fixture: ComponentFixture<OrgListComponent>;
@@ -35,7 +37,17 @@ describe('OrgListComponent', () => {
               ),
             },
           },
-        }]
+        },
+        {
+          provide: BlockchainService,
+          useValue: {
+            selectedBlockchain: {
+              consortium_id: 1
+            },
+          },
+        }
+
+        ]
     })
     .overrideModule(GridModule, {set: {
       imports: [

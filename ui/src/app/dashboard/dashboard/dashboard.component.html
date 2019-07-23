@@ -30,7 +30,7 @@
               <div class="title">{{'organization.title' | translate}}</div>
                 <h2 class="mt-0">
                   <a [routerLink]="['/', blockchainId,'organizations']">
-                    5
+                    {{ orgCount }}
                   </a>
                 </h2>
               </div>
@@ -82,16 +82,16 @@
       <div class="clr-col-sm-6 mt-1">
         <concord-dashboard-list [listConfig]="nodesConfig" [items]="nodes"></concord-dashboard-list>
       </div>
-      <div class="clr-col-sm-6 mt-1" tourAnchor="onboardingTour.contractList">
-        <concord-dashboard-list [listConfig]="contractsConfig" [items]="smartContracts"></concord-dashboard-list>
+      <div class="clr-col-sm-6 mt-1">
+        <concord-dashboard-list [listConfig]="organizationsConfig" [items]="orgs"></concord-dashboard-list>
       </div>
     </div>
     <div class="clr-row">
-      <div class="clr-col-sm-6 mt-1">
-        <concord-dashboard-list [listConfig]="blocksConfig" [items]="blocks"></concord-dashboard-list>
+      <div class="clr-col-sm-6 mt-1" tourAnchor="onboardingTour.contractList">
+        <concord-dashboard-list [listConfig]="contractsConfig" [items]="smartContracts"></concord-dashboard-list>
       </div>
       <div class="clr-col-sm-6 mt-1">
-        <concord-dashboard-list [listConfig]="transactionsConfig" [items]="transactions"></concord-dashboard-list>
+        <concord-dashboard-list [listConfig]="blocksConfig" [items]="blocks"></concord-dashboard-list>
       </div>
     </div>
   </div>
