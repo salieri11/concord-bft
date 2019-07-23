@@ -5,8 +5,16 @@
 
 #include "config/configuration_manager.hpp"
 #include "gtest/gtest.h"
+#include "utils/json.hpp"
 
+using std::endl;
+using std::ostringstream;
+using std::string;
+using std::to_string;
 using std::unique_ptr;
+using std::unordered_set;
+
+using nlohmann::json;
 
 using concord::config::ConcordConfiguration;
 using concord::config::ConfigurationAuxiliaryState;
@@ -15,6 +23,7 @@ using concord::config::ConfigurationRedefinitionException;
 using concord::config::ConfigurationResourceNotFoundException;
 using concord::config::InvalidIteratorException;
 using concord::config::kYAMLScopeTemplateSuffix;
+using concord::config::outputPrincipalLocationsMappingJSON;
 using concord::config::ParameterSelection;
 using concord::config::YAMLConfigurationInput;
 using concord::config::YAMLConfigurationOutput;
@@ -2505,6 +2514,87 @@ TEST(config_test, regression_config_copy_invalidates_original_iterator) {
   EXPECT_NO_THROW(++it)
       << "Iterator created over a configuration gets invalidated when a copy "
          "of that configuration is modified.";
+}
+
+TEST(config_test, test_principal_locations_mapping) {
+  ConcordConfiguration cleanConfig;
+  specifyConfiguration(cleanConfig);
+
+  // clang-format off
+  const size_t num_test_subcases = 6;
+  uint16_t fs_to_test[num_test_subcases] =                  {1, 2, 1, 1, 1, 1};
+  uint16_t cs_to_test[num_test_subcases] =                  {0, 0, 0, 0, 1, 2};
+  uint16_t client_proxy_ratios_to_test[num_test_subcases] = {4, 4, 7, 1, 4, 4};
+  // clang-format on
+
+  for (size_t i = 0; i < num_test_subcases; ++i) {
+    ConcordConfiguration config(cleanConfig);
+    config.loadValue("f_val", to_string(fs_to_test[i]));
+    config.loadValue("c_val", to_string(cs_to_test[i]));
+    config.loadValue("client_proxies_per_replica",
+                     to_string(client_proxy_ratios_to_test[i]));
+    config.instantiateScope("node");
+    size_t num_nodes = config.scopeSize("node");
+    for (size_t i = 0; i < num_nodes; ++i) {
+      ConcordConfiguration& node_config = config.subscope("node", i);
+      node_config.instantiateScope("replica");
+      node_config.instantiateScope("client_proxy");
+    }
+
+    // This should cause all the principal IDs to be generated; there may be
+    // parameters that fail to be generated because we have not loaded a lot of
+    // needed input, but those should be irrelevant to this test which is really
+    // just concerned with principal_id values.
+    config.generateAll();
+
+    ostringstream json_raw;
+    outputPrincipalLocationsMappingJSON(config, json_raw);
+    json principals_map;
+    ASSERT_NO_THROW(principals_map = json::parse(json_raw.str()))
+        << "An exception occurs when trying to parse JSON principal mapping. "
+           "JSON raw: "
+        << endl
+        << json_raw.str();
+
+    for (size_t i = 0; i < num_nodes; ++i) {
+      string node_id = to_string(i + 1);
+      json reported_ids = principals_map[node_id];
+      EXPECT_TRUE(reported_ids.is_array())
+          << "JSON principal mapping does not have entry for node present in "
+             "config (node ID: \"" +
+                 node_id + "\").";
+      ConcordConfiguration& node_config = config.subscope("node", i);
+
+      unordered_set<uint16_t> expected_ids;
+      for (auto iter = node_config.begin(
+               ConcordConfiguration::kIterateAllInstanceParameters);
+           iter !=
+           node_config.end(ConcordConfiguration::kIterateAllInstanceParameters);
+           ++iter) {
+        const ConfigurationPath& path = *iter;
+        if (path.getLeaf().name == "principal_id") {
+          expected_ids.emplace(node_config.getValue<uint16_t>(path));
+        }
+      }
+
+      for (auto& id : reported_ids) {
+        EXPECT_GT(expected_ids.count(id.get<uint16_t>()), 0)
+            << "JSON principal mapping contains unexpected principal: ID: " +
+                   to_string(id.get<uint16_t>()) + " on node " + node_id + ".";
+        expected_ids.erase(id.get<uint16_t>());
+      }
+      EXPECT_TRUE(expected_ids.empty())
+          << "JSON principal mapping is missing " +
+                 to_string(expected_ids.size()) +
+                 " expected principal IDs for node " + node_id + ".";
+
+      principals_map.erase(node_id);
+    }
+
+    EXPECT_TRUE(principals_map.empty())
+        << "JSON principal mapping contains information for unexpected nodes: "
+        << principals_map << ".";
+  }
 }
 
 }  // namespace
