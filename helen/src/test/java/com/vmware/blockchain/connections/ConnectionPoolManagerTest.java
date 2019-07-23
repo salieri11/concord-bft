@@ -58,13 +58,13 @@ public class ConnectionPoolManagerTest {
         chain1 = Blockchain.builder()
                 .consortium(null)
                 .nodeList(Stream.of("ip1:5458", "ip2:5458", "ip3:5458", "ip4:5458")
-                        .map(s -> new Blockchain.NodeEntry(UUID.randomUUID(), s, s, "cert", ""))
+                        .map(s -> new Blockchain.NodeEntry(UUID.randomUUID(), s, s, "cert", null))
                         .collect(Collectors.toList()))
                 .build();
         chain1.setId(UUID.fromString("9b22ea6f-5a2f-4159-b2f0-f10a1d751649"));
         chain2 = Blockchain.builder().consortium(null)
                 .nodeList(Splitter.on(",").splitToList("vip1:5458,vip2:5458,vip3:5458,vip4:5458").stream()
-                        .map(s -> new Blockchain.NodeEntry(UUID.randomUUID(), s, s, "cert", ""))
+                        .map(s -> new Blockchain.NodeEntry(UUID.randomUUID(), s, s, "cert", null))
                         .collect(Collectors.toList()))
                 .build();
         chain2.setId(UUID.fromString("f6b18a1e-53fa-4716-863c-2b99891ab0b5"));

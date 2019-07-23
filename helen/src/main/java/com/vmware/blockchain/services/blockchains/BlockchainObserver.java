@@ -14,6 +14,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import com.vmware.blockchain.auth.AuthHelper;
+import com.vmware.blockchain.common.fleetmanagment.FleetUtils;
 import com.vmware.blockchain.deployment.model.ConcordCluster;
 import com.vmware.blockchain.deployment.model.ConcordNode;
 import com.vmware.blockchain.deployment.model.DeploymentSession;
@@ -74,7 +75,7 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
                 case CLUSTER_DEPLOYED:
                     ConcordCluster cluster = value.getCluster();
                     // force the blockchain id to be the same as the cluster id
-                    clusterId = new UUID(cluster.getId().getHigh(), cluster.getId().getLow());
+                    clusterId = FleetUtils.toUuid(cluster.getId());
                     logger.info("Blockchain ID: {}", clusterId);
 
                     cluster.getInfo().getMembers().stream()
@@ -174,14 +175,14 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
         // For now, use the orchestration site ID as region name. Eventually there should be some
         // human-readable display name to go with the site ID.
         var site = node.getHostInfo().getSite();
-        var region = new UUID(site.getHigh(), site.getLow()).toString();
+        var region = FleetUtils.toUuid(site);
 
         return new NodeEntry(
-              new UUID(node.getId().getHigh(), node.getId().getLow()),
-              ip,
-              endpoint.getUrl(),
-              endpoint.getCertificate(),
-              region
+                FleetUtils.toUuid(node.getId()),
+                ip,
+                endpoint.getUrl(),
+                endpoint.getCertificate(),
+                region
         );
     }
 
@@ -201,5 +202,6 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
 
         return String.format("%d.%d.%d.%d", first, second, third, fourth);
     }
+
 
 }

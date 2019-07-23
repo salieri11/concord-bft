@@ -40,19 +40,19 @@ public class Blockchain extends AbstractEntity {
         String hostName;
         String url;
         String cert;
-        String region;
+        UUID zoneId;
 
         /**
          * Constructor used by BlockchainObserver and in tests.
          */
-        public NodeEntry(UUID nodeId, String ip, String url, String cert, String region) {
+        public NodeEntry(UUID nodeId, String ip, String url, String cert, UUID zoneId) {
             this.nodeId = nodeId;
             this.ip = ip;
             // Need to have a hostname.  Use the IP address in this case.
             this.hostName = ip;
             this.url = url;
             this.cert = cert;
-            this.region = region;
+            this.zoneId = zoneId;
         }
     }
 

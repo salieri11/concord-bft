@@ -4,13 +4,13 @@
 
 package com.vmware.blockchain.services.blockchains;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -27,8 +27,12 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.collect.ImmutableMap;
 import com.vmware.blockchain.auth.AuthHelper;
+import com.vmware.blockchain.common.BadRequestException;
+import com.vmware.blockchain.common.ErrorCode;
 import com.vmware.blockchain.common.NotFoundException;
+import com.vmware.blockchain.common.fleetmanagment.FleetUtils;
 import com.vmware.blockchain.deployment.model.ConcordComponent;
 import com.vmware.blockchain.deployment.model.ConcordModelSpecification;
 import com.vmware.blockchain.deployment.model.CreateClusterRequest;
@@ -38,6 +42,7 @@ import com.vmware.blockchain.deployment.model.MessageHeader;
 import com.vmware.blockchain.deployment.model.OrchestrationSiteIdentifier;
 import com.vmware.blockchain.deployment.model.PlacementSpecification;
 import com.vmware.blockchain.deployment.model.PlacementSpecification.Entry;
+import com.vmware.blockchain.deployment.model.PlacementSpecification.Type;
 import com.vmware.blockchain.deployment.model.ProvisioningServiceStub;
 import com.vmware.blockchain.deployment.model.StreamClusterDeploymentSessionEventRequest;
 import com.vmware.blockchain.deployment.model.ethereum.Genesis;
@@ -50,9 +55,6 @@ import com.vmware.blockchain.services.tasks.Task;
 import com.vmware.blockchain.services.tasks.Task.State;
 import com.vmware.blockchain.services.tasks.TaskService;
 
-import io.grpc.CallOptions;
-import io.grpc.ManagedChannel;
-import io.grpc.stub.StreamObserver;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -73,6 +75,10 @@ public class BlockchainController {
         UNSPECIFIED
     }
 
+    private static final Map<DeploymentType, PlacementSpecification.Type> enumMap =
+            ImmutableMap.of(DeploymentType.FIXED, Type.FIXED,
+                            DeploymentType.UNSPECIFIED, Type.UNSPECIFIED);
+
     @Getter
     @Setter
     @JsonIgnoreProperties(ignoreUnknown = true)
@@ -83,7 +89,7 @@ public class BlockchainController {
         @JsonProperty("c_count")
         private int cCount;
         private DeploymentType deploymentType;
-        private List<String> sites;
+        private List<UUID> zoneIds;
     }
 
     @Getter
@@ -103,14 +109,14 @@ public class BlockchainController {
         private String ip;
         private String url;
         private String cert;
-        private String region;
+        private UUID zoneId;
 
         public BlockchainNodeEntry(NodeEntry n) {
             nodeId = n.getNodeId();
             ip = n.getIp();
             url = n.getUrl();
             cert = n.getCert();
-            region = n.getRegion();
+            zoneId = n.getZoneId();
         }
 
     }
@@ -145,34 +151,10 @@ public class BlockchainController {
     private AuthHelper authHelper;
     private DefaultProfiles defaultProfiles;
     private TaskService taskService;
-    private ManagedChannel channel;
+    private ProvisioningServiceStub client;
     private OperationContext operationContext;
     private boolean mockDeployment;
 
-    /**
-     * An observer to fake a blocked call.
-     */
-    private <T> StreamObserver<T> blockedResultObserver(CompletableFuture<T> result) {
-        return new StreamObserver<>() {
-            /** Holder of result value. */
-            volatile T value;
-
-            @Override
-            public void onNext(T value) {
-                this.value = value;
-            }
-
-            @Override
-            public void onError(Throwable error) {
-                result.completeExceptionally(error);
-            }
-
-            @Override
-            public void onCompleted() {
-                result.complete(value);
-            }
-        };
-    }
 
     @Autowired
     public BlockchainController(BlockchainService blockchainService,
@@ -180,7 +162,7 @@ public class BlockchainController {
                                 AuthHelper authHelper,
                                 DefaultProfiles defaultProfiles,
                                 TaskService taskService,
-                                ManagedChannel channel,
+                                ProvisioningServiceStub client,
                                 OperationContext operationContext,
                                 @Value("${mock.deployment:false}") boolean mockDeployment) {
         this.blockchainService = blockchainService;
@@ -188,7 +170,7 @@ public class BlockchainController {
         this.authHelper = authHelper;
         this.defaultProfiles = defaultProfiles;
         this.taskService = taskService;
-        this.channel = channel;
+        this.client = client;
         this.operationContext = operationContext;
         this.mockDeployment = mockDeployment;
     }
@@ -227,12 +209,19 @@ public class BlockchainController {
      * The actual call which will contact server and add the model request.
      */
     private DeploymentSessionIdentifier createFixedSizeCluster(ProvisioningServiceStub client,
-            int clusterSize) throws Exception {
-        // Create a blocking stub with the channel
-        List<Entry> list = new ArrayList<Entry>(clusterSize);
-        for (int i = 0; i < clusterSize; i++) {
-            list.add(
-                    new Entry(PlacementSpecification.Type.UNSPECIFIED, new OrchestrationSiteIdentifier(1, 2)));
+            int clusterSize, PlacementSpecification.Type placementType, List<UUID> zoneIds) throws Exception {
+        List<Entry> list;
+        if (placementType == Type.FIXED) {
+            if (zoneIds.size() != clusterSize) {
+                throw new BadRequestException(ErrorCode.BAD_REQUEST);
+            }
+            list = zoneIds.stream()
+                    .map(u -> new Entry(placementType, FleetUtils.identifier(OrchestrationSiteIdentifier.class, u)))
+                    .collect(Collectors.toList());
+        } else {
+            list = IntStream.range(0, clusterSize)
+                    .mapToObj(i -> new Entry(placementType, new OrchestrationSiteIdentifier(1, i)))
+                    .collect(Collectors.toList());
         }
         var placementSpec = new PlacementSpecification(list);
         var components = List.of(
@@ -275,7 +264,7 @@ public class BlockchainController {
         var request = new CreateClusterRequest(new MessageHeader(), deploySpec);
         // Check that the API can be serviced normally after service initialization.
         var promise = new CompletableFuture<DeploymentSessionIdentifier>();
-        client.createCluster(request, blockedResultObserver(promise));
+        client.createCluster(request, FleetUtils.blockedResultObserver(promise));
         return promise.get();
     }
 
@@ -306,8 +295,9 @@ public class BlockchainController {
             taskService.put(task);
             logger.info("Deployment mocked");
         } else {
-            final ProvisioningServiceStub client = new ProvisioningServiceStub(channel, CallOptions.DEFAULT);
-            DeploymentSessionIdentifier dsId = createFixedSizeCluster(client, clusterSize);
+            DeploymentSessionIdentifier dsId = createFixedSizeCluster(client, clusterSize,
+                                                                      enumMap.get(body.deploymentType),
+                                                                      body.getZoneIds());
             logger.info("Deployment started, id {} for the consortium id {}", dsId, body.consortiumId.toString());
             BlockchainObserver bo =
                     new BlockchainObserver(authHelper, blockchainService, taskService, task.getId(),

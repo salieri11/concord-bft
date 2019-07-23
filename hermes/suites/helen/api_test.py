@@ -284,7 +284,7 @@ def verifyBlockchainFields(request, blockchain):
       # TODO: Verify the cert by actually using it.
       # Bug: Persephone doesn't return certs.  See VB-1001.
 
-      assert "region" in node.keys(), "The region field does not exist."
+      assert "zone_id" in node.keys(), "The zone_id field does not exist."
 
    # VB-1006
    # assert len(expectedRpcUrls) == 0, \
