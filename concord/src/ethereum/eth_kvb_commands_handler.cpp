@@ -15,6 +15,7 @@
 
 #include <boost/predef/detail/endian_compat.h>
 #include <google/protobuf/text_format.h>
+#include <google/protobuf/util/time_util.h>
 #include <iterator>
 #include <vector>
 #include "common/concord_exception.hpp"
@@ -119,9 +120,8 @@ void EthKvbCommandsHandler::WriteEmptyBlock(TimeContract *time) {
   // should always be non-null, but let's take the safest route for now.
   uint64_t timestamp = 0;
   if (time) {
-    // divide by 1000, because time service is in milliseconds, but ethereum
-    // is in seconds
-    timestamp = time->GetTime() / 1000;
+    timestamp =
+        google::protobuf::util::TimeUtil::TimestampToSeconds(time->GetTime());
   }
 
   EthKvbStorage kvb_storage(storage_, this);
@@ -162,9 +162,8 @@ bool EthKvbCommandsHandler::handle_eth_sendTransaction(
 
   uint64_t timestamp = 0;
   if (time) {
-    // divide by 1000, because time service is in milliseconds, but ethereum is
-    // in seconds
-    timestamp = time->GetTime() / 1000;
+    timestamp =
+        google::protobuf::util::TimeUtil::TimestampToSeconds(time->GetTime());
   } else {
     timestamp = request.timestamp();
   }
@@ -633,9 +632,8 @@ bool EthKvbCommandsHandler::handle_eth_callContract(
   if (time) {
     // VB-1069: load time from the block specified by the call parameters,
     // instead of always loading "latest"
-    // divide by 1000, because time service is in milliseconds, but ethereum is
-    // in seconds
-    timestamp = time->GetTime() / 1000;
+    timestamp =
+        google::protobuf::util::TimeUtil::TimestampToSeconds(time->GetTime());
   }
 
   evm_uint256be txhash{{0}};

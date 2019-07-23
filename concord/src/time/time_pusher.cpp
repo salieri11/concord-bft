@@ -2,6 +2,7 @@
 
 #include "time_pusher.hpp"
 
+#include <google/protobuf/util/time_util.h>
 #include <log4cplus/loggingmacros.h>
 #include <chrono>
 #include <mutex>
@@ -18,12 +19,14 @@ using com::vmware::concord::ConcordResponse;
 using com::vmware::concord::TimeRequest;
 using com::vmware::concord::TimeSample;
 using concord::time::TimePusher;
+using google::protobuf::Timestamp;
+using google::protobuf::util::TimeUtil;
 
 TimePusher::TimePusher(const concord::config::ConcordConfiguration &config,
                        const concord::config::ConcordConfiguration &nodeConfig)
     : logger_(log4cplus::Logger::getInstance("concord.time.pusher")),
       stop_(false),
-      lastPublishTimeMs_(0),
+      lastPublishTime_(TimeUtil::GetEpoch()),
       signer_(std::unique_ptr<TimeSigner>{}) {
   if (!concord::time::IsTimeServiceEnabled(config)) {
     throw TimeException(
@@ -92,7 +95,7 @@ void TimePusher::AddTimeToCommand(ConcordRequest &command) {
   AddTimeToCommand(command, ReadTime());
 }
 
-void TimePusher::AddTimeToCommand(ConcordRequest &command, uint64_t time) {
+void TimePusher::AddTimeToCommand(ConcordRequest &command, Timestamp time) {
   assert(signer_);
   std::vector<uint8_t> signature = signer_->Sign(time);
 
@@ -103,11 +106,12 @@ void TimePusher::AddTimeToCommand(ConcordRequest &command, uint64_t time) {
   if (!tr->has_sample()) {
     TimeSample *ts = tr->mutable_sample();
     ts->set_source(timeSourceId_);
-    ts->set_time(time);
+    Timestamp *t = new Timestamp(time);
+    ts->set_allocated_time(t);
     ts->set_signature(signature.data(), signature.size());
   }
 
-  lastPublishTimeMs_ = time;
+  lastPublishTime_ = time;
 }
 
 void TimePusher::ThreadFunction() {
@@ -123,8 +127,10 @@ void TimePusher::ThreadFunction() {
     // sleeps.
     std::this_thread::sleep_for(std::chrono::milliseconds(periodMilliseconds_));
 
-    uint64_t time = ReadTime();
-    if (time < lastPublishTimeMs_ + periodMilliseconds_) {
+    Timestamp time = ReadTime();
+    uint64_t time_nanos = TimeUtil::TimestampToNanoseconds(time);
+    uint64_t last_nanos = TimeUtil::TimestampToNanoseconds(lastPublishTime_);
+    if (time_nanos < last_nanos + (periodMilliseconds_ * 1000000)) {
       // Time was published by a transaction recently - no need to publish again
       // right now.
       continue;

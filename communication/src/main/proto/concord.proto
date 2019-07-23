@@ -6,6 +6,8 @@ syntax = "proto2";
 
 package com.vmware.concord;
 
+import "google/protobuf/timestamp.proto";
+
 message ConcordRequest {
    optional ProtocolRequest protocol_request = 1;
    optional PeerRequest peer_request = 2;
@@ -207,13 +209,13 @@ message TimeRequest {
 }
 
 message TimeResponse {
-   optional uint64 summary = 1;
+   optional google.protobuf.Timestamp summary = 1;
    repeated TimeSample sample = 2;
 }
 
 message TimeSample {
    optional bytes source = 1;
-   optional uint64 time = 2;
+   optional google.protobuf.Timestamp time = 2;
    optional bytes signature = 3;
 }
 

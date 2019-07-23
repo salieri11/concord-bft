@@ -14,6 +14,8 @@ using com::vmware::concord::TimeRequest;
 using com::vmware::concord::TimeResponse;
 using com::vmware::concord::TimeSample;
 
+using google::protobuf::Timestamp;
+
 namespace concord {
 namespace consensus {
 
@@ -114,7 +116,8 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
 
       if (tr.return_summary()) {
         TimeResponse *tp = response_.mutable_time_response();
-        tp->set_summary(time_->GetTime());
+        Timestamp *sum = new Timestamp(time_->GetTime());
+        tp->set_allocated_summary(sum);
       }
 
       if (tr.return_samples()) {
@@ -123,7 +126,8 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
         for (auto &s : time_->GetSamples()) {
           TimeSample *ts = tp->add_sample();
           ts->set_source(s.first);
-          ts->set_time(s.second.time);
+          Timestamp *t = new Timestamp(s.second.time);
+          ts->set_allocated_time(t);
           ts->set_signature(s.second.signature.data(),
                             s.second.signature.size());
         }

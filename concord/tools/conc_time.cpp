@@ -50,9 +50,10 @@
 // command>
 // ```
 
+#include <google/protobuf/timestamp.pb.h>
+#include <google/protobuf/util/time_util.h>
 #include <inttypes.h>
 #include <boost/program_options.hpp>
-#include <chrono>
 #include <iomanip>
 #include <iostream>
 
@@ -68,7 +69,8 @@ using namespace boost::program_options;
 using namespace com::vmware::concord;
 using concord::config::ConcordConfiguration;
 using concord::config::YAMLConfigurationInput;
-using std::chrono::system_clock;
+using google::protobuf::Timestamp;
+using google::protobuf::util::TimeUtil;
 
 #define OPT_SOURCE "source"
 #define OPT_TIME "time"
@@ -119,7 +121,10 @@ int main(int argc, char **argv) {
 
     if (opts.count(OPT_TIME) > 0) {
       require_sample(timeReq, &sample);
-      sample->set_time(opts[OPT_TIME].as<uint64_t>());
+      Timestamp time = google::protobuf::util::TimeUtil::SecondsToTimestamp(
+          opts[OPT_TIME].as<uint64_t>());
+      Timestamp *store = new Timestamp(time);
+      sample->set_allocated_time(store);
     }
     if (opts[OPT_GET].as<bool>()) {
       timeReq->set_return_summary(true);
@@ -193,13 +198,8 @@ int main(int argc, char **argv) {
       if (concResp.has_time_response()) {
         TimeResponse tr = concResp.time_response();
         if (tr.has_summary()) {
-          std::chrono::milliseconds summary_ms(tr.summary());
-          system_clock::time_point summary_tp(summary_ms);
-          std::time_t summary_tt = system_clock::to_time_t(summary_tp);
-          std::tm *t = std::gmtime(&summary_tt);
-          std::cout << "The current time is: " << std::put_time(t, "%FT%T")
-                    << "." << (summary_ms % std::chrono::seconds(1)).count()
-                    << "Z (" << tr.summary() << ")" << std::endl;
+          std::cout << "The current time is: "
+                    << TimeUtil::ToString(tr.summary()) << std::endl;
         }
 
         if (tr.sample_size() > 0) {
@@ -208,7 +208,7 @@ int main(int argc, char **argv) {
             std::cout << "Sample " << (i + 1) << " from \'"
                       << (ts.has_source() ? ts.source() : "[unknown]")
                       << "\' read "
-                      << (ts.has_time() ? std::to_string(ts.time())
+                      << (ts.has_time() ? TimeUtil::ToString(ts.time())
                                         : "[unknown]")
                       << std::endl;
           }

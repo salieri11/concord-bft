@@ -83,7 +83,7 @@
         <maven.plugin.compiler.version>3.7.0</maven.plugin.compiler.version>
         <maven.plugin.failsafe.version>2.22.1</maven.plugin.failsafe.version>
         <maven.plugin.flatten.version>1.0.1</maven.plugin.flatten.version>
-        <maven.plugin.protocjar.version>2.6.1.4</maven.plugin.protocjar.version>
+        <maven.plugin.protocjar.version>3.8.0</maven.plugin.protocjar.version>
         <maven.plugin.surefire.version>2.22.0</maven.plugin.surefire.version>
 
         <!-- Library properties. -->
@@ -102,7 +102,7 @@
         <lombok.version>1.18.2</lombok.version>
         <mockito.version>2.23.4</mockito.version>
         <postgresql.version>42.2.2</postgresql.version>
-        <protobuf.version>2.6.1</protobuf.version>
+        <protobuf.version>3.8.0</protobuf.version>
         <slf4j.version>1.7.25</slf4j.version>
         <springframework.boot.version>2.0.9.RELEASE</springframework.boot.version>
     </properties>
@@ -361,6 +361,7 @@
                                 <goal>run</goal>
                             </goals>
                             <configuration>
+                                <includeStdTypes>true</includeStdTypes>
                                 <inputDirectories>
                                     <include>src/main/proto</include>
                                 </inputDirectories>

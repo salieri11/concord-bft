@@ -5,6 +5,7 @@
 #ifndef TIME_TIME_READING_HPP
 #define TIME_TIME_READING_HPP
 
+#include <google/protobuf/timestamp.pb.h>
 #include "config/configuration_manager.hpp"
 
 namespace concord {
@@ -12,7 +13,7 @@ namespace time {
 
 bool IsTimeServiceEnabled(const concord::config::ConcordConfiguration &config);
 
-uint64_t ReadTime();
+google::protobuf::Timestamp ReadTime();
 
 }  // namespace time
 }  // namespace concord

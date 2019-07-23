@@ -2,6 +2,7 @@
 
 #include "time_contract.hpp"
 
+#include <google/protobuf/util/time_util.h>
 #include <algorithm>
 #include <unordered_map>
 #include <vector>
@@ -15,19 +16,24 @@ using std::vector;
 using concord::config::ConcordConfiguration;
 using concord::config::ConfigurationPath;
 using concord::config::ParameterSelection;
+using google::protobuf::Timestamp;
+using google::protobuf::util::TimeUtil;
 
 namespace concord {
 namespace time {
 
 // Add a sample to the time contract.
-uint64_t TimeContract::Update(const string &source, uint64_t time,
-                              const vector<uint8_t> &signature) {
+Timestamp TimeContract::Update(const string &source, const Timestamp &time,
+                               const vector<uint8_t> &signature) {
   LoadLatestSamples();
 
   auto old_sample = samples_->find(source);
   if (old_sample != samples_->end()) {
     if (verifier_.Verify(source, time, signature)) {
-      if (time > old_sample->second.time) {
+      uint64_t new_time = TimeUtil::TimestampToNanoseconds(time);
+      uint64_t old_time =
+          TimeUtil::TimestampToNanoseconds(old_sample->second.time);
+      if (new_time > old_time) {
         LOG4CPLUS_DEBUG(logger_,
                         "Applying time " << time << " from source " << source);
         old_sample->second.time = time;
@@ -50,7 +56,7 @@ uint64_t TimeContract::Update(const string &source, uint64_t time,
 
 // Get the current time at the latest block (including any updates that have
 // been applied since this TimeContract was instantiated).
-uint64_t TimeContract::GetTime() {
+Timestamp TimeContract::GetTime() {
   LoadLatestSamples();
 
   return SummarizeTime();
@@ -61,16 +67,16 @@ uint64_t TimeContract::GetTime() {
 //
 // TODO: refuse to give a summary if there are not enough samples to guarantee
 // monotonicity
-uint64_t TimeContract::SummarizeTime() {
+Timestamp TimeContract::SummarizeTime() {
   assert(samples_);
 
   if (samples_->empty()) {
-    return 0;
+    return TimeUtil::GetEpoch();
   }
 
   vector<uint64_t> times;
   for (auto s : *samples_) {
-    times.push_back(s.second.time);
+    times.push_back(TimeUtil::TimestampToNanoseconds(s.second.time));
   }
 
   // middle is either the actual median, or the high side of it for even counts
@@ -82,14 +88,13 @@ uint64_t TimeContract::SummarizeTime() {
   // only need to sort the first "half" to find out where the median is
   std::partial_sort(times.begin(), times.begin() + middle + 1, times.end());
 
-  uint64_t result;
   if (times.size() % 2 == 0) {
-    return (*(times.begin() + middle) + *(times.begin() + (middle - 1))) / 2;
-  } else {
-    return *(times.begin() + middle);
+    uint64_t nanos =
+        (*(times.begin() + middle) + *(times.begin() + (middle - 1))) / 2;
+    return TimeUtil::NanosecondsToTimestamp(nanos);
   }
 
-  return result;
+  return TimeUtil::NanosecondsToTimestamp(*(times.begin() + middle));
 }
 
 // Get the list of samples.
@@ -149,7 +154,8 @@ void TimeContract::LoadLatestSamples() {
           // blank signature as that may simply indicate that no valid time
           // sample was received from the given source before the time storage
           // we are reading was written.
-          if (((sample.time() == 0) && (signature.size() == 0) &&
+          if (((sample.time() == TimeUtil::GetEpoch()) &&
+               (signature.size() == 0) &&
                (verifier_.HasTimeSource(sample.source()))) ||
               verifier_.Verify(sample.source(), sample.time(), signature)) {
             samples_->emplace(sample.source(), SampleBody());
@@ -184,7 +190,7 @@ void TimeContract::LoadLatestSamples() {
     for (auto id : time_source_ids) {
       LOG4CPLUS_DEBUG(logger_, "source id: " << config_.getValue<string>(id));
       samples_->emplace(config_.getValue<string>(id), SampleBody());
-      samples_->at(config_.getValue<string>(id)).time = 0;
+      samples_->at(config_.getValue<string>(id)).time = TimeUtil::GetEpoch();
     }
 
     LOG4CPLUS_INFO(logger_, "Initializing time contract with "
@@ -201,7 +207,8 @@ pair<Sliver, Sliver> TimeContract::Serialize() {
     auto sample = proto.add_sample();
 
     sample->set_source(s.first);
-    sample->set_time(s.second.time);
+    Timestamp *t = new Timestamp(s.second.time);
+    sample->set_allocated_time(t);
     sample->set_signature(s.second.signature.data(), s.second.signature.size());
   }
 
