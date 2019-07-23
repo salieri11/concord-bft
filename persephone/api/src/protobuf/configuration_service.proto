@@ -62,6 +62,20 @@ message ConfigurationServiceRequest {
 }
 
 /**
+ * Model definition for DeleteConfiguration request.
+ *
+ * @property[header]
+ *   message header.
+ * @property[id]
+ *   ConfigurationSessionIdentifier to be deleted
+ */
+message DeleteConfigurationRequest {
+    MessageHeader header = 1;
+    ConfigurationSessionIdentifier id = 2;
+}
+
+
+/**
  * Model definition for metadata server configuration settings.
  *
  * @property[port]
@@ -108,6 +122,17 @@ message NodeConfigurationRequest {
     int32 node = 3;
 }
 
+/**
+* Denotes a delete configuration response.
+* This is subject to modification later
+*
+* @property[MessageHeader]
+*   message header containing any information needed
+*/
+message DeleteConfigurationResponse {
+    MessageHeader header = 1;
+}
+
 /* [END messages] */
 /* [START services] */
 /**
@@ -124,5 +149,10 @@ service ConfigurationService {
     * Operation to get node configuration for given node
     */
     rpc GetNodeConfiguration (NodeConfigurationRequest) returns (NodeConfigurationResponse);
+
+    /**
+    * Operation to delete configuration for given identifier
+    */
+    rpc DeleteConfiguration (DeleteConfigurationRequest) returns (DeleteConfigurationResponse);
 }
 /* [END services] */

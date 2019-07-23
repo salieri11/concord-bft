@@ -4,13 +4,12 @@
 
 package com.vmware.blockchain.deployment.service.configuration.server;
 
+import java.security.SecureRandom;
 import java.security.Security;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
-import java.util.Random;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -19,6 +18,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,6 +27,8 @@ import com.vmware.blockchain.deployment.model.ConfigurationServiceImplBase;
 import com.vmware.blockchain.deployment.model.ConfigurationServiceRequest;
 import com.vmware.blockchain.deployment.model.ConfigurationServiceType;
 import com.vmware.blockchain.deployment.model.ConfigurationSessionIdentifier;
+import com.vmware.blockchain.deployment.model.DeleteConfigurationRequest;
+import com.vmware.blockchain.deployment.model.DeleteConfigurationResponse;
 import com.vmware.blockchain.deployment.model.Identity;
 import com.vmware.blockchain.deployment.model.IdentityComponent;
 import com.vmware.blockchain.deployment.model.IdentityFactors;
@@ -123,11 +125,8 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
     }
 
     @Override
-    public void createConfiguration(ConfigurationServiceRequest message,
-                                         StreamObserver<ConfigurationSessionIdentifier> observer) {
-
-        var request = Objects.requireNonNull(message);
-        var response = Objects.requireNonNull(observer);
+    public void createConfiguration(@NotNull ConfigurationServiceRequest request,
+                                    @NotNull StreamObserver<ConfigurationSessionIdentifier> observer) {
 
         var sessionId = newSessionId();
 
@@ -187,41 +186,53 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
 
         var persist = sessionConfig.putIfAbsent(sessionId, nodeComponent);
 
-        if (persist == null && persist == null) {
-            response.onNext(sessionId);
-            response.onCompleted();
+        if (persist == null) {
+            observer.onNext(sessionId);
+            observer.onCompleted();
         } else {
-            response.onError(new IllegalStateException("Could not persist configuration results"));
+            observer.onError(new IllegalStateException("Could not persist configuration results"));
         }
     }
 
     @Override
-    public void getNodeConfiguration(NodeConfigurationRequest nodeRequest,
-                                     StreamObserver<NodeConfigurationResponse> observer) {
+    public void getNodeConfiguration(@NotNull NodeConfigurationRequest request,
+                                     @NotNull StreamObserver<NodeConfigurationResponse> observer) {
 
-        var request = Objects.requireNonNull(nodeRequest);
-        var response = Objects.requireNonNull(observer);
-
-        var components = sessionConfig.get(nodeRequest.getIdentifier());
+        var components = sessionConfig.get(request.getIdentifier());
 
         var nodeComponents = components.get(request.getNode());
 
         if (nodeComponents.size() != 0) {
-            response.onNext(new NodeConfigurationResponse(nodeComponents));
-            response.onCompleted();
+            observer.onNext(new NodeConfigurationResponse(nodeComponents));
+            observer.onCompleted();
         } else {
-            response.onError(new IllegalStateException("Could not retrieve configuration results"));
+            observer.onError(new IllegalStateException("Could not retrieve configuration results for id: "
+                    + request.getIdentifier()));
+        }
+    }
+
+    @Override
+    public void deleteConfiguration(
+            @NotNull DeleteConfigurationRequest request,
+            @NotNull StreamObserver<DeleteConfigurationResponse> observer) {
+
+        try {
+            sessionConfig.remove(request.getId());
+            observer.onNext(new DeleteConfigurationResponse());
+            observer.onCompleted();
+        } catch (Exception e) {
+            observer.onError(new IllegalStateException("No configuration available for id: " + request.getId()));
         }
     }
 
     /**
-     * Generate a new {@link ConfigurationSessionIdentifier}.
-     *
-     * @return
-     *   a new {@link ConfigurationSessionIdentifier} instance.
-     */
+    * Generate a new {@link ConfigurationSessionIdentifier}.
+    *
+    * @return
+    *   a new {@link ConfigurationSessionIdentifier} instance.
+    */
     private static ConfigurationSessionIdentifier newSessionId() {
-        return new ConfigurationSessionIdentifier(new Random().nextLong()); //use secure random
+        return new ConfigurationSessionIdentifier(new SecureRandom().nextLong());
     }
 
     /**
@@ -271,7 +282,7 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
             nodeIdentities.add(serverList.get(node).getKey());
             nodeIdentities.add(clientList.get(node).getKey());
 
-            principals.get(node).stream().forEach(entry -> {
+            principals.get(node).forEach(entry -> {
                 nodeIdentities.add(serverList.get(entry).getCertificate());
                 nodeIdentities.add(serverList.get(entry).getKey());
                 nodeIdentities.add(clientList.get(entry).getCertificate());
