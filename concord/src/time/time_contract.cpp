@@ -30,7 +30,7 @@ uint64_t TimeContract::Update(const string &source, uint64_t time,
       if (time > old_sample->second.time) {
         old_sample->second.time = time;
         old_sample->second.signature = signature;
-        changed = true;
+        changed_ = true;
       }
     } else {
       LOG4CPLUS_WARN(logger_,
@@ -106,14 +106,6 @@ static bool TimeSourceIdSelector(const ConcordConfiguration &config,
          path.subpath->name == "time_source_id";
 }
 
-// Produce the key used to store the time contract state.
-Sliver TimeKey() {
-  // TODO: make a static sliver that we can just copy? Copying Sliver doesn't
-  // reallocate the buffer, which may be nice.
-  uint8_t *key = new uint8_t[1]{kTimeKey};
-  return Sliver(key, 1);
-}
-
 // Load samples from storage, if they haven't been already.
 //
 // An exception is thrown if data was found in the time key in storage, but that
@@ -136,7 +128,7 @@ void TimeContract::LoadLatestSamples() {
   samples_ = new unordered_map<string, SampleBody>();
 
   concord::consensus::Sliver raw_time;
-  Status read_status = storage_.get(TimeKey(), raw_time);
+  Status read_status = storage_.get(time_key_, raw_time);
 
   if (read_status.isOK() && raw_time.length() > 0) {
     com::vmware::concord::kvb::Time time_storage;
@@ -216,9 +208,9 @@ pair<Sliver, Sliver> TimeContract::Serialize() {
                                           storage_size);
   proto.SerializeToArray(time_storage.data(), storage_size);
 
-  changed = false;
+  changed_ = false;
 
-  return pair<Sliver, Sliver>(TimeKey(), time_storage);
+  return pair<Sliver, Sliver>(time_key_, time_storage);
 }
 
 }  // namespace time

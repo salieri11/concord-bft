@@ -53,7 +53,8 @@ class TimeContract {
         config_(config),
         verifier_(config),
         samples_(nullptr),
-        changed(false) {}
+        changed_(false),
+        time_key_(new uint8_t[1]{kTimeKey}, 1) {}
 
   ~TimeContract() {
     if (samples_) {
@@ -89,7 +90,7 @@ class TimeContract {
 
   // Has the contract been updated since being loaded or since last
   // serialization?
-  bool Changed() { return changed; }
+  bool Changed() { return changed_; }
 
   // Produce a key-value pair that encodes the state of the time contract for
   // KVB.
@@ -100,7 +101,7 @@ class TimeContract {
     if (samples_) {
       delete samples_;
     }
-    changed = false;
+    changed_ = false;
   }
 
   // Struct containing the data stored for the latest time sample known from
@@ -131,7 +132,8 @@ class TimeContract {
   const concord::config::ConcordConfiguration& config_;
   concord::time::TimeVerifier verifier_;
   std::unordered_map<std::string, SampleBody>* samples_;
-  bool changed;
+  bool changed_;
+  const Sliver time_key_;
 
   void LoadLatestSamples();
   uint64_t SummarizeTime();
