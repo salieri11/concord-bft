@@ -341,14 +341,14 @@ class PersephoneTests(test_suite.TestSuite):
                                       concord_password,
                                       command_to_run)
       log.debug(ssh_output)
-      if ssh_output.rstrip() == marker_file:
-         log.debug(validation_message_success)
-         if mode is None:
-            self.concord_ips.append(concord_ip)
-         return True
-      else:
-         log.error(validation_message_fail)
-         return False
+      if ssh_output:
+         if ssh_output.rstrip() == marker_file:
+            log.debug(validation_message_success)
+            if mode is None:
+               self.concord_ips.append(concord_ip)
+            return True
+      log.error(validation_message_fail)
+      return False
 
    def verify_IPAM_configuration(self):
       '''

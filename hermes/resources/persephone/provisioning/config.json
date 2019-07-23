@@ -41,10 +41,10 @@
           "folder": "HermesTesting",
           "controlNetwork": "vmware-vpn",
           "controlNetworkGateway": 172321025,
-          "controlNetworkSubnet": 24,
-          "ipamEndpoint": "ipam-vmbc.vdp.vmware.com"
+          "controlNetworkSubnet": 24
         }
       }
     }
   ]
 }
+

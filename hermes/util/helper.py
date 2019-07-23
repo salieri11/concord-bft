@@ -115,10 +115,8 @@ def ssh_connect(host, username, password, command):
       log.debug(resp)
    except paramiko.AuthenticationException as e:
       log.error("Authentication failed when connecting to {}".format(host))
-      raise
    except Exception as e:
       log.error("Could not connect to {}: {}".format(host, e))
-      raise
 
    return resp
 
