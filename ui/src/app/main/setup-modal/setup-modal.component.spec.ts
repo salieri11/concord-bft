@@ -11,6 +11,8 @@ import { AuthenticationService } from '../../shared/authentication.service';
 import { PersonaService } from '../../shared/persona.service';
 import { MockSharedModule } from '../../shared/shared.module';
 import { SetupModalComponent } from './setup-modal.component';
+import { CanViewDirective } from './../../shared/directives/can-view.directive';
+
 
 describe('SetupModalComponent', () => {
   let component: SetupModalComponent;
@@ -24,7 +26,7 @@ describe('SetupModalComponent', () => {
         HttpClientTestingModule,
         ReactiveFormsModule
       ],
-      declarations: [ SetupModalComponent ],
+      declarations: [ SetupModalComponent, CanViewDirective ],
       providers: [ AuthenticationService, PersonaService ],
     })
     .compileComponents();
