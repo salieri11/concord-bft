@@ -172,32 +172,40 @@ class ProvisioningServiceRPCHelper(RPCHelper):
          header=header, action=action_obj, session=session_id)
       return update_deployment_session_request
 
-   def rpc_CreateCluster(self, create_cluster_request):
+   def rpc_CreateCluster(self, create_cluster_request, stub=None):
       '''
       Helper method to call gRPC CreateCluster
       :param create_cluster_request: Create cluster request spec
+      :param stub: Default stub if running default provisioning service on port
+      9001, else, stub for the non-default instance
       :return: deployment session ID
       '''
       log.info("createCluster RPC")
       response = None
       try:
-         response = self.call_api(self.stub.CreateCluster,
-                                  create_cluster_request)
+         if stub is None:
+            stub = self.stub
+         response = self.call_api(stub.CreateCluster, create_cluster_request)
       except Exception as e:
          self.handle_exception(e)
       return response
 
-   def rpc_StreamClusterDeploymentSessionEvents(self, get_events_request):
+   def rpc_StreamClusterDeploymentSessionEvents(self, get_events_request, stub=None):
       '''
       Helper method to call gRPC rpc_StreamClusterDeploymentSessionEvents
       :param get_events_request: Deployment session ID
+      :param stub: Default stub if running default provisioning service on port
+      9001, else, stub for the non-default instance
       :return: Deployemtn Event Stream
       '''
       log.info("StreamClusterDeploymentSessionEvents RPC")
       response = None
       try:
-         response = self.call_api(self.stub.StreamClusterDeploymentSessionEvents,
-                                  get_events_request, stream=True)
+         if stub is None:
+            stub = self.stub
+         response = self.call_api(
+            stub.StreamClusterDeploymentSessionEvents,
+            get_events_request, stream=True)
       except Exception as e:
          self.handle_exception(e)
       return response
@@ -222,16 +230,20 @@ class ProvisioningServiceRPCHelper(RPCHelper):
          self.handle_exception(e)
       return response
 
-   def rpc_UpdateDeploymentSession(self, update_deployment_session_request):
+   def rpc_UpdateDeploymentSession(self, update_deployment_session_request, stub=None):
       '''
       Helper method to call gRPC UpdateDeploymentSession
       :param update_deployment_session_request: Update cluster request spec
+      :param stub: Default stub if running default provisioning service on port
+      9001, else, stub for the non-default instance
       :return: Empty protobug message {}
       '''
       log.info("UpdateDeploymentSession RPC")
       response = None
       try:
-         response = self.call_api(self.stub.UpdateDeploymentSession,
+         if stub is None:
+            stub = self.stub
+         response = self.call_api(stub.UpdateDeploymentSession,
                                   update_deployment_session_request)
       except Exception as e:
          self.handle_exception(e)
