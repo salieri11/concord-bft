@@ -7,8 +7,10 @@
 #include <cryptopp/dll.h>
 
 #include "configuration_manager.hpp"
+#include "utils/json.hpp"
 
 using std::invalid_argument;
+using std::ostream;
 using std::string;
 using std::to_string;
 using std::vector;
@@ -18,6 +20,8 @@ using boost::program_options::options_description;
 using boost::program_options::variables_map;
 
 using log4cplus::Logger;
+
+using nlohmann::json;
 
 using concord::config::detectLocalNode;
 
@@ -4224,6 +4228,36 @@ void loadSBFTCryptosystems(ConcordConfiguration& config) {
         "Cannot load SBFT Cryptosystems for given configuration: could not "
         "find all required parameters.");
   }
+}
+
+// Note the current implementaion of this function assumes all Concord-BFT
+// principal IDs in the configuration are parameters with the name
+// "principal_id".
+void outputPrincipalLocationsMappingJSON(ConcordConfiguration& config,
+                                         ostream& output) {
+  json principal_map;
+
+  if (config.containsScope("node") && config.scopeIsInstantiated("node")) {
+    for (size_t i = 0; i < config.scopeSize("node"); ++i) {
+      string node_id = to_string(i + 1);
+      ConcordConfiguration& node = config.subscope("node", i);
+
+      principal_map[node_id] = json::array();
+      for (auto iter =
+               node.begin(ConcordConfiguration::kIterateAllInstanceParameters);
+           iter !=
+           node.end(ConcordConfiguration::kIterateAllInstanceParameters);
+           ++iter) {
+        const ConfigurationPath& path = *iter;
+        if ((path.getLeaf().name == "principal_id") &&
+            node.hasValue<uint16_t>(path)) {
+          principal_map[node_id].emplace_back(node.getValue<uint16_t>(path));
+        }
+      }
+    }
+  }
+
+  output << principal_map;
 }
 
 }  // namespace config

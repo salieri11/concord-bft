@@ -14,8 +14,20 @@
 
 #include "config/configuration_manager.hpp"
 
-using namespace boost::program_options;
-using namespace concord::config;
+using std::exception;
+using std::ofstream;
+using std::string;
+
+using boost::program_options::command_line_parser;
+using boost::program_options::options_description;
+using boost::program_options::variables_map;
+
+using concord::config::ConcordConfiguration;
+using concord::config::ConfigurationResourceNotFoundException;
+using concord::config::YAMLConfigurationInput;
+using concord::config::YAMLConfigurationOutput;
+
+namespace po = boost::program_options;
 
 int main(int argc, char** argv) {
   // Initialize the logger, as logging may be used by some subprocesses of this
@@ -29,22 +41,38 @@ int main(int argc, char** argv) {
 
   std::string inputFilename;
   std::string outputPrefix;
+  std::string nodeMapFilename;
 
   variables_map optionsInput;
   options_description optionsSpec;
-  optionsSpec.add_options()("help,h", "Display help text and exit.")(
-      "configuration-input", value<std::string>(&inputFilename),
-      "Path to a YAML file containing input to the configuration generation "
-      "utility, which includes cluster dimensions, network configuration, and "
-      "any non-default value elections for optional parameters.")(
-      "output-name",
-      value<std::string>(&outputPrefix)->default_value("concord"),
-      "Prefix to use as the base of the filename for the output configuration "
-      "files. The output files will have names of the format "
-      "<output-name><i>.config. For example, if output-name is \"concord\" and "
-      "configuration is generated for a 4-node cluster, the output "
-      "configuration files will be named concord1.config, concord2.config, "
-      "concord3.config, and concord4.config.");
+
+  // clang-format off
+  optionsSpec.add_options()
+    ("help,h", "Display help text and exit.")
+    ("configuration-input", po::value<string>(&inputFilename),
+     "Path to a YAML file containing input to the configuration generation "
+     "utility, which includes cluster dimensions, network configuration, and "
+     "any non-default value elections for optional parameters.")
+    ("output-name", po::value<string>(&outputPrefix)->default_value("concord"),
+     "Prefix to use as the base of the filename for the output configuration "
+     "files. The output files will have names of the format "
+     "<output-name><i>.config. For example, if output-name is \"concord\" and "
+     "configuration is generated for a 4-node cluster, the output "
+     "configuration files will be named concord1.config, concord2.config, "
+     "concord3.config, and concord4.config.")
+    ("report-principal-locations", po::value<string>(&nodeMapFilename),
+     "Output a mapping reporting which Concord-BFT principals (by principal "
+     "ID) are on each Concord node in the configured cluster, in JSON. One "
+     "string parameter is expected with this option when it is used, naming a "
+     "file to output this JSON mapping to. Note that the node IDs (the names "
+     "in the name-value pairs) are 1-indexed, and correspond directly to the "
+     "sequential numbers appearing in the filenames of the generated "
+     "configuration files. Note it is not guaranteed that the nodes in the "
+     "JSON Object and principal IDs in each node's array of them will be in "
+     "any particular order. This report-principal-locations option is intended "
+     "primarily for use by software that automates the deployment of Concord.");
+
+  // clang-format on
 
   store(command_line_parser(argc, argv).options(optionsSpec).run(),
         optionsInput);
@@ -177,7 +205,7 @@ int main(int argc, char** argv) {
     } catch (std::exception& e) {
       LOG4CPLUS_FATAL(
           concGenconfigLogger,
-          "An exception occured while trying to write configuraiton file " +
+          "An exception occurred while trying to write configuraiton file " +
               outputFilename + ".");
       LOG4CPLUS_FATAL(concGenconfigLogger,
                       "Exception message: " + std::string(e.what()));
@@ -187,6 +215,19 @@ int main(int argc, char** argv) {
                                             " (" + std::to_string(i + 1) +
                                             " of " + std::to_string(numNodes) +
                                             ") written.");
+  }
+
+  if (optionsInput.count("report-principal-locations")) {
+    ofstream nodeMapOutput(nodeMapFilename);
+    try {
+      outputPrincipalLocationsMappingJSON(config, nodeMapOutput);
+    } catch (const exception& e) {
+      LOG4CPLUS_FATAL(concGenconfigLogger,
+                      "An exception occurred while trying to write principal "
+                      "locations mapping. Exception message: " +
+                          string(e.what()));
+      return -1;
+    }
   }
 
   LOG4CPLUS_INFO(concGenconfigLogger, "conc_genconfig completed successfully.");
