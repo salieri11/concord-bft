@@ -60,7 +60,7 @@ public class ConsortiumService {
      * @throws IllegalArgumentException Removiing consortium owner org
      */
     public void removeOrganization(Consortium c, UUID org) {
-        if (c.getOrganization() == org) {
+        if (c.getOrganization().equals(org)) {
             throw new IllegalArgumentException(ErrorCode.BAD_ORG_REMOVE);
         }
         genericDao.deleteRelation(c.getId(), org);
