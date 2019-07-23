@@ -67,7 +67,7 @@ std::map<string, string> DamlKvbCommandsHandler::GetFromStorage(
 }
 
 bool DamlKvbCommandsHandler::ExecuteCommit(
-    const da_kvbc::CommitRequest& commit_req, TimeContract* time_contract,
+    const da_kvbc::CommitRequest& commit_req, TimeContract* time,
     ConcordResponse& concord_response) {
   LOG4CPLUS_DEBUG(logger_, "Handle DAML commit command");
 
@@ -79,8 +79,14 @@ bool DamlKvbCommandsHandler::ExecuteCommit(
   // the DAML log entry id.
   string entryId = prefix + "/" + std::to_string(current_block_id + 1);
 
-  google::protobuf::Timestamp record_time =
-      google::protobuf::util::TimeUtil::GetEpoch();
+  google::protobuf::Timestamp record_time;
+  if (time) {
+    // TODO: We expect milliseconds
+    record_time = google::protobuf::util::TimeUtil::NanosecondsToTimestamp(
+        time->GetTime() * 1000000);
+  } else {
+    record_time = google::protobuf::util::TimeUtil::GetEpoch();
+  }
 
   // Resolve the inputs
   std::map<string, string> input_log_entries =
