@@ -1,26 +1,15 @@
 // Copyright 2019 VMware, all rights reserved
 
-#include "cmd_handler.hpp"
+#include "daml_kvb_commands_handler.hpp"
 
-#include <google/protobuf/timestamp.pb.h>
 #include <google/protobuf/util/time_util.h>
-#include <grpcpp/grpcpp.h>
-#include <inttypes.h>
 #include <log4cplus/loggingmacros.h>
-#include <list>
 #include <map>
-#include <set>
 #include <string>
 
-#include "concord.pb.h"
-#include "daml_commit.grpc.pb.h"
-#include "daml_data.grpc.pb.h"
-#include "daml_validator.grpc.pb.h"
 #include "time/time_contract.hpp"
 
-using std::list;
 using std::map;
-using std::set;
 using std::string;
 
 using concord::consensus::Sliver;
@@ -53,37 +42,13 @@ Sliver CreateSliver(const string& content) {
   return CreateSliver(content.c_str(), content.size());
 }
 
-grpc::Status KVBCValidatorClient::Validate(
-    string entryId, string submission, google::protobuf::Timestamp& record_time,
-    const map<string, string>& input_log_entries,
-    const map<string, string>& input_state_entries,
-    da_kvbc::ValidateResponse* out) {
-  da_kvbc::ValidateRequest req;
-  req.set_submission(submission);
-  req.set_entry_id(entryId);
-  *req.mutable_record_time() = record_time;
-  for (auto const& entry : input_log_entries) {
-    da_kvbc::KeyValuePair* kvpair = req.add_input_log_entries();
-    kvpair->set_key(entry.first);
-    kvpair->set_value(entry.second);
-  }
-  for (auto const& entry : input_state_entries) {
-    da_kvbc::KeyValuePair* kvpair = req.add_input_state();
-    kvpair->set_key(entry.first);
-    kvpair->set_value(entry.second);
-  }
-
-  grpc::ClientContext context;
-  return stub_->ValidateSubmission(&context, req, out);
-}
-
-bool KVBCCommandsHandler::ExecuteKVBCRead(const da_kvbc::ReadCommand& request,
-                                          ConcordResponse& response) {
+bool DamlKvbCommandsHandler::ExecuteRead(const da_kvbc::ReadCommand& request,
+                                         ConcordResponse& response) {
   LOG4CPLUS_INFO(logger_, "NOT IMPLEMENTED");
   return false;
 }
 
-std::map<string, string> KVBCCommandsHandler::GetFromStorage(
+std::map<string, string> DamlKvbCommandsHandler::GetFromStorage(
     const google::protobuf::RepeatedPtrField<da_kvbc::KVKey>& keys) {
   std::map<string, string> result;
   for (const auto& kv_key : keys) {
@@ -101,7 +66,7 @@ std::map<string, string> KVBCCommandsHandler::GetFromStorage(
   return result;
 }
 
-bool KVBCCommandsHandler::ExecuteKVBCCommit(
+bool DamlKvbCommandsHandler::ExecuteCommit(
     const da_kvbc::CommitRequest& commit_req, TimeContract* time_contract,
     ConcordResponse& concord_response) {
   LOG4CPLUS_DEBUG(logger_, "Handle DAML commit command");
@@ -174,9 +139,9 @@ bool KVBCCommandsHandler::ExecuteKVBCCommit(
   return true;
 }
 
-bool KVBCCommandsHandler::ExecuteCommand(const ConcordRequest& concord_req,
-                                         TimeContract* time_contract,
-                                         ConcordResponse& response) {
+bool DamlKvbCommandsHandler::ExecuteCommand(const ConcordRequest& concord_req,
+                                            TimeContract* time_contract,
+                                            ConcordResponse& response) {
   DamlRequest daml_req;
 
   if (!concord_req.has_daml_request()) {
@@ -198,17 +163,17 @@ bool KVBCCommandsHandler::ExecuteCommand(const ConcordRequest& concord_req,
 
   switch (cmd.cmd_case()) {
     case da_kvbc::Command::kRead:
-      return ExecuteKVBCRead(cmd.read(), response);
+      return ExecuteRead(cmd.read(), response);
 
     case da_kvbc::Command::kCommit:
-      return ExecuteKVBCCommit(cmd.commit(), time_contract, response);
+      return ExecuteCommit(cmd.commit(), time_contract, response);
 
     default:
       return false;
   }
 }
 
-bool KVBCCommandsHandler::ExecuteReadOnlyCommand(
+bool DamlKvbCommandsHandler::ExecuteReadOnlyCommand(
     const ConcordRequest& concord_req, ConcordResponse& response) {
   DamlRequest daml_req;
 
@@ -231,7 +196,7 @@ bool KVBCCommandsHandler::ExecuteReadOnlyCommand(
 
   switch (cmd.cmd_case()) {
     case da_kvbc::Command::kRead:
-      return ExecuteKVBCRead(cmd.read(), response);
+      return ExecuteRead(cmd.read(), response);
     case da_kvbc::Command::kCommit:
       LOG4CPLUS_ERROR(logger_, "ExecuteReadOnlyCommand got write command!");
       return false;
@@ -240,10 +205,10 @@ bool KVBCCommandsHandler::ExecuteReadOnlyCommand(
   }
 }
 
-bool KVBCCommandsHandler::Execute(const ConcordRequest& request,
-                                  uint64_t sequence_num, bool read_only,
-                                  TimeContract* time_contract,
-                                  ConcordResponse& response) {
+bool DamlKvbCommandsHandler::Execute(const ConcordRequest& request,
+                                     uint64_t sequence_num, bool read_only,
+                                     TimeContract* time_contract,
+                                     ConcordResponse& response) {
   if (read_only) {
     return ExecuteReadOnlyCommand(request, response);
   } else {
@@ -251,8 +216,8 @@ bool KVBCCommandsHandler::Execute(const ConcordRequest& request,
   }
 }
 
-void KVBCCommandsHandler::WriteEmptyBlock(uint64_t sequence_num,
-                                          TimeContract* time_contract) {
+void DamlKvbCommandsHandler::WriteEmptyBlock(uint64_t sequence_num,
+                                             TimeContract* time_contract) {
   BlockId currentBlockId = storage_.getLastBlock();
   SetOfKeyValuePairs empty_updates;
   BlockId newBlockId = 0;

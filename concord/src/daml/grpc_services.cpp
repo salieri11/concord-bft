@@ -4,7 +4,7 @@
 
 #include <string>
 
-#include "daml/cmd_handler.hpp"
+#include "daml/daml_kvb_commands_handler.hpp"
 #include "storage/blockchain_db_types.h"
 
 using com::digitalasset::kvbc::Command;
