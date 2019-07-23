@@ -4,11 +4,8 @@
 
 package com.vmware.blockchain.deployment.service.provision;
 
-import java.io.IOException;
-import java.io.InputStream;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -16,7 +13,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Properties;
 import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -34,12 +30,10 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.apache.commons.io.FileUtils;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.vmware.blockchain.awsutil.AwsS3Client;
 import com.vmware.blockchain.deployment.model.ConcordCluster;
 import com.vmware.blockchain.deployment.model.ConcordClusterIdentifier;
 import com.vmware.blockchain.deployment.model.ConcordClusterInfo;
@@ -149,12 +143,6 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
     /** Default application.properties file. */
     private String propertyFile = "applications.properties";
 
-    /** FIXME: Dead code. S3 Client. */
-    private AwsS3Client awsClient;
-
-    /** FIXME: Dead code. S3 bucket. */
-    private String s3bucket;
-
     /** Configuration service client. */
     private ConfigurationServiceStub configService;
 
@@ -173,41 +161,6 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
         this.orchestrations = orchestrations.stream()
                 .collect(Collectors.toMap(OrchestrationSite::getId, OrchestrationSite::getInfo));
         this.configService = configService;
-    }
-
-    /**
-     * Helper method which initializes the connection with S3-bucket.
-     * TODO: Use CI-CD pipeline user's AWS access keys.
-     * FIXME: Dead Code.
-     */
-    private boolean initializeS3Client() {
-        log.info("Reading the application properties file");
-        try (InputStream input = getClass().getClassLoader().getResourceAsStream(propertyFile)) {
-            String awsKey = "AKIATWKQRJCJPZPBH4PK";
-            String secretKey = "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";
-            String region = "us-west-2";
-            s3bucket = "concord-config";
-
-            Properties prop = new Properties();
-            if (input != null) {
-                prop.load(input);
-                awsKey = prop.getProperty("aws.accessKey");
-                secretKey = prop.getProperty("aws.secretKey");
-                region = prop.getProperty("aws.region");
-                s3bucket = prop.getProperty("aws.bucket");
-            } else {
-                log.error("Unable to find property file: " + propertyFile);
-            }
-            awsClient = new AwsS3Client(awsKey, secretKey, region);
-            if (awsClient == null) {
-                log.error("Unable to create AWS client: " + propertyFile);
-                return false;
-            }
-        } catch (IOException ex) {
-            log.error("Unable to read the property file: " + propertyFile);
-            return false;
-        }
-        return true;
     }
 
     /**
@@ -536,89 +489,6 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
     }
 
     /**
-     * Generate a Concord cluster configuration based on a listing of
-     * {@link PlacementAssignment.Entry} of Concord nodes with the intended network address resource
-     * from the node's orchestration site host associated with it. The paired network address
-     * resource will be utilized to expose the placed Concord node to network external to the
-     * orchestration site hosting the Concord node.
-     *
-     * @param addresses
-     *   mapping of assignment entry to its associated external network address resource.
-     *
-     * @return
-     *   an awaitable future of the mapping of {@link PlacementAssignment.Entry} with the Concord
-     *   node configuration associated with that entry.
-     *
-     *   FIXME: Dead Code.
-     */
-    private CompletableFuture<Map<PlacementAssignment.Entry, String>> generateClusterConfig(
-            List<Map.Entry<PlacementAssignment.Entry, NetworkResourceEvent.Created>> addresses
-    ) {
-        var promise = new CompletableFuture<Map<PlacementAssignment.Entry, String>>();
-
-        // Next run the config utility asynchronously in background.
-        CompletableFuture.runAsync(() -> {
-            try {
-                var nodeIPs = addresses.stream()
-                        .map(Map.Entry::getValue)
-                        .map(NetworkResourceEvent.Created::getAddress)
-                        .collect(Collectors.toUnmodifiableList());
-                if (addresses.size() != nodeIPs.size()) {
-                    throw new IllegalStateException("Incorrect number of network addresses!");
-                }
-
-                // Prepare the input file (with default input location).
-                ConfigYaml configUtil = new ConfigYaml();
-                configUtil.generateConfigUtil(nodeIPs);
-
-                var outputPath = Files.createTempDirectory(null);
-                var future = new ProcessBuilder("/app/conc_genconfig",
-                                                "--configuration-input",
-                                                configUtil.getConfigYamlFilePath())
-                        .directory(outputPath.toFile())
-                        .start()
-                        .onExit();
-                future.whenCompleteAsync((process, error) -> {
-                    if (error == null) {
-                        try {
-                            var result = new HashMap<PlacementAssignment.Entry, String>();
-                            for (int i = 1; i <= addresses.size(); i++) {
-                                var path = outputPath.resolve("concord" + i + ".config");
-                                result.put(addresses.get(i - 1).getKey(), Files.readString(path));
-                            }
-
-                            // Complete the future.
-                            promise.complete(result);
-                        } catch (Throwable collectError) {
-                            log.error("Cannot collect generated cluster configuration",
-                                      collectError);
-
-                            promise.completeExceptionally(collectError);
-                        }
-                    } else {
-                        log.error("Cannot run config generation process", error);
-
-                        promise.completeExceptionally(error);
-                    }
-                });
-            } catch (IOException error) {
-                log.error("Cannot complete config generation process", error);
-
-                // Wrap checked exception into RuntimeException to handle errors in a
-                // generic fashion through exceptionally().
-                throw new RuntimeException(error);
-            }
-        }, executor).exceptionally(error -> {
-            log.error("Failed to generate cluster configuration", error);
-
-            promise.completeExceptionally(error);
-            return null; // To satisfy type signature (Void).
-        });
-
-        return promise;
-    }
-
-    /**
      * Execute a Concord cluster deprovisioning workflow.
      *
      * @param requestSession
@@ -936,25 +806,6 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
 
                     return null; // To satisfy type signature (Void).
                 });
-    }
-
-
-    /**
-     * Helper method to write to s3-bucket. We use the path as /concord-config/cluster/node/concord.config
-     * to write config file for each node.
-     */
-    private void deployS3Config(ConcordClusterIdentifier clusterId,
-                                ConcordNodeIdentifier node, String config) {
-        try {
-            var modelClusterId = new UUID(clusterId.getHigh(), clusterId.getLow()).toString();
-            var modelNodeId = new UUID(node.getHigh(), node.getLow()).toString();
-            String configPath = modelClusterId + "/" + modelNodeId;
-            var file = Files.createTempFile(Files.createTempDirectory(null), "concord", "instance").toFile();
-            FileUtils.writeStringToFile(file, config, "UTF-8");
-            awsClient.putObject(s3bucket, configPath, file);
-        } catch (IOException ex) {
-            log.error("Couldn't write to s3 bucket");
-        }
     }
 
     /**
