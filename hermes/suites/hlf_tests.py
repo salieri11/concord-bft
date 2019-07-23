@@ -117,6 +117,8 @@ class HlfTests(test_suite.TestSuite):
                   self._test_chaincode_fabcar_invoke_create_car),
               ("chaincode_fabcar_query_history",
                   self._test_chaincode_fabcar_query_history),
+              ("chaincode_fabcar_query_range_state",
+                  self._test_chaincode_fabcar_query_range_state),
               ("chaincode_fabcar_upgrade", self._test_chaincode_fabcar_upgrade)
               ]
 
@@ -378,3 +380,32 @@ class HlfTests(test_suite.TestSuite):
           return (True, None)
        else:
           return (False, "Concord returned Non-zero status.")
+
+   def _test_chaincode_fabcar_query_range_state(self):
+       '''
+       Test the GetStateByRange API
+    
+       Peform the range query against key "CAR0" ~ "CAR99".
+    
+       '''
+       cmd = "docker exec -t concord-client " \
+             "./conc_hlf_client -a concord1 -p 50051 -m query -c mycc -i {\"function\":\"queryAllCars\",\"Args\":[\"\"]}" 
+       try:
+          c = subprocess.run(cmd.split(), check=True, timeout=1000, stdout=subprocess.PIPE)
+       except subprocess.TimeoutExpired as e:
+          log.error("Chaincode query timeout: %s", str(e))
+          return (False, str(e))
+       except subprocess.CalledProcessError as e:
+          log.error("Chaincode query returned error code: %s", str(e))
+          return (False, str(e))
+    
+       result = str(c.stdout)
+       log.debug(result)
+
+       for i in range(10):
+           if "CAR" + str(i) in result:
+               continue
+           else:
+               return (False, "Unable to Pass the GetStateByRange test")
+
+       return (True, None)
