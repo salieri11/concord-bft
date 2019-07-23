@@ -10,7 +10,6 @@ import com.vmware.blockchain.deployment.model.AllocateAddressRequest
 import com.vmware.blockchain.deployment.model.AllocateAddressResponse
 import com.vmware.blockchain.deployment.model.IPAllocationServiceStub
 import com.vmware.blockchain.deployment.model.MessageHeader
-import com.vmware.blockchain.deployment.model.ConfigurationSessionIdentifier
 import com.vmware.blockchain.deployment.model.OrchestrationSiteInfo
 import com.vmware.blockchain.deployment.model.ReleaseAddressRequest
 import com.vmware.blockchain.deployment.model.ReleaseAddressResponse

@@ -3,6 +3,7 @@
  * **************************************************************************/
 package com.vmware.blockchain.deployment.service.orchestrationsite
 
+import com.vmware.blockchain.deployment.model.Endpoint
 import com.vmware.blockchain.deployment.model.ListOrchestrationSitesRequest
 import com.vmware.blockchain.deployment.model.ListOrchestrationSitesResponse
 import com.vmware.blockchain.deployment.model.MessageHeader
@@ -30,6 +31,7 @@ class OrchestrationSiteServiceTest {
     ): OrchestrationSiteService {
         return DaggerTestProvisioningServer.builder()
                 .orchestrations(orchestrations)
+                .configServiceStub(Endpoint.defaultValue)
                 .build()
                 .orchestrationSiteService()
     }

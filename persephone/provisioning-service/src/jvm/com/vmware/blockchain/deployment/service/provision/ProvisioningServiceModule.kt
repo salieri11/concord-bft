@@ -3,8 +3,8 @@
  * **************************************************************************/
 package com.vmware.blockchain.deployment.service.provision
 
-import com.vmware.blockchain.deployment.model.ConfigurationServiceEndpoint
 import com.vmware.blockchain.deployment.model.ConfigurationServiceStub
+import com.vmware.blockchain.deployment.model.Endpoint
 import com.vmware.blockchain.deployment.model.OrchestrationSite
 import com.vmware.blockchain.deployment.model.core.URI
 import dagger.Module
@@ -39,20 +39,18 @@ class ProvisioningServiceModule {
      */
     @Provides
     @Singleton
-    fun providesConfigurationServiceStub(): ConfigurationServiceStub {
+    fun providesConfigurationServiceStub(configurationServiceEndpoint: Endpoint): ConfigurationServiceStub {
         val configServiceTrustCertificate = URI.create("file:/config/persephone/provisioning/configservice.crt")
 
-        // FIXME: Replace with config service endpoint
-        val configurationServiceEndpoint = ConfigurationServiceEndpoint()
-
         val channel = NettyChannelBuilder
-                .forTarget(configurationServiceEndpoint.endpoint.address)
+                .forTarget(configurationServiceEndpoint.address)
                 .sslContext(
                         GrpcSslContexts.forClient()
                                 .trustManager(java.io.File(configServiceTrustCertificate)).build())
                 .build()
         return ConfigurationServiceStub(channel, CallOptions.DEFAULT)
     }
+
     /**
      * Provide an [ProvisioningService] instance.
      *
