@@ -47,7 +47,7 @@ export class MainComponent implements OnInit, OnDestroy {
 
   // Blockchain Service is resolved in the router before loading
   get selectedConsortium() {
-    return this.blockchainService.blockchainId;
+    return this.blockchainService.selectedBlockchain.id;
   }
 
   set selectedConsortium(id: string) {
