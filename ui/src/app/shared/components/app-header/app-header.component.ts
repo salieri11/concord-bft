@@ -14,7 +14,6 @@ import {
 import { environment } from '../../../../environments/environment';
 import { AuthenticationService } from '../../authentication.service';
 import { Personas, PersonaService } from '../../persona.service';
-import { TourService } from '../../tour.service';
 import { CspAPIs } from '../../../shared/urls.model';
 
 @Component({

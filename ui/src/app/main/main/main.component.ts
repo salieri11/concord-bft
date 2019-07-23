@@ -17,7 +17,7 @@ import { TourService } from '../../shared/tour.service';
 import { BlockchainWizardComponent } from '../../shared/components/blockchain-wizard/blockchain-wizard.component';
 import { SetupModalComponent } from '../setup-modal/setup-modal.component';
 import { DeployingInterstialComponent } from '../deploying-interstitial/deploying-interstitial.component';
-
+import { External } from '../../shared/urls.model';
 
 @Component({
   selector: 'concord-main',
@@ -43,6 +43,7 @@ export class MainComponent implements OnInit, OnDestroy {
   routeDataSub: Subscription;
   alertSub: Subscription;
   blockNotifySub: Subscription;
+  urls = External;
 
   // Blockchain Service is resolved in the router before loading
   get selectedConsortium() {
