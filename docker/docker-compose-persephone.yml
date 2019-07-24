@@ -5,11 +5,17 @@ services:
     ports:
       - 9001:9001
     volumes:
-      - ../hermes/resources/persephone/metadata/config.json:/config/persephone/metadata/config.json:ro
+      - ../hermes/resources/persephone/metadata:/config/persephone/metadata:ro
   deploymentservice:
     image: "${persephone_provisioning_repo}:${persephone_provisioning_tag}"
     ports:
       - 9002:9002
     volumes:
-      - ../hermes/resources/persephone/provisioning/config.json:/config/persephone/provisioning/config.json:ro
+      - ../hermes/resources/persephone/provisioning:/config/persephone/provisioning:ro
+  deploymentservice-2:
+    image: "${persephone_provisioning_repo}:${persephone_provisioning_tag}"
+    ports:
+      - 9102:9002
+    volumes:
+      - ../hermes/resources/persephone/provisioning:/config/persephone/provisioning:ro
 

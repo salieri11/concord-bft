@@ -77,11 +77,13 @@ class RPCTestHelper():
 
       return metadata
 
-   def rpc_create_cluster(self, cluster_size=4, placement_type="FIXED"):
+   def rpc_create_cluster(self, cluster_size=4, placement_type="FIXED", stub=None):
       '''
       Helper method to call create cluster gRPC
       :param cluster_size: cluster size
       :param placement_type: FIXED/UNSPECIFIED to place the concord memebers on site
+      :param stub: Default stub if running default provisioning service on port 9001,
+      else, stub for the non-default instance
       :return: deployment session ID
       '''
       header = core_pb2.MessageHeader()
@@ -96,27 +98,29 @@ class RPCTestHelper():
          header, deployment_specification)
 
       session_id = self.provision_rpc_helper.rpc_CreateCluster(
-         create_cluster_request)
+         create_cluster_request, stub=stub)
 
       if session_id:
-         self.deployed_session_ids.append(session_id)
+         self.deployed_session_ids.append((session_id,stub))
          log.debug("Session ID: ")
          for item in session_id:
             log.debug(item)
 
       return session_id
 
-   def rpc_stream_cluster_deployment_session_events(self, session_id):
+   def rpc_stream_cluster_deployment_session_events(self, session_id, stub=None):
       '''
       Helper method to stream deployment session events
       :param session_id: deployment session ID
+      :param stub: Default stub if running default provisioning service on port
+      9001, else, stub for the non-default instance
       :return: deployment events
       '''
       header = core_pb2.MessageHeader()
       get_events_request = self.provision_rpc_helper.create_cluster_deployment_session_event_request(
          header, session_id)
       events = self.provision_rpc_helper.rpc_StreamClusterDeploymentSessionEvents(
-         get_events_request)
+         get_events_request, stub=stub)
 
       if events:
          for event in events:
@@ -141,11 +145,13 @@ class RPCTestHelper():
 
       return events
 
-   def rpc_update_deployment_session(self, session_id, action):
+   def rpc_update_deployment_session(self, session_id, action, stub=None):
       '''
       Helper method to call undeploy rpc
       :param session_id: deployment session ID
-      :param action: action to be performed ()
+      :param action: action to be performed
+      :param stub: Default stub if running default provisioning service on port
+      9001, else, stub for the non-default instance
       :return: session ID
       '''
       header = core_pb2.MessageHeader()
@@ -153,7 +159,7 @@ class RPCTestHelper():
          header, session_id, action=action)
 
       session_id = self.provision_rpc_helper.rpc_UpdateDeploymentSession(
-         update_deployment_session_request)
+         update_deployment_session_request, stub=stub)
 
       if session_id:
          log.debug("Session ID: ")

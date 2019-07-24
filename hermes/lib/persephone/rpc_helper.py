@@ -54,10 +54,11 @@ class RPCHelper():
       :param service_name: service name (provisioning)
       :return: configl file
       '''
-      config_file = helper.get_docker_compose_value(
+      config_folder = helper.get_docker_compose_value(
          self.args.dockerComposeFile, service_name, "volumes")
       try:
-         config_file = config_file[0].split(':')[0]
+         config_folder = config_folder[0].split(':')[0]
+         config_file = "{}/config.json".format(config_folder)
       except Exception as e:
          raise
       return config_file

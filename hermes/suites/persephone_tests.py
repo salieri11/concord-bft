@@ -12,6 +12,7 @@ import traceback
 import threading
 import queue
 import util.helper as helper
+from util.product import Product as Product
 from . import test_suite
 sys.path.append('lib')
 
@@ -31,6 +32,7 @@ class PersephoneTests(test_suite.TestSuite):
    def __init__(self, cmdlineArgs):
       super().__init__(cmdlineArgs)
       self.args = self._args
+      self.concord_ips = []
 
    def getName(self):
       return "PersephoneTests"
@@ -84,6 +86,12 @@ class PersephoneTests(test_suite.TestSuite):
                                                      testLogDir)
          self.writeResult(testName, result, info)
 
+      # IPAM test
+      fileRoot = os.path.join(self._testLogDir, "IPAM_verification")
+      os.makedirs(fileRoot, exist_ok=True)
+      self.args.fileRoot = fileRoot
+      self.deploy_and_verify_ipam_on_4_node_fixed_site()
+
       if self.rpc_test_helper.deployed_session_ids:
          fileRoot = os.path.join(self._testLogDir, "undeploy_all_clusters")
          os.makedirs(fileRoot, exist_ok=True)
@@ -106,21 +114,25 @@ class PersephoneTests(test_suite.TestSuite):
       log.info("**** Undeploy all created blockchain clusters ****")
 
       undeployed_status = None
-      for session_id in self.rpc_test_helper.deployed_session_ids:
+      for session_id_set in self.rpc_test_helper.deployed_session_ids:
+         session_id = session_id_set[0]
+         stub = session_id_set[1]
+
          cleaned_up = False
 
          # gRPC call to Undeploy resources
          log.info("Undeploying Session ID:\n{}".format(session_id[0]))
          response = self.rpc_test_helper.rpc_update_deployment_session(
             session_id[0],
-            action=self.rpc_test_helper.UPDATE_DEPLOYMENT_ACTION_DEPROVISION_ALL)
+            action=self.rpc_test_helper.UPDATE_DEPLOYMENT_ACTION_DEPROVISION_ALL,
+            stub=stub)
 
          max_timeout = 120 # seconds
          sleep_time = 15 # seconds
          start_time = time.time()
          while ((time.time() - start_time) < max_timeout) and not cleaned_up:
             events = self.rpc_test_helper.rpc_stream_cluster_deployment_session_events(
-               session_id[0])
+               session_id[0], stub=stub)
             response_events_json = helper.protobuf_message_to_json(events)
             for event in response_events_json:
                if "RESOURCE_DEPROVISIONING" in event["type"]:
@@ -138,9 +150,10 @@ class PersephoneTests(test_suite.TestSuite):
 
       if undeployed_status:
          status_message = "Undeployed all sessions Successfully!"
+         log.info(status_message)
       else:
          status_message = "Failed to Undeploy all Sessions"
-      log.info(status_message)
+         log.error(status_message)
       self.writeResult("Undeploy", undeployed_status, status_message)
 
    def _runTest(self, testName, testFun):
@@ -226,6 +239,143 @@ class PersephoneTests(test_suite.TestSuite):
       else:
          log.warning("Port 443 forwarding to ethrpc:8545 - Failed")
 
+   def deploy_and_verify_ipam_on_4_node_fixed_site(self, cluster_size=4):
+      '''
+      Start another instance of provisioning service on a non-default port, and
+      perform a new deployment. After a successful deployment, SSH into all
+      concord nodes deployed via both instances of provisioning services and
+      check for the marker file (/tmp/<publicIP>)
+      :param cluster_size: Cluster size
+      :return: Status of IPAM verification
+      '''
+      log.info("****************************************")
+      log.info("**** Deploy & Verify concord nodes for IPAM ****")
+
+      status = False
+      if self.concord_ips:
+         try:
+            import grpc
+            from grpc_python_bindings import provisioning_service_pb2
+            from grpc_python_bindings import provisioning_service_pb2_grpc
+
+            service_name = Product.PERSEPHONE_SERVICE_PROVISIONING_2
+            ports = helper.get_docker_compose_value(
+               self.args.dockerComposeFile, service_name, "ports")
+            port = ports[0].split(':')[0]
+            channel = grpc.insecure_channel('localhost:{}'.format(port))
+            stub = provisioning_service_pb2_grpc.ProvisioningServiceStub(channel)
+            log.info("Created gRPC channel/stub for 2nd instance of provisioning "
+                     "service running on port {}".format(port))
+
+            start_time = time.time()
+            log.info("Deployment Start Time: {}".format(start_time))
+            response = self.rpc_test_helper.rpc_create_cluster(cluster_size=cluster_size, stub=stub)
+            if response:
+               response_session_id_json = helper.protobuf_message_to_json(response[0])
+               if "low" in response_session_id_json:
+                  response_deployment_session_id = response[0]
+
+                  events = self.rpc_test_helper.rpc_stream_cluster_deployment_session_events(
+                     response_deployment_session_id, stub=stub)
+                  end_time = time.time()
+                  log.info("Deployment End Time: {}".format(end_time))
+                  log.info("**** Time taken for this deployment: {} mins".format(
+                     (end_time - start_time) / 60))
+
+                  if events:
+                     deployment_status, msg = self.perform_post_deployment_validations(events,
+                                                                            cluster_size)
+                     if deployment_status:
+                        status, msg = self.verify_IPAM_configuration()
+                  else:
+                     msg = "Failed to fetch Deployment Events"
+                     log.error(msg)
+            else:
+               msg = "Failed to get a valid deployment session ID"
+               log.error(msg)
+         except Exception as e:
+            log.info("Error: {}".format(e))
+            msg = e
+      else:
+         msg = "No Deployments found from default provisioning service"
+         log.error(
+            "No Deployments found from default provisioning service. To verify "
+            "IPAM, enable one of the eployment tests hitting default "
+            "provisioning service (9001)")
+
+      self.writeResult("IPAM_Verification", status, msg)
+      return
+
+   def mark_node_as_logged_in(self, concord_ip, concord_username,
+                                 concord_password, mode=None):
+      '''
+      Helper method to call a node as "logged in" by touching a file /tmp/<publicIP>
+      :param concord_ip: Concord IP
+      :param concord_username: Concord node login - username
+      :param concord_password: Concord node login - password
+      :param mode: Nonde for marking node as "logged in". Any other mode,
+      indicates check for the marker file
+      :return: Status. True if marker file created/found, else False
+      '''
+      marker_file = "/tmp/{}".format(concord_ip)
+      if mode is None:
+         command_to_run = "touch {} ; ls {}".format(marker_file, marker_file)
+         log.debug(
+            "Marking concord node as logged in: {}".format(command_to_run))
+         validation_message_success = "Marker file '{}' created".format(
+            marker_file)
+         validation_message_fail = "Failed to create marker file '{}'".format(
+            marker_file)
+      else:
+         command_to_run = "ls {}".format(marker_file)
+         log.debug(
+            "Verifying if concord node is marked as logged in: {}".format(
+               command_to_run))
+         validation_message_success = "Marker file '{}' found".format(
+            marker_file)
+         validation_message_fail = "Cannot find marker file '{}'".format(
+            marker_file)
+
+      ssh_output = helper.ssh_connect(concord_ip,
+                                      concord_username,
+                                      concord_password,
+                                      command_to_run)
+      log.debug(ssh_output)
+      if ssh_output:
+         if ssh_output.rstrip() == marker_file:
+            log.debug(validation_message_success)
+            if mode is None:
+               self.concord_ips.append(concord_ip)
+            return True
+      log.error(validation_message_fail)
+      return False
+
+   def verify_IPAM_configuration(self):
+      '''
+      Helper method to verify IPAM configuration by doing SSH into all concord
+      IPs and verify if /tmp/<publicIP> is present
+      :return: True if "marker file" is present, else False
+      '''
+      log.info("****************************************")
+      log.info("**** Verifying IPAM configuration on all concord nodes: {}".format(
+         self.concord_ips))
+      concord_memeber_credentials = \
+         self._userConfig["persephoneTests"]["provisioningService"][
+            "concordNode"]
+      concord_username = concord_memeber_credentials["username"]
+      concord_password = concord_memeber_credentials["password"]
+      for concord_ip in self.concord_ips:
+         log.info("Verifying node: {}".format(concord_ip))
+         if not self.mark_node_as_logged_in(concord_ip, concord_username,
+                                            concord_password,
+                                            mode="VERIFY_IPAM"):
+            status_message = "IPAM test - Failed"
+            log.error(status_message)
+            return False, status_message
+
+      status_message = "IPAM test - PASS"
+      log.info(status_message)
+      return True, status_message
 
    def perform_post_deployment_validations(self, events, cluster_size):
       '''
@@ -257,6 +407,12 @@ class PersephoneTests(test_suite.TestSuite):
             for ethrpc_endpoint in ethrpc_endpoints:
                concord_ip = ethrpc_endpoint.split('//')[1].split(':')[0]
                log.info("Concord IP: {}".format(concord_ip))
+
+               if self.mark_node_as_logged_in(concord_ip, concord_username, concord_password):
+                  log.info("Marked node as logged in (/tmp/{})".format(concord_ip))
+               else:
+                  return (False, "Failed creating marker file on node '{}'".format(concord_ip))
+
                ssh_output = helper.ssh_connect(concord_ip,
                                                concord_username,
                                                concord_password,
@@ -434,6 +590,7 @@ class PersephoneTests(test_suite.TestSuite):
       :param result_queue: Result queue to save the status for each thread
       :return: Result status
       '''
+      status = None
       thread_name = threading.current_thread().name
       log.info("Thread: {}".format(thread_name))
       start_time = time.time()
@@ -539,15 +696,19 @@ class PersephoneTests(test_suite.TestSuite):
             all_deployment_session_ids_from_stream))
 
          status = False
-         for session_id in self.rpc_test_helper.deployed_session_ids:
-            if helper.protobuf_message_to_json(
-                  session_id[0]) in all_deployment_session_ids_from_stream:
-               status = True
-               status_message = "Fetched all deployment Events Successfully!"
-            else:
-               status = False
-               status_message = "Failed to fetch All Deployment Events"
-               break
+         for session_id_set in self.rpc_test_helper.deployed_session_ids:
+            session_id = session_id_set[0]
+            stub = session_id_set[1]
+
+            if stub is None: # check for default channel/stub only
+               if helper.protobuf_message_to_json(
+                     session_id[0]) in all_deployment_session_ids_from_stream:
+                  status = True
+                  status_message = "Fetched all deployment Events Successfully!"
+               else:
+                  status = False
+                  status_message = "Failed to fetch All Deployment Events"
+                  break
       self.writeResult("StreamAllDeploymentEvents", status, status_message)
 
    def _stream_all_deployment_events(self):
