@@ -12,6 +12,7 @@
 // file.
 
 #include <assert.h>
+#include <chrono>
 #include <map>
 #include <set>
 #include "basicRandomTestsRunner.hpp"
@@ -25,6 +26,7 @@
 using std::list;
 using std::map;
 using std::set;
+using std::chrono::seconds;
 
 using concord::storage::BlockId;
 using concord::storage::IClient;
@@ -61,7 +63,8 @@ BlockId TestsBuilder::getInitialLastBlockId() {
   uint32_t actualReplySize = 0;
 
   client_.invokeCommandSynch((char *)request, sizeof(SimpleGetLastBlockRequest),
-                             true, expectedReplySize, reply, &actualReplySize);
+                             true, seconds(5), expectedReplySize, reply,
+                             &actualReplySize);
 
   auto *replyObj = (SimpleReply_GetLastBlock *)reply;
   assert(actualReplySize == expectedReplySize);
@@ -90,7 +93,8 @@ void TestsBuilder::retrieveExistingBlocksFromKVB() {
     memcpy(requestKeys[key].key, &key, sizeof(key));
 
   client_.invokeCommandSynch((char *)request, request->getSize(), true,
-                             expectedReplySize, reply, &actualReplySize);
+                             seconds(5), expectedReplySize, reply,
+                             &actualReplySize);
 
   auto *replyObj = (SimpleReply_Read *)reply;
   size_t numOfItems = replyObj->numOfItems;

@@ -6,6 +6,7 @@
 // TODO: write about thread-safety
 
 #include <Replica.hpp>
+#include <chrono>
 #include <iterator>
 #include <set>
 #include <string>
@@ -202,8 +203,9 @@ class IClient {
                                     Status returnedStatus, Sliver outreply);
 
   virtual Status invokeCommandSynch(const char* request, uint32_t requestSize,
-                                    bool isReadOnly, uint32_t replySize,
-                                    char* outReply,
+                                    bool isReadOnly,
+                                    std::chrono::milliseconds timeout,
+                                    uint32_t replySize, char* outReply,
                                     uint32_t* outActualReplySize) = 0;
 };
 

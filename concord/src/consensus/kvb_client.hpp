@@ -7,6 +7,7 @@
 
 #include <log4cplus/loggingmacros.h>
 #include <boost/lockfree/queue.hpp>
+#include <chrono>
 #include <vector>
 
 #include "concord.pb.h"
@@ -27,6 +28,7 @@ namespace consensus {
 class KVBClient {
  private:
   concord::storage::IClient *client_;
+  std::chrono::milliseconds timeout_;
   std::shared_ptr<concord::time::TimePusher> timePusher_;
   log4cplus::Logger logger_;
   static constexpr size_t OUT_BUFFER_SIZE = 512000;
@@ -34,8 +36,10 @@ class KVBClient {
 
  public:
   KVBClient(concord::storage::IClient *client,
+            std::chrono::milliseconds timeout,
             std::shared_ptr<concord::time::TimePusher> timePusher)
       : client_(client),
+        timeout_(timeout),
         timePusher_(timePusher),
         logger_(log4cplus::Logger::getInstance("com.vmware.concord")) {}
 

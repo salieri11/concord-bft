@@ -365,6 +365,8 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
 
     std::vector<KVBClient *> clients;
 
+    std::chrono::milliseconds clientTimeout(
+        nodeConfig.getValue<uint32_t>("bft_client_timeout_ms"));
     for (uint16_t i = 0;
          i < config.getValue<uint16_t>("client_proxies_per_replica"); ++i) {
       ClientConsensusConfig clientConsensusConfig;
@@ -376,7 +378,7 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
       IClient *client = concord::consensus::createClient(clientCommConfig,
                                                          clientConsensusConfig);
       client->start();
-      KVBClient *kvbClient = new KVBClient(client, timePusher);
+      KVBClient *kvbClient = new KVBClient(client, clientTimeout, timePusher);
       clients.push_back(kvbClient);
     }
 

@@ -3165,6 +3165,16 @@ void specifyConfiguration(ConcordConfiguration& config) {
                         "0.0.0.0:55000");
   node.tagParameter("daml_execution_engine_addr", defaultableByReplicaTags);
 
+  node.declareParameter(
+      "bft_client_timeout_ms",
+      "How long to wait for a command execution response, in milliseconds. "
+      "Zero is treated as infinity.",
+      "0");
+  node.tagParameter("bft_client_timeout_ms", defaultableByReplicaTags);
+  node.addValidator(
+      "bft_client_timeout_ms", validateUInt,
+      const_cast<void*>(reinterpret_cast<const void*>(&kUInt32Limits)));
+
   node.declareParameter("api_worker_pool_size",
                         "Number of threads to create to handle TCP connections "
                         "to this node's external API.",
