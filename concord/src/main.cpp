@@ -177,7 +177,7 @@ concord::consensus::Status create_genesis_block(IReplica *replica,
                                                 Logger logger) {
   const ILocalKeyValueStorageReadOnly &storage = replica->getReadOnlyStorage();
   IdleBlockAppender blockAppender(replica);
-  EthKvbStorage kvbStorage(storage, &blockAppender, 0);
+  EthKvbStorage kvbStorage(storage, &blockAppender);
 
   if (storage.getLastBlock() > 0) {
     LOG4CPLUS_INFO(logger, "Blocks already loaded, skipping genesis");
@@ -405,7 +405,7 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
       // write block
       const ILocalKeyValueStorageReadOnly &storage = replica;
       IdleBlockAppender block_appender(&replica);
-      HlfKvbStorage kvb_storage = HlfKvbStorage(storage, &block_appender, 0);
+      HlfKvbStorage kvb_storage = HlfKvbStorage(storage, &block_appender);
 
       // Start HLF gRPC services
       RunHlfGrpcServer(kvb_storage, pool, key_value_service_addr,

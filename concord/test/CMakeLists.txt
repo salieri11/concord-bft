@@ -92,9 +92,7 @@ add_executable(ReplicaStateSyncTests
   ../src/common/concord_log.cpp
   ../src/common/concord_types.cpp
   ../src/consensus/replica_state_sync_imp.cpp
-  ../src/ethereum/eth_kvb_storage.cpp
-  ../src/ethereum/evm_init_params.cpp
-  ../src/ethereum/concord_evm.cpp
+  ../src/storage/concord_metadata_storage.cpp
   ../src/utils/concord_eth_hash.cpp
   ../src/utils/rlp.cpp
   replicaStateSync_test.cpp)
@@ -108,7 +106,7 @@ target_link_libraries(ReplicaStateSyncTests
   ${EVM_LIBRARIES}
   LLVMSupport
   concord_utils
-  concord_consensus)
+  concord_storage)
 
 add_executable(TimeContractTests
   time_contract_test.cpp

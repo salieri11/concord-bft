@@ -23,6 +23,7 @@ ConcordCommandsHandler::ConcordCommandsHandler(
     concord::storage::IBlocksAppender &appender)
     : logger_(log4cplus::Logger::getInstance(
           "concord.consensus.ConcordCommandsHandler")),
+      metadata_storage_(storage),
       storage_(storage),
       appender_(appender) {
   if (concord::time::IsTimeServiceEnabled(config)) {
@@ -37,6 +38,8 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
                                     uint32_t max_response_size,
                                     char *response_buffer,
                                     uint32_t &out_response_size) {
+  executing_bft_sequence_num_ = sequence_num;
+
   request_.Clear();
   response_.Clear();
 
@@ -65,7 +68,7 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
       }
     }
 
-    result = Execute(request_, sequence_num, read_only, time_.get(), response_);
+    result = Execute(request_, read_only, time_.get(), response_);
 
     if (time_ && request_.has_time_request()) {
       TimeRequest tr = request_.time_request();
@@ -77,7 +80,7 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
           if (!read_only) {
             // The state machine might have had no commands in the request. Go
             // ahead and store just the time update.
-            WriteEmptyBlock(sequence_num, time_.get());
+            WriteEmptyBlock(time_.get());
 
             // Create an empty time response, so that out_response_size is not
             // zero.
@@ -202,8 +205,8 @@ Status ConcordCommandsHandler::addBlock(
     amended_updates[tc_state.first] = tc_state.second;
   }
 
-  // TODO: Move sequence number persistence from eth_kvb_storage to here, so
-  // that all state machines get it automatically.
+  amended_updates[metadata_storage_.BlockMetadataKey()] =
+      metadata_storage_.SerializeBlockMetadata(executing_bft_sequence_num_);
 
   return appender_.addBlock(amended_updates, out_block_id);
 }

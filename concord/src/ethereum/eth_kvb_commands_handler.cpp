@@ -77,13 +77,10 @@ EthKvbCommandsHandler::~EthKvbCommandsHandler() {
 // Callback from SBFT/KVB. Process the request (mostly by talking to
 // EVM). Returns false if the command is illegal or invalid; true otherwise.
 bool EthKvbCommandsHandler::Execute(const ConcordRequest &request,
-                                    uint64_t sequence_num, bool read_only,
-                                    TimeContract *time,
+                                    bool read_only, TimeContract *time,
                                     ConcordResponse &response) {
-  // TODO: move sequenceNum to ConcordCommandsHandler
-  EthKvbStorage kvb_storage = read_only
-                                  ? EthKvbStorage(storage_)
-                                  : EthKvbStorage(storage_, this, sequence_num);
+  EthKvbStorage kvb_storage =
+      read_only ? EthKvbStorage(storage_) : EthKvbStorage(storage_, this);
 
   bool result;
   if (request.eth_request_size() > 0) {
@@ -117,8 +114,7 @@ bool EthKvbCommandsHandler::Execute(const ConcordRequest &request,
 // This implementation depends on there being a 1:1 mapping between Ethereum
 // block and KVB block, so if there is something like a time update, but no
 // ethereum transaction, we still need to write a block.
-void EthKvbCommandsHandler::WriteEmptyBlock(uint64_t sequence_num,
-                                            TimeContract *time) {
+void EthKvbCommandsHandler::WriteEmptyBlock(TimeContract *time) {
   // This is currently only called when time service is enabled, so timeContract
   // should always be non-null, but let's take the safest route for now.
   uint64_t timestamp = 0;
@@ -128,7 +124,7 @@ void EthKvbCommandsHandler::WriteEmptyBlock(uint64_t sequence_num,
     timestamp = time->GetTime() / 1000;
   }
 
-  EthKvbStorage kvb_storage(storage_, this, sequence_num);
+  EthKvbStorage kvb_storage(storage_, this);
   kvb_storage.write_block(timestamp, gas_limit_);
 }
 

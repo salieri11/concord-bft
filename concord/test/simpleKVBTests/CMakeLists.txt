@@ -20,7 +20,8 @@ set(replica_sources
   ${PROJECT_SOURCE_DIR}/src/common/concord_log.cpp
   ${PROJECT_SOURCE_DIR}/src/ethereum/concord_evm.cpp
   ${PROJECT_SOURCE_DIR}/src/ethereum/evm_init_params.cpp
-  ${PROJECT_SOURCE_DIR}/src/ethereum/eth_kvb_storage.cpp)
+  ${PROJECT_SOURCE_DIR}/src/ethereum/eth_kvb_storage.cpp
+  ${PROJECT_SOURCE_DIR}/src/storage/concord_metadata_storage.cpp)
 
 set(db_editor_sources DBEditor/main.cpp)
 

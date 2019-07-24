@@ -44,7 +44,7 @@ class HlfKvbStorage {
   // read-write mode
   HlfKvbStorage(
       const concord::storage::ILocalKeyValueStorageReadOnly& ro_storage,
-      concord::storage::IBlocksAppender* block_appender, uint64_t sequence_num);
+      concord::storage::IBlocksAppender* block_appender);
 
   ~HlfKvbStorage();
 

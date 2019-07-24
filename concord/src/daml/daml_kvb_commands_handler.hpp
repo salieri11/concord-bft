@@ -43,11 +43,9 @@ class DamlKvbCommandsHandler
         validator_client_(std::move(validator)) {}
 
   bool Execute(const com::vmware::concord::ConcordRequest& request,
-               uint64_t sequence_num, bool read_only,
-               concord::time::TimeContract* time_contract,
+               bool read_only, concord::time::TimeContract* time_contract,
                com::vmware::concord::ConcordResponse& response) override;
-  void WriteEmptyBlock(uint64_t sequence_num,
-                       concord::time::TimeContract* time_contract) override;
+  void WriteEmptyBlock(concord::time::TimeContract* time_contract) override;
 
  private:
   bool ExecuteRead(const com::digitalasset::kvbc::ReadCommand& readCmd,

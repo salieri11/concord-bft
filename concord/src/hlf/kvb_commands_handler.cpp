@@ -56,19 +56,17 @@ HlfKvbCommandsHandler::~HlfKvbCommandsHandler() {
 }
 
 bool HlfKvbCommandsHandler::Execute(const ConcordRequest& request,
-                                    uint64_t sequence_num, bool read_only,
-                                    TimeContract* time_contract,
+                                    bool read_only, TimeContract* time_contract,
                                     ConcordResponse& response) {
   if (read_only) {
     return ExecuteReadOnlyCommand(request, time_contract, response);
   } else {
-    return ExecuteCommand(request, sequence_num, time_contract, response);
+    return ExecuteCommand(request, time_contract, response);
   }
 }
 
-void HlfKvbCommandsHandler::WriteEmptyBlock(uint64_t sequence_num,
-                                            TimeContract* time_contract) {
-  HlfKvbStorage kvb_hlf_storage(storage_, this, sequence_num);
+void HlfKvbCommandsHandler::WriteEmptyBlock(TimeContract* time_contract) {
+  HlfKvbStorage kvb_hlf_storage(storage_, this);
   kvb_hlf_storage.WriteHlfBlock();
 }
 
@@ -95,10 +93,9 @@ bool HlfKvbCommandsHandler::ExecuteReadOnlyCommand(
 // Callback from SBFT/KVB. Process the request Returns
 // false if the command is illegal or invalid; true otherwise.
 bool HlfKvbCommandsHandler::ExecuteCommand(const ConcordRequest& command,
-                                           uint64_t sequence_num,
                                            TimeContract* time_contract,
                                            ConcordResponse& command_response) {
-  HlfKvbStorage kvb_hlf_storage(storage_, this, sequence_num);
+  HlfKvbStorage kvb_hlf_storage(storage_, this);
 
   if (command.hlf_request_size() > 0) {
     // pass the addr of kvb_hlf_storage

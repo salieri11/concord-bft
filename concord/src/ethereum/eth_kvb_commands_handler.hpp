@@ -39,11 +39,9 @@ class EthKvbCommandsHandler
 
   // concord::consensus::ConcordStateMachine
   bool Execute(const com::vmware::concord::ConcordRequest &request,
-               uint64_t sequence_num, bool read_only,
-               concord::time::TimeContract *time,
+               bool read_only, concord::time::TimeContract *time,
                com::vmware::concord::ConcordResponse &response) override;
-  void WriteEmptyBlock(uint64_t sequence_num,
-                       concord::time::TimeContract *time) override;
+  void WriteEmptyBlock(concord::time::TimeContract *time) override;
 
  private:
   // Handlers

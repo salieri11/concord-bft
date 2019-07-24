@@ -112,25 +112,25 @@ TEST(hlf_test, chaincode_invoker_peer_command_tool) {
 
 TEST(hlf_test, hlf_kvb_storage_write_block) {
   TestStorage test_storage;
-  concord::hlf::HlfKvbStorage kvb_hlf_storage(test_storage, &test_storage, 0);
+  concord::hlf::HlfKvbStorage kvb_hlf_storage(test_storage, &test_storage);
   EXPECT_TRUE(kvb_hlf_storage.WriteHlfBlock().isOK());
 }
 
 TEST(hlf_test, hlf_kvb_storage_get) {
   TestStorage test_storage;
-  concord::hlf::HlfKvbStorage kvb_hlf_storage(test_storage, &test_storage, 0);
+  concord::hlf::HlfKvbStorage kvb_hlf_storage(test_storage, &test_storage);
   ASSERT_EQ("", kvb_hlf_storage.GetHlfState("mycc-key"));
 }
 
 TEST(hlf_test, hlf_kvb_storage_put) {
   TestStorage test_storage;
-  concord::hlf::HlfKvbStorage kvb_hlf_storage(test_storage, &test_storage, 0);
+  concord::hlf::HlfKvbStorage kvb_hlf_storage(test_storage, &test_storage);
   EXPECT_TRUE(kvb_hlf_storage.SetHlfState("mycc-key", "abcefg").isOK());
 }
 
 TEST(hlf_test, hlf_kvb_storage_add_tx) {
   TestStorage test_storage;
-  concord::hlf::HlfKvbStorage kvb_hlf_storage(test_storage, &test_storage, 0);
+  concord::hlf::HlfKvbStorage kvb_hlf_storage(test_storage, &test_storage);
   // mock up HLFRequest
   HlfRequest hlf_request;
   hlf_request.set_input("input");

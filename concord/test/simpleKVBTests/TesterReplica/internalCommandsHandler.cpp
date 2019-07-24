@@ -15,12 +15,13 @@
 #include <assert.h>
 #include "consensus/hash_defs.h"
 #include "ethereum/eth_kvb_storage.hpp"
+#include "storage/concord_metadata_storage.h"
 
 using namespace BasicRandomTests;
 
 using concord::consensus::Status;
-using concord::ethereum::EthKvbStorage;
 using concord::storage::BlockId;
+using concord::storage::ConcordMetadataStorage;
 using concord::storage::SetOfKeyValuePairs;
 
 const auto KEY_TYPE = concord::storage::EDBKeyType::E_DB_KEY_TYPE_KEY;
@@ -50,9 +51,9 @@ int InternalCommandsHandler::execute(uint16_t clientId, uint64_t sequenceNum,
 
 void InternalCommandsHandler::addMetadataKeyValue(SetOfKeyValuePairs &updates,
                                                   uint64_t sequenceNum) const {
-  EthKvbStorage kvbStorage(*m_storage, m_blocksAppender, sequenceNum);
-  Sliver metadataKey = kvbStorage.block_metadata_key();
-  Sliver metadataValue = kvbStorage.set_block_metadata_value(sequenceNum);
+  ConcordMetadataStorage cmStorage(*m_storage);
+  Sliver metadataKey = cmStorage.BlockMetadataKey();
+  Sliver metadataValue = cmStorage.SerializeBlockMetadata(sequenceNum);
   updates.insert(KeyValuePair(metadataKey, metadataValue));
 }
 

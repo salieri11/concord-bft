@@ -14,11 +14,11 @@
 
 #include "replica_state_sync_imp.hpp"
 
-#include "ethereum/eth_kvb_storage.hpp"
+#include "storage/concord_metadata_storage.h"
 
-using concord::ethereum::EthKvbStorage;
 using concord::storage::BlockchainDBAdapter;
 using concord::storage::BlockId;
+using concord::storage::ConcordMetadataStorage;
 using concord::storage::ILocalKeyValueStorageReadOnly;
 using concord::storage::Key;
 using concord::storage::KeyManipulator;
@@ -31,14 +31,14 @@ uint64_t ReplicaStateSyncImp::execute(log4cplus::Logger &logger,
                                       ILocalKeyValueStorageReadOnly &kvs,
                                       BlockId lastReachableBlockId,
                                       uint64_t lastExecutedSeqNum) {
-  EthKvbStorage roKvs(kvs);
+  ConcordMetadataStorage roKvs(kvs);
   BlockId blockId = lastReachableBlockId;
   uint64_t blockSeqNum = 0;
   uint64_t removedBlocksNum = 0;
-  Key key = roKvs.block_metadata_key();
+  Key key = roKvs.BlockMetadataKey();
   do {
     Key fullKey = KeyManipulator::genDataDbKey(key, blockId);
-    blockSeqNum = roKvs.get_block_metadata(fullKey);
+    blockSeqNum = roKvs.GetBlockMetadata(fullKey);
     LOG4CPLUS_INFO(
         logger, "Block Metadata key = " << fullKey << ", blockId = " << blockId
                                         << ", blockSeqNum = " << blockSeqNum);

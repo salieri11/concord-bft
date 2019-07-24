@@ -7,8 +7,11 @@
 
 #include "concord.pb.h"
 #include "storage/blockchain_interfaces.h"
+#include "storage/concord_metadata_storage.h"
 #include "time/time_contract.hpp"
 #include "time/time_reading.hpp"
+
+#include <log4cplus/logger.h>
 
 namespace concord {
 namespace consensus {
@@ -17,6 +20,8 @@ class ConcordCommandsHandler : public concord::storage::ICommandsHandler,
                                public concord::storage::IBlocksAppender {
  private:
   log4cplus::Logger logger_;
+  concord::storage::ConcordMetadataStorage metadata_storage_;
+  uint64_t executing_bft_sequence_num_;
 
  protected:
   const concord::storage::ILocalKeyValueStorageReadOnly &storage_;
@@ -57,11 +62,8 @@ class ConcordCommandsHandler : public concord::storage::ICommandsHandler,
   //
   // The subclass should fill out any fields in `response` that it wants to
   // return to the client.
-  //
-  // TODO: move sequenceNum from eth_kvb_storage to this class, and then remove
-  // it from this function.
   virtual bool Execute(const com::vmware::concord::ConcordRequest &request,
-                       uint64_t sequence_num, bool read_only,
+                       bool read_only,
                        concord::time::TimeContract *time_contract,
                        com::vmware::concord::ConcordResponse &response) = 0;
 
@@ -69,11 +71,7 @@ class ConcordCommandsHandler : public concord::storage::ICommandsHandler,
   // store state that is not controlled by the subclass. This callback gives the
   // subclass a chance to add its own data to that block (for example, an
   // "empty" smart-contract-level block).
-  //
-  // TODO: move sequenceNum from eth_kvb_storage to this class, and then remove
-  // it from this function.
-  virtual void WriteEmptyBlock(uint64_t sequence_num,
-                               concord::time::TimeContract *time_contract) = 0;
+  virtual void WriteEmptyBlock(concord::time::TimeContract *time_contract) = 0;
 };
 
 }  // namespace consensus

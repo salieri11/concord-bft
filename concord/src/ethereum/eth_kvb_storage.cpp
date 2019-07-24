@@ -10,10 +10,9 @@
 // mode.
 //
 // To add a block, first call the set/add functions to prepare data for the
-// block. When all data has been prepared, call `write_block`. A key-value pair
-// with the block metadata is added for you. After calling `write_block`, the
-// staging area is cleared, and more objects can be prepared for a new block, if
-// desired.
+// block. When all data has been prepared, call `write_block`. After calling
+// `write_block`, the staging area is cleared, and more objects can be prepared
+// for a new block, if desired.
 //
 // After calling set/add/write, a copy of the data has been made, which is
 // managed by this object. The original value passed to the set/add/write
@@ -57,11 +56,6 @@
 //   - Key: TYPE_NONCE+[account address (20 bytes)]
 //   - Value: com::vmware::concord::kvb::Nonce protobuf
 //   - Notes: As with balance, using protobuf solves encoding issues.
-//
-// * Block Metadata
-//   - Key: TYPE_BLOCK_METADATA
-//   - Value: com::vmware::concord::kvb::BlockMetadata protobuf
-//   - Notes: As with balance, using protobuf solves encoding issues.
 
 #include "eth_kvb_storage.hpp"
 
@@ -102,7 +96,6 @@ namespace ethereum {
 const int64_t balance_storage_version = 1;
 const int64_t nonce_storage_version = 1;
 const int64_t code_storage_version = 1;
-const int64_t block_metadata_version = 1;
 
 // read-only mode
 EthKvbStorage::EthKvbStorage(const ILocalKeyValueStorageReadOnly &roStorage)
@@ -112,12 +105,10 @@ EthKvbStorage::EthKvbStorage(const ILocalKeyValueStorageReadOnly &roStorage)
 
 // read-write mode
 EthKvbStorage::EthKvbStorage(const ILocalKeyValueStorageReadOnly &roStorage,
-                             IBlocksAppender *blockAppender,
-                             uint64_t sequenceNum)
+                             IBlocksAppender *blockAppender)
     : roStorage_(roStorage),
       blockAppender_(blockAppender),
-      logger(log4cplus::Logger::getInstance("com.vmware.concord.kvb")),
-      bftSequenceNum_(sequenceNum) {}
+      logger(log4cplus::Logger::getInstance("com.vmware.concord.kvb")) {}
 
 EthKvbStorage::~EthKvbStorage() {
   // Any Slivers in updates will release their memory automatically.
@@ -183,10 +174,6 @@ Sliver EthKvbStorage::nonce_key(const evm_address &addr) const {
 
 Sliver EthKvbStorage::code_key(const evm_address &addr) const {
   return kvb_key(TYPE_CODE, addr.bytes, sizeof(addr));
-}
-
-Sliver EthKvbStorage::block_metadata_key() const {
-  return kvb_key(TYPE_BLOCK_METADATA, nullptr, 0);
 }
 
 Sliver EthKvbStorage::storage_key(const evm_address &addr,
@@ -263,8 +250,6 @@ Status EthKvbStorage::write_block(uint64_t timestamp, uint64_t gas_limit) {
   // Create serialized versions of the objects and store them in a staging area.
   add_block(blk);
 
-  // Add Block metadata key/value pair to the ready list of updates.
-  set_block_metadata();
   // Actually write the block
   BlockId outBlockId;
   Status status = blockAppender_->addBlock(updates, outBlockId);
@@ -353,21 +338,6 @@ void EthKvbStorage::set_storage(const evm_address &addr,
   uint8_t *str = new uint8_t[sizeof(data)];
   std::copy(data.bytes, data.bytes + sizeof(data), str);
   put(storage_key(addr, location), Sliver(str, sizeof(data)));
-}
-
-// Used for Unit Tests, as well.
-Sliver EthKvbStorage::set_block_metadata_value(uint64_t bftSequenceNum) const {
-  com::vmware::concord::kvb::BlockMetadata proto;
-  proto.set_version(block_metadata_version);
-  proto.set_bft_sequence_num(bftSequenceNum);
-  size_t serSize = proto.ByteSize();
-  auto *ser = new uint8_t[serSize];
-  proto.SerializeToArray(ser, serSize);
-  return Sliver(ser, serSize);
-}
-
-void EthKvbStorage::set_block_metadata() {
-  put(block_metadata_key(), set_block_metadata_value(bftSequenceNum_));
 }
 
 ////////////////////////////////////////
@@ -670,30 +640,6 @@ evm_uint256be EthKvbStorage::get_storage(const evm_address &addr,
     std::memset(out.bytes, 0, sizeof(out));
   }
   return out;
-}
-
-uint64_t EthKvbStorage::get_block_metadata(Sliver key) {
-  Sliver outValue;
-  Status status = roStorage_.get(key, outValue);
-  uint64_t sequenceNum = 0;
-  if (status.isOK() && outValue.length() > 0) {
-    com::vmware::concord::kvb::BlockMetadata blockMetadata;
-    if (blockMetadata.ParseFromArray(outValue.data(), outValue.length())) {
-      if (blockMetadata.version() == block_metadata_version) {
-        sequenceNum = blockMetadata.bft_sequence_num();
-      } else {
-        LOG4CPLUS_ERROR(logger, "Unknown block metadata version :"
-                                    << blockMetadata.version());
-        throw EVMException("Unknown block metadata version");
-      }
-    } else {
-      LOG4CPLUS_ERROR(logger, "Unable to decode block metadata" << outValue);
-      throw EVMException("Corrupted block metadata");
-    }
-  }
-  LOG4CPLUS_INFO(logger, "key = " << key << ", status: " << status
-                                  << ", sequenceNum = " << sequenceNum);
-  return sequenceNum;
 }
 
 }  // namespace ethereum

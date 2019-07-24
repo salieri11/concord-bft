@@ -40,15 +40,12 @@ class HlfKvbCommandsHandler
   ~HlfKvbCommandsHandler();
 
   bool Execute(const com::vmware::concord::ConcordRequest& request,
-               uint64_t sequence_num, bool read_only,
-               concord::time::TimeContract* time_contract,
+               bool read_only, concord::time::TimeContract* time_contract,
                com::vmware::concord::ConcordResponse& response) override;
-  void WriteEmptyBlock(uint64_t sequence_num,
-                       concord::time::TimeContract* time_contract) override;
+  void WriteEmptyBlock(concord::time::TimeContract* time_contract) override;
 
  private:
   bool ExecuteCommand(const com::vmware::concord::ConcordRequest& request,
-                      uint64_t sequence_num,
                       concord::time::TimeContract* time_contract,
                       com::vmware::concord::ConcordResponse& response);
 
