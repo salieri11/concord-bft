@@ -104,7 +104,7 @@ class DamlTests(test_suite.TestSuite):
       """Run ledger_api_test_tool
       """
       cmd = "docker exec -t docker_daml_ledger_api1_1 " \
-            "java -jar /ledger-api-test-tool_2.12-100.13.8.jar"
+            "java -jar /ledger-api-test-tool_2.12-100.13.8.jar --timeout-scale-factor 2"
       try:
          subprocess.check_call(cmd.split(), timeout=120)
       except subprocess.TimeoutExpired as e:
