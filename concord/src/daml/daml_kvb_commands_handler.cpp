@@ -84,8 +84,10 @@ bool DamlKvbCommandsHandler::ExecuteCommit(
     // TODO: We expect milliseconds
     record_time = google::protobuf::util::TimeUtil::NanosecondsToTimestamp(
         time->GetTime() * 1000000);
+    LOG4CPLUS_DEBUG(logger_, "Using time service time " << record_time);
   } else {
     record_time = google::protobuf::util::TimeUtil::GetEpoch();
+    LOG4CPLUS_DEBUG(logger_, "Using epoch time " << record_time);
   }
 
   // Resolve the inputs
