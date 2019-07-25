@@ -291,6 +291,7 @@ def call(){
                 env.release_helen_repo = env.release_repo + "/concord-ui"
                 env.release_persephone_metadata_repo = env.release_repo + "/persephone-metadata"
                 env.release_persephone_provisioning_repo = env.release_repo + "/persephone-provisioning"
+                env.release_persephone_configuration_repo = env.release_repo + "/persephone-configuration"
                 env.release_persephone_fleet_repo = env.release_repo + "/persephone-fleet"
                 env.release_ui_repo = env.release_repo + "/ui"
                 env.release_contract_compiler_repo = env.release_repo + "/contract-compiler"
@@ -309,6 +310,7 @@ def call(){
                 env.internal_fluentd_repo = env.release_fluentd_repo.replace(env.release_repo, env.internal_repo)
                 env.internal_helen_repo = env.internal_repo + "/helen"
                 env.internal_persephone_metadata_repo = env.release_persephone_metadata_repo.replace(env.release_repo, env.internal_repo)
+                env.internal_persephone_configuration_repo = env.release_persephone_configuration_repo.replace(env.release_repo, env.internal_repo)
                 env.internal_persephone_provisioning_repo = env.release_persephone_provisioning_repo.replace(env.release_repo, env.internal_repo)
                 env.internal_persephone_fleet_repo = env.release_persephone_fleet_repo.replace(env.release_repo, env.internal_repo)
                 env.internal_ui_repo = env.release_ui_repo.replace(env.release_repo, env.internal_repo)
@@ -347,6 +349,8 @@ helen_repo=${internal_helen_repo}
 helen_tag=${docker_tag}
 persephone_metadata_repo=${internal_persephone_metadata_repo}
 persephone_metadata_tag=${docker_tag}
+persephone_configuration_repo=${internal_persephone_configuration_repo}
+persephone_configuration_tag=${docker_tag}
 persephone_provisioning_repo=${internal_persephone_provisioning_repo}
 persephone_provisioning_tag=${docker_tag}
 persephone_fleet_repo=${internal_persephone_fleet_repo}
