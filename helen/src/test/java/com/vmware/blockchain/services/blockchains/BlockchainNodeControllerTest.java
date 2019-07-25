@@ -47,6 +47,7 @@ import com.vmware.blockchain.deployment.model.FleetManagementServiceStub;
 import com.vmware.blockchain.deployment.model.MessageHeader;
 import com.vmware.blockchain.deployment.model.UpdateInstanceRequest;
 import com.vmware.blockchain.deployment.model.UpdateInstanceResponse;
+import com.vmware.blockchain.operation.OperationContext;
 import com.vmware.blockchain.security.MvcTestSecurityConfig;
 import com.vmware.blockchain.security.SecurityTestUtils;
 import com.vmware.blockchain.services.blockchains.BlockchainController.BlockchainTaskResponse;
@@ -94,6 +95,9 @@ class BlockchainNodeControllerTest {
 
     @MockBean
     BlockchainService blockchainService;
+
+    @MockBean
+    OperationContext operationContext;
 
     TestTaskService taskService;
 

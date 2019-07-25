@@ -41,6 +41,7 @@ import com.vmware.blockchain.deployment.model.PlacementSpecification.Entry;
 import com.vmware.blockchain.deployment.model.ProvisioningServiceStub;
 import com.vmware.blockchain.deployment.model.StreamClusterDeploymentSessionEventRequest;
 import com.vmware.blockchain.deployment.model.ethereum.Genesis;
+import com.vmware.blockchain.operation.OperationContext;
 import com.vmware.blockchain.services.blockchains.Blockchain.NodeEntry;
 import com.vmware.blockchain.services.profiles.ConsortiumService;
 import com.vmware.blockchain.services.profiles.DefaultProfiles;
@@ -145,6 +146,7 @@ public class BlockchainController {
     private DefaultProfiles defaultProfiles;
     private TaskService taskService;
     private ManagedChannel channel;
+    private OperationContext operationContext;
     private boolean mockDeployment;
 
     /**
@@ -179,6 +181,7 @@ public class BlockchainController {
                                 DefaultProfiles defaultProfiles,
                                 TaskService taskService,
                                 ManagedChannel channel,
+                                OperationContext operationContext,
                                 @Value("${mock.deployment:false}") boolean mockDeployment) {
         this.blockchainService = blockchainService;
         this.consortiumService = consortiumService;
@@ -186,6 +189,7 @@ public class BlockchainController {
         this.defaultProfiles = defaultProfiles;
         this.taskService = taskService;
         this.channel = channel;
+        this.operationContext = operationContext;
         this.mockDeployment = mockDeployment;
     }
 
@@ -268,7 +272,7 @@ public class BlockchainController {
         );
         DeploymentSpecification deploySpec =
                 new DeploymentSpecification(clusterSize, spec, placementSpec, genesis);
-        var request = new CreateClusterRequest(new MessageHeader(), deploySpec);
+        var request = new CreateClusterRequest(new MessageHeader(operationContext.getId()), deploySpec);
         // Check that the API can be serviced normally after service initialization.
         var promise = new CompletableFuture<DeploymentSessionIdentifier>();
         client.createCluster(request, blockedResultObserver(promise));
@@ -304,7 +308,7 @@ public class BlockchainController {
         } else {
             final ProvisioningServiceStub client = new ProvisioningServiceStub(channel, CallOptions.DEFAULT);
             DeploymentSessionIdentifier dsId = createFixedSizeCluster(client, clusterSize);
-            logger.info("Deployment started, id {}", dsId);
+            logger.info("Deployment started, id {} for the consortium id {}", dsId, body.consortiumId.toString());
             BlockchainObserver bo =
                     new BlockchainObserver(authHelper, blockchainService, taskService, task.getId(),
                                            body.getConsortiumId());
