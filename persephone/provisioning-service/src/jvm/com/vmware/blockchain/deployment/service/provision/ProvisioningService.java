@@ -900,13 +900,7 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
                     log.info("Deployment session({}) completed", session.getId());
                 }, executor)
                 .exceptionally(error -> {
-                    // Create the updated deployment session instance.
-                    var deleteEvents = deleteResourceEvents(session.getEvents());
-
-                    var deprovisioningSessionEvents = toDeprovisioningEvents(
-                            session, deleteEvents, DeploymentSession.Status.FAILURE);
-
-                    session.getEvents().addAll(deprovisioningSessionEvents);
+                    log.info("Deployment session({}) failed", session.getId(), error);
 
                     var event = newCompleteEvent(session.getId(), DeploymentSession.Status.FAILURE);
                     var updatedSession = new DeploymentSession(
@@ -923,7 +917,8 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
                     // FIXME: This does not take into account of persistence nor retry.
                     deploymentLog.get(session.getId()).complete(updatedSession);
 
-                    log.error("Deployment session({}) failed", session.getId(), error);
+                    deprovision(session.getId());
+                    log.info("Deployment session({}) cleaned", session.getId(), error);
 
                     return null; // To satisfy type signature (Void).
                 });
