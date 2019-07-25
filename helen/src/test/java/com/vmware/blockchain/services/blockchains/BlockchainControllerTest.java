@@ -46,6 +46,7 @@ import com.vmware.blockchain.auth.AuthHelper;
 import com.vmware.blockchain.auth.AuthenticationContext;
 import com.vmware.blockchain.common.HelenExceptionHandler;
 import com.vmware.blockchain.common.NotFoundException;
+import com.vmware.blockchain.operation.OperationContext;
 import com.vmware.blockchain.security.MvcTestSecurityConfig;
 import com.vmware.blockchain.security.SecurityTestUtils;
 import com.vmware.blockchain.services.blockchains.BlockchainController.BlockchainTaskResponse;
@@ -104,6 +105,9 @@ public class BlockchainControllerTest {
 
     @MockBean
     BlockchainService blockchainService;
+
+    @MockBean
+    OperationContext operationContext;
 
     @Autowired
     TaskService taskService;
