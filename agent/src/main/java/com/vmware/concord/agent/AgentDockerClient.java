@@ -4,10 +4,15 @@
 
 package com.vmware.concord.agent;
 
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.Collections;
+import java.util.List;
 import java.util.Properties;
 import java.util.UUID;
 import java.util.regex.Pattern;
@@ -27,6 +32,15 @@ import com.github.dockerjava.core.DockerClientBuilder;
 import com.github.dockerjava.core.command.PullImageResultCallback;
 import com.vmware.blockchain.awsutil.AwsS3Client;
 import com.vmware.blockchain.deployment.model.ConcordAgentConfiguration;
+import com.vmware.blockchain.deployment.model.ConfigurationComponent;
+import com.vmware.blockchain.deployment.model.ConfigurationServiceStub;
+import com.vmware.blockchain.deployment.model.ConfigurationSessionIdentifier;
+import com.vmware.blockchain.deployment.model.MessageHeader;
+import com.vmware.blockchain.deployment.model.NodeConfigurationRequest;
+import com.vmware.blockchain.deployment.model.NodeConfigurationResponse;
+
+import io.grpc.CallOptions;
+import io.grpc.ManagedChannelBuilder;
 
 /**
  * Utility class for talking to Docker and creating the required volumes, starting
@@ -102,6 +116,9 @@ final class AgentDockerClient {
     /** Configuration parameters for this agent instance. */
     private final ConcordAgentConfiguration configuration;
 
+    /** Configuration Service RPC Stub. */
+    private final ConfigurationServiceStub configurationService;
+
     /** Path to retrieve configuration. */
     private String configurationPath;
 
@@ -146,14 +163,79 @@ final class AgentDockerClient {
      */
     AgentDockerClient(ConcordAgentConfiguration configuration) {
         this.configuration = configuration;
+        configurationService = new ConfigurationServiceStub(
+                ManagedChannelBuilder.forTarget("localhost:9003")
+                        .usePlaintext()
+                        .build(),
+                CallOptions.DEFAULT
+        );
+    }
+
+    /**
+     * Retrieves the configuration for the node represented by this agent from Configuration
+     * service.
+     *
+     * @param session
+     *   configuration session identifier.
+     * @param node
+     *   node identifier.
+     *
+     * @return
+     *   list of {@link ConfigurationComponent}s.
+     */
+    private List<ConfigurationComponent> retrieveConfiguration(
+            ConfigurationSessionIdentifier session,
+            int node
+    ) {
+        var request = new NodeConfigurationRequest(new MessageHeader(), session, node);
+        var responseObserver = new StreamObservers.MonoObserverFuture<NodeConfigurationResponse>();
+
+        // Request for config.
+        configurationService.getNodeConfiguration(request, responseObserver);
+
+        // Synchronously wait for result to return.
+        try {
+            return responseObserver.asCompletableFuture().join().getConfigurationComponent();
+        } catch (Throwable error) {
+            log.error("Configuration retrieval failed", error);
+
+            return Collections.emptyList();
+        }
+    }
+
+    /**
+     * Write out a set of configuration components to the artifact destination (reachable from the
+     * associated service container).
+     *
+     * <p>Note: Artifact is reachable because the agent will mount the same configuration volume as the
+     * service components.
+     *
+     * @param artifacts
+     *   list of {@link ConfigurationComponent} to be written.
+     */
+    private void writeConfiguration(List<ConfigurationComponent> artifacts) {
+        for (var artifact : artifacts) {
+            var destination = URI.create(artifact.getComponentUrl());
+            var filepath = Path.of("/config", destination.getPath());
+
+            try {
+                Files.createDirectories(filepath.getParent());
+
+                // Use synchronous IO (can be changed if this becomes a performance bottleneck).
+                var outputStream = new FileOutputStream(filepath.toFile(), false);
+                outputStream.write(artifact.getComponent().getBytes(StandardCharsets.UTF_8));
+            } catch (Exception error) {
+                log.error("Error populating configuration for {}", destination, error);
+            }
+        }
     }
 
     /**
      * Retrieve the configuration for this node.
      */
     private void populateConfig() {
-        var localConfigPath = Path.of("/concord/config-local/concord.config");
-        var withHostConfig = Path.of("/concord/config-local/concord_with_hostnames.config");
+        var localConfigPath = Path.of("/config/concord/config-local/concord.config");
+        var withHostConfig = Path.of("/config/concord/config-local/concord_with_hostnames.config");
         var localConfigFileSize = 0L;
 
         // Try to determine the file size of the config file.
@@ -208,6 +290,8 @@ final class AgentDockerClient {
         log.info("Reading config file");
 
         populateConfig();
+        // TODO: Fill out once agent can obtain config session ID and node ID.
+        // writeConfiguration(retrieveConfiguration(session, node));
 
         log.info("Populated the config file");
 
@@ -304,8 +388,8 @@ final class AgentDockerClient {
                                             new PortBinding(Ports.Binding.bindPort(3503), ExposedPort.udp(3503)),
                                             new PortBinding(Ports.Binding.bindPort(3504), ExposedPort.udp(3504)),
                                             new PortBinding(Ports.Binding.bindPort(3505), ExposedPort.udp(3505)))
-                                    .withBinds(Bind.parse("/concord/config-local:/concord/config-local"),
-                                               Bind.parse("/concord/config-public:/concord/config-public")))
+                                    .withBinds(Bind.parse("/config/concord/config-local:/concord/config-local"),
+                                               Bind.parse("/config/concord/config-public:/concord/config-public")))
                     .exec();
 
             // Now lets start the docker image
