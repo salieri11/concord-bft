@@ -31,7 +31,7 @@ class OrchestrationSiteServiceTest {
     ): OrchestrationSiteService {
         return DaggerTestProvisioningServer.builder()
                 .orchestrations(orchestrations)
-                .configServiceStub(Endpoint.defaultValue)
+                .configServiceEndpoint(Endpoint.defaultValue)
                 .build()
                 .orchestrationSiteService()
     }

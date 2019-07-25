@@ -20,6 +20,7 @@ import javax.inject.Singleton
  */
 @Component(modules = [
     ProvisioningServiceModule::class,
+    TestConfigurationServiceModule::class,
     OrchestrationSiteServiceModule::class,
     TestOrchestratorModule::class
 ])
@@ -42,7 +43,7 @@ interface TestProvisioningServer {
         fun orchestrations(entries: List<OrchestrationSite>): Builder
 
         @BindsInstance
-        fun configServiceStub(configurationServiceEndpoint: Endpoint): Builder
+        fun configServiceEndpoint(configurationServiceEndpoint: Endpoint): Builder
 
         fun build(): TestProvisioningServer
     }

@@ -32,6 +32,7 @@ import org.slf4j.LoggerFactory
  */
 @Component(modules = [
     ProvisioningServiceModule::class,
+    ConfigurationServiceModule::class,
     OrchestrationSiteServiceModule::class,
     OrchestratorModule::class
 ])
@@ -51,7 +52,7 @@ internal interface ProvisioningServer {
         fun orchestrations(entries: List<OrchestrationSite>): Builder
 
         @BindsInstance
-        fun configServiceStub(configurationServiceEndpoint: Endpoint): Builder
+        fun configServiceEndpoint(configurationServiceEndpoint: Endpoint): Builder
 
         fun build(): ProvisioningServer
     }
@@ -157,7 +158,7 @@ fun main(args: Array<String>) {
     // Build the server and start.
     val provisioningServer = DaggerProvisioningServer.builder()
             .orchestrations(config.sites)
-            .configServiceStub(config.configServiceEndpoint)
+            .configServiceEndpoint(config.configServiceEndpoint)
             .build()
     val sslContext = config.transportSecurity.type
             .takeIf { it != TransportSecurity.Type.NONE }
