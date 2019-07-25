@@ -105,7 +105,7 @@ message ConfigurationSessionIdentifier {
 *   list of IdentityComponent
 */
 message NodeConfigurationResponse {
-    repeated ConfigurationComponent configurationComponent = 1;
+    repeated ConfigurationComponent configuration_component = 1;
 }
 
 /**

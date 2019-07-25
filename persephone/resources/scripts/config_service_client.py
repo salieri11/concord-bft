@@ -1,15 +1,21 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 import argparse
 import grpc
 import io
+import logging
+import os
+import tempfile
 import persephone.core_pb2 as core
 import persephone.concord_model_pb2 as concord_model
 import persephone.configuration_service_pb2 as configuration_service
 import persephone.configuration_service_pb2_grpc as configuration_service_rpc
 from typing import Any, Dict
-import os
+from urllib.parse import urlparse
 
 
-def get_arguments():
+def get_arguments() -> Dict[str, Any]:
     """
     Parse command-line arguments.
 
@@ -28,7 +34,11 @@ def get_arguments():
         default=None,
         help="File path to trusted server certificates"
     )
-
+    parser.add_argument(
+        "--target-path",
+        default=None,
+        help="Target prefix path to save all generated configuration artifacts"
+    )
     ret = vars(parser.parse_args())
     return ret
 
@@ -43,50 +53,59 @@ def main():
     Returns:
         None
     """
-    argum = get_arguments()
-    if argum["trusted_certs"]:
-        with io.open(argum["trusted_certs"], "rb") as f:
+    args = get_arguments()
+    if args["trusted_certs"]:
+        with io.open(args["trusted_certs"], "rb") as f:
             trusted_certs = f.read()
         credentials = grpc.ssl_channel_credentials(root_certificates=trusted_certs)
-        channel = grpc.secure_channel(argum["server"], credentials)
+        channel = grpc.secure_channel(args["server"], credentials)
     else:
-        channel = grpc.insecure_channel(argum["server"])
+        channel = grpc.insecure_channel(args["server"])
+
+    target_path = args["target_path"]
+    if not target_path:
+        target_path = os.path.join(tempfile.gettempdir(), "config-output")
+    log.info("Target Path Location: %s", target_path)
 
     stub = configuration_service_rpc.ConfigurationServiceStub(channel)
     host_ips = ["10.0.0.1", "10.0.0.2", "10.0.0.3", "10.0.0.4"]
     config_service_request = configuration_service.ConfigurationServiceRequest(
             header=core.MessageHeader(),
             hosts=host_ips
-            )
+    )
 
     config_session_id = stub.CreateConfiguration(config_service_request)
-
-    print("GenerateConfiguration: ", config_session_id)
+    log.info("GenerateConfiguration: %s", config_session_id)
 
     for i in range(4):
-        node_request = configuration_service.NodeConfigurationRequest(header=core.MessageHeader(), identifier=config_session_id, node=i)
-        filename = "/tmp/config-output/node-certs/node_" + str(i)
-        # import pdb; pdb.set_trace()
+        node_request = configuration_service.NodeConfigurationRequest(
+            header=core.MessageHeader(),
+            identifier=config_session_id,
+            node=i
+        )
         node_response = stub.GetNodeConfiguration(node_request)
-        for item in node_response.configurationComponent:
-            if(item.type == 1):
-                print(item.component_url)
-                component_url_list = item.component_url.split("/")
-                # print("/".join(component_url_list[:-1]))
-                path = "/tmp/config-output/temp/certs/" + str(i) + "/".join(component_url_list[:-1])
-                if not os.path.isdir(path):
-                    os.makedirs(path, exist_ok=True)
-                with open(path + "/" + component_url_list[-1], "w+") as f:
+        log.info("GetNodeConfiguration: %s", node_response)
+
+        for item in node_response.configuration_component:
+            if (item.type == 1):
+                component_url = urlparse(item.component_url)
+                path = os.path.join(target_path, component_url.path.strip('/'))
+                log.info("Artfact: %s", path)
+
+                if not os.path.exists(os.path.dirname(path)):
+                    os.makedirs(os.path.dirname(path), exist_ok=True)
+                with open(path, "w+") as f:
                     f.write(item.component)
-        # print(item.component)
-
-        with open(filename, "w+") as f:
-            node_response = stub.GetNodeConfiguration(node_request)
-            f.write(str(node_response))
-
-
-    print("GetNodeConfiguration: ", node_response)
 
 
 if __name__ == "__main__":
+    # Setup logging.
+    log = logging.getLogger(__name__)
+    log.setLevel(logging.DEBUG)
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.DEBUG)
+    log_formatter = logging.Formatter("[%(asctime)s] [%(levelname)s] [%(name)s]: %(message)s")
+    console_handler.setFormatter(log_formatter)
+    log.addHandler(console_handler)
+
     main()

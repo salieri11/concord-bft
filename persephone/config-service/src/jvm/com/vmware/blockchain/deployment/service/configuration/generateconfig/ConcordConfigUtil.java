@@ -21,9 +21,6 @@ import com.vmware.blockchain.deployment.service.configuration.generatecerts.Cert
 
 /**
  * Utility class for generating the input for Configuration Yaml file.
- * TODO: Looked at Snake YAML package which is a much cleaner way but
- *       requires lot of unnecessary data classes to be developed.
- *       This approach is simpler and generates much less code.
  */
 public class ConcordConfigUtil {
 
@@ -177,14 +174,14 @@ public class ConcordConfigUtil {
             writer.newLine();
             writer.write(NODE);
             writer.newLine();
-            for (int i = 0; i < hostIp.size(); i++) {
+            for (String s : hostIp) {
                 writer.write(SERVICE_HOST + "0.0.0.0");
                 writer.newLine();
                 writer.write(SERVICE_PORT + "5458");
                 writer.newLine();
                 writer.write(REPLICA);
                 writer.newLine();
-                writer.write(REPLICA_HOST + hostIp.get(i));
+                writer.write(REPLICA_HOST + s);
                 writer.newLine();
                 writer.write(REPLICA_PORT + DEFAULT_PORT);
                 writer.newLine();
@@ -192,7 +189,7 @@ public class ConcordConfigUtil {
                 writer.newLine();
 
                 for (int j = 0; j < CLIENT_PROXY_PER_NODE; j++) {
-                    writer.write(CLIENT_HOST + hostIp.get(i));
+                    writer.write(CLIENT_HOST + s);
                     writer.newLine();
                     writer.write(CLIENT_PORT + (DEFAULT_PORT + j + 1));
                     writer.newLine();

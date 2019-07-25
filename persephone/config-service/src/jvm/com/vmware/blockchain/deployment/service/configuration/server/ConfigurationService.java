@@ -154,15 +154,20 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
             // TLS list
             componentList.add(new ConfigurationComponent(
                     ConfigurationServiceType.DockerType.CONCORD_TLS,
-                    configUtil.configPath, tlsConfig.get(node), new IdentityFactors()));
+                    configUtil.configPath,
+                    tlsConfig.get(node),
+                    new IdentityFactors())
+            );
 
-            tlsNodeIdentities.get(node).stream().forEach(entry -> {
-                componentList.add(new ConfigurationComponent(
-                        ConfigurationServiceType.DockerType.CONCORD_TLS,
-                        entry.getUrl(),
-                        entry.getBase64Value(),
-                        identityFactor));
-            });
+            tlsNodeIdentities.get(node)
+                    .forEach(entry -> componentList.add(
+                            new ConfigurationComponent(
+                                    ConfigurationServiceType.DockerType.CONCORD_TLS,
+                                    entry.getUrl(),
+                                    entry.getBase64Value(),
+                                    identityFactor
+                            )
+                    ));
 
             // ETHRPC list
             componentList.add(new ConfigurationComponent(
