@@ -186,7 +186,7 @@ public class ConfigurationServiceTest {
             int tlsConfig = 0;
             int unknown = 0;
 
-            for (ConfigurationComponent component : response.getConfigurationcomponent()) {
+            for (ConfigurationComponent component : response.getConfigurationComponent()) {
                 if (component.getType().equals(ConfigurationServiceType.DockerType.CONCORD_TLS)) {
                     tlsConfig++;
                 } else if (component.getType().equals(ConfigurationServiceType.DockerType.ETHRPC)) {
