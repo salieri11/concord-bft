@@ -6,26 +6,28 @@ import java.util.List;
 import java.util.Map;
 
 public class Data {
-    private Summary summary;
+    private Table appPerforamnceTable;
+    private List<Map<String, Object> > dockerTables;
     private String configFilePath;
     private List<Map<String, String> > basicInformation;
 
 
     public Data() {
-        this.summary = new Summary();
+        this.appPerforamnceTable = new Table();
+        this.dockerTables = new ArrayList<>();
         this.basicInformation = new ArrayList<>();
     }
 
-    public void setSummaryTableHeader(List<String> headers) {
-        this.summary.setTableHeader(headers);
+    public void setAppSummaryTableHeader(List<String> headers) {
+        this.appPerforamnceTable.setTableHeader(headers);
     }
 
-    public void addSummaryTableData(Map<String, List<String> > resultsData) {
-        this.summary.addTableData(resultsData);
+    public void addAppSummaryTableData(Map<String, List<String> > resultsData) {
+        this.appPerforamnceTable.addTableData(resultsData);
     }
 
-    public Summary getSummary() {
-        return this.summary;
+    public Table getAppSummary() {
+        return this.appPerforamnceTable;
     }
 
     public void setConfigFilePath(String path){
@@ -45,5 +47,15 @@ public class Data {
 
     public List<Map<String, String> > getBasicInformation() {
         return this.basicInformation;
+    }
+
+    public void addDockerInfo(Map<String, Object> info) {
+        this.dockerTables.add(info);
+    }
+
+
+
+    public List<Map<String, Object> > getDockerInfo() {
+        return this.dockerTables;
     }
 }

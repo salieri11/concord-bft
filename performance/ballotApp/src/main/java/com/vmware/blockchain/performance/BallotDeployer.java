@@ -50,7 +50,6 @@ public class BallotDeployer {
 		OkHttpClient client = BallotDApp.CLIENT;
 
 		HttpService httpServiceEth = new HttpService(BallotDApp.ENDPOINT, client, false);
-		System.out.println(BallotDApp.ENDPOINT);
 		httpServiceEth.addHeader("Authorization", okhttp3.Credentials.basic(BallotDApp.CONCORD_USERNAME, BallotDApp.CONCORD_PASSWORD));
 		Web3j web3j = Web3j.build(httpServiceEth);
 

@@ -7,7 +7,7 @@ public class AdvancedConfig {
     private int numberThreads = 0;
     private String concordUsername = "admin@blockchain.local";
     private String concordPassword = "Admin!23";
-
+    private boolean dockerStats = false;
 
     public List<Object> getEsxtopCommand() {
         return esxtopCommand;
@@ -39,5 +39,13 @@ public class AdvancedConfig {
     
     public void setConcordPassword(String password) {
     	this.concordPassword = password;
+    }
+
+    public void setDockerStats(boolean dockerStats) {
+        this.dockerStats = dockerStats;
+    }
+
+    public boolean isDockerStats() {
+        return dockerStats;
     }
 }

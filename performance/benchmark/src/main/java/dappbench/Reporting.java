@@ -25,7 +25,8 @@ public class Reporting {
         StringWriter writer = new StringWriter();
 
         Map<String, Object> reportData = new HashMap<>();
-        reportData.put("summary", data.getSummary());
+        reportData.put("appSummary", data.getAppSummary());
+        reportData.put("dockerInfo", data.getDockerInfo());
         reportData.put("filePath", data.getConfigFilePath());
         reportData.put("basicInformation", data.getBasicInformation());
 
