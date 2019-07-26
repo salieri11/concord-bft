@@ -54,6 +54,15 @@ class PersephoneTests(test_suite.TestSuite):
             "****gRPC Python bindings not generated. Execute util/generate_gRPC_bindings_for_py3.sh")
          raise Exception("gRPC Python bindings not generated")
 
+      log.info("****************************************")
+      if self.args.tests is None or self.args.tests.lower() == "smoke":
+         log.info("**** Running SMOKE tests ****")
+         log.info(
+            "**** To run all Persephone tests, pass the command line arg '--tests all_tests'")
+      else:
+         log.info("**** Running All tests ****")
+      log.info("****************************************")
+
       self.rpc_test_helper = RPCTestHelper(self.args)
 
       # Call gRPC to Stream Al Deployment Events in a background thread
@@ -166,19 +175,25 @@ class PersephoneTests(test_suite.TestSuite):
       return testFun()
 
    def _get_tests(self):
-      return [
-         ("add_model", self._test_add_model),
-         ("list_models", self._test_list_models),
-         ("4_Node_Blockchain_UNSPECIFIED_Site",
-          self._test_create_blockchain_4_node_unspecified_site),
-         ("get_deployment_events", self._test_stream_deployment_events),
-         ("4_Node_Blockchain_FIXED_Site",
-          self._test_create_blockchain_4_node_fixed_site),
-         ("7_Node_Blockchain_FIXED_Site",
-          self._test_create_blockchain_7_node_fixed_site),
-         ("concurrent_deployments_fixed_site",
-          self._test_concurrent_deployments_fixed_site)
-      ]
+      if self.args.tests is None or self.args.tests.lower() == "smoke":
+         return [
+            ("7_Node_Blockchain_FIXED_Site",
+             self._test_create_blockchain_7_node_fixed_site),
+         ]
+      elif self.args.tests.lower() == "all_tests":
+         return [
+            ("add_model", self._test_add_model),
+            ("list_models", self._test_list_models),
+            ("4_Node_Blockchain_UNSPECIFIED_Site",
+             self._test_create_blockchain_4_node_unspecified_site),
+            ("get_deployment_events", self._test_stream_deployment_events),
+            ("4_Node_Blockchain_FIXED_Site",
+             self._test_create_blockchain_4_node_fixed_site),
+            ("7_Node_Blockchain_FIXED_Site",
+             self._test_create_blockchain_7_node_fixed_site),
+            ("concurrent_deployments_fixed_site",
+             self._test_concurrent_deployments_fixed_site),
+         ]
 
    def validate_cluster_deployment_events(self, cluster_size,
                                           response_events_json):

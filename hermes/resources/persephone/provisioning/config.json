@@ -5,6 +5,49 @@
     {
       "id": {
         "low": 0,
+        "high": 3
+      },
+      "info": {
+        "type": "VMC",
+        "vmc": {
+          "authentication": {
+            "address": "https://console.cloud.vmware.com",
+            "credential": {
+              "type": "BEARER",
+              "tokenCredential": {
+                "token": "<VMC_API_TOKEN>"
+              }
+            }
+          },
+          "api": {
+            "address": "https://vmc.vmware.com"
+          },
+          "containerRegistry": {
+            "address": "https://registry-1.docker.io/v2",
+            "credential": {
+              "type": "PASSWORD",
+              "passwordCredential": {
+                "username": "blockchainrepositoryreader",
+                "password": "<DOCKERHUB_REPO_READER_PASSWORD>"
+              }
+            }
+          },
+          "ipamApi": {
+            "address": "ipam-vmbc.vdp.vmware.com"
+          },
+          "organization": "c56e116e-c36f-4f7d-b504-f9a33955b853",
+          "datacenter": "6db19f8f-cde6-4151-88e5-a3b0d6aead6a",
+          "resourcePool": "Compute-ResourcePool",
+          "folder": "HermesTesting",
+          "controlNetwork": "HermesTesting",
+          "controlNetworkGateway": 174522369,
+          "controlNetworkSubnet": 16
+        }
+      }
+    },
+    {
+      "id": {
+        "low": 0,
         "high": 4
       },
       "info": {
@@ -39,12 +82,11 @@
           "datacenter": "abb0fe0e-1f2f-470c-a427-774aa08ce2ea",
           "resourcePool": "Compute-ResourcePool",
           "folder": "HermesTesting",
-          "controlNetwork": "vmware-vpn",
-          "controlNetworkGateway": 172321025,
-          "controlNetworkSubnet": 24
+          "controlNetwork": "HermesTesting",
+          "controlNetworkGateway": 174587905,
+          "controlNetworkSubnet": 16
         }
       }
     }
   ]
 }
-
