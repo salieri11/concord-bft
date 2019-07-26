@@ -203,9 +203,10 @@ class ProvisioningServiceRPCHelper(RPCHelper):
       try:
          if stub is None:
             stub = self.stub
+         # Increasing default stream_timeout to 10 mins due to bug VB-1289
          response = self.call_api(
             stub.StreamClusterDeploymentSessionEvents,
-            get_events_request, stream=True)
+            get_events_request, stream=True, stream_timeout=600)
       except Exception as e:
          self.handle_exception(e)
       return response
