@@ -40,6 +40,7 @@ import com.vmware.blockchain.deployment.model.DeploymentSession.Status;
 import com.vmware.blockchain.deployment.model.DeploymentSessionEvent;
 import com.vmware.blockchain.deployment.model.DeploymentSessionEvent.Type;
 import com.vmware.blockchain.deployment.model.OrchestrationSiteIdentifier;
+import com.vmware.blockchain.operation.OperationContext;
 import com.vmware.blockchain.services.tasks.Task;
 import com.vmware.blockchain.services.tasks.Task.State;
 import com.vmware.blockchain.services.tasks.TaskService;
@@ -72,6 +73,8 @@ public class BlockchainObserverTest {
 
     private DeploymentSessionEvent value;
 
+    private OperationContext operationContext;
+
     @BeforeEach
     void init() throws Exception {
         task = new Task();
@@ -92,8 +95,10 @@ public class BlockchainObserverTest {
                     blockchain.setNodeList(i.getArgument(2));
                     return blockchain;
                 });
-
-        blockchainObserver = new BlockchainObserver(authHelper, blockchainService, taskService, TASK_ID, CONS_ID);
+        operationContext = new OperationContext();
+        operationContext.initId();
+        blockchainObserver = new BlockchainObserver(authHelper, operationContext, blockchainService,
+                                                    taskService, TASK_ID, CONS_ID);
         ConcordCluster cluster = createTestCluster(CLUSTER_ID);
         value = new DeploymentSessionEvent();
         ReflectionTestUtils.setField(value, "cluster", cluster);
