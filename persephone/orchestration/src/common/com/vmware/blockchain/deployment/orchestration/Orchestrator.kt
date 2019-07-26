@@ -3,6 +3,7 @@
  * *************************************************************************/
 package com.vmware.blockchain.deployment.orchestration
 
+import com.vmware.blockchain.deployment.model.Endpoint
 import com.vmware.blockchain.deployment.model.ConcordClusterIdentifier
 import com.vmware.blockchain.deployment.model.ConcordModelSpecification
 import com.vmware.blockchain.deployment.model.ConcordNodeIdentifier
@@ -59,7 +60,9 @@ interface Orchestrator {
         val model: ConcordModelSpecification,
         val genesis: Genesis,
         val privateNetworkAddress: String = "",
-        val configurationSessionIdentifier: ConfigurationSessionIdentifier
+        val configurationSessionIdentifier: ConfigurationSessionIdentifier,
+        val concordId: Int,
+        val configServiceEndpoint: Endpoint
     )
 
     /**

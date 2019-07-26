@@ -29,8 +29,9 @@ class CloudInitConfiguration(
     gateway: String,
     subnet: Int,
     clusterId: ConcordClusterIdentifier,
-    nodeId: ConcordNodeIdentifier,
-    configGenId: ConfigurationSessionIdentifier
+    nodeId: Int,
+    configGenId: ConfigurationSessionIdentifier,
+    configServiceEndpoint: Endpoint
 ) {
     object GenesisSerializer
         : JsonSerializer(serializersModuleOf(Genesis::class, Genesis.serializer()))
@@ -67,7 +68,7 @@ class CloudInitConfiguration(
             fleetService = Endpoint(), // TODO: need to inject fleet service endpoint info.
             cluster = clusterId,
             node = nodeId,
-            configServiceEndpoint = Endpoint(), // FIXME: need to inject config service endpoint.
+            configService = configServiceEndpoint,
             configurationSession =  configGenId
 
     )

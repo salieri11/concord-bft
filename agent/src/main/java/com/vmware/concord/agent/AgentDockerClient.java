@@ -4,18 +4,18 @@
 
 package com.vmware.concord.agent;
 
+import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.util.Collections;
 import java.util.List;
-import java.util.Properties;
-import java.util.UUID;
 import java.util.regex.Pattern;
+
+import javax.net.ssl.SSLException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,7 +30,6 @@ import com.github.dockerjava.api.model.Ports;
 import com.github.dockerjava.core.DefaultDockerClientConfig;
 import com.github.dockerjava.core.DockerClientBuilder;
 import com.github.dockerjava.core.command.PullImageResultCallback;
-import com.vmware.blockchain.awsutil.AwsS3Client;
 import com.vmware.blockchain.deployment.model.ConcordAgentConfiguration;
 import com.vmware.blockchain.deployment.model.ConfigurationComponent;
 import com.vmware.blockchain.deployment.model.ConfigurationServiceStub;
@@ -40,7 +39,8 @@ import com.vmware.blockchain.deployment.model.NodeConfigurationRequest;
 import com.vmware.blockchain.deployment.model.NodeConfigurationResponse;
 
 import io.grpc.CallOptions;
-import io.grpc.ManagedChannelBuilder;
+import io.grpc.netty.shaded.io.grpc.netty.GrpcSslContexts;
+import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder;
 
 /**
  * Utility class for talking to Docker and creating the required volumes, starting
@@ -119,56 +119,26 @@ final class AgentDockerClient {
     /** Configuration Service RPC Stub. */
     private final ConfigurationServiceStub configurationService;
 
-    /** Path to retrieve configuration. */
-    private String configurationPath;
-
-    private AwsS3Client newS3Client() {
-        /* Default application.properties file. */
-        var propertyFile = "applications.properties";
-
-        log.info("Reading the application properties file");
-
-        try (var input = getClass().getClassLoader().getResourceAsStream(propertyFile)) {
-            // TODO - these default values needs to be specific to CICD pipeline account.
-            var awsKey = "AKIATWKQRJCJPZPBH4PK";
-            var secretKey = "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";
-            var region = "us-west-2";
-            configurationPath = "concord-config";
-
-            var prop = new Properties();
-            if (input != null) {
-                prop.load(input);
-                awsKey = prop.getProperty("aws.accessKey");
-                secretKey = prop.getProperty("aws.secretKey");
-                region = prop.getProperty("aws.region");
-                configurationPath = prop.getProperty("aws.bucket");
-            } else {
-                log.error("Unable to find property file: " + propertyFile);
-            }
-
-            var client = new AwsS3Client(awsKey, secretKey, region);
-
-            log.info("Create s3 client successfully");
-
-            return client;
-        } catch (IOException ex) {
-            log.error("Unable to read the property file: " + propertyFile);
-
-            throw new RuntimeException(ex);
-        }
-    }
-
     /**
      * Default constructor.
      */
-    AgentDockerClient(ConcordAgentConfiguration configuration) {
+    AgentDockerClient(ConcordAgentConfiguration configuration) throws Exception {
         this.configuration = configuration;
-        configurationService = new ConfigurationServiceStub(
-                ManagedChannelBuilder.forTarget("localhost:9003")
-                        .usePlaintext()
-                        .build(),
-                CallOptions.DEFAULT
-        );
+
+        var configServiceTrustCertificate = URI.create("file:/config/persephone/provisioning/configservice.crt");
+
+        try {
+            var channel = NettyChannelBuilder
+                    .forTarget(configuration.getConfigService().getAddress())
+                    .sslContext(
+                            GrpcSslContexts.forClient()
+                                    .trustManager(new File(configServiceTrustCertificate)).build())
+                    .build();
+            this.configurationService = new ConfigurationServiceStub(channel, CallOptions.DEFAULT);
+        } catch (SSLException e) {
+            log.error("Could not create configuration service stub. Exception: " + e.getLocalizedMessage());
+            throw new Exception(e);
+        }
     }
 
     /**
@@ -231,56 +201,6 @@ final class AgentDockerClient {
     }
 
     /**
-     * Retrieve the configuration for this node.
-     */
-    private void populateConfig() {
-        var localConfigPath = Path.of("/config/concord/config-local/concord.config");
-        var withHostConfig = Path.of("/config/concord/config-local/concord_with_hostnames.config");
-        var localConfigFileSize = 0L;
-
-        // Try to determine the file size of the config file.
-        // Note: This is done here instead of in-line check because of potential exceptions.
-        try {
-            localConfigFileSize = Files.size(localConfigPath);
-        } catch (Throwable error) {
-            log.info("Cannot determine file size of {}", localConfigPath);
-        }
-
-        // Do not over-write existing configuration.
-        // As an intended side-effect, do not engage in network IO unless absolutely needed.
-        if (!Files.exists(localConfigPath) || localConfigFileSize == 0) {
-            try {
-                var s3Client = newS3Client();
-                var clusterId = new UUID(configuration.getCluster().getHigh(),
-                                         configuration.getCluster().getLow()).toString();
-                var nodeId = new UUID(configuration.getNode().getHigh(),
-                                      configuration.getNode().getLow()).toString();
-                var sourceConfigPath = clusterId + "/" + nodeId;
-                log.info("Configuration path: {}", sourceConfigPath);
-
-                var s3object = s3Client.getObject(configurationPath, sourceConfigPath);
-                var inputStream = s3object.getObjectContent();
-                Files.copy(inputStream, localConfigPath, StandardCopyOption.REPLACE_EXISTING);
-
-                log.info("Copied {} to {}", sourceConfigPath, localConfigPath);
-            } catch (IOException error) {
-                log.error("Cannot read from configuration source", error);
-            }
-        }
-
-        // Do not over-write existing configuration.
-        if (!Files.exists(withHostConfig)) {
-            try {
-                Files.copy(localConfigPath, withHostConfig, StandardCopyOption.REPLACE_EXISTING);
-
-                log.info("Copied {} to {}", localConfigPath, withHostConfig);
-            } catch (IOException error) {
-                log.error("Cannot write to " + withHostConfig, error);
-            }
-        }
-    }
-
-    /**
      * Start the local setup as a Concord node.
      */
     void startConcord() {
@@ -289,9 +209,8 @@ final class AgentDockerClient {
 
         log.info("Reading config file");
 
-        populateConfig();
-        // TODO: Fill out once agent can obtain config session ID and node ID.
-        // writeConfiguration(retrieveConfiguration(session, node));
+        var configList = retrieveConfiguration(configuration.getConfigurationSession(), configuration.getNode());
+        writeConfiguration(configList);
 
         log.info("Populated the config file");
 

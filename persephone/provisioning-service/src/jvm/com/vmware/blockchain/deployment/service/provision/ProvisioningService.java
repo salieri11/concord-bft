@@ -52,6 +52,7 @@ import com.vmware.blockchain.deployment.model.DeploymentSession;
 import com.vmware.blockchain.deployment.model.DeploymentSessionEvent;
 import com.vmware.blockchain.deployment.model.DeploymentSessionIdentifier;
 import com.vmware.blockchain.deployment.model.DeploymentSpecification;
+import com.vmware.blockchain.deployment.model.Endpoint;
 import com.vmware.blockchain.deployment.model.MessageHeader;
 import com.vmware.blockchain.deployment.model.OrchestrationSite;
 import com.vmware.blockchain.deployment.model.OrchestrationSiteIdentifier;
@@ -140,12 +141,15 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
     /** Background task future. */
     private ScheduledFuture<?> backgroundTask;
 
-    /** Default application.properties file. */
-    private String propertyFile = "applications.properties";
-
     /** Configuration service client. */
     private ConfigurationServiceStub configService;
 
+    /** Configuration service endpoint. */
+    private Endpoint configServiceEndpoint;
+
+    /** Map of concord node identifiers vs concord identifier as provided. */
+    // FIXME: This should not be required once concord gives a provision to define names
+    private final Map<ConcordNodeIdentifier, Integer> concordIdentifierMap = new HashMap<>();
 
     /**
      * Constructor.
@@ -154,13 +158,15 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
             ExecutorService executor,
             OrchestratorProvider orchestratorProvider,
             List<OrchestrationSite> orchestrations,
-            ConfigurationServiceStub configService
+            ConfigurationServiceStub configService,
+            Endpoint configServiceEndpoint
     ) {
         this.executor = executor;
         this.orchestratorProvider = orchestratorProvider;
         this.orchestrations = orchestrations.stream()
                 .collect(Collectors.toMap(OrchestrationSite::getId, OrchestrationSite::getInfo));
         this.configService = configService;
+        this.configServiceEndpoint = configServiceEndpoint;
     }
 
     /**
@@ -477,7 +483,9 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
             ConcurrentHashMap<PlacementAssignment.Entry, NetworkResourceEvent.Created> privateNetworkAddressMap) {
         List<String> nodeIps = new ArrayList<>();
         privateNetworkAddressMap.forEach((key, value) -> {
-            nodeIps.add(value.getAddress());
+            var nodeIp = value.getAddress();
+            nodeIps.add(nodeIp);
+            concordIdentifierMap.put(key.getNode(), nodeIps.indexOf(nodeIp));
         });
         var request = new ConfigurationServiceRequest(
                 new MessageHeader(),
@@ -700,10 +708,6 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
                     var model = session.getSpecification().getModel();
                     var nodePublishers = session.getAssignment().getEntries().stream()
                             .map(placement -> {
-                                // TODO: Have only one place to compute cluster-id.
-                                // Cluster-id is computed else where.
-                                var id = new ConcordClusterIdentifier(session.getId().getLow(),
-                                        session.getId().getHigh());
 
                                 var publisher = deployNode(
                                         orchestrators.get(placement.getSite()),
@@ -839,7 +843,9 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
                 model,
                 genesis,
                 networkResourceEvent.getAddress(),
-                configGenId
+                configGenId,
+                concordIdentifierMap.get(nodeId),
+                configServiceEndpoint
         );
         return orchestrator.createDeployment(computeRequest);
     }
