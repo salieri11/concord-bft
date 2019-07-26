@@ -272,7 +272,7 @@ public class BlockchainController {
         );
         DeploymentSpecification deploySpec =
                 new DeploymentSpecification(clusterSize, spec, placementSpec, genesis);
-        var request = new CreateClusterRequest(new MessageHeader(operationContext.getId()), deploySpec);
+        var request = new CreateClusterRequest(new MessageHeader(), deploySpec);
         // Check that the API can be serviced normally after service initialization.
         var promise = new CompletableFuture<DeploymentSessionIdentifier>();
         client.createCluster(request, blockedResultObserver(promise));
