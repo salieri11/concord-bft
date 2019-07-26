@@ -4,11 +4,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-public class Summary {
+public class Table {
     private List<String> tableHeader;
     private List<Map<String,List<String> >> tableData;
 
-    public Summary() {
+    public Table() {
         this.tableData = new ArrayList<>();
     }
 
@@ -27,8 +27,6 @@ public class Summary {
     public List< Map<String,List<String> > > getTableData() {
         return this.tableData;
     }
-
-
 
 
 }

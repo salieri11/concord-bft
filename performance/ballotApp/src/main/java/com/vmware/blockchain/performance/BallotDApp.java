@@ -391,17 +391,18 @@ public class BallotDApp {
 		}
 		int numSuccessfulTransactions = latencies.size();
 		Collections.sort(latencies);
-		waveFrontFileWriter.write("ballot.app.transaction.p50 " + String.format("%.02f", latencies.get(numSuccessfulTransactions/2)/1000000.0) + " " + java.time.Instant.now().getEpochSecond() + " " + " source=" + DRIVERID+"\n");
-		waveFrontFileWriter.write("ballot.app.transaction.p95 " + String.format("%.02f", latencies.get(numSuccessfulTransactions*95/100)/1000000.0) + " " + java.time.Instant.now().getEpochSecond() + " " + " source=" + DRIVERID +"\n");
-		waveFrontFileWriter.write("ballot.app.transaction.p99 " + String.format("%.02f", latencies.get(numSuccessfulTransactions*99/100)/1000000.0) + " " + java.time.Instant.now().getEpochSecond() + " " + " source=" + DRIVERID+"\n");
+		waveFrontFileWriter.write("ballot.app.transaction.p50 " + String.format("%.02f", latencies.get(numSuccessfulTransactions/2)/1000000.0) + " " + java.time.Instant.now().getEpochSecond() + " " + " source=" + DRIVERID+ " driverId="+DRIVERID+ " runId="+RUNID + "\n");
+		waveFrontFileWriter.write("ballot.app.transaction.p95 " + String.format("%.02f", latencies.get(numSuccessfulTransactions*95/100)/1000000.0) + " " + java.time.Instant.now().getEpochSecond() + " " + " source=" + DRIVERID+ " driverId="+DRIVERID+ " runId="+RUNID + "\n");
+		waveFrontFileWriter.write("ballot.app.transaction.p99 " + String.format("%.02f", latencies.get(numSuccessfulTransactions*99/100)/1000000.0) + " " + java.time.Instant.now().getEpochSecond() + " " + " source=" + DRIVERID+ " driverId="+DRIVERID+ " runId="+RUNID + "\n");
 		waveFrontFileWriter.close();
 
 		//Populate stats
 		stats = new HashMap<>();
-		stats.put("tableRow", Arrays.asList(testName, String.valueOf(numSuccessfulTransactions), df.format(100*numSuccessfulTransactions*1.0/NUMBER) + "%" ,String.valueOf(NUMBER - numSuccessfulTransactions), RATE_CONTROL + " tps", df.format(latencies.get(NUMBER - 1)/1000000.0) + " ms",
+		stats.put("tableRow", Arrays.asList(testName, String.valueOf(numSuccessfulTransactions), df.format(100*numSuccessfulTransactions*1.0/NUMBER) + "%" ,String.valueOf(NUMBER - numSuccessfulTransactions), RATE_CONTROL + " tps", df.format(latencies.get(latencies.size() - 1)/1000000.0) + " ms",
 				df.format(latencies.get(0)/1000000.0) + " ms", df.format(totalSum/(1000000.0*NUMBER)) + " ms", df.format(NUMBER/((timeEndLoop - timeStartLoop)/1000000000.0)) + " tx/sec"));
 
 		logger.info("Average time response time: " + totalSum*1.0/NUMBER);
+		logger.info("p95 value: " + latencies.get(numSuccessfulTransactions*95/100)/1000000.0);
 		logger.info("Start time of processing Voting: " + minStartTime);
 		logger.info("End time of processing Voting: " + maxEndTime);
 		logger.info("Total time for process: " + (maxEndTime - minStartTime) + " nano seconds");
