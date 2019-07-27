@@ -97,7 +97,7 @@ class VmcOrchestrator private constructor(
         const val OPERATION_RETRY_INTERVAL_MILLIS = 500L
 
         /** Default maximum orchestrator operation timeout value. */
-        const val ORCHESTRATOR_TIMEOUT_MILLIS = 60000L * 4
+        const val ORCHESTRATOR_TIMEOUT_MILLIS = 60000L * 10
 
         /**
          * Get SDDC information associated with a given [VmcClient].
