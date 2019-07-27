@@ -76,6 +76,36 @@ def fxBlockchain(request):
    return BlockchainFixture(blockchainId=blockchainId, consortiumId=conId)
 
 
+@pytest.fixture(scope="module")
+def fxInitializeOrgs(request):
+   '''
+   Inserts some orgs used for testing into the Helen database.  This is needed, for example,
+   when adding an org to a consortium.  Helen needs to know about the org first, so we
+   need to do something to generate a record about it.
+   '''
+   hermesData = retrieveCustomCmdlineData(request)
+   request = Request(hermesData["hermesTestLogDir"],
+                     "initializeOrgs",
+                     hermesData["hermesCmdlineArgs"]["reverseProxyApiBaseUrl"],
+                     hermesData["hermesUserConfig"])
+   tokenDescriptors = [
+       {
+           "org": "hermes_org1",
+           "user": "vmbc_test_con_admin",
+           "role": "consortium_admin"
+       },
+       {
+           "org": "hermes_org0",
+           "user": "vmbc_test_con_admin",
+           "role": "consortium_admin"
+       }
+   ]
+
+   for tokenDescriptor in tokenDescriptors:
+       req = request.newWithToken(tokenDescriptor)
+       req.getBlockchains()
+
+
 @pytest.fixture
 def fxConnection(request, fxBlockchain):
    '''

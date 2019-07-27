@@ -24,7 +24,7 @@ import subprocess
 import requests
 
 from . import test_suite
-from util.auth import DEV_ADMIN_TOKEN
+from util.auth import tokens
 
 log = logging.getLogger(__name__)
 
@@ -47,7 +47,7 @@ class SampleDAppTests(test_suite.TestSuite):
 
       user = self._userConfig.get('product').get('db_users')[0]
       username = user['username']
-      self._password = DEV_ADMIN_TOKEN
+      self._password = tokens["blockchain_service_dev"]["admin-blockchain-dev"]["all_roles"]["api_key"]
 
       if self._args.user != None:
          self._user = self._args.user

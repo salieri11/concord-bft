@@ -14,7 +14,7 @@ import time
 
 from util.debug import pp as pp
 
-from util.auth import getAccessToken, TESTING_TOKEN
+from util.auth import getAccessToken, tokens
 
 log = logging.getLogger(__name__)
 
@@ -36,7 +36,7 @@ class Request():
    _data = None
    _accessToken = None
 
-   def __init__(self, logDir, testName, baseUrl, userConfig, tokenType=TESTING_TOKEN):
+   def __init__(self, logDir, testName, baseUrl, userConfig, tokenDescriptor=None, forceNewToken=False):
       self.logDir = logDir
       os.makedirs(self.logDir, exist_ok=True)
 
@@ -45,8 +45,21 @@ class Request():
       self._subPath = ""
       self._params = ""
       self._userConfig = userConfig
-      self._accessToken = getAccessToken(tokenType)
+      self._accessToken = getAccessToken(tokenDescriptor, forceNewToken)
 
+      
+   def newWithToken(self, tokenDescriptor, forceNewToken=False):
+      '''
+      Create a new of the this, with a new token.
+      '''
+      return Request(self.logDir,
+                     self.testName,
+                     self._baseUrl,
+                     self._userConfig,
+                     tokenDescriptor,
+                     forceNewToken)
+   
+      
    def _send(self, verb=None):
       '''
       Makes the actual ReST request by invoking curl.  Returns the raw json
@@ -406,21 +419,18 @@ class Request():
       self._data = None
       return self._send()
 
-   def createConsortium(self, conName, orgId):
+   def createConsortium(self, conName):
       '''
-      Given an org ID, creates a consortium in that org.
-
-      Once CSP integration is done, a consortium will contain orgs,
-      so passing in an org should no longer be needed.
+      Given a consortium name, creates it.
       '''
       self._subPath = "/api/consortiums/"
       self._params = ""
       self._endpointName = "create_consortiums"
-      self._data = {"organization": orgId}
+      self._data = {}
 
       if conName != None:
          self._data["consortium_name"] = conName
-
+      
       return self._send()
 
    def getConsortium(self, conId):
@@ -443,16 +453,38 @@ class Request():
       self._endpointName = "retrieve_consortiums"
       return self._send()
 
-   def renameConsortium(self, conId, newName):
+   def patchConsortium(self, conId, newName=None, newType=None,
+                      orgsToAdd=None, orgsToRemove=None):
       '''
-      Change a consortium's name.
+      Modify a consortium.  The consortium's ID is mandatory;
+      other fields are optional.
       '''
       self._subPath = "/api/consortiums/{}".format(conId)
       self._params = ""
-      self._data = {"consortium_name": newName}
-      self._endpointName = "rename_consortium"
+      self._data = {}
+      
+      if newName != None:
+         self._data["consortium_name"] = newName
+      if newType != None:
+         self._data["consortium_type"] = newType
+      if orgsToAdd != None:
+         self._data["orgs_to_add"] = orgsToAdd
+      if orgsToRemove != None:
+         self._data["orgs_to_remove"] = orgsToRemove
+         
+      self._endpointName = "patch_consortium"
       return self._send(verb="PATCH")
 
+   def getOrgs(self, conId):
+      '''
+      Given a consortium ID, get its organizations.
+      '''
+      self._subPath = "/api/consortiums/{}/organizations".format(conId)
+      self._params = ""
+      self._data = None
+      self._endpointName = "get_consortium_orgs"
+      return self._send()
+   
    '''
    =================================================================
    =================================================================

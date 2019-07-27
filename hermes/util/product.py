@@ -65,6 +65,12 @@ class Product():
    PERSEPHONE_SERVICE_PROVISIONING_2 = "deploymentservice-2"  # 2nd instance of provisioning service for IPAM test
    # PERSEPHONE_SERVICE_FLEET = docker_env["persephone_fleet_repo"]
 
+   STARTUP_TOKEN_DESCRIPTOR = {
+      "org": "blockchain_service_dev",
+      "user": "HermesUtility",
+      "role": "all_roles"
+   }
+
    def __init__(self, cmdlineArgs, userConfig, suite=None):
       self._cmdlineArgs = cmdlineArgs
       self._userConfig = userConfig
@@ -828,7 +834,7 @@ class Product():
                            "getMembers",
                            self._cmdlineArgs.reverseProxyApiBaseUrl,
                            self._userConfig,
-                           util.auth.UTILITY_TOKEN)
+                           self.STARTUP_TOKEN_DESCRIPTOR)
          try:
             nodes = util.blockchain.eth.getEthrpcNodes(request)
 
@@ -857,7 +863,7 @@ class Product():
                 "addApiUser",
                 self._ethrpcApiUrl,
                 self._userConfig,
-                util.auth.UTILITY_TOKEN)
+                self.STARTUP_TOKEN_DESCRIPTOR)
 
       log.info("Adding an API user via Helen...")
       rpc.addUser(self._cmdlineArgs.reverseProxyApiBaseUrl)
@@ -1107,4 +1113,3 @@ class Product():
                log.info("Task did not finish as expected.  Details: {}".format(response))
 
       return (success, response)
-
