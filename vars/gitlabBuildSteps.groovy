@@ -511,7 +511,7 @@ EOF
                     if (env.JOB_NAME.contains(persephone_test_job_name)) {
                       sh '''
                         echo "Running Entire Testsuite: Persephone..."
-                        echo "${PASSWORD}" | sudo -SE "${python}" main.py PersephoneTests --dockerComposeFile ../docker/docker-compose-persephone.yml --resultsDir "${persephone_test_logs}"
+                        echo "${PASSWORD}" | sudo -SE "${python}" main.py PersephoneTests --dockerComposeFile ../docker/docker-compose-persephone.yml --resultsDir "${persephone_test_logs}" --tests "all_tests"
                       '''
                     }
                     if (env.JOB_NAME.contains(lint_test_job_name)) {
