@@ -49,8 +49,7 @@ import com.vmware.blockchain.grpc.kotlinx.serialization.ChannelStreamObserver
 import com.vmware.blockchain.protobuf.kotlinx.serialization.ByteString
 import com.vmware.blockchain.protobuf.kotlinx.serialization.encodeBase64
 import io.grpc.CallOptions
-import io.grpc.netty.shaded.io.grpc.netty.GrpcSslContexts
-import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder
+import io.grpc.ManagedChannelBuilder
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -176,16 +175,7 @@ class VmcOrchestrator private constructor(
                             password = resource_config.cloud_password
                     ).let { VSphereClient(it, ModelSerializer) } // vSphere client.
 
-
-                    // TODO Remove this one of cert path reference and consolidate it as part of initialization.
-                    val ipamTrustCertificate = URI.create("file:/config/persephone/provisioning/ipam.crt")
-
-                    val channel = NettyChannelBuilder
-                            .forTarget(info.ipamApi.address)
-                            .sslContext(
-                                    GrpcSslContexts.forClient()
-                                            .trustManager(java.io.File(ipamTrustCertificate)).build())
-                            .build()
+                    val channel = ManagedChannelBuilder.forTarget(info.ipamApi.address).build()
                     val ipAllocationService = IPAllocationServiceStub(channel, CallOptions.DEFAULT)
 
                     // New Orchestrator instance.
@@ -318,14 +308,12 @@ class VmcOrchestrator private constructor(
         return publish<Orchestrator.NetworkResourceEvent>(coroutineContext) {
             withTimeout(ORCHESTRATOR_TIMEOUT_MILLIS) {
                 try {
-
                      // FIXME: Workaround to allow Concord to communicate via private IP instead of
                      // public IP. Remove this once VMC networking allows hair-pinned NAT traffic
                      // using VM's public IP address.
-                    
 
                     val privateIpAddress = allocatedPrivateIP()
-                    privateIpAddress?.takeIf { privateIpAddress.value != null }
+                    privateIpAddress
                             ?.apply {
                                 send(Orchestrator.NetworkResourceEvent.Created(
                                         URI.create(info.ipamApi.address + "/" + privateIpAddress.name),
