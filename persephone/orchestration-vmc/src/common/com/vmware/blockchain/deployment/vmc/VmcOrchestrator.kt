@@ -72,12 +72,12 @@ import kotlin.coroutines.EmptyCoroutineContext
  *   vSphere API client handle.
  */
 class VmcOrchestrator private constructor(
-        private val info: VmcOrchestrationSiteInfo,
-        private val vmc: VmcClient,
-        private val vSphere: VSphereClient,
-        private val nsx: VmcClient,
-        private val ipAllocationService: IPAllocationServiceStub,
-        private val context: CoroutineContext = Dispatchers.Default
+    private val info: VmcOrchestrationSiteInfo,
+    private val vmc: VmcHttpClient,
+    private val vSphere: VSphereHttpClient,
+    private val nsx: VmcHttpClient,
+    private val ipAllocationService: IPAllocationServiceStub,
+    private val context: CoroutineContext = Dispatchers.Default
 ) : Orchestrator, CoroutineScope {
 
     private val log by logger()
@@ -99,7 +99,7 @@ class VmcOrchestrator private constructor(
         const val ORCHESTRATOR_TIMEOUT_MILLIS = 60000L * 10
 
         /**
-         * Get SDDC information associated with a given [VmcClient].
+         * Get SDDC information associated with a given [VmcHttpClient].
          *
          * @param[vmc]
          *   VMC API client handle.
@@ -108,7 +108,7 @@ class VmcOrchestrator private constructor(
          *   information pertaining to SDDC, as a [Sddc] instance.
          */
         @JvmStatic
-        private suspend fun getDataCenterInfo(vmc: VmcClient): Sddc? {
+        private suspend fun getDataCenterInfo(vmc: VmcHttpClient): Sddc? {
             return vmc
                     .get<Sddc>(
                             Endpoints.VMC_SDDC
@@ -146,34 +146,34 @@ class VmcOrchestrator private constructor(
             val token = requireNotNull(info.authentication.credential.tokenCredential).token
 
             // Create new VMC client.
-            val vmcContext = VmcClient.Context(
+            val vmcContext = VmcHttpClient.Context(
                     endpoint = URI.create(info.api.address),
                     authenticationEndpoint = URI.create(info.authentication.address),
                     refreshToken = token,
                     organization = info.organization,
                     datacenter = info.datacenter
             )
-            val vmc = VmcClient(vmcContext, ModelSerializer)
+            val vmc = VmcHttpClient(vmcContext, ModelSerializer)
 
             // Asynchronously create the orchestrator instance based on VMC operation results.
             return publish(executionContext) {
                 // Use VMC client to obtain VMC SDDC information.
                 getDataCenterInfo(vmc)?.apply {
                     // Use VMC SDDC info to create NSX client.
-                    val nsx = VmcClient.Context(
+                    val nsx = VmcHttpClient.Context(
                             endpoint = URI(resource_config.nsx_api_public_endpoint_url),
                             authenticationEndpoint = URI.create(info.authentication.address),
                             refreshToken = token,
                             organization = info.organization,
                             datacenter = info.datacenter
-                    ).let { VmcClient(it, ModelSerializer) } // Proxied NSX client.
+                    ).let { VmcHttpClient(it, ModelSerializer) } // Proxied NSX client.
 
                     // Use VMC SDDC info to create vSphere client.
-                    val vsphere = VSphereClient.Context(
+                    val vsphere = VSphereHttpClient.Context(
                             endpoint = URI(resource_config.vc_url),
                             username = resource_config.cloud_username,
                             password = resource_config.cloud_password
-                    ).let { VSphereClient(it, ModelSerializer) } // vSphere client.
+                    ).let { VSphereHttpClient(it, ModelSerializer) } // vSphere client.
 
                     val channel = ManagedChannelBuilder.forTarget(info.ipamApi.address).build()
                     val ipAllocationService = IPAllocationServiceStub(channel, CallOptions.DEFAULT)

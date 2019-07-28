@@ -19,13 +19,13 @@ import com.vmware.blockchain.deployment.model.vmc.VmcAuthenticationResponse
  * @property[client]
  *   underlying HTTP client to use for communication.
  */
-class VmcClient(
+class VmcHttpClient(
     val context: Context,
     private val serializer: JsonSerializer
 ): AccessTokenAwareHttpClient(context.endpoint, serializer) {
 
     /**
-     * Context parameters for [VmcClient].
+     * Context parameters for [VmcHttpClient].
      *
      * @param[endpoint]
      *   URI for the targeted VMware Cloud API endpoint.
