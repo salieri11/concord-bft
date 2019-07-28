@@ -5,6 +5,7 @@
 package com.vmware.blockchain.common.fleetmanagment;
 
 import static com.vmware.blockchain.common.fleetmanagment.FleetUtils.identifier;
+import static com.vmware.blockchain.common.fleetmanagment.FleetUtils.toUuid;
 
 import java.util.UUID;
 
@@ -29,6 +30,9 @@ public class FleetUtilsTest {
         Assertions.assertTrue(cni instanceof ConcordNodeIdentifier);
         Assertions.assertEquals(id.getLeastSignificantBits(), cni.getLow());
         Assertions.assertEquals(id.getMostSignificantBits(), cni.getHigh());
+
+        UUID id2 = toUuid(cni);
+        Assertions.assertEquals(id, id2);
     }
 
 }

@@ -99,7 +99,7 @@ class DefaultProfilesTest {
         blockchain = Blockchain.builder()
                 .consortium(consortium.getId())
                 .nodeList(Stream.of("1", "2", "3", "4")
-                        .map(s -> new Blockchain.NodeEntry(UUID.randomUUID(), s, s, "c".concat(s), ""))
+                        .map(s -> new Blockchain.NodeEntry(UUID.randomUUID(), s, s, "c".concat(s), null))
                         .collect(Collectors.toList()))
                 .build();
         blockchain.setId(uuid);

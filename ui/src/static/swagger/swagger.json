@@ -503,11 +503,12 @@
                     "description" : "FIXED or UNSPECIFIED, determines site locations",
                     "enum" : [ "FIXED", "UNSPECIFIED" ]
                   },
-                  "site_ids" : {
+                  "zone_ids" : {
                     "type" : "array",
-                    "description" : "List of site ids.  Required if deployment type is fixed",
+                    "description" : "List of zone IDs for nodes.  deployment_type must be FIXED.  Must contain 3f + 2c + 1 elements.\n",
                     "items" : {
-                      "type" : "string"
+                      "type" : "string",
+                      "format" : "uuid"
                     }
                   }
                 }
@@ -523,6 +524,60 @@
               "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/inline_response_202"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/blockchain/zones" : {
+      "summary" : "Deployment zones for blockchains",
+      "get" : {
+        "summary" : "Get available zones",
+        "operationId" : "getBlockchainZones",
+        "responses" : {
+          "200" : {
+            "description" : "List of available zones",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/inline_response_200_10"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post" : {
+        "summary" : "Refresh zones",
+        "description" : "Refresh the zone list from Persephone, and return it",
+        "operationId" : "refreshBlockchainZones",
+        "parameters" : [ {
+          "name" : "action",
+          "in" : "query",
+          "description" : "Perform the action",
+          "required" : false,
+          "style" : "form",
+          "explode" : true,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "reload" ]
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "List of available zones",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/inline_response_200_10"
+                  }
                 }
               }
             }
@@ -553,7 +608,7 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/inline_response_200_9"
+                  "$ref" : "#/components/schemas/inline_response_200_11"
                 }
               }
             }
@@ -602,7 +657,7 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/inline_response_200_10"
+                  "$ref" : "#/components/schemas/inline_response_200_12"
                 }
               }
             }
@@ -1276,7 +1331,7 @@
                 "schema" : {
                   "type" : "array",
                   "items" : {
-                    "$ref" : "#/components/schemas/inline_response_200_11"
+                    "$ref" : "#/components/schemas/inline_response_200_13"
                   }
                 }
               }
@@ -1355,7 +1410,7 @@
                 "schema" : {
                   "type" : "array",
                   "items" : {
-                    "$ref" : "#/components/schemas/inline_response_200_12"
+                    "$ref" : "#/components/schemas/inline_response_200_14"
                   }
                 }
               }
@@ -1479,7 +1534,7 @@
                 "schema" : {
                   "type" : "array",
                   "items" : {
-                    "$ref" : "#/components/schemas/inline_response_200_13"
+                    "$ref" : "#/components/schemas/inline_response_200_15"
                   }
                 }
               }
@@ -1549,7 +1604,7 @@
                 "schema" : {
                   "type" : "array",
                   "items" : {
-                    "$ref" : "#/components/schemas/inline_response_200_13"
+                    "$ref" : "#/components/schemas/inline_response_200_15"
                   }
                 }
               }
@@ -1617,7 +1672,7 @@
                 "schema" : {
                   "type" : "array",
                   "items" : {
-                    "$ref" : "#/components/schemas/inline_response_200_14"
+                    "$ref" : "#/components/schemas/inline_response_200_16"
                   }
                 }
               }
@@ -1666,7 +1721,7 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/inline_response_200_15"
+                  "$ref" : "#/components/schemas/inline_response_200_17"
                 }
               }
             }
@@ -1697,7 +1752,7 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/inline_response_200_14"
+                  "$ref" : "#/components/schemas/inline_response_200_16"
                 }
               }
             }
@@ -1739,7 +1794,7 @@
                 "schema" : {
                   "type" : "array",
                   "items" : {
-                    "$ref" : "#/components/schemas/inline_response_200_16"
+                    "$ref" : "#/components/schemas/inline_response_200_18"
                   }
                 }
               }
@@ -1796,7 +1851,7 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/inline_response_200_17"
+                  "$ref" : "#/components/schemas/inline_response_200_19"
                 }
               }
             }
@@ -1827,7 +1882,7 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/inline_response_200_16"
+                  "$ref" : "#/components/schemas/inline_response_200_18"
                 }
               }
             }
@@ -1934,7 +1989,7 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/inline_response_200_18"
+                  "$ref" : "#/components/schemas/inline_response_200_20"
                 }
               }
             }
@@ -1975,7 +2030,7 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/inline_response_200_18"
+                  "$ref" : "#/components/schemas/inline_response_200_20"
                 }
               }
             }
@@ -2012,7 +2067,7 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/inline_response_200_19"
+                  "$ref" : "#/components/schemas/inline_response_200_21"
                 }
               }
             }
@@ -2023,6 +2078,39 @@
   },
   "components" : {
     "schemas" : {
+      "inline_response_200_11_node_list" : {
+        "properties" : {
+          "node_id" : {
+            "type" : "string",
+            "description" : "Node ID",
+            "format" : "uuid"
+          },
+          "ip" : {
+            "type" : "string",
+            "description" : "IP address of node"
+          },
+          "url" : {
+            "type" : "string",
+            "description" : "EthRPC url of node"
+          },
+          "cert" : {
+            "type" : "string",
+            "description" : "SSL certificate to talk to ethrpc"
+          },
+          "zone_id" : {
+            "type" : "string",
+            "description" : "Deployment zone for this node",
+            "format" : "uuid"
+          }
+        },
+        "example" : {
+          "zone_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+          "ip" : "ip",
+          "cert" : "cert",
+          "url" : "url",
+          "node_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91"
+        }
+      },
       "inline_object_10" : {
         "type" : "object",
         "properties" : {
@@ -2186,18 +2274,39 @@
           "consortium_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
           "id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
           "node_list" : [ {
+            "zone_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
             "ip" : "ip",
             "cert" : "cert",
-            "region" : "region",
             "url" : "url",
             "node_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91"
           }, {
+            "zone_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
             "ip" : "ip",
             "cert" : "cert",
-            "region" : "region",
             "url" : "url",
             "node_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91"
           } ]
+        }
+      },
+      "inline_response_200_21" : {
+        "properties" : {
+          "token" : {
+            "type" : "string",
+            "description" : "Token used for authentication."
+          },
+          "refresh_token" : {
+            "type" : "string",
+            "description" : "Token used to regenerate a token, token_expires and refresh_token"
+          },
+          "token_expires" : {
+            "type" : "string",
+            "description" : "Amount of time till your token expires."
+          }
+        },
+        "example" : {
+          "refresh_token" : "refresh_token",
+          "token_expires" : "token_expires",
+          "token" : "token"
         }
       },
       "inline_response_200_5" : {
@@ -2357,6 +2466,64 @@
           "org_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91"
         }
       },
+      "inline_response_200_20" : {
+        "properties" : {
+          "user_id" : {
+            "type" : "string",
+            "description" : "integer value representing ID of this user",
+            "format" : "uuid"
+          },
+          "name" : {
+            "type" : "string",
+            "description" : "string representing name of this user"
+          },
+          "email" : {
+            "type" : "string",
+            "description" : "string representing email of this user"
+          },
+          "role" : {
+            "type" : "string",
+            "description" : "string representing role of this user"
+          },
+          "last_login" : {
+            "type" : "integer",
+            "description" : "integer value representing the time (in milliseconds since epoch) when this user last logged in"
+          },
+          "details" : {
+            "$ref" : "#/components/schemas/_users_details"
+          },
+          "consortium" : {
+            "$ref" : "#/components/schemas/_users_consortium"
+          },
+          "organization" : {
+            "$ref" : "#/components/schemas/_users_organization"
+          },
+          "isAuthenticated" : {
+            "type" : "boolean",
+            "description" : "True if login succeeded. False otherwise."
+          }
+        },
+        "example" : {
+          "role" : "role",
+          "user_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+          "last_login" : 0,
+          "consortium" : {
+            "consortium_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+            "consortium_name" : "consortium_name"
+          },
+          "organization" : {
+            "organization_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+            "organization_name" : "organization_name"
+          },
+          "name" : "name",
+          "details" : {
+            "last_name" : "last_name",
+            "first_name" : "first_name"
+          },
+          "isAuthenticated" : true,
+          "email" : "email"
+        }
+      },
       "inline_response_200_8" : {
         "properties" : {
           "contract_id" : {
@@ -2469,15 +2636,16 @@
             "type" : "string",
             "description" : "SSL certificate to talk to ethrpc"
           },
-          "region" : {
+          "zone_id" : {
             "type" : "string",
-            "description" : "Region (SDDC) this node is doploy in"
+            "description" : "zone id this node is deployed in",
+            "format" : "uuid"
           }
         },
         "example" : {
+          "zone_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
           "ip" : "ip",
           "cert" : "cert",
-          "region" : "region",
           "url" : "url",
           "node_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91"
         }
@@ -2614,6 +2782,69 @@
       },
       "inline_response_200_11" : {
         "properties" : {
+          "id" : {
+            "type" : "string",
+            "description" : "Blockchain ID",
+            "format" : "uuid"
+          },
+          "consortium_id" : {
+            "type" : "string",
+            "description" : "ID of owning consortium",
+            "format" : "uuid"
+          },
+          "node_list" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/inline_response_200_11_node_list"
+            }
+          }
+        },
+        "example" : {
+          "consortium_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+          "id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+          "node_list" : [ {
+            "zone_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+            "ip" : "ip",
+            "cert" : "cert",
+            "url" : "url",
+            "node_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91"
+          }, {
+            "zone_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+            "ip" : "ip",
+            "cert" : "cert",
+            "url" : "url",
+            "node_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91"
+          } ]
+        }
+      },
+      "inline_response_200_10" : {
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "name" : {
+            "type" : "string",
+            "example" : "VMC SDDC2"
+          },
+          "latitude" : {
+            "type" : "string",
+            "example" : "45.2551139"
+          },
+          "longitude" : {
+            "type" : "string",
+            "example" : "-120.888727"
+          }
+        },
+        "example" : {
+          "latitude" : "45.2551139",
+          "name" : "VMC SDDC2",
+          "id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+          "longitude" : "-120.888727"
+        }
+      },
+      "inline_response_200_13" : {
+        "properties" : {
           "consortiumId" : {
             "type" : "string",
             "description" : " Consortium ID",
@@ -2630,7 +2861,7 @@
           "consortiumId" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91"
         }
       },
-      "inline_response_200_10" : {
+      "inline_response_200_12" : {
         "properties" : {
           "id" : {
             "type" : "string",
@@ -2658,182 +2889,7 @@
           "rpc_urls" : "rpc_urls"
         }
       },
-      "inline_response_200_13" : {
-        "properties" : {
-          "orgId" : {
-            "type" : "string",
-            "description" : " Organization ID",
-            "format" : "uuid"
-          },
-          "organizationName" : {
-            "type" : "string",
-            "description" : "Name of organization",
-            "format" : "string"
-          }
-        },
-        "example" : {
-          "organizationName" : "organizationName",
-          "orgId" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91"
-        }
-      },
-      "inline_response_200_12" : {
-        "properties" : {
-          "orgId" : {
-            "type" : "string",
-            "description" : " Consortium ID",
-            "format" : "uuid"
-          },
-          "organizationName" : {
-            "type" : "string",
-            "description" : "Name of Consortium",
-            "format" : "string"
-          }
-        },
-        "example" : {
-          "organizationName" : "organizationName",
-          "orgId" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91"
-        }
-      },
       "inline_response_200_19" : {
-        "properties" : {
-          "token" : {
-            "type" : "string",
-            "description" : "Token used for authentication."
-          },
-          "refresh_token" : {
-            "type" : "string",
-            "description" : "Token used to regenerate a token, token_expires and refresh_token"
-          },
-          "token_expires" : {
-            "type" : "string",
-            "description" : "Amount of time till your token expires."
-          }
-        },
-        "example" : {
-          "refresh_token" : "refresh_token",
-          "token_expires" : "token_expires",
-          "token" : "token"
-        }
-      },
-      "inline_response_200_18" : {
-        "properties" : {
-          "user_id" : {
-            "type" : "string",
-            "description" : "integer value representing ID of this user",
-            "format" : "uuid"
-          },
-          "name" : {
-            "type" : "string",
-            "description" : "string representing name of this user"
-          },
-          "email" : {
-            "type" : "string",
-            "description" : "string representing email of this user"
-          },
-          "role" : {
-            "type" : "string",
-            "description" : "string representing role of this user"
-          },
-          "last_login" : {
-            "type" : "integer",
-            "description" : "integer value representing the time (in milliseconds since epoch) when this user last logged in"
-          },
-          "details" : {
-            "$ref" : "#/components/schemas/_users_details"
-          },
-          "consortium" : {
-            "$ref" : "#/components/schemas/_users_consortium"
-          },
-          "organization" : {
-            "$ref" : "#/components/schemas/_users_organization"
-          },
-          "isAuthenticated" : {
-            "type" : "boolean",
-            "description" : "True if login succeeded. False otherwise."
-          }
-        },
-        "example" : {
-          "role" : "role",
-          "user_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
-          "last_login" : 0,
-          "consortium" : {
-            "consortium_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
-            "consortium_name" : "consortium_name"
-          },
-          "organization" : {
-            "organization_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
-            "organization_name" : "organization_name"
-          },
-          "name" : "name",
-          "details" : {
-            "last_name" : "last_name",
-            "first_name" : "first_name"
-          },
-          "isAuthenticated" : true,
-          "email" : "email"
-        }
-      },
-      "inline_response_200_15" : {
-        "properties" : {
-          "states" : {
-            "type" : "array",
-            "items" : {
-              "$ref" : "#/components/schemas/inline_response_200_14"
-            }
-          }
-        },
-        "example" : {
-          "states" : [ {
-            "resource_link" : "http://example.com/aeiou",
-            "resource_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
-            "task_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
-            "state" : "RUNNING",
-            "message" : "message"
-          }, {
-            "resource_link" : "http://example.com/aeiou",
-            "resource_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
-            "task_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
-            "state" : "RUNNING",
-            "message" : "message"
-          } ]
-        }
-      },
-      "inline_response_200_14" : {
-        "properties" : {
-          "task_id" : {
-            "type" : "string",
-            "description" : "Task ID",
-            "format" : "uuid"
-          },
-          "state" : {
-            "type" : "string",
-            "description" : "Current state of of the task",
-            "enum" : [ "RUNNING", "SUCCEEDED", "FAILED" ]
-          },
-          "message" : {
-            "type" : "string",
-            "description" : "Additional information from the task"
-          },
-          "resource_id" : {
-            "type" : "string",
-            "description" : "The resoruce created or updated by this task.  May not be accurate until state is FAILED or SUCCEEDED.",
-            "format" : "uuid"
-          },
-          "resource_link" : {
-            "type" : "string",
-            "description" : "Link to the resource created or updated by this task.",
-            "format" : "uri"
-          }
-        },
-        "example" : {
-          "resource_link" : "http://example.com/aeiou",
-          "resource_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
-          "task_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
-          "state" : "RUNNING",
-          "message" : "message"
-        }
-      },
-      "inline_response_200_17" : {
         "properties" : {
           "user_id" : {
             "type" : "string",
@@ -2845,7 +2901,7 @@
           "user_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91"
         }
       },
-      "inline_response_200_16" : {
+      "inline_response_200_18" : {
         "properties" : {
           "user_id" : {
             "type" : "string",
@@ -2896,6 +2952,102 @@
             "first_name" : "first_name"
           },
           "email" : "email"
+        }
+      },
+      "inline_response_200_15" : {
+        "properties" : {
+          "orgId" : {
+            "type" : "string",
+            "description" : " Organization ID",
+            "format" : "uuid"
+          },
+          "organizationName" : {
+            "type" : "string",
+            "description" : "Name of organization",
+            "format" : "string"
+          }
+        },
+        "example" : {
+          "organizationName" : "organizationName",
+          "orgId" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91"
+        }
+      },
+      "inline_response_200_14" : {
+        "properties" : {
+          "orgId" : {
+            "type" : "string",
+            "description" : " Consortium ID",
+            "format" : "uuid"
+          },
+          "organizationName" : {
+            "type" : "string",
+            "description" : "Name of Consortium",
+            "format" : "string"
+          }
+        },
+        "example" : {
+          "organizationName" : "organizationName",
+          "orgId" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91"
+        }
+      },
+      "inline_response_200_17" : {
+        "properties" : {
+          "states" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/inline_response_200_16"
+            }
+          }
+        },
+        "example" : {
+          "states" : [ {
+            "resource_link" : "http://example.com/aeiou",
+            "resource_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+            "task_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+            "state" : "RUNNING",
+            "message" : "message"
+          }, {
+            "resource_link" : "http://example.com/aeiou",
+            "resource_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+            "task_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+            "state" : "RUNNING",
+            "message" : "message"
+          } ]
+        }
+      },
+      "inline_response_200_16" : {
+        "properties" : {
+          "task_id" : {
+            "type" : "string",
+            "description" : "Task ID",
+            "format" : "uuid"
+          },
+          "state" : {
+            "type" : "string",
+            "description" : "Current state of of the task",
+            "enum" : [ "RUNNING", "SUCCEEDED", "FAILED" ]
+          },
+          "message" : {
+            "type" : "string",
+            "description" : "Additional information from the task"
+          },
+          "resource_id" : {
+            "type" : "string",
+            "description" : "The resoruce created or updated by this task.  May not be accurate until state is FAILED or SUCCEEDED.",
+            "format" : "uuid"
+          },
+          "resource_link" : {
+            "type" : "string",
+            "description" : "Link to the resource created or updated by this task.",
+            "format" : "uri"
+          }
+        },
+        "example" : {
+          "resource_link" : "http://example.com/aeiou",
+          "resource_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+          "task_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+          "state" : "RUNNING",
+          "message" : "message"
         }
       },
       "_users_organization" : {
@@ -3178,11 +3330,12 @@
             "description" : "FIXED or UNSPECIFIED, determines site locations",
             "enum" : [ "FIXED", "UNSPECIFIED" ]
           },
-          "site_ids" : {
+          "zone_ids" : {
             "type" : "array",
-            "description" : "List of site ids.  Required if deployment type is fixed",
+            "description" : "List of zone IDs for nodes.  deployment_type must be FIXED.  Must contain 3f + 2c + 1 elements.\n",
             "items" : {
-              "type" : "string"
+              "type" : "string",
+              "format" : "uuid"
             }
           }
         }

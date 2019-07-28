@@ -9,6 +9,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import com.vmware.blockchain.deployment.model.FleetManagementServiceStub;
+import com.vmware.blockchain.deployment.model.OrchestrationSiteServiceStub;
 import com.vmware.blockchain.deployment.model.ProvisioningServiceStub;
 
 import io.grpc.CallOptions;
@@ -35,5 +36,10 @@ public class FleetConfig {
     @Bean
     ProvisioningServiceStub provisioningServiceStub() {
         return new ProvisioningServiceStub(channel, CallOptions.DEFAULT);
+    }
+
+    @Bean
+    OrchestrationSiteServiceStub orchestrationSiteServiceStub() {
+        return new OrchestrationSiteServiceStub(channel, CallOptions.DEFAULT);
     }
 }

@@ -86,7 +86,7 @@ public class BlockchainServiceTest {
     @Test
     void testCreateNode() {
         NodeEntry node = new NodeEntry(UUID.fromString("d1740514-606b-4e88-ab54-fc8182630890"), "1.2.3.4",
-                                       "http://localhost", "", "middlearth");
+                                       "http://localhost", "", UUID.fromString("2dd3386d-69f4-4fcf-9fc2-42607929c0b8"));
         Assertions.assertEquals("1.2.3.4", node.getHostName());
     }
 

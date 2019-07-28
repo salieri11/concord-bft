@@ -63,7 +63,7 @@ public class ConnectionPoolTest {
         blockchain = Blockchain.builder()
                 .consortium(consortium.getId())
                 .nodeList(Stream.of("ip1:5458", "ip2:5458", "ip3:5458", "ip4:5458")
-                        .map(s -> new Blockchain.NodeEntry(UUID.randomUUID(), s, s, "cert", ""))
+                        .map(s -> new Blockchain.NodeEntry(UUID.randomUUID(), s, s, "cert", null))
                         .collect(Collectors.toList()))
                 .build();
         blockchain.setId(UUID.fromString("33b26eed-d173-47bf-ab3a-184479a1fde0"));
