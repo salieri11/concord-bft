@@ -65,30 +65,36 @@
           <clr-icon clrVerticalNavIcon shape="tags"></clr-icon>
           {{'nav.transactionList' | translate}}
         </a>
-        <ng-container *concordCanView="[personas.SystemsAdmin, personas.ConsortiumAdmin, personas.OrgAdmin]">
-          <div class="nav-divider"></div>
-          <label class="nav-header">
-            {{'nav.developer.header' | translate}}
-          </label>
-          <a clrVerticalNavLink [routerLink]="['developer/apis']" routerLinkActive="active" id="apis">
-            <clr-icon clrVerticalNavIcon shape="info-circle"></clr-icon>
-            {{'nav.developer.api' | translate}}
-          </a>
-          <a clrVerticalNavLink [routerLink]="['developer/examples']" routerLinkActive="active">
-            <clr-icon clrVerticalNavIcon shape="tools"></clr-icon>
-            {{'nav.developer.samples' | translate}}
-          </a>
-          <ng-container *ngIf="!env.csp">
-            <ng-container *concordCanView="[personas.SystemsAdmin, personas.ConsortiumAdmin, personas.OrgAdmin]">
-              <div class="nav-divider"></div>
-              <label class="nav-header">
-                {{'nav.sysadmin' | translate}}
-              </label>
-              <a clrVerticalNavLink [routerLink]="['users']" routerLinkActive="active" *concordCanView="[personas.SystemsAdmin, personas.ConsortiumAdmin, personas.OrgAdmin]" tourAnchor="onboardingTour.userManagement">
-                <clr-icon clrVerticalNavIcon shape="administrator"></clr-icon>
-                {{'nav.users' | translate}}
-              </a>
-            </ng-container>
+        <div class="nav-divider"></div>
+        <label class="nav-header">
+          {{'nav.developer.header' | translate}}
+        </label>
+        <a clrVerticalNavLink [href]="urls.docs" target="_blank">
+          <clr-icon clrVerticalNavIcon shape="book"></clr-icon>
+          {{'nav.developer.docs' | translate}}
+        </a>
+        <a clrVerticalNavLink [routerLink]="['developer/apis']" routerLinkActive="active" id="apis">
+          <clr-icon clrVerticalNavIcon shape="info-circle"></clr-icon>
+          {{'nav.developer.api' | translate}}
+        </a>
+        <a clrVerticalNavLink [routerLink]="['developer/examples']" routerLinkActive="active">
+          <clr-icon clrVerticalNavIcon shape="tools"></clr-icon>
+          {{'nav.developer.samples' | translate}}
+        </a>
+        <ng-container *ngIf="!env.csp">
+          <ng-container *concordCanView="[personas.SystemsAdmin, personas.ConsortiumAdmin, personas.OrgAdmin]">
+            <div class="nav-divider"></div>
+            <label class="nav-header">
+              {{'nav.sysadmin' | translate}}
+            </label>
+            <a clrVerticalNavLink
+               [routerLink]="['users']"
+               routerLinkActive="active"
+               *concordCanView="[personas.SystemsAdmin, personas.ConsortiumAdmin, personas.OrgAdmin]"
+               tourAnchor="onboardingTour.userManagement">
+              <clr-icon clrVerticalNavIcon shape="administrator"></clr-icon>
+              {{'nav.users' | translate}}
+            </a>
           </ng-container>
         </ng-container>
       </ng-container>

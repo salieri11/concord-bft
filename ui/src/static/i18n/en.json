@@ -41,6 +41,7 @@
     "logsAndAnalysis": "Logs And Analysis",
     "developer": {
       "header": "DEVELOPER",
+      "docs": "Documentation",
       "api": "APIs",
       "samples": "Samples"
     },

@@ -131,9 +131,11 @@ export class BlockchainService {
     this.blockchainId = bId;
 
     if (this.blockchains && this.blockchains.length) {
+      this.blockchainId = this.blockchains[0].id;
       this.blockchains.forEach(bc => {
         if (bc.id === bId) {
           this.selectedBlockchain = bc;
+          this.blockchainId = this.selectedBlockchain.id;
         }
       });
     }

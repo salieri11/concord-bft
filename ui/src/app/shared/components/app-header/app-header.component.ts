@@ -14,8 +14,7 @@ import {
 import { environment } from '../../../../environments/environment';
 import { AuthenticationService } from '../../authentication.service';
 import { Personas, PersonaService } from '../../persona.service';
-
-import { CspAPIs } from '../../../shared/csp-apis';
+import { CspAPIs } from '../../../shared/urls.model';
 
 @Component({
   selector: 'concord-app-header',

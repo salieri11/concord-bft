@@ -9,7 +9,7 @@ import { BehaviorSubject, Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 
 import { Personas, PersonaService } from './persona.service';
-import { User } from '../users/shared/user.model';
+import { User, UserAuthResponse } from '../users/shared/user.model';
 import { UsersService } from '../users/shared/users.service';
 
 @Injectable()
@@ -53,9 +53,9 @@ export class AuthenticationService {
     };
   }
 
-  getAccessToken(): Observable<any> {
+  getAccessToken(): Observable<UserAuthResponse> {
     const url = 'api/oauth/token';
-    return this.http.get<{ auth_token: string, last_login: number, email: string }>(url).pipe(
+    return this.http.get<UserAuthResponse>(url).pipe(
       map(response => {
         this.accessToken = response.auth_token;
         const parsedToken = this.parseJwt(this.accessToken);
