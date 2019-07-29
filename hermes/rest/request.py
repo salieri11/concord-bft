@@ -127,7 +127,9 @@ class Request():
       if os.path.isfile(self._responseFile):
          response = util.json_helper.readJsonFile(self._responseFile)
 
-         if "error" in response:
+         if response is None:
+            exception = "Couldn't read ReST response.\n"
+         elif "error" in response:
             exception = "ReST response contained an error.\n" \
                         "Response: '{}'".format(response)
       else:
