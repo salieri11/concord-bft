@@ -50,7 +50,15 @@ COPY ./concord /concord
 WORKDIR /concord/build
 RUN cmake -DCMAKE_C_COMPILER=/usr/bin/clang-7 -DCMAKE_CXX_COMPILER=/usr/bin/clang++-7 -DCMAKE_CXX_FLAGS="-march=x86-64 -mtune=generic" .. && make -j$(nproc) logging_dev conc_genconfig
 
-# Runtime image (Metadata Service).
+# Environment preparation.
+FROM openjdk:11.0.2-jdk-slim as environment
+
+RUN apt-get update \
+    && apt-get install -y wget \
+    && wget --directory-prefix=/tmp/ https://dl.cacerts.digicert.com/DigiCertSHA2HighAssuranceServerCA.crt \
+    && keytool -importcert -alias vmwblockchain-cacert -cacerts -storepass changeit -file /tmp/DigiCertSHA2HighAssuranceServerCA.crt
+
+# Runtime image (Provisioning Service).
 FROM openjdk:11.0.2-jdk-slim
 LABEL description="VMware Blockchain Fleet Management Provisioning Service"
 
@@ -79,10 +87,14 @@ ENV LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/usr/local/lib"
 WORKDIR /app
 COPY --from=builder1 /concord/build/tools/conc_genconfig /app/
 
+## Disable TLS 1.3 due to buggy JDK implementation chewing up CPU.
 RUN sed -i "/jdk.tls.disabledAlgorithms=/ s/=.*/=TLSv1.3, SSLv3, RC4, MD5withRSA, DH keySize < 1024, EC keySize < 224, DES40_CBC, RC4_40, 3DES_EDE_CBC/" $(readlink -f /usr/bin/java | sed "s:bin/java::")/conf/security/java.security
 
+## Install CA certificate.
+COPY --from=environment /docker-java-home/lib/security/cacerts /docker-java-home/lib/security/cacerts
+
 WORKDIR /persephone/provisioning-service
-COPY --from=0 ./persephone/provisioning-service/target/persephone-provisioning-service*with-dependencies.jar ./provisioning-service.jar
+COPY --from=builder ./persephone/provisioning-service/target/persephone-provisioning-service*with-dependencies.jar ./provisioning-service.jar
 
 EXPOSE 9002
 
