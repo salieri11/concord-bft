@@ -26,6 +26,8 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 
 public class BallotDeployer {
 
@@ -48,10 +50,10 @@ public class BallotDeployer {
 	public void deploy(String proposalPath, String contractPath, String password, String path) throws Exception {
 
 		OkHttpClient client = BallotDApp.CLIENT;
-
+		ScheduledExecutorService scheduledExecutorService = new ScheduledThreadPoolExecutor(BallotDApp.NUMBER_THREADS);
 		HttpService httpServiceEth = new HttpService(BallotDApp.ENDPOINT, client, false);
 		httpServiceEth.addHeader("Authorization", okhttp3.Credentials.basic(BallotDApp.CONCORD_USERNAME, BallotDApp.CONCORD_PASSWORD));
-		Web3j web3j = Web3j.build(httpServiceEth);
+		Web3j web3j = Web3j.build(httpServiceEth, 15000L, scheduledExecutorService);
 
 		logger.info("Connected to Ethereum client version: "
 				+ web3j.web3ClientVersion().send().getWeb3ClientVersion());
@@ -89,9 +91,11 @@ public class BallotDeployer {
 	}
 
 	public double grantRightToVote(Credentials[] credentials) throws Exception {
+		logger.info("Start granting rights");
 		long startTime = System.nanoTime();
 		List<CompletableFuture<TransactionReceipt>> tasks = new ArrayList<>();
 		ExecutorService executor = Executors.newFixedThreadPool(BallotDApp.NUMBER_THREADS);
+		int counter = 0;
 		for (Credentials credential : credentials)  {
 			CompletableFuture<TransactionReceipt> task =
 					execute(executor, ballot, credential.getAddress()).whenComplete((entry, error) -> {
@@ -101,15 +105,20 @@ public class BallotDeployer {
 					});
 
 			tasks.add(task);
+			counter++;
+			if (counter % 1000 == 0) {
+				logger.info("Started granting " + counter + " voters");
+			}
 		}
 		executor.shutdown();
 
 		CompletableFuture<Void> allDone =
-				CompletableFuture.allOf(tasks.toArray(new CompletableFuture[0]));
+				CompletableFuture.allOf(tasks.toArray(new CompletableFuture[tasks.size()]));
 		CompletableFuture.allOf(allDone).join();
 		long endTime = System.nanoTime();
 
 		logger.info("Total Time for Granting Right is " + (endTime - startTime) + " nano seconds");
+		logger.info("Total Time for Granting Right is " + (endTime - startTime) / 1000000000.0 + " seconds");
 		if (BallotDApp.NUMBER != 0) {
 			return (endTime - startTime) *(1.0e-9) / BallotDApp.NUMBER;
 		}
@@ -121,7 +130,7 @@ public class BallotDeployer {
 		final CompletableFuture<TransactionReceipt> promise = new CompletableFuture<>();
 		CompletableFuture.runAsync(() -> {
 			try {
-				ballot.giveRightToVote(voter).sendAsync();
+				ballot.giveRightToVote(voter).send();
 			} catch (Exception e) {
 				promise.completeExceptionally(e);
 			}
