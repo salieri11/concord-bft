@@ -704,6 +704,7 @@ EOF
                 pushDockerImage(env.internal_helen_repo, env.docker_tag, false)
                 pushDockerImage(env.internal_persephone_metadata_repo, env.docker_tag, false)
                 pushDockerImage(env.internal_persephone_provisioning_repo, env.docker_tag, false)
+                pushDockerImage(env.internal_persephone_configuration_repo, env.docker_tag, false)
                 // pushDockerImage(env.internal_persephone_fleet_repo, env.docker_tag, false)
                 pushDockerImage(env.internal_ui_repo, env.docker_tag, false)
                 pushDockerImage(env.internal_contract_compiler_repo, env.docker_tag, false)
