@@ -5,9 +5,8 @@ import com.vmware.blockchain.samples.Ballot;
 import okhttp3.OkHttpClient;
 import okhttp3.logging.HttpLoggingInterceptor;
 import okhttp3.logging.HttpLoggingInterceptor.Level;
-
-import org.apache.logging.log4j.*;
-
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.web3j.crypto.Credentials;
 import org.web3j.crypto.ECKeyPair;
 import org.web3j.crypto.Keys;
@@ -19,22 +18,28 @@ import org.web3j.protocol.http.HttpService;
 import org.web3j.tx.gas.DefaultGasProvider;
 import org.web3j.utils.Numeric;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.PrintWriter;
 
 import java.math.BigInteger;
 
 import java.text.DecimalFormat;
 
-import java.util.*;
+import java.util.Map.Entry;
+import java.util.Map;
+import java.util.HashMap;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Map.Entry;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 
 public class BallotDApp {
 	private static final Logger logger = LogManager.getLogger(BallotDApp.class);
@@ -224,6 +229,8 @@ public class BallotDApp {
 		 * greatly improves voter generation time.
 		 */
 		BigInteger nonce = BigInteger.ZERO;
+		Map<String, Web3j> serviceMap = new HashMap<>();
+		ScheduledExecutorService scheduledExecutorService = new ScheduledThreadPoolExecutor(NUMBER_THREADS);
 		if (CONCORD) {
 
 			if (weightedEndpoints != null) {
@@ -243,9 +250,13 @@ public class BallotDApp {
 						if (numTxs.get(nodeIndex) != 0) {
 							//create the transaction with IP from weightedEndpoints
 							String currentIp = "https://" + weightedEndpoints.get(nodeIndex).getKey() + ":" + PORT;
-							HttpService httpServiceEth = new HttpService(currentIp, BallotDApp.CLIENT, false);
-							httpServiceEth.addHeader("Authorization", okhttp3.Credentials.basic(CONCORD_USERNAME, CONCORD_PASSWORD));
-							web3j = Web3j.build(httpServiceEth);
+							if (!serviceMap.containsKey(currentIp))  {
+								HttpService httpServiceEth = new HttpService(currentIp, BallotDApp.CLIENT, false);
+								httpServiceEth.addHeader("Authorization", okhttp3.Credentials.basic(CONCORD_USERNAME, CONCORD_PASSWORD));
+								Web3j web3jObj = Web3j.build(httpServiceEth, 15000L, scheduledExecutorService);
+								serviceMap.put(currentIp, web3jObj);
+							}
+							web3j = serviceMap.get(currentIp);
 
 							Ballot ballot = Utils.loadContract(web3j, CONTRACT_DATA_PATH, credentials[credentialIndex]);
 							Voting voting = new Voting(web3j, ballot, credentials[credentialIndex], currentIp);
@@ -308,8 +319,10 @@ public class BallotDApp {
 
 		long start = System.nanoTime();
 		for (int i = 0; i < votings.size(); i++) {
+		    Voting voting = votings.get(i);
+		    AsyncTransaction asyncTransaction = new AsyncTransaction(web3j, voting.getSignedMsg(), i, voting.getNodeIp());
 			CompletableFuture<AsyncTransaction> task =
-					votings.get(i).execute(executor, i).whenComplete((entry, error) -> {
+					votings.get(i).execute(asyncTransaction, executor).whenComplete((entry, error) -> {
 						if (error != null) {
 							logger.error("Error occurred", error);
 						} else {
@@ -329,7 +342,7 @@ public class BallotDApp {
 		executor.shutdown();
 
 		CompletableFuture<Void> allDone =
-				CompletableFuture.allOf(tasks.toArray(new CompletableFuture[0]));
+				CompletableFuture.allOf(tasks.toArray(new CompletableFuture[tasks.size()]));
 		long conEnd = System.nanoTime();
 
 		CompletableFuture.allOf(allDone).join();
@@ -347,13 +360,7 @@ public class BallotDApp {
 		long minStartTime = Long.MAX_VALUE;
 		long maxEndTime = Long.MIN_VALUE;
 
-		Collections.sort(time, new Comparator<AsyncTransaction>() {
-			@Override
-			public int compare(AsyncTransaction tx1, AsyncTransaction tx2) {
-				return Long.compare(tx1.end, tx2.end);
-			}
-
-		});
+		Collections.sort(time, (tx1, tx2) ->(int) (tx1.end - tx2.end));
 
 		/*
 		 * All completed transactions are stored in memory and only written to file when ALL of them finished
@@ -401,13 +408,19 @@ public class BallotDApp {
 		stats.put("tableRow", Arrays.asList(testName, String.valueOf(numSuccessfulTransactions), df.format(100*numSuccessfulTransactions*1.0/NUMBER) + "%" ,String.valueOf(NUMBER - numSuccessfulTransactions), RATE_CONTROL + " tps", df.format(latencies.get(latencies.size() - 1)/1000000.0) + " ms",
 				df.format(latencies.get(0)/1000000.0) + " ms", df.format(totalSum/(1000000.0*NUMBER)) + " ms", df.format(NUMBER/((timeEndLoop - timeStartLoop)/1000000000.0)) + " tx/sec"));
 
+
 		logger.info("Average time response time: " + totalSum*1.0/NUMBER);
 		logger.info("p95 value: " + latencies.get(numSuccessfulTransactions*95/100)/1000000.0);
+		
 		logger.info("Start time of processing Voting: " + minStartTime);
 		logger.info("End time of processing Voting: " + maxEndTime);
 		logger.info("Total time for process: " + (maxEndTime - minStartTime) + " nano seconds");
-		logger.info("Start/End Transaction Rate: " + NUMBER/((maxEndTime - minStartTime)/1000000000.0) + " tx/sec");
-		logger.info("Transaction Rate: " + NUMBER/((timeEndLoop - timeStartLoop)/1000000000.0) + " tx/sec");
+
+		logger.info("Average response time in ms: " + totalSum / 1000000.0/NUMBER);
+		logger.info("Median response time in ms " + latencies.get(numSuccessfulTransactions / 2) / 1000000.0);
+		logger.info("P95 response time in ms " + latencies.get(numSuccessfulTransactions * 95 / 100)/1000000.0);
+		logger.info("Start/End Transaction Rate: " + NUMBER/((maxEndTime - minStartTime) / 1000000000.0) + " tx/sec");
+		logger.info("Transaction Rate: " + NUMBER/((timeEndLoop - timeStartLoop) / 1000000000.0) + " tx/sec");
 
 		writer.printf("Response Time: %.4f\n", response);
 		writer.printf("Burst Response Time: %.4f\n", totalSum*1.0e-9/NUMBER);

@@ -51,14 +51,11 @@ public class Voting {
 		this.ballot = Utils.loadContract(web3j, path, credentials);
 	}
 
-	public CompletableFuture<AsyncTransaction> execute(ExecutorService executor, int id) {
-		AsyncTransaction tx = new AsyncTransaction(web3j, signedMsg);
-		tx.setId(id);
-		tx.setNodeIp(nodeIp);
+	public CompletableFuture<AsyncTransaction> execute(AsyncTransaction asyncTransaction, ExecutorService executor) {
 		final CompletableFuture<AsyncTransaction> promise = new CompletableFuture<>();
-		CompletableFuture.runAsync(tx, executor).thenRun(() -> {
-			tx.setEndTime(System.nanoTime());
-			promise.complete(tx);
+		CompletableFuture.runAsync(asyncTransaction, executor).thenRun(() -> {
+			asyncTransaction.setEndTime(System.nanoTime());
+			promise.complete(asyncTransaction);
 		});
 		return promise;
 	}
@@ -102,12 +99,20 @@ public class Voting {
 		return hexValue;
 	}
 
+	public String getSignedMsg() {
+		return signedMsg;
+	}
+
 	public void setSignedMsg(String message) {
 		this.signedMsg = message;
 	}
 
 	public BigInteger getProposal() {
 		return proposal;
+	}
+
+	public String getNodeIp() {
+		return nodeIp;
 	}
 
 }

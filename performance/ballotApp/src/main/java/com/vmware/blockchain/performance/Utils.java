@@ -2,6 +2,7 @@ package com.vmware.blockchain.performance;
 
 import com.vmware.blockchain.samples.Ballot;
 
+import okhttp3.Dispatcher;
 import okhttp3.OkHttpClient;
 import okhttp3.OkHttpClient.Builder;
 
@@ -18,6 +19,8 @@ import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import javax.net.ssl.HostnameVerifier;
@@ -99,6 +102,11 @@ public class Utils {
 		}
 
 		Builder builder = new Builder();
+		Dispatcher dispatcher = new Dispatcher(new ThreadPoolExecutor(0, BallotDApp.NUMBER_THREADS,
+				60L, TimeUnit.SECONDS, new LinkedBlockingQueue<>()));
+		dispatcher.setMaxRequests(50);
+		dispatcher.setMaxRequestsPerHost(50);
+		builder.dispatcher(dispatcher);
 		builder.connectTimeout(0, TimeUnit.MILLISECONDS);
 		builder.readTimeout(0, TimeUnit.MILLISECONDS);
 		builder.writeTimeout(0, TimeUnit.MILLISECONDS);

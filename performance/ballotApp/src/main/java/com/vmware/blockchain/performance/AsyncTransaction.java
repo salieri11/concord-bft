@@ -24,6 +24,12 @@ public class AsyncTransaction implements Runnable {
 		this.web3j = web3j;
 	}
 
+	public AsyncTransaction(Web3j web3j, String signedMsg, int id, String nodeIp) {
+		this(web3j, signedMsg);
+		this.id = id;
+		this.nodeIp = nodeIp;
+	}
+
 	@Override
 	public void run() {
 		start = System.nanoTime();
