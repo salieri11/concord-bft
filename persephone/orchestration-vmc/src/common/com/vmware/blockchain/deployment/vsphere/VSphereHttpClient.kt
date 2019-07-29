@@ -1,7 +1,7 @@
 /* **************************************************************************
  * Copyright (c) 2019 VMware, Inc.  All rights reserved. VMware Confidential
  * *************************************************************************/
-package com.vmware.blockchain.deployment.vmc
+package com.vmware.blockchain.deployment.vsphere
 
 import com.vmware.blockchain.deployment.http.AccessTokenAwareHttpClient
 import com.vmware.blockchain.deployment.http.HttpResponse
