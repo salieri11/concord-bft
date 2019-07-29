@@ -300,8 +300,8 @@ public class BlockchainController {
                                                                       body.getZoneIds());
             logger.info("Deployment started, id {} for the consortium id {}", dsId, body.consortiumId.toString());
             BlockchainObserver bo =
-                    new BlockchainObserver(authHelper, blockchainService, taskService, task.getId(),
-                                           body.getConsortiumId());
+                    new BlockchainObserver(authHelper, operationContext, blockchainService, taskService,
+                                           task.getId(), body.getConsortiumId());
             // Watch for the event stream
             StreamClusterDeploymentSessionEventRequest request =
                     new StreamClusterDeploymentSessionEventRequest(new MessageHeader(), dsId);

@@ -19,6 +19,7 @@ import com.vmware.blockchain.deployment.model.ConcordCluster;
 import com.vmware.blockchain.deployment.model.ConcordNode;
 import com.vmware.blockchain.deployment.model.DeploymentSession;
 import com.vmware.blockchain.deployment.model.DeploymentSessionEvent;
+import com.vmware.blockchain.operation.OperationContext;
 import com.vmware.blockchain.services.blockchains.Blockchain.NodeEntry;
 import com.vmware.blockchain.services.tasks.Task;
 import com.vmware.blockchain.services.tasks.TaskService;
@@ -34,6 +35,7 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
 
     private Authentication auth;
     private AuthHelper authHelper;
+    private OperationContext operationContext;
     private BlockchainService blockchainService;
     private TaskService taskService;
     private UUID taskId;
@@ -41,6 +43,7 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
     private final List<NodeEntry> nodeList = new ArrayList<>();
     private DeploymentSession.Status status = DeploymentSession.Status.UNKNOWN;
     private UUID clusterId;
+    private String opId;
 
     /**
      * Create a new Blockchain Observer.  This handles the callbacks from the deployment
@@ -52,16 +55,19 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
      */
     public BlockchainObserver(
             AuthHelper authHelper,
+            OperationContext operationContext,
             BlockchainService blockchainService,
             TaskService taskService,
             UUID taskId,
             UUID consortiumId) {
         this.authHelper = authHelper;
+        this.operationContext = operationContext;
         this.blockchainService = blockchainService;
         this.taskService = taskService;
         this.taskId = taskId;
         this.consortiumId = consortiumId;
         auth = SecurityContextHolder.getContext().getAuthentication();
+        opId = operationContext.getId();
 
     }
 
@@ -70,6 +76,7 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
         logger.info("On Next: {}", value.getType());
         // Set auth in this thread to whoever invoked the observer
         SecurityContextHolder.getContext().setAuthentication(auth);
+        operationContext.setId(opId);
         try {
             switch (value.getType()) {
                 case CLUSTER_DEPLOYED:
@@ -103,6 +110,7 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
             });
         } finally {
             SecurityContextHolder.getContext().setAuthentication(null);
+            operationContext.removeId();
         }
     }
 
@@ -111,6 +119,7 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
         logger.info("On Error", t);
         // Set auth in this thread to whoever invoked the observer
         SecurityContextHolder.getContext().setAuthentication(auth);
+        operationContext.setId(opId);
         final Task task = taskService.get(taskId);
         task.setState(Task.State.FAILED);
         task.setMessage(t.getMessage());
@@ -119,12 +128,14 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
             m.setMessage(task.getMessage());
         });
         SecurityContextHolder.getContext().setAuthentication(null);
+        operationContext.removeId();
     }
 
     @Override
     public void onCompleted() {
         // Set auth in this thread to whoever invoked the observer
         SecurityContextHolder.getContext().setAuthentication(auth);
+        operationContext.setId(opId);
         // Just log this.  Looking to see how often this happens.
         logger.info("Task {} completed, status {}", taskId, status);
         // We need to evict the auth token from the cache, since the available blockchains has just changed
@@ -156,6 +167,7 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
         //
         logger.info("Updated task {}", task);
         SecurityContextHolder.getContext().setAuthentication(null);
+        operationContext.removeId();
     }
 
     /**
