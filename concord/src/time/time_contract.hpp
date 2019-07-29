@@ -5,12 +5,11 @@
 // false readings.
 //
 // Readings are submitted as (source, time, signature) triples, where source is
-// a string identifier of the submitter, time is an integer number of units
-// since some starting point (units are unspecified, but milliseconds since the
-// UNIX epoch is suggested) (See TimeContract::Update), and signature is a
-// digital signature proving that this time sample actually originates from the
-// named source (based on a public key given for that time source in this
-// Concord cluster's configuration).
+// a string identifier of the submitter, time is a timestamp represetnted as
+// google::protobuf::Timestamp, and signature is a digital signature proving
+// that this time sample actually originates from the named source (based on a
+// public key given for that time source in this Concord cluster's
+// configuration).
 //
 // Aggregation can be done via any statistical means that give the guarantees
 // discussed above. The current implementation is to choose the median of the
@@ -19,6 +18,7 @@
 #ifndef TIME_TIME_CONTRACT_HPP
 #define TIME_TIME_CONTRACT_HPP
 
+#include <google/protobuf/timestamp.pb.h>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -79,14 +79,15 @@ class TimeContract {
   // Throws a TimeException if this operation causes the TimeContract to load
   // state from its persistent storage but the data loaded is corrupted or
   // otherwise invalid.
-  uint64_t Update(const std::string& source, uint64_t time,
-                  const std::vector<uint8_t>& signature);
+  google::protobuf::Timestamp Update(const std::string& source,
+                                     const google::protobuf::Timestamp& time,
+                                     const std::vector<uint8_t>& signature);
 
   // Get the current time as specified by this TimeContract based on what
   // samples it currently has. Throws a TimeException if this operation causes
   // the TimeContract to load state from its persistent storage but the data
   // loaded is corrupted or otherwise invalid.
-  uint64_t GetTime();
+  google::protobuf::Timestamp GetTime();
 
   // Has the contract been updated since being loaded or since last
   // serialization?
@@ -110,7 +111,7 @@ class TimeContract {
   // where time samples are looked up by source name.
   struct SampleBody {
     // Time for this sample.
-    uint64_t time;
+    google::protobuf::Timestamp time;
 
     // Cryptographic signature proving this sample was published by the time
     // source it is recorded for.
@@ -136,7 +137,7 @@ class TimeContract {
   const Sliver time_key_;
 
   void LoadLatestSamples();
-  uint64_t SummarizeTime();
+  google::protobuf::Timestamp SummarizeTime();
 };
 
 }  // namespace time

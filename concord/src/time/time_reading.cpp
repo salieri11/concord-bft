@@ -2,8 +2,8 @@
 
 #include "time_reading.hpp"
 
+#include <google/protobuf/util/time_util.h>
 #include <log4cplus/loggingmacros.h>
-#include <chrono>
 
 #include "config/configuration_manager.hpp"
 
@@ -22,11 +22,8 @@ bool IsTimeServiceEnabled(const ConcordConfiguration &config) {
 //
 // Eventually this should take a Config object, and use it to decide how to read
 // the time.
-uint64_t ReadTime() {
-  system_clock::time_point now = system_clock::now();
-  system_clock::duration since_epoch = now.time_since_epoch();
-  return std::chrono::duration_cast<std::chrono::milliseconds>(since_epoch)
-      .count();
+google::protobuf::Timestamp ReadTime() {
+  return google::protobuf::util::TimeUtil::GetCurrentTime();
 }
 
 }  // namespace time

@@ -5,6 +5,7 @@
 #########################################################################
 import collections
 from base64 import b64decode
+import dateutil.parser
 import difflib
 import inspect
 import json
@@ -58,6 +59,12 @@ pytestmark = pytest.mark.skipif(time_service_is_disabled(), reason="Time service
 # What we expect time_pusher_period_ms to be, but in seconds.
 expectedUpdatePeriodSec = 1
 
+def iso_timestamp_to_seconds(timestamp):
+   '''
+   Convert ISO-8601 string to seconds.
+   '''
+   datetimeObj = dateutil.parser.isoparse(timestamp)
+   return int(datetimeObj.timestamp())
 
 def extract_samples_from_response(output):
    '''
@@ -72,7 +79,7 @@ def extract_samples_from_response(output):
    sampleMap = {}
    for sample in sampleList:
       text_source = b64decode(sample["source"]).decode("utf-8")
-      sampleMap[text_source] = int(sample["time"])
+      sampleMap[text_source] = iso_timestamp_to_seconds(sample["time"])
 
    return sampleMap
 
@@ -93,7 +100,7 @@ def extract_time_summary_response(output):
    '''
    responseText = re.findall("Received response: (.*)", output)[0]
    responseJson = json.loads(responseText)
-   return int(responseJson["timeResponse"]["summary"])
+   return iso_timestamp_to_seconds(responseJson["timeResponse"]["summary"])
 
 
 def get_summary(concordContainer=None):
@@ -189,9 +196,9 @@ def test_time_is_recent():
    # These comparisons are not safe if hermes and concord are not
    # running on the same hardware. If/when we run in that environment,
    # we'll need to add an acceptable skew value to the tests.
-   assert currentServiceTime // 1000 <= currentHermesTimeAfter, \
+   assert currentServiceTime <= currentHermesTimeAfter, \
       "Time service cannot run ahead of the system clock"
-   assert (currentServiceTime // 1000 - currentHermesTimeBefore) <= 2 * expectedUpdatePeriodSec, \
+   assert (currentServiceTime - currentHermesTimeBefore) <= 2 * expectedUpdatePeriodSec, \
       "Time service should be within 2x update period of system clock"
 
 
@@ -218,10 +225,8 @@ def test_time_service_in_ethereum_block(fxConnection):
    block = fxConnection.rpc.getBlockByHash(receipt["blockHash"])
    blockTime = int(block["timestamp"], 16)
 
-   # "//1000" = the time service reports in milliseconds, but ethereum
-   # block timestamps are in seconds
-   assert preTxTime // 1000 <= blockTime, "Block timestamp should be no earlier than pre-tx check"
-   assert blockTime <= postTxTime // 1000, "Block timestamp should be no later than post-tx check"
+   assert preTxTime <= blockTime, "Block timestamp should be no earlier than pre-tx check"
+   assert blockTime <= postTxTime, "Block timestamp should be no later than post-tx check"
 
 
 def test_time_service_in_ethereum_code(fxConnection):
@@ -253,10 +258,8 @@ def test_time_service_in_ethereum_code(fxConnection):
    contractTime = int(fxConnection.rpc.callContract(address), 16)
    postTxTime = get_summary(concordContainer)
 
-   # "//1000" = the time service reports in milliseconds, but ethereum
-   # timestamps are in seconds
-   assert preTxTime // 1000 <= contractTime, "Opcode time should be no earlier than pre-call check"
-   assert contractTime <= postTxTime // 1000, "Opcode time should be no later than post-call check"
+   assert preTxTime <= contractTime, "Opcode time should be no earlier than pre-call check"
+   assert contractTime <= postTxTime, "Opcode time should be no later than post-call check"
 
 
 def ensureEnoughBlocksToTest(fxConnection, minBlocksToTest):

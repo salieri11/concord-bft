@@ -19,6 +19,7 @@
 #ifndef TIME_TIME_SIGNING_HPP
 #define TIME_TIME_SIGNING_HPP
 
+#include <google/protobuf/timestamp.pb.h>
 #include <unordered_map>
 #include <vector>
 
@@ -30,8 +31,8 @@ namespace time {
 
 // Given the logical content of a time update, computes the data that we
 // expect a signature over to validate that time update.
-std::vector<uint8_t> GetSignableUpdateData(const std::string& source,
-                                           uint64_t time);
+std::vector<uint8_t> GetSignableUpdateData(
+    const std::string& source, const google::protobuf::Timestamp& time);
 
 // A TimeSigner handles signing the time updates for a particular time source. A
 // TimeSigner should produce signatures that can be validated with a
@@ -54,7 +55,7 @@ class TimeSigner {
   // signature is returned as a vector of bytes. May throw a TimeException if
   // the underlying cryptographic signature implementation unexpectedly reports
   // that it failed to produce a signature.
-  std::vector<uint8_t> Sign(uint64_t time) const;
+  std::vector<uint8_t> Sign(const google::protobuf::Timestamp& time) const;
 
  private:
   std::string sourceID_;
@@ -98,7 +99,8 @@ class TimeVerifier {
   // Note causes for update invalidity include that the source is unrecognized
   // and that the update does not match the signature under the claimed source's
   // configured public key.
-  bool Verify(const std::string& source, uint64_t time,
+  bool Verify(const std::string& source,
+              const google::protobuf::Timestamp& time,
               const std::vector<uint8_t>& signature);
 
  private:

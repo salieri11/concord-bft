@@ -12,6 +12,7 @@
 #ifndef TIME_TIME_PUSHER_HPP
 #define TIME_TIME_PUSHER_HPP
 
+#include <google/protobuf/timestamp.pb.h>
 #include <log4cplus/loggingmacros.h>
 #include <mutex>
 #include <thread>
@@ -54,13 +55,13 @@ class TimePusher {
 
  private:
   void AddTimeToCommand(com::vmware::concord::ConcordRequest &command,
-                        uint64_t time);
+                        google::protobuf::Timestamp time);
 
  private:
   log4cplus::Logger logger_;
   concord::consensus::KVBClientPool *clientPool_;
   bool stop_;
-  std::atomic_uint64_t lastPublishTimeMs_;
+  google::protobuf::Timestamp lastPublishTime_;
 
   int periodMilliseconds_;
   std::string timeSourceId_;
