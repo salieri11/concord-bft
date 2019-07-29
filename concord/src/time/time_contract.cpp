@@ -28,6 +28,8 @@ uint64_t TimeContract::Update(const string &source, uint64_t time,
   if (old_sample != samples_->end()) {
     if (verifier_.Verify(source, time, signature)) {
       if (time > old_sample->second.time) {
+        LOG4CPLUS_DEBUG(logger_,
+                        "Applying time " << time << " from source " << source);
         old_sample->second.time = time;
         old_sample->second.signature = signature;
         changed_ = true;
