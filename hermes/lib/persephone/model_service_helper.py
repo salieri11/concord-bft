@@ -21,6 +21,7 @@ log = logging.getLogger(__name__)
 class ModelServiceRPCHelper(RPCHelper):
    def __init__(self, args):
       super().__init__(args)
+      self.args = args
       self.service_name = Product.PERSEPHONE_SERVICE_METADATA
       self.service_port = self.get_persephone_service_port(self.service_name)
 
@@ -31,14 +32,10 @@ class ModelServiceRPCHelper(RPCHelper):
       except Exception as e:
          raise Exception(e)
 
-      # TODO: Read these default values from config json outside code or
-      #  directly from persephone's config
-      self.DEFAULT_CONCORD_MODEL_VERSION = "1.0"
-      self.DEFAULT_CONCORD_MODEL_TEMPLATE = "8abc7fda-9576-4b13-9beb-06f867cf2c7c"
-      self.DEFAULT_CONCORD_COMPONENTS = [
-         (concord_model_pb2.ConcordComponent.CONCORD, "vmwblockchain/concord-core:latest"),
-         (concord_model_pb2.ConcordComponent.ETHEREUM_API, "vmwblockchain/ethrpc:latest")
-      ]
+      self.CONCORD_ID = self.args.userConfig["persephoneTests"]["modelService"][
+         "deployment_component_ids"]["CONCORD"]
+      self.ETHRPC_ID = self.args.userConfig["persephoneTests"]["modelService"][
+         "deployment_component_ids"]["ETHRPC"]
 
    def __del__(self):
       self.close_channel(self.service_name)
@@ -50,25 +47,48 @@ class ModelServiceRPCHelper(RPCHelper):
       return add_model_request
 
    def create_concord_model_specification(self, version=None, template=None,
-                                             concord_components=None):
+                                             deployment_components=None):
       '''
       RPC Helper to create concord model specification
       :param version: Model Specification version
       :param template: Model Specification template name (UUID)
-      :param concord_components: Concord components in the spec
+      :param deployment_components: Deployment components to be used in concord spec
       '''
 
       if version is None:
-         version = self.DEFAULT_CONCORD_MODEL_VERSION
+         version = \
+         self.args.userConfig["persephoneTests"]["modelService"]["defaults"][
+            "concord_model_version"]
       if template is None:
-         template = self.DEFAULT_CONCORD_MODEL_TEMPLATE
-      if concord_components is None:
-         concord_components = self.DEFAULT_CONCORD_COMPONENTS
+         template = \
+         self.args.userConfig["persephoneTests"]["modelService"]["defaults"][
+            "concord_model_template_id"]
+
+      if deployment_components:
+         deployment_components = deployment_components.split(',')
+      else:
+         deployment_components = \
+         self.args.userConfig["persephoneTests"]["modelService"]["defaults"][
+            "deployment_components"]
+
+      log.info(
+         "Using Deployment components: {}".format(deployment_components))
+      concord_components = []
+      for component in deployment_components:
+         if self.CONCORD_ID in component:
+            concord_components.append((
+                                      concord_model_pb2.ConcordComponent.CONCORD,
+                                      component))
+         if self.ETHRPC_ID in component:
+            concord_components.append((
+                                      concord_model_pb2.ConcordComponent.ETHEREUM_API,
+                                      component))
 
       model_specification = concord_model_pb2.ConcordModelSpecification(
          version=version,
          template=template,
          components=self.get_concord_components(concord_components))
+      log.debug("Model Specification: {}".format(model_specification))
       return model_specification
 
    def get_concord_components(self, concord_components):

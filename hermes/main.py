@@ -81,6 +81,10 @@ def main():
                        help="User name for Sample DApp tests")
    parser.add_argument("--password",
                        help="Password for Sample DApp tests")
+   parser.add_argument("--deploymentComponents",
+                       help="Set of docker images required for Persephone Tests. "
+                            "e.g. 'vmwblockchain/persephone-testing-concord-core:e7cb6c3,"
+                            "vmwblockchain/persephone-testing-ethrpc:e7cb6c3'")
    parser.add_argument("--reverseProxyApiBaseUrl",
                        default="https://localhost/blockchains/local",
                        help="Base URL for Helen REST API calls. Test cases drill "

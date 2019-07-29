@@ -32,6 +32,7 @@ class PersephoneTests(test_suite.TestSuite):
    def __init__(self, cmdlineArgs):
       super().__init__(cmdlineArgs)
       self.args = self._args
+      self.args.userConfig = self._userConfig
       self.concord_ips = []
 
    def getName(self):
@@ -61,6 +62,11 @@ class PersephoneTests(test_suite.TestSuite):
             "**** To run all Persephone tests, pass the command line arg '--tests all_tests'")
       else:
          log.info("**** Running All tests ****")
+
+      if self.args.deploymentComponents is None:
+         log.info("****")
+         log.info("**** And, to deploy using specific concord/ethrpc Docker images, ")
+         log.info("**** pass the command line arg '--deploymentComponents <repo/new-concord-core:tag>,<repo/new-ethrpc:tag>'")
       log.info("****************************************")
 
       self.rpc_test_helper = RPCTestHelper(self.args)

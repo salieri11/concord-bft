@@ -50,7 +50,8 @@ class RPCTestHelper():
       Helper method to call AddModel gRPC
       '''
       header = core_pb2.MessageHeader()
-      concord_model_specification = self.model_rpc_helper.create_concord_model_specification()
+      concord_model_specification = self.model_rpc_helper.create_concord_model_specification(
+         deployment_components=self.args.deploymentComponents)
       add_model_request = self.model_rpc_helper.create_add_model_request(
          header,
          concord_model_specification)
@@ -82,12 +83,13 @@ class RPCTestHelper():
       Helper method to call create cluster gRPC
       :param cluster_size: cluster size
       :param placement_type: FIXED/UNSPECIFIED to place the concord memebers on site
-      :param stub: Default stub if running default provisioning service on port 9001,
+      :param stub: Default stub if running default provisioning service on port 9002
       else, stub for the non-default instance
       :return: deployment session ID
       '''
       header = core_pb2.MessageHeader()
-      concord_model_specification = self.model_rpc_helper.create_concord_model_specification()
+      concord_model_specification = self.model_rpc_helper.create_concord_model_specification(
+         deployment_components=self.args.deploymentComponents)
       placement_specification = self.provision_rpc_helper.create_placement_specification(
          cluster_size, placement_type=placement_type)
       genesis_spec = self.provision_rpc_helper.create_genesis_specification()
@@ -113,7 +115,7 @@ class RPCTestHelper():
       Helper method to stream deployment session events
       :param session_id: deployment session ID
       :param stub: Default stub if running default provisioning service on port
-      9001, else, stub for the non-default instance
+      9002, else, stub for the non-default instance
       :return: deployment events
       '''
       header = core_pb2.MessageHeader()
@@ -151,7 +153,7 @@ class RPCTestHelper():
       :param session_id: deployment session ID
       :param action: action to be performed
       :param stub: Default stub if running default provisioning service on port
-      9001, else, stub for the non-default instance
+      9002, else, stub for the non-default instance
       :return: session ID
       '''
       header = core_pb2.MessageHeader()
