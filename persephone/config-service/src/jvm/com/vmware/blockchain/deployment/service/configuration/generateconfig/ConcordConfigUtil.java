@@ -17,6 +17,9 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+
 import com.vmware.blockchain.deployment.service.configuration.generatecerts.CertificatesGenerator;
 
 
@@ -81,9 +84,13 @@ public class ConcordConfigUtil {
             generateInputConfigYaml(hostIps, DEFAULT_PATH_YAML);
 
             var outputPath = Files.createTempDirectory(null);
+            var principalsMapFile = Paths.get(outputPath.toString(), "principals.json").toString();
+
             var configFuture = new ProcessBuilder("/app/conc_genconfig",
                     "--configuration-input",
-                    DEFAULT_PATH_YAML)
+                    DEFAULT_PATH_YAML,
+                    "--report-principal-locations",
+                    principalsMapFile)
                     .directory(outputPath.toFile())
                     .start()
                     .onExit();
@@ -91,11 +98,13 @@ public class ConcordConfigUtil {
             var work = configFuture.whenCompleteAsync((process, error) -> {
                 if (error == null) {
                     try {
+                        var principalsMap = Files.readString(Paths.get(principalsMapFile));
+                        nodePrincipal.putAll(new Gson().fromJson(principalsMap,
+                                new TypeToken<Map<Integer, List<Integer>>>() {}.getType()));
+
                         for (int num = 0; num < hostIps.size(); num++) {
                             var path = outputPath.resolve("concord" + (num + 1) + ".config");
                             result.put(num, Files.readString(path));
-
-                            // TODO: Fill nodePrincipal from config output once available
                         }
                     } catch (Throwable collectError) {
                         log.error("Cannot collect generated cluster configuration",
