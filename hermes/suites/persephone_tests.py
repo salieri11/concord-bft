@@ -195,12 +195,19 @@ class PersephoneTests(test_suite.TestSuite):
              self._test_concurrent_deployments_fixed_site),
          ]
 
-   def verify_ethrpc_block_0(self, concord_ip):
-      log.info("Testing ethrpc call - get Block 0")
+   def verify_ethrpc_block_0(self, concord_ip, ethrpc_port=443):
+      '''
+      Helper method to validate hitting ethrpc endpoint
+      :param concord_ip: Concord IP
+      :param ethrpc_port: ethrpc port, defaulting to 443 (workaround as 8545 is
+      blocked on vmware network)
+      :return: Verification status (True/False)
+      '''
+      log.info("Validating ethrpc (get Block 0) on port '{}'".format(ethrpc_port))
       from rpc.rpc_call import RPC
       rpc = RPC(self.args.fileRoot,
                 "verify_ethrpc_block_0",
-                "http://{}:443".format(concord_ip),
+                "http://{}:{}".format(concord_ip, ethrpc_port),
                 self._userConfig)
       currentBlockNumber = rpc.getBlockNumber()
       log.info("Current Block Number: {}".format(currentBlockNumber))
