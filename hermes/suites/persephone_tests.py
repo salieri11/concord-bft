@@ -195,6 +195,24 @@ class PersephoneTests(test_suite.TestSuite):
              self._test_concurrent_deployments_fixed_site),
          ]
 
+   def verify_ethrpc_block_0(self, concord_ip):
+      log.info("Testing ethrpc call - get Block 0")
+      from rpc.rpc_call import RPC
+      rpc = RPC(self.args.fileRoot,
+                "verify_ethrpc_block_0",
+                "http://{}:443".format(concord_ip),
+                self._userConfig)
+      currentBlockNumber = rpc.getBlockNumber()
+      log.info("Current Block Number: {}".format(currentBlockNumber))
+
+      if int(currentBlockNumber, 16) == 0:
+         log.debug("Block Number is 0")
+         return True
+      else:
+         log.error("Block Number is NOT 0")
+
+      return False
+
    def validate_cluster_deployment_events(self, cluster_size,
                                           response_events_json):
       '''
@@ -421,7 +439,7 @@ class PersephoneTests(test_suite.TestSuite):
             log.info("Initiating SSH verification on all concord nodes...")
             for ethrpc_endpoint in ethrpc_endpoints:
                concord_ip = ethrpc_endpoint.split('//')[1].split(':')[0]
-               log.info("Concord IP: {}".format(concord_ip))
+               log.info("**** Concord IP: {}".format(concord_ip))
 
                if self.mark_node_as_logged_in(concord_ip, concord_username, concord_password):
                   log.info("Marked node as logged in (/tmp/{})".format(concord_ip))
@@ -451,6 +469,12 @@ class PersephoneTests(test_suite.TestSuite):
                self.add_ethrpc_port_forwarding(concord_ip,
                                                concord_username,
                                                concord_password)
+
+               if self.verify_ethrpc_block_0(concord_ip):
+                  log.info("Ethrpc (get Block 0) Validation - PASS")
+               else:
+                  log.info("Ethrpc (get Block 0) Validation - FAIL")
+                  return (False, "Ethrpc (get Block 0) Validation - FAILED")
 
             log.info("SSH Verification on all concord nodes are successful")
             return (True, None)
