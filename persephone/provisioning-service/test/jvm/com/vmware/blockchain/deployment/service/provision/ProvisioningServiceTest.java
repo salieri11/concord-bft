@@ -24,7 +24,6 @@ import com.vmware.blockchain.deployment.model.CreateClusterRequest;
 import com.vmware.blockchain.deployment.model.DeploymentSessionEvent;
 import com.vmware.blockchain.deployment.model.DeploymentSessionIdentifier;
 import com.vmware.blockchain.deployment.model.DeploymentSpecification;
-import com.vmware.blockchain.deployment.model.Endpoint;
 import com.vmware.blockchain.deployment.model.MessageHeader;
 import com.vmware.blockchain.deployment.model.OrchestrationSite;
 import com.vmware.blockchain.deployment.model.OrchestrationSiteIdentifier;
@@ -56,7 +55,6 @@ class ProvisioningServiceTest {
     ) {
         return DaggerTestProvisioningServer.builder()
                 .orchestrations(orchestrations)
-                .configServiceEndpoint(Endpoint.Companion.getDefaultValue())
                 .build()
                 .provisionService();
     }

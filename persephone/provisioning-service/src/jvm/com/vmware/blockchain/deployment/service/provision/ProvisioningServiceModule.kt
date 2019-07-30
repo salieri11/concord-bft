@@ -4,7 +4,6 @@
 package com.vmware.blockchain.deployment.service.provision
 
 import com.vmware.blockchain.deployment.model.ConfigurationServiceStub
-import com.vmware.blockchain.deployment.model.Endpoint
 import com.vmware.blockchain.deployment.model.OrchestrationSite
 import dagger.Module
 import dagger.Provides
@@ -39,9 +38,8 @@ class ProvisioningServiceModule {
         executor: ExecutorService,
         orchestratorProvider: OrchestratorProvider,
         sites: List<OrchestrationSite>,
-        configService: ConfigurationServiceStub,
-        configServiceEndpoint: Endpoint
+        configService: ConfigurationServiceStub
     ): ProvisioningService {
-        return ProvisioningService(executor, orchestratorProvider, sites, configService, configServiceEndpoint)
+        return ProvisioningService(executor, orchestratorProvider, sites, configService)
     }
 }

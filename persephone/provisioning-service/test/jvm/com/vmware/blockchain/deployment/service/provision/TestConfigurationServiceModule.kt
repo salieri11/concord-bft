@@ -4,7 +4,6 @@
 package com.vmware.blockchain.deployment.service.provision
 
 import com.vmware.blockchain.deployment.model.ConfigurationServiceStub
-import com.vmware.blockchain.deployment.model.Endpoint
 import dagger.Module
 import dagger.Provides
 import io.grpc.CallOptions
@@ -22,9 +21,11 @@ class TestConfigurationServiceModule {
      */
     @Provides
     @Singleton
-    fun providesConfigurationServiceStub(configurationServiceEndpoint: Endpoint): ConfigurationServiceStub {
-
-        val channel = InProcessChannelBuilder.forName("TestConfigurationService").directExecutor().build()
+    fun providesConfigurationServiceStub(): ConfigurationServiceStub {
+        val channel = InProcessChannelBuilder
+                .forName("TestConfigurationService")
+                .directExecutor()
+                .build()
         return ConfigurationServiceStub(channel, CallOptions.DEFAULT)
     }
 }

@@ -48,6 +48,7 @@ import com.vmware.blockchain.deployment.model.ConfigurationServiceRequest;
 import com.vmware.blockchain.deployment.model.ConfigurationServiceStub;
 import com.vmware.blockchain.deployment.model.ConfigurationSessionIdentifier;
 import com.vmware.blockchain.deployment.model.CreateClusterRequest;
+import com.vmware.blockchain.deployment.model.Credential;
 import com.vmware.blockchain.deployment.model.DeploymentSession;
 import com.vmware.blockchain.deployment.model.DeploymentSessionEvent;
 import com.vmware.blockchain.deployment.model.DeploymentSessionIdentifier;
@@ -158,15 +159,17 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
             ExecutorService executor,
             OrchestratorProvider orchestratorProvider,
             List<OrchestrationSite> orchestrations,
-            ConfigurationServiceStub configService,
-            Endpoint configServiceEndpoint
+            ConfigurationServiceStub configService
     ) {
         this.executor = executor;
         this.orchestratorProvider = orchestratorProvider;
         this.orchestrations = orchestrations.stream()
                 .collect(Collectors.toMap(OrchestrationSite::getId, OrchestrationSite::getInfo));
         this.configService = configService;
-        this.configServiceEndpoint = configServiceEndpoint;
+        this.configServiceEndpoint = new Endpoint(
+                configService.getChannel().authority(),
+                Credential.Companion.getDefaultValue()
+        );
     }
 
     /**

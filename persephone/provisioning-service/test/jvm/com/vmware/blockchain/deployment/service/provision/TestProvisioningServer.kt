@@ -42,9 +42,6 @@ interface TestProvisioningServer {
         @BindsInstance
         fun orchestrations(entries: List<OrchestrationSite>): Builder
 
-        @BindsInstance
-        fun configServiceEndpoint(configurationServiceEndpoint: Endpoint): Builder
-
         fun build(): TestProvisioningServer
     }
 }

@@ -2,38 +2,38 @@
 FROM maven:3.6.1-jdk-11 as builder
 
 ## Copy build-dependent resource files.
-COPY ./persephone/resources/checkstyle.xml ./persephone/resources/checkstyle.xml
+COPY ./resources/checkstyle.xml ./persephone/resources/checkstyle.xml
 
 ## Copy the dependency-related POM files (rarely changing).
-COPY ./persephone/pom.xml ./persephone/pom.xml
-COPY ./persephone/agent/pom.xml ./persephone/agent/pom.xml
-COPY ./persephone/api/pom.xml ./persephone/api/pom.xml
-COPY ./persephone/awsutil/pom.xml ./persephone/awsutil/pom.xml
-COPY ./persephone/cli/pom.xml ./persephone/cli/pom.xml
-COPY ./persephone/config-service/pom.xml ./persephone/config-service/pom.xml
-COPY ./persephone/core/pom.xml ./persephone/core/pom.xml
-COPY ./persephone/fleet-service/pom.xml ./persephone/fleet-service/pom.xml
-COPY ./persephone/ip-allocation-service/pom.xml ./persephone/ip-allocation-service/pom.xml
-COPY ./persephone/metadata-service/pom.xml ./persephone/metadata-service/pom.xml
-COPY ./persephone/orchestration/pom.xml ./persephone/orchestration/pom.xml
-COPY ./persephone/orchestration-vmc/pom.xml ./persephone/orchestration-vmc/pom.xml
-COPY ./persephone/persistence/pom.xml ./persephone/persistence/pom.xml
-COPY ./persephone/persistence-rocksdb/pom.xml ./persephone/persistence-rocksdb/pom.xml
-COPY ./persephone/provisioning-service/pom.xml ./persephone/provisioning-service/pom.xml
+COPY ./pom.xml ./persephone/pom.xml
+COPY ./agent/pom.xml ./persephone/agent/pom.xml
+COPY ./api/pom.xml ./persephone/api/pom.xml
+COPY ./awsutil/pom.xml ./persephone/awsutil/pom.xml
+COPY ./cli/pom.xml ./persephone/cli/pom.xml
+COPY ./config-service/pom.xml ./persephone/config-service/pom.xml
+COPY ./core/pom.xml ./persephone/core/pom.xml
+COPY ./fleet-service/pom.xml ./persephone/fleet-service/pom.xml
+COPY ./ip-allocation-service/pom.xml ./persephone/ip-allocation-service/pom.xml
+COPY ./metadata-service/pom.xml ./persephone/metadata-service/pom.xml
+COPY ./orchestration/pom.xml ./persephone/orchestration/pom.xml
+COPY ./orchestration-vmc/pom.xml ./persephone/orchestration-vmc/pom.xml
+COPY ./persistence/pom.xml ./persephone/persistence/pom.xml
+COPY ./persistence-rocksdb/pom.xml ./persephone/persistence-rocksdb/pom.xml
+COPY ./provisioning-service/pom.xml ./persephone/provisioning-service/pom.xml
 
 ## Run an empty package step to keep as much exogenous dependencies in a cached layer as possible.
 RUN mvn -f persephone/pom.xml dependency:resolve-plugins dependency:resolve clean package -B
 
 ## Copy the dependent module sources.
-COPY ./persephone/api ./persephone/api
-COPY ./persephone/awsutil ./persephone/awsutil
-COPY ./persephone/core ./persephone/core
-COPY ./persephone/orchestration ./persephone/orchestration
-COPY ./persephone/orchestration-vmc ./persephone/orchestration-vmc
-COPY ./persephone/persistence ./persephone/persistence
+COPY ./api ./persephone/api
+COPY ./awsutil ./persephone/awsutil
+COPY ./core ./persephone/core
+COPY ./orchestration ./persephone/orchestration
+COPY ./orchestration-vmc ./persephone/orchestration-vmc
+COPY ./persistence ./persephone/persistence
 
 ## Copy the module sources.
-COPY ./persephone/provisioning-service ./persephone/provisioning-service
+COPY ./provisioning-service ./persephone/provisioning-service
 
 ## Build module with all of its dependencies.
 RUN mvn -f persephone/pom.xml package -pl provisioning-service -am -B

@@ -17,14 +17,17 @@ class ConfigurationServiceModule {
     /**
      * Provide an [ConfigurationServiceStub] instance.
      *
+     * @param[configurationService]
+     *   endpoint specification for configuration service.
+     *
      * @return
      *   a singleton [ConfigurationServiceStub] instance
      */
     @Provides
     @Singleton
-    fun providesConfigurationServiceStub(configurationServiceEndpoint: Endpoint): ConfigurationServiceStub {
+    fun providesConfigurationServiceStub(configurationService: Endpoint): ConfigurationServiceStub {
 
-        val channel = ManagedChannelBuilder.forTarget(configurationServiceEndpoint.address).build()
+        val channel = ManagedChannelBuilder.forTarget(configurationService.address).build()
         return ConfigurationServiceStub(channel, CallOptions.DEFAULT)
     }
 }
