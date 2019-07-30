@@ -10,6 +10,8 @@ import com.vmware.blockchain.deployment.model.ConcordClusterIdentifier
 import com.vmware.blockchain.deployment.model.ConcordComponent
 import com.vmware.blockchain.deployment.model.ConcordModelSpecification
 import com.vmware.blockchain.deployment.model.ConcordNodeIdentifier
+import com.vmware.blockchain.deployment.model.ConfigurationSessionIdentifier
+import com.vmware.blockchain.deployment.model.Endpoint
 import com.vmware.blockchain.deployment.model.core.URI
 import com.vmware.blockchain.deployment.model.core.UUID
 import com.vmware.blockchain.deployment.model.ethereum.Genesis
@@ -101,7 +103,11 @@ fun main(args: Array<String>) {
                                     )
                             )
                     ),
-                    genesis
+                    genesis,
+                    "",
+                    ConfigurationSessionIdentifier.defaultValue,
+                    0,
+                    Endpoint(address = "configservice-vmbc.cloud.vmware.com")
             )
             val computeCreated = CompletableDeferred<URI>()
             val computeStarted = CompletableDeferred<URI>()
