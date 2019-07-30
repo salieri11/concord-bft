@@ -77,12 +77,21 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
         // Set auth in this thread to whoever invoked the observer
         SecurityContextHolder.getContext().setAuthentication(auth);
         operationContext.setId(opId);
+        String message = "Deployment in progress";
         try {
             switch (value.getType()) {
+                case NODE_DEPLOYED:
+                    ConcordNode cNode = value.getNode();
+                    message = String.format("Node %s deployed, status %s",
+                                            FleetUtils.toUuid(cNode.getId()), value.getNodeStatus().getStatus());
+                    logger.info("Node {} deployed", FleetUtils.toUuid(cNode.getId()));
+                    break;
+
                 case CLUSTER_DEPLOYED:
                     ConcordCluster cluster = value.getCluster();
                     // force the blockchain id to be the same as the cluster id
                     clusterId = FleetUtils.toUuid(cluster.getId());
+                    message = String.format("Cluster %s deployed", clusterId);
                     logger.info("Blockchain ID: {}", clusterId);
 
                     cluster.getInfo().getMembers().stream()
@@ -92,6 +101,7 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
                     break;
                 case COMPLETED:
                     status = value.getStatus();
+                    message = String.format("Deployment completed on cluster %s, status %s", clusterId, status);
                     logger.info("On Next(COMPLETED): status({})", status);
                     break;
                 default:
@@ -100,12 +110,14 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
 
             // Persist the current state of the task.
             final Task task = taskService.get(taskId);
+            // need a final for the lambda
+            final String mes = message;
             // Not clear if we need the merge here,
             taskService.merge(task, m -> {
                 // if the latest entry is in completed, don't change anything
                 if (m.getState() != Task.State.SUCCEEDED && m.getState() != Task.State.FAILED) {
                     // Otherwise, set the fields
-                    m.setMessage(value.getType().name());
+                    m.setMessage(mes);
                 }
             });
         } finally {

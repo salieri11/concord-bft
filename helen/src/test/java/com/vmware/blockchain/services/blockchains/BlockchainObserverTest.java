@@ -27,6 +27,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import com.google.common.collect.ImmutableMap;
 import com.vmware.blockchain.auth.AuthHelper;
 import com.vmware.blockchain.common.HelenException;
+import com.vmware.blockchain.common.fleetmanagment.FleetUtils;
 import com.vmware.blockchain.deployment.model.ConcordCluster;
 import com.vmware.blockchain.deployment.model.ConcordClusterIdentifier;
 import com.vmware.blockchain.deployment.model.ConcordClusterInfo;
@@ -36,6 +37,7 @@ import com.vmware.blockchain.deployment.model.ConcordNodeEndpoint;
 import com.vmware.blockchain.deployment.model.ConcordNodeHostInfo;
 import com.vmware.blockchain.deployment.model.ConcordNodeIdentifier;
 import com.vmware.blockchain.deployment.model.ConcordNodeInfo;
+import com.vmware.blockchain.deployment.model.ConcordNodeStatus;
 import com.vmware.blockchain.deployment.model.DeploymentSession.Status;
 import com.vmware.blockchain.deployment.model.DeploymentSessionEvent;
 import com.vmware.blockchain.deployment.model.DeploymentSessionEvent.Type;
@@ -55,6 +57,7 @@ public class BlockchainObserverTest {
     static final UUID CLUSTER_ID = UUID.fromString("fb212e5a-0428-46f9-8faa-b3f15c9843e8");
     static final UUID ORG_ID = UUID.fromString("7051db6a-9f34-4cfd-8dd4-ae8539025f3e");
     static final UUID CONS_ID = UUID.fromString("7d9bb239-45a3-453c-9b9f-beb2f9e4dffe");
+    static final UUID NODE_ID = UUID.fromString("e6ef4604-4029-4080-b621-1efa25000e8a");
 
     @MockBean
     private AuthHelper authHelper;
@@ -106,10 +109,16 @@ public class BlockchainObserverTest {
 
     @Test
     void deployNodeSuccess() throws Exception {
+        ConcordNode node = new ConcordNode(FleetUtils.identifier(ConcordNodeIdentifier.class, NODE_ID),
+                                           new ConcordNodeInfo(), new ConcordNodeHostInfo());
+        ConcordNodeStatus nodeStatus = new ConcordNodeStatus(node.getId(), ConcordNodeStatus.Status.ACTIVE);
+        // sigh.. no setters generated
         ReflectionTestUtils.setField(value, "type", Type.NODE_DEPLOYED);
-        ReflectionTestUtils.setField(value, "status", Status.SUCCESS);
+        ReflectionTestUtils.setField(value, "status", Status.ACTIVE);
+        ReflectionTestUtils.setField(value, "node", node);
+        ReflectionTestUtils.setField(value, "nodeStatus", nodeStatus);
         blockchainObserver.onNext(value);
-        Assertions.assertEquals(Type.NODE_DEPLOYED.name(), task.getMessage());
+        Assertions.assertEquals("Node e6ef4604-4029-4080-b621-1efa25000e8a deployed, status ACTIVE", task.getMessage());
     }
 
     @Test
@@ -118,9 +127,12 @@ public class BlockchainObserverTest {
         ReflectionTestUtils.setField(value, "status", Status.SUCCESS);
         blockchainObserver.onNext(value);
         Assertions.assertEquals(State.RUNNING, task.getState());
+        Assertions.assertEquals("Cluster fb212e5a-0428-46f9-8faa-b3f15c9843e8 deployed", task.getMessage());
         ReflectionTestUtils.setField(value, "type", Type.COMPLETED);
         blockchainObserver.onNext(value);
         Assertions.assertEquals(State.RUNNING, task.getState());
+        Assertions.assertEquals("Deployment completed on cluster fb212e5a-0428-46f9-8faa-b3f15c9843e8, status SUCCESS",
+                                task.getMessage());
         blockchainObserver.onCompleted();
         Assertions.assertEquals(State.SUCCEEDED, task.getState());
         Assertions.assertEquals(CONS_ID, blockchain.getConsortium());
