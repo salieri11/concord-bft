@@ -276,7 +276,7 @@ message UpdateDeploymentSessionResponse {
 message ProvisioningServerConfiguration {
     int32 port = 1;
     TransportSecurity transport_security = 2;
-    Endpoint config_service_endpoint = 3;
+    Endpoint config_service = 3;
     repeated OrchestrationSite sites = 4 [packed=false];
 }
 /* [END messages] */

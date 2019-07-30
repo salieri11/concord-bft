@@ -5,8 +5,7 @@
 package com.vmware.blockchain.deployment.service.provision;
 
 import java.security.SecureRandom;
-
-import org.jetbrains.annotations.NotNull;
+import java.util.Objects;
 
 import com.vmware.blockchain.deployment.model.ConfigurationServiceImplBase;
 import com.vmware.blockchain.deployment.model.ConfigurationServiceRequest;
@@ -20,10 +19,13 @@ import io.grpc.stub.StreamObserver;
 public class TestConfigurationService  extends ConfigurationServiceImplBase {
 
     @Override
-    public void createConfiguration(@NotNull ConfigurationServiceRequest request,
-                                    @NotNull StreamObserver<ConfigurationSessionIdentifier> observer) {
+    public void createConfiguration(ConfigurationServiceRequest message,
+                                    StreamObserver<ConfigurationSessionIdentifier> observer) {
+
+        var request = Objects.requireNonNull(message);
+        var response = Objects.requireNonNull(observer);
         var testId = new ConfigurationSessionIdentifier(new SecureRandom().nextLong());
-        observer.onNext(testId);
-        observer.onCompleted();
+        response.onNext(testId);
+        response.onCompleted();
     }
 }

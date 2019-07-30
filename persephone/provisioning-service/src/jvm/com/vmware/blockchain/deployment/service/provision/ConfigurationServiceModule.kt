@@ -5,12 +5,10 @@ package com.vmware.blockchain.deployment.service.provision
 
 import com.vmware.blockchain.deployment.model.ConfigurationServiceStub
 import com.vmware.blockchain.deployment.model.Endpoint
-import com.vmware.blockchain.deployment.model.core.URI
 import dagger.Module
 import dagger.Provides
 import io.grpc.CallOptions
-import io.grpc.netty.shaded.io.grpc.netty.GrpcSslContexts
-import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder
+import io.grpc.ManagedChannelBuilder
 import javax.inject.Singleton
 
 @Module
@@ -25,14 +23,8 @@ class ConfigurationServiceModule {
     @Provides
     @Singleton
     fun providesConfigurationServiceStub(configurationServiceEndpoint: Endpoint): ConfigurationServiceStub {
-        val configServiceTrustCertificate = URI.create("file:/config/persephone/provisioning/configservice.crt")
 
-        val channel = NettyChannelBuilder
-                .forTarget(configurationServiceEndpoint.address)
-                .sslContext(
-                        GrpcSslContexts.forClient()
-                                .trustManager(java.io.File(configServiceTrustCertificate)).build())
-                .build()
+        val channel = ManagedChannelBuilder.forTarget(configurationServiceEndpoint.address).build()
         return ConfigurationServiceStub(channel, CallOptions.DEFAULT)
     }
 }

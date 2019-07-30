@@ -52,7 +52,7 @@ internal interface ProvisioningServer {
         fun orchestrations(entries: List<OrchestrationSite>): Builder
 
         @BindsInstance
-        fun configServiceEndpoint(configurationServiceEndpoint: Endpoint): Builder
+        fun configurationService(configurationService: Endpoint): Builder
 
         fun build(): ProvisioningServer
     }
@@ -158,7 +158,7 @@ fun main(args: Array<String>) {
     // Build the server and start.
     val provisioningServer = DaggerProvisioningServer.builder()
             .orchestrations(config.sites)
-            .configServiceEndpoint(config.configServiceEndpoint)
+            .configurationService(config.configService)
             .build()
     val sslContext = config.transportSecurity.type
             .takeIf { it != TransportSecurity.Type.NONE }

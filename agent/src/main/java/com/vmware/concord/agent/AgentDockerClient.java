@@ -10,6 +10,7 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.Collections;
 import java.util.List;
 import java.util.regex.Pattern;
@@ -196,6 +197,20 @@ final class AgentDockerClient {
 
         var configList = retrieveConfiguration(configuration.getConfigurationSession(), configuration.getNode());
         writeConfiguration(configList);
+
+        var localConfigPath = Path.of("/config/concord/config-local/concord.config");
+        var withHostConfig = Path.of("/config/concord/config-local/concord_with_hostnames.config");
+
+        // Do not over-write existing configuration.
+        if (!Files.exists(withHostConfig)) {
+            try {
+                Files.copy(localConfigPath, withHostConfig, StandardCopyOption.REPLACE_EXISTING);
+
+                log.info("Copied {} to {}", localConfigPath, withHostConfig);
+            } catch (IOException error) {
+                log.error("Cannot write to " + withHostConfig, error);
+            }
+        }
 
         log.info("Populated the config file");
 

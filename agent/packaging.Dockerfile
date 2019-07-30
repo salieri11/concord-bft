@@ -9,10 +9,12 @@ FROM openjdk:11.0.2-jdk-slim as environment
 RUN apt-get update \
     && apt-get install -y wget \
     && wget --directory-prefix=/tmp/ https://vmbc-saas.s3.us-east-2.amazonaws.com/test-configservice/configservice.crt \
-    && keytool -importcert -alias vmwblockchain-cacert -cacerts -storepass changeit -file /tmp/configservice.crt
+    && keytool -import -trustcacerts -cacerts -storepass changeit -noprompt -alias vmwb-config-cert -file /tmp/configservice.crt
+
+FROM openjdk:11.0.2-jdk-slim
 
 ## Install CA certificate.
-# COPY --from=environment /docker-java-home/lib/security/cacerts /docker-java-home/lib/security/cacerts
+COPY --from=environment /docker-java-home/lib/security/cacerts /docker-java-home/lib/security/cacerts
 
 
 WORKDIR /agent

@@ -44,7 +44,9 @@ FROM openjdk:11.0.2-jdk-slim as environment
 RUN apt-get update \
     && apt-get install -y wget \
     && wget --directory-prefix=/tmp/ https://dl.cacerts.digicert.com/DigiCertSHA2HighAssuranceServerCA.crt \
-    && keytool -importcert -alias vmwblockchain-cacert -cacerts -storepass changeit -file /tmp/DigiCertSHA2HighAssuranceServerCA.crt
+    && keytool -importcert -alias vmwblockchain-cacert -cacerts -storepass changeit -file /tmp/DigiCertSHA2HighAssuranceServerCA.crt \
+    && wget --directory-prefix=/tmp/ https://vmbc-saas.s3.us-east-2.amazonaws.com/test-configservice/configservice.crt \
+    && keytool -import -trustcacerts -cacerts -storepass changeit -noprompt -alias vmwb-config-cert -file /tmp/configservice.crt
 
 # Runtime image (Provisioning Service).
 FROM openjdk:11.0.2-jdk-slim
