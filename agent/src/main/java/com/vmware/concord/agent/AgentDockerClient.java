@@ -4,7 +4,6 @@
 
 package com.vmware.concord.agent;
 
-import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URI;
@@ -15,7 +14,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.regex.Pattern;
 
-import javax.net.ssl.SSLException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,8 +37,7 @@ import com.vmware.blockchain.deployment.model.NodeConfigurationRequest;
 import com.vmware.blockchain.deployment.model.NodeConfigurationResponse;
 
 import io.grpc.CallOptions;
-import io.grpc.netty.shaded.io.grpc.netty.GrpcSslContexts;
-import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder;
+import io.grpc.ManagedChannelBuilder;
 
 /**
  * Utility class for talking to Docker and creating the required volumes, starting
@@ -122,23 +119,11 @@ final class AgentDockerClient {
     /**
      * Default constructor.
      */
-    AgentDockerClient(ConcordAgentConfiguration configuration) throws Exception {
+    AgentDockerClient(ConcordAgentConfiguration configuration) {
         this.configuration = configuration;
 
-        var configServiceTrustCertificate = URI.create("file:/config/persephone/provisioning/configservice.crt");
-
-        try {
-            var channel = NettyChannelBuilder
-                    .forTarget(configuration.getConfigService().getAddress())
-                    .sslContext(
-                            GrpcSslContexts.forClient()
-                                    .trustManager(new File(configServiceTrustCertificate)).build())
-                    .build();
-            this.configurationService = new ConfigurationServiceStub(channel, CallOptions.DEFAULT);
-        } catch (SSLException e) {
-            log.error("Could not create configuration service stub. Exception: " + e.getLocalizedMessage());
-            throw new Exception(e);
-        }
+        var channel = ManagedChannelBuilder.forTarget(configuration.getConfigService().getAddress()).build();
+        this.configurationService = new ConfigurationServiceStub(channel, CallOptions.DEFAULT);
     }
 
     /**
