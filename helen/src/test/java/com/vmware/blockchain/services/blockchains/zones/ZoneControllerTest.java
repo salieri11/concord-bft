@@ -99,9 +99,9 @@ class ZoneControllerTest {
         objectMapper = jacksonBuilder.build();
 
         Map<String, String> usWest =
-                ImmutableMap.of("name", "US_WEST1", "latitude", "45.5946", "longitude", "-121.1787");
+                ImmutableMap.of("name", "US_WEST1", "geo-latitude", "45.5946", "geo-longitude", "-121.1787");
         Map<String, String> usEast =
-                ImmutableMap.of("name", "US_EAST1", "latitude", "33.1960", "longitude", "-80.0131");
+                ImmutableMap.of("name", "US_EAST1", "geo-latitude", "33.1960", "geo-longitude", "-80.0131");
         List<Zone> sites =
                 ImmutableList.of(new Zone(SITE_1, Type.VMC, usWest), new Zone(SITE_2, Type.VMC, usEast));
         when(zoneService.getZones()).thenReturn(sites);
