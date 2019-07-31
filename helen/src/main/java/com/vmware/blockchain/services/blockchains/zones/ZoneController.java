@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -58,10 +59,7 @@ public class ZoneController {
     @RequestMapping(method = RequestMethod.GET)
     @PreAuthorize("hasAnyAuthority(T(com.vmware.blockchain.services.profiles.Roles).user())")
     ResponseEntity<List<ZoneGetRequest>> getZoneList() {
-        List<ZoneGetRequest> zones = zoneService.getZones().stream()
-                .map(z -> new ZoneGetRequest(z.getId(), z.getLabels().get("name"),
-                                             z.getLabels().get("latitude"), z.getLabels().get("longitude")))
-                .collect(Collectors.toList());
+        List<ZoneGetRequest> zones = getZones();
         return new ResponseEntity<>(zones, HttpStatus.OK);
     }
 
@@ -75,11 +73,16 @@ public class ZoneController {
             throw new BadRequestException(ErrorCode.BAD_REQUEST);
         }
         zoneService.loadZones();
-        List<ZoneGetRequest> zones = zoneService.getZones().stream()
-                .map(z -> new ZoneGetRequest(z.getId(), z.getLabels().get("name"),
-                                             z.getLabels().get("latitude"), z.getLabels().get("longitude")))
-                .collect(Collectors.toList());
+        List<ZoneGetRequest> zones = getZones();
         return new ResponseEntity<>(zones, HttpStatus.OK);
+    }
+
+    @NotNull
+    private List<ZoneGetRequest> getZones() {
+        return zoneService.getZones().stream()
+                .map(z -> new ZoneGetRequest(z.getId(), z.getLabels().get("name"),
+                                             z.getLabels().get("geo-latitude"), z.getLabels().get("geo-longitude")))
+                .collect(Collectors.toList());
     }
 
 }
