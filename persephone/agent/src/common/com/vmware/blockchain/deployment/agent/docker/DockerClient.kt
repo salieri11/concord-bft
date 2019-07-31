@@ -52,7 +52,7 @@ class DockerClient(
         val config = AuthConfig(
                 username = context.registryEndpoint.credential.passwordCredential.username,
                 password = context.registryEndpoint.credential.passwordCredential.password,
-                serveraddress = context.registryEndpoint.address
+                serveraddress = registryAddress
         )
 
         // Base64-encoded JSON.
@@ -60,6 +60,13 @@ class DockerClient(
 
         // Represent the data in UTF-8 encoded String.
         String(data.toByteArray(), Charsets.UTF_8)
+    }
+
+    /** DNS-name of the container registry that images should be created from. */
+    val registryAddress: String by lazy {
+        val url = URI.create(context.registryEndpoint.address)
+
+        url.host + (url.port.takeIf { it != -1 }?.let { ":$it" } ?: "")
     }
 
     /** Specify whether HTTP requests should specify access token in HTTP header. */

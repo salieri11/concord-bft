@@ -27,6 +27,22 @@ expect class URI(string: String) {
      *   resolved value as an [URI] instance.
      */
     fun resolve(uri: String): URI
+
+    /**
+     * Returns the host component of this URI.
+     *
+     * @return
+     *   host component of the URI, as a [String].
+     */
+    fun getHost(): String
+
+    /**
+     * Returns the port component of this URI.
+     *
+     * @return
+     *   port component of the URI if defined, `-1` otherwise.
+     */
+    fun getPort(): Int
 }
 
 /**
