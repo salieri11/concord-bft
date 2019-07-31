@@ -5,10 +5,12 @@
 package com.vmware.blockchain.common;
 
 import java.io.IOException;
+import java.util.UUID;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -96,6 +98,12 @@ public class ExceptionHandlerTestController {
     @RequestMapping(path = "/api/text", method = RequestMethod.GET)
     ResponseEntity<String> textMessage(@RequestParam String arg1, @RequestParam String arg2) {
         throw new BadRequestException("Bad request: {0}, {1}", arg1, arg2);
+    }
+
+    // test that a bad UUID parameter shows up as a 400
+    @RequestMapping(path = "/api/uuid/{uuid}", method = RequestMethod.GET)
+    ResponseEntity<String> testUuid(@PathVariable UUID uuid) {
+        return new ResponseEntity<>("Success", HttpStatus.OK);
     }
 
     // Finally, test an exception that isn't specifically handled.  This should default to 500.

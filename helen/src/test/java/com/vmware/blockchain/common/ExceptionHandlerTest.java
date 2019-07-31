@@ -5,6 +5,7 @@
 package com.vmware.blockchain.common;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -131,5 +132,16 @@ public class ExceptionHandlerTest {
 
     }
 
+    @Test
+    void testGoodUuid() throws Exception {
+        mockMvc.perform(get("/api/uuid/a67b04e8-178e-42e5-8ceb-adb12222f8d4"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void testBadUuid() throws Exception {
+        mockMvc.perform(get("/api/uuid/himom"))
+                .andExpect(status().isBadRequest());
+    }
 
 }
