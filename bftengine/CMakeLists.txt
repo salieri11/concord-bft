@@ -61,7 +61,7 @@ find_package(Threads REQUIRED)
 #message("Threads library: ${CMAKE_THREAD_LIBS_INIT}")
 
 if(${BUILD_COMM_TCP_PLAIN})
-    set(corebft_source_files ${corebft_source_files} src/communication/PlainTcpCommunication.cpp)
+    set(corebft_source_files ${corebft_source_files} src/communication/PlainTcpCommunicationOld.cpp)
 endif()
 if(${BUILD_COMM_TCP_TLS})
     set(corebft_source_files ${corebft_source_files} src/communication/TlsTCPCommunication.cpp)
