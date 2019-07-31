@@ -6,6 +6,7 @@ package com.vmware.blockchain.deployment.service.configuration.generateconfig;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
+import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -166,7 +167,7 @@ public class ConcordConfigUtil {
             writer.write("tls_cipher_suite_list: ECDHE-ECDSA-AES256-GCM-SHA384");
             writer.newLine();
             writer.write("tls_certificates_folder_path: "
-                    + CertificatesGenerator.CONCORD_TLS_SECURITY_IDENTITY_PATH);
+                    + URI.create(CertificatesGenerator.CONCORD_TLS_SECURITY_IDENTITY_PATH).getPath());
             writer.newLine();
             writer.write("node__TEMPLATE:\n  logger_config: /concord/config-local/log4cplus.properties\n"
                     + "  genesis_block: /concord/config-public/genesis.json\n  "
