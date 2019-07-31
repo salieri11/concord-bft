@@ -70,7 +70,7 @@ public class TaskController {
      * @return List of tasks.
      */
     @RequestMapping(path = "/api/tasks", method = RequestMethod.GET)
-    @PreAuthorize("hasAnyAuthority(T(com.vmware.blockchain.services.profiles.Roles).systemAdmin())")
+    @PreAuthorize("@authHelper.isSystemAdmin()")
     public ResponseEntity<List<TaskGetResponse>> listTasks() {
         List<Task> tasks = taskService.list();
         List<TaskGetResponse> response = tasks.stream().map(TaskGetResponse::new).collect(Collectors.toList());
