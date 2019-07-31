@@ -21,6 +21,7 @@ export class AuthenticationService {
   accessToken: string;
   logoutPath: string = '/api/oauth/logout';
   loginReturnPath: string = 'login-return';
+  parsedToken: any;
 
   constructor(
     private personaService: PersonaService,
@@ -58,8 +59,8 @@ export class AuthenticationService {
     return this.http.get<UserAuthResponse>(url).pipe(
       map(response => {
         this.accessToken = response.auth_token;
-        const parsedToken = this.parseJwt(this.accessToken);
-        this.setPersona(parsedToken.perms);
+        this.parsedToken = this.parseJwt(this.accessToken);
+        this.setPersona(this.parsedToken.perms);
 
         return response;
       })

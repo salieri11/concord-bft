@@ -5,6 +5,8 @@
 import { Component } from '@angular/core';
 import { Router } from '@angular/router';
 import { HttpResponse, HttpErrorResponse } from '@angular/common/http';
+import { TranslateService } from '@ngx-translate/core';
+
 import { BlockchainService, DeployStates } from '../../shared/blockchain.service';
 
 @Component({
@@ -19,8 +21,11 @@ export class DeployingInterstialComponent {
   error: string;
   showInterstitial = false;
 
-  constructor(private blockchainService: BlockchainService,
-              private router: Router) {
+  constructor(
+    private blockchainService: BlockchainService,
+    private router: Router,
+    private translateService: TranslateService
+  ) {
     this.blockchainService.notify.subscribe(message => {
       if (message && message.message === 'deploying') {
         this.loading = true;
@@ -37,15 +42,14 @@ export class DeployingInterstialComponent {
     if (response && response['task_id']) {
       this.pollUntilDeployFinished(response['task_id']);
     } else {
-      this.title = 'Error';
-      this.error = response['message'];
-      this.loading = false;
+      this.showError(response);
     }
   }
 
   private pollUntilDeployFinished(taskId: string) {
     this.blockchainService.pollDeploy(taskId)
       .subscribe((response) => {
+
         if (response.state === DeployStates.SUCCEEDED) {
           this.blockchainService.set().subscribe(() => {
             // TODO: enable the dashboard to show a toast - response.resource_id is the bid
@@ -54,14 +58,16 @@ export class DeployingInterstialComponent {
             this.blockchainService.notify.next({message: 'deployed'});
           });
         } else {
-          this.title = 'Error';
-          this.error = response.message;
-          this.loading = false;
+          this.showError(response);
         }
       }, error => {
-          this.title = 'Error';
-          this.error = error;
-          this.loading = false;
+         this.showError(error);
       });
+  }
+
+  private showError(error: HttpResponse<any> | HttpErrorResponse) {
+    this.title = this.translateService.instant('error.title');
+    this.error = error['message'] || error['error_message'];
+    this.loading = false;
   }
 }

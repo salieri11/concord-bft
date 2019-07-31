@@ -25,7 +25,7 @@ import { ErrorAlertService } from '../../shared/global-error-handler.service';
 import { VmwClarityThemeService } from '../../shared/theme.provider';
 import { VmwTasksService } from '../../shared/components/task-panel/tasks.service';
 import { TourService } from '../../shared/tour.service';
-import { BlockchainService } from '../../shared/blockchain.service';
+import { BlockchainService, BlockchainsServiceMock } from '../../shared/blockchain.service';
 
 
 describe('MainComponent', () => {
@@ -56,19 +56,22 @@ describe('MainComponent', () => {
         TourService,
         NgxTourService,
         VmwClarityThemeService,
-        BlockchainService,
+        {
+          provide: BlockchainService,
+          useClass: BlockchainsServiceMock
+        },
         {
           provide: ActivatedRoute,
           useValue: {
-            snapshot: {params: {consortiumId: '1234'}},
+            snapshot: { params: { consortiumId: '1234' } },
             data: {
               subscribe: (fn: (value) => void) => fn(
-                {blockchains: []}
+                { blockchains: [] }
               ),
             },
             params: {
               subscribe: (fn: (value) => void) => fn(
-                {consortiumId: 1}
+                { consortiumId: 1 }
               ),
             },
             fragment: {

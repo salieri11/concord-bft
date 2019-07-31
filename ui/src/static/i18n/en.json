@@ -30,7 +30,7 @@
       "resetTasks": "Reset Tasks"
     },
     "consortium": "Current Consortium",
-    "deploy": "Deploy Blockchain",
+    "deploy": "Deploy Consortium",
     "dashboard": "Dashboard",
     "organizations": "Organizations/Users",
     "nodeList": "Node List",

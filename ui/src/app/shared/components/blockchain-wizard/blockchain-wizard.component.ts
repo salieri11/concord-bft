@@ -14,16 +14,16 @@ import { Router } from '@angular/router';
 import { FormControl, FormGroup, Validators, ValidatorFn, ValidationErrors } from '@angular/forms';
 import { ClrWizard, ClrWizardPage } from '@clr/angular';
 import { PersonaService } from '../../persona.service';
-import { BlockchainService, BlockchainRequestParams } from '../../blockchain.service';
+import { BlockchainService, BlockchainRequestParams, Zone } from '../../blockchain.service';
 
 
 const RegionCountValidator: ValidatorFn = (fg: FormGroup): ValidationErrors | null => {
   const nodes = fg['controls'].numberOfNodes.value;
-  const regions = fg['controls'].regions;
+  const zones = fg['controls'].zones;
   let count = 0;
 
-  Object.keys(regions.value).forEach(key => {
-    count = count + Number(regions.value[key]);
+  Object.keys(zones.value).forEach(key => {
+    count = count + Number(zones.value[key]);
   });
 
   return nodes === count ? { 'countIsCorrect': true } : { 'countIsCorrect': false };
@@ -50,36 +50,18 @@ export class BlockchainWizardComponent implements OnInit {
   personaOptions = PersonaService.getOptions();
   numbersOfNodes = [4, 7];
   fCountMapping = { '4': 1, '7': 2 };
-  regions = [{
-    label: 'US West - Oregon',
-    id: 'us-west'
-  }, {
-    label: 'US East - N Virginia',
-    id: 'us-east'
-  }, {
-    label: 'EMEA - Frankfurt',
-    id: 'emea'
-  },
-  {
-    label: 'Pacific - Sydney',
-    id: 'pacific'
-  }
-  ];
+  zones: Zone[] = [];
 
   constructor(
     private router: Router,
     private blockchainService: BlockchainService
   ) {
-    this.form = new FormGroup({
-      details: new FormGroup({
-        consortium_name: new FormControl('', Validators.required),
-        consortium_desc: new FormControl('', Validators.required),
-      }),
-      nodes: new FormGroup({
-        numberOfNodes: new FormControl('', Validators.required),
-        regions: this.regionGroup(),
-      }, { validators: RegionCountValidator })
-    });
+    this.blockchainService.getZones()
+      .subscribe(zones => {
+        this.zones = zones;
+        this.form = this.initForm();
+      });
+
 
     this.nodeForm = new FormGroup({
       nodes: new FormGroup({
@@ -120,12 +102,10 @@ export class BlockchainWizardComponent implements OnInit {
 
   open() {
     this.isOpen = true;
-    this.wizard.reset();
-    this.form.reset();
-    this.form.patchValue({
-      users: []
-    });
-    this.userForm.reset();
+    if (this.form) {
+      this.wizard.reset();
+      this.form.reset();
+    }
 
     setTimeout(() => {
       this.consortiumInput.nativeElement.focus();
@@ -137,9 +117,20 @@ export class BlockchainWizardComponent implements OnInit {
     params.f_count = Number(this.fCountMapping[this.form.value.nodes.numberOfNodes.toString()]);
     params.consortium_name = this.form.value.details.consortium_name;
 
-    this.blockchainService.notify.next({ message: 'deploying' });
+    // @ts-ignore
+    const zones = this.form.controls['nodes'].controls['zones'].value;
+    let zoneIds = [];
+    // Create an array of zone ids for each deployed node instance.
+    Object.keys(zones).forEach(zoneId => zoneIds = zoneIds.concat(Array(zones[zoneId]).fill(zoneId)));
+    params.zone_ids = zoneIds;
+
+    // this.blockchainService.notify.next({ message: 'deploying' });
     this.blockchainService.deploy(params).subscribe(response => {
       this.setupComplete.emit(response);
+      // this.setupComplete.emit({task_id:'hello'});
+      this.router.navigate(['/deploying', 'dashboard'], {
+        queryParams: { task_id: response['task_id'] }
+      });
     }, error => {
       this.setupComplete.emit(error);
     });
@@ -149,14 +140,14 @@ export class BlockchainWizardComponent implements OnInit {
     this.isOpen = false;
   }
 
-  distributeRegions() {
-    const regions = this.form.controls.nodes['controls'].regions;
+  distributeZones() {
+    const zones = this.form.controls.nodes['controls'].zones;
     const nodes = this.form.controls.nodes['controls'].numberOfNodes;
-    const regionKeys = Object.keys(regions.value);
+    const regionKeys = Object.keys(zones.value);
     const ratio = regionKeys.length;
     const spread = [];
     // Clear out previous distribution
-    regions.reset();
+    zones.reset();
 
     // Create regional spread
     for (let index = 0; index < nodes.value; index++) {
@@ -173,16 +164,28 @@ export class BlockchainWizardComponent implements OnInit {
     // Two loops so we don't patch the value multiple times on the same item,
     // because it fires off events each time we do that. This is more efficient.
     for (let index = 0; index < spread.length; index++) {
-      const item = regions.controls[regionKeys[index]];
+      const item = zones.controls[regionKeys[index]];
       item.patchValue(spread[index]);
     }
   }
 
-  private regionGroup() {
+  initForm(): FormGroup {
+    return new FormGroup({
+      details: new FormGroup({
+        consortium_name: new FormControl('', Validators.required),
+        consortium_desc: new FormControl('', Validators.required),
+      }),
+      nodes: new FormGroup({
+        numberOfNodes: new FormControl('', Validators.required),
+        zones: this.zoneGroup(),
+      }, { validators: RegionCountValidator })
+    });
+  }
+  private zoneGroup() {
     const group = {};
 
-    this.regions.forEach(region => {
-      group[region.id] = new FormControl('');
+    this.zones.forEach(zone => {
+      group[zone.id] = new FormControl('');
     });
 
     return new FormGroup(group);

@@ -1,4 +1,4 @@
-<form [formGroup]="form" class="clr-form-horizontal">
+<form *ngIf="form" [formGroup]="form" class="clr-form-horizontal">
   <clr-wizard #wizard clrWizardSize="lg" [(clrWizardOpen)]="isOpen" (clrWizardOnFinish)="onSubmit()"
     (clrWizardOnCancel)="resetFragment()" class="blockchain-wizard">
     <clr-wizard-title>{{'blockchainWizard.title' | translate}}</clr-wizard-title>
@@ -36,13 +36,13 @@
         <clr-select-container>
           <label class="clr-col-12 clr-col-md-4"
             for="numberOfNodes">{{'blockchainWizard.common.numberOfNodes' | translate}}</label>
-          <select clrSelect formControlName="numberOfNodes" class="clr-col-12 clr-col-md-8" (change)="distributeRegions()">
+          <select clrSelect formControlName="numberOfNodes" class="clr-col-12 clr-col-md-8" (change)="distributeZones()">
             <option *ngFor="let num of numbersOfNodes" [ngValue]="num">{{num}}
             </option>
           </select>
           <clr-control-helper>{{'blockchainWizard.details.help.numberOfNodes' | translate}}</clr-control-helper>
         </clr-select-container>
-        <div class="regions" formGroupName="regions">
+        <div class="regions" formGroupName="zones">
           <h6 class="sub-title">{{'blockchainWizard.nodes.regionalTitle' | translate}}</h6>
           <clr-alert [clrAlertClosable]="false">
             <clr-alert-item>
@@ -51,9 +51,9 @@
               </span>
             </clr-alert-item>
           </clr-alert>
-          <clr-input-container *ngFor="let region of regions">
-            <label class="clr-col-12 clr-col-md-4">{{ region.label }}</label>
-            <input clrInput type="text" class="clr-col-12 clr-col-md-8" [formControlName]="region.id" />
+          <clr-input-container *ngFor="let zone of zones">
+            <label class="clr-col-12 clr-col-md-4">{{ zone.name }}</label>
+            <input clrInput type="text" class="clr-col-12 clr-col-md-8" [formControlName]="zone.id" />
           </clr-input-container>
         </div>
       </div>
@@ -63,7 +63,7 @@
       <ng-template clrPageTitle>{{'blockchainWizard.reviewDeployment.pageTitle' | translate}}</ng-template>
       <ng-template clrPageNavTitle>{{'blockchainWizard.reviewDeployment.navTitle' | translate}}</ng-template>
       <div class="clr-row review">
-        <h6 class="sub-title clr-col-12">{{'blockchainWizard.details.navTitle' | translate}}</h6>
+        <h6 class="sub-title">{{'blockchainWizard.details.navTitle' | translate}}</h6>
         <div class="clr-col-4 summary-label">
           {{'blockchainWizard.common.consortiumName' | translate}}
         </div>
@@ -76,20 +76,20 @@
         <div class="clr-col-8 summary-value">
           {{ form.value.details.consortium_desc }}
         </div>
-        <h6 class="sub-title clr-col-12">{{'blockchainWizard.nodes.navTitle' | translate}}</h6>
+        <h6 class="sub-title">{{'blockchainWizard.nodes.navTitle' | translate}}</h6>
         <div class="clr-col-4 summary-label">
           {{'blockchainWizard.common.numberOfNodes' | translate}}
         </div>
         <div class="clr-col-8 summary-value">
           {{ form.value.nodes.numberOfNodes }}
         </div>
-        <h6 class="sub-title clr-col-12">{{'blockchainWizard.nodes.regionalTitle' | translate}}</h6>
-        <ng-container *ngFor="let region of regions">
+        <h6 class="sub-title">{{'blockchainWizard.nodes.regionalTitle' | translate}}</h6>
+        <ng-container *ngFor="let zone of zones">
           <div class="clr-col-4 summary-label">
-            {{ region.label }}
+            {{ zone.name }}
           </div>
           <div class="clr-col-8 summary-value">
-            {{ form.controls.nodes['controls'].regions.value[region.id] || '--' }}
+            {{ form.controls.nodes['controls'].zones.value[zone.id] || '--' }}
           </div>
         </ng-container>
       </div>

@@ -12,6 +12,7 @@ import { VmwComboboxComponent } from '../combobox/combobox.component';
 import { VmwAccordionGroupComponent } from '../accordion/accordion-group.component';
 import { VmwAccordionComponent } from '../accordion/accordion.component';
 import { VmwComboboxItemsComponent } from '../combobox/combobox-items/combobox-items.component';
+import { BlockchainService, BlockchainsServiceMock } from '../../blockchain.service';
 
 describe('BlockchainWizardComponent', () => {
   let component: BlockchainWizardComponent;
@@ -30,7 +31,8 @@ describe('BlockchainWizardComponent', () => {
         VmwComboboxItemsComponent,
         VmwAccordionGroupComponent,
         VmwAccordionComponent
-      ]
+      ],
+      providers: [{provide: BlockchainService, useClass: BlockchainsServiceMock}]
     })
     .compileComponents();
   }));
@@ -64,43 +66,49 @@ describe('BlockchainWizardComponent', () => {
 
   describe('Distribute regions', () => {
     it('regions should be evenly distributed', () => {
-      component.regions = [{
-        label: 'US West - Oregon',
-        id: 'us-west'
+      component.zones = [{
+        name: 'US West - Oregon',
+        id: 'us-west',
+        latitude: 0,
+        longitude: 0
       }, {
-        label: 'US East - N Virginia',
-        id: 'us-east'
+        name: 'US East - N Virginia',
+        id: 'us-east',
+        latitude: 0,
+        longitude: 0
       }, {
-        label: 'EMEA - Frankfurt',
-        id: 'emea'
+        name: 'EMEA - Frankfurt',
+        id: 'emea',
+        latitude: 0,
+        longitude: 0
       },
       {
-        label: 'Pacific - Sydney',
-        id: 'pacific'
+        name: 'Pacific - Sydney',
+        id: 'pacific',
+        latitude: 0,
+        longitude: 0
       }];
 
-      const regions = component.form.controls.nodes['controls'].regions;
-      const regionKeys = Object.keys(regions.value);
+      const zones = component.form.controls.nodes['controls'].zones;
+      const regionKeys = Object.keys(zones.value);
 
       component.form.controls.nodes['controls'].numberOfNodes.patchValue(7);
-      component.distributeRegions();
+      component.distributeZones();
 
-      expect(regions.controls[regionKeys[0]].value).toEqual(2);
-      expect(regions.controls[regionKeys[1]].value).toEqual(2);
-      expect(regions.controls[regionKeys[2]].value).toEqual(2);
-      expect(regions.controls[regionKeys[3]].value).toEqual(1);
+      expect(zones.controls[regionKeys[0]].value).toEqual(2);
+      expect(zones.controls[regionKeys[1]].value).toEqual(2);
+      expect(zones.controls[regionKeys[2]].value).toEqual(2);
+      expect(zones.controls[regionKeys[3]].value).toEqual(1);
     });
   });
 
   describe('On open', () => {
     it('resets all forms', () => {
       spyOn(component.form, 'reset');
-      spyOn(component.userForm, 'reset');
 
       component.open();
 
       expect(component.form.reset).toHaveBeenCalled();
-      expect(component.userForm.reset).toHaveBeenCalled();
     });
 
     it('resets the clarity wizard', () => {

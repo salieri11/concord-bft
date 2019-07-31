@@ -16,6 +16,7 @@ import { ClarityModule } from '@clr/angular';
 
 import { AppComponent } from './app.component';
 import { MainModule } from './main/main.module';
+import { ErrorsModule } from './errors/errors.module';
 import { AppRoutingModule } from './app-routing.module';
 import { MarketingModule } from './marketing/marketing.module';
 import { VmwClarityThemeService } from './shared/theme.provider';
@@ -78,6 +79,7 @@ export function init_app(appLoadService: AppInitService) {
     BrowserAnimationsModule,
     AppRoutingModule,
     VIPModule,
+    ErrorsModule,
     MainModule,
     ClarityModule,
     RouterModule,
