@@ -26,6 +26,7 @@ import com.vmware.blockchain.deployment.model.vsphere.VirtualMachinePowerState
 import com.vmware.blockchain.deployment.vm.CloudInitConfiguration
 import com.vmware.blockchain.protobuf.kotlinx.serialization.ByteString
 import com.vmware.blockchain.protobuf.kotlinx.serialization.encodeBase64
+import kotlinx.coroutines.delay
 
 /**
  * A client for issuing commands to a vSphere environment targeted by a given [VSphereHttpClient]..
@@ -329,6 +330,92 @@ class VSphereClient(private val client: VSphereHttpClient) {
                 body = null
         )
                 .let { it.statusCode() == 200 }
+    }
+
+    /**
+     * Ensure the power-on state of the virtual machine specified by the given parameter.
+     *
+     * @param[name]
+     *   identifier of the virtual machine.
+     * @param[retryInterval]
+     *   interval to retry checking for guest OS's power state, in milliseconds.
+     *
+     * @return
+     *   `true` if the power state of the virtual machine is on at some point during the execution
+     *   of the function, `false` otherwise.
+     */
+    suspend fun ensureVirtualMachinePowerStart(name: String, retryInterval: Long = 500): Boolean {
+        var confirmed = false
+        var iterating = true
+        while (iterating) {
+            // The typical case.
+            updateVirtualMachinePowerState(name, VirtualMachinePowerState.POWERED_ON)
+            when (getVirtualMachinePower(name)) {
+                VirtualMachinePowerState.POWERED_OFF, VirtualMachinePowerState.SUSPEND -> {
+                    updateVirtualMachinePowerState(name, VirtualMachinePowerState.POWERED_ON)
+
+                    // Do not engage next iteration immediately.
+                    delay(retryInterval)
+                }
+                VirtualMachinePowerState.POWERED_ON -> {
+                    iterating = false
+                    confirmed = true
+                }
+                else -> {
+                    // If the VM doesn't exist or power-state cannot be retrieved.
+                    iterating = false
+                    confirmed = false
+                }
+            }
+        }
+
+        return confirmed
+    }
+
+    /**
+     * Ensure the power-off state of the virtual machine specified by the given parameter.
+     *
+     * @param[name]
+     *   identifier of the virtual machine.
+     * @param[retryInterval]
+     *   interval to retry checking for guest OS's power state, in milliseconds.
+     *
+     * @return
+     *   `true` if the power state of the virtual machine is off at some point during the execution
+     *   of the function, `false` otherwise.
+     */
+    suspend fun ensureVirtualMachinePowerStop(name: String, retryInterval: Long = 500): Boolean {
+        var confirmed = false
+        var iterating = true
+        var attempts = 0
+        while (iterating) {
+            // Try guest-friendly power-off.
+            updateVirtualMachineGuestPower(name, "shutdown")
+            when (getVirtualMachinePower(name)) {
+                VirtualMachinePowerState.POWERED_ON, VirtualMachinePowerState.SUSPEND -> {
+                    // Start to force the issue after a while.
+                    if (attempts > 20) {
+                        updateVirtualMachinePowerState(name, VirtualMachinePowerState.POWERED_OFF)
+                    } else {
+                        attempts++
+                    }
+
+                    // Do not engage next iteration immediately.
+                    delay(retryInterval)
+                }
+                VirtualMachinePowerState.POWERED_OFF -> {
+                    iterating = false
+                    confirmed = true
+                }
+                else -> {
+                    // If the VM doesn't exist or power-state cannot be retrieved.
+                    iterating = false
+                    confirmed = false
+                }
+            }
+        }
+
+        return confirmed
     }
 
     /**

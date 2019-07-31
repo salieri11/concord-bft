@@ -20,10 +20,13 @@ import com.vmware.blockchain.deployment.model.vsphere.VSphereAuthenticationRespo
  *   HTTP response serializer.
  * @property[client]
  *   underlying HTTP client to use for communication.
+ * @property[allowInsecureConnection]
+ *   specify whether insecure HTTP connections are allowed.
  */
 class VSphereHttpClient(
     val context: Context,
-    private val serializer: JsonSerializer
+    private val serializer: JsonSerializer,
+    override val allowInsecureConnection: Boolean = false
 ): AccessTokenAwareHttpClient(context.endpoint, serializer) {
 
     /**

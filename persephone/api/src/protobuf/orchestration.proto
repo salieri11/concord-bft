@@ -33,16 +33,20 @@ message OrchestrationSiteIdentifier {
  *   a collection of key-value entries containing metadata information.
  * @param[vmc]
  *   information pertaining to a [Type.VMC] type endpoint.
+ * @param[vsphere]
+ *   information pertaining to a [Type.VSPHERE] type endpoint.
  */
 message OrchestrationSiteInfo {
     enum Type {
         NONE = 0;
         VMC = 1;
+        VSPHERE = 2;
     }
 
     Type type = 1;
     map<string, string> labels = 2;
     VmcOrchestrationSiteInfo vmc = 3;
+    VSphereOrchestrationSiteInfo vsphere = 4;
 }
 
 /**
@@ -110,5 +114,59 @@ message VmcOrchestrationSiteInfo {
     int32 control_network_gateway = 9;
     int32 control_network_subnet = 10;
     Endpoint ipam_api = 11;
+}
+
+/**
+ * Model definition of a VMware vSphere orchestration site.
+ *
+ * @param[api]
+ *   API endpoint information.
+ * @param[containerRegistry]
+ *   container registry endpoint information.
+ * @param[resourcePool]
+ *   name of the default resource pool to use for compute deployment.
+ * @param[folder]
+ *   name of the default inventory folder to use for compute deployment.
+ * @param[network]
+ *   default IPv4 compute network resource to use for compute deployment.
+ */
+message VSphereOrchestrationSiteInfo {
+    Endpoint api = 1;
+    Endpoint container_registry = 2;
+    string resource_pool = 3;
+    string datastore = 4;
+    string folder = 5;
+    IPv4Network network = 6;
+}
+
+/**
+ * Model definition of a an IPv4 network utilized by compute resources in an orchestration site.
+ *
+ * @param[name]
+ *   resource name of the network.
+ * @param[address_allocation]
+ *   network address allocation scheme type.
+ * @param[gateway]
+ *   network gateway address.
+ * @param[subnet]
+ *   subnet (CIDR) size of the IP network.
+ * @param[allocation server]
+ *   endpoint to IP address allocation service (or external DHCP server).
+ */
+message IPv4Network {
+
+    /**
+     * Enumeration of address allocation schemes.
+     */
+    enum AddressAllocationScheme {
+        DHCP = 0; // Dynamic host configuration protocol.
+        STATIC = 1; // Static IP allocation facilitated by an allocation server.
+    }
+
+    string name = 1;
+    AddressAllocationScheme address_allocation = 2;
+    int32 gateway = 3;
+    int32 subnet = 4;
+    Endpoint allocation_server = 5;
 }
 /* [END messages] */
