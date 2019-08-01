@@ -20,6 +20,7 @@ import javax.inject.Singleton
  */
 @Component(modules = [
     ProvisioningServiceModule::class,
+    TestConfigurationServiceModule::class,
     OrchestrationSiteServiceModule::class,
     TestOrchestratorModule::class
 ])

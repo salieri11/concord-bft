@@ -12,7 +12,6 @@ import com.vmware.blockchain.deployment.model.ConcordAgentConfiguration
 import com.vmware.blockchain.deployment.model.ConcordClusterIdentifier
 import com.vmware.blockchain.deployment.model.ConcordComponent
 import com.vmware.blockchain.deployment.model.ConcordModelSpecification
-import com.vmware.blockchain.deployment.model.ConcordNodeIdentifier
 import com.vmware.blockchain.deployment.model.Credential
 import com.vmware.blockchain.deployment.model.Endpoint
 import com.vmware.blockchain.deployment.model.FleetControlServiceStub
@@ -74,7 +73,7 @@ private val DEFAULT_CONCORD_AGENT_CONFIGURATION by lazy {
             registryEndpoint,
             fleetEndpoint,
             ConcordClusterIdentifier.defaultValue,
-            ConcordNodeIdentifier.defaultValue
+            0
     )
 }
 

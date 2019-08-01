@@ -3,6 +3,7 @@
  * **************************************************************************/
 package com.vmware.blockchain.deployment.service.provision
 
+import com.vmware.blockchain.deployment.model.ConfigurationServiceStub
 import com.vmware.blockchain.deployment.model.OrchestrationSite
 import dagger.Module
 import dagger.Provides
@@ -36,8 +37,9 @@ class ProvisioningServiceModule {
     fun providesProvisioningService(
         executor: ExecutorService,
         orchestratorProvider: OrchestratorProvider,
-        sites: List<OrchestrationSite>
+        sites: List<OrchestrationSite>,
+        configService: ConfigurationServiceStub
     ): ProvisioningService {
-        return ProvisioningService(executor, orchestratorProvider, sites)
+        return ProvisioningService(executor, orchestratorProvider, sites, configService)
     }
 }

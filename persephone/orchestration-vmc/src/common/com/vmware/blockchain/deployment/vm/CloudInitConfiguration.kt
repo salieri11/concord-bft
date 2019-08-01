@@ -9,6 +9,7 @@ import com.vmware.blockchain.deployment.model.ConcordClusterIdentifier
 import com.vmware.blockchain.deployment.model.ConcordComponent
 import com.vmware.blockchain.deployment.model.ConcordModelSpecification
 import com.vmware.blockchain.deployment.model.ConcordNodeIdentifier
+import com.vmware.blockchain.deployment.model.ConfigurationSessionIdentifier
 import com.vmware.blockchain.deployment.model.Credential
 import com.vmware.blockchain.deployment.model.Endpoint
 import com.vmware.blockchain.deployment.model.core.URI
@@ -28,7 +29,9 @@ class CloudInitConfiguration(
     gateway: String,
     subnet: Int,
     clusterId: ConcordClusterIdentifier,
-    nodeId: ConcordNodeIdentifier
+    nodeId: Int,
+    configGenId: ConfigurationSessionIdentifier,
+    configServiceEndpoint: Endpoint
 ) {
     object GenesisSerializer
         : JsonSerializer(serializersModuleOf(Genesis::class, Genesis.serializer()))
@@ -64,7 +67,10 @@ class CloudInitConfiguration(
             containerRegistry = containerRegistry,
             fleetService = Endpoint(), // TODO: need to inject fleet service endpoint info.
             cluster = clusterId,
-            node = nodeId
+            node = nodeId,
+            configService = configServiceEndpoint,
+            configurationSession =  configGenId
+
     )
 
     private val script =
@@ -92,7 +98,10 @@ class CloudInitConfiguration(
             # Output the node's configuration.
             mkdir -p /config/concord/config-local
             mkdir -p /config/concord/config-public
-            
+
+            # create dir for tls certs
+            mkdir -p /config/concord/config-local/cert
+
             # Output the node's model specification.
             mkdir -p /config/agent
             echo '{{agentConfig}}' > /config/agent/config.json
@@ -107,7 +116,7 @@ class CloudInitConfiguration(
             chmod 777 /config/concord/config-public/find-docker-instances.sh
 
             echo '{{genesis}}' > /config/concord/config-public/genesis.json
-            docker run -d --name=agent --restart=always -v /config/agent/config.json:/config/config.json -v /config:/config -v /var/run/docker.sock:/var/run/docker.sock -p 8546:8546 registry-1.docker.io/vmwblockchain/agent-testing:debug
+            docker run -d --name=agent --restart=always -v /config/agent/config.json:/config/config.json -v /config:/config -v /var/run/docker.sock:/var/run/docker.sock -p 8546:8546 registry-1.docker.io/vmwblockchain/agent-testing:configservice
             echo 'done'
             """.trimIndent()
                     .replace("{{dockerLoginCommand}}", containerRegistry.toRegistryLoginCommand())

@@ -3,6 +3,7 @@
  * **************************************************************************/
 package com.vmware.blockchain.deployment.service.provision
 
+import com.vmware.blockchain.deployment.model.Endpoint
 import com.vmware.blockchain.deployment.model.OrchestrationSite
 import com.vmware.blockchain.deployment.model.ProvisioningServerConfiguration
 import com.vmware.blockchain.deployment.model.TransportSecurity
@@ -31,6 +32,7 @@ import org.slf4j.LoggerFactory
  */
 @Component(modules = [
     ProvisioningServiceModule::class,
+    ConfigurationServiceModule::class,
     OrchestrationSiteServiceModule::class,
     OrchestratorModule::class
 ])
@@ -48,6 +50,9 @@ internal interface ProvisioningServer {
 
         @BindsInstance
         fun orchestrations(entries: List<OrchestrationSite>): Builder
+
+        @BindsInstance
+        fun configurationService(configurationService: Endpoint): Builder
 
         fun build(): ProvisioningServer
     }
@@ -67,6 +72,9 @@ private val DEFAULT_PRIVATE_KEY = URI.create("file:/config/persephone/provisioni
 
 /** Default trusted certificate collection file path.  */
 private val DEFAULT_TRUST_CERTIFICATES = URI.create("file:/config/persephone/provisioning/ca.crt")
+
+/** Default config service endpoint. */
+private val DEFAULT_CONFIG_SERVICE_ENDPOINT = Endpoint("localhost:9003")
 
 /**
  * Create a new [SslContext].
@@ -142,13 +150,15 @@ fun main(args: Array<String>) {
                         DEFAULT_TRUST_CERTIFICATES.toString(),
                         DEFAULT_CERTIFICATE_CHAIN.toString(),
                         DEFAULT_PRIVATE_KEY.toString()
-                )
+                ),
+                DEFAULT_CONFIG_SERVICE_ENDPOINT
         )
     }
 
     // Build the server and start.
     val provisioningServer = DaggerProvisioningServer.builder()
             .orchestrations(config.sites)
+            .configurationService(config.configService)
             .build()
     val sslContext = config.transportSecurity.type
             .takeIf { it != TransportSecurity.Type.NONE }

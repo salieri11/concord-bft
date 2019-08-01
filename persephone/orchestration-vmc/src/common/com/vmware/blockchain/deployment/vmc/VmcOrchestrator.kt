@@ -207,7 +207,9 @@ class VmcOrchestrator private constructor(
                                     info.controlNetworkGateway.toIPv4Address(),
                                     info.controlNetworkSubnet,
                                     request.cluster,
-                                    request.node
+                                    request.concordId,
+                                    request.configurationSessionIdentifier,
+                                    request.configServiceEndpoint
                             )
                     )
 

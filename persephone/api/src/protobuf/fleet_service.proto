@@ -110,7 +110,7 @@ message InstanceMessage {
     message CreateSessionRequest {
         string instance_id = 1;
         ConcordClusterIdentifier cluster = 2;
-        ConcordNodeIdentifier node = 3;
+        int32 node = 3;
     }
 
     MessageHeader header = 1;

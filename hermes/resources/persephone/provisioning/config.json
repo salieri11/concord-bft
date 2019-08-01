@@ -1,6 +1,9 @@
 {
   "port": 9002,
   "transportSecurity": {},
+  "configService": {
+    "address": "configservice-vmbc.vdp.vmware.com"
+  },
   "sites": [
     {
       "id": {
