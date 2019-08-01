@@ -6,7 +6,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Resolve, ActivatedRouteSnapshot } from '@angular/router';
 import { Observable, from, timer, zip, of, throwError } from 'rxjs';
-import { concatMap, filter, map, take, flatMap, catchError } from 'rxjs/operators';
+import { concatMap, filter, map, take, flatMap, catchError, debounceTime } from 'rxjs/operators';
 import { BehaviorSubject } from 'rxjs';
 
 import { ConsortiumService } from '../consortium/shared/consortium.service';
@@ -17,7 +17,7 @@ export class BlockchainRequestParams {
   consortium_name: string;
   f_count: number;
   c_count: number = 0;
-  deployment_type: string = 'UNSPECIFIED';
+  deployment_type: string = 'FIXED';
   zone_ids: string[];
 }
 
@@ -43,6 +43,18 @@ export interface Zone {
   longitude: number;
 }
 
+export interface BlockchainMeta {
+  consortium_id: string;
+  id: string;
+  node_list: {
+    cert: string,
+    ip: string,
+    node_id: string,
+    url: string,
+    zone_id: string,
+    zone?: Zone
+  }[];
+}
 export enum DeployStates {
   NONE = 'NONE',
   RUNNING = 'RUNNING',
@@ -50,7 +62,8 @@ export enum DeployStates {
   FAILED = 'FAILED',
 }
 
-const fakeData: Zone[] = [{
+
+const fakeZones: Zone[] = [{
   name: 'US West - Oregon',
   id: 'us-west',
   latitude: 0,
@@ -82,6 +95,10 @@ export class BlockchainService {
   blockchainId: string;
   selectedBlockchain: BlockchainResponse;
   blockchains: BlockchainResponse[];
+  zones: Zone[];
+  zonesMap: any;
+  nodesMap: any;
+  metadata: any;
 
   constructor(
     private http: HttpClient,
@@ -113,7 +130,7 @@ export class BlockchainService {
 
   pollDeploy(taskId: string): Observable<any> {
     const interval = 2500;
-    const stopAfter = 7 * 60 * 1000; // 7 minutes;
+    const stopAfter = 6 * 60 * 1000; // 6 minutes;
     const interationAmount = stopAfter / interval;
     let iterationCount = 0;
     return timer(0, interval)
@@ -132,12 +149,14 @@ export class BlockchainService {
   set(bId?: string): Observable<BlockchainResponse[]> {
     const consortiumList = this.consortiumService.getList();
     const blockchainList = this.http.get(Apis.blockchains);
+    const zoneList = this.getZones();
 
-    return zip(consortiumList, blockchainList)
+    return zip(consortiumList, blockchainList, zoneList)
       .pipe(
         map(response => {
           const cList = response[0] as Array<any>;
           const bList = response[1] as Array<any>;
+          this.zones = response[2] as Zone[];
 
           cList.forEach(consortium => {
             bList.forEach(blockchain => {
@@ -155,7 +174,7 @@ export class BlockchainService {
       );
   }
 
-  select(bId: string): boolean {
+  async select(bId: string): Promise<boolean> {
     if (!bId) {
       this.blockchainId = null;
       return false;
@@ -176,6 +195,7 @@ export class BlockchainService {
         }
       });
     }
+    this.metadata = await this.getMetaData().toPromise();
     return true;
   }
 
@@ -184,15 +204,36 @@ export class BlockchainService {
     const refreshZones = this.http.post<Zone[]>(Apis.zonesReload, {});
     return this.http.get<Zone[]>(Apis.zones).pipe(
       map(zones => {
-        if (zones.length && zones[0]['name'] === null) {
-          zones.forEach((zone, idx) => zone.name = fakeData[idx].name);
-        }
+        const zoneMap = {};
+
+        zones.forEach(zone => zoneMap[zone.id] = zone);
+        this.zonesMap = zoneMap;
+
         return zones;
       }),
       catchError(error => {
         if (error.status === 500) {
           return refreshZones;
         }
+      })
+    );
+  }
+
+  getMetaData(): Observable<BlockchainMeta> {
+    return this.http.get<BlockchainMeta>(`${Apis.blockchains}/${this.blockchainId}`)
+    .pipe(
+      debounceTime(1000),
+      map(meta => {
+        this.metadata = meta;
+        const nodesMap = {};
+
+        meta.node_list.forEach(node => {
+          node.zone = this.zonesMap[node.zone_id];
+          nodesMap[node.node_id] = node;
+        });
+        this.nodesMap = nodesMap;
+
+        return this.metadata;
       })
     );
   }
@@ -222,13 +263,14 @@ export class BlockchainsServiceMock {
     consortium_id: 1
   };
   public blockchains = [];
+  public zones = fakeZones;
   public blockchaindId = 1;
   public select() {
     return true;
   }
 
   public getZones(): Observable<Zone[]> {
-    return of(fakeData);
+    return of(fakeZones);
   }
 
   public deploy(params: BlockchainRequestParams): Observable<any> {
