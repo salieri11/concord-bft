@@ -106,7 +106,7 @@ def call(){
                       env.blockchain_root = new File(env.WORKSPACE, "blockchain").toString()
 
                       // Check if persephone tests are to be executed in this run
-                      env.run_persephone_tests = has_repo_changed('persephone') || has_repo_changed('hermes') || has_repo_changed('helen') || env.JOB_NAME.contains(master_branch_job_name) || env.JOB_NAME.contains(persephone_test_job_name)
+                      env.run_persephone_tests = has_repo_changed('vars') || has_repo_changed('persephone') || has_repo_changed('hermes') || has_repo_changed('helen') || env.JOB_NAME.contains(master_branch_job_name) || env.JOB_NAME.contains(persephone_test_job_name)
                     }
                   }
                 }catch(Exception ex){

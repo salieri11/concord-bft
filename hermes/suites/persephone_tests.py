@@ -215,14 +215,17 @@ class PersephoneTests(test_suite.TestSuite):
                 "verify_ethrpc_block_0",
                 "http://{}:{}".format(concord_ip, ethrpc_port),
                 self._userConfig)
-      currentBlockNumber = rpc.getBlockNumber()
-      log.info("Current Block Number: {}".format(currentBlockNumber))
+      try:
+         currentBlockNumber = rpc.getBlockNumber()
+         log.info("Current Block Number: {}".format(currentBlockNumber))
 
-      if int(currentBlockNumber, 16) == 0:
-         log.debug("Block Number is 0")
-         return True
-      else:
-         log.error("Block Number is NOT 0")
+         if int(currentBlockNumber, 16) == 0:
+            log.debug("Block Number is 0")
+            return True
+         else:
+            log.error("Block Number is NOT 0")
+      except Exception as e:
+         log.error(e)
 
       return False
 
@@ -298,6 +301,7 @@ class PersephoneTests(test_suite.TestSuite):
       log.info("**** Deploy & Verify concord nodes for IPAM ****")
 
       status = False
+      msg = "Test Failed"
       if self.concord_ips:
          try:
             import grpc
@@ -486,7 +490,7 @@ class PersephoneTests(test_suite.TestSuite):
                if self.verify_ethrpc_block_0(concord_ip):
                   log.info("Ethrpc (get Block 0) Validation - PASS")
                else:
-                  log.info("Ethrpc (get Block 0) Validation - FAIL")
+                  log.error("Ethrpc (get Block 0) Validation - FAIL")
                   return (False, "Ethrpc (get Block 0) Validation - FAILED")
 
             log.info("SSH Verification on all concord nodes are successful")
