@@ -38,7 +38,7 @@ export class MainComponent implements OnInit, OnDestroy {
   navOption: string;
   openDeployDapp: boolean;
   routerFragmentChange: Subscription;
-  enableRouterOutlet: boolean = true;
+  enableRouterOutlet: any = true;
   env: any;
   showErrorMessage: boolean = false;
   error: HttpErrorResponse;
