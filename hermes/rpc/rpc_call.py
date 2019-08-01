@@ -134,15 +134,16 @@ class RPC():
                  "--output", self._responseFile,
                  "--verbose",
                  "--insecure"]
-      log.debug("RPC COMMAND: {}".format(curlCmd))
 
       with open (self._outputFile, "a") as f:
          # Make people's lives easier by printing a copy/pastable command.
          f.write("Command: \n'" + "' '".join(curlCmd) + "'\n\n")
          f.flush()
+         log.debug("Sending RPC command (see {})".format(self._outputFile))
          curlProc = subprocess.run(curlCmd,
                                    stdout=f,
                                    stderr=subprocess.STDOUT)
+         log.debug("RPC response received")
 
       if os.path.isfile(self._responseFile):
          response = util.json_helper.readJsonFile(self._responseFile)

@@ -47,7 +47,7 @@ class Request():
       self._userConfig = userConfig
       self._accessToken = getAccessToken(tokenDescriptor, forceNewToken)
 
-      
+
    def newWithToken(self, tokenDescriptor, forceNewToken=False):
       '''
       Create a new of the this, with a new token.
@@ -58,8 +58,8 @@ class Request():
                      self._userConfig,
                      tokenDescriptor,
                      forceNewToken)
-   
-      
+
+
    def _send(self, verb=None):
       '''
       Makes the actual ReST request by invoking curl.  Returns the raw json
@@ -114,15 +114,15 @@ class Request():
                     "--verbose",
                     "--insecure"]
 
-      log.debug("REST COMMAND: {}".format(" ".join(curlCmd)))
-
       with open (self._outputFile, "a") as f:
          # Make people's lives easier by printing a copy/pastable command.
          f.write("Command: \n'" + "' '".join(curlCmd) + "'\n\n")
          f.flush()
+         log.debug("Sending REST command (see {})".format(self._outputFile))
          curlProc = subprocess.run(curlCmd,
                                    stdout=f,
                                    stderr=subprocess.STDOUT)
+         log.debug("REST response received.")
 
       if os.path.isfile(self._responseFile):
          response = util.json_helper.readJsonFile(self._responseFile)
@@ -432,7 +432,7 @@ class Request():
 
       if conName != None:
          self._data["consortium_name"] = conName
-      
+
       return self._send()
 
    def getConsortium(self, conId):
@@ -464,7 +464,7 @@ class Request():
       self._subPath = "/api/consortiums/{}".format(conId)
       self._params = ""
       self._data = {}
-      
+
       if newName != None:
          self._data["consortium_name"] = newName
       if newType != None:
@@ -473,7 +473,7 @@ class Request():
          self._data["orgs_to_add"] = orgsToAdd
       if orgsToRemove != None:
          self._data["orgs_to_remove"] = orgsToRemove
-         
+
       self._endpointName = "patch_consortium"
       return self._send(verb="PATCH")
 
@@ -486,7 +486,7 @@ class Request():
       self._data = None
       self._endpointName = "get_consortium_orgs"
       return self._send()
-   
+
    '''
    =================================================================
    =================================================================
