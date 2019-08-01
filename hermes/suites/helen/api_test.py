@@ -2184,7 +2184,7 @@ def test_largeReply(fxConnection, fxBlockchain):
 
 
 @pytest.mark.smoke
-@pytest.mark.roles
+@pytest.mark.skip(reason="Skipping role tests to check performance")
 def test_roles_consortium_creation(fxConnection):
    '''
    Users who are not consoritum admins should not be able to create a new consortium.
@@ -2217,7 +2217,7 @@ def test_roles_consortium_creation(fxConnection):
 
 
 @pytest.mark.smoke
-@pytest.mark.roles
+@pytest.mark.skip(reason="Skipping role tests to check performance")
 def test_role_list_consortiums(fxConnection):
    '''
    Everyone should only be able to use /consortiums (GET) to list the consortiums
@@ -2276,7 +2276,7 @@ def test_role_list_consortiums(fxConnection):
 
 
 @pytest.mark.smoke
-@pytest.mark.roles
+@pytest.mark.skip(reason="Skipping role tests to check performance")
 def test_role_consortium_get(fxConnection):
    '''
    Everyone should be able to get a specific consortium they are part of.
@@ -2344,7 +2344,7 @@ def test_role_consortium_get(fxConnection):
 
 
 @pytest.mark.smoke
-@pytest.mark.roles
+@pytest.mark.skip(reason="Skipping role tests to check performance")
 def test_role_consortium_patch_users_in_org(fxConnection):
    '''
    Only consortium admins should be able to patch a consortium.
@@ -2388,7 +2388,7 @@ def test_role_consortium_patch_users_in_org(fxConnection):
 
 
 @pytest.mark.smoke
-@pytest.mark.roles
+@pytest.mark.skip(reason="Skipping role tests to check performance")
 def test_role_consortium_patch_other_admin(fxConnection):
    '''
    Make sure an outside consortium admin cannot change our consortium.
@@ -2418,7 +2418,7 @@ def test_role_consortium_patch_other_admin(fxConnection):
 
 
 @pytest.mark.smoke
-@pytest.mark.roles
+@pytest.mark.skip(reason="Skipping role tests to check performance")
 def test_role_consortium_list_orgs_across_orgs(fxConnection, fxInitializeOrgs):
    '''
    Make sure all roles can only list the orgs in a consortium they are part of.
@@ -2488,7 +2488,7 @@ def test_role_consortium_list_orgs_across_orgs(fxConnection, fxInitializeOrgs):
 
 
 @pytest.mark.smoke
-@pytest.mark.roles
+@pytest.mark.skip(reason="Skipping role tests to check performance")
 def test_role_consortium_list_orgs_across_roles(fxConnection, fxInitializeOrgs):
    '''
    Everyone in a consortium should be able to see what orgs are in it.
@@ -2551,7 +2551,7 @@ def test_role_consortium_list_orgs_across_roles(fxConnection, fxInitializeOrgs):
 
 
 @pytest.mark.smoke
-@pytest.mark.roles
+@pytest.mark.skip(reason="Skipping role tests to check performance")
 def test_role_list_blockchains(fxConnection):
    '''
    All users in a consortium should be able to list the blockchains in their consortium,
@@ -2585,7 +2585,7 @@ def test_role_list_blockchains(fxConnection):
 
 
 @pytest.mark.smoke
-@pytest.mark.roles
+@pytest.mark.skip(reason="Skipping role tests to check performance")
 def test_role_get_specific_blockchain(fxConnection, fxBlockchain):
    orgs = ["blockchain_service_dev", "hermes_org0"]
 
