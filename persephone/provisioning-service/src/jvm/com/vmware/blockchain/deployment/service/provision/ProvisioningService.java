@@ -67,7 +67,6 @@ import com.vmware.blockchain.deployment.model.StreamClusterDeploymentSessionEven
 import com.vmware.blockchain.deployment.model.UpdateDeploymentSessionRequest;
 import com.vmware.blockchain.deployment.model.UpdateDeploymentSessionResponse;
 import com.vmware.blockchain.deployment.model.ethereum.Genesis;
-import com.vmware.blockchain.deployment.orchestration.InactiveOrchestrator;
 import com.vmware.blockchain.deployment.orchestration.NetworkAddress;
 import com.vmware.blockchain.deployment.orchestration.Orchestrator;
 import com.vmware.blockchain.deployment.orchestration.Orchestrator.ComputeResourceEvent;
@@ -104,10 +103,6 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
     /** Atomic update for service instance state. */
     private static final AtomicReferenceFieldUpdater<ProvisioningService, State> STATE =
             AtomicReferenceFieldUpdater.newUpdater(ProvisioningService.class, State.class, "state");
-
-    /** Default Orchestrator instance's OrchestrationSiteIdentifier. */
-    private static final OrchestrationSiteIdentifier defaultOrchestratorId =
-            OrchestrationSiteIdentifier.Companion.getDefaultValue();
 
     /** Executor to use for all async service operations. */
     private final ExecutorService executor;
@@ -228,14 +223,6 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
                                                                                   orchestrator)))
                             .toArray(CompletableFuture[]::new)
             ).thenRunAsync(() -> {
-                // Set a default orchestrator.
-                var defaultOrchestrator = orchestrators.entrySet().stream()
-                        .filter(entry -> !(entry.getValue() instanceof InactiveOrchestrator))
-                        .findFirst()
-                        .map(Map.Entry::getValue)
-                        .orElseThrow();
-                orchestrators.putIfAbsent(defaultOrchestratorId, defaultOrchestrator);
-
                 // Set instance to ACTIVE state.
                 STATE.set(this, State.ACTIVE);
 
@@ -585,11 +572,10 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
     private List<DeploymentSessionEvent> toDeprovisioningEvents(
             DeploymentSession session,
             Collection<OrchestrationEvent> events,
-            DeploymentSession.Status status) {
-
-
+            DeploymentSession.Status status
+    ) {
         List<DeploymentSessionEvent> deprovisioningEvent = new ArrayList<>();
-        events.stream().forEach(event -> {
+        events.forEach(event -> {
             ProvisionedResource resource = null;
             if (event instanceof NetworkAllocationEvent.Deleted) {
                 var resEvent = (NetworkAllocationEvent.Deleted) event;
@@ -615,11 +601,16 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
                         ConcordNodeIdentifier.Companion.getDefaultValue());
             }
 
-            deprovisioningEvent.add(new DeploymentSessionEvent(DeploymentSessionEvent.Type.RESOURCE_DEPROVISIONING,
-                    session.getId(), status, resource,
-                    ConcordNode.Companion.getDefaultValue(),
-                    ConcordNodeStatus.Companion.getDefaultValue(),
-                    ConcordCluster.Companion.getDefaultValue()));
+            if (resource != null) {
+                deprovisioningEvent.add(
+                        new DeploymentSessionEvent(
+                                DeploymentSessionEvent.Type.RESOURCE_DEPROVISIONING,
+                                session.getId(), status, resource,
+                                ConcordNode.Companion.getDefaultValue(),
+                                ConcordNodeStatus.Companion.getDefaultValue(),
+                                ConcordCluster.Companion.getDefaultValue())
+                );
+            }
         });
 
         eventQueue.addAll(deprovisioningEvent);
