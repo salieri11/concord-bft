@@ -5,6 +5,7 @@
 import json
 import logging
 import requests
+import time
 import traceback
 from datetime import datetime
 from urllib3.util.retry import Retry
@@ -390,20 +391,44 @@ def retrieveNewAccessToken(org, user, role):
 
    7 tries with backoff_factor of 0.5 = 63.5 seconds of retrying.
    '''
-   api_key = tokens[org][user][role]["api_key"]
-   session = requests.Session()
-   num_retries = 7
-   retries = Retry(total=num_retries,
-                   backoff_factor=0.5,
-                   status_forcelist=[104, 500, 502, 503, 504],
-                   method_whitelist=False)
-   session.mount('https://', requests.adapters.HTTPAdapter(max_retries=retries))
 
-   try:
-      response = session.post(CSP_STAGE_URL, data={"refresh_token": api_key})
-   except Exception as e:
-      log.error("***** Error communication with CSP. {} attempt(s) were made. Failing. *****\n".format(num_retries))
-      raise(e)
+   api_key = tokens[org][user][role]["api_key"]
+   # session = requests.Session()
+   # num_retries = 7
+   # retries = Retry(total=num_retries,
+   #                 backoff_factor=0.5,
+   #                 status_forcelist=[104, 500, 502, 503, 504],
+   #                 method_whitelist=False)
+   # session.mount('https://', requests.adapters.HTTPAdapter(max_retries=retries))
+
+   # try:
+   #    log.debug("In auth.py, retrieveNewAccessToken() sending request to CSP. Session: {}, " \
+   #              "URL: {}, API key: {}".format(session, CSP_STAGE_URL, api_key))
+   #    response = session.post(CSP_STAGE_URL, data={"refresh_token": api_key})
+   #    log.debug("In auth.py, received response from CSP: {}".format(response))
+   # except Exception as e:
+   #    log.error("***** Error communication with CSP. {} attempt(s) were made. Failing. *****\n".format(num_retries))
+   #    raise(e)
+
+   max_attempts = 5
+   sleep_time = 5
+   attempts = 0
+   success = False
+
+   while not success and attempts < max_attempts:
+      attempts += 1
+      response = requests.post(CSP_STAGE_URL, data={"refresh_token": api_key})
+
+      if response.status_code != 200:
+         log.debug("Response code received from CSP: {}.".format(response.status_code))
+
+         if attempts == max_attempts:
+            raise Exception("Never received a good response from CSP.")
+         else:
+            log.debug("Retrying in {} seconds".format(sleep_time))
+            time.sleep(sleep_time)
+      else:
+         success = True
 
    content = response.content.decode("UTF-8")
    csp_auth_data = json.loads(content)
