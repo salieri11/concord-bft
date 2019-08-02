@@ -19,3 +19,4 @@ COPY concord/proto /doc/concord/proto
 COPY daml/kvbc_validator /doc/daml/kvbc_validator
 
 RUN sbt stage
+EXPOSE 55000
