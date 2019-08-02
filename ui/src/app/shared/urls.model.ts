@@ -3,7 +3,8 @@
  */
 
 export enum CspAPIs {
-  orgs = '/csp/gateway/am/api/orgs/'
+  orgs = '/csp/gateway/am/api/orgs/',
+  refLink = '/csp/gateway/slc/api/definitions/external/'
 }
 
 export enum QueryParams {

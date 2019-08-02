@@ -7,6 +7,7 @@ import { CspNoServiceAccessPageMode } from '@vmw/csp-ngx-components';
 
 import { environment } from './../../../environments/environment';
 import { AuthenticationService } from './../../shared/authentication.service';
+import { CspAPIs } from './../../shared/urls.model';
 
 
 @Component({
@@ -23,7 +24,7 @@ export class ForbiddenComponent {
   constructor(private authService: AuthenticationService) {
     const parsedToken = this.authService.parsedToken;
     this.orgId = parsedToken.context_name;
-    this.refLink = `/csp/gateway/slc/api/definitions/external/${parsedToken.context}`;
+    this.refLink = `${CspAPIs.refLink}${parsedToken.context}`;
   }
 
 }

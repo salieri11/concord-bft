@@ -16,7 +16,8 @@ import { AuthenticationService } from './authentication.service';
 import { UserAuthResponse } from '../users/shared/user.model';
 import { Personas, PersonaService } from './persona.service';
 import { ErrorAlertService } from './global-error-handler.service';
-import { BlockchainService, BlockchainResponse } from './blockchain.service';
+import { BlockchainService } from './blockchain.service';
+import { BlockchainResponse } from './blockchain.model';
 import { environment } from '../../environments/environment';
 import { QueryParams } from './urls.model';
 

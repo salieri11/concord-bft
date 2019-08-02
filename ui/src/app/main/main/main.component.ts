@@ -10,7 +10,8 @@ import { Subscription } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { AuthenticationService } from '../../shared/authentication.service';
 import { ErrorAlertService } from '../../shared/global-error-handler.service';
-import { BlockchainService, BlockchainResponse } from '../../shared/blockchain.service';
+import { BlockchainService } from '../../shared/blockchain.service';
+import { BlockchainResponse } from '../../shared/blockchain.model';
 import { Personas } from '../../shared/persona.service';
 import { TourService } from '../../shared/tour.service';
 
@@ -38,7 +39,7 @@ export class MainComponent implements OnInit, OnDestroy {
   navOption: string;
   openDeployDapp: boolean;
   routerFragmentChange: Subscription;
-  enableRouterOutlet: any = true;
+  enableRouterOutlet: Promise<boolean> | boolean = true;
   env: any;
   showErrorMessage: boolean = false;
   error: HttpErrorResponse;

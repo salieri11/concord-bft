@@ -14,7 +14,8 @@ import { Router } from '@angular/router';
 import { FormControl, FormGroup, Validators, ValidatorFn, ValidationErrors } from '@angular/forms';
 import { ClrWizard, ClrWizardPage } from '@clr/angular';
 import { PersonaService } from '../../persona.service';
-import { BlockchainService, BlockchainRequestParams, Zone } from '../../blockchain.service';
+import { BlockchainService } from '../../blockchain.service';
+import { BlockchainRequestParams, Zone } from '../../blockchain.model';
 
 
 const RegionCountValidator: ValidatorFn = (fg: FormGroup): ValidationErrors | null => {
@@ -56,11 +57,8 @@ export class BlockchainWizardComponent implements OnInit {
     private router: Router,
     private blockchainService: BlockchainService
   ) {
-    this.blockchainService.getZones()
-      .subscribe(zones => {
-        this.zones = zones;
-        this.form = this.initForm();
-      });
+    this.zones = this.blockchainService.zones;
+    this.form = this.initForm();
 
 
     this.nodeForm = new FormGroup({

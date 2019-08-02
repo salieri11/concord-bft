@@ -7,7 +7,8 @@ import { Router } from '@angular/router';
 import { HttpResponse, HttpErrorResponse } from '@angular/common/http';
 import { TranslateService } from '@ngx-translate/core';
 
-import { BlockchainService, DeployStates } from '../../shared/blockchain.service';
+import { BlockchainService } from '../../shared/blockchain.service';
+import { DeployStates } from '../../shared/blockchain.model';
 
 @Component({
   selector: 'concord-deploying-interstitial',
