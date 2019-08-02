@@ -2,7 +2,7 @@
 
 package com.digitalasset.kvbc.validator
 
-import java.time.Instant
+import java.time.{Duration, Instant}
 
 import com.digitalasset.kvbc.daml_validator._
 import com.digitalasset.kvbc.daml_data._
@@ -13,6 +13,7 @@ import com.digitalasset.daml.lf.engine.Engine
 import com.daml.ledger.participant.state.backport.TimeModel
 import org.slf4j.LoggerFactory
 
+import scala.collection.breakOut
 import scala.concurrent.Future
 
 class KVBCValidator extends ValidationServiceGrpc.ValidationService {
@@ -33,9 +34,24 @@ class KVBCValidator extends ValidationServiceGrpc.ValidationService {
   def validateSubmission(request: ValidateRequest): Future[ValidateResponse] = {
     // TODO(JM): Validation should happen in a thread pool the size of ~num of cores.
 
-    logger.info(s"Received validate request ${request.entryId.toStringUtf8}")
+    logger.trace(s"Validating submission, request received: ${request.entryId.toStringUtf8}")
 
     val submission = KeyValueSubmission.unpackDamlSubmission(request.submission)
+
+    val inputLogEntries =
+      request.inputLogEntries.map { kv =>
+        DamlKvutils.DamlLogEntryId.newBuilder.setEntryId(kv.key).build ->
+          KeyValueCommitting.unpackDamlLogEntry(kv.value)
+      }
+
+    val inputState =
+      request.inputState.map { kv =>
+        KeyValueCommitting.unpackDamlStateKey(kv.key) ->
+          (if (kv.value.isEmpty)
+            None
+          else
+            Some(KeyValueCommitting.unpackDamlStateValue(kv.value)))
+      }
 
     val (logEntry, stateUpdates) = KeyValueCommitting.processSubmission(
       engine = engine,
@@ -43,20 +59,11 @@ class KVBCValidator extends ValidationServiceGrpc.ValidationService {
       entryId = DamlKvutils.DamlLogEntryId.newBuilder.setEntryId(request.entryId).build,
       recordTime = parseTimestamp(request.recordTime.get),
       submission = submission,
-      inputLogEntries =
-        request.inputLogEntries.map { kv =>
-          DamlKvutils.DamlLogEntryId.newBuilder.setEntryId(kv.key).build ->
-            KeyValueCommitting.unpackDamlLogEntry(kv.value)
-        }.toMap,
-      inputState =
-        request.inputState.map { kv =>
-          KeyValueCommitting.unpackDamlStateKey(kv.key) ->
-            (if (kv.value.isEmpty)
-              None
-            else
-              Some(KeyValueCommitting.unpackDamlStateValue(kv.value)))
-        }.toMap
-    )
+      inputLogEntries.toMap,
+      inputState.toMap)
+
+    logger.info(s"Submission validated, entryId: ${request.entryId.toStringUtf8}, " +
+      s"inputLogEntries: ${inputLogEntries.size}, inputStates: ${inputState.size}, stateUpdates: ${stateUpdates.size}")
 
     Future.successful(
       ValidateResponse(

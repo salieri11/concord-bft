@@ -105,6 +105,8 @@ static unique_ptr<grpc::Server> daml_grpc_server = nullptr;
 // the Boost service hosting our Helen connections
 static io_service *api_service = nullptr;
 static boost::thread_group worker_pool;
+// 50 MiBytes
+static const int kDamlServerMsgSizeMax = 50 * 1024 * 1024;
 
 void signalHandler(int signum) {
   try {
@@ -253,6 +255,7 @@ unique_ptr<grpc::Server> RunDamlGrpcServer(
   EventsServiceImpl *eventsService = new EventsServiceImpl(committedTxs);
 
   grpc::ServerBuilder builder;
+  builder.SetMaxMessageSize(kDamlServerMsgSizeMax);
   builder.AddListeningPort(server_address, grpc::InsecureServerCredentials());
   builder.RegisterService(dataService);
   builder.RegisterService(commitService);
@@ -319,10 +322,12 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
 
     unique_ptr<ICommandsHandler> kvb_commands_handler;
     if (daml_enabled) {
+      grpc::ChannelArguments chArgs;
+      chArgs.SetMaxReceiveMessageSize(kDamlServerMsgSizeMax);
       unique_ptr<DamlValidatorClient> daml_validator(
-          new DamlValidatorClient(grpc::CreateChannel(
+          new DamlValidatorClient(grpc::CreateCustomChannel(
               nodeConfig.getValue<string>("daml_execution_engine_addr"),
-              grpc::InsecureChannelCredentials())));
+              grpc::InsecureChannelCredentials(), chArgs)));
       kvb_commands_handler = unique_ptr<ICommandsHandler>(
           new DamlKvbCommandsHandler(config, replica, replica, committedTxs,
                                      std::move(daml_validator)));

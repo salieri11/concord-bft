@@ -18,10 +18,12 @@ class KVBCValidatorServer(executionContext: ExecutionContext) {
   private[this] var server: Server = null
   private[this] val port = 55000
   private val logger = LoggerFactory.getLogger(this.getClass)
+  private val ledgerInboundMessageSizeMax: Int = 50 * 1024 * 1024 // 50 MiBytes
 
   def start(): Unit = {
     server = ServerBuilder.forPort(port)
       .addService(ValidationServiceGrpc.bindService(new KVBCValidator, executionContext))
+      .maxInboundMessageSize(ledgerInboundMessageSizeMax)
       .build.start
     logger.info("Server started, listening on " + port)
     sys.addShutdownHook {
