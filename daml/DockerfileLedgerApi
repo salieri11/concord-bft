@@ -25,3 +25,4 @@ COPY daml/kvbc_sync_backend /doc/daml/kvbc_sync_backend
 COPY daml/kvbc_ledger_server /doc/daml/kvbc_ledger_server
 
 RUN sbt stage
+EXPOSE 6865
