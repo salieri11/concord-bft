@@ -4,6 +4,9 @@
 
 package com.vmware.blockchain.services.blockchains;
 
+import static com.vmware.blockchain.services.blockchains.BlockchainController.DeploymentType.FIXED;
+import static com.vmware.blockchain.services.blockchains.BlockchainController.DeploymentType.UNSPECIFIED;
+
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -76,8 +79,8 @@ public class BlockchainController {
     }
 
     private static final Map<DeploymentType, PlacementSpecification.Type> enumMap =
-            ImmutableMap.of(DeploymentType.FIXED, Type.FIXED,
-                            DeploymentType.UNSPECIFIED, Type.UNSPECIFIED);
+            ImmutableMap.of(FIXED, Type.FIXED,
+                            UNSPECIFIED, Type.UNSPECIFIED);
 
     @Getter
     @Setter
@@ -104,21 +107,38 @@ public class BlockchainController {
     @Getter
     @Setter
     @NoArgsConstructor
-    static class BlockchainNodeEntry {
-        private UUID nodeId;
+    @AllArgsConstructor
+    // This represents both the old node entry, and the new replica entry
+    static class BlockchainReplicaBase {
         private String ip;
         private String url;
         private String cert;
         private UUID zoneId;
+    }
+
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @Deprecated
+    static class BlockchainNodeEntry extends BlockchainReplicaBase {
+        UUID nodeId;
 
         public BlockchainNodeEntry(NodeEntry n) {
+            super(n.getIp(), n.getUrl(), n.getCert(), n.getZoneId());
             nodeId = n.getNodeId();
-            ip = n.getIp();
-            url = n.getUrl();
-            cert = n.getCert();
-            zoneId = n.getZoneId();
         }
+    }
 
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    static class BlockchainReplicaEntry extends BlockchainReplicaBase {
+        UUID replicaId;
+
+        public BlockchainReplicaEntry(NodeEntry n) {
+            super(n.getIp(), n.getUrl(), n.getCert(), n.getZoneId());
+            replicaId = n.getNodeId();
+        }
     }
 
     @Getter
@@ -128,12 +148,16 @@ public class BlockchainController {
     static class BlockchainGetResponse {
         private UUID id;
         private UUID consortiumId;
+        @Deprecated
         private List<BlockchainNodeEntry> nodeList;
+        private List<BlockchainReplicaEntry> replicaList;
 
         public BlockchainGetResponse(Blockchain b) {
             this.id = b.getId();
             this.consortiumId = b.getConsortium();
+            // For the moment, return both node_list and replica_list
             this.nodeList = b.getNodeList().stream().map(BlockchainNodeEntry::new).collect(Collectors.toList());
+            this.replicaList = b.getNodeList().stream().map(BlockchainReplicaEntry::new).collect(Collectors.toList());
         }
     }
 

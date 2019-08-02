@@ -51,8 +51,8 @@ import com.vmware.blockchain.operation.OperationContext;
 import com.vmware.blockchain.security.MvcTestSecurityConfig;
 import com.vmware.blockchain.security.SecurityTestUtils;
 import com.vmware.blockchain.services.blockchains.BlockchainController.BlockchainTaskResponse;
-import com.vmware.blockchain.services.blockchains.BlockchainNodeController.NodeObserver;
-import com.vmware.blockchain.services.blockchains.BlockchainNodeController.TaskList;
+import com.vmware.blockchain.services.blockchains.BlockchainReplicaController.ReplicaObserver;
+import com.vmware.blockchain.services.blockchains.BlockchainReplicaController.TaskList;
 import com.vmware.blockchain.services.profiles.Consortium;
 import com.vmware.blockchain.services.profiles.ConsortiumService;
 import com.vmware.blockchain.services.profiles.DefaultProfiles;
@@ -65,10 +65,10 @@ import com.vmware.blockchain.services.tasks.TaskController;
 import com.vmware.blockchain.services.tasks.TestTaskService;
 
 @ExtendWith({SpringExtension.class})
-@WebMvcTest(controllers = {BlockchainNodeController.class, TaskController.class })
+@WebMvcTest(controllers = {BlockchainReplicaController.class, TaskController.class })
 @ContextConfiguration(classes = {MvcTestSecurityConfig.class, MvcConfig.class, BlockchainConfig.class})
-@ComponentScan(basePackageClasses = {BlockchainNodeController.class, HelenExceptionHandler.class})
-class BlockchainNodeControllerTest {
+@ComponentScan(basePackageClasses = {BlockchainReplicaController.class, HelenExceptionHandler.class})
+class BlockchainReplicaControllerTest {
 
     private static UUID N1 = UUID.fromString("3e2e5bbe-dd46-4db4-9b83-79004c61c65f");
     private static UUID N2 = UUID.fromString("5860d051-f189-4bfe-966d-35628875b4e4");
@@ -108,7 +108,7 @@ class BlockchainNodeControllerTest {
     FleetManagementServiceStub fleetServiceStub;
 
     @Autowired
-    BlockchainNodeController blockchainNodeController;
+    BlockchainReplicaController blockchainReplicaController;
 
     private User user;
     private Consortium consortium;
@@ -120,7 +120,7 @@ class BlockchainNodeControllerTest {
 
     private void setCallbacks(Answer answer) {
         doAnswer(answer).when(fleetServiceStub)
-                .updateInstance(any(UpdateInstanceRequest.class), any(NodeObserver.class));
+                .updateInstance(any(UpdateInstanceRequest.class), any(ReplicaObserver.class));
     }
 
     @BeforeEach
@@ -162,14 +162,14 @@ class BlockchainNodeControllerTest {
         objectMapper = jacksonBuilder.build();
 
         // Set assorted mocked fields in the controller
-        ReflectionTestUtils.setField(blockchainNodeController, "client", fleetServiceStub);
-        ReflectionTestUtils.setField(blockchainNodeController, "taskService", taskService);
+        ReflectionTestUtils.setField(blockchainReplicaController, "client", fleetServiceStub);
+        ReflectionTestUtils.setField(blockchainReplicaController, "taskService", taskService);
     }
 
     @Test
     void nodeAction() throws Exception {
         setCallbacks(i -> {
-            NodeObserver n = i.getArgument(1);
+            ReplicaObserver n = i.getArgument(1);
             n.onNext(new UpdateInstanceResponse(new MessageHeader("done")));
             n.onCompleted();
             return null;
@@ -218,7 +218,7 @@ class BlockchainNodeControllerTest {
     @Test
     void nodeActionFail() throws Exception {
         setCallbacks(i -> {
-            NodeObserver n = i.getArgument(1);
+            ReplicaObserver n = i.getArgument(1);
             n.onNext(new UpdateInstanceResponse(new MessageHeader("done")));
             n.onError(new Exception("oof"));
             return null;
@@ -239,7 +239,7 @@ class BlockchainNodeControllerTest {
     @Test
     void nodeListAction() throws Exception {
         setCallbacks(i -> {
-            NodeObserver n = i.getArgument(1);
+            ReplicaObserver n = i.getArgument(1);
             n.onNext(new UpdateInstanceResponse(new MessageHeader("done")));
             n.onCompleted();
             return null;
@@ -253,6 +253,37 @@ class BlockchainNodeControllerTest {
                       + "                \"8096b245-f8cf-4c6a-846f-bad92641a592\""
                       + "                ]"
                       + "    }";
+        MvcResult result = mockMvc.perform(post(url).with(authentication(adminAuth))
+                                                   .contentType(MediaType.APPLICATION_JSON)
+                                                   .content(postBody).characterEncoding("utf-8"))
+                .andExpect(status().isAccepted()).andReturn();
+        String body = result.getResponse().getContentAsString();
+        TaskList taskList = objectMapper.readValue(body, TaskList.class);
+        for (UUID tid : taskList.getTaskIds()) {
+            Task task = taskService.get(tid);
+            Assertions.assertEquals(State.SUCCEEDED, task.getState());
+            Assertions.assertEquals("Operation Complete", task.getMessage());
+        }
+        Assertions.assertEquals(3, taskService.list().size());
+    }
+
+    @Test
+    void replicaListAction() throws Exception {
+        setCallbacks(i -> {
+            ReplicaObserver n = i.getArgument(1);
+            n.onNext(new UpdateInstanceResponse(new MessageHeader("done")));
+            n.onCompleted();
+            return null;
+        });
+
+        String url = "/api/blockchains/6d2bc86f-8556-4092-a9d6-5436f6c113d1/nodes?action=stop";
+        String postBody = "    {"
+                          + "        \"replica_ids\": ["
+                          + "                \"3e2e5bbe-dd46-4db4-9b83-79004c61c65f\","
+                          + "                \"5860d051-f189-4bfe-966d-35628875b4e4\","
+                          + "                \"8096b245-f8cf-4c6a-846f-bad92641a592\""
+                          + "                ]"
+                          + "    }";
         MvcResult result = mockMvc.perform(post(url).with(authentication(adminAuth))
                                                    .contentType(MediaType.APPLICATION_JSON)
                                                    .content(postBody).characterEncoding("utf-8"))
