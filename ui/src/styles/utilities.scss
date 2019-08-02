@@ -5,3 +5,12 @@
 .break-all {
   word-break: break-all;
 }
+
+.fadein {
+  animation: fadein .5s;
+}
+
+@keyframes fadein {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}

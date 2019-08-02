@@ -3,21 +3,24 @@
  */
 
 import { Component, NgZone, OnDestroy, OnInit, ViewChild } from '@angular/core';
-import { Router, ActivatedRoute } from '@angular/router';
+import { Router, ActivatedRoute, Params } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Subscription } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
 import { AuthenticationService } from '../../shared/authentication.service';
 import { ErrorAlertService } from '../../shared/global-error-handler.service';
-import { BlockchainService, BlockchainResponse } from '../../shared/blockchain.service';
+import { BlockchainService } from '../../shared/blockchain.service';
+import { BlockchainResponse } from '../../shared/blockchain.model';
 import { Personas } from '../../shared/persona.service';
 import { TourService } from '../../shared/tour.service';
 
 import { BlockchainWizardComponent } from '../../shared/components/blockchain-wizard/blockchain-wizard.component';
 import { SetupModalComponent } from '../setup-modal/setup-modal.component';
 import { DeployingInterstialComponent } from '../deploying-interstitial/deploying-interstitial.component';
-import { External } from '../../shared/urls.model';
+import { External, ConsortiumStates } from '../../shared/urls.model';
+
+
 
 @Component({
   selector: 'concord-main',
@@ -36,17 +39,16 @@ export class MainComponent implements OnInit, OnDestroy {
   navOption: string;
   openDeployDapp: boolean;
   routerFragmentChange: Subscription;
-  enableRouterOutlet: boolean = false;
+  enableRouterOutlet: Promise<boolean> | boolean = true;
   env: any;
   showErrorMessage: boolean = false;
   error: HttpErrorResponse;
-  routeDataSub: Subscription;
   alertSub: Subscription;
-  blockNotifySub: Subscription;
+  routingSub: Subscription;
   urls = External;
 
   // Blockchain Service is resolved in the router before loading
-  get selectedConsortium() {
+  get selectedConsortium(): string {
     return this.blockchainService.blockchainId;
   }
 
@@ -69,7 +71,6 @@ export class MainComponent implements OnInit, OnDestroy {
     private blockchainService: BlockchainService,
   ) {
     this.env = environment;
-    this.selectedConsortium = this.route.snapshot.params['consortiumId'];
 
     this.alertSub = this.alertService.notify
       .subscribe(error => this.addAlert(error));
@@ -77,38 +78,17 @@ export class MainComponent implements OnInit, OnDestroy {
     if (!environment.csp) {
       this.setInactivityTimeout();
     }
-
-    this.routeDataSub = this.route.data
-      .subscribe(() => this.handleInitialization(),
-      error => this.handleInitError(error));
   }
 
   ngOnInit() {
     this.tourService.initialUrl = this.router.url.substr(1);
+    this.selectedConsortium = this.route.snapshot.params['consortiumId'];
 
-    this.blockNotifySub = this.blockchainService.notify
-      .subscribe(notification => this.handleConsortiumNotification(notification));
+    this.routingSub = this.route.params
+      .subscribe(param => this.handleRouting(param));
 
-    this.routerFragmentChange = this.route.fragment.subscribe(fragment => {
-      switch (fragment) {
-        case 'welcome':
-          this.blockchainWizard.close();
-          this.welcome();
-          break;
-        case 'deploy':
-          this.welcomeModal.close();
-          this.openDeployWizard();
-          break;
-        default:
-          break;
-      }
-    });
-
-    this.route.params.subscribe(param => {
-      if (param.consortiumId && this.blockchainService.isUUID(param.consortiumId)) {
-        this.selectedConsortium = param.consortiumId;
-      }
-    });
+    this.routerFragmentChange = this.route.fragment
+      .subscribe(fragment => this.handleFragment(fragment));
 
     this.blockchainWizard.setupComplete.subscribe(
       response => {
@@ -121,8 +101,7 @@ export class MainComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.routerFragmentChange.unsubscribe();
-    this.blockNotifySub.unsubscribe();
-    this.routeDataSub.unsubscribe();
+    this.routingSub.unsubscribe();
     this.alertSub.unsubscribe();
 
     if (!environment.csp) {
@@ -130,7 +109,7 @@ export class MainComponent implements OnInit, OnDestroy {
     }
   }
 
-  consortiumChange() {
+  consortiumChange(): void {
     this.enableRouterOutlet = false;
     this.navDisabled = false;
     this.deployLoader.showInterstitial = false;
@@ -158,42 +137,43 @@ export class MainComponent implements OnInit, OnDestroy {
     this.blockchainWizard.open();
   }
 
-  private handleInitialization() {
-    if (this.selectedConsortium && this.selectedConsortium !== this.route.snapshot.params['consortiumId']) {
-      this.router.navigate(['/', this.selectedConsortium, 'dashboard']);
+  private handleRouting(param: Params): void {
+    const blockchainId = param.consortiumId;
+
+    if (blockchainId) {
+      switch (blockchainId) {
+        case ConsortiumStates.deploying:
+          this.selectedConsortium = null;
+          this.navDisabled = true;
+          this.enableRouterOutlet = false;
+          break;
+
+        case ConsortiumStates.loginReturn:
+          this.router.navigate([`/${this.selectedConsortium}`, 'dashboard']);
+          break;
+
+        default:
+          this.selectedConsortium = blockchainId;
+          this.navDisabled = false;
+          this.enableRouterOutlet = true;
+          break;
+      }
     }
   }
 
-  private handleInitError(error: HttpErrorResponse) {
-    if (error.status === 403) {
-      this.error = error;
-      this.showErrorMessage = true;
-    }
-  }
-
-  private handleConsortiumNotification(notification: any): void {
-    if (!notification) { return; }
-
-    switch (notification.message) {
-      case 'deploying':
-        this.navDisabled = true;
-        this.enableRouterOutlet = false;
+  private handleFragment(fragment: string): void {
+    switch (fragment) {
+      case 'welcome':
+        this.blockchainWizard.close();
+        this.welcome();
         break;
-
-      case 'deployed':
-        this.navDisabled = false;
-        this.enableRouterOutlet = true;
+      case 'deploy':
+        this.welcomeModal.close();
+        this.openDeployWizard();
         break;
-
-      case 'non-deployed':
-        this.navDisabled = true;
-        this.navOption = 'show-deploy';
-        break;
-
       default:
         break;
     }
-
   }
 
   private setInactivityTimeout() {

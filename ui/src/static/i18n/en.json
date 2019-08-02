@@ -30,10 +30,10 @@
       "resetTasks": "Reset Tasks"
     },
     "consortium": "Current Consortium",
-    "deploy": "Deploy",
+    "deploy": "Deploy Consortium",
     "dashboard": "Dashboard",
     "organizations": "Organizations/Users",
-    "nodeList": "Node List",
+    "nodeList": "Replica List",
     "blockList": "Blocks",
     "transactionList": "Transactions",
     "testing": "Testing",
@@ -137,9 +137,9 @@
     "four": "iv. Sensitive data requiring a high level of security must not be kept in the PoC-grade service. Developers should use dummy data sets to develop and test their applications."
   },
   "dashboard": {
-    "totalActiveNodes": "Total Active Nodes",
-    "inactiveNodes": "Inactive Nodes",
-    "nodeHealth": "Node Health",
+    "totalActiveNodes": "Total Active Replicas",
+    "inactiveNodes": "Inactive Replicas",
+    "nodeHealth": "Replica Health",
     "deployedContracts": "Contracts",
     "transactionsPerSecond": "Transactions/second",
     "averageValidationTime": "Avg Validation Time",
@@ -158,18 +158,18 @@
     "apply": "Apply"
   },
   "nodes": {
-    "title": "Node",
-    "nodes": "Nodes",
-    "nodeActivity": "Node Activity",
-    "overallNodeHealth": "Overall Node Health",
+    "title": "Replica",
+    "nodes": "Replicas",
+    "nodeActivity": "Replica Activity",
+    "overallNodeHealth": "Overall Replica Health",
     "transactionsPerSecond": "Transactions/second",
     "averageValidationTime": "Avg Validation Time",
     "xSeconds": "{{seconds}} <small>seconds</small>",
     "status": "Status",
     "live": "Live",
     "offline": "Offline",
-    "totalActiveNodes": "Total Active Nodes",
-    "inactiveNodes": "Inactive Nodes",
+    "totalActiveNodes": "Total Active Replicas",
+    "inactiveNodes": "Inactive Replicas",
     "searchPlaceholder": "Search...",
     "filters": "Filters",
     "hostname": "Hostname",
@@ -187,7 +187,7 @@
     "amount": "Amount",
     "trans": "Trans",
     "length": "Length",
-    "paginationSummary": "{{start}} - {{finish}} of {{total}} nodes"
+    "paginationSummary": "{{start}} - {{finish}} of {{total}} replicas"
   },
   "blocks": {
     "title": "Block",
@@ -213,7 +213,7 @@
     "success": "Success",
     "failure": "Failure",
     "none": "null",
-    "nodes": "Nodes",
+    "nodes": "Replicas",
     "hash": "Hash",
     "from": "From",
     "to": "To",
@@ -807,16 +807,25 @@
     "common": {
       "consortiumDescription": "Description",
       "consortiumName": "Consortium Name",
-      "numberOfNodes": "Number of Nodes"
+      "numberOfNodes": "Number of Replicas"
     },
     "details": {
       "help": {
-        "numberOfNodes": "Number of nodes are optimized for SBFT consensus engine"
+        "numberOfNodes": "Replicas options are optimized for ConcordBFT consensus engine."
       },
-      "pageTitle": "Consortium and Blockchain Details",
+      "pageTitle": "Consortium Details",
       "navTitle": "Details",
       "consortiumPlaceholder": "My Consortium",
       "consortiumDescriptionPlaceholder": "Describe the intent of the consortium"
+    },
+    "nodes": {
+      "help": {
+        "numberOfNodes": "Number of replicas are optimized for SBFT consensus engine"
+      },
+      "pageTitle": "Replicas and Regional Distribution",
+      "navTitle": "Replicas",
+      "regionalTitle": "Regional Distribution",
+      "regionInfo": "Even distribution of replicas across regions is recommended for best network resiliency.  The cumulative amount in regions must equal number of replicas to continue to the next step."
     },
     "users": {
       "pageTitle": "Invite Users",
@@ -835,6 +844,7 @@
       "navTitle": "Deploy",
       "consortiumName": "Consortium Name",
       "consortiumSetup": "Consortium Setup",
+      "consortiumSetup": "Replicas",
       "users": "Users"
     }
   },
@@ -856,8 +866,8 @@
         "text": "Here you can see the general status of nodes, contracts, blocks and transactions.  Dashboard stats and lists refresh automatically, so no need to reload the page."
       },
       "nodeStatus": {
-        "title": "Node Status",
-        "text": "Hover over a node on the map to see its health and status."
+        "title": "Replica Status",
+        "text": "Hover over a replica on the map to see its health and status."
       },
       "contractList": {
         "title": "Contract List",

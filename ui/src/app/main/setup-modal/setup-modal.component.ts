@@ -5,7 +5,8 @@
 import { Component } from '@angular/core';
 import { Router } from '@angular/router';
 
-import { BlockchainService, BlockchainResponse } from '../../shared/blockchain.service';
+import { BlockchainService } from '../../shared/blockchain.service';
+import { BlockchainResponse } from '../../shared/blockchain.model';
 import { Personas } from '../../shared/persona.service';
 
 @Component({

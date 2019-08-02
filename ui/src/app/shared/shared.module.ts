@@ -99,10 +99,10 @@ export class SharedModule {
         AgreementGuard,
         BlockchainService,
         BlockchainResolver,
-        {provide: CONCORD_API_PREFIX, useValue: 'api/concord'},
-        {provide: ETHEREUM_API_PREFIX, useValue: 'api/concord/eth'},
-        {provide: LOG_API_PREFIX, useValue: 'logging/api'},
-        {provide: CSP_API_PREFIX, useValue: 'csp/api'},
+        { provide: CONCORD_API_PREFIX, useValue: 'api/concord' },
+        { provide: ETHEREUM_API_PREFIX, useValue: 'api/concord/eth' },
+        { provide: LOG_API_PREFIX, useValue: 'logging/api' },
+        { provide: CSP_API_PREFIX, useValue: 'csp/api' },
         PersonaService,
         VmwTasksService
       ]
@@ -124,29 +124,11 @@ export class SharedModule {
   providers: [
     AuthenticationService,
     AuthenticatedGuard,
-    //         {
-    //       provide: BlockchainService,
-    //       useValue: {
-    //         selectedBlockchain: {
-    //           consortium_id: 1
-    //         },
-    //         blockchains: [],
-    //         blockchaindId: 1,
-    //         select: () => {
-    //           return true;
-    //         },
-    //         notify: {
-    //           subscribe: (fn: (value) => void) => fn(
-    //             {'message': null}
-    //           ),
-    //         },
-    //       },
-    //     },
-    // BlockchainResolver,
-    {provide: CONCORD_API_PREFIX, useValue: 'api/concord'},
-    {provide: ETHEREUM_API_PREFIX, useValue: 'api/concord/eth'},
-    {provide: LOG_API_PREFIX, useValue: 'logging/api'},
-    {provide: CSP_API_PREFIX, useValue: 'csp/api'},
+    BlockchainResolver,
+    { provide: CONCORD_API_PREFIX, useValue: 'api/concord' },
+    { provide: ETHEREUM_API_PREFIX, useValue: 'api/concord/eth' },
+    { provide: LOG_API_PREFIX, useValue: 'logging/api' },
+    { provide: CSP_API_PREFIX, useValue: 'csp/api' },
     PersonaService
   ],
   exports: [
@@ -160,4 +142,4 @@ export class SharedModule {
     VmwComponentsModule,
   ]
 })
-export class MockSharedModule {}
+export class MockSharedModule { }
