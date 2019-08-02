@@ -196,6 +196,27 @@ class DefaultProfilesTest {
     }
 
     @Test
+    void testProfileExistingNoBlockhain() {
+        profiles = new DefaultProfiles(userService, organizationService, consortiumService, passwordEncoder,
+                                       blockchainService, agreementService, serviceContext, ipList, rpcUrls, rpcCerts,
+                                       false, null);
+        initProfilesExist();
+        List<String> ipList = new ImmutableList.Builder<String>().add("1", "2", "3", "4").build();
+        List<String> urlList = new ImmutableList.Builder<String>().add("1", "2", "3", "4").build();
+        List<String> certList = new ImmutableList.Builder<String>().add("c1", "c2", "c3", "c4").build();
+        Assertions.assertEquals(organization.getId(), profiles.getOrganization().getId());
+        Assertions.assertEquals("Test Org", profiles.getOrganization().getOrganizationName());
+        Assertions.assertEquals(consortium.getId(), profiles.getConsortium().getId());
+        Assertions.assertEquals("Consortium Test", profiles.getConsortium().getConsortiumName());
+        // If noblockchain is set, all the blockchain fields will be null
+        Assertions.assertNull(profiles.getBlockchain().getId());
+        Assertions.assertNull(profiles.getBlockchain().getNodeList());
+        Assertions.assertNull(profiles.getBlockchain().getConsortium());
+        Assertions.assertEquals(testUser.getId(), profiles.getUser().getId());
+        Assertions.assertEquals("user@test.com", profiles.getUser().getEmail());
+    }
+
+    @Test
     void testProfileEmpty() {
         // This will use the system generated profiles, rather than the ones we created.
         initProfilesEmpty();
@@ -218,5 +239,7 @@ class DefaultProfilesTest {
         Assertions.assertEquals(testUser.getId(), profiles.getUser().getId());
         Assertions.assertEquals("admin@blockchain.local", profiles.getUser().getEmail());
     }
+
+
 
 }

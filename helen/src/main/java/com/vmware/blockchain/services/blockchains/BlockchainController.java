@@ -325,7 +325,9 @@ public class BlockchainController {
         task.setState(State.SUCCEEDED);
         task.setMessage("Default Blockchain");
         task.setResourceId(defaultProfiles.getBlockchain().getId());
-        task.setResourceLink("/api/blockchains/".concat(defaultProfiles.getBlockchain().getId().toString()));
+        if (task.getResourceId() != null) {
+            task.setResourceLink("/api/blockchains/".concat(defaultProfiles.getBlockchain().getId().toString()));
+        }
         task = taskService.put(task);
 
         return new ResponseEntity<>(new BlockchainTaskResponse(task.getId()), HttpStatus.ACCEPTED);
