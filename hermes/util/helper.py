@@ -12,8 +12,9 @@ import paramiko
 import warnings
 import cryptography
 import subprocess
+import sys
+import time
 from . import numbers_strings
-from . import product as p
 
 log = logging.getLogger(__name__)
 docker_env_file = ".env"
@@ -153,15 +154,27 @@ def protobuf_message_to_json(message_obj):
    :return: json
    '''
    from google.protobuf.json_format import MessageToJson
-   if isinstance(message_obj, (list,)):
-      list_of_json_objects = []
-      for message in message_obj:
-         json_object = json.loads(MessageToJson(message))
-         list_of_json_objects.append(json_object)
-      return list_of_json_objects
+
+   if message_obj:
+      if isinstance(message_obj, (list,)):
+         list_of_json_objects = []
+         for message in message_obj:
+            json_object = json.loads(MessageToJson(message))
+            list_of_json_objects.append(json_object)
+         return list_of_json_objects
+      else:
+         json_object = json.loads(MessageToJson(message_obj))
+         return json_object
    else:
-      json_object = json.loads(MessageToJson(message_obj))
-      return json_object
+      log.error("protobuf_message_to_json received nothing to convert.")
+      return None
+
+
+def json_to_protobuf_message(j):
+   sys.path.append('lib/persephone')
+   from grpc_python_bindings import provisioning_service_pb2
+   from google.protobuf.json_format import Parse
+   return Parse(j, provisioning_service_pb2.DeploymentSessionIdentifier())
 
 
 def requireFields(ob, fieldList):
@@ -239,3 +252,47 @@ def add_ethrpc_port_forwarding(host, username, password):
 
    log.debug("Port forwarding failed")
    return False
+
+
+def waitForTask(request, taskId, expectSuccess=True, timeout=600):
+   '''
+   request: A Rest request object which uses Helen.
+   taskId: ID of the task to wait for, returned by Helen.
+   expectSuccess: Whether we expect the task to be successful.
+   timeout: Seconds to wait before timing out.
+
+   Returns a tuple of:
+      1. Boolean for whether the task completed with the expected success status,
+         or None if timed out.
+      2. The structure returned by the final call to the api.
+   '''
+   sleepTime = 10
+   elapsedTime = 0
+   success = False
+   finished = False
+   response = None
+   expectedFinishState = "SUCCEEDED" if expectSuccess else "FAILED"
+
+   while not finished:
+      response = request.getTaskStatus(taskId)
+
+      log.info("Response for task {}: {}".format(taskId, response))
+
+      if response["state"] == "RUNNING":
+         if elapsedTime >= timeout:
+            log.info("Task '{}' did not finish in {} seconds".format(taskId, timeout))
+            finished = True
+         else:
+            log.info("State is still {}.  Waiting for task to finish. " \
+                     "Elapsed time: {}".format(response["state"], elapsedTime))
+            time.sleep(sleepTime)
+            elapsedTime += sleepTime
+      else:
+         finished = True
+         success = response["state"] == expectedFinishState
+         log.info("Task has finished.")
+
+         if not success:
+            log.info("Task did not finish as expected.  Details: {}".format(response))
+
+   return (success, response)

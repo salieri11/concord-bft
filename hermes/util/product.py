@@ -1046,7 +1046,7 @@ class Product():
       sddcs = self.getSDDCIds()
       response = request.createBlockchain(conId, sddcs)
       taskId = response["task_id"]
-      success, response = self.waitForTask(request, taskId)
+      success, response = util.helper.waitForTask(request, taskId)
 
       if not success:
          raise Exception("Failed to deploy a blockchain to the SDDC.")
@@ -1069,47 +1069,3 @@ class Product():
             siteIds.append(site["info"]["vmc"]["datacenter"])
 
          return siteIds
-
-
-   def waitForTask(self, request, taskId, expectSuccess=True, timeout=600):
-      '''
-      request: A Rest request object which uses Helen.
-      taskId: ID of the task to wait for, returned by Helen.
-      expectSuccess: Whether we expect the task to be successful.
-      timeout: Seconds to wait before timing out.
-
-      Returns a tuple of:
-         1. Boolean for whether the task completed with the expected success status,
-            or None if timed out.
-         2. The structure returned by the final call to the api.
-      '''
-      sleepTime = 10
-      elapsedTime = 0
-      success = False
-      finished = False
-      response = None
-      expectedFinishState = "SUCCEEDED" if expectSuccess else "FAILED"
-
-      while not finished:
-         response = request.getTaskStatus(taskId)
-
-         log.info("Current state of task {}: {}".format(taskId, response["state"]))
-
-         if response["state"] == "RUNNING":
-            if elapsedTime >= timeout:
-               log.info("Task '{}' did not finish in {} seconds".format(taskId, timeout))
-               finished = True
-            else:
-               log.info("Waiting for task '{}' to finish. " \
-                        "Elapsed time: {}".format(taskId, elapsedTime))
-               time.sleep(sleepTime)
-               elapsedTime += sleepTime
-         else:
-            finished = True
-            success = response["state"] == expectedFinishState
-            log.info("Task has finished.")
-
-            if not success:
-               log.info("Task did not finish as expected.  Details: {}".format(response))
-
-      return (success, response)
