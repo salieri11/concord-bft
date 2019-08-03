@@ -267,6 +267,8 @@ class VmcOrchestrator private constructor(
                     val privateIpAddress = allocatedPrivateIP()
                     privateIpAddress
                             ?.apply {
+                                log.info { "Created private IP($privateIpAddress)" }
+
                                 send(Orchestrator.NetworkResourceEvent.Created(
                                         URI.create(info.ipamApi.address + "/" + privateIpAddress.name),
                                         request.name,
@@ -275,11 +277,12 @@ class VmcOrchestrator private constructor(
                             }
                             ?: close(Orchestrator.ResourceCreationFailedException(request))
 
-                    log.info {"Assigned private ip ($privateIpAddress)."}
-                    
+
                     val publicIp = nsx.createPublicIP(request.name)
                     publicIp?.takeIf { it.ip != null }
                             ?.apply {
+                                log.info { "Created public IP(${publicIp.ip})" }
+
                                 send(Orchestrator.NetworkResourceEvent.Created(
                                         this.toNetworkResource(),
                                         request.name,
@@ -288,7 +291,14 @@ class VmcOrchestrator private constructor(
                                 close()
                             }
                             ?: close(Orchestrator.ResourceCreationFailedException(request))
+
                 } catch (error: CancellationException) {
+                    log.info { "Network address creation request was cancelled" }
+
+                    close(Orchestrator.ResourceCreationFailedException(request))
+                } catch (error: Throwable) {
+                    log.error("Unexpected error(${error.message})", error)
+
                     close(Orchestrator.ResourceCreationFailedException(request))
                 }
             }
