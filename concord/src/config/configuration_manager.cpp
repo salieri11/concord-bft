@@ -218,31 +218,6 @@ ConfigurationPath ConfigurationPath::trimLeaf() const {
   return ret;
 }
 
-}  // namespace config
-}  // namespace concord
-
-// Hash function for ConfigurationPath
-size_t std::hash<concord::config::ConfigurationPath>::operator()(
-    const concord::config::ConfigurationPath& path) const {
-  std::hash<string> stringHash;
-  size_t hash = stringHash(path.name);
-  if (path.isScope) {
-    hash ^= ((size_t)0x01) << (sizeof(size_t) * 4);
-    if (path.useInstance) {
-      std::hash<size_t> indexHash;
-      hash ^= indexHash(path.index);
-    }
-    if (path.subpath) {
-      std::hash<concord::config::ConfigurationPath> pathHash;
-      hash ^= pathHash(*(path.subpath)) << 1;
-    }
-  }
-  return hash;
-}
-
-namespace concord {
-namespace config {
-
 ConcordConfiguration::ConfigurationScope::ConfigurationScope(
     const ConcordConfiguration::ConfigurationScope& original)
     : instantiated(original.instantiated),
@@ -3489,7 +3464,7 @@ void loadClusterSizeParameters(YAMLConfigurationInput& input,
   ConfigurationPath cValPath("c_val", false);
   ConfigurationPath clientProxiesPerReplicaPath("client_proxies_per_replica",
                                                 false);
-  std::unordered_set<ConfigurationPath> requiredParameters(
+  vector<ConfigurationPath> requiredParameters(
       {fValPath, cValPath, clientProxiesPerReplicaPath});
 
   input.loadConfiguration(config, requiredParameters.begin(),
@@ -4046,7 +4021,7 @@ void loadSBFTCryptosystems(ConcordConfiguration& config) {
   // Note we do not validate that the cryptosystem selections here are valid as
   // long as they exist, as we expect this has been handled by the parameter
   // validators as the configuration was loaded.
-  std::unordered_set<ConfigurationPath> requiredCryptosystemParameters(
+  vector<ConfigurationPath> requiredCryptosystemParameters(
       {ConfigurationPath("f_val", false), ConfigurationPath("c_val", false),
        ConfigurationPath("execution_cryptosys", false),
        ConfigurationPath("slow_commit_cryptosys", false),
