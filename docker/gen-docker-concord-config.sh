@@ -17,11 +17,13 @@ if [ $# -ne 1 ]; then
 fi
 
 MOUNT_POINT="/dockerydoo"
-DOCKER_IMAGE="concord-core:latest"
+DOCKER_IMAGE="$(grep concord_repo .env | awk -F'=' '{print $2}'):$(grep concord_tag .env | awk -F'=' '{print $2}')"
 
 docker inspect ${DOCKER_IMAGE} > /dev/null 2>&1
 if [ $? -ne 0 ]; then
-  echo "Couldn't find \"${DOCKER_IMAGE}\" docker image"
+  echo "Couldn't find \"${DOCKER_IMAGE}\" docker image. Either build the" \
+       "image locally, or pull the Concord image from artifactory and" \
+       "update your docker/.env file."
   exit 1
 fi
 
