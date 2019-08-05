@@ -105,8 +105,8 @@ def call(){
                       env.commit = getRepoCode("git@gitlab.eng.vmware.com:blockchain/vmwathena_blockchain.git", params.blockchain_branch_or_commit)
                       env.blockchain_root = new File(env.WORKSPACE, "blockchain").toString()
 
-                      // Check if persephone tests be executed in this run
-                      env.run_persephone_tests = has_repo_changed('persephone') || has_repo_changed('hermes') || env.JOB_NAME.contains(master_branch_job_name)
+                      // Check if persephone tests are to be executed in this run
+                      env.run_persephone_tests = has_repo_changed('vars') || has_repo_changed('persephone') || has_repo_changed('hermes') || has_repo_changed('helen') || env.JOB_NAME.contains(master_branch_job_name) || env.JOB_NAME.contains(persephone_test_job_name)
                     }
                   }
                 }catch(Exception ex){
@@ -301,6 +301,10 @@ def call(){
                 env.release_daml_ledger_api_repo = env.release_repo + "/daml-ledger-api"
                 env.release_daml_execution_engine_repo = env.release_repo + "/daml-execution-engine"
 
+                // Docker Images for Persephone Testing on every run
+                env.persephone_testing_concord_repo = env.release_repo + "/persephone-testing-concord-core"
+                env.persephone_testing_ethrpc_repo = env.release_repo + "/persephone-testing-ethrpc"
+
                 // These are constants which mirror the internal artifactory repos.  We put all merges
                 // to master in the internal VMware artifactory.
                 env.internal_agent_repo = env.release_agent_repo.replace(env.release_repo, env.internal_repo)
@@ -492,13 +496,6 @@ EOF
                         echo "${PASSWORD}" | sudo -S rm -rf ../docker/devdata/cockroachDB
                         "${python}" main.py UiTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${ui_test_logs}" --runConcordConfigurationGeneration
                       '''
-                      if (env.run_persephone_tests.toBoolean()) {
-                        sh '''
-                          echo "DISABLED - Running persephone testsuite as either this is a Master run or there is a code change in blockchain/persephone/ (or) blockchain/hermes/"
-                          # echo "Running persephone testsuite as either this is a Master run or there is a code change in blockchain/persephone/ (or) blockchain/hermes/"
-                          # echo "${PASSWORD}" | sudo -SE "${python}" main.py PersephoneTests --dockerComposeFile ../docker/docker-compose-persephone.yml --resultsDir "${persephone_test_logs}"
-                      '''
-                      }
                     }
                     if (env.JOB_NAME.contains(memory_leak_job_name)) {
                       sh '''
@@ -512,12 +509,6 @@ EOF
                         echo "${PASSWORD}" | sudo -SE "${python}" main.py PerformanceTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${performance_test_logs}" --runConcordConfigurationGeneration
                       '''
                     }
-                    if (env.JOB_NAME.contains(persephone_test_job_name)) {
-                      sh '''
-                        echo "Running Entire Testsuite: Persephone..."
-                        echo "${PASSWORD}" | sudo -SE "${python}" main.py PersephoneTests --dockerComposeFile ../docker/docker-compose-persephone.yml --resultsDir "${persephone_test_logs}" --tests "all_tests"
-                      '''
-                    }
                     if (env.JOB_NAME.contains(lint_test_job_name)) {
                       sh '''
                         echo "Running Entire Testsuite: Lint E2E..."
@@ -529,6 +520,49 @@ EOF
                         echo "${PASSWORD}" | sudo -S rm -rf ../docker/devdata/cockroachDB
 
                         "${python}" main.py LintTests --dockerComposeFile ../docker/docker-compose.yml ../docker/docker-compose-fluentd.yml --resultsDir "${lint_test_logs}" --runConcordConfigurationGeneration
+                      '''
+                    }
+                  }
+                }
+              }
+            }catch(Exception ex){
+              failRun()
+              throw ex
+            }
+          }
+        }
+      }
+
+      stage("Push Images required for Deployment Services & run tests") {
+        steps {
+          script{
+            try{
+              withCredentials([string(credentialsId: 'BLOCKCHAIN_REPOSITORY_WRITER_PWD', variable: 'DOCKERHUB_PASSWORD')]) {
+                sh '''
+                  docker login -u blockchainrepositorywriter -p "${DOCKERHUB_PASSWORD}"
+                '''
+              }
+
+              dir('blockchain/hermes') {
+                withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
+                  script {
+                    sh '''
+                      docker tag ${internal_concord_repo}:${docker_tag} ${persephone_testing_concord_repo}:${docker_tag}
+                      docker tag ${internal_ethrpc_repo}:${docker_tag} ${persephone_testing_ethrpc_repo}:${docker_tag}
+                    '''
+                    pushDockerImage(env.persephone_testing_concord_repo, env.docker_tag, false)
+                    pushDockerImage(env.persephone_testing_ethrpc_repo, env.docker_tag, false)
+
+                    if (genericTests) {
+                      sh '''
+                        echo "Running Persephone SMOKE Tests..."
+                        echo "${PASSWORD}" | sudo -SE "${python}" main.py PersephoneTests --dockerComposeFile ../docker/docker-compose-persephone.yml --resultsDir "${persephone_test_logs}" --deploymentComponents "${persephone_testing_concord_repo}:${docker_tag},${persephone_testing_ethrpc_repo}:${docker_tag}"
+                      '''
+                    }
+                    if (env.JOB_NAME.contains(persephone_test_job_name)) {
+                      sh '''
+                        echo "Running Entire Testsuite: Persephone..."
+                        echo "${PASSWORD}" | sudo -SE "${python}" main.py PersephoneTests --dockerComposeFile ../docker/docker-compose-persephone.yml --resultsDir "${persephone_test_logs}" --tests "all_tests" --deploymentComponents "${persephone_testing_concord_repo}:${docker_tag},${persephone_testing_ethrpc_repo}:${docker_tag}"
                       '''
                     }
                   }
