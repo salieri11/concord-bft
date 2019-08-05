@@ -226,12 +226,12 @@ def test_fast_clock():
    doesn't affect block time.
    '''
    # start with a skew that is expected to be at least 10 low-load updates in the future
-   forward_skew_ms = 10 * expectedUpdatePeriodSec
+   forward_skew = 10 * expectedUpdatePeriodSec
    def skew_function(current):
       # If the test is publishing updates faster than our skew (which
       # it should), this should move the corrupted source into the
       # future faster and faster.
-      return max(current, int(time.time())) + forward_skew_ms
+      return max(current, int(time.time())) + forward_skew
 
    return run_faulty_clock(skew_function)
 
@@ -242,13 +242,13 @@ def test_random_clock(fxBlockchain):
    affect block time.
    '''
    # start with a narrow random window
-   rand_window_ms = expectedUpdatePeriodSec
+   rand_window = expectedUpdatePeriodSec
    def skew_function(current):
-      nonlocal rand_window_ms
-      lowerBound = max(current, int(time.time())) - rand_window_ms
-      upperBound = max(current, int(time.time())) + rand_window_ms
+      nonlocal rand_window
+      lowerBound = max(current, int(time.time())) - rand_window
+      upperBound = max(current, int(time.time())) + rand_window
       # double the size of the window every sample
-      rand_window_ms *= 2
+      rand_window *= 2
       return random.randint(lowerBound, upperBound)
 
    return run_faulty_clock(skew_function)
