@@ -13,6 +13,7 @@ using std::string;
 using std::to_string;
 using std::unique_ptr;
 using std::unordered_set;
+using std::vector;
 
 using nlohmann::json;
 
@@ -177,12 +178,6 @@ TEST(config_test, path_equality) {
     EXPECT_EQ(!(*pair.first == *pair.second), (*pair.first != *pair.second))
         << "Behavior of operator == and operator != are inconsistent for"
            " ConfigurationPath.";
-    if (*pair.first == *pair.second) {
-      std::hash<ConfigurationPath> hasher;
-      EXPECT_EQ(hasher(*pair.first), hasher(*pair.second))
-          << "Behavior of ConfigurationPath hash function is inconsistent with "
-             "its equality operator.";
-    }
   }
 }
 
@@ -1886,89 +1881,109 @@ TEST(config_test, configuration_iteration) {
          "iterators to the beginning and end of a configuration are not equal, "
          "even though such iterators should have nothing to return.";
 
-  std::unordered_set<ConfigurationPath> expected(
+  vector<ConfigurationPath> expected_paths(
       {pathParameterA, pathParameterB, pathParameterC});
+  unordered_set<string> expected;
+  for (const auto& path : expected_paths) {
+    expected.emplace(path.toString());
+  }
   auto iterator =
       config.begin(ConcordConfiguration::kIterateTopLevelParameters);
   auto end = config.end(ConcordConfiguration::kIterateTopLevelParameters);
   while (iterator != end) {
-    EXPECT_GT(expected.count(*iterator), 0)
+    EXPECT_GT(expected.count((*iterator).toString()), 0)
         << "Non-recursive ConcordConfiguration iterator over parameters "
            "returned an unexpected element.";
-    expected.erase(*iterator);
+    expected.erase((*iterator).toString());
     ++iterator;
   }
   EXPECT_EQ(expected.size(), 0)
       << "Non-recursive ConcordConfiguration iterator over parameters failed "
          "to return all parameters.";
 
-  expected = std::unordered_set<ConfigurationPath>(
-      {pathScopeA, pathScopeB, pathScopeC});
+  expected_paths =
+      vector<ConfigurationPath>({pathScopeA, pathScopeB, pathScopeC});
+  expected.clear();
+  for (const auto& path : expected_paths) {
+    expected.emplace(path.toString());
+  }
   iterator = config.begin(ConcordConfiguration::kIterateTopLevelScopeTemplates);
   end = config.end(ConcordConfiguration::kIterateTopLevelScopeTemplates);
   while (iterator != end) {
-    EXPECT_GT(expected.count(*iterator), 0)
+    EXPECT_GT(expected.count((*iterator).toString()), 0)
         << "Non-recursive ConcordConfiguration iterator over scope templates "
            "returned an unexpected element.";
-    expected.erase(*iterator);
+    expected.erase((*iterator).toString());
     ++iterator;
   }
   EXPECT_EQ(expected.size(), 0)
       << "Non-recursive ConcordConfiguration iterator over scope templates "
          "failed to return all scopes.";
 
-  expected = std::unordered_set<ConfigurationPath>(
+  expected_paths = vector<ConfigurationPath>(
       {pathScopeA0, pathScopeA1, pathScopeC0, pathScopeC1, pathScopeC2});
+  expected.clear();
+  for (const auto& path : expected_paths) {
+    expected.emplace(path.toString());
+  }
   iterator = config.begin(ConcordConfiguration::kIterateTopLevelScopeInstances);
   end = config.end(ConcordConfiguration::kIterateTopLevelScopeInstances);
   while (iterator != end) {
-    EXPECT_GT(expected.count(*iterator), 0)
+    EXPECT_GT(expected.count((*iterator).toString()), 0)
         << "Non-recursive ConcordConfiguration iterator over scope instances "
            "returned an unexpected element.";
-    expected.erase(*iterator);
+    expected.erase((*iterator).toString());
     ++iterator;
   }
   EXPECT_EQ(expected.size(), 0)
       << "Non-recursive ConcordConfiguration iterator over scope instances "
          "failed to return all scopes.";
 
-  expected = std::unordered_set<ConfigurationPath>(
+  expected_paths = vector<ConfigurationPath>(
       {pathParameterA, pathParameterB, pathParameterC, pathParameterAA,
        pathParameterAB, pathParameterAAA, pathParameterAAB, pathParameterABA,
        pathParameterBA, pathParameterBB, pathParameterBC});
+  expected.clear();
+  for (const auto& path : expected_paths) {
+    expected.emplace(path.toString());
+  }
   iterator = config.begin(ConcordConfiguration::kIterateAllTemplateParameters);
   end = config.end(ConcordConfiguration::kIterateAllTemplateParameters);
   while (iterator != end) {
-    EXPECT_GT(expected.count(*iterator), 0)
-        << "ConcordConfiguration iterator over the template contents of a "
+    EXPECT_GT(expected.count((*iterator).toString()), 0)
+        << "ConcordConfiguration iterator over the template contents of  "
            "configuration returned an unexpected element.";
-    expected.erase(*iterator);
+    expected.erase((*iterator).toString());
     ++iterator;
   }
   EXPECT_EQ(expected.size(), 0)
       << "ConcordConfiguration iterator over scope the template contents of a "
          "configuration failed to return all expected contents.";
 
-  expected = std::unordered_set<ConfigurationPath>(
+  expected_paths = vector<ConfigurationPath>(
       {pathParameterA, pathParameterB, pathParameterC, pathParameterA0A,
        pathParameterA0B, pathParameterA1A, pathParameterA1B, pathParameterA0B0A,
        pathParameterA0B1A, pathParameterA1B0A, pathParameterA1B1A,
        pathParameterC1A, pathParameterC1B0A, pathParameterC1B0B,
        pathParameterC1B1A, pathParameterC2A, pathParameterC2B});
+  expected.clear();
+  for (const auto& path : expected_paths) {
+    expected.emplace(path.toString());
+  }
   iterator = config.begin(ConcordConfiguration::kIterateAllInstanceParameters);
   end = config.end(ConcordConfiguration::kIterateAllInstanceParameters);
   while (iterator != end) {
-    EXPECT_GT(expected.count(*iterator), 0)
-        << "ConcordConfiguration iterator over the instance contents of a "
+    EXPECT_GT(expected.count((*iterator).toString()), 0)
+        << "ConcordConfiguration iterator over the instance contents of a  "
            "configuration returned an unexpected element.";
-    expected.erase(*iterator);
+    expected.erase((*iterator).toString());
     ++iterator;
   }
   EXPECT_EQ(expected.size(), 0)
       << "ConcordConfiguration iterator over scope the instance contents of a "
          "configuration failed to return all expected contents.";
 
-  expected = std::unordered_set<ConfigurationPath>(
+  expected_paths = vector<ConfigurationPath>(
       {pathParameterA,     pathParameterB,     pathParameterC,
        pathScopeA,         pathScopeB,         pathScopeC,
        pathScopeAA,        pathScopeAB,        pathParameterAA,
@@ -1989,17 +2004,21 @@ TEST(config_test, configuration_iteration) {
        pathParameterC1B0A, pathParameterC1B0B, pathScopeC1B1,
        pathParameterC1B1A, pathScopeC1B2,      pathParameterC2A,
        pathParameterC2B});
+  expected.clear();
+  for (const auto& path : expected_paths) {
+    expected.emplace(path.toString());
+  }
   iterator = config.begin(ConcordConfiguration::kIterateAll);
   end = config.end(ConcordConfiguration::kIterateAll);
   while (iterator != end) {
-    EXPECT_GT(expected.count(*iterator), 0)
-        << "ConcordConfiguration iterator over the entire contents of a "
+    EXPECT_GT(expected.count((*iterator).toString()), 0)
+        << "ConcordConfiguration iterator over the entire contents of a  "
            "configuration returned an unexpected element.";
-    expected.erase(*iterator);
+    expected.erase((*iterator).toString());
     ++iterator;
   }
   EXPECT_EQ(expected.size(), 0)
-      << "ConcordConfiguration iterator over scope the entire contents of a "
+      << "ConcordConfiguration iterator over the entire contents of a "
          "configuration failed to return all expected contents.\n ";
 
   iterator = config.begin();
@@ -2127,7 +2146,7 @@ TEST(config_test, parameter_selection) {
 
   auto iterator = config.begin(ConcordConfiguration::kIterateAllParameters);
   auto end = config.end(ConcordConfiguration::kIterateAllParameters);
-  std::unordered_set<ConfigurationPath> expectedSelection;
+  unordered_set<string> expectedSelection;
   while (iterator != end) {
     ConfigurationPath path = *iterator;
 
@@ -2138,7 +2157,7 @@ TEST(config_test, parameter_selection) {
     bool isRelevant =
         containingScope->isTagged(path.getLeaf().name, "relevant");
     if (isRelevant) {
-      expectedSelection.insert(path);
+      expectedSelection.insert(path.toString());
     }
 
     selectorCalled = false;
@@ -2154,11 +2173,11 @@ TEST(config_test, parameter_selection) {
 
   auto selectionIterator = selection.begin();
   auto selectionEnd = selection.end();
-  std::unordered_set<ConfigurationPath> observedSelection;
+  unordered_set<string> observedSelection;
   while (selectionIterator != selectionEnd) {
-    EXPECT_LE(observedSelection.count(*selectionIterator), 0)
+    EXPECT_LE(observedSelection.count((*selectionIterator).toString()), 0)
         << "Iteration through a ParameterSelection includes duplicate values.";
-    observedSelection.insert(*selectionIterator);
+    observedSelection.insert((*selectionIterator).toString());
     ++selectionIterator;
   }
 
@@ -2319,8 +2338,7 @@ TEST(config_test, yaml_configuration_io) {
       "parameter_b: \"Value B.\"\n";
   yamlIStream = std::istringstream(yamlRaw);
 
-  std::unordered_set<ConfigurationPath> configSubset(
-      {pathParameterB, pathParameterC});
+  vector<ConfigurationPath> configSubset({pathParameterB, pathParameterC});
   configInput = YAMLConfigurationInput(yamlIStream);
   configInput.parseInput();
   EXPECT_TRUE(configInput.loadConfiguration(config, configSubset.begin(),
