@@ -34,7 +34,6 @@ public class ConcordConfigUtil {
 
     private static final Logger log = LoggerFactory.getLogger(ConcordConfigUtil.class);
 
-    private static final String DEFAULT_PATH_YAML = "/config/dockerConfigurationInput.yaml";
     private static final String CLIENT_PROXY_PER_REPLICA = "client_proxies_per_replica: ";
     private static final String C_VAL = "c_val: ";
     private static final String F_VAL = "f_val: ";
@@ -85,14 +84,15 @@ public class ConcordConfigUtil {
     public Map<Integer, String> getConcordConfig(List<String> hostIps) {
         try {
             var result = new HashMap<Integer, String>();
-            generateInputConfigYaml(hostIps, DEFAULT_PATH_YAML);
-
             var outputPath = Files.createTempDirectory(null);
             var principalsMapFile = Paths.get(outputPath.toString(), "principals.json").toString();
+            var inputYamlPath = Paths.get(outputPath.toString(), "dockerConfigurationInput.yaml").toString();
+
+            generateInputConfigYaml(hostIps, inputYamlPath);
 
             var configFuture = new ProcessBuilder("/app/conc_genconfig",
                     "--configuration-input",
-                    DEFAULT_PATH_YAML,
+                    inputYamlPath,
                     "--report-principal-locations",
                     principalsMapFile)
                     .directory(outputPath.toFile())
@@ -241,4 +241,5 @@ public class ConcordConfigUtil {
             return false;
         }
     }
+
 }
