@@ -13,6 +13,8 @@ import org.web3j.crypto.Keys;
 import org.web3j.crypto.RawTransaction;
 import org.web3j.crypto.TransactionEncoder;
 import org.web3j.protocol.Web3j;
+import org.web3j.protocol.core.DefaultBlockParameterName;
+import org.web3j.protocol.core.methods.response.EthBlock.Block;
 import org.web3j.protocol.core.methods.response.EthGetTransactionReceipt;
 import org.web3j.protocol.http.HttpService;
 import org.web3j.tx.gas.DefaultGasProvider;
@@ -70,6 +72,8 @@ public class BallotDApp {
 	public static int PORT = 8545;
 	public static String CONCORD_USERNAME = "admin@blockchain.local";
 	public static String CONCORD_PASSWORD = "Admin!23";
+	public static BigInteger GAS_PRICE = DefaultGasProvider.GAS_PRICE;
+	public static String blockchainType = "concord";
 
 	public void setWavefrontDataPath(String waveFrontDataPath) {
 		BallotDApp.WAVEFRONT_DATA_PATH = waveFrontDataPath;
@@ -138,13 +142,13 @@ public class BallotDApp {
 			if (diff > 0) {
 				TimeUnit.NANOSECONDS.sleep(diff);
 			}
-			
+
 			/*
 			 * enable if desired; prints warning if transaction missed scheduling
 			if (diff < 0 && idx != 0) {
 				logger.debug("Transaction " + idx + " is late.");
 			}
-			*/
+			 */
 
 		} catch (InterruptedException e){
 			e.printStackTrace();
@@ -298,9 +302,6 @@ public class BallotDApp {
 		long endVoting = System.nanoTime();
 		logger.info("Time to create Voters is: " + (endVoting - startVoting));
 
-		PrintWriter writer = new PrintWriter(new FileWriter(new File(PERFORMANCE_DATA)));
-		PrintWriter writerCSV = new PrintWriter(new FileWriter(new File(PERFORMANCE_DATA_CSV)));
-
 		ExecutorService executor = Executors.newFixedThreadPool(NUMBER_THREADS);
 
 		long conStart = System.nanoTime();
@@ -308,19 +309,20 @@ public class BallotDApp {
 		ArrayList<AsyncTransaction> time = new ArrayList<AsyncTransaction>(votings.size());
 		List<CompletableFuture<AsyncTransaction>> tasks = new ArrayList<>();
 
-		writer.println("Transactions were started at: " + System.currentTimeMillis());
-		long timeStartLoop = System.nanoTime();
 		long sleepTime = 0;
 		if (RATE_CONTROL != 0) {
 			sleepTime = 1_000_000_000/RATE_CONTROL;
 		}
+		
+		Block block = web3j.ethGetBlockByNumber(DefaultBlockParameterName.LATEST, false).send().getBlock();
 
-		logger.info("Starting Transactions..");
-
+		long startMillisTime = System.currentTimeMillis();
+		
+		long timeStartLoop = System.nanoTime();
 		long start = System.nanoTime();
 		for (int i = 0; i < votings.size(); i++) {
-		    Voting voting = votings.get(i);
-		    AsyncTransaction asyncTransaction = new AsyncTransaction(web3j, voting.getSignedMsg(), i, voting.getNodeIp());
+			Voting voting = votings.get(i);
+			AsyncTransaction asyncTransaction = new AsyncTransaction(web3j, voting.getSignedMsg(), i, voting.getNodeIp());
 			CompletableFuture<AsyncTransaction> task =
 					votings.get(i).execute(asyncTransaction, executor).whenComplete((entry, error) -> {
 						if (error != null) {
@@ -336,7 +338,6 @@ public class BallotDApp {
 			if (RATE_CONTROL != 0) {
 				applyRateControl(sleepTime, i, start);
 			}
-
 		}
 
 		executor.shutdown();
@@ -344,10 +345,23 @@ public class BallotDApp {
 		CompletableFuture<Void> allDone =
 				CompletableFuture.allOf(tasks.toArray(new CompletableFuture[tasks.size()]));
 		long conEnd = System.nanoTime();
-
 		CompletableFuture.allOf(allDone).join();
+		
 		long timeEndLoop = System.nanoTime();
-		logger.info("Finished executing all Transactions");
+		long endMillisTime = System.currentTimeMillis();
+		
+		Block blockEnd = web3j.ethGetBlockByNumber(DefaultBlockParameterName.LATEST, false).send().getBlock();
+		
+		PrintWriter writer = new PrintWriter(new FileWriter(new File(PERFORMANCE_DATA)));
+		PrintWriter writerCSV = new PrintWriter(new FileWriter(new File(PERFORMANCE_DATA_CSV)));
+		
+		logger.info("Block Number before Transactions " + block.getNumber().toString());
+		writer.println("Transactions were started at: " + startMillisTime + " (millis)");
+		logger.info("Transactions were started at: " + startMillisTime + " (millis)");
+		logger.info("Block Number after Transactions " + blockEnd.getNumber().toString());
+		
+		writer.println("Transactions were finished at: " + endMillisTime + " (millis)");
+		logger.info("Transactions were finished at: " + endMillisTime + " (millis)");
 		tasks.clear();
 
 		logger.info("Concurrency Start Time is: " + conStart);
@@ -411,7 +425,7 @@ public class BallotDApp {
 
 		logger.info("Average time response time: " + totalSum*1.0/NUMBER);
 		logger.info("p95 value: " + latencies.get(numSuccessfulTransactions*95/100)/1000000.0);
-		
+
 		logger.info("Start time of processing Voting: " + minStartTime);
 		logger.info("End time of processing Voting: " + maxEndTime);
 		logger.info("Total time for process: " + (maxEndTime - minStartTime) + " nano seconds");
@@ -488,8 +502,11 @@ public class BallotDApp {
 		List<AsyncTransaction> time = Collections.synchronizedList(new ArrayList<AsyncTransaction>(votings.size()));
 		List<CompletableFuture<AsyncTransaction>> tasks = new ArrayList<>();
 
-		writer.println("Transactions were started at: " + System.currentTimeMillis());
-
+		Block block = web3j.ethGetBlockByNumber(DefaultBlockParameterName.LATEST, false).send().getBlock();
+		logger.info("Block Number before Transactions " + block.getNumber().toString());
+		
+		long startMillisTime = System.currentTimeMillis();
+		
 		long conStart = System.nanoTime();
 		long sleepTime = 0;
 		if (RATE_CONTROL != 0) {
@@ -516,7 +533,7 @@ public class BallotDApp {
 		}
 
 		executor.shutdown();
-		
+
 		/**
 		 * The list of all transactions is synchronized. Transactions receipts will be checked right away.
 		 * To wait for all asynchronous transactions add the two following lines:
@@ -525,42 +542,87 @@ public class BallotDApp {
 		 */
 
 		long conEnd = System.nanoTime();
+		logger.info("Mining Transactions..");
 
+		//For Quorum we are only checking if the last 2% of transactions have been mined. (This can be changed based on requirements)
+		if (blockchainType.equals("quorum")) {
+			CompletableFuture<Void> allDone = CompletableFuture.allOf(tasks.toArray(new CompletableFuture[0]));
+			CompletableFuture.allOf(allDone).join();
+
+			int txCommited = 0;
+			//change 0.02 corresponds to 2% of transactions
+			int numOfTxToCheck = (int) Math.max(1, NUMBER*0.02);
+			int index = NUMBER-numOfTxToCheck;
+
+			while (txCommited < numOfTxToCheck) {
+				if (index == time.size()) {
+					index = NUMBER-numOfTxToCheck;
+					TimeUnit.MILLISECONDS.sleep(10);
+				}
+				AsyncTransaction currentTransaction = time.get(index);
+				if (currentTransaction.getCompleted() == false) {
+					EthGetTransactionReceipt transactionReceipt = web3j.ethGetTransactionReceipt(currentTransaction.finishedTx.getTransactionHash()).send();
+					//check if transaction is in a block
+					if(transactionReceipt.getTransactionReceipt().isPresent()) {
+						currentTransaction.setCompleted(true);
+						currentTransaction.setEndTime(System.nanoTime());
+						txCommited++;
+						time.set(index, currentTransaction);
+					}
+				}
+				index++;
+			}
+		} else {
+			//check if ALL transactions are mined
+			int count = 0;
+			int index = 0;
+			while (count < NUMBER) {
+
+				if (time.size() == 0) {
+					index = 0;
+					TimeUnit.MILLISECONDS.sleep(100); 
+				}
+				int testTxIndex = index%(NUMBER/5);
+				if (testTxIndex == 0 && testTxIndex < time.size()) {
+					count = count + NUMBER/5;
+				}
+
+				AsyncTransaction currentTransaction = time.get(index);
+				if (currentTransaction.getCompleted() == false) {
+					EthGetTransactionReceipt transactionReceipt = web3j.ethGetTransactionReceipt(currentTransaction.finishedTx.getTransactionHash()).send();
+					if(transactionReceipt.getTransactionReceipt().isPresent()) {
+
+						count++;
+						currentTransaction.setCompleted(true);
+						currentTransaction.setEndTime(System.nanoTime());
+						if (count%(NUMBER/10) == 0) {
+							logger.info("Finished mining " + count + " Transactions" + " (" + (NUMBER-count + " to go)"));
+						}
+						time.set(index, currentTransaction);
+					}
+					
+				}
+				index++;
+			}
+		}
+
+		//After this point all transactions have been mined
+		long timeEndLoop = System.nanoTime();
+		long endMillisTime = System.currentTimeMillis();
+		
+		Block blockEnd = web3j.ethGetBlockByNumber(DefaultBlockParameterName.LATEST, false).send().getBlock();
+		
+		writer.println("Transactions were started at: " + startMillisTime + " (millis)");
+		logger.info("Transactions were started at: " + startMillisTime + " (millis)");
+		logger.info("Block Number after Transactions " + blockEnd.getNumber().toString());
+		
 		logger.info("Finished starting all Transactions");
 		logger.info("Concurrency Start Time is: " + conStart);
 		logger.info("Concurrency End time is: " + conEnd);
 		logger.info("Concurrency Total Time is: " + (conEnd - conStart));
 		writer.printf("Concurrency Total Time is: %d\n", conEnd - conStart);
-
-		logger.info("Mining Transactions..");
-		//check if transactions are mined
-		int count = 0;
-		int index = 0;
-		while (count < NUMBER) {
-			if (index == time.size()) {
-				index = 0;
-				TimeUnit.MILLISECONDS.sleep(100);
-			}
-			AsyncTransaction currentTransaction = time.get(index);
-			if (currentTransaction.getCompleted() == false) {
-				EthGetTransactionReceipt transactionReceipt = web3j.ethGetTransactionReceipt(currentTransaction.finishedTx.getTransactionHash()).send();
-				if(transactionReceipt.getTransactionReceipt().isPresent()) {
-
-					count++;
-					currentTransaction.setCompleted(true);
-					currentTransaction.setEndTime(System.nanoTime());
-					if (count%(NUMBER/10) == 0) {
-						logger.info("Finished mining " + count + " Transactions" + " (" + (NUMBER-count + " to go)"));
-					}	
-				}
-				time.set(index, currentTransaction);
-			}
-			index++;
-		}
-
-		//After this point all transactions have been mined
-		long timeEndLoop = System.nanoTime();
-		logger.info("Mined all transactions");
+		writer.println("Transactions were finished at: " + endMillisTime + " (millis)");
+		logger.info("Transactions were finished at: " + endMillisTime + " (millis)");
 
 		long totalSum = 0;
 		long minStartTime = Long.MAX_VALUE;
