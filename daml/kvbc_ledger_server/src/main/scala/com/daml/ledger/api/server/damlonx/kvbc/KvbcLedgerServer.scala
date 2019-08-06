@@ -39,7 +39,7 @@ object KvbcLedgerServer extends App {
 
   def archivesFromDar(file: File): List[Archive] = {
     DarReader[Archive] { case (_, x) => Try(Archive.parseFrom(x)) }
-      .readArchive(new ZipFile(file))
+      .readArchiveFromFile(file)
       .fold(t => throw new RuntimeException(s"Failed to parse DAR from $file", t), dar => dar.all)
   }
 
