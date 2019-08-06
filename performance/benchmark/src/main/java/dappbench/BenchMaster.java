@@ -9,6 +9,7 @@ import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.Constructor;
 
 import java.io.IOException;
+import java.math.BigInteger;
 import java.io.*;
 
 import org.web3j.crypto.Credentials;
@@ -107,14 +108,14 @@ public class BenchMaster {
 
 			List<Node> nodes = benchmark.getSimpleConfig().getNodes();
 			BallotDApp.PORT = simpleConfig.getPort();
-			
+
 			//advanced configuration
 			BallotDApp.CONCORD_USERNAME = advancedConfig.getConcordUsername();
 			BallotDApp.CONCORD_PASSWORD = advancedConfig.getConcordUsername();
 
 			Data data = new Data();
 			data.setAppSummaryTableHeader(Arrays.asList("Workload-Itr", "Succ", "Succ Rate", "Fail", "Send Rate", "Max Latency", "Min Latency", "Avg Latency", "Throughput"));
-//			data.setDockerTableHeader(Arrays.asList("Docker Name", "CPU %(max)", "MEM USAGE(max) / LIMIT", "Memory %(max)"));
+			//			data.setDockerTableHeader(Arrays.asList("Docker Name", "CPU %(max)", "MEM USAGE(max) / LIMIT", "Memory %(max)"));
 			data.setConfigFilePath("../" + args[0]);
 			data.addBasicInformation("DLT", simpleConfig.getBlockchain());
 
@@ -127,7 +128,7 @@ public class BenchMaster {
 			int workloadNum = 1;
 
 
-//			ScheduledExecutorService service = Executors.newSingleThreadScheduledExecutor();
+			//			ScheduledExecutorService service = Executors.newSingleThreadScheduledExecutor();
 			ScheduledExecutorService service = null;
 			Map<String, List<String>> dockerTable = null;
 
@@ -142,14 +143,19 @@ public class BenchMaster {
 						BallotDApp.ENDPOINT = "http://" + helenIP + ":8080/api/concord/eth";
 						logger.debug("Connected to Helen at " + BallotDApp.ENDPOINT);
 						BallotDApp.CONCORD = false;
-					} else if (workloadParams.get(1).equals("--concord") || workloadParams.get(1).equals("--ethereum")) {
+					} else if (workloadParams.get(1).equals("--concord") || workloadParams.get(1).equals("--ethereum") || workloadParams.get(1).equals("--quorum")) {
 						String concordIP = workloadParams.get(2);
 						if (workloadParams.get(1).equals("--concord")) {
 							BallotDApp.ENDPOINT = "https://" + concordIP + ":" + simpleConfig.getPort();
 						} else if (workloadParams.get(1).equals("--ethereum")) {
 							BallotDApp.ENDPOINT = "http://" + concordIP + ":" + simpleConfig.getPort();
+							BallotDApp.blockchainType = "ethereum";
+						} else if (workloadParams.get(1).equals("--quorum")) {
+							BallotDApp.ENDPOINT = "http://" + concordIP + ":" + simpleConfig.getPort();
+							BallotDApp.GAS_PRICE = BigInteger.ZERO;
+							BallotDApp.blockchainType = "quorum";
 						}
-						
+
 						int sumOfPercentages = 0;
 						for (Node node : nodes) {
 							sumOfPercentages += node.getPercentage();
@@ -212,7 +218,7 @@ public class BenchMaster {
 							service.scheduleAtFixedRate(runnable3, 0, 1, TimeUnit.MILLISECONDS);
 							service.scheduleAtFixedRate(runnable4, 0, 1, TimeUnit.MILLISECONDS);
 						}
-                        dapp.setTestName(workloadNum + "-" + (i + 1));
+						dapp.setTestName(workloadNum + "-" + (i + 1));
 						BallotDApp.RUNID = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
 
 						BallotDApp.RATE_CONTROL = workload.getRateControl();
@@ -249,7 +255,7 @@ public class BenchMaster {
 							e.printStackTrace();
 						}
 						try {
-							if (simpleConfig.getBlockchain().equals("ethereum")) {
+							if (simpleConfig.getBlockchain().equals("ethereum") || simpleConfig.getBlockchain().equals("quorum")) {
 								BallotDeployer deployer = new BallotDeployer();
 								deployer.deploy(PROPOSAL_DATA_PATH, dapp.getContractDataPath(), "Aca$hc0w", "data/deployer_keystore");
 								Credentials[] credentials = dapp.getCredentials();
@@ -267,7 +273,7 @@ public class BenchMaster {
 						} catch (Exception e) {
 							e.printStackTrace();
 						}
-						
+
 						System.gc();
 						Thread.sleep(sleepTime);
 						totalWorkloads++;
@@ -279,11 +285,12 @@ public class BenchMaster {
 
 							for (Map.Entry<String, List<String>> entry : dockerTable.entrySet()) {
 								table.addTableData(new HashMap<String, List<String>>() {
-													   {
-														   put("tableRow", entry.getValue());
-													   }
-												   }
-								);
+									private static final long serialVersionUID = 1L;
+
+									{
+										put("tableRow", entry.getValue());
+									}
+								});
 							}
 
 							Map<String, Object> dockerInfo = new HashMap<>();

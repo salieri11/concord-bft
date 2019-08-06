@@ -1,6 +1,5 @@
----
 simpleConfig:
-  blockchain: concord #concord or etheruem
+  blockchain: concord #concord, etheruem, or quorum
   environment: onprem
   nodeCount: 4
   port: 8545
@@ -26,13 +25,14 @@ simpleConfig:
       language: Solidity
       numOfRuns: 1
       rateControl: 50
+      logging: false
       params:
         - ../target/performance-1.0-SNAPSHOT-jar-with-dependencies.jar    #executable
         - --concord           #use concord, helen, or ethereum
         - 10.40.205.11       #concordIP, helenIP, or ethereumIP
         - 100                #numberVotes
         - ../data/proposals   #input data
-  sleepTime: 10000
+  sleepTime: 1000
   outputDir: ./perf_result
 
 advancedConfig:

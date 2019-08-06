@@ -64,8 +64,9 @@ public class BallotDeployer {
 		List<byte[]> proposals = Utils.getProposals(proposalPath);
 
 		try {
+			logger.info("Starting to deploy");
 			long deployStartTime = System.nanoTime();;
-			ballot = Ballot.deploy(web3j, credentials, DefaultGasProvider.GAS_PRICE, DefaultGasProvider.GAS_LIMIT, proposals).send();
+			ballot = Ballot.deploy(web3j, credentials, BallotDApp.GAS_PRICE, DefaultGasProvider.GAS_LIMIT, proposals).send();
 			long deployEndTime = System.nanoTime();
 			PrintWriter writer = new PrintWriter(new BufferedWriter(new FileWriter(BallotDApp.STAT_DATA_PATH, true)));
 			writer.println("STAT_DEPLOY_CONTRACT_LATENCY=" + (deployEndTime-deployStartTime) + " ns");
@@ -162,7 +163,7 @@ public class BallotDeployer {
 
 		// Transferring funds to all accounts
 		for (Credentials credential : credentials) {
-			RawTransaction rawTransaction = RawTransaction.createEtherTransaction(nonce, DefaultGasProvider.GAS_PRICE, DefaultGasProvider.GAS_LIMIT, credential.getAddress(), new BigInteger("1000000000000000000"));//BigDecimal.valueOf(10))
+			RawTransaction rawTransaction = RawTransaction.createEtherTransaction(nonce, BallotDApp.GAS_PRICE, DefaultGasProvider.GAS_LIMIT, credential.getAddress(), new BigInteger("1000000000000000000"));
 			byte[] signedMsg = TransactionEncoder.signMessage(rawTransaction, getChairperson());
 			String hexValue = Numeric.toHexString(signedMsg);
 			EthSendTransaction ethSendFundTransaction = web3j.ethSendRawTransaction(hexValue).sendAsync().get();
@@ -180,7 +181,7 @@ public class BallotDeployer {
 				logger.info("TxHash = " + transactionHash);
 				logger.info("Nonce = " + nonce);
 			}
-			
+
 			nonce = nonce.add(new BigInteger("1"));
 		}
 
@@ -209,9 +210,10 @@ public class BallotDeployer {
 			}
 			Thread.sleep(100);
 		}
+		
 		long end = System.nanoTime();
 		logger.info("All transfers completed in " + (end - start) + " nanosec");
-		
+
 		return (end-start) *(1.0e-9) / BallotDApp.NUMBER;
 	}
 }

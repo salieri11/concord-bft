@@ -54,7 +54,7 @@ public class RightGranter implements Callable<EthGetTransactionReceipt> {
 
 	public String sign(BigInteger nonce) throws Exception {
 		RawTransaction rawTransaction = RawTransaction.createTransaction(nonce,
-				DefaultGasProvider.GAS_PRICE,
+				BallotDApp.GAS_PRICE,
 				DefaultGasProvider.GAS_LIMIT,
 				ballot.getContractAddress(),
 				BigInteger.valueOf(0),

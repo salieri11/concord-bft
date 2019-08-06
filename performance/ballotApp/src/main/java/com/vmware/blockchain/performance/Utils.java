@@ -13,7 +13,6 @@ import org.web3j.tx.gas.DefaultGasProvider;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-
 import java.security.cert.X509Certificate;
 
 import java.util.ArrayList;
@@ -49,6 +48,19 @@ public class Utils {
 			WalletUtils.generateNewWalletFile(password, dir, true);
 		}
 		files = dir.listFiles();
+		if (BallotDApp.blockchainType.equals("ethereum")) {
+			for (int i = 0; i < files.length; i++) {
+				if (files[i].getName().equals("key_ethereum.json")) {
+					return WalletUtils.loadCredentials(password, files[i]);
+				}
+			}
+		} else if (BallotDApp.blockchainType.equals("quorum")) {
+			for (int i = 0; i < files.length; i++) {
+				if (files[i].getName().equals("key_quorum.json")) {
+					return WalletUtils.loadCredentials(password, files[i]);
+				}
+			}
+		}
 		return WalletUtils.loadCredentials(password, files[0]);
 	}
 
@@ -56,7 +68,7 @@ public class Utils {
 		Scanner scanner = new Scanner(new File(path));
 		String address = scanner.nextLine();
 		scanner.close();
-		return Ballot.load(address, web3j, credentials, DefaultGasProvider.GAS_PRICE, DefaultGasProvider.GAS_LIMIT);
+		return Ballot.load(address, web3j, credentials, BallotDApp.GAS_PRICE, DefaultGasProvider.GAS_LIMIT);
 	}
 
 	public static List<byte[]> getProposals(String path) {
