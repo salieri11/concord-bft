@@ -55,8 +55,6 @@
               "--track-origins=yes",
               "--log-file=/tmp/valgrind_concord1.log",
               "src/concord",
-              "--logger_config",
-              "./test/resources/log4cplus.properties",
               "-c",
               "test/resources/concord1.config"
             ]
@@ -69,8 +67,6 @@
           "concord2": {
             "launchCommand": "src/concord",
             "parameters": [
-              "--logger_config",
-              "./test/resources/log4cplus.properties",
               "-c",
               "test/resources/concord2.config"
             ]
@@ -83,8 +79,6 @@
           "concord3": {
             "launchCommand": "src/concord",
             "parameters": [
-              "--logger_config",
-              "./test/resources/log4cplus.properties",
               "-c",
               "test/resources/concord3.config"
             ]
@@ -97,8 +91,6 @@
           "concord4": {
             "launchCommand": "src/concord",
             "parameters": [
-              "--logger_config",
-              "./test/resources/log4cplus.properties",
               "-c",
               "test/resources/concord4.config"
             ]

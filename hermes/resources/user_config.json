@@ -49,12 +49,8 @@
           "concord1": {
             "launchCommand": "src/concord",
             "parameters": [
-              "--logger_config",
-              "./test/resources/log4cplus.properties",
               "-c",
-              "test/resources/concord1.config",
-              "--gas_limit",
-              "10000000"
+              "test/resources/concord1.config"
             ]
           }
         }
@@ -65,12 +61,8 @@
           "concord2": {
             "launchCommand": "src/concord",
             "parameters": [
-              "--logger_config",
-              "./test/resources/log4cplus.properties",
               "-c",
-              "test/resources/concord2.config",
-              "--gas_limit",
-              "10000000"
+              "test/resources/concord2.config"
             ]
           }
         }
@@ -81,12 +73,8 @@
           "concord3": {
             "launchCommand": "src/concord",
             "parameters": [
-              "--logger_config",
-              "./test/resources/log4cplus.properties",
               "-c",
-              "test/resources/concord3.config",
-              "--gas_limit",
-              "10000000"
+              "test/resources/concord3.config"
             ]
           }
         }
@@ -97,12 +85,8 @@
           "concord4": {
             "launchCommand": "src/concord",
             "parameters": [
-              "--logger_config",
-              "./test/resources/log4cplus.properties",
               "-c",
-              "test/resources/concord4.config",
-              "--gas_limit",
-              "10000000"
+              "test/resources/concord4.config"
             ]
           }
         }
