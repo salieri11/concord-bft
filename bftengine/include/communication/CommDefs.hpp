@@ -192,7 +192,7 @@ class PlainTCPCommunication : public ICommunication {
   virtual ~PlainTCPCommunication();
  private:
   class PlainTcpImpl;
-  PlainTcpImpl *_ptrImpl = nullptr;
+  std::shared_ptr<PlainTcpImpl> _ptrImpl = nullptr;
 
   explicit PlainTCPCommunication(const PlainTcpConfig &config);
 };

@@ -52,8 +52,8 @@ namespace bftEngine {
 class AsyncTcpConnection;
 
 typedef boost::system::error_code B_ERROR_CODE;
-typedef boost::shared_ptr<AsyncTcpConnection> ASYNC_CONN_PTR;
-typedef unique_ptr<tcp::socket> B_TCP_SOCKET_PTR;
+typedef std::shared_ptr<AsyncTcpConnection> ASYNC_CONN_PTR;
+typedef std::unique_ptr<asio::ip::tcp::socket> B_TCP_SOCKET_PTR;
 
 enum MessageType : uint16_t {
   Reserved = 0,
@@ -141,10 +141,9 @@ class AsyncTcpConnection : public
   char *_inBuffer;
   IReceiver *_receiver = nullptr;
   std::function<void(NodeNum)> _fOnError = nullptr;
-  std::function<void(NodeNum, ASYNC_CONN_PTR)> _fOnHelloReceived = nullptr;
-  NodeNum _expectedDestId = AsyncTcpConnection::UNKNOWN_NODE_ID;
+  std::function<void(NodeNum, ASYNC_CONN_PTR)> _fOnHellOMessage = nullptr;
   uint32_t _bufferLength;
-  NodeNum _destId = AsyncTcpConnection::UNKNOWN_NODE_ID;
+  NodeNum _destId;
   NodeNum _selfId;
   string _ip = "";
   uint16_t _port = 0;
@@ -174,21 +173,22 @@ class AsyncTcpConnection : public
                      function<void(NodeNum, ASYNC_CONN_PTR)> onHelloReceived,
                      uint32_t bufferLength,
                      NodeNum destId,
-                     NodeNum selfId
+                     NodeNum selfId,
                      ConnType type,
-                     NodeMap nodes
+                     NodeMap nodes,
                      UPDATE_CONNECTIVITY_FN statusCallback = nullptr) :
       _service(service),
       _maxMessageLength(bufferLength + MSG_HEADER_SIZE + 1),
       _fOnError(onError),
-      _fOnHelloReceived(onHelloReceived),
-      _expectedDestId(destId),
+      _fOnHellOMessage(onHelloReceived),
       _bufferLength(bufferLength),
+      _destId{destId},
       _selfId(selfId),
       _connectTimer(*service),
       _writeTimer(*service),
       _readTimer(*service),
-      _connType(type)
+      _connType(type),
+      _socketPtr{B_TCP_SOCKET_PTR(new asio::ip::tcp::socket(*_service))},
       _logger(Log::getLogger("concord-bft.tcp")),
       _statusCallback{statusCallback},
       _nodes{std::move(nodes)},
@@ -196,7 +196,6 @@ class AsyncTcpConnection : public
       _hello_received{false},
       _connected{false} {
     LOG_DEBUG(_logger, "ctor, node " << _selfId
-                                     << ", destId: " << _expectedDestId
                                      << ", connType: " << _connType);
 
     _inBuffer = new char[_bufferLength];
@@ -207,7 +206,7 @@ class AsyncTcpConnection : public
   }
 
   void init() {
-    _socketPtr = B_TCP_SOCKET_PTR(new tcp::socket(_service));
+
   }
 
   void set_disposed(bool value) {
@@ -241,14 +240,35 @@ class AsyncTcpConnection : public
     return *(reinterpret_cast<const uint32_t*>(buffer));
   }
 
-  uint16_t prepare_output_buffer(uint16_t msgType, uint32_t dataLength) {
-    memset(_outBuffer, 0, _bufferLength);
+  void prepare_output_buffer(
+      char* buffer, uint16_t msgType, uint32_t dataLength) {
     uint32_t size = sizeof(msgType) + dataLength;
-    memcpy(_outBuffer, &size, LENGTH_FIELD_SIZE);
-    memcpy(_outBuffer + LENGTH_FIELD_SIZE,
+    memcpy(buffer, &size, MSGLENGTH_FIELD_SIZE);
+    memcpy(buffer + MSGLENGTH_FIELD_SIZE,
            &msgType,
            MSGTYPE_FIELD_SIZE);
-    return LENGTH_FIELD_SIZE + MSGTYPE_FIELD_SIZE;
+  }
+
+  bool is_service_message() {
+    uint16_t msgType =
+        *(static_cast<uint16_t *>(static_cast<void *>(_inBuffer)));
+    switch (msgType) {
+      case MessageType::Hello:
+        _destId =
+            *(static_cast<NodeNum *>(
+                static_cast<void *>(
+                    _inBuffer + MSGTYPE_FIELD_SIZE)));
+
+        LOG_DEBUG(_logger, "node: " << _selfId << " got hello from:" << _destId);
+        set_hello_received(true);
+        _fOnHellOMessage(_destId, shared_from_this());
+        _destIsReplica = check_replica(_destId);
+        LOG_DEBUG(_logger, "node: " << _selfId
+                                    << " dest is replica: " << _destIsReplica);
+        return true;
+      default:
+        return false;
+    }
   }
 
   /// ****************** cleanup functions ******************** ///
@@ -259,7 +279,6 @@ class AsyncTcpConnection : public
                 "was_error, where: " << where
                                      << ", node " << _selfId
                                      << ", dest: " << _destId
-                                     << ", expectedDest: " << _expectedDestId
                                      << ", connected: " << _connected
                                      << ", ex: " << ec.message());
     }
@@ -280,7 +299,7 @@ class AsyncTcpConnection : public
 
     LOG_DEBUG(_logger,
               "dispose_connection, node " << _selfId
-                                          << ", dest: " << _expectedDestId
+                                          << ", dest: " << _destId
                                           << ", connected: " << _connected
                                           << ", closed: " << _disposed);
 
@@ -290,7 +309,7 @@ class AsyncTcpConnection : public
 
     // We use _expectedDestId here instead of _destId, because _destId may not
     // be set yet, if the connection failed before authentication completes.
-    _fOnError(_expectedDestId);
+    _fOnError(_destId);
   }
 
   /**
@@ -300,7 +319,7 @@ class AsyncTcpConnection : public
     assert(_connType != ConnType::NotDefined);
 
     if (_statusCallback) {
-      bool isReplica = check_replica(_expectedDestId);
+      bool isReplica = check_replica(_destId);
       if (isReplica) {
         PeerConnectivityStatus pcs{};
         pcs.peerId = _destId;
@@ -319,14 +338,11 @@ class AsyncTcpConnection : public
   /// ************ connect functions ************************** ///
 
   void send_hello() {
-    auto offset = prepare_output_buffer(MessageType::Hello, sizeof(_selfId));
-    memcpy(_outBuffer + offset, &_selfId, sizeof(_selfId));
-
     LOG_DEBUG(_logger, "sending hello from:" << _selfId
                                              << " to: " << _destId
-                                             << ", size: " << (offset + sizeof(_selfId)));
-
-    send(ׂ(const char *) _outBuffer,  offset + sizeof(_selfId));
+                                             << ", size: " << sizeof(_selfId));
+    send((const char*)&_selfId, sizeof(_selfId), MessageType::Hello);
+    _fOnHellOMessage(_destId, shared_from_this());
   }
 
   /**
@@ -353,10 +369,10 @@ class AsyncTcpConnection : public
       return;
     }
 
-    // deadline reached, try to reconnect
+    // deadline reached, try to connect
     connect(_ip, _port);
     LOG_DEBUG(_logger, "connect_timer_tick, node " << _selfId
-                                                   << ", dest: " << _expectedDestId
+                                                   << ", dest: " << _destId
                                                    << ", ec: " << ec.message());
   }
 
@@ -381,16 +397,17 @@ class AsyncTcpConnection : public
       _connectTimer.expires_from_now(
           boost::posix_time::millisec(_currentTimeout));
       _connectTimer.async_wait(
-          boost::bind(&AsyncTlsConnection::connect_timer_tick,
+          boost::bind(&AsyncTcpConnection::connect_timer_tick,
                       shared_from_this(),
                       boost::asio::placeholders::error));
     } else {
       set_connected(true);
       _connectTimer.cancel();
       LOG_DEBUG(_logger, "connected, node " << _selfId
-                                            << ", dest: " << _expectedDestId
+                                            << ", dest: " << _destId
                                             << ", res: " << res);
       send_hello();
+      read_msg_length_async();
     }
 
     LOG_TRACE(_logger, "exit, node " << _selfId << ", dest: " << _destId);
@@ -442,11 +459,11 @@ class AsyncTcpConnection : public
     }
 
     // if partial read of msg length bytes, continue
-    if(first && bytesRead < MSG_LENGTH_FIELD_SIZE) {
+    if(first && bytesRead < MSGLENGTH_FIELD_SIZE) {
       asio::async_read(
-          *_socket,
-          asio::buffer(_inBuffer + bytesRead, MSG_LENGTH_FIELD_SIZE - bytesRead),
-          boost::bind(&AsyncTlsConnection::read_msglength_completed,
+          *_socketPtr,
+          asio::buffer(_inBuffer + bytesRead, MSGLENGTH_FIELD_SIZE - bytesRead),
+          boost::bind(&AsyncTcpConnection::read_msglength_completed,
                       shared_from_this(),
                       boost::asio::placeholders::error,
                       boost::asio::placeholders::bytes_transferred,
@@ -464,14 +481,14 @@ class AsyncTcpConnection : public
         boost::posix_time::milliseconds(READ_TIME_OUT_MILLI));
     assert(res == 0); //can cancel at most 1 pending async_wait
     _readTimer.async_wait(
-        boost::bind(&AsyncTlsConnection::on_read_timer_expired,
+        boost::bind(&AsyncTcpConnection::on_read_timer_expired,
                     shared_from_this(),
                     boost::asio::placeholders::error));
 
     LOG_DEBUG(_logger, "exit, node " << _selfId
                                      << ", dest: " << _destId
                                      << ", connected: " << _connected
-                                     << "is_open: " << get_socket().is_open());
+                                     << ", is_open: " << get_socket().is_open());
   }
 
   /**
@@ -482,9 +499,9 @@ class AsyncTcpConnection : public
       return;
 
     // since we allow partial reading here, we dont need timeout
-    _socket->async_read_some(
-        asio::buffer(_inBuffer, MSG_LENGTH_FIELD_SIZE),
-        boost::bind(&AsyncTlsConnection::read_msglength_completed,
+    _socketPtr->async_read_some(
+        asio::buffer(_inBuffer, MSGLENGTH_FIELD_SIZE),
+        boost::bind(&AsyncTcpConnection::read_msglength_completed,
                     shared_from_this(),
                     boost::asio::placeholders::error,
                     boost::asio::placeholders::bytes_transferred,
@@ -520,13 +537,13 @@ class AsyncTcpConnection : public
       return;
     }
 
-    assert(_destId == _expectedDestId);
-    try {
-      if (_receiver) {
-        _receiver->onNewMessage(_destId, _inBuffer, bytesRead);
+    if (!is_service_message()) {
+      LOG_DEBUG(_logger, "data msg received, msgLen: " << bytesRead);
+      if(_receiver) {
+        _receiver->onNewMessage(_destId,
+                     _inBuffer + MSGTYPE_FIELD_SIZE,
+                     bytesRead - MSGTYPE_FIELD_SIZE);
       }
-    } catch (std::exception &e) {
-      LOG_ERROR(_logger, "read_msg_async_completed, exception:" << e.what());
     }
 
     read_msg_length_async();
@@ -558,9 +575,9 @@ class AsyncTcpConnection : public
 
     // async operation will finish when either expectedBytes are read
     // or error occured, this is what Asio guarantees
-    async_read(*_socket,
+    async_read(*_socketPtr,
                boost::asio::buffer(_inBuffer, msgLength),
-               boost::bind(&AsyncTlsConnection::read_msg_async_completed,
+               boost::bind(&AsyncTcpConnection::read_msg_async_completed,
                            shared_from_this(),
                            boost::asio::placeholders::error,
                            boost::asio::placeholders::bytes_transferred));
@@ -580,9 +597,6 @@ class AsyncTcpConnection : public
   /// are in the out queue - if true, start another async_write with timer.
   /// 4. if timer ticks - the write hasn't completed, close the connection.
 
-  void put_message_header(char *data, uint32_t dataLength) {
-    memcpy(data, &dataLength, MSG_LENGTH_FIELD_SIZE);
-  }
 
   /**
    * If the timer tick occurs - shut down the connection.
@@ -601,12 +615,12 @@ class AsyncTcpConnection : public
     }
   }
 
-  void start_async_write() {
+  void  start_async_write() {
     asio::async_write(
-        *_socket,
+        *_socketPtr,
         asio::buffer(_outQueue.front().data, _outQueue.front().length),
         boost::bind(
-            &AsyncTlsConnection::async_write_complete,
+            &AsyncTcpConnection::async_write_complete,
             shared_from_this(),
             boost::asio::placeholders::error,
             boost::asio::placeholders::bytes_transferred));
@@ -616,7 +630,7 @@ class AsyncTcpConnection : public
         boost::posix_time::milliseconds(WRITE_TIME_OUT_MILLI));
     assert(res == 0); //should not cancel any pending async wait
     _writeTimer.async_wait(
-        boost::bind(&AsyncTlsConnection::on_write_timer_expired,
+        boost::bind(&AsyncTcpConnection::on_write_timer_expired,
                     shared_from_this(),
                     boost::asio::placeholders::error));
   }
@@ -667,8 +681,8 @@ class AsyncTcpConnection : public
   /// ************* write functions end ******************* ////
 
  public:
-  SSL_SOCKET::lowest_layer_type &get_socket() {
-    return _socket->lowest_layer();
+  asio::ip::tcp::socket& get_socket() {
+    return *_socketPtr;
   }
 
   /**
@@ -678,27 +692,28 @@ class AsyncTcpConnection : public
    * @param isReplica whether the peer is replica or client
    */
   void connect(string ip, uint16_t port) {
-    _ip = ip;
+     _ip = ip;
     _port = port;
 
     asio::ip::tcp::endpoint ep(asio::ip::address::from_string(ip), port);
 
     get_socket().
         async_connect(ep,
-                      boost::bind(&AsyncTlsConnection::connect_completed,
+                      boost::bind(&AsyncTcpConnection::connect_completed,
                                   shared_from_this(),
                                   boost::asio::placeholders::error));
     LOG_TRACE(_logger, "exit, from: " << _selfId
-                                      << " ,to: " << _expectedDestId
+                                      << " ,to: " << _destId
                                       << ", ip: " << ip
                                       << ", port: " << port);
   }
 
   void start() {
-    _socket->async_handshake(boost::asio::ssl::stream_base::server,
-                             boost::bind(&AsyncTlsConnection::on_handshake_complete_inbound,
-                                         shared_from_this(),
-                                         boost::asio::placeholders::error));
+    read_msg_length_async();
+  }
+
+  void send(const char *data, uint32_t length) {
+    send(data, length, MessageType::Regular);
   }
 
   /**
@@ -708,13 +723,13 @@ class AsyncTcpConnection : public
    * @param data data to be sent
    * @param length data length
    */
-  void send(const char *data, uint32_t length) {
+  void send(const char *data, uint32_t length, MessageType type) {
     assert(data);
     assert(length > 0 && length <= _maxMessageLength - MSG_HEADER_SIZE);
 
     char *buf = new char[length + MSG_HEADER_SIZE];
     memset(buf, 0, length + MSG_HEADER_SIZE);
-    put_message_header(buf, length);
+    prepare_output_buffer(buf, type, length);
     memcpy(buf + MSG_HEADER_SIZE, data, length);
 
     // here we lock to protect multiple thread access and to synch with callback
@@ -730,7 +745,7 @@ class AsyncTcpConnection : public
     // we must post to asio service because async operations should be
     // started from asio threads and not during pending async read
     if(_outQueue.size() == 1) {
-      _service->post(boost::bind(&AsyncTlsConnection::do_write,
+       _service->post(boost::bind(&AsyncTcpConnection::do_write,
                                  shared_from_this()));
     }
 
@@ -759,28 +774,24 @@ class AsyncTcpConnection : public
                                uint32_t bufferLength,
                                NodeNum destId,
                                NodeNum selfId,
-                               string certificatesRootFolder,
                                ConnType type,
                                UPDATE_CONNECTIVITY_FN statusCallback,
-                               NodeMap nodes,
-                               string cipherSuite) {
+                               NodeMap nodes) {
     auto res = ASYNC_CONN_PTR(
-        new AsyncTlsConnection(service,
+        new AsyncTcpConnection(service,
                                onError,
                                onReady,
                                bufferLength,
                                destId,
                                selfId,
-                               certificatesRootFolder,
                                type,
                                nodes,
-                               cipherSuite,
                                statusCallback));
     res->init();
     return res;
   }
 
-  virtual ~AsyncTlsConnection() {
+  virtual ~AsyncTcpConnection() {
     LOG_INFO(_logger, "Dtor called, node: " << _selfId << "peer: " << _destId << ", type: " <<
                                             _connType);
 
@@ -788,22 +799,22 @@ class AsyncTcpConnection : public
 
     _receiver = nullptr;
     _fOnError = nullptr;
-    _fOnTlsReady = nullptr;
+    _fOnHellOMessage = nullptr;
   }
 };
 
 ////////////////////////////////////////////////////////////////////////////
 
 /**
- * Implementation class. Is reponsible for creating listener on given port,
+ * Implementation class. Is responsible for creating listener on given port,
  * outgoing connections to the lower Id peers and accepting connections from
  *  higher ID peers.
  *  This is default behavior given the clients will always have higher IDs
  *  from the replicas. In this way we assure that clients will not connect to
  *  each other.
  */
-class TlsTCPCommunication::TlsTcpImpl :
-    public std::enable_shared_from_this<TlsTcpImpl> {
+class PlainTCPCommunication::PlainTcpImpl :
+    public std::enable_shared_from_this<PlainTcpImpl> {
  private:
   unordered_map<NodeNum, ASYNC_CONN_PTR> _connections;
 
@@ -820,10 +831,8 @@ class TlsTCPCommunication::TlsTcpImpl :
   string _listenIp;
   uint32_t _bufferLength;
   uint32_t _maxServerId;
-  string _certRootFolder;
   Logger _logger;
   UPDATE_CONNECTIVITY_FN _statusCallback;
-  string _cipherSuite;
 
   mutex _connectionsGuard;
   mutable mutex _startStopGuard;
@@ -864,7 +873,7 @@ class TlsTCPCommunication::TlsTcpImpl :
    * @param id
    * @param conn
    */
-  void on_connection_authenticated(NodeNum id, ASYNC_CONN_PTR conn) {
+  void on_hello(NodeNum id, ASYNC_CONN_PTR conn) {
     lock_guard<mutex> lock(_connectionsGuard);
     // probably bad replica?? TODO: think how to handle it in a better way
     // for now, just throw away both existing and a new one
@@ -902,56 +911,50 @@ class TlsTCPCommunication::TlsTcpImpl :
   void start_accept() {
     LOG_DEBUG(_logger, "start_accept, node: " << _selfId);
     auto conn =
-        AsyncTlsConnection::create(
+        AsyncTcpConnection::create(
             &_service,
             std::bind(
-                &TlsTcpImpl::on_async_connection_error,
+                &PlainTcpImpl::on_async_connection_error,
                 shared_from_this(),
                 std::placeholders::_1),
             std::bind(
-                &TlsTcpImpl::on_connection_authenticated,
+                &PlainTcpImpl::on_hello,
                 shared_from_this(),
                 std::placeholders::_1,
                 std::placeholders::_2),
             _bufferLength,
-            AsyncTlsConnection::UNKNOWN_NODE_ID,
+            AsyncTcpConnection::UNKNOWN_NODE_ID,
             _selfId,
-            _certRootFolder,
             ConnType::Incoming,
             _statusCallback,
-            _nodes,
-            _cipherSuite);
-    _pAcceptor->async_accept(conn->get_socket().lowest_layer(),
+            _nodes);
+    _pAcceptor->async_accept(conn->get_socket(),
                              boost::bind(
-                                 &TlsTcpImpl::on_accept,
+                                 &PlainTcpImpl::on_accept,
                                  shared_from_this(),
                                  conn,
                                  boost::asio::placeholders::error));
   }
 
-  TlsTcpImpl(const TlsTcpImpl &) = delete;
-  TlsTcpImpl(const TlsTcpImpl &&) = delete;
-  TlsTcpImpl &operator=(const TlsTcpImpl &) = delete;
-  TlsTcpImpl() = delete;
+  PlainTcpImpl(const PlainTcpImpl &) = delete;
+  PlainTcpImpl(const PlainTcpImpl &&) = delete;
+  PlainTcpImpl &operator=(const PlainTcpImpl &) = delete;
+  PlainTcpImpl() = delete;
 
-  TlsTcpImpl(NodeNum selfNodeNum,
+  PlainTcpImpl(NodeNum selfNodeNum,
              NodeMap nodes,
              uint32_t bufferLength,
              uint16_t listenPort,
              uint32_t maxServerId,
              string listenIp,
-             string certRootFolder,
-             string cipherSuite,
              UPDATE_CONNECTIVITY_FN statusCallback = nullptr) :
       _selfId(selfNodeNum),
       _listenPort(listenPort),
       _listenIp(listenIp),
       _bufferLength(bufferLength),
       _maxServerId(maxServerId),
-      _certRootFolder(certRootFolder),
-      _logger(Log::getLogger("concord.tls")),
-      _statusCallback{statusCallback},
-      _cipherSuite{cipherSuite} {
+      _logger(Log::getLogger("concord.tcp")),
+      _statusCallback{statusCallback} {
     //_service = new io_service();
     for (auto it = nodes.begin(); it != nodes.end(); it++) {
       _nodes.insert({it->first, it->second});
@@ -961,47 +964,41 @@ class TlsTCPCommunication::TlsTcpImpl :
   void create_outgoing_connection(
       NodeNum nodeId, string peerIp, uint16_t peerPort) {
     auto conn =
-        AsyncTlsConnection::create(
+        AsyncTcpConnection::create(
             &_service,
-            std::bind(&TlsTcpImpl::on_async_connection_error,
+            std::bind(&PlainTcpImpl::on_async_connection_error,
                       shared_from_this(),
                       std::placeholders::_1),
 
-            std::bind(&TlsTcpImpl::on_connection_authenticated,
+            std::bind(&PlainTcpImpl::on_hello,
                       shared_from_this(),
                       std::placeholders::_1,
                       std::placeholders::_2),
             _bufferLength,
             nodeId,
             _selfId,
-            _certRootFolder,
             ConnType::Outgoing,
             _statusCallback,
-            _nodes,
-            _cipherSuite);
+            _nodes);
 
     conn->connect(peerIp, peerPort);
-    LOG_INFO(_logger, "connect called for node " << _selfId << ", dest: " << nodeId);
+    LOG_INFO(_logger, "    for node " << _selfId << ", dest: " << nodeId);
   }
 
  public:
-  static std::shared_ptr<TlsTcpImpl> create(NodeNum selfNodeId,
+  static std::shared_ptr<PlainTcpImpl> create(NodeNum selfNodeId,
                                             NodeMap nodes,
                                             uint32_t bufferLength,
                                             uint16_t listenPort,
                                             uint32_t tempHighestNodeForConnecting,
                                             string listenIp,
-                                            string certRootFolder,
-                                            string cipherSuite,
                                             UPDATE_CONNECTIVITY_FN statusCallback) {
-    return std::shared_ptr<TlsTcpImpl>(new TlsTcpImpl(selfNodeId,
+    return std::shared_ptr<PlainTcpImpl>(new PlainTcpImpl(selfNodeId,
                                                       nodes,
                                                       bufferLength,
                                                       listenPort,
                                                       tempHighestNodeForConnecting,
                                                       listenIp,
-                                                      certRootFolder,
-                                                      cipherSuite,
                                                       statusCallback));
   }
 
@@ -1124,41 +1121,40 @@ class TlsTCPCommunication::TlsTcpImpl :
     return 0;
   }
 
-  ~TlsTcpImpl() {
-    LOG_DEBUG(_logger, "TlsTCPDtor");
+  ~PlainTcpImpl() {
+    LOG_DEBUG(_logger, "PlainTcpImpl dtor");
     _pIoThread = nullptr;
   }
 };
 
-TlsTCPCommunication::~TlsTCPCommunication() {
+PlainTCPCommunication::~PlainTCPCommunication() {
 
 }
 
-TlsTCPCommunication::TlsTCPCommunication(const TlsTcpConfig &config) {
-  _ptrImpl = TlsTcpImpl::create(config.selfId,
+PlainTCPCommunication::PlainTCPCommunication(const PlainTcpConfig &config) {
+  _ptrImpl = PlainTcpImpl::create(config.selfId,
                                 config.nodes,
                                 config.bufferLength,
                                 config.listenPort,
                                 config.maxServerId,
                                 config.listenIp,
-                                config.certificatesRootPath,
-                                config.cipherSuite,
                                 config.statusCallback);
 }
 
-TlsTCPCommunication *TlsTCPCommunication::create(const TlsTcpConfig &config) {
-  return new TlsTCPCommunication(config);
+PlainTCPCommunication *PlainTCPCommunication::create(const PlainTcpConfig
+&config) {
+  return new PlainTCPCommunication(config);
 }
 
-int TlsTCPCommunication::getMaxMessageSize() {
+int PlainTCPCommunication::getMaxMessageSize() {
   return _ptrImpl->getMaxMessageSize();
 }
 
-int TlsTCPCommunication::Start() {
+int PlainTCPCommunication::Start() {
   return _ptrImpl->Start();
 }
 
-int TlsTCPCommunication::Stop() {
+int PlainTCPCommunication::Stop() {
   if (!_ptrImpl)
     return 0;
 
@@ -1166,24 +1162,24 @@ int TlsTCPCommunication::Stop() {
   return res;
 }
 
-bool TlsTCPCommunication::isRunning() const {
+bool PlainTCPCommunication::isRunning() const {
   return _ptrImpl->isRunning();
 }
 
 ConnectionStatus
-TlsTCPCommunication::getCurrentConnectionStatus(const NodeNum node) const {
+PlainTCPCommunication::getCurrentConnectionStatus(const NodeNum node) const {
   return _ptrImpl->getCurrentConnectionStatus(node);
 }
 
 int
-TlsTCPCommunication::sendAsyncMessage(const NodeNum destNode,
+PlainTCPCommunication::sendAsyncMessage(const NodeNum destNode,
                                       const char *const message,
                                       const size_t messageLength) {
   return _ptrImpl->sendAsyncMessage(destNode, message, messageLength);
 }
 
 void
-TlsTCPCommunication::setReceiver(NodeNum receiverNum, IReceiver *receiver) {
+PlainTCPCommunication::setReceiver(NodeNum receiverNum, IReceiver *receiver) {
   _ptrImpl->setReceiver(receiverNum, receiver);
 }
 } // namespace bftEngine
