@@ -15,7 +15,7 @@ from typing import Any, Dict
 from urllib.parse import urlparse
 
 
-def get_arguments() -> Dict[str, Any]:
+def get_arguments() :
     """
     Parse command-line arguments.
 
@@ -38,6 +38,12 @@ def get_arguments() -> Dict[str, Any]:
         "--target-path",
         default=None,
         help="Target prefix path to save all generated configuration artifacts"
+    )
+    parser.add_argument(
+        "--hostips",
+        nargs="*",
+        type=str,
+        default=["10.0.0.1", "10.0.0.2", "10.0.0.3", "10.0.0.4"],
     )
     ret = vars(parser.parse_args())
     return ret
@@ -68,7 +74,7 @@ def main():
     log.info("Target Path Location: %s", target_path)
 
     stub = configuration_service_rpc.ConfigurationServiceStub(channel)
-    host_ips = ["10.0.0.1", "10.0.0.2", "10.0.0.3", "10.0.0.4"]
+    host_ips = args["hostips"]
     config_service_request = configuration_service.ConfigurationServiceRequest(
             header=core.MessageHeader(),
             hosts=host_ips
@@ -89,7 +95,7 @@ def main():
         for item in node_response.configuration_component:
             if (item.type == 1):
                 component_url = urlparse(item.component_url)
-                path = os.path.join(target_path, component_url.path.strip('/'))
+                path = os.path.join(os.path.join(target_path, str(i)), component_url.path.strip('/'))
                 log.info("Artfact: %s", path)
 
                 if not os.path.exists(os.path.dirname(path)):
