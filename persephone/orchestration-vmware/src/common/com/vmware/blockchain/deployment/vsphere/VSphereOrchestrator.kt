@@ -34,13 +34,16 @@ import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.EmptyCoroutineContext
 
 /**
- * Deployment orchestration driver for VMware Cloud [orchestration site type]
- * [OrchestrationSiteInfo.Type.VSPHERE].
+ * Deployment orchestration driver for VMware vSphere environment.
  *
- * @param[vSphere]
- *   vSphere API client handle.
+ * @property[info]
+ *   environment context describing the target orchestration site environment.
+ * @property[vSphere]
+ *   vSphere client handle.
+ * @property[context]
+ *   coroutine execution context for coroutines launched by this instance.
  */
-open class VSphereOrchestrator private constructor(
+class VSphereOrchestrator constructor(
     private val info: VSphereOrchestrationSiteInfo,
     private val vSphere: VSphereClient,
     private val context: CoroutineContext = Dispatchers.Default
@@ -62,7 +65,8 @@ open class VSphereOrchestrator private constructor(
         const val BLOCKCHAIN_NETWORK_NAME = "blockchain-network"
 
         /**
-         * Create a new [VSphereOrchestrator] based on parameters from a given [OrchestrationSiteInfo].
+         * Create a new [VSphereOrchestrator] based on parameters from a given
+         * [OrchestrationSiteInfo].
          *
          * @param[site]
          *   orchestration information pertaining to a VMC-based orchestration site.
@@ -111,8 +115,9 @@ open class VSphereOrchestrator private constructor(
     override fun createDeployment(
         request: Orchestrator.CreateComputeResourceRequest
     ): Publisher<Orchestrator.ComputeResourceEvent> {
-        // Resolve the configuration mapping to find the compute network intended for blockchain.
-        val network = requireNotNull(info.network)
+        val compute = info.vsphere.resourcePool
+        val storage = info.vsphere.datastore
+        val network = info.vsphere.network
 
         return publish(coroutineContext) {
             withTimeout(ORCHESTRATOR_TIMEOUT_MILLIS) {
@@ -120,9 +125,9 @@ open class VSphereOrchestrator private constructor(
                     val clusterId = UUID(request.cluster.high, request.cluster.low)
                     val nodeId = UUID(request.node.high, request.node.low)
 
-                    val getFolder = async { vSphere.getFolder(name = info.folder) }
-                    val getDatastore = async { vSphere.getDatastore(name = info.datastore) }
-                    val getResourcePool = async { vSphere.getResourcePool(name = info.resourcePool) }
+                    val getFolder = async { vSphere.getFolder(name = info.vsphere.folder) }
+                    val getDatastore = async { vSphere.getDatastore(name = storage) }
+                    val getResourcePool = async { vSphere.getResourcePool(name = compute) }
                     val getNetwork = async { vSphere.getNetwork(network.name, type = "") }
                     val getLibraryItem = async { vSphere.getLibraryItem(request.model.template) }
 
@@ -176,6 +181,7 @@ open class VSphereOrchestrator private constructor(
     override fun deleteDeployment(
         request: Orchestrator.DeleteComputeResourceRequest
     ): Publisher<Orchestrator.ComputeResourceEvent> {
+        @Suppress("DuplicatedCode")
         return publish<Orchestrator.ComputeResourceEvent>(coroutineContext) {
             withTimeout(ORCHESTRATOR_TIMEOUT_MILLIS) {
                 try {
@@ -199,9 +205,9 @@ open class VSphereOrchestrator private constructor(
     override fun createNetworkAddress(
         request: Orchestrator.CreateNetworkResourceRequest
     ): Publisher<Orchestrator.NetworkResourceEvent> {
-        return publish<Orchestrator.NetworkResourceEvent>(coroutineContext) {
-            val network = requireNotNull(info.network)
+        val network = info.vsphere.network
 
+        return publish<Orchestrator.NetworkResourceEvent>(coroutineContext) {
             withTimeout(ORCHESTRATOR_TIMEOUT_MILLIS) {
                 // send(Orchestrator.NetworkResourceEvent.Created(
                 //         URI.create(network.allocator.address + "/" + "FIXED"),

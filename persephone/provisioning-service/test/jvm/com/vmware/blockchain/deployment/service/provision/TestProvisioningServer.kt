@@ -5,9 +5,11 @@ package com.vmware.blockchain.deployment.service.provision
 
 import com.vmware.blockchain.deployment.model.Credential
 import com.vmware.blockchain.deployment.model.Endpoint
+import com.vmware.blockchain.deployment.model.IPv4Network
 import com.vmware.blockchain.deployment.model.OrchestrationSite
 import com.vmware.blockchain.deployment.model.OrchestrationSiteIdentifier
 import com.vmware.blockchain.deployment.model.OrchestrationSiteInfo
+import com.vmware.blockchain.deployment.model.VSphereDatacenterInfo
 import com.vmware.blockchain.deployment.model.VmcOrchestrationSiteInfo
 import com.vmware.blockchain.deployment.service.orchestrationsite.OrchestrationSiteService
 import com.vmware.blockchain.deployment.service.orchestrationsite.OrchestrationSiteServiceModule
@@ -96,11 +98,12 @@ private fun newOrchestrationSiteInfo(i: Int): OrchestrationSiteInfo {
                     Endpoint("https://registry", Credential()),
                     "test-org",
                     datacenter,
-                    "resource-pool",
-                    "vm-folder",
-                    "vmware-vpn",
-                    -0x5f5f6000,
-                    24
+                    VSphereDatacenterInfo(
+                        "resource-pool",
+                        "datastore",
+                        "vm-folder",
+                        IPv4Network("vmware-vpn")
+                    )
             )
     )
 }

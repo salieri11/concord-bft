@@ -10,9 +10,9 @@
         <version>1.0.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>persephone-orchestration-vmc</artifactId>
+    <artifactId>persephone-orchestration-vmware</artifactId>
     <packaging>jar</packaging>
-    <name>Blockchain - Fleet Management SDDC Orchestration</name>
+    <name>Blockchain - Fleet Management Orchestration (VMware)</name>
 
     <dependencies>
         <!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

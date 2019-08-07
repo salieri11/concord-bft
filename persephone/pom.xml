@@ -22,7 +22,7 @@
         <module>ip-allocation-service</module>
         <module>metadata-service</module>
         <module>orchestration</module>
-        <module>orchestration-vmc</module>
+        <module>orchestration-vmware</module>
         <module>persistence</module>
         <module>persistence-rocksdb</module>
         <module>provisioning-service</module>
@@ -164,7 +164,7 @@
             </dependency>
             <dependency>
                 <groupId>com.vmware.blockchain</groupId>
-                <artifactId>persephone-orchestration-vmc</artifactId>
+                <artifactId>persephone-orchestration-vmware</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
