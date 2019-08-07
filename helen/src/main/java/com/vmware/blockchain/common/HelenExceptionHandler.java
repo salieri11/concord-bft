@@ -15,6 +15,7 @@ import org.springframework.core.NestedExceptionUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -33,13 +34,16 @@ public class HelenExceptionHandler {
     private static final Logger logger = LogManager.getLogger(HelenExceptionHandler.class);
 
     // Normally the status code is part of the Helen Exception.  There are a handful of exceptions that
+    // we want to handle with specific status codes
     private static final Map<Class<? extends Throwable>, HttpStatus> statusCodes =
             new ImmutableMap.Builder<Class<? extends Throwable>, HttpStatus>()
-                    .put(UnsupportedOperationException.class, HttpStatus.METHOD_NOT_ALLOWED)
+                    .put(AccessDeniedException.class, HttpStatus.FORBIDDEN)
                     .put(IllegalArgumentException.class, HttpStatus.BAD_REQUEST)
-                    .put(IOException.class, HttpStatus.INTERNAL_SERVER_ERROR)
                     .put(InvalidProtocolBufferException.class, HttpStatus.INTERNAL_SERVER_ERROR)
-                    .put(AccessDeniedException.class, HttpStatus.FORBIDDEN).build();
+                    .put(IOException.class, HttpStatus.INTERNAL_SERVER_ERROR)
+                    .put(MissingServletRequestParameterException.class, HttpStatus.BAD_REQUEST)
+                    .put(UnsupportedOperationException.class, HttpStatus.METHOD_NOT_ALLOWED)
+                    .build();
 
 
     @Value

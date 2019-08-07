@@ -520,9 +520,10 @@ paths:
                           cert:
                             type: string
                             description: SSL certificate to talk to ethrpc
-                          region:
+                          zone_id:
                             type: string
-                            description: Region (SDDC) this node is doploy in
+                            format: uuid
+                            description: zone id this node is deployed in
     post:
       summary: Create a new blockchain
       operationId: blockchainPost
@@ -554,11 +555,13 @@ paths:
                     - FIXED
                     - UNSPECIFIED
                   description: 'FIXED or UNSPECIFIED, determines site locations'
-                site_ids:
+                zone_ids:
+                  description: |
+                    List of zone IDs for nodes.  deployment_type must be FIXED.  Must contain 3f + 2c + 1 elements.
                   type: array
                   items:
                     type: string
-                  description: List of site ids.  Required if deployment type is fixed
+                    format: uuid
       responses:
         '202':
           description: Returns the deployment task ID
@@ -571,6 +574,67 @@ paths:
                     type: string
                     format: uuid
                     description: Task ID
+  /blockchain/zones:
+    summary: Deployment zones for blockchains
+    get:
+      summary: Get available zones
+      operationId: getBlockchainZones
+      responses:
+        200:
+          description: List of available zones
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                      format: uuid
+                    name:
+                      type: string
+                      example: VMC SDDC2
+                    latitude:
+                      type: string
+                      example: 45.2551139
+                    longitude:
+                      type: string
+                      example: -120.888727
+    post:
+      summary: Refresh zones
+      operationId: refreshBlockchainZones
+      description: Refresh the zone list from Persephone, and return it
+      parameters:
+        - name: action
+          in: query
+          description: Perform the action
+          schema:
+            type: string
+            enum: [reload]
+      responses:
+        200:
+          description: List of available zones
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                      format: uuid
+                    name:
+                      type: string
+                      example: VMC SDDC2
+                    latitude:
+                      type: string
+                      example: 45.2551139
+                    longitude:
+                      type: string
+                      example: -120.888727
+
   '/blockchains/{bid}':
     summary: Blockchain
     get:
@@ -618,9 +682,10 @@ paths:
                         cert:
                           type: string
                           description: SSL certificate to talk to ethrpc
-                        region:
+                        zone_id:
                           type: string
-                          description: Region (SDDC) this node is doploy in
+                          format: uuid
+                          description: Deployment zone for this node
     patch:
       summary: Update an existing blockchain
       operationId: blockchainPatch

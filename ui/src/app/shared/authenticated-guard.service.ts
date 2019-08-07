@@ -3,14 +3,23 @@
  */
 
 import { Injectable } from '@angular/core';
-import { ActivatedRouteSnapshot, CanActivate, CanActivateChild, Router } from '@angular/router';
+import {
+  ActivatedRouteSnapshot,
+  RouterStateSnapshot,
+  CanActivate,
+  CanActivateChild,
+  Router
+} from '@angular/router';
 import { TranslateService } from '@ngx-translate/core';
 
 import { AuthenticationService } from './authentication.service';
+import { UserAuthResponse } from '../users/shared/user.model';
 import { Personas, PersonaService } from './persona.service';
 import { ErrorAlertService } from './global-error-handler.service';
-import { BlockchainService, BlockchainResponse } from './blockchain.service';
+import { BlockchainService } from './blockchain.service';
+import { BlockchainResponse } from './blockchain.model';
 import { environment } from '../../environments/environment';
+import { QueryParams } from './urls.model';
 
 
 @Injectable()
@@ -44,16 +53,17 @@ export class AuthenticatedGuard implements CanActivateChild, CanActivate {
     }
   }
 
-  async canActivate() {
+  async canActivate(
+    route: ActivatedRouteSnapshot,
+    state: RouterStateSnapshot
+  ) {
 
     if (this.env.csp) {
       if (!this.authenticationService.accessToken) {
         const auth = await this.authenticationService.getAccessToken().toPromise();
-        // const recent = localStorage.getItem('welcome');
 
-        if (auth.last_login === 0) {
-          localStorage.setItem('welcome', auth.email);
-          this.router.navigate(['/', 'welcome'], {fragment: 'welcome'});
+        if (this.isNewUser(route, state, auth)) {
+          this.router.navigate(['/', 'welcome'], { fragment: 'welcome' });
         }
       }
       return true;
@@ -63,8 +73,18 @@ export class AuthenticatedGuard implements CanActivateChild, CanActivate {
     }
   }
 
-  handleRoutingFailure() {
+  private handleRoutingFailure() {
     this.errorService.add(new Error(this.translateService.instant('globalError.routingError')));
+  }
+
+  private isNewUser(
+    route: ActivatedRouteSnapshot,
+    state: RouterStateSnapshot,
+    auth: UserAuthResponse
+  ) {
+    return ((state.url.indexOf(this.authenticationService.loginReturnPath) !== -1
+      && route.queryParams[QueryParams.userKey] === QueryParams.userNewValue) ||
+      auth.last_login === 0);
   }
 }
 

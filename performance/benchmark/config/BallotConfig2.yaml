@@ -1,42 +1,42 @@
----
 simpleConfig:
-  blockchain: concord #concord or etheruem
+  blockchain: concord #concord, etheruem, or quorum
   environment: onprem
   nodeCount: 4
   port: 8545
   nodes:
     - ip: 10.40.205.11
       percentage: 100
+      username: kubo
+      password: Ponies!23
     - ip: 10.40.205.12
       percentage: 0
+      username: kubo
+      password: Ponies!23
     - ip: 10.40.205.13
       percentage: 0
+      username: kubo
+      password: Ponies!23
     - ip: 10.40.205.14
       percentage: 0
+      username: kubo
+      password: Ponies!23
   workloads:
     - dapp: Ballot
       language: Solidity
       numOfRuns: 1
       rateControl: 50
+      logging: false
       params:
         - ../target/performance-1.0-SNAPSHOT-jar-with-dependencies.jar    #executable
         - --concord           #use concord, helen, or ethereum
         - 10.40.205.11       #concordIP, helenIP, or ethereumIP
         - 100                #numberVotes
         - ../data/proposals   #input data
-    - dapp: Ballot
-      language: Solidity
-      numOfRuns: 1
-      params:
-          - ../target/performance-1.0-SNAPSHOT-jar-with-dependencies.jar  #executable
-          - --concord             #use concord, helen, or ethereum
-          - 10.40.205.12       #concordIP, helenIP, or ethereumIP
-          - 100                #numberVotes
-          - ../data/proposals   #input data
-  sleepTime: 10000
+  sleepTime: 1000
   outputDir: ./perf_result
 
 advancedConfig:
+  dockerStats: false
   esxtopCommand:
     - [prme-awperf-a009, abc@omdf] #hostnames
     - [root, root2] #usernames

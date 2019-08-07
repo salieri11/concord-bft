@@ -203,9 +203,10 @@ class ProvisioningServiceRPCHelper(RPCHelper):
       try:
          if stub is None:
             stub = self.stub
+         # Increasing default stream_timeout to 10 mins due to bug VB-1289
          response = self.call_api(
             stub.StreamClusterDeploymentSessionEvents,
-            get_events_request, stream=True)
+            get_events_request, stream=True, stream_timeout=600)
       except Exception as e:
          self.handle_exception(e)
       return response
@@ -215,7 +216,7 @@ class ProvisioningServiceRPCHelper(RPCHelper):
       Helper method to call gRPC rpc_StreamAllClusterDeploymentSessionEvents
       This rpc call returns a stream and could be called to run in background
       when provisioning service starts.
-      NOTE: Stream timeout is set to 1800 seconds (30 mins) to capture all events
+      NOTE: Stream timeout is set to 7200 seconds (120 mins) to capture all events
       :param get_events_request: Deployment Session Events Request
       :return: All Deployement Events Stream
       '''
@@ -225,7 +226,7 @@ class ProvisioningServiceRPCHelper(RPCHelper):
          response = self.call_api(
             self.stub.StreamAllClusterDeploymentSessionEvents,
             all_events_request, stream=True, stream_forever=True,
-            stream_timeout=1800)
+            stream_timeout=7200)
       except Exception as e:
          self.handle_exception(e)
       return response

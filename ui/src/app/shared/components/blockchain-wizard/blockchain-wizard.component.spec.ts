@@ -12,6 +12,7 @@ import { VmwComboboxComponent } from '../combobox/combobox.component';
 import { VmwAccordionGroupComponent } from '../accordion/accordion-group.component';
 import { VmwAccordionComponent } from '../accordion/accordion.component';
 import { VmwComboboxItemsComponent } from '../combobox/combobox-items/combobox-items.component';
+import { BlockchainService, BlockchainsServiceMock } from '../../blockchain.service';
 
 describe('BlockchainWizardComponent', () => {
   let component: BlockchainWizardComponent;
@@ -30,7 +31,8 @@ describe('BlockchainWizardComponent', () => {
         VmwComboboxItemsComponent,
         VmwAccordionGroupComponent,
         VmwAccordionComponent
-      ]
+      ],
+      providers: [{provide: BlockchainService, useClass: BlockchainsServiceMock}]
     })
     .compileComponents();
   }));
@@ -45,71 +47,68 @@ describe('BlockchainWizardComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  describe('User page', () => {
-    it('appends a user to the main form on user create', () => {
-      expect(component.form.get('users').value.length).toEqual(0);
-
-      component.userForm.setValue({
-        email: 'test@example.com',
-        role: 'system_admin'
+  describe('Detail page', () => {
+    it('have a consortium name and description', () => {
+      expect(component.form.get('details').value).toEqual({
+        consortium_name: '',
+        consortium_desc: ''
       });
 
-      component.addUser();
-      expect(component.form.get('users').value.length).toEqual(1);
-    });
-
-    it('resets the user form after user creation', () => {
-      const filledFormState = {
-        email: 'test@example.com',
-        role: 'system_admin'
+      const value = {
+        consortium_name: 'Test',
+        consortium_desc: 'test'
       };
-      spyOn(component.userForm, 'reset').and.callThrough();
+      component.form.controls.details.setValue(value);
 
-      expect(component.userForm.value.email).toBeFalsy();
-
-      component.userForm.setValue(filledFormState);
-      expect(component.userForm.value.email).toBe(filledFormState.email);
-
-      component.addUser();
-      expect(component.userForm.reset).toHaveBeenCalled();
-      expect(component.userForm.value.email).toBeFalsy();
+      expect(component.form.get('details').value).toEqual(value);
     });
+  });
 
-    it('deletes a user from the main form based on its index', () => {
-      const users = [{
-        email: 'test1@example.com',
-        role: 'system_admin'
+  describe('Distribute regions', () => {
+    it('regions should be evenly distributed', () => {
+      component.zones = [{
+        name: 'US West - Oregon',
+        id: 'us-west',
+        latitude: 0,
+        longitude: 0
       }, {
-        email: 'test2@example.com',
-        role: 'system_admin'
+        name: 'US East - N Virginia',
+        id: 'us-east',
+        latitude: 0,
+        longitude: 0
+      }, {
+        name: 'EMEA - Frankfurt',
+        id: 'emea',
+        latitude: 0,
+        longitude: 0
+      },
+      {
+        name: 'Pacific - Sydney',
+        id: 'pacific',
+        latitude: 0,
+        longitude: 0
       }];
 
-      expect(component.form.get('users').value.length).toBe(0);
+      const zones = component.form.controls.nodes['controls'].zones;
+      const regionKeys = Object.keys(zones.value);
 
-      users.forEach((user) => {
-        component.userForm.setValue(user);
-        component.addUser();
-      });
+      component.form.controls.nodes['controls'].numberOfNodes.patchValue(7);
+      component.distributeZones();
 
-      expect(component.form.get('users').value.length).toBe(2);
-      expect(component.form.get('users').value[1].email).toBe(users[1].email);
-
-      component.deleteUser(1);
-
-      expect(component.form.get('users').value[1]).toBeUndefined();
-      expect(component.form.get('users').value.length).toBe(1);
+      expect(zones.controls[regionKeys[0]].value).toEqual(2);
+      expect(zones.controls[regionKeys[1]].value).toEqual(2);
+      expect(zones.controls[regionKeys[2]].value).toEqual(2);
+      expect(zones.controls[regionKeys[3]].value).toEqual(1);
     });
   });
 
   describe('On open', () => {
     it('resets all forms', () => {
       spyOn(component.form, 'reset');
-      spyOn(component.userForm, 'reset');
 
       component.open();
 
       expect(component.form.reset).toHaveBeenCalled();
-      expect(component.userForm.reset).toHaveBeenCalled();
     });
 
     it('resets the clarity wizard', () => {
@@ -138,6 +137,7 @@ describe('BlockchainWizardComponent', () => {
 
     it('submits the form value', () => {
       spyOn((component as any).router, 'navigate');
+      component.form.controls.nodes['controls'].numberOfNodes.patchValue(4);
 
       component.onSubmit();
       // TODO: Test the individual attributes of the request

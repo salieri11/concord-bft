@@ -9,6 +9,8 @@ import {
   HttpEvent,
   HttpInterceptor, HttpResponse, HttpErrorResponse
 } from '@angular/common/http';
+import { Router } from '@angular/router';
+
 import { Observable, throwError, of, BehaviorSubject } from 'rxjs';
 import { tap, catchError, switchMap, take, finalize, filter } from 'rxjs/operators';
 import { AuthenticationService } from './shared/authentication.service';
@@ -26,7 +28,10 @@ export class RequestInterceptor implements HttpInterceptor {
   isRefreshingToken: boolean = false;
   tokenSubject: BehaviorSubject<string> = new BehaviorSubject<string>(null);
   cspErrors = [];
-  constructor(private authService: AuthenticationService) { }
+  constructor(
+    private authService: AuthenticationService,
+    private router: Router
+  ) { }
 
   intercept(request: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
     if (this.env.csp) {
@@ -34,6 +39,7 @@ export class RequestInterceptor implements HttpInterceptor {
 
         catchError((error) => {
           if (error instanceof HttpErrorResponse) {
+
             switch ((<HttpErrorResponse>error).status) {
               case 401:
                 this.cspErrors.push(error);
@@ -48,7 +54,9 @@ export class RequestInterceptor implements HttpInterceptor {
                 return throwError(error);
 
                 break;
-
+              case 403:
+                this.router.navigate(['/forbidden']);
+                return throwError(error);
               default:
                 return throwError(error);
             }

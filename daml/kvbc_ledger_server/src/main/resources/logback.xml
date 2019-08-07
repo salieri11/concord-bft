@@ -14,7 +14,7 @@
     </appender>
 
     <appender name="FILE" class="ch.qos.logback.core.FileAppender">
-        <file>api-server-damlonx-reference.log</file>
+        <file>daml-ledger-api-server.log</file>
         <encoder>
             <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg %mdc%n</pattern>
         </encoder>

@@ -10,7 +10,7 @@ import time
 from numbers import Number
 
 import util.json_helper
-from util.auth import getAccessToken, TESTING_TOKEN
+from util.auth import getAccessToken
 
 log = logging.getLogger(__name__)
 
@@ -31,7 +31,7 @@ class RPC():
    _url = None
    _accessToken = None
 
-   def __init__(self, logDir, testName, url, userConfig, tokenType=TESTING_TOKEN):
+   def __init__(self, logDir, testName, url, userConfig, tokenDescriptor=None):
       self._logDir = logDir
       os.makedirs(self._logDir, exist_ok=True)
 
@@ -42,7 +42,7 @@ class RPC():
       self._testName = testName
       self._url = url
       self._userConfig = userConfig
-      self._accessToken = getAccessToken(tokenType)
+      self._accessToken = getAccessToken(tokenDescriptor)
 
    @staticmethod
    def searchResponse(searchMe, findMe):
@@ -134,15 +134,16 @@ class RPC():
                  "--output", self._responseFile,
                  "--verbose",
                  "--insecure"]
-      log.debug("RPC COMMAND: {}".format(curlCmd))
 
       with open (self._outputFile, "a") as f:
          # Make people's lives easier by printing a copy/pastable command.
          f.write("Command: \n'" + "' '".join(curlCmd) + "'\n\n")
          f.flush()
+         log.debug("Sending RPC command (see {})".format(self._outputFile))
          curlProc = subprocess.run(curlCmd,
                                    stdout=f,
                                    stderr=subprocess.STDOUT)
+         log.debug("RPC response received")
 
       if os.path.isfile(self._responseFile):
          response = util.json_helper.readJsonFile(self._responseFile)

@@ -76,35 +76,43 @@ services:
   daml_ledger_api1:
     # Note: Only one service needs to upload the initial *.dar files
     image: "${daml_ledger_api_repo}:${daml_ledger_api_tag}"
-    command: "/doc/daml/kvbc_ledger_server/target/universal/stage/bin/kvbc-ledger-server concord1:50051 /SemanticTests.dar /Test.dar"
+    command: "/doc/daml/kvbc_ledger_server/target/universal/stage/bin/kvbc-ledger-server concord1:50051 daml_ledger_api1 /SemanticTests.dar /Test.dar"
     depends_on:
       - concord1
     expose:
       - 6865
+    ports:
+      - "6861:6865"
 
   daml_ledger_api2:
     image: "${daml_ledger_api_repo}:${daml_ledger_api_tag}"
-    command: "/doc/daml/kvbc_ledger_server/target/universal/stage/bin/kvbc-ledger-server concord2:50051"
+    command: "/doc/daml/kvbc_ledger_server/target/universal/stage/bin/kvbc-ledger-server concord2:50051 daml_ledger_api2"
     depends_on:
       - concord2
     expose:
       - 6865
+    ports:
+      - "6862:6865"
 
   daml_ledger_api3:
     image: "${daml_ledger_api_repo}:${daml_ledger_api_tag}"
-    command: "/doc/daml/kvbc_ledger_server/target/universal/stage/bin/kvbc-ledger-server concord3:50051"
+    command: "/doc/daml/kvbc_ledger_server/target/universal/stage/bin/kvbc-ledger-server concord3:50051 daml_ledger_api3"
     depends_on:
       - concord3
     expose:
       - 6865
+    ports:
+      - "6863:6865"
 
   daml_ledger_api4:
     image: "${daml_ledger_api_repo}:${daml_ledger_api_tag}"
-    command: "/doc/daml/kvbc_ledger_server/target/universal/stage/bin/kvbc-ledger-server concord4:50051"
+    command: "/doc/daml/kvbc_ledger_server/target/universal/stage/bin/kvbc-ledger-server concord4:50051 daml_ledger_api4"
     depends_on:
       - concord4
     expose:
       - 6865
+    ports:
+      - "6864:6865"
 
   daml_execution_engine1:
     image: "${daml_execution_engine_repo}:${daml_execution_engine_tag}"

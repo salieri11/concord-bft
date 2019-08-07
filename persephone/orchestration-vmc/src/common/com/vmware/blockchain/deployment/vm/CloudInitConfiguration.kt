@@ -9,6 +9,7 @@ import com.vmware.blockchain.deployment.model.ConcordClusterIdentifier
 import com.vmware.blockchain.deployment.model.ConcordComponent
 import com.vmware.blockchain.deployment.model.ConcordModelSpecification
 import com.vmware.blockchain.deployment.model.ConcordNodeIdentifier
+import com.vmware.blockchain.deployment.model.ConfigurationSessionIdentifier
 import com.vmware.blockchain.deployment.model.Credential
 import com.vmware.blockchain.deployment.model.Endpoint
 import com.vmware.blockchain.deployment.model.core.URI
@@ -28,7 +29,9 @@ class CloudInitConfiguration(
     gateway: String,
     subnet: Int,
     clusterId: ConcordClusterIdentifier,
-    nodeId: ConcordNodeIdentifier
+    nodeId: Int,
+    configGenId: ConfigurationSessionIdentifier,
+    configServiceEndpoint: Endpoint
 ) {
     object GenesisSerializer
         : JsonSerializer(serializersModuleOf(Genesis::class, Genesis.serializer()))
@@ -64,7 +67,10 @@ class CloudInitConfiguration(
             containerRegistry = containerRegistry,
             fleetService = Endpoint(), // TODO: need to inject fleet service endpoint info.
             cluster = clusterId,
-            node = nodeId
+            node = nodeId,
+            configService = configServiceEndpoint,
+            configurationSession =  configGenId
+
     )
 
     private val script =
@@ -73,9 +79,8 @@ class CloudInitConfiguration(
             echo -e "c0nc0rd\nc0nc0rd" | /bin/passwd
 
             # Configure network
-            mkdir -p /concord
-            echo '{{staticIp}}' > /concord/ipaddr
-            echo '{{gateway}}' > /concord/gateway
+            echo '{{staticIp}}' > /config/network/ipaddr
+            echo '{{gateway}}' > /config/network/gateway
 
             {{networkAddressCommand}}
 
@@ -90,24 +95,27 @@ class CloudInitConfiguration(
             {{dockerPullCommand}}
 
             # Output the node's configuration.
-            mkdir -p /concord/config-local
-            mkdir -p /concord/config-public
-            
+            mkdir -p /config/concord/config-local
+            mkdir -p /config/concord/config-public
+
+            # create dir for tls certs
+            mkdir -p /config/concord/config-local/cert
+
             # Output the node's model specification.
-            mkdir -p /concord/agent/config
-            echo '{{agentConfig}}' > /concord/agent/config/config.json
+            mkdir -p /config/agent
+            echo '{{agentConfig}}' > /config/agent/config.json
 
             # Update guest-info's network information in vSphere.
             touch /etc/vmware-tools/tools.conf
             printf '[guestinfo]\nprimary-nics=eth*\nexclude-nics=docker*,veth*' > /etc/vmware-tools/tools.conf
             /usr/bin/vmware-toolbox-cmd info update network
 
-            touch /concord/config-local/concord.config
-            touch /concord/config-public/find-docker-instances.sh
-            chmod 777 /concord/config-public/find-docker-instances.sh
+            touch /config/concord/config-local/concord.config
+            touch /config/concord/config-public/find-docker-instances.sh
+            chmod 777 /config/concord/config-public/find-docker-instances.sh
 
-            echo '{{genesis}}' > /concord/config-public/genesis.json
-            docker run -d --name=agent --restart=always -v /concord/agent/config:/config -v /concord:/concord -v /var/run/docker.sock:/var/run/docker.sock -p 8546:8546 registry-1.docker.io/vmwblockchain/agent-testing:latest
+            echo '{{genesis}}' > /config/concord/config-public/genesis.json
+            docker run -d --name=agent --restart=always -v /config/agent/config.json:/config/config.json -v /config:/config -v /var/run/docker.sock:/var/run/docker.sock -p 8546:8546 registry-1.docker.io/vmwblockchain/agent-testing:latest
             echo 'done'
             """.trimIndent()
                     .replace("{{dockerLoginCommand}}", containerRegistry.toRegistryLoginCommand())

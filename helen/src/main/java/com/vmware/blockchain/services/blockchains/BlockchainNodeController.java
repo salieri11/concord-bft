@@ -40,6 +40,7 @@ import com.vmware.blockchain.deployment.model.MessageHeader;
 import com.vmware.blockchain.deployment.model.ServiceState;
 import com.vmware.blockchain.deployment.model.UpdateInstanceRequest;
 import com.vmware.blockchain.deployment.model.UpdateInstanceResponse;
+import com.vmware.blockchain.operation.OperationContext;
 import com.vmware.blockchain.services.blockchains.BlockchainController.BlockchainTaskResponse;
 import com.vmware.blockchain.services.profiles.ConsortiumService;
 import com.vmware.blockchain.services.profiles.DefaultProfiles;
@@ -67,6 +68,7 @@ public class BlockchainNodeController {
     private DefaultProfiles defaultProfiles;
     private ITaskService taskService;
     private FleetManagementServiceStub client;
+    private OperationContext operationContext;
     private boolean mockDeployment;
 
     @Autowired
@@ -76,6 +78,7 @@ public class BlockchainNodeController {
                                 DefaultProfiles defaultProfiles,
                                 TaskService taskService,
                                 FleetManagementServiceStub client,
+                                OperationContext operationContext,
                                 @Value("${mock.deployment:false}") boolean mockDeployment) {
         this.blockchainService = blockchainService;
         this.consortiumService = consortiumService;
@@ -83,6 +86,7 @@ public class BlockchainNodeController {
         this.defaultProfiles = defaultProfiles;
         this.taskService = taskService;
         this.client = client;
+        this.operationContext = operationContext;
         this.mockDeployment = mockDeployment;
     }
 
@@ -108,11 +112,15 @@ public class BlockchainNodeController {
         private UUID taskId;
         private ITaskService taskService;
         private Authentication auth;
+        private OperationContext operationContext;
+        private String opId;
 
-        public NodeObserver(UUID taskId, ITaskService taskService) {
+        public NodeObserver(UUID taskId, ITaskService taskService, OperationContext operationContext) {
             this.taskId = taskId;
             this.taskService = taskService;
+            this.operationContext = operationContext;
             auth = SecurityContextHolder.getContext().getAuthentication();
+            opId = operationContext.getId();
         }
 
         @Override
@@ -123,6 +131,7 @@ public class BlockchainNodeController {
         @Override
         public void onError(Throwable t) {
             SecurityContextHolder.getContext().setAuthentication(auth);
+            operationContext.setId(opId);
             try {
                 logger.info("Error during stop/start", t);
                 Task task = taskService.get(taskId);
@@ -131,12 +140,14 @@ public class BlockchainNodeController {
                 taskService.put(task);
             } finally {
                 SecurityContextHolder.getContext().setAuthentication(null);
+                operationContext.removeId();
             }
         }
 
         @Override
         public void onCompleted() {
             SecurityContextHolder.getContext().setAuthentication(auth);
+            operationContext.setId(opId);
             try {
                 logger.info("Start/stop completed");
                 Task task = taskService.get(taskId);
@@ -145,6 +156,7 @@ public class BlockchainNodeController {
                 taskService.put(task);
             } finally {
                 SecurityContextHolder.getContext().setAuthentication(null);
+                operationContext.removeId();
             }
         }
     }
@@ -216,7 +228,7 @@ public class BlockchainNodeController {
         task.setResourceId(bid);
         task.setResourceLink(String.format("/api/blockchains/%s", bid));
         task = taskService.put(task);
-        NodeObserver nodeObserver = new NodeObserver(task.getId(), taskService);
+        NodeObserver nodeObserver = new NodeObserver(task.getId(), taskService, operationContext);
         client.updateInstance(request, nodeObserver);
         return task;
     }

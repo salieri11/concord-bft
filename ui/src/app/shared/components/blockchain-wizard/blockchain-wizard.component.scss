@@ -1,4 +1,5 @@
 $formTopMargin: 1.5rem;
+$inputWidth: 2.5rem;
 
 .table-actions {
   clr-icon {
@@ -16,10 +17,13 @@ $formTopMargin: 1.5rem;
 }
 
 .blockchain-wizard {
-  .blockchain-form {
+  .detail-form {
     margin-top: $formTopMargin;
+    textarea {
+      width: 100%;
+    }
   }
-  .user-form {
+ .user-form {
     margin-top: $formTopMargin;
   }
 }
@@ -53,9 +57,6 @@ label {
   text-overflow: ellipsis;
 }
 
-.summary-label {
-  font-weight: bold;
-}
 
 .summary-label, .summary-value {
   font-size: 13px;
@@ -72,5 +73,33 @@ label {
   label {
     margin-top: 0.2rem;
     width: 2rem;
+  }
+}
+.review {
+  margin-top: .5rem;
+}
+.sub-title {
+  padding: 0 0 .2rem;
+  margin: 1rem 0 .3rem;
+  border-bottom: 1px solid #ccc;
+  width: 100%;
+}
+.nodes {
+  select {
+    width: $inputWidth;
+  }
+}
+.regions {
+  margin-top: $formTopMargin;
+
+  input {
+    width: $inputWidth;
+  }
+}
+
+.review {
+  .sub-title {
+    margin-left: .5rem;
+    margin-right: .5rem;
   }
 }

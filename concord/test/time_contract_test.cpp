@@ -14,6 +14,8 @@
 #include "storage/comparators.h"
 #include "storage/in_memory_db_client.h"
 
+#include <google/protobuf/timestamp.pb.h>
+#include <google/protobuf/util/time_util.h>
 #include <log4cplus/configurator.h>
 #include <log4cplus/hierarchy.h>
 #include <log4cplus/loggingmacros.h>
@@ -40,6 +42,8 @@ using concord::time::TimeSigner;
 using concord::time::TimeVerifier;
 
 using CryptoPP::AutoSeededRandomPool;
+using google::protobuf::Timestamp;
+using google::protobuf::util::TimeUtil;
 
 namespace {
 
@@ -163,19 +167,24 @@ TEST(time_contract_test, five_source_happy_path) {
   ConcordConfiguration config = TestConfiguration({"A", "B", "C", "D", "E"});
   TimeContract tc(database, config);
 
-  std::vector<std::pair<std::string, uint64_t>> samples = {
-      {"A", 1}, {"B", 2}, {"C", 3}, {"D", 4}, {"E", 5}};
+  std::vector<std::pair<std::string, Timestamp>> samples = {
+      {"A", TimeUtil::SecondsToTimestamp(1)},
+      {"B", TimeUtil::SecondsToTimestamp(2)},
+      {"C", TimeUtil::SecondsToTimestamp(3)},
+      {"D", TimeUtil::SecondsToTimestamp(4)},
+      {"E", TimeUtil::SecondsToTimestamp(5)}};
 
   for (size_t i = 0; i < samples.size(); ++i) {
-    pair<string, uint64_t> s = samples[i];
+    pair<string, Timestamp> s = samples[i];
     const ConcordConfiguration& node_config = config.subscope("node", i);
 
     TimeSigner ts(node_config);
     vector<uint8_t> signature = ts.Sign(s.second);
     tc.Update(s.first, s.second, signature);
+    tc.Update(s.first, s.second, signature);
   }
 
-  ASSERT_EQ(tc.GetTime(), 3);
+  ASSERT_EQ(tc.GetTime(), TimeUtil::SecondsToTimestamp(3));
 }
 
 // Since we're using "median", verify that an even number of sources gives the
@@ -186,11 +195,16 @@ TEST(time_contract_test, six_source_happy_path) {
       TestConfiguration({"A", "B", "C", "D", "E", "F"});
   TimeContract tc(database, config);
 
-  std::vector<std::pair<std::string, uint64_t>> samples = {
-      {"A", 1}, {"B", 2}, {"C", 3}, {"D", 5}, {"E", 6}, {"F", 7}};
+  std::vector<std::pair<std::string, Timestamp>> samples = {
+      {"A", TimeUtil::SecondsToTimestamp(1)},
+      {"B", TimeUtil::SecondsToTimestamp(2)},
+      {"C", TimeUtil::SecondsToTimestamp(3)},
+      {"D", TimeUtil::SecondsToTimestamp(5)},
+      {"E", TimeUtil::SecondsToTimestamp(6)},
+      {"F", TimeUtil::SecondsToTimestamp(7)}};
 
   for (size_t i = 0; i < samples.size(); ++i) {
-    pair<string, uint64_t> s = samples[i];
+    pair<string, Timestamp> s = samples[i];
     const ConcordConfiguration& node_config = config.subscope("node", i);
 
     TimeSigner ts(node_config);
@@ -198,7 +212,7 @@ TEST(time_contract_test, six_source_happy_path) {
     tc.Update(s.first, s.second, signature);
   }
 
-  ASSERT_EQ(tc.GetTime(), 4);
+  ASSERT_EQ(tc.GetTime(), TimeUtil::SecondsToTimestamp(4));
 }
 
 // Verify that a single source moves forward as expected
@@ -212,8 +226,10 @@ TEST(time_contract_test, source_moves_forward) {
 
   for (uint64_t fake_time = 1; fake_time < 10; fake_time++) {
     TimeContract tc(database, config);
-    vector<uint8_t> signature = ts.Sign(fake_time);
-    ASSERT_EQ(tc.Update(source_id, fake_time, signature), fake_time);
+    Timestamp fake_timestamp = TimeUtil::SecondsToTimestamp(fake_time);
+    vector<uint8_t> signature = ts.Sign(fake_timestamp);
+    ASSERT_EQ(tc.Update(source_id, fake_timestamp, signature),
+              TimeUtil::SecondsToTimestamp(fake_time));
   }
 }
 
@@ -231,18 +247,22 @@ TEST(time_contract_test, save_restore) {
   std::string source_qux = "qux";
   TimeSigner ts_qux(config.subscope("node", 3));
 
-  uint64_t expected_time;
+  Timestamp expected_time;
   {
     TimeContract tc(database, config);
     vector<uint8_t> signature;
-    signature = ts_foo.Sign(12345);
-    tc.Update(source_foo, 12345, signature);
-    signature = ts_bar.Sign(54321);
-    tc.Update(source_bar, 54321, signature);
-    signature = ts_baz.Sign(10293);
-    tc.Update(source_baz, 10293, signature);
-    signature = ts_qux.Sign(48576);
-    tc.Update(source_qux, 48576, signature);
+    Timestamp t1 = TimeUtil::SecondsToTimestamp(12345);
+    signature = ts_foo.Sign(t1);
+    tc.Update(source_foo, t1, signature);
+    Timestamp t2 = TimeUtil::SecondsToTimestamp(54321);
+    signature = ts_bar.Sign(t2);
+    tc.Update(source_bar, t2, signature);
+    Timestamp t3 = TimeUtil::SecondsToTimestamp(10293);
+    signature = ts_baz.Sign(t3);
+    tc.Update(source_baz, t3, signature);
+    Timestamp t4 = TimeUtil::SecondsToTimestamp(48576);
+    signature = ts_qux.Sign(t4);
+    tc.Update(source_qux, t4, signature);
     expected_time = tc.GetTime();
 
     SetOfKeyValuePairs updates({tc.Serialize()});
@@ -278,30 +298,41 @@ TEST(time_contract_test, update_correct_source) {
 
   TimeContract tc(database, config);
   vector<uint8_t> signature;
-  signature = ts_a.Sign(1);
-  tc.Update(source_A, 1, signature);
-  signature = ts_b.Sign(10);
-  tc.Update(source_B, 10, signature);
-  signature = ts_c.Sign(20);
-  tc.Update(source_C, 20, signature);
+  Timestamp t1 = TimeUtil::SecondsToTimestamp(1);
+  signature = ts_a.Sign(t1);
+  tc.Update(source_A, t1, signature);
+  Timestamp t2 = TimeUtil::SecondsToTimestamp(10);
+  signature = ts_b.Sign(t2);
+  tc.Update(source_B, t2, signature);
+  Timestamp t3 = TimeUtil::SecondsToTimestamp(20);
+  signature = ts_c.Sign(t3);
+  tc.Update(source_C, t3, signature);
 
   // sanity: B is the median
-  ASSERT_EQ(tc.GetTime(), 10);
+  ASSERT_EQ(tc.GetTime(), TimeUtil::SecondsToTimestamp(10));
 
   // directly observe the median reading (B) being updated
-  signature = ts_b.Sign(11);
-  ASSERT_EQ(tc.Update(source_B, 11, signature), 11);
+  Timestamp t4 = TimeUtil::SecondsToTimestamp(11);
+  signature = ts_b.Sign(t4);
+  ASSERT_EQ(tc.Update(source_B, t4, signature),
+            TimeUtil::SecondsToTimestamp(11));
 
   // first move one of the other values, then make it the median
-  signature = ts_c.Sign(21);
-  ASSERT_EQ(tc.Update(source_C, 21, signature), 11);
+  Timestamp t5 = TimeUtil::SecondsToTimestamp(21);
+  signature = ts_c.Sign(t5);
+  ASSERT_EQ(tc.Update(source_C, t5, signature),
+            TimeUtil::SecondsToTimestamp(11));
   // either A or B moved, because the new summary is C's value
-  signature = ts_a.Sign(30);
-  ASSERT_EQ(tc.Update(source_A, 30, signature), 21);
+  Timestamp t6 = TimeUtil::SecondsToTimestamp(30);
+  signature = ts_a.Sign(t6);
+  ASSERT_EQ(tc.Update(source_A, t6, signature),
+            TimeUtil::SecondsToTimestamp(21));
 
   // and one more leapfrog, either B or C moved, because the summary is A
-  signature = ts_b.Sign(40);
-  ASSERT_EQ(tc.Update(source_B, 40, signature), 30);
+  Timestamp t8 = TimeUtil::SecondsToTimestamp(40);
+  signature = ts_b.Sign(t8);
+  ASSERT_EQ(tc.Update(source_B, t8, signature),
+            TimeUtil::SecondsToTimestamp(30));
 }
 
 // Verify that a source cannot move its own time backward.
@@ -314,12 +345,14 @@ TEST(time_contract_test, prevent_source_rollback) {
 
   TimeContract tc1(database, config);
   vector<uint8_t> signature;
-  signature = ts.Sign(1000);
-  const uint64_t first_time = tc1.Update(source_foo, 1000, signature);
+  Timestamp t1 = TimeUtil::SecondsToTimestamp(1000);
+  signature = ts.Sign(t1);
+  const Timestamp first_time = tc1.Update(source_foo, t1, signature);
 
   // first make sure a source can't rollback a cached copy
-  signature = ts.Sign(500);
-  const uint64_t second_time = tc1.Update(source_foo, 500, signature);
+  Timestamp t2 = TimeUtil::SecondsToTimestamp(500);
+  signature = ts.Sign(t2);
+  const Timestamp second_time = tc1.Update(source_foo, t2, signature);
   ASSERT_EQ(second_time, first_time);
 
   // then make sure a fresh read is also protected
@@ -329,8 +362,9 @@ TEST(time_contract_test, prevent_source_rollback) {
   ASSERT_EQ(result.isOK(), true);
 
   TimeContract tc2(database, config);
-  signature = ts.Sign(250);
-  const uint64_t third_time = tc2.Update(source_foo, 250, signature);
+  Timestamp t3 = TimeUtil::SecondsToTimestamp(250);
+  signature = ts.Sign(t3);
+  const Timestamp third_time = tc2.Update(source_foo, t3, signature);
   ASSERT_EQ(third_time, first_time);
 }
 
@@ -342,16 +376,17 @@ TEST(time_contract_test, ignore_unknown_source) {
 
   TimeContract tc1(database, config);
   vector<uint8_t> signature;
-  signature = TimeSigner(fakeConfig.subscope("node", 0)).Sign(1000);
-  tc1.Update("X", 1000, signature);
-  signature = TimeSigner(fakeConfig.subscope("node", 1)).Sign(1000);
-  tc1.Update("Y", 1000, signature);
-  signature = TimeSigner(fakeConfig.subscope("node", 2)).Sign(1000);
-  tc1.Update("Z", 1000, signature);
+  Timestamp timestamp = TimeUtil::SecondsToTimestamp(1000);
+  signature = TimeSigner(fakeConfig.subscope("node", 0)).Sign(timestamp);
+  tc1.Update("X", timestamp, signature);
+  signature = TimeSigner(fakeConfig.subscope("node", 1)).Sign(timestamp);
+  tc1.Update("Y", timestamp, signature);
+  signature = TimeSigner(fakeConfig.subscope("node", 2)).Sign(timestamp);
+  tc1.Update("Z", timestamp, signature);
 
   // Config specified A,B,C as sources, so all of X,Y,Z updates should be
   // ignored.
-  ASSERT_EQ(tc1.GetTime(), 0);
+  ASSERT_EQ(tc1.GetTime(), TimeUtil::GetEpoch());
 }
 
 // Verify general functionality of TimeSigner and TimeVerifier and their
@@ -362,7 +397,7 @@ TEST(time_contract_test, time_signing_basic_interfaces) {
   ConcordConfiguration& a_config = config.subscope("node", 0);
   ConcordConfiguration& b_config = config.subscope("node", 1);
   ConcordConfiguration& c_config = config.subscope("node", 2);
-  uint64_t arbitrary_time = 10000000000;
+  Timestamp arbitrary_time = TimeUtil::SecondsToTimestamp(10000000000);
 
   TimeSigner a_signer(a_config);
 
@@ -430,7 +465,9 @@ TEST(time_contract_test, time_signing_basic_interfaces) {
       << "TimeVerifier fails to reject a signature from an unrecognized "
          "source.";
 
-  EXPECT_FALSE(verifier.Verify("A", (arbitrary_time + 1), a_signature))
+  Timestamp arbitrary_time_plus_one = TimeUtil::SecondsToTimestamp(
+      TimeUtil::TimestampToSeconds(arbitrary_time) + 1);
+  EXPECT_FALSE(verifier.Verify("A", arbitrary_time_plus_one, a_signature))
       << "TimeVerifier fails to reject a signature that doesn't match the "
          "claimed source/time combination.";
 
@@ -444,7 +481,7 @@ TEST(time_contract_test, time_signing_basic_interfaces) {
 TEST(time_contract_test, time_signature_verifiability) {
   ConcordConfiguration config =
       TestConfiguration({"A", "B", "C", "D", "E", "F", "G", "H"});
-  uint64_t arbitrary_time = 1000000000;
+  Timestamp arbitrary_time = TimeUtil::SecondsToTimestamp(1000000000);
   TimeVerifier verifier(config);
 
   for (size_t i = 0; i < config.scopeSize("node"); ++i) {
@@ -478,34 +515,38 @@ TEST(time_contract_test, time_signature_enforcement) {
   TimeSigner fake_a_signer(fake_config.subscope("node", 0));
   TimeSigner fake_b_signer(fake_config.subscope("node", 1));
 
-  vector<uint8_t> a_signature = a_signer.Sign(3);
-  tc.Update("A", 3, a_signature);
-  vector<uint8_t> b_signature = b_signer.Sign(3);
-  tc.Update("B", 3, b_signature);
+  Timestamp t1 = TimeUtil::SecondsToTimestamp(3);
+  vector<uint8_t> a_signature = a_signer.Sign(t1);
+  tc.Update("A", t1, a_signature);
+  vector<uint8_t> b_signature = b_signer.Sign(t1);
+  tc.Update("B", t1, b_signature);
 
+  Timestamp t2 = TimeUtil::SecondsToTimestamp(17);
   vector<uint8_t> empty_signature;
-  tc.Update("A", 17, empty_signature);
-  tc.Update("B", 17, empty_signature);
+  tc.Update("A", t2, empty_signature);
+  tc.Update("B", t2, empty_signature);
 
-  EXPECT_EQ(tc.GetTime(), 3)
+  EXPECT_EQ(tc.GetTime(), TimeUtil::SecondsToTimestamp(3))
       << "Time Contract fails to reject time updates without signatures.";
 
-  a_signature = a_signer.Sign(17);
-  tc.Update("A", 17, a_signature);
-  b_signature = b_signer.Sign(17);
-  tc.Update("B", 17, b_signature);
+  a_signature = a_signer.Sign(t2);
+  tc.Update("A", t2, a_signature);
+  b_signature = b_signer.Sign(t2);
+  tc.Update("B", t2, b_signature);
 
-  EXPECT_EQ(tc.GetTime(), 17) << "Time Contract fails to reject time updates "
-                                 "with incorrect signatures.";
+  EXPECT_EQ(tc.GetTime(), TimeUtil::SecondsToTimestamp(17))
+      << "Time Contract fails to reject time updates "
+         "with incorrect signatures.";
 
-  tc.Update("A", 21, a_signature);
-  tc.Update("B", 21, b_signature);
-  a_signature = fake_a_signer.Sign(21);
-  tc.Update("A", 21, a_signature);
-  b_signature = fake_b_signer.Sign(21);
-  tc.Update("B", 21, b_signature);
+  Timestamp t3 = TimeUtil::SecondsToTimestamp(21);
+  tc.Update("A", t3, a_signature);
+  tc.Update("B", t3, b_signature);
+  a_signature = fake_a_signer.Sign(t3);
+  tc.Update("A", t3, a_signature);
+  b_signature = fake_b_signer.Sign(t3);
+  tc.Update("B", t3, b_signature);
 
-  EXPECT_EQ(tc.GetTime(), 17)
+  EXPECT_EQ(tc.GetTime(), TimeUtil::SecondsToTimestamp(17))
       << "Time Contract fails to reject time updates with invalid signatures.";
 }
 

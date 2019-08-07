@@ -32,6 +32,7 @@ class PersephoneTests(test_suite.TestSuite):
    def __init__(self, cmdlineArgs):
       super().__init__(cmdlineArgs)
       self.args = self._args
+      self.args.userConfig = self._userConfig
       self.concord_ips = []
 
    def getName(self):
@@ -53,6 +54,20 @@ class PersephoneTests(test_suite.TestSuite):
          log.error(
             "****gRPC Python bindings not generated. Execute util/generate_gRPC_bindings_for_py3.sh")
          raise Exception("gRPC Python bindings not generated")
+
+      log.info("****************************************")
+      if self.args.tests is None or self.args.tests.lower() == "smoke":
+         log.info("**** Running SMOKE tests ****")
+         log.info(
+            "**** To run all Persephone tests, pass the command line arg '--tests all_tests'")
+      else:
+         log.info("**** Running All tests ****")
+
+      if self.args.deploymentComponents is None:
+         log.info("****")
+         log.info("**** And, to deploy using specific concord/ethrpc Docker images, ")
+         log.info("**** pass the command line arg '--deploymentComponents <repo/new-concord-core:tag>,<repo/new-ethrpc:tag>'")
+      log.info("****************************************")
 
       self.rpc_test_helper = RPCTestHelper(self.args)
 
@@ -166,19 +181,53 @@ class PersephoneTests(test_suite.TestSuite):
       return testFun()
 
    def _get_tests(self):
-      return [
-         ("add_model", self._test_add_model),
-         ("list_models", self._test_list_models),
-         ("4_Node_Blockchain_UNSPECIFIED_Site",
-          self._test_create_blockchain_4_node_unspecified_site),
-         ("get_deployment_events", self._test_stream_deployment_events),
-         ("4_Node_Blockchain_FIXED_Site",
-          self._test_create_blockchain_4_node_fixed_site),
-         ("7_Node_Blockchain_FIXED_Site",
-          self._test_create_blockchain_7_node_fixed_site),
-         ("concurrent_deployments_fixed_site",
-          self._test_concurrent_deployments_fixed_site)
-      ]
+      if self.args.tests is None or self.args.tests.lower() == "smoke":
+         return [
+            ("7_Node_Blockchain_FIXED_Site",
+             self._test_create_blockchain_7_node_fixed_site),
+         ]
+      elif self.args.tests.lower() == "all_tests":
+         return [
+            ("add_model", self._test_add_model),
+            ("list_models", self._test_list_models),
+            ("4_Node_Blockchain_UNSPECIFIED_Site",
+             self._test_create_blockchain_4_node_unspecified_site),
+            ("get_deployment_events", self._test_stream_deployment_events),
+            ("4_Node_Blockchain_FIXED_Site",
+             self._test_create_blockchain_4_node_fixed_site),
+            ("7_Node_Blockchain_FIXED_Site",
+             self._test_create_blockchain_7_node_fixed_site),
+            ("concurrent_deployments_fixed_site",
+             self._test_concurrent_deployments_fixed_site),
+         ]
+
+   def verify_ethrpc_block_0(self, concord_ip, ethrpc_port=443):
+      '''
+      Helper method to validate hitting ethrpc endpoint
+      :param concord_ip: Concord IP
+      :param ethrpc_port: ethrpc port, defaulting to 443 (workaround as 8545 is
+      blocked on vmware network)
+      :return: Verification status (True/False)
+      '''
+      log.info("Validating ethrpc (get Block 0) on port '{}'".format(ethrpc_port))
+      from rpc.rpc_call import RPC
+      rpc = RPC(self.args.fileRoot,
+                "verify_ethrpc_block_0",
+                "http://{}:{}".format(concord_ip, ethrpc_port),
+                self._userConfig)
+      try:
+         currentBlockNumber = rpc.getBlockNumber()
+         log.info("Current Block Number: {}".format(currentBlockNumber))
+
+         if int(currentBlockNumber, 16) == 0:
+            log.debug("Block Number is 0")
+            return True
+         else:
+            log.error("Block Number is NOT 0")
+      except Exception as e:
+         log.error(e)
+
+      return False
 
    def validate_cluster_deployment_events(self, cluster_size,
                                           response_events_json):
@@ -252,6 +301,7 @@ class PersephoneTests(test_suite.TestSuite):
       log.info("**** Deploy & Verify concord nodes for IPAM ****")
 
       status = False
+      msg = "Test Failed"
       if self.concord_ips:
          try:
             import grpc
@@ -406,7 +456,7 @@ class PersephoneTests(test_suite.TestSuite):
             log.info("Initiating SSH verification on all concord nodes...")
             for ethrpc_endpoint in ethrpc_endpoints:
                concord_ip = ethrpc_endpoint.split('//')[1].split(':')[0]
-               log.info("Concord IP: {}".format(concord_ip))
+               log.info("**** Concord IP: {}".format(concord_ip))
 
                if self.mark_node_as_logged_in(concord_ip, concord_username, concord_password):
                   log.info("Marked node as logged in (/tmp/{})".format(concord_ip))
@@ -436,6 +486,12 @@ class PersephoneTests(test_suite.TestSuite):
                self.add_ethrpc_port_forwarding(concord_ip,
                                                concord_username,
                                                concord_password)
+
+               if self.verify_ethrpc_block_0(concord_ip):
+                  log.info("Ethrpc (get Block 0) Validation - PASS")
+               else:
+                  log.error("Ethrpc (get Block 0) Validation - FAIL")
+                  return (False, "Ethrpc (get Block 0) Validation - FAILED")
 
             log.info("SSH Verification on all concord nodes are successful")
             return (True, None)

@@ -14,11 +14,14 @@ import com.daml.ledger.participant.state.index.v1.impl.reference.ReferenceIndexS
 import com.digitalasset.daml.lf.archive.DarReader
 import com.digitalasset.daml_lf.DamlLf.Archive
 import com.daml.ledger.participant.state.backport.TimeModel
+import com.digitalasset.daml.lf.data.Ref
 import org.slf4j.LoggerFactory
 
 import scala.util.Try
+import scala.compat.java8.FutureConverters._
 import com.digitalasset.platform.common.util.DirectExecutionContext
 import com.digitalasset.kvbc_sync_adapter.KVBCParticipantState
+import com.digitalasset.ledger.api.domain.ParticipantId
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -34,11 +37,9 @@ object KvbcLedgerServer extends App {
         Supervision.Stop
       })
 
-  val timeModel = TimeModel.reasonableDefault
-
   def archivesFromDar(file: File): List[Archive] = {
     DarReader[Archive] { case (_, x) => Try(Archive.parseFrom(x)) }
-      .readArchive(new ZipFile(file))
+      .readArchiveFromFile(file)
       .fold(t => throw new RuntimeException(s"Failed to parse DAR from $file", t), dar => dar.all)
   }
 
@@ -46,28 +47,38 @@ object KvbcLedgerServer extends App {
   val replicaAddr = args(0).split(":")
   val (ip, port) = (replicaAddr(0), replicaAddr(1).toInt)
 
-  logger.info("Connecting to Core Replica {}", args(0))
-  val kvbcPS = new KVBCParticipantState(
-    "KVBC", ip, port)
+  // Name of this participant
+  val participantId: String = args(1)
+  val serverPort = 6865
+
+  logger.info(
+    s"""Initialized vDAML ledger api server: version=${BuildInfo.Version},
+       |participantId=$participantId, port=$serverPort,
+       |dar file(s)=${args.drop(2).mkString("(", ";", ")")}""".stripMargin.replaceAll("\n", " "))
+
+  logger.info(s"Connecting to core replica ${args(0)}")
+  val kvbcPS = KVBCParticipantState(
+    "KVBC", participantId, ip, port)
 
   implicit val ec: ExecutionContext = DirectExecutionContext
   kvbcPS.getLedgerInitialConditions.runWith(Sink.head)
     .flatMap { initialConditions =>
       // Upload archives.
-      Future.sequence(
-        args.drop(1)
-          .flatMap { arg => archivesFromDar(new File(arg)) }
-          .map { archive => kvbcPS.uploadArchive(archive) }
-          .toList
-      ).map { _ =>
-        initialConditions
-      }
-    }
+      kvbcPS.uploadPackages(
+          args
+            .drop(2)
+            .flatMap { arg => archivesFromDar(new File(arg)) }
+            .toList,
+          Some("Uploaded on command-line"))
+        .toScala
+        .map { _ =>
+          initialConditions
+        }}
     .foreach { initialConditions =>
-      val indexService = ReferenceIndexService(kvbcPS, initialConditions)
+      val indexService = ReferenceIndexService(kvbcPS, initialConditions, Ref.LedgerString.assertFromString(participantId))
 
       val server = Server(
-        serverPort = 6865,
+        serverPort,
         indexService = indexService,
         writeService = kvbcPS,
         sslContext = None
@@ -75,6 +86,5 @@ object KvbcLedgerServer extends App {
 
       // Add a hook to close the server. Invoked when Ctrl-C is pressed.
       Runtime.getRuntime.addShutdownHook(new Thread(() => server.close()))
-
     }
 }

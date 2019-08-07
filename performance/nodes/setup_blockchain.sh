@@ -104,6 +104,7 @@ setup_concord_nodes() {
     HOSTNAMES_TO_REPLACE_WITH="HOSTNAMES=(${HOSTNAMES_TO_REPLACE_WITH})"
     sed -i.bkp "s/${HOSTNAMES_STRING_TO_REPLACE}/${HOSTNAMES_TO_REPLACE_WITH}/g" ${WORKDIR}/config-public/find-docker-instances.sh
 
+    LOOPBACK_ADDRESS="127.0.0.1"
     for NODE_COUNT in $(seq 1 $NO_OF_IPS)
     do
         echo "Updating docker/config-concord${NODE_COUNT}/concord_with_hostnames.config..."
@@ -115,7 +116,12 @@ setup_concord_nodes() {
         i=1
         for CONCORD_NODE in `echo $CONCORD_IPS | tr ',' '\n'`
         do
-            sed -i.bkp "s/concord${i}/${CONCORD_NODE}/g" ${BLOCKCHAIN_REPO}/docker/config-concord${NODE_COUNT}/concord_with_hostnames.config
+            if [ "${NODE_COUNT}" -eq "${i}" ]
+            then
+                sed -i.bkp "s/concord${i}/${LOOPBACK_ADDRESS}/g" ${BLOCKCHAIN_REPO}/docker/config-concord${NODE_COUNT}/concord_with_hostnames.config
+            else
+                sed -i.bkp "s/concord${i}/${CONCORD_NODE}/g" ${BLOCKCHAIN_REPO}/docker/config-concord${NODE_COUNT}/concord_with_hostnames.config
+            fi
             i=`expr $i + 1`
         done
     done
@@ -135,6 +141,7 @@ setup_concord_nodes() {
         scp -r ${WORKDIR}/config-public/ ${NODE_USERNAME}@${CONCORD_NODE}:/home/${NODE_USERNAME}/concord
         scp -r ${BLOCKCHAIN_REPO}/docker/config-concord${i}/ ${NODE_USERNAME}@${CONCORD_NODE}:/home/${NODE_USERNAME}/concord
         scp -r ${BLOCKCHAIN_REPO}/docker/config-ethrpc${i}/ ${NODE_USERNAME}@${CONCORD_NODE}:/home/${NODE_USERNAME}/concord
+        scp -r ${BLOCKCHAIN_REPO}/docker/tls_certs/ ${NODE_USERNAME}@${CONCORD_NODE}:/home/${NODE_USERNAME}/concord
         scp "docker_compose_files/docker-compose_concord_${i}.yml" ${NODE_USERNAME}@${CONCORD_NODE}:/home/${NODE_USERNAME}/concord/docker-compose.yml
 
         ssh ${NODE_USERNAME}@${CONCORD_NODE} "cd /home/${NODE_USERNAME}/concord && docker-compose up" > ${DOCKER_LOG_DIR}/docker_compose_concord_${CONCORD_NODE}.log &

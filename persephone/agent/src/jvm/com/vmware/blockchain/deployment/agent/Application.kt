@@ -4,7 +4,6 @@
 package com.vmware.blockchain.deployment.agent
 
 import com.vmware.blockchain.deployment.agent.docker.DockerClient
-import com.vmware.blockchain.deployment.agent.docker.DockerOrchestrator
 import com.vmware.blockchain.deployment.logging.error
 import com.vmware.blockchain.deployment.logging.info
 import com.vmware.blockchain.deployment.logging.logger
@@ -13,7 +12,6 @@ import com.vmware.blockchain.deployment.model.ConcordAgentConfiguration
 import com.vmware.blockchain.deployment.model.ConcordClusterIdentifier
 import com.vmware.blockchain.deployment.model.ConcordComponent
 import com.vmware.blockchain.deployment.model.ConcordModelSpecification
-import com.vmware.blockchain.deployment.model.ConcordNodeIdentifier
 import com.vmware.blockchain.deployment.model.Credential
 import com.vmware.blockchain.deployment.model.Endpoint
 import com.vmware.blockchain.deployment.model.FleetControlServiceStub
@@ -46,8 +44,8 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonConfiguration
 import kotlinx.serialization.modules.EmptyModule
 
-/** Default server port number.  */
-private val CONCORD_MODEL_URI = URI.create("file:/config/config.json")
+/** Default configuration file path.  */
+private val DEFAULT_APPLICATION_CONFIG = URI.create("file:/config/config.json")
 
 /** Default [ConcordAgentConfiguration] model. */
 private val DEFAULT_CONCORD_AGENT_CONFIGURATION by lazy {
@@ -75,7 +73,7 @@ private val DEFAULT_CONCORD_AGENT_CONFIGURATION by lazy {
             registryEndpoint,
             fleetEndpoint,
             ConcordClusterIdentifier.defaultValue,
-            ConcordNodeIdentifier.defaultValue
+            0
     )
 }
 
@@ -100,16 +98,6 @@ class Application(private val configuration: ConcordAgentConfiguration) : Corout
     /** [StatusReporter] instance for all deployed components associated with this agent. */
     private val statusCollector: StatusReporter = StatusReporter()
 
-    /** [DockerOrchestrator] instance to be used for all container orchestration actions. */
-    private val orchestrator: DockerOrchestrator = DockerOrchestrator(
-            docker = DockerClient(
-                    DockerClient.Context(
-                            DockerClient.DEFAULT_DOCKER_ENGINE,
-                            configuration.containerRegistry
-                    )
-            )
-    )
-
     /**
      * Start the Concord agent.
      */
@@ -117,9 +105,15 @@ class Application(private val configuration: ConcordAgentConfiguration) : Corout
         launch(coroutineContext) {
             // Each iteration of an established session does not propagate failure to parent.
             supervisorScope {
-                val controllers = configuration.model.components
+                val services = configuration.model.components
                         .groupBy { it.serviceType }
-                        .mapValues { ServiceController(orchestrator, it.value) }
+                        .mapValues {
+                            ServiceController(it.key, it.value, configuration.containerRegistry)
+                                    .apply { initialize() }
+                        }
+
+                // Start each service iteratively.
+                services.forEach { it.value.start() }
 
                 while (isActive) {
                     // Start a new session and wait for the session coroutine to close.
@@ -249,8 +243,8 @@ fun main(args: Array<String>) {
             val configJson = Path.of(args[0]).toUri().toURL().readText()
             json.parse(ConcordAgentConfiguration.getSerializer(), configJson)
         }
-        (Files.exists(Path.of(CONCORD_MODEL_URI))) -> {
-            val configJson = Path.of(CONCORD_MODEL_URI).toUri().toURL().readText()
+        (Files.exists(Path.of(DEFAULT_APPLICATION_CONFIG))) -> {
+            val configJson = Path.of(DEFAULT_APPLICATION_CONFIG).toUri().toURL().readText()
             json.parse(ConcordAgentConfiguration.getSerializer(), configJson)
         }
         else -> DEFAULT_CONCORD_AGENT_CONFIGURATION

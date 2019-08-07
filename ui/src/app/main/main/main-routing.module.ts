@@ -6,6 +6,7 @@ import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 
 import { MainComponent } from './main.component';
+import { ForbiddenComponent } from './../../errors/forbidden/forbidden.component';
 import { dashboardRoutes } from '../../dashboard/dashboard-routing';
 import { AuthenticatedGuard } from '../../shared/authenticated-guard.service';
 import { AgreementGuard } from '../../shared/agreement-guard.service';
@@ -21,6 +22,10 @@ import { developerRoutes } from '../../developer/developer-routing';
 import { BlockchainResolver } from '../../shared/blockchain.service';
 
 const routes: Routes = [{
+    path: 'forbidden',
+    component: ForbiddenComponent,
+    canActivate: [AuthenticatedGuard],
+  }, {
     path: ':consortiumId',
     component: MainComponent,
     canActivate: [AuthenticatedGuard, AgreementGuard],

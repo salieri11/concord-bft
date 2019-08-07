@@ -69,6 +69,7 @@ export class NodesService extends ConcordApiService {
             node['status'] = text;
           }
 
+          // This is for testing random health
           // if (Math.random() >= 0.5) {
           //   text = this.translate.instant('nodes.unhealthy');
           //   labelClass = 'label-danger';

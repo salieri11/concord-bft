@@ -17,6 +17,7 @@ import org.springframework.context.event.EventListener;
 import com.vmware.blockchain.connections.ConnectionPoolManager;
 import com.vmware.blockchain.services.blockchains.Blockchain;
 import com.vmware.blockchain.services.blockchains.BlockchainService;
+import com.vmware.blockchain.services.blockchains.zones.ZoneService;
 import com.vmware.blockchain.services.profiles.DefaultProfiles;
 
 /**
@@ -30,13 +31,15 @@ public class StartupConfig {
     private DefaultProfiles defaultProfiles;
     private BlockchainService blockchainService;
     private ConnectionPoolManager connectionPoolManager;
+    private ZoneService zoneService;
 
     @Autowired
     public StartupConfig(DefaultProfiles defaultProfiles, BlockchainService blockchainService,
-            ConnectionPoolManager connectionPoolManager) {
+            ConnectionPoolManager connectionPoolManager, ZoneService zoneService) {
         this.defaultProfiles = defaultProfiles;
         this.blockchainService = blockchainService;
         this.connectionPoolManager = connectionPoolManager;
+        this.zoneService = zoneService;
     }
 
     /**
@@ -54,6 +57,11 @@ public class StartupConfig {
             }
         }
         defaultProfiles.initialize();
+        try {
+            zoneService.loadZones();
+        } catch (Exception e) {
+            logger.warn("Could not load deployment zones", e);
+        }
     }
 
 }

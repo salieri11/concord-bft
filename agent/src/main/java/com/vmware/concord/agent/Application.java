@@ -4,7 +4,6 @@
 
 package com.vmware.concord.agent;
 
-import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -19,7 +18,7 @@ import com.vmware.blockchain.deployment.model.ConcordAgentConfiguration;
 import com.vmware.blockchain.deployment.model.ConcordClusterIdentifier;
 import com.vmware.blockchain.deployment.model.ConcordComponent;
 import com.vmware.blockchain.deployment.model.ConcordModelSpecification;
-import com.vmware.blockchain.deployment.model.ConcordNodeIdentifier;
+import com.vmware.blockchain.deployment.model.ConfigurationSessionIdentifier;
 import com.vmware.blockchain.deployment.model.Credential;
 import com.vmware.blockchain.deployment.model.Endpoint;
 
@@ -40,7 +39,7 @@ public class Application {
     /**
      * Main - Entry into SpringBoot application.
      */
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws Exception {
         // Construct configuration from input parameters.
         var json = new Json(
                 new JsonConfiguration(
@@ -87,13 +86,19 @@ public class Application {
                     )
             );
             var registryEndpoint = new Endpoint("https://registry-1.docker.io/v2", new Credential());
-            var fleetEndpoint = new Endpoint("fleet-service:9003", new Credential());
+
+            // FIXME: Replace with correct port
+            var fleetEndpoint = new Endpoint("fleet-service:9004", new Credential());
+
+            var configServiceEndpoint = new Endpoint("config-service:9003", new Credential());
             configuration = new ConcordAgentConfiguration(
                     model,
                     registryEndpoint,
                     fleetEndpoint,
                     ConcordClusterIdentifier.Companion.getDefaultValue(),
-                    ConcordNodeIdentifier.Companion.getDefaultValue()
+                    Integer.MAX_VALUE,
+                    configServiceEndpoint,
+                    new ConfigurationSessionIdentifier()
             );
         }
 

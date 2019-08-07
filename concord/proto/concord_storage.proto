@@ -6,6 +6,8 @@ syntax = "proto2";
 
 package com.vmware.concord.kvb;
 
+import "google/protobuf/timestamp.proto";
+
 message Block {
    optional int64 version = 1;
    optional int64 number = 2;
@@ -67,7 +69,7 @@ message BlockMetadata {
 message Time {
    message Sample {
      optional bytes source = 1;
-     optional int64 time = 2;
+     optional google.protobuf.Timestamp time = 2;
      optional bytes signature = 3;
    }
    optional int64 version = 1;

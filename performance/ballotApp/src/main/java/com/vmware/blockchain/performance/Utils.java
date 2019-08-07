@@ -2,6 +2,7 @@ package com.vmware.blockchain.performance;
 
 import com.vmware.blockchain.samples.Ballot;
 
+import okhttp3.Dispatcher;
 import okhttp3.OkHttpClient;
 import okhttp3.OkHttpClient.Builder;
 
@@ -12,12 +13,13 @@ import org.web3j.tx.gas.DefaultGasProvider;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-
 import java.security.cert.X509Certificate;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import javax.net.ssl.HostnameVerifier;
@@ -46,6 +48,19 @@ public class Utils {
 			WalletUtils.generateNewWalletFile(password, dir, true);
 		}
 		files = dir.listFiles();
+		if (BallotDApp.blockchainType.equals("ethereum")) {
+			for (int i = 0; i < files.length; i++) {
+				if (files[i].getName().equals("key_ethereum.json")) {
+					return WalletUtils.loadCredentials(password, files[i]);
+				}
+			}
+		} else if (BallotDApp.blockchainType.equals("quorum")) {
+			for (int i = 0; i < files.length; i++) {
+				if (files[i].getName().equals("key_quorum.json")) {
+					return WalletUtils.loadCredentials(password, files[i]);
+				}
+			}
+		}
 		return WalletUtils.loadCredentials(password, files[0]);
 	}
 
@@ -53,7 +68,7 @@ public class Utils {
 		Scanner scanner = new Scanner(new File(path));
 		String address = scanner.nextLine();
 		scanner.close();
-		return Ballot.load(address, web3j, credentials, DefaultGasProvider.GAS_PRICE, DefaultGasProvider.GAS_LIMIT);
+		return Ballot.load(address, web3j, credentials, BallotDApp.GAS_PRICE, DefaultGasProvider.GAS_LIMIT);
 	}
 
 	public static List<byte[]> getProposals(String path) {
@@ -99,6 +114,11 @@ public class Utils {
 		}
 
 		Builder builder = new Builder();
+		Dispatcher dispatcher = new Dispatcher(new ThreadPoolExecutor(0, BallotDApp.NUMBER_THREADS,
+				60L, TimeUnit.SECONDS, new LinkedBlockingQueue<>()));
+		dispatcher.setMaxRequests(50);
+		dispatcher.setMaxRequestsPerHost(50);
+		builder.dispatcher(dispatcher);
 		builder.connectTimeout(0, TimeUnit.MILLISECONDS);
 		builder.readTimeout(0, TimeUnit.MILLISECONDS);
 		builder.writeTimeout(0, TimeUnit.MILLISECONDS);

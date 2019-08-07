@@ -23,8 +23,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import com.vmware.blockchain.auth.AuthHelper;
 import com.vmware.blockchain.common.EntityModificationException;
 import com.vmware.blockchain.common.ErrorCode;
+import com.vmware.blockchain.common.ForbiddenException;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -42,12 +44,17 @@ public class ProfileController {
     private ProfilesService prm;
     private UserService userSerivce;
     private DefaultProfiles profiles;
+    private AuthHelper authHelper;
 
     @Autowired
-    public ProfileController(ProfilesService prm, UserService userService, DefaultProfiles profiles) {
+    public ProfileController(ProfilesService prm,
+                             UserService userService,
+                             DefaultProfiles profiles,
+                             AuthHelper authHelper) {
         this.prm = prm;
         this.userSerivce = userService;
         this.profiles = profiles;
+        this.authHelper = authHelper;
     }
 
 
@@ -55,14 +62,17 @@ public class ProfileController {
      * Get list of users, optionaly filtered on org and consortium.
      */
     @RequestMapping(path = "/api/users", method = RequestMethod.GET)
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("@authHelper.isUser()")
     public ResponseEntity<List<UsersGetResponse>> getUsers(
             @RequestParam(name = "consortium", required = false) String consortium,
             @RequestParam(name = "organization", required = false) String organization) {
 
         List<UsersGetResponse> result =
                 prm.getUsers(Optional.ofNullable(consortium), Optional.ofNullable(organization))
-                .stream().map(u -> prm.getReponse(u)).collect(Collectors.toList());
+                .stream()
+                        .filter(u -> authHelper.isSystemAdmin()
+                                     || u.getEmail().equals(authHelper.getEmail()))
+                        .map(u -> prm.getReponse(u)).collect(Collectors.toList());
         return new ResponseEntity<>(result, HttpStatus.OK);
     }
 
@@ -72,8 +82,11 @@ public class ProfileController {
      * @return the user
      */
     @RequestMapping(path = "/api/users/{user_id}", method = RequestMethod.GET)
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("@authHelper.isUserName(#userId)")
     public ResponseEntity<UsersGetResponse> getUserFromId(@PathVariable("user_id") String userId) {
+        if (!authHelper.isSystemAdmin()) {
+            throw new ForbiddenException(ErrorCode.NOT_ALLOWED);
+        }
         return new ResponseEntity<>(prm.getReponse(prm.getUserWithId(userId)), HttpStatus.OK);
     }
 
@@ -111,8 +124,12 @@ public class ProfileController {
      * Create a new user.
      */
     @RequestMapping(path = "/api/users", method = RequestMethod.POST)
-    @PreAuthorize("hasAnyAuthority(T(com.vmware.blockchain.services.profiles.Roles).systemAdmin())")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<UsersCreateResponse> doPost(@RequestBody UserCreateRequest ucr) throws IOException {
+        if (!authHelper.isSystemAdmin()) {
+            throw new ForbiddenException(ErrorCode.NOT_ALLOWED);
+        }
+
         defaultUcrFields(ucr);
         validateCreateRequest(ucr);
         UUID userId = prm.createUser(ucr).getId();
@@ -143,9 +160,13 @@ public class ProfileController {
      * Update user information.
      */
     @RequestMapping(path = "/api/users/{user_id}", method = RequestMethod.PATCH)
-    @PreAuthorize("hasAnyAuthority(T(com.vmware.blockchain.services.profiles.Roles).systemAdmin())")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<String> doPatch(@PathVariable(name = "user_id") String userId,
             @RequestBody UserPatchRequest upr) {
+        if (!authHelper.isSystemAdmin()) {
+            throw new ForbiddenException(ErrorCode.NOT_ALLOWED);
+        }
+
         upr.setUserId(UUID.fromString(userId));
         validatePatchRequest(upr);
         prm.updateUser(upr);

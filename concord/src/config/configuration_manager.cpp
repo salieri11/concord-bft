@@ -218,31 +218,6 @@ ConfigurationPath ConfigurationPath::trimLeaf() const {
   return ret;
 }
 
-}  // namespace config
-}  // namespace concord
-
-// Hash function for ConfigurationPath
-size_t std::hash<concord::config::ConfigurationPath>::operator()(
-    const concord::config::ConfigurationPath& path) const {
-  std::hash<string> stringHash;
-  size_t hash = stringHash(path.name);
-  if (path.isScope) {
-    hash ^= ((size_t)0x01) << (sizeof(size_t) * 4);
-    if (path.useInstance) {
-      std::hash<size_t> indexHash;
-      hash ^= indexHash(path.index);
-    }
-    if (path.subpath) {
-      std::hash<concord::config::ConfigurationPath> pathHash;
-      hash ^= pathHash(*(path.subpath)) << 1;
-    }
-  }
-  return hash;
-}
-
-namespace concord {
-namespace config {
-
 ConcordConfiguration::ConfigurationScope::ConfigurationScope(
     const ConcordConfiguration::ConfigurationScope& original)
     : instantiated(original.instantiated),
@@ -2844,23 +2819,30 @@ static ConcordConfiguration::ParameterStatus validatePrincipalHost(
   // ConcordConfiguration cannot be iterated.
   ConcordConfiguration nonConstConfig = config;
 
-  // Note detectLocalNode may throw an exception if it cannot determine what
-  // node this configuration belongs to, but we do not handle this in this
-  // function because we have validated that this configuration belongs to a
-  // particular node by the time detectLocalNode is called.
   if (config.hasValue<bool>("use_loopback_for_local_hosts") &&
       config.getValue<bool>("use_loopback_for_local_hosts") &&
-      (path.index == detectLocalNode(nonConstConfig)) &&
       (value != "127.0.0.1")) {
-    *failureMessage = "Invalid host address for " + path.toString() + ": " +
-                      value +
-                      "; the value 127.0.0.1 (i.e. loopback) is expected for "
-                      "this host since it is local to this node and "
-                      "use_loopback_for_local_hosts is enabled.";
-    return ConcordConfiguration::ParameterStatus::INVALID;
-  } else {
-    return ConcordConfiguration::ParameterStatus::VALID;
+    // Note that, depending on the order order in which parameters are loaded,
+    // we may not yet be able to tell which node is local in this configuration
+    // at the time this validator is called when first loading hosts into the
+    // config. To handle this case, we return INSUFFICIENT_INFORMATION if
+    // detectLocalNode throws an exception.
+    size_t local_node_index;
+    try {
+      local_node_index = detectLocalNode(nonConstConfig);
+    } catch (const ConfigurationResourceNotFoundException& e) {
+      return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
+    }
+    if (path.index == local_node_index) {
+      *failureMessage = "Invalid host address for " + path.toString() + ": " +
+                        value +
+                        "; the value 127.0.0.1 (i.e. loopback) is expected for "
+                        "this host since it is local to this node and "
+                        "use_loopback_for_local_hosts is enabled.";
+      return ConcordConfiguration::ParameterStatus::INVALID;
+    }
   }
+  return ConcordConfiguration::ParameterStatus::VALID;
 }
 
 // Implementation of specifyConfiguration and other utility functions that
@@ -3482,7 +3464,7 @@ void loadClusterSizeParameters(YAMLConfigurationInput& input,
   ConfigurationPath cValPath("c_val", false);
   ConfigurationPath clientProxiesPerReplicaPath("client_proxies_per_replica",
                                                 false);
-  std::unordered_set<ConfigurationPath> requiredParameters(
+  vector<ConfigurationPath> requiredParameters(
       {fValPath, cValPath, clientProxiesPerReplicaPath});
 
   input.loadConfiguration(config, requiredParameters.begin(),
@@ -4039,7 +4021,7 @@ void loadSBFTCryptosystems(ConcordConfiguration& config) {
   // Note we do not validate that the cryptosystem selections here are valid as
   // long as they exist, as we expect this has been handled by the parameter
   // validators as the configuration was loaded.
-  std::unordered_set<ConfigurationPath> requiredCryptosystemParameters(
+  vector<ConfigurationPath> requiredCryptosystemParameters(
       {ConfigurationPath("f_val", false), ConfigurationPath("c_val", false),
        ConfigurationPath("execution_cryptosys", false),
        ConfigurationPath("slow_commit_cryptosys", false),

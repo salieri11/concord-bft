@@ -115,11 +115,14 @@ public class DefaultProfiles {
         consortium = createConsortiumIfNotExist();
         if (createDefaultBlockchain) {
             blockchain = createBlockchainIfNotExist();
+        } else {
+            // We need an empty blockchain backwards compatibility.  Some old calls are failing without this.
+            blockchain = new Blockchain();
         }
         user = createUserIfNotExist();
         serviceContext.clearServiceContext();
         List<String> nodeInfo = Collections.emptyList();
-        if (blockchain != null) {
+        if (blockchain.getNodeList() != null) {
             // For blockchain, don't log the node cert
             nodeInfo = blockchain.getNodeList().stream()
                     .map(n -> String.format("%s %s %s", n.getHostName(), n.getIp(), n.getUrl()))

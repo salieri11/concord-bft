@@ -102,7 +102,8 @@
         </ul>
         <ul>
             <h3>&nbspBenchmark results</h3>
-            <li><a href="#summary">Summary</a></li>
+            <li><a href="#appSummary">Summary</a></li>
+            <li><a href="#dockerSummary">Resource Utilization</a></li>
         </ul>
     </div>
 
@@ -115,10 +116,10 @@
         </div>
 
 
-        <div id="summary">
-            {{#summary}}
+        <div id="appSummary">
+            {{#appSummary}}
             <table>
-                <h3>Summary</h3>
+                <h3>Application Performance Summary</h3>
                 <tr>
                     {{#tableHeader}} <th>{{.}}</th>{{/tableHeader}}
                 </tr>
@@ -129,7 +130,28 @@
                 </tr>
                 {{/tableData}}
             </table>
-            {{/summary}}
+            {{/appSummary}}
+        </div>
+
+        <div>
+            <h3>Docker Resource Utilization</h3>
+        {{#dockerInfo}}
+        <div id="dockerSummary">
+            {{#tests}}
+            <table>
+                <h4>Workload-Iteration : {{name}}</h4>
+                <tr>
+                    {{#tableHeader}} <th>{{.}}</th>{{/tableHeader}}
+                </tr>
+                {{#tableData}}
+                <tr>
+                    {{#tableRow}} <td>{{.}}</td>{{/tableRow}}
+                </tr>
+                {{/tableData}}
+            </table>
+            {{/tests}}
+        </div>
+        {{/dockerInfo}}
         </div>
     </div>
 

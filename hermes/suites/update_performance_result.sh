@@ -12,7 +12,7 @@ done
 
 PERFORMANCE_TESTRUN_SUMMARY_FILE="../../../hermes-data/performance_test/perf_testrun_summary.csv"
 TRANSACTION_RATE_ALERT_FILE="${RESULTS_DIR}/performance_transaction_rate_spiked.log"
-TRANSACTION_RATE_SPIKE_BUFFER=10.00
+TRANSACTION_RATE_SPIKE_BUFFER=3.00
 
 fetch_perf_transaction_rate() {
     PERFORMANCE_TEST_RESULT_FILE="$1"
@@ -46,7 +46,7 @@ fetch_perf_transaction_rate() {
 }
 
 check_for_spiked_run() {
-    echo "Checking if this run has Spiked up..."
+    echo "Checking if this run has dipped..."
 
     current_transaction_rate=$1
     no_of_lines=`cat "${PERFORMANCE_TESTRUN_SUMMARY_FILE}" | wc -l`
@@ -60,10 +60,10 @@ check_for_spiked_run() {
         echo "\tTransaction Rate from Previous Run: $previous_transaction_rate"
         echo "\tTransaction Rate from Current Run: $current_transaction_rate"
 
-        transaction_rate_diff=`echo $current_transaction_rate - $previous_transaction_rate | bc`
+        transaction_rate_diff=`echo $previous_transaction_rate - $current_transaction_rate | bc`
         if [ 1 -eq "$(echo "${transaction_rate_diff} > ${TRANSACTION_RATE_SPIKE_BUFFER}" | bc)" ]
         then
-            echo "\n\t**** Transaction Rate has spiked up in this run ***"
+            echo "\n\t**** Transaction Rate has dipped in this run ***"
             echo "Creating log file for Alert Notification: ${TRANSACTION_RATE_ALERT_FILE}"
             echo "Transaction Rate from Previous Run: $previous_transaction_rate" > "${TRANSACTION_RATE_ALERT_FILE}"
             echo "Transaction Rate from Current Run: $current_transaction_rate" >> "${TRANSACTION_RATE_ALERT_FILE}"

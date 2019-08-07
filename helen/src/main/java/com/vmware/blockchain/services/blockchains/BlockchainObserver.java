@@ -14,10 +14,12 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import com.vmware.blockchain.auth.AuthHelper;
+import com.vmware.blockchain.common.fleetmanagment.FleetUtils;
 import com.vmware.blockchain.deployment.model.ConcordCluster;
 import com.vmware.blockchain.deployment.model.ConcordNode;
 import com.vmware.blockchain.deployment.model.DeploymentSession;
 import com.vmware.blockchain.deployment.model.DeploymentSessionEvent;
+import com.vmware.blockchain.operation.OperationContext;
 import com.vmware.blockchain.services.blockchains.Blockchain.NodeEntry;
 import com.vmware.blockchain.services.tasks.Task;
 import com.vmware.blockchain.services.tasks.TaskService;
@@ -33,6 +35,7 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
 
     private Authentication auth;
     private AuthHelper authHelper;
+    private OperationContext operationContext;
     private BlockchainService blockchainService;
     private TaskService taskService;
     private UUID taskId;
@@ -40,6 +43,7 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
     private final List<NodeEntry> nodeList = new ArrayList<>();
     private DeploymentSession.Status status = DeploymentSession.Status.UNKNOWN;
     private UUID clusterId;
+    private String opId;
 
     /**
      * Create a new Blockchain Observer.  This handles the callbacks from the deployment
@@ -51,16 +55,19 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
      */
     public BlockchainObserver(
             AuthHelper authHelper,
+            OperationContext operationContext,
             BlockchainService blockchainService,
             TaskService taskService,
             UUID taskId,
             UUID consortiumId) {
         this.authHelper = authHelper;
+        this.operationContext = operationContext;
         this.blockchainService = blockchainService;
         this.taskService = taskService;
         this.taskId = taskId;
         this.consortiumId = consortiumId;
         auth = SecurityContextHolder.getContext().getAuthentication();
+        opId = operationContext.getId();
 
     }
 
@@ -69,12 +76,22 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
         logger.info("On Next: {}", value.getType());
         // Set auth in this thread to whoever invoked the observer
         SecurityContextHolder.getContext().setAuthentication(auth);
+        operationContext.setId(opId);
+        String message = "Deployment in progress";
         try {
             switch (value.getType()) {
+                case NODE_DEPLOYED:
+                    ConcordNode cNode = value.getNode();
+                    message = String.format("Node %s deployed, status %s",
+                                            FleetUtils.toUuid(cNode.getId()), value.getNodeStatus().getStatus());
+                    logger.info("Node {} deployed", FleetUtils.toUuid(cNode.getId()));
+                    break;
+
                 case CLUSTER_DEPLOYED:
                     ConcordCluster cluster = value.getCluster();
                     // force the blockchain id to be the same as the cluster id
-                    clusterId = new UUID(cluster.getId().getHigh(), cluster.getId().getLow());
+                    clusterId = FleetUtils.toUuid(cluster.getId());
+                    message = String.format("Cluster %s deployed", clusterId);
                     logger.info("Blockchain ID: {}", clusterId);
 
                     cluster.getInfo().getMembers().stream()
@@ -84,6 +101,7 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
                     break;
                 case COMPLETED:
                     status = value.getStatus();
+                    message = String.format("Deployment completed on cluster %s, status %s", clusterId, status);
                     logger.info("On Next(COMPLETED): status({})", status);
                     break;
                 default:
@@ -92,16 +110,19 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
 
             // Persist the current state of the task.
             final Task task = taskService.get(taskId);
+            // need a final for the lambda
+            final String mes = message;
             // Not clear if we need the merge here,
             taskService.merge(task, m -> {
                 // if the latest entry is in completed, don't change anything
                 if (m.getState() != Task.State.SUCCEEDED && m.getState() != Task.State.FAILED) {
                     // Otherwise, set the fields
-                    m.setMessage(value.getType().name());
+                    m.setMessage(mes);
                 }
             });
         } finally {
             SecurityContextHolder.getContext().setAuthentication(null);
+            operationContext.removeId();
         }
     }
 
@@ -110,6 +131,7 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
         logger.info("On Error", t);
         // Set auth in this thread to whoever invoked the observer
         SecurityContextHolder.getContext().setAuthentication(auth);
+        operationContext.setId(opId);
         final Task task = taskService.get(taskId);
         task.setState(Task.State.FAILED);
         task.setMessage(t.getMessage());
@@ -118,12 +140,14 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
             m.setMessage(task.getMessage());
         });
         SecurityContextHolder.getContext().setAuthentication(null);
+        operationContext.removeId();
     }
 
     @Override
     public void onCompleted() {
         // Set auth in this thread to whoever invoked the observer
         SecurityContextHolder.getContext().setAuthentication(auth);
+        operationContext.setId(opId);
         // Just log this.  Looking to see how often this happens.
         logger.info("Task {} completed, status {}", taskId, status);
         // We need to evict the auth token from the cache, since the available blockchains has just changed
@@ -155,6 +179,7 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
         //
         logger.info("Updated task {}", task);
         SecurityContextHolder.getContext().setAuthentication(null);
+        operationContext.removeId();
     }
 
     /**
@@ -174,14 +199,14 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
         // For now, use the orchestration site ID as region name. Eventually there should be some
         // human-readable display name to go with the site ID.
         var site = node.getHostInfo().getSite();
-        var region = new UUID(site.getHigh(), site.getLow()).toString();
+        var region = FleetUtils.toUuid(site);
 
         return new NodeEntry(
-              new UUID(node.getId().getHigh(), node.getId().getLow()),
-              ip,
-              endpoint.getUrl(),
-              endpoint.getCertificate(),
-              region
+                FleetUtils.toUuid(node.getId()),
+                ip,
+                endpoint.getUrl(),
+                endpoint.getCertificate(),
+                region
         );
     }
 
@@ -201,5 +226,6 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
 
         return String.format("%d.%d.%d.%d", first, second, third, fourth);
     }
+
 
 }

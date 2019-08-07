@@ -92,7 +92,7 @@ def test_publish_as_other():
    # Attempt to move the target a minute into the future. This test
    # should take far less time, so the low-load update thread will not
    # beat us.
-   test_target_value = original_target_value + 60 * 1000
+   test_target_value = original_target_value + 60
 
    log.info("Attempting to move {} to {} from {}".format(target, test_target_value, original_target_value))
 
@@ -179,7 +179,7 @@ def run_faulty_clock(faulty_time):
    concordContainer = find_source_container(test_target_source)
 
    summary, samples = get_summary_and_samples()
-   assert abs(summary - time.time()*1000) < 2 * expectedUpdatePeriodSec * 1000, \
+   assert abs(summary - time.time()) < 2 * expectedUpdatePeriodSec, \
       "Summary and system time are not close before corruption"
 
    # how many times to publish and check
@@ -214,7 +214,7 @@ def run_faulty_clock(faulty_time):
       # This is the core of this test: summary time should not differ
       # from the local wall clock if < 1/2 of the sources have been
       # corrupted.
-      assert abs(summary - time.time() * 1000) < 2 * expectedUpdatePeriodSec * 1000, \
+      assert abs(summary - time.time()) < 2 * expectedUpdatePeriodSec, \
          "Summary has moved away from hermes time."
 
       time.sleep(expectedUpdatePeriodSec / 2)
@@ -226,12 +226,12 @@ def test_fast_clock():
    doesn't affect block time.
    '''
    # start with a skew that is expected to be at least 10 low-load updates in the future
-   forward_skew_ms = 10 * expectedUpdatePeriodSec * 1000
+   forward_skew = 10 * expectedUpdatePeriodSec
    def skew_function(current):
       # If the test is publishing updates faster than our skew (which
       # it should), this should move the corrupted source into the
       # future faster and faster.
-      return max(current, int(time.time()*1000)) + forward_skew_ms
+      return max(current, int(time.time())) + forward_skew
 
    return run_faulty_clock(skew_function)
 
@@ -242,13 +242,13 @@ def test_random_clock(fxBlockchain):
    affect block time.
    '''
    # start with a narrow random window
-   rand_window_ms = expectedUpdatePeriodSec * 1000
+   rand_window = expectedUpdatePeriodSec
    def skew_function(current):
-      nonlocal rand_window_ms
-      lowerBound = max(current, int(time.time()*1000)) - rand_window_ms
-      upperBound = max(current, int(time.time()*1000)) + rand_window_ms
+      nonlocal rand_window
+      lowerBound = max(current, int(time.time())) - rand_window
+      upperBound = max(current, int(time.time())) + rand_window
       # double the size of the window every sample
-      rand_window_ms *= 2
+      rand_window *= 2
       return random.randint(lowerBound, upperBound)
 
    return run_faulty_clock(skew_function)

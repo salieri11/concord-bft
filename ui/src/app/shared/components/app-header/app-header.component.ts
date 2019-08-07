@@ -14,8 +14,7 @@ import {
 import { environment } from '../../../../environments/environment';
 import { AuthenticationService } from '../../authentication.service';
 import { Personas, PersonaService } from '../../persona.service';
-
-import { CspAPIs } from '../../../shared/csp-apis';
+import { CspAPIs } from '../../../shared/urls.model';
 
 @Component({
   selector: 'concord-app-header',
@@ -81,7 +80,10 @@ export class AppHeaderComponent implements OnDestroy, AfterViewInit {
     location.reload();
   }
 
+
   private setupCSP() {
+    this.authToken = this.authenticationService.accessToken;
+    this.cspApiService.authToken = this.authToken;
     if (this.env.cspEnv === 'staging') {
       this.cspApiService.setCspEnvironment(CspEnvironment.STAGING);
       this.cspEnvironment = CspEnvironment.STAGING;
@@ -89,7 +91,6 @@ export class AppHeaderComponent implements OnDestroy, AfterViewInit {
       this.cspApiService.setCspEnvironment(CspEnvironment.PRODUCTION);
       this.cspEnvironment = CspEnvironment.PRODUCTION;
     }
-    this.authToken = this.authenticationService.accessToken;
 
     // TODO: Most of this is fake data until we can get
     // these services setup.

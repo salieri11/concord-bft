@@ -222,22 +222,6 @@ struct ConfigurationPath {
   ConfigurationPath trimLeaf() const;
 };
 
-}  // namespace config
-}  // namespace concord
-
-namespace std {
-
-// Specialization of std::hash<class T> for ConfigurationPath to facilitate
-// storing ConfigurationPaths in hash-based data structures.
-template <>
-struct hash<::concord::config::ConfigurationPath> {
-  size_t operator()(const ::concord::config::ConfigurationPath& path) const;
-};
-}  // namespace std
-
-namespace concord {
-namespace config {
-
 // Struct for storing "auxiliary state" to a ConcordConfiguration. This class is
 // intended to facilitate giving ownership of objects related to or used by the
 // configuration to a ConcordConfiguration without breaking

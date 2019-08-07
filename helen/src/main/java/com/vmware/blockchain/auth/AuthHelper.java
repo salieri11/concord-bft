@@ -177,6 +177,31 @@ public class AuthHelper {
                || (hasAnyAuthority(Roles.orgAdmin()) && getOrganizationId().equals(id));
     }
 
+    public boolean isUser() {
+        return hasAnyAuthority(Roles.user());
+    }
+
+    public boolean isUserName(String userId) {
+        return hasAnyAuthority(Roles.systemAdmin())
+               || (hasAnyAuthority(Roles.user()) && getUserId().equals(userId));
+    }
+
+    public boolean isConsortiumAdmin() {
+        return hasAnyAuthority(Roles.consortiumAdmin());
+    }
+
+    public boolean isDeveloper() {
+        return hasAnyAuthority(Roles.devloper());
+    }
+
+    public boolean isCspOrgOwner() {
+        return hasAnyAuthority(Roles.cspOrgOwner());
+    }
+
+    public boolean isSystemAdmin() {
+        return hasAnyAuthority(Roles.systemAdmin());
+    }
+
     public void evictToken() {
         baseCacheHelper.evict(Constants.CSP_TOKEN_CACHE, getAuthToken());
     }

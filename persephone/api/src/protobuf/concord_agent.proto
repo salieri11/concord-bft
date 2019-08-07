@@ -5,6 +5,7 @@ package com.vmware.blockchain.deployment.model;
 import "concord_cluster.proto";
 import "concord_model.proto";
 import "core.proto";
+import "configuration_service.proto";
 /* [END declaration] */
 
 /* [START java_declaration] */
@@ -18,6 +19,8 @@ message ConcordAgentConfiguration {
     Endpoint container_registry = 2;
     Endpoint fleet_service = 3;
     ConcordClusterIdentifier cluster = 4;
-    ConcordNodeIdentifier node = 5;
+    int32 node = 5;
+    Endpoint config_service = 6;
+    ConfigurationSessionIdentifier configuration_session = 7;
 }
 /* [END messages] */

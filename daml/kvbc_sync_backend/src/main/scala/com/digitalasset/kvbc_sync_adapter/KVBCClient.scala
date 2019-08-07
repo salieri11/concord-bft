@@ -16,9 +16,12 @@ import com.digitalasset.grpc.adapter.client.akka._
  * Raw client for the KVBC API
  */
 class KVBCClient private(host: String, port: Int) {
+  private val ledgerInboundMessageSizeMax: Int = 50 * 1024 * 1024 // 50 MiBytes
+
   val channel =
     ManagedChannelBuilder
       .forAddress(host, port)
+      .maxInboundMessageSize(ledgerInboundMessageSizeMax)
       .usePlaintext()
       .build
 

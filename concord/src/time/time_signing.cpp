@@ -3,6 +3,8 @@
 #include "time_signing.hpp"
 #include "time_exception.hpp"
 
+#include <google/protobuf/util/time_util.h>
+
 using std::invalid_argument;
 using std::string;
 using std::unique_ptr;
@@ -12,6 +14,9 @@ using bftEngine::impl::RSASigner;
 using bftEngine::impl::RSAVerifier;
 using concord::config::ConcordConfiguration;
 using concord::config::ConfigurationPath;
+
+using google::protobuf::Timestamp;
+using google::protobuf::util::TimeUtil;
 
 namespace concord {
 namespace time {
@@ -23,11 +28,11 @@ namespace time {
 // does not yield the same result on every node in the Concord cluster, the
 // nodes will not be able to accept each other's time samples.
 //
-// At the time of this writing, the implementation of GetSignableUpdateData
-// gives a concatenation of the bytes of the string source (in order, excluding
-// any null terminator character) and the bytes of the time value (in
-// little-endian order).
-vector<uint8_t> GetSignableUpdateData(const string& source, uint64_t time) {
+// The implementation of GetSignableUpdateData gives a concatenation of the
+// bytes of the string source (in order, excluding any null terminator
+// character) and the bytes of the time value (in little-endian order).
+vector<uint8_t> GetSignableUpdateData(const string& source,
+                                      const Timestamp& timestamp) {
   // Note std::string is defined to be std::basic_string<char>, that is, it is
   // generally treated as and operated on like an array or list of chars. Some
   // online references on std::string that were consulted in writing this
@@ -53,6 +58,7 @@ vector<uint8_t> GetSignableUpdateData(const string& source, uint64_t time) {
                 "Current Concord time service implementation does not support "
                 "platforms where char is not 1 byte.");
 
+  uint64_t time = TimeUtil::TimestampToNanoseconds(timestamp);
   vector<uint8_t> signable_data(source.length() + sizeof(uint64_t));
 
   const uint8_t* source_first_byte =
@@ -105,7 +111,7 @@ TimeSigner& TimeSigner::operator=(const TimeSigner& original) {
   return *this;
 }
 
-vector<uint8_t> TimeSigner::Sign(uint64_t time) const {
+vector<uint8_t> TimeSigner::Sign(const Timestamp& time) const {
   vector<uint8_t> data_to_sign = GetSignableUpdateData(sourceID_, time);
   vector<uint8_t> signature(signer_->signatureLength(), 0);
   size_t signature_size = 0;
@@ -181,7 +187,7 @@ bool TimeVerifier::HasTimeSource(const string& source) const {
   return (verifiers_.count(source) > 0);
 }
 
-bool TimeVerifier::Verify(const string& source, uint64_t time,
+bool TimeVerifier::Verify(const string& source, const Timestamp& time,
                           const vector<uint8_t>& signature) {
   if (verifiers_.count(source) < 1) {
     return false;

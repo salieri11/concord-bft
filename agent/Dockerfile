@@ -10,11 +10,10 @@ COPY ./persephone/cli/pom.xml ./persephone/cli/pom.xml
 COPY ./persephone/awsutil/pom.xml ./persephone/awsutil/pom.xml
 COPY ./persephone/core/pom.xml ./persephone/core/pom.xml
 COPY ./persephone/metadata-service/pom.xml ./persephone/metadata-service/pom.xml
-COPY ./persephone/metadata-service-client/pom.xml ./persephone/metadata-service-client/pom.xml
 COPY ./persephone/orchestration/pom.xml ./persephone/orchestration/pom.xml
 COPY ./persephone/orchestration-vmc/pom.xml ./persephone/orchestration-vmc/pom.xml
 COPY ./persephone/persistence/pom.xml ./persephone/persistence/pom.xml
-COPY ./persephone/provision-service/pom.xml ./persephone/provision-service/pom.xml
+COPY ./persephone/provisioning-service/pom.xml ./persephone/provisioning-service/pom.xml
 COPY ./protobuf/pom.xml ./protobuf/pom.xml
 COPY ./protobuf/grpc-runtime-kotlinx-serialization/pom.xml ./protobuf/grpc-runtime-kotlinx-serialization/pom.xml
 COPY ./protobuf/protoc-plugin-grpc-kotlinx-serialization/pom.xml ./protobuf/protoc-plugin-grpc-kotlinx-serialization/pom.xml

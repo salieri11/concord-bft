@@ -27,6 +27,8 @@ using com::vmware::concord::ConcordResponse;
 using com::vmware::concord::DamlRequest;
 using com::vmware::concord::DamlResponse;
 
+using google::protobuf::util::TimeUtil;
+
 namespace da_kvbc = com::digitalasset::kvbc;
 
 namespace concord {
@@ -81,11 +83,11 @@ bool DamlKvbCommandsHandler::ExecuteCommit(
 
   google::protobuf::Timestamp record_time;
   if (time) {
-    // TODO: We expect milliseconds
-    record_time = google::protobuf::util::TimeUtil::NanosecondsToTimestamp(
-        time->GetTime() * 1000000);
+    record_time = time->GetTime();
+    LOG4CPLUS_DEBUG(logger_, "Using time service time " << record_time);
   } else {
     record_time = google::protobuf::util::TimeUtil::GetEpoch();
+    LOG4CPLUS_DEBUG(logger_, "Using epoch time " << record_time);
   }
 
   // Resolve the inputs

@@ -26,6 +26,8 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 
 public class BallotDeployer {
 
@@ -48,11 +50,10 @@ public class BallotDeployer {
 	public void deploy(String proposalPath, String contractPath, String password, String path) throws Exception {
 
 		OkHttpClient client = BallotDApp.CLIENT;
-
+		ScheduledExecutorService scheduledExecutorService = new ScheduledThreadPoolExecutor(BallotDApp.NUMBER_THREADS);
 		HttpService httpServiceEth = new HttpService(BallotDApp.ENDPOINT, client, false);
-		System.out.println(BallotDApp.ENDPOINT);
 		httpServiceEth.addHeader("Authorization", okhttp3.Credentials.basic(BallotDApp.CONCORD_USERNAME, BallotDApp.CONCORD_PASSWORD));
-		Web3j web3j = Web3j.build(httpServiceEth);
+		Web3j web3j = Web3j.build(httpServiceEth, 15000L, scheduledExecutorService);
 
 		logger.info("Connected to Ethereum client version: "
 				+ web3j.web3ClientVersion().send().getWeb3ClientVersion());
@@ -63,8 +64,9 @@ public class BallotDeployer {
 		List<byte[]> proposals = Utils.getProposals(proposalPath);
 
 		try {
+			logger.info("Starting to deploy");
 			long deployStartTime = System.nanoTime();;
-			ballot = Ballot.deploy(web3j, credentials, DefaultGasProvider.GAS_PRICE, DefaultGasProvider.GAS_LIMIT, proposals).send();
+			ballot = Ballot.deploy(web3j, credentials, BallotDApp.GAS_PRICE, DefaultGasProvider.GAS_LIMIT, proposals).send();
 			long deployEndTime = System.nanoTime();
 			PrintWriter writer = new PrintWriter(new BufferedWriter(new FileWriter(BallotDApp.STAT_DATA_PATH, true)));
 			writer.println("STAT_DEPLOY_CONTRACT_LATENCY=" + (deployEndTime-deployStartTime) + " ns");
@@ -90,9 +92,11 @@ public class BallotDeployer {
 	}
 
 	public double grantRightToVote(Credentials[] credentials) throws Exception {
+		logger.info("Start granting rights");
 		long startTime = System.nanoTime();
 		List<CompletableFuture<TransactionReceipt>> tasks = new ArrayList<>();
 		ExecutorService executor = Executors.newFixedThreadPool(BallotDApp.NUMBER_THREADS);
+		int counter = 0;
 		for (Credentials credential : credentials)  {
 			CompletableFuture<TransactionReceipt> task =
 					execute(executor, ballot, credential.getAddress()).whenComplete((entry, error) -> {
@@ -102,15 +106,20 @@ public class BallotDeployer {
 					});
 
 			tasks.add(task);
+			counter++;
+			if (counter % 1000 == 0) {
+				logger.info("Started granting " + counter + " voters");
+			}
 		}
 		executor.shutdown();
 
 		CompletableFuture<Void> allDone =
-				CompletableFuture.allOf(tasks.toArray(new CompletableFuture[0]));
+				CompletableFuture.allOf(tasks.toArray(new CompletableFuture[tasks.size()]));
 		CompletableFuture.allOf(allDone).join();
 		long endTime = System.nanoTime();
 
 		logger.info("Total Time for Granting Right is " + (endTime - startTime) + " nano seconds");
+		logger.info("Total Time for Granting Right is " + (endTime - startTime) / 1000000000.0 + " seconds");
 		if (BallotDApp.NUMBER != 0) {
 			return (endTime - startTime) *(1.0e-9) / BallotDApp.NUMBER;
 		}
@@ -122,7 +131,7 @@ public class BallotDeployer {
 		final CompletableFuture<TransactionReceipt> promise = new CompletableFuture<>();
 		CompletableFuture.runAsync(() -> {
 			try {
-				ballot.giveRightToVote(voter).sendAsync();
+				ballot.giveRightToVote(voter).send();
 			} catch (Exception e) {
 				promise.completeExceptionally(e);
 			}
@@ -154,7 +163,7 @@ public class BallotDeployer {
 
 		// Transferring funds to all accounts
 		for (Credentials credential : credentials) {
-			RawTransaction rawTransaction = RawTransaction.createEtherTransaction(nonce, DefaultGasProvider.GAS_PRICE, DefaultGasProvider.GAS_LIMIT, credential.getAddress(), new BigInteger("1000000000000000000"));//BigDecimal.valueOf(10))
+			RawTransaction rawTransaction = RawTransaction.createEtherTransaction(nonce, BallotDApp.GAS_PRICE, DefaultGasProvider.GAS_LIMIT, credential.getAddress(), new BigInteger("1000000000000000000"));
 			byte[] signedMsg = TransactionEncoder.signMessage(rawTransaction, getChairperson());
 			String hexValue = Numeric.toHexString(signedMsg);
 			EthSendTransaction ethSendFundTransaction = web3j.ethSendRawTransaction(hexValue).sendAsync().get();
@@ -172,7 +181,7 @@ public class BallotDeployer {
 				logger.info("TxHash = " + transactionHash);
 				logger.info("Nonce = " + nonce);
 			}
-			
+
 			nonce = nonce.add(new BigInteger("1"));
 		}
 
@@ -201,9 +210,10 @@ public class BallotDeployer {
 			}
 			Thread.sleep(100);
 		}
+		
 		long end = System.nanoTime();
 		logger.info("All transfers completed in " + (end - start) + " nanosec");
-		
+
 		return (end-start) *(1.0e-9) / BallotDApp.NUMBER;
 	}
 }

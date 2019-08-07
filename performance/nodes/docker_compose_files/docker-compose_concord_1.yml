@@ -2,23 +2,22 @@ version: '3'
 services:
   concord1:
     image: "vmwblockchain/concord-core:latest"
-    network_mode: "host"
-    expose:
-      - 5458
-      - 3501/udp
-      - 3502/udp
-      - 3503/udp
-      - 3504/udp
-      - 3505/udp
+    ports:
+      - 5458:5458
+      - 3501:3501
+      - 3502:3502
+      - 3503:3503
+      - 3504:3504
+      - 3505:3505
     volumes:
       - ./devdata/rocksdbdata1:/concord/rocksdbdata
       - ./devdata/log1:/concord/log
       - ./config-concord1:/concord/config-local
       - ./config-public:/concord/config-public:ro
+      - ./tls_certs:/concord/tls_certs:ro
 
   ethrpc1:
     image: "vmwblockchain/ethrpc:latest"
-    network_mode: "host"
     ports:
       - 8545:8545
     volumes:

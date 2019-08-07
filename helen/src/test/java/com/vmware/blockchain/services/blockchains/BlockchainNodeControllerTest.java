@@ -138,7 +138,7 @@ class BlockchainNodeControllerTest {
         Blockchain b = Blockchain.builder()
                 .consortium(consortium.getId())
                 .nodeList(Stream.of(N1, N2, N3)
-                                  .map(u -> new Blockchain.NodeEntry(u, u.toString(), "", "", ""))
+                                  .map(u -> new Blockchain.NodeEntry(u, u.toString(), "", "", null))
                                   .collect(Collectors.toList()))
                 .build();
         b.setId(B1);

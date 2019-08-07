@@ -53,7 +53,7 @@ public class OrganizationContoller {
      * @return list of all orgs
      */
     @RequestMapping(path = "/api/organizations", method = RequestMethod.GET)
-    @PreAuthorize("hasAnyAuthority(T(com.vmware.blockchain.services.profiles.Roles).systemAdmin())")
+    @PreAuthorize("@authHelper.isSystemAdmin()")
     public ResponseEntity<List<OrgGetResponse>> listOrgs() {
         List<Organization> orgs = orgService.list();
         List<OrgGetResponse> rList = orgs.stream().map(o -> new OrgGetResponse(o.getId(), o.getOrganizationName()))
@@ -79,7 +79,7 @@ public class OrganizationContoller {
      * @return the new org
      */
     @RequestMapping(path = "/api/organizations", method = RequestMethod.POST)
-    @PreAuthorize("hasAnyAuthority(T(com.vmware.blockchain.services.profiles.Roles).systemAdmin())")
+    @PreAuthorize("@authHelper.isSystemAdmin()")
     public ResponseEntity<OrgGetResponse> createOrg(@RequestBody OrgPostBody body) {
         Organization org = new Organization(body.getOrganizationName());
         org = orgService.put(org);
