@@ -563,7 +563,7 @@ class PersephoneTests(test_suite.TestSuite):
 
    def _test_list_orchestration_sites(self):
       '''
-      Test to list  Orchestration Sites
+      Test to list Orchestration Sites
       '''
       response = self.rpc_test_helper.rpc_list_orchestration_sites()
       response_list_orchestration_sites_json = helper.protobuf_message_to_json(response)
