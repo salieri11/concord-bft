@@ -35,16 +35,22 @@
               }
             }
           },
-          "ipamApi": {
-            "address": "ipam-vmbc.cloud.vmware.com"
-          },
           "organization": "c56e116e-c36f-4f7d-b504-f9a33955b853",
           "datacenter": "6db19f8f-cde6-4151-88e5-a3b0d6aead6a",
-          "resourcePool": "Compute-ResourcePool",
-          "folder": "HermesTesting",
-          "controlNetwork": "HermesTesting",
-          "controlNetworkGateway": 174522369,
-          "controlNetworkSubnet": 16
+          "vsphere": {
+            "resourcePool": "Compute-ResourcePool",
+            "datastore": "WorkloadDatastore",
+            "folder": "HermesTesting",
+            "network": {
+              "name": "HermesTesting",
+              "addressAllocation": "STATIC",
+              "gateway": 174522369,
+              "subnet": 16,
+              "allocationServer": {
+                "address": "ipam-vmbc.cloud.vmware.com"
+              }
+            }
+          }
         }
       }
     },
@@ -78,16 +84,22 @@
               }
             }
           },
-          "ipamApi": {
-            "address": "ipam-vmbc.cloud.vmware.com"
-          },
           "organization": "c56e116e-c36f-4f7d-b504-f9a33955b853",
           "datacenter": "abb0fe0e-1f2f-470c-a427-774aa08ce2ea",
-          "resourcePool": "Compute-ResourcePool",
-          "folder": "HermesTesting",
-          "controlNetwork": "HermesTesting",
-          "controlNetworkGateway": 174587905,
-          "controlNetworkSubnet": 16
+          "vsphere": {
+            "resourcePool": "Compute-ResourcePool",
+            "datastore": "WorkloadDatastore",
+            "folder": "HermesTesting",
+            "network": {
+              "name": "HermesTesting",
+              "addressAllocation": "STATIC",
+              "gateway": 174587905,
+              "subnet": 16,
+              "allocationServer": {
+                "address": "ipam-vmbc.cloud.vmware.com"
+              }
+            }
+          }
         }
       }
     }
