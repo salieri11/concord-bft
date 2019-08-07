@@ -189,7 +189,7 @@ services:
       - "24224:24224"
       - "24224:24224/udp"
     environment:
-      - FLUENTD_CONF=fluentd.conf
+      - FLUENTD_CONF=fluent.conf
     volumes:
       - ./fluentd:/fluentd/etc
 

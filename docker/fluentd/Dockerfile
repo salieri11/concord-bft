@@ -5,3 +5,6 @@ LABEL Description="Logging agent for Log Intelligence integration"
 
 RUN fluent-gem install fluent-plugin-out-http-ext
 RUN fluent-gem install fluent-plugin-multi-format-parser
+RUN fluent-gem install fluent-plugin-logzio
+RUN fluent-gem install fluent-plugin-concat
+RUN fluent-gem install fluent-plugin-formatter_pretty_json

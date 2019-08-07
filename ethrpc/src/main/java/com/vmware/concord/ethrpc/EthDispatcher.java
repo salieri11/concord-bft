@@ -5,10 +5,12 @@
 package com.vmware.concord.ethrpc;
 
 import java.io.IOException;
+import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.ThreadContext;
+import org.apache.logging.log4j.message.ObjectMessage;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONAware;
 import org.json.simple.JSONObject;
@@ -28,6 +30,8 @@ import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.vmware.concord.Concord;
 import com.vmware.concord.Concord.ConcordResponse;
 import com.vmware.concord.Concord.ErrorResponse;
@@ -205,11 +209,12 @@ public final class EthDispatcher extends TextWebSocketHandler {
      */
     @RequestMapping(path = "/", method = RequestMethod.GET)
     public ResponseEntity<JSONAware> doGet() {
-        ThreadContext.put("organization_id", "1234");
-        ThreadContext.put("consortium_id", "1234");
+        ThreadContext.put("consortium_id", "100");
+        ThreadContext.put("organization_id", "10");
+        ThreadContext.put("node_id", "1");
+        ThreadContext.put("method", "GET");
         ThreadContext.put("uri", "/");
         ThreadContext.put("source", "rpcList");
-        ThreadContext.put("method", "GET");
         if (rpcList == null) {
             logger.error("Configurations not read.");
             return new ResponseEntity<>(new JSONArray(), standardHeaders, HttpStatus.SERVICE_UNAVAILABLE);
@@ -233,8 +238,9 @@ public final class EthDispatcher extends TextWebSocketHandler {
         boolean isBatch = false;
         ResponseEntity<JSONAware> responseEntity;
         // TODO change the organization_id and consortium_id to real ones in future
-        ThreadContext.put("organization_id", "1234");
-        ThreadContext.put("consortium_id", "1234");
+        ThreadContext.put("organization_id", "100");
+        ThreadContext.put("consortium_id", "10");
+        ThreadContext.put("node_id", "1");
         ThreadContext.put("method", "POST");
         ThreadContext.put("uri", "/");
         JSONAware responseBody = getResponse(paramString);
@@ -266,7 +272,6 @@ public final class EthDispatcher extends TextWebSocketHandler {
             ethMethodName = getEthMethodName(requestJson);
             ThreadContext.put("source", ethMethodName);
             id = getEthRequestId(requestJson);
-            ThreadContext.put("id", String.valueOf(id));
             switch (ethMethodName) {
                 case Constants.SEND_TRANSACTION_NAME:
                 case Constants.SEND_RAWTRANSACTION_NAME:
@@ -372,7 +377,10 @@ public final class EthDispatcher extends TextWebSocketHandler {
                 // concord. Just pass null.
                 responseObject = handler.buildResponse(null, requestJson);
             }
-            logger.info("Eth RPC request");
+            // Add method name in response object
+            responseObject.put("method", ethMethodName);
+            Map<String, Object> jsonMap = convertJsonToMap(responseObject);
+            logger.info(new ObjectMessage(jsonMap));
             // TODO: Need to refactor exception handling.  Shouldn't just catch an exception and eat it.
         } catch (Exception e) {
             logger.error(ApiHelper.exceptionToString(e));
@@ -414,5 +422,17 @@ public final class EthDispatcher extends TextWebSocketHandler {
         }
 
         return concordResponse;
+    }
+
+    /**
+     * Converts a JSONObject to a Map to be used for logging.
+     * @param jsonObject JSONObject
+     * @return map of string and object
+     */
+    private Map<String, Object> convertJsonToMap(JSONObject jsonObject) throws IOException {
+
+        Map<String, Object> jsonMap = new ObjectMapper().readValue(jsonObject.toJSONString(),
+                new TypeReference<Map<String, Object>>() {});
+        return jsonMap;
     }
 }
