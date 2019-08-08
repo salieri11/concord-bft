@@ -98,6 +98,7 @@ public class TokenAuthenticationProvider implements AuthenticationProvider {
         HelenUserDetails userInfo = tokenValidator.validateAndGetAuthz(authToken);
         // Add this as soon as we can so that logging messages for Access denied etc can show username.
         ThreadContext.put("userName", userInfo.getUsername());
+        ThreadContext.put("orgName", userInfo.getOrgId().toString());
         UUID userId = userInfo.getUserId();
         // set the current tenant based on tenantId in url.
 
