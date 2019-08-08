@@ -206,8 +206,7 @@ public class ConcordConfigUtil {
             writer.write("tls_certificates_folder_path: "
                     + URI.create(CertificatesGenerator.CONCORD_TLS_SECURITY_IDENTITY_PATH).getPath());
             writer.newLine();
-            writer.write("node__TEMPLATE:\n  logger_config: /concord/config-local/log4cplus.properties\n"
-                    + "  genesis_block: /concord/config-public/genesis.json\n  "
+            writer.write("node__TEMPLATE:\n  genesis_block: /concord/config-public/genesis.json\n  "
                     + "blockchain_db_path: /concord/rocksdbdata/");
             writer.newLine();
             writer.write(NODE);
