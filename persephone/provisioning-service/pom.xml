@@ -51,7 +51,7 @@
         </dependency>
         <dependency>
             <groupId>com.vmware.blockchain</groupId>
-            <artifactId>persephone-orchestration-vmc</artifactId>
+            <artifactId>persephone-orchestration-vmware</artifactId>
         </dependency>
         <dependency>
             <groupId>com.vmware.blockchain</groupId>

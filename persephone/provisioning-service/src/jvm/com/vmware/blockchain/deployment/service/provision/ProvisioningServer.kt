@@ -200,6 +200,7 @@ fun main(args: Array<String>) {
             server.shutdown()
         })
     } catch (error: Throwable) {
+        log.error("Server encountered unexpected error", error)
         server.shutdown()
     } finally {
         server.awaitTermination()

@@ -16,7 +16,7 @@ COPY ./fleet-service/pom.xml ./persephone/fleet-service/pom.xml
 COPY ./ip-allocation-service/pom.xml ./persephone/ip-allocation-service/pom.xml
 COPY ./metadata-service/pom.xml ./persephone/metadata-service/pom.xml
 COPY ./orchestration/pom.xml ./persephone/orchestration/pom.xml
-COPY ./orchestration-vmc/pom.xml ./persephone/orchestration-vmc/pom.xml
+COPY ./orchestration-vmware/pom.xml ./persephone/orchestration-vmware/pom.xml
 COPY ./persistence/pom.xml ./persephone/persistence/pom.xml
 COPY ./persistence-rocksdb/pom.xml ./persephone/persistence-rocksdb/pom.xml
 COPY ./provisioning-service/pom.xml ./persephone/provisioning-service/pom.xml
@@ -29,7 +29,7 @@ COPY ./api ./persephone/api
 COPY ./awsutil ./persephone/awsutil
 COPY ./core ./persephone/core
 COPY ./orchestration ./persephone/orchestration
-COPY ./orchestration-vmc ./persephone/orchestration-vmc
+COPY ./orchestration-vmware ./persephone/orchestration-vmware
 COPY ./persistence ./persephone/persistence
 
 ## Copy the module sources.

@@ -17,6 +17,9 @@ expect abstract class AccessTokenAwareHttpClient {
     /** Specify whether HTTP request should specify access token in HTTP header. */
     open val useAccessToken: Boolean
 
+    /** Specify whether insecure HTTP connections are allowed. */
+    open val allowInsecureConnection: Boolean
+
     /**
      * Retrieve the API session token from a given session response.
      *

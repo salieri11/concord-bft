@@ -737,18 +737,23 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
                                         // Allocate network address to the created node.
                                         var placement = entry.getKey();
                                         var orchestrator = orchestrators.get(placement.getSite());
-                                        var networkResource = publicNetworkAddressMap
-                                                .get(entry.getKey()).getResource();
-                                        var resource = toResourceName(placement.getNode());
-                                        var allocationRequest = new CreateNetworkAllocationRequest(
-                                                resource,
-                                                computeResource,
-                                                networkResource
-                                        );
-                                        var allocationPublisher = orchestrator
-                                                .createNetworkAllocation(allocationRequest);
 
-                                        return ReactiveStream.toFuture(allocationPublisher);
+                                        if (publicNetworkAddressMap.containsKey(placement)) {
+                                            var networkResource = publicNetworkAddressMap
+                                                    .get(entry.getKey()).getResource();
+                                            var resource = toResourceName(placement.getNode());
+                                            var allocationRequest = new CreateNetworkAllocationRequest(
+                                                    resource,
+                                                    computeResource,
+                                                    networkResource
+                                            );
+                                            var allocationPublisher = orchestrator
+                                                    .createNetworkAllocation(allocationRequest);
+
+                                            return ReactiveStream.toFuture(allocationPublisher);
+                                        } else {
+                                            return CompletableFuture.completedFuture(null);
+                                        }
                                     }, executor)
                                     // Put the network allocation event in the result collection.
                                     .whenComplete((event, error) -> {
@@ -756,7 +761,9 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
                                             log.error("Failed to deploy node({})",
                                                       entry.getKey(), error);
                                         } else {
-                                            results.add(event);
+                                            if (event != null) {
+                                                results.add(event);
+                                            }
                                         }
                                     })
                             )
