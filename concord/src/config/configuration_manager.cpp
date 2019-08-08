@@ -3198,7 +3198,7 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "logger_config",
       "Path, in this node's local filesystem to a configuration for Log4CPlus, "
       "the logging framework Concord uses.",
-      "test/resources/log4cplus.properties");
+      "/concord/resources/log4cplus.properties");
   node.tagParameter("logger_config", defaultableByReplicaTags);
 
   node.declareParameter(
