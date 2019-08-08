@@ -2,7 +2,6 @@ client_proxies_per_replica: 4
 c_val: 0
 f_val: 1
 node__TEMPLATE:
-  logger_config: /concord/config-local/log4cplus.properties
   genesis_block: /concord/config-public/genesis.json
   blockchain_db_path: /concord/rocksdbdata/
 node:
