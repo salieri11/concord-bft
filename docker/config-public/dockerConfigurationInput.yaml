@@ -6,7 +6,7 @@ tls_certificates_folder_path: ./tls_certs
 comm_to_use: tls
 FEATURE_time_service: false
 node__TEMPLATE:
-  logger_config: /concord/config-local/log4cplus.properties
+  logger_config: /concord/config-public/log4cplus.properties
   genesis_block: /concord/config-public/genesis.json
   blockchain_db_path: /concord/rocksdbdata/
   time_pusher_period_ms: 1000

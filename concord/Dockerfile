@@ -78,6 +78,10 @@ COPY --from=0 /concord/build/tools/conc_* /concord/
 COPY --from=0 /concord/build/tools/ec* /concord/
 COPY ./concord/test/concord.supp /concord/concord.supp
 
+# Copy default Concord logger configuration so logging will be sanely configured
+# if no custom configuration was provided when the cluster was set up.
+COPY ./concord/resources/log4cplus.properties /concord/resources/log4cplus.properties
+
 # Ethereum RPC port.
 EXPOSE 5458
 
