@@ -196,7 +196,8 @@ class ConcordModelServiceTest {
             var model = new ConcordModelSpecification(
                     "version-" + i,
                     "template-" + i,
-                    Collections.emptyList()
+                    Collections.emptyList(),
+                    ConcordModelSpecification.BlockchainType.ETHRPC
             );
             var request = new AddModelRequest(new MessageHeader(), model);
             var promise = new CompletableFuture<AddModelResponse>();

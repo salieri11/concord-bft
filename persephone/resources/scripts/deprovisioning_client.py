@@ -75,10 +75,7 @@ def main():
         session=dep,
         action=provisioning_service.UpdateDeploymentSessionRequest.DEPROVISION_ALL
     )
-    session_id = provisioning_stub.UpdateDeploymentSession(update_deployment_request)
-    log.info("UpdateDeployment(): ", session_id)
-    log.info("UpdateDeployment(): id(%d|%d)", session_id.high, session_id.low)
-
+    provisioning_stub.UpdateDeploymentSession(update_deployment_request)
     get_events_request = provisioning_service.StreamClusterDeploymentSessionEventRequest(
         header=core.MessageHeader(),
         session=dep

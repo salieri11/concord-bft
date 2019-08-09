@@ -34,8 +34,68 @@ def parse_arguments() -> Dict[str, Any]:
         default=None,
         help="File path to trusted server certificates"
     )
-
+    parser.add_argument(
+        "--type",
+        default="ethrpc",
+        help="Type of concord"
+    )
     return vars(parser.parse_args())
+
+
+def get_component(type) -> list:
+
+    if type is None or type is "ethrpc":
+        return [
+            concord_model.ConcordComponent(
+                type=concord_model.ConcordComponent.CONTAINER_IMAGE,
+                service_type=concord_model.ConcordComponent.CONCORD,
+                name="vmwblockchain/concord-core:latest"
+            ),
+            concord_model.ConcordComponent(
+                type=concord_model.ConcordComponent.CONTAINER_IMAGE,
+                service_type=concord_model.ConcordComponent.ETHEREUM_API,
+                name="vmwblockchain/ethrpc:latest"
+            ),
+            concord_model.ConcordComponent(
+                type=concord_model.ConcordComponent.CONTAINER_IMAGE,
+                service_type=concord_model.ConcordComponent.GENERIC,
+                name="vmwblockchain/agent-testing:latest"
+            )
+        ]
+    elif type == "daml":
+        # DAML works of custom images until code it rolled out.
+        return [
+            concord_model.ConcordComponent(
+                type=concord_model.ConcordComponent.CONTAINER_IMAGE,
+                service_type=concord_model.ConcordComponent.DAML_CONCORD,
+                name="vmwblockchain/agent-testing:con-aug7-v2"
+            ),
+            concord_model.ConcordComponent(
+                type=concord_model.ConcordComponent.CONTAINER_IMAGE,
+                service_type=concord_model.ConcordComponent.DAML_EXECUTION_ENGINE,
+                name="vmwblockchain/agent-testing:dee-aug7-v2"
+            ),
+            concord_model.ConcordComponent(
+                type=concord_model.ConcordComponent.CONTAINER_IMAGE,
+                service_type=concord_model.ConcordComponent.DAML_LEDGER_API,
+                name="vmwblockchain/agent-testing:dl-aug7-v2"
+            ),
+            concord_model.ConcordComponent(
+                type=concord_model.ConcordComponent.CONTAINER_IMAGE,
+                service_type=concord_model.ConcordComponent.GENERIC,
+                name="vmwblockchain/agent-testing:kash-aug7-v2"
+            )
+        ]
+
+    raise "Invalid concord type"
+
+
+def get_concord_type(type) -> Any:
+
+    if type is None or type is "ethrpc":
+        return concord_model.ConcordModelSpecification.ETHRPC
+    elif type == "daml":
+        return concord_model.ConcordModelSpecification.DAML
 
 
 def main():
@@ -89,23 +149,8 @@ def main():
                 version="photon-3.0-64",
                 # template="4452ea31-fe1c-4e83-b1f7-6aeb12ca9a9b",  # Ubuntu 18.04 Server.
                 template="8abc7fda-9576-4b13-9beb-06f867cf2c7c",  # Photon OS 3.0.
-                components=[
-                    concord_model.ConcordComponent(
-                        type=concord_model.ConcordComponent.CONTAINER_IMAGE,
-                        service_type=concord_model.ConcordComponent.CONCORD,
-                        name="vmwblockchain/concord-core:latest"
-                    ),
-                    concord_model.ConcordComponent(
-                        type=concord_model.ConcordComponent.CONTAINER_IMAGE,
-                        service_type=concord_model.ConcordComponent.ETHEREUM_API,
-                        name="vmwblockchain/ethrpc:latest"
-                    ),
-                    concord_model.ConcordComponent(
-                        type=concord_model.ConcordComponent.CONTAINER_IMAGE,
-                        service_type=concord_model.ConcordComponent.GENERIC,
-                        name="vmwblockchain/agent-testing:latest"
-                    )
-                ]
+                concord_type=get_concord_type(args["type"]),
+                components=get_component(args["type"])
             ),
             placement=provisioning_service.PlacementSpecification(
                 entries=[

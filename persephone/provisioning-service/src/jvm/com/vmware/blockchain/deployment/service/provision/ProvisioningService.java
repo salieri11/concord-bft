@@ -470,7 +470,8 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
     }
 
     private CompletableFuture<ConfigurationSessionIdentifier> generateConfigurationId(
-            ConcurrentHashMap<PlacementAssignment.Entry, NetworkResourceEvent.Created> privateNetworkAddressMap) {
+            ConcurrentHashMap<PlacementAssignment.Entry, NetworkResourceEvent.Created> privateNetworkAddressMap,
+            ConcordModelSpecification.BlockchainType blockchainType) {
         List<String> nodeIps = new ArrayList<>();
         privateNetworkAddressMap.forEach((key, value) -> {
             var nodeIp = value.getAddress();
@@ -479,7 +480,7 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
         });
         var request = new ConfigurationServiceRequest(
                 new MessageHeader(),
-                nodeIps);
+                nodeIps, blockchainType.name());
 
         var promise = new CompletableFuture<ConfigurationSessionIdentifier>();
         configService.createConfiguration(request, newResultObserver(promise));
@@ -694,7 +695,7 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
 
         CompletableFuture.allOf(networkAddressPromises)
                 .thenComposeAsync(__ -> generateConfigurationId(
-                        privateNetworkAddressMap),
+                        privateNetworkAddressMap, session.getSpecification().getModel().getBlockchainType()),
                         executor
                 )
                 // Setup node deployment workflow with its assigned network address.
