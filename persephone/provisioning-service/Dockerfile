@@ -8,7 +8,6 @@ COPY ./resources/checkstyle.xml ./persephone/resources/checkstyle.xml
 COPY ./pom.xml ./persephone/pom.xml
 COPY ./agent/pom.xml ./persephone/agent/pom.xml
 COPY ./api/pom.xml ./persephone/api/pom.xml
-COPY ./awsutil/pom.xml ./persephone/awsutil/pom.xml
 COPY ./cli/pom.xml ./persephone/cli/pom.xml
 COPY ./config-service/pom.xml ./persephone/config-service/pom.xml
 COPY ./core/pom.xml ./persephone/core/pom.xml
@@ -26,7 +25,6 @@ RUN mvn -f persephone/pom.xml dependency:resolve-plugins dependency:resolve clea
 
 ## Copy the dependent module sources.
 COPY ./api ./persephone/api
-COPY ./awsutil ./persephone/awsutil
 COPY ./core ./persephone/core
 COPY ./orchestration ./persephone/orchestration
 COPY ./orchestration-vmware ./persephone/orchestration-vmware

@@ -1,41 +1,31 @@
 # Build and dockerize the concord-agent artifact.
 FROM maven:3.6.1-jdk-11
 
-# Copy the POM files (rarely changing).
+## Copy build-dependent resource files.
+COPY ./persephone/resources/checkstyle.xml ./persephone/resources/checkstyle.xml
 COPY ./helen/developer-config/checkstyle.xml ./helen/developer-config/checkstyle.xml
+
+# Copy the POM files (rarely changing).
 COPY ./blockchain-build/pom.xml ./blockchain-build/pom.xml
 COPY ./persephone/pom.xml ./persephone/pom.xml
+COPY ./persephone/agent/pom.xml ./persephone/agent/pom.xml
 COPY ./persephone/api/pom.xml ./persephone/api/pom.xml
 COPY ./persephone/cli/pom.xml ./persephone/cli/pom.xml
-COPY ./persephone/awsutil/pom.xml ./persephone/awsutil/pom.xml
+COPY ./persephone/config-service/pom.xml ./persephone/config-service/pom.xml
 COPY ./persephone/core/pom.xml ./persephone/core/pom.xml
+COPY ./persephone/fleet-service/pom.xml ./persephone/fleet-service/pom.xml
+COPY ./persephone/ip-allocation-service/pom.xml ./persephone/ip-allocation-service/pom.xml
 COPY ./persephone/metadata-service/pom.xml ./persephone/metadata-service/pom.xml
 COPY ./persephone/orchestration/pom.xml ./persephone/orchestration/pom.xml
-COPY ./persephone/orchestration-vmc/pom.xml ./persephone/orchestration-vmc/pom.xml
+COPY ./persephone/orchestration-vmware/pom.xml ./persephone/orchestration-vmware/pom.xml
 COPY ./persephone/persistence/pom.xml ./persephone/persistence/pom.xml
+COPY ./persephone/persistence-rocksdb/pom.xml ./persephone/persistence-rocksdb/pom.xml
 COPY ./persephone/provisioning-service/pom.xml ./persephone/provisioning-service/pom.xml
-COPY ./protobuf/pom.xml ./protobuf/pom.xml
-COPY ./protobuf/grpc-runtime-kotlinx-serialization/pom.xml ./protobuf/grpc-runtime-kotlinx-serialization/pom.xml
-COPY ./protobuf/protoc-plugin-grpc-kotlinx-serialization/pom.xml ./protobuf/protoc-plugin-grpc-kotlinx-serialization/pom.xml
-COPY ./protobuf/protoc-plugin-kotlinx-serialization/pom.xml ./protobuf/protoc-plugin-kotlinx-serialization/pom.xml
-COPY ./protobuf/protoc-plugin-kotlinx-serialization-test/pom.xml ./protobuf/protoc-plugin-kotlinx-serialization-test/pom.xml
-
 COPY ./agent/pom.xml ./agent/pom.xml
-
-# Build protobuf module.
-COPY ./protobuf/grpc-runtime-kotlinx-serialization/src ./protobuf/grpc-runtime-kotlinx-serialization/src
-COPY ./protobuf/protoc-plugin-grpc-kotlinx-serialization/src ./protobuf/protoc-plugin-grpc-kotlinx-serialization/src
-COPY ./protobuf/protoc-plugin-kotlinx-serialization/src ./protobuf/protoc-plugin-kotlinx-serialization/src
-RUN mvn -f protobuf/pom.xml install
 
 # Build persephone API.
 COPY ./persephone/api/src ./persephone/api/src
 RUN mvn -f persephone/pom.xml install -pl api -am -B
-
-# Build persephone AWS Util.
-COPY ./persephone/awsutil/src ./persephone/awsutil/src
-COPY ./persephone/awsutil/test ./persephone/awsutil/test
-RUN mvn -f persephone/pom.xml install -pl awsutil -am -B
 
 # Resolve / fetch all dependencies for agent module.
 RUN mvn -f agent/pom.xml dependency:go-offline -B

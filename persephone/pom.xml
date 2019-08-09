@@ -7,14 +7,13 @@
 
     <groupId>com.vmware.blockchain</groupId>
     <artifactId>persephone</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
+    <version>${revision}</version>
     <packaging>pom</packaging>
     <name>Blockchain - Fleet Management</name>
 
     <modules>
         <module>agent</module>
         <module>api</module>
-        <module>awsutil</module>
         <module>config-service</module>
         <module>core</module>
         <module>cli</module>
@@ -82,6 +81,7 @@
     <properties>
         <!-- Project properties. -->
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <revision>1.0.0-SNAPSHOT</revision>
         <java.version>11</java.version>
         <kotlin.version>1.3.40</kotlin.version>
         <kotlin.coroutines.version>1.2.2</kotlin.coroutines.version>
@@ -93,6 +93,7 @@
         <maven.plugin.assembly>3.1.0</maven.plugin.assembly>
         <maven.plugin.checkstyle>3.0.0</maven.plugin.checkstyle>
         <maven.plugin.compiler>3.8.0</maven.plugin.compiler>
+        <maven.plugin.flatten>1.1.0</maven.plugin.flatten>
         <maven.plugin.jar>3.1.1</maven.plugin.jar>
         <maven.plugin.javadoc>3.0.0</maven.plugin.javadoc>
         <maven.plugin.ktlint>1.0.2</maven.plugin.ktlint>
@@ -150,11 +151,6 @@
             <dependency>
                 <groupId>com.vmware.blockchain</groupId>
                 <artifactId>persephone-core</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.vmware.blockchain</groupId>
-                <artifactId>persephone-awsutil</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -571,8 +567,39 @@
                         </execution>
                     </executions>
                 </plugin>
+                <plugin>
+                    <groupId>org.codehaus.mojo</groupId>
+                    <artifactId>flatten-maven-plugin</artifactId>
+                    <version>${maven.plugin.flatten}</version>
+                    <configuration>
+                        <flattenMode>defaults</flattenMode>
+                        <updatePomFile>true</updatePomFile>
+                    </configuration>
+                    <executions>
+                        <execution>
+                            <id>flatten</id>
+                            <phase>process-resources</phase>
+                            <goals>
+                                <goal>flatten</goal>
+                            </goals>
+                        </execution>
+                        <execution>
+                            <id>flatten.clean</id>
+                            <phase>clean</phase>
+                            <goals>
+                                <goal>clean</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
             </plugins>
         </pluginManagement>
+        <plugins>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>flatten-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
     </build>
 
     <profiles>
