@@ -497,7 +497,7 @@ EOF
                         # needs to be run with sudo is so it can delete any existing DB files.)
                         echo "${PASSWORD}" | sudo -S rm -rf ../docker/devdata/rocksdbdata*
                         echo "${PASSWORD}" | sudo -S rm -rf ../docker/devdata/cockroachDB
-                        "${python}" main.py UiTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${ui_test_logs}" --runConcordConfigurationGeneration
+                        "${python}" main.py UiTests --dockerComposeFile ../docker/docker-compose.yml ../docker/docker-compose-persephone.yml --resultsDir "${ui_test_logs}" --runConcordConfigurationGeneration
                       '''
                     }
                     if (env.JOB_NAME.contains(memory_leak_job_name)) {
