@@ -12,7 +12,7 @@ import { AuthenticationService } from '../../shared/authentication.service';
 import { ErrorAlertService } from '../../shared/global-error-handler.service';
 import { BlockchainService } from '../../shared/blockchain.service';
 import { BlockchainResponse } from '../../shared/blockchain.model';
-import { Personas } from '../../shared/persona.service';
+import { Personas, PersonaService } from '../../shared/persona.service';
 import { TourService } from '../../shared/tour.service';
 
 import { BlockchainWizardComponent } from '../../shared/components/blockchain-wizard/blockchain-wizard.component';
@@ -46,6 +46,7 @@ export class MainComponent implements OnInit, OnDestroy {
   alertSub: Subscription;
   routingSub: Subscription;
   urls = External;
+  disableDeploy: boolean;
 
   // Blockchain Service is resolved in the router before loading
   get selectedConsortium(): string {
@@ -69,6 +70,7 @@ export class MainComponent implements OnInit, OnDestroy {
     public zone: NgZone,
     private tourService: TourService,
     private blockchainService: BlockchainService,
+    private personaService: PersonaService
   ) {
     this.env = environment;
 
@@ -78,6 +80,7 @@ export class MainComponent implements OnInit, OnDestroy {
     if (!environment.csp) {
       this.setInactivityTimeout();
     }
+    this.checkAuthorization();
   }
 
   ngOnInit() {
@@ -224,4 +227,13 @@ export class MainComponent implements OnInit, OnDestroy {
       }
     }
   }
+
+  private checkAuthorization() {
+    if (this.personaService.hasAuthorization(Personas.SystemsAdmin)) {
+      this.disableDeploy = false;
+    } else if (this.blockchains.length >= 1) {
+      this.disableDeploy = true;
+    }
+  }
+
 }
