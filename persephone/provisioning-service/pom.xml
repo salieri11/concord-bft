@@ -39,10 +39,6 @@
         </dependency>
         <dependency>
             <groupId>com.vmware.blockchain</groupId>
-            <artifactId>persephone-awsutil</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.vmware.blockchain</groupId>
             <artifactId>persephone-core</artifactId>
         </dependency>
         <dependency>
