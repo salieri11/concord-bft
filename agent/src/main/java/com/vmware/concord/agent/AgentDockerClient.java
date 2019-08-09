@@ -11,25 +11,25 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.regex.Pattern;
-
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.github.dockerjava.api.DockerClient;
 import com.github.dockerjava.api.model.AuthConfig;
-import com.github.dockerjava.api.model.Bind;
-import com.github.dockerjava.api.model.ExposedPort;
 import com.github.dockerjava.api.model.HostConfig;
-import com.github.dockerjava.api.model.Link;
-import com.github.dockerjava.api.model.PortBinding;
-import com.github.dockerjava.api.model.Ports;
 import com.github.dockerjava.core.DefaultDockerClientConfig;
 import com.github.dockerjava.core.DockerClientBuilder;
 import com.github.dockerjava.core.command.PullImageResultCallback;
 import com.vmware.blockchain.deployment.model.ConcordAgentConfiguration;
+import com.vmware.blockchain.deployment.model.ConcordComponent;
 import com.vmware.blockchain.deployment.model.ConfigurationComponent;
 import com.vmware.blockchain.deployment.model.ConfigurationServiceStub;
 import com.vmware.blockchain.deployment.model.ConfigurationSessionIdentifier;
@@ -49,8 +49,6 @@ final class AgentDockerClient {
     private static final Logger log = LoggerFactory.getLogger(AgentDockerClient.class);
 
     private static final String DEFAULT_REGISTRY = "registry-1.docker.io";
-    private static final String COMPONENT_CONCORD = "concord-core";
-    private static final String COMPONENT_ETHEREUM_RPC = "ethrpc";
 
     /**
      * Regular expression pattern matching a Docker image name.
@@ -78,6 +76,7 @@ final class AgentDockerClient {
             try {
                 var matcher = IMAGE_NAME_PATTERN.matcher(name);
                 if (matcher.matches()) {
+                    // This block is never invoked...
                     if (matcher.group("registry") != null) {
                         registry = matcher.group("registry");
                     }
@@ -126,6 +125,7 @@ final class AgentDockerClient {
         var channel = ManagedChannelBuilder.forTarget(configuration.getConfigService().getAddress()).build();
         this.configurationService = new ConfigurationServiceStub(channel, CallOptions.DEFAULT);
     }
+
 
     /**
      * Retrieves the configuration for the node represented by this agent from Configuration
@@ -190,14 +190,101 @@ final class AgentDockerClient {
      * Start the local setup as a Concord node.
      */
     void startConcord() {
-        String concordImageId = null;
-        String ethrpcImageId = null;
+        // Download configuration and certs.
+        setupConfig();
 
+        // Pull and order images
+        List<ContainerConfig> containerConfigList = pullImages();
+
+        Collections.sort(containerConfigList, Comparator.comparingInt(ContainerConfig::ordinal));
+
+        var dockerClient = DockerClientBuilder.getInstance().build();
+        containerConfigList.forEach(container -> launchContainer(dockerClient, container));
+    }
+
+    private List<ContainerConfig> pullImages() {
+        final var registryUsername = configuration.getContainerRegistry()
+                .getCredential().getPasswordCredential().getUsername();
+        final var registryPassword = configuration.getContainerRegistry()
+                .getCredential().getPasswordCredential().getPassword();
+
+        List<CompletableFuture<ContainerConfig>> futures = new ArrayList<>();
+        for (var component : configuration.getModel().getComponents()) {
+            // Bypass non service type image pull...
+            if (component.getServiceType() != ConcordComponent.ServiceType.GENERIC) {
+                futures.add(CompletableFuture
+                                    .supplyAsync(() -> getImageIdAfterDl(registryUsername,
+                                                                         registryPassword, component)));
+            }
+        }
+
+        return CompletableFuture.allOf(futures.stream().toArray(CompletableFuture[]::new))
+                .thenApply((res) -> futures.stream()
+                .map(CompletableFuture::join)
+                .collect(Collectors.toList())).join();
+    }
+
+    private ContainerConfig getImageIdAfterDl(String registryUsername, String registryPassword,
+                                              ConcordComponent component) {
+
+        log.info("Pulling image {}", component.getName());
+        var containerConfig = ContainerConfig.valueOf(component.getServiceType().name());
+        var clientConfig = DefaultDockerClientConfig.createDefaultConfigBuilder()
+                .withRegistryUrl(configuration.getContainerRegistry().getAddress())
+                .withRegistryUsername(registryUsername)
+                .withRegistryPassword(registryPassword)
+                .build();
+        var docker = DockerClientBuilder.getInstance(clientConfig).build();
+        try {
+            var componentImage = new ContainerImage(component.getName());
+
+            var command = docker.pullImageCmd(componentImage.getRepository())
+                    .withRegistry(componentImage.getRegistry())
+                    .withTag(componentImage.getTag())
+                    .withAuthConfig(
+                            new AuthConfig()
+                                    .withUsername(registryUsername)
+                                    .withPassword(registryPassword)
+                    )
+                    .exec(new PullImageResultCallback());
+
+            // For now, just block synchronously.
+            try {
+                log.info("Waiting image {}", component.getName());
+                command.awaitCompletion();
+                log.info("Pulled image {}", component.getName());
+            } catch (Throwable error) {
+                // If imaging fetching fails, try to proceed forward anyway.
+                log.error("Pulling image({}:{}) from registry({}) failed",
+                          componentImage.getRepository(),
+                          componentImage.getTag(),
+                          componentImage.getRegistry());
+            }
+
+            containerConfig.imageId = componentImage.registry + "/"
+                                      + docker.inspectImageCmd(
+                                              componentImage.getRepository() + ":" + componentImage.getTag())
+                                              .getImageId();
+
+        } catch (Throwable error) {
+            log.error("Error while pulling image for component({})", component.getName(), error);
+        } finally {
+            try {
+                docker.close();
+            } catch (IOException error) {
+                log.error("Error while closing docker client", error);
+            }
+        }
+        return containerConfig;
+    }
+
+    private void setupConfig() {
         log.info("Reading config file");
 
         var configList = retrieveConfiguration(configuration.getConfigurationSession(), configuration.getNode());
         writeConfiguration(configList);
 
+        // TODO Why do we need 2 paths?
         var localConfigPath = Path.of("/config/concord/config-local/concord.config");
         var withHostConfig = Path.of("/config/concord/config-local/concord_with_hostnames.config");
 
@@ -205,7 +292,6 @@ final class AgentDockerClient {
         if (!Files.exists(withHostConfig)) {
             try {
                 Files.copy(localConfigPath, withHostConfig, StandardCopyOption.REPLACE_EXISTING);
-
                 log.info("Copied {} to {}", localConfigPath, withHostConfig);
             } catch (IOException error) {
                 log.error("Cannot write to " + withHostConfig, error);
@@ -213,137 +299,43 @@ final class AgentDockerClient {
         }
 
         log.info("Populated the config file");
+    }
 
-        var registryUsername = configuration.getContainerRegistry()
-                .getCredential().getPasswordCredential().getUsername();
-        registryUsername = registryUsername.isBlank() ? null : registryUsername;
-        var registryPassword = configuration.getContainerRegistry()
-                .getCredential().getPasswordCredential().getPassword();
-        registryPassword = registryPassword.isBlank() ? null : registryPassword;
+    private void launchContainer(DockerClient dockerClient, ContainerConfig containerParam) {
 
-        for (var component : configuration.getModel().getComponents()) {
-            var componentImage = new ContainerImage(component.getName());
-            var clientConfig = DefaultDockerClientConfig.createDefaultConfigBuilder()
-                    .withRegistryUrl(configuration.getContainerRegistry().getAddress())
-                    .withRegistryUsername(registryUsername)
-                    .withRegistryPassword(registryPassword)
-                    .build();
-            var docker = DockerClientBuilder.getInstance(clientConfig).build();
-            try {
-                var command = docker.pullImageCmd(componentImage.getRepository())
-                        .withTag(componentImage.getTag())
-                        .withRegistry(componentImage.getRegistry())
-                        .withAuthConfig(
-                                new AuthConfig()
-                                        .withUsername(registryUsername)
-                                        .withPassword(registryPassword)
-                        )
-                        .exec(new PullImageResultCallback());
+        var createContainerCmd = dockerClient.createContainerCmd(containerParam.containerName)
+                .withName(containerParam.containerName)
+                .withImage(containerParam.imageId);
 
-                // For now, just block synchronously.
-                try {
-                    command.awaitCompletion();
-                } catch (Throwable error) {
-                    // If imaging fetching fails, try to proceed forward anyway.
-                    log.error("Pulling image({}:{}) from registry({}) failed",
-                              componentImage.getRepository(),
-                              componentImage.getTag(),
-                              componentImage.getRegistry());
-                }
-
-                var imageId = docker.listImagesCmd().exec().stream()
-                        .filter(image -> {
-                            log.info("Image: id({}), created({})", image.getId(), image.getCreated());
-
-                            if (image.getRepoTags() != null) {
-                                for (var tag : image.getRepoTags()) {
-                                    log.info("Tag: {}", tag);
-
-                                    if (tag.contains(componentImage.getRepository())
-                                            && tag.contains(componentImage.getTag())) {
-                                        return true;
-                                    }
-                                }
-                            }
-                            return false;
-                        })
-                        .findFirst()
-                        .orElseThrow();
-
-                // Save the image ID of the images we pulled for components that we can start.
-                if (componentImage.getRepository().contains(COMPONENT_CONCORD)) {
-                    concordImageId = imageId.getId();
-                } else if (componentImage.getRepository().contains(COMPONENT_ETHEREUM_RPC)) {
-                    ethrpcImageId = imageId.getId();
-                }
-            } catch (Throwable error) {
-                log.error("Error while starting component({})", component.getName(), error);
-            } finally {
-                try {
-                    docker.close();
-                } catch (IOException error) {
-                    log.error("Error while closing docker client", error);
-                }
-            }
+        if (containerParam.cmds != null) {
+            createContainerCmd.withCmd(containerParam.cmds);
         }
 
-        var dockerClient = DockerClientBuilder.getInstance().build();
-        if (concordImageId != null) {
-            var container = dockerClient.createContainerCmd("concord-core")
-                    .withName("concord")
-                    .withImage(concordImageId)
-                    .withHostConfig(
-                            HostConfig.newHostConfig()
-                                    // .withNetworkMode("host")
-                                    .withPortBindings(
-                                            new PortBinding(Ports.Binding.bindPort(5458), ExposedPort.tcp(5458)),
-                                            new PortBinding(Ports.Binding.bindPort(3501), ExposedPort.tcp(3501)),
-                                            new PortBinding(Ports.Binding.bindPort(3502), ExposedPort.tcp(3502)),
-                                            new PortBinding(Ports.Binding.bindPort(3503), ExposedPort.tcp(3503)),
-                                            new PortBinding(Ports.Binding.bindPort(3504), ExposedPort.tcp(3504)),
-                                            new PortBinding(Ports.Binding.bindPort(3505), ExposedPort.tcp(3505)),
-                                            new PortBinding(Ports.Binding.bindPort(3501), ExposedPort.udp(3501)),
-                                            new PortBinding(Ports.Binding.bindPort(3502), ExposedPort.udp(3502)),
-                                            new PortBinding(Ports.Binding.bindPort(3503), ExposedPort.udp(3503)),
-                                            new PortBinding(Ports.Binding.bindPort(3504), ExposedPort.udp(3504)),
-                                            new PortBinding(Ports.Binding.bindPort(3505), ExposedPort.udp(3505)))
-                                    .withBinds(Bind.parse("/config/concord/config-local:/concord/config-local"),
-                                               Bind.parse("/config/concord/config-public:/concord/config-public")))
-                    .exec();
+        if (containerParam.volumeBindings != null || containerParam.portBindings != null) {
+            HostConfig hostConfig = HostConfig.newHostConfig();
 
-            // Now lets start the docker image
-            if (container == null) {
-                log.error("Couldn't start the container...!");
-            } else {
-                log.info("Starting container: " + container.getId());
-                dockerClient.startContainerCmd(container.getId()).exec();
-                log.info("started concord: " + container.getId());
+            if (containerParam.volumeBindings != null) {
+                hostConfig.withBinds(containerParam.volumeBindings);
             }
+
+            if (containerParam.portBindings != null) {
+                hostConfig.withPortBindings(containerParam.portBindings);
+            }
+
+            if (containerParam.links != null) {
+                hostConfig.withLinks(containerParam.links);
+            }
+            createContainerCmd.withHostConfig(hostConfig);
         }
-        // TODO: this should be done in Dockerfile and not as argument while starting the daemon.
-        var cmd = "sed -i s/localhost/concord/g application.properties && java -jar concord-ethrpc.jar";
-        if (ethrpcImageId != null) {
-            var container = dockerClient.createContainerCmd("ethrpc")
-                    .withName("ethrpc")
-                    .withImage(ethrpcImageId)
-                    .withCmd("/bin/bash", "-c", cmd)
-                    .withHostConfig(
-                            HostConfig.newHostConfig()
-                                    .withPortBindings(
-                                            new PortBinding(Ports.Binding.bindPort(8545), ExposedPort.tcp(8545))
-                                    )
-                                    .withLinks(new Link("concord", "concord"))
-                    )
-                    .exec();
 
-            // Now lets start the docker image
-            if (container == null) {
-                log.error("Couldn't start ethrpc container...!");
-            } else {
-                log.info("Starting ethrpc: " + container.getId());
-                dockerClient.startContainerCmd(container.getId()).exec();
-                log.info("Started container: " + container.getId());
-            }
+        log.info("Create container: {}", createContainerCmd.toString());
+        var container = createContainerCmd.exec();
+        if (container == null) {
+            log.error("Couldn't start {} container...!", containerParam.containerName);
+        } else {
+            log.info("Starting {}: Id {} ", containerParam.containerName, container.getId());
+            dockerClient.startContainerCmd(container.getId()).exec();
+            log.info("Started container {}: Id {} ", containerParam.containerName, container.getId());
         }
     }
 }

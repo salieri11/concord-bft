@@ -257,7 +257,8 @@ public class BlockchainController {
         ConcordModelSpecification spec = new ConcordModelSpecification(
                 "20190401.1",
                 "8abc7fda-9576-4b13-9beb-06f867cf2c7c",
-                components
+                components,
+                ConcordModelSpecification.BlockchainType.ETHRPC
         );
         DeploymentSpecification deploySpec =
                 new DeploymentSpecification(clusterSize, spec, placementSpec, genesis);
