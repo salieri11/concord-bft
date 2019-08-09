@@ -285,18 +285,18 @@ ReplicaImp::ReplicaImp(CommConfig &commConfig,
 }
 
 ReplicaImp::~ReplicaImp() {
-  if (m_stateTransfer) {
-    if (m_stateTransfer->isRunning()) {
-      m_stateTransfer->stopRunning();
-    }
-    delete m_stateTransfer;
-  }
-
   if (m_replicaPtr) {
     if (m_replicaPtr->isRunning()) {
       m_replicaPtr->stop();
     }
     delete m_replicaPtr;
+  }
+
+  if (m_stateTransfer) {
+    if (m_stateTransfer->isRunning()) {
+      m_stateTransfer->stopRunning();
+    }
+    delete m_stateTransfer;
   }
 }
 
