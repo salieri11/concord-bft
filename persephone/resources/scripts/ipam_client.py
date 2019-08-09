@@ -6,9 +6,9 @@ import collections
 import grpc
 import io
 import logging
-import persephone.core_pb2 as core
-import persephone.ip_allocation_service_pb2 as ip_allocation_service
-import persephone.ip_allocation_service_pb2_grpc as ip_allocation_service_rpc
+import vmware.blockchain.deployment.v1.core_pb2 as core
+import vmware.blockchain.deployment.v1.ip_allocation_service_pb2 as ip_allocation_service
+import vmware.blockchain.deployment.v1.ip_allocation_service_pb2_grpc as ip_allocation_service_rpc
 from typing import Any, Dict, List
 
 

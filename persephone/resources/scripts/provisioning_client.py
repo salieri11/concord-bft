@@ -5,13 +5,13 @@ import argparse
 import grpc
 import io
 import logging
-import persephone.core_pb2 as core
-import persephone.concord_model_pb2 as concord_model
-import persephone.ethereum_pb2 as ethereum
-import persephone.orchestration_service_pb2 as orchestration_service
-import persephone.orchestration_service_pb2_grpc as orchestration_service_rpc
-import persephone.provisioning_service_pb2 as provisioning_service
-import persephone.provisioning_service_pb2_grpc as provisioning_service_rpc
+import vmware.blockchain.deployment.v1.core_pb2 as core
+import vmware.blockchain.deployment.v1.concord_model_pb2 as concord_model
+import vmware.blockchain.ethereum.type.genesis_pb2 as genesis
+import vmware.blockchain.deployment.v1.orchestration_service_pb2 as orchestration_service
+import vmware.blockchain.deployment.v1.orchestration_service_pb2_grpc as orchestration_service_rpc
+import vmware.blockchain.deployment.v1.provisioning_service_pb2 as provisioning_service
+import vmware.blockchain.deployment.v1.provisioning_service_pb2_grpc as provisioning_service_rpc
 from google.protobuf.json_format import MessageToJson
 from typing import Any, Dict, List
 
@@ -51,7 +51,7 @@ def get_component(blockchain_type) -> List[concord_model.ConcordComponent]:
         blockchain_type (str): Type of blockchain network to deploy.
 
     Returns:
-        model specification enum type.
+        list of Concord components.
     """
     if blockchain_type is None or blockchain_type is "ethereum":
         return [
@@ -109,7 +109,7 @@ def get_concord_type(blockchain_type: str) -> concord_model.ConcordModelSpecific
     """
     if blockchain_type is None or blockchain_type == "ethereum":
         return concord_model.ConcordModelSpecification.ETHRPC
-    elif type == "daml":
+    elif blockchain_type == "daml":
         return concord_model.ConcordModelSpecification.DAML
 
 
@@ -124,13 +124,11 @@ def main():
         None
     """
     # Setup logging.
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format="[%(asctime)s] [%(levelname)s] [%(name)s]: %(message)s",
+    )
     log = logging.getLogger(__name__)
-    log.setLevel(logging.DEBUG)
-    console_handler = logging.StreamHandler()
-    console_handler.setLevel(logging.DEBUG)
-    log_formatter = logging.Formatter("[%(asctime)s] [%(levelname)s] [%(name)s]: %(message)s")
-    console_handler.setFormatter(log_formatter)
-    log.addHandler(console_handler)
 
     args = parse_arguments()
     if args["trusted_certs"]:
@@ -187,8 +185,8 @@ def main():
                     )
                 ]
             ),
-            genesis=ethereum.Genesis(
-                config=ethereum.Genesis.Config(
+            genesis=genesis.Genesis(
+                config=genesis.Genesis.Config(
                     chain_id=1,
                     homestead_block=0,
                     eip155_block=0,
@@ -201,11 +199,11 @@ def main():
                 gas_limit="0xf4240",
                 alloc={
                     "262c0d7ab5ffd4ede2199f6ea793f819e1abb019":
-                        ethereum.Genesis.Wallet(balance="12345"),
+                        genesis.Genesis.Wallet(balance="12345"),
                     "5bb088f57365907b1840e45984cae028a82af934":
-                        ethereum.Genesis.Wallet(balance="0xabcdef"),
+                        genesis.Genesis.Wallet(balance="0xabcdef"),
                     "0000a12b3f3d6c9b0d3f126a83ec2dd3dad15f39":
-                        ethereum.Genesis.Wallet(balance="0x7fffffffffffffff")
+                        genesis.Genesis.Wallet(balance="0x7fffffffffffffff")
                 }
             )
         )

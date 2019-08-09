@@ -3,9 +3,9 @@
 
 import argparse
 import json
-import persephone.core_pb2 as core
-import persephone.orchestration_pb2 as orchestration
-import persephone.provisioning_service_pb2 as provision_service
+import vmware.blockchain.deployment.v1.core_pb2 as core
+import vmware.blockchain.deployment.v1.orchestration_pb2 as orchestration
+import vmware.blockchain.deployment.v1.provisioning_service_pb2 as provision_service
 import uuid
 from google.protobuf.json_format import MessageToJson
 from typing import Any, Dict
