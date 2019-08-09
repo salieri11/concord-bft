@@ -1,6 +1,6 @@
 /* [START declaration] */
 syntax = "proto3";
-package com.vmware.blockchain.deployment.model.ethereum;
+package vmware.blockchain.ethereum.type;
 /* [END declaration] */
 
 /* [START java_declaration] */

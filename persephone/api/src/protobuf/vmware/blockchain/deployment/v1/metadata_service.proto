@@ -1,9 +1,9 @@
 /* [START declaration] */
 syntax = "proto3";
-package com.vmware.blockchain.deployment.model;
+package vmware.blockchain.deployment.v1;
 
-import "concord_model.proto";
-import "core.proto";
+import "vmware/blockchain/deployment/v1/concord_model.proto";
+import "vmware/blockchain/deployment/v1/core.proto";
 /* [END declaration] */
 
 /* [START java_declaration] */

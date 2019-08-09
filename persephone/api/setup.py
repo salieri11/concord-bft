@@ -4,7 +4,6 @@
 import glob
 import io
 import os
-import re
 import pkg_resources
 
 from setuptools import setup, Command
@@ -15,8 +14,8 @@ DESCRIPTION = "VMware Blockchain Fleet Management API."
 URL = "https://gitlab.eng.vmware.com/blockchain/vmwathena_blockchain"
 EMAIL = "blockchain-support@vmware.com"
 AUTHOR = "VMware Blockchain Team"
-REQUIRES_PYTHON = ">=3.6.0"
-VERSION = "0.0.1"
+REQUIRES_PYTHON = ">=3.7.0"
+VERSION = "1.0.1"
 
 # Package dependencies.
 REQUIRED = ["grpcio", "grpcio-tools"]
@@ -24,6 +23,9 @@ EXTRAS = {}
 
 # Source file path.
 path = os.path.abspath(os.path.dirname(__file__))
+
+# Make sure that build target directory exists.
+os.makedirs(os.path.join(path, "target"), exist_ok=True)
 
 # Import the README and use it as the long-description.
 try:
@@ -43,13 +45,12 @@ else:
 
 
 class GrpcToolsCommand(Command):
-    """Support setup.py gRPC protobuf binding generation."""
-
+    """Support setup.py gRPC Protocol Buffer binding generation."""
     description = "Build and publish the package."
     user_options = []
     proto_include = pkg_resources.resource_filename("grpc_tools", "_proto")
     proto_src_path = os.path.join(path, "src", "protobuf")
-    proto_target_path = os.path.join(path, "target", "persephone")
+    proto_target_path = os.path.join(path, "target", "lib")
 
     @staticmethod
     def status(text: str, bold: bool = False) -> None:
@@ -89,7 +90,13 @@ class GrpcToolsCommand(Command):
         # Create the package directory.
         os.makedirs(self.proto_target_path, exist_ok=True)
 
-        proto_src_list = glob.glob(os.path.join(self.proto_src_path, "*.proto"))
+        proto_src_list = glob.glob(
+            os.path.join(self.proto_src_path, "**", "*.proto"),
+            recursive=True
+        )
+        for proto_src in proto_src_list:
+            self.status("Source file: {}".format(proto_src))
+
         grpc_tools.protoc.main([
             "grpc_tools.protoc",
             "-I{}".format(self.proto_include),
@@ -97,35 +104,6 @@ class GrpcToolsCommand(Command):
             "--python_out={}".format(self.proto_target_path),
             "--grpc_python_out={}".format(self.proto_target_path),
         ] + proto_src_list)
-
-        # Adapt the generated protobuf bindings to allow proper important with python3.
-        self.adapt_proto_python3()
-
-    def adapt_proto_python3(self) -> None:
-        """
-        Adapt generated Protocol Buffer python bindings to work with python3.
-
-        Returns:
-            None
-        """
-        generated_files = [name for name in os.listdir(self.proto_target_path)
-                           if name.endswith(".py")]
-        generated_modules = [os.path.splitext(name)[0] for name in generated_files]
-
-        for module in generated_modules:
-            self.status("Processing module {}".format(module), True)
-
-            for name in generated_files:
-                file_path = os.path.join(self.proto_target_path, name)
-                self.status("Processing file {}".format(file_path))
-
-                with open(file_path, "r") as source:
-                    lines = source.readlines()
-                with open(file_path, "w") as source:
-                    for line in lines:
-                        source.write(re.sub(r"^import {}".format(module),
-                                            "from . import {}".format(module),
-                                            line))
 
 
 # Main entry point for setup.py.
@@ -139,8 +117,15 @@ setup(
     author_email=EMAIL,
     python_requires=REQUIRES_PYTHON,
     url=URL,
-    package_dir={"": "target"},
-    packages=["persephone"],
+    namespace_packages=["vmware", "vmware.blockchain"],
+    package_dir={
+        "vmware.blockchain.deployment.v1": "target/lib/vmware/blockchain/deployment/v1",
+        "vmware.blockchain.ethereum.type": "target/lib/vmware/blockchain/ethereum/type"
+    },
+    packages=[
+        "vmware.blockchain.deployment.v1",
+        "vmware.blockchain.ethereum.type"
+    ],
     install_requires=REQUIRED,
     extras_require=EXTRAS,
     include_package_data=True,
@@ -149,7 +134,7 @@ setup(
         # Trove classifiers (https://pypi.python.org/pypi?%3Aaction=list_classifiers).
         "Programming Language :: Python",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: Implementation :: CPython",
         "Programming Language :: Python :: Implementation :: PyPy"
     ],

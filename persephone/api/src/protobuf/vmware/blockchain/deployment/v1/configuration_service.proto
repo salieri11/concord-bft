@@ -1,10 +1,10 @@
 /* [START declaration] */
 syntax = "proto3";
-package com.vmware.blockchain.deployment.model;
+package vmware.blockchain.deployment.v1;
 
-import "core.proto";
-import "security_identity.proto";
-import "concord_model.proto";
+import "vmware/blockchain/deployment/v1/core.proto";
+import "vmware/blockchain/deployment/v1/concord_model.proto";
+import "vmware/blockchain/deployment/v1/security_identity.proto";
 
 /* [START java_declaration] */
 option java_package = "com.vmware.blockchain.deployment.model";
