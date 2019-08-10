@@ -254,6 +254,7 @@ ReplicaImp::ReplicaImp(CommConfig &commConfig,
   { s1.f = (s2.f > 0) ? s2.f : s1.f; }
   SET_CFG_DEFAULT(m_replicaConfig, replicaConfig, maxExternalMessageSize);
   SET_CFG_DEFAULT(m_replicaConfig, replicaConfig, maxReplyMessageSize);
+  SET_CFG_DEFAULT(m_replicaConfig, replicaConfig, sizeOfReservedPage);
   SET_CFG_DEFAULT(state_transfer_config, replicaConfig, maxNumOfReservedPages);
   SET_CFG_DEFAULT(state_transfer_config, replicaConfig, sizeOfReservedPage);
 #undef SET_CFG_DEFAULT
