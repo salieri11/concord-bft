@@ -4,16 +4,16 @@
 # This class is a helper file to test model services (deployment services)
 #########################################################################
 
+import logging
 import sys
-sys.path.append('lib/persephone')
-from grpc_python_bindings import metadata_service_pb2
-from grpc_python_bindings import metadata_service_pb2_grpc
 from rpc_helper import RPCHelper
-from grpc_python_bindings import concord_model_pb2
+from vmware.blockchain.deployment.v1 import concord_model_pb2
+from vmware.blockchain.deployment.v1 import metadata_service_pb2
+from vmware.blockchain.deployment.v1 import metadata_service_pb2_grpc
+
 sys.path.append('../../')
 from util.product import Product as Product
 
-import logging
 
 log = logging.getLogger(__name__)
 

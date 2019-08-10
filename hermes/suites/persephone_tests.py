@@ -313,8 +313,8 @@ class PersephoneTests(test_suite.TestSuite):
       if self.concord_ips:
          try:
             import grpc
-            from grpc_python_bindings import provisioning_service_pb2
-            from grpc_python_bindings import provisioning_service_pb2_grpc
+            from vmware.blockchain.deployment.v1 import provisioning_service_pb2
+            from vmware.blockchain.deployment.v1 import provisioning_service_pb2_grpc
 
             service_name = Product.PERSEPHONE_SERVICE_PROVISIONING_2
             ports = helper.get_docker_compose_value(

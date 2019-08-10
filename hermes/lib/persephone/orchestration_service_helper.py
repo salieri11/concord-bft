@@ -4,15 +4,14 @@
 # This class is a helper file to test orchestration services (deployment services)
 #########################################################################
 
+import logging
 import sys
-sys.path.append('lib/persephone')
-from grpc_python_bindings import orchestration_service_pb2
-from grpc_python_bindings import orchestration_service_pb2_grpc
 from rpc_helper import RPCHelper
+from vmware.blockchain.deployment.v1 import orchestration_service_pb2
+from vmware.blockchain.deployment.v1 import orchestration_service_pb2_grpc
 sys.path.append('../../')
 from util.product import Product as Product
 
-import logging
 
 log = logging.getLogger(__name__)
 
