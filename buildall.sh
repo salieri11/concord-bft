@@ -226,7 +226,7 @@ PerformanceTests() {
 
 BuildPersephoneGRPCpyBindings() {
     pushd .
-    ./hermes/util/generate_gRPC_bindings_for_py3.sh --protobufSrc persephone/api/src/protobuf > persephone_generate_gRPC_py_bindings.log 2>&1 &
+    ./hermes/util/generate_grpc_bindings.py --source-path=persephone/api/src/protobuf --target-path=hermes/lib/persephone > persephone_generate_grpc_bindings.log 2>&1 &
     addToProcList "Persephone gRPC Python Bindings" $!
     popd
 }
