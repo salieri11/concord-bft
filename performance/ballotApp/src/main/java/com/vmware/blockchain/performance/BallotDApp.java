@@ -28,20 +28,9 @@ import java.math.BigInteger;
 
 import java.text.DecimalFormat;
 
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Map;
-import java.util.HashMap;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.*;
 
 public class BallotDApp {
 	private static final Logger logger = LogManager.getLogger(BallotDApp.class);
@@ -218,7 +207,6 @@ public class BallotDApp {
 	}
 
 	private void processingVoting(Credentials[] credentials) throws Exception {
-
 		logger.info("Number of threads: " + NUMBER_THREADS);
 
 		List<Voting> votings = new ArrayList<>();
@@ -236,7 +224,6 @@ public class BallotDApp {
 		Map<String, Web3j> serviceMap = new HashMap<>();
 		ScheduledExecutorService scheduledExecutorService = new ScheduledThreadPoolExecutor(NUMBER_THREADS);
 		if (CONCORD) {
-
 			if (weightedEndpoints != null) {
 				ArrayList<Integer> numTxs = new ArrayList<Integer>(weightedEndpoints.size());
 
@@ -280,9 +267,7 @@ public class BallotDApp {
 						}
 						nodeIndex++;
 					}
-
 				}
-
 			}
 		} else {
 			//If benchmark specifies Helen
@@ -299,90 +284,74 @@ public class BallotDApp {
 				votings.add(voting);
 			}
 		}
+		scheduledExecutorService.shutdown();
+		scheduledExecutorService.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
 		long endVoting = System.nanoTime();
 		logger.info("Time to create Voters is: " + (endVoting - startVoting));
-
-		ExecutorService executor = Executors.newFixedThreadPool(NUMBER_THREADS);
-
-		long conStart = System.nanoTime();
-
-		ArrayList<AsyncTransaction> time = new ArrayList<AsyncTransaction>(votings.size());
-		List<CompletableFuture<AsyncTransaction>> tasks = new ArrayList<>();
+		Block block = web3j.ethGetBlockByNumber(DefaultBlockParameterName.LATEST, false).send().getBlock();
+		logger.info("Block Number before actual voting " + block.getNumber().toString());
+		PrintWriter writer = new PrintWriter(new FileWriter(new File(PERFORMANCE_DATA)));
+		PrintWriter writerCSV = new PrintWriter(new FileWriter(new File(PERFORMANCE_DATA_CSV)));
 
 		long sleepTime = 0;
 		if (RATE_CONTROL != 0) {
 			sleepTime = 1_000_000_000/RATE_CONTROL;
 		}
 		
-		Block block = web3j.ethGetBlockByNumber(DefaultBlockParameterName.LATEST, false).send().getBlock();
 
-		long startMillisTime = System.currentTimeMillis();
-		
-		long timeStartLoop = System.nanoTime();
-		long start = System.nanoTime();
+
+		logger.info("Starting Transactions..");
+
+		ExecutorService excutor = Executors.newFixedThreadPool(NUMBER_THREADS);
+		List<Future<long[]> > resultList = new ArrayList<>();
+		for(int i = 0; i < votings.size(); i++)
+		    resultList.add(i, null);
+		int index = 0;
+
+		long startTime = System.nanoTime();
+        writer.println("Transactions were started at: " + startTime);
 		for (int i = 0; i < votings.size(); i++) {
-			Voting voting = votings.get(i);
-			AsyncTransaction asyncTransaction = new AsyncTransaction(web3j, voting.getSignedMsg(), i, voting.getNodeIp());
-			CompletableFuture<AsyncTransaction> task =
-					votings.get(i).execute(asyncTransaction, executor).whenComplete((entry, error) -> {
-						if (error != null) {
-							logger.error("Error occurred", error);
-						} else {
-							entry.setDiverId(DRIVERID);
-							time.add(entry);
-						}
-					});
-
-			tasks.add(task);
-
-			if (RATE_CONTROL != 0) {
-				applyRateControl(sleepTime, i, start);
-			}
+			Future<long[]> result = excutor.submit(votings.get(i));
+			resultList.set(i, result);
+			if(RATE_CONTROL != 0)
+				applyRateControl(sleepTime, index, startTime);
+			index++;
 		}
 
-		executor.shutdown();
-
-		CompletableFuture<Void> allDone =
-				CompletableFuture.allOf(tasks.toArray(new CompletableFuture[tasks.size()]));
-		long conEnd = System.nanoTime();
-		CompletableFuture.allOf(allDone).join();
-		
-		long timeEndLoop = System.nanoTime();
-		long endMillisTime = System.currentTimeMillis();
-		
-		Block blockEnd = web3j.ethGetBlockByNumber(DefaultBlockParameterName.LATEST, false).send().getBlock();
-		
-		PrintWriter writer = new PrintWriter(new FileWriter(new File(PERFORMANCE_DATA)));
-		PrintWriter writerCSV = new PrintWriter(new FileWriter(new File(PERFORMANCE_DATA_CSV)));
-		
-		logger.info("Block Number before Transactions " + block.getNumber().toString());
-		writer.println("Transactions were started at: " + startMillisTime + " (millis)");
-		logger.info("Transactions were started at: " + startMillisTime + " (millis)");
-		logger.info("Block Number after Transactions " + blockEnd.getNumber().toString());
-		
-		writer.println("Transactions were finished at: " + endMillisTime + " (millis)");
-		logger.info("Transactions were finished at: " + endMillisTime + " (millis)");
-		tasks.clear();
-
-		logger.info("Concurrency Start Time is: " + conStart);
-		logger.info("Concurrency End time is: " + conEnd);
-		logger.info("Concurrency Total Time is: " + (conEnd - conStart));
-		writer.printf("Concurrency Total Time is: %d\n", conEnd - conStart);
+		excutor.shutdown();
+		excutor.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+		long endTime = System.nanoTime();
+		logger.info("Finished executing all Transactions");
+        writer.println("Transactions were finished at: " + endTime);
+		long total_time = endTime - startTime;
 
 
-		long totalSum = 0;
-		long minStartTime = Long.MAX_VALUE;
-		long maxEndTime = Long.MIN_VALUE;
+		ArrayList<Long> latencies = new ArrayList<>();
+		for(int i = 0; i < resultList.size(); i++) {
+			latencies.add(resultList.get(i).get()[1] - resultList.get(i).get()[0]);
+		}
 
-		Collections.sort(time, (tx1, tx2) ->(int) (tx1.end - tx2.end));
+		double avg = 0.0;
+
+		for(Long x: latencies) {
+			avg += x/NUMBER;
+		}
+		avg = avg/1000000.0;
+
+		logger.debug("Number of transactions: " + NUMBER);
+		logger.info("Total time taken: " + total_time/1000000000.0 + " s");
+		logger.info("Avergae Latency : " + avg + " ms");
+		logger.info("Throughput: " + (NUMBER*1.0/total_time)*1000000000 + " tps");
+
 
 		/*
 		 * All completed transactions are stored in memory and only written to file when ALL of them finished
 		 * They are ordered by earliest completion time first
 		 */
-		writerCSV.println("DriverID,NodeIP,ID,Start (relative to first tx in nsec),End (sorted by first completion),Duration (nsec)");
+		writerCSV.println("Txid, Duration (nsec)");
 		writerCSV.println();
 		logger.debug(WAVEFRONT_DATA_PATH);
+
 		File wavefrontFile = new File(WAVEFRONT_DATA_PATH);
 		if (wavefrontFile.createNewFile())
 		{
@@ -392,24 +361,12 @@ public class BallotDApp {
 		}
 		FileWriter waveFrontFileWriter = new FileWriter(wavefrontFile);
 
-		ArrayList<Long> latencies = new ArrayList<Long>(votings.size());
-
-		for (int i = 0; i < time.size(); i++) {
-
-			if (time.get(i).start < minStartTime) {
-				minStartTime = time.get(i).start;
-			}
-			if (time.get(i).end > maxEndTime) {
-				maxEndTime = time.get(i).end;
-			}
-
-			long duration = time.get(i).end - time.get(i).start;
-			latencies.add(duration);
-
-			writerCSV.println(time.get(i).getDriverId() + "," + time.get(i).getNodeIp() + "," + time.get(i).getId() + "," + (time.get(i).start-minStartTime) + "," + (time.get(i).end-minStartTime) + "," + duration);
-			waveFrontFileWriter.write("ballot.app.tx" + time.get(i).getId() + ".latency " + String.format("%.02f", duration/1000000.0) + " " + java.time.Instant.now().getEpochSecond() + " " + " source=" + time.get(i).getDriverId()+ " driverId="+DRIVERID+ " runId="+RUNID+ " nodeIP="+ parseIP(time.get(i).getNodeIp()) + "\n");
-			totalSum += duration;
+		for (int i = 0; i < latencies.size(); i++) {
+			writerCSV.println((i + 1) + "," +latencies.get(i) + "," + votings.get(i).nodeIp);
+			waveFrontFileWriter.write("ballot.app.tx" + (i+1) + ".latency " + String.format("%.02f", latencies.get(i)/1000000.0) + " " + java.time.Instant.now().getEpochSecond() + " " + " source=" + DRIVERID+ " driverId="+DRIVERID+ " runId="+RUNID + "\n");
 		}
+
+
 		int numSuccessfulTransactions = latencies.size();
 		Collections.sort(latencies);
 		waveFrontFileWriter.write("ballot.app.transaction.p50 " + String.format("%.02f", latencies.get(numSuccessfulTransactions/2)/1000000.0) + " " + java.time.Instant.now().getEpochSecond() + " " + " source=" + DRIVERID+ " driverId="+DRIVERID+ " runId="+RUNID + "\n");
@@ -417,32 +374,18 @@ public class BallotDApp {
 		waveFrontFileWriter.write("ballot.app.transaction.p99 " + String.format("%.02f", latencies.get(numSuccessfulTransactions*99/100)/1000000.0) + " " + java.time.Instant.now().getEpochSecond() + " " + " source=" + DRIVERID+ " driverId="+DRIVERID+ " runId="+RUNID + "\n");
 		waveFrontFileWriter.close();
 
-		//Populate stats
+//		Populate stats
+		Collections.sort(latencies);
 		stats = new HashMap<>();
 		stats.put("tableRow", Arrays.asList(testName, String.valueOf(numSuccessfulTransactions), df.format(100*numSuccessfulTransactions*1.0/NUMBER) + "%" ,String.valueOf(NUMBER - numSuccessfulTransactions), RATE_CONTROL + " tps", df.format(latencies.get(latencies.size() - 1)/1000000.0) + " ms",
-				df.format(latencies.get(0)/1000000.0) + " ms", df.format(totalSum/(1000000.0*NUMBER)) + " ms", df.format(NUMBER/((timeEndLoop - timeStartLoop)/1000000000.0)) + " tx/sec"));
+				df.format(latencies.get(0)/1000000.0) + " ms", df.format(avg) + " ms", df.format((latencies.size()*1.0/total_time)*1000000000) + " tx/sec"));
 
 
-		logger.info("Average time response time: " + totalSum*1.0/NUMBER);
-		logger.info("p95 value: " + latencies.get(numSuccessfulTransactions*95/100)/1000000.0);
-
-		logger.info("Start time of processing Voting: " + minStartTime);
-		logger.info("End time of processing Voting: " + maxEndTime);
-		logger.info("Total time for process: " + (maxEndTime - minStartTime) + " nano seconds");
-
-		logger.info("Average response time in ms: " + totalSum / 1000000.0/NUMBER);
-		logger.info("Median response time in ms " + latencies.get(numSuccessfulTransactions / 2) / 1000000.0);
-		logger.info("P95 response time in ms " + latencies.get(numSuccessfulTransactions * 95 / 100)/1000000.0);
-		logger.info("Start/End Transaction Rate: " + NUMBER/((maxEndTime - minStartTime) / 1000000000.0) + " tx/sec");
-		logger.info("Transaction Rate: " + NUMBER/((timeEndLoop - timeStartLoop) / 1000000000.0) + " tx/sec");
 
 		writer.printf("Response Time: %.4f\n", response);
-		writer.printf("Burst Response Time: %.4f\n", totalSum*1.0e-9/NUMBER);
-		writer.printf("Transaction Rate: %.2f tx/sec\n", NUMBER/((maxEndTime - minStartTime)*1.0e-9));
+		writer.printf("Transaction Rate: %.2f tx/sec\n", (latencies.size()*1.0/total_time)*1000000000);
 
 		votings.clear();
-		time.clear();
-
 		writer.close();
 		writerCSV.close();
 	}

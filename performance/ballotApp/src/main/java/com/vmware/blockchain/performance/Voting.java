@@ -19,10 +19,11 @@ import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Random;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 
-public class Voting {
+public class Voting implements Callable<long[]> {
 
 	private Ballot ballot;
 	private Web3j web3j;
@@ -49,6 +50,17 @@ public class Voting {
 		this.web3j = Web3j.build(new HttpService(BallotDApp.ENDPOINT));
 		this.credentials = credentials;
 		this.ballot = Utils.loadContract(web3j, path, credentials);
+	}
+
+	@Override
+	public long[] call() throws Exception {
+		long[] results = new long[2];
+		//String data = encode(BigInteger.valueOf(index));
+		results[0] = System.nanoTime();
+		web3j.ethSendRawTransaction(signedMsg).send();
+		//ballot.vote(BigInteger.valueOf(index)).send();
+		results[1] = System.nanoTime();
+		return results;
 	}
 
 	public CompletableFuture<AsyncTransaction> execute(AsyncTransaction asyncTransaction, ExecutorService executor) {
