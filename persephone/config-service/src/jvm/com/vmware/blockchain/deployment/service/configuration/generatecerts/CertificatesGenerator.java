@@ -6,7 +6,7 @@ package com.vmware.blockchain.deployment.service.configuration.generatecerts;
 
 import java.util.List;
 
-import com.vmware.blockchain.deployment.model.ConfigurationServiceType;
+import com.vmware.blockchain.deployment.model.ConcordComponent.ServiceType;
 import com.vmware.blockchain.deployment.model.Identity;
 import com.vmware.blockchain.deployment.model.IdentityFactors;
 
@@ -24,7 +24,7 @@ public interface CertificatesGenerator {
     /**
      * Method to generate ssl certificates and keypar.
      */
-    List<Identity> generateSelfSignedCertificates(int numCerts, ConfigurationServiceType.DockerType type);
+    List<Identity> generateSelfSignedCertificates(int numCerts, ServiceType type);
 
     /**
      * Method to get the identity factor for the certificates generated.

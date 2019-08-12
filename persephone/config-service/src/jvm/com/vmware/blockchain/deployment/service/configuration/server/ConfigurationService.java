@@ -22,10 +22,10 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.vmware.blockchain.deployment.model.ConcordComponent.ServiceType;
 import com.vmware.blockchain.deployment.model.ConfigurationComponent;
 import com.vmware.blockchain.deployment.model.ConfigurationServiceImplBase;
 import com.vmware.blockchain.deployment.model.ConfigurationServiceRequest;
-import com.vmware.blockchain.deployment.model.ConfigurationServiceType;
 import com.vmware.blockchain.deployment.model.ConfigurationSessionIdentifier;
 import com.vmware.blockchain.deployment.model.DeleteConfigurationRequest;
 import com.vmware.blockchain.deployment.model.DeleteConfigurationResponse;
@@ -139,21 +139,21 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
         var tlsConfig = configUtil.getConcordConfig(request.getHosts(), request.getBlockchainType());
 
         List<Identity> tlsIdentityList = certGen.generateSelfSignedCertificates(configUtil.maxPrincipalId + 1,
-                ConfigurationServiceType.DockerType.CONCORD_TLS);
+                ServiceType.CONCORD);
 
         Map<Integer, List<IdentityComponent>> tlsNodeIdentities = buildTlsIdentity(tlsIdentityList,
                 configUtil.nodePrincipal, configUtil.maxPrincipalId + 1, request.getHosts().size());
 
         //Generate EthRPC Configuration
         List<Identity> ethrpcIdentityList = certGen.generateSelfSignedCertificates(request.getHosts().size(),
-                ConfigurationServiceType.DockerType.ETHRPC);
+                ServiceType.ETHEREUM_API);
 
         for (int node = 0; node < request.getHosts().size(); node++) {
             List<ConfigurationComponent> componentList = new ArrayList<>();
 
             // TLS list
             componentList.add(new ConfigurationComponent(
-                    ConfigurationServiceType.DockerType.CONCORD_TLS,
+                    ServiceType.CONCORD,
                     configUtil.configPath,
                     tlsConfig.get(node),
                     new IdentityFactors())
@@ -162,7 +162,7 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
             tlsNodeIdentities.get(node)
                     .forEach(entry -> componentList.add(
                             new ConfigurationComponent(
-                                    ConfigurationServiceType.DockerType.CONCORD_TLS,
+                                    ServiceType.CONCORD,
                                     entry.getUrl(),
                                     entry.getBase64Value(),
                                     identityFactor
@@ -171,14 +171,14 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
 
             // ETHRPC list
             componentList.add(new ConfigurationComponent(
-                    ConfigurationServiceType.DockerType.ETHRPC,
+                    ServiceType.ETHEREUM_API,
                     ethrpcIdentityList.get(node).getCertificate().getUrl(),
                     ethrpcIdentityList.get(node).getCertificate().getBase64Value(),
                     identityFactor
             ));
 
             componentList.add(new ConfigurationComponent(
-                    ConfigurationServiceType.DockerType.ETHRPC,
+                    ServiceType.ETHEREUM_API,
                     ethrpcIdentityList.get(node).getKey().getUrl(),
                     ethrpcIdentityList.get(node).getKey().getBase64Value(),
                     identityFactor

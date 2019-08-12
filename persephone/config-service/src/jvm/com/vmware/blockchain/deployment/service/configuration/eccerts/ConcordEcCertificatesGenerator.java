@@ -14,7 +14,7 @@ import java.util.stream.IntStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.vmware.blockchain.deployment.model.ConfigurationServiceType;
+import com.vmware.blockchain.deployment.model.ConcordComponent.ServiceType;
 import com.vmware.blockchain.deployment.model.Identity;
 import com.vmware.blockchain.deployment.model.IdentityFactors;
 import com.vmware.blockchain.deployment.service.configuration.generatecerts.CertificatesGenerator;
@@ -27,12 +27,12 @@ public class ConcordEcCertificatesGenerator implements CertificatesGenerator {
     private static Logger log = LoggerFactory.getLogger(ConcordEcCertificatesGenerator.class);
 
     @Override
-    public List<Identity> generateSelfSignedCertificates(int numCerts, ConfigurationServiceType.DockerType type) {
+    public List<Identity> generateSelfSignedCertificates(int numCerts, ServiceType type) {
 
         List<Map.Entry<Integer, String>> certSubjectVars;
         List<String> directoryList;
 
-        if (type.equals(ConfigurationServiceType.DockerType.CONCORD_TLS)) {
+        if (type.equals(ServiceType.CONCORD)) {
             directoryList = getCertDirectories(numCerts, CONCORD_TLS_SECURITY_IDENTITY_PATH);
 
             certSubjectVars = IntStream.range(0, numCerts).boxed()
@@ -41,7 +41,7 @@ public class ConcordEcCertificatesGenerator implements CertificatesGenerator {
             certSubjectVars.addAll(IntStream.range(0, numCerts).boxed()
                     .map(entry -> Map.entry(entry, "node" + entry + "cli"))
                     .collect(Collectors.toList()));
-        } else if (type.equals(ConfigurationServiceType.DockerType.ETHRPC)) {
+        } else if (type.equals(ServiceType.ETHEREUM_API)) {
             directoryList = new ArrayList<>(getCertDirectories(numCerts, CONCORD_ETHRPC_SECURITY_IDENTITY_PATH));
             certSubjectVars = IntStream.range(0, numCerts).boxed()
                     .map(entry -> Map.entry(entry, "node" + entry))
