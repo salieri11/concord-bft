@@ -107,7 +107,8 @@ class VmcOrchestrator private constructor(
                     authenticationEndpoint = URI.create(info.authentication.address),
                     refreshToken = token,
                     organization = info.organization,
-                    datacenter = info.datacenter
+                    datacenter = info.datacenter,
+                    enableVerboseLogging = false
             )
             val vmc = VmcClient(VmcHttpClient(vmcContext, VmcModelSerializer))
 

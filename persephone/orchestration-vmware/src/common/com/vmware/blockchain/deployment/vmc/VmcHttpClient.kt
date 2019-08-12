@@ -43,7 +43,8 @@ class VmcHttpClient(
         val authenticationEndpoint: URI,
         val refreshToken: String,
         val organization: String,
-        val datacenter: String
+        val datacenter: String,
+        val enableVerboseLogging: Boolean = true
     )
 
     /**

@@ -62,6 +62,9 @@ actual abstract class AccessTokenAwareHttpClient(
     /** Specify whether insecure HTTP connections are allowed. */
     actual open val allowInsecureConnection: Boolean = false
 
+    /** Specify whether HTTP response body on success should be logged on. */
+    actual open val enableVerboseLogging: Boolean = true
+
     /**
      * Retrieve the API session token from a given session response.
      *
@@ -528,7 +531,9 @@ actual abstract class AccessTokenAwareHttpClient(
     private suspend fun request(httpRequest: JdkHttpRequest): HttpResponse<String> {
         val upstream = JdkHttpResponse.BodySubscribers.ofString(StandardCharsets.UTF_8)
         val success = JdkHttpResponse.BodySubscribers.mapping<String, String>(upstream) { value ->
-            log.info { "API: response body($value)" }
+            if (enableVerboseLogging) {
+                log.info { "API: response body($value)" }
+            }
             value
         }
         val error = JdkHttpResponse.BodySubscribers.mapping<String, String>(upstream) { value ->
