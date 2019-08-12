@@ -684,7 +684,6 @@ class GenericDaoTransaction  {
     /**
      * Retrieve all entities of a type - but just return summary info.
      * @param entityClass entity class
-     * @param query odataQuery
      * @param limit maximum # of rows to return from DB
      * @return list of entity summaries (id, version, updated)
      */

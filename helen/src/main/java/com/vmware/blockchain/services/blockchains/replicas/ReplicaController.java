@@ -2,14 +2,18 @@
  * Copyright (c) 2019 VMware, Inc. All rights reserved. VMware Confidential
  */
 
-package com.vmware.blockchain.services.blockchains;
+package com.vmware.blockchain.services.blockchains.replicas;
 
 import static com.vmware.blockchain.common.fleetmanagment.FleetUtils.identifier;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.SortedMap;
+import java.util.TreeMap;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
@@ -32,6 +36,7 @@ import com.google.common.collect.ImmutableMap;
 import com.vmware.blockchain.auth.AuthHelper;
 import com.vmware.blockchain.common.BadRequestException;
 import com.vmware.blockchain.common.ErrorCode;
+import com.vmware.blockchain.common.NotFoundException;
 import com.vmware.blockchain.deployment.v1.ConcordClusterIdentifier;
 import com.vmware.blockchain.deployment.v1.ConcordComponent.ServiceType;
 import com.vmware.blockchain.deployment.v1.ConcordNodeIdentifier;
@@ -41,16 +46,21 @@ import com.vmware.blockchain.deployment.v1.ServiceState;
 import com.vmware.blockchain.deployment.v1.UpdateInstanceRequest;
 import com.vmware.blockchain.deployment.v1.UpdateInstanceResponse;
 import com.vmware.blockchain.operation.OperationContext;
+import com.vmware.blockchain.services.blockchains.Blockchain;
 import com.vmware.blockchain.services.blockchains.BlockchainController.BlockchainTaskResponse;
+import com.vmware.blockchain.services.blockchains.BlockchainService;
+import com.vmware.blockchain.services.concord.ConcordService;
 import com.vmware.blockchain.services.profiles.ConsortiumService;
 import com.vmware.blockchain.services.profiles.DefaultProfiles;
 import com.vmware.blockchain.services.tasks.ITaskService;
 import com.vmware.blockchain.services.tasks.Task;
 import com.vmware.blockchain.services.tasks.Task.State;
 import com.vmware.blockchain.services.tasks.TaskService;
+import com.vmware.concord.Concord.Peer;
 
 import io.grpc.stub.StreamObserver;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -59,8 +69,8 @@ import lombok.NoArgsConstructor;
  */
 @RestController
 @RequestMapping(path = "/api/blockchains/{bid}")
-public class BlockchainReplicaController {
-    static Logger logger = LogManager.getLogger(BlockchainReplicaController.class);
+public class ReplicaController {
+    static Logger logger = LogManager.getLogger(ReplicaController.class);
 
     private BlockchainService blockchainService;
     private ConsortiumService consortiumService;
@@ -69,17 +79,19 @@ public class BlockchainReplicaController {
     private ITaskService taskService;
     private FleetManagementServiceStub client;
     private OperationContext operationContext;
+    private ConcordService concordService;
     private boolean mockDeployment;
 
     @Autowired
-    public BlockchainReplicaController(BlockchainService blockchainService,
-                                       ConsortiumService consortiumService,
-                                       AuthHelper authHelper,
-                                       DefaultProfiles defaultProfiles,
-                                       TaskService taskService,
-                                       FleetManagementServiceStub client,
-                                       OperationContext operationContext,
-                                       @Value("${mock.deployment:false}") boolean mockDeployment) {
+    public ReplicaController(BlockchainService blockchainService,
+                             ConsortiumService consortiumService,
+                             AuthHelper authHelper,
+                             DefaultProfiles defaultProfiles,
+                             TaskService taskService,
+                             FleetManagementServiceStub client,
+                             OperationContext operationContext,
+                             ConcordService concordService,
+                             @Value("${mock.deployment:false}") boolean mockDeployment) {
         this.blockchainService = blockchainService;
         this.consortiumService = consortiumService;
         this.authHelper = authHelper;
@@ -87,6 +99,7 @@ public class BlockchainReplicaController {
         this.taskService = taskService;
         this.client = client;
         this.operationContext = operationContext;
+        this.concordService = concordService;
         this.mockDeployment = mockDeployment;
     }
 
@@ -106,6 +119,23 @@ public class BlockchainReplicaController {
     enum NodeAction {
         START,
         STOP;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    static class ReplicaGetResponse {
+        UUID id;
+        String name;
+        String publicIp;
+        String privateIp;
+        String rpcUrl;
+        String status;
+        long millisSinceLastMessage;
+        long millisSinceLastMessageThreshold;
+        String certificate;
+        UUID zoneId;
     }
 
     // ReplicaObserver.  This is the callback from GRPC when starting/stoping nodes.  Package private for testing.
@@ -166,6 +196,70 @@ public class BlockchainReplicaController {
     private final Map<NodeAction, ServiceState> actionMap =
             ImmutableMap.of(NodeAction.START, new ServiceState(ServiceType.CONCORD, ServiceState.State.ACTIVE),
                             NodeAction.STOP, new ServiceState(ServiceType.CONCORD, ServiceState.State.INACTIVE));
+
+    /**
+     * Get the list of replicas, and their status.
+     */
+    @RequestMapping(method = RequestMethod.GET, path = {"/replicas"})
+    @PreAuthorize("@authHelper.canUpdateChain(#bid)")
+    public ResponseEntity<Collection<ReplicaGetResponse>> getReplicas(@PathVariable UUID bid) throws Exception {
+        List<Replica> replicas = blockchainService.getReplicas(bid);
+        if (replicas.isEmpty()) {
+            // empty replica map is either old Blockchain instance, or blockchain not found.
+            throw new NotFoundException(ErrorCode.NOT_FOUND);
+        }
+        // Create a map of private IP to replica instance.
+        Map<String, Replica> ipToReplica =
+                replicas.stream().collect(Collectors.toMap(r -> r.getPrivateIp(), Function.identity()));
+        List<Peer> peers = concordService.getMembers(bid);
+        // Store the results in a tree map, so the order is always the same.
+        // Sort (arbitrarily) by hostname
+        SortedMap<String, ReplicaGetResponse> response = new TreeMap<>();
+        // We need to take into account that one of peers returns localhost for the ip.
+        Peer unprocessed = null;
+        for (Peer peer : peers) {
+            String rIp = peer.getAddress().split(":")[0];
+            Replica r = ipToReplica.get(rIp);
+            if (r == null) {
+                // Shouldn't be null, but log a warning if it is.
+                logger.info("Could not find replica for peer ip {}", peer.getAddress().split(":")[0]);
+                unprocessed = peer;
+                continue;
+            }
+            response.put(peer.getHostname(), ReplicaGetResponse.builder()
+                    .id(r.getId())
+                    .name(peer.getHostname())
+                    .privateIp(peer.getAddress())
+                    .publicIp(r.getPublicIp())
+                    .rpcUrl(r.getUrl())
+                    .zoneId(r.getZoneId())
+                    .millisSinceLastMessage(peer.getMillisSinceLastMessage())
+                    .millisSinceLastMessageThreshold(peer.getMillisSinceLastMessageThreshold())
+                    .status(peer.getStatus())
+                    .build());
+            ipToReplica.remove(rIp);
+        }
+        // now handle the one left over, if there is one
+        if (unprocessed != null) {
+            final Peer peer = unprocessed;
+            ipToReplica.entrySet().stream().forEach(e -> {
+                String rIp = e.getKey();
+                Replica r = e.getValue();
+                response.put(peer.getHostname(), ReplicaGetResponse.builder()
+                                     .id(r.getId())
+                                     .name(peer.getHostname())
+                                     .privateIp(rIp)
+                                     .publicIp(r.getPublicIp())
+                                     .rpcUrl(r.getUrl())
+                                     .zoneId(r.getZoneId())
+                                     .millisSinceLastMessage(peer.getMillisSinceLastMessage())
+                                     .millisSinceLastMessageThreshold(peer.getMillisSinceLastMessageThreshold())
+                                     .status(peer.getStatus())
+                                     .build());
+            });
+        }
+        return new ResponseEntity<>(response.values(), HttpStatus.OK);
+    }
 
     /**
      * Perform the start/stop action on a single node.

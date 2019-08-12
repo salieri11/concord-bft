@@ -22,6 +22,7 @@ import org.springframework.stereotype.Service;
 import com.vmware.blockchain.connections.ConnectionPoolManager;
 import com.vmware.blockchain.dao.GenericDao;
 import com.vmware.blockchain.services.blockchains.Blockchain.NodeEntry;
+import com.vmware.blockchain.services.blockchains.replicas.Replica;
 import com.vmware.blockchain.services.profiles.Consortium;
 
 
@@ -105,6 +106,7 @@ public class BlockchainService {
         String[] urls = rpcUrls.split(",");
         String[] certs = rpcCerts.split(",");
         List<NodeEntry> entries = new ArrayList<>();
+        UUID zoneId = UUID.randomUUID();
         for (int i = 0; i < ips.length; i++) {
             NodeEntry n = new NodeEntry();
             n.setNodeId(UUID.randomUUID());
@@ -116,6 +118,7 @@ public class BlockchainService {
             String certFileName = i >= certs.length ? "" : certs[i].split("=")[1];
             String cert = readCertFile(certFileName);
             n.setCert(cert);
+            n.setZoneId(zoneId);
             entries.add(n);
         }
         return create(consortium, entries);
@@ -166,5 +169,9 @@ public class BlockchainService {
 
     public Blockchain get(UUID id) {
         return genericDao.get(id, Blockchain.class);
+    }
+
+    public List<Replica> getReplicas(UUID id) {
+        return genericDao.getByParentId(id, Replica.class);
     }
 }

@@ -20,7 +20,12 @@ import com.google.common.collect.ImmutableList;
 import com.vmware.blockchain.common.NotFoundException;
 import com.vmware.blockchain.security.ServiceContext;
 import com.vmware.blockchain.services.blockchains.Blockchain;
+import com.vmware.blockchain.services.blockchains.Blockchain.NodeEntry;
 import com.vmware.blockchain.services.blockchains.BlockchainService;
+import com.vmware.blockchain.services.blockchains.replicas.Replica;
+import com.vmware.blockchain.services.blockchains.replicas.ReplicaService;
+import com.vmware.blockchain.services.concord.ConcordService;
+import com.vmware.concord.Concord.Peer;
 
 import lombok.Getter;
 
@@ -56,6 +61,10 @@ public class DefaultProfiles {
 
     private BlockchainService blockchainService;
 
+    private ReplicaService replicaService;
+
+    private ConcordService concordService;
+
     private ServiceContext serviceContext;
 
     private String blockchainIpList;
@@ -78,6 +87,8 @@ public class DefaultProfiles {
             BlockchainService blockchainService,
             AgreementService agreementService,
             ServiceContext serviceContext,
+            ReplicaService replicaService,
+            ConcordService concordService,
             @Value("${ConcordAuthorities}") String blockchainIpList,
             @Value("${ConcordRpcUrls}") String blockchainRpcUrls,
             @Value("${ConcordRpcCerts}") String blockchainRpcCerts,
@@ -90,6 +101,8 @@ public class DefaultProfiles {
         this.blockchainService = blockchainService;
         this.agreementService = agreementService;
         this.serviceContext = serviceContext;
+        this.replicaService = replicaService;
+        this.concordService = concordService;
         this.blockchainIpList = blockchainIpList;
         this.blockchainRpcUrls = blockchainRpcUrls;
         this.blockchainRpcCerts = blockchainRpcCerts;
@@ -189,9 +202,26 @@ public class DefaultProfiles {
     private Blockchain createBlockchainIfNotExist() {
         List<Blockchain> bList = blockchainService.list();
         if (bList.isEmpty()) {
-            return blockchainService.create(consortium, blockchainIpList, blockchainRpcUrls, blockchainRpcCerts);
+            Blockchain b =
+                    blockchainService.create(consortium, blockchainIpList, blockchainRpcUrls, blockchainRpcCerts);
+            createReplicas(b);
+            return b;
         } else {
             return bList.get(0);
+        }
+    }
+
+    private void createReplicas(Blockchain b) {
+        List<Peer> peers = concordService.getMembers(b.getId());
+        List<NodeEntry> nodes = b.getNodeList();
+        for (int i = 0; i < nodes.size(); i++) {
+            NodeEntry n = nodes.get(i);
+            Peer p = peers.get(i);
+            Replica r = new Replica(n.getIp(),
+                                    p.getAddress().split(":")[0],
+                                    p.getHostname(), n.getUrl(), n.getCert(), n.getZoneId(), b.getId());
+            r.setId(n.getNodeId());
+            replicaService.put(r);
         }
     }
 
