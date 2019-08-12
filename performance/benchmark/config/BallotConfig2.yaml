@@ -4,19 +4,19 @@ simpleConfig:
   nodeCount: 4
   port: 8545
   nodes:
-    - ip: 10.40.205.11
+    - ip: 10.40.205.101
       percentage: 100
       username: kubo
       password: Ponies!23
-    - ip: 10.40.205.12
+    - ip: 10.40.205.102
       percentage: 0
       username: kubo
       password: Ponies!23
-    - ip: 10.40.205.13
+    - ip: 10.40.205.103
       percentage: 0
       username: kubo
       password: Ponies!23
-    - ip: 10.40.205.14
+    - ip: 10.40.205.104
       percentage: 0
       username: kubo
       password: Ponies!23
@@ -24,13 +24,13 @@ simpleConfig:
     - dapp: Ballot
       language: Solidity
       numOfRuns: 1
-      rateControl: 50
+      rateControl: 200
       logging: false
       params:
         - ../target/performance-1.0-SNAPSHOT-jar-with-dependencies.jar    #executable
         - --concord           #use concord, helen, or ethereum
-        - 10.40.205.11       #concordIP, helenIP, or ethereumIP
-        - 100                #numberVotes
+        - 10.40.205.101       #concordIP, helenIP, or ethereumIP
+        - 50000                #numberVotes
         - ../data/proposals   #input data
   sleepTime: 1000
   outputDir: ./perf_result
@@ -46,7 +46,7 @@ advancedConfig:
     - -b
     - -d 3
     - -n 14000
-  numberThreads: 0 #0 or undefined is default
+  numberThreads: 4 #0 or undefined is default
   concordUsername: admin@blockchain.local #this is optional
   concordPassword: Admin!23 # this optional
 
