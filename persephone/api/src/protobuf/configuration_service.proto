@@ -4,6 +4,7 @@ package com.vmware.blockchain.deployment.model;
 
 import "core.proto";
 import "security_identity.proto";
+import "concord_model.proto";
 
 /* [START java_declaration] */
 option java_package = "com.vmware.blockchain.deployment.model";
@@ -12,22 +13,6 @@ option java_multiple_files = true;
 
 /* [START messages] */
 
-/**
-* Denotes the type of identity - ethrpc/tls/etc
-* Note: This will later move outside to be leveraged by concord model
-*
-* @property[DockerType]
-*   docker image type - concord or ethrpc
-*/
-message ConfigurationServiceType {
-    enum DockerType {
-        UNKNOWN = 0;
-        CONCORD_TLS = 1;
-        ETHRPC = 2;
-        DAML_LEDGER_API = 3;
-        DAML_EXECUTION_ENGINE = 4;
-    }
-}
 
 /**
 * Denotes the configuration component
@@ -44,7 +29,7 @@ message ConfigurationServiceType {
 *   be an input to generator to generate certain type of certs (RSA/EC)
 */
 message ConfigurationComponent {
-    ConfigurationServiceType.DockerType type = 1;
+    ConcordComponent.ServiceType type = 1;
     string component_url = 2;
     string component = 3;
     IdentityFactors identity_factors = 4;
