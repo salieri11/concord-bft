@@ -20,6 +20,9 @@ expect abstract class AccessTokenAwareHttpClient {
     /** Specify whether insecure HTTP connections are allowed. */
     open val allowInsecureConnection: Boolean
 
+    /** Specify whether HTTP response body on success should be logged on. */
+    open val enableVerboseLogging: Boolean
+
     /**
      * Retrieve the API session token from a given session response.
      *
