@@ -536,7 +536,7 @@ paths:
       operationId: getBlockchains
       responses:
         200:
-          description: Returns a list of all accessable blockchains
+          description: Returns a list of all accessible blockchains
           content:
             application/json:
               schema:
