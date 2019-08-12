@@ -211,7 +211,7 @@ public final class EthDispatcher extends TextWebSocketHandler {
     public ResponseEntity<JSONAware> doGet() {
         ThreadContext.put("consortium_id", "100");
         ThreadContext.put("organization_id", "10");
-        ThreadContext.put("node_id", "1");
+        ThreadContext.put("replica_id", "1");
         ThreadContext.put("method", "GET");
         ThreadContext.put("uri", "/");
         ThreadContext.put("source", "rpcList");
@@ -240,7 +240,7 @@ public final class EthDispatcher extends TextWebSocketHandler {
         // TODO change the organization_id and consortium_id to real ones in future
         ThreadContext.put("organization_id", "100");
         ThreadContext.put("consortium_id", "10");
-        ThreadContext.put("node_id", "1");
+        ThreadContext.put("replica_id", "1");
         ThreadContext.put("method", "POST");
         ThreadContext.put("uri", "/");
         JSONAware responseBody = getResponse(paramString);

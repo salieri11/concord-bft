@@ -7,7 +7,7 @@
                 <!-- Add key-value pairs from ThreadContext that need to be published in the logs -->
                 <KeyValuePair key="consortium_id" value="$${ctx:consortium_id}"/>
                 <KeyValuePair key="organization_id" value="$${ctx:organization_id}"/>
-                <KeyValuePair key="node_id" value="$${ctx:node_id}"/>
+                <KeyValuePair key="replica_id" value="$${ctx:replica_id}"/>
                 <KeyValuePair key="http_method" value="$${ctx:method}"/>
                 <KeyValuePair key="uri" value="$${ctx:uri}"/>
             </JsonLayout>
