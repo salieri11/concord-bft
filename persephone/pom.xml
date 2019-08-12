@@ -103,7 +103,7 @@
         <maven.plugin.surefire>2.22.1</maven.plugin.surefire>
 
         <!-- First-party dependency-related properties. -->
-        <blockchain.protobuf.version>0.0.3-SNAPSHOT</blockchain.protobuf.version>
+        <blockchain.protobuf.version>0.0.4-SNAPSHOT</blockchain.protobuf.version>
 
         <!-- Dependency-related properties. -->
         <assertj.version>3.11.1</assertj.version>
