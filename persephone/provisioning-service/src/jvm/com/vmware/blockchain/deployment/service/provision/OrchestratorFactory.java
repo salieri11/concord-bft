@@ -15,6 +15,7 @@ import com.vmware.blockchain.deployment.orchestration.InactiveOrchestrator;
 import com.vmware.blockchain.deployment.orchestration.Orchestrator;
 import com.vmware.blockchain.deployment.reactive.ReactiveStream;
 import com.vmware.blockchain.deployment.vmc.VmcOrchestrator;
+import com.vmware.blockchain.deployment.vsphere.VSphereOrchestrator;
 
 import kotlinx.coroutines.ExecutorsKt;
 
@@ -52,6 +53,8 @@ public class OrchestratorFactory implements OrchestratorProvider {
                             return result;
                         }
                     });
+        } else if (site.getType() == OrchestrationSiteInfo.Type.VSPHERE) {
+            return CompletableFuture.completedFuture(VSphereOrchestrator.newOrchestrator(site));
         } else {
             return CompletableFuture.completedFuture(new InactiveOrchestrator(site));
         }

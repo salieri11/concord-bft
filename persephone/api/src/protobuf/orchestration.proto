@@ -33,16 +33,20 @@ message OrchestrationSiteIdentifier {
  *   a collection of key-value entries containing metadata information.
  * @param[vmc]
  *   information pertaining to a [Type.VMC] type endpoint.
+ * @param[vsphere]
+ *   information pertaining to a [Type.VSPHERE] type endpoint.
  */
 message OrchestrationSiteInfo {
     enum Type {
         NONE = 0;
         VMC = 1;
+        VSPHERE = 2;
     }
 
     Type type = 1;
     map<string, string> labels = 2;
     VmcOrchestrationSiteInfo vmc = 3;
+    VSphereOrchestrationSiteInfo vsphere = 4;
 }
 
 /**
@@ -75,28 +79,66 @@ message OrchestrationSiteView {
 }
 
 /**
+ * Model definition of a an IPv4 network utilized by compute resources in an orchestration site.
+ *
+ * @param[name]
+ *   resource name of the network.
+ * @param[address_allocation]
+ *   network address allocation scheme type.
+ * @param[gateway]
+ *   network gateway address.
+ * @param[subnet]
+ *   subnet (CIDR) size of the IP network (e.g. 24, 28, etc).
+ * @param[allocation server]
+ *   endpoint to IP address allocation service (or external DHCP server).
+ */
+message IPv4Network {
+    /**
+     * Enumeration of address allocation schemes.
+     */
+    enum AddressAllocationScheme {
+        DHCP = 0; // Dynamic host configuration protocol.
+        STATIC = 1; // Static IP allocation facilitated by an allocation server.
+    }
+
+    string name = 1;
+    AddressAllocationScheme address_allocation = 2;
+    int32 gateway = 3;
+    int32 subnet = 4;
+    Endpoint allocation_server = 5;
+}
+
+/**
+ * Model definition of an orchestration site targeting a virtual datacenter within a VMware vSphere
+ * environment.
+ *
+ * @param[resourcePool]
+ *   name of the default resource pool to use for compute deployment.
+ * @param[datastore]
+ *   name of the default datastore to use for compute deployment.
+ * @param[folder]
+ *   name of the default inventory folder to use for compute deployment.
+ * @param[network]
+ *   default IPv4 compute network resource to use for compute deployment.
+ */
+message VSphereDatacenterInfo {
+    string resource_pool = 2;
+    string datastore = 3;
+    string folder = 4;
+    IPv4Network network = 5;
+}
+
+/**
  * Model definition of a VMware Cloud-based orchestration site.
  *
  * @param[authentication]
  *   authentication endpoint information.
- * @param[api]
- *   API endpoint information.
- * @param[containerRegistry]
- *   container registry endpoint information.
  * @param[organization]
  *   VMC organization identifier.
  * @param[datacenter]
  *   SDDC datacenter identifier owned by the organization.
- * @param[resourcePool]
- *   name of the resource pool to use compute deployment.
- * @param[folder]
- *   name of the inventory folder to use compute deployment.
- * @param[control_network]
- *   name of the network segment to use as control network.
- * @param[control_network_gateway]
- *   gateway address of the control network segment.
- * @param[control_network_subnet]
- *   subnet value of the control network segment CIDR (e.g. 24, 28 etc).
+ * @param[vsphere]
+ *   information pertaining to the vSphere datacenter to use for compute deployment.
  */
 message VmcOrchestrationSiteInfo {
     Endpoint authentication = 1;
@@ -104,11 +146,22 @@ message VmcOrchestrationSiteInfo {
     Endpoint container_registry = 3;
     string organization = 4;
     string datacenter = 5;
-    string resource_pool = 6;
-    string folder = 7;
-    string control_network = 8;
-    int32 control_network_gateway = 9;
-    int32 control_network_subnet = 10;
-    Endpoint ipam_api = 11;
+    VSphereDatacenterInfo vsphere = 6;
+}
+
+/**
+ * Model definition of a VMware vSphere orchestration site.
+ *
+ * @param[api]
+ *   API endpoint information.
+ * @param[containerRegistry]
+ *   container registry endpoint information.
+ * @param[vsphere]
+ *   information pertaining to the vSphere datacenter to use for compute deployment.
+ */
+message VSphereOrchestrationSiteInfo {
+    Endpoint api = 1;
+    Endpoint container_registry = 2;
+    VSphereDatacenterInfo vsphere = 3;
 }
 /* [END messages] */

@@ -7,7 +7,6 @@ package com.vmware.concord.agent;
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.List;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -15,12 +14,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.http.converter.protobuf.ProtobufHttpMessageConverter;
 
 import com.vmware.blockchain.deployment.model.ConcordAgentConfiguration;
-import com.vmware.blockchain.deployment.model.ConcordClusterIdentifier;
-import com.vmware.blockchain.deployment.model.ConcordComponent;
-import com.vmware.blockchain.deployment.model.ConcordModelSpecification;
-import com.vmware.blockchain.deployment.model.ConfigurationSessionIdentifier;
-import com.vmware.blockchain.deployment.model.Credential;
-import com.vmware.blockchain.deployment.model.Endpoint;
 
 import kotlinx.serialization.UpdateMode;
 import kotlinx.serialization.json.Json;
@@ -68,38 +61,7 @@ public class Application {
                     Files.readString(Path.of(CONCORD_MODEL_URI))
             );
         } else {
-            // Setup default configuration if no configuration is specified.
-            var model = new ConcordModelSpecification(
-                    "version",
-                    "template",
-                    List.of(
-                            new ConcordComponent(
-                                    ConcordComponent.Type.CONTAINER_IMAGE,
-                                    ConcordComponent.ServiceType.CONCORD,
-                                    "registry-1.docker.io/vmwblockchain/concord-core:latest"
-                            ),
-                            new ConcordComponent(
-                                    ConcordComponent.Type.CONTAINER_IMAGE,
-                                    ConcordComponent.ServiceType.ETHEREUM_API,
-                                    "registry-1.docker.io/vmwblockchain/ethrpc:latest"
-                            )
-                    )
-            );
-            var registryEndpoint = new Endpoint("https://registry-1.docker.io/v2", new Credential());
-
-            // FIXME: Replace with correct port
-            var fleetEndpoint = new Endpoint("fleet-service:9004", new Credential());
-
-            var configServiceEndpoint = new Endpoint("config-service:9003", new Credential());
-            configuration = new ConcordAgentConfiguration(
-                    model,
-                    registryEndpoint,
-                    fleetEndpoint,
-                    ConcordClusterIdentifier.Companion.getDefaultValue(),
-                    Integer.MAX_VALUE,
-                    configServiceEndpoint,
-                    new ConfigurationSessionIdentifier()
-            );
+            throw new RuntimeException("Configuration not provided to agent.");
         }
 
         // Create the required configuration files etc for this concord node.

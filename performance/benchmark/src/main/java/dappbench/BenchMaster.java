@@ -5,15 +5,16 @@ import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
 
+import org.json.JSONObject;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.Constructor;
 
 import java.io.IOException;
-import java.math.BigInteger;
 import java.io.*;
 
 import org.web3j.crypto.Credentials;
 
+import java.math.BigInteger;
 import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.AbstractMap;
@@ -36,6 +37,48 @@ import java.util.concurrent.TimeUnit;
 
 public class BenchMaster {
 	private static final Logger logger = LogManager.getLogger(BenchMaster.class);
+
+
+	private static JSONObject getProcessOutput(Process process) {
+		JSONObject output = null;
+		try {
+			final BufferedReader reader = new BufferedReader(
+					new InputStreamReader(process.getInputStream()));
+			String line = null;
+			while ((line = reader.readLine()) != null) {
+				output = new JSONObject(line);
+//				output = jsonObject.getString("result");
+			}
+			reader.close();
+			process.waitFor();
+		} catch (IOException e) {
+			e.printStackTrace();
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+		return output;
+	}
+
+	private static String getLatestBlockNumber(String ip) {
+		Process process = null;
+		try {
+			process = Runtime.getRuntime().exec("bash getBlockNumber.sh " + ip);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return getProcessOutput(process).getString("result");
+
+	}
+
+	private static JSONObject getBlockInfo(String blockNumber, String ip) {
+		Process process = null;
+		try {
+			process = Runtime.getRuntime().exec("bash getBlockInfo.sh " + blockNumber + " " + ip);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return getProcessOutput(process);
+	}
 
 	@SuppressWarnings("unchecked")
 	public static void main(String[] args) {
@@ -115,7 +158,6 @@ public class BenchMaster {
 
 			Data data = new Data();
 			data.setAppSummaryTableHeader(Arrays.asList("Workload-Itr", "Succ", "Succ Rate", "Fail", "Send Rate", "Max Latency", "Min Latency", "Avg Latency", "Throughput"));
-			//			data.setDockerTableHeader(Arrays.asList("Docker Name", "CPU %(max)", "MEM USAGE(max) / LIMIT", "Memory %(max)"));
 			data.setConfigFilePath("../" + args[0]);
 			data.addBasicInformation("DLT", simpleConfig.getBlockchain());
 
@@ -127,8 +169,19 @@ public class BenchMaster {
 
 			int workloadNum = 1;
 
+//			String command = "curl -k -X POST -H \"Content-type:application/json\" --data {\"jsonrpc\": \"2.0\", \"method\": \"eth_blockNumber\", \"params\": [], \"id\": 1} https://10.40.205.101:8545/";
 
-			//			ScheduledExecutorService service = Executors.newSingleThreadScheduledExecutor();
+//
+			String initBlockNumber = getLatestBlockNumber(simpleConfig.getNodes().get(0).getIp());
+			logger.info("Block number on 101 before processing any transaction: " + initBlockNumber + " = " + new BigInteger(initBlockNumber.substring(2), 16));
+			 initBlockNumber = getLatestBlockNumber(simpleConfig.getNodes().get(1).getIp());
+			logger.info("Block number on 102 before processing any transaction: " + initBlockNumber + " = " + new BigInteger(initBlockNumber.substring(2), 16));
+			 initBlockNumber = getLatestBlockNumber(simpleConfig.getNodes().get(2).getIp());
+			logger.info("Block number on 103 before processing any transaction: " + initBlockNumber + " = " + new BigInteger(initBlockNumber.substring(2), 16));
+			 initBlockNumber = getLatestBlockNumber(simpleConfig.getNodes().get(3).getIp());
+			logger.info("Block number on 104 before processing any transaction: " + initBlockNumber + " = " + new BigInteger(initBlockNumber.substring(2), 16));
+
+//			ScheduledExecutorService service = Executors.newSingleThreadScheduledExecutor();
 			ScheduledExecutorService service = null;
 			Map<String, List<String>> dockerTable = null;
 
@@ -143,17 +196,12 @@ public class BenchMaster {
 						BallotDApp.ENDPOINT = "http://" + helenIP + ":8080/api/concord/eth";
 						logger.debug("Connected to Helen at " + BallotDApp.ENDPOINT);
 						BallotDApp.CONCORD = false;
-					} else if (workloadParams.get(1).equals("--concord") || workloadParams.get(1).equals("--ethereum") || workloadParams.get(1).equals("--quorum")) {
+					} else if (workloadParams.get(1).equals("--concord") || workloadParams.get(1).equals("--ethereum")) {
 						String concordIP = workloadParams.get(2);
 						if (workloadParams.get(1).equals("--concord")) {
 							BallotDApp.ENDPOINT = "https://" + concordIP + ":" + simpleConfig.getPort();
 						} else if (workloadParams.get(1).equals("--ethereum")) {
 							BallotDApp.ENDPOINT = "http://" + concordIP + ":" + simpleConfig.getPort();
-							BallotDApp.blockchainType = "ethereum";
-						} else if (workloadParams.get(1).equals("--quorum")) {
-							BallotDApp.ENDPOINT = "http://" + concordIP + ":" + simpleConfig.getPort();
-							BallotDApp.GAS_PRICE = BigInteger.ZERO;
-							BallotDApp.blockchainType = "quorum";
 						}
 
 						int sumOfPercentages = 0;
@@ -239,10 +287,11 @@ public class BenchMaster {
 							keystorePath.mkdirs();
 						}
 						dapp.setContractDataPath(resultPath + "/contract");
-						dapp.setPerformanceData(resultPath + "/performance_result.log");
-						dapp.setPerformanceDataCSV(resultPath + "/performance.csv");
-
 						String filename = new SimpleDateFormat("yyyyMMddHHmm").format(new Date());
+						dapp.setPerformanceData(resultPath + "/performance_result-"+ filename+".log");
+						dapp.setPerformanceDataCSV(resultPath + "/performance-" +filename + ".csv");
+
+
 						BallotDApp.WAVEFRONT_DATA_PATH = resultPath + "/wavefront/" + filename + ".log";
 						BallotDApp.STAT_DATA_PATH = resultPath + "/stat-" + filename + ".log";
 						File wavefrontPath = new File(resultPath + "/wavefront/");
@@ -255,7 +304,7 @@ public class BenchMaster {
 							e.printStackTrace();
 						}
 						try {
-							if (simpleConfig.getBlockchain().equals("ethereum") || simpleConfig.getBlockchain().equals("quorum")) {
+							if (simpleConfig.getBlockchain().equals("ethereum")) {
 								BallotDeployer deployer = new BallotDeployer();
 								deployer.deploy(PROPOSAL_DATA_PATH, dapp.getContractDataPath(), "Aca$hc0w", "data/deployer_keystore");
 								Credentials[] credentials = dapp.getCredentials();
@@ -285,12 +334,11 @@ public class BenchMaster {
 
 							for (Map.Entry<String, List<String>> entry : dockerTable.entrySet()) {
 								table.addTableData(new HashMap<String, List<String>>() {
-									private static final long serialVersionUID = 1L;
-
-									{
-										put("tableRow", entry.getValue());
-									}
-								});
+													   {
+														   put("tableRow", entry.getValue());
+													   }
+												   }
+								);
 							}
 
 							Map<String, Object> dockerInfo = new HashMap<>();
@@ -325,6 +373,16 @@ public class BenchMaster {
 					}
 				}
 			}
+			String endBlockNumber = getLatestBlockNumber(simpleConfig.getNodes().get(0).getIp());
+			logger.info("Block number on 101 after processing all transactions: " + endBlockNumber + " = " + new BigInteger(endBlockNumber.substring(2), 16));
+			endBlockNumber = getLatestBlockNumber(simpleConfig.getNodes().get(1).getIp());
+			logger.info("Block number on 102 after processing all transactions: " + endBlockNumber + " = " + new BigInteger(endBlockNumber.substring(2), 16));
+			endBlockNumber = getLatestBlockNumber(simpleConfig.getNodes().get(2).getIp());
+			logger.info("Block number on 103 after processing all transactions: " + endBlockNumber + " = " + new BigInteger(endBlockNumber.substring(2), 16));
+			endBlockNumber = getLatestBlockNumber(simpleConfig.getNodes().get(3).getIp());
+			logger.info("Block number on 104 after processing all transactions: " + endBlockNumber + " = " + new BigInteger(endBlockNumber.substring(2), 16));
+			logger.info("Last block : " + getBlockInfo(endBlockNumber, simpleConfig.getNodes().get(0).getIp()).toString());
+
 			System.exit(1);
 		} catch (FileNotFoundException e) {
 			System.out.println(e.getMessage());

@@ -8,7 +8,6 @@ COPY ./resources/checkstyle.xml ./persephone/resources/checkstyle.xml
 COPY ./pom.xml ./persephone/pom.xml
 COPY ./agent/pom.xml ./persephone/agent/pom.xml
 COPY ./api/pom.xml ./persephone/api/pom.xml
-COPY ./awsutil/pom.xml ./persephone/awsutil/pom.xml
 COPY ./cli/pom.xml ./persephone/cli/pom.xml
 COPY ./config-service/pom.xml ./persephone/config-service/pom.xml
 COPY ./core/pom.xml ./persephone/core/pom.xml
@@ -16,7 +15,7 @@ COPY ./fleet-service/pom.xml ./persephone/fleet-service/pom.xml
 COPY ./ip-allocation-service/pom.xml ./persephone/ip-allocation-service/pom.xml
 COPY ./metadata-service/pom.xml ./persephone/metadata-service/pom.xml
 COPY ./orchestration/pom.xml ./persephone/orchestration/pom.xml
-COPY ./orchestration-vmc/pom.xml ./persephone/orchestration-vmc/pom.xml
+COPY ./orchestration-vmware/pom.xml ./persephone/orchestration-vmware/pom.xml
 COPY ./persistence/pom.xml ./persephone/persistence/pom.xml
 COPY ./persistence-rocksdb/pom.xml ./persephone/persistence-rocksdb/pom.xml
 COPY ./provisioning-service/pom.xml ./persephone/provisioning-service/pom.xml

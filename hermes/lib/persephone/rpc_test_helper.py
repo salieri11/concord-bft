@@ -16,8 +16,66 @@ sys.path.append('../../')
 from util.product import Product as Product
 import yaml
 import logging
+import threading
+import time
+import traceback
+import types
+import os
+
+import util.helper
 
 log = logging.getLogger(__name__)
+
+
+def startMonitoringBlockchainDeployments(cmdlineArgs, logDir):
+   '''
+   Helper method outside the RPCTestHelper class which sets up initial configuration
+   for collecting deployment events.
+   Returns a structure that should be passed to cleanUpBlockchainDeployments() when
+   tests are done.
+   '''
+   os.makedirs(logDir, exist_ok=True)
+   cleanupData = {}
+   argsObject = types.SimpleNamespace(**cmdlineArgs)
+   argsObject.cancel_stream = False
+   argsObject.fileRoot = logDir
+   cleanupData["rpcTestHelper"] = RPCTestHelper(argsObject)
+   cleanupData["deploymentMonitoringThread"] = threading.Thread(
+      target=_thread_stream_all_deployment_events,
+      name="StreamAllDeploymentEventsInHelen",
+      args=(cleanupData,))
+   cleanupData["deploymentMonitoringThread"].start()
+
+   return cleanupData
+
+
+def _thread_stream_all_deployment_events(cleanupData):
+   '''
+   Call gRPC to stream all deployment events since the start of provisioning service
+   Stores all event data in cleanupData.
+   '''
+   allEventsObject = cleanupData["rpcTestHelper"].rpc_stream_all_cluster_deployment_session_events()
+   allEventsProto = []
+
+   for e in allEventsObject:
+      allEventsProto.append(e.session)
+
+   cleanupData["eventsProto"] = allEventsProto
+
+
+def cleanUpBlockchainDeployments(cleanupData):
+   '''
+   Clean up resources for the given cleanupData structure, which by this time contains
+   a list of session IDs to clean up.
+   '''
+   cleanupData["rpcTestHelper"].args.cancel_stream = True
+   cleanupData["deploymentMonitoringThread"].join()
+
+   if "eventsProto" in cleanupData and cleanupData["eventsProto"]:
+      cleanupData["rpcTestHelper"].deleteSessionIdList(cleanupData["eventsProto"])
+   else:
+      log.info("No blockchain deletion data was created by the blockchain deployment " \
+               "monitoring thread. No blockchain resources, if any were created, will be removed.")
 
 
 class RPCTestHelper():
@@ -43,6 +101,7 @@ class RPCTestHelper():
 
          self.deployed_session_ids = []
       except Exception as e:
+         traceback.print_stack()
          raise Exception(e)
 
    def rpc_add_model(self):
@@ -169,3 +228,36 @@ class RPCTestHelper():
             log.debug(item)
 
       return session_id
+
+   def deleteSessionIdList(self, sessionIds):
+      '''
+      Remove all resources belonging to the passed in session IDs.
+      '''
+      for sessionId in sessionIds:
+         log.info("deleteSessionIdList sending request to deprovision session ID " \
+                  "{}".format(sessionId))
+         response = self.rpc_update_deployment_session(
+            sessionId,
+            action=self.UPDATE_DEPLOYMENT_ACTION_DEPROVISION_ALL)
+
+         maxTimeout = 120
+         sleepTime = 15
+         startTime = time.time()
+         cleanedUp = False
+
+         while ((time.time() - startTime) < maxTimeout) and not cleanedUp:
+            events = self.rpc_stream_cluster_deployment_session_events(sessionId)
+
+            # Just converts the object to a Python dict.
+            responseEvents = util.helper.protobuf_message_to_json(events)
+
+            for eventObject in responseEvents:
+               if "RESOURCE_DEPROVISIONING" in eventObject["type"]:
+                  cleanedUp = True
+
+            if not cleanedUp:
+               log.info("Sleeping for {} seconds and retrying".format(sleepTime))
+               time.sleep(sleepTime)
+
+         if not cleanedUp:
+            log.info("Failed to deprovision {}.  Blockchain resources may need to be cleaned up manually.".format(sessionId))

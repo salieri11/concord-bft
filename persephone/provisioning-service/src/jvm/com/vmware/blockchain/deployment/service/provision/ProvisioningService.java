@@ -470,7 +470,8 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
     }
 
     private CompletableFuture<ConfigurationSessionIdentifier> generateConfigurationId(
-            ConcurrentHashMap<PlacementAssignment.Entry, NetworkResourceEvent.Created> privateNetworkAddressMap) {
+            ConcurrentHashMap<PlacementAssignment.Entry, NetworkResourceEvent.Created> privateNetworkAddressMap,
+            ConcordModelSpecification.BlockchainType blockchainType) {
         List<String> nodeIps = new ArrayList<>();
         privateNetworkAddressMap.forEach((key, value) -> {
             var nodeIp = value.getAddress();
@@ -479,7 +480,7 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
         });
         var request = new ConfigurationServiceRequest(
                 new MessageHeader(),
-                nodeIps);
+                nodeIps, blockchainType.name());
 
         var promise = new CompletableFuture<ConfigurationSessionIdentifier>();
         configService.createConfiguration(request, newResultObserver(promise));
@@ -694,7 +695,7 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
 
         CompletableFuture.allOf(networkAddressPromises)
                 .thenComposeAsync(__ -> generateConfigurationId(
-                        privateNetworkAddressMap),
+                        privateNetworkAddressMap, session.getSpecification().getModel().getBlockchainType()),
                         executor
                 )
                 // Setup node deployment workflow with its assigned network address.
@@ -737,18 +738,23 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
                                         // Allocate network address to the created node.
                                         var placement = entry.getKey();
                                         var orchestrator = orchestrators.get(placement.getSite());
-                                        var networkResource = publicNetworkAddressMap
-                                                .get(entry.getKey()).getResource();
-                                        var resource = toResourceName(placement.getNode());
-                                        var allocationRequest = new CreateNetworkAllocationRequest(
-                                                resource,
-                                                computeResource,
-                                                networkResource
-                                        );
-                                        var allocationPublisher = orchestrator
-                                                .createNetworkAllocation(allocationRequest);
 
-                                        return ReactiveStream.toFuture(allocationPublisher);
+                                        if (publicNetworkAddressMap.containsKey(placement)) {
+                                            var networkResource = publicNetworkAddressMap
+                                                    .get(entry.getKey()).getResource();
+                                            var resource = toResourceName(placement.getNode());
+                                            var allocationRequest = new CreateNetworkAllocationRequest(
+                                                    resource,
+                                                    computeResource,
+                                                    networkResource
+                                            );
+                                            var allocationPublisher = orchestrator
+                                                    .createNetworkAllocation(allocationRequest);
+
+                                            return ReactiveStream.toFuture(allocationPublisher);
+                                        } else {
+                                            return CompletableFuture.completedFuture(null);
+                                        }
                                     }, executor)
                                     // Put the network allocation event in the result collection.
                                     .whenComplete((event, error) -> {
@@ -756,7 +762,9 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
                                             log.error("Failed to deploy node({})",
                                                       entry.getKey(), error);
                                         } else {
-                                            results.add(event);
+                                            if (event != null) {
+                                                results.add(event);
+                                            }
                                         }
                                     })
                             )

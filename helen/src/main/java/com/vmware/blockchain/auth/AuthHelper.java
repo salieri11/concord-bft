@@ -214,6 +214,7 @@ public class AuthHelper {
         SecurityContextHolder.getContext().setAuthentication(authenticationContext);
         if (authenticationContext != null) {
             ThreadContext.put("userName", authenticationContext.getUserName());
+            ThreadContext.put("orgName", authenticationContext.getOrgId().toString());
         }
     }
 

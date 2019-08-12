@@ -38,6 +38,9 @@ message ConcordComponent {
         GENERIC = 0; // Service function is unspecified. Useful only to convey information.
         CONCORD = 1;
         ETHEREUM_API = 2;
+        DAML_CONCORD = 3;
+        DAML_LEDGER_API = 4;
+        DAML_EXECUTION_ENGINE = 5;
     }
 
     Type type = 1;
@@ -74,8 +77,16 @@ message ConcordModelIdentifier {
  *   Note: Orchestration engine may utilize the sequence order during deployment workflow.
  */
 message ConcordModelSpecification {
+
+    enum BlockchainType {
+        ETHRPC = 0; // Using ETHRPC as default.
+        DAML = 1;
+        HLF = 2;
+    }
+
     string version = 1;
     string template = 2;
     repeated ConcordComponent components = 3 [packed=false];
+    BlockchainType blockchain_type = 4;
 }
 /* [END messages] */

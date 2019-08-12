@@ -104,3 +104,6 @@ hermes/report.json
 
 # Microservice specific
 !/contract-compiler/bin
+
+#Intellij specific
+*.iml

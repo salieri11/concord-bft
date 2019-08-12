@@ -37,7 +37,7 @@ include_directories(${PROTOBUF_INCLUDE_DIR})
 find_package(GRPC REQUIRED)
 include_directories(${GRPC_INCLUDE_DIR})
 
-find_package(Boost 1.64 COMPONENTS system program_options thread filesystem
+find_package(Boost 1.65 COMPONENTS system program_options thread filesystem
         REQUIRED)
 include_directories(${Boost_INCLUDE_DIRS})
 

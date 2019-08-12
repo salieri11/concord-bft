@@ -9,6 +9,7 @@ import com.vmware.blockchain.deployment.model.Address
 import com.vmware.blockchain.deployment.model.AllocateAddressRequest
 import com.vmware.blockchain.deployment.model.AllocateAddressResponse
 import com.vmware.blockchain.deployment.model.IPAllocationServiceStub
+import com.vmware.blockchain.deployment.model.IPv4Network
 import com.vmware.blockchain.deployment.model.MessageHeader
 import com.vmware.blockchain.deployment.model.OrchestrationSiteInfo
 import com.vmware.blockchain.deployment.model.ReleaseAddressRequest
@@ -19,7 +20,6 @@ import com.vmware.blockchain.deployment.model.core.UUID
 import com.vmware.blockchain.deployment.model.nsx.NatRule
 import com.vmware.blockchain.deployment.model.nsx.PublicIP
 import com.vmware.blockchain.deployment.model.vsphere.VirtualMachineGuestIdentityInfo
-import com.vmware.blockchain.deployment.model.vsphere.VirtualMachinePowerState
 import com.vmware.blockchain.deployment.orchestration.Orchestrator
 import com.vmware.blockchain.deployment.orchestration.toIPv4Address
 import com.vmware.blockchain.deployment.reactive.Publisher
@@ -60,8 +60,6 @@ class VmcOrchestrator private constructor(
     private val context: CoroutineContext = Dispatchers.Default
 ) : Orchestrator, CoroutineScope {
 
-    private val log by logger()
-
     /**
      * Global singleton companion to [VmcOrchestrator] that also provides a global-scoped process-
      * wide [CoroutineScope] to launch [VmcOrchestrator]-related coroutines.
@@ -77,6 +75,9 @@ class VmcOrchestrator private constructor(
 
         /** Default maximum orchestrator operation timeout value. */
         const val ORCHESTRATOR_TIMEOUT_MILLIS = 60000L * 10
+
+        /** Default IPAM resource name prefix. */
+        const val IPAM_RESOURCE_NAME_PREFIX = "blocks/"
 
         /**
          * Create a new [VmcOrchestrator] based on parameters from a given [OrchestrationSiteInfo].
@@ -106,7 +107,8 @@ class VmcOrchestrator private constructor(
                     authenticationEndpoint = URI.create(info.authentication.address),
                     refreshToken = token,
                     organization = info.organization,
-                    datacenter = info.datacenter
+                    datacenter = info.datacenter,
+                    enableVerboseLogging = false
             )
             val vmc = VmcClient(VmcHttpClient(vmcContext, VmcModelSerializer))
 
@@ -132,7 +134,9 @@ class VmcOrchestrator private constructor(
 
                     // IPAM service client.
                     val ipAllocation = IPAllocationServiceStub(
-                            ManagedChannelBuilder.forTarget(info.ipamApi.address).build(),
+                            ManagedChannelBuilder
+                                    .forTarget(info.vsphere.network.allocationServer.address)
+                                    .build(),
                             CallOptions.DEFAULT
                     )
 
@@ -143,6 +147,9 @@ class VmcOrchestrator private constructor(
         }
     }
 
+    /** Logging instance. */
+    private val log by logger()
+
     /** [CoroutineContext] to launch all coroutines associated with this instance. */
     override val coroutineContext: CoroutineContext
         get() = context + job
@@ -150,7 +157,6 @@ class VmcOrchestrator private constructor(
     /** Parent [Job] of all coroutines associated with this instance's operation. */
     private val job: Job = SupervisorJob()
 
-    private val ipamBlocksPrefix = "blocks/"
 
     override fun close() {
         job.cancel()
@@ -159,27 +165,31 @@ class VmcOrchestrator private constructor(
     override fun createDeployment(
         request: Orchestrator.CreateComputeResourceRequest
     ): Publisher<Orchestrator.ComputeResourceEvent> {
+        val compute = info.vsphere.resourcePool
+        val storage = info.vsphere.datastore
+        val network = info.vsphere.network
+
         return publish(coroutineContext) {
             withTimeout(ORCHESTRATOR_TIMEOUT_MILLIS) {
                 try {
                     val clusterId = UUID(request.cluster.high, request.cluster.low)
                     val nodeId = UUID(request.node.high, request.node.low)
-                    val subnetMask = ((1 shl (32 - info.controlNetworkSubnet)) - 1).inv()
+                    val subnetMask = ((1 shl (32 - network.subnet)) - 1).inv()
 
-                    val getFolder = async { vSphere.getFolder(name = info.folder) }
-                    val getDatastore = async { vSphere.getDatastore() }
-                    val getResourcePool = async { vSphere.getResourcePool(name = info.resourcePool) }
+                    val getFolder = async { vSphere.getFolder(name = info.vsphere.folder) }
+                    val getDatastore = async { vSphere.getDatastore(name = storage) }
+                    val getResourcePool = async { vSphere.getResourcePool(name = compute) }
                     val ensureControlNetwork = async {
                         ensureLogicalNetwork(
                                 "cgw",
-                                info.controlNetwork,
-                                info.controlNetworkGateway and subnetMask,
-                                info.controlNetworkSubnet,
-                                info.controlNetworkSubnet
+                                network.name,
+                                network.gateway and subnetMask,
+                                network.subnet,
+                                network.subnet
                         )
                     }
                     val ensureReplicaNetwork = async {
-                        ensureLogicalNetwork("cgw", info.controlNetwork, 0x0AFF0000, 16)
+                        ensureLogicalNetwork("cgw", network.name, 0x0AFF0000, 16)
                     }
                     val getLibraryItem = async { vSphere.getLibraryItem(request.model.template) }
 
@@ -204,8 +214,8 @@ class VmcOrchestrator private constructor(
                                     request.model,
                                     request.genesis,
                                     request.privateNetworkAddress,
-                                    info.controlNetworkGateway.toIPv4Address(),
-                                    info.controlNetworkSubnet,
+                                    network.gateway.toIPv4Address(),
+                                    network.subnet,
                                     request.cluster,
                                     request.concordId,
                                     request.configurationSessionIdentifier,
@@ -221,7 +231,7 @@ class VmcOrchestrator private constructor(
                             ?.apply {
                                 send(Orchestrator.ComputeResourceEvent.Created(this, request.node))
                             }
-                            ?.takeIf { ensureVirtualMachinePowerStart(instance) }
+                            ?.takeIf { vSphere.ensureVirtualMachinePowerStart(instance) }
                             ?.apply { send(Orchestrator.ComputeResourceEvent.Started(this)) }
                             ?: close(Orchestrator.ResourceCreationFailedException(request))
                 } catch (error: CancellationException) {
@@ -234,6 +244,7 @@ class VmcOrchestrator private constructor(
     override fun deleteDeployment(
         request: Orchestrator.DeleteComputeResourceRequest
     ): Publisher<Orchestrator.ComputeResourceEvent> {
+        @Suppress("DuplicatedCode")
         return publish<Orchestrator.ComputeResourceEvent>(coroutineContext) {
             withTimeout(ORCHESTRATOR_TIMEOUT_MILLIS) {
                 try {
@@ -241,7 +252,7 @@ class VmcOrchestrator private constructor(
                     val id = request.resource.path.substringAfterLast("/")
 
                     // Ensure that the VM is powered off.
-                    ensureVirtualMachinePowerStop(id).takeIf { it }
+                    vSphere.ensureVirtualMachinePowerStop(id).takeIf { it }
                             ?.run { vSphere.deleteVirtualMachine(id) }?.takeIf { it }
                             ?.run {
                                 send(Orchestrator.ComputeResourceEvent.Deleted(request.resource))
@@ -257,6 +268,8 @@ class VmcOrchestrator private constructor(
     override fun createNetworkAddress(
         request: Orchestrator.CreateNetworkResourceRequest
     ): Publisher<Orchestrator.NetworkResourceEvent> {
+        val network = info.vsphere.network
+
         return publish<Orchestrator.NetworkResourceEvent>(coroutineContext) {
             withTimeout(ORCHESTRATOR_TIMEOUT_MILLIS) {
                 try {
@@ -264,13 +277,13 @@ class VmcOrchestrator private constructor(
                      // public IP. Remove this once VMC networking allows hair-pinned NAT traffic
                      // using VM's public IP address.
 
-                    val privateIpAddress = allocatedPrivateIP()
+                    val privateIpAddress = allocatedPrivateIP(network)
                     privateIpAddress
                             ?.apply {
                                 log.info { "Created private IP($privateIpAddress)" }
 
                                 send(Orchestrator.NetworkResourceEvent.Created(
-                                        URI.create(info.ipamApi.address + "/" + privateIpAddress.name),
+                                        URI.create("${network.allocationServer.address}/$name"),
                                         request.name,
                                         privateIpAddress.value.toIPv4Address(),
                                         false))
@@ -310,17 +323,16 @@ class VmcOrchestrator private constructor(
     ): Publisher<Orchestrator.NetworkResourceEvent> {
         return publish<Orchestrator.NetworkResourceEvent>(coroutineContext) {
             withTimeout(ORCHESTRATOR_TIMEOUT_MILLIS) {
-
-                /**
-                 * TODO Evaluate the need to have a dedicated event handling for private IPs.
-                 */
-                if (request.resource.toString().contains(ipamBlocksPrefix)) {
+                // TODO: Evaluate the need to have a dedicated event handling for private IPs.
+                if (request.resource.toString().contains(IPAM_RESOURCE_NAME_PREFIX)) {
                     try {
                         val observer = ChannelStreamObserver<ReleaseAddressResponse>(1)
-
-                        val resourceId = request.resource.toString().substringAfter(ipamBlocksPrefix)
-                        val requestAllocateAddress = ReleaseAddressRequest(header = MessageHeader(),
-                                name = ipamBlocksPrefix + resourceId)
+                        val resourceId = request.resource.toString()
+                                .substringAfter(IPAM_RESOURCE_NAME_PREFIX)
+                        val requestAllocateAddress = ReleaseAddressRequest(
+                                header = MessageHeader(),
+                                name = IPAM_RESOURCE_NAME_PREFIX + resourceId
+                        )
                         ipAllocationService.releaseAddress(requestAllocateAddress, observer)
 
                         observer.asReceiveChannel().receive()
@@ -510,97 +522,15 @@ class VmcOrchestrator private constructor(
     }
 
     /**
-     * Ensure the power-on state of the virtual machine specified by the given parameter.
-     *
-     * @param[name]
-     *   identifier of the virtual machine.
-     *
-     * @return
-     *   `true` if the power state of the virtual machine is on at some point during the execution
-     *   of the function, `false` otherwise.
-     */
-    private suspend fun ensureVirtualMachinePowerStart(name: String): Boolean {
-        var confirmed = false
-        var iterating = true
-        while (iterating) {
-            // The typical case.
-            vSphere.updateVirtualMachinePowerState(name, VirtualMachinePowerState.POWERED_ON)
-            when (vSphere.getVirtualMachinePower(name)) {
-                VirtualMachinePowerState.POWERED_OFF, VirtualMachinePowerState.SUSPEND -> {
-                    vSphere.updateVirtualMachinePowerState(name, VirtualMachinePowerState.POWERED_ON)
-
-                    // Do not engage next iteration immediately.
-                    delay(OPERATION_RETRY_INTERVAL_MILLIS)
-                }
-                VirtualMachinePowerState.POWERED_ON -> {
-                    iterating = false
-                    confirmed = true
-                }
-                else -> {
-                    // If the VM doesn't exist or power-state cannot be retrieved.
-                    iterating = false
-                    confirmed = false
-                }
-            }
-        }
-
-        return confirmed
-    }
-
-    /**
-     * Ensure the power-off state of the virtual machine specified by the given parameter.
-     *
-     * @param[name]
-     *   identifier of the virtual machine.
-     *
-     * @return
-     *   `true` if the power state of the virtual machine is off at some point during the execution
-     *   of the function, `false` otherwise.
-     */
-    private suspend fun ensureVirtualMachinePowerStop(name: String): Boolean {
-        var confirmed = false
-        var iterating = true
-        var attempts = 0
-        while (iterating) {
-            // Try guest-friendly power-off.
-            vSphere.updateVirtualMachineGuestPower(name, "shutdown")
-            when (vSphere.getVirtualMachinePower(name)) {
-                VirtualMachinePowerState.POWERED_ON, VirtualMachinePowerState.SUSPEND -> {
-                    // Start to force the issue after a while.
-                    if (attempts > 20) {
-                        vSphere.updateVirtualMachinePowerState(name, VirtualMachinePowerState.POWERED_OFF)
-                    } else {
-                        attempts++
-                    }
-
-                    // Do not engage next iteration immediately.
-                    delay(OPERATION_RETRY_INTERVAL_MILLIS)
-                }
-                VirtualMachinePowerState.POWERED_OFF -> {
-                    iterating = false
-                    confirmed = true
-                }
-                else -> {
-                    // If the VM doesn't exist or power-state cannot be retrieved.
-                    iterating = false
-                    confirmed = false
-                }
-            }
-        }
-
-        return confirmed
-    }
-
-    /**
      * Allocate a new private IP address for use from IP allocation service.
      *
      * @return
      *   allocated IP address resource as a instance of [Address], if created, `null` otherwise.
      */
-    private suspend fun allocatedPrivateIP(): Address? {
+    private suspend fun allocatedPrivateIP(network: IPv4Network): Address? {
         val requestAllocateAddress = AllocateAddressRequest(
                 header = MessageHeader(),
-                parent = ipamBlocksPrefix + info.datacenter + "-" + info.controlNetwork
+                parent = IPAM_RESOURCE_NAME_PREFIX + info.datacenter + "-" + network.name
         )
 
         val observer = ChannelStreamObserver<AllocateAddressResponse>(1)

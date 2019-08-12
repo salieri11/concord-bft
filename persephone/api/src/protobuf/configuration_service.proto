@@ -24,6 +24,8 @@ message ConfigurationServiceType {
         UNKNOWN = 0;
         CONCORD_TLS = 1;
         ETHRPC = 2;
+        DAML_LEDGER_API = 3;
+        DAML_EXECUTION_ENGINE = 4;
     }
 }
 
@@ -59,6 +61,8 @@ message ConfigurationComponent {
 message ConfigurationServiceRequest {
     MessageHeader header = 1;
     repeated string hosts = 2;
+    string blockchain_type = 3;
+
 }
 
 /**

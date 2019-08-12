@@ -17,6 +17,8 @@ import java.net.http.HttpClient
 import java.net.http.HttpRequest as JdkHttpRequest
 import java.net.http.HttpResponse as JdkHttpResponse
 import java.nio.charset.StandardCharsets
+import java.security.SecureRandom
+import javax.net.ssl.SSLContext
 
 /**
  * An abstract contract implementation of an HTTP client that is access-token aware.
@@ -56,6 +58,12 @@ actual abstract class AccessTokenAwareHttpClient(
 
     /** Specify whether HTTP request should specify access token in HTTP header. */
     actual open val useAccessToken: Boolean = true
+
+    /** Specify whether insecure HTTP connections are allowed. */
+    actual open val allowInsecureConnection: Boolean = false
+
+    /** Specify whether HTTP response body on success should be logged on. */
+    actual open val enableVerboseLogging: Boolean = true
 
     /**
      * Retrieve the API session token from a given session response.
@@ -107,7 +115,20 @@ actual abstract class AccessTokenAwareHttpClient(
                                     passwordCredential.password.toCharArray()
                             )
                 }
-                HttpClient.newBuilder().authenticator(authenticator).build()
+
+                // Create the SSL context based on configuration settings.
+                val sslContext = if (allowInsecureConnection) {
+                    SSLContext.getInstance("TLS").apply {
+                        init(null, arrayOf(InsecureX509TrustManager), SecureRandom())
+                    }
+                } else {
+                    SSLContext.getDefault()
+                }
+
+                HttpClient.newBuilder()
+                        .sslContext(sslContext)
+                        .authenticator(authenticator)
+                        .build()
             }
             else -> HttpClient.newHttpClient()
         }
@@ -188,6 +209,7 @@ actual abstract class AccessTokenAwareHttpClient(
         contentType: String,
         headers: List<Pair<String, String>>
     ): HttpResponse<T?> {
+        @Suppress("DuplicatedCode")
         val response = requestWith { token ->
             JdkHttpRequest.newBuilder()
                     .GET()
@@ -228,6 +250,7 @@ actual abstract class AccessTokenAwareHttpClient(
         headers: List<Pair<String, String>>,
         arrayResponse: Boolean
     ): HttpResponse<List<T>?> {
+        @Suppress("DuplicatedCode")
         val response = requestWith { token ->
             JdkHttpRequest.newBuilder()
                     .GET()
@@ -508,7 +531,9 @@ actual abstract class AccessTokenAwareHttpClient(
     private suspend fun request(httpRequest: JdkHttpRequest): HttpResponse<String> {
         val upstream = JdkHttpResponse.BodySubscribers.ofString(StandardCharsets.UTF_8)
         val success = JdkHttpResponse.BodySubscribers.mapping<String, String>(upstream) { value ->
-            log.info { "API: response body($value)" }
+            if (enableVerboseLogging) {
+                log.info { "API: response body($value)" }
+            }
             value
         }
         val error = JdkHttpResponse.BodySubscribers.mapping<String, String>(upstream) { value ->

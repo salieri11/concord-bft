@@ -33,6 +33,7 @@ generate_py_grpc_bindings() {
         echo "Generating python bindings..."
         if [ -z "${python}" ]
         then
+            echo "***** The 'python' variable is not set.  Using /usr/local/bin/python3. *****"
             python=/usr/local/bin/python3
         fi
         "${python}" -m grpc_tools.protoc -I="${PROTOBUF_SRC_DIR}" --python_out="${GRPC_PYTHON_DEST_DIR}" --grpc_python_out="${GRPC_PYTHON_DEST_DIR}" "${PROTOBUF_SRC_DIR}"/*.proto

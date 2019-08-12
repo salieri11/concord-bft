@@ -30,7 +30,7 @@
     </main>
     <clr-vertical-nav>
       <ng-container *concordCanView="[personas.SystemsAdmin, personas.ConsortiumAdmin]">
-        <a clrVerticalNavLink [routerLink]="['dashboard']" [ngClass]="{'disable': blockchains.length === 1}" fragment="deploy">
+        <a clrVerticalNavLink [routerLink]="['dashboard']" [ngClass]="{'disable': disableDeploy}" fragment="deploy">
           <clr-icon clrVerticalNavIcon shape="deploy"></clr-icon>
           {{'nav.deploy' | translate}}
         </a>

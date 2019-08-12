@@ -8,7 +8,9 @@ import pickle
 import pytest
 import queue
 import sys
+import threading
 import time
+import types
 from urllib.parse import urlparse
 from uuid import UUID
 
@@ -16,11 +18,14 @@ from suites import test_suite
 from rest.request import Request
 from rpc.rpc_call import RPC
 
-from fixtures.common_fixtures import fxBlockchain, fxConnection, fxHermesRunSettings, fxInitializeOrgs
+from fixtures.common_fixtures import fxBlockchain, fxConnection, fxHermesRunSettings, fxInitializeOrgs, retrieveCustomCmdlineData
 import util.blockchain.eth
 import util.helper
 import util.numbers_strings
 import util.product
+
+# For hermes/lib/persephone, used for saving streamed events and deleting them.
+sys.path.append('lib')
 
 log = logging.getLogger(__name__)
 
@@ -379,6 +384,49 @@ def validateAccessDeniedResponse(result, expectedPath):
    assert result["path"] == expectedPath, "Expected different path."
 
 
+@pytest.mark.skip(reason="Takes a long time, and deployment or cleanup fail intermittently.")
+def test_real_blockchain_deployment(fxHermesRunSettings, fxConnection):
+   '''
+   At the moment, this is more of a model test case for deploying a blockchian and cleaning up.
+   Deployment of a blockchain can take 10+ minutes and fails intermittently.
+   Cleanup can also take 10+ minutes and fail intermittently.
+   Due to those factors, this test is being skipped until a good way to handle this is determined.
+   '''
+   from persephone import rpc_test_helper
+
+   cmdlineArgs = fxHermesRunSettings["hermesCmdlineArgs"]
+   logDir = fxConnection.request.logDir
+
+   args = cmdlineArgs.copy()
+   args["userConfig"] = fxHermesRunSettings["hermesUserConfig"]
+   cleanupData = rpc_test_helper.startMonitoringBlockchainDeployments(args, logDir)
+
+   suffix = util.numbers_strings.random_string_generator()
+   consortiums = fxConnection.request.getConsortiums()
+   consortiumId = consortiums[0]["consortium_id"]
+   zones = fxConnection.request.getZones()
+   log.info("Available zones: {}".format(zones))
+   desiredZoneId = zones[0]["id"]
+   siteIds = [desiredZoneId,desiredZoneId,desiredZoneId,desiredZoneId]
+   response = fxConnection.request.createBlockchain(consortiumId, siteIds)
+   log.info("Response from createBlockchain(): {}".format(response))
+   taskId = response["task_id"]
+   timeout=60*15
+   success, response = util.helper.waitForTask(fxConnection.request, taskId, timeout=timeout)
+   log.info("Response from waitForTask(): {}".format(response))
+
+   if not success:
+      raise Exception("Failed to deploy a blockchain to the SDDC.")
+   else:
+      blockchains = fxConnection.request.getBlockchains()
+      log.info("getBlockchains() response: {}".format(blockchains))
+
+   try:
+      rpc_test_helper.cleanUpBlockchainDeployments(cleanupData)
+   except Exception as e:
+      log.info("Exception while cleaning up blockchain resources. Usually resources get " \
+               "deleted when this happens, but not always. This will not fail a Helen " \
+               "test case.")
 
 
 @pytest.mark.smoke

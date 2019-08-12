@@ -154,7 +154,8 @@ public class ConfigurationServiceTest {
 
         var messageId = "id1";
 
-        ConfigurationServiceRequest request = new ConfigurationServiceRequest(new MessageHeader(messageId), hostIps);
+        ConfigurationServiceRequest request = new ConfigurationServiceRequest(new MessageHeader(messageId), hostIps,
+                                                                              null);
 
         var promise = new CompletableFuture<ConfigurationSessionIdentifier>();
         service.createConfiguration(request, newResultObserver(promise));

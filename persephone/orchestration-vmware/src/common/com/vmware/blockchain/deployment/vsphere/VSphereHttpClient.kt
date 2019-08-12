@@ -1,50 +1,45 @@
 /* **************************************************************************
  * Copyright (c) 2019 VMware, Inc.  All rights reserved. VMware Confidential
  * *************************************************************************/
-package com.vmware.blockchain.deployment.vmc
+package com.vmware.blockchain.deployment.vsphere
 
 import com.vmware.blockchain.deployment.http.AccessTokenAwareHttpClient
 import com.vmware.blockchain.deployment.http.HttpResponse
 import com.vmware.blockchain.deployment.http.JsonSerializer
-import com.vmware.blockchain.deployment.model.core.BearerTokenCredential
 import com.vmware.blockchain.deployment.model.core.Credential
+import com.vmware.blockchain.deployment.model.core.PasswordCredential
 import com.vmware.blockchain.deployment.model.core.URI
-import com.vmware.blockchain.deployment.model.vmc.VmcAuthenticationResponse
+import com.vmware.blockchain.deployment.model.vsphere.VSphereAuthenticationResponse
 
 /**
- * An HTTP REST client for issuing API to a VMware Cloud endpoint.
+ * An HTTP REST client for issuing API to a vSphere endpoint.
  *
+ * @param[context]
+ *   context for the targeted vSphere deployment.
  * @param[serializer]
  *   HTTP response serializer.
  * @property[client]
  *   underlying HTTP client to use for communication.
+ * @property[allowInsecureConnection]
+ *   specify whether insecure HTTP connections are allowed.
  */
-class VmcHttpClient(
+class VSphereHttpClient(
     val context: Context,
-    private val serializer: JsonSerializer
+    private val serializer: JsonSerializer,
+    override val allowInsecureConnection: Boolean = false
 ): AccessTokenAwareHttpClient(context.endpoint, serializer) {
 
     /**
-     * Context parameters for [VmcHttpClient].
+     * Context parameters for [VSphereHttpClient].
      *
      * @param[endpoint]
-     *   URI for the targeted VMware Cloud API endpoint.
-     * @param[authenticationEndpoint]
-     *   URI for the targeted VMware Cloud API endpoint's authentication endpoint.
-     * @param[refreshToken]
-     *   API refresh token to use to obtain access token.
-     * @param[organization]
-     *   organization identifier.
-     * @param[datacenter]
-     *   data center identifier.
+     *   context for the targeted vSphere endpoint.
+     * @param[username]
+     *   username to use to authenticate for bearer token.
+     * @param[password]
+     *   password to use to authenticate for bearer token.
      */
-    data class Context(
-        val endpoint: URI,
-        val authenticationEndpoint: URI,
-        val refreshToken: String,
-        val organization: String,
-        val datacenter: String
-    )
+    data class Context(val endpoint: URI, val username: String, val password: String)
 
     /**
      * Obtain the API session token from a given session response.
@@ -54,8 +49,8 @@ class VmcHttpClient(
      */
     override fun retrieveAccessToken(sessionResponse: HttpResponse<String>): String {
         return serializer
-                .fromJson<VmcAuthenticationResponse>(sessionResponse.body())
-                .access_token
+                .fromJson<VSphereAuthenticationResponse>(sessionResponse.body())
+                .value
     }
 
     /**
@@ -64,7 +59,7 @@ class VmcHttpClient(
      * @return
      *   the HTTP header name for access token.
      */
-    override fun accessTokenHeader(): String = "csp-auth-token"
+    override fun accessTokenHeader(): String = "vmware-api-session-id"
 
     /**
      * Retrieve the session creation URI associated with this client instance.
@@ -72,11 +67,7 @@ class VmcHttpClient(
      * @return
      *   the session-creation [URI] value.
      */
-    override fun session(): URI {
-        return Endpoints.VMC_AUTHENTICATION
-                .resolve(context.authenticationEndpoint,
-                         listOf(Pair("refresh_token", context.refreshToken)))
-    }
+    override fun session(): URI = Endpoints.VSPHERE_AUTHENTICATION.resolve(context.endpoint)
 
     /**
      * Obtain the authentication credential associated with this client instance.
@@ -86,8 +77,8 @@ class VmcHttpClient(
      */
     override fun credential(): Credential {
         return Credential(
-                Credential.Type.BEARER,
-                tokenCredential = BearerTokenCredential(context.refreshToken)
+                Credential.Type.PASSWORD,
+                passwordCredential = PasswordCredential(context.username, context.password)
         )
     }
 }

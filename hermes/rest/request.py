@@ -209,7 +209,7 @@ class Request():
          "f_count": f,
          "c_count": c,
          "deployment_type": "FIXED" if fixed else "UNSPECIFIED",
-         "site_ids": siteIds
+         "zone_ids": siteIds
       }
       self._endpointName = "create_blockchain"
 
@@ -487,6 +487,17 @@ class Request():
       self._endpointName = "get_consortium_orgs"
       return self._send()
 
+   def getZones(self):
+      '''
+      Get the blockchain zones from Persephone.  Zones are SDDCs; we are fetching
+      the identifiers Persephone assigns to them.
+      '''
+      self._subPath = "/api/blockchains/zones"
+      self._params = ""
+      self._data = None
+      self._endpointName = "get_zones"
+      return self._send()
+   
    '''
    =================================================================
    =================================================================
