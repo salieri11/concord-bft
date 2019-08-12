@@ -384,51 +384,6 @@ def validateAccessDeniedResponse(result, expectedPath):
    assert result["path"] == expectedPath, "Expected different path."
 
 
-@pytest.mark.skip(reason="Takes a long time, and deployment or cleanup fail intermittently.")
-def test_real_blockchain_deployment(fxHermesRunSettings, fxConnection):
-   '''
-   At the moment, this is more of a model test case for deploying a blockchian and cleaning up.
-   Deployment of a blockchain can take 10+ minutes and fails intermittently.
-   Cleanup can also take 10+ minutes and fail intermittently.
-   Due to those factors, this test is being skipped until a good way to handle this is determined.
-   '''
-   from persephone import rpc_test_helper
-
-   cmdlineArgs = fxHermesRunSettings["hermesCmdlineArgs"]
-   logDir = fxConnection.request.logDir
-
-   args = cmdlineArgs.copy()
-   args["userConfig"] = fxHermesRunSettings["hermesUserConfig"]
-   cleanupData = rpc_test_helper.startMonitoringBlockchainDeployments(args, logDir)
-
-   suffix = util.numbers_strings.random_string_generator()
-   consortiums = fxConnection.request.getConsortiums()
-   consortiumId = consortiums[0]["consortium_id"]
-   zones = fxConnection.request.getZones()
-   log.info("Available zones: {}".format(zones))
-   desiredZoneId = zones[0]["id"]
-   siteIds = [desiredZoneId,desiredZoneId,desiredZoneId,desiredZoneId]
-   response = fxConnection.request.createBlockchain(consortiumId, siteIds)
-   log.info("Response from createBlockchain(): {}".format(response))
-   taskId = response["task_id"]
-   timeout=60*15
-   success, response = util.helper.waitForTask(fxConnection.request, taskId, timeout=timeout)
-   log.info("Response from waitForTask(): {}".format(response))
-
-   if not success:
-      raise Exception("Failed to deploy a blockchain to the SDDC.")
-   else:
-      blockchains = fxConnection.request.getBlockchains()
-      log.info("getBlockchains() response: {}".format(blockchains))
-
-   try:
-      rpc_test_helper.cleanUpBlockchainDeployments(cleanupData)
-   except Exception as e:
-      log.info("Exception while cleaning up blockchain resources. Usually resources get " \
-               "deleted when this happens, but not always. This will not fail a Helen " \
-               "test case.")
-
-
 @pytest.mark.smoke
 def test_blockchains_fields(fxConnection):
    blockchains = fxConnection.request.getBlockchains()
@@ -531,10 +486,9 @@ def test_members_millis_since_last_message(fxConnection, fxBlockchain, fxHermesR
    testing that Helen is receiving/communicating new values, not always
    showing a default, etc...
    '''
-   deployNewBlockchain = fxHermesRunSettings["hermesCmdlineArgs"]["deployNewBlockchain"]
-   if deployNewBlockchain:
+   if fxHermesRunSettings["hermesCmdlineArgs"].blockchainLocation != util.helper.LOCAL_BLOCKCHAIN:
       pytest.skip("Skipping because this test requires pausing a Concord node, and " \
-                  "this Concord deployment is on an SDDC.")
+                  "this Concord deployment is on SDDC or on-prem infra.")
 
    allMembers = fxConnection.request.getMemberList(fxBlockchain.blockchainId)
    nodeData = allMembers[0] # Any will do.
@@ -547,10 +501,10 @@ def test_members_millis_since_last_message(fxConnection, fxBlockchain, fxHermesR
    # The functionality we need in Product is a bit tied into it, so make
    # a patchy object so we can use what we need.
    HermesArgs = collections.namedtuple("HermesArgs", "resultsDir")
-   hermesArgs = HermesArgs(resultsDir = fxHermesRunSettings["hermesCmdlineArgs"]["resultsDir"])
+   hermesArgs = HermesArgs(resultsDir = fxHermesRunSettings["hermesCmdlineArgs"].resultsDir)
    product = util.product.Product(hermesArgs,
                                   fxHermesRunSettings["hermesUserConfig"],
-                                  fxHermesRunSettings["hermesCmdlineArgs"]["suite"])
+                                  fxHermesRunSettings["hermesCmdlineArgs"].suite)
 
    try:
       product.resumeMembers(allMembers)

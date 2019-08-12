@@ -28,6 +28,22 @@ CSP_STAGE_URL = "https://console-stg.cloud.vmware.com/csp/gateway/am/api/auth/ap
 #   }
 # }
 
+# This is what Hermes currently uses for everything.  We're moving
+# away from this.
+internal_admin = {
+   "org": "blockchain_service_dev",
+   "user": "admin-blockchain-dev",
+   "role": "all_roles"
+}
+
+# These new defaults are what Hermes tests are moving towards.
+default_con_admin = {
+   "org": "hermes_org0",
+   "user": "vmbc_test_con_admin",
+   "role": "consortium_admin_and_org_user"
+}
+
+# These are all of the users we may use.
 tokens = {
    "blockchain_service_dev": {
       "admin-blockchain-dev": {

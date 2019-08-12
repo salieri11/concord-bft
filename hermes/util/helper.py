@@ -14,10 +14,21 @@ import cryptography
 import subprocess
 import sys
 import time
+import util.json_helper
 from . import numbers_strings
 
 log = logging.getLogger(__name__)
 docker_env_file = ".env"
+
+# The config file contains information aobut how to run things, as opposed to
+# command line parameters, which are about running tests.
+CONFIG_JSON = "resources/user_config.json"
+
+# These are command line options for --blockchainLocation.  Various parts
+# of the code need to know them.
+LOCAL_BLOCKCHAIN = "local"
+SDDC_BLOCKCHAIN = "sddc"
+ONPREM_BLOCKCHAIN = "onprem"
 
 def copy_docker_env_file(docker_env_file=docker_env_file):
    '''
@@ -296,3 +307,65 @@ def waitForTask(request, taskId, expectSuccess=True, timeout=600):
             log.info("Task did not finish as expected.  Details: {}".format(response))
 
    return (success, response)
+
+
+def loadConfigFile(args):
+   '''
+   Given the cmdline args, loads the main Hermes config file and returns
+   the config object.
+   '''
+   configObject = None
+
+   if args.config:
+      configObject = util.json_helper.readJsonFile(args.config)
+   else:
+      configObject = util.json_helper.readJsonFile(CONFIG_JSON)
+
+   if "ethereum" in configObject and \
+      "testRoot" in configObject["ethereum"]:
+
+      configObject["ethereum"]["testRoot"] = \
+         os.path.expanduser(configObject["ethereum"]["testRoot"])
+
+   return configObject
+
+
+def checkRpcTestHelperImport():
+   try:
+      sys.path.append("lib/persephone")
+      from persephone import rpc_test_helper
+   except ImportError as e:
+      log.error("Python bindings not generated. Execute the following from the top " \
+                "level of the blockchain source directory: \n" \
+                "python=<path to python3 used to launch Hermes> " \
+                "./hermes/util/generate_gRPC_bindings_for_py3.sh " \
+                "--protobufSrc persephone/api/src/protobuf")
+      raise Exception("gRPC Python bindings not generated")
+
+
+def distributeItemsRoundRobin(numSlots, availableItems):
+   '''
+   Given some number of slots (e.g. 4 or 7 desired blockchain nodes) and a list of availableItems
+   (e.g. a list of SDDC sites), create a list of numSlots availableItems, evenly distributing them
+   in round robin fashion.
+   Returns the list.
+   '''
+   returnList = []
+   itemIndex = 0
+
+   if availableItems:
+      while len(returnList) < numSlots:
+         returnList.append(availableItems[itemIndex])
+
+         if itemIndex == len(availableItems) - 1:
+            itemIndex = 0
+         else:
+            itemIndex += 1
+   else:
+      log.error("No availableItems passed to distributeItemsRoundRobin.")
+
+   return returnList
+
+
+def helenIsRemote(args):
+   return "localhost" not in args.reverseProxyApiBaseUrl
