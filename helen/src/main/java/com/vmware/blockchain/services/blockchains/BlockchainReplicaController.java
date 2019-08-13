@@ -59,8 +59,8 @@ import lombok.NoArgsConstructor;
  */
 @RestController
 @RequestMapping(path = "/api/blockchains/{bid}")
-public class BlockchainNodeController {
-    static Logger logger = LogManager.getLogger(BlockchainNodeController.class);
+public class BlockchainReplicaController {
+    static Logger logger = LogManager.getLogger(BlockchainReplicaController.class);
 
     private BlockchainService blockchainService;
     private ConsortiumService consortiumService;
@@ -72,14 +72,14 @@ public class BlockchainNodeController {
     private boolean mockDeployment;
 
     @Autowired
-    public BlockchainNodeController(BlockchainService blockchainService,
-                                ConsortiumService consortiumService,
-                                AuthHelper authHelper,
-                                DefaultProfiles defaultProfiles,
-                                TaskService taskService,
-                                FleetManagementServiceStub client,
-                                OperationContext operationContext,
-                                @Value("${mock.deployment:false}") boolean mockDeployment) {
+    public BlockchainReplicaController(BlockchainService blockchainService,
+                                       ConsortiumService consortiumService,
+                                       AuthHelper authHelper,
+                                       DefaultProfiles defaultProfiles,
+                                       TaskService taskService,
+                                       FleetManagementServiceStub client,
+                                       OperationContext operationContext,
+                                       @Value("${mock.deployment:false}") boolean mockDeployment) {
         this.blockchainService = blockchainService;
         this.consortiumService = consortiumService;
         this.authHelper = authHelper;
@@ -93,6 +93,7 @@ public class BlockchainNodeController {
     @Data
     static class NodeList {
         private List<UUID> nodeIds;
+        private List<UUID> replicaIds;
     }
 
     @Data
@@ -107,15 +108,15 @@ public class BlockchainNodeController {
         STOP;
     }
 
-    // NodeObserver.  This is the callback from GRPC when starting/stoping nodes.  Package private for testing.
-    static class NodeObserver implements StreamObserver<UpdateInstanceResponse> {
+    // ReplicaObserver.  This is the callback from GRPC when starting/stoping nodes.  Package private for testing.
+    static class ReplicaObserver implements StreamObserver<UpdateInstanceResponse> {
         private UUID taskId;
         private ITaskService taskService;
         private Authentication auth;
         private OperationContext operationContext;
         private String opId;
 
-        public NodeObserver(UUID taskId, ITaskService taskService, OperationContext operationContext) {
+        public ReplicaObserver(UUID taskId, ITaskService taskService, OperationContext operationContext) {
             this.taskId = taskId;
             this.taskService = taskService;
             this.operationContext = operationContext;
@@ -174,7 +175,7 @@ public class BlockchainNodeController {
      * @return          202 with Task
      * @throws Exception BadRequest if paramenter are wrong
      */
-    @RequestMapping(method = RequestMethod.POST, path = "/nodes/{nodeId}")
+    @RequestMapping(method = RequestMethod.POST, path = {"/nodes/{nodeId}", "/replicas/{nodeId}"})
     @PreAuthorize("@authHelper.canUpdateChain(#bid)")
     public ResponseEntity<BlockchainTaskResponse> nodeAction(@PathVariable UUID bid,
                                                              @PathVariable UUID nodeId,
@@ -196,7 +197,7 @@ public class BlockchainNodeController {
      * @return          202 with TaskList
      * @throws Exception BadReqest
      */
-    @RequestMapping(method = RequestMethod.POST, path = "/nodes")
+    @RequestMapping(method = RequestMethod.POST, path = {"/nodes", "/replicas"})
     @PreAuthorize("@authHelper.canUpdateChain(#bid)")
     public ResponseEntity<TaskList> nodeListAction(@PathVariable UUID bid,
                                                    @RequestBody NodeList nodeList,
@@ -204,12 +205,16 @@ public class BlockchainNodeController {
         Blockchain b = blockchainService.get(bid);
 
         // check that all the nodes are part of this blockchain
+        List<UUID> uuidList = nodeList.getReplicaIds() != null ? nodeList.getReplicaIds() : nodeList.getNodeIds();
+        if (uuidList == null) {
+            throw new BadRequestException((ErrorCode.BAD_REQUEST));
+        }
         List<UUID> bcNodeList = b.getNodeList().stream().map(n -> n.getNodeId()).collect(Collectors.toList());
-        if (!bcNodeList.containsAll(nodeList.nodeIds)) {
+        if (!bcNodeList.containsAll(uuidList)) {
             throw new BadRequestException(ErrorCode.INVALID_NODE, nodeList.nodeIds);
         }
         List<UUID> taskIds =
-                nodeList.nodeIds.stream().map(n -> startStopNode(bid, n, action)).map(t -> t.getId()).collect(
+                uuidList.stream().map(n -> startStopNode(bid, n, action)).map(t -> t.getId()).collect(
                 Collectors.toList());
         return new ResponseEntity<>(new TaskList(taskIds), HttpStatus.ACCEPTED);
     }
@@ -228,8 +233,8 @@ public class BlockchainNodeController {
         task.setResourceId(bid);
         task.setResourceLink(String.format("/api/blockchains/%s", bid));
         task = taskService.put(task);
-        NodeObserver nodeObserver = new NodeObserver(task.getId(), taskService, operationContext);
-        client.updateInstance(request, nodeObserver);
+        ReplicaObserver replicaObserver = new ReplicaObserver(task.getId(), taskService, operationContext);
+        client.updateInstance(request, replicaObserver);
         return task;
     }
 

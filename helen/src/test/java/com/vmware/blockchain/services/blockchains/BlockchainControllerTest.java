@@ -18,6 +18,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -76,6 +77,8 @@ import com.vmware.blockchain.deployment.model.StreamClusterDeploymentSessionEven
 import com.vmware.blockchain.operation.OperationContext;
 import com.vmware.blockchain.security.MvcTestSecurityConfig;
 import com.vmware.blockchain.security.SecurityTestUtils;
+import com.vmware.blockchain.services.blockchains.BlockchainController.BlockchainNodeEntry;
+import com.vmware.blockchain.services.blockchains.BlockchainController.BlockchainReplicaEntry;
 import com.vmware.blockchain.services.blockchains.BlockchainController.BlockchainTaskResponse;
 import com.vmware.blockchain.services.profiles.Consortium;
 import com.vmware.blockchain.services.profiles.ConsortiumService;
@@ -246,19 +249,19 @@ public class BlockchainControllerTest {
         final Blockchain b = Blockchain.builder()
                 .consortium(consortium.getId())
                 .nodeList(Stream.of("1", "2", "3")
-                        .map(s -> new Blockchain.NodeEntry(UUID.randomUUID(), s, "", "", null))
+                        .map(s -> new Blockchain.NodeEntry(UUID.randomUUID(), s, "", "", SITE_1))
                         .collect(Collectors.toList()))
                 .build();
         final Blockchain b2 = Blockchain.builder()
                 .consortium(c2.getId())
                 .nodeList(Stream.of("4", "5", "6")
-                        .map(s -> new Blockchain.NodeEntry(UUID.randomUUID(), s, "", "", null))
+                        .map(s -> new Blockchain.NodeEntry(UUID.randomUUID(), s, "", "", SITE_2))
                         .collect(Collectors.toList()))
                 .build();
         final Blockchain bn = Blockchain.builder()
                 .consortium(UUID.fromString("04e4f62d-5364-4363-a582-b397075b65a3"))
                 .nodeList(Stream.of("one", "two", "three")
-                        .map(s -> new Blockchain.NodeEntry(UUID.randomUUID(), s, "http://".concat(s), "cert-".concat(s), null))
+                        .map(s -> new Blockchain.NodeEntry(UUID.randomUUID(), s, "http://".concat(s), "cert-".concat(s), SITE_2))
                         .collect(Collectors.toList()))
                 .build();
         when(blockchainService.listByConsortium(consortium)).thenReturn(Collections.singletonList(b));
@@ -326,6 +329,20 @@ public class BlockchainControllerTest {
     }
 
 
+    private boolean compareNodeToReplica(BlockchainNodeEntry nodeEntry, BlockchainReplicaEntry replicaEntry) {
+        return nodeEntry.getNodeId().equals(replicaEntry.getReplicaId())
+               && nodeEntry.getIp().equals(replicaEntry.getIp())
+               && nodeEntry.getUrl().equals(replicaEntry.getUrl())
+               && nodeEntry.getCert().equals(replicaEntry.getCert())
+               && Objects.equals(nodeEntry.getZoneId(), replicaEntry.getZoneId());
+    }
+
+    private void assertEquivalentLists(List<BlockchainNodeEntry> nodeList, List<BlockchainReplicaEntry> replicaList) {
+        Assertions.assertEquals(nodeList.size(), replicaList.size());
+        for (int i = 0; i < replicaList.size(); i++) {
+            Assertions.assertTrue(compareNodeToReplica(nodeList.get(i), replicaList.get(i)));
+        }
+    }
 
     @Test
     void getBlockchainOperatorList() throws Exception {
@@ -333,9 +350,13 @@ public class BlockchainControllerTest {
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk()).andReturn();
         String body = result.getResponse().getContentAsString();
-        List<BlockchainController.BlockchainGetResponse> res = objectMapper.readValue(body, new TypeReference<>() {});
+        List<BlockchainController.BlockchainGetResponse> res =
+                objectMapper.readValue(body, new TypeReference<List<BlockchainController.BlockchainGetResponse>>() {});
         // As an operator, we should see both blockchains.
         Assertions.assertEquals(2, res.size());
+        // Now check that the lists are equivalent
+        assertEquivalentLists(res.get(0).getNodeList(), res.get(0).getReplicaList());
+        assertEquivalentLists(res.get(1).getNodeList(), res.get(1).getReplicaList());
     }
 
     @Test
