@@ -91,8 +91,9 @@ def test_publish_as_other():
 
    # Attempt to move the target a minute into the future. This test
    # should take far less time, so the low-load update thread will not
-   # beat us.
-   test_target_value = original_target_value + 60
+   # beat us. Value is truncated to integer here, because conc_time
+   # only accepts an integer sample value.
+   test_target_value = int(original_target_value) + 60
 
    log.info("Attempting to move {} to {} from {}".format(target, test_target_value, original_target_value))
 
@@ -178,8 +179,14 @@ def run_faulty_clock(faulty_time):
 
    concordContainer = find_source_container(test_target_source)
 
+   # How close do we expect the time summary to be to hermes' system
+   # clock? If all sources are updating, then the difference should be
+   # within one update period. We allow three update periods, to allow
+   # for updates happening right around the maximal 2-period limit.
+   differenceBound = 3 * expectedUpdatePeriodSec
+
    summary, samples = get_summary_and_samples()
-   assert abs(summary - time.time()) < 2 * expectedUpdatePeriodSec, \
+   assert abs(summary - time.time()) <= differenceBound, \
       "Summary and system time are not close before corruption"
 
    # how many times to publish and check
@@ -214,7 +221,7 @@ def run_faulty_clock(faulty_time):
       # This is the core of this test: summary time should not differ
       # from the local wall clock if < 1/2 of the sources have been
       # corrupted.
-      assert abs(summary - time.time()) < 2 * expectedUpdatePeriodSec, \
+      assert abs(summary - time.time()) <= differenceBound, \
          "Summary has moved away from hermes time."
 
       time.sleep(expectedUpdatePeriodSec / 2)
@@ -231,7 +238,7 @@ def test_fast_clock():
       # If the test is publishing updates faster than our skew (which
       # it should), this should move the corrupted source into the
       # future faster and faster.
-      return max(current, int(time.time())) + forward_skew
+      return int(max(current, time.time())) + forward_skew
 
    return run_faulty_clock(skew_function)
 
@@ -245,8 +252,8 @@ def test_random_clock(fxBlockchain):
    rand_window = expectedUpdatePeriodSec
    def skew_function(current):
       nonlocal rand_window
-      lowerBound = max(current, int(time.time())) - rand_window
-      upperBound = max(current, int(time.time())) + rand_window
+      lowerBound = int(max(current, time.time())) - rand_window
+      upperBound = int(max(current, time.time())) + rand_window
       # double the size of the window every sample
       rand_window *= 2
       return random.randint(lowerBound, upperBound)

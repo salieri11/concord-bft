@@ -61,10 +61,10 @@ expectedUpdatePeriodSec = 1
 
 def iso_timestamp_to_seconds(timestamp):
    '''
-   Convert ISO-8601 string to seconds.
+   Convert ISO-8601 string to (floating point) seconds (including partial seconds in the decimal).
    '''
    datetimeObj = dateutil.parser.isoparse(timestamp)
-   return int(datetimeObj.timestamp())
+   return datetimeObj.timestamp()
 
 def extract_samples_from_response(output):
    '''
@@ -182,10 +182,10 @@ def test_time_is_recent():
    (performance or otherwise) that should be investigated.
    '''
    concordContainer = util.blockchain.eth.get_concord_container_name(1)
-   currentHermesTimeBefore = int(time.time())
+   currentHermesTimeBefore = time.time()
    output = util.blockchain.eth.exec_in_concord_container(concordContainer,
                                                           "./conc_time -g -o json")
-   currentHermesTimeAfter = int(time.time())
+   currentHermesTimeAfter = time.time()
 
    # Doing the extraction after the current time check, in an effort
    # to make the bounds as tight as possible. Since times are compared
@@ -225,7 +225,9 @@ def test_time_service_in_ethereum_block(fxConnection):
    block = fxConnection.rpc.getBlockByHash(receipt["blockHash"])
    blockTime = int(block["timestamp"], 16)
 
-   assert preTxTime <= blockTime, "Block timestamp should be no earlier than pre-tx check"
+   # blockTime is an integer number of seconds, so preTxTime must be
+   # truncated, or the sub-second part may make it larger
+   assert int(preTxTime) <= blockTime, "Block timestamp should be no earlier than pre-tx check"
    assert blockTime <= postTxTime, "Block timestamp should be no later than post-tx check"
 
 
@@ -258,7 +260,9 @@ def test_time_service_in_ethereum_code(fxConnection):
    contractTime = int(fxConnection.rpc.callContract(address), 16)
    postTxTime = get_summary(concordContainer)
 
-   assert preTxTime <= contractTime, "Opcode time should be no earlier than pre-call check"
+   # contractTime is an integer number of seconds, so preTxTime must
+   # be truncated, or the sub-second part may make it larger
+   assert int(preTxTime) <= contractTime, "Opcode time should be no earlier than pre-call check"
    assert contractTime <= postTxTime, "Opcode time should be no later than post-call check"
 
 
