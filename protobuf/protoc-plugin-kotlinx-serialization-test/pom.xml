@@ -135,6 +135,7 @@
                             <outputDirectory>${project.build.directory}/generated-sources/test-protobuf/common</outputDirectory>
                             <protocArtifact>com.google.protobuf:protoc:${protobuf.runtime.java.version}:exe:${os.detected.classifier}</protocArtifact>
                             <pluginExecutable>${project.build.directory}/protoc-plugins/protoc-gen-kotlin</pluginExecutable>
+                            <pluginParameter>disable-java-package</pluginParameter>
                             <protocPlugins>
                                 <protocPlugin>
                                     <id>kotlin</id>
@@ -172,6 +173,7 @@
                             <outputDirectory>${project.build.directory}/generated-sources/test-protobuf/jvm</outputDirectory>
                             <protocArtifact>com.google.protobuf:protoc:${protobuf.runtime.java.version}:exe:${os.detected.classifier}</protocArtifact>
                             <pluginExecutable>${project.build.directory}/protoc-plugins/protoc-gen-grpc-kotlin</pluginExecutable>
+                            <pluginParameter>disable-java-package</pluginParameter>
                             <protocPlugins>
                                 <protocPlugin>
                                     <id>grpc-kotlin</id>
