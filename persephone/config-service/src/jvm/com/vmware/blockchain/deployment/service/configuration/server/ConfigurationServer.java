@@ -26,6 +26,7 @@ import io.grpc.netty.shaded.io.grpc.netty.NettyServerBuilder;
 import io.grpc.netty.shaded.io.netty.handler.ssl.ClientAuth;
 import io.grpc.netty.shaded.io.netty.handler.ssl.SslContext;
 import io.grpc.netty.shaded.io.netty.handler.ssl.SslContextBuilder;
+import io.grpc.protobuf.services.ProtoReflectionService;
 import kotlinx.serialization.UpdateMode;
 import kotlinx.serialization.json.Json;
 import kotlinx.serialization.json.JsonConfiguration;
@@ -41,16 +42,25 @@ public interface ConfigurationServer {
     int DEFAULT_SERVER_PORT = 9003;
 
     /** Default configuration file path. */
-    URI DEFAULT_SERVER_CONFIG = URI.create("file:/config/persephone/config-service/config.json");
+    URI DEFAULT_SERVER_CONFIG_URL = URI.create("file:/config/persephone/configuration/config.json");
 
     /** Default certificate chain file path. */
-    URI DEFAULT_CERTIFICATE_CHAIN = URI.create("file:/config/persephone/config-service/server.crt");
+    URI DEFAULT_CERTIFICATE_CHAIN_URL = URI.create("file:/config/persephone/configuration/server.crt");
+
+    /** Default certificate chain data. */
+    String DEFAULT_CERTIFICATE_CHAIN_DATA = "";
 
     /** Default private key file path. */
-    URI DEFAULT_PRIVATE_KEY = URI.create("file:/config/persephone/config-service/server.pem");
+    URI DEFAULT_PRIVATE_KEY_URL = URI.create("file:/config/persephone/configuration/server.pem");
+
+    /** Default private key data. */
+    String DEFAULT_PRIVATE_KEY_DATA = "";
 
     /** Default trusted certificate collection file path. */
-    URI DEFAULT_TRUST_CERTIFICATES = URI.create("file:/config/persephone/config-service/ca.crt");
+    URI DEFAULT_TRUST_CERTIFICATES_URL = URI.create("file:/config/persephone/configuration/ca.crt");
+
+    /** Default trusted certificate collection data. */
+    String DEFAULT_TRUST_CERTIFICATES_DATA = "";
 
     /** Singleton service instance for config-service Concord clusters. */
     ConfigurationService configurationService();
@@ -147,18 +157,21 @@ public interface ConfigurationServer {
             var configJson = Files.lines(Paths.get(args[0]), StandardCharsets.UTF_8)
                     .collect(Collectors.joining());
             config = json.parse(serializer, configJson);
-        } else if (Files.exists(Paths.get(DEFAULT_SERVER_CONFIG))) {
-            var configJson = Files.lines(Paths.get(DEFAULT_SERVER_CONFIG), StandardCharsets.UTF_8)
+        } else if (Files.exists(Paths.get(DEFAULT_SERVER_CONFIG_URL))) {
+            var configJson = Files.lines(Paths.get(DEFAULT_SERVER_CONFIG_URL), StandardCharsets.UTF_8)
                     .collect(Collectors.joining());
             config = json.parse(serializer, configJson);
         } else {
             config = new ConfigurationServerConfiguration(
                     DEFAULT_SERVER_PORT,
                     new TransportSecurity(
-                            TransportSecurity.Type.TLSv1_2,
-                            DEFAULT_TRUST_CERTIFICATES.toString(),
-                            DEFAULT_CERTIFICATE_CHAIN.toString(),
-                            DEFAULT_PRIVATE_KEY.toString()
+                            TransportSecurity.Type.NONE,
+                            DEFAULT_TRUST_CERTIFICATES_URL.toString(),
+                            DEFAULT_TRUST_CERTIFICATES_DATA,
+                            DEFAULT_CERTIFICATE_CHAIN_URL.toString(),
+                            DEFAULT_CERTIFICATE_CHAIN_DATA,
+                            DEFAULT_PRIVATE_KEY_URL.toString(),
+                            DEFAULT_PRIVATE_KEY_DATA
                     )
 
             );
@@ -174,6 +187,7 @@ public interface ConfigurationServer {
         )
                 : null;
         Server server = NettyServerBuilder.forPort(config.getPort())
+                .addService(ProtoReflectionService.newInstance())
                 .addService(configurationServer.configurationService())
                 .sslContext(sslContext)
                 .build();

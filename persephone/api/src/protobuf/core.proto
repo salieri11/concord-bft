@@ -40,10 +40,13 @@ message PublicKey {
  *   address of the server endpoint URI as a string.
  * @param[credential]
  *   credential to present to the endpoint upon connection.
+ * @param[transport_security]
+ *   transport security setting to use for endpoint connection.
  */
 message Endpoint {
     string address = 1;
     Credential credential = 2;
+    TransportSecurity transport_security = 3;
 }
 
 /**
@@ -97,11 +100,11 @@ message BearerTokenCredential {
  * @property[type]
  *   type of transport security specified.
  * @property[trusted_certificates_url]
- *   file URL for trusted certificates (.crt format).
+ *   file URL for trusted certificates (PEM format).
  * @property[certificate_url]
- *   file URL for server's certificate (.crt format).
+ *   file URL for local entity's (client or server) certificate (PEM format).
  * @property[private_key_url]
- *   file URL for server's private key (.pem format).
+ *   file URL for local entity's (client or server) private key (PEM format).
  */
 message TransportSecurity {
     enum Type {
@@ -110,7 +113,16 @@ message TransportSecurity {
     }
 
     Type type = 1;
-    string trusted_certificates_url = 2;
-    string certificate_url = 3;
-    string private_key_url = 4;
+    oneof trusted_certificates {
+        string trusted_certificates_url = 2;
+        string trusted_certificates_data = 3;
+    };
+    oneof certificate {
+        string certificate_url = 4;
+        string certificate_data = 5;
+    }
+    oneof private_key {
+        string private_key_url = 6;
+        string private_key_data = 7;
+    }
 }

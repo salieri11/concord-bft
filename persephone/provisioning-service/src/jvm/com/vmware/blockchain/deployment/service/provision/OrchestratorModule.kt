@@ -6,6 +6,7 @@ package com.vmware.blockchain.deployment.service.provision
 import dagger.Module
 import dagger.Provides
 import java.util.concurrent.ExecutorService
+import javax.inject.Named
 import javax.inject.Singleton
 
 @Module
@@ -19,7 +20,9 @@ class OrchestratorModule {
      */
     @Provides
     @Singleton
-    fun providesOrchestratorProvider(executor: ExecutorService): OrchestratorProvider {
+    fun providesOrchestratorProvider(
+        @Named("default-executor") executor: ExecutorService
+    ): OrchestratorProvider {
         return OrchestratorFactory(executor)
     }
 }

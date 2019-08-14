@@ -8,12 +8,14 @@ import com.vmware.blockchain.deployment.logging.logger
 import com.vmware.blockchain.deployment.model.Address
 import com.vmware.blockchain.deployment.model.AllocateAddressRequest
 import com.vmware.blockchain.deployment.model.AllocateAddressResponse
+import com.vmware.blockchain.deployment.model.Endpoint
 import com.vmware.blockchain.deployment.model.IPAllocationServiceStub
 import com.vmware.blockchain.deployment.model.IPv4Network
 import com.vmware.blockchain.deployment.model.MessageHeader
 import com.vmware.blockchain.deployment.model.OrchestrationSiteInfo
 import com.vmware.blockchain.deployment.model.ReleaseAddressRequest
 import com.vmware.blockchain.deployment.model.ReleaseAddressResponse
+import com.vmware.blockchain.deployment.model.TransportSecurity
 import com.vmware.blockchain.deployment.model.VmcOrchestrationSiteInfo
 import com.vmware.blockchain.deployment.model.core.URI
 import com.vmware.blockchain.deployment.model.core.UUID
@@ -29,7 +31,9 @@ import com.vmware.blockchain.deployment.vsphere.VSphereHttpClient
 import com.vmware.blockchain.deployment.vsphere.VSphereModelSerializer
 import com.vmware.blockchain.grpc.kotlinx.serialization.ChannelStreamObserver
 import io.grpc.CallOptions
-import io.grpc.ManagedChannelBuilder
+import io.grpc.ManagedChannel
+import io.grpc.netty.shaded.io.grpc.netty.GrpcSslContexts
+import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -78,6 +82,60 @@ class VmcOrchestrator private constructor(
 
         /** Default IPAM resource name prefix. */
         const val IPAM_RESOURCE_NAME_PREFIX = "blocks/"
+
+        @JvmStatic
+        private fun Endpoint.newClientRpcChannel(): ManagedChannel {
+            return NettyChannelBuilder.forTarget(address)
+                    .apply {
+                        when (transportSecurity.type) {
+                            TransportSecurity.Type.NONE -> usePlaintext()
+                            TransportSecurity.Type.TLSv1_2 -> {
+                                // Trusted certificates (favor local data over URL).
+                                val trustedCertificates = when {
+                                    transportSecurity.trustedCertificatesData.isNotEmpty() ->
+                                        transportSecurity.trustedCertificatesData.toByteArray()
+                                    transportSecurity.trustedCertificatesUrl.isNotEmpty() ->
+                                        URI.create(transportSecurity.trustedCertificatesUrl)
+                                                .toURL()
+                                                .readBytes()
+                                    else -> null
+                                }?.inputStream()
+
+                                // Key certificate chain (favor local data over URL).
+                                val keyCertificateChain = when {
+                                    transportSecurity.certificateData.isNotEmpty() ->
+                                        transportSecurity.certificateData.toByteArray()
+                                    transportSecurity.certificateUrl.isNotEmpty() ->
+                                        URI.create(transportSecurity.certificateUrl)
+                                                .toURL()
+                                                .readBytes()
+                                    else -> null
+                                }?.inputStream()
+
+                                // Private key (favor local data over URL).
+                                val privateKey = when {
+                                    transportSecurity.privateKeyData.isNotEmpty() ->
+                                        transportSecurity.privateKeyData.toByteArray()
+                                    transportSecurity.privateKeyUrl.isNotEmpty() ->
+                                        URI.create(transportSecurity.privateKeyUrl)
+                                                .toURL()
+                                                .readBytes()
+                                    else -> null
+                                }?.inputStream()
+
+                                // Setup SSL context and enable TLS.
+                                sslContext(
+                                        GrpcSslContexts.forClient()
+                                                .trustManager(trustedCertificates)
+                                                .keyManager(keyCertificateChain, privateKey)
+                                                .build()
+                                )
+                                useTransportSecurity()
+                            }
+                        }
+                    }
+                    .build()
+        }
 
         /**
          * Create a new [VmcOrchestrator] based on parameters from a given [OrchestrationSiteInfo].
@@ -134,9 +192,7 @@ class VmcOrchestrator private constructor(
 
                     // IPAM service client.
                     val ipAllocation = IPAllocationServiceStub(
-                            ManagedChannelBuilder
-                                    .forTarget(info.vsphere.network.allocationServer.address)
-                                    .build(),
+                            info.vsphere.network.allocationServer.newClientRpcChannel(),
                             CallOptions.DEFAULT
                     )
 
