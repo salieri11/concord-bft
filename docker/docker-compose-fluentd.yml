@@ -7,7 +7,7 @@ services:
       driver: fluentd
       options:
         fluentd-address: 0.0.0.0:24224
-        tag: ethrpc
+        tag: helen
 
   ethrpc1:
     logging:
