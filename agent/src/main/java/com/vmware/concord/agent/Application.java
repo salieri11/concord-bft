@@ -27,7 +27,7 @@ import kotlinx.serialization.modules.EmptyModule;
 @SpringBootApplication
 public class Application {
 
-    private static final URI CONCORD_MODEL_URI = URI.create("file:/config/config.json");
+    private static final URI CONCORD_AGENT_MODEL_URI = URI.create("file:/config/agent/config.json");
 
     /**
      * Main - Entry into SpringBoot application.
@@ -55,10 +55,10 @@ public class Application {
                     ConcordAgentConfiguration.getSerializer(),
                     Files.readString(Path.of(args[0]))
             );
-        } else if (Files.exists(Path.of(CONCORD_MODEL_URI))) {
+        } else if (Files.exists(Path.of(CONCORD_AGENT_MODEL_URI))) {
             configuration = json.parse(
                     ConcordAgentConfiguration.getSerializer(),
-                    Files.readString(Path.of(CONCORD_MODEL_URI))
+                    Files.readString(Path.of(CONCORD_AGENT_MODEL_URI))
             );
         } else {
             throw new RuntimeException("Configuration not provided to agent.");
