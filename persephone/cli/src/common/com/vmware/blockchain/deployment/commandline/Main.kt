@@ -17,13 +17,14 @@ import com.vmware.blockchain.deployment.model.core.UUID
 import com.vmware.blockchain.deployment.model.ethereum.Genesis
 import com.vmware.blockchain.deployment.orchestration.getOrchestrationSiteMapSerializer
 import com.vmware.blockchain.deployment.orchestration.Orchestrator
+import com.vmware.blockchain.deployment.orchestration.vmware.OrchestratorFactory
 import com.vmware.blockchain.deployment.reactive.BaseSubscriber
 import com.vmware.blockchain.deployment.vmc.VmcOrchestrator
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.reactive.awaitSingle
+import kotlinx.coroutines.reactive.awaitFirstOrNull
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonConfiguration
@@ -52,7 +53,8 @@ fun main(args: Array<String>) {
     runBlocking(Dispatchers.IO + CoroutineName("ProvisioningDispatcher")) {
         coroutineScope {
             val orchestrator = requireNotNull(
-                    VmcOrchestrator.newOrchestrator(site, coroutineContext).awaitSingle()
+                    OrchestratorFactory.newOrchestrator(site)
+                            .apply { initialize().awaitFirstOrNull() }
             )
 
             // Create compute.

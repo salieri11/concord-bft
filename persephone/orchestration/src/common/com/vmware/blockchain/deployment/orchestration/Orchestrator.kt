@@ -10,6 +10,7 @@ import com.vmware.blockchain.deployment.model.ConcordNodeIdentifier
 import com.vmware.blockchain.deployment.model.ConfigurationSessionIdentifier
 import com.vmware.blockchain.deployment.model.core.URI
 import com.vmware.blockchain.deployment.model.ethereum.Genesis
+import com.vmware.blockchain.deployment.reactive.IteratingPublisher
 import com.vmware.blockchain.deployment.reactive.Publisher
 
 /**
@@ -166,6 +167,19 @@ interface Orchestrator {
         ) : NetworkAllocationEvent()
         data class Deleted(override val resource: URI) : NetworkAllocationEvent()
     }
+
+    /**
+     * Initialize the [Orchestrator] instance.
+     *
+     * Note: Specific [Orchestrator] implementation may choose to emit 0 or more `onNext()` signals.
+     * The only contract between an [Orchestrator] and a calling subscriber of this method is that
+     * either `onComplete()` or `onError()` will be signaled eventually to mark the completion of
+     * the initialization process.
+     *
+     * @return
+     *   a [Publisher] detailing the success or failure of the asynchronous initialization.
+     */
+    fun initialize(): Publisher<Any> = IteratingPublisher(emptyList())
 
     /**
      * Shutdown the [Orchestrator] instance and closes all resources.

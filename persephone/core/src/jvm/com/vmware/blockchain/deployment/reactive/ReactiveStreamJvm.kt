@@ -52,7 +52,7 @@ fun <T> newBaseSubscriber(
  * @return
  *   a new instance of [CompletableFuture].
  */
-fun <T> Publisher<T>.toFuture(): CompletableFuture<T> {
+fun <T : Any> Publisher<T>.toFuture(): CompletableFuture<T> {
     val promise = CompletableFuture<T>()
     var subscription: Subscription? = null
     subscribe(
@@ -64,6 +64,11 @@ fun <T> Publisher<T>.toFuture(): CompletableFuture<T> {
                     onNext = {
                         promise.complete(it)
                         subscription?.cancel()
+                    },
+                    onComplete = {
+                        if (!promise.isDone) {
+                            promise.complete(null)
+                        }
                     },
                     onError = { promise.completeExceptionally(it) }
             )

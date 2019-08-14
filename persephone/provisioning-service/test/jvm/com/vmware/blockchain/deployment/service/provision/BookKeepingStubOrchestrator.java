@@ -5,6 +5,7 @@
 package com.vmware.blockchain.deployment.service.provision;
 
 import java.net.URI;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -18,6 +19,7 @@ import com.vmware.blockchain.deployment.orchestration.Orchestrator;
 import com.vmware.blockchain.deployment.reactive.ErrorPublisher;
 import com.vmware.blockchain.deployment.reactive.IteratingPublisher;
 
+import kotlinx.coroutines.Dispatchers;
 import kotlinx.coroutines.ExecutorsKt;
 
 /**
@@ -33,6 +35,11 @@ class BookKeepingStubOrchestrator implements Orchestrator {
 
     BookKeepingStubOrchestrator(OrchestrationSiteInfo site) {
         this.site = site;
+    }
+
+    @Override
+    public Publisher<Object> initialize() {
+        return new IteratingPublisher<>(Collections.emptyList(), Dispatchers.getDefault());
     }
 
     @Override

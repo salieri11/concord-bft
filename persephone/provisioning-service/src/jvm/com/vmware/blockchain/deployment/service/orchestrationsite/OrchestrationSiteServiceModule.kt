@@ -33,7 +33,7 @@ class OrchestrationSiteServiceModule {
      */
     @Provides
     @Singleton
-    fun providesIPAllocationService(
+    fun providesOrchestrationSiteService(
         dispatcher: CoroutineDispatcher,
         orchestrations: List<OrchestrationSite>
     ): OrchestrationSiteService {

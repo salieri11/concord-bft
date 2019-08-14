@@ -4,10 +4,9 @@
 
 package com.vmware.blockchain.deployment.service.provision;
 
-import java.util.concurrent.CompletableFuture;
-
 import com.vmware.blockchain.deployment.model.OrchestrationSiteInfo;
 import com.vmware.blockchain.deployment.orchestration.Orchestrator;
+import com.vmware.blockchain.deployment.orchestration.OrchestratorProvider;
 
 /**
  * Test implementation of {@link OrchestratorProvider}.
@@ -15,7 +14,7 @@ import com.vmware.blockchain.deployment.orchestration.Orchestrator;
 class TestOrchestratorFactory implements OrchestratorProvider {
 
     @Override
-    public CompletableFuture<Orchestrator> newOrchestrator(OrchestrationSiteInfo site) {
-        return CompletableFuture.completedFuture(new BookKeepingStubOrchestrator(site));
+    public Orchestrator newOrchestrator(OrchestrationSiteInfo site) {
+        return new BookKeepingStubOrchestrator(site);
     }
 }

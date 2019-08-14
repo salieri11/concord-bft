@@ -5,6 +5,7 @@ package com.vmware.blockchain.deployment.service.provision
 
 import com.vmware.blockchain.deployment.model.ConfigurationServiceStub
 import com.vmware.blockchain.deployment.model.OrchestrationSite
+import com.vmware.blockchain.deployment.orchestration.OrchestratorProvider
 import dagger.Module
 import dagger.Provides
 import java.util.concurrent.ExecutorService
@@ -36,9 +37,9 @@ class ProvisioningServiceModule {
      *   a singleton [ExecutorService] instance.
      */
     @Provides
-    @Named("rpc-executor")
+    @Named("inbound-request-executor")
     @Singleton
-    fun providesRpcExecutorService(): ExecutorService {
+    fun providesInboundRequestExecutorService(): ExecutorService {
         return Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors())
     }
 
