@@ -27,13 +27,13 @@ class PersephoneTests(test_suite.TestSuite):
    _args = None
    _resultFile = None
    _unintentionallySkippedFile = None
-   default_cluster_size = 4
 
    def __init__(self, cmdlineArgs):
       super().__init__(cmdlineArgs)
       self.args = self._args
       self.args.userConfig = self._userConfig
       self.concord_ips = []
+      self.session_ids_to_retain = []
 
    def getName(self):
       return "PersephoneTests"
@@ -134,36 +134,41 @@ class PersephoneTests(test_suite.TestSuite):
          stub = session_id_set[1]
 
          cleaned_up = False
+         if session_id[0] not in self.session_ids_to_retain:
+            # gRPC call to Undeploy resources
+            log.info("Undeploying Session ID:\n{}".format(session_id[0]))
+            response = self.rpc_test_helper.rpc_update_deployment_session(
+               session_id[0],
+               action=self.rpc_test_helper.UPDATE_DEPLOYMENT_ACTION_DEPROVISION_ALL,
+               stub=stub)
 
-         # gRPC call to Undeploy resources
-         log.info("Undeploying Session ID:\n{}".format(session_id[0]))
-         response = self.rpc_test_helper.rpc_update_deployment_session(
-            session_id[0],
-            action=self.rpc_test_helper.UPDATE_DEPLOYMENT_ACTION_DEPROVISION_ALL,
-            stub=stub)
+            max_timeout = 120 # seconds
+            sleep_time = 15 # seconds
+            start_time = time.time()
+            while ((time.time() - start_time) < max_timeout) and not cleaned_up:
+               events = self.rpc_test_helper.rpc_stream_cluster_deployment_session_events(
+                  session_id[0], stub=stub)
+               response_events_json = helper.protobuf_message_to_json(events)
+               for event in response_events_json:
+                  if "RESOURCE_DEPROVISIONING" in event["type"]:
+                     # TODO: Add more validation to API response
+                     cleaned_up = True
+               log.info("Sleep for {} seconds and retry".format(sleep_time))
+               time.sleep(sleep_time)
 
-         max_timeout = 120 # seconds
-         sleep_time = 15 # seconds
-         start_time = time.time()
-         while ((time.time() - start_time) < max_timeout) and not cleaned_up:
-            events = self.rpc_test_helper.rpc_stream_cluster_deployment_session_events(
-               session_id[0], stub=stub)
-            response_events_json = helper.protobuf_message_to_json(events)
-            for event in response_events_json:
-               if "RESOURCE_DEPROVISIONING" in event["type"]:
-                  # TODO: Add more validation to API response
-                  cleaned_up = True
-            log.info("Sleep for {} seconds and retry".format(sleep_time))
-            time.sleep(sleep_time)
+            if cleaned_up and undeployed_status is None:
+               undeployed_status = True
+               log.info("**** Deprovisioned Successfully")
+            if not cleaned_up:
+               undeployed_status = False
+               log.info("**** Deprovisioning Failed!")
+         else:
+            log.info("Preserving Deployment (Session ID: {})".format(session_id[0]))
 
-         if cleaned_up and undeployed_status is None:
-            undeployed_status = True
-            log.info("**** Deprovisioned Successfully")
-         if not cleaned_up:
-            undeployed_status = False
-            log.info("**** Deprovisioning Failed!")
-
-      if undeployed_status:
+      if undeployed_status is None:
+         status_message = "No Session IDs to undeploy"
+         log.info(status_message)
+      elif undeployed_status:
          status_message = "Undeployed all sessions Successfully!"
          log.info(status_message)
       else:
@@ -192,7 +197,6 @@ class PersephoneTests(test_suite.TestSuite):
             ("list_models", self._test_list_models),
             ("4_Node_Blockchain_UNSPECIFIED_Site",
              self._test_create_blockchain_4_node_unspecified_site),
-            ("get_deployment_events", self._test_stream_deployment_events),
             ("4_Node_Blockchain_FIXED_Site",
              self._test_create_blockchain_4_node_fixed_site),
             ("7_Node_Blockchain_FIXED_Site",
@@ -333,8 +337,8 @@ class PersephoneTests(test_suite.TestSuite):
                      (end_time - start_time) / 60))
 
                   if events:
-                     deployment_status, msg = self.perform_post_deployment_validations(events,
-                                                                            cluster_size)
+                     deployment_status, msg = self.perform_post_deployment_validations(
+                        events, cluster_size, response_deployment_session_id)
                      if deployment_status:
                         status, msg = self.verify_IPAM_configuration()
                   else:
@@ -427,12 +431,14 @@ class PersephoneTests(test_suite.TestSuite):
       log.info(status_message)
       return True, status_message
 
-   def perform_post_deployment_validations(self, events, cluster_size):
+   def perform_post_deployment_validations(self, events, cluster_size,
+                                           session_id=None):
       '''
       Perform post deploy validation, including validating EVENTS, Get ethrpc
       endpoints, SSH connection to concord nodes, verify docker container names
       :param events: Deployment events
       :param cluster_size: No. of nodes deployed on the cluster
+      :param session_id: Deployment Session ID
       :return: Validation status, Message
       '''
       log.info("Performing Post deployment validations...")
@@ -461,6 +467,11 @@ class PersephoneTests(test_suite.TestSuite):
                if self.mark_node_as_logged_in(concord_ip, concord_username, concord_password):
                   log.info("Marked node as logged in (/tmp/{})".format(concord_ip))
                else:
+                  # Preserving Env to DEBUG VB-1351
+                  log.info(
+                     "Adding Session ID to preserve list: \n{}".format(
+                        session_id))
+                  self.session_ids_to_retain.append(session_id)
                   return (False, "Failed creating marker file on node '{}'".format(concord_ip))
 
                ssh_output = helper.ssh_connect(concord_ip,
@@ -548,35 +559,39 @@ class PersephoneTests(test_suite.TestSuite):
               "ListModels does not contain the added metadata: {}".format(
                  self.response_add_model_id))
 
-   def _test_create_blockchain_4_node_unspecified_site(self,
-                                           cluster_size=default_cluster_size):
+
+   def _test_create_blockchain_4_node_unspecified_site(self, cluster_size=4):
       '''
-      Test to Create a blockchain cluster with 4 nodes on UNSPECIFIED sites
-      :param cluster_size: No. of concord members in the cluster
+      Test to create a blockchain cluster with 4 nodes on UNSPECIFIED sites
+      :param cluster_size: No. of concord nodes on the cluster
       '''
+
+      start_time = time.time()
+      log.info("Deployment Start Time: {}".format(start_time))
       response = self.rpc_test_helper.rpc_create_cluster(
          cluster_size=cluster_size,
          placement_type=self.rpc_test_helper.PLACEMENT_TYPE_UNSPECIFIED)
       if response:
          response_session_id_json = helper.protobuf_message_to_json(response[0])
          if "low" in response_session_id_json:
-            self.response_deployment_session_id = response[0]
-            return (True, None)
+            response_deployment_session_id = response[0]
+
+            events = self.rpc_test_helper.rpc_stream_cluster_deployment_session_events(
+               response_deployment_session_id)
+            end_time = time.time()
+            log.info("Deployment End Time: {}".format(end_time))
+            log.info("**** Time taken for this deployment: {} mins".format(
+               (end_time - start_time) / 60))
+
+            if events:
+               status, msg = self.perform_post_deployment_validations(events,
+                                                                      cluster_size,
+                                                                      response_deployment_session_id)
+               return (status, msg)
+            return (False, "Failed to fetch Deployment Events")
+
       return (False, "Failed to get a valid deployment session ID")
 
-   def _test_stream_deployment_events(self, cluster_size=default_cluster_size):
-      '''
-      Test to get deployment events stream
-      :param cluster_size: No. of concord memebers in the cluster
-      '''
-      events = self.rpc_test_helper.rpc_stream_cluster_deployment_session_events(
-         self.response_deployment_session_id)
-      if events:
-         status, msg = self.perform_post_deployment_validations(events,
-                                                                cluster_size)
-         return (status, msg)
-      else:
-         return (False, "Failed to fetch Deployment Events")
 
    def _test_create_blockchain_4_node_fixed_site(self, cluster_size=4):
       '''
@@ -601,7 +616,8 @@ class PersephoneTests(test_suite.TestSuite):
 
             if events:
                status, msg = self.perform_post_deployment_validations(events,
-                                                                      cluster_size)
+                                                                      cluster_size,
+                                                                      response_deployment_session_id)
                return (status, msg)
             return (False, "Failed to fetch Deployment Events")
 
@@ -631,7 +647,8 @@ class PersephoneTests(test_suite.TestSuite):
 
             if events:
                status, msg = self.perform_post_deployment_validations(events,
-                                                                      cluster_size)
+                                                                      cluster_size,
+                                                                      response_deployment_session_id)
                return (status, msg)
             return (False, "Failed to fetch Deployment Events")
 
@@ -666,7 +683,8 @@ class PersephoneTests(test_suite.TestSuite):
                   thread_name, (end_time - start_time) / 60))
             if events:
                status, msg = self.perform_post_deployment_validations(events,
-                                                                      cluster_size)
+                                                                      cluster_size,
+                                                                      response_deployment_session_id)
                if status:
                   log.info(
                      "Thread {}: Deployment & Validation Completed Successfully".format(
@@ -741,6 +759,8 @@ class PersephoneTests(test_suite.TestSuite):
       status = None
       status_message = "Skipped"
       all_events = self.rpc_test_helper.rpc_stream_all_cluster_deployment_session_events()
+      # sleep before parsing the stream
+      time.sleep(2)
 
       if all_events:
          all_deployment_session_ids_from_stream = []
