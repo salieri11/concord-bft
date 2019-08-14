@@ -261,8 +261,7 @@ final class AgentDockerClient {
                           componentImage.getRegistry());
             }
 
-            containerConfig.imageId = componentImage.registry + "/"
-                                      + docker.inspectImageCmd(
+            containerConfig.imageId = docker.inspectImageCmd(
                                               componentImage.getRepository() + ":" + componentImage.getTag())
                                               .getImageId();
 
