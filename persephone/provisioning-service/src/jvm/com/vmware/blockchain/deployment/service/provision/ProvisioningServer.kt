@@ -17,9 +17,12 @@ import io.grpc.netty.shaded.io.grpc.netty.NettyServerBuilder
 import io.grpc.netty.shaded.io.netty.handler.ssl.ClientAuth
 import io.grpc.netty.shaded.io.netty.handler.ssl.SslContext
 import io.grpc.netty.shaded.io.netty.handler.ssl.SslContextBuilder
+import io.grpc.protobuf.services.ProtoReflectionService
 import java.nio.file.Files
 import java.nio.file.Paths
 import java.util.concurrent.CompletableFuture
+import java.util.concurrent.ExecutorService
+import javax.inject.Named
 import javax.inject.Singleton
 import kotlinx.coroutines.future.asCompletableFuture
 import kotlinx.serialization.json.Json
@@ -45,6 +48,10 @@ internal interface ProvisioningServer {
     /** Singleton service instance for provisioning Concord clusters.  */
     fun provisioningService(): ProvisioningService
 
+    /** Executor service handling inbound network requests. */
+    @Named("rpc-executor")
+    fun rpcExecutorService(): ExecutorService
+
     @Component.Builder
     interface Builder {
 
@@ -62,16 +69,16 @@ internal interface ProvisioningServer {
 private const val DEFAULT_SERVER_PORT = 9002
 
 /** Default configuration file path.  */
-private val DEFAULT_SERVER_CONFIG = URI.create("file:/config/persephone/provisioning/config.json")
+private val DEFAULT_SERVER_CONFIG_URL = URI.create("file:/config/persephone/provisioning/config.json")
 
 /** Default certificate chain file path.  */
-private val DEFAULT_CERTIFICATE_CHAIN = URI.create("file:/config/persephone/provisioning/server.crt")
+private val DEFAULT_CERTIFICATE_CHAIN_URL = URI.create("file:/config/persephone/provisioning/server.crt")
 
 /** Default private key file path.  */
-private val DEFAULT_PRIVATE_KEY = URI.create("file:/config/persephone/provisioning/server.pem")
+private val DEFAULT_PRIVATE_KEY_URL = URI.create("file:/config/persephone/provisioning/server.pem")
 
 /** Default trusted certificate collection file path.  */
-private val DEFAULT_TRUST_CERTIFICATES = URI.create("file:/config/persephone/provisioning/ca.crt")
+private val DEFAULT_TRUST_CERTIFICATES_URL = URI.create("file:/config/persephone/provisioning/ca.crt")
 
 /** Default config service endpoint. */
 private val DEFAULT_CONFIG_SERVICE_ENDPOINT = Endpoint("localhost:9003")
@@ -139,17 +146,17 @@ fun main(args: Array<String>) {
             val configJson = Paths.get(args[0]).toUri().toURL().readText()
             json.parse(ProvisioningServerConfiguration.serializer(), configJson)
         }
-        (Files.exists(Paths.get(DEFAULT_SERVER_CONFIG))) -> {
-            val configJson = DEFAULT_SERVER_CONFIG.toURL().readText()
+        (Files.exists(Paths.get(DEFAULT_SERVER_CONFIG_URL))) -> {
+            val configJson = DEFAULT_SERVER_CONFIG_URL.toURL().readText()
             json.parse(ProvisioningServerConfiguration.serializer(), configJson)
         }
         else -> ProvisioningServerConfiguration(
                 DEFAULT_SERVER_PORT,
                 TransportSecurity(
-                        TransportSecurity.Type.TLSv1_2,
-                        DEFAULT_TRUST_CERTIFICATES.toString(),
-                        DEFAULT_CERTIFICATE_CHAIN.toString(),
-                        DEFAULT_PRIVATE_KEY.toString()
+                        type = TransportSecurity.Type.NONE,
+                        trustedCertificatesUrl = DEFAULT_TRUST_CERTIFICATES_URL.toString(),
+                        certificateUrl = DEFAULT_CERTIFICATE_CHAIN_URL.toString(),
+                        privateKeyUrl = DEFAULT_PRIVATE_KEY_URL.toString()
                 ),
                 DEFAULT_CONFIG_SERVICE_ENDPOINT
         )
@@ -170,6 +177,10 @@ fun main(args: Array<String>) {
                 )
             }
     val server = NettyServerBuilder.forPort(config.port)
+            // Use number of cores for a fixed size thread pool.
+            // Currently do not account for hyper-threading (i.e. x2). (May need tuning)
+            .executor(provisioningServer.rpcExecutorService())
+            .addService(ProtoReflectionService.newInstance())
             .addService(provisioningServer.provisioningService())
             .addService(provisioningServer.orchestrationSiteService())
             .sslContext(sslContext)

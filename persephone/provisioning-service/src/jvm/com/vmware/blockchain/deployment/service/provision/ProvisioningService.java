@@ -64,6 +64,7 @@ import com.vmware.blockchain.deployment.model.ProvisionedResource;
 import com.vmware.blockchain.deployment.model.ProvisioningServiceImplBase;
 import com.vmware.blockchain.deployment.model.StreamAllClusterDeploymentSessionEventRequest;
 import com.vmware.blockchain.deployment.model.StreamClusterDeploymentSessionEventRequest;
+import com.vmware.blockchain.deployment.model.TransportSecurity;
 import com.vmware.blockchain.deployment.model.UpdateDeploymentSessionRequest;
 import com.vmware.blockchain.deployment.model.UpdateDeploymentSessionResponse;
 import com.vmware.blockchain.deployment.model.ethereum.Genesis;
@@ -163,7 +164,8 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
         this.configService = configService;
         this.configServiceEndpoint = new Endpoint(
                 configService.getChannel().authority(),
-                Credential.Companion.getDefaultValue()
+                Credential.Companion.getDefaultValue(),
+                TransportSecurity.Companion.getDefaultValue()
         );
     }
 

@@ -27,16 +27,16 @@ import kotlinx.serialization.modules.EmptyModule
 private const val DEFAULT_SERVER_PORT = 9004
 
 /** Default configuration files path.  */
-private val DEFAULT_SERVER_CONFIG = URI.create("file:/config/persephone/fleet/config.json")
+private val DEFAULT_SERVER_CONFIG_URL = URI.create("file:/config/persephone/fleet/config.json")
 
 /** Default certificate chain file path.  */
-private val DEFAULT_CERTIFICATE_CHAIN = URI.create("file:/config/persephone/fleet/server.crt")
+private val DEFAULT_CERTIFICATE_CHAIN_URL = URI.create("file:/config/persephone/fleet/server.crt")
 
 /** Default private key file path.  */
-private val DEFAULT_PRIVATE_KEY = URI.create("file:/config/persephone/fleet/server.pem")
+private val DEFAULT_PRIVATE_KEY_URL = URI.create("file:/config/persephone/fleet/server.pem")
 
 /** Default trusted certificate collection file path.  */
-private val DEFAULT_TRUST_CERTIFICATES = URI.create("file:/config/persephone/fleet/ca.crt")
+private val DEFAULT_TRUST_CERTIFICATES_URL = URI.create("file:/config/persephone/fleet/ca.crt")
 
 /**
  * gRPC server that serves IP-allocation management API operations.
@@ -113,17 +113,17 @@ fun main(args: Array<String>) {
             val configJson = Paths.get(args[0]).toUri().toURL().readText()
             json.parse(FleetManagementServerConfiguration.serializer(), configJson)
         }
-        (Files.exists(Paths.get(DEFAULT_SERVER_CONFIG))) -> {
-            val configJson = DEFAULT_SERVER_CONFIG.toURL().readText()
+        (Files.exists(Paths.get(DEFAULT_SERVER_CONFIG_URL))) -> {
+            val configJson = DEFAULT_SERVER_CONFIG_URL.toURL().readText()
             json.parse(FleetManagementServerConfiguration.serializer(), configJson)
         }
         else -> FleetManagementServerConfiguration(
                 DEFAULT_SERVER_PORT,
                 TransportSecurity(
-                        TransportSecurity.Type.TLSv1_2,
-                        DEFAULT_TRUST_CERTIFICATES.toString(),
-                        DEFAULT_CERTIFICATE_CHAIN.toString(),
-                        DEFAULT_PRIVATE_KEY.toString()
+                        type = TransportSecurity.Type.NONE,
+                        trustedCertificatesUrl = DEFAULT_TRUST_CERTIFICATES_URL.toString(),
+                        certificateUrl = DEFAULT_CERTIFICATE_CHAIN_URL.toString(),
+                        privateKeyUrl = DEFAULT_PRIVATE_KEY_URL.toString()
                 )
         )
     }

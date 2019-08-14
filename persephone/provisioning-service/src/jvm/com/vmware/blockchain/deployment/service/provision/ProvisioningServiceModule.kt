@@ -8,7 +8,9 @@ import com.vmware.blockchain.deployment.model.OrchestrationSite
 import dagger.Module
 import dagger.Provides
 import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 import java.util.concurrent.ForkJoinPool
+import javax.inject.Named
 import javax.inject.Singleton
 
 @Module
@@ -21,9 +23,23 @@ class ProvisioningServiceModule {
      *   a singleton [ExecutorService] instance.
      */
     @Provides
+    @Named("default-executor")
     @Singleton
     fun providesExecutorService(): ExecutorService {
         return ForkJoinPool.commonPool()
+    }
+
+    /**
+     * Provide an [ExecutorService] instance for handling server RPC requests.
+     *
+     * @return
+     *   a singleton [ExecutorService] instance.
+     */
+    @Provides
+    @Named("rpc-executor")
+    @Singleton
+    fun providesRpcExecutorService(): ExecutorService {
+        return Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors())
     }
 
     /**
@@ -35,7 +51,7 @@ class ProvisioningServiceModule {
     @Provides
     @Singleton
     fun providesProvisioningService(
-        executor: ExecutorService,
+        @Named("default-executor") executor: ExecutorService,
         orchestratorProvider: OrchestratorProvider,
         sites: List<OrchestrationSite>,
         configService: ConfigurationServiceStub
