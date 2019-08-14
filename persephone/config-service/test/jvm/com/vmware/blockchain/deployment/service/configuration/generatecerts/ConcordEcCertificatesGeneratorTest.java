@@ -20,7 +20,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import com.vmware.blockchain.deployment.model.ConfigurationServiceType;
+import com.vmware.blockchain.deployment.model.ConcordComponent.ServiceType;
 import com.vmware.blockchain.deployment.model.Identity;
 import com.vmware.blockchain.deployment.service.configuration.eccerts.ConcordEcCertificatesGenerator;
 
@@ -44,7 +44,7 @@ class ConcordEcCertificatesGeneratorTest {
         assertDoesNotThrow(() -> {
             CertificatesGenerator certGen = new ConcordEcCertificatesGenerator();
             List<Identity> certList = certGen.generateSelfSignedCertificates(3,
-                    ConfigurationServiceType.DockerType.CONCORD_TLS);
+                    ServiceType.CONCORD);
 
             assert certList.size() == 6;
 
@@ -94,7 +94,7 @@ class ConcordEcCertificatesGeneratorTest {
                             String.valueOf(entry)))
                     .collect(Collectors.toList());
             List<Identity> certList = certGen.generateSelfSignedCertificates(numCerts,
-                    ConfigurationServiceType.DockerType.ETHRPC);
+                    ServiceType.ETHEREUM_API);
 
             assert certList.size() == numCerts;
 

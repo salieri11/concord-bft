@@ -21,9 +21,9 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
+import com.vmware.blockchain.deployment.model.ConcordComponent.ServiceType;
 import com.vmware.blockchain.deployment.model.ConfigurationComponent;
 import com.vmware.blockchain.deployment.model.ConfigurationServiceRequest;
-import com.vmware.blockchain.deployment.model.ConfigurationServiceType;
 import com.vmware.blockchain.deployment.model.ConfigurationSessionIdentifier;
 import com.vmware.blockchain.deployment.model.MessageHeader;
 import com.vmware.blockchain.deployment.model.NodeConfigurationRequest;
@@ -188,9 +188,9 @@ public class ConfigurationServiceTest {
             int unknown = 0;
 
             for (ConfigurationComponent component : response.getConfigurationComponent()) {
-                if (component.getType().equals(ConfigurationServiceType.DockerType.CONCORD_TLS)) {
+                if (component.getType().equals(ServiceType.CONCORD)) {
                     tlsConfig++;
-                } else if (component.getType().equals(ConfigurationServiceType.DockerType.ETHRPC)) {
+                } else if (component.getType().equals(ServiceType.ETHEREUM_API)) {
                     ethRpcConfig++;
                 } else {
                     unknown++;
