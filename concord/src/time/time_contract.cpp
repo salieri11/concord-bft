@@ -30,10 +30,7 @@ Timestamp TimeContract::Update(const string &source, const Timestamp &time,
   auto old_sample = samples_->find(source);
   if (old_sample != samples_->end()) {
     if (verifier_.Verify(source, time, signature)) {
-      uint64_t new_time = TimeUtil::TimestampToNanoseconds(time);
-      uint64_t old_time =
-          TimeUtil::TimestampToNanoseconds(old_sample->second.time);
-      if (new_time > old_time) {
+      if (time > old_sample->second.time) {
         LOG4CPLUS_DEBUG(logger_,
                         "Applying time " << time << " from source " << source);
         old_sample->second.time = time;

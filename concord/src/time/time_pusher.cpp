@@ -34,9 +34,10 @@ TimePusher::TimePusher(const concord::config::ConcordConfiguration &config,
   }
 
   if (nodeConfig.hasValue<int>("time_pusher_period_ms")) {
-    periodMilliseconds_ = nodeConfig.getValue<int>("time_pusher_period_ms");
+    period_ = TimeUtil::MillisecondsToDuration(
+        nodeConfig.getValue<int>("time_pusher_period_ms"));
   } else {
-    periodMilliseconds_ = 0;
+    period_ = TimeUtil::MillisecondsToDuration(0);
   }
 
   if (nodeConfig.hasValue<std::string>("time_source_id")) {
@@ -62,9 +63,9 @@ void TimePusher::Start(concord::consensus::KVBClientPool *clientPool) {
     return;
   }
 
-  if (periodMilliseconds_ <= 0) {
+  if (TimeUtil::DurationToMilliseconds(period_) <= 0) {
     LOG4CPLUS_INFO(logger_, "Not starting thread: period is "
-                                << periodMilliseconds_ << " ms (less than 1).");
+                                << period_ << " (less than or equal to zero).");
     return;
   }
 
@@ -115,8 +116,7 @@ void TimePusher::AddTimeToCommand(ConcordRequest &command, Timestamp time) {
 }
 
 void TimePusher::ThreadFunction() {
-  LOG4CPLUS_INFO(
-      logger_, "Thread started with period " << periodMilliseconds_ << " ms.");
+  LOG4CPLUS_INFO(logger_, "Thread started with period " << period_ << ".");
   ConcordRequest req;
   ConcordResponse resp;
 
@@ -125,12 +125,11 @@ void TimePusher::ThreadFunction() {
     // recently the last publish time was, means we might wait up to
     // 2*periodMilliseconds_ before publishing, but it also prevents silly 1ms
     // sleeps.
-    std::this_thread::sleep_for(std::chrono::milliseconds(periodMilliseconds_));
+    std::this_thread::sleep_for(
+        std::chrono::milliseconds(TimeUtil::DurationToMilliseconds(period_)));
 
     Timestamp time = ReadTime();
-    uint64_t time_nanos = TimeUtil::TimestampToNanoseconds(time);
-    uint64_t last_nanos = TimeUtil::TimestampToNanoseconds(lastPublishTime_);
-    if (time_nanos < last_nanos + (periodMilliseconds_ * 1000000)) {
+    if (time < lastPublishTime_ + period_) {
       // Time was published by a transaction recently - no need to publish again
       // right now.
       continue;

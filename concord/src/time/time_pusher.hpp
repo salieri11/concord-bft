@@ -12,6 +12,7 @@
 #ifndef TIME_TIME_PUSHER_HPP
 #define TIME_TIME_PUSHER_HPP
 
+#include <google/protobuf/duration.pb.h>
 #include <google/protobuf/timestamp.pb.h>
 #include <log4cplus/loggingmacros.h>
 #include <mutex>
@@ -63,7 +64,7 @@ class TimePusher {
   bool stop_;
   google::protobuf::Timestamp lastPublishTime_;
 
-  int periodMilliseconds_;
+  google::protobuf::Duration period_;
   std::string timeSourceId_;
   std::unique_ptr<concord::time::TimeSigner> signer_;
 
