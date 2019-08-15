@@ -14,6 +14,7 @@ import { Router } from '@angular/router';
 import { Observable, throwError, of, BehaviorSubject } from 'rxjs';
 import { tap, catchError, switchMap, take, finalize, filter } from 'rxjs/operators';
 import { AuthenticationService } from './shared/authentication.service';
+import { ErrorAlertService } from './shared/global-error-handler.service';
 import { environment } from './../environments/environment';
 
 /**
@@ -30,7 +31,8 @@ export class RequestInterceptor implements HttpInterceptor {
   cspErrors = [];
   constructor(
     private authService: AuthenticationService,
-    private router: Router
+    private router: Router,
+    private alertService: ErrorAlertService
   ) { }
 
   intercept(request: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
@@ -57,6 +59,11 @@ export class RequestInterceptor implements HttpInterceptor {
               case 403:
                 this.router.navigate(['/forbidden']);
                 return throwError(error);
+
+              case 500:
+                this.alertService.add(error);
+                return throwError(error);
+
               default:
                 return throwError(error);
             }
