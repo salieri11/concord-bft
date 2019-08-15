@@ -40,13 +40,11 @@ target_include_directories(skvb_db_editor PUBLIC
 
 target_link_libraries(skvb_client
   ${yaml-cpp_LIBRARIES}
-  log4cplus
   concord_consensus
   ${Boost_LIBRARIES}
- $<TARGET_OBJECTS:logging_dev>)
+  $<TARGET_OBJECTS:logging_dev>)
 
 target_link_libraries(skvb_replica
-  log4cplus
   proto ${PROTOBUF_LIBRARIES}
   ${EVM_LIBRARIES}
   LLVMSupport
@@ -55,7 +53,6 @@ target_link_libraries(skvb_replica
   $<TARGET_OBJECTS:logging_dev>)
 
 target_link_libraries(skvb_db_editor
-  log4cplus
   concord_common
   concord_consensus)
 
@@ -65,12 +62,3 @@ add_custom_command(TARGET copy_blockchain_scripts3
   COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/scripts
   ${CMAKE_CURRENT_BINARY_DIR}/scripts)
 
-if (${USE_COMM_PLAIN_TCP})
-  target_compile_definitions(skvb_client PUBLIC USE_COMM_PLAIN_TCP)
-  target_compile_definitions(skvb_replica PUBLIC USE_COMM_PLAIN_TCP)
-endif ()
-
-if (${USE_COMM_TLS_TCP})
-  target_compile_definitions(skvb_client PUBLIC USE_COMM_TLS_TCP)
-  target_compile_definitions(skvb_replica PUBLIC USE_COMM_TLS_TCP)
-endif ()

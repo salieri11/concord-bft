@@ -17,6 +17,7 @@
 #ifdef USE_ROCKSDB
 
 #include <log4cplus/loggingmacros.h>
+#include <map>
 #include <mutex>
 #include "MetadataStorage.hpp"
 #include "storage/database_interface.h"
@@ -24,41 +25,47 @@
 namespace concord {
 namespace storage {
 
-typedef std::vector<uint16_t> ObjectIdsVector;
+typedef std::vector<uint32_t> ObjectIdsVector;
+typedef std::map<uint32_t, size_t> ObjectIdToSizeMap;
 
 class RocksDBMetadataStorage : public bftEngine::MetadataStorage {
  public:
   explicit RocksDBMetadataStorage(IDBClient *dbClient)
       : logger_(log4cplus::Logger::getInstance(
             "com.concord.vmware.metadatastorage")),
-        dbClient_(dbClient) {}
-  ~RocksDBMetadataStorage() { delete[] metadataObjectsArray_; }
+        dbClient_(dbClient) {
+    objectIdToSizeMap_[objectsNumParamId_] = sizeof(objectsNum_);
+  }
 
-  void initMaxSizeOfObjects(ObjectDesc *metadataObjectsArray,
-                            uint16_t metadataObjectsArrayLength) override;
-  void read(uint16_t objectId, uint32_t bufferSize, char *outBufferForObject,
+  bool initMaxSizeOfObjects(ObjectDesc *metadataObjectsArray,
+                            uint32_t metadataObjectsArrayLength) override;
+  void read(uint32_t objectId, uint32_t bufferSize, char *outBufferForObject,
             uint32_t &outActualObjectSize) override;
-  void atomicWrite(uint16_t objectId, char *data, uint32_t dataLength) override;
+  void atomicWrite(uint32_t objectId, char *data, uint32_t dataLength) override;
   void beginAtomicWriteOnlyTransaction() override;
-  void writeInTransaction(uint16_t objectId, char *data,
+  void writeInTransaction(uint32_t objectId, char *data,
                           uint32_t dataLength) override;
   void commitAtomicWriteOnlyTransaction() override;
   concord::consensus::Status multiDel(const ObjectIdsVector &objectIds);
+  bool isNewStorage() override;
 
  private:
-  void verifyOperation(uint32_t dataLen, const char *buffer) const;
+  void verifyOperation(uint32_t objectId, uint32_t dataLen, const char *buffer,
+                       bool writeOperation) const;
 
  private:
   const char *WRONG_FLOW =
       "beginAtomicWriteOnlyTransaction should be launched first";
   const char *WRONG_PARAMETER = "Wrong parameter value specified";
 
+  const uint8_t objectsNumParamId_ = 1;
+
   log4cplus::Logger logger_;
   IDBClient *dbClient_ = nullptr;
   SetOfKeyValuePairs *transaction_ = nullptr;
   std::mutex ioMutex_;
-  ObjectDesc *metadataObjectsArray_ = nullptr;
-  uint16_t objectsNum_ = 0;
+  ObjectIdToSizeMap objectIdToSizeMap_;
+  uint32_t objectsNum_ = 0;
 };
 
 }  // namespace storage

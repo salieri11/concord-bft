@@ -10,8 +10,8 @@
 #include <exception>
 #include <string>
 
+#include "blockchain_interfaces.h"
 #include "concord_storage.pb.h"
-#include "storage/blockchain_interfaces.h"
 
 namespace concord {
 namespace storage {

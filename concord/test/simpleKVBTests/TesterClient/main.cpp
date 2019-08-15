@@ -108,9 +108,9 @@ auto logger = concordlogger::Log::getLogger("skvbtest.client");
 
 CommConfig setupCommunicationParams(ClientParams &clientParams) {
   CommConfig commParams;
-  commParams.maxServerId = 0;
 
   auto numOfReplicas = clientParams.get_numOfReplicas();
+  commParams.maxServerId = numOfReplicas - 1;
   TestCommConfig testCommConfig(logger);
 
 #ifdef USE_COMM_PLAIN_TCP
@@ -118,15 +118,19 @@ CommConfig setupCommunicationParams(ClientParams &clientParams) {
       true, clientParams.clientId, clientParams.numOfClients, numOfReplicas,
       clientParams.configFileName);
   commParams.maxServerId = commConfig.maxServerId;
+  commParams.commType = "tcp";
 #elif USE_COMM_TLS_TCP
   TlsTcpConfig commConfig = testCommConfig.GetTlsTCPConfig(
       true, clientParams.clientId, clientParams.numOfClients, numOfReplicas,
       clientParams.configFileName);
   commParams.certificatesRootPath = commConfig.certificatesRootPath;
+  commParams.commType = "tls";
+  commParams.cipherSuite = commConfig.cipherSuite;
 #else
   PlainUdpConfig commConfig = testCommConfig.GetUDPConfig(
       true, clientParams.clientId, clientParams.numOfClients, numOfReplicas,
       clientParams.configFileName);
+  commParams.commType = "udp";
 #endif
 
   commParams.listenIp = commConfig.listenIp;
@@ -148,14 +152,6 @@ ClientConsensusConfig setupConsensusParams(ClientParams &clientParams) {
 }
 
 int main(int argc, char **argv) {
-#ifdef USE_LOG4CPP
-#include <log4cplus/configurator.h>
-  using namespace log4cplus;
-  initialize();
-  BasicConfigurator logConfig(Logger::getDefaultHierarchy(), false);
-  logConfig.configure();
-#endif
-
   ClientParams clientParams = setupClientParams(argc, argv);
   if (clientParams.clientId == UINT16_MAX ||
       clientParams.numOfFaulty == UINT16_MAX ||

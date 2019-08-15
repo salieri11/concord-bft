@@ -47,7 +47,7 @@ enum class EDBKeyType : std::uint8_t {
 };
 
 typedef uint64_t BlockId;
-typedef uint16_t ObjectId;
+typedef uint32_t ObjectId;
 typedef concord::consensus::Sliver Key;
 typedef concord::consensus::Sliver Value;
 typedef std::pair<Key, Value> KeyValuePair;

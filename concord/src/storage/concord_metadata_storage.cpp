@@ -46,9 +46,12 @@ uint64_t ConcordMetadataStorage::GetBlockMetadata(Sliver& key) {
       LOG4CPLUS_ERROR(logger_, "Unable to decode block metadata" << outValue);
       throw ConcordStorageException("Corrupted block metadata");
     }
+  } else {
+    LOG4CPLUS_WARN(logger_, "Unable to get block or has zero-length; status = "
+                                << status
+                                << ", outValue.length = " << outValue.length());
   }
-  LOG4CPLUS_INFO(logger_, "key = " << key << ", status: " << status
-                                   << ", sequenceNum = " << sequenceNum);
+  LOG4CPLUS_INFO(logger_, "key = " << key << ", sequenceNum = " << sequenceNum);
   return sequenceNum;
 }
 

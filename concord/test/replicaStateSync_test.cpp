@@ -45,6 +45,11 @@ Logger *logger = nullptr;
 ReplicaStateSyncImp replicaStateSync;
 Value emptyValue;
 const BlockId lastBlockId = 2;
+const uint64_t lastSeqNum = 50;
+const BlockId singleBlockId = 999;
+const BlockId prevBlockId = lastBlockId - 1;
+const BlockId prevPrevBlockId = lastBlockId - 2;
+BlockId blockIdToBeRead = 0;
 
 class MockILocalKeyValueStorageReadOnly : public ILocalKeyValueStorageReadOnly {
  public:
@@ -108,11 +113,6 @@ Sliver setUpBlockContent(Key key, Value blockValue) {
   return Sliver(buf, sizeOfBuf);
 }
 
-const uint64_t lastSeqNum = 50;
-const BlockId singleBlockId = 999;
-const BlockId prevBlockId = lastBlockId - 1;
-const BlockId prevPrevBlockId = lastBlockId - 2;
-
 MockILocalKeyValueStorageReadOnly keyValueStorageMock;
 MockIBlocksAppender blocksAppenderMock;
 
@@ -137,18 +137,29 @@ const Key singleBlockValueFullKey =
 const Value singleBlockValue = kvbStorage.SerializeBlockMetadata(lastSeqNum);
 
 Status MockILocalKeyValueStorageReadOnly::get(Key key, Value &outValue) const {
-  if (key == lastBlockFullKey)
-    outValue = lastBlockValue;
-  else if (key == prevBlockFullKey)
-    outValue = prevBlockValue;
-  else if (key == prevPrevBlockFullKey)
-    outValue = prevPrevBlockValue;
-  else if (key == singleBlockValueFullKey)
-    outValue = singleBlockValue;
+  switch (blockIdToBeRead) {
+    case singleBlockId:
+      outValue = singleBlockValue;
+      break;
+    case lastBlockId:
+      outValue = lastBlockValue;
+      blockIdToBeRead = prevBlockId;
+      break;
+    case prevBlockId:
+      outValue = prevBlockValue;
+      blockIdToBeRead = prevPrevBlockId;
+      break;
+    case prevPrevBlockId:
+      outValue = prevPrevBlockValue;
+      break;
+    default:
+      return Status::GeneralError("Block ID is out of range.");
+  }
   return Status::OK();
 }
 
 TEST(replicaStateSync_test, state_in_sync) {
+  blockIdToBeRead = singleBlockId;
   uint64_t removedBlocks = replicaStateSync.execute(
       *logger, *bcDBAdapter, keyValueStorageMock, singleBlockId, lastSeqNum);
   ASSERT_EQ(removedBlocks, 0);
@@ -170,6 +181,7 @@ TEST(replicaStateSync_test, block_removed) {
   dbClient->put(lastBlockDbKey,
                 setUpBlockContent(lastBlockFullKey, lastBlockValue));
 
+  blockIdToBeRead = lastBlockId;
   uint64_t removedBlocks = replicaStateSync.execute(
       *logger, *bcDBAdapter, keyValueStorageMock, lastBlockId, lastSeqNum);
 

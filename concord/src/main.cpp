@@ -387,6 +387,7 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
     }
 
     signal(SIGINT, signalHandler);
+    signal(SIGTERM, signalHandler);
 
     // API server
 

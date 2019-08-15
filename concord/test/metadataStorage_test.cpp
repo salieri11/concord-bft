@@ -24,9 +24,12 @@ using concord::storage::RocksKeyComparator;
 namespace {
 
 RocksDBMetadataStorage *metadataStorage = nullptr;
-const ObjectId initialObjectId = 1;
+const ObjectId initialObjectId = 10;
 const uint32_t initialObjDataSize = 80;
-const uint16_t objectsNum = 100;
+const uint16_t objectsNum = 190;
+const uint32_t maxObjectSize = 8096;
+const uint32_t objArraySize = initialObjectId + objectsNum;
+bftEngine::MetadataStorage::ObjectDesc metadataObjectsArray[objArraySize];
 
 uint8_t *fillBufByGivenData(const uint8_t *data, const uint32_t &sizeOfData) {
   auto *inBuf = new uint8_t[sizeOfData];
@@ -81,14 +84,14 @@ TEST(metadataStorage_test, multi_write) {
   uint8_t *inBuf[objectsNum];
   uint8_t *outBuf[objectsNum];
   uint32_t objectsDataSize[objectsNum] = {initialObjDataSize};
-  for (auto i = 0; i < objectsNum; i++) {
+  for (auto i = initialObjectId; i < objectsNum; i++) {
     objectsDataSize[i] += i;
     inBuf[i] = writeInTransaction(initialObjectId + i, objectsDataSize[i]);
     outBuf[i] = new uint8_t[objectsDataSize[i]];
   }
   metadataStorage->commitAtomicWriteOnlyTransaction();
   uint32_t realSize = 0;
-  for (ObjectId i = 0; i < objectsNum; i++) {
+  for (ObjectId i = initialObjectId; i < objectsNum; i++) {
     metadataStorage->read(initialObjectId + i, objectsDataSize[i],
                           (char *)outBuf[i], realSize);
     ASSERT_TRUE(objectsDataSize[i] == realSize);
@@ -108,9 +111,15 @@ int main(int argc, char **argv) {
   log4cplus::BasicConfigurator config(hierarchy, false);
   config.configure();
   const string dbPath = "./metadataStorage_test";
+  system((string("rm -fr ") + dbPath).c_str());
   RocksDBClient *dbClient = new RocksDBClient(dbPath, new RocksKeyComparator());
   dbClient->init();
   metadataStorage = new RocksDBMetadataStorage(dbClient);
+  for (int i = 0; i < objArraySize; ++i) {
+    metadataObjectsArray[i].id = i;
+    metadataObjectsArray[i].maxSize = maxObjectSize;
+  }
+  metadataStorage->initMaxSizeOfObjects(metadataObjectsArray, objArraySize);
   int res = RUN_ALL_TESTS();
   return res;
 }

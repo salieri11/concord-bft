@@ -144,28 +144,32 @@ ReplicaConfig setupReplicaConfig() {
 
 CommConfig setupCommunicationParams(ReplicaConfig &replicaConfig) {
   CommConfig commParams;
-  commParams.maxServerId = 0;
+
   // Used to get info from parsed keys file
   TestCommConfig testCommConfig(logger);
   testCommConfig.GetReplicaConfig(replicaParams.replicaId,
                                   replicaParams.keysFilePrefix, &replicaConfig);
   auto numOfReplicas =
       (uint16_t)(3 * replicaConfig.fVal + 2 * replicaConfig.cVal + 1);
-
+  commParams.maxServerId = numOfReplicas - 1;
 #ifdef USE_COMM_PLAIN_TCP
   PlainTcpConfig commConfig = testCommConfig.GetTCPConfig(
       true, replicaParams.replicaId, replicaParams.numOfClients, numOfReplicas,
       replicaParams.configFileName);
   commParams.maxServerId = commConfig.maxServerId;
+  commParams.commType = "tcp";
 #elif USE_COMM_TLS_TCP
   TlsTcpConfig commConfig = testCommConfig.GetTlsTCPConfig(
       true, replicaParams.replicaId, replicaParams.numOfClients, numOfReplicas,
       replicaParams.configFileName);
   commParams.certificatesRootPath = commConfig.certificatesRootPath;
+  commParams.commType = "tls";
+  commParams.cipherSuite = commConfig.cipherSuite;
 #else
   PlainUdpConfig commConfig = testCommConfig.GetUDPConfig(
       true, replicaParams.replicaId, replicaParams.numOfClients, numOfReplicas,
       replicaParams.configFileName);
+  commParams.commType = "udp";
 #endif
 
   commParams.listenIp = commConfig.listenIp;
@@ -201,15 +205,6 @@ int main(int argc, char **argv) {
   initWinSock();
 #endif
 
-#ifdef USE_LOG4CPP
-#include <log4cplus/configurator.h>
-  using namespace log4cplus;
-  initialize();
-  BasicConfigurator logConfig(Logger::getDefaultHierarchy(), false);
-  logConfig.configure();
-#endif
-
-  signal(SIGABRT, signalHandler);
   signal(SIGTERM, signalHandler);
 
   setupReplicaParams(argc, argv);
