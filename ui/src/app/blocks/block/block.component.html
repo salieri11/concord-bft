@@ -10,8 +10,8 @@
   <h5 class="tx-title" *ngIf="block?.transactions?.length === 1">{{'transactions.title' | translate}}</h5>
 </div>
 
-<concord-transaction-list *ngIf="block" 
-  [transactions]="block?.transactions" 
+<concord-transaction-list *ngIf="block"
+  [transactions]="block?.transactions"
   [blockNumber]="block?.number"
   [noListIfSingle]="true"
   [codeBlockMaxHeight]="'700px'"

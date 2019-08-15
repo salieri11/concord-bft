@@ -1,4 +1,4 @@
-<div *ngIf="!noListIfSingle || (transactionsLoaded && transactions.length !== 1)" 
+<div *ngIf="!noListIfSingle || (transactionsLoaded && transactions.length !== 1)"
       [classList]="(listOnly || titleHidden) ? 'wrapper' : 'p-2 wrapper'">
   <div *ngIf="!titleHidden && !listOnly" class="clr-row">
     <div class="clr-col-12">

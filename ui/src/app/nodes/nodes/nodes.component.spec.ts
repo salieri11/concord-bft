@@ -15,6 +15,7 @@ import { NodesStatusFilterComponent } from '../nodes-status-filter/nodes-status-
 import { NodesComponent } from './nodes.component';
 import { NodeListComponent } from '../node-list/node-list.component';
 import { BlockGraphComponent } from '../../graphs/block-graph/block-graph.component';
+import { VmwCopyToClipboardButtonComponent } from '../../shared/components/copy-to-clipboard-button/copy-to-clipboard-button.component';
 
 describe('NodesComponent', () => {
   let component: NodesComponent;
@@ -34,6 +35,7 @@ describe('NodesComponent', () => {
         NodesStatusFilterComponent,
         BlockGraphComponent,
         NodeListComponent,
+        VmwCopyToClipboardButtonComponent
       ],
       providers: [{provide: APP_BASE_HREF, useValue: '/'}]
     })

@@ -3,10 +3,10 @@
  */
 
 import { Component, OnInit, ViewChild } from '@angular/core';
-import { Node } from '../shared/nodes.model';
-import { NodesService } from '../shared/nodes.service';
+import { ClrDatagrid } from '@clr/angular';
 
-import { ConfirmActionComponent } from './../confirm-action/confirm-action.component';
+import { NodeInfo } from '../shared/nodes.model';
+import { NodesService } from '../shared/nodes.service';
 
 @Component({
   selector: 'concord-node-list',
@@ -14,20 +14,28 @@ import { ConfirmActionComponent } from './../confirm-action/confirm-action.compo
   styleUrls: ['./node-list.component.scss']
 })
 export class NodeListComponent implements OnInit {
-  @ViewChild('confirm') confirm: ConfirmActionComponent;
+  @ViewChild('grid', {static: false}) grid: ClrDatagrid;
 
-  nodes: Node[];
+  nodes: NodeInfo[];
   selected: any[] = [];
+  batchStartEnabled: boolean;
+  batchStopEnabled: boolean;
 
   constructor(private nodesService: NodesService) { }
 
   ngOnInit() {
     this.loadNodes();
 
-    this.confirm.confirmed.subscribe(response => {
-      console.log(response);
-      this[response.action](response.node);
-    });
+    //
+    // Commenting out node start stop functionality until it's ready to be implemented on the backend.
+    //
+    // this.confirm.confirmed.subscribe(response => {
+    //   console.log(response);
+    //   this[response.action](response.node);
+    // });
+
+    // this.grid.selectedChanged
+    //   .subscribe(selections => this.handleSelections(selections));
   }
 
   loadNodes() {
@@ -35,43 +43,70 @@ export class NodeListComponent implements OnInit {
     .subscribe(nodes => this.nodes = nodes.nodes);
   }
 
-  confirmAction(action: string, node: Node | Node[]) {
-    this.confirm.open(action, node);
+  //
+  // Commenting out node start stop functionality until it's ready to be implemented on the backend.
+  //
+  // confirmAction(action: string, node: Node | Node[]) {
+  //   this.confirm.open(action, node);
+  // }
+
+  // start(node: Node | Node[]) {
+  //   this.nodesService.action('start', node).subscribe(
+  //     response => this.handleResponse(response),
+  //     error => this.handleError(error)
+  //   );
+  // }
+
+  // stop(node: Node | Node[]) {
+  //   this.nodesService.action('stop', node).subscribe(
+  //     response => this.handleResponse(response),
+  //     error => this.handleError(error)
+  //   );
+  // }
+
+  // restart(node: Node | Node[]) {
+  //   this.nodesService.action('restart', node).subscribe(
+  //     response => this.handleResponse(response),
+  //     error => this.handleError(error)
+  //   );
+  // }
+
+  downloadCert(node) {
+    const element = document.createElement('a');
+    element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(node.certificate));
+    element.setAttribute('download', node.name);
+
+    element.style.display = 'none';
+    document.body.appendChild(element);
+
+    element.click();
+
+    document.body.removeChild(element);
   }
 
-  start(node: Node | Node[]) {
-    this.nodesService.action('start', node).subscribe(
-      response => this.handleResponse(response),
-      error => this.handleError(error)
-    );
-  }
+  //
+  // Commenting out node start stop functionality until it's ready to be implemented on the backend.
+  //
+  // private handleResponse(response) {
+  //   console.log('response')
+  //   console.log(response)
+  // }
 
-  stop(node: Node | Node[]) {
-    this.nodesService.action('stop', node).subscribe(
-      response => this.handleResponse(response),
-      error => this.handleError(error)
-    );
-  }
+  // private handleError(error) {
+  //   console.log('error')
+  //   console.log(error)
+  // }
 
-  restart(node: Node | Node[]) {
-    this.nodesService.action('restart', node).subscribe(
-      response => this.handleResponse(response),
-      error => this.handleError(error)
-    );
-  }
+  // private handleSelections(selections: any[]) {
+  //   this.batchStartEnabled = false;
+  //   this.batchStopEnabled = false;
+  //   const liveSel = selections.filter(sel => sel.state === 'live');
 
-  downloadCert() {
-
-  }
-
-  private handleResponse(response) {
-    console.log('response')
-    console.log(response)
-  }
-
-  private handleError(error) {
-    console.log('error')
-    console.log(error)
-  }
+  //   if (liveSel.length) {
+  //     this.batchStopEnabled = true;
+  //   } else if (selections.length) {
+  //     this.batchStartEnabled = true;
+  //   }
+  // }
 
 }

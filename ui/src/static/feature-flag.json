@@ -1,5 +1,5 @@
 {
-  "node_list": false,
+  "node_list": true,
   "developer_logging": true,
   "deploy_HLF": false
 }

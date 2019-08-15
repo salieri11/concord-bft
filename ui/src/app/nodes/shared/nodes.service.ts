@@ -4,8 +4,8 @@
 
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, forkJoin } from 'rxjs';
 import { TranslateService } from '@ngx-translate/core';
+import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 
 import { NodeProperties, NodeInfo } from './nodes.model';
@@ -25,6 +25,7 @@ const locations = [
   { geo: [151.21, -33.868], region: 'Sydney', organization: 'Supplier Corp' },
   { geo: [8.67972, 45.836507], region: 'Frankfurt', organization: 'Customs' },
 ];
+
 
 @Injectable({
   providedIn: 'root'
@@ -120,7 +121,7 @@ export class NodesService {
   // This is using the deprecated API and should be removed at some point
   //
   getNodes(): Observable<any> {
-    return this.http.get<any>(Apis.members(this.blockchainService.blockchainId)).pipe(
+    return this.http.get<any>(Apis.nodes(this.blockchainService.blockchainId)).pipe(
       map(nodes => {
         const groupedNodes: NodeProperties[] = [];
         const tempNode = {};
@@ -180,18 +181,34 @@ export class NodesService {
     );
   }
 
-  action(action: string, node: any): Observable<any> {
-    if (node.length) {
-      const actions = [];
+  // action(action: string, node: any): Observable<any> {
+  //   if (node.length) {
+  //     const actions = [];
 
-      node.forEach(n => {
-        actions.push(this.httpClient.post(this.resourcePath(n.id), {action: action}));
-      });
+  //     node.forEach(n => {
+  //       actions.push(
+  //         this.http.post(Apis.getReplica(n.id), { action: action })
+  //       );
+  //     });
 
-      return forkJoin(actions);
-    } else {
-      return this.httpClient.post(this.resourcePath(node.id), {action: action});
-    }
-  }
+  //     return forkJoin(actions).pipe(
+  //         mergeMap(action => this.checkReplicaTask(action['task_id']))
+  //       );
+  //   } else {
+  //     return this.http.post(
+  //         Apis.getReplica(node.id), { action: action }
+  //       ).pipe(
+  //         mergeMap(action => this.checkReplicaTask(action['task_id']))
+  //       );
+  //   }
+
+  // }
+
+  // private checkReplicaTask(taskId: string): Observable<any> {
+  //   timer(0, interval)
+  //     .pipe(concatMap(() => from(this.http.get(`api/tasks/${taskId}`))))
+  //     .pipe(filter(task => task['state'] !== 'RUNNING'))
+  //     .pipe(take(1));
+  // }
 
 }
