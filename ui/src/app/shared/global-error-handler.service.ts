@@ -14,7 +14,6 @@ export class ErrorAlertService {
 
   add(error: Error) {
     this.notify.next(error);
-    console.error(error);
   }
 }
 

@@ -28,8 +28,8 @@
     "e2e:build": "npm run webdriver-update && npm run flake-e2e",
     "e2e:integration": "npm run webdriver-update && npm run flake-e2e:integration",
     "webdriver-update": "webdriver-manager update --gecko false",
-    "flake-e2e": "protractor-flake --parser standard  --max-attempts=10 -- protractor.conf.js --baseUrl=https://localhost.vmware.com/",
-    "flake-e2e:integration": "protractor-flake --parser standard  --max-attempts=10 -- protractor.integration.conf.js --baseUrl=https://localhost.vmware.com/",
+    "flake-e2e": "protractor-flake --parser standard  --max-attempts=3 -- protractor.conf.js --baseUrl=https://localhost.vmware.com/",
+    "flake-e2e:integration": "protractor-flake --parser standard  --max-attempts=3 -- protractor.integration.conf.js --baseUrl=https://localhost.vmware.com/",
     "clear-data-e2e": "npm run clear-keystores-e2e && npm run clear-contracts-e2e && npm run clear-users-e2e",
     "postinstall": "node patch.js",
     "ng-high-memory": "node --max_old_space_size=4000 ./node_modules/@angular/cli/bin/ng"

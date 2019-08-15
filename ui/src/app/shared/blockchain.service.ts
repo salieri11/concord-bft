@@ -4,20 +4,22 @@
 
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { Router } from '@angular/router';
 import { Resolve, ActivatedRouteSnapshot } from '@angular/router';
 import { Observable, from, timer, zip, of, throwError } from 'rxjs';
 import { concatMap, filter, map, take, flatMap, catchError, debounceTime } from 'rxjs/operators';
 import { BehaviorSubject } from 'rxjs';
+import { TranslateService } from '@ngx-translate/core';
 
 import { ConsortiumService } from '../consortium/shared/consortium.service';
 import {
-    BlockchainRequestParams,
-    BlockchainResponse,
-    Zone,
-    BlockchainMeta,
-    DeployStates,
-    fakeZones
-  } from './blockchain.model';
+  BlockchainRequestParams,
+  BlockchainResponse,
+  Zone,
+  BlockchainMeta,
+  DeployStates,
+  fakeZones
+} from './blockchain.model';
 import { Apis } from './urls.model';
 
 
@@ -38,6 +40,7 @@ export class BlockchainService {
   constructor(
     private http: HttpClient,
     private consortiumService: ConsortiumService,
+    private translateService: TranslateService,
   ) { }
 
   deploy(params: BlockchainRequestParams): Observable<any> {
@@ -65,16 +68,16 @@ export class BlockchainService {
 
   pollDeploy(taskId: string): Observable<any> {
     const interval = 2500;
-    const stopAfter = 6 * 60 * 1000; // 6 minutes;
+    const stopAfter = 10 * 60 * 1000; // 10 minutes;
     const interationAmount = stopAfter / interval;
     let iterationCount = 0;
     return timer(0, interval)
       .pipe(concatMap(() => from(this.check(taskId))))
       .pipe(filter(backendData => {
-        ++ iterationCount;
+        ++iterationCount;
         if (iterationCount >= interationAmount) {
           // tslint:disable-next-line
-          throwError({message: 'Deploy timed out, please contact blockDeploying consortium timed out, please contact blockchain-support@vmware.com to report this issue.'});
+          throwError({ message: this.translateService.instant('error.timeout') });
         }
         return backendData.state !== DeployStates.RUNNING;
       }))
@@ -156,21 +159,21 @@ export class BlockchainService {
 
   getMetaData(): Observable<BlockchainMeta> {
     return this.http.get<BlockchainMeta>(`${Apis.blockchains}/${this.blockchainId}`)
-    .pipe(
-      debounceTime(1000),
-      map(meta => {
-        this.metadata = meta;
-        const nodesMap = {};
+      .pipe(
+        debounceTime(1000),
+        map(meta => {
+          this.metadata = meta;
+          const nodesMap = {};
 
-        meta.node_list.forEach(node => {
-          node.zone = this.zonesMap[node.zone_id];
-          nodesMap[node.node_id] = node;
-        });
-        this.nodesMap = nodesMap;
+          meta.node_list.forEach(node => {
+            node.zone = this.zonesMap[node.zone_id];
+            nodesMap[node.node_id] = node;
+          });
+          this.nodesMap = nodesMap;
 
-        return this.metadata;
-      })
-    );
+          return this.metadata;
+        })
+      );
   }
 
   isUUID(uuid: string): boolean {
@@ -183,12 +186,24 @@ export class BlockchainService {
   providedIn: 'root'
 })
 export class BlockchainResolver implements Resolve<BlockchainResponse[]> {
-  constructor(private blockchainService: BlockchainService) { }
+
+  constructor(
+    private blockchainService: BlockchainService,
+    private router: Router
+  ) { }
 
   resolve(
     route: ActivatedRouteSnapshot
-  ): Observable<BlockchainResponse[]> {
-    return this.blockchainService.set(route.params['consortiumId']);
+  ): Observable<BlockchainResponse[]> | any {
+    return this.blockchainService.set(route.params['consortiumId']).pipe(
+      catchError(error => {
+        this.router.navigate(['error'], {
+          queryParams: {error: JSON.stringify(error)}
+        });
+
+        return error;
+      })
+    );
   }
 }
 

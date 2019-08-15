@@ -19,6 +19,8 @@
   },
   "error": {
     "title": "Error",
+    "timeout": "Deploying consortium timed out, please contact blockchain-support@vmware.com to report this issue.",
+    "help": "Please contact blockchain-support@vmware.com if the problem persists.",
     "403": "You are unable to access this service, please contact your service owner for more information."
   },
   "nav": {

@@ -5,9 +5,10 @@
 import { NgModule } from '@angular/core';
 import { ForbiddenComponent } from './forbidden/forbidden.component';
 import { SharedModule } from './../shared/shared.module';
+import { ErrorComponent } from './error/error.component';
 
 @NgModule({
-  declarations: [ForbiddenComponent],
+  declarations: [ForbiddenComponent, ErrorComponent],
   imports: [
     SharedModule,
   ]
