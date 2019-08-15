@@ -602,7 +602,8 @@ class PersephoneTests(test_suite.TestSuite):
                      else:
                         high_matched = False
 
-                  if (low_matched is None or low_matched) and (high_matched is None or high_matched):
+                  if (low_matched is None or low_matched) and (
+                        high_matched is None or high_matched):
                      site_found = True
                      log.info("Site/Zone: {}".format(orchestration_site["id"]))
 
@@ -631,7 +632,8 @@ class PersephoneTests(test_suite.TestSuite):
                               "All labels for this site are fetched via rPC and "
                               "matches with config file")
                      else:
-                        log.error("Section 'labels' not found under 'info' in config file.")
+                        log.error(
+                           "Section 'labels' not found under 'info' in config file.")
                         log.error("Though an optional section, it is required "
                                   "for testing/validation")
                         return (False,
