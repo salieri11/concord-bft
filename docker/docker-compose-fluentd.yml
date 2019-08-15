@@ -4,7 +4,35 @@ services:
 
   helen:
     logging:
-      driver: "fluentd"
+      driver: fluentd
       options:
         fluentd-address: 0.0.0.0:24224
-        tag: httpd.access
+        tag: helen
+
+  ethrpc1:
+    logging:
+      driver: fluentd
+      options:
+        fluentd-address: 0.0.0.0:24224
+        tag: ethrpc
+
+  ethrpc2:
+    logging:
+      driver: fluentd
+      options:
+        fluentd-address: 0.0.0.0:24224
+        tag: ethrpc
+
+  ethrpc3:
+    logging:
+      driver: fluentd
+      options:
+        fluentd-address: 0.0.0.0:24224
+        tag: ethrpc
+
+  ethrpc4:
+    logging:
+      driver: fluentd
+      options:
+        fluentd-address: 0.0.0.0:24224
+        tag: ethrpc

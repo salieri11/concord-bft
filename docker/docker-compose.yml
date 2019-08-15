@@ -32,6 +32,8 @@ services:
       - --server.ssl.key-store=/config/keystore.p12
       - '--server.ssl.key-store-password=Ethrpc!23'
       - --server.ssl.key-alias=ethrpc
+    depends_on:
+      - fluentd
 
   concord2:
     image: "${concord_repo}:${concord_tag}"
@@ -65,6 +67,8 @@ services:
       - --server.ssl.key-store=/config/keystore.p12
       - '--server.ssl.key-store-password=Ethrpc!23'
       - --server.ssl.key-alias=ethrpc
+    depends_on:
+      - fluentd
 
   concord3:
     image: "${concord_repo}:${concord_tag}"
@@ -98,6 +102,8 @@ services:
       - --server.ssl.key-store=/config/keystore.p12
       - '--server.ssl.key-store-password=Ethrpc!23'
       - --server.ssl.key-alias=ethrpc
+    depends_on:
+      - fluentd
 
   concord4:
     image: "${concord_repo}:${concord_tag}"
@@ -131,6 +137,8 @@ services:
       - --server.ssl.key-store=/config/keystore.p12
       - '--server.ssl.key-store-password=Ethrpc!23'
       - --server.ssl.key-alias=ethrpc
+    depends_on:
+      - fluentd
 
   helen:
     image: "${helen_repo}:${helen_tag}"
@@ -199,7 +207,7 @@ services:
       - "24224:24224"
       - "24224:24224/udp"
     environment:
-      - FLUENTD_CONF=fluentd.conf
+      - FLUENTD_CONF=fluent.conf
     volumes:
       - ./fluentd:/fluentd/etc
 
