@@ -47,6 +47,9 @@ class VmcHttpClient(
         val enableVerboseLogging: Boolean = true
     )
 
+    /** Specify whether HTTP response body on success should be logged on. */
+    override val enableVerboseLogging: Boolean = context.enableVerboseLogging
+
     /**
      * Obtain the API session token from a given session response.
      *
