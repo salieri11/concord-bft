@@ -436,7 +436,7 @@ KeyValuePair RocksDBClientIterator::previous() {
   m_iter->Prev();
 
   if (!m_iter->Valid()) {
-    LOG4CPLUS_ERROR(logger, "Iterator out of bounds");
+    LOG4CPLUS_WARN(logger, "Iterator out of bounds");
     return KeyValuePair();
   }
 

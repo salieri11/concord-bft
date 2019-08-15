@@ -110,7 +110,7 @@ class ReplicaImp : public concord::storage::IReplica,
   }
 
  private:
-  void createNewOrLoadExistingReplica();
+  void createReplicaAndSyncState();
 
   // INTERNAL TYPES
 

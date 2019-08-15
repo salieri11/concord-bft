@@ -37,13 +37,13 @@ uint64_t ReplicaStateSyncImp::execute(log4cplus::Logger &logger,
   uint64_t removedBlocksNum = 0;
   Key key = roKvs.BlockMetadataKey();
   do {
-    Key fullKey = KeyManipulator::genDataDbKey(key, blockId);
-    blockSeqNum = roKvs.GetBlockMetadata(fullKey);
+    blockSeqNum = roKvs.GetBlockMetadata(key);
     LOG4CPLUS_INFO(
-        logger, "Block Metadata key = " << fullKey << ", blockId = " << blockId
+        logger, "Block Metadata key = " << key << ", blockId = " << blockId
                                         << ", blockSeqNum = " << blockSeqNum);
-    if (blockSeqNum == lastExecutedSeqNum) {
-      LOG4CPLUS_INFO(logger, "Replica state is in sync.");
+    if (blockSeqNum <= lastExecutedSeqNum) {
+      LOG4CPLUS_INFO(logger, "Replica state is in sync; removedBlocksNum is "
+                                 << removedBlocksNum);
       return removedBlocksNum;
     }
     // SBFT State Metadata is not in sync with SBFT State.

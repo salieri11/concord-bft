@@ -63,13 +63,7 @@ Status ReplicaImp::start() {
   m_currentRepStatus = RepStatus::Starting;
   m_metadataStorage = new RocksDBMetadataStorage(m_bcDbAdapter->getDb());
 
-  // TODO(Yulia)
-  // VB-668 Replace createNewReplica() by createNewOrLoadExistingReplica().
-
-  m_replicaPtr = bftEngine::Replica::createNewReplica(
-      &m_replicaConfig, m_cmdHandler, m_stateTransfer, m_ptrComm,
-      m_metadataStorage);
-
+  createReplicaAndSyncState();
   m_replicaPtr->start();
   m_currentRepStatus = RepStatus::Running;
 
@@ -79,20 +73,18 @@ Status ReplicaImp::start() {
   return Status::OK();
 }
 
-void ReplicaImp::createNewOrLoadExistingReplica() {
-  if (m_bcDbAdapter->getDb()->isNew()) {
-    m_replicaPtr = bftEngine::Replica::createNewReplica(
-        &m_replicaConfig, m_cmdHandler, m_stateTransfer, m_ptrComm,
-        m_metadataStorage);
-  } else {
-    m_replicaPtr = bftEngine::Replica::loadExistingReplica(
-        m_cmdHandler, m_stateTransfer, m_ptrComm, m_metadataStorage);
+void ReplicaImp::createReplicaAndSyncState() {
+  bool isNewStorage = m_metadataStorage->isNewStorage();
+  m_replicaPtr = bftEngine::Replica::createNewReplica(
+      &m_replicaConfig, m_cmdHandler, m_stateTransfer, m_ptrComm,
+      m_metadataStorage);
+  if (!isNewStorage) {
     uint64_t removedBlocksNum = m_replicaStateSync.execute(
         logger, *m_bcDbAdapter, *this, m_appState->m_lastReachableBlock,
         m_replicaPtr->getLastExecutedSequenceNum());
     m_lastBlock -= removedBlocksNum;
     m_appState->m_lastReachableBlock -= removedBlocksNum;
-    LOG4CPLUS_INFO(logger, "createNewOrLoadExistingReplica: removedBlocksNum = "
+    LOG4CPLUS_INFO(logger, "createReplicaAndSyncState: removedBlocksNum = "
                                << removedBlocksNum << ", new m_lastBlock = "
                                << m_lastBlock << ", new m_lastReachableBlock = "
                                << m_appState->m_lastReachableBlock);

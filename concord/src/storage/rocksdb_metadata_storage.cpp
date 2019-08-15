@@ -24,31 +24,58 @@ using concord::consensus::Status;
 namespace concord {
 namespace storage {
 
-void RocksDBMetadataStorage::verifyOperation(uint32_t dataLen,
-                                             const char *buffer) const {
-  if (!dataLen || !buffer) {
+void RocksDBMetadataStorage::verifyOperation(uint32_t objectId,
+                                             uint32_t dataLen,
+                                             const char *buffer,
+                                             bool writeOperation) const {
+  auto elem = objectIdToSizeMap_.find(objectId);
+  bool found = (elem != objectIdToSizeMap_.end());
+  if (!dataLen || !buffer || !found || !objectId) {
     LOG4CPLUS_ERROR(logger_, WRONG_PARAMETER);
     throw runtime_error(WRONG_PARAMETER);
   }
-}
-
-void RocksDBMetadataStorage::initMaxSizeOfObjects(
-    ObjectDesc *metadataObjectsArray, uint16_t metadataObjectsArrayLength) {
-  objectsNum_ = metadataObjectsArrayLength;
-  metadataObjectsArray_ = new ObjectDesc[objectsNum_];
-  for (uint16_t i = 0; i < objectsNum_; ++i) {
-    metadataObjectsArray_[i] = metadataObjectsArray[i];
-    LOG4CPLUS_DEBUG(
-        logger_, "initMaxSizeOfObjects i="
-                     << i << " object data: id=" << metadataObjectsArray_[i].id
-                     << ", maxSize=" << metadataObjectsArray_[i].maxSize);
+  if (writeOperation && (dataLen > elem->second)) {
+    ostringstream error;
+    error << "Metadata object objectId " << objectId
+          << " size is too big: given " << dataLen << ", allowed "
+          << elem->second << endl;
+    LOG4CPLUS_ERROR(logger_, error.str());
+    throw runtime_error(error.str());
   }
 }
 
-void RocksDBMetadataStorage::read(uint16_t objectId, uint32_t bufferSize,
+bool RocksDBMetadataStorage::isNewStorage() {
+  uint32_t outActualObjectSize;
+  read(objectsNumParamId_, sizeof(objectsNum_), (char *)&objectsNum_,
+       outActualObjectSize);
+  return (outActualObjectSize == 0);
+}
+
+bool RocksDBMetadataStorage::initMaxSizeOfObjects(
+    ObjectDesc *metadataObjectsArray, uint32_t metadataObjectsArrayLength) {
+  for (uint32_t i = objectsNumParamId_ + 1; i < metadataObjectsArrayLength;
+       ++i) {
+    objectIdToSizeMap_[i] = metadataObjectsArray[i].maxSize;
+    LOG4CPLUS_DEBUG(
+        logger_, "initMaxSizeOfObjects i="
+                     << i << " object data: id=" << metadataObjectsArray[i].id
+                     << ", maxSize=" << metadataObjectsArray[i].maxSize);
+  }
+  // Metadata object with id=1 is used to indicate storage initialization state
+  // (number of specified metadata objects).
+  bool isNew = isNewStorage();
+  if (isNew) {
+    objectsNum_ = metadataObjectsArrayLength;
+    atomicWrite(objectsNumParamId_, (char *)&objectsNum_, sizeof(objectsNum_));
+  }
+  LOG4CPLUS_DEBUG(logger_, "initMaxSizeOfObjects objectsNum_=" << objectsNum_);
+  return isNew;
+}
+
+void RocksDBMetadataStorage::read(uint32_t objectId, uint32_t bufferSize,
                                   char *outBufferForObject,
                                   uint32_t &outActualObjectSize) {
-  verifyOperation(bufferSize, outBufferForObject);
+  verifyOperation(objectId, bufferSize, outBufferForObject, false);
   lock_guard<mutex> lock(ioMutex_);
   Status status =
       dbClient_->get(KeyManipulator::generateMetadataKey(objectId),
@@ -63,9 +90,9 @@ void RocksDBMetadataStorage::read(uint16_t objectId, uint32_t bufferSize,
   }
 }
 
-void RocksDBMetadataStorage::atomicWrite(uint16_t objectId, char *data,
+void RocksDBMetadataStorage::atomicWrite(uint32_t objectId, char *data,
                                          uint32_t dataLength) {
-  verifyOperation(dataLength, data);
+  verifyOperation(objectId, dataLength, data, true);
   auto *dataCopy = new uint8_t[dataLength];
   memcpy(dataCopy, data, dataLength);
   lock_guard<mutex> lock(ioMutex_);
@@ -86,11 +113,11 @@ void RocksDBMetadataStorage::beginAtomicWriteOnlyTransaction() {
   transaction_ = new SetOfKeyValuePairs;
 }
 
-void RocksDBMetadataStorage::writeInTransaction(uint16_t objectId, char *data,
+void RocksDBMetadataStorage::writeInTransaction(uint32_t objectId, char *data,
                                                 uint32_t dataLength) {
   LOG4CPLUS_DEBUG(logger_,
                   "objectId=" << objectId << ", dataLength=" << dataLength);
-  verifyOperation(dataLength, data);
+  verifyOperation(objectId, dataLength, data, true);
   auto *dataCopy = new uint8_t[dataLength];
   memcpy(dataCopy, data, dataLength);
   lock_guard<mutex> lock(ioMutex_);

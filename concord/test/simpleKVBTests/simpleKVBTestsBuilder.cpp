@@ -16,6 +16,7 @@
 #include <set>
 #include "basicRandomTestsRunner.hpp"
 #include "commonKVBTests.hpp"
+#include "storage/concord_metadata_storage.h"
 
 #ifndef _WIN32
 #include <unistd.h>
@@ -209,7 +210,10 @@ void TestsBuilder::createAndInsertRandomConditionalWrite() {
   SimpleKV *writesKVArray = request->keyValueArray();
 
   for (size_t i = 0; i < numOfKeysInReadSet; i++) {
-    size_t key = rand() % NUMBER_OF_KEYS;
+    size_t key = 0;
+    do {
+      key = rand() % NUMBER_OF_KEYS;
+    } while (key == concord::storage::kBlockMetadataKey);
     memcpy(readKeysArray[i].key, &key, sizeof(key));
   }
 
@@ -218,7 +222,8 @@ void TestsBuilder::createAndInsertRandomConditionalWrite() {
     size_t key = 0;
     do {  // Avoid duplications
       key = rand() % NUMBER_OF_KEYS;
-    } while (usedKeys.count(key) > 0);
+    } while (usedKeys.count(key) > 0 ||
+             key == concord::storage::kBlockMetadataKey);
     usedKeys.insert(key);
 
     size_t value = rand();
@@ -258,7 +263,10 @@ void TestsBuilder::createAndInsertRandomRead() {
 
   SimpleKey *requestKeys = request->keys;
   for (size_t i = 0; i < numberOfKeysToRead; i++) {
-    size_t key = rand() % NUMBER_OF_KEYS;
+    size_t key = 0;
+    do {
+      key = rand() % NUMBER_OF_KEYS;
+    } while (key == concord::storage::kBlockMetadataKey);
     memcpy(requestKeys[i].key, &key, sizeof(key));
   }
 

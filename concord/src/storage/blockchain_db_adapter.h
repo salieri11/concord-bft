@@ -78,6 +78,9 @@ class KeyManipulator {
                                          Key _key);
   static Sliver extractKeyFromKeyComposedWithBlockId(
       const log4cplus::Logger &logger, Key _composedKey);
+  static Sliver extractKeyFromMetadataKey(const log4cplus::Logger &logger,
+                                          Key _composedKey);
+  static bool keyContainsBlockId(Key _composedKey);
   static KeyValuePair composedToSimple(const log4cplus::Logger &logger,
                                        KeyValuePair _p);
   static Sliver generateMetadataKey(ObjectId objectId);

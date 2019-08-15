@@ -160,6 +160,19 @@ Sliver KeyManipulator::extractKeyFromKeyComposedWithBlockId(
   return out;
 }
 
+Sliver KeyManipulator::extractKeyFromMetadataKey(const Logger &logger,
+                                                 Key _composedKey) {
+  size_t sz = _composedKey.length() - sizeof(EDBKeyType);
+  Sliver out = Sliver(_composedKey, sizeof(EDBKeyType), sz);
+  LOG4CPLUS_DEBUG(logger, "Got metadata key " << out << " from composed key "
+                                              << _composedKey);
+  return out;
+}
+
+bool KeyManipulator::keyContainsBlockId(Key _composedKey) {
+  return (_composedKey.length() > sizeof(BlockId) + sizeof(EDBKeyType));
+}
+
 /**
  * @brief Converts a key value pair consisting using a composite database key
  * into a key value pair using a "simple" key - one without the key type
@@ -173,8 +186,12 @@ KeyValuePair KeyManipulator::composedToSimple(const Logger &logger,
   if (_p.first.length() == 0) {
     return _p;
   }
-  Key key =
-      KeyManipulator::extractKeyFromKeyComposedWithBlockId(logger, _p.first);
+  Key key;
+  if (keyContainsBlockId(_p.first))
+    key = extractKeyFromKeyComposedWithBlockId(logger, _p.first);
+  else
+    key = extractKeyFromMetadataKey(logger, _p.first);
+
   return KeyValuePair(key, _p.second);
 }
 
