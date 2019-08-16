@@ -156,9 +156,10 @@ class PersephoneTests(test_suite.TestSuite):
                log.info("Sleep for {} seconds and retry".format(sleep_time))
                time.sleep(sleep_time)
 
-            if cleaned_up and undeployed_status is None:
-               undeployed_status = True
+            if cleaned_up:
                log.info("**** Deprovisioned Successfully")
+               if undeployed_status is None:
+                  undeployed_status = True
             if not cleaned_up:
                undeployed_status = False
                log.info("**** Deprovisioning Failed!")
@@ -195,6 +196,7 @@ class PersephoneTests(test_suite.TestSuite):
          return [
             ("add_model", self._test_add_model),
             ("list_models", self._test_list_models),
+            ("list_orchestration_sites", self._test_list_orchestration_sites),
             ("4_Node_Blockchain_UNSPECIFIED_Site",
              self._test_create_blockchain_4_node_unspecified_site),
             ("4_Node_Blockchain_FIXED_Site",
@@ -410,7 +412,7 @@ class PersephoneTests(test_suite.TestSuite):
       IPs and verify if /tmp/<publicIP> is present
       :return: True if "marker file" is present, else False
       '''
-      log.info("****************************************")
+      log.info("")
       log.info("**** Verifying IPAM configuration on all concord nodes: {}".format(
          self.concord_ips))
       concord_memeber_credentials = \
@@ -559,6 +561,102 @@ class PersephoneTests(test_suite.TestSuite):
               "ListModels does not contain the added metadata: {}".format(
                  self.response_add_model_id))
 
+   def _test_list_orchestration_sites(self):
+      '''
+      Test to list Orchestration Sites
+      '''
+      response = self.rpc_test_helper.rpc_list_orchestration_sites()
+      response_list_orchestration_sites_json = helper.protobuf_message_to_json(response)
+      if response_list_orchestration_sites_json:
+         with open(self.rpc_test_helper.persephone_config_file, "r") as confile_fp:
+            data = json.load(confile_fp)
+         sites_from_config_file = data["sites"]
+
+         orchestration_sites = response_list_orchestration_sites_json[0]["sites"]
+         if len(sites_from_config_file) == len(orchestration_sites):
+            log.info(
+               "Number of Sites fetched via rPC matches with the actual ones "
+               "in config file [{}]".format(len(orchestration_sites)))
+
+            orchestration_site_ids = []
+            for orchestration_site in orchestration_sites:
+               orchestration_site_ids.append(orchestration_site["id"])
+            log.debug("Orchestration Sites: {}".format(orchestration_site_ids))
+
+            missing_site_name = None
+            for site in sites_from_config_file:
+               log.debug("Looking for site '{}' in rPC response".format(site["id"]))
+               site_found = False
+               for orchestration_site in orchestration_sites:
+                  low_matched = None
+                  high_matched = None
+                  if "low" in orchestration_site["id"]:
+                     if orchestration_site["id"]["low"] == str(site["id"]["low"]):
+                        low_matched = True
+                     else:
+                        low_matched = False
+
+                  if "high" in orchestration_site["id"]:
+                     if orchestration_site["id"]["high"] == str(site["id"]["high"]):
+                        high_matched = True
+                     else:
+                        high_matched = False
+
+                  if (low_matched is None or low_matched) and (
+                        high_matched is None or high_matched):
+                     site_found = True
+                     log.info("Site/Zone: {}".format(orchestration_site["id"]))
+
+                     if "labels" in site["info"]:
+                        log.info("Verifying labels...")
+
+                        labels_from_api = orchestration_site["labels"]
+                        log.debug("labels from api: {}".format(labels_from_api))
+                        labels_from_config_file = site["info"]["labels"]
+                        log.debug("labels from config file: {}".format(
+                           labels_from_config_file))
+
+                        labels_found = False
+                        for label_name,label_value in labels_from_config_file.items():
+                           if labels_from_api[label_name] != label_value:
+                              log.error("Label '{}={}' not fetched by rPC".format(
+                                 label_name, label_value))
+                              return (False,
+                                      "Label '{}={}' not fetched by rPC".format(
+                                         label_name, label_value))
+                           else:
+                              labels_found = True
+
+                        if labels_found:
+                           log.info(
+                              "All labels for this site are fetched via rPC and "
+                              "matches with config file")
+                     else:
+                        log.error(
+                           "Section 'labels' not found under 'info' in config file.")
+                        log.error("Though an optional section, it is required "
+                                  "for testing/validation")
+                        return (False,
+                                "Optional section 'labels' in config file is "
+                                "required for testing/validation")
+                     break
+                  else:
+                     missing_site_name = site["id"]
+
+               if not site_found:
+                  log.error("Site NOT found: {}".format(missing_site_name))
+                  return (False, "Site NOT found: {}".format(missing_site_name))
+
+            log.info("Fetched all Sites Successfully")
+            return (True, "Fetched all Sites Successfully")
+         else:
+            log.error(
+               "Number of Sites ({}) fetched though rPC call does not match "
+               "with the actual ones ({}) in config file".format(
+                  len(sites_from_config_file), len(orchestration_sites)))
+            return (False, "Failed to retrieve All Orchestration Sites")
+
+      return (False, "Failed to retrieve Orchestration Sites")
 
    def _test_create_blockchain_4_node_unspecified_site(self, cluster_size=4):
       '''

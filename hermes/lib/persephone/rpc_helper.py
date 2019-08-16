@@ -15,6 +15,9 @@ from grpc_python_bindings import provisioning_service_pb2
 from grpc_python_bindings import provisioning_service_pb2_grpc
 from grpc_python_bindings import fleet_service_pb2
 from grpc_python_bindings import fleet_service_pb2_grpc
+from grpc_python_bindings import orchestration_service_pb2
+from grpc_python_bindings import orchestration_service_pb2_grpc
+
 from google.protobuf.json_format import MessageToJson
 import sys
 import queue
@@ -102,6 +105,8 @@ class RPCHelper():
          stub = provisioning_service_pb2_grpc.ProvisioningServiceStub(channel)
       # if self.service_name is Product.PERSEPHONE_SERVICE_FLEET:
       #    stub = fleet_service_pb2_grpc.FleetServiceStub(channel)
+      if self.service_name is Product.PERSEPHONE_SERVICE_ORCHESTRATION:
+         stub = orchestration_service_pb2_grpc.OrchestrationSiteServiceStub(channel)
 
       if stub is None:
          raise Exception(

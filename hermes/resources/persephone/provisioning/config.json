@@ -15,6 +15,11 @@
       },
       "info": {
         "type": "VMC",
+        "labels": {
+          "name": "VMC SDDC3",
+          "geo-latitude": "39.028035",
+          "geo-longitude": "-77.457941"
+        },
         "vmc": {
           "authentication": {
             "address": "https://console.cloud.vmware.com",
@@ -67,6 +72,11 @@
       },
       "info": {
         "type": "VMC",
+        "labels": {
+          "name": "VMC SDDC4",
+          "geo-latitude": "45.2551139",
+          "geo-longitude": "-120.888727"
+        },
         "vmc": {
           "authentication": {
             "address": "https://console.cloud.vmware.com",
