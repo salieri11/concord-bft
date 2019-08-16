@@ -231,8 +231,8 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
                 log.info("Service instance initialized");
             }).thenRunAsync(() -> {
                 backgroundTask = backgroundExecutor
-                        .scheduleAtFixedRate(task, 30, 1, TimeUnit.SECONDS);
-                log.info("Background task scheduled to run at 1 second interval after 30sec of initial wait.");
+                        .scheduleAtFixedRate(task, 10, 1, TimeUnit.SECONDS);
+                log.info("Background task scheduled to run at 1 second interval after 10sec of initial wait.");
             }, executor);
         } else {
             return CompletableFuture.failedFuture(
