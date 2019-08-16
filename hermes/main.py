@@ -241,7 +241,7 @@ def createTestSuite(args):
    elif (args.suite == "ContractCompilerTests"):
        return contract_compiler_tests.ContractCompilerTests(args)
    elif (args.suite == "CoreVMTests"):
-      return core_vm_tests.CoreVMTests(args)
+      return pytest_suite.PytestSuite(args, "suites/core_vm_tests.py")
    elif (args.suite == "HelenAPITests"):
       return pytest_suite.PytestSuite(args, "suites/helen/api_test.py")
    elif (args.suite == "ExtendedRPCTests"):

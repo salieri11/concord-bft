@@ -34,6 +34,8 @@ helloHex = "48656c6c6f2c20576f726c6421"
 # "Howdy, World!"
 howdyHex = "486f7764792c20576f726c6421"
 
+highGas = "0x47e7c4"
+
 def getAnEthrpcNode(request, blockchainId):
    '''
    Return a random ethrpc node for the given blockchain.
@@ -351,3 +353,130 @@ def addCodePrefix(code):
                                                 numCodeBytesString,
                                                 prefixLength)
    return prefix + code
+
+
+def getEthrpcApiUrl(request, blockchainId):
+   '''
+   Fetches a random ethRpc node.  This uses the Product class
+   which gets the nodes by using Helen's getMembers API.
+   '''
+   ethrpcNodes = util.blockchain.eth.getEthrpcNodes(request, blockchainId)
+
+   if ethrpcNodes:
+      node = random.choice(ethrpcNodes)
+      url = util.blockchain.eth.getUrlFromEthrpcNode(node)
+      return url
+   else:
+      raise Exception("Error: No ethrpc nodes were reported by Helen.")
+
+def createContract(user, rpc, testExecutionCode, gas, waitForMining=False):
+   '''
+   Create a contract and return a transaction receipt.
+   '''
+   txReceipt = None
+   txHash = rpc.sendTransaction(user["hash"], testExecutionCode, gas)
+
+   if txHash:
+      txReceipt = rpc.getTransactionReceipt(txHash, waitForMining)
+
+   return txReceipt
+
+def createDELEGATECALLBytecode(contractAddress, numBytesOut, arguments):
+   '''
+   Returns the bytecode to create a new contract which:
+   - Invokes DELEGATECALL on the given contract address.
+   - Stores the returned result of DELEGATECALL into storage. That way, the
+     test framework can retrieve the returned values.
+   '''
+   arguments = util.numbers_strings.trimHexIndicator(arguments)
+
+   # Define memory in which to place the return bytes.
+   lengthRetBytes = numBytesOut
+   retBytesPushInstruction = util.bytecode.getPushInstruction(lengthRetBytes)
+   retOffset = 0
+   retOffsetPushInstruction = util.bytecode.getPushInstruction(retOffset)
+
+   # Start writing args at the next 32-bit boundary after the memory for
+   # the return value.
+   argsOffset = lengthRetBytes + 32 - lengthRetBytes % 32
+   argsOffsetPushInstruction = util.bytecode.getPushInstruction(argsOffset)
+   memoryBytecode = ""
+   argsLength = 0
+   byteOffset = argsOffset
+
+   # Write one byte to memory at a time with MSTORE8 (53).  Test cases have
+   # varying numbers of bytes to pass in.
+   for i in range(0, len(arguments)-1, 2):
+      memoryBytecode += "60" + arguments[i:i+2]
+      memoryBytecode += util.numbers_strings.trimHexIndicator(util.bytecode.getPushInstruction(byteOffset))
+      memoryBytecode += util.numbers_strings.decToEvenHexNo0x(byteOffset)
+      memoryBytecode += "53"
+      byteOffset += 1
+      argsLength += 1
+
+   argsLenPushInstruction = util.numbers_strings.trimHexIndicator(util.bytecode.getPushInstruction(argsLength))
+
+   # Define the rest of the fields for DELEGATECALL.
+   gas = util.numbers_strings.trimHexIndicator(highGas)
+
+   if not len(gas) % 2 == 0:
+      gas = "0" + gas
+
+   gasPushInstruction = util.bytecode.getPushInstruction(int(gas, 16))
+   invokeCallBytecode = "0x" + memoryBytecode
+   invokeCallBytecode += "{}{}{}{}{}{}{}{}73{}{}{}f4". \
+                         format(util.numbers_strings.trimHexIndicator(retBytesPushInstruction),
+                                util.numbers_strings.decToEvenHexNo0x(lengthRetBytes),
+                                util.numbers_strings.trimHexIndicator(retOffsetPushInstruction),
+                                util.numbers_strings.decToEvenHexNo0x(retOffset),
+                                util.numbers_strings.trimHexIndicator(argsLenPushInstruction),
+                                util.numbers_strings.decToEvenHexNo0x(argsLength),
+                                util.numbers_strings.trimHexIndicator(argsOffsetPushInstruction),
+                                util.numbers_strings.decToEvenHexNo0x(argsOffset),
+                                util.numbers_strings.trimHexIndicator(contractAddress),
+                                util.numbers_strings.trimHexIndicator(gasPushInstruction),
+                                gas)
+
+   # After the DELEGATECALL has occurred, copy return memory to
+   # storage so it can be retrieved by the testing framework for
+   # test verification.
+   storageSlots = countStorageSlotsForBytes(lengthRetBytes)
+
+   storageStart = delegateStorageKey()
+   for storageSlot in range(0, storageSlots):
+      memoryOffsetDec = storageSlot * 32
+      memoryOffsetHex = util.numbers_strings.decToEvenHexNo0x(memoryOffsetDec)
+      storageSlotHex = storageStart + storageSlot
+      storageSlotPushInstruction = util.bytecode.getPushInstruction(storageSlotHex)
+
+      # Even if we were given 8 bytes as an expected return value, MLOAD
+      # only reads 32 bytes, so the 8 byte value will be stored in 32 bytes
+      # of storage.
+      # Instructions:
+      #   PUSH1  {memory offset}
+      #   MLOAD
+      #   PUSH1  {storage slot}
+      #   SSTORE
+      mloadStep = "60{}51{}{}55". \
+                  format(memoryOffsetHex,
+                         util.numbers_strings.trimHexIndicator(storageSlotPushInstruction),
+                         util.numbers_strings.decToEvenHexNo0x(storageSlotHex))
+      invokeCallBytecode += mloadStep
+
+   return invokeCallBytecode
+
+def countStorageSlotsForBytes(numBytes):
+   storageSlots = int(numBytes/32)
+
+   if numBytes % 32 > 0:
+      storageSlots += 1
+
+   return storageSlots
+
+def delegateStorageKey():
+   '''
+   Returns the key that the bytecode generated by
+   _createDELEGATECALLBytecode will use to store the return value
+   of the called contract.
+   '''
+   return 0x6865726D6573 # "hermes" in ASCII

@@ -493,7 +493,7 @@ EOF
                         echo "${PASSWORD}" | sudo -S "${python}" main.py TimeTests --dockerComposeFile=../docker/docker-compose.yml --resultsDir "${time_test_logs}" --runConcordConfigurationGeneration --concordConfigurationInput /concord/config/dockerConfigurationInput-time_service.yaml
                         echo "${PASSWORD}" | sudo -S "${python}" main.py EvilTimeTests --dockerComposeFile=../docker/docker-compose.yml --resultsDir "${time_test_logs}"
 
-                        cd suites ; echo "${PASSWORD}" | sudo -SE ./memory_leak_test.sh --testSuite CoreVMTests --repeatSuiteRun 2 --tests vmArithmeticTest/add0.json --resultsDir "${mem_leak_test_logs}" ; cd ..
+                        cd suites ; echo "${PASSWORD}" | sudo -SE ./memory_leak_test.sh --testSuite CoreVMTests --repeatSuiteRun 2 --tests='-k vmArithmeticTest/add0.json' --resultsDir "${mem_leak_test_logs}" ; cd ..
 
                         # We need to delete the database files before running UI tests because
                         # Selenium cannot launch Chrome with sudo.  (The only reason Hermes
