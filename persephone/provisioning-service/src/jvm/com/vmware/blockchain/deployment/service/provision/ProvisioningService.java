@@ -697,8 +697,8 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
 
         CompletableFuture.allOf(networkAddressPromises)
                 .thenComposeAsync(__ -> generateConfigurationId(
-                        privateNetworkAddressMap, session.getSpecification().getModel().getBlockchainType()),
-                        executor
+                        privateNetworkAddressMap,
+                        session.getSpecification().getModel().getBlockchainType()), executor
                 )
                 // Setup node deployment workflow with its assigned network address.
                 .thenComposeAsync(configGenId -> {
@@ -1114,7 +1114,9 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
      * {@link NetworkResourceEvent.Created} event, using additional input as context information
      * for instance creation.
      *
-     * @param event
+     * @param publicNetworkEvent
+     *   event signaled for the concord node.
+     * @param privateNetworkEvent
      *   event signaled for the concord node.
      * @param placementEntryByNodeName
      *   mappings of concord node resource name to its associated {@link PlacementAssignment.Entry}.
@@ -1124,25 +1126,37 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
      *   non-default values.
      */
     private static ConcordNodeHostInfo toConcordNodeHostInfo(
-            NetworkResourceEvent.Created event,
+            NetworkResourceEvent.Created publicNetworkEvent,
+            NetworkResourceEvent.Created privateNetworkEvent,
             Map<String, PlacementAssignment.Entry> placementEntryByNodeName
     ) {
         // FIXME: Ideally the API service names must be defined somewhere rather than
         //   "fabricated out of thin air" here. A logical place would be ConcordModelSpecification
         //   itself, which defines the API endpoint URI minus the authority portion, and merged with
         //   the public IP addresses, which is known by this point.
+        // FIXME (Followup): ConcordComponent.ServiceType is now available to use and properly
+        //   defines an API enum constant for this purpose. But in order to switch over, need to
+        //   make sure that all clients are not making use of the name beyond just an opaque String
+        //   literal, and has not yet persisted the data in persistent storage.
+        //   The exact information here must make use of the [ConcordComponent]s declared in the
+        //   deployment specification. This can possibly be captured by an enum based on
+        //   [ServiceType].
         var endpoints = Map.of(
                 "ethereum-rpc",
                 new ConcordNodeEndpoint(
-                        URI.create("https://{{ip}}:8545".replace("{{ip}}", event.getAddress()))
+                        URI.create("https://{{ip}}:8545"
+                                           .replace("{{ip}}", publicNetworkEvent.getAddress()))
                                 .toString(),
                         ""
                 )
         );
 
         return new ConcordNodeHostInfo(
-                placementEntryByNodeName.get(event.getName()).getSite(),
-                Map.of(NetworkAddress.toIPv4Address(event.getAddress()), 0),
+                placementEntryByNodeName.get(publicNetworkEvent.getName()).getSite(),
+                Map.of(
+                        NetworkAddress.toIPv4Address(publicNetworkEvent.getAddress()),
+                        NetworkAddress.toIPv4Address(privateNetworkEvent.getAddress())
+                ),
                 endpoints
         );
     }
@@ -1175,7 +1189,9 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
      * Create a new {@link ConcordNode} instance based on a {@link NetworkResourceEvent.Created}
      * event, using additional input as context information for instance creation.
      *
-     * @param event
+     * @param publicNetworkEvent
+     *   event signaled for the concord node.
+     * @param privateNetworkEvent
      *   event signaled for the concord node.
      * @param placementEntryByNodeName
      *   mappings of concord node resource name to its associated {@link PlacementAssignment.Entry}.
@@ -1185,13 +1201,18 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
      *   non-default values.
      */
     private static ConcordNode toConcordNode(
-            NetworkResourceEvent.Created event,
+            NetworkResourceEvent.Created publicNetworkEvent,
+            NetworkResourceEvent.Created privateNetworkEvent,
             Map<String, PlacementAssignment.Entry> placementEntryByNodeName
     ) {
         return new ConcordNode(
-                placementEntryByNodeName.get(event.getName()).getNode(),
+                placementEntryByNodeName.get(publicNetworkEvent.getName()).getNode(),
                 toConcordNodeInfo(),
-                toConcordNodeHostInfo(event, placementEntryByNodeName)
+                toConcordNodeHostInfo(
+                        publicNetworkEvent,
+                        privateNetworkEvent,
+                        placementEntryByNodeName
+                )
         );
     }
 
@@ -1292,6 +1313,7 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
         var computeResourceEvents = new HashMap<URI, ComputeResourceEvent.Created>();
         var networkResourceEvents = new HashMap<URI, NetworkResourceEvent.Created>();
         var networkAllocationEvents = new HashMap<URI, NetworkAllocationEvent.Created>();
+        var privateNetworkResourceByNodeName = new HashMap<String, NetworkResourceEvent.Created>();
 
         // Partition respective orchestration events into separate groups of reverse-mapping by URI.
         for (OrchestrationEvent event : events) {
@@ -1306,6 +1328,8 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
                 //   resources, only public network addresses need to be considered for event info.
                 if (resourceEvent.getPublic()) {
                     networkResourceEvents.put(resourceEvent.getResource(), resourceEvent);
+                } else {
+                    privateNetworkResourceByNodeName.put(resourceEvent.getName(), resourceEvent);
                 }
             } else if (event instanceof NetworkAllocationEvent.Created) {
                 var resourceEvent = (NetworkAllocationEvent.Created) event;
@@ -1322,15 +1346,23 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
                     var computeResourceEvent = Objects.requireNonNull(
                             computeResourceEvents.get(created.getCompute())
                     );
-                    var networkResourceEvent = Objects.requireNonNull(
+                    var publicNetworkResourceEvent = Objects.requireNonNull(
                             networkResourceEvents.get(created.getNetwork())
                     );
+
+                    // Obtain private network address resource event, if available.
+                    var privateNetworkResourceEvent =
+                            privateNetworkResourceByNodeName.get(publicNetworkResourceEvent.getName());
 
                     // Create ConcordNode info based on compute resource event.
                     var computeInfo = toConcordNode(computeResourceEvent, placementEntryByNodeName);
 
                     // Create ConcordNode info based on network resource event.
-                    var networkInfo = toConcordNode(networkResourceEvent, placementEntryByNodeName);
+                    var networkInfo = toConcordNode(
+                            publicNetworkResourceEvent,
+                            privateNetworkResourceEvent,
+                            placementEntryByNodeName
+                    );
 
                     // Merge the information.
                     // Note: Current invocation favors compute-derived information. But since there

@@ -21,6 +21,7 @@ import org.junit.jupiter.api.Test;
 
 import com.vmware.blockchain.deployment.model.ConcordModelSpecification;
 import com.vmware.blockchain.deployment.model.CreateClusterRequest;
+import com.vmware.blockchain.deployment.model.DeploymentSession;
 import com.vmware.blockchain.deployment.model.DeploymentSessionEvent;
 import com.vmware.blockchain.deployment.model.DeploymentSessionIdentifier;
 import com.vmware.blockchain.deployment.model.DeploymentSpecification;
@@ -29,8 +30,10 @@ import com.vmware.blockchain.deployment.model.OrchestrationSite;
 import com.vmware.blockchain.deployment.model.OrchestrationSiteIdentifier;
 import com.vmware.blockchain.deployment.model.PlacementSpecification;
 import com.vmware.blockchain.deployment.model.PlacementSpecification.Entry;
+import com.vmware.blockchain.deployment.model.ProvisionedResource;
 import com.vmware.blockchain.deployment.model.StreamClusterDeploymentSessionEventRequest;
 import com.vmware.blockchain.deployment.model.ethereum.Genesis;
+import com.vmware.blockchain.deployment.orchestration.NetworkAddress;
 
 import io.grpc.inprocess.InProcessServerBuilder;
 import io.grpc.stub.StreamObserver;
@@ -172,10 +175,10 @@ class ProvisioningServiceTest {
      */
     @Test
     void clusterCreateShouldGenerateSession() throws Exception {
-
-        // Create server instance.
-        final var server = InProcessServerBuilder.forName("TestConfigurationService")
+        // Create server instances.
+        final var configurationServer = InProcessServerBuilder.forName("TestConfigurationService")
                 .directExecutor()
+                .addService(new TestConfigurationService())
                 .build()
                 .start();
 
@@ -208,7 +211,6 @@ class ProvisioningServiceTest {
                 newCollectingObserver(promise2)
         );
 
-        /* FIXME: This hangs infinitely, deployment log has null
         var events = promise2.get(awaitTime, TimeUnit.MILLISECONDS);
         var nodeEvents = events.stream()
                 .filter(event -> event.getType() == DeploymentSessionEvent.Type.NODE_DEPLOYED)
@@ -234,22 +236,40 @@ class ProvisioningServiceTest {
                 .collect(Collectors.toList());
         Assertions.assertThat(allocationEvents.size()).isEqualTo(clusterSize);
 
+        var sites = createCluster.getSpecification().getPlacement().getEntries().stream()
+                .map(Entry::getSite)
+                .collect(Collectors.toList());
         for (DeploymentSessionEvent event : events) {
             if (event.getType() == DeploymentSessionEvent.Type.ACKNOWLEDGED) {
                 Assertions.assertThat(event.getStatus()).isEqualTo(DeploymentSession.Status.ACTIVE);
             } else if (event.getType() == DeploymentSessionEvent.Type.CLUSTER_DEPLOYED) {
                 var clusterInfo = event.getCluster().getInfo();
                 Assertions.assertThat(clusterInfo.getMembers().size()).isEqualTo(clusterSize);
+
+                for (var node : clusterInfo.getMembers()) {
+                    var hostInfo = node.getHostInfo();
+
+                    // BookKeepingStubOrchestrator has a very specific IP assignment.
+                    var addressMapEntry = Map.entry(
+                            NetworkAddress.toIPv4Address("8.8.8.8"),
+                            NetworkAddress.toIPv4Address("4.4.4.4")
+                    );
+                    Assertions.assertThat(hostInfo.getIpv4AddressMap())
+                            .containsExactly(addressMapEntry);
+
+                    // Make sure the node was placed on one of the sites.
+                    Assertions.assertThat(sites).contains(hostInfo.getSite());
+                }
             } else if (event.getType() == DeploymentSessionEvent.Type.COMPLETED) {
                 Assertions.assertThat(event.getStatus()).isEqualTo(DeploymentSession.Status.SUCCESS);
             }
-        }*/
+        }
 
         // Clean up.
         var shutdown = service.shutdown();
         shutdown.get(awaitTime, TimeUnit.MILLISECONDS);
         Assertions.assertThat(shutdown).isCompleted();
 
-        server.shutdown();
+        configurationServer.shutdown();
     }
 }
