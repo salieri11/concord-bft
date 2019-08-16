@@ -267,6 +267,12 @@ def call(){
                 }
               }
 
+              withCredentials([string(credentialsId: 'BLOCKCHAIN_REPOSITORY_WRITER_PWD', variable: 'DOCKERHUB_PASSWORD')]) {
+                sh '''
+                  docker login -u blockchainrepositorywriter -p "${DOCKERHUB_PASSWORD}"
+                '''
+              }
+
               // To invoke "git tag" and commit that change, git wants to know who we are.
               // This will be set up in template VM version 5, at which point these commands can
               // be removed.
