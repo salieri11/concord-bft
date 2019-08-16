@@ -41,11 +41,14 @@ class ProvisioningServiceRPCHelper(RPCHelper):
    def __del__(self):
       self.close_channel(self.service_name)
 
-   def create_placement_specification(self, cluster_size, placement_type=PLACEMENT_TYPE_FIXED):
+   def create_placement_specification(self, cluster_size,
+                                      placement_type=PLACEMENT_TYPE_FIXED,
+                                      orchestration_sites=None):
       '''
       Helper method to create place specification used for create cluster
       :param cluster_size: Number of placement sites
       :param placement_type: Placement type FIXED/UNSPECIFIED
+      :param orchestration_sites: List of orchestration Sites/zones
       :return: placement specification
       '''
       log.info("Concord node placement type: {}".format(placement_type))
@@ -57,12 +60,11 @@ class ProvisioningServiceRPCHelper(RPCHelper):
                type=provisioning_service_pb2.PlacementSpecification.UNSPECIFIED)
             entries.append(placement_entry)
       else:
-         with open(self.persephone_config_file, "r") as confile_fp:
-            data = json.load(confile_fp)
          deployment_sites = []
-         for site in data["sites"]:
-            log.debug("Site ID: {}".format(site["id"]))
-            deployment_sites.append(site["id"])
+         for site in orchestration_sites[0].sites:
+            deployment_sites.append(site.id)
+         log.info("Deploying on Orchestration Sites/zones: {}".format(
+            deployment_sites))
 
          for placement_count in range(0, cluster_size):
             site_number = placement_count % len(deployment_sites)
@@ -70,7 +72,7 @@ class ProvisioningServiceRPCHelper(RPCHelper):
             log.debug("Placing concord[{}] on {}".format(placement_count, deployment_site))
             placement_entry = provisioning_service_pb2.PlacementSpecification.Entry(
                type=provisioning_service_pb2.PlacementSpecification.FIXED,
-               site=orchestration_pb2.OrchestrationSiteIdentifier(low=deployment_site["low"],high=deployment_site["high"]))
+               site=deployment_site)
             entries.append(placement_entry)
 
       placement_specification = provisioning_service_pb2.PlacementSpecification(
