@@ -20,6 +20,7 @@
 #define TIME_TIME_SIGNING_HPP
 
 #include <google/protobuf/timestamp.pb.h>
+#include <mutex>
 #include <unordered_map>
 #include <vector>
 
@@ -55,7 +56,7 @@ class TimeSigner {
   // signature is returned as a vector of bytes. May throw a TimeException if
   // the underlying cryptographic signature implementation unexpectedly reports
   // that it failed to produce a signature.
-  std::vector<uint8_t> Sign(const google::protobuf::Timestamp& time) const;
+  std::vector<uint8_t> Sign(const google::protobuf::Timestamp& time);
 
  private:
   std::string sourceID_;
@@ -69,6 +70,7 @@ class TimeSigner {
   // TimeSigner without having to copy its internal RSASigner.
   std::unique_ptr<bftEngine::impl::RSASigner> signer_;
   std::string private_key_;
+  std::mutex sign_mutex_;
 };
 
 // A TimeVerifier handles verification of time updates, given the source, new

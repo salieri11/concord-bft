@@ -111,14 +111,19 @@ TimeSigner& TimeSigner::operator=(const TimeSigner& original) {
   return *this;
 }
 
-vector<uint8_t> TimeSigner::Sign(const Timestamp& time) const {
+vector<uint8_t> TimeSigner::Sign(const Timestamp& time) {
   vector<uint8_t> data_to_sign = GetSignableUpdateData(sourceID_, time);
   vector<uint8_t> signature(signer_->signatureLength(), 0);
   size_t signature_size = 0;
-  bool sig_made = signer_->sign(
-      reinterpret_cast<const char*>(data_to_sign.data()), data_to_sign.size(),
-      reinterpret_cast<char*>(signature.data()), signature.size(),
-      signature_size);
+
+  bool sig_made;
+  {
+    std::lock_guard<std::mutex> lock(sign_mutex_);
+    sig_made = signer_->sign(reinterpret_cast<const char*>(data_to_sign.data()),
+                             data_to_sign.size(),
+                             reinterpret_cast<char*>(signature.data()),
+                             signature.size(), signature_size);
+  }
 
   if (!sig_made) {
     throw TimeException(
