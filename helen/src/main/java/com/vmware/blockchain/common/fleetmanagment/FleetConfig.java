@@ -5,6 +5,7 @@
 package com.vmware.blockchain.common.fleetmanagment;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -16,30 +17,35 @@ import io.grpc.CallOptions;
 import io.grpc.ManagedChannel;
 
 /**
- * Configuration to create beans for FleetManagment calls.
+ * Configuration to create beans for FleetManagement calls.
  */
 @Configuration
 public class FleetConfig {
 
-    private ManagedChannel channel;
+    private final ManagedChannel provisioningServerChannel;
+    private final ManagedChannel fleetManagementServerChannel;
 
     @Autowired
-    public FleetConfig(ManagedChannel channel) {
-        this.channel = channel;
+    public FleetConfig(
+            @Qualifier("provisioningServerChannel") ManagedChannel provisioningServerChannel,
+            @Qualifier("fleetManagementServerChannel") ManagedChannel fleetManagementServerChannel
+    ) {
+        this.provisioningServerChannel = provisioningServerChannel;
+        this.fleetManagementServerChannel = fleetManagementServerChannel;
     }
 
     @Bean
     FleetManagementServiceStub fleetManagementServiceStub() {
-        return new FleetManagementServiceStub(channel, CallOptions.DEFAULT);
+        return new FleetManagementServiceStub(fleetManagementServerChannel, CallOptions.DEFAULT);
     }
 
     @Bean
     ProvisioningServiceStub provisioningServiceStub() {
-        return new ProvisioningServiceStub(channel, CallOptions.DEFAULT);
+        return new ProvisioningServiceStub(provisioningServerChannel, CallOptions.DEFAULT);
     }
 
     @Bean
     OrchestrationSiteServiceStub orchestrationSiteServiceStub() {
-        return new OrchestrationSiteServiceStub(channel, CallOptions.DEFAULT);
+        return new OrchestrationSiteServiceStub(provisioningServerChannel, CallOptions.DEFAULT);
     }
 }

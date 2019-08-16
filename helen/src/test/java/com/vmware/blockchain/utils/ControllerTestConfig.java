@@ -5,6 +5,7 @@
 package com.vmware.blockchain.utils;
 
 import org.mockito.Mockito;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.cache.CacheManager;
 import org.springframework.context.annotation.Bean;
@@ -82,6 +83,7 @@ public class ControllerTestConfig {
     TaskService taskService;
 
     @MockBean
+    @Qualifier("provisioningServerChannel")
     ManagedChannel channel;
 
     @MockBean
