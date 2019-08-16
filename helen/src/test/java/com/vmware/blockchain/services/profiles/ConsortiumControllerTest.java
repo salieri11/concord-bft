@@ -178,6 +178,45 @@ public class ConsortiumControllerTest {
     }
 
     @Test
+    void testPostBlankName() throws Exception {
+        String content = String.format("    {"
+                                       + "        \"consortium_name\": \"   \","
+                                       + "        \"consortium_type\": \"Obsolete\","
+                                       + "        \"organization\": \"%s\""
+                                       + "    }", O_1);
+        mockMvc.perform(post("/api/consortiums").with(authentication(adminAuth))
+                                                   .contentType(MediaType.APPLICATION_JSON)
+                                                   .content(content))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void testPostEmptyName() throws Exception {
+        String content = String.format("    {"
+                                       + "        \"consortium_name\": \"\","
+                                       + "        \"consortium_type\": \"Obsolete\","
+                                       + "        \"organization\": \"%s\""
+                                       + "    }", O_1);
+        mockMvc.perform(post("/api/consortiums").with(authentication(adminAuth))
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(content))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void testPostMissingName() throws Exception {
+        String content = String.format("    {"
+                                       + "        \"consortium_type\": \"Obsolete\","
+                                       + "        \"organization\": \"%s\""
+                                       + "    }", O_1);
+        mockMvc.perform(post("/api/consortiums").with(authentication(adminAuth))
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(content))
+                .andExpect(status().isBadRequest());
+    }
+
+
+    @Test
     void testRenameConsortium() throws Exception {
         String content = "    {"
                          + "        \"consortium_name\": \"My New Name\""
