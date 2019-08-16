@@ -149,7 +149,7 @@ def main():
                 version="photon-3.0-64",
                 # template="4452ea31-fe1c-4e83-b1f7-6aeb12ca9a9b",  # Ubuntu 18.04 Server.
                 template="8abc7fda-9576-4b13-9beb-06f867cf2c7c",  # Photon OS 3.0.
-                concord_type=get_concord_type(args["type"]),
+                blockchain_type=get_concord_type(args["type"]),
                 components=get_component(args["type"])
             ),
             placement=provisioning_service.PlacementSpecification(
