@@ -66,7 +66,9 @@ class PersephoneTests(test_suite.TestSuite):
       if self.args.deploymentComponents is None:
          log.info("****")
          log.info("**** And, to deploy using specific concord/ethrpc Docker images, ")
-         log.info("**** pass the command line arg '--deploymentComponents <repo/new-concord-core:tag>,<repo/new-ethrpc:tag>'")
+         log.info(
+            "**** pass the command line arg '--deploymentComponents "
+            "<repo/new-agent:tag>,<repo/new-concord-core:tag>,<repo/new-ethrpc:tag>'")
       log.info("****************************************")
 
       self.rpc_test_helper = RPCTestHelper(self.args)
@@ -460,7 +462,6 @@ class PersephoneTests(test_suite.TestSuite):
                   "concordNode"]
             concord_username = concord_memeber_credentials["username"]
             concord_password = concord_memeber_credentials["password"]
-            command_to_run = "docker ps --format '{{.Names}}'"
             log.info("Initiating SSH verification on all concord nodes...")
             for ethrpc_endpoint in ethrpc_endpoints:
                concord_ip = ethrpc_endpoint.split('//')[1].split(':')[0]
@@ -476,22 +477,41 @@ class PersephoneTests(test_suite.TestSuite):
                   self.session_ids_to_retain.append(session_id)
                   return (False, "Failed creating marker file on node '{}'".format(concord_ip))
 
-               ssh_output = helper.ssh_connect(concord_ip,
-                                               concord_username,
-                                               concord_password,
-                                               command_to_run)
-               log.debug(ssh_output)
-               for container_name in expected_docker_containers:
-                  if container_name not in ssh_output:
-                     log.error(
-                        "Container {} not up and running on concord node '{}'".format(
-                           container_name, concord_ip))
-                     return (False,
-                             "Not all containers are up and running on concord node")
-                  else:
-                     log.debug(
-                        "Container {} found in Concord node '{}'".format(
-                           container_name, concord_ip))
+               max_tries = 3
+               count = 0
+               docker_images_found = False
+               command_to_run = "docker ps --format '{{.Names}}'"
+               while count < max_tries and (not docker_images_found):
+                  count += 1
+                  log.info(
+                     "Verifying docker containers (attempt: {}/{})...".format(
+                        count, max_tries))
+                  ssh_output = helper.ssh_connect(concord_ip,
+                                                  concord_username,
+                                                  concord_password,
+                                                  command_to_run)
+                  log.debug("SSH output: {}".format(ssh_output))
+                  for container_name in expected_docker_containers:
+                     if container_name not in ssh_output:
+                        docker_images_found = False
+                        if count == max_tries:
+                           log.info("SSH output: {}".format(ssh_output))
+                           log.error(
+                              "Container {} not up and running on node '{}'".format(
+                                 container_name, concord_ip))
+                           return (False,
+                                   "Not all containers are up and running on node")
+                        else:
+                           log.warning(
+                              "Container {} not up and running on node '{}'".format(
+                                 container_name, concord_ip))
+                           time.sleep(2)
+                           break
+                     else:
+                        docker_images_found = True
+                        log.debug(
+                           "Container {} found in node '{}'".format(
+                              container_name, concord_ip))
 
                # This is a workaround to enable ethrpc to listen on port 443, so
                # tests and other users like performance team can hit ethroc over
