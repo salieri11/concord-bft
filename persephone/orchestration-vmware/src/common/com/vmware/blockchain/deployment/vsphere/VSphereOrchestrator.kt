@@ -11,7 +11,6 @@ import com.vmware.blockchain.deployment.model.AllocateAddressResponse
 import com.vmware.blockchain.deployment.model.IPAllocationServiceStub
 import com.vmware.blockchain.deployment.model.IPv4Network
 import com.vmware.blockchain.deployment.model.MessageHeader
-import com.vmware.blockchain.deployment.model.OrchestrationSiteInfo
 import com.vmware.blockchain.deployment.model.VSphereOrchestrationSiteInfo
 import com.vmware.blockchain.deployment.model.core.URI
 import com.vmware.blockchain.deployment.model.core.UUID
@@ -31,7 +30,6 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.reactive.publish
 import kotlinx.coroutines.withTimeout
 import kotlin.coroutines.CoroutineContext
-import kotlin.coroutines.EmptyCoroutineContext
 
 /**
  * Deployment orchestration driver for VMware vSphere environment.
@@ -49,12 +47,7 @@ class VSphereOrchestrator constructor(
     private val context: CoroutineContext = Dispatchers.Default
 ) : Orchestrator, CoroutineScope {
 
-    companion object : CoroutineScope {
-
-        /** [CoroutineContext] to launch all coroutines associated with this singleton object. */
-        override val coroutineContext: CoroutineContext
-            get() = EmptyCoroutineContext
-
+    companion object {
         /** Default maximum orchestrator operation timeout value. */
         const val ORCHESTRATOR_TIMEOUT_MILLIS = 60000L * 10
 
@@ -63,39 +56,6 @@ class VSphereOrchestrator constructor(
 
         /** Blockchain Network name within deployment template in `ConcordModelSpecification`. */
         const val BLOCKCHAIN_NETWORK_NAME = "blockchain-network"
-
-        /**
-         * Create a new [VSphereOrchestrator] based on parameters from a given
-         * [OrchestrationSiteInfo].
-         *
-         * @param[site]
-         *   orchestration information pertaining to a VMC-based orchestration site.
-         *
-         * @return
-         *   a [VSphereOrchestrator] instance corresponding to the given input parameter.
-         */
-        @JvmStatic
-        fun newOrchestrator(site: OrchestrationSiteInfo): VSphereOrchestrator {
-            // Precondition.
-            require(site.type == OrchestrationSiteInfo.Type.VSPHERE)
-            val info = requireNotNull(site.vsphere)
-
-            // Create new vSphere client.
-            val context = VSphereHttpClient.Context(
-                    endpoint = URI.create(info.api.address),
-                    username = info.api.credential.passwordCredential.username,
-                    password = info.api.credential.passwordCredential.password
-            )
-            val vSphereClient = VSphereClient(
-                    VSphereHttpClient(
-                            context,
-                            VSphereModelSerializer,
-                            allowInsecureConnection = true
-                    )
-            )
-
-            return VSphereOrchestrator(info, vSphereClient)
-        }
     }
 
     /** Logging instance. */

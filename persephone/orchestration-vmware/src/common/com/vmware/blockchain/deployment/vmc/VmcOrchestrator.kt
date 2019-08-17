@@ -8,14 +8,12 @@ import com.vmware.blockchain.deployment.logging.logger
 import com.vmware.blockchain.deployment.model.Address
 import com.vmware.blockchain.deployment.model.AllocateAddressRequest
 import com.vmware.blockchain.deployment.model.AllocateAddressResponse
-import com.vmware.blockchain.deployment.model.Endpoint
 import com.vmware.blockchain.deployment.model.IPAllocationServiceStub
 import com.vmware.blockchain.deployment.model.IPv4Network
 import com.vmware.blockchain.deployment.model.MessageHeader
 import com.vmware.blockchain.deployment.model.OrchestrationSiteInfo
 import com.vmware.blockchain.deployment.model.ReleaseAddressRequest
 import com.vmware.blockchain.deployment.model.ReleaseAddressResponse
-import com.vmware.blockchain.deployment.model.TransportSecurity
 import com.vmware.blockchain.deployment.model.VmcOrchestrationSiteInfo
 import com.vmware.blockchain.deployment.model.core.URI
 import com.vmware.blockchain.deployment.model.core.UUID
@@ -24,6 +22,7 @@ import com.vmware.blockchain.deployment.model.nsx.PublicIP
 import com.vmware.blockchain.deployment.model.vsphere.VirtualMachineGuestIdentityInfo
 import com.vmware.blockchain.deployment.orchestration.Orchestrator
 import com.vmware.blockchain.deployment.orchestration.toIPv4Address
+import com.vmware.blockchain.deployment.orchestration.vmware.newClientRpcChannel
 import com.vmware.blockchain.deployment.reactive.Publisher
 import com.vmware.blockchain.deployment.vm.CloudInitConfiguration
 import com.vmware.blockchain.deployment.vsphere.VSphereClient
@@ -31,9 +30,6 @@ import com.vmware.blockchain.deployment.vsphere.VSphereHttpClient
 import com.vmware.blockchain.deployment.vsphere.VSphereModelSerializer
 import com.vmware.blockchain.grpc.kotlinx.serialization.ChannelStreamObserver
 import io.grpc.CallOptions
-import io.grpc.ManagedChannel
-import io.grpc.netty.shaded.io.grpc.netty.GrpcSslContexts
-import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -44,35 +40,38 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.reactive.publish
 import kotlinx.coroutines.withTimeout
 import kotlin.coroutines.CoroutineContext
-import kotlin.coroutines.EmptyCoroutineContext
 
 /**
  * Deployment orchestration driver for VMware Cloud [orchestration site type]
  * [OrchestrationSiteInfo.Type.VMC].
  *
+ * @property[info]
+ *   environment context describing the target orchestration site environment.
  * @param[vmc]
  *   VMware Cloud API client handle.
- * @param[vSphere]
- *   vSphere API client handle.
+ * @property[context]
+ *   coroutine execution context for coroutines launched by this instance.
  */
-class VmcOrchestrator private constructor(
+class VmcOrchestrator(
     private val info: VmcOrchestrationSiteInfo,
     private val vmc: VmcClient,
-    private val vSphere: VSphereClient,
-    private val nsx: VmcClient,
-    private val ipAllocationService: IPAllocationServiceStub,
     private val context: CoroutineContext = Dispatchers.Default
 ) : Orchestrator, CoroutineScope {
+
+    /** vSphere Client to utilize to exact orchestration actions. */
+    private lateinit var vSphere: VSphereClient
+
+    /** vSphere Client to utilize to exact orchestration actions. */
+    private lateinit var nsx: VmcClient
+
+    /** IP allocation service client to request for static IPs. */
+    private lateinit var ipAllocationService: IPAllocationServiceStub
 
     /**
      * Global singleton companion to [VmcOrchestrator] that also provides a global-scoped process-
      * wide [CoroutineScope] to launch [VmcOrchestrator]-related coroutines.
      */
-    companion object : CoroutineScope {
-
-        /** [CoroutineContext] to launch all coroutines associated with this singleton object. */
-        override val coroutineContext: CoroutineContext
-            get() = EmptyCoroutineContext
+    companion object {
 
         /** Default internal retry interval for SDDC operations. */
         const val OPERATION_RETRY_INTERVAL_MILLIS = 500L
@@ -82,125 +81,6 @@ class VmcOrchestrator private constructor(
 
         /** Default IPAM resource name prefix. */
         const val IPAM_RESOURCE_NAME_PREFIX = "blocks/"
-
-        @JvmStatic
-        private fun Endpoint.newClientRpcChannel(): ManagedChannel {
-            return NettyChannelBuilder.forTarget(address)
-                    .apply {
-                        when (transportSecurity.type) {
-                            TransportSecurity.Type.NONE -> usePlaintext()
-                            TransportSecurity.Type.TLSv1_2 -> {
-                                // Trusted certificates (favor local data over URL).
-                                val trustedCertificates = when {
-                                    transportSecurity.trustedCertificatesData.isNotEmpty() ->
-                                        transportSecurity.trustedCertificatesData.toByteArray()
-                                    transportSecurity.trustedCertificatesUrl.isNotEmpty() ->
-                                        URI.create(transportSecurity.trustedCertificatesUrl)
-                                                .toURL()
-                                                .readBytes()
-                                    else -> null
-                                }?.inputStream()
-
-                                // Key certificate chain (favor local data over URL).
-                                val keyCertificateChain = when {
-                                    transportSecurity.certificateData.isNotEmpty() ->
-                                        transportSecurity.certificateData.toByteArray()
-                                    transportSecurity.certificateUrl.isNotEmpty() ->
-                                        URI.create(transportSecurity.certificateUrl)
-                                                .toURL()
-                                                .readBytes()
-                                    else -> null
-                                }?.inputStream()
-
-                                // Private key (favor local data over URL).
-                                val privateKey = when {
-                                    transportSecurity.privateKeyData.isNotEmpty() ->
-                                        transportSecurity.privateKeyData.toByteArray()
-                                    transportSecurity.privateKeyUrl.isNotEmpty() ->
-                                        URI.create(transportSecurity.privateKeyUrl)
-                                                .toURL()
-                                                .readBytes()
-                                    else -> null
-                                }?.inputStream()
-
-                                // Setup SSL context and enable TLS.
-                                sslContext(
-                                        GrpcSslContexts.forClient()
-                                                .trustManager(trustedCertificates)
-                                                .keyManager(keyCertificateChain, privateKey)
-                                                .build()
-                                )
-                                useTransportSecurity()
-                            }
-                        }
-                    }
-                    .build()
-        }
-
-        /**
-         * Create a new [VmcOrchestrator] based on parameters from a given [OrchestrationSiteInfo].
-         *
-         * @param[site]
-         *   orchestration information pertaining to a VMC-based orchestration site.
-         * @param[executionContext]
-         *   execution context for asynchronous executions triggered by this operation.
-         *
-         * @return
-         *   a [VmcOrchestrator] instance corresponding to the given input parameter.
-         */
-        @JvmStatic
-        fun newOrchestrator(
-            site: OrchestrationSiteInfo,
-            executionContext: CoroutineContext = Dispatchers.Default
-        ): Publisher<VmcOrchestrator> {
-            // Precondition.
-            require(site.type == OrchestrationSiteInfo.Type.VMC)
-
-            val info = requireNotNull(site.vmc)
-            val token = requireNotNull(info.authentication.credential.tokenCredential).token
-
-            // Create new VMC client.
-            val vmcContext = VmcHttpClient.Context(
-                    endpoint = URI.create(info.api.address),
-                    authenticationEndpoint = URI.create(info.authentication.address),
-                    refreshToken = token,
-                    organization = info.organization,
-                    datacenter = info.datacenter,
-                    enableVerboseLogging = false
-            )
-            val vmc = VmcClient(VmcHttpClient(vmcContext, VmcModelSerializer))
-
-            // Asynchronously create the orchestrator instance based on VMC operation results.
-            return publish(executionContext) {
-                // Use VMC client to obtain VMC SDDC information.
-                vmc.getDataCenterInfo()?.apply {
-                    // Use VMC SDDC info to create NSX client.
-                    val nsx = VmcHttpClient.Context(
-                            endpoint = URI(resource_config.nsx_api_public_endpoint_url),
-                            authenticationEndpoint = URI.create(info.authentication.address),
-                            refreshToken = token,
-                            organization = info.organization,
-                            datacenter = info.datacenter
-                    ).let { VmcClient(VmcHttpClient(it, VmcModelSerializer)) }
-
-                    // Use VMC SDDC info to create vSphere client.
-                    val vSphere = VSphereHttpClient.Context(
-                            endpoint = URI(resource_config.vc_url),
-                            username = resource_config.cloud_username,
-                            password = resource_config.cloud_password
-                    ).let { VSphereClient(VSphereHttpClient(it, VSphereModelSerializer)) }
-
-                    // IPAM service client.
-                    val ipAllocation = IPAllocationServiceStub(
-                            info.vsphere.network.allocationServer.newClientRpcChannel(),
-                            CallOptions.DEFAULT
-                    )
-
-                    // New Orchestrator instance.
-                    send(VmcOrchestrator(info, vmc, vSphere, nsx, ipAllocation, executionContext))
-                }?: close(RuntimeException("Cannot retrieve site authorization information"))
-            }
-        }
     }
 
     /** Logging instance. */
@@ -213,6 +93,33 @@ class VmcOrchestrator private constructor(
     /** Parent [Job] of all coroutines associated with this instance's operation. */
     private val job: Job = SupervisorJob()
 
+    override fun initialize(): Publisher<Any> {
+        return publish {
+            vmc.getDataCenterInfo()?.apply {
+                // Use VMC SDDC info to create NSX client.
+                nsx = VmcHttpClient.Context(
+                        endpoint = URI(resource_config.nsx_api_public_endpoint_url),
+                        authenticationEndpoint = URI.create(info.authentication.address),
+                        refreshToken = info.authentication.credential.tokenCredential.token,
+                        organization = info.organization,
+                        datacenter = info.datacenter
+                ).let { VmcClient(VmcHttpClient(it, VmcModelSerializer)) }
+
+                // Use VMC SDDC info to create vSphere client.
+                vSphere = VSphereHttpClient.Context(
+                        endpoint = URI(resource_config.vc_url),
+                        username = resource_config.cloud_username,
+                        password = resource_config.cloud_password
+                ).let { VSphereClient(VSphereHttpClient(it, VSphereModelSerializer)) }
+
+                // IPAM service client.
+                ipAllocationService = IPAllocationServiceStub(
+                        info.vsphere.network.allocationServer.newClientRpcChannel(),
+                        CallOptions.DEFAULT
+                )
+            }
+        }
+    }
 
     override fun close() {
         job.cancel()

@@ -68,4 +68,4 @@ EXPOSE 9002
 
 VOLUME ["/config"]
 
-CMD ["java", "-jar", "provisioning-service.jar"]
+CMD ["java", "-jar", "provisioning-service.jar", "-Dkotlinx.coroutines.debug=on"]

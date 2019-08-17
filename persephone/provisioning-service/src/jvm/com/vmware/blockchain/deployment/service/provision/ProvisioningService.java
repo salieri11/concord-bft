@@ -77,6 +77,7 @@ import com.vmware.blockchain.deployment.orchestration.Orchestrator.CreateNetwork
 import com.vmware.blockchain.deployment.orchestration.Orchestrator.NetworkAllocationEvent;
 import com.vmware.blockchain.deployment.orchestration.Orchestrator.NetworkResourceEvent;
 import com.vmware.blockchain.deployment.orchestration.Orchestrator.OrchestrationEvent;
+import com.vmware.blockchain.deployment.orchestration.OrchestratorProvider;
 import com.vmware.blockchain.deployment.reactive.ReactiveStream;
 
 import io.grpc.stub.ServerCallStreamObserver;
@@ -220,9 +221,26 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
             return CompletableFuture.allOf(
                     // Initialize all orchestrator, then on completion insert into orchestrator map.
                     orchestrations.entrySet().stream()
-                            .map(entry -> orchestratorProvider.newOrchestrator(entry.getValue())
-                                    .thenAccept(orchestrator -> orchestrators.put(entry.getKey(),
-                                                                                  orchestrator)))
+                            .map(entry -> {
+                                var orchestrator =
+                                        orchestratorProvider.newOrchestrator(entry.getValue());
+                                return ReactiveStream.toFuture(orchestrator.initialize())
+                                        .thenRun(() -> orchestrators.put(entry.getKey(), orchestrator))
+                                        .whenComplete((result, error) -> {
+                                            if (error != null) {
+                                                log.error(
+                                                        "Orchestrator({}) initialization failure",
+                                                        entry.getKey(),
+                                                        error
+                                                );
+                                            } else {
+                                                log.info(
+                                                        "Orchestrator({}) initialized",
+                                                        entry.getKey()
+                                                );
+                                            }
+                                        });
+                            })
                             .toArray(CompletableFuture[]::new)
             ).thenRunAsync(() -> {
                 // Set instance to ACTIVE state.

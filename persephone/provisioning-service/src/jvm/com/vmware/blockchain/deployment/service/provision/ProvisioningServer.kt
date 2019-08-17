@@ -49,8 +49,8 @@ internal interface ProvisioningServer {
     fun provisioningService(): ProvisioningService
 
     /** Executor service handling inbound network requests. */
-    @Named("rpc-executor")
-    fun rpcExecutorService(): ExecutorService
+    @Named("inbound-request-executor")
+    fun inboundRequestExecutorService(): ExecutorService
 
     @Component.Builder
     interface Builder {
@@ -179,7 +179,7 @@ fun main(args: Array<String>) {
     val server = NettyServerBuilder.forPort(config.port)
             // Use number of cores for a fixed size thread pool.
             // Currently do not account for hyper-threading (i.e. x2). (May need tuning)
-            .executor(provisioningServer.rpcExecutorService())
+            .executor(provisioningServer.inboundRequestExecutorService())
             .addService(ProtoReflectionService.newInstance())
             .addService(provisioningServer.provisioningService())
             .addService(provisioningServer.orchestrationSiteService())

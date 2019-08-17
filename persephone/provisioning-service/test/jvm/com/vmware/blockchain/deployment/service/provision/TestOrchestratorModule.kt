@@ -3,6 +3,7 @@
  * **************************************************************************/
 package com.vmware.blockchain.deployment.service.provision
 
+import com.vmware.blockchain.deployment.orchestration.OrchestratorProvider
 import dagger.Module
 import dagger.Provides
 import javax.inject.Singleton
