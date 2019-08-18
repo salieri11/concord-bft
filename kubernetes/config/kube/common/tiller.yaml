@@ -1,0 +1,34 @@
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1beta1
+metadata:
+  name: tiller-manager
+  namespace: vmbc-prod-saas
+rules:
+- apiGroups: [""]
+  resources: ["pods", "endpoints", "services", "replicationcontrollers", "secrets","configmaps", "persistentvolumeclaims","serviceaccounts"]
+  verbs: ["*"]
+- apiGroups: [""]
+  resources: ["pods/log", "pods/exec", "pods/attach", "pods/portforward"]
+  verbs: ["*"]
+- apiGroups: [""]
+  resources: ["resourcequotas"]
+  verbs: ["get", "watch", "list"]
+- apiGroups: ["apps"]
+  resources: ["deployments", "statefulsets", "daemonsets"]
+  verbs: ["*"]
+- apiGroups: ["extensions"]
+  resources: ["daemonsets", "ingresses", "deployments", "replicasets"]
+  verbs: ["*"]
+- apiGroups: ["batch"]
+  resources: ["jobs", "cronjobs"]
+  verbs: ["*"]
+- apiGroups: ["rbac.authorization.k8s.io"]
+  resources: ["rolebindings", "roles"]
+  verbs: ["*"]
+- apiGroups: ["policy"]
+  resources: ["poddisruptionbudgets"]
+  verbs: ["*"]
+- apiGroups: [""]
+  resources: ["namespaces"]
+  resourceNames: ["vmbc-prod-saas"]
+  verbs: ["get", "watch", "list"]

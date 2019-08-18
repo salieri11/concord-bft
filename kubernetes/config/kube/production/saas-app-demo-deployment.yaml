@@ -1,0 +1,101 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: vmbc
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vmbc
+  template:
+    metadata:
+      labels:
+        app: vmbc
+    spec:
+      imagePullSecrets:
+        - name: bintray
+      hostname: helen
+      hostAliases:
+      - ip: "127.0.0.1"
+        hostnames:
+        - "db-server"
+        - "helen"
+        - "contract-compiler"
+        - "deploymentservice"
+      containers:
+      - name: cockroachdb
+        image: cockroachdb/cockroach:v2.0.2
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 26257
+        command:
+        - /opt/vmbc/helen/entrypoint-persistent-firstboot.sh
+        volumeMounts:
+        - name: helenmap-volume
+          mountPath: /opt/vmbc/helen/
+          readOnly: true
+        - name: datadir
+          mountPath: /opt/cockroach/data/
+        resources:
+          requests:
+            memory: "1024Mi"
+            cpu: "512m"
+          limits:
+            memory: "1024Mi"
+            cpu: "1024m"
+        lifecycle:
+          preStop:
+            exec:
+              command: ["/bin/sh", "-c", "/cockroach/cockroach quit --insecure"]
+      - name: contract-compiler
+        image: vmware-docker-blockchainsaas.bintray.io/contract-compiler:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 3000
+      - name: helen
+        image: vmware-docker-blockchainsaas.bintray.io/helen:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+        volumeMounts:
+        - name: helencontext-volume
+          mountPath: /config/app/profiles/
+          readOnly: true
+      - name: ui
+        image: vmware-docker-blockchainsaas.bintray.io/ui:demo1
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 80
+        volumeMounts:
+        - name: ui-volume
+          mountPath: /usr/share/nginx/html/static/app-config.json
+          subPath: app-config.json
+      - name: fleet-management
+        image: vmware-docker-blockchainsaas.bintray.io/persephone-provisioning:latest
+        ports:
+        - containerPort: 9002
+        imagePullPolicy: Always
+        volumeMounts:
+        - name: fleet-volume
+          mountPath: /config/persephone/provisioning/
+          readOnly: true
+      volumes:
+      - name: datadir
+        persistentVolumeClaim:
+          claimName: cockroach-demo
+      - name: helenmap-volume
+        configMap:
+          name: helendbpersistentfb
+          defaultMode: 0700
+      - name: helencontext-volume
+        configMap:
+          name: helencontext
+          defaultMode: 0700
+      - name: fleet-volume
+        configMap:
+          name: fleetprod-noauth
+          defaultMode: 0700
+      - name: ui-volume
+        configMap:
+          name: uicontext
+          defaultMode: 0755
