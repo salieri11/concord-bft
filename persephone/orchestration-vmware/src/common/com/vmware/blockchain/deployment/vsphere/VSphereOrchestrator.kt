@@ -11,16 +11,18 @@ import com.vmware.blockchain.deployment.model.AllocateAddressResponse
 import com.vmware.blockchain.deployment.model.IPAllocationServiceStub
 import com.vmware.blockchain.deployment.model.IPv4Network
 import com.vmware.blockchain.deployment.model.MessageHeader
+import com.vmware.blockchain.deployment.model.ReleaseAddressRequest
+import com.vmware.blockchain.deployment.model.ReleaseAddressResponse
 import com.vmware.blockchain.deployment.model.VSphereOrchestrationSiteInfo
 import com.vmware.blockchain.deployment.model.core.URI
 import com.vmware.blockchain.deployment.model.core.UUID
 import com.vmware.blockchain.deployment.orchestration.Orchestrator
 import com.vmware.blockchain.deployment.orchestration.toIPv4Address
+import com.vmware.blockchain.deployment.orchestration.vmware.newClientRpcChannel
 import com.vmware.blockchain.deployment.reactive.Publisher
 import com.vmware.blockchain.deployment.vm.CloudInitConfiguration
 import com.vmware.blockchain.grpc.kotlinx.serialization.ChannelStreamObserver
 import io.grpc.CallOptions
-import io.grpc.ManagedChannelBuilder
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -142,7 +144,7 @@ class VSphereOrchestrator constructor(
         request: Orchestrator.DeleteComputeResourceRequest
     ): Publisher<Orchestrator.ComputeResourceEvent> {
         @Suppress("DuplicatedCode")
-        return publish<Orchestrator.ComputeResourceEvent>(coroutineContext) {
+        return publish(coroutineContext) {
             withTimeout(ORCHESTRATOR_TIMEOUT_MILLIS) {
                 try {
                     // Retrieve only the last portion of the URI to get the VM ID.
@@ -152,7 +154,9 @@ class VSphereOrchestrator constructor(
                     vSphere.ensureVirtualMachinePowerStop(id).takeIf { it }
                             ?.run { vSphere.deleteVirtualMachine(id) }?.takeIf { it }
                             ?.run {
-                                send(Orchestrator.ComputeResourceEvent.Deleted(request.resource))
+                                val event: Orchestrator.ComputeResourceEvent =
+                                        Orchestrator.ComputeResourceEvent.Deleted(request.resource)
+                                send(event)
                             }
                             ?: close(Orchestrator.ResourceDeletionFailedException(request))
                 } catch (error: CancellationException) {
@@ -167,26 +171,22 @@ class VSphereOrchestrator constructor(
     ): Publisher<Orchestrator.NetworkResourceEvent> {
         val network = info.vsphere.network
 
-        return publish<Orchestrator.NetworkResourceEvent>(coroutineContext) {
+        return publish(coroutineContext) {
             withTimeout(ORCHESTRATOR_TIMEOUT_MILLIS) {
-                // send(Orchestrator.NetworkResourceEvent.Created(
-                //         URI.create(network.allocator.address + "/" + "FIXED"),
-                //         request.name,
-                //         "127.0.0.1",
-                //         false
-                // ))
                 val privateIpAddress = allocatedPrivateIP(network)
                 privateIpAddress
                         ?.apply {
-                            send(Orchestrator.NetworkResourceEvent.Created(
-                                    URI.create("${network.allocationServer.address}/$name"),
-                                    request.name,
-                                    privateIpAddress.value.toIPv4Address(),
-                                    false))
+                            log.info { "Assigned private IP($privateIpAddress)" }
+
+                            val event: Orchestrator.NetworkResourceEvent =
+                                    Orchestrator.NetworkResourceEvent.Created(
+                                            URI.create("//${network.allocationServer.address}/$name"),
+                                            request.name,
+                                            privateIpAddress.value.toIPv4Address(),
+                                            false)
+                            send(event)
                         }
                         ?: close(Orchestrator.ResourceCreationFailedException(request))
-
-                log.info { "Assigned private IP($privateIpAddress)" }
             }
         }
     }
@@ -194,8 +194,24 @@ class VSphereOrchestrator constructor(
     override fun deleteNetworkAddress(
         request: Orchestrator.DeleteNetworkResourceRequest
     ): Publisher<Orchestrator.NetworkResourceEvent> {
+        val network = info.vsphere.network
+
         return publish(coroutineContext) {
             withTimeout(ORCHESTRATOR_TIMEOUT_MILLIS) {
+                try {
+                    val released = releasePrivateIP(network, request.resource)
+                    if (released) {
+                        log.info { "Released private IP resource(${request.resource})" }
+
+                        val event: Orchestrator.NetworkResourceEvent =
+                                Orchestrator.NetworkResourceEvent.Deleted(request.resource)
+                        send(event)
+                    } else {
+                        close(Orchestrator.ResourceDeletionFailedException(request))
+                    }
+                } catch (error: CancellationException) {
+                    close(Orchestrator.ResourceDeletionFailedException(request))
+                }
             }
         }
     }
@@ -223,7 +239,10 @@ class VSphereOrchestrator constructor(
     }
 
     /**
-     * Allocate a new private IP address for use from IP allocation service.
+     * Allocate a new private IP address for use from a given [IPv4Network].
+     *
+     * @param[network]
+     *   network to allocate IP address resource from.
      *
      * @return
      *   allocated IP address resource as a instance of [Address], if created, `null` otherwise.
@@ -238,9 +257,7 @@ class VSphereOrchestrator constructor(
 
         // IP allocation service client.
         val ipAllocation = IPAllocationServiceStub(
-                ManagedChannelBuilder.forTarget(network.allocationServer.address)
-                        .usePlaintext()
-                        .build(),
+                network.allocationServer.newClientRpcChannel(),
                 CallOptions.DEFAULT
         )
         ipAllocation.allocateAddress(requestAllocateAddress, observer)
@@ -249,5 +266,33 @@ class VSphereOrchestrator constructor(
         return response
                 .takeIf { it.status == AllocateAddressResponse.Status.OK }
                 ?.let { it.address }
+    }
+
+    /**
+     * Release an IP address resource from a given [IPv4Network].
+     *
+     * @param[network]
+     *   network to release IP address resource from.
+     * @param[resource]
+     *   URI of the resource to be released.
+     *
+     * @return
+     *   `true` if resource is successfully released, `false` otherwise.
+     */
+    private suspend fun releasePrivateIP(network: IPv4Network, resource: URI): Boolean {
+        val observer = ChannelStreamObserver<ReleaseAddressResponse>(1)
+        val requestAllocateAddress = ReleaseAddressRequest(
+                header = MessageHeader(),
+                name = resource.path.removePrefix("/")
+        )
+
+        // IP allocation service client.
+        val ipAllocation = IPAllocationServiceStub(
+                network.allocationServer.newClientRpcChannel(),
+                CallOptions.DEFAULT
+        )
+        ipAllocation.releaseAddress(requestAllocateAddress, observer)
+
+        return observer.asReceiveChannel().receive().status == ReleaseAddressResponse.Status.OK
     }
 }

@@ -246,7 +246,7 @@ class VmcOrchestrator(
                                 log.info { "Created private IP($privateIpAddress)" }
 
                                 send(Orchestrator.NetworkResourceEvent.Created(
-                                        URI.create("${network.allocationServer.address}/$name"),
+                                        URI.create("//${network.allocationServer.address}/$name"),
                                         request.name,
                                         privateIpAddress.value.toIPv4Address(),
                                         false))
@@ -286,15 +286,17 @@ class VmcOrchestrator(
     ): Publisher<Orchestrator.NetworkResourceEvent> {
         return publish<Orchestrator.NetworkResourceEvent>(coroutineContext) {
             withTimeout(ORCHESTRATOR_TIMEOUT_MILLIS) {
-                // TODO: Evaluate the need to have a dedicated event handling for private IPs.
-                if (request.resource.toString().contains(IPAM_RESOURCE_NAME_PREFIX)) {
+                // FIXME:
+                //   The orchestrator should group all the resource providers via its authority.
+                //   During resource event emission, the authority (i.e. <scheme>://<authority>/...)
+                //   should determine "how" and "who" to contact to release the resource, be it
+                //   VC, nsx, or IPAM.
+                if (request.resource.scheme == null) {
                     try {
                         val observer = ChannelStreamObserver<ReleaseAddressResponse>(1)
-                        val resourceId = request.resource.toString()
-                                .substringAfter(IPAM_RESOURCE_NAME_PREFIX)
                         val requestAllocateAddress = ReleaseAddressRequest(
                                 header = MessageHeader(),
-                                name = IPAM_RESOURCE_NAME_PREFIX + resourceId
+                                name = request.resource.path.removePrefix("/")
                         )
                         ipAllocationService.releaseAddress(requestAllocateAddress, observer)
 
