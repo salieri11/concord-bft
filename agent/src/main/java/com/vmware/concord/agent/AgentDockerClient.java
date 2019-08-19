@@ -36,6 +36,7 @@ import com.vmware.blockchain.deployment.model.ConfigurationSessionIdentifier;
 import com.vmware.blockchain.deployment.model.MessageHeader;
 import com.vmware.blockchain.deployment.model.NodeConfigurationRequest;
 import com.vmware.blockchain.deployment.model.NodeConfigurationResponse;
+import com.vmware.blockchain.deployment.model.TransportSecurity;
 
 import io.grpc.CallOptions;
 import io.grpc.ManagedChannelBuilder;
@@ -122,8 +123,23 @@ final class AgentDockerClient {
     AgentDockerClient(ConcordAgentConfiguration configuration) {
         this.configuration = configuration;
 
-        var channel = ManagedChannelBuilder.forTarget(configuration.getConfigService().getAddress()).build();
-        this.configurationService = new ConfigurationServiceStub(channel, CallOptions.DEFAULT);
+        if (configuration.getConfigService().getTransportSecurity().getType()
+                == TransportSecurity.Type.NONE) {
+            this.configurationService = new ConfigurationServiceStub(
+                    ManagedChannelBuilder
+                            .forTarget(configuration.getConfigService().getAddress())
+                            .usePlaintext()
+                            .build(),
+                    CallOptions.DEFAULT
+            );
+        } else {
+            this.configurationService = new ConfigurationServiceStub(
+                    ManagedChannelBuilder
+                            .forTarget(configuration.getConfigService().getAddress())
+                            .build(),
+                    CallOptions.DEFAULT
+            );
+        }
     }
 
 
@@ -196,7 +212,7 @@ final class AgentDockerClient {
         // Pull and order images
         List<ContainerConfig> containerConfigList = pullImages();
 
-        Collections.sort(containerConfigList, Comparator.comparingInt(ContainerConfig::ordinal));
+        containerConfigList.sort(Comparator.comparingInt(ContainerConfig::ordinal));
 
         var dockerClient = DockerClientBuilder.getInstance().build();
         containerConfigList.forEach(container -> launchContainer(dockerClient, container));
@@ -218,7 +234,7 @@ final class AgentDockerClient {
             }
         }
 
-        return CompletableFuture.allOf(futures.stream().toArray(CompletableFuture[]::new))
+        return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
                 .thenApply((res) -> futures.stream()
                 .map(CompletableFuture::join)
                 .collect(Collectors.toList())).join();
