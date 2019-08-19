@@ -34,6 +34,8 @@ import com.digitalasset.ledger.api.domain.PartyDetails
 import com.digitalasset.ledger.api.v1.admin.party_management_service.AllocatePartyResponse
 import com.google.protobuf.ByteString
 
+import io.grpc.ConnectivityState
+
 /**
  * DAML Participant State implementation on top of VMware Blockchain.
  */
@@ -66,6 +68,12 @@ class KVBCParticipantState(
 
   private val logger = LoggerFactory.getLogger(this.getClass)
   val client = KVBCClient(host, port)
+
+  // Make sure the server is ready to receive requests
+  while(client.channel.getState(true) != ConnectivityState.READY) {
+      logger.info("Waiting for Concord to be ready")
+      Thread.sleep(1000)
+  }
 
   /** Allocate a party on the ledger */
   override def allocateParty(
