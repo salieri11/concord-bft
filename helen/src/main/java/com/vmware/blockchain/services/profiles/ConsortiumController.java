@@ -112,6 +112,11 @@ public class ConsortiumController {
     @RequestMapping(path = "/api/consortiums", method = RequestMethod.POST)
     @PreAuthorize("@authHelper.isConsortiumAdmin()")
     public ResponseEntity<ConGetResponse> createCon(@RequestBody ConPostBody body) {
+        // VB-994: Able to create consortia with missing and empty names.
+        if (body.consortiumName == null || body.consortiumName.isBlank()) {
+            throw new BadRequestException(ErrorCode.BAD_REQUEST);
+        }
+
         Consortium consortium = new Consortium(body.getConsortiumName(),
                                                "default", authHelper.getOrganizationId());
         consortium = consortiumService.put(consortium);
@@ -133,6 +138,9 @@ public class ConsortiumController {
                                                     @RequestBody ConPatchBody body) {
         Consortium consortium = consortiumService.get(consortiumId);
         if (body.consortiumName != null) {
+            if (body.consortiumName.isBlank()) {
+                throw new BadRequestException(ErrorCode.BAD_REQUEST);
+            }
             consortium.setConsortiumName(body.getConsortiumName());
             consortium = consortiumService.put(consortium);
         }
