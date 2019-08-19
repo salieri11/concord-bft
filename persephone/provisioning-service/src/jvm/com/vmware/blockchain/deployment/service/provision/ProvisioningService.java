@@ -27,6 +27,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -48,7 +49,6 @@ import com.vmware.blockchain.deployment.model.ConfigurationServiceRequest;
 import com.vmware.blockchain.deployment.model.ConfigurationServiceStub;
 import com.vmware.blockchain.deployment.model.ConfigurationSessionIdentifier;
 import com.vmware.blockchain.deployment.model.CreateClusterRequest;
-import com.vmware.blockchain.deployment.model.Credential;
 import com.vmware.blockchain.deployment.model.DeploymentSession;
 import com.vmware.blockchain.deployment.model.DeploymentSessionEvent;
 import com.vmware.blockchain.deployment.model.DeploymentSessionIdentifier;
@@ -64,7 +64,6 @@ import com.vmware.blockchain.deployment.model.ProvisionedResource;
 import com.vmware.blockchain.deployment.model.ProvisioningServiceImplBase;
 import com.vmware.blockchain.deployment.model.StreamAllClusterDeploymentSessionEventRequest;
 import com.vmware.blockchain.deployment.model.StreamClusterDeploymentSessionEventRequest;
-import com.vmware.blockchain.deployment.model.TransportSecurity;
 import com.vmware.blockchain.deployment.model.UpdateDeploymentSessionRequest;
 import com.vmware.blockchain.deployment.model.UpdateDeploymentSessionResponse;
 import com.vmware.blockchain.deployment.model.ethereum.Genesis;
@@ -78,6 +77,7 @@ import com.vmware.blockchain.deployment.orchestration.Orchestrator.NetworkAlloca
 import com.vmware.blockchain.deployment.orchestration.Orchestrator.NetworkResourceEvent;
 import com.vmware.blockchain.deployment.orchestration.Orchestrator.OrchestrationEvent;
 import com.vmware.blockchain.deployment.orchestration.OrchestratorProvider;
+import com.vmware.blockchain.deployment.orchestration.vmware.GrpcSupportKt;
 import com.vmware.blockchain.deployment.reactive.ReactiveStream;
 
 import io.grpc.stub.ServerCallStreamObserver;
@@ -118,6 +118,12 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
     /** Orchestrator pool to utilize for orchestration operations. */
     private final Map<OrchestrationSiteIdentifier, OrchestrationSiteInfo> orchestrations;
 
+    /** Configuration server endpoint. */
+    private final Endpoint configurationService;
+
+    /** Configuration service client stub provider function. */
+    private final Function<Endpoint, ConfigurationServiceStub> configurationServiceClientProvider;
+
     /** Orchestrator pool to utilize for orchestration operations. */
     private final Map<OrchestrationSiteIdentifier, Orchestrator> orchestrators =
             new ConcurrentHashMap<>();
@@ -131,19 +137,21 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
             new CopyOnWriteArrayList<>();
 
     /** Queue for all deployment session events. */
-    private static final ConcurrentLinkedQueue<DeploymentSessionEvent> eventQueue = new ConcurrentLinkedQueue<>();
+    private static final ConcurrentLinkedQueue<DeploymentSessionEvent> eventQueue =
+            new ConcurrentLinkedQueue<>();
 
     /** Background thread executor. */
-    private static final ScheduledExecutorService backgroundExecutor = Executors.newSingleThreadScheduledExecutor();
+    private static final ScheduledExecutorService backgroundExecutor =
+            Executors.newSingleThreadScheduledExecutor();
 
     /** Background task future. */
-    private ScheduledFuture<?> backgroundTask;
+    private ScheduledFuture<?> eventEmitter;
 
     /** Configuration service client. */
-    private ConfigurationServiceStub configService;
+    private ConfigurationServiceStub configurationServiceClient;
 
-    /** Configuration service endpoint. */
-    private Endpoint configServiceEndpoint;
+    /** Resolved configuration server endpoint. */
+    private Endpoint resolvedConfigurationService;
 
     /** Map of concord node identifiers vs concord identifier as provided. */
     // FIXME: This should not be required once concord gives a provision to define names
@@ -156,18 +164,15 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
             ExecutorService executor,
             OrchestratorProvider orchestratorProvider,
             List<OrchestrationSite> orchestrations,
-            ConfigurationServiceStub configService
+            Function<Endpoint, ConfigurationServiceStub> configurationServiceClientProvider,
+            Endpoint configurationService
     ) {
         this.executor = executor;
         this.orchestratorProvider = orchestratorProvider;
         this.orchestrations = orchestrations.stream()
                 .collect(Collectors.toMap(OrchestrationSite::getId, OrchestrationSite::getInfo));
-        this.configService = configService;
-        this.configServiceEndpoint = new Endpoint(
-                configService.getChannel().authority(),
-                Credential.Companion.getDefaultValue(),
-                TransportSecurity.Companion.getDefaultValue()
-        );
+        this.configurationServiceClientProvider = configurationServiceClientProvider;
+        this.configurationService = configurationService;
     }
 
     /**
@@ -178,47 +183,8 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
      */
     CompletableFuture<Void> initialize() {
         if (STATE.compareAndSet(this, State.STOPPED, State.INITIALIZING)) {
-
-            //Create background tasks
-            // Continuous polling of events happen, given out to observers whenever available
-            Runnable task = () -> {
-                if (eventQueue.size() > 0 && !eventsObserver.isEmpty()) {
-                    DeploymentSessionEvent event = eventQueue.poll();
-                    List<Map.Entry<StreamObserver, Exception>> cleanupList = new ArrayList<>();
-                    eventsObserver.forEach(observer -> {
-                        try {
-                            ServerCallStreamObserver callStreamObs = (ServerCallStreamObserver) observer;
-                            if (callStreamObs.isCancelled()) {
-                                log.info("streamObserver ({}) cancelled", observer);
-                                cleanupList.add(Map.entry(observer, new Exception("Observer connection lost")));
-                            } else {
-                                log.info("sending ({}) to streamObserver ({})", event, observer.toString());
-                                observer.onNext(event);
-                            }
-                        } catch (Exception e) {
-                            log.info("Observer ({}) had error {}", observer, e);
-                            cleanupList.add(Map.entry(observer, e));
-                        }
-                    });
-
-                    if (!cleanupList.isEmpty()) {
-                        cleanupList.forEach(cleanObs -> {
-                            try {
-                                var obs = cleanObs.getKey();
-                                log.info("Removing observer: {} from list", obs);
-                                eventsObserver.remove(obs);
-                                obs.onError(cleanObs.getValue());
-                            } catch (Exception e) {
-                                log.error("Error sending Error message to observer ({}). Original Exception: {}."
-                                        + " Exception: {}", cleanObs.getKey(), cleanObs.getValue(), e);
-                            }
-                        });
-                    }
-                }
-            };
-
             // Spawn off sub-tasks to async-create the orchestrator instances.
-            return CompletableFuture.allOf(
+            var initializeOrchestrators = CompletableFuture.allOf(
                     // Initialize all orchestrator, then on completion insert into orchestrator map.
                     orchestrations.entrySet().stream()
                             .map(entry -> {
@@ -242,15 +208,30 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
                                         });
                             })
                             .toArray(CompletableFuture[]::new)
+            );
+
+            var initializeConfigurationServiceClient = CompletableFuture.runAsync(() -> {
+                // Note: GrpcSupport is currently exported from orchestration-vmware library module.
+                // This will need to be moved to a more common hosting library.
+                resolvedConfigurationService =
+                        GrpcSupportKt.resolveTransportSecurityServerSetting(configurationService);
+                configurationServiceClient =
+                        configurationServiceClientProvider.apply(resolvedConfigurationService);
+            }, executor);
+
+            // Continuous polling of events happen, given out to observers whenever available.
+            eventEmitter = backgroundExecutor
+                    .scheduleAtFixedRate(this::emitQueueEvents, 10, 1, TimeUnit.SECONDS);
+            log.info("Background task scheduled to run at 1 second interval after 10sec of initial wait.");
+
+            return CompletableFuture.allOf(
+                    initializeOrchestrators,
+                    initializeConfigurationServiceClient
             ).thenRunAsync(() -> {
-                // Set instance to ACTIVE state.
+                /* Set instance to ACTIVE state.*/
                 STATE.set(this, State.ACTIVE);
 
                 log.info("Service instance initialized");
-            }).thenRunAsync(() -> {
-                backgroundTask = backgroundExecutor
-                        .scheduleAtFixedRate(task, 10, 1, TimeUnit.SECONDS);
-                log.info("Background task scheduled to run at 1 second interval after 10sec of initial wait.");
             }, executor);
         } else {
             return CompletableFuture.failedFuture(
@@ -282,7 +263,7 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
 
                 // background task shutdown
                 log.info("Background tasks shutting down");
-                backgroundTask.cancel(false);
+                eventEmitter.cancel(false);
                 backgroundExecutor.shutdown();
 
                 // Set instance to STOPPED state.
@@ -453,6 +434,45 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
     }
 
     /**
+     * Emits any queued events to active observers.
+     */
+    private void emitQueueEvents() {
+        if (eventQueue.size() > 0 && !eventsObserver.isEmpty()) {
+            DeploymentSessionEvent event = eventQueue.poll();
+            List<Map.Entry<StreamObserver, Exception>> cleanupList = new ArrayList<>();
+            eventsObserver.forEach(observer -> {
+                try {
+                    ServerCallStreamObserver callStreamObs = (ServerCallStreamObserver) observer;
+                    if (callStreamObs.isCancelled()) {
+                        log.info("streamObserver ({}) cancelled", observer);
+                        cleanupList.add(Map.entry(observer, new Exception("Observer connection lost")));
+                    } else {
+                        log.info("sending ({}) to streamObserver ({})", event, observer.toString());
+                        observer.onNext(event);
+                    }
+                } catch (Exception e) {
+                    log.info("Observer ({}) had error {}", observer, e);
+                    cleanupList.add(Map.entry(observer, e));
+                }
+            });
+
+            if (!cleanupList.isEmpty()) {
+                cleanupList.forEach(cleanObs -> {
+                    try {
+                        var obs = cleanObs.getKey();
+                        log.info("Removing observer: {} from list", obs);
+                        eventsObserver.remove(obs);
+                        obs.onError(cleanObs.getValue());
+                    } catch (Exception e) {
+                        log.error("Error sending Error message to observer ({}). Original Exception: {}."
+                                          + " Exception: {}", cleanObs.getKey(), cleanObs.getValue(), e);
+                    }
+                });
+            }
+        }
+    }
+
+    /**
      * Create a placement resolution for a given {@link DeploymentSpecification} such that all
      * placement entries have a specific designated orchestration site target.
      *
@@ -503,7 +523,7 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
                 nodeIps, blockchainType.name());
 
         var promise = new CompletableFuture<ConfigurationSessionIdentifier>();
-        configService.createConfiguration(request, newResultObserver(promise));
+        configurationServiceClient.createConfiguration(request, newResultObserver(promise));
         return promise;
     }
 
@@ -867,7 +887,7 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
                 networkResourceEvent.getAddress(),
                 configGenId,
                 concordIdentifierMap.get(nodeId),
-                configServiceEndpoint
+                resolvedConfigurationService
         );
         return orchestrator.createDeployment(computeRequest);
     }

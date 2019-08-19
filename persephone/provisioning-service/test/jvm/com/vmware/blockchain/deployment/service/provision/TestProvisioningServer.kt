@@ -15,6 +15,7 @@ import com.vmware.blockchain.deployment.service.orchestrationsite.OrchestrationS
 import com.vmware.blockchain.deployment.service.orchestrationsite.OrchestrationSiteServiceModule
 import dagger.BindsInstance
 import dagger.Component
+import io.grpc.Server
 import javax.inject.Singleton
 
 /**
@@ -34,6 +35,9 @@ interface TestProvisioningServer {
 
     /** Singleton service instance for provisioning Concord clusters.  */
     fun provisionService(): ProvisioningService
+
+    /** Singleton server instance hosting a test configuration service instance. */
+    fun configurationServiceServer(): Server
 
     /**
      * Builder class for testing.
