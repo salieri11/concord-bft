@@ -3106,7 +3106,7 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "status_time_interval",
       "Time interval, measured in milliseconds, at which each Concord replica "
       "should send its status to the others.",
-      "3000");
+      "10000");
   config.tagParameter("status_time_interval", defaultableByUtilityTags);
   config.addValidator(
       "status_time_interval", validateUInt,
@@ -3134,7 +3134,7 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "view_change_timeout",
       "Timeout, measured in milliseconds, after which Concord-BFT will attempt "
       "an SBFT view change if not enough replicas are responding.",
-      "20000");
+      "60000");
   config.tagParameter("view_change_timeout", defaultableByUtilityTags);
   config.addValidator(
       "view_change_timeout", validateUInt,
