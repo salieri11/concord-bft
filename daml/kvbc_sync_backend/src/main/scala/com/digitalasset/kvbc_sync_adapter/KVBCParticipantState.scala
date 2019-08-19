@@ -88,10 +88,21 @@ class KVBCParticipantState(
 
     //Since the gRPC layer below is synchronous, it is not necessary to memorize the submissionId
     val submissionId: String = UUID.randomUUID.toString
-    val submission = KeyValueSubmission.packDamlSubmission(
+    val submission: DamlKvutils.DamlSubmission =
       KeyValueSubmission.partyToSubmission(submissionId, Some(party), displayName, participantId)
+
+    val inputLogEntryKeys =
+      submission.getInputLogEntriesList.asScala.map((e: DamlKvutils.DamlLogEntryId) => KVKey(e.getEntryId))
+
+    val inputStateKeys =
+      submission.getInputDamlStateList.asScala.map((k: DamlKvutils.DamlStateKey) => KVKey(KeyValueCommitting.packDamlStateKey(k)))
+
+    val commitReq = CommitRequest(
+      submission = KeyValueSubmission.packDamlSubmission(submission),
+      inputLogEntries = inputLogEntryKeys,
+      inputState = inputStateKeys
     )
-    val commitReq = CommitRequest(submission)
+    
     client
       .commitTransaction(commitReq)
       .toJava.toCompletableFuture
