@@ -2908,6 +2908,9 @@ void specifyConfiguration(ConcordConfiguration& config) {
   vector<string> publicOptionalTags({"optional", "public"});
   vector<string> publicDefaultableTags({"defaultable", "public"});
 
+  // Global optional config values
+  vector<string> optionalTags({"optional"});
+
   // Parameter declarations
   config.declareParameter("client_proxies_per_replica",
                           "The number of SBFT client proxies to create on each "
@@ -2953,33 +2956,29 @@ void specifyConfiguration(ConcordConfiguration& config) {
   // TODO: The following parameters should be completely optional because
   // its default values are within concord-bft
   config.declareParameter("concord-bft_max_external_message_size",
-                          "Maximum external message size", "0");
-  config.tagParameter("concord-bft_max_external_message_size",
-                      defaultableByUtilityTags);
+                          "Maximum external message size");
+  config.tagParameter("concord-bft_max_external_message_size", optionalTags);
   config.addValidator(
       "concord-bft_max_external_message_size", validateUInt,
       const_cast<void*>(reinterpret_cast<const void*>(&kUInt32Limits)));
 
   config.declareParameter("concord-bft_max_reply_message_size",
-                          "Maximum reply message size", "0");
-  config.tagParameter("concord-bft_max_reply_message_size",
-                      defaultableByUtilityTags);
+                          "Maximum reply message size");
+  config.tagParameter("concord-bft_max_reply_message_size", optionalTags);
   config.addValidator(
       "concord-bft_max_reply_message_size", validateUInt,
       const_cast<void*>(reinterpret_cast<const void*>(&kUInt32Limits)));
 
   config.declareParameter("concord-bft_max_num_of_reserved_pages",
-                          "Maximum number of reserved pages", "0");
-  config.tagParameter("concord-bft_max_num_of_reserved_pages",
-                      defaultableByUtilityTags);
+                          "Maximum number of reserved pages");
+  config.tagParameter("concord-bft_max_num_of_reserved_pages", optionalTags);
   config.addValidator(
       "concord-bft_max_num_of_reserved_pages", validateUInt,
       const_cast<void*>(reinterpret_cast<const void*>(&kUInt32Limits)));
 
   config.declareParameter("concord-bft_size_of_reserved_page",
-                          "Size of a reserved page", "0");
-  config.tagParameter("concord-bft_size_of_reserved_page",
-                      defaultableByUtilityTags);
+                          "Size of a reserved page");
+  config.tagParameter("concord-bft_size_of_reserved_page", optionalTags);
   config.addValidator(
       "concord-bft_size_of_reserved_page", validateUInt,
       const_cast<void*>(reinterpret_cast<const void*>(&kUInt32Limits)));
