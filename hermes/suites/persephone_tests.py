@@ -497,13 +497,20 @@ class PersephoneTests(test_suite.TestSuite):
                         if count == max_tries:
                            log.info("SSH output: {}".format(ssh_output))
                            log.error(
-                              "Container {} not up and running on node '{}'".format(
+                              "Container '{}' not up and running on node '{}'".format(
                                  container_name, concord_ip))
+
+                           # Preserving Env to DEBUG VB-1497
+                           log.info(
+                              "Adding Session ID to preserve list: \n{}".format(
+                                 session_id))
+                           self.session_ids_to_retain.append(session_id)
+                           
                            return (False,
                                    "Not all containers are up and running on node")
                         else:
                            log.warning(
-                              "Container {} not up and running on node '{}'".format(
+                              "Container '{}' not up and running on node '{}'".format(
                                  container_name, concord_ip))
                            time.sleep(2)
                            break
