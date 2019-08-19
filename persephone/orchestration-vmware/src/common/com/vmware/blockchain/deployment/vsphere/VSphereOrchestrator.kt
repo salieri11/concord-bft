@@ -49,6 +49,12 @@ class VSphereOrchestrator constructor(
     private val context: CoroutineContext = Dispatchers.Default
 ) : Orchestrator, CoroutineScope {
 
+    /**
+     * Mappings of [IPv4Network] name to service's client stub. (name corresponds to the specified
+     * network names in `vsphere` property within [info].
+     */
+    private lateinit var networkAddressAllocationServers: Map<String, IPAllocationServiceStub>
+
     companion object {
         /** Default maximum orchestrator operation timeout value. */
         const val ORCHESTRATOR_TIMEOUT_MILLIS = 60000L * 10
@@ -69,6 +75,22 @@ class VSphereOrchestrator constructor(
 
     /** Parent [Job] of all coroutines associated with this instance's operation. */
     private val job: Job = SupervisorJob()
+
+    override fun initialize(): Publisher<Any> {
+        return publish {
+            // There is only the default network right now. When more networks are introduced
+            // (to be allocated for provisioned nodes as network interfaces), the mapping will
+            // contain more than one entry.
+            networkAddressAllocationServers = mapOf(
+                    info.vsphere.network.let {
+                        it.name to IPAllocationServiceStub(
+                                it.allocationServer.newClientRpcChannel(),
+                                CallOptions.DEFAULT
+                        )
+                    }
+            )
+        }
+    }
 
     override fun close() {
         job.cancel()
@@ -247,6 +269,7 @@ class VSphereOrchestrator constructor(
      * @return
      *   allocated IP address resource as a instance of [Address], if created, `null` otherwise.
      */
+    @Suppress("DuplicatedCode")
     private suspend fun allocatedPrivateIP(network: IPv4Network): Address? {
         val requestAllocateAddress = AllocateAddressRequest(
                 header = MessageHeader(),
@@ -254,13 +277,8 @@ class VSphereOrchestrator constructor(
         )
 
         val observer = ChannelStreamObserver<AllocateAddressResponse>(1)
-
-        // IP allocation service client.
-        val ipAllocation = IPAllocationServiceStub(
-                network.allocationServer.newClientRpcChannel(),
-                CallOptions.DEFAULT
-        )
-        ipAllocation.allocateAddress(requestAllocateAddress, observer)
+        val ipAllocationService = requireNotNull(networkAddressAllocationServers[network.name])
+        ipAllocationService.allocateAddress(requestAllocateAddress, observer)
         val response = observer.asReceiveChannel().receive()
 
         return response
@@ -279,6 +297,7 @@ class VSphereOrchestrator constructor(
      * @return
      *   `true` if resource is successfully released, `false` otherwise.
      */
+    @Suppress("DuplicatedCode")
     private suspend fun releasePrivateIP(network: IPv4Network, resource: URI): Boolean {
         val observer = ChannelStreamObserver<ReleaseAddressResponse>(1)
         val requestAllocateAddress = ReleaseAddressRequest(
@@ -287,11 +306,8 @@ class VSphereOrchestrator constructor(
         )
 
         // IP allocation service client.
-        val ipAllocation = IPAllocationServiceStub(
-                network.allocationServer.newClientRpcChannel(),
-                CallOptions.DEFAULT
-        )
-        ipAllocation.releaseAddress(requestAllocateAddress, observer)
+        val ipAllocationService = requireNotNull(networkAddressAllocationServers[network.name])
+        ipAllocationService.releaseAddress(requestAllocateAddress, observer)
 
         return observer.asReceiveChannel().receive().status == ReleaseAddressResponse.Status.OK
     }

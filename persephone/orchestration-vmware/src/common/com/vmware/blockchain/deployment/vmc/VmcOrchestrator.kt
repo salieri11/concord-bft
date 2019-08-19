@@ -47,7 +47,7 @@ import kotlin.coroutines.CoroutineContext
  *
  * @property[info]
  *   environment context describing the target orchestration site environment.
- * @param[vmc]
+ * @property[vmc]
  *   VMware Cloud API client handle.
  * @property[context]
  *   coroutine execution context for coroutines launched by this instance.
@@ -64,8 +64,11 @@ class VmcOrchestrator(
     /** vSphere Client to utilize to exact orchestration actions. */
     private lateinit var nsx: VmcClient
 
-    /** IP allocation service client to request for static IPs. */
-    private lateinit var ipAllocationService: IPAllocationServiceStub
+    /**
+     * Mappings of [IPv4Network] name to service's client stub. (name corresponds to the specified
+     * network names in `vsphere` property within [info].
+     */
+    private lateinit var networkAddressAllocationServers: Map<String, IPAllocationServiceStub>
 
     /**
      * Global singleton companion to [VmcOrchestrator] that also provides a global-scoped process-
@@ -112,10 +115,16 @@ class VmcOrchestrator(
                         password = resource_config.cloud_password
                 ).let { VSphereClient(VSphereHttpClient(it, VSphereModelSerializer)) }
 
-                // IPAM service client.
-                ipAllocationService = IPAllocationServiceStub(
-                        info.vsphere.network.allocationServer.newClientRpcChannel(),
-                        CallOptions.DEFAULT
+                // There is only the default network right now. When more networks are introduced
+                // (to be allocated for provisioned nodes as network interfaces), the mapping will
+                // contain more than one entry.
+                networkAddressAllocationServers = mapOf(
+                        info.vsphere.network.let {
+                            it.name to IPAllocationServiceStub(
+                                    it.allocationServer.newClientRpcChannel(),
+                                    CallOptions.DEFAULT
+                            )
+                        }
                 )
             }
         }
@@ -236,10 +245,6 @@ class VmcOrchestrator(
         return publish<Orchestrator.NetworkResourceEvent>(coroutineContext) {
             withTimeout(ORCHESTRATOR_TIMEOUT_MILLIS) {
                 try {
-                     // FIXME: Workaround to allow Concord to communicate via private IP instead of
-                     // public IP. Remove this once VMC networking allows hair-pinned NAT traffic
-                     // using VM's public IP address.
-
                     val privateIpAddress = allocatedPrivateIP(network)
                     privateIpAddress
                             ?.apply {
@@ -253,11 +258,10 @@ class VmcOrchestrator(
                             }
                             ?: close(Orchestrator.ResourceCreationFailedException(request))
 
-
-                    val publicIp = nsx.createPublicIP(request.name)
-                    publicIp?.takeIf { it.ip != null }
+                    val publicIpAddress = nsx.createPublicIP(request.name)
+                    publicIpAddress?.takeIf { it.ip != null }
                             ?.apply {
-                                log.info { "Created public IP(${publicIp.ip})" }
+                                log.info { "Created public IP(${publicIpAddress.ip})" }
 
                                 send(Orchestrator.NetworkResourceEvent.Created(
                                         this.toNetworkResource(),
@@ -284,42 +288,33 @@ class VmcOrchestrator(
     override fun deleteNetworkAddress(
         request: Orchestrator.DeleteNetworkResourceRequest
     ): Publisher<Orchestrator.NetworkResourceEvent> {
+        val network = info.vsphere.network
+
         return publish<Orchestrator.NetworkResourceEvent>(coroutineContext) {
             withTimeout(ORCHESTRATOR_TIMEOUT_MILLIS) {
-                // FIXME:
-                //   The orchestrator should group all the resource providers via its authority.
-                //   During resource event emission, the authority (i.e. <scheme>://<authority>/...)
-                //   should determine "how" and "who" to contact to release the resource, be it
-                //   VC, nsx, or IPAM.
-                if (request.resource.scheme == null) {
-                    try {
-                        val observer = ChannelStreamObserver<ReleaseAddressResponse>(1)
-                        val requestAllocateAddress = ReleaseAddressRequest(
-                                header = MessageHeader(),
-                                name = request.resource.path.removePrefix("/")
-                        )
-                        ipAllocationService.releaseAddress(requestAllocateAddress, observer)
-
-                        observer.asReceiveChannel().receive()
-                                .takeIf { it.status == ReleaseAddressResponse.Status.OK }
+                try {
+                    // FIXME:
+                    //   The orchestrator should group all the resource providers via its authority.
+                    //   During resource event emission, the authority
+                    //   (i.e. <scheme>://<authority>/...)
+                    //   should determine "how" and "who" to contact to release the resource, be it
+                    //   VC, nsx, or IPAM.
+                    if (request.resource.scheme == null) {
+                        releasePrivateIP(network, request.resource).takeIf { it }
                                 ?.run {
                                     send(Orchestrator.NetworkResourceEvent.Deleted(request.resource))
                                 }
                                 ?: close(Orchestrator.ResourceDeletionFailedException(request))
-                    } catch (error: Exception) {
-                        close(Orchestrator.ResourceDeletionFailedException(request))
-                    }
-                } else {
-                    try {
+                    } else {
                         // Issue DELETE against the IP resource via its URI.
                         nsx.deleteResource(request.resource).takeIf { it }
                                 ?.run {
                                     send(Orchestrator.NetworkResourceEvent.Deleted(request.resource))
                                 }
                                 ?: close(Orchestrator.ResourceDeletionFailedException(request))
-                    } catch (error: CancellationException) {
-                        close(Orchestrator.ResourceDeletionFailedException(request))
                     }
+                } catch (error: CancellationException) {
+                        close(Orchestrator.ResourceDeletionFailedException(request))
                 }
             }
         }
@@ -489,9 +484,13 @@ class VmcOrchestrator(
     /**
      * Allocate a new private IP address for use from IP allocation service.
      *
+     * @param[network]
+     *   network to allocate IP address resource from.
+     *
      * @return
      *   allocated IP address resource as a instance of [Address], if created, `null` otherwise.
      */
+    @Suppress("DuplicatedCode")
     private suspend fun allocatedPrivateIP(network: IPv4Network): Address? {
         val requestAllocateAddress = AllocateAddressRequest(
                 header = MessageHeader(),
@@ -499,11 +498,38 @@ class VmcOrchestrator(
         )
 
         val observer = ChannelStreamObserver<AllocateAddressResponse>(1)
+        val ipAllocationService = requireNotNull(networkAddressAllocationServers[network.name])
         ipAllocationService.allocateAddress(requestAllocateAddress, observer)
         val response = observer.asReceiveChannel().receive()
 
         return response
                 .takeIf { it.status == AllocateAddressResponse.Status.OK }
                 ?.let { it.address }
+    }
+
+    /**
+     * Release an IP address resource from a given [IPv4Network].
+     *
+     * @param[network]
+     *   network to release IP address resource from.
+     * @param[resource]
+     *   URI of the resource to be released.
+     *
+     * @return
+     *   `true` if resource is successfully released, `false` otherwise.
+     */
+    @Suppress("DuplicatedCode")
+    private suspend fun releasePrivateIP(network: IPv4Network, resource: URI): Boolean {
+        val observer = ChannelStreamObserver<ReleaseAddressResponse>(1)
+        val requestAllocateAddress = ReleaseAddressRequest(
+                header = MessageHeader(),
+                name = resource.path.removePrefix("/")
+        )
+
+        // IP allocation service client.
+        val ipAllocationService = requireNotNull(networkAddressAllocationServers[network.name])
+        ipAllocationService.releaseAddress(requestAllocateAddress, observer)
+
+        return observer.asReceiveChannel().receive().status == ReleaseAddressResponse.Status.OK
     }
 }
