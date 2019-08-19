@@ -28,7 +28,7 @@ import util.helper
 log = logging.getLogger(__name__)
 
 
-def startMonitoringBlockchainDeployments(cmdlineArgs, logDir):
+def startMonitoringBlockchainDeployments(args, logDir):
    '''
    Helper method outside the RPCTestHelper class which sets up initial configuration
    for collecting deployment events.
@@ -37,12 +37,11 @@ def startMonitoringBlockchainDeployments(cmdlineArgs, logDir):
    '''
    os.makedirs(logDir, exist_ok=True)
    cleanupData = {}
-   argsObject = types.SimpleNamespace(**cmdlineArgs)
-   argsObject.cancel_stream = False
-   argsObject.fileRoot = logDir
-   cleanupData["rpcTestHelper"] = RPCTestHelper(argsObject)
+   args.cancel_stream = False
+   args.fileRoot = logDir
+   cleanupData["rpcTestHelper"] = RPCTestHelper(args)
    cleanupData["deploymentMonitoringThread"] = threading.Thread(
-      target=_thread_stream_all_deployment_events,
+      target=_thread_get_completed_session_ids,
       name="StreamAllDeploymentEventsInHelen",
       args=(cleanupData,))
    cleanupData["deploymentMonitoringThread"].start()
@@ -50,7 +49,7 @@ def startMonitoringBlockchainDeployments(cmdlineArgs, logDir):
    return cleanupData
 
 
-def _thread_stream_all_deployment_events(cleanupData):
+def _thread_get_completed_session_ids(cleanupData):
    '''
    Call gRPC to stream all deployment events since the start of provisioning service
    Stores all event data in cleanupData.
@@ -59,7 +58,15 @@ def _thread_stream_all_deployment_events(cleanupData):
    allEventsProto = []
 
    for e in allEventsObject:
-      allEventsProto.append(e.session)
+      # NOTE: str(e) shows the "type" field as containing the string "COMPLETED".  But actually
+      # the field is an enum, and the value is the number 2.
+      # (See hermes/lib/persephone/grpc_python_bindings/provisioning_service_pb2.py.)
+      # We aren't going to use the enums in that file because they are marked as private.
+      # So str() it and look for "COMPLETED".
+      lines = str(e).split("\n")
+      for line in lines:
+         if line.startswith("type") and "COMPLETED" in line:
+            allEventsProto.append(e.session)
 
    cleanupData["eventsProto"] = allEventsProto
 
@@ -201,9 +208,9 @@ class RPCTestHelper():
       events = self.provision_rpc_helper.rpc_StreamClusterDeploymentSessionEvents(
          get_events_request, stub=stub)
 
-      if events:
-         for event in events:
-            log.debug("Event: {}".format(event))
+      # if events:
+      #    for event in events:
+      #       log.debug("Event: {}".format(event))
 
       return events
 
@@ -218,9 +225,9 @@ class RPCTestHelper():
       events = self.provision_rpc_helper.rpc_StreamAllClusterDeploymentSessionEvents(
          all_events_request)
 
-      if events:
-         for event in events:
-            log.debug("Event: {}".format(event))
+      # if events:
+      #    for event in events:
+      #       log.debug("Event: {}".format(event))
 
       return events
 
@@ -266,14 +273,16 @@ class RPCTestHelper():
          while ((time.time() - startTime) < maxTimeout) and not cleanedUp:
             events = self.rpc_stream_cluster_deployment_session_events(sessionId)
 
-            # Just converts the object to a Python dict.
+            # Converts the object to a Python dict.
             responseEvents = util.helper.protobuf_message_to_json(events)
 
             for eventObject in responseEvents:
                if "RESOURCE_DEPROVISIONING" in eventObject["type"]:
                   cleanedUp = True
 
-            if not cleanedUp:
+            if cleanedUp:
+               log.info("Cleaned up!")
+            else:
                log.info("Sleeping for {} seconds and retrying".format(sleepTime))
                time.sleep(sleepTime)
 

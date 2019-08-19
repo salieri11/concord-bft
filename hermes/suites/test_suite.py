@@ -13,6 +13,7 @@ import web3
 from web3 import Web3, HTTPProvider
 from requests.auth import HTTPBasicAuth
 
+import util.helper
 import util.json_helper
 import util.blockchain.eth
 import rest.request
@@ -26,9 +27,6 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 log = logging.getLogger(__name__)
 
-# The config file contains information aobut how to run things, as opposed to
-# command line parameters, which are about running tests.
-CONFIG_JSON = "resources/user_config.json"
 CONTRACTS_DIR = "resources/contracts"
 TEST_LOG_DIR = "test_logs"
 HIGH_GAS = "0x47e7c4"
@@ -45,7 +43,7 @@ class TestSuite(ABC):
       self._testLogDir = os.path.join(self._args.resultsDir, TEST_LOG_DIR)
       self._resultFile = os.path.join(passedArgs.resultsDir,
                                       self.getName() + ".json")
-      self.loadConfigFile()
+      self._userConfig = util.helper.loadConfigFile(self._args)
       self._ethereumMode = self._args.ethereumMode
       self._productMode = not self._ethereumMode
       self._noLaunch = self._args.noLaunch
@@ -73,22 +71,6 @@ class TestSuite(ABC):
       else:
          self._repeatSuiteRun = False
       self._hermes_home = self._args.hermes_dir
-
-
-   def loadConfigFile(self):
-      '''
-      Loads the main config file.
-      '''
-      if self._args.config == None:
-         self._userConfig = util.json_helper.readJsonFile(CONFIG_JSON)
-      else:
-         self._userConfig = util.json_helper.readJsonFile(self._args.config)
-
-      if "ethereum" in self._userConfig and \
-         "testRoot" in self._userConfig["ethereum"]:
-
-         self._userConfig["ethereum"]["testRoot"] = \
-            os.path.expanduser(self._userConfig["ethereum"]["testRoot"])
 
    def makeRelativeTestPath(self, fullTestPath):
       '''
@@ -178,7 +160,7 @@ class TestSuite(ABC):
       - Be sure replaceable values in the Persephone config.json file have been replaced
         with real values.
       '''
-      if self._args.deployNewBlockchain:
+      if self._args.blockchainLocation != util.helper.LOCAL_BLOCKCHAIN:
          foundPersephoneDockerConfig = False
 
          for key in dockerCfg["services"].keys():

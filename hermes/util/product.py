@@ -1031,32 +1031,6 @@ class Product():
          self.resume_concord_replica(concordIndex)
 
 
-   def deployBlockchain(self, request, conName, orgName):
-      '''
-      request: A Rest request object which uses Helen.
-      conName: Consortium name
-      orgName: Org name, obsolete after CSP integration
-      Uses Helen's APIs to create an org and consortium, then
-      have Persephone deploy a blockchain on an SDDC.
-      Returns tuple of (blockchain id, consortium id)
-      '''
-      log.info("Deploying a new blockchain.")
-      org = request.createOrg(orgName)
-      con = request.createConsortium(conName, org["org_id"])
-      conId = con["consortium_id"]
-      sddcs = self.getSDDCIds()
-      response = request.createBlockchain(conId, sddcs)
-      taskId = response["task_id"]
-      success, response = util.helper.waitForTask(request, taskId)
-
-      if not success:
-         raise Exception("Failed to deploy a blockchain to the SDDC.")
-      else:
-         blockchainId = response["resource_id"]
-         util.blockchain.eth.getEthrpcNodes(request, blockchainId)
-         return(blockchainId, conId)
-
-
    def getSDDCIds(self):
       '''
       Returns an array of SDDC IDs used for Persephone testing from

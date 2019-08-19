@@ -8,15 +8,16 @@ import argparse
 import datetime
 import logging
 import os
+import sys
 import tempfile
-from time import strftime, localtime
-
+from time import strftime, localtime, sleep
 from suites import (contract_compiler_tests, core_vm_tests, daml_tests,
                     ext_rpc_tests, lint_e2e_tests, hlf_tests, performance_tests, persephone_tests,
                     pytest_suite, regression_tests, sample_dapp_tests, simple_st_test, truffle_tests,
                     ui_tests, websocket_rpc_tests)
+from util import helper, html, json_helper
 
-from util import html, json_helper
+sys.path.append("lib/persephone")
 
 log = None
 suites = ["ContractCompilerTests", "CoreVMTests",
@@ -25,143 +26,150 @@ suites = ["ContractCompilerTests", "CoreVMTests",
           "WebSocketRPCTests"]
 
 def main():
-   startTime = datetime.datetime.now()
-   parser = argparse.ArgumentParser()
-   parser.add_argument("suite", help="Test suite name.  Available suites: {}". \
-                       format(suites))
-   parser.add_argument("--ethereumMode",
-                       help="Run tests against Ethereum",
-                       default=False,
-                       action='store_true')
-   parser.add_argument("--logLevel",
-                       help="Set the log level.  Valid values:"
-                       "'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'",
-                       default="INFO")
-   parser.add_argument("--resultsDir",
-                       default=tempfile.gettempdir(),
-                       help="Results directory")
-   parser.add_argument("--tests",
-                       help="Run specific tests. Details depend on the suite " \
-                       "being run. For CoreVMTests, this is a directory or " \
-                       "specific file relative to the VMTests directory. e.g. " \
-                       "'--tests vmArithmeticTest' or " \
-                       "'--tests vmArithmeticTest/add0.json'")
-   parser.add_argument("--config",
-                       help="User config file to be considered.")
-   parser.add_argument("--dockerComposeFile",
-                       help="REQUIRES SUDO. Accepts a docker compose file " \
-                       "which starts concord and helen.  The product will " \
-                       "be launched in docker images instead of on the " \
-                       "command line.  May be a space-separated list of files, " \
-                       "in the order in which the files should be applied.",
-                       default=["../docker/docker-compose.yml"],
-                       nargs="*")
-   parser.add_argument("--noLaunch",
-                       default=False,
-                       action='store_true',
-                       help="Will not launch the product, assuming it is "
-                            "already running")
-   parser.add_argument("--productLaunchAttempts",
-                       help="Number of times to attempt to launch the product " \
-                       "before failing.  Used to work around intermittent bugs " \
-                       "with product startup.",
-                       default=1,
-                       type=int)
-   parser.add_argument("--keepconcordDB",
-                       help="Keep and re-use the existing concord database files.",
-                       default=False,
-                       action='store_true')
-   parser.add_argument("--repeatSuiteRun",
-                       default=1,
-                       type=int,
-                       help="Number of times to repeat test runs")
-   parser.add_argument("--endpoint",
-                       help="Endpoint for Sample DApp tests")
-   parser.add_argument("--user",
-                       help="User name for Sample DApp tests")
-   parser.add_argument("--password",
-                       help="Password for Sample DApp tests")
-   parser.add_argument("--deploymentComponents",
-                       help="Set of docker images required for Persephone Tests. "
-                            "e.g. 'vmwblockchain/persephone-testing-concord-core:e7cb6c3,"
-                            "vmwblockchain/persephone-testing-ethrpc:e7cb6c3'")
-   parser.add_argument("--reverseProxyApiBaseUrl",
-                       default="https://localhost/blockchains/local",
-                       help="Base URL for Helen REST API calls. Test cases drill "
-                            "down further into the API with values such as '/api/users', "
-                            "'/api/concord/blocks', '/api/concord/eth', etc...).")
-   parser.add_argument("--inDockerReverseProxyApiBaseUrl",
-                       default="https://reverse-proxy/blockchains/local",
-                       help="Base URL for accessing the reverse proxy server from within "
-                            "the docker environment.")
-   parser.add_argument("--ethrpcApiUrl",
-                       default=None,
-                       help="By default, Helen's getMembers API is used to fetch ethrpc nodes, "
-                            "and test cases randomly select nodes from that pool.  To force use "
-                            "of one node, or to use an official Ethereum setup, specify its "
-                            "url here.  e.g. 'http://localhost:8545'")
-   parser.add_argument("--contractCompilerApiBaseUrl",
-                       default="http://localhost:3000/api/v1",
-                       help="Base URL for the contract compiler microservice")
+   cleanupData = None
 
-   concordConfig = parser.add_argument_group("Concord configuration")
-   concordConfig.add_argument("--runConcordConfigurationGeneration",
-      help="Run Concord configuration generation for the test  cluster before "
-           "launching and launch with the newly generated configuration files. "
-           "If this option is not given, then configuration generation will be "
-           "skipped and the currently existing configuration files will be used.",
-      default=False,
-      action='store_true')
-   concordConfig.add_argument("--concordConfigurationInput",
-      help="The input file to the configuration generation utility. "
-           "Note: --runConcordConfigurationGeneration has to be set. "
-           "Note: The path specified is the absolute path within a Concord container",
-      default="/concord/config/dockerConfigurationInput.yaml")
+   try:
+      startTime = datetime.datetime.now()
+      parser = argparse.ArgumentParser()
+      parser.add_argument("suite", help="Test suite name.  Available suites: {}". \
+                          format(suites))
+      parser.add_argument("--ethereumMode",
+                          help="Run tests against Ethereum",
+                          default=False,
+                          action='store_true')
+      parser.add_argument("--logLevel",
+                          help="Set the log level.  Valid values:"
+                          "'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'",
+                          default="INFO")
+      parser.add_argument("--resultsDir",
+                          default=tempfile.gettempdir(),
+                          help="Results directory")
+      parser.add_argument("--tests",
+                          help="Run specific tests. Details depend on the suite " \
+                          "being run. For CoreVMTests, this is a directory or " \
+                          "specific file relative to the VMTests directory. e.g. " \
+                          "'--tests vmArithmeticTest' or " \
+                          "'--tests vmArithmeticTest/add0.json'")
+      parser.add_argument("--config",
+                          help="User config file to be considered.")
+      parser.add_argument("--dockerComposeFile",
+                          help="REQUIRES SUDO. Accepts a docker compose file " \
+                          "which starts concord and helen.  The product will " \
+                          "be launched in docker images instead of on the " \
+                          "command line.  May be a space-separated list of files, " \
+                          "in the order in which the files should be applied.",
+                          default=["../docker/docker-compose.yml"],
+                          nargs="*")
+      parser.add_argument("--noLaunch",
+                          default=False,
+                          action='store_true',
+                          help="Will not launch the product, assuming it is "
+                               "already running")
+      parser.add_argument("--productLaunchAttempts",
+                          help="Number of times to attempt to launch the product " \
+                          "before failing.  Used to work around intermittent bugs " \
+                          "with product startup.",
+                          default=1,
+                          type=int)
+      parser.add_argument("--keepconcordDB",
+                          help="Keep and re-use the existing concord database files.",
+                          default=False,
+                          action='store_true')
+      parser.add_argument("--repeatSuiteRun",
+                          default=1,
+                          type=int,
+                          help="Number of times to repeat test runs")
+      parser.add_argument("--endpoint",
+                          help="Endpoint for Sample DApp tests")
+      parser.add_argument("--user",
+                          help="User name for Sample DApp tests")
+      parser.add_argument("--password",
+                          help="Password for Sample DApp tests")
+      parser.add_argument("--deploymentComponents",
+                          help="Set of docker images required for Persephone Tests. "
+                               "e.g. 'vmwblockchain/persephone-testing-concord-core:e7cb6c3,"
+                               "vmwblockchain/persephone-testing-ethrpc:e7cb6c3'")
+      parser.add_argument("--reverseProxyApiBaseUrl",
+                          default="https://localhost/blockchains/local",
+                          help="Base URL for Helen REST API calls. Test cases drill "
+                               "down further into the API with values such as '/api/users', "
+                               "'/api/concord/blocks', '/api/concord/eth', etc...).")
+      parser.add_argument("--inDockerReverseProxyApiBaseUrl",
+                          default="https://reverse-proxy/blockchains/local",
+                          help="Base URL for accessing the reverse proxy server from within "
+                               "the docker environment.")
+      parser.add_argument("--ethrpcApiUrl",
+                          default=None,
+                          help="By default, Helen's getMembers API is used to fetch ethrpc nodes, "
+                               "and test cases randomly select nodes from that pool.  To force use "
+                               "of one node, or to use an official Ethereum setup, specify its "
+                               "url here.  e.g. 'http://localhost:8545'")
+      parser.add_argument("--contractCompilerApiBaseUrl",
+                          default="http://localhost:3000/api/v1",
+                          help="Base URL for the contract compiler microservice")
 
-   parser.add_argument("--deployNewBlockchain",
-                       help="Triggers deployment of and testing against a blockchain "
-                            "deployed to an SDDC via Persephone instead of using the"
-                            "blockchain deployed by docker-compose.  Currently only "
-                            "applies to HelenAPITests.  CURRENTLY FAILS.  ALSO, REQUIRES "
-                            "MANUAL DELETION OF THE CONCORD NODES FROM THE SDDC WHEN "
-                            "FINISHED.",
-                       default=False,
-                       action='store_true')
+      concordConfig = parser.add_argument_group("Concord configuration")
+      concordConfig.add_argument("--runConcordConfigurationGeneration",
+         help="Run Concord configuration generation for the test  cluster before "
+              "launching and launch with the newly generated configuration files. "
+              "If this option is not given, then configuration generation will be "
+              "skipped and the currently existing configuration files will be used.",
+         default=False,
+         action='store_true')
+      concordConfig.add_argument("--concordConfigurationInput",
+         help="The input file to the configuration generation utility. "
+              "Note: --runConcordConfigurationGeneration has to be set. "
+              "Note: The path specified is the absolute path within a Concord container",
+         default="/concord/config/dockerConfigurationInput.yaml")
 
-   args = parser.parse_args()
-   parent_results_dir = args.resultsDir
+      parser.add_argument("--blockchainLocation",
+                          help="Location of the blockchain being tested.  Values: " \
+                               "{} (default), {}, {}.  Not fully implemented." \
+                          .format(helper.LOCAL_BLOCKCHAIN,
+                                  helper.SDDC_BLOCKCHAIN,
+                                  helper.ONPREM_BLOCKCHAIN),
+                          default=helper.LOCAL_BLOCKCHAIN)
 
-   dir_path = os.path.dirname(os.path.realpath(__file__))
-   # In future, if the location of main.py changes from hermes/,
-   # update args.hermes_dir accordingly
-   args.hermes_dir = dir_path
+      args = parser.parse_args()
+      parent_results_dir = args.resultsDir
 
-   setUpLogging(args)
+      dir_path = os.path.dirname(os.path.realpath(__file__))
+      # In future, if the location of main.py changes from hermes/,
+      # update args.hermes_dir accordingly
+      args.hermes_dir = dir_path
 
-   for run_count in range(1, args.repeatSuiteRun+1):
-      log.info("\nTestrun: {0}/{1}".format(run_count, args.repeatSuiteRun))
-      log.info("Start time: {}".format(startTime))
-      args.resultsDir = createResultsDir(args.suite,
-                                         parent_results_dir=parent_results_dir)
-      log.info("Results directory: {}".format(args.resultsDir))
-      suite = createTestSuite(args)
-      if suite is None:
-         log.error("Unknown test suite")
-         exit(3)
+      setUpLogging(args)
+      cleanupData = setUpDeploymentEventListening(args)
 
-      log.info("Running {}".format(args.suite))
-      success = processResults(suite.run())
-      endTime = datetime.datetime.now()
-      log.info("End time: {}".format(endTime))
-      log.info("Elapsed time: {}".format(str(endTime - startTime)))
-      if not success:
-         update_repeated_suite_run_result(parent_results_dir, "fail", args.repeatSuiteRun)
-         exit(2)
+      for run_count in range(1, args.repeatSuiteRun+1):
+         log.info("\nTestrun: {0}/{1}".format(run_count, args.repeatSuiteRun))
+         log.info("Start time: {}".format(startTime))
+         args.resultsDir = createResultsDir(args.suite,
+                                            parent_results_dir=parent_results_dir)
+         log.info("Results directory: {}".format(args.resultsDir))
+         suite = createTestSuite(args)
+         if suite is None:
+            log.error("Unknown test suite")
+            exit(3)
 
-      if args.repeatSuiteRun > 1:
-         args.noLaunch = True
+         log.info("Running {}".format(args.suite))
+         success = processResults(suite.run())
+         endTime = datetime.datetime.now()
+         log.info("End time: {}".format(endTime))
+         log.info("Elapsed time: {}".format(str(endTime - startTime)))
+         if not success:
+            update_repeated_suite_run_result(parent_results_dir, "fail", args.repeatSuiteRun)
+            exit(2)
 
-   update_repeated_suite_run_result(parent_results_dir, "pass", args.repeatSuiteRun)
+         if args.repeatSuiteRun > 1:
+            args.noLaunch = True
+
+      update_repeated_suite_run_result(parent_results_dir, "pass", args.repeatSuiteRun)
+   finally:
+      if cleanupData:
+         from persephone import rpc_test_helper
+         rpc_test_helper.cleanUpBlockchainDeployments(cleanupData)
+
 
 def update_repeated_suite_run_result(parent_results_dir, result, no_of_runs):
    if no_of_runs > 1:
@@ -169,6 +177,42 @@ def update_repeated_suite_run_result(parent_results_dir, result, no_of_runs):
                                  'test_status.{0}'.format(result))
       log.info("Repeated Suite run result: {0} [{1}]".format(result, result_file))
       open(result_file, 'a').close()
+
+
+def setUpDeploymentEventListening(args):
+   '''
+   Start collecting deployment events, if:
+   - We're not running the Persephone test suite. (It takes care of its own cleanup.)
+   - We're not using the built in R&D blockchain. (It is just a local docker image.)
+   - We are using the local Helen, which assumes we are using a local Persephone.
+     We do not listen for events when using the remote staging or production Persephone
+     because those are used by multiple people, and the suite can end up deleting other
+     people's data.
+
+   This will all go away.
+   '''
+   if helper.helenIsRemote(args):
+      # Temporary:
+      # When using a remote Helen/Persephone and deploying to an SDDC,
+      # the user will have to clean up their own resources.
+      log.warning("Hermes will deploy remote resources (e.g. on an SDDC), but cannot remove them.")
+      log.warning("You will need to do that when the tests are done.")
+      sleep(3)
+
+   if not helper.helenIsRemote(args) and \
+      blockchainIsRemote(args) and \
+      "persephone".lower() not in args.suite:
+
+      helper.checkRpcTestHelperImport()
+      from persephone import rpc_test_helper
+      args.userConfig = helper.loadConfigFile(args)
+      logDir = os.path.join(args.resultsDir, "deploymentEvents")
+      return rpc_test_helper.startMonitoringBlockchainDeployments(args, logDir)
+
+
+def blockchainIsRemote(args):
+   return args.blockchainLocation != helper.LOCAL_BLOCKCHAIN
+
 
 def setUpLogging(args):
    '''

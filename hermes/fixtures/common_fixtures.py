@@ -9,9 +9,8 @@ import pytest
 
 from rest.request import Request
 from rpc.rpc_call import RPC
-import util.blockchain.eth
-import util.helper
-import util.product
+import types
+import util
 
 log = logging.getLogger(__name__)
 ConnectionFixture = collections.namedtuple("ConnectionFixture", "request, rpc")
@@ -22,11 +21,19 @@ def retrieveCustomCmdlineData(pytestRequest):
     Given a PyTest fixture's request object, returns a dictionary of various
     pieces of Hermes info that has been passed to PyTest via custom PyTest
     command line parameters.
+    cmdlineArgs: The argparse object containing arguments passed to Hermes.
+    userConfig: The dictionary containing the contents of user_config.json.
+    logDir: The log directory path, as a string.
     '''
+    cmdlineArgsDict = json.loads(pytestRequest.config.getoption("--hermesCmdlineArgs"))
+    cmdlineArgsObject = types.SimpleNamespace(**cmdlineArgsDict)
+    userConfig = json.loads(pytestRequest.config.getoption("--hermesUserConfig"))
+    logDir = pytestRequest.config.getoption("--hermesTestLogDir")
+
     return {
-        "hermesCmdlineArgs": json.loads(pytestRequest.config.getoption("--hermesCmdlineArgs")),
-        "hermesUserConfig": json.loads(pytestRequest.config.getoption("--hermesUserConfig")),
-        "hermesTestLogDir": pytestRequest.config.getoption("--hermesTestLogDir"),
+        "hermesCmdlineArgs": cmdlineArgsObject,
+        "hermesUserConfig": userConfig,
+        "hermesTestLogDir": logDir
     }
 
 
@@ -42,30 +49,58 @@ def fxHermesRunSettings(request):
 def fxBlockchain(request):
    '''
    This module level fixture returns a BlockchainFixture namedtuple.
-   If --deployNewBlockchain was set on the command line, Helen will be invoked to create a
-   consortium, then deploy a blockchain onto an SDDC via Persephone.
-   Otherwise, the default consortium pre-added to Helen, and the blockchain running in concord
-   nodes on the local system via docker-compose, will be returned.
-   The accepted parameter, "request", is an internal PyTest name and must be that.
+   If --blockchainLocation was set to sddc or onprem on the command line, Helen will be invoked
+   to create a consortium, then deploy a blockchain.
+   Otherwise, the default consortium and blockchain pre-added to Helen for R&D, will be returned.
+   The accepted parameter, "request", is an internal PyTest name and must be that.  It contains
+   information about the PyTest invocation.
    '''
    hermesData = retrieveCustomCmdlineData(request)
    logDir = os.path.join(hermesData["hermesTestLogDir"], "fxBlockchain")
-   blockchainRequest = Request(logDir,
-                               "fxBlockchain",
-                               hermesData["hermesCmdlineArgs"]["reverseProxyApiBaseUrl"],
-                               hermesData["hermesUserConfig"])
-   if hermesData["hermesCmdlineArgs"]["deployNewBlockchain"]:
-      # CSP integration: Won't need to involve an org.
+   devAdminRequest = Request(logDir,
+                             "fxBlockchain",
+                             hermesData["hermesCmdlineArgs"].reverseProxyApiBaseUrl,
+                             hermesData["hermesUserConfig"],
+                             util.auth.internal_admin)
+
+   if hermesData["hermesCmdlineArgs"].blockchainLocation == "onprem":
+      raise Exception("On prem deployments not supported yet.")
+   elif hermesData["hermesCmdlineArgs"].blockchainLocation == "sddc":
+      log.warn("Test suites may not work with SDDC deployments yet.  See Jira for the plan.")
+      conAdminRequest = Request(logDir,
+                                "fxBlockchain",
+                                hermesData["hermesCmdlineArgs"].reverseProxyApiBaseUrl,
+                                hermesData["hermesUserConfig"],
+                                tokenDescriptor=util.auth.default_con_admin)
+      blockchains = conAdminRequest.getBlockchains()
       suffix = util.numbers_strings.random_string_generator()
-      orgName = "org_{}".format(suffix)
       conName = "con_{}".format(suffix)
-      prod = Product(hermesData["hermesCmdlineArgs"],
-                     hermesData["userConfig"],
-                     hermesData["hermesCmdlineArgs"]["suite"])
-      blockchainId, conId = prod.deployBlockchain(blockchainRequest, conName, orgName)
-   elif len(blockchainRequest.getBlockchains()) > 0:
-      # We're using the default built in test blockchain.
-      blockchain = blockchainRequest.getBlockchains()[0]
+      conResponse = conAdminRequest.createConsortium(conName)
+      conId = conResponse["consortium_id"]
+      zoneIds = []
+
+      for zone in conAdminRequest.getZones():
+          zoneIds.append(zone["id"])
+
+      siteIds = util.helper.distributeItemsRoundRobin(4, zoneIds)
+      response = conAdminRequest.createBlockchain(conId, siteIds)
+      taskId = response["task_id"]
+      timeout=60*15
+      success, response = util.helper.waitForTask(conAdminRequest, taskId, timeout=timeout)
+
+      if success:
+          blockchainId = response["resource_id"]
+          blockchainDetails = conAdminRequest.getBlockchainDetails(blockchainId)
+          log.info("Details of the deployed blockchain, in case you need to delete its resources " \
+                   "manually: {}".format(json.dumps(blockchainDetails, indent=4)))
+      else:
+          raise Exception("Failed to deploy a new blockchain.")
+   elif len(devAdminRequest.getBlockchains()) > 0:
+      # Hermes was not told to deloy a new blockchain, and there is one.  That means
+      # we are using the default built in test blockchain.
+      # TODO: Create a hermes consortium and add the Hermes org to it, here,
+      #       so that all test cases are run as a non-admin.
+      blockchain = devAdminRequest.getBlockchains()[0]
       blockchainId = blockchain["id"]
       conId = blockchain["consortium_id"]
    else:
@@ -86,7 +121,7 @@ def fxInitializeOrgs(request):
    hermesData = retrieveCustomCmdlineData(request)
    request = Request(hermesData["hermesTestLogDir"],
                      "initializeOrgs",
-                     hermesData["hermesCmdlineArgs"]["reverseProxyApiBaseUrl"],
+                     hermesData["hermesCmdlineArgs"].reverseProxyApiBaseUrl,
                      hermesData["hermesUserConfig"])
    tokenDescriptors = [
        {
@@ -117,10 +152,22 @@ def fxConnection(request, fxBlockchain):
    longName = os.environ.get('PYTEST_CURRENT_TEST')
    shortName = longName[longName.rindex(":")+1:longName.rindex(" ")]
 
+   # TODO: Always add the hermes org to the built in consortium.
+   # (Today, that is only done in certain Helen API tests.)
+   tokenDescriptor = None
+
+   if hermesData["hermesCmdlineArgs"].blockchainLocation == "onprem":
+      raise Exception("On prem deployments not supported yet.")
+   elif hermesData["hermesCmdlineArgs"].blockchainLocation == "sddc":
+       tokenDescriptor = util.auth.default_con_admin
+   else:
+       tokenDescriptor = util.auth.internal_admin
+
    request = Request(hermesData["hermesTestLogDir"],
                      shortName,
-                     hermesData["hermesCmdlineArgs"]["reverseProxyApiBaseUrl"],
-                     hermesData["hermesUserConfig"])
+                     hermesData["hermesCmdlineArgs"].reverseProxyApiBaseUrl,
+                     hermesData["hermesUserConfig"],
+                     tokenDescriptor=tokenDescriptor)
 
    if fxBlockchain.blockchainId:
       ethrpcNode = util.blockchain.eth.getAnEthrpcNode(request, fxBlockchain.blockchainId)
@@ -128,7 +175,8 @@ def fxConnection(request, fxBlockchain):
       rpc = RPC(request.logDir,
                 request.testName,
                 ethrpcUrl,
-                hermesData["hermesUserConfig"])
+                hermesData["hermesUserConfig"],
+                tokenDescriptor=tokenDescriptor)
    else:
        rpc = None
 

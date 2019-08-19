@@ -132,7 +132,7 @@ class RPCHelper():
       '''
       try:
          for response in response_iterator:
-            log.debug("Adding to response queue: {}".format(response))
+            #log.debug("Adding to response queue: {}".format(response))
             response_queue.put(response)
       except Exception as e:
          pass
@@ -172,7 +172,12 @@ class RPCHelper():
                time.sleep(sleep_time)
                time_slept += sleep_time
 
-            log.info("**** Trigger received to Cancel Stream")
+            log.info("**** Trigger received to Cancel Stream. This will take a while.")
+
+            # The thread in Persephone which supplies events has a one minute initial wait,
+            # and then wakes up every thirty seconds.  For very fast test runs, we can end
+            # up with no events and resources being left on SDDC. So sleep one more sleep_time.
+            time.sleep(sleep_time)
             response_stream.cancel()
             thread.join()
 
@@ -185,7 +190,7 @@ class RPCHelper():
       else:
          response_list.append(response_stream)
 
-      log.debug("gRPC Response from server: {}".format(response_list))
+      #log.debug("gRPC Response from server: {}".format(response_list))
 
       request_file = os.path.join(self.args.fileRoot,
                                   "{}_request.json".format(
