@@ -535,7 +535,7 @@ def test_members_millis_since_last_message(fxConnection, fxBlockchain, fxHermesR
          if nodeData["hostname"] == hostName:
             testTimeResumed = int(nodeData["millis_since_last_message"])
             assert testTimeResumed < testTime, "Expected millis_since_last_message " \
-               "to be less than {}, received {}.".format(testTime, finalTime)
+               "to be less than {}, received {}.".format(testTime, testTimeResumed)
    finally:
       product.resumeMembers(allMembers)
 
