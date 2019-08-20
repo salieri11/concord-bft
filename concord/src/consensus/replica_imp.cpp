@@ -96,7 +96,7 @@ void ReplicaImp::createReplicaAndSyncState() {
  */
 Status ReplicaImp::stop() {
   m_currentRepStatus = RepStatus::Stopping;
-  m_replicaPtr->stop();
+  m_replicaPtr->stopWhenStateIsNotCollected();
   m_currentRepStatus = RepStatus::Idle;
   return Status::OK();
 }
@@ -805,6 +805,7 @@ bool ReplicaImp::BlockchainAppState::putBlock(uint64_t blockId, char *block,
 }
 
 uint64_t ReplicaImp::BlockchainAppState::getLastReachableBlockNum() {
+  LOG4CPLUS_INFO(m_logger, "m_lastReachableBlock=" << m_lastReachableBlock);
   return m_lastReachableBlock;
 }
 
