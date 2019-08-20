@@ -7,6 +7,7 @@ package com.vmware.blockchain.services.blockchains;
 import static com.vmware.blockchain.services.blockchains.BlockchainController.DeploymentType.FIXED;
 import static com.vmware.blockchain.services.blockchains.BlockchainController.DeploymentType.UNSPECIFIED;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -78,9 +79,24 @@ public class BlockchainController {
         UNSPECIFIED
     }
 
+
+    /**
+     * Enum to determine blockchain type.
+     */
+    public enum BlockchainType {
+        ETHRPC,
+        DAML,
+        HLF
+    }
+
     private static final Map<DeploymentType, PlacementSpecification.Type> enumMap =
             ImmutableMap.of(FIXED, Type.FIXED,
                             UNSPECIFIED, Type.UNSPECIFIED);
+
+    private static final Map<BlockchainType, ConcordModelSpecification.BlockchainType> enumMapForBlockchainType =
+            ImmutableMap.of(BlockchainType.ETHRPC, ConcordModelSpecification.BlockchainType.ETHRPC,
+                            BlockchainType.DAML, ConcordModelSpecification.BlockchainType.DAML,
+                            BlockchainType.HLF, ConcordModelSpecification.BlockchainType.HLF);
 
     @Getter
     @Setter
@@ -92,6 +108,7 @@ public class BlockchainController {
         @JsonProperty("c_count")
         private int cCount;
         private DeploymentType deploymentType;
+        private BlockchainType blockchainType;
         private List<UUID> zoneIds;
     }
 
@@ -233,7 +250,8 @@ public class BlockchainController {
      * The actual call which will contact server and add the model request.
      */
     private DeploymentSessionIdentifier createFixedSizeCluster(ProvisioningServiceStub client,
-            int clusterSize, PlacementSpecification.Type placementType, List<UUID> zoneIds) throws Exception {
+            int clusterSize, PlacementSpecification.Type placementType, List<UUID> zoneIds,
+                                                               BlockchainType blockchainType) throws Exception {
         List<Entry> list;
         if (placementType == Type.FIXED) {
             if (zoneIds.size() != clusterSize) {
@@ -248,23 +266,9 @@ public class BlockchainController {
                     .collect(Collectors.toList());
         }
         var placementSpec = new PlacementSpecification(list);
-        var components = List.of(
-                new ConcordComponent(
-                        ConcordComponent.Type.CONTAINER_IMAGE,
-                        ConcordComponent.ServiceType.CONCORD,
-                        "vmwblockchain/concord-core:latest"
-                ),
-                new ConcordComponent(
-                        ConcordComponent.Type.CONTAINER_IMAGE,
-                        ConcordComponent.ServiceType.ETHEREUM_API,
-                        "vmwblockchain/ethrpc:latest"
-                ),
-                new ConcordComponent(
-                        ConcordComponent.Type.CONTAINER_IMAGE,
-                        ConcordComponent.ServiceType.GENERIC,
-                        "vmwblockchain/agent-testing:latest"
-                )
-        );
+        var blockChainType = blockchainType == null ? ConcordModelSpecification.BlockchainType.ETHRPC
+                                                    : enumMapForBlockchainType.get(blockchainType);
+        var components = getComponentsByBlockchainType(blockChainType);
         var genesis = new Genesis(
                 new Genesis.Config(1, 0, 0, 0),
                 "0x0000000000000000",
@@ -282,7 +286,7 @@ public class BlockchainController {
                 "20190401.1",
                 "8abc7fda-9576-4b13-9beb-06f867cf2c7c",
                 components,
-                ConcordModelSpecification.BlockchainType.ETHRPC
+                blockChainType
         );
         DeploymentSpecification deploySpec =
                 new DeploymentSpecification(clusterSize, spec, placementSpec, genesis);
@@ -291,6 +295,51 @@ public class BlockchainController {
         var promise = new CompletableFuture<DeploymentSessionIdentifier>();
         client.createCluster(request, FleetUtils.blockedResultObserver(promise));
         return promise.get();
+    }
+
+    // TODO Move this to config/metadata lookup.
+    List<ConcordComponent> getComponentsByBlockchainType(ConcordModelSpecification.BlockchainType type) {
+        List<ConcordComponent> response = new ArrayList<>();
+        response.add(new ConcordComponent(
+                ConcordComponent.Type.CONTAINER_IMAGE,
+                ConcordComponent.ServiceType.GENERIC,
+                "vmwblockchain/agent-testing:latest"
+        ));
+        switch (type) {
+            case DAML:
+                response.add(
+                        new ConcordComponent(
+                                ConcordComponent.Type.CONTAINER_IMAGE,
+                                ConcordComponent.ServiceType.DAML_CONCORD,
+                                "vmwblockchain/concord-core:latest"
+                        ));
+                response.add(new ConcordComponent(
+                        ConcordComponent.Type.CONTAINER_IMAGE,
+                        ConcordComponent.ServiceType.DAML_EXECUTION_ENGINE,
+                        "vmwblockchain/daml-execution-engine:latest"
+                ));
+                response.add(new ConcordComponent(
+                        ConcordComponent.Type.CONTAINER_IMAGE,
+                        ConcordComponent.ServiceType.DAML_LEDGER_API,
+                        "vmwblockchain/daml-ledger-api:latest"
+                ));
+                break;
+            default:
+                // Default is ETHRPC due ot backward compatibility.
+            case ETHRPC:
+                response.add(new ConcordComponent(
+                        ConcordComponent.Type.CONTAINER_IMAGE,
+                        ConcordComponent.ServiceType.CONCORD,
+                        "vmwblockchain/concord-core:latest"
+                ));
+                response.add(new ConcordComponent(
+                        ConcordComponent.Type.CONTAINER_IMAGE,
+                        ConcordComponent.ServiceType.ETHEREUM_API,
+                        "vmwblockchain/ethrpc:latest"
+                ));
+                break;
+        }
+        return response;
     }
 
     /**
@@ -322,7 +371,7 @@ public class BlockchainController {
         } else {
             DeploymentSessionIdentifier dsId = createFixedSizeCluster(client, clusterSize,
                                                                       enumMap.get(body.deploymentType),
-                                                                      body.getZoneIds());
+                                                                      body.getZoneIds(), body.blockchainType);
             logger.info("Deployment started, id {} for the consortium id {}", dsId, body.consortiumId.toString());
             BlockchainObserver bo =
                     new BlockchainObserver(authHelper, operationContext, blockchainService, taskService,

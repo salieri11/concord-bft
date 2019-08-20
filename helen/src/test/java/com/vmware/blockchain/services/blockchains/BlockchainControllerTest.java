@@ -7,6 +7,7 @@ package com.vmware.blockchain.services.blockchains;
 import static com.vmware.blockchain.security.MvcTestSecurityConfig.createContext;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
@@ -24,6 +25,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.junit.Assert;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -58,6 +60,7 @@ import com.vmware.blockchain.deployment.model.ConcordCluster;
 import com.vmware.blockchain.deployment.model.ConcordClusterIdentifier;
 import com.vmware.blockchain.deployment.model.ConcordClusterInfo;
 import com.vmware.blockchain.deployment.model.ConcordModelIdentifier;
+import com.vmware.blockchain.deployment.model.ConcordModelSpecification;
 import com.vmware.blockchain.deployment.model.ConcordNode;
 import com.vmware.blockchain.deployment.model.ConcordNodeEndpoint;
 import com.vmware.blockchain.deployment.model.ConcordNodeHostInfo;
@@ -134,6 +137,18 @@ public class BlockchainControllerTest {
                                          + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
                                          + "            \"275638a3-8860-4925-85de-c73d45cb7232\","
                                          + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\"]" + "}";
+
+    static final String POST_BODY_FIXED_WITH_TYPE = "{"
+                                          + "    \"consortium_id\": \"04e4f62d-5364-4363-a582-b397075b65a3\","
+                                          + "    \"f_count\": 1,"
+                                          + "    \"c_count\": 0,"
+                                          + "    \"deployment_type\": \"FIXED\","
+                                          + "    \"blockchain_type\": \"DAML\","
+                                          + "    \"zone_ids\": ["
+                                          + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
+                                          + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
+                                          + "            \"275638a3-8860-4925-85de-c73d45cb7232\","
+                                          + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\"]" + "}";
 
     // Bad placement, wrong number of sites
     static final String POST_BODY_BAD = "{"
@@ -468,6 +483,42 @@ public class BlockchainControllerTest {
         Assertions.assertEquals(1, entries.stream()
                 .filter(e -> FleetUtils.identifier(OrchestrationSiteIdentifier.class, SITE_2).equals(e.getSite()))
                 .count());
+    }
+
+    @Test
+    void createFixedOfTypeDaml() throws Exception {
+        ArgumentCaptor<CreateClusterRequest> captor = ArgumentCaptor.forClass(CreateClusterRequest.class);
+        mockMvc.perform(post("/api/blockchains").with(authentication(consortiumAuth))
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(POST_BODY_FIXED_WITH_TYPE).characterEncoding("utf-8"))
+                .andExpect(status().isAccepted());
+        verify(client).createCluster(captor.capture(), any(StreamObserver.class));
+        CreateClusterRequest request = captor.getValue();
+        Assertions.assertEquals(4, request.getSpecification().getClusterSize());
+        List<PlacementSpecification.Entry> entries = request.getSpecification().getPlacement().getEntries();
+        Assertions.assertEquals(4, entries.size());
+        Assertions.assertTrue(entries.stream().allMatch(e -> e.getType() == PlacementSpecification.Type.FIXED));
+        Assertions.assertEquals(3, entries.stream()
+                .filter(e -> FleetUtils.identifier(OrchestrationSiteIdentifier.class, SITE_1).equals(e.getSite()))
+                .count());
+        Assertions.assertEquals(1, entries.stream()
+                .filter(e -> FleetUtils.identifier(OrchestrationSiteIdentifier.class, SITE_2).equals(e.getSite()))
+                .count());
+    }
+
+    @Test
+    void testGetComponentsByBlockchainType() {
+        BlockchainController blockchainController = mock(BlockchainController.class);
+        when(blockchainController.getComponentsByBlockchainType(any())).thenCallRealMethod();
+
+        var output = blockchainController.getComponentsByBlockchainType(ConcordModelSpecification.BlockchainType.DAML);
+        Assert.assertEquals(output.size(), 4);
+
+        output = blockchainController.getComponentsByBlockchainType(ConcordModelSpecification.BlockchainType.ETHRPC);
+        Assert.assertEquals(output.size(), 3);
+
+        output = blockchainController.getComponentsByBlockchainType(ConcordModelSpecification.BlockchainType.HLF);
+        Assert.assertEquals(output.size(), 3);
     }
 
     @Test
