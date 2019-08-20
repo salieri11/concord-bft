@@ -308,11 +308,6 @@ def call(){
                 env.release_daml_ledger_api_repo = env.release_repo + "/daml-ledger-api"
                 env.release_daml_execution_engine_repo = env.release_repo + "/daml-execution-engine"
 
-                // Docker Images for Persephone Testing on every run
-                env.persephone_testing_agent_repo = env.release_repo + "/persephone-testing-agent"
-                env.persephone_testing_concord_repo = env.release_repo + "/persephone-testing-concord-core"
-                env.persephone_testing_ethrpc_repo = env.release_repo + "/persephone-testing-ethrpc"
-
                 // These are constants which mirror the internal artifactory repos.  We put all merges
                 // to master in the internal VMware artifactory.
                 env.internal_asset_transfer_repo = env.release_asset_transfer_repo.replace(env.release_repo, env.internal_repo)
@@ -558,24 +553,28 @@ EOF
                 withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
                   script {
                     sh '''
-                      docker tag ${internal_persephone_agent_repo}:${docker_tag} ${persephone_testing_agent_repo}:${docker_tag}
-                      docker tag ${internal_concord_repo}:${docker_tag} ${persephone_testing_concord_repo}:${docker_tag}
-                      docker tag ${internal_ethrpc_repo}:${docker_tag} ${persephone_testing_ethrpc_repo}:${docker_tag}
+                      docker tag ${internal_persephone_agent_repo}:${docker_tag} ${release_persephone_agent_repo}:${docker_tag}
+                      docker tag ${internal_concord_repo}:${docker_tag} ${release_concord_repo}:${docker_tag}
+                      docker tag ${internal_ethrpc_repo}:${docker_tag} ${release_ethrpc_repo}:${docker_tag}
+                      docker tag ${internal_daml_ledger_api_repo}:${docker_tag} ${release_daml_ledger_api_repo}:${docker_tag}
+                      docker tag ${internal_daml_execution_engine_repo}:${docker_tag} ${release_daml_execution_engine_repo}:${docker_tag}
                     '''
-                    pushDockerImage(env.persephone_testing_agent_repo, env.docker_tag, false)
-                    pushDockerImage(env.persephone_testing_concord_repo, env.docker_tag, false)
-                    pushDockerImage(env.persephone_testing_ethrpc_repo, env.docker_tag, false)
+                    pushDockerImage(env.release_persephone_agent_repo, env.docker_tag, false)
+                    pushDockerImage(env.release_concord_repo, env.docker_tag, false)
+                    pushDockerImage(env.release_ethrpc_repo, env.docker_tag, false)
+                    pushDockerImage(env.release_daml_ledger_api_repo, env.docker_tag, false)
+                    pushDockerImage(env.release_daml_execution_engine_repo, env.docker_tag, false)
 
                     if (genericTests) {
                       sh '''
                         echo "Running Persephone SMOKE Tests..."
-                        echo "${PASSWORD}" | sudo -SE "${python}" main.py PersephoneTests --dockerComposeFile ../docker/docker-compose-persephone.yml --resultsDir "${persephone_test_logs}" --deploymentComponents "${persephone_testing_agent_repo}:${docker_tag},${persephone_testing_concord_repo}:${docker_tag},${persephone_testing_ethrpc_repo}:${docker_tag}"
+                        echo "${PASSWORD}" | sudo -SE "${python}" main.py PersephoneTests --dockerComposeFile ../docker/docker-compose-persephone.yml --resultsDir "${persephone_test_logs}" --deploymentComponents "${release_persephone_agent_repo}:${docker_tag},${release_concord_repo}:${docker_tag},${release_ethrpc_repo}:${docker_tag},${release_daml_ledger_api_repo}:${docker_tag},${release_daml_execution_engine_repo}:${docker_tag}"
                       '''
                     }
                     if (env.JOB_NAME.contains(persephone_test_job_name)) {
                       sh '''
                         echo "Running Entire Testsuite: Persephone..."
-                        echo "${PASSWORD}" | sudo -SE "${python}" main.py PersephoneTests --dockerComposeFile ../docker/docker-compose-persephone.yml --resultsDir "${persephone_test_logs}" --tests "all_tests" --deploymentComponents "${persephone_testing_agent_repo}:${docker_tag},${persephone_testing_concord_repo}:${docker_tag},${persephone_testing_ethrpc_repo}:${docker_tag}"
+                        echo "${PASSWORD}" | sudo -SE "${python}" main.py PersephoneTests --dockerComposeFile ../docker/docker-compose-persephone.yml --resultsDir "${persephone_test_logs}" --tests "all_tests" --deploymentComponents "${release_persephone_agent_repo}:${docker_tag},${release_concord_repo}:${docker_tag},${release_ethrpc_repo}:${docker_tag},${release_daml_ledger_api_repo}:${docker_tag},${release_daml_execution_engine_repo}:${docker_tag}"
                       '''
                     }
                   }

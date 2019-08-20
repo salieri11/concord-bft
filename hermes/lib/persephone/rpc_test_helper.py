@@ -94,6 +94,9 @@ class RPCTestHelper():
          # self.fleet_rpc_helper = FleetServiceRPCHelper(self.args)
          self.orchestration_rpc_helper = OrchestrationServiceRPCHelper(self.args)
 
+         self.CONCORD_TYPE_ETHEREUM = self.model_rpc_helper.CONCORD_TYPE_ETHEREUM
+         self.CONCORD_TYPE_DAML = self.model_rpc_helper.CONCORD_TYPE_DAML
+
          self.PLACEMENT_TYPE_FIXED = self.provision_rpc_helper.PLACEMENT_TYPE_FIXED
          self.PLACEMENT_TYPE_UNSPECIFIED = self.provision_rpc_helper.PLACEMENT_TYPE_UNSPECIFIED
 
@@ -157,18 +160,20 @@ class RPCTestHelper():
 
    def rpc_create_cluster(self, cluster_size=4,
                           placement_type=ProvisioningServiceRPCHelper.PLACEMENT_TYPE_FIXED,
-                          stub=None):
+                          stub=None,
+                          concord_type=ModelServiceRPCHelper.CONCORD_TYPE_ETHEREUM):
       '''
       Helper method to call create cluster gRPC
       :param cluster_size: cluster size
       :param placement_type: FIXED/UNSPECIFIED to place the concord memebers on site
       :param stub: Default stub if running default provisioning service on port 9002
       else, stub for the non-default instance
+      :param concord_type: Concord type (ethereum, DAML, etc)
       :return: deployment session ID
       '''
       header = core_pb2.MessageHeader()
       concord_model_specification = self.model_rpc_helper.create_concord_model_specification(
-         deployment_components=self.args.deploymentComponents)
+         deployment_components=self.args.deploymentComponents, concord_type=concord_type)
       orchestration_sites = None
       if placement_type == self.provision_rpc_helper.PLACEMENT_TYPE_FIXED:
          orchestration_sites = self.rpc_list_orchestration_sites()

@@ -13,10 +13,9 @@ from vmware.blockchain.deployment.v1 import core_pb2
 from vmware.blockchain.deployment.v1 import orchestration_pb2
 from vmware.blockchain.deployment.v1 import provisioning_service_pb2
 from vmware.blockchain.ethereum.type import genesis_pb2
-
 sys.path.append('../../')
 from util.product import Product as Product
-
+import util.helper
 
 log = logging.getLogger(__name__)
 
@@ -52,7 +51,7 @@ class ProvisioningServiceRPCHelper(RPCHelper):
       :param orchestration_sites: List of orchestration Sites/zones
       :return: placement specification
       '''
-      log.info("Concord node placement type: {}".format(placement_type))
+      log.info("**** Concord node placement type: {}".format(placement_type))
 
       entries = []
       if placement_type == self.PLACEMENT_TYPE_UNSPECIFIED:
@@ -64,8 +63,8 @@ class ProvisioningServiceRPCHelper(RPCHelper):
          deployment_sites = []
          for site in orchestration_sites[0].sites:
             deployment_sites.append(site.id)
-         log.info("Deploying on Orchestration Sites/zones: {}".format(
-            deployment_sites))
+         log.info("**** Deploying on Orchestration Sites/zones: {}".format(
+            util.helper.protobuf_message_to_json(deployment_sites)))
 
          for placement_count in range(0, cluster_size):
             site_number = placement_count % len(deployment_sites)

@@ -132,16 +132,26 @@
       "deployment_component_ids": {
         "AGENT": "agent",
         "CONCORD": "concord-core",
-        "ETHRPC": "ethrpc"
+        "ETHRPC": "ethrpc",
+        "DAML_EXECUTION_ENGINE": "daml-execution-engine",
+        "DAML_LEDGER_API": "daml-ledger-api"
       },
       "defaults": {
         "concord_model_version": "1.0",
         "concord_model_template_id": "8abc7fda-9576-4b13-9beb-06f867cf2c7c",
-        "deployment_components": [
-          "vmwblockchain/agent:latest",
-          "vmwblockchain/concord-core:latest",
-          "vmwblockchain/ethrpc:latest"
-        ]
+        "deployment_components": {
+          "ethereum": {
+            "vmwblockchain/agent:latest": "agent",
+            "vmwblockchain/concord-core:latest": "concord",
+            "vmwblockchain/ethrpc:latest": "ethrpc"
+            },
+          "daml": {
+            "vmwblockchain/agent:latest": "agent",
+            "vmwblockchain/concord-core:latest": "concord",
+            "vmwblockchain/daml-execution-engine:latest": "daml_execution_engine",
+            "vmwblockchain/daml-ledger-api:latest": "daml_ledger_api"
+          }
+        }
       }
     },
     "provisioningService": {

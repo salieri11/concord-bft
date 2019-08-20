@@ -165,6 +165,7 @@ class PersephoneTests(test_suite.TestSuite):
             if not cleaned_up:
                undeployed_status = False
                log.info("**** Deprovisioning Failed!")
+            log.info("")
          else:
             log.info("Preserving Deployment (Session ID: {})".format(session_id[0]))
 
@@ -191,8 +192,8 @@ class PersephoneTests(test_suite.TestSuite):
    def _get_tests(self):
       if self.args.tests is None or self.args.tests.lower() == "smoke":
          return [
-            ("7_Node_Blockchain_FIXED_Site",
-             self._test_create_blockchain_7_node_fixed_site),
+            ("7_Node_DAML_Blockchain_FIXED_Site",
+             self._test_create_daml_blockchain_7_node_fixed_site),
          ]
       elif self.args.tests.lower() == "all_tests":
          return [
@@ -207,6 +208,10 @@ class PersephoneTests(test_suite.TestSuite):
              self._test_create_blockchain_7_node_fixed_site),
             ("concurrent_deployments_fixed_site",
              self._test_concurrent_deployments_fixed_site),
+            ("7_Node_DAML_Blockchain_FIXED_Site",
+             self._test_create_daml_blockchain_7_node_fixed_site),
+            ("concurrent_DAML_deployments_fixed_site",
+             self._test_concurrent_daml_deployments_fixed_site),
          ]
 
    def verify_ethrpc_block_0(self, concord_ip, ethrpc_port=443):
@@ -292,9 +297,9 @@ class PersephoneTests(test_suite.TestSuite):
                                                                  concord_username,
                                                                  concord_password)
       if port_forwarding_status:
-         log.info("Port 443 forwarded to ethrpc:8545 - Successful")
+         log.info("Port 443 forwarded to {}:8545 - Successful".format(concord_ip))
       else:
-         log.warning("Port 443 forwarding to ethrpc:8545 - Failed")
+         log.warning("Port 443 forwarding to {}:8545 - Failed".format(concord_ip))
 
    def deploy_and_verify_ipam_on_4_node_fixed_site(self, cluster_size=4):
       '''
@@ -436,17 +441,24 @@ class PersephoneTests(test_suite.TestSuite):
       return True, status_message
 
    def perform_post_deployment_validations(self, events, cluster_size,
-                                           session_id=None):
+                                           session_id=None,
+                                           concord_type=None):
       '''
       Perform post deploy validation, including validating EVENTS, Get ethrpc
       endpoints, SSH connection to concord nodes, verify docker container names
       :param events: Deployment events
       :param cluster_size: No. of nodes deployed on the cluster
       :param session_id: Deployment Session ID
+      :param concord_type: Concord type (ethereum, DAML, etc)
       :return: Validation status, Message
       '''
       log.info("Performing Post deployment validations...")
-      expected_docker_containers = ["concord", "ethrpc", "agent"]
+      if concord_type is None:
+         concord_type = self.rpc_test_helper.CONCORD_TYPE_ETHEREUM
+      expected_docker_containers = list(self._userConfig["persephoneTests"][
+         "modelService"]["defaults"]["deployment_components"][
+         concord_type].values())
+
       response_events_json = helper.protobuf_message_to_json(events)
       if self.validate_cluster_deployment_events(cluster_size,
                                                  response_events_json):
@@ -496,7 +508,7 @@ class PersephoneTests(test_suite.TestSuite):
                      if container_name not in ssh_output:
                         docker_images_found = False
                         if count == max_tries:
-                           log.info("SSH output: {}".format(ssh_output))
+                           log.info("SSH output:\n{}".format(ssh_output))
                            log.error(
                               "Container '{}' not up and running on node '{}'".format(
                                  container_name, concord_ip))
@@ -521,18 +533,21 @@ class PersephoneTests(test_suite.TestSuite):
                            "Container {} found in node '{}'".format(
                               container_name, concord_ip))
 
-               # This is a workaround to enable ethrpc to listen on port 443, so
-               # tests and other users like performance team can hit ethroc over
-               # vmware network. Bug/Story: VB-1170
-               self.add_ethrpc_port_forwarding(concord_ip,
-                                               concord_username,
-                                               concord_password)
+               if concord_type is self.rpc_test_helper.CONCORD_TYPE_ETHEREUM:
+                  # This is a workaround to enable ethrpc to listen on port 443, so
+                  # tests and other users like performance team can hit ethroc over
+                  # vmware network. Bug/Story: VB-1170
+                  self.add_ethrpc_port_forwarding(concord_ip,
+                                                  concord_username,
+                                                  concord_password)
 
-               if self.verify_ethrpc_block_0(concord_ip):
-                  log.info("Ethrpc (get Block 0) Validation - PASS")
-               else:
-                  log.error("Ethrpc (get Block 0) Validation - FAIL")
-                  return (False, "Ethrpc (get Block 0) Validation - FAILED")
+                  if self.verify_ethrpc_block_0(concord_ip):
+                     log.info("Ethrpc (get Block 0) Validation - PASS")
+                  else:
+                     log.error(
+                        "Ethrpc (get Block 0) Validation ({})- FAIL".format(
+                           concord_ip))
+                     return (False, "Ethrpc (get Block 0) Validation - FAILED")
 
             log.info("SSH Verification on all concord nodes are successful")
             return (True, None)
@@ -749,6 +764,39 @@ class PersephoneTests(test_suite.TestSuite):
 
       return (False, "Failed to get a valid deployment session ID")
 
+   def _test_create_daml_blockchain_7_node_fixed_site(self, cluster_size=7):
+      '''
+      Test to create a blockchain cluster with 7 DAML nodes on FIXED sites
+      :param cluster_size: No. of concord nodes on the cluster
+      '''
+      concord_type = self.rpc_test_helper.CONCORD_TYPE_DAML
+
+      start_time = time.time()
+      log.info("Deployment Start Time: {}".format(start_time))
+      response = self.rpc_test_helper.rpc_create_cluster(
+         cluster_size=cluster_size,
+         concord_type=concord_type)
+      if response:
+         response_session_id_json = helper.protobuf_message_to_json(response[0])
+         if "low" in response_session_id_json:
+            response_deployment_session_id = response[0]
+
+            events = self.rpc_test_helper.rpc_stream_cluster_deployment_session_events(
+               response_deployment_session_id)
+            end_time = time.time()
+            log.info("Deployment End Time: {}".format(end_time))
+            log.info("**** Time taken for this deployment: {} mins".format(
+               (end_time - start_time) / 60))
+
+            if events:
+               status, msg = self.perform_post_deployment_validations(events,
+                                                                      cluster_size,
+                                                                      response_deployment_session_id,
+                                                                      concord_type=concord_type)
+               return (status, msg)
+            return (False, "Failed to fetch Deployment Events")
+
+      return (False, "Failed to get a valid deployment session ID")
 
    def _test_create_blockchain_7_node_fixed_site(self, cluster_size=7):
       '''
@@ -780,13 +828,15 @@ class PersephoneTests(test_suite.TestSuite):
 
       return (False, "Failed to get a valid deployment session ID")
 
-   def _thread_deploy_blockchain_cluster(self, cluster_size, placement_type, result_queue):
+   def _thread_deploy_blockchain_cluster(self, cluster_size, placement_type,
+                                         result_queue, concord_type=None):
       '''
       This method is to support concurrent deployments and and do post deploy
       validations, and save the status in result queue.
       :param cluster_size: Blockchain cluster size
       :param placement_type: Node placement type
       :param result_queue: Result queue to save the status for each thread
+      :param concord_type: Concord type (ethereum, DAML, etc)
       :return: Result status
       '''
       status = None
@@ -795,7 +845,8 @@ class PersephoneTests(test_suite.TestSuite):
       start_time = time.time()
       log.info("Deployment Start Time: {}".format(start_time))
       response = self.rpc_test_helper.rpc_create_cluster(cluster_size=cluster_size,
-                                                         placement_type=placement_type)
+                                                         placement_type=placement_type,
+                                                         concord_type=concord_type)
       if response:
          response_session_id_json = helper.protobuf_message_to_json(response[0])
          if "low" in response_session_id_json:
@@ -810,7 +861,8 @@ class PersephoneTests(test_suite.TestSuite):
             if events:
                status, msg = self.perform_post_deployment_validations(events,
                                                                       cluster_size,
-                                                                      response_deployment_session_id)
+                                                                      response_deployment_session_id,
+                                                                      concord_type=concord_type)
                if status:
                   log.info(
                      "Thread {}: Deployment & Validation Completed Successfully".format(
@@ -926,4 +978,52 @@ class PersephoneTests(test_suite.TestSuite):
          name="StreamAllDeploymentEvents")
       self.background_thread.start()
 
+   def _test_concurrent_daml_deployments_fixed_site(self, cluster_1_size=4,
+                                               cluster_2_size=7):
+      '''
+      Test to perform concurrent deployments, both 4 DAML nodes and 7 DAML nodes
+      :param cluster_1_size: Cluster 1 size
+      :param cluster_2_size: Cluster 2 size
+      :return: Test Status
+      '''
+      log.info("Performing concurrent deployments")
+
+      concord_type = self.rpc_test_helper.CONCORD_TYPE_DAML
+      result_queue = queue.Queue()
+      cluster_1 = threading.Thread(target=self._thread_deploy_blockchain_cluster,
+                                   name="Deployment_1", args=(
+         cluster_1_size, self.rpc_test_helper.PLACEMENT_TYPE_FIXED,
+         result_queue), kwargs={'concord_type': concord_type})
+      cluster_2 = threading.Thread(target=self._thread_deploy_blockchain_cluster,
+                                   name="Deployment_2", args=(
+         cluster_2_size, self.rpc_test_helper.PLACEMENT_TYPE_FIXED,
+         result_queue), kwargs={'concord_type': concord_type})
+
+      log.info("Starting Deployment 1")
+      cluster_1.start()
+      log.info("Starting Deployment 2")
+      cluster_2.start()
+
+      cluster_1.join()
+      cluster_2.join()
+
+      overall_status = False
+      while not result_queue.empty():
+         deployment_status = result_queue.get()[0]
+         result_queue.task_done()
+
+         if deployment_status:
+            overall_status = True
+         else:
+            overall_status = False
+            break
+
+      log.info("Overall status : {}".format(overall_status))
+
+      if overall_status:
+         log.info("Concurrent Deployments: Completed Successfully")
+         return (True, None)
+      else:
+         log.error("Concurrent Deployments: Failed")
+         return (False, "Failed to deploy concurrent Clusters")
 
