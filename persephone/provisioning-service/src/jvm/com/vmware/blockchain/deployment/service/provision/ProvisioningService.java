@@ -673,185 +673,216 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
      *   deployment session to carry out the workflow for.
      */
     private void deployCluster(DeploymentSession session) {
-        // FIXME: The following is what NOT to do for reactive workflow!
-        // gRPC stub expects single writer (e.g. response.onNext()) to emit the stream. So in effect
-        // there can be only 1 reactive stream subscriber subscribing to "something", and react
-        // according to the reactive stream's onNext() signals by emitting gRPC onNext() down the
-        // stream.
-        //
-        // If multiple publishers are not first "merged" into a single publisher, then the only
-        // option is to force all subscribers collect data into a buffer, and then have a single
-        // writer emit all data when everything is collected.
-        //
-        // This is achieved in the following code by converting cold publishers into hot async
-        // futures. Each future collects into its own "slot" in the concurrent hash "set", which is
-        // a KeySetView of a ConcurrentHashMap. The second stage initiates when all node-related
-        // futures are complete, and then engage in the single-writer emission.
-        final var results = ConcurrentHashMap.<OrchestrationEvent>newKeySet();
+        try {
+            // FIXME: The following is what NOT to do for reactive workflow!
+            // gRPC stub expects single writer (e.g. response.onNext()) to emit the stream. So in effect
+            // there can be only 1 reactive stream subscriber subscribing to "something", and react
+            // according to the reactive stream's onNext() signals by emitting gRPC onNext() down the
+            // stream.
+            //
+            // If multiple publishers are not first "merged" into a single publisher, then the only
+            // option is to force all subscribers collect data into a buffer, and then have a single
+            // writer emit all data when everything is collected.
+            //
+            // This is achieved in the following code by converting cold publishers into hot async
+            // futures. Each future collects into its own "slot" in the concurrent hash "set", which is
+            // a KeySetView of a ConcurrentHashMap. The second stage initiates when all node-related
+            // futures are complete, and then engage in the single-writer emission.
+            final var results = ConcurrentHashMap.<OrchestrationEvent>newKeySet();
 
-        // Allocate public network addresses for every node.
-        var networkAddressPublishers = session.getAssignment().getEntries().stream()
-                .map(entry -> {
-                    var node = entry.getNode();
-                    var orchestrator = orchestrators.get(entry.getSite());
-                    var resource = toResourceName(node);
-                    var addressRequest = new CreateNetworkResourceRequest(resource, true);
-                    var addressPublisher = orchestrator.createNetworkAddress(addressRequest);
+            // Allocate public network addresses for every node.
+            var networkAddressPublishers = session.getAssignment().getEntries().stream()
+                    .map(entry -> {
+                        var node = entry.getNode();
+                        var orchestrator = orchestrators.get(entry.getSite());
+                        var resource = toResourceName(node);
+                        var addressRequest = new CreateNetworkResourceRequest(resource, true);
+                        var addressPublisher = orchestrator.createNetworkAddress(addressRequest);
 
-                    return Map.entry(entry, addressPublisher);
-                })
-                .collect(Collectors.toUnmodifiableList());
+                        return Map.entry(entry, addressPublisher);
+                    })
+                    .collect(Collectors.toUnmodifiableList());
 
-        // Await on all the network address creations, and collect the result.
-        // Subscribe to network address publishers and collect the results in a map asynchronously.
-        // FIXME: This is working around current system limitation working without local node agent.
-        var publicNetworkAddressMap =
-                new ConcurrentHashMap<PlacementAssignment.Entry, NetworkResourceEvent.Created>();
-        var privateNetworkAddressMap =
-                new ConcurrentHashMap<PlacementAssignment.Entry, NetworkResourceEvent.Created>();
+            // Await on all the network address creations, and collect the result.
+            // Subscribe to network address publishers and collect the results in a map asynchronously.
+            // FIXME: This is working around current system limitation working without local node agent.
+            var publicNetworkAddressMap =
+                    new ConcurrentHashMap<PlacementAssignment.Entry, NetworkResourceEvent.Created>();
+            var privateNetworkAddressMap =
+                    new ConcurrentHashMap<PlacementAssignment.Entry, NetworkResourceEvent.Created>();
 
-        var networkAddressPromises = networkAddressPublishers.stream()
-                .map(entry -> ReactiveStream.toFuture(entry.getValue(), ArrayList::new)
-                        .thenAcceptAsync(events -> {
-                            // Put the events in the result collection.
-                            results.addAll(events);
+            var networkAddressPromises = networkAddressPublishers.stream()
+                    .map(entry -> ReactiveStream.toFuture(entry.getValue(), ArrayList::new)
+                            .thenAcceptAsync(events -> {
+                                // Put the events in the result collection.
+                                results.addAll(events);
 
-                            for (var event : events) {
-                                // Cast to creation event, let runtime cast throw exception if
-                                // cast fails, as then it will exceptionally trigger failure future
-                                // completion downstream.
-                                var createdEvent = (NetworkResourceEvent.Created) event;
+                                for (var event : events) {
+                                    // Cast to creation event, let runtime cast throw exception if
+                                    // cast fails, as then it will exceptionally trigger failure future
+                                    // completion downstream.
+                                    var createdEvent = (NetworkResourceEvent.Created) event;
 
-                                // Place in the address lookup map by the placement entry key.
-                                if (createdEvent.getPublic()) {
-                                    publicNetworkAddressMap.put(entry.getKey(), createdEvent);
-                                } else {
-                                    privateNetworkAddressMap.put(entry.getKey(), createdEvent);
+                                    // Place in the address lookup map by the placement entry key.
+                                    if (createdEvent.getPublic()) {
+                                        publicNetworkAddressMap.put(entry.getKey(), createdEvent);
+                                    } else {
+                                        privateNetworkAddressMap.put(entry.getKey(), createdEvent);
+                                    }
                                 }
-                            }
-                        }, executor)
-                )
-                .toArray(CompletableFuture[]::new);
+                            }, executor)
+                    )
+                    .toArray(CompletableFuture[]::new);
 
-        CompletableFuture.allOf(networkAddressPromises)
-                .thenComposeAsync(__ -> generateConfigurationId(
-                        privateNetworkAddressMap,
-                        session.getSpecification().getModel().getBlockchainType()), executor
-                )
-                // Setup node deployment workflow with its assigned network address.
-                .thenComposeAsync(configGenId -> {
-                    var model = session.getSpecification().getModel();
-                    var nodePublishers = session.getAssignment().getEntries().stream()
-                            .map(placement -> {
+            CompletableFuture.allOf(networkAddressPromises)
+                    .thenComposeAsync(__ -> generateConfigurationId(
+                            privateNetworkAddressMap,
+                            session.getSpecification().getModel().getBlockchainType()), executor
+                    )
+                    // Setup node deployment workflow with its assigned network address.
+                    .thenComposeAsync(configGenId -> {
+                        var model = session.getSpecification().getModel();
+                        var nodePublishers = session.getAssignment().getEntries().stream()
+                                .map(placement -> {
 
-                                var publisher = deployNode(
-                                        orchestrators.get(placement.getSite()),
-                                        session.getId(),
-                                        placement.getNode(),
-                                        model,
-                                        session.getSpecification().getGenesis(),
-                                        privateNetworkAddressMap.get(placement),
-                                        configGenId
-                                );
+                                    var publisher = deployNode(
+                                            orchestrators.get(placement.getSite()),
+                                            session.getId(),
+                                            placement.getNode(),
+                                            model,
+                                            session.getSpecification().getGenesis(),
+                                            privateNetworkAddressMap.get(placement),
+                                            configGenId
+                                    );
 
-                                return Map.entry(placement, publisher);
-                            })
-                            .collect(Collectors.toUnmodifiableList());
+                                    return Map.entry(placement, publisher);
+                                })
+                                .collect(Collectors.toUnmodifiableList());
 
+                        var nodePromises = nodePublishers.stream()
+                                .map(entry -> ReactiveStream.toFuture(entry.getValue(), ArrayList::new)
+                                        .thenComposeAsync(events -> {
+                                            // Put the events in the result collection.
+                                            results.addAll(events);
 
-                    var nodePromises = nodePublishers.stream()
-                            .map(entry -> ReactiveStream.toFuture(entry.getValue(), ArrayList::new)
-                                    .thenComposeAsync(events -> {
-                                        // Put the events in the result collection.
-                                        results.addAll(events);
+                                            // Find any compute resource event and extract the URI.
+                                            var computeResource = events.stream()
+                                                    .filter(ComputeResourceEvent.class::isInstance)
+                                                    .map(ComputeResourceEvent.class::cast)
+                                                    .map(ComputeResourceEvent::getResource)
+                                                    .findFirst()
+                                                    .orElseThrow(() -> new IllegalStateException(
+                                                            "No compute resource event")
+                                                    );
 
-                                        // Find any compute resource event and extract the URI.
-                                        var computeResource = events.stream()
-                                                .filter(ComputeResourceEvent.class::isInstance)
-                                                .map(ComputeResourceEvent.class::cast)
-                                                .map(ComputeResourceEvent::getResource)
-                                                .findFirst()
-                                                .orElseThrow(() -> new IllegalStateException(
-                                                        "No compute resource event")
+                                            // Allocate network address to the created node.
+                                            var placement = entry.getKey();
+                                            var orchestrator = orchestrators.get(placement.getSite());
+
+                                            if (publicNetworkAddressMap.containsKey(placement)) {
+                                                var publicNetworkResource = publicNetworkAddressMap
+                                                        .get(entry.getKey()).getResource();
+
+                                                var privateNetworkResource = privateNetworkAddressMap
+                                                        .get(entry.getKey()).getResource();
+                                                var resource = toResourceName(placement.getNode());
+                                                var allocationRequest = new CreateNetworkAllocationRequest(
+                                                        resource,
+                                                        computeResource,
+                                                        publicNetworkResource,
+                                                        privateNetworkResource
                                                 );
+                                                var allocationPublisher = orchestrator
+                                                        .createNetworkAllocation(allocationRequest);
 
-                                        // Allocate network address to the created node.
-                                        var placement = entry.getKey();
-                                        var orchestrator = orchestrators.get(placement.getSite());
-
-                                        if (publicNetworkAddressMap.containsKey(placement)) {
-                                            var networkResource = publicNetworkAddressMap
-                                                    .get(entry.getKey()).getResource();
-                                            var resource = toResourceName(placement.getNode());
-                                            var allocationRequest = new CreateNetworkAllocationRequest(
-                                                    resource,
-                                                    computeResource,
-                                                    networkResource
-                                            );
-                                            var allocationPublisher = orchestrator
-                                                    .createNetworkAllocation(allocationRequest);
-
-                                            return ReactiveStream.toFuture(allocationPublisher);
-                                        } else {
-                                            return CompletableFuture.completedFuture(null);
-                                        }
-                                    }, executor)
-                                    // Put the network allocation event in the result collection.
-                                    .whenComplete((event, error) -> {
-                                        if (error != null) {
-                                            log.error("Failed to deploy node({})",
-                                                      entry.getKey(), error);
-                                        } else {
-                                            if (event != null) {
-                                                results.add(event);
+                                                return ReactiveStream.toFuture(allocationPublisher);
+                                            } else {
+                                                return CompletableFuture.completedFuture(null);
                                             }
-                                        }
-                                    })
-                            )
-                            .toArray(CompletableFuture[]::new);
+                                        }, executor)
+                                        // Put the network allocation event in the result collection.
+                                        .whenComplete((event, error) -> {
+                                            if (error != null) {
+                                                log.error("Failed to deploy node({})",
+                                                          entry.getKey(), error);
+                                            } else {
+                                                if (event != null) {
+                                                    results.add(event);
+                                                }
+                                            }
+                                        })
+                                )
+                                .toArray(CompletableFuture[]::new);
 
-                    return CompletableFuture.allOf(nodePromises);
-                }, executor)
-                .thenRunAsync(() -> {
-                    // Create the updated deployment session instance.
-                    var updatedSession = new DeploymentSession(
+                        return CompletableFuture.allOf(nodePromises);
+                    }, executor)
+                    .thenRunAsync(() -> {
+                        // Create the updated deployment session instance.
+                        var updatedSession = new DeploymentSession(
+                                session.getId(),
+                                session.getSpecification(),
+                                session.getCluster(),
+                                session.getAssignment(),
+                                DeploymentSession.Status.SUCCESS,
+                                toDeploymentSessionEvents(session, results)
+                        );
+
+                        // Update the deployment log.
+                        // FIXME: This does not take into account of persistence nor retry.
+                        deploymentLog.get(session.getId()).complete(updatedSession);
+
+                        log.info("Deployment session({}) completed", session.getId());
+                    }, executor)
+                    .exceptionally(error -> {
+                        log.info("Deployment session({}) failed", session.getId(), error);
+
+                        var event = newCompleteEvent(session.getId(), DeploymentSession.Status.FAILURE);
+                        var updatedSession = new DeploymentSession(
+                                session.getId(),
+                                session.getSpecification(),
+                                session.getCluster(),
+                                session.getAssignment(),
+                                DeploymentSession.Status.FAILURE,
+                                Stream.concat(session.getEvents().stream(), Stream.of(event))
+                                        .collect(Collectors.toList())
+                        );
+
+                        log.info("Deployment session({}) failed", session.getId(), error);
+
+                        // Update the deployment log.
+                        // FIXME: This does not take into account of persistence nor retry.
+                        deploymentLog.get(session.getId()).complete(updatedSession);
+
+                        // Create the updated deployment session instance.
+                        var deleteEvents = deleteResourceEvents(toDeploymentSessionEvents(session, results));
+
+                        var deprovisioningSessionEvents = toDeprovisioningEvents(
+                                session, deleteEvents, DeploymentSession.Status.FAILURE);
+
+                        session.getEvents().addAll(deprovisioningSessionEvents);
+
+                        log.info("Deployment session({}) cleaned", session.getId(), error);
+                        return null; // To satisfy type signature (Void).
+
+                    });
+        } catch (Throwable t) {
+            log.error("Error triggering work on the session", t.getMessage());
+            deploymentLog.get(session.getId()).complete(new DeploymentSession(
+                    session.getId(),
+                    session.getSpecification(),
+                    session.getCluster(),
+                    session.getAssignment(),
+                    DeploymentSession.Status.FAILURE,
+                    Collections.singletonList(new DeploymentSessionEvent(
+                            DeploymentSessionEvent.Type.COMPLETED,
                             session.getId(),
-                            session.getSpecification(),
-                            session.getCluster(),
-                            session.getAssignment(),
-                            DeploymentSession.Status.SUCCESS,
-                            toDeploymentSessionEvents(session, results)
-                    );
-
-                    // Update the deployment log.
-                    // FIXME: This does not take into account of persistence nor retry.
-                    deploymentLog.get(session.getId()).complete(updatedSession);
-
-                    log.info("Deployment session({}) completed", session.getId());
-                }, executor)
-                .exceptionally(error -> {
-                    log.info("Deployment session({}) failed", session.getId(), error);
-
-                    var event = newCompleteEvent(session.getId(), DeploymentSession.Status.FAILURE);
-                    var updatedSession = new DeploymentSession(
-                            session.getId(),
-                            session.getSpecification(),
-                            session.getCluster(),
-                            session.getAssignment(),
                             DeploymentSession.Status.FAILURE,
-                            Stream.concat(session.getEvents().stream(), Stream.of(event))
-                                    .collect(Collectors.toList())
-                    );
-
-                    // Update the deployment log.
-                    // FIXME: This does not take into account of persistence nor retry.
-                    deploymentLog.get(session.getId()).complete(updatedSession);
-
-                    deprovision(session.getId());
-                    log.info("Deployment session({}) cleaned", session.getId(), error);
-
-                    return null; // To satisfy type signature (Void).
-                });
+                            ProvisionedResource.Companion.getDefaultValue(),
+                            ConcordNode.Companion.getDefaultValue(),
+                            ConcordNodeStatus.Companion.getDefaultValue(),
+                            ConcordCluster.Companion.getDefaultValue()
+                    ))));
+        }
     }
 
     /**

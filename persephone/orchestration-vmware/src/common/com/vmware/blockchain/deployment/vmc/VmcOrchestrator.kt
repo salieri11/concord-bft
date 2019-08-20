@@ -19,7 +19,6 @@ import com.vmware.blockchain.deployment.model.core.URI
 import com.vmware.blockchain.deployment.model.core.UUID
 import com.vmware.blockchain.deployment.model.nsx.NatRule
 import com.vmware.blockchain.deployment.model.nsx.PublicIP
-import com.vmware.blockchain.deployment.model.vsphere.VirtualMachineGuestIdentityInfo
 import com.vmware.blockchain.deployment.orchestration.Orchestrator
 import com.vmware.blockchain.deployment.orchestration.toIPv4Address
 import com.vmware.blockchain.deployment.orchestration.vmware.newClientRpcChannel
@@ -36,9 +35,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.reactive.publish
 import kotlinx.coroutines.withTimeout
+import java.lang.Integer.parseInt
 import kotlin.coroutines.CoroutineContext
 
 /**
@@ -75,9 +74,6 @@ class VmcOrchestrator(
      * wide [CoroutineScope] to launch [VmcOrchestrator]-related coroutines.
      */
     companion object {
-
-        /** Default internal retry interval for SDDC operations. */
-        const val OPERATION_RETRY_INTERVAL_MILLIS = 500L
 
         /** Default maximum orchestrator operation timeout value. */
         const val ORCHESTRATOR_TIMEOUT_MILLIS = 60000L * 10
@@ -146,31 +142,18 @@ class VmcOrchestrator(
                 try {
                     val clusterId = UUID(request.cluster.high, request.cluster.low)
                     val nodeId = UUID(request.node.high, request.node.low)
-                    val subnetMask = ((1 shl (32 - network.subnet)) - 1).inv()
 
                     val getFolder = async { vSphere.getFolder(name = info.vsphere.folder) }
                     val getDatastore = async { vSphere.getDatastore(name = storage) }
                     val getResourcePool = async { vSphere.getResourcePool(name = compute) }
-                    val ensureControlNetwork = async {
-                        ensureLogicalNetwork(
-                                "cgw",
-                                network.name,
-                                network.gateway and subnetMask,
-                                network.subnet,
-                                network.subnet
-                        )
-                    }
-                    val ensureReplicaNetwork = async {
-                        ensureLogicalNetwork("cgw", network.name, 0x0AFF0000, 16)
-                    }
+                    val getControlNetwork = async { getLogicalNetwork(network.name) }
                     val getLibraryItem = async { vSphere.getLibraryItem(request.model.template) }
 
                     // Collect all information and deploy.
                     val folder = getFolder.await()
                     val datastore = getDatastore.await()
                     val resourcePool = getResourcePool.await()
-                    val controlNetwork = ensureControlNetwork.await()
-                    val dataNetwork = ensureReplicaNetwork.await()
+                    val controlNetwork = requireNotNull(getControlNetwork.await())
                     val libraryItem = getLibraryItem.await()
                     val instance = vSphere.createVirtualMachine(
                             name = "$clusterId-$nodeId",
@@ -326,31 +309,11 @@ class VmcOrchestrator(
         return publish<Orchestrator.NetworkAllocationEvent>(coroutineContext) {
             withTimeout(ORCHESTRATOR_TIMEOUT_MILLIS) {
                 try {
-                    // Retrieve only the last portion of the URI to get the VM ID.
-                    val computeId = request.compute.path.substringAfterLast("/")
-
-                    // Obtain current private IP.
-                    // Note: This can take a while as guest needs to boot and start vmware-tools
-                    // service and also have the service pick up and report network stack
-                    // information back to SDDC.
-                    //
-                    // TODO: This is not the eventual workflow with agent in the picture.
-                    // Current workflow involves polling the deployed entities for its current
-                    // status, which does not scale well.
-                    // The scalable approach involves the agent calling back to fleet management,
-                    // which can *then* trigger the createNetworkAllocation workflow.
-                    //
-                    // Longer retry frequency to take into account of potentially long wait.
-                    val retryFrequency = 5000L
-                    var info: VirtualMachineGuestIdentityInfo? = null
-                    while (info == null) {
-                        delay(retryFrequency)
-                        info = vSphere.getVirtualMachineGuestIdentity(computeId)
-                    }
-                    val privateIP = info.ip_address
+                    val privateIP: String? = parseInt(request.privateNetwork.path.substringAfterLast("/"),
+                                16).toIPv4Address()
 
                     // Obtain the public IP address from the IP resource.
-                    val networkId = request.network.path.substringAfterLast("/")
+                    val networkId = request.publicNetwork.path.substringAfterLast("/")
                     val publicIP = nsx.getPublicIP(networkId)?.ip
 
                     // Setup the NAT rule.
@@ -364,7 +327,7 @@ class VmcOrchestrator(
                                         this,
                                         request.name,
                                         request.compute,
-                                        request.network
+                                        request.publicNetwork
                                 ))
                             }
                             ?: close(Orchestrator.ResourceCreationFailedException(request))
@@ -446,39 +409,11 @@ class VmcOrchestrator(
      * @return
      *   ID of the logical network as a [String].
      */
-    private suspend fun ensureLogicalNetwork(
-        tier1: String = "cgw",
-        name: String,
-        prefix: Int,
-        prefixSubnet: Int,
-        subnetSize: Int = 28
-    ): String {
-        var result: String? = null
-        while (result == null) {
-            // Create the network segment and resolve its vSphere name. Due to realization delays,
-            // the create() call may not immediately yield any result. In such cases, let the loop
-            // take care of eventually getting a network segment that matches the desired name.
-            result = vSphere.getNetwork(name)
-                    ?: nsx.createNetworkSegment(tier1, name, prefix, prefixSubnet, subnetSize)
-                            // The API does not return the resource ID from vSphere's perspective,
-                            // so we have to follow up w/ another GET.
-                            //
-                            // We need to be able to retrieve the ID by name. If not found, just
-                            // return no result and let caller try again.
-                            //
-                            // Note:
-                            // Given that getNetwork() and intent creation are via 2 separate
-                            // endpoints, it is possible that vSphere does not yet have the created
-                            // entity even though the NSX network intent has been created. In this
-                            // case, status 200 will still result in entity not found (i.e. null).
-                            ?.let { vSphere.getNetwork(it) }
-
-            if (result == null) {
-                // Do not engage next iteration immediately.
-                delay(OPERATION_RETRY_INTERVAL_MILLIS)
-            }
-        }
-        return result
+    private suspend fun getLogicalNetwork(
+        name: String
+    ): String? {
+        return vSphere.getNetwork(name)
+                ?: throw Exception("Unable to read the logical network: $name")
     }
 
     /**
