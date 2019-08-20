@@ -212,6 +212,6 @@ services:
       - ./fluentd:/fluentd/etc
 
   agent:
-    image: "${agent_repo}:${agent_tag}"
+    image: "${persephone_agent_repo}:${persephone_agent_tag}"
     ports:
       - 50453:50453

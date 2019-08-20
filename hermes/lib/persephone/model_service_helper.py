@@ -32,6 +32,8 @@ class ModelServiceRPCHelper(RPCHelper):
       except Exception as e:
          raise Exception(e)
 
+      self.AGENT_ID = self.args.userConfig["persephoneTests"]["modelService"][
+         "deployment_component_ids"]["AGENT"]
       self.CONCORD_ID = self.args.userConfig["persephoneTests"]["modelService"][
          "deployment_component_ids"]["CONCORD"]
       self.ETHRPC_ID = self.args.userConfig["persephoneTests"]["modelService"][
@@ -75,6 +77,10 @@ class ModelServiceRPCHelper(RPCHelper):
          "Using Deployment components: {}".format(deployment_components))
       concord_components = []
       for component in deployment_components:
+         if self.AGENT_ID in component:
+            concord_components.append((
+                                      concord_model_pb2.ConcordComponent.GENERIC,
+                                      component))
          if self.CONCORD_ID in component:
             concord_components.append((
                                       concord_model_pb2.ConcordComponent.CONCORD,
