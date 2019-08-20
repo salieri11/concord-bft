@@ -41,13 +41,17 @@ bool ClientImp::isRunning() { return (m_status == Running); }
  * execute the command synchronously
  */
 Status ClientImp::invokeCommandSynch(const char *request, uint32_t requestSize,
-                                     bool isReadOnly, uint32_t replySize,
-                                     char *outReply,
+                                     bool isReadOnly,
+                                     std::chrono::milliseconds timeout,
+                                     uint32_t replySize, char *outReply,
                                      uint32_t *outActualReplySize) {
+  uint64_t timeoutMs = timeout <= std::chrono::milliseconds::zero()
+                           ? SimpleClient::INFINITE_TIMEOUT
+                           : timeout.count();
   auto seqNum = m_SeqNumGenerator->generateUniqueSequenceNumberForRequest();
   auto res = m_bftClient->sendRequest(isReadOnly, request, requestSize, seqNum,
-                                      SimpleClient::INFINITE_TIMEOUT, replySize,
-                                      outReply, *outActualReplySize);
+                                      timeoutMs, replySize, outReply,
+                                      *outActualReplySize);
 
   assert(res >= -2 && res < 1);
 

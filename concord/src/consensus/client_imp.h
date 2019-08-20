@@ -6,6 +6,7 @@
 #define CONCORD_CONSENSUS_CLIENT_IMP_H_
 
 #include <boost/thread.hpp>
+#include <chrono>
 #include <map>
 #include "ICommunication.hpp"
 #include "SimpleClient.hpp"
@@ -29,8 +30,9 @@ class ClientImp : public concord::storage::IClient {
   virtual bool isRunning() override;
 
   virtual Status invokeCommandSynch(const char *request, uint32_t requestSize,
-                                    bool isReadOnly, uint32_t replySize,
-                                    char *outReply,
+                                    bool isReadOnly,
+                                    std::chrono::milliseconds timeout,
+                                    uint32_t replySize, char *outReply,
                                     uint32_t *outActualReplySize) override;
 
  protected:

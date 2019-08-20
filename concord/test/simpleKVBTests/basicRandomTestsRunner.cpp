@@ -13,10 +13,13 @@
 
 #include "basicRandomTestsRunner.hpp"
 #include <assert.h>
+#include <chrono>
 
 #ifndef _WIN32
 #include <unistd.h>
 #endif
+
+using std::chrono::seconds;
 
 using concord::storage::IClient;
 
@@ -60,7 +63,8 @@ void BasicRandomTestsRunner::run() {
     char reply[expectedReplySize];
 
     client_.invokeCommandSynch((char *)request, requestSize, readOnly,
-                               expectedReplySize, reply, &actualReplySize);
+                               seconds(5), expectedReplySize, reply,
+                               &actualReplySize);
 
     if (isReplyCorrect(request->type, expectedReply, reply, expectedReplySize,
                        actualReplySize))
