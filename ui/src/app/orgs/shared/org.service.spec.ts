@@ -4,13 +4,14 @@
 
 import { TestBed, inject } from '@angular/core/testing';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
+import { MockSharedModule } from '../../shared/shared.module';
 
 import { OrgService } from './org.service';
 
 describe('OrgService', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
-      imports: [HttpClientTestingModule],
+      imports: [HttpClientTestingModule, MockSharedModule],
       providers: [
         OrgService,
       ]
