@@ -314,7 +314,7 @@ docker_pull athena-docker-local.artifactory.eng.vmware.com/reverse-proxy:0.1.2 "
 
 docker_build vmware-blockchain-samples/asset-transfer vmware-blockchain-samples/asset-transfer/Dockerfile ${asset_transfer_repo} ${asset_transfer_tag}
 
-docker_build agent agent/packaging.Dockerfile ${agent_repo} ${agent_tag}
+docker_build agent agent/packaging.Dockerfile ${persephone_agent_repo} ${persephone_agent_tag}
 
 docker_build contract-compiler contract-compiler/Dockerfile ${contract_compiler_repo} ${contract_compiler_tag}
 

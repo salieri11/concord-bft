@@ -130,6 +130,7 @@
   "persephoneTests": {
     "modelService": {
       "deployment_component_ids": {
+        "AGENT": "agent",
         "CONCORD": "concord-core",
         "ETHRPC": "ethrpc"
       },
@@ -137,6 +138,7 @@
         "concord_model_version": "1.0",
         "concord_model_template_id": "8abc7fda-9576-4b13-9beb-06f867cf2c7c",
         "deployment_components": [
+          "vmwblockchain/agent:latest",
           "vmwblockchain/concord-core:latest",
           "vmwblockchain/ethrpc:latest"
         ]

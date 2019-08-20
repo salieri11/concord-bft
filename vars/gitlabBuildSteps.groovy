@@ -289,12 +289,12 @@ def call(){
                 env.internal_repo = env.internal_repo_name + ".artifactory.eng.vmware.com"
 
                 // These are constants which mirror the DockerHub repos.  DockerHub is only used for publishing releases.
-                env.release_agent_repo = env.release_repo + "/agent"
                 env.release_asset_transfer_repo = env.release_repo + "/asset-transfer"
                 env.release_concord_repo = env.release_repo + "/concord-core"
                 env.release_ethrpc_repo = env.release_repo + "/ethrpc"
                 env.release_fluentd_repo = env.release_repo + "/fluentd"
                 env.release_helen_repo = env.release_repo + "/concord-ui"
+                env.release_persephone_agent_repo = env.release_repo + "/agent"
                 env.release_persephone_metadata_repo = env.release_repo + "/persephone-metadata"
                 env.release_persephone_provisioning_repo = env.release_repo + "/persephone-provisioning"
                 env.release_persephone_configuration_repo = env.release_repo + "/persephone-configuration"
@@ -308,12 +308,13 @@ def call(){
                 env.release_daml_execution_engine_repo = env.release_repo + "/daml-execution-engine"
 
                 // Docker Images for Persephone Testing on every run
+                env.persephone_testing_agent_repo = env.release_repo + "/persephone-testing-agent"
                 env.persephone_testing_concord_repo = env.release_repo + "/persephone-testing-concord-core"
                 env.persephone_testing_ethrpc_repo = env.release_repo + "/persephone-testing-ethrpc"
 
                 // These are constants which mirror the internal artifactory repos.  We put all merges
                 // to master in the internal VMware artifactory.
-                env.internal_agent_repo = env.release_agent_repo.replace(env.release_repo, env.internal_repo)
+                env.internal_persephone_agent_repo = env.release_persephone_agent_repo.replace(env.release_repo, env.internal_repo)
                 env.internal_asset_transfer_repo = env.release_asset_transfer_repo.replace(env.release_repo, env.internal_repo)
                 env.internal_concord_repo = env.release_concord_repo.replace(env.release_repo, env.internal_repo)
                 env.internal_ethrpc_repo = env.release_ethrpc_repo.replace(env.release_repo, env.internal_repo)
@@ -344,8 +345,6 @@ def call(){
                 sh '''
                   echo "${PASSWORD}" | sudo -S ls
                   sudo cat >blockchain/docker/.env <<EOF
-agent_repo=${internal_agent_repo}
-agent_tag=${docker_tag}
 asset_transfer_repo=${internal_asset_transfer_repo}
 asset_transfer_tag=${docker_tag}
 concord_repo=${internal_concord_repo}
@@ -356,6 +355,8 @@ fluentd_repo=${internal_fluentd_repo}
 fluentd_tag=${docker_tag}
 helen_repo=${internal_helen_repo}
 helen_tag=${docker_tag}
+persephone_agent_repo=${internal_persephone_agent_repo}
+persephone_agent_tag=${docker_tag}
 persephone_metadata_repo=${internal_persephone_metadata_repo}
 persephone_metadata_tag=${docker_tag}
 persephone_configuration_repo=${internal_persephone_configuration_repo}
@@ -553,22 +554,24 @@ EOF
                 withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
                   script {
                     sh '''
+                      docker tag ${internal_persephone_agent_repo}:${docker_tag} ${persephone_testing_agent_repo}:${docker_tag}
                       docker tag ${internal_concord_repo}:${docker_tag} ${persephone_testing_concord_repo}:${docker_tag}
                       docker tag ${internal_ethrpc_repo}:${docker_tag} ${persephone_testing_ethrpc_repo}:${docker_tag}
                     '''
+                    pushDockerImage(env.persephone_testing_agent_repo, env.docker_tag, false)
                     pushDockerImage(env.persephone_testing_concord_repo, env.docker_tag, false)
                     pushDockerImage(env.persephone_testing_ethrpc_repo, env.docker_tag, false)
 
                     if (genericTests) {
                       sh '''
                         echo "Running Persephone SMOKE Tests..."
-                        echo "${PASSWORD}" | sudo -SE "${python}" main.py PersephoneTests --dockerComposeFile ../docker/docker-compose-persephone.yml --resultsDir "${persephone_test_logs}" --deploymentComponents "${persephone_testing_concord_repo}:${docker_tag},${persephone_testing_ethrpc_repo}:${docker_tag}"
+                        echo "${PASSWORD}" | sudo -SE "${python}" main.py PersephoneTests --dockerComposeFile ../docker/docker-compose-persephone.yml --resultsDir "${persephone_test_logs}" --deploymentComponents "${persephone_testing_agent_repo}:${docker_tag},${persephone_testing_concord_repo}:${docker_tag},${persephone_testing_ethrpc_repo}:${docker_tag}"
                       '''
                     }
                     if (env.JOB_NAME.contains(persephone_test_job_name)) {
                       sh '''
                         echo "Running Entire Testsuite: Persephone..."
-                        echo "${PASSWORD}" | sudo -SE "${python}" main.py PersephoneTests --dockerComposeFile ../docker/docker-compose-persephone.yml --resultsDir "${persephone_test_logs}" --tests "all_tests" --deploymentComponents "${persephone_testing_concord_repo}:${docker_tag},${persephone_testing_ethrpc_repo}:${docker_tag}"
+                        echo "${PASSWORD}" | sudo -SE "${python}" main.py PersephoneTests --dockerComposeFile ../docker/docker-compose-persephone.yml --resultsDir "${persephone_test_logs}" --tests "all_tests" --deploymentComponents "${persephone_testing_agent_repo}:${docker_tag},${persephone_testing_concord_repo}:${docker_tag},${persephone_testing_ethrpc_repo}:${docker_tag}"
                       '''
                     }
                   }
@@ -736,7 +739,7 @@ EOF
               withCredentials([string(credentialsId: 'ARTIFACTORY_API_KEY', variable: 'ARTIFACTORY_API_KEY')]) {
                 // Pass in false for whether to tag as latest because VMware's
                 // artifactory does not allow re-using a tag.
-                pushDockerImage(env.internal_agent_repo, env.docker_tag, false)
+                pushDockerImage(env.internal_persephone_agent_repo, env.docker_tag, false)
                 pushDockerImage(env.internal_asset_transfer_repo, env.docker_tag, false)
                 pushDockerImage(env.internal_concord_repo, env.docker_tag, false)
                 pushDockerImage(env.internal_ethrpc_repo, env.docker_tag, false)
@@ -778,7 +781,7 @@ EOF
 
               script {
                 sh '''
-                  docker tag ${internal_agent_repo}:${docker_tag} ${release_agent_repo}:${docker_tag}
+                  docker tag ${internal_persephone_agent_repo}:${docker_tag} ${release_persephone_agent_repo}:${docker_tag}
                   docker tag ${internal_asset_transfer_repo}:${docker_tag} ${release_asset_transfer_repo}:${docker_tag}
                   docker tag ${internal_concord_repo}:${docker_tag} ${release_concord_repo}:${docker_tag}
                   docker tag ${internal_ethrpc_repo}:${docker_tag} ${release_ethrpc_repo}:${docker_tag}
@@ -792,7 +795,7 @@ EOF
                   docker tag ${internal_daml_ledger_api_repo}:${docker_tag} ${release_daml_ledger_api_repo}:${docker_tag}
                   docker tag ${internal_daml_execution_engine_repo}:${docker_tag} ${release_daml_execution_engine_repo}:${docker_tag}
                 '''
-                pushDockerImage(env.release_agent_repo, env.docker_tag, true)
+                pushDockerImage(env.release_persephone_agent_repo, env.docker_tag, true)
                 pushDockerImage(env.release_asset_transfer_repo, env.docker_tag, true)
                 pushDockerImage(env.release_concord_repo, env.docker_tag, true)
                 pushDockerImage(env.release_ethrpc_repo, env.docker_tag, true)

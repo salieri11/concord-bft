@@ -43,11 +43,9 @@ class CloudInitConfiguration(
             )
     )
 
-    /** Consolidated Docker PULL command. */
-    private val dockerPullCommand: String = model.components.asSequence()
+    private val agentImageName: String = model.components.asSequence()
             .filter { it.type == ConcordComponent.Type.CONTAINER_IMAGE }
-            .map { "docker pull ${URI.create(containerRegistry.address).authority}/${it.name}" }
-            .joinToString(separator = "\n", postfix = "\n")
+            .filter { it.serviceType == ConcordComponent.ServiceType.GENERIC }.first().name
 
     /** Network configuration command. */
     private val networkAddressCommand: String by lazy {
@@ -92,7 +90,6 @@ class CloudInitConfiguration(
             systemctl restart docker
             systemctl enable docker
             {{dockerLoginCommand}}
-            {{dockerPullCommand}}
 
             # Output the node's configuration.
             mkdir -p /config/concord/config-local
@@ -115,11 +112,11 @@ class CloudInitConfiguration(
             chmod 777 /config/concord/config-public/find-docker-instances.sh
 
             echo '{{genesis}}' > /config/concord/config-public/genesis.json
-            docker run -d --name=agent --restart=always -v /config/agent/config.json:/config/config.json -v /config:/config -v /var/run/docker.sock:/var/run/docker.sock -p 8546:8546 registry-1.docker.io/vmwblockchain/agent-testing:debug
+            docker run -d --name=agent --restart=always -v /config:/config -v /var/run/docker.sock:/var/run/docker.sock -p 8546:8546 {{agentImage}}
             echo 'done'
             """.trimIndent()
                     .replace("{{dockerLoginCommand}}", containerRegistry.toRegistryLoginCommand())
-                    .replace("{{dockerPullCommand}}", dockerPullCommand)
+                    .replace("{{agentImage}}", URI.create(containerRegistry.address).authority + "/" + agentImageName)
                     .replace("{{genesis}}", GenesisSerializer.toJson(genesis))
                     .replace("{{agentConfig}}", ConcordAgentConfigurationSerializer.toJson(configuration))
                     .replace("{{networkAddressCommand}}", ipAddress.takeIf { it.isNotBlank() }?.let { networkAddressCommand }?: "")
