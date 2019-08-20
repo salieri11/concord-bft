@@ -69,6 +69,54 @@
       </div>
     </clr-wizard-page>
 
+    <clr-wizard-page formGroupName="onPrem" *ngIf="showOnPrem" [clrWizardPageNextDisabled]="form.controls.onPrem.invalid" (clrWizardPageOnCommit)="onAddOnPrem()">
+      <ng-template clrPageTitle>{{'blockchainWizard.onPrem.pageTitle' | translate}}</ng-template>
+      <ng-template clrPageNavTitle>{{'blockchainWizard.onPrem.navTitle' | translate}}</ng-template>
+
+      <div clrForm class="form-block blockchain-form">
+        <clr-input-container>
+          <label class="clr-col-12 clr-col-md-4">{{ 'blockchainWizard.onPrem.name' | translate }}</label>
+          <input clrInput type="text" [placeholder]="'blockchainWizard.onPrem.namePH' | translate" class="clr-col-12 clr-col-md-8" formControlName="name" />
+        </clr-input-container>
+        <clr-input-container>
+          <label class="clr-col-12 clr-col-md-4">{{ 'blockchainWizard.onPrem.ip' | translate }}</label>
+          <input clrInput type="text" [placeholder]="'blockchainWizard.onPrem.ipPH' | translate" class="clr-col-12 clr-col-md-8" formControlName="ip" />
+        </clr-input-container>
+        <clr-input-container>
+          <label class="clr-col-12 clr-col-md-4">{{ 'blockchainWizard.onPrem.username' | translate }}</label>
+          <input clrInput type="text" [placeholder]="'blockchainWizard.onPrem.usernamePH' | translate" class="clr-col-12 clr-col-md-8" formControlName="username" />
+        </clr-input-container>
+        <clr-input-container>
+          <label class="clr-col-12 clr-col-md-4">{{ 'blockchainWizard.onPrem.password' | translate }}</label>
+          <input clrInput type="password" class="clr-col-12 clr-col-md-8" formControlName="password" />
+        </clr-input-container>
+        <clr-input-container>
+          <label class="clr-col-12 clr-col-md-4">{{ 'blockchainWizard.onPrem.compNetwork' | translate }}</label>
+          <input clrInput type="text" [placeholder]="'blockchainWizard.onPrem.compNetworkPH' | translate" class="clr-col-12 clr-col-md-8" formControlName="compNetwork" />
+        </clr-input-container>
+        <clr-input-container>
+          <label class="clr-col-12 clr-col-md-4">{{ 'blockchainWizard.onPrem.resourcePool' | translate }}</label>
+          <input clrInput type="text" [placeholder]="'blockchainWizard.onPrem.resourcePoolPH' | translate" class="clr-col-12 clr-col-md-8" formControlName="resourcePool" />
+        </clr-input-container>
+        <clr-input-container>
+          <label class="clr-col-12 clr-col-md-4">{{ 'blockchainWizard.onPrem.folder' | translate }}</label>
+          <input clrInput type="text" [placeholder]="'blockchainWizard.onPrem.folderPH' | translate" class="clr-col-12 clr-col-md-8" formControlName="folder" />
+        </clr-input-container>
+        <div class="divider"></div>
+        <clr-alert [clrAlertClosable]="false">
+          <clr-alert-item>
+            <span class="alert-text">
+              {{'blockchainWizard.onPrem.locationInfo' | translate}}
+            </span>
+          </clr-alert-item>
+        </clr-alert>
+        <clr-input-container>
+          <label class="clr-col-12 clr-col-md-4">{{ 'blockchainWizard.onPrem.location' | translate }}</label>
+          <input clrInput type="text" [placeholder]="'blockchainWizard.onPrem.locationPH' | translate" class="clr-col-12 clr-col-md-8" formControlName="location" />
+        </clr-input-container>
+      </div>
+    </clr-wizard-page>
+
     <clr-wizard-page formGroupName="nodes" [clrWizardPageNextDisabled]="!form.controls.nodes.errors?.countIsCorrect">
       <ng-template clrPageTitle>{{'blockchainWizard.nodes.pageTitle' | translate}}</ng-template>
       <ng-template clrPageNavTitle>{{'blockchainWizard.nodes.navTitle' | translate}}</ng-template>
@@ -96,6 +144,7 @@
             <input clrInput type="text" class="clr-col-12 clr-col-md-8" [formControlName]="zone.id" />
           </clr-input-container>
         </div>
+        <button class="btn btn-outline btn-sm add-on-prem" (click)="addOnPrem()">{{ 'blockchainWizard.nodes.add' | translate }}</button>
       </div>
     </clr-wizard-page>
 

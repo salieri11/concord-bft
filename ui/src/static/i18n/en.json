@@ -838,7 +838,31 @@
       "pageTitle": "Replicas and Regional Distribution",
       "navTitle": "Replicas",
       "regionalTitle": "Regional Distribution",
-      "regionInfo": "Even distribution of replicas across regions is recommended for best network resiliency.  The cumulative amount in regions must equal number of replicas to continue to the next step."
+      "regionInfo": "Even distribution of replicas across regions is recommended for best network resiliency.  The cumulative amount in regions must equal number of replicas to continue to the next step.",
+      "add": "Add On Premise Region"
+    },
+    "onPrem": {
+      "help": {
+        "numberOfNodes": "Number of replicas are optimized for SBFT consensus engine"
+      },
+      "navTitle": "On Premise",
+      "pageTitle": "Add On Premise Region",
+      "name": "Zone Designation",
+      "namePH": "A",
+      "ip": "IP",
+      "ipPH": "0.0.0.0",
+      "username": "Username",
+      "usernamePH": "admin@onprem",
+      "password": "Password",
+      "compNetwork": "Compute Network",
+      "compNetworkPH": "My Network",
+      "resourcePool": "Resource Pool",
+      "resourcePoolPH": "My Resource",
+      "folder": "Folder",
+      "folderPH": "/folder",
+      "locationInfo": "Adding a location will provide better visualization metrics for describing latency and location outage issues.",
+      "location": "Location",
+      "locationPH": "Palo Alto, CA, USA"
     },
     "users": {
       "pageTitle": "Invite Users",

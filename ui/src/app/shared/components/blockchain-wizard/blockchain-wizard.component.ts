@@ -55,6 +55,8 @@ export class BlockchainWizardComponent implements AfterViewInit {
   engines = ContractEngines;
   selectedEngine: string;
 
+  showOnPrem: boolean;
+
   constructor(
     private router: Router,
     private blockchainService: BlockchainService
@@ -77,6 +79,7 @@ export class BlockchainWizardComponent implements AfterViewInit {
   ngAfterViewInit() {
     this.wizard.currentPageChanged.subscribe(() => this.handlePageChange());
   }
+
 
   addUser() {
     const selectedUsers = this.form.get('users');
@@ -182,8 +185,48 @@ export class BlockchainWizardComponent implements AfterViewInit {
       nodes: new FormGroup({
         numberOfNodes: new FormControl('', Validators.required),
         zones: this.zoneGroup(),
-      }, { validators: RegionCountValidator })
+      }, { validators: RegionCountValidator }),
+      onPrem: new FormGroup({
+        name: new FormControl('', Validators.required),
+        ip: new FormControl('', Validators.required),
+        username: new FormControl('', Validators.required),
+        password: new FormControl('', Validators.required),
+        compNetwork: new FormControl('', Validators.required),
+        resourcePool: new FormControl('', Validators.required),
+        folder: new FormControl('', Validators.required),
+        location: new FormControl('', Validators.required),
+      }),
     });
+  }
+
+  addOnPrem() {
+    this.showOnPrem = true;
+
+    setTimeout(() => {
+      const page = this.wizard.pageCollection.pagesAsArray[1];
+      this.wizard.goTo(page.id);
+    }, 10);
+  }
+
+  onAddOnPrem(): void {
+    const onPrem = this.form['controls'].onPrem;
+    const id = onPrem['controls'].location.value.replace(' ', '_');
+    const zones = this.form.controls['nodes']['controls'].zones;
+    const onPremData = onPrem.value;
+
+    onPremData.id = id;
+    // Disable cloud zones, because we don't have a hybrid setup yet.
+    this.zones.forEach(zone => {
+      // Disable non on-prem zones
+      if (!zone.password) {
+        zones.controls[zone.id].disable();
+      }
+    });
+    zones.addControl(id, new FormControl('', Validators.required));
+
+    setTimeout(() => {
+      this.zones.push(onPremData);
+    }, 10);
   }
 
   private handlePageChange() {
@@ -195,7 +238,8 @@ export class BlockchainWizardComponent implements AfterViewInit {
           this.consortiumInput.nativeElement.focus();
         }, 10);
 
-        break;    }
+        break;
+    }
   }
 
   private zoneGroup() {
