@@ -631,6 +631,13 @@ paths:
                     - FIXED
                     - UNSPECIFIED
                   description: FIXED or UNSPECIFIED, determines site locations
+                blockchain_type:
+                  type: string
+                  enum:
+                    - ETHRPC
+                    - DAML
+                    - HLF
+                  description: Type of blockchain node
                 zone_ids:
                   description: |
                     List of zone IDs for replicas.  deployment_type must be FIXED.  Must contain 3f + 2c + 1 elements.
