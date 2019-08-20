@@ -143,7 +143,8 @@ interface Orchestrator {
      * @param[network]
      *   network resource to be assigned.
      */
-    data class CreateNetworkAllocationRequest(val name: String, val compute: URI, val network: URI)
+    data class CreateNetworkAllocationRequest(val name: String, val compute: URI, val publicNetwork: URI,
+                                              val privateNetwork: URI)
 
     /**
      * Network allocation de-provisioning request specification.

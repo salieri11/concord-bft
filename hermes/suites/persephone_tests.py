@@ -463,6 +463,7 @@ class PersephoneTests(test_suite.TestSuite):
             concord_username = concord_memeber_credentials["username"]
             concord_password = concord_memeber_credentials["password"]
             log.info("Initiating SSH verification on all concord nodes...")
+            time.sleep(300)
             for ethrpc_endpoint in ethrpc_endpoints:
                concord_ip = ethrpc_endpoint.split('//')[1].split(':')[0]
                log.info("**** Concord IP: {}".format(concord_ip))
