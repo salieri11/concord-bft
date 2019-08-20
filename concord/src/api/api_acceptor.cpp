@@ -53,7 +53,8 @@ void ApiAcceptor::handle_accept(ApiConnection::pointer new_connection,
                                << boost::this_thread::get_id());
   if (!error) {
     connManager_.start_connection(new_connection);
-  } else if (error == error::operation_aborted) {  // Support graceful shutdown
+  } else if (error == error::operation_aborted) {
+    // Exit here in case operation aborted - shutdown is ongoing.
     LOG4CPLUS_ERROR(logger_, error.message());
     return;
   }

@@ -3134,7 +3134,7 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "view_change_timeout",
       "Timeout, measured in milliseconds, after which Concord-BFT will attempt "
       "an SBFT view change if not enough replicas are responding.",
-      "60000");
+      "20000");
   config.tagParameter("view_change_timeout", defaultableByUtilityTags);
   config.addValidator(
       "view_change_timeout", validateUInt,
