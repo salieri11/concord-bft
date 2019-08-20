@@ -3106,7 +3106,7 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "status_time_interval",
       "Time interval, measured in milliseconds, at which each Concord replica "
       "should send its status to the others.",
-      "10000");
+      "3000");
   config.tagParameter("status_time_interval", defaultableByUtilityTags);
   config.addValidator(
       "status_time_interval", validateUInt,
