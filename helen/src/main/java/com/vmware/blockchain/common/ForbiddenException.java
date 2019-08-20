@@ -17,4 +17,9 @@ public class ForbiddenException extends HelenException {
         super(HttpStatus.FORBIDDEN, message, args);
     }
 
+    public ForbiddenException(ErrorCodeType codeType, Object... args) {
+        super(ExceptionMessageHelper.getMessageOrErrorCode(codeType.getErrorCodeTypeValue(),
+              HttpStatus.FORBIDDEN, args));
+    }
+
 }

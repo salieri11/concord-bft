@@ -18,6 +18,8 @@ import org.springframework.http.HttpStatus;
 
 import com.google.protobuf.ByteString;
 import com.vmware.blockchain.common.ErrorCode;
+import com.vmware.blockchain.common.ErrorCodeType;
+import com.vmware.blockchain.common.ExceptionMessageHelper;
 import com.vmware.blockchain.common.HelenException;
 
 /**
@@ -222,8 +224,14 @@ public class ApiHelper {
      * Exception during parsing.
      */
     public static class HexParseException extends HelenException {
+
         public HexParseException(String message, Object... args) {
             super(HttpStatus.INTERNAL_SERVER_ERROR, message, args);
+        }
+
+        public HexParseException(ErrorCodeType codeType, Object... args) {
+            super(ExceptionMessageHelper.getMessageOrErrorCode(codeType.getErrorCodeTypeValue(),
+                  HttpStatus.INTERNAL_SERVER_ERROR, args));
         }
     }
 

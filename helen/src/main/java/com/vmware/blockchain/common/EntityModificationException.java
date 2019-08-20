@@ -15,4 +15,9 @@ public class EntityModificationException extends HelenException {
     public EntityModificationException(String message, Object... args) {
         super(HttpStatus.BAD_REQUEST, message, args);
     }
+
+    public EntityModificationException(ErrorCodeType codeType, Object... args) {
+        super(ExceptionMessageHelper.getMessageOrErrorCode(codeType.getErrorCodeTypeValue(),
+              HttpStatus.BAD_REQUEST, args));
+    }
 }
