@@ -4,6 +4,7 @@
 package com.vmware.blockchain.deployment.service.provision
 
 import com.vmware.blockchain.deployment.model.ConfigurationServiceStub
+import com.vmware.blockchain.deployment.model.Endpoint
 import com.vmware.blockchain.deployment.model.OrchestrationSite
 import com.vmware.blockchain.deployment.orchestration.OrchestratorProvider
 import dagger.Module
@@ -11,6 +12,7 @@ import dagger.Provides
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.ForkJoinPool
+import java.util.function.Function
 import javax.inject.Named
 import javax.inject.Singleton
 
@@ -55,8 +57,15 @@ class ProvisioningServiceModule {
         @Named("default-executor") executor: ExecutorService,
         orchestratorProvider: OrchestratorProvider,
         sites: List<OrchestrationSite>,
-        configService: ConfigurationServiceStub
+        configurationServer: Endpoint,
+        configurationServiceClientProvider: Function<Endpoint, ConfigurationServiceStub>
     ): ProvisioningService {
-        return ProvisioningService(executor, orchestratorProvider, sites, configService)
+        return ProvisioningService(
+                executor,
+                orchestratorProvider,
+                sites,
+                configurationServiceClientProvider,
+                configurationServer
+        )
     }
 }

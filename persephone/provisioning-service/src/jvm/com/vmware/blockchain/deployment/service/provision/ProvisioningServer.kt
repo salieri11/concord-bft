@@ -35,9 +35,9 @@ import org.slf4j.LoggerFactory
  */
 @Component(modules = [
     ProvisioningServiceModule::class,
-    ConfigurationServiceModule::class,
     OrchestrationSiteServiceModule::class,
-    OrchestratorModule::class
+    OrchestratorModule::class,
+    ConfigurationServiceClientModule::class
 ])
 @Singleton
 internal interface ProvisioningServer {

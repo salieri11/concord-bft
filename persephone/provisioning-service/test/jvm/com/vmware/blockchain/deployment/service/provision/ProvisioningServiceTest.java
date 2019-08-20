@@ -35,7 +35,6 @@ import com.vmware.blockchain.deployment.model.StreamClusterDeploymentSessionEven
 import com.vmware.blockchain.deployment.model.ethereum.Genesis;
 import com.vmware.blockchain.deployment.orchestration.NetworkAddress;
 
-import io.grpc.inprocess.InProcessServerBuilder;
 import io.grpc.stub.StreamObserver;
 
 
@@ -48,18 +47,15 @@ class ProvisioningServiceTest {
     private static long awaitTime = 10000;
 
     /**
-     * Create a new {@link ProvisioningService}.
+     * Create a new {@link TestProvisioningServer}.
      *
      * @return
-     *   a newly created {@link ProvisioningService} instance.
+     *   a newly created {@link TestProvisioningServer} instance.
      */
-    private static ProvisioningService newProvisioningService(
+    private static TestProvisioningServer newTestProvisioningServer(
             List<OrchestrationSite> orchestrations
     ) {
-        return DaggerTestProvisioningServer.builder()
-                .orchestrations(orchestrations)
-                .build()
-                .provisionService();
+        return DaggerTestProvisioningServer.builder().orchestrations(orchestrations).build();
     }
 
     /**
@@ -176,14 +172,12 @@ class ProvisioningServiceTest {
     @Test
     void clusterCreateShouldGenerateSession() throws Exception {
         // Create server instances.
-        final var configurationServer = InProcessServerBuilder.forName("TestConfigurationService")
-                .directExecutor()
-                .addService(new TestConfigurationService())
-                .build()
-                .start();
-
         var orchestrations = TestProvisioningServerKt.newOrchestrationSites();
-        var service = newProvisioningService(orchestrations);
+        var server = newTestProvisioningServer(orchestrations);
+        var configurationServiceServer = server.configurationServiceServer();
+        configurationServiceServer.start();
+
+        var service = server.provisionService();
         var initialized = service.initialize();
         initialized.get(awaitTime, TimeUnit.MILLISECONDS);
         Assertions.assertThat(initialized).isCompleted();
@@ -269,7 +263,6 @@ class ProvisioningServiceTest {
         var shutdown = service.shutdown();
         shutdown.get(awaitTime, TimeUnit.MILLISECONDS);
         Assertions.assertThat(shutdown).isCompleted();
-
-        configurationServer.shutdown();
+        configurationServiceServer.shutdown();
     }
 }

@@ -13,6 +13,32 @@ import java.util.concurrent.Executor
 import java.util.concurrent.ForkJoinPool
 
 /**
+ * Resolve the transport security server settings so that any specified properties in URL are
+ * retrieved and saved to the associated data properties.
+ *
+ * @return
+ *  a copy of this [Endpoint] instance with URL-based server properties fully resolved.
+ */
+fun Endpoint.resolveTransportSecurityServerSetting(): Endpoint {
+    // If trusted certificate data is available, use it, otherwise resolve if available, else blank.
+    val trustedCertificate = when {
+        transportSecurity.trustedCertificatesData.isNotEmpty() ->
+            transportSecurity.trustedCertificatesData
+        transportSecurity.trustedCertificatesUrl.isNotEmpty() ->
+            URI.create(transportSecurity.trustedCertificatesUrl).toURL().readText()
+        else -> ""
+    }
+
+    return copy(
+            transportSecurity = TransportSecurity(
+                    // Blind everything else except server settings.
+                    type = transportSecurity.type,
+                    trustedCertificatesData = trustedCertificate
+            )
+    )
+}
+
+/**
  * Create a new [ManagedChannel] matching the parameters specified in this [Endpoint] instance.
  *
  * @return
