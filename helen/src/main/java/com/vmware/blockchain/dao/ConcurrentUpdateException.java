@@ -6,6 +6,8 @@ package com.vmware.blockchain.dao;
 
 import org.springframework.http.HttpStatus;
 
+import com.vmware.blockchain.common.ErrorCodeType;
+import com.vmware.blockchain.common.ExceptionMessageHelper;
 import com.vmware.blockchain.common.HelenException;
 
 /**
@@ -23,6 +25,16 @@ public class ConcurrentUpdateException extends HelenException {
 
     public ConcurrentUpdateException(Throwable cause, String message, Object... args) {
         super(HttpStatus.CONFLICT, cause, message, args);
+    }
+
+    public ConcurrentUpdateException(ErrorCodeType codeType, Object... args) {
+        super(ExceptionMessageHelper.getMessageOrErrorCode(codeType.getErrorCodeTypeValue(),
+              HttpStatus.CONFLICT, args));
+    }
+
+    public ConcurrentUpdateException(ErrorCodeType codeType, Throwable cause, Object... args) {
+        super(ExceptionMessageHelper.getMessageOrErrorCode(codeType.getErrorCodeTypeValue(),
+              HttpStatus.CONFLICT, cause, args));
     }
 
 }

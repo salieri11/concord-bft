@@ -15,4 +15,9 @@ public class WalletException extends HelenException {
     public WalletException(String message, Object... args) {
         super(HttpStatus.BAD_REQUEST, message, args);
     }
+
+    public WalletException(ErrorCodeType codeType, Object... args) {
+        super(ExceptionMessageHelper.getMessageOrErrorCode(codeType.getErrorCodeTypeValue(),
+              HttpStatus.BAD_REQUEST, args));
+    }
 }

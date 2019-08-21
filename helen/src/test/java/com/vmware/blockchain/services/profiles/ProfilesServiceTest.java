@@ -22,7 +22,6 @@ import org.mockito.AdditionalMatchers;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -74,8 +73,7 @@ class ProfilesServiceTest {
      */
     @BeforeEach
     void init() {
-        MockitoAnnotations.initMocks(this);
-        MockitoAnnotations.initMocks(prm);
+
         // consortium and organization
         consortium = new Consortium();
         consortium.setId(CONSORTIUM_ID);
@@ -204,7 +202,7 @@ class ProfilesServiceTest {
             try {
                 prm.updateUser(msg);
             } catch (EntityModificationException e) {
-                Assertions.assertEquals("No user found with ID: " + USER_ID, e.getMessage());
+                Assertions.assertEquals("No user found with ID " + USER_ID, e.getMessage());
                 verify(userService, times(0)).put(any());
                 throw e;
             }

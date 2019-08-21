@@ -16,4 +16,9 @@ public class UnauthorizedException extends HelenException {
     public UnauthorizedException(String message, Object... args) {
         super(HttpStatus.UNAUTHORIZED, message, args);
     }
+
+    public UnauthorizedException(ErrorCodeType codeType, Object... args) {
+    super(ExceptionMessageHelper.getMessageOrErrorCode(codeType.getErrorCodeTypeValue(),
+          HttpStatus.UNAUTHORIZED, args));
+    }
 }

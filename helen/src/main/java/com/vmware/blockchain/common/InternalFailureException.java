@@ -20,4 +20,14 @@ public class InternalFailureException extends HelenException {
     public InternalFailureException(Throwable cause, String message, Object... args) {
         super(HttpStatus.INTERNAL_SERVER_ERROR, cause, message, args);
     }
+
+    public InternalFailureException(ErrorCodeType codeType, Object... args) {
+        super(ExceptionMessageHelper.getMessageOrErrorCode(codeType.getErrorCodeTypeValue(),
+              HttpStatus.INTERNAL_SERVER_ERROR, args));
+    }
+
+    public InternalFailureException(ErrorCodeType codeType, Throwable cause, Object... args) {
+        super(ExceptionMessageHelper.getMessageOrErrorCode(codeType.getErrorCodeTypeValue(),
+             HttpStatus.INTERNAL_SERVER_ERROR, cause, args));
+    }
 }

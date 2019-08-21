@@ -16,7 +16,7 @@ public class HelenException extends RuntimeException {
 
     private static final long serialVersionUID = 1L;
 
-    private final String message;
+    private final ErrorCodeType errorCodeType = null;
     private final Object[] args;
     private final HttpStatus httpStatus;
 
@@ -24,8 +24,16 @@ public class HelenException extends RuntimeException {
      * Create a new Helen Exception.
      */
     public HelenException(HttpStatus httpStatus, String message, Object... args) {
-        super(message);
-        this.message = message;
+        super(MessageFormat.format(message, args));
+        this.args = args;
+        this.httpStatus = httpStatus;
+    }
+
+    /**
+     * Creating new constructors with ErrorCodeType.
+     */
+    public HelenException(HttpStatus httpStatus, ErrorCodeType codeType, Object... args) {
+        super(ExceptionMessageHelper.getMessageOrErrorCode(codeType.getErrorCodeTypeValue(), args));
         this.args = args;
         this.httpStatus = httpStatus;
     }
@@ -34,12 +42,28 @@ public class HelenException extends RuntimeException {
         this(HttpStatus.valueOf(500), message, args);
     }
 
+    /** Create Helen Exception with new ErrorCode type introduced.
+     */
+    public HelenException(ErrorCodeType codeType, Object... args) {
+        super(ExceptionMessageHelper.getMessageOrErrorCode(codeType.getErrorCodeTypeValue(), args));
+        this.args = args;
+        this.httpStatus = HttpStatus.valueOf(500);
+    }
+
     /**
      * Create a Helen Exception, and note the original cause.
      */
     public HelenException(Throwable cause, String message, Object... args) {
         super(message, cause);
-        this.message = message;
+        this.args = args;
+        this.httpStatus = HttpStatus.valueOf(500);
+    }
+
+    /** Create Helen Exception with new ErrorCode type introduced.
+     */
+
+    public HelenException(Throwable cause, ErrorCodeType codeType, Object... args) {
+        super(ExceptionMessageHelper.getMessageOrErrorCode(codeType.getErrorCodeTypeValue(), args, cause));
         this.args = args;
         this.httpStatus = HttpStatus.valueOf(500);
     }
@@ -49,14 +73,16 @@ public class HelenException extends RuntimeException {
      */
     public HelenException(HttpStatus httpStatus, Throwable cause, String message, Object... args) {
         super(message, cause);
-        this.message = message;
         this.args = args;
         this.httpStatus = httpStatus;
     }
 
-    @Override
-    public String getMessage() {
-        return MessageFormat.format(message, args);
+    /** Create Helen Exception with new ErrorCode type introduced.
+     */
+    public HelenException(HttpStatus httpStatus, Throwable cause, ErrorCodeType codeType, Object... args) {
+        super(ExceptionMessageHelper.getMessageOrErrorCode(codeType.getErrorCodeTypeValue(), args, cause));
+        this.args = args;
+        this.httpStatus = httpStatus;
     }
 
     public HttpStatus getHttpStatus() {

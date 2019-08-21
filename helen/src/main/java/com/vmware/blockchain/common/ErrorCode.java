@@ -93,7 +93,7 @@ public final class ErrorCode {
     public static final String UNINITIALIZED_POOL = "returnConnection, pool not initialized";
     public static final String UNMATCHED_QUERY = "Could not match query {0}";
     public static final String UNSUPPORTED_TYPE = "Type not supported {0}";
-    public static final String USER_ID_NOT_FOUND = "No user found with ID: {0}";
+    public static final String USER_ID_NOT_FOUND = "No user found with ID {0}";
     public static final String USER_NOT_AUTHENTICATED = "User {0} is not authenticated";
     public static final String USER_NOT_FOUND = "No user with email {0}";
     public static final String UNKNOWN_FILTER = "Unknown filter type ";
