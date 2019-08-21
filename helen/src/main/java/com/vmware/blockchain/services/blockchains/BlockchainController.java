@@ -303,7 +303,7 @@ public class BlockchainController {
         response.add(new ConcordComponent(
                 ConcordComponent.Type.CONTAINER_IMAGE,
                 ConcordComponent.ServiceType.GENERIC,
-                "vmwblockchain/agent-testing:latest"
+                "vmwblockchain/agent:latest"
         ));
         switch (type) {
             case DAML:
