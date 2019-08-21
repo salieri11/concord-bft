@@ -85,7 +85,7 @@ class CloudInitConfiguration(
             # Enable when there are multiple interfaces for separate networks.
             # route add default gw `ip route show | grep "dev eth0" | grep -v kernel | grep -v default | cut -d' ' -f 1` eth0
 
-            sed -i 's_/usr/bin/dockerd_/usr/bin/dockerd -H tcp://127.0.0.1:2375 -H unix:///var/run/docker.sock_g' /lib/systemd/system/docker.service
+            sed -i 's_/usr/bin/dockerd_/usr/bin/dockerd -H tcp://127.0.0.1:2375 -H unix:///var/run/docker.sock {{registrySecuritySetting}}_g' /lib/systemd/system/docker.service
             systemctl daemon-reload
             systemctl restart docker
             systemctl enable docker
@@ -116,6 +116,7 @@ class CloudInitConfiguration(
             echo 'done'
             """.trimIndent()
                     .replace("{{dockerLoginCommand}}", containerRegistry.toRegistryLoginCommand())
+                    .replace("{{registrySecuritySetting}}", containerRegistry.toRegistrySecuritySetting())
                     .replace("{{agentImage}}", URI.create(containerRegistry.address).authority + "/" + agentImageName)
                     .replace("{{genesis}}", GenesisSerializer.toJson(genesis))
                     .replace("{{agentConfig}}", ConcordAgentConfigurationSerializer.toJson(configuration))
@@ -140,6 +141,22 @@ class CloudInitConfiguration(
         }
 
         return "docker login $address $credential"
+    }
+
+    /**
+     * Return appropriate container registry setting for Docker daemon depending on the registry's
+     * URL scheme.
+     *
+     * @return
+     *   an option [String] to be passed to Docker engine startup.
+     */
+    private fun Endpoint.toRegistrySecuritySetting(): String {
+        val endpoint = URI.create(address)
+
+        return when (endpoint.scheme.toLowerCase()) {
+            "http" -> "--insecure-registry ${endpoint.authority}"
+            else -> ""
+        }
     }
 
     /**
