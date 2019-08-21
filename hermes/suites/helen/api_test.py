@@ -18,7 +18,7 @@ from suites import test_suite
 from rest.request import Request
 from rpc.rpc_call import RPC
 
-from fixtures.common_fixtures import fxBlockchain, fxConnection, fxHermesRunSettings, fxInitializeOrgs, retrieveCustomCmdlineData
+from fixtures.common_fixtures import fxBlockchain, fxConnection, fxHermesRunSettings, fxInitializeOrgs
 import util.blockchain.eth
 import util.helper
 import util.numbers_strings

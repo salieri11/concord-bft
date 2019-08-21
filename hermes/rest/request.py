@@ -166,6 +166,7 @@ class Request():
       self._responseFile = fileRoot + ".json"
       self._outputFile = fileRoot + ".log"
 
+   # Deprecated; will be replaced with getReplicas.
    def getMemberList(self, blockchainId, certs=False):
       '''
       Get the list of nodes in the concord cluster
@@ -176,6 +177,20 @@ class Request():
       else:
          self._params = ""
       self._endpointName = "members"
+
+      return self._send()
+
+   # Will replace /concord/members.  Not implemented in the product yet.
+   def getReplicas(self, blockchainId, certs=False):
+      '''
+      Get the list of replicas in the concord cluster
+      '''
+      self._subPath = "/api/blockchains/" + blockchainId + "/replicas"
+      if certs:
+         self._params = "certs=true"
+      else:
+         self._params = ""
+      self._endpointName = "replicas"
 
       return self._send()
 
@@ -497,7 +512,7 @@ class Request():
       self._data = None
       self._endpointName = "get_zones"
       return self._send()
-   
+
    '''
    =================================================================
    =================================================================

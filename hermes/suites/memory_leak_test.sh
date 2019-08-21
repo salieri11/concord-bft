@@ -58,7 +58,7 @@ launch_memory_test() {
     cd ..
     if [ ! "x${TESTS}" = "x" ]
     then
-        SPECIFIC_TESTS="--tests ${TESTS}"
+        SPECIFIC_TESTS="--tests '${TESTS}'"
     fi
 
     "${python}" "${HERMES_START_FILE}" "${TEST_SUITE}" --config resources/user_config_valgrind.json --repeatSuiteRun ${NO_OF_RUNS} --resultsDir "${RESULTS_DIR}" ${SPECIFIC_TESTS} --productLaunchAttempts 10  --runConcordConfigurationGeneration --concordConfigurationInput /concord/config/dockerConfigurationInput.yaml --dockerComposeFile ../docker/docker-compose.yml ../docker/docker-compose-memleak.yml &
