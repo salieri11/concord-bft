@@ -13,6 +13,7 @@ using boost::system::error_code;
 
 using concord::common::StatusAggregator;
 using concord::consensus::KVBClientPool;
+using namespace boost::asio;
 
 namespace concord {
 namespace api {
@@ -28,7 +29,7 @@ ApiAcceptor::ApiAcceptor(io_service &io_service, tcp::endpoint endpoint,
       chainID_(chainID) {
   // set SO_REUSEADDR option on this socket so that if listener thread fails
   // we can still bind again to this socket
-  acceptor_.set_option(boost::asio::ip::tcp::acceptor::reuse_address(true));
+  acceptor_.set_option(ip::tcp::acceptor::reuse_address(true));
   start_accept();
 }
 
@@ -52,8 +53,10 @@ void ApiAcceptor::handle_accept(ApiConnection::pointer new_connection,
                                << boost::this_thread::get_id());
   if (!error) {
     connManager_.start_connection(new_connection);
-  } else {
+  } else if (error == error::operation_aborted) {
+    // Exit here in case operation aborted - shutdown is ongoing.
     LOG4CPLUS_ERROR(logger_, error.message());
+    return;
   }
 
   LOG4CPLUS_DEBUG(logger_, "handle_accept before start_accept");
