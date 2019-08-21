@@ -245,8 +245,9 @@ final class AgentDockerClient {
 
         log.info("Pulling image {}", component.getName());
         var containerConfig = ContainerConfig.valueOf(component.getServiceType().name());
+        var registryUrl = URI.create(configuration.getContainerRegistry().getAddress());
         var clientConfig = DefaultDockerClientConfig.createDefaultConfigBuilder()
-                .withRegistryUrl(configuration.getContainerRegistry().getAddress())
+                .withRegistryUrl(registryUrl.getAuthority())
                 .withRegistryUsername(registryUsername)
                 .withRegistryPassword(registryPassword)
                 .build();
@@ -254,8 +255,14 @@ final class AgentDockerClient {
         try {
             var componentImage = new ContainerImage(component.getName());
 
-            var command = docker.pullImageCmd(componentImage.getRepository())
-                    .withRegistry(componentImage.getRegistry())
+            // Full image name is the supplied registry authority + the component image name.
+            var componentImageName = String.format(
+                    "%s/%s",
+                    registryUrl.getAuthority(),
+                    componentImage.getRepository()
+            );
+            var command = docker.pullImageCmd(componentImageName)
+                    .withRegistry(registryUrl.getAuthority())
                     .withTag(componentImage.getTag())
                     .withAuthConfig(
                             new AuthConfig()
@@ -274,13 +281,14 @@ final class AgentDockerClient {
                 log.error("Pulling image({}:{}) from registry({}) failed",
                           componentImage.getRepository(),
                           componentImage.getTag(),
-                          componentImage.getRegistry());
+                          configuration.getContainerRegistry().getAddress());
             }
 
-            containerConfig.imageId = docker.inspectImageCmd(
-                                              componentImage.getRepository() + ":" + componentImage.getTag())
-                                              .getImageId();
-
+            var inspectResponse = docker
+                    .inspectImageCmd(componentImageName + ":" + componentImage.getTag())
+                    .exec();
+            containerConfig.imageId = inspectResponse.getId();
+            log.info("Container image ID: {}", containerConfig.imageId);
         } catch (Throwable error) {
             log.error("Error while pulling image for component({})", component.getName(), error);
         } finally {
