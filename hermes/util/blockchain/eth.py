@@ -35,6 +35,7 @@ helloHex = "48656c6c6f2c20576f726c6421"
 howdyHex = "486f7764792c20576f726c6421"
 
 highGas = "0x47e7c4"
+itApprovedPort = 443
 
 def getAnEthrpcNode(request, blockchainId):
    '''
@@ -355,16 +356,29 @@ def addCodePrefix(code):
    return prefix + code
 
 
-def getEthrpcApiUrl(request, blockchainId):
+def getEthrpcApiUrl(request, blockchainId, useITApprovedPort=False, scheme=None):
    '''
-   Fetches a random ethRpc node.  This uses the Product class
-   which gets the nodes by using Helen's getMembers API.
+   Fetches a random ethRpc node for the given blockchian ID.
+
+   useITApprovedPort: The "vmware" network only allows https traffic
+   on port 443, but our ethrpc nodes use other ports.  Pass in whether
+   this function should modify the url to use a port approved by IT.
+
+   This function also provides a way to force the scheme, because we do not
+   support https on nodes deployed in the SDDC yet.
    '''
    ethrpcNodes = util.blockchain.eth.getEthrpcNodes(request, blockchainId)
 
    if ethrpcNodes:
       node = random.choice(ethrpcNodes)
       url = util.blockchain.eth.getUrlFromEthrpcNode(node)
+
+      if useITApprovedPort:
+         url = util.helper.replaceUrlParts(url, newPort=itApprovedPort)
+
+      if scheme:
+         url = util.helper.replaceUrlParts(url, newScheme=scheme)
+
       return url
    else:
       raise Exception("Error: No ethrpc nodes were reported by Helen.")

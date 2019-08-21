@@ -6,6 +6,8 @@ import json
 import logging
 import os
 import pytest
+import time
+from urllib.parse import urlparse
 
 from rest.request import Request
 from rpc.rpc_call import RPC
@@ -35,6 +37,33 @@ def retrieveCustomCmdlineData(pytestRequest):
         "hermesUserConfig": userConfig,
         "hermesTestLogDir": logDir
     }
+
+
+def setUpPortForwarding(url, creds, timeout=150):
+   '''
+   Given a url and credentials, set up port forwarding.
+   The VMs should be ready in two minutes; default timeout is 2.5 min just
+   in case.
+   '''
+   urlObject = urlparse(url)
+   host = urlObject.hostname
+   log.info("Setting up port forwarding on deployed nodes to comply with VMware IT policies.")
+
+   timeTaken = 0
+   interval = 10
+   portForwardingSuccess = False
+
+   while not portForwardingSuccess and timeTaken < timeout:
+      portForwardingSuccess = util.helper.add_ethrpc_port_forwarding(host, creds["username"], creds["password"])
+
+      if not portForwardingSuccess:
+         log.info("Port forwarding setup failed.  The VM is probably still coming up. " \
+                  "Trying again in {} seconds".format(interval))
+         time.sleep(interval)
+         timeTaken += interval
+
+   if not portForwardingSuccess:
+       raise Exception("Failed to set up port forwarding on deployed nodes. Aborting.")
 
 
 @pytest.fixture(scope="module")
@@ -93,6 +122,9 @@ def fxBlockchain(request):
           blockchainDetails = conAdminRequest.getBlockchainDetails(blockchainId)
           log.info("Details of the deployed blockchain, in case you need to delete its resources " \
                    "manually: {}".format(json.dumps(blockchainDetails, indent=4)))
+          for replicaDetails in blockchainDetails["node_list"]:
+             setUpPortForwarding(replicaDetails["url"],
+                                 hermesData["hermesUserConfig"]["persephoneTests"]["provisioningService"]["concordNode"])
       else:
           raise Exception("Failed to deploy a new blockchain.")
    elif len(devAdminRequest.getBlockchains()) > 0:
