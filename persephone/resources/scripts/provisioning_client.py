@@ -13,7 +13,7 @@ import persephone.orchestration_service_pb2_grpc as orchestration_service_rpc
 import persephone.provisioning_service_pb2 as provisioning_service
 import persephone.provisioning_service_pb2_grpc as provisioning_service_rpc
 from google.protobuf.json_format import MessageToJson
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 
 def parse_arguments() -> Dict[str, Any]:
@@ -36,15 +36,24 @@ def parse_arguments() -> Dict[str, Any]:
     )
     parser.add_argument(
         "--type",
-        default="ethrpc",
+        default="ethereum",
+        choices=["ethereum", "daml"],
         help="Type of concord"
     )
     return vars(parser.parse_args())
 
 
-def get_component(type) -> list:
+def get_component(blockchain_type) -> List[concord_model.ConcordComponent]:
+    """
+    Resolve the list of Concord components to deploy for a given blockchain deployment type.
 
-    if type is None or type is "ethrpc":
+    Args:
+        blockchain_type (str): Type of blockchain network to deploy.
+
+    Returns:
+        model specification enum type.
+    """
+    if blockchain_type is None or blockchain_type is "ethereum":
         return [
             concord_model.ConcordComponent(
                 type=concord_model.ConcordComponent.CONTAINER_IMAGE,
@@ -62,7 +71,7 @@ def get_component(type) -> list:
                 name="vmwblockchain/agent-testing:latest"
             )
         ]
-    elif type == "daml":
+    elif blockchain_type == "daml":
         # DAML works of custom images until code it rolled out.
         return [
             concord_model.ConcordComponent(
@@ -87,12 +96,18 @@ def get_component(type) -> list:
             )
         ]
 
-    raise "Invalid concord type"
 
+def get_concord_type(blockchain_type: str) -> concord_model.ConcordModelSpecification.BlockchainType:
+    """
+    Resolve the Concord model specification type for a given blockchain deployment type.
 
-def get_concord_type(type) -> Any:
+    Args:
+        blockchain_type (str): Type of blockchain network to deploy.
 
-    if type is None or type is "ethrpc":
+    Returns:
+        model specification enum type.
+    """
+    if blockchain_type is None or blockchain_type == "ethereum":
         return concord_model.ConcordModelSpecification.ETHRPC
     elif type == "daml":
         return concord_model.ConcordModelSpecification.DAML
