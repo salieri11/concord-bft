@@ -63,6 +63,7 @@ public class BallotDApp {
 	public static String CONCORD_PASSWORD = "Admin!23";
 	public static BigInteger GAS_PRICE = DefaultGasProvider.GAS_PRICE;
 	public static String blockchainType = "concord";
+	public static boolean http;
 
 	public void setWavefrontDataPath(String waveFrontDataPath) {
 		BallotDApp.WAVEFRONT_DATA_PATH = waveFrontDataPath;
@@ -149,11 +150,11 @@ public class BallotDApp {
 
 			if (args[0].equals("--helen")) {
 				String helenIP = args[1];
-				ENDPOINT = "http://" + helenIP + ":8080/api/concord/eth";
+				ENDPOINT = ((http)?"http://":"https://") + helenIP + ":8080/api/concord/eth";
 				logger.info("Connected to Helen at " + ENDPOINT);
 			} else if (args[0].equals("--concord")) {
 				String concordIP = args[1];
-				ENDPOINT = "https://" + concordIP + ":" + PORT;
+				ENDPOINT = ((http)?"http://":"https://") + concordIP + ":" + PORT;
 				logger.info("Connected to Concord at " + ENDPOINT);
 			} else {
 				logger.error("Please specify the connection endpoint. (--helen or --concord as 1st arg)");
@@ -240,7 +241,7 @@ public class BallotDApp {
 					} else {
 						if (numTxs.get(nodeIndex) != 0) {
 							//create the transaction with IP from weightedEndpoints
-							String currentIp = "https://" + weightedEndpoints.get(nodeIndex).getKey() + ":" + PORT;
+							String currentIp = ((http)?"http://":"https://") + weightedEndpoints.get(nodeIndex).getKey() + ":" + PORT;
 							if (!serviceMap.containsKey(currentIp))  {
 								HttpService httpServiceEth = new HttpService(currentIp, BallotDApp.CLIENT, false);
 								httpServiceEth.addHeader("Authorization", okhttp3.Credentials.basic(CONCORD_USERNAME, CONCORD_PASSWORD));
@@ -339,6 +340,7 @@ public class BallotDApp {
 		avg = avg/1000000.0;
 
 		logger.debug("Number of transactions: " + NUMBER);
+		logger.info("Rate control value: " + RATE_CONTROL);
 		logger.info("Total time taken: " + total_time/1000000000.0 + " s");
 		logger.info("Avergae Latency : " + avg + " ms");
 		logger.info("Throughput: " + (NUMBER*1.0/total_time)*1000000000 + " tps");
@@ -414,7 +416,7 @@ public class BallotDApp {
 				} else {
 					if (numTxs.get(nodeIndex) != 0) {
 						//create the transaction with IP from weightedEndpoints
-						String currentIp = "http://" + weightedEndpoints.get(nodeIndex).getKey() + ":" + PORT;
+						String currentIp = ((http)?"http://":"https://") + weightedEndpoints.get(nodeIndex).getKey() + ":" + PORT;
 						HttpService httpServiceEthereum = new HttpService(currentIp, BallotDApp.CLIENT, false);
 						httpServiceEthereum.addHeader("Authorization", okhttp3.Credentials.basic(CONCORD_USERNAME, CONCORD_PASSWORD));
 						web3j = Web3j.build(httpServiceEthereum);

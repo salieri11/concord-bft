@@ -59,10 +59,10 @@ public class BenchMaster {
 		return output;
 	}
 
-	private static String getLatestBlockNumber(String ip) {
+	private static String getLatestBlockNumber(String ip, boolean isHttp, int port) {
 		Process process = null;
 		try {
-			process = Runtime.getRuntime().exec("bash getBlockNumber.sh " + ip);
+			process = Runtime.getRuntime().exec("bash -x getBlockNumber.sh " + ((isHttp)?"http":"https") + " " + ip + " " + port);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -70,10 +70,10 @@ public class BenchMaster {
 
 	}
 
-	private static JSONObject getBlockInfo(String blockNumber, String ip) {
+	private static JSONObject getBlockInfo(String blockNumber, String ip, boolean isHttp, int port) {
 		Process process = null;
 		try {
-			process = Runtime.getRuntime().exec("bash getBlockInfo.sh " + blockNumber + " " + ip);
+			process = Runtime.getRuntime().exec("bash getBlockInfo.sh " + blockNumber + " " + ((isHttp)?"http":"https") + " " + ip + " " + port);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -94,6 +94,7 @@ public class BenchMaster {
 			List<Workload> workloads = simpleConfig.getWorkloads();
 			int sleepTime = simpleConfig.getSleepTime();
 			int totalWorkloads = 0;
+			boolean isHttp = simpleConfig.isHttp();
 
 			String outputDir = simpleConfig.getOutputDir();
 
@@ -111,40 +112,42 @@ public class BenchMaster {
 			Map<Integer, Boolean> esxSuccess = new HashMap<>();
 
 			//esxtop is optional
-			if(advancedConfig.getEsxtopCommand() != null) {
-				String filenameTimestamp = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
-				hostnames = (List<String>) advancedConfig.getEsxtopCommand().get(0);
-				List<String> usernames = (List<String>) advancedConfig.getEsxtopCommand().get(1);
-				List<String> passwords = (List<String>) advancedConfig.getEsxtopCommand().get(2);
-				String command;
-				for (int host = 0; host < hostnames.size(); host++) {
-					try {
-						command = "esxtop ";
-						for (int i = 4; i < advancedConfig.getEsxtopCommand().size(); i++)
-							command += advancedConfig.getEsxtopCommand().get(i) + " ";
+			if(advancedConfig.getEsxTop()) {
+				if (advancedConfig.getEsxtopCommand() != null) {
+					String filenameTimestamp = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
+					hostnames = (List<String>) advancedConfig.getEsxtopCommand().get(0);
+					List<String> usernames = (List<String>) advancedConfig.getEsxtopCommand().get(1);
+					List<String> passwords = (List<String>) advancedConfig.getEsxtopCommand().get(2);
+					String command;
+					for (int host = 0; host < hostnames.size(); host++) {
+						try {
+							command = "esxtop ";
+							for (int i = 4; i < advancedConfig.getEsxtopCommand().size(); i++)
+								command += advancedConfig.getEsxtopCommand().get(i) + " ";
 
-						command += ">" + advancedConfig.getEsxtopCommand().get(3) + " &";
-						command = command.replace("timestamp", filenameTimestamp);
+							command += ">" + advancedConfig.getEsxtopCommand().get(3) + " &";
+							command = command.replace("timestamp", filenameTimestamp);
 
-						//Creating a SSH session to run the esxtop command
-						Properties config = new Properties();
-						config.put("StrictHostKeyChecking", "no");
-						JSch jsch = new JSch();
-						session.put(host, jsch.getSession(usernames.get(host), hostnames.get(host), 22));
-						session.get(host).setPassword(passwords.get(host));
-						session.get(host).setConfig(config);
-						// Establish the connection
-						session.get(host).connect();
-						logger.info("Connected...");
+							//Creating a SSH session to run the esxtop command
+							Properties config = new Properties();
+							config.put("StrictHostKeyChecking", "no");
+							JSch jsch = new JSch();
+							session.put(host, jsch.getSession(usernames.get(host), hostnames.get(host), 22));
+							session.get(host).setPassword(passwords.get(host));
+							session.get(host).setConfig(config);
+							// Establish the connection
+							session.get(host).connect();
+							logger.info("Connected...");
 
-						channel.put(host, (ChannelExec) session.get(host).openChannel("exec"));
-						channel.get(host).setCommand(command);
-						logger.info("EsxTopCommand: " + command);
-						channel.get(host).connect();
-						esxSuccess.put(host, true);
-					} catch (JSchException jschX) {
-						logger.warn(jschX.getMessage());
-						esxSuccess.put(host, false);
+							channel.put(host, (ChannelExec) session.get(host).openChannel("exec"));
+							channel.get(host).setCommand(command);
+							logger.info("EsxTopCommand: " + command);
+							channel.get(host).connect();
+							esxSuccess.put(host, true);
+						} catch (JSchException jschX) {
+							logger.warn(jschX.getMessage());
+							esxSuccess.put(host, false);
+						}
 					}
 				}
 			}
@@ -155,6 +158,7 @@ public class BenchMaster {
 			//advanced configuration
 			BallotDApp.CONCORD_USERNAME = advancedConfig.getConcordUsername();
 			BallotDApp.CONCORD_PASSWORD = advancedConfig.getConcordUsername();
+			BallotDApp.http = simpleConfig.isHttp();
 
 			Data data = new Data();
 			data.setAppSummaryTableHeader(Arrays.asList("Workload-Itr", "Succ", "Succ Rate", "Fail", "Send Rate", "Max Latency", "Min Latency", "Avg Latency", "Throughput"));
@@ -168,18 +172,16 @@ public class BenchMaster {
 			BallotDApp.CONCORD_PASSWORD = advancedConfig.getConcordUsername();
 
 			int workloadNum = 1;
-
 //			String command = "curl -k -X POST -H \"Content-type:application/json\" --data {\"jsonrpc\": \"2.0\", \"method\": \"eth_blockNumber\", \"params\": [], \"id\": 1} https://10.40.205.101:8545/";
 
-//
-			String initBlockNumber = getLatestBlockNumber(simpleConfig.getNodes().get(0).getIp());
-			logger.info("Block number on 101 before processing any transaction: " + initBlockNumber + " = " + new BigInteger(initBlockNumber.substring(2), 16));
-			 initBlockNumber = getLatestBlockNumber(simpleConfig.getNodes().get(1).getIp());
-			logger.info("Block number on 102 before processing any transaction: " + initBlockNumber + " = " + new BigInteger(initBlockNumber.substring(2), 16));
-			 initBlockNumber = getLatestBlockNumber(simpleConfig.getNodes().get(2).getIp());
-			logger.info("Block number on 103 before processing any transaction: " + initBlockNumber + " = " + new BigInteger(initBlockNumber.substring(2), 16));
-			 initBlockNumber = getLatestBlockNumber(simpleConfig.getNodes().get(3).getIp());
-			logger.info("Block number on 104 before processing any transaction: " + initBlockNumber + " = " + new BigInteger(initBlockNumber.substring(2), 16));
+			String initBlockNumber = getLatestBlockNumber(simpleConfig.getNodes().get(0).getIp(), isHttp, simpleConfig.getPort());
+			logger.info("Block number on " + simpleConfig.getNodes().get(0).getIp() + " before processing any transaction: " + initBlockNumber + " = " + new BigInteger(initBlockNumber.substring(2), 16));
+			 initBlockNumber = getLatestBlockNumber(simpleConfig.getNodes().get(1).getIp(), isHttp, simpleConfig.getPort());
+			logger.info("Block number on " + simpleConfig.getNodes().get(1).getIp() + " before processing any transaction: " + initBlockNumber + " = " + new BigInteger(initBlockNumber.substring(2), 16));
+			 initBlockNumber = getLatestBlockNumber(simpleConfig.getNodes().get(2).getIp(), isHttp, simpleConfig.getPort());
+			logger.info("Block number on " + simpleConfig.getNodes().get(2).getIp() + " before processing any transaction: " + initBlockNumber + " = " + new BigInteger(initBlockNumber.substring(2), 16));
+			 initBlockNumber = getLatestBlockNumber(simpleConfig.getNodes().get(3).getIp(), isHttp, simpleConfig.getPort());
+			logger.info("Block number on " +  simpleConfig.getNodes().get(3).getIp() + " before processing any transaction: " + initBlockNumber + " = " + new BigInteger(initBlockNumber.substring(2), 16));
 
 //			ScheduledExecutorService service = Executors.newSingleThreadScheduledExecutor();
 			ScheduledExecutorService service = null;
@@ -193,15 +195,15 @@ public class BenchMaster {
 
 					if (workloadParams.get(1).equals("--helen")) {
 						String helenIP = workloadParams.get(2);
-						BallotDApp.ENDPOINT = "http://" + helenIP + ":8080/api/concord/eth";
+						BallotDApp.ENDPOINT = ((isHttp)?"http://":"https://") + helenIP + ":8080/api/concord/eth";
 						logger.debug("Connected to Helen at " + BallotDApp.ENDPOINT);
 						BallotDApp.CONCORD = false;
 					} else if (workloadParams.get(1).equals("--concord") || workloadParams.get(1).equals("--ethereum")) {
 						String concordIP = workloadParams.get(2);
 						if (workloadParams.get(1).equals("--concord")) {
-							BallotDApp.ENDPOINT = "https://" + concordIP + ":" + simpleConfig.getPort();
+							BallotDApp.ENDPOINT = ((isHttp)?"http://":"https://") + concordIP + ":" + simpleConfig.getPort();
 						} else if (workloadParams.get(1).equals("--ethereum")) {
-							BallotDApp.ENDPOINT = "http://" + concordIP + ":" + simpleConfig.getPort();
+							BallotDApp.ENDPOINT = ((isHttp)?"http://":"https://") + concordIP + ":" + simpleConfig.getPort();
 						}
 
 						int sumOfPercentages = 0;
@@ -318,7 +320,6 @@ public class BenchMaster {
 								deployer.grantRightToVote(credentials);
 								dapp.process(credentials);
 							}
-
 						} catch (Exception e) {
 							e.printStackTrace();
 						}
@@ -354,34 +355,37 @@ public class BenchMaster {
 
 			Reporting report = new Reporting(data);
 			report.process(simpleConfig.getOutputDir());
-
-			if(advancedConfig.getEsxtopCommand() != null) {
-				for (int host = 0; host < hostnames.size(); host++) {
-					try {
-						if (esxSuccess.get(host)) {
-							channel.get(host).disconnect();
-							ChannelExec terminationChannel = (ChannelExec) session.get(host).openChannel("exec");
-							String terminationCommand = "kill $(ps | grep esxtop | awk '{print $2}')";
-							terminationChannel.setCommand(terminationCommand);
-							logger.info("esxtop termination command: " + terminationCommand);
-							terminationChannel.connect();
-							session.get(host).disconnect();
-							logger.info("Terminated the esxtop process");
+			if(advancedConfig.getEsxTop()) {
+				if (advancedConfig.getEsxtopCommand() != null) {
+					//sleeping for 30 seconds before terminating esxtop
+					Thread.sleep(30000);
+					for (int host = 0; host < hostnames.size(); host++) {
+						try {
+							if (esxSuccess.get(host)) {
+								channel.get(host).disconnect();
+								ChannelExec terminationChannel = (ChannelExec) session.get(host).openChannel("exec");
+								String terminationCommand = "kill $(ps | grep esxtop | awk '{print $2}')";
+								terminationChannel.setCommand(terminationCommand);
+								logger.info("esxtop termination command: " + terminationCommand);
+								terminationChannel.connect();
+								session.get(host).disconnect();
+								logger.info("Terminated the esxtop process");
+							}
+						} catch (JSchException jschX) {
+							logger.warn(jschX.getMessage());
 						}
-					} catch (JSchException jschX) {
-						logger.warn(jschX.getMessage());
 					}
 				}
 			}
-			String endBlockNumber = getLatestBlockNumber(simpleConfig.getNodes().get(0).getIp());
-			logger.info("Block number on 101 after processing all transactions: " + endBlockNumber + " = " + new BigInteger(endBlockNumber.substring(2), 16));
-			endBlockNumber = getLatestBlockNumber(simpleConfig.getNodes().get(1).getIp());
-			logger.info("Block number on 102 after processing all transactions: " + endBlockNumber + " = " + new BigInteger(endBlockNumber.substring(2), 16));
-			endBlockNumber = getLatestBlockNumber(simpleConfig.getNodes().get(2).getIp());
-			logger.info("Block number on 103 after processing all transactions: " + endBlockNumber + " = " + new BigInteger(endBlockNumber.substring(2), 16));
-			endBlockNumber = getLatestBlockNumber(simpleConfig.getNodes().get(3).getIp());
-			logger.info("Block number on 104 after processing all transactions: " + endBlockNumber + " = " + new BigInteger(endBlockNumber.substring(2), 16));
-			logger.info("Last block : " + getBlockInfo(endBlockNumber, simpleConfig.getNodes().get(0).getIp()).toString());
+			String endBlockNumber = getLatestBlockNumber(simpleConfig.getNodes().get(0).getIp(), isHttp, simpleConfig.getPort());
+			logger.info("Block number on " + simpleConfig.getNodes().get(0).getIp() + " after processing all transactions: " + endBlockNumber + " = " + new BigInteger(endBlockNumber.substring(2), 16));
+			endBlockNumber = getLatestBlockNumber(simpleConfig.getNodes().get(1).getIp(), isHttp, simpleConfig.getPort());
+			logger.info("Block number on " + simpleConfig.getNodes().get(1).getIp() + " after processing all transactions: " + endBlockNumber + " = " + new BigInteger(endBlockNumber.substring(2), 16));
+			endBlockNumber = getLatestBlockNumber(simpleConfig.getNodes().get(2).getIp(), isHttp, simpleConfig.getPort());
+			logger.info("Block number on " + simpleConfig.getNodes().get(2).getIp() + " after processing all transactions: " + endBlockNumber + " = " + new BigInteger(endBlockNumber.substring(2), 16));
+			endBlockNumber = getLatestBlockNumber(simpleConfig.getNodes().get(3).getIp(), isHttp, simpleConfig.getPort());
+			logger.info("Block number on " + simpleConfig.getNodes().get(3).getIp() + " after processing all transactions: " + endBlockNumber + " = " + new BigInteger(endBlockNumber.substring(2), 16));
+			logger.info("Last block : " + getBlockInfo(endBlockNumber, simpleConfig.getNodes().get(0).getIp(), isHttp, simpleConfig.getPort()).toString());
 
 			System.exit(1);
 		} catch (FileNotFoundException e) {
