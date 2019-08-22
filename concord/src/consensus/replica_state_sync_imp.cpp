@@ -38,7 +38,7 @@ uint64_t ReplicaStateSyncImp::execute(log4cplus::Logger &logger,
   Key key = roKvs.BlockMetadataKey();
   do {
     blockSeqNum = roKvs.GetBlockMetadata(key);
-    LOG4CPLUS_INFO(
+    LOG4CPLUS_DEBUG(
         logger, "Block Metadata key = " << key << ", blockId = " << blockId
                                         << ", blockSeqNum = " << blockSeqNum);
     if (blockSeqNum <= lastExecutedSeqNum) {

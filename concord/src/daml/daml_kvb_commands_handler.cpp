@@ -46,7 +46,7 @@ Sliver CreateSliver(const string& content) {
 
 bool DamlKvbCommandsHandler::ExecuteRead(const da_kvbc::ReadCommand& request,
                                          ConcordResponse& response) {
-  LOG4CPLUS_INFO(logger_, "NOT IMPLEMENTED");
+  LOG4CPLUS_WARN(logger_, "NOT IMPLEMENTED");
   return false;
 }
 

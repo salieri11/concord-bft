@@ -45,7 +45,7 @@ grpc::Status DataServiceImpl::GetLatestBlockId(
 grpc::Status DataServiceImpl::ReadTransaction(
     ServerContext* context, const ReadTransactionRequest* request,
     ReadTransactionResponse* reply) {
-  LOG4CPLUS_INFO(logger, "DataService: ReadTransaction...");
+  LOG4CPLUS_DEBUG(logger, "DataService: ReadTransaction...");
 
   concord::storage::BlockId readBlockId = request->block_id();
   if (readBlockId <= 0) {
@@ -76,7 +76,7 @@ grpc::Status DataServiceImpl::ReadTransaction(
 grpc::Status CommitServiceImpl::CommitTransaction(ServerContext* context,
                                                   const CommitRequest* request,
                                                   CommitResponse* reply) {
-  LOG4CPLUS_INFO(logger, "CommitService: Transactions...");
+  LOG4CPLUS_DEBUG(logger, "CommitService: Transactions...");
 
   ConcordResponse resp;
   ConcordRequest req;
@@ -111,15 +111,15 @@ grpc::Status CommitServiceImpl::CommitTransaction(ServerContext* context,
 grpc::Status EventsServiceImpl::CommittedTxs(
     ServerContext* context, const CommittedTxsRequest* request,
     ServerWriter<CommittedTx>* writer) {
-  LOG4CPLUS_INFO(logger, "EventsService: CommittedTxs...");
+  LOG4CPLUS_DEBUG(logger, "EventsService: CommittedTxs...");
 
   BlockingPersistentQueueReader<CommittedTx> reader =
       committed_txs_.newReader(0);
 
   while (1) {
     CommittedTx committed_tx = reader.pop();
-    LOG4CPLUS_INFO(logger, "KVBCEventsService: Sending event for blockId "
-                               << committed_tx.block_id());
+    LOG4CPLUS_DEBUG(logger, "KVBCEventsService: Sending event for blockId "
+                                << committed_tx.block_id());
 
     if (!writer->Write(committed_tx)) {
       break;

@@ -51,7 +51,8 @@ uint64_t ConcordMetadataStorage::GetBlockMetadata(Sliver& key) {
                                 << status
                                 << ", outValue.length = " << outValue.length());
   }
-  LOG4CPLUS_INFO(logger_, "key = " << key << ", sequenceNum = " << sequenceNum);
+  LOG4CPLUS_DEBUG(logger_,
+                  "key = " << key << ", sequenceNum = " << sequenceNum);
   return sequenceNum;
 }
 

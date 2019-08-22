@@ -141,7 +141,7 @@ bool HlfKvbCommandsHandler::HandleHlfRequestReadOnly(
     ConcordResponse& command_response) const {
   switch (command.hlf_request(0).method()) {
     case HlfRequest_HlfMethod_QUERY:
-      LOG4CPLUS_INFO(logger_, "Triggered the chaincode query operation");
+      LOG4CPLUS_DEBUG(logger_, "Triggered the chaincode query operation");
       return HandleHlfQueryChaincode(command, command_response);
 
     default:
