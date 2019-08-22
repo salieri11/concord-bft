@@ -68,7 +68,7 @@ def get_component(blockchain_type) -> List[concord_model.ConcordComponent]:
             concord_model.ConcordComponent(
                 type=concord_model.ConcordComponent.CONTAINER_IMAGE,
                 service_type=concord_model.ConcordComponent.GENERIC,
-                name="vmwblockchain/agent-testing:latest"
+                name="vmwblockchain/agent:latest"
             )
         ]
     elif blockchain_type == "daml":
@@ -77,22 +77,22 @@ def get_component(blockchain_type) -> List[concord_model.ConcordComponent]:
             concord_model.ConcordComponent(
                 type=concord_model.ConcordComponent.CONTAINER_IMAGE,
                 service_type=concord_model.ConcordComponent.DAML_CONCORD,
-                name="vmwblockchain/agent-testing:con-aug7-v2"
+                name="vmwblockchain/concord-core:latest"
             ),
             concord_model.ConcordComponent(
                 type=concord_model.ConcordComponent.CONTAINER_IMAGE,
                 service_type=concord_model.ConcordComponent.DAML_EXECUTION_ENGINE,
-                name="vmwblockchain/agent-testing:dee-aug7-v2"
+                name="vmwblockchain/daml-execution-engine:latest"
             ),
             concord_model.ConcordComponent(
                 type=concord_model.ConcordComponent.CONTAINER_IMAGE,
                 service_type=concord_model.ConcordComponent.DAML_LEDGER_API,
-                name="vmwblockchain/agent-testing:dl-aug7-v2"
+                name="vmwblockchain/daml-ledger-api:latest"
             ),
             concord_model.ConcordComponent(
                 type=concord_model.ConcordComponent.CONTAINER_IMAGE,
                 service_type=concord_model.ConcordComponent.GENERIC,
-                name="vmwblockchain/agent-testing:kash-aug7-v2"
+                name="vmwblockchain/agent:latest"
             )
         ]
 
