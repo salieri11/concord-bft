@@ -51,9 +51,6 @@ RUN apt-get update \
 FROM openjdk:11.0.2-jdk-slim
 LABEL description="VMware Blockchain Fleet Management Provisioning Service"
 
-## Ensure configtool can find it
-ENV LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/usr/local/lib"
-
 ## Disable TLS 1.3 due to buggy JDK implementation chewing up CPU.
 RUN sed -i "/jdk.tls.disabledAlgorithms=/ s/=.*/=TLSv1.3, SSLv3, RC4, MD5withRSA, DH keySize < 1024, EC keySize < 224, DES40_CBC, RC4_40, 3DES_EDE_CBC/" $(readlink -f /usr/bin/java | sed "s:bin/java::")/conf/security/java.security
 
@@ -63,8 +60,8 @@ COPY --from=environment /docker-java-home/lib/security/cacerts /docker-java-home
 WORKDIR /persephone/provisioning-service
 COPY --from=builder ./persephone/provisioning-service/target/persephone-provisioning-service*with-dependencies.jar ./provisioning-service.jar
 
-EXPOSE 9002
-
 VOLUME ["/config"]
+
+EXPOSE 9002
 
 CMD ["java", "-jar", "provisioning-service.jar", "-Dkotlinx.coroutines.debug=on"]

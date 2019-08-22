@@ -33,15 +33,18 @@ COPY ./fleet-service ./persephone/fleet-service
 ## Build module with all of its dependencies.
 RUN mvn -f persephone/pom.xml package -pl fleet-service -am -B
 
-# Runtime image (Metadata Service).
-FROM athena-docker-local.artifactory.eng.vmware.com/helen:prereqs-v2
+# Runtime image (Fleet Service).
+FROM openjdk:11.0.2-jdk-slim
 LABEL description="VMware Blockchain Fleet Management Control Service"
 
+## Disable TLS 1.3 due to buggy JDK implementation chewing up CPU.
+RUN sed -i "/jdk.tls.disabledAlgorithms=/ s/=.*/=TLSv1.3, SSLv3, RC4, MD5withRSA, DH keySize < 1024, EC keySize < 224, DES40_CBC, RC4_40, 3DES_EDE_CBC/" $(readlink -f /usr/bin/java | sed "s:bin/java::")/conf/security/java.security
+
 WORKDIR /persephone/fleet-service
-COPY --from=0 ./persephone/fleet-service/target/persephone-fleet-service*with-dependencies.jar ./fleet-service.jar
+COPY --from=builder ./persephone/fleet-service/target/persephone-fleet-service*with-dependencies.jar ./fleet-service.jar
 
 VOLUME ["/config"]
 
 EXPOSE 9004
 
-CMD ["java", "-jar", "fleet-service.jar"]
+CMD ["java", "-jar", "fleet-service.jar", "-Dkotlinx.coroutines.debug=on"]
