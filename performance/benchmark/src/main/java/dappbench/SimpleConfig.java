@@ -11,6 +11,7 @@ public class SimpleConfig {
     private List<Workload> workloads;
     private int sleepTime;
     private int port = 8545;
+    private boolean http = false;
 
     public String getBlockchain() {
         return blockchain;
@@ -71,4 +72,13 @@ public class SimpleConfig {
     public void setPort(int port) {
     	this.port = port;
     }
+
+    public void setHttp(boolean http) {
+        this.http = http;
+    }
+
+    public boolean isHttp() {
+        return http;
+    }
+
 }
