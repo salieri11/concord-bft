@@ -52,6 +52,7 @@ def getCoreVMTests(metafunc):
 
     if "tests" in hermesCmdlineArgs and hermesCmdlineArgs["tests"]:
         # Remove the "-k".
+        log.debug("hermesCmdlineArgs['tests']: {}".format(hermesCmdlineArgs["tests"]))
         userRequestedTest = hermesCmdlineArgs["tests"].split(" ")[1]
         fullPath = os.path.join(vmTests, userRequestedTest)
 
@@ -92,6 +93,7 @@ def getCoreVMTests(metafunc):
     if not tests:
         log.error("There are no tests to run.")
 
+    log.debug("CoreVMTests is running: {}".format(tests))
     return tests
 
 def removeSkippedTests(testList, ethereumTestRoot):

@@ -1,10 +1,10 @@
 {
   "port": 9002,
   "transportSecurity": {},
-  "configService":{
-    "address":"10.72.108.21:9003",
-    "transportSecurity":{
-        "type":"NONE"
+  "configService": {
+    "address": "configservice-vmbc.vdp.vmware.com",
+    "transportSecurity": {
+      "type": "TLSv1_2"
     }
   },
   "sites": [
@@ -50,14 +50,14 @@
             "datastore": "WorkloadDatastore",
             "folder": "HermesTesting",
             "network": {
-              "name": "blockchain-0A0A0300-24",
+              "name": "HermesTesting",
               "addressAllocation": "STATIC",
-              "gateway": 168428289,
-              "subnet": 24,
-              "allocationServer":{
-                "address":"10.78.20.2:30099",
-                "transportSecurity":{
-                    "type":"NONE"
+              "gateway": 174522369,
+              "subnet": 16,
+              "allocationServer": {
+                "address": "ipam-vmbc.cloud.vmware.com",
+                "transportSecurity": {
+                  "type": "TLSv1_2"
                 }
               }
             }
@@ -107,14 +107,14 @@
             "datastore": "WorkloadDatastore",
             "folder": "HermesTesting",
             "network": {
-              "name": "blockchain-0A0A0400-24",
+              "name": "HermesTesting",
               "addressAllocation": "STATIC",
-              "gateway": 168428545,
-              "subnet": 24,
-              "allocationServer":{
-                "address":"10.78.20.2:30099",
-                "transportSecurity":{
-                    "type":"NONE"
+              "gateway": 174587905,
+              "subnet": 16,
+              "allocationServer": {
+                "address": "ipam-vmbc.cloud.vmware.com",
+                "transportSecurity": {
+                  "type": "TLSv1_2"
                 }
               }
             }
