@@ -9,6 +9,7 @@ export class BlockchainRequestParams {
   c_count: number = 0;
   deployment_type: string = 'FIXED';
   zone_ids: string[];
+  blockchain_type: string;
 }
 
 export interface Node {
@@ -31,6 +32,7 @@ export interface Zone {
   name: string;
   latitude: number;
   longitude: number;
+  password?: string;
 }
 
 export interface BlockchainMeta {
@@ -45,6 +47,7 @@ export interface BlockchainMeta {
     zone?: Zone
   }[];
 }
+
 export enum DeployStates {
   NONE = 'NONE',
   RUNNING = 'RUNNING',
@@ -52,6 +55,11 @@ export enum DeployStates {
   FAILED = 'FAILED',
 }
 
+export enum ContractEngines {
+  DAML = 'DAML',
+  ETH = 'ETHEREUM',
+  HLF = 'HLF'
+}
 
 export const fakeZones: Zone[] = [{
   name: 'US West - Oregon',

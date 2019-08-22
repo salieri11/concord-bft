@@ -806,10 +806,21 @@
   },
   "blockchainWizard": {
     "title": "Deploy",
+    "contractEngine": "Contract Engine",
     "common": {
       "consortiumDescription": "Description",
       "consortiumName": "Consortium Name",
       "numberOfNodes": "Number of Replicas"
+    },
+    "engine": {
+      "pageTitle": "Choose Contract Engine",
+      "navTitle": "Contract Engine",
+      "damlTitle": "DAML",
+      "damlInfo": "Focus only on the data and business logic of your use case and leave lower-level concerns to the runtime. DAML has language-level constructs to abstract away many boilerplate complexities such as signatures, data schemas or privacy.",
+      "ethTitle": "Ethereum",
+      "ethInfo": "The Ethereum Virtual Machine (EVM) is the runtime environment for smart contracts in Ethereum. Smart contracts are high-level programming abstractions that are compiled down to EVM bytecode and deployed to the Ethereum blockchain for execution. Most commonly written in Solidity.",
+      "hlfTitle": "Hyperledger Fabric",
+      "hlfInfo": "Fabric is the first distributed ledger platform to support smart contracts authored in general-purpose programming languages such as Java, Go and Node.js. This means that most enterprises already have the skill set needed to develop smart contracts, and no additional training to learn a new language or DSL is needed."
     },
     "details": {
       "help": {
