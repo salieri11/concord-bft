@@ -157,6 +157,7 @@ def main():
       args.hermes_dir = dir_path
 
       setUpLogging(args)
+      log.debug("Args: {}".format(args))
       cleanupData = setUpDeploymentEventListening(args)
 
       for run_count in range(1, args.repeatSuiteRun+1):

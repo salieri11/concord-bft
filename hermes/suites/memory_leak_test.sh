@@ -22,6 +22,12 @@ while [ "$1" != "" ] ; do
    shift
 done
 
+echo Parsed arguments:
+echo - TEST_SUITE: "${TEST_SUITE}"
+echo - NO_OF_RUNS: "${NO_OF_RUNS}"
+echo - TESTS: "${TESTS}"
+echo - RESULTS_DIR: "${RESULTS_DIR}"
+
 retVal=1
 TIME_STAMP=`date +%m%d%Y_%H%M%S`
 BASE_LOG_DIR=/var/log/vmwblockchain
@@ -58,10 +64,13 @@ launch_memory_test() {
     cd ..
     if [ ! "x${TESTS}" = "x" ]
     then
-        SPECIFIC_TESTS="--tests '${TESTS}'"
+        SPECIFIC_TESTS="--tests=-k ${TESTS}"
     fi
 
-    "${python}" "${HERMES_START_FILE}" "${TEST_SUITE}" --config resources/user_config_valgrind.json --repeatSuiteRun ${NO_OF_RUNS} --resultsDir "${RESULTS_DIR}" ${SPECIFIC_TESTS} --productLaunchAttempts 10  --runConcordConfigurationGeneration --concordConfigurationInput /concord/config/dockerConfigurationInput.yaml --dockerComposeFile ../docker/docker-compose.yml ../docker/docker-compose-memleak.yml &
+    echo SPECIFIC_TESTS="${SPECIFIC_TESTS}"
+
+    "${python}" "${HERMES_START_FILE}" "${TEST_SUITE}" --config resources/user_config_valgrind.json --repeatSuiteRun ${NO_OF_RUNS} --resultsDir "${RESULTS_DIR}" "${SPECIFIC_TESTS}" --productLaunchAttempts 10  --runConcordConfigurationGeneration --concordConfigurationInput /concord/config/dockerConfigurationInput.yaml --dockerComposeFile ../docker/docker-compose.yml ../docker/docker-compose-memleak.yml --logLevel debug &
+
     HERMES_PID=$!
     rm -f "${HERMES_PID_FILE}"
     echo ${HERMES_PID} > "${HERMES_PID_FILE}"
