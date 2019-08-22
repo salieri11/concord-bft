@@ -98,7 +98,7 @@ Status ChaincodeInvoker::SendInvoke(string chaincode_name, string input) {
 
   string result = SubProcess(command);
 
-  LOG4CPLUS_INFO(logger_, "Result from chaincode invoke" << result);
+  LOG4CPLUS_DEBUG(logger_, "Result from chaincode invoke" << result);
 
   if (result.find("200") != string::npos) {
     return Status::OK();
@@ -115,7 +115,7 @@ Status ChaincodeInvoker::SendInstall(string chaincode_name, string path,
   string result = SubProcess(command);
 
   // should be logged
-  LOG4CPLUS_INFO(logger_, "Result from chaincode install" << result);
+  LOG4CPLUS_DEBUG(logger_, "Result from chaincode install" << result);
 
   if (result.find("200") != string::npos) {
     return Status::OK();
@@ -133,7 +133,7 @@ Status ChaincodeInvoker::SendInstantiate(string chaincode_name, string input,
                    hlf_orderer_address_ + " -n " + chaincode_name + " -c " +
                    "\'" + input + "\'" + " -v " + version;
   string result = SubProcess(command);
-  LOG4CPLUS_INFO(logger_, "Result from chaincode instantiate" << result);
+  LOG4CPLUS_DEBUG(logger_, "Result from chaincode instantiate" << result);
 
   if (result.find("200") != string::npos) {
     return Status::OK();
@@ -152,7 +152,7 @@ Status ChaincodeInvoker::SendUpgrade(string chaincode_name, string input,
                    "\'" + input + "\'" + " -v " + version;
 
   string result = SubProcess(command);
-  LOG4CPLUS_INFO(logger_, "Result from chaincode upgrade" << result);
+  LOG4CPLUS_DEBUG(logger_, "Result from chaincode upgrade" << result);
 
   if (result.find("200") != string::npos) {
     return Status::OK();

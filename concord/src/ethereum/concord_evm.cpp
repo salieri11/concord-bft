@@ -84,15 +84,15 @@ void EVM::transfer_fund(evm_message& message, EthKvbStorage& kvbStorage,
     if (!kvbStorage.account_exists(message.sender)) {
       // Don't allow if source account does not exist.
       result.status_code = EVM_FAILURE;
-      LOG4CPLUS_INFO(logger, "Source account with address "
-                                 << message.sender << ", does not exist.");
+      LOG4CPLUS_DEBUG(logger, "Source account with address "
+                                  << message.sender << ", does not exist.");
     } else if (sender_balance < transfer_val) {
       // Don't allow if source account has insufficient balance.
       result.status_code = EVM_FAILURE;
-      LOG4CPLUS_INFO(logger, "Account with address "
-                                 << message.sender
-                                 << ", does not have sufficient funds ("
-                                 << sender_balance << ").");
+      LOG4CPLUS_DEBUG(logger, "Account with address "
+                                  << message.sender
+                                  << ", does not have sufficient funds ("
+                                  << sender_balance << ").");
     } else {
       destination_balance += transfer_val;
       sender_balance -= transfer_val;
@@ -100,11 +100,11 @@ void EVM::transfer_fund(evm_message& message, EthKvbStorage& kvbStorage,
                              from_uint256_t(&destination_balance));
       kvbStorage.set_balance(message.sender, from_uint256_t(&sender_balance));
       result.status_code = EVM_SUCCESS;
-      LOG4CPLUS_INFO(logger, "Transferred  " << transfer_val << " units to: "
-                                             << message.destination << " ("
-                                             << destination_balance << ")"
-                                             << " from: " << message.sender
-                                             << " (" << sender_balance << ")");
+      LOG4CPLUS_DEBUG(logger, "Transferred  " << transfer_val << " units to: "
+                                              << message.destination << " ("
+                                              << destination_balance << ")"
+                                              << " from: " << message.sender
+                                              << " (" << sender_balance << ")");
     }
   } catch (...) {
     LOG4CPLUS_DEBUG(logger, "Failed to decode balances");
@@ -321,8 +321,8 @@ const concord_context* conc_context(const struct evm_context* evmctx) {
 
 int conc_account_exists(struct evm_context* evmctx,
                         const struct evm_address* address) {
-  LOG4CPLUS_INFO(*(conc_context(evmctx)->logger),
-                 "EVM::account_exists called, address: " << *address);
+  LOG4CPLUS_DEBUG(*(conc_context(evmctx)->logger),
+                  "EVM::account_exists called, address: " << *address);
 
   if (conc_context(evmctx)->kvbStorage->account_exists(*address)) {
     return 1;
@@ -359,8 +359,8 @@ void conc_set_storage(struct evm_context* evmctx,
 
 void conc_get_balance(struct evm_uint256be* result, struct evm_context* evmctx,
                       const struct evm_address* address) {
-  LOG4CPLUS_INFO(*(conc_context(evmctx)->logger),
-                 "EVM::get_balance called, address: " << *address);
+  LOG4CPLUS_DEBUG(*(conc_context(evmctx)->logger),
+                  "EVM::get_balance called, address: " << *address);
 
   evm_uint256be balance =
       conc_context(evmctx)->kvbStorage->get_balance(*address);
@@ -369,8 +369,8 @@ void conc_get_balance(struct evm_uint256be* result, struct evm_context* evmctx,
 
 size_t conc_get_code_size(struct evm_context* evmctx,
                           const struct evm_address* address) {
-  LOG4CPLUS_INFO(*(conc_context(evmctx)->logger),
-                 "conc_get_code_size called, address: " << *address);
+  LOG4CPLUS_DEBUG(*(conc_context(evmctx)->logger),
+                  "conc_get_code_size called, address: " << *address);
   std::vector<uint8_t> code;
   evm_uint256be hash;
   if (conc_context(evmctx)->kvbStorage->get_code(*address, code, hash)) {
@@ -382,8 +382,8 @@ size_t conc_get_code_size(struct evm_context* evmctx,
 
 size_t conc_get_code(const uint8_t** result_code, struct evm_context* evmctx,
                      const struct evm_address* address) {
-  LOG4CPLUS_INFO(*(conc_context(evmctx)->logger),
-                 "conc_get_code called, address: " << *address);
+  LOG4CPLUS_DEBUG(*(conc_context(evmctx)->logger),
+                  "conc_get_code called, address: " << *address);
 
   std::vector<uint8_t> stored_code;
   evm_uint256be hash;
@@ -402,9 +402,9 @@ size_t conc_get_code(const uint8_t** result_code, struct evm_context* evmctx,
 void conc_selfdestruct(struct evm_context* evmctx,
                        const struct evm_address* address,
                        const struct evm_address* beneficiary) {
-  LOG4CPLUS_INFO(*(conc_context(evmctx)->logger),
-                 "conc_selfdestruct called, address: "
-                     << *address << " beneficiary: " << *beneficiary);
+  LOG4CPLUS_DEBUG(*(conc_context(evmctx)->logger),
+                  "conc_selfdestruct called, address: "
+                      << *address << " beneficiary: " << *beneficiary);
 
   // TODO: Actually self-destruct contract.
 }
@@ -413,10 +413,10 @@ void conc_emit_log(struct evm_context* evmctx,
                    const struct evm_address* address, const uint8_t* data,
                    size_t data_size, const struct evm_uint256be topics[],
                    size_t topics_count) {
-  LOG4CPLUS_INFO(*(conc_context(evmctx)->logger),
-                 "EVM::emit_log called, address: "
-                     << *address << " topics_count: " << topics_count
-                     << " data_size: " << data_size);
+  LOG4CPLUS_DEBUG(*(conc_context(evmctx)->logger),
+                  "EVM::emit_log called, address: "
+                      << *address << " topics_count: " << topics_count
+                      << " data_size: " << data_size);
 
   EthLog log;
   log.address = *address;
@@ -497,7 +497,8 @@ void conc_get_block_hash(struct evm_uint256be* result,
 
 void conc_get_tx_context(struct evm_tx_context* result,
                          struct evm_context* evmctx) {
-  LOG4CPLUS_INFO(*(conc_context(evmctx)->logger), "EVM::get_tx_context called");
+  LOG4CPLUS_DEBUG(*(conc_context(evmctx)->logger),
+                  "EVM::get_tx_context called");
 
   memset(result, 0, sizeof(*result));
 

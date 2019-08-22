@@ -1014,10 +1014,10 @@ evm_result EthKvbCommandsHandler::run_evm(
                              logs, message.sender);
   }
 
-  LOG4CPLUS_INFO(logger, "Execution result -"
-                             << " status_code: " << result.status_code
-                             << " gas_left: " << result.gas_left
-                             << " output_size: " << result.output_size);
+  LOG4CPLUS_DEBUG(logger, "Execution result -"
+                              << " status_code: " << result.status_code
+                              << " gas_left: " << result.gas_left
+                              << " output_size: " << result.output_size);
 
   if (result.status_code != EVM_SUCCESS) {
     // If the transaction failed, don't record any of its side effects.
