@@ -303,12 +303,19 @@ docker_build ethrpc ethrpc/packaging.Dockerfile ${ethrpc_repo} ${ethrpc_tag}
 
 docker_build helen helen/packaging.Dockerfile ${helen_repo} ${helen_tag}
 
+waitForProcesses
+
 docker_build agent agent/packaging.Dockerfile ${persephone_agent_repo} ${persephone_agent_tag}
 docker_build persephone persephone/fleet-service/Dockerfile ${persephone_fleet_repo} ${persephone_fleet_tag}
 docker_build persephone persephone/ip-allocation-service/Dockerfile ${persephone_ipam_repo} ${persephone_ipam_tag}
+
+waitForProcesses
+
 docker_build persephone persephone/metadata-service/Dockerfile ${persephone_metadata_repo} ${persephone_metadata_tag}
 docker_build persephone persephone/provisioning-service/Dockerfile ${persephone_provisioning_repo} ${persephone_provisioning_tag}
 docker_build . persephone/config-service/Dockerfile ${persephone_configuration_repo} ${persephone_configuration_tag}
+
+waitForProcesses
 
 docker_pull cockroachdb/cockroach:v2.0.2 Cockroach_DB
 
