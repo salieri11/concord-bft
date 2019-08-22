@@ -33,6 +33,7 @@
     },
     "consortium": "Current Consortium",
     "deploy": "Deploy Consortium",
+    "addOnPrem": "Add On Prem",
     "dashboard": "Dashboard",
     "organizations": "Organizations/Users",
     "nodeList": "Replica List",
@@ -839,6 +840,7 @@
       "navTitle": "Replicas",
       "regionalTitle": "Regional Distribution",
       "regionInfo": "Even distribution of replicas across regions is recommended for best network resiliency.  The cumulative amount in regions must equal number of replicas to continue to the next step.",
+      "onPremInfo": "Hybrid cloud is not yet available. If you add an on premise region, cloud regions will be disabled.",
       "add": "Add On Premise Region"
     },
     "onPrem": {
@@ -860,9 +862,10 @@
       "resourcePoolPH": "My Resource",
       "folder": "Folder",
       "folderPH": "/folder",
-      "locationInfo": "Adding a location will provide better visualization metrics for describing latency and location outage issues.",
+      "onPremConnSucc": "Connection successful to on premise vCenter.",
       "location": "Location",
-      "locationPH": "Palo Alto, CA, USA"
+      "locationPH": "Palo Alto, CA, USA",
+      "cancel": "Cancel On Premise"
     },
     "users": {
       "pageTitle": "Invite Users",
