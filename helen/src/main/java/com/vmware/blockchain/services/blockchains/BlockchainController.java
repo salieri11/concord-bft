@@ -369,6 +369,17 @@ public class BlockchainController {
             taskService.put(task);
             logger.info("Deployment mocked");
         } else {
+            /*
+            If the deployment type is FIXED
+            zoneIds should not be null
+            Number of zoneIds should be equal to 3F + 2C + 1
+             */
+            if (body.deploymentType == FIXED) {
+                if (body.getZoneIds() == null
+                        || body.getZoneIds().size() != body.getFCount() * 3 + body.getCCount() * 2 + 1) {
+                    throw new BadRequestException(ErrorCode.BAD_REQUEST);
+                }
+            }
             DeploymentSessionIdentifier dsId = createFixedSizeCluster(client, clusterSize,
                                                                       enumMap.get(body.deploymentType),
                                                                       body.getZoneIds(), body.blockchainType);
