@@ -1,0 +1,31 @@
+version: '3'
+
+services:
+
+  daml_ledger_api1:
+    logging:
+      driver: fluentd
+      options:
+        fluentd-address: 0.0.0.0:24224
+        tag: daml
+
+  daml_ledger_api2:
+    logging:
+      driver: fluentd
+      options:
+        fluentd-address: 0.0.0.0:24224
+        tag: daml
+
+  daml_ledger_api3:
+    logging:
+      driver: fluentd
+      options:
+        fluentd-address: 0.0.0.0:24224
+        tag: daml
+
+  daml_ledger_api4:
+    logging:
+      driver: fluentd
+      options:
+        fluentd-address: 0.0.0.0:24224
+        tag: daml

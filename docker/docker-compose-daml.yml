@@ -137,3 +137,14 @@ services:
     command: /doc/daml/kvbc_validator/target/universal/stage/bin/kvbc-validator
     expose:
       - 55000
+
+  fluentd:
+    image: "${fluentd_repo}:${fluentd_tag}"
+    container_name: fluentd
+    ports:
+      - "24224:24224"
+      - "24224:24224/udp"
+    environment:
+      - FLUENTD_CONF=fluent.conf
+    volumes:
+      - ./fluentd:/fluentd/etc
