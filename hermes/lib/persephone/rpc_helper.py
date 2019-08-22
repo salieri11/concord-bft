@@ -4,29 +4,28 @@
 # This class is a helper file to test persephone gRPC
 #########################################################################
 
-import os
-import time
-import yaml
-import json
 import grpc
-from grpc_python_bindings import metadata_service_pb2
-from grpc_python_bindings import metadata_service_pb2_grpc
-from grpc_python_bindings import provisioning_service_pb2
-from grpc_python_bindings import provisioning_service_pb2_grpc
-from grpc_python_bindings import fleet_service_pb2
-from grpc_python_bindings import fleet_service_pb2_grpc
-from grpc_python_bindings import orchestration_service_pb2
-from grpc_python_bindings import orchestration_service_pb2_grpc
-
-from google.protobuf.json_format import MessageToJson
-import sys
+import json
+import logging
+import os
 import queue
+import sys
 import threading
+import time
+from google.protobuf.json_format import MessageToJson
+from vmware.blockchain.deployment.v1 import metadata_service_pb2
+from vmware.blockchain.deployment.v1 import metadata_service_pb2_grpc
+from vmware.blockchain.deployment.v1 import orchestration_service_pb2
+from vmware.blockchain.deployment.v1 import orchestration_service_pb2_grpc
+from vmware.blockchain.deployment.v1 import provisioning_service_pb2
+from vmware.blockchain.deployment.v1 import provisioning_service_pb2_grpc
+from vmware.blockchain.deployment.v1 import fleet_service_pb2
+from vmware.blockchain.deployment.v1 import fleet_service_pb2_grpc
 
 sys.path.append('../../')
 from util.product import Product as Product
 from util import helper
-import logging
+
 
 log = logging.getLogger(__name__)
 

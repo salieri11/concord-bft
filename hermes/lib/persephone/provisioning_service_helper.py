@@ -4,18 +4,19 @@
 # This class is a helper file to test provisioning services (deployment services)
 #########################################################################
 
-import sys
 import json
-sys.path.append('lib/persephone')
-from grpc_python_bindings import provisioning_service_pb2
-from grpc_python_bindings import orchestration_pb2
+import logging
+import sys
 from rpc_helper import RPCHelper
 from model_service_helper import ModelServiceRPCHelper
-from grpc_python_bindings import core_pb2
-from grpc_python_bindings import ethereum_pb2
+from vmware.blockchain.deployment.v1 import core_pb2
+from vmware.blockchain.deployment.v1 import orchestration_pb2
+from vmware.blockchain.deployment.v1 import provisioning_service_pb2
+from vmware.blockchain.ethereum.type import genesis_pb2
+
 sys.path.append('../../')
 from util.product import Product as Product
-import logging
+
 
 log = logging.getLogger(__name__)
 
@@ -86,8 +87,8 @@ class ProvisioningServiceRPCHelper(RPCHelper):
       :return: genesis spec
       '''
       log.debug("Creating genesis spec")
-      genesis_spec=ethereum_pb2.Genesis(
-          config=ethereum_pb2.Genesis.Config(
+      genesis_spec=genesis_pb2.Genesis(
+          config=genesis_pb2.Genesis.Config(
               chain_id=1,
               homestead_block=0,
               eip155_block=0,
@@ -99,12 +100,9 @@ class ProvisioningServiceRPCHelper(RPCHelper):
           parent_hash="0x0000000000000000000000000000000000000000000000000000000000000000",
           gas_limit="0xf4240",
           alloc={
-              "262c0d7ab5ffd4ede2199f6ea793f819e1abb019":
-                  ethereum_pb2.Genesis.Wallet(balance="12345"),
-              "5bb088f57365907b1840e45984cae028a82af934":
-                  ethereum_pb2.Genesis.Wallet(balance="0xabcdef"),
-              "0000a12b3f3d6c9b0d3f126a83ec2dd3dad15f39":
-                  ethereum_pb2.Genesis.Wallet(balance="0x7fffffffffffffff")
+              "262c0d7ab5ffd4ede2199f6ea793f819e1abb019": genesis_pb2.Genesis.Wallet(balance="12345"),
+              "5bb088f57365907b1840e45984cae028a82af934": genesis_pb2.Genesis.Wallet(balance="0xabcdef"),
+              "0000a12b3f3d6c9b0d3f126a83ec2dd3dad15f39": genesis_pb2.Genesis.Wallet(balance="0x7fffffffffffffff")
           }
       )
       return genesis_spec

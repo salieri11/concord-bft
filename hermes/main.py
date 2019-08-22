@@ -24,11 +24,27 @@ suites = ["ContractCompilerTests", "CoreVMTests",
           "LintTests", "EvilTimeTests", "ExtendedRPCTests", "HelenAPITests", "HlfTests", "PerformanceTests", "PersephoneTests",
           "RegressionTests", "SampleDAppTests", "SampleSuite", "SimpleStateTransferTest", "TimeTests", "TruffleTests", "UiTests",
           "WebSocketRPCTests"]
+local_modules = [os.path.join(".", "lib", "persephone")]
+
+
+def initialize():
+   '''
+   Perform necessary initialization to setup the runtime environment.
+   '''
+   # For any Python modules that is only available "locally" with respect to
+   # this Hermes installation, initialize the sys.path such that the module
+   # can be imported.
+   for path in local_modules:
+      sys.path.append(path)
+
 
 def main():
    cleanupData = None
 
    try:
+      # Initialize the runtime environment for this instance.
+      initialize()
+
       startTime = datetime.datetime.now()
       parser = argparse.ArgumentParser()
       parser.add_argument("suite", help="Test suite name.  Available suites: {}". \

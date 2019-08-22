@@ -1,12 +1,12 @@
 /* [START declaration] */
 syntax = "proto3";
-package com.vmware.blockchain.deployment.model;
+package vmware.blockchain.deployment.v1;
 
-import "concord_cluster.proto";
-import "concord_model.proto";
-import "core.proto";
-import "ethereum.proto";
-import "orchestration.proto";
+import "vmware/blockchain/deployment/v1/concord_cluster.proto";
+import "vmware/blockchain/deployment/v1/concord_model.proto";
+import "vmware/blockchain/deployment/v1/core.proto";
+import "vmware/blockchain/deployment/v1/orchestration.proto";
+import "vmware/blockchain/ethereum/type/genesis.proto";
 /* [END declaration] */
 
 /* [START java_declaration] */
@@ -87,7 +87,7 @@ message DeploymentSpecification {
     uint32 cluster_size = 1;
     ConcordModelSpecification model = 2;
     PlacementSpecification placement = 3;
-    ethereum.Genesis genesis = 4;
+    vmware.blockchain.ethereum.type.Genesis genesis = 4;
 }
 
 /**

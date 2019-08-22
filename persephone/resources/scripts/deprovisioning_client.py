@@ -5,9 +5,9 @@ import argparse
 import grpc
 import io
 import logging
-import persephone.core_pb2 as core
-import persephone.provisioning_service_pb2 as provisioning_service
-import persephone.provisioning_service_pb2_grpc as provisioning_service_rpc
+import vmware.blockchain.deployment.v1.core_pb2 as core
+import vmware.blockchain.deployment.v1.provisioning_service_pb2 as provisioning_service
+import vmware.blockchain.deployment.v1.provisioning_service_pb2_grpc as provisioning_service_rpc
 from google.protobuf.json_format import MessageToJson
 from typing import Any, Dict
 
@@ -43,7 +43,9 @@ def main():
     Main program entry-point.
 
     Example:
-        $ python deprovisioning_client.py --server localhost:9002 [--trusted-certs /tmp/server.crt] --deployment-id 5678.1234
+        $ python deprovisioning_client.py --server localhost:9002 \
+            [--trusted-certs /tmp/server.crt] \
+            --deployment-id 5678.1234
 
     Returns:
         None

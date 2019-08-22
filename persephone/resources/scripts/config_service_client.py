@@ -7,15 +7,14 @@ import io
 import logging
 import os
 import tempfile
-import persephone.core_pb2 as core
-import persephone.concord_model_pb2 as concord_model
-import persephone.configuration_service_pb2 as configuration_service
-import persephone.configuration_service_pb2_grpc as configuration_service_rpc
+import vmware.blockchain.deployment.v1.core_pb2 as core
+import vmware.blockchain.deployment.v1.configuration_service_pb2 as configuration_service
+import vmware.blockchain.deployment.v1.configuration_service_pb2_grpc as configuration_service_rpc
 from typing import Any, Dict
 from urllib.parse import urlparse
 
 
-def get_arguments() :
+def get_arguments() -> Dict[str, Any]:
     """
     Parse command-line arguments.
 

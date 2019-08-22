@@ -4,10 +4,10 @@
 import argparse
 import grpc
 import io
-import persephone.core_pb2 as core
-import persephone.concord_model_pb2 as concord_model
-import persephone.metadata_service_pb2 as metadata_service
-import persephone.metadata_service_pb2_grpc as metadata_service_rpc
+import vmware.blockchain.deployment.v1.core_pb2 as core
+import vmware.blockchain.deployment.v1.concord_model_pb2 as concord_model
+import vmware.blockchain.deployment.v1.metadata_service_pb2 as metadata_service
+import vmware.blockchain.deployment.v1.metadata_service_pb2_grpc as metadata_service_rpc
 from typing import Any, Dict
 
 

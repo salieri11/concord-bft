@@ -182,10 +182,9 @@ def protobuf_message_to_json(message_obj):
 
 
 def json_to_protobuf_message(j):
-   sys.path.append('lib/persephone')
-   from grpc_python_bindings import provisioning_service_pb2
+   from vmware.blockchain.deployment.v1.provisioning_service_pb2 import DeploymentSessionIdentifier
    from google.protobuf.json_format import Parse
-   return Parse(j, provisioning_service_pb2.DeploymentSessionIdentifier())
+   return Parse(j, DeploymentSessionIdentifier())
 
 
 def requireFields(ob, fieldList):

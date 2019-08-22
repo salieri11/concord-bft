@@ -4,26 +4,25 @@
 # This class is a helper file to test persephone gRPC
 #########################################################################
 
-import sys
 import json
-sys.path.append('lib/persephone')
-from rpc_helper import RPCHelper
-from model_service_helper import ModelServiceRPCHelper
-from orchestration_service_helper import OrchestrationServiceRPCHelper
-from provisioning_service_helper import ProvisioningServiceRPCHelper
-from grpc_python_bindings import core_pb2
-from google.protobuf.json_format import MessageToJson
-sys.path.append('../../')
-from util.product import Product as Product
-import yaml
 import logging
+import os
+import sys
 import threading
 import time
 import traceback
 import types
-import os
+from google.protobuf.json_format import MessageToJson
+from model_service_helper import ModelServiceRPCHelper
+from orchestration_service_helper import OrchestrationServiceRPCHelper
+from provisioning_service_helper import ProvisioningServiceRPCHelper
+from rpc_helper import RPCHelper
+from vmware.blockchain.deployment.v1 import core_pb2
 
+sys.path.append('../../')
+from util.product import Product as Product
 import util.helper
+
 
 log = logging.getLogger(__name__)
 
