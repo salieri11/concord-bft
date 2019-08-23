@@ -79,7 +79,7 @@ message ConcordModelIdentifier {
 message ConcordModelSpecification {
 
     enum BlockchainType {
-        ETHRPC = 0; // Using ETHRPC as default.
+        ETHEREUM = 0; // Using ETHEREUM as default.
         DAML = 1;
         HLF = 2;
     }

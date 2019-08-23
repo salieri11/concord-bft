@@ -108,7 +108,7 @@ def get_concord_type(blockchain_type: str) -> concord_model.ConcordModelSpecific
         model specification enum type.
     """
     if blockchain_type is None or blockchain_type == "ethereum":
-        return concord_model.ConcordModelSpecification.ETHRPC
+        return concord_model.ConcordModelSpecification.ETHEREUM
     elif blockchain_type == "daml":
         return concord_model.ConcordModelSpecification.DAML
 
