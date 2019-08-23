@@ -164,7 +164,7 @@ class TestSuite(ABC):
          foundPersephoneDockerConfig = False
 
          for key in dockerCfg["services"].keys():
-            if "deploymentservice" in key:
+            if "persephone-provisioning" in key:
                foundPersephoneDockerConfig = True
                provisioningConfig = None
                provisioningConfigFile = "resources/persephone/provisioning/config.json"
