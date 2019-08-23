@@ -265,6 +265,9 @@ inline bool initializeSBFTConfiguration(
     repConf->cVal = maxSlow;
     repConf->numOfClientProxies = numOfPrincipals - numOfReplicas;
 
+    repConf->debugStatisticsEnabled =
+        nodeConfig.getValue<bool>("concord-bft_enable_debug_statistics");
+
     // TODO(IG): add to config file
     repConf->autoViewChangeEnabled = true;
 

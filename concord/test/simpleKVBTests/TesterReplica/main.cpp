@@ -128,6 +128,8 @@ ReplicaConsensusConfig setupConsensusParams(ReplicaConfig &replicaConfig) {
   consensusConfig.thresholdVerifierForOptimisticCommit =
       replicaConfig.thresholdVerifierForOptimisticCommit;
 
+  consensusConfig.debugStatisticsEnabled = replicaConfig.debugStatisticsEnabled;
+
   return consensusConfig;
 }
 

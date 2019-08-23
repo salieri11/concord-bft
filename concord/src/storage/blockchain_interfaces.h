@@ -126,6 +126,10 @@ struct ReplicaConsensusConfig {
   // StateTransfer
   uint32_t maxNumOfReservedPages = 0;
   uint32_t sizeOfReservedPage = 0;
+
+  // If set to true, this replica will periodically log debug statistics such as
+  // throughput and number of messages sent.
+  bool debugStatisticsEnabled = false;
 };
 
 // Represents a replica of the blockchain database

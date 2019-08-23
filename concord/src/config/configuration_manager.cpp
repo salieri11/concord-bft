@@ -3198,6 +3198,17 @@ void specifyConfiguration(ConcordConfiguration& config) {
   node.tagParameter("blockchain_db_path", defaultableByReplicaTags);
 
   node.declareParameter(
+      "concord-bft_enable_debug_statistics",
+      "If set to true, Concord-BFT will periodically log debug statistics for "
+      "this Concord node, such as throughput metrics and number of messages "
+      "sent/received.",
+      "false");
+  node.tagParameter("concord-bft_enable_debug_statistics",
+                    defaultableByReplicaTags);
+  node.addValidator("concord-bft_enable_debug_statistics", validateBoolean,
+                    nullptr);
+
+  node.declareParameter(
       "genesis_block",
       "Path, in the node's local filesystem, to a JSON file containing the "
       "genesis block data for this blockchain.");

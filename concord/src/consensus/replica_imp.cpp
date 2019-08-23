@@ -218,6 +218,7 @@ ReplicaImp::ReplicaImp(CommConfig &commConfig,
   m_replicaConfig.replicaPrivateKey = replicaConfig.replicaPrivateKey;
   m_replicaConfig.statusReportTimerMillisec =
       replicaConfig.statusReportTimerMillisec;
+  m_replicaConfig.debugStatisticsEnabled = replicaConfig.debugStatisticsEnabled;
   m_replicaConfig.viewChangeTimerMillisec =
       replicaConfig.viewChangeTimerMillisec;
   /// TODO(IG): the below part of the config should be initialized within the
