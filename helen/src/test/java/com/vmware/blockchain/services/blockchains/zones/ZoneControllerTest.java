@@ -43,7 +43,7 @@ import com.google.common.collect.ImmutableMap;
 import com.vmware.blockchain.MvcConfig;
 import com.vmware.blockchain.auth.AuthenticationContext;
 import com.vmware.blockchain.common.HelenExceptionHandler;
-import com.vmware.blockchain.deployment.model.OrchestrationSiteInfo.Type;
+import com.vmware.blockchain.deployment.v1.OrchestrationSiteInfo.Type;
 import com.vmware.blockchain.security.MvcTestSecurityConfig;
 import com.vmware.blockchain.services.blockchains.zones.ZoneController.ZoneGetRequest;
 import com.vmware.blockchain.services.profiles.Roles;

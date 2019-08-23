@@ -15,10 +15,10 @@ import org.springframework.security.core.context.SecurityContextHolder;
 
 import com.vmware.blockchain.auth.AuthHelper;
 import com.vmware.blockchain.common.fleetmanagment.FleetUtils;
-import com.vmware.blockchain.deployment.model.ConcordCluster;
-import com.vmware.blockchain.deployment.model.ConcordNode;
-import com.vmware.blockchain.deployment.model.DeploymentSession;
-import com.vmware.blockchain.deployment.model.DeploymentSessionEvent;
+import com.vmware.blockchain.deployment.v1.ConcordCluster;
+import com.vmware.blockchain.deployment.v1.ConcordNode;
+import com.vmware.blockchain.deployment.v1.DeploymentSession;
+import com.vmware.blockchain.deployment.v1.DeploymentSessionEvent;
 import com.vmware.blockchain.operation.OperationContext;
 import com.vmware.blockchain.services.blockchains.Blockchain.NodeEntry;
 import com.vmware.blockchain.services.tasks.Task;

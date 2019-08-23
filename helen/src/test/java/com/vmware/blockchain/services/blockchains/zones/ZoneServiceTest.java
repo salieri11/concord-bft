@@ -21,13 +21,13 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.vmware.blockchain.common.fleetmanagment.FleetUtils;
-import com.vmware.blockchain.deployment.model.ListOrchestrationSitesRequest;
-import com.vmware.blockchain.deployment.model.ListOrchestrationSitesResponse;
-import com.vmware.blockchain.deployment.model.MessageHeader;
-import com.vmware.blockchain.deployment.model.OrchestrationSiteIdentifier;
-import com.vmware.blockchain.deployment.model.OrchestrationSiteInfo.Type;
-import com.vmware.blockchain.deployment.model.OrchestrationSiteServiceStub;
-import com.vmware.blockchain.deployment.model.OrchestrationSiteView;
+import com.vmware.blockchain.deployment.v1.ListOrchestrationSitesRequest;
+import com.vmware.blockchain.deployment.v1.ListOrchestrationSitesResponse;
+import com.vmware.blockchain.deployment.v1.MessageHeader;
+import com.vmware.blockchain.deployment.v1.OrchestrationSiteIdentifier;
+import com.vmware.blockchain.deployment.v1.OrchestrationSiteInfo.Type;
+import com.vmware.blockchain.deployment.v1.OrchestrationSiteServiceStub;
+import com.vmware.blockchain.deployment.v1.OrchestrationSiteView;
 
 import io.grpc.stub.StreamObserver;
 

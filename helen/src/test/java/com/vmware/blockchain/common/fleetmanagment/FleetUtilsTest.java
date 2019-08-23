@@ -14,7 +14,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-import com.vmware.blockchain.deployment.model.ConcordNodeIdentifier;
+import com.vmware.blockchain.deployment.v1.ConcordNodeIdentifier;
 
 /**
  * Noce tests.
