@@ -20,9 +20,9 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import com.vmware.blockchain.deployment.model.ConcordComponent.ServiceType;
-import com.vmware.blockchain.deployment.model.Identity;
 import com.vmware.blockchain.deployment.service.configuration.eccerts.ConcordEcCertificatesGenerator;
+import com.vmware.blockchain.deployment.v1.ConcordComponent.ServiceType;
+import com.vmware.blockchain.deployment.v1.Identity;
 
 /**
  * test for {@link CertificatesGenerator}.

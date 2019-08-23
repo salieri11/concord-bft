@@ -3,7 +3,7 @@
  * *************************************************************************/
 package com.vmware.blockchain.deployment.agent
 
-import com.vmware.blockchain.deployment.model.InstanceMessage
+import com.vmware.blockchain.deployment.v1.InstanceMessage
 
 /**
  * Reporter for all deployed Concord components on a given Concord node instance.

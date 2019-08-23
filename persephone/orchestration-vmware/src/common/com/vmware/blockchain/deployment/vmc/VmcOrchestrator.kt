@@ -5,16 +5,6 @@ package com.vmware.blockchain.deployment.vmc
 
 import com.vmware.blockchain.deployment.logging.info
 import com.vmware.blockchain.deployment.logging.logger
-import com.vmware.blockchain.deployment.model.Address
-import com.vmware.blockchain.deployment.model.AllocateAddressRequest
-import com.vmware.blockchain.deployment.model.AllocateAddressResponse
-import com.vmware.blockchain.deployment.model.IPAllocationServiceStub
-import com.vmware.blockchain.deployment.model.IPv4Network
-import com.vmware.blockchain.deployment.model.MessageHeader
-import com.vmware.blockchain.deployment.model.OrchestrationSiteInfo
-import com.vmware.blockchain.deployment.model.ReleaseAddressRequest
-import com.vmware.blockchain.deployment.model.ReleaseAddressResponse
-import com.vmware.blockchain.deployment.model.VmcOrchestrationSiteInfo
 import com.vmware.blockchain.deployment.model.core.URI
 import com.vmware.blockchain.deployment.model.core.UUID
 import com.vmware.blockchain.deployment.model.nsx.NatRule
@@ -23,6 +13,16 @@ import com.vmware.blockchain.deployment.orchestration.Orchestrator
 import com.vmware.blockchain.deployment.orchestration.toIPv4Address
 import com.vmware.blockchain.deployment.orchestration.vmware.newClientRpcChannel
 import com.vmware.blockchain.deployment.reactive.Publisher
+import com.vmware.blockchain.deployment.v1.Address
+import com.vmware.blockchain.deployment.v1.AllocateAddressRequest
+import com.vmware.blockchain.deployment.v1.AllocateAddressResponse
+import com.vmware.blockchain.deployment.v1.IPAllocationServiceStub
+import com.vmware.blockchain.deployment.v1.IPv4Network
+import com.vmware.blockchain.deployment.v1.MessageHeader
+import com.vmware.blockchain.deployment.v1.OrchestrationSiteInfo
+import com.vmware.blockchain.deployment.v1.ReleaseAddressRequest
+import com.vmware.blockchain.deployment.v1.ReleaseAddressResponse
+import com.vmware.blockchain.deployment.v1.VmcOrchestrationSiteInfo
 import com.vmware.blockchain.deployment.vm.CloudInitConfiguration
 import com.vmware.blockchain.deployment.vsphere.VSphereClient
 import com.vmware.blockchain.deployment.vsphere.VSphereHttpClient

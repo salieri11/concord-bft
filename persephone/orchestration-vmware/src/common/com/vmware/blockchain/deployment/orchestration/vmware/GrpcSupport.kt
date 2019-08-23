@@ -3,9 +3,9 @@
  * **************************************************************************/
 package com.vmware.blockchain.deployment.orchestration.vmware
 
-import com.vmware.blockchain.deployment.model.Endpoint
-import com.vmware.blockchain.deployment.model.TransportSecurity
 import com.vmware.blockchain.deployment.model.core.URI
+import com.vmware.blockchain.deployment.v1.Endpoint
+import com.vmware.blockchain.deployment.v1.TransportSecurity
 import io.grpc.ManagedChannel
 import io.grpc.netty.shaded.io.grpc.netty.GrpcSslContexts
 import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder

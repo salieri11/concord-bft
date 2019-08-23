@@ -21,14 +21,14 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
-import com.vmware.blockchain.deployment.model.ConcordComponent.ServiceType;
-import com.vmware.blockchain.deployment.model.ConfigurationComponent;
-import com.vmware.blockchain.deployment.model.ConfigurationServiceRequest;
-import com.vmware.blockchain.deployment.model.ConfigurationSessionIdentifier;
-import com.vmware.blockchain.deployment.model.MessageHeader;
-import com.vmware.blockchain.deployment.model.NodeConfigurationRequest;
-import com.vmware.blockchain.deployment.model.NodeConfigurationResponse;
 import com.vmware.blockchain.deployment.service.configuration.generateconfig.ConcordConfigUtil;
+import com.vmware.blockchain.deployment.v1.ConcordComponent.ServiceType;
+import com.vmware.blockchain.deployment.v1.ConfigurationComponent;
+import com.vmware.blockchain.deployment.v1.ConfigurationServiceRequest;
+import com.vmware.blockchain.deployment.v1.ConfigurationSessionIdentifier;
+import com.vmware.blockchain.deployment.v1.MessageHeader;
+import com.vmware.blockchain.deployment.v1.NodeConfigurationRequest;
+import com.vmware.blockchain.deployment.v1.NodeConfigurationResponse;
 
 import io.grpc.stub.StreamObserver;
 

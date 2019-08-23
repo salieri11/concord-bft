@@ -18,14 +18,14 @@ import java.util.stream.Collectors;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import com.vmware.blockchain.deployment.model.AddModelRequest;
-import com.vmware.blockchain.deployment.model.AddModelResponse;
-import com.vmware.blockchain.deployment.model.ConcordModelIdentifier;
-import com.vmware.blockchain.deployment.model.ConcordModelServiceStub;
-import com.vmware.blockchain.deployment.model.ConcordModelSpecification;
-import com.vmware.blockchain.deployment.model.ListModelsRequest;
-import com.vmware.blockchain.deployment.model.ListModelsResponseEvent;
-import com.vmware.blockchain.deployment.model.MessageHeader;
+import com.vmware.blockchain.deployment.v1.AddModelRequest;
+import com.vmware.blockchain.deployment.v1.AddModelResponse;
+import com.vmware.blockchain.deployment.v1.ConcordModelIdentifier;
+import com.vmware.blockchain.deployment.v1.ConcordModelServiceStub;
+import com.vmware.blockchain.deployment.v1.ConcordModelSpecification;
+import com.vmware.blockchain.deployment.v1.ListModelsRequest;
+import com.vmware.blockchain.deployment.v1.ListModelsResponseEvent;
+import com.vmware.blockchain.deployment.v1.MessageHeader;
 
 import io.grpc.CallOptions;
 import io.grpc.inprocess.InProcessChannelBuilder;

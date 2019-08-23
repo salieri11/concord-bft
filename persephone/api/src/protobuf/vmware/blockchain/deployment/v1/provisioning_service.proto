@@ -10,7 +10,7 @@ import "vmware/blockchain/ethereum/type/genesis.proto";
 /* [END declaration] */
 
 /* [START java_declaration] */
-option java_package = "com.vmware.blockchain.deployment.model";
+option java_package = "com.vmware.blockchain.deployment.v1";
 option java_multiple_files = true;
 /* [END java_declaration] */
 

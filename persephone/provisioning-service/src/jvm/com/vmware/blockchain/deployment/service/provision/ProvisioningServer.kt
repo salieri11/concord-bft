@@ -3,13 +3,13 @@
  * **************************************************************************/
 package com.vmware.blockchain.deployment.service.provision
 
-import com.vmware.blockchain.deployment.model.Endpoint
-import com.vmware.blockchain.deployment.model.OrchestrationSite
-import com.vmware.blockchain.deployment.model.ProvisioningServerConfiguration
-import com.vmware.blockchain.deployment.model.TransportSecurity
 import com.vmware.blockchain.deployment.model.core.URI
 import com.vmware.blockchain.deployment.service.orchestrationsite.OrchestrationSiteService
 import com.vmware.blockchain.deployment.service.orchestrationsite.OrchestrationSiteServiceModule
+import com.vmware.blockchain.deployment.v1.Endpoint
+import com.vmware.blockchain.deployment.v1.OrchestrationSite
+import com.vmware.blockchain.deployment.v1.ProvisioningServerConfiguration
+import com.vmware.blockchain.deployment.v1.TransportSecurity
 import dagger.BindsInstance
 import dagger.Component
 import io.grpc.netty.shaded.io.grpc.netty.GrpcSslContexts

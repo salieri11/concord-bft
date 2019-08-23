@@ -3,11 +3,11 @@
  * **************************************************************************/
 package com.vmware.blockchain.deployment.orchestration.vmware
 
-import com.vmware.blockchain.deployment.model.OrchestrationSiteInfo
 import com.vmware.blockchain.deployment.model.core.URI
 import com.vmware.blockchain.deployment.orchestration.InactiveOrchestrator
 import com.vmware.blockchain.deployment.orchestration.Orchestrator
 import com.vmware.blockchain.deployment.orchestration.OrchestratorProvider
+import com.vmware.blockchain.deployment.v1.OrchestrationSiteInfo
 import com.vmware.blockchain.deployment.vmc.VmcClient
 import com.vmware.blockchain.deployment.vmc.VmcHttpClient
 import com.vmware.blockchain.deployment.vmc.VmcModelSerializer

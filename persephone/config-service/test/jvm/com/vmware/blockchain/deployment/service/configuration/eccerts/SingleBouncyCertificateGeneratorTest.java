@@ -29,7 +29,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import com.vmware.blockchain.deployment.model.Identity;
+import com.vmware.blockchain.deployment.v1.Identity;
 
 /**
  * test for {@link SingleBouncyCertificateGenerator}.

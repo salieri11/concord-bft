@@ -12,11 +12,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.vmware.blockchain.common.fleetmanagment.FleetUtils;
-import com.vmware.blockchain.deployment.model.ListOrchestrationSitesRequest;
-import com.vmware.blockchain.deployment.model.ListOrchestrationSitesResponse;
-import com.vmware.blockchain.deployment.model.MessageHeader;
-import com.vmware.blockchain.deployment.model.OrchestrationSiteServiceStub;
-import com.vmware.blockchain.deployment.model.OrchestrationSiteView;
+import com.vmware.blockchain.deployment.v1.ListOrchestrationSitesRequest;
+import com.vmware.blockchain.deployment.v1.ListOrchestrationSitesResponse;
+import com.vmware.blockchain.deployment.v1.MessageHeader;
+import com.vmware.blockchain.deployment.v1.OrchestrationSiteServiceStub;
+import com.vmware.blockchain.deployment.v1.OrchestrationSiteView;
 
 /**
  * Zone service.  Read the zones from Persephone.

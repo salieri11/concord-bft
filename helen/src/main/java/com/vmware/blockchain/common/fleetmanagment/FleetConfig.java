@@ -8,9 +8,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import com.vmware.blockchain.deployment.model.FleetManagementServiceStub;
-import com.vmware.blockchain.deployment.model.OrchestrationSiteServiceStub;
-import com.vmware.blockchain.deployment.model.ProvisioningServiceStub;
+import com.vmware.blockchain.deployment.v1.FleetManagementServiceStub;
+import com.vmware.blockchain.deployment.v1.OrchestrationSiteServiceStub;
+import com.vmware.blockchain.deployment.v1.ProvisioningServiceStub;
 
 import io.grpc.CallOptions;
 import io.grpc.ManagedChannel;

@@ -3,19 +3,18 @@
  * *************************************************************************/
 package com.vmware.blockchain.deployment.vm
 
-import com.vmware.blockchain.deployment.http.JsonSerializer
-import com.vmware.blockchain.deployment.model.ConcordAgentConfiguration
-import com.vmware.blockchain.deployment.model.ConcordClusterIdentifier
-import com.vmware.blockchain.deployment.model.ConcordComponent
-import com.vmware.blockchain.deployment.model.ConcordModelSpecification
-import com.vmware.blockchain.deployment.model.ConcordNodeIdentifier
-import com.vmware.blockchain.deployment.model.ConfigurationSessionIdentifier
-import com.vmware.blockchain.deployment.model.Credential
-import com.vmware.blockchain.deployment.model.Endpoint
 import com.vmware.blockchain.deployment.model.core.URI
-import com.vmware.blockchain.deployment.model.ethereum.Genesis
 import com.vmware.blockchain.deployment.orchestration.toIPv4Address
 import com.vmware.blockchain.deployment.orchestration.toIPv4SubnetMask
+import com.vmware.blockchain.deployment.http.JsonSerializer
+import com.vmware.blockchain.deployment.v1.ConcordAgentConfiguration
+import com.vmware.blockchain.deployment.v1.ConcordClusterIdentifier
+import com.vmware.blockchain.deployment.v1.ConcordComponent
+import com.vmware.blockchain.deployment.v1.ConcordModelSpecification
+import com.vmware.blockchain.deployment.v1.ConfigurationSessionIdentifier
+import com.vmware.blockchain.deployment.v1.Credential
+import com.vmware.blockchain.deployment.v1.Endpoint
+import com.vmware.blockchain.ethereum.type.Genesis
 import kotlinx.serialization.modules.serializersModuleOf
 
 /**

@@ -6,11 +6,11 @@ package com.vmware.blockchain.deployment.service.orchestrationsite
 import com.vmware.blockchain.deployment.logging.info
 import com.vmware.blockchain.deployment.logging.error
 import com.vmware.blockchain.deployment.logging.logger
-import com.vmware.blockchain.deployment.model.ListOrchestrationSitesRequest
-import com.vmware.blockchain.deployment.model.ListOrchestrationSitesResponse
-import com.vmware.blockchain.deployment.model.OrchestrationSite
-import com.vmware.blockchain.deployment.model.OrchestrationSiteServiceImplBase
-import com.vmware.blockchain.deployment.model.OrchestrationSiteView
+import com.vmware.blockchain.deployment.v1.ListOrchestrationSitesRequest
+import com.vmware.blockchain.deployment.v1.ListOrchestrationSitesResponse
+import com.vmware.blockchain.deployment.v1.OrchestrationSite
+import com.vmware.blockchain.deployment.v1.OrchestrationSiteServiceImplBase
+import com.vmware.blockchain.deployment.v1.OrchestrationSiteView
 import io.grpc.stub.StreamObserver
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred

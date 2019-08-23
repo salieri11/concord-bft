@@ -3,7 +3,7 @@
  * **************************************************************************/
 package com.vmware.blockchain.deployment.service.orchestrationsite
 
-import com.vmware.blockchain.deployment.model.OrchestrationSite
+import com.vmware.blockchain.deployment.v1.OrchestrationSite
 import dagger.Module
 import dagger.Provides
 import javax.inject.Singleton

@@ -19,21 +19,21 @@ import java.util.stream.IntStream;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import com.vmware.blockchain.deployment.model.ConcordModelSpecification;
-import com.vmware.blockchain.deployment.model.CreateClusterRequest;
-import com.vmware.blockchain.deployment.model.DeploymentSession;
-import com.vmware.blockchain.deployment.model.DeploymentSessionEvent;
-import com.vmware.blockchain.deployment.model.DeploymentSessionIdentifier;
-import com.vmware.blockchain.deployment.model.DeploymentSpecification;
-import com.vmware.blockchain.deployment.model.MessageHeader;
-import com.vmware.blockchain.deployment.model.OrchestrationSite;
-import com.vmware.blockchain.deployment.model.OrchestrationSiteIdentifier;
-import com.vmware.blockchain.deployment.model.PlacementSpecification;
-import com.vmware.blockchain.deployment.model.PlacementSpecification.Entry;
-import com.vmware.blockchain.deployment.model.ProvisionedResource;
-import com.vmware.blockchain.deployment.model.StreamClusterDeploymentSessionEventRequest;
-import com.vmware.blockchain.deployment.model.ethereum.Genesis;
 import com.vmware.blockchain.deployment.orchestration.NetworkAddress;
+import com.vmware.blockchain.deployment.v1.ConcordModelSpecification;
+import com.vmware.blockchain.deployment.v1.CreateClusterRequest;
+import com.vmware.blockchain.deployment.v1.DeploymentSession;
+import com.vmware.blockchain.deployment.v1.DeploymentSessionEvent;
+import com.vmware.blockchain.deployment.v1.DeploymentSessionIdentifier;
+import com.vmware.blockchain.deployment.v1.DeploymentSpecification;
+import com.vmware.blockchain.deployment.v1.MessageHeader;
+import com.vmware.blockchain.deployment.v1.OrchestrationSite;
+import com.vmware.blockchain.deployment.v1.OrchestrationSiteIdentifier;
+import com.vmware.blockchain.deployment.v1.PlacementSpecification;
+import com.vmware.blockchain.deployment.v1.PlacementSpecification.Entry;
+import com.vmware.blockchain.deployment.v1.ProvisionedResource;
+import com.vmware.blockchain.deployment.v1.StreamClusterDeploymentSessionEventRequest;
+import com.vmware.blockchain.ethereum.type.Genesis;
 
 import io.grpc.stub.StreamObserver;
 

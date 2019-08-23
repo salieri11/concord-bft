@@ -39,8 +39,8 @@ import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.vmware.blockchain.deployment.model.Identity;
-import com.vmware.blockchain.deployment.model.IdentityComponent;
+import com.vmware.blockchain.deployment.v1.Identity;
+import com.vmware.blockchain.deployment.v1.IdentityComponent;
 
 
 /**

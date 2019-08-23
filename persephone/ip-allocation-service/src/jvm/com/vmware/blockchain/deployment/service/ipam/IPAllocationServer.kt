@@ -6,12 +6,12 @@ package com.vmware.blockchain.deployment.service.ipam
 import com.vmware.blockchain.deployment.logging.error
 import com.vmware.blockchain.deployment.logging.info
 import com.vmware.blockchain.deployment.logging.logger
-import com.vmware.blockchain.deployment.model.AddressBlock
-import com.vmware.blockchain.deployment.model.AddressBlockSegment
-import com.vmware.blockchain.deployment.model.IPAllocationServerConfiguration
-import com.vmware.blockchain.deployment.model.TransportSecurity
 import com.vmware.blockchain.deployment.persistence.kv.KeyValueStore
 import com.vmware.blockchain.deployment.persistence.kv.MonotonicInt
+import com.vmware.blockchain.deployment.v1.AddressBlock
+import com.vmware.blockchain.deployment.v1.AddressBlockSegment
+import com.vmware.blockchain.deployment.v1.IPAllocationServerConfiguration
+import com.vmware.blockchain.deployment.v1.TransportSecurity
 import dagger.BindsInstance
 import dagger.Component
 import io.grpc.netty.shaded.io.grpc.netty.GrpcSslContexts

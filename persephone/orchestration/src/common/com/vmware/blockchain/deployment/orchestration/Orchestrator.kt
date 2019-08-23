@@ -3,15 +3,15 @@
  * *************************************************************************/
 package com.vmware.blockchain.deployment.orchestration
 
-import com.vmware.blockchain.deployment.model.Endpoint
-import com.vmware.blockchain.deployment.model.ConcordClusterIdentifier
-import com.vmware.blockchain.deployment.model.ConcordModelSpecification
-import com.vmware.blockchain.deployment.model.ConcordNodeIdentifier
-import com.vmware.blockchain.deployment.model.ConfigurationSessionIdentifier
 import com.vmware.blockchain.deployment.model.core.URI
-import com.vmware.blockchain.deployment.model.ethereum.Genesis
 import com.vmware.blockchain.deployment.reactive.IteratingPublisher
 import com.vmware.blockchain.deployment.reactive.Publisher
+import com.vmware.blockchain.deployment.v1.Endpoint
+import com.vmware.blockchain.deployment.v1.ConcordClusterIdentifier
+import com.vmware.blockchain.deployment.v1.ConcordModelSpecification
+import com.vmware.blockchain.deployment.v1.ConcordNodeIdentifier
+import com.vmware.blockchain.deployment.v1.ConfigurationSessionIdentifier
+import com.vmware.blockchain.ethereum.type.Genesis
 
 /**
  * Asynchronous deployment orchestration library interface.

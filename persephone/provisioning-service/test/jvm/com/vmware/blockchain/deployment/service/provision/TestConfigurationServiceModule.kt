@@ -3,8 +3,8 @@
  * **************************************************************************/
 package com.vmware.blockchain.deployment.service.provision
 
-import com.vmware.blockchain.deployment.model.ConfigurationServiceStub
-import com.vmware.blockchain.deployment.model.Endpoint
+import com.vmware.blockchain.deployment.v1.ConfigurationServiceStub
+import com.vmware.blockchain.deployment.v1.Endpoint
 import dagger.Module
 import dagger.Provides
 import io.grpc.CallOptions

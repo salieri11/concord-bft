@@ -3,16 +3,16 @@
  * **************************************************************************/
 package com.vmware.blockchain.deployment.service.provision
 
-import com.vmware.blockchain.deployment.model.Credential
-import com.vmware.blockchain.deployment.model.Endpoint
-import com.vmware.blockchain.deployment.model.IPv4Network
-import com.vmware.blockchain.deployment.model.OrchestrationSite
-import com.vmware.blockchain.deployment.model.OrchestrationSiteIdentifier
-import com.vmware.blockchain.deployment.model.OrchestrationSiteInfo
-import com.vmware.blockchain.deployment.model.VSphereDatacenterInfo
-import com.vmware.blockchain.deployment.model.VmcOrchestrationSiteInfo
 import com.vmware.blockchain.deployment.service.orchestrationsite.OrchestrationSiteService
 import com.vmware.blockchain.deployment.service.orchestrationsite.OrchestrationSiteServiceModule
+import com.vmware.blockchain.deployment.v1.Credential
+import com.vmware.blockchain.deployment.v1.Endpoint
+import com.vmware.blockchain.deployment.v1.IPv4Network
+import com.vmware.blockchain.deployment.v1.OrchestrationSite
+import com.vmware.blockchain.deployment.v1.OrchestrationSiteIdentifier
+import com.vmware.blockchain.deployment.v1.OrchestrationSiteInfo
+import com.vmware.blockchain.deployment.v1.VSphereDatacenterInfo
+import com.vmware.blockchain.deployment.v1.VmcOrchestrationSiteInfo
 import dagger.BindsInstance
 import dagger.Component
 import io.grpc.Server

@@ -3,7 +3,7 @@
  * **************************************************************************/
 package com.vmware.blockchain.deployment.orchestration
 
-import com.vmware.blockchain.deployment.model.OrchestrationSiteInfo
+import com.vmware.blockchain.deployment.v1.OrchestrationSiteInfo
 
 /**
  * Contract factory interface to construct a new [Orchestrator] instance.

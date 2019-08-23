@@ -7,7 +7,7 @@ package com.vmware.blockchain.services.blockchains.zones;
 import java.util.Map;
 import java.util.UUID;
 
-import com.vmware.blockchain.deployment.model.OrchestrationSiteInfo;
+import com.vmware.blockchain.deployment.v1.OrchestrationSiteInfo;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

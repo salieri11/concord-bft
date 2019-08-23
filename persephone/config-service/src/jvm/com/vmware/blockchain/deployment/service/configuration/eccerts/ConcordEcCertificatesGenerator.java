@@ -14,10 +14,10 @@ import java.util.stream.IntStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.vmware.blockchain.deployment.model.ConcordComponent.ServiceType;
-import com.vmware.blockchain.deployment.model.Identity;
-import com.vmware.blockchain.deployment.model.IdentityFactors;
 import com.vmware.blockchain.deployment.service.configuration.generatecerts.CertificatesGenerator;
+import com.vmware.blockchain.deployment.v1.ConcordComponent.ServiceType;
+import com.vmware.blockchain.deployment.v1.Identity;
+import com.vmware.blockchain.deployment.v1.IdentityFactors;
 
 /**
  * This class is a bouncycastle implementation of getting ssl certs and keypair.

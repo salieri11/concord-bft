@@ -6,9 +6,9 @@ package com.vmware.blockchain.deployment.service.fleet
 import com.vmware.blockchain.deployment.logging.error
 import com.vmware.blockchain.deployment.logging.info
 import com.vmware.blockchain.deployment.logging.logger
-import com.vmware.blockchain.deployment.model.FleetManagementServiceImplBase
-import com.vmware.blockchain.deployment.model.UpdateInstanceRequest
-import com.vmware.blockchain.deployment.model.UpdateInstanceResponse
+import com.vmware.blockchain.deployment.v1.FleetManagementServiceImplBase
+import com.vmware.blockchain.deployment.v1.UpdateInstanceRequest
+import com.vmware.blockchain.deployment.v1.UpdateInstanceResponse
 import io.grpc.stub.StreamObserver
 import kotlin.coroutines.CoroutineContext
 import kotlinx.coroutines.CoroutineScope
@@ -19,7 +19,7 @@ import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.launch
 
 /**
- * An implementation of [com.vmware.blockchain.deployment.model.FleetManagementService].
+ * An implementation of [com.vmware.blockchain.deployment.v1.FleetManagementService].
  */
 class FleetManagementService(
     private val context: CoroutineContext = Dispatchers.Default

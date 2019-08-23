@@ -13,7 +13,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.http.converter.protobuf.ProtobufHttpMessageConverter;
 
-import com.vmware.blockchain.deployment.model.ConcordAgentConfiguration;
+import com.vmware.blockchain.deployment.v1.ConcordAgentConfiguration;
 
 import kotlinx.serialization.UpdateMode;
 import kotlinx.serialization.json.Json;
