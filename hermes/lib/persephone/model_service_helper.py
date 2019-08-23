@@ -82,7 +82,7 @@ class ModelServiceRPCHelper(RPCHelper):
          blockchain_type = concord_model_pb2.ConcordModelSpecification.DAML
       else:
          concord_type = ModelServiceRPCHelper.CONCORD_TYPE_ETHEREUM
-         blockchain_type = concord_model_pb2.ConcordModelSpecification.ETHRPC
+         blockchain_type = concord_model_pb2.ConcordModelSpecification.ETHEREUM
       log.info("**** Deploying Blockchain Type: {}".format(concord_type))
 
       if deployment_components:
