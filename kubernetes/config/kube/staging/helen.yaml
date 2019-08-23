@@ -1,0 +1,45 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: helen
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: helen
+  template:
+    metadata:
+      labels:
+        app: helen
+    spec:
+      imagePullSecrets:
+        - name: bintray
+      hostname: helen
+      containers:
+      - name: helen
+        image: vmware-docker-blockchainsaas.bintray.io/helen:test
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+        volumeMounts:
+        - name: helencontext-volume
+          mountPath: /config/app/profiles/
+          readOnly: true
+      volumes:
+      - name: helencontext-volume
+        configMap:
+          name: helencontext-beta
+          defaultMode: 0700
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: helen
+  labels:
+    app: helen
+spec:
+  ports:
+  - port: 8080
+    targetPort: 8080
+  selector:
+    app: helen
