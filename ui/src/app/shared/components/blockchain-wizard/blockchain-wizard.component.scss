@@ -1,5 +1,12 @@
+@import "~@clr/ui/src/color/utils/_colors.clarity.scss";
+
 $formTopMargin: 1.5rem;
 $inputWidth: 2.5rem;
+$clr-card-hover-color: #0094d2;
+
+.blockchain-wizard.extra-wide ::ng-deep .modal-dialog.modal-lg {
+  width: 41rem;
+}
 
 .table-actions {
   clr-icon {
@@ -8,6 +15,47 @@ $inputWidth: 2.5rem;
   }
 }
 
+.card.sideways {
+  height: 6.3rem;
+
+  .card-icon {
+    float: left;
+    width: 6rem;
+    height: 6rem;
+    line-height: 6rem;
+    border-right: 1px solid $clr-light-gray;
+    margin-top: .1rem;
+    margin-right: .5rem;
+    padding: .1rem;
+    text-align: center;
+
+    img {
+      display: inline-block;
+      vertical-align: middle;
+      margin-top: -.5rem;
+    }
+  }
+  .card-endorsement {
+    padding-right: .5rem;
+
+    h3 {
+      margin: .5rem 0 0;
+    }
+    p {
+      margin-top: .5rem;
+      font-size: 90%;
+      line-height: 1.4;
+    }
+  }
+}
+
+.card.sideways.active {
+  box-shadow: 0 0.125rem 0 0 $clr-card-hover-color;
+  border: 1px solid $clr-card-hover-color;
+  cursor: pointer;
+  text-decoration: none;
+  transform: translateY(-2px);
+}
 .accordion-table-header {
   .title {
     font-weight: 600;
@@ -81,7 +129,7 @@ label {
 .sub-title {
   padding: 0 0 .2rem;
   margin: 1rem 0 .3rem;
-  border-bottom: 1px solid #ccc;
+  border-bottom: 1px solid $clr-light-gray;
   width: 100%;
 }
 .nodes {

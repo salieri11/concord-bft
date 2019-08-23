@@ -4,7 +4,7 @@
 
 import {
   Component,
-  OnInit,
+  AfterViewInit,
   ViewChild,
   Output,
   EventEmitter,
@@ -15,7 +15,7 @@ import { FormControl, FormGroup, Validators, ValidatorFn, ValidationErrors } fro
 import { ClrWizard, ClrWizardPage } from '@clr/angular';
 import { PersonaService } from '../../persona.service';
 import { BlockchainService } from '../../blockchain.service';
-import { BlockchainRequestParams, Zone } from '../../blockchain.model';
+import { BlockchainRequestParams, Zone, ContractEngines } from '../../blockchain.model';
 
 
 const RegionCountValidator: ValidatorFn = (fg: FormGroup): ValidationErrors | null => {
@@ -36,9 +36,9 @@ const RegionCountValidator: ValidatorFn = (fg: FormGroup): ValidationErrors | nu
   templateUrl: './blockchain-wizard.component.html',
   styleUrls: ['./blockchain-wizard.component.scss']
 })
-export class BlockchainWizardComponent implements OnInit {
+export class BlockchainWizardComponent implements AfterViewInit {
   @ViewChild('wizard') wizard: ClrWizard;
-  @ViewChild('detailPage') blockConsortiumPage: ClrWizardPage;
+  @ViewChild('detailPage') detailPage: ClrWizardPage;
   @ViewChild('usersPage') usersPage: ClrWizardPage;
   @ViewChild('consortiumInput') consortiumInput: ElementRef;
   @Output('setupComplete') setupComplete: EventEmitter<any> = new EventEmitter<any>();
@@ -52,6 +52,8 @@ export class BlockchainWizardComponent implements OnInit {
   numbersOfNodes = [4, 7];
   fCountMapping = { '4': 1, '7': 2 };
   zones: Zone[] = [];
+  engines = ContractEngines;
+  selectedEngine: string;
 
   constructor(
     private router: Router,
@@ -72,13 +74,18 @@ export class BlockchainWizardComponent implements OnInit {
     });
   }
 
-  ngOnInit() {
+  ngAfterViewInit() {
+    this.wizard.currentPageChanged.subscribe(() => this.handlePageChange());
   }
 
   addUser() {
     const selectedUsers = this.form.get('users');
     selectedUsers.setValue(selectedUsers.value.concat([this.userForm.value]));
     this.userForm.reset();
+  }
+
+  selectEngine(type: string) {
+    this.selectedEngine = type;
   }
 
   resetFragment() {
@@ -100,21 +107,20 @@ export class BlockchainWizardComponent implements OnInit {
 
   open() {
     this.isOpen = true;
-    if (this.form) {
+    this.selectedEngine = undefined;
+
+    if (this.form && this.wizard) {
       this.wizard.reset();
       this.form.reset();
     }
 
-    setTimeout(() => {
-      this.consortiumInput.nativeElement.focus();
-    }, 500);
   }
 
   onSubmit() {
     const params = new BlockchainRequestParams();
     params.f_count = Number(this.fCountMapping[this.form.value.nodes.numberOfNodes.toString()]);
     params.consortium_name = this.form.value.details.consortium_name;
-
+    params.blockchain_type = this.selectedEngine;
     // @ts-ignore
     const zones = this.form.controls['nodes'].controls['zones'].value;
     let zoneIds = [];
@@ -171,7 +177,7 @@ export class BlockchainWizardComponent implements OnInit {
     return new FormGroup({
       details: new FormGroup({
         consortium_name: new FormControl('', Validators.required),
-        consortium_desc: new FormControl('', Validators.required),
+        consortium_desc: new FormControl(''),
       }),
       nodes: new FormGroup({
         numberOfNodes: new FormControl('', Validators.required),
@@ -179,6 +185,19 @@ export class BlockchainWizardComponent implements OnInit {
       }, { validators: RegionCountValidator })
     });
   }
+
+  private handlePageChange() {
+    const currentPage = this.wizard.currentPage;
+
+    switch (currentPage) {
+      case this.detailPage:
+        setTimeout(() => {
+          this.consortiumInput.nativeElement.focus();
+        }, 10);
+
+        break;    }
+  }
+
   private zoneGroup() {
     const group = {};
 
