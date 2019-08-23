@@ -84,7 +84,7 @@ public class BlockchainController {
      * Enum to determine blockchain type.
      */
     public enum BlockchainType {
-        ETHRPC,
+        ETHEREUM,
         DAML,
         HLF
     }
@@ -94,7 +94,7 @@ public class BlockchainController {
                             UNSPECIFIED, Type.UNSPECIFIED);
 
     private static final Map<BlockchainType, ConcordModelSpecification.BlockchainType> enumMapForBlockchainType =
-            ImmutableMap.of(BlockchainType.ETHRPC, ConcordModelSpecification.BlockchainType.ETHRPC,
+            ImmutableMap.of(BlockchainType.ETHEREUM, ConcordModelSpecification.BlockchainType.ETHRPC,
                             BlockchainType.DAML, ConcordModelSpecification.BlockchainType.DAML,
                             BlockchainType.HLF, ConcordModelSpecification.BlockchainType.HLF);
 
