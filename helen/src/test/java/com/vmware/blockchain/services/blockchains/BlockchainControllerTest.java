@@ -514,7 +514,7 @@ public class BlockchainControllerTest {
         var output = blockchainController.getComponentsByBlockchainType(ConcordModelSpecification.BlockchainType.DAML);
         Assert.assertEquals(output.size(), 4);
 
-        output = blockchainController.getComponentsByBlockchainType(ConcordModelSpecification.BlockchainType.ETHRPC);
+        output = blockchainController.getComponentsByBlockchainType(ConcordModelSpecification.BlockchainType.ETHEREUM);
         Assert.assertEquals(output.size(), 3);
 
         output = blockchainController.getComponentsByBlockchainType(ConcordModelSpecification.BlockchainType.HLF);

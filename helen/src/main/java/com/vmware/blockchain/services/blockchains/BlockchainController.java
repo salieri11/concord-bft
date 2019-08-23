@@ -94,7 +94,7 @@ public class BlockchainController {
                             UNSPECIFIED, Type.UNSPECIFIED);
 
     private static final Map<BlockchainType, ConcordModelSpecification.BlockchainType> enumMapForBlockchainType =
-            ImmutableMap.of(BlockchainType.ETHEREUM, ConcordModelSpecification.BlockchainType.ETHRPC,
+            ImmutableMap.of(BlockchainType.ETHEREUM, ConcordModelSpecification.BlockchainType.ETHEREUM,
                             BlockchainType.DAML, ConcordModelSpecification.BlockchainType.DAML,
                             BlockchainType.HLF, ConcordModelSpecification.BlockchainType.HLF);
 
@@ -266,7 +266,7 @@ public class BlockchainController {
                     .collect(Collectors.toList());
         }
         var placementSpec = new PlacementSpecification(list);
-        var blockChainType = blockchainType == null ? ConcordModelSpecification.BlockchainType.ETHRPC
+        var blockChainType = blockchainType == null ? ConcordModelSpecification.BlockchainType.ETHEREUM
                                                     : enumMapForBlockchainType.get(blockchainType);
         var components = getComponentsByBlockchainType(blockChainType);
         var genesis = new Genesis(
@@ -325,8 +325,8 @@ public class BlockchainController {
                 ));
                 break;
             default:
-                // Default is ETHRPC due ot backward compatibility.
-            case ETHRPC:
+                // Default is ETHEREUM due ot backward compatibility.
+            case ETHEREUM:
                 response.add(new ConcordComponent(
                         ConcordComponent.Type.CONTAINER_IMAGE,
                         ConcordComponent.ServiceType.CONCORD,
