@@ -21,7 +21,7 @@ spec:
         - "db-server"
         - "helen"
         - "contract-compiler"
-        - "deploymentservice"
+        - "persephone-provisioning"
       containers:
       - name: cockroachdb
         image: cockroachdb/cockroach:v2.0.2
@@ -70,7 +70,7 @@ spec:
         - name: ui-volume
           mountPath: /usr/share/nginx/html/static/app-config.json
           subPath: app-config.json
-      - name: fleet-management
+      - name: persephone-provisioning
         image: vmware-docker-blockchainsaas.bintray.io/persephone-provisioning:latest
         ports:
         - containerPort: 9002
