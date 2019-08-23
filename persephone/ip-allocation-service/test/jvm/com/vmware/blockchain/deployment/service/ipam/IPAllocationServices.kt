@@ -3,14 +3,14 @@
  * *************************************************************************/
 package com.vmware.blockchain.deployment.service.ipam
 
-import com.vmware.blockchain.deployment.model.AllocateAddressRequest
-import com.vmware.blockchain.deployment.model.AllocateAddressResponse
-import com.vmware.blockchain.deployment.model.CreateAddressBlockRequest
-import com.vmware.blockchain.deployment.model.CreateAddressBlockResponse
-import com.vmware.blockchain.deployment.model.DeleteAddressBlockRequest
-import com.vmware.blockchain.deployment.model.DeleteAddressBlockResponse
-import com.vmware.blockchain.deployment.model.ReleaseAddressRequest
-import com.vmware.blockchain.deployment.model.ReleaseAddressResponse
+import com.vmware.blockchain.deployment.v1.AllocateAddressRequest
+import com.vmware.blockchain.deployment.v1.AllocateAddressResponse
+import com.vmware.blockchain.deployment.v1.CreateAddressBlockRequest
+import com.vmware.blockchain.deployment.v1.CreateAddressBlockResponse
+import com.vmware.blockchain.deployment.v1.DeleteAddressBlockRequest
+import com.vmware.blockchain.deployment.v1.DeleteAddressBlockResponse
+import com.vmware.blockchain.deployment.v1.ReleaseAddressRequest
+import com.vmware.blockchain.deployment.v1.ReleaseAddressResponse
 
 /**
  * Suspendable form of [IPAllocationService.createAddressBlock].

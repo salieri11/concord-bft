@@ -13,7 +13,7 @@ import java.util.stream.Collectors;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import com.vmware.blockchain.deployment.model.ethereum.Genesis;
+import com.vmware.blockchain.ethereum.type.Genesis;
 import com.vmware.blockchain.protobuf.kotlinx.serialization.ProtoBuf;
 
 import kotlinx.serialization.json.Json;

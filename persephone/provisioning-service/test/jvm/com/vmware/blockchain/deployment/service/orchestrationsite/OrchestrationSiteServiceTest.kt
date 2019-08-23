@@ -3,12 +3,12 @@
  * **************************************************************************/
 package com.vmware.blockchain.deployment.service.orchestrationsite
 
-import com.vmware.blockchain.deployment.model.ListOrchestrationSitesRequest
-import com.vmware.blockchain.deployment.model.ListOrchestrationSitesResponse
-import com.vmware.blockchain.deployment.model.MessageHeader
-import com.vmware.blockchain.deployment.model.OrchestrationSite
 import com.vmware.blockchain.deployment.service.provision.DaggerTestProvisioningServer
 import com.vmware.blockchain.deployment.service.provision.newOrchestrationSites
+import com.vmware.blockchain.deployment.v1.ListOrchestrationSitesRequest
+import com.vmware.blockchain.deployment.v1.ListOrchestrationSitesResponse
+import com.vmware.blockchain.deployment.v1.MessageHeader
+import com.vmware.blockchain.deployment.v1.OrchestrationSite
 import com.vmware.blockchain.grpc.kotlinx.serialization.ChannelStreamObserver
 import kotlinx.coroutines.runBlocking
 import org.assertj.core.api.Assertions

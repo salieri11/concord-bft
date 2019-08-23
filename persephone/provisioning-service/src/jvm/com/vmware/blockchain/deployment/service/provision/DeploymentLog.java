@@ -8,16 +8,16 @@ import java.util.Collections;
 
 import org.reactivestreams.Publisher;
 
-import com.vmware.blockchain.deployment.model.ConcordClusterIdentifier;
-import com.vmware.blockchain.deployment.model.DeploymentSession;
-import com.vmware.blockchain.deployment.model.DeploymentSessionEvent;
-import com.vmware.blockchain.deployment.model.DeploymentSessionIdentifier;
-import com.vmware.blockchain.deployment.model.DeploymentSpecification;
-import com.vmware.blockchain.deployment.model.PlacementAssignment;
 import com.vmware.blockchain.deployment.persistence.kv.KeyValueStore;
 import com.vmware.blockchain.deployment.persistence.kv.KeyValueStore.Versioned;
 import com.vmware.blockchain.deployment.persistence.kv.MonotonicInt;
 import com.vmware.blockchain.deployment.reactive.MappingPublisher;
+import com.vmware.blockchain.deployment.v1.ConcordClusterIdentifier;
+import com.vmware.blockchain.deployment.v1.DeploymentSession;
+import com.vmware.blockchain.deployment.v1.DeploymentSessionEvent;
+import com.vmware.blockchain.deployment.v1.DeploymentSessionIdentifier;
+import com.vmware.blockchain.deployment.v1.DeploymentSpecification;
+import com.vmware.blockchain.deployment.v1.PlacementAssignment;
 
 /**
  * Provisioning service log/event related class.

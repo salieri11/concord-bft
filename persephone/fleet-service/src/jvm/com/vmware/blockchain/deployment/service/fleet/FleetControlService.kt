@@ -7,11 +7,11 @@ import com.vmware.blockchain.deployment.logging.error
 import com.vmware.blockchain.deployment.logging.info
 import com.vmware.blockchain.deployment.logging.warn
 import com.vmware.blockchain.deployment.logging.logger
-import com.vmware.blockchain.deployment.model.ConcordClusterIdentifier
-import com.vmware.blockchain.deployment.model.ConcordNodeIdentifier
-import com.vmware.blockchain.deployment.model.FleetControlServiceImplBase
-import com.vmware.blockchain.deployment.model.FleetMessage
-import com.vmware.blockchain.deployment.model.InstanceMessage
+import com.vmware.blockchain.deployment.v1.ConcordClusterIdentifier
+import com.vmware.blockchain.deployment.v1.ConcordNodeIdentifier
+import com.vmware.blockchain.deployment.v1.FleetControlServiceImplBase
+import com.vmware.blockchain.deployment.v1.FleetMessage
+import com.vmware.blockchain.deployment.v1.InstanceMessage
 import com.vmware.blockchain.grpc.kotlinx.serialization.ChannelStreamObserver
 import io.grpc.stub.StreamObserver
 import kotlin.coroutines.CoroutineContext
@@ -26,7 +26,7 @@ import kotlinx.coroutines.channels.SendChannel
 import kotlinx.coroutines.launch
 
 /**
- * An implementation of [com.vmware.blockchain.deployment.model.FleetManagementService].
+ * An implementation of [com.vmware.blockchain.deployment.v1.FleetManagementService].
  */
 class FleetControlService(
     private val context: CoroutineContext = Dispatchers.Default

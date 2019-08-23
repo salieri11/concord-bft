@@ -6,8 +6,8 @@ package com.vmware.blockchain.deployment.service.fleet
 import com.vmware.blockchain.deployment.logging.error
 import com.vmware.blockchain.deployment.logging.info
 import com.vmware.blockchain.deployment.logging.logger
-import com.vmware.blockchain.deployment.model.FleetManagementServerConfiguration
-import com.vmware.blockchain.deployment.model.TransportSecurity
+import com.vmware.blockchain.deployment.v1.FleetManagementServerConfiguration
+import com.vmware.blockchain.deployment.v1.TransportSecurity
 import dagger.Component
 import io.grpc.netty.shaded.io.grpc.netty.GrpcSslContexts
 import io.grpc.netty.shaded.io.grpc.netty.NettyServerBuilder

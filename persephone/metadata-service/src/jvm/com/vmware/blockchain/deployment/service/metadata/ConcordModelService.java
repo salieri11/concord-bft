@@ -15,14 +15,6 @@ import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.vmware.blockchain.deployment.model.AddModelRequest;
-import com.vmware.blockchain.deployment.model.AddModelResponse;
-import com.vmware.blockchain.deployment.model.ConcordModelIdentifier;
-import com.vmware.blockchain.deployment.model.ConcordModelServiceImplBase;
-import com.vmware.blockchain.deployment.model.ConcordModelSpecification;
-import com.vmware.blockchain.deployment.model.ListModelsRequest;
-import com.vmware.blockchain.deployment.model.ListModelsResponseEvent;
-import com.vmware.blockchain.deployment.model.MessageHeader;
 import com.vmware.blockchain.deployment.persistence.kv.KeyValueStore;
 import com.vmware.blockchain.deployment.persistence.kv.KeyValueStore.Event;
 import com.vmware.blockchain.deployment.persistence.kv.KeyValueStore.Event.ChangeEvent;
@@ -30,11 +22,19 @@ import com.vmware.blockchain.deployment.persistence.kv.KeyValueStore.Event.Delet
 import com.vmware.blockchain.deployment.persistence.kv.MonotonicInt;
 import com.vmware.blockchain.deployment.reactive.BaseSubscriber;
 import com.vmware.blockchain.deployment.reactive.ReactiveStream;
+import com.vmware.blockchain.deployment.v1.AddModelRequest;
+import com.vmware.blockchain.deployment.v1.AddModelResponse;
+import com.vmware.blockchain.deployment.v1.ConcordModelIdentifier;
+import com.vmware.blockchain.deployment.v1.ConcordModelServiceImplBase;
+import com.vmware.blockchain.deployment.v1.ConcordModelSpecification;
+import com.vmware.blockchain.deployment.v1.ListModelsRequest;
+import com.vmware.blockchain.deployment.v1.ListModelsResponseEvent;
+import com.vmware.blockchain.deployment.v1.MessageHeader;
 
 import io.grpc.stub.StreamObserver;
 
 /**
- * Concrete implementation of {@link com.vmware.blockchain.deployment.model.ConcordModelService}.
+ * Concrete implementation of {@link com.vmware.blockchain.deployment.v1.ConcordModelService}.
  */
 public class ConcordModelService extends ConcordModelServiceImplBase {
 

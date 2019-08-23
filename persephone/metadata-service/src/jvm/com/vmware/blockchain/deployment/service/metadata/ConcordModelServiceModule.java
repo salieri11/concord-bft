@@ -9,13 +9,13 @@ import java.util.concurrent.ForkJoinPool;
 
 import javax.inject.Singleton;
 
-import com.vmware.blockchain.deployment.model.ConcordModelIdentifier;
-import com.vmware.blockchain.deployment.model.ConcordModelSpecification;
 import com.vmware.blockchain.deployment.persistence.kv.InMemoryUntypedKeyValueStore;
 import com.vmware.blockchain.deployment.persistence.kv.KeyValueStore;
 import com.vmware.blockchain.deployment.persistence.kv.MonotonicInt;
 import com.vmware.blockchain.deployment.persistence.kv.TypedKeyValueStore;
 import com.vmware.blockchain.deployment.persistence.kv.UntypedKeyValueStore;
+import com.vmware.blockchain.deployment.v1.ConcordModelIdentifier;
+import com.vmware.blockchain.deployment.v1.ConcordModelSpecification;
 
 import dagger.Module;
 import dagger.Provides;

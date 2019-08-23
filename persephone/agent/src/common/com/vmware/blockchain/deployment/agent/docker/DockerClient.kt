@@ -7,10 +7,10 @@ import com.vmware.blockchain.deployment.agent.docker.api.v1_38.DockerModelSerial
 import com.vmware.blockchain.deployment.agent.docker.api.v1_38.model.AuthConfig
 import com.vmware.blockchain.deployment.http.AccessTokenAwareHttpClient
 import com.vmware.blockchain.deployment.http.HttpResponse
-import com.vmware.blockchain.deployment.model.Credential
-import com.vmware.blockchain.deployment.model.Endpoint
 import com.vmware.blockchain.deployment.model.core.Credential as CoreCredential
 import com.vmware.blockchain.deployment.model.core.URI
+import com.vmware.blockchain.deployment.v1.Credential
+import com.vmware.blockchain.deployment.v1.Endpoint
 import com.vmware.blockchain.protobuf.kotlinx.serialization.ByteString
 import com.vmware.blockchain.protobuf.kotlinx.serialization.encodeBase64
 

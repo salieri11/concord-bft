@@ -3,14 +3,14 @@
  * *************************************************************************/
 package com.vmware.blockchain.deployment.service.ipam
 
-import com.vmware.blockchain.deployment.model.AddressBlock
-import com.vmware.blockchain.deployment.model.AddressBlockSegment
 import com.vmware.blockchain.deployment.model.core.URI
 import com.vmware.blockchain.deployment.persistence.kv.KeyValueStore
 import com.vmware.blockchain.deployment.persistence.kv.MonotonicInt
 import com.vmware.blockchain.deployment.persistence.kv.TypedKeyValueStore
 import com.vmware.blockchain.deployment.persistence.kv.rocksdb.RocksDBConfiguration
 import com.vmware.blockchain.deployment.persistence.kv.rocksdb.RocksDBUntypedKeyValueStore
+import com.vmware.blockchain.deployment.v1.AddressBlock
+import com.vmware.blockchain.deployment.v1.AddressBlockSegment
 import dagger.Module
 import dagger.Provides
 import kotlinx.coroutines.CoroutineDispatcher

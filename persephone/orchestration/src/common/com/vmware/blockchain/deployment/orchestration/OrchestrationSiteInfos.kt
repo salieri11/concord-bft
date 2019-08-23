@@ -3,8 +3,8 @@
  * *************************************************************************/
 package com.vmware.blockchain.deployment.orchestration
 
-import com.vmware.blockchain.deployment.model.OrchestrationSiteIdentifier
-import com.vmware.blockchain.deployment.model.OrchestrationSiteInfo
+import com.vmware.blockchain.deployment.v1.OrchestrationSiteIdentifier
+import com.vmware.blockchain.deployment.v1.OrchestrationSiteInfo
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.map
 

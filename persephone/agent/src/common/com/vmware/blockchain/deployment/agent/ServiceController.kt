@@ -8,9 +8,9 @@ import com.vmware.blockchain.deployment.agent.docker.DockerOrchestrator
 import com.vmware.blockchain.deployment.logging.error
 import com.vmware.blockchain.deployment.logging.info
 import com.vmware.blockchain.deployment.logging.logger
-import com.vmware.blockchain.deployment.model.ConcordComponent
-import com.vmware.blockchain.deployment.model.Endpoint
-import com.vmware.blockchain.deployment.model.ServiceState
+import com.vmware.blockchain.deployment.v1.ConcordComponent
+import com.vmware.blockchain.deployment.v1.Endpoint
+import com.vmware.blockchain.deployment.v1.ServiceState
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers

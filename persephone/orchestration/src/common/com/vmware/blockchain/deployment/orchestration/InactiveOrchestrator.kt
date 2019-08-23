@@ -3,9 +3,9 @@
  * *************************************************************************/
 package com.vmware.blockchain.deployment.orchestration
 
-import com.vmware.blockchain.deployment.model.OrchestrationSiteInfo
 import com.vmware.blockchain.deployment.reactive.ErrorPublisher
 import com.vmware.blockchain.deployment.reactive.Publisher
+import com.vmware.blockchain.deployment.v1.OrchestrationSiteInfo
 
 /**
  * Deployment orchestration driver for an unsupported [OrchestrationSiteInfo] type.

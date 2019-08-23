@@ -22,20 +22,20 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.vmware.blockchain.deployment.model.ConcordComponent.ServiceType;
-import com.vmware.blockchain.deployment.model.ConfigurationComponent;
-import com.vmware.blockchain.deployment.model.ConfigurationServiceImplBase;
-import com.vmware.blockchain.deployment.model.ConfigurationServiceRequest;
-import com.vmware.blockchain.deployment.model.ConfigurationSessionIdentifier;
-import com.vmware.blockchain.deployment.model.DeleteConfigurationRequest;
-import com.vmware.blockchain.deployment.model.DeleteConfigurationResponse;
-import com.vmware.blockchain.deployment.model.Identity;
-import com.vmware.blockchain.deployment.model.IdentityComponent;
-import com.vmware.blockchain.deployment.model.IdentityFactors;
-import com.vmware.blockchain.deployment.model.NodeConfigurationRequest;
-import com.vmware.blockchain.deployment.model.NodeConfigurationResponse;
 import com.vmware.blockchain.deployment.service.configuration.eccerts.ConcordEcCertificatesGenerator;
 import com.vmware.blockchain.deployment.service.configuration.generateconfig.ConcordConfigUtil;
+import com.vmware.blockchain.deployment.v1.ConcordComponent.ServiceType;
+import com.vmware.blockchain.deployment.v1.ConfigurationComponent;
+import com.vmware.blockchain.deployment.v1.ConfigurationServiceImplBase;
+import com.vmware.blockchain.deployment.v1.ConfigurationServiceRequest;
+import com.vmware.blockchain.deployment.v1.ConfigurationSessionIdentifier;
+import com.vmware.blockchain.deployment.v1.DeleteConfigurationRequest;
+import com.vmware.blockchain.deployment.v1.DeleteConfigurationResponse;
+import com.vmware.blockchain.deployment.v1.Identity;
+import com.vmware.blockchain.deployment.v1.IdentityComponent;
+import com.vmware.blockchain.deployment.v1.IdentityFactors;
+import com.vmware.blockchain.deployment.v1.NodeConfigurationRequest;
+import com.vmware.blockchain.deployment.v1.NodeConfigurationResponse;
 
 import io.grpc.stub.StreamObserver;
 

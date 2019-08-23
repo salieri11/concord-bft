@@ -7,9 +7,9 @@ package com.vmware.blockchain.deployment.service.provision;
 import java.security.SecureRandom;
 import java.util.Objects;
 
-import com.vmware.blockchain.deployment.model.ConfigurationServiceImplBase;
-import com.vmware.blockchain.deployment.model.ConfigurationServiceRequest;
-import com.vmware.blockchain.deployment.model.ConfigurationSessionIdentifier;
+import com.vmware.blockchain.deployment.v1.ConfigurationServiceImplBase;
+import com.vmware.blockchain.deployment.v1.ConfigurationServiceRequest;
+import com.vmware.blockchain.deployment.v1.ConfigurationSessionIdentifier;
 
 import io.grpc.stub.StreamObserver;
 

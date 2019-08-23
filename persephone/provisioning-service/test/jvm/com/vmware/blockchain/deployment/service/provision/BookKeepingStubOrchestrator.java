@@ -14,10 +14,10 @@ import java.util.concurrent.ForkJoinPool;
 
 import org.reactivestreams.Publisher;
 
-import com.vmware.blockchain.deployment.model.OrchestrationSiteInfo;
 import com.vmware.blockchain.deployment.orchestration.Orchestrator;
 import com.vmware.blockchain.deployment.reactive.ErrorPublisher;
 import com.vmware.blockchain.deployment.reactive.IteratingPublisher;
+import com.vmware.blockchain.deployment.v1.OrchestrationSiteInfo;
 
 import kotlinx.coroutines.Dispatchers;
 import kotlinx.coroutines.ExecutorsKt;

@@ -3,10 +3,10 @@
  * **************************************************************************/
 package com.vmware.blockchain.deployment.service.provision
 
-import com.vmware.blockchain.deployment.model.ConfigurationServiceStub
-import com.vmware.blockchain.deployment.model.Endpoint
-import com.vmware.blockchain.deployment.model.OrchestrationSite
 import com.vmware.blockchain.deployment.orchestration.OrchestratorProvider
+import com.vmware.blockchain.deployment.v1.ConfigurationServiceStub
+import com.vmware.blockchain.deployment.v1.Endpoint
+import com.vmware.blockchain.deployment.v1.OrchestrationSite
 import dagger.Module
 import dagger.Provides
 import java.util.concurrent.ExecutorService
