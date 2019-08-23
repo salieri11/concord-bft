@@ -29,7 +29,7 @@ def call(){
   }
 
   pipeline {
-    agent { label agentLabel }
+    agent { label params.jenkins_node ? params.jenkins_node : agentLabel }
     tools {
       // 8.9.4 is the minimum for Truffle.
       nodejs 'Node 8.9.4'
@@ -49,6 +49,10 @@ def call(){
       string defaultValue: "",
              description: "Shared Jenkins lib branch to use.",
              name: "shared_lib_branch"
+
+      string defaultValue: "",
+             description: "Override automatic node selection and run this job on a node with this label.",
+             name: "jenkins_node"
     }
     stages {
       stage("Notify GitLab"){
