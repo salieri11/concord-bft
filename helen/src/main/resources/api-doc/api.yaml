@@ -634,7 +634,7 @@ paths:
                 blockchain_type:
                   type: string
                   enum:
-                    - ETHRPC
+                    - ETHEREUM
                     - DAML
                     - HLF
                   description: Type of blockchain node
