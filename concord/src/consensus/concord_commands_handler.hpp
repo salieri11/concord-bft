@@ -6,12 +6,14 @@
 #define CONSENSUS_CONCORD_COMMANDS_HANDLER_HPP_
 
 #include "concord.pb.h"
+#include "consensus/timing_stat.h"
 #include "storage/blockchain_interfaces.h"
 #include "storage/concord_metadata_storage.h"
 #include "time/time_contract.hpp"
 #include "time/time_reading.hpp"
 
 #include <log4cplus/logger.h>
+#include <chrono>
 
 namespace concord {
 namespace consensus {
@@ -22,9 +24,21 @@ class ConcordCommandsHandler : public concord::storage::ICommandsHandler,
   log4cplus::Logger logger_;
   concord::storage::ConcordMetadataStorage metadata_storage_;
   uint64_t executing_bft_sequence_num_;
+  std::chrono::steady_clock::duration timing_log_period_;
+  std::chrono::steady_clock::time_point timing_log_last_;
+
+  void log_timing();
 
  protected:
   const concord::storage::ILocalKeyValueStorageReadOnly &storage_;
+  bool timing_enabled_;
+  concordMetrics::Component metrics_;
+  TimingStat timing_parse_;
+  TimingStat timing_time_update_;
+  TimingStat timing_time_response_;
+  TimingStat timing_execute_;
+  TimingStat timing_serialize_;
+  concordMetrics::Component::Handle<concordMetrics::Counter> stat_executions_;
 
  public:
   concord::storage::IBlocksAppender &appender_;
@@ -72,6 +86,11 @@ class ConcordCommandsHandler : public concord::storage::ICommandsHandler,
   // subclass a chance to add its own data to that block (for example, an
   // "empty" smart-contract-level block).
   virtual void WriteEmptyBlock(concord::time::TimeContract *time_contract) = 0;
+
+  // After stats have been logged, this function will be called to allow the
+  // subclass to clear any stats before beginning to count for the next
+  // interval.
+  virtual void ClearStats(){};
 };
 
 }  // namespace consensus
