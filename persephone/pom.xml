@@ -44,6 +44,11 @@
             <url>https://build-artifactory.eng.vmware.com/artifactory/maven</url>
         </repository>
         <repository>
+            <id>kotlin-bintray</id>
+            <name>kotlin</name>
+            <url>https://build-artifactory.eng.vmware.com/kotlin.bintray.com</url>
+        </repository>
+        <repository>
             <!-- Use VMware Artifactory for first-party artifacts. -->
             <id>athena-release</id>
             <name>athena</name>
@@ -74,6 +79,11 @@
             <id>central</id>
             <name>plugins-release</name>
             <url>https://build-artifactory.eng.vmware.com/artifactory/plugins-release</url>
+        </pluginRepository>
+        <pluginRepository>
+            <id>kotlin-bintray</id>
+            <name>kotlin</name>
+            <url>https://build-artifactory.eng.vmware.com/kotlin.bintray.com</url>
         </pluginRepository>
     </pluginRepositories>
 
@@ -107,7 +117,7 @@
 
         <!-- Dependency-related properties. -->
         <assertj.version>3.11.1</assertj.version>
-        <atomicfu.version>0.12.6</atomicfu.version>
+        <atomicfu.version>0.12.9</atomicfu.version>
         <dagger.version>2.21</dagger.version>
         <grpc.runtime.java.version>1.22.1</grpc.runtime.java.version>
         <hamcrest.version>2.1</hamcrest.version>

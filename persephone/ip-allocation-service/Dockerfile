@@ -34,15 +34,18 @@ COPY ./ip-allocation-service ./persephone/ip-allocation-service
 ## Build module with all of its dependencies.
 RUN mvn -f persephone/pom.xml package -pl ip-allocation-service -am -B
 
-# Runtime image (Metadata Service).
-FROM athena-docker-local.artifactory.eng.vmware.com/helen:prereqs-v2
+# Runtime image (IP Allocation Service).
+FROM openjdk:11.0.2-jdk-slim
 LABEL description="VMware Blockchain Fleet Management IP Allocation Service"
 
+## Disable TLS 1.3 due to buggy JDK implementation chewing up CPU.
+RUN sed -i "/jdk.tls.disabledAlgorithms=/ s/=.*/=TLSv1.3, SSLv3, RC4, MD5withRSA, DH keySize < 1024, EC keySize < 224, DES40_CBC, RC4_40, 3DES_EDE_CBC/" $(readlink -f /usr/bin/java | sed "s:bin/java::")/conf/security/java.security
+
 WORKDIR /persephone/ip-allocation-service
-COPY --from=0 ./persephone/ip-allocation-service/target/persephone-ip-allocation-service*with-dependencies.jar ./ip-allocation-service.jar
+COPY --from=builder ./persephone/ip-allocation-service/target/persephone-ip-allocation-service*with-dependencies.jar ./ip-allocation-service.jar
 
 VOLUME ["/config"]
 
 EXPOSE 9099
 
-CMD ["java", "-jar", "ip-allocation-service.jar"]
+CMD ["java", "-jar", "ip-allocation-service.jar", "-Dkotlinx.coroutines.debug=on"]

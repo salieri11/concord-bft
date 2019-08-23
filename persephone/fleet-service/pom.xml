@@ -145,7 +145,7 @@
                         <configuration>
                             <archive>
                                 <manifest>
-                                    <mainClass>com.vmware.blockchain.deployment.service.fleet.FleetServiceKt</mainClass>
+                                    <mainClass>com.vmware.blockchain.deployment.service.fleet.FleetServerKt</mainClass>
                                 </manifest>
                             </archive>
                             <descriptorRefs>

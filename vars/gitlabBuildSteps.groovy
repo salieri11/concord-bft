@@ -295,10 +295,11 @@ def call(){
                 env.release_fluentd_repo = env.release_repo + "/fluentd"
                 env.release_helen_repo = env.release_repo + "/concord-ui"
                 env.release_persephone_agent_repo = env.release_repo + "/agent"
-                env.release_persephone_metadata_repo = env.release_repo + "/persephone-metadata"
-                env.release_persephone_provisioning_repo = env.release_repo + "/persephone-provisioning"
                 env.release_persephone_configuration_repo = env.release_repo + "/persephone-configuration"
                 env.release_persephone_fleet_repo = env.release_repo + "/persephone-fleet"
+                env.release_persephone_ipam_repo = env.release_repo + "/persephone-ipam"
+                env.release_persephone_metadata_repo = env.release_repo + "/persephone-metadata"
+                env.release_persephone_provisioning_repo = env.release_repo + "/persephone-provisioning"
                 env.release_ui_repo = env.release_repo + "/ui"
                 env.release_contract_compiler_repo = env.release_repo + "/contract-compiler"
                 env.release_hlf_tools_repo = env.release_repo + "/hyperledger-fabric-tools"
@@ -314,16 +315,17 @@ def call(){
 
                 // These are constants which mirror the internal artifactory repos.  We put all merges
                 // to master in the internal VMware artifactory.
-                env.internal_persephone_agent_repo = env.release_persephone_agent_repo.replace(env.release_repo, env.internal_repo)
                 env.internal_asset_transfer_repo = env.release_asset_transfer_repo.replace(env.release_repo, env.internal_repo)
                 env.internal_concord_repo = env.release_concord_repo.replace(env.release_repo, env.internal_repo)
                 env.internal_ethrpc_repo = env.release_ethrpc_repo.replace(env.release_repo, env.internal_repo)
                 env.internal_fluentd_repo = env.release_fluentd_repo.replace(env.release_repo, env.internal_repo)
                 env.internal_helen_repo = env.internal_repo + "/helen"
-                env.internal_persephone_metadata_repo = env.release_persephone_metadata_repo.replace(env.release_repo, env.internal_repo)
+                env.internal_persephone_agent_repo = env.release_persephone_agent_repo.replace(env.release_repo, env.internal_repo)
                 env.internal_persephone_configuration_repo = env.release_persephone_configuration_repo.replace(env.release_repo, env.internal_repo)
-                env.internal_persephone_provisioning_repo = env.release_persephone_provisioning_repo.replace(env.release_repo, env.internal_repo)
                 env.internal_persephone_fleet_repo = env.release_persephone_fleet_repo.replace(env.release_repo, env.internal_repo)
+                env.internal_persephone_ipam_repo = env.release_persephone_ipam_repo.replace(env.release_repo, env.internal_repo)
+                env.internal_persephone_metadata_repo = env.release_persephone_metadata_repo.replace(env.release_repo, env.internal_repo)
+                env.internal_persephone_provisioning_repo = env.release_persephone_provisioning_repo.replace(env.release_repo, env.internal_repo)
                 env.internal_ui_repo = env.release_ui_repo.replace(env.release_repo, env.internal_repo)
                 env.internal_contract_compiler_repo = env.release_contract_compiler_repo.replace(env.release_repo, env.internal_repo)
                 env.internal_hlf_tools_repo = env.release_hlf_tools_repo.replace(env.release_repo, env.internal_repo)
@@ -357,14 +359,16 @@ helen_repo=${internal_helen_repo}
 helen_tag=${docker_tag}
 persephone_agent_repo=${internal_persephone_agent_repo}
 persephone_agent_tag=${docker_tag}
-persephone_metadata_repo=${internal_persephone_metadata_repo}
-persephone_metadata_tag=${docker_tag}
 persephone_configuration_repo=${internal_persephone_configuration_repo}
 persephone_configuration_tag=${docker_tag}
-persephone_provisioning_repo=${internal_persephone_provisioning_repo}
-persephone_provisioning_tag=${docker_tag}
 persephone_fleet_repo=${internal_persephone_fleet_repo}
 persephone_fleet_tag=${docker_tag}
+persephone_ipam_repo=${internal_persephone_ipam_repo}
+persephone_ipam_tag=${docker_tag}
+persephone_metadata_repo=${internal_persephone_metadata_repo}
+persephone_metadata_tag=${docker_tag}
+persephone_provisioning_repo=${internal_persephone_provisioning_repo}
+persephone_provisioning_tag=${docker_tag}
 ui_repo=${internal_ui_repo}
 ui_tag=${docker_tag}
 contract_compiler_repo=${internal_contract_compiler_repo}
@@ -739,16 +743,17 @@ EOF
               withCredentials([string(credentialsId: 'ARTIFACTORY_API_KEY', variable: 'ARTIFACTORY_API_KEY')]) {
                 // Pass in false for whether to tag as latest because VMware's
                 // artifactory does not allow re-using a tag.
-                pushDockerImage(env.internal_persephone_agent_repo, env.docker_tag, false)
                 pushDockerImage(env.internal_asset_transfer_repo, env.docker_tag, false)
                 pushDockerImage(env.internal_concord_repo, env.docker_tag, false)
                 pushDockerImage(env.internal_ethrpc_repo, env.docker_tag, false)
                 pushDockerImage(env.internal_fluentd_repo, env.docker_tag, false)
                 pushDockerImage(env.internal_helen_repo, env.docker_tag, false)
+                pushDockerImage(env.internal_persephone_agent_repo, env.docker_tag, false)
+                pushDockerImage(env.internal_persephone_configuration_repo, env.docker_tag, false)
+                pushDockerImage(env.internal_persephone_fleet_repo, env.docker_tag, false)
+                pushDockerImage(env.internal_persephone_ipam_repo, env.docker_tag, false)
                 pushDockerImage(env.internal_persephone_metadata_repo, env.docker_tag, false)
                 pushDockerImage(env.internal_persephone_provisioning_repo, env.docker_tag, false)
-                pushDockerImage(env.internal_persephone_configuration_repo, env.docker_tag, false)
-                // pushDockerImage(env.internal_persephone_fleet_repo, env.docker_tag, false)
                 pushDockerImage(env.internal_ui_repo, env.docker_tag, false)
                 pushDockerImage(env.internal_contract_compiler_repo, env.docker_tag, false)
                 pushDockerImage(env.internal_daml_ledger_api_repo, env.docker_tag, false)
@@ -781,29 +786,33 @@ EOF
 
               script {
                 sh '''
-                  docker tag ${internal_persephone_agent_repo}:${docker_tag} ${release_persephone_agent_repo}:${docker_tag}
                   docker tag ${internal_asset_transfer_repo}:${docker_tag} ${release_asset_transfer_repo}:${docker_tag}
                   docker tag ${internal_concord_repo}:${docker_tag} ${release_concord_repo}:${docker_tag}
                   docker tag ${internal_ethrpc_repo}:${docker_tag} ${release_ethrpc_repo}:${docker_tag}
                   docker tag ${internal_fluentd_repo}:${docker_tag} ${release_fluentd_repo}:${docker_tag}
                   docker tag ${internal_helen_repo}:${docker_tag} ${release_helen_repo}:${docker_tag}
+                  docker tag ${internal_persephone_agent_repo}:${docker_tag} ${release_persephone_agent_repo}:${docker_tag}
+                  docker tag ${internal_persephone_configuration_repo}:${docker_tag} ${release_persephone_configuration_repo}:${docker_tag}
+                  docker tag ${internal_persephone_fleet_repo}:${docker_tag} ${release_persephone_fleet_repo}:${docker_tag}
+                  docker tag ${internal_persephone_ipam_repo}:${docker_tag} ${release_persephone_ipam_repo}:${docker_tag}
                   docker tag ${internal_persephone_metadata_repo}:${docker_tag} ${release_persephone_metadata_repo}:${docker_tag}
                   docker tag ${internal_persephone_provisioning_repo}:${docker_tag} ${release_persephone_provisioning_repo}:${docker_tag}
-                  # docker tag ${internal_persephone_fleet_repo}:${docker_tag} ${release_persephone_fleet_repo}:${docker_tag}
                   docker tag ${internal_ui_repo}:${docker_tag} ${release_ui_repo}:${docker_tag}
                   docker tag ${internal_contract_compiler_repo}:${docker_tag} ${release_contract_compiler_repo}:${docker_tag}
                   docker tag ${internal_daml_ledger_api_repo}:${docker_tag} ${release_daml_ledger_api_repo}:${docker_tag}
                   docker tag ${internal_daml_execution_engine_repo}:${docker_tag} ${release_daml_execution_engine_repo}:${docker_tag}
                 '''
-                pushDockerImage(env.release_persephone_agent_repo, env.docker_tag, true)
                 pushDockerImage(env.release_asset_transfer_repo, env.docker_tag, true)
                 pushDockerImage(env.release_concord_repo, env.docker_tag, true)
                 pushDockerImage(env.release_ethrpc_repo, env.docker_tag, true)
                 pushDockerImage(env.release_fluentd_repo, env.docker_tag, true)
                 pushDockerImage(env.release_helen_repo, env.docker_tag, true)
+                pushDockerImage(env.release_persephone_agent_repo, env.docker_tag, true)
+                // pushDockerImage(env.release_persephone_configuration_repo, env.docker_tag, true)
+                // pushDockerImage(env.release_persephone_fleet_repo, env.docker_tag, true)
+                // pushDockerImage(env.release_persephone_ipam_repo, env.docker_tag, true)
                 // pushDockerImage(env.release_persephone_metadata_repo, env.docker_tag, true)
                 // pushDockerImage(env.release_persephone_provisioning_repo, env.docker_tag, true)
-                // pushDockerImage(env.release_persephone_fleet_repo, env.docker_tag, true)
                 pushDockerImage(env.release_ui_repo, env.docker_tag, true)
                 pushDockerImage(env.release_contract_compiler_repo, env.docker_tag, true)
                 pushDockerImage(env.release_daml_ledger_api_repo, env.docker_tag, true)
