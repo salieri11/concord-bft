@@ -22,9 +22,20 @@
 
     <repositories>
         <repository>
-            <id>central</id>
+            <id>vmware-central</id>
             <name>maven</name>
             <url>https://build-artifactory.eng.vmware.com/artifactory/maven</url>
+        </repository>
+        <repository>
+            <!-- Explicitly disable Maven's central repository. -->
+            <id>central</id>
+            <url>http://build-squid.eng.vmware.com/nexus/content/groups/repo</url>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+            <releases>
+                <enabled>false</enabled>
+            </releases>
         </repository>
         <repository>
             <!-- Use VMware Artifactory for first-party artifacts. -->
