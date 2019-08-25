@@ -1885,8 +1885,11 @@ static ConcordConfiguration::ParameterStatus validateNumberOfPrincipalsInBounds(
     string* failureMessage) {
   // Conditions which should have been validated before this function was
   // called.
+#ifdef ALLOW_0_FAULT_TOLERANCE
+  assert((fVal >= 0) && (clientProxiesPerReplica > 0));
+#else
   assert((fVal > 0) && (clientProxiesPerReplica > 0));
-
+#endif
   // The principals consist of (3F + 2C + 1) SBFT replicas plus
   // client_proxies_per_replica client proxies for each of these replicas.
   uint64_t numPrincipals = 3 * ((uint64_t)fVal) + 2 * ((uint64_t)cVal) + 1;
@@ -2249,7 +2252,11 @@ static ConcordConfiguration::ParameterStatus validateFVal(
     const ConfigurationPath& path, string* failureMessage, void* state) {
   ConcordConfiguration::ParameterStatus res = validateUInt(
       value, config, path, failureMessage,
+#ifdef ALLOW_0_FAULT_TOLERANCE
+      const_cast<void*>(reinterpret_cast<const void*>(&kUInt16Limits)));
+#else
       const_cast<void*>(reinterpret_cast<const void*>(&kPositiveUInt16Limits)));
+#endif
   if (res != ConcordConfiguration::ParameterStatus::VALID) {
     return res;
   }
