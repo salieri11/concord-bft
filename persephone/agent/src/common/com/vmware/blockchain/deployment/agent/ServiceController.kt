@@ -3,8 +3,8 @@
  * *************************************************************************/
 package com.vmware.blockchain.deployment.agent
 
+import com.vmware.blockchain.deployment.agent.docker.DockerHttpClient
 import com.vmware.blockchain.deployment.agent.docker.DockerClient
-import com.vmware.blockchain.deployment.agent.docker.DockerOrchestrator
 import com.vmware.blockchain.deployment.logging.error
 import com.vmware.blockchain.deployment.logging.info
 import com.vmware.blockchain.deployment.logging.logger
@@ -32,7 +32,7 @@ import kotlin.coroutines.CoroutineContext
 class ServiceController(
     private val service: ConcordComponent.ServiceType,
     private val components: List<ConcordComponent>,
-    containerRegistry: Endpoint = DockerClient.DEFAULT_CONTAINER_REGISTRY
+    containerRegistry: Endpoint = DockerHttpClient.DEFAULT_CONTAINER_REGISTRY
 ) : CoroutineScope {
 
     /**
@@ -66,12 +66,12 @@ class ServiceController(
     /** Channel to receive [ServiceController.Request] messages. */
     private lateinit var requests: Channel<Request>
 
-    /** [DockerOrchestrator] instance to be used for all container orchestration actions. */
-    private val orchestrator: DockerOrchestrator = DockerOrchestrator(
+    /** [DockerClient] instance to be used for all container orchestration actions. */
+    private val orchestrator: DockerClient = DockerClient(
             // Note: Current assumption is that all components can be fetched from the same
             // DockerClient instance (which is targeting only 1 container registry).
-            docker = DockerClient(
-                    DockerClient.Context(DockerClient.DEFAULT_DOCKER_ENGINE, containerRegistry)
+            docker = DockerHttpClient(
+                    DockerHttpClient.Context(DockerHttpClient.DEFAULT_DOCKER_ENGINE, containerRegistry)
             )
     )
 

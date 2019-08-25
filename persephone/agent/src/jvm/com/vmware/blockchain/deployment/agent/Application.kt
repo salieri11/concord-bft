@@ -3,7 +3,7 @@
  * *************************************************************************/
 package com.vmware.blockchain.deployment.agent
 
-import com.vmware.blockchain.deployment.agent.docker.DockerClient
+import com.vmware.blockchain.deployment.agent.docker.DockerHttpClient
 import com.vmware.blockchain.deployment.logging.error
 import com.vmware.blockchain.deployment.logging.info
 import com.vmware.blockchain.deployment.logging.logger
@@ -56,16 +56,16 @@ private val DEFAULT_CONCORD_AGENT_CONFIGURATION by lazy {
                     ConcordComponent(
                             ConcordComponent.Type.CONTAINER_IMAGE,
                             ConcordComponent.ServiceType.CONCORD,
-                            "registry-1.docker.io/vmwblockchain/concord-core:latest"
+                            "vmwblockchain/concord-core:latest"
                     ),
                     ConcordComponent(
                             ConcordComponent.Type.CONTAINER_IMAGE,
                             ConcordComponent.ServiceType.ETHEREUM_API,
-                            "registry-1.docker.io/vmwblockchain/ethrpc:latest"
+                            "vmwblockchain/ethrpc:latest"
                     )
             )
     )
-    val registryEndpoint = DockerClient.DEFAULT_CONTAINER_REGISTRY
+    val registryEndpoint = DockerHttpClient.DEFAULT_CONTAINER_REGISTRY
     val fleetEndpoint = Endpoint("localhost:9004", Credential())
 
     ConcordAgentConfiguration(
@@ -81,7 +81,7 @@ private val DEFAULT_CONCORD_AGENT_CONFIGURATION by lazy {
 private const val DEFAULT_HEARTBEAT_PERIOD_MS = 1000L
 
 /**
- * Implementation of Concord Agent.
+ * Implementation of Persephone Agent.
  */
 class Application(private val configuration: ConcordAgentConfiguration) : CoroutineScope {
 
@@ -99,7 +99,7 @@ class Application(private val configuration: ConcordAgentConfiguration) : Corout
     private val statusCollector: StatusReporter = StatusReporter()
 
     /**
-     * Start the Concord agent.
+     * Start the Persephone agent.
      */
     fun start() {
         launch(coroutineContext) {
@@ -252,11 +252,11 @@ fun main(args: Array<String>) {
 
     val application = Application(configuration)
     try {
-        log.info { "Starting Concord Agent" }
+        log.info { "Starting Persephone Agent" }
         application.start()
         Runtime.getRuntime().addShutdownHook(Thread {
             // Use stderr here since the logger may have been reset by its JVM shutdown hook.
-            println("Shutting down Concord Agent since JVM is shutting down")
+            println("Shutting down Persephone Agent since JVM is shutting down")
             application.cancel(CancellationException("Process is shutting down"))
         })
     } catch (error: Throwable) {
