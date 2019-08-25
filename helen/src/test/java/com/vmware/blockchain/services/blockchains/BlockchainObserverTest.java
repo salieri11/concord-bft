@@ -5,6 +5,8 @@
 package com.vmware.blockchain.services.blockchains;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.Collections;
@@ -13,17 +15,18 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.vmware.blockchain.auth.AuthHelper;
 import com.vmware.blockchain.common.HelenException;
@@ -43,6 +46,8 @@ import com.vmware.blockchain.deployment.v1.DeploymentSessionEvent;
 import com.vmware.blockchain.deployment.v1.DeploymentSessionEvent.Type;
 import com.vmware.blockchain.deployment.v1.OrchestrationSiteIdentifier;
 import com.vmware.blockchain.operation.OperationContext;
+import com.vmware.blockchain.services.blockchains.replicas.Replica;
+import com.vmware.blockchain.services.blockchains.replicas.ReplicaService;
 import com.vmware.blockchain.services.tasks.Task;
 import com.vmware.blockchain.services.tasks.Task.State;
 import com.vmware.blockchain.services.tasks.TaskService;
@@ -58,6 +63,11 @@ public class BlockchainObserverTest {
     static final UUID ORG_ID = UUID.fromString("7051db6a-9f34-4cfd-8dd4-ae8539025f3e");
     static final UUID CONS_ID = UUID.fromString("7d9bb239-45a3-453c-9b9f-beb2f9e4dffe");
     static final UUID NODE_ID = UUID.fromString("e6ef4604-4029-4080-b621-1efa25000e8a");
+    static final List<UUID> C_NODES =
+            ImmutableList.of(UUID.fromString("afc3fd3f-0d27-412a-8200-167b9c09343b"),
+                             UUID.fromString("57d049eb-caea-411c-94c1-fa8c7de973db"),
+                             UUID.fromString("60df6645-38f1-428d-b737-fd37a9cac955"),
+                             UUID.fromString("a8303207-af47-4466-b84d-cc90a0ee2be5"));
 
     @MockBean
     private AuthHelper authHelper;
@@ -67,6 +77,9 @@ public class BlockchainObserverTest {
 
     @MockBean
     private BlockchainService blockchainService;
+
+    @MockBean
+    private ReplicaService replicaService;
 
     private BlockchainObserver blockchainObserver;
 
@@ -100,7 +113,7 @@ public class BlockchainObserverTest {
                 });
         operationContext = new OperationContext();
         operationContext.initId();
-        blockchainObserver = new BlockchainObserver(authHelper, operationContext, blockchainService,
+        blockchainObserver = new BlockchainObserver(authHelper, operationContext, blockchainService, replicaService,
                                                     taskService, TASK_ID, CONS_ID);
         ConcordCluster cluster = createTestCluster(CLUSTER_ID);
         value = new DeploymentSessionEvent();
@@ -140,6 +153,19 @@ public class BlockchainObserverTest {
         Assertions.assertEquals(CLUSTER_ID, blockchain.getId());
         Assertions.assertEquals("/api/blockchains/" + CLUSTER_ID.toString(), task.getResourceLink());
         Assertions.assertEquals(CLUSTER_ID, task.getResourceId());
+        ArgumentCaptor<Replica> captor = ArgumentCaptor.forClass(Replica.class);
+        // Replica service put should have been called once for each node.
+        verify(replicaService, times(4)).put(captor.capture());
+        // Make sure the replicas are correct.
+        List<Replica> replicas = captor.getAllValues();
+        // All the IDs must be the same as in C_LIST
+        List<UUID> rIds = replicas.stream().map(r -> r.getId()).collect(Collectors.toList());
+        Assertions.assertEquals(C_NODES, rIds);
+        // And make sure the blockchain id, public and private ips are correct
+        Assertions.assertTrue(replicas.stream()
+                                      .allMatch(r -> CLUSTER_ID.equals(r.getBlockchainId())
+                                      && "0.0.0.1".equals(r.getPublicIp())
+                                      && "0.0.0.2".equals(r.getPrivateIp())));
     }
 
     @Test
@@ -170,8 +196,7 @@ public class BlockchainObserverTest {
     private ConcordCluster createTestCluster(UUID clusterId) {
         ConcordClusterIdentifier id =
                 new ConcordClusterIdentifier(CLUSTER_ID.getLeastSignificantBits(), CLUSTER_ID.getMostSignificantBits());
-        List<ConcordNode> nodes = Stream.of(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID())
-                .map(this::createNode).collect(Collectors.toList());
+        List<ConcordNode> nodes = C_NODES.stream().map(this::createNode).collect(Collectors.toList());
         ConcordClusterInfo info = new ConcordClusterInfo(nodes);
         return new ConcordCluster(id, info);
     }

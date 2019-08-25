@@ -17,10 +17,14 @@ import com.vmware.blockchain.auth.AuthHelper;
 import com.vmware.blockchain.common.fleetmanagment.FleetUtils;
 import com.vmware.blockchain.deployment.v1.ConcordCluster;
 import com.vmware.blockchain.deployment.v1.ConcordNode;
+import com.vmware.blockchain.deployment.v1.ConcordNodeEndpoint;
 import com.vmware.blockchain.deployment.v1.DeploymentSession;
 import com.vmware.blockchain.deployment.v1.DeploymentSessionEvent;
+import com.vmware.blockchain.deployment.v1.OrchestrationSiteIdentifier;
 import com.vmware.blockchain.operation.OperationContext;
 import com.vmware.blockchain.services.blockchains.Blockchain.NodeEntry;
+import com.vmware.blockchain.services.blockchains.replicas.Replica;
+import com.vmware.blockchain.services.blockchains.replicas.ReplicaService;
 import com.vmware.blockchain.services.tasks.Task;
 import com.vmware.blockchain.services.tasks.TaskService;
 
@@ -37,6 +41,7 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
     private AuthHelper authHelper;
     private OperationContext operationContext;
     private BlockchainService blockchainService;
+    private ReplicaService replicaService;
     private TaskService taskService;
     private UUID taskId;
     private UUID consortiumId;
@@ -57,18 +62,29 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
             AuthHelper authHelper,
             OperationContext operationContext,
             BlockchainService blockchainService,
+            ReplicaService replicaService,
             TaskService taskService,
             UUID taskId,
             UUID consortiumId) {
         this.authHelper = authHelper;
         this.operationContext = operationContext;
         this.blockchainService = blockchainService;
+        this.replicaService = replicaService;
         this.taskService = taskService;
         this.taskId = taskId;
         this.consortiumId = consortiumId;
         auth = SecurityContextHolder.getContext().getAuthentication();
         opId = operationContext.getId();
 
+    }
+
+    private void logNode(ConcordNode node) {
+        logger.info("Node ID: {}, HostInfo: {}, Info: {}",
+                    FleetUtils.toUuid(node.getId()), node.getHostInfo(), node.getInfo());
+    }
+
+    private void logCluster(ConcordCluster cluster) {
+        logger.info("Cluser ID: {}, Info: {}", FleetUtils.toUuid(cluster.getId()), cluster.getInfo());
     }
 
     @Override
@@ -78,6 +94,9 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
         SecurityContextHolder.getContext().setAuthentication(auth);
         operationContext.setId(opId);
         String message = "Deployment in progress";
+        logger.info("Type: {}, Node: {}, Cluster: {}", value.getType(), value.getNode(), value.getCluster());
+        logNode(value.getNode());
+        logCluster(value.getCluster());
         try {
             switch (value.getType()) {
                 case NODE_DEPLOYED:
@@ -94,10 +113,18 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
                     message = String.format("Cluster %s deployed", clusterId);
                     logger.info("Blockchain ID: {}", clusterId);
 
+                    // create the nodeList for the cluster
                     cluster.getInfo().getMembers().stream()
                             .map(BlockchainObserver::toNodeEntry)
                             .peek(node -> logger.info("Node entry, id {}", node.getNodeId()))
                             .forEach(nodeList::add);
+
+                    // create the and save the replicas.
+                    cluster.getInfo().getMembers().stream()
+                            .map(n -> toReplica(clusterId, n))
+                            .peek(replica -> logger.info("Node entry, id {}", replica.getId()))
+                            .forEach(replicaService::put);
+
                     break;
                 case COMPLETED:
                     status = value.getStatus();
@@ -209,6 +236,26 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
                 region
         );
     }
+
+    private static Replica toReplica(UUID blockchainId, ConcordNode node) {
+        // Fetch the first IP address in the data payload, or return 0.
+        UUID replicaId = FleetUtils.toUuid(node.getId());
+        String name = node.getInfo().getIpv4Addresses().keySet().stream().findFirst().orElse("replica");
+        int publicIp = node.getHostInfo().getIpv4AddressMap().keySet().stream()
+                                              .findFirst().orElse(0);
+        int privateIp = node.getHostInfo().getIpv4AddressMap().getOrDefault(publicIp, 0);
+        ConcordNodeEndpoint endpoint = node.getHostInfo().getEndpoints().getOrDefault("ethereum-rpc", null);
+
+        // For now, use the orchestration site ID as region name. Eventually there should be some
+        // human-readable display name to go with the site ID.
+        OrchestrationSiteIdentifier site = node.getHostInfo().getSite();
+        UUID zoneId = FleetUtils.toUuid(site);
+        Replica replica = new Replica(toCanonicalIpAddress(publicIp), toCanonicalIpAddress(privateIp),
+                                      name, endpoint.getUrl(), endpoint.getCertificate(), zoneId, blockchainId);
+        replica.setId(replicaId);
+        return replica;
+    }
+
 
     /**
      * Simple conversion of a 4-byte value (expressed as an integer) to a canonical IPv4 address

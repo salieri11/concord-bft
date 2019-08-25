@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import org.apache.commons.lang3.StringUtils;
@@ -34,6 +35,9 @@ import com.vmware.blockchain.security.ServiceContext;
 import com.vmware.blockchain.services.blockchains.Blockchain;
 import com.vmware.blockchain.services.blockchains.Blockchain.NodeEntry;
 import com.vmware.blockchain.services.blockchains.BlockchainService;
+import com.vmware.blockchain.services.blockchains.replicas.ReplicaService;
+import com.vmware.blockchain.services.concord.ConcordService;
+import com.vmware.concord.Concord.Peer;
 
 /**
  * Tests for the DefaultProfiles component.
@@ -67,6 +71,12 @@ class DefaultProfilesTest {
 
     @MockBean
     ServiceContext serviceContext;
+
+    @MockBean
+    ReplicaService replicaService;
+
+    @MockBean
+    ConcordService concordService;
 
     DefaultProfiles profiles;
 
@@ -114,8 +124,8 @@ class DefaultProfilesTest {
         testUser.setRoles(Collections.singletonList(Roles.SYSTEM_ADMIN));
 
         profiles = new DefaultProfiles(userService, organizationService, consortiumService, passwordEncoder,
-                                       blockchainService, agreementService, serviceContext, ipList, rpcUrls, rpcCerts,
-                                        true, null);
+                                       blockchainService, agreementService, serviceContext, replicaService,
+                                       concordService, ipList, rpcUrls, rpcCerts, true, null);
 
         when(passwordEncoder.encode(anyString())).then(a -> a.getArguments().toString());
     }
@@ -170,6 +180,11 @@ class DefaultProfilesTest {
             u.setId(USER_ID);
             return u;
         });
+
+        List<Peer> peers = IntStream.range(0, 4)
+                .mapToObj(i -> Peer.newBuilder().setHostname("one").setAddress("1:2").build())
+                .collect(Collectors.toList());
+        when(concordService.getMembers(any(UUID.class))).thenReturn(peers);
         profiles.initialize();
     }
 
@@ -198,8 +213,8 @@ class DefaultProfilesTest {
     @Test
     void testProfileExistingNoBlockhain() {
         profiles = new DefaultProfiles(userService, organizationService, consortiumService, passwordEncoder,
-                                       blockchainService, agreementService, serviceContext, ipList, rpcUrls, rpcCerts,
-                                       false, null);
+                                       blockchainService, agreementService, serviceContext, replicaService,
+                                       concordService, ipList, rpcUrls, rpcCerts, false, null);
         initProfilesExist();
         List<String> ipList = new ImmutableList.Builder<String>().add("1", "2", "3", "4").build();
         List<String> urlList = new ImmutableList.Builder<String>().add("1", "2", "3", "4").build();

@@ -83,6 +83,7 @@ import com.vmware.blockchain.security.SecurityTestUtils;
 import com.vmware.blockchain.services.blockchains.BlockchainController.BlockchainNodeEntry;
 import com.vmware.blockchain.services.blockchains.BlockchainController.BlockchainReplicaEntry;
 import com.vmware.blockchain.services.blockchains.BlockchainController.BlockchainTaskResponse;
+import com.vmware.blockchain.services.concord.ConcordService;
 import com.vmware.blockchain.services.profiles.Consortium;
 import com.vmware.blockchain.services.profiles.ConsortiumService;
 import com.vmware.blockchain.services.profiles.DefaultProfiles;
@@ -186,6 +187,9 @@ public class BlockchainControllerTest {
 
     @MockBean
     OperationContext operationContext;
+
+    @MockBean
+    ConcordService concordService;
 
     @Autowired
     TaskService taskService;

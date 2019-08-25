@@ -52,6 +52,7 @@ import com.vmware.blockchain.deployment.v1.StreamClusterDeploymentSessionEventRe
 import com.vmware.blockchain.ethereum.type.Genesis;
 import com.vmware.blockchain.operation.OperationContext;
 import com.vmware.blockchain.services.blockchains.Blockchain.NodeEntry;
+import com.vmware.blockchain.services.blockchains.replicas.ReplicaService;
 import com.vmware.blockchain.services.profiles.ConsortiumService;
 import com.vmware.blockchain.services.profiles.DefaultProfiles;
 import com.vmware.blockchain.services.profiles.Roles;
@@ -179,11 +180,14 @@ public class BlockchainController {
     }
 
 
+    /**
+     * Response from blockchain post, with a task id.
+     */
     @Getter
     @Setter
     @AllArgsConstructor
     @NoArgsConstructor
-    static class BlockchainTaskResponse {
+    public static class BlockchainTaskResponse {
         private UUID taskId;
     }
 
@@ -195,6 +199,7 @@ public class BlockchainController {
     private ProvisioningServiceStub client;
     private OperationContext operationContext;
     private boolean mockDeployment;
+    private ReplicaService replicaService;
 
 
     @Autowired
@@ -205,6 +210,7 @@ public class BlockchainController {
                                 TaskService taskService,
                                 ProvisioningServiceStub client,
                                 OperationContext operationContext,
+                                ReplicaService replicaService,
                                 @Value("${mock.deployment:false}") boolean mockDeployment) {
         this.blockchainService = blockchainService;
         this.consortiumService = consortiumService;
@@ -213,6 +219,7 @@ public class BlockchainController {
         this.taskService = taskService;
         this.client = client;
         this.operationContext = operationContext;
+        this.replicaService = replicaService;
         this.mockDeployment = mockDeployment;
     }
 
@@ -385,7 +392,7 @@ public class BlockchainController {
                                                                       body.getZoneIds(), body.blockchainType);
             logger.info("Deployment started, id {} for the consortium id {}", dsId, body.consortiumId.toString());
             BlockchainObserver bo =
-                    new BlockchainObserver(authHelper, operationContext, blockchainService, taskService,
+                    new BlockchainObserver(authHelper, operationContext, blockchainService, replicaService, taskService,
                                            task.getId(), body.getConsortiumId());
             // Watch for the event stream
             StreamClusterDeploymentSessionEventRequest request =
