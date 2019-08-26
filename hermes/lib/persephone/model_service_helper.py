@@ -19,6 +19,9 @@ log = logging.getLogger(__name__)
 
 
 class ModelServiceRPCHelper(RPCHelper):
+   CONCORD_TYPE_DAML = "daml"
+   CONCORD_TYPE_ETHEREUM = "ethereum"
+
    def __init__(self, args):
       super().__init__(args)
       self.args = args
@@ -39,6 +42,13 @@ class ModelServiceRPCHelper(RPCHelper):
       self.ETHRPC_ID = self.args.userConfig["persephoneTests"]["modelService"][
          "deployment_component_ids"]["ETHRPC"]
 
+      self.DAML_EXECUTION_ENGINE_ID = \
+      self.args.userConfig["persephoneTests"]["modelService"][
+         "deployment_component_ids"]["DAML_EXECUTION_ENGINE"]
+      self.DAML_LEDGER_API_ID = \
+      self.args.userConfig["persephoneTests"]["modelService"][
+         "deployment_component_ids"]["DAML_LEDGER_API"]
+
    def __del__(self):
       self.close_channel(self.service_name)
 
@@ -49,12 +59,14 @@ class ModelServiceRPCHelper(RPCHelper):
       return add_model_request
 
    def create_concord_model_specification(self, version=None, template=None,
-                                             deployment_components=None):
+                                          deployment_components=None,
+                                          concord_type=CONCORD_TYPE_ETHEREUM):
       '''
       RPC Helper to create concord model specification
       :param version: Model Specification version
       :param template: Model Specification template name (UUID)
       :param deployment_components: Deployment components to be used in concord spec
+      :param concord_type: Concord type (ethereum, DAML, etc)
       '''
 
       if version is None:
@@ -66,34 +78,59 @@ class ModelServiceRPCHelper(RPCHelper):
          self.args.userConfig["persephoneTests"]["modelService"]["defaults"][
             "concord_model_template_id"]
 
+      if concord_type is ModelServiceRPCHelper.CONCORD_TYPE_DAML:
+         blockchain_type = concord_model_pb2.ConcordModelSpecification.DAML
+      else:
+         concord_type = ModelServiceRPCHelper.CONCORD_TYPE_ETHEREUM
+         blockchain_type = concord_model_pb2.ConcordModelSpecification.ETHEREUM
+      log.info("**** Deploying Blockchain Type: {}".format(concord_type))
+
       if deployment_components:
          deployment_components = deployment_components.split(',')
       else:
          deployment_components = \
          self.args.userConfig["persephoneTests"]["modelService"]["defaults"][
-            "deployment_components"]
+            "deployment_components"][concord_type].keys()
+
+      concord_components = []
+      components_for_this_deployment = []
+      if concord_type is ModelServiceRPCHelper.CONCORD_TYPE_DAML:
+         for component in deployment_components:
+            if self.AGENT_ID in component:
+               concord_components.append(
+                  (concord_model_pb2.ConcordComponent.GENERIC, component))
+            if self.CONCORD_ID in component:
+               concord_components.append(
+                  (concord_model_pb2.ConcordComponent.DAML_CONCORD, component))
+            if self.DAML_EXECUTION_ENGINE_ID in component:
+               concord_components.append((
+                                         concord_model_pb2.ConcordComponent.DAML_EXECUTION_ENGINE,
+                                         component))
+            if self.DAML_LEDGER_API_ID in component:
+               concord_components.append((
+                                         concord_model_pb2.ConcordComponent.DAML_LEDGER_API,
+                                         component))
+      else:
+         for component in deployment_components:
+            if self.AGENT_ID in component:
+               concord_components.append(
+                  (concord_model_pb2.ConcordComponent.GENERIC, component))
+            if self.CONCORD_ID in component:
+               concord_components.append(
+                  (concord_model_pb2.ConcordComponent.CONCORD, component))
+            if self.ETHRPC_ID in component:
+               concord_components.append(
+                  (concord_model_pb2.ConcordComponent.ETHEREUM_API, component))
 
       log.info(
-         "Using Deployment components: {}".format(deployment_components))
-      concord_components = []
-      for component in deployment_components:
-         if self.AGENT_ID in component:
-            concord_components.append((
-                                      concord_model_pb2.ConcordComponent.GENERIC,
-                                      component))
-         if self.CONCORD_ID in component:
-            concord_components.append((
-                                      concord_model_pb2.ConcordComponent.CONCORD,
-                                      component))
-         if self.ETHRPC_ID in component:
-            concord_components.append((
-                                      concord_model_pb2.ConcordComponent.ETHEREUM_API,
-                                      component))
+         "**** Using Deployment components: {}".format(concord_components))
 
       model_specification = concord_model_pb2.ConcordModelSpecification(
          version=version,
          template=template,
-         components=self.get_concord_components(concord_components))
+         components=self.get_concord_components(concord_components),
+         blockchain_type=blockchain_type
+      )
       log.debug("Model Specification: {}".format(model_specification))
       return model_specification
 

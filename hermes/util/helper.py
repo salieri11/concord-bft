@@ -233,7 +233,9 @@ def add_ethrpc_port_forwarding(host, username, password):
    src_port= 443
    dest_port = 8545
    try:
-      log.info("Adding port forwarding to enable ethrpc listen on {}".format(src_port))
+      log.info(
+         "Adding port forwarding to enable ethrpc listen on {}:{}".format(host,
+                                                                          src_port))
       cmd_get_docker_ethrpc_ip = "iptables -t nat -vnL | grep {} | grep docker | cut -d':' -f3".format(
          dest_port)
       docker_ethrpc_ip = ssh_connect(host, username, password,
