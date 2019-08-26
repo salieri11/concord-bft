@@ -9,7 +9,7 @@ import { ConnectWithTruffleComponent } from '../connect-with-truffle/connect-wit
 import { ContractFormComponent } from '../contract-form/contract-form.component';
 import { SmartContractsService } from '../shared/smart-contracts.service';
 import { Personas } from '../../shared/persona.service';
-import { BlockchainService } from '../../shared/blockchain.service';
+import { BlockchainService } from '../../blockchain/shared/blockchain.service';
 
 @Component({
   selector: 'concord-smart-contracts',

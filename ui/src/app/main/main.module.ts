@@ -11,6 +11,7 @@ import { BlocksModule } from '../blocks/blocks.module';
 import { NodesModule } from '../nodes/nodes.module';
 import { TransactionsModule } from '../transactions/transactions.module';
 import { DashboardModule } from '../dashboard/dashboard.module';
+import { BlockchainModule } from '../blockchain/blockchain.module';
 import { AuthenticationModule } from '../authentication/authentication.module';
 import { RequestInterceptor } from '../app-interceptors';
 import { SharedModule } from '../shared/shared.module';
@@ -37,6 +38,7 @@ import { DeployingInterstialComponent } from './deploying-interstitial/deploying
     SharedModule.forRoot(),
     AuthenticationModule,
     DashboardModule,
+    BlockchainModule,
     NodesModule,
     BlocksModule,
     TransactionsModule,

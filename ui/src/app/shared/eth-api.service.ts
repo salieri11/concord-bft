@@ -20,7 +20,7 @@ import {
   PersonalNewAccountResponse
 } from './eth-api.model';
 
-import { BlockchainService } from '../shared/blockchain.service';
+import { BlockchainService } from '../blockchain/shared/blockchain.service';
 import { ConcordApiService } from './concord-api';
 
 

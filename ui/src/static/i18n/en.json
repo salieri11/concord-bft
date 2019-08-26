@@ -3,6 +3,7 @@
   "subTitle": "Blockchain as a Service",
   "common": {
     "all": "All",
+    "add": "Add",
     "close": "Close",
     "cancel": "Cancel",
     "create": "Create",
@@ -10,6 +11,7 @@
     "back": "Back",
     "next": "Next",
     "finish": "Finish",
+    "invite": "Invite",
     "edit": "Edit",
     "update": "Update",
     "verify": "Verify",
@@ -33,7 +35,7 @@
     },
     "consortium": "Current Consortium",
     "deploy": "Deploy Consortium",
-    "addOnPrem": "Add On Prem",
+    "addOnPrem": "Add On Premises",
     "dashboard": "Dashboard",
     "organizations": "Organizations/Users",
     "nodeList": "Replica List",
@@ -841,31 +843,7 @@
       "regionalTitle": "Regional Distribution",
       "regionInfo": "Even distribution of replicas across regions is recommended for best network resiliency.  The cumulative amount in regions must equal number of replicas to continue to the next step.",
       "onPremInfo": "Hybrid cloud is not yet available. If you add an on premise region, cloud regions will be disabled.",
-      "add": "Add On Premise Region"
-    },
-    "onPrem": {
-      "help": {
-        "numberOfNodes": "Number of replicas are optimized for SBFT consensus engine"
-      },
-      "navTitle": "On Premise",
-      "pageTitle": "Add On Premise Region",
-      "name": "Zone Designation",
-      "namePH": "A",
-      "ip": "IP",
-      "ipPH": "0.0.0.0",
-      "username": "Username",
-      "usernamePH": "admin@onprem",
-      "password": "Password",
-      "compNetwork": "Compute Network",
-      "compNetworkPH": "My Network",
-      "resourcePool": "Resource Pool",
-      "resourcePoolPH": "My Resource",
-      "folder": "Folder",
-      "folderPH": "/folder",
-      "onPremConnSucc": "Connection successful to on premise vCenter.",
-      "location": "Location",
-      "locationPH": "Palo Alto, CA, USA",
-      "cancel": "Cancel On Premise"
+      "add": "Add On Premises Region"
     },
     "users": {
       "pageTitle": "Invite Users",
@@ -888,11 +866,37 @@
       "users": "Users"
     }
   },
+
   "deployLoader": {
     "first": "Creating VM's...",
     "second": "Deploying concord replicas...",
     "third": "Distributing keys...",
     "fourth": "Starting up Concord trust network..."
+  },
+  "onPrem": {
+    "help": {
+      "numberOfNodes": "Number of replicas are optimized for SBFT consensus engine"
+    },
+    "navTitle": "On Premises",
+    "pageTitle": "Add On Premises Region",
+    "name": "Zone Designation",
+    "namePH": "A",
+    "ip": "IP",
+    "ipPH": "https://0.0.0.0",
+    "username": "Username",
+    "usernamePH": "admin@onprem",
+    "password": "Password",
+    "compNetwork": "Compute Network",
+    "compNetworkPH": "My Network",
+    "resourcePool": "Resource Pool",
+    "resourcePoolPH": "My Resource",
+    "folder": "Folder",
+    "folderPH": "/folder",
+    "onPremConnSucc": "Connection successful to your on premises vCenter.",
+    "addedSuccessfully": "On premises region added successfully.  You can now deploy a consortium to this region or add another on premises region.",
+    "location": "Location",
+    "locationPH": "Palo Alto, CA, USA",
+    "cancel": "Cancel On Premises"
   },
   "mockTasks": {
     "creatingOrg": "Creating Organizations",

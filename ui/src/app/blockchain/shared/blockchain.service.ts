@@ -7,11 +7,11 @@ import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { Resolve, ActivatedRouteSnapshot } from '@angular/router';
 import { Observable, from, timer, zip, of, throwError } from 'rxjs';
-import { concatMap, filter, map, take, flatMap, catchError, debounceTime } from 'rxjs/operators';
+import { concatMap, filter, map, take, flatMap, catchError, debounceTime, delay } from 'rxjs/operators';
 import { BehaviorSubject } from 'rxjs';
 import { TranslateService } from '@ngx-translate/core';
 
-import { ConsortiumService } from '../consortium/shared/consortium.service';
+import { ConsortiumService } from '../../consortium/shared/consortium.service';
 import {
   BlockchainRequestParams,
   BlockchainResponse,
@@ -21,7 +21,7 @@ import {
   fakeZones,
   ContractEngines
 } from './blockchain.model';
-import { Apis } from './urls.model';
+import { Apis } from '../../shared/urls.model';
 
 
 @Injectable({
@@ -97,7 +97,7 @@ export class BlockchainService {
           const cList = response[0] as Array<any>;
           const bList = response[1] as Array<any>;
           this.zones = response[2] as Zone[];
-
+          console.log(bList)
           cList.forEach(consortium => {
             bList.forEach(blockchain => {
               if (consortium['consortium_id'] === blockchain['consortium_id']) {
@@ -164,6 +164,7 @@ export class BlockchainService {
   }
 
   getMetaData(): Observable<BlockchainMeta> {
+
     return this.http.get<BlockchainMeta>(`${Apis.blockchains}/${this.blockchainId}`)
       .pipe(
         debounceTime(1000),
@@ -180,6 +181,10 @@ export class BlockchainService {
           return this.metadata;
         })
       );
+  }
+
+  addOnPremZone(zone: Zone): Observable<Zone> {
+    return of(zone).pipe(delay(2000));
   }
 
   isUUID(uuid: string): boolean {

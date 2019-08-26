@@ -27,7 +27,7 @@ import { DashboardListComponent } from '../dashboard-list/dashboard-list.compone
 
 import { WorldMapComponent } from '../../graphs/world-map/world-map.component';
 import { TourService } from '../../shared/tour.service';
-import { BlockchainService, BlockchainsServiceMock } from '../../shared/blockchain.service';
+import { BlockchainService } from '../../blockchain/shared/blockchain.service';
 import { VmwClarityThemeService } from './../../shared/theme.provider';
 
 describe('DashboardComponent', () => {

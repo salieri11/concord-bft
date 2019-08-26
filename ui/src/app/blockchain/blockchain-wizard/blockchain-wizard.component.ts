@@ -13,9 +13,11 @@ import {
 import { Router } from '@angular/router';
 import { FormControl, FormGroup, Validators, ValidatorFn, ValidationErrors } from '@angular/forms';
 import { ClrWizard, ClrWizardPage } from '@clr/angular';
-import { PersonaService } from '../../persona.service';
-import { BlockchainService } from '../../blockchain.service';
-import { BlockchainRequestParams, Zone, ContractEngines } from '../../blockchain.model';
+
+import { PersonaService } from '../../shared/persona.service';
+import { BlockchainService } from '../shared/blockchain.service';
+import { BlockchainRequestParams, Zone, ContractEngines } from '../shared/blockchain.model';
+import { OnPremisesFormComponent } from '../on-premises-form/on-premises-form.component';
 
 
 const RegionCountValidator: ValidatorFn = (fg: FormGroup): ValidationErrors | null => {
@@ -42,8 +44,8 @@ export class BlockchainWizardComponent implements AfterViewInit {
   @ViewChild('usersPage') usersPage: ClrWizardPage;
   @ViewChild('onPremPage') onPremPage: ClrWizardPage;
   @ViewChild('replicaPage') replicaPage: ClrWizardPage;
+  @ViewChild('onPremForm') onPremForm: OnPremisesFormComponent;
   @ViewChild('consortiumInput') consortiumInput: ElementRef;
-  @ViewChild('ipInput') ipInput: ElementRef;
   @Output('setupComplete') setupComplete: EventEmitter<any> = new EventEmitter<any>();
 
   selectedEngine: string;
@@ -57,7 +59,6 @@ export class BlockchainWizardComponent implements AfterViewInit {
   engines = ContractEngines;
 
   showOnPrem: boolean;
-  onPremConnectionSuccessful: boolean;
   loadingFlag: boolean;
 
   constructor(
@@ -65,6 +66,7 @@ export class BlockchainWizardComponent implements AfterViewInit {
     private blockchainService: BlockchainService
   ) {
     this.zones = this.blockchainService.zones;
+
     this.form = this.initForm();
   }
 
@@ -91,6 +93,24 @@ export class BlockchainWizardComponent implements AfterViewInit {
     this.isOpen = true;
     this.showOnPrem = false;
     this.selectedEngine = undefined;
+    const zoneStore = localStorage.getItem('zone');
+    const zones = this.form.controls.nodes['controls'].zones;
+    if (zoneStore) {
+      this.zones.forEach(zone => {
+        // Disable non on-prem zones
+        if (!zone.password) {
+          console.log("zones['controls'][zone.id]")
+          console.log(zones['controls'][zone.id])
+          zones['controls'][zone.id].reset();
+          zones['controls'][zone.id].disable();
+        }
+      });
+      const zone = JSON.parse(zoneStore);
+      this.zones = [zone];
+
+      zones.addControl(zone.id, new FormControl('', Validators.required));
+
+    }
 
     if (this.form && this.wizard) {
       this.wizard.reset();
@@ -162,20 +182,6 @@ export class BlockchainWizardComponent implements AfterViewInit {
         numberOfNodes: new FormControl('', Validators.required),
         zones: this.zoneGroup(),
       }, { validators: RegionCountValidator }),
-      onPrem: new FormGroup({
-        // name: new FormControl('', Validators.required),
-        ip: new FormControl('', Validators.required),
-        username: new FormControl('', Validators.required),
-        password: new FormControl('', Validators.required),
-        compNetwork: new FormControl('', Validators.required),
-        resourcePool: new FormControl('', Validators.required),
-        folder: new FormControl('', [Validators.required, Validators.minLength(5)]),
-        // location: new FormControl('', Validators.required),
-      }),
-      onPremLocation: new FormGroup({
-        name: new FormControl('', Validators.required),
-        location: new FormControl('', Validators.required),
-      }),
     });
   }
 
@@ -192,35 +198,6 @@ export class BlockchainWizardComponent implements AfterViewInit {
     this.showOnPrem = false;
   }
 
-  onAddOnPrem(): void {
-    const onPrem = this.form['controls'].onPrem;
-    const onPremLocation = this.form['controls'].onPremLocation;
-    const location = onPremLocation['controls'].location.value;
-    const id = location.replace(' ', '_');
-    const replicas = this.form.controls['nodes'];
-    const zones = replicas['controls'].zones;
-    const onPremData = onPrem.value;
-    const onPremLocData = onPremLocation.value;
-
-    onPremData.id = id;
-    onPremData.name = `${location} - ${onPremLocData.name}`;
-
-    // Disable cloud zones, because we don't have a hybrid setup yet.
-    this.zones.forEach(zone => {
-      // Disable non on-prem zones
-      if (!zone.password) {
-        zones.controls[zone.id].reset();
-        zones.controls[zone.id].disable();
-      }
-    });
-    zones.addControl(id, new FormControl('', Validators.required));
-
-    replicas['controls'].numberOfNodes.reset();
-    setTimeout(() => {
-      this.zones.push(onPremData);
-    }, 10);
-  }
-
   private handlePageChange() {
     const currentPage = this.wizard.currentPage;
 
@@ -233,16 +210,34 @@ export class BlockchainWizardComponent implements AfterViewInit {
         break;
 
       case this.onPremPage:
-        setTimeout(() => {
-          this.ipInput.nativeElement.focus();
-        }, 10);
-
+        this.onPremForm.focusInput();
         break;
 
       default:
         // code...
         break;
     }
+  }
+
+  submitOnPrem(): void {
+    const replicas = this.form['controls'].nodes;
+    const zones = replicas['controls'].zones;
+    const onPremData = this.onPremForm.getZoneInfo();
+    // Disable cloud zones, because we don't have a hybrid setup yet.
+    this.zones.forEach(zone => {
+      // Disable non on-prem zones
+      if (!zone.password) {
+        zones['controls'][zone.id].reset();
+        zones['controls'][zone.id].disable();
+      }
+    });
+
+    zones['controls'].addControl(onPremData.id, new FormControl('', Validators.required));
+
+    replicas['controls'].numberOfNodes.reset();
+    setTimeout(() => {
+      this.zones.push(onPremData);
+    }, 10);
   }
 
   private zoneGroup() {

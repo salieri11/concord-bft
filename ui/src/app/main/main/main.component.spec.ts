@@ -25,7 +25,7 @@ import { ErrorAlertService } from '../../shared/global-error-handler.service';
 import { VmwClarityThemeService } from '../../shared/theme.provider';
 import { VmwTasksService } from '../../shared/components/task-panel/tasks.service';
 import { TourService } from '../../shared/tour.service';
-import { BlockchainService, BlockchainsServiceMock } from '../../shared/blockchain.service';
+import { BlockchainService, BlockchainsServiceMock } from '../../blockchain/shared/blockchain.service';
 
 
 describe('MainComponent', () => {

@@ -62,62 +62,14 @@
         </clr-textarea-container>
       </div>
     </clr-wizard-page>
-    <clr-wizard-page #onPremPage  *ngIf="showOnPrem" [clrWizardPageNextDisabled]="form.controls.onPrem.invalid || form.controls.onPremLocation.invalid" (clrWizardPageOnCommit)="onAddOnPrem()">
-      <ng-template clrPageTitle>{{'blockchainWizard.onPrem.pageTitle' | translate}}</ng-template>
-      <ng-template clrPageNavTitle>{{'blockchainWizard.onPrem.navTitle' | translate}}</ng-template>
+    <clr-wizard-page #onPremPage  *ngIf="showOnPrem" [clrWizardPageNextDisabled]="onPremForm.controls.onPrem.invalid || onPremForm.controls.onPremLocation.invalid" (clrWizardPageOnCommit)="submitOnPrem()">
+      <ng-template clrPageTitle>{{'onPrem.pageTitle' | translate}}</ng-template>
+      <ng-template clrPageNavTitle>{{'onPrem.navTitle' | translate}}</ng-template>
       <div class="spinner" *ngIf="loadingFlag">
         Loading...
       </div>
-      <div clrForm class="form-block blockchain-form">
-        <div formGroupName="onPrem">
-        <clr-alert *ngIf="onPremConnectionSuccessful" [clrAlertClosable]="false" [clrAlertType]="'success'">
-          <clr-alert-item>
-            <span class="alert-text">
-              {{'blockchainWizard.onPrem.onPremConnSucc' | translate}}
-            </span>
-          </clr-alert-item>
-        </clr-alert>
-
-        <clr-input-container>
-          <label class="clr-col-12 clr-col-md-4">{{ 'blockchainWizard.onPrem.ip' | translate }}</label>
-          <input #ipInput clrInput type="text" [placeholder]="'blockchainWizard.onPrem.ipPH' | translate" class="clr-col-12 clr-col-md-8" formControlName="ip" />
-        </clr-input-container>
-        <clr-input-container>
-          <label class="clr-col-12 clr-col-md-4">{{ 'blockchainWizard.onPrem.username' | translate }}</label>
-          <input clrInput type="text" [placeholder]="'blockchainWizard.onPrem.usernamePH' | translate" class="clr-col-12 clr-col-md-8" formControlName="username" />
-        </clr-input-container>
-        <clr-input-container>
-          <label class="clr-col-12 clr-col-md-4">{{ 'blockchainWizard.onPrem.password' | translate }}</label>
-          <input clrInput type="password" class="clr-col-12 clr-col-md-8" formControlName="password" />
-        </clr-input-container>
-        <clr-input-container>
-          <label class="clr-col-12 clr-col-md-4">{{ 'blockchainWizard.onPrem.compNetwork' | translate }}</label>
-          <input clrInput type="text" [placeholder]="'blockchainWizard.onPrem.compNetworkPH' | translate" class="clr-col-12 clr-col-md-8" formControlName="compNetwork" />
-        </clr-input-container>
-        <clr-input-container>
-          <label class="clr-col-12 clr-col-md-4">{{ 'blockchainWizard.onPrem.resourcePool' | translate }}</label>
-          <input clrInput type="text" [placeholder]="'blockchainWizard.onPrem.resourcePoolPH' | translate" class="clr-col-12 clr-col-md-8" formControlName="resourcePool" />
-        </clr-input-container>
-        <clr-input-container>
-          <label class="clr-col-12 clr-col-md-4">{{ 'blockchainWizard.onPrem.folder' | translate }}</label>
-          <input clrInput type="text" [placeholder]="'blockchainWizard.onPrem.folderPH' | translate" class="clr-col-12 clr-col-md-8" formControlName="folder" />
-        </clr-input-container>
-      </div>
-        <div formGroupName="onPremLocation">
-
-        <div class="divider"></div>
-        <clr-input-container>
-          <label class="clr-col-12 clr-col-md-4">{{ 'blockchainWizard.onPrem.location' | translate }}</label>
-          <input clrInput type="text" [placeholder]="'blockchainWizard.onPrem.locationPH' | translate" class="clr-col-12 clr-col-md-8" formControlName="location" />
-        </clr-input-container>
-        <clr-input-container>
-          <label class="clr-col-12 clr-col-md-4">{{ 'blockchainWizard.onPrem.name' | translate }}</label>
-          <input clrInput type="text" [placeholder]="'blockchainWizard.onPrem.namePH' | translate" class="clr-col-12 clr-col-md-8" formControlName="name" />
-        </clr-input-container>
-        <div class="divider"></div>
-        <button class="btn btn-outline-danger btn-sm" (click)="cancelOnPremAdd()">{{ 'blockchainWizard.onPrem.cancel' | translate }}</button>
-      </div>
-      </div>
+      <concord-on-premises-form #onPremForm></concord-on-premises-form>
+      <button class="btn btn-outline-danger btn-sm" (click)="cancelOnPremAdd()">{{ 'onPrem.cancel' | translate }}</button>
     </clr-wizard-page>
     <clr-wizard-page #replicaPage formGroupName="nodes" [clrWizardPageNextDisabled]="!form.controls.nodes.errors?.countIsCorrect">
       <ng-template clrPageTitle>{{'blockchainWizard.nodes.pageTitle' | translate}}</ng-template>
@@ -145,7 +97,7 @@
             <input clrInput type="text" class="clr-col-12 clr-col-md-8" [formControlName]="zone.id" />
           </clr-input-container>
         </div>
-        <div class="divider"></div>
+<!--         <div class="divider"></div>
         <clr-alert [clrAlertClosable]="false">
           <clr-alert-item>
             <span class="alert-text">
@@ -153,7 +105,7 @@
             </span>
           </clr-alert-item>
         </clr-alert>
-        <button class="btn btn-outline btn-danger add-on-prem btn-sm" (click)="addOnPrem()">{{ 'blockchainWizard.nodes.add' | translate }}</button>
+        <button class="btn btn-outline btn-danger add-on-prem btn-sm" (click)="addOnPrem()">{{ 'blockchainWizard.nodes.add' | translate }}</button> -->
       </div>
     </clr-wizard-page>
     <clr-wizard-page>

@@ -12,7 +12,7 @@ import { ActivatedRoute, RouterModule } from '@angular/router';
 import { GridModule } from '../grid/grid.module';
 import { OrgListComponent } from './org-list/org-list.component';
 import { OrgService } from './shared/org.service';
-import { BlockchainService } from '../shared/blockchain.service';
+import { BlockchainService } from '../blockchain/shared/blockchain.service';
 import { MockSharedModule } from '../shared/shared.module';
 import { OrgsComponent } from './orgs.component';
 

@@ -34,8 +34,8 @@
           <clr-icon clrVerticalNavIcon shape="deploy"></clr-icon>
           {{'nav.deploy' | translate}}
         </a>
-        <a clrVerticalNavLink [routerLink]="['dashboard']" fragment="addOnPrem">
-          <clr-icon clrVerticalNavIcon shape="plus"></clr-icon>
+        <a clrVerticalNavLink (click)="addOnPremises.open()" href="javscript:void(0)">
+          <clr-icon clrVerticalNavIcon shape="rack-server"></clr-icon>
           {{'nav.addOnPrem' | translate}}
         </a>
         <div class="nav-divider"></div>
@@ -108,3 +108,4 @@
 </clr-main-container>
 <concord-setup-modal #welcomeModal></concord-setup-modal>
 <concord-blockchain-wizard #blockchainWizard></concord-blockchain-wizard>
+<concord-on-premises-modal #addOnPremises></concord-on-premises-modal>

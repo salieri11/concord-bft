@@ -1,0 +1,57 @@
+
+<div clrForm [formGroup]="form" class="form-block blockchain-form">
+  <div formGroupName="onPrem">
+    <clr-alert *ngIf="onPremConnectionSuccessful" [clrAlertClosable]="false" [clrAlertType]="'success'">
+      <clr-alert-item>
+        <span class="alert-text">
+          {{'onPrem.onPremConnSucc' | translate}}
+        </span>
+      </clr-alert-item>
+    </clr-alert>
+    <clr-alert *ngIf="addedOnPrem" [clrAlertClosable]="false" [clrAlertType]="'success'">
+      <clr-alert-item>
+        <span class="alert-text">
+          {{'onPrem.addedSuccessfully' | translate}}
+        </span>
+      </clr-alert-item>
+    </clr-alert>
+
+    <clr-input-container>
+      <label class="clr-col-12 clr-col-md-4">{{ 'onPrem.ip' | translate }}</label>
+      <input #ipInput clrInput type="text" [placeholder]="'onPrem.ipPH' | translate" class="clr-col-12 clr-col-md-6" formControlName="ip" />
+    </clr-input-container>
+    <clr-input-container>
+      <label class="clr-col-12 clr-col-md-4">{{ 'onPrem.username' | translate }}</label>
+      <input clrInput type="text" [placeholder]="'onPrem.usernamePH' | translate" class="clr-col-12 clr-col-md-6" formControlName="username" />
+    </clr-input-container>
+    <clr-input-container>
+      <label class="clr-col-12 clr-col-md-4">{{ 'onPrem.password' | translate }}</label>
+      <input clrInput type="password" class="clr-col-12 clr-col-md-6" formControlName="password" />
+    </clr-input-container>
+    <clr-input-container>
+      <label class="clr-col-12 clr-col-md-4">{{ 'onPrem.compNetwork' | translate }}</label>
+      <input clrInput type="text" [placeholder]="'onPrem.compNetworkPH' | translate" class="clr-col-12 clr-col-md-6" formControlName="compNetwork" />
+    </clr-input-container>
+    <clr-input-container>
+      <label class="clr-col-12 clr-col-md-4">{{ 'onPrem.resourcePool' | translate }}</label>
+      <input clrInput type="text" [placeholder]="'onPrem.resourcePoolPH' | translate" class="clr-col-12 clr-col-md-6" formControlName="resourcePool" />
+    </clr-input-container>
+    <clr-input-container>
+      <label class="clr-col-12 clr-col-md-4">{{ 'onPrem.folder' | translate }}</label>
+      <input clrInput type="text" [placeholder]="'onPrem.folderPH' | translate" class="clr-col-12 clr-col-md-6" formControlName="folder" />
+    </clr-input-container>
+  </div>
+  <div formGroupName="onPremLocation">
+
+    <div class="divider"></div>
+    <clr-input-container>
+      <label class="clr-col-12 clr-col-md-4">{{ 'onPrem.location' | translate }}</label>
+      <input clrInput type="text" [placeholder]="'onPrem.locationPH' | translate" class="clr-col-12 clr-col-md-6" formControlName="location" />
+    </clr-input-container>
+    <clr-input-container>
+      <label class="clr-col-12 clr-col-md-4">{{ 'onPrem.name' | translate }}</label>
+      <input clrInput type="text" [placeholder]="'onPrem.namePH' | translate" class="clr-col-12 clr-col-md-6" formControlName="name" />
+    </clr-input-container>
+    <div class="divider"></div>
+  </div>
+</div>
