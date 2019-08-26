@@ -16,6 +16,7 @@ import sys
 import time
 import util.json_helper
 from . import numbers_strings
+from urllib.parse import urlparse, urlunparse
 
 log = logging.getLogger(__name__)
 docker_env_file = ".env"
@@ -338,9 +339,10 @@ def checkRpcTestHelperImport():
    except ImportError as e:
       log.error("Python bindings not generated. Execute the following from the top " \
                 "level of the blockchain source directory: \n" \
-                "python=<path to python3 used to launch Hermes> " \
-                "./hermes/util/generate_gRPC_bindings_for_py3.sh " \
-                "--protobufSrc persephone/api/src/protobuf")
+                "python3 ./hermes/util/generate_grpc_bindings.py " \
+                "--source-path=persephone/api/src/protobuf " \
+                "--target-path=hermes/lib/persephone")
+
       raise Exception("gRPC Python bindings not generated")
 
 
@@ -370,3 +372,19 @@ def distributeItemsRoundRobin(numSlots, availableItems):
 
 def helenIsRemote(args):
    return "localhost" not in args.reverseProxyApiBaseUrl
+
+
+def replaceUrlParts(url, newPort=None, newScheme=None):
+   '''
+   Replace url parts.  Expand as needed.
+   '''
+   urlObj = urlparse(url)
+   scheme = newScheme if newScheme else urlObj.scheme
+   port = newPort if newPort else urlObj.port
+   newParts = (scheme,
+               urlObj.hostname + ":" + str(port),
+               urlObj.path,
+               urlObj.params,
+               urlObj.query,
+               urlObj.fragment)
+   return urlunparse(newParts)

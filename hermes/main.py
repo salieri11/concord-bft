@@ -121,7 +121,10 @@ def main():
                           help="By default, Helen's getMembers API is used to fetch ethrpc nodes, "
                                "and test cases randomly select nodes from that pool.  To force use "
                                "of one node, or to use an official Ethereum setup, specify its "
-                               "url here.  e.g. 'http://localhost:8545'")
+                               "url here.  e.g. 'http://localhost:8545'. NOTE: VMware IT only allows "
+                               "https traffic over port 443 if you are in the 'vmware' network. "
+                               "Use a different network (e.g. 'vmwareguest') if you must use a different "
+                               "port and the replicas will be outside of VMware's network.")
       parser.add_argument("--contractCompilerApiBaseUrl",
                           default="http://localhost:3000/api/v1",
                           help="Base URL for the contract compiler microservice")
@@ -147,7 +150,11 @@ def main():
                                   helper.SDDC_BLOCKCHAIN,
                                   helper.ONPREM_BLOCKCHAIN),
                           default=helper.LOCAL_BLOCKCHAIN)
-
+      parser.add_argument("--keepBlockchain",
+                          help="Whether to keep the blockchain(s) deployed by this run. " \
+                               "You will be responsible for deleting any deployed resources.",
+                          default=False,
+                          action='store_true')
       args = parser.parse_args()
       parent_results_dir = args.resultsDir
 
@@ -158,7 +165,9 @@ def main():
 
       setUpLogging(args)
       log.debug("Args: {}".format(args))
-      cleanupData = setUpDeploymentEventListening(args)
+
+      if not args.keepBlockchain:
+         cleanupData = setUpDeploymentEventListening(args)
 
       for run_count in range(1, args.repeatSuiteRun+1):
          log.info("\nTestrun: {0}/{1}".format(run_count, args.repeatSuiteRun))
@@ -185,7 +194,7 @@ def main():
 
       update_repeated_suite_run_result(parent_results_dir, "pass", args.repeatSuiteRun)
    finally:
-      if cleanupData:
+      if cleanupData and not args.keepBlockchain:
          from persephone import rpc_test_helper
          rpc_test_helper.cleanUpBlockchainDeployments(cleanupData)
 
@@ -221,6 +230,12 @@ def setUpDeploymentEventListening(args):
    if not helper.helenIsRemote(args) and \
       blockchainIsRemote(args) and \
       "persephone".lower() not in args.suite:
+
+      if "persephone" not in str(args.dockerComposeFile).lower():
+         errorString = "No Persephone docker-compose yaml file found. You probably want to add " \
+                       "the option: \n" \
+                       "--dockerComposeFile ../docker/docker-compose.yml ../docker/docker-compose-persephone.yml"
+         raise Exception(errorString)
 
       helper.checkRpcTestHelperImport()
       from persephone import rpc_test_helper
