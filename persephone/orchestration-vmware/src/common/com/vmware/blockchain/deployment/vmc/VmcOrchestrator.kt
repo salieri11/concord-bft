@@ -28,7 +28,6 @@ import com.vmware.blockchain.deployment.vsphere.VSphereClient
 import com.vmware.blockchain.deployment.vsphere.VSphereHttpClient
 import com.vmware.blockchain.deployment.vsphere.VSphereModelSerializer
 import com.vmware.blockchain.grpc.kotlinx.serialization.ChannelStreamObserver
-import io.grpc.CallOptions
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -37,7 +36,6 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.reactive.publish
 import kotlinx.coroutines.withTimeout
-import java.lang.Integer.parseInt
 import kotlin.coroutines.CoroutineContext
 
 /**
@@ -117,8 +115,7 @@ class VmcOrchestrator(
                 networkAddressAllocationServers = mapOf(
                         info.vsphere.network.let {
                             it.name to IPAllocationServiceStub(
-                                    it.allocationServer.newClientRpcChannel(),
-                                    CallOptions.DEFAULT
+                                    it.allocationServer.newClientRpcChannel()
                             )
                         }
                 )
@@ -147,7 +144,7 @@ class VmcOrchestrator(
                     val getFolder = async { vSphere.getFolder(name = info.vsphere.folder) }
                     val getDatastore = async { vSphere.getDatastore(name = storage) }
                     val getResourcePool = async { vSphere.getResourcePool(name = compute) }
-                    val getControlNetwork = async { getLogicalNetwork(network.name) }
+                    val getControlNetwork = async { vSphere.getNetwork(network.name) }
                     val getLibraryItem = async { vSphere.getLibraryItem(request.model.template) }
 
                     // Collect all information and deploy.
@@ -311,8 +308,9 @@ class VmcOrchestrator(
         return publish<Orchestrator.NetworkAllocationEvent> {
             withTimeout(ORCHESTRATOR_TIMEOUT_MILLIS) {
                 try {
-                    val privateIP: String? = parseInt(request.privateNetwork.path.substringAfterLast("/"),
-                                16).toIPv4Address()
+                    val privateIP: String? = request.privateNetwork.path.substringAfterLast("/")
+                            .toInt(16)
+                            .toIPv4Address()
 
                     // Obtain the public IP address from the IP resource.
                     val networkId = request.publicNetwork.path.substringAfterLast("/")
@@ -390,36 +388,6 @@ class VmcOrchestrator(
     }
 
     /**
-     * Ensure the existence of a named logical network by creating it according to the given
-     * parameters if the network is not found.
-     *
-     * Note: This suspendable method does not terminate until the network exists. If necessary, it
-     * is the caller's responsibility to constrain the call within a cancellable coroutine scope in
-     * order to properly terminate and reclaim any system resources (background thread) engendered
-     * by an invocation of this method.
-     *
-     * @param[tier1]
-     *   ID of the gateway / up-link to attach the logical network.
-     * @param[name]
-     *   unique name of the logical network within the target SDDC.
-     * @param[prefix]
-     *   prefix address of the network range to create the sub-network CIDR within.
-     * @param[prefixSubnet]
-     *   prefix subnet (size) of the network range to create the sub-network CIDR within.
-     * @param[subnetSize]
-     *   size of the logical network subnet.
-     *
-     * @return
-     *   ID of the logical network as a [String].
-     */
-    private suspend fun getLogicalNetwork(
-        name: String
-    ): String? {
-        return vSphere.getNetwork(name)
-                ?: throw Exception("Unable to read the logical network: $name")
-    }
-
-    /**
      * Allocate a new private IP address for use from IP allocation service.
      *
      * @param[network]
@@ -440,9 +408,7 @@ class VmcOrchestrator(
         ipAllocationService.allocateAddress(requestAllocateAddress, observer)
         val response = observer.asReceiveChannel().receive()
 
-        return response
-                .takeIf { it.status == AllocateAddressResponse.Status.OK }
-                ?.let { it.address }
+        return response.takeIf { it.status == AllocateAddressResponse.Status.OK }?.address
     }
 
     /**

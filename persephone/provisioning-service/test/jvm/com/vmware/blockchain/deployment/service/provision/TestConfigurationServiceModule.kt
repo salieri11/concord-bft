@@ -7,7 +7,6 @@ import com.vmware.blockchain.deployment.v1.ConfigurationServiceStub
 import com.vmware.blockchain.deployment.v1.Endpoint
 import dagger.Module
 import dagger.Provides
-import io.grpc.CallOptions
 import io.grpc.Server
 import io.grpc.inprocess.InProcessChannelBuilder
 import io.grpc.inprocess.InProcessServerBuilder
@@ -68,7 +67,7 @@ class TestConfigurationServiceModule {
                     .directExecutor()
                     .build()
 
-            ConfigurationServiceStub(channel, CallOptions.DEFAULT)
+            ConfigurationServiceStub(channel)
         }
     }
 }
