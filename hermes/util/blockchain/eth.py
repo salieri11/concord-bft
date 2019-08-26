@@ -77,8 +77,9 @@ def getEthrpcNodes(request, blockchainId=None):
    result = request.getMemberList(blockchainId)
 
    for m in result:
-      if m["rpc_url"]:
-         members.append(m)
+      assert "rpc_url" in m, "Concord member list did not contain an object with an rpc_url. " \
+         "Received {}".format(m)
+      members.append(m)
 
    if not members:
       # Work around VB-1006
