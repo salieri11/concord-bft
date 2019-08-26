@@ -64,12 +64,13 @@ launch_memory_test() {
     cd ..
     if [ ! "x${TESTS}" = "x" ]
     then
-        SPECIFIC_TESTS="--tests=-k ${TESTS}"
+        SPECIFIC_TESTS="\"--tests=-k ${TESTS}\""
     fi
 
-    echo SPECIFIC_TESTS="${SPECIFIC_TESTS}"
-
-    "${python}" "${HERMES_START_FILE}" "${TEST_SUITE}" --config resources/user_config_valgrind.json --repeatSuiteRun ${NO_OF_RUNS} --resultsDir "${RESULTS_DIR}" "${SPECIFIC_TESTS}" --productLaunchAttempts 10  --runConcordConfigurationGeneration --concordConfigurationInput /concord/config/dockerConfigurationInput.yaml --dockerComposeFile ../docker/docker-compose.yml ../docker/docker-compose-memleak.yml --logLevel debug &
+    COMMAND="\"${HERMES_START_FILE}\" \"${TEST_SUITE}\" --config resources/user_config_valgrind.json --repeatSuiteRun ${NO_OF_RUNS} --resultsDir \"${RESULTS_DIR}\" ${SPECIFIC_TESTS} --productLaunchAttempts 10  --runConcordConfigurationGeneration --concordConfigurationInput /concord/config/dockerConfigurationInput.yaml --dockerComposeFile ../docker/docker-compose.yml ../docker/docker-compose-memleak.yml --logLevel debug &"
+    echo python: "${python}"
+    echo COMMAND: "${COMMAND}"
+    eval "${python}" "${COMMAND}"
 
     HERMES_PID=$!
     rm -f "${HERMES_PID_FILE}"
