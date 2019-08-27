@@ -13,6 +13,8 @@ import { CONCORD_API_PREFIX } from '../../shared/shared.config';
 import { ConcordApiService } from '../../shared/concord-api';
 import { BlockchainService } from '../../shared/blockchain.service';
 
+import { Apis } from '../../shared/urls.model';
+
 @Injectable({
   providedIn: 'root'
 })
@@ -20,7 +22,7 @@ export class NodesService extends ConcordApiService {
 
   constructor(
     @Inject(CONCORD_API_PREFIX) concordApiPrefix: string,
-    private httpClient: HttpClient,
+    private http: HttpClient,
     // @ts-ignore: no unused locals
     private blockchainService: BlockchainService,
     private translate: TranslateService
@@ -32,19 +34,83 @@ export class NodesService extends ConcordApiService {
     return 'members';
   }
 
+  getList() {
+    return this.http.get<any>(`${Apis.blockchains}/${this.blockchainService.blockchainId}/replicas`).pipe(
+      map(replicas => {
+        const zonesMap = this.blockchainService.zonesMap;
+        const groupedNodes: NodeProperties[] = [];
+        const tempNode = {};
+
+        replicas.forEach((replica) => {
+          const zoneData = zonesMap[replica.zone_id];
+
+          replica['geo'] = [Number(zoneData.longitude), Number(zoneData.latitude)];
+          replica['location'] = zoneData.name;
+          let text = '';
+          let labelClass = '';
+
+          if (replica.millis_since_last_message < replica.millis_since_last_message_threshold) {
+            text = this.translate.instant('nodes.healthy');
+            labelClass = 'label-success';
+            replica['healthy'] = true;
+            replica['status'] = text;
+          } else {
+            text = this.translate.instant('nodes.unhealthy');
+            labelClass = 'label-danger';
+            replica['healthy'] = false;
+            replica['status'] = text;
+          }
+
+          // This is useful for testing random health in the UI
+          // if (Math.random() >= 0.5) {
+          //   text = this.translate.instant('replicas.unhealthy');
+          //   labelClass = 'label-danger';
+          //   replica['healthy'] = false;
+          //   replica['status'] = text;
+          // }
+
+          replica['healthHTML'] = `<div class="label-container"><span class="label ${labelClass}">${text}</span></div>`;
+
+          //
+          // Cluster replicas
+          if (tempNode[replica.location]) {
+            tempNode[replica.location].push(replica);
+          } else {
+            tempNode[replica.location] = [replica];
+          }
+
+        });
+
+        Object.values(tempNode).forEach(temp => {
+          groupedNodes.push({
+            location: temp[0].location,
+            geo: temp[0].geo,
+            // @ts-ignore
+            nodes: temp
+          });
+        });
+
+        return { nodes: replicas, nodesByLocation: groupedNodes };
+      })
+    );
+  }
+
+  //
+  // This is using the deprecated API and should be removed at some point
+  //
   getNodes(): Observable<any> {
     const locations = [
-      {geo: [-80.294105, 38.5976], region: 'West Virginia', organization: 'Acme Inc'},
-      {geo: [-119.692793, 45.836507], region: 'Oregon', organization: 'Acme Inc'},
-      {geo: [151.21, -33.868], region: 'Sydney', organization: 'On Time Dist LLC'},
-      {geo: [8.67972, 45.836507], region: 'Frankfurt', organization: 'NGO'},
-      {geo: [-80.294105, 38.5976], region: 'West Virginia', organization: 'Customs'},
-      {geo: [-119.692793, 45.836507], region: 'Oregon', organization: 'Supplier Corp'},
-      {geo: [151.21, -33.868], region: 'Sydney', organization: 'Supplier Corp'},
-      {geo: [8.67972, 45.836507], region: 'Frankfurt', organization: 'Customs'},
+      { geo: [-80.294105, 38.5976], region: 'West Virginia', organization: 'Acme Inc' },
+      { geo: [-119.692793, 45.836507], region: 'Oregon', organization: 'Acme Inc' },
+      { geo: [151.21, -33.868], region: 'Sydney', organization: 'On Time Dist LLC' },
+      { geo: [8.67972, 45.836507], region: 'Frankfurt', organization: 'NGO' },
+      { geo: [-80.294105, 38.5976], region: 'West Virginia', organization: 'Customs' },
+      { geo: [-119.692793, 45.836507], region: 'Oregon', organization: 'Supplier Corp' },
+      { geo: [151.21, -33.868], region: 'Sydney', organization: 'Supplier Corp' },
+      { geo: [8.67972, 45.836507], region: 'Frankfurt', organization: 'Customs' },
     ];
 
-    return this.httpClient.get<any>(this.resourcePath()).pipe(
+    return this.http.get<any>(this.resourcePath()).pipe(
       map(nodes => {
         const groupedNodes: NodeProperties[] = [];
         const tempNode = {};
