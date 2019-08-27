@@ -137,7 +137,7 @@ buildMavenTargets(){
 
   while isRunning ${MVN_BUILD}
   do
-    info "Waiting for maven build of helen/ethrpc/communication..."
+    info "Waiting for full maven build..."
     sleep 10
   done
 
@@ -296,16 +296,13 @@ docker_build ui ui/Dockerfile ${ui_repo} ${ui_tag}
 
 docker_build docker/fluentd docker/fluentd/Dockerfile ${fluentd_repo} ${fluentd_tag}
 
-# Includes helen, ethrpc, and communication.
-buildMavenTargets
+docker_build . ethrpc/Dockerfile ${ethrpc_repo} ${ethrpc_tag}
 
-docker_build ethrpc ethrpc/packaging.Dockerfile ${ethrpc_repo} ${ethrpc_tag}
-
-docker_build helen helen/packaging.Dockerfile ${helen_repo} ${helen_tag}
+docker_build . helen/Dockerfile ${helen_repo} ${helen_tag}
 
 waitForProcesses
 
-docker_build agent agent/packaging.Dockerfile ${persephone_agent_repo} ${persephone_agent_tag}
+docker_build . agent/Dockerfile ${persephone_agent_repo} ${persephone_agent_tag}
 docker_build persephone persephone/fleet-service/Dockerfile ${persephone_fleet_repo} ${persephone_fleet_tag}
 docker_build persephone persephone/ip-allocation-service/Dockerfile ${persephone_ipam_repo} ${persephone_ipam_tag}
 
