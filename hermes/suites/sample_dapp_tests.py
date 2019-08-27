@@ -241,7 +241,6 @@ class SampleDAppTests(test_suite.TestSuite):
          file.write(lines)
 
 
-      os.system("cd ../vmware-blockchain-samples/supply-chain && docker-compose build")
       os.system("cd ../vmware-blockchain-samples/supply-chain && docker-compose -f docker-compose.yml -f docker-compose-local-network.yml up -d")
       output = subprocess.check_output("cd ../vmware-blockchain-samples/supply-chain && docker-compose -f docker-compose.yml -f docker-compose-local-network.yml run supply-chain npm run deploy_and_verify:vmware", shell = True, universal_newlines=True)
 

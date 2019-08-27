@@ -231,6 +231,14 @@ BuildPersephoneGRPCpyBindings() {
     popd
 }
 
+BuildSupplyChain() {
+    pushd .
+    cd vmware-blockchain-samples/supply-chain
+    sed -i -e 's?<change-me>?http://helen:8080?g' docker-compose.yml
+    docker-compose build supply-chain
+    popd
+}
+
 info() {
     echo `date`: INFO: "${1}"
 }
@@ -333,6 +341,7 @@ docker_build . daml/DockerfileLedgerApi ${daml_ledger_api_repo} ${daml_ledger_ap
 docker_build . daml/DockerfileExecutionEngine ${daml_execution_engine_repo} ${daml_execution_engine_tag}
 
 BuildPersephoneGRPCpyBindings
+BuildSupplyChain
 
 if [ ! -z "${ADDITIONAL_BUILDS}" ]
 then
