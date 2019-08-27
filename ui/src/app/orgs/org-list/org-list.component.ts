@@ -5,11 +5,14 @@
 import {
   Component,
   OnInit,
+  ViewChild
 } from '@angular/core';
 
 import { environment } from '../../../environments/environment';
 import { OrgService } from '../shared/org.service';
 import { Org } from '../shared/org.model';
+import { InivteUserComponent } from '../inivte-user/inivte-user.component'
+
 
 @Component({
   selector: 'concord-org-list',
@@ -17,6 +20,7 @@ import { Org } from '../shared/org.model';
   styleUrls: ['./org-list.component.scss']
 })
 export class OrgListComponent implements OnInit {
+  @ViewChild('inviteUser') inviteUser:InivteUserComponent;
   orgs: Org[] = [];
   env = environment;
 
