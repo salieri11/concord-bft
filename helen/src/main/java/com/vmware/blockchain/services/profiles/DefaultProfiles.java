@@ -212,17 +212,23 @@ public class DefaultProfiles {
     }
 
     private void createReplicas(Blockchain b) {
-        List<Peer> peers = concordService.getMembers(b.getId());
-        List<NodeEntry> nodes = b.getNodeList();
-        for (int i = 0; i < nodes.size(); i++) {
-            NodeEntry n = nodes.get(i);
-            Peer p = peers.get(i);
-            Replica r = new Replica(n.getIp(),
-                                    p.getAddress().split(":")[0],
-                                    p.getHostname(), n.getUrl(), n.getCert(), n.getZoneId(), b.getId());
-            r.setId(n.getNodeId());
-            replicaService.put(r);
+        try {
+            List<Peer> peers = concordService.getMembers(b.getId());
+            List<NodeEntry> nodes = b.getNodeList();
+            for (int i = 0; i < nodes.size(); i++) {
+                NodeEntry n = nodes.get(i);
+                Peer p = peers.get(i);
+                Replica r = new Replica(n.getIp(),
+                                        p.getAddress().split(":")[0],
+                                        p.getHostname(), n.getUrl(), n.getCert(), n.getZoneId(), b.getId());
+                r.setId(n.getNodeId());
+                replicaService.put(r);
+            }
         }
+        catch (NotFoundException e) {
+            System.out.println("Concord internal error: Unable to get concord connection");
+        }
+
     }
 
     private Agreement createAgreementIfNotExist() {
