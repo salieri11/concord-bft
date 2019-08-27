@@ -1,0 +1,6 @@
+The protobuf files in this directory are generated from DAML's v1 ledger API.
+
+Ledger API v1 protobuf files on GitHub:
+https://github.com/digital-asset/daml/tree/master/ledger-api/grpc-definitions/com/digitalasset/ledger/api/v1
+
+`python3 -m grpc_tools.protoc -I <path-to-ledger-v1-api>/admin/ --python_out=. --grpc_python_out=. <path-to-ledger-v1-api>/admin/package_management_service.proto`
