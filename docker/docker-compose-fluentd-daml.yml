@@ -2,30 +2,58 @@ version: '3'
 
 services:
 
+  daml_execution_engine1:
+    logging:
+      driver: fluentd
+      options:
+        fluentd-address: 0.0.0.0:24224
+        tag: daml_execution_engine
+
+  daml_execution_engine2:
+    logging:
+      driver: fluentd
+      options:
+        fluentd-address: 0.0.0.0:24224
+        tag: daml_execution_engine
+
+  daml_execution_engine3:
+    logging:
+      driver: fluentd
+      options:
+        fluentd-address: 0.0.0.0:24224
+        tag: daml_execution_engine
+
+  daml_execution_engine4:
+    logging:
+      driver: fluentd
+      options:
+        fluentd-address: 0.0.0.0:24224
+        tag: daml_execution_engine
+
   daml_ledger_api1:
     logging:
       driver: fluentd
       options:
         fluentd-address: 0.0.0.0:24224
-        tag: daml
+        tag: daml_ledger_api
 
   daml_ledger_api2:
     logging:
       driver: fluentd
       options:
         fluentd-address: 0.0.0.0:24224
-        tag: daml
+        tag: daml_ledger_api
 
   daml_ledger_api3:
     logging:
       driver: fluentd
       options:
         fluentd-address: 0.0.0.0:24224
-        tag: daml
+        tag: daml_ledger_api
 
   daml_ledger_api4:
     logging:
       driver: fluentd
       options:
         fluentd-address: 0.0.0.0:24224
-        tag: daml
+        tag: daml_ledger_api

@@ -117,24 +117,32 @@ services:
   daml_execution_engine1:
     image: "${daml_execution_engine_repo}:${daml_execution_engine_tag}"
     command: /doc/daml/kvbc_validator/target/universal/stage/bin/kvbc-validator
+    depends_on:
+      - fluentd
     expose:
       - 55000
 
   daml_execution_engine2:
     image: "${daml_execution_engine_repo}:${daml_execution_engine_tag}"
     command: /doc/daml/kvbc_validator/target/universal/stage/bin/kvbc-validator
+    depends_on:
+      - fluentd
     expose:
       - 55000
 
   daml_execution_engine3:
     image: "${daml_execution_engine_repo}:${daml_execution_engine_tag}"
     command: /doc/daml/kvbc_validator/target/universal/stage/bin/kvbc-validator
+    depends_on:
+      - fluentd
     expose:
       - 55000
 
   daml_execution_engine4:
     image: "${daml_execution_engine_repo}:${daml_execution_engine_tag}"
     command: /doc/daml/kvbc_validator/target/universal/stage/bin/kvbc-validator
+    depends_on:
+      - fluentd
     expose:
       - 55000
 
