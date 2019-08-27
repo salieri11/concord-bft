@@ -103,7 +103,8 @@ class VSphereOrchestrator constructor(
         val storage = info.vsphere.datastore
         val network = info.vsphere.network
 
-        return publish(coroutineContext) {
+        @Suppress("DuplicatedCode")
+        return publish {
             withTimeout(ORCHESTRATOR_TIMEOUT_MILLIS) {
                 try {
                     val clusterId = UUID(request.cluster.high, request.cluster.low)
@@ -166,7 +167,7 @@ class VSphereOrchestrator constructor(
         request: Orchestrator.DeleteComputeResourceRequest
     ): Publisher<Orchestrator.ComputeResourceEvent> {
         @Suppress("DuplicatedCode")
-        return publish(coroutineContext) {
+        return publish {
             withTimeout(ORCHESTRATOR_TIMEOUT_MILLIS) {
                 try {
                     // Retrieve only the last portion of the URI to get the VM ID.
@@ -193,7 +194,7 @@ class VSphereOrchestrator constructor(
     ): Publisher<Orchestrator.NetworkResourceEvent> {
         val network = info.vsphere.network
 
-        return publish(coroutineContext) {
+        return publish {
             withTimeout(ORCHESTRATOR_TIMEOUT_MILLIS) {
                 val privateIpAddress = allocatedPrivateIP(network)
                 privateIpAddress
@@ -218,7 +219,7 @@ class VSphereOrchestrator constructor(
     ): Publisher<Orchestrator.NetworkResourceEvent> {
         val network = info.vsphere.network
 
-        return publish(coroutineContext) {
+        return publish {
             withTimeout(ORCHESTRATOR_TIMEOUT_MILLIS) {
                 try {
                     val released = releasePrivateIP(network, request.resource)
@@ -241,13 +242,13 @@ class VSphereOrchestrator constructor(
     override fun createNetworkAllocation(
         request: Orchestrator.CreateNetworkAllocationRequest
     ): Publisher<Orchestrator.NetworkAllocationEvent> {
-        return publish(coroutineContext) {}
+        return publish {}
     }
 
     override fun deleteNetworkAllocation(
         request: Orchestrator.DeleteNetworkAllocationRequest
     ): Publisher<Orchestrator.NetworkAllocationEvent> {
-        return publish(coroutineContext) {}
+        return publish {}
     }
 
     /**

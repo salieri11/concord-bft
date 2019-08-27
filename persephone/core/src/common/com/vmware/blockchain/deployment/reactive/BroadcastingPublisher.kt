@@ -3,6 +3,7 @@
  * *************************************************************************/
 package com.vmware.blockchain.deployment.reactive
 
+import kotlin.coroutines.CoroutineContext
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
@@ -10,7 +11,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.BroadcastChannel
 import kotlinx.coroutines.reactive.publish
-import kotlin.coroutines.CoroutineContext
+import kotlinx.coroutines.withContext
 
 /**
  * An implementation of [Publisher] of element of type [T] that publishes to downstream subscribers
@@ -32,6 +33,9 @@ class BroadcastingPublisher<T>(
     override val coroutineContext: CoroutineContext
         get() = context + job
 
+    /** [CoroutineContext] for all coroutines launched for sending to downstream subscribers. */
+    private val publishContext: CoroutineContext by lazy { coroutineContext }
+
     /** Parent [Job] of all coroutines associated with this instance's operation. */
     private val job: Job = Job()
 
@@ -44,15 +48,17 @@ class BroadcastingPublisher<T>(
     private val subscribed = CompletableDeferred<Unit>()
 
     /** Internal [Publisher] instance for all [Subscriber]s. */
-    private val publisher: Publisher<T> = publish(coroutineContext) {
-        val receiveChannel = broadcastChannel.openSubscription()
+    private val publisher: Publisher<T> = publish {
+        withContext(publishContext) {
+            val receiveChannel = broadcastChannel.openSubscription()
 
-        // Signal that publisher is now HOT.
-        subscribed.complete(Unit)
+            // Signal that publisher is now HOT.
+            subscribed.complete(Unit)
 
-        // Loop over incoming signals until upstream closes.
-        for (element in receiveChannel) {
-            send(element)
+            // Loop over incoming signals until upstream closes.
+            for (element in receiveChannel) {
+                send(element)
+            }
         }
     }
 
@@ -91,7 +97,12 @@ class BroadcastingPublisher<T>(
     fun broadcast(element: T): Boolean {
         // To prevent the caller from being stalled / suspended, we use offer() instead of send() to
         // detect whether the element can actually be sent to downstream.
-        return broadcastChannel.offer(element)
+        return try {
+            broadcastChannel.offer(element)
+        } catch (error: Throwable) {
+            // If the broadcast offered failed for any reason (e.g. channel closed), return false.
+            false
+        }
     }
 
     /**

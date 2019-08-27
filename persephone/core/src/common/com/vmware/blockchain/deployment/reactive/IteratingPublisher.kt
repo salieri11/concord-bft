@@ -3,12 +3,13 @@
  * *************************************************************************/
 package com.vmware.blockchain.deployment.reactive
 
+import kotlin.coroutines.CoroutineContext
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.reactive.publish
-import kotlin.coroutines.CoroutineContext
+import kotlinx.coroutines.withContext
 
 /**
  * An implementation of [Publisher] of element of type [T] that publishes from an [Iterable]
@@ -30,13 +31,18 @@ class IteratingPublisher<T>(
     override val coroutineContext: CoroutineContext
         get() = context + job
 
+    /** [CoroutineContext] for all coroutines launched for sending to downstream subscribers. */
+    private val publishContext: CoroutineContext by lazy { coroutineContext }
+
     /** Parent [Job] of all coroutines associated with this instance's operation. */
     private val job: Job = Job()
 
     /** Internal [Publisher] instance for all [Subscriber]s. */
-    private val publisher: Publisher<T> = publish(coroutineContext) {
-        for (element in elements) {
-            send(element)
+    private val publisher: Publisher<T> = publish {
+        withContext(publishContext) {
+            for (element in elements) {
+                send(element)
+            }
         }
     }
 

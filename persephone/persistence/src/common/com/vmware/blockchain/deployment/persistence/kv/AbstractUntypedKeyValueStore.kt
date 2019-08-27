@@ -21,6 +21,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.reactive.publish
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.KSerializer
 import kotlin.coroutines.AbstractCoroutineContextElement
 import kotlin.coroutines.CoroutineContext
@@ -55,7 +56,7 @@ abstract class AbstractUntypedKeyValueStore<T : Version<T>>(
     }
 
     /** [CoroutineContext] to launch all coroutines associated with this instance. */
-    override val coroutineContext: CoroutineContext
+    final override val coroutineContext: CoroutineContext
         get() = context + job
 
     /** Parent [Job] of all coroutines associated with this instance's operation. */
@@ -97,15 +98,18 @@ abstract class AbstractUntypedKeyValueStore<T : Version<T>>(
             }
 
             // Setup a publisher such that every incoming subscriber awaits for the response.
-            publish(coroutineContext) {
-                when (val message = response.await()) {
-                    is UntypedKeyValueStore.Response.Get -> send(message.versioned)
-                    is UntypedKeyValueStore.Response.Error -> throw message.throwable
-                    else ->
-                        throw UnexpectedResponseException(
-                                UntypedKeyValueStore.Response.Get::class,
-                                message
-                        )
+            val publishContext = coroutineContext
+            publish {
+                withContext(publishContext) {
+                    when (val message = response.await()) {
+                        is UntypedKeyValueStore.Response.Get -> send(message.versioned)
+                        is UntypedKeyValueStore.Response.Error -> throw message.throwable
+                        else ->
+                            throw UnexpectedResponseException(
+                                    UntypedKeyValueStore.Response.Get::class,
+                                    message
+                            )
+                    }
                 }
             }
         } catch (error: Throwable) {
@@ -127,15 +131,18 @@ abstract class AbstractUntypedKeyValueStore<T : Version<T>>(
             }
 
             // Setup a publisher such that every incoming subscriber awaits for the response.
-            publish(coroutineContext) {
-                when (val message = response.await()) {
-                    is UntypedKeyValueStore.Response.Set -> send(message.versioned)
-                    is UntypedKeyValueStore.Response.Error -> throw message.throwable
-                    else ->
-                        throw UnexpectedResponseException(
-                                UntypedKeyValueStore.Response.Set::class,
-                                message
-                        )
+            val publishContext = coroutineContext
+            publish {
+                withContext(publishContext) {
+                    when (val message = response.await()) {
+                        is UntypedKeyValueStore.Response.Set -> send(message.versioned)
+                        is UntypedKeyValueStore.Response.Error -> throw message.throwable
+                        else ->
+                            throw UnexpectedResponseException(
+                                    UntypedKeyValueStore.Response.Set::class,
+                                    message
+                            )
+                    }
                 }
             }
         } catch (error: Throwable) {
@@ -157,15 +164,18 @@ abstract class AbstractUntypedKeyValueStore<T : Version<T>>(
             }
 
             // Setup a publisher such that every incoming subscriber awaits for the response.
-            publish(coroutineContext) {
-                when (val message = response.await()) {
-                    is UntypedKeyValueStore.Response.Delete -> send(message.versioned)
-                    is UntypedKeyValueStore.Response.Error -> throw message.throwable
-                    else ->
-                        throw UnexpectedResponseException(
-                                UntypedKeyValueStore.Response.Delete::class,
-                                message
-                        )
+            val publishContext = coroutineContext
+            publish {
+                withContext(publishContext) {
+                    when (val message = response.await()) {
+                        is UntypedKeyValueStore.Response.Delete -> send(message.versioned)
+                        is UntypedKeyValueStore.Response.Error -> throw message.throwable
+                        else ->
+                            throw UnexpectedResponseException(
+                                    UntypedKeyValueStore.Response.Delete::class,
+                                    message
+                            )
+                    }
                 }
             }
         } catch (error: Throwable) {
