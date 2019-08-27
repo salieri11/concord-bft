@@ -39,6 +39,7 @@ public class Application {
                         false, /* encodeDefaults */
                         true, /* strictMode */
                         false, /* unquoted */
+                        false, /* allowStructuredMapKeys */
                         false, /* prettyPrint */
                         "    ", /* indent */
                         false, /* useArrayPolymorphism */
