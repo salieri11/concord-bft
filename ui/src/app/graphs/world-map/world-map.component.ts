@@ -240,7 +240,7 @@ export class WorldMapComponent implements AfterViewInit, OnChanges, OnDestroy {
   private viewFit() {
     this.view.fit(
       this.vectorSource.getExtent(),
-      { padding: [20, 60, 20, 30], constrainResolution: false }
+      { padding: [50, 150, 50, 50], constrainResolution: false }
     );
   }
   /**

@@ -5,7 +5,7 @@
     <strong>{{nodeProperties.location}}</strong>
     <div *ngFor="let node of nodeProperties.nodes">
       <a [routerLink]="['nodes', node.id]" class="label clickable" [ngClass]="{'label-success': node.healthy, 'label-danger': !node.healthy}">
-        {{node.hostname}} <span class="badge" [ngClass]="{'badge-success': node.healthy, 'badge-danger': !node.healthy}">{{ node.status }}</span>
+        {{node.name}} <span class="badge" [ngClass]="{'badge-success': node.healthy, 'badge-danger': !node.healthy}">{{ node.status }}</span>
       </a>
     </div>
   </div>

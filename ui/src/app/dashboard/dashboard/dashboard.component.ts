@@ -18,6 +18,8 @@ import { BlocksService } from '../../blocks/shared/blocks.service';
 import { DashboardListConfig } from '../dashboard-list/dashboard-list.component';
 import { NodesService } from '../../nodes/shared/nodes.service';
 
+
+
 import * as NodeGeoJson from '../features.json';
 
 const LONG_POLL_INTERVAL = 10000; // Ten seconds
@@ -135,7 +137,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   get nodesConfig(): DashboardListConfig {
     return {
       headers: ['nodes.hostname', 'nodes.address', 'nodes.health'],
-      displayProperties: ['hostname', 'address', 'healthHTML'],
+      displayProperties: ['name', 'public_ip', 'healthHTML'],
       tableHeader: 'nodes.nodes',
       paginationSummary: 'nodes.paginationSummary'
     };
@@ -179,7 +181,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   private loadNodes() {
-    this.nodesService.getNodes().subscribe((resp) => {
+    this.nodesService.getList().subscribe((resp) => {
       this.nodes = resp.nodes;
       this.nodesByLocation = resp.nodesByLocation;
       this.nodeHealth = this.healthyNodesCount / this.nodes.length;
