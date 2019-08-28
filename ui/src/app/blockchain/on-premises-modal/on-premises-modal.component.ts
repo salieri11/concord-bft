@@ -22,15 +22,11 @@ export class OnPremisesModalComponent implements AfterViewInit {
   constructor(private router: Router) { }
 
   ngAfterViewInit() {
-    console.log('this.form');
-    console.log(this.modal);
-
   }
 
   addOnPrem() {
     this.adding = true;
-    this.form.addOnPrem().subscribe(response => {
-        console.log(response);
+    this.form.addOnPrem().subscribe(() => {
         this.adding = false;
     });
   }

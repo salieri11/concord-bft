@@ -71,9 +71,6 @@ export class BlockchainWizardComponent implements AfterViewInit {
   }
 
   ngAfterViewInit() {
-    console.log(this.wizard);
-    console.log(this.form);
-
     this.wizard.currentPageChanged.subscribe(() => this.handlePageChange());
   }
 

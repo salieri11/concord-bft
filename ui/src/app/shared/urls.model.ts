@@ -39,5 +39,5 @@ export const Apis = {
 
   getReplicas(id: string) {
     return `${this.blockchains}/${id}/replicas`;
-  }
+  },
 };

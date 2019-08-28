@@ -27,7 +27,7 @@ export class OnPremisesFormComponent implements AfterViewInit {
   }
 
   ngAfterViewInit() {
-    // localStorage.removeItem('zone');
+    localStorage.removeItem('zone');
 
     this.form.controls.onPrem.statusChanges.subscribe(status => {
       if (status === 'VALID') {
