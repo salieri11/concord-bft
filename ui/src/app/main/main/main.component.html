@@ -34,7 +34,7 @@
           <clr-icon clrVerticalNavIcon shape="deploy"></clr-icon>
           {{'nav.deploy' | translate}}
         </a>
-        <a clrVerticalNavLink (click)="addOnPremises.open()" href="javscript:void(0)">
+        <a clrVerticalNavLink *concordCanView="[personas.SystemsAdmin]" (click)="addOnPremises.open()" href="javscript:void(0)">
           <clr-icon clrVerticalNavIcon shape="rack-server"></clr-icon>
           {{'nav.addOnPrem' | translate}}
         </a>

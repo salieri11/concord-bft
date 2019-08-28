@@ -14,8 +14,8 @@ import { BlockListingBlock } from '../../blocks/shared/blocks.model';
 import { OrgService } from '../../orgs/shared/org.service';
 import { TourService } from '../../shared/tour.service';
 import { SmartContractsService } from '../../smart-contracts/shared/smart-contracts.service';
-import { BlockchainService } from '../../shared/blockchain.service';
-import { ContractEngines } from '../../shared/blockchain.model';
+import { BlockchainService } from '../../blockchain/shared/blockchain.service';
+import { ContractEngines } from '../../blockchain/shared/blockchain.model';
 import { BlocksService } from '../../blocks/shared/blocks.service';
 import { DashboardListConfig } from '../dashboard-list/dashboard-list.component';
 import { NodesService } from '../../nodes/shared/nodes.service';
@@ -67,8 +67,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     private translate: TranslateService,
     private tourService: TourService,
     private blockchainService: BlockchainService,
-  ) {
-  }
+  ) {}
 
   ngOnInit() {
     this.blockchainType = this.blockchainService.type;
@@ -93,6 +92,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
           break;
       }
     });
+
 
     this.setNodeData();
     this.nodeGuage.margin = [20, 0, 10, 10];

@@ -97,7 +97,6 @@ export class BlockchainService {
           const cList = response[0] as Array<any>;
           const bList = response[1] as Array<any>;
           this.zones = response[2] as Zone[];
-          console.log(bList)
           cList.forEach(consortium => {
             bList.forEach(blockchain => {
               if (consortium['consortium_id'] === blockchain['consortium_id']) {
