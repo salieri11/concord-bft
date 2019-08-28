@@ -192,8 +192,8 @@ class PersephoneTests(test_suite.TestSuite):
    def _get_tests(self):
       if self.args.tests is None or self.args.tests.lower() == "smoke":
          return [
-            ("7_Node_DAML_Blockchain_FIXED_Site",
-             self._test_create_daml_blockchain_7_node_fixed_site),
+            ("4_Node_DAML_Blockchain_FIXED_Site",
+             self._test_create_daml_blockchain_4_node_fixed_site),
          ]
       elif self.args.tests.lower() == "all_tests":
          return [
@@ -208,6 +208,8 @@ class PersephoneTests(test_suite.TestSuite):
              self._test_create_blockchain_7_node_fixed_site),
             ("concurrent_deployments_fixed_site",
              self._test_concurrent_deployments_fixed_site),
+            ("4_Node_DAML_Blockchain_FIXED_Site",
+             self._test_create_daml_blockchain_4_node_fixed_site),
             ("7_Node_DAML_Blockchain_FIXED_Site",
              self._test_create_daml_blockchain_7_node_fixed_site),
             ("concurrent_DAML_deployments_fixed_site",
@@ -759,6 +761,40 @@ class PersephoneTests(test_suite.TestSuite):
                status, msg = self.perform_post_deployment_validations(events,
                                                                       cluster_size,
                                                                       response_deployment_session_id)
+               return (status, msg)
+            return (False, "Failed to fetch Deployment Events")
+
+      return (False, "Failed to get a valid deployment session ID")
+
+   def _test_create_daml_blockchain_4_node_fixed_site(self, cluster_size=4):
+      '''
+      Test to create a blockchain cluster with 4 DAML nodes on FIXED sites
+      :param cluster_size: No. of concord nodes on the cluster
+      '''
+      concord_type = self.rpc_test_helper.CONCORD_TYPE_DAML
+
+      start_time = time.time()
+      log.info("Deployment Start Time: {}".format(start_time))
+      response = self.rpc_test_helper.rpc_create_cluster(
+         cluster_size=cluster_size,
+         concord_type=concord_type)
+      if response:
+         response_session_id_json = helper.protobuf_message_to_json(response[0])
+         if "low" in response_session_id_json:
+            response_deployment_session_id = response[0]
+
+            events = self.rpc_test_helper.rpc_stream_cluster_deployment_session_events(
+               response_deployment_session_id)
+            end_time = time.time()
+            log.info("Deployment End Time: {}".format(end_time))
+            log.info("**** Time taken for this deployment: {} mins".format(
+               (end_time - start_time) / 60))
+
+            if events:
+               status, msg = self.perform_post_deployment_validations(events,
+                                                                      cluster_size,
+                                                                      response_deployment_session_id,
+                                                                      concord_type=concord_type)
                return (status, msg)
             return (False, "Failed to fetch Deployment Events")
 
