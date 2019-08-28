@@ -56,9 +56,21 @@ public class Blockchain extends AbstractEntity {
         }
     }
 
+    /**
+     * Enum to determine blockchain type.
+     */
+    public static enum BlockchainType {
+        ETHEREUM,
+        DAML,
+        HLF
+    }
+
+
 
     @LinkedEntityId
     UUID  consortium;
+
+    BlockchainType type;
 
     List<NodeEntry> nodeList;
 

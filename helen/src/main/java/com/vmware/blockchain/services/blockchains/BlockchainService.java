@@ -21,6 +21,7 @@ import org.springframework.stereotype.Service;
 
 import com.vmware.blockchain.connections.ConnectionPoolManager;
 import com.vmware.blockchain.dao.GenericDao;
+import com.vmware.blockchain.services.blockchains.Blockchain.BlockchainType;
 import com.vmware.blockchain.services.blockchains.Blockchain.NodeEntry;
 import com.vmware.blockchain.services.blockchains.replicas.Replica;
 import com.vmware.blockchain.services.profiles.Consortium;
@@ -54,9 +55,10 @@ public class BlockchainService {
      * @param nodeList      List of node entries
      * @return Blockchain   Blockchain entity
      */
-    public Blockchain create(UUID id, UUID consortiumId, List<NodeEntry> nodeList) {
+    public Blockchain create(UUID id, UUID consortiumId, BlockchainType type, List<NodeEntry> nodeList) {
         Blockchain b = new Blockchain.BlockchainBuilder()
                 .consortium(consortiumId)
+                .type(type)
                 .nodeList(nodeList)
                 .build();
         b.setId(id);
@@ -79,7 +81,7 @@ public class BlockchainService {
      * @return Blockchain   Blockchain entity
      */
     public Blockchain create(UUID id, Consortium consortium, List<NodeEntry> nodeList) {
-        return create(id, consortium.getId(), nodeList);
+        return create(id, consortium.getId(), BlockchainType.ETHEREUM, nodeList);
     }
 
     /**

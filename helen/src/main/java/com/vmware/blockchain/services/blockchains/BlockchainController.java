@@ -4,6 +4,7 @@
 
 package com.vmware.blockchain.services.blockchains;
 
+import static com.vmware.blockchain.services.blockchains.Blockchain.BlockchainType;
 import static com.vmware.blockchain.services.blockchains.BlockchainController.DeploymentType.FIXED;
 import static com.vmware.blockchain.services.blockchains.BlockchainController.DeploymentType.UNSPECIFIED;
 
@@ -81,15 +82,6 @@ public class BlockchainController {
     }
 
 
-    /**
-     * Enum to determine blockchain type.
-     */
-    public enum BlockchainType {
-        ETHEREUM,
-        DAML,
-        HLF
-    }
-
     private static final Map<DeploymentType, PlacementSpecification.Type> enumMap =
             ImmutableMap.of(FIXED, Type.FIXED,
                             UNSPECIFIED, Type.UNSPECIFIED);
@@ -166,6 +158,7 @@ public class BlockchainController {
     static class BlockchainGetResponse {
         private UUID id;
         private UUID consortiumId;
+        private BlockchainType blockchainType;
         @Deprecated
         private List<BlockchainNodeEntry> nodeList;
         private List<BlockchainReplicaEntry> replicaList;
@@ -173,6 +166,7 @@ public class BlockchainController {
         public BlockchainGetResponse(Blockchain b) {
             this.id = b.getId();
             this.consortiumId = b.getConsortium();
+            this.blockchainType = b.getType() == null ? BlockchainType.ETHEREUM : b.getType();
             // For the moment, return both node_list and replica_list
             this.nodeList = b.getNodeList().stream().map(BlockchainNodeEntry::new).collect(Collectors.toList());
             this.replicaList = b.getNodeList().stream().map(BlockchainReplicaEntry::new).collect(Collectors.toList());
@@ -365,6 +359,11 @@ public class BlockchainController {
         Task task = new Task();
         task.setState(Task.State.RUNNING);
         task = taskService.put(task);
+
+        // Backwards compatibility: If no blockchain_type is set, use ETHEREUM
+        BlockchainType blockchainType =
+                body.getBlockchainType() == null ? BlockchainType.ETHEREUM : body.getBlockchainType();
+
         if (mockDeployment) {
             Blockchain bc = blockchainService.get(defaultProfiles.getBlockchain().getId());
             bc.setConsortium(body.getConsortiumId());
@@ -389,11 +388,12 @@ public class BlockchainController {
             }
             DeploymentSessionIdentifier dsId = createFixedSizeCluster(client, clusterSize,
                                                                       enumMap.get(body.deploymentType),
-                                                                      body.getZoneIds(), body.blockchainType);
+                                                                      body.getZoneIds(),
+                                                                      blockchainType);
             logger.info("Deployment started, id {} for the consortium id {}", dsId, body.consortiumId.toString());
             BlockchainObserver bo =
                     new BlockchainObserver(authHelper, operationContext, blockchainService, replicaService, taskService,
-                                           task.getId(), body.getConsortiumId());
+                                           task.getId(), body.getConsortiumId(), blockchainType);
             // Watch for the event stream
             StreamClusterDeploymentSessionEventRequest request =
                     new StreamClusterDeploymentSessionEventRequest(new MessageHeader(), dsId);

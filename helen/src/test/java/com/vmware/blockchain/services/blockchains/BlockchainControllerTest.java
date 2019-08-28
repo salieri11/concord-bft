@@ -80,6 +80,7 @@ import com.vmware.blockchain.deployment.v1.StreamClusterDeploymentSessionEventRe
 import com.vmware.blockchain.operation.OperationContext;
 import com.vmware.blockchain.security.MvcTestSecurityConfig;
 import com.vmware.blockchain.security.SecurityTestUtils;
+import com.vmware.blockchain.services.blockchains.Blockchain.BlockchainType;
 import com.vmware.blockchain.services.blockchains.BlockchainController.BlockchainNodeEntry;
 import com.vmware.blockchain.services.blockchains.BlockchainController.BlockchainReplicaEntry;
 import com.vmware.blockchain.services.blockchains.BlockchainController.BlockchainTaskResponse;
@@ -125,6 +126,13 @@ public class BlockchainControllerTest {
                                          + "    \"consortium_id\": \"04e4f62d-5364-4363-a582-b397075b65a3\","
                                          + "    \"f_count\": 1,"
                                          + "    \"c_count\": 0,"
+                                         + "    \"deployment_type\": \"UNSPECIFIED\"" + "}";
+
+    static final String POST_BODY_DAML = "{"
+                                         + "    \"consortium_id\": \"04e4f62d-5364-4363-a582-b397075b65a3\","
+                                         + "    \"f_count\": 1,"
+                                         + "    \"c_count\": 0,"
+                                         + "    \"blockchain_type\": \"DAML\","
                                          + "    \"deployment_type\": \"UNSPECIFIED\"" + "}";
 
     // Fixed placement.  three in site1, one is site 2
@@ -299,12 +307,13 @@ public class BlockchainControllerTest {
         blockchainResultAnswer = new ResultAnswer<>(i -> {
             Blockchain bc = new Blockchain.BlockchainBuilder()
                     .consortium(i.getArgument(1))
-                    .nodeList(i.getArgument(2))
+                    .type(i.getArgument(2))
+                    .nodeList(i.getArgument(3))
                     .build();
             bc.setId(i.getArgument(0));
             return bc;
         });
-        when(blockchainService.create(any(UUID.class), any(UUID.class), any(List.class)))
+        when(blockchainService.create(any(UUID.class), any(UUID.class), any(BlockchainType.class), any(List.class)))
                 .thenAnswer(blockchainResultAnswer);
         when(defaultProfiles.getBlockchain()).thenReturn(bn);
         Task t = new Task();
@@ -573,6 +582,55 @@ public class BlockchainControllerTest {
         Assertions.assertEquals(BC_NEW.toString(), r.get("resource_id"));
         Blockchain blockchain = blockchainResultAnswer.getResult();
         Assertions.assertEquals(BC_NEW, blockchain.getId());
+        Assertions.assertEquals(BlockchainType.ETHEREUM, blockchain.getType());
+        Assertions.assertEquals(2, blockchain.getNodeList().size());
+        Assertions.assertEquals(NODE_1, blockchain.getNodeList().get(0).getNodeId());
+        Assertions.assertEquals(SITE_1, blockchain.getNodeList().get(0).getZoneId());
+        Assertions.assertEquals(NODE_2, blockchain.getNodeList().get(1).getNodeId());
+        Assertions.assertEquals(SITE_2, blockchain.getNodeList().get(1).getZoneId());
+
+    }
+
+    @Test
+    void postCreateClusterDaml() throws Exception {
+        // Build the data structure DeploymentService will return, and wire the mock to return it.
+        // Note that this isn't really the cluster we would get from the POST.
+        List<ConcordNode> members = ImmutableList.of(
+                buildNode(NODE_1, SITE_1, 1, "http:/node1"),
+                buildNode(NODE_2, SITE_2, 2, "http://node2")
+        );
+        ConcordCluster cluster = buildCluster(BC_NEW, members);
+        setStreamCluster(i -> {
+            StreamObserver ob = i.getArgument(1);
+            ob.onNext(buildEvent(Type.CLUSTER_DEPLOYED, cluster, Status.ACTIVE));
+            ob.onNext(buildEvent(Type.COMPLETED, cluster, Status.SUCCESS));
+            ob.onCompleted();
+            return null;
+        });
+
+        MvcResult result = mockMvc.perform(post("/api/blockchains").with(authentication(consortiumAuth))
+                                                   .contentType(MediaType.APPLICATION_JSON)
+                                                   .content(POST_BODY_DAML).characterEncoding("utf-8"))
+                .andExpect(status().isAccepted()).andReturn();
+        String body = result.getResponse().getContentAsString();
+
+        BlockchainController.BlockchainTaskResponse t = objectMapper.readValue(body, BlockchainTaskResponse.class);
+        Assertions.assertEquals(TASK_ID, t.getTaskId());
+
+        result = mockMvc.perform(get("/api/tasks/" + TASK_ID.toString())
+                                         .with(authentication(consortiumAuth))
+                                         .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk()).andReturn();
+
+        body = result.getResponse().getContentAsString();
+        Map<String, String> r = objectMapper.readValue(body, new TypeReference<Map<String, String>>() {});
+        Assertions.assertEquals(TASK_ID.toString(), r.get("task_id"));
+        Assertions.assertEquals("SUCCEEDED", r.get("state"));
+        Assertions.assertEquals("Operation finished", r.get("message"));
+        Assertions.assertEquals(BC_NEW.toString(), r.get("resource_id"));
+        Blockchain blockchain = blockchainResultAnswer.getResult();
+        Assertions.assertEquals(BC_NEW, blockchain.getId());
+        Assertions.assertEquals(BlockchainType.DAML, blockchain.getType());
         Assertions.assertEquals(2, blockchain.getNodeList().size());
         Assertions.assertEquals(NODE_1, blockchain.getNodeList().get(0).getNodeId());
         Assertions.assertEquals(SITE_1, blockchain.getNodeList().get(0).getZoneId());

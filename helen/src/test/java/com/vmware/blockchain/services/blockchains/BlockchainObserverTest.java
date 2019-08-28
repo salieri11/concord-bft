@@ -46,6 +46,7 @@ import com.vmware.blockchain.deployment.v1.DeploymentSessionEvent;
 import com.vmware.blockchain.deployment.v1.DeploymentSessionEvent.Type;
 import com.vmware.blockchain.deployment.v1.OrchestrationSiteIdentifier;
 import com.vmware.blockchain.operation.OperationContext;
+import com.vmware.blockchain.services.blockchains.Blockchain.BlockchainType;
 import com.vmware.blockchain.services.blockchains.replicas.Replica;
 import com.vmware.blockchain.services.blockchains.replicas.ReplicaService;
 import com.vmware.blockchain.services.tasks.Task;
@@ -102,19 +103,21 @@ public class BlockchainObserverTest {
             return i.getArgument(0);
         });
         when(authHelper.getOrganizationId()).thenReturn(ORG_ID);
-        blockchain = new Blockchain(new UUID(1, 2), Collections.emptyList());
+        blockchain = new Blockchain(new UUID(1, 2), BlockchainType.ETHEREUM,
+                                    Collections.emptyList());
         blockchain.setId(CLUSTER_ID);
-        when(blockchainService.create(any(UUID.class), any(UUID.class), any()))
+        when(blockchainService.create(any(UUID.class), any(UUID.class), any(BlockchainType.class), any()))
                 .thenAnswer(i -> {
                     blockchain.setId(i.getArgument(0));
                     blockchain.setConsortium(i.getArgument(1));
-                    blockchain.setNodeList(i.getArgument(2));
+                    blockchain.setType(i.getArgument(2));
+                    blockchain.setNodeList(i.getArgument(3));
                     return blockchain;
                 });
         operationContext = new OperationContext();
         operationContext.initId();
         blockchainObserver = new BlockchainObserver(authHelper, operationContext, blockchainService, replicaService,
-                                                    taskService, TASK_ID, CONS_ID);
+                                                    taskService, TASK_ID, CONS_ID, BlockchainType.ETHEREUM);
         ConcordCluster cluster = createTestCluster(CLUSTER_ID);
         value = new DeploymentSessionEvent();
         ReflectionTestUtils.setField(value, "cluster", cluster);
