@@ -139,10 +139,13 @@ class IteratingPublisherTest {
                 onComplete = {
                     latch.countDown()
                 }
-        ).also { publisher.subscribe(it) }
+        )
 
         // Stop the publisher.
         publisher.close()
+
+        // Subscribe after publish is explicitly closed.
+        publisher.subscribe(subscriber)
 
         // Generate demand from the subscriber (after publisher has closed).
         subscriber.request(Long.MAX_VALUE)

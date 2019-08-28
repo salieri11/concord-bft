@@ -137,7 +137,8 @@ class VmcOrchestrator(
         val storage = info.vsphere.datastore
         val network = info.vsphere.network
 
-        return publish(coroutineContext) {
+        @Suppress("DuplicatedCode")
+        return publish {
             withTimeout(ORCHESTRATOR_TIMEOUT_MILLIS) {
                 try {
                     val clusterId = UUID(request.cluster.high, request.cluster.low)
@@ -200,7 +201,7 @@ class VmcOrchestrator(
         request: Orchestrator.DeleteComputeResourceRequest
     ): Publisher<Orchestrator.ComputeResourceEvent> {
         @Suppress("DuplicatedCode")
-        return publish<Orchestrator.ComputeResourceEvent>(coroutineContext) {
+        return publish<Orchestrator.ComputeResourceEvent> {
             withTimeout(ORCHESTRATOR_TIMEOUT_MILLIS) {
                 try {
                     // Retrieve only the last portion of the URI to get the VM ID.
@@ -225,7 +226,7 @@ class VmcOrchestrator(
     ): Publisher<Orchestrator.NetworkResourceEvent> {
         val network = info.vsphere.network
 
-        return publish<Orchestrator.NetworkResourceEvent>(coroutineContext) {
+        return publish<Orchestrator.NetworkResourceEvent> {
             withTimeout(ORCHESTRATOR_TIMEOUT_MILLIS) {
                 try {
                     val privateIpAddress = allocatedPrivateIP(network)
@@ -273,7 +274,7 @@ class VmcOrchestrator(
     ): Publisher<Orchestrator.NetworkResourceEvent> {
         val network = info.vsphere.network
 
-        return publish<Orchestrator.NetworkResourceEvent>(coroutineContext) {
+        return publish<Orchestrator.NetworkResourceEvent> {
             withTimeout(ORCHESTRATOR_TIMEOUT_MILLIS) {
                 try {
                     // FIXME:
@@ -306,7 +307,7 @@ class VmcOrchestrator(
     override fun createNetworkAllocation(
         request: Orchestrator.CreateNetworkAllocationRequest
     ): Publisher<Orchestrator.NetworkAllocationEvent> {
-        return publish<Orchestrator.NetworkAllocationEvent>(coroutineContext) {
+        return publish<Orchestrator.NetworkAllocationEvent> {
             withTimeout(ORCHESTRATOR_TIMEOUT_MILLIS) {
                 try {
                     val privateIP: String? = parseInt(request.privateNetwork.path.substringAfterLast("/"),
@@ -341,7 +342,7 @@ class VmcOrchestrator(
     override fun deleteNetworkAllocation(
         request: Orchestrator.DeleteNetworkAllocationRequest
     ): Publisher<Orchestrator.NetworkAllocationEvent> {
-        return publish<Orchestrator.NetworkAllocationEvent>(coroutineContext) {
+        return publish<Orchestrator.NetworkAllocationEvent> {
             withTimeout(ORCHESTRATOR_TIMEOUT_MILLIS) {
                 try {
                     nsx.deleteResource(request.resource).takeIf { it }

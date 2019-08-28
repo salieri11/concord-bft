@@ -20,7 +20,7 @@ import kotlinx.serialization.Serializer
  * @param[data]
  *   binary content represented by this [UntypedValue] instance.
  */
-@Serializable
+@Serializable(with = UntypedValue.UnTypedValueSerializer::class)
 class UntypedValue(override val data: ByteArray) : ByteString(data), KeyValueStore.Value {
 
     @Serializer(forClass = UntypedValue::class)
