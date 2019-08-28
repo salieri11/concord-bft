@@ -140,11 +140,17 @@ interface Orchestrator {
      *   provisioned network allocation.
      * @param[compute]
      *   compute resource to allocate network resource to.
-     * @param[network]
+     * @param[publicNetwork]
+     *   network resource to be assigned.
+     * @param[privateNetwork]
      *   network resource to be assigned.
      */
-    data class CreateNetworkAllocationRequest(val name: String, val compute: URI, val publicNetwork: URI,
-                                              val privateNetwork: URI)
+    data class CreateNetworkAllocationRequest(
+        val name: String,
+        val compute: URI,
+        val publicNetwork: URI,
+        val privateNetwork: URI
+    )
 
     /**
      * Network allocation de-provisioning request specification.
@@ -164,7 +170,8 @@ interface Orchestrator {
             override val resource: URI,
             val name: String,
             val compute: URI,
-            val network: URI
+            val publicNetwork: URI,
+            val privateNetwork: URI
         ) : NetworkAllocationEvent()
         data class Deleted(override val resource: URI) : NetworkAllocationEvent()
     }

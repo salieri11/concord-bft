@@ -325,10 +325,11 @@ class VmcOrchestrator(
                             ?.toNetworkAllocationResource()
                             ?.apply {
                                 send(Orchestrator.NetworkAllocationEvent.Created(
-                                        this,
-                                        request.name,
-                                        request.compute,
-                                        request.publicNetwork
+                                        resource = this,
+                                        name = request.name,
+                                        compute = request.compute,
+                                        publicNetwork = request.publicNetwork,
+                                        privateNetwork = request.privateNetwork
                                 ))
                             }
                             ?: close(Orchestrator.ResourceCreationFailedException(request))
