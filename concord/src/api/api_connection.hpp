@@ -32,7 +32,7 @@ class ApiConnection : public boost::enable_shared_from_this<ApiConnection> {
                         ConnectionManager &connManager,
                         concord::consensus::KVBClientPool &clientPool,
                         concord::common::StatusAggregator &sag,
-                        uint64_t gasLimit, uint64_t chainID);
+                        uint64_t gasLimit, uint64_t chainID, bool damlEnabled);
 
   boost::asio::ip::tcp::socket &socket();
 
@@ -85,7 +85,7 @@ class ApiConnection : public boost::enable_shared_from_this<ApiConnection> {
                 ConnectionManager &connManager,
                 concord::consensus::KVBClientPool &clientPool,
                 concord::common::StatusAggregator &sag, uint64_t gasLimit,
-                uint64_t chainID);
+                uint64_t chainID, bool damlEnabled);
 
   uint16_t get_message_length(const char *buffer);
 
@@ -143,6 +143,7 @@ class ApiConnection : public boost::enable_shared_from_this<ApiConnection> {
   concord::common::StatusAggregator sag_;
   const uint64_t gasLimit_;
   const uint64_t chainID_;
+  const bool damlEnabled_;
 };
 
 }  // namespace api

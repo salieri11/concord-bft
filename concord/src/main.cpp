@@ -246,10 +246,11 @@ void start_worker_threads(int number) {
   }
 }
 
-unique_ptr<grpc::Server> RunDamlGrpcServer(
-    std::string server_address, KVBClientPool &pool,
-    const ILocalKeyValueStorageReadOnly *ro_storage,
-    BlockingPersistentQueue<CommittedTx> &committedTxs) {
+void RunDamlGrpcServer(std::string server_address, KVBClientPool &pool,
+                       const ILocalKeyValueStorageReadOnly *ro_storage,
+                       BlockingPersistentQueue<CommittedTx> &committedTxs) {
+  Logger logger = Logger::getInstance("com.vmware.concord.daml");
+
   DataServiceImpl *dataService = new DataServiceImpl(pool, ro_storage);
   CommitServiceImpl *commitService = new CommitServiceImpl(pool);
   EventsServiceImpl *eventsService = new EventsServiceImpl(committedTxs);
@@ -261,8 +262,10 @@ unique_ptr<grpc::Server> RunDamlGrpcServer(
   builder.RegisterService(commitService);
   builder.RegisterService(eventsService);
 
-  // Finally assemble the server.
-  return unique_ptr<grpc::Server>(builder.BuildAndStart());
+  daml_grpc_server = unique_ptr<grpc::Server>(builder.BuildAndStart());
+
+  LOG4CPLUS_INFO(logger, "DAML gRPC server listening on " << server_address);
+  daml_grpc_server->Wait();
 }
 
 /*
@@ -396,11 +399,11 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
     if (daml_enabled) {
       std::string daml_addr{
           nodeConfig.getValue<std::string>("daml_service_addr")};
-      daml_grpc_server =
-          RunDamlGrpcServer(daml_addr, pool, &replica, committedTxs);
-      LOG4CPLUS_INFO(logger, "DAML grpc server listening on " << daml_addr);
 
-      daml_grpc_server->Wait();
+      // Spawn a thread in order to start management API server as well
+      std::thread(RunDamlGrpcServer, daml_addr, std::ref(pool), &replica,
+                  std::ref(committedTxs))
+          .detach();
     } else if (hlf_enabled) {
       // Get listening address for services
       std::string key_value_service_addr =
@@ -418,15 +421,17 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
       // Start HLF gRPC services
       RunHlfGrpcServer(kvb_storage, pool, key_value_service_addr,
                        chaincode_service_addr);
-    } else {
+    }
+
+    if (!hlf_enabled) {
       std::string ip = nodeConfig.getValue<std::string>("service_host");
       short port = nodeConfig.getValue<short>("service_port");
 
       api_service = new io_service();
       tcp::endpoint endpoint(address::from_string(ip), port);
       uint64_t gasLimit = config.getValue<uint64_t>("gas_limit");
-      ApiAcceptor acceptor(*api_service, endpoint, pool, sag, gasLimit,
-                           chainID);
+      ApiAcceptor acceptor(*api_service, endpoint, pool, sag, gasLimit, chainID,
+                           daml_enabled);
       LOG4CPLUS_INFO(logger, "API Listening on " << endpoint);
 
       start_worker_threads(nodeConfig.getValue<int>("api_worker_pool_size") -

@@ -82,8 +82,11 @@ COPY ./concord/test/concord.supp /concord/concord.supp
 # if no custom configuration was provided when the cluster was set up.
 COPY ./concord/resources/log4cplus.properties /concord/resources/log4cplus.properties
 
-# Ethereum RPC port.
+# Management port
 EXPOSE 5458
+
+# Ledger API service
+EXPOSE 50051
 
 # SBFT ports.
 EXPOSE 3501/tcp
