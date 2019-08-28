@@ -46,7 +46,7 @@ export class BlockchainService {
   ) { }
 
   deploy(params: BlockchainRequestParams): Observable<any> {
-    this.notify.next({ message: 'deploying' });
+    this.notify.next({ message: 'deploying', type: params.blockchain_type });
 
     return this.consortiumService.create(params.consortium_name).pipe(
       flatMap(consort => {
