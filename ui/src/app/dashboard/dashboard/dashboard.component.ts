@@ -14,6 +14,8 @@ import { BlockListingBlock } from '../../blocks/shared/blocks.model';
 import { OrgService } from '../../orgs/shared/org.service';
 import { TourService } from '../../shared/tour.service';
 import { SmartContractsService } from '../../smart-contracts/shared/smart-contracts.service';
+import { BlockchainService } from '../../shared/blockchain.service';
+import { ContractEngines } from '../../shared/blockchain.model';
 import { BlocksService } from '../../blocks/shared/blocks.service';
 import { DashboardListConfig } from '../dashboard-list/dashboard-list.component';
 import { NodesService } from '../../nodes/shared/nodes.service';
@@ -51,6 +53,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
     domain: ['#60B515']
   };
 
+  blockchainType: string;
+  infoLists: any[] = [];
+  dashItems: {title: string, count: number, link: string[]}[];
+
   constructor(
     private orgService: OrgService,
     private smartContractsService: SmartContractsService,
@@ -59,23 +65,20 @@ export class DashboardComponent implements OnInit, OnDestroy {
     private route: ActivatedRoute,
     private router: Router,
     private translate: TranslateService,
-    private tourService: TourService
-  ) {}
+    private tourService: TourService,
+    private blockchainService: BlockchainService,
+  ) {
+  }
 
   ngOnInit() {
+    this.blockchainType = this.blockchainService.type;
+    this.setComponents();
+    this.loadData();
     this.blockchainId = this.route.snapshot.parent.parent.params['consortiumId'];
-    this.loadOrgs();
-    this.loadNodes();
-    this.loadBlocks();
-    this.loadSmartContracts();
 
     this.pollIntervalId = setInterval(() => {
-      this.loadOrgs();
-      this.loadNodes();
-      this.loadBlocks();
-      this.loadSmartContracts();
+      this.loadData();
     }, LONG_POLL_INTERVAL);
-
 
     this.tourService.initialDashboardUrl = this.router.url.substr(1);
 
@@ -101,13 +104,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
     }
 
     clearInterval(this.pollIntervalId);
-  }
-
-  private setNodeData() {
-    this.nodeData = [{
-      name: this.translate.instant('dashboard.nodeHealth'),
-      value: this.healthyNodesCount
-    }];
   }
 
   valueFormatting(value) {
@@ -176,20 +172,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
     };
   }
 
-  private loadSmartContracts() {
-    this.smartContractsService.getSmartContracts().subscribe(smartContracts => this.smartContracts = smartContracts);
-  }
-
-  private loadNodes() {
-    this.nodesService.getList().subscribe((resp) => {
-      this.nodes = resp.nodes;
-      this.nodesByLocation = resp.nodesByLocation;
-      this.nodeHealth = this.healthyNodesCount / this.nodes.length;
-      this.setNodeData();
-      this.setNodeColor();
-    });
-  }
-
   setNodeColor() {
     if (this.nodeHealth >= .9) {
       this.nodeColor = 'green';
@@ -203,16 +185,110 @@ export class DashboardComponent implements OnInit, OnDestroy {
     }
   }
 
+  private setNodeData() {
+    this.nodeData = [{
+      name: this.translate.instant('dashboard.nodeHealth'),
+      value: this.healthyNodesCount
+    }];
+  }
+
+  private loadData() {
+    switch (this.blockchainType) {
+      case ContractEngines.DAML:
+        this.loadOrgs();
+        this.loadNodes();
+        break;
+
+      case ContractEngines.ETH:
+        this.loadOrgs();
+        this.loadNodes();
+        this.loadBlocks();
+        this.loadSmartContracts();
+        break;
+    }
+  }
+
+  private setComponents() {
+    switch (this.blockchainType) {
+      case ContractEngines.DAML:
+        this.dashItems = [{
+          title: this.translate.instant('organization.title'),
+          link: ['/', this.blockchainId, 'organizations'],
+          count: this.orgCount
+        }];
+        this.infoLists = [
+          {config: this.nodesConfig, items: this.nodes},
+          {config: this.organizationsConfig, items: this.orgs},
+        ];
+        break;
+
+      case ContractEngines.ETH:
+        this.dashItems = [{
+          title: this.translate.instant('organization.title'),
+          link: ['/', this.blockchainId, 'organizations'],
+          count: this.orgCount
+        }, {
+          title: this.translate.instant('organization.title'),
+          link: ['/', this.blockchainId, 'blocks'],
+          count: this.blocks[0] ? this.blocks[0].number : 0
+        }, {
+          title: this.translate.instant('dashboard.deployedContracts'),
+          link: ['/', this.blockchainId, 'smart-contracts'],
+          count: this.smartContracts.length
+        }, {
+          title: this.translate.instant('transactions.transactions'),
+          link: ['/', this.blockchainId, 'transactions'],
+          count: this.transactionCount
+        }];
+
+        this.infoLists = [
+          {config: this.nodesConfig, items: this.nodes},
+          {config: this.organizationsConfig, items: this.orgs},
+          {config: this.contractsConfig, items: this.smartContracts},
+          {config: this.blocksConfig, items: this.blocks}
+        ];
+        break;
+    }
+  }
+
+  private loadSmartContracts() {
+    this.smartContractsService.getSmartContracts().subscribe(
+       smartContracts => {
+         this.smartContracts = smartContracts;
+         this.infoLists[2].items = this.smartContracts;
+         this.dashItems[2].count = this.smartContracts.length;
+       });
+  }
+
+  private loadNodes() {
+    return this.nodesService.getList().subscribe((resp) => {
+      this.nodes = resp.nodes;
+      this.nodesByLocation = resp.nodesByLocation;
+      this.nodeHealth = this.healthyNodesCount / this.nodes.length;
+      this.setNodeData();
+      this.setNodeColor();
+      this.infoLists[0].items = this.nodes;
+    });
+  }
+
   private loadBlocks() {
     this.blocksService.getBlocks(BLOCK_TRANSACTION_LIMIT).subscribe((resp) => {
       this.blocks = resp.blocks;
+      this.infoLists[3].items = this.blocks;
+      this.dashItems[3].count = this.blocks[0] ? this.blocks[0].number : 0;
     });
     this.blocksService.getBlock(0).subscribe((resp) => {
       this.firstBlockTransactionCount = resp.transactions.length;
+
     });
   }
 
   private loadOrgs() {
-    this.orgService.getList().subscribe(resp => this.orgs = resp);
+    this.orgService.getList().subscribe(resp => {
+      this.orgs = resp;
+      this.infoLists[1].items = this.orgs;
+      this.dashItems[0].count = this.orgCount;
+    });
   }
+
 }

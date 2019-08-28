@@ -47,6 +47,7 @@ export class MainComponent implements OnInit, OnDestroy {
   routingSub: Subscription;
   urls = External;
   disableDeploy: boolean;
+  blockchainType: string;
 
   // Blockchain Service is resolved in the router before loading
   get selectedConsortium(): string {
@@ -54,8 +55,10 @@ export class MainComponent implements OnInit, OnDestroy {
   }
 
   set selectedConsortium(id: string) {
-    const selected = this.blockchainService.select(id);
-    this.enableRouterOutlet = selected;
+    const selectObs = this.blockchainService.select(id).subscribe(selected => {
+      this.enableRouterOutlet = selected;
+      selectObs.unsubscribe();
+    });
   }
 
   get blockchains(): BlockchainResponse[] {
@@ -73,7 +76,7 @@ export class MainComponent implements OnInit, OnDestroy {
     private personaService: PersonaService
   ) {
     this.env = environment;
-
+    this.blockchainType = this.blockchainService.type;
     this.alertSub = this.alertService.notify
       .subscribe(error => this.addAlert(error));
 

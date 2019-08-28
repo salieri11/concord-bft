@@ -36,4 +36,8 @@ export const Apis = {
   get zonesReload() {
     return `${this.zones}?action=reload`;
   },
+
+  getReplicas(id: string) {
+    return `${this.blockchains}/${id}/replicas`;
+  }
 };

@@ -38,6 +38,7 @@ export interface Zone {
 export interface BlockchainMeta {
   consortium_id: string;
   id: string;
+  blockchain_type: ContractEngines;
   node_list: {
     cert: string,
     ip: string,

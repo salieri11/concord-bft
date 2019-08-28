@@ -1,7 +1,12 @@
 @import "~@clr/ui/src/color/utils/_colors.clarity.scss";
 
-.stats .clr-col-6 {
-  margin-top: .4rem;
+.stats {
+  .clr-col-6 {
+    margin-top: .4rem;
+  }
+  .clr-row {
+    height: 100%;
+  }
 }
 .col-gauge {
   width: 250px !important;
@@ -78,3 +83,4 @@
 .green {
   color: $clr-green-light-midtone;
 }
+

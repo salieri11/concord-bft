@@ -15,6 +15,18 @@ import { BlockchainService } from '../../shared/blockchain.service';
 
 import { Apis } from '../../shared/urls.model';
 
+// Fr testing and rendering map for local deployments
+const locations = [
+  { geo: [-80.294105, 38.5976], region: 'West Virginia', organization: 'Acme Inc' },
+  { geo: [-119.692793, 45.836507], region: 'Oregon', organization: 'Acme Inc' },
+  { geo: [151.21, -33.868], region: 'Sydney', organization: 'On Time Dist LLC' },
+  { geo: [8.67972, 45.836507], region: 'Frankfurt', organization: 'NGO' },
+  { geo: [-80.294105, 38.5976], region: 'West Virginia', organization: 'Customs' },
+  { geo: [-119.692793, 45.836507], region: 'Oregon', organization: 'Supplier Corp' },
+  { geo: [151.21, -33.868], region: 'Sydney', organization: 'Supplier Corp' },
+  { geo: [8.67972, 45.836507], region: 'Frankfurt', organization: 'Customs' },
+];
+
 @Injectable({
   providedIn: 'root'
 })
@@ -23,7 +35,6 @@ export class NodesService extends ConcordApiService {
   constructor(
     @Inject(CONCORD_API_PREFIX) concordApiPrefix: string,
     private http: HttpClient,
-    // @ts-ignore: no unused locals
     private blockchainService: BlockchainService,
     private translate: TranslateService
   ) {
@@ -35,17 +46,27 @@ export class NodesService extends ConcordApiService {
   }
 
   getList() {
-    return this.http.get<any>(`${Apis.blockchains}/${this.blockchainService.blockchainId}/replicas`).pipe(
+    return this.http.get<any>(Apis.getReplicas(this.blockchainService.blockchainId)).pipe(
       map(replicas => {
         const zonesMap = this.blockchainService.zonesMap;
         const groupedNodes: NodeProperties[] = [];
         const tempNode = {};
 
-        replicas.forEach((replica) => {
-          const zoneData = zonesMap[replica.zone_id];
+        replicas.forEach((replica, i) => {
+          let zoneData = zonesMap[replica.zone_id];
+
+          if (!zoneData) {
+            const loc = locations[i];
+            zoneData = {longitude: loc.geo[0], latitude: loc.geo[1], name: loc.region};
+          }
 
           replica['geo'] = [Number(zoneData.longitude), Number(zoneData.latitude)];
           replica['location'] = zoneData.name;
+
+          // Fake Single location
+          // replica['location'] = 'Palo Alto CA USA';
+          // replica['geo'] = [-122.143936,37.468319]
+
           let text = '';
           let labelClass = '';
 
@@ -99,17 +120,6 @@ export class NodesService extends ConcordApiService {
   // This is using the deprecated API and should be removed at some point
   //
   getNodes(): Observable<any> {
-    const locations = [
-      { geo: [-80.294105, 38.5976], region: 'West Virginia', organization: 'Acme Inc' },
-      { geo: [-119.692793, 45.836507], region: 'Oregon', organization: 'Acme Inc' },
-      { geo: [151.21, -33.868], region: 'Sydney', organization: 'On Time Dist LLC' },
-      { geo: [8.67972, 45.836507], region: 'Frankfurt', organization: 'NGO' },
-      { geo: [-80.294105, 38.5976], region: 'West Virginia', organization: 'Customs' },
-      { geo: [-119.692793, 45.836507], region: 'Oregon', organization: 'Supplier Corp' },
-      { geo: [151.21, -33.868], region: 'Sydney', organization: 'Supplier Corp' },
-      { geo: [8.67972, 45.836507], region: 'Frankfurt', organization: 'Customs' },
-    ];
-
     return this.http.get<any>(this.resourcePath()).pipe(
       map(nodes => {
         const groupedNodes: NodeProperties[] = [];

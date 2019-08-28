@@ -98,6 +98,10 @@ export class WorldMapComponent implements AfterViewInit, OnChanges, OnDestroy {
         feature.setProperties(cluster);
         this.featureCollection.push(feature);
       });
+
+      if (changes.features.previousValue && changes.features.previousValue.length === 0) {
+        this.redrawMap();
+      }
     }
   }
 
@@ -188,8 +192,6 @@ export class WorldMapComponent implements AfterViewInit, OnChanges, OnDestroy {
 
     // Convert GeoJSON source to vector tiles
 
-    setTimeout(() => {
-
       const tileSource = geojsonvt(WorldData, {
         extent: 4096,
         debug: 0
@@ -225,7 +227,6 @@ export class WorldMapComponent implements AfterViewInit, OnChanges, OnDestroy {
       this.map.getLayers().insertAt(0, countryOutlineLayer);
       this.map.updateSize();
       this.viewFit();
-    }, 1000);
   }
 
   /**
@@ -238,10 +239,18 @@ export class WorldMapComponent implements AfterViewInit, OnChanges, OnDestroy {
 
 
   private viewFit() {
-    this.view.fit(
-      this.vectorSource.getExtent(),
-      { padding: [50, 150, 50, 50], constrainResolution: false }
-    );
+    if (this.features && this.features.length === 0) {
+      this.view.setCenter([0, 0]);
+      this.view.setZoom(1.1);
+    } else if (this.features && this.features.length === 1) {
+      this.view.setCenter(fromLonLat(this.features[0].geo));
+      this.view.setZoom(3);
+    } else {
+      this.view.fit(
+        this.vectorSource.getExtent(),
+        { padding: [50, 80, 50, 50], constrainResolution: false }
+      );
+    }
   }
   /**
    * Checks for any deploying nodes and schedules their animation. Meant to be called on an interval.
@@ -330,11 +339,19 @@ export class WorldMapComponent implements AfterViewInit, OnChanges, OnDestroy {
     };
   }
 
+  private redrawMap() {
+    if (this.map) {
+      this.map.setTarget(null);
+      this.map = null;
+      this.initMap();
+    }
+  }
+
   private setTheme(type: string) {
     if (type === 'Light') {
       this.theme = {
         countryFill: '#ECEAE6',
-        countryBorder: '#ECEAE6', // #DCDBD8
+        countryBorder: '#DCDBD8', // #DCDBD8
         nodeFill: '#60B515',
         unhealthyNode: '#F52F22',
         nodeFillSelected: '#00ffff',
@@ -351,11 +368,7 @@ export class WorldMapComponent implements AfterViewInit, OnChanges, OnDestroy {
       };
     }
 
-    if (this.map) {
-      this.map.setTarget(null);
-      this.map = null;
-      this.initMap();
-    }
+    this.redrawMap();
   }
 }
 
