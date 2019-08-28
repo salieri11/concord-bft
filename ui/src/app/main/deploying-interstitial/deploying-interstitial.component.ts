@@ -40,6 +40,10 @@ export class DeployingInterstialComponent {
         this.blockchainType = message.type;
       }
     });
+
+    // this.startMessaging().subscribe(() => {
+    //   console.log('done');
+    // });
   }
 
   startLoading(response: HttpResponse<any> | HttpErrorResponse) {

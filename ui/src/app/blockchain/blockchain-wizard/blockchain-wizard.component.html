@@ -62,7 +62,7 @@
         </clr-textarea-container>
       </div>
     </clr-wizard-page>
-    <clr-wizard-page #onPremPage  *ngIf="showOnPrem" [clrWizardPageNextDisabled]="onPremForm.controls.onPrem.invalid || onPremForm.controls.onPremLocation.invalid" (clrWizardPageOnCommit)="submitOnPrem()">
+    <clr-wizard-page #onPremPage  *ngIf="showOnPrem" [clrWizardPageNextDisabled]="onPremForm.controls?.onPrem.invalid || onPremForm.controls?.onPremLocation.invalid" (clrWizardPageOnCommit)="submitOnPrem()">
       <ng-template clrPageTitle>{{'onPrem.pageTitle' | translate}}</ng-template>
       <ng-template clrPageNavTitle>{{'onPrem.navTitle' | translate}}</ng-template>
       <div class="spinner" *ngIf="loadingFlag">
@@ -97,15 +97,15 @@
             <input clrInput type="text" class="clr-col-12 clr-col-md-8" [formControlName]="zone.id" />
           </clr-input-container>
         </div>
-<!--         <div class="divider"></div>
-        <clr-alert [clrAlertClosable]="false">
+        <!-- <div class="divider"></div> -->
+<!--         <clr-alert [clrAlertClosable]="false">
           <clr-alert-item>
             <span class="alert-text">
               {{'blockchainWizard.nodes.onPremInfo' | translate}}
             </span>
           </clr-alert-item>
-        </clr-alert>
-        <button class="btn btn-outline btn-danger add-on-prem btn-sm" (click)="addOnPrem()">{{ 'blockchainWizard.nodes.add' | translate }}</button> -->
+        </clr-alert> -->
+        <!-- <button class="btn btn-outline btn-danger add-on-prem btn-sm" (click)="addOnPrem()">{{ 'blockchainWizard.nodes.add' | translate }}</button> -->
       </div>
     </clr-wizard-page>
     <clr-wizard-page>
