@@ -865,8 +865,9 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
                         return null; // To satisfy type signature (Void).
 
                     });
-        } catch (Throwable t) {
-            log.error("Error triggering work on the session", t.getMessage());
+        } catch (Throwable error) {
+            log.error("Error triggering work on the session", error);
+
             deploymentLog.get(session.getId()).complete(new DeploymentSession(
                     session.getId(),
                     session.getSpecification(),
@@ -1416,7 +1417,7 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
                             computeResourceEvents.get(created.getCompute())
                     );
                     var publicNetworkResourceEvent = Objects.requireNonNull(
-                            networkResourceEvents.get(created.getNetwork())
+                            networkResourceEvents.get(created.getPublicNetwork())
                     );
 
                     // Obtain private network address resource event, if available.

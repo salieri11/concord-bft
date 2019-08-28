@@ -201,13 +201,24 @@ class VSphereOrchestrator constructor(
                         ?.apply {
                             log.info { "Assigned private IP($privateIpAddress)" }
 
-                            val event: Orchestrator.NetworkResourceEvent =
-                                    Orchestrator.NetworkResourceEvent.Created(
-                                            URI.create("//${network.allocationServer.address}/$name"),
-                                            request.name,
-                                            privateIpAddress.value.toIPv4Address(),
-                                            false)
-                            send(event)
+                            val event = Orchestrator.NetworkResourceEvent.Created(
+                                    URI.create("//${network.allocationServer.address}/$name"),
+                                    request.name,
+                                    privateIpAddress.value.toIPv4Address(),
+                                    false
+                            )
+                            send(event as Orchestrator.NetworkResourceEvent)
+
+                            // If request asked for public IP provisioning as well, send an event.
+                            if (request.public) {
+                                val publicAddressEvent = Orchestrator.NetworkResourceEvent.Created(
+                                        URI.create("//${network.allocationServer.address}/$name"),
+                                        request.name,
+                                        privateIpAddress.value.toIPv4Address(),
+                                        false
+                                )
+                                send(publicAddressEvent as Orchestrator.NetworkResourceEvent)
+                            }
                         }
                         ?: close(Orchestrator.ResourceCreationFailedException(request))
             }
@@ -242,13 +253,26 @@ class VSphereOrchestrator constructor(
     override fun createNetworkAllocation(
         request: Orchestrator.CreateNetworkAllocationRequest
     ): Publisher<Orchestrator.NetworkAllocationEvent> {
-        return publish {}
+        return publish {
+            val event = Orchestrator.NetworkAllocationEvent.Created(
+                    resource = URI.create("///network-allocations/${request.name}"),
+                    name = request.name,
+                    compute = request.compute,
+                    publicNetwork = request.publicNetwork,
+                    privateNetwork = request.privateNetwork
+            )
+
+            send(event as Orchestrator.NetworkAllocationEvent)
+        }
     }
 
     override fun deleteNetworkAllocation(
         request: Orchestrator.DeleteNetworkAllocationRequest
     ): Publisher<Orchestrator.NetworkAllocationEvent> {
-        return publish {}
+        return publish {
+            val event = Orchestrator.NetworkAllocationEvent.Deleted(request.resource)
+            send(event as Orchestrator.NetworkAllocationEvent)
+        }
     }
 
     /**

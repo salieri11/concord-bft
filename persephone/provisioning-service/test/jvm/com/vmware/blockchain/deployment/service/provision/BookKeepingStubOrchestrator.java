@@ -157,7 +157,8 @@ class BookKeepingStubOrchestrator implements Orchestrator {
                             resource,
                             name,
                             request.getCompute(),
-                            request.getPublicNetwork()
+                            request.getPublicNetwork(),
+                            request.getPrivateNetwork()
                     )
             );
 
