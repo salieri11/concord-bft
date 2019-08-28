@@ -35,7 +35,7 @@ message ConcordNodeIdentifier {
  */
 message ConcordNodeInfo {
     ConcordModelIdentifier model = 1;
-    map<string, fixed32> ipv4_addresses = 2;
+    map<string, int32> ipv4_addresses = 2;
 }
 
 /**
@@ -63,7 +63,7 @@ message ConcordNodeEndpoint {
  */
 message ConcordNodeHostInfo {
     OrchestrationSiteIdentifier site = 1;
-    map<fixed32, fixed32> ipv4_address_map = 10;
+    map<int32, int32> ipv4_address_map = 10;
     map<string, ConcordNodeEndpoint> endpoints = 11;
 }
 
