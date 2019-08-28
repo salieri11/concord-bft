@@ -255,7 +255,4 @@ class DefaultProfilesTest {
         Assertions.assertEquals(testUser.getId(), profiles.getUser().getId());
         Assertions.assertEquals("admin@blockchain.local", profiles.getUser().getEmail());
     }
-
-
-
 }

@@ -17,6 +17,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import com.google.common.collect.ImmutableList;
+import com.vmware.blockchain.common.ConcordConnectionException;
 import com.vmware.blockchain.common.NotFoundException;
 import com.vmware.blockchain.security.ServiceContext;
 import com.vmware.blockchain.services.blockchains.Blockchain;
@@ -225,8 +226,8 @@ public class DefaultProfiles {
                 replicaService.put(r);
             }
         }
-        catch (NotFoundException e) {
-            System.out.println("Concord internal error: Unable to get concord connection");
+        catch (ConcordConnectionException e) {
+            logger.error("Concord internal error: Unable to get concord connection");
         }
 
     }
