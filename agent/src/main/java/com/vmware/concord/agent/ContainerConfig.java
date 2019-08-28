@@ -41,6 +41,7 @@ public enum ContainerConfig {
             new PortBinding(Ports.Binding.bindPort(55000), ExposedPort.tcp(55000))), null,
                           null, List.of("/doc/daml/kvbc_validator/target/universal/stage/bin/kvbc-validator"), null),
     DAML_CONCORD("vmwblockchain/concord-core", "concord", List.of(
+            new PortBinding(Ports.Binding.bindPort(50051), ExposedPort.tcp(50051)),
             new PortBinding(Ports.Binding.bindPort(5458), ExposedPort.tcp(5458)),
             new PortBinding(Ports.Binding.bindPort(3501), ExposedPort.tcp(3501)),
             new PortBinding(Ports.Binding.bindPort(3502), ExposedPort.tcp(3502)),

@@ -42,7 +42,6 @@ public class ConcordConfigUtil {
         SERVICE_HOST("- service_host: ", 2),
         SERVICE_PORT("service_port: ", 4),
         REPLICA("replica:", 4),
-        DAML_SERVICE_ADDRESS("daml_service_addr: ", 4),
         DAML_EXECUTION_ENGINE_ADDRESS("daml_execution_engine_addr: ", 4),
         CLIENT_PROXY("client_proxy:", 4),
         REPLICA_HOST("- replica_host: ", 6),
@@ -254,7 +253,6 @@ public class ConcordConfigUtil {
             for (String s : hostIp) {
                 writePairProperty(writer, ConfigProperty.SERVICE_HOST, "0.0.0.0");
                 writePairProperty(writer, ConfigProperty.SERVICE_PORT, "5458");
-                writePairProperty(writer, ConfigProperty.DAML_SERVICE_ADDRESS, "0.0.0.0:5458");
                 writePairProperty(writer, ConfigProperty.DAML_EXECUTION_ENGINE_ADDRESS,
                                   "daml_execution_engine:55000");
                 writePairProperty(writer, ConfigProperty.REPLICA, "");
