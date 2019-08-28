@@ -229,7 +229,6 @@ public class DefaultProfiles {
         catch (ConcordConnectionException e) {
             logger.error("Concord internal error: Unable to get concord connection");
         }
-
     }
 
     private Agreement createAgreementIfNotExist() {
