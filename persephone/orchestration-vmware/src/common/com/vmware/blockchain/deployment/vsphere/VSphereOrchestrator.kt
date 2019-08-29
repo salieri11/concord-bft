@@ -205,7 +205,7 @@ class VSphereOrchestrator constructor(
                                     URI.create("//${network.allocationServer.address}/$name"),
                                     request.name,
                                     privateIpAddress.value.toIPv4Address(),
-                                    false
+                                    public = false
                             )
                             send(event as Orchestrator.NetworkResourceEvent)
 
@@ -215,7 +215,7 @@ class VSphereOrchestrator constructor(
                                         URI.create("//${network.allocationServer.address}/$name"),
                                         request.name,
                                         privateIpAddress.value.toIPv4Address(),
-                                        false
+                                        public = true
                                 )
                                 send(publicAddressEvent as Orchestrator.NetworkResourceEvent)
                             }
