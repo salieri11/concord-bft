@@ -22,7 +22,7 @@ class ApiAcceptor {
               boost::asio::ip::tcp::endpoint endpoint,
               concord::consensus::KVBClientPool &clientPool,
               concord::common::StatusAggregator &sag, uint64_t gasLimit,
-              uint64_t chainID);
+              uint64_t chainID, bool damlEnabled);
 
  private:
   boost::asio::ip::tcp::acceptor acceptor_;
@@ -32,6 +32,7 @@ class ApiAcceptor {
   concord::common::StatusAggregator sag_;
   uint64_t gasLimit_;
   uint64_t chainID_;
+  bool damlEnabled_;
 
   void start_accept();
 

@@ -34,7 +34,9 @@ bool parse_options(int argc, char **argv, options_adder adder,
   // clang-format on
 
   // add tool-specific options
-  (*adder)(desc);
+  if (adder != NULL) {
+    (*adder)(desc);
+  }
 
   store(parse_command_line(argc, argv, desc), opts);
 
