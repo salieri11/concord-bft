@@ -10,8 +10,15 @@ RUN apt update && apt install -y gnupg2 ca-certificates && \
     apt update && apt install -y openjdk-8-jdk-headless sbt && \
     rm -rf /var/lib/apt/lists/*
 
+# Install postgres client to check status of indexdb cotainers
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        postgresql-client \
+    && rm -rf /var/lib/apt/lists/*   
+
 COPY daml/build.sbt /doc/daml/
 COPY daml/project /doc/daml/project
+COPY daml/entrypoint.sh /doc/daml/entrypoint.sh
 WORKDIR /doc/daml
 RUN sbt update
 
@@ -21,3 +28,6 @@ COPY daml/kvbc_ledger_server /doc/daml/kvbc_ledger_server
 
 RUN sbt stage
 EXPOSE 6865
+
+RUN chmod 755 /doc/daml/entrypoint.sh
+ENTRYPOINT /doc/daml/entrypoint.sh $@

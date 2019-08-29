@@ -244,7 +244,7 @@ class KVBCParticipantState(
         ledgerId = ledgerId,
 
         config = Configuration(
-          timeModel = TimeModel.reasonableDefault
+          timeModel = TimeModel(Duration.ofSeconds(1), Duration.ofMinutes(2), Duration.ofMinutes(2)).get
         ),
 
         // FIXME(JM): This in principle should be the record time of block 0,
@@ -252,6 +252,8 @@ class KVBCParticipantState(
         initialRecordTime = Time.Timestamp.Epoch
       )
     )
+
+
 
   override def stateUpdates(beginAfter: Option[Offset]): Source[(Offset, Update), NotUsed] = {
 

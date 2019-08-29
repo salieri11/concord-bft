@@ -83,9 +83,16 @@ services:
 
   daml_ledger_api1:
     image: "${daml_ledger_api_repo}:${daml_ledger_api_tag}"
-    command: "/doc/daml/kvbc_ledger_server/target/universal/stage/bin/kvbc-ledger-server concord1:50051 daml_ledger_api1"
+    environment:
+      - INDEXDB_HOST=index_db1
+      - INDEXDB_PORT=5432
+      - INDEXDB_USER=indexdb
+      - CONCORD_HOST=concord1
+      - CONCORD_PORT=50051
+      - SELF_NAME=daml_ledger_api1
     depends_on:
       - concord1
+      - index_db1
     expose:
       - 6865
     ports:
@@ -93,9 +100,16 @@ services:
 
   daml_ledger_api2:
     image: "${daml_ledger_api_repo}:${daml_ledger_api_tag}"
-    command: "/doc/daml/kvbc_ledger_server/target/universal/stage/bin/kvbc-ledger-server concord2:50051 daml_ledger_api2"
+    environment:
+      - INDEXDB_HOST=index_db2
+      - INDEXDB_PORT=5432
+      - INDEXDB_USER=indexdb
+      - CONCORD_HOST=concord2
+      - CONCORD_PORT=50051
+      - SELF_NAME=daml_ledger_api2
     depends_on:
       - concord2
+      - index_db2
     expose:
       - 6865
     ports:
@@ -103,9 +117,16 @@ services:
 
   daml_ledger_api3:
     image: "${daml_ledger_api_repo}:${daml_ledger_api_tag}"
-    command: "/doc/daml/kvbc_ledger_server/target/universal/stage/bin/kvbc-ledger-server concord3:50051 daml_ledger_api3"
+    environment:
+      - INDEXDB_HOST=index_db3
+      - INDEXDB_PORT=5432
+      - INDEXDB_USER=indexdb
+      - CONCORD_HOST=concord3
+      - CONCORD_PORT=50051
+      - SELF_NAME=daml_ledger_api3
     depends_on:
       - concord3
+      - index_db3
     expose:
       - 6865
     ports:
@@ -113,9 +134,16 @@ services:
 
   daml_ledger_api4:
     image: "${daml_ledger_api_repo}:${daml_ledger_api_tag}"
-    command: "/doc/daml/kvbc_ledger_server/target/universal/stage/bin/kvbc-ledger-server concord4:50051 daml_ledger_api4"
+    environment:
+      - INDEXDB_HOST=index_db4
+      - INDEXDB_PORT=5432
+      - INDEXDB_USER=indexdb
+      - CONCORD_HOST=concord4
+      - CONCORD_PORT=50051
+      - SELF_NAME=daml_ledger_api4
     depends_on:
       - concord4
+      - index_db4
     expose:
       - 6865
     ports:
@@ -163,3 +191,51 @@ services:
       - FLUENTD_CONF=fluent.conf
     volumes:
       - ./fluentd:/fluentd/etc
+
+  index_db1:
+    image: postgres
+    restart: always
+    environment:
+      POSTGRES_USER: indexdb
+    volumes:
+      - ./devdata/index_db1:/var/lib/postgresql/data
+    expose:
+      - 5432
+    ports:
+      - "5431:5432"
+
+  index_db2:
+    image: postgres
+    restart: always
+    environment:
+      POSTGRES_USER: indexdb
+    volumes:
+      - ./devdata/index_db2:/var/lib/postgresql/data
+    expose:
+      - 5432
+    ports:
+      - "5432:5432"
+
+  index_db3:
+    image: postgres
+    restart: always
+    environment:
+      POSTGRES_USER: indexdb
+    volumes:
+      - ./devdata/index_db3:/var/lib/postgresql/data
+    expose:
+      - 5432
+    ports:
+      - "5433:5432"
+
+  index_db4:
+    image: postgres
+    restart: always
+    environment:
+      POSTGRES_USER: indexdb
+    volumes:
+      - ./devdata/index_db4:/var/lib/postgresql/data
+    expose:
+      - 5432
+    ports:
+      - "5434:5432"

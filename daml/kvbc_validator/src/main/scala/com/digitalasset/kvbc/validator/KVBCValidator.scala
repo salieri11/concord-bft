@@ -20,7 +20,7 @@ class KVBCValidator extends ValidationServiceGrpc.ValidationService {
   private val logger = LoggerFactory.getLogger(this.getClass)
   private val engine = Engine()
   // FIXME(JM): Make part of request
-  private val config = Configuration(TimeModel.reasonableDefault)
+  private val config = Configuration(TimeModel(Duration.ofSeconds(1), Duration.ofMinutes(2), Duration.ofMinutes(2)).get)
 
   private def buildTimestamp(ts: Time.Timestamp): com.google.protobuf.timestamp.Timestamp = {
     val instant = ts.toInstant
