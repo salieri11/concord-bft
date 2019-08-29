@@ -231,6 +231,7 @@ class DefaultProfilesTest {
         Assertions.assertEquals("user@test.com", profiles.getUser().getEmail());
     }
 
+
     @Test
     void testProfileEmpty() {
         // This will use the system generated profiles, rather than the ones we created.
@@ -254,7 +255,4 @@ class DefaultProfilesTest {
         Assertions.assertEquals(testUser.getId(), profiles.getUser().getId());
         Assertions.assertEquals("admin@blockchain.local", profiles.getUser().getEmail());
     }
-
-
-
 }

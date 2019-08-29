@@ -17,6 +17,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import com.google.common.collect.ImmutableList;
+import com.vmware.blockchain.common.ConcordConnectionException;
 import com.vmware.blockchain.common.NotFoundException;
 import com.vmware.blockchain.security.ServiceContext;
 import com.vmware.blockchain.services.blockchains.Blockchain;
@@ -212,16 +213,21 @@ public class DefaultProfiles {
     }
 
     private void createReplicas(Blockchain b) {
-        List<Peer> peers = concordService.getMembers(b.getId());
-        List<NodeEntry> nodes = b.getNodeList();
-        for (int i = 0; i < nodes.size(); i++) {
-            NodeEntry n = nodes.get(i);
-            Peer p = peers.get(i);
-            Replica r = new Replica(n.getIp(),
-                                    p.getAddress().split(":")[0],
-                                    p.getHostname(), n.getUrl(), n.getCert(), n.getZoneId(), b.getId());
-            r.setId(n.getNodeId());
-            replicaService.put(r);
+        try {
+            List<Peer> peers = concordService.getMembers(b.getId());
+            List<NodeEntry> nodes = b.getNodeList();
+            for (int i = 0; i < nodes.size(); i++) {
+                NodeEntry n = nodes.get(i);
+                Peer p = peers.get(i);
+                Replica r = new Replica(n.getIp(),
+                                        p.getAddress().split(":")[0],
+                                        p.getHostname(), n.getUrl(), n.getCert(), n.getZoneId(), b.getId());
+                r.setId(n.getNodeId());
+                replicaService.put(r);
+            }
+        }
+        catch (ConcordConnectionException e) {
+            logger.error("Concord internal error: Unable to get concord connection");
         }
     }
 
