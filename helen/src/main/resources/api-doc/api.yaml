@@ -552,6 +552,13 @@ paths:
                       type: string
                       format: uuid
                       description: ID of owning consortium
+                    blockchain_type:
+                      type: string
+                      enum:
+                        - ETHEREUM
+                        - DAML
+                        - HLF
+                      description: Type of blockchain node
                     node_list:
                       deprecated: true
                       description: Please use replica_list
@@ -753,6 +760,13 @@ paths:
                     type: string
                     format: uuid
                     description: ID of owning consortium
+                  blockchain_type:
+                    type: string
+                    enum:
+                      - ETHEREUM
+                      - DAML
+                      - HLF
+                    description: Type of blockchain node
                   node_list:
                     deprecated: true
                     description: Please use replica_list

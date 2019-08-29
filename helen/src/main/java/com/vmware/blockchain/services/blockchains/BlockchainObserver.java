@@ -22,6 +22,7 @@ import com.vmware.blockchain.deployment.v1.DeploymentSession;
 import com.vmware.blockchain.deployment.v1.DeploymentSessionEvent;
 import com.vmware.blockchain.deployment.v1.OrchestrationSiteIdentifier;
 import com.vmware.blockchain.operation.OperationContext;
+import com.vmware.blockchain.services.blockchains.Blockchain.BlockchainType;
 import com.vmware.blockchain.services.blockchains.Blockchain.NodeEntry;
 import com.vmware.blockchain.services.blockchains.replicas.Replica;
 import com.vmware.blockchain.services.blockchains.replicas.ReplicaService;
@@ -49,6 +50,7 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
     private DeploymentSession.Status status = DeploymentSession.Status.UNKNOWN;
     private UUID clusterId;
     private String opId;
+    private BlockchainType type;
 
     /**
      * Create a new Blockchain Observer.  This handles the callbacks from the deployment
@@ -65,7 +67,8 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
             ReplicaService replicaService,
             TaskService taskService,
             UUID taskId,
-            UUID consortiumId) {
+            UUID consortiumId,
+            BlockchainType type) {
         this.authHelper = authHelper;
         this.operationContext = operationContext;
         this.blockchainService = blockchainService;
@@ -75,7 +78,7 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
         this.consortiumId = consortiumId;
         auth = SecurityContextHolder.getContext().getAuthentication();
         opId = operationContext.getId();
-
+        this.type = type;
     }
 
     private void logNode(ConcordNode node) {
@@ -184,7 +187,7 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
 
         if (status == DeploymentSession.Status.SUCCESS) {
             // Create blockchain entity based on collected information.
-            Blockchain blockchain = blockchainService.create(clusterId, consortiumId, nodeList);
+            Blockchain blockchain = blockchainService.create(clusterId, consortiumId, type, nodeList);
             task.setResourceId(blockchain.getId());
             task.setResourceLink(String.format("/api/blockchains/%s", blockchain.getId()));
             task.setState(Task.State.SUCCEEDED);
