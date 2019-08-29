@@ -56,7 +56,7 @@ public enum ContainerConfig {
             new PortBinding(Ports.Binding.bindPort(6865), ExposedPort.tcp(6865))), null,
                     List.of(new Link("concord", "concord")),
                     List.of("/doc/daml/kvbc_ledger_server/target/universal/stage/bin/kvbc-ledger-server",
-                            "concord:5458", "daml_ledger_api"), null);
+                            "concord:50051", "daml_ledger_api"), null);
 
     String imageRepository;
     String imageId;
