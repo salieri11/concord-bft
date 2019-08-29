@@ -13,6 +13,9 @@ import os
 import subprocess
 import time
 import traceback
+from tempfile import NamedTemporaryFile
+
+import util.daml.upload_dar as darutil
 
 from . import test_suite
 from util.product import Product
@@ -102,9 +105,59 @@ class DamlTests(test_suite.TestSuite):
 
    def _test_ledger_api_test_tool(self):
       """Run ledger_api_test_tool
+
+      First, copy the test tool, and extract&copy out the DARs.
       """
+      TEST_TOOL_NAME = "ledger-api-test-tool_2.12-100.13.16.jar"
+      TEST_DARS = ["SemanticTests.dar", "Test.dar"]
+
+      log.info("Copy test tool to ledger api service...")
+      with NamedTemporaryFile() as tmp:
+         getTool = "docker cp docker_daml_test_tool_1:/" + TEST_TOOL_NAME + " " + tmp.name
+         putTool = "docker cp " + tmp.name + " docker_daml_ledger_api1_1:/" + TEST_TOOL_NAME
+         try:
+            subprocess.check_call(getTool.split())
+            subprocess.check_call(putTool.split())
+         except subprocess.CalledProcessError as e:
+            log.error("Failed to copy test tool: %s", str(e))
+            log.error(str(e.output))
+            return (False, str(e))
+
+      log.info("Unpack test tool and copy DAR files to hermes...")
       cmd = "docker exec -t docker_daml_ledger_api1_1 " \
-            "java -jar /ledger-api-test-tool_2.12-100.13.16.jar --timeout-scale-factor 2"
+            "java -jar /" + TEST_TOOL_NAME + " -x"
+      try:
+         subprocess.check_call(cmd.split())
+      except subprocess.CalledProcessError as e:
+         log.error("Failed to unpack test tool: %s", str(e))
+         log.error(str(e.output))
+         return (False, str(e))
+
+      tmpDars = []
+      for testDar in TEST_DARS:
+         with NamedTemporaryFile(delete=False) as tmp:
+            getDar = "docker cp docker_daml_ledger_api1_1:/doc/daml/" + testDar + " " + tmp.name
+            try:
+               subprocess.check_call(getDar.split())
+            except subprocess.CalledProcessError as e:
+               log.error("Failed to copy DAR (%s): %s", testDar, str(e))
+               log.error(str(e.output))
+               return (False, str(e))
+            log.info("Save %s to %s", testDar, tmp.name)
+            tmpDars.append(tmp.name)
+
+      log.info("Upload DAR files...")
+      for testDar in tmpDars:
+         if darutil.upload_dar(host='localhost', port='6861', darfile=testDar):
+             os.remove(testDar)
+         else:
+             msg = "Failed to upload test DAR " + testDar
+             log.error(msg)
+             return (False, msg)
+
+      # Finally, run the test tool
+      cmd = "docker exec -t docker_daml_ledger_api1_1 " \
+            "java -jar /" + TEST_TOOL_NAME + " --timeout-scale-factor 2"
       try:
          subprocess.check_call(cmd.split(), timeout=120)
       except subprocess.TimeoutExpired as e:

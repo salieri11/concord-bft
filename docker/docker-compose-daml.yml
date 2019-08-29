@@ -1,5 +1,9 @@
 version: '3'
 services:
+  # Create test tool container
+  daml_test_tool:
+    image: athena-docker-local.artifactory.eng.vmware.com/daml-ledger-api-test-tool:100.13.16
+
   # Note: Make sure that Concord's configuration files have `daml_enable` set
   concord1:
     image: "${concord_repo}:${concord_tag}"
@@ -74,9 +78,8 @@ services:
       - ./tls_certs:/concord/tls_certs:ro
 
   daml_ledger_api1:
-    # Note: Only one service needs to upload the initial *.dar files
     image: "${daml_ledger_api_repo}:${daml_ledger_api_tag}"
-    command: "/doc/daml/kvbc_ledger_server/target/universal/stage/bin/kvbc-ledger-server concord1:50051 daml_ledger_api1 /SemanticTests.dar /Test.dar"
+    command: "/doc/daml/kvbc_ledger_server/target/universal/stage/bin/kvbc-ledger-server concord1:50051 daml_ledger_api1"
     depends_on:
       - concord1
     expose:
