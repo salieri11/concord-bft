@@ -105,38 +105,16 @@ class DamlTests(test_suite.TestSuite):
 
    def _test_ledger_api_test_tool(self):
       """Run ledger_api_test_tool
-
-      First, copy the test tool, and extract&copy out the DARs.
       """
       TEST_TOOL_NAME = "ledger-api-test-tool_2.12-100.13.16.jar"
       TEST_DARS = ["SemanticTests.dar", "Test.dar"]
+      TEST_TOOL_CONTAINER = "docker_daml_test_tool_1"
 
-      log.info("Copy test tool to ledger api service...")
-      with NamedTemporaryFile() as tmp:
-         getTool = "docker cp docker_daml_test_tool_1:/" + TEST_TOOL_NAME + " " + tmp.name
-         putTool = "docker cp " + tmp.name + " docker_daml_ledger_api1_1:/" + TEST_TOOL_NAME
-         try:
-            subprocess.check_call(getTool.split())
-            subprocess.check_call(putTool.split())
-         except subprocess.CalledProcessError as e:
-            log.error("Failed to copy test tool: %s", str(e))
-            log.error(str(e.output))
-            return (False, str(e))
-
-      log.info("Unpack test tool and copy DAR files to hermes...")
-      cmd = "docker exec -t docker_daml_ledger_api1_1 " \
-            "java -jar /" + TEST_TOOL_NAME + " -x"
-      try:
-         subprocess.check_call(cmd.split())
-      except subprocess.CalledProcessError as e:
-         log.error("Failed to unpack test tool: %s", str(e))
-         log.error(str(e.output))
-         return (False, str(e))
-
+      log.info("Copy DAR files to hermes...")
       tmpDars = []
       for testDar in TEST_DARS:
          with NamedTemporaryFile(delete=False) as tmp:
-            getDar = "docker cp docker_daml_ledger_api1_1:/doc/daml/" + testDar + " " + tmp.name
+            getDar = "docker cp {}:/{} {}".format(TEST_TOOL_CONTAINER, testDar, tmp.name)
             try:
                subprocess.check_call(getDar.split())
             except subprocess.CalledProcessError as e:
@@ -155,9 +133,25 @@ class DamlTests(test_suite.TestSuite):
              log.error(msg)
              return (False, msg)
 
-      # Finally, run the test tool
-      cmd = "docker exec -t docker_daml_ledger_api1_1 " \
-            "java -jar /" + TEST_TOOL_NAME + " --timeout-scale-factor 2"
+      getTestToolImage = \
+         "docker inspect --format='{{.Config.Image}}' " + TEST_TOOL_CONTAINER
+      try:
+         output = subprocess.run(getTestToolImage.split(),
+            check=True, stdout=subprocess.PIPE).stdout
+         testToolImage = output.decode().strip().strip("'")
+      except subprocess.CalledProcessError as e:
+         log.error("Failed to retrieve image for %s", TEST_TOOL_CONTAINER, str(e))
+         log.error(str(e.output))
+         return (False, str(e))
+
+      cmd = "docker run -t --rm " + \
+                "--network docker_default " + \
+                "--link docker_daml_ledger_api1_1:ledger " + \
+                testToolImage + \
+                " java -jar " + TEST_TOOL_NAME + \
+                   " -h ledger -p 6865 " + \
+                   "--timeout-scale-factor 2"
+      log.info("Run %s...", TEST_TOOL_NAME)
       try:
          subprocess.check_call(cmd.split(), timeout=120)
       except subprocess.TimeoutExpired as e:
