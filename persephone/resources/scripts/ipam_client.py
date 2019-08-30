@@ -120,7 +120,7 @@ def create_address_block(
         block_name: str,
         block_prefix: str,
         subnet: int,
-        reserved: List[str] = None
+        reserved: List[str] = []
 ) -> ip_allocation_service.CreateAddressBlockResponse:
     """
     Create an address block using supplied parameters.
