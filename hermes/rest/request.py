@@ -207,7 +207,8 @@ class Request():
 
       return self._send()
 
-   def createBlockchain(self, consortiumId,  siteIds, f=1, c=0, fixed=True):
+   def createBlockchain(self, consortiumId,  siteIds, f=1, c=0, fixed=True,
+                        blockchainType=util.helper.TYPE_ETHEREUM):
       '''
       Create a blockchain.  Values are simply passed through to persephone.
       consortiumId: The consoritum UUID.
@@ -226,6 +227,7 @@ class Request():
          "deployment_type": "FIXED" if fixed else "UNSPECIFIED",
          "zone_ids": siteIds
       }
+
       self._endpointName = "create_blockchain"
 
       return self._send()

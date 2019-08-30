@@ -383,7 +383,6 @@ def validateAccessDeniedResponse(result, expectedPath):
    assert result["status"] == 403, "Expected HTTP status 403."
    assert result["path"] == expectedPath, "Expected different path."
 
-
 @pytest.mark.smoke
 def test_blockchains_fields(fxConnection):
    blockchains = fxConnection.request.getBlockchains()
@@ -486,7 +485,7 @@ def test_members_millis_since_last_message(fxConnection, fxBlockchain, fxHermesR
    testing that Helen is receiving/communicating new values, not always
    showing a default, etc...
    '''
-   if fxHermesRunSettings["hermesCmdlineArgs"].blockchainLocation != util.helper.LOCAL_BLOCKCHAIN:
+   if fxHermesRunSettings["hermesCmdlineArgs"].blockchainLocation != util.helper.LOCATION_LOCAL:
       pytest.skip("Skipping because this test requires pausing a Concord node, and " \
                   "this Concord deployment is on SDDC or on-prem infra.")
 

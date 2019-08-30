@@ -4,11 +4,15 @@
 # This is the parent class for Hermes test suites which use PyTest.
 ###############################################################################
 import json
+import logging
 import os
 import pytest
+import traceback
 
 import util.json_helper
 from . import test_suite
+
+log = logging.getLogger(__name__)
 
 class PytestSuite(test_suite.TestSuite):
 

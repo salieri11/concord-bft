@@ -26,8 +26,8 @@ def test_core_vm_tests(fxCoreVMTests, fxHermesRunSettings, fxConnection, fxBlock
    ethrpcUrl = fxHermesRunSettings["hermesCmdlineArgs"].ethrpcApiUrl
    if not ethrpcUrl:
       blockchainLocation = fxHermesRunSettings["hermesCmdlineArgs"].blockchainLocation
-      useITApprovedPort = blockchainLocation != util.helper.LOCAL_BLOCKCHAIN
-      scheme = "https" if blockchainLocation == util.helper.LOCAL_BLOCKCHAIN else "http"
+      useITApprovedPort = blockchainLocation != util.helper.LOCATION_LOCAL
+      scheme = "https" if blockchainLocation == util.helper.LOCATION_LOCAL else "http"
       ethrpcUrl = util.blockchain.eth.getEthrpcApiUrl(fxConnection.request,
                                                       fxBlockchain.blockchainId,
                                                       useITApprovedPort,
