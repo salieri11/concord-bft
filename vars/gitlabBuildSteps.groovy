@@ -465,6 +465,7 @@ EOF
                     if (genericTests) {
                       sh '''
                         # So test suites not using sudo can write to test_logs.
+                        rm -rf "${test_log_root}"
                         mkdir "${test_log_root}"
 
                         # Make sure the test framework itself can run a basic test suite.

@@ -55,7 +55,7 @@ class Product():
    _concordProcessesMetaData = []
    _cmdlineArgs = None
    userProductConfig = None
-   _servicesToLogLater = ["db-server-init1", "db-server-init2", "fluentd"]
+   _servicesToLogLater = ["agent", "db-server-init1", "db-server-init2", "fluentd"]
    _suite = None
    _numProductStarts = 0
    docker_env = util.helper.get_docker_env()
@@ -99,6 +99,9 @@ class Product():
 
       while (not launched) and (numAttempts < self._cmdlineArgs.productLaunchAttempts):
          try:
+            self._productLogsDir = self._productLogsDir.split("_attempt_")[0]
+            self._productLogsDir += "_attempt_{}".format(numAttempts)
+            pathlib.Path(self._productLogsDir).mkdir(parents=True, exist_ok=True)
             self._launchViaDocker()
             launched = True
 
@@ -106,6 +109,7 @@ class Product():
             numAttempts += 1
             log.info("Attempt {} to launch the product failed. Exception: '{}'".format(
                numAttempts, str(e)))
+            log.info(traceback.format_exc())
 
             if numAttempts < self._cmdlineArgs.productLaunchAttempts:
                log.info("Stopping whatever was launched and attempting to launch again.")
@@ -167,13 +171,8 @@ class Product():
       return False
 
    def _launchViaDocker(self):
-      dockerCfg = {}
-
       if self.validatePaths(self._cmdlineArgs.dockerComposeFile):
-         for cfgFile in self._cmdlineArgs.dockerComposeFile:
-            with open(cfgFile, "r") as f:
-               newCfg = yaml.load(f, Loader=yaml.FullLoader)
-               self.mergeDictionaries(dockerCfg, newCfg)
+         dockerCfg = self._getFullDockerComposeDict()
 
          if self._suite:
             self._suite.validateLaunchConfig(dockerCfg)
@@ -266,26 +265,15 @@ class Product():
            " including fresh cryptographic keys.")
 
    def _launchPersephone(self):
-      dockerCfg = {}
-
       if self.validatePaths(self._cmdlineArgs.dockerComposeFile):
-         for cfgFile in self._cmdlineArgs.dockerComposeFile:
-            with open(cfgFile, "r") as f:
-               newCfg = yaml.load(f, Loader=yaml.FullLoader)
-               self.mergeDictionaries(dockerCfg, newCfg)
-
+         dockerCfg = self._getFullDockerComposeDict()
          util.helper.copy_docker_env_file()
          self._startContainers(product="persephone")
          self._startLogCollection()
 
-         for dockerComposeFile in self._cmdlineArgs.dockerComposeFile:
-            with open(dockerComposeFile, "r") as yamlFile:
-               composeData = yaml.load(yamlFile, Loader=yaml.FullLoader)
-
-            for service in list(composeData["services"]):
-               if not self._waitForPersephoneStartup(service):
-                  raise Exception("The product did not start.")
-
+         for service in list(dockerCfg["services"]):
+            if not self._waitForPersephoneStartup(service):
+               raise Exception("The product did not start.")
       else:
          raise Exception("The docker compose file list contains an invalid value.")
 
@@ -308,33 +296,61 @@ class Product():
       self._processes.append(p)
 
 
+   def _getFullDockerComposeDict(self):
+      '''
+      Returns a dictionary of all values from the docker config files
+      passed in.
+      '''
+      fullConfig = {}
+
+      for cfgFile in self._cmdlineArgs.dockerComposeFile:
+         with open(cfgFile, "r") as f:
+            newCfg = yaml.load(f, Loader=yaml.FullLoader)
+            self.mergeDictionaries(fullConfig, newCfg)
+
+      return fullConfig
+
+
+   def _constructDockerComposeParameters(self):
+      '''
+      Creates a "-f foo.yaml" command line fragment for each docker-compose file
+      the run is using.
+      Returns an array that can be extended onto a list of command line
+      parameters.
+      '''
+      fragments = []
+
+      for cfgFile in self._cmdlineArgs.dockerComposeFile:
+         fragments.extend(["-f", cfgFile])
+
+      return fragments
+
+
    def _startLogCollection(self):
       '''
       Launches processes to save the output of services listed in the docker-compose
       files.
       '''
-      for dockerComposeFile in self._cmdlineArgs.dockerComposeFile:
-         composeData = None
-         logLaunchThreads = []
+      logLaunchThreads = []
+      composeData = self._getFullDockerComposeDict()
 
-         with open(dockerComposeFile, "r") as yamlFile:
-            composeData = yaml.load(yamlFile, Loader=yaml.FullLoader)
+      log.debug("Log collection composeData: {}".format(composeData))
 
-         for service in list(composeData["services"]):
-            if service in self._servicesToLogLater.copy():
-               self._servicesToLogLater.remove(service)
-               self._servicesToLogLater.append((service,os.path.abspath(dockerComposeFile)))
-            else:
-               logLaunchThread = Thread(target=self._startLogLaunchThread,
-                                        args=(service,os.path.abspath(dockerComposeFile)))
-               logLaunchThread.start()
-               logLaunchThreads.append(logLaunchThread)
+      for service in list(composeData["services"]):
+         if service in self._servicesToLogLater.copy():
+            self._servicesToLogLater.remove(service)
+            self._servicesToLogLater.append((service))
+         else:
+            logLaunchThread = Thread(target=self._startLogLaunchThread,
+                                     args=(service,))
+            logLaunchThread.start()
+            logLaunchThreads.append(logLaunchThread)
 
-         for t in logLaunchThreads:
-            t.join()
+      for t in logLaunchThreads:
+         t.join()
 
 
-   def _startLogLaunchThread(self, service, dockerComposeFile):
+   def _startLogLaunchThread(self, service):
       '''
       We have to wait until a docker container has started before we can use
       "docker-compose log" to track it.
@@ -345,17 +361,20 @@ class Product():
       to start, then create a docker-compose subprocess to save its logs
       Returns the thread.
       '''
-      self._waitForContainerToStart(service, dockerComposeFile)
+      self._waitForContainerToStart(service)
       logFile = self._openLog(service + "_" + str(Product._numProductStarts))
       log.info("Service {} log file: {}".format(service, logFile.name))
-      cmd = ["docker-compose", "-f", dockerComposeFile, "logs", "-f", service]
+      cmd = ["docker-compose"]
+      cmd.extend(self._constructDockerComposeParameters())
+      cmd.extend(["logs", "-f", service])
+      log.debug("Launching docker logs with {}".format(cmd))
       p = subprocess.Popen(cmd,
                            stdout=logFile,
                            stderr=subprocess.STDOUT)
       self._processes.append(p)
 
 
-   def _waitForContainerToStart(self, service, dockerComposeFile):
+   def _waitForContainerToStart(self, service):
       '''
       Given a service name, waits for its container to start, using "docker-compose top".
       Note that this is just whether the service *starts*, not whether the
@@ -374,7 +393,9 @@ class Product():
 
       while numTries < maxTries:
          numTries += 1
-         topCmd = ["docker-compose", "-f", dockerComposeFile, "top", service]
+         topCmd = ["docker-compose"]
+         topCmd.extend(self._constructDockerComposeParameters())
+         topCmd.extend(["top", service])
          completedProcess = subprocess.run(topCmd,
                                            stdout=subprocess.PIPE,
                                            stderr=subprocess.STDOUT)
@@ -392,7 +413,7 @@ class Product():
       msg = "Timed out waiting for the '{}' service to start so a logging process " \
             "could be assigned to it.  Any logs it produced will be generated at " \
             "the end of the test run.".format(service)
-      self._servicesToLogLater.append((service,dockerComposeFile))
+      self._servicesToLogLater.append((service))
       log.info(msg)
 
 
@@ -763,19 +784,21 @@ class Product():
       Run "docker-compose logs" for any services flagged for late log
       gathering.
       '''
-      for service in self._servicesToLogLater:
-         if isinstance(service, tuple):
-            serviceName = service[0]
-            dockerComposeFile = service[1]
-            logFileName = self._createLogPath(serviceName)
+      for serviceName in self._servicesToLogLater:
+         logFileName = self._createLogPath(serviceName)
 
-            if not os.path.isfile(logFileName):
-               logFile = self._openLog(serviceName + "_" + str(Product._numProductStarts))
-               log.info("Service {} log file: {}".format(serviceName, logFile.name))
-               cmd = ["docker-compose", "-f", dockerComposeFile, "logs", serviceName]
-               subprocess.run(cmd,
-                              stdout=logFile,
-                              stderr=subprocess.STDOUT)
+         if not os.path.isfile(logFileName):
+            logFile = self._openLog(serviceName + "_" + str(Product._numProductStarts))
+            log.info("Service {} log file: {}".format(serviceName, logFile.name))
+            cmd = ["docker-compose"]
+
+            for cfgFile in self._cmdlineArgs.dockerComposeFile:
+               cmd.extend(["-f", cfgFile])
+
+            cmd.extend(["logs", serviceName])
+            subprocess.run(cmd,
+                           stdout=logFile,
+                           stderr=subprocess.STDOUT)
 
 
    def stopProduct(self):

@@ -79,7 +79,7 @@ def get_docker_compose_value(docker_compose_files, service_name, key):
    for docker_compose_file in docker_compose_files:
       log.debug("Parsing docker-compose file: {}".format(docker_compose_file))
       with open(docker_compose_file, "r") as yaml_file:
-         compose_data = yaml.load(yaml_file)
+         compose_data = yaml.load(yaml_file, Loader=yaml.FullLoader)
 
       services = list(compose_data["services"])
       if '/' in service_name:
