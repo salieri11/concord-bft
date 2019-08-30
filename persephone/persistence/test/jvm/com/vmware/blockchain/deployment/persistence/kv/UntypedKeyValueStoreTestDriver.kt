@@ -83,13 +83,13 @@ open class UntypedKeyValueStoreTestDriver {
         // Setup the event sink.
         val eventSink1 = server.subscribe(32, false)
         val eventsDone1 = CountDownLatch(1)
-        val lastSeen = AtomicReference<Any>(null)
+        val lastSeen1 = AtomicReference<Any>(null)
         val observations1 = mutableListOf<Event<Value, Value, MonotonicInt>>()
         BaseSubscriber<Event<Value, Value, MonotonicInt>>(
-                onSubscribe = { it.apply { request(Long.MAX_VALUE) }.run { lastSeen.set(this) } },
-                onNext = { it.apply { observations1 += this }.run { lastSeen.set(this) } },
+                onSubscribe = { it.apply { request(Long.MAX_VALUE) }.run { lastSeen1.set(this) } },
+                onNext = { it.apply { observations1 += this }.run { lastSeen1.set(this) } },
                 onComplete = { eventsDone1.countDown() },
-                onError = { lastSeen.set(it) }
+                onError = { lastSeen1.set(it) }
         ).also { eventSink1.subscribe(it) }
 
         // Retrieve the created entry by no-yet-existent key.
@@ -105,11 +105,13 @@ open class UntypedKeyValueStoreTestDriver {
         // Setup a second event sink (that cannot have observed the first update event).
         val eventSink2 = server.subscribe(32, false)
         val eventsDone2 = CountDownLatch(1)
+        val lastSeen2 = AtomicReference<Any>(null)
         val observations2 = mutableListOf<Event<Value, Value, MonotonicInt>>()
         BaseSubscriber<Event<Value, Value, MonotonicInt>>(
-                onNext = { observations2 += it },
+                onSubscribe = { it.apply { request(Long.MAX_VALUE) }.run { lastSeen2.set(this) } },
+                onNext = { it.apply { observations2 += this }.run { lastSeen2.set(this) } },
                 onComplete = { eventsDone2.countDown() },
-                onError = { throw it }
+                onError = { lastSeen2.set(it) }
         ).also { eventSink2.subscribe(it) }
 
         // Retrieve the created entry by its key.
@@ -145,7 +147,7 @@ open class UntypedKeyValueStoreTestDriver {
         // Orderly close the first publisher.
         server.unsubscribe(eventSink1)
         Assertions.assertThat(eventsDone1.await(awaitTime, TimeUnit.MILLISECONDS))
-                .describedAs("Event stream did not complete, last signal seen(%s)", lastSeen.get())
+                .describedAs("Event stream did not complete, last signal seen(%s)", lastSeen1.get())
                 .isTrue()
 
         // Verify the observations on event sinks.
@@ -163,7 +165,9 @@ open class UntypedKeyValueStoreTestDriver {
         server.close()
 
         // Check that even if second publisher does not unsubscribe, it gets served onComplete().
-        Assertions.assertThat(eventsDone2.await(awaitTime, TimeUnit.MILLISECONDS)).isTrue()
+        Assertions.assertThat(eventsDone2.await(awaitTime, TimeUnit.MILLISECONDS))
+                .describedAs("Event stream did not complete, last signal seen(%s)", lastSeen2.get())
+                .isTrue()
 
         // Verify the observations on event sinks.
         val potentialObservations2 = listOf<Event<StringValue, StringValue, MonotonicInt>>(
@@ -177,25 +181,35 @@ open class UntypedKeyValueStoreTestDriver {
 
         // Check that a late subscriber after server close does not wait indefinitely.
         val eventsDone3 = CountDownLatch(1)
+        val lastSeen3 = AtomicReference<Any>(null)
         val observations3 = mutableListOf<Event<Value, Value, MonotonicInt>>()
         BaseSubscriber<Event<Value, Value, MonotonicInt>>(
-                onNext = { observations3 += it },
+                onSubscribe = { it.apply { request(Long.MAX_VALUE) }.run { lastSeen3.set(this) } },
+                onNext = { it.apply { observations3 += this }.run { lastSeen3.set(this) } },
                 onComplete = { eventsDone3.countDown() },
-                onError = { throw it }
+                onError = { lastSeen3.set(it) }
         ).also { eventSink3.subscribe(it) }
-        Assertions.assertThat(eventsDone3.await(awaitTime, TimeUnit.MILLISECONDS)).isTrue()
+        Assertions.assertThat(eventsDone3.await(awaitTime, TimeUnit.MILLISECONDS))
+                .describedAs("Event stream did not complete, last signal seen(%s)", lastSeen3.get())
+                .isTrue()
         Assertions.assertThat(observations3).isEmpty()
 
         // Check that event subscription after server close does not result in event emissions.
         val eventSink4 = server.subscribe(32, false)
         val eventsDone4 = CountDownLatch(1)
+        val lastSeen4 = AtomicReference<Any>(null)
         val observations4 = mutableListOf<Event<Value, Value, MonotonicInt>>()
         BaseSubscriber<Event<Value, Value, MonotonicInt>>(
-                onNext = { observations4 += it },
-                onComplete = { throw AssertionError("Should not receive onComplete() signal.") },
+                onSubscribe = { it.apply { request(Long.MAX_VALUE) }.run { lastSeen4.set(this) } },
+                onNext = { it.apply { observations4 += this }.run { lastSeen4.set(this) } },
+                onComplete = {
+                    lastSeen4.set(AssertionError("Should not receive onComplete() signal."))
+                },
                 onError = { eventsDone4.countDown() }
         ).also { eventSink4.subscribe(it) }
-        Assertions.assertThat(eventsDone4.await(awaitTime, TimeUnit.MILLISECONDS)).isTrue()
+        Assertions.assertThat(eventsDone4.await(awaitTime, TimeUnit.MILLISECONDS))
+                .describedAs("Event stream not end in error, last signal seen(%s)", lastSeen4.get())
+                .isTrue()
         Assertions.assertThat(observations4).isEmpty()
     }
 
@@ -231,6 +245,7 @@ open class UntypedKeyValueStoreTestDriver {
         val expectedSizeReached = CountDownLatch(1)
         val observedStoreState = mutableMapOf<Value, Value>()
         val observations = mutableListOf<Event<Value, Value, MonotonicInt>>()
+        val error = AtomicReference<Throwable>()
         BaseSubscriber<Event<Value, Value, MonotonicInt>>(
                 onNext = {
                     observations += it
@@ -246,7 +261,7 @@ open class UntypedKeyValueStoreTestDriver {
                     }
                 },
                 onComplete = { eventsDone.countDown() },
-                onError = { throw it }
+                onError = { error.set(it) }
         ).also { eventSink.subscribe(it) }
         Assertions.assertThat(expectedSizeReached.await(awaitTime, TimeUnit.MILLISECONDS)).isTrue()
 
@@ -254,7 +269,9 @@ open class UntypedKeyValueStoreTestDriver {
         server.close()
 
         // Verify that event streams terminate.
-        Assertions.assertThat(eventsDone.await(awaitTime, TimeUnit.MILLISECONDS)).isTrue()
+        Assertions.assertThat(eventsDone.await(awaitTime, TimeUnit.MILLISECONDS))
+                .describedAs("Event stream not terminate, onError(%s)", error.get())
+                .isTrue()
 
         // Verify that snapshot state is fully received.
         val observedStateAsBytes = observedStoreState
