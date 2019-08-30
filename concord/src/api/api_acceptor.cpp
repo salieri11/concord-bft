@@ -20,14 +20,14 @@ namespace api {
 
 ApiAcceptor::ApiAcceptor(io_service &io_service, tcp::endpoint endpoint,
                          KVBClientPool &clientPool, StatusAggregator &sag,
-                         uint64_t gasLimit, uint64_t chainID, bool damlEnabled)
+                         uint64_t gasLimit, uint64_t chainID, bool ethEnabled)
     : acceptor_(io_service, endpoint),
       clientPool_(clientPool),
       logger_(log4cplus::Logger::getInstance("com.vmware.concord.ApiAcceptor")),
       sag_(sag),
       gasLimit_(gasLimit),
       chainID_(chainID),
-      damlEnabled_(damlEnabled) {
+      ethEnabled_(ethEnabled) {
   // set SO_REUSEADDR option on this socket so that if listener thread fails
   // we can still bind again to this socket
   acceptor_.set_option(ip::tcp::acceptor::reuse_address(true));
@@ -39,7 +39,7 @@ void ApiAcceptor::start_accept() {
 
   ApiConnection::pointer new_connection = ApiConnection::create(
       acceptor_.get_io_service(), connManager_, clientPool_, sag_, gasLimit_,
-      chainID_, damlEnabled_);
+      chainID_, ethEnabled_);
 
   acceptor_.async_accept(
       new_connection->socket(),
