@@ -11,6 +11,7 @@
 #include "concord.pb.h"
 #include "config/configuration_manager.hpp"
 #include "consensus/concord_commands_handler.hpp"
+#include "consensus/timing_stat.h"
 #include "ethereum/concord_evm.hpp"
 #include "storage/blockchain_interfaces.h"
 #include "time/time_contract.hpp"
@@ -27,6 +28,11 @@ class EthKvbCommandsHandler
   concord::utils::EthSign &verifier_;
   const concord::config::ConcordConfiguration &nodeConfiguration;
   const uint64_t gas_limit_;
+  concord::consensus::TimingStat timing_evmrun_;
+  concord::consensus::TimingStat timing_evmcreate_;
+  concord::consensus::TimingStat timing_evmwrite_;
+  concordMetrics::Component::Handle<concordMetrics::Counter> stat_evmruns_;
+  concordMetrics::Component::Handle<concordMetrics::Counter> stat_evmcreates_;
 
  public:
   EthKvbCommandsHandler(
@@ -42,6 +48,7 @@ class EthKvbCommandsHandler
                bool read_only, concord::time::TimeContract *time,
                com::vmware::concord::ConcordResponse &response) override;
   void WriteEmptyBlock(concord::time::TimeContract *time) override;
+  void ClearStats() override;
 
  private:
   // Handlers
@@ -65,22 +72,22 @@ class EthKvbCommandsHandler
       const com::vmware::concord::ConcordRequest &concreq,
       EthKvbStorage &kvbStorage,
       com::vmware::concord::ConcordResponse &concresp) const;
-  bool handle_eth_request(
-      const com::vmware::concord::ConcordRequest &concreq,
-      EthKvbStorage &kvb_storage, concord::time::TimeContract *time,
-      com::vmware::concord::ConcordResponse &concresp) const;
+  bool handle_eth_request(const com::vmware::concord::ConcordRequest &concreq,
+                          EthKvbStorage &kvb_storage,
+                          concord::time::TimeContract *time,
+                          com::vmware::concord::ConcordResponse &concresp);
   bool handle_eth_sendTransaction(
       const com::vmware::concord::ConcordRequest &concreq,
       EthKvbStorage &kvbStorage, concord::time::TimeContract *time,
-      com::vmware::concord::ConcordResponse &concresp) const;
+      com::vmware::concord::ConcordResponse &concresp);
   bool handle_eth_request_read_only(
       const com::vmware::concord::ConcordRequest &concreq,
       EthKvbStorage &kvbStorage, concord::time::TimeContract *time,
-      com::vmware::concord::ConcordResponse &concresp) const;
+      com::vmware::concord::ConcordResponse &concresp);
   bool handle_eth_callContract(
       const com::vmware::concord::ConcordRequest &concreq,
       EthKvbStorage &kvbStorage, concord::time::TimeContract *time,
-      com::vmware::concord::ConcordResponse &concresp) const;
+      com::vmware::concord::ConcordResponse &concresp);
   bool handle_eth_blockNumber(
       const com::vmware::concord::ConcordRequest &concreq,
       EthKvbStorage &kvbStorage,
@@ -116,7 +123,7 @@ class EthKvbCommandsHandler
 
   evm_result run_evm(const com::vmware::concord::EthRequest &request,
                      EthKvbStorage &kvbStorage, uint64_t timestamp,
-                     evm_uint256be &txhash /* OUT */) const;
+                     evm_uint256be &txhash /* OUT */);
 
   evm_uint256be record_transaction(
       const evm_message &message,

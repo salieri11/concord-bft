@@ -93,6 +93,7 @@ target_link_libraries(ecsign
 
 add_executable(conc_rocksdb_adp "conc_rocksdb_adp.cpp")
 target_link_libraries(conc_rocksdb_adp concord_consensus log4cplus)
+target_include_directories(conc_rocksdb_adp PUBLIC ${Cryptopp_INCLUDE_DIRS})
 
 # conc_genconfig also needs to see "../src" to find its includes.
 add_executable(conc_genconfig

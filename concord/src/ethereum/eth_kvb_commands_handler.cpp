@@ -69,7 +69,12 @@ EthKvbCommandsHandler::EthKvbCommandsHandler(
       concevm_(concevm),
       verifier_(verifier),
       nodeConfiguration(nodeConfig),
-      gas_limit_(config.getValue<uint64_t>("gas_limit")) {}
+      gas_limit_(config.getValue<uint64_t>("gas_limit")),
+      timing_evmrun_("evmrun", timing_enabled_, metrics_),
+      timing_evmcreate_("evmcreate", timing_enabled_, metrics_),
+      timing_evmwrite_("evmwrite", timing_enabled_, metrics_),
+      stat_evmruns_{metrics_.RegisterCounter("evmruns")},
+      stat_evmcreates_{metrics_.RegisterCounter("evmcreates")} {}
 
 EthKvbCommandsHandler::~EthKvbCommandsHandler() {
   // no other deinitialization necessary
@@ -128,13 +133,21 @@ void EthKvbCommandsHandler::WriteEmptyBlock(TimeContract *time) {
   kvb_storage.write_block(timestamp, gas_limit_);
 }
 
+void EthKvbCommandsHandler::ClearStats() {
+  timing_evmrun_.Reset();
+  timing_evmcreate_.Reset();
+  timing_evmwrite_.Reset();
+  // TODO: reset run & create counts?
+}
+
 /*
  * Handle an ETH RPC request. Returns false if the command was invalid; true
  * otherwise.
  */
-bool EthKvbCommandsHandler::handle_eth_request(
-    const ConcordRequest &concreq, EthKvbStorage &kvb_storage,
-    TimeContract *time, ConcordResponse &concresp) const {
+bool EthKvbCommandsHandler::handle_eth_request(const ConcordRequest &concreq,
+                                               EthKvbStorage &kvb_storage,
+                                               TimeContract *time,
+                                               ConcordResponse &concresp) {
   switch (concreq.eth_request(0).method()) {
     case EthRequest_EthMethod_SEND_TX:
       return handle_eth_sendTransaction(concreq, kvb_storage, time, concresp);
@@ -157,7 +170,7 @@ bool EthKvbCommandsHandler::handle_eth_request(
  */
 bool EthKvbCommandsHandler::handle_eth_sendTransaction(
     const ConcordRequest &concreq, EthKvbStorage &kvbStorage,
-    TimeContract *time, ConcordResponse &concresp) const {
+    TimeContract *time, ConcordResponse &concresp) {
   const EthRequest request = concreq.eth_request(0);
 
   uint64_t timestamp = 0;
@@ -589,7 +602,7 @@ bool EthKvbCommandsHandler::handle_block_request(
  */
 bool EthKvbCommandsHandler::handle_eth_request_read_only(
     const ConcordRequest &concreq, EthKvbStorage &kvbStorage,
-    TimeContract *time, ConcordResponse &concresp) const {
+    TimeContract *time, ConcordResponse &concresp) {
   switch (concreq.eth_request(0).method()) {
     case EthRequest_EthMethod_CALL_CONTRACT:
       return handle_eth_callContract(concreq, kvbStorage, time, concresp);
@@ -625,7 +638,7 @@ bool EthKvbCommandsHandler::handle_eth_request_read_only(
  */
 bool EthKvbCommandsHandler::handle_eth_callContract(
     const ConcordRequest &concreq, EthKvbStorage &kvbStorage,
-    TimeContract *time, ConcordResponse &concresp) const {
+    TimeContract *time, ConcordResponse &concresp) {
   const EthRequest request = concreq.eth_request(0);
 
   uint64_t timestamp = 0;
@@ -895,9 +908,10 @@ uint64_t EthKvbCommandsHandler::parse_block_parameter(
 /**
  * Pass a transaction or call to the EVM for execution.
  */
-evm_result EthKvbCommandsHandler::run_evm(
-    const EthRequest &request, EthKvbStorage &kvbStorage, uint64_t timestamp,
-    evm_uint256be &txhash /* OUT */) const {
+evm_result EthKvbCommandsHandler::run_evm(const EthRequest &request,
+                                          EthKvbStorage &kvbStorage,
+                                          uint64_t timestamp,
+                                          evm_uint256be &txhash /* OUT */) {
   evm_message message;
   evm_result result;
 
@@ -1000,8 +1014,11 @@ evm_result EthKvbCommandsHandler::run_evm(
     memcpy(message.destination.bytes, request.addr_to().c_str(),
            sizeof(message.destination));
 
+    stat_evmruns_.Get().Inc();
+    timing_evmrun_.Start();
     result = concevm_.run(message, timestamp, kvbStorage, logs, message.sender,
                           message.destination);
+    timing_evmrun_.End();
   } else {
     message.kind = EVM_CREATE;
 
@@ -1010,8 +1027,11 @@ evm_result EthKvbCommandsHandler::run_evm(
     evm_address contract_address =
         concevm_.contract_destination(message.sender, nonce);
 
+    stat_evmcreates_.Get().Inc();
+    timing_evmcreate_.Start();
     result = concevm_.create(contract_address, message, timestamp, kvbStorage,
                              logs, message.sender);
+    timing_evmcreate_.End();
   }
 
   LOG4CPLUS_DEBUG(logger, "Execution result -"
@@ -1026,9 +1046,11 @@ evm_result EthKvbCommandsHandler::run_evm(
   }
 
   if (!kvbStorage.is_read_only()) {
+    timing_evmwrite_.Start();
     // If this is a transaction, and not just a call, record it.
     txhash = record_transaction(message, request, nonce, result, timestamp,
                                 logs, kvbStorage);
+    timing_evmwrite_.End();
   }
 
   return result;
