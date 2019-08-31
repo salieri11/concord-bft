@@ -17,7 +17,6 @@ import io.grpc.netty.shaded.io.grpc.netty.NettyServerBuilder
 import io.grpc.netty.shaded.io.netty.handler.ssl.ClientAuth
 import io.grpc.netty.shaded.io.netty.handler.ssl.SslContext
 import io.grpc.netty.shaded.io.netty.handler.ssl.SslContextBuilder
-import io.grpc.protobuf.services.ProtoReflectionService
 import java.nio.file.Files
 import java.nio.file.Paths
 import java.util.concurrent.CompletableFuture
@@ -180,7 +179,6 @@ fun main(args: Array<String>) {
             // Use number of cores for a fixed size thread pool.
             // Currently do not account for hyper-threading (i.e. x2). (May need tuning)
             .executor(provisioningServer.inboundRequestExecutorService())
-            .addService(ProtoReflectionService.newInstance())
             .addService(provisioningServer.provisioningService())
             .addService(provisioningServer.orchestrationSiteService())
             .sslContext(sslContext)
