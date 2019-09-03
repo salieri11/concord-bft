@@ -37,7 +37,7 @@ import { addCommon as addCommonProjections } from 'ol/proj.js';
 import { NodeProperties } from './world-map.model';
 import { VmwClarityThemeService } from './../../shared/theme.provider';
 
-import WorldData from './countries-110m.json';
+import * as WorldData from './countries-110m.json';
 
 @Component({
   selector: 'concord-world-map',
@@ -190,42 +190,49 @@ export class WorldMapComponent implements AfterViewInit, OnChanges, OnDestroy {
     this.checkAndSchedulePulseAnimation();
     this.animationInterval = setInterval(this.checkAndSchedulePulseAnimation.bind(this), this.animationDuration + 1000);
 
+    // Testing is throwing errors when we don't wild card import
+    // So for dev server to work we need to get default attribute of
+    // import
+    let data = WorldData;
+    if (WorldData.default) {
+      data = WorldData.default;
+    }
     // Convert GeoJSON source to vector tiles
-    const tileSource = geojsonvt(WorldData, {
-      extent: 4096,
-      debug: 0
-    });
+      const tileSource = geojsonvt(data, {
+        extent: 4096,
+        debug: 0
+      });
 
-    // A layer to hold the world map
-    const countryOutlineLayer = new VectorTileLayer({
-      source: new VectorTileSource({
-        format: new GeoJSON(),
-        wrapX: false,
-        tileLoadFunction: function(tile: VectorTile) {
-          const format = tile.getFormat();
-          const tileCoord = tile.getTileCoord();
-          // Grab the desired tile from the geojsonvt vector tile source
-          const data = tileSource.getTile(tileCoord[0], tileCoord[1], -tileCoord[2] - 1);
-          // Convert it to GeoGSON
-          const features = format.readFeatures({
-            type: 'FeatureCollection',
-            features: (data.features || []).map(vectorTileFeatureToGeoJsonFeature)
-          });
-          tile.setLoader(function() {
-            tile.setFeatures(features);
-            tile.setProjection(tilePixels);
-          });
-        },
-        url: 'data:', // Fake a URL, otherwise tileLoadFunction won't be called
-        projection: null
-      }),
-      style: countryStyle
-    });
+      // A layer to hold the world map
+      const countryOutlineLayer = new VectorTileLayer({
+        source: new VectorTileSource({
+          format: new GeoJSON(),
+          wrapX: false,
+          tileLoadFunction: function(tile: VectorTile) {
+            const format = tile.getFormat();
+            const tileCoord = tile.getTileCoord();
+            // Grab the desired tile from the geojsonvt vector tile source
+            const data = tileSource.getTile(tileCoord[0], tileCoord[1], -tileCoord[2] - 1);
+            // Convert it to GeoGSON
+            const features = format.readFeatures({
+              type: 'FeatureCollection',
+              features: (data.features || []).map(vectorTileFeatureToGeoJsonFeature)
+            });
+            tile.setLoader(function() {
+              tile.setFeatures(features);
+              tile.setProjection(tilePixels);
+            });
+          },
+          url: 'data:', // Fake a URL, otherwise tileLoadFunction won't be called
+          projection: null
+        }),
+        style: countryStyle
+      });
 
-    // Insert this layer behind all other layers
-    this.map.getLayers().insertAt(0, countryOutlineLayer);
-    this.map.updateSize();
-    this.viewFit();
+      // Insert this layer behind all other layers
+      this.map.getLayers().insertAt(0, countryOutlineLayer);
+      this.map.updateSize();
+      this.viewFit();
   }
 
   /**

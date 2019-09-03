@@ -57,7 +57,9 @@ export class MainComponent implements OnInit, OnDestroy {
   set selectedConsortium(id: string) {
     const selectObs = this.blockchainService.select(id).subscribe(selected => {
       this.enableRouterOutlet = selected;
-      selectObs.unsubscribe();
+      if (selectObs) {
+        selectObs.unsubscribe();
+      }
     });
   }
 

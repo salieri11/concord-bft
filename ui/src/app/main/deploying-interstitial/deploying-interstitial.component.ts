@@ -6,8 +6,8 @@ import { Component } from '@angular/core';
 import { Router } from '@angular/router';
 import { HttpResponse, HttpErrorResponse } from '@angular/common/http';
 import { TranslateService } from '@ngx-translate/core';
-import {of, Observable} from 'rxjs';
-import {delay, map} from 'rxjs/operators';
+import { of, Observable } from 'rxjs';
+import { delay, map } from 'rxjs/operators';
 
 import { BlockchainService } from '../../shared/blockchain.service';
 import { ContractEngines } from '../../shared/blockchain.model';

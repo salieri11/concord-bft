@@ -214,15 +214,16 @@ export class BlockchainResolver implements Resolve<boolean> {
 }
 
 export class BlockchainsServiceMock {
-  public notify = new BehaviorSubject(null);
+  public notify = new BehaviorSubject({message: '', type: ''});
   public selectedBlockchain = {
     consortium_id: 1
   };
   public blockchains = [];
   public zones = fakeZones;
   public blockchaindId = 1;
-  public select() {
-    return true;
+  public type = ContractEngines.ETH;
+  public select(id: string): Observable<boolean> {
+    return of(typeof id === 'string');
   }
 
   public getZones(): Observable<Zone[]> {
