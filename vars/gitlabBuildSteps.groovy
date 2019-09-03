@@ -287,7 +287,7 @@ def call(){
 
               // Set up repo variables.
               script {
-                env.docker_tag = env.version_param ? env.version_param : env.commit
+                env.docker_tag = env.version_param ? env.version_param : env.BUILD_NUMBER
                 env.release_repo = "vmwblockchain"
                 env.internal_repo_name = "athena-docker-local"
                 env.internal_repo = env.internal_repo_name + ".artifactory.eng.vmware.com"
