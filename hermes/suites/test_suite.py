@@ -251,29 +251,7 @@ class TestSuite(ABC):
       if self._args.ethrpcApiUrl:
          self.ethrpcApiUrl = self._args.ethrpcApiUrl
       else:
-         self.ethrpcApiUrl = self._getEthrpcApiUrl(request, blockchainId)
-
-
-   def _getEthrpcApiUrl(self, request=None, blockchainId=None):
-      '''
-      Fetches a random ethRpc node.  This uses the Product class
-      which gets the nodes by using Helen's getMembers API.
-      '''
-      if not self.ethrpcNodes:
-         if not request:
-            request = rest.request.Request(self.product._productLogsDir,
-                                           "getMembers",
-                                           self._args.reverseProxyApiBaseUrl,
-                                           self._userConfig)
-         self.ethrpcNodes = util.blockchain.eth.getEthrpcNodes(request, blockchainId)
-
-      if self.ethrpcNodes:
-         node = random.choice(self.ethrpcNodes)
-         url = util.blockchain.eth.getUrlFromEthrpcNode(node)
-         return url
-      else:
-         raise Exception("Error: No ethrpc nodes were reported by Helen.")
-
+         self.ethrpcApiUrl = util.blockchain.eth.getEthrpcApiUrl(request, blockchainId)
 
    def _getAUser(self):
       '''

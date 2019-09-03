@@ -872,7 +872,12 @@ class Product():
                            self._userConfig,
                            self.STARTUP_TOKEN_DESCRIPTOR)
          try:
-            nodes = util.blockchain.eth.getEthrpcNodes(request)
+            blockchainId = request.getBlockchains()[0]["id"]
+
+            # We use getMemberList() here because it returns the "liveness"
+            # of nodes reported by Concord, while the /blockchains/{bid} call
+            # returns Helen's knowledge of nodes, which does not include that.
+            nodes = request.getMemberList(blockchainId)
 
             if self.nodesReady(nodes):
                break
@@ -893,7 +898,13 @@ class Product():
       if self._cmdlineArgs.ethrpcApiUrl:
          self._ethrpcApiUrl = self._cmdlineArgs.ethrpcApiUrl
       else:
-         self._ethrpcApiUrl = util.blockchain.eth.getUrlFromEthrpcNode(nodes[0])
+         for node in nodes:
+            if node["rpc_url"]:
+               self._ethrpcApiUrl = node["rpc_url"]
+               break
+
+      if not self._ethrpcApiUrl:
+         log.error("Was not able to retrieve an ethrpc node url from {}".format(nodes))
 
       rpc = RPC(startupLogDir,
                 "addApiUser",
@@ -952,7 +963,9 @@ class Product():
          allReady = True
 
          for node in nodes:
-            allReady = allReady and node["status"] == "live"
+            allReady = allReady and \
+                       "status" in node and \
+                       node["status"] == "live"
 
          return allReady
       else:

@@ -217,8 +217,7 @@ def fxConnection(request, fxBlockchain):
    if fxBlockchain.blockchainId and \
       hermesData["hermesCmdlineArgs"].blockchainType == util.helper.TYPE_ETHEREUM:
 
-      ethrpcNode = util.blockchain.eth.getAnEthrpcNode(request, fxBlockchain.blockchainId)
-      ethrpcUrl = util.blockchain.eth.getUrlFromEthrpcNode(ethrpcNode)
+      ethrpcUrl = util.blockchain.eth.getEthrpcApiUrl(request, fxBlockchain.blockchainId)
       rpc = RPC(request.logDir,
                 request.testName,
                 ethrpcUrl,

@@ -270,7 +270,17 @@ class SimpleStateTransferTest(test_suite.TestSuite):
       tests = self._get_tests()
       for (testName, testFunc) in tests:
          log.info("Starting test " + testName)
-         self.setEthrpcNode()
+         testLogDir = os.path.join(self._testLogDir, testName)
+         # When this suite is switched over to pytest, the request object
+         # and the blockchain ID will be available from fixtures.  For now,
+         # create a request object and derive the blockchain ID here.
+         request = Request(testLogDir,
+                           testName,
+                           self._args.reverseProxyApiBaseUrl,
+                           self._userConfig,
+                           util.auth.internal_admin)
+         blockchainId = request.getBlockchains()[0]["id"]
+         self.setEthrpcNode(request, blockchainId)
          res,info = testFunc()
          self.writeResult(testName, res, info)
 
