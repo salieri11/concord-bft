@@ -1,0 +1,2 @@
+FROM postgres:latest
+COPY daml/create-postgres.sh /docker-entrypoint-initdb.d/

@@ -20,8 +20,8 @@ message ValidateRequest {
   bytes entry_id = 1;
   bytes submission = 2;
   google.protobuf.Timestamp record_time = 3;
-  repeated KeyValuePair input_log_entries = 4;
-  repeated KeyValuePair input_state = 5;
+  repeated KeyValuePair input_state = 4;
+  string participant_id = 5;
 }
 
 message ValidateResponse {

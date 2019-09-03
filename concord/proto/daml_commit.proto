@@ -17,6 +17,8 @@ message CommitRequest {
   bytes submission = 1;
   repeated KVKey input_log_entries = 2;
   repeated KVKey input_state = 3;
+  string participant_id = 4;
+  //TODO: Add signature over the submission
 }
 
 message CommitResponse {
@@ -48,6 +50,8 @@ message Command {
 
 message ReadCommand {
   repeated KVKey reads = 1;
+  string participant_id = 2;
+  //TODO: Add signature over the reads
 }
 
 message CommandReply {

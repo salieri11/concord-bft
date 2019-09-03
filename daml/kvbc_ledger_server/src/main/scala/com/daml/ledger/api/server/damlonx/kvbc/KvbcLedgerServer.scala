@@ -4,6 +4,7 @@ package com.daml.ledger.api.server.damlonx.kvbc
 
 import java.io.File
 import java.time.Instant
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.zip.ZipFile
 
 import akka.actor.ActorSystem
@@ -22,8 +23,10 @@ import scala.compat.java8.FutureConverters._
 import com.digitalasset.platform.common.util.DirectExecutionContext
 import com.digitalasset.kvbc_sync_adapter.KVBCParticipantState
 import com.digitalasset.ledger.api.domain.ParticipantId
+import com.digitalasset.platform.index.{StandaloneIndexServer, StandaloneIndexerServer}
 
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.control.NonFatal
 
 object KvbcLedgerServer extends App {
   val logger = LoggerFactory.getLogger(this.getClass)
@@ -43,48 +46,54 @@ object KvbcLedgerServer extends App {
       .fold(t => throw new RuntimeException(s"Failed to parse DAR from $file", t), dar => dar.all)
   }
 
-  // We expect the first argument to be the core replica address
-  val replicaAddr = args(0).split(":")
-  val (ip, port) = (replicaAddr(0), replicaAddr(1).toInt)
-
-  // Name of this participant
-  val participantId: String = args(1)
-  val serverPort = 6865
+  val extConfig = Cli.parse(args, "ledger-api-server","vDAML Ledger API Server").getOrElse(sys.exit(1))
 
   logger.info(
     s"""Initialized vDAML ledger api server: version=${BuildInfo.Version},
-       |participantId=$participantId, port=$serverPort,
+       |participantId=${extConfig.participantId.toString}, port=${extConfig.config.port},
+       |jdbcUrl=${extConfig.config.jdbcUrl},
        |dar file(s)=${args.drop(2).mkString("(", ";", ")")}""".stripMargin.replaceAll("\n", " "))
 
   logger.info(s"Connecting to core replica ${args(0)}")
-  val kvbcPS = KVBCParticipantState(
-    "KVBC", participantId, ip, port)
+  val ledger = KVBCParticipantState(
+    "KVBC", extConfig.participantId, extConfig.replicaHost, extConfig.replicaPort, true)
+
+  val readService = ledger
+  val writeService = ledger
+
+  val indexerServer = StandaloneIndexerServer(readService, extConfig.config.jdbcUrl)
+  val indexServer = StandaloneIndexServer(extConfig.config, readService, writeService).start()
+
+  extConfig.config.archiveFiles.foreach { f =>
+    val archives = archivesFromDar(f)
+    archives.foreach { archive =>
+      logger.info(s"Uploading package ${archive.getHash}...")
+    }
+    ledger.uploadPackages(archives, Some("uploaded on startup by participant"))
+  }
 
   implicit val ec: ExecutionContext = DirectExecutionContext
-  kvbcPS.getLedgerInitialConditions.runWith(Sink.head)
-    .flatMap { initialConditions =>
-      // Upload archives.
-      kvbcPS.uploadPackages(
-          args
-            .drop(2)
-            .flatMap { arg => archivesFromDar(new File(arg)) }
-            .toList,
-          Some("Uploaded on command-line"))
-        .toScala
-        .map { _ =>
-          initialConditions
-        }}
-    .foreach { initialConditions =>
-      val indexService = ReferenceIndexService(kvbcPS, initialConditions, Ref.LedgerString.assertFromString(participantId))
 
-      val server = Server(
-        serverPort,
-        indexService = indexService,
-        writeService = kvbcPS,
-        sslContext = None
-      )
+  val closed = new AtomicBoolean(false)
 
-      // Add a hook to close the server. Invoked when Ctrl-C is pressed.
-      Runtime.getRuntime.addShutdownHook(new Thread(() => server.close()))
+  def closeServer(): Unit = {
+    if (closed.compareAndSet(false, true)) {
+      indexServer.close()
+      indexerServer.close()
+      //ledger.close()
+      materializer.shutdown()
+      val _ = system.terminate()
     }
+  }
+
+  try
+    Runtime.getRuntime.addShutdownHook(new Thread(() => {
+      closeServer()
+    }))
+  catch {
+    case NonFatal(t) =>
+      logger.error("Shutting down Sandbox application because of initialization error", t)
+      closeServer()
+  }
+
 }

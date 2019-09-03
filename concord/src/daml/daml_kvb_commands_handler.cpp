@@ -91,16 +91,14 @@ bool DamlKvbCommandsHandler::ExecuteCommit(
   }
 
   // Resolve the inputs
-  std::map<string, string> input_log_entries =
-      GetFromStorage(commit_req.input_log_entries());
   std::map<string, string> input_state_entries =
       GetFromStorage(commit_req.input_state());
 
   // Send the submission for validation.
   da_kvbc::ValidateResponse response;
   grpc::Status status = validator_client_->Validate(
-      entryId, commit_req.submission(), record_time, input_log_entries,
-      input_state_entries, &response);
+      entryId, commit_req.submission(), record_time, input_state_entries,
+      commit_req.participant_id(), &response);
   if (!status.ok()) {
     LOG4CPLUS_ERROR(logger_, "Validation failed " << status.error_code() << ": "
                                                   << status.error_message());
