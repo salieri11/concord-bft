@@ -193,12 +193,12 @@ export class WorldMapComponent implements AfterViewInit, OnChanges, OnDestroy {
     // Testing is throwing errors when we don't wild card import
     // So for dev server to work we need to get default attribute of
     // import
-    let data = WorldData;
+    let worldData = WorldData;
     if (WorldData.default) {
-      data = WorldData.default;
+      worldData = WorldData.default;
     }
     // Convert GeoJSON source to vector tiles
-      const tileSource = geojsonvt(data, {
+      const tileSource = geojsonvt(worldData, {
         extent: 4096,
         debug: 0
       });
