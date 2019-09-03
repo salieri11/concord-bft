@@ -27,9 +27,15 @@ CONFIG_JSON = "resources/user_config.json"
 
 # These are command line options for --blockchainLocation.  Various parts
 # of the code need to know them.
-LOCAL_BLOCKCHAIN = "local"
-SDDC_BLOCKCHAIN = "sddc"
-ONPREM_BLOCKCHAIN = "onprem"
+LOCATION_LOCAL = "local"
+LOCATION_SDDC = "sddc"
+LOCATION_ONPREM = "onprem"
+
+# These are command line options for --blockchainType.
+# These need to match Helen.  See helen/src/main/resources/api-doc/api.yaml.
+TYPE_ETHEREUM = "ethereum"
+TYPE_DAML = "daml"
+TYPE_HLF = "hlf"
 
 def copy_docker_env_file(docker_env_file=docker_env_file):
    '''
@@ -372,6 +378,49 @@ def distributeItemsRoundRobin(numSlots, availableItems):
 
 def helenIsRemote(args):
    return "localhost" not in args.reverseProxyApiBaseUrl
+
+
+def blockchainIsRemote(args):
+   return args.blockchainLocation != util.helper.LOCATION_LOCAL
+
+
+def setUpDeploymentEventListening(cmdlineArgs):
+   '''
+   Start collecting deployment events, if:
+   - We are using the local Helen, which assumes we are using a local Persephone.
+     We do not listen for events when using the remote staging or production Persephone
+     because those are used by multiple people, and the suite can end up deleting other
+     people's data.
+   - Blockchain is remote (We're not using the built in R&D blockchain).
+   - We're not running the Persephone test suite. (It takes care of its own cleanup.)
+
+   Returns an object which is used to clean up the deployment.
+   This will all go away when Helen does deletion.
+   '''
+   if helenIsRemote(cmdlineArgs):
+      # Temporary:
+      # When using a remote Helen/Persephone and deploying to an SDDC,
+      # the user will have to clean up their own resources.
+      log.warning("Hermes will deploy remote resources (e.g. on an SDDC), but cannot remove them.")
+      log.warning("You will need to do that when the tests are done.")
+      sleep(3)
+   else:
+      if blockchainIsRemote(cmdlineArgs) and \
+         "persephone".lower() not in cmdlineArgs.suite and \
+         not cmdlineArgs.keepBlockchain:
+
+         if "persephone" not in str(cmdlineArgs.dockerComposeFile).lower():
+            errorString = "No Persephone docker-compose yaml file found. You probably want to add " \
+                          "the option: \n" \
+                          "--dockerComposeFile ../docker/docker-compose.yml ../docker/docker-compose-persephone.yml"
+            raise Exception(errorString)
+
+         checkRpcTestHelperImport()
+         from persephone import rpc_test_helper
+         cmdlineArgs.userConfig = loadConfigFile(cmdlineArgs)
+         logDir = os.path.join(cmdlineArgs.resultsDir, "deploymentEvents")
+         log.info("Monitoring blockchain deployments for deletion later.")
+         return rpc_test_helper.startMonitoringBlockchainDeployments(cmdlineArgs, logDir)
 
 
 def replaceUrlParts(url, newPort=None, newScheme=None):

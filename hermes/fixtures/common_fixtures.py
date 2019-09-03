@@ -39,7 +39,7 @@ def retrieveCustomCmdlineData(pytestRequest):
     }
 
 
-def setUpPortForwarding(url, creds, timeout=150):
+def setUpPortForwarding(url, creds, timeout=300):
    '''
    Given a url and credentials, set up port forwarding.
    The VMs should be ready in two minutes; default timeout is 2.5 min just
@@ -58,12 +58,53 @@ def setUpPortForwarding(url, creds, timeout=150):
 
       if not portForwardingSuccess:
          log.info("Port forwarding setup failed.  The VM is probably still coming up. " \
-                  "Trying again in {} seconds".format(interval))
+                  "Trying again in {} seconds. ({} seconds taken so far.)".format(interval, timeTaken))
          time.sleep(interval)
          timeTaken += interval
 
    if not portForwardingSuccess:
        raise Exception("Failed to set up port forwarding on deployed nodes. Aborting.")
+
+
+def deployToSddc(logDir, hermesData):
+   conAdminRequest = Request(logDir,
+                             "fxBlockchain",
+                             hermesData["hermesCmdlineArgs"].reverseProxyApiBaseUrl,
+                             hermesData["hermesUserConfig"],
+                             tokenDescriptor=util.auth.default_con_admin)
+   # Use an existing blockchain if present?
+   # blockchains = conAdminRequest.getBlockchains()
+   suffix = util.numbers_strings.random_string_generator()
+   conName = "con_{}".format(suffix)
+   conResponse = conAdminRequest.createConsortium(conName)
+   conId = conResponse["consortium_id"]
+   zoneIds = []
+
+   for zone in conAdminRequest.getZones():
+       zoneIds.append(zone["id"])
+
+   siteIds = util.helper.distributeItemsRoundRobin(4, zoneIds)
+   response = conAdminRequest.createBlockchain(conId,
+                                               siteIds,
+                                               blockchainType=hermesData["hermesCmdlineArgs"].blockchainType.upper())
+   taskId = response["task_id"]
+   timeout=60*15
+   success, response = util.helper.waitForTask(conAdminRequest, taskId, timeout=timeout)
+
+   if success:
+      blockchainId = response["resource_id"]
+      blockchainDetails = conAdminRequest.getBlockchainDetails(blockchainId)
+      log.info("Details of the deployed blockchain, in case you need to delete its resources " \
+               "manually: {}".format(json.dumps(blockchainDetails, indent=4)))
+
+      if hermesData["hermesCmdlineArgs"].blockchainType.lower() == util.helper.TYPE_ETHEREUM:
+         for replicaDetails in blockchainDetails["node_list"]:
+             setUpPortForwarding(replicaDetails["url"],
+                                 hermesData["hermesUserConfig"]["persephoneTests"]["provisioningService"]["concordNode"])
+   else:
+      raise Exception("Failed to deploy a new blockchain.")
+
+   return blockchainId, conId
 
 
 @pytest.fixture(scope="module")
@@ -84,6 +125,8 @@ def fxBlockchain(request):
    The accepted parameter, "request", is an internal PyTest name and must be that.  It contains
    information about the PyTest invocation.
    '''
+   blockchainId = None
+   conId = None
    hermesData = retrieveCustomCmdlineData(request)
    logDir = os.path.join(hermesData["hermesTestLogDir"], "fxBlockchain")
    devAdminRequest = Request(logDir,
@@ -96,37 +139,7 @@ def fxBlockchain(request):
       raise Exception("On prem deployments not supported yet.")
    elif hermesData["hermesCmdlineArgs"].blockchainLocation == "sddc":
       log.warn("Test suites may not work with SDDC deployments yet.  See Jira for the plan.")
-      conAdminRequest = Request(logDir,
-                                "fxBlockchain",
-                                hermesData["hermesCmdlineArgs"].reverseProxyApiBaseUrl,
-                                hermesData["hermesUserConfig"],
-                                tokenDescriptor=util.auth.default_con_admin)
-      blockchains = conAdminRequest.getBlockchains()
-      suffix = util.numbers_strings.random_string_generator()
-      conName = "con_{}".format(suffix)
-      conResponse = conAdminRequest.createConsortium(conName)
-      conId = conResponse["consortium_id"]
-      zoneIds = []
-
-      for zone in conAdminRequest.getZones():
-          zoneIds.append(zone["id"])
-
-      siteIds = util.helper.distributeItemsRoundRobin(4, zoneIds)
-      response = conAdminRequest.createBlockchain(conId, siteIds)
-      taskId = response["task_id"]
-      timeout=60*15
-      success, response = util.helper.waitForTask(conAdminRequest, taskId, timeout=timeout)
-
-      if success:
-          blockchainId = response["resource_id"]
-          blockchainDetails = conAdminRequest.getBlockchainDetails(blockchainId)
-          log.info("Details of the deployed blockchain, in case you need to delete its resources " \
-                   "manually: {}".format(json.dumps(blockchainDetails, indent=4)))
-          for replicaDetails in blockchainDetails["node_list"]:
-             setUpPortForwarding(replicaDetails["url"],
-                                 hermesData["hermesUserConfig"]["persephoneTests"]["provisioningService"]["concordNode"])
-      else:
-          raise Exception("Failed to deploy a new blockchain.")
+      blockchainId, conId = deployToSddc(logDir, hermesData)
    elif len(devAdminRequest.getBlockchains()) > 0:
       # Hermes was not told to deloy a new blockchain, and there is one.  That means
       # we are using the default built in test blockchain.
@@ -201,7 +214,9 @@ def fxConnection(request, fxBlockchain):
                      hermesData["hermesUserConfig"],
                      tokenDescriptor=tokenDescriptor)
 
-   if fxBlockchain.blockchainId:
+   if fxBlockchain.blockchainId and \
+      hermesData["hermesCmdlineArgs"].blockchainType == util.helper.TYPE_ETHEREUM:
+
       ethrpcNode = util.blockchain.eth.getAnEthrpcNode(request, fxBlockchain.blockchainId)
       ethrpcUrl = util.blockchain.eth.getUrlFromEthrpcNode(ethrpcNode)
       rpc = RPC(request.logDir,

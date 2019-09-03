@@ -73,6 +73,7 @@ class Product():
    }
 
    def __init__(self, cmdlineArgs, userConfig, suite=None):
+      self._cleanupData = None
       self._cmdlineArgs = cmdlineArgs
       self._userConfig = userConfig
       self.userProductConfig = userConfig["product"]
@@ -114,6 +115,8 @@ class Product():
             if numAttempts < self._cmdlineArgs.productLaunchAttempts:
                log.info("Stopping whatever was launched and attempting to launch again.")
                self.stopProduct()
+
+      self._cleanupData = util.helper.setUpDeploymentEventListening(self._cmdlineArgs)
 
       if not launched:
          raise Exception("Failed to launch the product after {} attempt(s). Exiting".format(numAttempts))
@@ -609,10 +612,11 @@ class Product():
 
          if containerIds:
             containerId = containerIds[0]
-            if numTries < maxTries:
-               numTries += 1
-               log.debug("Will try again in {} seconds.".format(sleepTime))
-               time.sleep(sleepTime)
+
+         if numTries < maxTries:
+            numTries += 1
+            log.debug("Will try again in {} seconds.".format(sleepTime))
+            time.sleep(sleepTime)
 
       return containerId
 
@@ -806,6 +810,14 @@ class Product():
       Stops the product executables, closes the logs, and generates logs for
       services which may have run too quickly or failed to start.
       '''
+      log.debug("Stopping the product.  cleanupData: {}".format(self._cleanupData))
+      if self._cleanupData and not self._cmdlineArgs.keepBlockchain:
+         from persephone import rpc_test_helper
+         log.info("Initiating blockchain deployment cleanup...")
+         rpc_test_helper.cleanUpBlockchainDeployments(self._cleanupData)
+         self._cleanupData = None
+         log.info("Finished blockchain deployment cleanup.")
+
       self._logServicesAtEnd()
 
       self.stopMemoryLeakNode()

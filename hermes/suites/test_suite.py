@@ -133,6 +133,7 @@ class TestSuite(ABC):
 
       os.rename(tempFile, realFile)
 
+
    def launchProduct(self, cmdlineArgs, userConfig, force=False):
       '''
       Creates the test suite's Product object and, if appropriate,
@@ -159,7 +160,7 @@ class TestSuite(ABC):
       - Be sure replaceable values in the Persephone config.json file have been replaced
         with real values.
       '''
-      if self._args.blockchainLocation != util.helper.LOCAL_BLOCKCHAIN:
+      if self._args.blockchainLocation != util.helper.LOCATION_LOCAL:
          foundPersephoneDockerConfig = False
 
          for key in dockerCfg["services"].keys():
