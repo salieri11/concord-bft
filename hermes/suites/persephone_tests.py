@@ -5,6 +5,7 @@
 #########################################################################
 import os
 import sys
+import util
 import json
 import time
 import logging
@@ -229,7 +230,8 @@ class PersephoneTests(test_suite.TestSuite):
       rpc = RPC(self.args.fileRoot,
                 "verify_ethrpc_block_0",
                 "http://{}:{}".format(concord_ip, ethrpc_port),
-                self._userConfig)
+                self._userConfig,
+                util.auth.internal_admin)
       try:
          currentBlockNumber = rpc.getBlockNumber()
          log.info("Current Block Number: {}".format(currentBlockNumber))
