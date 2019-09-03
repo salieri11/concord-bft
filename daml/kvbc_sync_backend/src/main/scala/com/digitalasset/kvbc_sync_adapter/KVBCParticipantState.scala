@@ -23,7 +23,7 @@ import org.slf4j.LoggerFactory
 
 import scala.collection.JavaConverters._
 import scala.compat.java8.FutureConverters._
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.ExecutionContext
 import java.util.concurrent.CompletionStage
 import java.util.concurrent.CompletableFuture
 import java.util.UUID
@@ -32,8 +32,6 @@ import com.digitalasset.daml.lf.data.Ref.Party
 import com.digitalasset.daml.lf.data.Time.Timestamp
 import com.digitalasset.kvbc.daml_events.CommittedTx
 import com.digitalasset.ledger.api.domain.PartyDetails
-import com.digitalasset.ledger.api.v1.admin.party_management_service.AllocatePartyResponse
-import com.google.protobuf.ByteString
 import io.grpc.ConnectivityState
 
 /**
@@ -287,7 +285,7 @@ class KVBCParticipantState(
 
         config = Configuration(
           generation = 0,
-          timeModel = TimeModel(Duration.ofSeconds(1), Duration.ofSeconds(1), Duration.ofMinutes(2)).get,
+          timeModel = TimeModel(Duration.ofSeconds(1), Duration.ofSeconds(10), Duration.ofMinutes(2)).get,
           authorizedParticipantId = Some(participantId),
           openWorld = openWorld
         ),

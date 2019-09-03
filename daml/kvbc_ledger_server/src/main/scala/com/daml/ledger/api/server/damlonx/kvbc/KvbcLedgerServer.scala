@@ -3,29 +3,20 @@
 package com.daml.ledger.api.server.damlonx.kvbc
 
 import java.io.File
-import java.time.Instant
 import java.util.concurrent.atomic.AtomicBoolean
-import java.util.zip.ZipFile
 
 import akka.actor.ActorSystem
-import akka.stream.scaladsl.Sink
 import akka.stream.{ActorMaterializer, ActorMaterializerSettings, Supervision}
-import com.daml.ledger.api.server.damlonx.Server
-import com.daml.ledger.participant.state.index.v1.impl.reference.ReferenceIndexService
 import com.digitalasset.daml.lf.archive.DarReader
 import com.digitalasset.daml_lf.DamlLf.Archive
-import com.daml.ledger.participant.state.backport.TimeModel
-import com.digitalasset.daml.lf.data.Ref
 import org.slf4j.LoggerFactory
 
 import scala.util.Try
-import scala.compat.java8.FutureConverters._
 import com.digitalasset.platform.common.util.DirectExecutionContext
 import com.digitalasset.kvbc_sync_adapter.KVBCParticipantState
-import com.digitalasset.ledger.api.domain.ParticipantId
 import com.digitalasset.platform.index.{StandaloneIndexServer, StandaloneIndexerServer}
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.ExecutionContext
 import scala.util.control.NonFatal
 
 object KvbcLedgerServer extends App {

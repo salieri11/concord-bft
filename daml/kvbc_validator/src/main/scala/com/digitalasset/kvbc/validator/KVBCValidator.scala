@@ -13,7 +13,6 @@ import com.digitalasset.daml.lf.engine.Engine
 import com.daml.ledger.participant.state.backport.TimeModel
 import org.slf4j.LoggerFactory
 
-import scala.collection.breakOut
 import scala.concurrent.Future
 
 class KVBCValidator extends ValidationServiceGrpc.ValidationService {
@@ -22,7 +21,7 @@ class KVBCValidator extends ValidationServiceGrpc.ValidationService {
   // FIXME(JM): Make part of request
   private val config = Configuration(
     0,
-    TimeModel(Duration.ofSeconds(1), Duration.ofSeconds(1), Duration.ofMinutes(2)).get,
+    TimeModel(Duration.ofSeconds(1), Duration.ofSeconds(10), Duration.ofMinutes(2)).get,
     None,
     true)
 
