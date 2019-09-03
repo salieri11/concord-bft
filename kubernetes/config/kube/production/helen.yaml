@@ -19,6 +19,9 @@ spec:
       - name: helen
         image: vmware-docker-blockchainsaas.bintray.io/helen:latest
         imagePullPolicy: Always
+        env:
+        - name: APPCONTEXT
+          value: "production"
         ports:
         - containerPort: 8080
         volumeMounts:

@@ -1,29 +1,41 @@
 import os
 import sys
 
-BINTRAY_KEY="0ee8cfa59bb2a5c1e8c7697a6670a0bf919decfd"
-BINTRAY_USER="bsubramanian@vmware"
-BINTRAY_REPO="blockchainsaas"
-BINTRAY_REPO_URL="vmware-docker-blockchainsaas.bintray.io"
-BINTRAY_API="https://api.bintray.com/"
-BINTRAY_TAG="latest"
-
-BC_PACKAGES={
-            "saas": ["ui", "contract-compiler", "persephone-provisioning",
-                    "persephone-metadata", "helen"],
-            "blockchain": ["concord-core", "agent", "ethrpc"]
-            }
-
 ARTIFACTORY_API="https://build-artifactory.eng.vmware.com/artifactory/api"
 ARTIFACTORY_REPO="athena-docker-local"
 ARTIFACTORY_REPO_URL="%s.artifactory.eng.vmware.com" % (ARTIFACTORY_REPO)
 ARTIFACTORY_USER="bsubramanian"
-ARTIFACTORY_KEY="<ARTI_KEY>"
 
-
-AWS_ACCESS_KEY_ID="AKIAI2AOLGCWGGEY53WA"
-AWS_SECRET_ACCESS_KEY="<AWS_ACCESS_KEY>"
 AWS_BUCKET="vmbc-saas"
+
+BINTRAY_USER="bsubramanian@vmware"
+BINTRAY_REPO="blockchainsaas"
+BINTRAY_SUBJECT="vmware"
+BINTRAY_REPO_URL="vmware-docker-blockchainsaas.bintray.io"
+BINTRAY_API="https://api.bintray.com/"
+BINTRAY_COMMIT_LABEL = "docker_label_com_vmware_blockchain_commit"
+BINTRAY_BUILD_LABEL = "docker_label_com_vmware_blockchain_version"
+
+
+BC_COMPONENTS={
+            "saas": ["ui", "contract-compiler", "persephone-provisioning",
+                    "persephone-metadata", "helen", "persephone-configuration",
+                    "persephone-ipam"],
+            "blockchain": ["concord-core", "agent", "ethrpc"]
+            }
+
+CSP_PROD = "https://console.cloud.vmware.com/csp/gateway"
+CSP_STG = "https://console-stg.cloud.vmware.com/csp/gateway"
+
+GIT_API = "https://git.eng.vmware.com/desperado/api/repos"
+GITLAB_API = "https://gitlab.eng.vmware.com/api/v4/"
+GITLAB_DEFAULT_GROUP = "blockchain"
+GITLAB_DEFAULT_REPO = "vmwathena_blockchain"
+
+IPAM_URL = "ipam-vmbc.cloud.vmware.com:443"
+
+VAULT_ENDPOINT = "http://10.78.20.9:8200"
+VAULT_KEY = os.environ.get("VAULT_KEY", None)
 
 
 KUBE_CONFIGS = {
