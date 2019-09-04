@@ -1,0 +1,27 @@
+<html>
+  <head>
+    <title>Concord Replica Timing</title>
+    <script src="https://d3js.org/d3.v4.js"></script>
+  </head>
+  <body>
+    <h2>Key</h2>
+    <dl>
+      <dt>Dark Colored Line</dt>
+      <dd>Mean value stat_avg_us</dd>
+
+      <dt>Grey Line</dt>
+      <dd>Median value stat_p50_us</dd>
+
+      <dt>Shaded background</dt>
+      <dd>Min/max range stat_min_us to stat_max_us</dd>
+    </dl>
+
+    <table id="my_dataviz">
+      <tr id="header"><th>stat name</th><!-- filenames will go in columns here --></tr>
+      <!-- stats will go in rows here -->
+    </table>
+
+    <script src="filenames.js"></script>
+    <script src="viewer.js"></script>
+  </body>
+</html>
