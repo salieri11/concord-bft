@@ -26,13 +26,19 @@ def test_core_vm_tests(fxCoreVMTests, fxHermesRunSettings, fxConnection, fxBlock
    ethrpcUrl = fxHermesRunSettings["hermesCmdlineArgs"].ethrpcApiUrl
    if not ethrpcUrl:
       blockchainLocation = fxHermesRunSettings["hermesCmdlineArgs"].blockchainLocation
-      useITApprovedPort = blockchainLocation != util.helper.LOCATION_LOCAL
-      scheme = "https" if blockchainLocation == util.helper.LOCATION_LOCAL else "http"
+      useITApprovedPort = False
+      scheme = "https"
+
+      # Hack for VMware firewall.
+      if util.helper.blockchainIsRemote(fxHermesRunSettings["hermesCmdlineArgs"]) or \
+         util.helper.helenIsRemote(fxHermesRunSettings["hermesCmdlineArgs"]):
+         useITApprovedPort = True
+         scheme = "http"
+
       ethrpcUrl = util.blockchain.eth.getEthrpcApiUrl(fxConnection.request,
                                                       fxBlockchain.blockchainId,
                                                       useITApprovedPort,
                                                       scheme=scheme)
-
    if not isSourceCodeTestFile(fxCoreVMTests):
       testCompiled = loadCompiledTest(fxCoreVMTests)
       assert testCompiled, "Unable to load compiled test."
@@ -48,7 +54,8 @@ def test_core_vm_tests(fxCoreVMTests, fxHermesRunSettings, fxConnection, fxBlock
                                 testCompiled,
                                 testLogDir,
                                 ethrpcUrl,
-                                fxHermesRunSettings["hermesUserConfig"])
+                                fxHermesRunSettings["hermesUserConfig"],
+                                fxConnection)
       assert result, info
 
 def loadCompiledTest(test):
@@ -75,7 +82,8 @@ def isSourceCodeTestFile(name):
    '''
    return TEST_SOURCE_CODE_SUFFIX in name
 
-def runRpcTest(testPath, testSource, testCompiled, testLogDir, ethrpcUrl, userConfig):
+def runRpcTest(testPath, testSource, testCompiled, testLogDir,
+               ethrpcUrl, userConfig, fxConnection):
    ''' Runs one test. '''
    success = None
    info = None
@@ -94,10 +102,12 @@ def runRpcTest(testPath, testSource, testCompiled, testLogDir, ethrpcUrl, userCo
    rpc = RPC(testLogDir,
              testName,
              ethrpcUrl,
-             userConfig)
+             userConfig,
+             tokenDescriptor=fxConnection.rpc.tokenDescriptor)
    gas = util.blockchain.eth.highGas
    testData = testCompiled[testName]["exec"]["data"]
    log.info("Starting test '{}'".format(testPath))
+
 
    if expectTxSuccess:
       testExecutionCode = util.blockchain.eth.addCodePrefix(testExecutionCode)

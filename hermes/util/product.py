@@ -2,7 +2,6 @@
 # Copyright 2018 - 2019 VMware, Inc.  All rights reserved. -- VMware Confidential
 #########################################################################
 import atexit
-import collections
 import json
 import logging
 import os
@@ -153,20 +152,6 @@ class Product():
 
       return True
 
-
-   def mergeDictionaries(self, orig, new):
-      '''Python's update() simply replaces keys at the top level.'''
-      for newK, newV in new.items():
-         if newK in orig:
-            if isinstance(newV, collections.Mapping):
-               self.mergeDictionaries(orig[newK], newV)
-            elif isinstance(newV, list):
-               orig[newK] = orig[newK] + newV
-            else:
-               orig[newK] = newV
-         else:
-            orig[newK] = newV
-
    def _isHelenInDockerCompose(self, dockerCfg):
       for service in dockerCfg['services']:
           if "helen" in service:
@@ -306,7 +291,7 @@ class Product():
       for cfgFile in self._cmdlineArgs.dockerComposeFile:
          with open(cfgFile, "r") as f:
             newCfg = yaml.load(f, Loader=yaml.FullLoader)
-            self.mergeDictionaries(fullConfig, newCfg)
+            util.helper.mergeDictionaries(fullConfig, newCfg)
 
       return fullConfig
 

@@ -3,6 +3,7 @@
 #########################################################################
 
 # Helper file with common utility methods
+import collections
 import os
 import yaml
 import json
@@ -403,7 +404,7 @@ def setUpDeploymentEventListening(cmdlineArgs):
       # the user will have to clean up their own resources.
       log.warning("Hermes will deploy remote resources (e.g. on an SDDC), but cannot remove them.")
       log.warning("You will need to do that when the tests are done.")
-      sleep(3)
+      time.sleep(3)
    else:
       if blockchainIsRemote(cmdlineArgs) and \
          "persephone".lower() not in cmdlineArgs.suite and \
@@ -437,3 +438,17 @@ def replaceUrlParts(url, newPort=None, newScheme=None):
                urlObj.query,
                urlObj.fragment)
    return urlunparse(newParts)
+
+
+def mergeDictionaries(orig, new):
+   '''Python's update() simply replaces keys at the top level.'''
+   for newK, newV in new.items():
+      if newK in orig:
+         if isinstance(newV, collections.Mapping):
+            mergeDictionaries(orig[newK], newV)
+         elif isinstance(newV, list):
+            orig[newK] = orig[newK] + newV
+         else:
+            orig[newK] = newV
+      else:
+         orig[newK] = newV
