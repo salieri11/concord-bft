@@ -183,9 +183,17 @@
         <!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         ~ Third-party test dependencies. (Lexicographical order)    ~
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
-         <dependency>
+        <dependency>
             <groupId>io.micrometer</groupId>
             <artifactId>micrometer-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-wavefront</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-prometheus</artifactId>
         </dependency>
         <dependency>
             <groupId>io.zonky.test</groupId>
@@ -247,9 +255,9 @@
         </dependency>
     </dependencies>
 
-    <!-- Dependencies need for running GenericDaoTests on windows. 
+    <!-- Dependencies need for running GenericDaoTests on windows.
          I'm probably the only person that cares about this section
-    -->    
+    -->
     <profiles>
         <profile>
             <id>platform-windows</id>
@@ -267,7 +275,7 @@
                     <scope>test</scope>
                 </dependency>
             </dependencies>
-        </profile>    
+        </profile>
     </profiles>
 
     <build>
