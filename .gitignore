@@ -40,6 +40,7 @@ priv/www/index.html
 priv/www/assets/*
 helen/src/main/resources/static/assets/*
 helen/src/main/resources/static/index.html
+helen/log
 *~
 
 # External tool builders
