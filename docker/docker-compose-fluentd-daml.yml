@@ -57,3 +57,31 @@ services:
       options:
         fluentd-address: 0.0.0.0:24224
         tag: daml_ledger_api
+
+  concord1:
+    logging:
+      driver: fluentd
+      options:
+        fluentd-address: 0.0.0.0:24224
+        tag: concord
+
+  concord2:
+    logging:
+      driver: fluentd
+      options:
+        fluentd-address: 0.0.0.0:24224
+        tag: concord
+
+  concord3:
+    logging:
+      driver: fluentd
+      options:
+        fluentd-address: 0.0.0.0:24224
+        tag: concord
+
+  concord4:
+    logging:
+      driver: fluentd
+      options:
+        fluentd-address: 0.0.0.0:24224
+        tag: concord
