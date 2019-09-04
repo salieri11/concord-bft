@@ -21,6 +21,8 @@ import com.squareup.kotlinpoet.asClassName
 import com.squareup.kotlinpoet.asTypeName
 import com.vmware.blockchain.protobuf.kotlinx.serialization.ByteString
 import com.vmware.blockchain.protobuf.kotlinx.serialization.GeneratedModel
+import com.vmware.blockchain.protobuf.kotlinx.serialization.ProtoFileDescriptor
+import com.vmware.blockchain.protobuf.kotlinx.serialization.encodeBase64
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerialId
 import kotlinx.serialization.Serializable
@@ -30,6 +32,8 @@ import kotlinx.serialization.protobuf.ProtoType
 /**
  * Denotes the context for code-generation based on a given Protocol Buffer descriptor file.
  *
+ * @property[knownFiles]
+ *   mapping of known .proto definitions to the associated type's canonical class name.
  * @property[knownTypes]
  *   mapping of known type literals (as would be seen in Protocol Buffer descriptor) to the
  *   associated type's canonical class name.
@@ -39,6 +43,7 @@ import kotlinx.serialization.protobuf.ProtoType
  *   name of the package in the source descriptor file.
  */
 data class Context(
+    val knownFiles: MutableMap<String, String>,
     val knownTypes: MutableMap<String, String>,
     val packageName: String,
     val sourcePackageName: String
@@ -67,6 +72,110 @@ data class Context(
      */
     fun registerType(name: String) {
         knownTypes[".$sourcePackageName.$name"] = "$packageName.$name"
+    }
+
+    /**
+     * Resolve the best-guess type name of [ProtoFileDescriptor] corresponding to the input file
+     * descriptor name [String] literal.
+     *
+     * @param[literal]
+     *   string literal of a descriptor name to resolve.
+     *
+     * @returns
+     *   resolved type name.
+     */
+    fun resolveFileDescriptorType(literal: String): String {
+        // Look up known types, or best-guess based on the current context's package.
+        val typeName = literal.replaceFirst(sourcePackageName, packageName)
+        return knownFiles.getOrDefault(literal, typeName)
+    }
+
+    /**
+     * Register a .proto file using a given canonical type name designated for this .proto file.
+     *
+     * @param[name]
+     *   file descriptor's name (.proto).
+     * @param[typeName]
+     *   type name assigned to the file descriptor name.
+     */
+    fun registerFile(name: String, typeName: String) {
+        knownFiles[name] = typeName
+    }
+}
+
+/**
+ * Generator for generating a file describing the Protocol Buffer source (.proto).
+ *
+ * @param[context]
+ *   metadata context for code-generation.
+ * @param[descriptor]
+ *   `file` proto descriptor to generate code for.
+ */
+class ProtoFileGenerator(
+    private val context: Context,
+    private val descriptor: DescriptorProtos.FileDescriptorProto
+) {
+    /**
+     * Create a new [PluginProtos.CodeGeneratorResponse.File] instance corresponding to the
+     * descriptor associated with this generator.
+     */
+    fun generate(): PluginProtos.CodeGeneratorResponse.File {
+        val file = PluginProtos.CodeGeneratorResponse.File.newBuilder()
+        val name = descriptor.name.split("/").last()
+                .removeSuffix(".proto").plus("_proto")
+                .split("_")
+                .joinToString(separator = "") { it.capitalize() }
+        file.name = "${context.packageName.replace('.', '/')}/$name.kt"
+
+        // Register this proto file with the context.
+        context.registerFile(descriptor.name, "${context.packageName}.$name")
+
+        // Generate the FileSpec.
+        val fileSpec = FileSpec.builder(context.packageName, descriptor.name)
+                .addType(generateProtoType(name))
+                .build()
+
+        // Write it out to string, allow KotlinPoet to register this new type in the process.
+        file.content = buildString { fileSpec.writeTo(this) }
+
+        return file.build()
+    }
+
+    /**
+     * Create a new [TypeSpec] instance corresponding to the [DescriptorProtos.FileDescriptorProto]
+     * associated with this generator.
+     */
+    private fun generateProtoType(name: String): TypeSpec {
+        val selfTypeName = ClassName.bestGuess("${context.packageName}.$name")
+        val protoPropertyType = String::class
+
+        // Clear source code info field (does not impact runtime regeneration of the descriptor).
+        val protoData = descriptor.toBuilder().clearSourceCodeInfo().build().toByteArray()
+        val encodedData = String(ByteString.of(*protoData).encodeBase64().toByteArray())
+        val encodedDataProperty = PropertySpec.builder("encodedData", protoPropertyType)
+                .addModifiers(KModifier.OVERRIDE)
+                .initializer("%S", encodedData)
+                .build()
+        val dependenciesPropertyType = List::class.parameterizedBy(ProtoFileDescriptor::class)
+        val dependenciesTypes = descriptor.dependencyList
+                .map { ClassName.bestGuess(context.resolveFileDescriptorType(it)) }
+                .toTypedArray()
+        val dependenciesProperty = PropertySpec.builder("dependencies", dependenciesPropertyType)
+                .addModifiers(KModifier.OVERRIDE)
+                .initializer(
+                        "listOf(${(dependenciesTypes.indices).joinToString(", ") { "%T" }})",
+                        *dependenciesTypes
+                )
+                .build()
+        val companion = TypeSpec.companionObjectBuilder()
+                .addSuperinterface(ProtoFileDescriptor::class)
+                .addProperty(encodedDataProperty)
+                .addProperty(dependenciesProperty)
+                .build()
+
+        return TypeSpec.classBuilder(selfTypeName)
+                .addType(companion)
+                .build()
     }
 }
 
@@ -493,6 +602,7 @@ fun main() {
     }
 
     // Map to accumulate types as they get generated.
+    val knownFiles = mutableMapOf<String, String>()
     val knownTypes = mutableMapOf<String, String>()
 
     request.protoFileList
@@ -500,8 +610,10 @@ fun main() {
             .forEach { descriptor ->
                 val outputPackage = descriptor.`package`
                         .takeIf { parameters.containsKey(PARAMETER_DISABLE_JAVA_PACKAGE) }
-                        ?: descriptor.options.javaPackage;
-                val context = Context(knownTypes, outputPackage, descriptor.`package`)
+                        ?: descriptor.options.javaPackage
+                val context = Context(knownFiles, knownTypes, outputPackage, descriptor.`package`)
+
+                response.addFile(ProtoFileGenerator(context, descriptor).generate())
 
                 descriptor.messageTypeList.forEach { message ->
                     response = response.addFile(MessageFileGenerator(context, message).generate())
