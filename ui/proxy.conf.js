@@ -21,6 +21,12 @@ const PROXY_CONFIG = {
   "/swagger": {
     "target": "http://localhost:8080",
     "secure": false
+  },
+  "/geo": {
+    "target": "https://api.opencagedata.com/geocode/v1/json",
+    "changeOrigin": true,
+    "secure": true,
+    "logLevel": "debug"
   }
 }
 

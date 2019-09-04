@@ -62,14 +62,15 @@
         </clr-textarea-container>
       </div>
     </clr-wizard-page>
-    <clr-wizard-page #onPremPage  *ngIf="showOnPrem" [clrWizardPageNextDisabled]="onPremForm.controls?.onPrem.invalid || onPremForm.controls?.onPremLocation.invalid" (clrWizardPageOnCommit)="submitOnPrem()">
+    <clr-wizard-page #onPremPage  *ngIf="showOnPrem" [clrWizardPageNextDisabled]="onPremForm.form.controls?.onPrem.invalid || onPremForm.form.controls?.onPremLocation.invalid" (clrWizardPageOnCommit)="submitOnPrem()" (clrWizardPageOnCancel)="doCancel()" clrWizardPagePreventDefault="true">
       <ng-template clrPageTitle>{{'onPrem.pageTitle' | translate}}</ng-template>
       <ng-template clrPageNavTitle>{{'onPrem.navTitle' | translate}}</ng-template>
       <div class="spinner" *ngIf="loadingFlag">
         Loading...
       </div>
       <concord-on-premises-form #onPremForm></concord-on-premises-form>
-      <button class="btn btn-outline-danger btn-sm" (click)="cancelOnPremAdd()">{{ 'onPrem.cancel' | translate }}</button>
+      <div class="divider"></div>
+      <button class="btn btn-outline-danger btn-sm cancel-on-prem" (click)="cancelOnPremAdd()">{{ 'onPrem.cancel' | translate }}</button>
     </clr-wizard-page>
     <clr-wizard-page #replicaPage formGroupName="nodes" [clrWizardPageNextDisabled]="!form.controls.nodes.errors?.countIsCorrect">
       <ng-template clrPageTitle>{{'blockchainWizard.nodes.pageTitle' | translate}}</ng-template>
@@ -97,7 +98,7 @@
             <input clrInput type="text" class="clr-col-12 clr-col-md-8" [formControlName]="zone.id" />
           </clr-input-container>
         </div>
-        <!-- <div class="divider"></div> -->
+        <div class="divider"></div>
 <!--         <clr-alert [clrAlertClosable]="false">
           <clr-alert-item>
             <span class="alert-text">

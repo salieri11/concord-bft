@@ -882,6 +882,7 @@
     "name": "Zone Designation",
     "namePH": "A",
     "ip": "IP",
+    "ipError": "Please add a valid url.",
     "ipPH": "https://0.0.0.0",
     "username": "Username",
     "usernamePH": "admin@onprem",

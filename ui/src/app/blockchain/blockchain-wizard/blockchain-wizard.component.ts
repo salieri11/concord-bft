@@ -66,7 +66,6 @@ export class BlockchainWizardComponent implements AfterViewInit {
     private blockchainService: BlockchainService
   ) {
     this.zones = this.blockchainService.zones;
-
     this.form = this.initForm();
   }
 
@@ -90,24 +89,8 @@ export class BlockchainWizardComponent implements AfterViewInit {
     this.isOpen = true;
     this.showOnPrem = false;
     this.selectedEngine = undefined;
-    const zoneStore = localStorage.getItem('zone');
-    const zones = this.form.controls.nodes['controls'].zones;
-    if (zoneStore) {
-      this.zones.forEach(zone => {
-        // Disable non on-prem zones
-        if (!zone.password) {
-          console.log("zones['controls'][zone.id]")
-          console.log(zones['controls'][zone.id])
-          zones['controls'][zone.id].reset();
-          zones['controls'][zone.id].disable();
-        }
-      });
-      const zone = JSON.parse(zoneStore);
-      this.zones = [zone];
 
-      zones.addControl(zone.id, new FormControl('', Validators.required));
-
-    }
+    // const zones = this.form.controls.nodes['controls'].zones;
 
     if (this.form && this.wizard) {
       this.wizard.reset();
@@ -138,6 +121,10 @@ export class BlockchainWizardComponent implements AfterViewInit {
 
   close() {
     this.isOpen = false;
+  }
+
+  doCancel() {
+    this.wizard.close();
   }
 
   distributeZones() {
@@ -209,32 +196,37 @@ export class BlockchainWizardComponent implements AfterViewInit {
       case this.onPremPage:
         this.onPremForm.focusInput();
         break;
-
-      default:
-        // code...
-        break;
     }
   }
 
   submitOnPrem(): void {
-    const replicas = this.form['controls'].nodes;
-    const zones = replicas['controls'].zones;
-    const onPremData = this.onPremForm.getZoneInfo();
-    // Disable cloud zones, because we don't have a hybrid setup yet.
-    this.zones.forEach(zone => {
-      // Disable non on-prem zones
-      if (!zone.password) {
-        zones['controls'][zone.id].reset();
-        zones['controls'][zone.id].disable();
-      }
+    this.loadingFlag = true;
+    this.onPremForm.addOnPrem().subscribe((zoneData) => {
+
+      const replicas = this.form['controls'].nodes;
+      const zones = replicas['controls'].zones;
+      const onPremData = zoneData;
+      // Disable cloud zones, because we don't have a hybrid setup yet.
+      this.zones.forEach(zone => {
+        // Disable non on-prem zones
+        if (!zone.password) {
+          zones['controls'][zone.id].reset();
+          zones['controls'][zone.id].disable();
+        }
+      });
+
+      zones.addControl(onPremData.id, new FormControl('', Validators.required));
+
+      replicas['controls'].numberOfNodes.reset();
+      setTimeout(() => {
+        this.zones.push(onPremData);
+      }, 10);
+      this.loadingFlag = false;
+      this.wizard.forceNext();
+    }, () => {
+      this.loadingFlag = false;
     });
 
-    zones['controls'].addControl(onPremData.id, new FormControl('', Validators.required));
-
-    replicas['controls'].numberOfNodes.reset();
-    setTimeout(() => {
-      this.zones.push(onPremData);
-    }, 10);
   }
 
   private zoneGroup() {
