@@ -43,8 +43,8 @@ describe('concord-ui Onboarding Flow', () => {
     browser.sleep(300);
     appPage.getTourNextButton().click();
     browser.sleep(300);
-    expect(appPage.getTourTitle().getText()).toEqual('Contract List');
-    appPage.getTourNextButton().click();
+    // expect(appPage.getTourTitle().getText()).toEqual('Contract List');
+    // appPage.getTourNextButton().click();
     browser.sleep(300);
     expect(appPage.getTourTitle().getText()).toEqual('Manage Smart contracts');
     appPage.clickTourEndButton();
