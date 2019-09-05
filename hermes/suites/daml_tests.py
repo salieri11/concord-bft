@@ -35,7 +35,7 @@ class DamlProduct(Product):
 
       with open(LOG_FILE) as f:
          timeout = 0
-         while timeout < 90:
+         while timeout < 60:
             if any(filter(lambda x: LOG_READY in x, f.readlines())):
                return True
             time.sleep(1)

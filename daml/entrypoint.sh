@@ -14,4 +14,5 @@ done
 /doc/daml/kvbc_ledger_server/target/universal/stage/bin/kvbc-ledger-server \
   --replica-host $CONCORD_HOST --replica-port $CONCORD_PORT \
   --participant-id $PARTICIPANT_ID --port 6865\
-  --jdbc-url="jdbc:postgresql://$INDEXDB_HOST:$INDEXDB_PORT/$PARTICIPANT_ID?user=$INDEXDB_USER"
+  --jdbc-url="jdbc:postgresql://$INDEXDB_HOST:$INDEXDB_PORT/$PARTICIPANT_ID?user=$INDEXDB_USER" \
+  --maxInboundMessageSize=33554432

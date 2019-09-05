@@ -340,6 +340,8 @@ docker_build . daml/DockerfileLedgerApi ${daml_ledger_api_repo} ${daml_ledger_ap
 
 docker_build . daml/DockerfileExecutionEngine ${daml_execution_engine_repo} ${daml_execution_engine_tag}
 
+docker_build . daml/DockerfilePostgres ${daml_postgres_repo} ${daml_postgres_tag}
+
 BuildPersephoneGRPCpyBindings
 BuildSupplyChain
 

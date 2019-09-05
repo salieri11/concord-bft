@@ -193,7 +193,7 @@ services:
       - ./fluentd:/fluentd/etc
 
   index_db:
-    image: daml-postgres
+    image: "${daml_postgres_repo}:${daml_postgres_tag}"
     command: postgres -c 'max_connections=300' -c 'shared_buffers=80MB'
     restart: always
     environment:
