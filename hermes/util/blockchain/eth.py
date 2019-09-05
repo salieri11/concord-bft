@@ -37,35 +37,11 @@ howdyHex = "486f7764792c20576f726c6421"
 highGas = "0x47e7c4"
 itApprovedPort = 443
 
-def getAnEthrpcNode(request, blockchainId):
-   '''
-   Return a random ethrpc node for the given blockchain.
-   '''
-   members = getEthrpcNodes(request, blockchainId)
-
-   if members:
-      return random.choice(members)
-   else:
-      raise Exception("getAnEthrpcNode could not get an ethrpc node.")
-
-
-def getUrlFromEthrpcNode(node):
-   '''
-   Helps work around VB-1006.
-   '''
-   if "rpc_url" in node.keys():
-      return node["rpc_url"]
-   elif "ip" in node.keys():
-      return node["url"]
-   else:
-      raise Exception("Unable to find an ethrpc url in {}".format(node))
-
-
 def getEthrpcNodes(request, blockchainId=None):
    '''
    request: Request to interact with Helen's REST APIs.
    blockchainId: Optional blockchain id, in case one needs to be specified.
-   Uses Helen's /concord/members API to get the blockchain members.
+   Uses Helen's /blockchain API to get the blockchain members.
    Uses /api/blockchains/{blockchainId} if /concord/members does not work.
    '''
    members = []
@@ -74,26 +50,16 @@ def getEthrpcNodes(request, blockchainId=None):
       blockchains = request.getBlockchains()
       blockchainId = blockchains[0]["id"]
 
-   result = request.getMemberList(blockchainId)
+   result = request.getBlockchainDetails(blockchainId)
 
-   for m in result:
-      assert "rpc_url" in m, "Concord member list did not contain an object with an rpc_url. " \
-         "Received {}".format(m)
-      members.append(m)
+   if not result["node_list"]:
+      raise Exception("No ethrpc nodes were returned by Helen.")
 
-   if not members:
-      # Work around VB-1006
-      log.info("No members found from the concord member list. "
-               "Getting blockchain details via /api/blockchains instead.")
-      result = request.getBlockchainDetails(blockchainId)
-
-      for m in result["node_list"]:
-         if m["ip"]:
-            members.append(m)
-      # End workaround
-
-   if not members:
-      log.info("No ethrpc nodes were returned by Helen.")
+   for m in result["node_list"]:
+      if m["url"]:
+         members.append(m)
+      else:
+         raise Exception("Helen returned a node with an empty url.")
 
    return members
 
@@ -192,7 +158,6 @@ def addBlocks(request, rpc, blockchainId, numIterations, invokeContracts=False):
    Returns a list of transaction receipts, each with an extra field called "apiCallTime"
    for testing.
    '''
-   ethrpcNode = getAnEthrpcNode(request, blockchainId)
    txHashes = []
    txReceipts = []
 
@@ -369,20 +334,17 @@ def getEthrpcApiUrl(request, blockchainId, useITApprovedPort=False, scheme=None)
    support https on nodes deployed in the SDDC yet.
    '''
    ethrpcNodes = util.blockchain.eth.getEthrpcNodes(request, blockchainId)
+   node = random.choice(ethrpcNodes)
+   url = node["url"]
 
-   if ethrpcNodes:
-      node = random.choice(ethrpcNodes)
-      url = util.blockchain.eth.getUrlFromEthrpcNode(node)
+   if useITApprovedPort:
+      url = util.helper.replaceUrlParts(url, newPort=itApprovedPort)
 
-      if useITApprovedPort:
-         url = util.helper.replaceUrlParts(url, newPort=itApprovedPort)
+   if scheme:
+      url = util.helper.replaceUrlParts(url, newScheme=scheme)
 
-      if scheme:
-         url = util.helper.replaceUrlParts(url, newScheme=scheme)
+   return url
 
-      return url
-   else:
-      raise Exception("Error: No ethrpc nodes were reported by Helen.")
 
 def createContract(user, rpc, testExecutionCode, gas, waitForMining=False):
    '''
