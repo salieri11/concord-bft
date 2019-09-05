@@ -106,6 +106,7 @@ message IPv4Network {
     int32 gateway = 3;
     int32 subnet = 4;
     Endpoint allocation_server = 5;
+    repeated string name_servers = 6 [packed=false];
 }
 
 /**
