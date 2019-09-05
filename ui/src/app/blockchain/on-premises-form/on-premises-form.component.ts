@@ -76,10 +76,6 @@ export class OnPremisesFormComponent implements AfterViewInit {
     }, 10);
   }
 
-  onLocationSelected(location) {
-    console.log(location);
-  }
-
   private getOnPremInfo() {
     const onPrem = this.form['controls'].onPrem;
     return onPrem.value;

@@ -10,7 +10,7 @@ import { of, Observable } from 'rxjs';
 import { delay, map } from 'rxjs/operators';
 
 import { BlockchainService } from '../../blockchain/shared/blockchain.service';
-import { DeployStates } from '../../blockchain/shared/blockchain.model';
+import { DeployStates, ContractEngines } from '../../blockchain/shared/blockchain.model';
 
 @Component({
   selector: 'concord-deploying-interstitial',

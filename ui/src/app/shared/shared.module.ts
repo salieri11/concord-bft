@@ -133,6 +133,6 @@ export class SharedModule {
     VmwContextualHelpModule,
     CspComponentsModule,
     VmwComponentsModule,
-  ]
+  ],
 })
 export class MockSharedModule { }

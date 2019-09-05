@@ -12,6 +12,7 @@ import { MockSharedModule } from '../../shared/shared.module';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 
+import { InivteUserComponent } from '../inivte-user/inivte-user.component';
 import { BlockchainService } from '../../blockchain/shared/blockchain.service';
 
 describe('OrgListComponent', () => {
@@ -25,7 +26,10 @@ describe('OrgListComponent', () => {
         HttpClientTestingModule,
         GridModule
       ],
-      declarations: [OrgListComponent],
+      declarations: [
+        OrgListComponent,
+        InivteUserComponent
+      ],
       providers: [
         OrgService,
         {

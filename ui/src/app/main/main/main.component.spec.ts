@@ -16,7 +16,7 @@ import { AppHeaderComponent } from '../../shared/components/app-header/app-heade
 import { CanViewDirective } from '../../shared/directives/can-view.directive';
 import { VmwTaskComponent } from '../../shared/components/task-panel/task.component';
 import { VmwThemeSwitchButtonComponent } from '../../shared/components/theme-switch-button/theme-switch-button.component';
-import { BlockchainWizardComponent } from '../../shared/components/blockchain-wizard/blockchain-wizard.component';
+import { BlockchainWizardComponent } from '../../blockchain/blockchain-wizard/blockchain-wizard.component';
 import { VersionComponent } from '../../shared/components/version/version.component';
 import { DeployingInterstialComponent } from '../deploying-interstitial/deploying-interstitial.component';
 import { SetupModalComponent } from '../setup-modal/setup-modal.component';
@@ -26,6 +26,12 @@ import { VmwClarityThemeService } from '../../shared/theme.provider';
 import { VmwTasksService } from '../../shared/components/task-panel/tasks.service';
 import { TourService } from '../../shared/tour.service';
 import { BlockchainService, BlockchainsServiceMock } from '../../blockchain/shared/blockchain.service';
+
+import { InivteUserComponent } from '../../orgs/inivte-user/inivte-user.component';
+import { VmwComboboxComponent } from '../../shared/components/combobox/combobox.component';
+import { VmwComboboxItemsComponent } from '../../shared/components/combobox/combobox-items/combobox-items.component';
+import { OnPremisesModalComponent } from '../../blockchain/on-premises-modal/on-premises-modal.component';
+import { OnPremisesFormComponent } from '../../blockchain/on-premises-form/on-premises-form.component';
 
 
 describe('MainComponent', () => {
@@ -49,6 +55,11 @@ describe('MainComponent', () => {
         DeployingInterstialComponent,
         SetupModalComponent,
         BlockchainWizardComponent,
+        InivteUserComponent,
+        OnPremisesModalComponent,
+        OnPremisesFormComponent,
+        VmwComboboxComponent,
+        VmwComboboxItemsComponent
       ],
       providers: [
         ErrorAlertService,

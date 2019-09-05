@@ -12,7 +12,7 @@ import { PersonaService } from '../../shared/persona.service';
 import { MockSharedModule } from '../../shared/shared.module';
 import { SetupModalComponent } from './setup-modal.component';
 import { CanViewDirective } from './../../shared/directives/can-view.directive';
-import { BlockchainService, BlockchainsServiceMock } from './../../shared/blockchain.service';
+import { BlockchainService, BlockchainsServiceMock } from './../../blockchain/shared/blockchain.service';
 
 
 describe('SetupModalComponent', () => {

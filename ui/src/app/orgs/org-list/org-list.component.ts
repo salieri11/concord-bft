@@ -11,7 +11,7 @@ import {
 import { environment } from '../../../environments/environment';
 import { OrgService } from '../shared/org.service';
 import { Org } from '../shared/org.model';
-import { InivteUserComponent } from '../inivte-user/inivte-user.component'
+import { InivteUserComponent } from '../inivte-user/inivte-user.component';
 
 
 @Component({
@@ -20,7 +20,7 @@ import { InivteUserComponent } from '../inivte-user/inivte-user.component'
   styleUrls: ['./org-list.component.scss']
 })
 export class OrgListComponent implements OnInit {
-  @ViewChild('inviteUser') inviteUser:InivteUserComponent;
+  @ViewChild('inviteUser') inviteUser: InivteUserComponent;
   orgs: Org[] = [];
   env = environment;
 
