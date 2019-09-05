@@ -10,18 +10,28 @@ h5 {
 }
 
 .card {
+  h4 {
+    text-align: center;
+  }
   width: 500px;
+  margin-bottom: 20rem;
+
+  .icons {
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+    width: 100%;
+    text-align: center;
+
+    clr-icon {
+      margin: 0 .75rem;
+    }
+  }
+  .progress > progress {
+    width: calc(100% - 40px);
+  }
+  h5 {
+    margin-top: 1.5rem;
+    text-align: center;
+  }
 }
 
-.card-footer {
-  height: 60px;
-}
-
-.content {
-  display: flex;
-  justify-content: center;
-}
-
-.spinner {
-  margin-top: 50px;
-}

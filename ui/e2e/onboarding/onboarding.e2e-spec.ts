@@ -36,15 +36,15 @@ describe('concord-ui Onboarding Flow', () => {
   });
 
   it('should onboard to the org tour', () => {
-    browser.sleep(3000);
+    browser.sleep(4000);
     appPage.goToConsortium().click();
-    browser.sleep(500);
+    browser.sleep(1500);
     expect(appPage.getTourTitle().getText()).toEqual('General Status');
     browser.sleep(300);
     appPage.getTourNextButton().click();
     browser.sleep(300);
-    expect(appPage.getTourTitle().getText()).toEqual('Contract List');
-    appPage.getTourNextButton().click();
+    // expect(appPage.getTourTitle().getText()).toEqual('Contract List');
+    // appPage.getTourNextButton().click();
     browser.sleep(300);
     expect(appPage.getTourTitle().getText()).toEqual('Manage Smart contracts');
     appPage.clickTourEndButton();

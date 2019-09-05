@@ -27,7 +27,7 @@ import { DashboardListComponent } from '../dashboard-list/dashboard-list.compone
 
 import { WorldMapComponent } from '../../graphs/world-map/world-map.component';
 import { TourService } from '../../shared/tour.service';
-import { BlockchainService } from '../../shared/blockchain.service';
+import { BlockchainService, BlockchainsServiceMock } from '../../shared/blockchain.service';
 import { VmwClarityThemeService } from './../../shared/theme.provider';
 
 describe('DashboardComponent', () => {
@@ -66,7 +66,7 @@ describe('DashboardComponent', () => {
         {
           provide: ActivatedRoute,
           useValue: {
-            snapshot: {parent: {parent: {params: {consortiumId: '1234'}}}},
+            snapshot: { parent: { parent: { params: { consortiumId: '1234' } } } },
             fragment: {
               subscribe: (fn: (value) => void) => fn(
                 {}
@@ -74,25 +74,10 @@ describe('DashboardComponent', () => {
             },
           },
         },
-           {
+        {
           provide: BlockchainService,
-          useValue: {
-            selectedBlockchain: {
-              consortium_id: 1
-            },
-            blockchains: [],
-            blockchaindId: 1,
-            select: () => {
-              return true;
-            },
-            notify: {
-              subscribe: (fn: (value) => void) => fn(
-                {'message': null}
-              ),
-            },
-          },
+          useClass: BlockchainsServiceMock
         },
-
       ]
     })
       .compileComponents();

@@ -44,7 +44,7 @@
           {{ consortium.consortium_name }}
         </option>
       </select>
-      <ng-container *ngIf="selectedConsortium">
+      <ng-container >
         <a clrVerticalNavLink [routerLink]="['dashboard']" routerLinkActive="active">
           <clr-icon clrVerticalNavIcon shape="home"></clr-icon>
           {{'nav.dashboard' | translate}}
@@ -53,15 +53,15 @@
           <clr-icon clrVerticalNavIcon shape="organization"></clr-icon>
           {{'nav.organizations' | translate}}
         </a>
-        <a clrVerticalNavLink [routerLink]="['smart-contracts']" routerLinkActive="active" id="smartContracts">
+        <a clrVerticalNavLink *ngIf="blockchainType !== 'DAML'" [routerLink]="['smart-contracts']" routerLinkActive="active" id="smartContracts">
           <clr-icon clrVerticalNavIcon shape="scroll"></clr-icon>
           {{'nav.smartContracts' | translate}}
         </a>
-        <a clrVerticalNavLink [routerLink]="['blocks']" routerLinkActive="active">
+        <a clrVerticalNavLink *ngIf="blockchainType !== 'DAML'" [routerLink]="['blocks']" routerLinkActive="active">
           <clr-icon clrVerticalNavIcon shape="blocks-group"></clr-icon>
           {{'nav.blockList' | translate}}
         </a>
-        <a clrVerticalNavLink [routerLink]="['transactions']" routerLinkActive="active">
+        <a clrVerticalNavLink *ngIf="blockchainType !== 'DAML'" [routerLink]="['transactions']" routerLinkActive="active">
           <clr-icon clrVerticalNavIcon shape="tags"></clr-icon>
           {{'nav.transactionList' | translate}}
         </a>
@@ -98,6 +98,7 @@
           </ng-container>
         </ng-container>
       </ng-container>
+      <div class="nav-overlay" *ngIf="!selectedConsortium"></div>
     </clr-vertical-nav>
   </div>
 </clr-main-container>

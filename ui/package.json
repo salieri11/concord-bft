@@ -24,7 +24,7 @@
     "lint": "ng lint concord-ui",
     "lint-fix": "ng lint concord-ui --fix",
     "setup-db": "npm run clear-data-e2e && npm run create-user-e2e && npm run unaccept-agreement",
-    "e2e:dev:csp": "ng e2e -c csp-dev",
+    "e2e:dev:csp": "cd ./node_modules/protractor && npm i webdriver-manager@latest && ng e2e -c csp-dev",
     "e2e:build": "npm run webdriver-update && npm run flake-e2e",
     "e2e:integration": "npm run webdriver-update && npm run flake-e2e:integration",
     "webdriver-update": "webdriver-manager update --gecko false",

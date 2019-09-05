@@ -65,39 +65,41 @@ export class TourService {
   }
 
   startTour() {
-    const bId = this.blockchainService.selectedBlockchain.id;
+    // const bId =
     this.steps = [
       {
         anchorId: 'onboardingTour.dashStats',
         content: this.translate.instant('tourSteps.dashboard.dashStats.text'),
         title: this.translate.instant('tourSteps.dashboard.dashStats.title'),
-        route: `${bId}/dashboard`,
+        route: `${this.blockchainService.blockchainId}/dashboard`,
         placement: 'bottom'
       },
-      {
-        anchorId: 'onboardingTour.contractList',
-        content: this.translate.instant('tourSteps.dashboard.contractList.text'),
-        title: this.translate.instant('tourSteps.dashboard.contractList.title'),
-        route: `${bId}/dashboard`
-      },
+
+      // Need to redo the tour at some point this will break for DAML as well.
+      // {
+      //   anchorId: 'onboardingTour.contractList',
+      //   content: this.translate.instant('tourSteps.dashboard.contractList.text'),
+      //   title: this.translate.instant('tourSteps.dashboard.contractList.title'),
+      //   route: `${this.blockchainService.blockchainId}/dashboard`
+      // },
       {
         anchorId: 'onboardingTour.manageSmartContracts',
         content: this.translate.instant('tourSteps.smartContracts.manageSmartContracts.text'),
         title: this.translate.instant('tourSteps.smartContracts.manageSmartContracts.title'),
-        route: `${bId}/smart-contracts`,
+        route: `${this.blockchainService.blockchainId}/smart-contracts`,
         placement: 'top'
       },
       {
         anchorId: 'onboardingTour.createSmartContract',
         content: this.translate.instant('tourSteps.smartContracts.createSmartContract.text'),
         title: this.translate.instant('tourSteps.smartContracts.createSmartContract.title'),
-        route: `${bId}/smart-contracts`
+        route: `${this.blockchainService.blockchainId}/smart-contracts`
       },
       {
         anchorId: 'onboardingTour.userManagement',
         content: this.translate.instant('tourSteps.users.userManagement.text'),
         title: this.translate.instant('tourSteps.users.userManagement.title'),
-        route: `${bId}/smart-contracts`,
+        route: `${this.blockchainService.blockchainId}/smart-contracts`,
         placement: 'right',
         popperSettings: {
           boundariesElement: 'body'
@@ -107,7 +109,7 @@ export class TourService {
         anchorId: 'onboardingTour.userActions',
         content: this.translate.instant('tourSteps.users.userActions.text'),
         title: this.translate.instant('tourSteps.users.userActions.title'),
-        route: `${bId}/users`,
+        route: `${this.blockchainService.blockchainId}/users`,
         placement: 'left'
       }
     ];

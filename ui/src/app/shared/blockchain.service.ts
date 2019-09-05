@@ -18,7 +18,8 @@ import {
   Zone,
   BlockchainMeta,
   DeployStates,
-  fakeZones
+  fakeZones,
+  ContractEngines
 } from './blockchain.model';
 import { Apis } from './urls.model';
 
@@ -36,6 +37,7 @@ export class BlockchainService {
   zonesMap: any;
   nodesMap: any;
   metadata: any;
+  type: ContractEngines;
 
   constructor(
     private http: HttpClient,
@@ -44,7 +46,7 @@ export class BlockchainService {
   ) { }
 
   deploy(params: BlockchainRequestParams): Observable<any> {
-    this.notify.next({ message: 'deploying' });
+    this.notify.next({ message: 'deploying', type: params.blockchain_type });
 
     return this.consortiumService.create(params.consortium_name).pipe(
       flatMap(consort => {
@@ -84,14 +86,14 @@ export class BlockchainService {
       .pipe(take(1));
   }
 
-  set(bId?: string): Observable<BlockchainResponse[]> {
+  set(bId?: string): Observable<boolean> {
     const consortiumList = this.consortiumService.getList();
     const blockchainList = this.http.get(Apis.blockchains);
     const zoneList = this.getZones();
 
     return zip(consortiumList, blockchainList, zoneList)
       .pipe(
-        map(response => {
+        map((response) => {
           const cList = response[0] as Array<any>;
           const bList = response[1] as Array<any>;
           this.zones = response[2] as Zone[];
@@ -104,21 +106,21 @@ export class BlockchainService {
             });
           });
 
-          this.blockchains = JSON.parse(JSON.stringify(bList));
-          this.select(bId);
+          this.blockchains = bList;
 
           return this.blockchains;
-        })
+        }),
+        flatMap(() => this.select(bId))
       );
   }
 
-  async select(bId: string): Promise<boolean> {
+  select(bId: string): Observable<boolean> {
     if (!bId) {
       this.blockchainId = null;
-      return false;
+      return of(false);
     } else if (!this.isUUID(bId) && this.blockchains.length === 0) {
       this.blockchainId = undefined;
-      return false;
+      return of(false);
     } else if (!this.isUUID(bId) && this.blockchains.length) {
       bId = this.blockchains[0].id;
     }
@@ -133,8 +135,12 @@ export class BlockchainService {
         }
       });
     }
-    this.metadata = await this.getMetaData().toPromise();
-    return true;
+    return this.getMetaData().pipe(
+      map(metadata => {
+        this.metadata = metadata;
+        return true;
+      }),
+    );
   }
 
   getZones(): Observable<Zone[]> {
@@ -164,7 +170,7 @@ export class BlockchainService {
         map(meta => {
           this.metadata = meta;
           const nodesMap = {};
-
+          this.type = meta.blockchain_type;
           meta.node_list.forEach(node => {
             node.zone = this.zonesMap[node.zone_id];
             nodesMap[node.node_id] = node;
@@ -185,7 +191,7 @@ export class BlockchainService {
 @Injectable({
   providedIn: 'root'
 })
-export class BlockchainResolver implements Resolve<BlockchainResponse[]> {
+export class BlockchainResolver implements Resolve<boolean> {
 
   constructor(
     private blockchainService: BlockchainService,
@@ -194,11 +200,11 @@ export class BlockchainResolver implements Resolve<BlockchainResponse[]> {
 
   resolve(
     route: ActivatedRouteSnapshot
-  ): Observable<BlockchainResponse[]> | any {
+  ): Observable<boolean | any> {
     return this.blockchainService.set(route.params['consortiumId']).pipe(
       catchError(error => {
         this.router.navigate(['error'], {
-          queryParams: {error: JSON.stringify(error)}
+          queryParams: { error: JSON.stringify(error) }
         });
 
         return error;
@@ -208,15 +214,16 @@ export class BlockchainResolver implements Resolve<BlockchainResponse[]> {
 }
 
 export class BlockchainsServiceMock {
-  public notify = new BehaviorSubject(null);
+  public notify = new BehaviorSubject({message: '', type: ''});
   public selectedBlockchain = {
     consortium_id: 1
   };
   public blockchains = [];
   public zones = fakeZones;
   public blockchaindId = 1;
-  public select() {
-    return true;
+  public type = ContractEngines.ETH;
+  public select(id: string): Observable<boolean> {
+    return of(typeof id === 'string');
   }
 
   public getZones(): Observable<Zone[]> {

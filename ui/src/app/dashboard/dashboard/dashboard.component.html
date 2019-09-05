@@ -24,49 +24,16 @@
             </div>
           </div>
         <div class="clr-col-lg clr-col-md-12 stats">
-          <div class="clr-row">
-            <div class="clr-col-6 b-r">
-              <div class="dashboard-stat-container b-b">
-              <div class="title">{{'organization.title' | translate}}</div>
+          <div class="clr-row clr-align-items-center clr-justify-content-center">
+            <div *ngFor="let item of dashItems; let i = index;" class="clr-col-6" [class.b-r]="dashItems.length !== 1 && !(i % 2)">
+              <div class="dashboard-stat-container" [class.b-b]="dashItems.length !== 1 && ((dashItems.length / 2) > i) ">
+              <div class="title">{{ item.title }}</div>
                 <h2 class="mt-0">
-                  <a [routerLink]="['/', blockchainId,'organizations']">
-                    {{ orgCount }}
+                  <a [routerLink]="item.link">
+                    {{ item.count }}
                   </a>
                 </h2>
               </div>
-            </div>
-            <div class="clr-col-6">
-              <div class="dashboard-stat-container b-b">
-                <div class="title">{{'blocks.blocks' | translate}}</div>
-                <h2 class="mt-0">
-                  <a [routerLink]="['/', blockchainId,'blocks']">
-                    {{blocks[0] ? blocks[0].number : 0}}
-                  </a>
-                </h2>
-              </div>
-            </div>
-          </div>
-          <div class="clr-row">
-            <div class="clr-col-6 b-r">
-              <div class="dashboard-stat-container">
-
-              <div class="title">{{'dashboard.deployedContracts' | translate}}</div>
-              <h2 class="mt-0">
-                <a [routerLink]="['/', blockchainId,'smart-contracts']">
-                  {{smartContracts.length}}
-                </a>
-              </h2>
-              </div>
-            </div>
-            <div class="clr-col-6">
-              <div class="dashboard-stat-container">
-              <div class="title">{{'transactions.transactions' | translate}}</div>
-              <h2 class="mt-0">
-                <a [routerLink]="['/', blockchainId,'transactions']">
-                  {{transactionCount}}
-                </a>
-              </h2>
-            </div>
             </div>
           </div>
         </div>
@@ -79,19 +46,8 @@
 
   <div class="ps-1 fadein">
     <div class="clr-row">
-      <div class="clr-col-sm-6 mt-1">
-        <concord-dashboard-list [listConfig]="nodesConfig" [items]="nodes"></concord-dashboard-list>
-      </div>
-      <div class="clr-col-sm-6 mt-1">
-        <concord-dashboard-list [listConfig]="organizationsConfig" [items]="orgs"></concord-dashboard-list>
-      </div>
-    </div>
-    <div class="clr-row">
-      <div class="clr-col-sm-6 mt-1" tourAnchor="onboardingTour.contractList">
-        <concord-dashboard-list [listConfig]="contractsConfig" [items]="smartContracts"></concord-dashboard-list>
-      </div>
-      <div class="clr-col-sm-6 mt-1">
-        <concord-dashboard-list [listConfig]="blocksConfig" [items]="blocks"></concord-dashboard-list>
+      <div class="clr-col-sm-6 mt-1" *ngFor="let list of infoLists">
+        <concord-dashboard-list [listConfig]="list.config" [items]="list.items"></concord-dashboard-list>
       </div>
     </div>
   </div>

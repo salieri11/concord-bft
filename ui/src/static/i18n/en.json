@@ -861,6 +861,12 @@
       "users": "Users"
     }
   },
+  "deployLoader": {
+    "first": "Creating VM's...",
+    "second": "Deploying concord replicas...",
+    "third": "Distributing keys...",
+    "fourth": "Starting up Concord trust network..."
+  },
   "mockTasks": {
     "creatingOrg": "Creating Organizations",
     "addingUsers": "Adding Users",

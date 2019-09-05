@@ -12,6 +12,7 @@ import { PersonaService } from '../../shared/persona.service';
 import { MockSharedModule } from '../../shared/shared.module';
 import { SetupModalComponent } from './setup-modal.component';
 import { CanViewDirective } from './../../shared/directives/can-view.directive';
+import { BlockchainService, BlockchainsServiceMock } from './../../shared/blockchain.service';
 
 
 describe('SetupModalComponent', () => {
@@ -27,7 +28,14 @@ describe('SetupModalComponent', () => {
         ReactiveFormsModule
       ],
       declarations: [ SetupModalComponent, CanViewDirective ],
-      providers: [ AuthenticationService, PersonaService ],
+      providers: [
+        AuthenticationService,
+        PersonaService,
+        {
+          provide: BlockchainService,
+          useClass: BlockchainsServiceMock
+        },
+      ],
     })
     .compileComponents();
   }));
