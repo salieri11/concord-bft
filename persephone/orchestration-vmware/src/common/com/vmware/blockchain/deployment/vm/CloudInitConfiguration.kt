@@ -26,6 +26,7 @@ class CloudInitConfiguration(
     genesis: Genesis,
     ipAddress: String,
     gateway: String,
+    nameServers: List<String>,
     subnet: Int,
     clusterId: ConcordClusterIdentifier,
     nodeId: Int,
@@ -58,6 +59,25 @@ class CloudInitConfiguration(
                 ?: "" // No-action defaults to DHCP.
     }
 
+    private val dnsSetupCommand: String by lazy {
+        nameServers.takeIf { !it.isNullOrEmpty() }
+                ?.let {
+                    val dnsString = nameServers.joinToString(separator = " ")
+                    "echo -e \"[Resolve]\\nDNS=$dnsString\" > /etc/systemd/resolved.conf ;" +
+                            " systemctl restart systemd-resolved.service"
+                }
+                ?: ""
+    }
+
+    private val dockerDnsSetupCommand: String by lazy {
+        nameServers.takeIf { !it.isNullOrEmpty() }
+                ?.let {
+                    nameServers.joinToString(separator = " --dns ",
+                            prefix = "--dns ")
+                }
+                ?: ""
+    }
+
     /** Concord agent startup configuration parameters. */
     private val configuration: ConcordAgentConfiguration = ConcordAgentConfiguration (
             model = model,
@@ -75,17 +95,15 @@ class CloudInitConfiguration(
             #!/bin/sh
             echo -e "c0nc0rd\nc0nc0rd" | /bin/passwd
 
-            # Configure network
-            echo '{{staticIp}}' > /config/network/ipaddr
-            echo '{{gateway}}' > /config/network/gateway
-
             {{networkAddressCommand}}
-
+            {{dnsSetupCommand}}
+            
             # Enable when there are multiple interfaces for separate networks.
             # route add default gw `ip route show | grep "dev eth0" | grep -v kernel | grep -v default | cut -d' ' -f 1` eth0
 
-            sed -i 's_/usr/bin/dockerd_/usr/bin/dockerd -H tcp://127.0.0.1:2375 -H unix:///var/run/docker.sock {{registrySecuritySetting}}_g' /lib/systemd/system/docker.service
+            sed -i 's_/usr/bin/dockerd_/usr/bin/dockerd {{dockerDns}} -H tcp://127.0.0.1:2375 -H unix:///var/run/docker.sock {{registrySecuritySetting}}_g' /lib/systemd/system/docker.service
             systemctl daemon-reload
+
             systemctl restart docker
             systemctl enable docker
             {{dockerLoginCommand}}
@@ -110,7 +128,9 @@ class CloudInitConfiguration(
             touch /config/concord/config-public/find-docker-instances.sh
             chmod 777 /config/concord/config-public/find-docker-instances.sh
 
+            # Adding the genesis block
             echo '{{genesis}}' > /config/concord/config-public/genesis.json
+
             docker run -d --name=agent --restart=always -v /config:/config -v /var/run/docker.sock:/var/run/docker.sock -p 8546:8546 {{agentImage}}
             echo 'done'
             """.trimIndent()
@@ -122,6 +142,9 @@ class CloudInitConfiguration(
                     .replace("{{networkAddressCommand}}", ipAddress.takeIf { it.isNotBlank() }?.let { networkAddressCommand }?: "")
                     .replace("{{staticIp}}", ipAddress)
                     .replace("{{gateway}}", gateway)
+                    .replace("{{dnsSetupCommand}}", dnsSetupCommand)
+                    .replace("{{dockerDns}}", dockerDnsSetupCommand)
+
 
     /**
      * Convert an endpoint to a Docker Registry login command.

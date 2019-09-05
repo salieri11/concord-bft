@@ -137,6 +137,7 @@ class VSphereOrchestrator constructor(
                                     request.genesis,
                                     request.privateNetworkAddress,
                                     network.gateway.toIPv4Address(),
+                                    network.nameServers,
                                     network.subnet,
                                     request.cluster,
                                     request.concordId,
