@@ -112,6 +112,22 @@ def get_docker_compose_value(docker_compose_files, service_name, key):
       raise Exception("Key '{}' not found in docker file(s): {}".format(key,
          docker_compose_files))
 
+def get_deployment_service_config_file(docker_compose_files, service_name):
+   '''
+   Helper method to get config file for a given "service_name"
+   :param docker_compose_files: cmdline arg dockerComposeFile
+   :param service_name: service name (provisioning)
+   :return: config file
+   '''
+   config_folder = get_docker_compose_value(
+      docker_compose_files, service_name, "volumes")
+   try:
+      config_folder = config_folder[0].split(':')[0]
+      config_file = "{}/config.json".format(config_folder)
+   except Exception as e:
+      raise
+   return config_file
+
 def ssh_connect(host, username, password, command):
    '''
    Helper method to execute a command on a host via SSH

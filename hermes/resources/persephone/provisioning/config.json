@@ -50,10 +50,10 @@
             "datastore": "WorkloadDatastore",
             "folder": "HermesTesting",
             "network": {
-              "name": "HermesTesting",
+              "name": "vmware-vpn",
               "addressAllocation": "STATIC",
-              "gateway": 174522369,
-              "subnet": 16,
+              "gateway": 172319745,
+              "subnet": 24,
               "allocationServer": {
                 "address": "ipam-vmbc.cloud.vmware.com",
                 "transportSecurity": {
@@ -107,10 +107,10 @@
             "datastore": "WorkloadDatastore",
             "folder": "HermesTesting",
             "network": {
-              "name": "HermesTesting",
+              "name": "vmware-vpn",
               "addressAllocation": "STATIC",
-              "gateway": 174587905,
-              "subnet": 16,
+              "gateway": 172321025,
+              "subnet": 24,
               "allocationServer": {
                 "address": "ipam-vmbc.cloud.vmware.com",
                 "transportSecurity": {

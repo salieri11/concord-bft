@@ -1,5 +1,11 @@
 version: '3'
 services:
+  config-service:
+    image: "${persephone_configuration_repo}:${persephone_configuration_tag}"
+    ports:
+      - 8000:9003
+    volumes:
+      - ../hermes/resources/persephone/config-service:/config/persephone/config-service:ro
   persephone-metadata:
     image: "${persephone_metadata_repo}:${persephone_metadata_tag}"
     ports:

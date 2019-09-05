@@ -54,16 +54,10 @@ class RPCHelper():
       '''
       Helper method to get the provisioning config file
       :param service_name: service name (provisioning)
-      :return: configl file
+      :return: config file
       '''
-      config_folder = helper.get_docker_compose_value(
-         self.args.dockerComposeFile, service_name, "volumes")
-      try:
-         config_folder = config_folder[0].split(':')[0]
-         config_file = "{}/config.json".format(config_folder)
-      except Exception as e:
-         raise
-      return config_file
+      return helper.get_deployment_service_config_file(
+         self.args.dockerComposeFile, service_name)
 
    def create_channel(self, service_name):
       '''
