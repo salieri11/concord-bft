@@ -23,17 +23,15 @@ import org.slf4j.LoggerFactory
 
 import scala.collection.JavaConverters._
 import scala.compat.java8.FutureConverters._
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.ExecutionContext
 import java.util.concurrent.CompletionStage
 import java.util.concurrent.CompletableFuture
 import java.util.UUID
 
 import com.digitalasset.daml.lf.data.Ref.Party
+import com.digitalasset.daml.lf.data.Time.Timestamp
 import com.digitalasset.kvbc.daml_events.CommittedTx
 import com.digitalasset.ledger.api.domain.PartyDetails
-import com.digitalasset.ledger.api.v1.admin.party_management_service.AllocatePartyResponse
-import com.google.protobuf.ByteString
-
 import io.grpc.ConnectivityState
 
 /**
@@ -50,6 +48,7 @@ class KVBCParticipantState(
     participantId: ParticipantId,
     host: String, // KVBC Server hostname
     port: Int,    // KVBC Server port number
+    openWorld: Boolean
   )(implicit val mat: Materializer,
     system: ActorSystem)
   extends ReadService
@@ -99,17 +98,16 @@ class KVBCParticipantState(
     val submission: DamlKvutils.DamlSubmission =
       KeyValueSubmission.partyToSubmission(submissionId, Some(party), displayName, participantId)
 
-    val inputLogEntryKeys =
-      submission.getInputLogEntriesList.asScala.map((e: DamlKvutils.DamlLogEntryId) => KVKey(e.getEntryId))
-
     val inputStateKeys =
       submission.getInputDamlStateList.asScala.map((k: DamlKvutils.DamlStateKey) => KVKey(KeyValueCommitting.packDamlStateKey(k)))
 
     val commitReq = CommitRequest(
       submission = KeyValueSubmission.packDamlSubmission(submission),
-      inputLogEntries = inputLogEntryKeys,
-      inputState = inputStateKeys
+      inputState = inputStateKeys,
+      participantId = participantId.toString
     )
+
+    logger.info(s"Allocating party: $party, submissionId: $submissionId, inputStates: ${inputStateKeys.size}")
     
     client
       .commitTransaction(commitReq)
@@ -117,15 +115,18 @@ class KVBCParticipantState(
       .thenApply(resp =>
         resp.status match {
           case CommitResponse.CommitStatus.OK =>
-            logger.info("Party successfully allocated.")
+            logger.info(s"Party successfully allocated, party: $party, submissionId: $submissionId")
             //TODO: Feed this response from the asynch channel
             PartyAllocationResult.Ok(PartyDetails(Ref.Party.assertFromString(party),displayName,true))
           case CommitResponse.CommitStatus.CONFLICT =>
-            logger.error("party allocation failed, party $party already exists!")
+            logger.error("Party allocation failed - already exists, party: $party, submissionId: $submissionId")
             PartyAllocationResult.AlreadyExists
             //TODO: Unknown error is not a possibility. LedgerAPI client needs to get a meaningful error
-          case _ =>
-            sys.error("unknown commitTransaction result")
+          case e =>
+            //TODO: convert to PartyAllocationResult.InternalError, when provided
+            //Unknown error is not a viable option. LedgerAPI client needs to get a meaningful error
+            logger.error(s"Party allocation failed with an error $e")
+            PartyAllocationResult.InvalidName(s"Party allocation failed with an error $e")
         })
   }
 
@@ -143,20 +144,17 @@ class KVBCParticipantState(
     val submission: DamlKvutils.DamlSubmission =
       KeyValueSubmission.archivesToSubmission(submissionId, archives, sourceDescription.getOrElse(""), participantId)
 
-    val inputLogEntryKeys =
-      submission.getInputLogEntriesList.asScala.map((e: DamlKvutils.DamlLogEntryId) => KVKey(e.getEntryId))
-
     val inputStateKeys =
       submission.getInputDamlStateList.asScala.map((k: DamlKvutils.DamlStateKey) => KVKey(KeyValueCommitting.packDamlStateKey(k)))
 
     val commitReq = CommitRequest(
       submission = KeyValueSubmission.packDamlSubmission(submission),
-      inputLogEntries = inputLogEntryKeys,
-      inputState = inputStateKeys
+      inputState = inputStateKeys,
+      participantId = participantId.toString
     )
 
     logger.info(s"""Uploading package(s): ${archives.map(_.getHash).mkString(",")}, submissionId: $submissionId,
-         |inputLogEntries: ${inputLogEntryKeys.size}, inputStates: ${inputStateKeys.size}""".stripMargin.stripLineEnd)
+         |inputStates: ${inputStateKeys.size}""".stripMargin.stripLineEnd)
 
     client
       .commitTransaction(commitReq)
@@ -187,33 +185,26 @@ class KVBCParticipantState(
         })
   }
 
-
-  override def submitTransaction(
-    submitterInfo: SubmitterInfo,
-    transactionMeta: TransactionMeta,
-    transaction: SubmittedTransaction): CompletionStage[SubmissionResult] = {
-
-    val submission: DamlKvutils.DamlSubmission =
-      KeyValueSubmission.transactionToSubmission(
-        submitterInfo,
-        transactionMeta,
-        transaction)
-
-    // NOTE(JM): Extract inputs from the submission so we do not have to deserialize it in the replica.
-    val inputLogEntryKeys =
-      submission.getInputLogEntriesList.asScala.map((e: DamlKvutils.DamlLogEntryId) => KVKey(e.getEntryId))
+  /** Submit a new configuration to the ledger. */
+  override def submitConfiguration(
+    maxRecordTime: Timestamp,
+    submissionId: String,
+    config: Configuration
+  ): CompletionStage[SubmissionResult] = {
+    val submission =
+      KeyValueSubmission.configurationToSubmission(maxRecordTime, submissionId, config)
 
     val inputStateKeys =
       submission.getInputDamlStateList.asScala.map((k: DamlKvutils.DamlStateKey) => KVKey(KeyValueCommitting.packDamlStateKey(k)))
 
     val commitReq = CommitRequest(
       submission = KeyValueSubmission.packDamlSubmission(submission),
-      inputLogEntries = inputLogEntryKeys,
-      inputState = inputStateKeys
+      inputState = inputStateKeys,
+      participantId = participantId.toString
     )
 
-    logger.info(s"Submitting transaction: submitterInfo: ${submission.getTransactionEntry.getSubmitterInfo.toString}," +
-      s"inputLogEntries: ${inputLogEntryKeys.size}, inputStates: ${inputStateKeys.size}")
+    logger.info(s"""Submit kconfiguration: submissionId: $submissionId, generation: ${config.generation}
+                   |inputStates: ${inputStateKeys.size}""".stripMargin.stripLineEnd)
 
     // FIXME(JM): Properly queue the transactions and execute in sequence from one place.
     client
@@ -238,13 +229,65 @@ class KVBCParticipantState(
     })
   }
 
+  override def submitTransaction(
+    submitterInfo: SubmitterInfo,
+    transactionMeta: TransactionMeta,
+    transaction: SubmittedTransaction): CompletionStage[SubmissionResult] = {
+
+    val submission: DamlKvutils.DamlSubmission =
+      KeyValueSubmission.transactionToSubmission(
+        submitterInfo,
+        transactionMeta,
+        transaction)
+
+
+    val inputStateKeys =
+      submission.getInputDamlStateList.asScala.map((k: DamlKvutils.DamlStateKey) => KVKey(KeyValueCommitting.packDamlStateKey(k)))
+
+    val commitReq = CommitRequest(
+      submission = KeyValueSubmission.packDamlSubmission(submission),
+      inputState = inputStateKeys,
+      participantId = participantId.toString
+    )
+
+    val commandId = submission.getTransactionEntry.getSubmitterInfo.getCommandId
+
+    logger.info(s"Submitting transaction: commandId: $commandId," +
+      s"inputStates: ${inputStateKeys.size}")
+
+    // FIXME(JM): Properly queue the transactions and execute in sequence from one place.
+    client
+      .commitTransaction(commitReq)
+      .map { resp =>
+        resp.status match {
+          case CommitResponse.CommitStatus.OK =>
+            logger.info("Transaction submission succeeded: commandId: $commandId")
+          case CommitResponse.CommitStatus.CONFLICT =>
+            // TODO(JM): Open architectural issue:
+            // Command rejections should be handled in the state machine execution.
+            logger.error("Transaction submission failed due to conflicting command: commandId: $commandId")
+          case _ =>
+            logger.error("Transaction submission failed with unexpected commit response: commandId: $commandId")
+        }
+      }(DirectExecutionContext)
+
+    // FIXME(JM): Properly wrap the above commitTransaction into
+    // CompletionStage.
+    CompletableFuture.completedFuture({
+      SubmissionResult.Acknowledged
+    })
+  }
+
   override def getLedgerInitialConditions(): Source[LedgerInitialConditions, NotUsed] =
     Source.single(
       LedgerInitialConditions(
         ledgerId = ledgerId,
 
         config = Configuration(
-          timeModel = TimeModel.reasonableDefault
+          generation = 0,
+          timeModel = TimeModel(Duration.ofSeconds(1), Duration.ofSeconds(10), Duration.ofMinutes(2)).get,
+          authorizedParticipantId = Some(participantId),
+          openWorld = openWorld
         ),
 
         // FIXME(JM): This in principle should be the record time of block 0,
@@ -252,6 +295,8 @@ class KVBCParticipantState(
         initialRecordTime = Time.Timestamp.Epoch
       )
     )
+
+
 
   override def stateUpdates(beginAfter: Option[Offset]): Source[(Offset, Update), NotUsed] = {
 
@@ -263,7 +308,7 @@ class KVBCParticipantState(
     client
       .committedTxs(beginFromBlockId)
       .flatMapConcat { committedTx =>
-        logger.trace(s"Reading transaction ${committedTx.transactionId}...")
+        logger.trace(s"Reading transaction ${committedTx.transactionId.toString}...")
 
         readTransaction(committedTx)
           .filter {
@@ -274,9 +319,9 @@ class KVBCParticipantState(
           }
           .alsoTo(Sink.onComplete {
             case Success(Done) =>
-              logger.info(s"Transaction read successfully, transactionId: ${committedTx.transactionId}");
+              logger.info(s"Transaction read successfully, transactionId: ${committedTx.transactionId.toString}");
             case Failure(e) =>
-              logger.info(s"Transaction read failed, transactionId: ${committedTx.transactionId}, error: $e")
+              logger.info(s"Transaction read failed, transactionId: ${committedTx.transactionId.toString}, error: $e")
         })
       }
   }
@@ -291,13 +336,11 @@ class KVBCParticipantState(
         //TODO: Stream breaks here, make sure index can deal with this
         .recover {
           case e =>
-            logger.error("Reading transaction keys failed with an exception, error: $e")
+            logger.error(s"Reading transaction keys failed with an exception, transactionId: ${committedTx.transactionId.toString}, " +
+              s"error: $e")
             sys.error(e.toString)
         }
         .map { resp =>
-          logger.trace(s"Processing transaction, transactionId: ${committedTx.transactionId}, " +
-            s"num key-value(s): ${resp.results.size}")
-
           try {
             val logEntry =
               KeyValueConsumption.unpackDamlLogEntry(resp.results.head.value)
@@ -307,14 +350,15 @@ class KVBCParticipantState(
               logEntry
             ).zipWithIndex.map {
               case (update, idx) =>
-                logger.trace(s"Processing transaction, transactionId: ${committedTx.transactionId}, " +
+                logger.trace(s"Processing transaction, transactionId: ${committedTx.transactionId.toString}, " +
                   s"offset:${committedTx.blockId}:$idx")
                 Offset(Array(committedTx.blockId, idx.toLong)) -> update
             }
           } catch {
             //TODO: Stream breaks here, make sure index can deal with this
             case e: RuntimeException =>
-              logger.error(s"Processing transaction failed with an exception, error: $e")
+              logger.error(s"Processing transaction failed with an exception, transactionId: ${committedTx.transactionId.toString}, " +
+                s"error: $e")
               sys.error(e.toString)
           }
         })
@@ -328,7 +372,8 @@ object KVBCParticipantState{
       participantId: String,
       host: String, // KVBC Server hostname
       port: Int,    // KVBC Server port number
+      openWorld: Boolean,
       )(implicit mat: Materializer, system: ActorSystem):KVBCParticipantState =
-    new KVBCParticipantState(thisLedgerId, Ref.LedgerString.assertFromString(participantId), host, port)
+    new KVBCParticipantState(thisLedgerId, Ref.LedgerString.assertFromString(participantId), host, port, openWorld)
 }
 

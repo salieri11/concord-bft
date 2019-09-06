@@ -311,6 +311,7 @@ def call(){
                 env.release_hlf_orderer_repo = env.release_repo + "/hyperledger-fabric-orderer"
                 env.release_daml_ledger_api_repo = env.release_repo + "/daml-ledger-api"
                 env.release_daml_execution_engine_repo = env.release_repo + "/daml-execution-engine"
+                env.release_daml_index_db_repo = env.release_repo + "/daml-index-db"
 
                 // These are constants which mirror the internal artifactory repos.  We put all merges
                 // to master in the internal VMware artifactory.
@@ -332,6 +333,7 @@ def call(){
                 env.internal_hlf_orderer_repo = env.release_hlf_orderer_repo.replace(env.release_repo, env.internal_repo)
                 env.internal_daml_ledger_api_repo = env.release_daml_ledger_api_repo.replace(env.release_repo, env.internal_repo)
                 env.internal_daml_execution_engine_repo = env.release_daml_execution_engine_repo.replace(env.release_repo, env.internal_repo)
+                env.internal_daml_index_db_repo = env.release_daml_index_db_repo.replace(env.release_repo, env.internal_repo)
               }
 
               // Docker-compose picks up values from the .env file in the directory from which
@@ -382,6 +384,8 @@ daml_ledger_api_repo=${internal_daml_ledger_api_repo}
 daml_ledger_api_tag=${docker_tag}
 daml_execution_engine_repo=${internal_daml_execution_engine_repo}
 daml_execution_engine_tag=${docker_tag}
+daml_index_db_repo=${internal_daml_index_db_repo}
+daml_index_db_tag=${docker_tag}
 commit_hash=${commit}
 LINT_API_KEY=${LINT_API_KEY}
 EOF
@@ -564,23 +568,25 @@ EOF
                       docker tag ${internal_ethrpc_repo}:${docker_tag} ${release_ethrpc_repo}:${docker_tag}
                       docker tag ${internal_daml_ledger_api_repo}:${docker_tag} ${release_daml_ledger_api_repo}:${docker_tag}
                       docker tag ${internal_daml_execution_engine_repo}:${docker_tag} ${release_daml_execution_engine_repo}:${docker_tag}
+                      docker tag ${internal_daml_index_db_repo}:${docker_tag} ${release_daml_index_db_repo}:${docker_tag}
                     '''
                     pushDockerImage(env.release_persephone_agent_repo, env.docker_tag, false)
                     pushDockerImage(env.release_concord_repo, env.docker_tag, false)
                     pushDockerImage(env.release_ethrpc_repo, env.docker_tag, false)
                     pushDockerImage(env.release_daml_ledger_api_repo, env.docker_tag, false)
                     pushDockerImage(env.release_daml_execution_engine_repo, env.docker_tag, false)
+                    pushDockerImage(env.release_daml_index_db_repo, env.docker_tag, false)
 
                     if (genericTests) {
                       sh '''
                         echo "Running Persephone SMOKE Tests..."
-                        echo "${PASSWORD}" | sudo -SE "${python}" main.py PersephoneTests --dockerComposeFile ../docker/docker-compose-persephone.yml --resultsDir "${persephone_test_logs}" --deploymentComponents "${release_persephone_agent_repo}:${docker_tag},${release_concord_repo}:${docker_tag},${release_ethrpc_repo}:${docker_tag},${release_daml_ledger_api_repo}:${docker_tag},${release_daml_execution_engine_repo}:${docker_tag}"
+                        echo "${PASSWORD}" | sudo -SE "${python}" main.py PersephoneTests --dockerComposeFile ../docker/docker-compose-persephone.yml --resultsDir "${persephone_test_logs}" --deploymentComponents "${release_persephone_agent_repo}:${docker_tag},${release_concord_repo}:${docker_tag},${release_ethrpc_repo}:${docker_tag},${release_daml_ledger_api_repo}:${docker_tag},${release_daml_execution_engine_repo}:${docker_tag},${release_daml_index_db_repo}:${docker_tag}"
                       '''
                     }
                     if (env.JOB_NAME.contains(persephone_test_job_name)) {
                       sh '''
                         echo "Running Entire Testsuite: Persephone..."
-                        echo "${PASSWORD}" | sudo -SE "${python}" main.py PersephoneTests --dockerComposeFile ../docker/docker-compose-persephone.yml --resultsDir "${persephone_test_logs}" --tests "all_tests" --deploymentComponents "${release_persephone_agent_repo}:${docker_tag},${release_concord_repo}:${docker_tag},${release_ethrpc_repo}:${docker_tag},${release_daml_ledger_api_repo}:${docker_tag},${release_daml_execution_engine_repo}:${docker_tag}"
+                        echo "${PASSWORD}" | sudo -SE "${python}" main.py PersephoneTests --dockerComposeFile ../docker/docker-compose-persephone.yml --resultsDir "${persephone_test_logs}" --tests "all_tests" --deploymentComponents "${release_persephone_agent_repo}:${docker_tag},${release_concord_repo}:${docker_tag},${release_ethrpc_repo}:${docker_tag},${release_daml_ledger_api_repo}:${docker_tag},${release_daml_execution_engine_repo}:${docker_tag},${release_daml_index_db_repo}:${docker_tag}"
                       '''
                     }
                   }
@@ -763,6 +769,7 @@ EOF
                 pushDockerImage(env.internal_contract_compiler_repo, env.docker_tag, false)
                 pushDockerImage(env.internal_daml_ledger_api_repo, env.docker_tag, false)
                 pushDockerImage(env.internal_daml_execution_engine_repo, env.docker_tag, false)
+                pushDockerImage(env.internal_daml_index_db_repo, env.docker_tag, false)
               }
             }catch(Exception ex){
               failRun()
@@ -806,6 +813,7 @@ EOF
                   docker tag ${internal_contract_compiler_repo}:${docker_tag} ${release_contract_compiler_repo}:${docker_tag}
                   docker tag ${internal_daml_ledger_api_repo}:${docker_tag} ${release_daml_ledger_api_repo}:${docker_tag}
                   docker tag ${internal_daml_execution_engine_repo}:${docker_tag} ${release_daml_execution_engine_repo}:${docker_tag}
+                  docker tag ${internal_daml_index_db_repo}:${docker_tag} ${release_daml_index_db_repo}:${docker_tag}
                 '''
                 pushDockerImage(env.release_asset_transfer_repo, env.docker_tag, true)
                 pushDockerImage(env.release_concord_repo, env.docker_tag, true)
@@ -822,6 +830,7 @@ EOF
                 pushDockerImage(env.release_contract_compiler_repo, env.docker_tag, true)
                 pushDockerImage(env.release_daml_ledger_api_repo, env.docker_tag, true)
                 pushDockerImage(env.release_daml_execution_engine_repo, env.docker_tag, true)
+                pushDockerImage(env.release_daml_index_db_repo, env.docker_tag, true)
               }
 
               dir('blockchain/vars') {

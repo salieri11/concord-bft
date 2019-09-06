@@ -1,0 +1,4 @@
+FROM postgres:11.5
+COPY daml/create-postgres.sh /docker-entrypoint-initdb.d/
+
+EXPOSE 5432
