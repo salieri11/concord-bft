@@ -84,7 +84,7 @@ services:
   daml_ledger_api1:
     image: "${daml_ledger_api_repo}:${daml_ledger_api_tag}"
     environment:
-      - INDEXDB_HOST=index_db
+      - INDEXDB_HOST=daml_index_db1
       - INDEXDB_PORT=5432
       - INDEXDB_USER=indexdb
       - CONCORD_HOST=concord1
@@ -92,7 +92,7 @@ services:
       - PARTICIPANT_ID=daml_ledger_api1
     depends_on:
       - concord1
-      - index_db
+      - daml_index_db1
     expose:
       - 6865
     ports:
@@ -101,7 +101,7 @@ services:
   daml_ledger_api2:
     image: "${daml_ledger_api_repo}:${daml_ledger_api_tag}"
     environment:
-      - INDEXDB_HOST=index_db
+      - INDEXDB_HOST=daml_index_db2
       - INDEXDB_PORT=5432
       - INDEXDB_USER=indexdb
       - CONCORD_HOST=concord2
@@ -109,45 +109,45 @@ services:
       - PARTICIPANT_ID=daml_ledger_api2
     depends_on:
       - concord2
-      - index_db
+      - daml_index_db2
     expose:
       - 6865
     ports:
       - "6862:6865"
 
-  # daml_ledger_api3:
-  #   image: "${daml_ledger_api_repo}:${daml_ledger_api_tag}"
-  #   environment:
-  #     - INDEXDB_HOST=index_db
-  #     - INDEXDB_PORT=5432
-  #     - INDEXDB_USER=indexdb
-  #     - CONCORD_HOST=concord3
-  #     - CONCORD_PORT=50051
-  #     - PARTICIPANT_ID=daml_ledger_api3
-  #   depends_on:
-  #     - concord3
-  #     - index_db
-  #   expose:
-  #     - 6865
-  #   ports:
-  #     - "6863:6865"
+  daml_ledger_api3:
+    image: "${daml_ledger_api_repo}:${daml_ledger_api_tag}"
+    environment:
+      - INDEXDB_HOST=daml_index_db3
+      - INDEXDB_PORT=5432
+      - INDEXDB_USER=indexdb
+      - CONCORD_HOST=concord3
+      - CONCORD_PORT=50051
+      - PARTICIPANT_ID=daml_ledger_api3
+    depends_on:
+      - concord3
+      - daml_index_db3
+    expose:
+      - 6865
+    ports:
+      - "6863:6865"
 
-  # daml_ledger_api4:
-  #   image: "${daml_ledger_api_repo}:${daml_ledger_api_tag}"
-  #   environment:
-  #     - INDEXDB_HOST=index_db
-  #     - INDEXDB_PORT=5432
-  #     - INDEXDB_USER=indexdb
-  #     - CONCORD_HOST=concord4
-  #     - CONCORD_PORT=50051
-  #     - PARTICIPANT_ID=daml_ledger_api4
-  #   depends_on:
-  #     - concord4
-  #     - index_db
-  #   expose:
-  #     - 6865
-  #   ports:
-  #     - "6864:6865"
+  daml_ledger_api4:
+    image: "${daml_ledger_api_repo}:${daml_ledger_api_tag}"
+    environment:
+      - INDEXDB_HOST=daml_index_db4
+      - INDEXDB_PORT=5432
+      - INDEXDB_USER=indexdb
+      - CONCORD_HOST=concord4
+      - CONCORD_PORT=50051
+      - PARTICIPANT_ID=daml_ledger_api4
+    depends_on:
+      - concord4
+      - daml_index_db4
+    expose:
+      - 6865
+    ports:
+      - "6864:6865"
 
   daml_execution_engine1:
     image: "${daml_execution_engine_repo}:${daml_execution_engine_tag}"
@@ -192,16 +192,58 @@ services:
     volumes:
       - ./fluentd:/fluentd/etc
 
-  index_db:
-    image: "${daml_postgres_repo}:${daml_postgres_tag}"
+  daml_index_db1:
+    image: "${daml_index_db_repo}:${daml_index_db_tag}"
     command: postgres -c 'max_connections=300' -c 'shared_buffers=80MB'
     restart: always
     environment:
       - POSTGRES_USER=indexdb
-      - POSTGRES_MULTIPLE_DATABASES=daml_ledger_api1,daml_ledger_api2,daml_ledger_api3,daml_ledger_api4
+      - POSTGRES_MULTIPLE_DATABASES=daml_ledger_api1
     volumes:
-      - ./devdata/index_db:/var/lib/postgresql/data
+      - ./devdata/daml_index_db1:/var/lib/postgresql/data
+    expose:
+      - 5432
+    ports:
+      - "5431:5432"
+
+  daml_index_db2:
+    image: "${daml_index_db_repo}:${daml_index_db_tag}"
+    command: postgres -c 'max_connections=300' -c 'shared_buffers=80MB'
+    restart: always
+    environment:
+      - POSTGRES_USER=indexdb
+      - POSTGRES_MULTIPLE_DATABASES=daml_ledger_api2
+    volumes:
+      - ./devdata/daml_index_db2:/var/lib/postgresql/data
     expose:
       - 5432
     ports:
       - "5432:5432"
+
+  daml_index_db3:
+    image: "${daml_index_db_repo}:${daml_index_db_tag}"
+    command: postgres -c 'max_connections=300' -c 'shared_buffers=80MB'
+    restart: always
+    environment:
+      - POSTGRES_USER=indexdb
+      - POSTGRES_MULTIPLE_DATABASES=daml_ledger_api3
+    volumes:
+      - ./devdata/daml_index_db3:/var/lib/postgresql/data
+    expose:
+      - 5432
+    ports:
+      - "5433:5432"
+
+  daml_index_db4:
+    image: "${daml_index_db_repo}:${daml_index_db_tag}"
+    command: postgres -c 'max_connections=300' -c 'shared_buffers=80MB'
+    restart: always
+    environment:
+      - POSTGRES_USER=indexdb
+      - POSTGRES_MULTIPLE_DATABASES=daml_ledger_api4
+    volumes:
+      - ./devdata/daml_index_db4:/var/lib/postgresql/data
+    expose:
+      - 5432
+    ports:
+      - "5434:5432"

@@ -150,7 +150,7 @@ class DamlTests(test_suite.TestSuite):
                 testToolImage + \
                 " java -jar " + TEST_TOOL_NAME + \
                    " -h ledger -p 6865 " + \
-                   " --timeout-scale-factor 3.5 " \
+                   "--timeout-scale-factor 3.5 " + \
                    "--command-submission-ttl-scale-factor 3.5"
       log.info("Run %s...", TEST_TOOL_NAME)
       try:

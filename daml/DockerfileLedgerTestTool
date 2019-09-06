@@ -8,6 +8,7 @@
 # * <repo-url>/daml-ledger-api-test-tool:100.13.8
 # * <repo-url>/daml-ledger-api-test-tool:100.13.12
 # * <repo-url>/daml-ledger-api-test-tool:100.13.16
+# * <repo-url>/daml-ledger-api-test-tool:100.13.16-java
 # * <repo-url>/daml-ledger-api-test-tool:100.13.21
 
 FROM ubuntu:18.04
