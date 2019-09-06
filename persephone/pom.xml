@@ -24,6 +24,7 @@
         <module>persistence</module>
         <module>persistence-rocksdb</module>
         <module>provisioning-service</module>
+        <module>server-support</module>
     </modules>
 
     <distributionManagement>
@@ -180,6 +181,11 @@
             <dependency>
                 <groupId>com.vmware.blockchain</groupId>
                 <artifactId>persephone-persistence-rocksdb</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.vmware.blockchain</groupId>
+                <artifactId>persephone-server-support</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

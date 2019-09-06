@@ -6,6 +6,7 @@ package com.vmware.blockchain.deployment.service.fleet
 import com.vmware.blockchain.deployment.logging.error
 import com.vmware.blockchain.deployment.logging.info
 import com.vmware.blockchain.deployment.logging.logger
+import com.vmware.blockchain.deployment.service.grpc.ServerReflectionService
 import com.vmware.blockchain.deployment.v1.FleetManagementServerConfiguration
 import com.vmware.blockchain.deployment.v1.TransportSecurity
 import dagger.Component
@@ -140,6 +141,7 @@ fun main(args: Array<String>) {
                 )
             }
     val server = NettyServerBuilder.forPort(config.port)
+            .addService(ServerReflectionService())
             .addService(fleetServer.fleetControlService())
             .addService(fleetServer.fleetManagementService())
             .sslContext(sslContext)

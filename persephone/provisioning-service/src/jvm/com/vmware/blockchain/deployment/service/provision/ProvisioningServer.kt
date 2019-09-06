@@ -4,6 +4,7 @@
 package com.vmware.blockchain.deployment.service.provision
 
 import com.vmware.blockchain.deployment.model.core.URI
+import com.vmware.blockchain.deployment.service.grpc.ServerReflectionService
 import com.vmware.blockchain.deployment.service.orchestrationsite.OrchestrationSiteService
 import com.vmware.blockchain.deployment.service.orchestrationsite.OrchestrationSiteServiceModule
 import com.vmware.blockchain.deployment.v1.Endpoint
@@ -179,6 +180,7 @@ fun main(args: Array<String>) {
             // Use number of cores for a fixed size thread pool.
             // Currently do not account for hyper-threading (i.e. x2). (May need tuning)
             .executor(provisioningServer.inboundRequestExecutorService())
+            .addService(ServerReflectionService())
             .addService(provisioningServer.provisioningService())
             .addService(provisioningServer.orchestrationSiteService())
             .sslContext(sslContext)
