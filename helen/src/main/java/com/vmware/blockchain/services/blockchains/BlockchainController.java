@@ -7,6 +7,7 @@ package com.vmware.blockchain.services.blockchains;
 import static com.vmware.blockchain.services.blockchains.Blockchain.BlockchainType;
 import static com.vmware.blockchain.services.blockchains.BlockchainController.DeploymentType.FIXED;
 import static com.vmware.blockchain.services.blockchains.BlockchainController.DeploymentType.UNSPECIFIED;
+import static com.vmware.blockchain.services.blockchains.BlockchainUtils.toInfo;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -55,6 +56,7 @@ import com.vmware.blockchain.ethereum.type.Genesis;
 import com.vmware.blockchain.operation.OperationContext;
 import com.vmware.blockchain.services.blockchains.Blockchain.NodeEntry;
 import com.vmware.blockchain.services.blockchains.replicas.ReplicaService;
+import com.vmware.blockchain.services.blockchains.zones.ZoneService;
 import com.vmware.blockchain.services.profiles.ConsortiumService;
 import com.vmware.blockchain.services.profiles.DefaultProfiles;
 import com.vmware.blockchain.services.profiles.Roles;
@@ -195,6 +197,7 @@ public class BlockchainController {
     private OperationContext operationContext;
     private boolean mockDeployment;
     private ReplicaService replicaService;
+    private ZoneService zoneService;
 
 
     @Autowired
@@ -206,6 +209,7 @@ public class BlockchainController {
                                 ProvisioningServiceStub client,
                                 OperationContext operationContext,
                                 ReplicaService replicaService,
+                                ZoneService zoneService,
                                 @Value("${mock.deployment:false}") boolean mockDeployment) {
         this.blockchainService = blockchainService;
         this.consortiumService = consortiumService;
@@ -215,6 +219,7 @@ public class BlockchainController {
         this.client = client;
         this.operationContext = operationContext;
         this.replicaService = replicaService;
+        this.zoneService = zoneService;
         this.mockDeployment = mockDeployment;
     }
 
@@ -261,8 +266,10 @@ public class BlockchainController {
                 throw new BadRequestException(ErrorCode.BAD_REQUEST);
             }
             list = zoneIds.stream()
-                    .map(u -> new Entry(placementType, FleetUtils.identifier(OrchestrationSiteIdentifier.class, u),
-                                        new OrchestrationSiteInfo()))
+                    .map(zoneService::get)
+                    .map(z -> new Entry(placementType,
+                                        FleetUtils.identifier(OrchestrationSiteIdentifier.class, z.getId()),
+                                        toInfo(z)))
                     .collect(Collectors.toList());
         } else {
             list = IntStream.range(0, clusterSize)

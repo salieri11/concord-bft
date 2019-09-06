@@ -124,7 +124,7 @@ public enum Roles implements GrantedAuthority {
     }
 
     public static String[] devloper() {
-        String[] r = {SYSTEM_ADMIN.name, CONSORTIUM_ADMIN.name, ORG_ADMIN.name, ORG_DEVELOPER.name};
+        String[] r = {INFRA_ADMIN.name, SYSTEM_ADMIN.name, CONSORTIUM_ADMIN.name, ORG_ADMIN.name, ORG_DEVELOPER.name};
         return r;
     }
 
@@ -133,18 +133,23 @@ public enum Roles implements GrantedAuthority {
         return r;
     }
 
+    public static String[] infraAdmin() {
+        String[] r = {INFRA_ADMIN.name};
+        return r;
+    }
+
     public static String[] consortiumAdmin() {
-        String[] r = {SYSTEM_ADMIN.name, CONSORTIUM_ADMIN.name};
+        String[] r = {INFRA_ADMIN.name, SYSTEM_ADMIN.name, CONSORTIUM_ADMIN.name};
         return r;
     }
 
     public static String[] orgAdmin() {
-        String[] r = {SYSTEM_ADMIN.name, ORG_ADMIN.name};
+        String[] r = {INFRA_ADMIN.name, SYSTEM_ADMIN.name, ORG_ADMIN.name};
         return r;
     }
 
     public static String[] user() {
-        String[] r = {SYSTEM_ADMIN.name, ORG_USER.name};
+        String[] r = {INFRA_ADMIN.name, SYSTEM_ADMIN.name, ORG_USER.name};
         return r;
     }
 
