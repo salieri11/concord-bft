@@ -3152,6 +3152,14 @@ void specifyConfiguration(ConcordConfiguration& config) {
   config.tagParameter("FEATURE_time_service", publicDefaultableTags);
   config.addValidator("FEATURE_time_service", validateBoolean, nullptr);
 
+  config.declareParameter(
+      "eth_enable",
+      "Enable Ethereum support. At the moment, DAML/Eth/HLF "
+      "support are mutually exclusive.",
+      "true");
+  config.tagParameter("eth_enable", publicDefaultableTags);
+  config.addValidator("eth_enable", validateBoolean, nullptr);
+
   config.declareParameter("daml_enable",
                           "Enable DAML support. At the moment, DAML and Eth "
                           "support are mutual exclusive.",
