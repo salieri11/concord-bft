@@ -26,7 +26,6 @@ import io.grpc.netty.shaded.io.grpc.netty.NettyServerBuilder;
 import io.grpc.netty.shaded.io.netty.handler.ssl.ClientAuth;
 import io.grpc.netty.shaded.io.netty.handler.ssl.SslContext;
 import io.grpc.netty.shaded.io.netty.handler.ssl.SslContextBuilder;
-import io.grpc.protobuf.services.ProtoReflectionService;
 import kotlinx.serialization.UpdateMode;
 import kotlinx.serialization.json.Json;
 import kotlinx.serialization.json.JsonConfiguration;
@@ -188,7 +187,6 @@ public interface ConfigurationServer {
         )
                 : null;
         Server server = NettyServerBuilder.forPort(config.getPort())
-                .addService(ProtoReflectionService.newInstance())
                 .addService(configurationServer.configurationService())
                 .sslContext(sslContext)
                 .build();

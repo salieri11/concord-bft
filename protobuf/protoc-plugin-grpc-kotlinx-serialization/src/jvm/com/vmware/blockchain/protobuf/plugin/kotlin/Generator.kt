@@ -16,6 +16,7 @@ import com.squareup.kotlinpoet.PropertySpec
 import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.asTypeName
 import com.vmware.blockchain.grpc.kotlinx.serialization.GrpcSupport
+import com.vmware.blockchain.protobuf.kotlinx.serialization.ProtoFileDescriptor
 import io.grpc.BindableService
 import io.grpc.CallOptions
 import io.grpc.Channel
@@ -29,12 +30,21 @@ import io.grpc.stub.StreamObserver
 /**
  * Denotes the context for code-generation based on a given Protocol Buffer descriptor file.
  *
+ * @property[knownFiles]
+ *   mapping of known .proto definitions to the associated type's canonical class name.
  * @param[packageName]
  *   name of the package that all generated types should be grouped in.
  * @param[sourcePackageName]
  *   name of the package in the source descriptor file.
+ * @param[fileDescriptorName]
+ *   name of the source descriptor file.
  */
-data class Context(val packageName: String, val sourcePackageName: String) {
+data class Context(
+    val knownFiles: MutableMap<String, String>,
+    val packageName: String,
+    val sourcePackageName: String,
+    val fileDescriptorName: String
+) {
     /**
      * Resolve the best-guess type name of a given input type's [String] literal representation
      * declared in Protocol Buffer descriptors.
@@ -54,6 +64,34 @@ data class Context(val packageName: String, val sourcePackageName: String) {
      */
     fun resolveTypeLiteral(literal: String): String {
         return literal.removePrefix(".").replaceFirst(sourcePackageName, packageName)
+    }
+
+    /**
+     * Resolve the best-guess type name of [ProtoFileDescriptor] corresponding to the input file
+     * descriptor name [String] literal.
+     *
+     * @param[literal]
+     *   string literal of a descriptor name to resolve.
+     *
+     * @returns
+     *   resolved type name.
+     */
+    fun resolveFileDescriptorType(literal: String): String {
+        // Look up known types, or best-guess based on the current context's package.
+        val typeName = literal.replaceFirst(sourcePackageName, packageName)
+        return knownFiles.getOrDefault(literal, typeName)
+    }
+
+    /**
+     * Register a .proto file using a given canonical type name designated for this .proto file.
+     *
+     * @param[name]
+     *   file descriptor's name (.proto).
+     * @param[typeName]
+     *   type name assigned to the file descriptor name.
+     */
+    fun registerFile(name: String, typeName: String) {
+        knownFiles[name] = typeName
     }
 }
 
@@ -109,6 +147,8 @@ class ServiceGenerator(
      * generator.
      */
     fun generate(): TypeSpec {
+        val fileDescriptorTypeName = context.resolveFileDescriptorType(context.fileDescriptorName)
+        val fileDescriptorType = ClassName.bestGuess(fileDescriptorTypeName)
         val serviceName = "${context.sourcePackageName}.${descriptor.name}"
         val selfTypeName = ClassName.bestGuess("${context.packageName}.${descriptor.name}")
         val methodDescriptors = descriptor.methodList
@@ -118,6 +158,7 @@ class ServiceGenerator(
                 .addStatement("%T.newBuilder(%S)", ServiceDescriptor::class, serviceName)
                 .indent().indent()
                 .apply { methodDescriptors.forEach { addStatement(".addMethod(%N)", it.name) } }
+                .addStatement(".setSchemaDescriptor(%T)", fileDescriptorType)
                 .addStatement(".build()")
                 .unindent().unindent()
                 .unindent().unindent()
@@ -503,13 +544,21 @@ fun main() {
         }
     }
 
+    // Map to accumulate types as they get generated.
+    val knownFiles = mutableMapOf<String, String>()
+
     request.protoFileList
             .filter { request.fileToGenerateList.contains(it.name) }
             .forEach { descriptor ->
                 val outputPackage = descriptor.`package`
                         .takeIf { parameters.containsKey(PARAMETER_DISABLE_JAVA_PACKAGE) }
                         ?: descriptor.options.javaPackage
-                val context = Context(outputPackage, descriptor.`package`)
+                val name = descriptor.name.split("/").last()
+                        .removeSuffix(".proto").plus("_proto")
+                        .split("_")
+                        .joinToString(separator = "") { it.capitalize() }
+                val context = Context(knownFiles, outputPackage, descriptor.`package`, descriptor.name)
+                context.registerFile(descriptor.name, "${context.packageName}.$name")
 
                 descriptor.serviceList.forEach { message ->
                     response = response.addFile(ServiceFileGenerator(context, message).generate())

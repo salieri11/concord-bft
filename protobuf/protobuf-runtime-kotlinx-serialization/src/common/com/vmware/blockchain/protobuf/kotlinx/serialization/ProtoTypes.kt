@@ -20,13 +20,13 @@ import kotlinx.serialization.*
 import kotlinx.serialization.protobuf.ProtoNumberType
 import kotlinx.serialization.protobuf.ProtoType
 
-internal typealias ProtoDesc = Pair<Int, ProtoNumberType>
+internal typealias ProtoDesc = Triple<Int, ProtoNumberType, Boolean>
 
 internal fun extractParameters(desc: SerialDescriptor, index: Int): ProtoDesc {
     val idx = desc.findAnnotation<SerialId>(index)?.id ?: index + 1
     val format = desc.findAnnotation<ProtoType>(index)?.type
             ?: ProtoNumberType.DEFAULT
-    return idx to format
+    return Triple(idx, format, desc.isElementOptional(index))
 }
 
 inline fun <reified A: Annotation> SerialDescriptor.findAnnotation(elementIndex: Int): A? {

@@ -258,37 +258,15 @@ class CompatibilityTest {
         val parser = NestedMessageJava.parser()
         val serializer = NestedMessage.serializer()
 
-        // TODO(jameschang - 20190205):
-        // This roundtrip fails due to Kotlin's serialization not able to handle null-value
-        // conversion. As a workaround, any non-scalar field is always a non-null type and a default
-        // instance value is used as value (instead of using a nullable type with default value of
-        // null). This causes the roundtrip through Kotlin to always have empty inner message filled
-        // as values, which is different from how Java's protobuf runtime handles no-value.
-        //
-        // This isn't a big issue other than the fact that by default, optional embedded message
-        // fields will always yield slightly larger serialized footprint due to encoding of empty
-        // messages (2 bytes per embedded message field).
-        //
-        // val javaEmptyMessage = NestedMessageJava.newBuilder().build()
-        // Assertions.assertThat(roundTrip(javaEmptyMessage, serializer)).isEqualTo(javaEmptyMessage)
+        val javaEmptyMessage = NestedMessageJava.newBuilder().build()
+        Assertions.assertThat(roundTrip(javaEmptyMessage, serializer)).isEqualTo(javaEmptyMessage)
 
         val kotlinEmptyMessage = NestedMessage()
         Assertions.assertThat(roundTrip(kotlinEmptyMessage, serializer, parser))
                 .isEqualTo(kotlinEmptyMessage)
 
-        // TODO(jameschang - 20190205):
-        // This roundtrip fails due to Kotlin's serialization not able to handle null-value
-        // conversion. As a workaround, any non-scalar field is always a non-null type and a default
-        // instance value is used as value (instead of using a nullable type with default value of
-        // null). This causes the roundtrip through Kotlin to always have empty inner message filled
-        // as values, which is different from how Java's protobuf runtime handles no-value.
-        //
-        // This isn't a big issue other than the fact that by default, optional embedded message
-        // fields will always yield slightly larger serialized footprint due to encoding of empty
-        // messages (2 bytes per embedded message field).
-        //
-        // val javaMessage = newNestedMessageJava()
-        // Assertions.assertThat(roundTrip(javaMessage, serializer)).isEqualTo(javaMessage)
+        val javaMessage = newNestedMessageJava()
+        Assertions.assertThat(roundTrip(javaMessage, serializer)).isEqualTo(javaMessage)
 
         val kotlinMessage = newNestedMessage()
         Assertions.assertThat(roundTrip(kotlinMessage, serializer, parser)).isEqualTo(kotlinMessage)

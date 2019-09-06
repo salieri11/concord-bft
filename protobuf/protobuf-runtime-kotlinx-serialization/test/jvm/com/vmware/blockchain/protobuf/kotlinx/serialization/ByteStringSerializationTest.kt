@@ -21,7 +21,7 @@ import org.assertj.core.api.Assertions
 class ByteStringSerializationTest {
 
     @Serializable
-    data class BoxedBytes(@SerialId(1) val value: ByteString)
+    data class BoxedBytes(@SerialId(1) val value: ByteString = ByteString.EMPTY)
 
     companion object {
         private val json = Json(JsonConfiguration.Stable, EmptyModule)
