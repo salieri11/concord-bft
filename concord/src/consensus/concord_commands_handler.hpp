@@ -38,7 +38,6 @@ class ConcordCommandsHandler : public concord::storage::ICommandsHandler,
   TimingStat timing_time_response_;
   TimingStat timing_execute_;
   TimingStat timing_serialize_;
-  concordMetrics::Component::Handle<concordMetrics::Counter> stat_executions_;
 
  public:
   concord::storage::IBlocksAppender &appender_;

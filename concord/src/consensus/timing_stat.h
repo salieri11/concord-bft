@@ -22,6 +22,7 @@ class TimingStat {
   concordMetrics::Component::Handle<concordMetrics::Gauge> g_min_;
   concordMetrics::Component::Handle<concordMetrics::Gauge> g_max_;
   concordMetrics::Component::Handle<concordMetrics::Gauge> g_p50_;
+  concordMetrics::Component::Handle<concordMetrics::Gauge> g_count_;
   struct hdr_histogram* histogram_ = nullptr;
 
  public:
@@ -31,7 +32,8 @@ class TimingStat {
         g_avg_{parent.RegisterGauge(name + "_avg_us", 0)},
         g_min_{parent.RegisterGauge(name + "_min_us", 0)},
         g_max_{parent.RegisterGauge(name + "_max_us", 0)},
-        g_p50_{parent.RegisterGauge(name + "_p50_us", 0)} {
+        g_p50_{parent.RegisterGauge(name + "_p50_us", 0)},
+        g_count_{parent.RegisterGauge(name + "_count", 0)} {
     if (enabled_) {
       int64_t min_value = 1;        // 0 is invalid
       int64_t max_value = 5000000;  // 5 seconds, in microseconds
@@ -70,6 +72,7 @@ class TimingStat {
       g_min_.Get().Set(hdr_min(histogram_));
       g_max_.Get().Set(hdr_max(histogram_));
       g_p50_.Get().Set(hdr_value_at_percentile(histogram_, 50));
+      g_count_.Get().Set(histogram_->total_count);
     }
   }
 

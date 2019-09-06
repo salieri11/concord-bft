@@ -72,9 +72,7 @@ EthKvbCommandsHandler::EthKvbCommandsHandler(
       gas_limit_(config.getValue<uint64_t>("gas_limit")),
       timing_evmrun_("evmrun", timing_enabled_, metrics_),
       timing_evmcreate_("evmcreate", timing_enabled_, metrics_),
-      timing_evmwrite_("evmwrite", timing_enabled_, metrics_),
-      stat_evmruns_{metrics_.RegisterCounter("evmruns")},
-      stat_evmcreates_{metrics_.RegisterCounter("evmcreates")} {}
+      timing_evmwrite_("evmwrite", timing_enabled_, metrics_) {}
 
 EthKvbCommandsHandler::~EthKvbCommandsHandler() {
   // no other deinitialization necessary
@@ -1014,7 +1012,6 @@ evm_result EthKvbCommandsHandler::run_evm(const EthRequest &request,
     memcpy(message.destination.bytes, request.addr_to().c_str(),
            sizeof(message.destination));
 
-    stat_evmruns_.Get().Inc();
     timing_evmrun_.Start();
     result = concevm_.run(message, timestamp, kvbStorage, logs, message.sender,
                           message.destination);
@@ -1027,7 +1024,6 @@ evm_result EthKvbCommandsHandler::run_evm(const EthRequest &request,
     evm_address contract_address =
         concevm_.contract_destination(message.sender, nonce);
 
-    stat_evmcreates_.Get().Inc();
     timing_evmcreate_.Start();
     result = concevm_.create(contract_address, message, timestamp, kvbStorage,
                              logs, message.sender);
