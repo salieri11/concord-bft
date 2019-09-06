@@ -364,29 +364,15 @@ class CompatibilityTest {
         val parser = ScalarsMessageJava.parser()
         val serializer = ScalarsMessage.serializer()
 
-        // TODO(jameschang - 20190205):
-        // This roundtrip fails due to Kotlin's serialization not able to handle not encoding
-        // default values. This is different from how Java's protobuf compiled bindings for proto2
-        // handles fields for which no values were supplied, for optional fields. There is no
-        // difference in correctness other than more bytes used in serialized form (i.e. default
-        // values are not omitted on the wire in serialized form).
-        //
-        // val javaEmptyMessage = ScalarsMessageJava.newBuilder().build()
-        // Assertions.assertThat(roundTrip(javaEmptyMessage, serializer)).isEqualTo(javaEmptyMessage)
+        val javaEmptyMessage = ScalarsMessageJava.newBuilder().build()
+        Assertions.assertThat(roundTrip(javaEmptyMessage, serializer)).isEqualTo(javaEmptyMessage)
 
         val kotlinEmptyMessage = ScalarsMessage()
         Assertions.assertThat(roundTrip(kotlinEmptyMessage, serializer, parser))
                 .isEqualTo(kotlinEmptyMessage)
 
-        // TODO(jameschang - 20190205):
-        // This roundtrip fails due to Kotlin's serialization not able to handle not encoding
-        // default values. This is different from how Java's protobuf compiled bindings for proto2
-        // handles fields for which no values were supplied, for optional fields. There is no
-        // difference in correctness other than more bytes used in serialized form (i.e. default
-        // values are not omitted on the wire in serialized form).
-        //
-        // val javaMessage = newScalarsMessageJava()
-        // Assertions.assertThat(roundTrip(javaMessage, serializer)).isEqualTo(javaMessage)
+        val javaMessage = newScalarsMessageJava()
+        Assertions.assertThat(roundTrip(javaMessage, serializer)).isEqualTo(javaMessage)
 
         val kotlinMessage = newScalarsMessage()
         Assertions.assertThat(roundTrip(kotlinMessage, serializer, parser)).isEqualTo(kotlinMessage)
@@ -400,37 +386,15 @@ class CompatibilityTest {
         val parser = NestedMessageJava.parser()
         val serializer = NestedMessage.serializer()
 
-        // TODO(jameschang - 20190205):
-        // This roundtrip fails due to Kotlin's serialization not able to handle null-value
-        // conversion. As a workaround, any non-scalar field is always a non-null type and a default
-        // instance value is used as value (instead of using a nullable type with default value of
-        // null). This causes the roundtrip through Kotlin to always have empty inner message filled
-        // as values, which is different from how Java's protobuf runtime handles no-value.
-        //
-        // This isn't a big issue other than the fact that by default, optional embedded message
-        // fields will always yield slightly larger serialized footprint due to encoding of empty
-        // messages (2 bytes per embedded message field).
-        //
-        // val javaEmptyMessage = NestedMessageJava.newBuilder().build()
-        // Assertions.assertThat(roundTrip(javaEmptyMessage, serializer)).isEqualTo(javaEmptyMessage)
+        val javaEmptyMessage = NestedMessageJava.newBuilder().build()
+        Assertions.assertThat(roundTrip(javaEmptyMessage, serializer)).isEqualTo(javaEmptyMessage)
 
         val kotlinEmptyMessage = NestedMessage()
         Assertions.assertThat(roundTrip(kotlinEmptyMessage, serializer, parser))
                 .isEqualTo(kotlinEmptyMessage)
 
-        // TODO(jameschang - 20190205):
-        // This roundtrip fails due to Kotlin's serialization not able to handle null-value
-        // conversion. As a workaround, any non-scalar field is always a non-null type and a default
-        // instance value is used as value (instead of using a nullable type with default value of
-        // null). This causes the roundtrip through Kotlin to always have empty inner message filled
-        // as values, which is different from how Java's protobuf runtime handles no-value.
-        //
-        // This isn't a big issue other than the fact that by default, optional embedded message
-        // fields will always yield slightly larger serialized footprint due to encoding of empty
-        // messages (2 bytes per embedded message field).
-        //
-        // val javaMessage = newNestedMessageJava()
-        // Assertions.assertThat(roundTrip(javaMessage, serializer)).isEqualTo(javaMessage)
+        val javaMessage = newNestedMessageJava()
+        Assertions.assertThat(roundTrip(javaMessage, serializer)).isEqualTo(javaMessage)
 
         val kotlinMessage = newNestedMessage()
         Assertions.assertThat(roundTrip(kotlinMessage, serializer, parser)).isEqualTo(kotlinMessage)
@@ -444,15 +408,8 @@ class CompatibilityTest {
         val parser = EnumMessageJava.parser()
         val serializer = EnumMessage.serializer()
 
-        // TODO(jameschang - 20190205):
-        // This roundtrip fails due to Kotlin's serialization not able to handle not encoding
-        // default values. This is different from how Java's protobuf compiled bindings for proto2
-        // handles fields for which no values were supplied, for optional fields. There is no
-        // difference in correctness other than more bytes used in serialized form (i.e. default
-        // values are not omitted on the wire in serialized form).
-        //
-        // val javaEmptyMessage = EnumMessageJava.newBuilder().build()
-        // Assertions.assertThat(roundTrip(javaEmptyMessage, serializer)).isEqualTo(javaEmptyMessage)
+        val javaEmptyMessage = EnumMessageJava.newBuilder().build()
+        Assertions.assertThat(roundTrip(javaEmptyMessage, serializer)).isEqualTo(javaEmptyMessage)
 
         val kotlinEmptyMessage = EnumMessage()
         Assertions.assertThat(roundTrip(kotlinEmptyMessage, serializer, parser))
@@ -480,15 +437,8 @@ class CompatibilityTest {
         Assertions.assertThat(roundTrip(kotlinEmptyMessage, serializer, parser))
                 .isEqualTo(kotlinEmptyMessage)
 
-        // TODO(jameschang - 20190205):
-        // This roundtrip fails due to Kotlin's serialization not able to handle not encoding
-        // default values. This is different from how Java's protobuf compiled bindings for proto2
-        // handles fields for which no values were supplied, for optional fields. There is no
-        // difference in correctness other than more bytes used in serialized form (i.e. default
-        // values are not omitted on the wire in serialized form).
-        //
-        // val javaMessage = newRepeatedFieldAndMapMessageJava()
-        // Assertions.assertThat(roundTrip(javaMessage, serializer)).isEqualTo(javaMessage)
+        val javaMessage = newRepeatedFieldAndMapMessageJava()
+        Assertions.assertThat(roundTrip(javaMessage, serializer)).isEqualTo(javaMessage)
 
         val kotlinMessage = newRepeatedFieldsAndMapMessage()
         Assertions.assertThat(roundTrip(kotlinMessage, serializer, parser)).isEqualTo(kotlinMessage)

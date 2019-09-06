@@ -24,6 +24,7 @@ import com.vmware.blockchain.protobuf.kotlinx.serialization.GeneratedModel
 import com.vmware.blockchain.protobuf.kotlinx.serialization.ProtoFileDescriptor
 import com.vmware.blockchain.protobuf.kotlinx.serialization.encodeBase64
 import kotlinx.serialization.KSerializer
+import kotlinx.serialization.Required
 import kotlinx.serialization.SerialId
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.protobuf.ProtoNumberType
@@ -333,6 +334,11 @@ class MessageGenerator(
         return ParameterSpec.builder(getFieldName(this), fieldType)
                 .addAnnotation(AnnotationSpec.builder(SerialId::class)
                                        .addMember("%L", number).build())
+                .apply {
+                    if (label == DescriptorProtos.FieldDescriptorProto.Label.LABEL_REQUIRED) {
+                        addAnnotation(AnnotationSpec.builder(Required::class).build())
+                    }
+                }
                 .defaultValue(getFieldDefaultValue(this, fieldType))
                 .apply {
                     val fixed = AnnotationSpec.builder(ProtoType::class)

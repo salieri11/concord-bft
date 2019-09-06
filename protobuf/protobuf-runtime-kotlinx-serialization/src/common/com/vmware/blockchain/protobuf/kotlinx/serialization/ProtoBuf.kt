@@ -51,21 +51,78 @@ class ProtoBuf(context: SerialModule = EmptyModule) : AbstractSerialFormat(conte
             else -> throw SerializationException("Primitives are not supported at top-level")
         }
 
-        override fun encodeTaggedInt(tag: ProtoDesc, value: Int) = encoder.writeInt(value, tag.first, tag.second)
-        override fun encodeTaggedByte(tag: ProtoDesc, value: Byte) = encoder.writeInt(value.toInt(), tag.first, tag.second)
-        override fun encodeTaggedShort(tag: ProtoDesc, value: Short) = encoder.writeInt(value.toInt(), tag.first, tag.second)
-        override fun encodeTaggedLong(tag: ProtoDesc, value: Long) = encoder.writeLong(value, tag.first, tag.second)
-        override fun encodeTaggedFloat(tag: ProtoDesc, value: Float) = encoder.writeFloat(value, tag.first)
-        override fun encodeTaggedDouble(tag: ProtoDesc, value: Double) = encoder.writeDouble(value, tag.first)
-        override fun encodeTaggedBoolean(tag: ProtoDesc, value: Boolean) = encoder.writeInt(if (value) 1 else 0, tag.first, ProtoNumberType.DEFAULT)
-        override fun encodeTaggedChar(tag: ProtoDesc, value: Char) = encoder.writeInt(value.toInt(), tag.first, tag.second)
-        override fun encodeTaggedString(tag: ProtoDesc, value: String) = encoder.writeString(value, tag.first)
+        override fun encodeTaggedInt(tag: ProtoDesc, value: Int) {
+            if (!tag.third || value != 0) {
+                encoder.writeInt(value, tag.first, tag.second)
+            }
+        }
+
+        override fun encodeTaggedByte(tag: ProtoDesc, value: Byte) {
+            val intValue = value.toInt()
+            if (!tag.third || intValue != 0) {
+                encoder.writeInt(intValue, tag.first, tag.second)
+            }
+        }
+
+        override fun encodeTaggedShort(tag: ProtoDesc, value: Short) {
+            val intValue = value.toInt()
+            if (!tag.third || intValue != 0) {
+                encoder.writeInt(intValue, tag.first, tag.second)
+            }
+        }
+
+        override fun encodeTaggedLong(tag: ProtoDesc, value: Long) {
+            if (!tag.third || value != 0L) {
+                encoder.writeLong(value, tag.first, tag.second)
+            }
+        }
+
+        override fun encodeTaggedFloat(tag: ProtoDesc, value: Float) {
+            if (!tag.third || value != 0.0F) {
+                encoder.writeFloat(value, tag.first)
+            }
+        }
+
+        override fun encodeTaggedDouble(tag: ProtoDesc, value: Double) {
+            if (!tag.third || value != 0.0) {
+                encoder.writeDouble(value, tag.first)
+            }
+        }
+
+        override fun encodeTaggedBoolean(tag: ProtoDesc, value: Boolean) {
+            if (!tag.third || value) {
+                encoder.writeInt(if (value) 1 else 0, tag.first, ProtoNumberType.DEFAULT)
+            }
+        }
+
+        override fun encodeTaggedChar(tag: ProtoDesc, value: Char) {
+            val intValue = value.toInt()
+            if (!tag.third || intValue != 0) {
+                encoder.writeInt(intValue, tag.first, tag.second)
+            }
+        }
+
+        override fun encodeTaggedString(tag: ProtoDesc, value: String) {
+            if (!tag.third || value.isNotEmpty()) {
+                encoder.writeString(value, tag.first)
+            }
+        }
+
         override fun encodeTaggedEnum(
             tag: ProtoDesc,
             enumDescription: EnumDescriptor,
             ordinal: Int
-        ) = encoder.writeInt(ordinal, tag.first, ProtoNumberType.DEFAULT)
-        fun encodeTaggedBytes(value: ByteArray) = encoder.writeByteArray(value, currentTag.first)
+        ) {
+            if (!tag.third || ordinal != 0) {
+                encoder.writeInt(ordinal, tag.first, ProtoNumberType.DEFAULT)
+            }
+        }
+
+        fun encodeTaggedBytes(value: ByteArray) {
+            if (!currentTag.third || value.isNotEmpty()) {
+                encoder.writeByteArray(value, currentTag.first)
+            }
+        }
 
         override fun SerialDescriptor.getTag(index: Int) = this.getProtoDesc(index)
 
@@ -88,7 +145,10 @@ class ProtoBuf(context: SerialModule = EmptyModule) : AbstractSerialFormat(conte
     ) : ProtobufWriter(ProtobufEncoder(stream)) {
         override fun endEncode(desc: SerialDescriptor) {
             if (parentTag != null) {
-                parentEncoder.writeObject(stream.toByteArray(), parentTag.first)
+                val value = stream.toByteArray()
+                if (!parentTag.third || value.isNotEmpty()) {
+                    parentEncoder.writeObject(value, parentTag.first)
+                }
             } else {
                 parentEncoder.out.write(stream.toByteArray())
             }
@@ -97,12 +157,12 @@ class ProtoBuf(context: SerialModule = EmptyModule) : AbstractSerialFormat(conte
 
     internal inner class MapRepeatedWriter(parentTag: ProtoDesc?, parentEncoder: ProtobufEncoder): ObjectWriter(parentTag, parentEncoder) {
         override fun SerialDescriptor.getTag(index: Int): ProtoDesc =
-                if (index % 2 == 0) 1 to (parentTag?.second ?: ProtoNumberType.DEFAULT)
-                else 2 to (parentTag?.second ?: ProtoNumberType.DEFAULT)
+                if (index % 2 == 0) Triple(1, (parentTag?.second ?: ProtoNumberType.DEFAULT), false)
+                else Triple(2, (parentTag?.second ?: ProtoNumberType.DEFAULT), false)
     }
 
     internal inner class RepeatedWriter(encoder: ProtobufEncoder, val curTag: ProtoDesc) : ProtobufWriter(encoder) {
-        override fun SerialDescriptor.getTag(index: Int) = curTag
+        override fun SerialDescriptor.getTag(index: Int) = curTag.copy(third = false)
     }
 
     class ProtobufEncoder(val out: ByteArrayOutputStream) {
@@ -241,8 +301,8 @@ class ProtoBuf(context: SerialModule = EmptyModule) : AbstractSerialFormat(conte
 
     private inner class MapEntryReader(decoder: ProtobufDecoder, val parentTag: ProtoDesc?): ProtobufReader(decoder) {
         override fun SerialDescriptor.getTag(index: Int): ProtoDesc =
-                if (index % 2 == 0) 1 to (parentTag?.second ?: ProtoNumberType.DEFAULT)
-                else 2 to (parentTag?.second ?: ProtoNumberType.DEFAULT)
+                if (index % 2 == 0) Triple(1, (parentTag?.second ?: ProtoNumberType.DEFAULT), false)
+                else Triple(2, (parentTag?.second ?: ProtoNumberType.DEFAULT), false)
     }
 
     class ProtobufDecoder(val inp: ByteArrayInputStream) {
@@ -272,8 +332,8 @@ class ProtoBuf(context: SerialModule = EmptyModule) : AbstractSerialFormat(conte
                 i64 -> nextLong(ProtoNumberType.FIXED)
                 SIZE_DELIMITED -> nextObject()
                 i32 -> nextInt(ProtoNumberType.FIXED)
+                else -> throw ProtobufDecodingException("Unsupported start group or end group wire type")
             }
-            readTag()
         }
 
         @Suppress("NOTHING_TO_INLINE")
