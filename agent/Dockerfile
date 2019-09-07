@@ -20,6 +20,7 @@ COPY ./persephone/orchestration-vmware/pom.xml ./persephone/orchestration-vmware
 COPY ./persephone/persistence/pom.xml ./persephone/persistence/pom.xml
 COPY ./persephone/persistence-rocksdb/pom.xml ./persephone/persistence-rocksdb/pom.xml
 COPY ./persephone/provisioning-service/pom.xml ./persephone/provisioning-service/pom.xml
+COPY ./persephone/server-support/pom.xml ./persephone/server-support/pom.xml
 COPY ./agent/pom.xml ./agent/pom.xml
 
 ## Build persephone API.
