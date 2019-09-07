@@ -29,6 +29,7 @@ COPY ./persephone/orchestration-vmware/pom.xml ./persephone/orchestration-vmware
 COPY ./persephone/persistence/pom.xml ./persephone/persistence/pom.xml
 COPY ./persephone/persistence-rocksdb/pom.xml ./persephone/persistence-rocksdb/pom.xml
 COPY ./persephone/provisioning-service/pom.xml ./persephone/provisioning-service/pom.xml
+COPY ./persephone/server-support/pom.xml ./persephone/server-support/pom.xml
 
 ## Copy the dependency-related POM files (rarely changing).
 COPY ./helen/pom.xml ./helen/pom.xml
