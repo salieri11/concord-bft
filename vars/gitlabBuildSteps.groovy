@@ -65,13 +65,9 @@ def call(){
         steps{
           script{
             try{
-              // Output node info
-              sh '''
-                set +x
-                echo Jenkins node information:
-                ifconfig | grep -A 2 "ens"
-                set -x
-              '''
+              removeContainers()
+              pruneImages()            
+              reportSystemStats()
 
               // Check parameters
               script{
@@ -870,6 +866,9 @@ EOF
 
           command = "docker logout athena-docker-local.artifactory.eng.vmware.com"
           retryCommand(command, false)
+
+          removeContainers()
+          pruneImages()
         }
 
         // Files created by the docker run belong to root because they were created by the docker process.
@@ -1228,4 +1227,36 @@ Boolean has_repo_changed(directory){
     // There was NO change in git diff
     return false
   }
+}
+
+// Remove all containers.
+// Set returnStatus to true so that a build does not fail when there are no
+// containers.  That should never happen anyway, but just in case.
+void removeContainers(){
+  echo "Removing docker containers"
+  sh(script: '''docker rm -f $(docker ps -aq) > /dev/null''', returnStatus: true)
+}
+
+// Remove unused images.
+void pruneImages(){
+  echo "Pruning docker images"
+  sh(script: "docker system prune --force > /dev/null", returnStatus: true)
+}
+
+// Report status about this system
+void reportSystemStats(){
+  echo "Jenkins node networking info:"
+  sh(script:
+  '''
+  set +x
+  echo 
+  ifconfig | grep -A 2 "ens"
+  set -x
+  ''')
+
+  echo "Jenkins node disk stats:"
+  sh(script: "df -h")
+
+  echo "Jenkins node docker system stats:"
+  sh(script: "docker system df")
 }
