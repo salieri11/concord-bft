@@ -18,6 +18,7 @@ COPY ./persephone/orchestration-vmware/pom.xml ./persephone/orchestration-vmware
 COPY ./persephone/persistence/pom.xml ./persephone/persistence/pom.xml
 COPY ./persephone/persistence-rocksdb/pom.xml ./persephone/persistence-rocksdb/pom.xml
 COPY ./persephone/provisioning-service/pom.xml ./persephone/provisioning-service/pom.xml
+COPY ./persephone/server-support/pom.xml ./persephone/server-support/pom.xml
 
 ## Run an empty package step to keep as much exogenous dependencies in a cached layer as possible.
 RUN mvn -f persephone/pom.xml dependency:resolve-plugins dependency:resolve clean package -B
@@ -25,6 +26,7 @@ RUN mvn -f persephone/pom.xml dependency:resolve-plugins dependency:resolve clea
 ## Copy the dependent module sources.
 COPY ./persephone/api ./persephone/api
 COPY ./persephone/core ./persephone/core
+COPY ./persephone/server-support ./persephone/server-support
 
 ## Copy the module sources.
 COPY ./persephone/config-service ./persephone/config-service

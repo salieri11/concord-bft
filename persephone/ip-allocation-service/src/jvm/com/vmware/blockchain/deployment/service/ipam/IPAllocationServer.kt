@@ -8,6 +8,7 @@ import com.vmware.blockchain.deployment.logging.info
 import com.vmware.blockchain.deployment.logging.logger
 import com.vmware.blockchain.deployment.persistence.kv.KeyValueStore
 import com.vmware.blockchain.deployment.persistence.kv.MonotonicInt
+import com.vmware.blockchain.deployment.service.grpc.ServerReflectionService
 import com.vmware.blockchain.deployment.v1.AddressBlock
 import com.vmware.blockchain.deployment.v1.AddressBlockSegment
 import com.vmware.blockchain.deployment.v1.IPAllocationServerConfiguration
@@ -157,6 +158,7 @@ fun main(args: Array<String>) {
                 )
             }
     val server = NettyServerBuilder.forPort(config.port)
+            .addService(ServerReflectionService())
             .addService(ipAllocationServer.ipAllocationService())
             .sslContext(sslContext)
             .build()

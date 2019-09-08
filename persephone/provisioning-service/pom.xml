@@ -53,6 +53,10 @@
             <groupId>com.vmware.blockchain</groupId>
             <artifactId>persephone-persistence</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.vmware.blockchain</groupId>
+            <artifactId>persephone-server-support</artifactId>
+        </dependency>
         <!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         ~ External dependencies.                                    ~
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->

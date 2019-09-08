@@ -16,6 +16,7 @@ import javax.net.ssl.SSLException;
 
 import org.slf4j.LoggerFactory;
 
+import com.vmware.blockchain.deployment.service.grpc.ServerReflectionService;
 import com.vmware.blockchain.deployment.v1.ConfigurationServerConfiguration;
 import com.vmware.blockchain.deployment.v1.TransportSecurity;
 
@@ -187,6 +188,7 @@ public interface ConfigurationServer {
         )
                 : null;
         Server server = NettyServerBuilder.forPort(config.getPort())
+                .addService(new ServerReflectionService())
                 .addService(configurationServer.configurationService())
                 .sslContext(sslContext)
                 .build();
