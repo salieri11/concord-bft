@@ -7,6 +7,7 @@ package com.vmware.blockchain.security;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.cache.CacheManager;
 import org.springframework.context.annotation.Bean;
@@ -102,6 +103,7 @@ public class MvcTestSecurityConfig extends WebSecurityConfigurerAdapter {
     TaskService taskService;
 
     @MockBean
+    @Qualifier("provisioningServerChannel")
     ManagedChannel channel;
 
     @MockBean

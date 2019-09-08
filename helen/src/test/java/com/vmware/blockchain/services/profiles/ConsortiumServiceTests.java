@@ -16,6 +16,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.cache.CacheManager;
@@ -87,6 +88,7 @@ public class ConsortiumServiceTests {
     TaskService taskService;
 
     @MockBean
+    @Qualifier("provisioningServerChannel")
     ManagedChannel channel;
 
     @MockBean
