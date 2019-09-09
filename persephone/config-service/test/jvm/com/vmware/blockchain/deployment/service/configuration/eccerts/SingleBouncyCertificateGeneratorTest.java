@@ -90,7 +90,7 @@ class SingleBouncyCertificateGeneratorTest {
 
             Calendar cal = Calendar.getInstance();
             cal.setTime(new Date());
-            cal.add(Calendar.DATE, 366);
+            cal.add(Calendar.DATE, 1097);
             cert.checkValidity(cal.getTime());
         });
     }
