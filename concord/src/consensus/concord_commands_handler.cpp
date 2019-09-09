@@ -37,7 +37,6 @@ ConcordCommandsHandler::ConcordCommandsHandler(
       timing_time_response_("time_response", timing_enabled_, metrics_),
       timing_execute_("execute", timing_enabled_, metrics_),
       timing_serialize_("serialize", timing_enabled_, metrics_),
-      stat_executions_{metrics_.RegisterCounter("executions")},
       appender_(appender) {
   if (concord::time::IsTimeServiceEnabled(config)) {
     time_ = std::unique_ptr<concord::time::TimeContract>(
@@ -61,7 +60,6 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
   request_.Clear();
   response_.Clear();
 
-  stat_executions_.Get().Inc();
   timing_parse_.Start();
   bool result;
   if (request_.ParseFromArray(request_buffer, request_size)) {

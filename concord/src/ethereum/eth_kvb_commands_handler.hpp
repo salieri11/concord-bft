@@ -31,8 +31,6 @@ class EthKvbCommandsHandler
   concord::consensus::TimingStat timing_evmrun_;
   concord::consensus::TimingStat timing_evmcreate_;
   concord::consensus::TimingStat timing_evmwrite_;
-  concordMetrics::Component::Handle<concordMetrics::Counter> stat_evmruns_;
-  concordMetrics::Component::Handle<concordMetrics::Counter> stat_evmcreates_;
 
  public:
   EthKvbCommandsHandler(

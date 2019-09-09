@@ -11,7 +11,7 @@ var times = ["parse", "time_update", "time_response", "execute", "serialize",
              "evmrun", "evmcreate", "evmwrite"];
 
 // set the dimensions and margins of the graph
-var margin = {top: 10, right: 30, bottom: 30, left: 60},
+var margin = {top: 10, right: 45, bottom: 30, left: 60},
     width = 460 - margin.left - margin.right,
     height = 400 - margin.top - margin.bottom;
 
@@ -85,7 +85,7 @@ function analyze_data() {
     var maxes = {};
     for (var i in times) {
         // the zero is hear to ensure our graphs always start at zero
-        maxes[times[i]] = [0];
+        maxes[times[i]] = {left: [0], right: [0]};
     }
 
     for (var i in filenames) {
@@ -98,13 +98,16 @@ function analyze_data() {
         // cleaner.
         var graph_maxes = {};
         for (var j in times) {
-            graph_maxes[times[j]] = 0;
+            graph_maxes[times[j]] = {left: 0, right: 0};
         }
 
         graph_maxes = parsed[filenames[i]].reduce(
             function(gm, d) {
                 for (var j in times) {
-                    gm[times[j]] = Math.max(d.Gauges[times[j]+"_max_us"], gm[times[j]]);
+                    gm[times[j]].left = Math.max(d.Gauges[times[j]+"_max_us"],
+                                                 gm[times[j]].left);
+                    gm[times[j]].right = Math.max(d.Gauges[times[j]+"_count"],
+                                                  gm[times[j]].right);
                 }
                 return gm;
             },
@@ -114,7 +117,8 @@ function analyze_data() {
         // allows us to decide below whether we actually want to use
         // the max, or something between the maxes.
         for (var j in times) {
-            maxes[times[j]].push(graph_maxes[times[j]]);
+            maxes[times[j]].left.push(graph_maxes[times[j]].left);
+            maxes[times[j]].right.push(graph_maxes[times[j]].right);
         }
     }
     var x = d3.scaleTime()
@@ -123,11 +127,18 @@ function analyze_data() {
 
     var y = {};
     for (var i in times) {
-        y[times[i]] = d3.scaleLinear()
-        // Clip large maxes on one host, instead of shrinking graphs
-        // to unusability on other hosts.
-            .domain([0, d3.mean(maxes[times[i]])])
-            .range([ height, 0 ]);
+        y[times[i]] = { left: d3.scaleLinear()
+                        // Clip large maxes on one host, instead of shrinking graphs
+                        // to unusability on other hosts.
+                        .domain([0, d3.mean(maxes[times[i]].left)])
+                        .range([ height, 0 ]),
+                        right: d3.scaleLinear()
+                        // The right hand scale is counts, which
+                        // should be the same on all hosts, so no need
+                        // to worry about one blowing the others out.
+                        .domain([0, d3.max(maxes[times[i]].right)])
+                        .range([ height, 0 ])
+                      }
     }
 
     return {x, y};
@@ -166,18 +177,32 @@ function render_graph(host_data, svg, t, x, y) {
         .style("text-anchor", "middle")
         .text("UTC Time");
 
-    // Add Y axis
+    // Add left Y axis
     svg.append("g")
-        .call(d3.axisLeft(y));
+        .call(d3.axisLeft(y.left));
 
-    // Add Y axis label
+    // Add left Y axis label
     svg.append("text")
         .attr("transform", "rotate(-90)")
-        .attr("y", 0 - margin.left)
+        .attr("y", 0 - margin.left * 0.95)
         .attr("x", 0 - (height / 2))
         .attr("dy", "1em")
         .style("text-anchor", "middle")
         .text(t + " time (microseconds)");
+
+    // Add right Y axis
+    svg.append("g")
+        .attr("transform", "translate(" + width + ",0)")
+        .call(d3.axisRight(y.right));
+
+    // Add right Y axis label
+    svg.append("text")
+        .attr("transform", "rotate(90)")
+        .attr("y", 0 - (width + margin.right))
+        .attr("x", (height / 2))
+        .attr("dy", "1em")
+        .style("text-anchor", "middle")
+        .text(t + " count");
 
     // Add min/max bounds
     svg.append("path")
@@ -186,8 +211,8 @@ function render_graph(host_data, svg, t, x, y) {
         .attr("stroke", "none")
         .attr("d", d3.area()
               .x(function(d) { return x(d.date) })
-              .y0(function(d) { return y(d.Gauges[t+"_min_us"]) })
-              .y1(function(d) { return y(d.Gauges[t+"_max_us"]) })
+              .y0(function(d) { return y.left(d.Gauges[t+"_min_us"]) })
+              .y1(function(d) { return y.left(d.Gauges[t+"_max_us"]) })
              )
 
     // Add average
@@ -198,7 +223,7 @@ function render_graph(host_data, svg, t, x, y) {
         .attr("stroke-width", 1.5)
         .attr("d", d3.line()
               .x(function(d) { return x(d.date) })
-              .y(function(d) { return y(d.Gauges[t+"_avg_us"]) })
+              .y(function(d) { return y.left(d.Gauges[t+"_avg_us"]) })
              )
 
     // Add median
@@ -209,6 +234,17 @@ function render_graph(host_data, svg, t, x, y) {
         .attr("stroke-width", 1.5)
         .attr("d", d3.line()
               .x(function(d) { return x(d.date) })
-              .y(function(d) { return y(d.Gauges[t+"_p50_us"]) })
+              .y(function(d) { return y.left(d.Gauges[t+"_p50_us"]) })
+             )
+
+    // Add count
+    svg.append("path")
+        .datum(host_data)
+        .attr("fill", "none")
+        .attr("stroke", "#999900")
+        .attr("stroke-width", 1.5)
+        .attr("d", d3.line()
+              .x(function(d) { return x(d.date) })
+              .y(function(d) { return y.right(d.Gauges[t+"_count"]) })
              )
 }
