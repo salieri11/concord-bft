@@ -60,9 +60,9 @@ namespace api {
 ApiConnection::pointer ApiConnection::create(
     io_service &io_service, ConnectionManager &connManager,
     KVBClientPool &clientPool, StatusAggregator &sag, uint64_t gasLimit,
-    uint64_t chainID, bool damlEnabled) {
+    uint64_t chainID, bool ethEnabled) {
   return pointer(new ApiConnection(io_service, connManager, clientPool, sag,
-                                   gasLimit, chainID, damlEnabled));
+                                   gasLimit, chainID, ethEnabled));
 }
 
 tcp::socket &ApiConnection::socket() { return socket_; }
@@ -242,8 +242,8 @@ void ApiConnection::process_incoming() {
  * handler.
  */
 void ApiConnection::dispatch() {
-  // HACK to enable member API only for DAML deployment to check health
-  if (damlEnabled_) {
+  // HACK to enable member API only for non-Ethereum deployments
+  if (!ethEnabled_) {
     if (concordRequest_.has_peer_request()) {
       handle_peer_request();
     }
@@ -720,7 +720,7 @@ uint64_t ApiConnection::current_block_number() {
 ApiConnection::ApiConnection(io_service &io_service, ConnectionManager &manager,
                              KVBClientPool &clientPool, StatusAggregator &sag,
                              uint64_t gasLimit, uint64_t chainID,
-                             bool damlEnabled)
+                             bool ethEnabled)
     : socket_(io_service),
       logger_(
           log4cplus::Logger::getInstance("com.vmware.concord.ApiConnection")),
@@ -729,7 +729,7 @@ ApiConnection::ApiConnection(io_service &io_service, ConnectionManager &manager,
       sag_(sag),
       gasLimit_(gasLimit),
       chainID_(chainID),
-      damlEnabled_(damlEnabled) {
+      ethEnabled_(ethEnabled) {
   // nothing to do here yet other than initialize the socket and logger
 }
 

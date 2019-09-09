@@ -269,6 +269,13 @@ void RunDamlGrpcServer(std::string server_address, KVBClientPool &pool,
 }
 
 /*
+ * Check whether one and only one of the three provided booleans is true.
+ */
+bool OnlyOneTrue(bool a, bool b, bool c) {
+  return ((a != b) != c) && !(a && b && c);
+}
+
+/*
  * Start the service that listens for connections from Helen.
  */
 int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
@@ -280,9 +287,17 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
   BlockingPersistentQueue<CommittedTx> committedTxs;
   bool daml_enabled = config.getValue<bool>("daml_enable");
   bool hlf_enabled = config.getValue<bool>("hlf_enable");
+  bool eth_enabled = config.getValue<bool>("eth_enable");
+
+  if (!OnlyOneTrue(daml_enabled, hlf_enabled, eth_enabled)) {
+    LOG4CPLUS_WARN(logger,
+                   "Make sure one and only one execution engine (DAML, or Eth, "
+                   "or HLF) is set");
+    return 0;
+  }
 
   try {
-    if (!daml_enabled && !hlf_enabled) {
+    if (eth_enabled) {
       // The genesis parsing is Eth specific.
       if (nodeConfig.hasValue<std::string>("genesis_block")) {
         string genesis_file_path =
@@ -343,6 +358,7 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
           unique_ptr<ICommandsHandler>(new HlfKvbCommandsHandler(
               chaincode_invoker, config, nodeConfig, replica, replica));
     } else {
+      assert(eth_enabled);
       kvb_commands_handler =
           unique_ptr<ICommandsHandler>(new EthKvbCommandsHandler(
               *concevm, *ethVerifier, config, nodeConfig, replica, replica));
@@ -419,28 +435,28 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
       HlfKvbStorage kvb_storage = HlfKvbStorage(storage, &block_appender);
 
       // Start HLF gRPC services
-      RunHlfGrpcServer(kvb_storage, pool, key_value_service_addr,
-                       chaincode_service_addr);
+      std::thread(RunHlfGrpcServer, std::ref(kvb_storage), std::ref(pool),
+                  key_value_service_addr, chaincode_service_addr)
+          .detach();
     }
 
-    if (!hlf_enabled) {
-      std::string ip = nodeConfig.getValue<std::string>("service_host");
-      short port = nodeConfig.getValue<short>("service_port");
+    // Start the Management API service. If Ethereum is enabled we also expose
+    // Ethereum API through this service.
+    std::string ip = nodeConfig.getValue<std::string>("service_host");
+    short port = nodeConfig.getValue<short>("service_port");
 
-      api_service = new io_service();
-      tcp::endpoint endpoint(address::from_string(ip), port);
-      uint64_t gasLimit = config.getValue<uint64_t>("gas_limit");
-      ApiAcceptor acceptor(*api_service, endpoint, pool, sag, gasLimit, chainID,
-                           daml_enabled);
-      LOG4CPLUS_INFO(logger, "API Listening on " << endpoint);
+    api_service = new io_service();
+    tcp::endpoint endpoint(address::from_string(ip), port);
+    uint64_t gasLimit = config.getValue<uint64_t>("gas_limit");
+    ApiAcceptor acceptor(*api_service, endpoint, pool, sag, gasLimit, chainID,
+                         eth_enabled);
+    LOG4CPLUS_INFO(logger, "API Listening on " << endpoint);
 
-      start_worker_threads(nodeConfig.getValue<int>("api_worker_pool_size") -
-                           1);
+    start_worker_threads(nodeConfig.getValue<int>("api_worker_pool_size") - 1);
 
-      // Wait for api_service->run() to return
-      api_service->run();
-      worker_pool.join_all();
-    }
+    // Wait for api_service->run() to return
+    api_service->run();
+    worker_pool.join_all();
 
     if (timePusher) {
       timePusher->Stop();

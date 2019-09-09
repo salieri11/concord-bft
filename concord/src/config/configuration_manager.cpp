@@ -3161,8 +3161,8 @@ void specifyConfiguration(ConcordConfiguration& config) {
   config.addValidator("eth_enable", validateBoolean, nullptr);
 
   config.declareParameter("daml_enable",
-                          "Enable DAML support. At the moment, DAML and Eth "
-                          "support are mutual exclusive.",
+                          "Enable DAML support. At the moment, DAML/Eth/HLF "
+                          "support are mutually exclusive.",
                           "false");
   config.tagParameter("daml_enable", publicDefaultableTags);
   config.addValidator("daml_enable", validateBoolean, nullptr);
@@ -3448,7 +3448,10 @@ void specifyConfiguration(ConcordConfiguration& config) {
   clientProxy.addGenerator("public_key", getRSAPublicKey, nullptr);
 
   // Configuration of HLF
-  config.declareParameter("hlf_enable", "Flag to enable HLF feature.", "false");
+  config.declareParameter("hlf_enable",
+                          "Enable HLF support. At the moment, DAML/Eth/HLF "
+                          "support are mutually exclusive.",
+                          "false");
   config.tagParameter("hlf_enable", publicDefaultableTags);
   config.addValidator("hlf_enable", validateBoolean, nullptr);
 
