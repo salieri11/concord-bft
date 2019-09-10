@@ -11,6 +11,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.BroadcastChannel
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.channels.ClosedSendChannelException
 import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.reactive.publish
@@ -49,7 +50,7 @@ class BroadcastingPublisher<T>(
     private val active = kotlinx.atomicfu.atomic(true)
 
     /** Command channel to send inputs to internal counter actor coroutine. */
-    private val publishCounterCommands = Channel<Unit>()
+    private val publishCounterCommands = Channel<Boolean>()
 
     /** Notification channel for counter actor coroutine to broadcast changes to counter value. */
     private val publishCounterMessages = newPublishCounter(publishCounterCommands)
@@ -60,12 +61,15 @@ class BroadcastingPublisher<T>(
             val receiveChannel = broadcastChannel.openSubscription()
 
             // Notify counter to increment publish count.
-            publishCounterCommands.send(Unit)
+            publishCounterCommands.sendMessage(true)
 
             // Loop over incoming signals until upstream closes.
             for (element in receiveChannel) {
                 send(element)
             }
+
+            // Notify counter to decrement publish count.
+            publishCounterCommands.sendMessage(false)
         }
     }
 
@@ -132,6 +136,7 @@ class BroadcastingPublisher<T>(
                 .takeIf { it } // Proceed if went from false -> true.
                 ?.run {
                     broadcastChannel.close(error)
+                    publishCounterCommands.close(error)
                     job.cancel()
                 }
     }
@@ -147,15 +152,14 @@ class BroadcastingPublisher<T>(
      * @return
      *   the notification channel to broadcast changes to the counter value.
      */
-    private fun newPublishCounter(channel: ReceiveChannel<Unit>): BroadcastChannel<Int> {
+    private fun newPublishCounter(channel: ReceiveChannel<Boolean>): BroadcastChannel<Int> {
         val notificationChannel = BroadcastChannel<Int>(Channel.CONFLATED)
 
         launch {
             var counter = 0
             for (message in channel) {
-                // As of now, the overly simplistic approach is assuming every incoming is an
-                // increment command.
-                counter++
+                // true => increment and false => decrement.
+                counter += if (message) 1 else -1
                 notificationChannel.offer(counter)
             }
         }.invokeOnCompletion {
@@ -164,5 +168,21 @@ class BroadcastingPublisher<T>(
         }
 
         return notificationChannel
+    }
+
+    /**
+     * Extension to [Channel] to send a message and ignore any potential
+     * [ClosedSendChannelException] failures due to channel being closed.
+     *
+     * @param[T]
+     *   type of the message to send.
+     * @param[message]
+     *   message to send on the channel.
+     */
+    private suspend inline fun <T> Channel<T>.sendMessage(message: T) {
+        try {
+            send(message)
+        }
+        catch (error: ClosedSendChannelException) { }
     }
 }
