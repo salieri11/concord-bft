@@ -45,8 +45,8 @@ import com.vmware.blockchain.deployment.orchestration.Orchestrator.NetworkAlloca
 import com.vmware.blockchain.deployment.orchestration.Orchestrator.NetworkResourceEvent;
 import com.vmware.blockchain.deployment.orchestration.Orchestrator.OrchestrationEvent;
 import com.vmware.blockchain.deployment.orchestration.OrchestratorProvider;
-import com.vmware.blockchain.deployment.orchestration.vmware.GrpcSupportKt;
 import com.vmware.blockchain.deployment.reactive.ReactiveStream;
+import com.vmware.blockchain.deployment.service.grpc.support.EndpointsKt;
 import com.vmware.blockchain.deployment.v1.ConcordCluster;
 import com.vmware.blockchain.deployment.v1.ConcordClusterIdentifier;
 import com.vmware.blockchain.deployment.v1.ConcordClusterInfo;
@@ -214,7 +214,7 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
                 // Note: GrpcSupport is currently exported from orchestration-vmware library module.
                 // This will need to be moved to a more common hosting library.
                 resolvedConfigurationService =
-                        GrpcSupportKt.resolveTransportSecurityServerSetting(configurationService);
+                        EndpointsKt.resolveTransportSecurityServerSetting(configurationService);
                 configurationServiceClient =
                         configurationServiceClientProvider.apply(resolvedConfigurationService);
             }, executor);

@@ -9,8 +9,8 @@ import com.vmware.blockchain.deployment.model.core.URI
 import com.vmware.blockchain.deployment.model.core.UUID
 import com.vmware.blockchain.deployment.orchestration.Orchestrator
 import com.vmware.blockchain.deployment.orchestration.toIPv4Address
-import com.vmware.blockchain.deployment.orchestration.vmware.newClientRpcChannel
 import com.vmware.blockchain.deployment.reactive.Publisher
+import com.vmware.blockchain.deployment.service.grpc.support.newClientRpcChannel
 import com.vmware.blockchain.deployment.v1.Address
 import com.vmware.blockchain.deployment.v1.AllocateAddressRequest
 import com.vmware.blockchain.deployment.v1.AllocateAddressResponse

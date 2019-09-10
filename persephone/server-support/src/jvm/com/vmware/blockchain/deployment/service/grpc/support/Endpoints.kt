@@ -1,7 +1,7 @@
 /* **************************************************************************
  * Copyright (c) 2019 VMware, Inc. All rights reserved. VMware Confidential
  * **************************************************************************/
-package com.vmware.blockchain.deployment.orchestration.vmware
+package com.vmware.blockchain.deployment.service.grpc.support
 
 import com.vmware.blockchain.deployment.model.core.URI
 import com.vmware.blockchain.deployment.v1.Endpoint
