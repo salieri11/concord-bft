@@ -351,6 +351,10 @@ final class AgentDockerClient {
             createContainerCmd.withHostConfig(hostConfig);
         }
 
+        if (containerParam.environment != null) {
+            createContainerCmd.withEnv(containerParam.environment);
+        }
+
         log.info("Create container: {}", createContainerCmd.toString());
         var container = createContainerCmd.exec();
         if (container == null) {

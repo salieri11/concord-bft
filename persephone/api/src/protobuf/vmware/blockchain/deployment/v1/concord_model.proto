@@ -41,6 +41,7 @@ message ConcordComponent {
         DAML_CONCORD = 3;
         DAML_LEDGER_API = 4;
         DAML_EXECUTION_ENGINE = 5;
+        DAML_INDEX_DB = 6;
     }
 
     Type type = 1;

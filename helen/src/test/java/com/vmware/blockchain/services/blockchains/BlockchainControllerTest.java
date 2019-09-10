@@ -525,7 +525,7 @@ public class BlockchainControllerTest {
         when(blockchainController.getComponentsByBlockchainType(any())).thenCallRealMethod();
 
         var output = blockchainController.getComponentsByBlockchainType(ConcordModelSpecification.BlockchainType.DAML);
-        Assert.assertEquals(output.size(), 4);
+        Assert.assertEquals(output.size(), 5);
 
         output = blockchainController.getComponentsByBlockchainType(ConcordModelSpecification.BlockchainType.ETHEREUM);
         Assert.assertEquals(output.size(), 3);

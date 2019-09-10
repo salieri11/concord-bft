@@ -134,7 +134,8 @@
         "CONCORD": "concord-core",
         "ETHRPC": "ethrpc",
         "DAML_EXECUTION_ENGINE": "daml-execution-engine",
-        "DAML_LEDGER_API": "daml-ledger-api"
+        "DAML_LEDGER_API": "daml-ledger-api",
+        "DAML_INDEX_DB": "daml-index-db"
       },
       "defaults": {
         "concord_model_version": "1.0",
@@ -149,7 +150,8 @@
             "vmwblockchain/agent:latest": "agent",
             "vmwblockchain/concord-core:latest": "concord",
             "vmwblockchain/daml-execution-engine:latest": "daml_execution_engine",
-            "vmwblockchain/daml-ledger-api:latest": "daml_ledger_api"
+            "vmwblockchain/daml-ledger-api:latest": "daml_ledger_api",
+            "vmwblockchain/daml-index-db:latest": "daml_index_db"
           }
         }
       }

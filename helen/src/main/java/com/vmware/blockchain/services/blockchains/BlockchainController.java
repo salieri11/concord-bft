@@ -321,6 +321,11 @@ public class BlockchainController {
                 ));
                 response.add(new ConcordComponent(
                         ConcordComponent.Type.CONTAINER_IMAGE,
+                        ConcordComponent.ServiceType.DAML_INDEX_DB,
+                        "vmwblockchain/daml-index-db:latest"
+                ));
+                response.add(new ConcordComponent(
+                        ConcordComponent.Type.CONTAINER_IMAGE,
                         ConcordComponent.ServiceType.DAML_LEDGER_API,
                         "vmwblockchain/daml-ledger-api:latest"
                 ));
