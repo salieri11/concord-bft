@@ -4,12 +4,15 @@
 package com.vmware.blockchain.deployment.reactive
 
 import kotlin.coroutines.CoroutineContext
-import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.BroadcastChannel
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.channels.ReceiveChannel
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.reactive.publish
 import kotlinx.coroutines.withContext
 
@@ -43,17 +46,21 @@ class BroadcastingPublisher<T>(
     private val broadcastChannel = BroadcastChannel<T>(capacity)
 
     /** Internal state tracking whether the instance is already closed. */
-    private val active = kotlinx.atomicfu.atomic<Boolean>(true)
+    private val active = kotlinx.atomicfu.atomic(true)
 
-    private val subscribed = CompletableDeferred<Unit>()
+    /** Command channel to send inputs to internal counter actor coroutine. */
+    private val publishCounterCommands = Channel<Unit>()
+
+    /** Notification channel for counter actor coroutine to broadcast changes to counter value. */
+    private val publishCounterMessages = newPublishCounter(publishCounterCommands)
 
     /** Internal [Publisher] instance for all [Subscriber]s. */
     private val publisher: Publisher<T> = publish {
         withContext(publishContext) {
             val receiveChannel = broadcastChannel.openSubscription()
 
-            // Signal that publisher is now HOT.
-            subscribed.complete(Unit)
+            // Notify counter to increment publish count.
+            publishCounterCommands.send(Unit)
 
             // Loop over incoming signals until upstream closes.
             for (element in receiveChannel) {
@@ -80,8 +87,16 @@ class BroadcastingPublisher<T>(
      *   a [Deferred] instance that returns `true` for [Deferred.isCompleted] when this publisher
      *   instance is subscribed to.
      */
-    fun waitForSubscription(): Deferred<Unit> {
-        return subscribed
+    fun waitForSubscription(waitCount: Int = 1): Deferred<Unit> {
+        val notifications = publishCounterMessages.openSubscription()
+
+        return async {
+            for (counterValue in notifications) {
+                if (counterValue >= waitCount) {
+                    break
+                }
+            }
+        }
     }
 
     /**
@@ -119,5 +134,35 @@ class BroadcastingPublisher<T>(
                     broadcastChannel.close(error)
                     job.cancel()
                 }
+    }
+
+    /**
+     * Create a new "counter" actor coroutine that keeps track of the number of times this publisher
+     * instance has been subscribed to, and emits broadcast notification signals for any downstream
+     * listeners.
+     *
+     * @param[channel]
+     *   input "command" channel to increment the counter.
+     *
+     * @return
+     *   the notification channel to broadcast changes to the counter value.
+     */
+    private fun newPublishCounter(channel: ReceiveChannel<Unit>): BroadcastChannel<Int> {
+        val notificationChannel = BroadcastChannel<Int>(Channel.CONFLATED)
+
+        launch {
+            var counter = 0
+            for (message in channel) {
+                // As of now, the overly simplistic approach is assuming every incoming is an
+                // increment command.
+                counter++
+                notificationChannel.offer(counter)
+            }
+        }.invokeOnCompletion {
+            // Close the notification channel on exit.
+            notificationChannel.close()
+        }
+
+        return notificationChannel
     }
 }

@@ -111,7 +111,10 @@ open class UntypedKeyValueStoreTestDriver {
                 onSubscribe = { it.apply { request(Long.MAX_VALUE) }.run { lastSeen2.set(this) } },
                 onNext = { it.apply { observations2 += this }.run { lastSeen2.set(this) } },
                 onComplete = { eventsDone2.countDown() },
-                onError = { lastSeen2.set(it) }
+                onError = {
+                    eventsDone2.countDown()
+                    lastSeen2.set(it)
+                }
         ).also { eventSink2.subscribe(it) }
 
         // Retrieve the created entry by its key.
@@ -187,7 +190,10 @@ open class UntypedKeyValueStoreTestDriver {
                 onSubscribe = { it.apply { request(Long.MAX_VALUE) }.run { lastSeen3.set(this) } },
                 onNext = { it.apply { observations3 += this }.run { lastSeen3.set(this) } },
                 onComplete = { eventsDone3.countDown() },
-                onError = { lastSeen3.set(it) }
+                onError = {
+                    eventsDone3.countDown()
+                    lastSeen3.set(it)
+                }
         ).also { eventSink3.subscribe(it) }
         Assertions.assertThat(eventsDone3.await(awaitTime, TimeUnit.MILLISECONDS))
                 .describedAs("Event stream did not complete, last signal seen(%s)", lastSeen3.get())
