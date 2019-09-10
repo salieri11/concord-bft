@@ -145,4 +145,24 @@ public class Utils {
 			return null;
 		}
 	}
+
+	public static void applyRateControl(long sleepTime, int idx, long start) {
+		try {
+			long diff = sleepTime * idx - (System.nanoTime() - start);
+
+			if (diff > 0) {
+				TimeUnit.NANOSECONDS.sleep(diff);
+			}
+
+			/*
+			 * enable if desired; prints warning if transaction missed scheduling
+			if (diff < 0 && idx != 0) {
+				logger.debug("Transaction " + idx + " is late.");
+			}
+			 */
+
+		} catch (InterruptedException e){
+			e.printStackTrace();
+		}
+	}
 }

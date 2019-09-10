@@ -1,0 +1,8 @@
+{
+  "issuer":"Alice",
+  "owner":"Alice",
+  "currency":"AliceCoin",
+  "amount":1.0,
+  "observers":[]
+}
+

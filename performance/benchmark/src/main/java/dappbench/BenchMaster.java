@@ -5,6 +5,13 @@ import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
 
+import com.sun.jersey.api.client.Client;
+import com.sun.jersey.api.client.ClientResponse;
+import com.sun.jersey.api.client.WebResource;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpUriRequest;
+import org.apache.http.impl.client.HttpClientBuilder;
 import org.json.JSONObject;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.Constructor;
@@ -85,6 +92,7 @@ public class BenchMaster {
 		System.out.println("Starting DAppBench...");
 		Yaml yaml = new Yaml(new Constructor(Benchmark.class));
 		try {
+			logger.info("Got config file: " + args[0]);
 			InputStream inputStream = new FileInputStream(new File(args[0]));
 			Benchmark benchmark = yaml.load(inputStream);
 			SimpleConfig simpleConfig = benchmark.getSimpleConfig();
@@ -92,6 +100,8 @@ public class BenchMaster {
 			AdvancedConfig advancedConfig = benchmark.getAdvancedConfig();
 
 			List<Workload> workloads = simpleConfig.getWorkloads();
+
+			logger.info("workloads size: " + workloads.size());
 			int sleepTime = simpleConfig.getSleepTime();
 			int totalWorkloads = 0;
 			boolean isHttp = simpleConfig.isHttp();
@@ -103,8 +113,7 @@ public class BenchMaster {
 				directory.mkdir();
 			}
 
-			//generate a unique driverID for this run
-			BallotDApp.DRIVERID = new Random().nextInt(999999);
+
 
 			List<String> hostnames = new ArrayList<>();
 			Map<Integer, ChannelExec> channel = new HashMap<>();
@@ -153,209 +162,240 @@ public class BenchMaster {
 			}
 
 			List<Node> nodes = benchmark.getSimpleConfig().getNodes();
-			BallotDApp.PORT = simpleConfig.getPort();
 
-			//advanced configuration
-			BallotDApp.CONCORD_USERNAME = advancedConfig.getConcordUsername();
-			BallotDApp.CONCORD_PASSWORD = advancedConfig.getConcordUsername();
-			BallotDApp.http = simpleConfig.isHttp();
+			if (workloads.get(0).getDapp().equals("Ballot")) {
+				//generate a unique driverID for this run
+				BallotDApp.DRIVERID = new Random().nextInt(999999);
+				BallotDApp.PORT = simpleConfig.getPort();
 
-			Data data = new Data();
-			data.setAppSummaryTableHeader(Arrays.asList("Workload-Itr", "Succ", "Succ Rate", "Fail", "Send Rate", "Max Latency", "Min Latency", "Avg Latency", "Throughput"));
-			data.setConfigFilePath("../" + args[0]);
-			data.addBasicInformation("DLT", simpleConfig.getBlockchain());
+				//advanced configuration
+				BallotDApp.CONCORD_USERNAME = advancedConfig.getConcordUsername();
+				BallotDApp.CONCORD_PASSWORD = advancedConfig.getConcordUsername();
+				BallotDApp.http = simpleConfig.isHttp();
 
-			BallotDApp.PORT = simpleConfig.getPort();
+				Data data = new Data();
+				data.setAppSummaryTableHeader(Arrays.asList("Workload-Itr", "Succ", "Succ Rate", "Fail", "Send Rate", "Max Latency", "Min Latency", "Avg Latency", "Throughput"));
+				data.setConfigFilePath("../" + args[0]);
+				data.addBasicInformation("DLT", simpleConfig.getBlockchain());
 
-			//advanced configuration
-			BallotDApp.CONCORD_USERNAME = advancedConfig.getConcordUsername();
-			BallotDApp.CONCORD_PASSWORD = advancedConfig.getConcordUsername();
+				BallotDApp.PORT = simpleConfig.getPort();
 
-			int workloadNum = 1;
+				//advanced configuration
+				BallotDApp.CONCORD_USERNAME = advancedConfig.getConcordUsername();
+				BallotDApp.CONCORD_PASSWORD = advancedConfig.getConcordUsername();
+
+				int workloadNum = 1;
 //			String command = "curl -k -X POST -H \"Content-type:application/json\" --data {\"jsonrpc\": \"2.0\", \"method\": \"eth_blockNumber\", \"params\": [], \"id\": 1} https://10.40.205.101:8545/";
 
-			String initBlockNumber = getLatestBlockNumber(simpleConfig.getNodes().get(0).getIp(), isHttp, simpleConfig.getPort());
-			logger.info("Block number on " + simpleConfig.getNodes().get(0).getIp() + " before processing any transaction: " + initBlockNumber + " = " + new BigInteger(initBlockNumber.substring(2), 16));
-			 initBlockNumber = getLatestBlockNumber(simpleConfig.getNodes().get(1).getIp(), isHttp, simpleConfig.getPort());
-			logger.info("Block number on " + simpleConfig.getNodes().get(1).getIp() + " before processing any transaction: " + initBlockNumber + " = " + new BigInteger(initBlockNumber.substring(2), 16));
-			 initBlockNumber = getLatestBlockNumber(simpleConfig.getNodes().get(2).getIp(), isHttp, simpleConfig.getPort());
-			logger.info("Block number on " + simpleConfig.getNodes().get(2).getIp() + " before processing any transaction: " + initBlockNumber + " = " + new BigInteger(initBlockNumber.substring(2), 16));
-			 initBlockNumber = getLatestBlockNumber(simpleConfig.getNodes().get(3).getIp(), isHttp, simpleConfig.getPort());
-			logger.info("Block number on " +  simpleConfig.getNodes().get(3).getIp() + " before processing any transaction: " + initBlockNumber + " = " + new BigInteger(initBlockNumber.substring(2), 16));
+				String initBlockNumber = getLatestBlockNumber(simpleConfig.getNodes().get(0).getIp(), isHttp, simpleConfig.getPort());
+				logger.info("Block number on " + simpleConfig.getNodes().get(0).getIp() + " before processing any transaction: " + initBlockNumber + " = " + new BigInteger(initBlockNumber.substring(2), 16));
+				initBlockNumber = getLatestBlockNumber(simpleConfig.getNodes().get(1).getIp(), isHttp, simpleConfig.getPort());
+				logger.info("Block number on " + simpleConfig.getNodes().get(1).getIp() + " before processing any transaction: " + initBlockNumber + " = " + new BigInteger(initBlockNumber.substring(2), 16));
+				initBlockNumber = getLatestBlockNumber(simpleConfig.getNodes().get(2).getIp(), isHttp, simpleConfig.getPort());
+				logger.info("Block number on " + simpleConfig.getNodes().get(2).getIp() + " before processing any transaction: " + initBlockNumber + " = " + new BigInteger(initBlockNumber.substring(2), 16));
+				initBlockNumber = getLatestBlockNumber(simpleConfig.getNodes().get(3).getIp(), isHttp, simpleConfig.getPort());
+				logger.info("Block number on " + simpleConfig.getNodes().get(3).getIp() + " before processing any transaction: " + initBlockNumber + " = " + new BigInteger(initBlockNumber.substring(2), 16));
 
 //			ScheduledExecutorService service = Executors.newSingleThreadScheduledExecutor();
-			ScheduledExecutorService service = null;
-			Map<String, List<String>> dockerTable = null;
+				ScheduledExecutorService service = null;
+				Map<String, List<String>> dockerTable = null;
 
-			for (Workload workload : workloads) {
-				if (workload.getDapp().equals("Ballot")) {
-					List<Entry<String, Integer>> weightedEndpoints = new ArrayList<Entry<String, Integer>>();
-					BallotDApp dapp = new BallotDApp();
-					List<String> workloadParams = workload.getParams();
+				for (Workload workload : workloads) {
+					if (workload.getDapp().equals("Ballot")) {
+						List<Entry<String, Integer>> weightedEndpoints = new ArrayList<Entry<String, Integer>>();
+						BallotDApp dapp = new BallotDApp();
+						List<String> workloadParams = workload.getParams();
 
-					if (workloadParams.get(1).equals("--helen")) {
-						String helenIP = workloadParams.get(2);
-						BallotDApp.ENDPOINT = ((isHttp)?"http://":"https://") + helenIP + ":8080/api/concord/eth";
-						logger.debug("Connected to Helen at " + BallotDApp.ENDPOINT);
-						BallotDApp.CONCORD = false;
-					} else if (workloadParams.get(1).equals("--concord") || workloadParams.get(1).equals("--ethereum")) {
-						String concordIP = workloadParams.get(2);
-						if (workloadParams.get(1).equals("--concord")) {
-							BallotDApp.ENDPOINT = ((isHttp)?"http://":"https://") + concordIP + ":" + simpleConfig.getPort();
-						} else if (workloadParams.get(1).equals("--ethereum")) {
-							BallotDApp.ENDPOINT = ((isHttp)?"http://":"https://") + concordIP + ":" + simpleConfig.getPort();
-						}
-
-						int sumOfPercentages = 0;
-						for (Node node : nodes) {
-							sumOfPercentages += node.getPercentage();
-						}
-						if (sumOfPercentages != 100) {
-							logger.info("The node distribution does not add up to 100%");
-						}
-
-						//distribute transaction to every node based on specified percentages
-						int sumOfTx = 0;
-						for (Node node : nodes) {
-							int numOfTx = 0;
-							//if percentage if > 0 make number of transactions at least 1
-							if (node.getPercentage() != 0) {
-								numOfTx = (int) (Integer.valueOf(workloadParams.get(3))*(double)(node.getPercentage()/100.0));
-								numOfTx = Math.max(numOfTx, 1);
+						if (workloadParams.get(1).equals("--helen")) {
+							String helenIP = workloadParams.get(2);
+							BallotDApp.ENDPOINT = ((isHttp) ? "http://" : "https://") + helenIP + ":8080/api/concord/eth";
+							logger.debug("Connected to Helen at " + BallotDApp.ENDPOINT);
+							BallotDApp.CONCORD = false;
+						} else if (workloadParams.get(1).equals("--concord") || workloadParams.get(1).equals("--ethereum")) {
+							String concordIP = workloadParams.get(2);
+							if (workloadParams.get(1).equals("--concord")) {
+								BallotDApp.ENDPOINT = ((isHttp) ? "http://" : "https://") + concordIP + ":" + simpleConfig.getPort();
+							} else if (workloadParams.get(1).equals("--ethereum")) {
+								BallotDApp.ENDPOINT = ((isHttp) ? "http://" : "https://") + concordIP + ":" + simpleConfig.getPort();
 							}
-							Map.Entry<String,Integer> entry =
-									new AbstractMap.SimpleEntry<String, Integer>(node.getIp(), numOfTx);
-							weightedEndpoints.add(entry);
-							sumOfTx += numOfTx;
-						}
-						//if percentages do not divide evenly -> add the remaining tx to reach tx count
-						int extra = Integer.valueOf(workloadParams.get(3))-sumOfTx;
 
-						int position = 0;
-						while (extra > 0) {
-							if (position == benchmark.getSimpleConfig().getNodeCount()) {
-								position = 0;
+							int sumOfPercentages = 0;
+							for (Node node : nodes) {
+								sumOfPercentages += node.getPercentage();
 							}
-							//only add to non-zero nodes
-							if (nodes.get(position).percentage != 0) {
-								int newCount = weightedEndpoints.get(position).getValue()+1;
-								Map.Entry<String,Integer> entry =
-										new AbstractMap.SimpleEntry<String, Integer>(nodes.get(position).getIp(), newCount);
-								weightedEndpoints.set(position, entry);
-								sumOfTx++;
-								extra--;
+							if (sumOfPercentages != 100) {
+								logger.info("The node distribution does not add up to 100%");
 							}
-							position++;
-						}
 
-						BallotDApp.NUMBER = sumOfTx;
+							//distribute transaction to every node based on specified percentages
+							int sumOfTx = 0;
+							for (Node node : nodes) {
+								int numOfTx = 0;
+								//if percentage if > 0 make number of transactions at least 1
+								if (node.getPercentage() != 0) {
+									numOfTx = (int) (Integer.valueOf(workloadParams.get(3)) * (double) (node.getPercentage() / 100.0));
+									numOfTx = Math.max(numOfTx, 1);
+								}
+								Map.Entry<String, Integer> entry =
+										new AbstractMap.SimpleEntry<String, Integer>(node.getIp(), numOfTx);
+								weightedEndpoints.add(entry);
+								sumOfTx += numOfTx;
+							}
+							//if percentages do not divide evenly -> add the remaining tx to reach tx count
+							int extra = Integer.valueOf(workloadParams.get(3)) - sumOfTx;
 
-					} else {
-						logger.error("Please specify the connection endpoint. (--helen, --ethereum, or --concord as 1st arg)");
-						return;
-					}
+							int position = 0;
+							while (extra > 0) {
+								if (position == benchmark.getSimpleConfig().getNodeCount()) {
+									position = 0;
+								}
+								//only add to non-zero nodes
+								if (nodes.get(position).percentage != 0) {
+									int newCount = weightedEndpoints.get(position).getValue() + 1;
+									Map.Entry<String, Integer> entry =
+											new AbstractMap.SimpleEntry<String, Integer>(nodes.get(position).getIp(), newCount);
+									weightedEndpoints.set(position, entry);
+									sumOfTx++;
+									extra--;
+								}
+								position++;
+							}
 
-					for (int i = 0; i < workload.getNumOfRuns(); i++) {
-						if(advancedConfig.isDockerStats()) {
-							service = Executors.newScheduledThreadPool(simpleConfig.getNodes().size());
-							dockerTable = new HashMap<>();
-							Runnable runnable = new DockerStats(simpleConfig.getNodes().get(0), dockerTable);
-							Runnable runnable2 = new DockerStats(simpleConfig.getNodes().get(1), dockerTable);
-							Runnable runnable3 = new DockerStats(simpleConfig.getNodes().get(2), dockerTable);
-							Runnable runnable4 = new DockerStats(simpleConfig.getNodes().get(3), dockerTable);
-							service.scheduleAtFixedRate(runnable, 0, 1, TimeUnit.MILLISECONDS);
-							service.scheduleAtFixedRate(runnable2, 0, 1, TimeUnit.MILLISECONDS);
-							service.scheduleAtFixedRate(runnable3, 0, 1, TimeUnit.MILLISECONDS);
-							service.scheduleAtFixedRate(runnable4, 0, 1, TimeUnit.MILLISECONDS);
-						}
-						dapp.setTestName(workloadNum + "-" + (i + 1));
-						BallotDApp.RUNID = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
+							BallotDApp.NUMBER = sumOfTx;
 
-						BallotDApp.RATE_CONTROL = workload.getRateControl();
-						dapp.setEndpoints(weightedEndpoints);
-						if (advancedConfig.getNumberThreads() != 0) {
-							BallotDApp.NUMBER_THREADS = advancedConfig.getNumberThreads();
 						} else {
-							BallotDApp.NUMBER_THREADS = (Runtime.getRuntime().availableProcessors()*2);
+							logger.error("Please specify the connection endpoint. (--helen, --ethereum, or --concord as 1st arg)");
+							return;
 						}
-						String dataPath = workloadParams.get(4);
-						if(workload.getLogging())
-							BallotDApp.ENABLE_LOGGING = true;
-						String PROPOSAL_DATA_PATH = dataPath;
-						String resultPath = outputDir + "/workload" + totalWorkloads;
-						BallotDApp.DEPLOYER_KEY_PATH = resultPath + "/deployer_keystore";
-						File keystorePath = new File(BallotDApp.DEPLOYER_KEY_PATH);
-						if (!keystorePath.exists()) {
-							keystorePath.mkdirs();
-						}
-						dapp.setContractDataPath(resultPath + "/contract");
-						String filename = new SimpleDateFormat("yyyyMMddHHmm").format(new Date());
-						dapp.setPerformanceData(resultPath + "/performance_result-"+ filename+".log");
-						dapp.setPerformanceDataCSV(resultPath + "/performance-" +filename + ".csv");
 
+						for (int i = 0; i < workload.getNumOfRuns(); i++) {
+							if (advancedConfig.isDockerStats()) {
+								service = Executors.newScheduledThreadPool(simpleConfig.getNodes().size());
+								dockerTable = new HashMap<>();
+								Runnable runnable = new DockerStats(simpleConfig.getNodes().get(0), dockerTable);
+								Runnable runnable2 = new DockerStats(simpleConfig.getNodes().get(1), dockerTable);
+								Runnable runnable3 = new DockerStats(simpleConfig.getNodes().get(2), dockerTable);
+								Runnable runnable4 = new DockerStats(simpleConfig.getNodes().get(3), dockerTable);
+								service.scheduleAtFixedRate(runnable, 0, 1, TimeUnit.MILLISECONDS);
+								service.scheduleAtFixedRate(runnable2, 0, 1, TimeUnit.MILLISECONDS);
+								service.scheduleAtFixedRate(runnable3, 0, 1, TimeUnit.MILLISECONDS);
+								service.scheduleAtFixedRate(runnable4, 0, 1, TimeUnit.MILLISECONDS);
+							}
+							dapp.setTestName(workloadNum + "-" + (i + 1));
+							BallotDApp.RUNID = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
 
-						BallotDApp.WAVEFRONT_DATA_PATH = resultPath + "/wavefront/" + filename + ".log";
-						BallotDApp.STAT_DATA_PATH = resultPath + "/stat-" + filename + ".log";
-						File wavefrontPath = new File(resultPath + "/wavefront/");
-						if (!wavefrontPath.exists()) {
-							wavefrontPath.mkdirs();
-						}
-						try {
-							BallotDApp.CLIENT = Utils.getClient();
-						} catch (Exception e) {
-							e.printStackTrace();
-						}
-						try {
-							if (simpleConfig.getBlockchain().equals("ethereum")) {
-								BallotDeployer deployer = new BallotDeployer();
-								deployer.deploy(PROPOSAL_DATA_PATH, dapp.getContractDataPath(), "Aca$hc0w", "data/deployer_keystore");
-								Credentials[] credentials = dapp.getCredentials();
-								deployer.grantRightToVoteEthereum(credentials);
-								dapp.processingVotingEthereum(credentials);
+							BallotDApp.RATE_CONTROL = workload.getRateControl();
+							dapp.setEndpoints(weightedEndpoints);
+							if (advancedConfig.getNumberThreads() != 0) {
+								BallotDApp.NUMBER_THREADS = advancedConfig.getNumberThreads();
 							} else {
-								BallotDeployer deployer = new BallotDeployer();
-								deployer.deploy(PROPOSAL_DATA_PATH, dapp.getContractDataPath(), BallotDApp.PASSWORD, BallotDApp.DEPLOYER_KEY_PATH);
-
-								Credentials[] credentials = dapp.getCredentials();
-								deployer.grantRightToVote(credentials);
-								dapp.process(credentials);
+								BallotDApp.NUMBER_THREADS = (Runtime.getRuntime().availableProcessors() * 2);
 							}
-						} catch (Exception e) {
-							e.printStackTrace();
-						}
+							String dataPath = workloadParams.get(4);
+							if (workload.getLogging())
+								BallotDApp.ENABLE_LOGGING = true;
+							String PROPOSAL_DATA_PATH = dataPath;
+							String resultPath = outputDir + "/workload" + totalWorkloads;
+							BallotDApp.DEPLOYER_KEY_PATH = resultPath + "/deployer_keystore";
+							File keystorePath = new File(BallotDApp.DEPLOYER_KEY_PATH);
+							if (!keystorePath.exists()) {
+								keystorePath.mkdirs();
+							}
+							dapp.setContractDataPath(resultPath + "/contract");
+							String filename = new SimpleDateFormat("yyyyMMddHHmm").format(new Date());
+							dapp.setPerformanceData(resultPath + "/performance_result-" + filename + ".log");
+							dapp.setPerformanceDataCSV(resultPath + "/performance-" + filename + ".csv");
 
-						System.gc();
-						Thread.sleep(sleepTime);
-						totalWorkloads++;
-						data.addAppSummaryTableData(dapp.getStats());
-						if(advancedConfig.isDockerStats()) {
-							service.shutdown();
-							Table table = new Table();
-							table.setTableHeader(Arrays.asList("Docker Name", "CPU %(max)", "MEM USAGE(max) / LIMIT", "Memory %(max)"));
+							BallotDApp.WAVEFRONT_DATA_PATH = resultPath + "/wavefront/" + filename + ".log";
+							BallotDApp.STAT_DATA_PATH = resultPath + "/stat-" + filename + ".log";
+							File wavefrontPath = new File(resultPath + "/wavefront/");
+							if (!wavefrontPath.exists()) {
+								wavefrontPath.mkdirs();
+							}
+							try {
+								BallotDApp.CLIENT = Utils.getClient();
+							} catch (Exception e) {
+								e.printStackTrace();
+							}
+							try {
+								if (simpleConfig.getBlockchain().equals("ethereum")) {
+									BallotDeployer deployer = new BallotDeployer();
+									deployer.deploy(PROPOSAL_DATA_PATH, dapp.getContractDataPath(), "Aca$hc0w", "data/deployer_keystore");
+									Credentials[] credentials = dapp.getCredentials();
+									deployer.grantRightToVoteEthereum(credentials);
+									dapp.processingVotingEthereum(credentials);
+								} else {
+									BallotDeployer deployer = new BallotDeployer();
+									deployer.deploy(PROPOSAL_DATA_PATH, dapp.getContractDataPath(), BallotDApp.PASSWORD, BallotDApp.DEPLOYER_KEY_PATH);
 
-							for (Map.Entry<String, List<String>> entry : dockerTable.entrySet()) {
-								table.addTableData(new HashMap<String, List<String>>() {
-													   {
-														   put("tableRow", entry.getValue());
+									Credentials[] credentials = dapp.getCredentials();
+									deployer.grantRightToVote(credentials);
+									dapp.process(credentials);
+								}
+							} catch (Exception e) {
+								e.printStackTrace();
+							}
+
+							System.gc();
+							Thread.sleep(sleepTime);
+							totalWorkloads++;
+							data.addAppSummaryTableData(dapp.getStats());
+							if (advancedConfig.isDockerStats()) {
+								service.shutdown();
+								Table table = new Table();
+								table.setTableHeader(Arrays.asList("Docker Name", "CPU %(max)", "MEM USAGE(max) / LIMIT", "Memory %(max)"));
+
+								for (Map.Entry<String, List<String>> entry : dockerTable.entrySet()) {
+									table.addTableData(new HashMap<String, List<String>>() {
+														   {
+															   put("tableRow", entry.getValue());
+														   }
 													   }
-												   }
-								);
-							}
+									);
+								}
 
-							Map<String, Object> dockerInfo = new HashMap<>();
-							dockerInfo.put("tests", table);
-							dockerInfo.put("name", workloadNum + "-" + (i + 1));
-							data.addDockerInfo(dockerInfo);
+								Map<String, Object> dockerInfo = new HashMap<>();
+								dockerInfo.put("tests", table);
+								dockerInfo.put("name", workloadNum + "-" + (i + 1));
+								data.addDockerInfo(dockerInfo);
+							}
 						}
+						workloadNum++;
 					}
-					workloadNum++;
 				}
+
+				Reporting report = new Reporting(data);
+				report.process(simpleConfig.getOutputDir());
+
+				String endBlockNumber = getLatestBlockNumber(simpleConfig.getNodes().get(0).getIp(), isHttp, simpleConfig.getPort());
+				logger.info("Block number on " + simpleConfig.getNodes().get(0).getIp() + " after processing all transactions: " + endBlockNumber + " = " + new BigInteger(endBlockNumber.substring(2), 16));
+				endBlockNumber = getLatestBlockNumber(simpleConfig.getNodes().get(1).getIp(), isHttp, simpleConfig.getPort());
+				logger.info("Block number on " + simpleConfig.getNodes().get(1).getIp() + " after processing all transactions: " + endBlockNumber + " = " + new BigInteger(endBlockNumber.substring(2), 16));
+				endBlockNumber = getLatestBlockNumber(simpleConfig.getNodes().get(2).getIp(), isHttp, simpleConfig.getPort());
+				logger.info("Block number on " + simpleConfig.getNodes().get(2).getIp() + " after processing all transactions: " + endBlockNumber + " = " + new BigInteger(endBlockNumber.substring(2), 16));
+				endBlockNumber = getLatestBlockNumber(simpleConfig.getNodes().get(3).getIp(), isHttp, simpleConfig.getPort());
+				logger.info("Block number on " + simpleConfig.getNodes().get(3).getIp() + " after processing all transactions: " + endBlockNumber + " = " + new BigInteger(endBlockNumber.substring(2), 16));
+				logger.info("Last block : " + getBlockInfo(endBlockNumber, simpleConfig.getNodes().get(0).getIp(), isHttp, simpleConfig.getPort()).toString());
+
+				System.exit(1);
+			} else if (workloads.get(0).getDapp().equals("IOU")){
+				logger.info("Running IOU workloads");
+				Workload workload = workloads.get(0);
+				DAMLManager damlManager = new DAMLManager(workload);
+				boolean deployLedgerRequired = damlManager.deployLedgerRequired();
+				if (deployLedgerRequired) {
+					damlManager.deployToLedger();
+				}
+				Thread.sleep(5000);
+
+				damlManager.startService();
+				Thread.sleep(5000);
+
+				damlManager.processDAMLTransactions();
+
 			}
 
-
-			Reporting report = new Reporting(data);
-			report.process(simpleConfig.getOutputDir());
-			if(advancedConfig.getEsxTop()) {
+			if (advancedConfig.getEsxTop()) {
 				if (advancedConfig.getEsxtopCommand() != null) {
 					//sleeping for 30 seconds before terminating esxtop
 					Thread.sleep(30000);
@@ -373,26 +413,13 @@ public class BenchMaster {
 							}
 						} catch (JSchException jschX) {
 							logger.warn(jschX.getMessage());
+
 						}
 					}
 				}
 			}
-			String endBlockNumber = getLatestBlockNumber(simpleConfig.getNodes().get(0).getIp(), isHttp, simpleConfig.getPort());
-			logger.info("Block number on " + simpleConfig.getNodes().get(0).getIp() + " after processing all transactions: " + endBlockNumber + " = " + new BigInteger(endBlockNumber.substring(2), 16));
-			endBlockNumber = getLatestBlockNumber(simpleConfig.getNodes().get(1).getIp(), isHttp, simpleConfig.getPort());
-			logger.info("Block number on " + simpleConfig.getNodes().get(1).getIp() + " after processing all transactions: " + endBlockNumber + " = " + new BigInteger(endBlockNumber.substring(2), 16));
-			endBlockNumber = getLatestBlockNumber(simpleConfig.getNodes().get(2).getIp(), isHttp, simpleConfig.getPort());
-			logger.info("Block number on " + simpleConfig.getNodes().get(2).getIp() + " after processing all transactions: " + endBlockNumber + " = " + new BigInteger(endBlockNumber.substring(2), 16));
-			endBlockNumber = getLatestBlockNumber(simpleConfig.getNodes().get(3).getIp(), isHttp, simpleConfig.getPort());
-			logger.info("Block number on " + simpleConfig.getNodes().get(3).getIp() + " after processing all transactions: " + endBlockNumber + " = " + new BigInteger(endBlockNumber.substring(2), 16));
-			logger.info("Last block : " + getBlockInfo(endBlockNumber, simpleConfig.getNodes().get(0).getIp(), isHttp, simpleConfig.getPort()).toString());
 
-			System.exit(1);
-		} catch (FileNotFoundException e) {
-			System.out.println(e.getMessage());
-		} catch (InterruptedException e) {
-			System.out.println(e.getMessage());
-		} catch (Exception e) {
+		} catch (InterruptedException | IOException e) {
 			System.out.println(e.getMessage());
 		}
 		logger.info("Finished benchmark!");

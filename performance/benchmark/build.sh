@@ -1,7 +1,12 @@
 #!/bin/bash
 
-echo Building ballotApp and benchmark...
-cd ../ballotApp
+echo Building quickstart...
+cd ../daml/quickstart
+daml build
 mvn clean install assembly:single
+echo Building ballotApp
+cd ../../ballotApp
+mvn clean install assembly:single
+echo Building benchmark
 cd ../benchmark
-mvn clean package
+mvn clean install assembly:single
