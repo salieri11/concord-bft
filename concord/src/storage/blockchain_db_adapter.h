@@ -72,12 +72,22 @@ class KeyManipulator {
   static Sliver genBlockDbKey(BlockId _blockId);
   static Sliver genDataDbKey(Key _key, BlockId _blockId);
   static char extractTypeFromKey(Key _key);
+  static char extractTypeFromKey(const uint8_t *key_data);
   static BlockId extractBlockIdFromKey(const log4cplus::Logger &logger,
                                        Key _key);
+  static BlockId extractBlockIdFromKey(const log4cplus::Logger &logger,
+                                       const uint8_t *a_data, size_t a_length);
   static ObjectId extractObjectIdFromKey(const log4cplus::Logger &logger,
                                          Key _key);
+  static ObjectId extractObjectIdFromKey(const log4cplus::Logger &logger,
+                                         const uint8_t *a_data,
+                                         size_t a_length);
   static Sliver extractKeyFromKeyComposedWithBlockId(
       const log4cplus::Logger &logger, Key _composedKey);
+  static int compareKeyPartOfComposedKey(const log4cplus::Logger &logger,
+                                         const uint8_t *a_data, size_t a_length,
+                                         const uint8_t *b_data,
+                                         size_t b_length);
   static Sliver extractKeyFromMetadataKey(const log4cplus::Logger &logger,
                                           Key _composedKey);
   static bool keyContainsBlockId(Key _composedKey);
