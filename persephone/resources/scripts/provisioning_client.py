@@ -86,6 +86,11 @@ def get_component(blockchain_type) -> List[concord_model.ConcordComponent]:
             ),
             concord_model.ConcordComponent(
                 type=concord_model.ConcordComponent.CONTAINER_IMAGE,
+                service_type=concord_model.ConcordComponent.DAML_INDEX_DB,
+                name="vmwblockchain/daml-index-db:latest"
+            ),
+            concord_model.ConcordComponent(
+                type=concord_model.ConcordComponent.CONTAINER_IMAGE,
                 service_type=concord_model.ConcordComponent.DAML_LEDGER_API,
                 name="vmwblockchain/daml-ledger-api:latest"
             ),

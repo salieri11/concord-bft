@@ -48,6 +48,9 @@ class ModelServiceRPCHelper(RPCHelper):
       self.DAML_LEDGER_API_ID = \
       self.args.userConfig["persephoneTests"]["modelService"][
          "deployment_component_ids"]["DAML_LEDGER_API"]
+      self.DAML_INDEX_DB_ID = \
+         self.args.userConfig["persephoneTests"]["modelService"][
+            "deployment_component_ids"]["DAML_INDEX_DB"]
 
    def __del__(self):
       self.close_channel(self.service_name)
@@ -110,6 +113,10 @@ class ModelServiceRPCHelper(RPCHelper):
                concord_components.append((
                                          concord_model_pb2.ConcordComponent.DAML_LEDGER_API,
                                          component))
+            if self.DAML_INDEX_DB_ID in component:
+               concord_components.append((
+                  concord_model_pb2.ConcordComponent.DAML_INDEX_DB,
+                  component))
       else:
          for component in deployment_components:
             if self.AGENT_ID in component:
