@@ -3,7 +3,7 @@
  * *************************************************************************/
 package com.vmware.blockchain.deployment.agent
 
-import com.vmware.blockchain.deployment.agent.docker.DockerClient
+import com.vmware.blockchain.deployment.agent.docker.DockerHttpClient
 import com.vmware.blockchain.deployment.logging.Logger
 import com.vmware.blockchain.deployment.logging.logger
 import java.util.regex.Pattern
@@ -34,7 +34,7 @@ data class ContainerImage(
         @JvmStatic
         fun newContainerImage(name: String): ContainerImage {
             // Setup default values in case parsing was unsuccessful.
-            var registry = DockerClient.DEFAULT_CONTAINER_REGISTRY.address
+            var registry = DockerHttpClient.DEFAULT_CONTAINER_REGISTRY.address
             var repository = name
             var tag = "latest"
 

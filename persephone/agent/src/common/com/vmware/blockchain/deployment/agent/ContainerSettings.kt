@@ -3,8 +3,8 @@
  * *************************************************************************/
 package com.vmware.blockchain.deployment.agent
 
-import com.vmware.blockchain.deployment.agent.docker.DockerOrchestrator.ContainerPortBinding
-import com.vmware.blockchain.deployment.agent.docker.DockerOrchestrator.HostPortBinding
+import com.vmware.blockchain.deployment.agent.docker.DockerClient.ContainerPortBinding
+import com.vmware.blockchain.deployment.agent.docker.DockerClient.HostPortBinding
 
 /**
  * Specification for customization settings of a container deployment.

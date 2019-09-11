@@ -9,8 +9,8 @@ import com.vmware.blockchain.deployment.model.core.URI
 import com.vmware.blockchain.deployment.model.core.UUID
 import com.vmware.blockchain.deployment.orchestration.Orchestrator
 import com.vmware.blockchain.deployment.orchestration.toIPv4Address
-import com.vmware.blockchain.deployment.orchestration.vmware.newClientRpcChannel
 import com.vmware.blockchain.deployment.reactive.Publisher
+import com.vmware.blockchain.deployment.service.grpc.support.newClientRpcChannel
 import com.vmware.blockchain.deployment.v1.Address
 import com.vmware.blockchain.deployment.v1.AllocateAddressRequest
 import com.vmware.blockchain.deployment.v1.AllocateAddressResponse
@@ -22,7 +22,6 @@ import com.vmware.blockchain.deployment.v1.ReleaseAddressResponse
 import com.vmware.blockchain.deployment.v1.VSphereOrchestrationSiteInfo
 import com.vmware.blockchain.deployment.vm.CloudInitConfiguration
 import com.vmware.blockchain.grpc.kotlinx.serialization.ChannelStreamObserver
-import io.grpc.CallOptions
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -84,8 +83,7 @@ class VSphereOrchestrator constructor(
             networkAddressAllocationServers = mapOf(
                     info.vsphere.network.let {
                         it.name to IPAllocationServiceStub(
-                                it.allocationServer.newClientRpcChannel(),
-                                CallOptions.DEFAULT
+                                it.allocationServer.newClientRpcChannel()
                         )
                     }
             )
@@ -307,9 +305,7 @@ class VSphereOrchestrator constructor(
         ipAllocationService.allocateAddress(requestAllocateAddress, observer)
         val response = observer.asReceiveChannel().receive()
 
-        return response
-                .takeIf { it.status == AllocateAddressResponse.Status.OK }
-                ?.let { it.address }
+        return response.takeIf { it.status == AllocateAddressResponse.Status.OK }?.address
     }
 
     /**

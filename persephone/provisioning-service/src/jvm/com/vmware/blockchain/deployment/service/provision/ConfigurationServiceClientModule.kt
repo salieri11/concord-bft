@@ -3,12 +3,11 @@
  * **************************************************************************/
 package com.vmware.blockchain.deployment.service.provision
 
-import com.vmware.blockchain.deployment.orchestration.vmware.newClientRpcChannel
+import com.vmware.blockchain.deployment.service.grpc.support.newClientRpcChannel
 import com.vmware.blockchain.deployment.v1.ConfigurationServiceStub
 import com.vmware.blockchain.deployment.v1.Endpoint
 import dagger.Module
 import dagger.Provides
-import io.grpc.CallOptions
 import java.util.concurrent.ExecutorService
 import java.util.function.Function
 import javax.inject.Named
@@ -32,7 +31,7 @@ class ConfigurationServiceClientModule {
         @Named("default-executor") executor: ExecutorService
     ): Function<Endpoint, ConfigurationServiceStub> {
         return Function { endpoint: Endpoint ->
-            ConfigurationServiceStub(endpoint.newClientRpcChannel(executor), CallOptions.DEFAULT)
+            ConfigurationServiceStub(endpoint.newClientRpcChannel(executor))
         }
     }
 }
