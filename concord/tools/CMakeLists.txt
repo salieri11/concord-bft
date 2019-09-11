@@ -56,6 +56,15 @@ target_link_libraries(conc_getpeers
                       proto ${PROTOBUF_LIBRARIES}
                       ${Boost_LIBRARIES})
 
+add_executable(conc_reconfig
+               "conc_reconfig.cpp"
+               ${PROTO_SRCS} ${PROTO_HDRS})
+target_link_libraries(conc_reconfig
+                      concmdutil
+                      protobuf::libprotobuf
+                      proto ${PROTOBUF_LIBRARIES}
+                      ${Boost_LIBRARIES})
+
 add_executable(conc_time
                "conc_time.cpp"
                ${PROJECT_SOURCE_DIR}/src/config/configuration_manager.cpp

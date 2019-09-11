@@ -1,4 +1,4 @@
-// Copyright 2018 VMware, all rights reserved
+// Copyright 2018-2019 VMware, all rights reserved
 //
 // Handler for connections from the API/UI servers.
 //
@@ -26,6 +26,7 @@
 #include "api_connection.hpp"
 
 #include <boost/predef/detail/endian_compat.h>
+#include <google/protobuf/util/time_util.h>
 #include <boost/bind.hpp>
 #include <iostream>
 #include <limits>
@@ -49,6 +50,9 @@ using boost::asio::transfer_at_least;
 using boost::asio::write;
 using boost::asio::ip::tcp;
 using boost::system::error_code;
+
+using google::protobuf::Duration;
+using google::protobuf::util::TimeUtil;
 
 using concord::common::StatusAggregator;
 using concord::consensus::KVBClientPool;
@@ -242,10 +246,13 @@ void ApiConnection::process_incoming() {
  * handler.
  */
 void ApiConnection::dispatch() {
-  // HACK to enable member API only for non-Ethereum deployments
+  // HACK to enable management APIs only for non-Ethereum deployments
   if (!ethEnabled_) {
     if (concordRequest_.has_peer_request()) {
       handle_peer_request();
+    }
+    if (concordRequest_.has_reconfiguration_request()) {
+      handle_reconfiguration_request();
     }
     return;
   }
@@ -258,6 +265,9 @@ void ApiConnection::dispatch() {
   }
   if (concordRequest_.has_peer_request()) {
     handle_peer_request();
+  }
+  if (concordRequest_.has_reconfiguration_request()) {
+    handle_reconfiguration_request();
   }
   for (int i = 0; i < concordRequest_.eth_request_size(); i++) {
     // Similarly, a list of ETH RPC requests is supported to allow
@@ -347,6 +357,69 @@ void ApiConnection::handle_peer_request() {
       p->set_millis_since_last_message_threshold(
           peer.millisSinceLastMessageThreshold);
       p->set_hostname(peer.hostname);
+    }
+  }
+}
+
+/* Handle a reconfiguration request, which changes the value of configuration
+ * parameter(s) on the Concod node that receves it. Note that support for this
+ * reconfiguration is limited to certain parameter(s), due to the need for
+ * parameter-specific logic to change the value of a parameter at runtime
+ * (accounting for both where the parameter is loaded to and any special
+ * precautions or procedures to safely change the parameter on a running
+ * system).
+ */
+void ApiConnection::handle_reconfiguration_request() {
+  LOG4CPLUS_TRACE(logger_, "handle_reconfiguration_request");
+
+  const ReconfigurationRequest request =
+      concordRequest_.reconfiguration_request();
+  ReconfigurationResponse *response =
+      concordResponse_.mutable_reconfiguration_response();
+  response->set_successful(true);
+  if (request.has_reconfigure_time_pusher_period()) {
+    const ReconfigureTimePusherPeriodRequest time_pusher_period_request =
+        request.reconfigure_time_pusher_period();
+    if (time_pusher_period_request.has_time_pusher_period_ms()) {
+      // Note we assume (whehter the client pool was constructed with a time
+      // pusher) to be logically equivalent to (whether the time service is
+      // enabled and this node is a time source).
+      if (!clientPool_.HasTimePusher()) {
+        LOG4CPLUS_WARN(
+            logger_,
+            "Received request to reconfigure the time pusher period, but the "
+            "time service is not enabled or this node is not a time source.");
+        response->set_successful(false);
+        concordResponse_.add_error_response();
+        concordResponse_
+            .mutable_error_response(concordResponse_.error_response_size() - 1)
+            ->set_description(
+                "Cannot reconfigure time pusher period: the time service is "
+                "not enabled or this node is not a time source.");
+      } else {
+        Duration new_period =
+            time_pusher_period_request.time_pusher_period_ms();
+        try {
+          clientPool_.SetTimePusherPeriod(new_period);
+          LOG4CPLUS_INFO(logger_,
+                         "Reconfigured time pusher period to "
+                             << TimeUtil::DurationToMilliseconds(new_period)
+                             << " milliseconds.");
+        } catch (const exception &e) {
+          LOG4CPLUS_WARN(
+              logger_,
+              "Failed to service request to reconfigure time pusher period.");
+          response->set_successful(false);
+          concordResponse_.add_error_response();
+          concordResponse_
+              .mutable_error_response(concordResponse_.error_response_size() -
+                                      1)
+              ->set_description(
+                  "An error occurred while trying toreconfigure "
+                  "time_pusher_period_ms: " +
+                  string(e.what()));
+        }
+      }
     }
   }
 }

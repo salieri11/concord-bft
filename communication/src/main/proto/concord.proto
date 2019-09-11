@@ -6,6 +6,7 @@ syntax = "proto2";
 
 package com.vmware.concord;
 
+import "google/protobuf/duration.proto";
 import "google/protobuf/timestamp.proto";
 
 message ConcordRequest {
@@ -20,8 +21,9 @@ message ConcordRequest {
    optional TimeRequest time_request = 9;
    repeated HlfRequest hlf_request = 10;
    optional DamlRequest daml_request = 11;
+   optional ReconfigurationRequest reconfiguration_request = 12;
 
-   // 8-2045 open for definition
+   // 13-2045 open for definition
    // Likely: metrics/stats, non-eth blockchain, other admin
 
    optional TestRequest test_request = 2046;
@@ -39,8 +41,9 @@ message ConcordResponse {
    optional TimeResponse time_response = 9;
    repeated HlfResponse hlf_response = 10;
    optional DamlResponse daml_response = 11;
+   optional ReconfigurationResponse reconfiguration_response = 12;
 
-   // 8-2045 open for definition
+   // 13-2045 open for definition
    optional TestResponse test_response = 2046;
    repeated ErrorResponse error_response = 2047;
 }
@@ -139,6 +142,35 @@ message EthResponse {
    // filter_response (5) is removed
 }
 
+message HlfRequest {
+  enum HlfMethod {
+    INSTALL = 1;
+    UPGRADE = 2;
+    INVOKE = 3;
+    QUERY = 4;
+  }
+
+  optional HlfMethod method = 1;
+  optional string chain_id = 2;
+  optional string chaincode_name = 3;
+  optional string input = 4;
+  optional string version = 5;
+  optional bytes chaincode_source_bytes = 6;
+  // 'path' indicates the path to store chaincode
+  // if method was INSTALL or UPGRADE
+  optional string path = 7;
+  // type indicates the chaincode type, could be
+  // go, js and java
+  optional string type = 8;
+}
+
+message HlfResponse {
+  // transaction id
+  optional string id = 1;
+  optional string data = 2;
+  optional int32 status = 3;
+}
+
 message LogResponse {
    optional bytes contract_address = 1;
    repeated bytes topic = 2;
@@ -192,6 +224,22 @@ message ProtocolRequest {
 message ProtocolResponse {
    optional int32 server_version = 1;
    optional int64 net_version = 2;
+}
+
+message ReconfigureTimePusherPeriodRequest {
+   optional google.protobuf.Duration time_pusher_period_ms = 1;
+}
+
+// TODO: There should be some form of authentication showing that a
+//       ReconfigurationRequest actually originated from an entity with the
+//       authority to reconfigure the node the request is sent to.
+message ReconfigurationRequest {
+   optional ReconfigureTimePusherPeriodRequest
+      reconfigure_time_pusher_period = 1;
+}
+
+message ReconfigurationResponse {
+   optional bool successful = 1;
 }
 
 message TestRequest {
@@ -252,33 +300,4 @@ message TransactionResponse {
    optional bytes sig_r = 16;
    optional bytes sig_s = 17;
    optional uint64 gas_used = 18;
-}
-
-message HlfRequest {
-  enum HlfMethod {
-    INSTALL = 1;
-    UPGRADE = 2;
-    INVOKE = 3;
-    QUERY = 4;
-  }
-
-  optional HlfMethod method = 1;
-  optional string chain_id = 2;
-  optional string chaincode_name = 3;
-  optional string input = 4;
-  optional string version = 5;
-  optional bytes chaincode_source_bytes = 6;
-  // 'path' indicates the path to store chaincode
-  // if method was INSTALL or UPGRADE
-  optional string path = 7;
-  // type indicates the chaincode type, could be
-  // go, js and java
-  optional string type = 8;
-}
-
-message HlfResponse {
-  // transaction id
-  optional string id = 1;
-  optional string data = 2;
-  optional int32 status = 3;
 }
