@@ -11,6 +11,7 @@
 #include "config/configuration_manager.hpp"
 #include "consensus/sliver.hpp"
 
+using std::unordered_set;
 using std::vector;
 
 using concord::config::ConcordConfiguration;
@@ -24,24 +25,34 @@ namespace time {
 
 // Add a sample to the time contract.
 Timestamp TimeContract::Update(const string &source, const Timestamp &time,
-                               const vector<uint8_t> &signature) {
+                               const vector<uint8_t> *signature) {
   LoadLatestSamples();
 
   auto old_sample = samples_->find(source);
   if (old_sample != samples_->end()) {
-    if (verifier_.Verify(source, time, signature)) {
+    if (!verifier_ ||
+        (signature && verifier_->Verify(source, time, *signature))) {
       if (time > old_sample->second.time) {
         LOG4CPLUS_DEBUG(logger_,
                         "Applying time " << time << " from source " << source);
         old_sample->second.time = time;
-        old_sample->second.signature = signature;
+        if (verifier_) {
+          old_sample->second.signature.reset(new vector<uint8_t>(*signature));
+        }
         changed_ = true;
       }
     } else {
-      LOG4CPLUS_WARN(logger_,
-                     "Ignoring time sample with invalid signature claiming to "
-                     "be from source \""
-                         << source << "\".");
+      if (signature) {
+        LOG4CPLUS_WARN(logger_,
+                       "Ignoring time sample with invalid signature claiming "
+                       "to be from source \""
+                           << source << "\".");
+      } else {
+        LOG4CPLUS_WARN(logger_,
+                       "Received a time sample with no signature (but time "
+                       "signing is enabled) claiming to be from source \""
+                           << source << "\".");
+      }
     }
   } else {
     LOG4CPLUS_WARN(logger_,
@@ -72,7 +83,7 @@ Timestamp TimeContract::SummarizeTime() {
   }
 
   vector<uint64_t> times;
-  for (auto s : *samples_) {
+  for (const auto &s : *samples_) {
     times.push_back(TimeUtil::TimestampToNanoseconds(s.second.time));
   }
 
@@ -115,13 +126,13 @@ static bool TimeSourceIdSelector(const ConcordConfiguration &config,
 // An exception is thrown if data was found in the time key in storage, but that
 // data could not be parsed.
 //
-// Any entries in the storage containing invalid signatures will be ignored
-// (with the special exception of entries for a recognized source containing
-// both a 0 time and an empty signature, which may be used to indicate no sample
-// is yet available for the given source. If the sample for a recognized source
-// is rejected, that source's sample for this TimeContract will be initialized
-// to the default of time 0. Any sample for an unrecognized source will always
-// be completely ignored.
+// If time signing is enabled, any entries in the storage containing invalid
+// signatures will be ignored (with the special exception of entries for a
+// recognized source containing both a 0 time and an empty signature, which may
+// be used to indicate no samples is yet available for the given source. If the
+// sample for a recognized source is rejected, that source's sample for this
+// TimeContract will be initialized to the default of time 0. Any sample for an
+// unrecognized source will always be completely ignored.
 void TimeContract::LoadLatestSamples() {
   if (samples_) {
     // we already loaded the samples; don't load them again, or we could
@@ -140,32 +151,64 @@ void TimeContract::LoadLatestSamples() {
       if (time_storage.version() == kTimeStorageVersion) {
         LOG4CPLUS_DEBUG(logger_, "Loading " << time_storage.sample_size()
                                             << " time samples");
-        for (int i = 0; i < time_storage.sample_size(); i++) {
-          const com::vmware::concord::kvb::Time::Sample &sample =
-              time_storage.sample(i);
+        if (!verifier_) {
+          // This const_cast is ugly. We don't actually change the config
+          // values, but the iterator registers itself with the config object,
+          // so the reference can't be const.
+          ParameterSelection time_source_ids(
+              const_cast<ConcordConfiguration &>(config_), TimeSourceIdSelector,
+              nullptr);
+          unordered_set<string> valid_id_set;
+          for (auto id : time_source_ids) {
+            valid_id_set.emplace(config_.getValue<string>(id));
+          }
 
-          vector<uint8_t> signature(sample.signature().begin(),
-                                    sample.signature().end());
+          for (int i = 0; i < time_storage.sample_size(); i++) {
+            const com::vmware::concord::kvb::Time::Sample &sample =
+                time_storage.sample(i);
 
-          // Note time samples with time 0 are accepted from storage with a
-          // blank signature as that may simply indicate that no valid time
-          // sample was received from the given source before the time storage
-          // we are reading was written.
-          if (((sample.time() == TimeUtil::GetEpoch()) &&
-               (signature.size() == 0) &&
-               (verifier_.HasTimeSource(sample.source()))) ||
-              verifier_.Verify(sample.source(), sample.time(), signature)) {
-            samples_->emplace(sample.source(), SampleBody());
-            samples_->at(sample.source()).time = sample.time();
-            samples_->at(sample.source()).signature = signature;
-          } else {
-            LOG4CPLUS_ERROR(logger_,
-                            "Time storage contained invalid signature for "
-                            "sample claimed to be from source: "
-                                << sample.source() << ".");
-            throw TimeException(
-                "Cannot load time storage: found time update recorded with "
-                "invalid signature.");
+            if (valid_id_set.count(sample.source()) > 0) {
+              samples_->emplace(sample.source(), SampleBody());
+              samples_->at(sample.source()).time = sample.time();
+            } else {
+              LOG4CPLUS_ERROR(
+                  logger_,
+                  "Time storage contained sample from unrecognized source: \""
+                      << sample.source() << "\".");
+              throw TimeException(
+                  "Cannot load time storage: found time update recorded from "
+                  "unrecognized source.");
+            }
+          }
+        } else {
+          for (int i = 0; i < time_storage.sample_size(); i++) {
+            const com::vmware::concord::kvb::Time::Sample &sample =
+                time_storage.sample(i);
+
+            vector<uint8_t> signature(sample.signature().begin(),
+                                      sample.signature().end());
+
+            // Note that, with verification enabled, time samples with time 0
+            // are accepted from storage with a blank signature as that may
+            // simply indicate that no valid time sample was received from the
+            // given source before the time storage we are reading was written.
+            if (((sample.time() == TimeUtil::GetEpoch()) &&
+                 (signature.size() == 0) &&
+                 (verifier_->HasTimeSource(sample.source()))) ||
+                verifier_->Verify(sample.source(), sample.time(), signature)) {
+              samples_->emplace(sample.source(), SampleBody());
+              samples_->at(sample.source()).time = sample.time();
+              samples_->at(sample.source())
+                  .signature.reset(new vector<uint8_t>(signature));
+            } else {
+              LOG4CPLUS_ERROR(logger_,
+                              "Time storage contained invalid signature for "
+                              "sample claimed to be from source: "
+                                  << sample.source() << ".");
+              throw TimeException(
+                  "Cannot load time storage: found time update recorded with "
+                  "invalid signature.");
+            }
           }
         }
       } else {
@@ -200,13 +243,22 @@ pair<Sliver, Sliver> TimeContract::Serialize() {
   com::vmware::concord::kvb::Time proto;
   proto.set_version(kTimeStorageVersion);
 
-  for (auto s : *samples_) {
+  for (const auto &s : *samples_) {
     auto sample = proto.add_sample();
 
     sample->set_source(s.first);
     Timestamp *t = new Timestamp(s.second.time);
     sample->set_allocated_time(t);
-    sample->set_signature(s.second.signature.data(), s.second.signature.size());
+    if (verifier_) {
+      if (s.second.signature) {
+        sample->set_signature(s.second.signature->data(),
+                              s.second.signature->size());
+      } else {
+        LOG4CPLUS_WARN(logger_,
+                       "Serializing sample with no signature in TimeContract "
+                       "with verification enabled.");
+      }
+    }
   }
 
   size_t storage_size = proto.ByteSize();

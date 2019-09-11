@@ -36,12 +36,14 @@ class TimePusher {
   // Constructor for TimePusher. Arguments:
   //   - config: ConcordConfiguration for this Concord cluster.
   //   - nodeConfig: node-specific configuration for the node for which this
-  //   time pusher will submit updates. Note that the time source ID and
-  //   associated private key will be read from this configuration. An
-  //   std::invalid_argument may be thrown if an appropriate source ID and
-  //   private key cannot be founde in nodeConfig or either of the
-  //   ConcordConfigurations passed to the constructor otherwise do not meet the
-  //   expectations of the time service.
+  //   time pusher will submit updates. Note that the time source ID will be
+  //   read from this configuration; furthermore, if time signing is enabled,
+  //   the private key for this source will also be read. An
+  //   std::invalid_argument may be thrown if an appropriate source ID cannot be
+  //   founde in nodeConfig, if time signing is enabled but an appropriate
+  //   private key cannot be found, or if either of the ConcordConfigurations
+  //   passed to the constructor otherwise do not meet the expectations of the
+  //   time service.
   //   - clientPool: KVBClientPool through which this TimePusher will publish
   //   its updates.
   explicit TimePusher(const concord::config::ConcordConfiguration &config,

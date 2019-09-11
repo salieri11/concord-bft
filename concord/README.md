@@ -528,11 +528,21 @@ The service is disabled by default. To enable it, set the config parameter
 `FEATURE_time_service` to `true` in all of your node config files, and then
 assign each node a unique `time_source_id` in its node scope. Defaults of
 `false` and `concord[1..4]` have been added to the example config input files in
-`test/resources/config_input/` to help with this process. At the time of this
-writing, the replicas' existing RSA keys will be used to sign and verify time
+`test/resources/config_input/` to help with this process.
+
+The time service optionally supports validation on each node of time updates
+from other nodes via cryptographic signing of the time updates by the time
+sources (this feature is referred to as "time signing"). This prevents attacks
+by Byzantine-faulty nodes impersonating other nodes as time sources, which can
+allow them to maliciously move time forward against the judgement of the other
+nodes. Whether or not time signing is used is controlled by the top-level
+Concord configuration parameter `time_signing_enable` (the default for this
+parameter is `true` if it is no explicit value is given, and this parameter is
+effectively ignored if the time service is not enabled). At the time of this
+writing, the replicas' existing RSA keys can be used to sign and verify time
 samples exchanged in the time service, so currently it is not necessary to add
 any additional cryptographic keys to the configuration files when enabling the
-time service.
+time service whether or not time signing is enabled.
 
 Time sources in the time service can publish time updates to the rest of the
 nodes either by appending the time updates to normal transactions or by sending

@@ -14,15 +14,22 @@
 // When publishing a time sample, set the sample value with --time. Then use one
 // of the following options to set the ID and signature:
 //
-//  * Specify just --config. This will use both the time_source_id and the
-//    signing key from that file.
+//  * Specify just --config. This will use the time_source_id from that file. If
+//    the configuraiton enables time signing, the signing key from the config
+//    file will also be used to produce a signature; if the configuration
+//    disables time signing, the update will be sent without a signature.
 //
-//  * Specify --config and -n. This will print a signature for the sample value,
-//    using the time_source_id and the signing key from the given file, but will
-//    not send the sample to concord (see next bullet point).
+//  * Specify --config and -n. If the given configuration enables time signing,
+//    this will print the name of the time source this config file corresponds
+//    to and a signature for the sample value using the time_source_id and the
+//    signing key from the given file. If the configuraiton disables time
+//    signing, only the source will be printed.
 //
 //  * Specify --source and --signature. This will send your sample with your
-//    chosen source ID and your chosen signature.
+//    chosen source ID and your chosen signature. Note the signature will be
+//    ignored (and the update accepted blindly if everything else is in order)
+//    in the event time signing is not enabled in thecluster receiving the
+//    update.
 //
 // Some uses that might cause your sample to be rejected:
 //
@@ -71,6 +78,8 @@ using concord::config::ConcordConfiguration;
 using concord::config::YAMLConfigurationInput;
 using google::protobuf::Timestamp;
 using google::protobuf::util::TimeUtil;
+using std::cerr;
+using std::endl;
 
 #define OPT_SOURCE "source"
 #define OPT_TIME "time"
@@ -88,13 +97,14 @@ void add_options(options_description &desc) {
     (OPT_SIGNATURE ",x", value<std::string>(),
      "Signature of the time and sample. Hex-encoded.")
     (OPT_CONFIG ",c", value<std::string>(),
-     "Concord config file where the signing key can be found.")
+     "Concord config file to get the time source configuration from.")
     (OPT_GET ",g", bool_switch()->default_value(false),
      "Fetch the accumulated time")
     (OPT_LIST ",l", bool_switch()->default_value(false),
      "Fetch all stored samples")
     (OPT_NO_SEND ",n", bool_switch()->default_value(false),
-     "Do not send the request; only sign the sample and print the signature. "
+     "Do not send the request; only print the configured source and (if the "
+     "configuration enables time signing) a signature for the given sample. "
      "Requires \'" OPT_CONFIG "\' parameter");
   // clang-format on
 }
@@ -164,7 +174,9 @@ int main(int argc, char **argv) {
       std::string bytes;
       dehex0x(opts[OPT_SIGNATURE].as<std::string>(), bytes);
       sample->set_signature(bytes);
-    } else if (opts.count(OPT_CONFIG) > 0) {
+    } else if ((opts.count(OPT_CONFIG) > 0) &&
+               config.hasValue<bool>("time_signing_enable") &&
+               config.getValue<bool>("time_signing_enable")) {
       require_sample(timeReq, &sample);
       concord::time::TimeSigner signer(nodeConfig);
       std::vector<uint8_t> signature = signer.Sign(sample->time());
@@ -179,15 +191,25 @@ int main(int argc, char **argv) {
         return -1;
       }
 
-      if (!sample || !sample->has_signature()) {
+      if (!sample) {
+        cerr << "No sample was given." << endl;
+        return -1;
+      }
+
+      bool signing_enable = config.hasValue<bool>("time_signing_enable") &&
+                            config.getValue<bool>("time_signing_enable");
+
+      if (signing_enable && !sample->has_signature()) {
         std::cerr << "No signature was generated." << std::endl;
         return -1;
       }
 
-      std::string bytes;
-      hex0x(sample->signature(), bytes);
       std::cout << "Source: " << sample->source() << std::endl;
-      std::cout << "Signature: " << bytes << std::endl;
+      if (signing_enable) {
+        std::string bytes;
+        hex0x(sample->signature(), bytes);
+        std::cout << "Signature: " << bytes << std::endl;
+      }
       return 0;
     }
 
