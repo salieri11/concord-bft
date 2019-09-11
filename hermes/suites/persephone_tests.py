@@ -225,11 +225,14 @@ class PersephoneTests(test_suite.TestSuite):
       '''
       log.info("Validating ethrpc (get Block 0) on port '{}'".format(ethrpc_port))
       from rpc.rpc_call import RPC
+      tokenDescriptor = util.auth.getTokenDescriptor(util.auth.ROLE_CON_ADMIN,
+                                                     True,
+                                                     util.auth.internal_admin)
       rpc = RPC(self.args.fileRoot,
                 "verify_ethrpc_block_0",
                 "http://{}:{}".format(concord_ip, ethrpc_port),
                 self._userConfig,
-                util.auth.internal_admin)
+                tokenDescriptor)
       try:
          currentBlockNumber = rpc.getBlockNumber()
          log.info("Current Block Number: {}".format(currentBlockNumber))

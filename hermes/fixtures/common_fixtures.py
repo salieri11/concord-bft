@@ -66,12 +66,40 @@ def setUpPortForwarding(url, creds, timeout=300):
        raise Exception("Failed to set up port forwarding on deployed nodes. Aborting.")
 
 
-def deployToSddc(logDir, hermesData):
+def getExistingBlockchainDetails(logDir, hermesData):
+   '''
+   Return the blockchain passed in, if any.
+   '''
+   blockchainId = hermesData["hermesUserConfig"]["product"][util.auth.CUSTOM_BLOCKCHAIN]
+   tokenDescriptor = util.auth.getTokenDescriptor(util.auth.ROLE_CON_ADMIN,
+                                                  True,
+                                                  util.auth.default_con_admin)
    conAdminRequest = Request(logDir,
                              "fxBlockchain",
                              hermesData["hermesCmdlineArgs"].reverseProxyApiBaseUrl,
                              hermesData["hermesUserConfig"],
-                             tokenDescriptor=util.auth.default_con_admin)
+                             tokenDescriptor=tokenDescriptor)
+   blockchainDetails = conAdminRequest.getBlockchainDetails(blockchainId)
+
+   if "consortium_id" in blockchainDetails and \
+      blockchainDetails["consortium_id"]:
+       return blockchainId, blockchainDetails["consortium_id"]
+   else:
+       raise Exception("Unable to get details of blockchain ID {} with " \
+                       "user {} using request {}".format(blockchainId, \
+                                                         tokenDescriptor, \
+                                                         conAdminRequest))
+
+
+def deployToSddc(logDir, hermesData):
+   tokenDescriptor = util.auth.getTokenDescriptor(util.auth.ROLE_CON_ADMIN,
+                                                  True,
+                                                  util.auth.default_con_admin)
+   conAdminRequest = Request(logDir,
+                             "fxBlockchain",
+                             hermesData["hermesCmdlineArgs"].reverseProxyApiBaseUrl,
+                             hermesData["hermesUserConfig"],
+                             tokenDescriptor=tokenDescriptor)
    # Use an existing blockchain if present?
    # blockchains = conAdminRequest.getBlockchains()
    suffix = util.numbers_strings.random_string_generator()
@@ -116,7 +144,7 @@ def fxHermesRunSettings(request):
 
 
 @pytest.fixture(scope="module")
-def fxBlockchain(request):
+def fxBlockchain(request, fxHermesRunSettings):
    '''
    This module level fixture returns a BlockchainFixture namedtuple.
    If --blockchainLocation was set to sddc or onprem on the command line, Helen will be invoked
@@ -129,16 +157,23 @@ def fxBlockchain(request):
    conId = None
    hermesData = retrieveCustomCmdlineData(request)
    logDir = os.path.join(hermesData["hermesTestLogDir"], "fxBlockchain")
+
+   if not util.auth.tokens[util.auth.CUSTOM_ORG]:
+       util.auth.readUsersFromConfig(fxHermesRunSettings["hermesUserConfig"])
+
    devAdminRequest = Request(logDir,
                              "fxBlockchain",
                              hermesData["hermesCmdlineArgs"].reverseProxyApiBaseUrl,
                              hermesData["hermesUserConfig"],
                              util.auth.internal_admin)
 
-   if hermesData["hermesCmdlineArgs"].blockchainLocation == "onprem":
+   if util.auth.CUSTOM_BLOCKCHAIN in hermesData["hermesUserConfig"]["product"] and \
+      hermesData["hermesUserConfig"]["product"][util.auth.CUSTOM_BLOCKCHAIN]:
+      blockchainId, conId = getExistingBlockchainDetails(logDir, hermesData)
+   elif hermesData["hermesCmdlineArgs"].blockchainLocation == "onprem":
       raise Exception("On prem deployments not supported yet.")
    elif hermesData["hermesCmdlineArgs"].blockchainLocation == "sddc":
-      log.warn("Test suites may not work with SDDC deployments yet.  See Jira for the plan.")
+      log.warn("Some test suites do not work with SDDC deployments yet.")
       blockchainId, conId = deployToSddc(logDir, hermesData)
    elif len(devAdminRequest.getBlockchains()) > 0:
       # Hermes was not told to deloy a new blockchain, and there is one.  That means
@@ -172,12 +207,12 @@ def fxInitializeOrgs(request):
        {
            "org": "hermes_org1",
            "user": "vmbc_test_con_admin",
-           "role": "consortium_admin"
+           "role": util.auth.ROLE_CON_ADMIN
        },
        {
            "org": "hermes_org0",
            "user": "vmbc_test_con_admin",
-           "role": "consortium_admin"
+           "role": util.auth.ROLE_CON_ADMIN
        }
    ]
 
@@ -187,7 +222,7 @@ def fxInitializeOrgs(request):
 
 
 @pytest.fixture
-def fxConnection(request, fxBlockchain):
+def fxConnection(request, fxBlockchain, fxHermesRunSettings):
    '''
    This returns a basic fixture containing a Hermes Request object,
    and RPC object.
@@ -197,6 +232,9 @@ def fxConnection(request, fxBlockchain):
    longName = os.environ.get('PYTEST_CURRENT_TEST')
    shortName = longName[longName.rindex(":")+1:longName.rindex(" ")]
 
+   if not util.auth.tokens[util.auth.CUSTOM_ORG]:
+       util.auth.readUsersFromConfig(fxHermesRunSettings["hermesUserConfig"])
+
    # TODO: Always add the hermes org to the built in consortium.
    # (Today, that is only done in certain Helen API tests.)
    tokenDescriptor = None
@@ -204,9 +242,13 @@ def fxConnection(request, fxBlockchain):
    if hermesData["hermesCmdlineArgs"].blockchainLocation == "onprem":
       raise Exception("On prem deployments not supported yet.")
    elif hermesData["hermesCmdlineArgs"].blockchainLocation == "sddc":
-       tokenDescriptor = util.auth.default_con_admin
+       tokenDescriptor = util.auth.getTokenDescriptor(util.auth.ROLE_CON_ADMIN,
+                                                      True,
+                                                      util.auth.default_con_admin)
    else:
-       tokenDescriptor = util.auth.internal_admin
+       tokenDescriptor = util.auth.getTokenDescriptor(util.auth.ROLE_CON_ADMIN,
+                                                      True,
+                                                      util.auth.internal_admin)
 
    request = Request(hermesData["hermesTestLogDir"],
                      shortName,

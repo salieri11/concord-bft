@@ -43,6 +43,7 @@ class RPC():
       self._url = url
       self._userConfig = userConfig
       self._accessToken = getAccessToken(tokenDescriptor)
+      self.tokenDescriptor = tokenDescriptor
 
    @staticmethod
    def searchResponse(searchMe, findMe):

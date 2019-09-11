@@ -7,12 +7,24 @@ import logging
 import requests
 import time
 import traceback
+import util
 from datetime import datetime
 from urllib3.util.retry import Retry
 
 log = logging.getLogger(__name__)
-
 CSP_STAGE_URL = "https://console-stg.cloud.vmware.com/csp/gateway/am/api/auth/api-tokens/authorize"
+CUSTOM_ORG = "custom_org"
+CUSTOM_BLOCKCHAIN = "custom_blockchain"
+
+# CSP roles
+ROLE_ALL = "all_roles"
+ROLE_NONE = "no_roles"
+ROLE_CON_ADMIN = "consortium_admin"
+ROLE_CON_OPERATOR = "consortium_operator"
+ROLE_CON_PARTICIPANT = "consortium_participant"
+ROLE_ORG_ADMIN = "org_admin"
+ROLE_ORG_DEVELOPER = "org_dev"
+ROLE_ORG_USER = "org_user"
 
 # This is a table of API keys used used for authentication with CSP.
 # Format:
@@ -33,102 +45,79 @@ CSP_STAGE_URL = "https://console-stg.cloud.vmware.com/csp/gateway/am/api/auth/ap
 internal_admin = {
    "org": "blockchain_service_dev",
    "user": "admin-blockchain-dev",
-   "role": "all_roles"
+   "role": ROLE_ALL
 }
 
 # These new defaults are what Hermes tests are moving towards.
 default_con_admin = {
    "org": "hermes_org0",
    "user": "vmbc_test_con_admin",
-   "role": "consortium_admin_and_org_user"
+   "role": ROLE_CON_ADMIN
 }
 
 # These are all of the users we may use.
+# Note that roles include the listed role and the org user (except the "no roles" one).
 tokens = {
+   CUSTOM_ORG: {}, # Populated when reading values from the user config file.
    "blockchain_service_dev": {
       "admin-blockchain-dev": {
-         "all_roles": {
+         ROLE_ALL: {
             "api_key": "iRE68902qI9794DgIGgZpBwFWFdrZj48RGtLo0TgtB8IIRvKm724vCuFYVs7Pprd",
             "access_token": None,
             "last_retrieved": 0
          }
       },
       "HermesUtility": {
-         "all_roles": {
+         ROLE_ALL: {
             "api_key": "x2rCV21CJGglt3cULQH6d19T1rXZ6bHQAUSmWXgyghSRMei4qDd9XE4qi0y2Wl4r",
             "access_token": None,
             "last_retrieved": 0
          }
       },
       "vmbc_test_con_admin": {
-         "consortium_admin": {
-            "api_key": "uSE3ZmTwUlOW8WzVr1OwFwr6JBVTKTvUE8FT4uQMMxZ0XsBXKJ57ds0ZcGUuLGvd",
-            "access_token": None,
-            "last_retrieved": 0
-         },
-         "consortium_admin_and_org_user": {
+         ROLE_CON_ADMIN: {
             "api_key": "NNQSY7jrz8DZIx0LG4Xm0nfaijD4gD7HJ5XupwDD7K5Y4h50hKGQOSzO2IWyeVqw",
             "access_token": None,
             "last_retrieved": 0
          }
       },
       "vmbc_test_con_operator": {
-         "consortium_operator": {
-            "api_key": "6fuqGD8rSavtTWKjeqvu5evK7eq5PEaxuUavuAD62X1QYLjQoNuW5n514OVbv1pO",
-            "access_token": None,
-            "last_retrieved": 0
-         },
-         "consortium_operator_and_org_user": {
+         ROLE_CON_OPERATOR: {
             "api_key": "EvhVlvU5iC3Qfv4xdCcHdHHfkiPk3WQ4yef3C4qt9258YDnc5CZ9SUf6QYrzpzHZ",
             "access_token": None,
             "last_retrieved": 0
          }
       },
       "vmbc_test_con_participant": {
-         "consortium_participant": {
-            "api_key": "xGUOuiLC3pWpAlj19Fu5jo7i2k3Jx8SGpSKBAvQFTc0D43xMLhfLjQ2B5G3kmYr5",
-            "access_token": None,
-            "last_retrieved": 0
-         },
-         "consortium_participant_and_org_user": {
+         ROLE_CON_PARTICIPANT: {
             "api_key": "5lNtnJaRPdq340q3x8amWhhu00B7O23FXqliE56WONUpTblYrhajS5R39out2bqw",
             "access_token": None,
             "last_retrieved": 0
          }
       },
       "vmbc_test_org_admin": {
-         "org_admin": {
-            "api_key": "36qfWgfDp5BVJL5giRDsrR3FWi3jDO7Pt2Xon4to8vgbFPV48TUTQ6PNzvedKlPy",
-            "access_token": None,
-            "last_retrieved": 0
-         },
-         "org_admin_and_org_user": {
+         ROLE_ORG_ADMIN: {
             "api_key": "v4BlKP8H7b9pmgt86N0R29ck16fZweLgjCOqcntBavjs5sja5AkVhRh9eD8VB2Dy",
             "access_token": None,
             "last_retrieved": 0
          }
       },
       "vmbc_test_org_dev": {
-         "org_dev": {
-            "api_key": "2ix3PPyva43dP0365lMO6qcTCOCMmZdxgmCMb9bLDG0VBZu6IRHI2Rqitz7EljHS",
-            "access_token": None,
-            "last_retrieved": 0
-         },
-         "org_dev_and_org_user": {
+         ROLE_ORG_DEVELOPER: {
             "api_key": "msoDqLwKet6WzX8K0oQuyCTGt6JXg9S9LvUWUG8fGq3t2wNeQn2TdgxT6pFcwsa6",
             "access_token": None,
             "last_retrieved": 0
          },
       },
       "vmbc_test_org_user": {
-         "org_user": {
+         ROLE_ORG_USER: {
             "api_key": "F2jLad61RFMOurRlN2PN3MHvDOZTB424Ks8u95Ahf2Vt92KeNGL18LJQ9Lhq78Nv",
             "access_token": None,
             "last_retrieved": 0
          },
      },
       "vmbc_test_no_roles": { # CSP org member, but no VMware Blockchain service roles.
-         "no_roles": {
+         ROLE_NONE: {
             "api_key": "GVZXduPCUfU6MeG4BP5EEiL5ycDQUmxWc1ij65fQWUktK45xevvSrWtIB7XU64pq",
             "access_token": None,
             "last_retrieved": 0
@@ -137,81 +126,56 @@ tokens = {
    },
    "hermes_org0": {
       "admin-blockchain-dev": {
-         "all_roles": {
+         ROLE_ALL: {
             "api_key": "8uA3ZxIBG0U1IysRu50F1XRiqUXHhjPZqiT7jQNKelQQASfQmFAyexrpqvH1X152",
             "access_token": None,
             "last_retrieved": 0
          }
       },
       "vmbc_test_con_admin": {
-         "consortium_admin": {
-            "api_key": "l3hV2IGdkqRF28CrKgujx32zjc9xA1RU98MwNlF1GiaAYtTwTaYJrYvFBpjhNd8Q",
-            "access_token": None,
-            "last_retrieved": 0
-         },
-         "consortium_admin_and_org_user": {
+         ROLE_CON_ADMIN: {
             "api_key": "OYsKWiY7equsTyN1N1HL4xFpVuQbKRkXVXaLp6Q8pDwFisJtYoLZEppvTFRA5btD",
             "access_token": None,
             "last_retrieved": 0
          }
       },
       "vmbc_test_con_operator": {
-         "consortium_operator": {
-            "api_key": "WhEWpiqFi36E5Qy855s6BwL13GgVqC1EMXini2xkofAvR6mJE6tRQMHNW1HOukOW",
-            "access_token": None,
-            "last_retrieved": 0
-         },
-         "consortium_operator_and_org_user": {
+         ROLE_CON_OPERATOR: {
             "api_key": "jVkh9X6HYYbxERd1I01DEy2glgwKJj4zSyH8x2FyV5DtM4v951LjFxCoDAzyaSPC",
             "access_token": None,
             "last_retrieved": 0
          }
       },
       "vmbc_test_con_participant": {
-         "consortium_participant": {
-            "api_key": "nSivBW33y4rJINGEEd2P9AbaHt2FLHXEmEl8I1wXjuHSjWzr8DWrnqJleq8nFDf4",
-            "access_token": None,
-            "last_retrieved": 0
-         },
-         "consortium_participant_and_org_user": {
+         ROLE_CON_PARTICIPANT: {
             "api_key": "70Yin0x3pJfl9Jxla0Ou0DyYECtTUSu62cr6kcLCjRkZftvGjQlFyPvsD3KFtmTH",
             "access_token": None,
             "last_retrieved": 0
          }
       },
       "vmbc_test_org_admin": {
-         "org_admin": {
-            "api_key": "qcF6usiw9OeS6mEgUj8BWZUAp4hN6VUjuBrrTzM1Kq4v3Wk9FIHD5DKf8zMa2uZO",
-            "access_token": None,
-            "last_retrieved": 0
-         },
-         "org_admin_and_org_user": {
+         ROLE_ORG_ADMIN: {
             "api_key": "ATj9NhPyBOGEzHid16G1kv1KRsyV9f74MJeoO807rHq9b0bHrREhbW30F9LgpLKU",
             "access_token": None,
             "last_retrieved": 0
          }
       },
       "vmbc_test_org_dev": {
-         "org_dev": {
-            "api_key": "8X1A5bbLknIlm1ankT61mQN7wDbA2XcblJCopnMB6gC8vDOEZxtxswwbomxT02zc",
-            "access_token": None,
-            "last_retrieved": 0
-         },
-         "org_dev_and_org_user": {
+         ROLE_ORG_DEVELOPER: {
             "api_key": "keZFJNRnaGLcZu4U6XJUFVXUpjYBciLfzJNrzohqRZg631iPbr9WXe1FWg5O1b5C",
             "access_token": None,
             "last_retrieved": 0
          }
       },
       "vmbc_test_org_user": {
-         "org_user": {
+         ROLE_ORG_USER: {
             "api_key": "yUuHpPQ1LPKwEOAmRPu1Y4kD3a5G0882kIWeJsGmOM2dTtEkQ5Qo8K4LR5doIwFa",
             "access_token": None,
             "last_retrieved": 0
          }
       },
       "vmbc_test_no_roles": { # CSP org member, but no VMware Blockchain service roles.
-         "no_roles": {
+         ROLE_NONE: {
             "api_key": "MVXk3rTP25PjT5CZBC4dg4yGumW63QtyYAcAl81Ui68lO52S6gi7SH1imx8FtXfs",
             "access_token": None,
             "last_retrieved": 0
@@ -220,74 +184,49 @@ tokens = {
    },
    "hermes_org1": {
       "vmbc_test_con_admin": {
-         "consortium_admin": {
-            "api_key": "pZkY7Ci2dfWTX0utmcDHnJHrg3lb2kNcDQMqE0xy8Sa5NESMK7bVadEiiuHQxM6s",
-            "access_token": None,
-            "last_retrieved": 0
-         },
-         "consortium_admin_and_org_user": {
+         ROLE_CON_ADMIN: {
             "api_key": "Bc4JYwmNPLZcK8Gc2EV9d0zK5ehKfBCoID92XRN5EyZPrnEpKNa8Rvv54N1tuspG",
             "access_token": None,
             "last_retrieved": 0
          }
       },
       "vmbc_test_con_operator": {
-         "consortium_operator": {
-            "api_key": "aBW9WLZezqn1aU5LVaUJoM6MsnW2hXRhKrDC3p6bdFfDmV1NivfQ5sB79mYfUc2c",
-            "access_token": None,
-            "last_retrieved": 0
-         },
-         "consortium_operator_and_org_user": {
+         ROLE_CON_OPERATOR: {
             "api_key": "eva0j7MfD9AxBuwVLe5JGOj27aIPHL8Bnuf4CEZ07ICzwEWCH4MXVwCZeBgSVuSo",
             "access_token": None,
             "last_retrieved": 0
          }
       },
       "vmbc_test_con_participant": {
-         "consortium_participant": {
-            "api_key": "X7kdYGKP6nZjsFiU7qx48t8kiZzR1oYEX4p10PYZIPsKIovmJ49586K0d7BRB3Qp",
-            "access_token": None,
-            "last_retrieved": 0
-         },
-         "consortium_participant_and_org_user": {
+         ROLE_CON_PARTICIPANT: {
             "api_key": "SMEIJxSw6nr2f4ZKWMiSfDW8h8uIc1KW7q4dn8t76rIYLCakN5Mg2pdLYSB1iq9c",
             "access_token": None,
             "last_retrieved": 0
          }
       },
       "vmbc_test_org_admin": {
-         "org_admin": {
-            "api_key": "YFpBVt4obvlFIsyUS5sJcnoqbCwImz1LVAV2zVx7Lx84N0aa8QWXJoW2Lh5ryAIF",
-            "access_token": None,
-            "last_retrieved": 0
-         },
-         "org_admin_and_org_user": {
+         ROLE_ORG_ADMIN: {
             "api_key": "Z3sOUaT2FWVepL2Lm9W6M3eshLfLo5TwrlhJyVA1uB7g86sBcBKJbxHVera0ODll",
             "access_token": None,
             "last_retrieved": 0
          }
       },
       "vmbc_test_org_dev": {
-         "org_dev": {
-            "api_key": "y9eyEUNvFl7JJBCTzaoyM2bjxfsOJ887UDHwag94hDzAi08gJ4PNCXdV7PNl7kgf",
-            "access_token": None,
-            "last_retrieved": 0
-         },
-         "org_dev_and_org_user": {
+         ROLE_ORG_DEVELOPER: {
             "api_key": "sRGX8uzmxPZcBCrXZSoxQ2ro7frAP9Y6fddGITl2ZQXOjxuvcCxvUavRmMg3tepn",
             "access_token": None,
             "last_retrieved": 0
          }
       },
       "vmbc_test_org_user": {
-         "org_user": {
+         ROLE_ORG_USER: {
             "api_key": "ZBkuNJc44D5vAYDdgfa5tTc6e9o64TtpvMTmlFZZqpQAz2lrZoYVRrMoN2bupNZr",
             "access_token": None,
             "last_retrieved": 0
          }
       },
       "vmbc_test_no_roles": { # CSP org member, but no VMware Blockchain service roles.
-         "no_roles": {
+         ROLE_NONE: {
             "api_key": "MuX6xzo4XIfaX6WL8VC1wjSjDK9xPxWplCV4Q9xYZCf0b27h01QIcWdnLQmn98KC",
             "access_token": None,
             "last_retrieved": 0
@@ -300,7 +239,8 @@ orgs = {
    "blockchain_dev_service_org": "ab29b4a8-40c8-4173-ba74-15e76f8f35e0",
    "hermes_org0": "7e162c74-ae9f-40b4-98ab-89e13f8a2b78",
    "hermes_org1": "923a2597-ba3a-4ef8-a41c-a22406379eac",
-   "hermes_org2": "33878dd7-9a3f-447e-b0eb-17d5ea7d3991"
+   "hermes_org2": "33878dd7-9a3f-447e-b0eb-17d5ea7d3991",
+   "custom_org": ""
 }
 
 # How long a VMC access token is valid, in seconds, which is 24 minutes as of July 2019.
@@ -311,6 +251,86 @@ ACCESS_TOKEN_LIFESPAN = 24 * 60
 # The UI unit tests can take a while.
 # In seconds.
 TEST_BUFFER = 10 * 60
+
+def readUsersFromConfig(userConfig):
+   '''
+   If there are valid users in the json config file, add them to the tokens
+   table in their own new org.
+   '''
+   new_org = {}
+
+   if CUSTOM_ORG in userConfig["product"] and \
+      "id" in userConfig["product"][CUSTOM_ORG] and \
+      userConfig["product"][CUSTOM_ORG]["id"]:
+
+      global orgs
+      orgs[CUSTOM_ORG] = userConfig["product"][CUSTOM_ORG]["id"]
+      del(userConfig["product"][CUSTOM_ORG]["id"])
+
+      for user in userConfig["product"][CUSTOM_ORG]:
+         user_data = userConfig["product"][CUSTOM_ORG][user]
+         for role in user_data:
+            if "api_key" in user_data[role] and user_data[role]["api_key"]:
+               new_org[user] = {
+                  role: {
+                     "api_key": user_data[role]["api_key"],
+                     "access_token": None,
+                     "last_retrieved": 0
+                  }
+               }
+
+      if new_org:
+         global tokens
+         log.info("Found an org in the Hermes config json file: {}".format(json.dumps(new_org, indent=2)))
+         util.helper.mergeDictionaries(tokens, {CUSTOM_ORG: new_org})
+
+
+def getOrgId(org_name):
+   global orgs
+   return orgs[org_name]
+
+
+def getOrgName(org_id):
+   global orgs
+   for org_name in orgs:
+      if orgs[org_name] == org_id:
+         return org_name
+
+
+def getTokenDescriptor(role, useConfigFallback=True, defaultToken=None):
+   '''
+   Returns a token descriptor for the given role, searching in this order:
+   1. The exact role match from the Hermes config json file.
+   2. If the given role is not found and useConfigFallback is True, the "all_roles"
+      entry from the Hermes config json file.
+   3. The default passed in.
+
+   Returns None if nothing is found.
+   '''
+   global tokens
+   tokenDescriptor = None
+
+   if CUSTOM_ORG in tokens and \
+      tokens[CUSTOM_ORG]:
+      for user in tokens[CUSTOM_ORG]:
+         if role in tokens[CUSTOM_ORG][user]:
+            tokenDescriptor = {
+               "org": CUSTOM_ORG,
+               "user": user,
+               "role": role
+            }
+
+      if useConfigFallback and not tokenDescriptor:
+         for user in tokens[CUSTOM_ORG]:
+            if ROLE_ALL in tokens[CUSTOM_ORG][user]:
+               tokenDescriptor = {
+                  "org": CUSTOM_ORG,
+                  "user": user,
+                  "role": ROLE_ALL
+               }
+
+   return tokenDescriptor if tokenDescriptor else defaultToken
+
 
 def getAccessToken(token_descriptor=None, force_refresh=False):
    '''
@@ -333,12 +353,14 @@ def getAccessToken(token_descriptor=None, force_refresh=False):
    if token_descriptor:
       log.debug("Using token descriptor {}".format(token_descriptor))
    else:
-      log.debug("Using the default API access for CSP.")
-      token_descriptor = {
+      default_descriptor = {
          "org": "blockchain_service_dev",
          "user": "admin-blockchain-dev",
-         "role": "all_roles"
+         "role": ROLE_ALL
       }
+      token_descriptor = getTokenDescriptor(ROLE_ALL,
+                                            True,
+                                            default_descriptor)
 
    user = token_descriptor["user"]
    org = token_descriptor["org"]
