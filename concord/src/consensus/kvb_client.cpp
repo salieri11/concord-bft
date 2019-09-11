@@ -1,4 +1,4 @@
-// Copyright 2018 VMware, all rights reserved
+// Copyright 2018-2019 VMware, all rights reserved
 //
 // Layer between api_connection and concord::storage::IClient
 //
@@ -12,6 +12,9 @@
 using com::vmware::concord::ConcordRequest;
 using com::vmware::concord::ConcordResponse;
 using com::vmware::concord::ErrorResponse;
+using google::protobuf::Duration;
+
+using concord::time::TimePusher;
 
 namespace concord {
 namespace consensus {
@@ -50,10 +53,12 @@ bool KVBClient::send_request_sync(ConcordRequest &req, bool isReadOnly,
   }
 }
 
-KVBClientPool::KVBClientPool(std::vector<KVBClient *> &clients)
+KVBClientPool::KVBClientPool(std::vector<KVBClient *> &clients,
+                             shared_ptr<TimePusher> time_pusher)
     : logger_(
           log4cplus::Logger::getInstance("com.vmware.concord.KVBClientPool")),
-      clients_(clients.size()) {
+      clients_(clients.size()),
+      time_pusher_(time_pusher) {
   for (auto it = clients.begin(); it < clients.end(); it++) {
     clients_.push(*it);
   }
@@ -86,6 +91,18 @@ bool KVBClientPool::send_request_sync(ConcordRequest &req, bool isReadOnly,
     return result;
   }
 }
+
+void KVBClientPool::SetTimePusherPeriod(const Duration &period) {
+  if (time_pusher_) {
+    time_pusher_->SetPeriod(period);
+  } else {
+    LOG4CPLUS_WARN(logger_,
+                   "Received request to reconfigure time pusher period to "
+                   "client pool with no time pusher.");
+  }
+}
+
+bool KVBClientPool::HasTimePusher() { return (bool)time_pusher_; }
 
 }  // namespace consensus
 }  // namespace concord

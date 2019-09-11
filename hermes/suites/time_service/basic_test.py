@@ -40,6 +40,27 @@ def run_conc_time(concordContainer=None, args=""):
    return util.blockchain.eth.exec_in_concord_container(concordContainer,
                                                         "./conc_time -o json {}".format(args))
 
+def run_conc_reconfig_pusher_period(concordContainers, newPeriod):
+   '''
+   Run the conc_reconfig utility to reconfigure --time_pusher_period_ms to
+   change the time pusher period. concordContainers should be either None or a
+   list of string container names specifying which container(s) to run
+   conc_reconfig in; if None is given, conc_reconfig will be run on every
+   Concord node in the cluster. newPeriod specifies the new time pusher period,
+   in millisecond to set for the selected container(s). Returns a list of the
+   output from conc_reconfig for each container it is run for; the output is in
+   the same order as the input list of containers if a list was provided and in
+   ascending order of node/replica ID if None was provided for
+   concordContainers.
+   '''
+   if concordContainers is None:
+      concordContainers = util.blockchain.eth.get_all_concord_container_names()
+
+   output = list()
+   for container in concordContainers:
+      output.append(util.blockchain.eth.exec_in_concord_container(container, \
+         "./conc_reconfig --time_pusher_period_ms {}".format(newPeriod)))
+   return output
 
 def time_service_is_disabled():
    '''
@@ -327,3 +348,68 @@ def test_ethereum_time_does_not_reverse(fxConnection):
    # warning to encourage us to expand the test to cover more time.
    if blockNTime - firstTrueNonZeroTime < 2 * expectedUpdatePeriodSec:
       log.warn("Only {} seconds passed between first and last timestamped block".format(blockNTime - firstTrueNonZeroTime))
+
+def test_reconfigure_pusher_period():
+   '''
+   Test that conc_reconfig --time_pusher_period_ms can actually be used to
+   reconfigure the time update period, and that setting non-positive/positive
+   periods will stop/restart idle time updates.
+   '''
+   # Maximum attempts to check for advances in the time before failing this test
+   # on the grounds that there are no updates when updates are expected..
+   maxAttemptsToCheckRunning = 3
+
+   # Number of attempts to check for advances in time before concluding no-load
+   # updates have been stopped successfully.
+   attemptsToCheckStopped = 10
+
+   startTimes = get_samples()
+   assert startTimes.keys(), "No sources found."
+
+   # We expect no-load updates to be initially running when we start this test,
+   # so we first confirm it is.
+   allHaveUpdated = False
+   for attempt in range(0, maxAttemptsToCheckRunning):
+      newTimes = get_samples()
+      for k, v in newTimes.items():
+         if startTimes[k] == newTimes[k]:
+            time.sleep(expectedUpdatePeriodSec)
+            break
+      else:
+         # The preceding loop ran without braking, i.e. all times have updated
+         allHaveUpdated = True
+         break
+   assert allHaveUpdated, "Not all nodes appear to be producing time updates " \
+      "before reonfiguring the time update period."
+   
+   # Set pusher period to 0 for all nodes.
+   run_conc_reconfig_pusher_period(None, 0)
+
+   # Validate no-load time updates have stopped.
+   startTimes = get_samples()
+   for attempt in range(0, attemptsToCheckStopped):
+      newTimes = get_samples()
+      for k, v in newTimes.items():
+         assert (startTimes[k] == newTimes[k]), "A time source published a " \
+            "time update in the absence of a load after setting all sources' " \
+            "pusher periods to 0."
+      time.sleep(expectedUpdatePeriodSec)
+
+   # Re-enable no-load updates.
+   run_conc_reconfig_pusher_period(None, expectedUpdatePeriodSec * 1000)
+
+   # Validate updates have resumed.
+   startTimes = get_samples()
+   allHaveUpdated = False
+   for attempt in range(0, maxAttemptsToCheckRunning):
+      newTimes = get_samples()
+      for k, v in newTimes.items():
+         if startTimes[k] == newTimes[k]:
+            time.sleep(expectedUpdatePeriodSec)
+            break
+      else:
+         # The preceding loop ran without braking, i.e. all times have updated
+         allHaveUpdated = True
+         break
+   assert allHaveUpdated, "Not all nodes appear to be producing time updates " \
+      "after disabling and re-enabling no-load time updates."

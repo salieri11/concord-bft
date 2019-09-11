@@ -401,7 +401,7 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
       clients.push_back(kvbClient);
     }
 
-    KVBClientPool pool(clients);
+    KVBClientPool pool(clients, timePusher);
 
     if (timePusher) {
       timePusher->Start(&pool);

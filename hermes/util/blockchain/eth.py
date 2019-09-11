@@ -252,6 +252,19 @@ def get_concord_container_name(replicaId):
    output = subprocess.Popen(command,stderr=subprocess.PIPE, shell=True, stdout=subprocess.PIPE).stdout.read().decode().replace(os.linesep,"")
    return output
 
+def get_all_concord_container_names():
+
+   # Note the logic in this function tries to avoid assuming whether Concord
+   # container names are 0 or 1 indexed.
+   names = list()
+   i = 0
+   name = get_concord_container_name(i)
+   while ((len(name) > 0) or (i < 1)):
+      if (len(name) > 0):
+         names.append(name)
+      i = i + 1
+      name = get_concord_container_name(i)
+   return names
 
 def exec_in_concord_container(containerName, args):
    command = "docker exec {0} {1}".format(containerName, args)

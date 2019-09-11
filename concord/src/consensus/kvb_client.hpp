@@ -1,4 +1,4 @@
-// Copyright 2018 VMware, all rights reserved
+// Copyright 2018-2019 VMware, all rights reserved
 //
 // Layer between api_connection and IClient
 
@@ -57,14 +57,37 @@ class KVBClientPool {
  private:
   log4cplus::Logger logger_;
   boost::lockfree::queue<KVBClient *> clients_;
+  std::shared_ptr<concord::time::TimePusher> time_pusher_;
 
  public:
-  KVBClientPool(std::vector<KVBClient *> &clients);
+  // Constructor for KVBClientPool. clients should be a vector of pointers
+  // to the pointers this KVBClientPool is to manage, and time_pusher should
+  // be a shared_ptr to the TimePusher shared by these clients; this shared
+  // pointer should point to the same thing as the shared TimePusher pointer
+  // each client under management here was constucted with; we do not
+  // currently define what the behavior will be if this precondition is not
+  // met. This thing that this KVBClientPool and the KVBClients in manages
+  // point to should be a valid TimePusher if the time service is enabled
+  // and should be a null pointer if the time service is disabled.
+  KVBClientPool(std::vector<KVBClient *> &clients,
+                std::shared_ptr<concord::time::TimePusher> time_pusher);
   ~KVBClientPool();
 
   bool send_request_sync(com::vmware::concord::ConcordRequest &req,
                          bool isReadOnly,
                          com::vmware::concord::ConcordResponse &resp);
+
+  // Reconfigure the time period for the TimePusher (if any) managed by this
+  // KVBClientPool and shared by its KVBClients. Calls to this function will be
+  // ignored if this KVBClientPool was created without a TimePusher.
+  void SetTimePusherPeriod(const google::protobuf::Duration &period);
+
+  // Check whether this KVBClientPool was constructed with a TimePusher. It is
+  // expected that this should be effectively equivalent to checking whether the
+  // time service is enabled and the Concord node this is running on is a time
+  // source if the preconditions of the KVBClientPool constructor were met when
+  // this instance was constructed.
+  bool HasTimePusher();
 };
 
 }  // namespace consensus

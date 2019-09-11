@@ -18,7 +18,9 @@ using com::vmware::concord::ConcordRequest;
 using com::vmware::concord::ConcordResponse;
 using com::vmware::concord::TimeRequest;
 using com::vmware::concord::TimeSample;
+using concord::consensus::KVBClientPool;
 using concord::time::TimePusher;
+using google::protobuf::Duration;
 using google::protobuf::Timestamp;
 using google::protobuf::util::TimeUtil;
 
@@ -33,9 +35,9 @@ TimePusher::TimePusher(const concord::config::ConcordConfiguration &config,
         "Time service is not enabled. TimePusher should not be created.");
   }
 
-  if (nodeConfig.hasValue<int>("time_pusher_period_ms")) {
+  if (nodeConfig.hasValue<int32_t>("time_pusher_period_ms")) {
     period_ = TimeUtil::MillisecondsToDuration(
-        nodeConfig.getValue<int>("time_pusher_period_ms"));
+        nodeConfig.getValue<int32_t>("time_pusher_period_ms"));
   } else {
     period_ = TimeUtil::MillisecondsToDuration(0);
   }
@@ -49,47 +51,36 @@ TimePusher::TimePusher(const concord::config::ConcordConfiguration &config,
   signer_.reset(new TimeSigner(nodeConfig));
 }
 
-void TimePusher::Start(concord::consensus::KVBClientPool *clientPool) {
-  clientPool_ = clientPool;
-  if (!clientPool_) {
-    LOG4CPLUS_ERROR(logger_,
-                    "Not starting thread: no clientPool to push with.");
-    return;
-  }
-
-  if (timeSourceId_.empty()) {
-    LOG4CPLUS_INFO(logger_,
-                   "Not starting thread: no time_source_id configured.");
-    return;
-  }
-
-  if (TimeUtil::DurationToMilliseconds(period_) <= 0) {
-    LOG4CPLUS_INFO(logger_, "Not starting thread: period is "
-                                << period_ << " (less than or equal to zero).");
-    return;
-  }
-
+void TimePusher::Start(KVBClientPool *clientPool) {
   std::lock_guard<std::mutex> lock(threadMutex_);
-  if (pusherThread_.joinable()) {
-    LOG4CPLUS_INFO(logger_, "Ignoring duplicate start request.");
-    return;
-  }
-
-  pusherThread_ = std::thread(&TimePusher::ThreadFunction, this);
+  run_requested_ = true;
+  DoStart(clientPool);
 }
 
 void TimePusher::Stop() {
   std::lock_guard<std::mutex> lock(threadMutex_);
-  if (!pusherThread_.joinable()) {
-    LOG4CPLUS_INFO(logger_, "Ignoring stop request - nothing to stop");
+  run_requested_ = false;
+  DoStop();
+}
+
+void TimePusher::SetPeriod(const Duration &period) {
+  // Optimization to avoid unnecessarily acquiring the mutex and stopping and
+  // restarting the pusher thread in the event this request doesn't actually
+  // change the current period.
+  if (period == period_) {
     return;
   }
 
-  stop_ = true;
-  pusherThread_.join();
-
-  // allows the thread to be restarted, if we like
-  stop_ = false;
+  std::lock_guard<std::mutex> lock(threadMutex_);
+  if ((TimeUtil::DurationToMilliseconds(period) <= 0) &&
+      pusherThread_.joinable()) {
+    DoStop();
+  }
+  period_ = period;
+  if (run_requested_ && (TimeUtil::DurationToMilliseconds(period) > 0) &&
+      (!pusherThread_.joinable())) {
+    DoStart(clientPool_);
+  }
 }
 
 void TimePusher::AddTimeToCommand(ConcordRequest &command) {
@@ -113,6 +104,55 @@ void TimePusher::AddTimeToCommand(ConcordRequest &command, Timestamp time) {
   }
 
   lastPublishTime_ = time;
+}
+
+void TimePusher::DoStart(KVBClientPool *clientPool) {
+  // TimePusher's implementation is buggy if it attempts to start itself when
+  // its user/consumer hasn't set it to do so.
+  assert(run_requested_);
+
+  if ((clientPool_ != clientPool) && (pusherThread_.joinable())) {
+    DoStop();
+  }
+
+  clientPool_ = clientPool;
+  if (!clientPool_) {
+    LOG4CPLUS_ERROR(logger_,
+                    "Not starting thread: no clientPool to push with.");
+    return;
+  }
+
+  if (timeSourceId_.empty()) {
+    LOG4CPLUS_INFO(logger_,
+                   "Not starting thread: no time_source_id configured.");
+    return;
+  }
+
+  if (TimeUtil::DurationToMilliseconds(period_) <= 0) {
+    LOG4CPLUS_INFO(logger_, "TimePusher thread not running: period is "
+                                << period_ << " (less than or equal to zero).");
+    return;
+  }
+
+  if (pusherThread_.joinable()) {
+    LOG4CPLUS_INFO(logger_, "Ignoring duplicate start request.");
+    return;
+  }
+
+  pusherThread_ = std::thread(&TimePusher::ThreadFunction, this);
+}
+
+void TimePusher::DoStop() {
+  if (!pusherThread_.joinable()) {
+    LOG4CPLUS_INFO(logger_, "Ignoring stop request - nothing to stop");
+    return;
+  }
+
+  stop_ = true;
+  pusherThread_.join();
+
+  // allows the thread to be restarted, if we like
+  stop_ = false;
 }
 
 void TimePusher::ThreadFunction() {
