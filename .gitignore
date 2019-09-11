@@ -84,10 +84,9 @@ helen/log
 
 # Scala IDE specific (Scala & Java development for Eclipse)
 .cache-main
+.classpath
 .scala_dependencies
 .worksheet
-
-.idea
 
 # Hermes Specific
 *~
@@ -106,5 +105,6 @@ hermes/report.json
 # Microservice specific
 !/contract-compiler/bin
 
-#Intellij specific
+# Intellij specific
+.idea
 *.iml
