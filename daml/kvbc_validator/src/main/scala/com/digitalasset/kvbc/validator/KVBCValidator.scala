@@ -83,14 +83,21 @@ class KVBCValidator extends ValidationServiceGrpc.ValidationService {
       s"participantId: ${request.participantId}, inputStates: ${inputState.size}, stateUpdates: ${stateUpdates.size}," +
       s"resultPayload: ${logEntry.getPayloadCase.toString}")
 
+      val outKeyPairs = stateUpdates
+          .toArray
+          .map { case (k, v) =>
+            KeyValuePair(
+              KeyValueCommitting.packDamlStateKey(k),
+              Envelope.enclose(v)
+            )
+          }
+          // NOTE(JM): Since kvutils (still) uses 'Map' the results end up
+          // in a non-deterministic order. Sort them to fix that.
+          .sortBy(_.key.toByteArray.toIterable)
+
     ValidateResponse(
       logEntry = Envelope.enclose(logEntry),
-      stateUpdates.map { case (k, v) =>
-        KeyValuePair(
-          KeyValueCommitting.packDamlStateKey(k),
-          Envelope.enclose(v)
-        )
-      }.toList
+      outKeyPairs
     )
   }
 }
