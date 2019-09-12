@@ -27,5 +27,4 @@ public class OperationTestController {
         logger.info("In the controller method");
         Assertions.assertNotNull(operationContext.getId());
     }
-
 }

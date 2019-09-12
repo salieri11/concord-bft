@@ -5,13 +5,16 @@
 package com.vmware.blockchain.services.profiles;
 
 import java.util.Date;
+import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -19,6 +22,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 
 import com.vmware.blockchain.auth.AuthHelper;
+import com.vmware.blockchain.common.BadRequestException;
+import com.vmware.blockchain.common.ErrorCode;
 import com.vmware.blockchain.security.ServiceContext;
 
 import lombok.Getter;
@@ -34,6 +39,7 @@ public class AgreementController  {
     private static final Logger logger = LogManager.getLogger(AgreementController.class);
 
     private AgreementService arm;
+    private OrganizationService organizationService;
     private AuthHelper authHelper;
     private ServiceContext serviceContext;
 
@@ -47,6 +53,7 @@ public class AgreementController  {
         private final String company;
         private final Date acceptedOn;
         private final String content;
+        private final UUID orgId;
 
         public AgreementResponse(Agreement a) {
             this.id = a.getId();
@@ -56,6 +63,8 @@ public class AgreementController  {
             this.lastName = a.getLastName();
             this.company = a.getCompany();
             this.acceptedOn = a.getAcceptedOn();
+            this.orgId = a.getOrgId();
+
             if (accepted) {
                 this.content = "";
             } else {
@@ -75,50 +84,67 @@ public class AgreementController  {
     }
 
     @Autowired
-    public AgreementController(AgreementService arm, AuthHelper authHelper, ServiceContext serviceContext) {
+    public AgreementController(AgreementService arm, OrganizationService organizationService, AuthHelper authHelper,
+                               ServiceContext serviceContext) {
         this.arm = arm;
+        this.organizationService = organizationService;
         this.authHelper = authHelper;
         this.serviceContext = serviceContext;
     }
 
     /**
      * Get an agreement.
-     * @param id Id
+     * @param orgId orgId
      * @return Agreement
      */
-    @RequestMapping(path = "/api/agreements/{id}", method = RequestMethod.GET)
-    public ResponseEntity<AgreementResponse> getAgreementFromId(@PathVariable("id") int id) {
-        AgreementResponse r = new AgreementResponse(arm.getAgreementWithId(null));
-        return new ResponseEntity<>(r, HttpStatus.OK);
+    @RequestMapping(path = "/api/organizations/{org_id}/agreements", method = RequestMethod.GET)
+    @PreAuthorize("@authHelper.isAuthorized()")
+    public ResponseEntity<List<AgreementResponse>> getAgreementFromId(@PathVariable("org_id") UUID orgId) {
+        List<Agreement> agreementList = organizationService.getAgreements(orgId);
+        List<AgreementResponse> agreementResponseList = agreementList.stream().map(AgreementResponse::new)
+                .collect(Collectors.toList());
+
+        return new ResponseEntity<>(agreementResponseList, HttpStatus.OK);
     }
 
     /**
      * Update an Agreement.
-     * @param id Id
+     * @param orgId orgId
      * @param requestBody Patch details.
      */
-    @RequestMapping(path = "/api/agreements/{id}", method = RequestMethod.PATCH)
-    public ResponseEntity<Void> doPatch(@PathVariable(name = "id") int id, @RequestBody AgreementRequest requestBody) {
-        // There is a special case for the near term.  In the current flow, the agreement is accepted before
-        // the user is logged in. Set the auth context to an anonymous user, if it is currently empty
-        if (authHelper.getUserId() == null) {
-            serviceContext.setAnonymousContext();
+    @RequestMapping(path = "/api/organizations/{org_id}/agreements", method = RequestMethod.POST)
+    @PreAuthorize("@authHelper.isAuthorized()")
+    public ResponseEntity<Void> doPost(@PathVariable(name = "org_id") UUID orgId,
+                                        @RequestBody AgreementRequest requestBody) {
+
+
+        if (requestBody.isAccepted()
+                && !(requestBody.getFirstName().isBlank())
+                && !(requestBody.getLastName().isBlank())
+                && !(requestBody.getCompany().isBlank())) {
+
+            List<Agreement> agreementList = organizationService.getAgreements(orgId);
+
+            Agreement agreement;
+
+            if (!agreementList.isEmpty()) {
+                agreement = agreementList.get(0);
+            } else {
+                agreement = arm.createAgreement();
+            }
+
+            agreement.setAccepted(requestBody.isAccepted());
+            agreement.setFirstName(requestBody.getFirstName());
+            agreement.setLastName(requestBody.getLastName());
+            agreement.setCompany(requestBody.getCompany());
+            agreement.setAcceptedOn(new Date());
+            arm.updateAgreement(agreement);
+
+            return new ResponseEntity<>(HttpStatus.OK);
+        } else {
+            throw new BadRequestException(ErrorCode.BAD_REQUEST);
         }
 
-        Agreement a = arm.getAgreementWithId(null);
-        if (requestBody.isAccepted()) {
-            a.setAccepted(requestBody.isAccepted());
-            a.setFirstName(requestBody.getFirstName());
-            a.setLastName(requestBody.getLastName());
-            a.setCompany(requestBody.getCompany());
-            a.setAcceptedOn(new Date());
-            arm.updateAgreement(a);
-        }
 
-        if (authHelper.hasAnyAuthority(Roles.ANONYMOUS.getName())) {
-            serviceContext.clearServiceContext();
-        }
-        return new ResponseEntity<>(HttpStatus.OK);
     }
-
 }

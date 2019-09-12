@@ -25,22 +25,21 @@ import com.vmware.blockchain.dao.GenericDao;
 public class AgreementService {
 
     private GenericDao genericDao;
+    private OrganizationService organizationService;
 
     @Autowired
     public AgreementService(GenericDao genericDao) {
         this.genericDao = genericDao;
+        this.organizationService = new OrganizationService(this.genericDao);
     }
 
     /**
      * Get the agreement from the database.
-     *
-     * <p>Note: At the moment there is only one agreement, so ignore the UUID.  At some point, this will
-     * be an agreement per organization.
      */
-    public Agreement getAgreementWithId(UUID id) {
-        List<Agreement> l = genericDao.getAllByType(Agreement.class);
+    public Agreement getAgreementWithId(UUID orgId) {
+        List<Agreement> l = organizationService.getAgreements(orgId);
         if (l.isEmpty()) {
-            throw new NotFoundException(ErrorCode.AGREEMENT_NOT_FOUND);
+            return null;
         }
         return l.get(0);
     }
@@ -65,7 +64,7 @@ public class AgreementService {
             a.setAccepted(false);
             a.setType("PRE-RELEASE SERVICE OFFERING");
             a.setContent(termsOfService);
-            return genericDao.put(a, null);
+            return a;
         } catch (IOException e) {
             throw new NotFoundException(e, ErrorCode.AGREEMENT_NOT_FOUND);
         }
@@ -75,5 +74,4 @@ public class AgreementService {
         ClassPathResource classPathResource = new ClassPathResource(location);
         return StreamUtils.copyToString(classPathResource.getInputStream(), Charset.forName("utf-8"));
     }
-
 }
