@@ -188,9 +188,12 @@ services:
       - "24224:24224"
       - "24224:24224/udp"
     environment:
-      - FLUENTD_CONF=fluent.conf
-    volumes:
-      - ./fluentd:/fluentd/etc
+      - LOG_DESTINATION=LOG_INTELLIGENCE
+      - LINT_ENDPOINT_URL='https:\/\/data.mgmt.cloud.vmware.com\/le-mans\/v1\/streams\/ingestion-pipeline-stream'
+      - LINT_API_KEY=eom1dVAkbzs0OZRSKa1IuLtOYwMNso0d
+      - LOG_INSIGHT_HOST=10.78.20.10
+      - LOG_INSIGHT_PORT=9000
+      - LOG_INSIGHT_AGENT_ID=0
 
   daml_index_db1:
     image: "${daml_index_db_repo}:${daml_index_db_tag}"
