@@ -123,7 +123,7 @@ def call(){
               }
             }
           }
-          stage("Copy etherium tests") {
+          stage("Copy ethereum tests") {
             steps() {
               sh 'mkdir ethereum_tests'
               dir('ethereum_tests') {

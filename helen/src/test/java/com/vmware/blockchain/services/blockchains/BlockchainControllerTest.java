@@ -646,9 +646,10 @@ public class BlockchainControllerTest {
                                         ImmutableMap.of(ip, ip),
                                         ImmutableMap.of("ethereum-rpc", endpoint));
         ConcordNodeInfo nodeInfo = new ConcordNodeInfo(new ConcordModelIdentifier(1, 0),
-                                                       ImmutableMap.of("ip", ip));
+                                                       ImmutableMap.of("ip", ip),
+                                                       ConcordModelSpecification.BlockchainType.ETHEREUM);
         return new ConcordNode(FleetUtils.identifier(ConcordNodeIdentifier.class, nodeId),
-                                           nodeInfo, hostInfo);
+                               nodeInfo, hostInfo);
     }
 
     ConcordCluster buildCluster(UUID clusterId, List<ConcordNode> members) {

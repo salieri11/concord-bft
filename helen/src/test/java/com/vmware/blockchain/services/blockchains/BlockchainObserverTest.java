@@ -35,6 +35,7 @@ import com.vmware.blockchain.deployment.v1.ConcordCluster;
 import com.vmware.blockchain.deployment.v1.ConcordClusterIdentifier;
 import com.vmware.blockchain.deployment.v1.ConcordClusterInfo;
 import com.vmware.blockchain.deployment.v1.ConcordModelIdentifier;
+import com.vmware.blockchain.deployment.v1.ConcordModelSpecification;
 import com.vmware.blockchain.deployment.v1.ConcordNode;
 import com.vmware.blockchain.deployment.v1.ConcordNodeEndpoint;
 import com.vmware.blockchain.deployment.v1.ConcordNodeHostInfo;
@@ -208,7 +209,8 @@ public class BlockchainObserverTest {
         UUID mId = UUID.randomUUID();
         ConcordModelIdentifier modeId =
                 new ConcordModelIdentifier(mId.getLeastSignificantBits(), mId.getMostSignificantBits());
-        ConcordNodeInfo concordNodeInfo = new ConcordNodeInfo(modeId, Collections.emptyMap());
+        ConcordNodeInfo concordNodeInfo = new ConcordNodeInfo(modeId, Collections.emptyMap(),
+                                                              ConcordModelSpecification.BlockchainType.ETHEREUM);
         ConcordNodeIdentifier nId
                 = new ConcordNodeIdentifier(nodeId.getLeastSignificantBits(), nodeId.getMostSignificantBits());
         return new ConcordNode(nId, concordNodeInfo, createNodeHostInfo());
