@@ -3,14 +3,19 @@
  * **************************************************************************/
 package com.vmware.blockchain.deployment.service.orchestrationsite
 
-import com.vmware.blockchain.deployment.logging.info
 import com.vmware.blockchain.deployment.logging.error
+import com.vmware.blockchain.deployment.logging.info
 import com.vmware.blockchain.deployment.logging.logger
+import com.vmware.blockchain.deployment.orchestration.OrchestratorProvider
+import com.vmware.blockchain.deployment.reactive.BaseSubscriber
 import com.vmware.blockchain.deployment.v1.ListOrchestrationSitesRequest
 import com.vmware.blockchain.deployment.v1.ListOrchestrationSitesResponse
 import com.vmware.blockchain.deployment.v1.OrchestrationSite
 import com.vmware.blockchain.deployment.v1.OrchestrationSiteServiceImplBase
 import com.vmware.blockchain.deployment.v1.OrchestrationSiteView
+import com.vmware.blockchain.deployment.v1.ValidateOrchestrationSiteRequest
+import com.vmware.blockchain.deployment.v1.ValidateOrchestrationSiteResponse
+import io.grpc.Status
 import io.grpc.stub.StreamObserver
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
@@ -27,6 +32,7 @@ import kotlin.coroutines.CoroutineContext
  */
 class OrchestrationSiteService(
     private val context: CoroutineContext = Dispatchers.Default,
+    private val orchestratorProvider: OrchestratorProvider,
     private val orchestrations: List<OrchestrationSite>
 ) : OrchestrationSiteServiceImplBase(), CoroutineScope {
 
@@ -40,7 +46,7 @@ class OrchestrationSiteService(
     /** Parent [Job] of all coroutines associated with this instance's operation. */
     private val job: Job = SupervisorJob()
 
-    suspend fun initialize() {
+    fun initialize() {
     }
 
     /**
@@ -95,6 +101,37 @@ class OrchestrationSiteService(
                 responseObserver.onError(error)
             } else {
                 responseObserver.onCompleted()
+            }
+        }
+    }
+
+    override fun validateOrchestrationSite(
+        request: ValidateOrchestrationSiteRequest,
+        responseObserver: StreamObserver<ValidateOrchestrationSiteResponse>
+    ) {
+        launch(coroutineContext) {
+            val newOrchestrator = orchestratorProvider.newOrchestrator(request.site)
+            var publisher = newOrchestrator.validate()
+            publisher.subscribe(BaseSubscriber(
+                    onNext = { result ->
+                        if (result) {
+                            val response = ValidateOrchestrationSiteResponse(
+                                    header = request.header,
+                                    site = request.site
+                            )
+                            responseObserver.onNext(response)
+                        } else {
+                            responseObserver.onError(Status.INVALID_ARGUMENT.asException())
+                        }
+                    },
+                    onComplete = {
+                        responseObserver.onCompleted()
+                    },
+                    onError = { responseObserver.onError(Status.INTERNAL.asException()) }
+            ))
+        }.invokeOnCompletion { error ->
+            if (error != null) {
+                log.error { "Error validating orchestration site, error(${error.message})" }
             }
         }
     }

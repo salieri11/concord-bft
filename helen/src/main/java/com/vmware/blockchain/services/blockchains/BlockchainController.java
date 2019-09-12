@@ -45,6 +45,7 @@ import com.vmware.blockchain.deployment.v1.DeploymentSessionIdentifier;
 import com.vmware.blockchain.deployment.v1.DeploymentSpecification;
 import com.vmware.blockchain.deployment.v1.MessageHeader;
 import com.vmware.blockchain.deployment.v1.OrchestrationSiteIdentifier;
+import com.vmware.blockchain.deployment.v1.OrchestrationSiteInfo;
 import com.vmware.blockchain.deployment.v1.PlacementSpecification;
 import com.vmware.blockchain.deployment.v1.PlacementSpecification.Entry;
 import com.vmware.blockchain.deployment.v1.PlacementSpecification.Type;
@@ -259,11 +260,13 @@ public class BlockchainController {
                 throw new BadRequestException(ErrorCode.BAD_REQUEST);
             }
             list = zoneIds.stream()
-                    .map(u -> new Entry(placementType, FleetUtils.identifier(OrchestrationSiteIdentifier.class, u)))
+                    .map(u -> new Entry(placementType, FleetUtils.identifier(OrchestrationSiteIdentifier.class, u),
+                                        new OrchestrationSiteInfo()))
                     .collect(Collectors.toList());
         } else {
             list = IntStream.range(0, clusterSize)
-                    .mapToObj(i -> new Entry(placementType, new OrchestrationSiteIdentifier(1, i)))
+                    .mapToObj(i -> new Entry(placementType, new OrchestrationSiteIdentifier(1, i),
+                                             new OrchestrationSiteInfo()))
                     .collect(Collectors.toList());
         }
         var placementSpec = new PlacementSpecification(list);

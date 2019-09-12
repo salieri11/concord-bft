@@ -153,6 +153,12 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
     /** Resolved configuration server endpoint. */
     private Endpoint resolvedConfigurationService;
 
+    /** Default container registry endpoint to use. */
+    private Endpoint containerRegistry;
+
+    /** Default allocation server endpoint to use. */
+    private Endpoint allocationServer;
+
     /** Map of concord node identifiers vs concord identifier as provided. */
     // FIXME: This should not be required once concord gives a provision to define names
     private final Map<ConcordNodeIdentifier, Integer> concordIdentifierMap = new HashMap<>();
@@ -165,14 +171,18 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
             OrchestratorProvider orchestratorProvider,
             List<OrchestrationSite> orchestrations,
             Function<Endpoint, ConfigurationServiceStub> configurationServiceClientProvider,
-            Endpoint configurationService
+            Endpoint configurationServer,
+            Endpoint containerRegistry,
+            Endpoint allocationServer
     ) {
         this.executor = executor;
         this.orchestratorProvider = orchestratorProvider;
         this.orchestrations = orchestrations.stream()
                 .collect(Collectors.toMap(OrchestrationSite::getId, OrchestrationSite::getInfo));
         this.configurationServiceClientProvider = configurationServiceClientProvider;
-        this.configurationService = configurationService;
+        this.configurationService = configurationServer;
+        this.containerRegistry = containerRegistry;
+        this.allocationServer = allocationServer;
     }
 
     /**
@@ -287,9 +297,6 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
         try {
             // TODO: Verify number of placement entries should match cluster size.
             // placement.getEntries().size() == specification.getClusterSize()
-
-            // TODO: Verify that for any FIXED placement, the orchestration site ID exists.
-            // orchestrators.containsKey(placementEntry.getSite())
 
             // Simplistic state checking. More sophisticated checks requires setting up a reference
             // while the request is not yet completed.
@@ -501,8 +508,7 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
                     } else {
                         site = availableSites[random.nextInt(availableSites.length)];
                     }
-
-                    return new PlacementAssignment.Entry(nodeId, site);
+                    return new PlacementAssignment.Entry(nodeId, site, entry.getSiteInfo());
                 })
                 .collect(Collectors.toUnmodifiableList());
 
@@ -694,6 +700,19 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
             var networkAddressPublishers = session.getAssignment().getEntries().stream()
                     .map(entry -> {
                         var node = entry.getNode();
+
+                        if (entry.getSiteInfo().getType() == OrchestrationSiteInfo.Type.VSPHERE) {
+                            // We can add a exist check, however we will not be able to track if any changes
+                            // Hence to be safe we always trust the latest site info.
+                            orchestrators.put(entry.getSite(),
+                                              orchestratorProvider.newOrchestrator(OrchestrationSites.Companion
+                                                                                           .buildSiteInfo(
+                                                                                                   entry.getSiteInfo(),
+                                                                                                   containerRegistry,
+                                                                                                   allocationServer))
+                            );
+                            ReactiveStream.toFuture(orchestrators.get(entry.getSite()).initialize()).join();
+                        }
                         var orchestrator = orchestrators.get(entry.getSite());
                         var resource = toResourceName(node);
                         var addressRequest = new CreateNetworkResourceRequest(resource, true);

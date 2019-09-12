@@ -57,7 +57,9 @@ class ProvisioningServiceModule {
         @Named("default-executor") executor: ExecutorService,
         orchestratorProvider: OrchestratorProvider,
         sites: List<OrchestrationSite>,
-        configurationServer: Endpoint,
+        @Named("configurationService") configurationService: Endpoint,
+        @Named("containerRegistry") containerRegistry: Endpoint,
+        @Named("allocationServer") allocationServer: Endpoint,
         configurationServiceClientProvider: Function<Endpoint, ConfigurationServiceStub>
     ): ProvisioningService {
         return ProvisioningService(
@@ -65,7 +67,9 @@ class ProvisioningServiceModule {
                 orchestratorProvider,
                 sites,
                 configurationServiceClientProvider,
-                configurationServer
+                configurationService,
+                containerRegistry,
+                allocationServer
         )
     }
 }

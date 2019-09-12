@@ -3,6 +3,7 @@
  * **************************************************************************/
 package com.vmware.blockchain.deployment.service.orchestrationsite
 
+import com.vmware.blockchain.deployment.orchestration.OrchestratorProvider
 import com.vmware.blockchain.deployment.v1.OrchestrationSite
 import dagger.Module
 import dagger.Provides
@@ -35,8 +36,9 @@ class OrchestrationSiteServiceModule {
     @Singleton
     fun providesOrchestrationSiteService(
         dispatcher: CoroutineDispatcher,
+        orchestratorProvider: OrchestratorProvider,
         orchestrations: List<OrchestrationSite>
     ): OrchestrationSiteService {
-        return OrchestrationSiteService(dispatcher, orchestrations)
+        return OrchestrationSiteService(dispatcher, orchestratorProvider, orchestrations)
     }
 }
