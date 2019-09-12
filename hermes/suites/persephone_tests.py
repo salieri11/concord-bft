@@ -469,7 +469,8 @@ class PersephoneTests(test_suite.TestSuite):
                                                  response_events_json):
          log.info("Deployment Events validated")
 
-         ethrpc_endpoints = self.get_ethrpc_endpoints(response_events_json)
+         ethrpc_endpoints = self.get_ethrpc_endpoints(response_events_json,
+                                                      concord_type)
          if len(ethrpc_endpoints) == cluster_size:
             log.info("Fetched ethrpc endpoints successfully: {}".format(
                ethrpc_endpoints))
@@ -562,19 +563,26 @@ class PersephoneTests(test_suite.TestSuite):
       else:
          return (False, "Deployment Event validation Failed")
 
-   def get_ethrpc_endpoints(self, response_events_json):
+   def get_ethrpc_endpoints(self, response_events_json, concord_type):
       '''
       Get ethrpc endpoints from deployment events response
       :param response_events_json: deployment events (JSON)
+      :param concord_type: Concord type (ethereum, DAML, etc)
       :return: ethrpc endpoints (list)
       '''
+
+      endpoint_id = "ethereum-rpc"
+      if concord_type == self.rpc_test_helper.CONCORD_TYPE_DAML:
+         endpoint_id = "daml-ledger-api"
+
       ethrpc_endpoints = []
       try:
          for event in response_events_json:
             if event["type"] == "CLUSTER_DEPLOYED":
                for member in event["cluster"]["info"]["members"]:
+                  # TODO: Add another validation to check "blockchainType"
                   ethrpc_endpoints.append(
-                     member["hostInfo"]["endpoints"]["ethereum-rpc"]["url"])
+                     member["hostInfo"]["endpoints"][endpoint_id]["url"])
       except KeyError as e:
          log.error("ERROR fetching ethrpc endpoint: {}".format(e))
 

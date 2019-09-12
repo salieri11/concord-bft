@@ -1154,24 +1154,6 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
         );
     }
 
-    /**
-     * Create a new {@link ConcordNodeInfo} instance based on input parameters.
-     * NOTE: This is a stub function right now, and therefore takes no parameters yet.
-     * @return
-     *   a new instance of {@link ConcordNodeInfo}.
-     */
-    private static ConcordNodeInfo toConcordNodeInfo() {
-        // FIXME: Due to the current workaround of lack of East-West communication between metadata
-        //   service and provision service, PlacementSpecification is taking
-        //   ConcordModelSpecification instead of ConcordModelIdentifier as parameter.
-        //   This unfortunately has ripple effect through the API models. Rather than making more
-        //   concessions on temporary API workarounds, given that model ID is really just
-        //   informational output rather than additional input parameter to other services, just
-        //   return a default value for ID.
-        //   Since internal IP addresses are also of not high value, defer the entire construction
-        //   of ConcordNodeInfo until meaningful values can be returned here.
-        return ConcordNodeInfo.Companion.getDefaultValue();
-    }
 
     /**
      * Create a new {@link ConcordNodeHostInfo} instance based on a
@@ -1217,7 +1199,8 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
     private static ConcordNodeHostInfo toConcordNodeHostInfo(
             NetworkResourceEvent.Created publicNetworkEvent,
             NetworkResourceEvent.Created privateNetworkEvent,
-            Map<String, PlacementAssignment.Entry> placementEntryByNodeName
+            Map<String, PlacementAssignment.Entry> placementEntryByNodeName,
+            ConcordModelSpecification.BlockchainType blockchainType
     ) {
         // FIXME: Ideally the API service names must be defined somewhere rather than
         //   "fabricated out of thin air" here. A logical place would be ConcordModelSpecification
@@ -1230,15 +1213,33 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
         //   The exact information here must make use of the [ConcordComponent]s declared in the
         //   deployment specification. This can possibly be captured by an enum based on
         //   [ServiceType].
-        var endpoints = Map.of(
-                "ethereum-rpc",
-                new ConcordNodeEndpoint(
-                        URI.create("https://{{ip}}:8545"
-                                           .replace("{{ip}}", publicNetworkEvent.getAddress()))
-                                .toString(),
-                        ""
-                )
-        );
+
+        Map<String, ConcordNodeEndpoint> endpoints;
+        switch (blockchainType) {
+            case DAML:
+                endpoints = Map.of(
+                        "daml-ledger-api",
+                        new ConcordNodeEndpoint(
+                                URI.create("https://{{ip}}:6865"
+                                                   .replace("{{ip}}", publicNetworkEvent.getAddress()))
+                                        .toString(),
+                                ""
+                        )
+                );
+                break;
+            default:
+                endpoints = Map.of(
+                        "ethereum-rpc",
+                        new ConcordNodeEndpoint(
+                                URI.create("https://{{ip}}:8545"
+                                                   .replace("{{ip}}", publicNetworkEvent.getAddress()))
+                                        .toString(),
+                                ""
+                        )
+                );
+        }
+
+
 
         return new ConcordNodeHostInfo(
                 placementEntryByNodeName.get(publicNetworkEvent.getName()).getSite(),
@@ -1265,11 +1266,12 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
      */
     private static ConcordNode toConcordNode(
             ComputeResourceEvent.Created event,
-            Map<String, PlacementAssignment.Entry> placementEntryByNodeName
+            Map<String, PlacementAssignment.Entry> placementEntryByNodeName,
+            ConcordModelSpecification.BlockchainType blockchainType
     ) {
         return new ConcordNode(
                 event.getNode(),
-                toConcordNodeInfo(),
+                ConcordNodeInfos.Companion.toConcordNode(blockchainType),
                 toConcordNodeHostInfo(event, placementEntryByNodeName)
         );
     }
@@ -1292,15 +1294,17 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
     private static ConcordNode toConcordNode(
             NetworkResourceEvent.Created publicNetworkEvent,
             NetworkResourceEvent.Created privateNetworkEvent,
-            Map<String, PlacementAssignment.Entry> placementEntryByNodeName
+            Map<String, PlacementAssignment.Entry> placementEntryByNodeName,
+            ConcordModelSpecification.BlockchainType blockchainType
     ) {
         return new ConcordNode(
                 placementEntryByNodeName.get(publicNetworkEvent.getName()).getNode(),
-                toConcordNodeInfo(),
+                ConcordNodeInfos.Companion.toConcordNode(blockchainType),
                 toConcordNodeHostInfo(
                         publicNetworkEvent,
                         privateNetworkEvent,
-                        placementEntryByNodeName
+                        placementEntryByNodeName,
+                        blockchainType
                 )
         );
     }
@@ -1325,7 +1329,8 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
                         second.getIpv4Addresses().entrySet().stream()
                 ).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue,
                     (oldEntry, newEntry) -> oldEntry // Preserve existing value.
-                ))
+                )),
+                first.getBlockchainType()
         );
     }
 
@@ -1444,13 +1449,15 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
                             privateNetworkResourceByNodeName.get(publicNetworkResourceEvent.getName());
 
                     // Create ConcordNode info based on compute resource event.
-                    var computeInfo = toConcordNode(computeResourceEvent, placementEntryByNodeName);
+                    var computeInfo = toConcordNode(computeResourceEvent, placementEntryByNodeName,
+                                                    session.getSpecification().getModel().getBlockchainType());
 
                     // Create ConcordNode info based on network resource event.
                     var networkInfo = toConcordNode(
                             publicNetworkResourceEvent,
                             privateNetworkResourceEvent,
-                            placementEntryByNodeName
+                            placementEntryByNodeName,
+                            session.getSpecification().getModel().getBlockchainType()
                     );
 
                     // Merge the information.

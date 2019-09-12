@@ -224,7 +224,16 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
         // Fetch the first IP address in the data payload, or return 0.
         var ip = toCanonicalIpAddress(node.getHostInfo().getIpv4AddressMap().keySet().stream()
                                               .findFirst().orElse(0));
-        var endpoint = node.getHostInfo().getEndpoints().getOrDefault("ethereum-rpc", null);
+
+        ConcordNodeEndpoint endpoint = null;
+        switch (node.getInfo().getBlockchainType()) {
+            case DAML:
+                endpoint = node.getHostInfo().getEndpoints().getOrDefault("daml-ledger-api", null);
+                break;
+            default:
+                endpoint = node.getHostInfo().getEndpoints().getOrDefault("ethereum-rpc", null);
+        }
+
 
         // For now, use the orchestration site ID as region name. Eventually there should be some
         // human-readable display name to go with the site ID.
