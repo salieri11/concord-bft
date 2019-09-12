@@ -52,7 +52,7 @@ object KvbcLedgerServer extends App {
   val readService = ledger
   val writeService = ledger
 
-  val indexerServer = StandaloneIndexerServer(readService, extConfig.config.jdbcUrl)
+  val indexerServer = StandaloneIndexerServer(readService, extConfig.config)
   val indexServer = StandaloneIndexServer(extConfig.config, readService, writeService).start()
 
   extConfig.config.archiveFiles.foreach { f =>
