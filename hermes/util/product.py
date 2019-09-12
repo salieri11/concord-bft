@@ -174,8 +174,12 @@ class Product():
          if not self._cmdlineArgs.keepconcordDB:
             self.clearDBsForDockerLaunch(dockerCfg)
 
-            if self._isHelenInDockerCompose(dockerCfg):
-               self.initializeHelenDockerDB(dockerCfg)
+            ####################################################################################
+            # Comment out these two lines to prevent Hermes from initializing the Cockroach DB.#
+            #                                                                                  #
+            if self._isHelenInDockerCompose(dockerCfg):                                        #
+               self.initializeHelenDockerDB(dockerCfg)                                         #
+            ####################################################################################
 
          self._startContainers()
          self._startLogCollection()
@@ -602,6 +606,38 @@ class Product():
 
       return containerId
 
+
+   def configureHelenDockerDB(self, containerId):
+      '''
+      Runs the SQL commands to set up the Helen DB.  Returns whether the command
+      exit codes indicate success.
+      '''
+      schema = None
+
+      with open("../helen/src/main/resources/database/schema.sql", "r") as f:
+         schema = f.read()
+
+      commands = [
+         ["docker", "exec", containerId, "./cockroach", "user", "set", "helen_admin", "--insecure"],
+         ["docker", "exec", containerId, "./cockroach", "sql", "--insecure", "-e", schema],
+      ]
+
+      for cmd in commands:
+         log.info("running '{}'".format(cmd))
+         completedProcess = subprocess.run(cmd,
+                                           stdout=subprocess.PIPE,
+                                           stderr=subprocess.STDOUT)
+         try:
+            completedProcess.check_returncode()
+            log.info("stdout: {}, stderr: {}".format(completedProcess.stdout, completedProcess.stderr))
+         except subprocess.CalledProcessError as e:
+            log.error("Command '{}' to configure the Helen DB failed.  Exit code: '{}'".format(cmd, e.returncode))
+            log.error("stdout: '{}', stderr: '{}'".format(completedProcess.stdout, completedProcess.stderr))
+            return False
+
+      return True
+
+
    def stopDockerContainer(self, containerId):
       '''Stops the given docker container. Returns whether the exit code indicated success.'''
       log.info("Stopping '{}'".format(containerId))
@@ -666,9 +702,8 @@ class Product():
       if not containerId:
          raise Exception("Unable to get the running Helen DB's docker container ID.")
 
-      # This SQL import is done by docker-compose now.
-      # if not self.configureHelenDockerDB(containerId):
-      #    raise Exception("Unable to configure the Helen DB.")
+      if not self.configureHelenDockerDB(containerId):
+         raise Exception("Unable to configure the Helen DB.")
 
       if not self.stopDockerContainer(containerId):
          raise Exception("Failure trying to stop the Helen DB.")
