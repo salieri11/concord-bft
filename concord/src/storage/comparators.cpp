@@ -6,6 +6,7 @@
 
 #include <log4cplus/loggingmacros.h>
 
+#include "common/concord_log.hpp"
 #include "consensus/hex_tools.h"
 #include "consensus/sliver.hpp"
 #include "storage/blockchain_db_adapter.h"
@@ -15,6 +16,7 @@
 
 #include <chrono>
 
+using concord::common::HexPrintBytes;
 using concord::consensus::Sliver;
 using log4cplus::Logger;
 
@@ -30,11 +32,19 @@ namespace storage {
  * ascending order, and block IDs are sorted in descending order.
  */
 int RocksKeyComparator::ComposedKeyComparison(const Logger& logger,
-                                              const Sliver& _a,
-                                              const Sliver& _b) {
-  // TODO(BWF): see note about multiple bytes in extractTypeFromKey
-  char aType = KeyManipulator::extractTypeFromKey(_a);
-  char bType = KeyManipulator::extractTypeFromKey(_b);
+                                              const Sliver& a,
+                                              const Sliver& b) {
+  return ComposedKeyComparison(logger, a.data(), a.length(), b.data(),
+                               b.length());
+}
+
+int RocksKeyComparator::ComposedKeyComparison(const Logger& logger,
+                                              const uint8_t* a_data,
+                                              size_t a_length,
+                                              const uint8_t* b_data,
+                                              size_t b_length) {
+  char aType = KeyManipulator::extractTypeFromKey(a_data);
+  char bType = KeyManipulator::extractTypeFromKey(b_data);
   if (aType != bType) {
     int ret = aType - bType;
     return ret;
@@ -42,65 +52,55 @@ int RocksKeyComparator::ComposedKeyComparison(const Logger& logger,
 
   // In case it is E_DB_KEY_TYPE_METADATA_KEY, compare object IDs.
   if (aType == (char)EDBKeyType::E_DB_KEY_TYPE_BFT_METADATA_KEY) {
-    BlockId aObjId = KeyManipulator::extractObjectIdFromKey(logger, _a);
-    BlockId bObjId = KeyManipulator::extractObjectIdFromKey(logger, _b);
+    ObjectId aObjId =
+        KeyManipulator::extractObjectIdFromKey(logger, a_data, a_length);
+    ObjectId bObjId =
+        KeyManipulator::extractObjectIdFromKey(logger, b_data, b_length);
 
     if (aObjId < bObjId) return -1;
     if (bObjId < aObjId) return 1;
     return 0;
   }
 
-  // if this is a block, we stop with key comparison - it doesn't have a block
-  // id component (that would be redundant)
-  if (aType == ((char)EDBKeyType::E_DB_KEY_TYPE_BLOCK)) {
-    // Extract the block ids to compare so that endianness of environment
-    // does not matter.
-    BlockId aId = KeyManipulator::extractBlockIdFromKey(logger, _a);
-    BlockId bId = KeyManipulator::extractBlockIdFromKey(logger, _b);
-
-    if (aId < bId) {
-      return -1;
-    } else if (bId < aId) {
-      return 1;
-    } else {
-      return 0;
+  // Blocks don't have a separate key component.
+  if (aType != ((char)EDBKeyType::E_DB_KEY_TYPE_BLOCK)) {
+    int keyComp = KeyManipulator::compareKeyPartOfComposedKey(
+        logger, a_data, a_length, b_data, b_length);
+    if (keyComp != 0) {
+      return keyComp;
     }
   }
 
-  Sliver aKey =
-      KeyManipulator::extractKeyFromKeyComposedWithBlockId(logger, _a);
-  Sliver bKey =
-      KeyManipulator::extractKeyFromKeyComposedWithBlockId(logger, _b);
+  // Extract the block ids to compare so that endianness of environment
+  // does not matter.
+  BlockId aId = KeyManipulator::extractBlockIdFromKey(logger, a_data, a_length);
+  BlockId bId = KeyManipulator::extractBlockIdFromKey(logger, b_data, b_length);
 
-  int keyComp = aKey.compare(bKey);
-
-  if (keyComp == 0) {
-    BlockId aId = KeyManipulator::extractBlockIdFromKey(logger, _a);
-    BlockId bId = KeyManipulator::extractBlockIdFromKey(logger, _b);
-
-    // within a type+key, block ids are sorted in reverse order
-    if (aId < bId) {
-      return 1;
-    } else if (bId < aId) {
-      return -1;
-    } else {
-      return 0;
-    }
+  // within a type+key, block ids are sorted in reverse order
+  if (aId < bId) {
+    return 1;
+  } else if (bId < aId) {
+    return -1;
+  } else {
+    return 0;
   }
-
-  return keyComp;
 }
 
 /* RocksDB */
 #ifdef USE_ROCKSDB
 int RocksKeyComparator::Compare(const rocksdb::Slice& _a,
                                 const rocksdb::Slice& _b) const {
-  Sliver a = copyRocksdbSlice(_a);
-  Sliver b = copyRocksdbSlice(_b);
-  int ret = ComposedKeyComparison(logger, a, b);
+  int ret = ComposedKeyComparison(
+      logger, reinterpret_cast<const uint8_t*>(_a.data()), _a.size(),
+      reinterpret_cast<const uint8_t*>(_b.data()), _b.size());
 
-  LOG4CPLUS_DEBUG(logger,
-                  "Compared " << a << " with " << b << ", returning " << ret);
+  LOG4CPLUS_DEBUG(
+      logger, "Compared " << (HexPrintBytes{_a.data(),
+                                            static_cast<uint32_t>(_a.size())})
+                          << " with "
+                          << (HexPrintBytes{_b.data(),
+                                            static_cast<uint32_t>(_b.size())})
+                          << ", returning " << ret);
 
   return ret;
 }

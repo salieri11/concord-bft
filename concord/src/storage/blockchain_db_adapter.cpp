@@ -21,11 +21,13 @@
 
 #include <chrono>
 #include <limits>
+#include "common/concord_log.hpp"
 #include "consensus/hash_defs.h"
 #include "consensus/sliver.hpp"
 #include "storage/blockchain_db_helpers.h"
 #include "storage/blockchain_interfaces.h"
 
+using concord::common::HexPrintSliver;
 using log4cplus::Logger;
 
 namespace concord {
@@ -103,8 +105,12 @@ Sliver KeyManipulator::genDataDbKey(Key _key, BlockId _blockId) {
  * @return The type of the composite database key.
  */
 char KeyManipulator::extractTypeFromKey(Key _key) {
+  return extractTypeFromKey(_key.data());
+}
+
+char KeyManipulator::extractTypeFromKey(const uint8_t *key_data) {
   static_assert(sizeof(EDBKeyType) == 1, "Let's avoid byte-order problems.");
-  return _key.data()[0];
+  return key_data[0];
 }
 
 /**
@@ -117,11 +123,19 @@ char KeyManipulator::extractTypeFromKey(Key _key) {
  * @return The block id of the composite database key.
  */
 BlockId KeyManipulator::extractBlockIdFromKey(const Logger &logger, Key _key) {
-  size_t offset = _key.length() - sizeof(BlockId);
-  BlockId id = *(BlockId *)(_key.data() + offset);
+  return extractBlockIdFromKey(logger, _key.data(), _key.length());
+}
 
-  LOG4CPLUS_DEBUG(logger, "Got block ID " << id << " from key " << _key
-                                          << ", offset " << offset);
+BlockId KeyManipulator::extractBlockIdFromKey(const Logger &logger,
+                                              const uint8_t *key_data,
+                                              size_t key_length) {
+  size_t offset = key_length - sizeof(BlockId);
+  BlockId id = *(BlockId *)(key_data + offset);
+
+  LOG4CPLUS_DEBUG(logger, "Got block ID "
+                              << id << " from key "
+                              << (HexPrintSliver{key_data, key_length})
+                              << ", offset " << offset);
   return id;
 }
 
@@ -136,12 +150,20 @@ BlockId KeyManipulator::extractBlockIdFromKey(const Logger &logger, Key _key) {
  */
 ObjectId KeyManipulator::extractObjectIdFromKey(const Logger &logger,
                                                 Key _key) {
-  assert(_key.length() >= sizeof(ObjectId));
-  size_t offset = _key.length() - sizeof(ObjectId);
-  ObjectId id = *(ObjectId *)(_key.data() + offset);
+  return extractObjectIdFromKey(logger, _key.data(), _key.length());
+}
 
-  LOG4CPLUS_DEBUG(logger, "Got object ID " << id << " from key " << _key
-                                           << ", offset " << offset);
+ObjectId KeyManipulator::extractObjectIdFromKey(const Logger &logger,
+                                                const uint8_t *key_data,
+                                                size_t key_length) {
+  assert(key_length >= sizeof(ObjectId));
+  size_t offset = key_length - sizeof(ObjectId);
+  ObjectId id = *(ObjectId *)(key_data + offset);
+
+  LOG4CPLUS_DEBUG(logger, "Got object ID "
+                              << id << " from key "
+                              << (HexPrintSliver{key_data, key_length})
+                              << ", offset " << offset);
   return id;
 }
 
@@ -158,6 +180,47 @@ Sliver KeyManipulator::extractKeyFromKeyComposedWithBlockId(
   LOG4CPLUS_DEBUG(logger,
                   "Got key " << out << " from composed key " << _composedKey);
   return out;
+}
+
+/**
+ * @brief Compare the part of the composed key that would have been returned
+ * from extractKeyFromKeyComposedWithBlockId.
+ *
+ * This is an optimization, to avoid creating sub-Slivers that will be destroyed
+ * immediately in the RocksKeyComparator.
+ *
+ * @param a_data Pointer to buffer containing a composed key.
+ * @param a_length Number of bytes in a_data.
+ * @param b_data Pointer to buffer containing a composed key.
+ * @param b_length Number of bytes in b_data.
+ */
+int KeyManipulator::compareKeyPartOfComposedKey(const Logger &logger,
+                                                const uint8_t *a_data,
+                                                size_t a_length,
+                                                const uint8_t *b_data,
+                                                size_t b_length) {
+  assert(a_length >= sizeof(BlockId) + sizeof(EDBKeyType));
+  assert(b_length >= sizeof(BlockId) + sizeof(EDBKeyType));
+
+  const uint8_t *a_key = a_data + sizeof(EDBKeyType);
+  const size_t a_key_length = a_length - sizeof(BlockId) - sizeof(EDBKeyType);
+  const uint8_t *b_key = b_data + sizeof(EDBKeyType);
+  const size_t b_key_length = b_length - sizeof(BlockId) - sizeof(EDBKeyType);
+
+  int result = std::memcmp(a_key, b_key, std::min(a_key_length, b_key_length));
+  if (a_key_length == b_key_length) {
+    return result;
+  }
+
+  if (result == 0) {
+    if (a_key_length < b_key_length) {
+      return -1;
+    } else {
+      return 1;
+    }
+  }
+
+  return result;
 }
 
 Sliver KeyManipulator::extractKeyFromMetadataKey(const Logger &logger,
