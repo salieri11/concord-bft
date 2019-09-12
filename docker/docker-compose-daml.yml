@@ -190,7 +190,7 @@ services:
     environment:
       - LOG_DESTINATION=LOG_INTELLIGENCE
       - LINT_ENDPOINT_URL='https:\/\/data.mgmt.cloud.vmware.com\/le-mans\/v1\/streams\/ingestion-pipeline-stream'
-      - LINT_API_KEY=eom1dVAkbzs0OZRSKa1IuLtOYwMNso0d
+      - "LINT_API_KEY=${LINT_API_KEY}"
       - LOG_INSIGHT_HOST=10.78.20.10
       - LOG_INSIGHT_PORT=9000
       - LOG_INSIGHT_AGENT_ID=0

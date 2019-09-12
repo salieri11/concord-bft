@@ -387,10 +387,6 @@ LINT_API_KEY=${LINT_API_KEY}
 EOF
                   cp blockchain/docker/.env blockchain/hermes/
 
-                  # Need to add the fluentd authorization bearer.
-                  # I couldn't get this env method to update the conf https://docs.fluentd.org/v0.12/articles/faq#how-can-i-use-environment-variables-to-configure-parameters-dynamically
-                  sed -i -e 's/'"<ADD-LOGINTELLIGENCE-KEY-HERE>"'/'"${FLUENTD_AUTHORIZATION_BEARER}"'/g' blockchain/docker/fluentd/fluent.conf
-
                   # Update hermes/resources/persephone/provision-service/config.json for persephone (deployment service) testing
                   sed -i -e 's/'"<VMC_API_TOKEN>"'/'"${VMC_API_TOKEN}"'/g' blockchain/hermes/resources/persephone/provisioning/config.json
                   sed -i -e 's/'"<DOCKERHUB_REPO_READER_PASSWORD>"'/'"${DOCKERHUB_REPO_READER_PASSWORD}"'/g' blockchain/hermes/resources/persephone/provisioning/config.json
