@@ -6,6 +6,7 @@ package com.vmware.blockchain.deployment.service.configuration.server;
 
 import java.security.SecureRandom;
 import java.security.Security;
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -203,17 +204,23 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
     public void getNodeConfiguration(@NotNull NodeConfigurationRequest request,
                                      @NotNull StreamObserver<NodeConfigurationResponse> observer) {
 
-        var components = sessionConfig.get(request.getIdentifier());
+        try {
+            var components = sessionConfig.get(request.getIdentifier());
 
-        var nodeComponents = components.get(request.getNode());
+            var nodeComponents = components.get(request.getNode());
 
-        if (nodeComponents.size() != 0) {
-            observer.onNext(new NodeConfigurationResponse(nodeComponents));
-            observer.onCompleted();
-        } else {
-            observer.onError(new IllegalStateException("Could not retrieve configuration results for id: "
-                    + request.getIdentifier()));
+            if (nodeComponents.size() != 0) {
+                observer.onNext(new NodeConfigurationResponse(nodeComponents));
+                observer.onCompleted();
+            } else {
+                throw new IllegalStateException("Node configuration is empty for node: " + request.getNode());
+            }
+        } catch (Exception e) {
+            var errorMsg = MessageFormat.format("Retrieving configuration results failed for id: {0} with error: {1}",
+                    request.getIdentifier(), e.getLocalizedMessage());
+            observer.onError(new IllegalStateException(errorMsg));
         }
+
     }
 
     @Override
