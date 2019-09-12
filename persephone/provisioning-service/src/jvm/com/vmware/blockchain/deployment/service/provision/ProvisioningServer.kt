@@ -3,6 +3,7 @@
  * **************************************************************************/
 package com.vmware.blockchain.deployment.service.provision
 
+import com.vmware.blockchain.deployment.logging.info
 import com.vmware.blockchain.deployment.model.core.URI
 import com.vmware.blockchain.deployment.service.grpc.ServerReflectionService
 import com.vmware.blockchain.deployment.service.orchestrationsite.OrchestrationSiteService
@@ -18,6 +19,7 @@ import io.grpc.netty.shaded.io.grpc.netty.NettyServerBuilder
 import io.grpc.netty.shaded.io.netty.handler.ssl.ClientAuth
 import io.grpc.netty.shaded.io.netty.handler.ssl.SslContext
 import io.grpc.netty.shaded.io.netty.handler.ssl.SslContextBuilder
+
 import java.nio.file.Files
 import java.nio.file.Paths
 import java.util.concurrent.CompletableFuture
@@ -59,7 +61,13 @@ internal interface ProvisioningServer {
         fun orchestrations(entries: List<OrchestrationSite>): Builder
 
         @BindsInstance
-        fun configurationService(configurationService: Endpoint): Builder
+        fun configurationService(@Named("configurationService") configurationService: Endpoint): Builder
+
+        @BindsInstance
+        fun containerRegistry(@Named("containerRegistry") containerRegistry: Endpoint): Builder
+
+        @BindsInstance
+        fun allocationServer(@Named("allocationServer") allocationServer: Endpoint): Builder
 
         fun build(): ProvisioningServer
     }
@@ -166,6 +174,8 @@ fun main(args: Array<String>) {
     val provisioningServer = DaggerProvisioningServer.builder()
             .orchestrations(config.sites)
             .configurationService(config.configService)
+            .containerRegistry(config.containerRegistry)
+            .allocationServer(config.allocationServer)
             .build()
     val sslContext = config.transportSecurity.type
             .takeIf { it != TransportSecurity.Type.NONE }

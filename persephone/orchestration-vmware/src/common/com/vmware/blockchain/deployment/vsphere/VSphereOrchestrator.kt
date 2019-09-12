@@ -55,6 +55,8 @@ class VSphereOrchestrator constructor(
     private lateinit var networkAddressAllocationServers: Map<String, IPAllocationServiceStub>
 
     companion object {
+        const val THIRTY_SECOND_TIMEOUT_MILLIS = 30000L
+
         /** Default maximum orchestrator operation timeout value. */
         const val ORCHESTRATOR_TIMEOUT_MILLIS = 60000L * 10
 
@@ -87,6 +89,22 @@ class VSphereOrchestrator constructor(
                         )
                     }
             )
+        }
+    }
+
+    override fun validate(): Publisher<Boolean> {
+        return publish {
+            withTimeout(THIRTY_SECOND_TIMEOUT_MILLIS) {
+
+                var folder = vSphere.getFolder(name = info.vsphere.folder)
+                if (folder != null) {
+                    log.info { "Connectivity with site validated (${info.api.address})" }
+                    send(true)
+                } else {
+                    log.info { "Connectivity with the orchestration site cannot be established. (${info.api})" }
+                    send(false)
+                }
+            }
         }
     }
 

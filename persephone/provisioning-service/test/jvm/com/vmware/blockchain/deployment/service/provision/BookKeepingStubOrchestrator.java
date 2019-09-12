@@ -43,6 +43,11 @@ class BookKeepingStubOrchestrator implements Orchestrator {
     }
 
     @Override
+    public Publisher<Boolean> validate() {
+        return new ErrorPublisher<>(new UnsupportedOperationException("This should not be invoked."));
+    }
+
+    @Override
     public void close() {
     }
 

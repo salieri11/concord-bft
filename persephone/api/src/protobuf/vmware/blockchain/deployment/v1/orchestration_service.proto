@@ -43,6 +43,32 @@ message ListOrchestrationSitesResponse {
     repeated OrchestrationSiteView sites = 2 [packed = false];
     string next_page_token = 3;
 }
+
+/**
+ * Request definition for validating an orchestration site.
+ *
+ * @property[header]
+ *   message header.
+ * @property[site]
+ *   site information for orchestration.
+*/
+message ValidateOrchestrationSiteRequest {
+    MessageHeader header = 1;
+    OrchestrationSiteInfo site = 2;
+}
+
+/**
+ * Response definition for validating an orchestration site.
+ *
+ * @property[header]
+ *   message header.
+ * @property[site]
+ *   site information for orchestration.
+*/
+message ValidateOrchestrationSiteResponse {
+    MessageHeader header = 1;
+    OrchestrationSiteInfo site = 2;
+}
 /* [END messages] */
 
 /* [START services] */
@@ -55,5 +81,11 @@ service OrchestrationSiteService {
      */
     rpc ListOrchestrationSites (ListOrchestrationSitesRequest)
     returns (ListOrchestrationSitesResponse) {};
+
+
+    /**
+     * Operation to validate a OrchestrationSite.
+     */
+    rpc ValidateOrchestrationSite (ValidateOrchestrationSiteRequest) returns (ValidateOrchestrationSiteResponse) {};
 }
 /* [END services] */

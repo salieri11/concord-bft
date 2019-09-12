@@ -22,6 +22,11 @@ std::ostream& operator<<(std::ostream& s, const HexPrintBytes p) {
   return hexPrint(s, reinterpret_cast<const uint8_t*>(p.bytes), p.size);
 };
 
+// Print a uint8_t* of bytes as its 0x<hex> representation.
+std::ostream& operator<<(std::ostream& s, const HexPrintSliver p) {
+  return hexPrint(s, p.bytes, static_cast<uint32_t>(p.size));
+};
+
 // Print an evm_address as its 0x<hex> representation.
 std::ostream& operator<<(std::ostream& s, const evm_address& a) {
   return hexPrint(s, a.bytes, sizeof(evm_address));

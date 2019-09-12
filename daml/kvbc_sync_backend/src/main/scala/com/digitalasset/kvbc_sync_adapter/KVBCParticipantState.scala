@@ -102,7 +102,7 @@ class KVBCParticipantState(
       submission.getInputDamlStateList.asScala.map((k: DamlKvutils.DamlStateKey) => KVKey(KeyValueCommitting.packDamlStateKey(k)))
 
     val commitReq = CommitRequest(
-      submission = KeyValueSubmission.packDamlSubmission(submission),
+      submission = Envelope.enclose(submission),
       inputState = inputStateKeys,
       participantId = participantId.toString
     )
@@ -147,13 +147,14 @@ class KVBCParticipantState(
     val inputStateKeys =
       submission.getInputDamlStateList.asScala.map((k: DamlKvutils.DamlStateKey) => KVKey(KeyValueCommitting.packDamlStateKey(k)))
 
+    val envelope = Envelope.enclose(submission)
     val commitReq = CommitRequest(
-      submission = KeyValueSubmission.packDamlSubmission(submission),
+      submission = envelope,
       inputState = inputStateKeys,
       participantId = participantId.toString
     )
 
-    logger.info(s"""Uploading package(s): ${archives.map(_.getHash).mkString(",")}, submissionId: $submissionId,
+    logger.info(s"""Uploading package(s): ${archives.map(_.getHash).mkString(",")}, submissionId: $submissionId, envelopeSize: ${envelope.size},
          |inputStates: ${inputStateKeys.size}""".stripMargin.stripLineEnd)
 
     client
@@ -198,7 +199,7 @@ class KVBCParticipantState(
       submission.getInputDamlStateList.asScala.map((k: DamlKvutils.DamlStateKey) => KVKey(KeyValueCommitting.packDamlStateKey(k)))
 
     val commitReq = CommitRequest(
-      submission = KeyValueSubmission.packDamlSubmission(submission),
+      submission = Envelope.enclose(submission),
       inputState = inputStateKeys,
       participantId = participantId.toString
     )
@@ -245,7 +246,7 @@ class KVBCParticipantState(
       submission.getInputDamlStateList.asScala.map((k: DamlKvutils.DamlStateKey) => KVKey(KeyValueCommitting.packDamlStateKey(k)))
 
     val commitReq = CommitRequest(
-      submission = KeyValueSubmission.packDamlSubmission(submission),
+      submission = Envelope.enclose(submission),
       inputState = inputStateKeys,
       participantId = participantId.toString
     )
@@ -343,7 +344,12 @@ class KVBCParticipantState(
         .map { resp =>
           try {
             val logEntry =
-              KeyValueConsumption.unpackDamlLogEntry(resp.results.head.value)
+              Envelope.open(resp.results.head.value) match {
+                case Right(Envelope.LogEntryMessage(logEntry)) =>
+                  logEntry
+                case _ =>
+                  sys.error(s"Envelope did not contain log entry")
+              }
 
             KeyValueConsumption.logEntryToUpdate(
               DamlKvutils.DamlLogEntryId.newBuilder.setEntryId(committedTx.transactionId).build,

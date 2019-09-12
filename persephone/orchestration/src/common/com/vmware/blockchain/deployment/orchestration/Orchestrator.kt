@@ -4,13 +4,14 @@
 package com.vmware.blockchain.deployment.orchestration
 
 import com.vmware.blockchain.deployment.model.core.URI
+import com.vmware.blockchain.deployment.reactive.ErrorPublisher
 import com.vmware.blockchain.deployment.reactive.IteratingPublisher
 import com.vmware.blockchain.deployment.reactive.Publisher
-import com.vmware.blockchain.deployment.v1.Endpoint
 import com.vmware.blockchain.deployment.v1.ConcordClusterIdentifier
 import com.vmware.blockchain.deployment.v1.ConcordModelSpecification
 import com.vmware.blockchain.deployment.v1.ConcordNodeIdentifier
 import com.vmware.blockchain.deployment.v1.ConfigurationSessionIdentifier
+import com.vmware.blockchain.deployment.v1.Endpoint
 import com.vmware.blockchain.ethereum.type.Genesis
 
 /**
@@ -188,6 +189,11 @@ interface Orchestrator {
      *   a [Publisher] detailing the success or failure of the asynchronous initialization.
      */
     fun initialize(): Publisher<Any> = IteratingPublisher(emptyList())
+
+    /**
+     * Test connectivity/sanity of the orchestration site.
+     */
+    fun validate(): Publisher<Boolean> = ErrorPublisher(UnsupportedOperationException("This should not be invoked."))
 
     /**
      * Shutdown the [Orchestrator] instance and closes all resources.

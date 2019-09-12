@@ -12,12 +12,17 @@ import com.digitalasset.daml.lf.data.{Ref, Time}
 import com.digitalasset.daml.lf.engine.Engine
 import com.daml.ledger.participant.state.backport.TimeModel
 import org.slf4j.LoggerFactory
-
-import scala.concurrent.Future
+import io.grpc.{Status, StatusRuntimeException}
+import scala.concurrent.{Future, ExecutionContext}
 
 class KVBCValidator extends ValidationServiceGrpc.ValidationService {
   private val logger = LoggerFactory.getLogger(this.getClass)
   private val engine = Engine()
+
+  // Use the global execution context. This uses threads proportional to
+  // available processors.
+  implicit val ec = ExecutionContext.global
+
   // FIXME(JM): Make part of request
   private val config = Configuration(
     0,
@@ -34,21 +39,36 @@ class KVBCValidator extends ValidationServiceGrpc.ValidationService {
     Time.Timestamp.assertFromInstant(Instant.ofEpochSecond(ts.seconds, ts.nanos))
 
 
-  def validateSubmission(request: ValidateRequest): Future[ValidateResponse] = {
-    // TODO(JM): Validation should happen in a thread pool the size of ~num of cores.
+  def validateSubmission(request: ValidateRequest): Future[ValidateResponse] = Future {
+    logger.trace(s"Validating submission: participantId=${request.participantId}, entryId=${request.entryId.toStringUtf8}")
 
-    logger.trace(s"Validating submission, request received: ${request.entryId.toStringUtf8}")
+    // Unpack the submission.
+    val submission =
+      Envelope.open(request.submission) match {
+        case Right(Envelope.SubmissionMessage(submission)) => submission
+        case _ =>
+          throw new StatusRuntimeException(
+            Status.INVALID_ARGUMENT.withDescription("Unparseable submission")
+          )
+      }
 
-    val submission = KeyValueSubmission.unpackDamlSubmission(request.submission)
-
+    // Unpack the input state.
     val inputState =
       request.inputState.map { kv =>
         KeyValueCommitting.unpackDamlStateKey(kv.key) ->
           (if (kv.value.isEmpty)
             None
           else
-            Some(KeyValueCommitting.unpackDamlStateValue(kv.value)))
+            Envelope.open(kv.value) match {
+              case Right(Envelope.StateValueMessage(v)) =>
+                Some(v)
+              case _ =>
+                throw new StatusRuntimeException(
+                  Status.INVALID_ARGUMENT.withDescription("Corrupted input state value")
+                )
+            })
       }
+      .toMap
 
     val (logEntry, stateUpdates) = KeyValueCommitting.processSubmission(
       engine = engine,
@@ -57,22 +77,20 @@ class KVBCValidator extends ValidationServiceGrpc.ValidationService {
       defaultConfig = config,
       submission = submission,
       participantId = Ref.LedgerString.assertFromString(request.participantId),
-      inputState = inputState.toMap)
+      inputState = inputState)
 
     logger.info(s"Submission validated, entryId: ${request.entryId.toStringUtf8}, " +
       s"participantId: ${request.participantId}, inputStates: ${inputState.size}, stateUpdates: ${stateUpdates.size}," +
       s"resultPayload: ${logEntry.getPayloadCase.toString}")
 
-    Future.successful(
-      ValidateResponse(
-        logEntry = KeyValueCommitting.packDamlLogEntry(logEntry),
-        stateUpdates.map { case (k, v) =>
-          KeyValuePair(
-            KeyValueCommitting.packDamlStateKey(k),
-            KeyValueCommitting.packDamlStateValue(v)
-          )
-        }.toList
-      )
+    ValidateResponse(
+      logEntry = Envelope.enclose(logEntry),
+      stateUpdates.map { case (k, v) =>
+        KeyValuePair(
+          KeyValueCommitting.packDamlStateKey(k),
+          Envelope.enclose(v)
+        )
+      }.toList
     )
   }
 }

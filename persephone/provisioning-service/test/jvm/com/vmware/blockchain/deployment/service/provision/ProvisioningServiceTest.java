@@ -29,6 +29,7 @@ import com.vmware.blockchain.deployment.v1.DeploymentSpecification;
 import com.vmware.blockchain.deployment.v1.MessageHeader;
 import com.vmware.blockchain.deployment.v1.OrchestrationSite;
 import com.vmware.blockchain.deployment.v1.OrchestrationSiteIdentifier;
+import com.vmware.blockchain.deployment.v1.OrchestrationSiteInfo;
 import com.vmware.blockchain.deployment.v1.PlacementSpecification;
 import com.vmware.blockchain.deployment.v1.PlacementSpecification.Entry;
 import com.vmware.blockchain.deployment.v1.ProvisionedResource;
@@ -71,7 +72,8 @@ class ProvisioningServiceTest {
         var list = IntStream.range(0, clusterSize)
                 .mapToObj(i -> new Entry(
                         PlacementSpecification.Type.FIXED,
-                        new OrchestrationSiteIdentifier(1, 0)
+                        new OrchestrationSiteIdentifier(1, 0),
+                        new OrchestrationSiteInfo()
                 ))
                 .collect(Collectors.toList());
         var placementSpec = new PlacementSpecification(list);
