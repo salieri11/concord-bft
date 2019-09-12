@@ -1,4 +1,4 @@
-// Copyright 2018 VMware, all rights reserved
+// Copyright 2018-2019 VMware, all rights reserved
 //
 // Handler for connections from the API/UI servers.
 
@@ -47,6 +47,8 @@ class ApiConnection : public boost::enable_shared_from_this<ApiConnection> {
   void handle_protocol_request();
 
   void handle_peer_request();
+
+  void handle_reconfiguration_request();
 
   void handle_eth_request(int i);
 

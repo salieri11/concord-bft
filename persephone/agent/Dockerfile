@@ -33,15 +33,15 @@ COPY ./agent ./persephone/agent
 ## Build module with all of its dependencies.
 RUN mvn -f persephone/pom.xml package -pl agent -am -B
 
-# Runtime image (Concord Agent).
-FROM athena-docker-local.artifactory.eng.vmware.com/helen:prereqs-v2
+# Runtime image (Persephone Agent).
+FROM openjdk:11.0.2-jdk-slim
 LABEL description="VMware Blockchain Concord Node Agent"
 
 RUN sed -i "/jdk.tls.disabledAlgorithms=/ s/=.*/=TLSv1.3, SSLv3, RC4, MD5withRSA, DH keySize < 1024, EC keySize < 224, DES40_CBC, RC4_40, 3DES_EDE_CBC/" $(readlink -f /usr/bin/java | sed "s:bin/java::")/conf/security/java.security
 
 WORKDIR /persephone/agent
-COPY --from=0 ./persephone/agent/target/persephone-agent*with-dependencies.jar ./concord-agent.jar
+COPY --from=0 ./persephone/agent/target/persephone-agent*with-dependencies.jar ./persephone-agent.jar
 
 VOLUME ["/config"]
 
-CMD ["java", "-jar", "concord-agent.jar"]
+CMD ["java", "-jar", "persephone-agent.jar", "-Dkotlinx.coroutines.debug=on"]

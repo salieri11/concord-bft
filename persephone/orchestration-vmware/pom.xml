@@ -37,6 +37,10 @@
             <groupId>com.vmware.blockchain</groupId>
             <artifactId>persephone-orchestration</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.vmware.blockchain</groupId>
+            <artifactId>persephone-server-support</artifactId>
+        </dependency>
         <!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         ~ External dependencies.                                    ~
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
@@ -47,10 +51,6 @@
         <dependency>
             <groupId>com.vmware.blockchain.protobuf</groupId>
             <artifactId>grpc-runtime-kotlinx-serialization</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.grpc</groupId>
-            <artifactId>grpc-netty-shaded</artifactId>
         </dependency>
         <dependency>
             <!-- Scope is provided to not propagate dependency. -->

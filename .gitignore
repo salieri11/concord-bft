@@ -82,10 +82,9 @@ helen/log
 
 # Scala IDE specific (Scala & Java development for Eclipse)
 .cache-main
+.classpath
 .scala_dependencies
 .worksheet
-
-.idea
 
 # Hermes Specific
 *~
@@ -97,6 +96,7 @@ cockroachdb_test_local.sh
 hermes/.env
 hermes/pickled*
 hermes/report.json
+hermes/lib/persephone/vmware/blockchain/deployment/v1
 
 # Log files created by the build process
 *.log
@@ -104,5 +104,6 @@ hermes/report.json
 # Microservice specific
 !/contract-compiler/bin
 
-#Intellij specific
+# Intellij specific
+.idea
 *.iml

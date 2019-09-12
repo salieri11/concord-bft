@@ -48,6 +48,13 @@ class Request():
       self._accessToken = getAccessToken(tokenDescriptor, forceNewToken)
 
 
+   def __str__(self):
+      return "testName: {}\n" \
+         "_baseUrl: {}\n" \
+         "_subPath: {}\n" \
+         "_params: {}".format(self.testName, self._baseUrl, self._subPath, self._params)
+
+
    def newWithToken(self, tokenDescriptor, forceNewToken=False):
       '''
       Create a new of the this, with a new token.

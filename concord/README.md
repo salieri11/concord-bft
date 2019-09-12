@@ -534,6 +534,25 @@ samples exchanged in the time service, so currently it is not necessary to add
 any additional cryptographic keys to the configuration files when enabling the
 time service.
 
+Time sources in the time service can publish time updates to the rest of the
+nodes either by appending the time updates to normal transactions or by sending
+time updates as their own messages. A time source may publish these updates as
+their own messages periodically to ensure its time published to the system does
+not grow stale during periods when the time source does not have other
+transactions coming in that it can piggyback the time updates off of. The period
+which a time source will wait before proactively sending one of these updates is
+configurable with the per-node `time_pusher_period_ms` parameter in Concord's
+configuration (denominated in milliseconds). Note providing a non-positive value
+for this period will cause the time source to publish no proactive updates and
+only publish updates when transactions are available to append the updates to.
+Concord supports adjustment of this period at runtime. A utility,
+`conc_reconfig`, is implemented in the `tools` subdirectory which does this. To
+change the update period for a running Concord node run `conc_reconfig` with the
+arguments `--time_pusher_period_ms <NEW_TIME_PERIOD>` on the same host as the
+time source to be adjusted is running. Note setting the period to be
+non-positive in this way will disable no-load time updates and setting the
+period to be positive will enable them.
+
 Note that the time service's current implementation relies on the assumption
 that the `time_source_id` for any particular time source will not differ in its
 in-memory representation at a byte level on any pair of replicas or time

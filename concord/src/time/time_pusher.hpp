@@ -3,10 +3,8 @@
 // Time pusher is a thread to make sure that this Concord node publishes its
 // time at least once within some configured period.
 //
-// Initial implementation: just send a transactions once/period.
-//
-// Future implementation: wake up once/period, and check if any transactions
-// were sent while this thread was sleeping, and only send a transaction if no
+// The implementation wakes up once/period, and checks if any transactions were
+// sent while this thread was sleeping, and only sends a transaction if no
 // others were.
 
 #ifndef TIME_TIME_PUSHER_HPP
@@ -52,15 +50,34 @@ class TimePusher {
   void Start(concord::consensus::KVBClientPool *clientPool);
   void Stop();
 
+  // Set the maximum period with which this TimePusher should publish time
+  // updates (it will proactively publish time updates in order to meet this
+  // period if AddTimeToCommand is not used frequently enough). Note this
+  // function should be thread safe if called from multiple threads. If this
+  // TimePusher has a running pusher thread, changing its period to a
+  // non-positive one will stop the pusher thread. Changing the period to a
+  // positive one will (re)start the pusher thread if period non-positivity is
+  // the only reason the thread was not running.
+  void SetPeriod(const google::protobuf::Duration &period);
+
   void AddTimeToCommand(com::vmware::concord::ConcordRequest &command);
 
  private:
   void AddTimeToCommand(com::vmware::concord::ConcordRequest &command,
                         google::protobuf::Timestamp time);
 
+  // Internal implementations of Start and Stop which do not change the
+  // user/consumer of the TimePusher's intent for it to be started or stopped
+  // (this intent is recorded in the run_requested_ private field). Both these
+  // helper functions expect the threadMutex_ is held while they are called as a
+  // precondition.
+  void DoStart(concord::consensus::KVBClientPool *clientPool);
+  void DoStop();
+
  private:
   log4cplus::Logger logger_;
   concord::consensus::KVBClientPool *clientPool_;
+  bool run_requested_;
   bool stop_;
   google::protobuf::Timestamp lastPublishTime_;
 

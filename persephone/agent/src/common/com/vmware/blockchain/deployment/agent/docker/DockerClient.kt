@@ -3,104 +3,283 @@
  * *************************************************************************/
 package com.vmware.blockchain.deployment.agent.docker
 
-import com.vmware.blockchain.deployment.agent.docker.api.v1_38.DockerModelSerializer
-import com.vmware.blockchain.deployment.agent.docker.api.v1_38.model.AuthConfig
-import com.vmware.blockchain.deployment.http.AccessTokenAwareHttpClient
-import com.vmware.blockchain.deployment.http.HttpResponse
-import com.vmware.blockchain.deployment.model.core.Credential as CoreCredential
-import com.vmware.blockchain.deployment.model.core.URI
-import com.vmware.blockchain.deployment.v1.Credential
-import com.vmware.blockchain.deployment.v1.Endpoint
-import com.vmware.blockchain.protobuf.kotlinx.serialization.ByteString
-import com.vmware.blockchain.protobuf.kotlinx.serialization.encodeBase64
+import com.vmware.blockchain.deployment.agent.docker.api.v1_38.Endpoints
+import com.vmware.blockchain.deployment.agent.docker.api.v1_38.model.ContainerConfig
+import com.vmware.blockchain.deployment.agent.docker.api.v1_38.model.ContainerCreateResponse
+import com.vmware.blockchain.deployment.agent.docker.api.v1_38.model.ContainerSummary
+import com.vmware.blockchain.deployment.agent.docker.api.v1_38.model.HostConfig
+import com.vmware.blockchain.deployment.agent.docker.api.v1_38.model.Image
+import com.vmware.blockchain.deployment.agent.docker.api.v1_38.model.PortBinding
 
 /**
- * An HTTP REST client for issuing API to a Docker Engine endpoint.
+ * An orchestrator acting as a client of a Docker Engine API endpoint to conduct orchestration
+ * actions on the host of the Docker Engine API endpoint.
  *
- * @property[client]
- *   underlying HTTP client to use for communication.
+ * @property[docker]
+ *   an instance of [DockerHttpClient] set up to call APIs of a specific Docker Engine API endpoint.
  */
-class DockerClient(
-    private val context: Context
-) : AccessTokenAwareHttpClient(URI.create(context.endpoint.address), DockerModelSerializer) {
+class DockerClient(private val docker: DockerHttpClient) {
 
-    companion object {
-        /** Default container registry endpoint. */
-        @JvmStatic
-        val DEFAULT_CONTAINER_REGISTRY: Endpoint = Endpoint("https://registry-1.docker.io/v2")
+    /**
+     * Specification of a container port binding on the host.
+     *
+     * @property[ip]
+     *   IP published on the host.
+     * @property[port]
+     *   port published on the host.
+     */
+    data class HostPortBinding(val ip: String = "", val port: Int = 0)
 
-        /** Default Docker Engine API endpoint. */
-        @JvmStatic
-        val DEFAULT_DOCKER_ENGINE: Endpoint = Endpoint("http://localhost:2375")
+    /**
+     * Specification of a container port binding on the container.
+     *
+     * @property[port]
+     *   port exposed in the container.
+     * @property[protocol]
+     *   protocol for the port binding.
+     */
+    data class ContainerPortBinding(val port: Int, val protocol: Protocol = Protocol.TCP) {
+        enum class Protocol {
+            UDP,
+            TCP;
+
+            override fun toString(): String {
+                return when (this) {
+                    UDP -> "udp"
+                    TCP -> "tcp"
+                }
+            }
+        }
     }
 
     /**
-     * Context parameters for [DockerClient].
+     * Create an image locally by pulling an upstream repository from the container registry.
      *
-     * @param[endpoint]
-     *   endpoint for the targeted Docker Engine API endpoint.
-     * @param[registryEndpoint]
-     *   endpoint for the container registry to instruct the Docker Engine to pull images from.
+     * @param[repository]
+     *   image repository to pull from.
+     * @param[tag]
+     *   tag of the image to pull.
+     *
+     * @return
+     *   `true` if image was successfully created locally, `false` otherwise.
      */
-    data class Context(
-        val endpoint: Endpoint,
-        val registryEndpoint: Endpoint = DEFAULT_CONTAINER_REGISTRY
-    )
+    suspend fun createImage(repository: String, tag: String): Boolean {
+        val image = "${docker.registryAddress}/$repository:$tag"
+        val response = docker
+                .post<Unit, String>(
+                        path = Endpoints.IMAGES_CREATE.interpolate(
+                                parameters = listOf("fromImage" to image)
+                        ),
+                        contentType = "application/json",
+                        headers = listOf("X-Registry-Auth" to docker.registryAuthenticationHeader),
+                        body = null
+                )
 
-    /** HTTP Authentication header value for authenticating with the container registry. */
-    val registryAuthenticationHeader: String by lazy {
-        val config = AuthConfig(
-                username = context.registryEndpoint.credential.passwordCredential.username,
-                password = context.registryEndpoint.credential.passwordCredential.password,
-                serveraddress = registryAddress
+        return when (response.statusCode()) {
+            200 -> true
+            404, 500 -> false // Possible errors. (Not handling for now)
+            else -> false
+        }
+    }
+
+    /**
+     * Look up the identifier of a container image specified by the given name.
+     *
+     * @param[repository]
+     *   image repository to look up from.
+     * @param[tag]
+     *   tag of the image to lookup.
+     *
+     * @return
+     *   identifier of the container image if found, `null` otherwise.
+     */
+    suspend fun getImageIdentifier(repository: String, tag: String): String? {
+        val image = "${docker.registryAddress}/$repository:$tag"
+        val response = docker.get<Image>(
+                path = Endpoints.IMAGES_INSPECT
+                        .interpolate(pathVariables = listOf("{name}" to image)),
+                contentType = "application/json",
+                headers = emptyList()
         )
 
-        // Base64-encoded JSON.
-        val data = ByteString.of(*DockerModelSerializer.toJson(config).toByteArray()).encodeBase64()
-
-        // Represent the data in UTF-8 encoded String.
-        String(data.toByteArray(), Charsets.UTF_8)
+        return when (response.statusCode()) {
+            200 -> {
+                response.body()?.Id
+            }
+            400, 500 -> null // Possible errors. (Not handling for now)
+            else -> null
+        }
     }
 
-    /** DNS-name of the container registry that images should be created from. */
-    val registryAddress: String by lazy {
-        val url = URI.create(context.registryEndpoint.address)
+    /**
+     * Create a container according to the given parameters.
+     *
+     * @param[portBindings]
+     *   a mapping of host to container port bindings.
+     * @param[volumeBindings]
+     *   a mapping of host path or container volume name to container path.
+     * @param[environment]
+     *   a mapping of environment variables set in the container, `null` value removes the key
+     *   from the container.
+     * @param[network]
+     *   network to attach the container to, standard values are "none", "bridge"
+     *   (Docker default bridge network), "host" (host network), or "<container-name/ID>", any other
+     *   values are treated as Docker network ID/names.
+     */
+    suspend fun createContainer(
+        name: String,
+        image: String,
+        portBindings: Map<ContainerPortBinding, List<HostPortBinding>?> = emptyMap(),
+        volumeBindings: Map<String, String> = emptyMap(),
+        environment: Map<String, String?> = emptyMap(),
+        network: String = ""
+    ): String? {
+        val response = docker.post<ContainerConfig, ContainerCreateResponse>(
+                path = Endpoints.CONTAINERS_CREATE.interpolate(parameters = listOf("name" to name)),
+                contentType = "application/json",
+                headers = emptyList(),
+                body = ContainerConfig(
+                        Image = image,
+                        Env = environment.map { entry ->
+                            entry.value?.let { "${entry.key}=$it" } ?: entry.key
+                        },
+                        HostConfig = HostConfig(
+                                Binds = volumeBindings.map { "${it.key}:${it.value}" },
+                                PortBindings = portBindings.asIterable().associate {
+                                    val key = "${it.key.port}/${it.key.protocol}"
+                                    val value = it.value?.map { binding ->
+                                        PortBinding(binding.ip, binding.port.toString())
+                                    }
 
-        url.host + (url.port.takeIf { it != -1 }?.let { ":$it" } ?: "")
+                                    // Container port (String) to list of Host ports (List<Port>).
+                                    key to value
+                                },
+                                NetworkMode = network
+                        )
+                )
+        )
+
+        return when (response.statusCode()) {
+            201 -> response.body()?.Id
+            400, 404, 409, 500 -> null // Possible errors. (Not handling for now)
+            else -> null
+        }
     }
 
-    /** Specify whether HTTP requests should specify access token in HTTP header. */
-    override val useAccessToken: Boolean = false
-
     /**
-     * Obtain the API session token from a given session response.
+     * Find all containers that is created from a given image specified by the given identifier,
+     * sorted by container creation time.
+     *
+     * @param[image]
+     *   identifier of the container image.
      *
      * @return
-     *   API session token as a [String].
+     *   a [List] of identifiers of containers created using the specified image identifier.
      */
-    override fun retrieveAccessToken(sessionResponse: HttpResponse<String>): String = ""
+    suspend fun getContainers(image: String): List<String> {
+        val response = docker.get<ContainerSummary>(
+                path = Endpoints.CONTAINERS_LIST.interpolate(parameters = listOf("all" to "true")),
+                contentType = "application/json",
+                headers = emptyList(),
+                arrayResponse = true
+        )
+
+        return when (response.statusCode()) {
+            200 -> {
+                response.body().orEmpty().asSequence()
+                        .filter { container -> container.ImageID == image }
+                        .sortedBy { container -> container.Created }
+                        .map { it.Id }
+                        .toList()
+            }
+            400, 500 -> emptyList() // Possible errors. (Not handling for now)
+            else -> emptyList()
+        }
+    }
 
     /**
-     * Retrieve the HTTP header name corresponding to the access token.
+     * Start a container specified by the given container identifier.
+     *
+     * @param[container]
+     *   identifier of the container to start.
      *
      * @return
-     *   the HTTP header name for access token.
+     *   `true` if container is started or already in started state, `false` otherwise.
      */
-    override fun accessTokenHeader(): String = ""
+    suspend fun startContainer(container: String): Boolean {
+        val response = docker.post<Unit, String>(
+                path = Endpoints.CONTAINERS_START.interpolate(
+                        pathVariables = listOf("{id}" to container)
+                ),
+                contentType = "application/json",
+                headers = emptyList(),
+                body = null
+        )
+
+        return when (response.statusCode()) {
+            204, 304 -> true // Indicates that container is now/already in desired state.
+            404, 500 -> false // Possible errors. (Not handling for now)
+            else -> false
+        }
+    }
 
     /**
-     * Retrieve the session creation URI associated with this client instance.
+     * Stop a container specified by the given container identifier.
+     *
+     * @param[container]
+     *   identifier of the container to stop.
      *
      * @return
-     *   the session-creation [URI] value.
+     *   `true` if container is stopped or already in stopped state, `false` otherwise.
      */
-    override fun session(): URI = URI.create(context.endpoint.address)
+    suspend fun stopContainer(container: String, waitBeforeStop: Int = 0): Boolean {
+        val response = docker.post<Unit, String>(
+                path = Endpoints.CONTAINERS_STOP.interpolate(
+                        parameters = listOf("t" to waitBeforeStop.toString()),
+                        pathVariables = listOf("{id}" to container)
+                ),
+                contentType = "application/json",
+                headers = emptyList(),
+                body = null
+        )
+
+        return when (response.statusCode()) {
+            204, 304 -> true // Indicates that container is now/already in desired state.
+            404, 500 -> false // Possible errors. (Not handling for now)
+            else -> false
+        }
+    }
 
     /**
-     * Obtain the authentication credential associated with this client instance.
+     * Delete a container specified by the given container identifier.
+     *
+     * @param[container]
+     *   identifier of the container to delete.
      *
      * @return
-     *   the [Credential] instance.
+     *   `true` if container was deleted or did not exist, `false` otherwise.
      */
-    override fun credential(): CoreCredential = CoreCredential()
+    suspend fun deleteContainer(
+        container: String,
+        removeVolume: Boolean = false,
+        force: Boolean = false
+    ): Boolean {
+        val response = docker.delete<Unit>(
+                path = Endpoints.CONTAINERS_DELETE.interpolate(
+                        parameters = listOf(
+                                "v" to removeVolume.toString(),
+                                "force" to force.toString()
+                        ),
+                        pathVariables = listOf("{id}" to container)
+                ),
+                contentType = "application/json",
+                headers = emptyList()
+        )
+
+        return when (response.statusCode()) {
+            204, 404 -> true
+            400, 409, 500 -> false // Possible errors. (Not handling for now)
+            else -> false
+        }
+    }
 }

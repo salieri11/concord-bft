@@ -101,7 +101,35 @@
     "db_users": [{
       "username": "admin-blockchain-dev@csp.local",
       "password": "Admin!23"
-    }]
+    }],
+    "custom_items_comment": "A specific blockchain and org with users may be passed in when also passing in a Helen to use.  custom_blockchain is the blockchain ID.  custom_org contains the ID of the org, followd by a structure of users, roles, and API keys.  If the test framework needs a user for a role and the api_key field is not set, it will fall back to the user/api_key for the role all_roles.  IMPORTANT: Be sure the org and users are properly set up with the service specified in the properties file used by the Helen which is passed in.",
+    "custom_blockchain": "",
+    "custom_org": {
+      "id": "",
+      "<username>": {
+        "all_roles": {
+          "api_key": ""
+        },
+        "consortium_admin": {
+          "api_key": ""
+        },
+        "consortium_operator": {
+          "api_key": ""
+        },
+        "consortium_participant": {
+          "api_key": ""
+        },
+        "org_admin": {
+          "api_key": ""
+        },
+        "org_dev": {
+          "api_key": ""
+        },
+        "org_user": {
+          "api_key": ""
+        }
+      }
+    }
   },
   "ethereum": {
     "testRoot": "../../ethereum_tests",

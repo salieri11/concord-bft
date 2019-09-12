@@ -349,23 +349,6 @@ const ConcordConfiguration* ConcordConfiguration::getRootConfig() const {
 }
 
 template <>
-bool ConcordConfiguration::interpretAs<int>(string value, int& output) const {
-  try {
-    output = std::stoi(value);
-    return true;
-  } catch (invalid_argument& e) {
-    return false;
-  } catch (std::out_of_range& e) {
-    return false;
-  }
-}
-
-template <>
-string ConcordConfiguration::getTypeName<int>() const {
-  return "int";
-}
-
-template <>
 bool ConcordConfiguration::interpretAs<short>(string value,
                                               short& output) const {
   int intVal;
@@ -485,6 +468,29 @@ bool ConcordConfiguration::interpretAs<uint64_t>(string value,
 template <>
 string ConcordConfiguration::getTypeName<uint64_t>() const {
   return "uint64_t";
+}
+
+template <>
+bool ConcordConfiguration::interpretAs<int32_t>(string value,
+                                                int32_t& output) const {
+  long long intVal;
+  try {
+    intVal = std::stoll(value);
+  } catch (invalid_argument& e) {
+    return false;
+  } catch (std::out_of_range& e) {
+    return false;
+  }
+  if ((intVal > INT32_MAX) || (intVal < INT32_MIN)) {
+    return false;
+  }
+  output = static_cast<int32_t>(intVal);
+  return true;
+}
+
+template <>
+string ConcordConfiguration::getTypeName<int32_t>() const {
+  return "int32_t";
 }
 
 static const vector<string> kValidBooleansTrue({"t", "T", "true", "True",
@@ -2002,6 +2008,8 @@ static const std::pair<unsigned long long, unsigned long long> kUInt16Limits(
     {0, UINT16_MAX});
 static const std::pair<unsigned long long, unsigned long long> kUInt32Limits(
     {0, UINT32_MAX});
+static const std::pair<long long, long long> kInt32Limits({INT32_MIN,
+                                                           INT32_MAX});
 
 // We enforce a minimum size on communication buffers to ensure at least
 // minimal error responses can be passed through them.
@@ -2024,6 +2032,44 @@ static ConcordConfiguration::ParameterStatus validateBoolean(
                       "\". A boolean (e.g. \"true\" or \"false\") is required.";
   }
   return ConcordConfiguration::ParameterStatus::INVALID;
+}
+
+static ConcordConfiguration::ParameterStatus validateInt(
+    const string& value, const ConcordConfiguration& config,
+    const ConfigurationPath& path, string* failureMessage, void* state) {
+  assert(state);
+  const std::pair<long long, long long>* limits =
+      static_cast<std::pair<long long, long long>*>(state);
+  assert(limits->first <= limits->second);
+
+  long long intVal;
+  try {
+    intVal = std::stoll(value);
+  } catch (invalid_argument& e) {
+    if (failureMessage) {
+      *failureMessage = "Invalid value for parameter " + path.toString() +
+                        ": \"" + value + "\". An integer is required.";
+    }
+    return ConcordConfiguration::ParameterStatus::INVALID;
+  } catch (std::out_of_range& e) {
+    if (failureMessage) {
+      *failureMessage =
+          "Invalid value for parameter " + path.toString() + ": \"" + value +
+          "\". An integer in the range (" + to_string(limits->first) + ", " +
+          to_string(limits->second) + "), inclusive, is required.";
+    }
+    return ConcordConfiguration::ParameterStatus::INVALID;
+  }
+  if ((intVal < limits->first) || (intVal > limits->second)) {
+    if (failureMessage) {
+      *failureMessage =
+          "Invalid value for parameter " + path.toString() + ": \"" + value +
+          "\". An integer in the range (" + to_string(limits->first) + ", " +
+          to_string(limits->second) + "), inclusive, is required.";
+    }
+    return ConcordConfiguration::ParameterStatus::INVALID;
+  }
+  return ConcordConfiguration::ParameterStatus::VALID;
 }
 
 static ConcordConfiguration::ParameterStatus validateUInt(
@@ -3296,6 +3342,9 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "milliseconds. Ignored unless FEATURE_time_service is \"true\", and "
       "time_source_id is given.");
   node.tagParameter("time_pusher_period_ms", publicOptionalTags);
+  node.addValidator(
+      "time_pusher_period_ms", validateInt,
+      const_cast<void*>(reinterpret_cast<const void*>(&kInt32Limits)));
 
   replica.declareParameter("commit_private_key",
                            "Private key for this replica under the general "

@@ -19,6 +19,7 @@ from rest.request import Request
 from rpc.rpc_call import RPC
 
 from fixtures.common_fixtures import fxBlockchain, fxConnection, fxHermesRunSettings, fxInitializeOrgs
+import util.auth
 import util.blockchain.eth
 import util.helper
 import util.numbers_strings
@@ -40,12 +41,9 @@ compilerVersion = "v0.5.2+commit.1df8f40c"
 # which creates strings of six uppercase characters and digits.
 nonexistantContractId = "aaaaaaaaaaaaaaaaaaaa"
 nonexistantVersionId = "bbbbbbbbbbbbbbbbbbbb"
-
-defaultTokenDescriptor = {
-   "org": "blockchain_service_dev",
-   "user": "admin-blockchain-dev",
-   "role": "all_roles"
-}
+defaultTokenDescriptor = util.auth.getTokenDescriptor(util.auth.ROLE_CON_ADMIN,
+                                                      True,
+                                                      util.auth.internal_admin)
 
 def addBlocksAndSearchForThem(request, blockchainId, rpc, numBlocks, pageSize):
    '''
@@ -2034,11 +2032,15 @@ def test_consortiums_get_bad_format(fxConnection):
 def test_patch_consortium_name(fxConnection):
    suffix = util.numbers_strings.random_string_generator()
    conName = "con_" + suffix
-   tokenDescriptor = {
+   defaultDescriptor = {
       "org": "blockchain_service_dev",
       "user": "vmbc_test_con_admin",
       "role": "consortium_admin"
    }
+   tokenDescriptor = util.auth.getTokenDescriptor(util.auth.ROLE_CON_ADMIN,
+                                                  True,
+                                                  defaultDescriptor)
+
    req = fxConnection.request.newWithToken(tokenDescriptor)
    conResponse = req.createConsortium(conName)
    consortiumId = conResponse["consortium_id"]
@@ -2054,11 +2056,15 @@ def test_patch_consortium_name(fxConnection):
 def test_patch_consortium_add_org(fxConnection, fxInitializeOrgs):
    suffix = util.numbers_strings.random_string_generator()
    conName = "con_" + suffix
-   tokenDescriptor = {
+   defaultDescriptor = {
       "org": "hermes_org0",
       "user": "vmbc_test_con_admin",
       "role": "consortium_admin"
    }
+   tokenDescriptor = util.auth.getTokenDescriptor(util.auth.ROLE_CON_ADMIN,
+                                                  True,
+                                                  defaultDescriptor)
+   originalOrg = tokenDescriptor["org"]
    req = fxConnection.request.newWithToken(tokenDescriptor)
    createResponse = req.createConsortium(conName)
    patchResponse = req.patchConsortium(createResponse["consortium_id"],
@@ -2068,10 +2074,10 @@ def test_patch_consortium_add_org(fxConnection, fxInitializeOrgs):
    assert len(patchResponse["members"]) == 2, "Expected two organizations."
 
    for m in patchResponse["members"]:
-      assert m["org_id"] in [util.auth.orgs["hermes_org0"],
-                             util.auth.orgs["hermes_org1"]]
-      if m["org_id"] == util.auth.orgs["hermes_org0"]:
-         assert m["organization_name"] == "hermes_org0"
+      assert m["org_id"] in [util.auth.getOrgId(originalOrg),
+                             util.auth.getOrgId("hermes_org1")]
+      if m["org_id"] == util.auth.getOrgId(originalOrg):
+         assert m["organization_name"] == originalOrg
       else:
          assert m["organization_name"] == "hermes_org1"
 
@@ -2086,11 +2092,15 @@ def test_get_consortium_orgs(fxConnection, fxInitializeOrgs):
    '''
    suffix = util.numbers_strings.random_string_generator()
    conName = "con_" + suffix
-   tokenDescriptor = {
+   defaultDescriptor = {
       "org": "hermes_org0",
       "user": "vmbc_test_con_admin",
       "role": "consortium_admin"
-   }
+    }
+   tokenDescriptor = util.auth.getTokenDescriptor(util.auth.ROLE_CON_ADMIN,
+                                                  True,
+                                                  defaultDescriptor)
+   originalOrg = tokenDescriptor["org"]
    req = fxConnection.request.newWithToken(tokenDescriptor)
    createResponse = req.createConsortium(conName)
    req.patchConsortium(createResponse["consortium_id"],
@@ -2099,10 +2109,11 @@ def test_get_consortium_orgs(fxConnection, fxInitializeOrgs):
    assert len(getOrgsResponse) == 2, "Expected 2 orgs"
 
    for org in getOrgsResponse:
-      assert org["org_id"] in [util.auth.orgs["hermes_org0"],
-                               util.auth.orgs["hermes_org1"]]
-      if org["org_id"] == util.auth.orgs["hermes_org0"]:
-         assert org["organization_name"] == "hermes_org0"
+      assert org["org_id"] in [util.auth.getOrgId(originalOrg),
+                               util.auth.getOrgId("hermes_org1")]
+
+      if org["org_id"] == util.auth.getOrgId(originalOrg):
+         assert org["organization_name"] == originalOrg
       else:
          assert org["organization_name"] == "hermes_org1"
 
@@ -2198,12 +2209,14 @@ def test_roles_consortium_creation(fxConnection):
       role = list(userdata.keys())[0]
 
       if role != "all_roles":
-         tokenDescriptor = {
+         defaultDescriptor = {
             "org": org,
             "user": username,
             "role": role
          }
-
+         tokenDescriptor = util.auth.getTokenDescriptor(role,
+                                                        True,
+                                                        defaultDescriptor)
          suffix = util.numbers_strings.random_string_generator()
          conName = "con_" + suffix
          req = fxConnection.request.newWithToken(tokenDescriptor)
@@ -2250,11 +2263,14 @@ def test_role_list_consortiums(fxConnection):
          role = list(userdata.keys())[0]
 
          if role != "all_roles":
-            tokenDescriptor = {
+            defaultDescriptor = {
                "org": org,
                "user": username,
                "role": role
             }
+            tokenDescriptor = util.auth.getTokenDescriptor(role,
+                                                           True,
+                                                           defaultDescriptor)
 
             req = fxConnection.request.newWithToken(tokenDescriptor)
             response = req.getConsortiums()
@@ -2309,11 +2325,14 @@ def test_role_consortium_get(fxConnection):
 
          for role in roles:
             if role.endswith("org_user") and role != "all_roles" or role == "no_roles":
-               tokenDescriptor = {
+               defaultDescriptor = {
                   "org": requestorOrg,
                   "user": username,
                   "role": role
                }
+               tokenDescriptor = util.auth.getTokenDescriptor(role,
+                                                              True,
+                                                              defaultDescriptor)
 
                req = fxConnection.request.newWithToken(tokenDescriptor, True)
                org0Response = req.getConsortium(org0Con["consortium_id"])
