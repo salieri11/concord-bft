@@ -5,9 +5,11 @@
 package com.vmware.blockchain.services.profiles;
 
 import java.util.Date;
+import java.util.UUID;
 
 import com.vmware.blockchain.dao.AbstractEntity;
 import com.vmware.blockchain.dao.EntityColumnName;
+import com.vmware.blockchain.dao.LinkedEntityId;
 
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -34,4 +36,6 @@ public class Agreement extends AbstractEntity {
 
     private Date acceptedOn;
 
+    @LinkedEntityId
+    private UUID orgId;
 }

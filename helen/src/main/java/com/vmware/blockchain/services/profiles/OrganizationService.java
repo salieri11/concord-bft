@@ -44,4 +44,8 @@ public class OrganizationService {
     public List<Consortium> getConsortiums(UUID id) {
         return genericDao.getByParentId(id, Consortium.class);
     }
+
+    public List<Agreement> getAgreements(UUID id) {
+        return genericDao.getByParentId(id, Agreement.class);
+    }
 }
