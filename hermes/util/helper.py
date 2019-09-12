@@ -38,6 +38,11 @@ TYPE_ETHEREUM = "ethereum"
 TYPE_DAML = "daml"
 TYPE_HLF = "hlf"
 
+# These are command line options for --keepBlockchains.
+KEEP_BLOCKCHAINS_ALWAYS = "always"
+KEEP_BLOCKCHAINS_ON_FAILURE = "on-failure"
+KEEP_BLOCKCHAINS_NEVER = "never"
+
 def copy_docker_env_file(docker_env_file=docker_env_file):
    '''
    This file contains variables fed to docker-compose.yml. It is picked up from
@@ -343,7 +348,7 @@ def checkRpcTestHelperImport():
    try:
       sys.path.append("lib/persephone")
       from persephone import rpc_test_helper
-   except ImportError as e:
+   except (ImportError, ModuleNotFoundError) as e:
       log.error("Python bindings not generated. Execute the following from the top " \
                 "level of the blockchain source directory: \n" \
                 "python3 ./hermes/util/generate_grpc_bindings.py " \
@@ -385,6 +390,12 @@ def blockchainIsRemote(args):
    return args.blockchainLocation != util.helper.LOCATION_LOCAL
 
 
+def needToCollectDeploymentEvents(cmdlineArgs):
+   return blockchainIsRemote(cmdlineArgs) and \
+      "persephone".lower() not in cmdlineArgs.suite and \
+      cmdlineArgs.keepBlockchains in [KEEP_BLOCKCHAINS_NEVER, KEEP_BLOCKCHAINS_ON_FAILURE]
+
+
 def setUpDeploymentEventListening(cmdlineArgs):
    '''
    Start collecting deployment events, if:
@@ -406,10 +417,7 @@ def setUpDeploymentEventListening(cmdlineArgs):
       log.warning("You will need to do that when the tests are done.")
       time.sleep(3)
    else:
-      if blockchainIsRemote(cmdlineArgs) and \
-         "persephone".lower() not in cmdlineArgs.suite and \
-         not cmdlineArgs.keepBlockchain:
-
+      if needToCollectDeploymentEvents(cmdlineArgs):
          if "persephone" not in str(cmdlineArgs.dockerComposeFile).lower():
             errorString = "No Persephone docker-compose yaml file found. You probably want to add " \
                           "the option: \n" \
