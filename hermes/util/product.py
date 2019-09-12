@@ -717,7 +717,8 @@ class Product():
              if "volumes" in serviceObj:
                 for v in serviceObj["volumes"]:
                    if "rocksdbdata" in v or \
-                      "cockroachDB" in v:
+                      "cockroachDB" in v or \
+                      "index_db" in v:
                       yamlDir = os.path.dirname(self._cmdlineArgs.dockerComposeFile[0])
                       deleteMe = os.path.join(yamlDir, v.split(":")[0])
                       log.info("Deleting: {}".format(deleteMe))

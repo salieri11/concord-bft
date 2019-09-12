@@ -106,7 +106,7 @@ class DamlTests(test_suite.TestSuite):
    def _test_ledger_api_test_tool(self):
       """Run ledger_api_test_tool
       """
-      TEST_TOOL_NAME = "ledger-api-test-tool_2.12-100.13.21.jar"
+      TEST_TOOL_NAME = "ledger-api-test-tool_2.12-100.13.23.jar"
       TEST_DARS = ["SemanticTests.dar", "Test-dev.dar", "Test-stable.dar"]
       TEST_TOOL_CONTAINER = "docker_daml_test_tool_1"
 
@@ -149,9 +149,9 @@ class DamlTests(test_suite.TestSuite):
                 "--link docker_daml_ledger_api1_1:ledger " + \
                 testToolImage + \
                 " java -jar " + TEST_TOOL_NAME + \
-                   " -h ledger -p 6865 " + \
-                   "--timeout-scale-factor 3.5 " + \
-                   "--command-submission-ttl-scale-factor 3.5"
+                   " --timeout-scale-factor 3.5" + \
+                   " --command-submission-ttl-scale-factor 3.5" + \
+                   " ledger:6865"
       log.info("Run %s...", TEST_TOOL_NAME)
       try:
          subprocess.check_call(cmd.split(), timeout=120)
