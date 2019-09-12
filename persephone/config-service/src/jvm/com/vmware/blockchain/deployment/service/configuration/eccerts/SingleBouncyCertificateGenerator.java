@@ -86,7 +86,7 @@ public class SingleBouncyCertificateGenerator {
         Date fromDate = new Date();
         Calendar c = Calendar.getInstance();
         c.setTime(fromDate);
-        c.add(Calendar.YEAR, 1);
+        c.add(Calendar.YEAR, 3);
         Date toDate = c.getTime();
 
         X509v3CertificateBuilder certificateBuilder = new JcaX509v3CertificateBuilder(
