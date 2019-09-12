@@ -25,7 +25,8 @@ import javax.inject.Singleton
     ProvisioningServiceModule::class,
     TestConfigurationServiceModule::class,
     OrchestrationSiteServiceModule::class,
-    TestOrchestratorModule::class
+    TestOrchestratorModule::class,
+    TestEndpointProviderModule::class
 ])
 @Singleton
 interface TestProvisioningServer {

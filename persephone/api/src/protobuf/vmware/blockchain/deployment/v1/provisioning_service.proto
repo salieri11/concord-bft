@@ -43,6 +43,7 @@ message PlacementSpecification {
     message Entry {
         Type type = 1;
         OrchestrationSiteIdentifier site = 2;
+        OrchestrationSiteInfo site_info = 3;
     }
 
     repeated Entry entries = 1 [packed=false];
@@ -68,6 +69,7 @@ message PlacementAssignment {
     message Entry {
         ConcordNodeIdentifier node = 1;
         OrchestrationSiteIdentifier site = 2;
+        OrchestrationSiteInfo site_info = 3;
     }
 
     repeated Entry entries = 1 [packed=false];
@@ -272,13 +274,20 @@ message UpdateDeploymentSessionResponse {
  *   transport security setting.
  * @property[sites]
  *   list of orchestration sites to utilize for provisioning resources.
+ * @property[container_registry]
+ *   information containing endpoint of registry for docker images to be used as default
+ * @property[allocation_server]
+ *   information containing the endpoint for ipam to be used as default
  */
 message ProvisioningServerConfiguration {
     int32 port = 1;
     TransportSecurity transport_security = 2;
     Endpoint config_service = 3;
     repeated OrchestrationSite sites = 4 [packed=false];
+    Endpoint container_registry = 5;
+    Endpoint allocation_server = 6;
 }
+
 /* [END messages] */
 
 /* [START services] */
