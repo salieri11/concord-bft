@@ -778,7 +778,8 @@ class Product():
       memory leak information.  Then we give it a few seconds to do so.
       '''
       self.stopProcessesInContainers("memleak", "valgrind")
-      time.sleep(10)
+      log.info("Sleep for 60 seconds...")
+      time.sleep(60)
 
 
    def _logServicesAtEnd(self):
