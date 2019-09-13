@@ -10,9 +10,9 @@
 #include <chrono>
 #include <vector>
 
+#include "client_imp.h"
+#include "client_interface.h"
 #include "concord.pb.h"
-#include "consensus/client_imp.h"
-#include "storage/blockchain_interfaces.h"
 #include "time/time_pusher.hpp"
 
 namespace concord {
@@ -27,7 +27,7 @@ namespace consensus {
 
 class KVBClient {
  private:
-  concord::storage::IClient *client_;
+  IClient *client_;
   std::chrono::milliseconds timeout_;
   std::shared_ptr<concord::time::TimePusher> timePusher_;
   log4cplus::Logger logger_;
@@ -35,8 +35,7 @@ class KVBClient {
   char m_outBuffer[OUT_BUFFER_SIZE];
 
  public:
-  KVBClient(concord::storage::IClient *client,
-            std::chrono::milliseconds timeout,
+  KVBClient(IClient *client, std::chrono::milliseconds timeout,
             std::shared_ptr<concord::time::TimePusher> timePusher)
       : client_(client),
         timeout_(timeout),

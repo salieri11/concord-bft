@@ -9,7 +9,7 @@
 
 #include "concord_storage.pb.h"
 #include "config/configuration_manager.hpp"
-#include "consensus/sliver.hpp"
+#include "sliver.hpp"
 
 using std::unordered_set;
 using std::vector;
@@ -17,6 +17,8 @@ using std::vector;
 using concord::config::ConcordConfiguration;
 using concord::config::ConfigurationPath;
 using concord::config::ParameterSelection;
+using concordUtils::Sliver;
+using concordUtils::Status;
 using google::protobuf::Timestamp;
 using google::protobuf::util::TimeUtil;
 
@@ -142,7 +144,7 @@ void TimeContract::LoadLatestSamples() {
 
   samples_ = new unordered_map<string, SampleBody>();
 
-  concord::consensus::Sliver raw_time;
+  Sliver raw_time;
   Status read_status = storage_.get(time_key_, raw_time);
 
   if (read_status.isOK() && raw_time.length() > 0) {
@@ -262,8 +264,7 @@ pair<Sliver, Sliver> TimeContract::Serialize() {
   }
 
   size_t storage_size = proto.ByteSize();
-  concord::consensus::Sliver time_storage(new uint8_t[storage_size],
-                                          storage_size);
+  Sliver time_storage(new uint8_t[storage_size], storage_size);
   proto.SerializeToArray(time_storage.data(), storage_size);
 
   changed_ = false;

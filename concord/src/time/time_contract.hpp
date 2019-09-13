@@ -38,8 +38,8 @@
 #include <utility>
 #include <vector>
 
+#include "blockchain/db_interfaces.h"
 #include "config/configuration_manager.hpp"
-#include "storage/blockchain_interfaces.h"
 #include "time_exception.hpp"
 #include "time_signing.hpp"
 
@@ -62,7 +62,8 @@ class TimeContract {
   //   configuration without a corresponding public key or if the configuration
   //   otherwise differs from the Time Service's expectations.
   explicit TimeContract(
-      const concord::storage::ILocalKeyValueStorageReadOnly& storage,
+      const concord::storage::blockchain::ILocalKeyValueStorageReadOnly&
+          storage,
       const concord::config::ConcordConfiguration& config)
       : logger_(log4cplus::Logger::getInstance("concord.time")),
         storage_(storage),
@@ -121,7 +122,7 @@ class TimeContract {
 
   // Produce a key-value pair that encodes the state of the time contract for
   // KVB.
-  pair<Sliver, Sliver> Serialize();
+  pair<concordUtils::Sliver, concordUtils::Sliver> Serialize();
 
   // Clear all cached data.
   void Reset() {
@@ -156,12 +157,12 @@ class TimeContract {
 
  private:
   log4cplus::Logger logger_;
-  const concord::storage::ILocalKeyValueStorageReadOnly& storage_;
+  const concord::storage::blockchain::ILocalKeyValueStorageReadOnly& storage_;
   const concord::config::ConcordConfiguration& config_;
   std::unique_ptr<concord::time::TimeVerifier> verifier_;
   std::unordered_map<std::string, SampleBody>* samples_;
   bool changed_;
-  const Sliver time_key_;
+  const concordUtils::Sliver time_key_;
 
   void LoadLatestSamples();
   google::protobuf::Timestamp SummarizeTime();

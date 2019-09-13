@@ -36,7 +36,7 @@ bool KVBClient::send_request_sync(ConcordRequest &req, bool isReadOnly,
   memset(m_outBuffer, 0, OUT_BUFFER_SIZE);
 
   uint32_t actualReplySize = 0;
-  Status status = client_->invokeCommandSynch(
+  concordUtils::Status status = client_->invokeCommandSynch(
       command.c_str(), command.size(), isReadOnly, timeout_, OUT_BUFFER_SIZE,
       m_outBuffer, &actualReplySize);
 

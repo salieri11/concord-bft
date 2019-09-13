@@ -12,15 +12,15 @@
 using std::map;
 using std::string;
 
-using concord::consensus::Sliver;
-using concord::storage::BlockId;
-using concord::storage::IBlocksAppender;
-using concord::storage::ILocalKeyValueStorageReadOnly;
-using concord::storage::Key;
-using concord::storage::KeyValuePair;
-using concord::storage::SetOfKeyValuePairs;
-using concord::storage::Value;
+using concord::storage::blockchain::IBlocksAppender;
+using concord::storage::blockchain::ILocalKeyValueStorageReadOnly;
 using concord::time::TimeContract;
+using concordUtils::BlockId;
+using concordUtils::Key;
+using concordUtils::KeyValuePair;
+using concordUtils::SetOfKeyValuePairs;
+using concordUtils::Sliver;
+using concordUtils::Value;
 
 using com::vmware::concord::ConcordRequest;
 using com::vmware::concord::ConcordResponse;
@@ -124,7 +124,7 @@ bool DamlKvbCommandsHandler::ExecuteCommit(
   da_kvbc::CommitResponse* commit_response = command_reply.mutable_commit();
 
   BlockId new_block_id = 0;
-  Status res = addBlock(updates, new_block_id);
+  concordUtils::Status res = addBlock(updates, new_block_id);
   assert(res.isOK());
   assert(new_block_id == current_block_id + 1);
 

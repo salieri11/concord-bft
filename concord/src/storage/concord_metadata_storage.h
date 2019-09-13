@@ -10,7 +10,7 @@
 #include <exception>
 #include <string>
 
-#include "blockchain_interfaces.h"
+#include "blockchain/db_interfaces.h"
 #include "concord_storage.pb.h"
 
 namespace concord {
@@ -32,13 +32,14 @@ class ConcordStorageException : public std::exception {
 class ConcordMetadataStorage {
  private:
   log4cplus::Logger logger_;
-  const concord::storage::ILocalKeyValueStorageReadOnly &storage_;
+  const concord::storage::blockchain::ILocalKeyValueStorageReadOnly &storage_;
   const Sliver block_metadata_key_;
   com::vmware::concord::kvb::BlockMetadata block_metadata_;
 
  public:
   ConcordMetadataStorage(
-      const concord::storage::ILocalKeyValueStorageReadOnly &storage)
+      const concord::storage::blockchain::ILocalKeyValueStorageReadOnly
+          &storage)
       : logger_(log4cplus::Logger::getInstance(
             "concord.consensus.ConcordMetadataStorage")),
         storage_(storage),

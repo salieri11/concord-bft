@@ -10,10 +10,7 @@ message("test including " ${GTEST_MAIN_LIBRARY})
 enable_testing()
 add_test(NAME UtilsTests COMMAND UtilsTests)
 add_test(NAME SignTests COMMAND SignTests)
-add_test(NAME SliverTests COMMAND SliverTests)
 add_test(NAME ConfigTests COMMAND ConfigTests)
-add_test(NAME MultiIOTests COMMAND MultiIOTests)
-add_test(NAME MetadataStorageTests COMMAND MetadataStorageTests)
 add_test(NAME ReplicaStateSyncTests COMMAND ReplicaStateSyncTests)
 add_test(NAME TimeContractTests COMMAND TimeContractTests)
 add_test(NAME HlfTest COMMAND HlfTest)
@@ -43,16 +40,6 @@ target_link_libraries(SignTests
   secp256k1
   ${Cryptopp_LIBRARIES})
 
-add_executable(SliverTests
-  sliver_test.cpp)
-
-target_link_libraries(SliverTests
-  ${GTEST_LIBRARIES}
-  concord_utils
-  concord_consensus
-  gtest
-  gtest_main)
-
 add_executable(ConfigTests
   config_test.cpp
   ../src/config/configuration_manager.cpp)
@@ -67,26 +54,6 @@ target_link_libraries(ConfigTests
   gtest_main
   log4cplus
   $<TARGET_OBJECTS:logging_dev>)
-
-add_executable(MultiIOTests
-  multiIO_test.cpp)
-
-target_link_libraries(MultiIOTests
-  ${GTEST_LIBRARIES}
-  concord_consensus
-  log4cplus
-  gtest
-  gtest_main)
-
-add_executable(MetadataStorageTests
-  metadataStorage_test.cpp)
-
-target_link_libraries(MetadataStorageTests
-  ${GTEST_LIBRARIES}
-  concord_consensus
-  log4cplus
-  gtest
-  gtest_main)
 
 add_executable(ReplicaStateSyncTests
   ../src/common/concord_log.cpp
@@ -146,5 +113,3 @@ target_link_libraries(HlfTest
   proto
   log4cplus
   $<TARGET_OBJECTS:logging_dev>)
-
-add_subdirectory(simpleKVBTests)
