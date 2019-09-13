@@ -50,6 +50,7 @@ class TestSuite(ABC):
       self.reverseProxyApiBaseUrl = passedArgs.reverseProxyApiBaseUrl
       self.inDockerReverseProxyApiBaseUrl = passedArgs.inDockerReverseProxyApiBaseUrl
       self.contractCompilerApiBaseUrl = passedArgs.contractCompilerApiBaseUrl
+      self.product = Product(self._args, self._userConfig)
 
       self._results = {
          self.getName(): {

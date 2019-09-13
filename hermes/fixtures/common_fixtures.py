@@ -8,7 +8,7 @@ import os
 import pytest
 import time
 from urllib.parse import urlparse
-
+from util.product import Product
 from rest.request import Request
 from rpc.rpc_call import RPC
 import types
@@ -149,7 +149,36 @@ def fxHermesRunSettings(request):
 
 
 @pytest.fixture(scope="module")
-def fxBlockchain(request, fxHermesRunSettings):
+def fxProduct(request, fxHermesRunSettings):
+   '''
+   An fxProduct provides a launched instance of the product
+   to the tests being run.
+   '''
+   if not fxHermesRunSettings["hermesCmdlineArgs"].noLaunch:
+      try:
+         waitForStartupFunction = None
+         waitForStartupParams = []
+         productType = getattr(request.module, "productType", util.helper.TYPE_ETHEREUM)
+
+         if productType == util.helper.TYPE_DAML:
+             waitForStartupFunction = util.helper.verify_connectivity
+             waitForStartupParams = ["localhost", 6861]
+
+         product = Product(fxHermesRunSettings["hermesCmdlineArgs"],
+                           fxHermesRunSettings["hermesUserConfig"],
+                           waitForStartupFunction=waitForStartupFunction,
+                           waitForStartupParams=waitForStartupParams)
+         product.launchProduct()
+      except Exception as e:
+         log.error("The product did not start.")
+         raise
+   # Eventually:
+   # yield (which allows the tests to run),
+   # then include steps to stop the product.
+
+
+@pytest.fixture(scope="module")
+def fxBlockchain(request, fxHermesRunSettings, fxProduct):
    '''
    This module level fixture returns a BlockchainFixture namedtuple.
    If --blockchainLocation was set to sddc or onprem on the command line, Helen will be invoked

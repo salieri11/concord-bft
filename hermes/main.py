@@ -278,7 +278,7 @@ def createTestSuite(args):
    elif (args.suite == "LintTests"):
       return lint_e2e_tests.LintTests(args)
    elif (args.suite == "DamlTests"):
-      return daml_tests.DamlTests(args)
+      return pytest_suite.PytestSuite(args, "suites/daml_tests.py")
    elif (args.suite == "HlfTests"):
       return hlf_tests.HlfTests(args)
    else:

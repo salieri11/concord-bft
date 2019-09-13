@@ -18,7 +18,7 @@ from suites import test_suite
 from rest.request import Request
 from rpc.rpc_call import RPC
 
-from fixtures.common_fixtures import fxBlockchain, fxConnection, fxHermesRunSettings, fxInitializeOrgs
+from fixtures.common_fixtures import fxBlockchain, fxConnection, fxHermesRunSettings, fxInitializeOrgs, fxProduct
 import util.auth
 import util.blockchain.eth
 import util.helper
@@ -380,6 +380,7 @@ def validateAccessDeniedResponse(result, expectedPath):
    assert result["error_message"] == "Access is denied", "Expected different error message."
    assert result["status"] == 403, "Expected HTTP status 403."
    assert result["path"] == expectedPath, "Expected different path."
+
 
 @pytest.mark.smoke
 def test_blockchains_fields(fxConnection):

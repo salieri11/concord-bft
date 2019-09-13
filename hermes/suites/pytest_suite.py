@@ -31,13 +31,6 @@ class PytestSuite(test_suite.TestSuite):
       Runs the tests passed in, parses PyTest's json output and rewrites
       it in Hermes's format, and returns the path to that file.
       '''
-      try:
-         self.launchProduct(self._args,
-                            self._userConfig)
-      except Exception as e:
-         log.error(traceback.format_exc())
-         return self._resultFile
-
       os.environ["PYTHONDONTWRITEBYTECODE"] = "1"
 
       # Notes on PyTest command line usage:
