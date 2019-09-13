@@ -253,7 +253,8 @@ public class BlockchainController {
      */
     private DeploymentSessionIdentifier createFixedSizeCluster(ProvisioningServiceStub client,
             int clusterSize, PlacementSpecification.Type placementType, List<UUID> zoneIds,
-                                                               BlockchainType blockchainType) throws Exception {
+                                                               BlockchainType blockchainType,
+                                                               UUID consortiumId) throws Exception {
         List<Entry> list;
         if (placementType == Type.FIXED) {
             if (zoneIds.size() != clusterSize) {
@@ -293,8 +294,8 @@ public class BlockchainController {
                 blockChainType
         );
         DeploymentSpecification deploySpec =
-                new DeploymentSpecification(clusterSize, spec, placementSpec, genesis);
-        var request = new CreateClusterRequest(new MessageHeader(), deploySpec);
+                new DeploymentSpecification(clusterSize, spec, placementSpec, genesis, consortiumId.toString());
+        var request = new CreateClusterRequest(new MessageHeader(operationContext.getId()), deploySpec);
         // Check that the API can be serviced normally after service initialization.
         var promise = new CompletableFuture<DeploymentSessionIdentifier>();
         client.createCluster(request, FleetUtils.blockedResultObserver(promise));
@@ -334,7 +335,7 @@ public class BlockchainController {
                 ));
                 break;
             default:
-                // Default is ETHEREUM due ot backward compatibility.
+                // Default is ETHEREUM due to backward compatibility.
             case ETHEREUM:
                 response.add(new ConcordComponent(
                         ConcordComponent.Type.CONTAINER_IMAGE,
@@ -397,7 +398,8 @@ public class BlockchainController {
             DeploymentSessionIdentifier dsId = createFixedSizeCluster(client, clusterSize,
                                                                       enumMap.get(body.deploymentType),
                                                                       body.getZoneIds(),
-                                                                      blockchainType);
+                                                                      blockchainType,
+                                                                      body.consortiumId);
             logger.info("Deployment started, id {} for the consortium id {}", dsId, body.consortiumId.toString());
             BlockchainObserver bo =
                     new BlockchainObserver(authHelper, operationContext, blockchainService, replicaService, taskService,

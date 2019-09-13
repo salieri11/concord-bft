@@ -263,6 +263,7 @@ public class BlockchainControllerTest {
                 .build();
         user = SecurityTestUtils.getUser();
         consortium = SecurityTestUtils.getConsortium();
+        when(operationContext.getId()).thenReturn(UUID.randomUUID().toString());
         Consortium c2 = new Consortium();
         c2.setId(C2_ID);
         Consortium c3 = new Consortium();

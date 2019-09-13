@@ -80,7 +80,7 @@ class ProvisioningServiceTest {
         var genesis = new Genesis();
         ConcordModelSpecification spec = new ConcordModelSpecification();
 
-        return new DeploymentSpecification(clusterSize, spec, placementSpec, genesis);
+        return new DeploymentSpecification(clusterSize, spec, placementSpec, genesis, UUID.randomUUID().toString());
     }
 
     /**
