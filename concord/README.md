@@ -525,8 +525,7 @@ primarily in the src/time/ directory. Details about the design of this
 service are here: https://confluence.eng.vmware.com/display/BLOC/Time+Service.
 
 The service is disabled by default. To enable it, set the config parameter
-`FEATURE_time_service` to `true` in all of your node config files, and then
-assign each node a unique `time_source_id` in its node scope. Defaults of
+`FEATURE_time_service` to `true` in all of your node config files. Defaults of
 `false` and `concord[1..4]` have been added to the example config input files in
 `test/resources/config_input/` to help with this process. At the time of this
 writing, the replicas' existing RSA keys will be used to sign and verify time
