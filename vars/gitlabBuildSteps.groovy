@@ -106,7 +106,8 @@ def call(){
                       env.blockchain_root = new File(env.WORKSPACE, "blockchain").toString()
 
                       // Check if persephone tests are to be executed in this run
-                      env.run_persephone_tests = has_repo_changed('vars') || has_repo_changed('persephone') || has_repo_changed('hermes') || has_repo_changed('helen') || env.JOB_NAME.contains(master_branch_job_name) || env.JOB_NAME.contains(persephone_test_job_name)
+                      env.run_persephone_tests = has_repo_changed('vars') || has_repo_changed('buildall.sh') || has_repo_changed('hermes') || has_repo_changed('persephone') || has_repo_changed('agent') || has_repo_changed('concord') || env.JOB_NAME.contains(master_branch_job_name) || env.JOB_NAME.contains(persephone_test_job_name)
+                      sh 'echo $run_persephone_tests'
                     }
                   }
                 }catch(Exception ex){
@@ -569,7 +570,7 @@ EOF
                     pushDockerImage(env.release_daml_execution_engine_repo, env.docker_tag, false)
                     pushDockerImage(env.release_daml_index_db_repo, env.docker_tag, false)
 
-                    if (genericTests) {
+                    if (genericTests && run_persephone_tests) {
                       sh '''
                         echo "Running Persephone SMOKE Tests..."
                         echo "${PASSWORD}" | sudo -SE "${python}" main.py PersephoneTests --dockerComposeFile ../docker/docker-compose-persephone.yml --resultsDir "${persephone_test_logs}" --deploymentComponents "${release_persephone_agent_repo}:${docker_tag},${release_concord_repo}:${docker_tag},${release_ethrpc_repo}:${docker_tag},${release_daml_ledger_api_repo}:${docker_tag},${release_daml_execution_engine_repo}:${docker_tag},${release_daml_index_db_repo}:${docker_tag}"
