@@ -80,6 +80,7 @@ class Product():
       pathlib.Path(self._productLogsDir).mkdir(parents=True, exist_ok=True)
       self.concordNodesDeployed = []
       self._suite = suite
+      self.testFailed = False
 
 
    def launchProduct(self):
@@ -804,18 +805,40 @@ class Product():
                            stderr=subprocess.STDOUT)
 
 
+   def shouldKeepBlockchains(self):
+      '''
+      Return whether we should keep the blockchain(s) deployed in this run.
+      The keepBlockchains command line parameter is always, never, or on failure.
+      '''
+      ret = False
+
+      if self._cmdlineArgs.keepBlockchains == util.helper.KEEP_BLOCKCHAINS_ALWAYS:
+         ret = True
+      elif self._cmdlineArgs.keepBlockchains == util.helper.KEEP_BLOCKCHAINS_ON_FAILURE and \
+           self.testFailed:
+         ret = True
+
+      return ret
+
+
    def stopProduct(self):
       '''
       Stops the product executables, closes the logs, and generates logs for
       services which may have run too quickly or failed to start.
       '''
       log.debug("Stopping the product.  cleanupData: {}".format(self._cleanupData))
-      if self._cleanupData and not self._cmdlineArgs.keepBlockchain:
+
+      if self._cleanupData:
          from persephone import rpc_test_helper
-         log.info("Initiating blockchain deployment cleanup...")
-         rpc_test_helper.cleanUpBlockchainDeployments(self._cleanupData)
-         self._cleanupData = None
-         log.info("Finished blockchain deployment cleanup.")
+
+         if self.shouldKeepBlockchains():
+            log.debug("Keeping deployed blockchains.")
+            rpc_test_helper.stopCollectingDeploymentData(self._cleanupData, False)
+         else:
+            log.info("Initiating blockchain deployment cleanup.")
+            rpc_test_helper.stopCollectingDeploymentData(self._cleanupData, True)
+            self._cleanupData = None
+            log.info("Finished blockchain deployment cleanup.")
 
       self._logServicesAtEnd()
 

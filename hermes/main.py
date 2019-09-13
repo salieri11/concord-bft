@@ -158,11 +158,13 @@ def main():
                                helper.TYPE_HLF,
                                helper.TYPE_HLF),
                        default=helper.TYPE_ETHEREUM)
-   parser.add_argument("--keepBlockchain",
+   parser.add_argument("--keepBlockchains",
                        help="Whether to keep the blockchain(s) deployed by this run. " \
-                            "You will be responsible for deleting any deployed resources.",
-                       default=False,
-                       action='store_true')
+                            "Valid values: {}.  Default: '{}'".format([helper.KEEP_BLOCKCHAINS_ALWAYS,
+                                                                       helper.KEEP_BLOCKCHAINS_ON_FAILURE,
+                                                                       helper.KEEP_BLOCKCHAINS_NEVER],
+                                                                      helper.KEEP_BLOCKCHAINS_NEVER),
+                       default=helper.KEEP_BLOCKCHAINS_NEVER)
    args = parser.parse_args()
    parent_results_dir = args.resultsDir
 

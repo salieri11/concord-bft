@@ -122,6 +122,9 @@ class TestSuite(ABC):
 
       os.rename(tempFile, realFile)
 
+      if result == "FAIL":
+         self.product.testFailed = True
+
    def writeUnintentionallySkippedTest(self, testName, info):
       tempFile = self._unintentionallySkippedFile + "_temp"
       realFile = self._unintentionallySkippedFile

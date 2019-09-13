@@ -31,7 +31,7 @@ def startMonitoringBlockchainDeployments(args, logDir):
    '''
    Helper method outside the RPCTestHelper class which sets up initial configuration
    for collecting deployment events.
-   Returns a structure that should be passed to cleanUpBlockchainDeployments() when
+   Returns a structure that should be passed to stopCollectingDeploymentData() when
    tests are done.
    '''
    os.makedirs(logDir, exist_ok=True)
@@ -70,7 +70,7 @@ def _thread_get_completed_session_ids(cleanupData):
    cleanupData["eventsProto"] = allEventsProto
 
 
-def cleanUpBlockchainDeployments(cleanupData):
+def stopCollectingDeploymentData(cleanupData, deleteBlockchains=False):
    '''
    Clean up resources for the given cleanupData structure, which by this time contains
    a list of session IDs to clean up.
@@ -78,11 +78,12 @@ def cleanUpBlockchainDeployments(cleanupData):
    cleanupData["rpcTestHelper"].args.cancel_stream = True
    cleanupData["deploymentMonitoringThread"].join()
 
-   if "eventsProto" in cleanupData and cleanupData["eventsProto"]:
-      cleanupData["rpcTestHelper"].deleteSessionIdList(cleanupData["eventsProto"])
-   else:
-      log.info("No blockchain deletion data was created by the blockchain deployment " \
-               "monitoring thread. No blockchain resources, if any were created, will be removed.")
+   if deleteBlockchains:
+      if "eventsProto" in cleanupData and cleanupData["eventsProto"]:
+         cleanupData["rpcTestHelper"].deleteSessionIdList(cleanupData["eventsProto"])
+      else:
+         log.info("No blockchain deletion data was created by the blockchain deployment " \
+                  "monitoring thread. No blockchain resources, if any were created, will be removed.")
 
 
 class RPCTestHelper():
