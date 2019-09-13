@@ -38,9 +38,6 @@ class RocksKeyComparator : public rocksdb::Comparator {
   static int ComposedKeyComparison(const log4cplus::Logger& logger,
                                    const concord::consensus::Sliver& _a,
                                    const concord::consensus::Sliver& _b);
-  static int ComposedKeyComparison(const log4cplus::Logger& logger,
-                                   const uint8_t* a_data, size_t a_length,
-                                   const uint8_t* b_data, size_t b_length);
 
  private:
   log4cplus::Logger logger;
