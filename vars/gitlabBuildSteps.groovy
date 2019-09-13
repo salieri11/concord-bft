@@ -570,7 +570,7 @@ EOF
                     pushDockerImage(env.release_daml_execution_engine_repo, env.docker_tag, false)
                     pushDockerImage(env.release_daml_index_db_repo, env.docker_tag, false)
 
-                    if (genericTests && run_persephone_tests) {
+                    if (genericTests && env.run_persephone_tests) {
                       sh '''
                         echo "Running Persephone SMOKE Tests..."
                         echo "${PASSWORD}" | sudo -SE "${python}" main.py PersephoneTests --dockerComposeFile ../docker/docker-compose-persephone.yml --resultsDir "${persephone_test_logs}" --deploymentComponents "${release_persephone_agent_repo}:${docker_tag},${release_concord_repo}:${docker_tag},${release_ethrpc_repo}:${docker_tag},${release_daml_ledger_api_repo}:${docker_tag},${release_daml_execution_engine_repo}:${docker_tag},${release_daml_index_db_repo}:${docker_tag}"
