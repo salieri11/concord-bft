@@ -10,9 +10,7 @@ docker/config-public/concord*.config
 docker/log*
 docker/rocksdbdata*
 docker/cockroachDB
-docker/devdata/log*
-docker/devdata/rocksdbdata*
-docker/devdata/cockroachDB
+docker/devdata/*
 
 # Concord Specific
 build/
