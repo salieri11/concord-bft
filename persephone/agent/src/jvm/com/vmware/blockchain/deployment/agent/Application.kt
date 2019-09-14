@@ -9,18 +9,22 @@ import com.vmware.blockchain.deployment.logging.info
 import com.vmware.blockchain.deployment.logging.logger
 import com.vmware.blockchain.deployment.logging.warn
 import com.vmware.blockchain.deployment.model.core.URI
+import com.vmware.blockchain.deployment.service.grpc.support.newClientRpcChannel
 import com.vmware.blockchain.deployment.v1.ConcordAgentConfiguration
 import com.vmware.blockchain.deployment.v1.ConcordClusterIdentifier
 import com.vmware.blockchain.deployment.v1.ConcordComponent
 import com.vmware.blockchain.deployment.v1.ConcordModelSpecification
+import com.vmware.blockchain.deployment.v1.ConfigurationServiceStub
+import com.vmware.blockchain.deployment.v1.ConfigurationSessionIdentifier
 import com.vmware.blockchain.deployment.v1.Credential
 import com.vmware.blockchain.deployment.v1.Endpoint
 import com.vmware.blockchain.deployment.v1.FleetControlServiceStub
 import com.vmware.blockchain.deployment.v1.FleetMessage
 import com.vmware.blockchain.deployment.v1.InstanceMessage
 import com.vmware.blockchain.deployment.v1.MessageHeader
+import com.vmware.blockchain.deployment.v1.NodeConfigurationRequest
+import com.vmware.blockchain.deployment.v1.NodeConfigurationResponse
 import com.vmware.blockchain.grpc.kotlinx.serialization.ChannelStreamObserver
-import io.grpc.ManagedChannelBuilder
 import java.nio.file.Files
 import java.nio.file.Path
 import java.time.LocalDateTime
@@ -47,6 +51,9 @@ import kotlinx.serialization.modules.EmptyModule
 /** Default configuration file path.  */
 private val DEFAULT_APPLICATION_CONFIG = URI.create("file:/config/config.json")
 
+/** Default component artifact target mount path. */
+private val DEFAULT_COMPONENT_CONFIGURATION_MOUNT_PATH = URI.create("file:/config/")
+
 /** Default [ConcordAgentConfiguration] model. */
 private val DEFAULT_CONCORD_AGENT_CONFIGURATION by lazy {
     val model = ConcordModelSpecification(
@@ -66,14 +73,17 @@ private val DEFAULT_CONCORD_AGENT_CONFIGURATION by lazy {
             )
     )
     val registryEndpoint = DockerHttpClient.DEFAULT_CONTAINER_REGISTRY
-    val fleetEndpoint = Endpoint("localhost:9004", Credential())
+    val fleetServiceEndpoint = Endpoint("localhost:9004", Credential())
+    val configServiceEndpoint = Endpoint("localhost:9003", Credential())
 
     ConcordAgentConfiguration(
-            model,
-            registryEndpoint,
-            fleetEndpoint,
-            ConcordClusterIdentifier.defaultValue,
-            0
+            model = model,
+            containerRegistry = registryEndpoint,
+            fleetService = fleetServiceEndpoint,
+            cluster = ConcordClusterIdentifier.defaultValue,
+            node = 0,
+            configService = configServiceEndpoint,
+            configurationSession = ConfigurationSessionIdentifier(8439530024453537582)
     )
 }
 
@@ -105,6 +115,7 @@ class Application(private val configuration: ConcordAgentConfiguration) : Corout
         launch(coroutineContext) {
             // Each iteration of an established session does not propagate failure to parent.
             supervisorScope {
+                prepareNodeConfiguration()
                 val services = configuration.model.components
                         .groupBy { it.serviceType }
                         .mapValues {
@@ -145,10 +156,7 @@ class Application(private val configuration: ConcordAgentConfiguration) : Corout
             val sessionId = "session-${LocalDateTime.now().toEpochSecond(ZoneOffset.UTC)}"
 
             // Continuously establish session with fleet unless told to go away.
-            val channel = ManagedChannelBuilder
-                    .forTarget(configuration.fleetService.address)
-                    .usePlaintext()
-                    .build()
+            val channel = configuration.fleetService.newClientRpcChannel()
 
             // Create a stub with a channel and call to create a new managed session.
             val fleetService = FleetControlServiceStub(channel)
@@ -219,6 +227,47 @@ class Application(private val configuration: ConcordAgentConfiguration) : Corout
                 log.error { "Session ended with error, message(${error.message})" }
             } finally {
                 heartBeatJob.cancelAndJoin()
+            }
+        }
+    }
+
+    /**
+     * Retrieve the configuration artifacts for the local service components that this agent
+     * instance is responsible for controlling.
+     */
+    private suspend fun prepareNodeConfiguration() {
+        // Fetch the configuration.
+        val channel = configuration.configService.newClientRpcChannel()
+        val configService = ConfigurationServiceStub(channel)
+        val receiver = ChannelStreamObserver<NodeConfigurationResponse>()
+        val receiverChannel = receiver.asReceiveChannel()
+        configService.getNodeConfiguration(
+                request = NodeConfigurationRequest(
+                        identifier = configuration.configurationSession,
+                        node = configuration.node
+                ),
+                responseObserver = receiver
+        )
+        val nodeConfiguration = receiverChannel.receive()
+        for (component in nodeConfiguration.configurationComponent) {
+            val url = URI.create(component.componentUrl)
+
+            // Prepare component according to scheme (scheme-less is treated as file:///).
+            when (url.scheme) {
+                "file", null -> {
+                    val path = Path.of(DEFAULT_COMPONENT_CONFIGURATION_MOUNT_PATH.path, url.path)
+
+                    // Ensure the prefix path.
+                    path.parent.toFile().mkdirs()
+
+                    // Write the artifact to path.
+                    path.toFile().writeText(component.component)
+
+                    log.info { "Component prepared at path($path), service(${component.type})"}
+                }
+                else -> {
+                    log.info { "Component has non-local target($url), service(${component.type})"}
+                }
             }
         }
     }

@@ -6,6 +6,9 @@ package com.vmware.blockchain.deployment.agent
 import com.vmware.blockchain.deployment.agent.docker.DockerClient.ContainerPortBinding
 import com.vmware.blockchain.deployment.agent.docker.DockerClient.HostPortBinding
 
+/** Default component artifact target mount path. */
+private const val CONFIGURATION_MOUNT_PATH = "/config"
+
 /**
  * Specification for customization settings of a container deployment.
  *
@@ -74,8 +77,8 @@ enum class ContainerSettings(
                             listOf(HostPortBinding(port = 3505))
             ),
             volumeBindings = mapOf(
-                    "/concord/config-local" to "/concord/config-local",
-                    "/concord/config-public" to "/concord/config-public"
+                    "$CONFIGURATION_MOUNT_PATH/concord/config-local" to "/concord/config-local",
+                    "$CONFIGURATION_MOUNT_PATH/concord/config-public" to "/concord/config-public"
             )
     ),
     CONCORD_CORE_TLS(
@@ -96,8 +99,8 @@ enum class ContainerSettings(
                             listOf(HostPortBinding(port = 3505))
             ),
             volumeBindings = mapOf(
-                    "/concord/config-local" to "/concord/config-local",
-                    "/concord/config-public" to "/concord/config-public"
+                    "$CONFIGURATION_MOUNT_PATH/concord/config-local" to "/concord/config-local",
+                    "$CONFIGURATION_MOUNT_PATH/concord/config-public" to "/concord/config-public"
             )
     ),
     ETHEREUM_RPC(
