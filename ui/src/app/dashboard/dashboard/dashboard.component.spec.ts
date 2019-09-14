@@ -16,7 +16,7 @@ import { DashboardComponent } from './dashboard.component';
 import { TransactionsStatusFilterComponent } from '../../shared/components/transactions-status-filter/transactions-status-filter.component';
 import { TransactionListComponent } from '../../transactions/transaction-list/transaction-list.component';
 import { TransactionDetailsComponent } from '../../transactions/transaction-details/transaction-details.component';
-import { BlockchainWizardComponent } from '../../shared/components/blockchain-wizard/blockchain-wizard.component';
+import { BlockchainWizardComponent } from '../../blockchain/blockchain-wizard/blockchain-wizard.component';
 import { VmwComboboxComponent } from '../../shared/components/combobox/combobox.component';
 import { VmwAccordionGroupComponent } from '../../shared/components/accordion/accordion-group.component';
 import { VmwAccordionComponent } from '../../shared/components/accordion/accordion.component';
@@ -27,8 +27,12 @@ import { DashboardListComponent } from '../dashboard-list/dashboard-list.compone
 
 import { WorldMapComponent } from '../../graphs/world-map/world-map.component';
 import { TourService } from '../../shared/tour.service';
-import { BlockchainService, BlockchainsServiceMock } from '../../shared/blockchain.service';
+import { BlockchainService, BlockchainsServiceMock } from '../../blockchain/shared/blockchain.service';
 import { VmwClarityThemeService } from './../../shared/theme.provider';
+
+import { OnPremisesFormComponent } from '../../blockchain/on-premises-form/on-premises-form.component';
+import { OnPremisesModalComponent } from '../../blockchain/on-premises-modal/on-premises-modal.component';
+
 
 describe('DashboardComponent', () => {
   let component: DashboardComponent;
@@ -56,7 +60,8 @@ describe('DashboardComponent', () => {
         VmwAccordionGroupComponent,
         VmwCopyToClipboardButtonComponent,
         DashboardListComponent,
-
+        OnPremisesFormComponent,
+        OnPremisesModalComponent,
       ],
       providers: [
         VmwTasksService,

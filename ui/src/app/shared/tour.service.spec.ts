@@ -10,7 +10,7 @@ import { TourService as NgxTourService } from 'ngx-tour-ngx-popper';
 
 import { TourService } from './tour.service';
 import { PersonaService } from './persona.service';
-import { BlockchainService } from './blockchain.service';
+import { BlockchainService } from './../blockchain/shared/blockchain.service';
 import { MockTranslateService } from '../mocks/mock-translate.module';
 
 describe('TourService', () => {

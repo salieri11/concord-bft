@@ -7,12 +7,15 @@ import { FormsModule } from '@angular/forms';
 import { RouterTestingModule } from '@angular/router/testing';
 import { of as observableOf } from 'rxjs';
 import { BlockchainWizardComponent } from './blockchain-wizard.component';
-import { MockSharedModule } from '../../shared.module';
-import { VmwComboboxComponent } from '../combobox/combobox.component';
-import { VmwAccordionGroupComponent } from '../accordion/accordion-group.component';
-import { VmwAccordionComponent } from '../accordion/accordion.component';
-import { VmwComboboxItemsComponent } from '../combobox/combobox-items/combobox-items.component';
-import { BlockchainService, BlockchainsServiceMock } from '../../blockchain.service';
+import { MockSharedModule } from '../../shared/shared.module';
+import { VmwComboboxComponent } from '../../shared/components/combobox/combobox.component';
+import { VmwAccordionGroupComponent } from '../../shared/components/accordion/accordion-group.component';
+import { VmwAccordionComponent } from '../../shared/components/accordion/accordion.component';
+import { VmwComboboxItemsComponent } from '../../shared/components/combobox/combobox-items/combobox-items.component';
+import { BlockchainService, BlockchainsServiceMock } from '../shared/blockchain.service';
+
+import { OnPremisesFormComponent } from '../on-premises-form/on-premises-form.component';
+import { OnPremisesModalComponent } from '../on-premises-modal/on-premises-modal.component';
 
 describe('BlockchainWizardComponent', () => {
   let component: BlockchainWizardComponent;
@@ -30,7 +33,9 @@ describe('BlockchainWizardComponent', () => {
         VmwComboboxComponent,
         VmwComboboxItemsComponent,
         VmwAccordionGroupComponent,
-        VmwAccordionComponent
+        VmwAccordionComponent,
+        OnPremisesModalComponent,
+        OnPremisesFormComponent,
       ],
       providers: [{provide: BlockchainService, useClass: BlockchainsServiceMock}]
     })

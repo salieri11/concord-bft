@@ -47,7 +47,7 @@ import * as WorldData from './countries-110m.json';
 })
 export class WorldMapComponent implements AfterViewInit, OnChanges, OnDestroy {
   // Takes GeoJSON FeatureCollection of Points as input.  Each feature should have properties that conform to NodeProperties.
-  @Input('features') features;
+  @Input('features') features = [];
 
   @ViewChild('mapContainer') mapContainer;
   @ViewChild('tooltipContainer') tooltipContainer;
@@ -143,7 +143,7 @@ export class WorldMapComponent implements AfterViewInit, OnChanges, OnDestroy {
       autoPan: true,
       autoPanAnimation: {
         source: null,
-        duration: 250
+        duration: 500
       }
     });
 

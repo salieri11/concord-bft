@@ -13,9 +13,11 @@ import {
 import { Router } from '@angular/router';
 import { FormControl, FormGroup, Validators, ValidatorFn, ValidationErrors } from '@angular/forms';
 import { ClrWizard, ClrWizardPage } from '@clr/angular';
-import { PersonaService } from '../../persona.service';
-import { BlockchainService } from '../../blockchain.service';
-import { BlockchainRequestParams, Zone, ContractEngines } from '../../blockchain.model';
+
+import { PersonaService } from '../../shared/persona.service';
+import { BlockchainService } from '../shared/blockchain.service';
+import { BlockchainRequestParams, Zone, ContractEngines } from '../shared/blockchain.model';
+import { OnPremisesFormComponent } from '../on-premises-form/on-premises-form.component';
 
 
 const RegionCountValidator: ValidatorFn = (fg: FormGroup): ValidationErrors | null => {
@@ -40,20 +42,24 @@ export class BlockchainWizardComponent implements AfterViewInit {
   @ViewChild('wizard') wizard: ClrWizard;
   @ViewChild('detailPage') detailPage: ClrWizardPage;
   @ViewChild('usersPage') usersPage: ClrWizardPage;
+  @ViewChild('onPremPage') onPremPage: ClrWizardPage;
+  @ViewChild('replicaPage') replicaPage: ClrWizardPage;
+  @ViewChild('onPremForm') onPremForm: OnPremisesFormComponent;
   @ViewChild('consortiumInput') consortiumInput: ElementRef;
   @Output('setupComplete') setupComplete: EventEmitter<any> = new EventEmitter<any>();
 
+  selectedEngine: string;
   isOpen = false;
   form: FormGroup;
-  nodeForm: FormGroup;
-  userForm: FormGroup;
 
   personaOptions = PersonaService.getOptions();
   numbersOfNodes = [4, 7];
   fCountMapping = { '4': 1, '7': 2 };
   zones: Zone[] = [];
   engines = ContractEngines;
-  selectedEngine: string;
+
+  showOnPrem: boolean;
+  loadingFlag: boolean;
 
   constructor(
     private router: Router,
@@ -61,27 +67,10 @@ export class BlockchainWizardComponent implements AfterViewInit {
   ) {
     this.zones = this.blockchainService.zones;
     this.form = this.initForm();
-
-
-    this.nodeForm = new FormGroup({
-      nodes: new FormGroup({
-      }),
-    });
-
-    this.userForm = new FormGroup({
-      email: new FormControl('', [Validators.required, Validators.email]),
-      role: new FormControl('', Validators.required)
-    });
   }
 
   ngAfterViewInit() {
     this.wizard.currentPageChanged.subscribe(() => this.handlePageChange());
-  }
-
-  addUser() {
-    const selectedUsers = this.form.get('users');
-    selectedUsers.setValue(selectedUsers.value.concat([this.userForm.value]));
-    this.userForm.reset();
   }
 
   selectEngine(type: string) {
@@ -92,28 +81,21 @@ export class BlockchainWizardComponent implements AfterViewInit {
     this.router.navigate([]);
   }
 
-  deleteUser(index: number) {
-    const selectedUsers = this.form.get('users');
-
-    // @ts-ignore: no unused locals
-    selectedUsers.setValue(selectedUsers.value.filter((item, i) => {
-      return index !== i;
-    }));
-  }
-
   personaName(value): string {
     return PersonaService.getName(value);
   }
 
   open() {
     this.isOpen = true;
+    this.showOnPrem = false;
     this.selectedEngine = undefined;
+
+    // const zones = this.form.controls.nodes['controls'].zones;
 
     if (this.form && this.wizard) {
       this.wizard.reset();
       this.form.reset();
     }
-
   }
 
   onSubmit() {
@@ -121,17 +103,14 @@ export class BlockchainWizardComponent implements AfterViewInit {
     params.f_count = Number(this.fCountMapping[this.form.value.nodes.numberOfNodes.toString()]);
     params.consortium_name = this.form.value.details.consortium_name;
     params.blockchain_type = this.selectedEngine;
-    // @ts-ignore
-    const zones = this.form.controls['nodes'].controls['zones'].value;
+    const zones = this.form.controls.nodes['controls'].zones.value;
     let zoneIds = [];
     // Create an array of zone ids for each deployed node instance.
     Object.keys(zones).forEach(zoneId => zoneIds = zoneIds.concat(Array(zones[zoneId]).fill(zoneId)));
     params.zone_ids = zoneIds;
 
-    // this.blockchainService.notify.next({ message: 'deploying' });
     this.blockchainService.deploy(params).subscribe(response => {
       this.setupComplete.emit(response);
-      // this.setupComplete.emit({task_id:'hello'});
       this.router.navigate(['/deploying', 'dashboard'], {
         queryParams: { task_id: response['task_id'] }
       });
@@ -142,6 +121,10 @@ export class BlockchainWizardComponent implements AfterViewInit {
 
   close() {
     this.isOpen = false;
+  }
+
+  doCancel() {
+    this.wizard.close();
   }
 
   distributeZones() {
@@ -182,8 +165,21 @@ export class BlockchainWizardComponent implements AfterViewInit {
       nodes: new FormGroup({
         numberOfNodes: new FormControl('', Validators.required),
         zones: this.zoneGroup(),
-      }, { validators: RegionCountValidator })
+      }, { validators: RegionCountValidator }),
     });
+  }
+
+  addOnPrem() {
+    this.showOnPrem = true;
+
+    setTimeout(() => {
+      this.wizard.goTo(this.onPremPage.id);
+    }, 100);
+  }
+
+  cancelOnPremAdd() {
+    this.wizard.goTo(this.replicaPage.id);
+    this.showOnPrem = false;
   }
 
   private handlePageChange() {
@@ -195,7 +191,42 @@ export class BlockchainWizardComponent implements AfterViewInit {
           this.consortiumInput.nativeElement.focus();
         }, 10);
 
-        break;    }
+        break;
+
+      case this.onPremPage:
+        this.onPremForm.focusInput();
+        break;
+    }
+  }
+
+  submitOnPrem(): void {
+    this.loadingFlag = true;
+    this.onPremForm.addOnPrem().subscribe((zoneData) => {
+
+      const replicas = this.form['controls'].nodes;
+      const zones = replicas['controls'].zones;
+      const onPremData = zoneData;
+      // Disable cloud zones, because we don't have a hybrid setup yet.
+      this.zones.forEach(zone => {
+        // Disable non on-prem zones
+        if (!zone.password) {
+          zones['controls'][zone.id].reset();
+          zones['controls'][zone.id].disable();
+        }
+      });
+
+      zones.addControl(onPremData.id, new FormControl('', Validators.required));
+
+      replicas['controls'].numberOfNodes.reset();
+      setTimeout(() => {
+        this.zones.push(onPremData);
+      }, 10);
+      this.loadingFlag = false;
+      this.wizard.forceNext();
+    }, () => {
+      this.loadingFlag = false;
+    });
+
   }
 
   private zoneGroup() {

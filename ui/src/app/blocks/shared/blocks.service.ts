@@ -8,7 +8,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { CONCORD_API_PREFIX } from '../../shared/shared.config';
 import { Block, BlockListing } from './blocks.model';
 import { ConcordApiService } from '../../shared/concord-api';
-import { BlockchainService } from '../../shared/blockchain.service';
+import { BlockchainService } from '../../blockchain/shared/blockchain.service';
 
 @Injectable({
   providedIn: 'root'

@@ -20,7 +20,7 @@ import { usersRoutes } from '../../users/users-routing';
 import { transactionsRoutes } from '../../transactions/transactions-routing';
 import { loggingRoutes } from '../../logging/logging-routing';
 import { developerRoutes } from '../../developer/developer-routing';
-import { BlockchainResolver } from '../../shared/blockchain.service';
+import { BlockchainResolver } from '../../blockchain/shared/blockchain.service';
 
 const routes: Routes = [{
     path: 'forbidden',

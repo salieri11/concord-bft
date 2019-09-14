@@ -10,7 +10,7 @@ import { TranslateService } from '@ngx-translate/core';
 import { AuthenticationService } from '../../shared/authentication.service';
 import { PersonaService } from '../../shared/persona.service';
 import { matchPasswordValidator } from '../../shared/custom-validators';
-import { BlockchainService } from '../../shared/blockchain.service';
+import { BlockchainService } from '../../blockchain/shared/blockchain.service';
 
 
 @Component({

@@ -5,7 +5,7 @@
 
 import { Component, OnInit } from '@angular/core';
 import { AuthenticationService } from '../shared/authentication.service';
-import { BlockchainService } from '../shared/blockchain.service';
+import { BlockchainService } from '../blockchain/shared/blockchain.service';
 import { Router } from '../../../node_modules/@angular/router';
 
 import * as Vivus from 'vivus';

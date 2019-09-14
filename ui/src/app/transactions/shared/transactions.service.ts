@@ -11,7 +11,7 @@ import { CONCORD_API_PREFIX } from '../../shared/shared.config';
 import { Transaction, TransactionListing } from './transactions.model';
 import { BlocksService } from '../../blocks/shared/blocks.service';
 import { ConcordApiService } from '../../shared/concord-api';
-import { BlockchainService } from '../../shared/blockchain.service';
+import { BlockchainService } from '../../blockchain/shared/blockchain.service';
 
 @Injectable({
   providedIn: 'root'

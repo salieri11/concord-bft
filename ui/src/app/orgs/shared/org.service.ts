@@ -7,7 +7,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
 import { Org } from './org.model';
-import { BlockchainService } from '../../shared/blockchain.service';
+import { BlockchainService } from '../../blockchain/shared/blockchain.service';
 
 @Injectable({
   providedIn: 'root'

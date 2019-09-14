@@ -99,6 +99,14 @@ label {
   width: 40px;
 }
 
+.add-on-prem {
+  margin-top: 1rem;
+}
+
+.cancel-on-prem {
+  margin-top: 0;
+}
+
 .overflow-ellipsis {
   overflow: hidden;
   white-space: nowrap;
@@ -139,7 +147,7 @@ label {
 }
 .regions {
   margin-top: $formTopMargin;
-
+  margin-bottom: 2rem;
   input {
     width: $inputWidth;
   }

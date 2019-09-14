@@ -3,15 +3,15 @@
  */
 
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { Resolve, ActivatedRouteSnapshot } from '@angular/router';
 import { Observable, from, timer, zip, of, throwError } from 'rxjs';
-import { concatMap, filter, map, take, flatMap, catchError, debounceTime } from 'rxjs/operators';
+import { concatMap, filter, map, take, flatMap, catchError, delay } from 'rxjs/operators';
 import { BehaviorSubject } from 'rxjs';
 import { TranslateService } from '@ngx-translate/core';
 
-import { ConsortiumService } from '../consortium/shared/consortium.service';
+import { ConsortiumService } from '../../consortium/shared/consortium.service';
 import {
   BlockchainRequestParams,
   BlockchainResponse,
@@ -21,7 +21,7 @@ import {
   fakeZones,
   ContractEngines
 } from './blockchain.model';
-import { Apis } from './urls.model';
+import { Apis } from '../../shared/urls.model';
 
 
 @Injectable({
@@ -97,7 +97,6 @@ export class BlockchainService {
           const cList = response[0] as Array<any>;
           const bList = response[1] as Array<any>;
           this.zones = response[2] as Zone[];
-
           cList.forEach(consortium => {
             bList.forEach(blockchain => {
               if (consortium['consortium_id'] === blockchain['consortium_id']) {
@@ -164,9 +163,9 @@ export class BlockchainService {
   }
 
   getMetaData(): Observable<BlockchainMeta> {
+
     return this.http.get<BlockchainMeta>(`${Apis.blockchains}/${this.blockchainId}`)
       .pipe(
-        debounceTime(1000),
         map(meta => {
           this.metadata = meta;
           const nodesMap = {};
@@ -181,6 +180,38 @@ export class BlockchainService {
         })
       );
   }
+
+  addOnPremZone(zone: Zone): Observable<Zone> {
+    return of(zone).pipe(delay(2000));
+  }
+
+  testOnPremZoneConnection(zone: Zone): Observable<Zone> {
+    return of(zone).pipe(delay(2000));
+  }
+
+  getZoneLatLong(name: string): Observable<any> {
+    const params = new HttpParams().set(
+      'key', '349062d268624582b19e6a25d8a3fd60').set(
+      'q', name);
+
+    // const params = {};
+    return this.http.get('/geo', {params: params}).pipe(
+        // @ts-ignore
+        map<{results: any[]}>(locations => {
+          const newLocations = [];
+
+          locations.results.forEach(loc => {
+            newLocations.push({
+              displayValue: loc.formatted,
+              value: `${loc.formatted} -- ${loc.geometry.lat} -- ${loc.geometry.lng}`,
+            });
+          });
+
+          return newLocations;
+        })
+      );
+  }
+
 
   isUUID(uuid: string): boolean {
     return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(uuid);

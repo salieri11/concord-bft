@@ -9,9 +9,8 @@ import { TranslateService } from '@ngx-translate/core';
 import { of, Observable } from 'rxjs';
 import { delay, map } from 'rxjs/operators';
 
-import { BlockchainService } from '../../shared/blockchain.service';
-import { ContractEngines } from '../../shared/blockchain.model';
-import { DeployStates } from '../../shared/blockchain.model';
+import { BlockchainService } from '../../blockchain/shared/blockchain.service';
+import { DeployStates, ContractEngines } from '../../blockchain/shared/blockchain.model';
 
 @Component({
   selector: 'concord-deploying-interstitial',
@@ -41,6 +40,10 @@ export class DeployingInterstialComponent {
         this.blockchainType = message.type;
       }
     });
+
+    // this.startMessaging().subscribe(() => {
+    //   console.log('done');
+    // });
   }
 
   startLoading(response: HttpResponse<any> | HttpErrorResponse) {

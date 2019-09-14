@@ -9,7 +9,7 @@ import { TranslateService } from '@ngx-translate/core';
 import { TourService as NgxTourService, IStepOption } from 'ngx-tour-ngx-popper';
 
 import { Personas, PersonaService } from './persona.service';
-import { BlockchainService } from './blockchain.service';
+import { BlockchainService } from './../blockchain/shared/blockchain.service';
 
 @Injectable({
   providedIn: 'root'

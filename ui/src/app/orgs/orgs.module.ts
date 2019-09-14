@@ -19,6 +19,7 @@ import { TranslateModule } from '@ngx-translate/core';
 import { OrgsComponent } from './orgs.component';
 import { OrgService } from './shared/org.service';
 import { OrgListComponent } from './org-list/org-list.component';
+import { InivteUserComponent } from './inivte-user/inivte-user.component';
 
 @NgModule({
   imports: [
@@ -37,6 +38,7 @@ import { OrgListComponent } from './org-list/org-list.component';
   declarations: [
     OrgsComponent,
     OrgListComponent,
+    InivteUserComponent,
   ],
   providers: [
     OrgService

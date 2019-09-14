@@ -1,0 +1,36 @@
+<clr-modal [(clrModalOpen)]="isOpen" #modal>
+  <h3 class="modal-title">Invite User to VMware Blockchain</h3>
+  <div class="modal-body">
+    <clr-alert *ngIf="inviteSent" [clrAlertClosable]="false" [clrAlertType]="'success'">
+      <clr-alert-item>
+        <span class="alert-text">
+          Invite sent! Send another invite or close this window.
+        </span>
+      </clr-alert-item>
+    </clr-alert>
+
+    Invite a user to deploy a consortium for this organization.
+    <form clrForm clrLayout="horizontal" [formGroup]="form" (submit)="invite()">
+    <clr-select-container>
+      <label class="clr-col-12 clr-col-md-3" for="numberOfNodes">Role</label>
+      <select clrSelect class="clr-col-12 clr-col-md-8">
+        <option>Consortium Admin</option>
+        <option>Organization Admin</option>
+        <option>Developer</option>
+      </select>
+    </clr-select-container>
+    <clr-input-container>
+      <label class="clr-col-12 clr-col-md-3">Email</label>
+      <input clrInput type="text" class="clr-col-12 clr-col-md-9" placeholder="user@company.com" formControlName="email" />
+    </clr-input-container>
+  </form>
+  </div>
+  <div class="modal-footer">
+    <button type="button" class="btn btn-outline" (click)="isOpen = false;">
+      {{ 'common.close' | translate }}
+    </button>
+    <button [clrLoading]="inviting" type="button" class="btn btn-primary" (click)="invite()" [disabled]="form.controls.email.invalid">
+      {{ 'common.invite' | translate }}
+    </button>
+  </div>
+</clr-modal>

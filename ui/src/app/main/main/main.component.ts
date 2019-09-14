@@ -10,16 +10,16 @@ import { Subscription } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { AuthenticationService } from '../../shared/authentication.service';
 import { ErrorAlertService } from '../../shared/global-error-handler.service';
-import { BlockchainService } from '../../shared/blockchain.service';
-import { BlockchainResponse } from '../../shared/blockchain.model';
+import { BlockchainService } from '../../blockchain/shared/blockchain.service';
+import { BlockchainResponse } from '../../blockchain/shared/blockchain.model';
 import { Personas, PersonaService } from '../../shared/persona.service';
 import { TourService } from '../../shared/tour.service';
 
-import { BlockchainWizardComponent } from '../../shared/components/blockchain-wizard/blockchain-wizard.component';
+import { BlockchainWizardComponent } from '../../blockchain/blockchain-wizard/blockchain-wizard.component';
+import { OnPremisesModalComponent } from '../../blockchain/on-premises-modal/on-premises-modal.component';
 import { SetupModalComponent } from '../setup-modal/setup-modal.component';
 import { DeployingInterstialComponent } from '../deploying-interstitial/deploying-interstitial.component';
 import { External, ConsortiumStates } from '../../shared/urls.model';
-
 
 
 @Component({
@@ -30,6 +30,7 @@ import { External, ConsortiumStates } from '../../shared/urls.model';
 export class MainComponent implements OnInit, OnDestroy {
   @ViewChild('welcomeModal') welcomeModal: SetupModalComponent;
   @ViewChild('blockchainWizard') blockchainWizard: BlockchainWizardComponent;
+  @ViewChild('addOnPremises') addOnPremises: OnPremisesModalComponent;
   @ViewChild('deployLoader') deployLoader: DeployingInterstialComponent;
 
   alerts: any = [];

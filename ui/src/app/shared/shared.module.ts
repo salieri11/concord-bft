@@ -25,7 +25,6 @@ import { CanViewDirective } from './directives/can-view.directive';
 import { VmwTaskComponent } from './components/task-panel/task.component';
 import { VmwTaskPanelComponent } from './components/task-panel/task-panel.component';
 import { VmwTasksService } from './components/task-panel/tasks.service';
-import { BlockchainWizardComponent } from './components/blockchain-wizard/blockchain-wizard.component';
 import { VmwAccordionComponent } from './components/accordion/accordion.component';
 import { VmwAccordionGroupComponent } from './components/accordion/accordion-group.component';
 import { VmwComboboxComponent } from './components/combobox/combobox.component';
@@ -36,7 +35,6 @@ import { CodeHighlighterComponent } from './components/code-highlighter/code-hig
 import { AppHeaderComponent } from './components/app-header/app-header.component';
 import { VersionComponent } from './components/version/version.component';
 
-import { BlockchainService, BlockchainResolver } from './blockchain.service';
 
 @NgModule({
   imports: [
@@ -60,7 +58,6 @@ import { BlockchainService, BlockchainResolver } from './blockchain.service';
     VmwComboboxComponent,
     VmwComboboxItemsComponent,
     VmwCopyToClipboardButtonComponent,
-    BlockchainWizardComponent,
     VmwThemeSwitchButtonComponent,
     CodeHighlighterComponent,
     AppHeaderComponent,
@@ -82,7 +79,6 @@ import { BlockchainService, BlockchainResolver } from './blockchain.service';
     VmwComboboxComponent,
     VmwComboboxItemsComponent,
     VmwCopyToClipboardButtonComponent,
-    BlockchainWizardComponent,
     VmwThemeSwitchButtonComponent,
     CodeHighlighterComponent,
     AppHeaderComponent,
@@ -97,8 +93,6 @@ export class SharedModule {
         AuthenticationService,
         AuthenticatedGuard,
         AgreementGuard,
-        BlockchainService,
-        BlockchainResolver,
         { provide: CONCORD_API_PREFIX, useValue: 'api/concord' },
         { provide: ETHEREUM_API_PREFIX, useValue: 'api/concord/eth' },
         { provide: LOG_API_PREFIX, useValue: 'logging/api' },
@@ -124,7 +118,6 @@ export class SharedModule {
   providers: [
     AuthenticationService,
     AuthenticatedGuard,
-    BlockchainResolver,
     { provide: CONCORD_API_PREFIX, useValue: 'api/concord' },
     { provide: ETHEREUM_API_PREFIX, useValue: 'api/concord/eth' },
     { provide: LOG_API_PREFIX, useValue: 'logging/api' },
@@ -140,6 +133,6 @@ export class SharedModule {
     VmwContextualHelpModule,
     CspComponentsModule,
     VmwComponentsModule,
-  ]
+  ],
 })
 export class MockSharedModule { }
