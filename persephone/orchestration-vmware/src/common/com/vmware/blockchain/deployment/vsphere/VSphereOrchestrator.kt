@@ -7,6 +7,9 @@ import com.vmware.blockchain.deployment.logging.info
 import com.vmware.blockchain.deployment.logging.logger
 import com.vmware.blockchain.deployment.model.core.URI
 import com.vmware.blockchain.deployment.model.core.UUID
+import com.vmware.blockchain.deployment.orchestration.ORCHESTRATOR_LONG_TIMEOUT_MILLIS
+import com.vmware.blockchain.deployment.orchestration.ORCHESTRATOR_SHORT_TIMEOUT_MILLIS
+import com.vmware.blockchain.deployment.orchestration.ORCHESTRATOR_TIMEOUT_MILLIS
 import com.vmware.blockchain.deployment.orchestration.Orchestrator
 import com.vmware.blockchain.deployment.orchestration.toIPv4Address
 import com.vmware.blockchain.deployment.reactive.Publisher
@@ -55,11 +58,6 @@ class VSphereOrchestrator constructor(
     private lateinit var networkAddressAllocationServers: Map<String, IPAllocationServiceStub>
 
     companion object {
-        const val THIRTY_SECOND_TIMEOUT_MILLIS = 30000L
-
-        /** Default maximum orchestrator operation timeout value. */
-        const val ORCHESTRATOR_TIMEOUT_MILLIS = 60000L * 10
-
         /** Default IPAM resource name prefix. */
         const val IPAM_RESOURCE_NAME_PREFIX = "blocks/"
 
@@ -92,24 +90,22 @@ class VSphereOrchestrator constructor(
         }
     }
 
+    override fun close() = job.cancel()
+
     override fun validate(): Publisher<Boolean> {
         return publish {
-            withTimeout(THIRTY_SECOND_TIMEOUT_MILLIS) {
+            try {
+                withTimeout(ORCHESTRATOR_SHORT_TIMEOUT_MILLIS) {
+                    val folder = vSphere.getFolder(name = info.vsphere.folder) != null
+                    val compute = vSphere.getResourcePool(name = info.vsphere.resourcePool) != null
 
-                var folder = vSphere.getFolder(name = info.vsphere.folder)
-                if (folder != null) {
-                    log.info { "Connectivity with site validated (${info.api.address})" }
-                    send(true)
-                } else {
-                    log.info { "Connectivity with the orchestration site cannot be established. (${info.api})" }
-                    send(false)
+                    // Validation result is the conjunction of all validation actions taken.
+                    (folder && compute).apply { send(this) }
                 }
+            } catch (error: Throwable) {
+                close(error)
             }
         }
-    }
-
-    override fun close() {
-        job.cancel()
     }
 
     override fun createDeployment(
@@ -121,7 +117,7 @@ class VSphereOrchestrator constructor(
 
         @Suppress("DuplicatedCode")
         return publish {
-            withTimeout(ORCHESTRATOR_TIMEOUT_MILLIS) {
+            withTimeout(ORCHESTRATOR_LONG_TIMEOUT_MILLIS) {
                 try {
                     val clusterId = UUID(request.cluster.high, request.cluster.low)
                     val nodeId = UUID(request.node.high, request.node.low)

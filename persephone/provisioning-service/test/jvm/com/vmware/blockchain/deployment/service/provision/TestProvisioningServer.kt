@@ -49,8 +49,36 @@ interface TestProvisioningServer {
         @BindsInstance
         fun orchestrations(entries: List<OrchestrationSite>): Builder
 
+        @BindsInstance
+        fun orchestrationSiteValidator(validator: OrchestrationSiteValidator): Builder
+
         fun build(): TestProvisioningServer
     }
+}
+
+/**
+ * Functional type that encapsulates a validation function to validate [OrchestrationSiteInfo].
+ */
+interface OrchestrationSiteValidator {
+
+    /**
+     * A default implementation of [OrchestrationSiteValidator] that always returns `true` for every
+     * validation call.
+     */
+    object DefaultValidator : OrchestrationSiteValidator {
+        override fun test(site: OrchestrationSiteInfo): Boolean = true
+    }
+
+    /**
+     * Performs the validation against the given [OrchestrationSiteInfo] instance.
+     *
+     * @param[site]
+     *   site to be validated.
+     *
+     * @return
+     *   `true` if validated successfully, `false` otherwise.
+     */
+    fun test(site: OrchestrationSiteInfo): Boolean
 }
 
 /**
@@ -85,18 +113,22 @@ fun newOrchestrationSites(): List<OrchestrationSite> {
  * Create a mock [OrchestrationSiteInfo] instance based on an integer parameter, for
  * facilitating unit-testing of [TestProvisioningServer]-hosted services.
  *
- * @param[i]
+ * @param[index]
  *   integer value to be stamped into the orchestration site's various identifiers.
  *
  * @return
  *   a new instance of [OrchestrationSiteInfo].
  */
-private fun newOrchestrationSiteInfo(i: Int): OrchestrationSiteInfo {
-    val apiEndpoint = "https://apiserver-$i"
-    val datacenter = "datacenter-$i"
+fun newOrchestrationSiteInfo(
+    index: Int,
+    labels: Map<String, String> = emptyMap()
+): OrchestrationSiteInfo {
+    val apiEndpoint = "https://apiserver-$index"
+    val datacenter = "datacenter-$index"
+    val allLabels = labels + ("site-name" to "site-$index")
     return OrchestrationSiteInfo(
             OrchestrationSiteInfo.Type.VMC,
-            mapOf("site-name" to "site-$i"),
+            allLabels,
             VmcOrchestrationSiteInfo(
                     Endpoint("https://authserver", Credential()),
                     Endpoint(apiEndpoint, Credential()),
