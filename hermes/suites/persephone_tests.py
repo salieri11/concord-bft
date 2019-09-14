@@ -3,15 +3,17 @@
 #
 # This class file covers the tests related to persephone (deployment services)
 #########################################################################
-import os
-import sys
-import util
 import json
-import time
 import logging
-import traceback
-import threading
+import os
 import queue
+import shutil
+import subprocess
+import sys
+import threading
+import time
+import traceback
+import util.auth
 import util.helper as helper
 from util.product import Product as Product
 from . import test_suite
@@ -42,6 +44,8 @@ class PersephoneTests(test_suite.TestSuite):
    def run(self):
       ''' Runs all of the tests. '''
       try:
+         self.update_provisioning_config_file()
+
          log.info("Launching Persephone Server...")
          self.launchPersephone(self._args,
                                self._userConfig)
@@ -49,12 +53,9 @@ class PersephoneTests(test_suite.TestSuite):
          log.error(traceback.format_exc())
          return self._resultFile
 
-      try:
-         from persephone.rpc_test_helper import RPCTestHelper
-      except ImportError as e:
-         log.error(
-            "****gRPC Python bindings not generated. Execute util/generate_gRPC_bindings_for_py3.sh")
-         raise Exception("gRPC Python bindings not generated")
+      helper.checkRpcTestHelperImport()
+      from persephone.rpc_test_helper import RPCTestHelper
+      self.rpc_test_helper = RPCTestHelper(self.args)
 
       log.info("****************************************")
       if self.args.tests is None or self.args.tests.lower() == "smoke":
@@ -69,10 +70,8 @@ class PersephoneTests(test_suite.TestSuite):
          log.info("**** And, to deploy using specific concord/ethrpc Docker images, ")
          log.info(
             "**** pass the command line arg '--deploymentComponents "
-            "<repo/new-agent:tag>,<repo/new-concord-core:tag>,<repo/new-ethrpc:tag>'")
+            "<repo/agent:tag>,<repo/concord-core:tag>,<repo/ethrpc:tag>, etc...'")
       log.info("****************************************")
-
-      self.rpc_test_helper = RPCTestHelper(self.args)
 
       # Call gRPC to Stream Al Deployment Events in a background thread
       self.args.cancel_stream = False
@@ -121,8 +120,87 @@ class PersephoneTests(test_suite.TestSuite):
       self.args.cancel_stream = True
       self.background_thread.join()
 
+      # Replace provisioning config.json to default, if modified.
+      self.update_provisioning_config_file(mode="RESET")
+
       log.info("Tests are done.")
       return self._resultFile
+
+   def update_provisioning_config_file(self, mode="UPDATE"):
+      '''
+      Helper method to update provisioning service config.json with local
+      config-service and use security None for local testing
+      '''
+      try:
+         if self._args.useLocalConfigService:
+            persephone_config_file = helper.get_deployment_service_config_file(
+               self.args.dockerComposeFile,
+               Product.PERSEPHONE_SERVICE_PROVISIONING)
+            persephone_config_file_orig = "{}.orig".format(persephone_config_file)
+
+            if mode == "UPDATE":
+               log.info("****************************************")
+               log.info(
+                  "**** Updating provisioning service config file to use local config-service...")
+               log.info("  config file: {}".format(persephone_config_file))
+               log.info("  [backup: {}]".format(persephone_config_file_orig))
+               log.debug("Config file: {}".format(persephone_config_file))
+               shutil.copy(persephone_config_file, persephone_config_file_orig)
+
+               with open(persephone_config_file, "r") as config_fp:
+                  data = json.load(config_fp)
+               config_service = data["configService"]
+
+               log.info("  Setting config-service[\"transportSecurity\"] to None")
+               if "transportSecurity" in config_service:
+                  config_service["transportSecurity"] = {}
+
+               ports = helper.get_docker_compose_value(self.args.dockerComposeFile,
+                                                       Product.PERSEPHONE_CONFIG_SERVICE,
+                                                       "ports")
+               config_service_port = ports[0].split(':')[0]
+
+               command = ["/sbin/ifconfig", "ens160"]
+               ifconfig_output = subprocess.run(command, stdout=subprocess.PIPE,
+                                                stderr=subprocess.STDOUT)
+               ifconfig_output.check_returncode()
+               if ifconfig_output.stderr:
+                  log.error("stderr: {}".format(ifconfig_output.stderr))
+               log.debug(
+                  "ipconfig output: {}".format(ifconfig_output.stdout.decode()))
+               for line in ifconfig_output.stdout.decode().split('\n'):
+                  fields = line.split()
+                  if fields[0] == 'inet':
+                     host_ip = fields[1].split(':')[1]
+                     break
+
+               log.info(
+                  "  Updating configService[\"address\"] to: {}:{}".format(host_ip,
+                                                                           config_service_port))
+               config_service["address"] = '{}:{}'.format(host_ip,
+                                                          config_service_port)
+
+               with open(persephone_config_file, "w") as config_fp:
+                  json.dump(data, config_fp, indent=2)
+
+               log.info("Update completed!")
+               log.info("****************************************")
+
+            if mode == "RESET":
+               log.info("****************************************")
+               log.info(
+                  "Reverting changes made to provisioning service config file")
+               modified_config_file = "{}.modified.{}".format(
+                  persephone_config_file, time.time())
+               shutil.copy(persephone_config_file, modified_config_file)
+               shutil.move(persephone_config_file_orig, persephone_config_file)
+               log.info("  Updated config file for this run: {}".format(
+                  modified_config_file))
+               log.info("****************************************")
+
+      except Exception as e:
+         log.error(traceback.format_exc())
+         raise
 
    def undeploy_blockchain_cluster(self):
       '''
@@ -490,10 +568,13 @@ class PersephoneTests(test_suite.TestSuite):
                   log.info("Marked node as logged in (/tmp/{})".format(concord_ip))
                else:
                   # Preserving Env to DEBUG VB-1351
-                  log.info(
-                     "Adding Session ID to preserve list: \n{}".format(
-                        session_id))
-                  self.session_ids_to_retain.append(session_id)
+                  # TODO: Enable retaining failed VMs once cleanup script
+                  # cleans up IPAM too
+                  # log.info(
+                  #    "Adding Session ID to preserve list: \n{}".format(
+                  #       session_id))
+                  # self.session_ids_to_retain.append(session_id)
+
                   return (False, "Failed creating marker file on node '{}'".format(concord_ip))
 
                max_tries = 3
@@ -520,10 +601,12 @@ class PersephoneTests(test_suite.TestSuite):
                                  container_name, concord_ip))
 
                            # Preserving Env to DEBUG VB-1497
-                           log.info(
-                              "Adding Session ID to preserve list: \n{}".format(
-                                 session_id))
-                           self.session_ids_to_retain.append(session_id)
+                           # TODO: Enable retaining failed VMs once cleanup script
+                           # cleans up IPAM too
+                           # log.info(
+                           #    "Adding Session ID to preserve list: \n{}".format(
+                           #       session_id))
+                           # self.session_ids_to_retain.append(session_id)
                            
                            return (False,
                                    "Not all containers are up and running on node")
@@ -624,8 +707,8 @@ class PersephoneTests(test_suite.TestSuite):
       response = self.rpc_test_helper.rpc_list_orchestration_sites()
       response_list_orchestration_sites_json = helper.protobuf_message_to_json(response)
       if response_list_orchestration_sites_json:
-         with open(self.rpc_test_helper.persephone_config_file, "r") as confile_fp:
-            data = json.load(confile_fp)
+         with open(self.rpc_test_helper.persephone_config_file, "r") as config_fp:
+            data = json.load(config_fp)
          sites_from_config_file = data["sites"]
 
          orchestration_sites = response_list_orchestration_sites_json[0]["sites"]
