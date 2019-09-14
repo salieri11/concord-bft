@@ -19,7 +19,7 @@ class TestOrchestratorModule {
      */
     @Provides
     @Singleton
-    fun providesOrchestratorProvider(): OrchestratorProvider {
-        return TestOrchestratorFactory()
+    fun providesOrchestratorProvider(validator: OrchestrationSiteValidator): OrchestratorProvider {
+        return TestOrchestratorFactory(validator)
     }
 }

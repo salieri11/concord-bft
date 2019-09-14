@@ -56,7 +56,10 @@ class ProvisioningServiceTest {
     private static TestProvisioningServer newTestProvisioningServer(
             List<OrchestrationSite> orchestrations
     ) {
-        return DaggerTestProvisioningServer.builder().orchestrations(orchestrations).build();
+        return DaggerTestProvisioningServer.builder()
+                .orchestrations(orchestrations)
+                .orchestrationSiteValidator(OrchestrationSiteValidator.DefaultValidator.INSTANCE)
+                .build();
     }
 
     /**

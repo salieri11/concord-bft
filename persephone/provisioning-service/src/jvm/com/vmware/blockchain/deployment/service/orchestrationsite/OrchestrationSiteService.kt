@@ -8,6 +8,7 @@ import com.vmware.blockchain.deployment.logging.info
 import com.vmware.blockchain.deployment.logging.logger
 import com.vmware.blockchain.deployment.orchestration.OrchestratorProvider
 import com.vmware.blockchain.deployment.reactive.BaseSubscriber
+import com.vmware.blockchain.deployment.service.grpc.support.toStatus
 import com.vmware.blockchain.deployment.v1.ListOrchestrationSitesRequest
 import com.vmware.blockchain.deployment.v1.ListOrchestrationSitesResponse
 import com.vmware.blockchain.deployment.v1.OrchestrationSite
@@ -98,7 +99,7 @@ class OrchestrationSiteService(
             if (error != null) {
                 log.error { "Error create orchestration site listing, error(${error.message})" }
 
-                responseObserver.onError(error)
+                responseObserver.onError(error.toStatus().asException())
             } else {
                 responseObserver.onCompleted()
             }
@@ -111,8 +112,8 @@ class OrchestrationSiteService(
     ) {
         launch(coroutineContext) {
             val newOrchestrator = orchestratorProvider.newOrchestrator(request.site)
-            var publisher = newOrchestrator.validate()
-            publisher.subscribe(BaseSubscriber(
+            val publisher = newOrchestrator.validate()
+            val subscriber = BaseSubscriber<Boolean>(
                     onNext = { result ->
                         if (result) {
                             val response = ValidateOrchestrationSiteResponse(
@@ -120,18 +121,30 @@ class OrchestrationSiteService(
                                     site = request.site
                             )
                             responseObserver.onNext(response)
+
+                            log.info {
+                                "Validation request(${request.header.id}), " +
+                                        "type(${request.site.type}, labels(${request.site.labels})"
+                            }
                         } else {
                             responseObserver.onError(Status.INVALID_ARGUMENT.asException())
                         }
                     },
-                    onComplete = {
-                        responseObserver.onCompleted()
-                    },
-                    onError = { responseObserver.onError(Status.INTERNAL.asException()) }
-            ))
+                    onComplete = { responseObserver.onCompleted() },
+                    onError = { error ->
+                        log.error { "Error validating orchestration site, error(${error.message})" }
+
+                        responseObserver.onError(error.toStatus().asException())
+                    }
+            )
+
+            // Subscribe to turn the workflow hot.
+            publisher.subscribe(subscriber)
         }.invokeOnCompletion { error ->
             if (error != null) {
                 log.error { "Error validating orchestration site, error(${error.message})" }
+
+                responseObserver.onError(error)
             }
         }
     }

@@ -47,6 +47,7 @@ import com.vmware.blockchain.deployment.orchestration.Orchestrator.Orchestration
 import com.vmware.blockchain.deployment.orchestration.OrchestratorProvider;
 import com.vmware.blockchain.deployment.reactive.ReactiveStream;
 import com.vmware.blockchain.deployment.service.grpc.support.EndpointsKt;
+import com.vmware.blockchain.deployment.service.grpc.support.ExceptionsKt;
 import com.vmware.blockchain.deployment.v1.ConcordCluster;
 import com.vmware.blockchain.deployment.v1.ConcordClusterIdentifier;
 import com.vmware.blockchain.deployment.v1.ConcordClusterInfo;
@@ -80,6 +81,7 @@ import com.vmware.blockchain.deployment.v1.UpdateDeploymentSessionRequest;
 import com.vmware.blockchain.deployment.v1.UpdateDeploymentSessionResponse;
 import com.vmware.blockchain.ethereum.type.Genesis;
 
+import io.grpc.Status;
 import io.grpc.stub.ServerCallStreamObserver;
 import io.grpc.stub.StreamObserver;
 
@@ -301,7 +303,8 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
             // Simplistic state checking. More sophisticated checks requires setting up a reference
             // while the request is not yet completed.
             if (STATE.get(this) != State.ACTIVE) {
-                response.onError(new IllegalStateException("Service instance is not active"));
+                var text = "Service instance is not active";
+                response.onError(newIllegalStateExceptionStatus(text).asException());
             } else {
                 CompletableFuture.runAsync(() -> {
                     // Resolve / generate deployment session ID.
@@ -336,17 +339,16 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
                     } else {
                         // Cannot record this session for some reason.
                         // TODO: Need to think more about what to return in this case.
-                        response.onError(
-                                new IllegalStateException("Cannot record deployment session")
-                        );
+                        var text = "Cannot record deployment session";
+                        response.onError(newIllegalStateExceptionStatus(text).asException());
                     }
                 }, executor).exceptionally(error -> {
-                    response.onError(error);
+                    response.onError(ExceptionsKt.toStatus(error).asException());
                     return null; // To satisfy type signature (Void).
                 });
             }
         } catch (Throwable error) {
-            response.onError(error);
+            response.onError(ExceptionsKt.toStatus(error).asException());
         }
     }
 
@@ -372,7 +374,8 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
             // Simplistic state checking. More sophisticated checks requires setting up a reference
             // while the request is not yet completed.
             if (STATE.get(this) != State.ACTIVE) {
-                response.onError(new IllegalStateException("Service instance is not active"));
+                var text = "Service instance is not active";
+                response.onError(newIllegalStateExceptionStatus(text).asException());
             } else {
                 CompletableFuture.runAsync(() -> {
                     // FIXME: Right now the logic only works correctly for single service instance.
@@ -394,17 +397,16 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
                     if (task != null) {
                         task.thenAcceptAsync(sender, executor);
                     } else {
-                        response.onError(
-                                new IllegalStateException("Session does not have a background task")
-                        );
+                        var text = "Session does not have a background task";
+                        response.onError(newIllegalStateExceptionStatus(text).asException());
                     }
                 }, executor).exceptionally(error -> {
-                    response.onError(error);
+                    response.onError(ExceptionsKt.toStatus(error).asException());
                     return null; // To satisfy type signature (Void).
                 });
             }
         } catch (Throwable error) {
-            response.onError(error);
+            response.onError(ExceptionsKt.toStatus(error).asException());
         }
     }
 
@@ -417,7 +419,8 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
 
         try {
             if (STATE.get(this) != State.ACTIVE) {
-                response.onError(new IllegalStateException("Service instance is not active"));
+                var text = "Service instance is not active";
+                response.onError(newIllegalStateExceptionStatus(text).asException());
             } else {
                 CompletableFuture.runAsync(() -> {
                     if (request.getAction().equals(UpdateDeploymentSessionRequest.Action.NOOP)) {
@@ -430,14 +433,28 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
                         response.onCompleted();
                     }
                 }, executor).exceptionally(error -> {
-                    response.onError(error);
+                    response.onError(ExceptionsKt.toStatus(error).asException());
                     return null; // To satisfy type signature (Void).
                 });
             }
         } catch (Throwable error) {
-            response.onError(error);
+            response.onError(ExceptionsKt.toStatus(error).asException());
         }
 
+    }
+
+    /**
+     * Create a new {@link Status} corresponding to a new instance of {@link IllegalStateException}
+     * with the supplied exception message.
+     *
+     * @param message
+     *   message to be included in the embedded exception.
+     *
+     * @return
+     *   a new instance of {@link Status#FAILED_PRECONDITION} with an associated exception instance.
+     */
+    private Status newIllegalStateExceptionStatus(String message) {
+        return ExceptionsKt.toStatus(new IllegalStateException(message));
     }
 
     /**
@@ -1227,6 +1244,7 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
                         )
                 );
                 break;
+            case ETHEREUM:
             default:
                 endpoints = Map.of(
                         "ethereum-rpc",

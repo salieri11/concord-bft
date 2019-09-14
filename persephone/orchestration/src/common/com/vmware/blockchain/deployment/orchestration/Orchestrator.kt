@@ -14,6 +14,15 @@ import com.vmware.blockchain.deployment.v1.ConfigurationSessionIdentifier
 import com.vmware.blockchain.deployment.v1.Endpoint
 import com.vmware.blockchain.ethereum.type.Genesis
 
+/** Default orchestrator operation short timeout value. */
+const val ORCHESTRATOR_SHORT_TIMEOUT_MILLIS = 10000L
+
+/** Default orchestrator operation normal timeout value. */
+const val ORCHESTRATOR_TIMEOUT_MILLIS = 60000L * 10
+
+/** Default orchestrator operation long timeout value. */
+const val ORCHESTRATOR_LONG_TIMEOUT_MILLIS = 60000L * 10
+
 /**
  * Asynchronous deployment orchestration library interface.
  *
@@ -41,6 +50,16 @@ interface Orchestrator {
     data class ResourceDeletionFailedException(
         val request: Any
     ) : RuntimeException("Failed to delete resource")
+
+    /**
+     * Error denoting the condition that an operation was not completed before timeout occurred.
+     *
+     * @param[timeout]
+     *   deadline value (time unit not specified).
+     */
+    data class OperationTimeoutException(
+        val timeout: Any
+    ) : RuntimeException("Failed to complete the operation in time")
 
     /**
      * Compute resource deployment creation request specification.
@@ -192,8 +211,14 @@ interface Orchestrator {
 
     /**
      * Test connectivity/sanity of the orchestration site.
+     *
+     * @return
+     *   a [Publisher] of [Boolean] corresponding to the result of validating the orchestration site
+     *   associated with this [Orchestrator] instance.
      */
-    fun validate(): Publisher<Boolean> = ErrorPublisher(UnsupportedOperationException("This should not be invoked."))
+    fun validate(): Publisher<Boolean> {
+        return ErrorPublisher(UnsupportedOperationException("Validation operation is unsupported"))
+    }
 
     /**
      * Shutdown the [Orchestrator] instance and closes all resources.

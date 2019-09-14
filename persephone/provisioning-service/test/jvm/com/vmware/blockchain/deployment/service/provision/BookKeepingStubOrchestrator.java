@@ -29,12 +29,17 @@ import kotlinx.coroutines.ExecutorsKt;
 class BookKeepingStubOrchestrator implements Orchestrator {
 
     private final OrchestrationSiteInfo site;
+    private final OrchestrationSiteValidator validator;
     private final Map<URI, CreateComputeResourceRequest> computes = new ConcurrentHashMap<>();
     private final Map<URI, CreateNetworkResourceRequest> networks = new ConcurrentHashMap<>();
     private final Map<URI, CreateNetworkAllocationRequest> allocations = new ConcurrentHashMap<>();
 
-    BookKeepingStubOrchestrator(OrchestrationSiteInfo site) {
+    BookKeepingStubOrchestrator(
+            OrchestrationSiteInfo site,
+            OrchestrationSiteValidator validator
+    ) {
         this.site = site;
+        this.validator = validator;
     }
 
     @Override
@@ -43,12 +48,12 @@ class BookKeepingStubOrchestrator implements Orchestrator {
     }
 
     @Override
-    public Publisher<Boolean> validate() {
-        return new ErrorPublisher<>(new UnsupportedOperationException("This should not be invoked."));
+    public void close() {
     }
 
     @Override
-    public void close() {
+    public Publisher<Boolean> validate() {
+        return new IteratingPublisher<>(List.of(validator.test(site)), Dispatchers.getDefault());
     }
 
     @Override

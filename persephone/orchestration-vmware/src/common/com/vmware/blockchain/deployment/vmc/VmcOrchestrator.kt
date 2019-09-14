@@ -9,6 +9,7 @@ import com.vmware.blockchain.deployment.model.core.URI
 import com.vmware.blockchain.deployment.model.core.UUID
 import com.vmware.blockchain.deployment.model.nsx.NatRule
 import com.vmware.blockchain.deployment.model.nsx.PublicIP
+import com.vmware.blockchain.deployment.orchestration.ORCHESTRATOR_TIMEOUT_MILLIS
 import com.vmware.blockchain.deployment.orchestration.Orchestrator
 import com.vmware.blockchain.deployment.orchestration.toIPv4Address
 import com.vmware.blockchain.deployment.reactive.Publisher
@@ -72,10 +73,6 @@ class VmcOrchestrator(
      * wide [CoroutineScope] to launch [VmcOrchestrator]-related coroutines.
      */
     companion object {
-
-        /** Default maximum orchestrator operation timeout value. */
-        const val ORCHESTRATOR_TIMEOUT_MILLIS = 60000L * 10
-
         /** Default IPAM resource name prefix. */
         const val IPAM_RESOURCE_NAME_PREFIX = "blocks/"
     }
@@ -123,9 +120,7 @@ class VmcOrchestrator(
         }
     }
 
-    override fun close() {
-        job.cancel()
-    }
+    override fun close() = job.cancel()
 
     override fun createDeployment(
         request: Orchestrator.CreateComputeResourceRequest
