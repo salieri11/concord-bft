@@ -559,10 +559,36 @@ class PersephoneTests(test_suite.TestSuite):
             concord_username = concord_memeber_credentials["username"]
             concord_password = concord_memeber_credentials["password"]
             log.info("Initiating SSH verification on all concord nodes...")
-            time.sleep(300)
             for ethrpc_endpoint in ethrpc_endpoints:
                concord_ip = ethrpc_endpoint.split('//')[1].split(':')[0]
                log.info("**** Concord IP: {}".format(concord_ip))
+
+               start_time = time.time()
+               max_timeout = 180 # 3 mins
+               verify_ssh_connection = None
+               log.info(
+                  "Waiting for SSH to be enabled ({}) within {} mins".format(
+                     concord_ip, max_timeout / 60))
+               while (time.time() - start_time) <= max_timeout and \
+                     verify_ssh_connection is None:
+                  verify_ssh_connection = helper.ssh_connect(concord_ip,
+                                                             concord_username,
+                                                             concord_password,
+                                                             "hostname",
+                                                             log_mode="WARNING")
+                  if verify_ssh_connection:
+                     log.info("SSH enabled within {} mins".format(
+                        (time.time() - start_time) / 60))
+                     break
+                  else:
+                     sleep_time = 30 # sec
+                     log.info("Sleep {} secs and try again...".format(sleep_time))
+                     time.sleep(sleep_time)
+               if not verify_ssh_connection:
+                  log.error(
+                     "SSH not enabled within {} mins".format(max_timeout / 60))
+                  return (False, "SSH not enabled within {} mins".format(
+                     max_timeout / 60))
 
                if self.mark_node_as_logged_in(concord_ip, concord_username, concord_password):
                   log.info("Marked node as logged in (/tmp/{})".format(concord_ip))
@@ -575,17 +601,23 @@ class PersephoneTests(test_suite.TestSuite):
                   #       session_id))
                   # self.session_ids_to_retain.append(session_id)
 
-                  return (False, "Failed creating marker file on node '{}'".format(concord_ip))
+                  return (False,
+                          "Failed creating marker file on node '{}'".format(
+                             concord_ip))
 
-               max_tries = 3
                count = 0
+               max_timeout = 600 # 10 mins
+               start_time = time.time()
                docker_images_found = False
                command_to_run = "docker ps --format '{{.Names}}'"
-               while count < max_tries and (not docker_images_found):
+               log.info(
+                  "Waiting for all docker containers to be up on '{}' within {} mins".format(
+                     concord_ip, max_timeout / 60))
+               while not docker_images_found:
                   count += 1
-                  log.info(
-                     "Verifying docker containers (attempt: {}/{})...".format(
-                        count, max_tries))
+                  log.debug(
+                     "Verifying docker containers (attempt: {})...".format(
+                        count))
                   ssh_output = helper.ssh_connect(concord_ip,
                                                   concord_username,
                                                   concord_password,
@@ -594,7 +626,7 @@ class PersephoneTests(test_suite.TestSuite):
                   for container_name in expected_docker_containers:
                      if container_name not in ssh_output:
                         docker_images_found = False
-                        if count == max_tries:
+                        if (time.time() - start_time) > max_timeout:
                            log.info("SSH output:\n{}".format(ssh_output))
                            log.error(
                               "Container '{}' not up and running on node '{}'".format(
@@ -607,20 +639,21 @@ class PersephoneTests(test_suite.TestSuite):
                            #    "Adding Session ID to preserve list: \n{}".format(
                            #       session_id))
                            # self.session_ids_to_retain.append(session_id)
-                           
+
                            return (False,
                                    "Not all containers are up and running on node")
                         else:
                            log.warning(
                               "Container '{}' not up and running on node '{}'".format(
                                  container_name, concord_ip))
-                           time.sleep(2)
+                           time.sleep(30)
                            break
                      else:
                         docker_images_found = True
                         log.debug(
                            "Container {} found in node '{}'".format(
                               container_name, concord_ip))
+               log.info("Docker containers verified on {}".format(concord_ip))
 
                if concord_type is self.rpc_test_helper.CONCORD_TYPE_ETHEREUM:
                   # This is a workaround to enable ethrpc to listen on port 443, so

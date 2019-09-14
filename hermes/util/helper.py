@@ -133,13 +133,14 @@ def get_deployment_service_config_file(docker_compose_files, service_name):
       raise
    return config_file
 
-def ssh_connect(host, username, password, command):
+def ssh_connect(host, username, password, command, log_mode=None):
    '''
    Helper method to execute a command on a host via SSH
    :param host: IP of the destination host
    :param username: username for SSH connection
    :param password: password for username
    :param command: command to be executed on the remote host
+   :param log_mode: Override to log connectivity issue as a warning
    :return: Output of the command
    '''
    warnings.simplefilter("ignore", cryptography.utils.CryptographyDeprecationWarning)
@@ -157,7 +158,10 @@ def ssh_connect(host, username, password, command):
    except paramiko.AuthenticationException as e:
       log.error("Authentication failed when connecting to {}".format(host))
    except Exception as e:
-      log.error("Could not connect to {}: {}".format(host, e))
+      if log_mode == "WARNING":
+         log.warning("Could not connect to {}".format(host))
+      else:
+         log.error("Could not connect to {}: {}".format(host, e))
 
    return resp
 
