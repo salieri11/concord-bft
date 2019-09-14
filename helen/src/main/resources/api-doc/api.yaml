@@ -673,61 +673,89 @@ paths:
       operationId: getBlockchainZones
       responses:
         200:
-          description: List of available zones
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    id:
-                      type: string
-                      format: uuid
-                    name:
-                      type: string
-                      example: VMC SDDC2
-                    latitude:
-                      type: string
-                      example: 45.2551139
-                    longitude:
-                      type: string
-                      example: -120.888727
+          $ref: '#/components/responses/ZoneListReponse'
+        400:
+          $ref: '#/components/responses/ErrorResponse'
+        404:
+          $ref: '#/components/responses/ErrorResponse'
+
     post:
       tags:
         - blockchains
-      summary: Refresh zones
-      operationId: refreshBlockchainZones
-      description: Refresh and return the zone list
+      summary: Create a new new zone, or refresh zones
+      operationId: createBlockchainOnpremZones
       parameters:
         - name: action
           in: query
-          description: Perform the action
+          description: Refresh zones instead of creating
           schema:
             type: string
             enum: [reload]
+      description: Create a new on-premises zone as defined
+      requestBody:
+        $ref: '#/components/requestBodies/CreateZoneRequst'
       responses:
         200:
-          description: List of available zones
+          $ref: '#/components/responses/ZoneGetResponse'
+        400:
+          $ref: '#/components/responses/ErrorResponse'
+
+  /blockchains/zones/{zone_id}:
+    get:
+      tags:
+        - blockchains
+      summary: Get Zone Details
+      operationId: getOnpremZones
+      parameters:
+        - $ref: '#/components/parameters/ZoneId'
+      responses:
+        200:
+          $ref: '#/components/responses/ZoneGetResponse'
+    patch:
+      tags:
+        - blockchains
+      summary: Update an on-premises zone
+      operationId: patchOnpremZones
+      description: Update an existing on-premises zone
+      parameters:
+        - name: zone_id
+          in: path
+          description: The id of the on-premises zone to update
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        $ref: '#/components/requestBodies/PatchZoneRequst'
+      responses:
+        200:
+          $ref: '#/components/responses/ZoneGetResponse'
+    delete:
+      tags:
+        - blockchains
+      summary: Delete an on-premises zone
+      operationId: DeleteOnpremZones
+      description: Delete an on-premises zone
+      parameters:
+        - name: zone_id
+          in: path
+          description: The id of the on-premises zone to delete
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        200:
+          description: Successfully deleted zone
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    id:
-                      type: string
-                      format: uuid
-                    name:
-                      type: string
-                      example: VMC SDDC2
-                    latitude:
-                      type: string
-                      example: 45.2551139
-                    longitude:
-                      type: string
-                      example: -120.888727
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                    description: deleted zone id
 
   /blockchains/{bid}:
     summary: Blockchain Operations
@@ -1526,7 +1554,7 @@ paths:
                       type: string
                       format: uuid
                       description: Consortium ID
-                    organization_name:
+                    consortium_name:
                       type: string
                       format: string
                       description: Name of Consortium
@@ -2481,3 +2509,205 @@ paths:
                   last_login:
                     type: integer
                     description: Last login time
+components:
+  schemas:
+    Error:
+      type: object
+      properties:
+        errorCode:
+          type: string
+          description: Error Code
+        errorMessage:
+          type: string
+          description: Localized error message
+        status:
+          type: integer
+          description: HTTP status code
+        path:
+          type: string
+          description: URI causing error
+
+    BaseZone:
+      type: object
+      required:
+        - name
+        - type
+      properties:
+        type:
+          type: string
+          enum: [VMC_AWS, ON_PREM]
+          example:
+            ON_PREM
+        name:
+          type: string
+          example: VMC SDDC2
+        latitude:
+          type: string
+          example: 45.2551139
+        longitude:
+          type: string
+          example: -120.888727
+
+    BaseZoneGet:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+      allOf:
+        - $ref: '#/components/schemas/BaseZone'
+
+    OnPremZone:
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/BaseZone'
+      properties:
+        org_id:
+          type: string
+          format: uuid
+          description: organization id
+        endpoint:
+          type: string
+          description: vCenter endpoint
+          example: https://vcenter.acme.com
+        user:
+          type: string
+          description: vCenter admin user
+          example: admin@vsphere.local
+        resouce_pool:
+          type: string
+          description: name of resource pool to use for deployment
+          example:
+            Resource Pool
+        storage:
+          type: string
+          description: name of storage to use for deployment
+          example:
+            Datastore
+        network_name:
+          type: string
+          description: name of network to use
+          example:
+            Blockchain Network
+        ip_pool:
+          type: array
+          description: IP pool list
+          example:
+            [10.1.1.16-10.1.1.64,10.1.1.100-10.1.1.200,10.1.1.253]
+          items:
+            type: string
+        gateway:
+          type: string
+          description: Gateway IP address
+          example:
+            10.1.1.124
+        subnet:
+          type: string
+          description: IP Subnet
+          example:
+            /24
+        name_servers:
+          type: array
+          description: List of name servers
+          example:
+            [10.1.1.10, 10.1.1.11]
+          items:
+            type: string
+        folder:
+          type: string
+          description: vCenter folder for deployment
+          example:
+            Blockchain Folder
+
+    OnPremZoneGet:
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/OnPremZone'
+      properties:
+        id:
+          type: string
+          format: uuid
+
+    OnPremPatch:
+      type: object
+      properties:
+        password:
+          type: string
+      allOf:
+        - $ref: '#/components/schemas/OnPremZone'
+
+    OnPremCreate:
+      type: object
+      required:
+        - endpoint
+        - user
+        - password
+        - resource_pool
+        - storage
+        - network_name
+        - ip_pool
+        - subnet
+        - folder
+      allOf:
+        - $ref: '#/components/schemas/OnPremPatch'
+
+
+    Zone:
+      type: object
+      oneOf:
+        - $ref: '#/components/schemas/BaseZoneGet'
+        - $ref: '#/components/schemas/OnPremZoneGet'
+      discriminator:
+        propertyName: type
+
+
+  responses:
+    ErrorResponse:
+      description: Error Response
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    ZoneListReponse:
+      description: List of available zones
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/BaseZoneGet'
+
+    ZoneGetResponse:
+      description: Get Zone information details.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Zone'
+
+
+  requestBodies:
+    CreateZoneRequst:
+      description: Create a new zone
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/OnPremCreate'
+
+    PatchZoneRequst:
+      description: Patch an existing zone
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/OnPremPatch'
+
+  parameters:
+    ZoneId:
+      name: zone_id
+      in: path
+      description: The id of the on-premises zone to get
+      required: true
+      schema:
+        type: string
+        format: uuid
+

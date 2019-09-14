@@ -84,6 +84,9 @@ import com.vmware.blockchain.services.blockchains.Blockchain.BlockchainType;
 import com.vmware.blockchain.services.blockchains.BlockchainController.BlockchainNodeEntry;
 import com.vmware.blockchain.services.blockchains.BlockchainController.BlockchainReplicaEntry;
 import com.vmware.blockchain.services.blockchains.BlockchainController.BlockchainTaskResponse;
+import com.vmware.blockchain.services.blockchains.zones.Zone;
+import com.vmware.blockchain.services.blockchains.zones.ZoneService;
+import com.vmware.blockchain.services.blockchains.zones.ZoneTestUtils;
 import com.vmware.blockchain.services.concord.ConcordService;
 import com.vmware.blockchain.services.profiles.Consortium;
 import com.vmware.blockchain.services.profiles.ConsortiumService;
@@ -198,6 +201,9 @@ public class BlockchainControllerTest {
 
     @MockBean
     ConcordService concordService;
+
+    @MockBean
+    ZoneService zoneService;
 
     @Autowired
     TaskService taskService;
@@ -355,6 +361,10 @@ public class BlockchainControllerTest {
             ob.onCompleted();
             return null;
         });
+
+        // Zone returns
+        when(zoneService.get(SITE_1)).thenReturn(ZoneTestUtils.getOnpremZone(SITE_1, ORG_ID));
+        when(zoneService.get(SITE_2)).thenReturn(new Zone(SITE_2, Zone.Type.VMC_AWS));
     }
 
 

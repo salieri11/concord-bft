@@ -1,9 +1,12 @@
 /*
- * Copyright (c) 2016-2019 VMware, Inc. All rights reserved. VMware Confidential
+ * Copyright (c) 2018 VMware, Inc. All rights reserved. VMware Confidential
  */
 
 package com.vmware.blockchain.dao;
 
+import static com.vmware.blockchain.dao.PolyTestEntity.IntType;
+import static com.vmware.blockchain.dao.PolyTestEntity.StringType;
+import static com.vmware.blockchain.dao.PolyTestEntity.Type;
 import static java.time.ZoneOffset.UTC;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
@@ -746,6 +749,37 @@ public class GenericDaoTest {
             return;
         }
         fail("Should receive concurrent update exception");
+    }
+
+    @Test
+    void testPolymorphic() throws Exception {
+        StringType stringType = new StringType("This is the test");
+        IntType intType = new IntType(42);
+        PolyTestEntity entity = new PolyTestEntity();
+        stringType = genericDao.put(stringType, null);
+        genericDao.put(intType, null);
+        genericDao.put(entity, null);
+        final UUID stringId = stringType.getId();
+
+        List<PolyTestEntity> l = genericDao.getAllByType(PolyTestEntity.class);
+        Assertions.assertEquals(3, l.size());
+        for (PolyTestEntity e : l) {
+            if (Type.STRING_TYPE.equals(e.getType())) {
+                Assertions.assertTrue(e instanceof StringType);
+            }
+            if (Type.INT_TYPE.equals(e.getType())) {
+                Assertions.assertTrue(e instanceof IntType);
+            }
+            if (e.getType() == null) {
+                Assertions.assertTrue(e instanceof PolyTestEntity);
+            }
+        }
+        String s = JSONObject.toJSONString(Collections.singletonMap("type", "STRING_TYPE"));
+        l = genericDao.getByJsonQuery(s, PolyTestEntity.class);
+        Assertions.assertEquals(1, l.size());
+        Assertions.assertTrue(l.get(0) instanceof StringType);
+        StringType  s2 = genericDao.get(stringId, StringType.class);
+        Assertions.assertTrue(s2 instanceof StringType);
     }
 
     /**
