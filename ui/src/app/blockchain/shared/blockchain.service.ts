@@ -43,8 +43,7 @@ export class BlockchainService {
   constructor(
     private http: HttpClient,
     private consortiumService: ConsortiumService,
-    private translateService: TranslateService,
-    private router: Router
+    private translateService: TranslateService
   ) { }
 
   deploy(params: BlockchainRequestParams): Observable<any> {
@@ -188,16 +187,16 @@ export class BlockchainService {
       map(onPremZone => {
         this.zones.push(onPremZone);
 
-        // refresh store when a new zone is added
-        this.set(null).pipe(
-          catchError(error => {
-            this.router.navigate(['error'], {
-              queryParams: { error: JSON.stringify(error) }
-            });
+        // TODO - refresh store when a new zone is added
+        // this.set(null).pipe(
+        //   catchError(error => {
+        //     this.router.navigate(['error'], {
+        //       queryParams: { error: JSON.stringify(error) }
+        //     });
     
-            return error;
-          })
-        );
+        //     return error;
+        //   })
+        // );
 
         return onPremZone;
       }),

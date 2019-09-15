@@ -47,6 +47,10 @@ export class OnPremisesFormComponent implements AfterViewInit {
     this.onPremZone.id = id;
     this.onPremZone.name = `${location} - ${onPremLocData.name}`;
 
+    // TODO - Add Lat long
+    // this.onPremZone.latitude = 45.2551139;
+    // this.onPremZone.longitude = -120.888727;
+
     return this.onPremZone;
   }
 
