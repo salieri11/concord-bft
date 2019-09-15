@@ -7,7 +7,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { Resolve, ActivatedRouteSnapshot } from '@angular/router';
 import { Observable, from, timer, zip, of, throwError } from 'rxjs';
-import { concatMap, filter, map, take, flatMap, catchError, delay } from 'rxjs/operators';
+import { concatMap, filter, map, take, flatMap, catchError } from 'rxjs/operators';
 import { BehaviorSubject } from 'rxjs';
 import { TranslateService } from '@ngx-translate/core';
 
@@ -16,6 +16,7 @@ import {
   BlockchainRequestParams,
   BlockchainResponse,
   Zone,
+  OnPremZone,
   BlockchainMeta,
   DeployStates,
   fakeZones,
@@ -181,12 +182,14 @@ export class BlockchainService {
       );
   }
 
-  addOnPremZone(zone: Zone): Observable<Zone> {
-    return of(zone).pipe(delay(2000));
+  addOnPremZone(zone: OnPremZone): Observable<Zone> {
+    return this.http.post<OnPremZone>('api/blockchains/zones', zone);
+    // return of(zone).pipe(delay(2000));
   }
 
   testOnPremZoneConnection(zone: Zone): Observable<Zone> {
-    return of(zone).pipe(delay(2000));
+    return this.http.post<OnPremZone>('api/blockchains/zones?action=test', zone);
+    // return of(zone).pipe(delay(2000));
   }
 
   getZoneLatLong(name: string): Observable<any> {
@@ -211,7 +214,6 @@ export class BlockchainService {
         })
       );
   }
-
 
   isUUID(uuid: string): boolean {
     return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(uuid);

@@ -15,7 +15,7 @@ import { AuthenticationService } from '../../shared/authentication.service';
 })
 export class OnboardingComponent implements OnInit {
   @ViewChild('agreementEl') agreementEl: ElementRef;
-  agreement: {type?: string, content?: string, accepted: boolean, id?: number};
+  agreement: { type?: string, content?: string, accepted: boolean, id?: number };
   disabledAgreement = true;
   agreementForm: FormGroup;
   showServiceAvailability: boolean = false;
@@ -24,7 +24,7 @@ export class OnboardingComponent implements OnInit {
     private authService: AuthenticationService,
     private router: Router,
     private fb: FormBuilder,
-   ) {
+  ) {
     this.agreementForm = this.fb.group({
       firstName: ['', Validators.required],
       lastName: ['', Validators.required],
