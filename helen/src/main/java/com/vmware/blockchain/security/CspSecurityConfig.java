@@ -70,6 +70,7 @@ public class CspSecurityConfig extends WebSecurityConfigurerAdapter {
                 .sessionManagement().sessionFixation().none().and()
                 .authorizeRequests()
                 .antMatchers("/api/auth/login", "/api/auth/token", "/api/agreements/1", "/", "/assets/**").permitAll()
+                .antMatchers("/api/static/**").permitAll()
                 .antMatchers("/api/oauth/login", "/api/oauth/oauth").permitAll()
                 // anyone can look at the health
                 .antMatchers("/api/management/health").permitAll()
@@ -96,7 +97,8 @@ public class CspSecurityConfig extends WebSecurityConfigurerAdapter {
     @Override
     public void configure(WebSecurity web) throws Exception {
         // Allow access to auth, UI routing URLs, and UI assets, without authentication
-        web.ignoring().antMatchers("/api/agreements/1").antMatchers("/api/auth/token", "/api/auth/login");
+        web.ignoring().antMatchers("/api/agreements/1").antMatchers("/api/auth/token", "/api/auth/login",
+                                                                    "/api/static/**");
     }
 
     @Override
