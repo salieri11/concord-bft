@@ -163,9 +163,9 @@ public class AgreementControllerTests {
         Agreement agreement = objectMapper.readValue(body, Agreement.class);
 
         Assertions.assertTrue(agreement.isAccepted());
-        Assertions.assertEquals(agreement.getFirstName(), firstName);
-        Assertions.assertEquals(agreement.getLastName(), lastName);
-        Assertions.assertEquals(agreement.getCompany(), company);
+        Assertions.assertEquals(firstName, agreement.getFirstName());
+        Assertions.assertEquals(lastName, agreement.getLastName());
+        Assertions.assertEquals(company, agreement.getCompany());
     }
 
     @Test
@@ -180,9 +180,9 @@ public class AgreementControllerTests {
         Agreement agreement = objectMapper.readValue(body, Agreement.class);
 
         Assertions.assertTrue(agreement.isAccepted());
-        Assertions.assertEquals(agreement.getFirstName(), firstName);
-        Assertions.assertEquals(agreement.getLastName(), lastName);
-        Assertions.assertEquals(agreement.getCompany(), company);
+        Assertions.assertEquals(firstName, agreement.getFirstName());
+        Assertions.assertEquals(lastName, agreement.getLastName());
+        Assertions.assertEquals(company, agreement.getCompany());
     }
 
     @Test
@@ -199,8 +199,6 @@ public class AgreementControllerTests {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(content))
                 .andExpect(status().isOk()).andReturn();
-
-
     }
 
     @Test
