@@ -20,6 +20,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -146,12 +147,30 @@ public class AgreementControllerTests {
         List<Agreement> agreementList =
                 Arrays.asList(a1);
         Mockito.when(organizationService.getAgreements(ORG_1)).thenReturn(agreementList);
+        Mockito.when(authHelper.getOrganizationId()).thenReturn(ORG_1);
         objectMapper = jacksonBuilder.build();
     }
 
     @Test
     void getAgreementFromId() throws Exception {
         MvcResult mvcResult = mockMvc.perform(get("/api/organizations/" + ORG_1.toString() + "/agreements")
+                .contentType(MediaType.APPLICATION_JSON)).andExpect(status().isOk()).andReturn();
+
+        String body = mvcResult.getResponse().getContentAsString();
+
+        body = body.substring(1, body.length() - 1);
+
+        Agreement agreement = objectMapper.readValue(body, Agreement.class);
+
+        Assertions.assertTrue(agreement.isAccepted());
+        Assertions.assertEquals(agreement.getFirstName(), firstName);
+        Assertions.assertEquals(agreement.getLastName(), lastName);
+        Assertions.assertEquals(agreement.getCompany(), company);
+    }
+
+    @Test
+    void getAgreementWithoutId() throws Exception {
+        MvcResult mvcResult = mockMvc.perform(get("/api/organizations/agreements")
                 .contentType(MediaType.APPLICATION_JSON)).andExpect(status().isOk()).andReturn();
 
         String body = mvcResult.getResponse().getContentAsString();
@@ -185,6 +204,22 @@ public class AgreementControllerTests {
     }
 
     @Test
+    void doPostWithoutId() throws Exception {
+        String content = String.format("    {"
+                + "        \"accepted\": \"true\","
+                + "        \"first_name\": \"John\","
+                + "        \"last_name\": \"Smith\","
+                + "        \"company\": \"Glob\""
+                + "    }");
+
+        mockMvc.perform(post("/api/organizations/agreements")
+                .with(authentication(adminAuth))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(content))
+                .andExpect(status().isOk()).andReturn();
+    }
+
+    @Test
     void doPostWithoutAccepting() throws Exception {
         String content = String.format("    {"
                 + "        \"accepted\": \"false\","
@@ -194,6 +229,22 @@ public class AgreementControllerTests {
                 + "    }");
 
         mockMvc.perform(post("/api/organizations/" + ORG_1.toString() + "/agreements")
+                .with(authentication(adminAuth))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(content))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void doPostWithoutIdWithoutAccepting() throws Exception {
+        String content = String.format("    {"
+                + "        \"accepted\": \"false\","
+                + "        \"first_name\": \"John\","
+                + "        \"last_name\": \"Smith\","
+                + "        \"company\": \"Glob\""
+                + "    }");
+
+        mockMvc.perform(post("/api/organizations/agreements")
                 .with(authentication(adminAuth))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(content))
@@ -217,6 +268,22 @@ public class AgreementControllerTests {
     }
 
     @Test
+    void doPostWithoutIdWithoutFirstName() throws Exception {
+        String content = String.format("    {"
+                + "        \"accepted\": \"true\","
+                + "        \"first_name\": \"\","
+                + "        \"last_name\": \"Smith\","
+                + "        \"company\": \"Glob\""
+                + "    }");
+
+        mockMvc.perform(post("/api/organizations/agreements")
+                .with(authentication(adminAuth))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(content))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
     void doPostWithoutLastName() throws Exception {
         String content = String.format("    {"
                 + "        \"accepted\": \"true\","
@@ -233,6 +300,22 @@ public class AgreementControllerTests {
     }
 
     @Test
+    void doPostWithoutIdWithoutLastName() throws Exception {
+        String content = String.format("    {"
+                + "        \"accepted\": \"true\","
+                + "        \"first_name\": \"John\","
+                + "        \"last_name\": \"\","
+                + "        \"company\": \"Glob\""
+                + "    }");
+
+        mockMvc.perform(post("/api/organizations/agreements")
+                .with(authentication(adminAuth))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(content))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
     void doPostWithoutCompany() throws Exception {
         String content = String.format("    {"
                 + "        \"accepted\": \"true\","
@@ -242,6 +325,22 @@ public class AgreementControllerTests {
                 + "    }");
 
         mockMvc.perform(post("/api/organizations/" + ORG_1.toString() + "/agreements")
+                .with(authentication(adminAuth))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(content))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void doPostWithoutIdWithoutCompany() throws Exception {
+        String content = String.format("    {"
+                + "        \"accepted\": \"true\","
+                + "        \"first_name\": \"John\","
+                + "        \"last_name\": \"Smith\","
+                + "        \"company\": \"\""
+                + "    }");
+
+        mockMvc.perform(post("/api/organizations/agreements")
                 .with(authentication(adminAuth))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(content))

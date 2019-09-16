@@ -6,6 +6,7 @@ package com.vmware.blockchain.services.profiles;
 
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -97,9 +98,16 @@ public class AgreementController  {
      * @param orgId orgId
      * @return Agreement
      */
-    @RequestMapping(path = "/api/organizations/{org_id}/agreements", method = RequestMethod.GET)
+    @RequestMapping(path = {"/api/organizations/{org_id}/agreements", "api/organizations/agreements"}, method = RequestMethod.GET)
     @PreAuthorize("@authHelper.isAuthorized()")
-    public ResponseEntity<List<AgreementResponse>> getAgreementFromId(@PathVariable("org_id") UUID orgId) {
+    public ResponseEntity<List<AgreementResponse>> getAgreementFromId(
+            @PathVariable(name = "org_id", required = false) Optional<UUID> orgIdOptional) {
+        UUID orgId;
+        if (orgIdOptional.isPresent()) {
+            orgId = orgIdOptional.get();
+        } else {
+            orgId = authHelper.getOrganizationId();
+        }
         List<Agreement> agreementList = organizationService.getAgreements(orgId);
         List<AgreementResponse> agreementResponseList = agreementList.stream().map(AgreementResponse::new)
                 .collect(Collectors.toList());
@@ -112,11 +120,18 @@ public class AgreementController  {
      * @param orgId orgId
      * @param requestBody Patch details.
      */
-    @RequestMapping(path = "/api/organizations/{org_id}/agreements", method = RequestMethod.POST)
+    @RequestMapping(path = {"/api/organizations/{org_id}/agreements", "api/organizations/agreements"},
+            method = RequestMethod.POST)
     @PreAuthorize("@authHelper.isAuthorized()")
-    public ResponseEntity<Void> doPost(@PathVariable(name = "org_id") UUID orgId,
+    public ResponseEntity<Void> doPost(@PathVariable(name = "org_id", required = false) Optional<UUID> orgIdOptional,
                                         @RequestBody AgreementRequest requestBody) {
+        UUID orgId;
 
+        if (orgIdOptional.isPresent()) {
+            orgId = orgIdOptional.get();
+        } else {
+            orgId = authHelper.getOrganizationId();
+        }
 
         if (requestBody.isAccepted()
                 && !(requestBody.getFirstName().isBlank())
@@ -144,7 +159,6 @@ public class AgreementController  {
         } else {
             throw new BadRequestException(ErrorCode.BAD_REQUEST);
         }
-
 
     }
 }
