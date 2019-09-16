@@ -94,6 +94,13 @@ grpc::Status CommitServiceImpl::CommitTransaction(ServerContext* context,
     return grpc::Status::CANCELLED;
   }
 
+  if (resp.error_response_size() >= 1) {
+    LOG4CPLUS_ERROR(logger,
+                    "DAML commit transaction failed with concord error: "
+                        << resp.error_response(0).description());
+    return grpc::Status::CANCELLED;
+  }
+
   assert(resp.has_daml_response());
   assert(resp.daml_response().has_command_reply());
 
