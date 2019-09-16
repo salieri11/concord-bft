@@ -14,8 +14,6 @@ import threading
 import time
 import traceback
 import util.auth
-import socket
-
 import util.helper as helper
 from util.product import Product as Product
 from . import test_suite
@@ -322,23 +320,6 @@ class PersephoneTests(test_suite.TestSuite):
             return True
          else:
             log.error("Block Number is NOT 0")
-      except Exception as e:
-         log.error(e)
-
-      return False
-
-   def verify_daml_connectivity(self, concord_ip, port=6865):
-      '''
-      Helper method to validate DAML connectivy
-      :param concord_ip: Concord IP
-      :param port: DAML endpoint port
-      :return: Verification status (True/False)
-      '''
-      log.info("Validating DAML Connectivity ({})".format(concord_ip))
-      try:
-         s = socket.socket()
-         s.connect((concord_ip, port))
-         return True
       except Exception as e:
          log.error(e)
 
@@ -677,7 +658,7 @@ class PersephoneTests(test_suite.TestSuite):
                      return (False, "Ethrpc (get Block 0) Validation - FAILED")
 
                if concord_type is self.rpc_test_helper.CONCORD_TYPE_DAML:
-                  if self.verify_daml_connectivity(concord_ip):
+                  if helper.verify_daml_connectivity(concord_ip):
                      log.info("DAML Connectivity - PASS")
                   else:
                      log.error("DAML Connectivity ({})- FAILED".format(concord_ip))
