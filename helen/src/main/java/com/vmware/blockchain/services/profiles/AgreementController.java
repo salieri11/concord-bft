@@ -95,10 +95,11 @@ public class AgreementController  {
 
     /**
      * Get an agreement.
-     * @param orgId orgId
+     * @param orgIdOptional orgIdOptional
      * @return Agreement
      */
-    @RequestMapping(path = {"/api/organizations/{org_id}/agreements", "api/organizations/agreements"}, method = RequestMethod.GET)
+    @RequestMapping(path = {"/api/organizations/{org_id}/agreements", "api/organizations/agreements"},
+            method = RequestMethod.GET)
     @PreAuthorize("@authHelper.isAuthorized()")
     public ResponseEntity<List<AgreementResponse>> getAgreementFromId(
             @PathVariable(name = "org_id", required = false) Optional<UUID> orgIdOptional) {
@@ -117,7 +118,7 @@ public class AgreementController  {
 
     /**
      * Update an Agreement.
-     * @param orgId orgId
+     * @param orgIdOptional orgIdOptional
      * @param requestBody Patch details.
      */
     @RequestMapping(path = {"/api/organizations/{org_id}/agreements", "api/organizations/agreements"},
