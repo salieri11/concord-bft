@@ -2757,6 +2757,13 @@ static ConcordConfiguration::ParameterStatus computePrincipalId(
   return ConcordConfiguration::ParameterStatus::VALID;
 }
 
+static ConcordConfiguration::ParameterStatus computeTimeSourceId(
+    const ConcordConfiguration& config, const ConfigurationPath& path,
+    string* output, void* state) {
+  *output = "time-source" + to_string(path.index);
+  return ConcordConfiguration::ParameterStatus::VALID;
+}
+
 const size_t kRSAPublicKeyHexadecimalLength = 584;
 // Note we do not have a correpsonding kRSAPrivateKeyHexadecimalLength constant
 // because the hexadecimal length of RSA private keys actually seems to vary a
@@ -3331,10 +3338,10 @@ void specifyConfiguration(ConcordConfiguration& config) {
 
   node.declareParameter(
       "time_source_id",
-      "Name that this node will use when publishing its reading to the time "
-      "contract. If no value is given, this node will not publish its time. "
+      "The source name `time-sourceX` is based on the node index."
       "Ignored unless FEATURE_time_service is \"true\".");
-  node.tagParameter("time_source_id", publicOptionalTags);
+  node.tagParameter("time_source_id", publicGeneratedTags);
+  node.addGenerator("time_source_id", computeTimeSourceId, nullptr);
 
   node.declareParameter(
       "time_pusher_period_ms",
