@@ -11,7 +11,12 @@ import static com.vmware.blockchain.services.blockchains.zones.Zone.NAME_KEY;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import com.google.common.collect.ImmutableMap;
+import com.vmware.blockchain.common.BadRequestException;
+import com.vmware.blockchain.common.ErrorCode;
 import com.vmware.blockchain.deployment.v1.BearerTokenCredential;
 import com.vmware.blockchain.deployment.v1.Credential;
 import com.vmware.blockchain.deployment.v1.Endpoint;
@@ -30,6 +35,8 @@ import com.vmware.blockchain.services.blockchains.zones.Zone.Type;
  * Convienient utilities for Blockchain stuff.
  */
 public class BlockchainUtils {
+    private static Logger logger = LogManager.getLogger();
+
     private static ImmutableMap<Type, OrchestrationSiteInfo.Type> typeMap =
             ImmutableMap.of(Type.NONE, OrchestrationSiteInfo.Type.NONE,
                             Type.ON_PREM, OrchestrationSiteInfo.Type.VSPHERE,
@@ -53,20 +60,37 @@ public class BlockchainUtils {
         VSphereOrchestrationSiteInfo vspherInfo = new VSphereOrchestrationSiteInfo();
         if (Type.ON_PREM.equals(zone.getType())) {
             OnpremZone op = (OnpremZone) zone;
-            Endpoint api = new Endpoint(op.getVCenter().getUrl(),
+            if (op.getVCenter() == null) {
+                logger.info("Missing required field vCenter");
+                throw new BadRequestException(ErrorCode.BAD_REQUEST);
+            }
+            final Endpoint api = new Endpoint(op.getVCenter().getUrl(),
                                         toCredential(op.getVCenter().getUsername(), op.getVCenter().getPassword()),
                                         new TransportSecurity());
-            Endpoint container = new Endpoint(op.getContainerRepo().getUrl(),
-                                              toCredential(op.getContainerRepo().getUsername(),
-                                                           op.getContainerRepo().getPassword()),
-                                              new TransportSecurity());
+            Endpoint container = new Endpoint();
+            if (op.getContainerRepo() != null) {
+                container = new Endpoint(op.getContainerRepo().getUrl(),
+                                         toCredential(op.getContainerRepo().getUsername(),
+                                                      op.getContainerRepo().getPassword()),
+                                         new TransportSecurity());
+            }
             Zone.Network n = op.getNetwork();
+            if (n == null) {
+                logger.info("Missing required field network");
+                throw new BadRequestException(ErrorCode.BAD_REQUEST);
+            }
             IPv4Network network = new IPv4Network(n.getName(),
                                                   IPv4Network.AddressAllocationScheme.STATIC,
                                                   fromIpAddr(n.getGateway()),
                                                   Integer.parseInt(n.getSubnet()),
                                                   new Endpoint(),
                                                   n.getNameServers());
+            if (op.getResourcePool() == null || op.getResourcePool().isBlank()
+                || op.getStorage() == null || op.getStorage().isBlank()
+                || op.getFolder() == null || op.getFolder().isBlank()) {
+                logger.info("Null or blanck ResoucePool, Storage or Folder");
+                throw new BadRequestException(ErrorCode.BAD_REQUEST);
+            }
             VSphereDatacenterInfo dcInfo =
                     new VSphereDatacenterInfo(op.getResourcePool(), op.getStorage(), op.getFolder(), network);
             vspherInfo = new VSphereOrchestrationSiteInfo(api, container, dcInfo);

@@ -80,8 +80,6 @@ class ZoneControllerTest {
 
     private static final String POST_ONPREM_BODY = "{\n"
                                                    + "  \"name\": \"OnPrem\",\n"
-                                                   + "  \"latitude\": null,\n"
-                                                   + "  \"longitude\": null,\n"
                                                    + "  \"type\": \"ON_PREM\",\n"
                                                    + "  \"org_id\": \"5e5ff1c8-34b9-4fa3-9924-83eb14354d4c\",\n"
                                                    + "  \"vcenter\": {\n"
@@ -113,8 +111,6 @@ class ZoneControllerTest {
 
     private static final String POST_NO_ORG_BODY = "{\n"
                                                    + "  \"name\": \"OnPrem\",\n"
-                                                   + "  \"latitude\": null,\n"
-                                                   + "  \"longitude\": null,\n"
                                                    + "  \"type\": \"ON_PREM\",\n"
                                                    + "  \"vcenter\": {\n"
                                                    + "    \"url\": \"http://vcenter\",\n"
@@ -140,6 +136,133 @@ class ZoneControllerTest {
                                                    + "    \"url\": \"https://docker-repo.com\",\n"
                                                    + "    \"username\": \"user\",\n"
                                                    + "    \"password\": \"docker\"\n"
+                                                   + "  }\n"
+                                                   + "}";
+
+    private static final String POST_NO_VCENTER_BODY = "{\n"
+                                                   + "  \"name\": \"OnPrem\",\n"
+                                                   + "  \"type\": \"ON_PREM\",\n"
+                                                   + "  \"resource_pool\": \"pool\",\n"
+                                                   + "  \"storage\": \"datastore\",\n"
+                                                   + "  \"folder\": \"folder\",\n"
+                                                   + "  \"network\": {\n"
+                                                   + "    \"name\": \"Network 1\",\n"
+                                                   + "    \"ip_pool\": [\n"
+                                                   + "      \"10.1.1.16-10.1.1.64\",\n"
+                                                   + "      \"10.1.1.100-10.1.1.200\"\n"
+                                                   + "    ],\n"
+                                                   + "    \"gateway\": \"10.1.1.1\",\n"
+                                                   + "    \"subnet\": \"24\",\n"
+                                                   + "    \"name_servers\": [\n"
+                                                   + "      \"10.1.1.3\"\n"
+                                                   + "    ]\n"
+                                                   + "  },\n"
+                                                   + "  \"container_repo\": {\n"
+                                                   + "    \"url\": \"https://docker-repo.com\",\n"
+                                                   + "    \"username\": \"user\",\n"
+                                                   + "    \"password\": \"docker\"\n"
+                                                   + "  }\n"
+                                                   + "}";
+
+    private static final String POST_NO_NETWORK_BODY = "{\n"
+                                                       + "  \"name\": \"OnPrem\",\n"
+                                                       + "  \"type\": \"ON_PREM\",\n"
+                                                       + "  \"vcenter\": {\n"
+                                                       + "    \"url\": \"http://vcenter\",\n"
+                                                       + "    \"username\": \"admin\",\n"
+                                                       + "    \"password\": \"password\"\n"
+                                                       + "  },\n"
+                                                       + "  \"resource_pool\": \"pool\",\n"
+                                                       + "  \"storage\": \"datastore\",\n"
+                                                       + "  \"folder\": \"folder\",\n"
+                                                       + "  \"container_repo\": {\n"
+                                                       + "    \"url\": \"https://docker-repo.com\",\n"
+                                                       + "    \"username\": \"user\",\n"
+                                                       + "    \"password\": \"docker\"\n"
+                                                       + "  }\n"
+                                                       + "}";
+
+    private static final String POST_NO_FOLDER_BODY = "{\n"
+                                                   + "  \"name\": \"OnPrem\",\n"
+                                                   + "  \"type\": \"ON_PREM\",\n"
+                                                   + "  \"vcenter\": {\n"
+                                                   + "    \"url\": \"http://vcenter\",\n"
+                                                   + "    \"username\": \"admin\",\n"
+                                                   + "    \"password\": \"password\"\n"
+                                                   + "  },\n"
+                                                   + "  \"resource_pool\": \"pool\",\n"
+                                                   + "  \"storage\": \"datastore\",\n"
+                                                   + "  \"network\": {\n"
+                                                   + "    \"name\": \"Network 1\",\n"
+                                                   + "    \"ip_pool\": [\n"
+                                                   + "      \"10.1.1.16-10.1.1.64\",\n"
+                                                   + "      \"10.1.1.100-10.1.1.200\"\n"
+                                                   + "    ],\n"
+                                                   + "    \"gateway\": \"10.1.1.1\",\n"
+                                                   + "    \"subnet\": \"24\",\n"
+                                                   + "    \"name_servers\": [\n"
+                                                   + "      \"10.1.1.3\"\n"
+                                                   + "    ]\n"
+                                                   + "  },\n"
+                                                   + "  \"container_repo\": {\n"
+                                                   + "    \"url\": \"https://docker-repo.com\",\n"
+                                                   + "    \"username\": \"user\",\n"
+                                                   + "    \"password\": \"docker\"\n"
+                                                   + "  }\n"
+                                                   + "}";
+
+    private static final String POST_EMPTY_FOLDER_BODY = "{\n"
+                                                         + "  \"name\": \"OnPrem\",\n"
+                                                         + "  \"type\": \"ON_PREM\",\n"
+                                                         + "  \"vcenter\": {\n"
+                                                         + "    \"url\": \"http://vcenter\",\n"
+                                                         + "    \"username\": \"admin\",\n"
+                                                         + "    \"password\": \"password\"\n"
+                                                         + "  },\n"
+                                                         + "  \"resource_pool\": \"pool\",\n"
+                                                         + "  \"storage\": \"datastore\",\n"
+                                                         + "  \"folder\": \"  \",\n"
+                                                         + "  \"network\": {\n"
+                                                         + "    \"name\": \"Network 1\",\n"
+                                                         + "    \"ip_pool\": [\n"
+                                                         + "      \"10.1.1.16-10.1.1.64\",\n"
+                                                         + "      \"10.1.1.100-10.1.1.200\"\n"
+                                                         + "    ],\n"
+                                                         + "    \"gateway\": \"10.1.1.1\",\n"
+                                                         + "    \"subnet\": \"24\",\n"
+                                                         + "    \"name_servers\": [\n"
+                                                         + "      \"10.1.1.3\"\n"
+                                                         + "    ]\n"
+                                                         + "  },\n"
+                                                         + "  \"container_repo\": {\n"
+                                                         + "    \"url\": \"https://docker-repo.com\",\n"
+                                                         + "    \"username\": \"user\",\n"
+                                                         + "    \"password\": \"docker\"\n"
+                                                         + "  }\n"
+                                                         + "}";
+
+    private static final String POST_NO_CONTAINER_BODY = "{\n"
+                                                   + "  \"name\": \"OnPrem\",\n"
+                                                   + "  \"type\": \"ON_PREM\",\n"
+                                                   + "  \"vcenter\": {\n"
+                                                   + "    \"url\": \"http://vcenter\",\n"
+                                                   + "    \"username\": \"admin\",\n"
+                                                   + "    \"password\": \"password\"\n"
+                                                   + "  },\n"
+                                                   + "  \"resource_pool\": \"pool\",\n"
+                                                   + "  \"storage\": \"datastore\",\n"
+                                                   + "  \"folder\": \"folder\",\n"
+                                                   + "  \"network\": {\n"
+                                                   + "    \"name\": \"Network 1\",\n"
+                                                   + "    \"ip_pool\": [\n"
+                                                   + "      \"10.1.1.16-10.1.1.64\",\n"
+                                                   + "      \"10.1.1.100-10.1.1.200\"\n"
+                                                   + "    ],\n"
+                                                   + "    \"gateway\": \"10.1.1.1\",\n"
+                                                   + "    \"subnet\": \"24\",\n"
+                                                   + "    \"name_servers\": [\n"
+                                                   + "      \"10.1.1.3\"\n"
+                                                   + "    ]\n"
                                                    + "  }\n"
                                                    + "}";
 
@@ -345,6 +468,107 @@ class ZoneControllerTest {
                                                    .content(POST_ONPREM_BODY))
                 .andExpect(status().isOk()).andReturn();
     }
+
+    @Test
+    void testSiteNoContainer() throws Exception {
+        // grpc call has a valid return.
+        ValidateOrchestrationSiteResponse r = new ValidateOrchestrationSiteResponse();
+        doAnswer(i -> {
+            StreamObserver ob = i.getArgument(1);
+            ob.onNext(r);
+            ob.onCompleted();
+            return null;
+        })
+                .when(orchestrationClient)
+                .validateOrchestrationSite(any(ValidateOrchestrationSiteRequest.class),
+                                           any(StreamObserver.class));
+        MvcResult result = mockMvc.perform(post("/api/blockchains/zones?action=test")
+                                                   .with(authentication(adminAuth))
+                                                   .contentType(MediaType.APPLICATION_JSON)
+                                                   .content(POST_NO_CONTAINER_BODY))
+                .andExpect(status().isOk()).andReturn();
+    }
+
+    @Test
+    void testSiteNoVcenter() throws Exception {
+        // grpc call has a valid return.
+        ValidateOrchestrationSiteResponse r = new ValidateOrchestrationSiteResponse();
+        doAnswer(i -> {
+            StreamObserver ob = i.getArgument(1);
+            ob.onNext(r);
+            ob.onCompleted();
+            return null;
+        })
+                .when(orchestrationClient)
+                .validateOrchestrationSite(any(ValidateOrchestrationSiteRequest.class),
+                                           any(StreamObserver.class));
+        mockMvc.perform(post("/api/blockchains/zones?action=test")
+                                                   .with(authentication(adminAuth))
+                                                   .contentType(MediaType.APPLICATION_JSON)
+                                                   .content(POST_NO_VCENTER_BODY))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void testSiteNoNetwork() throws Exception {
+        // grpc call has a valid return.
+        ValidateOrchestrationSiteResponse r = new ValidateOrchestrationSiteResponse();
+        doAnswer(i -> {
+            StreamObserver ob = i.getArgument(1);
+            ob.onNext(r);
+            ob.onCompleted();
+            return null;
+        })
+                .when(orchestrationClient)
+                .validateOrchestrationSite(any(ValidateOrchestrationSiteRequest.class),
+                                           any(StreamObserver.class));
+        mockMvc.perform(post("/api/blockchains/zones?action=test")
+                                .with(authentication(adminAuth))
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(POST_NO_NETWORK_BODY))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void testSiteNoFolder() throws Exception {
+        // grpc call has a valid return.
+        ValidateOrchestrationSiteResponse r = new ValidateOrchestrationSiteResponse();
+        doAnswer(i -> {
+            StreamObserver ob = i.getArgument(1);
+            ob.onNext(r);
+            ob.onCompleted();
+            return null;
+        })
+                .when(orchestrationClient)
+                .validateOrchestrationSite(any(ValidateOrchestrationSiteRequest.class),
+                                           any(StreamObserver.class));
+        mockMvc.perform(post("/api/blockchains/zones?action=test")
+                                .with(authentication(adminAuth))
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(POST_NO_FOLDER_BODY))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void testSiteEmptyFolder() throws Exception {
+        // grpc call has a valid return.
+        ValidateOrchestrationSiteResponse r = new ValidateOrchestrationSiteResponse();
+        doAnswer(i -> {
+            StreamObserver ob = i.getArgument(1);
+            ob.onNext(r);
+            ob.onCompleted();
+            return null;
+        })
+                .when(orchestrationClient)
+                .validateOrchestrationSite(any(ValidateOrchestrationSiteRequest.class),
+                                           any(StreamObserver.class));
+        mockMvc.perform(post("/api/blockchains/zones?action=test")
+                                .with(authentication(adminAuth))
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(POST_EMPTY_FOLDER_BODY))
+                .andExpect(status().isBadRequest());
+    }
+
 
     @Test
     void testSiteTestError() throws Exception {
