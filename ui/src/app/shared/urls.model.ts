@@ -37,6 +37,10 @@ export const Apis = {
     return `${this.zones}?action=reload`;
   },
 
+  get zonesTextConnection() {
+    return `${this.zones}?action=test`;
+  },
+
   getReplicas(id: string) {
     return `${this.blockchains}/${id}/replicas`;
   },

@@ -183,13 +183,11 @@ export class BlockchainService {
   }
 
   addOnPremZone(zone: OnPremZone): Observable<Zone> {
-    return this.http.post<OnPremZone>('api/blockchains/zones', zone);
-    // return of(zone).pipe(delay(2000));
+    return this.http.post<OnPremZone>(Apis.zones, zone);
   }
 
   testOnPremZoneConnection(zone: Zone): Observable<Zone> {
-    return this.http.post<OnPremZone>('api/blockchains/zones?action=test', zone);
-    // return of(zone).pipe(delay(2000));
+    return this.http.post<OnPremZone>(Apis.zonesTextConnection, zone);
   }
 
   getZoneLatLong(name: string): Observable<any> {
