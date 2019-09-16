@@ -70,17 +70,22 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
         timing_time_update_.Start();
         TimeRequest tr = request_.time_request();
         TimeSample ts = tr.sample();
-        if (ts.has_source() && ts.has_time() && ts.has_signature()) {
+        if (!(time_->SigningEnabled()) && ts.has_source() && ts.has_time()) {
+          time_->Update(ts.source(), ts.time());
+        } else if (ts.has_source() && ts.has_time() && ts.has_signature()) {
           std::vector<uint8_t> signature(ts.signature().begin(),
                                          ts.signature().end());
-          time_->Update(ts.source(), ts.time(), signature);
+          time_->Update(ts.source(), ts.time(), &signature);
         } else {
           LOG4CPLUS_WARN(
               logger_,
               "Time Sample is missing:"
                   << " [" << (ts.has_source() ? " " : "X") << "] source"
                   << " [" << (ts.has_time() ? " " : "X") << "] time"
-                  << " [" << (ts.has_signature() ? " " : "X") << "] signature");
+                  << (time_->SigningEnabled()
+                          ? (string(" [") + (ts.has_signature() ? " " : "X") +
+                             "] signature")
+                          : ""));
         }
         timing_time_update_.End();
       } else {
@@ -150,8 +155,10 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
           ts->set_source(s.first);
           Timestamp *t = new Timestamp(s.second.time);
           ts->set_allocated_time(t);
-          ts->set_signature(s.second.signature.data(),
-                            s.second.signature.size());
+          if (s.second.signature) {
+            ts->set_signature(s.second.signature->data(),
+                              s.second.signature->size());
+          }
         }
       }
       timing_time_response_.End();

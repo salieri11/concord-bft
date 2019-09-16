@@ -3206,6 +3206,17 @@ void specifyConfiguration(ConcordConfiguration& config) {
   config.addValidator("FEATURE_time_service", validateBoolean, nullptr);
 
   config.declareParameter(
+      "time_signing_enable",
+      "If the time service is enabled with FEATURE_time_service, then "
+      "time_signing_enable controls whether cryptographic signatures will "
+      "be added to time samples to validate they came from the claimed "
+      "source. If the time service is disabled, the time_signing_enable "
+      "parameter is effectively ignored.",
+      "true");
+  config.tagParameter("time_signing_enable", publicDefaultableTags);
+  config.addValidator("time_signing_enable", validateBoolean, nullptr);
+
+  config.declareParameter(
       "eth_enable",
       "Enable Ethereum support. At the moment, DAML/Eth/HLF "
       "support are mutually exclusive.",
