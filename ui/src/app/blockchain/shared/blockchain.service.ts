@@ -193,7 +193,7 @@ export class BlockchainService {
         //     this.router.navigate(['error'], {
         //       queryParams: { error: JSON.stringify(error) }
         //     });
-    
+
         //     return error;
         //   })
         // );
