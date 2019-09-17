@@ -37,32 +37,32 @@ export interface Zone {
 }
 
 export interface OnPremZone extends Zone {
-  folder: string,
-  resource_pool: string,
-  storage: string,
-  vcenter: OnPremVCenter,
-  container_repo: OnPremContainerRepo,
-  network: OnPremNetwork
+  folder: string;
+  resource_pool: string;
+  storage: string;
+  vcenter: OnPremVCenter;
+  container_repo: OnPremContainerRepo;
+  network: OnPremNetwork;
 }
 
 export interface OnPremVCenter {
-  password: string,
-  url: string,
-  username: string
+  password: string;
+  url: string;
+  username: string;
 }
 
 export interface OnPremContainerRepo {
-  password: string,
-  url: string,
-  username: string
+  password: string;
+  url: string;
+  username: string;
 }
 
 export interface OnPremNetwork {
-  gateway: string,
-  name_servers?: [],
-  ip_pool: [],
-  name: string,
-  subnet: string
+  gateway: string;
+  name_servers?: [];
+  ip_pool: [];
+  name: string;
+  subnet: string;
 }
 
 export interface BlockchainMeta {
