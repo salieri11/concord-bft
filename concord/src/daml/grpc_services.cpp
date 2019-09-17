@@ -100,6 +100,10 @@ grpc::Status CommitServiceImpl::CommitTransaction(ServerContext* context,
     return grpc::Status::CANCELLED;
   }
 
+  if (!resp.has_daml_response()) {
+    return grpc::Status::CANCELLED;
+  }
+
   assert(resp.has_daml_response());
   assert(resp.daml_response().has_command_reply());
 

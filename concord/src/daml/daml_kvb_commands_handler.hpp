@@ -61,8 +61,7 @@ class DamlKvbCommandsHandler
       const com::vmware::concord::ConcordRequest& request,
       com::vmware::concord::ConcordResponse& response);
   std::map<string, string> GetFromStorage(
-      const google::protobuf::RepeatedPtrField<com::digitalasset::kvbc::KVKey>&
-          keys);
+      const google::protobuf::RepeatedPtrField<std::string>& keys);
 };
 
 }  // namespace daml

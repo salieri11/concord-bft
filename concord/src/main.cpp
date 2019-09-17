@@ -348,8 +348,9 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
     if (daml_enabled) {
       grpc::ChannelArguments chArgs;
       chArgs.SetMaxReceiveMessageSize(kDamlServerMsgSizeMax);
-      unique_ptr<DamlValidatorClient> daml_validator(
-          new DamlValidatorClient(grpc::CreateCustomChannel(
+      unique_ptr<DamlValidatorClient> daml_validator(new DamlValidatorClient(
+          replicaConsensusConfig.replicaId,
+          grpc::CreateCustomChannel(
               nodeConfig.getValue<string>("daml_execution_engine_addr"),
               grpc::InsecureChannelCredentials(), chArgs)));
       kvb_commands_handler = unique_ptr<ICommandsHandler>(

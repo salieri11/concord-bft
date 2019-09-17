@@ -40,7 +40,7 @@ import io.grpc.ConnectivityState
 @SuppressWarnings(
   Array(
     "org.wartremover.warts.EitherProjectionPartial",
-    "org.wartremover.warts.OptionPartial",
+        "org.wartremover.warts.OptionPartial",
     "org.wartremover.warts.Var"
   ))
 class KVBCParticipantState(
@@ -98,17 +98,13 @@ class KVBCParticipantState(
     val submission: DamlKvutils.DamlSubmission =
       KeyValueSubmission.partyToSubmission(submissionId, Some(party), displayName, participantId)
 
-    val inputStateKeys =
-      submission.getInputDamlStateList.asScala.map((k: DamlKvutils.DamlStateKey) => KVKey(KeyValueCommitting.packDamlStateKey(k)))
-
     val commitReq = CommitRequest(
       submission = Envelope.enclose(submission),
-      inputState = inputStateKeys,
       participantId = participantId.toString
     )
 
-    logger.info(s"Allocating party: party=$party, submissionId=$submissionId, inputStates=${inputStateKeys.size}")
-    
+    logger.info(s"Allocating party: party=$party, submissionId: $submissionId")
+
     client
       .commitTransaction(commitReq)
       .toJava.toCompletableFuture
@@ -144,18 +140,14 @@ class KVBCParticipantState(
     val submission: DamlKvutils.DamlSubmission =
       KeyValueSubmission.archivesToSubmission(submissionId, archives, sourceDescription.getOrElse(""), participantId)
 
-    val inputStateKeys =
-      submission.getInputDamlStateList.asScala.map((k: DamlKvutils.DamlStateKey) => KVKey(KeyValueCommitting.packDamlStateKey(k)))
-
     val envelope = Envelope.enclose(submission)
     val commitReq = CommitRequest(
       submission = envelope,
-      inputState = inputStateKeys,
       participantId = participantId.toString
     )
 
     logger.info(s"""Uploading package(s): packages=[${archives.map(_.getHash).mkString(",")}], submissionId=$submissionId, 
-          |envelopeSize=${envelope.size}, inputStates=${inputStateKeys.size}""".stripMargin.stripLineEnd)
+          |envelopeSize=${envelope.size}""".stripMargin.stripLineEnd)
 
     client
       .commitTransaction(commitReq)
@@ -195,17 +187,12 @@ class KVBCParticipantState(
     val submission =
       KeyValueSubmission.configurationToSubmission(maxRecordTime, submissionId, config)
 
-    val inputStateKeys =
-      submission.getInputDamlStateList.asScala.map((k: DamlKvutils.DamlStateKey) => KVKey(KeyValueCommitting.packDamlStateKey(k)))
-
     val commitReq = CommitRequest(
       submission = Envelope.enclose(submission),
-      inputState = inputStateKeys,
       participantId = participantId.toString
     )
 
-    logger.info(s"""Submit configuration: submissionId=$submissionId, generation=${config.generation}
-                   |inputStates=${inputStateKeys.size}""".stripMargin.stripLineEnd)
+    logger.info(s"Submit configuration: submissionId=$submissionId, generation=${config.generation}")
 
     // FIXME(JM): Properly queue the transactions and execute in sequence from one place.
     client
@@ -242,18 +229,14 @@ class KVBCParticipantState(
         transaction)
 
 
-    val inputStateKeys =
-      submission.getInputDamlStateList.asScala.map((k: DamlKvutils.DamlStateKey) => KVKey(KeyValueCommitting.packDamlStateKey(k)))
-
     val commitReq = CommitRequest(
       submission = Envelope.enclose(submission),
-      inputState = inputStateKeys,
       participantId = participantId.toString
     )
 
     val commandId = submission.getTransactionEntry.getSubmitterInfo.getCommandId
 
-    logger.info(s"Submitting transaction: commandId=$commandId, inputStates=${inputStateKeys.size}")
+    logger.info(s"Submitting transaction: commandId=$commandId")
 
     // FIXME(JM): Properly queue the transactions and execute in sequence from one place.
     client

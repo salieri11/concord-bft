@@ -15,8 +15,10 @@ namespace daml {
 
 class DamlValidatorClient {
  public:
-  DamlValidatorClient(std::shared_ptr<grpc::ChannelInterface> channel)
-      : stub_(com::digitalasset::kvbc::ValidationService::NewStub(channel)) {}
+  DamlValidatorClient(uint16_t replica_id,
+                      std::shared_ptr<grpc::ChannelInterface> channel)
+      : stub_(com::digitalasset::kvbc::ValidationService::NewStub(channel)),
+        replica_id_(replica_id) {}
 
   grpc::Status Validate(
       std::string entryId, std::string submission,
@@ -27,6 +29,7 @@ class DamlValidatorClient {
 
  private:
   std::unique_ptr<com::digitalasset::kvbc::ValidationService::Stub> stub_;
+  uint16_t replica_id_;
 };
 
 }  // namespace daml

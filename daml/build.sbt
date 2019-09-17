@@ -52,6 +52,9 @@ lazy val kvbc_validator = (project in file("kvbc_validator"))
       // Akka
       "com.typesafe.akka" %% "akka-stream" % akkaVersion,
 
+      // Scaffaine, for state cache
+      "com.github.blemale" %% "scaffeine" % "3.1.0",
+
       // Protobuf / grpc
       protobuf,
 

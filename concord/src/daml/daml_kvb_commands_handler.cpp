@@ -51,18 +51,17 @@ bool DamlKvbCommandsHandler::ExecuteRead(const da_kvbc::ReadCommand& request,
 }
 
 std::map<string, string> DamlKvbCommandsHandler::GetFromStorage(
-    const google::protobuf::RepeatedPtrField<da_kvbc::KVKey>& keys) {
+    const google::protobuf::RepeatedPtrField<std::string>& keys) {
   std::map<string, string> result;
-  for (const auto& kv_key : keys) {
+  for (const auto& skey : keys) {
     Value out;
-    Key key = CreateSliver(kv_key.key());
+    Key key = CreateSliver(skey);
     if (storage_.get(key, out).isOK()) {
-      result[kv_key.key()] = string((const char*)out.data(), out.length());
+      result[skey] = string((const char*)out.data(), out.length());
     } else {
       // FIXME(JM): We likely should construct a command rejection from this,
       // for which we again would need the C++ protobuf definitions of kvutils.
-      LOG4CPLUS_ERROR(logger_,
-                      "input '" << kv_key.key() << "' not found in storage!");
+      LOG4CPLUS_ERROR(logger_, "input '" << skey << "' not found in storage!");
     }
   }
   return result;
@@ -90,29 +89,48 @@ bool DamlKvbCommandsHandler::ExecuteCommit(
     LOG4CPLUS_DEBUG(logger_, "Using epoch time " << record_time);
   }
 
-  // Resolve the inputs
-  std::map<string, string> input_state_entries =
-      GetFromStorage(commit_req.input_state());
-
   // Send the submission for validation.
   da_kvbc::ValidateResponse response;
-  grpc::Status status = validator_client_->Validate(
-      entryId, commit_req.submission(), record_time, input_state_entries,
-      commit_req.participant_id(), &response);
+  grpc::Status status =
+      validator_client_->Validate(entryId, commit_req.submission(), record_time,
+                                  std::map<std::string, std::string>(),
+                                  commit_req.participant_id(), &response);
   if (!status.ok()) {
     LOG4CPLUS_ERROR(logger_, "Validation failed " << status.error_code() << ": "
                                                   << status.error_message());
     return false;
   }
 
+  if (response.has_need_state()) {
+    LOG4CPLUS_DEBUG(logger_, "Validator requested input state");
+    // The submission failed due to missing input state, retrieve the inputs and
+    // retry.
+    std::map<string, string> input_state_entries =
+        GetFromStorage(response.need_state().keys());
+    validator_client_->Validate(entryId, commit_req.submission(), record_time,
+                                input_state_entries,
+                                commit_req.participant_id(), &response);
+    if (!status.ok()) {
+      LOG4CPLUS_ERROR(logger_, "Validation failed " << status.error_code()
+                                                    << ": "
+                                                    << status.error_message());
+      return false;
+    }
+  }
+
+  if (!response.has_result()) {
+    LOG4CPLUS_ERROR(logger_, "Validation missing result!");
+    return false;
+  }
+
   // Insert the DAML log entry into the store.
-  auto logEntry = response.log_entry();
+  auto logEntry = response.result().log_entry();
   updates.insert(KeyValuePair(CreateSliver(entryId), CreateSliver(logEntry)));
 
   // Insert the DAML state updates into the store.
   // Currently just using the serialization of the DamlStateKey as the key
   // without any prefix.
-  for (auto kv : response.state_updates()) {
+  for (auto kv : response.result().state_updates()) {
     updates.insert(
         KeyValuePair(CreateSliver(kv.key()), CreateSliver(kv.value())));
   }

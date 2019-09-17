@@ -17,6 +17,7 @@ grpc::Status DamlValidatorClient::Validate(
   da_kvbc::ValidateRequest req;
   req.set_submission(submission);
   req.set_entry_id(entryId);
+  req.set_replica_id(replica_id_);
   req.set_participant_id(participant_id);
   *req.mutable_record_time() = record_time;
 

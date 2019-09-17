@@ -20,11 +20,31 @@ message ValidateRequest {
   bytes entry_id = 1;
   bytes submission = 2;
   google.protobuf.Timestamp record_time = 3;
+
+  // Optional input state. If insufficient the response results in 'NeedState'.
   repeated KeyValuePair input_state = 4;
   string participant_id = 5;
+
+  // The Concord replica that sent this message. Used to maintain separate
+  // state caches on the validator for setups that use single validator for multiple
+  // replicas (e.g. during development)
+  int64 replica_id = 6;
 }
 
-message ValidateResponse {
+message Result {
   bytes log_entry = 1;
   repeated KeyValuePair state_updates = 2;
 }
+
+message NeedState {
+  repeated bytes keys = 1;
+}
+
+message ValidateResponse {
+  oneof response {
+    Result result = 1;
+    NeedState need_state = 2;
+  }
+}
+
+
