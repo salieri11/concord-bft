@@ -1,5 +1,6 @@
 <form *ngIf="form" [formGroup]="form" class="clr-form-horizontal">
-  <clr-wizard #wizard clrWizardSize="lg" [(clrWizardOpen)]="isOpen" (clrWizardOnFinish)="onSubmit()" (clrWizardOnCancel)="resetFragment()" class="blockchain-wizard extra-wide">
+  <clr-wizard #wizard clrWizardSize="lg" [(clrWizardOpen)]="isOpen" (clrWizardOnFinish)="onSubmit()"
+    (clrWizardOnCancel)="resetFragment()" class="blockchain-wizard extra-wide">
     <clr-wizard-title>{{'blockchainWizard.title' | translate}}</clr-wizard-title>
     <clr-wizard-button [type]="'cancel'">{{'common.cancel' | translate}}</clr-wizard-button>
     <clr-wizard-button [type]="'previous'">{{'common.back' | translate}}</clr-wizard-button>
@@ -10,7 +11,8 @@
       <ng-template clrPageNavTitle>{{'blockchainWizard.engine.navTitle' | translate}}</ng-template>
       <div class="clr-row">
         <div class="clr-col-12">
-          <div class="card clickable sideways" (click)="selectEngine(engines.DAML)" [ngClass]="{'active': selectedEngine === engines.DAML}">
+          <div class="card clickable sideways" (click)="selectEngine(engines.DAML)"
+            [ngClass]="{'active': selectedEngine === engines.DAML}">
             <div class="card-icon">
               <img src="static/images/contract-types/daml.svg">
             </div>
@@ -23,7 +25,8 @@
       </div>
       <div class="clr-row">
         <div class="clr-col-12">
-          <div class="card clickable sideways" (click)="selectEngine(engines.ETH)" [ngClass]="{'active': selectedEngine === engines.ETH}">
+          <div class="card clickable sideways" (click)="selectEngine(engines.ETH)"
+            [ngClass]="{'active': selectedEngine === engines.ETH}">
             <div class="card-icon">
               <img src="static/images/contract-types/eth.svg">
             </div>
@@ -34,7 +37,7 @@
           </div>
         </div>
       </div>
-<!--      <div class="clr-row">
+      <!--      <div class="clr-row">
         <div class="clr-col-12">
           <div class="card clickable sideways" (click)="selectEngine(engines.HLF)" [ngClass]="{'active': selectedEngine === engines.HLF}">
             <div class="card-icon">
@@ -48,21 +51,30 @@
         </div>
       </div> -->
     </clr-wizard-page>
+
     <clr-wizard-page #detailPage formGroupName="details" [clrWizardPageNextDisabled]="form.controls.details.invalid">
       <ng-template clrPageTitle>{{'blockchainWizard.details.pageTitle' | translate}}</ng-template>
       <ng-template clrPageNavTitle>{{'blockchainWizard.details.navTitle' | translate}}</ng-template>
       <div clrForm class="form-block detail-form">
         <clr-input-container>
-          <label class="clr-col-12 clr-col-md-4" for="consortiumName">{{'blockchainWizard.common.consortiumName' | translate}}</label>
-          <input clrInput #consortiumInput id="consortiumName" type="text" formControlName="consortium_name" class="form-control clr-col-12 clr-col-md-8" size="43" [placeholder]="'blockchainWizard.details.consortiumPlaceholder' | translate">
+          <label class="clr-col-12 clr-col-md-4"
+            for="consortiumName">{{'blockchainWizard.common.consortiumName' | translate}}</label>
+          <input clrInput #consortiumInput id="consortiumName" type="text" formControlName="consortium_name"
+            class="form-control clr-col-12 clr-col-md-8" size="43"
+            [placeholder]="'blockchainWizard.details.consortiumPlaceholder' | translate">
         </clr-input-container>
         <clr-textarea-container>
-          <label class="clr-col-12 clr-col-md-4" for="consortiumName">{{'blockchainWizard.common.consortiumDescription' | translate}}</label>
-          <textarea clrTextarea formControlName="consortium_desc" class="clr-col-12 clr-col-md-8" rows="4" [placeholder]="'blockchainWizard.details.consortiumPlaceholder' | translate"></textarea>
+          <label class="clr-col-12 clr-col-md-4"
+            for="consortiumName">{{'blockchainWizard.common.consortiumDescription' | translate}}</label>
+          <textarea clrTextarea formControlName="consortium_desc" class="clr-col-12 clr-col-md-8" rows="4"
+            [placeholder]="'blockchainWizard.details.consortiumPlaceholder' | translate"></textarea>
         </clr-textarea-container>
       </div>
     </clr-wizard-page>
-    <clr-wizard-page #onPremPage  *ngIf="showOnPrem" [clrWizardPageNextDisabled]="onPremForm.form.controls?.onPrem.invalid || onPremForm.form.controls?.onPremLocation.invalid" (clrWizardPageOnCommit)="submitOnPrem()" (clrWizardPageOnCancel)="doCancel()" clrWizardPagePreventDefault="true">
+
+    <clr-wizard-page #onPremPage *ngIf="showOnPrem"
+      [clrWizardPageNextDisabled]="onPremForm.form.controls?.onPrem.invalid || onPremForm.form.controls?.onPremLocation.invalid"
+      (clrWizardPageOnCommit)="submitOnPrem()" (clrWizardPageOnCancel)="doCancel()" clrWizardPagePreventDefault="true">
       <ng-template clrPageTitle>{{'onPrem.pageTitle' | translate}}</ng-template>
       <ng-template clrPageNavTitle>{{'onPrem.navTitle' | translate}}</ng-template>
       <div class="spinner" *ngIf="loadingFlag">
@@ -70,15 +82,20 @@
       </div>
       <concord-on-premises-form #onPremForm></concord-on-premises-form>
       <div class="divider"></div>
-      <button class="btn btn-outline-danger btn-sm cancel-on-prem" (click)="cancelOnPremAdd()">{{ 'onPrem.cancel' | translate }}</button>
+      <button class="btn btn-outline-danger btn-sm cancel-on-prem"
+        (click)="cancelOnPremAdd()">{{ 'onPrem.cancel' | translate }}</button>
     </clr-wizard-page>
-    <clr-wizard-page #replicaPage formGroupName="nodes" [clrWizardPageNextDisabled]="!form.controls.nodes.errors?.countIsCorrect">
+
+    <clr-wizard-page #replicaPage formGroupName="nodes"
+      [clrWizardPageNextDisabled]="!form.controls.nodes.errors?.countIsCorrect">
       <ng-template clrPageTitle>{{'blockchainWizard.nodes.pageTitle' | translate}}</ng-template>
       <ng-template clrPageNavTitle>{{'blockchainWizard.nodes.navTitle' | translate}}</ng-template>
       <div clrForm class="form-block blockchain-form nodes">
         <clr-select-container>
-          <label class="clr-col-12 clr-col-md-4" for="numberOfNodes">{{'blockchainWizard.common.numberOfNodes' | translate}}</label>
-          <select clrSelect formControlName="numberOfNodes" class="clr-col-12 clr-col-md-8" (change)="distributeZones()">
+          <label class="clr-col-12 clr-col-md-4"
+            for="numberOfNodes">{{'blockchainWizard.common.numberOfNodes' | translate}}</label>
+          <select clrSelect formControlName="numberOfNodes" class="clr-col-12 clr-col-md-8"
+            (change)="distributeZones()">
             <option *ngFor="let num of numbersOfNodes" [ngValue]="num">{{num}}
             </option>
           </select>
@@ -99,7 +116,7 @@
           </clr-input-container>
         </div>
         <div class="divider"></div>
-<!--         <clr-alert [clrAlertClosable]="false">
+        <!--         <clr-alert [clrAlertClosable]="false">
           <clr-alert-item>
             <span class="alert-text">
               {{'blockchainWizard.nodes.onPremInfo' | translate}}
@@ -109,6 +126,7 @@
         <!-- <button class="btn btn-outline btn-danger add-on-prem btn-sm" (click)="addOnPrem()">{{ 'blockchainWizard.nodes.add' | translate }}</button> -->
       </div>
     </clr-wizard-page>
+
     <clr-wizard-page>
       <ng-template clrPageTitle>{{'blockchainWizard.reviewDeployment.pageTitle' | translate}}</ng-template>
       <ng-template clrPageNavTitle>{{'blockchainWizard.reviewDeployment.navTitle' | translate}}</ng-template>

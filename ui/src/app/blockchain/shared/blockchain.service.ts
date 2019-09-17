@@ -44,6 +44,7 @@ export class BlockchainService {
     private http: HttpClient,
     private consortiumService: ConsortiumService,
     private translateService: TranslateService,
+    private router: Router
   ) { }
 
   deploy(params: BlockchainRequestParams): Observable<any> {
@@ -110,7 +111,7 @@ export class BlockchainService {
 
           return this.blockchains;
         }),
-        flatMap(() => this.select(bId))
+        flatMap(() => this.select(bId ? bId : this.blockchainId))
       );
   }
 
@@ -182,8 +183,28 @@ export class BlockchainService {
       );
   }
 
-  addOnPremZone(zone: OnPremZone): Observable<Zone> {
-    return this.http.post<OnPremZone>(Apis.zones, zone);
+  addOnPremZone(zone: OnPremZone): Observable<any> {
+    return this.http.post<OnPremZone>(Apis.zones, zone).pipe(
+      map(onPremZone => {
+        this.zones.push(onPremZone);
+
+        // refresh store when a new zone is added
+        this.set(null).pipe(
+          catchError(error => {
+            this.router.navigate(['error'], {
+              queryParams: { error: JSON.stringify(error) }
+            });
+    
+            return error;
+          })
+        );
+
+        return onPremZone;
+      }),
+      catchError(error => {
+        return error.message;
+      })
+    );
   }
 
   testOnPremZoneConnection(zone: Zone): Observable<Zone> {
@@ -193,24 +214,24 @@ export class BlockchainService {
   getZoneLatLong(name: string): Observable<any> {
     const params = new HttpParams().set(
       'key', '349062d268624582b19e6a25d8a3fd60').set(
-      'q', name);
+        'q', name);
 
     // const params = {};
-    return this.http.get('/geo', {params: params}).pipe(
-        // @ts-ignore
-        map<{results: any[]}>(locations => {
-          const newLocations = [];
+    return this.http.get('/geo', { params: params }).pipe(
+      // @ts-ignore
+      map<{ results: any[] }>(locations => {
+        const newLocations = [];
 
-          locations.results.forEach(loc => {
-            newLocations.push({
-              displayValue: loc.formatted,
-              value: `${loc.formatted} -- ${loc.geometry.lat} -- ${loc.geometry.lng}`,
-            });
+        locations.results.forEach(loc => {
+          newLocations.push({
+            displayValue: loc.formatted,
+            value: `${loc.formatted}`,
           });
+        });
 
-          return newLocations;
-        })
-      );
+        return newLocations;
+      })
+    );
   }
 
   isUUID(uuid: string): boolean {
@@ -245,7 +266,7 @@ export class BlockchainResolver implements Resolve<boolean> {
 }
 
 export class BlockchainsServiceMock {
-  public notify = new BehaviorSubject({message: '', type: ''});
+  public notify = new BehaviorSubject({ message: '', type: '' });
   public selectedBlockchain = {
     consortium_id: 1
   };

@@ -15,22 +15,22 @@
       </clr-alert-item>
     </clr-alert>
 
-    <div formGroupName="vCenter">
-      <h6>{{'onPrem.vCenter.title' | translate}}</h6>
+    <div formGroupName="vcenter">
+      <h6>{{'onPrem.vcenter.title' | translate}}</h6>
       <clr-input-container>
-        <label class="clr-col-12 clr-col-md-4">{{ 'onPrem.vCenter.url' | translate }}</label>
-        <input #ipInput clrInput type="text" [placeholder]="'onPrem.vCenter.urlPH' | translate"
+        <label class="clr-col-12 clr-col-md-4">{{ 'onPrem.vcenter.url' | translate }}</label>
+        <input #ipInput clrInput type="text" [placeholder]="'onPrem.vcenter.urlPH' | translate"
           class="clr-col-12 clr-col-md-6" formControlName="url" />
-        <clr-control-error>{{ 'onPrem.vCenter.urlError' | translate }}</clr-control-error>
+        <clr-control-error>{{ 'onPrem.vcenter.urlError' | translate }}</clr-control-error>
       </clr-input-container>
       <clr-input-container>
-        <label class="clr-col-12 clr-col-md-4">{{ 'onPrem.vCenter.username' | translate }}</label>
-        <input clrInput type="text" [placeholder]="'onPrem.vCenter.usernamePH' | translate"
+        <label class="clr-col-12 clr-col-md-4">{{ 'onPrem.vcenter.username' | translate }}</label>
+        <input clrInput type="text" [placeholder]="'onPrem.vcenter.usernamePH' | translate"
           class="clr-col-12 clr-col-md-6" formControlName="username" />
         <clr-control-error>{{ 'common.requiredValidationMessage' | translate }}</clr-control-error>
       </clr-input-container>
       <clr-input-container>
-        <label class="clr-col-12 clr-col-md-4">{{ 'onPrem.vCenter.password' | translate }}</label>
+        <label class="clr-col-12 clr-col-md-4">{{ 'onPrem.vcenter.password' | translate }}</label>
         <input clrInput type="password" class="clr-col-12 clr-col-md-6" formControlName="password" />
         <clr-control-error>{{ 'common.requiredValidationMessage' | translate }}</clr-control-error>
       </clr-input-container>

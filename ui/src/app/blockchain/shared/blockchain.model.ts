@@ -40,7 +40,7 @@ export interface OnPremZone extends Zone {
   folder: string,
   resource_pool: string,
   storage: string,
-  vCenter: OnPremVCenter,
+  vcenter: OnPremVCenter,
   container_repo: OnPremContainerRepo,
   network: OnPremNetwork
 }

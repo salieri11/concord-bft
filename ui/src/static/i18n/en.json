@@ -880,7 +880,7 @@
     "pageTitle": "Add On Premises Region",
     "name": "Zone Designation",
     "namePH": "A",
-    "vCenter": {
+    "vcenter": {
       "title": "vCenter",
       "url": "URL",
       "urlError": "Please add a valid url.",

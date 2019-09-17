@@ -109,7 +109,7 @@ export class BlockchainWizardComponent implements AfterViewInit {
     const zones = this.form.controls.nodes['controls'].zones.value;
     let zoneIds = [];
     // Create an array of zone ids for each deployed node instance.
-    Object.keys(zones).forEach(zoneId => zoneIds = zoneIds.concat(Array(zones[zoneId]).fill(zoneId)));
+    Object.keys(zones).forEach(zoneId => zoneIds = zoneIds.concat(Array(Number(zones[zoneId])).fill(zoneId)));
     params.zone_ids = zoneIds;
 
     this.blockchainService.deploy(params).subscribe(response => {
