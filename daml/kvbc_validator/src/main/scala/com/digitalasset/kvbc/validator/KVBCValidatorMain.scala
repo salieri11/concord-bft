@@ -25,7 +25,7 @@ class KVBCValidatorServer(executionContext: ExecutionContext) {
       .addService(ValidationServiceGrpc.bindService(new KVBCValidator, executionContext))
       .maxInboundMessageSize(ledgerInboundMessageSizeMax)
       .build.start
-    logger.info("Server started, listening on " + port)
+    logger.info("Server started: port=" + port)
     sys.addShutdownHook {
       System.err.println("Shutting down...")
       stop()

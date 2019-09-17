@@ -79,9 +79,9 @@ class KVBCValidator extends ValidationServiceGrpc.ValidationService {
       participantId = Ref.LedgerString.assertFromString(request.participantId),
       inputState = inputState)
 
-    logger.info(s"Submission validated, entryId: ${request.entryId.toStringUtf8}, " +
-      s"participantId: ${request.participantId}, inputStates: ${inputState.size}, stateUpdates: ${stateUpdates.size}," +
-      s"resultPayload: ${logEntry.getPayloadCase.toString}")
+    logger.info(s"Submission validated: entryId=${request.entryId.toStringUtf8}, " +
+      s"participantId=${request.participantId}, inputStates=${inputState.size}, stateUpdates=${stateUpdates.size}," +
+      s"resultPayload=${logEntry.getPayloadCase.toString}")
 
       val outKeyPairs = stateUpdates
           .toArray
