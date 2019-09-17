@@ -115,6 +115,11 @@ public class VmbcTokenValidatorTests {
         Assertions.assertNotNull(userInfo);
         Assertions.assertEquals("vmc_testuser2_dev", userInfo.getUsername());
         Assertions.assertEquals(orgId, userInfo.getOrgId());
+        // VB-1630: Update chains was null
+        Assertions.assertNotNull(userInfo.getAccessChains());
+        Assertions.assertNotNull(userInfo.getUpdateChains());
+        Assertions.assertNotNull(userInfo.getAccessConsortiums());
+        Assertions.assertNotNull(userInfo.getUpdateConsortiums());
         List<GrantedAuthority> expectedRoles = Arrays.asList(Roles.CSP_ORG_OWNER, Roles.ORG_USER);
         List<GrantedAuthority> actualRoles = new ArrayList<GrantedAuthority>(userInfo.getAuthorities());
         Assertions.assertEquals(expectedRoles, actualRoles);

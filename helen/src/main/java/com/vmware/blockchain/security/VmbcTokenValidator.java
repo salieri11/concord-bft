@@ -128,6 +128,7 @@ public class VmbcTokenValidator implements TokenValidator {
                             .map(blockchainService::listByConsortium)
                             .flatMap(c -> c.stream())
                             .map(b -> b.getId()).distinct().collect(Collectors.toList());
+            userInfo.setUpdateChains(updateChains);
             // Check for presence of OrgId from the GAZ auth Token.
             logger.debug("Org {} in jwt for the user {}", userInfo.getOrgId(), userInfo.getUsername());
             return userInfo;
