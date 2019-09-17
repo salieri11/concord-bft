@@ -201,7 +201,7 @@ public class ReplicaController {
      * Get the list of replicas, and their status.
      */
     @RequestMapping(method = RequestMethod.GET, path = {"/replicas"})
-    @PreAuthorize("@authHelper.canUpdateChain(#bid)")
+    @PreAuthorize("@authHelper.canAccessChain(#bid)")
     public ResponseEntity<Collection<ReplicaGetResponse>> getReplicas(@PathVariable UUID bid) throws Exception {
         List<Replica> replicas = blockchainService.getReplicas(bid);
         if (replicas.isEmpty()) {
