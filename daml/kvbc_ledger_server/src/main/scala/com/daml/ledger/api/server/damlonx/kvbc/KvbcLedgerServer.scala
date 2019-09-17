@@ -27,7 +27,7 @@ object KvbcLedgerServer extends App {
   implicit val materializer = ActorMaterializer(
     ActorMaterializerSettings(system)
       .withSupervisionStrategy { e =>
-        logger.error(s"Supervision caught exception: $e")
+        logger.error(s"Supervision caught an exception $e")
         Supervision.Stop
       })
 
