@@ -366,9 +366,9 @@
     "title": "Organizations",
     "paginationSummary": "{{start}} - {{finish}} of {{total}} orgs",
     "columns": {
-      "name":  "Name",
+      "name": "Name",
       "domain": "Domain",
-      "type":  "Type",
+      "type": "Type",
       "created": "Created On"
     },
     "actions": {
@@ -782,7 +782,7 @@
     }
   },
   "examples": {
-    "title" : "Samples",
+    "title": "Samples",
     "subTitle": "Choose dApp",
     "alert": "This application is already deployed, click links below to either open or redeploy.",
     "deploy": "Deploy",
@@ -790,12 +790,12 @@
     "redeploy": "Redeploy",
     "loading": "Deploying dApp",
     "source": "View Source",
-    "supply_chain" : {
+    "supply_chain": {
       "title": "Supply Chain",
       "dappName": "Supply Chain",
       "dappDesc": "This is a sample supply chain application that covers contract permissions, versioning and document storage."
     },
-    "asset_transfer" : {
+    "asset_transfer": {
       "title": "Asset Transfer",
       "dappName": "Asset Transfer",
       "dappDesc": "This is a simple smart contract example of compiling and deploying with solidity and web3."
@@ -866,7 +866,6 @@
       "users": "Users"
     }
   },
-
   "deployLoader": {
     "first": "Creating VM's...",
     "second": "Deploying concord replicas...",
@@ -881,23 +880,50 @@
     "pageTitle": "Add On Premises Region",
     "name": "Zone Designation",
     "namePH": "A",
-    "ip": "IP",
-    "ipError": "Please add a valid url.",
-    "ipPH": "https://0.0.0.0",
-    "username": "Username",
-    "usernamePH": "admin@onprem",
-    "password": "Password",
-    "compNetwork": "Compute Network",
-    "compNetworkPH": "My Network",
+    "vcenter": {
+      "title": "vCenter",
+      "url": "URL",
+      "urlError": "Please add a valid url.",
+      "urlPH": "https://<endpoint>",
+      "username": "Username",
+      "usernamePH": "admin@onprem",
+      "password": "Password"
+    },
     "resourcePool": "Resource Pool",
     "resourcePoolPH": "My Resource",
+    "storage": "Storage",
+    "storagePH": "My Storage",
     "folder": "Folder",
-    "folderPH": "/folder",
+    "folderPH": "Folder",
+    "network": {
+      "title": "Network",
+      "compNetwork": "Compute Network",
+      "compNetworkPH": "My Network name",
+      "gatewayIp": "Gateway IP",
+      "gatewayIpPH": "e.g. 10.1.1.254",
+      "subnet": "Subnet",
+      "subnetPH": "e.g. 24",
+      "nameServers": "Name Servers",
+      "nameServersPH": "List of IP addresses",
+      "ipPool": "IP Pool",
+      "ipPoolPH": "List of IP ranges"
+    },
     "onPremConnSucc": "Connection successful to your on premises vCenter.",
     "addedSuccessfully": "On premises region added successfully.  You can now deploy a consortium to this region or add another on premises region.",
+    "containerReg": {
+      "title": "Container Registry",
+      "url": "URL",
+      "urlError": "Please add a valid url.",
+      "urlPH": "https://<endpoint>",
+      "username": "Username",
+      "usernamePH": "admin@onprem",
+      "password": "Password"
+    },
     "location": "Location",
     "locationPH": "Palo Alto, CA, USA",
-    "cancel": "Cancel On Premises"
+    "cancel": "Cancel On Premises",
+    "ipError": "Please enter a valid IP address",
+    "listIpsError": "Please enter a valid list if IP addresses"
   },
   "mockTasks": {
     "creatingOrg": "Creating Organizations",
@@ -928,7 +954,7 @@
     "smartContracts": {
       "manageSmartContracts": {
         "title": "Manage Smart contracts",
-        "text":  "This is where you can manage and view your smart contracts as well as other smart contracts submitted by members of your consortium."
+        "text": "This is where you can manage and view your smart contracts as well as other smart contracts submitted by members of your consortium."
       },
       "createSmartContract": {
         "title": "Deploy",

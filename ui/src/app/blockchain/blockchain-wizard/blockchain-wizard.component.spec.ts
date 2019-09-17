@@ -16,6 +16,7 @@ import { BlockchainService, BlockchainsServiceMock } from '../shared/blockchain.
 
 import { OnPremisesFormComponent } from '../on-premises-form/on-premises-form.component';
 import { OnPremisesModalComponent } from '../on-premises-modal/on-premises-modal.component';
+import { ZoneType } from '../shared/blockchain.model';
 
 describe('BlockchainWizardComponent', () => {
   let component: BlockchainWizardComponent;
@@ -75,23 +76,27 @@ describe('BlockchainWizardComponent', () => {
         name: 'US West - Oregon',
         id: 'us-west',
         latitude: 0,
-        longitude: 0
+        longitude: 0,
+        type: ZoneType.VMC_AWS
       }, {
         name: 'US East - N Virginia',
         id: 'us-east',
         latitude: 0,
-        longitude: 0
+        longitude: 0,
+        type: ZoneType.VMC_AWS
       }, {
         name: 'EMEA - Frankfurt',
         id: 'emea',
         latitude: 0,
-        longitude: 0
+        longitude: 0,
+        type: ZoneType.VMC_AWS
       },
       {
         name: 'Pacific - Sydney',
         id: 'pacific',
         latitude: 0,
-        longitude: 0
+        longitude: 0,
+        type: ZoneType.VMC_AWS
       }];
 
       const zones = component.form.controls.nodes['controls'].zones;

@@ -18,7 +18,7 @@ import { PersonaService } from '../../shared/persona.service';
 import { BlockchainService } from '../shared/blockchain.service';
 import { BlockchainRequestParams, Zone, ContractEngines } from '../shared/blockchain.model';
 import { OnPremisesFormComponent } from '../on-premises-form/on-premises-form.component';
-
+import { ZoneType } from '../shared/blockchain.model';
 
 const RegionCountValidator: ValidatorFn = (fg: FormGroup): ValidationErrors | null => {
   const nodes = fg['controls'].numberOfNodes.value;
@@ -65,7 +65,10 @@ export class BlockchainWizardComponent implements AfterViewInit {
     private router: Router,
     private blockchainService: BlockchainService
   ) {
-    this.zones = this.blockchainService.zones;
+    const isOnPremZone = this.blockchainService.zones.some(zone => zone.type === ZoneType.ON_PREM);
+    this.zones = isOnPremZone ?
+      this.blockchainService.zones.filter((zone) => zone.type === ZoneType.ON_PREM) :
+      this.blockchainService.zones;
     this.form = this.initForm();
   }
 
@@ -106,7 +109,7 @@ export class BlockchainWizardComponent implements AfterViewInit {
     const zones = this.form.controls.nodes['controls'].zones.value;
     let zoneIds = [];
     // Create an array of zone ids for each deployed node instance.
-    Object.keys(zones).forEach(zoneId => zoneIds = zoneIds.concat(Array(zones[zoneId]).fill(zoneId)));
+    Object.keys(zones).forEach(zoneId => zoneIds = zoneIds.concat(Array(Number(zones[zoneId])).fill(zoneId)));
     params.zone_ids = zoneIds;
 
     this.blockchainService.deploy(params).subscribe(response => {

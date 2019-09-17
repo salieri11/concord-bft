@@ -7,7 +7,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { Resolve, ActivatedRouteSnapshot } from '@angular/router';
 import { Observable, from, timer, zip, of, throwError } from 'rxjs';
-import { concatMap, filter, map, take, flatMap, catchError, delay } from 'rxjs/operators';
+import { concatMap, filter, map, take, flatMap, catchError } from 'rxjs/operators';
 import { BehaviorSubject } from 'rxjs';
 import { TranslateService } from '@ngx-translate/core';
 
@@ -16,6 +16,7 @@ import {
   BlockchainRequestParams,
   BlockchainResponse,
   Zone,
+  OnPremZone,
   BlockchainMeta,
   DeployStates,
   fakeZones,
@@ -42,7 +43,7 @@ export class BlockchainService {
   constructor(
     private http: HttpClient,
     private consortiumService: ConsortiumService,
-    private translateService: TranslateService,
+    private translateService: TranslateService
   ) { }
 
   deploy(params: BlockchainRequestParams): Observable<any> {
@@ -109,7 +110,7 @@ export class BlockchainService {
 
           return this.blockchains;
         }),
-        flatMap(() => this.select(bId))
+        flatMap(() => this.select(bId ? bId : this.blockchainId))
       );
   }
 
@@ -181,37 +182,56 @@ export class BlockchainService {
       );
   }
 
-  addOnPremZone(zone: Zone): Observable<Zone> {
-    return of(zone).pipe(delay(2000));
+  addOnPremZone(zone: OnPremZone): Observable<any> {
+    return this.http.post<OnPremZone>(Apis.zones, zone).pipe(
+      map(onPremZone => {
+        this.zones.push(onPremZone);
+
+        // TODO - refresh store when a new zone is added
+        // this.set(null).pipe(
+        //   catchError(error => {
+        //     this.router.navigate(['error'], {
+        //       queryParams: { error: JSON.stringify(error) }
+        //     });
+
+        //     return error;
+        //   })
+        // );
+
+        return onPremZone;
+      }),
+      catchError(error => {
+        return error.message;
+      })
+    );
   }
 
   testOnPremZoneConnection(zone: Zone): Observable<Zone> {
-    return of(zone).pipe(delay(2000));
+    return this.http.post<OnPremZone>(Apis.zonesTextConnection, zone);
   }
 
   getZoneLatLong(name: string): Observable<any> {
     const params = new HttpParams().set(
       'key', '349062d268624582b19e6a25d8a3fd60').set(
-      'q', name);
+        'q', name);
 
     // const params = {};
-    return this.http.get('/geo', {params: params}).pipe(
-        // @ts-ignore
-        map<{results: any[]}>(locations => {
-          const newLocations = [];
+    return this.http.get('/geo', { params: params }).pipe(
+      // @ts-ignore
+      map<{ results: any[] }>(locations => {
+        const newLocations = [];
 
-          locations.results.forEach(loc => {
-            newLocations.push({
-              displayValue: loc.formatted,
-              value: `${loc.formatted} -- ${loc.geometry.lat} -- ${loc.geometry.lng}`,
-            });
+        locations.results.forEach(loc => {
+          newLocations.push({
+            displayValue: loc.formatted,
+            value: `${loc.formatted}`,
           });
+        });
 
-          return newLocations;
-        })
-      );
+        return newLocations;
+      })
+    );
   }
-
 
   isUUID(uuid: string): boolean {
     return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(uuid);
@@ -245,7 +265,7 @@ export class BlockchainResolver implements Resolve<boolean> {
 }
 
 export class BlockchainsServiceMock {
-  public notify = new BehaviorSubject({message: '', type: ''});
+  public notify = new BehaviorSubject({ message: '', type: '' });
   public selectedBlockchain = {
     consortium_id: 1
   };

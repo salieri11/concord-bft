@@ -15,9 +15,9 @@ export class AgreementGuard implements CanActivate {
   env = environment;
 
   constructor(private router: Router,
-              private authenticationService: AuthenticationService,
-              private errorService: ErrorAlertService,
-              private translateService: TranslateService) {
+    private authenticationService: AuthenticationService,
+    private errorService: ErrorAlertService,
+    private translateService: TranslateService) {
   }
 
   canActivate(route: ActivatedRouteSnapshot, state: RouterStateSnapshot): any {
