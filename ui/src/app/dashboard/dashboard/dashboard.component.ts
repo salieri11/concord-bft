@@ -135,7 +135,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
       headers: ['nodes.hostname', 'nodes.address', 'nodes.health'],
       displayProperties: ['name', 'public_ip', 'healthHTML'],
       tableHeader: 'nodes.nodes',
-      paginationSummary: 'nodes.paginationSummary'
+      paginationSummary: 'nodes.paginationSummary',
+      tourAnchor: 'onboardingTour.nodes'
     };
   }
 
@@ -144,7 +145,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
       headers: ['organization.columns.name'],
       displayProperties: ['organization_name'],
       tableHeader: 'organization.title',
-      paginationSummary: 'organization.paginationSummary'
+      paginationSummary: 'organization.paginationSummary',
+      tourAnchor: 'onboardingTour.organization'
     };
   }
 
@@ -156,7 +158,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
       itemLink: (block) => {
         return [`/${this.blockchainId}`, 'blocks', block.number];
       },
-      paginationSummary: 'blocks.paginationSummary'
+      paginationSummary: 'blocks.paginationSummary',
+      tourAnchor: 'onboardingTour.blocks'
     };
   }
 
@@ -168,7 +171,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
       itemLink: (contract) => {
         return [`/${this.blockchainId}`, 'smart-contracts', contract.contract_id];
       },
-      paginationSummary: 'smartContracts.paginationSummary'
+      paginationSummary: 'smartContracts.paginationSummary',
+      tourAnchor: 'onboardingTour.smartContracts'
     };
   }
 
