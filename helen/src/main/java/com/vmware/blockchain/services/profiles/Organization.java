@@ -4,10 +4,11 @@
 
 package com.vmware.blockchain.services.profiles;
 
+import java.util.Map;
+
 import com.vmware.blockchain.dao.AbstractEntity;
 import com.vmware.blockchain.dao.EntityColumnName;
 
-import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
@@ -18,10 +19,14 @@ import lombok.NoArgsConstructor;
 @EntityColumnName("helen.organization")
 @Data
 @EqualsAndHashCode(callSuper = true)
-@AllArgsConstructor
 @NoArgsConstructor
 public class Organization extends AbstractEntity {
 
     private String organizationName;
 
+    private Map<String, String> organizationProperties;
+
+    public Organization(String organizationName) {
+        this.organizationName = organizationName;
+    }
 }

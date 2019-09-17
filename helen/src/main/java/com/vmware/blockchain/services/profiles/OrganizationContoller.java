@@ -5,6 +5,7 @@
 package com.vmware.blockchain.services.profiles;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -36,11 +37,13 @@ public class OrganizationContoller {
     static class OrgGetResponse {
         UUID orgId;
         String organizationName;
+        Map<String, String> organizationProperties;
     }
 
     @Data
     static class OrgPostBody {
         String organizationName;
+        Map<String, String> organizationProperties;
     }
 
     @Autowired
@@ -56,7 +59,8 @@ public class OrganizationContoller {
     @PreAuthorize("@authHelper.isSystemAdmin()")
     public ResponseEntity<List<OrgGetResponse>> listOrgs() {
         List<Organization> orgs = orgService.list();
-        List<OrgGetResponse> rList = orgs.stream().map(o -> new OrgGetResponse(o.getId(), o.getOrganizationName()))
+        List<OrgGetResponse> rList = orgs.stream().map(o -> new OrgGetResponse(o.getId(), o.getOrganizationName(),
+                o.getOrganizationProperties()))
                 .collect(Collectors.toList());
         return new ResponseEntity<>(rList, HttpStatus.OK);
     }
@@ -69,7 +73,8 @@ public class OrganizationContoller {
     @PreAuthorize("@authHelper.canAccessOrg(#orgId)")
     public ResponseEntity<OrgGetResponse> getOrg(@PathVariable("org_id") UUID orgId) {
         Organization org = orgService.get(orgId);
-        return new ResponseEntity<>(new OrgGetResponse(org.getId(), org.getOrganizationName()), HttpStatus.OK);
+        return new ResponseEntity<>(new OrgGetResponse(org.getId(), org.getOrganizationName(),
+                org.getOrganizationProperties()), HttpStatus.OK);
     }
 
     /**
@@ -80,10 +85,12 @@ public class OrganizationContoller {
      */
     @RequestMapping(path = "/api/organizations", method = RequestMethod.POST)
     @PreAuthorize("@authHelper.isSystemAdmin()")
-    public ResponseEntity<OrgGetResponse> createOrg(@RequestBody OrgPostBody body) {
+    public ResponseEntity<OrgGetResponse> createOrg(@RequestBody OrgPostBody body) throws Exception {
         Organization org = new Organization(body.getOrganizationName());
+        org.setOrganizationProperties(body.getOrganizationProperties());
         org = orgService.put(org);
-        return new ResponseEntity<>(new OrgGetResponse(org.getId(), org.getOrganizationName()), HttpStatus.OK);
+        return new ResponseEntity<>(new OrgGetResponse(org.getId(), org.getOrganizationName(),
+                org.getOrganizationProperties()), HttpStatus.OK);
     }
 
     /**
@@ -98,8 +105,12 @@ public class OrganizationContoller {
         if (body.getOrganizationName() != null) {
             org.setOrganizationName(body.getOrganizationName());
         }
+        if (body.getOrganizationProperties() != null) {
+            org.setOrganizationProperties(body.getOrganizationProperties());
+        }
         org = orgService.put(org);
-        return new ResponseEntity<>(new OrgGetResponse(org.getId(), org.getOrganizationName()), HttpStatus.OK);
+        return new ResponseEntity<>(new OrgGetResponse(org.getId(), org.getOrganizationName(),
+                org.getOrganizationProperties()), HttpStatus.OK);
 
     }
 }
