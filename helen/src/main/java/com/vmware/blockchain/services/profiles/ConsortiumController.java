@@ -179,7 +179,7 @@ public class ConsortiumController {
 
     private List<OrgGetResponse> getMembers(Consortium consortium) {
         return consortiumService.getOrganizations(consortium.getId()).stream()
-                .map(o -> new OrgGetResponse(o.getId(), o.getOrganizationName()))
+                .map(o -> new OrgGetResponse(o.getId(), o.getOrganizationName(), o.getOrganizationProperties()))
                 .collect(Collectors.toList());
     }
 

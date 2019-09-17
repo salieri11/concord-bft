@@ -21,6 +21,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -34,6 +35,8 @@ import com.vmware.blockchain.common.csp.CspCommon.CspServiceInvitation;
 import com.vmware.blockchain.common.csp.CspConstants;
 import com.vmware.blockchain.common.csp.api.client.CspApiClient;
 import com.vmware.blockchain.common.csp.exception.CspApiClientErrorException;
+import com.vmware.blockchain.services.profiles.Organization;
+import com.vmware.blockchain.services.profiles.OrganizationService;
 import com.vmware.blockchain.services.profiles.Roles;
 
 /**
@@ -44,6 +47,9 @@ class InvitationServiceTest {
 
     @Mock
     CspApiClient cspApiClient;
+
+    @MockBean
+    OrganizationService organizationService;
 
     @Mock
     AuthHelper authHelper;
@@ -71,7 +77,8 @@ class InvitationServiceTest {
 
     @BeforeEach
     void init() throws Exception {
-        invitationService = new InvitationService(cspApiClient, authHelper, "57df0bf1-69fd-4770-9313-ffab602d9f00");
+        invitationService = new InvitationService(cspApiClient, authHelper, organizationService,
+                "57df0bf1-69fd-4770-9313-ffab602d9f00");
         CspCommon.CspServiceInvitation invitation = new CspServiceInvitation();
         invitation.setServiceDefinitionLink(serviceDefLink);
         invitation.setOrgLink(orgLink);
@@ -82,6 +89,9 @@ class InvitationServiceTest {
         when(authHelper.getOrganizationId()).thenReturn(orgId);
         when(authHelper.getEmail()).thenReturn("test@email.com");
         when(authHelper.getAuthToken()).thenReturn("atoken");
+        Organization org1 = new Organization("Org 1");
+        org1.setId(orgId);
+        when(organizationService.get(orgId)).thenReturn(org1);
     }
 
     @Test

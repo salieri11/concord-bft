@@ -22,6 +22,8 @@ import com.vmware.blockchain.common.csp.CspCommon.CspPatchServiceRolesRequest;
 import com.vmware.blockchain.common.csp.CspConstants;
 import com.vmware.blockchain.common.csp.api.client.CspApiClient;
 import com.vmware.blockchain.common.csp.exception.CspApiException;
+import com.vmware.blockchain.services.profiles.Organization;
+import com.vmware.blockchain.services.profiles.OrganizationService;
 import com.vmware.blockchain.services.profiles.Roles;
 
 /**
@@ -34,13 +36,16 @@ public class InvitationService {
     private CspApiClient cspApiClient;
     private AuthHelper authHelper;
     private String serviceDefinitionLink;
+    private OrganizationService orgService;
 
     @Autowired
     public InvitationService(CspApiClient cspApiClient,
                              AuthHelper authHelper,
+                             OrganizationService orgService,
                              @Value("${vmbc.service.id:#null}") String serviceId) {
         this.cspApiClient = cspApiClient;
         this.authHelper = authHelper;
+        this.orgService = orgService;
         this.serviceDefinitionLink = CspConstants.CSP_SERVICE_DEFINITION + "/external/" + serviceId;
     }
 
@@ -54,7 +59,20 @@ public class InvitationService {
         // first let's get the invitation
         try {
             CspCommon.CspServiceInvitation invitation = cspApiClient.getInvitation(invitationLink);
+
+            Organization org = orgService.get(authHelper.getOrganizationId());
+
+            if (org == null) {
+                throw new BadRequestException(ErrorCode.BAD_REQUEST);
+            }
+
+            org.setOrganizationProperties(invitation.getContext());
+
+            orgService.put(org);
+
             String orgLink = CspConstants.CSP_ORG_API + "/" + authHelper.getOrganizationId().toString();
+
+
             // Let's be sure this is the right org and right service
             if (!invitation.getOrgLink().equals(orgLink)
                 || !serviceDefinitionLink.equals(invitation.getServiceDefinitionLink())) {
