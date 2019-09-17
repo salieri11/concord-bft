@@ -224,6 +224,8 @@ public class ConcordConfigUtil {
             if (blockchainType != null && blockchainType.equalsIgnoreCase("daml")) {
                 writer.write("daml_enable: true");
                 writer.newLine();
+                writer.write("FEATURE_time_service: true");
+                writer.newLine();
                 writer.write("eth_enable: false");
                 writer.newLine();
                 writer.write("concord-bft_communication_buffer_length: 8388608");
