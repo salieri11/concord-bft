@@ -31,14 +31,6 @@ export class TourService {
     private blockchainService: BlockchainService
   ) {}
 
-  get initialUrl() {
-    return this._initialUrl;
-  }
-
-  set initialUrl(initialUrl: string) {
-    this._initialUrl = initialUrl;
-  }
-
   get initialDashboardUrl() {
     return this._initialDashboardUrl;
   }
@@ -47,115 +39,28 @@ export class TourService {
     this._initialDashboardUrl = initialDashboardUrl;
   }
 
-  openUserProfileMenu() {
-    this.userProfileDropdownChangeSubject.next(true);
+  get initialUrl() {
+    return this._initialUrl;
   }
 
-  closeUserProfileMenu() {
-    this.userProfileDropdownChangeSubject.next(false);
+  set initialUrl(initialUrl: string) {
+    this._initialUrl = initialUrl;
   }
 
   openUserActionsMenu() {
     this.userActionsDropdownChangeSubject.next(true);
   }
 
+  openUserProfileMenu() {
+    this.userProfileDropdownChangeSubject.next(true);
+  }
+
   closeUserActionsMenu() {
     this.userActionsDropdownChangeSubject.next(false);
   }
 
-  startTourETH() {
-    this.steps = [
-      {
-        anchorId: 'onboardingTour.dashStats',
-        content: this.translate.instant('tourSteps.dashboard.dashStats.text'),
-        title: this.translate.instant('tourSteps.dashboard.dashStats.title'),
-        route: `${this.blockchainService.blockchainId}/dashboard`,
-        placement: 'bottom'
-      },
-      {
-        anchorId: 'onboardingTour.nodes',
-        content: this.translate.instant('tourSteps.dashboard.nodes.text'),
-        title: this.translate.instant('tourSteps.dashboard.nodes.title'),
-        route: `${this.blockchainService.blockchainId}/dashboard`,
-        placement: 'top'
-      },
-      {
-        anchorId: 'onboardingTour.organization',
-        content: this.translate.instant('tourSteps.dashboard.organization.text'),
-        title: this.translate.instant('tourSteps.dashboard.organization.title'),
-        route: `${this.blockchainService.blockchainId}/dashboard`,
-        placement: 'top'
-      },
-      {
-        anchorId: 'onboardingTour.manageSmartContracts',
-        content: this.translate.instant('tourSteps.smartContracts.manageSmartContracts.text'),
-        title: this.translate.instant('tourSteps.smartContracts.manageSmartContracts.title'),
-        route: `${this.blockchainService.blockchainId}/smart-contracts`,
-        placement: 'top'
-      },
-      {
-        anchorId: 'onboardingTour.createSmartContract',
-        content: this.translate.instant('tourSteps.smartContracts.createSmartContract.text'),
-        title: this.translate.instant('tourSteps.smartContracts.createSmartContract.title'),
-        route: `${this.blockchainService.blockchainId}/smart-contracts`
-      }
-    ];
-  }
-
-  startTourDAML() {
-    this.steps = [
-      {
-        anchorId: 'onboardingTour.dashStats',
-        content: this.translate.instant('tourSteps.dashboard.dashStats.text'),
-        title: this.translate.instant('tourSteps.dashboard.dashStats.title'),
-        route: `${this.blockchainService.blockchainId}/dashboard`,
-        placement: 'bottom'
-      },
-      {
-        anchorId: 'onboardingTour.nodes',
-        content: this.translate.instant('tourSteps.dashboard.nodes.text'),
-        title: this.translate.instant('tourSteps.dashboard.nodes.title'),
-        route: `${this.blockchainService.blockchainId}/dashboard`,
-        placement: 'top'
-      },
-      {
-        anchorId: 'onboardingTour.organization',
-        content: this.translate.instant('tourSteps.dashboard.organization.text'),
-        title: this.translate.instant('tourSteps.dashboard.organization.title'),
-        route: `${this.blockchainService.blockchainId}/dashboard`,
-        placement: 'top'
-      },
-    ];
-  }
-
-
-  startTour() {
-
-    switch (this.blockchainService.type) {
-
-      case ContractEngines.ETH:
-          this.startTourETH(); // initializes ETH steps into `this.steps`;
-      break;
-
-      case ContractEngines.DAML:
-          this.startTourDAML(); // initializes DAML steps into `this.steps`;
-      break;
-
-      default:
-        console.log(new Error(`Tour Service has encountered an unknown blockchain type: ${this.blockchainService.type}`));
-
-    }
-
-    this.ngxTourService.initialize(this.steps, {
-      prevBtnTitle: this.translate.instant('tourSteps.prevBtnText'),
-      nextBtnTitle: this.translate.instant('tourSteps.nextBtnText'),
-      endBtnTitle: this.translate.instant('tourSteps.endBtnText'),
-      popperSettings: {
-        hideOnClickOutside: false
-      }
-    });
-
-    this.ngxTourService.start();
+  closeUserProfileMenu() {
+    this.userProfileDropdownChangeSubject.next(false);
   }
 
   startContractTour() {
@@ -199,4 +104,99 @@ export class TourService {
 
     this.ngxTourService.start();
   }
+
+  startTour() {
+
+    switch (this.blockchainService.type) {
+
+      case ContractEngines.ETH:
+          this.startTourETH(); // initializes ETH steps into `this.steps`;
+      break;
+
+      case ContractEngines.DAML:
+          this.startTourDAML(); // initializes DAML steps into `this.steps`;
+      break;
+
+      default:
+        console.log(new Error(`Tour Service has encountered an unknown blockchain type: ${this.blockchainService.type}`));
+
+    }
+
+    this.ngxTourService.initialize(this.steps, {
+      prevBtnTitle: this.translate.instant('tourSteps.prevBtnText'),
+      nextBtnTitle: this.translate.instant('tourSteps.nextBtnText'),
+      endBtnTitle: this.translate.instant('tourSteps.endBtnText'),
+      popperSettings: {
+        hideOnClickOutside: false
+      }
+    });
+
+    this.ngxTourService.start();
+  }
+
+  private startTourDAML() {
+    this.steps = [
+      {
+        anchorId: 'onboardingTour.dashStats',
+        content: this.translate.instant('tourSteps.dashboard.dashStats.text'),
+        title: this.translate.instant('tourSteps.dashboard.dashStats.title'),
+        route: `${this.blockchainService.blockchainId}/dashboard`,
+        placement: 'bottom'
+      },
+      {
+        anchorId: 'onboardingTour.nodes',
+        content: this.translate.instant('tourSteps.dashboard.nodes.text'),
+        title: this.translate.instant('tourSteps.dashboard.nodes.title'),
+        route: `${this.blockchainService.blockchainId}/dashboard`,
+        placement: 'top'
+      },
+      {
+        anchorId: 'onboardingTour.organization',
+        content: this.translate.instant('tourSteps.dashboard.organization.text'),
+        title: this.translate.instant('tourSteps.dashboard.organization.title'),
+        route: `${this.blockchainService.blockchainId}/dashboard`,
+        placement: 'top'
+      },
+    ];
+  }
+
+  private startTourETH() {
+    this.steps = [
+      {
+        anchorId: 'onboardingTour.dashStats',
+        content: this.translate.instant('tourSteps.dashboard.dashStats.text'),
+        title: this.translate.instant('tourSteps.dashboard.dashStats.title'),
+        route: `${this.blockchainService.blockchainId}/dashboard`,
+        placement: 'bottom'
+      },
+      {
+        anchorId: 'onboardingTour.nodes',
+        content: this.translate.instant('tourSteps.dashboard.nodes.text'),
+        title: this.translate.instant('tourSteps.dashboard.nodes.title'),
+        route: `${this.blockchainService.blockchainId}/dashboard`,
+        placement: 'top'
+      },
+      {
+        anchorId: 'onboardingTour.organization',
+        content: this.translate.instant('tourSteps.dashboard.organization.text'),
+        title: this.translate.instant('tourSteps.dashboard.organization.title'),
+        route: `${this.blockchainService.blockchainId}/dashboard`,
+        placement: 'top'
+      },
+      {
+        anchorId: 'onboardingTour.manageSmartContracts',
+        content: this.translate.instant('tourSteps.smartContracts.manageSmartContracts.text'),
+        title: this.translate.instant('tourSteps.smartContracts.manageSmartContracts.title'),
+        route: `${this.blockchainService.blockchainId}/smart-contracts`,
+        placement: 'top'
+      },
+      {
+        anchorId: 'onboardingTour.createSmartContract',
+        content: this.translate.instant('tourSteps.smartContracts.createSmartContract.text'),
+        title: this.translate.instant('tourSteps.smartContracts.createSmartContract.title'),
+        route: `${this.blockchainService.blockchainId}/smart-contracts`
+      }
+    ];
+  }
+
 }

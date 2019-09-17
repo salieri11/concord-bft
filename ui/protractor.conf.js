@@ -25,7 +25,7 @@ exports.config = {
   },
   onPrepare() {
     require('ts-node').register({
-      // Try using absolute path of e2e/tsconfig.e2e.json if not found.
+      // Try using absolute path of `e2e/tsconfig.e2e.json` if node fails to find this in your local env.
       project: 'e2e/tsconfig.e2e.json'
     });
     jasmine.getEnv().addReporter(new SpecReporter({ spec: { displayStacktrace: true } }));
@@ -35,25 +35,25 @@ exports.config = {
 };
 
 prepareJasmineForFlake = function () {
-// Checking Jasmine.prototype.loadSpecs.toString() breaks e2e, comment out
-
-//   let expectedJasmineLoadSpec =
-//     `function () {
-//   this.specFiles.forEach(function(file) {
-//     require(file);
-//   });
-// }`;
+  /* warning: `function ()` !== `function()`, watch out for spaces;
+   * some node versions seem to toStrings function bodies differently!
+  */
+  let expectedJasmineLoadSpec =
+`function () {
+  this.specFiles.forEach(function(file) {
+    require(file);
+  });
+}`.replace(/ /g,''); // Remove all spaces, for better comparison free of `toString` idiosyncrasies.
 
   let currSpecFile;
 
   const Jasmine = require('jasmine/lib/jasmine');
 
-  // Checking Jasmine.prototype.loadSpecs.toString() breaks e2e, comment out
-
-  // if (Jasmine.prototype.loadSpecs.toString() !== expectedJasmineLoadSpec) {
-  //   logger.info(Jasmine.prototype.loadSpecs.toString());
-  //   throw new Error(`Jasmine.prototype.loadSpecs is not as expected, refusing to modify it`);
-  // }
+  const loadSpecsString = Jasmine.prototype.loadSpecs.toString().replace(/ /g,''); // Remove all spaces also
+  if (loadSpecsString !== expectedJasmineLoadSpec) {
+    logger.info(Jasmine.prototype.loadSpecs.toString());
+    throw new Error(`Jasmine.prototype.loadSpecs is not as expected, refusing to modify it`);
+  }
 
   Jasmine.prototype.loadSpecs = function () {
     this.specFiles.forEach(function (file) {
