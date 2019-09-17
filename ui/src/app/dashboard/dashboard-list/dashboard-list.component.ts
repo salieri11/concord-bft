@@ -11,6 +11,7 @@ export interface DashboardListConfig {
   tableHeader: string;
   itemLink?: Function;
   paginationSummary?: string;
+  tourAnchor: string;
 }
 
 @Component({

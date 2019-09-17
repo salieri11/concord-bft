@@ -8,8 +8,8 @@ import { Observable } from 'rxjs/internal/Observable';
 import { TranslateService } from '@ngx-translate/core';
 import { TourService as NgxTourService, IStepOption } from 'ngx-tour-ngx-popper';
 
-import { Personas, PersonaService } from './persona.service';
 import { BlockchainService } from './../blockchain/shared/blockchain.service';
+import { ContractEngines } from '../blockchain/shared/blockchain.model';
 
 @Injectable({
   providedIn: 'root'
@@ -26,7 +26,6 @@ export class TourService {
   userActionsDropdownChanges$: Observable<boolean> = this.userActionsDropdownChangeSubject.asObservable();
 
   constructor(
-    private personaService: PersonaService,
     private translate: TranslateService,
     private ngxTourService: NgxTourService,
     private blockchainService: BlockchainService
@@ -65,84 +64,68 @@ export class TourService {
   }
 
   startTour() {
-    // const bId =
-    this.steps = [
-      {
-        anchorId: 'onboardingTour.dashStats',
-        content: this.translate.instant('tourSteps.dashboard.dashStats.text'),
-        title: this.translate.instant('tourSteps.dashboard.dashStats.title'),
-        route: `${this.blockchainService.blockchainId}/dashboard`,
-        placement: 'bottom'
-      },
-
-      // Need to redo the tour at some point this will break for DAML as well.
-      // {
-      //   anchorId: 'onboardingTour.contractList',
-      //   content: this.translate.instant('tourSteps.dashboard.contractList.text'),
-      //   title: this.translate.instant('tourSteps.dashboard.contractList.title'),
-      //   route: `${this.blockchainService.blockchainId}/dashboard`
-      // },
-      {
-        anchorId: 'onboardingTour.manageSmartContracts',
-        content: this.translate.instant('tourSteps.smartContracts.manageSmartContracts.text'),
-        title: this.translate.instant('tourSteps.smartContracts.manageSmartContracts.title'),
-        route: `${this.blockchainService.blockchainId}/smart-contracts`,
-        placement: 'top'
-      },
-      {
-        anchorId: 'onboardingTour.createSmartContract',
-        content: this.translate.instant('tourSteps.smartContracts.createSmartContract.text'),
-        title: this.translate.instant('tourSteps.smartContracts.createSmartContract.title'),
-        route: `${this.blockchainService.blockchainId}/smart-contracts`
-      },
-      {
-        anchorId: 'onboardingTour.userManagement',
-        content: this.translate.instant('tourSteps.users.userManagement.text'),
-        title: this.translate.instant('tourSteps.users.userManagement.title'),
-        route: `${this.blockchainService.blockchainId}/smart-contracts`,
-        placement: 'right',
-        popperSettings: {
-          boundariesElement: 'body'
+    if (this.blockchainService.type === ContractEngines.ETH) {
+      this.steps = [
+        {
+          anchorId: 'onboardingTour.dashStats',
+          content: this.translate.instant('tourSteps.dashboard.dashStats.text'),
+          title: this.translate.instant('tourSteps.dashboard.dashStats.title'),
+          route: `${this.blockchainService.blockchainId}/dashboard`,
+          placement: 'bottom'
+        },
+        {
+          anchorId: 'onboardingTour.nodes',
+          content: this.translate.instant('tourSteps.dashboard.nodes.text'),
+          title: this.translate.instant('tourSteps.dashboard.nodes.title'),
+          route: `${this.blockchainService.blockchainId}/dashboard`,
+          placement: 'top'
+        },
+        {
+          anchorId: 'onboardingTour.organization',
+          content: this.translate.instant('tourSteps.dashboard.organization.text'),
+          title: this.translate.instant('tourSteps.dashboard.organization.title'),
+          route: `${this.blockchainService.blockchainId}/dashboard`,
+          placement: 'top'
+        },
+        {
+          anchorId: 'onboardingTour.manageSmartContracts',
+          content: this.translate.instant('tourSteps.smartContracts.manageSmartContracts.text'),
+          title: this.translate.instant('tourSteps.smartContracts.manageSmartContracts.title'),
+          route: `${this.blockchainService.blockchainId}/smart-contracts`,
+          placement: 'top'
+        },
+        {
+          anchorId: 'onboardingTour.createSmartContract',
+          content: this.translate.instant('tourSteps.smartContracts.createSmartContract.text'),
+          title: this.translate.instant('tourSteps.smartContracts.createSmartContract.title'),
+          route: `${this.blockchainService.blockchainId}/smart-contracts`
         }
-      },
-      {
-        anchorId: 'onboardingTour.userActions',
-        content: this.translate.instant('tourSteps.users.userActions.text'),
-        title: this.translate.instant('tourSteps.users.userActions.title'),
-        route: `${this.blockchainService.blockchainId}/users`,
-        placement: 'left'
-      }
-    ];
-
-    if ((this.personaService.hasAuthorization(Personas.OrgDeveloper))) {
-      this.steps.splice(4, 2);
+      ];
+    } else if (this.blockchainService.type === ContractEngines.DAML) {
+      this.steps = [
+        {
+          anchorId: 'onboardingTour.dashStats',
+          content: this.translate.instant('tourSteps.dashboard.dashStats.text'),
+          title: this.translate.instant('tourSteps.dashboard.dashStats.title'),
+          route: `${this.blockchainService.blockchainId}/dashboard`,
+          placement: 'bottom'
+        },
+        {
+          anchorId: 'onboardingTour.nodes',
+          content: this.translate.instant('tourSteps.dashboard.nodes.text'),
+          title: this.translate.instant('tourSteps.dashboard.nodes.title'),
+          route: `${this.blockchainService.blockchainId}/dashboard`,
+          placement: 'top'
+        },
+        {
+          anchorId: 'onboardingTour.organization',
+          content: this.translate.instant('tourSteps.dashboard.organization.text'),
+          title: this.translate.instant('tourSteps.dashboard.organization.title'),
+          route: `${this.blockchainService.blockchainId}/dashboard`,
+          placement: 'top'
+        },
+      ];
     }
-
-    if (this.personaService.hasAuthorization(Personas.OrgUser)) {
-      this.steps.splice(3, 3);
-    }
-
-    this.ngxTourService.stepShow$.subscribe((event) => {
-      switch (event.anchorId) {
-        case 'onboardingTour.userActions':
-          this.openUserActionsMenu();
-          break;
-        case 'onboardingTour.userSettings':
-          this.openUserProfileMenu();
-          break;
-      }
-    });
-
-    this.ngxTourService.stepHide$.subscribe((event) => {
-      switch (event.anchorId) {
-        case 'onboardingTour.userActions':
-          this.closeUserActionsMenu();
-          break;
-        case 'onboardingTour.userSettings':
-          this.closeUserProfileMenu();
-          break;
-      }
-    });
 
     this.ngxTourService.initialize(this.steps, {
       prevBtnTitle: this.translate.instant('tourSteps.prevBtnText'),
