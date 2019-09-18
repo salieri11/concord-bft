@@ -196,7 +196,7 @@ public class ZoneController {
     @PreAuthorize("@authHelper.isUser()")
     ResponseEntity<List<ZoneListResponse>> getZoneList() {
         List<ZoneListResponse> zones =
-                zoneService.getZones().stream().map(ZoneListResponse::new).collect(Collectors.toList());
+                zoneService.getAllAuthorized().stream().map(ZoneListResponse::new).collect(Collectors.toList());
         return new ResponseEntity<>(zones, HttpStatus.OK);
     }
 
@@ -206,7 +206,7 @@ public class ZoneController {
     @RequestMapping(path = "/{zone_id}", method = RequestMethod.GET)
     @PreAuthorize("@authHelper.isConsortiumAdmin()")
     ResponseEntity<ZoneResponse> getZone(@PathVariable("zone_id") UUID zoneId) {
-        Zone z = zoneService.get(zoneId);
+        Zone z = zoneService.getAuthorized(zoneId);
         ZoneResponse response = getZoneResponse(z);
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
