@@ -37,6 +37,8 @@ import com.vmware.blockchain.deployment.v1.IdentityFactors;
 import com.vmware.blockchain.deployment.v1.NodeConfigurationRequest;
 import com.vmware.blockchain.deployment.v1.NodeConfigurationResponse;
 
+import io.grpc.Status;
+import io.grpc.StatusException;
 import io.grpc.stub.StreamObserver;
 
 /**
@@ -195,7 +197,8 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
             observer.onNext(sessionId);
             observer.onCompleted();
         } else {
-            observer.onError(new IllegalStateException("Could not persist configuration results"));
+            observer.onError(new StatusException(
+                    Status.INTERNAL.withDescription("Could not persist configuration results")));
         }
     }
 
@@ -203,17 +206,24 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
     public void getNodeConfiguration(@NotNull NodeConfigurationRequest request,
                                      @NotNull StreamObserver<NodeConfigurationResponse> observer) {
 
-        var components = sessionConfig.get(request.getIdentifier());
+        try {
+            var components = sessionConfig.get(request.getIdentifier());
 
-        var nodeComponents = components.get(request.getNode());
+            var nodeComponents = components.get(request.getNode());
 
-        if (nodeComponents.size() != 0) {
-            observer.onNext(new NodeConfigurationResponse(nodeComponents));
-            observer.onCompleted();
-        } else {
-            observer.onError(new IllegalStateException("Could not retrieve configuration results for id: "
-                    + request.getIdentifier()));
+            if (nodeComponents.size() != 0) {
+                observer.onNext(new NodeConfigurationResponse(nodeComponents));
+                observer.onCompleted();
+            } else {
+                observer.onError(new StatusException(Status.NOT_FOUND.withDescription(
+                        "Node configuration is empty for node: " + request.getNode())));
+            }
+        } catch (Exception e) {
+            var errorMsg = String.format("Retrieving configuration results failed for id: %s with error: %s",
+                    request.getIdentifier(), e.getLocalizedMessage());
+            observer.onError(new StatusException(Status.INVALID_ARGUMENT.withDescription(errorMsg)));
         }
+
     }
 
     @Override
@@ -226,7 +236,8 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
             observer.onNext(new DeleteConfigurationResponse());
             observer.onCompleted();
         } catch (Exception e) {
-            observer.onError(new IllegalStateException("No configuration available for id: " + request.getId()));
+            observer.onError(new StatusException(
+                    Status.NOT_FOUND.withDescription("No configuration available for id: " + request.getId())));
         }
     }
 

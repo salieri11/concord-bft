@@ -18,6 +18,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.vmware.blockchain.deployment.service.configuration.generatecerts.CertificatesGenerator;
+import com.vmware.blockchain.deployment.v1.ConcordModelSpecification.BlockchainType;
 
 import kotlinx.serialization.UpdateMode;
 import kotlinx.serialization.internal.ArrayListSerializer;
@@ -97,7 +98,7 @@ public class ConcordConfigUtil {
      * Utility to generate concord config.
      */
     public Map<Integer, String> getConcordConfig(List<String> hostIps,
-                                                 String blockchainType) {
+                                                 BlockchainType blockchainType) {
         try {
             var result = new HashMap<Integer, String>();
 
@@ -175,7 +176,7 @@ public class ConcordConfigUtil {
      * Utility method for generating input config yaml file.
      */
     boolean generateInputConfigYaml(List<String> hostIps, String configYamlPath,
-                                    String blockchainType) {
+                                    BlockchainType blockchainType) {
         if (hostIps == null) {
             log.error("generateInputConfigYaml: List of host IP provided is NULL!");
             return false;
@@ -194,7 +195,7 @@ public class ConcordConfigUtil {
      * Utility method for generating input config yaml file.
      */
     boolean generateInputConfigYaml(List<String> hostIp, int fVal, int cVal, String configYamlPath,
-                                    String blockchainType) {
+                                    BlockchainType blockchainType) {
         if (hostIp == null) {
             log.error("generateInputConfigYaml: List of host IP provided is NULL!");
             return false;
@@ -221,7 +222,7 @@ public class ConcordConfigUtil {
 
             // Temporary setup to distinguish concord type. This check will not occur in ConfigService
             // after it starts accepting params to override.
-            if (blockchainType != null && blockchainType.equalsIgnoreCase("daml")) {
+            if (blockchainType != null && blockchainType.equals(BlockchainType.DAML)) {
                 writer.write("daml_enable: true");
                 writer.newLine();
                 writer.write("FEATURE_time_service: true");

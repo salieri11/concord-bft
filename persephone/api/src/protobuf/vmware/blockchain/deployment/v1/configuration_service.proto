@@ -46,7 +46,7 @@ message ConfigurationComponent {
 message ConfigurationServiceRequest {
     MessageHeader header = 1;
     repeated string hosts = 2;
-    string blockchain_type = 3;
+    ConcordModelSpecification.BlockchainType blockchain_type = 3;
 
 }
 
