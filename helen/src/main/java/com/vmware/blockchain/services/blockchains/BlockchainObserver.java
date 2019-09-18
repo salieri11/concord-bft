@@ -225,15 +225,7 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
         var ip = toCanonicalIpAddress(node.getHostInfo().getIpv4AddressMap().keySet().stream()
                                               .findFirst().orElse(0));
 
-        ConcordNodeEndpoint endpoint = null;
-        switch (node.getInfo().getBlockchainType()) {
-            case DAML:
-                endpoint = node.getHostInfo().getEndpoints().getOrDefault("daml-ledger-api", null);
-                break;
-            default:
-                endpoint = node.getHostInfo().getEndpoints().getOrDefault("ethereum-rpc", null);
-        }
-
+        ConcordNodeEndpoint endpoint = getConcordNodeEndpoint(node);
 
         // For now, use the orchestration site ID as region name. Eventually there should be some
         // human-readable display name to go with the site ID.
@@ -249,6 +241,18 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
         );
     }
 
+    private static ConcordNodeEndpoint getConcordNodeEndpoint(ConcordNode node) {
+        ConcordNodeEndpoint endpoint = null;
+        switch (node.getInfo().getBlockchainType()) {
+            case DAML:
+                endpoint = node.getHostInfo().getEndpoints().getOrDefault("daml-ledger-api", null);
+                break;
+            default:
+                endpoint = node.getHostInfo().getEndpoints().getOrDefault("ethereum-rpc", null);
+        }
+        return endpoint;
+    }
+
     private static Replica toReplica(UUID blockchainId, ConcordNode node) {
         // Fetch the first IP address in the data payload, or return 0.
         UUID replicaId = FleetUtils.toUuid(node.getId());
@@ -256,7 +260,7 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
         int publicIp = node.getHostInfo().getIpv4AddressMap().keySet().stream()
                                               .findFirst().orElse(0);
         int privateIp = node.getHostInfo().getIpv4AddressMap().getOrDefault(publicIp, 0);
-        ConcordNodeEndpoint endpoint = node.getHostInfo().getEndpoints().getOrDefault("ethereum-rpc", null);
+        ConcordNodeEndpoint endpoint = getConcordNodeEndpoint(node);
 
         // For now, use the orchestration site ID as region name. Eventually there should be some
         // human-readable display name to go with the site ID.
