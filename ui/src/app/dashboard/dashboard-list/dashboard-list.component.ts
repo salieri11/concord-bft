@@ -11,7 +11,6 @@ export interface DashboardListConfig {
   tableHeader: string;
   itemLink?: Function;
   paginationSummary?: string;
-  tourAnchor: string;
 }
 
 @Component({
@@ -23,6 +22,7 @@ export class DashboardListComponent implements OnInit {
 
   @Input('listConfig') listConfig: DashboardListConfig;
   @Input('items') items: any[];
+  @Input('tourAnchor') tourAnchor: string;
 
   constructor(private santizer: DomSanitizer) { }
 

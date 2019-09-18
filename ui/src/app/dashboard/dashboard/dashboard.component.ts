@@ -55,6 +55,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   blockchainType: string;
   infoLists: any[] = [];
+
   dashItems: {title: string, count: number, link: string[]}[];
 
   constructor(
@@ -136,7 +137,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
       displayProperties: ['name', 'public_ip', 'healthHTML'],
       tableHeader: 'nodes.nodes',
       paginationSummary: 'nodes.paginationSummary',
-      tourAnchor: 'onboardingTour.nodes'
     };
   }
 
@@ -146,7 +146,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
       displayProperties: ['organization_name'],
       tableHeader: 'organization.title',
       paginationSummary: 'organization.paginationSummary',
-      tourAnchor: 'onboardingTour.organization'
     };
   }
 
@@ -159,7 +158,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
         return [`/${this.blockchainId}`, 'blocks', block.number];
       },
       paginationSummary: 'blocks.paginationSummary',
-      tourAnchor: 'onboardingTour.blocks'
     };
   }
 
@@ -172,7 +170,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
         return [`/${this.blockchainId}`, 'smart-contracts', contract.contract_id];
       },
       paginationSummary: 'smartContracts.paginationSummary',
-      tourAnchor: 'onboardingTour.smartContracts'
     };
   }
 
@@ -221,8 +218,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
           count: this.orgCount
         }];
         this.infoLists = [
-          {config: this.nodesConfig, items: this.nodes},
-          {config: this.organizationsConfig, items: this.orgs},
+          {config: this.nodesConfig, items: this.nodes, tourAnchor: 'onboardingTour.nodes'},
+          {config: this.organizationsConfig, items: this.orgs, tourAnchor: 'onboardingTour.organization'},
         ];
         break;
 
@@ -246,10 +243,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
         }];
 
         this.infoLists = [
-          {config: this.nodesConfig, items: this.nodes},
-          {config: this.organizationsConfig, items: this.orgs},
-          {config: this.contractsConfig, items: this.smartContracts},
-          {config: this.blocksConfig, items: this.blocks}
+          {config: this.nodesConfig, items: this.nodes, tourAnchor: 'onboardingTour.nodes'},
+          {config: this.organizationsConfig, items: this.orgs, tourAnchor: 'onboardingTour.organization'},
+          {config: this.contractsConfig, items: this.smartContracts, tourAnchor: 'onboardingTour.smartContracts'},
+          {config: this.blocksConfig, items: this.blocks, tourAnchor: 'onboardingTour.blocks'}
         ];
         break;
     }
