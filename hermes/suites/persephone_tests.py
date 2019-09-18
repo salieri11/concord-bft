@@ -596,10 +596,10 @@ class PersephoneTests(test_suite.TestSuite):
                   # Preserving Env to DEBUG VB-1351
                   # TODO: Enable retaining failed VMs once cleanup script
                   # cleans up IPAM too
-                  # log.info(
-                  #    "Adding Session ID to preserve list: \n{}".format(
-                  #       session_id))
-                  # self.session_ids_to_retain.append(session_id)
+                  log.info(
+                     "Adding Session ID to preserve list: \n{}".format(
+                        session_id))
+                  self.session_ids_to_retain.append(session_id)
 
                   return (False,
                           "Failed creating marker file on node '{}'".format(
@@ -635,10 +635,10 @@ class PersephoneTests(test_suite.TestSuite):
                            # Preserving Env to DEBUG VB-1497
                            # TODO: Enable retaining failed VMs once cleanup script
                            # cleans up IPAM too
-                           # log.info(
-                           #    "Adding Session ID to preserve list: \n{}".format(
-                           #       session_id))
-                           # self.session_ids_to_retain.append(session_id)
+                           log.info(
+                              "Adding Session ID to preserve list: \n{}".format(
+                                 session_id))
+                           self.session_ids_to_retain.append(session_id)
 
                            return (False,
                                    "Not all containers are up and running on node")
