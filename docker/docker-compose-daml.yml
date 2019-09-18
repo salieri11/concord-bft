@@ -7,6 +7,7 @@ services:
   # Note: Make sure that Concord's configuration files have `daml_enable` set
   concord1:
     image: "${concord_repo}:${concord_tag}"
+    privileged: true
     depends_on:
       - daml_execution_engine1
     expose:
@@ -26,6 +27,7 @@ services:
 
   concord2:
     image: "${concord_repo}:${concord_tag}"
+    privileged: true
     depends_on:
       - daml_execution_engine2
     expose:
@@ -45,6 +47,7 @@ services:
 
   concord3:
     image: "${concord_repo}:${concord_tag}"
+    privileged: true
     depends_on:
       - daml_execution_engine3
     expose:
@@ -64,6 +67,7 @@ services:
 
   concord4:
     image: "${concord_repo}:${concord_tag}"
+    privileged: true
     depends_on:
       - daml_execution_engine4
     expose:
