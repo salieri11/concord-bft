@@ -5,7 +5,7 @@
 
 #include "concord_metadata_storage.h"
 #include <log4cplus/loggingmacros.h>
-#include "storage/blockchain_db_types.h"
+#include "kv_types.hpp"
 
 namespace concord {
 namespace storage {

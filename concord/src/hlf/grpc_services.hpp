@@ -13,7 +13,6 @@
 #include <iostream>
 #include "concord.pb.h"
 #include "consensus/kvb_client.hpp"
-#include "consensus/status.hpp"
 #include "hlf/kvb_storage.hpp"
 #include "hlf_services.grpc.pb.h"
 

@@ -1,14 +1,16 @@
-// Copyright (c) 2019 VMware, Inc. All Rights Reserved.
+// Copyright 2019 VMware, all rights reserved
+//
+// Commands handler interface from KVB replica.
 
-#include "blockchain_interfaces.h"
+#include "commands_handler.h"
 
 namespace concord {
-namespace storage {
+namespace consensus {
 
 // Pure virtual destructors need to be defined within an abstract class if that
 // very abstract class is used to delete a derived instanciation.
 // See main.cpp for its usage.
 ICommandsHandler::~ICommandsHandler() = default;
 
-}  // namespace storage
+}  // namespace consensus
 }  // namespace concord

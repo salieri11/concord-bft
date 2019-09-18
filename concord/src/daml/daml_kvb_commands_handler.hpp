@@ -8,19 +8,19 @@
 #include "blocking_queue.h"
 #include "concord.pb.h"
 #include "consensus/concord_commands_handler.hpp"
-#include "consensus/hash_defs.h"
-#include "consensus/sliver.hpp"
 #include "daml_commit.grpc.pb.h"
 #include "daml_data.grpc.pb.h"
 #include "daml_events.grpc.pb.h"
 #include "daml_validator.grpc.pb.h"
 #include "daml_validator_client.hpp"
+#include "hash_defs.h"
+#include "sliver.hpp"
 
 namespace concord {
 namespace daml {
 
-concord::consensus::Sliver CreateSliver(char* content, const size_t size);
-concord::consensus::Sliver CreateSliver(const std::string& content);
+concordUtils::Sliver CreateSliver(char* content, const size_t size);
+concordUtils::Sliver CreateSliver(const std::string& content);
 
 class DamlKvbCommandsHandler
     : public concord::consensus::ConcordCommandsHandler {
@@ -32,8 +32,8 @@ class DamlKvbCommandsHandler
  public:
   DamlKvbCommandsHandler(
       const concord::config::ConcordConfiguration& config,
-      const concord::storage::ILocalKeyValueStorageReadOnly& ros,
-      concord::storage::IBlocksAppender& ba,
+      const concord::storage::blockchain::ILocalKeyValueStorageReadOnly& ros,
+      concord::storage::blockchain::IBlocksAppender& ba,
       BlockingPersistentQueue<com::digitalasset::kvbc::CommittedTx>&
           committed_txs,
       std::unique_ptr<DamlValidatorClient> validator)

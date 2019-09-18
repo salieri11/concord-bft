@@ -21,7 +21,6 @@
 #include "common/concord_exception.hpp"
 #include "concord.pb.h"
 #include "config/configuration_manager.hpp"
-#include "consensus/hex_tools.h"
 #include "ethereum/concord_evm.hpp"
 #include "ethereum/eth_kvb_storage.hpp"
 #include "time/time_contract.hpp"
@@ -52,8 +51,8 @@ using concord::utils::RLPBuilder;
 using concord::utils::to_evm_uint256be;
 using concord::common::operator<<;
 
-using concord::storage::IBlocksAppender;
-using concord::storage::ILocalKeyValueStorageReadOnly;
+using concord::storage::blockchain::IBlocksAppender;
+using concord::storage::blockchain::ILocalKeyValueStorageReadOnly;
 
 namespace concord {
 namespace ethereum {
@@ -62,8 +61,8 @@ EthKvbCommandsHandler::EthKvbCommandsHandler(
     EVM &concevm, EthSign &verifier,
     const concord::config::ConcordConfiguration &config,
     const concord::config::ConcordConfiguration &nodeConfig,
-    const concord::storage::ILocalKeyValueStorageReadOnly &storage,
-    concord::storage::IBlocksAppender &appender)
+    const concord::storage::blockchain::ILocalKeyValueStorageReadOnly &storage,
+    concord::storage::blockchain::IBlocksAppender &appender)
     : ConcordCommandsHandler(config, storage, appender),
       logger(log4cplus::Logger::getInstance("com.vmware.concord")),
       concevm_(concevm),

@@ -7,17 +7,17 @@
 #include "concord_storage.pb.h"
 #include "utils/concord_eth_hash.hpp"
 
-using concord::consensus::Sliver;
-using concord::consensus::Status;
+using concordUtils::Sliver;
+using concordUtils::Status;
 
 using concord::common::BlockNotFoundException;
 using concord::common::EVMException;
 using concord::common::ReadOnlyModeException;
 using concord::common::zero_hash;
 
-using concord::storage::BlockId;
-using concord::storage::IBlocksAppender;
-using concord::storage::ILocalKeyValueStorageReadOnly;
+using concord::storage::blockchain::IBlocksAppender;
+using concord::storage::blockchain::ILocalKeyValueStorageReadOnly;
+using concordUtils::BlockId;
 
 using std::to_string;
 
@@ -55,8 +55,7 @@ bool HlfKvbStorage::is_read_only() {
 
 // Allow access to read-only storage object, to enabled downgrades to read-only
 // HlfKvbStorage when convenient.
-const concord::storage::ILocalKeyValueStorageReadOnly &
-HlfKvbStorage::getReadOnlyStorage() {
+const ILocalKeyValueStorageReadOnly &HlfKvbStorage::getReadOnlyStorage() {
   return ro_storage_;
 }
 

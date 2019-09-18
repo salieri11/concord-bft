@@ -3,8 +3,7 @@
 // Shim between generic KVB and Concord-specific commands handlers.
 
 #include "concord_commands_handler.hpp"
-#include "consensus/hash_defs.h"
-#include "storage/blockchain_db_types.h"
+#include "hash_defs.h"
 #include "time/time_contract.hpp"
 
 #include <vector>
@@ -13,6 +12,7 @@ using com::vmware::concord::ErrorResponse;
 using com::vmware::concord::TimeRequest;
 using com::vmware::concord::TimeResponse;
 using com::vmware::concord::TimeSample;
+using concordUtils::Sliver;
 
 using google::protobuf::Timestamp;
 using std::chrono::steady_clock;
@@ -22,8 +22,8 @@ namespace consensus {
 
 ConcordCommandsHandler::ConcordCommandsHandler(
     const concord::config::ConcordConfiguration &config,
-    const concord::storage::ILocalKeyValueStorageReadOnly &storage,
-    concord::storage::IBlocksAppender &appender)
+    const concord::storage::blockchain::ILocalKeyValueStorageReadOnly &storage,
+    concord::storage::blockchain::IBlocksAppender &appender)
     : logger_(log4cplus::Logger::getInstance(
           "concord.consensus.ConcordCommandsHandler")),
       metadata_storage_(storage),
@@ -230,9 +230,9 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
   return result ? 0 : 1;
 }
 
-Status ConcordCommandsHandler::addBlock(
+concordUtils::Status ConcordCommandsHandler::addBlock(
     const concord::storage::SetOfKeyValuePairs &updates,
-    concord::storage::BlockId &out_block_id) {
+    concord::storage::blockchain::BlockId &out_block_id) {
   // The IBlocksAppender interface specifies that updates must be const, but we
   // need to add items here, so we have to make a copy and work with that. In
   // the future, maybe we can figure out how to either make updates non-const,

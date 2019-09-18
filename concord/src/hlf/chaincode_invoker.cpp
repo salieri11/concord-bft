@@ -3,7 +3,7 @@
 #include "hlf/chaincode_invoker.hpp"
 
 using concord::config::ConcordConfiguration;
-using concord::consensus::Status;
+using concordUtils::Status;
 using log4cplus::Logger;
 using std::endl;
 using std::string;

@@ -6,7 +6,7 @@
 #include <log4cplus/loggingmacros.h>
 #include <iostream>
 #include "config/configuration_manager.hpp"
-#include "consensus/status.hpp"
+#include "status.hpp"
 #include "stdio.h"
 #include "stdlib.h"
 
@@ -19,8 +19,8 @@ class ChaincodeInvoker {
   ~ChaincodeInvoker();
 
   // functions to config command tool
-  concord::consensus::Status SetHlfPeerTool(std::string tool_path);
-  concord::consensus::Status SetHlfKvServiceAddress(std::string address);
+  concordUtils::Status SetHlfPeerTool(std::string tool_path);
+  concordUtils::Status SetHlfKvServiceAddress(std::string address);
 
   std::string GetHlfPeerTool() const;
   std::string GetHlfKvServiceAddress() const;
@@ -31,11 +31,10 @@ class ChaincodeInvoker {
 
   // functions to call hlf peer:
   std::string SendQuery(std::string, std::string);
-  concord::consensus::Status SendInvoke(std::string, std::string);
-  concord::consensus::Status SendInstall(std::string, std::string, std::string);
-  concord::consensus::Status SendInstantiate(std::string, std::string,
-                                             std::string);
-  concord::consensus::Status SendUpgrade(std::string, std::string, std::string);
+  concordUtils::Status SendInvoke(std::string, std::string);
+  concordUtils::Status SendInstall(std::string, std::string, std::string);
+  concordUtils::Status SendInstantiate(std::string, std::string, std::string);
+  concordUtils::Status SendUpgrade(std::string, std::string, std::string);
 
  private:
   std::string hlf_peer_tool_;
