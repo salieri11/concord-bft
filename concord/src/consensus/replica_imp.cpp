@@ -119,7 +119,7 @@ Status ReplicaImp::addBlockToIdleReplica(const SetOfKeyValuePairs &updates) {
   return addBlockInternal(updates, d);
 }
 
-Status ReplicaImp::get(Sliver key, Sliver &outValue) const {
+Status ReplicaImp::get(const Key &key, Value &outValue) const {
   // TODO(GG): check legality of operation (the method should be invocked from
   // the replica's internal thread)
 
@@ -127,7 +127,7 @@ Status ReplicaImp::get(Sliver key, Sliver &outValue) const {
   return getInternal(m_lastBlock, key, outValue, dummy);
 }
 
-Status ReplicaImp::get(BlockId readVersion, Sliver key, Sliver &outValue,
+Status ReplicaImp::get(BlockId readVersion, const Sliver &key, Sliver &outValue,
                        BlockId &outBlock) const {
   // TODO(GG): check legality of operation (the method should be invocked from
   // the replica's internal thread)
@@ -153,7 +153,7 @@ Status ReplicaImp::getBlockData(BlockId blockId,
   return Status::OK();
 }
 
-Status ReplicaImp::mayHaveConflictBetween(Sliver key, BlockId fromBlock,
+Status ReplicaImp::mayHaveConflictBetween(const Sliver &key, BlockId fromBlock,
                                           BlockId toBlock, bool &outRes) const {
   // TODO(GG): add assert or print warning if fromBlock==0 (all keys have a
   // conflict in block 0)
@@ -455,8 +455,8 @@ ReplicaImp::StorageWrapperForIdleMode::StorageWrapperForIdleMode(
     const ReplicaImp *r)
     : rep(r) {}
 
-Status ReplicaImp::StorageWrapperForIdleMode::get(Sliver key,
-                                                  Sliver &outValue) const {
+Status ReplicaImp::StorageWrapperForIdleMode::get(const Key &key,
+                                                  Value &outValue) const {
   if (rep->getReplicaStatus() != IReplica::RepStatus::Idle) {
     return Status::IllegalOperation("");
   }
@@ -465,7 +465,8 @@ Status ReplicaImp::StorageWrapperForIdleMode::get(Sliver key,
 }
 
 Status ReplicaImp::StorageWrapperForIdleMode::get(BlockId readVersion,
-                                                  Sliver key, Sliver &outValue,
+                                                  const Sliver &key,
+                                                  Sliver &outValue,
                                                   BlockId &outBlock) const {
   if (rep->getReplicaStatus() != IReplica::RepStatus::Idle) {
     return Status::IllegalOperation("");
@@ -496,7 +497,7 @@ Status ReplicaImp::StorageWrapperForIdleMode::getBlockData(
 }
 
 Status ReplicaImp::StorageWrapperForIdleMode::mayHaveConflictBetween(
-    Sliver key, BlockId fromBlock, BlockId toBlock, bool &outRes) const {
+    const Sliver &key, BlockId fromBlock, BlockId toBlock, bool &outRes) const {
   outRes = true;
 
   Sliver dummy;
@@ -654,7 +655,7 @@ KeyValuePair ReplicaImp::StorageIterator::first(BlockId readVersion,
 }
 
 KeyValuePair ReplicaImp::StorageIterator::seekAtLeast(BlockId readVersion,
-                                                      Key key,
+                                                      const Key &key,
                                                       BlockId &actualVersion,
                                                       bool &isEnd) {
   Key actualKey;
@@ -686,7 +687,8 @@ KeyValuePair ReplicaImp::StorageIterator::seekAtLeast(BlockId readVersion,
  * perfectly OK.
  */
 // Note: key,readVersion must exist in map already
-KeyValuePair ReplicaImp::StorageIterator::next(BlockId readVersion, Key key,
+KeyValuePair ReplicaImp::StorageIterator::next(BlockId readVersion,
+                                               const Key &key,
                                                BlockId &actualVersion,
                                                bool &isEnd) {
   Key nextKey;

@@ -52,8 +52,8 @@ BlockId blockIdToBeRead = 0;
 
 class MockILocalKeyValueStorageReadOnly : public ILocalKeyValueStorageReadOnly {
  public:
-  Status get(Key key, Value &outValue) const override;
-  Status get(BlockId readVersion, Sliver key, Sliver &outValue,
+  Status get(const Key &key, Value &outValue) const override;
+  Status get(BlockId readVersion, const Sliver &key, Sliver &outValue,
              BlockId &outBlock) const override {
     return Status::OK();
   }
@@ -62,8 +62,8 @@ class MockILocalKeyValueStorageReadOnly : public ILocalKeyValueStorageReadOnly {
                       SetOfKeyValuePairs &outBlockData) const override {
     return Status::OK();
   }
-  Status mayHaveConflictBetween(Sliver key, BlockId fromBlock, BlockId toBlock,
-                                bool &outRes) const override {
+  Status mayHaveConflictBetween(const Sliver &key, BlockId fromBlock,
+                                BlockId toBlock, bool &outRes) const override {
     return Status::OK();
   }
   ILocalKeyValueStorageReadOnlyIterator *getSnapIterator() const override {
@@ -136,7 +136,8 @@ const Key singleBlockValueFullKey =
     kManipulator.genDataDbKey(blockMetadataInternalKey, singleBlockId);
 const Value singleBlockValue = kvbStorage.SerializeBlockMetadata(lastSeqNum);
 
-Status MockILocalKeyValueStorageReadOnly::get(Key key, Value &outValue) const {
+Status MockILocalKeyValueStorageReadOnly::get(const Key &key,
+                                              Value &outValue) const {
   switch (blockIdToBeRead) {
     case singleBlockId:
       outValue = singleBlockValue;

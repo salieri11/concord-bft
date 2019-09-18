@@ -56,12 +56,12 @@ class TestStorage : public ILocalKeyValueStorageReadOnly,
   Client db_ = Client(comp);
 
  public:
-  Status get(Key key, Value& outValue) const override {
+  Status get(const Key& key, Value& outValue) const override {
     BlockId outBlockId;
     return get(0, key, outValue, outBlockId);
   }
 
-  Status get(BlockId readVersion, Sliver key, Sliver& outValue,
+  Status get(BlockId readVersion, const Sliver& key, Sliver& outValue,
              BlockId& outBlock) const override {
     outBlock = 0;
     // KeyManipulator::genDataDbKey is non-const, but this function must be
@@ -78,8 +78,8 @@ class TestStorage : public ILocalKeyValueStorageReadOnly,
     return Status::IllegalOperation("getBlockData not supported in test");
   }
 
-  Status mayHaveConflictBetween(Sliver key, BlockId fromBlock, BlockId toBlock,
-                                bool& outRes) const override {
+  Status mayHaveConflictBetween(const Sliver& key, BlockId fromBlock,
+                                BlockId toBlock, bool& outRes) const override {
     EXPECT_TRUE(false)
         << "Test should not cause mayHaveConflictBetween to be called";
     return Status::IllegalOperation(

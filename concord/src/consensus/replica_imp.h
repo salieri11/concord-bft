@@ -60,10 +60,11 @@ class ReplicaImp
 
   // concord::storage::blockchain::ILocalKeyValueStorageReadOnly methods
   virtual concordUtils::Status get(
-      concordUtils::Sliver key, concordUtils::Sliver &outValue) const override;
+      const concordUtils::Key &key,
+      concordUtils::Value &outValue) const override;
 
   virtual concordUtils::Status get(
-      concordUtils::BlockId readVersion, concordUtils::Sliver key,
+      concordUtils::BlockId readVersion, const concordUtils::Sliver &key,
       concordUtils::Sliver &outValue,
       concordUtils::BlockId &outBlock) const override;
 
@@ -74,7 +75,7 @@ class ReplicaImp
       concord::storage::SetOfKeyValuePairs &outBlockData) const override;
 
   virtual concordUtils::Status mayHaveConflictBetween(
-      concordUtils::Sliver key, concordUtils::BlockId fromBlock,
+      const concordUtils::Sliver &key, concordUtils::BlockId fromBlock,
       concordUtils::BlockId toBlock, bool &outRes) const override;
 
   virtual concord::storage::blockchain::ILocalKeyValueStorageReadOnlyIterator *
@@ -158,11 +159,11 @@ class ReplicaImp
     StorageWrapperForIdleMode(const ReplicaImp *r);
 
     virtual concordUtils::Status get(
-        concordUtils::Sliver key,
-        concordUtils::Sliver &outValue) const override;
+        const concordUtils::Key &key,
+        concordUtils::Value &outValue) const override;
 
     virtual concordUtils::Status get(
-        concordUtils::BlockId readVersion, concordUtils::Sliver key,
+        concordUtils::BlockId readVersion, const concordUtils::Sliver &key,
         concordUtils::Sliver &outValue,
         concordUtils::BlockId &outBlock) const override;
     virtual concordUtils::BlockId getLastBlock() const override;
@@ -172,7 +173,7 @@ class ReplicaImp
         concord::storage::SetOfKeyValuePairs &outBlockData) const override;
 
     virtual concordUtils::Status mayHaveConflictBetween(
-        concordUtils::Sliver key, concordUtils::BlockId fromBlock,
+        const concordUtils::Sliver &key, concordUtils::BlockId fromBlock,
         concordUtils::BlockId toBlock, bool &outRes) const override;
 
     virtual concord::storage::blockchain::ILocalKeyValueStorageReadOnlyIterator
@@ -222,12 +223,12 @@ class ReplicaImp
     // Assumes lexicographical ordering of the keys, seek the first element
     // k >= key
     virtual concordUtils::KeyValuePair seekAtLeast(
-        concordUtils::BlockId readVersion, concordUtils::Key key,
+        concordUtils::BlockId readVersion, const concordUtils::Key &key,
         concordUtils::BlockId &actualVersion, bool &isEnd) override;
 
     // TODO(SG): Not implemented originally!
     virtual concordUtils::KeyValuePair seekAtLeast(
-        concordUtils::Key key) override {
+        const concordUtils::Key &key) override {
       concordUtils::BlockId block = m_currentBlock;
       concordUtils::BlockId dummy;
       bool dummy2;
@@ -236,7 +237,7 @@ class ReplicaImp
 
     // Proceed to next element and return it
     virtual concordUtils::KeyValuePair next(
-        concordUtils::BlockId readVersion, concordUtils::Key key,
+        concordUtils::BlockId readVersion, const concordUtils::Key &key,
         concordUtils::BlockId &actualVersion, bool &isEnd) override;
 
     // TODO(SG): Not implemented originally!
