@@ -17,8 +17,11 @@ spec:
       hostname: helen
       containers:
       - name: helen
-        image: vmware-docker-blockchainsaas.bintray.io/helen:test
+        image: vmware-docker-blockchainsaas.bintray.io/helen:latest
         imagePullPolicy: Always
+        env:
+        - name: APPCONTEXT
+          value: "staging"
         ports:
         - containerPort: 8080
         volumeMounts:
