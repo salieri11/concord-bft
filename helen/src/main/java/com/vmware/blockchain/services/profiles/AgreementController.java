@@ -105,7 +105,11 @@ public class AgreementController  {
             @PathVariable(name = "org_id", required = false) Optional<UUID> orgIdOptional) {
         UUID orgId;
         if (orgIdOptional.isPresent()) {
-            orgId = orgIdOptional.get();
+            if (authHelper.isAdmin() || orgIdOptional.get() == authHelper.getOrganizationId()) {
+                orgId = orgIdOptional.get();
+            } else {
+                throw new BadRequestException(ErrorCode.BAD_REQUEST);
+            }
         } else {
             orgId = authHelper.getOrganizationId();
         }
@@ -129,7 +133,11 @@ public class AgreementController  {
         UUID orgId;
 
         if (orgIdOptional.isPresent()) {
-            orgId = orgIdOptional.get();
+            if (authHelper.isAdmin() || orgIdOptional.get() == authHelper.getOrganizationId()) {
+                orgId = orgIdOptional.get();
+            } else {
+                throw new BadRequestException(ErrorCode.BAD_REQUEST);
+            }
         } else {
             orgId = authHelper.getOrganizationId();
         }
