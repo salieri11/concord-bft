@@ -1,4 +1,5 @@
 import groovy.json.*
+import hudson.util.Secret
 
 def call(){
   def agentLabel = "genericVM"
@@ -39,6 +40,12 @@ def call(){
     }
     parameters {
       booleanParam defaultValue: false, description: "Whether to deploy the docker images for production. REQUIRES A VERSION NUMBER IN THE 'version_param' FIELD.", name: "deploy"
+
+      booleanParam defaultValue: true, description: "Whether to run tests.", name: "run_tests"
+      password defaultValue: "",
+             description: "If this is a run which pushes items to a repo (e.g. Artifactory, Bintray, Dockerhub), and you are bypassing tests, a password is needed.",
+             name: "skip_tests_password"
+
       string defaultValue: "",
              description: "The version number for releases. Used as a tag in DockerHub and Git.  REQUIRED IF THE 'deploy' CHECKBOX IS CHECKED.",
              name: "version_param"
@@ -65,6 +72,7 @@ def call(){
         steps{
           script{
             try{
+              checkSkipTestsPassword()
               removeContainers()
               pruneImages()            
               reportSystemStats()
@@ -434,6 +442,11 @@ EOF
       }
 
       stage("Run tests in containers") {
+        when {
+          expression {
+            params.run_tests
+          }
+        }
         steps {
           script{
             try{
@@ -543,6 +556,11 @@ EOF
       }
 
       stage("Push Images required for Deployment Services & run tests") {
+        when {
+          expression {
+            params.run_tests
+          }
+        }
         steps {
           script{
             try{
@@ -595,7 +613,9 @@ EOF
 
       stage ("Post Memory Leak Testrun") {
         when {
-          expression { env.JOB_NAME.contains(memory_leak_job_name) }
+          expression {
+            env.JOB_NAME.contains(memory_leak_job_name) && params.run_tests
+          }
         }
         stages {
           stage('Push memory leak summary into repo') {
@@ -660,7 +680,9 @@ EOF
 
       stage ("Post Performance Testrun") {
         when {
-          expression { env.JOB_NAME.contains(performance_test_job_name) }
+          expression {
+            env.JOB_NAME.contains(performance_test_job_name) && params.run_tests
+          }
         }
         stages {
           stage('Collect Performance Transaction Rate') {
@@ -738,7 +760,7 @@ EOF
       stage("Save to artifactory"){
         when {
           expression {
-            env.JOB_NAME.contains(master_branch_job_name)
+            env.JOB_NAME.contains(master_branch_job_name) || params.deploy
           }
         }
         steps{
@@ -1256,4 +1278,23 @@ void reportSystemStats(){
 
   echo "Jenkins node docker system stats:"
   sh(script: "docker system df")
+}
+
+// Returns whether the current run should run tests.
+Boolean runWillPush(){
+  return env.JOB_NAME.contains("Master Branch") || params.deploy
+}
+
+// If someone is trying to skip tests, and it is a run which pushes
+// to a repo, make sure the user has entered a password.
+void checkSkipTestsPassword(){
+  withCredentials([string(credentialsId: 'BYPASS_JENKINS_TESTS', variable: 'PASSWORD')]) {
+    if (runWillPush() && !params.run_tests) {
+      msg = "The password to bypass tests is not correct.  It is required if bypassing tests "
+      msg += "for a run which pushes to a repo such as Artifactory, Bintray, or Dockerhub"
+
+      // Encrypt PASSWORD to compare it to the user's password.
+      assert Secret.fromString(PASSWORD) == params.skip_tests_password : msg
+    }
+  }
 }
