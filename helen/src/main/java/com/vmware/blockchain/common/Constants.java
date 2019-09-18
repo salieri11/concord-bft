@@ -33,6 +33,9 @@ public class Constants {
     public static final String TOKEN_REFRESH = "refresh-token";
     public static final String TOKEN_ID = "token-id";
 
+    // Invitation properties
+    // Extra roles to add to the user being invited.
+    public static final String INVITATION_ROLE = "invitation_roles";
 
 
     // Static content configurations
