@@ -2,6 +2,7 @@ version: '3'
 services:
   concord1:
     image: "${concord_repo}:${concord_tag}"
+    privileged: true
     expose:
       - 5458
       - 3501/tcp
@@ -20,6 +21,7 @@ services:
 
   concord2:
     image: "${concord_repo}:${concord_tag}"
+    privileged: true
     expose:
       - 5458
       - 3501/tcp
@@ -38,6 +40,7 @@ services:
 
   concord3:
     image: "${concord_repo}:${concord_tag}"
+    privileged: true
     expose:
       - 5458
       - 3501/tcp
@@ -56,6 +59,7 @@ services:
 
   concord4:
     image: "${concord_repo}:${concord_tag}"
+    privileged: true
     expose:
       - 5458
       - 3501/tcp

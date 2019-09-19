@@ -95,6 +95,7 @@ services:
   concord1:
     container_name: concord1
     image: "${concord_repo}:${concord_tag}"
+    privileged: true
     environment:
       - GOPATH=/concord
        # gRPC port
@@ -207,6 +208,7 @@ services:
   concord2:
     container_name: concord2
     image: "${concord_repo}:${concord_tag}"
+    privileged: true
     environment:
       - GOPATH=/concord
        # gRPC port
@@ -317,6 +319,7 @@ services:
   concord3:
     container_name: concord3
     image: "${concord_repo}:${concord_tag}"
+    privileged: true
     environment:
       - GOPATH=/concord
        # gRPC port
@@ -428,6 +431,7 @@ services:
   concord4:
     container_name: concord4
     image: "${concord_repo}:${concord_tag}"
+    privileged: true
     environment:
       - GOPATH=/concord
        # gRPC port
