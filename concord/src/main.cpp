@@ -425,8 +425,9 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
           nodeConfig.getValue<std::string>("daml_service_addr")};
 
       // Limit the amount of gRPC threads to double the amount of client
-      // proxies per replica. The idea is, as soon as a client becomes available
-      // it can continue working.
+      // proxies per replica. The DAML test tool cannot handle the
+      // out-of-ressource error and 8 was the first number that worked after
+      // trying 2 and 4 first.
       int max_num_threads =
           config.getValue<int>("client_proxies_per_replica") * 8;
 
