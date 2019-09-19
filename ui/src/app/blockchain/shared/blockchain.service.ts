@@ -187,7 +187,7 @@ export class BlockchainService {
       map(onPremZone => {
         this.zones.push(onPremZone);
         const zoneMap = {};
-        this.zones.forEach(zone => zoneMap[zone.id] = zone);
+        this.zones.forEach(z => zoneMap[zone.id] = z);
         this.zonesMap = zoneMap;
 
         return onPremZone;

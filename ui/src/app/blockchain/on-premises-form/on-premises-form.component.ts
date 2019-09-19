@@ -47,10 +47,6 @@ export class OnPremisesFormComponent implements AfterViewInit {
     this.onPremZone.id = id;
     this.onPremZone.name = `${location} - ${onPremLocData.name}`;
 
-    // TODO - Add Lat long
-    // this.onPremZone.latitude = 45.2551139;
-    // this.onPremZone.longitude = -120.888727;
-
     return this.onPremZone;
   }
 
@@ -83,6 +79,7 @@ export class OnPremisesFormComponent implements AfterViewInit {
     const onPrem = this.form['controls'].onPrem;
     const network = onPrem.value['network'];
 
+    onPrem.value['network'].name_servers = network.name_servers.length === 0 ? [] : network.name_servers;
     onPrem.value['network'].name_servers = !Array.isArray(network.name_servers) ?
       (network.name_servers.replace(/\s/g, '')).split(',') :
       network.name_servers;
