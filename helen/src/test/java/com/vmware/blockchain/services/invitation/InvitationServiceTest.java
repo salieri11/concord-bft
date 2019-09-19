@@ -11,7 +11,9 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Assertions;
@@ -29,6 +31,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 import com.google.common.collect.ImmutableList;
 import com.vmware.blockchain.auth.AuthHelper;
 import com.vmware.blockchain.common.BadRequestException;
+import com.vmware.blockchain.common.Constants;
 import com.vmware.blockchain.common.csp.CspCommon;
 import com.vmware.blockchain.common.csp.CspCommon.CspPatchServiceRolesRequest;
 import com.vmware.blockchain.common.csp.CspCommon.CspServiceInvitation;
@@ -58,7 +61,10 @@ class InvitationServiceTest {
     ArgumentCaptor<String> tokenCap;
 
     @Captor
-    ArgumentCaptor<UUID> orgCap;
+    ArgumentCaptor<UUID> orgIdCap;
+
+    @Captor
+    ArgumentCaptor<Organization> orgCap;
 
     @Captor
     ArgumentCaptor<String> emailCap;
@@ -74,12 +80,13 @@ class InvitationServiceTest {
     private String invitationLink = "csp/inviation/20bc66aa-9332-499b-9697-904577257945";
 
     private InvitationService invitationService;
+    private CspServiceInvitation invitation;
 
     @BeforeEach
     void init() throws Exception {
         invitationService = new InvitationService(cspApiClient, authHelper, organizationService,
                 "57df0bf1-69fd-4770-9313-ffab602d9f00");
-        CspCommon.CspServiceInvitation invitation = new CspServiceInvitation();
+        invitation = new CspServiceInvitation();
         invitation.setServiceDefinitionLink(serviceDefLink);
         invitation.setOrgLink(orgLink);
         invitation.setInvitationLink(invitationLink);
@@ -99,12 +106,93 @@ class InvitationServiceTest {
         invitationService.handleServiceInvitation(invitationLink);
         verify(cspApiClient, times(1)).patchOrgServiceRoles(anyString(), any(UUID.class), anyString(),
                                                             any(CspPatchServiceRolesRequest.class));
-        verify(cspApiClient).patchOrgServiceRoles(tokenCap.capture(), orgCap.capture(),
+        verify(cspApiClient).patchOrgServiceRoles(tokenCap.capture(), orgIdCap.capture(),
                                                   emailCap.capture(), roleCap.capture());
         Assertions.assertEquals("atoken", tokenCap.getValue());
-        Assertions.assertEquals(orgId, orgCap.getValue());
+        Assertions.assertEquals(orgId, orgIdCap.getValue());
         Assertions.assertEquals("test@email.com", emailCap.getValue());
         List<String> expectedRoles = ImmutableList.of(Roles.CONSORTIUM_ADMIN.toString(), Roles.ORG_ADMIN.toString());
+        List<String> actualRoles = roleCap.getValue().getRoleNamesToAdd();
+        Assertions.assertEquals(expectedRoles, actualRoles);
+    }
+
+    @Test
+    void testAdditionalRoles() throws Exception {
+        HashMap<String, String> context = new HashMap<>();
+        context.put(Constants.INVITATION_ROLE, Roles.INFRA_ADMIN.toString());
+        invitation.setContext(context);
+        invitationService.handleServiceInvitation(invitationLink);
+        verify(cspApiClient, times(1)).patchOrgServiceRoles(anyString(), any(UUID.class), anyString(),
+                                                            any(CspPatchServiceRolesRequest.class));
+        verify(cspApiClient).patchOrgServiceRoles(tokenCap.capture(), orgIdCap.capture(),
+                                                  emailCap.capture(), roleCap.capture());
+        Assertions.assertEquals("atoken", tokenCap.getValue());
+        Assertions.assertEquals(orgId, orgIdCap.getValue());
+        Assertions.assertEquals("test@email.com", emailCap.getValue());
+        List<String> expectedRoles =
+                ImmutableList.of(Roles.INFRA_ADMIN.toString(), Roles.CONSORTIUM_ADMIN.toString(),
+                                 Roles.ORG_ADMIN.toString());
+        List<String> actualRoles = roleCap.getValue().getRoleNamesToAdd();
+        Assertions.assertEquals(expectedRoles, actualRoles);
+    }
+
+    @Test
+    void testMultipleAdditionalRoles() throws Exception {
+        HashMap<String, String> context = new HashMap<>();
+        context.put(Constants.INVITATION_ROLE, "vmbc-system:admin, vmbc-system:infra");
+        invitation.setContext(context);
+        invitationService.handleServiceInvitation(invitationLink);
+        verify(cspApiClient, times(1)).patchOrgServiceRoles(anyString(), any(UUID.class), anyString(),
+                                                            any(CspPatchServiceRolesRequest.class));
+        verify(cspApiClient).patchOrgServiceRoles(tokenCap.capture(), orgIdCap.capture(),
+                                                  emailCap.capture(), roleCap.capture());
+        Assertions.assertEquals("atoken", tokenCap.getValue());
+        Assertions.assertEquals(orgId, orgIdCap.getValue());
+        Assertions.assertEquals("test@email.com", emailCap.getValue());
+        List<String> expectedRoles =
+                ImmutableList.of(Roles.SYSTEM_ADMIN.toString(), Roles.INFRA_ADMIN.toString(),
+                                 Roles.CONSORTIUM_ADMIN.toString(), Roles.ORG_ADMIN.toString());
+        List<String> actualRoles = roleCap.getValue().getRoleNamesToAdd();
+        Assertions.assertEquals(expectedRoles, actualRoles);
+    }
+
+    @Test
+    void testOrgProperties() throws Exception {
+        HashMap<String, String> context = new HashMap<>();
+        context.put("org_prop", "value");
+        invitation.setContext(context);
+        invitationService.handleServiceInvitation(invitationLink);
+        verify(cspApiClient).patchOrgServiceRoles(tokenCap.capture(), orgIdCap.capture(),
+                                                  emailCap.capture(), roleCap.capture());
+        verify(organizationService).put(orgCap.capture());
+        Map<String, String> orgProps = orgCap.getValue().getOrganizationProperties();
+        Assertions.assertEquals(1, orgProps.size());
+        Assertions.assertEquals("value", orgProps.get("org_prop"));
+        List<String> expectedRoles =
+                ImmutableList.of(Roles.CONSORTIUM_ADMIN.toString(),
+                                 Roles.ORG_ADMIN.toString());
+        List<String> actualRoles = roleCap.getValue().getRoleNamesToAdd();
+        Assertions.assertEquals(expectedRoles, actualRoles);
+    }
+
+    @Test
+    void testRolesAndProps() throws Exception {
+        HashMap<String, String> context = new HashMap<>();
+        context.put(Constants.INVITATION_ROLE, Roles.INFRA_ADMIN.toString());
+        context.put("org_prop", "value");
+        invitation.setContext(context);
+        invitationService.handleServiceInvitation(invitationLink);
+        verify(cspApiClient, times(1)).patchOrgServiceRoles(anyString(), any(UUID.class), anyString(),
+                                                            any(CspPatchServiceRolesRequest.class));
+        verify(cspApiClient).patchOrgServiceRoles(tokenCap.capture(), orgIdCap.capture(),
+                                                  emailCap.capture(), roleCap.capture());
+        verify(organizationService).put(orgCap.capture());
+        Map<String, String> orgProps = orgCap.getValue().getOrganizationProperties();
+        Assertions.assertEquals(1, orgProps.size());
+        Assertions.assertEquals("value", orgProps.get("org_prop"));
+        List<String> expectedRoles =
+                ImmutableList.of(Roles.INFRA_ADMIN.toString(), Roles.CONSORTIUM_ADMIN.toString(),
+                                 Roles.ORG_ADMIN.toString());
         List<String> actualRoles = roleCap.getValue().getRoleNamesToAdd();
         Assertions.assertEquals(expectedRoles, actualRoles);
     }
