@@ -65,10 +65,6 @@ export class BlockchainWizardComponent implements AfterViewInit {
     private router: Router,
     private blockchainService: BlockchainService
   ) {
-    const isOnPremZone = this.blockchainService.zones.some(zone => zone.type === ZoneType.ON_PREM);
-    this.zones = isOnPremZone ?
-      this.blockchainService.zones.filter((zone) => zone.type === ZoneType.ON_PREM) :
-      this.blockchainService.zones;
     this.form = this.initForm();
   }
 
