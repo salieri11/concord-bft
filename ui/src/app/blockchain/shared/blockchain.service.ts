@@ -210,7 +210,7 @@ export class BlockchainService {
   }
 
   testOnPremZoneConnection(zone: Zone): Observable<Zone> {
-    return this.http.post<OnPremZone>(Apis['zonesTestConnection'], zone);
+    return this.http.post<OnPremZone>(Apis.zonesTextConnection, zone);
   }
 
   getZoneLatLong(name: string): Observable<any> {
