@@ -37,6 +37,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.vmware.blockchain.MvcConfig;
 import com.vmware.blockchain.auth.AuthHelper;
+import com.vmware.blockchain.common.Constants;
 import com.vmware.blockchain.common.NotFoundException;
 import com.vmware.blockchain.common.fleetmanagment.FleetUtils;
 import com.vmware.blockchain.dao.GenericDao;
@@ -54,6 +55,7 @@ import com.vmware.blockchain.security.JwtTokenProvider;
 import com.vmware.blockchain.security.ServiceContext;
 import com.vmware.blockchain.services.profiles.ConsortiumService;
 import com.vmware.blockchain.services.profiles.DefaultProfiles;
+import com.vmware.blockchain.services.profiles.Organization;
 import com.vmware.blockchain.services.profiles.OrganizationService;
 import com.vmware.blockchain.services.profiles.ProfilesService;
 import com.vmware.blockchain.services.profiles.UserService;
@@ -93,6 +95,9 @@ public class ZoneServiceTest {
     private UserService userService;
 
     @MockBean
+    OrganizationService organizationService;
+
+    @MockBean
     private ProfilesService prm;
 
     @MockBean
@@ -120,6 +125,8 @@ public class ZoneServiceTest {
     private UUID onPremId;
     private UUID onPrem2Id;
 
+    private Organization onpreOrg;
+
     private ZoneService zoneService;
 
     private void setCallbacks(Answer answer) {
@@ -133,6 +140,11 @@ public class ZoneServiceTest {
         when(authHelper.getOrganizationId()).thenReturn(ONPREM_ORG);
         when(authHelper.getUserId()).thenReturn(USER_ID);
         when(authHelper.getEmail()).thenReturn(USER_EMAIL);
+
+        onpreOrg = new Organization("TestOrg");
+        onpreOrg.setId(ONPREM_ORG);
+        when(organizationService.get(ONPREM_ORG)).thenReturn(onpreOrg);
+
 
         OrchestrationSiteView v1 =
                 new OrchestrationSiteView(FleetUtils.identifier(OrchestrationSiteIdentifier.class, SITE_1),
@@ -150,7 +162,7 @@ public class ZoneServiceTest {
             ob.onCompleted();
             return null;
         });
-        zoneService = new ZoneService(client, genericDao);
+        zoneService = new ZoneService(client, genericDao, organizationService, authHelper);
 
         OnpremZone ozone = getOnpremZone(ONPREM_ORG);
         OnpremZone ozone2 = getOnpremZone(ORG_2);
@@ -213,6 +225,53 @@ public class ZoneServiceTest {
         Assertions.assertTrue(l.get(0) instanceof VmcAwsZone);
 
     }
+
+    @Test
+    void testGetAllAuthorized() throws Exception {
+        when(authHelper.isSystemAdmin()).thenReturn(false);
+        List<Zone> l = zoneService.getAllAuthorized();
+        // We should see the two loaded zones, and the one zone we have access to
+        Assertions.assertEquals(3, l.size());
+    }
+
+    @Test
+    void testGetAuthorized() throws Exception {
+        when(authHelper.isSystemAdmin()).thenReturn(false);
+        Zone zone = zoneService.getAuthorized(onPremId);
+        Assertions.assertNotNull(zone);
+    }
+
+    @Test
+    void testGetUnauthorized() throws Exception {
+        when(authHelper.isSystemAdmin()).thenReturn(false);
+        Assertions.assertThrows(NotFoundException.class, () -> zoneService.getAuthorized(onPrem2Id));
+    }
+
+    @Test
+    void testGetAllAuthorizedProperties() throws Exception {
+        onpreOrg.setOrganizationProperties(ImmutableMap.of(Constants.ORG_ZONES, "VMC_AWS, ON_PREM"));
+        when(authHelper.isSystemAdmin()).thenReturn(false);
+        List<Zone> l = zoneService.getAllAuthorized();
+        // We should see one of the loaded zones, and the one zone we have access to
+        Assertions.assertEquals(2, l.size());
+    }
+
+    @Test
+    void testGetAuthorizedProperties() throws Exception {
+        onpreOrg.setOrganizationProperties(ImmutableMap.of(Constants.ORG_ZONES, "VMC_AWS, ON_PREM"));
+        when(authHelper.isSystemAdmin()).thenReturn(false);
+        Zone zone = zoneService.getAuthorized(onPremId);
+        Assertions.assertNotNull(zone);
+    }
+
+    @Test
+    void testGetUnAuthorizedProperties() throws Exception {
+        onpreOrg.setOrganizationProperties(ImmutableMap.of(Constants.ORG_ZONES, "VMC_AWS, ON_PREM"));
+        when(authHelper.isSystemAdmin()).thenReturn(false);
+        // We should not be able to see SITE_2, becuase we don't have access to that zone type
+        Assertions.assertThrows(NotFoundException.class, () -> zoneService.getAuthorized(SITE_2));
+    }
+
 
     @Test
     void getUuid() throws Exception {
