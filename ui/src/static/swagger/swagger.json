@@ -9,11 +9,34 @@
     "url" : "/api",
     "description" : "Local API endpoint"
   } ],
+  "tags" : [ {
+    "name" : "profiles",
+    "description" : "User, Organization and Consortium Management"
+  }, {
+    "name" : "blockchains",
+    "description" : "Blockchain Management"
+  }, {
+    "name" : "contracts",
+    "description" : "Contract Management"
+  }, {
+    "name" : "ethereum",
+    "description" : "Ethereum calls"
+  }, {
+    "name" : "concord",
+    "description" : "Calls to Concord"
+  }, {
+    "name" : "tasks",
+    "description" : "Task Management"
+  }, {
+    "name" : "deprecated",
+    "description" : "Deprecated APIs"
+  } ],
   "paths" : {
     "/concord/members" : {
       "summary" : "Blockchain Consensus Membership List",
       "get" : {
-        "summary" : "List nodes that are members",
+        "tags" : [ "deprecated" ],
+        "summary" : "List replicas that are members",
         "operationId" : "memberListGet",
         "responses" : {
           "200" : {
@@ -29,18 +52,20 @@
               }
             }
           }
-        }
+        },
+        "deprecated" : true
       }
     },
     "/concord/blocks" : {
       "summary" : "Blockchain Blocks",
       "get" : {
+        "tags" : [ "deprecated" ],
         "summary" : "List blocks in the chain, most recent first",
         "operationId" : "blockListGet",
         "parameters" : [ {
           "name" : "latest",
           "in" : "query",
-          "description" : "most recent block to start with",
+          "description" : "Most recent block to start with",
           "required" : false,
           "style" : "form",
           "explode" : true,
@@ -51,7 +76,7 @@
         }, {
           "name" : "count",
           "in" : "query",
-          "description" : "number of blocks to return",
+          "description" : "Number of blocks to return",
           "required" : false,
           "style" : "form",
           "explode" : true,
@@ -71,18 +96,20 @@
               }
             }
           }
-        }
+        },
+        "deprecated" : true
       }
     },
     "/concord/blocks/{index}" : {
       "summary" : "Specific Blockchain Block",
       "get" : {
+        "tags" : [ "deprecated" ],
         "summary" : "Get a specific block, by its number in the chain",
         "operationId" : "blockGet",
         "parameters" : [ {
           "name" : "index",
           "in" : "path",
-          "description" : "the index of the block to get",
+          "description" : "The index of the block to get",
           "required" : true,
           "style" : "simple",
           "explode" : false,
@@ -102,18 +129,20 @@
               }
             }
           }
-        }
+        },
+        "deprecated" : true
       }
     },
     "/concord/transactions/{hash}" : {
       "summary" : "Specific Blockchain Block",
       "get" : {
+        "tags" : [ "deprecated" ],
         "summary" : "Get a specific transaction, by its hash",
         "operationId" : "txGet",
         "parameters" : [ {
           "name" : "hash",
           "in" : "path",
-          "description" : "the hash of the index to get",
+          "description" : "The hash of the index to get",
           "required" : true,
           "style" : "simple",
           "explode" : false,
@@ -132,12 +161,14 @@
               }
             }
           }
-        }
+        },
+        "deprecated" : true
       }
     },
     "/concord/eth" : {
       "summary" : "Ethereum JSON RPC API",
       "get" : {
+        "tags" : [ "deprecated" ],
         "summary" : "List available RPC methods",
         "operationId" : "ethJsonRpcGet",
         "responses" : {
@@ -154,9 +185,11 @@
               }
             }
           }
-        }
+        },
+        "deprecated" : true
       },
       "post" : {
+        "tags" : [ "deprecated" ],
         "summary" : "Call the named procedure",
         "externalDocs" : {
           "description" : "Ethereum JSON RPC Docs",
@@ -203,12 +236,14 @@
               }
             }
           }
-        }
+        },
+        "deprecated" : true
       }
     },
     "/concord/contracts" : {
       "summary" : "Blockchain contracts",
       "get" : {
+        "tags" : [ "deprecated" ],
         "summary" : "List all deployed contracts",
         "operationId" : "contractsGet",
         "responses" : {
@@ -225,9 +260,11 @@
               }
             }
           }
-        }
+        },
+        "deprecated" : true
       },
       "post" : {
+        "tags" : [ "deprecated" ],
         "summary" : "Deploy a new contract to concord",
         "operationId" : "contractsPost",
         "requestBody" : {
@@ -240,31 +277,31 @@
                 "properties" : {
                   "contract_id" : {
                     "type" : "string",
-                    "description" : "string representing contract id"
+                    "description" : "String representing contract id"
                   },
                   "version" : {
                     "type" : "string",
-                    "description" : "string representing version number of this contract"
+                    "description" : "String representing version number of this contract"
                   },
                   "from" : {
                     "type" : "string",
-                    "description" : "string representing owners address"
+                    "description" : "String representing owners address"
                   },
                   "sourcecode" : {
                     "type" : "string",
-                    "description" : "string representing solidity source code of this version"
+                    "description" : "String representing solidity source code of this version"
                   },
                   "contract_name" : {
                     "type" : "string",
-                    "description" : "string representing contract name you used to deploy the contract"
+                    "description" : "String representing contract name you used to deploy the contract"
                   },
                   "constructor_params" : {
                     "type" : "string",
-                    "description" : "string representing constructor parameters needed to deploy this contract, if your contract does not require constructor parameters, set this to \"\""
+                    "description" : "String representing constructor parameters needed to deploy this contract, if your contract does not require constructor parameters, set this to \"\""
                   },
                   "compiler_version" : {
                     "type" : "string",
-                    "description" : "string representing solc version you used to deploy the contract"
+                    "description" : "String representing solc version you used to deploy the contract"
                   },
                   "is_optimize" : {
                     "type" : "boolean",
@@ -272,7 +309,7 @@
                   },
                   "runs" : {
                     "type" : "string",
-                    "description" : "string representing optimize for how many times you intend to run the code"
+                    "description" : "String representing optimize for how many times you intend to run the code"
                   }
                 }
               }
@@ -282,7 +319,7 @@
         },
         "responses" : {
           "200" : {
-            "description" : "description of deployed contract",
+            "description" : "Description of deployed contract",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -291,11 +328,11 @@
                     "properties" : {
                       "contract_id" : {
                         "type" : "string",
-                        "description" : "string representing id of this contract"
+                        "description" : "String representing id of this contract"
                       },
                       "version" : {
                         "type" : "string",
-                        "description" : "string representing name of this version"
+                        "description" : "String representing name of this version"
                       },
                       "url" : {
                         "type" : "string",
@@ -311,17 +348,19 @@
               }
             }
           }
-        }
+        },
+        "deprecated" : true
       }
     },
     "/concord/contracts/{contract_id}" : {
       "get" : {
+        "tags" : [ "deprecated" ],
         "summary" : "Get a contract with id `contract_id`",
         "operationId" : "GetContractById",
         "parameters" : [ {
           "name" : "contract_id",
           "in" : "path",
-          "description" : "the id of the contract to get",
+          "description" : "The id of the contract to get",
           "required" : true,
           "style" : "simple",
           "explode" : false,
@@ -341,17 +380,19 @@
               }
             }
           }
-        }
+        },
+        "deprecated" : true
       }
     },
     "/concord/contracts/{contract_id}/versions/{version_name}" : {
       "get" : {
+        "tags" : [ "deprecated" ],
         "summary" : "Get a contract identified by given `contract_id` and `version_name`",
         "operationId" : "GetContractByIdAndVersion",
         "parameters" : [ {
           "name" : "contract_id",
           "in" : "path",
-          "description" : "the id of the contract to get",
+          "description" : "The id of the contract to get",
           "required" : true,
           "style" : "simple",
           "explode" : false,
@@ -362,7 +403,7 @@
         }, {
           "name" : "version_name",
           "in" : "path",
-          "description" : "name of the version of contract to get",
+          "description" : "Name of the version of contract to get",
           "required" : true,
           "style" : "simple",
           "explode" : false,
@@ -373,7 +414,7 @@
         } ],
         "responses" : {
           "200" : {
-            "description" : "All details of a particular version of this particular contract ",
+            "description" : "All details of a particular version of this particular contract",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -382,17 +423,19 @@
               }
             }
           }
-        }
+        },
+        "deprecated" : true
       }
     },
     "/concord/contracts/{contract_address}" : {
       "put" : {
+        "tags" : [ "deprecated" ],
         "summary" : "Verify a contract identified by given `contract_address`",
         "operationId" : "PutContractByIdAndVersion",
         "parameters" : [ {
           "name" : "contract_address",
           "in" : "path",
-          "description" : "the address of the contract",
+          "description" : "The address of the contract",
           "required" : true,
           "style" : "simple",
           "explode" : false,
@@ -411,19 +454,19 @@
                 "properties" : {
                   "contract_id" : {
                     "type" : "string",
-                    "description" : "string representing contract name"
+                    "description" : "String representing contract name"
                   },
                   "compiler_version" : {
                     "type" : "string",
-                    "description" : "string representing solc version you used to deploy the contract"
+                    "description" : "String representing solc version you used to deploy the contract"
                   },
                   "sourcecode" : {
                     "type" : "string",
-                    "description" : "string representing solidity source code of this version"
+                    "description" : "String representing solidity source code of this version"
                   },
                   "contract_name" : {
                     "type" : "string",
-                    "description" : "string representing contract name you used to deploy the contract"
+                    "description" : "String representing contract name you used to deploy the contract"
                   },
                   "is_optimize" : {
                     "type" : "boolean",
@@ -431,7 +474,7 @@
                   },
                   "runs" : {
                     "type" : "string",
-                    "description" : "string representing optimize for how many times you intend to run the code"
+                    "description" : "String representing optimize for how many times you intend to run the code"
                   }
                 }
               }
@@ -441,7 +484,7 @@
         },
         "responses" : {
           "200" : {
-            "description" : "All details of a particular version of this particular contract ",
+            "description" : "All details of a particular version of this particular contract",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -450,17 +493,19 @@
               }
             }
           }
-        }
+        },
+        "deprecated" : true
       }
     },
     "/blockchains" : {
       "summary" : "Blockchain",
       "get" : {
+        "tags" : [ "blockchains" ],
         "summary" : "List all blockchains",
         "operationId" : "getBlockchains",
         "responses" : {
           "200" : {
-            "description" : "Returns a list of all blockchains",
+            "description" : "Returns a list of all accessible blockchains",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -475,6 +520,7 @@
         }
       },
       "post" : {
+        "tags" : [ "blockchains" ],
         "summary" : "Create a new blockchain",
         "operationId" : "blockchainPost",
         "requestBody" : {
@@ -492,20 +538,25 @@
                   },
                   "f_count" : {
                     "type" : "integer",
-                    "description" : "Number of f nodes, cluster size will be 3f +2c + 1"
+                    "description" : "Number of f replicas, cluster size will be 3f + 2c + 1"
                   },
                   "c_count" : {
                     "type" : "integer",
-                    "description" : "Number of c nodes, cluster size will be 3f +2c + 1"
+                    "description" : "Number of c replicas, cluster size will be 3f + 2c + 1"
                   },
                   "deployment_type" : {
                     "type" : "string",
                     "description" : "FIXED or UNSPECIFIED, determines site locations",
                     "enum" : [ "FIXED", "UNSPECIFIED" ]
                   },
+                  "blockchain_type" : {
+                    "type" : "string",
+                    "description" : "Type of blockchain node",
+                    "enum" : [ "ETHEREUM", "DAML", "HLF" ]
+                  },
                   "zone_ids" : {
                     "type" : "array",
-                    "description" : "List of zone IDs for nodes.  deployment_type must be FIXED.  Must contain 3f + 2c + 1 elements.\n",
+                    "description" : "List of zone IDs for replicas.  deployment_type must be FIXED.  Must contain 3f + 2c + 1 elements.\n",
                     "items" : {
                       "type" : "string",
                       "format" : "uuid"
@@ -531,9 +582,10 @@
         }
       }
     },
-    "/blockchain/zones" : {
+    "/blockchains/zones" : {
       "summary" : "Deployment zones for blockchains",
       "get" : {
+        "tags" : [ "blockchains" ],
         "summary" : "Get available zones",
         "operationId" : "getBlockchainZones",
         "responses" : {
@@ -544,8 +596,28 @@
                 "schema" : {
                   "type" : "array",
                   "items" : {
-                    "$ref" : "#/components/schemas/inline_response_200_10"
+                    "$ref" : "#/components/schemas/BaseZoneGet"
                   }
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Error Response",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Error Response",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Error"
                 }
               }
             }
@@ -553,13 +625,14 @@
         }
       },
       "post" : {
-        "summary" : "Refresh zones",
-        "description" : "Refresh the zone list from Persephone, and return it",
-        "operationId" : "refreshBlockchainZones",
+        "tags" : [ "blockchains" ],
+        "summary" : "Create a new new zone, or refresh zones",
+        "description" : "Create a new on-premises zone as defined",
+        "operationId" : "createBlockchainOnpremZones",
         "parameters" : [ {
           "name" : "action",
           "in" : "query",
-          "description" : "Perform the action",
+          "description" : "Refresh zones instead of creating",
           "required" : false,
           "style" : "form",
           "explode" : true,
@@ -568,16 +641,120 @@
             "enum" : [ "reload" ]
           }
         } ],
+        "requestBody" : {
+          "$ref" : "#/components/requestBodies/CreateZoneRequst"
+        },
         "responses" : {
           "200" : {
-            "description" : "List of available zones",
+            "description" : "Get Zone information details.",
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "type" : "array",
-                  "items" : {
-                    "$ref" : "#/components/schemas/inline_response_200_10"
-                  }
+                  "$ref" : "#/components/schemas/Zone"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Error Response",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/blockchains/zones/{zone_id}" : {
+      "get" : {
+        "tags" : [ "blockchains" ],
+        "summary" : "Get Zone Details",
+        "operationId" : "getOnpremZones",
+        "parameters" : [ {
+          "name" : "zone_id",
+          "in" : "path",
+          "description" : "The id of the on-premises zone to get",
+          "required" : true,
+          "style" : "simple",
+          "explode" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "Get Zone information details.",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Zone"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete" : {
+        "tags" : [ "blockchains" ],
+        "summary" : "Delete an on-premises zone",
+        "description" : "Delete an on-premises zone",
+        "operationId" : "DeleteOnpremZones",
+        "parameters" : [ {
+          "name" : "zone_id",
+          "in" : "path",
+          "description" : "The id of the on-premises zone to delete",
+          "required" : true,
+          "style" : "simple",
+          "explode" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "Successfully deleted zone",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/inline_response_200_10"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch" : {
+        "tags" : [ "blockchains" ],
+        "summary" : "Update an on-premises zone",
+        "description" : "Update an existing on-premises zone",
+        "operationId" : "patchOnpremZones",
+        "parameters" : [ {
+          "name" : "zone_id",
+          "in" : "path",
+          "description" : "The id of the on-premises zone to update",
+          "required" : true,
+          "style" : "simple",
+          "explode" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "$ref" : "#/components/requestBodies/PatchZoneRequst"
+        },
+        "responses" : {
+          "200" : {
+            "description" : "Get Zone information details.",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Zone"
                 }
               }
             }
@@ -586,8 +763,9 @@
       }
     },
     "/blockchains/{bid}" : {
-      "summary" : "Blockchain",
+      "summary" : "Blockchain Operations",
       "get" : {
+        "tags" : [ "blockchains" ],
         "summary" : "Get Blockchain information",
         "operationId" : "getBlockchain",
         "parameters" : [ {
@@ -614,10 +792,13 @@
             }
           }
         }
-      },
-      "patch" : {
-        "summary" : "Update an existing blockchain",
-        "operationId" : "blockchainPatch",
+      }
+    },
+    "/blockchains/{bid}/replicas" : {
+      "get" : {
+        "tags" : [ "blockchains" ],
+        "summary" : "Get list of replicas with status",
+        "operationId" : "listReplicas",
         "parameters" : [ {
           "name" : "bid",
           "in" : "path",
@@ -630,45 +811,26 @@
             "format" : "uuid"
           }
         } ],
-        "requestBody" : {
-          "description" : "Blockchain items to patch",
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "type" : "object",
-                "properties" : {
-                  "ip_list" : {
-                    "type" : "string",
-                    "description" : "comma separated list of addresses of blockchain nodes"
-                  },
-                  "rpc_urls" : {
-                    "type" : "string",
-                    "description" : "string represent url map, comma separated list of hostname=url"
-                  }
-                }
-              }
-            }
-          },
-          "$ref" : "#/components/requestBodies/inline_object_4"
-        },
         "responses" : {
           "200" : {
-            "description" : "Returns the specified blockchain",
+            "description" : "List of replicas and status",
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/inline_response_200_12"
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/inline_response_200_12"
+                  }
                 }
               }
             }
           }
         }
-      }
-    },
-    "/blockchains/{bid}/nodes" : {
+      },
       "post" : {
-        "summary" : "start/stop a list of nodes",
-        "operationId" : "nodeListStartStop",
+        "tags" : [ "blockchains" ],
+        "summary" : "Start/stop a list of replicas",
+        "operationId" : "replicaListStartStop",
         "parameters" : [ {
           "name" : "bid",
           "in" : "path",
@@ -683,7 +845,7 @@
         }, {
           "name" : "action",
           "in" : "query",
-          "description" : "start/stop",
+          "description" : "Start/stop",
           "required" : false,
           "style" : "form",
           "explode" : true,
@@ -693,13 +855,22 @@
           }
         } ],
         "requestBody" : {
-          "description" : "Nodes to stop/start",
+          "description" : "Replicas to stop/start",
           "content" : {
             "application/json" : {
               "schema" : {
                 "type" : "object",
                 "properties" : {
-                  "node_ips" : {
+                  "node_ids" : {
+                    "type" : "array",
+                    "description" : "Please use replica_ids",
+                    "deprecated" : true,
+                    "items" : {
+                      "type" : "string",
+                      "format" : "uuid"
+                    }
+                  },
+                  "replica_ids" : {
                     "type" : "array",
                     "items" : {
                       "type" : "string",
@@ -711,11 +882,11 @@
             }
           },
           "required" : true,
-          "$ref" : "#/components/requestBodies/inline_object_5"
+          "$ref" : "#/components/requestBodies/inline_object_4"
         },
         "responses" : {
           "202" : {
-            "description" : "task ids",
+            "description" : "Task ids",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -727,10 +898,11 @@
         }
       }
     },
-    "/blockchains/{bid}/nodes/{node_id}" : {
+    "/blockchains/{bid}/replicas/{replica_id}" : {
       "post" : {
-        "summary" : "start/stop a list of nodes",
-        "operationId" : "nodeStartStop",
+        "tags" : [ "blockchains" ],
+        "summary" : "Start/stop a replica",
+        "operationId" : "replicaStartStop",
         "parameters" : [ {
           "name" : "bid",
           "in" : "path",
@@ -743,9 +915,9 @@
             "format" : "uuid"
           }
         }, {
-          "name" : "node_id",
+          "name" : "replica_id",
           "in" : "path",
-          "description" : "Node ID",
+          "description" : "Replica ID",
           "required" : true,
           "style" : "simple",
           "explode" : false,
@@ -756,7 +928,7 @@
         }, {
           "name" : "action",
           "in" : "query",
-          "description" : "start/stop",
+          "description" : "Start/stop",
           "required" : true,
           "style" : "form",
           "explode" : true,
@@ -767,7 +939,7 @@
         } ],
         "responses" : {
           "202" : {
-            "description" : "task ids",
+            "description" : "Task ids",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -782,7 +954,8 @@
     "/blockchains/{bid}/concord/members" : {
       "summary" : "Blockchain Consensus Membership List",
       "get" : {
-        "summary" : "List nodes that are members",
+        "tags" : [ "deprecated" ],
+        "summary" : "Please use /api/blockchains/{bid}/replicas",
         "operationId" : "memberListGetBlk",
         "parameters" : [ {
           "name" : "bid",
@@ -810,12 +983,14 @@
               }
             }
           }
-        }
+        },
+        "deprecated" : true
       }
     },
     "/blockchains/{bid}/concord/blocks" : {
       "summary" : "Blockchain Blocks",
       "get" : {
+        "tags" : [ "concord" ],
         "summary" : "List blocks in the chain, most recent first",
         "operationId" : "blockListGetBlk",
         "parameters" : [ {
@@ -832,7 +1007,7 @@
         }, {
           "name" : "latest",
           "in" : "query",
-          "description" : "most recent block to start with",
+          "description" : "Most recent block to start with",
           "required" : false,
           "style" : "form",
           "explode" : true,
@@ -843,7 +1018,7 @@
         }, {
           "name" : "count",
           "in" : "query",
-          "description" : "number of blocks to return",
+          "description" : "Number of blocks to return",
           "required" : false,
           "style" : "form",
           "explode" : true,
@@ -869,6 +1044,7 @@
     "/blockchains/{bid}/concord/blocks/{index}" : {
       "summary" : "Specific Blockchain Block",
       "get" : {
+        "tags" : [ "concord" ],
         "summary" : "Get a specific block, by its number in the chain",
         "operationId" : "blockGetBlk",
         "parameters" : [ {
@@ -885,7 +1061,7 @@
         }, {
           "name" : "index",
           "in" : "path",
-          "description" : "the index of the block to get",
+          "description" : "The index of the block to get",
           "required" : true,
           "style" : "simple",
           "explode" : false,
@@ -911,6 +1087,7 @@
     "/blockchains/{bid}/concord/transactions/{hash}" : {
       "summary" : "Specific Blockchain Block",
       "get" : {
+        "tags" : [ "concord" ],
         "summary" : "Get a specific transaction, by its hash",
         "operationId" : "txGetBlk",
         "parameters" : [ {
@@ -927,7 +1104,7 @@
         }, {
           "name" : "hash",
           "in" : "path",
-          "description" : "the hash of the index to get",
+          "description" : "The hash of the index to get",
           "required" : true,
           "style" : "simple",
           "explode" : false,
@@ -952,6 +1129,7 @@
     "/blockchains/{bid}/concord/eth" : {
       "summary" : "Ethereum JSON RPC API",
       "post" : {
+        "tags" : [ "ethereum" ],
         "summary" : "Call the named procedure",
         "externalDocs" : {
           "description" : "Ethereum JSON RPC Docs",
@@ -997,7 +1175,7 @@
               }
             }
           },
-          "$ref" : "#/components/requestBodies/inline_object_6"
+          "$ref" : "#/components/requestBodies/inline_object_5"
         },
         "responses" : {
           "200" : {
@@ -1016,6 +1194,7 @@
     "/blockchains/{bid}/concord/contracts" : {
       "summary" : "Blockchain contracts",
       "get" : {
+        "tags" : [ "contracts" ],
         "summary" : "List all deployed contracts",
         "operationId" : "contractsGetBlk",
         "parameters" : [ {
@@ -1047,6 +1226,7 @@
         }
       },
       "post" : {
+        "tags" : [ "contracts" ],
         "summary" : "Deploy a new contract to concord",
         "operationId" : "ContractsPostBlk",
         "parameters" : [ {
@@ -1071,31 +1251,31 @@
                 "properties" : {
                   "contract_id" : {
                     "type" : "string",
-                    "description" : "string representing contract id"
+                    "description" : "String representing contract id"
                   },
                   "version" : {
                     "type" : "string",
-                    "description" : "string representing version number of this contract"
+                    "description" : "String representing version number of this contract"
                   },
                   "from" : {
                     "type" : "string",
-                    "description" : "string representing owners address"
+                    "description" : "String representing owners address"
                   },
                   "sourcecode" : {
                     "type" : "string",
-                    "description" : "string representing solidity source code of this version"
+                    "description" : "String representing solidity source code of this version"
                   },
                   "contract_name" : {
                     "type" : "string",
-                    "description" : "string representing contract name you used to deploy the contract"
+                    "description" : "String representing contract name you used to deploy the contract"
                   },
                   "constructor_params" : {
                     "type" : "string",
-                    "description" : "string representing constructor parameters needed to deploy this contract, if your contract does not require constructor parameters, set this to \"\""
+                    "description" : "String representing constructor parameters needed to deploy this contract, if your contract does not require constructor parameters, set this to \"\""
                   },
                   "compiler_version" : {
                     "type" : "string",
-                    "description" : "string representing solc version you used to deploy the contract"
+                    "description" : "String representing solc version you used to deploy the contract"
                   },
                   "is_optimize" : {
                     "type" : "boolean",
@@ -1103,17 +1283,17 @@
                   },
                   "runs" : {
                     "type" : "string",
-                    "description" : "string representing optimize for how many times you intend to run the code"
+                    "description" : "String representing optimize for how many times you intend to run the code"
                   }
                 }
               }
             }
           },
-          "$ref" : "#/components/requestBodies/inline_object_7"
+          "$ref" : "#/components/requestBodies/inline_object_6"
         },
         "responses" : {
           "200" : {
-            "description" : "description of deployed contract",
+            "description" : "Description of deployed contract",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -1122,11 +1302,11 @@
                     "properties" : {
                       "contract_id" : {
                         "type" : "string",
-                        "description" : "string representing id of this contract"
+                        "description" : "String representing id of this contract"
                       },
                       "version" : {
                         "type" : "string",
-                        "description" : "string representing name of this version"
+                        "description" : "String representing name of this version"
                       },
                       "url" : {
                         "type" : "string",
@@ -1147,6 +1327,7 @@
     },
     "/blockchains/{bid}/concord/contracts/{contract_id}" : {
       "get" : {
+        "tags" : [ "contracts" ],
         "summary" : "Get a contract with id `contract_id`",
         "operationId" : "GetContractByIdBlk",
         "parameters" : [ {
@@ -1163,7 +1344,7 @@
         }, {
           "name" : "contract_id",
           "in" : "path",
-          "description" : "the id of the contract to get",
+          "description" : "The id of the contract to get",
           "required" : true,
           "style" : "simple",
           "explode" : false,
@@ -1188,6 +1369,7 @@
     },
     "/blockchains/{bid}/concord/contracts/{contract_id}/versions/{version_name}" : {
       "get" : {
+        "tags" : [ "contracts" ],
         "summary" : "Get a contract identified by given `contract_id` and `version_name`",
         "operationId" : "GetContractByIdAndVersionBlk",
         "parameters" : [ {
@@ -1204,7 +1386,7 @@
         }, {
           "name" : "contract_id",
           "in" : "path",
-          "description" : "the id of the contract to get",
+          "description" : "The id of the contract to get",
           "required" : true,
           "style" : "simple",
           "explode" : false,
@@ -1215,7 +1397,7 @@
         }, {
           "name" : "version_name",
           "in" : "path",
-          "description" : "name of the version of contract to get",
+          "description" : "Name of the version of contract to get",
           "required" : true,
           "style" : "simple",
           "explode" : false,
@@ -1226,7 +1408,7 @@
         } ],
         "responses" : {
           "200" : {
-            "description" : "All details of a particular version of this particular contract ",
+            "description" : "All details of a particular version of this particular contract",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -1240,6 +1422,7 @@
     },
     "/blockchains/{bid}/concord/contracts/{contract_address}" : {
       "put" : {
+        "tags" : [ "contracts" ],
         "summary" : "Verify a contract identified by given `contract_address`",
         "operationId" : "PutContractByIdAndVersionBlk",
         "parameters" : [ {
@@ -1256,7 +1439,7 @@
         }, {
           "name" : "contract_address",
           "in" : "path",
-          "description" : "the address of the contract",
+          "description" : "The address of the contract",
           "required" : true,
           "style" : "simple",
           "explode" : false,
@@ -1275,19 +1458,19 @@
                 "properties" : {
                   "contract_id" : {
                     "type" : "string",
-                    "description" : "string representing contract name"
+                    "description" : "String representing contract name"
                   },
                   "compiler_version" : {
                     "type" : "string",
-                    "description" : "string representing solc version you used to deploy the contract"
+                    "description" : "String representing solc version you used to deploy the contract"
                   },
                   "sourcecode" : {
                     "type" : "string",
-                    "description" : "string representing solidity source code of this version"
+                    "description" : "String representing solidity source code of this version"
                   },
                   "contract_name" : {
                     "type" : "string",
-                    "description" : "string representing contract name you used to deploy the contract"
+                    "description" : "String representing contract name you used to deploy the contract"
                   },
                   "is_optimize" : {
                     "type" : "boolean",
@@ -1295,18 +1478,18 @@
                   },
                   "runs" : {
                     "type" : "string",
-                    "description" : "string representing optimize for how many times you intend to run the code"
+                    "description" : "String representing optimize for how many times you intend to run the code"
                   }
                 }
               }
             }
           },
           "required" : true,
-          "$ref" : "#/components/requestBodies/inline_object_8"
+          "$ref" : "#/components/requestBodies/inline_object_7"
         },
         "responses" : {
           "200" : {
-            "description" : "All details of a particular version of this particular contract ",
+            "description" : "All details of a particular version of this particular contract",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -1321,11 +1504,12 @@
     "/consortiums" : {
       "summary" : "GetConsortium",
       "get" : {
-        "summary" : "List all consortiums",
+        "tags" : [ "profiles" ],
+        "summary" : "List all accessible consortiums",
         "operationId" : "getConsortiums",
         "responses" : {
           "200" : {
-            "description" : "Returns a list of all consortiums",
+            "description" : "Returns a list of all accessible consortiums",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -1340,6 +1524,7 @@
         }
       },
       "post" : {
+        "tags" : [ "profiles" ],
         "summary" : "Creates a new Consortium",
         "operationId" : "consortiumPost",
         "requestBody" : {
@@ -1347,15 +1532,15 @@
           "content" : {
             "application/json" : {
               "schema" : {
-                "required" : [ "consortiumName", "consortiumType", "organization" ],
+                "required" : [ "consortium_name", "consortium_type", "organization" ],
                 "type" : "object",
                 "properties" : {
-                  "consortiumName" : {
+                  "consortium_name" : {
                     "type" : "string",
                     "description" : "Name of consortium",
                     "format" : "string"
                   },
-                  "consortiumType" : {
+                  "consortium_type" : {
                     "type" : "string",
                     "description" : "Type of consortium",
                     "format" : "string"
@@ -1369,15 +1554,15 @@
               }
             }
           },
-          "$ref" : "#/components/requestBodies/inline_object_9"
+          "$ref" : "#/components/requestBodies/inline_object_8"
         },
         "responses" : {
-          "202" : {
+          "200" : {
             "description" : "Returns the consortium ID and Name",
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/inline_response_202_3"
+                  "$ref" : "#/components/schemas/inline_response_200_14"
                 }
               }
             }
@@ -1388,6 +1573,7 @@
     "/consortiums/{con_id}" : {
       "summary" : "GetConsortium_byID",
       "get" : {
+        "tags" : [ "profiles" ],
         "summary" : "Get Consortium by its ID",
         "operationId" : "getConsortium",
         "parameters" : [ {
@@ -1410,7 +1596,7 @@
                 "schema" : {
                   "type" : "array",
                   "items" : {
-                    "$ref" : "#/components/schemas/inline_response_200_14"
+                    "$ref" : "#/components/schemas/inline_response_200_15"
                   }
                 }
               }
@@ -1419,6 +1605,7 @@
         }
       },
       "patch" : {
+        "tags" : [ "profiles" ],
         "summary" : "Update an existing consortium",
         "operationId" : "consortiumPatch",
         "parameters" : [ {
@@ -1440,12 +1627,12 @@
               "schema" : {
                 "type" : "object",
                 "properties" : {
-                  "consortiumName" : {
+                  "consortium_name" : {
                     "type" : "string",
                     "description" : "Name of consortium",
                     "format" : "string"
                   },
-                  "consortiumType" : {
+                  "consortium_type" : {
                     "type" : "string",
                     "description" : "Type of consortium",
                     "format" : "string"
@@ -1471,15 +1658,15 @@
             }
           },
           "required" : true,
-          "$ref" : "#/components/requestBodies/inline_object_10"
+          "$ref" : "#/components/requestBodies/inline_object_9"
         },
         "responses" : {
-          "202" : {
+          "200" : {
             "description" : "Returns the Consortium ID and Name",
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/inline_response_202_4"
+                  "$ref" : "#/components/schemas/inline_response_200_16"
                 }
               }
             }
@@ -1490,7 +1677,8 @@
     "/consortiums/{con_id}/organizations" : {
       "summary" : "Get consortium members",
       "get" : {
-        "summary" : "Get Consortium by its ID",
+        "tags" : [ "profiles" ],
+        "summary" : "Get Consortium Members",
         "operationId" : "getConsortiumMembers",
         "parameters" : [ {
           "name" : "con_id",
@@ -1506,13 +1694,13 @@
         } ],
         "responses" : {
           "200" : {
-            "description" : "Returns the specified consortium",
+            "description" : "Returns the members of the specified consortium",
             "content" : {
               "application/json" : {
                 "schema" : {
                   "type" : "array",
                   "items" : {
-                    "$ref" : "#/components/schemas/inline_response_202_4_members"
+                    "$ref" : "#/components/schemas/inline_response_200_16_members"
                   }
                 }
               }
@@ -1524,6 +1712,7 @@
     "/organizations" : {
       "summary" : "GetOrganization",
       "get" : {
+        "tags" : [ "profiles" ],
         "summary" : "List all organizations",
         "operationId" : "getOrganizations",
         "responses" : {
@@ -1534,7 +1723,7 @@
                 "schema" : {
                   "type" : "array",
                   "items" : {
-                    "$ref" : "#/components/schemas/inline_response_200_15"
+                    "$ref" : "#/components/schemas/inline_response_200_17"
                   }
                 }
               }
@@ -1543,6 +1732,7 @@
         }
       },
       "post" : {
+        "tags" : [ "deprecated" ],
         "summary" : "Creates a new organization",
         "operationId" : "organizationPost",
         "requestBody" : {
@@ -1550,10 +1740,10 @@
           "content" : {
             "application/json" : {
               "schema" : {
-                "required" : [ "organizationName" ],
+                "required" : [ "organization_name" ],
                 "type" : "object",
                 "properties" : {
-                  "organizationName" : {
+                  "organization_name" : {
                     "type" : "string",
                     "description" : "Name of organization",
                     "format" : "string"
@@ -1563,25 +1753,27 @@
             }
           },
           "required" : true,
-          "$ref" : "#/components/requestBodies/inline_object_11"
+          "$ref" : "#/components/requestBodies/inline_object_10"
         },
         "responses" : {
-          "202" : {
+          "200" : {
             "description" : "Returns the organization ID and Name",
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/inline_response_202_5"
+                  "$ref" : "#/components/schemas/inline_response_200_18"
                 }
               }
             }
           }
-        }
+        },
+        "deprecated" : true
       }
     },
     "/organizations/{org_id}" : {
       "summary" : "GetOrganization_byid",
       "get" : {
+        "tags" : [ "profiles" ],
         "summary" : "Get Organization by its id",
         "operationId" : "getOrganization",
         "parameters" : [ {
@@ -1604,7 +1796,7 @@
                 "schema" : {
                   "type" : "array",
                   "items" : {
-                    "$ref" : "#/components/schemas/inline_response_200_15"
+                    "$ref" : "#/components/schemas/inline_response_200_19"
                   }
                 }
               }
@@ -1613,6 +1805,7 @@
         }
       },
       "patch" : {
+        "tags" : [ "deprecated" ],
         "summary" : "Update an existing organization",
         "operationId" : "organizationPatch",
         "parameters" : [ {
@@ -1634,7 +1827,7 @@
               "schema" : {
                 "type" : "object",
                 "properties" : {
-                  "OrganizationName" : {
+                  "Organization_name" : {
                     "type" : "string",
                     "description" : "Updating name of the organization"
                   }
@@ -1643,25 +1836,27 @@
             }
           },
           "required" : true,
-          "$ref" : "#/components/requestBodies/inline_object_12"
+          "$ref" : "#/components/requestBodies/inline_object_11"
         },
         "responses" : {
-          "202" : {
+          "200" : {
             "description" : "Returns the organization ID and Name",
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/inline_response_202_5"
+                  "$ref" : "#/components/schemas/inline_response_200_18"
                 }
               }
             }
           }
-        }
+        },
+        "deprecated" : true
       }
     },
     "/tasks" : {
       "summary" : "Get all Tasks",
       "get" : {
+        "tags" : [ "tasks" ],
         "summary" : "Get the statuses of all tasks",
         "operationId" : "listTask",
         "responses" : {
@@ -1672,7 +1867,7 @@
                 "schema" : {
                   "type" : "array",
                   "items" : {
-                    "$ref" : "#/components/schemas/inline_response_200_16"
+                    "$ref" : "#/components/schemas/inline_response_200_20"
                   }
                 }
               }
@@ -1681,12 +1876,13 @@
         }
       },
       "post" : {
+        "tags" : [ "tasks" ],
         "summary" : "Get the statuses of listed tasks",
         "operationId" : "getTaskList",
         "parameters" : [ {
           "name" : "get_state",
           "in" : "query",
-          "description" : "get states",
+          "description" : "Get states",
           "required" : true,
           "style" : "form",
           "explode" : true,
@@ -1713,7 +1909,7 @@
             }
           },
           "required" : true,
-          "$ref" : "#/components/requestBodies/inline_object_13"
+          "$ref" : "#/components/requestBodies/inline_object_12"
         },
         "responses" : {
           "200" : {
@@ -1721,7 +1917,7 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/inline_response_200_17"
+                  "$ref" : "#/components/schemas/inline_response_200_21"
                 }
               }
             }
@@ -1732,6 +1928,7 @@
     "/tasks/{task_id}" : {
       "summary" : "Tasks",
       "get" : {
+        "tags" : [ "tasks" ],
         "summary" : "Get the status of the specified task",
         "operationId" : "getTask",
         "parameters" : [ {
@@ -1752,7 +1949,7 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/inline_response_200_16"
+                  "$ref" : "#/components/schemas/inline_response_200_20"
                 }
               }
             }
@@ -1763,6 +1960,7 @@
     "/users" : {
       "summary" : "Helen User management",
       "get" : {
+        "tags" : [ "deprecated" ],
         "summary" : "Get a list of user which belong to specific organization and specific consortium",
         "operationId" : "usersGet",
         "parameters" : [ {
@@ -1794,15 +1992,17 @@
                 "schema" : {
                   "type" : "array",
                   "items" : {
-                    "$ref" : "#/components/schemas/inline_response_200_18"
+                    "$ref" : "#/components/schemas/inline_response_200_22"
                   }
                 }
               }
             }
           }
-        }
+        },
+        "deprecated" : true
       },
       "post" : {
+        "tags" : [ "deprecated" ],
         "summary" : "Create a new user in Helen",
         "operationId" : "usersPost",
         "requestBody" : {
@@ -1815,15 +2015,15 @@
                 "properties" : {
                   "name" : {
                     "type" : "string",
-                    "description" : "string representing name of this user"
+                    "description" : "String representing name of this user"
                   },
                   "email" : {
                     "type" : "string",
-                    "description" : "string representing email of this user"
+                    "description" : "String representing email of this user"
                   },
                   "role" : {
                     "type" : "string",
-                    "description" : "string representing role of this user"
+                    "description" : "String representing role of this user"
                   },
                   "details" : {
                     "$ref" : "#/components/schemas/_users_details"
@@ -1836,14 +2036,14 @@
                   },
                   "password" : {
                     "type" : "string",
-                    "description" : "password of this user"
+                    "description" : "Password of this user"
                   }
                 }
               }
             }
           },
           "required" : true,
-          "$ref" : "#/components/requestBodies/inline_object_14"
+          "$ref" : "#/components/requestBodies/inline_object_13"
         },
         "responses" : {
           "200" : {
@@ -1851,23 +2051,25 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/inline_response_200_19"
+                  "$ref" : "#/components/schemas/inline_response_200_23"
                 }
               }
             }
           }
-        }
+        },
+        "deprecated" : true
       }
     },
     "/users/{user_id}" : {
       "summary" : "Helen User management",
       "get" : {
+        "tags" : [ "profiles" ],
         "summary" : "Get the user identified by given user_id",
         "operationId" : "GetUserById",
         "parameters" : [ {
           "name" : "user_id",
           "in" : "path",
-          "description" : "the id of the user to get",
+          "description" : "The id of the user to get",
           "required" : true,
           "style" : "simple",
           "explode" : false,
@@ -1882,7 +2084,7 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/inline_response_200_18"
+                  "$ref" : "#/components/schemas/inline_response_200_22"
                 }
               }
             }
@@ -1890,12 +2092,13 @@
         }
       },
       "patch" : {
+        "tags" : [ "deprecated" ],
         "summary" : "Update user information",
         "operationId" : "UpdateUser",
         "parameters" : [ {
           "name" : "user_id",
           "in" : "path",
-          "description" : "the id of the user to update",
+          "description" : "The id of the user to update",
           "required" : true,
           "style" : "simple",
           "explode" : false,
@@ -1913,15 +2116,15 @@
                 "properties" : {
                   "name" : {
                     "type" : "string",
-                    "description" : "new name of the user"
+                    "description" : "New name of the user"
                   },
                   "email" : {
                     "type" : "string",
-                    "description" : "new email of the user"
+                    "description" : "New email of the user"
                   },
                   "role" : {
                     "type" : "string",
-                    "description" : "new role of the user"
+                    "description" : "New role of the user"
                   },
                   "details" : {
                     "$ref" : "#/components/schemas/_users_user_id_details"
@@ -1931,7 +2134,7 @@
             }
           },
           "required" : true,
-          "$ref" : "#/components/requestBodies/inline_object_15"
+          "$ref" : "#/components/requestBodies/inline_object_14"
         },
         "responses" : {
           "200" : {
@@ -1945,18 +2148,20 @@
               }
             }
           }
-        }
+        },
+        "deprecated" : true
       }
     },
     "/auth/login" : {
       "summary" : "Helen User management",
       "post" : {
+        "tags" : [ "deprecated" ],
         "summary" : "Authenticate a user",
         "operationId" : "AuthenticateUser",
         "parameters" : [ {
           "name" : "user_id",
           "in" : "path",
-          "description" : "the id of the user to authenticate",
+          "description" : "The id of the user to authenticate",
           "required" : true,
           "style" : "simple",
           "explode" : false,
@@ -1975,7 +2180,50 @@
                 "properties" : {
                   "password" : {
                     "type" : "string",
-                    "description" : "password of the user"
+                    "description" : "Password of the user"
+                  }
+                }
+              }
+            }
+          },
+          "$ref" : "#/components/requestBodies/inline_object_15"
+        },
+        "responses" : {
+          "200" : {
+            "description" : "Returns an object with at least an `isAuthenticated` field. If login failed, the value of this field is `false`. If login succeeded, the value of this field is `true`, and the rest of the fields of a user-GET response are also included.",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/inline_response_200_24"
+                }
+              }
+            }
+          }
+        },
+        "deprecated" : true
+      }
+    },
+    "/auth/change-password" : {
+      "summary" : "Change user password",
+      "post" : {
+        "tags" : [ "deprecated" ],
+        "summary" : "Change a user password",
+        "operationId" : "ChangePassword",
+        "requestBody" : {
+          "description" : "Authenticate user POST request body",
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "required" : [ "email", "password" ],
+                "type" : "object",
+                "properties" : {
+                  "email" : {
+                    "type" : "string",
+                    "description" : "Email of the user"
+                  },
+                  "password" : {
+                    "type" : "string",
+                    "description" : "New password of the user"
                   }
                 }
               }
@@ -1989,58 +2237,19 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/inline_response_200_20"
+                  "$ref" : "#/components/schemas/inline_response_200_24"
                 }
               }
             }
           }
-        }
-      }
-    },
-    "/auth/change-password" : {
-      "summary" : "Change user password",
-      "post" : {
-        "summary" : "Change a user password",
-        "operationId" : "ChangePassword",
-        "requestBody" : {
-          "description" : "Authenticate user POST request body",
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "required" : [ "email", "password" ],
-                "type" : "object",
-                "properties" : {
-                  "email" : {
-                    "type" : "string",
-                    "description" : "email of the user"
-                  },
-                  "password" : {
-                    "type" : "string",
-                    "description" : "new password of the user"
-                  }
-                }
-              }
-            }
-          },
-          "$ref" : "#/components/requestBodies/inline_object_17"
         },
-        "responses" : {
-          "200" : {
-            "description" : "Returns an object with at least an `isAuthenticated` field. If login failed, the value of this field is `false`. If login succeeded, the value of this field is `true`, and the rest of the fields of a user-GET response are also included.",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/inline_response_200_20"
-                }
-              }
-            }
-          }
-        }
+        "deprecated" : true
       }
     },
     "/auth/token" : {
       "summary" : "Refresh auth token",
       "post" : {
+        "tags" : [ "deprecated" ],
         "summary" : "Refresh authentication token",
         "operationId" : "RefreshToken",
         "requestBody" : {
@@ -2059,7 +2268,7 @@
               }
             }
           },
-          "$ref" : "#/components/requestBodies/inline_object_18"
+          "$ref" : "#/components/requestBodies/inline_object_17"
         },
         "responses" : {
           "200" : {
@@ -2067,7 +2276,27 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/inline_response_200_21"
+                  "$ref" : "#/components/schemas/inline_response_200_25"
+                }
+              }
+            }
+          }
+        },
+        "deprecated" : true
+      }
+    },
+    "/oauth/token" : {
+      "summary" : "Return token information of logged in user",
+      "get" : {
+        "tags" : [ "profiles" ],
+        "operationId" : "OauthToken",
+        "responses" : {
+          "200" : {
+            "description" : "Returns information of the currently logged in user",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/inline_response_200_26"
                 }
               }
             }
@@ -2078,500 +2307,280 @@
   },
   "components" : {
     "schemas" : {
-      "inline_response_200_11_node_list" : {
-        "properties" : {
-          "node_id" : {
-            "type" : "string",
-            "description" : "Node ID",
-            "format" : "uuid"
-          },
-          "ip" : {
-            "type" : "string",
-            "description" : "IP address of node"
-          },
-          "url" : {
-            "type" : "string",
-            "description" : "EthRPC url of node"
-          },
-          "cert" : {
-            "type" : "string",
-            "description" : "SSL certificate to talk to ethrpc"
-          },
-          "zone_id" : {
-            "type" : "string",
-            "description" : "Deployment zone for this node",
-            "format" : "uuid"
-          }
-        },
-        "example" : {
-          "zone_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
-          "ip" : "ip",
-          "cert" : "cert",
-          "url" : "url",
-          "node_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91"
-        }
-      },
-      "inline_object_10" : {
+      "Error" : {
         "type" : "object",
         "properties" : {
-          "consortiumName" : {
+          "errorCode" : {
             "type" : "string",
-            "description" : "Name of consortium",
-            "format" : "string"
+            "description" : "Error Code"
           },
-          "consortiumType" : {
+          "errorMessage" : {
             "type" : "string",
-            "description" : "Type of consortium",
-            "format" : "string"
+            "description" : "Localized error message"
           },
-          "orgs_to_add" : {
-            "type" : "array",
-            "items" : {
-              "type" : "string",
-              "description" : "Organizations to add as members of this consortium",
-              "format" : "uuid"
-            }
+          "status" : {
+            "type" : "integer",
+            "description" : "HTTP status code"
           },
-          "orgs_to_remove" : {
-            "type" : "array",
-            "items" : {
-              "type" : "string",
-              "description" : "Organizations to remove as members of this consortium",
-              "format" : "uuid"
-            }
+          "path" : {
+            "type" : "string",
+            "description" : "URI causing error"
           }
         }
       },
-      "inline_object_12" : {
+      "BaseZone" : {
+        "required" : [ "name", "type" ],
         "type" : "object",
         "properties" : {
-          "OrganizationName" : {
+          "type" : {
             "type" : "string",
-            "description" : "Updating name of the organization"
-          }
-        }
-      },
-      "inline_object_11" : {
-        "required" : [ "organizationName" ],
-        "type" : "object",
-        "properties" : {
-          "organizationName" : {
-            "type" : "string",
-            "description" : "Name of organization",
-            "format" : "string"
-          }
-        }
-      },
-      "inline_object_14" : {
-        "required" : [ "consortium", "email", "name", "organization", "password", "role" ],
-        "type" : "object",
-        "properties" : {
+            "example" : "ON_PREM",
+            "enum" : [ "VMC_AWS", "ON_PREM" ]
+          },
           "name" : {
             "type" : "string",
-            "description" : "string representing name of this user"
+            "example" : "VMC SDDC2"
           },
-          "email" : {
+          "latitude" : {
             "type" : "string",
-            "description" : "string representing email of this user"
+            "example" : "45.2551139"
           },
-          "role" : {
+          "longitude" : {
             "type" : "string",
-            "description" : "string representing role of this user"
-          },
-          "details" : {
-            "$ref" : "#/components/schemas/_users_details"
-          },
-          "consortium" : {
-            "$ref" : "#/components/schemas/_users_consortium_1"
-          },
-          "organization" : {
-            "$ref" : "#/components/schemas/_users_organization_1"
-          },
-          "password" : {
-            "type" : "string",
-            "description" : "password of this user"
+            "example" : "-120.888727"
           }
         }
       },
-      "inline_object_13" : {
+      "BaseZoneGet" : {
         "type" : "object",
-        "properties" : {
-          "task_ids" : {
-            "type" : "array",
-            "items" : {
-              "type" : "string",
-              "format" : "uuid"
-            }
-          }
-        }
-      },
-      "inline_object_16" : {
-        "required" : [ "password" ],
-        "type" : "object",
-        "properties" : {
-          "password" : {
-            "type" : "string",
-            "description" : "password of the user"
-          }
-        }
-      },
-      "inline_object_15" : {
-        "type" : "object",
-        "properties" : {
-          "name" : {
-            "type" : "string",
-            "description" : "new name of the user"
-          },
-          "email" : {
-            "type" : "string",
-            "description" : "new email of the user"
-          },
-          "role" : {
-            "type" : "string",
-            "description" : "new role of the user"
-          },
-          "details" : {
-            "$ref" : "#/components/schemas/_users_user_id_details"
-          }
-        }
-      },
-      "_users_details" : {
-        "properties" : {
-          "first_name" : {
-            "type" : "string",
-            "description" : "first name of this user"
-          },
-          "last_name" : {
-            "type" : "string",
-            "description" : "last name of this user"
-          }
-        },
-        "example" : {
-          "last_name" : "last_name",
-          "first_name" : "first_name"
-        }
-      },
-      "inline_response_200_9" : {
         "properties" : {
           "id" : {
             "type" : "string",
-            "description" : "Blockchain ID",
             "format" : "uuid"
-          },
-          "consortium_id" : {
-            "type" : "string",
-            "description" : "ID of owning consortium",
-            "format" : "uuid"
-          },
-          "node_list" : {
-            "type" : "array",
-            "items" : {
-              "$ref" : "#/components/schemas/_blockchains_node_list"
-            }
           }
         },
         "example" : {
-          "consortium_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
-          "id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
-          "node_list" : [ {
-            "zone_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
-            "ip" : "ip",
-            "cert" : "cert",
-            "url" : "url",
-            "node_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91"
-          }, {
-            "zone_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
-            "ip" : "ip",
-            "cert" : "cert",
-            "url" : "url",
-            "node_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91"
-          } ]
-        }
+          "id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91"
+        },
+        "allOf" : [ {
+          "$ref" : "#/components/schemas/BaseZone"
+        } ]
       },
-      "inline_response_200_21" : {
+      "OnPremZonePost" : {
+        "required" : [ "folder", "network", "resource_pool", "storage", "vcenter" ],
+        "type" : "object",
         "properties" : {
-          "token" : {
-            "type" : "string",
-            "description" : "Token used for authentication."
+          "vcenter" : {
+            "$ref" : "#/components/schemas/PostEndpoint"
           },
-          "refresh_token" : {
-            "type" : "string",
-            "description" : "Token used to regenerate a token, token_expires and refresh_token"
+          "network" : {
+            "$ref" : "#/components/schemas/Network"
           },
-          "token_expires" : {
+          "resouce_pool" : {
             "type" : "string",
-            "description" : "Amount of time till your token expires."
+            "description" : "name of resource pool to use for deployment",
+            "example" : "Resource Pool"
+          },
+          "storage" : {
+            "type" : "string",
+            "description" : "name of storage to use for deployment",
+            "example" : "Datastore"
+          },
+          "folder" : {
+            "type" : "string",
+            "description" : "vCenter folder for deployment",
+            "example" : "Blockchain Folder"
+          },
+          "container_repo" : {
+            "$ref" : "#/components/schemas/PostEndpoint"
           }
         },
         "example" : {
-          "refresh_token" : "refresh_token",
-          "token_expires" : "token_expires",
-          "token" : "token"
-        }
+          "folder" : "Blockchain Folder",
+          "resouce_pool" : "Resource Pool",
+          "vcenter" : {
+            "password" : "p4$$w0rd",
+            "url" : "https://service.com",
+            "username" : "user@server.com"
+          },
+          "storage" : "Datastore",
+          "network" : {
+            "subnet" : "24",
+            "name" : "Blockchain Network",
+            "ip_pool" : [ "10.1.1.16-10.1.1.64", "10.1.1.100-10.1.1.200", "10.1.1.253" ],
+            "name_servers" : [ "10.1.1.10", "10.1.1.11" ],
+            "gateway" : "10.1.1.124"
+          },
+          "container_repo" : {
+            "password" : "p4$$w0rd",
+            "url" : "https://service.com",
+            "username" : "user@server.com"
+          }
+        },
+        "allOf" : [ {
+          "$ref" : "#/components/schemas/BaseZone"
+        } ]
       },
-      "inline_response_200_5" : {
-        "required" : [ "id", "jsonrpc" ],
+      "OnPremZoneGet" : {
+        "type" : "object",
         "properties" : {
           "id" : {
-            "type" : "integer"
-          },
-          "jsonrpc" : {
-            "type" : "string"
-          },
-          "result" : {
-            "type" : "string"
-          },
-          "error" : {
-            "type" : "string"
-          }
-        },
-        "example" : {
-          "result" : "result",
-          "id" : 0,
-          "jsonrpc" : "jsonrpc",
-          "error" : "error"
-        }
-      },
-      "inline_response_202_3" : {
-        "properties" : {
-          "con_id" : {
             "type" : "string",
-            "description" : "Consortium ID",
-            "format" : "UUID"
-          },
-          "consortiumName" : {
-            "type" : "string",
-            "description" : " Consortium Name",
-            "format" : "string"
-          }
-        },
-        "example" : {
-          "consortiumName" : "consortiumName",
-          "con_id" : "con_id"
-        }
-      },
-      "inline_response_200_6" : {
-        "properties" : {
-          "contract_id" : {
-            "type" : "string",
-            "description" : "string representing id of this contract"
-          },
-          "owner" : {
-            "type" : "string",
-            "description" : "string representing address of the owner of this contract"
-          },
-          "url" : {
-            "type" : "string",
-            "description" : "The URI representing this specific contract"
-          }
-        },
-        "example" : {
-          "owner" : "owner",
-          "contract_id" : "contract_id",
-          "url" : "url"
-        }
-      },
-      "inline_response_202_4" : {
-        "properties" : {
-          "con_id" : {
-            "type" : "string",
-            "description" : "Consortium ID",
+            "description" : "Zone ID",
             "format" : "uuid"
           },
-          "consortiumName" : {
-            "type" : "string",
-            "description" : "Consortium Name",
-            "format" : "string"
-          },
-          "organization" : {
-            "type" : "string",
-            "description" : "Owning organization",
-            "format" : "uuid"
-          },
-          "members" : {
-            "type" : "array",
-            "items" : {
-              "$ref" : "#/components/schemas/inline_response_202_4_members"
-            }
-          }
-        },
-        "example" : {
-          "consortiumName" : "consortiumName",
-          "con_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
-          "organization" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
-          "members" : [ {
-            "org_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
-            "organization_name" : "organization_name"
-          }, {
-            "org_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
-            "organization_name" : "organization_name"
-          } ]
-        }
-      },
-      "inline_response_200_7" : {
-        "properties" : {
-          "contract_id" : {
-            "type" : "string",
-            "description" : "string representing id of this contract"
-          },
-          "owner" : {
-            "type" : "string",
-            "description" : "string representing address of the owner of this contract"
-          },
-          "versions" : {
-            "type" : "array",
-            "items" : {
-              "properties" : {
-                "address" : {
-                  "type" : "string",
-                  "description" : "string representing address at which this version is deployed"
-                },
-                "metadata" : {
-                  "type" : "object",
-                  "description" : "A metadata JSON object about source code of this version generated by solidity compiler"
-                },
-                "version" : {
-                  "type" : "string",
-                  "description" : "string representing name of this version"
-                },
-                "url" : {
-                  "type" : "string",
-                  "description" : "The URI representing this specific version"
-                }
-              }
-            }
-          }
-        },
-        "example" : {
-          "owner" : "owner",
-          "versions" : [ "{}", "{}" ],
-          "contract_id" : "contract_id"
-        }
-      },
-      "inline_response_202_5" : {
-        "properties" : {
           "org_id" : {
             "type" : "string",
             "description" : "Organization ID",
             "format" : "uuid"
           },
-          "OrganizationName" : {
+          "vcenter" : {
+            "$ref" : "#/components/schemas/GetEndpoint"
+          },
+          "network" : {
+            "$ref" : "#/components/schemas/Network"
+          },
+          "resouce_pool" : {
             "type" : "string",
-            "description" : "Organization Name",
-            "format" : "string"
+            "description" : "name of resource pool to use for deployment",
+            "example" : "Resource Pool"
+          },
+          "storage" : {
+            "type" : "string",
+            "description" : "name of storage to use for deployment",
+            "example" : "Datastore"
+          },
+          "folder" : {
+            "type" : "string",
+            "description" : "vCenter folder for deployment",
+            "example" : "Blockchain Folder"
+          },
+          "container_repo" : {
+            "$ref" : "#/components/schemas/GetEndpoint"
+          }
+        },
+        "allOf" : [ {
+          "$ref" : "#/components/schemas/BaseZone"
+        } ]
+      },
+      "Zone" : {
+        "type" : "object",
+        "allOf" : [ {
+          "$ref" : "#/components/schemas/OnPremZoneGet"
+        } ]
+      },
+      "PostEndpoint" : {
+        "type" : "object",
+        "properties" : {
+          "url" : {
+            "type" : "string",
+            "description" : "URL of endpoint",
+            "example" : "https://service.com"
+          },
+          "username" : {
+            "type" : "string",
+            "description" : "Username for credentials",
+            "example" : "user@server.com"
+          },
+          "password" : {
+            "type" : "string",
+            "description" : "Password for credentials",
+            "example" : "p4$$w0rd"
           }
         },
         "example" : {
-          "OrganizationName" : "OrganizationName",
-          "org_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91"
+          "password" : "p4$$w0rd",
+          "url" : "https://service.com",
+          "username" : "user@server.com"
         }
       },
-      "inline_response_200_20" : {
+      "GetEndpoint" : {
+        "type" : "object",
         "properties" : {
-          "user_id" : {
+          "url" : {
             "type" : "string",
-            "description" : "integer value representing ID of this user",
-            "format" : "uuid"
+            "description" : "URL of endpoint",
+            "example" : "https://service.com"
           },
+          "username" : {
+            "type" : "string",
+            "description" : "Username for credentials",
+            "example" : "user@server.com"
+          }
+        }
+      },
+      "Network" : {
+        "type" : "object",
+        "properties" : {
           "name" : {
             "type" : "string",
-            "description" : "string representing name of this user"
+            "description" : "name of network to use",
+            "example" : "Blockchain Network"
           },
-          "email" : {
+          "ip_pool" : {
+            "type" : "array",
+            "description" : "IP pool list",
+            "example" : [ "10.1.1.16-10.1.1.64", "10.1.1.100-10.1.1.200", "10.1.1.253" ],
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "gateway" : {
             "type" : "string",
-            "description" : "string representing email of this user"
+            "description" : "Gateway IP address",
+            "example" : "10.1.1.124"
           },
-          "role" : {
+          "subnet" : {
             "type" : "string",
-            "description" : "string representing role of this user"
+            "description" : "IP Subnet",
+            "example" : "24"
           },
-          "last_login" : {
-            "type" : "integer",
-            "description" : "integer value representing the time (in milliseconds since epoch) when this user last logged in"
-          },
-          "details" : {
-            "$ref" : "#/components/schemas/_users_details"
-          },
-          "consortium" : {
-            "$ref" : "#/components/schemas/_users_consortium"
-          },
-          "organization" : {
-            "$ref" : "#/components/schemas/_users_organization"
-          },
-          "isAuthenticated" : {
-            "type" : "boolean",
-            "description" : "True if login succeeded. False otherwise."
+          "name_servers" : {
+            "type" : "array",
+            "description" : "List of name servers",
+            "example" : [ "10.1.1.10", "10.1.1.11" ],
+            "items" : {
+              "type" : "string"
+            }
           }
         },
         "example" : {
-          "role" : "role",
-          "user_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
-          "last_login" : 0,
-          "consortium" : {
-            "consortium_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
-            "consortium_name" : "consortium_name"
-          },
-          "organization" : {
-            "organization_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
-            "organization_name" : "organization_name"
-          },
-          "name" : "name",
-          "details" : {
-            "last_name" : "last_name",
-            "first_name" : "first_name"
-          },
-          "isAuthenticated" : true,
-          "email" : "email"
+          "subnet" : "24",
+          "name" : "Blockchain Network",
+          "ip_pool" : [ "10.1.1.16-10.1.1.64", "10.1.1.100-10.1.1.200", "10.1.1.253" ],
+          "name_servers" : [ "10.1.1.10", "10.1.1.11" ],
+          "gateway" : "10.1.1.124"
         }
       },
-      "inline_response_200_8" : {
+      "inline_response_200" : {
         "properties" : {
-          "contract_id" : {
-            "type" : "string",
-            "description" : "string representing id of this contract"
-          },
-          "owner" : {
-            "type" : "string",
-            "description" : "string representing address of the owner of this contract"
-          },
-          "version" : {
-            "type" : "string",
-            "description" : "string representing name of this version"
-          },
-          "metadata" : {
-            "type" : "object",
-            "description" : "A metadata JSON object about source code of this version generated by solidity compiler"
+          "hostname" : {
+            "type" : "string"
           },
           "address" : {
-            "type" : "string",
-            "description" : "string representing address at which this version is deployed"
+            "type" : "string"
           },
-          "bytecode" : {
-            "type" : "string",
-            "description" : "string representing compiled bytecode of this version"
+          "status" : {
+            "type" : "string"
           },
-          "sourcecode" : {
+          "millis_since_last_message" : {
+            "type" : "integer"
+          },
+          "millis_since_last_message_threshold" : {
+            "type" : "integer"
+          },
+          "rpc_url" : {
             "type" : "string",
-            "description" : "string representing the actual source code of this version"
+            "format" : "url"
           }
         },
         "example" : {
-          "owner" : "owner",
-          "bytecode" : "bytecode",
-          "metadata" : "{}",
+          "rpc_url" : "http://example.com/aeiou",
+          "hostname" : "hostname",
           "address" : "address",
-          "contract_id" : "contract_id",
-          "version" : "version",
-          "sourcecode" : "sourcecode"
-        }
-      },
-      "_users_organization_1" : {
-        "properties" : {
-          "organization_id" : {
-            "type" : "string",
-            "description" : "ID of organization to which this user belongs",
-            "format" : "uuid"
-          }
+          "millis_since_last_message" : 0,
+          "millis_since_last_message_threshold" : 6,
+          "status" : "status"
         }
       },
       "inline_response_200_1_blocks" : {
@@ -2617,39 +2626,6 @@
           } ]
         }
       },
-      "_blockchains_node_list" : {
-        "properties" : {
-          "node_id" : {
-            "type" : "string",
-            "description" : "Node ID",
-            "format" : "uuid"
-          },
-          "ip" : {
-            "type" : "string",
-            "description" : "IP address of node"
-          },
-          "url" : {
-            "type" : "string",
-            "description" : "EthRPC url of node"
-          },
-          "cert" : {
-            "type" : "string",
-            "description" : "SSL certificate to talk to ethrpc"
-          },
-          "zone_id" : {
-            "type" : "string",
-            "description" : "zone id this node is deployed in",
-            "format" : "uuid"
-          }
-        },
-        "example" : {
-          "zone_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
-          "ip" : "ip",
-          "cert" : "cert",
-          "url" : "url",
-          "node_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91"
-        }
-      },
       "inline_response_200_2" : {
         "properties" : {
           "number" : {
@@ -2669,7 +2645,7 @@
           },
           "timestamp" : {
             "type" : "integer",
-            "description" : "The proposing node's local system time. (In seconds since the UNIX epoch.)"
+            "description" : "The proposing replica's local system time. (In seconds since the UNIX epoch.)"
           },
           "transactions" : {
             "type" : "array",
@@ -2738,20 +2714,6 @@
           "status" : 5
         }
       },
-      "inline_response_202_1" : {
-        "properties" : {
-          "task_ids" : {
-            "type" : "array",
-            "items" : {
-              "type" : "string",
-              "format" : "uuid"
-            }
-          }
-        },
-        "example" : {
-          "task_ids" : [ "046b6c7f-0b8a-43b9-b35d-6489e6daee91", "046b6c7f-0b8a-43b9-b35d-6489e6daee91" ]
-        }
-      },
       "inline_response_200_4" : {
         "properties" : {
           "name" : {
@@ -2769,15 +2731,479 @@
           "params" : [ "{}", "{}" ]
         }
       },
-      "inline_response_202_2" : {
+      "inline_object" : {
+        "required" : [ "id", "jsonrpc", "method", "params" ],
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer"
+          },
+          "jsonrpc" : {
+            "type" : "string"
+          },
+          "method" : {
+            "type" : "string"
+          },
+          "params" : {
+            "type" : "array",
+            "items" : {
+              "type" : "object"
+            }
+          }
+        }
+      },
+      "inline_response_200_5" : {
+        "required" : [ "id", "jsonrpc" ],
+        "properties" : {
+          "id" : {
+            "type" : "integer"
+          },
+          "jsonrpc" : {
+            "type" : "string"
+          },
+          "result" : {
+            "type" : "string"
+          },
+          "error" : {
+            "type" : "string"
+          }
+        },
+        "example" : {
+          "result" : "result",
+          "id" : 0,
+          "jsonrpc" : "jsonrpc",
+          "error" : "error"
+        }
+      },
+      "inline_response_200_6" : {
+        "properties" : {
+          "contract_id" : {
+            "type" : "string",
+            "description" : "String representing id of this contract"
+          },
+          "owner" : {
+            "type" : "string",
+            "description" : "String representing address of the owner of this contract"
+          },
+          "url" : {
+            "type" : "string",
+            "description" : "The URI representing this specific contract"
+          }
+        },
+        "example" : {
+          "owner" : "owner",
+          "contract_id" : "contract_id",
+          "url" : "url"
+        }
+      },
+      "inline_object_1" : {
+        "required" : [ "compiler_version", "constructor_params", "contract_id", "contract_name", "from", "sourcecode", "version" ],
+        "type" : "object",
+        "properties" : {
+          "contract_id" : {
+            "type" : "string",
+            "description" : "String representing contract id"
+          },
+          "version" : {
+            "type" : "string",
+            "description" : "String representing version number of this contract"
+          },
+          "from" : {
+            "type" : "string",
+            "description" : "String representing owners address"
+          },
+          "sourcecode" : {
+            "type" : "string",
+            "description" : "String representing solidity source code of this version"
+          },
+          "contract_name" : {
+            "type" : "string",
+            "description" : "String representing contract name you used to deploy the contract"
+          },
+          "constructor_params" : {
+            "type" : "string",
+            "description" : "String representing constructor parameters needed to deploy this contract, if your contract does not require constructor parameters, set this to \"\""
+          },
+          "compiler_version" : {
+            "type" : "string",
+            "description" : "String representing solc version you used to deploy the contract"
+          },
+          "is_optimize" : {
+            "type" : "boolean",
+            "description" : "True if using the optimizer. False otherwise"
+          },
+          "runs" : {
+            "type" : "string",
+            "description" : "String representing optimize for how many times you intend to run the code"
+          }
+        }
+      },
+      "inline_response_200_7" : {
+        "properties" : {
+          "contract_id" : {
+            "type" : "string",
+            "description" : "String representing id of this contract"
+          },
+          "owner" : {
+            "type" : "string",
+            "description" : "String representing address of the owner of this contract"
+          },
+          "versions" : {
+            "type" : "array",
+            "items" : {
+              "properties" : {
+                "address" : {
+                  "type" : "string",
+                  "description" : "String representing address at which this version is deployed"
+                },
+                "metadata" : {
+                  "type" : "object",
+                  "description" : "A metadata JSON object about source code of this version generated by solidity compiler"
+                },
+                "version" : {
+                  "type" : "string",
+                  "description" : "String representing name of this version"
+                },
+                "url" : {
+                  "type" : "string",
+                  "description" : "The URI representing this specific version"
+                }
+              }
+            }
+          }
+        },
+        "example" : {
+          "owner" : "owner",
+          "versions" : [ "{}", "{}" ],
+          "contract_id" : "contract_id"
+        }
+      },
+      "inline_response_200_8" : {
+        "properties" : {
+          "contract_id" : {
+            "type" : "string",
+            "description" : "String representing id of this contract"
+          },
+          "owner" : {
+            "type" : "string",
+            "description" : "String representing address of the owner of this contract"
+          },
+          "version" : {
+            "type" : "string",
+            "description" : "String representing name of this version"
+          },
+          "metadata" : {
+            "type" : "object",
+            "description" : "A metadata JSON object about source code of this version generated by solidity compiler"
+          },
+          "address" : {
+            "type" : "string",
+            "description" : "String representing address at which this version is deployed"
+          },
+          "bytecode" : {
+            "type" : "string",
+            "description" : "String representing compiled bytecode of this version"
+          },
+          "sourcecode" : {
+            "type" : "string",
+            "description" : "String representing the actual source code of this version"
+          }
+        },
+        "example" : {
+          "owner" : "owner",
+          "bytecode" : "bytecode",
+          "metadata" : "{}",
+          "address" : "address",
+          "contract_id" : "contract_id",
+          "version" : "version",
+          "sourcecode" : "sourcecode"
+        }
+      },
+      "inline_object_2" : {
+        "required" : [ "compiler_version", "contract_id", "contract_name", "sourcecode" ],
+        "type" : "object",
+        "properties" : {
+          "contract_id" : {
+            "type" : "string",
+            "description" : "String representing contract name"
+          },
+          "compiler_version" : {
+            "type" : "string",
+            "description" : "String representing solc version you used to deploy the contract"
+          },
+          "sourcecode" : {
+            "type" : "string",
+            "description" : "String representing solidity source code of this version"
+          },
+          "contract_name" : {
+            "type" : "string",
+            "description" : "String representing contract name you used to deploy the contract"
+          },
+          "is_optimize" : {
+            "type" : "boolean",
+            "description" : "True if using the optimizer. False otherwise"
+          },
+          "runs" : {
+            "type" : "string",
+            "description" : "String representing optimize for how many times you intend to run the code"
+          }
+        }
+      },
+      "_blockchains_node_list" : {
+        "properties" : {
+          "node_id" : {
+            "type" : "string",
+            "description" : "Node ID",
+            "format" : "uuid"
+          },
+          "ip" : {
+            "type" : "string",
+            "description" : "IP address of node"
+          },
+          "url" : {
+            "type" : "string",
+            "description" : "EthRPC url of node"
+          },
+          "cert" : {
+            "type" : "string",
+            "description" : "SSL certificate to talk to ethrpc"
+          },
+          "zone_id" : {
+            "type" : "string",
+            "description" : "Zone id this node is deployed in",
+            "format" : "uuid"
+          }
+        },
+        "example" : {
+          "zone_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+          "ip" : "ip",
+          "cert" : "cert",
+          "url" : "url",
+          "node_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91"
+        }
+      },
+      "_blockchains_replica_list" : {
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "description" : "Replica ID",
+            "format" : "uuid"
+          },
+          "ip" : {
+            "type" : "string",
+            "description" : "IP address of replica"
+          },
+          "url" : {
+            "type" : "string",
+            "description" : "EthRPC url of replica"
+          },
+          "cert" : {
+            "type" : "string",
+            "description" : "SSL certificate to talk to ethrpc"
+          },
+          "zone_id" : {
+            "type" : "string",
+            "description" : "Zone id this replica is deployed in",
+            "format" : "uuid"
+          }
+        },
+        "example" : {
+          "zone_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+          "ip" : "ip",
+          "cert" : "cert",
+          "id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+          "url" : "url"
+        }
+      },
+      "inline_response_200_9" : {
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "description" : "Blockchain ID",
+            "format" : "uuid"
+          },
+          "consortium_id" : {
+            "type" : "string",
+            "description" : "ID of owning consortium",
+            "format" : "uuid"
+          },
+          "blockchain_type" : {
+            "type" : "string",
+            "description" : "Type of blockchain node",
+            "enum" : [ "ETHEREUM", "DAML", "HLF" ]
+          },
+          "node_list" : {
+            "type" : "array",
+            "description" : "Please use replica_list",
+            "deprecated" : true,
+            "items" : {
+              "$ref" : "#/components/schemas/_blockchains_node_list"
+            }
+          },
+          "replica_list" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/_blockchains_replica_list"
+            }
+          }
+        },
+        "example" : {
+          "consortium_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+          "blockchain_type" : "ETHEREUM",
+          "id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+          "node_list" : [ {
+            "zone_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+            "ip" : "ip",
+            "cert" : "cert",
+            "url" : "url",
+            "node_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91"
+          }, {
+            "zone_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+            "ip" : "ip",
+            "cert" : "cert",
+            "url" : "url",
+            "node_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91"
+          } ],
+          "replica_list" : [ {
+            "zone_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+            "ip" : "ip",
+            "cert" : "cert",
+            "id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+            "url" : "url"
+          }, {
+            "zone_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+            "ip" : "ip",
+            "cert" : "cert",
+            "id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+            "url" : "url"
+          } ]
+        }
+      },
+      "inline_object_3" : {
+        "required" : [ "c_count", "concortium_id", "deployment_type", "f_count" ],
+        "type" : "object",
+        "properties" : {
+          "consortium_id" : {
+            "type" : "string",
+            "description" : "ID of owning consortium",
+            "format" : "uuid"
+          },
+          "f_count" : {
+            "type" : "integer",
+            "description" : "Number of f replicas, cluster size will be 3f + 2c + 1"
+          },
+          "c_count" : {
+            "type" : "integer",
+            "description" : "Number of c replicas, cluster size will be 3f + 2c + 1"
+          },
+          "deployment_type" : {
+            "type" : "string",
+            "description" : "FIXED or UNSPECIFIED, determines site locations",
+            "enum" : [ "FIXED", "UNSPECIFIED" ]
+          },
+          "blockchain_type" : {
+            "type" : "string",
+            "description" : "Type of blockchain node",
+            "enum" : [ "ETHEREUM", "DAML", "HLF" ]
+          },
+          "zone_ids" : {
+            "type" : "array",
+            "description" : "List of zone IDs for replicas.  deployment_type must be FIXED.  Must contain 3f + 2c + 1 elements.\n",
+            "items" : {
+              "type" : "string",
+              "format" : "uuid"
+            }
+          }
+        }
+      },
+      "inline_response_202" : {
         "properties" : {
           "task_id" : {
             "type" : "string",
+            "description" : "Task ID",
             "format" : "uuid"
           }
         },
         "example" : {
           "task_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91"
+        }
+      },
+      "inline_response_200_10" : {
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "description" : "deleted zone id",
+            "format" : "uuid"
+          }
+        },
+        "example" : {
+          "id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91"
+        }
+      },
+      "inline_response_200_11_node_list" : {
+        "properties" : {
+          "node_id" : {
+            "type" : "string",
+            "description" : "Node ID",
+            "format" : "uuid"
+          },
+          "ip" : {
+            "type" : "string",
+            "description" : "IP address of node"
+          },
+          "url" : {
+            "type" : "string",
+            "description" : "EthRPC url of node"
+          },
+          "cert" : {
+            "type" : "string",
+            "description" : "SSL certificate to talk to ethrpc"
+          },
+          "zone_id" : {
+            "type" : "string",
+            "description" : "Deployment zone for this node",
+            "format" : "uuid"
+          }
+        },
+        "example" : {
+          "zone_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+          "ip" : "ip",
+          "cert" : "cert",
+          "url" : "url",
+          "node_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91"
+        }
+      },
+      "inline_response_200_11_replica_list" : {
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "description" : "Replica ID",
+            "format" : "uuid"
+          },
+          "ip" : {
+            "type" : "string",
+            "description" : "IP address of replica"
+          },
+          "url" : {
+            "type" : "string",
+            "description" : "EthRPC url of replica"
+          },
+          "cert" : {
+            "type" : "string",
+            "description" : "SSL certificate to talk to ethrpc"
+          },
+          "zone_id" : {
+            "type" : "string",
+            "description" : "Deployment zone for this replica",
+            "format" : "uuid"
+          }
+        },
+        "example" : {
+          "zone_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+          "ip" : "ip",
+          "cert" : "cert",
+          "id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+          "url" : "url"
         }
       },
       "inline_response_200_11" : {
@@ -2792,15 +3218,29 @@
             "description" : "ID of owning consortium",
             "format" : "uuid"
           },
+          "blockchain_type" : {
+            "type" : "string",
+            "description" : "Type of blockchain node",
+            "enum" : [ "ETHEREUM", "DAML", "HLF" ]
+          },
           "node_list" : {
             "type" : "array",
+            "description" : "Please use replica_list",
+            "deprecated" : true,
             "items" : {
               "$ref" : "#/components/schemas/inline_response_200_11_node_list"
+            }
+          },
+          "replica_list" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/inline_response_200_11_replica_list"
             }
           }
         },
         "example" : {
           "consortium_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+          "blockchain_type" : "ETHEREUM",
           "id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
           "node_list" : [ {
             "zone_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
@@ -2814,208 +3254,447 @@
             "cert" : "cert",
             "url" : "url",
             "node_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91"
+          } ],
+          "replica_list" : [ {
+            "zone_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+            "ip" : "ip",
+            "cert" : "cert",
+            "id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+            "url" : "url"
+          }, {
+            "zone_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+            "ip" : "ip",
+            "cert" : "cert",
+            "id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+            "url" : "url"
           } ]
-        }
-      },
-      "inline_response_200_10" : {
-        "properties" : {
-          "id" : {
-            "type" : "string",
-            "format" : "uuid"
-          },
-          "name" : {
-            "type" : "string",
-            "example" : "VMC SDDC2"
-          },
-          "latitude" : {
-            "type" : "string",
-            "example" : "45.2551139"
-          },
-          "longitude" : {
-            "type" : "string",
-            "example" : "-120.888727"
-          }
-        },
-        "example" : {
-          "latitude" : "45.2551139",
-          "name" : "VMC SDDC2",
-          "id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
-          "longitude" : "-120.888727"
-        }
-      },
-      "inline_response_200_13" : {
-        "properties" : {
-          "consortiumId" : {
-            "type" : "string",
-            "description" : " Consortium ID",
-            "format" : "uuid"
-          },
-          "organizationName" : {
-            "type" : "string",
-            "description" : "Name of Consortium",
-            "format" : "string"
-          }
-        },
-        "example" : {
-          "organizationName" : "organizationName",
-          "consortiumId" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91"
         }
       },
       "inline_response_200_12" : {
         "properties" : {
           "id" : {
             "type" : "string",
-            "description" : "Blockchain ID",
-            "format" : "uuid"
-          },
-          "consortium_id" : {
-            "type" : "string",
-            "description" : "ID of owning consortium",
-            "format" : "uuid"
-          },
-          "ip_list" : {
-            "type" : "string",
-            "description" : "Addresses of nodes in this blockchain"
-          },
-          "rpc_urls" : {
-            "type" : "string",
-            "description" : "List of addreses with node names"
-          }
-        },
-        "example" : {
-          "consortium_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
-          "id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
-          "ip_list" : "ip_list",
-          "rpc_urls" : "rpc_urls"
-        }
-      },
-      "inline_response_200_19" : {
-        "properties" : {
-          "user_id" : {
-            "type" : "string",
-            "description" : "User ID of newly created user",
-            "format" : "uuid"
-          }
-        },
-        "example" : {
-          "user_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91"
-        }
-      },
-      "inline_response_200_18" : {
-        "properties" : {
-          "user_id" : {
-            "type" : "string",
-            "description" : "UUID value representing ID of this user",
+            "description" : "Replica ID",
             "format" : "uuid"
           },
           "name" : {
             "type" : "string",
-            "description" : "string representing name of this user"
+            "description" : "Replica Name"
           },
-          "email" : {
+          "public_ip" : {
             "type" : "string",
-            "description" : "string representing email of this user"
+            "description" : "Public IP address of replica"
           },
-          "role" : {
+          "rpc_url" : {
             "type" : "string",
-            "description" : "string representing role of this user"
+            "description" : "Public url to replica API"
           },
-          "last_login" : {
-            "type" : "integer",
-            "description" : "integer value representing the time (in milliseconds since epoch) when this user last logged in"
+          "status" : {
+            "type" : "string",
+            "description" : "Current status of replica"
           },
-          "details" : {
-            "$ref" : "#/components/schemas/_users_details"
+          "millis_since_last_message" : {
+            "type" : "integer"
           },
-          "consortium" : {
-            "$ref" : "#/components/schemas/_users_consortium"
+          "millis_since_last_message_threshold" : {
+            "type" : "integer"
           },
-          "organization" : {
-            "$ref" : "#/components/schemas/_users_organization"
+          "certificate" : {
+            "type" : "string",
+            "description" : "SSL certificate of replica"
+          },
+          "zone_id" : {
+            "type" : "string",
+            "description" : "Zone ID where this replica has been deployed",
+            "format" : "uuid"
           }
         },
         "example" : {
-          "role" : "role",
-          "user_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
-          "last_login" : 0,
-          "consortium" : {
-            "consortium_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
-            "consortium_name" : "consortium_name"
-          },
-          "organization" : {
-            "organization_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
-            "organization_name" : "organization_name"
-          },
+          "rpc_url" : "rpc_url",
+          "zone_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+          "public_ip" : "public_ip",
           "name" : "name",
-          "details" : {
-            "last_name" : "last_name",
-            "first_name" : "first_name"
-          },
-          "email" : "email"
+          "certificate" : "certificate",
+          "millis_since_last_message" : 0,
+          "id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+          "millis_since_last_message_threshold" : 6,
+          "status" : "status"
         }
       },
-      "inline_response_200_15" : {
+      "inline_object_4" : {
+        "type" : "object",
         "properties" : {
-          "orgId" : {
-            "type" : "string",
-            "description" : " Organization ID",
-            "format" : "uuid"
+          "node_ids" : {
+            "type" : "array",
+            "description" : "Please use replica_ids",
+            "deprecated" : true,
+            "items" : {
+              "type" : "string",
+              "format" : "uuid"
+            }
           },
-          "organizationName" : {
-            "type" : "string",
-            "description" : "Name of organization",
-            "format" : "string"
+          "replica_ids" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string",
+              "format" : "uuid"
+            }
+          }
+        }
+      },
+      "inline_response_202_1" : {
+        "properties" : {
+          "task_ids" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string",
+              "format" : "uuid"
+            }
           }
         },
         "example" : {
-          "organizationName" : "organizationName",
-          "orgId" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91"
+          "task_ids" : [ "046b6c7f-0b8a-43b9-b35d-6489e6daee91", "046b6c7f-0b8a-43b9-b35d-6489e6daee91" ]
         }
       },
-      "inline_response_200_14" : {
+      "inline_response_202_2" : {
         "properties" : {
-          "orgId" : {
+          "task_id" : {
             "type" : "string",
-            "description" : " Consortium ID",
+            "format" : "uuid"
+          }
+        },
+        "example" : {
+          "task_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91"
+        }
+      },
+      "inline_object_5" : {
+        "required" : [ "id", "jsonrpc", "method", "params" ],
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer"
+          },
+          "jsonrpc" : {
+            "type" : "string"
+          },
+          "method" : {
+            "type" : "string"
+          },
+          "params" : {
+            "type" : "array",
+            "items" : {
+              "type" : "object"
+            }
+          }
+        }
+      },
+      "inline_object_6" : {
+        "required" : [ "compiler_version", "contract_id", "contract_name", "from", "sourcecode", "version" ],
+        "type" : "object",
+        "properties" : {
+          "contract_id" : {
+            "type" : "string",
+            "description" : "String representing contract id"
+          },
+          "version" : {
+            "type" : "string",
+            "description" : "String representing version number of this contract"
+          },
+          "from" : {
+            "type" : "string",
+            "description" : "String representing owners address"
+          },
+          "sourcecode" : {
+            "type" : "string",
+            "description" : "String representing solidity source code of this version"
+          },
+          "contract_name" : {
+            "type" : "string",
+            "description" : "String representing contract name you used to deploy the contract"
+          },
+          "constructor_params" : {
+            "type" : "string",
+            "description" : "String representing constructor parameters needed to deploy this contract, if your contract does not require constructor parameters, set this to \"\""
+          },
+          "compiler_version" : {
+            "type" : "string",
+            "description" : "String representing solc version you used to deploy the contract"
+          },
+          "is_optimize" : {
+            "type" : "boolean",
+            "description" : "True if using the optimizer. False otherwise"
+          },
+          "runs" : {
+            "type" : "string",
+            "description" : "String representing optimize for how many times you intend to run the code"
+          }
+        }
+      },
+      "inline_object_7" : {
+        "required" : [ "compiler_version", "contract_id", "contract_name", "sourcecode" ],
+        "type" : "object",
+        "properties" : {
+          "contract_id" : {
+            "type" : "string",
+            "description" : "String representing contract name"
+          },
+          "compiler_version" : {
+            "type" : "string",
+            "description" : "String representing solc version you used to deploy the contract"
+          },
+          "sourcecode" : {
+            "type" : "string",
+            "description" : "String representing solidity source code of this version"
+          },
+          "contract_name" : {
+            "type" : "string",
+            "description" : "String representing contract name you used to deploy the contract"
+          },
+          "is_optimize" : {
+            "type" : "boolean",
+            "description" : "True if using the optimizer. False otherwise"
+          },
+          "runs" : {
+            "type" : "string",
+            "description" : "String representing optimize for how many times you intend to run the code"
+          }
+        }
+      },
+      "inline_response_200_13" : {
+        "properties" : {
+          "consortium_id" : {
+            "type" : "string",
+            "description" : "Consortium ID",
             "format" : "uuid"
           },
-          "organizationName" : {
+          "consortium_name" : {
             "type" : "string",
             "description" : "Name of Consortium",
             "format" : "string"
           }
         },
         "example" : {
-          "organizationName" : "organizationName",
-          "orgId" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91"
+          "consortium_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+          "consortium_name" : "consortium_name"
         }
       },
-      "inline_response_200_17" : {
+      "inline_object_8" : {
+        "required" : [ "consortium_name", "consortium_type", "organization" ],
+        "type" : "object",
         "properties" : {
-          "states" : {
+          "consortium_name" : {
+            "type" : "string",
+            "description" : "Name of consortium",
+            "format" : "string"
+          },
+          "consortium_type" : {
+            "type" : "string",
+            "description" : "Type of consortium",
+            "format" : "string"
+          },
+          "organization" : {
+            "type" : "string",
+            "description" : "Organization that the consortium is a part of",
+            "format" : "UUID"
+          }
+        }
+      },
+      "inline_response_200_14" : {
+        "properties" : {
+          "con_id" : {
+            "type" : "string",
+            "description" : "Consortium ID",
+            "format" : "UUID"
+          },
+          "consortium_name" : {
+            "type" : "string",
+            "description" : "Consortium Name",
+            "format" : "string"
+          }
+        },
+        "example" : {
+          "con_id" : "con_id",
+          "consortium_name" : "consortium_name"
+        }
+      },
+      "inline_response_200_15" : {
+        "properties" : {
+          "org_id" : {
+            "type" : "string",
+            "description" : "Consortium ID",
+            "format" : "uuid"
+          },
+          "organization_name" : {
+            "type" : "string",
+            "description" : "Name of Consortium",
+            "format" : "string"
+          }
+        },
+        "example" : {
+          "org_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+          "organization_name" : "organization_name"
+        }
+      },
+      "inline_object_9" : {
+        "type" : "object",
+        "properties" : {
+          "consortium_name" : {
+            "type" : "string",
+            "description" : "Name of consortium",
+            "format" : "string"
+          },
+          "consortium_type" : {
+            "type" : "string",
+            "description" : "Type of consortium",
+            "format" : "string"
+          },
+          "orgs_to_add" : {
             "type" : "array",
             "items" : {
-              "$ref" : "#/components/schemas/inline_response_200_16"
+              "type" : "string",
+              "description" : "Organizations to add as members of this consortium",
+              "format" : "uuid"
+            }
+          },
+          "orgs_to_remove" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string",
+              "description" : "Organizations to remove as members of this consortium",
+              "format" : "uuid"
+            }
+          }
+        }
+      },
+      "inline_response_200_16_members" : {
+        "properties" : {
+          "org_id" : {
+            "type" : "string",
+            "description" : "Organization Id",
+            "format" : "uuid"
+          },
+          "organization_name" : {
+            "type" : "string",
+            "description" : "Organization name"
+          }
+        },
+        "example" : {
+          "org_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+          "organization_name" : "organization_name"
+        }
+      },
+      "inline_response_200_16" : {
+        "properties" : {
+          "con_id" : {
+            "type" : "string",
+            "description" : "Consortium ID",
+            "format" : "uuid"
+          },
+          "consortium_name" : {
+            "type" : "string",
+            "description" : "Consortium Name",
+            "format" : "string"
+          },
+          "organization" : {
+            "type" : "string",
+            "description" : "Owning organization",
+            "format" : "uuid"
+          },
+          "members" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/inline_response_200_16_members"
             }
           }
         },
         "example" : {
-          "states" : [ {
-            "resource_link" : "http://example.com/aeiou",
-            "resource_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
-            "task_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
-            "state" : "RUNNING",
-            "message" : "message"
+          "con_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+          "organization" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+          "members" : [ {
+            "org_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+            "organization_name" : "organization_name"
           }, {
-            "resource_link" : "http://example.com/aeiou",
-            "resource_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
-            "task_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
-            "state" : "RUNNING",
-            "message" : "message"
-          } ]
+            "org_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+            "organization_name" : "organization_name"
+          } ],
+          "consortium_name" : "consortium_name"
         }
       },
-      "inline_response_200_16" : {
+      "inline_response_200_17" : {
+        "properties" : {
+          "orgId" : {
+            "type" : "string",
+            "description" : "Organization ID",
+            "format" : "uuid"
+          },
+          "organization_name" : {
+            "type" : "string",
+            "description" : "Name of organization",
+            "format" : "string"
+          }
+        },
+        "example" : {
+          "organization_name" : "organization_name",
+          "orgId" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91"
+        }
+      },
+      "inline_object_10" : {
+        "required" : [ "organization_name" ],
+        "type" : "object",
+        "properties" : {
+          "organization_name" : {
+            "type" : "string",
+            "description" : "Name of organization",
+            "format" : "string"
+          }
+        }
+      },
+      "inline_response_200_18" : {
+        "properties" : {
+          "org_id" : {
+            "type" : "string",
+            "description" : "Organization ID",
+            "format" : "uuid"
+          },
+          "OrganizationName" : {
+            "type" : "string",
+            "description" : "Organization Name",
+            "format" : "string"
+          }
+        },
+        "example" : {
+          "OrganizationName" : "OrganizationName",
+          "org_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91"
+        }
+      },
+      "inline_response_200_19" : {
+        "properties" : {
+          "org_id" : {
+            "type" : "string",
+            "description" : "Organization ID",
+            "format" : "uuid"
+          },
+          "organization_name" : {
+            "type" : "string",
+            "description" : "Name of organization",
+            "format" : "string"
+          }
+        },
+        "example" : {
+          "org_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+          "organization_name" : "organization_name"
+        }
+      },
+      "inline_object_11" : {
+        "type" : "object",
+        "properties" : {
+          "Organization_name" : {
+            "type" : "string",
+            "description" : "Updating name of the organization"
+          }
+        }
+      },
+      "inline_response_200_20" : {
         "properties" : {
           "task_id" : {
             "type" : "string",
@@ -3050,106 +3729,57 @@
           "message" : "message"
         }
       },
-      "_users_organization" : {
-        "properties" : {
-          "organization_id" : {
-            "type" : "string",
-            "description" : "ID of organization to which this user belongs",
-            "format" : "uuid"
-          },
-          "organization_name" : {
-            "type" : "string",
-            "description" : "name of organization to which this user belongs"
-          }
-        },
-        "example" : {
-          "organization_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
-          "organization_name" : "organization_name"
-        }
-      },
-      "inline_response_200" : {
-        "properties" : {
-          "hostname" : {
-            "type" : "string"
-          },
-          "address" : {
-            "type" : "string"
-          },
-          "status" : {
-            "type" : "string"
-          },
-          "millis_since_last_message" : {
-            "type" : "integer"
-          },
-          "millis_since_last_message_threshold" : {
-            "type" : "integer"
-          },
-          "rpc_url" : {
-            "type" : "string",
-            "format" : "url"
-          }
-        },
-        "example" : {
-          "rpc_url" : "http://example.com/aeiou",
-          "hostname" : "hostname",
-          "address" : "address",
-          "millis_since_last_message" : 0,
-          "millis_since_last_message_threshold" : 6,
-          "status" : "status"
-        }
-      },
-      "inline_response_202" : {
-        "properties" : {
-          "task_id" : {
-            "type" : "string",
-            "description" : "Task ID",
-            "format" : "uuid"
-          }
-        },
-        "example" : {
-          "task_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91"
-        }
-      },
-      "inline_object_1" : {
-        "required" : [ "compiler_version", "constructor_params", "contract_id", "contract_name", "from", "sourcecode", "version" ],
+      "inline_object_12" : {
         "type" : "object",
         "properties" : {
-          "contract_id" : {
-            "type" : "string",
-            "description" : "string representing contract id"
-          },
-          "version" : {
-            "type" : "string",
-            "description" : "string representing version number of this contract"
-          },
-          "from" : {
-            "type" : "string",
-            "description" : "string representing owners address"
-          },
-          "sourcecode" : {
-            "type" : "string",
-            "description" : "string representing solidity source code of this version"
-          },
-          "contract_name" : {
-            "type" : "string",
-            "description" : "string representing contract name you used to deploy the contract"
-          },
-          "constructor_params" : {
-            "type" : "string",
-            "description" : "string representing constructor parameters needed to deploy this contract, if your contract does not require constructor parameters, set this to \"\""
-          },
-          "compiler_version" : {
-            "type" : "string",
-            "description" : "string representing solc version you used to deploy the contract"
-          },
-          "is_optimize" : {
-            "type" : "boolean",
-            "description" : "True if using the optimizer. False otherwise"
-          },
-          "runs" : {
-            "type" : "string",
-            "description" : "string representing optimize for how many times you intend to run the code"
+          "task_ids" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string",
+              "format" : "uuid"
+            }
           }
+        }
+      },
+      "inline_response_200_21" : {
+        "properties" : {
+          "states" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/inline_response_200_20"
+            }
+          }
+        },
+        "example" : {
+          "states" : [ {
+            "resource_link" : "http://example.com/aeiou",
+            "resource_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+            "task_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+            "state" : "RUNNING",
+            "message" : "message"
+          }, {
+            "resource_link" : "http://example.com/aeiou",
+            "resource_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+            "task_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+            "state" : "RUNNING",
+            "message" : "message"
+          } ]
+        }
+      },
+      "_users_details" : {
+        "properties" : {
+          "first_name" : {
+            "type" : "string",
+            "description" : "First name of this user"
+          },
+          "last_name" : {
+            "type" : "string",
+            "description" : "Last name of this user"
+          }
+        },
+        "example" : {
+          "last_name" : "last_name",
+          "first_name" : "first_name"
         }
       },
       "_users_consortium" : {
@@ -3161,7 +3791,7 @@
           },
           "consortium_name" : {
             "type" : "string",
-            "description" : "name of consortium to which this user belongs"
+            "description" : "Name of consortium to which this user belongs"
           }
         },
         "example" : {
@@ -3169,241 +3799,74 @@
           "consortium_name" : "consortium_name"
         }
       },
-      "inline_object_9" : {
-        "required" : [ "consortiumName", "consortiumType", "organization" ],
-        "type" : "object",
+      "_users_organization" : {
         "properties" : {
-          "consortiumName" : {
+          "organization_id" : {
             "type" : "string",
-            "description" : "Name of consortium",
-            "format" : "string"
-          },
-          "consortiumType" : {
-            "type" : "string",
-            "description" : "Type of consortium",
-            "format" : "string"
-          },
-          "organization" : {
-            "type" : "string",
-            "description" : "Organization that the consortium is a part of",
-            "format" : "UUID"
-          }
-        }
-      },
-      "inline_object_8" : {
-        "required" : [ "compiler_version", "contract_id", "contract_name", "sourcecode" ],
-        "type" : "object",
-        "properties" : {
-          "contract_id" : {
-            "type" : "string",
-            "description" : "string representing contract name"
-          },
-          "compiler_version" : {
-            "type" : "string",
-            "description" : "string representing solc version you used to deploy the contract"
-          },
-          "sourcecode" : {
-            "type" : "string",
-            "description" : "string representing solidity source code of this version"
-          },
-          "contract_name" : {
-            "type" : "string",
-            "description" : "string representing contract name you used to deploy the contract"
-          },
-          "is_optimize" : {
-            "type" : "boolean",
-            "description" : "True if using the optimizer. False otherwise"
-          },
-          "runs" : {
-            "type" : "string",
-            "description" : "string representing optimize for how many times you intend to run the code"
-          }
-        }
-      },
-      "inline_object_7" : {
-        "required" : [ "compiler_version", "contract_id", "contract_name", "from", "sourcecode", "version" ],
-        "type" : "object",
-        "properties" : {
-          "contract_id" : {
-            "type" : "string",
-            "description" : "string representing contract id"
-          },
-          "version" : {
-            "type" : "string",
-            "description" : "string representing version number of this contract"
-          },
-          "from" : {
-            "type" : "string",
-            "description" : "string representing owners address"
-          },
-          "sourcecode" : {
-            "type" : "string",
-            "description" : "string representing solidity source code of this version"
-          },
-          "contract_name" : {
-            "type" : "string",
-            "description" : "string representing contract name you used to deploy the contract"
-          },
-          "constructor_params" : {
-            "type" : "string",
-            "description" : "string representing constructor parameters needed to deploy this contract, if your contract does not require constructor parameters, set this to \"\""
-          },
-          "compiler_version" : {
-            "type" : "string",
-            "description" : "string representing solc version you used to deploy the contract"
-          },
-          "is_optimize" : {
-            "type" : "boolean",
-            "description" : "True if using the optimizer. False otherwise"
-          },
-          "runs" : {
-            "type" : "string",
-            "description" : "string representing optimize for how many times you intend to run the code"
-          }
-        }
-      },
-      "inline_object_6" : {
-        "required" : [ "id", "jsonrpc", "method", "params" ],
-        "type" : "object",
-        "properties" : {
-          "id" : {
-            "type" : "integer"
-          },
-          "jsonrpc" : {
-            "type" : "string"
-          },
-          "method" : {
-            "type" : "string"
-          },
-          "params" : {
-            "type" : "array",
-            "items" : {
-              "type" : "object"
-            }
-          }
-        }
-      },
-      "inline_object_5" : {
-        "type" : "object",
-        "properties" : {
-          "node_ips" : {
-            "type" : "array",
-            "items" : {
-              "type" : "string",
-              "format" : "uuid"
-            }
-          }
-        }
-      },
-      "inline_object_4" : {
-        "type" : "object",
-        "properties" : {
-          "ip_list" : {
-            "type" : "string",
-            "description" : "comma separated list of addresses of blockchain nodes"
-          },
-          "rpc_urls" : {
-            "type" : "string",
-            "description" : "string represent url map, comma separated list of hostname=url"
-          }
-        }
-      },
-      "inline_object_3" : {
-        "required" : [ "c_count", "concortium_id", "deployment_type", "f_count" ],
-        "type" : "object",
-        "properties" : {
-          "consortium_id" : {
-            "type" : "string",
-            "description" : "ID of owning consortium",
+            "description" : "ID of organization to which this user belongs",
             "format" : "uuid"
           },
-          "f_count" : {
-            "type" : "integer",
-            "description" : "Number of f nodes, cluster size will be 3f +2c + 1"
-          },
-          "c_count" : {
-            "type" : "integer",
-            "description" : "Number of c nodes, cluster size will be 3f +2c + 1"
-          },
-          "deployment_type" : {
+          "organization_name" : {
             "type" : "string",
-            "description" : "FIXED or UNSPECIFIED, determines site locations",
-            "enum" : [ "FIXED", "UNSPECIFIED" ]
-          },
-          "zone_ids" : {
-            "type" : "array",
-            "description" : "List of zone IDs for nodes.  deployment_type must be FIXED.  Must contain 3f + 2c + 1 elements.\n",
-            "items" : {
-              "type" : "string",
-              "format" : "uuid"
-            }
+            "description" : "Name of organization to which this user belongs"
           }
+        },
+        "example" : {
+          "organization_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+          "organization_name" : "organization_name"
         }
       },
-      "inline_object_2" : {
-        "required" : [ "compiler_version", "contract_id", "contract_name", "sourcecode" ],
-        "type" : "object",
+      "inline_response_200_22" : {
         "properties" : {
-          "contract_id" : {
+          "user_id" : {
             "type" : "string",
-            "description" : "string representing contract name"
+            "description" : "UUID value representing ID of this user",
+            "format" : "uuid"
           },
-          "compiler_version" : {
+          "name" : {
             "type" : "string",
-            "description" : "string representing solc version you used to deploy the contract"
+            "description" : "String representing name of this user"
           },
-          "sourcecode" : {
-            "type" : "string",
-            "description" : "string representing solidity source code of this version"
-          },
-          "contract_name" : {
-            "type" : "string",
-            "description" : "string representing contract name you used to deploy the contract"
-          },
-          "is_optimize" : {
-            "type" : "boolean",
-            "description" : "True if using the optimizer. False otherwise"
-          },
-          "runs" : {
-            "type" : "string",
-            "description" : "string representing optimize for how many times you intend to run the code"
-          }
-        }
-      },
-      "_users_user_id_details" : {
-        "properties" : {
-          "first_name" : {
-            "type" : "string",
-            "description" : "new first name of the user"
-          },
-          "last_name" : {
-            "type" : "string",
-            "description" : "new last name of the user"
-          }
-        }
-      },
-      "inline_object_18" : {
-        "required" : [ "refresh_token" ],
-        "type" : "object",
-        "properties" : {
-          "refresh_token" : {
-            "type" : "string",
-            "description" : "Token needed to generate new authentication token."
-          }
-        }
-      },
-      "inline_object_17" : {
-        "required" : [ "email", "password" ],
-        "type" : "object",
-        "properties" : {
           "email" : {
             "type" : "string",
-            "description" : "email of the user"
+            "description" : "String representing email of this user"
           },
-          "password" : {
+          "role" : {
             "type" : "string",
-            "description" : "new password of the user"
+            "description" : "String representing role of this user"
+          },
+          "last_login" : {
+            "type" : "integer",
+            "description" : "Integer value representing the time (in milliseconds since epoch) when this user last logged in"
+          },
+          "details" : {
+            "$ref" : "#/components/schemas/_users_details"
+          },
+          "consortium" : {
+            "$ref" : "#/components/schemas/_users_consortium"
+          },
+          "organization" : {
+            "$ref" : "#/components/schemas/_users_organization"
           }
+        },
+        "example" : {
+          "role" : "role",
+          "user_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+          "last_login" : 0,
+          "consortium" : {
+            "consortium_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+            "consortium_name" : "consortium_name"
+          },
+          "organization" : {
+            "organization_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+            "organization_name" : "organization_name"
+          },
+          "name" : "name",
+          "details" : {
+            "last_name" : "last_name",
+            "first_name" : "first_name"
+          },
+          "email" : "email"
         }
       },
       "_users_consortium_1" : {
@@ -3415,46 +3878,309 @@
           }
         }
       },
-      "inline_object" : {
-        "required" : [ "id", "jsonrpc", "method", "params" ],
+      "_users_organization_1" : {
+        "properties" : {
+          "organization_id" : {
+            "type" : "string",
+            "description" : "ID of organization to which this user belongs",
+            "format" : "uuid"
+          }
+        }
+      },
+      "inline_object_13" : {
+        "required" : [ "consortium", "email", "name", "organization", "password", "role" ],
         "type" : "object",
         "properties" : {
-          "id" : {
-            "type" : "integer"
+          "name" : {
+            "type" : "string",
+            "description" : "String representing name of this user"
           },
-          "jsonrpc" : {
-            "type" : "string"
+          "email" : {
+            "type" : "string",
+            "description" : "String representing email of this user"
           },
-          "method" : {
-            "type" : "string"
+          "role" : {
+            "type" : "string",
+            "description" : "String representing role of this user"
           },
-          "params" : {
-            "type" : "array",
-            "items" : {
-              "type" : "object"
+          "details" : {
+            "$ref" : "#/components/schemas/_users_details"
+          },
+          "consortium" : {
+            "$ref" : "#/components/schemas/_users_consortium_1"
+          },
+          "organization" : {
+            "$ref" : "#/components/schemas/_users_organization_1"
+          },
+          "password" : {
+            "type" : "string",
+            "description" : "Password of this user"
+          }
+        }
+      },
+      "inline_response_200_23" : {
+        "properties" : {
+          "user_id" : {
+            "type" : "string",
+            "description" : "User ID of newly created user",
+            "format" : "uuid"
+          }
+        },
+        "example" : {
+          "user_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91"
+        }
+      },
+      "_users_user_id_details" : {
+        "properties" : {
+          "first_name" : {
+            "type" : "string",
+            "description" : "New first name of the user"
+          },
+          "last_name" : {
+            "type" : "string",
+            "description" : "New last name of the user"
+          }
+        }
+      },
+      "inline_object_14" : {
+        "type" : "object",
+        "properties" : {
+          "name" : {
+            "type" : "string",
+            "description" : "New name of the user"
+          },
+          "email" : {
+            "type" : "string",
+            "description" : "New email of the user"
+          },
+          "role" : {
+            "type" : "string",
+            "description" : "New role of the user"
+          },
+          "details" : {
+            "$ref" : "#/components/schemas/_users_user_id_details"
+          }
+        }
+      },
+      "inline_object_15" : {
+        "required" : [ "password" ],
+        "type" : "object",
+        "properties" : {
+          "password" : {
+            "type" : "string",
+            "description" : "Password of the user"
+          }
+        }
+      },
+      "inline_response_200_24" : {
+        "properties" : {
+          "user_id" : {
+            "type" : "string",
+            "description" : "Integer value representing ID of this user",
+            "format" : "uuid"
+          },
+          "name" : {
+            "type" : "string",
+            "description" : "String representing name of this user"
+          },
+          "email" : {
+            "type" : "string",
+            "description" : "String representing email of this user"
+          },
+          "role" : {
+            "type" : "string",
+            "description" : "String representing role of this user"
+          },
+          "last_login" : {
+            "type" : "integer",
+            "description" : "Integer value representing the time (in milliseconds since epoch) when this user last logged in"
+          },
+          "details" : {
+            "$ref" : "#/components/schemas/_users_details"
+          },
+          "consortium" : {
+            "$ref" : "#/components/schemas/_users_consortium"
+          },
+          "organization" : {
+            "$ref" : "#/components/schemas/_users_organization"
+          },
+          "isAuthenticated" : {
+            "type" : "boolean",
+            "description" : "True if login succeeded. False otherwise."
+          }
+        },
+        "example" : {
+          "role" : "role",
+          "user_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+          "last_login" : 0,
+          "consortium" : {
+            "consortium_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+            "consortium_name" : "consortium_name"
+          },
+          "organization" : {
+            "organization_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
+            "organization_name" : "organization_name"
+          },
+          "name" : "name",
+          "details" : {
+            "last_name" : "last_name",
+            "first_name" : "first_name"
+          },
+          "isAuthenticated" : true,
+          "email" : "email"
+        }
+      },
+      "inline_object_16" : {
+        "required" : [ "email", "password" ],
+        "type" : "object",
+        "properties" : {
+          "email" : {
+            "type" : "string",
+            "description" : "Email of the user"
+          },
+          "password" : {
+            "type" : "string",
+            "description" : "New password of the user"
+          }
+        }
+      },
+      "inline_object_17" : {
+        "required" : [ "refresh_token" ],
+        "type" : "object",
+        "properties" : {
+          "refresh_token" : {
+            "type" : "string",
+            "description" : "Token needed to generate new authentication token."
+          }
+        }
+      },
+      "inline_response_200_25" : {
+        "properties" : {
+          "token" : {
+            "type" : "string",
+            "description" : "Token used for authentication."
+          },
+          "refresh_token" : {
+            "type" : "string",
+            "description" : "Token used to regenerate a token, token_expires and refresh_token"
+          },
+          "token_expires" : {
+            "type" : "string",
+            "description" : "Amount of time till your token expires."
+          }
+        },
+        "example" : {
+          "refresh_token" : "refresh_token",
+          "token_expires" : "token_expires",
+          "token" : "token"
+        }
+      },
+      "inline_response_200_26" : {
+        "properties" : {
+          "auth_token" : {
+            "type" : "string",
+            "description" : "Current Authentication token as JWT"
+          },
+          "id_token" : {
+            "type" : "string",
+            "description" : "Open ID token"
+          },
+          "email" : {
+            "type" : "string",
+            "description" : "User account"
+          },
+          "last_login" : {
+            "type" : "integer",
+            "description" : "Last login time"
+          }
+        },
+        "example" : {
+          "last_login" : 0,
+          "id_token" : "id_token",
+          "auth_token" : "auth_token",
+          "email" : "email"
+        }
+      }
+    },
+    "responses" : {
+      "ErrorResponse" : {
+        "description" : "Error Response",
+        "content" : {
+          "application/json" : {
+            "schema" : {
+              "$ref" : "#/components/schemas/Error"
             }
           }
         }
       },
-      "inline_response_202_4_members" : {
-        "properties" : {
-          "org_id" : {
-            "type" : "string",
-            "description" : "Organization Id",
-            "format" : "uuid"
-          },
-          "organization_name" : {
-            "type" : "string",
-            "description" : "Organization name"
+      "ZoneListReponse" : {
+        "description" : "List of available zones",
+        "content" : {
+          "application/json" : {
+            "schema" : {
+              "type" : "array",
+              "items" : {
+                "$ref" : "#/components/schemas/BaseZoneGet"
+              }
+            }
           }
-        },
-        "example" : {
-          "org_id" : "046b6c7f-0b8a-43b9-b35d-6489e6daee91",
-          "organization_name" : "organization_name"
+        }
+      },
+      "ZoneGetResponse" : {
+        "description" : "Get Zone information details.",
+        "content" : {
+          "application/json" : {
+            "schema" : {
+              "$ref" : "#/components/schemas/Zone"
+            }
+          }
+        }
+      }
+    },
+    "parameters" : {
+      "ZoneId" : {
+        "name" : "zone_id",
+        "in" : "path",
+        "description" : "The id of the on-premises zone to get",
+        "required" : true,
+        "style" : "simple",
+        "explode" : false,
+        "schema" : {
+          "type" : "string",
+          "format" : "uuid"
         }
       }
     },
     "requestBodies" : {
+      "CreateZoneRequst" : {
+        "description" : "Create a new zone",
+        "content" : {
+          "application/json" : {
+            "schema" : {
+              "$ref" : "#/components/schemas/OnPremZonePost"
+            }
+          }
+        }
+      },
+      "PatchZoneRequst" : {
+        "description" : "Patch an existing zone",
+        "content" : {
+          "application/json" : {
+            "schema" : {
+              "$ref" : "#/components/schemas/OnPremZonePost"
+            }
+          }
+        }
+      },
+      "inline_object" : {
+        "content" : {
+          "application/json" : {
+            "schema" : {
+              "$ref" : "#/components/schemas/inline_object"
+            }
+          }
+        }
+      },
       "inline_object_1" : {
         "content" : {
           "application/json" : {
@@ -3464,20 +4190,57 @@
           }
         }
       },
-      "inline_object_9" : {
+      "inline_object_2" : {
         "content" : {
           "application/json" : {
             "schema" : {
-              "$ref" : "#/components/schemas/inline_object_9"
+              "$ref" : "#/components/schemas/inline_object_2"
             }
           }
         }
       },
-      "inline_object_10" : {
+      "inline_object_3" : {
         "content" : {
           "application/json" : {
             "schema" : {
-              "$ref" : "#/components/schemas/inline_object_10"
+              "$ref" : "#/components/schemas/inline_object_3"
+            }
+          }
+        }
+      },
+      "inline_object_4" : {
+        "content" : {
+          "application/json" : {
+            "schema" : {
+              "$ref" : "#/components/schemas/inline_object_4"
+            }
+          }
+        },
+        "required" : true
+      },
+      "inline_object_5" : {
+        "content" : {
+          "application/json" : {
+            "schema" : {
+              "$ref" : "#/components/schemas/inline_object_5"
+            }
+          }
+        }
+      },
+      "inline_object_6" : {
+        "content" : {
+          "application/json" : {
+            "schema" : {
+              "$ref" : "#/components/schemas/inline_object_6"
+            }
+          }
+        }
+      },
+      "inline_object_7" : {
+        "content" : {
+          "application/json" : {
+            "schema" : {
+              "$ref" : "#/components/schemas/inline_object_7"
             }
           }
         },
@@ -3490,36 +4253,27 @@
               "$ref" : "#/components/schemas/inline_object_8"
             }
           }
-        },
-        "required" : true
-      },
-      "inline_object_7" : {
-        "content" : {
-          "application/json" : {
-            "schema" : {
-              "$ref" : "#/components/schemas/inline_object_7"
-            }
-          }
         }
       },
-      "inline_object_12" : {
+      "inline_object_9" : {
         "content" : {
           "application/json" : {
             "schema" : {
-              "$ref" : "#/components/schemas/inline_object_12"
+              "$ref" : "#/components/schemas/inline_object_9"
             }
           }
         },
         "required" : true
       },
-      "inline_object_6" : {
+      "inline_object_10" : {
         "content" : {
           "application/json" : {
             "schema" : {
-              "$ref" : "#/components/schemas/inline_object_6"
+              "$ref" : "#/components/schemas/inline_object_10"
             }
           }
-        }
+        },
+        "required" : true
       },
       "inline_object_11" : {
         "content" : {
@@ -3531,11 +4285,21 @@
         },
         "required" : true
       },
-      "inline_object_5" : {
+      "inline_object_12" : {
         "content" : {
           "application/json" : {
             "schema" : {
-              "$ref" : "#/components/schemas/inline_object_5"
+              "$ref" : "#/components/schemas/inline_object_12"
+            }
+          }
+        },
+        "required" : true
+      },
+      "inline_object_13" : {
+        "content" : {
+          "application/json" : {
+            "schema" : {
+              "$ref" : "#/components/schemas/inline_object_13"
             }
           }
         },
@@ -3551,30 +4315,11 @@
         },
         "required" : true
       },
-      "inline_object_4" : {
+      "inline_object_15" : {
         "content" : {
           "application/json" : {
             "schema" : {
-              "$ref" : "#/components/schemas/inline_object_4"
-            }
-          }
-        }
-      },
-      "inline_object_13" : {
-        "content" : {
-          "application/json" : {
-            "schema" : {
-              "$ref" : "#/components/schemas/inline_object_13"
-            }
-          }
-        },
-        "required" : true
-      },
-      "inline_object_3" : {
-        "content" : {
-          "application/json" : {
-            "schema" : {
-              "$ref" : "#/components/schemas/inline_object_3"
+              "$ref" : "#/components/schemas/inline_object_15"
             }
           }
         }
@@ -3588,48 +4333,11 @@
           }
         }
       },
-      "inline_object_2" : {
-        "content" : {
-          "application/json" : {
-            "schema" : {
-              "$ref" : "#/components/schemas/inline_object_2"
-            }
-          }
-        }
-      },
-      "inline_object_15" : {
-        "content" : {
-          "application/json" : {
-            "schema" : {
-              "$ref" : "#/components/schemas/inline_object_15"
-            }
-          }
-        },
-        "required" : true
-      },
-      "inline_object_18" : {
-        "content" : {
-          "application/json" : {
-            "schema" : {
-              "$ref" : "#/components/schemas/inline_object_18"
-            }
-          }
-        }
-      },
       "inline_object_17" : {
         "content" : {
           "application/json" : {
             "schema" : {
               "$ref" : "#/components/schemas/inline_object_17"
-            }
-          }
-        }
-      },
-      "inline_object" : {
-        "content" : {
-          "application/json" : {
-            "schema" : {
-              "$ref" : "#/components/schemas/inline_object"
             }
           }
         }
