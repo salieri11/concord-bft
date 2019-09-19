@@ -186,17 +186,9 @@ export class BlockchainService {
     return this.http.post<OnPremZone>(Apis.zones, zone).pipe(
       map(onPremZone => {
         this.zones.push(onPremZone);
-
-        // TODO - refresh store when a new zone is added
-        // this.set(null).pipe(
-        //   catchError(error => {
-        //     this.router.navigate(['error'], {
-        //       queryParams: { error: JSON.stringify(error) }
-        //     });
-
-        //     return error;
-        //   })
-        // );
+        const zoneMap = {};
+        this.zones.forEach(zone => zoneMap[zone.id] = zone);
+        this.zonesMap = zoneMap;
 
         return onPremZone;
       }),
