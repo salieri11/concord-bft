@@ -108,8 +108,8 @@ class ImageManager():
                                     package=package, version=version)
         return data["attributes"].get(improperty, None)
 
-    def generate_bintray_image_env(self, packages, version="latest",
-                                outfile=None, **kwargs):
+    def generate_bintray_image_env(self, packages, namespace=None,
+                                 version="latest", outfile=None, **kwargs):
         """
             Generate images env list from bintray
             subject: bintray domain, "vmware" for now
@@ -120,6 +120,8 @@ class ImageManager():
         """
         version_list = []
         for pkg in packages:
+            if namespace is not None:
+                pkg = ("%s:%s" % (namespace, pkg))
             build = self.get_bintray_image_property(common.BINTRAY_BUILD_LABEL,
                                     version=version, package=pkg, **kwargs)
             if isinstance(build, list) is True:

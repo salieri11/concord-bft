@@ -14,13 +14,13 @@ spec:
     spec:
       containers:
       - name: config-service
-        image: vmware-docker-blockchainsaas.bintray.io/persephone-configuration:latest
+        image: vmware-docker-blockchainsaas.bintray.io/vmwblockchain/persephone-configuration:latest
         ports:
         - containerPort: 9003
         imagePullPolicy: Always
         volumeMounts:
         - name: config-volume
-          mountPath: /config/persephone/config-service/
+          mountPath: /config/persephone/configuration/
           readOnly: true
         resources:
           requests:

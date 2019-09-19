@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: provisioning-service
-        image: athena-docker-local.artifactory.eng.vmware.com/persephone-provisioning:c96e144
+        image: athena-docker-local.artifactory.eng.vmware.com/persephone-provisioning:573
         ports:
         - containerPort: 9002
         imagePullPolicy: Always
