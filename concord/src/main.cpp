@@ -3,6 +3,7 @@
 // Concord node startup.
 
 #include <grpcpp/grpcpp.h>
+#include <grpcpp/resource_quota.h>
 #include <log4cplus/configurator.h>
 #include <log4cplus/loggingmacros.h>
 #include <boost/program_options.hpp>
@@ -250,14 +251,19 @@ void start_worker_threads(int number) {
 
 void RunDamlGrpcServer(std::string server_address, KVBClientPool &pool,
                        const ILocalKeyValueStorageReadOnly *ro_storage,
-                       BlockingPersistentQueue<CommittedTx> &committedTxs) {
+                       BlockingPersistentQueue<CommittedTx> &committedTxs,
+                       int max_num_threads) {
   Logger logger = Logger::getInstance("com.vmware.concord.daml");
 
   DataServiceImpl *dataService = new DataServiceImpl(pool, ro_storage);
   CommitServiceImpl *commitService = new CommitServiceImpl(pool);
   EventsServiceImpl *eventsService = new EventsServiceImpl(committedTxs);
 
+  grpc::ResourceQuota quota;
+  quota.SetMaxThreads(max_num_threads);
+
   grpc::ServerBuilder builder;
+  builder.SetResourceQuota(quota);
   builder.SetMaxMessageSize(kDamlServerMsgSizeMax);
   builder.AddListeningPort(server_address, grpc::InsecureServerCredentials());
   builder.RegisterService(dataService);
@@ -418,9 +424,15 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
       std::string daml_addr{
           nodeConfig.getValue<std::string>("daml_service_addr")};
 
+      // Limit the amount of gRPC threads to double the amount of client
+      // proxies per replica. The idea is, as soon as a client becomes available
+      // it can continue working.
+      int max_num_threads =
+          config.getValue<int>("client_proxies_per_replica") * 8;
+
       // Spawn a thread in order to start management API server as well
       std::thread(RunDamlGrpcServer, daml_addr, std::ref(pool), &replica,
-                  std::ref(committedTxs))
+                  std::ref(committedTxs), max_num_threads)
           .detach();
     } else if (hlf_enabled) {
       // Get listening address for services
