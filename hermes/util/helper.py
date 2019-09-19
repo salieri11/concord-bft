@@ -308,12 +308,23 @@ def verify_daml_connectivity(concord_ip, port=6865):
    :return: Verification status (True/False)
    '''
    log.info("Validating DAML Connectivity ({}:{})".format(concord_ip, port))
-   try:
-      s = socket.socket()
-      s.connect((concord_ip, port))
-      return True
-   except Exception as e:
-      log.error(e)
+   attempt = 0
+   max_tries = 5
+   while attempt < max_tries:
+      attempt += 1
+      log.info("Verifying DAML connectivity (attempt: {}/{})...".format(
+                        attempt, max_tries))
+      try:
+         s = socket.socket()
+         s.connect((concord_ip, port))
+         return True
+      except Exception as e:
+         if attempt == max_tries:
+            log.error(e)
+         else:
+            sleep_time = 30 # seconds
+            log.info("Retry after {} seconds...".format(sleep_time))
+            time.sleep(sleep_time)
 
    return False
 
