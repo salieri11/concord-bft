@@ -100,6 +100,7 @@ describe('MainComponent', () => {
     fixture = TestBed.createComponent(MainComponent);
     component = fixture.componentInstance;
     component.routerFragmentChange = new Subscription();
+    component.blockchainChange = new Subscription();
     fixture.detectChanges();
   });
 
