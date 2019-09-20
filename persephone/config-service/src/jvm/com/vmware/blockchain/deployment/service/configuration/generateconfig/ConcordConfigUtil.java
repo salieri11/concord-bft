@@ -229,13 +229,13 @@ public class ConcordConfigUtil {
                 writer.newLine();
                 writer.write("eth_enable: false");
                 writer.newLine();
-                writer.write("concord-bft_communication_buffer_length: 8388608");
+                writer.write("concord-bft_communication_buffer_length: 33554432");
                 writer.newLine();
-                writer.write("concord-bft_max_external_message_size: 8388608");
+                writer.write("concord-bft_max_external_message_size: 33554432");
                 writer.newLine();
-                writer.write("concord-bft_max_reply_message_size: 8388608");
+                writer.write("concord-bft_max_reply_message_size: 33554432");
                 writer.newLine();
-                writer.write("concord-bft_max_num_of_reserved_pages: 65536");
+                writer.write("concord-bft_max_num_of_reserved_pages: 229376");
                 writer.newLine();
             } else {
                 writer.write("daml_enable: false");
