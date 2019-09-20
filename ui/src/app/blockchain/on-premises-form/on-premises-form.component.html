@@ -1,5 +1,5 @@
-<div clrForm [formGroup]="form" class="form-block blockchain-form">
-  <div formGroupName="onPrem">
+<div clrForm [formGroup]="form" class="form-block blockchain-form clr-form-compact">
+  <div class="clr-row">
     <clr-alert *ngIf="onPremConnectionSuccessful" [clrAlertClosable]="false" [clrAlertType]="'success'">
       <clr-alert-item>
         <span class="alert-text">
@@ -15,114 +15,124 @@
       </clr-alert-item>
     </clr-alert>
 
-    <div formGroupName="vcenter">
-      <h6>{{'onPrem.vcenter.title' | translate}}</h6>
+    <div class="clr-col-lg-6" formGroupName="onPrem">
+      <div formGroupName="vcenter">
+        <h6>{{'onPrem.vcenter.title' | translate}}</h6>
+        <clr-input-container>
+          <label class="clr-col-12 clr-col-md-4">{{ 'onPrem.vcenter.url' | translate }}</label>
+          <input #ipInput clrInput type="text" [placeholder]="'onPrem.vcenter.urlPH' | translate"
+            class="clr-col-12 clr-col-md-6" formControlName="url" />
+          <clr-control-error>{{ 'onPrem.vcenter.urlError' | translate }}</clr-control-error>
+        </clr-input-container>
+        <clr-input-container>
+          <label class="clr-col-12 clr-col-md-4">{{ 'onPrem.vcenter.username' | translate }}</label>
+          <input clrInput type="text" [placeholder]="'onPrem.vcenter.usernamePH' | translate"
+            class="clr-col-12 clr-col-md-6" formControlName="username" />
+          <clr-control-error>{{ 'common.requiredValidationMessage' | translate }}</clr-control-error>
+        </clr-input-container>
+        <clr-input-container>
+          <label class="clr-col-12 clr-col-md-4">{{ 'onPrem.vcenter.password' | translate }}</label>
+          <input clrInput type="password" class="clr-col-12 clr-col-md-6" formControlName="password" />
+          <clr-control-error>{{ 'common.requiredValidationMessage' | translate }}</clr-control-error>
+        </clr-input-container>
+      </div>
+
+      <div class="divider"></div>
+
       <clr-input-container>
-        <label class="clr-col-12 clr-col-md-4">{{ 'onPrem.vcenter.url' | translate }}</label>
-        <input #ipInput clrInput type="text" [placeholder]="'onPrem.vcenter.urlPH' | translate"
-          class="clr-col-12 clr-col-md-6" formControlName="url" />
-        <clr-control-error>{{ 'onPrem.vcenter.urlError' | translate }}</clr-control-error>
-      </clr-input-container>
-      <clr-input-container>
-        <label class="clr-col-12 clr-col-md-4">{{ 'onPrem.vcenter.username' | translate }}</label>
-        <input clrInput type="text" [placeholder]="'onPrem.vcenter.usernamePH' | translate"
-          class="clr-col-12 clr-col-md-6" formControlName="username" />
+        <label class="clr-col-12 clr-col-md-4">{{ 'onPrem.resourcePool' | translate }}</label>
+        <input clrInput type="text" [placeholder]="'onPrem.resourcePoolPH' | translate" class="clr-col-12 clr-col-md-6"
+          formControlName="resource_pool" />
         <clr-control-error>{{ 'common.requiredValidationMessage' | translate }}</clr-control-error>
       </clr-input-container>
       <clr-input-container>
-        <label class="clr-col-12 clr-col-md-4">{{ 'onPrem.vcenter.password' | translate }}</label>
-        <input clrInput type="password" class="clr-col-12 clr-col-md-6" formControlName="password" />
+        <label class="clr-col-12 clr-col-md-4">{{ 'onPrem.storage' | translate }}</label>
+        <input clrInput type="text" [placeholder]="'onPrem.storagePH' | translate" class="clr-col-12 clr-col-md-6"
+          formControlName="storage" />
         <clr-control-error>{{ 'common.requiredValidationMessage' | translate }}</clr-control-error>
       </clr-input-container>
+      <clr-input-container>
+        <label class="clr-col-12 clr-col-md-4">{{ 'onPrem.folder' | translate }}</label>
+        <input clrInput type="text" [placeholder]="'onPrem.folderPH' | translate" class="clr-col-12 clr-col-md-6"
+          formControlName="folder" />
+        <clr-control-error>{{ 'common.requiredValidationMessage' | translate }}</clr-control-error>
+      </clr-input-container>
+
+      <div class="divider"></div>
+
+      <div formGroupName="network">
+        <h6>{{'onPrem.network.title' | translate}}</h6>
+        <clr-input-container>
+          <label class="clr-col-12 clr-col-md-4">{{ 'onPrem.network.compNetwork' | translate }}</label>
+          <input clrInput type="text" [placeholder]="'onPrem.network.compNetworkPH' | translate"
+            class="clr-col-12 clr-col-md-6" formControlName="name" />
+          <clr-control-error>{{ 'common.requiredValidationMessage' | translate }}</clr-control-error>
+        </clr-input-container>
+        <clr-input-container>
+          <label class="clr-col-12 clr-col-md-4">{{ 'onPrem.network.gatewayIp' | translate }}</label>
+          <input clrInput type="text" [placeholder]="'onPrem.network.gatewayIpPH' | translate"
+            class="clr-col-12 clr-col-md-6" formControlName="gateway" />
+          <clr-control-error>{{ 'onPrem.ipError' | translate }}</clr-control-error>
+        </clr-input-container>
+        <clr-input-container>
+          <label class="clr-col-12 clr-col-md-4">{{ 'onPrem.network.subnet' | translate }}</label>
+          <input clrInput type="text" [placeholder]="'onPrem.network.subnetPH' | translate"
+            class="clr-col-12 clr-col-md-6" formControlName="subnet" />
+          <clr-control-error>{{ 'common.requiredValidationMessage' | translate }}</clr-control-error>
+        </clr-input-container>
+        <clr-input-container>
+          <label class="clr-col-12 clr-col-md-4">{{ 'onPrem.network.nameServers' | translate }}</label>
+          <input clrInput type="text" [placeholder]="'onPrem.network.nameServersPH' | translate"
+            class="clr-col-12 clr-col-md-6" formControlName="name_servers" />
+          <clr-control-error>{{ 'onPrem.listIpsError' | translate }}</clr-control-error>
+        </clr-input-container>
+        <clr-input-container>
+          <label class="clr-col-12 clr-col-md-4">{{ 'onPrem.network.ipPool' | translate }}</label>
+          <input clrInput type="text" [placeholder]="'onPrem.network.ipPoolPH' | translate"
+            class="clr-col-12 clr-col-md-6" formControlName="ip_pool" />
+          <clr-control-error>{{ 'onPrem.listIpsError' | translate }}</clr-control-error>
+        </clr-input-container>
+      </div>
     </div>
 
-    <clr-input-container>
-      <label class="clr-col-12 clr-col-md-4">{{ 'onPrem.resourcePool' | translate }}</label>
-      <input clrInput type="text" [placeholder]="'onPrem.resourcePoolPH' | translate" class="clr-col-12 clr-col-md-6"
-        formControlName="resource_pool" />
-      <clr-control-error>{{ 'common.requiredValidationMessage' | translate }}</clr-control-error>
-    </clr-input-container>
-    <clr-input-container>
-      <label class="clr-col-12 clr-col-md-4">{{ 'onPrem.storage' | translate }}</label>
-      <input clrInput type="text" [placeholder]="'onPrem.storagePH' | translate" class="clr-col-12 clr-col-md-6"
-        formControlName="storage" />
-      <clr-control-error>{{ 'common.requiredValidationMessage' | translate }}</clr-control-error>
-    </clr-input-container>
-    <clr-input-container>
-      <label class="clr-col-12 clr-col-md-4">{{ 'onPrem.folder' | translate }}</label>
-      <input clrInput type="text" [placeholder]="'onPrem.folderPH' | translate" class="clr-col-12 clr-col-md-6"
-        formControlName="folder" />
-      <clr-control-error>{{ 'common.requiredValidationMessage' | translate }}</clr-control-error>
-    </clr-input-container>
+    <div class="clr-col-lg-6">
+      <div formGroupName="container_repo">
+        <h6>{{'onPrem.containerReg.title' | translate}}</h6>
+        <clr-input-container>
+          <label class="clr-col-12 clr-col-md-4">{{ 'onPrem.containerReg.url' | translate }}</label>
+          <input #ipInput clrInput type="text" [placeholder]="'onPrem.containerReg.urlPH' | translate"
+            class="clr-col-12 clr-col-md-6" formControlName="url" />
+          <clr-control-error>{{ 'onPrem.containerReg.urlError' | translate }}</clr-control-error>
+        </clr-input-container>
+        <clr-input-container>
+          <label class="clr-col-12 clr-col-md-4">{{ 'onPrem.containerReg.username' | translate }}</label>
+          <input clrInput type="text" [placeholder]="'onPrem.containerReg.usernamePH' | translate"
+            class="clr-col-12 clr-col-md-6" formControlName="username" />
+        </clr-input-container>
+        <clr-input-container>
+          <label class="clr-col-12 clr-col-md-4">{{ 'onPrem.containerReg.password' | translate }}</label>
+          <input clrInput type="password" class="clr-col-12 clr-col-md-6" formControlName="password" />
+        </clr-input-container>
+      </div>
 
-    <div formGroupName="network">
-      <h6>{{'onPrem.network.title' | translate}}</h6>
-      <clr-input-container>
-        <label class="clr-col-12 clr-col-md-4">{{ 'onPrem.network.compNetwork' | translate }}</label>
-        <input clrInput type="text" [placeholder]="'onPrem.network.compNetworkPH' | translate"
-          class="clr-col-12 clr-col-md-6" formControlName="name" />
-        <clr-control-error>{{ 'common.requiredValidationMessage' | translate }}</clr-control-error>
-      </clr-input-container>
-      <clr-input-container>
-        <label class="clr-col-12 clr-col-md-4">{{ 'onPrem.network.gatewayIp' | translate }}</label>
-        <input clrInput type="text" [placeholder]="'onPrem.network.gatewayIpPH' | translate"
-          class="clr-col-12 clr-col-md-6" formControlName="gateway" />
-        <clr-control-error>{{ 'onPrem.ipError' | translate }}</clr-control-error>
-      </clr-input-container>
-      <clr-input-container>
-        <label class="clr-col-12 clr-col-md-4">{{ 'onPrem.network.subnet' | translate }}</label>
-        <input clrInput type="text" [placeholder]="'onPrem.network.subnetPH' | translate"
-          class="clr-col-12 clr-col-md-6" formControlName="subnet" />
-        <clr-control-error>{{ 'common.requiredValidationMessage' | translate }}</clr-control-error>
-      </clr-input-container>
-      <clr-input-container>
-        <label class="clr-col-12 clr-col-md-4">{{ 'onPrem.network.nameServers' | translate }}</label>
-        <input clrInput type="text" [placeholder]="'onPrem.network.nameServersPH' | translate"
-          class="clr-col-12 clr-col-md-6" formControlName="name_servers" />
-        <clr-control-error>{{ 'onPrem.listIpsError' | translate }}</clr-control-error>
-      </clr-input-container>
-      <clr-input-container>
-        <label class="clr-col-12 clr-col-md-4">{{ 'onPrem.network.ipPool' | translate }}</label>
-        <input clrInput type="text" [placeholder]="'onPrem.network.ipPoolPH' | translate"
-          class="clr-col-12 clr-col-md-6" formControlName="ip_pool" />
-        <clr-control-error>{{ 'onPrem.listIpsError' | translate }}</clr-control-error>
-      </clr-input-container>
-    </div>
-
-    <div formGroupName="container_repo">
-      <h6>{{'onPrem.containerReg.title' | translate}}</h6>
-      <clr-input-container>
-        <label class="clr-col-12 clr-col-md-4">{{ 'onPrem.containerReg.url' | translate }}</label>
-        <input #ipInput clrInput type="text" [placeholder]="'onPrem.containerReg.urlPH' | translate"
-          class="clr-col-12 clr-col-md-6" formControlName="url" />
-        <clr-control-error>{{ 'onPrem.containerReg.urlError' | translate }}</clr-control-error>
-      </clr-input-container>
-      <clr-input-container>
-        <label class="clr-col-12 clr-col-md-4">{{ 'onPrem.containerReg.username' | translate }}</label>
-        <input clrInput type="text" [placeholder]="'onPrem.containerReg.usernamePH' | translate"
-          class="clr-col-12 clr-col-md-6" formControlName="username" />
-      </clr-input-container>
-      <clr-input-container>
-        <label class="clr-col-12 clr-col-md-4">{{ 'onPrem.containerReg.password' | translate }}</label>
-        <input clrInput type="password" class="clr-col-12 clr-col-md-6" formControlName="password" />
-      </clr-input-container>
+      <div formGroupName="onPremLocation">
+        <div class="divider"></div>
+        <div class="clr-row">
+          <label class="clr-col-12 clr-col-md-4 clr-control-label">{{ 'onPrem.location' | translate }}</label>
+          <concord-combobox formControlName="location" class="clr-col-12 clr-col-md-6" [items]="locations"
+            [filterItemsWhenTyping]="true" [placeholder]="'onPrem.locationPH' | translate">
+          </concord-combobox>
+        </div>
+        <clr-input-container>
+          <label class="clr-col-12 clr-col-md-4">{{ 'onPrem.name' | translate }}</label>
+          <input clrInput type="text" [placeholder]="'onPrem.namePH' | translate" class="clr-col-12 clr-col-md-6"
+            formControlName="name" />
+          <clr-control-error>{{ 'common.requiredValidationMessage' | translate }}</clr-control-error>
+        </clr-input-container>
+      </div>
     </div>
 
   </div>
 
-  <div formGroupName="onPremLocation">
-    <div class="divider"></div>
-    <div class="clr-row">
-      <label class="clr-col-12 clr-col-md-4 clr-control-label">{{ 'onPrem.location' | translate }}</label>
-      <concord-combobox formControlName="location" class="clr-col-12 clr-col-md-6" [items]="locations"
-        [filterItemsWhenTyping]="true" [placeholder]="'onPrem.locationPH' | translate">
-      </concord-combobox>
-    </div>
-    <clr-input-container>
-      <label class="clr-col-12 clr-col-md-4">{{ 'onPrem.name' | translate }}</label>
-      <input clrInput type="text" [placeholder]="'onPrem.namePH' | translate" class="clr-col-12 clr-col-md-6"
-        formControlName="name" />
-      <clr-control-error>{{ 'common.requiredValidationMessage' | translate }}</clr-control-error>
-    </clr-input-container>
-  </div>
+
 </div>

@@ -1,4 +1,4 @@
-<clr-modal [(clrModalOpen)]="isOpen" #modal>
+<clr-modal [clrModalSize]="'xl'" [(clrModalOpen)]="isOpen" #modal>
   <h3 class="modal-title">{{ 'onPrem.pageTitle' | translate }}</h3>
   <div class="modal-body">
     <concord-on-premises-form #form></concord-on-premises-form>
@@ -7,7 +7,8 @@
     <button type="button" class="btn btn-outline" (click)="isOpen = false;">
       {{ 'common.close' | translate }}
     </button>
-    <button [clrLoading]="adding" type="button" class="btn btn-primary" (click)="addOnPrem()" [disabled]="form.form.controls.onPrem.invalid || form.form.controls.onPremLocation.invalid">
+    <button [clrLoading]="adding" type="button" class="btn btn-primary" (click)="addOnPrem()"
+      [disabled]="form.form.controls.onPrem.invalid || form.form.controls.onPremLocation.invalid">
       {{ 'common.add' | translate }}
     </button>
   </div>
