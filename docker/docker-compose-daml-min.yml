@@ -98,7 +98,7 @@ services:
       - CONCORD_HOST=concord1
       - CONCORD_PORT=50051
       - PARTICIPANT_ID=daml_ledger_api1
-      - JAVA_OPTS=-Xmx1G
+      - JAVA_OPTS=-Xmx4G
     depends_on:
       - concord1
       - index_db
@@ -116,7 +116,7 @@ services:
       - CONCORD_HOST=concord2
       - CONCORD_PORT=50051
       - PARTICIPANT_ID=daml_ledger_api2
-      - JAVA_OPTS=-Xmx1G
+      - JAVA_OPTS=-Xmx4G
     depends_on:
       - concord2
       - index_db
@@ -127,7 +127,7 @@ services:
 
   daml_execution_engine1:
     image: "${daml_execution_engine_repo}:${daml_execution_engine_tag}"
-    command: /doc/daml/kvbc_validator/target/universal/stage/bin/kvbc-validator -J-Xmx1G
+    command: /doc/daml/kvbc_validator/target/universal/stage/bin/kvbc-validator -J-Xmx4G
     depends_on:
       - fluentd
     expose:
@@ -135,7 +135,7 @@ services:
 
   daml_execution_engine2:
     image: "${daml_execution_engine_repo}:${daml_execution_engine_tag}"
-    command: /doc/daml/kvbc_validator/target/universal/stage/bin/kvbc-validator -J-Xmx1G
+    command: /doc/daml/kvbc_validator/target/universal/stage/bin/kvbc-validator -J-Xmx4G
     depends_on:
       - fluentd
     expose:
@@ -143,7 +143,7 @@ services:
 
   daml_execution_engine3:
     image: "${daml_execution_engine_repo}:${daml_execution_engine_tag}"
-    command: /doc/daml/kvbc_validator/target/universal/stage/bin/kvbc-validator -J-Xmx1G
+    command: /doc/daml/kvbc_validator/target/universal/stage/bin/kvbc-validator -J-Xmx4G
     depends_on:
       - fluentd
     expose:
@@ -151,7 +151,7 @@ services:
 
   daml_execution_engine4:
     image: "${daml_execution_engine_repo}:${daml_execution_engine_tag}"
-    command: /doc/daml/kvbc_validator/target/universal/stage/bin/kvbc-validator -J-Xmx1G
+    command: /doc/daml/kvbc_validator/target/universal/stage/bin/kvbc-validator -J-Xmx4G
     depends_on:
       - fluentd
     expose:
