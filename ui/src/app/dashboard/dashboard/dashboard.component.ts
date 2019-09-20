@@ -41,6 +41,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   orgs: any[] = [];
   nodes: any[] = [];
   nodesByLocation: any[] = [];
+  onlyOnPrem: boolean = false;
   smartContracts = [];
   nodeGeoJson: any = NodeGeoJson;
   routerFragmentChange: Subscription;
@@ -95,7 +96,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
 
     this.setNodeData();
-    this.nodeGuage.margin = [20, 0, 10, 10];
+    if (this.nodeGuage) {
+      this.nodeGuage.margin = [20, 0, 10, 10];
+    }
   }
 
   ngOnDestroy() {
@@ -264,6 +267,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     return this.nodesService.getList().subscribe((resp) => {
       this.nodes = resp.nodes;
       this.nodesByLocation = resp.nodesByLocation;
+      this.onlyOnPrem = resp.onlyOnPrem;
       this.nodeHealth = this.healthyNodesCount / this.nodes.length;
       this.setNodeData();
       this.setNodeColor();

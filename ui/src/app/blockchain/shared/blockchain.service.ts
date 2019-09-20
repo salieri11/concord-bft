@@ -46,8 +46,12 @@ export class BlockchainService {
     private translateService: TranslateService
   ) { }
 
-  deploy(params: BlockchainRequestParams): Observable<any> {
-    this.notify.next({ message: 'deploying', type: params.blockchain_type });
+  deploy(params: BlockchainRequestParams, isOnlyOnPrem: boolean): Observable<any> {
+    this.notify.next({
+      message: 'deploying',
+      type: params.blockchain_type,
+      isOnlyOnPrem: isOnlyOnPrem
+    });
 
     return this.consortiumService.create(params.consortium_name).pipe(
       flatMap(consort => {

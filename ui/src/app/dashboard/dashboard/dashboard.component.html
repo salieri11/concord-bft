@@ -1,6 +1,6 @@
 <ng-container>
   <div class="ps-1 fadein">
-    <div class="card p-1-2">
+    <div class="card p-1-2" *ngIf="!onlyOnPrem">
       <div class="clr-row" tourAnchor="onboardingTour.dashStats">
           <div class="clr-col-lg-3 clr-col-xl-2 col-gauge">
             <div class="node-health">
@@ -37,7 +37,7 @@
             </div>
           </div>
         </div>
-        <div class="clr-col-lg-5 clr-col-md-12">
+        <div  class="clr-col-lg-5 clr-col-md-12">
           <concord-world-map #worldMap [features]="nodesByLocation"></concord-world-map>
         </div>
       </div>
