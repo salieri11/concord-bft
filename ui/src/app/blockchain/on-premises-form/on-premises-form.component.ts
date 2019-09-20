@@ -152,7 +152,8 @@ export class OnPremisesFormComponent implements AfterViewInit {
           this.onPremConnectionSuccessful = true;
           testCon.unsubscribe();
         }, error => {
-          this.onPremError = error;
+          this.onPremConnectionSuccessful = false;
+          this.onPremError = error.message;
           testCon.unsubscribe();
           return error;
         });
