@@ -49,7 +49,6 @@ export class MainComponent implements OnInit, OnDestroy {
 
   alertSub: Subscription;
   routingSub: Subscription;
-  blockchainChange: Subscription;
   routerFragmentChange: Subscription;
 
   // Blockchain Service is resolved in the router before loading
@@ -82,8 +81,6 @@ export class MainComponent implements OnInit, OnDestroy {
   ) {
     this.env = environment;
     this.blockchainType = this.blockchainService.type;
-    this.blockchainChange = this.blockchainService.blockchainChange
-      .subscribe(info => this.blockchainType = info.type);
 
     this.alertSub = this.alertService.notify
       .subscribe(error => this.addAlert(error));
@@ -117,7 +114,6 @@ export class MainComponent implements OnInit, OnDestroy {
     this.routerFragmentChange.unsubscribe();
     this.routingSub.unsubscribe();
     this.alertSub.unsubscribe();
-    if (this.blockchainChange) { this.blockchainChange.unsubscribe(); }
 
     if (!environment.csp) {
       this.deregisterWindowListeners();
@@ -133,6 +129,7 @@ export class MainComponent implements OnInit, OnDestroy {
       this.router.navigate([`/${this.selectedConsortium}`, 'dashboard'])
         .then(() => {
           // This is to refresh all child components
+          this.blockchainType = this.blockchainService.type;
           setTimeout(() => {
             this.enableRouterOutlet = true;
           }, 10);

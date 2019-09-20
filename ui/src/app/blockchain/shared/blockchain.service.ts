@@ -276,7 +276,6 @@ export class BlockchainsServiceMock {
   public zones = fakeZones;
   public blockchaindId = 1;
   public type = ContractEngines.ETH;
-  public blockchainChange = new BehaviorSubject<SelectedBlockchainInfo>({id: '1', type: ContractEngines.ETH});
 
   public select(id: string): Observable<boolean> {
     return of(typeof id === 'string');
