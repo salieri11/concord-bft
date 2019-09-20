@@ -38,7 +38,8 @@ public enum ContainerConfig {
 
     DAML_EXECUTION_ENGINE("vmwblockchain/daml-execution-engine", "daml_execution_engine", List.of(
             new PortBinding(Ports.Binding.bindPort(55000), ExposedPort.tcp(55000))), null,
-                          null, List.of("/doc/daml/kvbc_validator/target/universal/stage/bin/kvbc-validator"), null),
+                          null, List.of("/doc/daml/kvbc_validator/target/universal/stage/bin/kvbc-validator",
+                                        "-J-Xmx4G"), null),
     DAML_CONCORD("vmwblockchain/concord-core", "concord", List.of(
             new PortBinding(Ports.Binding.bindPort(50051), ExposedPort.tcp(50051)),
             new PortBinding(Ports.Binding.bindPort(5458), ExposedPort.tcp(5458)),
@@ -69,7 +70,8 @@ public enum ContainerConfig {
                             "INDEXDB_USER=indexdb",
                             "CONCORD_HOST=concord",
                             "CONCORD_PORT=50051",
-                            "PARTICIPANT_ID=daml_ledger_api"));
+                            "PARTICIPANT_ID=daml_ledger_api",
+                            "JAVA_OPTS=-Xmx4G"));
 
     String imageRepository;
     String imageId;
