@@ -58,13 +58,16 @@ public class LintProxyController {
     private CspAuthenticationHelper cspAuthHelper;
     private String lintAuthToken;
     private String lintApiToken;
+    private String cspUrl;
 
     private RestTemplate restTemplate;
 
     @Autowired
-    public LintProxyController(AuthHelper authHelper, @Value("${csp.url}") String cspUrl,
+    public LintProxyController(AuthHelper authHelper,
+                               @Value("${lint.csp.url:https://console.cloud.vmware.com}") String cspUrl,
             @Value("${lint.apitoken:#null}") String lintApiToken, @Value("${lint.url}") String lintUrl) {
         this.authHelper = authHelper;
+        this.cspUrl = cspUrl;
         this.cspAuthHelper = new CspAuthenticationHelper(cspUrl);
         this.lintApiToken = lintApiToken;
 
