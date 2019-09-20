@@ -39,8 +39,6 @@ export class BlockchainService {
   type: ContractEngines;
 
   notify: BehaviorSubject<any> = new BehaviorSubject(null);
-  blockchainChange: BehaviorSubject<SelectedBlockchainInfo>
-                    = new BehaviorSubject<SelectedBlockchainInfo>(null);
 
   constructor(
     private http: HttpClient,
@@ -140,7 +138,6 @@ export class BlockchainService {
     return this.getMetaData().pipe(
       map(metadata => {
         this.metadata = metadata;
-        this.blockchainChange.next({id: this.blockchainId, type: this.type});
         return true;
       }),
     );
