@@ -16,6 +16,8 @@ import traceback
 import subprocess
 
 from . import test_suite
+from rest.request import Request
+import util.json_helper
 
 log = logging.getLogger(__name__)
 
@@ -54,6 +56,17 @@ class PerformanceTests(test_suite.TestSuite):
       for (testName, testFun) in tests:
          testLogDir = os.path.join(self._testLogDir, testName)
          try:
+            testLogDir = os.path.join(self._testLogDir, testName)
+            # When this suite is switched over to pytest, the request object
+            # and the blockchain ID will be available from fixtures.  For now,
+            # create a request object and derive the blockchain ID here.
+            request = Request(testLogDir,
+                              testName,
+                              self._args.reverseProxyApiBaseUrl,
+                              self._userConfig,
+                              util.auth.internal_admin)
+            blockchainId = request.getBlockchains()[0]["id"]
+            self.setEthrpcNode(request, blockchainId)
             result, info = self._runTest(testName,
                                          testFun,
                                          testLogDir)
@@ -80,30 +93,35 @@ class PerformanceTests(test_suite.TestSuite):
    def _getTests(self):
       return [("performance_test", self._test_performance)]
 
+
    def _test_performance(self, fileRoot):
       if not os.path.isdir(self._performance_submodule):
          return (False, "Performance repo {} does not Exist"
                  .format(self._performance_submodule))
 
-      performance_jar = os.path.join(
-                self._performance_submodule,
-                "target/performance-1.0-SNAPSHOT-jar-with-dependencies.jar")
+      performance_jar = os.path.join(self._performance_submodule,
+                                     "ballotApp", "target",
+                                     "performance-1.0-SNAPSHOT-jar-with-dependencies.jar")
       if not os.path.isfile(performance_jar):
          return (False, "Performance jar file {} does not Exist".
                  format(performance_jar))
 
-      concurrent_votes = "10"
-      proposals = os.path.join(self._performance_submodule, 'data', 'proposals')
-      results = os.path.join(self._performance_submodule, fileRoot)
+      concord_ip = self.ethrpcApiUrl.split("/")[2].split(":")[0]
+      number_of_votes = "1000"
+      input_data = os.path.join(self._performance_submodule,
+                                "data", "proposals")
 
       cmd = ["java", "-Xmx1g", "-jar", performance_jar,
-             "localhost", concurrent_votes, proposals, results]
+             "--concord", concord_ip, number_of_votes, input_data, fileRoot]
+
+      log.info("Running benchmark tool: {}".format(" ".join(cmd)))
+
       completedProcess = subprocess.run(cmd,
                                         stdout=subprocess.PIPE,
                                         stderr=subprocess.STDOUT)
       psOutput = completedProcess.stdout.decode("UTF-8")
       log.info(psOutput)
-      if 'Transaction Rate: ' not in psOutput:
+      if 'Throughput: ' not in psOutput:
          return (False, "Failed to run Performance Test")
 
       return (True, None)

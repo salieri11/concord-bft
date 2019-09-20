@@ -166,14 +166,18 @@ public class BallotDApp {
 			String dataPath = args[3];
 			PROPOSAL_DATA_PATH = dataPath;
 
-			String resultPath = args[4];
-			DEPLOYER_KEY_PATH = resultPath + "/deployer_keystore";
+			RESULT_PATH = args[4];
+                        logger.info("RESULT_PATH = '"+RESULT_PATH+"'");
+			DEPLOYER_KEY_PATH = RESULT_PATH + "/deployer_keystore";
 			File keystorePath = new File(DEPLOYER_KEY_PATH);
 			if (!keystorePath.exists()) {
 				keystorePath.mkdirs();
 			}
-			CONTRACT_DATA_PATH = resultPath + "/contract";
-			PERFORMANCE_DATA = resultPath + "/performance_result.log";
+			CONTRACT_DATA_PATH = RESULT_PATH + "/contract";
+			PERFORMANCE_DATA = RESULT_PATH + "/performance_result.log";
+			PERFORMANCE_DATA_CSV = RESULT_PATH + "/performance.csv";
+                        STAT_DATA_PATH = RESULT_PATH + "/stats.log";
+                        WAVEFRONT_DATA_PATH = RESULT_PATH + "/wavefrontData.txt";
 
 			for (int i = 0; i < args.length; i++) {
 				if (args[i].equals("--logging")) {
@@ -225,6 +229,13 @@ public class BallotDApp {
 		Map<String, Web3j> serviceMap = new HashMap<>();
 		ScheduledExecutorService scheduledExecutorService = new ScheduledThreadPoolExecutor(NUMBER_THREADS);
 		if (CONCORD) {
+                    if (weightedEndpoints == null && BallotDApp.ENDPOINT != null) {
+                        String concordIP = BallotDApp.ENDPOINT.split("/")[2].split(":")[0];
+                        weightedEndpoints = new ArrayList<Entry<String,Integer>>(1);
+                        Map.Entry<String,Integer> entry =
+                            new AbstractMap.SimpleEntry<String, Integer>(concordIP, NUMBER);
+                        weightedEndpoints.add(entry);
+                    }
 			if (weightedEndpoints != null) {
 				ArrayList<Integer> numTxs = new ArrayList<Integer>(weightedEndpoints.size());
 

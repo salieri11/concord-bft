@@ -220,8 +220,8 @@ docker_pull() {
 }
 
 PerformanceTests() {
-    cd performance
-    mvn clean install assembly:single > performance_test_mvn_build.log 2>&1
+    cd performance/benchmark
+    sh ./build.sh > performance_test_build.log 2>&1
 }
 
 BuildPersephoneGRPCpyBindings() {
