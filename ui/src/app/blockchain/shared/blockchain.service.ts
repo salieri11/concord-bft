@@ -23,7 +23,6 @@ import {
 } from './blockchain.model';
 import { Apis } from '../../shared/urls.model';
 
-export interface SelectedBlockchainInfo { id: string; type: ContractEngines; }
 @Injectable({
   providedIn: 'root'
 })
