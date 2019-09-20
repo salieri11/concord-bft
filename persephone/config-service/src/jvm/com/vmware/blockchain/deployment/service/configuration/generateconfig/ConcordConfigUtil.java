@@ -250,8 +250,13 @@ public class ConcordConfigUtil {
             writer.write("tls_certificates_folder_path: "
                          + URI.create(CertificatesGenerator.CONCORD_TLS_SECURITY_IDENTITY_PATH).getPath());
             writer.newLine();
-            writer.write("node__TEMPLATE:\n  genesis_block: /concord/config-public/genesis.json\n  "
-                         + "blockchain_db_path: /concord/rocksdbdata/");
+            writer.write("node__TEMPLATE:");
+            writer.newLine();
+            writer.write("  genesis_block: /concord/config-public/genesis.json");
+            writer.newLine();
+            writer.write("  blockchain_db_path: /concord/rocksdbdata/");
+            writer.newLine();
+            writer.write("  time_pusher_period_ms: 1000");
             writer.newLine();
             writer.write("node:");
             writer.newLine();
