@@ -10,6 +10,7 @@ def call(){
   def memory_leak_job_name = "BlockchainMemoryLeakTesting"
   def performance_test_job_name = "Blockchain Performance Test"
   def persephone_test_job_name = "Blockchain Persephone Tests"
+  def persephone_test_on_demand_job_name = "ON DEMAND Persephone Testrun on GitLab"
 
   if (env.JOB_NAME.contains(memory_leak_job_name)) {
     echo "**** Jenkins job for Memory Leak Test"
@@ -21,6 +22,9 @@ def call(){
     additional_components_to_build = additional_components_to_build + "PerformanceTests,"
   } else if (env.JOB_NAME.contains(persephone_test_job_name)) {
     echo "**** Jenkins job for Persephone Test"
+    genericTests = false
+  } else if (env.JOB_NAME.contains(persephone_test_on_demand_job_name)) {
+    echo "**** Jenkins job for Persephone Test ON DEMAND"
     genericTests = false
   } else if (env.JOB_NAME.contains(lint_test_job_name)) {
     echo "**** Jenkins job for LINT Tests"
@@ -61,10 +65,11 @@ def call(){
              description: "Shared Jenkins lib branch to use.",
              name: "shared_lib_branch"
 
-
       string defaultValue: "",
              description: "Override automatic node selection and run this job on a node with this label.",
              name: "jenkins_node"
+
+      choice(choices: "on-failure\nnever\nalways", description: 'Choose a deployment test failure Retention Policy', name: 'deployment_retention')
     }
     stages {
       stage("Notify GitLab"){
@@ -84,6 +89,9 @@ def call(){
               removeContainers()
               pruneImages()
               reportSystemStats()
+
+              // Set as env variables
+              env.deployment_retention = params.deployment_retention
 
               // Check parameters
               script{
@@ -134,7 +142,7 @@ def call(){
                     sh 'cp -ar /var/jenkins/workspace/googletest/* .'
                   }
                   saveTimeEvent("Setup", "Finished copying googletest")
-               }catch(Exception ex){
+                }catch(Exception ex){
                   failRun()
                   throw ex
                 }
@@ -404,9 +412,15 @@ EOF
             try{
               saveTimeEvent("Build", "Start buildall.sh")
               dir('blockchain') {
-                sh '''
-                  ./buildall.sh --additionalBuilds ${additional_components_to_build}
-                '''
+                if (env.JOB_NAME.contains(persephone_test_on_demand_job_name)) {
+                  sh '''
+                    ./buildall.sh --buildOnDemand persephone,BuildPersephoneGRPCpyBindings
+                  '''
+                } else {
+                  sh '''
+                    ./buildall.sh --additionalBuilds ${additional_components_to_build}
+                  '''
+                }
               }
               saveTimeEvent("Build", "Finished buildall.sh")
             }catch(Exception ex){
@@ -506,7 +520,7 @@ EOF
       stage("Push Images required for Deployment Services & run tests") {
         when {
           expression {
-            params.run_tests
+            params.run_tests && run_persephone_tests
           }
         }
         steps {
@@ -522,38 +536,49 @@ EOF
               dir('blockchain/hermes') {
                 withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
                   script {
+                    // Set docker tag to "latest", unless overridden for master run
+                    env.dep_comp_docker_tag = "latest"
                     sh '''
                       docker tag ${internal_persephone_agent_repo}:${docker_tag} ${release_persephone_agent_repo}:${docker_tag}
-                      docker tag ${internal_concord_repo}:${docker_tag} ${release_concord_repo}:${docker_tag}
-                      docker tag ${internal_ethrpc_repo}:${docker_tag} ${release_ethrpc_repo}:${docker_tag}
-                      docker tag ${internal_daml_ledger_api_repo}:${docker_tag} ${release_daml_ledger_api_repo}:${docker_tag}
-                      docker tag ${internal_daml_execution_engine_repo}:${docker_tag} ${release_daml_execution_engine_repo}:${docker_tag}
-                      docker tag ${internal_daml_index_db_repo}:${docker_tag} ${release_daml_index_db_repo}:${docker_tag}
-                      docker tag ${internal_hlf_tools_repo}:${docker_tag} ${release_hlf_tools_repo}:${docker_tag}
-                      docker tag ${internal_hlf_peer_repo}:${docker_tag} ${release_hlf_peer_repo}:${docker_tag}
-                      docker tag ${internal_hlf_orderer_repo}:${docker_tag} ${release_hlf_orderer_repo}:${docker_tag}
-
                     '''
                     pushDockerImage(env.release_persephone_agent_repo, env.docker_tag, false)
-                    pushDockerImage(env.release_concord_repo, env.docker_tag, false)
-                    pushDockerImage(env.release_ethrpc_repo, env.docker_tag, false)
-                    pushDockerImage(env.release_daml_ledger_api_repo, env.docker_tag, false)
-                    pushDockerImage(env.release_daml_execution_engine_repo, env.docker_tag, false)
-                    pushDockerImage(env.release_daml_index_db_repo, env.docker_tag, false)
-                    pushDockerImage(env.release_hlf_tools_repo, env.docker_tag, false)
-                    pushDockerImage(env.release_hlf_peer_repo, env.docker_tag, false)
-                    pushDockerImage(env.release_hlf_orderer_repo, env.docker_tag, false)
 
-                    if (genericTests && env.run_persephone_tests) {
+                    if (env.JOB_NAME.contains(master_branch_job_name) || env.JOB_NAME.contains(persephone_test_job_name)) {
                       sh '''
-                        echo "Running Persephone SMOKE Tests..."
-                        echo "${PASSWORD}" | sudo -SE "${python}" main.py PersephoneTests --useLocalConfigService --dockerComposeFile ../docker/docker-compose-persephone.yml --resultsDir "${persephone_test_logs}" --deploymentComponents "${release_persephone_agent_repo}:${docker_tag},${release_concord_repo}:${docker_tag},${release_ethrpc_repo}:${docker_tag},${release_daml_ledger_api_repo}:${docker_tag},${release_daml_execution_engine_repo}:${docker_tag},${release_daml_index_db_repo}:${docker_tag}" --keepBlockchains on-failure
+                        docker tag ${internal_concord_repo}:${docker_tag} ${release_concord_repo}:${docker_tag}
+                        docker tag ${internal_ethrpc_repo}:${docker_tag} ${release_ethrpc_repo}:${docker_tag}
+                        docker tag ${internal_daml_ledger_api_repo}:${docker_tag} ${release_daml_ledger_api_repo}:${docker_tag}
+                        docker tag ${internal_daml_execution_engine_repo}:${docker_tag} ${release_daml_execution_engine_repo}:${docker_tag}
+                        docker tag ${internal_daml_index_db_repo}:${docker_tag} ${release_daml_index_db_repo}:${docker_tag}
+                        # docker tag ${internal_hlf_tools_repo}:${docker_tag} ${release_hlf_tools_repo}:${docker_tag}
+                        # docker tag ${internal_hlf_peer_repo}:${docker_tag} ${release_hlf_peer_repo}:${docker_tag}
+                        # docker tag ${internal_hlf_orderer_repo}:${docker_tag} ${release_hlf_orderer_repo}:${docker_tag}
                       '''
+                      pushDockerImage(env.release_concord_repo, env.docker_tag, false)
+                      pushDockerImage(env.release_ethrpc_repo, env.docker_tag, false)
+                      pushDockerImage(env.release_daml_ledger_api_repo, env.docker_tag, false)
+                      pushDockerImage(env.release_daml_execution_engine_repo, env.docker_tag, false)
+                      pushDockerImage(env.release_daml_index_db_repo, env.docker_tag, false)
+                      // pushDockerImage(env.release_hlf_tools_repo, env.docker_tag, false)
+                      // pushDockerImage(env.release_hlf_peer_repo, env.docker_tag, false)
+                      // pushDockerImage(env.release_hlf_orderer_repo, env.docker_tag, false)
+
                     }
+
+                    // For master runs, use ToT
+                    if (env.JOB_NAME.contains(master_branch_job_name)) {
+                      env.dep_comp_docker_tag = env.docker_tag
+                    }
+
                     if (env.JOB_NAME.contains(persephone_test_job_name)) {
                       sh '''
                         echo "Running Entire Testsuite: Persephone..."
-                        echo "${PASSWORD}" | sudo -SE "${python}" main.py PersephoneTests --useLocalConfigService --dockerComposeFile ../docker/docker-compose-persephone.yml --resultsDir "${persephone_test_logs}" --tests "all_tests" --deploymentComponents "${release_persephone_agent_repo}:${docker_tag},${release_concord_repo}:${docker_tag},${release_ethrpc_repo}:${docker_tag},${release_daml_ledger_api_repo}:${docker_tag},${release_daml_execution_engine_repo}:${docker_tag},${release_daml_index_db_repo}:${docker_tag}" --keepBlockchains on-failure
+                        echo "${PASSWORD}" | sudo -SE "${python}" main.py PersephoneTests --useLocalConfigService --dockerComposeFile ../docker/docker-compose-persephone.yml --resultsDir "${persephone_test_logs}" --tests "all_tests" --deploymentComponents "${release_persephone_agent_repo}:${docker_tag},${release_concord_repo}:${docker_tag},${release_ethrpc_repo}:${docker_tag},${release_daml_ledger_api_repo}:${docker_tag},${release_daml_execution_engine_repo}:${docker_tag},${release_daml_index_db_repo}:${docker_tag}" --keepBlockchains ${deployment_retention}
+                      '''
+                    } else {
+                      sh '''
+                        echo "Running Persephone SMOKE Tests..."
+                        echo "${PASSWORD}" | sudo -SE "${python}" main.py PersephoneTests --useLocalConfigService --dockerComposeFile ../docker/docker-compose-persephone.yml --resultsDir "${persephone_test_logs}" --deploymentComponents "${release_persephone_agent_repo}:${docker_tag},${release_concord_repo}:${dep_comp_docker_tag},${release_ethrpc_repo}:${dep_comp_docker_tag},${release_daml_ledger_api_repo}:${dep_comp_docker_tag},${release_daml_execution_engine_repo}:${dep_comp_docker_tag},${release_daml_index_db_repo}:${dep_comp_docker_tag}" --keepBlockchains ${deployment_retention}
                       '''
                     }
                   }
@@ -838,7 +863,7 @@ EOF
         archiveArtifacts artifacts: env.eventsFile, allowEmptyArchive: false
 
         echo 'Sending email notification...'
-        emailext body: "${currentBuild.currentResult}: Job ${env.JOB_NAME} build ${env.BUILD_NUMBER}\n More info at: ${env.BUILD_URL}\nNOTE: Any failed persephone/helen deployment would be retained for the next 1 hour, before cleanup.",
+        emailext body: "${currentBuild.currentResult}: Job ${env.JOB_NAME} build ${env.BUILD_NUMBER}\n More info at: ${env.BUILD_URL}\n\nNOTE: Any failed persephone/helen deployment would be retained for the next 1 hour, before cleanup.",
         recipientProviders: [[$class: 'DevelopersRecipientProvider'], [$class: 'RequesterRecipientProvider']],
         subject: "Jenkins Build ${currentBuild.currentResult}: Job ${env.JOB_NAME}"
 
@@ -1032,15 +1057,15 @@ void sendAlertNotification(test_name) {
   if (test_name == 'performance') {
     performance_test_spiked_log = new File(env.performance_test_logs, "performance_transaction_rate_spiked.log").toString()
     if (fileExists(performance_test_spiked_log)) {
-      echo 'ALERT: Performance Transaction Rate spiked up in this run'
+      echo 'ALERT: Performance Transaction Rate dipped in this run'
 
       performance_test_alert_notification_address_file = "performance_test_alert_recipients.txt"
       if (fileExists(performance_test_alert_notification_address_file)) {
         performance_test_alert_notification_recipients = readFile(performance_test_alert_notification_address_file).replaceAll("\n", " ")
         echo 'Sending ALERT email notification...'
-        emailext body: "Performance Transaction Rate Spiked up in build: ${env.BUILD_NUMBER}\n\n More info at: ${env.BUILD_URL}\nPerformance Result Log file: ${env.BUILD_URL}artifact/testLogs/PerformanceTest/performance_result.log\n\nGraph: ${JOB_URL}plot",
+        emailext body: "Performance Transaction Rate dipped in build: ${env.BUILD_NUMBER}\n\n More info at: ${env.BUILD_URL}\nPerformance Result Log file: ${env.BUILD_URL}artifact/testLogs/PerformanceTest/performance_result.log\n\nGraph: ${JOB_URL}plot",
         to: performance_test_alert_notification_recipients,
-        subject: "ALERT: Performance Transaction Rate Spiked up in build ${env.BUILD_NUMBER}"
+        subject: "ALERT: Performance Transaction Rate dipped in build ${env.BUILD_NUMBER}"
       }
     }
   }

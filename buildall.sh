@@ -1,4 +1,5 @@
 #!/bin/bash
+# set -x
 
 ################################################################################
 # High level script to build the blockchain components.
@@ -15,6 +16,24 @@
 ################################################################################
 
 trap killAllProcs INT
+
+info() {
+    echo `date`: INFO: "${1}"
+}
+
+error() {
+    echo `date`: ERROR: "${1}"
+}
+
+printMemory() {
+    uname | grep "Linux"
+    LINUX=$?
+
+    if [ $LINUX -eq 0 ]
+    then
+        free -h
+    fi
+}
 
 # Kill all processes.
 killAllProcs(){
@@ -149,31 +168,6 @@ buildMavenTargets(){
   dieOnFailure "Maven" ${MVN_BUILD}
 }
 
-install_node_dependency() {
-  NAME="${1}"
-  COMPONENT_DIR="${2}"
-
-  pushd .
-  cd "$COMPONENT_DIR"
-  npm config set registry http://build-artifactory.eng.vmware.com:80/artifactory/api/npm/npm
-  . ~/.nvm/nvm.sh
-  nvm install 11.15.0
-  nvm alias default 11.15.0
-  npm install > "node_install_${COMPONENT_DIR}.log" 2>&1 &
-  NODE_BUILD_PID=$!
-  addToProcList "${NAME}" $!
-
-  while isRunning ${NODE_BUILD_PID}
-  do
-    info "Waiting for $NAME..."
-    sleep 10
-  done
-
-  dieOnFailure "${NAME}" ${NODE_BUILD_PID}
-  popd
-
-}
-
 docker_build() {
     if [ "$#" -lt "4" ]
     then
@@ -232,6 +226,117 @@ docker_pull() {
     addToProcList "${DOCKER_PULL_TASK_NAME}" $!
 }
 
+node-dependency() {
+    info "Installing node package dependencies..."
+    saveTimeEvent "Install node dependencies" Start
+    . ~/.nvm/nvm.sh
+    nvm install 11.15.0
+    nvm alias default 11.15.0
+    npm_install "node dependency for UI" "ui"
+    npm_install "node dependency for contract-compiler" "contract-compiler"
+    saveTimeEvent "Install node dependencies" End
+}
+
+npm_install() {
+  NAME="${1}"
+  COMPONENT_DIR="${2}"
+
+  pushd .
+  cd "$COMPONENT_DIR"
+  npm config set registry http://build-artifactory.eng.vmware.com:80/artifactory/api/npm/npm
+  npm install > "node_install_${COMPONENT_DIR}.log" 2>&1 &
+  NODE_BUILD_PID=$!
+  addToProcList "${NAME}" $!
+
+  while isRunning ${NODE_BUILD_PID}
+  do
+    info "Waiting for $NAME..."
+    sleep 10
+  done
+
+  dieOnFailure "${NAME}" ${NODE_BUILD_PID}
+  popd
+}
+
+concord() {
+    info "Build concord..."
+    docker_build . concord/Dockerfile ${concord_repo} ${concord_tag}
+    docker_build . concord/Dockerfile ${concord_repo} ${concord_tag} --memoryLeakDockerBuild
+}
+
+ui() {
+    info "Build UI..."
+    docker_build ui ui/Dockerfile ${ui_repo} ${ui_tag}
+}
+
+fluentd() {
+    info "Build fluentd..."
+    docker_build docker/fluentd docker/fluentd/Dockerfile ${fluentd_repo} ${fluentd_tag}
+}
+
+ethereum() {
+    info "Build ethereum..."
+    docker_build . ethrpc/Dockerfile ${ethrpc_repo} ${ethrpc_tag}
+}
+
+helen() {
+    info "Build helen..."
+    docker_build . helen/Dockerfile ${helen_repo} ${helen_tag}
+}
+
+persephone() {
+    info "Build persephone..."
+    docker_build . agent/Dockerfile ${persephone_agent_repo} ${persephone_agent_tag}
+    docker_build persephone persephone/fleet-service/Dockerfile ${persephone_fleet_repo} ${persephone_fleet_tag}
+    docker_build persephone persephone/ip-allocation-service/Dockerfile ${persephone_ipam_repo} ${persephone_ipam_tag}
+    waitForProcesses
+
+    docker_build persephone persephone/metadata-service/Dockerfile ${persephone_metadata_repo} ${persephone_metadata_tag}
+    docker_build persephone persephone/provisioning-service/Dockerfile ${persephone_provisioning_repo} ${persephone_provisioning_tag}
+    docker_build . persephone/config-service/Dockerfile ${persephone_configuration_repo} ${persephone_configuration_tag}
+}
+
+cockroachDB() {
+    info "Build cockroachDB..."
+    docker_pull cockroachdb/cockroach:v2.0.2 Cockroach_DB
+}
+
+reverse-proxy() {
+    info "Build reverse-proxy..."
+    docker_pull athena-docker-local.artifactory.eng.vmware.com/reverse-proxy:0.1.2 "Reverse_proxy"
+}
+
+asset-transfer() {
+    info "Build asset-transfer..."
+    docker_build vmware-blockchain-samples/asset-transfer vmware-blockchain-samples/asset-transfer/Dockerfile ${asset_transfer_repo} ${asset_transfer_tag}
+}
+
+contract-compiler() {
+    info "Build contract-compiler..."
+    docker_build contract-compiler contract-compiler/Dockerfile ${contract_compiler_repo} ${contract_compiler_tag}
+}
+
+hlf_submodules() {
+    info "Build hlf submodules..."
+    docker_build submodules/hlf-chaincode-engine submodules/hlf-chaincode-engine/Dockerfile-tools ${hlf_tools_base_repo} ${hlf_tools_base_tag}
+    docker_build submodules/hlf-chaincode-engine submodules/hlf-chaincode-engine/Dockerfile-peer ${hlf_peer_base_repo} ${hlf_peer_base_tag}
+    docker_build submodules/hlf-chaincode-engine submodules/hlf-chaincode-engine/Dockerfile-orderer ${hlf_orderer_base_repo} ${hlf_orderer_base_tag}
+}
+
+hlf() {
+    info "hlf..."
+    docker_build . docker/Dockerfile-hlf-tools ${hlf_tools_repo} ${hlf_tools_tag} --build-arg "base_tag=${hlf_tools_base_tag}"
+    docker_build . docker/Dockerfile-hlf-peer ${hlf_peer_repo} ${hlf_peer_tag} --build-arg "base_tag=${hlf_peer_base_tag}"
+    docker_build . docker/Dockerfile-hlf-orderer ${hlf_orderer_repo} ${hlf_orderer_tag} --build-arg "base_tag=${hlf_orderer_base_tag}"
+}
+
+daml() {
+    info "Build DAML..."
+    docker_build . daml/DockerfileLedgerApi ${daml_ledger_api_repo} ${daml_ledger_api_tag}
+    docker_build . daml/DockerfileExecutionEngine ${daml_execution_engine_repo} ${daml_execution_engine_tag}
+    docker_build . daml/DockerfilePostgres ${daml_index_db_repo} ${daml_index_db_tag}
+}
+
 PerformanceTests() {
     cd performance/benchmark
     sh ./build.sh > performance_test_build.log 2>&1
@@ -252,24 +357,6 @@ BuildSupplyChain() {
     popd
 }
 
-info() {
-    echo `date`: INFO: "${1}"
-}
-
-error() {
-    echo `date`: ERROR: "${1}"
-}
-
-printMemory() {
-    uname | grep "Linux"
-    LINUX=$?
-
-    if [ $LINUX -eq 0 ]
-    then
-        free -h
-    fi
-}
-
 # TODO: Associative arrays don't work in OSX's default shell.
 declare -A BUILD_PROCS
 
@@ -281,6 +368,10 @@ while [ "$1" != "" ] ; do
       "--additionalBuilds")
          shift
          ADDITIONAL_BUILDS="$1"
+         ;;
+      "--buildOnDemand")
+         shift
+         COMPONENTS_TO_BUILD_ON_DEMAND="$1"
          ;;
    esac
    shift
@@ -310,75 +401,54 @@ commit_label="com.vmware.blockchain.commit"
 
 verifyDocker
 
-info "Installing node package dependencies..."
-saveTimeEvent "Install node dependencies" Start
-install_node_dependency "node dependency for UI" "ui"
-install_node_dependency "node dependency for contract-compiler" "contract-compiler"
-saveTimeEvent "Install node dependencies" End
+# Default build/Complete product build
+if [ -z "${COMPONENTS_TO_BUILD_ON_DEMAND}" ]
+then
+    info "**** Building all components..."
+    node-dependency
+    concord
+    ui
+    fluentd
+    ethereum
+    helen
+    waitForProcesses
+    persephone
+    hlf_submodules
+    waitForProcesses
+    cockroachDB # Do we still need this?
+    reverse-proxy
+    asset-transfer
+    contract-compiler
+    hlf
+    daml
+    BuildPersephoneGRPCpyBindings
+    BuildSupplyChain
+fi
 
-info "Building..."
-docker_build . concord/Dockerfile ${concord_repo} ${concord_tag}
-
-docker_build . concord/Dockerfile ${concord_repo} ${concord_tag} --memoryLeakDockerBuild
-
-
-docker_build ui ui/Dockerfile ${ui_repo} ${ui_tag}
-
-docker_build docker/fluentd docker/fluentd/Dockerfile ${fluentd_repo} ${fluentd_tag}
-
-docker_build . ethrpc/Dockerfile ${ethrpc_repo} ${ethrpc_tag}
-
-docker_build . helen/Dockerfile ${helen_repo} ${helen_tag}
-
-waitForProcesses
-
-docker_build . agent/Dockerfile ${persephone_agent_repo} ${persephone_agent_tag}
-docker_build persephone persephone/fleet-service/Dockerfile ${persephone_fleet_repo} ${persephone_fleet_tag}
-docker_build persephone persephone/ip-allocation-service/Dockerfile ${persephone_ipam_repo} ${persephone_ipam_tag}
-
-waitForProcesses
-
-docker_build persephone persephone/metadata-service/Dockerfile ${persephone_metadata_repo} ${persephone_metadata_tag}
-docker_build persephone persephone/provisioning-service/Dockerfile ${persephone_provisioning_repo} ${persephone_provisioning_tag}
-docker_build . persephone/config-service/Dockerfile ${persephone_configuration_repo} ${persephone_configuration_tag}
-
-docker_build submodules/hlf-chaincode-engine submodules/hlf-chaincode-engine/Dockerfile-tools ${hlf_tools_base_repo} ${hlf_tools_base_tag}
-docker_build submodules/hlf-chaincode-engine submodules/hlf-chaincode-engine/Dockerfile-peer ${hlf_peer_base_repo} ${hlf_peer_base_tag}
-docker_build submodules/hlf-chaincode-engine submodules/hlf-chaincode-engine/Dockerfile-orderer ${hlf_orderer_base_repo} ${hlf_orderer_base_tag}
-
-waitForProcesses
-
-docker_pull cockroachdb/cockroach:v2.0.2 Cockroach_DB
-
-docker_pull athena-docker-local.artifactory.eng.vmware.com/reverse-proxy:0.1.2 "Reverse_proxy"
-
-docker_build vmware-blockchain-samples/asset-transfer vmware-blockchain-samples/asset-transfer/Dockerfile ${asset_transfer_repo} ${asset_transfer_tag}
-
-docker_build contract-compiler contract-compiler/Dockerfile ${contract_compiler_repo} ${contract_compiler_tag}
-
-
-docker_build . docker/Dockerfile-hlf-tools ${hlf_tools_repo} ${hlf_tools_tag} --build-arg "base_tag=${hlf_tools_base_tag}"
-docker_build . docker/Dockerfile-hlf-peer ${hlf_peer_repo} ${hlf_peer_tag} --build-arg "base_tag=${hlf_peer_base_tag}"
-docker_build . docker/Dockerfile-hlf-orderer ${hlf_orderer_repo} ${hlf_orderer_tag} --build-arg "base_tag=${hlf_orderer_base_tag}"
-
-docker_build . daml/DockerfileLedgerApi ${daml_ledger_api_repo} ${daml_ledger_api_tag}
-
-docker_build . daml/DockerfileExecutionEngine ${daml_execution_engine_repo} ${daml_execution_engine_tag}
-
-docker_build . daml/DockerfilePostgres ${daml_index_db_repo} ${daml_index_db_tag}
-
-BuildPersephoneGRPCpyBindings
-BuildSupplyChain
-
+# For additional components are required to be built for specific runs (nightly),
+# pass cmd arg (--additionalBuilds <component1,component2>)
 if [ ! -z "${ADDITIONAL_BUILDS}" ]
 then
     for additional_build in `echo "${ADDITIONAL_BUILDS}" | tr ',' ' '`
     do
-        info "Building custom component: $additional_build"
+        info "**** Building custom component: $additional_build"
         pushd .
         $additional_build &
         popd
         addToProcList "$additional_build" $!
+    done
+fi
+
+# For building specific components (on demand build, like only persephone, etc)
+# pass cmd arg (--additionalBuilds <component1,component2>)
+if [ ! -z "${COMPONENTS_TO_BUILD_ON_DEMAND}" ]
+then
+    for build_on_demand in `echo "${COMPONENTS_TO_BUILD_ON_DEMAND}" | tr ',' ' '`
+    do
+        info "**** Building custom component: $build_on_demand"
+        pushd .
+        $build_on_demand
+        popd
     done
 fi
 
