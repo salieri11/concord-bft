@@ -23,9 +23,11 @@ export interface NodeProperties {
   location: string;
   geo: string;
   nodes: Node[];
+  type?: string;
 }
 
 export interface NodesResponse {
   nodes: Node[];
   nodesByLocation: NodeProperties[];
+  onlyOnPrem: boolean;
 }

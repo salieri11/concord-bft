@@ -9,6 +9,7 @@ import { TranslateService } from '@ngx-translate/core';
 import { map } from 'rxjs/operators';
 
 import { NodeProperties } from './nodes.model';
+import { ZoneType } from './../../blockchain/shared/blockchain.model';
 import { CONCORD_API_PREFIX } from '../../shared/shared.config';
 import { ConcordApiService } from '../../shared/concord-api';
 import { BlockchainService } from '../../blockchain/shared/blockchain.service';
@@ -62,6 +63,7 @@ export class NodesService extends ConcordApiService {
 
           replica['geo'] = [Number(zoneData.longitude), Number(zoneData.latitude)];
           replica['location'] = zoneData.name;
+          replica['type'] = zoneData.type;
 
           // Fake Single location
           // replica['location'] = 'Palo Alto CA USA';
@@ -106,12 +108,19 @@ export class NodesService extends ConcordApiService {
           groupedNodes.push({
             location: temp[0].location,
             geo: temp[0].geo,
+            type: temp[0].type,
             // @ts-ignore
             nodes: temp
           });
         });
 
-        return { nodes: replicas, nodesByLocation: groupedNodes };
+        const onlyOnPremZones = groupedNodes.some(zone => zone.type === ZoneType.ON_PREM);
+
+        return {
+          nodes: replicas,
+          nodesByLocation: groupedNodes,
+          onlyOnPrem: onlyOnPremZones
+        };
       })
     );
   }

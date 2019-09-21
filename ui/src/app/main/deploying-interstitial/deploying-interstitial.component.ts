@@ -25,6 +25,7 @@ export class DeployingInterstialComponent {
   message: string = 'Deploy consortium started...';
   loop: boolean = true;
   success: boolean = false;
+  isOnlyOnPrem: boolean = false;
   progress: number = 0;
   blockchainType: ContractEngines;
 
@@ -38,24 +39,21 @@ export class DeployingInterstialComponent {
         this.loading = true;
         this.showInterstitial = true;
         this.blockchainType = message.type;
+        this.isOnlyOnPrem = message.isOnlyOnPrem;
       }
     });
-
-    // this.startMessaging().subscribe(() => {
-    //   console.log('done');
-    // });
   }
 
   startLoading(response: HttpResponse<any> | HttpErrorResponse) {
-    this.error = null;
-    this.loading = true;
-    this.showInterstitial = true;
-
     if (response && response['task_id']) {
       this.pollUntilDeployFinished(response['task_id']);
     } else {
       this.showError(response);
     }
+
+    this.error = null;
+    this.loading = true;
+    this.showInterstitial = true;
   }
 
   private pollUntilDeployFinished(taskId: string) {
@@ -71,8 +69,9 @@ export class DeployingInterstialComponent {
 
           this.blockchainService.set().subscribe(() => {
             setTimeout(() => {
+              const fragment = this.isOnlyOnPrem ? null : 'orgTour';
               // TODO: enable the dashboard to show a toast - response.resource_id is the bid
-              this.router.navigate([`/${response.resource_id}`, 'dashboard'], {fragment: 'orgTour'});
+              this.router.navigate([`/${response.resource_id}`, 'dashboard'], {fragment: fragment});
               this.showInterstitial = false;
               this.blockchainService.notify.next({message: 'deployed'});
             }, 3000);

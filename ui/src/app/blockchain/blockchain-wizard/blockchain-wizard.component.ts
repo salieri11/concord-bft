@@ -100,9 +100,27 @@ export class BlockchainWizardComponent implements AfterViewInit {
 
   filterZones() {
     const isOnPremZone = this.blockchainService.zones.some(zone => zone.type === ZoneType.ON_PREM);
-    this.zones = isOnPremZone ?
-      this.blockchainService.zones.filter((zone) => zone.type === ZoneType.ON_PREM) :
-      this.blockchainService.zones;
+
+    if (isOnPremZone) {
+      const onPremZones = this.blockchainService.zones.filter((zone) => zone.type === ZoneType.ON_PREM);
+
+      if (this.form) {
+        const zones = this.form['controls'].nodes['controls'].zones;
+        const pastZones = this.zones;
+        this.zones = [];
+        pastZones.forEach(zone => {
+          zones.removeControl(zone.id);
+        });
+
+        onPremZones.forEach(zone => {
+          zones.addControl(zone.id, new FormControl('', Validators.required));
+        });
+      }
+
+      this.zones = onPremZones;
+    } else {
+      this.zones = this.blockchainService.zones;
+    }
   }
 
   onSubmit() {
@@ -111,12 +129,12 @@ export class BlockchainWizardComponent implements AfterViewInit {
     params.consortium_name = this.form.value.details.consortium_name;
     params.blockchain_type = this.selectedEngine;
     const zones = this.form.controls.nodes['controls'].zones.value;
+    const isOnlyOnPrem = this.zones.some(zone => zone.type === ZoneType.ON_PREM);
     let zoneIds = [];
     // Create an array of zone ids for each deployed node instance.
     Object.keys(zones).forEach(zoneId => zoneIds = zoneIds.concat(Array(Number(zones[zoneId])).fill(zoneId)));
     params.zone_ids = zoneIds;
-
-    this.blockchainService.deploy(params).subscribe(response => {
+    this.blockchainService.deploy(params, isOnlyOnPrem).subscribe(response => {
       this.setupComplete.emit(response);
       this.router.navigate(['/deploying', 'dashboard'], {
         queryParams: { task_id: response['task_id'] }
@@ -209,7 +227,6 @@ export class BlockchainWizardComponent implements AfterViewInit {
   submitOnPrem(): void {
     this.loadingFlag = true;
     this.onPremForm.addOnPrem().subscribe((zoneData) => {
-
       const replicas = this.form['controls'].nodes;
       const zones = replicas['controls'].zones;
       const onPremData = zoneData;
