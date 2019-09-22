@@ -146,12 +146,32 @@ public class AgreementControllerTests {
         List<Agreement> agreementList =
                 Arrays.asList(a1);
         Mockito.when(organizationService.getAgreements(ORG_1)).thenReturn(agreementList);
+        Mockito.when(authHelper.getOrganizationId()).thenReturn(ORG_1);
         objectMapper = jacksonBuilder.build();
     }
 
+    //    Some tests are commented out as we don't have org id in auth helper right now
+
+    //    @Test
+    //    void getAgreementFromId() throws Exception {
+    //        MvcResult mvcResult = mockMvc.perform(get("/api/organizations/" + ORG_1.toString() + "/agreements")
+    //                .contentType(MediaType.APPLICATION_JSON)).andExpect(status().isOk()).andReturn();
+    //
+    //        String body = mvcResult.getResponse().getContentAsString();
+    //
+    //        body = body.substring(1, body.length() - 1);
+    //
+    //        Agreement agreement = objectMapper.readValue(body, Agreement.class);
+    //
+    //        Assertions.assertTrue(agreement.isAccepted());
+    //        Assertions.assertEquals(firstName, agreement.getFirstName());
+    //        Assertions.assertEquals(lastName, agreement.getLastName());
+    //        Assertions.assertEquals(company, agreement.getCompany());
+    //    }
+
     @Test
-    void getAgreementFromId() throws Exception {
-        MvcResult mvcResult = mockMvc.perform(get("/api/organizations/" + ORG_1.toString() + "/agreements")
+    void getAgreementWithoutId() throws Exception {
+        MvcResult mvcResult = mockMvc.perform(get("/api/organizations/agreements")
                 .contentType(MediaType.APPLICATION_JSON)).andExpect(status().isOk()).andReturn();
 
         String body = mvcResult.getResponse().getContentAsString();
@@ -161,13 +181,29 @@ public class AgreementControllerTests {
         Agreement agreement = objectMapper.readValue(body, Agreement.class);
 
         Assertions.assertTrue(agreement.isAccepted());
-        Assertions.assertEquals(agreement.getFirstName(), firstName);
-        Assertions.assertEquals(agreement.getLastName(), lastName);
-        Assertions.assertEquals(agreement.getCompany(), company);
+        Assertions.assertEquals(firstName, agreement.getFirstName());
+        Assertions.assertEquals(lastName, agreement.getLastName());
+        Assertions.assertEquals(company, agreement.getCompany());
     }
 
+    //    @Test
+    //    void doPost() throws Exception {
+    //        String content = String.format("    {"
+    //                + "        \"accepted\": \"true\","
+    //                + "        \"first_name\": \"John\","
+    //                + "        \"last_name\": \"Smith\","
+    //                + "        \"company\": \"Glob\""
+    //                + "    }");
+    //
+    //        mockMvc.perform(post("/api/organizations/" + ORG_1.toString() + "/agreements")
+    //                .with(authentication(adminAuth))
+    //                .contentType(MediaType.APPLICATION_JSON)
+    //                .content(content))
+    //                .andExpect(status().isOk()).andReturn();
+    //    }
+
     @Test
-    void doPost() throws Exception {
+    void doPostWithoutId() throws Exception {
         String content = String.format("    {"
                 + "        \"accepted\": \"true\","
                 + "        \"first_name\": \"John\","
@@ -175,17 +211,31 @@ public class AgreementControllerTests {
                 + "        \"company\": \"Glob\""
                 + "    }");
 
-        mockMvc.perform(post("/api/organizations/" + ORG_1.toString() + "/agreements")
+        mockMvc.perform(post("/api/organizations/agreements")
                 .with(authentication(adminAuth))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(content))
                 .andExpect(status().isOk()).andReturn();
-
-
     }
 
+    //    @Test
+    //    void doPostWithoutAccepting() throws Exception {
+    //        String content = String.format("    {"
+    //                + "        \"accepted\": \"false\","
+    //                + "        \"first_name\": \"John\","
+    //                + "        \"last_name\": \"Smith\","
+    //                + "        \"company\": \"Glob\""
+    //                + "    }");
+    //
+    //        mockMvc.perform(post("/api/organizations/" + ORG_1.toString() + "/agreements")
+    //                .with(authentication(adminAuth))
+    //                .contentType(MediaType.APPLICATION_JSON)
+    //                .content(content))
+    //                .andExpect(status().isBadRequest());
+    //    }
+
     @Test
-    void doPostWithoutAccepting() throws Exception {
+    void doPostWithoutIdWithoutAccepting() throws Exception {
         String content = String.format("    {"
                 + "        \"accepted\": \"false\","
                 + "        \"first_name\": \"John\","
@@ -193,15 +243,31 @@ public class AgreementControllerTests {
                 + "        \"company\": \"Glob\""
                 + "    }");
 
-        mockMvc.perform(post("/api/organizations/" + ORG_1.toString() + "/agreements")
+        mockMvc.perform(post("/api/organizations/agreements")
                 .with(authentication(adminAuth))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(content))
                 .andExpect(status().isBadRequest());
     }
 
+    //    @Test
+    //    void doPostWithoutFirstName() throws Exception {
+    //        String content = String.format("    {"
+    //                + "        \"accepted\": \"true\","
+    //                + "        \"first_name\": \"\","
+    //                + "        \"last_name\": \"Smith\","
+    //                + "        \"company\": \"Glob\""
+    //                + "    }");
+    //
+    //        mockMvc.perform(post("/api/organizations/" + ORG_1.toString() + "/agreements")
+    //                .with(authentication(adminAuth))
+    //                .contentType(MediaType.APPLICATION_JSON)
+    //                .content(content))
+    //                .andExpect(status().isBadRequest());
+    //    }
+
     @Test
-    void doPostWithoutFirstName() throws Exception {
+    void doPostWithoutIdWithoutFirstName() throws Exception {
         String content = String.format("    {"
                 + "        \"accepted\": \"true\","
                 + "        \"first_name\": \"\","
@@ -209,15 +275,31 @@ public class AgreementControllerTests {
                 + "        \"company\": \"Glob\""
                 + "    }");
 
-        mockMvc.perform(post("/api/organizations/" + ORG_1.toString() + "/agreements")
+        mockMvc.perform(post("/api/organizations/agreements")
                 .with(authentication(adminAuth))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(content))
                 .andExpect(status().isBadRequest());
     }
 
+    //    @Test
+    //    void doPostWithoutLastName() throws Exception {
+    //        String content = String.format("    {"
+    //                + "        \"accepted\": \"true\","
+    //                + "        \"first_name\": \"John\","
+    //                + "        \"last_name\": \"\","
+    //                + "        \"company\": \"Glob\""
+    //                + "    }");
+    //
+    //        mockMvc.perform(post("/api/organizations/" + ORG_1.toString() + "/agreements")
+    //                .with(authentication(adminAuth))
+    //                .contentType(MediaType.APPLICATION_JSON)
+    //                .content(content))
+    //                .andExpect(status().isBadRequest());
+    //    }
+
     @Test
-    void doPostWithoutLastName() throws Exception {
+    void doPostWithoutIdWithoutLastName() throws Exception {
         String content = String.format("    {"
                 + "        \"accepted\": \"true\","
                 + "        \"first_name\": \"John\","
@@ -225,15 +307,31 @@ public class AgreementControllerTests {
                 + "        \"company\": \"Glob\""
                 + "    }");
 
-        mockMvc.perform(post("/api/organizations/" + ORG_1.toString() + "/agreements")
+        mockMvc.perform(post("/api/organizations/agreements")
                 .with(authentication(adminAuth))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(content))
                 .andExpect(status().isBadRequest());
     }
 
+    //    @Test
+    //    void doPostWithoutCompany() throws Exception {
+    //        String content = String.format("    {"
+    //                + "        \"accepted\": \"true\","
+    //                + "        \"first_name\": \"John\","
+    //                + "        \"last_name\": \"Smith\","
+    //                + "        \"company\": \"\""
+    //                + "    }");
+    //
+    //        mockMvc.perform(post("/api/organizations/" + ORG_1.toString() + "/agreements")
+    //                .with(authentication(adminAuth))
+    //                .contentType(MediaType.APPLICATION_JSON)
+    //                .content(content))
+    //                .andExpect(status().isBadRequest());
+    //    }
+
     @Test
-    void doPostWithoutCompany() throws Exception {
+    void doPostWithoutIdWithoutCompany() throws Exception {
         String content = String.format("    {"
                 + "        \"accepted\": \"true\","
                 + "        \"first_name\": \"John\","
@@ -241,7 +339,7 @@ public class AgreementControllerTests {
                 + "        \"company\": \"\""
                 + "    }");
 
-        mockMvc.perform(post("/api/organizations/" + ORG_1.toString() + "/agreements")
+        mockMvc.perform(post("/api/organizations/agreements")
                 .with(authentication(adminAuth))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(content))
