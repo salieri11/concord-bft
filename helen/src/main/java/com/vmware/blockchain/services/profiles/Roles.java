@@ -138,6 +138,11 @@ public enum Roles implements GrantedAuthority {
         return r;
     }
 
+    public static String[] serviceAdmin() {
+        String[] r = {INFRA_ADMIN.name, SYSTEM_ADMIN.name};
+        return r;
+    }
+
     public static String[] consortiumAdmin() {
         String[] r = {INFRA_ADMIN.name, SYSTEM_ADMIN.name, CONSORTIUM_ADMIN.name};
         return r;

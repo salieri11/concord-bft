@@ -202,6 +202,10 @@ public class AuthHelper {
         return hasAnyAuthority(Roles.systemAdmin());
     }
 
+    public boolean isServiceAdmin() {
+        return hasAnyAuthority(Roles.serviceAdmin());
+    }
+
     public void evictToken() {
         baseCacheHelper.evict(Constants.CSP_TOKEN_CACHE, getAuthToken());
     }
