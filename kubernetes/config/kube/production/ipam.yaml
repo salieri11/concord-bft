@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: ipam
-        image: vmware-docker-blockchainsaas.bintray.io/persephone-ipam:latest
+        image: vmware-docker-blockchainsaas.bintray.io/vmwblockchain/persephone-ipam:latest
         ports:
         - containerPort: 9099
         imagePullPolicy: Always

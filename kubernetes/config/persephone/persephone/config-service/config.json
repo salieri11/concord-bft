@@ -5,5 +5,5 @@
         "trustedCertificatesUrl":"",
         "certificateUrl":"file:/config/persephone/configuration/server.crt",
         "privateKeyUrl":"file:/config/persephone/configuration/server.pem"
-    },
+    }
 }

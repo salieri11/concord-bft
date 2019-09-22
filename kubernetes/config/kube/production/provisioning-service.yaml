@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: provisioning-service
-        image: vmware-docker-blockchainsaas.bintray.io/persephone-provisioning:latest
+        image: vmware-docker-blockchainsaas.bintray.io/vmwblockchain/persephone-provisioning:latest
         ports:
         - containerPort: 9002
         imagePullPolicy: Always

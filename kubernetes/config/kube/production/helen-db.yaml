@@ -20,7 +20,7 @@ spec:
         ports:
         - containerPort: 26257
         command:
-        - /opt/vmbc/helen/entrypoint-persistent.sh
+        - /opt/vmbc/helen/entrypoint-persistent-firstboot.sh
         volumeMounts:
         - name: helendb-volume
           mountPath: /opt/vmbc/helen/
@@ -41,7 +41,7 @@ spec:
       volumes:
       - name: helendb-volume
         configMap:
-          name: helendbpersistent
+          name: helendbpersistentfb
           defaultMode: 0700
       - name: datadir
         persistentVolumeClaim:

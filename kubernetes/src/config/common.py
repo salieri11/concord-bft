@@ -21,7 +21,8 @@ BC_COMPONENTS={
             "saas": ["ui", "contract-compiler", "persephone-provisioning",
                     "persephone-metadata", "helen", "persephone-configuration",
                     "persephone-ipam"],
-            "blockchain": ["concord-core", "agent", "ethrpc"]
+            "blockchain": ["concord-core", "agent", "ethrpc", "daml-ledger-api",
+                    "daml-execution-engine", "daml-index-db"]
             }
 
 CSP_PROD = "https://console.cloud.vmware.com/csp/gateway"
