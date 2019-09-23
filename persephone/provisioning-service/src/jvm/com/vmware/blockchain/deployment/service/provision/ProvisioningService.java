@@ -543,7 +543,7 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
         });
         var request = new ConfigurationServiceRequest(
                 new MessageHeader(),
-                nodeIps, blockchainType.name());
+                nodeIps, blockchainType);
 
         var promise = new CompletableFuture<ConfigurationSessionIdentifier>();
         configurationServiceClient.createConfiguration(request, newResultObserver(promise));

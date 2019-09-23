@@ -46,8 +46,12 @@ export class BlockchainService {
     private translateService: TranslateService
   ) { }
 
-  deploy(params: BlockchainRequestParams): Observable<any> {
-    this.notify.next({ message: 'deploying', type: params.blockchain_type });
+  deploy(params: BlockchainRequestParams, isOnlyOnPrem: boolean): Observable<any> {
+    this.notify.next({
+      message: 'deploying',
+      type: params.blockchain_type,
+      isOnlyOnPrem: isOnlyOnPrem
+    });
 
     return this.consortiumService.create(params.consortium_name).pipe(
       flatMap(consort => {
@@ -186,17 +190,9 @@ export class BlockchainService {
     return this.http.post<OnPremZone>(Apis.zones, zone).pipe(
       map(onPremZone => {
         this.zones.push(onPremZone);
-
-        // TODO - refresh store when a new zone is added
-        // this.set(null).pipe(
-        //   catchError(error => {
-        //     this.router.navigate(['error'], {
-        //       queryParams: { error: JSON.stringify(error) }
-        //     });
-
-        //     return error;
-        //   })
-        // );
+        const zoneMap = {};
+        this.zones.forEach(z => zoneMap[zone.id] = z);
+        this.zonesMap = zoneMap;
 
         return onPremZone;
       }),

@@ -59,7 +59,8 @@ if __name__ == "__main__":
             artifact_path = "%s/artifacts.env" % (args.envpath)
             logger.info("Publishing docker image  env to %s" % artifact_path)
             image_manager.generate_bintray_image_env(args.components,
-                        args.externaltag, artifact_path)
+                        namespace=args.externalrepons, version=args.externaltag,
+                        outfile=artifact_path)
     except Exception as e:
         logger.exception("Error uploading artifacts %s" % e)
         sys.exit(1)

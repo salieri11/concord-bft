@@ -3,6 +3,7 @@
 // Concord node startup.
 
 #include <grpcpp/grpcpp.h>
+#include <grpcpp/resource_quota.h>
 #include <log4cplus/configurator.h>
 #include <log4cplus/loggingmacros.h>
 #include <boost/program_options.hpp>
@@ -12,6 +13,8 @@
 #include <string>
 #include <thread>
 #include "api/api_acceptor.hpp"
+#include "blockchain/db_adapter.h"
+#include "blockchain/db_interfaces.h"
 #include "common/concord_exception.hpp"
 #include "common/status_aggregator.hpp"
 #include "config/configuration_manager.hpp"
@@ -32,12 +35,10 @@
 #include "hlf/grpc_services.hpp"
 #include "hlf/kvb_commands_handler.hpp"
 #include "hlf/kvb_storage.hpp"
-#include "storage/blockchain_db_adapter.h"
-#include "storage/blockchain_interfaces.h"
-#include "storage/comparators.h"
-#include "storage/database_interface.h"
-#include "storage/in_memory_db_client.h"
-#include "storage/rocksdb_client.h"
+#include "memorydb/client.h"
+#include "memorydb/key_comparator.h"
+#include "rocksdb/client.h"
+#include "rocksdb/key_comparator.h"
 #include "time/time_pusher.hpp"
 #include "time/time_reading.hpp"
 #include "utils/concord_eth_sign.hpp"
@@ -60,27 +61,26 @@ using concord::common::zero_hash;
 using concord::config::ConcordConfiguration;
 using concord::ethereum::EthKvbStorage;
 using concord::common::operator<<;
+using concord::consensus::ClientConsensusConfig;
+using concord::consensus::CommConfig;
+using concord::consensus::IClient;
+using concord::consensus::ICommandsHandler;
+using concord::consensus::IReplica;
 using concord::consensus::KVBClient;
 using concord::consensus::KVBClientPool;
+using concord::consensus::ReplicaConsensusConfig;
 using concord::consensus::ReplicaImp;
 using concord::ethereum::EthKvbCommandsHandler;
 using concord::ethereum::EVM;
 using concord::ethereum::EVMInitParams;
-using concord::storage::BlockchainDBAdapter;
-using concord::storage::BlockId;
-using concord::storage::ClientConsensusConfig;
-using concord::storage::CommConfig;
-using concord::storage::IBlocksAppender;
-using concord::storage::IClient;
-using concord::storage::ICommandsHandler;
 using concord::storage::IDBClient;
-using concord::storage::ILocalKeyValueStorageReadOnly;
-using concord::storage::InMemoryDBClient;
-using concord::storage::IReplica;
-using concord::storage::ReplicaConsensusConfig;
-using concord::storage::RocksDBClient;
-using concord::storage::RocksKeyComparator;
-using concord::storage::SetOfKeyValuePairs;
+using concord::storage::blockchain::DBAdapter;
+using concord::storage::blockchain::IBlocksAppender;
+using concord::storage::blockchain::ILocalKeyValueStorageReadOnly;
+using concord::storage::blockchain::KeyManipulator;
+using concordUtils::BlockId;
+using concordUtils::SetOfKeyValuePairs;
+using concordUtils::Status;
 
 using concord::hlf::ChaincodeInvoker;
 using concord::hlf::HlfKvbCommandsHandler;
@@ -135,14 +135,18 @@ unique_ptr<IDBClient> open_database(ConcordConfiguration &nodeConfig,
   string db_impl_name = nodeConfig.getValue<std::string>("blockchain_db_impl");
   if (db_impl_name == "memory") {
     LOG4CPLUS_INFO(logger, "Using memory blockchain database");
-    return unique_ptr<IDBClient>(new InMemoryDBClient(
-        (IDBClient::KeyComparator)&RocksKeyComparator::InMemKeyComp));
+    // Client makes a copy of comparator, so scope lifetime is not a problem
+    // here.
+    concord::storage::memorydb::KeyComparator comparator(new KeyManipulator);
+    return unique_ptr<IDBClient>(
+        new concord::storage::memorydb::Client(comparator));
 #ifdef USE_ROCKSDB
   } else if (db_impl_name == "rocksdb") {
     LOG4CPLUS_INFO(logger, "Using rocksdb blockchain database");
     string rocks_path = nodeConfig.getValue<std::string>("blockchain_db_path");
-    return unique_ptr<IDBClient>(
-        new RocksDBClient(rocks_path, new RocksKeyComparator()));
+    return unique_ptr<IDBClient>(new concord::storage::rocksdb::Client(
+        rocks_path,
+        new concord::storage::rocksdb::KeyComparator(new KeyManipulator())));
 #endif
   } else {
     LOG4CPLUS_FATAL(logger, "Unknown blockchain_db_impl " << db_impl_name);
@@ -163,8 +167,8 @@ class IdleBlockAppender : public IBlocksAppender {
  public:
   IdleBlockAppender(IReplica *replica) : replica_(replica) {}
 
-  concord::consensus::Status addBlock(const SetOfKeyValuePairs &updates,
-                                      BlockId &outBlockId) override {
+  concordUtils::Status addBlock(const SetOfKeyValuePairs &updates,
+                                BlockId &outBlockId) override {
     outBlockId = 0;  // genesis only!
     return replica_->addBlockToIdleReplica(updates);
   }
@@ -174,16 +178,15 @@ class IdleBlockAppender : public IBlocksAppender {
  * Create the initial transactions and a genesis block based on the
  * genesis file.
  */
-concord::consensus::Status create_genesis_block(IReplica *replica,
-                                                EVMInitParams params,
-                                                Logger logger) {
+concordUtils::Status create_genesis_block(IReplica *replica,
+                                          EVMInitParams params, Logger logger) {
   const ILocalKeyValueStorageReadOnly &storage = replica->getReadOnlyStorage();
   IdleBlockAppender blockAppender(replica);
   EthKvbStorage kvbStorage(storage, &blockAppender);
 
   if (storage.getLastBlock() > 0) {
     LOG4CPLUS_INFO(logger, "Blocks already loaded, skipping genesis");
-    return concord::consensus::Status::OK();
+    return concordUtils::Status::OK();
   }
 
   std::map<evm_address, evm_uint256be> genesis_acts =
@@ -248,14 +251,19 @@ void start_worker_threads(int number) {
 
 void RunDamlGrpcServer(std::string server_address, KVBClientPool &pool,
                        const ILocalKeyValueStorageReadOnly *ro_storage,
-                       BlockingPersistentQueue<CommittedTx> &committedTxs) {
+                       BlockingPersistentQueue<CommittedTx> &committedTxs,
+                       int max_num_threads) {
   Logger logger = Logger::getInstance("com.vmware.concord.daml");
 
   DataServiceImpl *dataService = new DataServiceImpl(pool, ro_storage);
   CommitServiceImpl *commitService = new CommitServiceImpl(pool);
   EventsServiceImpl *eventsService = new EventsServiceImpl(committedTxs);
 
+  grpc::ResourceQuota quota;
+  quota.SetMaxThreads(max_num_threads);
+
   grpc::ServerBuilder builder;
+  builder.SetResourceQuota(quota);
   builder.SetMaxMessageSize(kDamlServerMsgSizeMax);
   builder.AddListeningPort(server_address, grpc::InsecureServerCredentials());
   builder.RegisterService(dataService);
@@ -325,7 +333,7 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
                                 &replicaConsensusConfig);
 
     auto db_client = open_database(nodeConfig, logger);
-    BlockchainDBAdapter db_adapter(db_client.get());
+    DBAdapter db_adapter(db_client.get());
 
     // Replica
     //
@@ -363,7 +371,7 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
           unique_ptr<ICommandsHandler>(new EthKvbCommandsHandler(
               *concevm, *ethVerifier, config, nodeConfig, replica, replica));
       // Genesis must be added before the replica is started.
-      concord::consensus::Status genesis_status =
+      concordUtils::Status genesis_status =
           create_genesis_block(&replica, params, logger);
       if (!genesis_status.isOK()) {
         LOG4CPLUS_FATAL(logger,
@@ -416,9 +424,16 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
       std::string daml_addr{
           nodeConfig.getValue<std::string>("daml_service_addr")};
 
+      // Limit the amount of gRPC threads to double the amount of client
+      // proxies per replica. The DAML test tool cannot handle the
+      // out-of-ressource error and 8 was the first number that worked after
+      // trying 2 and 4 first.
+      int max_num_threads =
+          config.getValue<int>("client_proxies_per_replica") * 8;
+
       // Spawn a thread in order to start management API server as well
       std::thread(RunDamlGrpcServer, daml_addr, std::ref(pool), &replica,
-                  std::ref(committedTxs))
+                  std::ref(committedTxs), max_num_threads)
           .detach();
     } else if (hlf_enabled) {
       // Get listening address for services

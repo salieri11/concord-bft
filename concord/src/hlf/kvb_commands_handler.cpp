@@ -28,14 +28,14 @@ using concord::common::TransactionNotFoundException;
 using concord::common::zero_address;
 using concord::common::zero_hash;
 using concord::common::operator<<;
-using concord::consensus::Status;
 using concord::hlf::ChaincodeInvoker;
 using concord::hlf::HlfKvbStorage;
-using concord::storage::BlockId;
-using concord::storage::IBlocksAppender;
-using concord::storage::ILocalKeyValueStorageReadOnly;
-using concord::storage::SetOfKeyValuePairs;
+using concord::storage::blockchain::IBlocksAppender;
+using concord::storage::blockchain::ILocalKeyValueStorageReadOnly;
 using concord::time::TimeContract;
+using concordUtils::BlockId;
+using concordUtils::SetOfKeyValuePairs;
+using concordUtils::Status;
 
 namespace concord {
 namespace hlf {

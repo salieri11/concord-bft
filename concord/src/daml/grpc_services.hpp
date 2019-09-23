@@ -6,12 +6,12 @@
 #include <grpcpp/grpcpp.h>
 #include <log4cplus/loggingmacros.h>
 
+#include "blockchain/db_interfaces.h"
 #include "consensus/kvb_client.hpp"
 #include "daml/blocking_queue.h"
 #include "daml_commit.grpc.pb.h"
 #include "daml_data.grpc.pb.h"
 #include "daml_events.grpc.pb.h"
-#include "storage/blockchain_interfaces.h"
 
 namespace concord {
 namespace daml {
@@ -20,11 +20,13 @@ class DataServiceImpl final
     : public com::digitalasset::kvbc::DataService::Service {
  private:
   log4cplus::Logger logger;
-  const concord::storage::ILocalKeyValueStorageReadOnly* ro_storage_;
+  const concord::storage::blockchain::ILocalKeyValueStorageReadOnly*
+      ro_storage_;
 
  public:
-  DataServiceImpl(concord::consensus::KVBClientPool& p,
-                  const concord::storage::ILocalKeyValueStorageReadOnly* ro)
+  DataServiceImpl(
+      concord::consensus::KVBClientPool& p,
+      const concord::storage::blockchain::ILocalKeyValueStorageReadOnly* ro)
       : logger(log4cplus::Logger::getInstance("com.vmware.concord.daml")),
         ro_storage_(ro) {}
 

@@ -328,8 +328,8 @@ class ZoneControllerTest {
         List<Zone> sites =
                 ImmutableList.of(new Zone(SITE_1, VMC_AWS, usWest), new Zone(SITE_2, VMC_AWS, usEast),
                                  ozone);
-        when(zoneService.getZones()).thenReturn(sites);
-        when(zoneService.get(OP_SITE)).thenReturn(ozone);
+        when(zoneService.getAllAuthorized()).thenReturn(sites);
+        when(zoneService.getAuthorized(OP_SITE)).thenReturn(ozone);
         when(zoneService.put(any(Zone.class))).thenAnswer(i -> {
             Zone z = i.getArgument(0);
             z.setId(UUID.randomUUID());

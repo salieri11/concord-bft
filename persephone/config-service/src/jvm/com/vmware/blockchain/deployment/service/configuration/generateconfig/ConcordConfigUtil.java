@@ -18,6 +18,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.vmware.blockchain.deployment.service.configuration.generatecerts.CertificatesGenerator;
+import com.vmware.blockchain.deployment.v1.ConcordModelSpecification.BlockchainType;
 
 import kotlinx.serialization.UpdateMode;
 import kotlinx.serialization.internal.ArrayListSerializer;
@@ -97,7 +98,7 @@ public class ConcordConfigUtil {
      * Utility to generate concord config.
      */
     public Map<Integer, String> getConcordConfig(List<String> hostIps,
-                                                 String blockchainType) {
+                                                 BlockchainType blockchainType) {
         try {
             var result = new HashMap<Integer, String>();
 
@@ -175,7 +176,7 @@ public class ConcordConfigUtil {
      * Utility method for generating input config yaml file.
      */
     boolean generateInputConfigYaml(List<String> hostIps, String configYamlPath,
-                                    String blockchainType) {
+                                    BlockchainType blockchainType) {
         if (hostIps == null) {
             log.error("generateInputConfigYaml: List of host IP provided is NULL!");
             return false;
@@ -194,7 +195,7 @@ public class ConcordConfigUtil {
      * Utility method for generating input config yaml file.
      */
     boolean generateInputConfigYaml(List<String> hostIp, int fVal, int cVal, String configYamlPath,
-                                    String blockchainType) {
+                                    BlockchainType blockchainType) {
         if (hostIp == null) {
             log.error("generateInputConfigYaml: List of host IP provided is NULL!");
             return false;
@@ -221,20 +222,20 @@ public class ConcordConfigUtil {
 
             // Temporary setup to distinguish concord type. This check will not occur in ConfigService
             // after it starts accepting params to override.
-            if (blockchainType != null && blockchainType.equalsIgnoreCase("daml")) {
+            if (blockchainType != null && blockchainType.equals(BlockchainType.DAML)) {
                 writer.write("daml_enable: true");
                 writer.newLine();
                 writer.write("FEATURE_time_service: true");
                 writer.newLine();
                 writer.write("eth_enable: false");
                 writer.newLine();
-                writer.write("concord-bft_communication_buffer_length: 8388608");
+                writer.write("concord-bft_communication_buffer_length: 33554432");
                 writer.newLine();
-                writer.write("concord-bft_max_external_message_size: 8388608");
+                writer.write("concord-bft_max_external_message_size: 33554432");
                 writer.newLine();
-                writer.write("concord-bft_max_reply_message_size: 8388608");
+                writer.write("concord-bft_max_reply_message_size: 33554432");
                 writer.newLine();
-                writer.write("concord-bft_max_num_of_reserved_pages: 65536");
+                writer.write("concord-bft_max_num_of_reserved_pages: 229376");
                 writer.newLine();
             } else {
                 writer.write("daml_enable: false");
@@ -249,8 +250,13 @@ public class ConcordConfigUtil {
             writer.write("tls_certificates_folder_path: "
                          + URI.create(CertificatesGenerator.CONCORD_TLS_SECURITY_IDENTITY_PATH).getPath());
             writer.newLine();
-            writer.write("node__TEMPLATE:\n  genesis_block: /concord/config-public/genesis.json\n  "
-                         + "blockchain_db_path: /concord/rocksdbdata/");
+            writer.write("node__TEMPLATE:");
+            writer.newLine();
+            writer.write("  genesis_block: /concord/config-public/genesis.json");
+            writer.newLine();
+            writer.write("  blockchain_db_path: /concord/rocksdbdata/");
+            writer.newLine();
+            writer.write("  time_pusher_period_ms: 1000");
             writer.newLine();
             writer.write("node:");
             writer.newLine();

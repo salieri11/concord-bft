@@ -19,18 +19,19 @@ import io.grpc.netty.shaded.io.grpc.netty.NettyServerBuilder
 import io.grpc.netty.shaded.io.netty.handler.ssl.ClientAuth
 import io.grpc.netty.shaded.io.netty.handler.ssl.SslContext
 import io.grpc.netty.shaded.io.netty.handler.ssl.SslContextBuilder
-
 import java.nio.file.Files
 import java.nio.file.Paths
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ExecutorService
 import javax.inject.Named
 import javax.inject.Singleton
+import kotlinx.coroutines.debug.DebugProbes
 import kotlinx.coroutines.future.asCompletableFuture
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonConfiguration
 import kotlinx.serialization.modules.EmptyModule
 import org.slf4j.LoggerFactory
+import sun.misc.Signal
 
 /**
  * gRPC server that serves provisioning-related API operations.
@@ -196,7 +197,14 @@ fun main(args: Array<String>) {
             .sslContext(sslContext)
             .build()
     try {
-        log.info("Initializing provisioning service")
+        // Install coroutine debug probe.
+        DebugProbes.install()
+
+        Signal.handle(Signal("TRAP")) { // TRAP == 5 in terms of "kill -5".
+            DebugProbes.dumpCoroutines()
+        }
+
+        log.info { "Initializing provisioning service" }
         provisioningServer.provisioningService().initialize()
                 .whenComplete { _, error ->
                     if (error != null) {
@@ -213,7 +221,7 @@ fun main(args: Array<String>) {
                         server.shutdown()
                     }
                 }
-        log.info("Starting API server instance")
+        log.info { "Starting API server instance" }
         server.start()
         Runtime.getRuntime().addShutdownHook(Thread {
             // Use stderr here since the logger may have been reset by its JVM shutdown hook.

@@ -8,6 +8,7 @@
 #include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>
 #include <iostream>
+#include "blockchain/db_interfaces.h"
 #include "concord.pb.h"
 #include "config/configuration_manager.hpp"
 #include "consensus/concord_commands_handler.hpp"
@@ -15,7 +16,6 @@
 #include "hlf/kvb_storage.hpp"
 #include "hlf_services.pb.h"
 #include "hlf_storage.pb.h"
-#include "storage/blockchain_interfaces.h"
 #include "time/time_contract.hpp"
 
 namespace concord {
@@ -34,8 +34,9 @@ class HlfKvbCommandsHandler
       ChaincodeInvoker* chaincode_invoker,
       const concord::config::ConcordConfiguration& config,
       concord::config::ConcordConfiguration& node_config,
-      const concord::storage::ILocalKeyValueStorageReadOnly& ro_storage,
-      concord::storage::IBlocksAppender& block_appender);
+      const concord::storage::blockchain::ILocalKeyValueStorageReadOnly&
+          ro_storage,
+      concord::storage::blockchain::IBlocksAppender& block_appender);
 
   ~HlfKvbCommandsHandler();
 
@@ -57,7 +58,7 @@ class HlfKvbCommandsHandler
   // HLF extent
 
   // This function is used to update the write transaction and block to storage
-  concord::consensus::Status StorageUpdate(
+  concordUtils::Status StorageUpdate(
       const com::vmware::concord::HlfRequest& hlf_request,
       HlfKvbStorage* kvb_hlf_storage) const;
 
@@ -65,7 +66,7 @@ class HlfKvbCommandsHandler
   // file of the local file system, and then use the peer command tool to
   // send HLF chaincode install request to HLF peer, after then,
   // remove the temporary chaincode file
-  concord::consensus::Status HandleIntermediateChaincodeFile(
+  concordUtils::Status HandleIntermediateChaincodeFile(
       const com::vmware::concord::HlfRequest& hlf_request,
       std::string& error_msg) const;
 

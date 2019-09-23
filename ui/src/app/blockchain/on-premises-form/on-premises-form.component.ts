@@ -47,10 +47,6 @@ export class OnPremisesFormComponent implements AfterViewInit {
     this.onPremZone.id = id;
     this.onPremZone.name = `${location} - ${onPremLocData.name}`;
 
-    // TODO - Add Lat long
-    // this.onPremZone.latitude = 45.2551139;
-    // this.onPremZone.longitude = -120.888727;
-
     return this.onPremZone;
   }
 
@@ -81,8 +77,10 @@ export class OnPremisesFormComponent implements AfterViewInit {
 
   private getOnPremInfo() {
     const onPrem = this.form['controls'].onPrem;
+    onPrem.value.container_repo = this.form['controls'].container_repo.value;
     const network = onPrem.value['network'];
 
+    onPrem.value['network'].name_servers = network.name_servers.length === 0 ? [] : network.name_servers;
     onPrem.value['network'].name_servers = !Array.isArray(network.name_servers) ?
       (network.name_servers.replace(/\s/g, '')).split(',') :
       network.name_servers;
@@ -125,18 +123,18 @@ export class OnPremisesFormComponent implements AfterViewInit {
           subnet: new FormControl('', { validators: Validators.required, updateOn: 'blur' }),
           name_servers: new FormControl('', { validators: Validators.pattern(listOfIpsRegEx), updateOn: 'blur' }),
           ip_pool: new FormControl('', { validators: [Validators.required, Validators.pattern(listOfIpsRegEx)], updateOn: 'blur' })
-        }),
-        container_repo: new FormGroup({
-          url: new FormControl(
-            '',
-            {
-              validators: Validators.pattern(urlRegEx),
-              updateOn: 'blur'
-            }
-          ),
-          username: new FormControl('', { updateOn: 'blur' }),
-          password: new FormControl('', { updateOn: 'blur' })
         })
+      }),
+      container_repo: new FormGroup({
+        url: new FormControl(
+          '',
+          {
+            validators: Validators.pattern(urlRegEx),
+            updateOn: 'blur'
+          }
+        ),
+        username: new FormControl('', { updateOn: 'blur' }),
+        password: new FormControl('', { updateOn: 'blur' })
       }),
       onPremLocation: new FormGroup({
         name: new FormControl('', Validators.required),
@@ -154,7 +152,8 @@ export class OnPremisesFormComponent implements AfterViewInit {
           this.onPremConnectionSuccessful = true;
           testCon.unsubscribe();
         }, error => {
-          this.onPremError = error;
+          this.onPremConnectionSuccessful = false;
+          this.onPremError = error.message;
           testCon.unsubscribe();
           return error;
         });

@@ -6,11 +6,12 @@ version: '3'
 services:
   # Create test tool container
   daml_test_tool:
-    image: athena-docker-local.artifactory.eng.vmware.com/daml-ledger-api-test-tool:100.13.23
+    image: athena-docker-local.artifactory.eng.vmware.com/daml-ledger-api-test-tool:100.13.25
 
   # Note: Make sure that Concord's configuration files have `daml_enable` set
   concord1:
     image: "${concord_repo}:${concord_tag}"
+    privileged: true
     depends_on:
       - daml_execution_engine1
     expose:
@@ -30,6 +31,7 @@ services:
 
   concord2:
     image: "${concord_repo}:${concord_tag}"
+    privileged: true
     depends_on:
       - daml_execution_engine2
     expose:
@@ -49,6 +51,7 @@ services:
 
   concord3:
     image: "${concord_repo}:${concord_tag}"
+    privileged: true
     depends_on:
       - daml_execution_engine3
     expose:
@@ -68,6 +71,7 @@ services:
 
   concord4:
     image: "${concord_repo}:${concord_tag}"
+    privileged: true
     depends_on:
       - daml_execution_engine4
     expose:
@@ -94,7 +98,7 @@ services:
       - CONCORD_HOST=concord1
       - CONCORD_PORT=50051
       - PARTICIPANT_ID=daml_ledger_api1
-      - JAVA_OPTS=-Xmx1G
+      - JAVA_OPTS=-Xmx4G
     depends_on:
       - concord1
       - index_db
@@ -112,7 +116,7 @@ services:
       - CONCORD_HOST=concord2
       - CONCORD_PORT=50051
       - PARTICIPANT_ID=daml_ledger_api2
-      - JAVA_OPTS=-Xmx1G
+      - JAVA_OPTS=-Xmx4G
     depends_on:
       - concord2
       - index_db
@@ -123,7 +127,7 @@ services:
 
   daml_execution_engine1:
     image: "${daml_execution_engine_repo}:${daml_execution_engine_tag}"
-    command: /doc/daml/kvbc_validator/target/universal/stage/bin/kvbc-validator -J-Xmx1G
+    command: /doc/daml/kvbc_validator/target/universal/stage/bin/kvbc-validator -J-Xmx4G
     depends_on:
       - fluentd
     expose:
@@ -131,7 +135,7 @@ services:
 
   daml_execution_engine2:
     image: "${daml_execution_engine_repo}:${daml_execution_engine_tag}"
-    command: /doc/daml/kvbc_validator/target/universal/stage/bin/kvbc-validator -J-Xmx1G
+    command: /doc/daml/kvbc_validator/target/universal/stage/bin/kvbc-validator -J-Xmx4G
     depends_on:
       - fluentd
     expose:
@@ -139,7 +143,7 @@ services:
 
   daml_execution_engine3:
     image: "${daml_execution_engine_repo}:${daml_execution_engine_tag}"
-    command: /doc/daml/kvbc_validator/target/universal/stage/bin/kvbc-validator -J-Xmx1G
+    command: /doc/daml/kvbc_validator/target/universal/stage/bin/kvbc-validator -J-Xmx4G
     depends_on:
       - fluentd
     expose:
@@ -147,7 +151,7 @@ services:
 
   daml_execution_engine4:
     image: "${daml_execution_engine_repo}:${daml_execution_engine_tag}"
-    command: /doc/daml/kvbc_validator/target/universal/stage/bin/kvbc-validator -J-Xmx1G
+    command: /doc/daml/kvbc_validator/target/universal/stage/bin/kvbc-validator -J-Xmx4G
     depends_on:
       - fluentd
     expose:

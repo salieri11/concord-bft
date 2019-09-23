@@ -19,12 +19,8 @@
 #include <cassert>
 #include <chrono>
 #include <cstdlib>
-#include "consensus/hex_tools.h"
+#include "blockchain/db_types.h"
 #include "consensus/replica_state_sync.h"
-#include "consensus/sliver.hpp"
-#include "storage/blockchain_db_types.h"
-#include "storage/blockchain_interfaces.h"
-#include "storage/rocksdb_metadata_storage.h"
 
 using bftEngine::PlainUdpConfig;
 using bftEngine::TlsTcpConfig;
@@ -32,21 +28,25 @@ using bftEngine::SimpleBlockchainStateTransfer::BLOCK_DIGEST_SIZE;
 using bftEngine::SimpleBlockchainStateTransfer::StateTransferDigest;
 using log4cplus::Logger;
 
-using concord::storage::BlockchainDBAdapter;
-using concord::storage::BlockEntry;
-using concord::storage::BlockHeader;
-using concord::storage::BlockId;
-using concord::storage::CommConfig;
-using concord::storage::ICommandsHandler;
+using concord::consensus::CommConfig;
+using concord::consensus::ICommandsHandler;
+using concord::consensus::IReplica;
+using concord::consensus::ReplicaConsensusConfig;
+using concord::storage::DBMetadataStorage;
 using concord::storage::IDBClient;
-using concord::storage::ILocalKeyValueStorageReadOnly;
-using concord::storage::ILocalKeyValueStorageReadOnlyIterator;
-using concord::storage::IReplica;
-using concord::storage::Key;
-using concord::storage::ReplicaConsensusConfig;
-using concord::storage::RocksDBMetadataStorage;
-using concord::storage::SetOfKeyValuePairs;
-using concord::storage::Value;
+using concord::storage::blockchain::BlockEntry;
+using concord::storage::blockchain::BlockHeader;
+using concord::storage::blockchain::DBAdapter;
+using concord::storage::blockchain::ILocalKeyValueStorageReadOnly;
+using concord::storage::blockchain::ILocalKeyValueStorageReadOnlyIterator;
+using concord::storage::blockchain::KeyManipulator;
+using concordUtils::BlockId;
+using concordUtils::Key;
+using concordUtils::KeyValuePair;
+using concordUtils::SetOfKeyValuePairs;
+using concordUtils::Sliver;
+using concordUtils::Status;
+using concordUtils::Value;
 
 namespace concord {
 namespace consensus {
@@ -61,7 +61,8 @@ Status ReplicaImp::start() {
   }
 
   m_currentRepStatus = RepStatus::Starting;
-  m_metadataStorage = new RocksDBMetadataStorage(m_bcDbAdapter->getDb());
+  m_metadataStorage = new DBMetadataStorage(
+      m_bcDbAdapter->getDb().get(), KeyManipulator::generateMetadataKey);
 
   createReplicaAndSyncState();
   m_replicaPtr->start();
@@ -118,7 +119,7 @@ Status ReplicaImp::addBlockToIdleReplica(const SetOfKeyValuePairs &updates) {
   return addBlockInternal(updates, d);
 }
 
-Status ReplicaImp::get(Sliver key, Sliver &outValue) const {
+Status ReplicaImp::get(const Key &key, Value &outValue) const {
   // TODO(GG): check legality of operation (the method should be invocked from
   // the replica's internal thread)
 
@@ -126,7 +127,7 @@ Status ReplicaImp::get(Sliver key, Sliver &outValue) const {
   return getInternal(m_lastBlock, key, outValue, dummy);
 }
 
-Status ReplicaImp::get(BlockId readVersion, Sliver key, Sliver &outValue,
+Status ReplicaImp::get(BlockId readVersion, const Sliver &key, Sliver &outValue,
                        BlockId &outBlock) const {
   // TODO(GG): check legality of operation (the method should be invocked from
   // the replica's internal thread)
@@ -152,7 +153,7 @@ Status ReplicaImp::getBlockData(BlockId blockId,
   return Status::OK();
 }
 
-Status ReplicaImp::mayHaveConflictBetween(Sliver key, BlockId fromBlock,
+Status ReplicaImp::mayHaveConflictBetween(const Sliver &key, BlockId fromBlock,
                                           BlockId toBlock, bool &outRes) const {
   // TODO(GG): add assert or print warning if fromBlock==0 (all keys have a
   // conflict in block 0)
@@ -200,8 +201,7 @@ void ReplicaImp::set_command_handler(ICommandsHandler *handler) {
 
 ReplicaImp::ReplicaImp(CommConfig &commConfig,
                        ReplicaConsensusConfig &replicaConfig,
-                       BlockchainDBAdapter *dbAdapter,
-                       ReplicaStateSync &replicaStateSync)
+                       DBAdapter *dbAdapter, ReplicaStateSync &replicaStateSync)
     : logger(log4cplus::Logger::getInstance("com.vmware.concord.kvb")),
       m_currentRepStatus(RepStatus::Idle),
       m_InternalStorageWrapperForIdleMode(this),
@@ -455,8 +455,8 @@ ReplicaImp::StorageWrapperForIdleMode::StorageWrapperForIdleMode(
     const ReplicaImp *r)
     : rep(r) {}
 
-Status ReplicaImp::StorageWrapperForIdleMode::get(Sliver key,
-                                                  Sliver &outValue) const {
+Status ReplicaImp::StorageWrapperForIdleMode::get(const Key &key,
+                                                  Value &outValue) const {
   if (rep->getReplicaStatus() != IReplica::RepStatus::Idle) {
     return Status::IllegalOperation("");
   }
@@ -465,7 +465,8 @@ Status ReplicaImp::StorageWrapperForIdleMode::get(Sliver key,
 }
 
 Status ReplicaImp::StorageWrapperForIdleMode::get(BlockId readVersion,
-                                                  Sliver key, Sliver &outValue,
+                                                  const Sliver &key,
+                                                  Sliver &outValue,
                                                   BlockId &outBlock) const {
   if (rep->getReplicaStatus() != IReplica::RepStatus::Idle) {
     return Status::IllegalOperation("");
@@ -496,7 +497,7 @@ Status ReplicaImp::StorageWrapperForIdleMode::getBlockData(
 }
 
 Status ReplicaImp::StorageWrapperForIdleMode::mayHaveConflictBetween(
-    Sliver key, BlockId fromBlock, BlockId toBlock, bool &outRes) const {
+    const Sliver &key, BlockId fromBlock, BlockId toBlock, bool &outRes) const {
   outRes = true;
 
   Sliver dummy;
@@ -654,7 +655,7 @@ KeyValuePair ReplicaImp::StorageIterator::first(BlockId readVersion,
 }
 
 KeyValuePair ReplicaImp::StorageIterator::seekAtLeast(BlockId readVersion,
-                                                      Key key,
+                                                      const Key &key,
                                                       BlockId &actualVersion,
                                                       bool &isEnd) {
   Key actualKey;
@@ -686,7 +687,8 @@ KeyValuePair ReplicaImp::StorageIterator::seekAtLeast(BlockId readVersion,
  * perfectly OK.
  */
 // Note: key,readVersion must exist in map already
-KeyValuePair ReplicaImp::StorageIterator::next(BlockId readVersion, Key key,
+KeyValuePair ReplicaImp::StorageIterator::next(BlockId readVersion,
+                                               const Key &key,
                                                BlockId &actualVersion,
                                                bool &isEnd) {
   Key nextKey;

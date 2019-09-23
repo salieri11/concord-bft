@@ -246,7 +246,7 @@ class PersephoneTests(test_suite.TestSuite):
                log.info("**** Deprovisioning Failed!")
             log.info("")
          else:
-            log.info("Preserving Deployment (Session ID: {})".format(session_id[0]))
+            log.info("Preserving Session ID:\n{}".format(session_id[0]))
 
       if undeployed_status is None:
          status_message = "No Session IDs to undeploy"
@@ -398,6 +398,7 @@ class PersephoneTests(test_suite.TestSuite):
 
       status = False
       msg = "Test Failed"
+      response_deployment_session_id = None
       if self.concord_ips:
          try:
             import grpc
@@ -446,9 +447,11 @@ class PersephoneTests(test_suite.TestSuite):
          msg = "No Deployments found from default provisioning service"
          log.error(
             "No Deployments found from default provisioning service. To verify "
-            "IPAM, enable one of the eployment tests hitting default "
+            "IPAM, enable one of the deployment tests hitting default "
             "provisioning service (9001)")
 
+      self.parse_test_status(status, msg,
+                             deployment_session_id=response_deployment_session_id)
       self.writeResult("IPAM_Verification", status, msg)
       return
 
@@ -593,14 +596,6 @@ class PersephoneTests(test_suite.TestSuite):
                if self.mark_node_as_logged_in(concord_ip, concord_username, concord_password):
                   log.info("Marked node as logged in (/tmp/{})".format(concord_ip))
                else:
-                  # Preserving Env to DEBUG VB-1351
-                  # TODO: Enable retaining failed VMs once cleanup script
-                  # cleans up IPAM too
-                  log.info(
-                     "Adding Session ID to preserve list: \n{}".format(
-                        session_id))
-                  self.session_ids_to_retain.append(session_id)
-
                   return (False,
                           "Failed creating marker file on node '{}'".format(
                              concord_ip))
@@ -631,15 +626,6 @@ class PersephoneTests(test_suite.TestSuite):
                            log.error(
                               "Container '{}' not up and running on node '{}'".format(
                                  container_name, concord_ip))
-
-                           # Preserving Env to DEBUG VB-1497
-                           # TODO: Enable retaining failed VMs once cleanup script
-                           # cleans up IPAM too
-                           log.info(
-                              "Adding Session ID to preserve list: \n{}".format(
-                                 session_id))
-                           self.session_ids_to_retain.append(session_id)
-
                            return (False,
                                    "Not all containers are up and running on node")
                         else:
@@ -670,6 +656,13 @@ class PersephoneTests(test_suite.TestSuite):
                         "Ethrpc (get Block 0) Validation ({})- FAIL".format(
                            concord_ip))
                      return (False, "Ethrpc (get Block 0) Validation - FAILED")
+
+               if concord_type is self.rpc_test_helper.CONCORD_TYPE_DAML:
+                  if helper.verify_daml_connectivity(concord_ip):
+                     log.info("DAML Connectivity - PASS")
+                  else:
+                     log.error("DAML Connectivity ({})- FAILED".format(concord_ip))
+                     return (False, "DAML Connectivity - FAILED")
 
             log.info("SSH Verification on all concord nodes are successful")
             return (True, None)
@@ -705,6 +698,25 @@ class PersephoneTests(test_suite.TestSuite):
       log.debug("ethrpc Endpoints: {}".format(ethrpc_endpoints))
       return ethrpc_endpoints
 
+   def parse_test_status(self, status, msg, deployment_session_id=None):
+      '''
+      Parse the test status to determine Blockchain node/replica's retention policy
+      :param status: test status
+      :param msg: test status description
+      :param deployment_session_id: deployment session ID (if exists)
+      :return: test status, test status description
+      '''
+      if deployment_session_id:
+         if (self.args.keepBlockchains == helper.KEEP_BLOCKCHAINS_ALWAYS) or (
+               self.args.keepBlockchains == helper.KEEP_BLOCKCHAINS_ON_FAILURE
+               and (not status)):
+            log.info("Adding Session ID to preserve list: \n{}".format(
+               deployment_session_id))
+            self.session_ids_to_retain.append(deployment_session_id)
+
+      return (status, msg)
+
+
    def _test_add_model(self):
       '''
       Test to add metadata and validate AddModel RPC
@@ -714,8 +726,8 @@ class PersephoneTests(test_suite.TestSuite):
       if "id" in response_add_model_json:
          self.request_add_model = helper.protobuf_message_to_json(request)
          self.response_add_model_id = response_add_model_json["id"]
-         return (True, None)
-      return (False, "AddModel RPC Call Failed")
+         return self.parse_test_status(True, None)
+      return self.parse_test_status(False, "AddModel RPC Call Failed")
 
    def _test_list_models(self):
       '''
@@ -728,8 +740,8 @@ class PersephoneTests(test_suite.TestSuite):
          if self.response_add_model_id == metadata["id"]:
             if self.request_add_model["specification"] == metadata[
                "specification"]:
-               return (True, None)
-      return (False,
+               return self.parse_test_status(True, None)
+      return self.parse_test_status(False,
               "ListModels does not contain the added metadata: {}".format(
                  self.response_add_model_id))
 
@@ -793,7 +805,7 @@ class PersephoneTests(test_suite.TestSuite):
                            if labels_from_api[label_name] != label_value:
                               log.error("Label '{}={}' not fetched by rPC".format(
                                  label_name, label_value))
-                              return (False,
+                              return self.parse_test_status(False,
                                       "Label '{}={}' not fetched by rPC".format(
                                          label_name, label_value))
                            else:
@@ -808,7 +820,7 @@ class PersephoneTests(test_suite.TestSuite):
                            "Section 'labels' not found under 'info' in config file.")
                         log.error("Though an optional section, it is required "
                                   "for testing/validation")
-                        return (False,
+                        return self.parse_test_status(False,
                                 "Optional section 'labels' in config file is "
                                 "required for testing/validation")
                      break
@@ -817,18 +829,18 @@ class PersephoneTests(test_suite.TestSuite):
 
                if not site_found:
                   log.error("Site NOT found: {}".format(missing_site_name))
-                  return (False, "Site NOT found: {}".format(missing_site_name))
+                  return self.parse_test_status(False, "Site NOT found: {}".format(missing_site_name))
 
             log.info("Fetched all Sites Successfully")
-            return (True, "Fetched all Sites Successfully")
+            return self.parse_test_status(True, "Fetched all Sites Successfully")
          else:
             log.error(
                "Number of Sites ({}) fetched though rPC call does not match "
                "with the actual ones ({}) in config file".format(
                   len(sites_from_config_file), len(orchestration_sites)))
-            return (False, "Failed to retrieve All Orchestration Sites")
+            return self.parse_test_status(False, "Failed to retrieve All Orchestration Sites")
 
-      return (False, "Failed to retrieve Orchestration Sites")
+      return self.parse_test_status(False, "Failed to retrieve Orchestration Sites")
 
    def _test_create_blockchain_4_node_unspecified_site(self, cluster_size=4):
       '''
@@ -857,10 +869,13 @@ class PersephoneTests(test_suite.TestSuite):
                status, msg = self.perform_post_deployment_validations(events,
                                                                       cluster_size,
                                                                       response_deployment_session_id)
-               return (status, msg)
-            return (False, "Failed to fetch Deployment Events")
+               return self.parse_test_status(status, msg,
+                                             deployment_session_id=response_deployment_session_id)
+            return self.parse_test_status(False,
+                                          "Failed to fetch Deployment Events",
+                                          deployment_session_id=response_deployment_session_id)
 
-      return (False, "Failed to get a valid deployment session ID")
+      return self.parse_test_status(False, "Failed to get a valid deployment session ID")
 
 
    def _test_create_blockchain_4_node_fixed_site(self, cluster_size=4):
@@ -888,10 +903,13 @@ class PersephoneTests(test_suite.TestSuite):
                status, msg = self.perform_post_deployment_validations(events,
                                                                       cluster_size,
                                                                       response_deployment_session_id)
-               return (status, msg)
-            return (False, "Failed to fetch Deployment Events")
+               return self.parse_test_status(status, msg,
+                                             deployment_session_id=response_deployment_session_id)
+            return self.parse_test_status(False,
+                                          "Failed to fetch Deployment Events",
+                                          deployment_session_id=response_deployment_session_id)
 
-      return (False, "Failed to get a valid deployment session ID")
+      return self.parse_test_status(False, "Failed to get a valid deployment session ID")
 
    def _test_create_daml_blockchain_7_node_fixed_site(self, cluster_size=7):
       '''
@@ -922,10 +940,12 @@ class PersephoneTests(test_suite.TestSuite):
                                                                       cluster_size,
                                                                       response_deployment_session_id,
                                                                       concord_type=concord_type)
-               return (status, msg)
-            return (False, "Failed to fetch Deployment Events")
+               return self.parse_test_status(status, msg,
+                                             deployment_session_id=response_deployment_session_id)
+            return self.parse_test_status(False, "Failed to fetch Deployment Events",
+                                          deployment_session_id=response_deployment_session_id)
 
-      return (False, "Failed to get a valid deployment session ID")
+      return self.parse_test_status(False, "Failed to get a valid deployment session ID")
 
    def _test_create_blockchain_7_node_fixed_site(self, cluster_size=7):
       '''
@@ -952,10 +972,13 @@ class PersephoneTests(test_suite.TestSuite):
                status, msg = self.perform_post_deployment_validations(events,
                                                                       cluster_size,
                                                                       response_deployment_session_id)
-               return (status, msg)
-            return (False, "Failed to fetch Deployment Events")
+               return self.parse_test_status(status, msg,
+                                             deployment_session_id=response_deployment_session_id)
+            return self.parse_test_status(False,
+                                          "Failed to fetch Deployment Events",
+                                          deployment_session_id=response_deployment_session_id)
 
-      return (False, "Failed to get a valid deployment session ID")
+      return self.parse_test_status(False, "Failed to get a valid deployment session ID")
 
    def _thread_deploy_blockchain_cluster(self, cluster_size, placement_type,
                                          result_queue, concord_type=None):
@@ -999,8 +1022,13 @@ class PersephoneTests(test_suite.TestSuite):
                else:
                   log.info(
                      "Thread {}: Post Deployment Failed".format(thread_name))
+
+               self.parse_test_status(status, msg,
+                                      deployment_session_id=response_deployment_session_id)
                result_queue.put([status, msg])
             else:
+               self.parse_test_status(status, msg,
+                                      deployment_session_id=response_deployment_session_id)
                result_queue.put([False, "Failed to fetch Deployment Events"])
 
       else:

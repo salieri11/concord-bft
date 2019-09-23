@@ -3,16 +3,14 @@
  * Test concord::time::TimeContract and related classes.
  */
 
-#define USE_ROCKSDB
 #include "time/time_contract.hpp"
+#include "blockchain/db_adapter.h"
+#include "blockchain/db_types.h"
 #include "config/configuration_manager.hpp"
-#include "consensus/hash_defs.h"
-#include "consensus/status.hpp"
 #include "gtest/gtest.h"
-#include "storage/blockchain_db_adapter.h"
-#include "storage/blockchain_db_types.h"
-#include "storage/comparators.h"
-#include "storage/in_memory_db_client.h"
+#include "hash_defs.h"
+#include "memorydb/client.h"
+#include "memorydb/key_comparator.h"
 
 #include <google/protobuf/timestamp.pb.h>
 #include <google/protobuf/util/time_util.h>
@@ -24,22 +22,22 @@ using namespace std;
 
 using concord::config::ConcordConfiguration;
 using concord::config::ConfigurationPath;
-using concord::consensus::Sliver;
-using concord::consensus::Status;
-using concord::storage::BlockId;
-using concord::storage::IBlocksAppender;
 using concord::storage::IDBClient;
-using concord::storage::ILocalKeyValueStorageReadOnly;
-using concord::storage::ILocalKeyValueStorageReadOnlyIterator;
-using concord::storage::InMemoryDBClient;
-using concord::storage::Key;
-using concord::storage::KeyManipulator;
-using concord::storage::RocksKeyComparator;
-using concord::storage::SetOfKeyValuePairs;
-using concord::storage::Value;
+using concord::storage::blockchain::IBlocksAppender;
+using concord::storage::blockchain::ILocalKeyValueStorageReadOnly;
+using concord::storage::blockchain::ILocalKeyValueStorageReadOnlyIterator;
+using concord::storage::blockchain::KeyManipulator;
+using concord::storage::memorydb::Client;
+using concord::storage::memorydb::KeyComparator;
 using concord::time::TimeContract;
 using concord::time::TimeSigner;
 using concord::time::TimeVerifier;
+using concordUtils::BlockId;
+using concordUtils::Key;
+using concordUtils::SetOfKeyValuePairs;
+using concordUtils::Sliver;
+using concordUtils::Status;
+using concordUtils::Value;
 
 using CryptoPP::AutoSeededRandomPool;
 using google::protobuf::Timestamp;
@@ -54,19 +52,22 @@ namespace {
 class TestStorage : public ILocalKeyValueStorageReadOnly,
                     public IBlocksAppender {
  private:
-  InMemoryDBClient db_ = InMemoryDBClient(
-      (IDBClient::KeyComparator)&RocksKeyComparator::InMemKeyComp);
+  KeyComparator comp = KeyComparator(new KeyManipulator());
+  Client db_ = Client(comp);
 
  public:
-  Status get(Key key, Value& outValue) const override {
+  Status get(const Key& key, Value& outValue) const override {
     BlockId outBlockId;
     return get(0, key, outValue, outBlockId);
   }
 
-  Status get(BlockId readVersion, Sliver key, Sliver& outValue,
+  Status get(BlockId readVersion, const Sliver& key, Sliver& outValue,
              BlockId& outBlock) const override {
     outBlock = 0;
-    return db_.get(KeyManipulator::genDataDbKey(key, 0), outValue);
+    // KeyManipulator::genDataDbKey is non-const, but this function must be
+    // const. Work around by creating a local manipulator.
+    KeyManipulator internalManip;
+    return db_.get(internalManip.genDataDbKey(key, 0), outValue);
   }
 
   BlockId getLastBlock() const override { return 0; }
@@ -77,8 +78,8 @@ class TestStorage : public ILocalKeyValueStorageReadOnly,
     return Status::IllegalOperation("getBlockData not supported in test");
   }
 
-  Status mayHaveConflictBetween(Sliver key, BlockId fromBlock, BlockId toBlock,
-                                bool& outRes) const override {
+  Status mayHaveConflictBetween(const Sliver& key, BlockId fromBlock,
+                                BlockId toBlock, bool& outRes) const override {
     EXPECT_TRUE(false)
         << "Test should not cause mayHaveConflictBetween to be called";
     return Status::IllegalOperation(
@@ -103,8 +104,8 @@ class TestStorage : public ILocalKeyValueStorageReadOnly,
   Status addBlock(const SetOfKeyValuePairs& updates,
                   BlockId& outBlockId) override {
     for (auto u : updates) {
-      Status status =
-          db_.put(KeyManipulator::genDataDbKey(u.first, 0), u.second);
+      KeyManipulator internalManip;
+      Status status = db_.put(internalManip.genDataDbKey(u.first, 0), u.second);
       if (!status.isOK()) {
         return status;
       }

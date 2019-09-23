@@ -8,6 +8,9 @@ package com.vmware.blockchain.common;
  * Etherum RPC method names and other constants.
  */
 public class Constants {
+    // Organization Property Keys.
+    // Return a list of Zones this org has access to, e.g. ON_PREM or VMC_AWS
+    public static final String ORG_ZONES = "org_zones";
     //API Endpoints
     // Below endpoints are needed because some servlets still use this information
     public static final String TRANSACTION_LIST_ENDPOINT = "/api/concord/transactions";
@@ -33,6 +36,9 @@ public class Constants {
     public static final String TOKEN_REFRESH = "refresh-token";
     public static final String TOKEN_ID = "token-id";
 
+    // Invitation properties
+    // Extra roles to add to the user being invited.
+    public static final String INVITATION_ROLE = "invitation_roles";
 
 
     // Static content configurations

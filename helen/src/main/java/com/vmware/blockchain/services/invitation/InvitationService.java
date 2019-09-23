@@ -5,6 +5,8 @@
 package com.vmware.blockchain.services.invitation;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
@@ -16,6 +18,7 @@ import org.springframework.stereotype.Service;
 import com.google.common.collect.ImmutableList;
 import com.vmware.blockchain.auth.AuthHelper;
 import com.vmware.blockchain.common.BadRequestException;
+import com.vmware.blockchain.common.Constants;
 import com.vmware.blockchain.common.ErrorCode;
 import com.vmware.blockchain.common.csp.CspCommon;
 import com.vmware.blockchain.common.csp.CspCommon.CspPatchServiceRolesRequest;
@@ -60,30 +63,44 @@ public class InvitationService {
         try {
             CspCommon.CspServiceInvitation invitation = cspApiClient.getInvitation(invitationLink);
 
-            Organization org = orgService.get(authHelper.getOrganizationId());
-
-            if (org == null) {
-                throw new BadRequestException(ErrorCode.BAD_REQUEST);
-            }
-
-            org.setOrganizationProperties(invitation.getContext());
-
-            orgService.put(org);
-
-            String orgLink = CspConstants.CSP_ORG_API + "/" + authHelper.getOrganizationId().toString();
-
+            final String orgLink = CspConstants.CSP_ORG_API + "/" + authHelper.getOrganizationId().toString();
 
             // Let's be sure this is the right org and right service
             if (!invitation.getOrgLink().equals(orgLink)
                 || !serviceDefinitionLink.equals(invitation.getServiceDefinitionLink())) {
                 throw new BadRequestException(ErrorCode.INVALID_INVITATION);
             }
+
+            Organization org = orgService.get(authHelper.getOrganizationId());
+
+            if (org == null) {
+                throw new BadRequestException(ErrorCode.BAD_REQUEST);
+            }
+
+            // Check if the context has addtional roles to set
+            String rolesStr = "";
+            if (invitation.getContext() != null) {
+                if (invitation.getContext().containsKey(Constants.INVITATION_ROLE)) {
+                    rolesStr = invitation.getContext().get(Constants.INVITATION_ROLE);
+                    invitation.getContext().remove(Constants.INVITATION_ROLE);
+                }
+            }
+
+            // The rest of the context, if any, are org properties
+            org.setOrganizationProperties(invitation.getContext());
+            orgService.put(org);
+
             // Based on the context, determine what roles need to be added.
-            // Right now the only thing we support is being a consortium owner.  At some point we
-            // need to support invitation to a consortium.  This will be in the invitation's context.
+            // Give the user consortium and org admin, and any addtional roles in the invitation
+
             CspCommon.CspPatchServiceRolesRequest body = new CspPatchServiceRolesRequest();
             body.setServiceDefinitionLink(serviceDefinitionLink);
-            List<String> roles = ImmutableList.of(Roles.CONSORTIUM_ADMIN.toString(), Roles.ORG_ADMIN.toString());
+            List<String> roles = new ArrayList<>();
+            if (!rolesStr.isBlank()) {
+                // break on comma and strip out extra space on either side
+                roles.addAll(Arrays.asList(rolesStr.strip().split("\\s?,\\s?")));
+            }
+            roles.addAll(ImmutableList.of(Roles.CONSORTIUM_ADMIN.toString(), Roles.ORG_ADMIN.toString()));
             body.setRoleNamesToAdd(roles);
             cspApiClient.patchOrgServiceRoles(authHelper.getAuthToken(), authHelper.getOrganizationId(),
                                               authHelper.getEmail(), body);

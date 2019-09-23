@@ -211,52 +211,77 @@ public class ReplicaController {
         // Create a map of private IP to replica instance.
         Map<String, Replica> ipToReplica =
                 replicas.stream().collect(Collectors.toMap(r -> r.getPrivateIp(), Function.identity()));
-        List<Peer> peers = concordService.getMembers(bid);
+
+        Blockchain bc = blockchainService.get(bid);
+
         // Store the results in a tree map, so the order is always the same.
         // Sort (arbitrarily) by hostname
         SortedMap<String, ReplicaGetResponse> response = new TreeMap<>();
-        // We need to take into account that one of peers returns localhost for the ip.
-        Peer unprocessed = null;
-        for (Peer peer : peers) {
-            String rIp = peer.getAddress().split(":")[0];
-            Replica r = ipToReplica.get(rIp);
-            if (r == null) {
-                // Shouldn't be null, but log a warning if it is.
-                logger.info("Could not find replica for peer ip {}", peer.getAddress().split(":")[0]);
-                unprocessed = peer;
-                continue;
+
+        // TODO do this check based on Site Type.
+        if (bc.getType() == Blockchain.BlockchainType.DAML) {
+            Integer i = 0;
+            for (Replica each: replicas) {
+                String replicaName = each.getHostName() + "" + i++;
+                response.put(replicaName, ReplicaGetResponse.builder()
+                        .id(each.getId())
+                        .name(replicaName)
+                        .privateIp(each.privateIp)
+                        .publicIp(each.publicIp)
+                        .rpcUrl(each.getUrl())
+                        .zoneId(each.getZoneId())
+                        .millisSinceLastMessage(0)
+                        .millisSinceLastMessageThreshold(1)
+                        .status("live")
+                        .build());
             }
-            response.put(peer.getHostname(), ReplicaGetResponse.builder()
-                    .id(r.getId())
-                    .name(peer.getHostname())
-                    .privateIp(peer.getAddress())
-                    .publicIp(r.getPublicIp())
-                    .rpcUrl(r.getUrl())
-                    .zoneId(r.getZoneId())
-                    .millisSinceLastMessage(peer.getMillisSinceLastMessage())
-                    .millisSinceLastMessageThreshold(peer.getMillisSinceLastMessageThreshold())
-                    .status(peer.getStatus())
-                    .build());
-            ipToReplica.remove(rIp);
-        }
-        // now handle the one left over, if there is one
-        if (unprocessed != null) {
-            final Peer peer = unprocessed;
-            ipToReplica.entrySet().stream().forEach(e -> {
-                String rIp = e.getKey();
-                Replica r = e.getValue();
+        } else {
+
+            List<Peer> peers = concordService.getMembers(bid);
+
+            // We need to take into account that one of peers returns localhost for the ip.
+            Peer unprocessed = null;
+            for (Peer peer : peers) {
+                String rIp = peer.getAddress().split(":")[0];
+                Replica r = ipToReplica.get(rIp);
+                if (r == null) {
+                    // Shouldn't be null, but log a warning if it is.
+                    logger.info("Could not find replica for peer ip {}", peer.getAddress().split(":")[0]);
+                    unprocessed = peer;
+                    continue;
+                }
                 response.put(peer.getHostname(), ReplicaGetResponse.builder()
-                                     .id(r.getId())
-                                     .name(peer.getHostname())
-                                     .privateIp(rIp)
-                                     .publicIp(r.getPublicIp())
-                                     .rpcUrl(r.getUrl())
-                                     .zoneId(r.getZoneId())
-                                     .millisSinceLastMessage(peer.getMillisSinceLastMessage())
-                                     .millisSinceLastMessageThreshold(peer.getMillisSinceLastMessageThreshold())
-                                     .status(peer.getStatus())
-                                     .build());
-            });
+                        .id(r.getId())
+                        .name(peer.getHostname())
+                        .privateIp(peer.getAddress())
+                        .publicIp(r.getPublicIp())
+                        .rpcUrl(r.getUrl())
+                        .zoneId(r.getZoneId())
+                        .millisSinceLastMessage(peer.getMillisSinceLastMessage())
+                        .millisSinceLastMessageThreshold(peer.getMillisSinceLastMessageThreshold())
+                        .status(peer.getStatus())
+                        .build());
+                ipToReplica.remove(rIp);
+            }
+            // now handle the one left over, if there is one
+            if (unprocessed != null) {
+                final Peer peer = unprocessed;
+                ipToReplica.entrySet().stream().forEach(e -> {
+                    String rIp = e.getKey();
+                    Replica r = e.getValue();
+                    response.put(peer.getHostname(), ReplicaGetResponse.builder()
+                            .id(r.getId())
+                            .name(peer.getHostname())
+                            .privateIp(rIp)
+                            .publicIp(r.getPublicIp())
+                            .rpcUrl(r.getUrl())
+                            .zoneId(r.getZoneId())
+                            .millisSinceLastMessage(peer.getMillisSinceLastMessage())
+                            .millisSinceLastMessageThreshold(peer.getMillisSinceLastMessageThreshold())
+                            .status(peer.getStatus())
+                            .build());
+                });
+            }
         }
         return new ResponseEntity<>(response.values(), HttpStatus.OK);
     }

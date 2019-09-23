@@ -5,7 +5,6 @@
 #include <string>
 
 #include "daml/daml_kvb_commands_handler.hpp"
-#include "storage/blockchain_db_types.h"
 
 using com::digitalasset::kvbc::Command;
 using com::digitalasset::kvbc::CommandReply;
@@ -25,10 +24,10 @@ using com::vmware::concord::DamlResponse;
 using grpc::ServerContext;
 using grpc::ServerWriter;
 
-using concord::storage::IClient;
-using concord::storage::ILocalKeyValueStorageReadOnly;
-using concord::storage::Key;
-using concord::storage::Value;
+using concord::consensus::IClient;
+using concord::storage::blockchain::ILocalKeyValueStorageReadOnly;
+using concordUtils::Key;
+using concordUtils::Value;
 
 using namespace std;
 
@@ -47,7 +46,7 @@ grpc::Status DataServiceImpl::ReadTransaction(
     ReadTransactionResponse* reply) {
   LOG4CPLUS_DEBUG(logger, "DataService: ReadTransaction...");
 
-  concord::storage::BlockId readBlockId = request->block_id();
+  concordUtils::BlockId readBlockId = request->block_id();
   if (readBlockId <= 0) {
     readBlockId = ro_storage_->getLastBlock();
   }
@@ -56,8 +55,8 @@ grpc::Status DataServiceImpl::ReadTransaction(
     const string& keyStr = request->keys(i);
     Key key = CreateSliver(keyStr);
     Value value;
-    concord::storage::BlockId outBlockId;
-    concord::consensus::Status status =
+    concordUtils::BlockId outBlockId;
+    concordUtils::Status status =
         ro_storage_->get(readBlockId, key, value, outBlockId);
     if (status.isOK()) {
       com::digitalasset::kvbc::KeyValuePair* kv = reply->add_results();

@@ -1,7 +1,6 @@
 // Copyright 2018-2019 VMware, all rights reserved
 
 #include "hlf/grpc_services.hpp"
-#include "storage/blockchain_db_types.h"
 
 using com::vmware::concord::hlf::services::HlfKeyValueService;
 using com::vmware::concord::hlf::services::KvbMessage;
@@ -44,7 +43,7 @@ grpc::Status HlfKeyValueServiceImpl::GetState(ServerContext* context,
     // the upper bound(block number)
     if (request->value() != "") {
       // convert the block number from string in unsigned long type
-      storage::BlockId block_number = std::stoul(request->value());
+      concordUtils::BlockId block_number = std::stoul(request->value());
       value = kvb_storage_.GetHlfState(request->key(), block_number);
     } else {
       value = kvb_storage_.GetHlfState(request->key());
@@ -65,7 +64,7 @@ grpc::Status HlfKeyValueServiceImpl::PutState(ServerContext* context,
                                               const KvbMessage* request,
                                               KvbMessage* response) {
   if (request->key() != "" && request->value() != "") {
-    concord::consensus::Status status =
+    concordUtils::Status status =
         kvb_storage_.SetHlfState(request->key(), request->value());
 
     LOG4CPLUS_DEBUG(logger_,

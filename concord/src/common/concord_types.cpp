@@ -11,8 +11,7 @@
 #include "common/concord_exception.hpp"
 #include "common/concord_log.hpp"
 #include "concord_storage.pb.h"
-#include "consensus/hex_tools.h"
-#include "consensus/sliver.hpp"
+#include "sliver.hpp"
 #include "utils/concord_eth_hash.hpp"
 #include "utils/rlp.hpp"
 
@@ -20,6 +19,7 @@ using com::vmware::concord::kvb::Block;
 using com::vmware::concord::kvb::Log;
 using com::vmware::concord::kvb::Transaction;
 using concord::utils::RLPBuilder;
+using concordUtils::Sliver;
 
 // Byte-wise comparator for evm_uint256be. This allows us to use this type as a
 // key in a std::map. Must be in the global namespace.
@@ -160,8 +160,7 @@ size_t EthTransaction::serialize(uint8_t **serialized) {
   return size;
 }
 
-struct EthTransaction EthTransaction::deserialize(
-    concord::consensus::Sliver &input) {
+struct EthTransaction EthTransaction::deserialize(Sliver &input) {
   Transaction intx;
   intx.ParseFromArray(input.data(), input.length());
 
@@ -323,7 +322,7 @@ size_t EthBlock::serialize(uint8_t **serialized) {
   return size;
 }
 
-struct EthBlock EthBlock::deserialize(concord::consensus::Sliver &input) {
+struct EthBlock EthBlock::deserialize(Sliver &input) {
   Block inblk;
   inblk.ParseFromArray(input.data(), input.length());
 

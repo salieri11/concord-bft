@@ -1,17 +1,19 @@
-#define USE_ROCKSDB
+// Copyright 2019 VMware, all rights reserved
+//
 
 #include <log4cplus/configurator.h>
 #include <log4cplus/hierarchy.h>
 #include <log4cplus/loggingmacros.h>
+#include "blockchain/db_adapter.h"
+#include "blockchain/db_types.h"
 #include "concord.pb.h"
-#include "consensus/sliver.hpp"
-#include "consensus/status.hpp"
 #include "gtest/gtest.h"
 #include "hlf/chaincode_invoker.hpp"
 #include "hlf/kvb_storage.hpp"
-#include "storage/blockchain_db_types.h"
-#include "storage/comparators.h"
-#include "storage/in_memory_db_client.h"
+#include "memorydb/client.h"
+#include "memorydb/key_comparator.h"
+#include "sliver.hpp"
+#include "status.hpp"
 
 using namespace std;
 using namespace log4cplus;
@@ -19,8 +21,18 @@ using namespace log4cplus;
 using com::vmware::concord::HlfRequest;
 using concord::hlf::ChaincodeInvoker;
 using concord::storage::IDBClient;
-using concord::storage::InMemoryDBClient;
-using concord::storage::RocksKeyComparator;
+using concord::storage::blockchain::IBlocksAppender;
+using concord::storage::blockchain::ILocalKeyValueStorageReadOnly;
+using concord::storage::blockchain::ILocalKeyValueStorageReadOnlyIterator;
+using concord::storage::blockchain::KeyManipulator;
+using concord::storage::memorydb::Client;
+using concord::storage::memorydb::KeyComparator;
+using concordUtils::BlockId;
+using concordUtils::Key;
+using concordUtils::SetOfKeyValuePairs;
+using concordUtils::Sliver;
+using concordUtils::Status;
+using concordUtils::Value;
 
 namespace {
 const string kTestHlfPeerToolPath1 = "test/peer1";
@@ -30,69 +42,58 @@ ChaincodeInvoker chaincode_invoker(kTestHlfPeerToolPath1);
 Logger* logger = nullptr;
 
 // Define TestStorage
-class TestStorage : public concord::storage::ILocalKeyValueStorageReadOnly,
-                    public concord::storage::IBlocksAppender {
+class TestStorage : public ILocalKeyValueStorageReadOnly,
+                    public IBlocksAppender {
  private:
-  InMemoryDBClient db_ = InMemoryDBClient(
-      (IDBClient::KeyComparator)&RocksKeyComparator::InMemKeyComp);
+  KeyComparator comp = KeyComparator(new KeyManipulator());
+  Client db_ = Client(comp);
 
  public:
-  concord::consensus::Status get(
-      concord::storage::Key key,
-      concord::storage::Value& outValue) const override {
-    concord::storage::BlockId outBlockId;
+  Status get(const Key& key, Value& outValue) const override {
+    BlockId outBlockId;
     return get(0, key, outValue, outBlockId);
   }
 
-  concord::consensus::Status get(
-      concord::storage::BlockId readVersion, concord::consensus::Sliver key,
-      concord::consensus::Sliver& outValue,
-      concord::storage::BlockId& outBlock) const override {
+  Status get(BlockId readVersion, const Sliver& key, Sliver& outValue,
+             BlockId& outBlock) const override {
     outBlock = 0;
     return db_.get(key, outValue);
   }
 
-  concord::storage::BlockId getLastBlock() const override { return 0; }
+  BlockId getLastBlock() const override { return 0; }
 
-  concord::consensus::Status getBlockData(
-      concord::storage::BlockId blockId,
-      concord::storage::SetOfKeyValuePairs& outBlockData) const override {
+  Status getBlockData(BlockId blockId,
+                      SetOfKeyValuePairs& outBlockData) const override {
     EXPECT_TRUE(false) << "Test should not cause getBlockData to be called";
-    return concord::consensus::Status::IllegalOperation(
-        "getBlockData not supported in test");
+    return Status::IllegalOperation("getBlockData not supported in test");
   }
 
-  concord::consensus::Status mayHaveConflictBetween(
-      concord::consensus::Sliver key, concord::storage::BlockId fromBlock,
-      concord::storage::BlockId toBlock, bool& outRes) const override {
+  Status mayHaveConflictBetween(const Sliver& key, BlockId fromBlock,
+                                BlockId toBlock, bool& outRes) const override {
     EXPECT_TRUE(false)
         << "Test should not cause mayHaveConflictBetween to be called";
-    return concord::consensus::Status::IllegalOperation(
+    return Status::IllegalOperation(
         "mayHaveConflictBetween not supported in test");
   }
 
-  concord::storage::ILocalKeyValueStorageReadOnlyIterator* getSnapIterator()
-      const override {
+  ILocalKeyValueStorageReadOnlyIterator* getSnapIterator() const override {
     EXPECT_TRUE(false) << "Test should not cause getSnapIterator to be called";
     return nullptr;
   }
 
-  concord::consensus::Status freeSnapIterator(
-      concord::storage::ILocalKeyValueStorageReadOnlyIterator* iter)
-      const override {
+  Status freeSnapIterator(
+      ILocalKeyValueStorageReadOnlyIterator* iter) const override {
     EXPECT_TRUE(false) << "Test should not cause freeSnapIterator to be called";
-    return concord::consensus::Status::IllegalOperation(
-        "freeSnapIterator not supported in test");
+    return Status::IllegalOperation("freeSnapIterator not supported in test");
   }
 
   void monitor() const override {
     EXPECT_TRUE(false) << "Test should not cause monitor to be called";
   }
 
-  concord::consensus::Status addBlock(
-      const concord::storage::SetOfKeyValuePairs& updates,
-      concord::storage::BlockId& outBlockId) override {
-    concord::consensus::Status status = db_.multiPut(updates);
+  Status addBlock(const SetOfKeyValuePairs& updates,
+                  BlockId& outBlockId) override {
+    Status status = db_.multiPut(updates);
     outBlockId = 0;
     return status;
   }
