@@ -22,6 +22,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.preauth.PreAuthenticatedAuthenticationToken;
+import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.web.filter.GenericFilterBean;
 
 import com.vmware.blockchain.auth.AuthUtil;
@@ -37,12 +38,18 @@ public class TokenAuthenticationFilter extends GenericFilterBean {
 
     private static Logger logger = LogManager.getLogger(TokenAuthenticationFilter.class);
     private AuthenticationManager authManager;
+    private CookieCsrfTokenRepository tokenRepo;
+    private TokenAuthenticationConfig tokenAuthenticationConfig;
 
     /**
      * Constructor.
      */
-    public TokenAuthenticationFilter(AuthenticationManager authManager) {
+    public TokenAuthenticationFilter(AuthenticationManager authManager,
+                                     TokenAuthenticationConfig tokenAuthenticationConfig,
+                                     CookieCsrfTokenRepository tokenRepo) {
         this.authManager = authManager;
+        this.tokenAuthenticationConfig = tokenAuthenticationConfig;
+        this.tokenRepo = tokenRepo;
     }
 
     @Override
@@ -54,6 +61,12 @@ public class TokenAuthenticationFilter extends GenericFilterBean {
 
         Authentication authentication = null;
         String requestUri = httpRequest.getRequestURI();
+
+        // Check for CSRF
+        if (!tokenAuthenticationConfig.applyCsrfCheck(httpRequest, requestUri)) {
+            httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN, "CSRF check failed");
+            return;
+        }
 
         try {
             // see if we can authenticate. If we can, set the security context
