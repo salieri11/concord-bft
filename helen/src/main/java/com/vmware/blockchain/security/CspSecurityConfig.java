@@ -7,6 +7,7 @@ package com.vmware.blockchain.security;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -20,6 +21,9 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.authentication.switchuser.SwitchUserFilter;
+import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import org.springframework.security.web.csrf.CsrfFilter;
 
 import com.vmware.blockchain.common.Constants;
 import com.vmware.blockchain.operation.OperationContext;
@@ -38,6 +42,8 @@ public class CspSecurityConfig extends WebSecurityConfigurerAdapter {
 
     private OperationContext operationContext = new OperationContext();
 
+    @Autowired
+    TokenAuthenticationConfig tokenAuthenticationConfig;
 
     @Autowired
     TokenAuthenticationProvider tokenAuthenticationProvider;
@@ -50,6 +56,9 @@ public class CspSecurityConfig extends WebSecurityConfigurerAdapter {
 
     @Autowired
     private TokenRefreshFilter tokenRefreshFilter;
+
+    @Value("${vmbc.cookie.secure:true}")
+    private boolean cookieSecure;
 
     @Override
     protected void configure(HttpSecurity http) throws Exception {
@@ -69,13 +78,19 @@ public class CspSecurityConfig extends WebSecurityConfigurerAdapter {
                 .authenticated().and().exceptionHandling()
                 .authenticationEntryPoint(restAuthticationEntryPoint)
                 .and().anonymous().and().httpBasic();
-        http.addFilterBefore(new TokenAuthenticationFilter(authenticationManager()),
+        http.addFilterBefore(new TokenAuthenticationFilter(authenticationManager(),
+                             tokenAuthenticationConfig, CookieCsrfTokenRepository.withHttpOnlyFalse()),
                              UsernamePasswordAuthenticationFilter.class);
         http.addFilterBefore(tokenRefreshFilter, TokenAuthenticationFilter.class);
 
         RequestTrackingFilter requestTrackingFilter = new RequestTrackingFilter(operationContext);
 
         http.addFilterBefore(requestTrackingFilter, TokenRefreshFilter.class);
+
+        if (cookieSecure) {
+            http.addFilterBefore(new FakeSslFilter(), CsrfFilter.class)
+                    .addFilterAfter(new RemoveSslFilter(), SwitchUserFilter.class);
+        }
     }
 
     @Override
