@@ -3,18 +3,20 @@
  */
 
 import { Component, OnDestroy, ViewChild, AfterViewInit } from '@angular/core';
-import { Subscription } from 'rxjs';
+import { Subscription, Subject } from 'rxjs';
 import { TranslateService } from '@ngx-translate/core';
 import {
   CspApiService,
   CspHeaderOptions,
   CspEnvironment,
+  CspHeaderAppAlertConfig
 } from '@vmw/csp-ngx-components';
 
 import { environment } from '../../../../environments/environment';
 import { AuthenticationService } from '../../authentication.service';
 import { Personas, PersonaService } from '../../persona.service';
 import { CspAPIs } from '../../../shared/urls.model';
+import { ErrorAlertService } from '../../global-error-handler.service';
 
 @Component({
   selector: 'concord-app-header',
@@ -31,6 +33,7 @@ export class AppHeaderComponent implements OnDestroy, AfterViewInit {
   username: string;
   authToken: string;
   headerOptions: CspHeaderOptions = new CspHeaderOptions();
+  alertStream: Subject<CspHeaderAppAlertConfig>;
 
   serviceRefLink: string;
   env: any = environment;
@@ -41,11 +44,12 @@ export class AppHeaderComponent implements OnDestroy, AfterViewInit {
     private personaService: PersonaService,
     private cspApiService: CspApiService,
     private translateService: TranslateService,
+    private alertService: ErrorAlertService
   ) {
     if (this.env.csp) {
+      this.alertStream = this.alertService.cspAlertStream;
       this.setupCSP();
     } else {
-
       this.authenticationChange = authenticationService.user.subscribe(user => {
         this.username = user.email;
         this.personaService.currentPersonas.push(user.persona);
