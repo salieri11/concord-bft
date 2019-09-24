@@ -18,7 +18,7 @@ fetch_perf_transaction_rate() {
     PERFORMANCE_TEST_RESULT_FILE="$1"
     echo "Parsing ${PERFORMANCE_TEST_RESULT_FILE} ..."
     TRANSACTION_RATE=`cat "${PERFORMANCE_TEST_RESULT_FILE}" | grep "Transaction Rate: " | cut -d ':' -f2`
-    TRANSACTION_RATE=`echo $TRANSACTION_RATE | awk '{$1=$1}1'`
+    TRANSACTION_RATE=`echo $TRANSACTION_RATE | awk '{print $1}'`
     echo "TRANSACTION_RATE: $TRANSACTION_RATE"
     if [ ! -z "${TRANSACTION_RATE}" ]
     then
