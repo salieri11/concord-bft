@@ -1,7 +1,7 @@
 // Only include variable definitions as this file should be safe to pull in to any component without polluting
 // components with unused/duplicate CSS rules.
 
-@import "~@clr/ui/src/color/utils/_colors.clarity.scss";
+@import "~@clr/ui/src/color/_variables.color.scss";
 
 // Global colors
 $black: #000;
