@@ -18,7 +18,7 @@ import { TourService } from '../../shared/tour.service';
 })
 export class SmartContractComponent implements OnInit {
 
-  @ViewChild('contractFormModal') contractFormModal: ContractFormComponent;
+  @ViewChild('contractFormModal', { static: true }) contractFormModal: ContractFormComponent;
 
   smartContract: SmartContract;
   version: SmartContractVersion;

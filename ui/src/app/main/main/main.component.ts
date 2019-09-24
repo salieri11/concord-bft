@@ -28,10 +28,10 @@ import { External, ConsortiumStates } from '../../shared/urls.model';
   styleUrls: ['./main.component.scss']
 })
 export class MainComponent implements OnInit, OnDestroy {
-  @ViewChild('welcomeModal') welcomeModal: SetupModalComponent;
-  @ViewChild('blockchainWizard') blockchainWizard: BlockchainWizardComponent;
-  @ViewChild('addOnPremises') addOnPremises: OnPremisesModalComponent;
-  @ViewChild('deployLoader') deployLoader: DeployingInterstialComponent;
+  @ViewChild('welcomeModal', { static: true }) welcomeModal: SetupModalComponent;
+  @ViewChild('blockchainWizard', { static: true }) blockchainWizard: BlockchainWizardComponent;
+  @ViewChild('addOnPremises', { static: true }) addOnPremises: OnPremisesModalComponent;
+  @ViewChild('deployLoader', { static: true }) deployLoader: DeployingInterstialComponent;
 
   alerts: any = [];
   personas = Personas;

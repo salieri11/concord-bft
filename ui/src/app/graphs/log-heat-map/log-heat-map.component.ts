@@ -11,7 +11,7 @@ import { HeatMapComponent } from '@swimlane/ngx-charts';
   styleUrls: ['./log-heat-map.component.scss']
 })
 export class LogHeatMapComponent implements OnInit, AfterViewInit {
-  @ViewChild(HeatMapComponent) heatMap: HeatMapComponent;
+  @ViewChild(HeatMapComponent, { static: true }) heatMap: HeatMapComponent;
   @Input('graphData') graphData: any[];
   @Input('xAxisLabel') xAxisLabel: string;
   @Input('yAxisLabel') yAxisLabel: string;

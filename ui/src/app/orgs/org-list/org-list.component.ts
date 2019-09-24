@@ -20,7 +20,7 @@ import { InivteUserComponent } from '../inivte-user/inivte-user.component';
   styleUrls: ['./org-list.component.scss']
 })
 export class OrgListComponent implements OnInit {
-  @ViewChild('inviteUser') inviteUser: InivteUserComponent;
+  @ViewChild('inviteUser', { static: true }) inviteUser: InivteUserComponent;
   orgs: Org[] = [];
   env = environment;
 

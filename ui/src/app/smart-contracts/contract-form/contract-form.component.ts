@@ -40,8 +40,8 @@ interface ModalState {
   styleUrls: ['./contract-form.component.scss']
 })
 export class ContractFormComponent implements OnInit {
-  @ViewChild('wizard') wizard: ClrWizard;
-  @ViewChild('fileInput') fileInput: ElementRef;
+  @ViewChild('wizard', { static: true }) wizard: ClrWizard;
+  @ViewChild('fileInput', { static: true }) fileInput: ElementRef;
 
   @Input() isOpen = false;
   @Output() contractCreated: EventEmitter<SmartContractCreateResult> = new EventEmitter<SmartContractCreateResult>();

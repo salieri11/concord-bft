@@ -49,8 +49,8 @@ export class WorldMapComponent implements AfterViewInit, OnChanges, OnDestroy {
   // Takes GeoJSON FeatureCollection of Points as input.  Each feature should have properties that conform to NodeProperties.
   @Input('features') features = [];
 
-  @ViewChild('mapContainer') mapContainer;
-  @ViewChild('tooltipContainer') tooltipContainer;
+  @ViewChild('mapContainer', { static: true }) mapContainer;
+  @ViewChild('tooltipContainer', { static: true }) tooltipContainer;
 
   // The map and its map's tooltip/overlay layer
   private map: Map;

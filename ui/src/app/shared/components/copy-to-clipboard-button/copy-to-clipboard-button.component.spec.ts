@@ -19,7 +19,7 @@ import { customMatchers } from '../../../../custom-matchers';
     `
 })
 class TestHostComponent {
-  @ViewChild(VmwCopyToClipboardButtonComponent) component: VmwCopyToClipboardButtonComponent;
+  @ViewChild(VmwCopyToClipboardButtonComponent, /* TODO: add static flag */ {}) component: VmwCopyToClipboardButtonComponent;
 
   public value = 'Test string';
 }

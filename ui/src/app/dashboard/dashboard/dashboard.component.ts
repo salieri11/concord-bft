@@ -33,8 +33,8 @@ const BLOCK_TRANSACTION_LIMIT = 20;
   styleUrls: ['./dashboard.component.scss']
 })
 export class DashboardComponent implements OnInit, OnDestroy {
-  @ViewChild('nodeGuage') nodeGuage: GaugeComponent;
-  @ViewChild('worldMap') worldMap: WorldMapComponent;
+  @ViewChild('nodeGuage', { static: false }) nodeGuage: GaugeComponent;
+  @ViewChild('worldMap', { static: false }) worldMap: WorldMapComponent;
 
   blockchainId: string;
   blocks: BlockListingBlock[] = [];

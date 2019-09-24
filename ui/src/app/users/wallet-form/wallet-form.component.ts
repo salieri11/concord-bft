@@ -22,7 +22,7 @@ export class WalletFormComponent implements OnInit {
   @Input('user') user: User;
   @Input('userWallet') userWallet: EthWallet = null;
   @Output() createdWallet: EventEmitter<EthWallet> = new EventEmitter<EthWallet>();
-  @ViewChild('wizard') wizard: ClrWizard;
+  @ViewChild('wizard', { static: true }) wizard: ClrWizard;
   createWalletForm: FormGroup;
   decryptedWallet: any = null;
   decryptError: string = null;

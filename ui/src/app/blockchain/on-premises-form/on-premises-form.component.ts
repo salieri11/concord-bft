@@ -17,7 +17,7 @@ import { BlockchainService } from '../shared/blockchain.service';
   styleUrls: ['./on-premises-form.component.scss']
 })
 export class OnPremisesFormComponent implements AfterViewInit {
-  @ViewChild('ipInput') ipInput: ElementRef;
+  @ViewChild('ipInput', { static: true }) ipInput: ElementRef;
   onPremConnectionSuccessful: boolean;
   addedOnPrem: boolean;
   form: FormGroup;

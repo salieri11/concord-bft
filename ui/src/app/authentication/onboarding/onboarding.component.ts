@@ -14,7 +14,7 @@ import { AuthenticationService } from '../../shared/authentication.service';
   styleUrls: ['./onboarding.component.scss']
 })
 export class OnboardingComponent implements OnInit {
-  @ViewChild('agreementEl') agreementEl: ElementRef;
+  @ViewChild('agreementEl', { static: true }) agreementEl: ElementRef;
   agreement: { type?: string, content?: string, accepted: boolean, id?: number };
   disabledAgreement = true;
   agreementForm: FormGroup;

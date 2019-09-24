@@ -20,9 +20,9 @@ import { UsersService } from '../shared/users.service';
 })
 export class UsersComponent implements OnInit, OnDestroy {
   static personasAllowed: Personas[] = [Personas.SystemsAdmin, Personas.ConsortiumAdmin, Personas.OrgAdmin];
-  @ViewChild('usersList') usersList: UserListComponent;
-  @ViewChild('userForm') userForm: UserFormComponent;
-  @ViewChild('userActionsMenu') userActionsMenu: ClrDropdown;
+  @ViewChild('usersList', { static: true }) usersList: UserListComponent;
+  @ViewChild('userForm', { static: true }) userForm: UserFormComponent;
+  @ViewChild('userActionsMenu', { static: true }) userActionsMenu: ClrDropdown;
 
   userActionMenuToggleChanges: Subscription;
   users: User[];

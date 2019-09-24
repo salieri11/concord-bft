@@ -33,8 +33,8 @@ import { ErrorAlertService } from '../shared/global-error-handler.service';
 export class GridComponent implements OnInit {
   @Input('options') options: GridOptions;
   @Output() selectedRowsEvent: EventEmitter<any> = new EventEmitter<any>();
-  @ViewChild('datagrid') datagrid: ClrDatagrid;
-  @ViewChild('pagination') pagination: ClrDatagridPagination;
+  @ViewChild('datagrid', { static: true }) datagrid: ClrDatagrid;
+  @ViewChild('pagination', { static: true }) pagination: ClrDatagridPagination;
 
   loading = false;
   rows: Array<any> = [];

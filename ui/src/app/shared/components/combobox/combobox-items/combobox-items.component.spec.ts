@@ -22,7 +22,7 @@ import { ClarityModule } from '@clr/angular';
         </concord-combobox-items>`
 })
 class TestHostComponent {
-  @ViewChild(VmwComboboxItemsComponent)
+  @ViewChild(VmwComboboxItemsComponent, /* TODO: add static flag */ {})
   // @ts-ignore: no unused locals
   private comboboxItemsComponent: VmwComboboxItemsComponent;
   position = 'bottom-left';

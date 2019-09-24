@@ -34,7 +34,7 @@ import { TourService } from '../../shared/tour.service';
 export class SmartContractVersionComponent implements OnChanges, OnInit {
 
   @Input() version: SmartContractVersion;
-  @ViewChild('payloadPreviewModal') payloadPreviewModal: ContractPayloadPreviewFormComponent;
+  @ViewChild('payloadPreviewModal', { static: true }) payloadPreviewModal: ContractPayloadPreviewFormComponent;
   functions;
   versionForm: FormGroup;
   inputs = [];

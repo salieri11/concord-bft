@@ -36,8 +36,8 @@ enum LogQueryTypes {
   styleUrls: ['./logging.component.scss']
 })
 export class LoggingComponent implements OnInit {
-  @ViewChild('exportLogEventsModal') exportLogEventsModal: ExportLogEventsModalComponent;
-  @ViewChild('exportChartDataModal') exportChartDataModal: ExportChartDataModalComponent;
+  @ViewChild('exportLogEventsModal', { static: true }) exportLogEventsModal: ExportLogEventsModalComponent;
+  @ViewChild('exportChartDataModal', { static: true }) exportChartDataModal: ExportChartDataModalComponent;
   logs: LogListEntry[] = [];
   logCounts: LogCountEntry[] = [];
   totalCount: number = null;

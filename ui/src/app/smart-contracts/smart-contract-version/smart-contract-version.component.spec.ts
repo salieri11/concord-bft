@@ -52,7 +52,7 @@ const initialVersion = {
     `
 })
 class TestWrapperClassComponent {
-  @ViewChild('versionComponent') versionComponent: SmartContractVersionComponent;
+  @ViewChild('versionComponent', /* TODO: add static flag */ {}) versionComponent: SmartContractVersionComponent;
   version: SmartContractVersion = initialVersion;
 }
 

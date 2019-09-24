@@ -37,9 +37,9 @@ export class VmwComboboxComponent implements ControlValueAccessor, OnInit {
 
   public showSuggestions = false;
 
-  @ViewChild(VmwComboboxItemsComponent)
+  @ViewChild(VmwComboboxItemsComponent, { static: false })
   private comboboxItems: VmwComboboxItemsComponent;
-  @ViewChild('inputControl')
+  @ViewChild('inputControl', { static: false })
   private input: ElementRef;
   // ControlValueAccessor interface implementation.
   private onChangeCallback: (_: any) => {};

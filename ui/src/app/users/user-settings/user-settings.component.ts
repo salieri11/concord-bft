@@ -19,7 +19,7 @@ import { EthWallet } from '../../shared/eth-api.model';
   styleUrls: ['./user-settings.component.scss']
 })
 export class UserSettingsComponent implements OnInit {
-  @ViewChild('walletForm') walletForm: WalletFormComponent;
+  @ViewChild('walletForm', { static: true }) walletForm: WalletFormComponent;
   user: User;
   userWallet: EthWallet = null;
 
