@@ -109,7 +109,7 @@ class PersephoneTests(test_suite.TestSuite):
       self.args.fileRoot = fileRoot
       self.deploy_and_verify_ipam_on_4_node_fixed_site()
 
-      if self.rpc_test_helper.deployed_session_ids:
+      if self.rpc_test_helper.deployment_info:
          fileRoot = os.path.join(self._testLogDir, "undeploy_all_clusters")
          os.makedirs(fileRoot, exist_ok=True)
          self.args.fileRoot = fileRoot
@@ -210,9 +210,9 @@ class PersephoneTests(test_suite.TestSuite):
       log.info("**** Undeploy all created blockchain clusters ****")
 
       undeployed_status = None
-      for session_id_set in self.rpc_test_helper.deployed_session_ids:
-         session_id = session_id_set[0]
-         stub = session_id_set[1]
+      for deployment_info in self.rpc_test_helper.deployment_info:
+         session_id = deployment_info["deployment_session_id"]
+         stub = deployment_info["stub"]
 
          cleaned_up = False
          if session_id[0] not in self.session_ids_to_retain:
@@ -552,15 +552,31 @@ class PersephoneTests(test_suite.TestSuite):
 
          ethrpc_endpoints = self.get_ethrpc_endpoints(response_events_json,
                                                       concord_type)
+         concord_memeber_credentials = \
+            self._userConfig["persephoneTests"]["provisioningService"][
+               "concordNode"]
+         concord_username = concord_memeber_credentials["username"]
+         concord_password = concord_memeber_credentials["password"]
+
+         if session_id:
+            replicas = []
+            for endpoint in ethrpc_endpoints:
+               replica_ip = endpoint.split('//')[1].split(':')[0]
+               replicas.append(replica_ip)
+
+            for deployment_info in self.rpc_test_helper.deployment_info:
+               if deployment_info["deployment_session_id"][0] == session_id:
+                  log.debug(
+                     "Updating more info for deployment ID: {}".format(session_id))
+                  deployment_info["replicas"] = replicas
+                  deployment_info["concord_username"] = concord_username
+                  deployment_info["concord_password"] = concord_password
+                  deployment_info["docker_containers"] = expected_docker_containers
+                  deployment_info["log_dir"] = self.args.fileRoot
+
          if len(ethrpc_endpoints) == cluster_size:
             log.info("Fetched ethrpc endpoints successfully: {}".format(
                ethrpc_endpoints))
-
-            concord_memeber_credentials = \
-               self._userConfig["persephoneTests"]["provisioningService"][
-                  "concordNode"]
-            concord_username = concord_memeber_credentials["username"]
-            concord_password = concord_memeber_credentials["password"]
             log.info("Initiating SSH verification on all concord nodes...")
             for ethrpc_endpoint in ethrpc_endpoints:
                concord_ip = ethrpc_endpoint.split('//')[1].split(':')[0]
@@ -713,6 +729,21 @@ class PersephoneTests(test_suite.TestSuite):
             log.info("Adding Session ID to preserve list: \n{}".format(
                deployment_session_id))
             self.session_ids_to_retain.append(deployment_session_id)
+
+         # Create support bundle
+         if not status:
+            for deployment_info in self.rpc_test_helper.deployment_info:
+               if deployment_info["deployment_session_id"][0] == deployment_session_id:
+                  if deployment_info["replicas"]:
+                     log.debug(
+                        "Call to create support-bundle for session ID: {}".format(
+                           deployment_session_id))
+                     helper.create_persephone_support_bundle(
+                                             deployment_info["replicas"],
+                                             deployment_info["concord_username"],
+                                             deployment_info["concord_password"],
+                                             deployment_info["docker_containers"],
+                                             deployment_info["log_dir"])
 
       return (status, msg)
 
@@ -1107,9 +1138,9 @@ class PersephoneTests(test_suite.TestSuite):
             all_deployment_session_ids_from_stream))
 
          status = False
-         for session_id_set in self.rpc_test_helper.deployed_session_ids:
-            session_id = session_id_set[0]
-            stub = session_id_set[1]
+         for deployment_info in self.rpc_test_helper.deployment_info:
+            session_id = deployment_info["deployment_session_id"]
+            stub = deployment_info["stub"]
 
             if stub is None: # check for default channel/stub only
                if helper.protobuf_message_to_json(

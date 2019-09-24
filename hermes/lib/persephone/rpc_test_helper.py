@@ -108,7 +108,7 @@ class RPCTestHelper():
          self.persephone_config_file = self.provision_rpc_helper.persephone_config_file
          self.grpc_server = self.provision_rpc_helper.grpc_server
 
-         self.deployed_session_ids = []
+         self.deployment_info = []
       except Exception as e:
          traceback.print_stack()
          raise Exception(e)
@@ -192,7 +192,12 @@ class RPCTestHelper():
          create_cluster_request, stub=stub)
 
       if session_id:
-         self.deployed_session_ids.append((session_id,stub))
+         self.deployment_info.append(
+            {"deployment_session_id": session_id,
+             "stub": stub
+             }
+         )
+
          log.debug("Session ID: ")
          for item in session_id:
             log.debug(item)
