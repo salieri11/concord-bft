@@ -946,6 +946,14 @@
         "title": "Replica Status",
         "text": "Hover over a replica on the map to see its health and status."
       },
+      "nodes": {
+        "title": "Replica List",
+        "text": "Here you can see the replicas' name, IP address (with port), and their general health status."
+      },
+      "organization": {
+        "title": "Organizations",
+        "text": "Here you can see the list of organizations in this consortium."
+      },
       "contractList": {
         "title": "Contract List",
         "text": "Here are recent contracts that have been added. As well as other lists with recent updates."

@@ -56,6 +56,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   blockchainType: string;
   infoLists: any[] = [];
+
   dashItems: {title: string, count: number, link: string[]}[];
 
   constructor(
@@ -138,7 +139,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
       headers: ['nodes.hostname', 'nodes.address', 'nodes.health'],
       displayProperties: ['name', 'public_ip', 'healthHTML'],
       tableHeader: 'nodes.nodes',
-      paginationSummary: 'nodes.paginationSummary'
+      paginationSummary: 'nodes.paginationSummary',
     };
   }
 
@@ -147,7 +148,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
       headers: ['organization.columns.name'],
       displayProperties: ['organization_name'],
       tableHeader: 'organization.title',
-      paginationSummary: 'organization.paginationSummary'
+      paginationSummary: 'organization.paginationSummary',
     };
   }
 
@@ -159,7 +160,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
       itemLink: (block) => {
         return [`/${this.blockchainId}`, 'blocks', block.number];
       },
-      paginationSummary: 'blocks.paginationSummary'
+      paginationSummary: 'blocks.paginationSummary',
     };
   }
 
@@ -171,7 +172,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
       itemLink: (contract) => {
         return [`/${this.blockchainId}`, 'smart-contracts', contract.contract_id];
       },
-      paginationSummary: 'smartContracts.paginationSummary'
+      paginationSummary: 'smartContracts.paginationSummary',
     };
   }
 
@@ -220,8 +221,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
           count: this.orgCount
         }];
         this.infoLists = [
-          {config: this.nodesConfig, items: this.nodes},
-          {config: this.organizationsConfig, items: this.orgs},
+          {config: this.nodesConfig, items: this.nodes, tourAnchor: 'onboardingTour.nodes'},
+          {config: this.organizationsConfig, items: this.orgs, tourAnchor: 'onboardingTour.organization'},
         ];
         break;
 
@@ -245,10 +246,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
         }];
 
         this.infoLists = [
-          {config: this.nodesConfig, items: this.nodes},
-          {config: this.organizationsConfig, items: this.orgs},
-          {config: this.contractsConfig, items: this.smartContracts},
-          {config: this.blocksConfig, items: this.blocks}
+          {config: this.nodesConfig, items: this.nodes, tourAnchor: 'onboardingTour.nodes'},
+          {config: this.organizationsConfig, items: this.orgs, tourAnchor: 'onboardingTour.organization'},
+          {config: this.contractsConfig, items: this.smartContracts, tourAnchor: 'onboardingTour.smartContracts'},
+          {config: this.blocksConfig, items: this.blocks, tourAnchor: 'onboardingTour.blocks'}
         ];
         break;
     }
