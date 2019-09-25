@@ -529,7 +529,7 @@ EOF
                     if (env.JOB_NAME.contains(performance_test_job_name)) {
                       sh '''
                         echo "Running Entire Testsuite: Performance..."
-                        echo "${PASSWORD}" | sudo -SE "${python}" main.py PerformanceTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${performance_test_logs}" --runConcordConfigurationGeneration
+                        echo "${PASSWORD}" | sudo -SE "${python}" main.py PerformanceTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${performance_test_logs}" --runConcordConfigurationGeneration --concordConfigurationInput /concord/config/dockerConfigurationInput-perftest.yaml
                       '''
                     }
                     if (env.JOB_NAME.contains(lint_test_job_name)) {
