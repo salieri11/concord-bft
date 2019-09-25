@@ -393,6 +393,12 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
 
     std::vector<KVBClient *> clients;
 
+    bool client_timing_enabled = config.getValue<bool>("client_timing_enabled");
+    std::chrono::steady_clock::duration client_timing_log_period =
+        std::chrono::seconds(
+            client_timing_enabled
+                ? config.getValue<uint32_t>("client_timing_log_period_sec")
+                : 0);
     std::chrono::milliseconds clientTimeout(
         nodeConfig.getValue<uint32_t>("bft_client_timeout_ms"));
     for (uint16_t i = 0;
@@ -406,7 +412,10 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
       IClient *client = concord::consensus::createClient(clientCommConfig,
                                                          clientConsensusConfig);
       client->start();
-      KVBClient *kvbClient = new KVBClient(client, clientTimeout, timePusher);
+      KVBClient *kvbClient =
+          new KVBClient(client, clientTimeout, timePusher,
+                        client_timing_enabled, client_timing_log_period,
+                        std::to_string(clientConsensusConfig.clientId));
       clients.push_back(kvbClient);
     }
 
