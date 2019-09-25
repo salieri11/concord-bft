@@ -20,12 +20,15 @@ class DamlValidatorClient {
       : stub_(com::digitalasset::kvbc::ValidationService::NewStub(channel)),
         replica_id_(replica_id) {}
 
-  grpc::Status Validate(
-      std::string entryId, std::string submission,
-      google::protobuf::Timestamp& recordTime,
+  grpc::Status Validate(std::string entryId, std::string submission,
+                        google::protobuf::Timestamp& recordTime,
+                        std::string participant_id,
+                        com::digitalasset::kvbc::ValidateResponse* out);
+
+  grpc::Status ProvideState(
+      std::string entryId,
       const std::map<std::string, std::string>& input_state_entries,
-      std::string participant_id,
-      com::digitalasset::kvbc::ValidateResponse* out);
+      com::digitalasset::kvbc::ProvideStateResponse* out);
 
  private:
   std::unique_ptr<com::digitalasset::kvbc::ValidationService::Stub> stub_;

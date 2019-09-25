@@ -93,7 +93,6 @@ bool DamlKvbCommandsHandler::ExecuteCommit(
   da_kvbc::ValidateResponse response;
   grpc::Status status =
       validator_client_->Validate(entryId, commit_req.submission(), record_time,
-                                  std::map<std::string, std::string>(),
                                   commit_req.participant_id(), &response);
   if (!status.ok()) {
     LOG4CPLUS_ERROR(logger_, "Validation failed " << status.error_code() << ": "
@@ -101,36 +100,37 @@ bool DamlKvbCommandsHandler::ExecuteCommit(
     return false;
   }
 
+  da_kvbc::ProvideStateResponse provide_state_response;
   if (response.has_need_state()) {
     LOG4CPLUS_DEBUG(logger_, "Validator requested input state");
     // The submission failed due to missing input state, retrieve the inputs and
     // retry.
     std::map<string, string> input_state_entries =
         GetFromStorage(response.need_state().keys());
-    validator_client_->Validate(entryId, commit_req.submission(), record_time,
-                                input_state_entries,
-                                commit_req.participant_id(), &response);
+    validator_client_->ProvideState(entryId, input_state_entries,
+                                    &provide_state_response);
     if (!status.ok()) {
       LOG4CPLUS_ERROR(logger_, "Validation failed " << status.error_code()
                                                     << ": "
                                                     << status.error_message());
       return false;
     }
-  }
-
-  if (!response.has_result()) {
+    assert(provide_state_response.has_result());
+  } else if (!response.has_result()) {
     LOG4CPLUS_ERROR(logger_, "Validation missing result!");
     return false;
   }
+  auto result = response.has_result() ? response.result()
+                                      : provide_state_response.result();
 
   // Insert the DAML log entry into the store.
-  auto logEntry = response.result().log_entry();
+  auto logEntry = result.log_entry();
   updates.insert(KeyValuePair(CreateSliver(entryId), CreateSliver(logEntry)));
 
   // Insert the DAML state updates into the store.
   // Currently just using the serialization of the DamlStateKey as the key
   // without any prefix.
-  for (auto kv : response.result().state_updates()) {
+  for (auto kv : result.state_updates()) {
     updates.insert(
         KeyValuePair(CreateSliver(kv.key()), CreateSliver(kv.value())));
   }
