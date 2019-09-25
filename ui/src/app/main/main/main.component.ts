@@ -39,16 +39,17 @@ export class MainComponent implements OnInit, OnDestroy {
   navDisabled = false;
   navOption: string;
   openDeployDapp: boolean;
-  routerFragmentChange: Subscription;
   enableRouterOutlet: Promise<boolean> | boolean = true;
   env: any;
   showErrorMessage: boolean = false;
   error: HttpErrorResponse;
-  alertSub: Subscription;
-  routingSub: Subscription;
   urls = External;
   disableDeploy: boolean;
   blockchainType: string;
+
+  alertSub: Subscription;
+  routingSub: Subscription;
+  routerFragmentChange: Subscription;
 
   // Blockchain Service is resolved in the router before loading
   get selectedConsortium(): string {
@@ -80,6 +81,7 @@ export class MainComponent implements OnInit, OnDestroy {
   ) {
     this.env = environment;
     this.blockchainType = this.blockchainService.type;
+
     this.alertSub = this.alertService.notify
       .subscribe(error => this.addAlert(error));
 
@@ -127,6 +129,7 @@ export class MainComponent implements OnInit, OnDestroy {
       this.router.navigate([`/${this.selectedConsortium}`, 'dashboard'])
         .then(() => {
           // This is to refresh all child components
+          this.blockchainType = this.blockchainService.type;
           setTimeout(() => {
             this.enableRouterOutlet = true;
           }, 10);

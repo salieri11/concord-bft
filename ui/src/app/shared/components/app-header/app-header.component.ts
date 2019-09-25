@@ -71,7 +71,7 @@ export class AppHeaderComponent implements OnDestroy, AfterViewInit {
   }
 
   ngOnDestroy(): void {
-    this.authenticationChange.unsubscribe();
+    if (this.authenticationChange) { this.authenticationChange.unsubscribe(); }
   }
 
   onLogOut() {

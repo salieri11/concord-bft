@@ -6,9 +6,8 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { Resolve, ActivatedRouteSnapshot } from '@angular/router';
-import { Observable, from, timer, zip, of, throwError } from 'rxjs';
+import { BehaviorSubject, Observable, from, timer, zip, of, throwError } from 'rxjs';
 import { concatMap, filter, map, take, flatMap, catchError } from 'rxjs/operators';
-import { BehaviorSubject } from 'rxjs';
 import { TranslateService } from '@ngx-translate/core';
 
 import { ConsortiumService } from '../../consortium/shared/consortium.service';
@@ -24,12 +23,10 @@ import {
 } from './blockchain.model';
 import { Apis } from '../../shared/urls.model';
 
-
 @Injectable({
   providedIn: 'root'
 })
 export class BlockchainService {
-  notify: BehaviorSubject<any> = new BehaviorSubject(null);
   taskId: string;
   blockchainId: string;
   selectedBlockchain: BlockchainResponse;
@@ -39,6 +36,8 @@ export class BlockchainService {
   nodesMap: any;
   metadata: any;
   type: ContractEngines;
+
+  notify: BehaviorSubject<any> = new BehaviorSubject(null);
 
   constructor(
     private http: HttpClient,
@@ -269,6 +268,7 @@ export class BlockchainsServiceMock {
   public zones = fakeZones;
   public blockchaindId = 1;
   public type = ContractEngines.ETH;
+
   public select(id: string): Observable<boolean> {
     return of(typeof id === 'string');
   }
