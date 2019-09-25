@@ -21,8 +21,7 @@ export class OnPremisesModalComponent implements AfterViewInit {
 
   constructor(private router: Router) { }
 
-  ngAfterViewInit() {
-  }
+  ngAfterViewInit() {}
 
   addOnPrem() {
     this.adding = true;

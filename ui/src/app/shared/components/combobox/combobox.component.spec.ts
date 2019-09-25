@@ -70,7 +70,7 @@ const select = (control: any, item: VmwComboboxItem) => {
       </concord-combobox>`
 })
 class TestHostComponent {
-  @ViewChild(VmwComboboxComponent, /* TODO: add static flag */ {})
+  @ViewChild(VmwComboboxComponent, { static: false })
   // @ts-ignore: no unused locals
   private comboboxComponent: VmwComboboxComponent;
   modelValue = '';

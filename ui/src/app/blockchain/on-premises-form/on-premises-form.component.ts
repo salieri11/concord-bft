@@ -72,7 +72,7 @@ export class OnPremisesFormComponent implements AfterViewInit {
   focusInput() {
     setTimeout(() => {
       this.ipInput.nativeElement.focus();
-    }, 10);
+    }, 300);
   }
 
   private getOnPremInfo() {

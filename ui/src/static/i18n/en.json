@@ -196,7 +196,8 @@
   },
   "blocks": {
     "title": "Block",
-    "blocks": "Current Block",
+    "blocks": "Blocks",
+    "currentBlock": "Current Block",
     "blockActivity": "Block Activity",
     "number": "Block Number",
     "index": "Index",

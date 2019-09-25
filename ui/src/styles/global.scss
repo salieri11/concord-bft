@@ -244,11 +244,12 @@ body.dark {
 }
 
 .list-container .datagrid-action-bar {
-  margin-top: -2rem;
+  margin-top: -2.5rem;
   margin-bottom: 1rem;
 
   .btn-group {
     float: right;
+    margin-right: 0;
   }
 }
 
