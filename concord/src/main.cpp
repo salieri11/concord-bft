@@ -111,13 +111,14 @@ static const int kDamlServerMsgSizeMax = 50 * 1024 * 1024;
 void signalHandler(int signum) {
   try {
     Logger logger = Logger::getInstance("com.vmware.concord.main");
-    LOG4CPLUS_INFO(logger,
-                   "Signal received (" << signum << "), stopping API service");
+    LOG4CPLUS_INFO(logger, "Signal received (" << signum << ")");
 
     if (api_service) {
+      LOG4CPLUS_INFO(logger, "Stopping API service");
       api_service->stop();
     }
     if (daml_grpc_server) {
+      LOG4CPLUS_INFO(logger, "Stopping DAML gRPC service");
       daml_grpc_server->Shutdown();
     }
   } catch (exception &e) {
@@ -416,6 +417,7 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
     }
 
     signal(SIGINT, signalHandler);
+    signal(SIGABRT, signalHandler);
     signal(SIGTERM, signalHandler);
 
     // API server
@@ -424,12 +426,8 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
       std::string daml_addr{
           nodeConfig.getValue<std::string>("daml_service_addr")};
 
-      // Limit the amount of gRPC threads to double the amount of client
-      // proxies per replica. The DAML test tool cannot handle the
-      // out-of-ressource error and 8 was the first number that worked after
-      // trying 2 and 4 first.
-      int max_num_threads =
-          config.getValue<int>("client_proxies_per_replica") * 8;
+      // Limit the amount of gRPC threads
+      int max_num_threads = nodeConfig.getValue<int>("daml_service_threads");
 
       // Spawn a thread in order to start management API server as well
       std::thread(RunDamlGrpcServer, daml_addr, std::ref(pool), &replica,
