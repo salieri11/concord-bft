@@ -1,1 +1,5 @@
-{"cspEnv": "staging", "refLink": "https://localhost.vmware.com"}
+{
+    "cspEnv": "staging",
+    "refLink": "https://localhost.vmware.com",
+    "featureFlagsSource": "static/feature-flag.json"
+}
