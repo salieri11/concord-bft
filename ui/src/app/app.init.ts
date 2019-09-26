@@ -6,10 +6,15 @@
 import { Injectable } from '@angular/core';
 import { from } from 'rxjs';
 import { map } from 'rxjs/operators';
+import { FeatureFlagService } from './shared/feature-flag.service';
 declare var window: any;
 
 @Injectable()
 export class AppInitService {
+
+  constructor(
+    private featureFlagService: FeatureFlagService
+  ) {}
 
   // This is the method you want to call at bootstrap
   // Important: It should return a Promise
@@ -19,9 +24,13 @@ export class AppInitService {
           return response.json();
         })
       ).pipe(
-        map((config) => {
-        window.config = config;
-        return;
-      })).toPromise();
+        map(async (config) => {
+          window.config = config;
+          try {
+            // `app-config` has the import path URL of feature flags
+            await this.featureFlagService.importFromSource(config.featureFlagsSource);
+          } catch (e) { console.log(e); }
+        })
+    ).toPromise();
   }
 }

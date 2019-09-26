@@ -172,6 +172,7 @@ services:
       - helen
     volumes:
       - ./ui/app-config.json:/usr/share/nginx/html/static/app-config.json
+      - ./ui/feature-flag.json:/usr/share/nginx/html/static/feature-flag.json
 
   contract-compiler:
     image: "${contract_compiler_repo}:${contract_compiler_tag}"

@@ -1,1 +1,4 @@
-{"cspEnv": "staging"}
+{
+    "cspEnv": "staging",
+    "featureFlagsSource": "static/feature-flag.json"
+}
