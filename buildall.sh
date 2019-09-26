@@ -19,6 +19,7 @@ trap killAllProcs INT
 # Kill all processes.
 killAllProcs(){
   error "A problem or interrupt occurred. Killing processes..."
+  saveTimeEvent "Kill all processes" Start
 
   for i in "${!BUILD_PROCS[@]}"
   do
@@ -27,6 +28,8 @@ killAllProcs(){
       kill ${BUILD_PROCS[$i]}
     fi
   done
+
+  saveTimeEvent "Kill all processes" End
 }
 
 # A sanity check for Docker. Exits if not present.
@@ -88,6 +91,7 @@ waitForProcesses(){
 	info "${BUILD_PROC}: waiting"
       else
         info "${BUILD_PROC}: done"
+        saveTimeEvent "Build ${BUILD_PROC}" End
         dieOnFailure "${BUILD_PROC}" ${BUILD_PROCS[$BUILD_PROC]}
         SUCCESSES+=("${BUILD_PROC}")
       fi
@@ -117,6 +121,7 @@ dieOnFailure(){
 # them to the BUILD_PROCS array of name=procId.
 addToProcList(){
   info "Adding build process: ${1}=${2}"
+  saveTimeEvent "Build ${1}" Start
   BUILD_PROCS["${1}"]=${2}
 }
 
@@ -285,6 +290,12 @@ do
     fi
 done
 
+# For saveTimeEvent
+. hermes/lib/shell/common_shell.sh
+BLOCKCHAIN_DIR=`dirname "$(readlink -f $0)"`
+EVENTS_FILE="${BLOCKCHAIN_DIR}/../times.json"
+EVENTS_RECORDER="${BLOCKCHAIN_DIR}/hermes/event_recorder.py"
+
 info "Loading repos/tags for docker images from docker/.env"
 . docker/.env
 version_label="com.vmware.blockchain.version"
@@ -293,8 +304,10 @@ commit_label="com.vmware.blockchain.commit"
 verifyDocker
 
 info "Installing node package dependencies..."
+saveTimeEvent "Install node dependencies" Start
 install_node_dependency "node dependency for UI" "ui"
 install_node_dependency "node dependency for contract-compiler" "contract-compiler"
+saveTimeEvent "Install node dependencies" End
 
 info "Building..."
 docker_build . concord/Dockerfile ${concord_repo} ${concord_tag}
