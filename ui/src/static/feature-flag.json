@@ -1,9 +1,3 @@
 {
-    "coerceFlagValues": false,
-    "someFlag": true,
-    "nested": {
-      "nest2":{
-        "flag": true
-      }
-    }
+    "coerceFlagValues": false
 }
