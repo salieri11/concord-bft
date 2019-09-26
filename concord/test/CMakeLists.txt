@@ -62,7 +62,8 @@ add_executable(ReplicaStateSyncTests
   ../src/storage/concord_metadata_storage.cpp
   ../src/utils/concord_eth_hash.cpp
   ../src/utils/rlp.cpp
-  replicaStateSync_test.cpp)
+  replicaStateSync_test.cpp
+  $<TARGET_OBJECTS:logging_dev>)
 
 target_link_libraries(ReplicaStateSyncTests
   ${GTEST_LIBRARIES}

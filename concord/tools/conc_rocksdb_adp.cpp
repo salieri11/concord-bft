@@ -55,17 +55,18 @@ std::vector<Sliver> get_data(BlockId from, BlockId to,
   return result;
 }
 
-void compute_digest(uint8_t *data, size_t length, uint8_t *output,
+void compute_digest(const char *data, size_t length, char *output,
                     size_t outputLenght, size_t &actualOutputLength) {
   assert(output);
   assert(outputLenght >= CryptoPP::Keccak_256::DIGESTSIZE);
   CryptoPP::Keccak_256 keccak;
   actualOutputLength = CryptoPP::Keccak_256::DIGESTSIZE;
-  keccak.CalculateDigest(output, data, length);
+  keccak.CalculateDigest((CryptoPP::byte *)output, (const CryptoPP::byte *)data,
+                         length);
 }
 
 void print_result(vector<Sliver> &results,
-                  void (*transform)(uint8_t *, size_t, uint8_t *, size_t,
+                  void (*transform)(const char *, size_t, char *, size_t,
                                     size_t &) = nullptr) {
   if (results.size() == 0) {
     cout << "Not found" << endl << "Total size :0" << endl;
@@ -77,8 +78,8 @@ void print_result(vector<Sliver> &results,
            << "------- start, data size " << data.length() << "---------";
       cout << endl;
 
-      uint8_t printData[1024];
-      uint8_t *printPtr = nullptr;
+      char printData[1024];
+      const char *printPtr;
       size_t printLength = 0;
       if (transform) {
         printPtr = printData;

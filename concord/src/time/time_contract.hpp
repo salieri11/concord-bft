@@ -55,7 +55,7 @@ namespace concord {
 namespace time {
 
 const int64_t kTimeStorageVersion = 1;
-const uint8_t kTimeKey = 0x20;
+const char kTimeKey = 0x20;
 
 class TimeContract {
  public:
@@ -79,7 +79,7 @@ class TimeContract {
         verifier_(),
         samples_(nullptr),
         changed_(false),
-        time_key_(new uint8_t[1]{kTimeKey}, 1) {
+        time_key_(new char[1]{kTimeKey}, 1) {
     if (config.hasValue<std::string>("time_verification")) {
       if (config.getValue<std::string>("time_verification") ==
           "rsa-time-signing") {

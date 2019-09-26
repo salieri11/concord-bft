@@ -21,11 +21,9 @@ Sliver ConcordMetadataStorage::SerializeBlockMetadata(
   // pointer to the buffer we return, and they would all see the modification we
   // would make later.
   size_t serialized_size = block_metadata_.ByteSize();
-  uint8_t* raw_buffer = new uint8_t[serialized_size];
-  Sliver block_metadata_buffer(raw_buffer, serialized_size);
-  block_metadata_.SerializeToArray(block_metadata_buffer.data(),
-                                   block_metadata_buffer.length());
-  return block_metadata_buffer;
+  char* raw_buffer = new char[serialized_size];
+  block_metadata_.SerializeToArray(raw_buffer, serialized_size);
+  return Sliver(raw_buffer, serialized_size);
 }
 
 uint64_t ConcordMetadataStorage::GetBlockMetadata(Sliver& key) {

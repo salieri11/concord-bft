@@ -9,7 +9,7 @@
 ##         from parent: docker build -f concord/Dockerfile .
 
 ## Build image
-FROM athena-docker-local.artifactory.eng.vmware.com/concord-core:prereqs-v12
+FROM athena-docker-local.artifactory.eng.vmware.com/concord-core:prereqs-v13
 
 ## Remember context is the parent of this directory
 COPY ./communication /communication
@@ -57,9 +57,6 @@ RUN apt-get update \
 # SYMLINK NOTE: If you COPY a symlink, docker will copy the contents
 # of the target file to a new file, doubling the space used in the
 # image.
-
-COPY --from=0 /usr/local/lib/libcryptopp.so.5.6 /usr/local/lib/
-RUN ln -s /usr/local/lib/libcryptopp.so.5.6 /usr/local/lib/libcryptopp.so
 
 COPY --from=0 /usr/local/lib/liblog4cplus-1.2.so.5.1.6 /usr/local/lib/
 RUN ln -s /usr/local/lib/liblog4cplus-1.2.so.5.1.6 /usr/local/lib/liblog4cplus-1.2.so.5

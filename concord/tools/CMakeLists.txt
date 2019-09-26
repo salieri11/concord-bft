@@ -100,7 +100,7 @@ target_link_libraries(ecsign
                       secp256k1
                       ${Cryptopp_LIBRARIES})
 
-add_executable(conc_rocksdb_adp "conc_rocksdb_adp.cpp")
+add_executable(conc_rocksdb_adp "conc_rocksdb_adp.cpp" $<TARGET_OBJECTS:logging_dev>)
 target_link_libraries(conc_rocksdb_adp concord_consensus log4cplus concordbft_storage)
 target_include_directories(conc_rocksdb_adp PUBLIC ${Cryptopp_INCLUDE_DIRS})
 

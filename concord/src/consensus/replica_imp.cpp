@@ -538,7 +538,7 @@ Sliver ReplicaImp::createBlockFromUpdates(
   const uint32_t blockSize = metadataSize + blockBodySize;
 
   try {
-    uint8_t *blockBuffer = new uint8_t[blockSize];
+    char *blockBuffer = new char[blockSize];
     memset(blockBuffer, 0, blockSize);
     Sliver blockSliver(blockBuffer, blockSize);
 
@@ -585,7 +585,7 @@ Sliver ReplicaImp::createBlockFromUpdates(
     LOG4CPLUS_ERROR(
         Logger::getInstance("com.vmware.concord.kvb"),
         "Failed to alloc size " << blockSize << ", error: " << ba.what());
-    uint8_t *emptyBlockBuffer = new uint8_t[1];
+    char *emptyBlockBuffer = new char[1];
     memset(emptyBlockBuffer, 0, 1);
     return Sliver(emptyBlockBuffer, 1);
   }
@@ -773,7 +773,7 @@ bool ReplicaImp::BlockchainAppState::getPrevDigestFromBlock(
     exit(1);
   }
 
-  BlockHeader *bh = reinterpret_cast<BlockHeader *>(result.data());
+  const BlockHeader *bh = reinterpret_cast<const BlockHeader *>(result.data());
   assert(outPrevBlockDigest);
   memcpy(outPrevBlockDigest, bh->parentDigest, bh->parentDigestLength);
   return true;
@@ -784,7 +784,7 @@ bool ReplicaImp::BlockchainAppState::getPrevDigestFromBlock(
  */
 bool ReplicaImp::BlockchainAppState::putBlock(uint64_t blockId, char *block,
                                               uint32_t blockSize) {
-  uint8_t *tmpBlockPtr = new uint8_t[blockSize];
+  char *tmpBlockPtr = new char[blockSize];
   memcpy(tmpBlockPtr, block, blockSize);
   Sliver s(tmpBlockPtr, blockSize);
 
