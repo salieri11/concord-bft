@@ -156,6 +156,9 @@ install_node_dependency() {
   pushd .
   cd "$COMPONENT_DIR"
   npm config set registry http://build-artifactory.eng.vmware.com:80/artifactory/api/npm/npm
+  . ~/.nvm/nvm.sh
+  nvm install 11.15.0
+  nvm alias default 11.15.0
   npm install > "node_install_${COMPONENT_DIR}.log" 2>&1 &
   NODE_BUILD_PID=$!
   addToProcList "${NAME}" $!
