@@ -3,6 +3,8 @@ syntax = "proto3";
 package vmware.blockchain.ethereum.type;
 /* [END declaration] */
 
+option go_package = "vmware.com/blockchain/ethereum/type";
+
 /* [START java_declaration] */
 option java_package = "com.vmware.blockchain.ethereum.type";
 option java_multiple_files = true;

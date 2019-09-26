@@ -5,6 +5,8 @@ package vmware.blockchain.deployment.v1;
 import "vmware/blockchain/deployment/v1/core.proto";
 /* [END declaration] */
 
+option go_package = "vmware.com/blockchain/deployment/v1;deployment";
+
 /* [START java_declaration] */
 option java_package = "com.vmware.blockchain.deployment.v1";
 option java_multiple_files = true;
