@@ -3260,6 +3260,16 @@ void specifyConfiguration(ConcordConfiguration& config) {
                         "0.0.0.0:55000");
   node.tagParameter("daml_execution_engine_addr", defaultableByReplicaTags);
 
+  // If the worker pool is exhausted then the gRPC server will return
+  // RESOURCE_EXHAUSTED.
+  node.declareParameter("daml_service_threads",
+                        "Number of threads to be used by the gRPC server.",
+                        "32");
+  node.tagParameter("daml_service_threads", defaultableByReplicaTags);
+  node.addValidator(
+      "daml_service_threads", validateUInt,
+      const_cast<void*>(reinterpret_cast<const void*>(&kUInt16Limits)));
+
   node.declareParameter(
       "bft_client_timeout_ms",
       "How long to wait for a command execution response, in milliseconds. "
