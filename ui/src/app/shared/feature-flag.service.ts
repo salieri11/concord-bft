@@ -39,11 +39,7 @@ export class FeatureFlagService {
 
   private computeResultCache: Map<string, boolean> = new Map<string, boolean>();
 
-  constructor() {
-    setTimeout(() => {
-      console.log(this.featureFlagsSource);
-    }, 1000);
-  }
+  constructor() {}
 
   /* Getters */
 

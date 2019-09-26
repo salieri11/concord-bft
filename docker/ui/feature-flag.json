@@ -1,5 +1,4 @@
 {
-    "CoerceFlagValues": false,
-    "AutoComputeFlags": false,
-    "CacheDirectiveExpressions": true
+    "fromDocker": true,
+    "coerceFlagValues": false
 }
