@@ -375,6 +375,7 @@ export class FeatureFlagService {
     for (const key of Object.keys(valueMap)) {
       const pathNow = (path === null) ? key : path + '.' + key;
       const value = valueMap[key];
+      if (key.indexOf('.') >= 0) { this.setFlag(key, value); continue; }
       if (value && typeof value === 'object') {
         if (!target[key]) { target[key] = {}; }
         if (!targetBooleans[key]) { targetBooleans[key] = {}; }
