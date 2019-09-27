@@ -192,14 +192,15 @@ def sftp_client(host, username, password, src, dest, action="download", log_mode
 
       sftp = paramiko.SFTPClient.from_transport(transport)
 
-      cmd_verify_ftp = "ls {}".format(dest)
       if action.lower() == "download":
          sftp.get(src, dest)
-         if execute_ext_command(cmd_verify_ftp.split()):
+         cmd_verify_ftp = ["ls", dest]
+         if execute_ext_command(cmd_verify_ftp):
             log.debug("File downloaded successfully: {}".format(dest))
             result = True
       else:
          sftp.put(src, dest)
+         cmd_verify_ftp = "ls {}".format(dest)
          ssh_output = ssh_connect(host, username,password, cmd_verify_ftp)
          log.debug(ssh_output)
          if ssh_output:
@@ -384,11 +385,11 @@ def verify_daml_connectivity(concord_ip, port=6865):
 
    return False
 
-def create_persephone_support_bundle(replicas, concord_username,
+def create_concord_support_bundle(replicas, concord_username,
                                      concord_password, containers,
                                      test_log_dir):
    '''
-   Helper method to create persephone support bundle and upload to result dir
+   Helper method to create concord support bundle and upload to result dir
    :param replicas: List of concord nodes
    :param concord_username: concord username
    :param concord_password: password for username
@@ -453,6 +454,7 @@ def create_persephone_support_bundle(replicas, concord_username,
                         log.error(
                            "Failed to copy support bundle from concord '{}'".format(
                               concord_ip))
+                     break
 
             if not supput_bundle_created:
                log.error(

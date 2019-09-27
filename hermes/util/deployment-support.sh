@@ -56,7 +56,9 @@ gather_docker_logs() {
       container_log="${SUPPORT_BUNDLE_PATH}/${container}.log"
       docker logs "${container}" > "${container_log}" 2>&1
    done
+}
 
+bundle_support_logs() {
    info "Installing 'tar' binary..."
    tdnf install -y tar
    RC=$?
@@ -65,9 +67,7 @@ gather_docker_logs() {
       error "Failed to install 'tar' binary on the concord node"
       exit 1
    fi
-}
 
-bundle_support_logs() {
    info "Bundling logs..."
    compressed_support_bundle="${SUPPORT_BUNDLE_BASE_PATH}/${SUPPORT_BUNDLE_DIR_NAME}.tar.gz"
    tar cfz "${compressed_support_bundle}" "${SUPPORT_BUNDLE_PATH}" "/config"

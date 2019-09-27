@@ -738,7 +738,7 @@ class PersephoneTests(test_suite.TestSuite):
                      log.debug(
                         "Call to create support-bundle for session ID: {}".format(
                            deployment_session_id))
-                     helper.create_persephone_support_bundle(
+                     helper.create_concord_support_bundle(
                                              deployment_info["replicas"],
                                              deployment_info["concord_username"],
                                              deployment_info["concord_password"],
