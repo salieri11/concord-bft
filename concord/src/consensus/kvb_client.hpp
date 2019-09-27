@@ -6,8 +6,10 @@
 #define CONCORD_CONSENSUS_KVB_CLIENT_HPP_
 
 #include <log4cplus/loggingmacros.h>
-#include <boost/lockfree/queue.hpp>
 #include <chrono>
+#include <condition_variable>
+#include <mutex>
+#include <queue>
 #include <vector>
 
 #include "client_imp.h"
@@ -75,8 +77,30 @@ class KVBClient {
 class KVBClientPool {
  private:
   log4cplus::Logger logger_;
-  boost::lockfree::queue<KVBClient *> clients_;
   std::shared_ptr<concord::time::TimePusher> time_pusher_;
+
+  // Total number of clients under control of this pool.
+  size_t client_count_;
+
+  // Clients that are available for use (i.e. not already in use).
+  std::queue<KVBClient *> clients_;
+
+  // Mutex to grab before modifying clients_.
+  std::mutex clients_mutex_;
+
+  // Condition to wait on if clients_ is empty;
+  std::condition_variable clients_condition_;
+
+  // Non-starvation: which spot to grab in the line waiting on the condition.
+  uint64_t next_ticket_;
+  // Non-starvation: which spot in the waiting line is allowed to claim the next
+  // client.
+  uint64_t now_serving_;
+
+  // Flag signaling that the pool is shutting down. Once this flag is set,
+  // clients_ should only be taken out of the pool to be destroyed, not to be
+  // used for sending client requests.
+  bool shutdown_;
 
  public:
   // Constructor for KVBClientPool. clients should be a vector of pointers

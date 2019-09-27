@@ -72,39 +72,77 @@ KVBClientPool::KVBClientPool(std::vector<KVBClient *> &clients,
                              shared_ptr<TimePusher> time_pusher)
     : logger_(
           log4cplus::Logger::getInstance("com.vmware.concord.KVBClientPool")),
-      clients_(clients.size()),
-      time_pusher_(time_pusher) {
+      time_pusher_(time_pusher),
+      client_count_{clients.size()},
+      clients_(),
+      clients_mutex_(),
+      clients_condition_(),
+      next_ticket_{0},
+      now_serving_{clients.size()},
+      shutdown_{false} {
   for (auto it = clients.begin(); it < clients.end(); it++) {
     clients_.push(*it);
   }
 }
 
 KVBClientPool::~KVBClientPool() {
-  while (true) {
-    KVBClient *client;
-    if (!clients_.pop(client)) {
-      LOG4CPLUS_INFO(logger_, "Client cleanup complete");
-      break;
-    }
+  std::unique_lock<std::mutex> clients_lock(clients_mutex_);
+  // stop new requests
+  shutdown_ = true;
+
+  while (client_count_ > 0) {
+    // TODO: timeout
+    clients_condition_.wait(clients_lock,
+                            [this] { return !this->clients_.empty(); });
 
     LOG4CPLUS_DEBUG(logger_, "Stopping and deleting client");
+    KVBClient *client = clients_.front();
+    clients_.pop();
     delete client;
+    client_count_--;
   }
+  LOG4CPLUS_INFO(logger_, "Client cleanup complete");
 }
 
 bool KVBClientPool::send_request_sync(ConcordRequest &req, bool isReadOnly,
                                       ConcordResponse &resp) {
-  while (true) {
-    KVBClient *client;
-    if (!clients_.pop(client)) {
-      boost::this_thread::yield();
-      continue;
-    }
+  KVBClient *client;
+  {
+    std::unique_lock<std::mutex> clients_lock(clients_mutex_);
 
-    bool result = client->send_request_sync(req, isReadOnly, resp);
+    // Avoid starvation by forcing waiters to be unblocked in the order they
+    // started waiting.
+    uint64_t my_ticket = next_ticket_++;
+
+    // TODO: timeout
+    clients_condition_.wait(clients_lock, [this, my_ticket] {
+      // Only continue if either the node is shutting down, or if it's this
+      // thread's turn.
+      return this->shutdown_ || now_serving_ > my_ticket;
+    });
+
+    if (shutdown_) {
+      ErrorResponse *err = resp.add_error_response();
+      err->set_description("Node is shutting down.");
+      return true;
+    }
+    client = clients_.front();
+    clients_.pop();
+  }  // scope unlocks mutex
+
+  bool result = client->send_request_sync(req, isReadOnly, resp);
+
+  {
+    std::unique_lock<std::mutex> clients_lock(clients_mutex_);
     clients_.push(client);
-    return result;
-  }
+    now_serving_++;
+
+    // Wake all waiters, to be sure that the one with the next ticket can claim
+    // the client just pushed.
+    clients_condition_.notify_all();
+  }  // scope unlocks mutex
+
+  return result;
 }
 
 void KVBClientPool::SetTimePusherPeriod(const Duration &period) {
