@@ -905,6 +905,8 @@ EOF
         }
 
         archiveArtifacts artifacts: "**/*.log", allowEmptyArchive: true
+        archiveArtifacts artifacts: "**/testLogs/**/*.csv", allowEmptyArchive: true
+        archiveArtifacts artifacts: "**/testLogs/**/*.txt", allowEmptyArchive: true
         archiveArtifacts artifacts: "**/*.json", allowEmptyArchive: true
         archiveArtifacts artifacts: "**/*.html", allowEmptyArchive: true
 
