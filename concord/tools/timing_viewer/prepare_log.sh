@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Extract and transform replica timing logs for use with d3 viewer.
+# Extract and transform timing logs for use with d3 viewer.
 #
 # Usage: prepare_log.sh log_file [additional log files ...]
 #

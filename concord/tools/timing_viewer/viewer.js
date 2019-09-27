@@ -9,6 +9,7 @@
 // these: "..._avg_us", "..._p50_us", "..._min_us", and "..._max_us".
 var times = ["parse", "time_update", "time_response", "execute", "serialize",
              "evmrun", "evmcreate", "evmwrite"];
+var client_times = ["bft_time"];
 
 // set the dimensions and margins of the graph
 var margin = {top: 10, right: 45, bottom: 30, left: 60},
@@ -40,6 +41,7 @@ for (var i in times) {
 // super nice to have this global available in the JS console for
 // interactive debugging.
 var parsed = {};
+var parsed_clients = {};
 
 // Load all data before rendering anything, so that we can scale
 // graphs equally in rows, and align them all on time.
@@ -65,10 +67,25 @@ q.await(function(error, ...all_data) {
 function parse_data(all_data) {
     for (var i in all_data) {
         viz.select("#header").append("th").text(filenames[i]);
-        parsed[filenames[i]] = all_data[i].map(function(l) {
-            return { date : d3.timeParse("%Y-%m-%dT%H:%M:%S.%L")(l.Time),
-                     Gauges: l.Gauges }
-        });
+        parsed[filenames[i]] = all_data[i]
+            .filter(function(l) { return l.Name == "concord_commands_handler" })
+            .map(function(l) {
+                return { date : d3.timeParse("%Y-%m-%dT%H:%M:%S.%L")(l.Time),
+                         Gauges: l.Gauges }
+            });
+        parsed_clients[filenames[i]] = all_data[i]
+            .reduce(
+                function(acc, l) {
+                    if (l.Name.startsWith("client_")) {
+                        if (!(l.Name in acc)) {
+                            acc[l.Name] = [];
+                        }
+                        acc[l.Name].push({ date : d3.timeParse("%Y-%m-%dT%H:%M:%S.%L")(l.Time),
+                                           Gauges: l.Gauges });
+                    }
+                    return acc;
+                },
+                {});
     }
 }
 
@@ -84,8 +101,11 @@ function analyze_data() {
 
     var maxes = {};
     for (var i in times) {
-        // the zero is hear to ensure our graphs always start at zero
+        // the zero is here to ensure our graphs always start at zero
         maxes[times[i]] = {left: [0], right: [0]};
+    }
+    for (var i in client_times) {
+        maxes[client_times[i]] = {left: [0], right: [0]};
     }
 
     for (var i in filenames) {
@@ -93,12 +113,20 @@ function analyze_data() {
         dates.push(parsed[filenames[i]][0].date);
         dates.push(parsed[filenames[i]][parsed[filenames[i]].length-1].date);
 
+        for (var j in parsed_clients[filenames[i]]) {
+            dates.push(parsed_clients[filenames[i]][j][0].date);
+            dates.push(parsed_clients[filenames[i]][j][parsed_clients[filenames[i]][j].length-1].date);
+        }
+
         // This map is not needed - we could just reference the last
         // element of the maxes array, but it makes the code a little
         // cleaner.
         var graph_maxes = {};
         for (var j in times) {
             graph_maxes[times[j]] = {left: 0, right: 0};
+        }
+        for (var j in client_times) {
+            graph_maxes[client_times[j]] = {left: 0, right: 0};
         }
 
         graph_maxes = parsed[filenames[i]].reduce(
@@ -113,12 +141,30 @@ function analyze_data() {
             },
             graph_maxes);
 
+        for (var j in parsed_clients[filenames[i]]) {
+            graph_maxes = parsed_clients[filenames[i]][j].reduce(
+                function(gm, d) {
+                    for (var k in client_times) {
+                        gm[client_times[k]].left = Math.max(d.Gauges[client_times[k]+"_max_us"],
+                                                            gm[client_times[k]].left);
+                        gm[client_times[k]].right = Math.max(d.Gauges[client_times[k]+"_count"],
+                                                             gm[client_times[k]].right);
+                    }
+                    return gm;
+                },
+                graph_maxes);
+        }
+
         // We could just keep the one max across all hosts, but this
         // allows us to decide below whether we actually want to use
         // the max, or something between the maxes.
         for (var j in times) {
             maxes[times[j]].left.push(graph_maxes[times[j]].left);
             maxes[times[j]].right.push(graph_maxes[times[j]].right);
+        }
+        for (var j in client_times) {
+            maxes[client_times[j]].left.push(graph_maxes[client_times[j]].left);
+            maxes[client_times[j]].right.push(graph_maxes[client_times[j]].right);
         }
     }
     var x = d3.scaleTime()
@@ -140,6 +186,20 @@ function analyze_data() {
                         .range([ height, 0 ])
                       }
     }
+    for (var i in client_times) {
+        y[client_times[i]] = { left: d3.scaleLinear()
+                        // Clip large maxes on one host, instead of shrinking graphs
+                        // to unusability on other hosts.
+                        .domain([0, d3.mean(maxes[client_times[i]].left)])
+                        .range([ height, 0 ]),
+                        right: d3.scaleLinear()
+                        // The right hand scale is counts, which
+                        // should be the same on all hosts, so no need
+                        // to worry about one blowing the others out.
+                        .domain([0, d3.max(maxes[client_times[i]].right)])
+                        .range([ height, 0 ])
+                      }
+    }
 
     return {x, y};
 }
@@ -148,10 +208,11 @@ function analyze_data() {
 function render_data(scales) {
     for (var i in filenames) {
         render_host(parsed[filenames[i]], filenames[i], scales);
+        render_host_clients(parsed_clients[filenames[i]], filenames[i], scales);
     }
 }
 
-// Render one host's graphs
+// Render one host's replica graphs
 function render_host(host_data, host, scales) {
     for (var i in times) {
         var t = times[i];
@@ -159,6 +220,38 @@ function render_host(host_data, host, scales) {
         var y = scales.y[times[i]];
 
         render_graph(host_data, svg[t][host], t, x, y);
+    }
+}
+
+// Render one hosts's client graphs. This dynamically adds rows for
+// client stats, based on how many clients we actually see.
+function render_host_clients(host_data, host, scales) {
+    var client_index = 0;
+    for (var i in host_data) {
+        for (var j in client_times) {
+            var svg_row = j+client_index;
+            if (!((svg_row) in svg)) {
+                var row = viz.append("tr");
+                row.append("td")
+                    .text("client["+client_index+"] "+client_times[j]);
+                svg[svg_row] = {};
+                for (var k in filenames) {
+                    svg[svg_row][filenames[k]] = row.append("td").append("svg")
+                        .attr("width", width + margin.left + margin.right)
+                        .attr("height", height + margin.top + margin.bottom)
+                        .append("g")
+                        .attr("transform",
+                              "translate(" + margin.left + "," + margin.top + ")");
+                }
+            }
+
+            var t = client_times[j]
+            var x = scales.x;
+            var y = scales.y[t];
+
+            render_graph(host_data[i], svg[svg_row][host], t, x, y);
+        }
+        client_index++;
     }
 }
 

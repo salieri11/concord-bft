@@ -13,6 +13,7 @@
 #include "client_imp.h"
 #include "client_interface.h"
 #include "concord.pb.h"
+#include "consensus/timing_stat.h"
 #include "time/time_pusher.hpp"
 
 namespace concord {
@@ -34,13 +35,29 @@ class KVBClient {
   static constexpr size_t OUT_BUFFER_SIZE = 512000;
   char m_outBuffer[OUT_BUFFER_SIZE];
 
+  bool timing_enabled_;
+  concordMetrics::Component metrics_;
+  TimingStat timing_bft_;
+  std::chrono::steady_clock::duration timing_log_period_;
+  std::chrono::steady_clock::time_point timing_log_last_;
+
  public:
   KVBClient(IClient *client, std::chrono::milliseconds timeout,
-            std::shared_ptr<concord::time::TimePusher> timePusher)
+            std::shared_ptr<concord::time::TimePusher> timePusher,
+            bool timing_enabled,
+            std::chrono::steady_clock::duration timing_log_period,
+            std::string timing_id)
       : client_(client),
         timeout_(timeout),
         timePusher_(timePusher),
-        logger_(log4cplus::Logger::getInstance("com.vmware.concord")) {}
+        logger_(log4cplus::Logger::getInstance("com.vmware.concord")),
+        timing_enabled_(timing_enabled),
+        metrics_{concordMetrics::Component(
+            "client_" + timing_id,
+            std::make_shared<concordMetrics::Aggregator>())},
+        timing_bft_("bft_time", timing_enabled, metrics_),
+        timing_log_period_(timing_log_period),
+        timing_log_last_(std::chrono::steady_clock::now()) {}
 
   ~KVBClient() {
     client_->stop();
@@ -50,6 +67,9 @@ class KVBClient {
   bool send_request_sync(com::vmware::concord::ConcordRequest &req,
                          bool isReadOnly,
                          com::vmware::concord::ConcordResponse &resp);
+
+ private:
+  void log_timing();
 };
 
 class KVBClientPool {
