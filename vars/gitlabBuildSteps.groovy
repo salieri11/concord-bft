@@ -313,10 +313,10 @@ def call(){
                 env.release_persephone_metadata_repo = env.release_repo + "/persephone-metadata"
                 env.release_persephone_provisioning_repo = env.release_repo + "/persephone-provisioning"
                 env.release_ui_repo = env.release_repo + "/ui"
+                env.release_hlf_tools_repo = env.release_repo + "/fabric-tools"
+                env.release_hlf_peer_repo = env.release_repo + "/fabric-peer"
+                env.release_hlf_orderer_repo = env.release_repo + "/fabric-orderer"
                 env.release_contract_compiler_repo = env.release_repo + "/contract-compiler"
-                env.release_hlf_tools_repo = env.release_repo + "/hyperledger-fabric-tools"
-                env.release_hlf_peer_repo = env.release_repo + "/hyperledger-fabric-peer"
-                env.release_hlf_orderer_repo = env.release_repo + "/hyperledger-fabric-orderer"
                 env.release_daml_ledger_api_repo = env.release_repo + "/daml-ledger-api"
                 env.release_daml_execution_engine_repo = env.release_repo + "/daml-execution-engine"
                 env.release_daml_index_db_repo = env.release_repo + "/daml-index-db"
@@ -788,6 +788,9 @@ EOF
                 pushDockerImage(env.internal_daml_ledger_api_repo, env.docker_tag, false)
                 pushDockerImage(env.internal_daml_execution_engine_repo, env.docker_tag, false)
                 pushDockerImage(env.internal_daml_index_db_repo, env.docker_tag, false)
+                pushDockerImage(env.internal_hlf_orderer_repo, env.docker_tag, false)
+                pushDockerImage(env.internal_hlf_peer_repo, env.docker_tag, false)
+                pushDockerImage(env.internal_hlf_tools_repo, env.docker_tag, false)
               }
             }catch(Exception ex){
               failRun()
