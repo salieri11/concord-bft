@@ -135,11 +135,11 @@ public class DAMLManager {
 
             }
             long endTime = System.nanoTime();
-            long total_time = endTime - startTime;
-            long timeElaps = total_time / 1000000;
+            long totalTime = endTime - startTime;
+            long timeElaps = totalTime / 1000000;
             logger.info("Total time taken: " + timeElaps + " ms");
-            logger.info("Average latency: " + total_time / (numOfTransactions * 1000000) + " ms");
-            logger.info("Throughput: " + (numOfTransactions * 1.0 / total_time) * 1000000000 + " tps");
+            logger.info("Average latency: " + totalTime / (numOfTransactions * 1000000) + " ms");
+            logger.info("Throughput: " + (numOfTransactions * 1.0 / totalTime) * 1000000000 + " tps");
 
         } catch (IOException e) {
             e.printStackTrace();

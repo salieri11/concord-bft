@@ -154,13 +154,6 @@ public class Utils {
 				TimeUnit.NANOSECONDS.sleep(diff);
 			}
 
-			/*
-			 * enable if desired; prints warning if transaction missed scheduling
-			if (diff < 0 && idx != 0) {
-				logger.debug("Transaction " + idx + " is late.");
-			}
-			 */
-
 		} catch (InterruptedException e){
 			e.printStackTrace();
 		}
