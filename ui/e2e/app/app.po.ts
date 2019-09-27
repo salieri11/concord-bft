@@ -10,6 +10,16 @@ export class AppPage {
     return element(by.css('#go'));
   }
 
+  goToDeployWizard() {
+    const deploy = element(by.css('#deploy'));
+
+    if (deploy.isPresent()) {
+      return deploy;
+    } else {
+      return element(by.css('#sidebarDeploy'));
+    }
+  }
+
   getTourTitle() {
     return element(by.css('.ngxp-title'));
   }

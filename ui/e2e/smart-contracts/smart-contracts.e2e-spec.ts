@@ -2,7 +2,7 @@
  * Copyright 2018-2019 VMware, all rights reserved.
  */
 
-import { browser, protractor, ProtractorExpectedConditions, element } from 'protractor';
+import { browser, protractor, ProtractorExpectedConditions, element, by } from 'protractor';
 
 import { SmartContractsPage } from './smart-contracts.po';
 import { SmartContractPage } from './smart-contract.po';
@@ -59,6 +59,7 @@ describe('concord-ui Smart Contracts', () => {
 
   it('should navigate to the smart contract page with the latest version selected', () => {
     const expectedLinkText = `${contractId}`;
+    waitFor('.datagrid-row a');
     smartContractsPage.getTableLinkElement(expectedLinkText).click();
     waitFor('.contract-form');
     expect(smartContractPage.getContractId()).toBe(contractId);

@@ -20,11 +20,11 @@ const screenshotReporter = new HtmlScreenshotReporter({
 });
 
 exports.config = {
-  allScriptsTimeout: 31000,
+  allScriptsTimeout: 3 * 60 * 1000, // 3 minutes, needed for deploying.
   specs: [
     './e2e/onboarding/onboarding.e2e-spec.ts',
     './e2e/smart-contracts/smart-contracts.e2e-spec.ts',
-    // './e2e/swagger/swagger.e2e-spec.ts',
+    './e2e/swagger/swagger.e2e-spec.ts',
   ],
   capabilities: {
     'browserName': 'chrome'
@@ -34,7 +34,7 @@ exports.config = {
   framework: 'jasmine',
   jasmineNodeOpts: {
     showColors: true,
-    defaultTimeoutInterval: 30000,
+    defaultTimeoutInterval: 3 * 60 * 1000, // 3 minutes, needed for deploying.
     print: function() {}
   },
   beforeLaunch: function () {

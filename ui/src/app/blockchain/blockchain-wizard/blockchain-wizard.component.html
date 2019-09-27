@@ -11,7 +11,7 @@
       <ng-template clrPageNavTitle>{{'blockchainWizard.engine.navTitle' | translate}}</ng-template>
       <div class="clr-row">
         <div class="clr-col-12">
-          <div class="card clickable sideways" (click)="selectEngine(engines.DAML)"
+          <div id="damlEngine" class="card clickable sideways" (click)="selectEngine(engines.DAML)"
             [ngClass]="{'active': selectedEngine === engines.DAML}">
             <div class="card-icon">
               <img src="static/images/contract-types/daml.svg" [attr.alt]="'blockchainWizard.engine.damlTitle' | translate">
@@ -25,7 +25,7 @@
       </div>
       <div class="clr-row">
         <div class="clr-col-12">
-          <div class="card clickable sideways" (click)="selectEngine(engines.ETH)"
+          <div id="ethEngine" class="card clickable sideways" (click)="selectEngine(engines.ETH)"
             [ngClass]="{'active': selectedEngine === engines.ETH}">
             <div class="card-icon">
               <img src="static/images/contract-types/eth.svg" [attr.alt]="'blockchainWizard.engine.ethTitle' | translate">
@@ -90,8 +90,9 @@
       <ng-template clrPageNavTitle>{{'blockchainWizard.nodes.navTitle' | translate}}</ng-template>
       <div clrForm class="form-block blockchain-form nodes">
         <clr-select-container>
-          <label class="clr-col-12 clr-col-md-4">{{'blockchainWizard.common.numberOfNodes' | translate}}</label>
-          <select clrSelect formControlName="numberOfNodes" class="clr-col-12 clr-col-md-8"
+          <label class="clr-col-12 clr-col-md-4"
+            for="numberOfNodes">{{'blockchainWizard.common.numberOfNodes' | translate}}</label>
+          <select clrSelect id="numberOfReplicas" formControlName="numberOfNodes" class="clr-col-12 clr-col-md-8"
             (change)="distributeZones()">
             <option *ngFor="let num of numbersOfNodes" [ngValue]="num">{{num}}
             </option>
@@ -132,13 +133,13 @@
         <div class="clr-col-4 summary-label">
           {{'blockchainWizard.engine.navTitle' | translate}}
         </div>
-        <div class="clr-col-8 summary-value">
+        <div class="clr-col-8 summary-value engine">
           {{ selectedEngine }}
         </div>
         <div class="clr-col-4 summary-label">
           {{'blockchainWizard.common.consortiumName' | translate}}
         </div>
-        <div class="clr-col-8 summary-value">
+        <div class="clr-col-8 summary-value consortium-title">
           {{ form.value.details.consortium_name }}
         </div>
         <div class="clr-col-4 summary-label">
@@ -151,7 +152,7 @@
         <div class="clr-col-4 summary-label">
           {{'blockchainWizard.common.numberOfNodes' | translate}}
         </div>
-        <div class="clr-col-8 summary-value">
+        <div class="clr-col-8 summary-value number-of-replicas">
           {{ form.value.nodes.numberOfNodes }}
         </div>
         <h6 class="sub-title">{{'blockchainWizard.nodes.regionalTitle' | translate}}</h6>
