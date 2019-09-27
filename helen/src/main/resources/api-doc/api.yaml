@@ -755,7 +755,7 @@ paths:
                   id:
                     type: string
                     format: uuid
-                    description: deleted zone id
+                    description: Deleted zone id
 
   /blockchains/{bid}:
     summary: Blockchain Operations
@@ -2557,36 +2557,128 @@ components:
       allOf:
         - $ref: '#/components/schemas/BaseZone'
 
-    OnPremZone:
+    OnPremZonePost:
       type: object
+      required:
+        - vcenter
+        - network
+        - resource_pool
+        - storage
+        - folder
       allOf:
         - $ref: '#/components/schemas/BaseZone'
       properties:
-        org_id:
-          type: string
-          format: uuid
-          description: organization id
-        endpoint:
-          type: string
-          description: vCenter endpoint
-          example: https://vcenter.acme.com
-        user:
-          type: string
-          description: vCenter admin user
-          example: admin@vsphere.local
+        vcenter:
+          $ref: '#/components/schemas/PostEndpoint'
+        network:
+          $ref: '#/components/schemas/Network'
         resouce_pool:
           type: string
-          description: name of resource pool to use for deployment
+          description: Name of resource pool to use for deployment
           example:
             Resource Pool
         storage:
           type: string
-          description: name of storage to use for deployment
+          description: Name of storage to use for deployment
           example:
             Datastore
-        network_name:
+        folder:
           type: string
-          description: name of network to use
+          description: vCenter folder for deployment
+          example:
+            Blockchain Folder
+        container_repo:
+          $ref: '#/components/schemas/PostEndpoint'
+
+    OnPremZoneGet:
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/BaseZone'
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Zone ID
+        org_id:
+          type: string
+          format: uuid
+          description: Organization ID
+        vcenter:
+          $ref: '#/components/schemas/GetEndpoint'
+        network:
+          $ref: '#/components/schemas/Network'
+        resouce_pool:
+          type: string
+          description: Name of resource pool to use for deployment
+          example:
+            Resource Pool
+        storage:
+          type: string
+          description: Name of storage to use for deployment
+          example:
+            Datastore
+        folder:
+          type: string
+          description: vCenter folder for deployment
+          example:
+            Blockchain Folder
+        container_repo:
+          $ref: '#/components/schemas/GetEndpoint'
+
+    # Swagger viewer does not display discriminated types correctly.  Temporarliy changing this to allOf
+    # just to get the fields listed
+#    Zone:
+#      type: object
+#      discriminator:
+#        propertyName: type
+#      oneOf:
+#        - $ref: '#/components/schemas/BaseZoneGet'
+#        - $ref: '#/components/schemas/OnPremZoneGet'
+
+    Zone:
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/OnPremZoneGet'
+
+    PostEndpoint:
+      type: object
+      properties:
+        url:
+          type: string
+          description: URL of endpoint
+          example:
+            https://service.com
+        username:
+          type: string
+          description: Username for credentials
+          example:
+            user@server.com
+        password:
+          type: string
+          description: Password for credentials
+          example:
+            p4$$w0rd
+
+    GetEndpoint:
+      type: object
+      properties:
+        url:
+          type: string
+          description: URL of endpoint
+          example:
+            https://service.com
+        username:
+          type: string
+          description: Username for credentials
+          example:
+            user@server.com
+
+    Network:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Name of network to use
           example:
             Blockchain Network
         ip_pool:
@@ -2605,7 +2697,7 @@ components:
           type: string
           description: IP Subnet
           example:
-            /24
+            24
         name_servers:
           type: array
           description: List of name servers
@@ -2613,52 +2705,7 @@ components:
             [10.1.1.10, 10.1.1.11]
           items:
             type: string
-        folder:
-          type: string
-          description: vCenter folder for deployment
-          example:
-            Blockchain Folder
 
-    OnPremZoneGet:
-      type: object
-      allOf:
-        - $ref: '#/components/schemas/OnPremZone'
-      properties:
-        id:
-          type: string
-          format: uuid
-
-    OnPremPatch:
-      type: object
-      properties:
-        password:
-          type: string
-      allOf:
-        - $ref: '#/components/schemas/OnPremZone'
-
-    OnPremCreate:
-      type: object
-      required:
-        - endpoint
-        - user
-        - password
-        - resource_pool
-        - storage
-        - network_name
-        - ip_pool
-        - subnet
-        - folder
-      allOf:
-        - $ref: '#/components/schemas/OnPremPatch'
-
-
-    Zone:
-      type: object
-      oneOf:
-        - $ref: '#/components/schemas/BaseZoneGet'
-        - $ref: '#/components/schemas/OnPremZoneGet'
-      discriminator:
-        propertyName: type
 
 
   responses:
@@ -2692,14 +2739,14 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/OnPremCreate'
+            $ref: '#/components/schemas/OnPremZonePost'
 
     PatchZoneRequst:
       description: Patch an existing zone
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/OnPremPatch'
+            $ref: '#/components/schemas/OnPremZonePost'
 
   parameters:
     ZoneId:

@@ -10,7 +10,7 @@ exports.config = {
   specs: [
     './e2e/onboarding/onboarding.e2e-spec.ts',
     './e2e/smart-contracts/smart-contracts.e2e-spec.ts',
-    './e2e/swagger/swagger.e2e-spec.ts',
+    // './e2e/swagger/swagger.e2e-spec.ts',
   ],
   capabilities: {
     'browserName': 'chrome'
