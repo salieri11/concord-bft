@@ -13,7 +13,7 @@ import { environment } from '../../environments/environment';
  */
 export interface FeatureFlagDirectiveSource { componentName?: string; parentTagName?: string; }
 
-/** Supplied to subscribers when flags change */
+/** Event object supplied to subscribers when flags change in value */
 export interface FeatureFlagUpdateEvent { name: string; value: boolean; oldValue: boolean; }
 
 @Injectable({
@@ -37,28 +37,29 @@ export class FeatureFlagService {
   public readonly featureFlagsChange: Subject<FeatureFlagUpdateEvent> = new Subject<FeatureFlagUpdateEvent>();
 
   private readonly env = environment;
-  private updateSources: (string | Error)[] = []; // path of feature flags file (overridable in app-config.json)
-  private featureFlags: {} = {}; // Key-value map from JSON file (notice: values not necessarily true/false)
+  private updateSources: (string | Error)[] = []; // Keep track of where all feature flags updates are made
+  private featureFlags: {} = {}; // Key-value map from JSON file
 
   private flagsCache: Map<string, {value: boolean}> = new Map<string, {value: boolean}>();
   private computeResultCache: Map<string, {value: boolean}> = new Map<string, {value: boolean}>();
 
-  constructor(private http: HttpClient) {
-    setTimeout(() => {
-      console.log(this.allFlagNames);
-    }, 2000);
-  }
+  constructor(private http: HttpClient) {}
 
-  /* A copy of all current flags data */
+  /** Copy of all current flags data */
   get allFlags(): object { return JSON.parse(JSON.stringify(this.featureFlags)); }
+
+  /** All current flag names in an array */
   get allFlagNames(): [] {
-    const flatten = (obj, prefix = '') => Object.keys(obj).reduce((res, el) => {
-      if (Array.isArray(obj[el]) ) { return res;
-      } else if (typeof obj[el] === 'object' && obj[el] !== null ) { return res.concat(flatten(obj[el], prefix + el + '.'));
-      } else { return res.concat([prefix + el]);
+    const flattenKeys = (obj, prefix = '') => Object.keys(obj).reduce((res, el) => {
+      if (Array.isArray(obj[el]) ) {
+        return res;
+      } else if (typeof obj[el] === 'object' && obj[el] !== null ) {
+        return res.concat(flattenKeys(obj[el], prefix + el + '.'));
+      } else {
+        return res.concat([prefix + el]);
       }
     }, []);
-    return flatten(this.allFlags);
+    return flattenKeys(this.allFlags);
   }
 
   /**
@@ -77,13 +78,11 @@ export class FeatureFlagService {
     return this.http.get(sourceURL).pipe(
         catchError((caught) => {
         let error;
-
         if (caught instanceof SyntaxError) {
           // Go fix JSON if you see this, JSON parse error
           error = new Error('Feature flags file is not a valid JSON: ' + caught.message);
           console.error(error); console.error(caught);
           console.warn('Falling back to default feature flags...');
-
         } else {
           /**
            * Most likely HTTP GET error, anything other than 200.
@@ -93,7 +92,6 @@ export class FeatureFlagService {
           error = new Error('Cannot fetch feature flags JSON: ' + caught.message);
           console.error(error); console.error(caught);
         }
-
         return of({ // ? Some default flags when Helen fetch fails?
 
         });
@@ -156,9 +154,9 @@ export class FeatureFlagService {
    *
    */
   updateFlags(flagsKeyValueMap: object, updateSource: string = null) {
-    if (updateSource !== undefined) { // definitive source (e.g. 'https://', 'static/feature-flag.json', etc.)
+    if (updateSource !== undefined) { // From known source
       this.updateSources.push(updateSource);
-    } else { // Update execued from code
+    } else { // Update execute somewhere in Angular codebase
       /** For debug purpose, still keep track of where `updateFlags` has been called;
        * This will nicely help with checking how flags are overriden dynamically in what order. */
       this.updateSources.push(new Error);

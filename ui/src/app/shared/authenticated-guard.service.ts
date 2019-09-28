@@ -64,15 +64,16 @@ export class AuthenticatedGuard implements CanActivateChild, CanActivate {
       if (!this.authenticationService.accessToken) {
         const auth = await this.authenticationService.getAccessToken().toPromise();
 
-        // For now, using http.get with initializeFromURL and get static file.
-        await this.featureFlagService.initializeFromURL('static/feature-flag.json').toPromise();
         /**
          * When Helen is ready, do an API call to fetch, e.g.
          * await this.featureFlagService.initializeFromURL('api/getUserFeatures').toPromise();;
          * **OR**
          * if auth response already contains flags data, simply use `initializeWithData`
          * this.featureFlagService.initializeWithData(auth.featureFlags, 'Helen Auth Response');
+         *
+         * For now, using http.get with initializeFromURL and get static file.
          */
+        await this.featureFlagService.initializeFromURL('static/feature-flag.json').toPromise();
 
 
        if (this.isNewUser(route, state, auth)) {
