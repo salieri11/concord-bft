@@ -1,3 +1,6 @@
 {
-    "cspEnv": "staging"
+    "cspEnv": "staging",
+    "stagingFeatureFlags": {
+      
+    }
 }
