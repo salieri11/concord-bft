@@ -16,6 +16,7 @@ export interface FeatureFlagDirectiveSource { componentName?: string; parentTagN
 /** Event object supplied to subscribers when flags change in value */
 export interface FeatureFlagUpdateEvent { name: string; value: boolean; oldValue: boolean; }
 
+
 @Injectable({
   providedIn: 'root'
 })
@@ -28,11 +29,12 @@ export class FeatureFlagService {
   public static falsey: any[] = [false];
 
   /** Since template flags expressions in directives don't change after load,
-   * there is really no need to compute the expression again and again.
-   * */
+   * there is really no need to compute the expression again and again. */
   public cacheExpressionResults: boolean = true;
-  public featureFlagsFromConfig: {} = null; // UI dev only overrides
+
   public featureFlagsFromHelen: {} = null; // Always fetched from Helen after/with auth response
+  public devFeatureFlags: {} = null; // (optional override) for UI dev, temp flags, ignored in prod.
+  public stagingFeatureFlags: {} = null; // (optional override) for staging, staging or demo events.
 
   public readonly featureFlagsChange: Subject<FeatureFlagUpdateEvent> = new Subject<FeatureFlagUpdateEvent>();
 
@@ -376,13 +378,15 @@ export class FeatureFlagService {
     // Fetch and map succeeded, update flags from this data.
     this.updateFlags(flags, importSourceInfo);
     if (!this.env.production) {
-      if (this.featureFlagsFromConfig && typeof this.featureFlagsFromConfig === 'object') {
-        this.updateFlags(this.featureFlagsFromConfig, 'UI Dev Env Flag Override');
-        console.log(`Flags has been imported from [ui/src/static/app-config.json]`
-                      + ` and might override features specified by Helen.`);
-        console.log(JSON.stringify(this.featureFlagsFromConfig));
+      if (this.devFeatureFlags && typeof this.devFeatureFlags === 'object') {
+        this.updateFlags(this.devFeatureFlags, 'Dev Override');
+        console.warn(`Dev feature flags were imported from [ui/src/static/app-config.json: devFeatureFlags]\n`
+                      + `\t Although these won't affect the production environment,\n`
+                      + `\t try not to include them in the merge requests.`);
+        console.warn(`\t The flags are: `, JSON.stringify(this.devFeatureFlags));
       }
     }
+    // TODO: staging detection and doing staging override
   }
 
 }
