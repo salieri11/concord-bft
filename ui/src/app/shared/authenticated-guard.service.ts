@@ -68,10 +68,10 @@ export class AuthenticatedGuard implements CanActivateChild, CanActivate {
         await this.featureFlagService.initializeFromURL('static/feature-flag.json').toPromise();
         /**
          * When Helen is ready, do an API call to fetch, e.g.
-         * await this.featureFlagService.initializeFromURL('api/getUserFeatures');
+         * await this.featureFlagService.initializeFromURL('api/getUserFeatures').toPromise();;
          * **OR**
          * if auth response already contains flags data, simply use `initializeWithData`
-         * await this.featureFlagService.initializeWithData(auth.featureFlags, 'Helen Auth Response');
+         * this.featureFlagService.initializeWithData(auth.featureFlags, 'Helen Auth Response');
          */
 
 
