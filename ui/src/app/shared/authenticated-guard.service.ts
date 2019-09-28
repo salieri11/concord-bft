@@ -18,6 +18,7 @@ import { Personas, PersonaService } from './persona.service';
 import { ErrorAlertService } from './global-error-handler.service';
 import { BlockchainService } from './../blockchain/shared/blockchain.service';
 import { BlockchainResponse } from './../blockchain/shared/blockchain.model';
+import { FeatureFlagService } from './feature-flag.service';
 import { environment } from '../../environments/environment';
 import { QueryParams } from './urls.model';
 
@@ -33,6 +34,7 @@ export class AuthenticatedGuard implements CanActivateChild, CanActivate {
     private errorService: ErrorAlertService,
     private translateService: TranslateService,
     private blockchainService: BlockchainService,
+    private featureFlagService: FeatureFlagService
   ) { }
 
   canActivateChild(childRoute: ActivatedRouteSnapshot) {
@@ -62,7 +64,18 @@ export class AuthenticatedGuard implements CanActivateChild, CanActivate {
       if (!this.authenticationService.accessToken) {
         const auth = await this.authenticationService.getAccessToken().toPromise();
 
-        if (this.isNewUser(route, state, auth)) {
+        // For now, using http.get with initializeFromURL and get static file.
+        await this.featureFlagService.initializeFromURL('static/feature-flag.json').toPromise();
+        /**
+         * When Helen is ready, do an API call to fetch, e.g.
+         * await this.featureFlagService.initializeFromURL('api/getUserFeatures');
+         * **OR**
+         * if auth response already contains flags data, simply use `initializeWithData`
+         * await this.featureFlagService.initializeWithData(auth.featureFlags, 'Helen Auth Response');
+         */
+
+
+       if (this.isNewUser(route, state, auth)) {
           this.router.navigate(['/', 'welcome'], { fragment: 'welcome' });
         }
       }

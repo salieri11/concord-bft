@@ -2,6 +2,7 @@
  * Copyright 2018-2019 VMware, all rights reserved.
  */
 import { TestBed, inject } from '@angular/core/testing';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { FeatureFlagService } from './feature-flag.service';
 
 const groupers = ['('];
@@ -10,16 +11,16 @@ const binaryOperators = ['&&', '||', 'and', 'or'];
 const recognizedFlagNames = ['A', 'B', 'C', 'D.E', 'F.G.H', 'I.J.K.L'];
 const unrecognizedFlagNames = ['unrecog_U', 'A.unrecog_V', 'D.E.unrecog_W', 'unrecog_X', 'unrecog_Y', 'unrecog_Z'];
 
-const range = (min, max) => (Math.floor(Math.random() * (max + 1 - min)) + Math.floor(min));
-const shuffleArray = (arr: any[]) => {
+function range(min, max) { return Math.floor(Math.random() * (max + 1 - min)) + Math.floor(min); }
+function shuffleArray(arr: any[]) {
     // Fisher-Yates Shuffle
     for (let i = arr.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [arr[i], arr[j]] = [arr[j], arr[i]];
     }
     return arr;
-};
-const pickRandom = (arr: any[], pickCount = 1) => {
+}
+function pickRandom(arr: any[], pickCount = 1) {
   if (pickCount === 1) {return arr[Math.floor(Math.random() * arr.length)]; }
   const picks = [];
   if (pickCount > 1) {
@@ -28,21 +29,20 @@ const pickRandom = (arr: any[], pickCount = 1) => {
     }
   }
   return picks;
-};
-const onChance = (percent: number): boolean => (Math.random() <= percent / 100);
-const randomFlagValue = (truthy, falsey) => {
+}
+function onChance(percent: number): boolean { return (Math.random() <= percent / 100); }
+function randomFlagValue(truthy, falsey) {
   if (onChance(8)) { return onChance(50) ? 'on; some-meta=1' : 'off; some-meta=2';
   } else { return onChance(50) ? pickRandom(truthy) : pickRandom(falsey); }
-};
-const flagsShouldReturn = (flags, service: FeatureFlagService) => {
+}
+function flagsShouldReturn(flags, service: FeatureFlagService) {
   for (const flagName of flags) {
-    if (service.getFlagBooleanValue(flagName) === false) {
-      return false;
-    }
+    const flagValue = service.getFlag(flagName);
+    if (!flagValue) { return false; }
   }
   return true;
-};
-const makeRandomFlags = (count: number = 5, mixAtLeastOneUnrecognized = false) => {
+}
+function makeRandomFlags (count: number = 5, mixAtLeastOneUnrecognized = false): string[] {
   const flags = [];
   if (mixAtLeastOneUnrecognized) {
     flags.push( pickRandom(unrecognizedFlagNames) );
@@ -53,15 +53,15 @@ const makeRandomFlags = (count: number = 5, mixAtLeastOneUnrecognized = false) =
     for (let i = 0; i < count; ++i) { flags.push(pickRandom(recognizedFlagNames)); }
   }
   return shuffleArray(flags);
-};
-const makeRandomFlagsMap = () => {
+}
+function makeRandomFlagsMap(): {} {
   const map = {};
   for (const flagName of recognizedFlagNames) {
     map[flagName] = randomFlagValue(FeatureFlagService.truthy, FeatureFlagService.falsey);
   }
   return map;
-};
-const makeRandomExpression = (wordLength: number = 10) => {
+}
+function makeRandomExpression(wordLength: number = 10): string {
   const list = [];
   let bracketCount = 0;
   if (onChance(30)) { list.push('('); bracketCount++; }
@@ -102,11 +102,12 @@ const makeRandomExpression = (wordLength: number = 10) => {
   result = onChance(33.3) ? result.replace(/ \) /g, ')') :
             onChance(50) ? result.replace(/ \) /g, ') ') : result.replace(/ \) /g, ' )');
   return result;
-};
+}
 
 fdescribe('Service: FeatureFlag', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
+      imports: [HttpClientTestingModule],
       providers: [FeatureFlagService]
     });
   });
@@ -120,51 +121,60 @@ fdescribe('Service: FeatureFlag', () => {
 
     const verbose = false;
     const performanceCheck = false;
-    const performanceIterations = 100000;
+    const performanceIterations = 1000000;
 
     const simpleUnrecognizedTestCount = 500;
     const simpleRecognizedTestCount = 500;
     const complexRecognizedTestCount = 500;
 
-    for (const flagName of recognizedFlagNames) { service.setFlag(flagName, true); }
+    for (const flagName of recognizedFlagNames) { service.setFlag(flagName, pickRandom([true, false])); }
 
     expect(service).toBeTruthy();
 
     if (performanceCheck) {
       let p1, p2;
 
+      console.log('------------------------------------------------------------');
+      console.log('Performance Benchmarking');
+      console.log('------------------------------------------------------------');
       // Override iterations
       p1 = Date.now();
       for (let i = 0; i < performanceIterations; ++i) {
-        service.checkFlagsCondition([true, 'some string']);
+        service.checkFlagsCondition([pickRandom([true, false]), 'some string']);
       }
       p2 = Date.now();
-      console.log(`FeatureFlagService 100k debug override iterations: ${p2 - p1} ms.`);
+      console.log(`1 million, debug override: ${p2 - p1} ms.`);
 
       // SIMPLE iterations
       const randomFlags = [];
       for (let i = 0; i < performanceIterations; ++i) {
-        randomFlags.push( makeRandomFlags(range(1, 3)) );
+        randomFlags.push( makeRandomFlags(range(2, 4)) );
       }
       p1 = Date.now();
       for (let i = 0; i < performanceIterations; ++i) {
         service.checkFlagsCondition( randomFlags[i] );
       }
       p2 = Date.now();
-      console.log(`FeatureFlagService 100k SIMPLE iterations (1 ~ 3 random flags): ${p2 - p1} ms.`);
+      console.log(`1 million, SIMPLE, random 2 ~ 4 flags: ${p2 - p1} ms.`);
 
       // COMPUTED iterations, suffers from 4+ word expressions
       const randomExpressions = [];
       for (let i = 0; i < performanceIterations; ++i) {
-        randomExpressions.push( [ 'COMPUTE', makeRandomExpression(range(1, 3)) ] );
+        randomExpressions.push( [ 'COMPUTE', makeRandomExpression(range(2, 4)) ] );
       }
       p1 = Date.now();
       for (let i = 0; i < performanceIterations; ++i) {
-        // if (i < 100) { console.log(randomExpressions[i][1]); }
         service.checkFlagsCondition( randomExpressions[i] );
       }
       p2 = Date.now();
-      console.log(`FeatureFlagService 100k COMPUTE iterations (1 ~ 3 ramdom word expressions): ${p2 - p1} ms.`);
+      console.log(`1 million, COMPUTE, random 2 ~ 4 word expressions: ${p2 - p1} ms.`);
+
+      p1 = Date.now();
+      for (let i = 0; i < performanceIterations; ++i) {
+        service.checkFlagsCondition( randomExpressions[i] );
+      }
+      p2 = Date.now();
+      console.log(`1 million, COMPUTE, random 2 ~ 4 word expressions, CACHE ON: ${p2 - p1} ms.`);
     }
 
     if (verbose) {
@@ -250,6 +260,7 @@ fdescribe('Service: FeatureFlag', () => {
     t2 = Date.now();
 
     console.log(`FeatureFlagService all tests have taken ${t2 - t1} ms.`);
+
   }));
 
 

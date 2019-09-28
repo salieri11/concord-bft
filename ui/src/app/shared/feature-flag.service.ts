@@ -2,23 +2,19 @@
  * Copyright 2018-2019 VMware, all rights reserved.
  */
 import { Injectable, TemplateRef } from '@angular/core';
-import { from, of } from 'rxjs';
+import { HttpClient } from '@angular/common/http';
+import { Subject, Observable, of } from 'rxjs';
 import { map, catchError } from 'rxjs/operators';
+import { environment } from '../../environments/environment';
 
 /**
  * Most of the time flag condition compute requests will come from directives,
- * This helps with which Angular component tempplate is throwing error and under which element tag
+ * This helps with which Angular component template is throwing error and under which element tag
  */
-export interface FlagDirectiveSource { componentName?: string; parentTagName?: string; }
+export interface FeatureFlagDirectiveSource { componentName?: string; parentTagName?: string; }
 
-/**
- * Any flag will have its designated `name`, `booleanValue` (current on/off state).
- * Some flags are nested and will have a `parent` container object.
- */
-export interface FlagData { name: string; booleanValue: boolean; parent?: object; }
-
-
-
+/** Supplied to subscribers when flags change */
+export interface FeatureFlagUpdateEvent { name: string; value: boolean; oldValue: boolean; }
 
 @Injectable({
   providedIn: 'root'
@@ -31,135 +27,151 @@ export class FeatureFlagService {
   public static truthy: any[] = [true];
   public static falsey: any[] = [false];
 
-  private importSource: string; // path of feature flags file (overridable in app-config.json)
+  /** Since template flags expressions in directives don't change after load,
+   * there is really no need to compute the expression again and again.
+   * */
+  public cacheExpressionResults: boolean = true;
+  public featureFlagsFromConfig: {} = null; // UI dev only overrides
+  public featureFlagsFromHelen: {} = null; // Always fetched from Helen after/with auth response
+
+  public readonly featureFlagsChange: Subject<FeatureFlagUpdateEvent> = new Subject<FeatureFlagUpdateEvent>();
+
+  private readonly env = environment;
+  private updateSources: (string | Error)[] = []; // path of feature flags file (overridable in app-config.json)
   private featureFlags: {} = {}; // Key-value map from JSON file (notice: values not necessarily true/false)
-  private featureFlagsBooleanValues: {} = {}; // strictly boolean
 
-  private coerceFlagValues: boolean = false;
+  private flagsCache: Map<string, {value: boolean}> = new Map<string, {value: boolean}>();
+  private computeResultCache: Map<string, {value: boolean}> = new Map<string, {value: boolean}>();
 
-  private computeResultCache: Map<string, boolean> = new Map<string, boolean>();
+  constructor(private http: HttpClient) {
+    setTimeout(() => {
+      console.log(this.allFlagNames);
+    }, 2000);
+  }
 
-  constructor() {}
-
-  /* Getters */
-
-  get allFlagsMap(): {} { return JSON.parse(JSON.stringify(this.featureFlags)); }
-
-  get allFlagsBooleanValuesMap(): {} { return JSON.parse(JSON.stringify(this.allFlagsBooleanValuesMap)); }
-
-  get featureFlagsSource(): string { return this.importSource; }
-
-
-  /**
-   * Is the flag with this flag name on right now?
-   */
-  getFlagBooleanValue(flagName: string): boolean {
-    const flagData = this.findFlagByName(flagName);
-    if (flagData === null) { return null; }
-    return flagData.booleanValue;
+  /* A copy of all current flags data */
+  get allFlags(): object { return JSON.parse(JSON.stringify(this.featureFlags)); }
+  get allFlagNames(): [] {
+    const flatten = (obj, prefix = '') => Object.keys(obj).reduce((res, el) => {
+      if (Array.isArray(obj[el]) ) { return res;
+      } else if (typeof obj[el] === 'object' && obj[el] !== null ) { return res.concat(flatten(obj[el], prefix + el + '.'));
+      } else { return res.concat([prefix + el]);
+      }
+    }, []);
+    return flatten(this.allFlags);
   }
 
   /**
-   * (awaitable) Get feature flag file from local or web source. \
-   * and import into this service. (Called from `app.init.ts`)
+   * Is the flag with this flagName on right now?
+   * (returns null when not found)
    */
-  importFromSource(featureFlagsSource: string = null): Promise<void> {
-    if (!featureFlagsSource) { featureFlagsSource = 'static/feature-flag.json'; }
-    return from(
-        fetch(featureFlagsSource) .then((response) => response.json())
-      ).pipe(
+  getFlag(flagName: string): boolean { return this.flagFindByName(flagName); }
 
+  /**
+   * Initialize by fetching feature flags file from local or web source.
+   *
+   * @param sourceURL
+   * string value of the flags file target location
+   */
+  initializeFromURL(sourceURL: string): Observable<{}> {
+    return this.http.get(sourceURL).pipe(
         catchError((caught) => {
-          let error;
+        let error;
 
-          if (caught instanceof SyntaxError) {
-            // Go fix JSON if you see this, JSON parse error
-            error = new Error('Feature flags file is not a valid JSON: ' + caught.message);
-            console.error(error); console.error(caught);
-            console.warn('Falling back to default feature flags...');
+        if (caught instanceof SyntaxError) {
+          // Go fix JSON if you see this, JSON parse error
+          error = new Error('Feature flags file is not a valid JSON: ' + caught.message);
+          console.error(error); console.error(caught);
+          console.warn('Falling back to default feature flags...');
 
-          } else {
-            /**
-             * Most likely HTTP GET error, anything other than 200.
-             * make sure app-config.json has set `featureFlagsSource`
-             * to a valid fetchable file.
-             */
-            error = new Error('Cannot fetch feature flags JSON: ' + caught.message);
-            console.error(error); console.error(caught);
-            console.warn('Falling back to default JSON feature flags...');
-          }
+        } else {
+          /**
+           * Most likely HTTP GET error, anything other than 200.
+           * make sure app-config.json has set `featureFlagsSource`
+           * to a valid fetchable file.
+           */
+          error = new Error('Cannot fetch feature flags JSON: ' + caught.message);
+          console.error(error); console.error(caught);
+        }
 
-          // Still load the app with default feature flags
-          return of({});
-        }),
+        return of({ // ? Some default flags when Helen fetch fails?
 
-        map((flags) => {
-          // Fetch and map succeeded, update flags from this data.
-          this.updateFlags(flags, featureFlagsSource);
-        })
+        });
+      }),
 
-      ).toPromise();
+      map((flags) => {
+        this.initialize(flags, sourceURL);
+        return {};
+      })
+
+    );
   }
 
   /**
-   * Resets all flags, value maps, and compute caches \
-   * and brings back to the default flag values
+   * If you already have feature flags data in JSON Object \
+   * you can skip fetching and simply initialize with that data.
    */
-  reset() {
-    this.featureFlags = {};
-    this.featureFlagsBooleanValues = {};
-    this.computeResultCache = new Map<string, boolean>();
+  initializeWithData(flagsKeyValueMap: object, importSourceInfo: string): void {
+    this.initialize(flagsKeyValueMap, importSourceInfo);
   }
 
-  /* Toggle flag values coercion */
-  setCoerceFlagValues(value: boolean) {
-    this.setFlag('coerceFlagValues', value);
-    this.coerceFlagValues = value ? true : false;
-    if (value) {
-      // handle loose, syntatically reasonable values as well
-      FeatureFlagService.truthy = ['on', 'true', true, 1, '1', 'yes'];
-      FeatureFlagService.falsey = ['off', 'false', '', false, '0', 0, null, 'null', undefined, 'undefined', 'no'];
-    } else {
-      // Only true and false accepted by default
-      FeatureFlagService.truthy = [true];
-      FeatureFlagService.falsey = [false];
-    }
-  }
+
+  /** Outputs list of all flags updates in the order of update. */
+  outputUpdates(): void { let i = 0; for (const src of this.updateSources) { console.log(i, src); ++i; } }
+
 
   /**
    * Setting a flag by flag name and value \
    * Flag name can dot-concat to denote nested. (e.g. daml.test.flag1) \
-   * You can only set flags listed in `featureFlagRegistry`
    */
-  setFlag(flagName: string, flagValue: any): boolean {
+  setFlag(flagName: string, flagValue: any): void {
     try {
-      const boolValue = this.flagValueMeansEnabled(flagValue);
-      this.dotTravelSet(this.featureFlags, flagName, flagValue, true);
-      this.dotTravelSet(this.featureFlagsBooleanValues, flagName, boolValue, true);
-      return true;
+      const boolValue = this.flagValueMeansEnabled(flagValue) ? true : false;
+      const info = this.flagPathTravelSet(this.featureFlags, flagName, boolValue);
+      if (info.value !== info.oldValue) {
+        this.flagsCache.set(flagName, {value: boolValue});
+        this.computeResultCache.clear();
+        this.featureFlagsChange.next({name: flagName, value: info.value, oldValue: info.oldValue});
+      }
     } catch (e) {
       if (!FeatureFlagService.suppressErrorLogs) {
         console.error(e);
-        return false;
       }
     }
   }
 
   /**
-   * Called to initialize from `importFromSource`. \
-   * You runtime override any flags
+   * Usually called to initialize from `importFromSource`. \
+   * You can also runtime-override any flags with this function.
+   *
+   * @param Flags
+   * key-value object (supports nested)
+   * ```typescript
+   * { flag1:true, nested:{flag2:true} }
+   * ```
+   * ---
+   * @param updateSource
+   * (optional) string path URL of the source. \
+   * If unsupplied, it will add stack trace of the call location
+   *
    */
-  updateFlags(flags: Object, importSource: string = null) {
-    if (importSource !== null) { this.importSource = importSource; }
-    this.flagsRecursiveImport(flags, this.featureFlags, this.featureFlagsBooleanValues);
-    this.computeResultCache = new Map<string, boolean>(); // Purge cache
+  updateFlags(flagsKeyValueMap: object, updateSource: string = null) {
+    if (updateSource !== undefined) { // definitive source (e.g. 'https://', 'static/feature-flag.json', etc.)
+      this.updateSources.push(updateSource);
+    } else { // Update execued from code
+      /** For debug purpose, still keep track of where `updateFlags` has been called;
+       * This will nicely help with checking how flags are overriden dynamically in what order. */
+      this.updateSources.push(new Error);
+    }
+    this.flagsRecursiveImport(flagsKeyValueMap, this.featureFlags);
+    this.computeResultCache.clear(); // Purge cache
   }
 
   /**
    * Checks flags expression, possibly from a directive \
    * This ultimately determines whether an element is shown or not.
    *
-   * Sadly, 'any' is used below because Angular directives don't care about types \
+   * Sadly, 'any' is used below because Angular directives don't care about types; \
    * it will let you pass whatever JS expression in the template.
    */
   checkFlagsCondition(flags: any | any[], templateRef: TemplateRef<any> = null): boolean {
@@ -168,7 +180,7 @@ export class FeatureFlagService {
     if (flags === false) { return false; }
 
     // templateReference where the directive call resides, used for debugging
-    let sourceComponent: FlagDirectiveSource = null;
+    let sourceComponent: FeatureFlagDirectiveSource = null;
     if (templateRef) {
       try {
         sourceComponent = {
@@ -178,10 +190,10 @@ export class FeatureFlagService {
       } catch (e) { console.error(e); }
     }
 
-    const wasArray = Array.isArray(flags);
-    if (!wasArray) { flags = [flags]; }
+    // Make into an array
+    const wasArray = Array.isArray(flags); if (!wasArray) { flags = [flags]; }
 
-    // Force cast into string[]
+    // Force cast into, specifically, a string array
     flags.forEach(function(flag, i) { if (typeof flag !== 'string') { flags[i] += ''; } });
 
     // Detect COMPUTE flag
@@ -194,15 +206,15 @@ export class FeatureFlagService {
     }
 
     // SIMPLE case with { feauture1 AND feauture2 AND feauture3 ... }
-    if (!this.getFlagBooleanValue('autoComputeFlags') && !overrideToUseCompute) {
+    if (!overrideToUseCompute) {
 
       for (const flagName of flags) {
-        const flagData = this.findFlagByName(flagName);
-        if (flagData !== null) {
-          if (!flagData.booleanValue) { return false; }
+        const flagValue = this.flagFindByName(flagName);
+        if (flagValue !== null) {
+          if (flagValue === false) { return false; }
         } else {
           if (!FeatureFlagService.suppressErrorLogs) {
-            if (sourceComponent === null) {
+            if (!sourceComponent) {
               console.error(new Error(`FeatureFlagService: unrecognized feature flag '${flagName}'`));
             } else {
               console.error(new Error(`FeatureFlagService: unrecognized feature flag '${flagName}'`
@@ -219,10 +231,10 @@ export class FeatureFlagService {
     } else {
 
       const flagsExpression: string = flags.join(' and ');
-      if (this.getFlagBooleanValue('cacheDirectiveExpressions')) {
-        const cached = this.computeResultCache.get(flagsExpression);
-        if (cached !== undefined) { return cached; }
+      if (this.cacheExpressionResults) {
+        const cached = this.computeResultCache.get(flagsExpression); if (cached) { return cached.value; }
       }
+
       const computeSafeLogicalExpression = this.getSafeLogicalExpression(flagsExpression, sourceComponent);
       if (computeSafeLogicalExpression === null) { return false; }
 
@@ -230,9 +242,7 @@ export class FeatureFlagService {
       try {
         // tslint:disable:no-eval
         eval(`result = (${computeSafeLogicalExpression});`);
-        if (this.getFlagBooleanValue('cacheDirectiveExpressions')) {
-          this.computeResultCache.set(flagsExpression, result);
-        }
+        if (this.cacheExpressionResults) { this.computeResultCache.set(flagsExpression, {value: result}); }
       } catch (e) {
         if (!FeatureFlagService.suppressErrorLogs) {
           if (e instanceof SyntaxError) {
@@ -253,7 +263,7 @@ export class FeatureFlagService {
    * whose words are comprised of [ `&&`, `||`, `!`, `(`, `)`, `true`, `false` ] \
    * If eval string is made up of strictly these words, you can guarantee safety.
    */
-  getSafeLogicalExpression(flagsExpression: string, sourceComponent: FlagDirectiveSource = null): string {
+  getSafeLogicalExpression(flagsExpression: string, sourceComponent?: FeatureFlagDirectiveSource): string {
 
     flagsExpression = flagsExpression.replace(/!/g, ' ! ').replace(/\(/g, ' ( ').replace(/\)/g, ' ) ')
                                     .replace(/\s\s+/g, ' ').trim();
@@ -271,12 +281,12 @@ export class FeatureFlagService {
           case 'not' : expressionWords[i] = '!'; return;
         }
       }
-      const flagData = this.findFlagByName(word);
-      if (flagData !== null) {
-        expressionWords[i] = flagData.booleanValue ? 'true' : 'false';
+      const flagValue = this.flagFindByName(word);
+      if (flagValue !== null) {
+        expressionWords[i] = flagValue ? 'true' : 'false';
       } else {
         if (!FeatureFlagService.suppressErrorLogs) {
-          if (sourceComponent === null) {
+          if (!sourceComponent) {
             throw new Error(`FeatureFlagService: unrecognized feature flag '${word}'`);
           } else {
             throw new Error(`FeatureFlagService: unrecognized feature flag '${word}'`
@@ -284,109 +294,95 @@ export class FeatureFlagService {
               + ` in a child element of '${sourceComponent.parentTagName}'`);
           }
         }
+        return null;
       }
     });
     return expressionWords.join(' ');
 
   }
 
-  // Resolve dot separated name scheme in flags ('daml.contracts.flag1')
-  private findFlagByName(flagName: string): FlagData {
-    try {
-      const result = this.dotTravel(this.featureFlagsBooleanValues, flagName);
-      return {name: flagName, booleanValue: result.node ? true : false, parent: result.prevNode};
-    } catch (e) { return null; }
+  /** get flag value with given name (e.g. 'some.feature') */
+  private flagFindByName(flagName: string): boolean {
+    const cached = this.flagsCache.get(flagName); if (cached) { return cached.value; }
+    const result = this.flagPathTravel(this.featureFlags, flagName);
+    this.flagsCache.set(flagName, {value: result});
+    return result;
   }
 
-  private flagValueMeansEnabled(value): boolean {
-    if (!this.coerceFlagValues) {
-      return value ? true : false;
-    } else {
-      if (typeof value === 'string') {
-        if (value[0] === 'o') {
-          if (value.indexOf('on') === 0) { return true; }
-          if (value.indexOf('off') === 0) { return false; }
-          if (value.indexOf('on;') === 0) { return true; }
-          if (value.indexOf('off;') === 0) { return false; }
-        }
-        switch (value) {
-          case 'no': case 'false': case '0': case 'null': case 'undefined':
-            return false;
-        }
-      }
-      return value ? true : false;
-    }
-  }
-
-  private flagValueIsAmongRecommended(value): boolean {
-    if (!this.coerceFlagValues) {
-      if ( value === true || value === false ) {return true; }
-    } else {
-      if ( value === true || value === false ) {return true; }
-      if (typeof value === 'string') {
-        if (value[0] === 'o') {
-          if (value.indexOf('on') === 0) { return true; }
-          if (value.indexOf('off') === 0) { return true; }
-          if (value.indexOf('on;') === 0) { return true; }
-          if (value.indexOf('off;') === 0) { return true; }
-        }
-      }
-    }
-    return false;
-  }
-
-  // Travels object tree like 'daml.contract.prop' returns value `at` path `target` parent object, and last key
-  private dotTravel(obj: object, path: string, force: boolean = false): {node: any, prevNode: object, lastKey: string} {
+  /** Resolve dot separated name scheme in flags (e.g. 'daml.contracts.flag1') */
+  private flagPathTravel(obj: object, path: string): boolean {
     const keys = path.split('.');
-    let node = obj; let prevNode = null; let lastKey = null;
-    let i = 0;
-    for (const key of keys) { // travel
-      if (key === '') { continue; }
-      if (node === null || node === undefined) {
-        throw new Error(`dotTravel cannot travel anymore at ${lastKey} (path: ${path})`);
-      }
-      prevNode = node; lastKey = key;
-      if (node[key] === undefined) {
-          if (force) {
-            if (i + 1 < keys.length) { node[key] = {}; }
-          } else {
-            throw new Error(`dotTravel path ended abruptly at ${lastKey} (path: ${path})`);
-          }
-      }
-      node = node[key];
-      ++i;
+    let target = obj;
+    for (const key of keys) {
+      if (target[key] === undefined) { return null; }
+      target = target[key];
     }
-    return {node: node, prevNode: prevNode, lastKey: lastKey};
-  }
-  // Travels object tree like 'some.inner.path' and sets value at that point
-  private dotTravelSet(obj: object, path: string, value: any, forcePath: boolean = false) {
-    try {
-      const travel = this.dotTravel(obj, path, forcePath);
-      travel.prevNode[travel.lastKey] = value;
-    } catch (e) { console.error(e); }
+    return target ? true : false;
   }
 
-  private flagsRecursiveImport(valueMap: object, target: object, targetBooleans: object, path: string = null) {
-    if (path === null) {
-      if (valueMap.hasOwnProperty('coerceFlagValues')) {
-        this.setCoerceFlagValues(valueMap['coerceFlagValues'] ? true : false);
-      }
+  /** Resolve dot separated name scheme in flags and set value at that path */
+  private flagPathTravelSet(obj: object, path: string, setTo: boolean): FeatureFlagUpdateEvent {
+    const keys = path.split('.');
+    let target = obj; const lastIndex = keys.length - 1;
+    // travel until last object (second to last key), create new path as doing so
+    for (let i = 0; i < lastIndex; ++i) {
+      const key = keys[i]; if (target[key] === undefined) { target[key] = {}; }
+      target = target[key];
     }
-    for (const key of Object.keys(valueMap)) {
-      const pathNow = (path === null) ? key : path + '.' + key;
-      const value = valueMap[key];
-      if (key.indexOf('.') >= 0) { this.setFlag(key, value); continue; }
-      if (value && typeof value === 'object') {
+    const lastKey = keys[lastIndex];
+    const oldValue = target[lastKey]; // return old value, too, for emitting flag value change event
+    target[lastKey] = setTo; // set at last travel key
+    return {name: path, value: setTo, oldValue: oldValue};
+  }
+
+  private flagsRecursiveImport(keyValueMap: object, target: object, path: string = ''): void {
+    for (const key of Object.keys(keyValueMap)) {
+      const pathNow = (path === '') ? key : path + '.' + key;
+      const value = keyValueMap[key];
+      if (key.indexOf('.') >= 0) { this.setFlag(pathNow, value); continue; }
+      if (Array.isArray(value)) { // array type
+        if (!FeatureFlagService.suppressWarningLogs && !this.flagValueIsAmongRecommended(value)) {
+            console.warn(new Error(`FeatureFlagService: ${pathNow} is set to unsupported type 'array', ignoring.`));
+        }
+      } else if (value && typeof value === 'object') { // Object; do recursive import for nested
         if (!target[key]) { target[key] = {}; }
-        if (!targetBooleans[key]) { targetBooleans[key] = {}; }
-        this.flagsRecursiveImport(value, target[key], targetBooleans[key], pathNow);
-      } else {
-        const boolValue = this.flagValueMeansEnabled(value) ? true : false;
+        this.flagsRecursiveImport(value, target[key], pathNow);
+      } else { // Primitives
+        const oldValue = target[key];
         target[key] = value;
-        targetBooleans[key] = boolValue;
+        if (oldValue !== value) { // emit flag change
+          this.flagsCache.set(pathNow, {value: value});
+          this.featureFlagsChange.next({name: pathNow, value: value, oldValue: oldValue});
+        }
         if (!FeatureFlagService.suppressWarningLogs && !this.flagValueIsAmongRecommended(value)) {
             console.warn(new Error(`FeatureFlagService: ${pathNow} not using recommended value (got '${value}')`));
         }
+      }
+    }
+  }
+
+  private flagValueMeansEnabled(value: any): boolean {
+    return value ? true : false;
+  }
+
+  private flagValueIsAmongRecommended(value: any): boolean {
+    if (value === true || value === false ) { return true; }
+    return false;
+  }
+
+  /**
+   * Once initial feature flags data is obtained, import them. \
+   * (Only in non-production (UI dev env), import overrides from app-config)
+   */
+  private initialize(flags: object, importSourceInfo: string): void {
+    // Fetch and map succeeded, update flags from this data.
+    this.updateFlags(flags, importSourceInfo);
+    if (!this.env.production) {
+      if (this.featureFlagsFromConfig && typeof this.featureFlagsFromConfig === 'object') {
+        this.updateFlags(this.featureFlagsFromConfig, 'UI Dev Env Flag Override');
+        console.log(`Flags has been imported from [ui/src/static/app-config.json]`
+                      + ` and might override features specified by Helen.`);
+        console.log(JSON.stringify(this.featureFlagsFromConfig));
       }
     }
   }
