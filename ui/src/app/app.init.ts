@@ -24,12 +24,9 @@ export class AppInitService {
           return response.json();
         })
       ).pipe(
-        map(async (config) => {
+        map((config) => {
           window.config = config;
-          try {
-            // `app-config` has the import path URL of feature flags
-            await this.featureFlagService.importFromSource(config.featureFlagsSource);
-          } catch (e) { console.log(e); }
+          this.featureFlagService.featureFlagsFromConfig = config.featureFlags;
         })
     ).toPromise();
   }
