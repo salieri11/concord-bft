@@ -22,7 +22,7 @@ export class SwaggerComponent implements AfterViewInit {
   ngAfterViewInit() {
     const jwt = localStorage.getItem('jwtToken');
     let loginPath;
-    let apiPath = '/static/swagger/swagger.json';
+    let apiPath = '/api/static/api.yaml';
     const pathArray = window.location.pathname.split('/');
     pathArray.splice(-3);
     const basePath = pathArray.join('/');
