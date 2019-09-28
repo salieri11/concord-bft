@@ -125,26 +125,6 @@ public class BallotDApp {
 
 	}
 
-	public void applyRateControl(long sleepTime, int idx, long start) {
-		try {
-			long diff = sleepTime * idx - (System.nanoTime() - start);
-
-			if (diff > 0) {
-				TimeUnit.NANOSECONDS.sleep(diff);
-			}
-
-			/*
-			 * enable if desired; prints warning if transaction missed scheduling
-			if (diff < 0 && idx != 0) {
-				logger.debug("Transaction " + idx + " is late.");
-			}
-			 */
-
-		} catch (InterruptedException e){
-			e.printStackTrace();
-		}
-	}
-
 	public static void main(String[] args) {
 		if (args.length > 0) {
 
@@ -326,7 +306,7 @@ public class BallotDApp {
 			Future<long[]> result = excutor.submit(votings.get(i));
 			resultList.set(i, result);
 			if(RATE_CONTROL != 0)
-				applyRateControl(sleepTime, index, startTime);
+				Utils.applyRateControl(sleepTime, index, startTime);
 			index++;
 		}
 
@@ -484,7 +464,7 @@ public class BallotDApp {
 			tasks.add(task);
 
 			if (RATE_CONTROL != 0) {
-				applyRateControl(sleepTime, i, start);
+				Utils.applyRateControl(sleepTime, i, start);
 			}
 		}
 

@@ -145,4 +145,17 @@ public class Utils {
 			return null;
 		}
 	}
+
+	public static void applyRateControl(long sleepTime, int idx, long start) {
+		try {
+			long diff = sleepTime * idx - (System.nanoTime() - start);
+
+			if (diff > 0) {
+				TimeUnit.NANOSECONDS.sleep(diff);
+			}
+
+		} catch (InterruptedException e){
+			e.printStackTrace();
+		}
+	}
 }

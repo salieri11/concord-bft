@@ -5,34 +5,36 @@ simpleConfig:
   port: 8545
   http: false
   nodes:
-    - ip: 10.40.205.101
+    - ip: 10.40.205.70
       percentage: 100
       username: username
       password: password
-    - ip: 10.40.205.102
+    - ip: 10.40.205.71
       percentage: 0
       username: username
       password: password
-    - ip: 10.40.205.103
+    - ip: 10.40.205.72
       percentage: 0
       username: username
       password: password
-    - ip: 10.40.205.104
+    - ip: 10.40.205.73
       percentage: 0
       username: username
       password: password
   workloads:
-    - dapp: Ballot
-      language: Solidity
+    - dapp: IOU
+      language: DAML
       numOfRuns: 1
-      rateControl: 200
+      rateControl: 60
       logging: false
       params:
-        - ../target/performance-1.0-SNAPSHOT-jar-with-dependencies.jar    #executable
-        - --concord           #use concord, helen, or ethereum
-        - 10.40.205.101       #concordIP, helenIP, or ethereumIP
-        - 1000                #numberVotes
-        - ../data/proposals   #input data
+        - ../daml/quickstart    #daml contract path
+        - target/daml-quickstart-java-1.0.0-jar-with-dependencies.jar           #executable
+        - localhost
+        - 6865
+        - Alice #party
+        - 8080 #restPort
+        - 100 #numOfTrasactions
   sleepTime: 1000
   outputDir: ./perf_result
 
