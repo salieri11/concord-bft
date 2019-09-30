@@ -32,8 +32,7 @@ def call(){
   pipeline {
     agent { label params.jenkins_node ? params.jenkins_node : agentLabel }
     tools {
-      // 8.9.4 is the minimum for Truffle.
-      nodejs 'Node 8.9.4'
+      nodejs 'Node 11.15.0'
     }
     options{
       gitLabConnection('TheGitlabConnection')
