@@ -21,6 +21,10 @@ export enum ConsortiumStates {
   loginReturn = 'login-return'
 }
 
+export enum FeatureFlagSource {
+  URL = 'static/feature-flag.json'
+}
+
 export const Apis = {
   base: 'api',
   blockchainsApi: 'blockchains',

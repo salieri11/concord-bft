@@ -21,6 +21,10 @@ import { BlockchainResponse } from './../blockchain/shared/blockchain.model';
 import { FeatureFlagService } from './feature-flag.service';
 import { environment } from '../../environments/environment';
 import { QueryParams } from './urls.model';
+import { HttpClient } from '@angular/common/http';
+import { Subject, Observable, of } from 'rxjs';
+import { map, catchError } from 'rxjs/operators';
+import { FeatureFlagSource } from './urls.model';
 
 
 @Injectable()
@@ -34,7 +38,8 @@ export class AuthenticatedGuard implements CanActivateChild, CanActivate {
     private errorService: ErrorAlertService,
     private translateService: TranslateService,
     private blockchainService: BlockchainService,
-    private featureFlagService: FeatureFlagService
+    private featureFlagService: FeatureFlagService,
+    private http: HttpClient
   ) { }
 
   canActivateChild(childRoute: ActivatedRouteSnapshot) {
@@ -64,17 +69,13 @@ export class AuthenticatedGuard implements CanActivateChild, CanActivate {
       if (!this.authenticationService.accessToken) {
         const auth = await this.authenticationService.getAccessToken().toPromise();
 
-        /**
-         * When Helen is ready, do an API call to fetch, e.g.
-         * await this.featureFlagService.initializeFromURL('api/getUserFeatures').toPromise();;
-         * **OR**
-         * if auth response already contains flags data, simply use `initializeWithData`
-         * this.featureFlagService.initializeWithData(auth.featureFlags, 'Helen Auth Response');
-         *
-         * For now, using http.get with initializeFromURL and get static file.
-         */
-        await this.featureFlagService.initializeFromURL('static/feature-flag.json').toPromise();
-
+        const flagsSource = FeatureFlagSource.URL;
+        await this.http.get(flagsSource).pipe(
+                map((flagsFlatMap) => {
+                  this.featureFlagService.initialize(flagsFlatMap, flagsSource);
+                  return flagsFlatMap;
+                })
+              ).toPromise();
 
        if (this.isNewUser(route, state, auth)) {
           this.router.navigate(['/', 'welcome'], { fragment: 'welcome' });
