@@ -112,6 +112,7 @@ def record_event(stage_name=None, event_name=None, events_file=None):
 
     try:
         now = datetime.datetime.now(tz=datetime.timezone.utc)
+        now_str = now.strftime(TIME_FORMAT)
         _waitForLockFile(lock_file)
         created_lock = True
         events = _get_existing_events(events_file)
@@ -119,8 +120,10 @@ def record_event(stage_name=None, event_name=None, events_file=None):
         if stage_name in events and \
            EVENTS_KEY in events[stage_name] and \
            event_name in events[stage_name][EVENTS_KEY]:
-            raise Exception("Already have a value for stage {}, event {}". \
-                            format(stage_name, event_name))
+            print("WARNING: Already have value '{}' for stage '{}', event '{}'. " \
+                  "New value '{}' will be ignored.".format(events[stage_name][EVENTS_KEY][event_name],
+                                                           stage_name, event_name, now_str))
+            return
 
         if not stage_name in events:
             events[stage_name] = {}
@@ -128,7 +131,7 @@ def record_event(stage_name=None, event_name=None, events_file=None):
         if not EVENTS_KEY in events[stage_name]:
             events[stage_name][EVENTS_KEY] = {}
 
-        events[stage_name][EVENTS_KEY][event_name] = now.strftime(TIME_FORMAT)
+        events[stage_name][EVENTS_KEY][event_name] = now_str
         _calculate_elapsed(events)
 
         with open(events_file+"_tmp", "w") as f:
