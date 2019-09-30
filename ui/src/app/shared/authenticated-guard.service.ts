@@ -22,8 +22,7 @@ import { FeatureFlagService } from './feature-flag.service';
 import { environment } from '../../environments/environment';
 import { QueryParams } from './urls.model';
 import { HttpClient } from '@angular/common/http';
-import { Subject, Observable, of } from 'rxjs';
-import { map, catchError } from 'rxjs/operators';
+import { map } from 'rxjs/operators';
 import { FeatureFlagSource } from './urls.model';
 
 
