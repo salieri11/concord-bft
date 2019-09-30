@@ -72,9 +72,12 @@ def call(){
         steps{
           script{
             try{
+              env.eventsFile = "times.json"
+              env.eventsFullPath = env.WORKSPACE + "/" + env.eventsFile
+              env.eventsRecorder = env.WORKSPACE + "/blockchain/hermes/event_recorder.py"
               checkSkipTestsPassword()
               removeContainers()
-              pruneImages()            
+              pruneImages()
               reportSystemStats()
 
               // Check parameters
@@ -175,10 +178,12 @@ def call(){
             steps() {
               script{
                 try{
+                  saveTimeEvent("Setup", "Copy googletest")
                   sh 'mkdir googletest'
                   dir('googletest') {
                     sh 'cp -ar /var/jenkins/workspace/googletest/* .'
                   }
+                  saveTimeEvent("Setup", "Finished copying googletest")
                 }catch(Exception ex){
                   failRun()
                   throw ex
@@ -199,10 +204,12 @@ def call(){
             steps() {
               script{
                 try{
+                  saveTimeEvent("Setup", "Copy evmjit")
                   sh 'mkdir evmjit'
                   dir('evmjit') {
                     sh 'cp -ar /var/jenkins/workspace/evmjit/* .'
                   }
+                  saveTimeEvent("Setup", "Finished copying evmjit")
                 }catch(Exception ex){
                   failRun()
                   throw ex
@@ -214,10 +221,12 @@ def call(){
             steps() {
               script{
                 try{
+                  saveTimeEvent("Setup", "Copy ethereum tests")
                   sh 'mkdir ethereum_tests'
                   dir('ethereum_tests') {
                     sh 'cp -ar /var/jenkins/workspace/ethereum_tests/* .'
                   }
+                  saveTimeEvent("Setup", "Finished copying ethereum tests")
                 }catch(Exception ex){
                   failRun()
                   throw ex
@@ -407,6 +416,7 @@ EOF
 
               // Set up python.
               script{
+                saveTimeEvent("Setup", "Set up python")
                 env.python_bin = "/var/jenkins/workspace/venv_py37/bin"
                 env.python = env.python_bin + "/python"
 
@@ -417,6 +427,7 @@ EOF
                    pip3 install -r blockchain/hermes/requirements.txt
                    deactivate
                 '''
+                saveTimeEvent("Setup", "Finished setting up python")
               }
             }catch(Exception ex){
               failRun()
@@ -428,18 +439,30 @@ EOF
 
       stage("Build") {
         steps {
+          archiveArtifacts artifacts: env.eventsFile, allowEmptyArchive: false
           script{
             env.additional_components_to_build = additional_components_to_build
             try{
+              saveTimeEvent("Build", "Start buildall.sh")
               dir('blockchain') {
                 sh '''
                   ./buildall.sh --additionalBuilds ${additional_components_to_build}
                 '''
               }
+              saveTimeEvent("Build", "Finished buildall.sh")
             }catch(Exception ex){
               failRun()
               throw ex
             }
+          }
+          archiveArtifacts artifacts: env.eventsFile, allowEmptyArchive: false
+        }
+      }
+
+      stage("Start tests"){
+        steps {
+          script {
+            saveTimeEvent("Tests", "Start")
           }
         }
       }
@@ -477,25 +500,59 @@ EOF
 
                     if (genericTests) {
                       sh '''
+                        # Pull in the shell script saveTimeEvent.
+                        . lib/shell/common_shell.sh
+                        EVENTS_FILE="${eventsFullPath}"
+                        EVENTS_RECORDER="${eventsRecorder}"
+
                         # So test suites not using sudo can write to test_logs.
                         rm -rf "${test_log_root}"
                         mkdir "${test_log_root}"
 
                         # Make sure the test framework itself can run a basic test suite.
+                        saveTimeEvent SampleSuite Start
                         echo "${PASSWORD}" | sudo -S "${python}" main.py SampleSuite --resultsDir "${sample_suite_test_logs}"
-                        
+                        saveTimeEvent SampleSuite End
+
+                        saveTimeEvent SampleDAppTests Start
                         echo "${PASSWORD}" | sudo -S "${python}" main.py SampleDAppTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${sample_dapp_test_logs}" --runConcordConfigurationGeneration
+                        saveTimeEvent SampleDAppTests End
 
+                        saveTimeEvent CoreVMTests Start
                         echo "${PASSWORD}" | sudo -S "${python}" main.py CoreVMTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${core_vm_test_logs}" --runConcordConfigurationGeneration
-                        echo "${PASSWORD}" | sudo -S "${python}" main.py HelenAPITests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${helen_api_test_logs}" --runConcordConfigurationGeneration --logLevel debug
-                        echo "${PASSWORD}" | sudo -S "${python}" main.py ExtendedRPCTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${extended_rpc_test_logs}" --runConcordConfigurationGeneration
-                        echo "${PASSWORD}" | sudo -S "${python}" main.py ExtendedRPCTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${extended_rpc_test_helen_logs}" --ethrpcApiUrl https://localhost/blockchains/local/api/concord/eth --runConcordConfigurationGeneration
-                        echo "${PASSWORD}" | sudo -S "${python}" main.py RegressionTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${regression_test_logs}" --runConcordConfigurationGeneration
-                        echo "${PASSWORD}" | sudo -S "${python}" main.py DamlTests --dockerComposeFile ../docker/docker-compose-daml.yml --resultsDir "${daml_test_logs}" --runConcordConfigurationGeneration --concordConfigurationInput /concord/config/dockerConfigurationInput-daml.yaml
+                        saveTimeEvent CoreVMTests End
 
+                        saveTimeEvent HelenAPITests Start
+                        echo "${PASSWORD}" | sudo -S "${python}" main.py HelenAPITests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${helen_api_test_logs}" --runConcordConfigurationGeneration --logLevel debug
+                        saveTimeEvent HelenAPITests End
+
+                        saveTimeEvent ExtendedRPCTests Start
+                        echo "${PASSWORD}" | sudo -S "${python}" main.py ExtendedRPCTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${extended_rpc_test_logs}" --runConcordConfigurationGeneration
+                        saveTimeEvent ExtendedRPCTests End
+
+                        saveTimeEvent ExtendedRPCTestsEthrpc Start
+                        echo "${PASSWORD}" | sudo -S "${python}" main.py ExtendedRPCTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${extended_rpc_test_helen_logs}" --ethrpcApiUrl https://localhost/blockchains/local/api/concord/eth --runConcordConfigurationGeneration
+                        saveTimeEvent ExtendedRPCTestsEthrpc End
+
+                        saveTimeEvent RegressionTests Start
+                        echo "${PASSWORD}" | sudo -S "${python}" main.py RegressionTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${regression_test_logs}" --runConcordConfigurationGeneration
+                        saveTimeEvent RegressionTests End
+
+                        saveTimeEvent DamlTests Start
+                        echo "${PASSWORD}" | sudo -S "${python}" main.py DamlTests --dockerComposeFile ../docker/docker-compose-daml.yml --resultsDir "${daml_test_logs}" --runConcordConfigurationGeneration --concordConfigurationInput /concord/config/dockerConfigurationInput-daml.yaml
+                        saveTimeEvent DamlTests End
+
+                        saveTimeEvent SimpleStateTransferTest Start
                         echo "${PASSWORD}" | sudo -S "${python}" main.py SimpleStateTransferTest --dockerComposeFile ../docker/docker-compose.yml ../docker/docker-compose-static-ips.yml --resultsDir "${statetransfer_test_logs}" --runConcordConfigurationGeneration
+                        saveTimeEvent SimpleStateTransferTest End
+
+                        saveTimeEvent TruffleTests Start
                         echo "${PASSWORD}" | sudo -S "${python}" main.py TruffleTests --logLevel debug --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${truffle_test_logs}" --runConcordConfigurationGeneration
+                        saveTimeEvent TruffleTests End
+
+                        saveTimeEvent ContractCompilerTests Start
                         echo "${PASSWORD}" | sudo -S "${python}" main.py ContractCompilerTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${contract_compiler_test_logs}" --runConcordConfigurationGeneration
+                        saveTimeEvent ContractCompilerTests End
 
                         # RV: Commenting out because these repeatedly cause the product to fail to launch in CI/CD.
                         # echo "${PASSWORD}" | sudo -S "${python}" main.py HlfTests --dockerComposeFile=../docker/docker-compose-hlf.yml --resultsDir "${hlf_test_logs}" --runConcordConfigurationGeneration --concordConfigurationInput /concord/config/dockerConfigurationInput-hlf.yaml
@@ -506,9 +563,14 @@ EOF
                         # but the configuration generation is run inside of a
                         # container. `../docker/config-public/` is mounted as `/concord/config/`
                         # during config generation.
+                        saveTimeEvent TimeTests Start
                         sed -- \'s/\\(FEATURE_time_service: \\)false/\\1true/\' ../docker/config-public/dockerConfigurationInput.yaml > ../docker/config-public/dockerConfigurationInput-time_service.yaml
                         echo "${PASSWORD}" | sudo -S "${python}" main.py TimeTests --dockerComposeFile=../docker/docker-compose.yml --resultsDir "${time_test_logs}" --runConcordConfigurationGeneration --concordConfigurationInput /concord/config/dockerConfigurationInput-time_service.yaml
+                        saveTimeEvent TimeTests End
+
+                        saveTimeEvent EvilTimeTests Start
                         echo "${PASSWORD}" | sudo -S "${python}" main.py EvilTimeTests --dockerComposeFile=../docker/docker-compose.yml --resultsDir "${time_test_logs}"
+                        saveTimeEvent EvilTimeTests End
 
                         # RV, Aug 22 2019: Commenting out because test runs are dying when running docker-compose.
                         # Jira item to resolve and uncomment: VB-1544
@@ -519,22 +581,29 @@ EOF
                         # needs to be run with sudo is so it can delete any existing DB files.)
                         echo "${PASSWORD}" | sudo -S rm -rf ../docker/devdata/rocksdbdata*
                         echo "${PASSWORD}" | sudo -S rm -rf ../docker/devdata/cockroachDB
+                        saveTimeEvent UITests Start
                         "${python}" main.py UiTests --dockerComposeFile ../docker/docker-compose.yml ../docker/docker-compose-persephone.yml --resultsDir "${ui_test_logs}" --runConcordConfigurationGeneration
+                        saveTimeEvent UITests End
                       '''
                     }
                     if (env.JOB_NAME.contains(memory_leak_job_name)) {
+                      saveTimeEvent("Memory leak tests", "Start")
                       sh '''
                         echo "Running Entire Testsuite: Memory Leak..."
                         cd suites ; echo "${PASSWORD}" | sudo -SE ./memory_leak_test.sh --testSuite CoreVMTests --repeatSuiteRun 5 --resultsDir "${mem_leak_test_logs}"
                       '''
+                      saveTimeEvent("Memory leak tests", "End")
                     }
                     if (env.JOB_NAME.contains(performance_test_job_name)) {
+                      saveTimeEvent("Performance tests", "Start")
                       sh '''
                         echo "Running Entire Testsuite: Performance..."
                         echo "${PASSWORD}" | sudo -SE "${python}" main.py PerformanceTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${performance_test_logs}" --runConcordConfigurationGeneration --concordConfigurationInput /concord/config/dockerConfigurationInput-perftest.yaml
                       '''
+                      saveTimeEvent("Performance tests", "End")
                     }
                     if (env.JOB_NAME.contains(lint_test_job_name)) {
+                      saveTimeEvent("LINT tests", "Start")
                       sh '''
                         echo "Running Entire Testsuite: Lint E2E..."
 
@@ -546,6 +615,7 @@ EOF
 
                         "${python}" main.py LintTests --dockerComposeFile ../docker/docker-compose.yml ../docker/docker-compose-fluentd.yml --resultsDir "${lint_test_logs}" --runConcordConfigurationGeneration
                       '''
+                      saveTimeEvent("LINT tests", "End")
                     }
                   }
                 }
@@ -567,6 +637,7 @@ EOF
         steps {
           script{
             try{
+              saveTimeEvent("Persephone tests", "Start")
               withCredentials([string(credentialsId: 'BLOCKCHAIN_REPOSITORY_WRITER_PWD', variable: 'DOCKERHUB_PASSWORD')]) {
                 sh '''
                   docker login -u blockchainrepositorywriter -p "${DOCKERHUB_PASSWORD}"
@@ -606,6 +677,7 @@ EOF
                   }
                 }
               }
+              saveTimeEvent("Persephone tests", "End")
             }catch(Exception ex){
               failRun()
               throw ex
@@ -625,6 +697,7 @@ EOF
             steps {
               script {
                 try {
+                  saveTimeEvent("Memory leak tasks", "Start")
                   dir('hermes-data/memory_leak_test') {
                     pushHermesDataFile('memory_leak_summary.csv')
                   }
@@ -671,6 +744,8 @@ EOF
                   yaxis: 'Leak Summary (bytes)',
                   yaxisMaximum: '',
                   yaxisMinimum: ''
+
+                  saveTimeEvent("Memory leak tasks", "End")
                 } catch(Exception ex){
                     failRun()
                     throw ex
@@ -692,6 +767,7 @@ EOF
             steps {
               script {
                 try {
+                  saveTimeEvent("Performance tasks", "Start")
                   dir('blockchain/hermes/suites') {
                     withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
                       sh '''
@@ -750,12 +826,22 @@ EOF
                   yaxis: 'Performance Test Transaction Rate',
                   yaxisMaximum: '',
                   yaxisMinimum: ''
+
+                  saveTimeEvent("Performance tasks", "End")
                 } catch(Exception ex){
                     failRun()
                     throw ex
                 }
               }
             }
+          }
+        }
+      }
+
+      stage("Finish tests"){
+        steps {
+          script {
+            saveTimeEvent("Tests", "End")
           }
         }
       }
@@ -769,6 +855,7 @@ EOF
         steps{
           script {
             try{
+              saveTimeEvent("Save to artifactory", "Start")
               withCredentials([string(credentialsId: 'ARTIFACTORY_API_KEY', variable: 'ARTIFACTORY_API_KEY')]) {
                 // Pass in false for whether to tag as latest because VMware's
                 // artifactory does not allow re-using a tag.
@@ -792,6 +879,7 @@ EOF
                 pushDockerImage(env.internal_hlf_peer_repo, env.docker_tag, false)
                 pushDockerImage(env.internal_hlf_tools_repo, env.docker_tag, false)
               }
+              saveTimeEvent("Save to artifactory", "End")
             }catch(Exception ex){
               failRun()
               throw ex
@@ -807,6 +895,7 @@ EOF
         steps {
           script{
             try{
+              saveTimeEvent("Push to DockerHub", "Start")
               dir('blockchain') {
                 createAndPushGitTag(env.version_param)
               }
@@ -854,6 +943,8 @@ EOF
                 pushDockerImage(env.release_daml_index_db_repo, env.docker_tag, true)
               }
 
+              saveTimeEvent("Push to DockerHub", "End")
+
               dir('blockchain/vars') {
                 script {
                   release_notification_address_file = "release_notification_recipients.txt"
@@ -892,8 +983,10 @@ EOF
           command = "docker logout athena-docker-local.artifactory.eng.vmware.com"
           retryCommand(command, false)
 
+          saveTimeEvent("Remove unnecessary docker artifacts", "Start")
           removeContainers()
           pruneImages()
+          saveTimeEvent("Remove unnecessary docker artifacts", "End")
         }
 
         // Files created by the docker run belong to root because they were created by the docker process.
@@ -907,11 +1000,16 @@ EOF
           }
         }
 
+        saveTimeEvent("Gather artifacts", "Start")
         archiveArtifacts artifacts: "**/*.log", allowEmptyArchive: true
         archiveArtifacts artifacts: "**/testLogs/**/*.csv", allowEmptyArchive: true
         archiveArtifacts artifacts: "**/testLogs/**/*.txt", allowEmptyArchive: true
         archiveArtifacts artifacts: "**/*.json", allowEmptyArchive: true
         archiveArtifacts artifacts: "**/*.html", allowEmptyArchive: true
+        saveTimeEvent("Gather artifacts", "End")
+
+        // And grab the time file one more time so we can know how long gathering artifacts takes.
+        archiveArtifacts artifacts: env.eventsFile, allowEmptyArchive: false
 
         echo 'Sending email notification...'
         emailext body: "${currentBuild.currentResult}: Job ${env.JOB_NAME} build ${env.BUILD_NUMBER}\n More info at: ${env.BUILD_URL}\nNOTE: Any failed persephone/helen deployment would be retained for the next 1 hour, before cleanup.",
@@ -920,9 +1018,11 @@ EOF
 
         script{
           try{
+            saveTimeEvent("Clean up SDDCs", "Start")
             sh 'echo Calling Job Cleanup-SDDC-folder to cleanup resources on SDDCs under folder HermesTesting...'
             build job: 'Cleanup-SDDC-folder', parameters: [[$class: 'StringParameterValue', name: 'SDDC', value: 'VMware-Blockchain-SDDC-3'], [$class: 'StringParameterValue', name: 'VMFolder', value: 'HermesTesting'], [$class: 'StringParameterValue', name: 'OLDERTHAN', value: '1']]
             build job: 'Cleanup-SDDC-folder', parameters: [[$class: 'StringParameterValue', name: 'SDDC', value: 'VMware-Blockchain-SDDC-4'], [$class: 'StringParameterValue', name: 'VMFolder', value: 'HermesTesting'], [$class: 'StringParameterValue', name: 'OLDERTHAN', value: '1']]
+            saveTimeEvent("Clean up SDDCs", "End")
           }catch(Exception ex){
             failRun()
             throw ex
@@ -1287,7 +1387,7 @@ void reportSystemStats(){
   sh(script:
   '''
   set +x
-  echo 
+  echo
   ifconfig | grep -A 2 "ens"
   set -x
   ''')
@@ -1316,4 +1416,8 @@ void checkSkipTestsPassword(){
       assert Secret.fromString(PASSWORD) == params.skip_tests_password : msg
     }
   }
+}
+
+void saveTimeEvent(stage, event){
+  sh(script: "python3 \"${eventsRecorder}\" record_event '" + stage + "' '" + event + "' \"${eventsFullPath}\"")
 }
