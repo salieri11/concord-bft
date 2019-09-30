@@ -1,7 +1,4 @@
 {
     "cspEnv": "staging",
-    "refLink": "https://localhost.vmware.com",
-    "devFeatureFlags": {
-      
-    }
+    "refLink": "https://localhost.vmware.com"
 }

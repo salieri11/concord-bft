@@ -26,8 +26,6 @@ export class AppInitService {
       ).pipe(
         map((config) => {
           window.config = config;
-          this.featureFlagService.devFeatureFlags = config.devFeatureFlags;
-          this.featureFlagService.stagingFeatureFlags = config.stagingFeatureFlags;
         })
     ).toPromise();
   }
