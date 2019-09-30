@@ -6,15 +6,12 @@
 import { Injectable } from '@angular/core';
 import { from } from 'rxjs';
 import { map } from 'rxjs/operators';
-import { FeatureFlagService } from './shared/feature-flag.service';
 declare var window: any;
 
 @Injectable()
 export class AppInitService {
 
-  constructor(
-    private featureFlagService: FeatureFlagService
-  ) {}
+  constructor() {}
 
   // This is the method you want to call at bootstrap
   // Important: It should return a Promise

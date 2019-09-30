@@ -3,9 +3,8 @@
  */
 import { Injectable, TemplateRef } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Subject, Observable, of } from 'rxjs';
+import { Observable, of } from 'rxjs';
 import { map, catchError } from 'rxjs/operators';
-import { environment } from '../../environments/environment';
 
 /**
  * Most of the time flag condition compute requests will come from directives,
@@ -38,7 +37,6 @@ export class FeatureFlagService {
 
   // public readonly featureFlagsChange: Subject<FeatureFlagUpdateEvent> = new Subject<FeatureFlagUpdateEvent>();
 
-  private readonly env = environment;
   private updateSources: (string | Error)[] = []; // Keep track of where all feature flags updates are made
   private featureFlags: {} = {}; // Key-value map from JSON file
 
