@@ -220,6 +220,10 @@ export class BlockchainService {
           newLocations.push({
             displayValue: loc.formatted,
             value: `${loc.formatted}`,
+            geometry: {
+              lat: loc.geometry.lat,
+              long: loc.geometry.lng
+            }
           });
         });
 
