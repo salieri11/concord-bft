@@ -29,6 +29,10 @@ class DockerHttpClient(
         @JvmStatic
         val DEFAULT_CONTAINER_REGISTRY: Endpoint = Endpoint("https://registry-1.docker.io/v2")
 
+        /** Default container registry name to be specified in canonical container image name. */
+        @JvmStatic
+        val DEFAULT_CONTAINER_REGISTRY_NAME = "registry-1.docker.io"
+
         /** Default Docker Engine API endpoint. */
         @JvmStatic
         val DEFAULT_DOCKER_ENGINE: Endpoint = Endpoint("http://host.docker.internal:2375")
