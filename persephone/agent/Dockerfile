@@ -26,6 +26,7 @@ RUN mvn -f persephone/pom.xml dependency:resolve-plugins dependency:resolve clea
 ## Copy the dependent module sources.
 COPY ./api ./persephone/api
 COPY ./core ./persephone/core
+COPY ./server-support ./persephone/server-support
 
 ## Copy the module sources.
 COPY ./agent ./persephone/agent

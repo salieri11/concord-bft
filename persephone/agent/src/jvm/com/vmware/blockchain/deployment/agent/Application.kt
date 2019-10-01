@@ -49,7 +49,7 @@ import kotlinx.serialization.json.JsonConfiguration
 import kotlinx.serialization.modules.EmptyModule
 
 /** Default configuration file path.  */
-private val DEFAULT_APPLICATION_CONFIG = URI.create("file:/config/config.json")
+private val DEFAULT_APPLICATION_CONFIG = URI.create("file:/config/agent/config.json")
 
 /** Default component artifact target mount path. */
 private val DEFAULT_COMPONENT_CONFIGURATION_MOUNT_PATH = URI.create("file:/config/")
@@ -83,7 +83,7 @@ private val DEFAULT_CONCORD_AGENT_CONFIGURATION by lazy {
             cluster = ConcordClusterIdentifier.defaultValue,
             node = 0,
             configService = configServiceEndpoint,
-            configurationSession = ConfigurationSessionIdentifier(8439530024453537582)
+            configurationSession = ConfigurationSessionIdentifier.defaultValue
     )
 }
 

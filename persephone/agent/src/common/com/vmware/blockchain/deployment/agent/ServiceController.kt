@@ -135,14 +135,14 @@ class ServiceController(
 
         // Request handler that stays active until the service controller's coroutine scope is cancelled.
         launch {
-            try {
-                // Wait on all the container setup to be complete and then join/prepare the result.
-                val containers = containerTasks.awaitAll().toMap()
+            // Wait on all the container setup to be complete and then join/prepare the result.
+            val containers = containerTasks.awaitAll().toMap()
 
-                log.info { "Service($service) request handler started" }
+            log.info { "Service($service) request handler started" }
 
-                // Initialization did not encounter any error.
-                for (message in requests) {
+            // Initialization did not encounter any error.
+            for (message in requests) {
+                try {
                     log.info { "Service($service) received message($message)" }
 
                     when (message) {
@@ -166,17 +166,17 @@ class ServiceController(
                             message.response.complete(Response.Status(ServiceState.State.ACTIVE))
                         }
                     }
-                }
-            } catch (error: Throwable) {
-                log.error { "Service($service) request handler failed with error(${error.message}" }
+                } catch (error: Throwable) {
+                    log.error { "Service($service) message($message) with error(${error.message}" }
 
-                requests.close(error)
+                    message.response.completeExceptionally(error)
+                }
             }
-        }.invokeOnCompletion {
-            log.info { "Service($service) request handler terminated" }
+        }.invokeOnCompletion { error ->
+            log.info { "Service($service) request handler terminated, error(${error?.message})" }
 
             // Note: If channel is already closed due to error, this call has no effect.
-            requests.close()
+            requests.close(error)
         }
     }
 

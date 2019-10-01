@@ -109,6 +109,7 @@ enum class ContainerSettings(
             portBindings = mapOf(
                     ContainerPortBinding(8545, ContainerPortBinding.Protocol.TCP) to
                             listOf(HostPortBinding(port = 8545))
-            )
+            ),
+            environment = mapOf("CONCORD_AUTHORITIES" to "concord")
     );
 }
