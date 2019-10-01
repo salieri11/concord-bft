@@ -29,10 +29,10 @@ public enum ContainerConfig {
                     Bind.parse("/config/concord/config-public:/concord/config-public")),
             null, null, null),
     ETHEREUM_API("vmwblockchain/ethrpc", "ethrpc",
-                 List.of(new PortBinding(Ports.Binding.bindPort(8545), ExposedPort.tcp(8545))),
-                 null, List.of(new Link("concord", "concord")), List.of(
-            "/bin/bash", "-c", "sed -i s/localhost/concord/g application.properties && java -jar concord-ethrpc.jar"
-    ), null),
+            List.of(new PortBinding(Ports.Binding.bindPort(8545), ExposedPort.tcp(8545))),
+            null,
+            List.of(new Link("concord", "concord")), null,
+            List.of("CONCORD_AUTHORITIES=concord:5458")),
 
     // DAML Configuration
 
