@@ -19,7 +19,7 @@ import { customMatchers } from '../../../../custom-matchers';
     `
 })
 class TestHostComponent {
-  @ViewChild(VmwCopyToClipboardButtonComponent) component: VmwCopyToClipboardButtonComponent;
+  @ViewChild(VmwCopyToClipboardButtonComponent, { static: true }) component: VmwCopyToClipboardButtonComponent;
 
   public value = 'Test string';
 }
@@ -56,8 +56,8 @@ describe('CopyToClipboardButtonComponent', () => {
     });
 
     it('should initialize size properly', () => {
-      component.ngOnInit();
-      expect(component.bounds).toBe('18px');
+      hostComponent.component.ngOnInit();
+      expect(hostComponent.component.bounds).toBe('18px');
       component.size = 24;
       component.ngOnInit();
       expect(component.bounds).toBe('26px');

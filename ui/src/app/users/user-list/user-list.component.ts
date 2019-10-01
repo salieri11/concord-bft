@@ -17,7 +17,7 @@ export class UserListComponent implements OnInit {
   static personasAllowed: Personas[] = [Personas.SystemsAdmin, Personas.ConsortiumAdmin, Personas.OrgAdmin];
   @Input('users') users: User[];
   @Output('selected') selected: EventEmitter<any> = new EventEmitter<any>();
-  @ViewChild('datagrid') datagrid: ClrDatagrid;
+  @ViewChild('datagrid', { static: true }) datagrid: ClrDatagrid;
 
   selectedUsers: User[] = [];
 

@@ -32,8 +32,7 @@ def call(){
   pipeline {
     agent { label params.jenkins_node ? params.jenkins_node : agentLabel }
     tools {
-      // 8.9.4 is the minimum for Truffle.
-      nodejs 'Node 8.9.4'
+      nodejs 'Node 11.15.0'
     }
     options{
       gitLabConnection('TheGitlabConnection')
@@ -579,6 +578,8 @@ EOF
                         # We need to delete the database files before running UI tests because
                         # Selenium cannot launch Chrome with sudo.  (The only reason Hermes
                         # needs to be run with sudo is so it can delete any existing DB files.)
+                        # Source NVM
+                        . ~/.nvm/nvm.sh
                         echo "${PASSWORD}" | sudo -S rm -rf ../docker/devdata/rocksdbdata*
                         echo "${PASSWORD}" | sudo -S rm -rf ../docker/devdata/cockroachDB
                         saveTimeEvent UITests Start

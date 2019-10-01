@@ -28,10 +28,10 @@ import { External, ConsortiumStates } from '../../shared/urls.model';
   styleUrls: ['./main.component.scss']
 })
 export class MainComponent implements OnInit, OnDestroy {
-  @ViewChild('welcomeModal') welcomeModal: SetupModalComponent;
-  @ViewChild('blockchainWizard') blockchainWizard: BlockchainWizardComponent;
-  @ViewChild('addOnPremises') addOnPremises: OnPremisesModalComponent;
-  @ViewChild('deployLoader') deployLoader: DeployingInterstialComponent;
+  @ViewChild('welcomeModal', { static: true }) welcomeModal: SetupModalComponent;
+  @ViewChild('blockchainWizard', { static: true }) blockchainWizard: BlockchainWizardComponent;
+  @ViewChild('addOnPremises', { static: true }) addOnPremises: OnPremisesModalComponent;
+  @ViewChild('deployLoader', { static: true }) deployLoader: DeployingInterstialComponent;
 
   alerts: any = [];
   personas = Personas;
@@ -57,7 +57,8 @@ export class MainComponent implements OnInit, OnDestroy {
   }
 
   set selectedConsortium(id: string) {
-    const selectObs = this.blockchainService.select(id).subscribe(selected => {
+    let selectObs;
+    selectObs = this.blockchainService.select(id).subscribe(selected => {
       this.enableRouterOutlet = selected;
       if (selectObs) {
         selectObs.unsubscribe();

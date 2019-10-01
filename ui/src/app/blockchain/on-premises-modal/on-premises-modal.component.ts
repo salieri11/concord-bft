@@ -14,15 +14,14 @@ import { OnPremisesFormComponent } from '../on-premises-form/on-premises-form.co
   styleUrls: ['./on-premises-modal.component.scss']
 })
 export class OnPremisesModalComponent implements AfterViewInit {
-  @ViewChild('form') form: OnPremisesFormComponent;
-  @ViewChild('modal') modal: ClrWizard;
+  @ViewChild('form', { static: true }) form: OnPremisesFormComponent;
+  @ViewChild('modal', { static: true }) modal: ClrWizard;
   isOpen: boolean;
   adding: boolean;
 
   constructor(private router: Router) { }
 
-  ngAfterViewInit() {
-  }
+  ngAfterViewInit() {}
 
   addOnPrem() {
     this.adding = true;

@@ -39,13 +39,13 @@ const RegionCountValidator: ValidatorFn = (fg: FormGroup): ValidationErrors | nu
   styleUrls: ['./blockchain-wizard.component.scss']
 })
 export class BlockchainWizardComponent implements AfterViewInit {
-  @ViewChild('wizard') wizard: ClrWizard;
-  @ViewChild('detailPage') detailPage: ClrWizardPage;
-  @ViewChild('usersPage') usersPage: ClrWizardPage;
-  @ViewChild('onPremPage') onPremPage: ClrWizardPage;
-  @ViewChild('replicaPage') replicaPage: ClrWizardPage;
-  @ViewChild('onPremForm') onPremForm: OnPremisesFormComponent;
-  @ViewChild('consortiumInput') consortiumInput: ElementRef;
+  @ViewChild('wizard', { static: false }) wizard: ClrWizard;
+  @ViewChild('detailPage', { static: false }) detailPage: ClrWizardPage;
+  @ViewChild('usersPage', { static: false }) usersPage: ClrWizardPage;
+  @ViewChild('onPremPage', { static: false }) onPremPage: ClrWizardPage;
+  @ViewChild('replicaPage', { static: false }) replicaPage: ClrWizardPage;
+  @ViewChild('onPremForm', { static: false }) onPremForm: OnPremisesFormComponent;
+  @ViewChild('consortiumInput', { static: false }) consortiumInput: ElementRef;
   @Output('setupComplete') setupComplete: EventEmitter<any> = new EventEmitter<any>();
 
   selectedEngine: string;

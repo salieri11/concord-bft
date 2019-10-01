@@ -52,7 +52,7 @@ const initialVersion = {
     `
 })
 class TestWrapperClassComponent {
-  @ViewChild('versionComponent') versionComponent: SmartContractVersionComponent;
+  @ViewChild('versionComponent', { static: false }) versionComponent: SmartContractVersionComponent;
   version: SmartContractVersion = initialVersion;
 }
 
@@ -167,7 +167,9 @@ describe('SmartContractVersionComponent', () => {
   describe('Download functions', () => {
     it('generates the source code file name properly', () => {
       const expectedFileName = `${initialVersion.contract_id}_${initialVersion.version}_source_code.sol`;
-      spyOn(DownloadHelpers, 'generateDownload');
+      const setPropertyTypeSpy = jasmine.createSpy('setPropertyTypeSpy');
+      spyOnProperty(DownloadHelpers, 'generateDownload').and.returnValue(setPropertyTypeSpy);
+
       component.versionComponent.onSourceCodeDownload();
 
       expect(DownloadHelpers.generateDownload)
@@ -175,7 +177,8 @@ describe('SmartContractVersionComponent', () => {
     });
     it('generates the byte code file name properly', () => {
       const expectedFileName = `${initialVersion.contract_id}_${initialVersion.version}_bytecode.bin`;
-      spyOn(DownloadHelpers, 'generateDownload');
+      const setPropertyTypeSpy = jasmine.createSpy('setPropertyTypeSpy');
+      spyOnProperty(DownloadHelpers, 'generateDownload').and.returnValue(setPropertyTypeSpy);
       component.versionComponent.onByteCodeDownload();
 
       expect(DownloadHelpers.generateDownload)
@@ -183,7 +186,8 @@ describe('SmartContractVersionComponent', () => {
     });
     it('generates the metadata file name properly', () => {
       const expectedFileName = `${initialVersion.contract_id}_${initialVersion.version}_metadata.json`;
-      spyOn(DownloadHelpers, 'generateDownload');
+      const setPropertyTypeSpy = jasmine.createSpy('setPropertyTypeSpy');
+      spyOnProperty(DownloadHelpers, 'generateDownload').and.returnValue(setPropertyTypeSpy);
       component.versionComponent.onMetadataDownload();
 
       expect(DownloadHelpers.generateDownload)

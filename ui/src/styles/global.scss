@@ -1,4 +1,4 @@
-@import "~@clr/ui/src/color/utils/_colors.clarity.scss";
+@import "~@clr/ui/src/color/_variables.color.scss";
 @import './theme';
 
 .vmware-logo {
@@ -244,11 +244,12 @@ body.dark {
 }
 
 .list-container .datagrid-action-bar {
-  margin-top: -2rem;
+  margin-top: -2.5rem;
   margin-bottom: 1rem;
 
   .btn-group {
     float: right;
+    margin-right: 0;
   }
 }
 

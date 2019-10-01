@@ -19,8 +19,8 @@ import { BlockchainService } from '../../blockchain/shared/blockchain.service';
   styleUrls: ['./login.component.scss']
 })
 export class LogInContainerComponent implements OnDestroy, AfterViewInit {
-  @ViewChild('username') username: ElementRef;
-  @ViewChild('newPassword') newPassword: ElementRef;
+  @ViewChild('username', { static: true }) username: ElementRef;
+  @ViewChild('newPassword', { static: true }) newPassword: ElementRef;
   readonly loginForm: FormGroup;
   readonly changePasswordForm: FormGroup;
   errorMessage: string;

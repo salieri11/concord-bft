@@ -19,7 +19,7 @@ import { AbiFunctionParameter } from '../shared/smart-contracts.model';
     `
 })
 class TestWrapperClassComponent {
-  @ViewChild('solidityInputs') solidityInputs: SmartContractsSolidityFunctionInputsComponent;
+  @ViewChild('solidityInputs', { static: false }) solidityInputs: SmartContractsSolidityFunctionInputsComponent;
   functionInputForm: FormGroup = new FormGroup({});
   functionInputs: AbiFunctionParameter[] = [];
 }

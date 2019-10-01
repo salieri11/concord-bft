@@ -17,8 +17,8 @@ import { BlockchainService } from '../../blockchain/shared/blockchain.service';
   styleUrls: ['./smart-contracts.component.scss']
 })
 export class SmartContractsComponent implements OnInit {
-  @ViewChild('contractFormModal') contractFormModal: ContractFormComponent;
-  @ViewChild('truffleModal') truffleModal: ConnectWithTruffleComponent;
+  @ViewChild('contractFormModal', { static: true }) contractFormModal: ContractFormComponent;
+  @ViewChild('truffleModal', { static: true }) truffleModal: ConnectWithTruffleComponent;
 
   smartContracts = [];
   personas = Personas;

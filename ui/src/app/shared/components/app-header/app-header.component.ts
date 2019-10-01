@@ -24,7 +24,7 @@ import { ErrorAlertService } from '../../global-error-handler.service';
   styleUrls: ['./app-header.component.scss']
 })
 export class AppHeaderComponent implements OnDestroy, AfterViewInit {
-  @ViewChild('header') header: any;
+  @ViewChild('header', { static: false }) header: any;
   authenticationChange: Subscription;
   userProfileMenuToggleChanges: Subscription;
   personas = Personas;

@@ -33,8 +33,8 @@ const BLOCK_TRANSACTION_LIMIT = 20;
   styleUrls: ['./dashboard.component.scss']
 })
 export class DashboardComponent implements OnInit, OnDestroy {
-  @ViewChild('nodeGuage') nodeGuage: GaugeComponent;
-  @ViewChild('worldMap') worldMap: WorldMapComponent;
+  @ViewChild('nodeGuage', { static: false }) nodeGuage: GaugeComponent;
+  @ViewChild('worldMap', { static: false }) worldMap: WorldMapComponent;
 
   blockchainId: string;
   blocks: BlockListingBlock[] = [];
@@ -98,7 +98,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
     this.setNodeData();
     if (this.nodeGuage) {
-      this.nodeGuage.margin = [20, 0, 10, 10];
+      this.nodeGuage.margin = [20, 0, 10, 0];
     }
   }
 
@@ -232,7 +232,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
           link: ['/', this.blockchainId, 'organizations'],
           count: this.orgCount
         }, {
-          title: this.translate.instant('organization.title'),
+          title: this.translate.instant('blocks.currentBlock'),
           link: ['/', this.blockchainId, 'blocks'],
           count: this.blocks[0] ? this.blocks[0].number : 0
         }, {
