@@ -1007,6 +1007,7 @@ EOF
         archiveArtifacts artifacts: "**/testLogs/**/*.txt", allowEmptyArchive: true
         archiveArtifacts artifacts: "**/*.json", allowEmptyArchive: true
         archiveArtifacts artifacts: "**/*.html", allowEmptyArchive: true
+        archiveArtifacts artifacts: "**/*.gz", allowEmptyArchive: true
         saveTimeEvent("Gather artifacts", "End")
 
         // And grab the time file one more time so we can know how long gathering artifacts takes.

@@ -15,6 +15,7 @@ import cryptography
 import socket
 import subprocess
 import sys
+import tempfile
 import time
 import util.json_helper
 from . import numbers_strings
@@ -166,13 +167,69 @@ def ssh_connect(host, username, password, command, log_mode=None):
 
    return resp
 
+
+def sftp_client(host, username, password, src, dest, action="download", log_mode=None):
+   '''
+   Helper method to execute a command on a host via SSH
+   :param host: IP of remote host
+   :param username: username for FTP connection
+   :param password: password for username
+   :param src: Source file to FTP
+   :param dest: Destination file to FTP
+   :param action: download/upload
+   :param log_mode: Override to log connectivity issue as a warning
+   :return: FTP Status (True/False)
+   '''
+   warnings.simplefilter("ignore", cryptography.utils.CryptographyDeprecationWarning)
+   logging.getLogger("paramiko").setLevel(logging.WARNING)
+
+   result = False
+   sftp = None
+   transport = None
+   try:
+      transport = paramiko.Transport((host, 22))
+      transport.connect(None, username, password)
+
+      sftp = paramiko.SFTPClient.from_transport(transport)
+
+      if action.lower() == "download":
+         sftp.get(src, dest)
+         cmd_verify_ftp = ["ls", dest]
+         if execute_ext_command(cmd_verify_ftp):
+            log.debug("File downloaded successfully: {}".format(dest))
+            result = True
+      else:
+         sftp.put(src, dest)
+         cmd_verify_ftp = "ls {}".format(dest)
+         ssh_output = ssh_connect(host, username,password, cmd_verify_ftp)
+         log.debug(ssh_output)
+         if ssh_output:
+            if ssh_output.rstrip() == dest:
+               log.debug("File downloaded successfully: {}".format(dest))
+               result = True
+   except paramiko.AuthenticationException as e:
+      log.error("Authentication failed when connecting to {}".format(host))
+   except Exception as e:
+      if log_mode == "WARNING":
+         log.warning("On host {}: {}".format(host, e))
+      else:
+         log.error("On host {}: {}".format(host, e))
+
+   if sftp:
+      sftp.close()
+   if transport:
+      transport.close()
+
+   return result
+
+
 def execute_ext_command(command):
    '''
    Helper method to execute an external command
    :param command: command to be executed
    :return: True if command exit status is 0, else False
    '''
-   log.info("Executing external command: {}".format(command))
+   log.debug("Executing external command: {}".format(command))
 
    completedProcess = subprocess.run(command, stdout=subprocess.PIPE,
                                      stderr=subprocess.STDOUT)
@@ -327,6 +384,90 @@ def verify_daml_connectivity(concord_ip, port=6865):
             time.sleep(sleep_time)
 
    return False
+
+def create_concord_support_bundle(replicas, concord_username,
+                                     concord_password, containers,
+                                     test_log_dir):
+   '''
+   Helper method to create concord support bundle and upload to result dir
+   :param replicas: List of concord nodes
+   :param concord_username: concord username
+   :param concord_password: password for username
+   :param containers: List of containers to be running on concord node
+   :param test_log_dir: Support bundle to be uploaded to
+   '''
+   support_bundle_binary_name = "deployment-support.sh"
+   src_support_bundle_binary_path = os.path.join('util',
+                                                 support_bundle_binary_name)
+   remote_support_bundle_binary_path = os.path.join(tempfile.gettempdir(),
+                                                  support_bundle_binary_name)
+
+   log.info("")
+   log.info("**** Collecting Support bundle ****")
+   try:
+      for concord_ip in replicas:
+         log.info("Concord IP: {}".format(concord_ip))
+         log.info(
+            "  Upload support-bundle generation script onto concord node '{}'...".format(
+               concord_ip))
+
+         if sftp_client(concord_ip, concord_username, concord_password,
+                        src_support_bundle_binary_path,
+                        remote_support_bundle_binary_path, action="upload"):
+            log.debug("  Saved at '{}:{}'".format(concord_ip,
+                                                 remote_support_bundle_binary_path))
+
+            cmd_execute_collect_support_bundle = "sh {} --concordIP {} " \
+                                                 "--username {} --password {} " \
+                                                 "--dockerContainers '{}' ".format(
+               remote_support_bundle_binary_path, concord_ip, concord_username,
+               concord_password, ','.join(containers))
+
+            ssh_output = ssh_connect(concord_ip, concord_username,
+                                     concord_password,
+                                     cmd_execute_collect_support_bundle)
+            log.debug("Output from script '{}': {}".format(
+                                             remote_support_bundle_binary_path,
+                                             ssh_output))
+            supput_bundle_created = False
+            if ssh_output:
+               for line in ssh_output.split('\n'):
+                  if "Support bundle created successfully:" in line:
+                     support_bundle_to_upload = line.split(':')[2].strip()
+                     log.info(
+                        "  Support bundle created successfully on concord {}:{}".format(
+                           concord_ip, support_bundle_to_upload))
+                     supput_bundle_created = True
+
+                     log.info("  Exporting support bundle...")
+                     dest_support_bundle = os.path.join(test_log_dir,
+                                                        os.path.split(
+                                                           support_bundle_to_upload)[
+                                                           1])
+                     if sftp_client(concord_ip, concord_username,
+                                    concord_password,
+                                    support_bundle_to_upload,
+                                    dest_support_bundle,
+                                    action="download"):
+                        log.info("  {}".format(dest_support_bundle))
+                     else:
+                        log.error(
+                           "Failed to copy support bundle from concord '{}'".format(
+                              concord_ip))
+                     break
+
+            if not supput_bundle_created:
+               log.error(
+                  "Failed to create support bundle for concord {}".format(
+                     concord_ip))
+         else:
+            log.error(
+               "Failed to copy support bundle generation script to concord '{}'".format(
+                  concord_ip))
+         log.info("")
+
+   except Exception as e:
+      log.error(e)
 
 
 def waitForTask(request, taskId, expectSuccess=True, timeout=600):
