@@ -77,8 +77,7 @@ KVBClientPool::KVBClientPool(std::vector<KVBClient *> &clients,
       clients_(),
       clients_mutex_(),
       clients_condition_(),
-      next_ticket_{0},
-      now_serving_{clients.size()},
+      wait_queue_(),
       shutdown_{false} {
   for (auto it = clients.begin(); it < clients.end(); it++) {
     clients_.push(*it);
@@ -112,22 +111,39 @@ bool KVBClientPool::send_request_sync(ConcordRequest &req, bool isReadOnly,
 
     // Avoid starvation by forcing waiters to be unblocked in the order they
     // started waiting.
-    uint64_t my_ticket = next_ticket_++;
+    std::thread::id my_thread_id = std::this_thread::get_id();
+    wait_queue_.push(my_thread_id);
 
     // TODO: timeout
-    clients_condition_.wait(clients_lock, [this, my_ticket] {
+    clients_condition_.wait(clients_lock, [this, my_thread_id] {
       // Only continue if either the node is shutting down, or if it's this
       // thread's turn.
-      return this->shutdown_ || now_serving_ > my_ticket;
+      return this->shutdown_ ||
+             (my_thread_id == wait_queue_.front() && !clients_.empty());
     });
 
     if (shutdown_) {
+      // TODO: To make things super clean, we should find and remove ourselves
+      // from wait_queue_ as well, but if we're shutting down, we don't really
+      // care about that tracking.
       ErrorResponse *err = resp.add_error_response();
       err->set_description("Node is shutting down.");
       return true;
     }
+
+    wait_queue_.pop();
+
     client = clients_.front();
     clients_.pop();
+
+    if (!clients_.empty()) {
+      // We have to re-notify here, because it's possible that multiple notify
+      // calls happened before the head waiter woke up. In that case, the next
+      // waiter after this one may have woken, found that it was not next, and
+      // gone back to waiting. If there's a client for it, it needs to be woken
+      // again to grab it now.
+      clients_condition_.notify_all();
+    }
   }  // scope unlocks mutex
 
   bool result = client->send_request_sync(req, isReadOnly, resp);
@@ -135,7 +151,6 @@ bool KVBClientPool::send_request_sync(ConcordRequest &req, bool isReadOnly,
   {
     std::unique_lock<std::mutex> clients_lock(clients_mutex_);
     clients_.push(client);
-    now_serving_++;
 
     // Wake all waiters, to be sure that the one with the next ticket can claim
     // the client just pushed.

@@ -91,11 +91,8 @@ class KVBClientPool {
   // Condition to wait on if clients_ is empty;
   std::condition_variable clients_condition_;
 
-  // Non-starvation: which spot to grab in the line waiting on the condition.
-  uint64_t next_ticket_;
-  // Non-starvation: which spot in the waiting line is allowed to claim the next
-  // client.
-  uint64_t now_serving_;
+  // Non-starvation: which thread gets to claim the next available client
+  std::queue<std::thread::id> wait_queue_;
 
   // Flag signaling that the pool is shutting down. Once this flag is set,
   // clients_ should only be taken out of the pool to be destroyed, not to be
