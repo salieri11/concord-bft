@@ -152,8 +152,8 @@ bool KVBClientPool::send_request_sync(ConcordRequest &req, bool isReadOnly,
     std::unique_lock<std::mutex> clients_lock(clients_mutex_);
     clients_.push(client);
 
-    // Wake all waiters, to be sure that the one with the next ticket can claim
-    // the client just pushed.
+    // Wake all waiters, to be sure that the next one in the wait queue can grab
+    // a client.
     clients_condition_.notify_all();
   }  // scope unlocks mutex
 
