@@ -520,3 +520,17 @@ class Vsphere:
         except Exception as e:
             self._log.exception("Error connecting to vSphere: %s", str(e))
             return None
+
+    def get_nested_vms_folder(self, folder):
+        """
+        Get all vm's under specified folder
+
+        :folder vim.Folder : folder object
+        rtype dict of vm ref and key: name
+        """
+        obj = {}
+        container = self.content.viewManager.CreateContainerView(folder,
+                                    [vim.VirtualMachine], True)
+        for managed_object_ref in container.view:
+            obj.update({managed_object_ref: managed_object_ref.name})
+        return obj

@@ -1,0 +1,64 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: cs-rest-prod
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cs-rest-prod
+  template:
+    metadata:
+      labels:
+        app: cs-rest-prod
+    spec:
+      containers:
+      - name: persephone-configuration-rest
+        image: vmware-docker-blockchainsaas.bintray.io/vmwblockchain/persephone-configuration-rest:4a9990523409
+        imagePullPolicy: Always
+        volumeMounts:
+        - name: config-volume
+          mountPath: /config/
+          readOnly: true
+        ports:
+        - containerPort: 8088
+        command:
+          - "/bin/bash"
+          - "-ecx"
+          - "exec ./main --grpc-server-endpoint configservice-vmbc.cloud.vmware.com:443 --trusted-cert /config/server.crt"
+      imagePullSecrets:
+        - name: bintray
+      volumes:
+      - name: config-volume
+        configMap:
+          name: configservice-prod
+          defaultMode: 0700
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cs-rest-prod
+  labels:
+    app: cs-rest-prod
+spec:
+  ports:
+  - port: 8088
+    targetPort: 8088
+    name: cs-rest-prod
+  selector:
+    app: cs-rest-prod
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: cs-rest-prod
+  annotations:
+      kubernetes.io/ingress.class: "vdp-nginx-l7-ext"
+spec:
+  rules:
+  - host: cs-rest.vdp.vmware.com
+    http:
+      paths:
+      - backend:
+          serviceName: cs-rest-prod
+          servicePort: 8088

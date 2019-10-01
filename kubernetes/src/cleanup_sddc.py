@@ -16,9 +16,11 @@ import sys
 import tempfile
 import time
 import requests
+from uuid import UUID
 from config import common
 from lib import utils
 from lib import vsphere
+
 
 DC_CONSTANTS = None
 
@@ -32,6 +34,14 @@ def get_constants():
     data = client.secrets.kv.v2.read_secret_version(
                         mount_point="kv", path="VMC")["data"]["data"]
     return data
+
+
+def validate_uuid4(uuid_string):
+    try:
+        UUID(uuid_string, version=4)
+    except ValueError:
+        return False
+    return True
 
 
 def source_ipam_certificate():
@@ -113,8 +123,11 @@ def get_public_ips(nsx_mgr, org, sddc):
     req = requests.get('%s/vmc/reverse-proxy/api/orgs/%s/sddcs/%s/'
             'cloud-service/api/v1/infra/public-ips/' %
                        (nsx_mgr, org, sddc), headers=header)
-    logger.info(req.json())
-    return req
+    if req.status_code == 200:
+        return req.json()
+    else:
+        logger.error("Error getting nat rules for sddc %s %s" %
+                    (sddc, req.text))
 
 
 def get_public_ip(nsx_mgr, org, sddc, publicip):
@@ -155,7 +168,23 @@ def get_nat_rule(nsx_mgr, org, sddc, natrule):
                       "policy/api/v1/infra/tier-1s/cgw/nat/USER/nat-rules/%s" %
                        (nsx_mgr, org, sddc, natrule), headers=header)
     logger.info(req.json())
-    return req
+    return req.json()
+
+
+def get_nat_rules(nsx_mgr, org, sddc):
+    """
+        Get nat rule for sddc
+    """
+    header = utils.get_auth_header(common.CSP_PROD,
+                                   DC_CONSTANTS["CSP_API_TOKEN"])
+    req = requests.get("%s/vmc/reverse-proxy/api/orgs/%s/sddcs/%s/"
+                      "policy/api/v1/infra/tier-1s/cgw/nat/USER/nat-rules" %
+                       (nsx_mgr, org, sddc), headers=header)
+    if req.status_code == 200:
+        return req.json()
+    else:
+        logger.error("Error getting nat rules for sddc %s %s" %
+                    (sddc, req.text))
 
 
 def delete_nat_rule(nsx_mgr, org, sddc, natrule):
@@ -185,7 +214,7 @@ def get_dated_vms(vcobj, folder, hours):
         task_collector = vcobj.get_vm_task_collector(vm)
         if task_collector is None:
             continue
-        for task in task_collector.latestPage:
+        for task in task_collector.ReadNext(50):
             if (task.name is not None and
                 task.name.info.name == "PowerOn" and task.state == "success"):
                 if task.completeTime.replace(tzinfo=None) < delta:
@@ -203,9 +232,6 @@ def clean_sddc_folder(vcobj, folder, dc_dict,
         older than 'hours'
         Should be leaf folder
     """
-    if vcobj.check_if_subfolder_exits(folder) is True:
-        logger.info("%s has subfolder's , cleanup skipped" % folder)
-        sys.exit(1)
     if hours == 0:
         vms = vcobj.get_vms_from_folder(folder)
     else:
@@ -213,17 +239,23 @@ def clean_sddc_folder(vcobj, folder, dc_dict,
     logger.info("Cleaning up %s vm resources" % len(vms))
     metadata = get_network_metadata(vms)
     if reap_ipam is True:
-        delete_ipam_resources(vms, dc_dict)
+        delete_ipam_resources(vms, dc_dict, metadata)
     delete_network_resources(metadata, dc_dict)
     delete_vms(vms)
 
 
-def delete_ipam_resources(vms, dc_dict):
+def delete_ipam_resources(vms, dc_dict, metadata):
     """
         Retrieve cidr and ipaddr of vm to delete ipam entry
     """
     for vm in vms:
-        ipaddr_hex = nwaddress_to_hex(vm.guest.ipAddress)
+        natid = metadata[vm.name]
+        data = get_nat_rule(dc_dict["nsx_mgr"],
+            DC_CONSTANTS["ORG_ID"], dc_dict['id'], natid)
+        ipaddr = data["source_network"]
+        logger.info("Deleting ipam for %s with address %s" %
+                    (vm.name, ipaddr))
+        ipaddr_hex = nwaddress_to_hex(ipaddr)
         nw_segment = vm.network[0].name
         nw_segment_data = get_network_segment(nw_segment, dc_dict)
         cidr_hex = nwaddress_to_hex(nw_segment_data['subnets'][0]['network'])
@@ -263,20 +295,75 @@ def delete_network_resources(metadata, dc_dict):
                          DC_CONSTANTS["ORG_ID"], dc_dict['id'], netid)
 
 
+def get_orphaned_nwids(dc_dict, entity, vms):
+    """
+        Return list of orphaned nat rules
+    """
+    if entity == "nat":
+        natrules = get_nat_rules(dc_dict["nsx_mgr"], DC_CONSTANTS["ORG_ID"],
+                                dc_dict['id'])
+        auto_ids = [i['display_name'] for i in natrules["results"]
+                            if i["action"] == "REFLEXIVE"
+                            and validate_uuid4(i["display_name"]) is True]
+    elif entity == "eip":
+        eips = get_public_ips(dc_dict["nsx_mgr"], DC_CONSTANTS["ORG_ID"],
+                                dc_dict['id'])
+        auto_ids = [i['display_name'] for i in eips["results"] if
+                    validate_uuid4(i["display_name"]) is True]
+    orphaned_nw_ids = list(set(auto_ids) - set(vms.values()))
+    logger.info("There are %s orphaned network ids" % len(orphaned_nw_ids))
+    return orphaned_nw_ids
+
+
+def reap_orphaned_entities(vcobj, dc_dict, nat=True, eip=True, dryrun=False):
+    """
+        Reap network entities for sddc
+    """
+    vms = get_network_metadata(vcobj.get_all_vms())
+    #logger.info("Virtual machines in the datacenter %s" % vms.keys())
+    if nat is True:
+        natids = get_orphaned_nwids(dc_dict, "nat", vms)
+        logger.info("List of orphaned nat ids %s" % "\n".join(natids))
+        if dryrun is False:
+            for natid in natids:
+                delete_nat_rule(dc_dict["nsx_mgr"],
+                    DC_CONSTANTS["ORG_ID"], dc_dict['id'], natid)
+    if eip is True:
+        eipids =  get_orphaned_nwids(dc_dict, "eip", vms)
+        logger.info("List of orphaned eips %s" % "\n".join(eipids))
+        if dryrun is False:
+            for eip in eipids:
+                delete_public_ip(dc_dict["nsx_mgr"],
+                             DC_CONSTANTS["ORG_ID"], dc_dict['id'], eip)
+
+
 def setup_arguments():
     """
         Arg setup
     """
     parser = argparse.ArgumentParser(description="Clean up sddc folder")
-    parser.add_argument("--sddc", required=True, type=str,
+    parser.add_argument("sddc", type=str,
                     choices=DC_CONSTANTS["SDDCS"].keys(),
                     help="SDDC to clean up")
-    parser.add_argument("--folder", type=str, required=True,
+    subparsers = parser.add_subparsers(help='Subparsers for resource mgmt')
+    resource = subparsers.add_parser("resource-cleanup",
+                                    help="Default")
+    resource.set_defaults(which='resource')
+    resource.add_argument("--folder", type=str, required=True,
                     help="Folder to cleanup; must be a leaf folder")
-    parser.add_argument("--reap-ipam", action='store_true', default=False,
+    resource.add_argument("--reap-ipam", action='store_true', default=False,
                     help="Choose to delete ipam entry for collected vm's")
-    parser.add_argument("--olderthan", type=int, default=0,
+    resource.add_argument("--olderthan", type=int, default=0,
                     help="Cleanup vm's older than this value in hours")
+    orphan = subparsers.add_parser("orphan-cleanup",
+                                    help="Default")
+    orphan.set_defaults(which='orphan')
+    orphan.add_argument("--only-list", action="store_true", default=False,
+                    help="Only list orphaned entities")
+    orphan.add_argument("--reap-nat", action="store_true", default=False,
+                    help="Cleanup orhpaned nat rules")
+    orphan.add_argument("--reap-eip", action="store_true", default=False,
+                    help="Cleanup orphaned eip's")
     args = parser.parse_args()
     logger.info(args)
     return args
@@ -287,7 +374,11 @@ if __name__ == "__main__":
     args = setup_arguments()
     dc_dict = DC_CONSTANTS["SDDCS"][args.sddc]
     vcenterobj = vsphere.Vsphere(hostname=dc_dict['vcenter'],
-                                 username=dc_dict['vc_user'],
-                                 password=dc_dict['vc_pwd'])
-    clean_sddc_folder(vcenterobj, args.folder,
-                        dc_dict, args.olderthan, args.reap_ipam)
+                                  username=dc_dict['vc_user'],
+                                  password=dc_dict['vc_pwd'])
+    if args.which == "orphan":
+        reap_orphaned_entities(vcenterobj, dc_dict, args.reap_nat,
+                                args.reap_eip, args.only_list)
+    elif args.which == "resource":
+        clean_sddc_folder(vcenterobj, args.folder,
+                         dc_dict, args.olderthan, args.reap_ipam)
