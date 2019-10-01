@@ -29,7 +29,12 @@ WORKDIR /ethrpc
 COPY ./ethrpc/src/main/resources/application.properties ./application.properties
 COPY --from=0 ./ethrpc/target/concord-ethrpc*.jar ./concord-ethrpc.jar
 
-CMD ["java", "-jar", "concord-ethrpc.jar"]
-
 # Must match server.port in application.properties!
 EXPOSE 8545
+
+# Define environment variables and set default build-values for them.
+# Note: ARG can be over-written at image build-time with --build-arg.
+ARG concord_authorities=localhost:5458
+ENV CONCORD_AUTHORITIES=${concord_authorities}
+
+CMD ["java", "-jar", "concord-ethrpc.jar"]
