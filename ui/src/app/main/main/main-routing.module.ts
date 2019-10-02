@@ -21,13 +21,15 @@ import { transactionsRoutes } from '../../transactions/transactions-routing';
 import { loggingRoutes } from '../../logging/logging-routing';
 import { developerRoutes } from '../../developer/developer-routing';
 import { BlockchainResolver } from '../../blockchain/shared/blockchain.service';
+import { mainRoutes } from './../../shared/urls.model';
+
 
 const routes: Routes = [{
-    path: 'forbidden',
+    path: mainRoutes.forbidden,
     component: ForbiddenComponent,
     canActivate: [AuthenticatedGuard],
   }, {
-    path: 'error',
+    path: mainRoutes.error,
     component: ErrorComponent,
     canActivate: [AuthenticatedGuard],
   }, {
@@ -37,16 +39,16 @@ const routes: Routes = [{
     canActivateChild: [AuthenticatedGuard],
     resolve: {blockchain: BlockchainResolver},
     children: [
-      { path: 'dashboard', children: dashboardRoutes },
-      { path: 'blocks', children: blockRoutes },
-      { path: 'nodes', children: nodeRoutes },
-      { path: 'smart-contracts', children: smartContractRoutes },
-      { path: 'logging', children: loggingRoutes },
-      { path: 'consortium', children: consortiumRoutes },
-      { path: 'organizations', children: orgRoutes },
-      { path: 'users', children: usersRoutes },
-      { path: 'transactions', children: transactionsRoutes },
-      { path: 'developer', children: developerRoutes },
+      { path: mainRoutes.dashboard, children: dashboardRoutes },
+      { path: mainRoutes.blocks, children: blockRoutes },
+      { path: mainRoutes.nodes, children: nodeRoutes },
+      { path: mainRoutes.smartContracts, children: smartContractRoutes },
+      { path: mainRoutes.logging, children: loggingRoutes },
+      { path: mainRoutes.consortiums, children: consortiumRoutes },
+      { path: mainRoutes.organizations, children: orgRoutes },
+      { path: mainRoutes.users, children: usersRoutes },
+      { path: mainRoutes.transactions, children: transactionsRoutes },
+      { path: mainRoutes.developer, children: developerRoutes },
     ]
   }];
 

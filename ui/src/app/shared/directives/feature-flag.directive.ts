@@ -8,7 +8,7 @@ import { FeatureFlagService } from '../feature-flag.service';
   selector: '[concordFeatureFlag]'
 })
 export class FeatureFlagDirective implements OnInit {
-  @Input('concordFeatureFlag') concordFeatureFlag: string | string[];
+  @Input('concordFeatureFlag') concordFeatureFlag: string;
 
   constructor(
     private viewContainerRef: ViewContainerRef,
@@ -22,7 +22,8 @@ export class FeatureFlagDirective implements OnInit {
   }
 
   private checkFlagsCondition() {
-    if (this.featureFlagService.checkFlagsCondition(this.concordFeatureFlag, this.templateRef)) {
+
+    if (this.featureFlagService.check(this.concordFeatureFlag)) {
       this.viewContainerRef.createEmbeddedView(this.templateRef);
     } else {
       this.viewContainerRef.clear();

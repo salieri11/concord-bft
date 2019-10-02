@@ -25,6 +25,30 @@ export enum FeatureFlagSource {
   URL = 'static/feature-flag.json'
 }
 
+export const mainRoutes = {
+  forbidden: 'forbidden',
+  error: 'error',
+  // Blockchain child routes
+  dashboard: 'dashboard',
+  blocks: 'blocks',
+  nodes: 'nodes',
+  smartContracts: 'smart-contracts',
+  logging: 'logging',
+  consortiums: 'consortiums',
+  organizations: 'organizations',
+  users: 'users',
+  transactions: 'transactions',
+  developer: 'developer',
+  getFullBLockRoute: (id: string, child: string): string => {
+    return `/${id}/${this[child]}`;
+  },
+};
+
+export const FeatureFlagRouteMapping = {
+  nodes: 'node_list',
+  logging: 'developer_logging'
+};
+
 export const Apis = {
   base: 'api',
   blockchainsApi: 'blockchains',

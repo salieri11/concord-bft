@@ -1,3 +1,5 @@
 {
-    "featureFlagTest": true
+  "node_list": false,
+  "developer_logging": false,
+  "deploy_HLF": false
 }
