@@ -33,6 +33,7 @@ using grpc::Status;
 #define OPT_VERSION "version"
 #define OPT_FILE "file"
 #define OPT_CHAINCODE_TYPE "type"
+#define CHAINCODE_TYPE_PING_TEST "ping"
 
 const static std::string kChannelName = "mychannel";
 
@@ -83,27 +84,6 @@ int main(int argc, char *argv[]) {
 
     std::string method, c_name, c_type, input, version, file;
 
-    // For upload method, the path of chaincode stored in remote Concord will
-    // be: OPT_INPUT + '/' +  OPT_CHAINCODE
-    if (opts.count(OPT_CHAINCODE_NAME) > 0) {
-      c_name = opts[OPT_CHAINCODE_NAME].as<std::string>();
-    } else {
-      std::cout << "Empty chaincode name" << std::endl;
-      return 0;
-    }
-
-    if (opts.count(OPT_INPUT) > 0) {
-      input = opts[OPT_INPUT].as<std::string>();
-    }
-
-    if (opts.count(OPT_VERSION) > 0) {
-      version = opts[OPT_VERSION].as<std::string>();
-    } else {
-      // set default version to "1"
-      // version is only useful in the install and upgrade
-      version = "1";
-    }
-
     if (opts.count(OPT_CHAINCODE_TYPE) > 0) {
       c_type = opts[OPT_CHAINCODE_TYPE].as<std::string>();
     } else {
@@ -111,17 +91,47 @@ int main(int argc, char *argv[]) {
       c_type = "go";
     }
 
-    if (opts.count(OPT_FILE) > 0) {
-      file = opts[OPT_FILE].as<std::string>();
-    }
+    if (c_type != CHAINCODE_TYPE_PING_TEST) {
+      // For upload method, the path of chaincode stored in remote Concord will
+      // be: OPT_INPUT + '/' +  OPT_CHAINCODE
+      if (opts.count(OPT_CHAINCODE_NAME) > 0) {
+        c_name = opts[OPT_CHAINCODE_NAME].as<std::string>();
+      } else {
+        std::cout << "Empty chaincode name" << std::endl;
+        return 0;
+      }
 
-    if (opts.count(OPT_METHOD) > 0) {
-      method = opts[OPT_METHOD].as<std::string>();
-    } else {
-      std::cout << "Need to provide chaincode method (install, "
-                   "query, invoke, upgrade)"
-                << std::endl;
-      return 0;
+      if (opts.count(OPT_INPUT) > 0) {
+        input = opts[OPT_INPUT].as<std::string>();
+      }
+
+      if (opts.count(OPT_VERSION) > 0) {
+        version = opts[OPT_VERSION].as<std::string>();
+      } else {
+        // set default version to "1"
+        // version is only useful in the install and upgrade
+        version = "1";
+      }
+
+      if (opts.count(OPT_CHAINCODE_TYPE) > 0) {
+        c_type = opts[OPT_CHAINCODE_TYPE].as<std::string>();
+      } else {
+        // set default chaincode type to golang
+        c_type = "go";
+      }
+
+      if (opts.count(OPT_FILE) > 0) {
+        file = opts[OPT_FILE].as<std::string>();
+      }
+
+      if (opts.count(OPT_METHOD) > 0) {
+        method = opts[OPT_METHOD].as<std::string>();
+      } else {
+        std::cout << "Need to provide chaincode method (install, "
+                     "query, invoke, upgrade)"
+                  << std::endl;
+        return 0;
+      }
     }
 
     ConcordRequest conc_req =
@@ -140,49 +150,51 @@ ConcordRequest ConstructConcordRequest(std::string type, std::string c_name,
   ConcordRequest conc_req;
   HlfRequest *hlf_req = conc_req.add_hlf_request();
 
-  HlfRequest_HlfMethod method;
-
-  if (type == "install") {
-    method = HlfRequest_HlfMethod_INSTALL;
-  } else if (type == "upgrade") {
-    method = HlfRequest_HlfMethod_UPGRADE;
-  } else if (type == "invoke") {
-    method = HlfRequest_HlfMethod_INVOKE;
-  } else if (type == "query") {
-    method = HlfRequest_HlfMethod_QUERY;
-  } else {
-    std::cout << "Unknown chaincode method" << std::endl;
-    exit(EXIT_SUCCESS);
-  }
-
-  // hard code channel name here
-  hlf_req->set_chain_id(kChannelName);
-
-  hlf_req->set_method(method);
-  hlf_req->set_chaincode_name(c_name);
   hlf_req->set_type(c_type);
-  hlf_req->set_input(input);
-  hlf_req->set_version(version);
+  if (c_type != CHAINCODE_TYPE_PING_TEST) {
+    HlfRequest_HlfMethod method;
 
-  // read raw byte from the file
-  if (file != "") {
-    std::ifstream f(file, std::ios::in | std::ios::binary);
-
-    if (!f.is_open()) {
-      std::cout << "Unable to read " << file << std::endl;
+    if (type == "install") {
+      method = HlfRequest_HlfMethod_INSTALL;
+    } else if (type == "upgrade") {
+      method = HlfRequest_HlfMethod_UPGRADE;
+    } else if (type == "invoke") {
+      method = HlfRequest_HlfMethod_INVOKE;
+    } else if (type == "query") {
+      method = HlfRequest_HlfMethod_QUERY;
+    } else {
+      std::cout << "Unknown chaincode method" << std::endl;
       exit(EXIT_SUCCESS);
     }
 
-    f.seekg(0, f.end);
-    long length = f.tellg();
-    f.seekg(0, f.beg);
+    // hard code channel name here
+    hlf_req->set_chain_id(kChannelName);
 
-    char *buffer = new char[length];
-    f.read(buffer, length);
+    hlf_req->set_method(method);
+    hlf_req->set_chaincode_name(c_name);
+    hlf_req->set_input(input);
+    hlf_req->set_version(version);
 
-    hlf_req->set_chaincode_source_bytes(buffer, length);
+    // read raw byte from the file
+    if (file != "") {
+      std::ifstream f(file, std::ios::in | std::ios::binary);
 
-    delete[] buffer;
+      if (!f.is_open()) {
+        std::cout << "Unable to read " << file << std::endl;
+        exit(EXIT_SUCCESS);
+      }
+
+      f.seekg(0, f.end);
+      long length = f.tellg();
+      f.seekg(0, f.beg);
+
+      char *buffer = new char[length];
+      f.read(buffer, length);
+
+      hlf_req->set_chaincode_source_bytes(buffer, length);
+
+      delete[] buffer;
+    }
   }
   return conc_req;
 }

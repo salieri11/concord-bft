@@ -78,6 +78,11 @@ class HlfKvbCommandsHandler
       concord::hlf::HlfKvbStorage* kvb_hlf_storage,
       com::vmware::concord::ConcordResponse& concord_response) const;
 
+  bool HandleHlfPing(
+      const com::vmware::concord::ConcordRequest& concord_request,
+      concord::hlf::HlfKvbStorage* kvb_hlf_storage,
+      com::vmware::concord::ConcordResponse& concord_response) const;
+
   bool HandleHlfRequestReadOnly(
       const com::vmware::concord::ConcordRequest& concord_request,
       concord::hlf::HlfKvbStorage* kvb_hlf_storage,

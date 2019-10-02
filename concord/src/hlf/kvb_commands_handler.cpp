@@ -115,25 +115,39 @@ bool HlfKvbCommandsHandler::ExecuteCommand(const ConcordRequest& command,
 bool HlfKvbCommandsHandler::HandleHlfRequest(
     const ConcordRequest& command, HlfKvbStorage* kvb_hlf_storage,
     ConcordResponse& command_response) const {
-  LOG4CPLUS_DEBUG(logger_, "Triggered the chaincode invoke operation");
-  switch (command.hlf_request(0).method()) {
-    case HlfRequest_HlfMethod_INSTALL:
-      return HandleHlfInstallChaincode(command, kvb_hlf_storage,
-                                       command_response);
+  LOG4CPLUS_INFO(logger_, "Triggered hlf request");
 
-    case HlfRequest_HlfMethod_UPGRADE:
-      return HandleHlfUpgradeChaincode(command, kvb_hlf_storage,
-                                       command_response);
+  if (command.hlf_request(0).type() == "ping")
+    return HandleHlfPing(command, kvb_hlf_storage, command_response);
+  else
+    switch (command.hlf_request(0).method()) {
+      case HlfRequest_HlfMethod_INSTALL:
+        return HandleHlfInstallChaincode(command, kvb_hlf_storage,
+                                         command_response);
 
-    case HlfRequest_HlfMethod_INVOKE:
-      return HandleHlfInvokeChaincode(command, kvb_hlf_storage,
-                                      command_response);
+      case HlfRequest_HlfMethod_UPGRADE:
+        return HandleHlfUpgradeChaincode(command, kvb_hlf_storage,
+                                         command_response);
 
-    // handle read only
-    default:
-      return HandleHlfRequestReadOnly(command, kvb_hlf_storage,
-                                      command_response);
-  }
+      case HlfRequest_HlfMethod_INVOKE:
+        return HandleHlfInvokeChaincode(command, kvb_hlf_storage,
+                                        command_response);
+
+      // handle read only
+      default:
+        return HandleHlfRequestReadOnly(command, kvb_hlf_storage,
+                                        command_response);
+    }
+}
+
+bool HlfKvbCommandsHandler::HandleHlfPing(
+    const ConcordRequest& command, HlfKvbStorage* kvb_hlf_storage,
+    ConcordResponse& command_response) const {
+  HlfResponse* response = command_response.add_hlf_response();
+  response->set_status(0);
+  response->set_data("Pong");
+  LOG4CPLUS_INFO(logger_, "Triggered hlf ping/pong");
+  return true;
 }
 
 bool HlfKvbCommandsHandler::HandleHlfRequestReadOnly(
