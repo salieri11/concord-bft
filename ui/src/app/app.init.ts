@@ -23,6 +23,7 @@ export class AppInitService {
       ).pipe(
         map((config) => {
           window.config = config;
+          return;
         })
     ).toPromise();
   }
