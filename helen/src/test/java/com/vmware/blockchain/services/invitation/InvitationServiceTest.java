@@ -92,6 +92,9 @@ class InvitationServiceTest {
         invitation.setInvitationLink(invitationLink);
         doThrow(new CspApiClientErrorException(HttpStatus.BAD_REQUEST, "", new HttpHeaders()))
                 .when(cspApiClient).getInvitation("argle");
+        CspCommon.CspUser user = new CspCommon.CspUser();
+        user.setUsername("test@email.com");
+        when(cspApiClient.getUser(anyString())).thenReturn(user);
         when(cspApiClient.getInvitation(invitationLink)).thenReturn(invitation);
         when(authHelper.getOrganizationId()).thenReturn(orgId);
         when(authHelper.getEmail()).thenReturn("test@email.com");
@@ -207,6 +210,15 @@ class InvitationServiceTest {
     @Test
     void testBadOrg() throws Exception {
         when(authHelper.getOrganizationId()).thenReturn(UUID.fromString("5e93e41c-3d1c-43ac-bec7-a8c13670e72e"));
+        Assertions.assertThrows(BadRequestException.class,
+            () -> invitationService.handleServiceInvitation(invitationLink));
+        verify(cspApiClient, times(0)).patchOrgServiceRoles(anyString(), any(UUID.class), anyString(),
+                                                            any(CspPatchServiceRolesRequest.class));
+    }
+
+    @Test
+    void testBadUser() throws Exception {
+        when(cspApiClient.getUser(anyString())).thenReturn(null);
         Assertions.assertThrows(BadRequestException.class,
             () -> invitationService.handleServiceInvitation(invitationLink));
         verify(cspApiClient, times(0)).patchOrgServiceRoles(anyString(), any(UUID.class), anyString(),

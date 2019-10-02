@@ -102,8 +102,13 @@ public class InvitationService {
             }
             roles.addAll(ImmutableList.of(Roles.CONSORTIUM_ADMIN.toString(), Roles.ORG_ADMIN.toString()));
             body.setRoleNamesToAdd(roles);
+            // VB-1727: Need to get the user from CSP, so we can reliably get the email.
+            CspCommon.CspUser user = cspApiClient.getUser(authHelper.getAuthToken());
+            if (user == null) {
+                throw new BadRequestException(ErrorCode.INVALID_INVITATION);
+            }
             cspApiClient.patchOrgServiceRoles(authHelper.getAuthToken(), authHelper.getOrganizationId(),
-                                              authHelper.getEmail(), body);
+                                              user.getUsername(), body);
         } catch (CspApiException e) {
             // CSP exceptions are likely bad parameters or some such
             throw new BadRequestException(e, ErrorCode.INVALID_INVITATION);
