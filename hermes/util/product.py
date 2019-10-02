@@ -59,6 +59,7 @@ class Product():
    _numProductStarts = 0
    docker_env = util.helper.get_docker_env()
 
+   STARTUP_TIMEOUT = "240"
    PERSEPHONE_SERVICE_METADATA = docker_env["persephone_metadata_repo"]
    PERSEPHONE_SERVICE_PROVISIONING = docker_env["persephone_provisioning_repo"] # name as seen by helen
    PERSEPHONE_CONFIG_SERVICE = "config-service"
@@ -284,9 +285,13 @@ class Product():
       # We capture output in individual services' logs now, but still capture
       # all output just in case.
       bigLog = self._openLog("{}_".format(product) + str(Product._numProductStarts))
+
+      newEnv = os.environ.copy()
+      newEnv["COMPOSE_HTTP_TIMEOUT"] = Product.STARTUP_TIMEOUT
       p = subprocess.Popen(cmd,
                            stdout=bigLog,
-                           stderr=subprocess.STDOUT)
+                           stderr=subprocess.STDOUT,
+                           env=newEnv)
       self._processes.append(p)
 
 
