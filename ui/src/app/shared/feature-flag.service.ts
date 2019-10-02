@@ -42,7 +42,7 @@ export class FeatureFlagService {
   }
 
   check(flag: string): boolean {
-    return (this.featureFlags[flag]  === undefined) || this.featureFlags[flag];
+    return this.featureFlags && ((this.featureFlags[flag]  === undefined) || this.featureFlags[flag]);
   }
 
 }
