@@ -16,14 +16,9 @@ import { AuthenticationService } from './authentication.service';
 import { UserAuthResponse } from '../users/shared/user.model';
 import { Personas, PersonaService } from './persona.service';
 import { ErrorAlertService } from './global-error-handler.service';
-import { BlockchainService } from './../blockchain/shared/blockchain.service';
-import { BlockchainResponse } from './../blockchain/shared/blockchain.model';
 import { FeatureFlagService } from './feature-flag.service';
 import { environment } from '../../environments/environment';
 import { QueryParams } from './urls.model';
-import { HttpClient } from '@angular/common/http';
-import { map } from 'rxjs/operators';
-import { FeatureFlagSource } from './urls.model';
 
 
 @Injectable()
@@ -36,23 +31,26 @@ export class AuthenticatedGuard implements CanActivateChild, CanActivate {
     private personaService: PersonaService,
     private errorService: ErrorAlertService,
     private translateService: TranslateService,
-    private blockchainService: BlockchainService,
     private featureFlagService: FeatureFlagService,
-    private http: HttpClient
   ) { }
 
-  canActivateChild(childRoute: ActivatedRouteSnapshot) {
+  async canActivateChild(
+    childRoute: ActivatedRouteSnapshot,
+  ) {
     const personasAllowed: Personas[] = childRoute.component ? (childRoute.component as any).personasAllowed : null;
-    const blockchain: BlockchainResponse = this.blockchainService.selectedBlockchain;
+    await this.featureFlagService.initialize().toPromise();
 
-    if (this.env.csp) {
+    if (!this.featureFlagService.routeIsAllowed(childRoute)) {
+      this.router.navigate(['/forbidden']);
+      return false;
+    } else if (this.env.csp) {
       return true;
     } else if (localStorage.getItem('changePassword') || !this.authenticationService.isAuthenticated()) {
       this.router.navigate(['auth', 'login']);
       return false;
     } else if (personasAllowed && !this.personaService.hasAuthorization(personasAllowed)) {
       this.handleRoutingFailure();
-      this.router.navigate(['/' + blockchain.id, 'dashboard']);
+      this.router.navigate(['/forbidden']);
       return false;
     } else {
       return true;
@@ -65,16 +63,9 @@ export class AuthenticatedGuard implements CanActivateChild, CanActivate {
   ) {
 
     if (this.env.csp) {
+
       if (!this.authenticationService.accessToken) {
         const auth = await this.authenticationService.getAccessToken().toPromise();
-
-        const flagsSource = FeatureFlagSource.URL;
-        await this.http.get(flagsSource).pipe(
-                map((flagsFlatMap) => {
-                  this.featureFlagService.initialize(flagsFlatMap, flagsSource);
-                  return flagsFlatMap;
-                })
-              ).toPromise();
 
        if (this.isNewUser(route, state, auth)) {
           this.router.navigate(['/', 'welcome'], { fragment: 'welcome' });
