@@ -105,54 +105,58 @@ grpc::Status HlfChaincodeServiceImpl::TriggerChaincode(
     // default error message
     string error_msg = "Unable to handle request";
 
-    switch (hlf_request.method()) {
-      case HlfRequest_HlfMethod_INSTALL:
-        is_read_only = false;
+    if (hlf_request.type() == "ping") {
+      valid_request = true;
+      is_read_only = false;
+    } else {
+      switch (hlf_request.method()) {
+        case HlfRequest_HlfMethod_INSTALL:
+          is_read_only = false;
 
-        valid_input = IsValidManageOpt(hlf_request);
-        valid_chaincode = VerifyChaincodeBytes(hlf_request, error_msg);
+          valid_input = IsValidManageOpt(hlf_request);
+          valid_chaincode = VerifyChaincodeBytes(hlf_request, error_msg);
 
-        if (!valid_input || !valid_chaincode) {
+          if (!valid_input || !valid_chaincode) {
+            valid_request = false;
+            ErrorResponse* resp = concord_response->add_error_response();
+            resp->set_description(error_msg);
+          } else {
+            valid_request = true;
+          }
+
+          break;
+
+        case HlfRequest_HlfMethod_UPGRADE:
+          is_read_only = false;
+
+          valid_input = IsValidManageOpt(hlf_request);
+          valid_chaincode = VerifyChaincodeBytes(hlf_request, error_msg);
+
+          if (!valid_input || !valid_chaincode) {
+            valid_request = false;
+            ErrorResponse* resp = concord_response->add_error_response();
+            resp->set_description(error_msg);
+          } else {
+            valid_request = true;
+          }
+
+          break;
+
+        case HlfRequest_HlfMethod_INVOKE:
+          valid_request = IsValidInvokeOpt(hlf_request);
+          is_read_only = false;
+          break;
+
+        case HlfRequest_HlfMethod_QUERY:
+          valid_request = IsValidInvokeOpt(hlf_request);
+          break;
+
+        default:
           valid_request = false;
-          ErrorResponse* resp = concord_response->add_error_response();
-          resp->set_description(error_msg);
-        } else {
-          valid_request = true;
-        }
-
-        break;
-
-      case HlfRequest_HlfMethod_UPGRADE:
-        is_read_only = false;
-
-        valid_input = IsValidManageOpt(hlf_request);
-        valid_chaincode = VerifyChaincodeBytes(hlf_request, error_msg);
-
-        if (!valid_input || !valid_chaincode) {
-          valid_request = false;
-          ErrorResponse* resp = concord_response->add_error_response();
-          resp->set_description(error_msg);
-        } else {
-          valid_request = true;
-        }
-
-        break;
-
-      case HlfRequest_HlfMethod_INVOKE:
-        valid_request = IsValidInvokeOpt(hlf_request);
-        is_read_only = false;
-        break;
-
-      case HlfRequest_HlfMethod_QUERY:
-        valid_request = IsValidInvokeOpt(hlf_request);
-        break;
-
-      default:
-        valid_request = false;
-        ErrorResponse* e = concord_response->add_error_response();
-        e->mutable_description()->assign("HLF Method Not Implemented");
+          ErrorResponse* e = concord_response->add_error_response();
+          e->mutable_description()->assign("HLF Method Not Implemented");
+      }
     }
-
     if (valid_request) {
       ConcordRequest internal_request;
       HlfRequest* internal_hlfRequest = internal_request.add_hlf_request();
