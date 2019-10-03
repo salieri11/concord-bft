@@ -311,17 +311,28 @@ class PersephoneTests(test_suite.TestSuite):
                 "http://{}:{}".format(concord_ip, ethrpc_port),
                 self._userConfig,
                 tokenDescriptor)
-      try:
-         currentBlockNumber = rpc.getBlockNumber()
-         log.info("Current Block Number: {}".format(currentBlockNumber))
+      attempt = 0
+      max_tries = 5
+      while attempt < max_tries:
+         attempt += 1
+         log.info("Verifying ethrpc connectivity (attempt: {}/{})...".format(
+            attempt, max_tries))
+         try:
+            currentBlockNumber = rpc.getBlockNumber()
+            log.info("Current Block Number: {}".format(currentBlockNumber))
 
-         if int(currentBlockNumber, 16) == 0:
-            log.debug("Block Number is 0")
-            return True
-         else:
-            log.error("Block Number is NOT 0")
-      except Exception as e:
-         log.error(e)
+            if int(currentBlockNumber, 16) == 0:
+               log.debug("Block Number is 0")
+               return True
+            else:
+               log.error("Block Number is NOT 0")
+         except Exception as e:
+            if attempt == max_tries:
+               log.error(e)
+            else:
+               sleep_time = 30  # seconds
+               log.info("Retry after {} seconds...".format(sleep_time))
+               time.sleep(sleep_time)
 
       return False
 
