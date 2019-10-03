@@ -52,9 +52,15 @@ def call(){
       string defaultValue: "",
              description: "Blockchain commit or branch to use.  Providing a branch name will pull the branch's latest commit.",
              name: "blockchain_branch_or_commit"
+      booleanParam defaultValue: true,
+                   description: "Whether to merge the above commit/branch into the local master branch before building and testing.\
+  This is a --no-ff merge, just like GitLab will do when it will try to merge your change.",
+                   name: "merge_branch_or_commit"
+
       string defaultValue: "",
              description: "Shared Jenkins lib branch to use.",
              name: "shared_lib_branch"
+
 
       string defaultValue: "",
              description: "Override automatic node selection and run this job on a node with this label.",
@@ -101,49 +107,45 @@ def call(){
         }
       }
 
-      stage('Fetch source code') {
-        parallel {
-          stage("Fetch blockchain repo source") {
-            steps {
-              script{
-                try{
-                  sh 'mkdir blockchain'
-                  dir('blockchain') {
-                    // After the checkout, the content of the repo is directly under 'blockchain'.
-                    // There is no extra 'vmwathena_blockchain' directory.
-                    script {
-                      env.commit = getRepoCode("git@gitlab.eng.vmware.com:blockchain/vmwathena_blockchain.git", params.blockchain_branch_or_commit)
-                      env.blockchain_root = new File(env.WORKSPACE, "blockchain").toString()
+      stage("Fetch blockchain repo source") {
+        steps {
+          script{
+            try{
+              sh 'mkdir blockchain'
+              dir('blockchain') {
+                // After the checkout, the content of the repo is directly under 'blockchain'.
+                // There is no extra 'vmwathena_blockchain' directory.
+                script {
+                  env.commit = getRepoCode("git@gitlab.eng.vmware.com:blockchain/vmwathena_blockchain.git", params.blockchain_branch_or_commit, params.merge_branch_or_commit)
+                  env.blockchain_root = new File(env.WORKSPACE, "blockchain").toString()
 
-                      // Check if persephone tests are to be executed in this run
-                      env.run_persephone_tests = has_repo_changed('vars') || has_repo_changed('buildall.sh') || has_repo_changed('hermes') || has_repo_changed('persephone') || has_repo_changed('agent') || has_repo_changed('concord') || env.JOB_NAME.contains(master_branch_job_name) || env.JOB_NAME.contains(persephone_test_job_name)
-                      sh 'echo $run_persephone_tests'
-                    }
-                  }
-                }catch(Exception ex){
-                  failRun()
-                  throw ex
+                  // Check if persephone tests are to be executed in this run
+                  env.run_persephone_tests = has_repo_changed('vars') || has_repo_changed('buildall.sh') || has_repo_changed('hermes') || has_repo_changed('persephone') || has_repo_changed('agent') || has_repo_changed('concord') || env.JOB_NAME.contains(master_branch_job_name) || env.JOB_NAME.contains(persephone_test_job_name)
+                  sh 'echo $run_persephone_tests'
                 }
               }
+            }catch(Exception ex){
+              failRun()
+              throw ex
             }
           }
+        }
+      }
 
-          stage('Fetch VMware blockchain hermes-data source') {
-            steps {
-              script{
-                try{
-                  sh 'mkdir hermes-data'
-                  dir('hermes-data') {
-                    script {
-                      env.actual_hermes_data_fetched = getRepoCode("git@gitlab.eng.vmware.com:blockchain/hermes-data","master")
-                    }
-                    sh 'git checkout master'
-                  }
-                }catch(Exception ex){
-                  failRun()
-                  throw ex
+      stage('Fetch VMware blockchain hermes-data source') {
+        steps {
+          script{
+            try{
+              sh 'mkdir hermes-data'
+              dir('hermes-data') {
+                script {
+                  env.actual_hermes_data_fetched = getRepoCode("git@gitlab.eng.vmware.com:blockchain/hermes-data","master",false)
                 }
+                sh 'git checkout master'
               }
+            }catch(Exception ex){
+              failRun()
+              throw ex
             }
           }
         }
@@ -1067,30 +1069,78 @@ EOF
 // Next, get master.
 // Next, try to get the branch.
 // Returns the short form commit hash.
-String getRepoCode(repo_url, branch_or_commit){
+String getRepoCode(repo_url, branch_or_commit, merge_branch_or_commit){
   refPrefix = "refs/heads/"
+  gitlabRun = false
 
-  if (branch_or_commit && branch_or_commit.trim()){
+  if (branch_or_commit){
+    branch_or_commit = branch_or_commit.trim()
+  }
+
+  echo("env.gitlabSourceBranch: " + env.gitlabSourceBranch)
+  echo("branch_or_commit: " + branch_or_commit)
+
+  if (branch_or_commit){
     // We don't know if this was a branch or a commit, so don't add the refPrefix.
+    // Just insert exactly what the user requests.
+    echo("Given a branch or commit, checking out " + branch_or_commit + " for repo " + repo_url)
     checkoutRepo(repo_url, branch_or_commit)
   }else if (env.gitlabSourceBranch && env.gitlabSourceBranch.trim()){
     // When launched via gitlab triggering the pipeline plugin, there is a gitlabSourceBranch
     // environment variable.
+    gitlabRun = true
+    echo("Given a GitLab run, checking out " + env.gitlabSourceBranch + " for repo " + repo_url)
     checkoutRepo(repo_url, refPrefix + env.gitlabSourceBranch)
   }else{
     // This was launched some other way. Just get latest.
+    echo("Not given a branch or commit, and not a GitLab run, checking out master for repo " + repo_url)
     checkoutRepo(repo_url, "master")
   }
 
-  return sh (
-    script: 'git rev-parse --short HEAD',
-    returnStdout: true
-  ).trim()
+  commitBeingTested = getHead()
+
+  if (gitlabRun || (merge_branch_or_commit && branch_or_commit)){
+    echo("Merging into TOT")
+    mergeToTOT(branch_or_commit)
+  }else{
+    echo("Not merging into TOT.")
+  }
+
+  return commitBeingTested
 }
 
 // All that varies for each repo is the branch, so wrap this very large call.
 void checkoutRepo(repo_url, branch_or_commit){
   checkout([$class: 'GitSCM', branches: [[name: branch_or_commit]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'SubmoduleOption', disableSubmodules: false, parentCredentials: true, recursiveSubmodules: true, reference: '', trackingSubmodules: false]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'GITLAB_LDAP_CREDENTIALS', url: repo_url]]])
+}
+
+// We are going to build/test against what things will look like after merge.
+// These steps to merge were taken from GitLab, so we should be getting exactly
+// what GitLab will get when it does a merge, unless someone else merges first.
+void mergeToTOT(branch_or_commit){
+  if (branch_or_commit){
+    sh(script: "git checkout ${branch_or_commit}")
+    branchHash = getHead()
+
+    sh(script: "git checkout master")
+    origMasterHash = getHead()
+
+    sh(script: "git merge --no-ff ${branch_or_commit}")
+    newMasterHash = getHead()
+
+    echo "Merged '" + branch_or_commit + "' " +
+         "(hash '" + branchHash + "') with master at commit " +
+         "'" + origMasterHash + "' resulting in new master " +
+         "TOT hash '" + newMasterHash + "'.  This is just a " +
+         "local merge and will not be pushed."
+  }
+}
+
+String getHead(){
+  return sh (
+    script: "git rev-parse --short HEAD",
+    returnStdout: true
+  ).trim()
 }
 
 // Given a repo and tag, pushes a docker image to whatever repo we
