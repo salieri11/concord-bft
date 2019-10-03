@@ -321,10 +321,10 @@ def call(){
                 env.release_persephone_metadata_repo = env.release_repo + "/persephone-metadata"
                 env.release_persephone_provisioning_repo = env.release_repo + "/persephone-provisioning"
                 env.release_ui_repo = env.release_repo + "/ui"
-                env.release_hlf_tools_repo = env.release_repo + "/fabric-tools"
-                env.release_hlf_peer_repo = env.release_repo + "/fabric-peer"
-                env.release_hlf_orderer_repo = env.release_repo + "/fabric-orderer"
                 env.release_contract_compiler_repo = env.release_repo + "/contract-compiler"
+                env.release_hlf_tools_repo = env.release_repo + "/hlf-tools"
+                env.release_hlf_peer_repo = env.release_repo + "/hlf-peer"
+                env.release_hlf_orderer_repo = env.release_repo + "/hlf-orderer"
                 env.release_daml_ledger_api_repo = env.release_repo + "/daml-ledger-api"
                 env.release_daml_execution_engine_repo = env.release_repo + "/daml-execution-engine"
                 env.release_daml_index_db_repo = env.release_repo + "/daml-index-db"
@@ -347,6 +347,9 @@ def call(){
                 env.internal_hlf_tools_repo = env.release_hlf_tools_repo.replace(env.release_repo, env.internal_repo)
                 env.internal_hlf_peer_repo = env.release_hlf_peer_repo.replace(env.release_repo, env.internal_repo)
                 env.internal_hlf_orderer_repo = env.release_hlf_orderer_repo.replace(env.release_repo, env.internal_repo)
+                env.internal_hlf_tools_base_repo = env.internal_repo + "/fabric-tools"
+                env.internal_hlf_peer_base_repo = env.internal_repo + "/fabric-peer"
+                env.internal_hlf_orderer_base_repo = env.internal_repo + "/fabric-orderer"
                 env.internal_daml_ledger_api_repo = env.release_daml_ledger_api_repo.replace(env.release_repo, env.internal_repo)
                 env.internal_daml_execution_engine_repo = env.release_daml_execution_engine_repo.replace(env.release_repo, env.internal_repo)
                 env.internal_daml_index_db_repo = env.release_daml_index_db_repo.replace(env.release_repo, env.internal_repo)
@@ -396,6 +399,12 @@ hlf_peer_repo=${internal_hlf_peer_repo}
 hlf_peer_tag=${docker_tag}
 hlf_orderer_repo=${internal_hlf_orderer_repo}
 hlf_orderer_tag=${docker_tag}
+hlf_tools_base_repo=${internal_hlf_tools_base_repo}
+hlf_tools_base_tag=${docker_tag}
+hlf_peer_base_repo=${internal_hlf_peer_base_repo}
+hlf_peer_base_tag=${docker_tag}
+hlf_orderer_base_repo=${internal_hlf_orderer_base_repo}
+hlf_orderer_base_tag=${docker_tag}
 daml_ledger_api_repo=${internal_daml_ledger_api_repo}
 daml_ledger_api_tag=${docker_tag}
 daml_execution_engine_repo=${internal_daml_execution_engine_repo}
@@ -655,6 +664,10 @@ EOF
                       docker tag ${internal_daml_ledger_api_repo}:${docker_tag} ${release_daml_ledger_api_repo}:${docker_tag}
                       docker tag ${internal_daml_execution_engine_repo}:${docker_tag} ${release_daml_execution_engine_repo}:${docker_tag}
                       docker tag ${internal_daml_index_db_repo}:${docker_tag} ${release_daml_index_db_repo}:${docker_tag}
+                      docker tag ${internal_hlf_tools_repo}:${docker_tag} ${release_hlf_tools_repo}:${docker_tag}
+                      docker tag ${internal_hlf_peer_repo}:${docker_tag} ${release_hlf_peer_repo}:${docker_tag}
+                      docker tag ${internal_hlf_orderer_repo}:${docker_tag} ${release_hlf_orderer_repo}:${docker_tag}
+
                     '''
                     pushDockerImage(env.release_persephone_agent_repo, env.docker_tag, false)
                     pushDockerImage(env.release_concord_repo, env.docker_tag, false)
@@ -662,6 +675,9 @@ EOF
                     pushDockerImage(env.release_daml_ledger_api_repo, env.docker_tag, false)
                     pushDockerImage(env.release_daml_execution_engine_repo, env.docker_tag, false)
                     pushDockerImage(env.release_daml_index_db_repo, env.docker_tag, false)
+                    pushDockerImage(env.release_hlf_tools_repo, env.docker_tag, false)
+                    pushDockerImage(env.release_hlf_peer_repo, env.docker_tag, false)
+                    pushDockerImage(env.release_hlf_orderer_repo, env.docker_tag, false)
 
                     if (genericTests && env.run_persephone_tests) {
                       sh '''
@@ -876,6 +892,9 @@ EOF
                 pushDockerImage(env.internal_daml_ledger_api_repo, env.docker_tag, false)
                 pushDockerImage(env.internal_daml_execution_engine_repo, env.docker_tag, false)
                 pushDockerImage(env.internal_daml_index_db_repo, env.docker_tag, false)
+                pushDockerImage(env.internal_hlf_orderer_base_repo, env.docker_tag, false)
+                pushDockerImage(env.internal_hlf_peer_base_repo, env.docker_tag, false)
+                pushDockerImage(env.internal_hlf_tools_base_repo, env.docker_tag, false)
                 pushDockerImage(env.internal_hlf_orderer_repo, env.docker_tag, false)
                 pushDockerImage(env.internal_hlf_peer_repo, env.docker_tag, false)
                 pushDockerImage(env.internal_hlf_tools_repo, env.docker_tag, false)
@@ -925,6 +944,10 @@ EOF
                   docker tag ${internal_daml_ledger_api_repo}:${docker_tag} ${release_daml_ledger_api_repo}:${docker_tag}
                   docker tag ${internal_daml_execution_engine_repo}:${docker_tag} ${release_daml_execution_engine_repo}:${docker_tag}
                   docker tag ${internal_daml_index_db_repo}:${docker_tag} ${release_daml_index_db_repo}:${docker_tag}
+                  docker tag ${internal_hlf_orderer_repo}:${docker_tag} ${release_hlf_orderer_repo}:${docker_tag}
+                  docker tag ${internal_hlf_peer_repo}:${docker_tag} ${release_hlf_peer_repo}:${docker_tag}
+                  docker tag ${internal_hlf_tools_repo}:${docker_tag} ${release_hlf_tools_repo}:${docker_tag}
+
                 '''
                 pushDockerImage(env.release_asset_transfer_repo, env.docker_tag, true)
                 pushDockerImage(env.release_concord_repo, env.docker_tag, true)
@@ -942,6 +965,9 @@ EOF
                 pushDockerImage(env.release_daml_ledger_api_repo, env.docker_tag, true)
                 pushDockerImage(env.release_daml_execution_engine_repo, env.docker_tag, true)
                 pushDockerImage(env.release_daml_index_db_repo, env.docker_tag, true)
+                pushDockerImage(env.release_hlf_orderer_repo, env.docker_tag, true)
+                pushDockerImage(env.release_hlf_peer_repo, env.docker_tag, true)
+                pushDockerImage(env.release_hlf_tools_repo, env.docker_tag, true)               
               }
 
               saveTimeEvent("Push to DockerHub", "End")

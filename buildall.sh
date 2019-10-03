@@ -191,11 +191,15 @@ docker_build() {
     DOCKER_REPO_TAG="$1"
     shift
 
+    BUILD_ARG_PARAM=""
     MEMORY_LEAK_DOCKER_BUILD=""
     while [ "$1" != "" ] ; do
        case $1 in
           "--memoryLeakDockerBuild")
              MEMORY_LEAK_DOCKER_BUILD="$1"
+             ;;
+          *)
+             BUILD_ARG_PARAM+=" $1"
              ;;
        esac
        shift
@@ -205,10 +209,10 @@ docker_build() {
     then
         memleak_util="valgrind"
         memleak_util_cmd="valgrind -v --leak-check=full --show-leak-kinds=all --track-origins=yes --log-file=/tmp/valgrind_concord1.log --suppressions=/concord/concord.supp"
-        docker build "${DOCKER_BUILD_DIR}" -f "${DOCKER_BUILD_FILE}" -t "${DOCKER_REPO_NAME}:${DOCKER_REPO_TAG}"_memleak --build-arg "memleak_util=${memleak_util}" --build-arg "memleak_util_cmd=${memleak_util_cmd}" > concord_memleak_build.log 2>&1 &
+        docker build "${DOCKER_BUILD_DIR}" -f "${DOCKER_BUILD_FILE}" -t "${DOCKER_REPO_NAME}:${DOCKER_REPO_TAG}"_memleak --build-arg "memleak_util=${memleak_util}" --build-arg "memleak_util_cmd=${memleak_util_cmd}" ${BUILD_ARG_PARAM} > concord_memleak_build.log 2>&1 &
         addToProcList "Concord_for_memleak_image" $!
     else
-        docker build "${DOCKER_BUILD_DIR}" -f "${DOCKER_BUILD_FILE}" -t "${DOCKER_REPO_NAME}:${DOCKER_REPO_TAG}" --label ${version_label}=${DOCKER_REPO_TAG} --label ${commit_label}=${commit_hash} > `basename "${DOCKER_REPO_NAME}"_build.log` 2>&1 &
+        docker build "${DOCKER_BUILD_DIR}" -f "${DOCKER_BUILD_FILE}" -t "${DOCKER_REPO_NAME}:${DOCKER_REPO_TAG}" --label ${version_label}=${DOCKER_REPO_TAG} --label ${commit_label}=${commit_hash} ${BUILD_ARG_PARAM} > `basename "${DOCKER_REPO_NAME}"_build.log` 2>&1 &
         addToProcList `basename "${DOCKER_REPO_NAME}_image"` $!
     fi
 }
@@ -317,6 +321,7 @@ docker_build . concord/Dockerfile ${concord_repo} ${concord_tag}
 
 docker_build . concord/Dockerfile ${concord_repo} ${concord_tag} --memoryLeakDockerBuild
 
+
 docker_build ui ui/Dockerfile ${ui_repo} ${ui_tag}
 
 docker_build docker/fluentd docker/fluentd/Dockerfile ${fluentd_repo} ${fluentd_tag}
@@ -337,6 +342,10 @@ docker_build persephone persephone/metadata-service/Dockerfile ${persephone_meta
 docker_build persephone persephone/provisioning-service/Dockerfile ${persephone_provisioning_repo} ${persephone_provisioning_tag}
 docker_build . persephone/config-service/Dockerfile ${persephone_configuration_repo} ${persephone_configuration_tag}
 
+docker_build submodules/hlf-chaincode-engine submodules/hlf-chaincode-engine/Dockerfile-tools ${hlf_tools_base_repo} ${hlf_tools_base_tag}
+docker_build submodules/hlf-chaincode-engine submodules/hlf-chaincode-engine/Dockerfile-peer ${hlf_peer_base_repo} ${hlf_peer_base_tag}
+docker_build submodules/hlf-chaincode-engine submodules/hlf-chaincode-engine/Dockerfile-orderer ${hlf_orderer_base_repo} ${hlf_orderer_base_tag}
+
 waitForProcesses
 
 docker_pull cockroachdb/cockroach:v2.0.2 Cockroach_DB
@@ -347,11 +356,10 @@ docker_build vmware-blockchain-samples/asset-transfer vmware-blockchain-samples/
 
 docker_build contract-compiler contract-compiler/Dockerfile ${contract_compiler_repo} ${contract_compiler_tag}
 
-docker_build submodules/hlf-chaincode-engine submodules/hlf-chaincode-engine/Dockerfile-tools ${hlf_tools_repo} ${hlf_tools_tag}
 
-docker_build submodules/hlf-chaincode-engine submodules/hlf-chaincode-engine/Dockerfile-peer ${hlf_peer_repo} ${hlf_peer_tag}
-
-docker_build submodules/hlf-chaincode-engine submodules/hlf-chaincode-engine/Dockerfile-orderer ${hlf_orderer_repo} ${hlf_orderer_tag}
+docker_build . docker/Dockerfile-hlf-tools ${hlf_tools_repo} ${hlf_tools_tag} --build-arg "base_tag=${hlf_tools_base_tag}"
+docker_build . docker/Dockerfile-hlf-peer ${hlf_peer_repo} ${hlf_peer_tag} --build-arg "base_tag=${hlf_peer_base_tag}"
+docker_build . docker/Dockerfile-hlf-orderer ${hlf_orderer_repo} ${hlf_orderer_tag} --build-arg "base_tag=${hlf_orderer_base_tag}"
 
 docker_build . daml/DockerfileLedgerApi ${daml_ledger_api_repo} ${daml_ledger_api_tag}
 

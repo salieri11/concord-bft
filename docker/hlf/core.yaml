@@ -46,8 +46,8 @@ logging:
     ledger:     info
     msp:        warning
     policies:   warning
-    peer:
-        gossip: warning
+    peer:       info
+    gossip:     warning
 
     # Message format for the peer logs
     format: '%{color}%{time:2006-01-02 15:04:05.000 MST} [%{module}] %{shortfunc} -> %{level:.4s} %{id:03x}%{color:reset} %{message}'
@@ -690,8 +690,7 @@ metrics:
 
 ###############################################################################
 #
-#    Concord section
-#
+#    Concord section - vmware 2019 
 #
 ###############################################################################
 concord:
