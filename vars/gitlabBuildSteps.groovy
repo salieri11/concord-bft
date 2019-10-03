@@ -112,31 +112,9 @@ def call(){
           script{
             try{
               script {
-                fetchRepos()
+                fetchSourceRepos()
               }
             }catch(Exception ex){
-              failRun()
-              throw ex
-            }
-          }
-        }
-      }
-
-      stage('Fetch samples from github.') {
-        steps {
-          script {
-            try {
-              dir('blockchain') {
-                script {
-                  sh '''
-                  git clone https://github.com/vmware-samples/vmware-blockchain-samples.git
-                  cd vmware-blockchain-samples
-                  git checkout 9711dda
-                  cd ..
-                  '''
-               }
-              }
-            } catch(Exception ex) {
               failRun()
               throw ex
             }
@@ -1318,7 +1296,7 @@ void saveTimeEvent(stage, event){
   sh(script: "python3 \"${eventsRecorder}\" record_event '" + stage + "' '" + event + "' \"${eventsFullPath}\"")
 }
 
-void fetchRepos() {
+void fetchSourceRepos() {
   echo "Fetch blockchain repo source"
   sh 'mkdir blockchain'
   dir('blockchain') {
@@ -1337,6 +1315,16 @@ void fetchRepos() {
   dir('hermes-data') {
     env.actual_hermes_data_fetched = getRepoCode("git@gitlab.eng.vmware.com:blockchain/hermes-data","master",false)
     sh 'git checkout master'
+  }
+
+  echo "Fetch samples from github"
+  dir('blockchain') {
+    sh '''
+      git clone https://github.com/vmware-samples/vmware-blockchain-samples.git
+      cd vmware-blockchain-samples
+      git checkout 9711dda
+      cd ..
+    '''
   }
 }
 
