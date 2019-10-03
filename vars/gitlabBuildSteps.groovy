@@ -111,37 +111,8 @@ def call(){
         steps {
           script{
             try{
-              sh 'mkdir blockchain'
-              dir('blockchain') {
-                // After the checkout, the content of the repo is directly under 'blockchain'.
-                // There is no extra 'vmwathena_blockchain' directory.
-                script {
-                  env.commit = getRepoCode("git@gitlab.eng.vmware.com:blockchain/vmwathena_blockchain.git", params.blockchain_branch_or_commit, params.merge_branch_or_commit)
-                  env.blockchain_root = new File(env.WORKSPACE, "blockchain").toString()
-
-                  // Check if persephone tests are to be executed in this run
-                  env.run_persephone_tests = has_repo_changed('vars') || has_repo_changed('buildall.sh') || has_repo_changed('hermes') || has_repo_changed('persephone') || has_repo_changed('agent') || has_repo_changed('concord') || env.JOB_NAME.contains(master_branch_job_name) || env.JOB_NAME.contains(persephone_test_job_name)
-                  sh 'echo $run_persephone_tests'
-                }
-              }
-            }catch(Exception ex){
-              failRun()
-              throw ex
-            }
-          }
-        }
-      }
-
-      stage('Fetch VMware blockchain hermes-data source') {
-        steps {
-          script{
-            try{
-              sh 'mkdir hermes-data'
-              dir('hermes-data') {
-                script {
-                  env.actual_hermes_data_fetched = getRepoCode("git@gitlab.eng.vmware.com:blockchain/hermes-data","master",false)
-                }
-                sh 'git checkout master'
+              script {
+                fetchRepos()
               }
             }catch(Exception ex){
               failRun()
@@ -1042,9 +1013,9 @@ EOF
         archiveArtifacts artifacts: env.eventsFile, allowEmptyArchive: false
 
         echo 'Sending email notification...'
-        emailext body: "${currentBuild.currentResult}: Job ${env.JOB_NAME} build ${env.BUILD_NUMBER}\n More info at: ${env.BUILD_URL}\nNOTE: Any failed persephone/helen deployment would be retained for the next 1 hour, before cleanup.",
-        recipientProviders: [[$class: 'DevelopersRecipientProvider'], [$class: 'RequesterRecipientProvider']],
-        subject: "Jenkins Build ${currentBuild.currentResult}: Job ${env.JOB_NAME}"
+        // emailext body: "${currentBuild.currentResult}: Job ${env.JOB_NAME} build ${env.BUILD_NUMBER}\n More info at: ${env.BUILD_URL}\nNOTE: Any failed persephone/helen deployment would be retained for the next 1 hour, before cleanup.",
+        // recipientProviders: [[$class: 'DevelopersRecipientProvider'], [$class: 'RequesterRecipientProvider']],
+        // subject: "Jenkins Build ${currentBuild.currentResult}: Job ${env.JOB_NAME}"
 
         script{
           try{
@@ -1498,4 +1469,26 @@ void checkSkipTestsPassword(){
 
 void saveTimeEvent(stage, event){
   sh(script: "python3 \"${eventsRecorder}\" record_event '" + stage + "' '" + event + "' \"${eventsFullPath}\"")
+}
+
+void fetchRepos() {
+  echo "Fetch blockchain repo source"
+  sh 'mkdir blockchain'
+  dir('blockchain') {
+    // After the checkout, the content of the repo is directly under 'blockchain'.
+    // There is no extra 'vmwathena_blockchain' directory.
+    env.commit = getRepoCode("git@gitlab.eng.vmware.com:blockchain/vmwathena_blockchain.git", params.blockchain_branch_or_commit, params.merge_branch_or_commit)
+    env.blockchain_root = new File(env.WORKSPACE, "blockchain").toString()
+
+    // Check if persephone tests are to be executed in this run
+    env.run_persephone_tests = has_repo_changed('vars') || has_repo_changed('buildall.sh') || has_repo_changed('hermes') || has_repo_changed('persephone') || has_repo_changed('agent') || has_repo_changed('concord') || env.JOB_NAME.contains(master_branch_job_name) || env.JOB_NAME.contains(persephone_test_job_name)
+    echo "$run_persephone_tests"
+  }
+
+  echo "Fetch VMware blockchain hermes-data source"
+  sh 'mkdir hermes-data'
+  dir('hermes-data') {
+    env.actual_hermes_data_fetched = getRepoCode("git@gitlab.eng.vmware.com:blockchain/hermes-data","master",false)
+    sh 'git checkout master'
+  }
 }
