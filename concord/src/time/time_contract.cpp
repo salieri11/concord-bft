@@ -26,35 +26,29 @@ namespace concord {
 namespace time {
 
 // Add a sample to the time contract.
-Timestamp TimeContract::Update(const string &source, const Timestamp &time,
+Timestamp TimeContract::Update(const string &source, uint16_t client_id,
+                               const Timestamp &time,
                                const vector<uint8_t> *signature) {
   LoadLatestSamples();
 
   auto old_sample = samples_->find(source);
   if (old_sample != samples_->end()) {
     if (!verifier_ ||
-        (signature && verifier_->Verify(source, time, *signature))) {
+        (verifier_->VerifyReceivedUpdate(source, client_id, time, signature))) {
       if (time > old_sample->second.time) {
         LOG4CPLUS_DEBUG(logger_,
                         "Applying time " << time << " from source " << source);
         old_sample->second.time = time;
-        if (verifier_) {
+        if (verifier_ && signature && verifier_->UsesSignatures()) {
           old_sample->second.signature.reset(new vector<uint8_t>(*signature));
         }
         changed_ = true;
       }
     } else {
-      if (signature) {
-        LOG4CPLUS_WARN(logger_,
-                       "Ignoring time sample with invalid signature claiming "
-                       "to be from source \""
-                           << source << "\".");
-      } else {
-        LOG4CPLUS_WARN(logger_,
-                       "Received a time sample with no signature (but time "
-                       "signing is enabled) claiming to be from source \""
-                           << source << "\".");
-      }
+      LOG4CPLUS_WARN(logger_,
+                     "Received a possibly-illegitimate time sample claiming to "
+                     "be from source \""
+                         << source << "\" that failed time verification.");
     }
   } else {
     LOG4CPLUS_WARN(logger_,
@@ -182,34 +176,28 @@ void TimeContract::LoadLatestSamples() {
                   "unrecognized source.");
             }
           }
-        } else {
+        } else {  // Case where verifier_ is non-null.
           for (int i = 0; i < time_storage.sample_size(); i++) {
             const com::vmware::concord::kvb::Time::Sample &sample =
                 time_storage.sample(i);
 
-            vector<uint8_t> signature(sample.signature().begin(),
-                                      sample.signature().end());
-
-            // Note that, with verification enabled, time samples with time 0
-            // are accepted from storage with a blank signature as that may
-            // simply indicate that no valid time sample was received from the
-            // given source before the time storage we are reading was written.
-            if (((sample.time() == TimeUtil::GetEpoch()) &&
-                 (signature.size() == 0) &&
-                 (verifier_->HasTimeSource(sample.source()))) ||
-                verifier_->Verify(sample.source(), sample.time(), signature)) {
+            if (verifier_->VerifyRecordedUpdate(sample)) {
               samples_->emplace(sample.source(), SampleBody());
               samples_->at(sample.source()).time = sample.time();
-              samples_->at(sample.source())
-                  .signature.reset(new vector<uint8_t>(signature));
+              if (sample.has_signature() && verifier_->UsesSignatures()) {
+                samples_->at(sample.source())
+                    .signature.reset(new vector<uint8_t>(
+                        sample.signature().begin(), sample.signature().end()));
+              }
             } else {
               LOG4CPLUS_ERROR(logger_,
-                              "Time storage contained invalid signature for "
-                              "sample claimed to be from source: "
-                                  << sample.source() << ".");
+                              "Time storage contained invalid time sample "
+                              "claimed to be from source: "
+                                  << sample.source()
+                                  << " (the sample failed time verification).");
               throw TimeException(
-                  "Cannot load time storage: found time update recorded with "
-                  "invalid signature.");
+                  "Cannot load time storage: a recorded time update failed "
+                  "time verification.");
             }
           }
         }
@@ -251,14 +239,15 @@ pair<Sliver, Sliver> TimeContract::Serialize() {
     sample->set_source(s.first);
     Timestamp *t = new Timestamp(s.second.time);
     sample->set_allocated_time(t);
-    if (verifier_) {
+    if (verifier_ && verifier_->UsesSignatures()) {
       if (s.second.signature) {
         sample->set_signature(s.second.signature->data(),
                               s.second.signature->size());
       } else {
-        LOG4CPLUS_WARN(logger_,
-                       "Serializing sample with no signature in TimeContract "
-                       "with verification enabled.");
+        LOG4CPLUS_WARN(
+            logger_,
+            "Serializing sample with no signature in a TimeContract configured "
+            "with a time verification scheme that uses signatures.");
       }
     }
   }

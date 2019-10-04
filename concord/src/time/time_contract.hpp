@@ -4,27 +4,35 @@
 // from other replicas into a non-decreasing time that has some resilience to
 // false readings.
 //
-// Optionally, cryptographic signatures can be used to protect against untrusted
-// entities forging updates from legitimate sources and against Byzantine-faulty
-// sources forging updates from other, non-faulty, sources. This optional
-// feature is referred to as "time signing".
+// Optionally, the time contract can validate updates received from other time
+// sources in order to protect against Byzantine-faulty sources forging updates
+// from other sources. Two means of time verification are currently available,
+// "rsa-time-signing", which adds an additional cryptographic signature to each
+// time update to prove its legitimacy, and "bft-client-proxy-id", in which time
+// samples are verified based on the Concord-BFT client proxy IDs from which the
+// samples enter consensus (Concord-BFT should guarantee it is intractable to
+// impersonate a client proxy without a public key belonging to it).
 //
 // One important note is that reconfiguration of a cluster after it has been
-// deployed to enable or disable time signing is NOT currently supported. That
-// is, if any node in a cluster has run at all before, we explicitly leave the
-// behavior resulting from changing whether time signing is enabled after that
-// point undefined (even if one stops every node in the cluster before making
-// this change). This reconfiguration could be non-trivial because whether
-// signatures are persisted to the record of time samples in the database is
-// dependent on whether time signing is enabled.
+// deployed to switch to or from a time verification mechanism that employs
+// signatures is NOT supported. That is, if any node in a cluster has run at all
+// before, we explicitly leave the behavior resulting from changing the time
+// verification mechanism after that point undefined (even if one stops every
+// node in the cluster before making this change). A possible exception to this
+// is that it may be possible to switch time verification schemes if both the
+// scheme being switched from and the scheme being switched to do not employ
+// signatures added to each time update. Switching to, from, or between schemes
+// is non-trivial and currently left undefined because signatures for time
+// samples are persisted when a signature-employing verification scheme is
+// enabled.
 //
-// Readings are submitted as (source, time, signature) triples (if time signing
-// is enabled) or (source, time) pairs (if time signing is disabled), where
-// source is a string identifier of the submitter, time is a timestamp
-// represetnted as google::protobuf::Timestamp, and signature (if present) is a
-// digital signature proving that this time sample actually originates from the
-// named source (based on a public key given for that time source in this
-// Concord cluster's configuration).
+// Readings are submitted as (source, time, signature) triples (if a
+// signature-based time verification scheme is in use) or (source, time) pairs
+// (otherwise), where source is a string identifier of the submitter, time is a
+// timestamp represetnted as google::protobuf::Timestamp, and signature (if
+// present) is a digital signature proving that this time sample actually
+// originates from the named source (based on a public key given for that time
+// source in this Concord cluster's configuration).
 //
 // Aggregation can be done via any statistical means that give the guarantees
 // discussed above. The current implementation is to choose the median of the
@@ -41,7 +49,7 @@
 #include "blockchain/db_interfaces.h"
 #include "config/configuration_manager.hpp"
 #include "time_exception.hpp"
-#include "time_signing.hpp"
+#include "time_verification.hpp"
 
 namespace concord {
 namespace time {
@@ -55,12 +63,12 @@ class TimeContract {
   //   - storage: KVB Storage backend to persist the state of the time contract
   //   to.
   //   - config: ConcordConfiguration for this Concord cluster; note that the
-  //   set of valid time sources, whether time signing is enabled, and (if time
-  //   signing is enabled) the public keys used to verify each source's updates
+  //   set of valid time sources, what time verification scheme (if any) is to
+  //   be used, and possibly also configuration specific to the selected scheme
   //   will be taken from this configuration. An std::invalid argument may be
-  //   thrown if time signing is enabled and a time source is found in this
-  //   configuration without a corresponding public key or if the configuration
-  //   otherwise differs from the Time Service's expectations.
+  //   thrown if the configuraion is missing any information this TimeContract
+  //   needs or if the configuration otherwise differs from the Time Service's
+  //   expectations.
   explicit TimeContract(
       const concord::storage::blockchain::ILocalKeyValueStorageReadOnly&
           storage,
@@ -72,9 +80,19 @@ class TimeContract {
         samples_(nullptr),
         changed_(false),
         time_key_(new uint8_t[1]{kTimeKey}, 1) {
-    if (config.hasValue<bool>("time_signing_enable") &&
-        config.getValue<bool>("time_signing_enable")) {
-      verifier_.reset(new concord::time::TimeVerifier(config));
+    if (config.hasValue<std::string>("time_verification")) {
+      if (config.getValue<std::string>("time_verification") ==
+          "rsa-time-signing") {
+        verifier_.reset(new concord::time::RSATimeVerifier(config));
+      } else if (config.getValue<std::string>("time_verification") ==
+                 "bft-client-proxy-id") {
+        verifier_.reset(new concord::time::ClientProxyIDTimeVerifier(config));
+      } else if (config.getValue<std::string>("time_verification") != "none") {
+        throw std::invalid_argument(
+            "Cannot construct TimeContract: configuration contains "
+            "unrecognized selection for time_verification: \"" +
+            config.getValue<std::string>("time_verification") + "\".");
+      }
     }
   }
 
@@ -91,21 +109,28 @@ class TimeContract {
   // by the network (or attempted replay attackers) and any unconvincing
   // forgeries of updates). Arguments:
   //   - source: String identifier for the time source submitting this update.
+  //   - client_id: Concord-BFT client proxy ID for the client proxy from which
+  //   this time update was originally submitted to consensus (this information
+  //   may or may not be used for time verification depending on how this
+  //   TimeContract is configured). It is expected that this client ID has been
+  //   received from the consensus layer along with the provided update and that
+  //   the consensus layer guarantees that it is intractable to impersonate
+  //   Concord-BFT clients proxies without their private keys.
   //   - time: Time value for this update.
-  //   - signature: Pointer to a signature proving this update comes from the
-  //   claimed source. If time signing is enabled, the signature should be a
-  //   signature over the data returned by
-  //   TimeContract::GetSignableUpdateData(source, time), signed with the named
-  //   source's private key. Note this pointer will be completely ignored if
-  //   time signing is not enabled; however, if time signing is enabled, the
-  //   update will be ignored unless a valid signature is provided.
+  //   - signature: Optional pointer to a signature proving this update comes
+  //   from the claimed source. If a time verification scheme that uses
+  //   signatures is enabled, the update will be rejected if this pointer does
+  //   not provide a signature proving the update's legitimacy under the
+  //   configured scheme. Note this pointer will be completely ignored if a
+  //   signature-based time verification scheme is not in use.
   // Returns the current time reading after making this update, which may or may
   // not have increased since before the update.
   // Throws a TimeException if this operation causes the TimeContract to load
   // state from its persistent storage but the data loaded is corrupted or
   // otherwise invalid.
   google::protobuf::Timestamp Update(
-      const std::string& source, const google::protobuf::Timestamp& time,
+      const std::string& source, const uint16_t client_id,
+      const google::protobuf::Timestamp& time,
       const std::vector<uint8_t>* signature = nullptr);
 
   // Get the current time as specified by this TimeContract based on what
@@ -118,7 +143,9 @@ class TimeContract {
   // serialization?
   bool Changed() { return changed_; }
 
-  bool SigningEnabled() { return (bool)verifier_; }
+  bool SignaturesEnabled() const {
+    return (verifier_ && verifier_->UsesSignatures());
+  }
 
   // Produce a key-value pair that encodes the state of the time contract for
   // KVB.
@@ -140,9 +167,9 @@ class TimeContract {
     // Time for this sample.
     google::protobuf::Timestamp time;
 
-    // Optional pointer to a cryptographic signature. If time signing is
-    // enabled, this signature should prove this sample was published by the
-    // time source it is recorded for. If time signing is not enabled, this
+    // Optional pointer to a cryptographic signature. If a signature-based time
+    // verification scheme is enabled, this signature should prove this sample
+    // was published by the time source it is recorded for. Otherwise, this
     // pointer should point to null.
     std::unique_ptr<std::vector<uint8_t>> signature;
   };

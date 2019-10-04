@@ -13,6 +13,7 @@ using std::invalid_argument;
 using std::ostream;
 using std::string;
 using std::to_string;
+using std::unordered_set;
 using std::vector;
 
 using boost::program_options::command_line_parser;
@@ -23,6 +24,7 @@ using log4cplus::Logger;
 
 using nlohmann::json;
 
+using concord::config::ConcordConfiguration;
 using concord::config::detectLocalNode;
 
 variables_map initialize_config(concord::config::ConcordConfiguration& config,
@@ -2905,6 +2907,35 @@ static ConcordConfiguration::ParameterStatus validatePrincipalHost(
   return ConcordConfiguration::ParameterStatus::VALID;
 }
 
+const unordered_set<string> timeVerificationOptions({"rsa-time-signing",
+                                                     "bft-client-proxy-id",
+                                                     "none"});
+
+static ConcordConfiguration::ParameterStatus validateEnumeratedOption(
+    const string& value, const ConcordConfiguration& config,
+    const ConfigurationPath& path, string* failureMessage, void* state) {
+  assert(state);
+  const unordered_set<string>* options =
+      const_cast<const unordered_set<string>*>(
+          static_cast<unordered_set<string>*>(state));
+  if (options->count(value) < 1) {
+    *failureMessage = "Unrecognized or unsupported value for " +
+                      path.toString() + ": \"" + value +
+                      "\". Recognized values include: ";
+    bool was_first = true;
+    for (const auto& option : *options) {
+      if (!was_first) {
+        *failureMessage += ", ";
+      }
+      *failureMessage += "\"" + option + "\"";
+      was_first = false;
+    }
+    *failureMessage += ".";
+    return ConcordConfiguration::ParameterStatus::INVALID;
+  }
+  return ConcordConfiguration::ParameterStatus::VALID;
+}
+
 // Implementation of specifyConfiguration and other utility functions that
 // encode knowledge about the current configuration.
 
@@ -3206,15 +3237,27 @@ void specifyConfiguration(ConcordConfiguration& config) {
   config.addValidator("FEATURE_time_service", validateBoolean, nullptr);
 
   config.declareParameter(
-      "time_signing_enable",
-      "If the time service is enabled with FEATURE_time_service, then "
-      "time_signing_enable controls whether cryptographic signatures will "
-      "be added to time samples to validate they came from the claimed "
-      "source. If the time service is disabled, the time_signing_enable "
-      "parameter is effectively ignored.",
-      "true");
-  config.tagParameter("time_signing_enable", publicDefaultableTags);
-  config.addValidator("time_signing_enable", validateBoolean, nullptr);
+      "time_verification",
+      "What mechanism to use, if any, to verify received time samples "
+      "allegedly from configured time sources are legitimate and not forgeries "
+      "by a malicious or otherwise Byzantine-faulty party impersonating a time "
+      "source. Currently supported time verification methods are: "
+      "\"rsa-time-signing\", \"bft-client-proxy-id\", and \"none\". If "
+      "\"rsa-time-signing\" is selected, each time source will sign its time "
+      "updates with its replica's RSA private key to prove the sample's "
+      "legitimacy; these signatures will be transmitted and recorded with each "
+      "time sample. If \"bft-client-proxy-id\" is selected, the time contract "
+      "will scrutinize the Concord-BFT client proxy ID submitting each time "
+      "update and check it matches the node for the claimed time source "
+      "(Concord-BFT should guarantee it is intractable to impersonate client "
+      "proxies to it without that proxy's private key). If \"none\" is "
+      "selected, no verification of received time samples will be used (this "
+      "is NOT recommended for production deployments).",
+      "rsa-time-signing");
+  config.tagParameter("time_verification", publicDefaultableTags);
+  config.addValidator("time_verification", validateEnumeratedOption,
+                      const_cast<void*>(reinterpret_cast<const void*>(
+                          &timeVerificationOptions)));
 
   config.declareParameter(
       "eth_enable",
