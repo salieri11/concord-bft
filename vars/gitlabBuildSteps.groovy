@@ -1452,7 +1452,7 @@ void runGenericTests(){
     sh(script:
     '''
       # Pull in the shell script saveTimeEvent.
-      . lib/shell/common_shell.sh
+      . lib/shell/saveTimeEvent.sh
       EVENTS_FILE="${eventsFullPath}"
       EVENTS_RECORDER="${eventsRecorder}"
 
