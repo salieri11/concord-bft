@@ -14,7 +14,7 @@ target_link_libraries(concord_ethereum PUBLIC
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/..)
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/..)
 
-# concord_ethereum currently includes time/time_signing.hpp in
+# concord_ethereum currently includes time/time_verification.hpp in
 # eth_kvb_commands_handler.cpp by way of time/time_contract.hpp;
-# time_signing.hpp currently needs an include from bftengine.
+# time_verification.hpp currently needs an include from bftengine.
 include_directories(${bftengine_SOURCE_DIR})

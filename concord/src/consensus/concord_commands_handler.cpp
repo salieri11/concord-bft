@@ -70,19 +70,19 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
         timing_time_update_.Start();
         TimeRequest tr = request_.time_request();
         TimeSample ts = tr.sample();
-        if (!(time_->SigningEnabled()) && ts.has_source() && ts.has_time()) {
-          time_->Update(ts.source(), ts.time());
+        if (!(time_->SignaturesEnabled()) && ts.has_source() && ts.has_time()) {
+          time_->Update(ts.source(), client_id, ts.time());
         } else if (ts.has_source() && ts.has_time() && ts.has_signature()) {
           std::vector<uint8_t> signature(ts.signature().begin(),
                                          ts.signature().end());
-          time_->Update(ts.source(), ts.time(), &signature);
+          time_->Update(ts.source(), client_id, ts.time(), &signature);
         } else {
           LOG4CPLUS_WARN(
               logger_,
               "Time Sample is missing:"
                   << " [" << (ts.has_source() ? " " : "X") << "] source"
                   << " [" << (ts.has_time() ? " " : "X") << "] time"
-                  << (time_->SigningEnabled()
+                  << (time_->SignaturesEnabled()
                           ? (string(" [") + (ts.has_signature() ? " " : "X") +
                              "] signature")
                           : ""));

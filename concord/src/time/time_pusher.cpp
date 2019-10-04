@@ -48,9 +48,17 @@ TimePusher::TimePusher(const concord::config::ConcordConfiguration &config,
     timeSourceId_ = "";
   }
 
-  if (config.hasValue<bool>("time_signing_enable") &&
-      config.getValue<bool>("time_signing_enable")) {
-    signer_.reset(new TimeSigner(nodeConfig));
+  if (config.hasValue<string>("time_verification")) {
+    if (config.getValue<string>("time_verification") == "rsa-time-signing") {
+      signer_.reset(new RSATimeSigner(nodeConfig));
+    } else if ((config.getValue<string>("time_verification") !=
+                "bft-client-proxy-id") &&
+               (config.getValue<string>("time_verification") != "none")) {
+      throw invalid_argument(
+          "Cannot construct TimePusher: Unrecognized selection for "
+          "time_verification in configuration: \"" +
+          config.getValue<string>("time_verification") + "\".");
+    }
   }
 }
 
