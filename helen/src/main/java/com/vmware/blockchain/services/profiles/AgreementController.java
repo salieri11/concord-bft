@@ -100,7 +100,7 @@ public class AgreementController  {
      */
     @RequestMapping(path = {"/api/organizations/{org_id}/agreements", "api/organizations/agreements"},
             method = RequestMethod.GET)
-    @PreAuthorize("@authHelper.isAuthenticated()")
+    @PreAuthorize("@isAuthenticated()")
     public ResponseEntity<List<AgreementResponse>> getAgreementFromId(
             @PathVariable(name = "org_id", required = false) Optional<UUID> orgIdOptional) {
         UUID orgId;
@@ -127,7 +127,7 @@ public class AgreementController  {
      */
     @RequestMapping(path = {"/api/organizations/{org_id}/agreements", "api/organizations/agreements"},
             method = RequestMethod.POST)
-    @PreAuthorize("@authHelper.isAuthenticated()")
+    @PreAuthorize("@isAuthenticated()")
     public ResponseEntity<Void> doPost(@PathVariable(name = "org_id", required = false) Optional<UUID> orgIdOptional,
                                         @RequestBody AgreementRequest requestBody) {
         UUID orgId;
