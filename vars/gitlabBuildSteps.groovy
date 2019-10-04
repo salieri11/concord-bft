@@ -838,9 +838,9 @@ EOF
         archiveArtifacts artifacts: env.eventsFile, allowEmptyArchive: false
 
         echo 'Sending email notification...'
-        // emailext body: "${currentBuild.currentResult}: Job ${env.JOB_NAME} build ${env.BUILD_NUMBER}\n More info at: ${env.BUILD_URL}\nNOTE: Any failed persephone/helen deployment would be retained for the next 1 hour, before cleanup.",
-        // recipientProviders: [[$class: 'DevelopersRecipientProvider'], [$class: 'RequesterRecipientProvider']],
-        // subject: "Jenkins Build ${currentBuild.currentResult}: Job ${env.JOB_NAME}"
+        emailext body: "${currentBuild.currentResult}: Job ${env.JOB_NAME} build ${env.BUILD_NUMBER}\n More info at: ${env.BUILD_URL}\nNOTE: Any failed persephone/helen deployment would be retained for the next 1 hour, before cleanup.",
+        recipientProviders: [[$class: 'DevelopersRecipientProvider'], [$class: 'RequesterRecipientProvider']],
+        subject: "Jenkins Build ${currentBuild.currentResult}: Job ${env.JOB_NAME}"
 
         script{
           try{
