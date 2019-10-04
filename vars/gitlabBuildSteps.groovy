@@ -1306,7 +1306,7 @@ void fetchSourceRepos() {
     env.blockchain_root = new File(env.WORKSPACE, "blockchain").toString()
 
     // Check if persephone tests are to be executed in this run
-    env.run_persephone_tests = has_repo_changed('vars') || has_repo_changed('buildall.sh') || has_repo_changed('hermes') || has_repo_changed('persephone') || has_repo_changed('agent') || has_repo_changed('concord') || env.JOB_NAME.contains(master_branch_job_name) || env.JOB_NAME.contains(persephone_test_job_name)
+    env.run_persephone_tests = has_repo_changed('vars') || has_repo_changed('buildall.sh') || has_repo_changed('hermes') || has_repo_changed('persephone') || has_repo_changed('agent') || has_repo_changed('concord') || env.JOB_NAME.contains("Master Branch") || env.JOB_NAME.contains("Blockchain Persephone Tests")
     echo "$run_persephone_tests"
   }
 
