@@ -745,7 +745,7 @@ class PersephoneTests(test_suite.TestSuite):
          if not status:
             for deployment_info in self.rpc_test_helper.deployment_info:
                if deployment_info["deployment_session_id"][0] == deployment_session_id:
-                  if deployment_info["replicas"]:
+                  if "replicas" in deployment_info and deployment_info["replicas"]:
                      log.debug(
                         "Call to create support-bundle for session ID: {}".format(
                            deployment_session_id))
@@ -755,6 +755,8 @@ class PersephoneTests(test_suite.TestSuite):
                                              deployment_info["concord_password"],
                                              deployment_info["docker_containers"],
                                              deployment_info["log_dir"])
+                  else:
+                     log.info("No replicas found to get support logs")
 
       return (status, msg)
 
