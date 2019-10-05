@@ -921,8 +921,11 @@ String getRepoCode(repo_url, branch_or_commit, merge_branch_or_commit){
 
   commitBeingTested = getHead()
 
-  if (gitlabRun || (merge_branch_or_commit && branch_or_commit)){
-    echo("Merging into TOT")
+  if (gitlabRun){
+    echo("Merging into TOT.")
+    mergeToTOT(env.gitlabSourceBranch)
+  }else if (merge_branch_or_commit && branch_or_commit){
+    echo("Merging into TOT.")
     mergeToTOT(branch_or_commit)
   }else{
     echo("Not merging into TOT.")
