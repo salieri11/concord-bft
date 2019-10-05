@@ -577,8 +577,9 @@ EOF
                       '''
                     } else {
                       sh '''
-                        echo "Running Persephone SMOKE Tests..."
-                        echo "${PASSWORD}" | sudo -SE "${python}" main.py PersephoneTests --useLocalConfigService --dockerComposeFile ../docker/docker-compose-persephone.yml --resultsDir "${persephone_test_logs}" --deploymentComponents "${release_persephone_agent_repo}:${docker_tag},${release_concord_repo}:${dep_comp_docker_tag},${release_ethrpc_repo}:${dep_comp_docker_tag},${release_daml_ledger_api_repo}:${dep_comp_docker_tag},${release_daml_execution_engine_repo}:${dep_comp_docker_tag},${release_daml_index_db_repo}:${dep_comp_docker_tag}" --keepBlockchains ${deployment_retention}
+                        echo "======= Skipping Persephone SMOKE Tests... ======="
+                        # echo "Running Persephone SMOKE Tests..."
+                        # echo "${PASSWORD}" | sudo -SE "${python}" main.py PersephoneTests --useLocalConfigService --dockerComposeFile ../docker/docker-compose-persephone.yml --resultsDir "${persephone_test_logs}" --deploymentComponents "${release_persephone_agent_repo}:${docker_tag},${release_concord_repo}:${dep_comp_docker_tag},${release_ethrpc_repo}:${dep_comp_docker_tag},${release_daml_ledger_api_repo}:${dep_comp_docker_tag},${release_daml_execution_engine_repo}:${dep_comp_docker_tag},${release_daml_index_db_repo}:${dep_comp_docker_tag}" --keepBlockchains ${deployment_retention}
                       '''
                     }
                   }
@@ -1355,7 +1356,7 @@ void fetchSourceRepos() {
 
 void pushToArtifactory(){
   pushList = [
-    env.internal_asset_transfer_repo,
+    // env.internal_asset_transfer_repo,
     env.internal_concord_repo,
     env.internal_ethrpc_repo,
     env.internal_fluentd_repo,
@@ -1389,7 +1390,7 @@ void pushToArtifactory(){
 
 void pushToDockerHub(){
   pushList = [
-    env.release_asset_transfer_repo,
+    // env.release_asset_transfer_repo,
     env.release_concord_repo,
     env.release_ethrpc_repo,
     env.release_fluentd_repo,
@@ -1421,7 +1422,7 @@ void pushToDockerHub(){
 void tagImagesForRelease(){
   sh(script:
   '''
-    docker tag ${internal_asset_transfer_repo}:${docker_tag} ${release_asset_transfer_repo}:${docker_tag}
+    # docker tag ${internal_asset_transfer_repo}:${docker_tag} ${release_asset_transfer_repo}:${docker_tag}
     docker tag ${internal_concord_repo}:${docker_tag} ${release_concord_repo}:${docker_tag}
     docker tag ${internal_ethrpc_repo}:${docker_tag} ${release_ethrpc_repo}:${docker_tag}
     docker tag ${internal_fluentd_repo}:${docker_tag} ${release_fluentd_repo}:${docker_tag}
@@ -1461,9 +1462,9 @@ void runGenericTests(){
       echo "${PASSWORD}" | sudo -S "${python}" main.py SampleSuite --resultsDir "${sample_suite_test_logs}"
       saveTimeEvent SampleSuite End
 
-      saveTimeEvent SampleDAppTests Start
-      echo "${PASSWORD}" | sudo -S "${python}" main.py SampleDAppTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${sample_dapp_test_logs}" --runConcordConfigurationGeneration
-      saveTimeEvent SampleDAppTests End
+      # saveTimeEvent SampleDAppTests Start
+      # echo "${PASSWORD}" | sudo -S "${python}" main.py SampleDAppTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${sample_dapp_test_logs}" --runConcordConfigurationGeneration
+      # ssaveTimeEvent SampleDAppTests End
 
       saveTimeEvent CoreVMTests Start
       echo "${PASSWORD}" | sudo -S "${python}" main.py CoreVMTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${core_vm_test_logs}" --runConcordConfigurationGeneration
