@@ -126,8 +126,7 @@ void signalHandler(int signum) {
   }
 }
 
-unique_ptr<IDBClient> open_database(ConcordConfiguration &nodeConfig,
-                                    Logger logger) {
+IDBClient *open_database(ConcordConfiguration &nodeConfig, Logger logger) {
   if (!nodeConfig.hasValue<std::string>("blockchain_db_impl")) {
     LOG4CPLUS_FATAL(logger, "Missing blockchain_db_impl config");
     throw EVMException("Missing blockchain_db_impl config");
@@ -139,15 +138,14 @@ unique_ptr<IDBClient> open_database(ConcordConfiguration &nodeConfig,
     // Client makes a copy of comparator, so scope lifetime is not a problem
     // here.
     concord::storage::memorydb::KeyComparator comparator(new KeyManipulator);
-    return unique_ptr<IDBClient>(
-        new concord::storage::memorydb::Client(comparator));
+    return new concord::storage::memorydb::Client(comparator);
 #ifdef USE_ROCKSDB
   } else if (db_impl_name == "rocksdb") {
     LOG4CPLUS_INFO(logger, "Using rocksdb blockchain database");
     string rocks_path = nodeConfig.getValue<std::string>("blockchain_db_path");
-    return unique_ptr<IDBClient>(new concord::storage::rocksdb::Client(
+    return new concord::storage::rocksdb::Client(
         rocks_path,
-        new concord::storage::rocksdb::KeyComparator(new KeyManipulator())));
+        new concord::storage::rocksdb::KeyComparator(new KeyManipulator()));
 #endif
   } else {
     LOG4CPLUS_FATAL(logger, "Unknown blockchain_db_impl " << db_impl_name);
@@ -333,8 +331,7 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
     initializeSBFTConfiguration(config, nodeConfig, &commConfig, nullptr, 0,
                                 &replicaConsensusConfig);
 
-    auto db_client = open_database(nodeConfig, logger);
-    DBAdapter db_adapter(db_client.get());
+    DBAdapter db_adapter(open_database(nodeConfig, logger));
 
     // Replica
     //
