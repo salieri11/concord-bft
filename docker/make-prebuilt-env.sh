@@ -41,7 +41,7 @@ ARTIFACTORY_BASE_IMAGE_PATH="athena-docker-local.artifactory.eng.vmware.com/"
 #   2. First grep extracts https://.../<TAG> (dropping /<maybe more stuff>)
 #   3. Second grep extracts <TAG> (droping https://.../)
 LATEST_TAG=$(curl -s -H "X-JFrog-Art-Api: ${ARTIFACTORY_KEY}" ${ARTIFACTORY_BASE_URL}/ethrpc?lastModified |
-                   perl -ne 'print $1 if /\/([a-f0-9]+)\//')
+                   perl -ne 'print $1 if /\/([a-f0-9\.]+)\//')
 
 while IFS= read -r LINE
 do
