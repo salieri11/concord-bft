@@ -876,8 +876,7 @@ EOF
             build job: 'Cleanup-SDDC-folder', parameters: [[$class: 'StringParameterValue', name: 'SDDC', value: 'VMware-Blockchain-SDDC-4'], [$class: 'StringParameterValue', name: 'VMFolder', value: 'HermesTesting'], [$class: 'StringParameterValue', name: 'OLDERTHAN', value: '1']]
             saveTimeEvent("Clean up SDDCs", "End")
           }catch(Exception ex){
-            failRun()
-            throw ex
+            echo("Warning!  A script to clean up the SDDCs failed!  Error: " + ex)
           }
         }
 
