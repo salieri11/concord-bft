@@ -25,10 +25,11 @@ class KVBCValidator extends ValidationServiceGrpc.ValidationService {
     val prefix = "validator.service"
 
     val pendingSubmissions = registry.counter(s"$prefix.pending-submissions")
-    val validateTimer = registry.timer(s"$prefix.validate-time")
-    val provideStateTimer = registry.timer(s"$prefix.provide-state-time")
+    val validateTimer = registry.timer(s"$prefix.validate-timer")
+    val provideStateTimer = registry.timer(s"$prefix.provide-state-timer")
     val submissionSizes = registry.histogram(s"$prefix.submission-sizes")
     val outputSizes = registry.histogram(s"$prefix.output-sizes")
+    val envelopeCloseTimer = registry.timer(s"$prefix.envelope-close-timer")
     val missingInputs = registry.histogram(s"$prefix.missing-inputs")
   }
 
@@ -225,24 +226,24 @@ class KVBCValidator extends ValidationServiceGrpc.ValidationService {
 
     stateUpdates.foreach { case(k, v) => cache.put(replicaId -> k, v) }
 
-    val outKeyPairs = stateUpdates
-      .toArray
-      .map { case (k, v) =>
-        KeyValuePair(
-          KeyValueCommitting.packDamlStateKey(k),
-          Envelope.enclose(v)
-        )
-      }
-      // NOTE(JM): Since kvutils (still) uses 'Map' the results end up
-      // in a non-deterministic order. Sort them to fix that.
-      .sortBy(_.key.toByteArray.toIterable)
+    val result = Metrics.envelopeCloseTimer.time { () =>
+      val outKeyPairs = stateUpdates
+        .toArray
+        .map { case (k, v) =>
+          KeyValuePair(
+            KeyValueCommitting.packDamlStateKey(k),
+            Envelope.enclose(v)
+          )
+        }
+        // NOTE(JM): Since kvutils (still) uses 'Map' the results end up
+        // in a non-deterministic order. Sort them to fix that.
+        .sortBy(_.key.toByteArray.toIterable)
 
-    val result =
       Result(
         Envelope.enclose(logEntry),
         outKeyPairs
       )
-
+    }
     Metrics.outputSizes.update(result.logEntry.size())
 
     logger.info(s"Submission validated. entryId=${pendingSubmission.entryId.toStringUtf8} " +
