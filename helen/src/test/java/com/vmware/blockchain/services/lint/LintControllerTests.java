@@ -92,6 +92,13 @@ public class LintControllerTests {
     }
 
     @Test
+    void testCspUrl() throws Exception {
+        // Make sure defaut cspUrl is pointing to production
+        String cspUrl = (String) ReflectionTestUtils.getField(lintProxyController, "cspUrl");
+        Assertions.assertEquals("https://console.cloud.vmware.com", cspUrl);
+    }
+
+    @Test
     void simpleTest() throws Exception {
         // Check the following in the proxy call
         //  - URI value
