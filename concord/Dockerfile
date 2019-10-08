@@ -75,10 +75,10 @@ COPY --from=0 /concord/build/tools/ec* /concord/
 COPY ./concord/test/concord.supp /concord/concord.supp
 
 # HLF
-# explicity want to copy default peer executable from hyperledger/fabric_tools version 1.3.1 
+# explicity want to copy default peer executable from hyperledger/fabric_tools version 1.3.1
 # any other hyperledeger fabric version creates undefined behaviour ( bug )
 COPY --from=vmwblockchain/fabric-tools:v131  /usr/local/bin/peer /concord/
-# this is not the same peer that communicates with concord kv state ie: vmwblockchain/fabric_peer 
+# this is not the same peer that communicates with concord kv state ie: vmwblockchain/fabric_peer
 # this tools:v131 peer is only for command line system calls for sending chaincode commands
 # from c++ concord to our custom golang peer defined in submodules/hlf-chcaincode-engine/Dockerfile-peer
 # built from 'integrate2concord' git branch and tagged as {hlf_peer_base}:{hlf_peer_base_tag}

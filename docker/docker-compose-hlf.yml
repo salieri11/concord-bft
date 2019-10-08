@@ -7,7 +7,7 @@ services:
 # Copy peer tool to shared dir
   initial:
     container_name: initial
-    image: "${hlf_tools_base_repo}:${hlf_tools_base_tag}" 
+    image: "${hlf_tools_base_repo}:${hlf_tools_base_tag}"
     volumes:
       - ./hlf:/hlf
     command: /bin/bash -c 'cp /usr/local/bin/peer /hlf/peer; sleep 3600;'
@@ -68,7 +68,7 @@ services:
 
   cli1:
     container_name: cli1
-    image: "${hlf_tools_base_repo}:${hlf_tools_base_tag}" 
+    image: "${hlf_tools_base_repo}:${hlf_tools_base_tag}"
     tty: true
     environment:
       - GOPATH=/opt/gopath
@@ -100,11 +100,6 @@ services:
       - GOPATH=/concord
        # gRPC port
       - CONCORD_KV_SERVICE=0.0.0.0:50052
-    command: /bin/bash -c "
-      cp /concord/config-local/concord_with_hostnames.config
-         /concord/config-local/concord.config &&
-      /concord/config-public/find-docker-instances.sh &&
-      /concord/concord -c /concord/config-local/concord.config"
     expose:
       - 50052
       - 5458
@@ -185,7 +180,7 @@ services:
 
   cli2:
     container_name: cli2
-    image: "${hlf_tools_base_repo}:${hlf_tools_base_tag}" 
+    image: "${hlf_tools_base_repo}:${hlf_tools_base_tag}"
     tty: true
     environment:
       - GOPATH=/opt/gopath
@@ -218,11 +213,6 @@ services:
       - GOPATH=/concord
        # gRPC port
       - CONCORD_KV_SERVICE=0.0.0.0:50052
-    command: /bin/bash -c "
-      cp /concord/config-local/concord_with_hostnames.config
-         /concord/config-local/concord.config &&
-      /concord/config-public/find-docker-instances.sh &&
-      /concord/concord -c /concord/config-local/concord.config"
     expose:
       - 50052
       - 5458
@@ -302,7 +292,7 @@ services:
 
   cli3:
     container_name: cli3
-    image: "${hlf_tools_base_repo}:${hlf_tools_base_tag}" 
+    image: "${hlf_tools_base_repo}:${hlf_tools_base_tag}"
     tty: true
     environment:
       - GOPATH=/opt/gopath
@@ -334,11 +324,6 @@ services:
       - GOPATH=/concord
        # gRPC port
       - CONCORD_KV_SERVICE=0.0.0.0:50052
-    command: /bin/bash -c "
-      cp /concord/config-local/concord_with_hostnames.config
-         /concord/config-local/concord.config &&
-      /concord/config-public/find-docker-instances.sh &&
-      /concord/concord -c /concord/config-local/concord.config"
     expose:
       - 50052
       - 5458
@@ -418,7 +403,7 @@ services:
 
   cli4:
     container_name: cli4
-    image: "${hlf_tools_base_repo}:${hlf_tools_base_tag}" 
+    image: "${hlf_tools_base_repo}:${hlf_tools_base_tag}"
     tty: true
     environment:
       - GOPATH=/opt/gopath
@@ -442,7 +427,7 @@ services:
       - basic-1
     depends_on:
       - peer4.org1.example.com
-    
+
   concord4:
     container_name: concord4
     image: "${concord_repo}:${concord_tag}"
@@ -451,11 +436,6 @@ services:
       - GOPATH=/concord
        # gRPC port
       - CONCORD_KV_SERVICE=0.0.0.0:50052
-    command: /bin/bash -c "
-      cp /concord/config-local/concord_with_hostnames.config
-         /concord/config-local/concord.config &&
-      /concord/config-public/find-docker-instances.sh &&
-      /concord/concord -c /concord/config-local/concord.config"
     expose:
       - 50052
       - 5458
@@ -493,4 +473,3 @@ services:
       - concord2
       - concord3
       - concord4
-

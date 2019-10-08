@@ -128,9 +128,9 @@
         "../docker/config-public/distribute-configuration-files.sh",
     "configDistributionArgs": [
         "../docker/config-public/concord",
-        "../docker/config-concord1/concord_with_hostnames.config",
-        "../docker/config-concord2/concord_with_hostnames.config",
-        "../docker/config-concord3/concord_with_hostnames.config",
-        "../docker/config-concord4/concord_with_hostnames.config"]
+        "../docker/config-concord1/concord.config",
+        "../docker/config-concord2/concord.config",
+        "../docker/config-concord3/concord.config",
+        "../docker/config-concord4/concord.config"]
   }
 }

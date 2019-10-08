@@ -2,11 +2,6 @@ version: '3'
 services:
   concord1:
     image: "vmwblockchain/concord-core:latest"
-    command: /bin/bash -c "
-      cp /concord/config-local/concord_with_hostnames.config
-         /concord/config-local/concord.config &&
-      /concord/config-public/find-docker-instances.sh &&
-      /concord/concord -c /concord/config-local/concord.config"
     ports:
       - 5458:5458
       - 3501:3501
@@ -37,4 +32,3 @@ services:
       - --server.ssl.key-store=/config/keystore.p12
       - '--server.ssl.key-store-password=Ethrpc!23'
       - --server.ssl.key-alias=ethrpc
-
