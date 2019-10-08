@@ -39,6 +39,12 @@ export const mainRoutes = {
   users: 'users',
   transactions: 'transactions',
   developer: 'developer',
+<<<<<<< HEAD
+=======
+  getFullBLockRoute: (id: string, child: string): string => {
+    return `/${id}/${this[child]}`;
+  },
+>>>>>>> a4a012168d19417c5167e958b1ffddb42ee76c89
 };
 
 export const FeatureFlagRouteMapping = {
