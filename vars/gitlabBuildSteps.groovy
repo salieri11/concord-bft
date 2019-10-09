@@ -121,6 +121,11 @@ def call(){
             try{
               script {
                 fetchSourceRepos()
+    
+                env.blockchain_root = new File(env.WORKSPACE, "blockchain").toString()
+                // Check if persephone tests are to be executed in this run
+                env.run_persephone_tests = has_repo_changed('vars') || has_repo_changed('buildall.sh') || has_repo_changed('hermes') || has_repo_changed('persephone') || has_repo_changed('agent') || has_repo_changed('concord') || env.JOB_NAME.contains("Master Branch") || env.JOB_NAME.contains("Blockchain Persephone Tests")
+                echo "Run Persephone Tests? " + env.run_persephone_tests
               }
             }catch(Exception ex){
               failRun()
@@ -520,7 +525,7 @@ EOF
       stage("Push Images required for Deployment Services & run tests") {
         when {
           expression {
-            params.run_tests && run_persephone_tests
+            params.run_tests && (env.run_persephone_tests == "true")
           }
         }
         steps {
@@ -577,9 +582,8 @@ EOF
                       '''
                     } else {
                       sh '''
-                        echo "======= Skipping Persephone SMOKE Tests... ======="
-                        # echo "Running Persephone SMOKE Tests..."
-                        # echo "${PASSWORD}" | sudo -SE "${python}" main.py PersephoneTests --useLocalConfigService --dockerComposeFile ../docker/docker-compose-persephone.yml --resultsDir "${persephone_test_logs}" --deploymentComponents "${release_persephone_agent_repo}:${docker_tag},${release_concord_repo}:${dep_comp_docker_tag},${release_ethrpc_repo}:${dep_comp_docker_tag},${release_daml_ledger_api_repo}:${dep_comp_docker_tag},${release_daml_execution_engine_repo}:${dep_comp_docker_tag},${release_daml_index_db_repo}:${dep_comp_docker_tag}" --keepBlockchains ${deployment_retention}
+                        echo "Running Persephone SMOKE Tests..."
+                        echo "${PASSWORD}" | sudo -SE "${python}" main.py PersephoneTests --useLocalConfigService --dockerComposeFile ../docker/docker-compose-persephone.yml --resultsDir "${persephone_test_logs}" --deploymentComponents "${release_persephone_agent_repo}:${docker_tag},${release_concord_repo}:${dep_comp_docker_tag},${release_ethrpc_repo}:${dep_comp_docker_tag},${release_daml_ledger_api_repo}:${dep_comp_docker_tag},${release_daml_execution_engine_repo}:${dep_comp_docker_tag},${release_daml_index_db_repo}:${dep_comp_docker_tag}" --keepBlockchains ${deployment_retention}
                       '''
                     }
                   }
@@ -1253,19 +1257,21 @@ void handleKnownHosts(host){
 }
 
 Boolean has_repo_changed(directory){
-  // Check if arg: directory had a diff change with master
-  absolute_path = new File(env.blockchain_root, directory).toString()
-  status = sh (
-    script: "git diff origin/master --name-only --exit-code '" + absolute_path + "'",
-    returnStatus: true
-  )
+  dir(env.blockchain_root){
+    // Check if arg: directory had a diff change with master
+    absolute_path = new File(env.blockchain_root, directory).toString()
+    status = sh (
+      script: "git diff origin/master --name-only --exit-code '" + absolute_path + "'",
+      returnStatus: true
+    )
 
-  if(status != 0){
-    // There was a change in git diff
-    return true
-  } else{
-    // There was NO change in git diff
-    return false
+    if(status != 0){
+      // There was a change in git diff
+      return true
+    } else{
+      // There was NO change in git diff
+      return false
+    }
   }
 }
 
@@ -1331,11 +1337,6 @@ void fetchSourceRepos() {
     // After the checkout, the content of the repo is directly under 'blockchain'.
     // There is no extra 'vmwathena_blockchain' directory.
     env.commit = getRepoCode("git@gitlab.eng.vmware.com:blockchain/vmwathena_blockchain.git", params.blockchain_branch_or_commit, params.merge_branch_or_commit)
-    env.blockchain_root = new File(env.WORKSPACE, "blockchain").toString()
-
-    // Check if persephone tests are to be executed in this run
-    env.run_persephone_tests = has_repo_changed('vars') || has_repo_changed('buildall.sh') || has_repo_changed('hermes') || has_repo_changed('persephone') || has_repo_changed('agent') || has_repo_changed('concord') || env.JOB_NAME.contains("Master Branch") || env.JOB_NAME.contains("Blockchain Persephone Tests")
-    echo "$run_persephone_tests"
   }
 
   echo "Fetch VMware blockchain hermes-data source"
