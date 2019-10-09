@@ -19,7 +19,7 @@ def call(){
   } else if (env.JOB_NAME.contains(performance_test_job_name)) {
     echo "**** Jenkins job for Performance Test"
     genericTests = false
-    additional_components_to_build = additional_components_to_build + "PerformanceTests,"
+    // additional_components_to_build = additional_components_to_build + "PerformanceTests,"
   } else if (env.JOB_NAME.contains(persephone_test_job_name)) {
     echo "**** Jenkins job for Persephone Test"
     genericTests = false
@@ -1472,6 +1472,10 @@ void runGenericTests(){
       saveTimeEvent CoreVMTests Start
       echo "${PASSWORD}" | sudo -S "${python}" main.py CoreVMTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${core_vm_test_logs}" --runConcordConfigurationGeneration
       saveTimeEvent CoreVMTests End
+
+      saveTimeEvent PerformanceTests Start
+      echo "${PASSWORD}" | sudo -SE "${python}" main.py PerformanceTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${performance_test_logs}" --runConcordConfigurationGeneration --concordConfigurationInput /concord/config/dockerConfigurationInput-perftest.yaml
+      saveTimeEvent PerformanceTests End
 
       saveTimeEvent HelenAPITests Start
       echo "${PASSWORD}" | sudo -S "${python}" main.py HelenAPITests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${helen_api_test_logs}" --runConcordConfigurationGeneration --logLevel debug

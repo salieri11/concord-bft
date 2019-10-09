@@ -245,8 +245,10 @@ daml() {
 }
 
 PerformanceTests() {
+    pushd .
     cd performance/benchmark
     sh ./build.sh > performance_test_build.log 2>&1
+    popd
 }
 
 BuildPersephoneGRPCpyBindings() {
@@ -325,6 +327,7 @@ then
     daml
     BuildPersephoneGRPCpyBindings
     #BuildSupplyChain
+    PerformanceTests
 fi
 
 # For additional components are required to be built for specific runs (nightly),
