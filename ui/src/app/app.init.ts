@@ -11,6 +11,8 @@ declare var window: any;
 @Injectable()
 export class AppInitService {
 
+  constructor() {}
+
   // This is the method you want to call at bootstrap
   // Important: It should return a Promise
   public init() {
@@ -20,8 +22,9 @@ export class AppInitService {
         })
       ).pipe(
         map((config) => {
-        window.config = config;
-        return;
-      })).toPromise();
+          window.config = config;
+          return;
+        })
+    ).toPromise();
   }
 }

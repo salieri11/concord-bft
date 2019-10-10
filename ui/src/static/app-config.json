@@ -1,1 +1,4 @@
-{"cspEnv": "staging", "refLink": "https://localhost.vmware.com"}
+{
+    "cspEnv": "staging",
+    "refLink": "https://localhost.vmware.com"
+}

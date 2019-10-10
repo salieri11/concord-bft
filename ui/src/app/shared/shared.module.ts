@@ -22,6 +22,7 @@ import { TransactionsStatusFilterComponent } from './components/transactions-sta
 import { RouterModule } from '@angular/router';
 import { PersonaService } from './persona.service';
 import { CanViewDirective } from './directives/can-view.directive';
+import { FeatureFlagDirective } from './directives/feature-flag.directive';
 import { VmwTaskComponent } from './components/task-panel/task.component';
 import { VmwTaskPanelComponent } from './components/task-panel/task-panel.component';
 import { VmwTasksService } from './components/task-panel/tasks.service';
@@ -51,6 +52,7 @@ import { VersionComponent } from './components/version/version.component';
   declarations: [
     TransactionsStatusFilterComponent,
     CanViewDirective,
+    FeatureFlagDirective,
     VmwTaskComponent,
     VmwTaskPanelComponent,
     VmwAccordionComponent,
@@ -72,6 +74,7 @@ import { VersionComponent } from './components/version/version.component';
     ReactiveFormsModule,
     CspComponentsModule,
     CanViewDirective,
+    FeatureFlagDirective,
     VmwTaskComponent,
     VmwTaskPanelComponent,
     VmwAccordionComponent,
