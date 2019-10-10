@@ -111,6 +111,10 @@ def main():
                        default=False,
                        action='store_true',
                        help="Optional parameter to use local config-service container")
+   parser.add_argument("--performanceVotes",
+                       default=10,
+                       type=int,
+                       help="Number of votes in Ballot App for Performance Testrun")
    parser.add_argument("--reverseProxyApiBaseUrl",
                        default="https://localhost/blockchains/local",
                        help="Base URL for Helen REST API calls. Test cases drill "
