@@ -107,7 +107,10 @@ target_include_directories(corebft PUBLIC include/metadatastorage)
 target_link_libraries(corebft PUBLIC threshsign)
 target_link_libraries(corebft PUBLIC Threads::Threads)
 target_link_libraries(corebft PUBLIC util)
+<<<<<<< HEAD
 target_link_libraries(corebft PUBLIC concordbft_storage)
+=======
+>>>>>>> c561aaf... log fix
 
 # copy certificate creation script to all tests
 add_custom_target(copy_tls_certificates ALL COMMENT "Copying TLS certificates")
