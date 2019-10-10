@@ -124,7 +124,8 @@ ClientConfig setupConsensusParams(ClientParams &clientParams) {
 int main(int argc, char **argv) {
 #if USE_LOG4CPP
   log4cplus::initialize();
-  log4cplus::PropertyConfigurator::doConfigure("log4cpp_simple_test.properties");
+  log4cplus::PropertyConfigurator::doConfigure("log4cpp_simple_test_client"
+                                               ".properties");
 #endif
   auto logger = concordlogger::Log::getLogger("skvbtest.client");
   ClientParams clientParams = setupClientParams(argc, argv);

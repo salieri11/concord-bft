@@ -27,11 +27,14 @@
 #endif
 
 int main(int argc, char** argv) {
+  auto setup = SimpleKVBC::TestSetup::ParseArgs(argc, argv);
 #if USE_LOG4CPP
   log4cplus::initialize();
-  log4cplus::PropertyConfigurator::doConfigure("log4cpp_simple_test.properties");
+  log4cplus::PropertyConfigurator::doConfigure("log4cpp_simple_test_" +
+                                               std::to_string(setup->GetReplicaConfig()
+                                                   .replicaId) + ".properties");
 #endif
-  auto setup = SimpleKVBC::TestSetup::ParseArgs(argc, argv);
+
   auto logger = setup->GetLogger();
   auto* key_manipulator = new concord::storage::blockchain::KeyManipulator();
   concord::storage::IDBClient* db;

@@ -30,7 +30,7 @@ typedef std::map<uint32_t, size_t> ObjectIdToSizeMap;
 class DBMetadataStorage : public bftEngine::MetadataStorage {
  public:
   explicit DBMetadataStorage(IDBClient *dbClient, std::function<concordUtils::Sliver(uint32_t)> genMetadataKey)
-      : logger_(concordlogger::Log::getLogger("com.concord.vmware.metadatastorage")),
+      : logger_(concordlogger::Log::getLogger("vmware.metadatastorage")),
         dbClient_(dbClient), genMetadataKey_(std::move(genMetadataKey)) {
     objectIdToSizeMap_[objectsNumParameterId_] = sizeof(objectsNum_);
   }
