@@ -1,5 +1,7 @@
 package dappbench;
 
+import static java.lang.ProcessBuilder.Redirect.INHERIT;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.ClientResponse;
@@ -84,7 +86,11 @@ public class DAMLManager {
                     + " " + party + " " + restPort;
 
             logger.info("start service command: " + startServiceCommend);
-            Runtime.getRuntime().exec(startServiceCommend, null, new File(contractPath));
+            
+            Process process = new ProcessBuilder().command(startServiceCommend.split("\\s+")).directory(new File(contractPath))
+            		                              .redirectOutput(INHERIT).redirectErrorStream(true)
+            		                              .start();
+            Runtime.getRuntime().addShutdownHook( new Thread(() -> process.destroyForcibly()));
         } catch (IOException e) {
             e.printStackTrace();
         }
