@@ -263,10 +263,10 @@ class Application(private val configuration: ConcordAgentConfiguration) : Corout
                     // Write the artifact to path.
                     path.toFile().writeText(component.component)
 
-                    log.info { "Component prepared at path($path), service(${component.type})"}
+                    log.info { "Component prepared at path($path), service(${component.type})" }
                 }
                 else -> {
-                    log.info { "Component has non-local target($url), service(${component.type})"}
+                    log.info { "Component has non-local target($url), service(${component.type})" }
                 }
             }
         }

@@ -14,6 +14,7 @@ import com.vmware.blockchain.deployment.v1.ConcordModelSpecification
 import com.vmware.blockchain.deployment.v1.ConfigurationSessionIdentifier
 import com.vmware.blockchain.deployment.v1.Credential
 import com.vmware.blockchain.deployment.v1.Endpoint
+import com.vmware.blockchain.deployment.v1.OutboundProxyInfo
 import com.vmware.blockchain.ethereum.type.Genesis
 import kotlinx.serialization.modules.serializersModuleOf
 
@@ -31,7 +32,9 @@ class CloudInitConfiguration(
     clusterId: ConcordClusterIdentifier,
     nodeId: Int,
     configGenId: ConfigurationSessionIdentifier,
-    configServiceEndpoint: Endpoint
+    configServiceEndpoint: Endpoint,
+    configServiceRestEndpoint: Endpoint,
+    outboundProxy: OutboundProxyInfo
 ) {
     object GenesisSerializer
         : JsonSerializer(serializersModuleOf(Genesis::class, Genesis.serializer()))
@@ -78,6 +81,17 @@ class CloudInitConfiguration(
                 ?: ""
     }
 
+    private val setupOutboundProxy: String by lazy {
+        outboundProxy.takeIf { !outboundProxy.httpsHost.isNullOrBlank() }
+                ?.let {
+                    "export http_proxy=${outboundProxy.httpHost}:${outboundProxy.httpPort}" +
+                            ";export https_proxy=${outboundProxy.httpsHost}:${outboundProxy.httpsPort}" +
+                            ";mkdir /etc/systemd/system/docker.service.d" +
+                            ";echo -e '[Service]\\nEnvironment=\"HTTP_PROXY=http://${outboundProxy.httpHost}:${outboundProxy.httpPort}\"\\nEnvironment=\"HTTPS_PROXY=https://${outboundProxy.httpsHost}:${outboundProxy.httpsPort}\"\\nEnvironment=\"NO_PROXY=localhost,127.0.0.1\"' > /etc/systemd/system/docker.service.d/http-proxy.conf"
+                }
+                ?: ""
+    }
+
     /** Concord agent startup configuration parameters. */
     private val configuration: ConcordAgentConfiguration = ConcordAgentConfiguration (
             model = model,
@@ -85,23 +99,28 @@ class CloudInitConfiguration(
             fleetService = Endpoint(), // TODO: need to inject fleet service endpoint info.
             cluster = clusterId,
             node = nodeId,
-            configService = configServiceEndpoint,
-            configurationSession =  configGenId
-
+            configService = outboundProxy.takeIf { outboundProxy.httpsHost.isNullOrBlank() }
+                    ?.let {
+                        configServiceEndpoint
+                    }
+                    ?: configServiceRestEndpoint,
+            configurationSession =  configGenId,
+            outboundProxyInfo = outboundProxy
     )
 
     private val script =
             """
             #!/bin/sh
             echo -e "c0nc0rd\nc0nc0rd" | /bin/passwd
-
             {{networkAddressCommand}}
             {{dnsSetupCommand}}
             
             # Enable when there are multiple interfaces for separate networks.
             # route add default gw `ip route show | grep "dev eth0" | grep -v kernel | grep -v default | cut -d' ' -f 1` eth0
 
-            sed -i 's_/usr/bin/dockerd_/usr/bin/dockerd {{dockerDns}} -H tcp://127.0.0.1:2375 -H unix:///var/run/docker.sock {{registrySecuritySetting}}_g' /lib/systemd/system/docker.service
+            sed -i 's_/usr/bin/dockerd.*_/usr/bin/dockerd {{dockerDns}} -H tcp://127.0.0.1:2375 -H unix:///var/run/docker.sock {{registrySecuritySetting}}_g' /lib/systemd/system/docker.service
+            
+            {{setupOutboundProxy}}
             systemctl daemon-reload
 
             systemctl restart docker
@@ -144,6 +163,7 @@ class CloudInitConfiguration(
                     .replace("{{gateway}}", gateway)
                     .replace("{{dnsSetupCommand}}", dnsSetupCommand)
                     .replace("{{dockerDns}}", dockerDnsSetupCommand)
+                    .replace("{{setupOutboundProxy}}", setupOutboundProxy)
 
 
     /**

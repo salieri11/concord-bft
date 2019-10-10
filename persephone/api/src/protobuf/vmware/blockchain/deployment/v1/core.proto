@@ -128,3 +128,14 @@ message TransportSecurity {
         string private_key_data = 7;
     }
 }
+
+/**
+ * Model definition of a Outbound proxy.
+ *
+ */
+message OutboundProxyInfo {
+    string http_host = 1;
+    int32 http_port = 2;
+    string https_host = 3;
+    int32 https_port = 4;
+}

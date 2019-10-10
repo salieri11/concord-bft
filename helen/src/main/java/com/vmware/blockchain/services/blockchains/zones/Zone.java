@@ -59,6 +59,20 @@ public class Zone extends AbstractEntity {
     }
 
     /**
+     * Outbound Proxy information.
+     */
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class OutboundProxy {
+        String httpHost;
+        int httpPort;
+        String httpsHost;
+        int httpsPort;
+    }
+
+    /**
      * Repo to pick up images from.
      */
     @Data

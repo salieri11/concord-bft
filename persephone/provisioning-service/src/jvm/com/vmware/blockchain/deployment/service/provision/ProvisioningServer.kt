@@ -70,6 +70,9 @@ internal interface ProvisioningServer {
         @BindsInstance
         fun allocationServer(@Named("allocationServer") allocationServer: Endpoint): Builder
 
+        @BindsInstance
+        fun configurationServiceRest(@Named("configurationServiceRest") configurationServiceRest: Endpoint): Builder
+
         fun build(): ProvisioningServer
     }
 }
@@ -177,6 +180,7 @@ fun main(args: Array<String>) {
             .configurationService(config.configService)
             .containerRegistry(config.containerRegistry)
             .allocationServer(config.allocationServer)
+            .configurationServiceRest(config.configServiceRest)
             .build()
     val sslContext = config.transportSecurity.type
             .takeIf { it != TransportSecurity.Type.NONE }

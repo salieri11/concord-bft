@@ -53,7 +53,7 @@ def get_component(blockchain_type) -> List[concord_model.ConcordComponent]:
     Returns:
         list of Concord components.
     """
-    if blockchain_type is None or blockchain_type is "ETHEREUM":
+    if blockchain_type is None or blockchain_type == "ETHEREUM":
         return [
             concord_model.ConcordComponent(
                 type=concord_model.ConcordComponent.CONTAINER_IMAGE,
@@ -71,7 +71,7 @@ def get_component(blockchain_type) -> List[concord_model.ConcordComponent]:
                 name="vmwblockchain/agent:latest"
             )
         ]
-    elif blockchain_type is "DAML":
+    elif blockchain_type == "DAML":
         # DAML works of custom images until code it rolled out.
         return [
             concord_model.ConcordComponent(
@@ -112,9 +112,9 @@ def get_concord_type(blockchain_type: str) -> concord_model.ConcordModelSpecific
     Returns:
         model specification enum type.
     """
-    if blockchain_type is None or blockchain_type == "ethereum":
+    if blockchain_type is None or blockchain_type == "ETHEREUM":
         return concord_model.ConcordModelSpecification.ETHEREUM
-    elif blockchain_type == "daml":
+    elif blockchain_type == "DAML":
         return concord_model.ConcordModelSpecification.DAML
 
 

@@ -60,6 +60,7 @@ class ProvisioningServiceModule {
         @Named("configurationService") configurationService: Endpoint,
         @Named("containerRegistry") containerRegistry: Endpoint,
         @Named("allocationServer") allocationServer: Endpoint,
+        @Named("configurationServiceRest") configurationServiceRest: Endpoint,
         configurationServiceClientProvider: Function<Endpoint, ConfigurationServiceStub>
     ): ProvisioningService {
         return ProvisioningService(
@@ -69,7 +70,8 @@ class ProvisioningServiceModule {
                 configurationServiceClientProvider,
                 configurationService,
                 containerRegistry,
-                allocationServer
+                allocationServer,
+                configurationServiceRest
         )
     }
 }

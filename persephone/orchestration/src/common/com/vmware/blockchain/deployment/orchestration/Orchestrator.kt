@@ -12,6 +12,7 @@ import com.vmware.blockchain.deployment.v1.ConcordModelSpecification
 import com.vmware.blockchain.deployment.v1.ConcordNodeIdentifier
 import com.vmware.blockchain.deployment.v1.ConfigurationSessionIdentifier
 import com.vmware.blockchain.deployment.v1.Endpoint
+import com.vmware.blockchain.deployment.v1.OutboundProxyInfo
 import com.vmware.blockchain.ethereum.type.Genesis
 
 /** Default orchestrator operation short timeout value. */
@@ -83,7 +84,8 @@ interface Orchestrator {
         val privateNetworkAddress: String = "",
         val configurationSessionIdentifier: ConfigurationSessionIdentifier,
         val concordId: Int,
-        val configServiceEndpoint: Endpoint
+        val configServiceEndpoint: Endpoint,
+        val configServiceRestEndpoint: Endpoint
     )
 
     /**

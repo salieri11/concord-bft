@@ -24,5 +24,6 @@ message ConcordAgentConfiguration {
     int32 node = 5;
     Endpoint config_service = 6;
     ConfigurationSessionIdentifier configuration_session = 7;
+    OutboundProxyInfo outbound_proxy_info = 8;
 }
 /* [END messages] */
