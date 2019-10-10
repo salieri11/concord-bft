@@ -1044,7 +1044,7 @@ void pushHermesDataFile(fileToPush){
 
   echo "git push"
   sh (
-    script: "git push origin master",
+    script: "git pull --no-edit ; git push origin master",
     returnStdout: false
   )
 }
