@@ -39,8 +39,6 @@ final class AgentDockerClient {
 
     private static final Logger log = LoggerFactory.getLogger(AgentDockerClient.class);
 
-    private static final String DEFAULT_REGISTRY = "registry-1.docker.io";
-
     /**
      * Regular expression pattern matching a Docker image name.
      *
@@ -53,24 +51,14 @@ final class AgentDockerClient {
      * Data class to contain metadata information about a container image.
      */
     private static class ContainerImage {
-
-        private final String registry;
-        private final String repository;
-        private final String tag;
+        private String repository;
+        private String tag;
 
         private ContainerImage(String name) {
-            // Setup default values in case parsing was unsuccessful.
-            var registry = DEFAULT_REGISTRY;
-            var repository = name;
-            var tag = "latest";
 
             try {
                 var matcher = IMAGE_NAME_PATTERN.matcher(name);
                 if (matcher.matches()) {
-                    // This block is never invoked...
-                    if (matcher.group("registry") != null) {
-                        registry = matcher.group("registry");
-                    }
                     if (matcher.group("repository") != null) {
                         repository = matcher.group("repository");
                     }
@@ -80,16 +68,8 @@ final class AgentDockerClient {
                 }
             } catch (Exception error) {
                 log.error("Encountered error while parsing name, using default values", error);
-            } finally {
-                // Regardless of match error or exception thrown, always map to some safe value.
-                this.registry = registry;
-                this.repository = repository;
-                this.tag = tag;
+                throw new RuntimeException("Error parsing Image name:" + name);
             }
-        }
-
-        private String getRegistry() {
-            return registry;
         }
 
         private String getRepository() {
