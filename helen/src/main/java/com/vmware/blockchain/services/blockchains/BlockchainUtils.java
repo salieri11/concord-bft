@@ -22,6 +22,7 @@ import com.vmware.blockchain.deployment.v1.Credential;
 import com.vmware.blockchain.deployment.v1.Endpoint;
 import com.vmware.blockchain.deployment.v1.IPv4Network;
 import com.vmware.blockchain.deployment.v1.OrchestrationSiteInfo;
+import com.vmware.blockchain.deployment.v1.OutboundProxyInfo;
 import com.vmware.blockchain.deployment.v1.PasswordCredential;
 import com.vmware.blockchain.deployment.v1.TransportSecurity;
 import com.vmware.blockchain.deployment.v1.VSphereDatacenterInfo;
@@ -56,7 +57,7 @@ public class BlockchainUtils {
     /**
      * Convert a Helen Zone to a Fleet Orchestration Site.
      */
-    public static OrchestrationSiteInfo toInfo(Zone zone)  {
+    public static OrchestrationSiteInfo toInfo(Zone zone) {
         VSphereOrchestrationSiteInfo vspherInfo = new VSphereOrchestrationSiteInfo();
         if (Type.ON_PREM.equals(zone.getType())) {
             OnpremZone op = (OnpremZone) zone;
@@ -65,8 +66,9 @@ public class BlockchainUtils {
                 throw new BadRequestException(ErrorCode.BAD_REQUEST);
             }
             final Endpoint api = new Endpoint(op.getVCenter().getUrl(),
-                                        toCredential(op.getVCenter().getUsername(), op.getVCenter().getPassword()),
-                                        new TransportSecurity());
+                                              toCredential(op.getVCenter().getUsername(),
+                                                           op.getVCenter().getPassword()),
+                                              new TransportSecurity());
             Endpoint container = new Endpoint();
             if (op.getContainerRepo() != null) {
                 container = new Endpoint(op.getContainerRepo().getUrl(),
@@ -88,11 +90,20 @@ public class BlockchainUtils {
             if (op.getResourcePool() == null || op.getResourcePool().isBlank()
                 || op.getStorage() == null || op.getStorage().isBlank()
                 || op.getFolder() == null || op.getFolder().isBlank()) {
-                logger.info("Null or blanck ResoucePool, Storage or Folder");
+                logger.info("Null or blank ResourcePool, Storage or Folder");
                 throw new BadRequestException(ErrorCode.BAD_REQUEST);
             }
+
+            OutboundProxyInfo outboundProxyInfo = new OutboundProxyInfo();
+            if (op.getOutboundProxy() != null) {
+                outboundProxyInfo = new OutboundProxyInfo(op.getOutboundProxy().getHttpHost(),
+                                                          op.getOutboundProxy().getHttpPort(),
+                                                          op.getOutboundProxy().getHttpsHost(),
+                                                          op.getOutboundProxy().getHttpsPort());
+            }
             VSphereDatacenterInfo dcInfo =
-                    new VSphereDatacenterInfo(op.getResourcePool(), op.getStorage(), op.getFolder(), network);
+                    new VSphereDatacenterInfo(op.getResourcePool(), op.getStorage(), op.getFolder(), network,
+                                              outboundProxyInfo);
             vspherInfo = new VSphereOrchestrationSiteInfo(api, container, dcInfo);
         }
 

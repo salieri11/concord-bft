@@ -161,6 +161,9 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
     /** Default allocation server endpoint to use. */
     private Endpoint allocationServer;
 
+    /** Default configuration server rest endpoint to use. */
+    private Endpoint configurationServiceRest;
+
     /** Map of concord node identifiers vs concord identifier as provided. */
     // FIXME: This should not be required once concord gives a provision to define names
     private final Map<ConcordNodeIdentifier, Integer> concordIdentifierMap = new HashMap<>();
@@ -175,7 +178,8 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
             Function<Endpoint, ConfigurationServiceStub> configurationServiceClientProvider,
             Endpoint configurationServer,
             Endpoint containerRegistry,
-            Endpoint allocationServer
+            Endpoint allocationServer,
+            Endpoint configurationServiceRest
     ) {
         this.executor = executor;
         this.orchestratorProvider = orchestratorProvider;
@@ -185,6 +189,7 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
         this.configurationService = configurationServer;
         this.containerRegistry = containerRegistry;
         this.allocationServer = allocationServer;
+        this.configurationServiceRest = configurationServiceRest;
     }
 
     /**
@@ -955,7 +960,8 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
                 networkResourceEvent.getAddress(),
                 configGenId,
                 concordIdentifierMap.get(nodeId),
-                resolvedConfigurationService
+                resolvedConfigurationService,
+                configurationServiceRest
         );
         return orchestrator.createDeployment(computeRequest);
     }

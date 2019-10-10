@@ -34,4 +34,11 @@ class TestEndpointProviderModule {
     fun providesConfigService(): Endpoint {
         return Endpoint("", Credential(), TransportSecurity())
     }
+
+    @Provides
+    @Singleton
+    @Named("configurationServiceRest")
+    fun providesConfigServiceRest(): Endpoint {
+        return Endpoint("", Credential(), TransportSecurity())
+    }
 }

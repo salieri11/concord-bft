@@ -289,6 +289,7 @@ message ProvisioningServerConfiguration {
     repeated OrchestrationSite sites = 4 [packed=false];
     Endpoint container_registry = 5;
     Endpoint allocation_server = 6;
+    Endpoint config_service_rest = 7;
 }
 
 /* [END messages] */

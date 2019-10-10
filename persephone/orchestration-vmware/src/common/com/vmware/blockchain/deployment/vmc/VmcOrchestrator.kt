@@ -21,6 +21,7 @@ import com.vmware.blockchain.deployment.v1.IPAllocationServiceStub
 import com.vmware.blockchain.deployment.v1.IPv4Network
 import com.vmware.blockchain.deployment.v1.MessageHeader
 import com.vmware.blockchain.deployment.v1.OrchestrationSiteInfo
+import com.vmware.blockchain.deployment.v1.OutboundProxyInfo
 import com.vmware.blockchain.deployment.v1.ReleaseAddressRequest
 import com.vmware.blockchain.deployment.v1.ReleaseAddressResponse
 import com.vmware.blockchain.deployment.v1.VmcOrchestrationSiteInfo
@@ -168,7 +169,9 @@ class VmcOrchestrator(
                                     request.cluster,
                                     request.concordId,
                                     request.configurationSessionIdentifier,
-                                    request.configServiceEndpoint
+                                    request.configServiceEndpoint,
+                                    request.configServiceRestEndpoint,
+                                    OutboundProxyInfo()
                             )
                     )
 

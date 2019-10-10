@@ -12,7 +12,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -31,15 +30,6 @@ import com.github.dockerjava.core.command.PullImageResultCallback;
 import com.vmware.blockchain.deployment.v1.ConcordAgentConfiguration;
 import com.vmware.blockchain.deployment.v1.ConcordComponent;
 import com.vmware.blockchain.deployment.v1.ConfigurationComponent;
-import com.vmware.blockchain.deployment.v1.ConfigurationServiceStub;
-import com.vmware.blockchain.deployment.v1.ConfigurationSessionIdentifier;
-import com.vmware.blockchain.deployment.v1.MessageHeader;
-import com.vmware.blockchain.deployment.v1.NodeConfigurationRequest;
-import com.vmware.blockchain.deployment.v1.NodeConfigurationResponse;
-import com.vmware.blockchain.deployment.v1.TransportSecurity;
-
-import io.grpc.CallOptions;
-import io.grpc.ManagedChannelBuilder;
 
 /**
  * Utility class for talking to Docker and creating the required volumes, starting
@@ -114,8 +104,7 @@ final class AgentDockerClient {
     /** Configuration parameters for this agent instance. */
     private final ConcordAgentConfiguration configuration;
 
-    /** Configuration Service RPC Stub. */
-    private final ConfigurationServiceStub configurationService;
+    private final ConfigServiceInvoker configServiceInvoker;
 
     /**
      * Default constructor.
@@ -123,56 +112,21 @@ final class AgentDockerClient {
     AgentDockerClient(ConcordAgentConfiguration configuration) {
         this.configuration = configuration;
 
-        if (configuration.getConfigService().getTransportSecurity().getType()
-                == TransportSecurity.Type.NONE) {
-            this.configurationService = new ConfigurationServiceStub(
-                    ManagedChannelBuilder
-                            .forTarget(configuration.getConfigService().getAddress())
-                            .usePlaintext()
-                            .build(),
-                    CallOptions.DEFAULT
-            );
-        } else {
-            this.configurationService = new ConfigurationServiceStub(
-                    ManagedChannelBuilder
-                            .forTarget(configuration.getConfigService().getAddress())
-                            .build(),
-                    CallOptions.DEFAULT
-            );
+        // Temporary hack for supporting proxy and rest.
+
+        boolean useRest = false;
+
+        if (!configuration.getOutboundProxyInfo().getHttpsHost().isBlank()) {
+            useRest = true;
+
+            // Also set the proxy.
+            System.setProperty("http.proxyHost", configuration.getOutboundProxyInfo().getHttpHost());
+            System.setProperty("http.proxyPort", String.valueOf(configuration.getOutboundProxyInfo().getHttpPort()));
+            System.setProperty("https.proxyHost", configuration.getOutboundProxyInfo().getHttpsHost());
+            System.setProperty("https.proxyPort", String.valueOf(configuration.getOutboundProxyInfo().getHttpsPort()));
         }
-    }
 
-
-    /**
-     * Retrieves the configuration for the node represented by this agent from Configuration
-     * service.
-     *
-     * @param session
-     *   configuration session identifier.
-     * @param node
-     *   node identifier.
-     *
-     * @return
-     *   list of {@link ConfigurationComponent}s.
-     */
-    private List<ConfigurationComponent> retrieveConfiguration(
-            ConfigurationSessionIdentifier session,
-            int node
-    ) {
-        var request = new NodeConfigurationRequest(new MessageHeader(), session, node);
-        var responseObserver = new StreamObservers.MonoObserverFuture<NodeConfigurationResponse>();
-
-        // Request for config.
-        configurationService.getNodeConfiguration(request, responseObserver);
-
-        // Synchronously wait for result to return.
-        try {
-            return responseObserver.asCompletableFuture().join().getConfigurationComponent();
-        } catch (Throwable error) {
-            log.error("Configuration retrieval failed", error);
-
-            return Collections.emptyList();
-        }
+        this.configServiceInvoker = new ConfigServiceInvoker(configuration.getConfigService(), useRest);
     }
 
     /**
@@ -304,7 +258,8 @@ final class AgentDockerClient {
     private void setupConfig() {
         log.info("Reading config file");
 
-        var configList = retrieveConfiguration(configuration.getConfigurationSession(), configuration.getNode());
+        var configList = configServiceInvoker.retrieveConfiguration(configuration.getConfigurationSession(),
+                                                                    configuration.getNode());
         writeConfiguration(configList);
 
         // TODO Why do we need 2 paths?

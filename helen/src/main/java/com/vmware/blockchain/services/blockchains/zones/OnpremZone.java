@@ -30,5 +30,6 @@ public class OnpremZone extends Zone {
     String storage;
     String folder;
     Network network;
+    Zone.OutboundProxy outboundProxy;
     EndPoint containerRepo;
 }

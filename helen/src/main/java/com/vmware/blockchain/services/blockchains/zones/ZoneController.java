@@ -167,6 +167,7 @@ public class ZoneController {
         String storage;
         String folder;
         Zone.Network network;
+        Zone.OutboundProxy outboundProxy;
         EndPoint containerRepo;
 
     }

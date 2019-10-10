@@ -129,6 +129,7 @@ message VSphereDatacenterInfo {
     string datastore = 3;
     string folder = 4;
     IPv4Network network = 5;
+    OutboundProxyInfo outbound_proxy = 6;
 }
 
 /**
@@ -167,4 +168,5 @@ message VSphereOrchestrationSiteInfo {
     Endpoint container_registry = 2;
     VSphereDatacenterInfo vsphere = 3;
 }
+
 /* [END messages] */

@@ -154,7 +154,9 @@ class VSphereOrchestrator constructor(
                                     request.cluster,
                                     request.concordId,
                                     request.configurationSessionIdentifier,
-                                    request.configServiceEndpoint
+                                    request.configServiceEndpoint,
+                                    request.configServiceRestEndpoint,
+                                    info.vsphere.outboundProxy
                             )
                     )
 
