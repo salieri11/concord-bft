@@ -1,7 +1,9 @@
 #!/bin/bash
 # set -x
 
-################################################################################
+#########################################################################
+# Copyright 2018 - 2019 VMware, Inc.  All rights reserved. -- VMware Confidential
+#
 # High level script to build the blockchain components.
 # To add a component:
 #   Go to the commands at the end of the script.
@@ -15,41 +17,15 @@
 #   Example: ./buildall.sh --additionalBuilds PerformanceTests,StressTests
 ################################################################################
 
-trap killAllProcs INT
+# For saveTimeEvent
+. hermes/lib/shell/saveTimeEvent.sh
+BLOCKCHAIN_DIR=`dirname "$(readlink -f $0)"`
+EVENTS_FILE="${BLOCKCHAIN_DIR}/../times.json"
+EVENTS_RECORDER="${BLOCKCHAIN_DIR}/hermes/event_recorder.py"
 
-info() {
-    echo `date`: INFO: "${1}"
-}
-
-error() {
-    echo `date`: ERROR: "${1}"
-}
-
-printMemory() {
-    uname | grep "Linux"
-    LINUX=$?
-
-    if [ $LINUX -eq 0 ]
-    then
-        free -h
-    fi
-}
-
-# Kill all processes.
-killAllProcs(){
-  error "A problem or interrupt occurred. Killing processes..."
-  saveTimeEvent "Kill all processes" Start
-
-  for i in "${!BUILD_PROCS[@]}"
-  do
-    if isRunning ${BUILD_PROCS[$i]}
-    then
-      kill ${BUILD_PROCS[$i]}
-    fi
-  done
-
-  saveTimeEvent "Kill all processes" End
-}
+# buildlib.sh contains code which manages the build processes, retries,
+# determining success/failure, etc...
+. hermes/lib/shell/buildlib.sh
 
 # A sanity check for Docker. Exits if not present.
 verifyDocker(){
@@ -64,108 +40,42 @@ verifyDocker(){
   fi
 }
 
-# Accept a process ID and return 0/success if running,
-# nonzero/failure if not running.
-isRunning(){
-  ps -p ${1} > /dev/null
-  return $?
+PerformanceTests() {
+    # Ivoked via --additionalBuilds PerformanceTests.
+    cd performance/benchmark
+    sh ./build.sh > performance_test_build.log 2>&1
 }
 
-# Checks to see if the target passed in has already succeeded.
-# Used instead of asking the OS for the exit status of a process
-# once we already know the answer.
-alreadySucceeded() {
-  TARGET="${1}"
+BuildPersephoneGRPCpyBindings() {
+    local LOG_FILE="${persephone_generate_grpc_bindings.log}"
+    pushd .
+    ./hermes/util/generate_grpc_bindings.py --source-path=persephone/api/src/protobuf --target-path=hermes/lib/persephone > "${LOG_FILE}"  2>&1 &
+    addToProcList "Persephone gRPC Python Bindings" $! "${LOG_FILE}"
+    popd
+}
 
-  for SUCCESS_ITEM in "${SUCCESSES[@]}"
-  do
-    if [ "${SUCCESS_ITEM}" == "${TARGET}" ]
+BuildSupplyChain() {
+    pushd .
+    cd vmware-blockchain-samples/supply-chain
+    sed -i -e 's?<change-me>?http://helen:8080?g' docker-compose.yml
+    docker-compose build supply-chain
+    popd
+}
+
+docker_pull() {
+    if [ "$#" -ne "2" ]
     then
-      return 0
+        error "Missing Required Parameters for docker pull method"
+        error "Usage: docker_pull <docker image:tag> <Task Name>"
+        killAllProcs
+        exit 1
     fi
-  done
+    local DOCKER_IMAGE_WITH_TAG="$1"
+    local DOCKER_PULL_TASK_NAME="$2"
+    local LOG_FILE="${DOCKER_PULL_TASK_NAME}.log"
 
-  return 1
-}
-
-# Waits for all processes in the BUILD_PROCS associative array to end.
-waitForProcesses(){
-  DONE=false
-
-  while [ "$DONE" = false ]
-  do
-    DONE=true
-
-    info "-------- Status --------"
-    printMemory
-
-    for BUILD_PROC in "${!BUILD_PROCS[@]}"
-    do
-      if alreadySucceeded "${BUILD_PROC}"
-      then
-        info "${BUILD_PROC}: done"
-      elif isRunning "${BUILD_PROCS[$BUILD_PROC]}"
-      then
-        DONE=false
-	info "${BUILD_PROC}: waiting"
-      else
-        info "${BUILD_PROC}: done"
-        saveTimeEvent "Build ${BUILD_PROC}" End
-        dieOnFailure "${BUILD_PROC}" ${BUILD_PROCS[$BUILD_PROC]}
-        SUCCESSES+=("${BUILD_PROC}")
-      fi
-    done
-
-    sleep 5
-  done
-}
-
-# Checks the exit code of the given process id, and exits
-# this entire script if it indicates failure.
-dieOnFailure(){
-  NAME="${1}"
-  PID=${2}
-  wait ${PID}
-  EXIT_CODE=$?
-
-  if [ ${EXIT_CODE} -ne 0 ]
-  then
-    error "Failure executing ${NAME}.  Exit code: ${EXIT_CODE}"
-    killAllProcs
-    exit 1
-  fi
-}
-
-# Accepting a human-friendly name and process ID, adds
-# them to the BUILD_PROCS array of name=procId.
-addToProcList(){
-  info "Adding build process: ${1}=${2}"
-  saveTimeEvent "Build ${1}" Start
-  BUILD_PROCS["${1}"]=${2}
-}
-
-# Builds the maven targets.
-buildMavenTargets(){
-  docker volume create --name mvn-repo
-  docker run \
-    --rm --name mvn-build \
-    --user $(id -u):$(id -g) \
-    -v maven-repo:/root/.m2 \
-    -v "$(pwd)":/workspace \
-    -w /workspace \
-    athena-docker-local.artifactory.eng.vmware.com/build-images/maven-builder:v1 \
-    mvn --debug --errors clean install > mvn_build.log 2>&1 &
-  MVN_BUILD=$!
-
-  addToProcList "Maven" $!
-
-  while isRunning ${MVN_BUILD}
-  do
-    info "Waiting for full maven build..."
-    sleep 10
-  done
-
-  dieOnFailure "Maven" ${MVN_BUILD}
+    docker pull "${DOCKER_IMAGE_WITH_TAG}" > "${LOG_FILE}" 2>&1 &
+    addToProcList "${DOCKER_PULL_TASK_NAME}" $! "${LOG_FILE}"
 }
 
 docker_build() {
@@ -176,17 +86,17 @@ docker_build() {
         killAllProcs
         exit 1
     fi
-    DOCKER_BUILD_DIR="$1"
+    local DOCKER_BUILD_DIR="$1"
     shift
-    DOCKER_BUILD_FILE="$1"
+    local DOCKER_BUILD_FILE="$1"
     shift
-    DOCKER_REPO_NAME="$1"
+    local DOCKER_REPO_NAME="$1"
     shift
-    DOCKER_REPO_TAG="$1"
+    local DOCKER_REPO_TAG="$1"
     shift
 
-    BUILD_ARG_PARAM=""
-    MEMORY_LEAK_DOCKER_BUILD=""
+    local BUILD_ARG_PARAM=""
+    local MEMORY_LEAK_DOCKER_BUILD=""
     while [ "$1" != "" ] ; do
        case $1 in
           "--memoryLeakDockerBuild")
@@ -201,13 +111,16 @@ docker_build() {
 
     if [ ! -z "${MEMORY_LEAK_DOCKER_BUILD}" ]
     then
-        memleak_util="valgrind"
-        memleak_util_cmd="valgrind -v --leak-check=full --show-leak-kinds=all --track-origins=yes --log-file=/tmp/valgrind_concord1.log --suppressions=/concord/concord.supp"
-        docker build "${DOCKER_BUILD_DIR}" -f "${DOCKER_BUILD_FILE}" -t "${DOCKER_REPO_NAME}:${DOCKER_REPO_TAG}"_memleak --build-arg "memleak_util=${memleak_util}" --build-arg "memleak_util_cmd=${memleak_util_cmd}" ${BUILD_ARG_PARAM} > concord_memleak_build.log 2>&1 &
-        addToProcList "Concord_for_memleak_image" $!
+        local memleak_util="valgrind"
+        local memleak_util_cmd="valgrind -v --leak-check=full --show-leak-kinds=all --track-origins=yes --log-file=/tmp/valgrind_concord1.log --suppressions=/concord/concord.supp"
+        local LOG_FILE="concord_memleak_build.log"
+        docker build "${DOCKER_BUILD_DIR}" -f "${DOCKER_BUILD_FILE}" -t "${DOCKER_REPO_NAME}:${DOCKER_REPO_TAG}"_memleak --build-arg "memleak_util=${memleak_util}" --build-arg "memleak_util_cmd=${memleak_util_cmd}" ${BUILD_ARG_PARAM} > "${LOG_FILE}" 2>&1 &
+        addToProcList "Concord_for_memleak_image" $! "${LOG_FILE}"
     else
-        docker build "${DOCKER_BUILD_DIR}" -f "${DOCKER_BUILD_FILE}" -t "${DOCKER_REPO_NAME}:${DOCKER_REPO_TAG}" --label ${version_label}=${DOCKER_REPO_TAG} --label ${commit_label}=${commit_hash} ${BUILD_ARG_PARAM} > `basename "${DOCKER_REPO_NAME}"_build.log` 2>&1 &
-        addToProcList `basename "${DOCKER_REPO_NAME}_image"` $!
+        local LOG_FILE=`basename "${DOCKER_REPO_NAME}"_build.log`
+        docker build "${DOCKER_BUILD_DIR}" -f "${DOCKER_BUILD_FILE}" -t "${DOCKER_REPO_NAME}:${DOCKER_REPO_TAG}" --label ${version_label}=${DOCKER_REPO_TAG} --label ${commit_label}=${commit_hash} ${BUILD_ARG_PARAM} > "${LOG_FILE}" 2>&1 &
+        addToProcList `basename "${DOCKER_REPO_NAME}_image"` $! "${LOG_FILE}"
+        
     fi
 }
 
@@ -243,18 +156,12 @@ npm_install() {
 
   pushd .
   cd "$COMPONENT_DIR"
+  local LOG_FILE="node_install_${COMPONENT_DIR}.log"
   npm config set registry http://build-artifactory.eng.vmware.com:80/artifactory/api/npm/npm
-  npm install > "node_install_${COMPONENT_DIR}.log" 2>&1 &
+  npm install > "${LOG_FILE}" 2>&1 &
   NODE_BUILD_PID=$!
-  addToProcList "${NAME}" $!
-
-  while isRunning ${NODE_BUILD_PID}
-  do
-    info "Waiting for $NAME..."
-    sleep 10
-  done
-
-  dieOnFailure "${NAME}" ${NODE_BUILD_PID}
+  addToProcList "${NAME}" $! "${LOG_FILE}"
+  waitForProcesses
   popd
 }
 
@@ -388,11 +295,6 @@ do
     fi
 done
 
-# For saveTimeEvent
-. hermes/lib/shell/common_shell.sh
-BLOCKCHAIN_DIR=`dirname "$(readlink -f $0)"`
-EVENTS_FILE="${BLOCKCHAIN_DIR}/../times.json"
-EVENTS_RECORDER="${BLOCKCHAIN_DIR}/hermes/event_recorder.py"
 
 info "Loading repos/tags for docker images from docker/.env"
 . docker/.env
@@ -453,3 +355,4 @@ then
 fi
 
 waitForProcesses
+
