@@ -19,7 +19,7 @@ def call(){
   } else if (env.JOB_NAME.contains(performance_test_job_name)) {
     echo "**** Jenkins job for Performance Test"
     genericTests = false
-    additional_components_to_build = additional_components_to_build + "PerformanceTests,"
+    // additional_components_to_build = additional_components_to_build + "PerformanceTests,"
   } else if (env.JOB_NAME.contains(persephone_test_job_name)) {
     echo "**** Jenkins job for Persephone Test"
     genericTests = false
@@ -69,7 +69,11 @@ def call(){
              description: "Override automatic node selection and run this job on a node with this label.",
              name: "jenkins_node"
 
-      choice(choices: "on-failure\nnever\nalways", description: 'Choose a deployment test failure Retention Policy', name: 'deployment_retention')
+      choice(choices: "on-failure\nnever\nalways", description: 'Persephone Tests: Choose a deployment test failure Retention Policy', name: 'deployment_retention')
+
+      string defaultValue: "10",
+             description: "Performance Test: Enter number of votes for Ballot App (default 10 votes)",
+             name: "performance_votes"
     }
     stages {
       stage("Notify GitLab"){
@@ -92,6 +96,7 @@ def call(){
 
               // Set as env variables
               env.deployment_retention = params.deployment_retention
+              env.performance_votes = params.performance_votes
 
               // Check parameters
               script{
@@ -492,7 +497,7 @@ EOF
                       saveTimeEvent("Performance tests", "Start")
                       sh '''
                         echo "Running Entire Testsuite: Performance..."
-                        echo "${PASSWORD}" | sudo -SE "${python}" main.py PerformanceTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${performance_test_logs}" --runConcordConfigurationGeneration --concordConfigurationInput /concord/config/dockerConfigurationInput-perftest.yaml
+                        echo "${PASSWORD}" | sudo -SE "${python}" main.py PerformanceTests --dockerComposeFile ../docker/docker-compose.yml --performanceVotes 10000 --resultsDir "${performance_test_logs}" --runConcordConfigurationGeneration --concordConfigurationInput /concord/config/dockerConfigurationInput-perftest.yaml
                       '''
                       saveTimeEvent("Performance tests", "End")
                     }
@@ -1472,6 +1477,10 @@ void runGenericTests(){
       saveTimeEvent CoreVMTests Start
       echo "${PASSWORD}" | sudo -S "${python}" main.py CoreVMTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${core_vm_test_logs}" --runConcordConfigurationGeneration
       saveTimeEvent CoreVMTests End
+
+      saveTimeEvent PerformanceTests Start
+      echo "${PASSWORD}" | sudo -SE "${python}" main.py PerformanceTests --dockerComposeFile ../docker/docker-compose.yml --performanceVotes ${performance_votes} --resultsDir "${performance_test_logs}" --runConcordConfigurationGeneration --concordConfigurationInput /concord/config/dockerConfigurationInput-perftest.yaml
+      saveTimeEvent PerformanceTests End
 
       saveTimeEvent HelenAPITests Start
       echo "${PASSWORD}" | sudo -S "${python}" main.py HelenAPITests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${helen_api_test_logs}" --runConcordConfigurationGeneration --logLevel debug

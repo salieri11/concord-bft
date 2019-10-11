@@ -107,7 +107,8 @@ class PerformanceTests(test_suite.TestSuite):
                  format(performance_jar))
 
       concord_ip = self.ethrpcApiUrl.split("/")[2].split(":")[0]
-      number_of_votes = "10000"
+      number_of_votes = str(self._args.performanceVotes)
+      log.info("No. of votes: {}".format(self._args.performanceVotes))
       input_data = os.path.join(self._performance_submodule,
                                 "data", "proposals")
 
