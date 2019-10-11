@@ -2,7 +2,7 @@
  * Copyright (c) 2019 VMware, Inc. All rights reserved. VMware Confidential
  */
 
-package com.vmware.concord.agent;
+package com.vmware.concord.agent.services;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -29,13 +29,18 @@ import com.github.dockerjava.core.DockerClientBuilder;
 import com.github.dockerjava.core.command.PullImageResultCallback;
 import com.vmware.blockchain.deployment.v1.ConcordAgentConfiguration;
 import com.vmware.blockchain.deployment.v1.ConcordComponent;
+import com.vmware.blockchain.deployment.v1.ConcordModelSpecification;
 import com.vmware.blockchain.deployment.v1.ConfigurationComponent;
+import com.vmware.concord.agent.services.configservice.ConfigServiceInvoker;
+import com.vmware.concord.agent.services.configuration.BaseContainerSpec;
+import com.vmware.concord.agent.services.configuration.DamlConfig;
+import com.vmware.concord.agent.services.configuration.EthereumConfig;
 
 /**
  * Utility class for talking to Docker and creating the required volumes, starting
  * concord-node etc.
  */
-final class AgentDockerClient {
+public final class AgentDockerClient {
 
     private static final Logger log = LoggerFactory.getLogger(AgentDockerClient.class);
 
@@ -89,7 +94,7 @@ final class AgentDockerClient {
     /**
      * Default constructor.
      */
-    AgentDockerClient(ConcordAgentConfiguration configuration) {
+    public AgentDockerClient(ConcordAgentConfiguration configuration) {
         this.configuration = configuration;
 
         // Temporary hack for supporting proxy and rest.
@@ -139,31 +144,32 @@ final class AgentDockerClient {
     /**
      * Start the local setup as a Concord node.
      */
-    void startConcord() {
+    public void bootstrapConcord() {
         // Download configuration and certs.
         setupConfig();
 
         // Pull and order images
-        List<ContainerConfig> containerConfigList = pullImages();
+        List<BaseContainerSpec> containerConfigList = pullImages();
 
-        containerConfigList.sort(Comparator.comparingInt(ContainerConfig::ordinal));
+        containerConfigList.sort(Comparator.comparingInt(BaseContainerSpec::ordinal));
 
         var dockerClient = DockerClientBuilder.getInstance().build();
         containerConfigList.forEach(container -> launchContainer(dockerClient, container));
     }
 
-    private List<ContainerConfig> pullImages() {
+    private List<BaseContainerSpec> pullImages() {
         final var registryUsername = configuration.getContainerRegistry()
                 .getCredential().getPasswordCredential().getUsername();
         final var registryPassword = configuration.getContainerRegistry()
                 .getCredential().getPasswordCredential().getPassword();
 
-        List<CompletableFuture<ContainerConfig>> futures = new ArrayList<>();
+        List<CompletableFuture<BaseContainerSpec>> futures = new ArrayList<>();
         for (var component : configuration.getModel().getComponents()) {
             // Bypass non service type image pull...
             if (component.getServiceType() != ConcordComponent.ServiceType.GENERIC) {
                 futures.add(CompletableFuture
-                                    .supplyAsync(() -> getImageIdAfterDl(registryUsername,
+                                    .supplyAsync(() -> getImageIdAfterDl(configuration.getModel().getBlockchainType(),
+                                                                         registryUsername,
                                                                          registryPassword, component)));
             }
         }
@@ -174,11 +180,22 @@ final class AgentDockerClient {
                 .collect(Collectors.toList())).join();
     }
 
-    private ContainerConfig getImageIdAfterDl(String registryUsername, String registryPassword,
-                                              ConcordComponent component) {
+    private BaseContainerSpec getImageIdAfterDl(ConcordModelSpecification.BlockchainType blockchainType,
+                                                String registryUsername, String registryPassword,
+                                                ConcordComponent component) {
 
         log.info("Pulling image {}", component.getName());
-        var containerConfig = ContainerConfig.valueOf(component.getServiceType().name());
+        BaseContainerSpec containerConfig;
+        switch (blockchainType) {
+            case ETHEREUM:
+                containerConfig = EthereumConfig.valueOf(component.getServiceType().name());
+                break;
+            case DAML:
+                containerConfig = DamlConfig.valueOf(component.getServiceType().name());
+                break;
+            default:
+                throw new RuntimeException("Invalid blockchain node type");
+        }
         var registryUrl = URI.create(configuration.getContainerRegistry().getAddress());
         var clientConfig = DefaultDockerClientConfig.createDefaultConfigBuilder()
                 .withRegistryUrl(registryUrl.getAuthority())
@@ -221,8 +238,8 @@ final class AgentDockerClient {
             var inspectResponse = docker
                     .inspectImageCmd(componentImageName + ":" + componentImage.getTag())
                     .exec();
-            containerConfig.imageId = inspectResponse.getId();
-            log.info("Container image ID: {}", containerConfig.imageId);
+            containerConfig.setImageId(inspectResponse.getId());
+            log.info("Container image ID: {}", containerConfig.getImageId());
         } catch (Throwable error) {
             log.error("Error while pulling image for component({})", component.getName(), error);
         } finally {
@@ -257,45 +274,45 @@ final class AgentDockerClient {
         }
     }
 
-    private void launchContainer(DockerClient dockerClient, ContainerConfig containerParam) {
+    private void launchContainer(DockerClient dockerClient, BaseContainerSpec containerParam) {
 
-        var createContainerCmd = dockerClient.createContainerCmd(containerParam.containerName)
-                .withName(containerParam.containerName)
-                .withImage(containerParam.imageId);
+        var createContainerCmd = dockerClient.createContainerCmd(containerParam.getContainerName())
+                .withName(containerParam.getContainerName())
+                .withImage(containerParam.getImageId());
 
-        if (containerParam.cmds != null) {
-            createContainerCmd.withCmd(containerParam.cmds);
+        if (containerParam.getCmds() != null) {
+            createContainerCmd.withCmd(containerParam.getCmds());
         }
 
-        if (containerParam.volumeBindings != null || containerParam.portBindings != null) {
+        if (containerParam.getVolumeBindings() != null || containerParam.getPortBindings() != null) {
             HostConfig hostConfig = HostConfig.newHostConfig();
 
-            if (containerParam.volumeBindings != null) {
-                hostConfig.withBinds(containerParam.volumeBindings);
+            if (containerParam.getVolumeBindings() != null) {
+                hostConfig.withBinds(containerParam.getVolumeBindings());
             }
 
-            if (containerParam.portBindings != null) {
-                hostConfig.withPortBindings(containerParam.portBindings);
+            if (containerParam.getPortBindings() != null) {
+                hostConfig.withPortBindings(containerParam.getPortBindings());
             }
 
-            if (containerParam.links != null) {
-                hostConfig.withLinks(containerParam.links);
+            if (containerParam.getLinks() != null) {
+                hostConfig.withLinks(containerParam.getLinks());
             }
             createContainerCmd.withHostConfig(hostConfig);
         }
 
-        if (containerParam.environment != null) {
-            createContainerCmd.withEnv(containerParam.environment);
+        if (containerParam.getEnvironment() != null) {
+            createContainerCmd.withEnv(containerParam.getEnvironment());
         }
 
         log.info("Create container: {}", createContainerCmd.toString());
         var container = createContainerCmd.exec();
         if (container == null) {
-            log.error("Couldn't start {} container...!", containerParam.containerName);
+            log.error("Couldn't start {} container...!", containerParam.getContainerName());
         } else {
-            log.info("Starting {}: Id {} ", containerParam.containerName, container.getId());
+            log.info("Starting {}: Id {} ", containerParam.getContainerName(), container.getId());
             dockerClient.startContainerCmd(container.getId()).exec();
-            log.info("Started container {}: Id {} ", containerParam.containerName, container.getId());
+            log.info("Started container {}: Id {} ", containerParam.getContainerName(), container.getId());
         }
     }
 }
