@@ -32,10 +32,6 @@ FROM ubuntu:18.04
 LABEL Description="Concord"
 
 ARG memleak_util=""
-ARG memleak_util_cmd=""
-
-# Get this variable into the docker image for the CMD.
-ENV memleak_util_cmd="${memleak_util_cmd}"
 
 RUN apt-get update \
     && apt-get -y install ${memleak_util} \
@@ -125,8 +121,4 @@ VOLUME [ "/concord/config", "/concord/rocksdbdata", "/concord/log", "/concord/tl
 
 # Set working directory and start.
 WORKDIR /concord
-CMD cp /concord/config-local/concord_with_hostnames.config \
-    /concord/config-local/concord.config && \
-    /concord/config-public/find-docker-instances.sh && \
-    ${memleak_util_cmd} \
-    /concord/concord -c /concord/config-local/concord.config
+CMD /concord/concord -c /concord/config-local/concord.config

@@ -8,6 +8,11 @@ services:
   concord1:
     image: "${concord_repo}:${concord_tag}"
     privileged: true
+    command: /bin/bash -c "
+      cp /concord/config-local/concord_with_hostnames.config
+         /concord/config-local/concord.config &&
+      /concord/config-public/find-docker-instances.sh &&
+      /concord/concord -c /concord/config-local/concord.config"
     depends_on:
       - daml_execution_engine1
     expose:
@@ -28,6 +33,11 @@ services:
   concord2:
     image: "${concord_repo}:${concord_tag}"
     privileged: true
+    command: /bin/bash -c "
+      cp /concord/config-local/concord_with_hostnames.config
+         /concord/config-local/concord.config &&
+      /concord/config-public/find-docker-instances.sh &&
+      /concord/concord -c /concord/config-local/concord.config"
     depends_on:
       - daml_execution_engine2
     expose:
@@ -48,6 +58,11 @@ services:
   concord3:
     image: "${concord_repo}:${concord_tag}"
     privileged: true
+    command: /bin/bash -c "
+      cp /concord/config-local/concord_with_hostnames.config
+         /concord/config-local/concord.config &&
+      /concord/config-public/find-docker-instances.sh &&
+      /concord/concord -c /concord/config-local/concord.config"
     depends_on:
       - daml_execution_engine3
     expose:
@@ -68,6 +83,11 @@ services:
   concord4:
     image: "${concord_repo}:${concord_tag}"
     privileged: true
+    command: /bin/bash -c "
+      cp /concord/config-local/concord_with_hostnames.config
+         /concord/config-local/concord.config &&
+      /concord/config-public/find-docker-instances.sh &&
+      /concord/concord -c /concord/config-local/concord.config"
     depends_on:
       - daml_execution_engine4
     expose:

@@ -100,6 +100,11 @@ services:
       - GOPATH=/concord
        # gRPC port
       - CONCORD_KV_SERVICE=0.0.0.0:50052
+    command: /bin/bash -c "
+      cp /concord/config-local/concord_with_hostnames.config
+         /concord/config-local/concord.config &&
+      /concord/config-public/find-docker-instances.sh &&
+      /concord/concord -c /concord/config-local/concord.config"
     expose:
       - 50052
       - 5458
@@ -213,6 +218,11 @@ services:
       - GOPATH=/concord
        # gRPC port
       - CONCORD_KV_SERVICE=0.0.0.0:50052
+    command: /bin/bash -c "
+      cp /concord/config-local/concord_with_hostnames.config
+         /concord/config-local/concord.config &&
+      /concord/config-public/find-docker-instances.sh &&
+      /concord/concord -c /concord/config-local/concord.config"
     expose:
       - 50052
       - 5458
@@ -324,6 +334,11 @@ services:
       - GOPATH=/concord
        # gRPC port
       - CONCORD_KV_SERVICE=0.0.0.0:50052
+    command: /bin/bash -c "
+      cp /concord/config-local/concord_with_hostnames.config
+         /concord/config-local/concord.config &&
+      /concord/config-public/find-docker-instances.sh &&
+      /concord/concord -c /concord/config-local/concord.config"
     expose:
       - 50052
       - 5458
@@ -436,6 +451,11 @@ services:
       - GOPATH=/concord
        # gRPC port
       - CONCORD_KV_SERVICE=0.0.0.0:50052
+    command: /bin/bash -c "
+      cp /concord/config-local/concord_with_hostnames.config
+         /concord/config-local/concord.config &&
+      /concord/config-public/find-docker-instances.sh &&
+      /concord/concord -c /concord/config-local/concord.config"
     expose:
       - 50052
       - 5458

@@ -112,9 +112,8 @@ docker_build() {
     if [ ! -z "${MEMORY_LEAK_DOCKER_BUILD}" ]
     then
         local memleak_util="valgrind"
-        local memleak_util_cmd="valgrind -v --leak-check=full --show-leak-kinds=all --track-origins=yes --log-file=/tmp/valgrind_concord1.log --suppressions=/concord/concord.supp"
         local LOG_FILE="concord_memleak_build.log"
-        docker build "${DOCKER_BUILD_DIR}" -f "${DOCKER_BUILD_FILE}" -t "${DOCKER_REPO_NAME}:${DOCKER_REPO_TAG}"_memleak --build-arg "memleak_util=${memleak_util}" --build-arg "memleak_util_cmd=${memleak_util_cmd}" ${BUILD_ARG_PARAM} > "${LOG_FILE}" 2>&1 &
+        docker build "${DOCKER_BUILD_DIR}" -f "${DOCKER_BUILD_FILE}" -t "${DOCKER_REPO_NAME}:${DOCKER_REPO_TAG}"_memleak --build-arg "memleak_util=${memleak_util}"  ${BUILD_ARG_PARAM} > "${LOG_FILE}" 2>&1 &
         addToProcList "Concord_for_memleak_image" $! "${LOG_FILE}"
     else
         local LOG_FILE=`basename "${DOCKER_REPO_NAME}"_build.log`
