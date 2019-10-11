@@ -90,7 +90,16 @@ public class DAMLManager {
             Process process = new ProcessBuilder().command(startServiceCommend.split("\\s+")).directory(new File(contractPath))
             		                              .redirectOutput(INHERIT).redirectErrorStream(true)
             		                              .start();
-            Runtime.getRuntime().addShutdownHook( new Thread(() -> process.destroyForcibly()));
+			Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+				logger.info("Stopping service..");
+				process.destroyForcibly();
+				try {
+					process.waitFor();
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+				logger.info("Service exit value: " + process.exitValue());
+			}));
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -119,7 +128,7 @@ public class DAMLManager {
             long startTime = System.nanoTime();
             for (int i = 0; i < numOfTransactions; i++ ) {
                 int iouAmount = random.nextInt(10000);
-                contractMap.put("amount", iouAmount);
+                contractMap.put("amount", iouAmount + 1);
                 JSONObject json = new JSONObject(contractMap);
                 String jsonContent = json.toString();
 
