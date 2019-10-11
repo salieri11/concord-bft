@@ -2,7 +2,7 @@
  * Copyright (c) 2019 VMware, Inc. All rights reserved. VMware Confidential
  */
 
-package com.vmware.concord.agent;
+package com.vmware.concord.agent.services.configservice;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;

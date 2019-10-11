@@ -2,7 +2,9 @@
  * Copyright (c) 2019 VMware, Inc. All rights reserved. VMware Confidential
  */
 
-package com.vmware.concord.agent;
+package com.vmware.concord.agent.services;
+
+import static com.vmware.concord.agent.services.rpc.AbstractAgentHandler.JSONRPC;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -35,7 +37,7 @@ public final class AgentDispatcher {
 
         JSONParser p = new JSONParser();
         try {
-            jsonRpc = Constants.JSONRPC;
+            jsonRpc = JSONRPC;
         } catch (Exception e) {
             logger.error("Failed to read RPC information from config file", e);
         }

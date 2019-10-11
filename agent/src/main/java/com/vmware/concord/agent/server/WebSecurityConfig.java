@@ -2,7 +2,7 @@
  * Copyright (c) 2019 VMware, Inc. All rights reserved. VMware Confidential
  */
 
-package com.vmware.concord.agent;
+package com.vmware.concord.agent.server;
 
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;

@@ -2,7 +2,7 @@
  * Copyright (c) 2019 VMware, Inc. All rights reserved. VMware Confidential
  */
 
-package com.vmware.concord.agent;
+package com.vmware.concord.agent.server;
 
 import java.net.URI;
 import java.nio.file.Files;
@@ -14,6 +14,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.http.converter.protobuf.ProtobufHttpMessageConverter;
 
 import com.vmware.blockchain.deployment.v1.ConcordAgentConfiguration;
+import com.vmware.concord.agent.services.AgentDockerClient;
 
 import kotlinx.serialization.UpdateMode;
 import kotlinx.serialization.json.Json;
@@ -56,7 +57,7 @@ public class Application {
             );
             // Create the required configuration files etc for this concord node.
             AgentDockerClient client = new AgentDockerClient(configuration);
-            client.startConcord();
+            client.bootstrapConcord();
             SpringApplication.run(Application.class, args);
         } else {
             throw new RuntimeException("Configuration not provided to agent.");

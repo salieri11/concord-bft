@@ -2,7 +2,7 @@
  * Copyright (c) 2019 VMware, Inc. All rights reserved. VMware Confidential
  */
 
-package com.vmware.concord.agent;
+package com.vmware.concord.agent.services.rpc;
 
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
@@ -12,10 +12,13 @@ import org.json.simple.JSONObject;
  * Handle all the Agent requests.
  */
 public abstract class AbstractAgentHandler {
+    //Concord-Agent
+    public static final String JSONRPC = "2.0";
+
     protected String jsonRpc;
 
     public AbstractAgentHandler() {
-        this.jsonRpc = Constants.JSONRPC;
+        this.jsonRpc = JSONRPC;
     }
 
     /**
