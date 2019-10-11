@@ -104,7 +104,7 @@ waitForProcesses(){
 retryIfNeeded(){
   # We just finished with this build.  See what we need to do.
   local BUILD_NAME="${1}"
-    
+
   if buildSucceeded "${BUILD_NAME}"; then
     info "${BUILD_NAME}: done"
     SUCCESSES+=("${BUILD_NAME}")
@@ -115,7 +115,7 @@ retryIfNeeded(){
 
   if isInfraBuildError "${BUILD_NAME}"; then
       info "Found a reason to retry ${BUILD_NAME}"
-      BUILD_FAILURES["${BUILD_NAME}"]=$((BUILD_FAILURES["${BUILD_NAME}"]+1))            
+      BUILD_FAILURES["${BUILD_NAME}"]=$((BUILD_FAILURES["${BUILD_NAME}"]+1))
 
       if [ ${BUILD_FAILURES["${BUILD_NAME}"]} -ge ${MAX_FAILURES} ]; then
           error "Build of ${BUILD_NAME} has failed and reached the maximum number of attempts.  Failing."
@@ -166,7 +166,8 @@ isInfraBuildError(){
     local BUILD_NAME="${1}"
 
     if find503ArtifactoryError "${BUILD_NAME}" || \
-            findEOFArtifactoryError "${BUILD_NAME}"; then
+            findEOFArtifactoryError "${BUILD_NAME}" || \
+            findDockerHubTimeoutError "${BUILD_NAME}"; then
         return 0
     else
         return 1
@@ -195,17 +196,34 @@ findEOFArtifactoryError(){
     # Look for "unexpected EOF" as the last line of a log, which
     # happens when failing to pull a docker image from Artifactory.
     local BUILD_NAME="${1}"
-    local LOG_FILE=${BUILD_LOGS["${BUILD_NAME}"]}    
+    local LOG_FILE=${BUILD_LOGS["${BUILD_NAME}"]}
     info "Looking for unexpected EOF error in the last line of build log file ${LOG_FILE} to see if we should retry."
 
     if [ -f "${LOG_FILE}" ]; then
-      local LAST_LINE=`tail -1l "${LOG_FILE}"`        
+      local LAST_LINE=`tail -1l "${LOG_FILE}"`
       echo "${LAST_LINE}" | grep -e "^unexpected\ EOF"
       return $?
     else
       error "Did not find the log file."
       return 1
-    fi        
+    fi
+}
+
+
+findDockerHubTimeoutError(){
+    # Look for DockerHub's timeout error in the last line of a log.
+    local BUILD_NAME="${1}"
+    local LOG_FILE=${BUILD_LOGS["${BUILD_NAME}"]}
+    info "Looking for DockerHub's timeout error in the last line of build log file ${LOG_FILE} to see if we should retry."
+
+    if [ -f "${LOG_FILE}" ]; then
+      local LAST_LINE=`tail -1l "${LOG_FILE}"`
+      echo "${LAST_LINE}" | grep -e "docker\.io.*Client\.Timeout\ exceeded"
+      return $?
+    else
+      error "Did not find the log file."
+      return 1
+    fi
 }
 
 
@@ -219,7 +237,7 @@ buildSucceeded(){
 
 getBuildExitCode(){
   # Accepts a build name, fetches its process ID, and
-  # returns the exit code of that process.  
+  # returns the exit code of that process.
   local BUILD_NAME="${1}"
   local PID=${BUILD_PROCESS_IDS["${BUILD_NAME}"]}
   wait ${PID}
