@@ -49,26 +49,18 @@ public class Application {
                 EmptyModule.INSTANCE
         );
 
-        ConcordAgentConfiguration configuration;
-        if (args.length == 1 && Files.exists(Path.of(args[0]))) {
-            // Expect first parameter to be the URL path for configuration settings.
-            configuration = json.parse(
-                    ConcordAgentConfiguration.getSerializer(),
-                    Files.readString(Path.of(args[0]))
-            );
-        } else if (Files.exists(Path.of(CONCORD_AGENT_MODEL_URI))) {
-            configuration = json.parse(
+        if (Files.exists(Path.of(CONCORD_AGENT_MODEL_URI))) {
+            ConcordAgentConfiguration configuration = json.parse(
                     ConcordAgentConfiguration.getSerializer(),
                     Files.readString(Path.of(CONCORD_AGENT_MODEL_URI))
             );
+            // Create the required configuration files etc for this concord node.
+            AgentDockerClient client = new AgentDockerClient(configuration);
+            client.startConcord();
+            SpringApplication.run(Application.class, args);
         } else {
             throw new RuntimeException("Configuration not provided to agent.");
         }
-
-        // Create the required configuration files etc for this concord node.
-        AgentDockerClient client = new AgentDockerClient(configuration);
-        client.startConcord();
-        SpringApplication.run(Application.class, args);
     }
 
     /**
