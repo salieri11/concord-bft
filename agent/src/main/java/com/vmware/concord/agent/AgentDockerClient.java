@@ -236,27 +236,25 @@ final class AgentDockerClient {
     }
 
     private void setupConfig() {
-        log.info("Reading config file");
-
-        var configList = configServiceInvoker.retrieveConfiguration(configuration.getConfigurationSession(),
-                                                                    configuration.getNode());
-        writeConfiguration(configList);
-
-        // TODO Why do we need 2 paths?
-        var localConfigPath = Path.of("/config/concord/config-local/concord.config");
-        var withHostConfig = Path.of("/config/concord/config-local/concord_with_hostnames.config");
-
         // Do not over-write existing configuration.
+        var withHostConfig = Path.of("/config/concord/config-local/concord_with_hostnames.config");
         if (!Files.exists(withHostConfig)) {
+            log.info("Reading config file");
+            var configList = configServiceInvoker.retrieveConfiguration(configuration.getConfigurationSession(),
+                                                                        configuration.getNode());
+            writeConfiguration(configList);
+
+            // TODO Why do we need 2 paths?
+            var localConfigPath = Path.of("/config/concord/config-local/concord.config");
+
             try {
                 Files.copy(localConfigPath, withHostConfig, StandardCopyOption.REPLACE_EXISTING);
                 log.info("Copied {} to {}", localConfigPath, withHostConfig);
+                log.info("Populated the config file");
             } catch (IOException error) {
                 log.error("Cannot write to " + withHostConfig, error);
             }
         }
-
-        log.info("Populated the config file");
     }
 
     private void launchContainer(DockerClient dockerClient, ContainerConfig containerParam) {

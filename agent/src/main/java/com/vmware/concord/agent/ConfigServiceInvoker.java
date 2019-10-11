@@ -4,7 +4,6 @@
 
 package com.vmware.concord.agent;
 
-import java.util.Collections;
 import java.util.List;
 
 import org.slf4j.Logger;
@@ -112,7 +111,7 @@ public class ConfigServiceInvoker {
             }
         } catch (Exception e) {
             log.error("Configuration retrieval failed", e);
+            throw e;
         }
-        return Collections.emptyList();
     }
 }
