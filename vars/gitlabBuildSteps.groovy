@@ -480,6 +480,7 @@ EOF
                     env.hlf_test_logs = new File(env.test_log_root, "HlfTests").toString()
                     env.daml_test_logs = new File(env.test_log_root, "DamlTests").toString()
                     env.time_test_logs = new File(env.test_log_root, "TimeTests").toString()
+                    env.helen_sddc_deployment_logs = new File(env.test_log_root, "HelenSDDCDeployment").toString()
 
                     if (genericTests) {
                       runGenericTests()
@@ -1544,6 +1545,12 @@ void runGenericTests(){
       saveTimeEvent UITests Start
       "${python}" main.py UiTests --dockerComposeFile ../docker/docker-compose.yml ../docker/docker-compose-persephone.yml --resultsDir "${ui_test_logs}" --runConcordConfigurationGeneration
       saveTimeEvent UITests End
+
+      saveTimeEvent HelenDeployToSDDC Start
+      echo "${PASSWORD}" | sudo -S "${python}" main.py CoreVMTests --blockchainLocation sddc \
+           --dockerComposeFile ../docker/docker-compose.yml ../docker/docker-compose-persephone.yml \
+           --tests="-k vmArithmeticTest/add0.json" --resultsDir "${helen_sddc_deployment_logs}"
+      saveTimeEvent HelenDeployToSDDC End
     ''')
   }
 }
