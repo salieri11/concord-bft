@@ -1,5 +1,7 @@
 package dappbench;
 
+import static java.lang.ProcessBuilder.Redirect.INHERIT;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.ClientResponse;
@@ -84,7 +86,20 @@ public class DAMLManager {
                     + " " + party + " " + restPort;
 
             logger.info("start service command: " + startServiceCommend);
-            Runtime.getRuntime().exec(startServiceCommend, null, new File(contractPath));
+            
+            Process process = new ProcessBuilder().command(startServiceCommend.split("\\s+")).directory(new File(contractPath))
+            		                              .redirectOutput(INHERIT).redirectErrorStream(true)
+            		                              .start();
+			Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+				logger.info("Stopping service..");
+				process.destroyForcibly();
+				try {
+					process.waitFor();
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+				logger.info("Service exit value: " + process.exitValue());
+			}));
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -113,7 +128,7 @@ public class DAMLManager {
             long startTime = System.nanoTime();
             for (int i = 0; i < numOfTransactions; i++ ) {
                 int iouAmount = random.nextInt(10000);
-                contractMap.put("amount", iouAmount);
+                contractMap.put("amount", iouAmount + 1);
                 JSONObject json = new JSONObject(contractMap);
                 String jsonContent = json.toString();
 
