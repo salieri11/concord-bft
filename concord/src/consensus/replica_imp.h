@@ -191,10 +191,9 @@ class ReplicaImp
    private:
     log4cplus::Logger logger;
     const ReplicaImp *rep;
-    concordUtils::BlockId readVersion;
     concordUtils::KeyValuePair m_current;
     concordUtils::BlockId m_currentBlock;
-    bool m_isEnd;
+    bool m_isEnd = false;
     concord::storage::IDBClient::IDBClientIterator *m_iter;
 
    public:
@@ -202,10 +201,6 @@ class ReplicaImp
     virtual ~StorageIterator() {
       // allocated by calls to rep::...::getIterator
       delete m_iter;
-    }
-
-    virtual void setReadVersion(concordUtils::BlockId _readVersion) {
-      readVersion = _readVersion;
     }
 
     virtual concordUtils::KeyValuePair first(
