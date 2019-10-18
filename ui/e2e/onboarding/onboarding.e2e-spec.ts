@@ -36,7 +36,7 @@ describe('concord-ui Onboarding Flow', () => {
   });
 
   it('should onboard to the org tour', () => {
-    browser.sleep(4000);
+    browser.sleep(10000);
     appPage.goToConsortium().click();
     browser.sleep(1500);
     expect(appPage.getTourTitle().getText()).toEqual('General Status');
