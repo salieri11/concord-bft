@@ -51,7 +51,7 @@ bool DamlKvbCommandsHandler::ExecuteRead(const da_kvbc::ReadCommand& request,
 }
 
 std::map<string, string> DamlKvbCommandsHandler::GetFromStorage(
-    const google::protobuf::RepeatedPtrField<std::string>& keys) {
+    const google::protobuf::RepeatedPtrField<string>& keys) {
   std::map<string, string> result;
   for (const auto& skey : keys) {
     Value out;
@@ -91,37 +91,36 @@ bool DamlKvbCommandsHandler::ExecuteCommit(
 
   // Send the submission for validation.
   da_kvbc::ValidateResponse response;
-  grpc::Status status =
-      validator_client_->Validate(entryId, commit_req.submission(), record_time,
-                                  commit_req.participant_id(), &response);
+  grpc::Status status = validator_client_->ValidateSubmission(
+      entryId, commit_req.submission(), record_time,
+      commit_req.participant_id(), &response);
   if (!status.ok()) {
     LOG4CPLUS_ERROR(logger_, "Validation failed " << status.error_code() << ": "
                                                   << status.error_message());
     return false;
   }
 
-  da_kvbc::ProvideStateResponse provide_state_response;
+  da_kvbc::ValidatePendingSubmissionResponse response2;
   if (response.has_need_state()) {
     LOG4CPLUS_DEBUG(logger_, "Validator requested input state");
     // The submission failed due to missing input state, retrieve the inputs and
     // retry.
     std::map<string, string> input_state_entries =
         GetFromStorage(response.need_state().keys());
-    validator_client_->ProvideState(entryId, input_state_entries,
-                                    &provide_state_response);
+    validator_client_->ValidatePendingSubmission(entryId, input_state_entries,
+                                                 &response2);
     if (!status.ok()) {
       LOG4CPLUS_ERROR(logger_, "Validation failed " << status.error_code()
                                                     << ": "
                                                     << status.error_message());
       return false;
     }
-    assert(provide_state_response.has_result());
+    assert(response2.has_result());
   } else if (!response.has_result()) {
     LOG4CPLUS_ERROR(logger_, "Validation missing result!");
     return false;
   }
-  auto result = response.has_result() ? response.result()
-                                      : provide_state_response.result();
+  auto result = response.has_result() ? response.result() : response2.result();
 
   // Insert the DAML log entry into the store.
   auto logEntry = result.log_entry();

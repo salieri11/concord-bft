@@ -47,7 +47,8 @@ class KVBCValidator extends ValidationServiceGrpc.ValidationService {
       .expireAfterWrite(1.hour)
       .maximumWeight(cacheSize)
       .weigher[(ReplicaId, KV.DamlStateKey), KV.DamlStateValue]{
-        case (k: (ReplicaId, KV.DamlStateKey), v: KV.DamlStateValue) => v.getSerializedSize
+        case (k: (ReplicaId, KV.DamlStateKey), v: KV.DamlStateValue) =>
+          k._2.getSerializedSize + v.getSerializedSize
       }
       .build[(ReplicaId, KV.DamlStateKey), KV.DamlStateValue]
   }
@@ -93,7 +94,7 @@ class KVBCValidator extends ValidationServiceGrpc.ValidationService {
       }
     }
 
-  def provideState(request: ProvideStateRequest): Future[ProvideStateResponse] = catchedFutureThunk {
+  def validatePendingSubmission(request: ValidatePendingSubmissionRequest): Future[ValidatePendingSubmissionResponse] = catchedFutureThunk {
     val replicaId = request.replicaId
     logger.trace(s"Completing submission: replicaId=$replicaId, entryId=${request.entryId.toStringUtf8}")
 
@@ -133,7 +134,7 @@ class KVBCValidator extends ValidationServiceGrpc.ValidationService {
       replicaId,
       pendingSubmission.copy(inputState = pendingSubmission.inputState ++ providedInputs)
     )
-    ProvideStateResponse(Some(result))
+    ValidatePendingSubmissionResponse(Some(result))
   }
 
   def validateSubmission(request: ValidateRequest): Future[ValidateResponse] = catchedFutureThunk {

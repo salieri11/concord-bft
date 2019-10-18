@@ -15,7 +15,7 @@ import "daml_data.proto";
 service ValidationService {
   rpc ValidateSubmission (ValidateRequest) returns (ValidateResponse) {}
 
-  rpc ProvideState (ProvideStateRequest) returns (ProvideStateResponse) {}
+  rpc ValidatePendingSubmission (ValidatePendingSubmissionRequest) returns (ValidatePendingSubmissionResponse) {}
 }
 
 message ValidateRequest {
@@ -48,13 +48,13 @@ message ValidateResponse {
   }
 }
 
-message ProvideStateRequest {
+message ValidatePendingSubmissionRequest {
   bytes entry_id = 1;
   int64 replica_id = 2;
   repeated KeyValuePair input_state = 3;
 }
 
-message ProvideStateResponse {
+message ValidatePendingSubmissionResponse {
   Result result = 1;
 }
 

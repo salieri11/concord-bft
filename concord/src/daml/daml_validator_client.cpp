@@ -10,7 +10,7 @@ namespace da_kvbc = com::digitalasset::kvbc;
 namespace concord {
 namespace daml {
 
-grpc::Status DamlValidatorClient::Validate(
+grpc::Status DamlValidatorClient::ValidateSubmission(
     string entry_id, string submission,
     google::protobuf::Timestamp& record_time, string participant_id,
     da_kvbc::ValidateResponse* out) {
@@ -25,10 +25,10 @@ grpc::Status DamlValidatorClient::Validate(
   return stub_->ValidateSubmission(&context, req, out);
 }
 
-grpc::Status DamlValidatorClient::ProvideState(
+grpc::Status DamlValidatorClient::ValidatePendingSubmission(
     string entry_id, const map<string, string>& input_state_entries,
-    da_kvbc::ProvideStateResponse* out) {
-  da_kvbc::ProvideStateRequest req;
+    da_kvbc::ValidatePendingSubmissionResponse* out) {
+  da_kvbc::ValidatePendingSubmissionRequest req;
   req.set_entry_id(entry_id);
   req.set_replica_id(replica_id_);
 
@@ -38,7 +38,7 @@ grpc::Status DamlValidatorClient::ProvideState(
     kvpair->set_value(entry.second);
   }
   grpc::ClientContext context;
-  return stub_->ProvideState(&context, req, out);
+  return stub_->ValidatePendingSubmission(&context, req, out);
 }
 
 }  // namespace daml
