@@ -17,11 +17,11 @@
                   </clr-alert>
                   <div class="form">
                     <div class="clr-form-control clr-row">
-                      <label class="clr-control-label"> {{'smartContracts.version.address' | translate}}</label>
+                      <label class="clr-control-label" for="address"> {{'smartContracts.version.address' | translate}}</label>
                       <div class="clr-control-container clr-col-md-10 clr-col-xs-12">
                         <div class="clr-input-wrapper" tourAnchor="contract.deployed">
                           <clr-tooltip>
-                            <span clrTooltipTrigger>
+                            <span clrTooltipTrigger id="address">
                               {{version?.address}}
                             </span>
                             <clr-tooltip-content clrPosition="top-right" clrSize="md" *clrIfOpen>
@@ -117,7 +117,7 @@
             <div class="card">
               <div class="card-header text-xs-right">
                 <clr-tooltip>
-                  <button clrTooltipTrigger (click)="onSourceCodeDownload()" type="button" class="btn btn-primary-outline btn-icon">
+                  <button clrTooltipTrigger (click)="onSourceCodeDownload()" type="button" class="btn btn-primary-outline btn-icon" [attr.aria-label]="'smartContracts.version.download' | translate">
                     <clr-icon shape="download"></clr-icon>
                   </button>
                   <clr-tooltip-content clrPosition="top-right" clrSize="sm" *clrIfOpen>
@@ -145,7 +145,7 @@
           <div class="card">
             <div class="card-header text-xs-right">
               <clr-tooltip>
-                <button clrTooltipTrigger (click)="onByteCodeDownload()" type="button" class="btn btn-primary-outline btn-icon">
+                <button clrTooltipTrigger (click)="onByteCodeDownload()" type="button" class="btn btn-primary-outline btn-icon" [attr.aria-label]="'smartContracts.version.download' | translate">
                   <clr-icon shape="download"></clr-icon>
                 </button>
                 <clr-tooltip-content clrPosition="top-right" clrSize="sm" *clrIfOpen>
@@ -174,7 +174,7 @@
             <div class="card">
               <div class="card-header text-xs-right">
                 <clr-tooltip>
-                  <button clrTooltipTrigger (click)="onMetadataDownload()" type="button" class="btn btn-primary-outline btn-icon">
+                  <button clrTooltipTrigger (click)="onMetadataDownload()" type="button" class="btn btn-primary-outline btn-icon" [attr.aria-label]="'smartContracts.version.download' | translate">
                     <clr-icon shape="download"></clr-icon>
                   </button>
                   <clr-tooltip-content clrPosition="top-right" clrSize="sm" *clrIfOpen>

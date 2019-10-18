@@ -7,6 +7,8 @@
 
   <input type="text" #inputControl
          tabindex="0" role="combobox" aria-owns="combobox-items" aria-autocomplete="list"
+         id="location"
+         class="clr-input"
          [placeholder]="placeholder"
          (focus)="onFocus()"
          (blur)="onBlur()"
@@ -15,10 +17,6 @@
          (keyup)="onKeyUp($event)"
          [ngClass]="{'multi-select': multiSelect, 'active': showSuggestions}"/>
 
-<!--   <span class="tooltip-content" *ngIf="showTooltip">
-        {{ isValid ? placeholder : errorMessage || 'Validation failed.'}}
-    </span>
- -->
   <concord-combobox-items
     [hidden]="!showSuggestions || items.length === 0"
     [items]="items"

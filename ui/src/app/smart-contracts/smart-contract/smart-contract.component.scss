@@ -11,3 +11,29 @@ label {
   color: green;
   margin-left: .5rem;
 }
+.contract-header {
+  height: 2rem;
+  display: block;
+
+  .page-title {
+    float: left;
+    margin-right: 1rem;
+    margin-bottom: 0;
+  }
+  label, .version-select {
+    float: left;
+    margin-top: .5rem;
+    margin-left: .5rem;
+  }
+  .verified {
+    float: left;
+    margin-top: .4rem;
+    margin-left: .3rem;
+  }
+  .options {
+    float: right;
+  }
+}
+.user {
+  margin-bottom: .5rem;
+}
