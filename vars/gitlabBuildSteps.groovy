@@ -1541,7 +1541,7 @@ void runGenericTests(){
       # Source NVM
       . ~/.nvm/nvm.sh
       echo "${PASSWORD}" | sudo -S rm -rf ../docker/devdata/rocksdbdata*
-      echo "${PASSWORD}" | sudo -S rm -rf ../docker/devdata/cockroachDB
+      echo "${PASSWORD}" | sudo -S rm -rf ../docker/devdata/postgresql
       saveTimeEvent UITests Start
       "${python}" main.py UiTests --dockerComposeFile ../docker/docker-compose.yml ../docker/docker-compose-persephone.yml --resultsDir "${ui_test_logs}" --runConcordConfigurationGeneration
       saveTimeEvent UITests End

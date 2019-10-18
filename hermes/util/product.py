@@ -180,8 +180,8 @@ class Product():
             ####################################################################################
             # Comment out these two lines to prevent Hermes from initializing the Cockroach DB.#
             #                                                                                  #
-            if self._isHelenInDockerCompose(dockerCfg):                                        #
-               self.initializeHelenDockerDB(dockerCfg)                                         #
+            #if self._isHelenInDockerCompose(dockerCfg):                                        #
+            #   self.initializeHelenDockerDB(dockerCfg)                                         #
             ####################################################################################
 
          self._startContainers()
@@ -724,7 +724,7 @@ class Product():
              if "volumes" in serviceObj:
                 for v in serviceObj["volumes"]:
                    if "rocksdbdata" in v or \
-                      "cockroachDB" in v or \
+                      "postgresql" in v or \
                       "index_db" in v:
                       yamlDir = os.path.dirname(self._cmdlineArgs.dockerComposeFile[0])
                       deleteMe = os.path.join(yamlDir, v.split(":")[0])
@@ -885,6 +885,8 @@ class Product():
    def _waitForProductStartup(self):
       '''
       Waits for Helen to be up, then waits for Concord to be up.
+
+      TODO: Change this to fetch /api/management/health.  When it returns with "status": "UP", helen is ready
       '''
       retries = 20
       attempts = 0

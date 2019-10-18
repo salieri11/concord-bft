@@ -64,6 +64,7 @@ LABEL description="Blockchain Management Service (Helen)"
 WORKDIR /helen
 COPY ./helen/src/main/resources/application.properties ./application.properties
 COPY ./helen/src/main/resources/database/schema.sql ./db-schema.sql
+COPY ./helen/wait-for-it.sh ./wait-for-it.sh
 COPY --from=0 /home/test/helen/target/blockchain-helen*.jar ./blockchain-helen.jar
 
 CMD ["java", "-Dspring.config.location=/config/app/profiles/,./", "-Dspring.profiles.active=${APPCONTEXT}", "-jar", "blockchain-helen.jar"]
