@@ -25,6 +25,9 @@ describe('concord-ui Onboarding Flow', () => {
     appPage = new AppPage();
     dashboardPage = new DashboardPage();
     browser.waitForAngularEnabled(false);
+  });
+
+  it('should login', () => {
     loginPage = new CSPLogin();
     loginPage.navigateTo();
     waitForURLContains('console-stg.cloud.vmware.com/csp/gateway/discovery');
@@ -36,7 +39,7 @@ describe('concord-ui Onboarding Flow', () => {
   });
 
   it('should onboard to the org tour', () => {
-    browser.sleep(10000);
+    browser.sleep(5000);
     appPage.goToConsortium().click();
     browser.sleep(1500);
     expect(appPage.getTourTitle().getText()).toEqual('General Status');
