@@ -58,13 +58,10 @@
             </select>
             <clr-control-helper *ngIf="modalState.isUpdateExternal">{{'smartContracts.form.verifyHelper' | translate}}</clr-control-helper>
           </clr-select-container>
-          <div class=" clr-row clr-form-control">
-            <label for="smartContractOptimizer" class="required clr-control-label">{{'smartContracts.version.optimizer' | translate}}</label>
-            <div class="toggle-switch">
-              <input type="checkbox" id="smartContractOptimizer" formControlName="isOptimize" (change)="changeOptimizer()">
-              <label for="smartContractOptimizer"></label>
-            </div>
-          </div>
+          <clr-toggle-wrapper class="optimize">
+            <input type="checkbox" clrToggle id="smartContractOptimizer" formControlName="isOptimize" (change)="changeOptimizer()" />
+            <label>{{'smartContracts.version.optimizer' | translate}}</label>
+          </clr-toggle-wrapper>
           <clr-input-container>
             <label for="smartContractRuns" class="required">{{'smartContracts.version.runs' | translate}}</label>
             <input clrInput id="smartContractRuns" type="text" formControlName="runs" [disabled]="runsDisabled">

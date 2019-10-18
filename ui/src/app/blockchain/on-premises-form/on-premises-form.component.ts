@@ -80,6 +80,7 @@ export class OnPremisesFormComponent implements AfterViewInit {
   private getOnPremInfo() {
     const onPrem = this.form['controls'].onPrem;
     onPrem.value.container_repo = this.form['controls'].container_repo.value;
+    onPrem.value.outbound_proxy = this.form['controls'].outbound_proxy.value;
     const network = onPrem.value['network'];
 
     onPrem.value['network'].name_servers = network.name_servers.length === 0 ? [] : network.name_servers;
@@ -138,6 +139,29 @@ export class OnPremisesFormComponent implements AfterViewInit {
         username: new FormControl('', { updateOn: 'blur' }),
         password: new FormControl('', { updateOn: 'blur' })
       }),
+      outbound_proxy: new FormGroup({
+        http_host: new FormControl(
+          '',
+          {
+            validators: Validators.pattern(urlRegEx),
+            updateOn: 'blur'
+          }
+        ),
+        http_port: new FormControl('', {
+          validators: Validators.maxLength(4), updateOn: 'blur'
+        }),
+        https_host: new FormControl(
+          '',
+          {
+            validators: Validators.pattern(urlRegEx),
+            updateOn: 'blur'
+          }
+        ),
+        https_port: new FormControl('', {
+          validators: Validators.maxLength(4), updateOn: 'blur'
+        }),
+
+      }),
       onPremLocation: new FormGroup({
         name: new FormControl('', Validators.required),
         location: new FormControl('', Validators.required),
@@ -146,6 +170,7 @@ export class OnPremisesFormComponent implements AfterViewInit {
   }
 
   private handleOnPremTesting(status: string) {
+    console.log(this.getOnPremInfo());
     if (status === 'VALID') {
       this.onPremError = undefined;
       const testCon = this.blockchainService

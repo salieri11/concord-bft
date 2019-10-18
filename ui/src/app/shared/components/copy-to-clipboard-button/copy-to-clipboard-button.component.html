@@ -1,6 +1,7 @@
 <span [ngClass]="{'copy-button': !btnLabel?.length && !hasProjectedContent}">
   <clr-tooltip>
     <button class="btn"
+            aria-label="copy"
             [ngClass]="btnClassesToApply"
             [disabled]="disabled"
             (click)="!disabled && doCopy()"

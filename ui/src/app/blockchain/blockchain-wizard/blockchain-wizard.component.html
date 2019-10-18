@@ -14,7 +14,7 @@
           <div class="card clickable sideways" (click)="selectEngine(engines.DAML)"
             [ngClass]="{'active': selectedEngine === engines.DAML}">
             <div class="card-icon">
-              <img src="static/images/contract-types/daml.svg">
+              <img src="static/images/contract-types/daml.svg" [attr.alt]="'blockchainWizard.engine.damlTitle' | translate">
             </div>
             <div class="card-endorsement">
               <h3>{{ 'blockchainWizard.engine.damlTitle' | translate }}</h3>
@@ -28,7 +28,7 @@
           <div class="card clickable sideways" (click)="selectEngine(engines.ETH)"
             [ngClass]="{'active': selectedEngine === engines.ETH}">
             <div class="card-icon">
-              <img src="static/images/contract-types/eth.svg">
+              <img src="static/images/contract-types/eth.svg" [attr.alt]="'blockchainWizard.engine.ethTitle' | translate">
             </div>
             <div class="card-endorsement">
               <h3>{{ 'blockchainWizard.engine.ethTitle' | translate }}</h3>
@@ -41,7 +41,7 @@
         <div class="clr-col-12">
           <div class="card clickable sideways" (click)="selectEngine(engines.HLF)" [ngClass]="{'active': selectedEngine === engines.HLF}">
             <div class="card-icon">
-              <img src="static/images/contract-types/hlf.svg">
+              <img src="static/images/contract-types/hlf.svg" [attr.alt]="'blockchainWizard.engine.hlfTitle' | translate">
             </div>
             <div class="card-endorsement">
               <h3>{{ 'blockchainWizard.engine.hlfTitle' | translate }}</h3>
@@ -57,15 +57,13 @@
       <ng-template clrPageNavTitle>{{'blockchainWizard.details.navTitle' | translate}}</ng-template>
       <div clrForm class="form-block detail-form">
         <clr-input-container>
-          <label class="clr-col-12 clr-col-md-4"
-            for="consortiumName">{{'blockchainWizard.common.consortiumName' | translate}}</label>
+          <label class="clr-col-12 clr-col-md-4">{{'blockchainWizard.common.consortiumName' | translate}}</label>
           <input clrInput #consortiumInput id="consortiumName" type="text" formControlName="consortium_name"
             class="form-control clr-col-12 clr-col-md-8" size="43"
             [placeholder]="'blockchainWizard.details.consortiumPlaceholder' | translate">
         </clr-input-container>
         <clr-textarea-container>
-          <label class="clr-col-12 clr-col-md-4"
-            for="consortiumName">{{'blockchainWizard.common.consortiumDescription' | translate}}</label>
+          <label class="clr-col-12 clr-col-md-4">{{'blockchainWizard.common.consortiumDescription' | translate}}</label>
           <textarea clrTextarea formControlName="consortium_desc" class="clr-col-12 clr-col-md-8" rows="4"
             [placeholder]="'blockchainWizard.details.consortiumPlaceholder' | translate"></textarea>
         </clr-textarea-container>
@@ -92,8 +90,7 @@
       <ng-template clrPageNavTitle>{{'blockchainWizard.nodes.navTitle' | translate}}</ng-template>
       <div clrForm class="form-block blockchain-form nodes">
         <clr-select-container>
-          <label class="clr-col-12 clr-col-md-4"
-            for="numberOfNodes">{{'blockchainWizard.common.numberOfNodes' | translate}}</label>
+          <label class="clr-col-12 clr-col-md-4">{{'blockchainWizard.common.numberOfNodes' | translate}}</label>
           <select clrSelect formControlName="numberOfNodes" class="clr-col-12 clr-col-md-8"
             (change)="distributeZones()">
             <option *ngFor="let num of numbersOfNodes" [ngValue]="num">{{num}}
@@ -110,9 +107,10 @@
               </span>
             </clr-alert-item>
           </clr-alert>
-          <clr-input-container *ngFor="let zone of zones">
+          <clr-input-container *ngFor="let zone of zones" class="show-no-helper">
             <label class="clr-col-12 clr-col-md-4">{{ zone.name }}</label>
             <input clrInput type="text" class="clr-col-12 clr-col-md-8" [formControlName]="zone.id" />
+            <clr-control-helper>{{ zone.name }}</clr-control-helper>
           </clr-input-container>
         </div>
         <div class="divider"></div>

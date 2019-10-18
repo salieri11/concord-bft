@@ -881,10 +881,11 @@
     "pageTitle": "Add On Premises Region",
     "name": "Zone Designation",
     "namePH": "A",
+    "urlError": "Please add a valid url.",
+
     "vcenter": {
       "title": "vCenter",
       "url": "URL",
-      "urlError": "Please add a valid url.",
       "urlPH": "https://<endpoint>",
       "username": "Username",
       "usernamePH": "admin@onprem",
@@ -914,12 +915,22 @@
     "containerReg": {
       "title": "Container Registry",
       "url": "URL",
-      "urlError": "Please add a valid url.",
       "urlPH": "https://<endpoint>",
       "username": "Username",
       "usernamePH": "admin@onprem",
       "password": "Password"
     },
+    "outboundProxy": {
+      "title": "Outbound Proxy",
+      "httpHost": "Http Host",
+      "httpPH": "1.2.3.4 or company.com",
+      "httpPort": "Http Port",
+      "httpPortPH": "80",
+      "httpsPortPH": "443",
+      "httpsHost": "Https Host",
+      "httpsPort": "Https Port"
+    },
+    "locationTitle": "Zone Location",
     "location": "Location",
     "locationPH": "Palo Alto, CA, USA",
     "cancel": "Cancel On Premises",
