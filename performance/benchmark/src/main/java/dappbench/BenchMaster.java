@@ -5,13 +5,6 @@ import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
 
-import com.sun.jersey.api.client.Client;
-import com.sun.jersey.api.client.ClientResponse;
-import com.sun.jersey.api.client.WebResource;
-import org.apache.http.HttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpUriRequest;
-import org.apache.http.impl.client.HttpClientBuilder;
 import org.json.JSONObject;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.Constructor;
@@ -382,17 +375,7 @@ public class BenchMaster {
 				logger.info("Running IOU workloads");
 				Workload workload = workloads.get(0);
 				DAMLManager damlManager = new DAMLManager(workload);
-				boolean deployLedgerRequired = damlManager.deployLedgerRequired();
-				if (deployLedgerRequired) {
-					damlManager.deployToLedger();
-				}
-				Thread.sleep(5000);
-
-				damlManager.startService();
-				Thread.sleep(5000);
-
-				damlManager.processDAMLTransactions();
-
+				damlManager.processDAMLTransactions(simpleConfig.getNodes());
 			}
 
 			if (advancedConfig.getEsxTop()) {
