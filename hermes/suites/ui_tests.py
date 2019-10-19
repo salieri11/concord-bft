@@ -86,7 +86,8 @@ class UiTests(test_suite.TestSuite):
     def _get_tests(self):
         return [("ui_lint", self._test_ui_lint),
                 ("ui_unit", self._test_ui_unit),
-                ("ui_e2e", self._test_ui_e2e)]
+                # ("ui_e2e", self._test_ui_e2e)
+                ]
 
     def _test_ui_unit(self):
         cmd = ["npm", "run", "test:build", ]
