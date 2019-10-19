@@ -5,19 +5,23 @@
 package com.vmware.blockchain.deployment.service.configuration.generateconfig;
 
 import java.io.BufferedWriter;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.yaml.snakeyaml.Yaml;
 
-import com.vmware.blockchain.deployment.service.configuration.generatecerts.CertificatesGenerator;
 import com.vmware.blockchain.deployment.v1.ConcordModelSpecification.BlockchainType;
 
 import kotlinx.serialization.UpdateMode;
@@ -27,7 +31,6 @@ import kotlinx.serialization.internal.IntSerializer;
 import kotlinx.serialization.json.Json;
 import kotlinx.serialization.json.JsonConfiguration;
 import kotlinx.serialization.modules.EmptyModule;
-
 
 /**
  * Utility class for generating the input for Configuration Yaml file.
@@ -40,25 +43,24 @@ public class ConcordConfigUtil {
      * Enum holding config properties.
      */
     private enum ConfigProperty {
-        SERVICE_HOST("- service_host: ", 2),
-        SERVICE_PORT("service_port: ", 4),
-        REPLICA("replica:", 4),
-        DAML_EXECUTION_ENGINE_ADDRESS("daml_execution_engine_addr: ", 4),
-        CLIENT_PROXY("client_proxy:", 4),
-        REPLICA_HOST("- replica_host: ", 6),
-        CLIENT_HOST("- client_host: ", 6),
-        REPLICA_PORT("replica_port: ", 8),
-        CLIENT_PORT("client_port: ", 8);
+        F_VAL("f_val"),
+        C_VAL("c_val"),
+        DAML_ENABLED("daml_enable"),
+        NODE("node"),
+        REPLICA("replica"),
+        CLIENT_PROXY("client_proxy"),
+        REPLICA_HOST("replica_host"),
+        CLIENT_HOST("client_host"),
+        CLIENT_PORT("client_port");
 
-        String propertyName;
-        int space;
+        String name;
 
-        ConfigProperty(String propertyName, int space) {
-            this.propertyName = propertyName;
-            this.space = space;
+        ConfigProperty(String propertyName) {
+            this.name = propertyName;
         }
     }
 
+    private static final String CONFIG_TEMPLATE_PATH = "/config/persephone/config-service/ConcordConfigTemplate.yaml";
     private static final int DEFAULT_PORT = 3501;
     public static final int CLIENT_PROXY_PER_NODE = 4;
 
@@ -212,69 +214,60 @@ public class ConcordConfigUtil {
         maxPrincipalId = (hostIp.size() + CLIENT_PROXY_PER_NODE * hostIp.size()) - 1;
 
         Path path = Paths.get(configYamlPath);
-        try (BufferedWriter writer = Files.newBufferedWriter(path)) {
-            writer.write("client_proxies_per_replica: " + CLIENT_PROXY_PER_NODE);
-            writer.newLine();
-            writer.write("c_val: " + cVal);
-            writer.newLine();
-            writer.write("f_val: " + fVal);
-            writer.newLine();
 
-            // Temporary setup to distinguish concord type. This check will not occur in ConfigService
-            // after it starts accepting params to override.
-            if (blockchainType != null && blockchainType.equals(BlockchainType.DAML)) {
-                writer.write("daml_enable: true");
-                writer.newLine();
-                writer.write("FEATURE_time_service: true");
-                writer.newLine();
-                writer.write("eth_enable: false");
-                writer.newLine();
-                writer.write("concord-bft_communication_buffer_length: 33554432");
-                writer.newLine();
-                writer.write("concord-bft_max_external_message_size: 33554432");
-                writer.newLine();
-                writer.write("concord-bft_max_reply_message_size: 33554432");
-                writer.newLine();
-                writer.write("concord-bft_max_num_of_reserved_pages: 229376");
-                writer.newLine();
-            } else {
-                writer.write("daml_enable: false");
-                writer.newLine();
-            }
-            writer.write("comm_to_use: tls");
-            writer.newLine();
-            writer.write("use_loopback_for_local_hosts: true");
-            writer.newLine();
-            writer.write("tls_cipher_suite_list: ECDHE-ECDSA-AES256-GCM-SHA384");
-            writer.newLine();
-            writer.write("tls_certificates_folder_path: "
-                         + URI.create(CertificatesGenerator.CONCORD_TLS_SECURITY_IDENTITY_PATH).getPath());
-            writer.newLine();
-            writer.write("node__TEMPLATE:");
-            writer.newLine();
-            writer.write("  genesis_block: /concord/config-public/genesis.json");
-            writer.newLine();
-            writer.write("  blockchain_db_path: /concord/rocksdbdata/");
-            writer.newLine();
-            writer.write("  time_pusher_period_ms: 1000");
-            writer.newLine();
-            writer.write("node:");
-            writer.newLine();
-            for (String s : hostIp) {
-                writePairProperty(writer, ConfigProperty.SERVICE_HOST, "0.0.0.0");
-                writePairProperty(writer, ConfigProperty.SERVICE_PORT, "5458");
-                writePairProperty(writer, ConfigProperty.DAML_EXECUTION_ENGINE_ADDRESS,
-                                  "daml_execution_engine:55000");
-                writePairProperty(writer, ConfigProperty.REPLICA, "");
-                writePairProperty(writer, ConfigProperty.REPLICA_HOST, s);
-                writePairProperty(writer, ConfigProperty.REPLICA_PORT, Integer.toString(DEFAULT_PORT));
-                writePairProperty(writer, ConfigProperty.CLIENT_PROXY, "");
+        Yaml yaml = new Yaml();
+        Map<String, Object> configInput;
+        try {
+            configInput = yaml.load(new FileInputStream(CONFIG_TEMPLATE_PATH));
+        } catch (FileNotFoundException e) {
+            //FIXME: To make backwards compatible. This could be removed later.
+            log.error(String.format("File %s does not exist: %s\n Using localized config yaml input template",
+                    CONFIG_TEMPLATE_PATH, e.getLocalizedMessage()));
+            ClassLoader classLoader = getClass().getClassLoader();
+            configInput = yaml.load(classLoader.getResourceAsStream("ConcordConfigTemplate.yaml"));
+        }
 
-                for (int j = 0; j < CLIENT_PROXY_PER_NODE; j++) {
-                    writePairProperty(writer, ConfigProperty.CLIENT_HOST, s);
-                    writePairProperty(writer, ConfigProperty.CLIENT_PORT, Integer.toString((DEFAULT_PORT + j + 1)));
-                }
+        //FIXME: Add provision to have more than one BlockchainType
+        if (blockchainType != null && blockchainType.equals(BlockchainType.ETHEREUM)) {
+            configInput.replace(ConfigProperty.DAML_ENABLED.name, "false");
+        }
+
+        configInput.replace(ConfigProperty.F_VAL.name, fVal);
+        configInput.replace(ConfigProperty.C_VAL.name, cVal);
+
+        // Prepare per replica config
+        List node = (List) configInput.get(ConfigProperty.NODE.name);
+        Map<String, Object> nodeConfig = (Map<String, Object>) node.get(0);
+
+        //FIXME: Concord to fix: Why is replica a list?
+        List replicaConfig = (List) nodeConfig.get(ConfigProperty.REPLICA.name);
+        Map<String, Object> replicaValues = (Map<String, Object>) replicaConfig.get(0);
+
+        List clientConfig = (List) nodeConfig.get(ConfigProperty.CLIENT_PROXY.name);
+        Map<String, Object> clientValues = (Map<String, Object>) clientConfig.get(0);
+
+        List resultNodes = new ArrayList();
+
+        for (String s : hostIp) {
+            List resultClients = new ArrayList();
+            replicaValues.replace(ConfigProperty.REPLICA_HOST.name, s);
+
+            for (int j = 0; j < CLIENT_PROXY_PER_NODE; j++) {
+                clientValues.replace(ConfigProperty.CLIENT_HOST.name, s);
+                clientValues.replace(ConfigProperty.CLIENT_PORT.name, Integer.toString((DEFAULT_PORT + j + 1)));
+                resultClients.add(clone(clientValues));
             }
+
+            nodeConfig.replace(ConfigProperty.CLIENT_PROXY.name, resultClients);
+            nodeConfig.replace(ConfigProperty.REPLICA.name, new ArrayList(Arrays.asList(replicaValues)));
+            resultNodes.add(clone(nodeConfig));
+        }
+
+        configInput.replace(ConfigProperty.NODE.name, resultNodes);
+
+        try {
+            BufferedWriter writer = Files.newBufferedWriter(path);
+            yaml.dump(configInput, writer);
             writer.flush();
             writer.close();
             return true;
@@ -284,12 +277,10 @@ public class ConcordConfigUtil {
         }
     }
 
-    private void writePairProperty(BufferedWriter writer, ConfigProperty property, String value)
-            throws IOException {
-        for (int i = 0; i < property.space; i++) {
-            writer.write(" ");
-        }
-        writer.write(property.propertyName + value);
-        writer.newLine();
+    private static <K, V> Map<K, V> clone(Map<K, V> original) {
+        return original.entrySet()
+                .stream()
+                .collect(Collectors.toMap(Map.Entry::getKey,
+                        Map.Entry::getValue));
     }
 }
