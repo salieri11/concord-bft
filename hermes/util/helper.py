@@ -587,42 +587,6 @@ def needToCollectDeploymentEvents(cmdlineArgs):
       cmdlineArgs.keepBlockchains in [KEEP_BLOCKCHAINS_NEVER, KEEP_BLOCKCHAINS_ON_FAILURE]
 
 
-def setUpDeploymentEventListening(cmdlineArgs):
-   '''
-   Start collecting deployment events, if:
-   - We are using the local Helen, which assumes we are using a local Persephone.
-     We do not listen for events when using the remote staging or production Persephone
-     because those are used by multiple people, and the suite can end up deleting other
-     people's data.
-   - Blockchain is remote (We're not using the built in R&D blockchain).
-   - We're not running the Persephone test suite. (It takes care of its own cleanup.)
-
-   Returns an object which is used to clean up the deployment.
-   This will all go away when Helen does deletion.
-   '''
-   if helenIsRemote(cmdlineArgs):
-      # Temporary:
-      # When using a remote Helen/Persephone and deploying to an SDDC,
-      # the user will have to clean up their own resources.
-      log.warning("Hermes will deploy remote resources (e.g. on an SDDC), but cannot remove them.")
-      log.warning("You will need to do that when the tests are done.")
-      time.sleep(3)
-   else:
-      if needToCollectDeploymentEvents(cmdlineArgs):
-         if "persephone" not in str(cmdlineArgs.dockerComposeFile).lower():
-            errorString = "No Persephone docker-compose yaml file found. You probably want to add " \
-                          "the option: \n" \
-                          "--dockerComposeFile ../docker/docker-compose.yml ../docker/docker-compose-persephone.yml"
-            raise Exception(errorString)
-
-         checkRpcTestHelperImport()
-         from persephone import rpc_test_helper
-         cmdlineArgs.userConfig = loadConfigFile(cmdlineArgs)
-         logDir = os.path.join(cmdlineArgs.resultsDir, "deploymentEvents")
-         log.info("Monitoring blockchain deployments for deletion later.")
-         return rpc_test_helper.startMonitoringBlockchainDeployments(cmdlineArgs, logDir)
-
-
 def replaceUrlParts(url, newPort=None, newScheme=None):
    '''
    Replace url parts.  Expand as needed.
