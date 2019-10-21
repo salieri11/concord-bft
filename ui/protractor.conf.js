@@ -4,6 +4,20 @@
 const { SpecReporter } = require('jasmine-spec-reporter');
 const Logger = require('protractor/built/logger').Logger,
   logger = new Logger('JasmineFailLogger');
+const HtmlScreenshotReporter = require('protractor-jasmine2-screenshot-reporter');
+
+function getDateAndTimeFolderString() { // generates date and time in this format: 'd-m-yyyy_HH-MM-SS'
+    var d = new Date();
+    return [d.getDate(), d.getMonth() + 1, d.getFullYear()].join('-') + '_' + [d.getHours(), d.getMinutes(), d.getSeconds()].join('-');
+}
+
+const screenshotReporter = new HtmlScreenshotReporter({
+    dest: 'build/e2e-test-results/screenshots_' + getDateAndTimeFolderString(),
+    filename: 'screenshots-report.html',
+    reportFailedUrl: true,
+    reportOnlyFailedSpecs: false,
+    captureOnlyFailedSpecs: false
+});
 
 exports.config = {
   allScriptsTimeout: 31000,
@@ -23,14 +37,27 @@ exports.config = {
     defaultTimeoutInterval: 30000,
     print: function() {}
   },
+  beforeLaunch: function () {
+      return new Promise(function (resolve) {
+          screenshotReporter.beforeLaunch(resolve);
+      });
+  },
+
   onPrepare() {
     require('ts-node').register({
       // Try using absolute path of `e2e/tsconfig.e2e.json` if node fails to find this in your local env.
       project: 'e2e/tsconfig.e2e.json'
     });
     jasmine.getEnv().addReporter(new SpecReporter({ spec: { displayStacktrace: true } }));
+    jasmine.getEnv().addReporter(screenshotReporter);
     prepareJasmineForFlake();
     browser.ignoreSynchronization = true;
+  },
+
+  afterLaunch: function(exitCode) {
+    return new Promise(function(resolve){
+      reporter.afterLaunch(resolve.bind(this, exitCode));
+    });
   }
 };
 
