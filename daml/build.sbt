@@ -6,7 +6,7 @@ ThisBuild / organization     := "com.daml"
 ThisBuild / organizationName := "Digital Asset, LLC"
 
 lazy val akkaVersion = "2.5.13"
-lazy val sdkVersion = "100.13.25"
+lazy val sdkVersion = "100.13.31"
 
 lazy val protobuf = "com.google.protobuf" % "protobuf-java" % "3.2.0"
 lazy val scalapb_runtime  = "com.thesamet.scalapb" %% "scalapb-runtime" % scalapb.compiler.Version.scalapbVersion % "protobuf"
@@ -40,8 +40,7 @@ lazy val kvbc_validator = (project in file("kvbc_validator"))
     name := "KVBC Validator",
     libraryDependencies ++= Seq(
       // DAML
-      "com.digitalasset" %% "daml-lf-archive-scala" % sdkVersion,
-      "com.digitalasset" % "daml-lf-archive" % sdkVersion,
+      "com.digitalasset" % "daml-lf-dev-archive-java-proto" % sdkVersion,
       "com.digitalasset" %% "daml-lf-data" % sdkVersion,
       "com.digitalasset" %% "daml-lf-engine" % sdkVersion,
       "com.digitalasset" %% "daml-lf-language" % sdkVersion,
@@ -69,8 +68,7 @@ lazy val kvbc_sync_backend = (project in file("kvbc_sync_backend"))
     name := "KVBC Participant State",
     libraryDependencies ++= Seq(
       // DAML
-      "com.digitalasset" %% "daml-lf-archive-scala" % sdkVersion,
-      "com.digitalasset" % "daml-lf-archive" % sdkVersion,
+      "com.digitalasset" % "daml-lf-dev-archive-java-proto" % sdkVersion,
       "com.digitalasset" %% "daml-lf-data" % sdkVersion,
       "com.digitalasset" %% "daml-lf-engine" % sdkVersion,
       "com.digitalasset" %% "daml-lf-language" % sdkVersion,
@@ -100,17 +98,14 @@ lazy val kvbc_ledger_server = (project in file("kvbc_ledger_server"))
     name := "KVBC Ledger Server",
     libraryDependencies ++= Seq(
       // DAML
-      "com.digitalasset" %% "daml-lf-archive-scala" % sdkVersion,
-      "com.digitalasset" % "daml-lf-archive" % sdkVersion,
+      "com.digitalasset" % "daml-lf-dev-archive-java-proto" % sdkVersion,
       "com.digitalasset" %% "daml-lf-data" % sdkVersion,
       "com.digitalasset" %% "daml-lf-engine" % sdkVersion,
       "com.digitalasset" %% "daml-lf-language" % sdkVersion,
+      "com.digitalasset.platform" %% "sandbox" % sdkVersion,
 
-      "com.daml.ledger" %% "api-server-damlonx" % sdkVersion,
       "com.daml.ledger" %% "participant-state" % sdkVersion,
-      "com.daml.ledger" %% "reference-participant-state-index" % sdkVersion,
       "com.daml.ledger" %% "participant-state-kvutils" % sdkVersion,
-      "com.daml.ledger" %% "participant-state-index-v1" % sdkVersion,
 
       // Akka
       "com.typesafe.akka" %% "akka-stream" % akkaVersion,

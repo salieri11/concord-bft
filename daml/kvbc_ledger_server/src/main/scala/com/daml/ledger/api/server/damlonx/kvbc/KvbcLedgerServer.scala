@@ -8,15 +8,17 @@ import java.util.concurrent.atomic.AtomicBoolean
 import akka.actor.ActorSystem
 import akka.stream.{ActorMaterializer, ActorMaterializerSettings, Supervision}
 import com.digitalasset.daml.lf.archive.DarReader
-import com.digitalasset.daml_lf.DamlLf.Archive
+import com.digitalasset.daml_lf_dev.DamlLf.Archive
 import org.slf4j.LoggerFactory
 
 import scala.util.Try
 import com.digitalasset.platform.common.util.DirectExecutionContext
 import com.digitalasset.kvbc_sync_adapter.KVBCParticipantState
 import com.digitalasset.platform.index.{StandaloneIndexServer, StandaloneIndexerServer}
+import com.digitalasset.platform.common.logging.NamedLoggerFactory
+import com.digitalasset.platform.server.api.authorization.auth.AuthServiceWildcard
 
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 
 object KvbcLedgerServer extends App {
@@ -24,6 +26,7 @@ object KvbcLedgerServer extends App {
 
   // Initialize Akka and log exceptions in flows.
   implicit val system = ActorSystem("ReferenceServer")
+  implicit val ec: ExecutionContext = system.dispatcher
   implicit val materializer = ActorMaterializer(
     ActorMaterializerSettings(system)
       .withSupervisionStrategy { e =>
@@ -51,9 +54,16 @@ object KvbcLedgerServer extends App {
 
   val readService = ledger
   val writeService = ledger
+  val loggerFactory = NamedLoggerFactory.forParticipant(extConfig.participantId)
+  val authService = AuthServiceWildcard
 
-  val indexerServer = StandaloneIndexerServer(readService, extConfig.config)
-  val indexServer = StandaloneIndexServer(extConfig.config, readService, writeService).start()
+  val indexerServer = StandaloneIndexerServer(readService, extConfig.config, loggerFactory)
+  val indexServer = StandaloneIndexServer(extConfig.config, readService, writeService, authService, loggerFactory).start()
+
+  val indexersF: Future[(AutoCloseable, StandaloneIndexServer#SandboxState)] = for {
+    indexerServer <- StandaloneIndexerServer(readService, extConfig.config, loggerFactory)
+    indexServer <- StandaloneIndexServer(extConfig.config, readService, writeService, authService, loggerFactory).start()
+  } yield (indexerServer, indexServer)
 
   extConfig.config.archiveFiles.foreach { f =>
     val archives = archivesFromDar(f)
@@ -63,15 +73,15 @@ object KvbcLedgerServer extends App {
     ledger.uploadPackages(archives, Some("uploaded on startup by participant"))
   }
 
-  implicit val ec: ExecutionContext = DirectExecutionContext
-
   val closed = new AtomicBoolean(false)
 
   def closeServer(): Unit = {
     if (closed.compareAndSet(false, true)) {
-      indexServer.close()
-      indexerServer.close()
-      //ledger.close()
+      indexersF.foreach {
+        case (indexer, indexServer) =>
+          indexer.close()
+          indexServer.close()
+      }
       materializer.shutdown()
       val _ = system.terminate()
     }

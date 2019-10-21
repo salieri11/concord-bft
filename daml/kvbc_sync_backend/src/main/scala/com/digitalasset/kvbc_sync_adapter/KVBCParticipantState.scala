@@ -10,7 +10,7 @@ import akka.stream.Materializer
 import akka.stream.scaladsl._
 import com.daml.ledger.participant.state.v1._
 import com.digitalasset.daml.lf.data.{Ref, Time}
-import com.digitalasset.daml_lf.DamlLf.Archive
+import com.digitalasset.daml_lf_dev.DamlLf.Archive
 import com.digitalasset.grpc.adapter.AkkaExecutionSequencerPool
 import com.digitalasset.kvbc.daml_commit._
 import com.digitalasset.kvbc.daml_data.ReadTransactionRequest
