@@ -12,7 +12,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -46,6 +46,7 @@ public class ConcordConfigUtil {
         F_VAL("f_val"),
         C_VAL("c_val"),
         DAML_ENABLED("daml_enable"),
+        ETHEREUM_ENABLED("eth_enable"),
         NODE("node"),
         REPLICA("replica"),
         CLIENT_PROXY("client_proxy"),
@@ -196,6 +197,7 @@ public class ConcordConfigUtil {
     /**
      * Utility method for generating input config yaml file.
      */
+    @SuppressWarnings({"unchecked"})
     boolean generateInputConfigYaml(List<String> hostIp, int fVal, int cVal, String configYamlPath,
                                     BlockchainType blockchainType) {
         if (hostIp == null) {
@@ -228,12 +230,14 @@ public class ConcordConfigUtil {
         }
 
         //FIXME: Add provision to have more than one BlockchainType
-        if (blockchainType != null && blockchainType.equals(BlockchainType.ETHEREUM)) {
-            configInput.replace(ConfigProperty.DAML_ENABLED.name, "false");
+        if (blockchainType == null || blockchainType.equals(BlockchainType.ETHEREUM)) {
+            configInput.put(ConfigProperty.ETHEREUM_ENABLED.name, true);
+        } else if (blockchainType.equals(BlockchainType.DAML)) {
+            configInput.put(ConfigProperty.DAML_ENABLED.name, true);
         }
 
-        configInput.replace(ConfigProperty.F_VAL.name, fVal);
-        configInput.replace(ConfigProperty.C_VAL.name, cVal);
+        configInput.put(ConfigProperty.F_VAL.name, fVal);
+        configInput.put(ConfigProperty.C_VAL.name, cVal);
 
         // Prepare per replica config
         List node = (List) configInput.get(ConfigProperty.NODE.name);
@@ -250,20 +254,20 @@ public class ConcordConfigUtil {
 
         for (String s : hostIp) {
             List resultClients = new ArrayList();
-            replicaValues.replace(ConfigProperty.REPLICA_HOST.name, s);
+            replicaValues.put(ConfigProperty.REPLICA_HOST.name, s);
 
             for (int j = 0; j < CLIENT_PROXY_PER_NODE; j++) {
-                clientValues.replace(ConfigProperty.CLIENT_HOST.name, s);
-                clientValues.replace(ConfigProperty.CLIENT_PORT.name, Integer.toString((DEFAULT_PORT + j + 1)));
+                clientValues.put(ConfigProperty.CLIENT_HOST.name, s);
+                clientValues.put(ConfigProperty.CLIENT_PORT.name, DEFAULT_PORT + j + 1);
                 resultClients.add(clone(clientValues));
             }
 
-            nodeConfig.replace(ConfigProperty.CLIENT_PROXY.name, resultClients);
-            nodeConfig.replace(ConfigProperty.REPLICA.name, new ArrayList(Arrays.asList(replicaValues)));
+            nodeConfig.put(ConfigProperty.CLIENT_PROXY.name, resultClients);
+            nodeConfig.put(ConfigProperty.REPLICA.name, new ArrayList(Collections.singletonList(clone(replicaValues))));
             resultNodes.add(clone(nodeConfig));
         }
 
-        configInput.replace(ConfigProperty.NODE.name, resultNodes);
+        configInput.put(ConfigProperty.NODE.name, resultNodes);
 
         try {
             BufferedWriter writer = Files.newBufferedWriter(path);
