@@ -29,7 +29,7 @@
 /docker-compose-helen.yml
 /docker-compose-ui.yml
 /ethrpc/
-/helen/
+/helen/ @machenbach
 /hermes/ @rvollmar @rsg
 /Jenkinsfile @rvollmar @rsg
 /kubernetes/
