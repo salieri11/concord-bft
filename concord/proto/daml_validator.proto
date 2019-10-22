@@ -14,17 +14,48 @@ import "daml_data.proto";
 // with the inputs to the submission and returns the resulting log entry and state updates.
 service ValidationService {
   rpc ValidateSubmission (ValidateRequest) returns (ValidateResponse) {}
+
+  rpc ValidatePendingSubmission (ValidatePendingSubmissionRequest) returns (ValidatePendingSubmissionResponse) {}
 }
 
 message ValidateRequest {
   bytes entry_id = 1;
   bytes submission = 2;
   google.protobuf.Timestamp record_time = 3;
-  repeated KeyValuePair input_state = 4;
+  reserved 4; // was input_state
   string participant_id = 5;
+
+  // The Concord replica that sent this message. Used to maintain separate
+  // state caches on the validator for setups that use single validator for multiple
+  // replicas (e.g. during development)
+  int64 replica_id = 6;
 }
 
-message ValidateResponse {
+message Result {
   bytes log_entry = 1;
   repeated KeyValuePair state_updates = 2;
 }
+
+
+message ValidateResponse {
+  message NeedState {
+    repeated bytes keys = 1;
+  }
+
+  oneof response {
+    Result result = 1;
+    NeedState need_state = 2;
+  }
+}
+
+message ValidatePendingSubmissionRequest {
+  bytes entry_id = 1;
+  int64 replica_id = 2;
+  repeated KeyValuePair input_state = 3;
+}
+
+message ValidatePendingSubmissionResponse {
+  Result result = 1;
+}
+
+

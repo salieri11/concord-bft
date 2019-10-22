@@ -6,7 +6,7 @@ import io.grpc.{Server, ServerBuilder}
 import com.digitalasset.kvbc.daml_validator._
 import org.slf4j.LoggerFactory
 
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
 
 object KVBCValidatorMain extends App {
   val server = new KVBCValidatorServer(ExecutionContext.global)

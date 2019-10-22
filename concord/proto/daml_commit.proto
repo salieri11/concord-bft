@@ -15,8 +15,8 @@ service CommitService {
 
 message CommitRequest {
   bytes submission = 1;
-  repeated KVKey input_log_entries = 2;
-  repeated KVKey input_state = 3;
+  reserved 2; // was input_log_entries
+  reserved 3; // was input_state
   string participant_id = 4;
   //TODO: Add signature over the submission
 }

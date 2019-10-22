@@ -100,9 +100,11 @@ grpc::Status CommitServiceImpl::CommitTransaction(ServerContext* context,
     return grpc::Status::CANCELLED;
   }
 
-  assert(resp.has_daml_response());
-  assert(resp.daml_response().has_command_reply());
+  if (!resp.has_daml_response()) {
+    return grpc::Status::CANCELLED;
+  }
 
+  assert(resp.daml_response().has_command_reply());
   CommandReply cmd_reply;
   if (!cmd_reply.ParseFromString(resp.daml_response().command_reply())) {
     LOG4CPLUS_ERROR(logger, "Failed to parse DAML/CommandReply");
