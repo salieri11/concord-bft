@@ -318,14 +318,11 @@ class PersephoneTests(test_suite.TestSuite):
          log.info("Verifying ethrpc connectivity (attempt: {}/{})...".format(
             attempt, max_tries))
          try:
-            currentBlockNumber = rpc.getBlockNumber()
-            log.info("Current Block Number: {}".format(currentBlockNumber))
-
-            if int(currentBlockNumber, 16) == 0:
-               log.debug("Block Number is 0")
+            blockZero = rpc.getBlockByNumber(0)
+            if blockZero and blockZero["number"] == "0x0":
                return True
             else:
-               log.error("Block Number is NOT 0")
+               log.error("Invalid response getting block zero: {}".format(blockZero))
          except Exception as e:
             if attempt == max_tries:
                log.error(e)
