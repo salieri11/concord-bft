@@ -1,0 +1,45 @@
+# Doc: https://gitlab.eng.vmware.com/help/user/project/code_owners.html
+#
+# Groups are not supported until GitLab 12.1.  Until then, we have to edit the
+# users here.
+#
+# Rules defined later in the file take precedence, so we define a default first.
+# I've just included a handful of people from across the blockchain team.
+@default-codeowner @rvollmar @rsg @bsubramanian @bfink @machenbach @mharrison @khank @jameschang
+
+# Here are the descriptions for our source tree.  I'm going to start out assuming
+# we only need to create entries for items at the top level of our source tree.
+# We can other features (file types, subdirectories, etc...) as needed.
+
+/agent/ @jameschang
+/blockchain-build/ @jameschang
+/buildall.sh @rvollmar @rsg
+/communication/
+/concord/
+/contract-compiler/
+/csp-dev/
+/daml/
+/docker/
+/docker-compose-agent.yml
+/docker-compose-aux.yml
+/docker-compose-concord.yml
+/docker-compose-db.yml
+/docker-compose-dev.yml
+/docker-compose-ethrpc.yml
+/docker-compose-helen.yml
+/docker-compose-ui.yml
+/ethrpc/
+/helen/
+/hermes/ @rvollmar @rsg
+/Jenkinsfile @rvollmar @rsg
+/kubernetes/
+/performance/
+/persephone/ @jameschang
+/pom.xml @jameschang
+/protobuf/
+/README.md
+/src/ @rvollmar @rsg
+/start_except.sh
+/submodules/
+/ui/
+/vars/ @rvollmar @rsg
