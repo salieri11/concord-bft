@@ -33,7 +33,9 @@ import com.vmware.blockchain.deployment.v1.ConcordModelSpecification;
 import com.vmware.blockchain.deployment.v1.ConfigurationComponent;
 import com.vmware.concord.agent.services.configservice.ConfigServiceInvoker;
 import com.vmware.concord.agent.services.configuration.BaseContainerSpec;
+import com.vmware.concord.agent.services.configuration.DamlCommitterConfig;
 import com.vmware.concord.agent.services.configuration.DamlConfig;
+import com.vmware.concord.agent.services.configuration.DamlParticipantConfig;
 import com.vmware.concord.agent.services.configuration.EthereumConfig;
 
 /**
@@ -191,7 +193,17 @@ public final class AgentDockerClient {
                 containerConfig = EthereumConfig.valueOf(component.getServiceType().name());
                 break;
             case DAML:
-                containerConfig = DamlConfig.valueOf(component.getServiceType().name());
+                switch (configuration.getModel().getNodeType()) {
+                    case DAML_COMMITTER:
+                        containerConfig = DamlCommitterConfig.valueOf(component.getServiceType().name());
+                        break;
+                    case DAML_PARTICIPANT:
+                        containerConfig = DamlParticipantConfig.valueOf(component.getServiceType().name());
+                        break;
+                    default:
+                        containerConfig = DamlConfig.valueOf(component.getServiceType().name());
+                        break;
+                }
                 break;
             default:
                 throw new RuntimeException("Invalid blockchain node type");

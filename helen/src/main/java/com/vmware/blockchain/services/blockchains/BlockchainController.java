@@ -289,7 +289,8 @@ public class BlockchainController {
                 concordConfiguration.getVersion(),
                 concordConfiguration.getTemplate(),
                 components,
-                blockChainType
+                blockChainType,
+                ConcordModelSpecification.NodeType.NONE
         );
         DeploymentSpecification deploySpec =
                 new DeploymentSpecification(clusterSize, spec, placementSpec, genesis, consortiumId.toString());
