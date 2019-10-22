@@ -25,7 +25,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.junit.Assert;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -88,9 +87,12 @@ import com.vmware.blockchain.services.blockchains.zones.Zone;
 import com.vmware.blockchain.services.blockchains.zones.ZoneService;
 import com.vmware.blockchain.services.blockchains.zones.ZoneTestUtils;
 import com.vmware.blockchain.services.concord.ConcordService;
+import com.vmware.blockchain.services.configuration.ConcordConfiguration;
 import com.vmware.blockchain.services.profiles.Consortium;
 import com.vmware.blockchain.services.profiles.ConsortiumService;
 import com.vmware.blockchain.services.profiles.DefaultProfiles;
+import com.vmware.blockchain.services.profiles.Organization;
+import com.vmware.blockchain.services.profiles.OrganizationService;
 import com.vmware.blockchain.services.profiles.Roles;
 import com.vmware.blockchain.services.profiles.User;
 import com.vmware.blockchain.services.profiles.UserService;
@@ -108,7 +110,7 @@ import io.grpc.stub.StreamObserver;
 @WebMvcTest(controllers = { BlockchainController.class, TaskController.class })
 @ContextConfiguration(classes = {MvcTestSecurityConfig.class, MvcConfig.class})
 @ComponentScan(basePackageClasses = { BlockchainControllerTest.class, HelenExceptionHandler.class,
-        TaskController.class })
+        TaskController.class, ConcordConfiguration.class })
 public class BlockchainControllerTest {
     static final UUID BC_ID = UUID.fromString("437d97b2-76df-4596-b0d8-3d8a9412ff2f");
     static final UUID BC2_ID = UUID.fromString("7324cb8f-0ffc-4311-b57e-4c3e1e10a3aa");
@@ -204,6 +206,12 @@ public class BlockchainControllerTest {
 
     @MockBean
     ZoneService zoneService;
+
+    @Autowired
+    ConcordConfiguration concordConfiguration;
+
+    @MockBean
+    OrganizationService organizationService;
 
     @Autowired
     TaskService taskService;
@@ -365,6 +373,8 @@ public class BlockchainControllerTest {
         // Zone returns
         when(zoneService.get(SITE_1)).thenReturn(ZoneTestUtils.getOnpremZone(SITE_1, ORG_ID));
         when(zoneService.get(SITE_2)).thenReturn(new Zone(SITE_2, Zone.Type.VMC_AWS));
+
+        when(organizationService.get(any(UUID.class))).thenReturn(mock(Organization.class));
     }
 
 
@@ -528,21 +538,6 @@ public class BlockchainControllerTest {
         Assertions.assertEquals(1, entries.stream()
                 .filter(e -> FleetUtils.identifier(OrchestrationSiteIdentifier.class, SITE_2).equals(e.getSite()))
                 .count());
-    }
-
-    @Test
-    void testGetComponentsByBlockchainType() {
-        BlockchainController blockchainController = mock(BlockchainController.class);
-        when(blockchainController.getComponentsByBlockchainType(any())).thenCallRealMethod();
-
-        var output = blockchainController.getComponentsByBlockchainType(ConcordModelSpecification.BlockchainType.DAML);
-        Assert.assertEquals(output.size(), 5);
-
-        output = blockchainController.getComponentsByBlockchainType(ConcordModelSpecification.BlockchainType.ETHEREUM);
-        Assert.assertEquals(output.size(), 3);
-
-        output = blockchainController.getComponentsByBlockchainType(ConcordModelSpecification.BlockchainType.HLF);
-        Assert.assertEquals(output.size(), 3);
     }
 
     @Test
