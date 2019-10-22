@@ -197,7 +197,8 @@ class ConcordModelServiceTest {
                     "version-" + i,
                     "template-" + i,
                     Collections.emptyList(),
-                    ConcordModelSpecification.BlockchainType.ETHEREUM
+                    ConcordModelSpecification.BlockchainType.ETHEREUM,
+                    ConcordModelSpecification.NodeType.NONE
             );
             var request = new AddModelRequest(new MessageHeader(), model);
             var promise = new CompletableFuture<AddModelResponse>();

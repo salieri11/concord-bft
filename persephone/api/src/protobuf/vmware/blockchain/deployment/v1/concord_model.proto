@@ -76,20 +76,30 @@ message ConcordModelIdentifier {
  *   translate this value into template entity to be used internally for deployment workflow.
  * @property[components]
  *   Positionally ordered list of components to be deployed within a deployment unit.
- *
+ * @property[blockhain_type]
+ *   Type of blockchain
+ * @property[node_type]
+ *   If applicable, Determines the characteristic of the node in the blockchain.
  *   Note: Orchestration engine may utilize the sequence order during deployment workflow.
  */
 message ConcordModelSpecification {
 
     enum BlockchainType {
-        ETHEREUM = 0; // Using ETHEREUM as default.
+        ETHEREUM = 0;
         DAML = 1;
         HLF = 2;
+    }
+
+    enum NodeType {
+        NONE = 0;
+        DAML_COMMITTER = 1;
+        DAML_PARTICIPANT = 2;
     }
 
     string version = 1;
     string template = 2;
     repeated ConcordComponent components = 3 [packed=false];
     BlockchainType blockchain_type = 4;
+    NodeType node_type = 5;
 }
 /* [END messages] */
