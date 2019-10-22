@@ -9,7 +9,6 @@ import static com.vmware.blockchain.services.blockchains.BlockchainController.De
 import static com.vmware.blockchain.services.blockchains.BlockchainController.DeploymentType.UNSPECIFIED;
 import static com.vmware.blockchain.services.blockchains.BlockchainUtils.toInfo;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -39,7 +38,6 @@ import com.vmware.blockchain.common.BadRequestException;
 import com.vmware.blockchain.common.ErrorCode;
 import com.vmware.blockchain.common.NotFoundException;
 import com.vmware.blockchain.common.fleetmanagment.FleetUtils;
-import com.vmware.blockchain.deployment.v1.ConcordComponent;
 import com.vmware.blockchain.deployment.v1.ConcordModelSpecification;
 import com.vmware.blockchain.deployment.v1.CreateClusterRequest;
 import com.vmware.blockchain.deployment.v1.DeploymentSessionIdentifier;
@@ -52,11 +50,11 @@ import com.vmware.blockchain.deployment.v1.PlacementSpecification.Entry;
 import com.vmware.blockchain.deployment.v1.PlacementSpecification.Type;
 import com.vmware.blockchain.deployment.v1.ProvisioningServiceStub;
 import com.vmware.blockchain.deployment.v1.StreamClusterDeploymentSessionEventRequest;
-import com.vmware.blockchain.ethereum.type.Genesis;
 import com.vmware.blockchain.operation.OperationContext;
 import com.vmware.blockchain.services.blockchains.Blockchain.NodeEntry;
 import com.vmware.blockchain.services.blockchains.replicas.ReplicaService;
 import com.vmware.blockchain.services.blockchains.zones.ZoneService;
+import com.vmware.blockchain.services.configuration.ConcordConfiguration;
 import com.vmware.blockchain.services.profiles.ConsortiumService;
 import com.vmware.blockchain.services.profiles.DefaultProfiles;
 import com.vmware.blockchain.services.profiles.Roles;
@@ -198,7 +196,7 @@ public class BlockchainController {
     private boolean mockDeployment;
     private ReplicaService replicaService;
     private ZoneService zoneService;
-
+    private ConcordConfiguration concordConfiguration;
 
     @Autowired
     public BlockchainController(BlockchainService blockchainService,
@@ -210,6 +208,7 @@ public class BlockchainController {
                                 OperationContext operationContext,
                                 ReplicaService replicaService,
                                 ZoneService zoneService,
+                                ConcordConfiguration concordConfiguration,
                                 @Value("${mock.deployment:false}") boolean mockDeployment) {
         this.blockchainService = blockchainService;
         this.consortiumService = consortiumService;
@@ -220,6 +219,7 @@ public class BlockchainController {
         this.operationContext = operationContext;
         this.replicaService = replicaService;
         this.zoneService = zoneService;
+        this.concordConfiguration = concordConfiguration;
         this.mockDeployment = mockDeployment;
     }
 
@@ -280,23 +280,14 @@ public class BlockchainController {
         var placementSpec = new PlacementSpecification(list);
         var blockChainType = blockchainType == null ? ConcordModelSpecification.BlockchainType.ETHEREUM
                                                     : enumMapForBlockchainType.get(blockchainType);
-        var components = getComponentsByBlockchainType(blockChainType);
-        var genesis = new Genesis(
-                new Genesis.Config(1, 0, 0, 0),
-                "0x0000000000000000",
-                "0x400",
-                "0x0000000000000000000000000000000000000000000000000000000000000000",
-                "0x0000000000000000000000000000000000000000000000000000000000000000",
-                "0xf4240",
-                Map.of(
-                        "262c0d7ab5ffd4ede2199f6ea793f819e1abb019", new Genesis.Wallet("12345"),
-                        "5bb088f57365907b1840e45984cae028a82af934", new Genesis.Wallet("0xabcdef"),
-                        "0000a12b3f3d6c9b0d3f126a83ec2dd3dad15f39", new Genesis.Wallet("0x7fffffffffffffff")
-                )
-        );
+
+        var components = concordConfiguration.getComponentsByBlockchainType(blockChainType);
+
+        var genesis = ConcordConfiguration.getGenesisObject();
+
         ConcordModelSpecification spec = new ConcordModelSpecification(
-                "20190401.1",
-                "8abc7fda-9576-4b13-9beb-06f867cf2c7c",
+                concordConfiguration.getVersion(),
+                concordConfiguration.getTemplate(),
                 components,
                 blockChainType
         );
@@ -307,56 +298,6 @@ public class BlockchainController {
         var promise = new CompletableFuture<DeploymentSessionIdentifier>();
         client.createCluster(request, FleetUtils.blockedResultObserver(promise));
         return promise.get();
-    }
-
-    // TODO Move this to config/metadata lookup.
-    List<ConcordComponent> getComponentsByBlockchainType(ConcordModelSpecification.BlockchainType type) {
-        List<ConcordComponent> response = new ArrayList<>();
-        response.add(new ConcordComponent(
-                ConcordComponent.Type.CONTAINER_IMAGE,
-                ConcordComponent.ServiceType.GENERIC,
-                "vmwblockchain/agent:latest"
-        ));
-        switch (type) {
-            case DAML:
-                response.add(
-                        new ConcordComponent(
-                                ConcordComponent.Type.CONTAINER_IMAGE,
-                                ConcordComponent.ServiceType.DAML_CONCORD,
-                                "vmwblockchain/concord-core:latest"
-                        ));
-                response.add(new ConcordComponent(
-                        ConcordComponent.Type.CONTAINER_IMAGE,
-                        ConcordComponent.ServiceType.DAML_EXECUTION_ENGINE,
-                        "vmwblockchain/daml-execution-engine:latest"
-                ));
-                response.add(new ConcordComponent(
-                        ConcordComponent.Type.CONTAINER_IMAGE,
-                        ConcordComponent.ServiceType.DAML_INDEX_DB,
-                        "vmwblockchain/daml-index-db:latest"
-                ));
-                response.add(new ConcordComponent(
-                        ConcordComponent.Type.CONTAINER_IMAGE,
-                        ConcordComponent.ServiceType.DAML_LEDGER_API,
-                        "vmwblockchain/daml-ledger-api:latest"
-                ));
-                break;
-            default:
-                // Default is ETHEREUM due to backward compatibility.
-            case ETHEREUM:
-                response.add(new ConcordComponent(
-                        ConcordComponent.Type.CONTAINER_IMAGE,
-                        ConcordComponent.ServiceType.CONCORD,
-                        "vmwblockchain/concord-core:latest"
-                ));
-                response.add(new ConcordComponent(
-                        ConcordComponent.Type.CONTAINER_IMAGE,
-                        ConcordComponent.ServiceType.ETHEREUM_API,
-                        "vmwblockchain/ethrpc:latest"
-                ));
-                break;
-        }
-        return response;
     }
 
     /**
