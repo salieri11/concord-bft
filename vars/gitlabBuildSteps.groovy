@@ -584,8 +584,8 @@ EOF
 
                     if (env.JOB_NAME.contains(persephone_test_job_name)) {
                       sh '''
-                        echo "Running Entire Testsuite: Persephone (hitting local config-service)..."
-                        echo "${PASSWORD}" | sudo -SE "${python}" main.py PersephoneTests --useLocalConfigService --dockerComposeFile ../docker/docker-compose-persephone.yml --resultsDir "${persephone_test_logs}" --tests "all_tests" --deploymentComponents "${release_persephone_agent_repo}:${docker_tag},${release_concord_repo}:${docker_tag},${release_ethrpc_repo}:${docker_tag},${release_daml_ledger_api_repo}:${docker_tag},${release_daml_execution_engine_repo}:${docker_tag},${release_daml_index_db_repo}:${docker_tag}" --keepBlockchains ${deployment_retention}
+                        echo "Running Entire Testsuite: Persephone (hitting staging config-service)..."
+                        echo "${PASSWORD}" | sudo -SE "${python}" main.py PersephoneTests --dockerComposeFile ../docker/docker-compose-persephone.yml --resultsDir "${persephone_test_logs}" --tests "all_tests" --deploymentComponents "${release_persephone_agent_repo}:${docker_tag},${release_concord_repo}:${docker_tag},${release_ethrpc_repo}:${docker_tag},${release_daml_ledger_api_repo}:${docker_tag},${release_daml_execution_engine_repo}:${docker_tag},${release_daml_index_db_repo}:${docker_tag}" --keepBlockchains ${deployment_retention}
                       '''
                     } else {
                       // Due to infra/product/test issue on config-service (bug VB-1770)
