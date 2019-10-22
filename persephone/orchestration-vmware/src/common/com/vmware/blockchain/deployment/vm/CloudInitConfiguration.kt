@@ -127,13 +127,6 @@ class CloudInitConfiguration(
             systemctl enable docker
             {{dockerLoginCommand}}
 
-            # Output the node's configuration.
-            mkdir -p /config/concord/config-local
-            mkdir -p /config/concord/config-public
-
-            # create dir for tls certs
-            mkdir -p /config/concord/config-local/cert
-
             # Output the node's model specification.
             mkdir -p /config/agent
             echo '{{agentConfig}}' > /config/agent/config.json
@@ -144,10 +137,9 @@ class CloudInitConfiguration(
             /usr/bin/vmware-toolbox-cmd info update network
 
             touch /config/concord/config-local/concord.config
-            touch /config/concord/config-public/find-docker-instances.sh
-            chmod 777 /config/concord/config-public/find-docker-instances.sh
 
             # Adding the genesis block
+            mkdir -p /config/concord/config-public
             echo '{{genesis}}' > /config/concord/config-public/genesis.json
 
             docker run -d --name=agent --restart=always -v /config:/config -v /var/run/docker.sock:/var/run/docker.sock -p 8546:8546 {{agentImage}}
