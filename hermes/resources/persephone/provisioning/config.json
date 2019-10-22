@@ -50,7 +50,7 @@
             "datastore": "WorkloadDatastore",
             "folder": "HermesTesting",
             "network": {
-              "name": "vmware-vpn",
+              "name": "CHANGE_THIS_TO_HermesTesting",
               "addressAllocation": "STATIC",
               "gateway": 172319745,
               "subnet": 24,
@@ -107,7 +107,7 @@
             "datastore": "WorkloadDatastore",
             "folder": "HermesTesting",
             "network": {
-              "name": "vmware-vpn",
+              "name": "CHANGE_THIS_TO_HermesTesting",
               "addressAllocation": "STATIC",
               "gateway": 172321025,
               "subnet": 24,
