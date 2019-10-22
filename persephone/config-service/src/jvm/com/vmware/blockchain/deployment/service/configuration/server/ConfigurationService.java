@@ -24,6 +24,7 @@ import org.slf4j.LoggerFactory;
 
 import com.vmware.blockchain.deployment.service.configuration.eccerts.ConcordEcCertificatesGenerator;
 import com.vmware.blockchain.deployment.service.configuration.generateconfig.ConcordConfigUtil;
+import com.vmware.blockchain.deployment.service.configuration.generateconfig.GenesisUtil;
 import com.vmware.blockchain.deployment.v1.ConcordComponent.ServiceType;
 import com.vmware.blockchain.deployment.v1.ConfigurationComponent;
 import com.vmware.blockchain.deployment.v1.ConfigurationServiceImplBase;
@@ -136,9 +137,12 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
         var identityFactor = certGen.getIdentityFactor();
         Map<Integer, List<ConfigurationComponent>> nodeComponent = new HashMap<>();
 
-        // Generate TLS Configuration
+        // Generate Configuration
         var configUtil = new ConcordConfigUtil();
+        var genesisUtil = new GenesisUtil();
+
         var tlsConfig = configUtil.getConcordConfig(request.getHosts(), request.getBlockchainType());
+        var genesisJson = genesisUtil.getGenesis(request.getGenesis());
 
         List<Identity> tlsIdentityList = certGen.generateSelfSignedCertificates(configUtil.maxPrincipalId + 1,
                 ServiceType.CONCORD);
@@ -158,6 +162,14 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
                     ServiceType.CONCORD,
                     configUtil.configPath,
                     tlsConfig.get(node),
+                    new IdentityFactors())
+            );
+
+            // Genesis
+            componentList.add(new ConfigurationComponent(
+                    ServiceType.CONCORD,
+                    GenesisUtil.genesisPath,
+                    genesisJson,
                     new IdentityFactors())
             );
 

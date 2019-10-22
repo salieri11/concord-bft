@@ -5,6 +5,7 @@ package vmware.blockchain.deployment.v1;
 import "vmware/blockchain/deployment/v1/core.proto";
 import "vmware/blockchain/deployment/v1/concord_model.proto";
 import "vmware/blockchain/deployment/v1/security_identity.proto";
+import "vmware/blockchain/ethereum/type/genesis.proto";
 
 option go_package = "vmware.com/blockchain/deployment/v1;deployment";
 
@@ -49,7 +50,7 @@ message ConfigurationServiceRequest {
     MessageHeader header = 1;
     repeated string hosts = 2;
     ConcordModelSpecification.BlockchainType blockchain_type = 3;
-
+    vmware.blockchain.ethereum.type.Genesis genesis = 4;
 }
 
 /**
