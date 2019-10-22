@@ -119,12 +119,17 @@ class CloudInitConfiguration(
             # route add default gw `ip route show | grep "dev eth0" | grep -v kernel | grep -v default | cut -d' ' -f 1` eth0
 
             sed -i 's_/usr/bin/dockerd.*_/usr/bin/dockerd {{dockerDns}} -H tcp://127.0.0.1:2375 -H unix:///var/run/docker.sock {{registrySecuritySetting}}_g' /lib/systemd/system/docker.service
-            
+
             {{setupOutboundProxy}}
             systemctl daemon-reload
 
+            mkdir -p /etc/docker
+            echo '{"log-driver": "json-file", "log-opts": { "max-size": "100m", "max-file": "5"}}' > /etc/docker/daemon.json
             systemctl restart docker
+            
+            # To enable docker on boot.
             systemctl enable docker
+
             {{dockerLoginCommand}}
 
             # Output the node's model specification.
