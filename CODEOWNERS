@@ -16,10 +16,22 @@
 /buildall.sh @rvollmar @rsg
 /communication/ @bfink
 /concord/ @bfink
+/concord/cmake/Findyaml-cpp.cmake @upshawa
+/concord/src/config/ @upshawa
+/concord/src/time/time_verification.cpp @bfink @upshawa
+/concord/src/time/time_verification.hpp @bfink @upshawa
+/concord/test/config_test.cpp @upshawa
+/concord/test/resources/config_input/ @upshawa
+/concord/test/resources/concord*.config @upshawa
+/concord/tools/conc_genconfig.cpp @upshawa
+/concord/tools/conc_reconfig.cpp @upshawa
+/concord/README.md @bfink @upshawa
 /contract-compiler/
 /csp-dev/
 /daml/
 /docker/
+/docker/config-concord*/ @upshawa
+/docker/config-public/ @upshawa
 /docker-compose-agent.yml
 /docker-compose-aux.yml
 /docker-compose-concord.yml
