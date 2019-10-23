@@ -107,20 +107,20 @@ setup_concord_nodes() {
     LOOPBACK_ADDRESS="127.0.0.1"
     for NODE_COUNT in $(seq 1 $NO_OF_IPS)
     do
-        echo "Updating docker/config-concord${NODE_COUNT}/concord_with_hostnames.config..."
-        CONCORD_CONFIG_ORIG_FILE="${BLOCKCHAIN_REPO}/docker/config-concord${NODE_COUNT}/concord_with_hostnames.config.orig"
+        echo "Updating docker/config-concord${NODE_COUNT}/concord.config..."
+        CONCORD_CONFIG_ORIG_FILE="${BLOCKCHAIN_REPO}/docker/config-concord${NODE_COUNT}/concord.config.orig"
         if [ ! -f "${CONCORD_CONFIG_ORIG_FILE}" ]
         then
-            cp ${BLOCKCHAIN_REPO}/docker/config-concord${NODE_COUNT}/concord_with_hostnames.config ${BLOCKCHAIN_REPO}/docker/config-concord${NODE_COUNT}/concord_with_hostnames.config.orig
+            cp ${BLOCKCHAIN_REPO}/docker/config-concord${NODE_COUNT}/concord.config ${BLOCKCHAIN_REPO}/docker/config-concord${NODE_COUNT}/concord.config.orig
         fi
         i=1
         for CONCORD_NODE in `echo $CONCORD_IPS | tr ',' '\n'`
         do
             if [ "${NODE_COUNT}" -eq "${i}" ]
             then
-                sed -i.bkp "s/concord${i}/${LOOPBACK_ADDRESS}/g" ${BLOCKCHAIN_REPO}/docker/config-concord${NODE_COUNT}/concord_with_hostnames.config
+                sed -i.bkp "s/concord${i}/${LOOPBACK_ADDRESS}/g" ${BLOCKCHAIN_REPO}/docker/config-concord${NODE_COUNT}/concord.config
             else
-                sed -i.bkp "s/concord${i}/${CONCORD_NODE}/g" ${BLOCKCHAIN_REPO}/docker/config-concord${NODE_COUNT}/concord_with_hostnames.config
+                sed -i.bkp "s/concord${i}/${CONCORD_NODE}/g" ${BLOCKCHAIN_REPO}/docker/config-concord${NODE_COUNT}/concord.config
             fi
             i=`expr $i + 1`
         done

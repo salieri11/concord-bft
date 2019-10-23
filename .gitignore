@@ -4,8 +4,6 @@
 bin/
 tmp/
 logs/
-docker/config-concord*/concord.config
-docker/config-concord*/concord_with_hostnames.config
 docker/config-public/concord*.config
 docker/log*
 docker/rocksdbdata*

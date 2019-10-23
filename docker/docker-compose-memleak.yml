@@ -2,14 +2,17 @@ version: '3'
 services:
   concord1:
     image: "${concord_repo}:${concord_tag}_memleak"
-    command: /bin/bash -c "
-      cp /concord/config-local/concord_with_hostnames.config
-         /concord/config-local/concord.config &&
-      /concord/config-public/find-docker-instances.sh &&
-      valgrind -v --leak-check=full --show-leak-kinds=all --track-origins=yes
-               --log-file=/tmp/valgrind_concord1.log
-               --suppressions=/concord/concord.supp
-      /concord/concord -c /concord/config-local/concord.config"
+    command:
+      - valgrind
+      - -v
+      - --leak-check=full
+      - --show-leak-kinds=all
+      - --track-origins=yes
+      - --log-file=/tmp/valgrind_concord1.log
+      - --suppressions=/concord/concord.supp
+      - /concord/concord
+      - -c
+      - /concord/config-local/concord.config
     volumes:
       - /tmp:/tmp
       - ./tls_certs:/concord/tls_certs:ro

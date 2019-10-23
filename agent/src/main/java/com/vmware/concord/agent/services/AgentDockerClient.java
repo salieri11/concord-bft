@@ -10,7 +10,6 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -265,25 +264,13 @@ public final class AgentDockerClient {
     }
 
     private void setupConfig() {
-        // Do not over-write existing configuration.
-        var withHostConfig = Path.of("/config/concord/config-local/concord_with_hostnames.config");
-        if (!Files.exists(withHostConfig)) {
-            log.info("Reading config file");
-            var configList = configServiceInvoker.retrieveConfiguration(configuration.getConfigurationSession(),
-                                                                        configuration.getNode());
-            writeConfiguration(configList);
+        log.info("Reading config file");
 
-            // TODO Why do we need 2 paths?
-            var localConfigPath = Path.of("/config/concord/config-local/concord.config");
+        var configList = configServiceInvoker.retrieveConfiguration(configuration.getConfigurationSession(),
+                                                                    configuration.getNode());
+        writeConfiguration(configList);
 
-            try {
-                Files.copy(localConfigPath, withHostConfig, StandardCopyOption.REPLACE_EXISTING);
-                log.info("Copied {} to {}", localConfigPath, withHostConfig);
-                log.info("Populated the config file");
-            } catch (IOException error) {
-                log.error("Cannot write to " + withHostConfig, error);
-            }
-        }
+        log.info("Populated the config file");
     }
 
     private void launchContainer(DockerClient dockerClient, BaseContainerSpec containerParam) {

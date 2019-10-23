@@ -29,10 +29,10 @@ fi
 if [[ $# -gt 0 ]]; then
     PRIVPATHS=("$@")
 else
-    PRIVPATHS=("./config-concord1/concord_with_hostnames.config"
-               "./config-concord2/concord_with_hostnames.config"
-               "./config-concord3/concord_with_hostnames.config"
-               "./config-concord4/concord_with_hostnames.config")
+    PRIVPATHS=("./config-concord1/concord.config"
+               "./config-concord2/concord.config"
+               "./config-concord3/concord.config"
+               "./config-concord4/concord.config")
 fi
 
 for i in $(seq 1 ${#PRIVPATHS[@]}); do
