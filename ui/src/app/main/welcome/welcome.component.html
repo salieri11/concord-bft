@@ -26,7 +26,7 @@
     </div>
   </div>
   <div class="clr-col-12 deploy-wrapper">
-    <button class="btn btn-primary" (click)="deploy()">{{ 'welcome.deploy' | translate }}</button>
+    <button id="deploy" class="btn btn-primary" (click)="deploy()">{{ 'welcome.deploy' | translate }}</button>
   </div>
   <div *ngIf="hasJoinedConsortium" class="clr-col-12" id="go">
     <button class="btn btn-outline" (click)="go()">Go to Consortium</button>

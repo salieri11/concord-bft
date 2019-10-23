@@ -40,15 +40,13 @@ describe('concord-ui Onboarding Flow', () => {
     browser.sleep(500);
     loginPage.fillInEmail();
     waitForURLContains('csp-local.vidmpreview.com/SAAS/auth/login');
-    browser.sleep(500);
+    browser.sleep(1000);
     loginPage.fillInPassword();
   });
 
   it('should accept terms of service', () => {
-    browser.sleep(4000);
-    onboardingPage.readAndClickAccept("Reinhard", "von Lohengramm", "Galactic Empire");
-    browser.sleep(1500);
-    appPage.goToConsortium().click();
+    browser.sleep(2000);
+    onboardingPage.readAndClickAccept('Reinhard', 'von Lohengramm', 'Galactic Empire');
     browser.sleep(1500);
   });
 
