@@ -111,6 +111,10 @@ def main():
                        default=False,
                        action='store_true',
                        help="Optional parameter to use local config-service container")
+   parser.add_argument("--externalProvisioningServiceEndpoint",
+                       default=None,
+                       help="External Persephone provisioning service Endpoint. "
+                            "Example: provisioningservice-vmbc.vdp.vmware.com:9002")
    parser.add_argument("--performanceVotes",
                        default=10,
                        type=int,
