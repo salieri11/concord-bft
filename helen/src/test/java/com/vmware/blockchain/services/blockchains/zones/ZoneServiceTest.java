@@ -39,7 +39,6 @@ import com.vmware.blockchain.MvcConfig;
 import com.vmware.blockchain.auth.AuthHelper;
 import com.vmware.blockchain.common.Constants;
 import com.vmware.blockchain.common.NotFoundException;
-import com.vmware.blockchain.common.fleetmanagment.FleetUtils;
 import com.vmware.blockchain.dao.GenericDao;
 import com.vmware.blockchain.dao.TestDaoConfig;
 import com.vmware.blockchain.db.DbConfig;
@@ -49,7 +48,7 @@ import com.vmware.blockchain.deployment.v1.ListOrchestrationSitesResponse;
 import com.vmware.blockchain.deployment.v1.MessageHeader;
 import com.vmware.blockchain.deployment.v1.OrchestrationSiteIdentifier;
 import com.vmware.blockchain.deployment.v1.OrchestrationSiteInfo.Type;
-import com.vmware.blockchain.deployment.v1.OrchestrationSiteServiceStub;
+import com.vmware.blockchain.deployment.v1.OrchestrationSiteServiceGrpc.OrchestrationSiteServiceStub;
 import com.vmware.blockchain.deployment.v1.OrchestrationSiteView;
 import com.vmware.blockchain.security.JwtTokenProvider;
 import com.vmware.blockchain.security.ServiceContext;
@@ -146,16 +145,29 @@ public class ZoneServiceTest {
         when(organizationService.get(ONPREM_ORG)).thenReturn(onpreOrg);
 
 
-        OrchestrationSiteView v1 =
-                new OrchestrationSiteView(FleetUtils.identifier(OrchestrationSiteIdentifier.class, SITE_1),
-                                                                Type.VMC, ImmutableMap.of("name", "US_WEST"));
-        OrchestrationSiteView v2 =
-                new OrchestrationSiteView(FleetUtils.identifier(OrchestrationSiteIdentifier.class, SITE_2),
-                                          Type.NONE, ImmutableMap.of("name", "US_EAST"));
-        ListOrchestrationSitesResponse response =
-                new ListOrchestrationSitesResponse(new MessageHeader(),
-                                                   ImmutableList.of(v1, v2),
-                                                   "");
+        OrchestrationSiteView v1 = OrchestrationSiteView.newBuilder()
+                .setId(OrchestrationSiteIdentifier.newBuilder()
+                                .setLow(SITE_1.getLeastSignificantBits())
+                                .setHigh(SITE_1.getMostSignificantBits())
+                                .build())
+                .setType(Type.VMC)
+                .putAllLabels(ImmutableMap.of("name", "US_WEST"))
+                .build();
+
+        OrchestrationSiteView v2 = OrchestrationSiteView.newBuilder()
+                .setId(OrchestrationSiteIdentifier.newBuilder()
+                        .setLow(SITE_2.getLeastSignificantBits())
+                        .setHigh(SITE_2.getMostSignificantBits())
+                        .build())
+                .setType(Type.NONE)
+                .putAllLabels(ImmutableMap.of("name", "US_EAST"))
+                .build();
+
+        ListOrchestrationSitesResponse response = ListOrchestrationSitesResponse.newBuilder()
+                .setHeader(MessageHeader.newBuilder().build())
+                .addAllSites(ImmutableList.of(v1, v2))
+                .build();
+
         setCallbacks(i -> {
             StreamObserver ob = i.getArgument(1);
             ob.onNext(response);

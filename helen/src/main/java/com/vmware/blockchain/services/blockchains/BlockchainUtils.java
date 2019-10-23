@@ -17,7 +17,6 @@ import org.apache.logging.log4j.Logger;
 import com.google.common.collect.ImmutableMap;
 import com.vmware.blockchain.common.BadRequestException;
 import com.vmware.blockchain.common.ErrorCode;
-import com.vmware.blockchain.deployment.v1.BearerTokenCredential;
 import com.vmware.blockchain.deployment.v1.Credential;
 import com.vmware.blockchain.deployment.v1.Endpoint;
 import com.vmware.blockchain.deployment.v1.IPv4Network;
@@ -48,45 +47,59 @@ public class BlockchainUtils {
      * Create a Fleet credential.
      */
     public static Credential toCredential(String user, String password) {
-        return new Credential(Credential.Type.PASSWORD,
-                              new PasswordCredential(user, password),
-                              new BearerTokenCredential());
+        return Credential.newBuilder()
+                .setType(Credential.Type.PASSWORD)
+                .setPasswordCredential(PasswordCredential.newBuilder().setUsername(user).setPassword(password).build())
+                .build();
 
     }
 
     /**
      * Convert a Helen Zone to a Fleet Orchestration Site.
      */
-    public static OrchestrationSiteInfo toInfo(Zone zone) {
-        VSphereOrchestrationSiteInfo vspherInfo = new VSphereOrchestrationSiteInfo();
+    public static OrchestrationSiteInfo toInfo(Zone zone)  {
+        VSphereOrchestrationSiteInfo vspherInfo = VSphereOrchestrationSiteInfo
+                .newBuilder().build();
         if (Type.ON_PREM.equals(zone.getType())) {
             OnpremZone op = (OnpremZone) zone;
             if (op.getVCenter() == null) {
                 logger.info("Missing required field vCenter");
                 throw new BadRequestException(ErrorCode.BAD_REQUEST);
             }
-            final Endpoint api = new Endpoint(op.getVCenter().getUrl(),
-                                              toCredential(op.getVCenter().getUsername(),
-                                                           op.getVCenter().getPassword()),
-                                              new TransportSecurity());
-            Endpoint container = new Endpoint();
+
+            final Endpoint api = Endpoint.newBuilder()
+                    .setAddress(op.getVCenter().getUrl())
+                    .setCredential(toCredential(op.getVCenter().getUsername(), op.getVCenter().getPassword()))
+                    .setTransportSecurity(TransportSecurity.newBuilder().build())
+                    .build();
+
+            Endpoint container = Endpoint.newBuilder().build();
+
+
             if (op.getContainerRepo() != null) {
-                container = new Endpoint(op.getContainerRepo().getUrl(),
-                                         toCredential(op.getContainerRepo().getUsername(),
-                                                      op.getContainerRepo().getPassword()),
-                                         new TransportSecurity());
+                container = Endpoint.newBuilder()
+                        .setAddress(op.getContainerRepo().getUrl())
+                        .setCredential(toCredential(op.getContainerRepo().getUsername(),
+                                op.getContainerRepo().getPassword()))
+                        .setTransportSecurity(TransportSecurity.newBuilder().setType(TransportSecurity.Type.NONE))
+                        .build();
+
             }
             Zone.Network n = op.getNetwork();
             if (n == null) {
                 logger.info("Missing required field network");
                 throw new BadRequestException(ErrorCode.BAD_REQUEST);
             }
-            IPv4Network network = new IPv4Network(n.getName(),
-                                                  IPv4Network.AddressAllocationScheme.STATIC,
-                                                  fromIpAddr(n.getGateway()),
-                                                  Integer.parseInt(n.getSubnet()),
-                                                  new Endpoint(),
-                                                  n.getNameServers());
+
+            IPv4Network network = IPv4Network.newBuilder()
+                    .setName(n.getName())
+                    .setAddressAllocation(IPv4Network.AddressAllocationScheme.STATIC)
+                    .setGateway(fromIpAddr(n.getGateway()))
+                    .setSubnet(Integer.parseInt(n.getSubnet()))
+                    .setAllocationServer(Endpoint.newBuilder().build())
+                    .addAllNameServers(n.getNameServers())
+                    .build();
+
             if (op.getResourcePool() == null || op.getResourcePool().isBlank()
                 || op.getStorage() == null || op.getStorage().isBlank()
                 || op.getFolder() == null || op.getFolder().isBlank()) {
@@ -94,23 +107,38 @@ public class BlockchainUtils {
                 throw new BadRequestException(ErrorCode.BAD_REQUEST);
             }
 
-            OutboundProxyInfo outboundProxyInfo = new OutboundProxyInfo();
+            OutboundProxyInfo outboundProxyInfo = OutboundProxyInfo.newBuilder().build();
+
             if (op.getOutboundProxy() != null) {
-                outboundProxyInfo = new OutboundProxyInfo(op.getOutboundProxy().getHttpHost(),
-                                                          op.getOutboundProxy().getHttpPort(),
-                                                          op.getOutboundProxy().getHttpsHost(),
-                                                          op.getOutboundProxy().getHttpsPort());
+                outboundProxyInfo = OutboundProxyInfo.newBuilder()
+                        .setHttpHost(op.getOutboundProxy().getHttpHost())
+                        .setHttpPort(op.getOutboundProxy().getHttpPort())
+                        .setHttpsHost(op.getOutboundProxy().getHttpsHost())
+                        .setHttpsPort(op.getOutboundProxy().getHttpsPort())
+                        .build();
             }
-            VSphereDatacenterInfo dcInfo =
-                    new VSphereDatacenterInfo(op.getResourcePool(), op.getStorage(), op.getFolder(), network,
-                                              outboundProxyInfo);
-            vspherInfo = new VSphereOrchestrationSiteInfo(api, container, dcInfo);
+
+            VSphereDatacenterInfo dcInfo = VSphereDatacenterInfo.newBuilder()
+                    .setResourcePool(op.getResourcePool())
+                    .setDatastore(op.getStorage())
+                    .setFolder(op.getFolder())
+                    .setNetwork(network)
+                    .setOutboundProxy(outboundProxyInfo)
+                    .build();
+
+            vspherInfo = VSphereOrchestrationSiteInfo.newBuilder()
+                    .setApi(api)
+                    .setContainerRegistry(container)
+                    .setVsphere(dcInfo)
+                    .build();
         }
 
-        return new OrchestrationSiteInfo(typeMap.get(zone.getType()),
-                                         toMap(zone),
-                                         new VmcOrchestrationSiteInfo(),
-                                         vspherInfo);
+        return OrchestrationSiteInfo.newBuilder()
+                .setType(typeMap.get(zone.getType()))
+                .putAllLabels(toMap(zone))
+                .setVmc(VmcOrchestrationSiteInfo.newBuilder().build())
+                .setVsphere(vspherInfo)
+                .build();
     }
 
     private static int fromIpAddr(String ipAddr) {

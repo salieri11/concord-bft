@@ -4,8 +4,6 @@
 
 package com.vmware.blockchain.services.blockchains.replicas;
 
-import static com.vmware.blockchain.common.fleetmanagment.FleetUtils.identifier;
-
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -40,7 +38,7 @@ import com.vmware.blockchain.common.NotFoundException;
 import com.vmware.blockchain.deployment.v1.ConcordClusterIdentifier;
 import com.vmware.blockchain.deployment.v1.ConcordComponent.ServiceType;
 import com.vmware.blockchain.deployment.v1.ConcordNodeIdentifier;
-import com.vmware.blockchain.deployment.v1.FleetManagementServiceStub;
+import com.vmware.blockchain.deployment.v1.FleetManagementServiceGrpc.FleetManagementServiceStub;
 import com.vmware.blockchain.deployment.v1.MessageHeader;
 import com.vmware.blockchain.deployment.v1.ServiceState;
 import com.vmware.blockchain.deployment.v1.UpdateInstanceRequest;
@@ -194,8 +192,16 @@ public class ReplicaController {
 
     // map our actions to the FleetService actions
     private final Map<NodeAction, ServiceState> actionMap =
-            ImmutableMap.of(NodeAction.START, new ServiceState(ServiceType.CONCORD, ServiceState.State.ACTIVE),
-                            NodeAction.STOP, new ServiceState(ServiceType.CONCORD, ServiceState.State.INACTIVE));
+            ImmutableMap.of(NodeAction.START,
+                    ServiceState.newBuilder()
+                            .setServiceType(ServiceType.CONCORD)
+                            .setState(ServiceState.State.ACTIVE)
+                            .build(),
+                    NodeAction.STOP,
+                    ServiceState.newBuilder()
+                            .setServiceType(ServiceType.CONCORD)
+                            .setState(ServiceState.State.INACTIVE)
+                            .build());
 
     /**
      * Get the list of replicas, and their status.
@@ -340,12 +346,19 @@ public class ReplicaController {
 
 
     private Task startStopNode(UUID bid, UUID nodeId, NodeAction action) {
-        final UpdateInstanceRequest request =
-                new UpdateInstanceRequest(
-                        new MessageHeader(),
-                        identifier(ConcordClusterIdentifier.class, bid),
-                        identifier(ConcordNodeIdentifier.class, nodeId),
-                        Collections.singletonList(actionMap.get(action)));
+        final UpdateInstanceRequest request = UpdateInstanceRequest.newBuilder()
+                .setHeader(MessageHeader.newBuilder().build())
+                .setCluster(ConcordClusterIdentifier.newBuilder()
+                        .setLow(bid.getLeastSignificantBits())
+                        .setHigh(bid.getMostSignificantBits())
+                        .build())
+                .setNode(ConcordNodeIdentifier.newBuilder()
+                        .setLow(nodeId.getLeastSignificantBits())
+                        .setHigh(nodeId.getMostSignificantBits())
+                        .build())
+                .addAllServiceStates(Collections.singletonList(actionMap.get(action)))
+                .build();
+
         // make sure the string is start or stop
         Task task = new Task();
         task.setState(State.RUNNING);

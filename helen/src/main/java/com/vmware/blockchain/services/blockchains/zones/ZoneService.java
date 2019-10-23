@@ -35,7 +35,7 @@ import com.vmware.blockchain.deployment.v1.ListOrchestrationSitesRequest;
 import com.vmware.blockchain.deployment.v1.ListOrchestrationSitesResponse;
 import com.vmware.blockchain.deployment.v1.MessageHeader;
 import com.vmware.blockchain.deployment.v1.OrchestrationSiteInfo;
-import com.vmware.blockchain.deployment.v1.OrchestrationSiteServiceStub;
+import com.vmware.blockchain.deployment.v1.OrchestrationSiteServiceGrpc.OrchestrationSiteServiceStub;
 import com.vmware.blockchain.deployment.v1.OrchestrationSiteView;
 import com.vmware.blockchain.services.profiles.Organization;
 import com.vmware.blockchain.services.profiles.OrganizationService;
@@ -71,11 +71,17 @@ public class ZoneService {
      * (Re)load the zone list.
      */
     public void loadZones()  throws Exception {
-        ListOrchestrationSitesRequest request = new ListOrchestrationSitesRequest(new MessageHeader(), 0, "");
+        ListOrchestrationSitesRequest request = ListOrchestrationSitesRequest.newBuilder()
+                .setHeader(MessageHeader.newBuilder().build())
+                .setPageSize(0)
+                .setPageToken("")
+                .build();
+
         CompletableFuture<ListOrchestrationSitesResponse> future = new CompletableFuture<>();
 
         client.listOrchestrationSites(request, FleetUtils.blockedResultObserver(future));
-        List<OrchestrationSiteView> sites = future.get().getSites();
+        //getsitesorbuilderlist
+        List<OrchestrationSiteView> sites = future.get().getSitesList();
         zones = sites.stream()
                 .map(s -> new Zone(FleetUtils.toUuid(s.getId()), typeMap.get(s.getType()), s.getLabels()))
                 .collect(

@@ -46,7 +46,7 @@ import com.vmware.blockchain.MvcConfig;
 import com.vmware.blockchain.auth.AuthHelper;
 import com.vmware.blockchain.auth.AuthenticationContext;
 import com.vmware.blockchain.common.HelenExceptionHandler;
-import com.vmware.blockchain.deployment.v1.FleetManagementServiceStub;
+import com.vmware.blockchain.deployment.v1.FleetManagementServiceGrpc.FleetManagementServiceStub;
 import com.vmware.blockchain.deployment.v1.MessageHeader;
 import com.vmware.blockchain.deployment.v1.UpdateInstanceRequest;
 import com.vmware.blockchain.deployment.v1.UpdateInstanceResponse;
@@ -182,7 +182,11 @@ class ReplicaControllerTest {
     void nodeAction() throws Exception {
         setCallbacks(i -> {
             ReplicaObserver n = i.getArgument(1);
-            n.onNext(new UpdateInstanceResponse(new MessageHeader("done")));
+            n.onNext(UpdateInstanceResponse.newBuilder()
+                    .setHeader(MessageHeader.newBuilder()
+                            .setId("done")
+                            .build())
+                    .build());
             n.onCompleted();
             return null;
         });
@@ -231,8 +235,14 @@ class ReplicaControllerTest {
     void nodeActionFail() throws Exception {
         setCallbacks(i -> {
             ReplicaObserver n = i.getArgument(1);
-            n.onNext(new UpdateInstanceResponse(new MessageHeader("done")));
+            n.onNext(UpdateInstanceResponse.newBuilder()
+                    .setHeader(MessageHeader.newBuilder()
+                            .setId("done")
+                            .build())
+                    .build());
+
             n.onError(new Exception("oof"));
+
             return null;
         });
 
@@ -252,7 +262,11 @@ class ReplicaControllerTest {
     void nodeListAction() throws Exception {
         setCallbacks(i -> {
             ReplicaObserver n = i.getArgument(1);
-            n.onNext(new UpdateInstanceResponse(new MessageHeader("done")));
+            n.onNext(UpdateInstanceResponse.newBuilder()
+                    .setHeader(MessageHeader.newBuilder()
+                            .setId("done")
+                            .build())
+                    .build());
             n.onCompleted();
             return null;
         });
@@ -283,7 +297,12 @@ class ReplicaControllerTest {
     void replicaListAction() throws Exception {
         setCallbacks(i -> {
             ReplicaObserver n = i.getArgument(1);
-            n.onNext(new UpdateInstanceResponse(new MessageHeader("done")));
+            n.onNext(UpdateInstanceResponse.newBuilder()
+                    .setHeader(MessageHeader.newBuilder()
+                            .setId("done")
+                            .build())
+                    .build());
+
             n.onCompleted();
             return null;
         });

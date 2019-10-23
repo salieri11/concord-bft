@@ -54,7 +54,6 @@ import com.vmware.blockchain.auth.AuthHelper;
 import com.vmware.blockchain.auth.AuthenticationContext;
 import com.vmware.blockchain.common.HelenExceptionHandler;
 import com.vmware.blockchain.common.NotFoundException;
-import com.vmware.blockchain.common.fleetmanagment.FleetUtils;
 import com.vmware.blockchain.deployment.v1.ConcordCluster;
 import com.vmware.blockchain.deployment.v1.ConcordClusterIdentifier;
 import com.vmware.blockchain.deployment.v1.ConcordClusterInfo;
@@ -74,7 +73,7 @@ import com.vmware.blockchain.deployment.v1.DeploymentSessionIdentifier;
 import com.vmware.blockchain.deployment.v1.OrchestrationSiteIdentifier;
 import com.vmware.blockchain.deployment.v1.PlacementSpecification;
 import com.vmware.blockchain.deployment.v1.ProvisionedResource;
-import com.vmware.blockchain.deployment.v1.ProvisioningServiceStub;
+import com.vmware.blockchain.deployment.v1.ProvisioningServiceGrpc.ProvisioningServiceStub;
 import com.vmware.blockchain.deployment.v1.StreamClusterDeploymentSessionEventRequest;
 import com.vmware.blockchain.operation.OperationContext;
 import com.vmware.blockchain.security.MvcTestSecurityConfig;
@@ -362,7 +361,10 @@ public class BlockchainControllerTest {
                                  ImmutableList.of(C3_ID),
                                  Collections.emptyList(), "");
 
-        dsId = FleetUtils.identifier(DeploymentSessionIdentifier.class, DEP_ID);
+        dsId = DeploymentSessionIdentifier.newBuilder()
+                .setLow(DEP_ID.getLeastSignificantBits())
+                .setHigh(DEP_ID.getMostSignificantBits())
+                .build();
         setCreateCluster(i -> {
             StreamObserver ob = i.getArgument(1);
             ob.onNext(dsId);
@@ -493,7 +495,7 @@ public class BlockchainControllerTest {
         verify(client).createCluster(captor.capture(), any(StreamObserver.class));
         CreateClusterRequest request = captor.getValue();
         Assertions.assertEquals(4, request.getSpecification().getClusterSize());
-        List<PlacementSpecification.Entry> entries = request.getSpecification().getPlacement().getEntries();
+        List<PlacementSpecification.Entry> entries = request.getSpecification().getPlacement().getEntriesList();
         Assertions.assertEquals(4, entries.size());
         Assertions.assertTrue(entries.stream().allMatch(e -> e.getType() == PlacementSpecification.Type.UNSPECIFIED));
     }
@@ -508,14 +510,21 @@ public class BlockchainControllerTest {
         verify(client).createCluster(captor.capture(), any(StreamObserver.class));
         CreateClusterRequest request = captor.getValue();
         Assertions.assertEquals(4, request.getSpecification().getClusterSize());
-        List<PlacementSpecification.Entry> entries = request.getSpecification().getPlacement().getEntries();
+        List<PlacementSpecification.Entry> entries = request.getSpecification().getPlacement().getEntriesList();
         Assertions.assertEquals(4, entries.size());
         Assertions.assertTrue(entries.stream().allMatch(e -> e.getType() == PlacementSpecification.Type.FIXED));
         Assertions.assertEquals(3, entries.stream()
-                .filter(e -> FleetUtils.identifier(OrchestrationSiteIdentifier.class, SITE_1).equals(e.getSite()))
+                .filter(e -> OrchestrationSiteIdentifier.newBuilder()
+                                .setLow(SITE_1.getLeastSignificantBits()).setHigh(SITE_1.getMostSignificantBits())
+                                .build()
+                        .equals(e.getSite()))
                 .count());
         Assertions.assertEquals(1, entries.stream()
-                .filter(e -> FleetUtils.identifier(OrchestrationSiteIdentifier.class, SITE_2).equals(e.getSite()))
+                .filter(e -> OrchestrationSiteIdentifier.newBuilder()
+                                .setLow(SITE_2.getLeastSignificantBits())
+                                .setHigh(SITE_2.getMostSignificantBits())
+                                .build()
+                        .equals(e.getSite()))
                 .count());
     }
 
@@ -529,14 +538,22 @@ public class BlockchainControllerTest {
         verify(client).createCluster(captor.capture(), any(StreamObserver.class));
         CreateClusterRequest request = captor.getValue();
         Assertions.assertEquals(4, request.getSpecification().getClusterSize());
-        List<PlacementSpecification.Entry> entries = request.getSpecification().getPlacement().getEntries();
+        List<PlacementSpecification.Entry> entries = request.getSpecification().getPlacement().getEntriesList();
         Assertions.assertEquals(4, entries.size());
         Assertions.assertTrue(entries.stream().allMatch(e -> e.getType() == PlacementSpecification.Type.FIXED));
         Assertions.assertEquals(3, entries.stream()
-                .filter(e -> FleetUtils.identifier(OrchestrationSiteIdentifier.class, SITE_1).equals(e.getSite()))
+                .filter(e -> OrchestrationSiteIdentifier.newBuilder()
+                                .setLow(SITE_1.getLeastSignificantBits())
+                                .setHigh(SITE_1.getMostSignificantBits())
+                                .build()
+                        .equals(e.getSite()))
                 .count());
         Assertions.assertEquals(1, entries.stream()
-                .filter(e -> FleetUtils.identifier(OrchestrationSiteIdentifier.class, SITE_2).equals(e.getSite()))
+                .filter(e -> OrchestrationSiteIdentifier.newBuilder()
+                        .setLow(SITE_2.getLeastSignificantBits())
+                        .setHigh(SITE_2.getMostSignificantBits())
+                        .build()
+                        .equals(e.getSite()))
                 .count());
     }
 
@@ -646,25 +663,62 @@ public class BlockchainControllerTest {
     }
 
     ConcordNode buildNode(UUID nodeId, UUID siteId, int ip, String url) {
-        ConcordNodeEndpoint endpoint = new ConcordNodeEndpoint(url, "cert");
-        ConcordNodeHostInfo hostInfo =
-                new ConcordNodeHostInfo(FleetUtils.identifier(OrchestrationSiteIdentifier.class, siteId),
-                                        ImmutableMap.of(ip, ip),
-                                        ImmutableMap.of("ethereum-rpc", endpoint));
-        ConcordNodeInfo nodeInfo = new ConcordNodeInfo(new ConcordModelIdentifier(1, 0),
-                                                       ImmutableMap.of("ip", ip),
-                                                       ConcordModelSpecification.BlockchainType.ETHEREUM);
-        return new ConcordNode(FleetUtils.identifier(ConcordNodeIdentifier.class, nodeId),
-                               nodeInfo, hostInfo);
+        ConcordNodeEndpoint endpoint = ConcordNodeEndpoint.newBuilder()
+                .setUrl(url)
+                .setCertificate("cert")
+                .build();
+
+        ConcordNodeHostInfo hostInfo = ConcordNodeHostInfo.newBuilder()
+                .setSite(OrchestrationSiteIdentifier.newBuilder()
+                        .setLow(siteId.getLeastSignificantBits())
+                        .setHigh(siteId.getMostSignificantBits())
+                        .build())
+                .putAllIpv4AddressMap(ImmutableMap.of(ip, ip))
+                .putAllEndpoints(ImmutableMap.of("ethereum-rpc", endpoint))
+                .build();
+
+        ConcordNodeInfo nodeInfo = ConcordNodeInfo.newBuilder()
+                .setModel(ConcordModelIdentifier.newBuilder()
+                        .setLow(1)
+                        .setHigh(0)
+                        .build())
+                .putAllIpv4Addresses(ImmutableMap.of("ip", ip))
+                .setBlockchainType(ConcordModelSpecification.BlockchainType.ETHEREUM)
+                .build();
+
+        return ConcordNode.newBuilder()
+                .setId(ConcordNodeIdentifier.newBuilder()
+                        .setLow(nodeId.getLeastSignificantBits())
+                        .setHigh(nodeId.getMostSignificantBits())
+                        .build())
+                .setInfo(nodeInfo)
+                .setHostInfo(hostInfo)
+                .build();
     }
 
     ConcordCluster buildCluster(UUID clusterId, List<ConcordNode> members) {
-        ConcordClusterInfo info = new ConcordClusterInfo(members);
-        return new ConcordCluster(FleetUtils.identifier(ConcordClusterIdentifier.class, clusterId), info);
+        ConcordClusterInfo info = ConcordClusterInfo.newBuilder()
+                .addAllMembers(members)
+                .build();
+
+        return ConcordCluster.newBuilder()
+                .setId(ConcordClusterIdentifier.newBuilder()
+                        .setLow(clusterId.getLeastSignificantBits())
+                        .setHigh(clusterId.getMostSignificantBits())
+                        .build())
+                .setInfo(info)
+                .build();
     }
 
     DeploymentSessionEvent buildEvent(Type type, ConcordCluster cluster, Status status) {
-        return new DeploymentSessionEvent(type, dsId, status, new ProvisionedResource(),
-                                          new ConcordNode(), new ConcordNodeStatus(), cluster);
+        return DeploymentSessionEvent.newBuilder()
+                .setType(type)
+                .setSession(dsId)
+                .setStatus(status)
+                .setResource(ProvisionedResource.newBuilder().build())
+                .setNode(ConcordNode.newBuilder().build())
+                .setNodeStatus(ConcordNodeStatus.newBuilder().build())
+                .setCluster(cluster)
+                .build();
     }
 }

@@ -33,7 +33,7 @@ import com.vmware.blockchain.common.BadRequestException;
 import com.vmware.blockchain.common.ErrorCode;
 import com.vmware.blockchain.common.fleetmanagment.FleetUtils;
 import com.vmware.blockchain.deployment.v1.MessageHeader;
-import com.vmware.blockchain.deployment.v1.OrchestrationSiteServiceStub;
+import com.vmware.blockchain.deployment.v1.OrchestrationSiteServiceGrpc.OrchestrationSiteServiceStub;
 import com.vmware.blockchain.deployment.v1.ValidateOrchestrationSiteRequest;
 import com.vmware.blockchain.deployment.v1.ValidateOrchestrationSiteResponse;
 import com.vmware.blockchain.services.blockchains.BlockchainUtils;
@@ -241,9 +241,11 @@ public class ZoneController {
             }
         }
         if (TEST.equals(action)) {
-            ValidateOrchestrationSiteRequest req =
-                    new ValidateOrchestrationSiteRequest(new MessageHeader(),
-                                                         BlockchainUtils.toInfo(zone));
+            ValidateOrchestrationSiteRequest req = ValidateOrchestrationSiteRequest.newBuilder()
+                    .setHeader(MessageHeader.newBuilder().build())
+                    .setSite(BlockchainUtils.toInfo(zone))
+                    .build();
+
             CompletableFuture<ValidateOrchestrationSiteResponse> future = new CompletableFuture<>();
             orcestrationClient.validateOrchestrationSite(req, FleetUtils.blockedResultObserver(future));
             // We don't really need the value.  If this call succeeds, the connection is OK
