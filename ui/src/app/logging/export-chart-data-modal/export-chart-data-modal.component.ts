@@ -3,7 +3,7 @@
  */
 
 import { Component, Input, OnInit } from '@angular/core';
-import converter from 'json-2-csv';
+import { json2csv } from 'json-2-csv';
 
 import { LogCountEntry } from '../shared/logging.model';
 import { generateDownload } from '../../shared/download-helpers';
@@ -37,7 +37,7 @@ export class ExportChartDataModalComponent implements OnInit {
       };
     });
 
-    converter.json2csv(chartData, (err, csv) => {
+    json2csv(chartData, (err, csv) => {
       if (err) {
         this.errorService.add(err);
       } else {

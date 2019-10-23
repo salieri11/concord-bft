@@ -3,7 +3,7 @@
  */
 
 import { Component, Input, OnInit } from '@angular/core';
-import converter from 'json-2-csv';
+import { json2csv } from 'json-2-csv';
 
 import { LogApiService } from '../shared/log-api.service';
 import { LogListEntry, LogTaskCompletedResponse } from '../shared/logging.model';
@@ -69,7 +69,7 @@ export class ExportLogEventsModalComponent implements OnInit {
       });
     } else {
       this.isLoading = false;
-      converter.json2csv(this.exportLogs, (err, csv) => {
+      json2csv(this.exportLogs, (err, csv) => {
         if (err) {
           this.errorService.add(err);
         } else {

@@ -10,14 +10,14 @@ import { ReactiveFormsModule } from '@angular/forms';
 import { AuthenticationService } from '../../shared/authentication.service';
 import { PersonaService } from '../../shared/persona.service';
 import { MockSharedModule } from '../../shared/shared.module';
-import { SetupModalComponent } from './setup-modal.component';
-import { CanViewDirective } from './../../shared/directives/can-view.directive';
-import { BlockchainService, BlockchainsServiceMock } from './../../blockchain/shared/blockchain.service';
+import { WelcomeComponent } from './welcome.component';
+import { CanViewDirective } from '../../shared/directives/can-view.directive';
+import { BlockchainService, BlockchainsServiceMock } from '../../blockchain/shared/blockchain.service';
 
 
-describe('SetupModalComponent', () => {
-  let component: SetupModalComponent;
-  let fixture: ComponentFixture<SetupModalComponent>;
+describe('WelcomeComponent', () => {
+  let component: WelcomeComponent;
+  let fixture: ComponentFixture<WelcomeComponent>;
 
   beforeEach(async(() => {
     TestBed.configureTestingModule({
@@ -27,7 +27,7 @@ describe('SetupModalComponent', () => {
         HttpClientTestingModule,
         ReactiveFormsModule
       ],
-      declarations: [ SetupModalComponent, CanViewDirective ],
+      declarations: [ WelcomeComponent, CanViewDirective ],
       providers: [
         AuthenticationService,
         PersonaService,
@@ -41,7 +41,7 @@ describe('SetupModalComponent', () => {
   }));
 
   beforeEach(() => {
-    fixture = TestBed.createComponent(SetupModalComponent);
+    fixture = TestBed.createComponent(WelcomeComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });
