@@ -79,7 +79,7 @@
   position: absolute;
   width: 100%;
   top: 0;
-  top: 8rem;
+  top: 4.25rem;
 }
 
 a.disable {
@@ -90,4 +90,10 @@ a.disable {
 
 .card.error {
   margin-top: 5vh;
+}
+
+.welcome-card {
+  max-width: 620px;
+  padding: 50px;
+  margin: 0 auto;
 }

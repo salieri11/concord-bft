@@ -24,6 +24,7 @@ export class OrgService {
   }
 
   getList(): Observable<Org[]> {
+    if (!this.blockchainService.selectedBlockchain) { return new Observable<Org[]>(); }
     return this.http.get<Org[]>(this.orgConsortiumPath);
   }
 

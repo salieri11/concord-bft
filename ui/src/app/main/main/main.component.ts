@@ -17,9 +17,9 @@ import { TourService } from '../../shared/tour.service';
 
 import { BlockchainWizardComponent } from '../../blockchain/blockchain-wizard/blockchain-wizard.component';
 import { OnPremisesModalComponent } from '../../blockchain/on-premises-modal/on-premises-modal.component';
-import { SetupModalComponent } from '../setup-modal/setup-modal.component';
 import { DeployingInterstialComponent } from '../deploying-interstitial/deploying-interstitial.component';
 import { External, ConsortiumStates } from '../../shared/urls.model';
+import { ClrModal } from '@clr/angular';
 
 
 @Component({
@@ -28,7 +28,7 @@ import { External, ConsortiumStates } from '../../shared/urls.model';
   styleUrls: ['./main.component.scss']
 })
 export class MainComponent implements OnInit, OnDestroy {
-  @ViewChild('welcomeModal', { static: true }) welcomeModal: SetupModalComponent;
+  @ViewChild('welcomeModal', { static: true }) welcomeModal: ClrModal;
   @ViewChild('blockchainWizard', { static: true }) blockchainWizard: BlockchainWizardComponent;
   @ViewChild('addOnPremises', { static: true }) addOnPremises: OnPremisesModalComponent;
   @ViewChild('deployLoader', { static: true }) deployLoader: DeployingInterstialComponent;
@@ -45,6 +45,7 @@ export class MainComponent implements OnInit, OnDestroy {
   error: HttpErrorResponse;
   urls = External;
   disableDeploy: boolean;
+  welcomeCardVisible: boolean;
   blockchainType: string;
 
   alertSub: Subscription;
@@ -104,6 +105,7 @@ export class MainComponent implements OnInit, OnDestroy {
 
     this.blockchainWizard.setupComplete.subscribe(
       response => {
+        this.welcomeCardVisible = false;
         this.router.navigate(['/deploying', 'dashboard']);
         this.enableRouterOutlet = false;
         this.deployLoader.startLoading(response);
@@ -142,10 +144,6 @@ export class MainComponent implements OnInit, OnDestroy {
     this.openDeployDapp = true;
   }
 
-  welcome(): void {
-    this.welcomeModal.open();
-  }
-
   openDeployWizard() {
     this.blockchainWizard.open();
   }
@@ -165,6 +163,18 @@ export class MainComponent implements OnInit, OnDestroy {
           this.router.navigate([`/${this.selectedConsortium}`, 'dashboard']);
           break;
 
+        /* :consortiumId route resolves to 'undefined' when no consortium joined
+          show welcome page with card in that case*/
+        case 'undefined':
+          this.welcomeCardVisible = (!this.blockchains || this.blockchains.length === 0);
+          break;
+
+        case 'deploying':
+          // Deploy progress insterstitial conflicts with welcome card
+          // TODO, make deploying interstitial and welcome into separate child route to avoid this conflict
+          this.welcomeCardVisible = false;
+          break;
+
         default:
           this.selectedConsortium = blockchainId;
           this.navDisabled = false;
@@ -178,13 +188,15 @@ export class MainComponent implements OnInit, OnDestroy {
     switch (fragment) {
       case 'welcome':
         this.blockchainWizard.close();
-        this.welcome();
+        this.welcomeModal.open();
         break;
       case 'deploy':
         this.welcomeModal.close();
         this.openDeployWizard();
         break;
       default:
+        this.welcomeModal.close();
+        this.blockchainWizard.close();
         break;
     }
   }

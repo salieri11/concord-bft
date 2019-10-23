@@ -19,7 +19,7 @@ import { VmwThemeSwitchButtonComponent } from '../../shared/components/theme-swi
 import { BlockchainWizardComponent } from '../../blockchain/blockchain-wizard/blockchain-wizard.component';
 import { VersionComponent } from '../../shared/components/version/version.component';
 import { DeployingInterstialComponent } from '../deploying-interstitial/deploying-interstitial.component';
-import { SetupModalComponent } from '../setup-modal/setup-modal.component';
+import { WelcomeComponent } from '../welcome/welcome.component';
 
 import { ErrorAlertService } from '../../shared/global-error-handler.service';
 import { VmwClarityThemeService } from '../../shared/theme.provider';
@@ -53,7 +53,7 @@ describe('MainComponent', () => {
         VmwThemeSwitchButtonComponent,
         VersionComponent,
         DeployingInterstialComponent,
-        SetupModalComponent,
+        WelcomeComponent,
         BlockchainWizardComponent,
         InivteUserComponent,
         OnPremisesModalComponent,

@@ -26,7 +26,7 @@ import { DeveloperModule } from '../developer/developer.module';
 import { ErrorAlertService, GlobalErrorHandlerService } from '../shared/global-error-handler.service';
 
 import { MainComponent } from './main/main.component';
-import { SetupModalComponent } from './setup-modal/setup-modal.component';
+import { WelcomeComponent } from './welcome/welcome.component';
 import { DeployingInterstialComponent } from './deploying-interstitial/deploying-interstitial.component';
 
 
@@ -52,7 +52,7 @@ import { DeployingInterstialComponent } from './deploying-interstitial/deploying
   ],
   declarations: [
     MainComponent,
-    SetupModalComponent,
+    WelcomeComponent,
     DeployingInterstialComponent,
   ],
   providers: [

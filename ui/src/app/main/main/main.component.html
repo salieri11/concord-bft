@@ -12,6 +12,9 @@
   <div class="content-container">
     <main class="content-area">
       <router-outlet *ngIf="enableRouterOutlet"></router-outlet>
+      <div *ngIf="welcomeCardVisible" class="card welcome-card" style="margin-top: 12vh;">
+        <concord-welcome></concord-welcome>
+      </div>
       <div *ngIf="!enableRouterOutlet && showErrorMessage" class="clr-row clr-justify-content-center">
         <div class="clr-col-lg-5 clr-col-md-8 clr-col-12">
           <div class="card error">
@@ -47,7 +50,7 @@
       <label class="nav-header">
         {{ 'nav.consortium' | translate }}
       </label>
-      <select clrSelect name="cosortiums" [(ngModel)]="selectedConsortium" class="consortium-select"
+      <select clrSelect name="consortiums" [(ngModel)]="selectedConsortium" class="consortium-select"
         (change)="consortiumChange()">
         <option *ngFor="let consortium of blockchains" [value]="consortium.id">
           {{ consortium.consortium_name }}
@@ -111,6 +114,8 @@
     </clr-vertical-nav>
   </div>
 </clr-main-container>
-<concord-setup-modal #welcomeModal></concord-setup-modal>
+<clr-modal #welcomeModal>
+    <concord-welcome #welcomeComponent class="modal-body"></concord-welcome>
+</clr-modal>
 <concord-blockchain-wizard #blockchainWizard></concord-blockchain-wizard>
 <concord-on-premises-modal #addOnPremises></concord-on-premises-modal>
