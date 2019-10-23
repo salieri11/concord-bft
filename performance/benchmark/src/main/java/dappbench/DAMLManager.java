@@ -29,17 +29,18 @@ import com.vmware.blockchain.performance.Utils;
 public class DAMLManager {
     private final static Logger logger = getLogger(DAMLManager.class);
 
-    private int ledgerPort;
-    private String party;
-    private int rateControl;
-    private int numOfTransactions;
+    private final String party;
+    private final int numOfTransactions;
+    private final int rateControl;
+    private final boolean logging;
 
     public DAMLManager(Workload workload) {
         List<String> params = workload.getParams();
-        this.ledgerPort = Integer.parseInt(params.get(0));
-        this.party = params.get(1);
-        this.numOfTransactions = Integer.parseInt(params.get(2));
+        this.party = params.get(0);
+        this.numOfTransactions = Integer.parseInt(params.get(1));
         this.rateControl = workload.getRateControl();
+        this.logging = workload.getLogging();
+
         logger.info("Total number of Transactions {}", numOfTransactions);
         logger.info("Rate control value: {}", rateControl);
     }
@@ -47,8 +48,8 @@ public class DAMLManager {
     /**
      * Creates IOU commands and executes them on given nodes.
      */
-    public void processDAMLTransactions(List<Node> nodes) {
-        Map<DamlClient, Long> clientToTx = initClients(nodes);
+    public void processDAMLTransactions(List<Node> nodes, int ledgerPort) {
+        Map<DamlClient, Long> clientToTx = initClients(nodes, ledgerPort);
         logger.info("Expected distribution: {}", clientToTx);
         List<DamlClient> clients = assignClients(clientToTx);
 
@@ -60,7 +61,9 @@ public class DAMLManager {
         for (int i = 0; i < clients.size(); i++) {
             int iouAmount = random.nextInt(10000) + 1;
             Iou iou = new Iou("Alice", "Alice", "AliceCoin", new BigDecimal(iouAmount), emptyList());
-            logger.trace("{}", iou);
+            if (logging) {
+                logger.info("{}", iou);
+            }
             Command command = iou.create();
             DamlClient client = clients.get(i);
             client.submitIou(command, party);
@@ -78,7 +81,7 @@ public class DAMLManager {
     /**
      * Create client for each node and determine transaction count for it.
      */
-    private Map<DamlClient, Long> initClients(List<Node> nodes) {
+    private Map<DamlClient, Long> initClients(List<Node> nodes, int ledgerPort) {
         validate(nodes);
 
         Map<DamlClient, Long> clientToTx = new HashMap<>();

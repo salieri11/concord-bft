@@ -375,7 +375,7 @@ public class BenchMaster {
 				logger.info("Running IOU workloads");
 				Workload workload = workloads.get(0);
 				DAMLManager damlManager = new DAMLManager(workload);
-				damlManager.processDAMLTransactions(simpleConfig.getNodes());
+				damlManager.processDAMLTransactions(simpleConfig.getNodes(), simpleConfig.getPort());
 			}
 
 			if (advancedConfig.getEsxTop()) {

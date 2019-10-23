@@ -1,8 +1,11 @@
+# pre-deploy the QuickStart DApp from DAML website (https://docs.daml.com/getting-started/quickstart.html)
+# example:  daml deploy --host=10.40.205.67 --port=6865
+
 simpleConfig:
   blockchain: concord #concord, etheruem, or quorum
   environment: onprem
   nodeCount: 4
-  port: 8545
+  port: 6865
   http: false
   nodes:
     - ip: 10.40.205.70
@@ -28,7 +31,6 @@ simpleConfig:
       rateControl: 60
       logging: false
       params:
-        - 6865 #ledgerPort
         - Alice #party
         - 100 #numOfTrasactions
   sleepTime: 1000
