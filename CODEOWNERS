@@ -14,8 +14,8 @@
 /agent/ @jameschang
 /blockchain-build/ @jameschang
 /buildall.sh @rvollmar @rsg
-/communication/
-/concord/
+/communication/ @bfink
+/concord/ @bfink
 /contract-compiler/
 /csp-dev/
 /daml/
@@ -28,7 +28,7 @@
 /docker-compose-ethrpc.yml
 /docker-compose-helen.yml
 /docker-compose-ui.yml
-/ethrpc/
+/ethrpc/ @bfink
 /helen/ @machenbach @panamika
 /hermes/ @rvollmar @rsg
 /Jenkinsfile @rvollmar @rsg
