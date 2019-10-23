@@ -1,14 +1,19 @@
 package dappbench;
 
+import static java.lang.Math.round;
 import static java.lang.System.exit;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.shuffle;
 import static java.util.stream.Collectors.summingInt;
+import static java.util.stream.Collectors.toMap;
 import static org.apache.logging.log4j.LogManager.getLogger;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 
 import org.apache.logging.log4j.Logger;
@@ -43,13 +48,16 @@ public class DAMLManager {
      * Creates IOU commands and executes them on given nodes.
      */
     public void processDAMLTransactions(List<Node> nodes) {
-        List<DamlClient> clients = createClients(nodes);
+        Map<DamlClient, Long> clientToTx = initClients(nodes);
+        logger.info("Expected distribution: {}", clientToTx);
+        List<DamlClient> clients = assignClients(clientToTx);
+
         Random random = new Random();
         long startTime = System.nanoTime();
 
         logger.info("Starting transaction ...");
 
-        for (int i = 0; i < numOfTransactions; i++) {
+        for (int i = 0; i < clients.size(); i++) {
             int iouAmount = random.nextInt(10000) + 1;
             Iou iou = new Iou("Alice", "Alice", "AliceCoin", new BigDecimal(iouAmount), emptyList());
             logger.trace("{}", iou);
@@ -64,17 +72,16 @@ public class DAMLManager {
         }
 
         long endTime = System.nanoTime();
-        summarize(endTime - startTime);
+        summarize(endTime - startTime, clientToTx.keySet());
     }
 
     /**
-     * Assign client for each transaction based on the configured distribution and
-     * shuffle them.
+     * Create client for each node and determine transaction count for it.
      */
-    private List<DamlClient> createClients(List<Node> nodes) {
+    private Map<DamlClient, Long> initClients(List<Node> nodes) {
         validate(nodes);
 
-        List<DamlClient> clients = new ArrayList<>();
+        Map<DamlClient, Long> clientToTx = new HashMap<>();
 
         for (Node node : nodes) {
             if (node.getPercentage() == 0) {
@@ -84,19 +91,35 @@ public class DAMLManager {
             DamlClient client = new DamlClient(node.getIp(), ledgerPort);
             client.init();
 
-            int txCount = numOfTransactions * node.getPercentage() / 100;
-            logger.info("Node {} will receive {} IOU commands", node.getIp(), txCount);
+            long txCount = round(numOfTransactions * ((double) node.getPercentage() / 100));
+            clientToTx.put(client, txCount);
+        }
 
+        adjustResidue(clientToTx);
+
+        return clientToTx;
+    }
+
+    /**
+     * Make sure that sum of transaction count of each node is equal to the total
+     * transaction count.
+     */
+    private void adjustResidue(Map<DamlClient, Long> clientToTx) {
+        int numOfAssignedTx = clientToTx.values().stream().mapToInt(Long::intValue).sum();
+        if (numOfTransactions != numOfAssignedTx) {
+            logger.warn("Discrepancy between expected [{}] and assigned [{}] tx", numOfTransactions, numOfAssignedTx);
+        }
+    }
+
+    private List<DamlClient> assignClients(Map<DamlClient, Long> clientToTx) {
+        List<DamlClient> clients = new ArrayList<>(numOfTransactions);
+
+        clientToTx.forEach((client, txCount) -> {
             while (txCount > 0) {
                 clients.add(client);
                 txCount--;
             }
-        }
-
-        int residualTxCount = numOfTransactions - clients.size();
-        if (residualTxCount > 0) {
-            logger.info("Assigning {} residual transactions to node {}", residualTxCount, nodes.get(0).getIp());
-        }
+        });
 
         shuffle(clients);
         return clients;
@@ -116,11 +139,12 @@ public class DAMLManager {
     /**
      * Summarize the workload.
      */
-    private void summarize(long totalTime) {
+    private void summarize(long totalTime, Collection<DamlClient> clients) {
         long timeElaps = totalTime / 1_000_000;
-        logger.info("Total time taken: " + timeElaps + " ms");
-        logger.info("Average latency: " + totalTime / (numOfTransactions * 1_000_000) + " ms");
-        logger.info("Throughput: " + (numOfTransactions * 1.0 / totalTime) * 1_000_000_000 + " tps");
+        logger.info("Total time taken: {} ms", timeElaps);
+        logger.info("Average latency: {} ms", totalTime / (numOfTransactions * 1_000_000));
+        logger.info("Throughput: {} tps", round((numOfTransactions * 1.0 / totalTime) * 1_000_000_000));
+        logger.info("Nodes: {}", clients.stream().collect(toMap(DamlClient::getLedgerHost, DamlClient::getTxCount)));
     }
 
 }

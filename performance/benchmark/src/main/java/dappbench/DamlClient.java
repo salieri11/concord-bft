@@ -68,4 +68,9 @@ public class DamlClient {
         return txCount.get();
     }
 
+    @Override
+    public String toString() {
+        return getLedgerHost();
+    }
+
 }

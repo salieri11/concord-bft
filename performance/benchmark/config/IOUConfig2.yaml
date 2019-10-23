@@ -28,12 +28,8 @@ simpleConfig:
       rateControl: 60
       logging: false
       params:
-        - ../daml/quickstart    #daml contract path
-        - target/daml-quickstart-java-1.0.0-jar-with-dependencies.jar           #executable
-        - localhost
-        - 6865
+        - 6865 #ledgerPort
         - Alice #party
-        - 8080 #restPort
         - 100 #numOfTrasactions
   sleepTime: 1000
   outputDir: ./perf_result
