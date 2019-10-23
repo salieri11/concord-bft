@@ -14,11 +14,11 @@ spec:
     spec:
       imagePullSecrets:
         - name: bintray
-      hostname: helen
+      hostname: dbserver
       hostAliases:
       - ip: "127.0.0.1"
         hostnames:
-        - "db-server"
+        - "dbserver"
         - "helen"
         - "contract-compiler"
         - "persephone-provisioning"
@@ -48,13 +48,16 @@ spec:
             exec:
               command: ["/bin/sh", "-c", "/cockroach/cockroach quit --insecure"]
       - name: contract-compiler
-        image: vmware-docker-blockchainsaas.bintray.io/contract-compiler:latest
+        image: vmware-docker-blockchainsaas.bintray.io/vmwblockchain/contract-compiler:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 3000
       - name: helen
-        image: vmware-docker-blockchainsaas.bintray.io/helen:latest
+        image: vmware-docker-blockchainsaas.bintray.io/vmwblockchain/helen:latest
         imagePullPolicy: Always
+        env:
+        - name: APPCONTEXT
+          value: "test"
         ports:
         - containerPort: 8080
         volumeMounts:
@@ -62,7 +65,7 @@ spec:
           mountPath: /config/app/profiles/
           readOnly: true
       - name: ui
-        image: vmware-docker-blockchainsaas.bintray.io/ui:demo1
+        image: vmware-docker-blockchainsaas.bintray.io/vmwblockchain/ui:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 80
@@ -71,7 +74,7 @@ spec:
           mountPath: /usr/share/nginx/html/static/app-config.json
           subPath: app-config.json
       - name: persephone-provisioning
-        image: vmware-docker-blockchainsaas.bintray.io/persephone-provisioning:latest
+        image: vmware-docker-blockchainsaas.bintray.io/vmwblockchain/persephone-provisioning:latest
         ports:
         - containerPort: 9002
         imagePullPolicy: Always
@@ -89,11 +92,11 @@ spec:
           defaultMode: 0700
       - name: helencontext-volume
         configMap:
-          name: helencontext
+          name: helencontext-demo
           defaultMode: 0700
       - name: fleet-volume
         configMap:
-          name: fleetprod-noauth
+          name: fleetprod-demo
           defaultMode: 0700
       - name: ui-volume
         configMap:

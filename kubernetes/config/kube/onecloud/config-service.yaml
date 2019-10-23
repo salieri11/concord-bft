@@ -1,26 +1,26 @@
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
-  name: provisioning-service
+  name: config-service
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: provisioning-service
+      app: config-service
   template:
     metadata:
       labels:
-        app: provisioning-service
+        app: config-service
     spec:
       containers:
-      - name: provisioning-service
-        image: athena-docker-local.artifactory.eng.vmware.com/persephone-provisioning:658
+      - name: config-service
+        image: athena-docker-local.artifactory.eng.vmware.com/persephone-configuration:657
         ports:
-        - containerPort: 9002
+        - containerPort: 9003
         imagePullPolicy: Always
         volumeMounts:
-        - name: provision-volume
-          mountPath: /config/persephone/provisioning/
+        - name: config-volume
+          mountPath: /config/persephone/configuration/
           readOnly: true
         resources:
           requests:
@@ -30,24 +30,24 @@ spec:
             memory: "1024Mi"
             cpu: "1024m"
       imagePullSecrets:
-        - name: vmwartifactory
+        - name: bintray
       volumes:
-      - name: provision-volume
+      - name: config-volume
         configMap:
-          name: fleetprod-noauth
+          name: config-service
           defaultMode: 0700
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: provisioning-service
+  name: config-service
   labels:
-    app: provisioning-service
+    app: config-service
 spec:
   type: NodePort
   ports:
-  - port: 9002
-    nodePort: 30092
-    name: provision
+  - port: 9003
+    nodePort: 30093
+    name: config-service
   selector:
-    app: provisioning-service
+    app: config-service
