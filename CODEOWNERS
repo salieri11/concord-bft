@@ -28,6 +28,7 @@
 /docker-compose-ethrpc.yml
 /docker-compose-helen.yml
 /docker-compose-ui.yml
+/docker/fluentd/ @hbhavsar @mharrison
 /ethrpc/ @bfink
 /helen/ @machenbach @panamika
 /hermes/ @rvollmar @rsg
@@ -41,5 +42,5 @@
 /src/ @rvollmar @rsg
 /start_except.sh
 /submodules/
-/ui/
+/ui/ @mharrison @hbhavsar @tusharg @kkeunwoo @mandeab
 /vars/ @rvollmar @rsg
