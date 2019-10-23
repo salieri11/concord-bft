@@ -15,7 +15,6 @@ import com.vmware.blockchain.deployment.v1.ConfigurationSessionIdentifier
 import com.vmware.blockchain.deployment.v1.Credential
 import com.vmware.blockchain.deployment.v1.Endpoint
 import com.vmware.blockchain.deployment.v1.OutboundProxyInfo
-import com.vmware.blockchain.ethereum.type.Genesis
 import kotlinx.serialization.modules.serializersModuleOf
 
 /**
@@ -24,7 +23,6 @@ import kotlinx.serialization.modules.serializersModuleOf
 class CloudInitConfiguration(
     containerRegistry: Endpoint,
     model: ConcordModelSpecification,
-    genesis: Genesis,
     ipAddress: String,
     gateway: String,
     nameServers: List<String>,
@@ -36,9 +34,6 @@ class CloudInitConfiguration(
     configServiceRestEndpoint: Endpoint,
     outboundProxy: OutboundProxyInfo
 ) {
-    object GenesisSerializer
-        : JsonSerializer(serializersModuleOf(Genesis::class, Genesis.serializer()))
-
     object ConcordAgentConfigurationSerializer
         : JsonSerializer(
             serializersModuleOf(
@@ -145,7 +140,6 @@ class CloudInitConfiguration(
 
             # Adding the genesis block
             mkdir -p /config/concord/config-public
-            echo '{{genesis}}' > /config/concord/config-public/genesis.json
 
             docker run -d --name=agent --restart=always -v /config:/config -v /var/run/docker.sock:/var/run/docker.sock -p 8546:8546 {{agentImage}}
             echo 'done'
@@ -153,7 +147,6 @@ class CloudInitConfiguration(
                     .replace("{{dockerLoginCommand}}", containerRegistry.toRegistryLoginCommand())
                     .replace("{{registrySecuritySetting}}", containerRegistry.toRegistrySecuritySetting())
                     .replace("{{agentImage}}", URI.create(containerRegistry.address).authority + "/" + agentImageName)
-                    .replace("{{genesis}}", GenesisSerializer.toJson(genesis))
                     .replace("{{agentConfig}}", ConcordAgentConfigurationSerializer.toJson(configuration))
                     .replace("{{networkAddressCommand}}", ipAddress.takeIf { it.isNotBlank() }?.let { networkAddressCommand }?: "")
                     .replace("{{staticIp}}", ipAddress)
