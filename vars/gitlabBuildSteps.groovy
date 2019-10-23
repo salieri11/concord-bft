@@ -387,6 +387,7 @@ EOF
 
                   # Update hermes/resources/persephone/provision-service/config.json for persephone (deployment service) testing
                   sed -i -e 's/'"<VMC_API_TOKEN>"'/'"${VMC_API_TOKEN}"'/g' blockchain/hermes/resources/persephone/provisioning/config.json
+                  sed -i -e 's/'"CHANGE_THIS_TO_HermesTesting"'/'"${PROVISIONING_SERVICE_NETWORK_NAME}"'/g' blockchain/hermes/resources/persephone/provisioning/config.json
                   sed -i -e 's/'"<DOCKERHUB_REPO_READER_PASSWORD>"'/'"${DOCKERHUB_REPO_READER_PASSWORD}"'/g' blockchain/hermes/resources/persephone/provisioning/config.json
                 '''
               }
@@ -583,14 +584,23 @@ EOF
 
                     if (env.JOB_NAME.contains(persephone_test_job_name)) {
                       sh '''
-                        echo "Running Entire Testsuite: Persephone..."
-                        echo "${PASSWORD}" | sudo -SE "${python}" main.py PersephoneTests --useLocalConfigService --dockerComposeFile ../docker/docker-compose-persephone.yml --resultsDir "${persephone_test_logs}" --tests "all_tests" --deploymentComponents "${release_persephone_agent_repo}:${docker_tag},${release_concord_repo}:${docker_tag},${release_ethrpc_repo}:${docker_tag},${release_daml_ledger_api_repo}:${docker_tag},${release_daml_execution_engine_repo}:${docker_tag},${release_daml_index_db_repo}:${docker_tag}" --keepBlockchains ${deployment_retention}
+                        echo "Running Entire Testsuite: Persephone (hitting staging config-service)..."
+                        echo "${PASSWORD}" | sudo -SE "${python}" main.py PersephoneTests --dockerComposeFile ../docker/docker-compose-persephone.yml --resultsDir "${persephone_test_logs}" --tests "all_tests" --deploymentComponents "${release_persephone_agent_repo}:${docker_tag},${release_concord_repo}:${docker_tag},${release_ethrpc_repo}:${docker_tag},${release_daml_ledger_api_repo}:${docker_tag},${release_daml_execution_engine_repo}:${docker_tag},${release_daml_index_db_repo}:${docker_tag}" --keepBlockchains ${deployment_retention}
                       '''
                     } else {
-                      sh '''
-                        echo "Running Persephone SMOKE Tests..."
-                        echo "${PASSWORD}" | sudo -SE "${python}" main.py PersephoneTests --useLocalConfigService --dockerComposeFile ../docker/docker-compose-persephone.yml --resultsDir "${persephone_test_logs}" --deploymentComponents "${release_persephone_agent_repo}:${docker_tag},${release_concord_repo}:${dep_comp_docker_tag},${release_ethrpc_repo}:${dep_comp_docker_tag},${release_daml_ledger_api_repo}:${dep_comp_docker_tag},${release_daml_execution_engine_repo}:${dep_comp_docker_tag},${release_daml_index_db_repo}:${dep_comp_docker_tag}" --keepBlockchains ${deployment_retention}
-                      '''
+                      // Due to infra/product/test issue on config-service (bug VB-1770)
+                      // removing --useLocalConfigService from MR/Master runs, but retaining for ON DEMAND Job
+                      if (env.JOB_NAME.contains(persephone_test_on_demand_job_name)) {
+                        sh '''
+                          echo "Running Persephone SMOKE Tests (ON DEMAND hitting local config-service)..."
+                          echo "${PASSWORD}" | sudo -SE "${python}" main.py PersephoneTests --useLocalConfigService --dockerComposeFile ../docker/docker-compose-persephone.yml --resultsDir "${persephone_test_logs}" --deploymentComponents "${release_persephone_agent_repo}:${docker_tag},${release_concord_repo}:${dep_comp_docker_tag},${release_ethrpc_repo}:${dep_comp_docker_tag},${release_daml_ledger_api_repo}:${dep_comp_docker_tag},${release_daml_execution_engine_repo}:${dep_comp_docker_tag},${release_daml_index_db_repo}:${dep_comp_docker_tag}" --keepBlockchains ${deployment_retention}
+                        '''
+                      } else {
+                        sh '''
+                          echo "Running Persephone SMOKE Tests (hitting staging config-service)..."
+                          echo "${PASSWORD}" | sudo -SE "${python}" main.py PersephoneTests --dockerComposeFile ../docker/docker-compose-persephone.yml --resultsDir "${persephone_test_logs}" --deploymentComponents "${release_persephone_agent_repo}:${docker_tag},${release_concord_repo}:${dep_comp_docker_tag},${release_ethrpc_repo}:${dep_comp_docker_tag},${release_daml_ledger_api_repo}:${dep_comp_docker_tag},${release_daml_execution_engine_repo}:${dep_comp_docker_tag},${release_daml_index_db_repo}:${dep_comp_docker_tag}" --keepBlockchains ${deployment_retention}
+                        '''
+                      }
                     }
                   }
                 }
