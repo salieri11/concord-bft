@@ -117,13 +117,13 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
                     logger.info("Blockchain ID: {}", clusterId);
 
                     // create the nodeList for the cluster
-                    cluster.getInfo().getMembers().stream()
+                    cluster.getInfo().getMembersList().stream()
                             .map(BlockchainObserver::toNodeEntry)
                             .peek(node -> logger.info("Node entry, id {}", node.getNodeId()))
                             .forEach(nodeList::add);
 
                     // create the and save the replicas.
-                    cluster.getInfo().getMembers().stream()
+                    cluster.getInfo().getMembersList().stream()
                             .map(n -> toReplica(clusterId, n))
                             .peek(replica -> logger.info("Node entry, id {}", replica.getId()))
                             .forEach(replicaService::put);

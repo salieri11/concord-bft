@@ -9,11 +9,10 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import com.vmware.blockchain.deployment.v1.FleetManagementServiceStub;
-import com.vmware.blockchain.deployment.v1.OrchestrationSiteServiceStub;
-import com.vmware.blockchain.deployment.v1.ProvisioningServiceStub;
+import com.vmware.blockchain.deployment.v1.FleetManagementServiceGrpc;
+import com.vmware.blockchain.deployment.v1.OrchestrationSiteServiceGrpc;
+import com.vmware.blockchain.deployment.v1.ProvisioningServiceGrpc;
 
-import io.grpc.CallOptions;
 import io.grpc.ManagedChannel;
 
 /**
@@ -35,17 +34,17 @@ public class FleetConfig {
     }
 
     @Bean
-    FleetManagementServiceStub fleetManagementServiceStub() {
-        return new FleetManagementServiceStub(fleetManagementServerChannel, CallOptions.DEFAULT);
+    FleetManagementServiceGrpc.FleetManagementServiceStub fleetManagementServiceStub() {
+        return FleetManagementServiceGrpc.newStub(fleetManagementServerChannel);
     }
 
     @Bean
-    ProvisioningServiceStub provisioningServiceStub() {
-        return new ProvisioningServiceStub(provisioningServerChannel, CallOptions.DEFAULT);
+    ProvisioningServiceGrpc.ProvisioningServiceStub provisioningServiceStub() {
+        return ProvisioningServiceGrpc.newStub(provisioningServerChannel);
     }
 
     @Bean
-    OrchestrationSiteServiceStub orchestrationSiteServiceStub() {
-        return new OrchestrationSiteServiceStub(provisioningServerChannel, CallOptions.DEFAULT);
+    OrchestrationSiteServiceGrpc.OrchestrationSiteServiceStub orchestrationSiteServiceStub() {
+        return OrchestrationSiteServiceGrpc.newStub(provisioningServerChannel);
     }
 }

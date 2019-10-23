@@ -107,8 +107,13 @@ public class ConcordConfiguration {
     public List<ConcordComponent> getComponentsByBlockchainType(ConcordModelSpecification.BlockchainType type) {
         List<ConcordComponent> response = new ArrayList<>();
 
-        componentListForBlockchainType.get(type).stream().forEach(k -> response.add(new ConcordComponent(
-                        ConcordComponent.Type.CONTAINER_IMAGE, k, getImageTag(k))));
+        componentListForBlockchainType.get(type).stream().forEach(k -> response.add(
+                ConcordComponent.newBuilder()
+                        .setType(ConcordComponent.Type.CONTAINER_IMAGE)
+                        .setServiceType(k)
+                        .setName(getImageTag(k))
+                        .build()
+                ));
         return response;
     }
 
@@ -117,17 +122,27 @@ public class ConcordConfiguration {
      * @return genesis
      */
     public static Genesis getGenesisObject() {
-        return new Genesis(
-                new Genesis.Config(1, 0, 0, 0),
-                "0x0000000000000000",
-                "0x400",
-                "0x0000000000000000000000000000000000000000000000000000000000000000",
-                "0x0000000000000000000000000000000000000000000000000000000000000000",
-                "0xf4240",
-                Map.of(
-                        "262c0d7ab5ffd4ede2199f6ea793f819e1abb019", new Genesis.Wallet("12345"),
-                        "5bb088f57365907b1840e45984cae028a82af934", new Genesis.Wallet("0xabcdef"),
-                        "0000a12b3f3d6c9b0d3f126a83ec2dd3dad15f39", new Genesis.Wallet("0x7fffffffffffffff")
-                ));
+        return Genesis.newBuilder().setConfig(
+                Genesis.Config.newBuilder()
+                        .setChainId(1)
+                        .setHomesteadBlock(0)
+                        .setEip155Block(0)
+                        .setEip158Block(0)
+                        .build()
+        )
+                .setNonce("0x0000000000000000")
+                .setDifficulty("0x400")
+                .setMixhash("0x0000000000000000000000000000000000000000000000000000000000000000")
+                .setParentHash("0x0000000000000000000000000000000000000000000000000000000000000000")
+                .setGasLimit("0xf4240")
+                .putAllAlloc(Map.of(
+                        "262c0d7ab5ffd4ede2199f6ea793f819e1abb019", Genesis.Wallet.newBuilder()
+                                .setBalance("12345").build(),
+                        "5bb088f57365907b1840e45984cae028a82af934", Genesis.Wallet.newBuilder()
+                                .setBalance("0xabcdef").build(),
+                        "0000a12b3f3d6c9b0d3f126a83ec2dd3dad15f39", Genesis.Wallet.newBuilder()
+                                .setBalance("0x7fffffffffffffff").build()
+                ))
+                .build();
     }
 }

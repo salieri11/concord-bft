@@ -50,7 +50,7 @@ import com.vmware.blockchain.auth.AuthenticationContext;
 import com.vmware.blockchain.common.BadRequestException;
 import com.vmware.blockchain.common.HelenExceptionHandler;
 import com.vmware.blockchain.deployment.v1.OrchestrationSiteInfo;
-import com.vmware.blockchain.deployment.v1.OrchestrationSiteServiceStub;
+import com.vmware.blockchain.deployment.v1.OrchestrationSiteServiceGrpc.OrchestrationSiteServiceStub;
 import com.vmware.blockchain.deployment.v1.ValidateOrchestrationSiteRequest;
 import com.vmware.blockchain.deployment.v1.ValidateOrchestrationSiteResponse;
 import com.vmware.blockchain.security.MvcTestSecurityConfig;
@@ -452,7 +452,7 @@ class ZoneControllerTest {
     @Test
     void testSiteTest() throws Exception {
         // grpc call has a valid return.
-        ValidateOrchestrationSiteResponse r = new ValidateOrchestrationSiteResponse();
+        ValidateOrchestrationSiteResponse r = ValidateOrchestrationSiteResponse.newBuilder().build();
         doAnswer(i -> {
             StreamObserver ob = i.getArgument(1);
             ob.onNext(r);
@@ -472,7 +472,7 @@ class ZoneControllerTest {
     @Test
     void testSiteNoContainer() throws Exception {
         // grpc call has a valid return.
-        ValidateOrchestrationSiteResponse r = new ValidateOrchestrationSiteResponse();
+        ValidateOrchestrationSiteResponse r = ValidateOrchestrationSiteResponse.newBuilder().build();
         doAnswer(i -> {
             StreamObserver ob = i.getArgument(1);
             ob.onNext(r);
@@ -492,7 +492,7 @@ class ZoneControllerTest {
     @Test
     void testSiteNoVcenter() throws Exception {
         // grpc call has a valid return.
-        ValidateOrchestrationSiteResponse r = new ValidateOrchestrationSiteResponse();
+        ValidateOrchestrationSiteResponse r = ValidateOrchestrationSiteResponse.newBuilder().build();
         doAnswer(i -> {
             StreamObserver ob = i.getArgument(1);
             ob.onNext(r);
@@ -512,7 +512,7 @@ class ZoneControllerTest {
     @Test
     void testSiteNoNetwork() throws Exception {
         // grpc call has a valid return.
-        ValidateOrchestrationSiteResponse r = new ValidateOrchestrationSiteResponse();
+        ValidateOrchestrationSiteResponse r = ValidateOrchestrationSiteResponse.newBuilder().build();
         doAnswer(i -> {
             StreamObserver ob = i.getArgument(1);
             ob.onNext(r);
@@ -532,7 +532,7 @@ class ZoneControllerTest {
     @Test
     void testSiteNoFolder() throws Exception {
         // grpc call has a valid return.
-        ValidateOrchestrationSiteResponse r = new ValidateOrchestrationSiteResponse();
+        ValidateOrchestrationSiteResponse r = ValidateOrchestrationSiteResponse.newBuilder().build();
         doAnswer(i -> {
             StreamObserver ob = i.getArgument(1);
             ob.onNext(r);
@@ -552,7 +552,7 @@ class ZoneControllerTest {
     @Test
     void testSiteEmptyFolder() throws Exception {
         // grpc call has a valid return.
-        ValidateOrchestrationSiteResponse r = new ValidateOrchestrationSiteResponse();
+        ValidateOrchestrationSiteResponse r = ValidateOrchestrationSiteResponse.newBuilder().build();
         doAnswer(i -> {
             StreamObserver ob = i.getArgument(1);
             ob.onNext(r);
@@ -573,7 +573,7 @@ class ZoneControllerTest {
     @Test
     void testSiteTestError() throws Exception {
         // grpc call has a valid return.
-        ValidateOrchestrationSiteResponse r = new ValidateOrchestrationSiteResponse();
+        ValidateOrchestrationSiteResponse r = ValidateOrchestrationSiteResponse.newBuilder().build();
         doAnswer(i -> {
             StreamObserver ob = i.getArgument(1);
             ob.onError(new BadRequestException("bad"));

@@ -30,7 +30,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.vmware.blockchain.auth.AuthHelper;
 import com.vmware.blockchain.common.HelenException;
-import com.vmware.blockchain.common.fleetmanagment.FleetUtils;
 import com.vmware.blockchain.deployment.v1.ConcordCluster;
 import com.vmware.blockchain.deployment.v1.ConcordClusterIdentifier;
 import com.vmware.blockchain.deployment.v1.ConcordClusterInfo;
@@ -43,9 +42,12 @@ import com.vmware.blockchain.deployment.v1.ConcordNodeIdentifier;
 import com.vmware.blockchain.deployment.v1.ConcordNodeInfo;
 import com.vmware.blockchain.deployment.v1.ConcordNodeStatus;
 import com.vmware.blockchain.deployment.v1.DeploymentSession.Status;
+import com.vmware.blockchain.deployment.v1.DeploymentSession;
 import com.vmware.blockchain.deployment.v1.DeploymentSessionEvent;
 import com.vmware.blockchain.deployment.v1.DeploymentSessionEvent.Type;
+import com.vmware.blockchain.deployment.v1.DeploymentSessionIdentifier;
 import com.vmware.blockchain.deployment.v1.OrchestrationSiteIdentifier;
+import com.vmware.blockchain.deployment.v1.ProvisionedResource;
 import com.vmware.blockchain.operation.OperationContext;
 import com.vmware.blockchain.services.blockchains.Blockchain.BlockchainType;
 import com.vmware.blockchain.services.blockchains.replicas.Replica;
@@ -120,32 +122,103 @@ public class BlockchainObserverTest {
         blockchainObserver = new BlockchainObserver(authHelper, operationContext, blockchainService, replicaService,
                                                     taskService, TASK_ID, CONS_ID, BlockchainType.ETHEREUM);
         ConcordCluster cluster = createTestCluster(CLUSTER_ID);
-        value = new DeploymentSessionEvent();
-        ReflectionTestUtils.setField(value, "cluster", cluster);
+        DeploymentSessionIdentifier deploymentSessionIdentifier = DeploymentSessionIdentifier.newBuilder()
+                .setLow(0)
+                .setHigh(0)
+                .build();
+        value = DeploymentSessionEvent.newBuilder()
+                .setType(DeploymentSessionEvent.Type.NOOP)
+                .setStatus(DeploymentSession.Status.UNKNOWN)
+                .setSession(deploymentSessionIdentifier)
+                .setResource(ProvisionedResource.newBuilder()
+                        .setType(ProvisionedResource.Type.GENERIC)
+                        .setName("")
+                        .setSite(OrchestrationSiteIdentifier.newBuilder()
+                                .setLow(0)
+                                .setHigh(0)
+                                .build())
+                        .setCluster(ConcordClusterIdentifier.newBuilder()
+                                .setLow(0)
+                                .setHigh(0)
+                                .build())
+                        .setNode(ConcordNodeIdentifier.newBuilder()
+                                .setLow(0)
+                                .setHigh(0)
+                                .build())
+                        .build())
+                .setNode(ConcordNode.newBuilder()
+                        .setId(ConcordNodeIdentifier.newBuilder()
+                                .setLow(0)
+                                .setHigh(0)
+                                .build())
+                        .setInfo(ConcordNodeInfo.newBuilder()
+                                .setModel(ConcordModelIdentifier.newBuilder()
+                                        .setLow(0)
+                                        .setHigh(0)
+                                        .build())
+                                .putAllIpv4Addresses(Collections.emptyMap())
+                                .setBlockchainType(ConcordModelSpecification.BlockchainType.ETHEREUM)
+                                .build())
+                        .setHostInfo(ConcordNodeHostInfo.newBuilder()
+                                .setSite(OrchestrationSiteIdentifier.newBuilder()
+                                        .setLow(0)
+                                        .setHigh(0)
+                                        .build())
+                                .putAllIpv4AddressMap(Collections.emptyMap())
+                                .putAllEndpoints(Collections.emptyMap())
+                                .build())
+                        .build())
+                .setNodeStatus(ConcordNodeStatus.newBuilder()
+                        .setId(ConcordNodeIdentifier.newBuilder()
+                                .setLow(0)
+                                .setHigh(0)
+                                .build())
+                        .setStatus(ConcordNodeStatus.Status.UNKNOWN)
+                        .build())
+                .setCluster(ConcordCluster.newBuilder()
+                        .setId(ConcordClusterIdentifier.newBuilder()
+                                .setLow(0)
+                                .setHigh(0)
+                                .build())
+                        .setInfo(ConcordClusterInfo.newBuilder()
+                                .addAllMembers(Collections.emptyList())
+                                .build())
+                        .build())
+                .build();
+        ReflectionTestUtils.setField(value, "cluster_", cluster);
     }
 
     @Test
     void deployNodeSuccess() throws Exception {
-        ConcordNode node = new ConcordNode(FleetUtils.identifier(ConcordNodeIdentifier.class, NODE_ID),
-                                           new ConcordNodeInfo(), new ConcordNodeHostInfo());
-        ConcordNodeStatus nodeStatus = new ConcordNodeStatus(node.getId(), ConcordNodeStatus.Status.ACTIVE);
+        ConcordNode node = ConcordNode.newBuilder()
+                .setId(ConcordNodeIdentifier.newBuilder()
+                        .setLow(NODE_ID.getLeastSignificantBits())
+                        .setHigh(NODE_ID.getMostSignificantBits())
+                        .build())
+                .setInfo(ConcordNodeInfo.newBuilder().build())
+                .setHostInfo(ConcordNodeHostInfo.newBuilder().build())
+                .build();
+        ConcordNodeStatus nodeStatus = ConcordNodeStatus.newBuilder()
+                .setId(node.getId())
+                .setStatus(ConcordNodeStatus.Status.ACTIVE)
+                .build();
         // sigh.. no setters generated
-        ReflectionTestUtils.setField(value, "type", Type.NODE_DEPLOYED);
-        ReflectionTestUtils.setField(value, "status", Status.ACTIVE);
-        ReflectionTestUtils.setField(value, "node", node);
-        ReflectionTestUtils.setField(value, "nodeStatus", nodeStatus);
+        ReflectionTestUtils.setField(value, "type_", Type.NODE_DEPLOYED.getNumber());
+        ReflectionTestUtils.setField(value, "status_", Status.ACTIVE.getNumber());
+        ReflectionTestUtils.setField(value, "node_", node);
+        ReflectionTestUtils.setField(value, "nodeStatus_", nodeStatus);
         blockchainObserver.onNext(value);
         Assertions.assertEquals("Node e6ef4604-4029-4080-b621-1efa25000e8a deployed, status ACTIVE", task.getMessage());
     }
 
     @Test
     void deployClusterSuccess() throws Exception {
-        ReflectionTestUtils.setField(value, "type", Type.CLUSTER_DEPLOYED);
-        ReflectionTestUtils.setField(value, "status", Status.SUCCESS);
+        ReflectionTestUtils.setField(value, "type_", Type.CLUSTER_DEPLOYED.getNumber());
+        ReflectionTestUtils.setField(value, "status_", Status.SUCCESS.getNumber());
         blockchainObserver.onNext(value);
         Assertions.assertEquals(State.RUNNING, task.getState());
         Assertions.assertEquals("Cluster fb212e5a-0428-46f9-8faa-b3f15c9843e8 deployed", task.getMessage());
-        ReflectionTestUtils.setField(value, "type", Type.COMPLETED);
+        ReflectionTestUtils.setField(value, "type_", Type.COMPLETED.getNumber());
         blockchainObserver.onNext(value);
         Assertions.assertEquals(State.RUNNING, task.getState());
         Assertions.assertEquals("Deployment completed on cluster fb212e5a-0428-46f9-8faa-b3f15c9843e8, status SUCCESS",
@@ -174,11 +247,11 @@ public class BlockchainObserverTest {
 
     @Test
     void deployClusterFailure() throws Exception {
-        ReflectionTestUtils.setField(value, "type", Type.CLUSTER_DEPLOYED);
-        ReflectionTestUtils.setField(value, "status", Status.FAILURE);
+        ReflectionTestUtils.setField(value, "type_", Type.CLUSTER_DEPLOYED.getNumber());
+        ReflectionTestUtils.setField(value, "status_", Status.FAILURE.getNumber());
         blockchainObserver.onNext(value);
         Assertions.assertEquals(State.RUNNING, task.getState());
-        ReflectionTestUtils.setField(value, "type", Type.COMPLETED);
+        ReflectionTestUtils.setField(value, "type_", Type.COMPLETED.getNumber());
         blockchainObserver.onNext(value);
         Assertions.assertEquals(State.RUNNING, task.getState());
         blockchainObserver.onCompleted();
@@ -188,8 +261,8 @@ public class BlockchainObserverTest {
     @Test
     void testOnError() throws Exception {
         final HelenException e = new HelenException(HttpStatus.BAD_REQUEST, "This is a bad request");
-        ReflectionTestUtils.setField(value, "type", Type.CLUSTER_DEPLOYED);
-        ReflectionTestUtils.setField(value, "status", Status.FAILURE);
+        ReflectionTestUtils.setField(value, "type_", Type.CLUSTER_DEPLOYED.getNumber());
+        ReflectionTestUtils.setField(value, "status_", Status.FAILURE.getNumber());
         blockchainObserver.onNext(value);
         Assertions.assertEquals(State.RUNNING, task.getState());
         blockchainObserver.onError(e);
@@ -198,29 +271,60 @@ public class BlockchainObserverTest {
     }
 
     private ConcordCluster createTestCluster(UUID clusterId) {
-        ConcordClusterIdentifier id =
-                new ConcordClusterIdentifier(CLUSTER_ID.getLeastSignificantBits(), CLUSTER_ID.getMostSignificantBits());
+        ConcordClusterIdentifier id = ConcordClusterIdentifier.newBuilder()
+                .setLow(clusterId.getLeastSignificantBits())
+                .setHigh(clusterId.getMostSignificantBits())
+                .build();
         List<ConcordNode> nodes = C_NODES.stream().map(this::createNode).collect(Collectors.toList());
-        ConcordClusterInfo info = new ConcordClusterInfo(nodes);
-        return new ConcordCluster(id, info);
+        ConcordClusterInfo info = ConcordClusterInfo.newBuilder()
+                .addAllMembers(nodes)
+                .build();
+        return ConcordCluster.newBuilder()
+                .setId(id)
+                .setInfo(info)
+                .build();
     }
 
     private ConcordNode createNode(UUID nodeId) {
         UUID mId = UUID.randomUUID();
-        ConcordModelIdentifier modeId =
-                new ConcordModelIdentifier(mId.getLeastSignificantBits(), mId.getMostSignificantBits());
-        ConcordNodeInfo concordNodeInfo = new ConcordNodeInfo(modeId, Collections.emptyMap(),
-                                                              ConcordModelSpecification.BlockchainType.ETHEREUM);
-        ConcordNodeIdentifier nId
-                = new ConcordNodeIdentifier(nodeId.getLeastSignificantBits(), nodeId.getMostSignificantBits());
-        return new ConcordNode(nId, concordNodeInfo, createNodeHostInfo());
+        ConcordModelIdentifier modeId = ConcordModelIdentifier.newBuilder()
+                .setLow(mId.getLeastSignificantBits())
+                .setHigh(mId.getMostSignificantBits())
+                .build();
+
+        ConcordNodeInfo concordNodeInfo = ConcordNodeInfo.newBuilder()
+                .setModel(modeId)
+                .putAllIpv4Addresses(Collections.emptyMap())
+                .setBlockchainType(ConcordModelSpecification.BlockchainType.ETHEREUM)
+                .build();
+
+        ConcordNodeIdentifier nId = ConcordNodeIdentifier.newBuilder()
+                .setLow(nodeId.getLeastSignificantBits())
+                .setHigh(nodeId.getMostSignificantBits())
+                .build();
+
+        return ConcordNode.newBuilder()
+                .setId(nId)
+                .setInfo(concordNodeInfo)
+                .setHostInfo(createNodeHostInfo())
+                .build();
     }
 
     private ConcordNodeHostInfo createNodeHostInfo() {
-        OrchestrationSiteIdentifier oId = new OrchestrationSiteIdentifier(1, 2);
+        OrchestrationSiteIdentifier oId = OrchestrationSiteIdentifier.newBuilder()
+                .setLow(1)
+                .setHigh(2)
+                .build();
         Map<Integer, Integer>  ipMap = ImmutableMap.of(1, 2);
-        ConcordNodeEndpoint endpoint = new ConcordNodeEndpoint("http://localhost", "cert");
+        ConcordNodeEndpoint endpoint = ConcordNodeEndpoint.newBuilder()
+                .setUrl("http://localhost")
+                .setCertificate("cert")
+                .build();
         Map<String, ConcordNodeEndpoint> m = ImmutableMap.of("ethereum-rpc", endpoint);
-        return new ConcordNodeHostInfo(oId, ipMap, m);
+        return ConcordNodeHostInfo.newBuilder()
+                .setSite(oId)
+                .putAllIpv4AddressMap(ipMap)
+                .putAllEndpoints(m)
+                .build();
     }
 }

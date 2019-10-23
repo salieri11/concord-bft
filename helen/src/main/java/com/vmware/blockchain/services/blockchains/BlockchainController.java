@@ -48,7 +48,7 @@ import com.vmware.blockchain.deployment.v1.OrchestrationSiteInfo;
 import com.vmware.blockchain.deployment.v1.PlacementSpecification;
 import com.vmware.blockchain.deployment.v1.PlacementSpecification.Entry;
 import com.vmware.blockchain.deployment.v1.PlacementSpecification.Type;
-import com.vmware.blockchain.deployment.v1.ProvisioningServiceStub;
+import com.vmware.blockchain.deployment.v1.ProvisioningServiceGrpc.ProvisioningServiceStub;
 import com.vmware.blockchain.deployment.v1.StreamClusterDeploymentSessionEventRequest;
 import com.vmware.blockchain.operation.OperationContext;
 import com.vmware.blockchain.services.blockchains.Blockchain.NodeEntry;
@@ -267,17 +267,31 @@ public class BlockchainController {
             }
             list = zoneIds.stream()
                     .map(zoneService::get)
-                    .map(z -> new Entry(placementType,
-                                        FleetUtils.identifier(OrchestrationSiteIdentifier.class, z.getId()),
-                                        toInfo(z)))
+                    .map(z -> Entry.newBuilder()
+                            .setType(placementType)
+                            .setSite(OrchestrationSiteIdentifier.newBuilder()
+                                    .setLow(z.getId().getLeastSignificantBits())
+                                    .setHigh(z.getId().getMostSignificantBits())
+                                    .build())
+                            .setSiteInfo(toInfo(z))
+                            .build())
                     .collect(Collectors.toList());
         } else {
             list = IntStream.range(0, clusterSize)
-                    .mapToObj(i -> new Entry(placementType, new OrchestrationSiteIdentifier(1, i),
-                                             new OrchestrationSiteInfo()))
+                    .mapToObj(i -> Entry.newBuilder()
+                            .setType(placementType)
+                            .setSite(OrchestrationSiteIdentifier.newBuilder()
+                                    .setLow(1)
+                                    .setHigh(i)
+                                    .build())
+                            .setSiteInfo(OrchestrationSiteInfo.newBuilder().build())
+                            .build())
                     .collect(Collectors.toList());
         }
-        var placementSpec = new PlacementSpecification(list);
+        var placementSpec = PlacementSpecification.newBuilder()
+                .addAllEntries(list)
+                .build();
+        // var placementSpec = new PlacementSpecification(list);
         var blockChainType = blockchainType == null ? ConcordModelSpecification.BlockchainType.ETHEREUM
                                                     : enumMapForBlockchainType.get(blockchainType);
 
@@ -285,21 +299,33 @@ public class BlockchainController {
 
         var genesis = ConcordConfiguration.getGenesisObject();
 
-        ConcordModelSpecification spec = new ConcordModelSpecification(
-                concordConfiguration.getVersion(),
-                concordConfiguration.getTemplate(),
-                components,
-                blockChainType,
-                ConcordModelSpecification.NodeType.NONE
-        );
-        DeploymentSpecification deploySpec =
-                new DeploymentSpecification(clusterSize, spec, placementSpec, genesis, consortiumId.toString());
-        var request = new CreateClusterRequest(new MessageHeader(), deploySpec);
+        ConcordModelSpecification spec = ConcordModelSpecification.newBuilder()
+                .setVersion(concordConfiguration.getVersion())
+                .setTemplate(concordConfiguration.getTemplate())
+                .addAllComponents(components)
+                .setBlockchainType(blockChainType)
+                .setNodeType(ConcordModelSpecification.NodeType.NONE)
+                .build();
+
+        DeploymentSpecification deploySpec = DeploymentSpecification.newBuilder()
+                .setClusterSize(clusterSize)
+                .setModel(spec)
+                .setPlacement(placementSpec)
+                .setGenesis(genesis)
+                .setConsortium(consortiumId.toString())
+                .build();
+
+        var request = CreateClusterRequest.newBuilder()
+                .setHeader(MessageHeader.newBuilder().setId("").build())
+                .setSpecification(deploySpec)
+                .build();
+
         // Check that the API can be serviced normally after service initialization.
         var promise = new CompletableFuture<DeploymentSessionIdentifier>();
         client.createCluster(request, FleetUtils.blockedResultObserver(promise));
         return promise.get();
     }
+
 
     /**
      * Create a new blockchain in the given consortium, with the specified nodes.
@@ -344,7 +370,7 @@ public class BlockchainController {
                     throw new BadRequestException(ErrorCode.BAD_REQUEST);
                 }
             }
-            DeploymentSessionIdentifier dsId = createFixedSizeCluster(client, clusterSize,
+            DeploymentSessionIdentifier dsId =  createFixedSizeCluster(client, clusterSize,
                                                                       enumMap.get(body.deploymentType),
                                                                       body.getZoneIds(),
                                                                       blockchainType,
@@ -354,8 +380,10 @@ public class BlockchainController {
                     new BlockchainObserver(authHelper, operationContext, blockchainService, replicaService, taskService,
                                            task.getId(), body.getConsortiumId(), blockchainType);
             // Watch for the event stream
-            StreamClusterDeploymentSessionEventRequest request =
-                    new StreamClusterDeploymentSessionEventRequest(new MessageHeader(), dsId);
+            StreamClusterDeploymentSessionEventRequest request = StreamClusterDeploymentSessionEventRequest.newBuilder()
+                    .setHeader(MessageHeader.newBuilder().build())
+                    .setSession(dsId)
+                    .build();
             client.streamClusterDeploymentSessionEvents(request, bo);
             logger.info("Deployment scheduled");
         }
