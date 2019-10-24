@@ -15,7 +15,7 @@ import { AuthenticationService } from '../../shared/authentication.service';
 })
 export class OnboardingComponent implements OnInit {
   @ViewChild('agreementEl', { static: true }) agreementEl: ElementRef;
-  agreement: { type?: string, content?: string, accepted: boolean, id?: number };
+  agreement:  boolean;
   disabledAgreement = true;
   agreementForm: FormGroup;
   showServiceAvailability: boolean = false;
@@ -33,14 +33,9 @@ export class OnboardingComponent implements OnInit {
   }
 
   ngOnInit() {
-    this.agreement = this.authService.agreement;
 
-    if (!this.agreement.content) {
-      this.authService.checkForLegalAgreements()
-        .subscribe(agreement => this.handleAgreement(agreement));
-    } else {
-      this.handleAgreement(this.agreement);
-    }
+    this.authService.checkForLegalAgreements()
+      .subscribe(agreement => this.handleAgreement(agreement));
 
     this.agreementEl.nativeElement
       .addEventListener('scroll', this.scrollHandler.bind(this));
@@ -54,20 +49,23 @@ export class OnboardingComponent implements OnInit {
       accepted: true,
     })
       .subscribe(response => {
-        this.authService.agreement.accepted = true;
-        this.goToServiceAvailablity();
+        this.authService.agreement = true;
+        this.goToWelcome();
         return response;
       });
   }
 
   next(): void {
-    this.goToLogin();
+    this.goToWelcome();
   }
 
-  private handleAgreement(agreement) {
-    this.agreement = agreement;
-    if (this.agreement.accepted) {
-      this.goToLogin();
+  private handleAgreement(agreement: boolean) {
+    if (agreement) {
+      this.goToWelcome();
+    } else {
+      this.authService.getLegalAgreement().subscribe(agr => {
+        this.agreement = agr;
+    });
     }
   }
 
@@ -81,12 +79,8 @@ export class OnboardingComponent implements OnInit {
     }
   }
 
-  private goToServiceAvailablity() {
-    this.showServiceAvailability = true;
-  }
-
-  private goToLogin() {
-    this.router.navigate(['auth', 'login']);
+  private goToWelcome() {
+    this.router.navigate(['/', 'welcome'], { fragment: 'welcome' });
   }
 
 
