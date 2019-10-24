@@ -5,44 +5,33 @@
 #
 # Rules defined later in the file take precedence, so we define a default first.
 # I've just included a handful of people from across the blockchain team.
-* @bfink @bjay @bsubramanian @hbhavsar @jameschang @khank @kkeunwoo @machenbach @mandeab @mharrison @panamika @rmuschner @rsg @rvollmar @sanchitar @tusharg @upshawa
+* @andrewstone @bfink @bjay @bsubramanian @hbhavsar @jameschang @khank @kkeunwoo @machenbach @mandeab @mharrison @panamika @rmuschner @rsg @rvollmar @sanchitar @tusharg @upshawa
 
-# Here are the descriptions for our source tree.  I'm going to start out assuming
-# we only need to create entries for items at the top level of our source tree.
-# We can other features (file types, subdirectories, etc...) as needed.
-/agent/ @jameschang @sanchitar
-/blockchain-build/ @jameschang
+# Here are the descriptions for our source tree.
+# When editing these descriptions, do NOT add lines which:
+# - Have no users, such as:
+#     /foo/
+#   This means that no reviews are needed.
+# - Have one user, such as:
+#    /foo/ @some_user
+#   That means that some_user needs no reviews.
+# In the above cases, it is better to remove the line and use the default rule.
+/agent/ @jameschang @khank @sanchitar
 /buildall.sh @rvollmar @rsg
-/communication/ @bfink
-/concord/ @bfink @rmuschner @andrewstone @upshawa
-/contract-compiler/
-/csp-dev/
-/daml/ @rmuschner
-/docker/
-/docker/config-concord*/ @upshawa
-/docker/config-public/ @upshawa
-/docker-compose-agent.yml
-/docker-compose-aux.yml
-/docker-compose-concord.yml
-/docker-compose-db.yml
-/docker-compose-dev.yml
-/docker-compose-ethrpc.yml
-/docker-compose-helen.yml
-/docker-compose-ui.yml
+/communication/ @bfink @rmuschner
+/concord/ @bfink @upshawa @rmuschner @andrewstone
+/csp-dev/ @machenbach @rvollmar @panamika @mandeab
+/daml/ @rmuschner @bfink
+/docker/config-concord*/ @upshawa @bfink @rmuschner
+/docker/config-public/ @upshawa @bfink @rmuschner
 /docker/fluentd/ @hbhavsar @mharrison
-/ethrpc/ @bfink
-/helen/ @machenbach @panamika
-/helen/src/main/resources/api-doc/api.yaml @machenbach @panamika @tfidali
+/ethrpc/ @bfink @machenbach @panamika @mandeab
+/helen/ @machenbach @panamika @mandeab
+/helen/src/main/resources/api-doc/api.yaml @machenbach @panamika @mandeab @tfidali
 /hermes/ @rvollmar @rsg
 /Jenkinsfile @rvollmar @rsg
-/kubernetes/ @bsubramanian
-/performance/ @vlin @@dparmar @rsg
-/persephone/ @jameschang @sanchitar
-/pom.xml @jameschang
-/protobuf/ @jameschang
-/README.md
+/performance/ @vlin @dparmar @rsg @bfink
+/persephone/ @jameschang @khank @sanchitar
 /src/ @rvollmar @rsg
-/start_except.sh
-/submodules/
 /ui/ @mharrison @hbhavsar @tusharg @kkeunwoo @mandeab
 /vars/ @rvollmar @rsg
