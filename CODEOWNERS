@@ -10,7 +10,7 @@
 # Here are the descriptions for our source tree.  I'm going to start out assuming
 # we only need to create entries for items at the top level of our source tree.
 # We can other features (file types, subdirectories, etc...) as needed.
-/agent/ @jameschang
+/agent/ @jameschang @sanchitar
 /blockchain-build/ @jameschang
 /buildall.sh @rvollmar @rsg
 /communication/ @bfink
@@ -47,7 +47,7 @@
 /Jenkinsfile @rvollmar @rsg
 /kubernetes/ @bsubramanian
 /performance/ @vlin @@dparmar @rsg
-/persephone/ @jameschang
+/persephone/ @jameschang @sanchitar
 /pom.xml @jameschang
 /protobuf/ @jameschang
 /README.md
