@@ -46,10 +46,10 @@
 /hermes/ @rvollmar @rsg
 /Jenkinsfile @rvollmar @rsg
 /kubernetes/ @bsubramanian
-/performance/
+/performance/ @vlin @@dparmar @rsg
 /persephone/ @jameschang
 /pom.xml @jameschang
-/protobuf/
+/protobuf/ @jameschang
 /README.md
 /src/ @rvollmar @rsg
 /start_except.sh
