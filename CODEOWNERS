@@ -15,16 +15,6 @@
 /buildall.sh @rvollmar @rsg
 /communication/ @bfink
 /concord/ @bfink @rmuschner @andrewstone @upshawa
-/concord/cmake/Findyaml-cpp.cmake @upshawa @rmuschner @andrewstone
-/concord/src/config/ @upshawa @rmuschner @andrewstone
-/concord/src/time/time_verification.cpp @bfink @upshawa @rmuschner @andrewstone
-/concord/src/time/time_verification.hpp @bfink @upshawa @rmuschner @andrewstone
-/concord/test/config_test.cpp @upshawa @rmuschner @andrewstone
-/concord/test/resources/config_input/ @upshawa @rmuschner @andrewstone
-/concord/test/resources/concord*.config @upshawa @rmuschner @andrewstone
-/concord/tools/conc_genconfig.cpp @upshawa @rmuschner @andrewstone
-/concord/tools/conc_reconfig.cpp @upshawa @rmuschner @andrewstone
-/concord/README.md @bfink @upshawa @rmuschner @andrewstone
 /contract-compiler/
 /csp-dev/
 /daml/ @rmuschner
