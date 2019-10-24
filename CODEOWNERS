@@ -1,34 +1,33 @@
 # Doc: https://gitlab.eng.vmware.com/help/user/project/code_owners.html
 #
-# Groups are not supported until GitLab 12.1.  Until then, we have to edit the
-# users here.
+# Groups are not supported until GitLab 12.1.  Until then, we have to list users
+# one at a time.
 #
 # Rules defined later in the file take precedence, so we define a default first.
 # I've just included a handful of people from across the blockchain team.
-@default-codeowner @rvollmar @rsg @bsubramanian @bfink @machenbach @mharrison @khank @jameschang
+@default-codeowner @bfink @bjay @bsubramanian @hbhavsar @jameschang @khank @kkeunwoo @machenbach @mandeab @mharrison @panamika @rmuschner @rsg @rvollmar @sanchitar @tusharg @upshawa
 
 # Here are the descriptions for our source tree.  I'm going to start out assuming
 # we only need to create entries for items at the top level of our source tree.
 # We can other features (file types, subdirectories, etc...) as needed.
-
 /agent/ @jameschang
 /blockchain-build/ @jameschang
 /buildall.sh @rvollmar @rsg
 /communication/ @bfink
-/concord/ @bfink
-/concord/cmake/Findyaml-cpp.cmake @upshawa
-/concord/src/config/ @upshawa
-/concord/src/time/time_verification.cpp @bfink @upshawa
-/concord/src/time/time_verification.hpp @bfink @upshawa
-/concord/test/config_test.cpp @upshawa
-/concord/test/resources/config_input/ @upshawa
-/concord/test/resources/concord*.config @upshawa
-/concord/tools/conc_genconfig.cpp @upshawa
-/concord/tools/conc_reconfig.cpp @upshawa
-/concord/README.md @bfink @upshawa
+/concord/ @bfink @rmuschner @andrewstone
+/concord/cmake/Findyaml-cpp.cmake @upshawa @rmuschner @andrewstone
+/concord/src/config/ @upshawa @rmuschner @andrewstone
+/concord/src/time/time_verification.cpp @bfink @upshawa @rmuschner @andrewstone
+/concord/src/time/time_verification.hpp @bfink @upshawa @rmuschner @andrewstone
+/concord/test/config_test.cpp @upshawa @rmuschner @andrewstone
+/concord/test/resources/config_input/ @upshawa @rmuschner @andrewstone
+/concord/test/resources/concord*.config @upshawa @rmuschner @andrewstone
+/concord/tools/conc_genconfig.cpp @upshawa @rmuschner @andrewstone
+/concord/tools/conc_reconfig.cpp @upshawa @rmuschner @andrewstone
+/concord/README.md @bfink @upshawa @rmuschner @andrewstone
 /contract-compiler/
 /csp-dev/
-/daml/
+/daml/ @rmuschner
 /docker/
 /docker/config-concord*/ @upshawa
 /docker/config-public/ @upshawa
@@ -43,9 +42,10 @@
 /docker/fluentd/ @hbhavsar @mharrison
 /ethrpc/ @bfink
 /helen/ @machenbach @panamika
+/helen/src/main/resources/api-doc/api.yaml @machenbach @panamika @tfidali
 /hermes/ @rvollmar @rsg
 /Jenkinsfile @rvollmar @rsg
-/kubernetes/
+/kubernetes/ @bsubramanian
 /performance/
 /persephone/ @jameschang
 /pom.xml @jameschang
