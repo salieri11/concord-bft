@@ -162,6 +162,7 @@ public class AgreementController  {
             agreement.setLastName(requestBody.getLastName());
             agreement.setCompany(requestBody.getCompany());
             agreement.setAcceptedOn(new Date());
+            agreement.setOrgId(orgId);
             arm.updateAgreement(agreement);
 
             return new ResponseEntity<>(HttpStatus.OK);

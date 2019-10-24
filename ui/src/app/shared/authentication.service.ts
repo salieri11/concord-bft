@@ -16,7 +16,7 @@ import { UsersService } from '../users/shared/users.service';
 export class AuthenticationService {
   private userSubject: BehaviorSubject<User>;
   readonly user: Observable<User>;
-  agreement: any = { accepted: false };
+  agreement: boolean = false;
   redirectUrl: string;
   accessToken: string;
   logoutPath: string = '/api/oauth/logout';
@@ -134,17 +134,21 @@ export class AuthenticationService {
   }
 
 
-  checkForLegalAgreements(): Observable<any> {
-    return this.http.get('api/agreements/1').pipe(
+  checkForLegalAgreements(): Observable<boolean> {
+    return this.http.get<Array<any>>('api/organizations/agreements').pipe(
       map((response) => {
-        this.agreement = response;
-        return response;
+        this.agreement = response.length !== 0;
+        return this.agreement;
       }),
     );
   }
 
+  getLegalAgreement(): Observable<any> {
+    return this.http.get('static/agreements/tos.txt', {responseType: 'text'});
+  }
+
   acceptLegalAgreement(params: any): Observable<any> {
-    return this.http.patch<any>('api/agreements/1', params);
+    return this.http.post<any>('api/organizations/agreements', params);
   }
 
   handleLogin(response: User, persona: Personas) {

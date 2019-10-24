@@ -2,7 +2,7 @@
   <div class="content-container">
     <div class="content-area">
       <div class="onboarding-container">
-        <div class="clr-row flex-items-xs-center intro">
+        <div class="clr-row clr-justify-content-center intro">
           <div class="clr-col-sm-6 col-xs-12">
             <svg width="184px" height="183px" viewBox="0 0 184 183" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
               <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
@@ -21,10 +21,10 @@
             </svg>
           </div>
         </div>
-        <div class="clr-row flex-items-xs-center">
+        <div class="clr-row clr-justify-content-center">
           <div [ngClass]="{'hidden-xs-up': showServiceAvailability}" class="clr-col-sm-6 col-xs-12">
             <h2 class="title">{{ 'agreement.title' | translate }}</h2>
-            <textarea readonly [value]="agreement?.content" #agreementEl id="agreementEl" rows="20"></textarea>
+            <textarea readonly [value]="agreement" #agreementEl id="agreementEl" rows="20"></textarea>
             <form class="clr-form clr-form-horizontal" [formGroup]="agreementForm">
               <div class="clr-form-control">
                   <label class="clr-control-label">{{ 'agreement.firstName' | translate }} *</label>
@@ -52,14 +52,6 @@
                 <button class="btn btn-primary" id="accept" type="submit" [disabled]="(disabledAgreement) || (agreementForm.invalid)" (click)="accept()">{{ 'agreement.accept' | translate }}</button>
               </div>
             </form>
-          </div>
-          <div [ngClass]="{'hidden-xs-up': !showServiceAvailability}" class="clr-col-sm-6 col-xs-12">
-            <h2 class="title">{{ 'expectations.title' | translate }}</h2>
-            <p>{{ 'expectations.one' | translate }}</p>
-            <p>{{ 'expectations.two' | translate }}</p>
-            <p>{{ 'expectations.three' | translate }}</p>
-            <p>{{ 'expectations.four' | translate }}</p>
-            <button class="btn btn-primary" id="next" (click)="next()">{{ 'common.next' | translate }}</button>
           </div>
 
         </div>
