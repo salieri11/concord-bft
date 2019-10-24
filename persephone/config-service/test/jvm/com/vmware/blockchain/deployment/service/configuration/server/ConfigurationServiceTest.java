@@ -42,8 +42,6 @@ public class ConfigurationServiceTest {
 
     private static ConfigurationService service = newConfigurationService();
 
-
-
     /**
      * Create a new {@link ConfigurationService}.
      *
@@ -155,7 +153,7 @@ public class ConfigurationServiceTest {
         var messageId = "id1";
 
         ConfigurationServiceRequest request = new ConfigurationServiceRequest(new MessageHeader(messageId), hostIps,
-                                                                              null);
+                                                                              null, null);
 
         var promise = new CompletableFuture<ConfigurationSessionIdentifier>();
         service.createConfiguration(request, newResultObserver(promise));
