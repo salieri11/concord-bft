@@ -14,7 +14,7 @@
 /blockchain-build/ @jameschang
 /buildall.sh @rvollmar @rsg
 /communication/ @bfink
-/concord/ @bfink @rmuschner @andrewstone
+/concord/ @bfink @rmuschner @andrewstone @upshawa
 /concord/cmake/Findyaml-cpp.cmake @upshawa @rmuschner @andrewstone
 /concord/src/config/ @upshawa @rmuschner @andrewstone
 /concord/src/time/time_verification.cpp @bfink @upshawa @rmuschner @andrewstone
