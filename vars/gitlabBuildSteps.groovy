@@ -973,6 +973,7 @@ void mergeToTOT(branch_or_commit){
     origMasterHash = getHead()
 
     sh(script: "git merge --no-ff ${branch_or_commit}")
+    sh(script: "git submodule update --recursive")
     newMasterHash = getHead()
 
     echo "Merged '" + branch_or_commit + "' " +
