@@ -2,13 +2,17 @@ package dappbench;
 
 import static java.lang.Math.round;
 import static java.lang.System.exit;
+import static java.lang.System.nanoTime;
+import static java.time.Duration.ofNanos;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.shuffle;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.summingInt;
 import static java.util.stream.Collectors.toMap;
 import static org.apache.logging.log4j.LogManager.getLogger;
 
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -41,8 +45,8 @@ public class DAMLManager {
         this.rateControl = workload.getRateControl();
         this.logging = workload.getLogging();
 
-        logger.info("Total number of Transactions {}", numOfTransactions);
-        logger.info("Rate control value: {}", rateControl);
+        logger.info("Total transactions: {}", numOfTransactions);
+        logger.info("Rate control: {} tps", rateControl);
     }
 
     /**
@@ -50,16 +54,16 @@ public class DAMLManager {
      */
     public void processDAMLTransactions(List<Node> nodes, int ledgerPort) {
         Map<DamlClient, Long> clientToTx = initClients(nodes, ledgerPort);
-        logger.info("Expected distribution: {}", clientToTx);
+        logger.info("Expected tx distribution: {}", clientToTx);
         List<DamlClient> clients = assignClients(clientToTx);
 
         Random random = new Random();
-        long startTime = System.nanoTime();
+        long startTime = nanoTime();
 
         logger.info("Starting transaction ...");
 
         for (int i = 0; i < clients.size(); i++) {
-            int iouAmount = random.nextInt(10000) + 1;
+            int iouAmount = random.nextInt(10_000) + 1;
             Iou iou = new Iou("Alice", "Alice", "AliceCoin", new BigDecimal(iouAmount), emptyList());
             if (logging) {
                 logger.info("{}", iou);
@@ -69,13 +73,14 @@ public class DAMLManager {
             client.submitIou(command, party);
 
             if (rateControl != 0) {
-                long timeToSleep = 1_000_000_000 / rateControl;
+                // Average gap between transactions.
+                long timeToSleep = SECONDS.toNanos(1) / rateControl;
                 Utils.applyRateControl(timeToSleep, i, startTime);
             }
         }
 
-        long endTime = System.nanoTime();
-        summarize(endTime - startTime, clientToTx.keySet());
+        long endTime = nanoTime();
+        summarize(ofNanos(endTime - startTime), clientToTx.keySet());
     }
 
     /**
@@ -140,14 +145,13 @@ public class DAMLManager {
     }
 
     /**
-     * Summarize the workload.
+     * Summarize the result.
      */
-    private void summarize(long totalTime, Collection<DamlClient> clients) {
-        long timeElaps = totalTime / 1_000_000;
-        logger.info("Total time taken: {} ms", timeElaps);
-        logger.info("Average latency: {} ms", totalTime / (numOfTransactions * 1_000_000));
-        logger.info("Throughput: {} tps", round((numOfTransactions * 1.0 / totalTime) * 1_000_000_000));
-        logger.info("Nodes: {}", clients.stream().collect(toMap(DamlClient::getLedgerHost, DamlClient::getTxCount)));
+    private void summarize(Duration totalTime, Collection<DamlClient> clients) {
+        logger.info("Total time taken: {} s", totalTime.getSeconds());
+        logger.info("Average latency: {} ms", totalTime.toMillis() / numOfTransactions);
+        logger.info("Throughput: {} tps", numOfTransactions / totalTime.getSeconds());
+        logger.info("Distribution: {}", clients.stream().collect(toMap(DamlClient::getLedgerHost, DamlClient::getTxCount)));
     }
 
 }
