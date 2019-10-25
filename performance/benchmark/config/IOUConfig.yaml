@@ -1,8 +1,11 @@
+# pre-deploy the QuickStart DApp from DAML website (https://docs.daml.com/getting-started/quickstart.html)
+# example:  daml deploy --host=10.40.205.67 --port=6865
+
 simpleConfig:
   blockchain: concord #concord, etheruem, or quorum
   environment: onprem
   nodeCount: 4
-  port: 8545
+  port: 6865
   http: false
   nodes:
     - ip: 10.40.205.101
@@ -28,16 +31,8 @@ simpleConfig:
       rateControl: 0
       logging: false
       params:
-        - ../daml/quickstart    #daml contract path
-        - target/daml-quickstart-java-1.0.0-jar-with-dependencies.jar           #executable
-        - 10.40.205.70
-        - 6865
         - Alice #party
-        - 8080 #restPort
         - 1 #numOfTrasactions
-        - true #deploy ledger or not
-        - IOU.json #contract file, located inside contract path
-        - iou # REST endpoint
   sleepTime: 1000
   outputDir: ./perf_result
 

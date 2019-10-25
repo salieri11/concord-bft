@@ -129,7 +129,7 @@ public class IouMain {
             }
     }
 
-    private static Empty submit(LedgerClient client, String party, Command c) {
+    public static Empty submit(LedgerClient client, String party, Command c) {
         return client.getCommandSubmissionClient().submit(
                 UUID.randomUUID().toString(),
                 "IouApp",

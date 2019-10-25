@@ -1,10 +1,10 @@
 # Performance Evaluation between Concord and Ethereum
 
 In order to measure the performance of Concord, several Concord nodes (4 or 7) and one driver node are needed. 
-first set up the Blockchain SaaS through the deployment service, 
+First set up the Blockchain SaaS through the deployment service, 
 then run the performance measurement tool on driver node. 
 
-If testing the performance of daml workloads, you will have a concord cluster setup which has daml-ledger-api installed
+If testing the performance of daml workloads, you will have a concord cluster setup which has daml-ledger-api installed on every node. Also, make sure the QuickStart DApp is deployed to the DAML ledger as described [here](https://docs.daml.com/deploy/index.html).
 
 On the driver node, follow these steps to setup environments
 ## Environment setup
@@ -25,19 +25,6 @@ Otherwise, skip the above step.
 **Clone the blockchain repository to the driver VM**
 ```
 git clone git@gitlab.eng.vmware.com:blockchain/vmwathena_blockchain.git blockchain
-```
-
-**Build the DAML app (optional)**
-```
-cd <blockchain repo>/performance/daml/quickstart
-daml build
-```
-
-**Build the quickstart DAML app java bindings (optional)**
-
-```bash
-cd <blockchain repo>/performance/daml/quickstart
-mvn clean install assembly:single
 ```
 
 **Build the benchmark project**
@@ -83,12 +70,15 @@ cd <blockchain repo>/performance/benchmark
 ```
 Start the benchmark tool
 ```bash
-java -jar target/dapp-bench-1.0.0-jar-with-dependencies.jar config/BallotConfig2.yaml
+java -jar target/dapp-bench-1.0.0-jar-with-dependencies.jar config/<config-yml>
 ```
-## Sample Output
+Refer [config](config) for examples. 
+
+## Sample Output for Ethereum
 
 After the run the .csv file can be found in /perf_result/wordload0/
 
+```
 Starting DAppBench...
 https://10.40.205.11:8545
 21:24:37.481 [main] INFO  com.vmware.blockchain.performance.BallotDApp - Connected to Ethereum client version: Helen/v1.1.0/linux/java1.8.0
@@ -113,6 +103,23 @@ TransactionReceipt{transactionHash='0x41e5823c2426563b561d405f3bb1dd8485d12ed66f
 21:24:48.985 [main] INFO  com.vmware.blockchain.performance.BallotDApp - Total time for process: 1243129538 nano seconds
 21:24:48.985 [main] INFO  com.vmware.blockchain.performance.BallotDApp - Start/End Transaction Rate: 402.2106986568925 tx/sec
 21:24:48.986 [main] INFO  com.vmware.blockchain.performance.BallotDApp - Transaction Rate: 400.5893001896087 tx/sec
+```
+
+## Sample Output for DAML
 
 
-
+```
+Starting DAppBench...
+13:22:36.025 [main] INFO  dappbench.BenchMaster - Got config file: config/4n-IOUConfig.yaml
+13:22:36.092 [main] INFO  dappbench.BenchMaster - workloads size: 1
+13:22:36.092 [main] INFO  dappbench.BenchMaster - Running IOU workloads
+13:22:36.095 [main] INFO  dappbench.DAMLManager - Total number of Transactions 1000
+13:22:36.095 [main] INFO  dappbench.DAMLManager - Rate control value: 200
+13:22:36.884 [main] INFO  dappbench.DAMLManager - Expected distribution: {10.40.205.84=280, 10.40.205.86=500, 10.40.205.83=220}
+13:22:36.886 [main] INFO  dappbench.DAMLManager - Starting transaction ...
+13:22:43.087 [main] INFO  dappbench.DAMLManager - Total time taken: 6201 ms
+13:22:43.087 [main] INFO  dappbench.DAMLManager - Average latency: 6 ms
+13:22:43.088 [main] INFO  dappbench.DAMLManager - Throughput: 161 tps
+13:22:43.091 [main] INFO  dappbench.DAMLManager - Nodes: {10.40.205.83=220, 10.40.205.84=280, 10.40.205.86=500}
+13:22:43.091 [main] INFO  dappbench.BenchMaster - Finished benchmark!
+```

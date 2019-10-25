@@ -10,7 +10,7 @@ public class SimpleConfig {
     private String outputDir;
     private List<Workload> workloads;
     private int sleepTime;
-    private int port = 8545;
+    private int port;
     private boolean http = false;
 
     public String getBlockchain() {

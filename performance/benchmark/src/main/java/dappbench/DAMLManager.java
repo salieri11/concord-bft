@@ -1,164 +1,157 @@
 package dappbench;
 
-import static java.lang.ProcessBuilder.Redirect.INHERIT;
+import static java.lang.Math.round;
+import static java.lang.System.exit;
+import static java.lang.System.nanoTime;
+import static java.time.Duration.ofNanos;
+import static java.util.Collections.emptyList;
+import static java.util.Collections.shuffle;
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static java.util.stream.Collectors.summingInt;
+import static java.util.stream.Collectors.toMap;
+import static org.apache.logging.log4j.LogManager.getLogger;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.sun.jersey.api.client.Client;
-import com.sun.jersey.api.client.ClientResponse;
-import com.sun.jersey.api.client.WebResource;
-import com.vmware.blockchain.performance.Utils;
-import org.json.JSONObject;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.InputStreamReader;
-import java.io.IOException;
+import java.math.BigDecimal;
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 
-public class DAMLManager {
-    private final static Logger logger = LoggerFactory.getLogger(DAMLManager.class);
+import org.apache.logging.log4j.Logger;
 
-    private String contractPath;
-    private String executable;
-    private String ledgerHost;
-    private int ledgerPort;
-    private String party;
-    private int restPort;
-    private int rateControl;
-    private int numOfTransactions;
-    private String contractFile;
-    public boolean deployLedgerRequired;
-    private String endPoint;
+import com.daml.ledger.javaapi.data.Command;
+import com.digitalasset.quickstart.model.iou.Iou;
+import com.vmware.blockchain.performance.Utils;
+
+/**
+ * This acts as a client side load balancer which distributes transactions
+ * between multiple DAML ledger nodes.
+ */
+public class DAMLManager {
+    private final static Logger logger = getLogger(DAMLManager.class);
+
+    private final String party;
+    private final int numOfTransactions;
+    private final int rateControl;
+    private final boolean logging;
 
     public DAMLManager(Workload workload) {
-
         List<String> params = workload.getParams();
-        this.contractPath = params.get(0);
-        this.executable = params.get(1);
-        this.ledgerHost = params.get(2);
-        this.ledgerPort = Integer.parseInt(params.get(3));
-        this.party = params.get(4);
-        this.restPort = Integer.parseInt(params.get(5));
-        this.numOfTransactions = Integer.parseInt(params.get(6));
+        this.party = params.get(0);
+        this.numOfTransactions = Integer.parseInt(params.get(1));
         this.rateControl = workload.getRateControl();
-        this.deployLedgerRequired = Boolean.parseBoolean(workload.getParams().get(7));
-        this.contractFile = params.get(8);
-        this.endPoint = params.get(9);
-        logger.info("Number of Transactions: " + numOfTransactions);
-        logger.info("Rate control value: " + rateControl);
+        this.logging = workload.getLogging();
+
+        logger.info("Total transactions: {}", numOfTransactions);
+        logger.info("Rate control: {} tps", rateControl);
     }
 
-    public boolean deployLedgerRequired() {
-        return deployLedgerRequired;
-    }
+    /**
+     * Creates IOU commands and executes them on given nodes.
+     */
+    public void processDAMLTransactions(List<Node> nodes, int ledgerPort) {
+        Map<DamlClient, Long> clientToTx = initClients(nodes, ledgerPort);
+        logger.info("Expected tx distribution: {}", clientToTx);
+        List<DamlClient> clients = assignClients(clientToTx);
 
-    public void deployToLedger() {
-        // Calling an external process to deploy the daml app to the ledger
-        logger.info("Deploying contracts");
-        try {
-            // Calling an external process to deploy the daml app to the ledger
-            String deploymentCommand = "daml deploy --host=" + ledgerHost + " --port=" + ledgerPort;
-            logger.info("Deployment command: " + deploymentCommand);
+        Random random = new Random();
+        long startTime = nanoTime();
 
-            // Running the above command
-            Runtime run = Runtime.getRuntime();
-            Process deploymentProc = run.exec(deploymentCommand, null, new File(contractPath));
-            deploymentProc.waitFor();
-            BufferedReader b = new BufferedReader(new InputStreamReader(deploymentProc.getInputStream()));
-            String line;
-            while ((line = b.readLine()) != null) {
-                logger.info(line);
+        logger.info("Starting transaction ...");
+
+        for (int i = 0; i < clients.size(); i++) {
+            int iouAmount = random.nextInt(10_000) + 1;
+            Iou iou = new Iou("Alice", "Alice", "AliceCoin", new BigDecimal(iouAmount), emptyList());
+            if (logging) {
+                logger.info("{}", iou);
             }
-            b.close();
-        } catch (IOException | InterruptedException e) {
-            e.printStackTrace();
-        }
-    }
+            Command command = iou.create();
+            DamlClient client = clients.get(i);
+            client.submitIou(command, party);
 
-    public void startService() {
-        //Starting daml backend service
-        logger.info("Starting service");
-        try {
-            String startServiceCommend = "java -jar " + executable + " " + ledgerHost + " " + ledgerPort
-                    + " " + party + " " + restPort;
-
-            logger.info("start service command: " + startServiceCommend);
-            
-            Process process = new ProcessBuilder().command(startServiceCommend.split("\\s+")).directory(new File(contractPath))
-            		                              .redirectOutput(INHERIT).redirectErrorStream(true)
-            		                              .start();
-			Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-				logger.info("Stopping service..");
-				process.destroyForcibly();
-				try {
-					process.waitFor();
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				}
-				logger.info("Service exit value: " + process.exitValue());
-			}));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    public void processDAMLTransactions () {
-        try
-        {
-            //JSON parser object to parse read file
-            String jsonContract = contractPath + "/" + contractFile;
-            HashMap<String,Object> contractMap =
-                    new ObjectMapper().readValue(new File(jsonContract), HashMap.class);
-
-
-            logger.info("Starting transaction ...");
-            // Initiate REST API call
-            // Given the rest endpoint
-
-            String uri = "http://localhost:" + restPort + "/" + endPoint;
-
-            logger.info("uri: " + uri);
-            Client client = Client.create();
-
-            WebResource webResource = client.resource(uri);
-            Random random = new Random();
-            long startTime = System.nanoTime();
-            for (int i = 0; i < numOfTransactions; i++ ) {
-                int iouAmount = random.nextInt(10000);
-                contractMap.put("amount", iouAmount + 1);
-                JSONObject json = new JSONObject(contractMap);
-                String jsonContent = json.toString();
-
-                logger.info("Json Contract: " + jsonContent);
-                ClientResponse response = webResource.accept("application/json")
-                        .put(ClientResponse.class, jsonContent);
-
-                if (response.getStatus() != 200) {
-                    logger.info("Failed : HTTP error code : "
-                            + response.getStatus());
-                    throw new RuntimeException("Failed : HTTP error code : "
-                            + response.getStatus());
-                }
-
-                if(rateControl != 0) {
-                    long timeToSleep = 1000_000_000 / rateControl;
-                    Utils.applyRateControl(timeToSleep, i, startTime);
-                }
-
+            if (rateControl != 0) {
+                // Average gap between transactions.
+                long timeToSleep = SECONDS.toNanos(1) / rateControl;
+                Utils.applyRateControl(timeToSleep, i, startTime);
             }
-            long endTime = System.nanoTime();
-            long totalTime = endTime - startTime;
-            long timeElaps = totalTime / 1000000;
-            logger.info("Total time taken: " + timeElaps + " ms");
-            logger.info("Average latency: " + totalTime / (numOfTransactions * 1000000) + " ms");
-            logger.info("Throughput: " + (numOfTransactions * 1.0 / totalTime) * 1000000000 + " tps");
-
-        } catch (IOException e) {
-            e.printStackTrace();
         }
 
+        long endTime = nanoTime();
+        summarize(ofNanos(endTime - startTime), clientToTx.keySet());
     }
+
+    /**
+     * Create client for each node and determine transaction count for it.
+     */
+    private Map<DamlClient, Long> initClients(List<Node> nodes, int ledgerPort) {
+        validate(nodes);
+
+        Map<DamlClient, Long> clientToTx = new HashMap<>();
+
+        for (Node node : nodes) {
+            if (node.getPercentage() == 0) {
+                continue;
+            }
+
+            DamlClient client = new DamlClient(node.getIp(), ledgerPort);
+            client.init();
+
+            long txCount = round(numOfTransactions * ((double) node.getPercentage() / 100));
+            clientToTx.put(client, txCount);
+        }
+
+        adjustResidue(clientToTx);
+
+        return clientToTx;
+    }
+
+    /**
+     * Make sure that sum of transaction count of each node is equal to the total
+     * transaction count.
+     */
+    private void adjustResidue(Map<DamlClient, Long> clientToTx) {
+        int numOfAssignedTx = clientToTx.values().stream().mapToInt(Long::intValue).sum();
+        if (numOfTransactions != numOfAssignedTx) {
+            logger.warn("Discrepancy between expected [{}] and assigned [{}] tx", numOfTransactions, numOfAssignedTx);
+        }
+    }
+
+    private List<DamlClient> assignClients(Map<DamlClient, Long> clientToTx) {
+        List<DamlClient> clients = new ArrayList<>(numOfTransactions);
+
+        clientToTx.forEach((client, txCount) -> {
+            while (txCount > 0) {
+                clients.add(client);
+                txCount--;
+            }
+        });
+
+        shuffle(clients);
+        return clients;
+    }
+
+    /**
+     * Validate load distribution.
+     */
+    private void validate(List<Node> nodes) {
+        int total = nodes.stream().collect(summingInt(Node::getPercentage));
+        if (total != 100) {
+            logger.warn("Percentage total mismatch! Expected: {}, Actual: {}", 100, total);
+            exit(0);
+        }
+    }
+
+    /**
+     * Summarize the result.
+     */
+    private void summarize(Duration totalTime, Collection<DamlClient> clients) {
+        logger.info("Total time taken: {} s", totalTime.getSeconds());
+        logger.info("Average latency: {} ms", totalTime.toMillis() / numOfTransactions);
+        logger.info("Throughput: {} tps", numOfTransactions / totalTime.getSeconds());
+        logger.info("Distribution: {}", clients.stream().collect(toMap(DamlClient::getLedgerHost, DamlClient::getTxCount)));
+    }
+
 }
