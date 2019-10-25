@@ -146,7 +146,6 @@ class VSphereOrchestrator constructor(
                             cloudInit = CloudInitConfiguration(
                                     info.containerRegistry,
                                     request.model,
-                                    request.genesis,
                                     request.privateNetworkAddress,
                                     network.gateway.toIPv4Address(),
                                     network.nameServers,
