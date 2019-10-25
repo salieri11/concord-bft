@@ -87,7 +87,7 @@ class CloudInitConfiguration(
                     "export http_proxy=${outboundProxy.httpHost}:${outboundProxy.httpPort}" +
                             ";export https_proxy=${outboundProxy.httpsHost}:${outboundProxy.httpsPort}" +
                             ";mkdir /etc/systemd/system/docker.service.d" +
-                            ";echo -e '[Service]\\nEnvironment=\"HTTP_PROXY=http://${outboundProxy.httpHost}:${outboundProxy.httpPort}\"\\nEnvironment=\"HTTPS_PROXY=https://${outboundProxy.httpsHost}:${outboundProxy.httpsPort}\"\\nEnvironment=\"NO_PROXY=localhost,127.0.0.1\"' > /etc/systemd/system/docker.service.d/http-proxy.conf"
+                            ";echo -e '[Service]\\nEnvironment=\"HTTP_PROXY=http://${outboundProxy.httpHost}:${outboundProxy.httpPort}\"\\nEnvironment=\"HTTPS_PROXY=http://${outboundProxy.httpsHost}:${outboundProxy.httpsPort}\"\\nEnvironment=\"NO_PROXY=localhost,127.0.0.1\"' > /etc/systemd/system/docker.service.d/http-proxy.conf"
                 }
                 ?: ""
     }

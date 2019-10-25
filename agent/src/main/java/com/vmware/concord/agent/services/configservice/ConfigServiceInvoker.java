@@ -95,7 +95,7 @@ public class ConfigServiceInvoker {
                 headers.setContentType(MediaType.APPLICATION_JSON);
 
                 ResponseEntity<NodeConfigurationResponse> result =
-                        restTemplate.exchange(endpoint.getAddress(), HttpMethod.POST,
+                        restTemplate.exchange(endpoint.getAddress() + "/v1/configuration/node", HttpMethod.POST,
                                               new HttpEntity<>(request, headers),
                                               NodeConfigurationResponse.class);
                 return result.getBody().getConfigurationComponent();
