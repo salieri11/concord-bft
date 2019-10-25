@@ -35,7 +35,7 @@ COPY ./persephone/config-service ./persephone/config-service
 RUN mvn -f persephone/pom.xml install -pl 'api' -am -B
 RUN mvn -f persephone/pom.xml package -pl config-service -am -B
 ## Get the C++ part
-FROM athena-docker-local.artifactory.eng.vmware.com/concord-core:prereqs-v9 as builder1
+FROM athena-docker-local.artifactory.eng.vmware.com/concord-core:prereqs-v10 as builder1
 
 COPY ./communication /communication
 COPY .git /.git
