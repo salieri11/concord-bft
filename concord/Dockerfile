@@ -9,7 +9,7 @@
 ##         from parent: docker build -f concord/Dockerfile .
 
 ## Build image
-FROM athena-docker-local.artifactory.eng.vmware.com/concord-core:prereqs-v9
+FROM athena-docker-local.artifactory.eng.vmware.com/concord-core:prereqs-v10
 
 ## Remember context is the parent of this directory
 COPY ./communication /communication
@@ -63,6 +63,19 @@ COPY --from=0 /opt/grpc /opt/grpc
 # compile the chaincode source file to binary.
 COPY --from=0 /usr/local/go /usr/local/go
 
+# HLF 
+# copy peer executable
+# this is not the same peer that communicates with concord kv state ie: vmwblockchain/fabric_peer 
+# this peer is for cli calls for sending chaincode commands from c++ concord
+# to our custom golang peer defined in submodules/hlf-chcaincode-engine/Dockerfile-peer
+# built from 'integrate2concord' git branch and tagged as {hlf_peer_base}:{hlf_peer_base_tag}
+COPY --from=0 /opt/gopath/src/github.com/hyperledger/fabric/.build/bin/peer /concord/
+
+# HLF_HARDCODED_CONFIG
+COPY ./docker/hlf/crypto-config/ /concord/crypto-config
+COPY ./docker/hlf/core.yaml /concord
+# _HLF_HARDCODED_CONFIG
+
 # evmjit is statically compiled, so we don't need to copy
 COPY --from=0 /usr/local/lib/librelic* /usr/local/lib/
 COPY --from=0 /usr/local/lib/librocksdb.* /usr/local/lib/
@@ -74,20 +87,6 @@ COPY --from=0 /concord/build/tools/conc_* /concord/
 COPY --from=0 /concord/build/tools/ec* /concord/
 COPY ./concord/test/concord.supp /concord/concord.supp
 
-# HLF
-# explicity want to copy default peer executable from hyperledger/fabric_tools version 1.3.1
-# any other hyperledeger fabric version creates undefined behaviour ( bug )
-COPY --from=vmwblockchain/fabric-tools:v131  /usr/local/bin/peer /concord/
-# this is not the same peer that communicates with concord kv state ie: vmwblockchain/fabric_peer
-# this tools:v131 peer is only for command line system calls for sending chaincode commands
-# from c++ concord to our custom golang peer defined in submodules/hlf-chcaincode-engine/Dockerfile-peer
-# built from 'integrate2concord' git branch and tagged as {hlf_peer_base}:{hlf_peer_base_tag}
-
-# HLF_HARDCODED_CONFIG
-COPY ./docker/hlf/crypto-config/ /concord/crypto-config
-COPY ./docker/hlf/core.yaml /concord
-# _HLF_HARDCODED_CONFIG
-
 # Copy default Concord logger configuration so logging will be sanely configured
 # if no custom configuration was provided when the cluster was set up.
 COPY ./concord/resources/log4cplus.properties /concord/resources/log4cplus.properties
@@ -97,6 +96,9 @@ EXPOSE 5458
 
 # Ledger API service
 EXPOSE 50051
+
+# HLF port
+EXPOSE 50052
 
 # SBFT ports.
 EXPOSE 3501/tcp
