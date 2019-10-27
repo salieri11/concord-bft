@@ -25,15 +25,15 @@ export class LogDetailsComponent implements OnInit {
 
   convertStringToObj(str: string) {
     const jsonMessage = str
-      .replace(/=/g, '\":\"')
-      .replace(/{/g, '{\"')
-      .replace(/"{/g, '{')
-      .replace(/,\s/g, ', \"')
-      .replace(/,/g, '\",')
-      .replace(/}/g, '\"}')
-      .replace(/}"/g, '}')
-      .replace(/"\[/g, '[\"')
-      .replace(/\]"/g, '\"]');
+      .replace(/=/g, "\":\"")
+      .replace(/{/g, "{\"")
+      .replace(/"{/g, "{")
+      .replace(/,\s/g, ", \"")
+      .replace(/,/g, "\",")
+      .replace(/}/g, "\"}")
+      .replace(/}"/g, "}")
+      .replace(/"\[/g, "[\"")
+      .replace(/\]"/g, "\"]");
 
     return JSON.parse(jsonMessage);
   }
