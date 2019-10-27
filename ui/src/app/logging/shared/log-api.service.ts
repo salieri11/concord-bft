@@ -48,7 +48,7 @@ export class LogApiService {
     return this.httpClient.get<LogTaskCompletedResponse>(`api/lint${path}`);
   }
 
-  padHeatMapData(heatMapObj: {[hour: number]: number}): void {
+  padHeatMapData(heatMapObj: { [hour: number]: number }): void {
     Object.keys(heatMapObj).map((hour) => {
       for (let m = 0; m <= 50; m += 10) {
         if (heatMapObj[hour][m] === undefined) {

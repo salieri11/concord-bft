@@ -1,0 +1,14 @@
+.tab {
+  margin-left: 1.2rem;
+}
+
+:host ::ng-deep {
+  font-family: Consolas,Monaco,'Andale Mono','Ubuntu Mono',monospace;
+  .datagrid, .datagrid-cell, clr-dg-cell {
+    padding: 0.2rem .5rem;
+  }
+
+  span {
+    word-break: break-all;
+  }
+}

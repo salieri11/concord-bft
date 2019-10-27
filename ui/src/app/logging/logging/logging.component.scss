@@ -49,3 +49,25 @@ concord-log-heat-map {
   margin-top: 15px;
   margin-bottom: 200px;
 }
+
+:host ::ng-deep {
+  .datagrid-row {
+    border: none;
+  }
+
+  .datagrid-host {
+    .datagrid-spinner {
+      height: 100%;
+      top: 0px;
+    }
+  }
+
+  .page-title {
+    display: inline;
+  }
+
+  clr-select-container {
+    display: inline;
+    margin-left: 0.5rem;
+  }
+}
