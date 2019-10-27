@@ -46,6 +46,7 @@
     "logsAndAnalysis": "Logs And Analysis",
     "developer": {
       "header": "DEVELOPER",
+      "logs": "Logs",
       "docs": "Documentation",
       "api": "APIs",
       "samples": "Samples"
@@ -560,7 +561,7 @@
       "loadMore": "Load More"
     },
     "bar": {
-      "title": "Ethereum RPC Method Calls",
+      "title": "Ethereum Logs for",
       "xCalls": "{{num}} Calls",
       "toDate": "To: {{toDate}}",
       "fromDate": "From: {{fromDate}}"
@@ -882,7 +883,6 @@
     "name": "Zone Designation",
     "namePH": "A",
     "urlError": "Please add a valid url.",
-
     "vcenter": {
       "title": "vCenter",
       "url": "URL",

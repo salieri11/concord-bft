@@ -1,20 +1,13 @@
 <div class="chart-container">
-  <ngx-charts-area-chart
-    [scheme]="colorScheme"
-    [schemeType]="schemeType"
-    [results]="graphData"
-    [gradient]="gradient"
-    [xAxis]="showXAxis"
-    [xAxisTickFormatting]="xAxisTickFormatting"
-    [yAxis]="showYAxis"
-    [showGridLines]="showGridLines">
+  <ngx-charts-area-chart [scheme]="colorScheme" [schemeType]="schemeType" [results]="graphData" [gradient]="gradient"
+    [xAxis]="showXAxis" [xAxisTickFormatting]="xAxisTickFormatting" [yAxis]="showYAxis" [showGridLines]="showGridLines">
     <ng-template #tooltipTemplate let-model="model">
       <div [innerHTML]="'logging.bar.xCalls' | translate:{num: (model.value | number)}"></div>
       <div>{{getStartTimeText(model)}}</div>
       <div>{{getEndTimeText(model)}}</div>
     </ng-template>
     <ng-template #seriesTooltipTemplate let-model="model">
-      <div [innerHTML]="'logging.bar.xCalls' | translate:{num: (model[0].value | number)}"></div>
+      <div [innerHTML]="'logging.bar.xCalls' | translate:{num: (model[0]?.value | number)}"></div>
       <div>{{getStartTimeText(model[0])}}</div>
       <div>{{getEndTimeText(model[0])}}</div>
     </ng-template>
