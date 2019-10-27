@@ -57,7 +57,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   blockchainType: string;
   infoLists: any[] = [];
 
-  dashItems: {title: string, count: number, link: string[]}[];
+  dashItems: { title: string, count: number, link: string[] }[];
 
   constructor(
     private orgService: OrgService,
@@ -69,7 +69,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     private translate: TranslateService,
     private tourService: TourService,
     private blockchainService: BlockchainService,
-  ) {}
+  ) { }
 
   ngOnInit() {
     this.blockchainType = this.blockchainService.type;
@@ -221,8 +221,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
           count: this.orgCount
         }];
         this.infoLists = [
-          {config: this.nodesConfig, items: this.nodes, tourAnchor: 'onboardingTour.nodes'},
-          {config: this.organizationsConfig, items: this.orgs, tourAnchor: 'onboardingTour.organization'},
+          { config: this.nodesConfig, items: this.nodes, tourAnchor: 'onboardingTour.nodes' },
+          { config: this.organizationsConfig, items: this.orgs, tourAnchor: 'onboardingTour.organization' },
         ];
         break;
 
@@ -246,10 +246,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
         }];
 
         this.infoLists = [
-          {config: this.nodesConfig, items: this.nodes, tourAnchor: 'onboardingTour.nodes'},
-          {config: this.organizationsConfig, items: this.orgs, tourAnchor: 'onboardingTour.organization'},
-          {config: this.contractsConfig, items: this.smartContracts, tourAnchor: 'onboardingTour.smartContracts'},
-          {config: this.blocksConfig, items: this.blocks, tourAnchor: 'onboardingTour.blocks'}
+          { config: this.nodesConfig, items: this.nodes, tourAnchor: 'onboardingTour.nodes' },
+          { config: this.organizationsConfig, items: this.orgs, tourAnchor: 'onboardingTour.organization' },
+          { config: this.contractsConfig, items: this.smartContracts, tourAnchor: 'onboardingTour.smartContracts' },
+          { config: this.blocksConfig, items: this.blocks, tourAnchor: 'onboardingTour.blocks' }
         ];
         break;
     }
@@ -257,11 +257,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   private loadSmartContracts() {
     this.smartContractsService.getSmartContracts().subscribe(
-       smartContracts => {
-         this.smartContracts = smartContracts;
-         this.infoLists[2].items = this.smartContracts;
-         this.dashItems[2].count = this.smartContracts.length;
-       });
+      smartContracts => {
+        this.smartContracts = smartContracts;
+        this.infoLists[2].items = this.smartContracts;
+        this.dashItems[2].count = this.smartContracts.length;
+      });
   }
 
   private loadNodes() {
