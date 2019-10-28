@@ -36,6 +36,9 @@ import com.vmware.concord.agent.services.configuration.DamlCommitterConfig;
 import com.vmware.concord.agent.services.configuration.DamlConfig;
 import com.vmware.concord.agent.services.configuration.DamlParticipantConfig;
 import com.vmware.concord.agent.services.configuration.EthereumConfig;
+import com.vmware.concord.agent.services.configuration.HlfConfig;
+
+
 
 /**
  * Utility class for talking to Docker and creating the required volumes, starting
@@ -155,7 +158,14 @@ public final class AgentDockerClient {
         containerConfigList.sort(Comparator.comparingInt(BaseContainerSpec::ordinal));
 
         var dockerClient = DockerClientBuilder.getInstance().build();
-        containerConfigList.forEach(container -> launchContainer(dockerClient, container));
+
+        //setup special hlf networking
+        if (configuration.getModel().getBlockchainType() == ConcordModelSpecification.BlockchainType.HLF) {
+            createNetwork(dockerClient, HlfConfig.HLF_DOCKER_NETWORK);
+        }
+
+        containerConfigList.forEach(container -> launchContainer(dockerClient, container,
+                                    configuration.getModel().getBlockchainType()));
     }
 
     private List<BaseContainerSpec> pullImages() {
@@ -204,6 +214,10 @@ public final class AgentDockerClient {
                         break;
                 }
                 break;
+            case HLF:
+                containerConfig = HlfConfig.valueOf(component.getServiceType().name());
+                break;
+
             default:
                 throw new RuntimeException("Invalid blockchain node type");
         }
@@ -273,7 +287,8 @@ public final class AgentDockerClient {
         log.info("Populated the config file");
     }
 
-    private void launchContainer(DockerClient dockerClient, BaseContainerSpec containerParam) {
+    private void launchContainer(DockerClient dockerClient, BaseContainerSpec containerParam,
+                                 ConcordModelSpecification.BlockchainType blockchainType) {
 
         var createContainerCmd = dockerClient.createContainerCmd(containerParam.getContainerName())
                 .withName(containerParam.getContainerName())
@@ -283,7 +298,8 @@ public final class AgentDockerClient {
             createContainerCmd.withCmd(containerParam.getCmds());
         }
 
-        if (containerParam.getVolumeBindings() != null || containerParam.getPortBindings() != null) {
+        if (containerParam.getVolumeBindings() != null || containerParam.getPortBindings() != null
+            || blockchainType == ConcordModelSpecification.BlockchainType.HLF) {
             HostConfig hostConfig = HostConfig.newHostConfig();
 
             if (containerParam.getVolumeBindings() != null) {
@@ -297,6 +313,12 @@ public final class AgentDockerClient {
             if (containerParam.getLinks() != null) {
                 hostConfig.withLinks(containerParam.getLinks());
             }
+
+            //special network for hlf
+            if (blockchainType == ConcordModelSpecification.BlockchainType.HLF) {
+                hostConfig.withNetworkMode(HlfConfig.HLF_DOCKER_NETWORK);
+            }
+
             createContainerCmd.withHostConfig(hostConfig);
         }
 
@@ -313,5 +335,16 @@ public final class AgentDockerClient {
             dockerClient.startContainerCmd(container.getId()).exec();
             log.info("Started container {}: Id {} ", containerParam.getContainerName(), container.getId());
         }
+    }
+
+    private void createNetwork(DockerClient dockerClient, String networkName) {
+        var createNetworkCmd = dockerClient.createNetworkCmd();
+
+        createNetworkCmd.withName(networkName);
+        createNetworkCmd.withCheckDuplicate(true);
+
+        var id = createNetworkCmd.exec().getId();
+        log.info("Created Network: {} Id: {}", networkName, id);
+
     }
 }

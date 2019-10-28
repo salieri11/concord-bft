@@ -22,7 +22,9 @@ BC_COMPONENTS={
                     "persephone-metadata", "helen", "persephone-configuration",
                     "persephone-ipam"],
             "blockchain": ["concord-core", "agent", "ethrpc", "daml-ledger-api",
-                    "daml-execution-engine", "daml-index-db"]
+                    "daml-execution-engine", "daml-index-db", 
+					"fabric-tools", "fabric-peer", "fabric-orderer",
+					"hlf-tools", "hlf-peer", "hlf-orderer" ]
             }
 
 CSP_PROD = "https://console.cloud.vmware.com/csp/gateway"

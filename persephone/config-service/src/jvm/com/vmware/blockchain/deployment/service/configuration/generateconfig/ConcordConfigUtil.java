@@ -47,6 +47,7 @@ public class ConcordConfigUtil {
         C_VAL("c_val"),
         DAML_ENABLED("daml_enable"),
         ETHEREUM_ENABLED("eth_enable"),
+        HLF_ENABLED("hlf_enable"),
         NODE("node"),
         REPLICA("replica"),
         CLIENT_PROXY("client_proxy"),
@@ -234,6 +235,8 @@ public class ConcordConfigUtil {
             configInput.put(ConfigProperty.ETHEREUM_ENABLED.name, true);
         } else if (blockchainType.equals(BlockchainType.DAML)) {
             configInput.put(ConfigProperty.DAML_ENABLED.name, true);
+        } else if (blockchainType.equals(BlockchainType.HLF)) {
+            configInput.put(ConfigProperty.HLF_ENABLED.name, true);
         }
 
         configInput.put(ConfigProperty.F_VAL.name, fVal);

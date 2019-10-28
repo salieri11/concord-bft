@@ -247,6 +247,9 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
             case DAML:
                 endpoint = node.getHostInfo().getEndpoints().getOrDefault("daml-ledger-api", null);
                 break;
+            case HLF:
+                endpoint = node.getHostInfo().getEndpoints().getOrDefault("concord-hlf", null);
+                break;
             default:
                 endpoint = node.getHostInfo().getEndpoints().getOrDefault("ethereum-rpc", null);
         }

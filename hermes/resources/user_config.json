@@ -163,7 +163,10 @@
         "ETHRPC": "ethrpc",
         "DAML_EXECUTION_ENGINE": "daml-execution-engine",
         "DAML_LEDGER_API": "daml-ledger-api",
-        "DAML_INDEX_DB": "daml-index-db"
+        "DAML_INDEX_DB": "daml-index-db",
+        "HLF_ORDERER": "hlf-orderer",
+        "HLF_PEER": "hlf-peer",
+        "HLF_TOOLS": "hlf-tools"
       },
       "defaults": {
         "concord_model_version": "1.0",
@@ -180,7 +183,15 @@
             "vmwblockchain/daml-execution-engine:latest": "daml_execution_engine",
             "vmwblockchain/daml-ledger-api:latest": "daml_ledger_api",
             "vmwblockchain/daml-index-db:latest": "daml_index_db"
+          },
+          "hlf": {
+            "vmwblockchain/agent:latest": "agent",
+            "vmwblockchain/concord-core:latest": "concord",
+            "vmwblockchain/hlf-orderer:latest": "hlf-orderer",
+            "vmwblockchain/hlf-peer:latest": "hlf-peer",
+            "vmwblockchain/hlf-tools:latest": "hlf-tools"
           }
+
         }
       }
     },

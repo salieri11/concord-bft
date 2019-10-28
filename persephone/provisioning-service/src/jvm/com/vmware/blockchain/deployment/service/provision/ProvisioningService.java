@@ -1253,6 +1253,18 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
                         )
                 );
                 break;
+            case HLF:
+                endpoints = Map.of(
+                        "concord-hlf",
+                        new ConcordNodeEndpoint(
+                                URI.create("https://{{ip}}:50051"
+                                                   .replace("{{ip}}", publicNetworkEvent.getAddress()))
+                                        .toString(),
+                                ""
+                        )
+                );
+                break;
+
             case ETHEREUM:
             default:
                 endpoints = Map.of(

@@ -21,6 +21,8 @@ log = logging.getLogger(__name__)
 class ModelServiceRPCHelper(RPCHelper):
    CONCORD_TYPE_DAML = "daml"
    CONCORD_TYPE_ETHEREUM = "ethereum"
+   CONCORD_TYPE_HLF = "hlf"
+
 
    def __init__(self, args):
       super().__init__(args)
@@ -52,6 +54,16 @@ class ModelServiceRPCHelper(RPCHelper):
          self.args.userConfig["persephoneTests"]["modelService"][
             "deployment_component_ids"]["DAML_INDEX_DB"]
 
+      self.HLF_ORDERER = \
+      self.args.userConfig["persephoneTests"]["modelService"][
+         "deployment_component_ids"]["HLF_ORDERER"]
+      self.HLF_PEER = \
+      self.args.userConfig["persephoneTests"]["modelService"][
+         "deployment_component_ids"]["HLF_PEER"]
+      self.HLF_TOOLS = \
+         self.args.userConfig["persephoneTests"]["modelService"][
+            "deployment_component_ids"]["HLF_TOOLS"]
+
    def __del__(self):
       self.close_channel(self.service_name)
 
@@ -69,7 +81,7 @@ class ModelServiceRPCHelper(RPCHelper):
       :param version: Model Specification version
       :param template: Model Specification template name (UUID)
       :param deployment_components: Deployment components to be used in concord spec
-      :param concord_type: Concord type (ethereum, DAML, etc)
+      :param concord_type: Concord type (ethereum, DAML, HLF etc)
       '''
 
       if version is None:
@@ -83,6 +95,8 @@ class ModelServiceRPCHelper(RPCHelper):
 
       if concord_type is ModelServiceRPCHelper.CONCORD_TYPE_DAML:
          blockchain_type = concord_model_pb2.ConcordModelSpecification.DAML
+      elif concord_type is ModelServiceRPCHelper.CONCORD_TYPE_HLF:
+         blockchain_type = concord_model_pb2.ConcordModelSpecification.HLF
       else:
          concord_type = ModelServiceRPCHelper.CONCORD_TYPE_ETHEREUM
          blockchain_type = concord_model_pb2.ConcordModelSpecification.ETHEREUM
@@ -116,6 +130,26 @@ class ModelServiceRPCHelper(RPCHelper):
             if self.DAML_INDEX_DB_ID in component:
                concord_components.append((
                   concord_model_pb2.ConcordComponent.DAML_INDEX_DB,
+                  component))
+      elif concord_type is ModelServiceRPCHelper.CONCORD_TYPE_HLF:
+         for component in deployment_components:
+            if self.AGENT_ID in component:
+               concord_components.append(
+                  (concord_model_pb2.ConcordComponent.GENERIC, component))
+            if self.CONCORD_ID in component:
+               concord_components.append(
+                  (concord_model_pb2.ConcordComponent.HLF_CONCORD, component))
+            if self.HLF_ORDERER in component:
+               concord_components.append((
+                                         concord_model_pb2.ConcordComponent.HLF_ORDERER,
+                                         component))
+            if self.HLF_PEER in component:
+               concord_components.append((
+                                         concord_model_pb2.ConcordComponent.HLF_PEER,
+                                         component))
+            if self.HLF_TOOLS in component:
+               concord_components.append((
+                  concord_model_pb2.ConcordComponent.HLF_TOOLS,
                   component))
       else:
          for component in deployment_components:
