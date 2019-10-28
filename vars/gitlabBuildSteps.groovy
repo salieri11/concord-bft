@@ -597,10 +597,8 @@ EOF
                         '''
                       } else {
                         sh '''
-                          # RV, Oct 23 2019: Commenting out tests which use SDDCs because of IT VPN work which affects SDDCs 3 and 4.
-                          echo Skipping Persephone smoke tests due to IT VPN maintenance.
-                          # echo "Running Persephone SMOKE Tests (hitting staging config-service)..."
-                          # echo "${PASSWORD}" | sudo -SE "${python}" main.py PersephoneTests --dockerComposeFile ../docker/docker-compose-persephone.yml --resultsDir "${persephone_test_logs}" --deploymentComponents "${release_persephone_agent_repo}:${docker_tag},${release_concord_repo}:${dep_comp_docker_tag},${release_ethrpc_repo}:${dep_comp_docker_tag},${release_daml_ledger_api_repo}:${dep_comp_docker_tag},${release_daml_execution_engine_repo}:${dep_comp_docker_tag},${release_daml_index_db_repo}:${dep_comp_docker_tag}" --keepBlockchains ${deployment_retention}
+                          echo "Running Persephone SMOKE Tests (hitting staging config-service)..."
+                          echo "${PASSWORD}" | sudo -SE "${python}" main.py PersephoneTests --dockerComposeFile ../docker/docker-compose-persephone.yml --resultsDir "${persephone_test_logs}" --deploymentComponents "${release_persephone_agent_repo}:${docker_tag},${release_concord_repo}:${dep_comp_docker_tag},${release_ethrpc_repo}:${dep_comp_docker_tag},${release_daml_ledger_api_repo}:${dep_comp_docker_tag},${release_daml_execution_engine_repo}:${dep_comp_docker_tag},${release_daml_index_db_repo}:${dep_comp_docker_tag}" --keepBlockchains ${deployment_retention}
                         '''
                       }
                     }
@@ -1560,13 +1558,11 @@ void runGenericTests(){
       "${python}" main.py UiTests --dockerComposeFile ../docker/docker-compose.yml ../docker/docker-compose-persephone.yml --resultsDir "${ui_test_logs}" --runConcordConfigurationGeneration
       saveTimeEvent UITests End
 
-      # RV, Oct 23 2019: Commenting out tests which use SDDCs because of IT VPN work which affects SDDCs 3 and 4.
-      echo Skipping HelenDeployToSDDC test due to IT VPN maintenance.
-      # saveTimeEvent HelenDeployToSDDC Start
-      # echo "${PASSWORD}" | sudo -S "${python}" main.py CoreVMTests --blockchainLocation sddc \
-      #      --dockerComposeFile ../docker/docker-compose.yml ../docker/docker-compose-persephone.yml \
-      #      --tests="-k vmArithmeticTest/add0.json" --resultsDir "${helen_sddc_deployment_logs}"
-      # saveTimeEvent HelenDeployToSDDC End
+      saveTimeEvent HelenDeployToSDDC Start
+      echo "${PASSWORD}" | sudo -S "${python}" main.py CoreVMTests --blockchainLocation sddc \
+           --dockerComposeFile ../docker/docker-compose.yml ../docker/docker-compose-persephone.yml \
+           --tests="-k vmArithmeticTest/add0.json" --resultsDir "${helen_sddc_deployment_logs}"
+      saveTimeEvent HelenDeployToSDDC End
     ''')
   }
 }
