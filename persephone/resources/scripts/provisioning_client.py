@@ -37,7 +37,7 @@ def parse_arguments() -> Dict[str, Any]:
     parser.add_argument(
         "--type",
         default="ETHEREUM",
-        choices=["ETHEREUM", "DAML"],
+        choices=["ETHEREUM", "DAML", "HLF"],
         help="Type of concord"
     )
     return vars(parser.parse_args())
@@ -100,6 +100,34 @@ def get_component(blockchain_type) -> List[concord_model.ConcordComponent]:
                 name="vmwblockchain/agent:latest"
             )
         ]
+    elif blockchain_type == "HLF":
+        return [
+            concord_model.ConcordComponent(
+                type=concord_model.ConcordComponent.CONTAINER_IMAGE,
+                service_type=concord_model.ConcordComponent.HLF_CONCORD,
+                name="vmwblockchain/concord-core:latest"
+            ),
+            concord_model.ConcordComponent(
+                type=concord_model.ConcordComponent.CONTAINER_IMAGE,
+                service_type=concord_model.ConcordComponent.HLF_ORDERER,
+                name="vmwblockchain/hlf-orderer:latest"
+            ),
+            concord_model.ConcordComponent(
+                type=concord_model.ConcordComponent.CONTAINER_IMAGE,
+                service_type=concord_model.ConcordComponent.HLF_PEER,
+                name="vmwblockchain/hlf-peer:latest"
+            ),
+            concord_model.ConcordComponent(
+                type=concord_model.ConcordComponent.CONTAINER_IMAGE,
+                service_type=concord_model.ConcordComponent.HLF_TOOLS,
+                name="vmwblockchain/hlf-tools:latest"
+            ),
+            concord_model.ConcordComponent(
+                type=concord_model.ConcordComponent.CONTAINER_IMAGE,
+                service_type=concord_model.ConcordComponent.GENERIC,
+                name="vmwblockchain/agent:latest"
+            )
+        ]
 
 
 def get_concord_type(blockchain_type: str) -> concord_model.ConcordModelSpecification.BlockchainType:
@@ -116,6 +144,8 @@ def get_concord_type(blockchain_type: str) -> concord_model.ConcordModelSpecific
         return concord_model.ConcordModelSpecification.ETHEREUM
     elif blockchain_type == "DAML":
         return concord_model.ConcordModelSpecification.DAML
+    elif blockchain_type == "HLF":
+        return concord_model.ConcordModelSpecification.HLF
 
 
 def main():
