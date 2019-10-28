@@ -23,6 +23,7 @@ export class LogDetailsComponent implements OnInit {
     this.message = this.convertStringToObj(this.log.message);
   }
 
+  // parse message  string from API
   convertStringToObj(str: string) {
     const jsonMessage = str
       .replace(/=/g, '\":\"')
