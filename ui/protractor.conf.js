@@ -64,12 +64,6 @@ exports.config = {
     prepareJasmineForFlake();
     browser.ignoreSynchronization = true;
     browser.driver.manage().window().setSize(1600, 2500);
-  },
-
-  afterLaunch: function(exitCode) {
-    return new Promise(function(resolve) {
-      reporter.afterLaunch(resolve.bind(this, exitCode));
-    });
   }
 };
 

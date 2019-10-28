@@ -45,7 +45,9 @@ describe('concord-ui Smart Contracts', () => {
     const absolutePath = path.resolve(__dirname, file);
     smartContractsPage.openCreateModal();
     browser.wait(until.presenceOf(smartContractPage.getPageTitle()), BROWSER_WAIT_TIME);
+    browser.sleep(300);
     smartContractsPage.fillContractFormStep1(from, contractId, version, compilerVersion, absolutePath);
+    browser.sleep(300);
     smartContractsPage.clickWizardNextButton();
     waitForText(element(by.cssContainingText('.modal-title', 'Contract Selection')));
     smartContractsPage.clickWizardNextButton();
@@ -71,7 +73,9 @@ describe('concord-ui Smart Contracts', () => {
     smartContractPage.navigateTo();
     waitFor('.contract-form');
     expect(smartContractPage.getCallSuccessAlert().isPresent()).toBe(false);
+    browser.sleep(300);
     smartContractPage.fillParameterForm(from, 'call');
+    browser.sleep(300);
     waitFor('.call-success');
     expect(smartContractPage.getCallSuccessAlert().isPresent()).toBe(true);
   });

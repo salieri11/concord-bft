@@ -1494,45 +1494,45 @@ void runGenericTests(){
       # echo "${PASSWORD}" | sudo -S "${python}" main.py SampleDAppTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${sample_dapp_test_logs}" --runConcordConfigurationGeneration
       # ssaveTimeEvent SampleDAppTests End
 
-      saveTimeEvent CoreVMTests Start
-      echo "${PASSWORD}" | sudo -S "${python}" main.py CoreVMTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${core_vm_test_logs}" --runConcordConfigurationGeneration
-      saveTimeEvent CoreVMTests End
+      # saveTimeEvent CoreVMTests Start
+      # echo "${PASSWORD}" | sudo -S "${python}" main.py CoreVMTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${core_vm_test_logs}" --runConcordConfigurationGeneration
+      # saveTimeEvent CoreVMTests End
 
-      saveTimeEvent PerformanceTests Start
-      echo "${PASSWORD}" | sudo -SE "${python}" main.py PerformanceTests --dockerComposeFile ../docker/docker-compose.yml --performanceVotes ${performance_votes} --resultsDir "${performance_test_logs}" --runConcordConfigurationGeneration --concordConfigurationInput /concord/config/dockerConfigurationInput-perftest.yaml
-      saveTimeEvent PerformanceTests End
+      # saveTimeEvent PerformanceTests Start
+      # echo "${PASSWORD}" | sudo -SE "${python}" main.py PerformanceTests --dockerComposeFile ../docker/docker-compose.yml --performanceVotes ${performance_votes} --resultsDir "${performance_test_logs}" --runConcordConfigurationGeneration --concordConfigurationInput /concord/config/dockerConfigurationInput-perftest.yaml
+      # saveTimeEvent PerformanceTests End
 
-      saveTimeEvent HelenAPITests Start
-      echo "${PASSWORD}" | sudo -S "${python}" main.py HelenAPITests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${helen_api_test_logs}" --runConcordConfigurationGeneration --logLevel debug
-      saveTimeEvent HelenAPITests End
+      # saveTimeEvent HelenAPITests Start
+      # echo "${PASSWORD}" | sudo -S "${python}" main.py HelenAPITests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${helen_api_test_logs}" --runConcordConfigurationGeneration --logLevel debug
+      # saveTimeEvent HelenAPITests End
 
-      saveTimeEvent ExtendedRPCTests Start
-      echo "${PASSWORD}" | sudo -S "${python}" main.py ExtendedRPCTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${extended_rpc_test_logs}" --runConcordConfigurationGeneration
-      saveTimeEvent ExtendedRPCTests End
+      # saveTimeEvent ExtendedRPCTests Start
+      # echo "${PASSWORD}" | sudo -S "${python}" main.py ExtendedRPCTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${extended_rpc_test_logs}" --runConcordConfigurationGeneration
+      # saveTimeEvent ExtendedRPCTests End
 
-      saveTimeEvent ExtendedRPCTestsEthrpc Start
-      echo "${PASSWORD}" | sudo -S "${python}" main.py ExtendedRPCTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${extended_rpc_test_helen_logs}" --ethrpcApiUrl https://localhost/blockchains/local/api/concord/eth --runConcordConfigurationGeneration
-      saveTimeEvent ExtendedRPCTestsEthrpc End
+      # saveTimeEvent ExtendedRPCTestsEthrpc Start
+      # echo "${PASSWORD}" | sudo -S "${python}" main.py ExtendedRPCTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${extended_rpc_test_helen_logs}" --ethrpcApiUrl https://localhost/blockchains/local/api/concord/eth --runConcordConfigurationGeneration
+      # saveTimeEvent ExtendedRPCTestsEthrpc End
 
-      saveTimeEvent RegressionTests Start
-      echo "${PASSWORD}" | sudo -S "${python}" main.py RegressionTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${regression_test_logs}" --runConcordConfigurationGeneration
-      saveTimeEvent RegressionTests End
+      # saveTimeEvent RegressionTests Start
+      # echo "${PASSWORD}" | sudo -S "${python}" main.py RegressionTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${regression_test_logs}" --runConcordConfigurationGeneration
+      # saveTimeEvent RegressionTests End
 
-      saveTimeEvent DamlTests Start
-      echo "${PASSWORD}" | sudo -S "${python}" main.py DamlTests --dockerComposeFile ../docker/docker-compose-daml.yml --resultsDir "${daml_test_logs}" --runConcordConfigurationGeneration --concordConfigurationInput /concord/config/dockerConfigurationInput-daml.yaml
-      saveTimeEvent DamlTests End
+      # saveTimeEvent DamlTests Start
+      # echo "${PASSWORD}" | sudo -S "${python}" main.py DamlTests --dockerComposeFile ../docker/docker-compose-daml.yml --resultsDir "${daml_test_logs}" --runConcordConfigurationGeneration --concordConfigurationInput /concord/config/dockerConfigurationInput-daml.yaml
+      # saveTimeEvent DamlTests End
 
-      saveTimeEvent SimpleStateTransferTest Start
-      echo "${PASSWORD}" | sudo -S "${python}" main.py SimpleStateTransferTest --dockerComposeFile ../docker/docker-compose.yml ../docker/docker-compose-static-ips.yml --resultsDir "${statetransfer_test_logs}" --runConcordConfigurationGeneration
-      saveTimeEvent SimpleStateTransferTest End
+      # saveTimeEvent SimpleStateTransferTest Start
+      # echo "${PASSWORD}" | sudo -S "${python}" main.py SimpleStateTransferTest --dockerComposeFile ../docker/docker-compose.yml ../docker/docker-compose-static-ips.yml --resultsDir "${statetransfer_test_logs}" --runConcordConfigurationGeneration
+      # saveTimeEvent SimpleStateTransferTest End
 
-      saveTimeEvent TruffleTests Start
-      echo "${PASSWORD}" | sudo -S "${python}" main.py TruffleTests --logLevel debug --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${truffle_test_logs}" --runConcordConfigurationGeneration
-      saveTimeEvent TruffleTests End
+      # saveTimeEvent TruffleTests Start
+      # echo "${PASSWORD}" | sudo -S "${python}" main.py TruffleTests --logLevel debug --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${truffle_test_logs}" --runConcordConfigurationGeneration
+      # saveTimeEvent TruffleTests End
 
-      saveTimeEvent ContractCompilerTests Start
-      echo "${PASSWORD}" | sudo -S "${python}" main.py ContractCompilerTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${contract_compiler_test_logs}" --runConcordConfigurationGeneration
-      saveTimeEvent ContractCompilerTests End
+      # saveTimeEvent ContractCompilerTests Start
+      # echo "${PASSWORD}" | sudo -S "${python}" main.py ContractCompilerTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${contract_compiler_test_logs}" --runConcordConfigurationGeneration
+      # saveTimeEvent ContractCompilerTests End
 
       # RV: Commenting out because these repeatedly cause the product to fail to launch in CI/CD.
       # echo "${PASSWORD}" | sudo -S "${python}" main.py HlfTests --dockerComposeFile=../docker/docker-compose-hlf.yml --resultsDir "${hlf_test_logs}" --runConcordConfigurationGeneration --concordConfigurationInput /concord/config/dockerConfigurationInput-hlf.yaml
@@ -1543,21 +1543,26 @@ void runGenericTests(){
       # but the configuration generation is run inside of a
       # container. `../docker/config-public/` is mounted as `/concord/config/`
       # during config generation.
-      saveTimeEvent TimeTests Start
-      sed -- \'s/\\(FEATURE_time_service: \\)false/\\1true/\' ../docker/config-public/dockerConfigurationInput.yaml > ../docker/config-public/dockerConfigurationInput-time_service.yaml
-      echo "${PASSWORD}" | sudo -S "${python}" main.py TimeTests --dockerComposeFile=../docker/docker-compose.yml --resultsDir "${time_test_logs}" --runConcordConfigurationGeneration --concordConfigurationInput /concord/config/dockerConfigurationInput-time_service.yaml
-      saveTimeEvent TimeTests End
+      # saveTimeEvent TimeTests Start
+      # sed -- \'s/\\(FEATURE_time_service: \\)false/\\1true/\' ../docker/config-public/dockerConfigurationInput.yaml > ../docker/config-public/dockerConfigurationInput-time_service.yaml
+      # echo "${PASSWORD}" | sudo -S "${python}" main.py TimeTests --dockerComposeFile=../docker/docker-compose.yml --resultsDir "${time_test_logs}" --runConcordConfigurationGeneration --concordConfigurationInput /concord/config/dockerConfigurationInput-time_service.yaml
+      # saveTimeEvent TimeTests End
 
-      saveTimeEvent EvilTimeTests Start
-      echo "${PASSWORD}" | sudo -S "${python}" main.py EvilTimeTests --dockerComposeFile=../docker/docker-compose.yml --resultsDir "${time_test_logs}"
-      saveTimeEvent EvilTimeTests End
+      # saveTimeEvent EvilTimeTests Start
+      # echo "${PASSWORD}" | sudo -S "${python}" main.py EvilTimeTests --dockerComposeFile=../docker/docker-compose.yml --resultsDir "${time_test_logs}"
+      # saveTimeEvent EvilTimeTests End
 
-      cd suites ; echo "${PASSWORD}" | sudo -SE ./memory_leak_test.sh --testSuite CoreVMTests --repeatSuiteRun 2 --tests 'vmArithmeticTest/add0.json' --resultsDir "${mem_leak_test_logs}" ; cd ..
+      # cd suites ; echo "${PASSWORD}" | sudo -SE ./memory_leak_test.sh --testSuite CoreVMTests --repeatSuiteRun 2 --tests 'vmArithmeticTest/add0.json' --resultsDir "${mem_leak_test_logs}" ; cd ..
 
       # We need to delete the database files before running UI tests because
       # Selenium cannot launch Chrome with sudo.  (The only reason Hermes
       # needs to be run with sudo is so it can delete any existing DB files.)
       # Source NVM
+      # wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
+      # sudo sh -c 'echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list'
+      # sudo apt-get update
+      # sudo apt-get install google-chrome-stable
+
       . ~/.nvm/nvm.sh
       echo "${PASSWORD}" | sudo -S rm -rf ../docker/devdata/rocksdbdata*
       echo "${PASSWORD}" | sudo -S rm -rf ../docker/devdata/postgresql
