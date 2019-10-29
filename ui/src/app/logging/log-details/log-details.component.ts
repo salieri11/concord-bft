@@ -13,7 +13,7 @@ import * as _ from 'lodash';
 export class LogDetailsComponent implements OnInit {
   @Input() log: any;
 
-  message: {};
+  message: any;
   objectKeys = Object.keys;
 
   constructor() {
