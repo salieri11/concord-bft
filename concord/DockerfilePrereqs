@@ -50,17 +50,17 @@ RUN wget https://dl.google.com/go/go1.11.linux-amd64.tar.gz && \
     tar -C /usr/local -xf go1.11.linux-amd64.tar.gz
 
 # HLF peer binary
-# explicity want to build peer executable from hyperledger/fabric_tools version 1.3.1 
+# explicity want to build peer executable from hyperledger/fabric_tools version 1.3.1
 # any other hyperledeger fabric version creates undefined behaviour ( bug )
 WORKDIR /opt/gopath/src/github.com/hyperledger
 RUN git clone https://github.com/hyperledger/fabric.git && \
     cd fabric && \
-    git checkout 80c6f6ba22b002eab3945fd4ea09d9cd303eb550 
+    git checkout 80c6f6ba22b002eab3945fd4ea09d9cd303eb550
 WORKDIR /opt/gopath/src/github.com/hyperledger/fabric
 ENV GOPATH=/opt/gopath
 ENV PATH=$PATH:/usr/local/go/bin
 ENV EXECUTABLES go
-RUN make peer 
+RUN make peer
 
 WORKDIR /
 RUN git clone https://github.com/google/googletest.git && \
@@ -70,26 +70,33 @@ WORKDIR /googletest/_build
 RUN cmake -DCMAKE_CXX_FLAGS="-std=c++11 -march=x86-64 -mtune=generic" .. && make -j4
 
 WORKDIR /
+COPY ./cross-platform-cryptopp.patch .
 RUN git clone https://github.com/weidai11/cryptopp.git && \
     cd /cryptopp && \
-    git checkout CRYPTOPP_5_6_5
-## This is the reason that the concord directory must be the context
-WORKDIR /cryptopp
-COPY ./cross-platform-cryptopp.patch .
-RUN git apply --whitespace=nowarn cross-platform-cryptopp.patch
-WORKDIR /cryptopp/build
-RUN cmake -DCMAKE_CXX_FLAGS="-march=x86-64 -mtune=generic" .. && make -j4 && make install
+    git checkout CRYPTOPP_5_6_5 && \
+    git apply --whitespace=nowarn /cross-platform-cryptopp.patch && \
+    mkdir build && \
+    cd build && \
+    cmake -DCMAKE_CXX_FLAGS="-march=x86-64 -mtune=generic" .. && \
+    make -j4 && \
+    make install && \
+    cd / && \
+    rm -r cryptopp
 
 WORKDIR /
 RUN git clone https://github.com/log4cplus/log4cplus.git && \
     cd /log4cplus && \
-    git checkout REL_1_2_1
-WORKDIR /log4cplus
-RUN autoconf && \
+    git checkout REL_1_2_1 && \
+    autoconf && \
     ./configure CXXFLAGS="--std=c++11 -march=x86-64 -mtune=generic" \
-                --enable-static && \
-    make -j4 && \
-    make install
+                --enable-static
+# Combining the RUN above with the RUN below causes the log4cplus
+# build to complain about missing aclocal-1.14.
+WORKDIR /log4cplus
+RUN make -j4 && \
+    make install && \
+    cd / && \
+    rm -r log4cplus
 
 WORKDIR /
 RUN git clone https://github.com/ethereum/evmjit.git && \
@@ -102,34 +109,46 @@ RUN cmake --build . --config RelWithDebInfo -- -j4
 WORKDIR /
 RUN git clone https://github.com/relic-toolkit/relic && \
     cd /relic && \
-    git checkout 0998bfcb6b00aec85cf8d755d2a70d19ea3051fd
-WORKDIR /relic/build
-RUN cmake -DALLOC=AUTO -DWSIZE=64 -DWORD=64 -DRAND=UDEV -DSHLIB=ON -DSTLIB=ON -DSTBIN=OFF -DTIMER=HREAL -DCHECK=on -DVERBS=on -DARITH=x64-asm-254 -DFP_PRIME=254 -DFP_METHD="INTEG;INTEG;INTEG;MONTY;LOWER;SLIDE" -DCOMP="-O3 -funroll-loops -fomit-frame-pointer -finline-small-functions -march=x86-64 -mtune=generic" -DFP_PMERS=off -DFP_QNRES=on -DFPX_METHD="INTEG;INTEG;LAZYR" -DPP_METHD="LAZYR;OATEP" .. && make -j4 && make install
+    git checkout 0998bfcb6b00aec85cf8d755d2a70d19ea3051fd && \
+    mkdir build && \
+    cd build && \
+    cmake -DALLOC=AUTO -DWSIZE=64 -DWORD=64 -DRAND=UDEV -DSHLIB=ON -DSTLIB=ON -DSTBIN=OFF -DTIMER=HREAL -DCHECK=on -DVERBS=on -DARITH=x64-asm-254 -DFP_PRIME=254 -DFP_METHD="INTEG;INTEG;INTEG;MONTY;LOWER;SLIDE" -DCOMP="-O3 -funroll-loops -fomit-frame-pointer -finline-small-functions -march=x86-64 -mtune=generic" -DFP_PMERS=off -DFP_QNRES=on -DFPX_METHD="INTEG;INTEG;LAZYR" -DPP_METHD="LAZYR;OATEP" .. && \
+    make -j4 && \
+    make install && \
+    cd / && \
+    rm -r relic
 
 WORKDIR /
-RUN wget https://github.com/facebook/rocksdb/archive/v5.7.3.tar.gz \
-    && tar -xzf v5.7.3.tar.gz \
-    && rm v5.7.3.tar.gz
-WORKDIR /rocksdb-5.7.3
-RUN PORTABLE=1 make -j4 shared_lib && PORTABLE=1 make install-shared
+RUN wget https://github.com/facebook/rocksdb/archive/v5.7.3.tar.gz && \
+    tar -xzf v5.7.3.tar.gz && \
+    rm v5.7.3.tar.gz && \
+    cd /rocksdb-5.7.3 && \
+    PORTABLE=1 make -j4 shared_lib && \
+    PORTABLE=1 make install-shared && \
+    cd / && \
+    rm -r rocksdb-5.7.3
 
 WORKDIR /
 RUN git clone https://github.com/bitcoin-core/secp256k1 && \
     cd /secp256k1 && \
-    git checkout 1e6f1f5ad5e7f1e3ef79313ec02023902bf8175c
-WORKDIR /secp256k1
-RUN ./autogen.sh && ./configure --enable-module-recovery CFLAGS="-march=x86-64 -mtune=generic" CPPFLAGS="-march=x86-64 -mtune=generic"
-RUN make -j4 && make install
+    git checkout 1e6f1f5ad5e7f1e3ef79313ec02023902bf8175c && \
+    ./autogen.sh && \
+    ./configure --enable-module-recovery CFLAGS="-march=x86-64 -mtune=generic" CPPFLAGS="-march=x86-64 -mtune=generic" && \
+    make -j4 && \
+    make install && \
+    cd / && \
+    rm -r secp256k1
 
 WORKDIR /
 RUN git clone https://svc.blockhain_1:Nn2NPdU6Ny9ZaYyXs3DB@gitlab.eng.vmware.com/core-build/openssl.git && \
     cd /openssl && \
-    git checkout OpenSSL_1_1_1a
-WORKDIR /openssl
-RUN ./config && \
+    git checkout OpenSSL_1_1_1a && \
+    ./config && \
     make -j4 && \
     make test && \
-    make install
+    make install && \
+    cd / && \
+    rm -r openssl
 
 # gRPC for DAML and HLF api server
 WORKDIR /
@@ -138,14 +157,16 @@ RUN git clone https://github.com/grpc/grpc && \
     git checkout v1.17.x && \
     git submodule update --init && \
     cd /grpc/third_party/protobuf && \
-    git checkout 3.6.x
-WORKDIR /grpc/third_party/protobuf
-RUN ./autogen.sh && \
+    git checkout 3.6.x && \
+    cd /grpc/third_party/protobuf && \
+    ./autogen.sh && \
     ./configure --prefix=/opt/protobuf && \
     make -j4 && \
     make install && \
     cd /grpc && \
     make -j4 PROTOC=/opt/protobuf/bin/protoc && \
-    make prefix=/opt/grpc install
+    make prefix=/opt/grpc install && \
+    cd / && \
+    rm -r grpc
 
 ENV LD_LIBRARY_PATH /usr/local/lib
