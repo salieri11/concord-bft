@@ -136,11 +136,6 @@ class CloudInitConfiguration(
             printf '[guestinfo]\nprimary-nics=eth*\nexclude-nics=docker*,veth*' > /etc/vmware-tools/tools.conf
             /usr/bin/vmware-toolbox-cmd info update network
 
-            touch /config/concord/config-local/concord.config
-
-            # Adding the genesis block
-            mkdir -p /config/concord/config-public
-
             docker run -d --name=agent --restart=always -v /config:/config -v /var/run/docker.sock:/var/run/docker.sock -p 8546:8546 {{agentImage}}
             echo 'done'
             """.trimIndent()
