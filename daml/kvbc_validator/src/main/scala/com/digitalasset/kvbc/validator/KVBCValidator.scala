@@ -2,8 +2,7 @@
 
 package com.digitalasset.kvbc.validator
 
-import java.time.{Duration, Instant}
-
+import com.codahale.metrics
 import com.daml.ledger.participant.state.backport.TimeModel
 import com.daml.ledger.participant.state.kvutils.{DamlKvutils => KV, _}
 import com.daml.ledger.participant.state.v1.{Configuration, ParticipantId}
@@ -14,13 +13,25 @@ import com.digitalasset.kvbc.daml_validator._
 import com.github.blemale.scaffeine.{Cache, Scaffeine}
 import com.google.protobuf.ByteString
 import io.grpc.{Status, StatusRuntimeException}
+import java.time.{Duration, Instant}
 import org.slf4j.LoggerFactory
-
 import scala.collection.JavaConverters._
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
 
 class KVBCValidator extends ValidationServiceGrpc.ValidationService {
+  private object Metrics {
+    val registry = KVBCMetricsServer.registry
+    val prefix = "validator.service"
+
+    val pendingSubmissions = registry.counter(s"$prefix.pending-submissions")
+    val validateTimer = registry.timer(s"$prefix.validate-time")
+    val provideStateTimer = registry.timer(s"$prefix.provide-state-time")
+    val submissionSizes = registry.histogram(s"$prefix.submission-sizes")
+    val outputSizes = registry.histogram(s"$prefix.output-sizes")
+    val missingInputs = registry.histogram(s"$prefix.missing-inputs")
+  }
+
   type ReplicaId = Long
   type RawEntryId = ByteString
   type StateInputs = Map[KV.DamlStateKey, Option[KV.DamlStateValue]]
@@ -43,7 +54,7 @@ class KVBCValidator extends ValidationServiceGrpc.ValidationService {
       }
 
     Scaffeine()
-      .recordStats
+      .recordStats({ () => new KVBCMetricsStatsCounter })
       .expireAfterWrite(1.hour)
       .maximumWeight(cacheSize)
       .weigher[(ReplicaId, KV.DamlStateKey), KV.DamlStateValue]{
@@ -83,14 +94,17 @@ class KVBCValidator extends ValidationServiceGrpc.ValidationService {
   private def parseTimestamp(ts: com.google.protobuf.timestamp.Timestamp): Time.Timestamp =
     Time.Timestamp.assertFromInstant(Instant.ofEpochSecond(ts.seconds, ts.nanos))
 
-  def catchedFutureThunk[A](act: => A): Future[A] =
+  def catchedTimedFutureThunk[A](timer: metrics.Timer)(act: => A): Future[A] =
     Future {
+      val ctx = timer.time()
       try {
         act
       } catch {
         case e: Throwable =>
           logger.error(s"Exception: $e")
           throw e
+      } finally {
+        val _ = ctx.stop()
       }
     }
 
@@ -102,6 +116,8 @@ class KVBCValidator extends ValidationServiceGrpc.ValidationService {
         pendingSubmissions
           .remove(replicaId)
           .getOrElse(sys.error(s"No pending submission for ${replicaId}!"))
+
+    Metrics.pendingSubmissions.dec()
 
     if (pendingSubmission.entryId != request.entryId) {
       sys.error(s"Pending submission was for different entryId: ${pendingSubmission.entryId} != ${request.entryId}")
@@ -137,11 +153,13 @@ class KVBCValidator extends ValidationServiceGrpc.ValidationService {
     ValidatePendingSubmissionResponse(Some(result))
   }
 
-  def validateSubmission(request: ValidateRequest): Future[ValidateResponse] = catchedFutureThunk {
+  def validateSubmission(request: ValidateRequest): Future[ValidateResponse] = catchedTimedFutureThunk(Metrics.validateTimer) {
     val replicaId = request.replicaId
     val participantId = Ref.LedgerString.assertFromString(request.participantId)
 
     logger.trace(s"Validating submission: replicaId=$replicaId, participantId=${request.participantId}, entryId=${request.entryId.toStringUtf8}")
+
+    Metrics.submissionSizes.update(request.submission.size())
 
     // Unpack the submission.
     val submission =
@@ -154,6 +172,7 @@ class KVBCValidator extends ValidationServiceGrpc.ValidationService {
           )
       }
 
+    // Pull inputs from cache and create the pending submission
     val allInputs: Set[KV.DamlStateKey] = submission.getInputDamlStateList.asScala.toSet
     val cachedInputs: StateInputs =
       cache.getAllPresent(allInputs.map(replicaId -> _)).map { case ((_, key), v) => key -> Some(v) }
@@ -165,14 +184,18 @@ class KVBCValidator extends ValidationServiceGrpc.ValidationService {
       inputState = cachedInputs
     )
 
+    // Check if some inputs are missing, and if so return with NeedState, otherwise
+    // process the submission.
     val missingInputs =
       (allInputs -- cachedInputs.keySet)
         .map(KeyValueCommitting.packDamlStateKey)
         .toSeq
+    Metrics.missingInputs.update(missingInputs.size)
 
     if (missingInputs.nonEmpty) {
       logger.info(s"Requesting ${missingInputs.size} missing inputs...")
       pendingSubmissions(replicaId) = pendingSubmission
+      Metrics.pendingSubmissions.inc()
       ValidateResponse(
         ValidateResponse.Response.NeedState(
           ValidateResponse.NeedState(missingInputs))
@@ -219,6 +242,8 @@ class KVBCValidator extends ValidationServiceGrpc.ValidationService {
         Envelope.enclose(logEntry),
         outKeyPairs
       )
+
+    Metrics.outputSizes.update(result.logEntry.size())
 
     logger.info(s"Submission validated. entryId=${pendingSubmission.entryId.toStringUtf8} " +
       s"participantId=${pendingSubmission.participantId} inputStates=${pendingSubmission.inputState.size} stateUpdates=${stateUpdates.size} " +
