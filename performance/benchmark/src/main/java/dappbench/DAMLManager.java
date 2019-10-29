@@ -148,6 +148,9 @@ public class DAMLManager {
      * Summarize the result.
      */
     private void summarize(Duration totalTime, Collection<DamlClient> clients) {
+        clients.forEach(client -> {
+            logger.info("No. of active contracts: {}", client.getActiveContractCount(party));
+        });
         logger.info("Total time taken: {} s", totalTime.getSeconds());
         logger.info("Average latency: {} ms", totalTime.toMillis() / numOfTransactions);
         logger.info("Throughput: {} tps", numOfTransactions / totalTime.getSeconds());

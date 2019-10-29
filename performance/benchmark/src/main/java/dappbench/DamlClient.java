@@ -1,6 +1,8 @@
 package dappbench;
 
 import static com.daml.ledger.rxjava.DamlLedgerClient.forHostWithLedgerIdDiscovery;
+import static com.digitalasset.quickstart.iou.IouMain.filterFor;
+import static com.digitalasset.quickstart.model.iou.Iou.TEMPLATE_ID;
 import static java.util.Optional.empty;
 import static org.apache.logging.log4j.LogManager.getLogger;
 
@@ -9,6 +11,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.logging.log4j.Logger;
 
 import com.daml.ledger.javaapi.data.Command;
+import com.daml.ledger.javaapi.data.TransactionFilter;
 import com.daml.ledger.rxjava.DamlLedgerClient;
 import com.digitalasset.quickstart.iou.IouMain;
 
@@ -44,6 +47,14 @@ public class DamlClient {
         String ledgerId = client.getLedgerId();
         logger.debug("ledger-id for node {} is {}", ledgerHost, ledgerId);
         txCount = new AtomicInteger();
+    }
+
+    /**
+     * Get number of active contracts from the service.
+     */
+    public long getActiveContractCount(String party) {
+        TransactionFilter filter = filterFor(TEMPLATE_ID, party);
+        return client.getActiveContractSetClient().getActiveContracts(filter, false).count().blockingGet();
     }
 
     /**

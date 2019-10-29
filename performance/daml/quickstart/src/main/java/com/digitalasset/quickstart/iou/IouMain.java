@@ -141,7 +141,7 @@ public class IouMain {
                 .blockingGet();
     }
 
-    private static TransactionFilter filterFor(Identifier templateId, String party) {
+    public static TransactionFilter filterFor(Identifier templateId, String party) {
         InclusiveFilter inclusiveFilter = new InclusiveFilter(Collections.singleton(templateId));
         Map<String, Filter> filter = Collections.singletonMap(party, inclusiveFilter);
         return new FiltersByParty(filter);
