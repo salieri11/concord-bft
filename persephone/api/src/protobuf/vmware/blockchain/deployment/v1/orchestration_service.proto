@@ -78,12 +78,6 @@ message ValidateOrchestrationSiteResponse {
  * Service definition pertaining to operations on [OrchestrationSite] resources.
  */
 service OrchestrationSiteService {
-    /**
-     * Operation to retrieve a list of [OrchestrationSite] information.
-     */
-    rpc ListOrchestrationSites (ListOrchestrationSitesRequest)
-    returns (ListOrchestrationSitesResponse) {};
-
 
     /**
      * Operation to validate a OrchestrationSite.

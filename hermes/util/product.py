@@ -63,7 +63,6 @@ class Product():
    PERSEPHONE_SERVICE_METADATA = docker_env["persephone_metadata_repo"]
    PERSEPHONE_SERVICE_PROVISIONING = docker_env["persephone_provisioning_repo"] # name as seen by helen
    PERSEPHONE_CONFIG_SERVICE = "config-service"
-   PERSEPHONE_SERVICE_ORCHESTRATION = "orchestration_service"
    PERSEPHONE_SERVICE_PROVISIONING_2 = PERSEPHONE_SERVICE_PROVISIONING + "-2" # 2nd instance of provisioning service for IPAM test
    # PERSEPHONE_SERVICE_FLEET = docker_env["persephone_fleet_repo"]
 

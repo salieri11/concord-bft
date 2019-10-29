@@ -275,8 +275,6 @@ message UpdateDeploymentSessionResponse {
  *   port number to use for server instance.
  * @property[transport_security]
  *   transport security setting.
- * @property[sites]
- *   list of orchestration sites to utilize for provisioning resources.
  * @property[container_registry]
  *   information containing endpoint of registry for docker images to be used as default
  * @property[allocation_server]
@@ -286,10 +284,9 @@ message ProvisioningServerConfiguration {
     int32 port = 1;
     TransportSecurity transport_security = 2;
     Endpoint config_service = 3;
-    repeated OrchestrationSite sites = 4 [packed=false];
-    Endpoint container_registry = 5;
-    Endpoint allocation_server = 6;
-    Endpoint config_service_rest = 7;
+    Endpoint container_registry = 4;
+    Endpoint allocation_server = 5;
+    Endpoint config_service_rest = 6;
 }
 
 /* [END messages] */

@@ -6,7 +6,6 @@ package com.vmware.blockchain.deployment.service.provision
 import com.vmware.blockchain.deployment.orchestration.OrchestratorProvider
 import com.vmware.blockchain.deployment.v1.ConfigurationServiceStub
 import com.vmware.blockchain.deployment.v1.Endpoint
-import com.vmware.blockchain.deployment.v1.OrchestrationSite
 import dagger.Module
 import dagger.Provides
 import java.util.concurrent.ExecutorService
@@ -56,7 +55,6 @@ class ProvisioningServiceModule {
     fun providesProvisioningService(
         @Named("default-executor") executor: ExecutorService,
         orchestratorProvider: OrchestratorProvider,
-        sites: List<OrchestrationSite>,
         @Named("configurationService") configurationService: Endpoint,
         @Named("containerRegistry") containerRegistry: Endpoint,
         @Named("allocationServer") allocationServer: Endpoint,
@@ -66,7 +64,6 @@ class ProvisioningServiceModule {
         return ProvisioningService(
                 executor,
                 orchestratorProvider,
-                sites,
                 configurationServiceClientProvider,
                 configurationService,
                 containerRegistry,

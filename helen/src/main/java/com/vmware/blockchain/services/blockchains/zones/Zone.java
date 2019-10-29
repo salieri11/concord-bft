@@ -15,6 +15,7 @@ import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.vmware.blockchain.dao.AbstractEntity;
 import com.vmware.blockchain.dao.EntityColumnName;
+import com.vmware.blockchain.dao.LinkedEntityId;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -97,6 +98,9 @@ public class Zone extends AbstractEntity {
         ON_PREM,
         VMC_AWS
     }
+
+    @LinkedEntityId
+    UUID orgId;
 
     String name;
     String latitude;

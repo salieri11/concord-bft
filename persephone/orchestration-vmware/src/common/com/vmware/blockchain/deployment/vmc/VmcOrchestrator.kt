@@ -92,6 +92,7 @@ class VmcOrchestrator(
         return publish {
             vmc.getDataCenterInfo()?.apply {
                 // Use VMC SDDC info to create NSX client.
+
                 nsx = VmcHttpClient.Context(
                         endpoint = URI(resource_config.nsx_api_public_endpoint_url),
                         authenticationEndpoint = URI.create(info.authentication.address),

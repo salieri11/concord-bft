@@ -16,6 +16,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -82,6 +83,7 @@ import com.vmware.blockchain.services.blockchains.Blockchain.BlockchainType;
 import com.vmware.blockchain.services.blockchains.BlockchainController.BlockchainNodeEntry;
 import com.vmware.blockchain.services.blockchains.BlockchainController.BlockchainReplicaEntry;
 import com.vmware.blockchain.services.blockchains.BlockchainController.BlockchainTaskResponse;
+import com.vmware.blockchain.services.blockchains.zones.VmcAwsZone;
 import com.vmware.blockchain.services.blockchains.zones.Zone;
 import com.vmware.blockchain.services.blockchains.zones.ZoneService;
 import com.vmware.blockchain.services.blockchains.zones.ZoneTestUtils;
@@ -374,9 +376,25 @@ public class BlockchainControllerTest {
 
         // Zone returns
         when(zoneService.get(SITE_1)).thenReturn(ZoneTestUtils.getOnpremZone(SITE_1, ORG_ID));
+
         when(zoneService.get(SITE_2)).thenReturn(new Zone(SITE_2, Zone.Type.VMC_AWS));
 
         when(organizationService.get(any(UUID.class))).thenReturn(mock(Organization.class));
+
+        VmcAwsZone vmcAwsZone = new VmcAwsZone();
+        vmcAwsZone.setType(Zone.Type.VMC_AWS);
+        vmcAwsZone.setId(SITE_2);
+        vmcAwsZone.setNetwork(new Zone.Network("name", null, "10.10.10.10", "24",
+                                               new ArrayList<>()));
+        vmcAwsZone.setResourcePool("resource");
+        vmcAwsZone.setFolder("folder");
+        vmcAwsZone.setDatacenter("dc");
+        vmcAwsZone.setStorage("storage");
+        vmcAwsZone.setVmcUrl("vmc");
+        vmcAwsZone.setCspUrl("csp");
+        vmcAwsZone.setRefreshToken("rt");
+        vmcAwsZone.setOrganization("org");
+        when(zoneService.get(SITE_2)).thenReturn(vmcAwsZone);
     }
 
 

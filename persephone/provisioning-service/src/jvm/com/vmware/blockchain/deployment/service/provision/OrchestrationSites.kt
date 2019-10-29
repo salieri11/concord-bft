@@ -19,24 +19,48 @@ class OrchestrationSites {
             allocationServer: Endpoint
         ): OrchestrationSiteInfo {
             var original: OrchestrationSiteInfo = originalSiteInfo
-            if (originalSiteInfo.vsphere.containerRegistry.address.isBlank()) {
-                original = original.copy(
-                        vsphere = original.vsphere.copy(
-                                containerRegistry = containerRegistry
-                        )
-                )
-            }
 
-            if (originalSiteInfo.vsphere.vsphere.network.allocationServer.address.isBlank()) {
-                original = original.copy(
-                        vsphere = original.vsphere.copy(
-                                vsphere = original.vsphere.vsphere.copy(
-                                        network = original.vsphere.vsphere.network.copy(
-                                                allocationServer = allocationServer
-                                        )
-                                )
-                        )
-                )
+            if (original.type == OrchestrationSiteInfo.Type.VSPHERE) {
+                if (originalSiteInfo.vsphere.containerRegistry.address.isBlank()) {
+                    original = original.copy(
+                            vsphere = original.vsphere.copy(
+                                    containerRegistry = containerRegistry
+                            )
+                    )
+                }
+
+                if (originalSiteInfo.vsphere.vsphere.network.allocationServer.address.isBlank()) {
+                    original = original.copy(
+                            vsphere = original.vsphere.copy(
+                                    vsphere = original.vsphere.vsphere.copy(
+                                            network = original.vsphere.vsphere.network.copy(
+                                                    allocationServer = allocationServer
+                                            )
+                                    )
+                            )
+                    )
+                }
+            }
+            if (original.type == OrchestrationSiteInfo.Type.VMC) {
+                if (originalSiteInfo.vmc.containerRegistry.address.isBlank()) {
+                    original = original.copy(
+                            vmc = original.vmc.copy(
+                                    containerRegistry = containerRegistry
+                            )
+                    )
+                }
+
+                if (originalSiteInfo.vmc.vsphere.network.allocationServer.address.isBlank()) {
+                    original = original.copy(
+                            vmc = original.vmc.copy(
+                                    vsphere = original.vmc.vsphere.copy(
+                                            network = original.vmc.vsphere.network.copy(
+                                                    allocationServer = allocationServer
+                                            )
+                                    )
+                            )
+                    )
+                }
             }
             return original
         }

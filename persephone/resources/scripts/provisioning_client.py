@@ -8,6 +8,7 @@ import logging
 import vmware.blockchain.deployment.v1.core_pb2 as core
 import vmware.blockchain.deployment.v1.concord_model_pb2 as concord_model
 import vmware.blockchain.ethereum.type.genesis_pb2 as genesis
+import vmware.blockchain.deployment.v1.orchestration_pb2 as orchestration
 import vmware.blockchain.deployment.v1.orchestration_service_pb2 as orchestration_service
 import vmware.blockchain.deployment.v1.orchestration_service_pb2_grpc as orchestration_service_rpc
 import vmware.blockchain.deployment.v1.provisioning_service_pb2 as provisioning_service
@@ -174,21 +175,10 @@ def main():
     else:
         channel = grpc.insecure_channel(args["server"])
     provisioning_stub = provisioning_service_rpc.ProvisioningServiceStub(channel)
-    orchestration_site_stub = orchestration_service_rpc.OrchestrationSiteServiceStub(channel)
 
-    orchestration_site_list_request = orchestration_service.ListOrchestrationSitesRequest(
-        header=core.MessageHeader(),
-        page_size=0  # Server-decide on sizing.
-    )
-    orchestration_site_list_response = orchestration_site_stub.ListOrchestrationSites(
-        orchestration_site_list_request
-    )
-
-    log.info("ListOrchestrationSites():")
-    for site in orchestration_site_list_response.sites:
-        log.info("Site: id(%d|%d), type(%s)", site.id.high, site.id.low, site.type)
-
-    site = orchestration_site_list_response.sites[0]
+    site = orchestration.OrchestrationSiteIdentifier(
+        low=0,
+        high=3)
     create_cluster_request = provisioning_service.CreateClusterRequest(
         header=core.MessageHeader(),
         specification=provisioning_service.DeploymentSpecification(
@@ -204,19 +194,136 @@ def main():
                 entries=[
                     provisioning_service.PlacementSpecification.Entry(
                         type=provisioning_service.PlacementSpecification.FIXED,
-                        site=site.id
+                        site=site,
+                        site_info=orchestration.OrchestrationSiteInfo(
+                            type=orchestration.OrchestrationSiteInfo.VMC,
+                            vmc=orchestration.VmcOrchestrationSiteInfo(
+                                authentication=core.Endpoint(
+                                    address="https://console.cloud.vmware.com",
+                                    credential=core.Credential(
+                                        token_credential=core.BearerTokenCredential(
+                                            token="6239e9e3-bd5c-4b7f-ba21-e764cfde5de2"
+                                        )
+                                    )
+                                ),
+                                api=core.Endpoint(
+                                    address="https://vmc.vmware.com"
+                                ),
+                                organization= "c56e116e-c36f-4f7d-b504-f9a33955b853",
+                                datacenter= "6db19f8f-cde6-4151-88e5-a3b0d6aead6a",
+                                vsphere=orchestration.VSphereDatacenterInfo(
+                                    datastore="WorkloadDatastore",
+                                    resource_pool="Compute-ResourcePool",
+                                    folder="HermesTesting",
+                                    network=orchestration.IPv4Network(
+                                        name="vmware-vpn",
+                                        address_allocation=orchestration.IPv4Network.STATIC,
+                                        gateway=172319745,
+                                        subnet=24
+                                    )
+                                )
+                            )
+                        )
+
                     ),
                     provisioning_service.PlacementSpecification.Entry(
                         type=provisioning_service.PlacementSpecification.FIXED,
-                        site=site.id
+                        site=site,
+                        site_info=orchestration.OrchestrationSiteInfo(
+                            type=orchestration.OrchestrationSiteInfo.VMC,
+                            vmc=orchestration.VmcOrchestrationSiteInfo(
+                                authentication=core.Endpoint(
+                                    address="https://console.cloud.vmware.com",
+                                    credential=core.Credential(
+                                        token_credential=core.BearerTokenCredential(
+                                            token="6239e9e3-bd5c-4b7f-ba21-e764cfde5de2"
+                                        )
+                                    )
+                                ),
+                                api=core.Endpoint(
+                                    address="https://vmc.vmware.com"
+                                ),
+                                organization= "c56e116e-c36f-4f7d-b504-f9a33955b853",
+                                datacenter= "6db19f8f-cde6-4151-88e5-a3b0d6aead6a",
+                                vsphere=orchestration.VSphereDatacenterInfo(
+                                    datastore="WorkloadDatastore",
+                                    resource_pool="Compute-ResourcePool",
+                                    folder="HermesTesting",
+                                    network=orchestration.IPv4Network(
+                                        name="vmware-vpn",
+                                        address_allocation=orchestration.IPv4Network.STATIC,
+                                        gateway=172319745,
+                                        subnet=24
+                                    )
+                                )
+                            )
+                        )
                     ),
                     provisioning_service.PlacementSpecification.Entry(
                         type=provisioning_service.PlacementSpecification.FIXED,
-                        site=site.id
+                        site=site,
+                        site_info=orchestration.OrchestrationSiteInfo(
+                            type=orchestration.OrchestrationSiteInfo.VMC,
+                            vmc=orchestration.VmcOrchestrationSiteInfo(
+                                authentication=core.Endpoint(
+                                    address="https://console.cloud.vmware.com",
+                                    credential=core.Credential(
+                                        token_credential=core.BearerTokenCredential(
+                                            token="6239e9e3-bd5c-4b7f-ba21-e764cfde5de2"
+                                        )
+                                    )
+                                ),
+                                api=core.Endpoint(
+                                    address="https://vmc.vmware.com"
+                                ),
+                                organization= "c56e116e-c36f-4f7d-b504-f9a33955b853",
+                                datacenter= "6db19f8f-cde6-4151-88e5-a3b0d6aead6a",
+                                vsphere=orchestration.VSphereDatacenterInfo(
+                                    datastore="WorkloadDatastore",
+                                    resource_pool="Compute-ResourcePool",
+                                    folder="HermesTesting",
+                                    network=orchestration.IPv4Network(
+                                        name="vmware-vpn",
+                                        address_allocation=orchestration.IPv4Network.STATIC,
+                                        gateway=172319745,
+                                        subnet=24
+                                    )
+                                )
+                            )
+                        )
                     ),
                     provisioning_service.PlacementSpecification.Entry(
                         type=provisioning_service.PlacementSpecification.FIXED,
-                        site=site.id
+                        site=site,
+                        site_info=orchestration.OrchestrationSiteInfo(
+                            type=orchestration.OrchestrationSiteInfo.VMC,
+                            vmc=orchestration.VmcOrchestrationSiteInfo(
+                                authentication=core.Endpoint(
+                                    address="https://console.cloud.vmware.com",
+                                    credential=core.Credential(
+                                        token_credential=core.BearerTokenCredential(
+                                            token="6239e9e3-bd5c-4b7f-ba21-e764cfde5de2"
+                                        )
+                                    )
+                                ),
+                                api=core.Endpoint(
+                                    address="https://vmc.vmware.com"
+                                ),
+                                organization= "c56e116e-c36f-4f7d-b504-f9a33955b853",
+                                datacenter= "6db19f8f-cde6-4151-88e5-a3b0d6aead6a",
+                                vsphere=orchestration.VSphereDatacenterInfo(
+                                    datastore="WorkloadDatastore",
+                                    resource_pool="Compute-ResourcePool",
+                                    folder="HermesTesting",
+                                    network=orchestration.IPv4Network(
+                                        name="vmware-vpn",
+                                        address_allocation=orchestration.IPv4Network.STATIC,
+                                        gateway=172319745,
+                                        subnet=24
+                                    )
+                                )
+                            )
+                        )
                     )
                 ]
             ),

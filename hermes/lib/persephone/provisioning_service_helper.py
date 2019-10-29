@@ -24,6 +24,9 @@ class ProvisioningServiceRPCHelper(RPCHelper):
    PLACEMENT_TYPE_FIXED = "FIXED"
    PLACEMENT_TYPE_UNSPECIFIED = "UNSPECIFIED"
 
+   ZONE_TYPE_VMC = "vmc"
+   ZONE_TYPE_ON_PREM = "on-prem"
+
    UPDATE_DEPLOYMENT_ACTION_NOOP = "NOOP"
    UPDATE_DEPLOYMENT_ACTION_DEPROVISION_ALL = "DEPROVISION_ALL"
 
@@ -42,43 +45,105 @@ class ProvisioningServiceRPCHelper(RPCHelper):
       self.close_channel(self.service_name)
 
    def create_placement_specification(self, cluster_size,
-                                      placement_type=PLACEMENT_TYPE_FIXED,
-                                      orchestration_sites=None):
+                                         zone_type=ZONE_TYPE_VMC):
       '''
       Helper method to create place specification used for create cluster
       :param cluster_size: Number of placement sites
-      :param placement_type: Placement type FIXED/UNSPECIFIED
-      :param orchestration_sites: List of orchestration Sites/zones
       :return: placement specification
       '''
-      log.info("**** Concord node placement type: {}".format(placement_type))
 
       entries = []
-      if placement_type == self.PLACEMENT_TYPE_UNSPECIFIED:
-         for placement_count in range(0, cluster_size):
-            placement_entry = provisioning_service_pb2.PlacementSpecification.Entry(
-               type=provisioning_service_pb2.PlacementSpecification.UNSPECIFIED)
-            entries.append(placement_entry)
-      else:
-         deployment_sites = []
-         for site in orchestration_sites[0].sites:
-            deployment_sites.append(site.id)
-         log.info("**** Deploying on Orchestration Sites/zones: {}".format(
-            util.helper.protobuf_message_to_json(deployment_sites)))
+      deployment_site_ids, deployment_sites = self.get_orchestration_sites(
+         zone_type)
 
-         for placement_count in range(0, cluster_size):
-            site_number = placement_count % len(deployment_sites)
-            deployment_site = deployment_sites[site_number]
-            log.debug("Placing concord[{}] on {}".format(placement_count, deployment_site))
-            placement_entry = provisioning_service_pb2.PlacementSpecification.Entry(
-               type=provisioning_service_pb2.PlacementSpecification.FIXED,
-               site=deployment_site)
-            entries.append(placement_entry)
+      for placement_count in range(0, cluster_size):
+         site_number = placement_count % len(deployment_sites)
+         deployment_site = deployment_sites[site_number]
+         log.debug("Placing concord[{}] on {}".format(placement_count, deployment_site))
+         placement_entry = provisioning_service_pb2.PlacementSpecification.Entry(
+            type=provisioning_service_pb2.PlacementSpecification.FIXED,
+            site=deployment_site_ids[site_number],
+            site_info=deployment_site)
+         entries.append(placement_entry)
 
       placement_specification = provisioning_service_pb2.PlacementSpecification(
          entries=entries
       )
       return placement_specification
+
+   def get_orchestration_sites(self, zone_type):
+      '''
+      helper method to get Orchestration Sites
+      :param zone_type: Zone/Site type (VMC or ON-PREM)
+      :return Orchestration sites
+      '''
+      zones = \
+      self.args.userConfig["persephoneTests"]["provisioningService"]["zones"][
+         zone_type]
+
+      deployment_site_ids = []
+      deployment_sites = []
+      for zone in zones:
+         if zone["info"] and "labels" in zone["info"] and "name" in \
+               zone["info"]["labels"]:
+            log.info("**** Deploying on Orchestration Sites/zones: {}".format(
+               zone["info"]["labels"]["name"]))
+
+         site_id = zone["id"]
+
+         orchestration_site_info = None
+         api_endpoint = core_pb2.Endpoint(address=zone["api"]["address"])
+         vsphere_datacenter_info = orchestration_pb2.VSphereDatacenterInfo(
+            datastore=zone["vsphere"]["datastore"],
+            resource_pool=zone["vsphere"]["resourcePool"],
+            folder=zone["vsphere"]["folder"],
+            network=orchestration_pb2.IPv4Network(
+               name=zone["vsphere"]["network"]["name"],
+               address_allocation=orchestration_pb2.IPv4Network.STATIC,
+               gateway=zone["vsphere"]["network"]["gateway"],
+               subnet=zone["vsphere"]["network"]["subnet"]
+            )
+         )
+
+         if zone_type == self.ZONE_TYPE_VMC:
+            type = orchestration_pb2.OrchestrationSiteInfo.VMC
+            site_info = orchestration_pb2.VmcOrchestrationSiteInfo(
+               authentication=core_pb2.Endpoint(
+                  address=zone["authentication"]["address"],
+                  credential=core_pb2.Credential(
+                     token_credential=core_pb2.BearerTokenCredential(
+                        token=zone["authentication"]["credential"]
+                        ["tokenCredential"]["token"]
+                     )
+                  )
+               ),
+               api=api_endpoint,
+               organization=zone["organization"],
+               datacenter=zone["datacenter"],
+               vsphere=vsphere_datacenter_info
+            )
+            orchestration_site_info = orchestration_pb2.OrchestrationSiteInfo(
+               type=type, vmc=site_info)
+            orchestration_site_id = orchestration_pb2.OrchestrationSiteIdentifier(
+               low=site_id["low"], high=site_id["high"])
+            deployment_site_ids.append(orchestration_site_id)
+            deployment_sites.append(orchestration_site_info)
+
+         elif zone_type == self.ZONE_TYPE_ON_PREM:
+            type = orchestration_pb2.OrchestrationSiteInfo.VSPHERE
+            site_info = orchestration_pb2.VSphereOrchestrationSiteInfo(
+               api=api_endpoint,
+               vsphere=vsphere_datacenter_info
+            )
+            orchestration_site_info = orchestration_pb2.OrchestrationSiteInfo(
+               type=type, vsphere=site_info)
+            orchestration_site_id = orchestration_pb2.OrchestrationSiteIdentifier(
+               low=site_id["low"], high=site_id["high"])
+            deployment_site_ids.append(orchestration_site_id)
+            deployment_sites.append(orchestration_site_info)
+
+      log.debug("All Deployment sites: {}".format(deployment_sites))
+      return deployment_site_ids, deployment_sites
 
    def create_genesis_specification(self):
       '''

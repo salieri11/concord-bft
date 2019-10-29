@@ -375,14 +375,6 @@ class ZoneControllerTest {
     }
 
     @Test
-    void testLoadZones() throws Exception {
-        mockMvc.perform(post("/api/blockchains/zones?action=reload").with(authentication(adminAuth)))
-                .andExpect(status().isOk());
-        verify(zoneService, times(1)).loadZones();
-
-    }
-
-    @Test
     void testLoadZonesBadAction() throws Exception {
         mockMvc.perform(post("/api/blockchains/zones?action=sleep").with(authentication(adminAuth)))
                 .andExpect(status().isBadRequest());

@@ -57,11 +57,7 @@ public class StartupConfig {
             }
         }
         defaultProfiles.initialize();
-        try {
-            zoneService.loadZones();
-        } catch (Exception e) {
-            logger.warn("Could not load deployment zones", e);
-        }
+        logger.info("Number of default zones loaded: {}", zoneService.getZones().size());
     }
 
 }

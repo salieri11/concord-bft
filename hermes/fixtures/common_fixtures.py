@@ -109,8 +109,10 @@ def deployToSddc(logDir, hermesData):
    zoneIds = []
 
    for zone in conAdminRequest.getZones():
+       log.info(zone)
        zoneIds.append(zone["id"])
 
+   log.info(zoneIds)
    siteIds = util.helper.distributeItemsRoundRobin(4, zoneIds)
    response = conAdminRequest.createBlockchain(conId,
                                                siteIds,
