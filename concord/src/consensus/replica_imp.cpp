@@ -79,7 +79,7 @@ void ReplicaImp::createReplicaAndSyncState() {
   m_replicaPtr = bftEngine::Replica::createNewReplica(
       &m_replicaConfig, m_cmdHandler, m_stateTransfer, m_ptrComm,
       m_metadataStorage);
-  if (!isNewStorage) {
+  if (!isNewStorage && !m_stateTransfer->isCollectingState()) {
     uint64_t removedBlocksNum = m_replicaStateSync.execute(
         logger, *m_bcDbAdapter, *this, m_appState->m_lastReachableBlock,
         m_replicaPtr->getLastExecutedSequenceNum());
@@ -275,7 +275,7 @@ ReplicaImp::ReplicaImp(CommConfig &commConfig,
 
   m_appState = new BlockchainAppState(this);
   m_stateTransfer = bftEngine::SimpleBlockchainStateTransfer::create(
-      state_transfer_config, m_appState, false);
+      state_transfer_config, m_appState, m_bcDbAdapter->getDb());
 }
 
 ReplicaImp::~ReplicaImp() {
@@ -398,36 +398,21 @@ void ReplicaImp::insertBlockInternal(BlockId blockId, Sliver block) {
       return;
     }
   } else {
+    SetOfKeyValuePairs keys;
     if (block.length() > 0) {
       uint16_t numOfElements = ((BlockHeader *)block.data())->numberOfElements;
       auto *entries = (BlockEntry *)(block.data() + sizeof(BlockHeader));
       for (size_t i = 0; i < numOfElements; i++) {
         const Sliver keySliver(block, entries[i].keyOffset, entries[i].keySize);
         const Sliver valSliver(block, entries[i].valOffset, entries[i].valSize);
-
-        const KeyIDPair pk(keySliver, blockId);
-
-        s = m_bcDbAdapter->updateKey(pk.key, pk.blockId, valSliver);
-        if (!s.isOK()) {
-          // TODO(SG): What to do?
-          LOG4CPLUS_FATAL(logger, "Failed to update key");
-          exit(1);
-        }
+        keys.insert(KeyValuePair(keySliver, valSliver));
       }
-
-      s = m_bcDbAdapter->addBlock(blockId, block);
-      if (!s.isOK()) {
-        // TODO(SG): What to do?
-        printf("Failed to add block");
-        exit(1);
-      }
-    } else {
-      s = m_bcDbAdapter->addBlock(blockId, block);
-      if (!s.isOK()) {
-        // TODO(SG): What to do?
-        printf("Failed to add block");
-        exit(1);
-      }
+    }
+    s = m_bcDbAdapter->addBlockAndUpdateMultiKey(keys, blockId, block);
+    if (!s.isOK()) {
+      // TODO(SG): What to do?
+      printf("Failed to add block");
+      exit(1);
     }
   }
 }
