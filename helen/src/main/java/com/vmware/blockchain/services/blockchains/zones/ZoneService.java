@@ -15,49 +15,53 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 import org.json.simple.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 import com.vmware.blockchain.auth.AuthHelper;
 import com.vmware.blockchain.common.Constants;
 import com.vmware.blockchain.common.ErrorCode;
 import com.vmware.blockchain.common.NotFoundException;
-import com.vmware.blockchain.common.fleetmanagment.FleetUtils;
 import com.vmware.blockchain.dao.GenericDao;
-import com.vmware.blockchain.deployment.v1.ListOrchestrationSitesRequest;
-import com.vmware.blockchain.deployment.v1.ListOrchestrationSitesResponse;
-import com.vmware.blockchain.deployment.v1.MessageHeader;
 import com.vmware.blockchain.deployment.v1.OrchestrationSiteInfo;
-import com.vmware.blockchain.deployment.v1.OrchestrationSiteServiceGrpc.OrchestrationSiteServiceStub;
-import com.vmware.blockchain.deployment.v1.OrchestrationSiteView;
 import com.vmware.blockchain.services.profiles.Organization;
 import com.vmware.blockchain.services.profiles.OrganizationService;
+
+import lombok.extern.slf4j.Slf4j;
+
 
 /**
  * Zone service.  Read the zones from Persephone.
  */
 @Service
+@Slf4j
 public class ZoneService {
 
-    private OrchestrationSiteServiceStub client;
     private GenericDao genericDao;
     private OrganizationService organizationService;
     private AuthHelper authHelper;
+    private List<String> zoneIdList;
 
     @Autowired
-    public ZoneService(OrchestrationSiteServiceStub client, GenericDao genericDao,
-                       OrganizationService organizationService, AuthHelper authHelper) {
-        this.client = client;
+    public ZoneService(GenericDao genericDao,
+                       OrganizationService organizationService, AuthHelper authHelper,
+                       @Value("${vmbc.enabled.vmc.zones:#{null}}") String zoneIdListString) {
         this.genericDao = genericDao;
         this.organizationService = organizationService;
         this.authHelper = authHelper;
+
+        if (Strings.isNullOrEmpty(zoneIdListString)) {
+            zoneIdList = new ArrayList<>();
+        } else {
+            zoneIdList = Arrays.asList(zoneIdListString.split(","));
+        }
     }
 
     private ImmutableMap<OrchestrationSiteInfo.Type, Type> typeMap
@@ -65,38 +69,18 @@ public class ZoneService {
                               OrchestrationSiteInfo.Type.VMC, VMC_AWS,
                               OrchestrationSiteInfo.Type.VSPHERE, ON_PREM);
 
-    private List<Zone> zones;
-
-    /**
-     * (Re)load the zone list.
-     */
-    public void loadZones()  throws Exception {
-        ListOrchestrationSitesRequest request = ListOrchestrationSitesRequest.newBuilder()
-                .setHeader(MessageHeader.newBuilder().build())
-                .setPageSize(0)
-                .setPageToken("")
-                .build();
-
-        CompletableFuture<ListOrchestrationSitesResponse> future = new CompletableFuture<>();
-
-        client.listOrchestrationSites(request, FleetUtils.blockedResultObserver(future));
-        //getsitesorbuilderlist
-        List<OrchestrationSiteView> sites = future.get().getSitesList();
-        zones = sites.stream()
-                .map(s -> new Zone(FleetUtils.toUuid(s.getId()), typeMap.get(s.getType()), s.getLabels()))
-                .collect(
-                        Collectors.toList());
-    }
-
     /**
      * Get all zones.  Currently that means we also add in the list of zones supplied by Persephone.
      * @return all zones.
      */
     public List<Zone> getZones() {
         // make a copy of the zones list
-        List<Zone> allZones = new ArrayList<>(zones);
+        List<Zone> allZones = loadDefaultZones();
+
+
         // add in everything in the DB
-        allZones.addAll(genericDao.getAllByType(Zone.class));
+        allZones.addAll(genericDao.getAllByType(Zone.class).stream().filter(zone -> zone.getOrgId() != null)
+                                .collect(Collectors.toList()));
         return allZones;
     }
 
@@ -108,16 +92,7 @@ public class ZoneService {
      * Get a specific zone.  If not in database, look in default list.  Throw NotFound if no match.
      */
     public Zone get(UUID id) {
-        try {
-            return genericDao.get(id, Zone.class);
-        } catch (NotFoundException e) {
-            // Check the zones list
-            Optional<Zone> oz = zones.stream().filter(z -> z.getId().equals(id)).findFirst();
-            if (oz.isEmpty()) {
-                throw e;
-            }
-            return oz.get();
-        }
+        return genericDao.get(id, Zone.class);
     }
 
     public List<Zone> getByType(Zone.Type type) {
@@ -131,12 +106,24 @@ public class ZoneService {
     }
 
     /**
-     * Get a zone from a oranazation and type.
+     * Get Default zones.
+     * @return list
+     */
+    public List<Zone> loadDefaultZones() {
+        List<Zone> allZones = genericDao.getAllByType(Zone.class);
+        log.info("Size {}", allZones);
+        log.info(zoneIdList.toString());
+        return allZones.stream().filter(zone -> zoneIdList.contains(zone.getId().toString()))
+                                                    .collect(Collectors.toList());
+    }
+
+    /**
+     * Get a zone from a organization and type.
      */
     public List<Zone> getByOrgAndType(UUID orgId, Type type) {
         // Get the Persephone zones of this type
-        List<Zone> allZones = new ArrayList<>(zones.stream().filter(zone -> zone.getType().equals(type))
-                                                      .collect(Collectors.toList()));
+        List<Zone> allZones = loadDefaultZones().stream().filter(zone -> zone.getType().equals(type))
+                                                      .collect(Collectors.toList());
         String json = JSONObject.toJSONString(Collections.singletonMap("type", type.toString()));
         // Add in anything in the DB.
         allZones.addAll(genericDao.getJsonByParentQuery(orgId, json, Zone.class));

@@ -8,9 +8,7 @@ import static com.vmware.blockchain.services.blockchains.zones.Zone.Type.NONE;
 import static com.vmware.blockchain.services.blockchains.zones.Zone.Type.ON_PREM;
 import static com.vmware.blockchain.services.blockchains.zones.Zone.Type.VMC_AWS;
 import static com.vmware.blockchain.services.blockchains.zones.ZoneTestUtils.getOnpremZone;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
@@ -21,7 +19,6 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
 import org.mockito.stubbing.Answer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -33,7 +30,6 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.vmware.blockchain.MvcConfig;
 import com.vmware.blockchain.auth.AuthHelper;
@@ -43,13 +39,6 @@ import com.vmware.blockchain.dao.GenericDao;
 import com.vmware.blockchain.dao.TestDaoConfig;
 import com.vmware.blockchain.db.DbConfig;
 import com.vmware.blockchain.db.TestMapper;
-import com.vmware.blockchain.deployment.v1.ListOrchestrationSitesRequest;
-import com.vmware.blockchain.deployment.v1.ListOrchestrationSitesResponse;
-import com.vmware.blockchain.deployment.v1.MessageHeader;
-import com.vmware.blockchain.deployment.v1.OrchestrationSiteIdentifier;
-import com.vmware.blockchain.deployment.v1.OrchestrationSiteInfo.Type;
-import com.vmware.blockchain.deployment.v1.OrchestrationSiteServiceGrpc.OrchestrationSiteServiceStub;
-import com.vmware.blockchain.deployment.v1.OrchestrationSiteView;
 import com.vmware.blockchain.security.JwtTokenProvider;
 import com.vmware.blockchain.security.ServiceContext;
 import com.vmware.blockchain.services.profiles.ConsortiumService;
@@ -61,7 +50,6 @@ import com.vmware.blockchain.services.profiles.UserService;
 import com.vmware.blockchain.services.tasks.TaskService;
 
 import io.grpc.ManagedChannel;
-import io.grpc.stub.StreamObserver;
 import io.zonky.test.db.AutoConfigureEmbeddedDatabase;
 
 /**
@@ -80,9 +68,6 @@ public class ZoneServiceTest {
     private static final UUID ORG_2 = UUID.fromString("d88d6a72-1ddf-4309-9217-b6d0f74603ce");
     private static final UUID USER_ID = UUID.fromString("5df113c4-6f7d-45a1-82f3-806dc6ec6a7e");
     private static final String USER_EMAIL = "test@foo.com";
-
-    @Mock
-    OrchestrationSiteServiceStub client;
 
     @Autowired
     GenericDao genericDao;
@@ -129,8 +114,6 @@ public class ZoneServiceTest {
     private ZoneService zoneService;
 
     private void setCallbacks(Answer answer) {
-        doAnswer(answer).when(client)
-                .listOrchestrationSites(any(ListOrchestrationSitesRequest.class), any(StreamObserver.class));
     }
 
     @BeforeEach
@@ -144,44 +127,20 @@ public class ZoneServiceTest {
         onpreOrg.setId(ONPREM_ORG);
         when(organizationService.get(ONPREM_ORG)).thenReturn(onpreOrg);
 
+        Zone v1 = new Zone(SITE_1, VMC_AWS, ImmutableMap.of("name", "US_WEST"));
+        Zone v2 = new Zone(SITE_2, NONE, ImmutableMap.of("name", "US_EAST"));
 
-        OrchestrationSiteView v1 = OrchestrationSiteView.newBuilder()
-                .setId(OrchestrationSiteIdentifier.newBuilder()
-                                .setLow(SITE_1.getLeastSignificantBits())
-                                .setHigh(SITE_1.getMostSignificantBits())
-                                .build())
-                .setType(Type.VMC)
-                .putAllLabels(ImmutableMap.of("name", "US_WEST"))
-                .build();
+        zoneService = new ZoneService(genericDao, organizationService, authHelper,
+                                      SITE_1.toString() + "," + SITE_2.toString());
 
-        OrchestrationSiteView v2 = OrchestrationSiteView.newBuilder()
-                .setId(OrchestrationSiteIdentifier.newBuilder()
-                        .setLow(SITE_2.getLeastSignificantBits())
-                        .setHigh(SITE_2.getMostSignificantBits())
-                        .build())
-                .setType(Type.NONE)
-                .putAllLabels(ImmutableMap.of("name", "US_EAST"))
-                .build();
-
-        ListOrchestrationSitesResponse response = ListOrchestrationSitesResponse.newBuilder()
-                .setHeader(MessageHeader.newBuilder().build())
-                .addAllSites(ImmutableList.of(v1, v2))
-                .build();
-
-        setCallbacks(i -> {
-            StreamObserver ob = i.getArgument(1);
-            ob.onNext(response);
-            ob.onCompleted();
-            return null;
-        });
-        zoneService = new ZoneService(client, genericDao, organizationService, authHelper);
+        genericDao.put(v1, null);
+        genericDao.put(v2, null);
 
         OnpremZone ozone = getOnpremZone(ONPREM_ORG);
-        OnpremZone ozone2 = getOnpremZone(ORG_2);
-
-        zoneService.loadZones();
         Zone z = zoneService.put(ozone);
         onPremId = z.getId();
+
+        OnpremZone ozone2 = getOnpremZone(ORG_2);
         z = zoneService.put(ozone2);
         onPrem2Id = z.getId();
     }
@@ -227,14 +186,16 @@ public class ZoneServiceTest {
         VmcAwsZone zone = new VmcAwsZone();
         zone.setType(VMC_AWS);
         zone.setName("SDDC 1");
+        zone.setOrgId(authHelper.getOrganizationId());
         zoneService.put(zone);
 
         List<Zone> l = zoneService.getZones();
         Assertions.assertEquals(5, l.size());
 
         l = zoneService.getByType(VMC_AWS);
-        Assertions.assertEquals(1, l.size());
+        Assertions.assertEquals(2, l.size());
         Assertions.assertTrue(l.get(0) instanceof VmcAwsZone);
+        Assertions.assertTrue(l.get(1) instanceof VmcAwsZone);
 
     }
 

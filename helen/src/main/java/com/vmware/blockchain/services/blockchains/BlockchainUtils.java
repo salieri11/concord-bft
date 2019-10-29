@@ -17,6 +17,7 @@ import org.apache.logging.log4j.Logger;
 import com.google.common.collect.ImmutableMap;
 import com.vmware.blockchain.common.BadRequestException;
 import com.vmware.blockchain.common.ErrorCode;
+import com.vmware.blockchain.deployment.v1.BearerTokenCredential;
 import com.vmware.blockchain.deployment.v1.Credential;
 import com.vmware.blockchain.deployment.v1.Endpoint;
 import com.vmware.blockchain.deployment.v1.IPv4Network;
@@ -28,6 +29,7 @@ import com.vmware.blockchain.deployment.v1.VSphereDatacenterInfo;
 import com.vmware.blockchain.deployment.v1.VSphereOrchestrationSiteInfo;
 import com.vmware.blockchain.deployment.v1.VmcOrchestrationSiteInfo;
 import com.vmware.blockchain.services.blockchains.zones.OnpremZone;
+import com.vmware.blockchain.services.blockchains.zones.VmcAwsZone;
 import com.vmware.blockchain.services.blockchains.zones.Zone;
 import com.vmware.blockchain.services.blockchains.zones.Zone.Type;
 
@@ -58,8 +60,7 @@ public class BlockchainUtils {
      * Convert a Helen Zone to a Fleet Orchestration Site.
      */
     public static OrchestrationSiteInfo toInfo(Zone zone)  {
-        VSphereOrchestrationSiteInfo vspherInfo = VSphereOrchestrationSiteInfo
-                .newBuilder().build();
+
         if (Type.ON_PREM.equals(zone.getType())) {
             OnpremZone op = (OnpremZone) zone;
             if (op.getVCenter() == null) {
@@ -75,12 +76,11 @@ public class BlockchainUtils {
 
             Endpoint container = Endpoint.newBuilder().build();
 
-
             if (op.getContainerRepo() != null) {
                 container = Endpoint.newBuilder()
                         .setAddress(op.getContainerRepo().getUrl())
                         .setCredential(toCredential(op.getContainerRepo().getUsername(),
-                                op.getContainerRepo().getPassword()))
+                                                    op.getContainerRepo().getPassword()))
                         .setTransportSecurity(TransportSecurity.newBuilder().setType(TransportSecurity.Type.NONE))
                         .build();
 
@@ -126,19 +126,68 @@ public class BlockchainUtils {
                     .setOutboundProxy(outboundProxyInfo)
                     .build();
 
-            vspherInfo = VSphereOrchestrationSiteInfo.newBuilder()
+            VSphereOrchestrationSiteInfo vspherInfo = VSphereOrchestrationSiteInfo.newBuilder()
                     .setApi(api)
                     .setContainerRegistry(container)
                     .setVsphere(dcInfo)
                     .build();
-        }
 
-        return OrchestrationSiteInfo.newBuilder()
-                .setType(typeMap.get(zone.getType()))
-                .putAllLabels(toMap(zone))
-                .setVmc(VmcOrchestrationSiteInfo.newBuilder().build())
-                .setVsphere(vspherInfo)
-                .build();
+            return OrchestrationSiteInfo.newBuilder()
+                    .setType(typeMap.get(zone.getType()))
+                    .putAllLabels(toMap(zone))
+                    .setVmc(VmcOrchestrationSiteInfo.newBuilder().build())
+                    .setVsphere(vspherInfo)
+                    .build();
+
+        } else if (Type.VMC_AWS.equals(zone.getType())) {
+            VmcAwsZone op = (VmcAwsZone) zone;
+            Zone.Network n = op.getNetwork();
+
+            IPv4Network network = IPv4Network.newBuilder()
+                    .setName(n.getName())
+                    .setAddressAllocation(IPv4Network.AddressAllocationScheme.STATIC)
+                    .setGateway(fromIpAddr(n.getGateway()))
+                    .setSubnet(Integer.parseInt(n.getSubnet()))
+                    .setAllocationServer(Endpoint.newBuilder().build())
+                    .addAllNameServers(n.getNameServers())
+                    .build();
+
+            VSphereDatacenterInfo dcInfo = VSphereDatacenterInfo.newBuilder()
+                    .setResourcePool(op.getResourcePool())
+                    .setDatastore(op.getStorage())
+                    .setFolder(op.getFolder())
+                    .setNetwork(network)
+                    .build();
+
+            Endpoint apiEndpoint = Endpoint.newBuilder()
+                    .setAddress(op.getVmcUrl())
+                    .build();
+
+            Endpoint authenticationEndpoint = Endpoint.newBuilder()
+                    .setAddress(op.getCspUrl())
+                    .setCredential(Credential.newBuilder()
+                                           .setType(Credential.Type.BEARER)
+                                           .setTokenCredential(
+                                                   BearerTokenCredential.newBuilder()
+                                                           .setToken(op.getRefreshToken())
+                                                           .build())
+                                           .build())
+                    .build();
+
+            VmcOrchestrationSiteInfo vmcOrchestrationSiteInfo = VmcOrchestrationSiteInfo.newBuilder()
+                    .setAuthentication(authenticationEndpoint)
+                    .setApi(apiEndpoint)
+                    .setOrganization(op.getOrganization())
+                    .setDatacenter(op.getDatacenter())
+                    .setVsphere(dcInfo)
+                    .build();
+            return OrchestrationSiteInfo.newBuilder()
+                    .setType(typeMap.get(zone.getType()))
+                    .putAllLabels(toMap(zone))
+                    .setVmc(vmcOrchestrationSiteInfo)
+                    .build();
+        }
+        throw new BadRequestException("Invalid zone type {}", zone.getType());
     }
 
     private static int fromIpAddr(String ipAddr) {

@@ -7,120 +7,20 @@
       "type": "TLSv1_2"
     }
   },
-  "sites": [
-    {
-      "id": {
-        "low": 0,
-        "high": 3
-      },
-      "info": {
-        "type": "VMC",
-        "labels": {
-          "name": "VMC SDDC3",
-          "geo-latitude": "39.028035",
-          "geo-longitude": "-77.457941"
-        },
-        "vmc": {
-          "authentication": {
-            "address": "https://console.cloud.vmware.com",
-            "credential": {
-              "type": "BEARER",
-              "tokenCredential": {
-                "token": "<VMC_API_TOKEN>"
-              }
-            }
-          },
-          "api": {
-            "address": "https://vmc.vmware.com"
-          },
-          "containerRegistry": {
-            "address": "https://registry-1.docker.io/v2",
-            "credential": {
-              "type": "PASSWORD",
-              "passwordCredential": {
-                "username": "blockchainrepositoryreader",
-                "password": "<DOCKERHUB_REPO_READER_PASSWORD>"
-              }
-            }
-          },
-          "organization": "c56e116e-c36f-4f7d-b504-f9a33955b853",
-          "datacenter": "6db19f8f-cde6-4151-88e5-a3b0d6aead6a",
-          "vsphere": {
-            "resourcePool": "Compute-ResourcePool",
-            "datastore": "WorkloadDatastore",
-            "folder": "HermesTesting",
-            "network": {
-              "name": "CHANGE_THIS_TO_HermesTesting",
-              "addressAllocation": "STATIC",
-              "gateway": 172319745,
-              "subnet": 24,
-              "allocationServer": {
-                "address": "ipam-vmbc.cloud.vmware.com",
-                "transportSecurity": {
-                  "type": "TLSv1_2"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    {
-      "id": {
-        "low": 0,
-        "high": 4
-      },
-      "info": {
-        "type": "VMC",
-        "labels": {
-          "name": "VMC SDDC4",
-          "geo-latitude": "45.2551139",
-          "geo-longitude": "-120.888727"
-        },
-        "vmc": {
-          "authentication": {
-            "address": "https://console.cloud.vmware.com",
-            "credential": {
-              "type": "BEARER",
-              "tokenCredential": {
-                "token": "<VMC_API_TOKEN>"
-              }
-            }
-          },
-          "api": {
-            "address": "https://vmc.vmware.com"
-          },
-          "containerRegistry": {
-            "address": "https://registry-1.docker.io/v2",
-            "credential": {
-              "type": "PASSWORD",
-              "passwordCredential": {
-                "username": "blockchainrepositoryreader",
-                "password": "<DOCKERHUB_REPO_READER_PASSWORD>"
-              }
-            }
-          },
-          "organization": "c56e116e-c36f-4f7d-b504-f9a33955b853",
-          "datacenter": "abb0fe0e-1f2f-470c-a427-774aa08ce2ea",
-          "vsphere": {
-            "resourcePool": "Compute-ResourcePool",
-            "datastore": "WorkloadDatastore",
-            "folder": "HermesTesting",
-            "network": {
-              "name": "CHANGE_THIS_TO_HermesTesting",
-              "addressAllocation": "STATIC",
-              "gateway": 172321025,
-              "subnet": 24,
-              "allocationServer": {
-                "address": "ipam-vmbc.cloud.vmware.com",
-                "transportSecurity": {
-                  "type": "TLSv1_2"
-                }
-              }
-            }
-          }
-        }
+  "containerRegistry":{
+    "address":"https://registry-1.docker.io/v2",
+    "credential":{
+      "type":"PASSWORD",
+      "passwordCredential":{
+        "username":"blockchainrepositoryreader",
+        "password":"<DOCKERHUB_REPO_READER_PASSWORD>"
       }
     }
-  ]
+  },
+  "allocationServer": {
+    "address": "ipam-vmbc.cloud.vmware.com",
+    "transportSecurity": {
+      "type": "TLSv1_2"
+    }
+  }
 }

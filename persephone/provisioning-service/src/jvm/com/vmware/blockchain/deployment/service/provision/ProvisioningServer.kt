@@ -9,7 +9,6 @@ import com.vmware.blockchain.deployment.service.grpc.ServerReflectionService
 import com.vmware.blockchain.deployment.service.orchestrationsite.OrchestrationSiteService
 import com.vmware.blockchain.deployment.service.orchestrationsite.OrchestrationSiteServiceModule
 import com.vmware.blockchain.deployment.v1.Endpoint
-import com.vmware.blockchain.deployment.v1.OrchestrationSite
 import com.vmware.blockchain.deployment.v1.ProvisioningServerConfiguration
 import com.vmware.blockchain.deployment.v1.TransportSecurity
 import dagger.BindsInstance
@@ -19,12 +18,6 @@ import io.grpc.netty.shaded.io.grpc.netty.NettyServerBuilder
 import io.grpc.netty.shaded.io.netty.handler.ssl.ClientAuth
 import io.grpc.netty.shaded.io.netty.handler.ssl.SslContext
 import io.grpc.netty.shaded.io.netty.handler.ssl.SslContextBuilder
-import java.nio.file.Files
-import java.nio.file.Paths
-import java.util.concurrent.CompletableFuture
-import java.util.concurrent.ExecutorService
-import javax.inject.Named
-import javax.inject.Singleton
 import kotlinx.coroutines.debug.DebugProbes
 import kotlinx.coroutines.future.asCompletableFuture
 import kotlinx.serialization.json.Json
@@ -32,6 +25,12 @@ import kotlinx.serialization.json.JsonConfiguration
 import kotlinx.serialization.modules.EmptyModule
 import org.slf4j.LoggerFactory
 import sun.misc.Signal
+import java.nio.file.Files
+import java.nio.file.Paths
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.ExecutorService
+import javax.inject.Named
+import javax.inject.Singleton
 
 /**
  * gRPC server that serves provisioning-related API operations.
@@ -57,9 +56,6 @@ internal interface ProvisioningServer {
 
     @Component.Builder
     interface Builder {
-
-        @BindsInstance
-        fun orchestrations(entries: List<OrchestrationSite>): Builder
 
         @BindsInstance
         fun configurationService(@Named("configurationService") configurationService: Endpoint): Builder
@@ -176,7 +172,6 @@ fun main(args: Array<String>) {
 
     // Build the server and start.
     val provisioningServer = DaggerProvisioningServer.builder()
-            .orchestrations(config.sites)
             .configurationService(config.configService)
             .containerRegistry(config.containerRegistry)
             .allocationServer(config.allocationServer)

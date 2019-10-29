@@ -4,12 +4,11 @@
 package com.vmware.blockchain.deployment.service.orchestrationsite
 
 import com.vmware.blockchain.deployment.orchestration.OrchestratorProvider
-import com.vmware.blockchain.deployment.v1.OrchestrationSite
 import dagger.Module
 import dagger.Provides
-import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
+import javax.inject.Singleton
 
 @Module
 class OrchestrationSiteServiceModule {
@@ -36,9 +35,8 @@ class OrchestrationSiteServiceModule {
     @Singleton
     fun providesOrchestrationSiteService(
         dispatcher: CoroutineDispatcher,
-        orchestratorProvider: OrchestratorProvider,
-        orchestrations: List<OrchestrationSite>
+        orchestratorProvider: OrchestratorProvider
     ): OrchestrationSiteService {
-        return OrchestrationSiteService(dispatcher, orchestratorProvider, orchestrations)
+        return OrchestrationSiteService(dispatcher, orchestratorProvider)
     }
 }

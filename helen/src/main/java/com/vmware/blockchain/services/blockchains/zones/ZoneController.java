@@ -223,7 +223,7 @@ public class ZoneController {
                                                 @RequestBody(required = false) ZoneRequest request)
             throws Exception {
         if (RELOAD.equals(action)) {
-            zoneService.loadZones();
+
             return new ResponseEntity<>(new ZoneResponse(), HttpStatus.OK);
         }
         // everything from here on needs a request body.

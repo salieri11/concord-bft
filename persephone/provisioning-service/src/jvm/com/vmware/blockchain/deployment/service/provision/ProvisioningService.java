@@ -68,9 +68,7 @@ import com.vmware.blockchain.deployment.v1.DeploymentSessionIdentifier;
 import com.vmware.blockchain.deployment.v1.DeploymentSpecification;
 import com.vmware.blockchain.deployment.v1.Endpoint;
 import com.vmware.blockchain.deployment.v1.MessageHeader;
-import com.vmware.blockchain.deployment.v1.OrchestrationSite;
 import com.vmware.blockchain.deployment.v1.OrchestrationSiteIdentifier;
-import com.vmware.blockchain.deployment.v1.OrchestrationSiteInfo;
 import com.vmware.blockchain.deployment.v1.PlacementAssignment;
 import com.vmware.blockchain.deployment.v1.PlacementSpecification;
 import com.vmware.blockchain.deployment.v1.ProvisionedResource;
@@ -116,9 +114,6 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
 
     /** Service state. */
     private volatile State state = State.STOPPED;
-
-    /** Orchestrator pool to utilize for orchestration operations. */
-    private final Map<OrchestrationSiteIdentifier, OrchestrationSiteInfo> orchestrations;
 
     /** Configuration server endpoint. */
     private final Endpoint configurationService;
@@ -174,7 +169,6 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
     ProvisioningService(
             ExecutorService executor,
             OrchestratorProvider orchestratorProvider,
-            List<OrchestrationSite> orchestrations,
             Function<Endpoint, ConfigurationServiceStub> configurationServiceClientProvider,
             Endpoint configurationServer,
             Endpoint containerRegistry,
@@ -183,8 +177,6 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
     ) {
         this.executor = executor;
         this.orchestratorProvider = orchestratorProvider;
-        this.orchestrations = orchestrations.stream()
-                .collect(Collectors.toMap(OrchestrationSite::getId, OrchestrationSite::getInfo));
         this.configurationServiceClientProvider = configurationServiceClientProvider;
         this.configurationService = configurationServer;
         this.containerRegistry = containerRegistry;
@@ -200,33 +192,6 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
      */
     CompletableFuture<Void> initialize() {
         if (STATE.compareAndSet(this, State.STOPPED, State.INITIALIZING)) {
-            // Spawn off sub-tasks to async-create the orchestrator instances.
-            var initializeOrchestrators = CompletableFuture.allOf(
-                    // Initialize all orchestrator, then on completion insert into orchestrator map.
-                    orchestrations.entrySet().stream()
-                            .map(entry -> {
-                                var orchestrator =
-                                        orchestratorProvider.newOrchestrator(entry.getValue());
-                                return ReactiveStream.toFuture(orchestrator.initialize())
-                                        .thenRun(() -> orchestrators.put(entry.getKey(), orchestrator))
-                                        .whenComplete((result, error) -> {
-                                            if (error != null) {
-                                                log.error(
-                                                        "Orchestrator({}) initialization failure",
-                                                        entry.getKey(),
-                                                        error
-                                                );
-                                            } else {
-                                                log.info(
-                                                        "Orchestrator({}) initialized",
-                                                        entry.getKey()
-                                                );
-                                            }
-                                        });
-                            })
-                            .toArray(CompletableFuture[]::new)
-            );
-
             var initializeConfigurationServiceClient = CompletableFuture.runAsync(() -> {
                 // Note: GrpcSupport is currently exported from orchestration-vmware library module.
                 // This will need to be moved to a more common hosting library.
@@ -242,7 +207,6 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
             log.info("Background task scheduled to run at 1 second interval after 10sec of initial wait.");
 
             return CompletableFuture.allOf(
-                    initializeOrchestrators,
                     initializeConfigurationServiceClient
             ).thenRunAsync(() -> {
                 /* Set instance to ACTIVE state.*/
@@ -723,21 +687,17 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
             // Allocate public network addresses for every node.
             var networkAddressPublishers = session.getAssignment().getEntries().stream()
                     .map(entry -> {
-                        var node = entry.getNode();
+                        orchestrators.put(entry.getSite(),
+                                          orchestratorProvider.newOrchestrator(OrchestrationSites.Companion
+                                                                                       .buildSiteInfo(
+                                                                                               entry.getSiteInfo(),
+                                                                                               containerRegistry,
+                                                                                               allocationServer))
+                        );
+                        ReactiveStream.toFuture(orchestrators.get(entry.getSite()).initialize()).join();
 
-                        if (entry.getSiteInfo().getType() == OrchestrationSiteInfo.Type.VSPHERE) {
-                            // We can add a exist check, however we will not be able to track if any changes
-                            // Hence to be safe we always trust the latest site info.
-                            orchestrators.put(entry.getSite(),
-                                              orchestratorProvider.newOrchestrator(OrchestrationSites.Companion
-                                                                                           .buildSiteInfo(
-                                                                                                   entry.getSiteInfo(),
-                                                                                                   containerRegistry,
-                                                                                                   allocationServer))
-                            );
-                            ReactiveStream.toFuture(orchestrators.get(entry.getSite()).initialize()).join();
-                        }
                         var orchestrator = orchestrators.get(entry.getSite());
+                        var node = entry.getNode();
                         var resource = toResourceName(node);
                         var addressRequest = new CreateNetworkResourceRequest(resource, true);
                         var addressPublisher = orchestrator.createNetworkAddress(addressRequest);

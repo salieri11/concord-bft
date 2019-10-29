@@ -15,8 +15,6 @@ import time
 from google.protobuf.json_format import MessageToJson
 from vmware.blockchain.deployment.v1 import metadata_service_pb2
 from vmware.blockchain.deployment.v1 import metadata_service_pb2_grpc
-from vmware.blockchain.deployment.v1 import orchestration_service_pb2
-from vmware.blockchain.deployment.v1 import orchestration_service_pb2_grpc
 from vmware.blockchain.deployment.v1 import provisioning_service_pb2
 from vmware.blockchain.deployment.v1 import provisioning_service_pb2_grpc
 from vmware.blockchain.deployment.v1 import fleet_service_pb2
@@ -98,8 +96,6 @@ class RPCHelper():
          stub = provisioning_service_pb2_grpc.ProvisioningServiceStub(channel)
       # if self.service_name is Product.PERSEPHONE_SERVICE_FLEET:
       #    stub = fleet_service_pb2_grpc.FleetServiceStub(channel)
-      if self.service_name is Product.PERSEPHONE_SERVICE_ORCHESTRATION:
-         stub = orchestration_service_pb2_grpc.OrchestrationSiteServiceStub(channel)
 
       if stub is None:
          raise Exception(

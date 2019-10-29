@@ -14,7 +14,6 @@ import traceback
 import types
 from google.protobuf.json_format import MessageToJson
 from model_service_helper import ModelServiceRPCHelper
-from orchestration_service_helper import OrchestrationServiceRPCHelper
 from provisioning_service_helper import ProvisioningServiceRPCHelper
 from rpc_helper import RPCHelper
 from vmware.blockchain.deployment.v1 import core_pb2
@@ -93,7 +92,6 @@ class RPCTestHelper():
          self.model_rpc_helper = ModelServiceRPCHelper(self.args)
          self.provision_rpc_helper = ProvisioningServiceRPCHelper(self.args)
          # self.fleet_rpc_helper = FleetServiceRPCHelper(self.args)
-         self.orchestration_rpc_helper = OrchestrationServiceRPCHelper(self.args)
 
          self.CONCORD_TYPE_ETHEREUM = self.model_rpc_helper.CONCORD_TYPE_ETHEREUM
          self.CONCORD_TYPE_DAML = self.model_rpc_helper.CONCORD_TYPE_DAML
@@ -146,23 +144,11 @@ class RPCTestHelper():
 
       return metadata
 
-   def rpc_list_orchestration_sites(self):
-      '''
-      Helper method to call rpc_ListOrchestrationSites gRPC
-      :return: Orchestration Sites
-      '''
-      orchestration_sites = self.orchestration_rpc_helper.rpc_ListOrchestrationSites()
-
-      if orchestration_sites:
-         for item in orchestration_sites:
-            log.debug("Orchestration Site: {}".format(item))
-
-      return orchestration_sites
-
    def rpc_create_cluster(self, cluster_size=4,
                           placement_type=ProvisioningServiceRPCHelper.PLACEMENT_TYPE_FIXED,
                           stub=None,
-                          concord_type=ModelServiceRPCHelper.CONCORD_TYPE_ETHEREUM):
+                          concord_type=ModelServiceRPCHelper.CONCORD_TYPE_ETHEREUM,
+                          zone_type=ProvisioningServiceRPCHelper.ZONE_TYPE_VMC):
       '''
       Helper method to call create cluster gRPC
       :param cluster_size: cluster size
@@ -175,11 +161,8 @@ class RPCTestHelper():
       header = core_pb2.MessageHeader()
       concord_model_specification = self.model_rpc_helper.create_concord_model_specification(
          deployment_components=self.args.deploymentComponents, concord_type=concord_type)
-      orchestration_sites = None
-      if placement_type == self.provision_rpc_helper.PLACEMENT_TYPE_FIXED:
-         orchestration_sites = self.rpc_list_orchestration_sites()
       placement_specification = self.provision_rpc_helper.create_placement_specification(
-         cluster_size, placement_type=placement_type, orchestration_sites=orchestration_sites)
+         cluster_size, zone_type=zone_type)
       genesis_spec = self.provision_rpc_helper.create_genesis_specification()
       deployment_specification = self.provision_rpc_helper.create_deployment_specification(
          cluster_size, concord_model_specification, placement_specification,
