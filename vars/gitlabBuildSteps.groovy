@@ -1,5 +1,95 @@
 import groovy.json.*
+import groovy.transform.Field
 import hudson.util.Secret
+
+// Notes about this map:
+// - Possible fields per suite:
+//   "enabled": Boolean. If false, the test absolutely cannot be run, no matter
+//     what the user selects.
+//   "baseCommand": String, base shell command, defaults to "echo <pwd> | sudo -SE <python> main.py <suite>".
+//     This is how you can use command line parameters which are not covered by other
+//     entries.
+//   "dockerComposeFiles": String, docker compose files to use.
+//   "runConcordConfigurationGeneration": Whether to add
+//     "--runConcordConfigurationGeneration" to the command, default is true
+//   "resultsDir": String, defaults to the map key
+//   "performanceVotes": Int, for performance testing
+//   "concordConfigurationInput": String, files to use for concord config generation.
+//   "suiteDir": String, directory to cd into (and then out of when done)
+//   "setupFunction": String, name of a function in this file to run before running the suite
+// - Keys have to match the Jenkins job's list of test suites. We can't read them
+//   from the same place, so be careful.
+// - Do not declare it with "def". Due to the way Jenkins uses this Groovy code,
+//   that will cause it to not be in scope.  We have to use @Field.
+// - Jenkins does not allow iterating through a map's entries because the map
+//   iterator is not serializable, and Jenkins serializes things so it can
+//   resume runs.  We can, however, create a list of keys and iterate over
+//   that list.
+// - Every suite has a default value for something because [] evaluates to a
+//   list, while ["foo": "bar"] evaluates to a map, and we want to use the map
+//   api.
+// - Move this to another file?
+@Field Map testSuites = [
+  "SampleSuite": ["enabled": true],
+  "SampleDAppTests": ["enabled": true],
+  "CoreVMTests": ["enabled": true],
+  "PerformanceTests": [
+    "enabled": true,
+    "concordConfigurationInput": "/concord/config/dockerConfigurationInput-perftest.yaml",
+    "performanceVotes": 10,
+  ],
+  "HelenAPITests": ["enabled": true],
+  "ExtendedRPCTests": ["enabled": true],
+  "ExtendedRPCTestsEthrpc": [
+    "enabled": true,
+    "baseCommand": 'echo "${PASSWORD}" | sudo -S "${python}" main.py ExtendedRPCTests --ethrpcApiUrl https://localhost/blockchains/local/api/concord/eth'
+  ],
+  "RegressionTests": ["enabled": true],
+  "DamlTests": [
+    "enabled": true,
+    "dockerComposeFiles": "../docker/docker-compose-daml.yml",
+    "concordConfigurationInput": "/concord/config/dockerConfigurationInput-daml.yaml"
+  ],
+  "SimpleStateTransferTest": [
+    "enabled": true,
+    "dockerComposeFiles": "../docker/docker-compose.yml ../docker/docker-compose-static-ips.yml"
+  ],
+  "TruffleTests": ["enabled": true],
+  "ContractCompilerTests": ["enabled": true],
+  "HlfTests": [
+    "enabled": false, // RV: Disabled because these repeatedly cause the product to fail to launch in CI/CD.
+    "concordConfigurationInput": "/concord/config/dockerConfigurationInput-hlf.yaml"
+  ],
+  "TimeTests": [
+    "enabled": true,
+    "concordConfigurationInput": "/concord/config/dockerConfigurationInput-time_service.yaml",
+    "setupFunction": "enableTimeService"
+  ],
+  "EvilTimeTests": [
+    "enabled": true,
+    "concordConfigurationInput": "/concord/config/dockerConfigurationInput-time_service.yaml",
+    "setupFunction": "enableTimeService"
+  ],
+  "MemoryLeakTests": [
+    "enabled": true,
+    "suiteDir": "suites",
+    "baseCommand": 'echo "${PASSWORD}" | sudo -SE ./memory_leak_test.sh --testSuite CoreVMTests \
+      --repeatSuiteRun 2 --tests \'vmArithmeticTest/add0.json\''
+  ],
+  "UiTests": [
+    "enabled": true,
+    "setupFunction": "deleteDatabaseFiles",
+    "dockerComposeFiles": "../docker/docker-compose.yml ../docker/docker-compose-persephone.yml",
+    "baseCommand": '"${python}" main.py UiTests'
+  ],
+  "HelenDeployToSDDC": [
+    "enabled": true,
+    "dockerComposeFiles": "../docker/docker-compose.yml ../docker/docker-compose-persephone.yml",
+    "baseCommand": 'echo "${PASSWORD}" | sudo -S "${python}" main.py CoreVMTests --blockchainLocation sddc \
+      --tests="-k vmArithmeticTest/add0.json"'
+  ]
+]
+
 
 def call(){
   def agentLabel = "genericVM"
@@ -102,6 +192,7 @@ def call(){
               removeContainers()
               pruneImages()
               reportSystemStats()
+              printSelectableSuites()
 
               // Set as env variables
               env.deployment_retention = params.deployment_retention
@@ -284,7 +375,7 @@ def call(){
 
               // Set up repo variables.
               script {
-                if (env.JOB_NAME.contains(persephone_test_job_name) || 
+                if (env.JOB_NAME.contains(persephone_test_job_name) ||
                     env.JOB_NAME.contains(performance_test_job_name) ||
                     env.JOB_NAME.contains(memory_leak_job_name)) {
                   saveTimeEvent("Build", "Fetch build number from Job Update-onecloud-provisioning-service")
@@ -538,28 +629,33 @@ EOF
               dir('blockchain/hermes'){
                 withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
                   script {
+                    // AAAAARGH mixed camel/snake.  We must fix this file.
                     env.test_log_root = new File(env.WORKSPACE, "testLogs").toString()
-                    env.sample_suite_test_logs = new File(env.test_log_root, "SampleSuite").toString()
-                    env.ui_test_logs = new File(env.test_log_root, "UI").toString()
-                    env.sample_dapp_test_logs = new File(env.test_log_root, "SampleDApp").toString()
-                    env.core_vm_test_logs = new File(env.test_log_root, "CoreVM").toString()
                     env.deployment_support_logs = new File(env.test_log_root, "DeploymentSupportBundle").toString()
-                    env.helen_api_test_logs = new File(env.test_log_root, "HelenAPI").toString()
-                    env.extended_rpc_test_logs = new File(env.test_log_root, "ExtendedRPC").toString()
-                    env.extended_rpc_test_helen_logs = new File(env.test_log_root, "ExtendedRPC-Helen").toString()
-                    env.regression_test_logs = new File(env.test_log_root, "Regression").toString()
-                    env.statetransfer_test_logs = new File(env.test_log_root, "StateTransfer").toString()
                     env.mem_leak_test_logs = new File(env.test_log_root, "MemoryLeak").toString()
                     env.performance_test_logs = new File(env.test_log_root, "PerformanceTest").toString()
                     env.persephone_test_logs = new File(env.test_log_root, "PersephoneTest").toString()
                     env.lint_test_logs = new File(env.test_log_root, "LintTest").toString()
-                    env.contract_compiler_test_logs = new File(env.test_log_root, "ContractCompilerTests").toString()
-                    env.hlf_test_logs = new File(env.test_log_root, "HlfTests").toString()
-                    env.daml_test_logs = new File(env.test_log_root, "DamlTests").toString()
-                    env.time_test_logs = new File(env.test_log_root, "TimeTests").toString()
-                    env.helen_sddc_deployment_logs = new File(env.test_log_root, "HelenSDDCDeployment").toString()
 
                     if (genericTests) {
+                      if (isGitLabRun()){
+                        // Keep running everything.  We're going to allow selection for GitLab runs later.
+                        echo("Running all enabled generic tests")
+                        for (suite in testSuites.keySet()){
+                          if (testSuites[suite].enabled){
+                            testSuites[suite].runSuite = true
+                          }
+                        }
+                      }else{
+                        // This was something like manual build with paramseters. Run what the user picked.
+                        choices = params.tests_to_run.split(",")
+                        echo("Running enabled generic tests which the user selected: " + choices)
+
+                        for (suite in testSuites.keySet()){
+                          if (testSuites[suite].enabled)
+                            testSuites[suite].runSuite = choices.contains(suite)
+                        }
+                      }
                       runGenericTests()
                     }
 
@@ -992,7 +1088,6 @@ EOF
             echo("Warning!  A script to clean up the SDDCs failed!  Error: " + ex)
           }
         }
-
       }
     }
   }
@@ -1019,7 +1114,7 @@ String getRepoCode(repo_url, branch_or_commit, merge_branch_or_commit){
     // Just insert exactly what the user requests.
     echo("Given a branch or commit, checking out " + branch_or_commit + " for repo " + repo_url)
     checkoutRepo(repo_url, branch_or_commit)
-  }else if (env.gitlabSourceBranch && env.gitlabSourceBranch.trim()){
+  }else if (isGitLabRun()){
     // When launched via gitlab triggering the pipeline plugin, there is a gitlabSourceBranch
     // environment variable.
     gitlabRun = true
@@ -1044,6 +1139,11 @@ String getRepoCode(repo_url, branch_or_commit, merge_branch_or_commit){
   }
 
   return commitBeingTested
+}
+
+// Returns whether this is a GitLab run.
+Boolean isGitLabRun(){
+  return env.gitlabSourceBranch && env.gitlabSourceBranch.trim()
 }
 
 // All that varies for each repo is the branch, so wrap this very large call.
@@ -1572,104 +1672,90 @@ void tagImagesForRelease(){
   ''')
 }
 
-void runGenericTests(){
+
+// Will be turned on for good soon, after which we can get rid of this.
+void enableTimeService(){
+  sh(script: "sed -- \'s/\\(FEATURE_time_service: \\)false/\\1true/\' ../docker/config-public/dockerConfigurationInput.yaml > ../docker/config-public/dockerConfigurationInput-time_service.yaml")
+}
+
+
+// Called separately when running the UI tests, because UI automation cannot be launched with sudo.
+void deleteDatabaseFiles(){
+  echo("Entered deleteDatabaseFiles()")
   withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
-    sh(script:
-    '''
-      # Pull in the shell script saveTimeEvent.
-      . lib/shell/saveTimeEvent.sh
-      EVENTS_FILE="${eventsFullPath}"
-      EVENTS_RECORDER="${eventsRecorder}"
-
-      # So test suites not using sudo can write to test_logs.
-      rm -rf "${test_log_root}"
-      mkdir "${test_log_root}"
-
-      # Make sure the test framework itself can run a basic test suite.
-      saveTimeEvent SampleSuite Start
-      echo "${PASSWORD}" | sudo -S "${python}" main.py SampleSuite --resultsDir "${sample_suite_test_logs}" --logLevel debug
-      saveTimeEvent SampleSuite End
-
-      saveTimeEvent SampleDAppTests Start
-      echo "${PASSWORD}" | sudo -S "${python}" main.py SampleDAppTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${sample_dapp_test_logs}" --runConcordConfigurationGeneration --logLevel debug
-      saveTimeEvent SampleDAppTests End
-
-      saveTimeEvent CoreVMTests Start
-      echo "${PASSWORD}" | sudo -S "${python}" main.py CoreVMTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${core_vm_test_logs}" --runConcordConfigurationGeneration --logLevel debug
-      saveTimeEvent CoreVMTests End
-
-      saveTimeEvent PerformanceTests Start
-      echo "${PASSWORD}" | sudo -SE "${python}" main.py PerformanceTests --dockerComposeFile ../docker/docker-compose.yml --performanceVotes ${performance_votes} --resultsDir "${performance_test_logs}" --runConcordConfigurationGeneration --concordConfigurationInput /concord/config/dockerConfigurationInput-perftest.yaml --logLevel debug
-      saveTimeEvent PerformanceTests End
-
-      saveTimeEvent HelenAPITests Start
-      echo "${PASSWORD}" | sudo -S "${python}" main.py HelenAPITests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${helen_api_test_logs}" --runConcordConfigurationGeneration --logLevel debug
-      saveTimeEvent HelenAPITests End
-
-      saveTimeEvent ExtendedRPCTests Start
-      echo "${PASSWORD}" | sudo -S "${python}" main.py ExtendedRPCTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${extended_rpc_test_logs}" --runConcordConfigurationGeneration --logLevel debug
-      saveTimeEvent ExtendedRPCTests End
-
-      saveTimeEvent ExtendedRPCTestsEthrpc Start
-      echo "${PASSWORD}" | sudo -S "${python}" main.py ExtendedRPCTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${extended_rpc_test_helen_logs}" --ethrpcApiUrl https://localhost/blockchains/local/api/concord/eth --runConcordConfigurationGeneration --logLevel debug
-      saveTimeEvent ExtendedRPCTestsEthrpc End
-
-      saveTimeEvent RegressionTests Start
-      echo "${PASSWORD}" | sudo -S "${python}" main.py RegressionTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${regression_test_logs}" --runConcordConfigurationGeneration --logLevel debug
-      saveTimeEvent RegressionTests End
-
-      saveTimeEvent DamlTests Start
-      echo "${PASSWORD}" | sudo -S "${python}" main.py DamlTests --dockerComposeFile ../docker/docker-compose-daml.yml --resultsDir "${daml_test_logs}" --runConcordConfigurationGeneration --concordConfigurationInput /concord/config/dockerConfigurationInput-daml.yaml --logLevel debug
-      saveTimeEvent DamlTests End
-
-      saveTimeEvent SimpleStateTransferTest Start
-      echo "${PASSWORD}" | sudo -S "${python}" main.py SimpleStateTransferTest --dockerComposeFile ../docker/docker-compose.yml ../docker/docker-compose-static-ips.yml --resultsDir "${statetransfer_test_logs}" --runConcordConfigurationGeneration --logLevel debug
-      saveTimeEvent SimpleStateTransferTest End
-
-      saveTimeEvent TruffleTests Start
-      echo "${PASSWORD}" | sudo -S "${python}" main.py TruffleTests --logLevel debug --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${truffle_test_logs}" --runConcordConfigurationGeneration
-      saveTimeEvent TruffleTests End
-
-      saveTimeEvent ContractCompilerTests Start
-      echo "${PASSWORD}" | sudo -S "${python}" main.py ContractCompilerTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${contract_compiler_test_logs}" --runConcordConfigurationGeneration --logLevel debug
-      saveTimeEvent ContractCompilerTests End
-
-      # RV: Commenting out because these repeatedly cause the product to fail to launch in CI/CD.
-      # echo "${PASSWORD}" | sudo -S "${python}" main.py HlfTests --dockerComposeFile=../docker/docker-compose-hlf.yml --resultsDir "${hlf_test_logs}" --runConcordConfigurationGeneration --concordConfigurationInput /concord/config/dockerConfigurationInput-hlf.yaml --logLevel debug
-
-      # Turn the time service on. When the feature flag is removed, we can remove this sed.
-      # The path to ...-time_service.yaml is different between the sed command and
-      # the hermes command, because the sed command is run outside of a container,
-      # but the configuration generation is run inside of a
-      # container. `../docker/config-public/` is mounted as `/concord/config/`
-      # during config generation.
-      saveTimeEvent TimeTests Start
-      sed -- \'s/\\(FEATURE_time_service: \\)false/\\1true/\' ../docker/config-public/dockerConfigurationInput.yaml > ../docker/config-public/dockerConfigurationInput-time_service.yaml
-      echo "${PASSWORD}" | sudo -S "${python}" main.py TimeTests --dockerComposeFile=../docker/docker-compose.yml --resultsDir "${time_test_logs}" --runConcordConfigurationGeneration --concordConfigurationInput /concord/config/dockerConfigurationInput-time_service.yaml --logLevel debug
-      saveTimeEvent TimeTests End
-
-      saveTimeEvent EvilTimeTests Start
-      echo "${PASSWORD}" | sudo -S "${python}" main.py EvilTimeTests --dockerComposeFile=../docker/docker-compose.yml --resultsDir "${time_test_logs}" --logLevel debug
-      saveTimeEvent EvilTimeTests End
-
-      cd suites ; echo "${PASSWORD}" | sudo -SE ./memory_leak_test.sh --testSuite CoreVMTests --repeatSuiteRun 2 --tests 'vmArithmeticTest/add0.json' --resultsDir "${mem_leak_test_logs}" ; cd ..
-
-      # We need to delete the database files before running UI tests because
-      # Selenium cannot launch Chrome with sudo.  (The only reason Hermes
-      # needs to be run with sudo is so it can delete any existing DB files.)
-      # Source NVM
-      . ~/.nvm/nvm.sh
-      echo "${PASSWORD}" | sudo -S rm -rf ../docker/devdata/rocksdbdata*
-      echo "${PASSWORD}" | sudo -S rm -rf ../docker/devdata/postgresql
-      saveTimeEvent UITests Start
-      "${python}" main.py UiTests --dockerComposeFile ../docker/docker-compose.yml ../docker/docker-compose-persephone.yml --resultsDir "${ui_test_logs}" --runConcordConfigurationGeneration --logLevel debug
-      saveTimeEvent UITests End
-
-      saveTimeEvent HelenDeployToSDDC Start
-      echo "${PASSWORD}" | sudo -S "${python}" main.py CoreVMTests --blockchainLocation sddc \
-           --dockerComposeFile ../docker/docker-compose.yml ../docker/docker-compose-persephone.yml \
-           --tests="-k vmArithmeticTest/add0.json" --resultsDir "${helen_sddc_deployment_logs}" --logLevel debug
-      saveTimeEvent HelenDeployToSDDC End
-    ''')
+    stdout = sh(script: '''
+                 set -e
+                 echo "${PASSWORD}" | sudo -S rm -rf ../docker/devdata/rocksdbdata*
+                 echo "${PASSWORD}" | sudo -S rm -rf ../docker/devdata/postgresql
+                ''',
+                returnStdout: true)
   }
+}
+
+
+void runGenericTests(){
+  sh(script:
+  '''
+    # So test suites not using sudo can write to test_logs.
+    rm -rf "${test_log_root}"
+    mkdir "${test_log_root}"
+  ''')
+
+  // Do everything via keySet().  Jenkins does not support iterating through a hashmap,
+  // but we can iterate over a list of keys.
+  for (suite in testSuites.keySet()) {
+    if (testSuites[suite].runSuite){
+      env.suiteName = suite
+      env.suiteCmd = testSuites[suite].baseCommand ? testSuites[suite].baseCommand :
+                   'echo ${PASSWORD} | sudo -SE ' + env.python + " main.py " + suite
+      env.suiteCmd += testSuites[suite].otherParameters ? " " + testSuites[suite].otherParameters : ""
+      env.suiteRunConcordConfigGeneration = testSuites[suite].runConcordConfigurationGeneration == false ?
+                                            "" : "--runConcordConfigurationGeneration"
+      resultsDir = testSuites[suite].resultsDir ? testSuites[suite].resultsDir : suite
+      //GAAAH mixed case horror.
+      env.suiteResultsDir = "\"" + new File(env.test_log_root, resultsDir).toString() + "\""
+
+      env.suitePerformanceVotes = testSuites[suite].performanceVotes ?
+                                "--performanceVotes " + testSuites[suite].performanceVotes : ""
+      env.suiteConcordConfigInput = testSuites[suite].concordConfigurationInput ?
+                                  "--concordConfigurationInput \"" + testSuites[suite].concordConfigurationInput + "\"" : ""
+      env.suiteDockerComposeFiles = testSuites[suite].dockerComposeFiles ?
+                                  "--dockerComposeFile " + testSuites[suite].dockerComposeFiles : ""
+      env.suiteDir = testSuites[suite].suiteDir ? testSuites[suite].suiteDir : "."
+
+      if (testSuites[suite].setupFunction){
+        setupFunction = testSuites[suite].setupFunction
+        "$setupFunction"()
+      }
+
+      withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
+        sh(script:
+        '''
+          # Source NVM.  Is this still needed for UI tests?  Try removing it.
+          . ~/.nvm/nvm.sh
+
+          # Pull in the shell script saveTimeEvent.
+          . lib/shell/saveTimeEvent.sh
+          EVENTS_FILE="${eventsFullPath}"
+          EVENTS_RECORDER="${eventsRecorder}"
+          saveTimeEvent "${suiteName}" Start
+
+          # pushd is not available in the Jenkins shell.
+          origDir=`pwd`
+          cd "${suiteDir}"
+          eval "${suiteCmd} --resultsDir ${suiteResultsDir} ${suiteRunConcordConfigGeneration} ${suitePerformanceVotes} ${suiteConcordConfigInput} ${suiteDockerComposeFiles} --logLevel debug"
+          saveTimeEvent "${suiteName}" End
+          cd "${origDir}"
+        '''
+        )
+      }
+    }
+  }
+}
+
+// Use this function to generate a value to copy/paste into the Jenkins job.
+// That job cannot read from here, so the next best thing is to just say
+// NEVER MANUALLY CHANGE THOSE VALUES IN THE JENKINS JOB ITSELF.
+void printSelectableSuites(){
+  echo("List of suites which can be selected: " + testSuites.keySet())
 }
