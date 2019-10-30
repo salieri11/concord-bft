@@ -62,7 +62,7 @@ public class ConcordConfigUtil {
         }
     }
 
-    private static final String CONFIG_TEMPLATE_PATH = "/config/persephone/config-service/ConcordConfigTemplate.yaml";
+    private static final String CONFIG_TEMPLATE_PATH = "/config/persephone/configuration/ConcordConfigTemplate.yaml";
     private static final int DEFAULT_PORT = 3501;
     public static final int CLIENT_PROXY_PER_NODE = 4;
 

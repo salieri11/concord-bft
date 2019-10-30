@@ -5,7 +5,7 @@ services:
     ports:
       - 8000:9003
     volumes:
-      - ../hermes/resources/persephone/config-service:/config/persephone/config-service:ro
+      - ../hermes/resources/persephone/configuration:/config/persephone/configuration:ro
   persephone-metadata:
     image: "${persephone_metadata_repo}:${persephone_metadata_tag}"
     ports:
