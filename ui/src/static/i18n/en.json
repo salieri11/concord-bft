@@ -255,7 +255,6 @@
   "smartContracts": {
     "smartContracts": "Smart Contracts",
     "smartContractUpload": "Upload Smart Contracts",
-    "name": "Name",
     "contractOwnerAddress": "Contract Owner Address",
     "createContract": "Deploy Contract",
     "updateContract": "Update Contract",
@@ -862,16 +861,18 @@
       "pageTitle": "Review and Deploy",
       "navTitle": "Deploy",
       "consortiumName": "Consortium Name",
-      "consortiumSetup": "Consortium Setup",
       "consortiumSetup": "Replicas",
       "users": "Users"
     }
   },
   "deployLoader": {
+    "waiting": "Waiting for deployment task...",
+    "initial": "Deploy consortium started...",
     "first": "Creating VM's...",
     "second": "Deploying concord replicas...",
     "third": "Distributing keys...",
-    "fourth": "Starting up Concord trust network..."
+    "fourth": "Starting up Concord trust network...",
+    "ending": "Deployment successful!"
   },
   "onPrem": {
     "help": {
