@@ -109,18 +109,15 @@ docker_build() {
        shift
     done
 
+    local LOG_FILE=`basename "${DOCKER_REPO_NAME}"_build.log`
     if [ ! -z "${MEMORY_LEAK_DOCKER_BUILD}" ]
     then
         local memleak_util="valgrind"
-        local LOG_FILE="concord_memleak_build.log"
-        docker build "${DOCKER_BUILD_DIR}" -f "${DOCKER_BUILD_FILE}" -t "${DOCKER_REPO_NAME}:${DOCKER_REPO_TAG}"_memleak --build-arg "memleak_util=${memleak_util}"  ${BUILD_ARG_PARAM} > "${LOG_FILE}" 2>&1 &
-        addToProcList "Concord_for_memleak_image" $! "${LOG_FILE}"
+        docker build "${DOCKER_BUILD_DIR}" -f "${DOCKER_BUILD_FILE}" -t "${DOCKER_REPO_NAME}:${DOCKER_REPO_TAG}" --build-arg "memleak_util=${memleak_util}"  ${BUILD_ARG_PARAM} > "${LOG_FILE}" 2>&1 &
     else
-        local LOG_FILE=`basename "${DOCKER_REPO_NAME}"_build.log`
         docker build "${DOCKER_BUILD_DIR}" -f "${DOCKER_BUILD_FILE}" -t "${DOCKER_REPO_NAME}:${DOCKER_REPO_TAG}" --label ${version_label}=${DOCKER_REPO_TAG} --label ${commit_label}=${commit_hash} ${BUILD_ARG_PARAM} > "${LOG_FILE}" 2>&1 &
-        addToProcList `basename "${DOCKER_REPO_NAME}_image"` $! "${LOG_FILE}"
-        
     fi
+    addToProcList `basename "${DOCKER_REPO_NAME}_image"` $! "${LOG_FILE}"
 }
 
 docker_pull() {
@@ -167,7 +164,7 @@ npm_install() {
 concord() {
     info "Build concord..."
     docker_build . concord/Dockerfile ${concord_repo} ${concord_tag}
-    docker_build . concord/Dockerfile ${concord_repo} ${concord_tag} --memoryLeakDockerBuild
+    docker_build . concord/Dockerfile ${memleak_concord_repo} ${memleak_concord_tag} --memoryLeakDockerBuild
 }
 
 ui() {

@@ -283,6 +283,7 @@ def call(){
                 env.release_ethrpc_repo = env.release_repo + "/ethrpc"
                 env.release_fluentd_repo = env.release_repo + "/fluentd"
                 env.release_helen_repo = env.release_repo + "/concord-ui"
+                env.release_memleak_concord_repo = env.release_repo + "/memleak-concord-core"
                 env.release_persephone_agent_repo = env.release_repo + "/agent"
                 env.release_persephone_configuration_repo = env.release_repo + "/persephone-configuration"
                 env.release_persephone_fleet_repo = env.release_repo + "/persephone-fleet"
@@ -305,6 +306,7 @@ def call(){
                 env.internal_ethrpc_repo = env.release_ethrpc_repo.replace(env.release_repo, env.internal_repo)
                 env.internal_fluentd_repo = env.release_fluentd_repo.replace(env.release_repo, env.internal_repo)
                 env.internal_helen_repo = env.internal_repo + "/helen"
+                env.internal_memleak_concord_repo = env.release_memleak_concord_repo.replace(env.release_repo, env.internal_repo)
                 env.internal_persephone_agent_repo = env.release_persephone_agent_repo.replace(env.release_repo, env.internal_repo)
                 env.internal_persephone_configuration_repo = env.release_persephone_configuration_repo.replace(env.release_repo, env.internal_repo)
                 env.internal_persephone_fleet_repo = env.release_persephone_fleet_repo.replace(env.release_repo, env.internal_repo)
@@ -346,6 +348,8 @@ fluentd_repo=${internal_fluentd_repo}
 fluentd_tag=${docker_tag}
 helen_repo=${internal_helen_repo}
 helen_tag=${docker_tag}
+memleak_concord_repo=${internal_memleak_concord_repo}
+memleak_concord_tag=${docker_tag}
 persephone_agent_repo=${internal_persephone_agent_repo}
 persephone_agent_tag=${docker_tag}
 persephone_configuration_repo=${internal_persephone_configuration_repo}
@@ -1384,6 +1388,7 @@ void pushToArtifactory(){
     env.internal_ethrpc_repo,
     env.internal_fluentd_repo,
     env.internal_helen_repo,
+    env.internal_memleak_concord_repo,
     env.internal_persephone_agent_repo,
     env.internal_persephone_configuration_repo,
     env.internal_persephone_fleet_repo,
