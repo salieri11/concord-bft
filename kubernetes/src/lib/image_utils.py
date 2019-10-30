@@ -294,6 +294,48 @@ class ImageManager():
             self.logger.error("Error deleting image %s" % e)
             return False
 
+    def  delete_bintray_version(self, tag,
+                            namespace="vmwblockchain",
+                            components=[], **kwargs):
+        """
+            Delete bintray image version based on tag
+        """
+        repo = kwargs.get("repo", common.BINTRAY_REPO)
+        subject = kwargs.get("subject", common.BINTRAY_SUBJECT)
+        if len(components) == 0:
+            for _, val in self.components.items():
+                components.extend(val)
+        for component in components:
+            try:
+                pkg = ("%s:%s" % (namespace, component))
+                ret = self.bintray.delete_version(subject, repo, pkg, tag)
+            except Exception as e:
+                self.logger.exception("Error deleting image version %s %s" %
+                                    (pkg, e))
+                continue
+        self.logger.info("Successfully deleted images with version %s" % tag)
+
+    def check_if_version_exists(self, tag, namespace="vmwblockchain",
+                            components=[], **kwargs):
+        repo = kwargs.get("repo", common.BINTRAY_REPO)
+        subject = kwargs.get("subject", common.BINTRAY_SUBJECT)
+        if len(components) == 0:
+            for _, val in self.components.items():
+                components.extend(val)
+        exists = []
+        for component in components:
+            try:
+                pkg = ("%s:%s" % (namespace, component))
+                ret = self.bintray.get_version(subject, repo, pkg, tag)
+                if ret['error'] is True:
+                    exists.append(component)
+            except Exception as e:
+                self.logger.exception("Image version not found %s %s" %
+                                    (pkg, e))
+                exists.append(component)
+                continue
+        return exists
+
     def build_image_from_branch(self, component, rootdir, dockerfile,
                                 tag="latest"):
         """

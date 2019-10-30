@@ -35,6 +35,8 @@ def setup_arguments():
                     help="External repo to publist images to")
     parser.add_argument("--externalrepons", default=None,
                     help="External repo namespace to push images to")
+    parser.add_argument("--force", action="store_true", default=False,
+                    help="If set, force update of version if already present")
     args = parser.parse_args()
     return args
 
@@ -42,8 +44,21 @@ if __name__ == "__main__":
     args = setup_arguments()
     logger.info(args)
     image_manager = image_utils.ImageManager()
+    if args.force is False:
+        components = image_manager.check_if_version_exists(args.externaltag,
+                                                namespace=args.externalrepons,
+                                                components=args.components)
+        if len(components) == 0:
+            logger.info("Version %s of input components %s"
+                        " already exist in namespace %s" % (args.externaltag,
+                                                        args.components,
+                                                        args.externalrepons))
+            sys.exit(0)
+    else:
+        components = args.components
+    logger.info("%s components require version update" % " ".join(components))
     artifacts = image_manager.find_artifactory_metadata(
-                                            components=args.components,
+                                            components=components,
                                             tag=args.internaltag)
     try:
         internal_artifacts = image_manager.pull_from_artifactory(tags=artifacts)
@@ -58,14 +73,14 @@ if __name__ == "__main__":
             logger.info("Publishing docker image  env to %s" % args.envpath)
             artifact_path = "%s/artifacts.env" % (args.envpath)
             logger.info("Publishing docker image  env to %s" % artifact_path)
-            image_manager.generate_bintray_image_env(args.components,
-                        namespace=args.externalrepons, version=args.externaltag,
-                        outfile=artifact_path)
+            image_manager.generate_bintray_image_env(components,
+                            namespace=args.externalrepons,
+                            version=args.externaltag,
+                            outfile=artifact_path)
     except Exception as e:
         logger.exception("Error uploading artifacts %s" % e)
         sys.exit(1)
     finally:
         image_manager.delete_images(all_images=True)
         logger.info("Cleaned up images on local env")
-
 
