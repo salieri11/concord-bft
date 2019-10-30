@@ -149,7 +149,6 @@ public class BlockchainUtils {
                     .setGateway(fromIpAddr(n.getGateway()))
                     .setSubnet(Integer.parseInt(n.getSubnet()))
                     .setAllocationServer(Endpoint.newBuilder().build())
-                    .addAllNameServers(n.getNameServers())
                     .build();
 
             VSphereDatacenterInfo dcInfo = VSphereDatacenterInfo.newBuilder()
