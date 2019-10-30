@@ -27,14 +27,10 @@
       <div class="col-sm" id='jvm_mem_total_used'></div>
       <div class="col-sm" id='jvm_mem_heap_usage'></div>
     </div>
-    <!--
-      Old generation stats not relevant with G1
     <div class="row">
       <div class="col-sm" id='jvm_gc_og_time'></div>
       <div class="col-sm" id='jvm_gc_og_count'></div>
     </div>
-    -->
-
     <div class="row">
       <div class="col-sm" id='jvm_gc_yg_time'></div>
       <div class="col-sm" id='jvm_gc_yg_count'></div>
@@ -80,7 +76,6 @@
     </div>
     <div class="row">
       <div class="col-sm" id='kvutils_package_preload_time'></div>
-      <div class="col-sm" id='kvutils_package_preload_active'></div>
       <div class="col-sm" id='kvutils_package_decode_time'></div>
     </div>
 
@@ -212,7 +207,6 @@
      data: []
    },
 
-   /*
    "jvm.gc.og.time": {
      make: make_graph("#jvm_gc_og_time", "GC Old Generation Time", "ms"),
      data: []
@@ -221,7 +215,7 @@
    "jvm.gc.og.count": {
      make: make_graph("#jvm_gc_og_count", "GC Old Generation Count", "count"),
      data: []
-   },*/
+   },
 
    "jvm.gc.yg.time": {
      make: make_graph("#jvm_gc_yg_time", "GC Young Generation Time", "Young generation GC cumulative time spent", "ms"),
@@ -293,11 +287,6 @@
      data: []
    },
 
-   "kvutils.package.preload_active": {
-     make: make_graph("#kvutils_package_preload_active", "Package preloading", "Number of active package preloading threads (should always be 1)", "count"),
-     data: []
-   },
-
    "validator.service.validate-time": {
      make: make_percentiles("#validator_service_validate_time", "Validate percentiles (seconds)"),
      data: []
@@ -340,17 +329,14 @@
       push(now, metrics["jvm.mem.total.used"], "bytes", data.gauges["jvm.mem.total.used"].value);
       push(now, metrics["jvm.mem.heap.usage"], "percentage", data.gauges["jvm.mem.heap.usage"].value);
 
-      //push(now, metrics["jvm.gc.og.time"], "ms", data.gauges["jvm.gc.G1-Old-Generation.time"].value);
-      //push(now, metrics["jvm.gc.og.count"], "count", data.gauges["jvm.gc.G1-Old-Generation.count"].value);
+      push(now, metrics["jvm.gc.og.time"], "ms", data.gauges["jvm.gc.G1-Old-Generation.time"].value);
+      push(now, metrics["jvm.gc.og.count"], "count", data.gauges["jvm.gc.G1-Old-Generation.count"].value);
 
-      // NOTE(JM): With the G1 allocator we don't get any "Old Generation" GCs, only young, hence
-      // we just show that. If a different garbage collector is in use then the gauges are with
-      // different names.
       push(now, metrics["jvm.gc.yg.time"], "ms", data.gauges["jvm.gc.G1-Young-Generation.time"].value);
       push(now, metrics["jvm.gc.yg.count"], "count", data.gauges["jvm.gc.G1-Young-Generation.count"].value);
 
       // NOTE(JM): Catching exceptions in each group as some metrics only show up later and we still
-      // want to render what we can. Yes this is quite clunky, but hey, this is javascript.
+      // want to render what we can.
 
       try {
         push(now, metrics["validator.cache.hits"], "hits", data.counters["validator.cache.hits"].count);
@@ -384,8 +370,6 @@
           percentile_data(
             data.timers["kvutils.committing.package.decode-timer"]
           );
-
-        push(now, metrics["kvutils.package.preload_active"], "count", data.counters["kvutils.committing.package.preload-active"].count);
       } catch (e) {
         console.log("kvutils.package metrics missing: " + e);
       }
@@ -412,11 +396,11 @@
       try {
         metrics["validator.service.validate-time"].data =
           percentile_data(
-            data.timers["validator.service.validate-time"]
+            data.timers["validator.service.validate-timer"]
           );
-        metrics["validator.service.provide-state-time"].data =
+        metrics["validator.service.validate-pending-time"].data =
           percentile_data(
-            data.timers["validator.service.provide-state-time"]
+            data.timers["validator.service.validate-pending-timer"]
           );
         metrics["validator.service.submission-sizes"].data =
           percentile_data(

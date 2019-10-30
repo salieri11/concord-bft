@@ -26,7 +26,7 @@ class KVBCValidator extends ValidationServiceGrpc.ValidationService {
 
     val pendingSubmissions = registry.counter(s"$prefix.pending-submissions")
     val validateTimer = registry.timer(s"$prefix.validate-timer")
-    val provideStateTimer = registry.timer(s"$prefix.provide-state-timer")
+    val validatePendingTimer = registry.timer(s"$prefix.validate-pending-timer")
     val submissionSizes = registry.histogram(s"$prefix.submission-sizes")
     val outputSizes = registry.histogram(s"$prefix.output-sizes")
     val envelopeCloseTimer = registry.timer(s"$prefix.envelope-close-timer")
@@ -109,7 +109,7 @@ class KVBCValidator extends ValidationServiceGrpc.ValidationService {
       }
     }
 
-  def validatePendingSubmission(request: ValidatePendingSubmissionRequest): Future[ValidatePendingSubmissionResponse] = catchedFutureThunk {
+  def validatePendingSubmission(request: ValidatePendingSubmissionRequest): Future[ValidatePendingSubmissionResponse] = catchedTimedFutureThunk(Metrics.validatePendingTimer) {
     val replicaId = request.replicaId
     logger.trace(s"Completing submission: replicaId=$replicaId, entryId=${request.entryId.toStringUtf8}")
 
