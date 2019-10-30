@@ -19,10 +19,9 @@ import { DeployStates, ContractEngines } from '../../blockchain/shared/blockchai
 })
 export class DeployingInterstialComponent {
   loading: boolean = true;
-  title: string = 'Deploy Consortium';
   error: string;
   showInterstitial = false;
-  message: string = 'Deploy consortium started...';
+  message: string;
   loop: boolean = true;
   success: boolean = false;
   isOnlyOnPrem: boolean = false;
@@ -42,6 +41,7 @@ export class DeployingInterstialComponent {
         this.isOnlyOnPrem = message.isOnlyOnPrem;
       }
     });
+    this.message = this.translate.instant('deployLoader.waiting');
   }
 
   startLoading(response: HttpResponse<any> | HttpErrorResponse) {
@@ -65,7 +65,7 @@ export class DeployingInterstialComponent {
         if (response.state === DeployStates.SUCCEEDED) {
           message.unsubscribe();
           this.progress = 100;
-          this.message = 'Deployment successful!';
+          this.message = this.translate.instant('deployLoader.ending');
 
           this.blockchainService.set().subscribe(() => {
             setTimeout(() => {
@@ -89,6 +89,7 @@ export class DeployingInterstialComponent {
     const duration = 1000 * multiplier;
 
     this.loop = true;
+    this.message = this.translate.instant('deployLoader.initial');
 
     return of(true).pipe(
       delay(duration),
@@ -155,7 +156,6 @@ export class DeployingInterstialComponent {
   }
 
   private showError(error: HttpResponse<any> | HttpErrorResponse) {
-    this.title = this.translate.instant('error.title');
     this.error = error['message'] || error['error_message'];
     this.loading = false;
   }
