@@ -749,6 +749,7 @@ class Product():
       such as Valgrind, which prevents it from summarizing memory leak data.
       '''
       containerIds = self.getRunningContainerIds(containerSearchString)
+      processesStopped = False
 
       for containerId in containerIds:
          cmd = ["docker", "exec", containerId, "ps", "-x"]
@@ -772,6 +773,9 @@ class Product():
                                               stderr=subprocess.STDOUT)
                psOutput = completedProcess.stdout.decode("UTF-8")
                log.info("Kill command output: {}".format(psOutput))
+               processesStopped = True
+
+      return processesStopped
 
 
    def stopMemoryLeakNode(self):
@@ -780,9 +784,9 @@ class Product():
       killing the container it is running in so that it can summarize
       memory leak information.  Then we give it a few seconds to do so.
       '''
-      self.stopProcessesInContainers("memleak", "valgrind")
-      log.info("Sleep for 60 seconds...")
-      time.sleep(60)
+      if self.stopProcessesInContainers("memleak", "valgrind"):
+         log.info("Sleep for 60 seconds...")
+         time.sleep(60)
 
 
    def _logServicesAtEnd(self):
