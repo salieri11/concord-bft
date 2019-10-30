@@ -1015,6 +1015,10 @@ class Product():
         return False
       return True
 
+   def inspect_container(self, containerName):
+      command = ["docker", "inspect", containerName]
+      return json.load(subprocess.Popen(command, stdout=subprocess.PIPE).stdout)
+
    def start_concord_replica(self, id):
        if len(self._concordProcessesMetaData) == 0:
           containerName = "docker_concord{}_1".format(id)

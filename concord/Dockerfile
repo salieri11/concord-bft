@@ -63,9 +63,9 @@ COPY --from=0 /opt/grpc /opt/grpc
 # compile the chaincode source file to binary.
 COPY --from=0 /usr/local/go /usr/local/go
 
-# HLF 
+# HLF
 # copy peer executable
-# this is not the same peer that communicates with concord kv state ie: vmwblockchain/fabric_peer 
+# this is not the same peer that communicates with concord kv state ie: vmwblockchain/fabric_peer
 # this peer is for cli calls for sending chaincode commands from c++ concord
 # to our custom golang peer defined in submodules/hlf-chcaincode-engine/Dockerfile-peer
 # built from 'integrate2concord' git branch and tagged as {hlf_peer_base}:{hlf_peer_base_tag}
@@ -123,4 +123,4 @@ VOLUME [ "/concord/config", "/concord/rocksdbdata", "/concord/log", "/concord/tl
 
 # Set working directory and start.
 WORKDIR /concord
-CMD /concord/concord -c /concord/config-local/concord.config
+CMD ["/concord/concord","-c","/concord/config-local/concord.config"]

@@ -123,7 +123,8 @@ class RegressionTests(test_suite.TestSuite):
       return [("nested_contract_creation", self._test_nested_contract_creation), \
               ("invalid_addresses", self._test_invalid_addresses), \
               ("call_writer", self._test_call_writer),
-              ("large_transactions", self._test_large_transactions)]
+              ("large_transactions", self._test_large_transactions),
+              ("zero_exit_code", self._test_zero_exit_code)]
 
    def _runRpcTest(self, testName, testFun, testLogDir):
       ''' Runs one test. '''
@@ -441,3 +442,35 @@ class RegressionTests(test_suite.TestSuite):
       else:
          # We skip this test if running in Ethereum mode.
          return (None, None)
+
+   def _test_zero_exit_code(self, rpc):
+      '''
+      Stop a concord container, and make sure its exit code is
+      zero. This makes sure that:
+
+      1. We're not segfaulting on shutdown.
+
+      2. We are actually catching and handling the TERM signal.
+
+      The second case is tested by the fact that docker gives the
+      container only a few seconds to shut down normally, and then sends
+      SIGKILL instead of SIGTERM.
+      '''
+      # We used concord4 because it won't disrupt any other test if
+      # this is run out of order.
+      containerName = util.blockchain.eth.get_concord_container_name(4)
+      if len(containerName) == 0:
+         return (False, "Concord4 was not found")
+
+      if not self.product.action_on_concord_container(containerName, "stop"):
+         return (False, "Stop action failed")
+
+      inspect = self.product.inspect_container(containerName)
+      state = inspect[0]['State']
+      if state['Status'] == 'exited':
+         if state['ExitCode'] == 0:
+            return (True, None)
+         else:
+            return (False, "Exit code was non-zero ({})".format(state['ExitCode']))
+      else:
+         return (False, "Container did not exit (Status: {})".format(state['Status']))
