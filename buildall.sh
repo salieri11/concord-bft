@@ -188,6 +188,15 @@ helen() {
 }
 
 persephone() {
+    # As a precondition to building Persephone with this function, the Concord
+    # image ${concord_repo}:${concord_tag} should be complete and available, and
+    # should be the version of Concord that Persephone's configuration service
+    # image ${persephone_configuration_repo}:${persephone_configuration_tag}
+    # targets deploying. ${concord_repo}:${concord_tag} must be ready before
+    # persephone() is called because a binary for Concord's configuration
+    # generation utility will be copied into the image for Persephone's
+    # configuration service in the build process.
+
     info "Build persephone..."
     docker_build . agent/Dockerfile ${persephone_agent_repo} ${persephone_agent_tag}
     docker_build persephone persephone/fleet-service/Dockerfile ${persephone_fleet_repo} ${persephone_fleet_tag}
@@ -196,7 +205,7 @@ persephone() {
 
     docker_build persephone persephone/metadata-service/Dockerfile ${persephone_metadata_repo} ${persephone_metadata_tag}
     docker_build persephone persephone/provisioning-service/Dockerfile ${persephone_provisioning_repo} ${persephone_provisioning_tag}
-    docker_build . persephone/config-service/Dockerfile ${persephone_configuration_repo} ${persephone_configuration_tag}
+    docker_build . persephone/config-service/Dockerfile ${persephone_configuration_repo} ${persephone_configuration_tag} --build-arg "concord_repo=${concord_repo}" --build-arg "concord_tag=${concord_tag}"
 }
 
 cockroachDB() {

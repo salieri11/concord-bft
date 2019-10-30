@@ -215,6 +215,42 @@ If you want to push to the docker-hub:
 docker push vmwblockchain/agent-testing
 ```
 
+### Building Persephone via Docker
+
+Persephone, the deployment service for VMware Blockchain, is itself composed of
+a number of distinct microservices which can be built directly in Docker
+containers. Note not all Persephone microservices' build processes are
+documented here. 
+
+#### Building Persephone Configuration Service via Docker
+The Persephone Configuration Service can be built directly in a Docker
+container. As the Persephone Configuration Service requires the binary for the
+Concord Configuration Generation Utility from Concord, the Persephone
+Configuration Service's build requires a Concord image (the image for the
+version of Concord this build of the configuration service will target deploying
+should be used).
+
+(note all commands to build the Persephone Configuration Service given in this
+immediate subsection are run from the same directory as this README, and *not*
+from the `persephone` or `persephone/config-service` directories)
+
+By default, `concord-core:latest` is target as the Concord image for the
+Persephone Configuration Service build. If you have built Concord as 
+`concord-core:latest`, you can build the Persephone Configuration Service with:
+```
+blockchain$ docker build -f persephone/config-service/Dockerfile -t \
+                         persephone-configuration:latest
+```
+
+You can also target specific Concord images for the Persephone Configuration
+Service Build via build arguments. For example, to build
+`persephone-configuration:latest` `concord-core` version `512` from Artifactory:
+```
+blockchain$ docker build -f persephone/config-service/Dockerfile -t \
+    persephone-configuration:latest --build-arg \
+    "concord_repo=athena-docker-local.artifactory.eng.vmware.com/concord-core" \
+    --build-arg "concord_tag=512"
+```
 
 ### Building Natively
 

@@ -83,13 +83,15 @@ version that Ubuntu 18.04 supports.
 4. Configure/make/install
 
 ```
-./configure CXXFLAGS="--std=c++11"
+./configure CXXFLAGS="--std=c++11" --enable-static
 make
 sudo make install
 ```
 
-configuring with given flags is important. If log4cplus is build
-without `c++11` then concord will give linker errors while building.
+configuring with given flags is important. If log4cplus is build without `c++11`
+then concord will give linker errors while building. If log4cplus is built
+without `--enable-static`, CMake may complain it cannot find a log4cplus static
+library (which is needed for building `conc_genconfig`).
 
 This will install all library files and header files into
 '/usr/local'. You may need to add `/usr/local/lib` to your
@@ -350,12 +352,21 @@ With Concord running, you probably want to set up [Helen](../helen) or
 
 Concord uses YAML configuration files. A configuration generation utility is
 provided to generate these configuration files for a given Concord cluster. In a
-completed build, the utility is `conc_genconfig` in the `tools` directory. The
-utility accepts input providing the size of the cluster, networking information,
-and any non-default values you would like to elect for optional parameters. For
-example, the following command can be used to generate a configuration
-equivalent to the current 4-node test configuration (with a fresh set of
-cryptographic keys generated):
+completed build, the utility is `conc_genconfig` in the `tools` directory. Note
+`conc_genconfig` is statically linked in order to facilitate running it on
+machines that are not themsleves Concord nodes during automated Concord
+deployment workflows without requiring the installation of Concord's runtime
+dependencies on the non-Concord-node machines involved in deployment. Note,
+however, that `conc_genconfig` does still have some runtime dependencies on
+common shared system libraries (for example, `libpthread`). At the time of this
+writing `conc_genconfig` is linked with the objective of being runnable without
+installing any dependencies that do not come by default on Ubuntu 18.04.
+
+The utility accepts input providing the size of the cluster, networking
+information, and any non-default values you would like to elect for optional
+parameters. For example, the following command can be used to generate a
+configuration equivalent to the current 4-node test configuration (with a fresh
+set of cryptographic keys generated):
 
 ```shell
 concord/build$ ./tools/conc_genconfig --configuration-input \

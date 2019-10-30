@@ -9,7 +9,7 @@
 ##         from parent: docker build -f concord/Dockerfile .
 
 ## Build image
-FROM athena-docker-local.artifactory.eng.vmware.com/concord-core:prereqs-v10
+FROM athena-docker-local.artifactory.eng.vmware.com/concord-core:prereqs-v11
 
 ## Remember context is the parent of this directory
 COPY ./communication /communication
