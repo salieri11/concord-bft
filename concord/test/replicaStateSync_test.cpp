@@ -109,7 +109,6 @@ Sliver setUpBlockContent(Key key, Value blockValue) {
   fillBufAndAdvance(ptr, key.data(), key.length());
   fillBufAndAdvance(ptr, blockValue.data(), blockValue.length());
 
-
   return Sliver(buf, sizeOfBuf);
 }
 
