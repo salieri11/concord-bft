@@ -54,10 +54,34 @@ RUN apt-get update \
     llvm-5.0 \
     && rm -rf /var/lib/apt/lists/*
 
-COPY --from=0 /usr/local/lib/libcryptopp* /usr/local/lib/
-COPY --from=0 /usr/local/lib/liblog4cplus* /usr/local/lib/
-COPY --from=0 /opt/protobuf /opt/protobuf
-COPY --from=0 /opt/grpc /opt/grpc
+# SYMLINK NOTE: If you COPY a symlink, docker will copy the contents
+# of the target file to a new file, doubling the space used in the
+# image.
+
+COPY --from=0 /usr/local/lib/libcryptopp.so.5.6 /usr/local/lib/
+RUN ln -s /usr/local/lib/libcryptopp.so.5.6 /usr/local/lib/libcryptopp.so
+
+COPY --from=0 /usr/local/lib/liblog4cplus-1.2.so.5.1.6 /usr/local/lib/
+RUN ln -s /usr/local/lib/liblog4cplus-1.2.so.5.1.6 /usr/local/lib/liblog4cplus-1.2.so.5
+RUN ln -s /usr/local/lib/liblog4cplus-1.2.so.5.1.6 /usr/local/lib/liblog4cplus.so
+
+COPY --from=0 /opt/protobuf/lib/*.so.17.0.0 /opt/protobuf/lib/
+RUN for x in /opt/protobuf/lib/*.so.17.0.0; do \
+        ln -s $x ${x%%.0.0} && \
+        ln -s $x ${x%%.17.0.0}; \
+    done
+
+COPY --from=0 /opt/grpc/lib/*.so.7.0.0 /opt/grpc/lib/
+RUN for x in /opt/grpc/lib/*.so.7.0.0; do \
+        ln -s $x ${x%%.0.0} && \
+        ln -s $x ${x%%.7.0.0}; \
+    done
+
+COPY --from=0 /opt/grpc/lib/*.so.1.17.1 /opt/grpc/lib/
+RUN for x in /opt/grpc/lib/*.so.1.17.1; do \
+        ln -s $x ${x%%.17.1} && \
+        ln -s $x ${x%%.1.17.1}; \
+    done
 
 # Go is required because chaincode installation will
 # compile the chaincode source file to binary.
@@ -77,9 +101,17 @@ COPY ./docker/hlf/core.yaml /concord
 # _HLF_HARDCODED_CONFIG
 
 # evmjit is statically compiled, so we don't need to copy
-COPY --from=0 /usr/local/lib/librelic* /usr/local/lib/
-COPY --from=0 /usr/local/lib/librocksdb.* /usr/local/lib/
-COPY --from=0 /usr/local/lib/libsecp256k1* /usr/local/lib/
+
+COPY --from=0 /usr/local/lib/librelic.so /usr/local/lib/
+
+COPY --from=0 /usr/local/lib/librocksdb.so.5.7.3 /usr/local/lib/
+RUN ln -s /usr/local/lib/librocksdb.so.5.7.3 /usr/local/lib/librocksdb.so.5.7
+RUN ln -s /usr/local/lib/librocksdb.so.5.7.3 /usr/local/lib/librocksdb.so.5
+RUN ln -s /usr/local/lib/librocksdb.so.5.7.3 /usr/local/lib/librocksdb.so
+
+COPY --from=0 /usr/local/lib/libsecp256k1.so.0.0.0 /usr/local/lib/
+RUN ln -s /usr/local/lib/libsecp256k1.so.0.0.0 /usr/local/lib/libsecp256k1.so.0
+RUN ln -s /usr/local/lib/libsecp256k1.so.0.0.0 /usr/local/lib/libsecp256k1.so
 
 WORKDIR /concord/resources
 COPY --from=0 /concord/build/src/concord /concord/concord
