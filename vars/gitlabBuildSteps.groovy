@@ -1374,14 +1374,18 @@ void fetchSourceRepos() {
       git clone https://github.com/vmware-samples/vmware-blockchain-samples.git
       cd vmware-blockchain-samples
       git checkout 9711dda
-      cd ..
+      cd asset-transfer
+      sed -i '27iRUN npm config set registry http://build-artifactory.eng.vmware.com:80/artifactory/api/npm/npm' Dockerfile
+      cd ../supply-chain
+      sed -i '12iRUN npm config set registry http://build-artifactory.eng.vmware.com:80/artifactory/api/npm/npm' Dockerfile
+      cd ../..
     '''
   }
 }
 
 void pushToArtifactory(){
   pushList = [
-    // env.internal_asset_transfer_repo,
+    env.internal_asset_transfer_repo,
     env.internal_concord_repo,
     env.internal_ethrpc_repo,
     env.internal_fluentd_repo,
@@ -1416,7 +1420,7 @@ void pushToArtifactory(){
 
 void pushToDockerHub(){
   pushList = [
-    // env.release_asset_transfer_repo,
+    env.release_asset_transfer_repo,
     env.release_concord_repo,
     env.release_ethrpc_repo,
     env.release_fluentd_repo,
@@ -1448,7 +1452,7 @@ void pushToDockerHub(){
 void tagImagesForRelease(){
   sh(script:
   '''
-    # docker tag ${internal_asset_transfer_repo}:${docker_tag} ${release_asset_transfer_repo}:${docker_tag}
+    docker tag ${internal_asset_transfer_repo}:${docker_tag} ${release_asset_transfer_repo}:${docker_tag}
     docker tag ${internal_concord_repo}:${docker_tag} ${release_concord_repo}:${docker_tag}
     docker tag ${internal_ethrpc_repo}:${docker_tag} ${release_ethrpc_repo}:${docker_tag}
     docker tag ${internal_fluentd_repo}:${docker_tag} ${release_fluentd_repo}:${docker_tag}
@@ -1488,9 +1492,9 @@ void runGenericTests(){
       echo "${PASSWORD}" | sudo -S "${python}" main.py SampleSuite --resultsDir "${sample_suite_test_logs}"
       saveTimeEvent SampleSuite End
 
-      # saveTimeEvent SampleDAppTests Start
-      # echo "${PASSWORD}" | sudo -S "${python}" main.py SampleDAppTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${sample_dapp_test_logs}" --runConcordConfigurationGeneration
-      # ssaveTimeEvent SampleDAppTests End
+      saveTimeEvent SampleDAppTests Start
+      echo "${PASSWORD}" | sudo -S "${python}" main.py SampleDAppTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${sample_dapp_test_logs}" --runConcordConfigurationGeneration
+      saveTimeEvent SampleDAppTests End
 
       saveTimeEvent CoreVMTests Start
       echo "${PASSWORD}" | sudo -S "${python}" main.py CoreVMTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${core_vm_test_logs}" --runConcordConfigurationGeneration

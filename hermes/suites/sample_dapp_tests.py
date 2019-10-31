@@ -222,6 +222,8 @@ class SampleDAppTests(test_suite.TestSuite):
       # Changing the docker-compose.yml file
       with open("../vmware-blockchain-samples/supply-chain/docker-compose.yml", "r+") as file:
          lines = file.read()
+         lines = lines.replace("command: \"npm run start:vmware\"",
+            "command: \"npm config set registry http://build-artifactory.eng.vmware.com:80/artifactory/api/npm/npm && npm run start:vmware\"")
          lines = lines.replace("<change-me>", BC_URL)
          file.truncate(0)
          file.seek(0)
