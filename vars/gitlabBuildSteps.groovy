@@ -429,7 +429,7 @@ EOF
               dir('blockchain') {
                 if (env.JOB_NAME.contains(persephone_test_on_demand_job_name)) {
                   sh '''
-                    ./buildall.sh --buildOnDemand persephone,BuildPersephoneGRPCpyBindings
+                    ./buildall.sh --buildOnDemand concord,waitForProcesses,persephone,BuildPersephoneGRPCpyBindings
                   '''
                 } else {
                   sh '''
