@@ -326,12 +326,12 @@ then
     waitForProcesses
     cockroachDB # Do we still need this?
     reverse-proxy
-    #asset-transfer
+    asset-transfer
     contract-compiler
     hlf
     daml
     BuildPersephoneGRPCpyBindings
-    #BuildSupplyChain
+    BuildSupplyChain
     PerformanceTests
 fi
 
