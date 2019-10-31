@@ -1,38 +1,20 @@
-<div>
-  <table class="mt-0 table table-vertical">
-    <tbody>
-    <tr *ngIf="log?.ingest_timestamp">
-      <th>{{ 'logDetails.col.ingestTimestamp' | translate }}</th>
-      <td>{{log.ingest_timestamp}}</td>
-    </tr>
-    <tr *ngIf="log?.log_timestamp">
-      <th>{{ 'logDetails.col.logTimestamp' | translate }}</th>
-      <td>{{log.log_timestamp}}</td>
-    </tr>
-    <tr *ngIf="log?.function">
-      <th>{{ 'logDetails.col.function' | translate }}</th>
-      <td>{{log.function}}</td>
-    </tr>
-    <tr *ngIf="log?.message">
-      <th>{{ 'logDetails.col.message' | translate }}</th>
-      <td>{{log.message}}</td>
-    </tr>
-    <tr *ngIf="log?.eth_request_id">
-      <th>{{ 'logDetails.col.ethRequestId' | translate }}</th>
-      <td>{{log.eth_request_id}}</td>
-    </tr>
-    <tr *ngIf="log?.source">
-      <th>{{ 'logDetails.col.source' | translate }}</th>
-      <td>{{log.source}}</td>
-    </tr>
-    <tr *ngIf="log?.id">
-      <th>{{ 'logDetails.col.id' | translate }}</th>
-      <td>{{log.id}}</td>
-    </tr>
-    <tr *ngIf="log?.process">
-      <th>{{ 'logDetails.col.process' | translate }}</th>
-      <td>{{log.process}}</td>
-    </tr>
-    </tbody>
-  </table>
-</div>
+<clr-dg-cell>
+  <span>[{{ log.level }}] {{ log.ingest_timestamp | date: 'yyyy-mm-dd\'T\'HH:mm:ss' }} {{ message?.method }}</span>
+</clr-dg-cell>
+<ng-container *ngIf="message && message?.result">
+
+  <ng-container *ngIf="isResObject(message?.result); else commaArray">
+    <clr-dg-cell *ngFor="let key of objectKeys(message?.result)">
+      <span>[{{ log.level }}] {{ log.ingest_timestamp | date: 'yyyy-mm-dd\'T\'HH:mm:ss' }}
+        <span class="tab"></span>{{ getFormattedKey(key) | titlecase }}: {{ message?.result[key] }}</span>
+    </clr-dg-cell>
+  </ng-container>
+
+  <ng-template #commaArray>
+    <clr-dg-cell>
+      <span>[{{ log.level }}] {{ log.ingest_timestamp | date: 'yyyy-mm-dd\'T\'HH:mm:ss' }}
+        <span class="tab"></span>{{ message?.result }}</span>
+    </clr-dg-cell>
+  </ng-template>
+
+</ng-container>

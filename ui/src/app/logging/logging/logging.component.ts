@@ -24,6 +24,7 @@ import {
   SEVEN_DAYS,
   THIRTY_DAYS
 } from '../shared/logging.constants';
+import { NodesService } from '../../nodes/shared/nodes.service';
 
 enum LogQueryTypes {
   LogsQuery = 'LOGS_QUERY',
@@ -49,6 +50,9 @@ export class LoggingComponent implements OnInit {
   heatMapData: { name: string, series: { name: string, value: number }[] }[];
   nextPageLink: string = null;
   documentSelfLink: string = null;
+
+  nodes: any[] = [];
+
   timePeriods: LogTimePeriod[] = [
     {
       title: this.translate.instant('logging.timePeriods.oneMinute'),
@@ -111,13 +115,15 @@ export class LoggingComponent implements OnInit {
   constructor(
     private errorService: ErrorAlertService,
     private logApiService: LogApiService,
-    private translate: TranslateService
+    private translate: TranslateService,
+    private nodesService: NodesService
   ) {
     this.xAxisTickFormatting = this.xAxisTickFormatting.bind(this);
   }
 
   ngOnInit() {
     this.onSelectTimePeriod(this.timePeriods[7]);
+    this.loadNodes();
   }
 
   fetchLogs() {
@@ -125,7 +131,7 @@ export class LoggingComponent implements OnInit {
     this.logApiService.postToTasks(this.startTime, this.endTime).subscribe((resp) => {
       this.documentSelfLink = resp.documentSelfLink;
       this.pollLogStatus(resp.documentSelfLink, LogQueryTypes.LogsQuery, this.onFetchLogsComplete.bind(this));
-    }, this.handleLogsError);
+    }, this.handleLogsError.bind(this));
   }
 
   fetchLogCounts() {
@@ -138,7 +144,7 @@ export class LoggingComponent implements OnInit {
         this.parseCounts();
         this.countLoading = false;
       });
-    }, this.handleCountsError);
+    }, this.handleCountsError.bind(this));
   }
 
   onClickExportLogEvents() {
@@ -201,6 +207,13 @@ export class LoggingComponent implements OnInit {
     return this.selectedTimePeriod.value > TWELVE_HOURS ?
       this.translate.instant('logging.heatMap.dailyTitle') :
       this.translate.instant('logging.heatMap.hourlyTitle');
+  }
+
+  // Load replica list in dropdown to filter logs
+  private loadNodes() {
+    return this.nodesService.getList().subscribe((resp) => {
+      this.nodes = resp.nodes;
+    });
   }
 
   private getHeatMapLabelMinutes(minutes) {

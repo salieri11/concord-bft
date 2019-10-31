@@ -39,8 +39,8 @@
         </a>
 
         <!-- comment later -->
-        <a clrVerticalNavLink *concordCanView="[personas.SystemsAdmin, personas.ConsortiumAdmin]" (click)="addOnPremises.open()"
-          href="javscript:void(0)">
+        <a clrVerticalNavLink *concordCanView="[personas.SystemsAdmin, personas.ConsortiumAdmin]"
+          (click)="addOnPremises.open()" href="javscript:void(0)">
           <clr-icon clrVerticalNavIcon shape="rack-server"></clr-icon>
           {{'nav.addOnPrem' | translate}}
         </a>
@@ -87,6 +87,11 @@
           <clr-icon clrVerticalNavIcon shape="book"></clr-icon>
           {{'nav.developer.docs' | translate}}
         </a>
+        <!-- Logging NAV
+        <a clrVerticalNavLink [routerLink]="['logging']" routerLinkActive="active" id="logging">
+          <clr-icon clrVerticalNavIcon shape="bar-chart"></clr-icon>
+          {{'nav.developer.logs' | translate}}
+        </a> -->
         <a clrVerticalNavLink [routerLink]="['developer/apis']" routerLinkActive="active" id="apis">
           <clr-icon clrVerticalNavIcon shape="info-circle"></clr-icon>
           {{'nav.developer.api' | translate}}
@@ -115,7 +120,7 @@
   </div>
 </clr-main-container>
 <clr-modal #welcomeModal>
-    <concord-welcome #welcomeComponent class="modal-body"></concord-welcome>
+  <concord-welcome #welcomeComponent class="modal-body"></concord-welcome>
 </clr-modal>
 <concord-blockchain-wizard #blockchainWizard></concord-blockchain-wizard>
 <concord-on-premises-modal #addOnPremises></concord-on-premises-modal>
