@@ -109,7 +109,7 @@ services:
 
   daml_execution_engine1:
     image: "${daml_execution_engine_repo}:${daml_execution_engine_tag}"
-    command: /doc/daml/kvbc_validator/target/universal/stage/bin/kvbc-validator -J-Xmx4G
+    command: /doc/daml/kvbc_validator/target/universal/stage/bin/kvbc-validator -J-Xmx5G
     depends_on:
       - fluentd
     expose:

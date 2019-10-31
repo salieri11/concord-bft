@@ -17,7 +17,7 @@ if [ $# -ne 1 ]; then
 fi
 
 MOUNT_POINT="/dockerydoo"
-DOCKER_IMAGE="$(grep concord_repo .env | awk -F'=' '{print $2}'):$(grep concord_tag .env | awk -F'=' '{print $2}')"
+DOCKER_IMAGE="$(grep '\bconcord_repo' .env | awk -F'=' '{print $2}'):$(grep '\bconcord_tag' .env | awk -F'=' '{print $2}')"
 
 docker inspect ${DOCKER_IMAGE} > /dev/null 2>&1
 if [ $? -ne 0 ]; then
