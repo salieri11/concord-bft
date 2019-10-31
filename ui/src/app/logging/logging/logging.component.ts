@@ -209,7 +209,7 @@ export class LoggingComponent implements OnInit {
       this.translate.instant('logging.heatMap.hourlyTitle');
   }
 
-  // Load replica list in dropdown to filter logs
+  // Load replica list in dropdown to filter logs
   private loadNodes() {
     return this.nodesService.getList().subscribe((resp) => {
       this.nodes = resp.nodes;
