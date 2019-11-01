@@ -16,6 +16,7 @@ import traceback
 from tempfile import NamedTemporaryFile
 
 import util.daml.upload_dar as darutil
+import util.helper as helper
 
 from . import test_suite
 from util.product import Product
@@ -30,19 +31,13 @@ class DamlProduct(Product):
       start up. This will change in the future but for now we have to check
       the server that is uploading the test packages. See docker-compose.
       """
-      LOG_READY = "listening on localhost:6865"
-      LOG_FILE = self._createLogPath("daml_ledger_api1_1")
-
-      with open(LOG_FILE) as f:
-         timeout = 0
-         while timeout < 60:
-            if any(filter(lambda x: LOG_READY in x, f.readlines())):
-               return True
-            time.sleep(1)
-            timeout += 1
-
-      log.error("DAML ledger api service 1 didn't start in time.")
-      return False
+      # Port 6861 is the host port going to daml_ledger_api1.  See
+      # docker/docker-compose-daml.yml.
+      if helper.verify_connectivity("localhost", 6861):
+         return True
+      else:
+         log.error("DAML ledger api service 1 didn't start in time.")
+         return False
 
 class DamlTests(test_suite.TestSuite):
 
