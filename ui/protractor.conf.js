@@ -5,26 +5,37 @@ const { SpecReporter } = require('jasmine-spec-reporter');
 const Logger = require('protractor/built/logger').Logger,
   logger = new Logger('JasmineFailLogger');
 const HtmlScreenshotReporter = require('protractor-jasmine2-screenshot-reporter');
+const fs = require('fs');
 
-function getDateAndTimeFolderString() { // generates date and time in this format: 'd-m-yyyy_HH-MM-SS'
-    var d = new Date();
-    return [d.getDate(), d.getMonth() + 1, d.getFullYear()].join('-') + '_' + [d.getHours(), d.getMinutes(), d.getSeconds()].join('-');
+
+function getFolderString() { // generates date and time in this format: 'd-m-yyyy_HH-MM-SS'
+  const d = new Date();
+  const datestamp = [d.getDate(), d.getMonth() + 1, d.getFullYear()].join('-') + '_' + [d.getHours(), d.getMinutes(), d.getSeconds()].join('-');
+  let prePath = 'build';
+
+  try {
+    // Get path from file created by Hermes
+    prePath = fs.readFileSync('ui_e2e_path.txt', 'utf8');
+  } catch(e) {
+    console.warn('Using default path, screenshot path from file not found', e);
+  }
+  return `${prePath}/screenshots_${datestamp}`;
 }
 
 const screenshotReporter = new HtmlScreenshotReporter({
-    dest: 'build/e2e-test-results/screenshots_' + getDateAndTimeFolderString(),
-    filename: 'screenshots-report.html',
-    reportFailedUrl: true,
-    reportOnlyFailedSpecs: false,
-    captureOnlyFailedSpecs: false
+  dest: getFolderString(),
+  filename: 'screenshots-report.html',
+  reportFailedUrl: true,
+  reportOnlyFailedSpecs: false,
+  captureOnlyFailedSpecs: false
 });
 
 exports.config = {
-  allScriptsTimeout: 31000,
+  allScriptsTimeout: 3 * 60 * 1000, // 3 minutes, needed for deploying.
   specs: [
     './e2e/onboarding/onboarding.e2e-spec.ts',
     './e2e/smart-contracts/smart-contracts.e2e-spec.ts',
-    // './e2e/swagger/swagger.e2e-spec.ts',
+    './e2e/swagger/swagger.e2e-spec.ts',
   ],
   capabilities: {
     'browserName': 'chrome'
@@ -34,13 +45,13 @@ exports.config = {
   framework: 'jasmine',
   jasmineNodeOpts: {
     showColors: true,
-    defaultTimeoutInterval: 30000,
-    print: function() {}
+    defaultTimeoutInterval: 3 * 60 * 1000, // 3 minutes, needed for deploying.
+    print: function() { }
   },
-  beforeLaunch: function () {
-      return new Promise(function (resolve) {
-          screenshotReporter.beforeLaunch(resolve);
-      });
+  beforeLaunch: function() {
+    return new Promise(function(resolve) {
+      screenshotReporter.beforeLaunch(resolve);
+    });
   },
 
   onPrepare() {
@@ -52,38 +63,33 @@ exports.config = {
     jasmine.getEnv().addReporter(screenshotReporter);
     prepareJasmineForFlake();
     browser.ignoreSynchronization = true;
-  },
-
-  afterLaunch: function(exitCode) {
-    return new Promise(function(resolve){
-      reporter.afterLaunch(resolve.bind(this, exitCode));
-    });
+    browser.driver.manage().window().setSize(1600, 2500);
   }
 };
 
-prepareJasmineForFlake = function () {
+prepareJasmineForFlake = function() {
   /* warning: `function ()` !== `function()`, watch out for spaces;
    * some node versions seem to toStrings function bodies differently!
   */
   let expectedJasmineLoadSpec =
-`function () {
+    `function () {
   this.specFiles.forEach(function(file) {
     require(file);
   });
-}`.replace(/ /g,''); // Remove all spaces, for better comparison free of `toString` idiosyncrasies.
+}`.replace(/ /g, ''); // Remove all spaces, for better comparison free of `toString` idiosyncrasies.
 
   let currSpecFile;
 
   const Jasmine = require('jasmine/lib/jasmine');
 
-  const loadSpecsString = Jasmine.prototype.loadSpecs.toString().replace(/ /g,''); // Remove all spaces also
+  const loadSpecsString = Jasmine.prototype.loadSpecs.toString().replace(/ /g, ''); // Remove all spaces also
   if (loadSpecsString !== expectedJasmineLoadSpec) {
     logger.info(Jasmine.prototype.loadSpecs.toString());
     throw new Error(`Jasmine.prototype.loadSpecs is not as expected, refusing to modify it`);
   }
 
-  Jasmine.prototype.loadSpecs = function () {
-    this.specFiles.forEach(function (file) {
+  Jasmine.prototype.loadSpecs = function() {
+    this.specFiles.forEach(function(file) {
       currSpecFile = file;
       try {
         require(file);
@@ -100,7 +106,7 @@ prepareJasmineForFlake = function () {
   // Override jasmine's global it function to connect each spec ID with a file path
   const originalIt = global.it;
   if (!originalIt) throw new Error(`global.it is not defined. Can't mock it now`);
-  global.it = function () {
+  global.it = function() {
     const spec = originalIt.apply(this, arguments);
     specFiles[spec.id] = currSpecFile;
     return spec;

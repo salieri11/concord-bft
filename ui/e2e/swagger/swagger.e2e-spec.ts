@@ -22,47 +22,46 @@ describe('concord-ui Swagger Docs', () => {
   });
 
   it('should navigate to the documentation page', () => {
+    browser.sleep(2000);
     expect(swaggerPage.getPageTitle()).toContain('VMware Blockchain');
   });
 
   it('should expand a section of the documentation on click', () => {
-    const memberListGetId = '#operations-default-memberListGet';
-    expect(swaggerPage.getOpBlockBodyForId(memberListGetId).isPresent()).toBe(false);
-    swaggerPage.clickSwaggerHeaderForId(memberListGetId);
-    expect(swaggerPage.getOpBlockBodyForId(memberListGetId).isPresent()).toBe(true);
+    const consortiumListGetId = '#operations-profiles-getConsortiums';
+
+    expect(swaggerPage.getOpBlockBodyForId(consortiumListGetId).isPresent()).toBe(false);
+    swaggerPage.clickSwaggerHeaderForId(consortiumListGetId);
+    expect(swaggerPage.getOpBlockBodyForId(consortiumListGetId).isPresent()).toBe(true);
   });
 
   it('should allow calling API endpoints from the UI', () => {
-    const memberListGetId = '#operations-default-memberListGet';
-    const blocksListGetId = '#operations-default-blockListGet';
+    const consortiumListGetId = '#operations-profiles-getConsortiums';
+    const orgListGetId = '#operations-profiles-getOrganizations';
 
     // Test get nodes
-    // waitFor(`${memberListGetId} .opblock-summary`);
-    // swaggerPage.clickSwaggerHeaderForId(memberListGetId);
-    waitFor(`${memberListGetId} .btn.try-out__btn`);
-    swaggerPage.clickTryItOutButtonForId(memberListGetId);
-    expect(swaggerPage.getOpBlockExecuteButtonForId(memberListGetId).isPresent()).toBe(true);
+    waitFor(`${consortiumListGetId} .btn.try-out__btn`);
+    swaggerPage.clickTryItOutButtonForId(consortiumListGetId);
+    expect(swaggerPage.getOpBlockExecuteButtonForId(consortiumListGetId).isPresent()).toBe(true);
     waitFor('.btn.execute.opblock-control__btn');
-    swaggerPage.clickOpBlockExecuteButtonForId(memberListGetId);
-    expect(swaggerPage.getResponseStatusForId(memberListGetId)).toEqual('200');
-    expect(swaggerPage.getResponseTextForId(memberListGetId)).toContain('Response headers');
+    swaggerPage.clickOpBlockExecuteButtonForId(consortiumListGetId);
+    expect(swaggerPage.getResponseStatusForId(consortiumListGetId)).toEqual('200');
+    expect(swaggerPage.getResponseTextForId(consortiumListGetId)).toContain('Response headers');
     // Clear responses
     waitFor('.btn.try-out__btn.cancel');
-    swaggerPage.clickCancelTryItOutButtonForId(memberListGetId);
-    expect(swaggerPage.getOpBlockExecuteButtonForId(memberListGetId).isPresent()).toBe(false);
+    swaggerPage.clickCancelTryItOutButtonForId(consortiumListGetId);
+    expect(swaggerPage.getOpBlockExecuteButtonForId(consortiumListGetId).isPresent()).toBe(false);
     waitFor('.opblock-summary');
-    swaggerPage.clickSwaggerHeaderForId(memberListGetId);
+    swaggerPage.clickSwaggerHeaderForId(consortiumListGetId);
     // Test get blocks with a parameter
-    swaggerPage.clickSwaggerHeaderForId(blocksListGetId);
-    waitFor(`${blocksListGetId} .btn.try-out__btn`);
-    swaggerPage.clickTryItOutButtonForId(blocksListGetId);
-    expect(swaggerPage.getOpBlockExecuteButtonForId(blocksListGetId).isPresent()).toBe(true);
-    swaggerPage.getInputForAttribute('count').sendKeys(1);
-    waitFor(`${blocksListGetId} .btn.execute.opblock-control__btn`);
-    swaggerPage.clickOpBlockExecuteButtonForId(blocksListGetId);
-    waitFor(`${blocksListGetId} .col.response-col_status`);
-    expect(swaggerPage.getResponseStatusForId(blocksListGetId)).toEqual('200');
+    swaggerPage.clickSwaggerHeaderForId(orgListGetId);
+    waitFor(`${orgListGetId} .btn.try-out__btn`);
+    swaggerPage.clickTryItOutButtonForId(orgListGetId);
+    expect(swaggerPage.getOpBlockExecuteButtonForId(orgListGetId).isPresent()).toBe(true);
+    waitFor(`${orgListGetId} .btn.execute.opblock-control__btn`);
+    swaggerPage.clickOpBlockExecuteButtonForId(orgListGetId);
+    waitFor(`${orgListGetId} .col.response-col_status`);
+    expect(swaggerPage.getResponseStatusForId(orgListGetId)).toEqual('200');
     waitFor('.request-url pre');
-    expect(swaggerPage.getRequestUrlFromResponse()).toContain('/api/concord/blocks?count=1');
+    expect(swaggerPage.getRequestUrlFromResponse()).toContain('/api/organizations');
   });
 });

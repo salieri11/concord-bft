@@ -77,7 +77,7 @@ class UiTests(test_suite.TestSuite):
         # If not, we will try to run the tests without a virtual
         # display
         try:
-            self.vdisplay = Xvfb(width=4000, height=6000)
+            self.vdisplay = Xvfb(width=1600, height=2500)
             self.vdisplay.start()
             self._xvfb_present = True
         except Exception as e:
@@ -86,8 +86,7 @@ class UiTests(test_suite.TestSuite):
     def _get_tests(self):
         return [("ui_lint", self._test_ui_lint),
                 ("ui_unit", self._test_ui_unit),
-                # ("ui_e2e", self._test_ui_e2e)
-                ]
+                ("ui_e2e", self._test_ui_e2e)]
 
     def _test_ui_unit(self):
         cmd = ["npm", "run", "test:build", ]
@@ -107,6 +106,14 @@ class UiTests(test_suite.TestSuite):
     def _test_ui_e2e(self):
         cmd = ["npm", "run", "e2e:build", ]
         logFilePath = os.path.join(self._testCaseDir, "e2e.log")
+
+        # Add the path to logs output to a file so we can save screenshot
+        # from e2e tests in a directory that is familiar to other users
+        fileTxtDirPath = os.path.join(self.ui_path, "ui_e2e_path.txt")
+        save_path = self._testCaseDir
+        with open(fileTxtDirPath, "w") as fileDir:
+            fileDir.write(save_path)
+
         with open(logFilePath, "wb+") as logFile:
             proc_output = subprocess.run(cmd,
                                          stdout=logFile,
@@ -121,7 +128,6 @@ class UiTests(test_suite.TestSuite):
     def _test_ui_lint(self):
         cmd = ["npm", "run", "lint", ]
         logFilePath = os.path.join(self._testLogDir, "lint.log")
-
         with open(logFilePath, "wb+") as logFile:
             proc_output = subprocess.run(cmd,
                                          stdout=logFile,

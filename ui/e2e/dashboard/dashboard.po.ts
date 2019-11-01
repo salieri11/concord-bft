@@ -93,4 +93,15 @@ export class DashboardPage {
     element(by.css('#userRole')).sendKeys(role);
     element(by.css('#addUserButton')).click();
   }
+
+  switchToDefault() {
+    element(by.css('.consortium-select option:nth-child(1)')).click();
+  }
+
+  startTour() {
+    element(by.css('.guides')).click();
+    browser.sleep(300);
+    element(by.css('.guides-tour')).click();
+  }
+
 }

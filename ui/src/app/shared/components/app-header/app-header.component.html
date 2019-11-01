@@ -14,11 +14,11 @@
     </li>
     <li class="nav-item">
       <clr-dropdown>
-        <button class="nav-link nav-icon" clrDropdownTrigger>
+        <button class="nav-link nav-icon guides" clrDropdownTrigger>
           <clr-icon shape="book"></clr-icon> Guides
         </button>
         <clr-dropdown-menu *clrIfOpen clrPosition="bottom-right">
-          <a [routerLink]="['dashboard']" fragment="orgTour" clrDropdownItem>
+          <a [routerLink]="['dashboard']" fragment="orgTour" clrDropdownItem class="guides-tour">
             {{'tourSteps.title' | translate}}
           </a>
           <div class="dropdown-divider"></div>

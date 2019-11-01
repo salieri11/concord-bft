@@ -974,7 +974,7 @@
     },
     "smartContracts": {
       "manageSmartContracts": {
-        "title": "Manage Smart contracts",
+        "title": "Manage Smart Contracts",
         "text": "This is where you can manage and view your smart contracts as well as other smart contracts submitted by members of your consortium."
       },
       "createSmartContract": {

@@ -21,4 +21,5 @@ export class OnboardingPage {
   expectationsAndNext() {
     element(by.id('next')).click();
   }
+
 }

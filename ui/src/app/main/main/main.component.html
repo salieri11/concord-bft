@@ -33,7 +33,7 @@
     </main>
     <clr-vertical-nav>
       <ng-container *concordCanView="[personas.SystemsAdmin, personas.ConsortiumAdmin]">
-        <a clrVerticalNavLink [routerLink]="['dashboard']" [ngClass]="{'disable': disableDeploy}" fragment="deploy">
+        <a clrVerticalNavLink [routerLink]="['dashboard']" [ngClass]="{'disable': disableDeploy}" fragment="deploy" id="sidebarDeploy">
           <clr-icon clrVerticalNavIcon shape="deploy"></clr-icon>
           {{'nav.deploy' | translate}}
         </a>
@@ -57,6 +57,9 @@
         </option>
       </select>
       <ng-container>
+        <div class="nav-overlay-container">
+          <div class="nav-overlay" *ngIf="!selectedConsortium"></div>
+        </div>
         <a clrVerticalNavLink [routerLink]="['dashboard']" routerLinkActive="active">
           <clr-icon clrVerticalNavIcon shape="home"></clr-icon>
           {{'nav.dashboard' | translate}}
@@ -115,7 +118,6 @@
           </ng-container>
         </ng-container>
       </ng-container>
-      <div class="nav-overlay" *ngIf="!selectedConsortium"></div>
     </clr-vertical-nav>
   </div>
 </clr-main-container>

@@ -2,7 +2,7 @@
  * Copyright 2018-2019 VMware, all rights reserved.
  */
 
-import { browser, protractor, ProtractorExpectedConditions, element } from 'protractor';
+import { browser, protractor, ProtractorExpectedConditions, element, by } from 'protractor';
 
 import { SmartContractsPage } from './smart-contracts.po';
 import { SmartContractPage } from './smart-contract.po';
@@ -45,7 +45,9 @@ describe('concord-ui Smart Contracts', () => {
     const absolutePath = path.resolve(__dirname, file);
     smartContractsPage.openCreateModal();
     browser.wait(until.presenceOf(smartContractPage.getPageTitle()), BROWSER_WAIT_TIME);
+    browser.sleep(300);
     smartContractsPage.fillContractFormStep1(from, contractId, version, compilerVersion, absolutePath);
+    browser.sleep(300);
     smartContractsPage.clickWizardNextButton();
     waitForText(element(by.cssContainingText('.modal-title', 'Contract Selection')));
     smartContractsPage.clickWizardNextButton();
@@ -59,6 +61,7 @@ describe('concord-ui Smart Contracts', () => {
 
   it('should navigate to the smart contract page with the latest version selected', () => {
     const expectedLinkText = `${contractId}`;
+    waitFor('.datagrid-row a');
     smartContractsPage.getTableLinkElement(expectedLinkText).click();
     waitFor('.contract-form');
     expect(smartContractPage.getContractId()).toBe(contractId);
@@ -70,7 +73,9 @@ describe('concord-ui Smart Contracts', () => {
     smartContractPage.navigateTo();
     waitFor('.contract-form');
     expect(smartContractPage.getCallSuccessAlert().isPresent()).toBe(false);
+    browser.sleep(300);
     smartContractPage.fillParameterForm(from, 'call');
+    browser.sleep(300);
     waitFor('.call-success');
     expect(smartContractPage.getCallSuccessAlert().isPresent()).toBe(true);
   });

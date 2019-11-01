@@ -72,14 +72,18 @@
   top: .491666rem;
 }
 
-.nav-overlay {
-  background-color: white;
-  height: 100%;
-  opacity: 0.5;
-  position: absolute;
-  width: 100%;
-  top: 0;
-  top: 4.25rem;
+.nav-overlay-container {
+  position: relative;
+  overflow: visible;
+
+  .nav-overlay {
+    background-color: white;
+    height: 100000px;
+    opacity: 0.5;
+    position: absolute;
+    width: 100%;
+    top: 0;
+  }
 }
 
 a.disable {
