@@ -164,6 +164,10 @@ npm_install() {
 concord() {
     info "Build concord..."
     docker_build . concord/Dockerfile ${concord_repo} ${concord_tag}
+}
+
+memleak_concord() {
+    info "Build concord for memoryleak..."
     docker_build . concord/Dockerfile ${memleak_concord_repo} ${memleak_concord_tag} --memoryLeakDockerBuild
 }
 
@@ -316,6 +320,7 @@ then
     info "**** Building all components..."
     node-dependency
     concord
+    memleak_concord
     ui
     fluentd
     ethereum
