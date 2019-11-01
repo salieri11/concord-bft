@@ -17,6 +17,7 @@ import { BlockchainService, BlockchainsServiceMock } from '../shared/blockchain.
 import { OnPremisesFormComponent } from '../on-premises-form/on-premises-form.component';
 import { OnPremisesModalComponent } from '../on-premises-modal/on-premises-modal.component';
 import { ZoneType } from '../shared/blockchain.model';
+import { FeatureFlagDirective } from '../../shared/directives/feature-flag.directive';
 
 describe('BlockchainWizardComponent', () => {
   let component: BlockchainWizardComponent;
@@ -37,8 +38,9 @@ describe('BlockchainWizardComponent', () => {
         VmwAccordionComponent,
         OnPremisesModalComponent,
         OnPremisesFormComponent,
+        FeatureFlagDirective,
       ],
-      providers: [{provide: BlockchainService, useClass: BlockchainsServiceMock}]
+      providers: [{provide: BlockchainService, useClass: BlockchainsServiceMock}],
     })
     .compileComponents();
   }));

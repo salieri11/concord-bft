@@ -32,6 +32,7 @@ import { VmwClarityThemeService } from './../../shared/theme.provider';
 
 import { OnPremisesFormComponent } from '../../blockchain/on-premises-form/on-premises-form.component';
 import { OnPremisesModalComponent } from '../../blockchain/on-premises-modal/on-premises-modal.component';
+import { FeatureFlagDirective } from '../../shared/directives/feature-flag.directive';
 
 
 describe('DashboardComponent', () => {
@@ -62,6 +63,7 @@ describe('DashboardComponent', () => {
         DashboardListComponent,
         OnPremisesFormComponent,
         OnPremisesModalComponent,
+        FeatureFlagDirective,
       ],
       providers: [
         VmwTasksService,
