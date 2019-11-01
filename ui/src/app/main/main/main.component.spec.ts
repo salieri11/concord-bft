@@ -32,6 +32,7 @@ import { VmwComboboxComponent } from '../../shared/components/combobox/combobox.
 import { VmwComboboxItemsComponent } from '../../shared/components/combobox/combobox-items/combobox-items.component';
 import { OnPremisesModalComponent } from '../../blockchain/on-premises-modal/on-premises-modal.component';
 import { OnPremisesFormComponent } from '../../blockchain/on-premises-form/on-premises-form.component';
+import { FeatureFlagDirective } from '../../shared/directives/feature-flag.directive';
 
 
 describe('MainComponent', () => {
@@ -59,7 +60,8 @@ describe('MainComponent', () => {
         OnPremisesModalComponent,
         OnPremisesFormComponent,
         VmwComboboxComponent,
-        VmwComboboxItemsComponent
+        VmwComboboxItemsComponent,
+        FeatureFlagDirective
       ],
       providers: [
         ErrorAlertService,

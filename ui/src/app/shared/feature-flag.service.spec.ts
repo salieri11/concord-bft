@@ -5,7 +5,7 @@ import { TestBed, inject } from '@angular/core/testing';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { FeatureFlagService } from './feature-flag.service';
 
-fdescribe('Service: FeatureFlag', () => {
+describe('Service: FeatureFlag', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [HttpClientTestingModule],
@@ -13,7 +13,7 @@ fdescribe('Service: FeatureFlag', () => {
     });
   });
 
-  fit('should ...', inject([FeatureFlagService], (service: FeatureFlagService) => {
+  it('should ...', inject([FeatureFlagService], (service: FeatureFlagService) => {
 
     expect(service).toBeTruthy();
 
