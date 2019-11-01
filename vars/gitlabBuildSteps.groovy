@@ -272,18 +272,20 @@ def call(){
 
               // Set up repo variables.
               script {
-                if (genericTests || env.JOB_NAME.contains(persephone_test_on_demand_job_name)) {
-                  echo "This Run requries building components from ToT"
-                  env.docker_tag = env.version_param ? env.version_param : env.BUILD_NUMBER
-                } else {
+                if (env.JOB_NAME.contains(persephone_test_job_name) || 
+                    env.JOB_NAME.contains(performance_test_job_name) ||
+                    env.JOB_NAME.contains(memory_leak_job_name)) {
                   saveTimeEvent("Build", "Fetch build number from Job Update-onecloud-provisioning-service")
-                  echo "For Nightly runs (other than MR/Master/Manual Run/ON DEMAND), Fetching latest build number"
+                  echo "For nightly runs (other than MR/Master/Manual Run/ON DEMAND), fetching latest build number"
                   def build = build job: 'Update-onecloud-provisioning-service', propagate: true, wait: true
                   env.recent_published_docker_tag = "${build.buildVariables.concord_tag}"
                   echo "Most recent build/tag: " + env.recent_published_docker_tag
                   echo "Assigning '" + env.recent_published_docker_tag + "' to docker_tag"
                   env.docker_tag = env.recent_published_docker_tag
-                  saveTimeEvent("Build", "Completed Fetch build number from Job Update-onecloud-provisioning-service")
+                  saveTimeEvent("Build", "Completed fetch build number from Job Update-onecloud-provisioning-service")
+                } else {
+                  echo "This run requries building components"
+                  env.docker_tag = env.version_param ? env.version_param : env.BUILD_NUMBER
                 }
 
                 env.release_repo = "vmwblockchain"
@@ -462,32 +464,30 @@ EOF
             try{
               saveTimeEvent("Build", "Start buildall.sh")
               dir('blockchain') {
-                if (genericTests) {
+                if (env.JOB_NAME.contains(persephone_test_on_demand_job_name)) {
+                  sh '''
+                    echo "Building ONLY persephone related components..."
+                    ./buildall.sh --buildOnDemand concord,waitForProcesses,persephone,BuildPersephoneGRPCpyBindings
+                  '''
+                } else if (env.JOB_NAME.contains(persephone_test_job_name)) {
+                  sh '''
+                    echo "For nightly run, building ONLY persephone GRPC bindings..."
+                    ./buildall.sh --buildOnDemand BuildPersephoneGRPCpyBindings
+                  '''
+                } else if (env.JOB_NAME.contains(performance_test_job_name)) {
+                  sh '''
+                    echo "For Performance nightly run, building ONLY performance & benchmark tool..."
+                    ./buildall.sh --buildOnDemand PerformanceTests
+                  '''
+                } else if (env.JOB_NAME.contains(memory_leak_job_name)) {
+                  sh '''
+                    echo "No local build required for Memory Leak Testrun..."
+                  '''
+                } else {
                   sh '''
                     echo "Building All components..."
                     ./buildall.sh --additionalBuilds ${additional_components_to_build}
                   '''
-                } else {
-                  if (env.JOB_NAME.contains(persephone_test_on_demand_job_name)) {
-                    sh '''
-                      echo "Building ONLY persephone related components..."
-                      ./buildall.sh --buildOnDemand concord,waitForProcesses,persephone,BuildPersephoneGRPCpyBindings
-                    '''
-                  } else if (env.JOB_NAME.contains(persephone_test_job_name)) {
-                    sh '''
-                      echo "For nightly run, building ONLY persephone GRPC bindings..."
-                      ./buildall.sh --buildOnDemand BuildPersephoneGRPCpyBindings
-                    '''
-                  } else if (env.JOB_NAME.contains(performance_test_job_name)) {
-                    sh '''
-                      echo "For Performance nightly run, building ONLY performance & benchmark tool..."
-                      ./buildall.sh --buildOnDemand PerformanceTests
-                    '''
-                  } else {
-                    sh '''
-                      echo "Not building any components. This run will pull images from artifactory/bintray..."
-                    '''
-                  }
                 }
               }
               saveTimeEvent("Build", "Finished buildall.sh")
