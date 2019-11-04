@@ -106,8 +106,8 @@ Sliver setUpBlockContent(Key key, Value blockValue) {
   uint8_t *ptr = buf;
   fillBufAndAdvance(ptr, &blockHeader, sizeof(blockHeader));
   fillBufAndAdvance(ptr, &entry, sizeof(entry));
-  fillBufAndAdvance(ptr, &key, key.length());
-  fillBufAndAdvance(ptr, &blockValue, blockValue.length());
+  fillBufAndAdvance(ptr, key.data(), key.length());
+  fillBufAndAdvance(ptr, blockValue.data(), blockValue.length());
 
   return Sliver(buf, sizeOfBuf);
 }
