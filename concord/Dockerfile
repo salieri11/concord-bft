@@ -31,11 +31,8 @@ RUN cmake -DCMAKE_C_COMPILER=/usr/bin/clang-7 -DCMAKE_CXX_COMPILER=/usr/bin/clan
 FROM ubuntu:18.04
 LABEL Description="Concord"
 
-ARG memleak_util=""
-
 RUN apt-get update \
-    && apt-get -y install ${memleak_util} \
-    bind9-host \
+    && apt-get -y install bind9-host \
     dnsutils \
     libboost-atomic1.65.1 \
     libboost-chrono1.65.1 \

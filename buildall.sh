@@ -113,7 +113,7 @@ docker_build() {
     if [ ! -z "${MEMORY_LEAK_DOCKER_BUILD}" ]
     then
         local memleak_util="valgrind"
-        docker build "${DOCKER_BUILD_DIR}" -f "${DOCKER_BUILD_FILE}" -t "${DOCKER_REPO_NAME}:${DOCKER_REPO_TAG}" --build-arg "memleak_util=${memleak_util}"  ${BUILD_ARG_PARAM} > "${LOG_FILE}" 2>&1 &
+        docker build "${DOCKER_BUILD_DIR}" -f "${DOCKER_BUILD_FILE}" -t "${DOCKER_REPO_NAME}:${DOCKER_REPO_TAG}" --build-arg "memleak_util=${memleak_util}" --build-arg "concord_repo=${concord_repo}" --build-arg "concord_tag=${concord_tag}" ${BUILD_ARG_PARAM} > "${LOG_FILE}" 2>&1 &
     else
         docker build "${DOCKER_BUILD_DIR}" -f "${DOCKER_BUILD_FILE}" -t "${DOCKER_REPO_NAME}:${DOCKER_REPO_TAG}" --label ${version_label}=${DOCKER_REPO_TAG} --label ${commit_label}=${commit_hash} ${BUILD_ARG_PARAM} > "${LOG_FILE}" 2>&1 &
     fi
@@ -168,7 +168,7 @@ concord() {
 
 memleak_concord() {
     info "Build concord for memoryleak..."
-    docker_build . concord/Dockerfile ${memleak_concord_repo} ${memleak_concord_tag} --memoryLeakDockerBuild
+    docker_build . concord/DockerfileMemleak ${memleak_concord_repo} ${memleak_concord_tag} --memoryLeakDockerBuild
 }
 
 ui() {
@@ -320,12 +320,12 @@ then
     info "**** Building all components..."
     node-dependency
     concord
-    memleak_concord
     ui
     fluentd
     ethereum
     helen
     waitForProcesses
+    memleak_concord # concord should be build as a pre-req
     persephone
     hlf_submodules
     waitForProcesses
