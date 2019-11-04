@@ -8,12 +8,12 @@
     }
   },
   "containerRegistry":{
-    "address":"https://registry-1.docker.io/v2",
+    "address":"<CONTAINER_REGISTRY_ADDRESS>",
     "credential":{
       "type":"PASSWORD",
       "passwordCredential":{
-        "username":"blockchainrepositoryreader",
-        "password":"<DOCKERHUB_REPO_READER_PASSWORD>"
+        "username":"<CONTAINER_REGISTRY_USERNAME>",
+        "password":"<CONTAINER_REGISTRY_PASSWORD>"
       }
     }
   },

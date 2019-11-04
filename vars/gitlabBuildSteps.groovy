@@ -272,7 +272,22 @@ def call(){
 
               // Set up repo variables.
               script {
-                env.docker_tag = env.version_param ? env.version_param : env.BUILD_NUMBER
+                if (env.JOB_NAME.contains(persephone_test_job_name) || 
+                    env.JOB_NAME.contains(performance_test_job_name) ||
+                    env.JOB_NAME.contains(memory_leak_job_name)) {
+                  saveTimeEvent("Build", "Fetch build number from Job Update-onecloud-provisioning-service")
+                  echo "For nightly runs (other than MR/Master/Manual Run/ON DEMAND), fetching latest build number"
+                  def build = build job: 'Update-onecloud-provisioning-service', propagate: true, wait: true
+                  env.recent_published_docker_tag = "${build.buildVariables.concord_tag}"
+                  echo "Most recent build/tag: " + env.recent_published_docker_tag
+                  echo "Assigning '" + env.recent_published_docker_tag + "' to docker_tag"
+                  env.docker_tag = env.recent_published_docker_tag
+                  saveTimeEvent("Build", "Completed fetch build number from Job Update-onecloud-provisioning-service")
+                } else {
+                  echo "This run requries building components"
+                  env.docker_tag = env.version_param ? env.version_param : env.BUILD_NUMBER
+                }
+
                 env.release_repo = "vmwblockchain"
                 env.internal_repo_name = "athena-docker-local"
                 env.internal_repo = env.internal_repo_name + ".artifactory.eng.vmware.com"
@@ -333,7 +348,8 @@ def call(){
                 string(credentialsId: 'LINT_API_KEY', variable: 'LINT_API_KEY'),
                 string(credentialsId: 'FLUENTD_AUTHORIZATION_BEARER', variable: 'FLUENTD_AUTHORIZATION_BEARER'),
                 string(credentialsId: 'VMC_API_TOKEN', variable: 'VMC_API_TOKEN'),
-                string(credentialsId: 'DOCKERHUB_REPO_READER_PASSWORD', variable: 'DOCKERHUB_REPO_READER_PASSWORD'),
+                usernamePassword(credentialsId: 'BINTRAY_CREDENTIALS', usernameVariable: 'BINTRAY_CONTAINER_REGISTRY_USERNAME', passwordVariable: 'BINTRAY_CONTAINER_REGISTRY_PASSWORD'),
+                usernamePassword(credentialsId: 'DOCKERHUB_CREDENTIALS', usernameVariable: 'DOCKERHUB_REPO_READER_USERNAME', passwordVariable: 'DOCKERHUB_REPO_READER_PASSWORD'),
                 ]) {
                 sh '''
                   echo "${PASSWORD}" | sudo -S ls
@@ -387,13 +403,33 @@ daml_index_db_tag=${docker_tag}
 commit_hash=${commit}
 LINT_API_KEY=${LINT_API_KEY}
 EOF
-                  cp blockchain/docker/.env blockchain/hermes/
 
-                  # Update hermes/resources/persephone/provision-service/config.json for persephone (deployment service) testing
-                  sed -i -e 's/'"CHANGE_THIS_TO_HermesTesting"'/'"${PROVISIONING_SERVICE_NETWORK_NAME}"'/g' blockchain/hermes/resources/persephone/provisioning/config.json
-                  sed -i -e 's/'"<VMC_API_TOKEN>"'/'"${VMC_API_TOKEN}"'/g' blockchain/hermes/resources/user_config.json
-                  sed -i -e 's/'"<DOCKERHUB_REPO_READER_PASSWORD>"'/'"${DOCKERHUB_REPO_READER_PASSWORD}"'/g' blockchain/hermes/resources/persephone/provisioning/config.json
+                  cp blockchain/docker/.env blockchain/hermes/
                 '''
+
+                script {
+                  sh '''
+                    # Update provisioning service config.json
+                    sed -i -e 's/'"CHANGE_THIS_TO_HermesTesting"'/'"${PROVISIONING_SERVICE_NETWORK_NAME}"'/g' blockchain/hermes/resources/persephone/provisioning/config.json
+                    sed -i -e 's/'"<VMC_API_TOKEN>"'/'"${VMC_API_TOKEN}"'/g' blockchain/hermes/resources/user_config.json
+                  '''
+
+                  if (env.JOB_NAME.contains(persephone_test_job_name)) {
+                    sh '''
+                      # Update provisioning service config.json with bintray registry for nightly runs
+                      sed -i -e 's!'"<CONTAINER_REGISTRY_ADDRESS>"'!'"${BINTRAY_CONTAINER_REGISTRY_ADDRESS}"'!g' blockchain/hermes/resources/persephone/provisioning/config.json
+                      sed -i -e 's/'"<CONTAINER_REGISTRY_USERNAME>"'/'"${BINTRAY_CONTAINER_REGISTRY_USERNAME}"'/g' blockchain/hermes/resources/persephone/provisioning/config.json
+                      sed -i -e 's/'"<CONTAINER_REGISTRY_PASSWORD>"'/'"${BINTRAY_CONTAINER_REGISTRY_PASSWORD}"'/g' blockchain/hermes/resources/persephone/provisioning/config.json
+                    '''
+                  } else {
+                    sh '''
+                      # Update provisioning service config.json with dockerhub registry for non-nightly runs
+                      sed -i -e 's!'"<CONTAINER_REGISTRY_ADDRESS>"'!'"${DOCKERHUB_CONTAINER_REGISTRY_ADDRESS}"'!g' blockchain/hermes/resources/persephone/provisioning/config.json
+                      sed -i -e 's/'"<CONTAINER_REGISTRY_USERNAME>"'/'"${DOCKERHUB_REPO_READER_USERNAME}"'/g' blockchain/hermes/resources/persephone/provisioning/config.json
+                      sed -i -e 's/'"<CONTAINER_REGISTRY_PASSWORD>"'/'"${DOCKERHUB_REPO_READER_PASSWORD}"'/g' blockchain/hermes/resources/persephone/provisioning/config.json
+                    '''
+                  }
+                }
               }
 
               // Set up python.
@@ -417,6 +453,7 @@ EOF
             }
           }
         }
+
       }
 
       stage("Build") {
@@ -429,10 +466,26 @@ EOF
               dir('blockchain') {
                 if (env.JOB_NAME.contains(persephone_test_on_demand_job_name)) {
                   sh '''
+                    echo "Building ONLY persephone related components..."
                     ./buildall.sh --buildOnDemand concord,waitForProcesses,persephone,BuildPersephoneGRPCpyBindings
+                  '''
+                } else if (env.JOB_NAME.contains(persephone_test_job_name)) {
+                  sh '''
+                    echo "For nightly run, building ONLY persephone GRPC bindings..."
+                    ./buildall.sh --buildOnDemand BuildPersephoneGRPCpyBindings
+                  '''
+                } else if (env.JOB_NAME.contains(performance_test_job_name)) {
+                  sh '''
+                    echo "For Performance nightly run, building ONLY performance & benchmark tool..."
+                    ./buildall.sh --buildOnDemand PerformanceTests
+                  '''
+                } else if (env.JOB_NAME.contains(memory_leak_job_name)) {
+                  sh '''
+                    echo "No local build required for Memory Leak Testrun..."
                   '''
                 } else {
                   sh '''
+                    echo "Building All components..."
                     ./buildall.sh --additionalBuilds ${additional_components_to_build}
                   '''
                 }
@@ -550,59 +603,56 @@ EOF
               }
 
               dir('blockchain/hermes') {
-                withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
+                withCredentials([
+                  string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD'),
+                ]) {
                   script {
-                    // Set docker tag to "latest", unless overridden for master run
+                    // Set docker tag to "latest", unless overridden for master run with ToT & nightly with recent pushed images
                     env.dep_comp_docker_tag = "latest"
-                    sh '''
-                      docker tag ${internal_persephone_agent_repo}:${docker_tag} ${release_persephone_agent_repo}:${docker_tag}
-                    '''
-                    pushDockerImage(env.release_persephone_agent_repo, env.docker_tag, false)
 
-                    if (env.JOB_NAME.contains(master_branch_job_name) || env.JOB_NAME.contains(persephone_test_job_name)) {
-                      sh '''
-                        docker tag ${internal_concord_repo}:${docker_tag} ${release_concord_repo}:${docker_tag}
-                        docker tag ${internal_ethrpc_repo}:${docker_tag} ${release_ethrpc_repo}:${docker_tag}
-                        docker tag ${internal_daml_ledger_api_repo}:${docker_tag} ${release_daml_ledger_api_repo}:${docker_tag}
-                        docker tag ${internal_daml_execution_engine_repo}:${docker_tag} ${release_daml_execution_engine_repo}:${docker_tag}
-                        docker tag ${internal_daml_index_db_repo}:${docker_tag} ${release_daml_index_db_repo}:${docker_tag}
-                        # docker tag ${internal_hlf_tools_repo}:${docker_tag} ${release_hlf_tools_repo}:${docker_tag}
-                        # docker tag ${internal_hlf_peer_repo}:${docker_tag} ${release_hlf_peer_repo}:${docker_tag}
-                        # docker tag ${internal_hlf_orderer_repo}:${docker_tag} ${release_hlf_orderer_repo}:${docker_tag}
-                      '''
-                      pushDockerImage(env.release_concord_repo, env.docker_tag, false)
-                      pushDockerImage(env.release_ethrpc_repo, env.docker_tag, false)
-                      pushDockerImage(env.release_daml_ledger_api_repo, env.docker_tag, false)
-                      pushDockerImage(env.release_daml_execution_engine_repo, env.docker_tag, false)
-                      pushDockerImage(env.release_daml_index_db_repo, env.docker_tag, false)
-                      // pushDockerImage(env.release_hlf_tools_repo, env.docker_tag, false)
-                      // pushDockerImage(env.release_hlf_peer_repo, env.docker_tag, false)
-                      // pushDockerImage(env.release_hlf_orderer_repo, env.docker_tag, false)
+                    // For nightly run, deployment components are recent builds already published to bintray
+                    if (env.JOB_NAME.contains(persephone_test_job_name)) {
+                      echo "For Persephone nightly run, push recent builds to bintray..."
 
-                    }
+                      saveTimeEvent("Build", "Push recent builds to bintray using Job Setup-SAAS-Artifacts")
+                      build job: 'Setup-SAAS-Artifacts', parameters: [[$class: 'StringParameterValue', name: 'INTERNALTAG', value: env.recent_published_docker_tag], [$class: 'StringParameterValue', name: 'EXTERNALTAG', value: env.recent_published_docker_tag]]
+                      saveTimeEvent("Build", "Completed Push recent builds to bintray using Job Setup-SAAS-Artifacts")
 
-                    // For master runs, use ToT
-                    if (env.JOB_NAME.contains(master_branch_job_name)) {
-                      env.dep_comp_docker_tag = env.docker_tag
+                      env.dep_comp_docker_tag = env.recent_published_docker_tag
+                      env.agent_docker_tag = env.recent_published_docker_tag
+                    } else {
+                      pullTagPushDockerImage(env.internal_persephone_agent_repo, env.release_persephone_agent_repo, env.docker_tag, false)
+                      env.agent_docker_tag = env.docker_tag
+
+                      // Only for master runs, deployment components are ToT
+                      if (env.JOB_NAME.contains(master_branch_job_name)) {
+                        pullTagPushDockerImage(env.internal_concord_repo, env.release_concord_repo, env.docker_tag, false)
+                        pullTagPushDockerImage(env.internal_ethrpc_repo, env.release_ethrpc_repo, env.docker_tag, false)
+                        pullTagPushDockerImage(env.internal_daml_ledger_api_repo, env.release_daml_ledger_api_repo, env.docker_tag, false)
+                        pullTagPushDockerImage(env.internal_daml_execution_engine_repo, env.release_daml_execution_engine_repo, env.docker_tag, false)
+                        pullTagPushDockerImage(env.internal_daml_index_db_repo, env.release_daml_index_db_repo, env.docker_tag, false)
+
+                        env.dep_comp_docker_tag = env.docker_tag
+                      }
                     }
 
                     if (env.JOB_NAME.contains(persephone_test_job_name)) {
                       sh '''
-                        echo "Running Entire Testsuite: Persephone (hitting staging config-service)..."
-                        echo "${PASSWORD}" | sudo -SE "${python}" main.py PersephoneTests --dockerComposeFile ../docker/docker-compose-persephone.yml --resultsDir "${persephone_test_logs}" --tests "all_tests" --deploymentComponents "${release_persephone_agent_repo}:${docker_tag},${release_concord_repo}:${docker_tag},${release_ethrpc_repo}:${docker_tag},${release_daml_ledger_api_repo}:${docker_tag},${release_daml_execution_engine_repo}:${docker_tag},${release_daml_index_db_repo}:${docker_tag}" --keepBlockchains ${deployment_retention}
+                        echo "Running Entire Testsuite: Persephone..."
+                        echo "${PASSWORD}" | sudo -SE "${python}" main.py PersephoneTests --useLocalConfigService --externalProvisioningServiceEndpoint ${EXT_PROVISIONING_SERVICE_ENDPOINT} --dockerComposeFile ../docker/docker-compose-persephone.yml --tests "all_tests" --resultsDir "${persephone_test_logs}" --deploymentComponents "${release_persephone_agent_repo}:${agent_docker_tag},${release_concord_repo}:${dep_comp_docker_tag},${release_ethrpc_repo}:${dep_comp_docker_tag},${release_daml_ledger_api_repo}:${dep_comp_docker_tag},${release_daml_execution_engine_repo}:${dep_comp_docker_tag},${release_daml_index_db_repo}:${dep_comp_docker_tag}" --keepBlockchains ${deployment_retention}
                       '''
                     } else {
-                      // Due to infra/product/test issue on config-service (bug VB-1770)
-                      // removing --useLocalConfigService from MR/Master runs, but retaining for ON DEMAND Job
                       if (env.JOB_NAME.contains(persephone_test_on_demand_job_name)) {
                         sh '''
                           echo "Running Persephone SMOKE Tests (ON DEMAND hitting local config-service)..."
-                          echo "${PASSWORD}" | sudo -SE "${python}" main.py PersephoneTests --useLocalConfigService --dockerComposeFile ../docker/docker-compose-persephone.yml --resultsDir "${persephone_test_logs}" --deploymentComponents "${release_persephone_agent_repo}:${docker_tag},${release_concord_repo}:${dep_comp_docker_tag},${release_ethrpc_repo}:${dep_comp_docker_tag},${release_daml_ledger_api_repo}:${dep_comp_docker_tag},${release_daml_execution_engine_repo}:${dep_comp_docker_tag},${release_daml_index_db_repo}:${dep_comp_docker_tag}" --keepBlockchains ${deployment_retention}
+                          echo "${PASSWORD}" | sudo -SE "${python}" main.py PersephoneTests --useLocalConfigService --dockerComposeFile ../docker/docker-compose-persephone.yml --resultsDir "${persephone_test_logs}" --deploymentComponents "${release_persephone_agent_repo}:${agent_docker_tag},${release_concord_repo}:${dep_comp_docker_tag},${release_ethrpc_repo}:${dep_comp_docker_tag},${release_daml_ledger_api_repo}:${dep_comp_docker_tag},${release_daml_execution_engine_repo}:${dep_comp_docker_tag},${release_daml_index_db_repo}:${dep_comp_docker_tag}" --keepBlockchains ${deployment_retention}
                         '''
                       } else {
+                        // If bug VB-1770 (infra/product/test issue on config-service), is still seen after a couple of runs,
+                        // remove --useLocalConfigService for MR/Master runs, and retain for ON DEMAND Job
                         sh '''
-                          echo "Running Persephone SMOKE Tests (hitting staging config-service)..."
-                          echo "${PASSWORD}" | sudo -SE "${python}" main.py PersephoneTests --dockerComposeFile ../docker/docker-compose-persephone.yml --resultsDir "${persephone_test_logs}" --deploymentComponents "${release_persephone_agent_repo}:${docker_tag},${release_concord_repo}:${dep_comp_docker_tag},${release_ethrpc_repo}:${dep_comp_docker_tag},${release_daml_ledger_api_repo}:${dep_comp_docker_tag},${release_daml_execution_engine_repo}:${dep_comp_docker_tag},${release_daml_index_db_repo}:${dep_comp_docker_tag}" --keepBlockchains ${deployment_retention}
+                          echo "Running Persephone SMOKE Tests..."
+                          echo "${PASSWORD}" | sudo -SE "${python}" main.py PersephoneTests --useLocalConfigService --dockerComposeFile ../docker/docker-compose-persephone.yml --resultsDir "${persephone_test_logs}" --deploymentComponents "${release_persephone_agent_repo}:${agent_docker_tag},${release_concord_repo}:${dep_comp_docker_tag},${release_ethrpc_repo}:${dep_comp_docker_tag},${release_daml_ledger_api_repo}:${dep_comp_docker_tag},${release_daml_execution_engine_repo}:${dep_comp_docker_tag},${release_daml_index_db_repo}:${dep_comp_docker_tag}" --keepBlockchains ${deployment_retention}
                         '''
                       }
                     }
@@ -1028,6 +1078,16 @@ void createAndPushGitTag(tag){
     script: "git push origin ${tag}",
     returnStdout: false
   )
+}
+
+// For persephone tests, tag and push images to dockerhub
+// And if boolean parameter pull_from_artifactory is true, pull images from artifactory before tagging/pushing
+void pullTagPushDockerImage(internal_repo, release_repo, docker_tag, pull_from_artifactory) {
+  if (pull_from_artifactory) {
+    retryCommand("docker pull ${internal_repo}:${docker_tag}", true)
+  }
+  retryCommand("docker tag ${internal_repo}:${docker_tag} ${release_repo}:${docker_tag}", true)
+  pushDockerImage(release_repo, docker_tag, false)
 }
 
 // Returns all changes since the last git tag.

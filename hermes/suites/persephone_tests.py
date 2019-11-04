@@ -265,6 +265,9 @@ class PersephoneTests(test_suite.TestSuite):
       fileRoot = os.path.join(self._testLogDir, testName)
       os.makedirs(fileRoot, exist_ok=True)
       self.args.fileRoot = fileRoot
+      if self.args.externalProvisioningServiceEndpoint:
+         log.info("**** Using External Provisioning Service Endpoint: {}".format(
+            self.args.externalProvisioningServiceEndpoint))
 
       return testFun()
 
@@ -416,10 +419,11 @@ class PersephoneTests(test_suite.TestSuite):
             ports = helper.get_docker_compose_value(
                self.args.dockerComposeFile, service_name, "ports")
             port = ports[0].split(':')[0]
-            channel = grpc.insecure_channel('localhost:{}'.format(port))
+            grpc_server = "localhost:{}".format(port)
+            channel = grpc.insecure_channel(grpc_server)
             stub = provisioning_service_pb2_grpc.ProvisioningServiceStub(channel)
             log.info("Created gRPC channel/stub for 2nd instance of provisioning "
-                     "service running on port {}".format(port))
+                     "service: {}".format(grpc_server))
 
             start_time = time.time()
             log.info("Deployment Start Time: {}".format(start_time))
