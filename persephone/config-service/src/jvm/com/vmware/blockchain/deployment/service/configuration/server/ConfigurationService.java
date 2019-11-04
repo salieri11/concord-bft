@@ -132,6 +132,7 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
                                     @NotNull StreamObserver<ConfigurationSessionIdentifier> observer) {
 
         var sessionId = newSessionId();
+        log.info("Generated new session id {}", sessionId);
 
         var certGen = new ConcordEcCertificatesGenerator();
         var identityFactor = certGen.getIdentityFactor();
@@ -139,13 +140,17 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
 
         // Generate Configuration
         var configUtil = new ConcordConfigUtil();
+        log.info("Generated concord configurations for session id: {}", sessionId);
+
         var genesisUtil = new GenesisUtil();
+        log.info("Generated genesis for session id: {}", sessionId);
 
         var tlsConfig = configUtil.getConcordConfig(request.getHosts(), request.getBlockchainType());
         var genesisJson = genesisUtil.getGenesis(request.getGenesis());
 
         List<Identity> tlsIdentityList = certGen.generateSelfSignedCertificates(configUtil.maxPrincipalId + 1,
                 ServiceType.CONCORD);
+        log.info("Generated tls identity elements for session id: {}", sessionId);
 
         Map<Integer, List<IdentityComponent>> tlsNodeIdentities = buildTlsIdentity(tlsIdentityList,
                 configUtil.nodePrincipal, configUtil.maxPrincipalId + 1, request.getHosts().size());
@@ -200,12 +205,15 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
 
             // put per node configs
             nodeComponent.putIfAbsent(node, componentList);
+            log.info("Created configurations for session: {}", sessionId);
 
         }
 
+        log.info("Persisting configurations for session: {} in memory...", sessionId);
         var persist = sessionConfig.putIfAbsent(sessionId, nodeComponent);
 
         if (persist == null) {
+            log.info("Persisted configurations for session: {} in memory.", sessionId);
             observer.onNext(sessionId);
             observer.onCompleted();
         } else {
@@ -220,6 +228,7 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
 
         try {
             var components = sessionConfig.get(request.getIdentifier());
+            log.info("Configurations found for session id {}", request.getIdentifier());
 
             var nodeComponents = components.get(request.getNode());
 
@@ -245,11 +254,12 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
 
         try {
             sessionConfig.remove(request.getId());
+            log.info("Deleted configurations for session id: {}", request.getId());
             observer.onNext(new DeleteConfigurationResponse());
             observer.onCompleted();
         } catch (Exception e) {
             observer.onError(new StatusException(
-                    Status.NOT_FOUND.withDescription("No configuration available for id: " + request.getId())));
+                    Status.NOT_FOUND.withDescription("No configuration available for session id: " + request.getId())));
         }
     }
 
@@ -318,6 +328,8 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
             });
             result.putIfAbsent(node, nodeIdentities);
         }
+
+        log.info("Filtered tls identities based on nodes and principal ids.");
         return result;
     }
 }
