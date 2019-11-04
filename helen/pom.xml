@@ -23,6 +23,7 @@
         <org.mybatis.spring.version>1.3.2</org.mybatis.spring.version>
         <persephone.version>1.0.0-SNAPSHOT</persephone.version>
         <springframework.boot.version>2.1.6.RELEASE</springframework.boot.version>
+        <springframework.session.version>2.1.0.RELEASE</springframework.session.version>
         <maven.plugin.protobuf>0.6.1</maven.plugin.protobuf>
         <protobuf.runtime.java.version>3.7.1</protobuf.runtime.java.version>
         <persephone.protobuf.source.path>../persephone/api/src/protobuf</persephone.protobuf.source.path>
@@ -188,10 +189,16 @@
             <groupId>org.springframework.security.oauth</groupId>
             <artifactId>spring-security-oauth2</artifactId>
             <version>2.3.5.RELEASE</version>
-        </dependency><dependency>
-        <groupId>org.springframework.session</groupId>
-            <artifactId>spring-session</artifactId>
-            <version>1.3.5.RELEASE</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.session</groupId>
+            <artifactId>spring-session-core</artifactId>
+            <version>${springframework.session.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.session</groupId>
+            <artifactId>spring-session-jdbc</artifactId>
+            <version>${springframework.session.version}</version>
         </dependency>
 
 
