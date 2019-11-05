@@ -3614,13 +3614,13 @@ void specifyConfiguration(ConcordConfiguration& config) {
   node.declareParameter("hlf_peer_address",
                         "Public IP address of HLF peer to communicate with "
                         "(chaincode life cycle managment).",
-                        "peer.example.com:7051");
+                        "peer1.org1.example.com:7051");
   node.tagParameter("hlf_peer_address", defaultableByReplicaTags);
 
   node.declareParameter("hlf_orderer_address",
                         "Public IP address of HLF orderer to communicate with "
                         "(channel management).",
-                        "orderer.example.com:7050");
+                        "orderer1.example.com:7050");
   node.tagParameter("hlf_orderer_address", defaultableByReplicaTags);
 
   node.declareParameter("hlf_kv_service_address",
