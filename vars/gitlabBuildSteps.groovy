@@ -935,7 +935,7 @@ EOF
             ],
             "builds": [
               "base": "**/blockchain/**/*.",
-              "types": ["log"]
+              "types": ["log", "json"]
             ]
           ]
 
