@@ -390,7 +390,7 @@ def create_concord_support_bundle(replicas, concord_username,
                                      test_log_dir):
    '''
    Helper method to create concord support bundle and upload to result dir
-   :param replicas: List of concord nodes
+   :param replicas: List of IP addresses of concord nodes
    :param concord_username: concord username
    :param concord_password: password for username
    :param containers: List of containers to be running on concord node
