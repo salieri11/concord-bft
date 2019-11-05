@@ -925,14 +925,35 @@ EOF
           }
         }
 
-        saveTimeEvent("Gather artifacts", "Start")
-        archiveArtifacts artifacts: "**/*.log", allowEmptyArchive: true
-        archiveArtifacts artifacts: "**/testLogs/**/*.csv", allowEmptyArchive: true
-        archiveArtifacts artifacts: "**/testLogs/**/*.txt", allowEmptyArchive: true
-        archiveArtifacts artifacts: "**/*.json", allowEmptyArchive: true
-        archiveArtifacts artifacts: "**/*.html", allowEmptyArchive: true
-        archiveArtifacts artifacts: "**/*.png", allowEmptyArchive: true
-        archiveArtifacts artifacts: "**/*.gz", allowEmptyArchive: true
+        script{
+          saveTimeEvent("Gather artifacts", "Start")
+
+          def logMap = [
+            "tests": [
+              "base": "**/testLogs/**/*.",
+              "types": ["log", "csv", "txt", "json", "html", "png", "gz"]
+            ],
+            "builds": [
+              "base": "**/blockchain/**/*.",
+              "types": ["log"]
+            ]
+          ]
+
+          // Iterate through the keys, *not* the map, because of Jenkins.
+          for (k in logMap.keySet()){
+            paths = ""
+
+            for (logType in logMap[k]["types"]){
+              if (paths != ""){
+                paths += ","
+              }
+              paths += logMap[k]["base"] + logType
+            }
+
+            archiveArtifacts artifacts: paths, allowEmptyArchive: true
+          }
+        }
+
         saveTimeEvent("Gather artifacts", "End")
 
         // And grab the time file one more time so we can know how long gathering artifacts takes.
