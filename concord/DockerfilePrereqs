@@ -70,15 +70,10 @@ WORKDIR /googletest/_build
 RUN cmake -DCMAKE_CXX_FLAGS="-std=c++11 -march=x86-64 -mtune=generic" .. && make -j4
 
 WORKDIR /
-COPY ./cross-platform-cryptopp.patch .
 RUN git clone https://github.com/weidai11/cryptopp.git && \
     cd /cryptopp && \
-    git checkout CRYPTOPP_5_6_5 && \
-    git apply --whitespace=nowarn /cross-platform-cryptopp.patch && \
-    mkdir build && \
-    cd build && \
-    cmake -DCMAKE_CXX_FLAGS="-march=x86-64 -mtune=generic" .. && \
-    make -j4 && \
+    git checkout CRYPTOPP_8_2_0 && \
+    CXX_FLAGS="-march=x86-64 -mtune=generic" make -j4 && \
     make install && \
     cd / && \
     rm -r cryptopp
