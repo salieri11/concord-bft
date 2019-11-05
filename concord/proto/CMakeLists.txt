@@ -1,6 +1,8 @@
 # The base path of the concord-communcation module, where we're keeping
 # shared resources for services that communicate with concord nodes.
 set(COMMUNICATION_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../communication")
+set(PROTOBUF_IMPORT_DIRS ${COMMUNICATION_PATH}/src/main/proto/)
+
 set(DAML_PROTO
   daml_commit.proto
   daml_data.proto
@@ -13,7 +15,7 @@ set(HLF_PROTO
   hlf_storage.proto
 )
 
-set(PROTOBUF_IMPORT_DIRS ${COMMUNICATION_PATH}/src/main/proto/)
+set(THIN_REPLICA_PROTO thin_replica.proto)
 
 protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS
   ${CMAKE_CURRENT_BINARY_DIR}
@@ -21,9 +23,14 @@ protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS
   concord_storage.proto
   ${DAML_PROTO}
   ${HLF_PROTO}
+  ${THIN_REPLICA_PROTO}
 )
 
-grpc_generate_cpp(GRPC_SRCS GRPC_HDRS ${CMAKE_CURRENT_BINARY_DIR} ${DAML_PROTO} ${HLF_PROTO})
+grpc_generate_cpp(GRPC_SRCS GRPC_HDRS ${CMAKE_CURRENT_BINARY_DIR}
+  ${DAML_PROTO}
+  ${HLF_PROTO}
+  ${THIN_REPLICA_PROTO}
+)
 
 add_library(proto STATIC ${PROTO_SRCS} ${PROTO_HDRS} ${GRPC_SRCS} ${GRPC_SRCS})
 target_link_libraries(proto protobuf::libprotobuf)
