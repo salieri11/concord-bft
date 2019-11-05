@@ -4,9 +4,8 @@
 ## IMPORTANT: This build uses concord-core image as the base image,
 ## which means, concord_repo & concord_tag must be passed via "--build-arg"
 ##
-## USAGE (from parent dir):
-##   docker build . -f concord/DockerfileMemleak --build-arg "memleak_util=valgrind" \
-##                                               --build-arg "concord_repo=${concord_repo}" \
+## USAGE:
+##   docker build . -f concord/DockerfileMemleak --build-arg "concord_repo=${concord_repo}" \
 ##                                               --build-arg "concord_tag=${concord_tag}"
 
 ARG concord_repo=concord-core
@@ -16,10 +15,8 @@ ARG concord_tag=latest
 FROM "${concord_repo}:${concord_tag}"
 LABEL Description="ConcordForMemoryLeak"
 
-ARG memleak_util=""
-
 RUN apt-get update \
-    && apt-get -y install ${memleak_util} \
+    && apt-get -y install valgrind \
     && rm -rf /var/lib/apt/lists/*
 
 # Set working directory and start.
