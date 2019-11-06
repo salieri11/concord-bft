@@ -10,8 +10,15 @@ clr-datagrid, .card {
     margin-top: 0;
     margin-bottom: .25rem;
   }
+  .dash-item {
+    float: left;
+  }
 }
-
+::ng-deep concord-copy-to-clipboard-button {
+  .dash-list {
+    margin: 0;
+  }
+}
 ::ng-deep .datagrid {
 
   .label-container {

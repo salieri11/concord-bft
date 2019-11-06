@@ -8,7 +8,16 @@
           <a [routerLink]="listConfig.itemLink(item)" [innerHTML]="getItemProp(item, prop)"></a>
         </div>
         <ng-template #textProp>
-          <div [innerHTML]="getItemProp(item, prop)"></div>
+          <div class="dash-item" [innerHTML]="getItemProp(item, prop)"></div>
+          <concord-copy-to-clipboard-button
+            *ngIf="prop === 'public_ip'"
+            classList="ctc-btn-inline dash-list"
+            [tooltip]="'common.copyToClip' | translate"
+            tooltipDirection="top-right"
+            [value]="item[prop]"
+            [size]="12">
+          </concord-copy-to-clipboard-button>
+
         </ng-template>
       </clr-dg-cell>
     </clr-dg-row>

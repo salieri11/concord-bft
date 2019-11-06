@@ -126,6 +126,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
     return count < 0 ? 0 : count;
   }
 
+  get currentBlock() {
+    return this.blocks[0] ? this.blocks[0].number : 0;
+  }
+
+
   get healthyNodesCount() {
     const healthyNodeCount = this.nodes.filter((node) => {
       return node.healthy;
@@ -234,7 +239,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
         }, {
           title: this.translate.instant('blocks.currentBlock'),
           link: ['/', this.blockchainId, 'blocks'],
-          count: this.blocks[0] ? this.blocks[0].number : 0
+          count: this.currentBlock
         }, {
           title: this.translate.instant('dashboard.deployedContracts'),
           link: ['/', this.blockchainId, 'smart-contracts'],
@@ -279,12 +284,12 @@ export class DashboardComponent implements OnInit, OnDestroy {
   private loadBlocks() {
     this.blocksService.getBlocks(BLOCK_TRANSACTION_LIMIT).subscribe((resp) => {
       this.blocks = resp.blocks;
+      this.dashItems[1].count = this.currentBlock;
+      this.dashItems[3].count = this.transactionCount;
       this.infoLists[3].items = this.blocks;
-      this.dashItems[3].count = this.blocks[0] ? this.blocks[0].number : 0;
     });
     this.blocksService.getBlock(0).subscribe((resp) => {
       this.firstBlockTransactionCount = resp.transactions.length;
-
     });
   }
 
