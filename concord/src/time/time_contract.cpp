@@ -253,8 +253,8 @@ pair<Sliver, Sliver> TimeContract::Serialize() {
   }
 
   size_t storage_size = proto.ByteSize();
-  Sliver time_storage(new uint8_t[storage_size], storage_size);
-  proto.SerializeToArray(time_storage.data(), storage_size);
+  Sliver time_storage(new char[storage_size], storage_size);
+  proto.SerializeToArray(const_cast<char *>(time_storage.data()), storage_size);
 
   changed_ = false;
 

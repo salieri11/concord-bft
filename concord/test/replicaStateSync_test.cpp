@@ -84,8 +84,7 @@ class MockIBlocksAppender : public IBlocksAppender {
   }
 };
 
-void fillBufAndAdvance(uint8_t *&buffer, const void *data,
-                       const size_t dataSize) {
+void fillBufAndAdvance(char *&buffer, const void *data, const size_t dataSize) {
   memcpy(buffer, data, dataSize);
   buffer += dataSize;
 }
@@ -102,8 +101,8 @@ Sliver setUpBlockContent(Key key, Value blockValue) {
   entry.valOffset = sizeOfMetadata + key.length();
 
   size_t sizeOfBuf = sizeOfMetadata + key.length() + blockValue.length();
-  auto buf = new uint8_t[sizeOfBuf];
-  uint8_t *ptr = buf;
+  char *buf = new char[sizeOfBuf];
+  char *ptr = buf;
   fillBufAndAdvance(ptr, &blockHeader, sizeof(blockHeader));
   fillBufAndAdvance(ptr, &entry, sizeof(entry));
   fillBufAndAdvance(ptr, key.data(), key.length());

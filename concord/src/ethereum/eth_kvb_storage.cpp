@@ -135,7 +135,7 @@ const ILocalKeyValueStorageReadOnly &EthKvbStorage::getReadOnlyStorage() {
  */
 Sliver EthKvbStorage::kvb_key(uint8_t type, const uint8_t *bytes,
                               size_t length) const {
-  uint8_t *key = new uint8_t[1 + length];
+  char *key = new char[1 + length];
   key[0] = type;
   std::copy(bytes, bytes + length, key + 1);
   return Sliver(key, length + 1);
@@ -239,7 +239,7 @@ Status EthKvbStorage::write_block(uint64_t timestamp, uint64_t gas_limit) {
     size_t txser_length = tx.serialize(&txser);
     blk.gas_used += tx.gas_used;
 
-    put(txaddr, Sliver(txser, txser_length));
+    put(txaddr, Sliver(reinterpret_cast<char *>(txser), txser_length));
   }
   pending_transactions.clear();
 
@@ -277,7 +277,7 @@ void EthKvbStorage::add_block(EthBlock &blk) {
   uint8_t *blkser;
   size_t blkser_length = blk.serialize(&blkser);
 
-  put(blkaddr, Sliver(blkser, blkser_length));
+  put(blkaddr, Sliver(reinterpret_cast<char *>(blkser), blkser_length));
 }
 
 void EthKvbStorage::add_transaction(EthTransaction &tx) {
@@ -296,7 +296,7 @@ void EthKvbStorage::set_balance(const evm_address &addr,
   proto.set_version(balance_storage_version);
   proto.set_balance(balance.bytes, sizeof(evm_uint256be));
   size_t sersize = proto.ByteSize();
-  uint8_t *ser = new uint8_t[sersize];
+  char *ser = new char[sersize];
   proto.SerializeToArray(ser, sersize);
 
   put(balance_key(addr), Sliver(ser, sersize));
@@ -307,7 +307,7 @@ void EthKvbStorage::set_nonce(const evm_address &addr, uint64_t nonce) {
   proto.set_version(nonce_storage_version);
   proto.set_nonce(nonce);
   size_t sersize = proto.ByteSize();
-  uint8_t *ser = new uint8_t[sersize];
+  char *ser = new char[sersize];
   proto.SerializeToArray(ser, sersize);
 
   put(nonce_key(addr), Sliver(ser, sersize));
@@ -322,7 +322,7 @@ void EthKvbStorage::set_code(const evm_address &addr, const uint8_t *code,
   proto.set_hash(hash.bytes, sizeof(hash));
 
   size_t sersize = proto.ByteSize();
-  uint8_t *ser = new uint8_t[sersize];
+  char *ser = new char[sersize];
   proto.SerializeToArray(ser, sersize);
 
   put(code_key(addr), Sliver(ser, sersize));
@@ -331,7 +331,7 @@ void EthKvbStorage::set_code(const evm_address &addr, const uint8_t *code,
 void EthKvbStorage::set_storage(const evm_address &addr,
                                 const evm_uint256be &location,
                                 const evm_uint256be &data) {
-  uint8_t *str = new uint8_t[sizeof(data)];
+  char *str = new char[sizeof(data)];
   std::copy(data.bytes, data.bytes + sizeof(data), str);
   put(storage_key(addr, location), Sliver(str, sizeof(data)));
 }

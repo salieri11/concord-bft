@@ -63,12 +63,11 @@ const ILocalKeyValueStorageReadOnly &HlfKvbStorage::getReadOnlyStorage() {
 // ADDRESSING
 
 Sliver HlfKvbStorage::KvbKey(uint8_t type, const string &key) const {
-  const char *c = key.c_str();
-  const uint8_t *p = reinterpret_cast<const uint8_t *>(c);
-  int length = std::strlen(c);
+  const char *p = key.c_str();
+  int length = std::strlen(p);
 
-  uint8_t *kvb_key = new uint8_t[1 + length];
-  kvb_key[0] = type;
+  char *kvb_key = new char[1 + length];
+  kvb_key[0] = static_cast<char>(type);
 
   if (length > 0) {
     std::copy(p, p + length, kvb_key + 1);
@@ -78,8 +77,8 @@ Sliver HlfKvbStorage::KvbKey(uint8_t type, const string &key) const {
 
 Sliver HlfKvbStorage::KvbKey(uint8_t type, const uint8_t *bytes,
                              size_t length) const {
-  uint8_t *kvb_key = new uint8_t[1 + length];
-  kvb_key[0] = type;
+  char *kvb_key = new char[1 + length];
+  kvb_key[0] = static_cast<char>(type);
 
   std::copy(bytes, bytes + length, kvb_key + 1);
   return Sliver(kvb_key, length + 1);
@@ -184,12 +183,13 @@ Status HlfKvbStorage::WriteHlfBlock() {
 
     // calculate hash according to proto bytes
     size_t size = tx.ByteSize();
-    uint8_t *txTarget = new uint8_t[size];
+    char *txTarget = new char[size];
     tx.SerializeToArray(txTarget, size);
 
     // TODO(lukec) replace the EthHash with the way that
     // HLF calculates the hash
-    evm_uint256be txId = concord::utils::eth_hash::keccak_hash(txTarget, size);
+    evm_uint256be txId = concord::utils::eth_hash::keccak_hash(
+        reinterpret_cast<uint8_t *>(txTarget), size);
     Sliver txAddr = HlfTransactionKey(txId);
 
     put(txAddr, Sliver(txTarget, size));
@@ -198,14 +198,14 @@ Status HlfKvbStorage::WriteHlfBlock() {
   }
 
   size_t size = block.ByteSize();
-  uint8_t *blkTarget = new uint8_t[size];
+  char *blkTarget = new char[size];
 
   // set block hash
   block.SerializeToArray(blkTarget, size);
 
   // calculate hash according to proto bytes
-  evm_uint256be blockId =
-      concord::utils::eth_hash::keccak_hash(blkTarget, size);
+  evm_uint256be blockId = concord::utils::eth_hash::keccak_hash(
+      reinterpret_cast<uint8_t *>(blkTarget), size);
   block.set_hash(blockId.bytes, sizeof(evm_uint256be));
 
   // key = TYPE_HLF_BLOCK + block hash
@@ -243,7 +243,7 @@ Status HlfKvbStorage::SetHlfState(string key, string value) {
   proto.set_state(value);
 
   size_t sersize = proto.ByteSize();
-  uint8_t *ser = new uint8_t[sersize];
+  char *ser = new char[sersize];
   proto.SerializeToArray(ser, sersize);
   put(HlfStateKey(key), Sliver(ser, sersize));
   return Status::OK();

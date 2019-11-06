@@ -1873,13 +1873,13 @@ std::pair<string, string> generateRSAKeyPair(
   CryptoPP::RSAES<CryptoPP::OAEP<CryptoPP::SHA256>>::Decryptor privateKey(
       randomnessSource, kRSAKeyLength);
   CryptoPP::HexEncoder privateEncoder(new CryptoPP::StringSink(keyPair.first));
-  privateKey.DEREncode(privateEncoder);
+  privateKey.AccessMaterial().Save(privateEncoder);
   privateEncoder.MessageEnd();
 
   CryptoPP::RSAES<CryptoPP::OAEP<CryptoPP::SHA256>>::Encryptor publicKey(
       privateKey);
   CryptoPP::HexEncoder publicEncoder(new CryptoPP::StringSink(keyPair.second));
-  publicKey.DEREncode(publicEncoder);
+  publicKey.AccessMaterial().Save(publicEncoder);
   publicEncoder.MessageEnd();
 
   return keyPair;
