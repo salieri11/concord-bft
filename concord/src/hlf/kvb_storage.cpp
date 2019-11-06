@@ -184,7 +184,7 @@ Status HlfKvbStorage::WriteHlfBlock() {
     // calculate hash according to proto bytes
     size_t size = tx.ByteSize();
     char *txTarget = new char[size];
-    tx.SerializeToArray(reinterpret_cast<uint8_t *>(txTarget), size);
+    tx.SerializeToArray(txTarget, size);
 
     // TODO(lukec) replace the EthHash with the way that
     // HLF calculates the hash
@@ -201,7 +201,7 @@ Status HlfKvbStorage::WriteHlfBlock() {
   char *blkTarget = new char[size];
 
   // set block hash
-  block.SerializeToArray(reinterpret_cast<uint8_t *>(blkTarget), size);
+  block.SerializeToArray(blkTarget, size);
 
   // calculate hash according to proto bytes
   evm_uint256be blockId = concord::utils::eth_hash::keccak_hash(
@@ -244,7 +244,7 @@ Status HlfKvbStorage::SetHlfState(string key, string value) {
 
   size_t sersize = proto.ByteSize();
   char *ser = new char[sersize];
-  proto.SerializeToArray(reinterpret_cast<uint8_t *>(ser), sersize);
+  proto.SerializeToArray(ser, sersize);
   put(HlfStateKey(key), Sliver(ser, sersize));
   return Status::OK();
 }

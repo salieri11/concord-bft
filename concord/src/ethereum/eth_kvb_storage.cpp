@@ -297,7 +297,7 @@ void EthKvbStorage::set_balance(const evm_address &addr,
   proto.set_balance(balance.bytes, sizeof(evm_uint256be));
   size_t sersize = proto.ByteSize();
   char *ser = new char[sersize];
-  proto.SerializeToArray(reinterpret_cast<uint8_t *>(ser), sersize);
+  proto.SerializeToArray(ser, sersize);
 
   put(balance_key(addr), Sliver(ser, sersize));
 }
@@ -308,7 +308,7 @@ void EthKvbStorage::set_nonce(const evm_address &addr, uint64_t nonce) {
   proto.set_nonce(nonce);
   size_t sersize = proto.ByteSize();
   char *ser = new char[sersize];
-  proto.SerializeToArray(reinterpret_cast<uint8_t *>(ser), sersize);
+  proto.SerializeToArray(ser, sersize);
 
   put(nonce_key(addr), Sliver(ser, sersize));
 }
@@ -323,7 +323,7 @@ void EthKvbStorage::set_code(const evm_address &addr, const uint8_t *code,
 
   size_t sersize = proto.ByteSize();
   char *ser = new char[sersize];
-  proto.SerializeToArray(reinterpret_cast<uint8_t *>(ser), sersize);
+  proto.SerializeToArray(ser, sersize);
 
   put(code_key(addr), Sliver(ser, sersize));
 }
