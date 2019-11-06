@@ -64,6 +64,8 @@ COPY --from=builder ./persephone/provisioning-service/target/persephone-provisio
 
 VOLUME ["/config"]
 
-EXPOSE 9002
+# Expose port 8000 for debug or profiling usage.
+# Expose service port
+EXPOSE 8000 9002
 
 CMD ["java", "-jar", "provisioning-service.jar", "-Dkotlinx.coroutines.debug=on"]
