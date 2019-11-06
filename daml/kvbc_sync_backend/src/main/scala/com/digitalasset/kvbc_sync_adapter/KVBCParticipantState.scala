@@ -24,6 +24,7 @@ import org.slf4j.LoggerFactory
 import scala.collection.JavaConverters._
 import scala.compat.java8.FutureConverters._
 import scala.concurrent.ExecutionContext
+
 import java.util.concurrent.CompletionStage
 import java.util.concurrent.CompletableFuture
 import java.util.UUID
@@ -66,7 +67,7 @@ class KVBCParticipantState(
   private val beginning: Long = 0
 
   private val logger = LoggerFactory.getLogger(this.getClass)
-  val client = KVBCClient(host, port)
+  val client = KVBCClient(host, port)(ec)
 
   // Make sure the server is ready to receive requests
   while(client.channel.getState(true) != ConnectivityState.READY) {
@@ -108,22 +109,25 @@ class KVBCParticipantState(
     client
       .commitTransaction(commitReq)
       .toJava.toCompletableFuture
-      .thenApply(resp =>
-        resp.status match {
-          case CommitResponse.CommitStatus.OK =>
-            logger.info(s"Party successfully allocated: party=$party, submissionId=$submissionId")
-            //TODO: Feed this response from the asynch channel
-            PartyAllocationResult.Ok(PartyDetails(Ref.Party.assertFromString(party),displayName,true))
-          case CommitResponse.CommitStatus.CONFLICT =>
-            logger.error(s"Party allocation failed - already exists: party=$party, submissionId=$submissionId")
-            PartyAllocationResult.AlreadyExists
-            //TODO: Unknown error is not a possibility. LedgerAPI client needs to get a meaningful error
-          case e =>
-            //TODO: convert to PartyAllocationResult.InternalError, when provided
-            //Unknown error is not a viable option. LedgerAPI client needs to get a meaningful error
-            logger.error(s"Party allocation failed with an error $e")
-            PartyAllocationResult.InvalidName(s"Party allocation failed with an error $e")
-        })
+      .handle((resp, e) =>
+        if (resp != null)
+          resp.status match {
+            case CommitResponse.CommitStatus.OK =>
+              logger.info(s"Party successfully allocated: party=$party, submissionId=$submissionId")
+              //TODO: Feed this response from the asynch channel
+              PartyAllocationResult.Ok(PartyDetails(Ref.Party.assertFromString(party),displayName,true))
+            case error =>
+              //TODO: convert to SubmissionResult.InternalError, when provided
+              logger.error(s"Party allocation failed with an error: party=$party, " +
+                s"submissionId=$submissionId, error=${error.toString}")
+              PartyAllocationResult.InvalidName(s"Party allocation failed with an error ${error.toString}")
+          }
+        else {
+          //TODO: convert to SubmissionResult.InternalError, when provided
+          logger.error(s"Party allocation failed with an exception: party=$party, submissionId=$submissionId, " +
+            s"exception=${e.toString}")
+          PartyAllocationResult.InvalidName(s"Party allocation failed with an exception ${e.toString}")}
+      )
   }
 
   private def generateRandomId(): Ref.Party =
@@ -153,29 +157,26 @@ class KVBCParticipantState(
       .commitTransaction(commitReq)
       .toJava
       .toCompletableFuture
-      .exceptionally( e => {
-        //TODO: convert to UploadPackagesResult.InternalError, when provided
-        logger.error(s"Package upload failed with an exception $e")
-        sys.error(s"Package upload returned an exception $e")})
-      .thenApply(resp =>
-        resp.status match {
+      .handle((resp, e) =>
+        if (resp != null)
+          resp.status match {
+            case CommitResponse.CommitStatus.OK =>
+              logger.info(s"Package upload completed successfully: submissionId=$submissionId")
+              UploadPackagesResult.Ok
 
-          case CommitResponse.CommitStatus.OK =>
-            logger.info("Package upload completed successfully")
-            UploadPackagesResult.Ok
-
-          case CommitResponse.CommitStatus.CONFLICT =>
-            //TODO: Conflict is not possible for a package upload, it should succeeed when two participants
-            //deliver the same content
-            logger.error("Package upload failed due to conflict")
-            UploadPackagesResult.InvalidPackage("Package upload failed due to conflict")
-
-          case e =>
-            //TODO: convert to UploadPackagesResult.InternalError, when provided
-            //Unknown error is not a viable option. LedgerAPI client needs to get a meaningful error
-            logger.error(s"Package upload failed with an error $e")
-            UploadPackagesResult.InvalidPackage(s"Package upload failed with an error $e")
-        })
+            case error =>
+              //TODO: convert to SubmissionResult.InternalError, when provided
+              //Unknown error is not a viable option. LedgerAPI client needs to get a meaningful error
+              logger.error(s"Package upload failed with an error: submissionId=$submissionId, " +
+                s"error=${error.toString}")
+              UploadPackagesResult.InvalidPackage(s"Package upload failed with an error ${error.toString}")
+        }
+        else {
+          //TODO: convert to SubmissionResult.InternalError, when provided
+          logger.error(s"Package upload failed with an exception: submissionId=$submissionId, exception=${e.toString}")
+          UploadPackagesResult.InvalidPackage(s"Package upload failed with an exception ${e.toString}")
+        }
+      )
   }
 
   /** Submit a new configuration to the ledger. */
@@ -197,24 +198,25 @@ class KVBCParticipantState(
     // FIXME(JM): Properly queue the transactions and execute in sequence from one place.
     client
       .commitTransaction(commitReq)
-      .map { resp =>
-        resp.status match {
-          case CommitResponse.CommitStatus.OK =>
-            logger.info("Configuration submission succeeded")
-          case CommitResponse.CommitStatus.CONFLICT =>
-            // TODO(JM): Open architectural issue:
-            // Command rejections should be handled in the state machine execution.
-            logger.error("Configuration submission failed due to conflicting command")
-          case _ =>
-            logger.error("Configuration submission failed with unexpected commit response")
+      .toJava
+      .toCompletableFuture
+      .handle((resp, e) =>
+        if (resp != null)
+          resp.status match {
+            case CommitResponse.CommitStatus.OK =>
+              logger.info(s"Configuration submission succeeded: submissionId=$submissionId")
+              SubmissionResult.Acknowledged
+            case error =>
+              //TODO: convert to SubmissionResult.InternalError, when provided
+              logger.error(s"Configuration submission failed with an error: submissionId=$submissionId, " +
+                s"error=${error.toString}")
+              SubmissionResult.NotSupported
+          }
+        else {
+          logger.error(s"Configuration submission failed with an exception: submissionId=$submissionId, exception=${e.toString}")
+          SubmissionResult.Overloaded
         }
-      }(DirectExecutionContext)
-
-    // FIXME(JM): Properly wrap the above commitTransaction into
-    // CompletionStage.
-    CompletableFuture.completedFuture({
-      SubmissionResult.Acknowledged
-    })
+      )
   }
 
   override def submitTransaction(
@@ -241,24 +243,24 @@ class KVBCParticipantState(
     // FIXME(JM): Properly queue the transactions and execute in sequence from one place.
     client
       .commitTransaction(commitReq)
-      .map { resp =>
-        resp.status match {
-          case CommitResponse.CommitStatus.OK =>
-            logger.info(s"Transaction submission succeeded: commandId=$commandId")
-          case CommitResponse.CommitStatus.CONFLICT =>
-            // TODO(JM): Open architectural issue:
-            // Command rejections should be handled in the state machine execution.
-            logger.error(s"Transaction submission failed due to conflicting command: commandId=$commandId")
-          case _ =>
-            logger.error(s"Transaction submission failed with unexpected commit response: commandId=$commandId")
+      .toJava
+      .toCompletableFuture
+      .handle((resp, e) =>
+        if (resp != null)
+          resp.status match {
+            case CommitResponse.CommitStatus.OK =>
+              logger.info(s"Transaction submission succeeded: commandId=$commandId")
+              SubmissionResult.Acknowledged
+            case _ =>
+              //TODO: convert to SubmissionResult.InternalError, when provided
+              logger.error(s"Transaction submission failed with unexpected commit response: commandId=$commandId")
+              SubmissionResult.NotSupported
+          }
+        else {
+          logger.error(s"Transaction submission failed with an exception: commandId=$commandId, exception=${e.toString}")
+          SubmissionResult.Overloaded
         }
-      }(DirectExecutionContext)
-
-    // FIXME(JM): Properly wrap the above commitTransaction into
-    // CompletionStage.
-    CompletableFuture.completedFuture({
-      SubmissionResult.Acknowledged
-    })
+      )
   }
 
   override def getLedgerInitialConditions(): Source[LedgerInitialConditions, NotUsed] =
@@ -291,7 +293,7 @@ class KVBCParticipantState(
     client
       .committedTxs(beginFromBlockId)
       .flatMapConcat { committedTx =>
-        logger.trace(s"Reading transaction ${committedTx.transactionId.toString}...")
+        logger.trace(s"Reading transaction ${committedTx.transactionId.toStringUtf8}...")
 
         readTransaction(committedTx)
           .filter {
@@ -302,9 +304,9 @@ class KVBCParticipantState(
           }
           .alsoTo(Sink.onComplete {
             case Success(Done) =>
-              logger.info(s"Transaction read successfully: transactionId=${committedTx.transactionId.toString}");
+              logger.info(s"Transaction read successfully: transactionId=${committedTx.transactionId.toStringUtf8}");
             case Failure(e) =>
-              logger.info(s"Transaction read failed: transactionId=${committedTx.transactionId.toString}, error=$e")
+              logger.info(s"Transaction read failed: transactionId=${committedTx.transactionId.toStringUtf8}, error=$e")
         })
       }
   }
@@ -316,11 +318,12 @@ class KVBCParticipantState(
           keys = List(committedTx.transactionId),
           blockId = committedTx.blockId
         ))
+
         //TODO: Stream breaks here, make sure index can deal with this
         .recover {
           case e =>
-            logger.error(s"Reading transaction keys failed with an exception: transactionId=${committedTx.transactionId.toString}, " +
-              s"error=$e")
+            logger.error(s"Reading transaction keys failed with an exception: transactionId=${committedTx.transactionId.toStringUtf8}, " +
+              s"error=${e.toString}")
             sys.error(e.toString)
         }
         .map { resp =>
@@ -338,15 +341,15 @@ class KVBCParticipantState(
               logEntry
             ).zipWithIndex.map {
               case (update, idx) =>
-                logger.trace(s"Processing transaction: transactionId=${committedTx.transactionId.toString}, " +
+                logger.trace(s"Processing transaction: transactionId=${committedTx.transactionId.toStringUtf8}, " +
                   s"offset=${committedTx.blockId}:$idx")
                 Offset(Array(committedTx.blockId, idx.toLong)) -> update
             }
           } catch {
             //TODO: Stream breaks here, make sure index can deal with this
             case e: RuntimeException =>
-              logger.error(s"Processing transaction failed with an exception: transactionId=${committedTx.transactionId.toString}, " +
-                s"error=$e")
+              logger.error(s"Processing transaction failed with an exception: transactionId=${committedTx.transactionId.toStringUtf8}, " +
+                s"error=${e.toString}")
               sys.error(e.toString)
           }
         })
