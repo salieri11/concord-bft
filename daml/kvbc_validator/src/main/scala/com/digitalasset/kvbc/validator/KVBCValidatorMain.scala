@@ -2,6 +2,8 @@
 
 package com.digitalasset.kvbc.validator
 
+import com.codahale.metrics.SharedMetricRegistries
+import com.codahale.metrics.jvm.{GarbageCollectorMetricSet, MemoryUsageGaugeSet, ThreadStatesGaugeSet}
 import io.grpc.{Server, ServerBuilder}
 import com.digitalasset.kvbc.daml_validator._
 import org.slf4j.LoggerFactory
@@ -9,9 +11,14 @@ import org.slf4j.LoggerFactory
 import scala.concurrent.{ExecutionContext, Future}
 
 object KVBCValidatorMain extends App {
+  val metrics = KVBCMetricsServer.run()
+
   val server = new KVBCValidatorServer(ExecutionContext.global)
   server.start()
   server.blockUntilShutdown()
+
+  metrics.stop()
+  metrics.join()
 }
 
 class KVBCValidatorServer(executionContext: ExecutionContext) {

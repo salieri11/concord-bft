@@ -1,4 +1,4 @@
-import Dependencies._
+
 
 ThisBuild / scalaVersion     := "2.12.8"
 ThisBuild / version          := "0.1.3-SNAPSHOT"
@@ -12,8 +12,11 @@ lazy val protobuf = "com.google.protobuf" % "protobuf-java" % "3.2.0"
 lazy val scalapb_runtime  = "com.thesamet.scalapb" %% "scalapb-runtime" % scalapb.compiler.Version.scalapbVersion % "protobuf"
 lazy val scalapb_runtime_grpc = "com.thesamet.scalapb" %% "scalapb-runtime-grpc" % scalapb.compiler.Version.scalapbVersion
 
-resolvers in Global +=
-  "Digital Asset SDK" at "https://digitalassetsdk.bintray.com/DigitalAssetSDK"
+resolvers in Global ++=
+  Seq(
+    "Digital Asset SDK" at "https://digitalassetsdk.bintray.com/DigitalAssetSDK",
+    // "DA release" at "file:///tmp/repository"
+  )
 
 lazy val commonSettings = Seq()
 
@@ -57,10 +60,15 @@ lazy val kvbc_validator = (project in file("kvbc_validator"))
       // Protobuf / grpc
       protobuf,
 
-      // Logging
+      // Logging and monitoring
       "org.slf4j" % "slf4j-api" % "1.7.25",
       "ch.qos.logback" % "logback-core" % "1.2.3",
       "ch.qos.logback" % "logback-classic" % "1.2.3",
+      "io.dropwizard.metrics" % "metrics-core" % "4.0.0",
+      "io.dropwizard.metrics" % "metrics-jvm" % "4.0.0",
+      "io.dropwizard.metrics" % "metrics-servlets" % "4.0.0",
+      "org.eclipse.jetty"   %   "jetty-webapp"      % "9.4.20.v20190813",
+      "org.eclipse.jetty"   %   "jetty-servlets"    % "9.4.20.v20190813",
     ),
   )
   .dependsOn(protos)
@@ -116,10 +124,11 @@ lazy val kvbc_ledger_server = (project in file("kvbc_ledger_server"))
       // Protobuf / grpc
       protobuf,
 
-      // Logging
+      // Logging and monitoring
       "org.slf4j" % "slf4j-api" % "1.7.25",
       "ch.qos.logback" % "logback-core" % "1.2.3",
       "ch.qos.logback" % "logback-classic" % "1.2.3",
+
     ),
   )
   .dependsOn(protos, kvbc_sync_backend)
