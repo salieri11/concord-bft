@@ -6,6 +6,8 @@ package com.vmware.blockchain.deployment.service.provision;
 
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -44,6 +46,7 @@ import com.vmware.blockchain.deployment.orchestration.Orchestrator.CreateNetwork
 import com.vmware.blockchain.deployment.orchestration.Orchestrator.NetworkAllocationEvent;
 import com.vmware.blockchain.deployment.orchestration.Orchestrator.NetworkResourceEvent;
 import com.vmware.blockchain.deployment.orchestration.Orchestrator.OrchestrationEvent;
+import com.vmware.blockchain.deployment.orchestration.OrchestratorKt;
 import com.vmware.blockchain.deployment.orchestration.OrchestratorProvider;
 import com.vmware.blockchain.deployment.reactive.ReactiveStream;
 import com.vmware.blockchain.deployment.service.grpc.support.EndpointsKt;
@@ -140,6 +143,9 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
     /** Background thread executor. */
     private static final ScheduledExecutorService backgroundExecutor =
             Executors.newSingleThreadScheduledExecutor();
+
+    private static final Duration orchestratorCleanupDelay =
+            Duration.of(OrchestratorKt.ORCHESTRATOR_LONG_TIMEOUT_MILLIS, ChronoUnit.MILLIS);
 
     /** Background task future. */
     private ScheduledFuture<?> eventEmitter;
@@ -684,19 +690,35 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
             // futures are complete, and then engage in the single-writer emission.
             final var results = ConcurrentHashMap.<OrchestrationEvent>newKeySet();
 
+            var sessionOrchestrators = session.getAssignment().getEntries().stream()
+                    .map(entry ->
+                        Map.entry(
+                                entry.getSite(),
+                                orchestratorProvider.newOrchestrator(
+                                        OrchestrationSites.Companion.buildSiteInfo(
+                                                entry.getSiteInfo(),
+                                                containerRegistry,
+                                                allocationServer
+                                        )
+                                )
+                        )
+                    )
+                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (v1, v2) -> v1));
+            var orchestratorInitializations = sessionOrchestrators.values().stream()
+                    .map(orchestrator -> ReactiveStream.toFuture(orchestrator.initialize()))
+                    .toArray(CompletableFuture[]::new);
+
+            // FIXME: This blocks calling thread until all sites for the session is initialized.
+            CompletableFuture.allOf(orchestratorInitializations).join();
+
+            // Construct the context for this session execution.
+            var context = new DeploymentSessionContext(sessionOrchestrators);
+
             // Allocate public network addresses for every node.
             var networkAddressPublishers = session.getAssignment().getEntries().stream()
                     .map(entry -> {
-                        orchestrators.put(entry.getSite(),
-                                          orchestratorProvider.newOrchestrator(OrchestrationSites.Companion
-                                                                                       .buildSiteInfo(
-                                                                                               entry.getSiteInfo(),
-                                                                                               containerRegistry,
-                                                                                               allocationServer))
-                        );
-                        ReactiveStream.toFuture(orchestrators.get(entry.getSite()).initialize()).join();
+                        var orchestrator = context.getOrchestrators().get(entry.getSite());
 
-                        var orchestrator = orchestrators.get(entry.getSite());
                         var node = entry.getNode();
                         var resource = toResourceName(node);
                         var addressRequest = new CreateNetworkResourceRequest(resource, true);
@@ -748,9 +770,8 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
                         var model = session.getSpecification().getModel();
                         var nodePublishers = session.getAssignment().getEntries().stream()
                                 .map(placement -> {
-
                                     var publisher = deployNode(
-                                            orchestrators.get(placement.getSite()),
+                                            context.getOrchestrators().get(placement.getSite()),
                                             session.getId(),
                                             placement.getNode(),
                                             model,
@@ -781,7 +802,7 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
 
                                             // Allocate network address to the created node.
                                             var placement = entry.getKey();
-                                            var orchestrator = orchestrators.get(placement.getSite());
+                                            var orchestrator = context.getOrchestrators().get(placement.getSite());
 
                                             if (publicNetworkAddressMap.containsKey(placement)) {
                                                 var publicNetworkResource = publicNetworkAddressMap
@@ -836,6 +857,25 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
                         deploymentLog.get(session.getId()).complete(updatedSession);
 
                         log.info("Deployment session({}) completed", session.getId());
+                    }, executor)
+                    .whenCompleteAsync((result, error) -> {
+                        if (error == null) {
+                            sessionOrchestrators.forEach((site, orchestrator) -> {
+                                var existing = orchestrators.put(site, orchestrator);
+                                if (existing != null) {
+                                    // Close evicted orchestrator after some amount of "grace" time.
+                                    backgroundExecutor.schedule(
+                                            existing::close,
+                                            orchestratorCleanupDelay.toMillis(),
+                                            TimeUnit.MILLISECONDS
+                                    );
+                                }
+                                // Close any session orchestrator that is no longer tracked.
+                                if (!orchestrators.containsValue(orchestrator)) {
+                                    orchestrator.close();
+                                }
+                            });
+                        }
                     }, executor)
                     .exceptionally(error -> {
                         log.info("Deployment session({}) failed", session.getId(), error);
