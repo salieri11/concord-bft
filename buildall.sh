@@ -82,7 +82,7 @@ docker_build() {
     if [ "$#" -lt "4" ]
     then
         error "Missing Required Parameters for docker build method"
-        error "Usage: docker_build <directory to docker build> <docker build file> <docker build name> <docker build tag>"
+        error "Usage: docker_build <directory to docker build> <docker build file> <docker build name> <docker build tag> [<optional parmeters like --build-arg \"key=val\">]"
         killAllProcs
         exit 1
     fi
@@ -96,27 +96,18 @@ docker_build() {
     shift
 
     local BUILD_ARG_PARAM=""
-    local MEMORY_LEAK_DOCKER_BUILD=""
     while [ "$1" != "" ] ; do
        case $1 in
-          "--memoryLeakDockerBuild")
-             MEMORY_LEAK_DOCKER_BUILD="$1"
-             ;;
-          *)
-             BUILD_ARG_PARAM+=" $1"
+          "--build-arg")
+             shift
+             BUILD_ARG_PARAM+=" --build-arg $1"
              ;;
        esac
        shift
     done
 
     local LOG_FILE=`basename "${DOCKER_REPO_NAME}"_build.log`
-    if [ ! -z "${MEMORY_LEAK_DOCKER_BUILD}" ]
-    then
-        local memleak_util="valgrind"
-        docker build "${DOCKER_BUILD_DIR}" -f "${DOCKER_BUILD_FILE}" -t "${DOCKER_REPO_NAME}:${DOCKER_REPO_TAG}" --build-arg "memleak_util=${memleak_util}"  ${BUILD_ARG_PARAM} > "${LOG_FILE}" 2>&1 &
-    else
-        docker build "${DOCKER_BUILD_DIR}" -f "${DOCKER_BUILD_FILE}" -t "${DOCKER_REPO_NAME}:${DOCKER_REPO_TAG}" --label ${version_label}=${DOCKER_REPO_TAG} --label ${commit_label}=${commit_hash} ${BUILD_ARG_PARAM} > "${LOG_FILE}" 2>&1 &
-    fi
+    docker build "${DOCKER_BUILD_DIR}" -f "${DOCKER_BUILD_FILE}" -t "${DOCKER_REPO_NAME}:${DOCKER_REPO_TAG}" --label ${version_label}=${DOCKER_REPO_TAG} --label ${commit_label}=${commit_hash} ${BUILD_ARG_PARAM} > "${LOG_FILE}" 2>&1 &
     addToProcList `basename "${DOCKER_REPO_NAME}_image"` $! "${LOG_FILE}"
 }
 
@@ -168,7 +159,7 @@ concord() {
 
 memleak_concord() {
     info "Build concord for memoryleak..."
-    docker_build . concord/Dockerfile ${memleak_concord_repo} ${memleak_concord_tag} --memoryLeakDockerBuild
+    docker_build . concord/DockerfileMemleak ${memleak_concord_repo} ${memleak_concord_tag} --build-arg "concord_repo=${concord_repo}" --build-arg "concord_tag=${concord_tag}"
 }
 
 ui() {
@@ -320,11 +311,12 @@ then
     info "**** Building all components..."
     node-dependency
     concord
-    memleak_concord
     ui
     fluentd
     ethereum
     helen
+    waitForProcesses
+    memleak_concord # concord should be built as a pre-req
     waitForProcesses
     persephone
     hlf_submodules

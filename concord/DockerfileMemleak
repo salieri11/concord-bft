@@ -1,0 +1,24 @@
+## This Dockerfile is used for building "concord for MemoryLeak",
+## which includes valgrind.
+## 
+## IMPORTANT: This build uses concord-core image as the base image,
+## which means, concord_repo & concord_tag must be passed via "--build-arg"
+##
+## USAGE:
+##   docker build . -f concord/DockerfileMemleak --build-arg "concord_repo=${concord_repo}" \
+##                                               --build-arg "concord_tag=${concord_tag}"
+
+ARG concord_repo=concord-core
+ARG concord_tag=latest
+
+## Base Run image
+FROM "${concord_repo}:${concord_tag}"
+LABEL Description="ConcordForMemoryLeak"
+
+RUN apt-get update \
+    && apt-get -y install valgrind \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set working directory and start.
+WORKDIR /concord
+CMD ["/concord/concord","-c","/concord/config-local/concord.config"]
