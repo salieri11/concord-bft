@@ -41,10 +41,16 @@ def parse_arguments() -> Dict[str, Any]:
         choices=["ETHEREUM", "DAML", "HLF"],
         help="Type of concord"
     )
+    parser.add_argument(
+        "--node-type",
+        default="NONE",
+        choices=["DAML_COMMITTER", "DAML_PARTICIPANT"],
+        help="Type of node"
+    )
     return vars(parser.parse_args())
 
 
-def get_component(blockchain_type) -> List[concord_model.ConcordComponent]:
+def get_component(blockchain_type, node_type) -> List[concord_model.ConcordComponent]:
     """
     Resolve the list of Concord components to deploy for a given blockchain deployment type.
 
@@ -73,34 +79,72 @@ def get_component(blockchain_type) -> List[concord_model.ConcordComponent]:
             )
         ]
     elif blockchain_type == "DAML":
-        # DAML works of custom images until code it rolled out.
-        return [
-            concord_model.ConcordComponent(
-                type=concord_model.ConcordComponent.CONTAINER_IMAGE,
-                service_type=concord_model.ConcordComponent.DAML_CONCORD,
-                name="vmwblockchain/concord-core:latest"
-            ),
-            concord_model.ConcordComponent(
-                type=concord_model.ConcordComponent.CONTAINER_IMAGE,
-                service_type=concord_model.ConcordComponent.DAML_EXECUTION_ENGINE,
-                name="vmwblockchain/daml-execution-engine:latest"
-            ),
-            concord_model.ConcordComponent(
-                type=concord_model.ConcordComponent.CONTAINER_IMAGE,
-                service_type=concord_model.ConcordComponent.DAML_INDEX_DB,
-                name="vmwblockchain/daml-index-db:latest"
-            ),
-            concord_model.ConcordComponent(
-                type=concord_model.ConcordComponent.CONTAINER_IMAGE,
-                service_type=concord_model.ConcordComponent.DAML_LEDGER_API,
-                name="vmwblockchain/daml-ledger-api:latest"
-            ),
-            concord_model.ConcordComponent(
-                type=concord_model.ConcordComponent.CONTAINER_IMAGE,
-                service_type=concord_model.ConcordComponent.GENERIC,
-                name="vmwblockchain/agent:latest"
-            )
-        ]
+
+        if node_type == "DAML_COMMITTER":
+            return [
+                concord_model.ConcordComponent(
+                    type=concord_model.ConcordComponent.CONTAINER_IMAGE,
+                    service_type=concord_model.ConcordComponent.CONCORD,
+                    name="vmwblockchain/concord-core:latest"
+                ),
+                concord_model.ConcordComponent(
+                    type=concord_model.ConcordComponent.CONTAINER_IMAGE,
+                    service_type=concord_model.ConcordComponent.DAML_EXECUTION_ENGINE,
+                    name="vmwblockchain/daml-execution-engine:latest"
+                ),
+                concord_model.ConcordComponent(
+                    type=concord_model.ConcordComponent.CONTAINER_IMAGE,
+                    service_type=concord_model.ConcordComponent.GENERIC,
+                    name="vmwblockchain/agent-testing:oct-30"
+                )
+            ]
+        elif node_type == "DAML_PARTICIPANT":
+            return [
+                concord_model.ConcordComponent(
+                    type=concord_model.ConcordComponent.CONTAINER_IMAGE,
+                    service_type=concord_model.ConcordComponent.DAML_INDEX_DB,
+                    name="vmwblockchain/daml-index-db:latest"
+                ),
+                concord_model.ConcordComponent(
+                    type=concord_model.ConcordComponent.CONTAINER_IMAGE,
+                    service_type=concord_model.ConcordComponent.DAML_LEDGER_API,
+                    name="vmwblockchain/daml-ledger-api:latest"
+                ),
+                concord_model.ConcordComponent(
+                    type=concord_model.ConcordComponent.CONTAINER_IMAGE,
+                    service_type=concord_model.ConcordComponent.GENERIC,
+                    name="vmwblockchain/agent-testing:oct-30"
+                )
+            ]
+        else:
+            # DAML works of custom images until code it rolled out.
+            return [
+                concord_model.ConcordComponent(
+                    type=concord_model.ConcordComponent.CONTAINER_IMAGE,
+                    service_type=concord_model.ConcordComponent.DAML_CONCORD,
+                    name="vmwblockchain/concord-core:latest"
+                ),
+                concord_model.ConcordComponent(
+                    type=concord_model.ConcordComponent.CONTAINER_IMAGE,
+                    service_type=concord_model.ConcordComponent.DAML_EXECUTION_ENGINE,
+                    name="vmwblockchain/daml-execution-engine:latest"
+                ),
+                concord_model.ConcordComponent(
+                    type=concord_model.ConcordComponent.CONTAINER_IMAGE,
+                    service_type=concord_model.ConcordComponent.DAML_INDEX_DB,
+                    name="vmwblockchain/daml-index-db:latest"
+                ),
+                concord_model.ConcordComponent(
+                    type=concord_model.ConcordComponent.CONTAINER_IMAGE,
+                    service_type=concord_model.ConcordComponent.DAML_LEDGER_API,
+                    name="vmwblockchain/daml-ledger-api:latest"
+                ),
+                concord_model.ConcordComponent(
+                    type=concord_model.ConcordComponent.CONTAINER_IMAGE,
+                    service_type=concord_model.ConcordComponent.GENERIC,
+                    name="vmwblockchain/agent:latest"
+                )
+            ]
     elif blockchain_type == "HLF":
         return [
             concord_model.ConcordComponent(
@@ -149,6 +193,24 @@ def get_concord_type(blockchain_type: str) -> concord_model.ConcordModelSpecific
         return concord_model.ConcordModelSpecification.HLF
 
 
+def get_node_type(node_type: str) -> concord_model.ConcordModelSpecification.NodeType:
+    """
+    Resolve the Concord model specification type for a given blockchain deployment type.
+
+    Args:
+        node_type (str): Type of Node.
+
+    Returns:
+        model specification enum type.
+    """
+    if node_type is None:
+        return concord_model.ConcordModelSpecification.NONE
+    elif node_type == "DAML_COMMITTER":
+        return concord_model.ConcordModelSpecification.DAML_COMMITTER
+    elif node_type == "DAML_PARTICIPANT":
+        return concord_model.ConcordModelSpecification.DAML_PARTICIPANT
+
+
 def main():
     """
     Main program entry-point.
@@ -188,143 +250,15 @@ def main():
                 # template="4452ea31-fe1c-4e83-b1f7-6aeb12ca9a9b",  # Ubuntu 18.04 Server.
                 template="8abc7fda-9576-4b13-9beb-06f867cf2c7c",  # Photon OS 3.0.
                 blockchain_type=get_concord_type(args["type"]),
-                components=get_component(args["type"])
+                node_type=get_node_type(args["node_type"]),
+                components=get_component(args["type"], args["node_type"])
             ),
             placement=provisioning_service.PlacementSpecification(
                 entries=[
-                    provisioning_service.PlacementSpecification.Entry(
-                        type=provisioning_service.PlacementSpecification.FIXED,
-                        site=site,
-                        site_info=orchestration.OrchestrationSiteInfo(
-                            type=orchestration.OrchestrationSiteInfo.VMC,
-                            vmc=orchestration.VmcOrchestrationSiteInfo(
-                                authentication=core.Endpoint(
-                                    address="https://console.cloud.vmware.com",
-                                    credential=core.Credential(
-                                        token_credential=core.BearerTokenCredential(
-                                            token="6239e9e3-bd5c-4b7f-ba21-e764cfde5de2"
-                                        )
-                                    )
-                                ),
-                                api=core.Endpoint(
-                                    address="https://vmc.vmware.com"
-                                ),
-                                organization= "c56e116e-c36f-4f7d-b504-f9a33955b853",
-                                datacenter= "6db19f8f-cde6-4151-88e5-a3b0d6aead6a",
-                                vsphere=orchestration.VSphereDatacenterInfo(
-                                    datastore="WorkloadDatastore",
-                                    resource_pool="Compute-ResourcePool",
-                                    folder="HermesTesting",
-                                    network=orchestration.IPv4Network(
-                                        name="vmware-vpn",
-                                        address_allocation=orchestration.IPv4Network.STATIC,
-                                        gateway=172319745,
-                                        subnet=24
-                                    )
-                                )
-                            )
-                        )
-
-                    ),
-                    provisioning_service.PlacementSpecification.Entry(
-                        type=provisioning_service.PlacementSpecification.FIXED,
-                        site=site,
-                        site_info=orchestration.OrchestrationSiteInfo(
-                            type=orchestration.OrchestrationSiteInfo.VMC,
-                            vmc=orchestration.VmcOrchestrationSiteInfo(
-                                authentication=core.Endpoint(
-                                    address="https://console.cloud.vmware.com",
-                                    credential=core.Credential(
-                                        token_credential=core.BearerTokenCredential(
-                                            token="6239e9e3-bd5c-4b7f-ba21-e764cfde5de2"
-                                        )
-                                    )
-                                ),
-                                api=core.Endpoint(
-                                    address="https://vmc.vmware.com"
-                                ),
-                                organization= "c56e116e-c36f-4f7d-b504-f9a33955b853",
-                                datacenter= "6db19f8f-cde6-4151-88e5-a3b0d6aead6a",
-                                vsphere=orchestration.VSphereDatacenterInfo(
-                                    datastore="WorkloadDatastore",
-                                    resource_pool="Compute-ResourcePool",
-                                    folder="HermesTesting",
-                                    network=orchestration.IPv4Network(
-                                        name="vmware-vpn",
-                                        address_allocation=orchestration.IPv4Network.STATIC,
-                                        gateway=172319745,
-                                        subnet=24
-                                    )
-                                )
-                            )
-                        )
-                    ),
-                    provisioning_service.PlacementSpecification.Entry(
-                        type=provisioning_service.PlacementSpecification.FIXED,
-                        site=site,
-                        site_info=orchestration.OrchestrationSiteInfo(
-                            type=orchestration.OrchestrationSiteInfo.VMC,
-                            vmc=orchestration.VmcOrchestrationSiteInfo(
-                                authentication=core.Endpoint(
-                                    address="https://console.cloud.vmware.com",
-                                    credential=core.Credential(
-                                        token_credential=core.BearerTokenCredential(
-                                            token="6239e9e3-bd5c-4b7f-ba21-e764cfde5de2"
-                                        )
-                                    )
-                                ),
-                                api=core.Endpoint(
-                                    address="https://vmc.vmware.com"
-                                ),
-                                organization= "c56e116e-c36f-4f7d-b504-f9a33955b853",
-                                datacenter= "6db19f8f-cde6-4151-88e5-a3b0d6aead6a",
-                                vsphere=orchestration.VSphereDatacenterInfo(
-                                    datastore="WorkloadDatastore",
-                                    resource_pool="Compute-ResourcePool",
-                                    folder="HermesTesting",
-                                    network=orchestration.IPv4Network(
-                                        name="vmware-vpn",
-                                        address_allocation=orchestration.IPv4Network.STATIC,
-                                        gateway=172319745,
-                                        subnet=24
-                                    )
-                                )
-                            )
-                        )
-                    ),
-                    provisioning_service.PlacementSpecification.Entry(
-                        type=provisioning_service.PlacementSpecification.FIXED,
-                        site=site,
-                        site_info=orchestration.OrchestrationSiteInfo(
-                            type=orchestration.OrchestrationSiteInfo.VMC,
-                            vmc=orchestration.VmcOrchestrationSiteInfo(
-                                authentication=core.Endpoint(
-                                    address="https://console.cloud.vmware.com",
-                                    credential=core.Credential(
-                                        token_credential=core.BearerTokenCredential(
-                                            token="6239e9e3-bd5c-4b7f-ba21-e764cfde5de2"
-                                        )
-                                    )
-                                ),
-                                api=core.Endpoint(
-                                    address="https://vmc.vmware.com"
-                                ),
-                                organization= "c56e116e-c36f-4f7d-b504-f9a33955b853",
-                                datacenter= "6db19f8f-cde6-4151-88e5-a3b0d6aead6a",
-                                vsphere=orchestration.VSphereDatacenterInfo(
-                                    datastore="WorkloadDatastore",
-                                    resource_pool="Compute-ResourcePool",
-                                    folder="HermesTesting",
-                                    network=orchestration.IPv4Network(
-                                        name="vmware-vpn",
-                                        address_allocation=orchestration.IPv4Network.STATIC,
-                                        gateway=172319745,
-                                        subnet=24
-                                    )
-                                )
-                            )
-                        )
-                    )
+                    getPlacementEntry(site),
+                    getPlacementEntry(site),
+                    getPlacementEntry(site),
+                    getPlacementEntry(site)
                 ]
             ),
             genesis=genesis.Genesis(
@@ -363,6 +297,44 @@ def main():
         log.info("DeploymentEvent: %s", MessageToJson(event))
 
     return
+
+
+def getPlacementEntry(site):
+    # Insert from a file
+    return provisioning_service.PlacementSpecification.Entry(
+        type=provisioning_service.PlacementSpecification.FIXED,
+        site=site,
+        site_info=orchestration.OrchestrationSiteInfo(
+            type=orchestration.OrchestrationSiteInfo.VMC,
+            vmc=orchestration.VmcOrchestrationSiteInfo(
+                authentication=core.Endpoint(
+                    address="https://console.cloud.vmware.com",
+                    credential=core.Credential(
+                        token_credential=core.BearerTokenCredential(
+                            token="<ADD REFRESH TOKEN>"
+                        )
+                    )
+                ),
+                api=core.Endpoint(
+                    address="https://vmc.vmware.com"
+                ),
+                organization="c56e116e-c36f-4f7d-b504-f9a33955b853",
+                datacenter="6db19f8f-cde6-4151-88e5-a3b0d6aead6a",
+                vsphere=orchestration.VSphereDatacenterInfo(
+                    datastore="WorkloadDatastore",
+                    resource_pool="Compute-ResourcePool",
+                    folder="HermesTesting",
+                    network=orchestration.IPv4Network(
+                        name="vmware-vpn",
+                        address_allocation=orchestration.IPv4Network.STATIC,
+                        gateway=172319745,
+                        subnet=24
+                    )
+                )
+            )
+        )
+
+    )
 
 
 if __name__ == "__main__":
