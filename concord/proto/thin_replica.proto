@@ -1,0 +1,73 @@
+// Copyright 2019 VMware, all rights reserved
+//
+// Thin Replica Protocol
+// Provides a service to subscribe to updates on the KV-Blockchain.
+//
+// Note: Updates are not blocks but KV-pairs that belong to the blockchain.
+//
+
+syntax = "proto3";
+package com.vmware.concord.thin_replica;
+
+import "google/protobuf/empty.proto";
+
+service ThinReplica {
+  // Finite stream which sends the current state that is visible to the Thin Replica client
+  rpc ReadState(ReadStateRequest) returns (stream Data);
+
+  // Return the hash of the state at a given cursor
+  rpc ReadStateHash(ReadStateRequest) returns (Hash);
+
+  // An endless stream of updates
+  // The client needs to acknowledge the received updates (AckCursor) in order to help the server manage data growth
+  rpc SubscribeToUpdates(SubscriptionRequest) returns (stream Data);
+
+  // The client acknowledges the receipt of updates based on the given cursor
+  rpc AckCursor(Cursor) returns (google.protobuf.Empty);
+
+  // An endless stream of hashes of updates
+  // The client can use those hashes to verify the integrity of the data from the other stream
+  rpc SubscribeToUpdateHashes(SubscriptionRequest) returns (stream Hash);
+
+  // Cancel the stream gracefully
+  // The server will forget the cursor, meaning data can be pruned
+  // Note: At any given point in time, the client should have only _one_ stream per server open
+  rpc Unsubscribe(google.protobuf.Empty) returns (google.protobuf.Empty);
+}
+
+message ReadStateRequest {
+  // Used for getting a hash only
+  bytes cursor = 1;
+  // The client's read request is filtered by this prefix
+  bytes key_prefix = 2;
+}
+
+message SubscriptionRequest {
+  // Start subscribing to updates given the last known cursor
+  Cursor last_known = 1;
+  // Filter updates with the given key prefix
+  bytes key_prefix = 2;
+}
+
+message Cursor {
+  // Pointer into the KV-Blockchain
+  // Note: The client should treat the cursor as a black box and not rely on its format
+  bytes cursor = 1;
+}
+
+message Data {
+  // The location of the update on the server
+  Cursor cursor = 1;
+  repeated KVPair data = 2;
+}
+
+message KVPair {
+  bytes key = 1;
+  bytes value = 2;
+}
+
+message Hash {
+  Cursor cursor = 1;
+  bytes hash = 2;
+}
+
