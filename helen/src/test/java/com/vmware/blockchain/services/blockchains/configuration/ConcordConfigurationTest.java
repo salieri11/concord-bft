@@ -59,11 +59,11 @@ public class ConcordConfigurationTest {
     void testGetComponentsByBlockchainType() {
 
         var output = concordConfiguration.getComponentsByBlockchainType(ConcordModelSpecification.BlockchainType.DAML);
-        Assert.assertEquals(output.size(), 5);
+        Assert.assertEquals(output.size(), 6);
         output.stream().forEach(k -> Assert.assertTrue(k.getName().endsWith(dockerImageTag)));
 
         output = concordConfiguration.getComponentsByBlockchainType(ConcordModelSpecification.BlockchainType.ETHEREUM);
-        Assert.assertEquals(output.size(), 3);
+        Assert.assertEquals(output.size(), 4);
         output.stream().forEach(k -> Assert.assertTrue(k.getName().endsWith(dockerImageTag)));
     }
 
@@ -73,11 +73,11 @@ public class ConcordConfigurationTest {
         when(organization.getOrganizationProperties())
                 .thenReturn(ImmutableMap.of(Constants.ORG_DOCKER_IMAGE_OVERRIDE, dockerImageTag2));
         var output = concordConfiguration.getComponentsByBlockchainType(ConcordModelSpecification.BlockchainType.DAML);
-        Assert.assertEquals(output.size(), 5);
+        Assert.assertEquals(output.size(), 6);
         output.stream().forEach(k -> Assert.assertTrue(k.getName().endsWith(dockerImageTag2)));
 
         output = concordConfiguration.getComponentsByBlockchainType(ConcordModelSpecification.BlockchainType.ETHEREUM);
-        Assert.assertEquals(output.size(), 3);
+        Assert.assertEquals(output.size(), 4);
         output.stream().forEach(k -> Assert.assertTrue(k.getName().endsWith(dockerImageTag2)));
     }
 }

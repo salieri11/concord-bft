@@ -11,6 +11,7 @@ import static com.vmware.blockchain.deployment.v1.ConcordComponent.ServiceType.D
 import static com.vmware.blockchain.deployment.v1.ConcordComponent.ServiceType.DAML_LEDGER_API;
 import static com.vmware.blockchain.deployment.v1.ConcordComponent.ServiceType.ETHEREUM_API;
 import static com.vmware.blockchain.deployment.v1.ConcordComponent.ServiceType.GENERIC;
+import static com.vmware.blockchain.deployment.v1.ConcordComponent.ServiceType.LOGGING;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -67,10 +68,12 @@ public class ConcordConfiguration {
             componentListForBlockchainType =
             ImmutableMap
                     .of(ConcordModelSpecification.BlockchainType.ETHEREUM, List.of(GENERIC,
+                                                                                   LOGGING,
                                                                                    CONCORD,
                                                                                    ETHEREUM_API),
                         ConcordModelSpecification.BlockchainType.DAML,
                         List.of(GENERIC,
+                                LOGGING,
                                 DAML_CONCORD,
                                 DAML_EXECUTION_ENGINE,
                                 DAML_INDEX_DB,
@@ -79,6 +82,7 @@ public class ConcordConfiguration {
     private static final Map<ConcordComponent.ServiceType, String> componentToImageName =
             ImmutableMap.<ConcordComponent.ServiceType, String>builder()
                     .put(GENERIC, "vmwblockchain/agent")
+                    .put(LOGGING, "vmwblockchain/fluentd")
                     .put(DAML_CONCORD, "vmwblockchain/concord-core")
                     .put(DAML_EXECUTION_ENGINE, "vmwblockchain/daml-execution-engine")
                     .put(DAML_INDEX_DB, "vmwblockchain/daml-index-db")
