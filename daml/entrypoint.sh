@@ -3,6 +3,14 @@
 # Stop execution if we have an error
 set -e
 
+# For development and testing, we set environment variables directly with docker
+# or docker-compose options. However, for an automated deployment we need a more
+# generic way to set these application specific variables.
+CONFIG_FILE=/config/daml-ledger-api/environment-vars
+if [ -e ${CONFIG_FILE} ]; then
+  source ${CONFIG_FILE}
+fi
+
 # Try to connect to PostgreSQL
 until psql -h "$INDEXDB_HOST" -p "$INDEXDB_PORT" -U "$INDEXDB_USER" -c '\q'; do
   >&2 echo "Postgres is unavailable - sleeping"
