@@ -119,17 +119,6 @@ services:
     ports:
       - "55001:55001" # metrics dashboard
 
-  fluentd:
-    image: "${fluentd_repo}:${fluentd_tag}"
-    container_name: fluentd
-    ports:
-      - "24224:24224"
-      - "24224:24224/udp"
-    environment:
-      - FLUENTD_CONF=fluent.conf
-    volumes:
-      - ./fluentd:/fluentd/etc
-
   index_db:
     image: "${daml_index_db_repo}:${daml_index_db_tag}"
     command: postgres -c 'max_connections=300' -c 'shared_buffers=80MB'
