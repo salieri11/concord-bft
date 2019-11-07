@@ -165,7 +165,7 @@ isInfraBuildError(){
     # Return 0/success if we should, 1/failure if not.
     local BUILD_NAME="${1}"
 
-    if find503ArtifactoryError "${BUILD_NAME}" || \
+    if find50xArtifactoryError "${BUILD_NAME}" || \
             findEOFArtifactoryError "${BUILD_NAME}" || \
             findDockerHubTimeoutError "${BUILD_NAME}"; then
         return 0
@@ -175,15 +175,15 @@ isInfraBuildError(){
 }
 
 
-find503ArtifactoryError(){
-    # Look for a 503 error when Maven is pulling components from
+find50xArtifactoryError(){
+    # Look for a 50x error when Maven is pulling components from
     # Artifactory
     local BUILD_NAME="${1}"
     local LOG_FILE=${BUILD_LOGS["${BUILD_NAME}"]}
-    info "Looking for 503 error in build log file ${LOG_FILE} to see if we should retry."
+    info "Looking for 50x error in build log file ${LOG_FILE} to see if we should retry."
 
     if [ -f "${LOG_FILE}" ]; then
-      grep -e "\[ERROR\].*Could\ not\ transfer.*\ 503" "${LOG_FILE}"
+      grep -e "\[ERROR\].*Could\ not\ transfer.*\ 50[23]" "${LOG_FILE}"
       return $?
     else
       error "Did not find the log file."
