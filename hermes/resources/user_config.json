@@ -159,6 +159,7 @@
     "modelService": {
       "deployment_component_ids": {
         "AGENT": "agent",
+        "FLUENTD": "fluentd",
         "CONCORD": "concord-core",
         "ETHRPC": "ethrpc",
         "DAML_EXECUTION_ENGINE": "daml-execution-engine",
@@ -174,11 +175,13 @@
         "deployment_components": {
           "ethereum": {
             "vmwblockchain/agent:latest": "agent",
+            "vmwblockchain/fluentd:latest": "fluentd",
             "vmwblockchain/concord-core:latest": "concord",
             "vmwblockchain/ethrpc:latest": "ethrpc"
             },
           "daml": {
             "vmwblockchain/agent:latest": "agent",
+            "vmwblockchain/fluentd:latest": "fluentd",
             "vmwblockchain/concord-core:latest": "concord",
             "vmwblockchain/daml-execution-engine:latest": "daml_execution_engine",
             "vmwblockchain/daml-ledger-api:latest": "daml_ledger_api",
@@ -235,7 +238,21 @@
                 "gateway": 172319745,
                 "subnet": 24
               }
-            }
+            },
+            "logManagements": [
+              {
+                "destination": "LOG_INTELLIGENCE",
+                "endpoint": {
+                  "address": "https://data.mgmt.cloud.vmware.com/le-mans/v1/streams/ingestion-pipeline-stream",
+                  "credential": {
+                    "type": "BEARER",
+                    "tokenCredential": {
+                      "token": "<FLUENTD_AUTHORIZATION_BEARER>"
+                    }
+                  }
+                }
+              }
+            ]
           },
           {
             "id": {
@@ -274,7 +291,21 @@
                 "gateway": 172321025,
                 "subnet": 24
               }
-            }
+            },
+            "logManagements": [
+              {
+                "destination": "LOG_INTELLIGENCE",
+                "endpoint": {
+                  "address": "https://data.mgmt.cloud.vmware.com/le-mans/v1/streams/ingestion-pipeline-stream",
+                  "credential": {
+                    "type": "BEARER",
+                    "tokenCredential": {
+                      "token": "<FLUENTD_AUTHORIZATION_BEARER>"
+                    }
+                  }
+                }
+              }
+            ]
           }
         ]
       },
