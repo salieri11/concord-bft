@@ -257,9 +257,10 @@ def call(){
               }
 
               withCredentials([string(credentialsId: 'BLOCKCHAIN_REPOSITORY_WRITER_PWD', variable: 'DOCKERHUB_PASSWORD')]) {
-                sh '''
-                  docker login -u blockchainrepositorywriter -p "${DOCKERHUB_PASSWORD}"
-                '''
+                script{
+                  command = "docker login -u blockchainrepositorywriter -p " + env.DOCKERHUB_PASSWORD
+                  retryCommand(command, true)
+                }
               }
 
               // To invoke "git tag" and commit that change, git wants to know who we are.
@@ -596,11 +597,6 @@ EOF
           script{
             try{
               saveTimeEvent("Persephone tests", "Start")
-              withCredentials([string(credentialsId: 'BLOCKCHAIN_REPOSITORY_WRITER_PWD', variable: 'DOCKERHUB_PASSWORD')]) {
-                sh '''
-                  docker login -u blockchainrepositorywriter -p "${DOCKERHUB_PASSWORD}"
-                '''
-              }
 
               dir('blockchain/hermes') {
                 withCredentials([
@@ -858,12 +854,6 @@ EOF
               saveTimeEvent("Push to DockerHub", "Start")
               dir('blockchain') {
                 createAndPushGitTag(env.version_param)
-              }
-
-              withCredentials([string(credentialsId: 'BLOCKCHAIN_REPOSITORY_WRITER_PWD', variable: 'DOCKERHUB_PASSWORD')]) {
-                sh '''
-                  docker login -u blockchainrepositorywriter -p "${DOCKERHUB_PASSWORD}"
-                '''
               }
 
               tagImagesForRelease()
