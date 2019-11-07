@@ -5,6 +5,7 @@ import argparse
 import grpc
 import io
 import logging
+import uuid
 import vmware.blockchain.deployment.v1.core_pb2 as core
 import vmware.blockchain.deployment.v1.concord_model_pb2 as concord_model
 import vmware.blockchain.ethereum.type.genesis_pb2 as genesis
@@ -60,7 +61,7 @@ def get_component(blockchain_type, node_type) -> List[concord_model.ConcordCompo
     Returns:
         list of Concord components.
     """
-    if blockchain_type is None or blockchain_type == "ETHEREUM":
+    if blockchain_type is None or blockchain_type.upper() == "ETHEREUM":
         return [
             concord_model.ConcordComponent(
                 type=concord_model.ConcordComponent.CONTAINER_IMAGE,
@@ -76,9 +77,14 @@ def get_component(blockchain_type, node_type) -> List[concord_model.ConcordCompo
                 type=concord_model.ConcordComponent.CONTAINER_IMAGE,
                 service_type=concord_model.ConcordComponent.GENERIC,
                 name="vmwblockchain/agent:latest"
+            ),
+            concord_model.ConcordComponent(
+                type=concord_model.ConcordComponent.CONTAINER_IMAGE,
+                service_type=concord_model.ConcordComponent.LOGGING,
+                name="vmwblockchain/fluentd:latest"
             )
         ]
-    elif blockchain_type == "DAML":
+    elif blockchain_type.upper() == "DAML":
 
         if node_type == "DAML_COMMITTER":
             return [
@@ -143,8 +149,13 @@ def get_component(blockchain_type, node_type) -> List[concord_model.ConcordCompo
                     type=concord_model.ConcordComponent.CONTAINER_IMAGE,
                     service_type=concord_model.ConcordComponent.GENERIC,
                     name="vmwblockchain/agent:latest"
+                ),
+                concord_model.ConcordComponent(
+                    type=concord_model.ConcordComponent.CONTAINER_IMAGE,
+                    service_type=concord_model.ConcordComponent.LOGGING,
+                    name="vmwblockchain/fluentd:latest"
                 )
-            ]
+        ]
     elif blockchain_type == "HLF":
         return [
             concord_model.ConcordComponent(
@@ -185,9 +196,9 @@ def get_concord_type(blockchain_type: str) -> concord_model.ConcordModelSpecific
     Returns:
         model specification enum type.
     """
-    if blockchain_type is None or blockchain_type == "ETHEREUM":
+    if blockchain_type is None or blockchain_type.upper() == "ETHEREUM":
         return concord_model.ConcordModelSpecification.ETHEREUM
-    elif blockchain_type == "DAML":
+    elif blockchain_type.upper() == "DAML":
         return concord_model.ConcordModelSpecification.DAML
     elif blockchain_type == "HLF":
         return concord_model.ConcordModelSpecification.HLF
@@ -281,9 +292,11 @@ def main():
                     "0000a12b3f3d6c9b0d3f126a83ec2dd3dad15f39":
                         genesis.Genesis.Wallet(balance="0x7fffffffffffffff")
                 }
-            )
+            ),
+            consortium=str(uuid.uuid4())
         )
     )
+    log.info("CreateCluster(): request\n{}".format(create_cluster_request))
     session_id = provisioning_stub.CreateCluster(create_cluster_request)
     log.info("CreateCluster(): id(%d|%d)", session_id.high, session_id.low)
 
@@ -330,7 +343,18 @@ def getPlacementEntry(site):
                         gateway=172319745,
                         subnet=24
                     )
-                )
+                ),
+                log_managements=[core.LogManagement(
+                    destination="LOG_INTELLIGENCE",
+                    endpoint=core.Endpoint(
+                        address="https://data.mgmt.cloud.vmware.com/le-mans/v1/streams/ingestion-pipeline-stream",
+                        credential=core.Credential(
+                            token_credential=core.BearerTokenCredential(
+                                token="<FLUENTD_AUTHORIZATION_BEARER>"
+                            )
+                        )
+                    )
+                )]
             )
         )
 

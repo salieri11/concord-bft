@@ -9,13 +9,17 @@ import com.vmware.blockchain.deployment.orchestration.toIPv4SubnetMask
 import com.vmware.blockchain.deployment.http.JsonSerializer
 import com.vmware.blockchain.deployment.v1.ConcordAgentConfiguration
 import com.vmware.blockchain.deployment.v1.ConcordClusterIdentifier
+import com.vmware.blockchain.deployment.v1.ConcordNodeIdentifier
 import com.vmware.blockchain.deployment.v1.ConcordComponent
 import com.vmware.blockchain.deployment.v1.ConcordModelSpecification
 import com.vmware.blockchain.deployment.v1.ConfigurationSessionIdentifier
 import com.vmware.blockchain.deployment.v1.Credential
 import com.vmware.blockchain.deployment.v1.Endpoint
+import com.vmware.blockchain.deployment.v1.LogManagement
 import com.vmware.blockchain.deployment.v1.OutboundProxyInfo
 import kotlinx.serialization.modules.serializersModuleOf
+
+import java.util.UUID
 
 /**
  * Initialization script run either on first-boot of a deployed virtual machine.
@@ -28,11 +32,14 @@ class CloudInitConfiguration(
     nameServers: List<String>,
     subnet: Int,
     clusterId: ConcordClusterIdentifier,
+    private val replicaId: ConcordNodeIdentifier,
     nodeId: Int,
     configGenId: ConfigurationSessionIdentifier,
     configServiceEndpoint: Endpoint,
     configServiceRestEndpoint: Endpoint,
-    outboundProxy: OutboundProxyInfo
+    outboundProxy: OutboundProxyInfo,
+    logManagements : List<LogManagement>,
+    private val consortium: String
 ) {
     object ConcordAgentConfigurationSerializer
         : JsonSerializer(
@@ -100,7 +107,8 @@ class CloudInitConfiguration(
                     }
                     ?: configServiceRestEndpoint,
             configurationSession =  configGenId,
-            outboundProxyInfo = outboundProxy
+            outboundProxyInfo = outboundProxy,
+            loggingEnvVariables = logManagements.loggingEnvVariablesSetup()
     )
 
     private val script =
@@ -184,6 +192,61 @@ class CloudInitConfiguration(
             "http" -> "--insecure-registry ${endpoint.authority}"
             else -> ""
         }
+    }
+
+    /**
+     * Returns Logging environment variables as a string to be injected at container deployment time
+     *
+     * @return
+     *   environment variables as a List<String> in the format ["key=value", "foo=bar"]
+     */
+    private fun List<LogManagement>.loggingEnvVariablesSetup(): List<String> {
+
+        if (this.isNotEmpty()) {
+            // Get first configuration for now
+            val logManagement = this.first()
+            // Split address to see if port was configured in the endpoint
+            // e.g. https://hostname:9000
+            val address: List<String> = logManagement.endpoint.address.split(":")
+            val portInt = address.last().toIntOrNull()
+            val port: String
+            val hostname: String
+            when(portInt) {
+                null -> {
+                    port = ""
+                    hostname = logManagement.endpoint.address
+                }
+                else -> {
+                    port = "$portInt"
+                    hostname = address.take(address.size-1).joinToString()
+                }
+            }
+            val bearerToken = logManagement.endpoint.credential.tokenCredential.token
+            val logInsightAgentId = logManagement.logInsightAgentId
+
+            val loggingEnvVariables: MutableList<String> = mutableListOf()
+            // Add consortiumId and replicaId information
+            loggingEnvVariables.add("CONSORTIUM_ID=$consortium")
+            val replicaUUID : String = UUID(replicaId.high, replicaId.low).toString()
+            loggingEnvVariables.add("REPLICA_ID=$replicaUUID")
+
+            // Add logging configurations
+            loggingEnvVariables.add("LOG_DESTINATION=${logManagement.destination.name}")
+            when(logManagement.destination) {
+                LogManagement.Type.LOG_INTELLIGENCE -> {
+                    loggingEnvVariables.add("LINT_AUTHORIZATION_BEARER=$bearerToken")
+                    loggingEnvVariables.add("LINT_ENDPOINT_URL=$hostname")
+                }
+                LogManagement.Type.LOG_INSIGHT -> {
+                    loggingEnvVariables.add("LOG_INSIGHT_HOST=$hostname")
+                    loggingEnvVariables.add("LOG_INSIGHT_PORT=$port")
+                    loggingEnvVariables.add("LOG_INSIGHT_AGENT_ID=$logInsightAgentId")
+                }
+            }
+
+            return loggingEnvVariables
+        }
+        return emptyList()
     }
 
     /**
