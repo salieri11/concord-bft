@@ -7,6 +7,8 @@ import { RouterTestingModule } from '@angular/router/testing';
 
 import { DashboardListComponent } from './dashboard-list.component';
 import { MockSharedModule } from '../../shared/shared.module';
+import { VmwCopyToClipboardButtonComponent } from '../../shared/components/copy-to-clipboard-button/copy-to-clipboard-button.component';
+
 
 describe('DashboardListComponent', () => {
   let component: DashboardListComponent;
@@ -16,9 +18,9 @@ describe('DashboardListComponent', () => {
     TestBed.configureTestingModule({
       imports: [
         RouterTestingModule,
-        MockSharedModule
+        MockSharedModule,
       ],
-      declarations: [ DashboardListComponent ]
+      declarations: [ DashboardListComponent, VmwCopyToClipboardButtonComponent ]
     })
     .compileComponents();
   }));
