@@ -48,6 +48,7 @@ message ConcordComponent {
         HLF_TOOLS = 8;
         HLF_PEER = 9;
         HLF_ORDERER = 10;
+        LOGGING = 11;
     }
 
     Type type = 1;

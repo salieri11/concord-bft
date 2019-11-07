@@ -13,7 +13,9 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -23,6 +25,7 @@ import org.slf4j.LoggerFactory;
 import com.github.dockerjava.api.DockerClient;
 import com.github.dockerjava.api.model.AuthConfig;
 import com.github.dockerjava.api.model.HostConfig;
+import com.github.dockerjava.api.model.LogConfig;
 import com.github.dockerjava.core.DefaultDockerClientConfig;
 import com.github.dockerjava.core.DockerClientBuilder;
 import com.github.dockerjava.core.command.PullImageResultCallback;
@@ -37,7 +40,6 @@ import com.vmware.concord.agent.services.configuration.DamlConfig;
 import com.vmware.concord.agent.services.configuration.DamlParticipantConfig;
 import com.vmware.concord.agent.services.configuration.EthereumConfig;
 import com.vmware.concord.agent.services.configuration.HlfConfig;
-
 
 
 /**
@@ -157,6 +159,7 @@ public final class AgentDockerClient {
 
         containerConfigList.sort(Comparator.comparingInt(BaseContainerSpec::ordinal));
 
+        // Get Docker client instance
         var dockerClient = DockerClientBuilder.getInstance().build();
 
         //setup special hlf networking
@@ -164,6 +167,18 @@ public final class AgentDockerClient {
             createNetwork(dockerClient, HlfConfig.HLF_DOCKER_NETWORK);
         }
 
+        // Setup logging container's environment variables
+        Predicate<BaseContainerSpec> predicate =
+            containerConfig -> containerConfig.getContainerName().equals(LogConfig.LoggingType.FLUENTD.toString());
+        Optional<BaseContainerSpec> loggingContainerConfigOptional = containerConfigList.stream()
+                .filter(predicate)
+                .findFirst();
+        if (loggingContainerConfigOptional.isPresent() && !configuration.getLoggingEnvVariables().isEmpty()) {
+            var loggingContainerConfig = loggingContainerConfigOptional.get();
+            loggingContainerConfig.setEnvironment(configuration.getLoggingEnvVariables());
+        }
+
+        // Start all containers
         containerConfigList.forEach(container -> launchContainer(dockerClient, container,
                                     configuration.getModel().getBlockchainType()));
     }
@@ -217,7 +232,6 @@ public final class AgentDockerClient {
             case HLF:
                 containerConfig = HlfConfig.valueOf(component.getServiceType().name());
                 break;
-
             default:
                 throw new RuntimeException("Invalid blockchain node type");
         }
@@ -237,6 +251,7 @@ public final class AgentDockerClient {
                     registryUrl.getAuthority(),
                     componentImage.getRepository()
             );
+            log.info("Component image name {} tag {}", componentImageName, componentImage.getTag());
             var command = docker.pullImageCmd(componentImageName)
                     .withRegistry(registryUrl.getAuthority())
                     .withTag(componentImage.getTag())
@@ -347,4 +362,5 @@ public final class AgentDockerClient {
         log.info("Created Network: {} Id: {}", networkName, id);
 
     }
+
 }
