@@ -356,34 +356,80 @@ def add_ethrpc_port_forwarding(host, username, password):
    log.debug("Port forwarding failed")
    return False
 
+def verify_connectivity(ip, port, bytes_to_send=[], success_bytes=[], min_bytes=1):
+   '''
+   Helper method to validate connectivity.
+   :param ip: IP address
+   :param port: Port
+   :bytes_to_send: Bytearray to send to the remote system. Optional.
+   :success_bytes: Do not return True until this array of bytes is returned. Expressed as
+     a list of integers, like [1,2,3]. Optional.
+   :min_bytes: Do not return True until this many bytes are returned.
+     Should be <= the receive_buffer_size variable.  Optional.
+   :return: Verification status (True/False).
 
-def verify_daml_connectivity(concord_ip, port=6865):
+   If you just pass in the IP address and port, it will work, but that isn't
+   very meaningful.
+
+   success_bytes and min_bytes are mutually exclusive.
    '''
-   Helper method to validate DAML connectivy
-   :param concord_ip: Concord IP
-   :param port: DAML endpoint port
-   :return: Verification status (True/False)
-   '''
-   log.info("Validating DAML Connectivity ({}:{})".format(concord_ip, port))
+   log.info("Verifying connectivity ({}:{})".format(ip, port))
    attempt = 0
-   max_tries = 5
+   max_tries = 15
+   sleep_time = 10
+   socket_timeout = 5
+   receive_buffer_size = 256
+   bytes_to_search = []
+   success_bytes_str = str(success_bytes)[1:-1]
+
+   if success_bytes and min_bytes:
+      raise Exception("Only pass success_bytes or min_bytes to verify_connectivity()")
+
    while attempt < max_tries:
-      attempt += 1
-      log.info("Verifying DAML connectivity (attempt: {}/{})...".format(
-                        attempt, max_tries))
-      try:
-         s = socket.socket()
-         s.connect((concord_ip, port))
-         return True
-      except Exception as e:
-         if attempt == max_tries:
-            log.error(e)
-         else:
-            sleep_time = 30 # seconds
-            log.info("Retry after {} seconds...".format(sleep_time))
-            time.sleep(sleep_time)
+      with socket.socket() as s:
+         s.settimeout(socket_timeout)
+         attempt += 1
+         log.info("Verifying connectivity (attempt: {}/{})...".format(
+                           attempt, max_tries))
+         try:
+            s.connect((ip, port))
+
+            if success_bytes or min_bytes:
+               if bytes_to_send:
+                  log.debug("Sending {}".format(bytes_to_send))
+                  s.sendall(bytes_to_send)
+
+               data = s.recv(receive_buffer_size)
+
+               if success_bytes:
+                  while data:
+                     # Keep appending in case the sequence being searched for spans a recv() call.
+                     bytes_to_search += data
+                     log.debug("Searching for [{}] in {}".format(success_bytes_str, bytes_to_search))
+
+                     if success_bytes_str in str(bytes_to_search):
+                        return True
+                     else:
+                        data = s.recv(receive_buffer_size)
+                  raise Exception("Expected bytes not found.")
+               else:
+                  if len(data) >= min_bytes:
+                     return True
+                  else:
+                     raise Exception("Only received {} bytes, waiting for {}".format(len(data), min_bytes))
+            else:
+                # The caller just wants to check a socket.  That isn't very meaningful, but ok.
+                return True
+         except Exception as e:
+            if attempt == max_tries:
+               log.debug(e)
+            else:
+               log.info("Retry after {} seconds...".format(sleep_time))
+               time.sleep(sleep_time)
+         bytes_to_search = []
 
    return False
+
 
 def create_concord_support_bundle(replicas, concord_username,
                                      concord_password, containers,

@@ -685,7 +685,7 @@ class PersephoneTests(test_suite.TestSuite):
                      return (False, "Ethrpc (get Block 0) Validation - FAILED")
 
                if concord_type is self.rpc_test_helper.CONCORD_TYPE_DAML:
-                  if helper.verify_daml_connectivity(concord_ip):
+                  if helper.verify_connectivity(concord_ip, 6865):
                      log.info("DAML Connectivity - PASS")
                   else:
                      log.error("DAML Connectivity ({})- FAILED".format(concord_ip))
