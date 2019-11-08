@@ -4,7 +4,7 @@ $formTopMargin: 1.5rem;
 $inputWidth: 2.5rem;
 $clr-card-hover-color: #0094d2;
 
-.blockchain-wizard.extra-wide ::ng-deep .modal-dialog.modal-lg {
+:host .blockchain-wizard.extra-wide ::ng-deep .modal-dialog.modal-lg {
   width: 41rem;
 }
 

@@ -48,12 +48,12 @@
     width: 100%;
     font-size: 2.3rem;
   }
+}
 
-  ::ng-deep .ngx-charts text {
-    margin-top: 2rem;
-    fill: #60B515;
-    display: none;
-  }
+:host ::ng-deep .ngx-charts text {
+  margin-top: 2rem;
+  fill: #60B515;
+  display: none;
 }
 
 .b-r {
