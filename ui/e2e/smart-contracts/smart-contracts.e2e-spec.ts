@@ -56,6 +56,7 @@ describe('concord-ui Smart Contracts', () => {
     smartContractsPage.clickWizardFinishButton();
     // waitFor('.contract-form');
     waitToDisappear('.clr-wizard');
+    browser.sleep(500);
     expect(smartContractPage.getContractId()).toBe(contractId);
   });
 
@@ -64,6 +65,7 @@ describe('concord-ui Smart Contracts', () => {
     waitFor('.datagrid-row a');
     smartContractsPage.getTableLinkElement(expectedLinkText).click();
     waitFor('.contract-form');
+    browser.sleep(500);
     expect(smartContractPage.getContractId()).toBe(contractId);
     expect(smartContractPage.getVersionName()).toBe(version);
     expect(smartContractPage.getFunctionsForm().isPresent()).toBe(true);
