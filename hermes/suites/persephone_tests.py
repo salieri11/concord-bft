@@ -583,6 +583,7 @@ class PersephoneTests(test_suite.TestSuite):
                   deployment_info["concord_username"] = concord_username
                   deployment_info["concord_password"] = concord_password
                   deployment_info["docker_containers"] = expected_docker_containers
+                  deployment_info["concord_type"] = concord_type
                   deployment_info["log_dir"] = self.args.fileRoot
 
          if len(ethrpc_endpoints) == cluster_size:
@@ -751,9 +752,7 @@ class PersephoneTests(test_suite.TestSuite):
                            deployment_session_id))
                      helper.create_concord_support_bundle(
                                              deployment_info["replicas"],
-                                             deployment_info["concord_username"],
-                                             deployment_info["concord_password"],
-                                             deployment_info["docker_containers"],
+                                             deployment_info["concord_type"],
                                              deployment_info["log_dir"])
                   else:
                      log.info("No replicas found to get support logs")
