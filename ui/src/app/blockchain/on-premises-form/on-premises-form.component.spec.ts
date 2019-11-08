@@ -8,7 +8,7 @@ import { OnPremisesFormComponent } from './on-premises-form.component';
 
 import { AuthenticationService } from '../../shared/authentication.service';
 import { PersonaService } from '../../shared/persona.service';
-import { BlockchainService, BlockchainsServiceMock } from './../shared/blockchain.service';
+import { BlockchainService, MockBlockchainsService } from './../shared/blockchain.service';
 import { VmwComboboxComponent } from '../../shared/components/combobox/combobox.component';
 import { VmwComboboxItemsComponent } from '../../shared/components/combobox/combobox-items/combobox-items.component';
 
@@ -29,7 +29,7 @@ describe('OnPremisesFormComponent', () => {
         PersonaService,
         {
           provide: BlockchainService,
-          useClass: BlockchainsServiceMock
+          useClass: MockBlockchainsService
         },
       ],
 

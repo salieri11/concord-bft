@@ -12,9 +12,6 @@
   <div class="content-container">
     <main class="content-area">
       <router-outlet *ngIf="enableRouterOutlet"></router-outlet>
-      <div *ngIf="welcomeCardVisible" class="card welcome-card" style="margin-top: 12vh;">
-        <concord-welcome></concord-welcome>
-      </div>
       <div *ngIf="!enableRouterOutlet && showErrorMessage" class="clr-row clr-justify-content-center">
         <div class="clr-col-lg-5 clr-col-md-8 clr-col-12">
           <div class="card error">
@@ -29,11 +26,11 @@
           </div>
         </div>
       </div>
-      <concord-deploying-interstitial #deployLoader> </concord-deploying-interstitial>
     </main>
-    <clr-vertical-nav>
+    <clr-vertical-nav *ngIf="sidemenuVisible">
       <ng-container *concordCanView="[personas.SystemsAdmin, personas.ConsortiumAdmin]">
-        <a clrVerticalNavLink [routerLink]="['dashboard']" [ngClass]="{'disable': disableDeploy}" fragment="deploy" id="sidebarDeploy">
+        <a clrVerticalNavLink [routerLink]="['/blockchain','deploy']" [ngClass]="{'disable': disableDeploy}"
+          id="sidebarDeploy">
           <clr-icon clrVerticalNavIcon shape="deploy"></clr-icon>
           {{'nav.deploy' | translate}}
         </a>
@@ -121,8 +118,7 @@
     </clr-vertical-nav>
   </div>
 </clr-main-container>
-<clr-modal #welcomeModal>
-  <concord-welcome #welcomeComponent class="modal-body"></concord-welcome>
+<clr-modal #welcomeModal [(clrModalOpen)]="welcomeModalOpened">
+  <concord-welcome-content #welcomeContentComponent class="modal-body"></concord-welcome-content>
 </clr-modal>
-<concord-blockchain-wizard #blockchainWizard></concord-blockchain-wizard>
 <concord-on-premises-modal #addOnPremises></concord-on-premises-modal>

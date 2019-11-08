@@ -46,3 +46,12 @@ export class FeatureFlagService {
   }
 
 }
+
+@Injectable({
+  providedIn: 'root'
+})
+export class MockFeatureFlagService {
+  initialize() {}
+  routeIsAllowed() {return true; }
+  check(): boolean { return true; }
+}

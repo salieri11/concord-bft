@@ -62,3 +62,7 @@ export class SwaggerComponent implements AfterViewInit {
   }
 
 }
+
+export class MockSwaggerComponent implements AfterViewInit {
+  ngAfterViewInit() {}
+}

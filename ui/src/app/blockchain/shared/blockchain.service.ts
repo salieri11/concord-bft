@@ -21,7 +21,7 @@ import {
   fakeZones,
   ContractEngines
 } from './blockchain.model';
-import { Apis } from '../../shared/urls.model';
+import { Apis, uuidRegExp } from '../../shared/urls.model';
 
 @Injectable({
   providedIn: 'root'
@@ -42,8 +42,9 @@ export class BlockchainService {
   constructor(
     private http: HttpClient,
     private consortiumService: ConsortiumService,
-    private translateService: TranslateService
-  ) { }
+    private translateService: TranslateService,
+  ) {
+  }
 
   deploy(params: BlockchainRequestParams, isOnlyOnPrem: boolean): Observable<any> {
     this.notify.next({
@@ -52,24 +53,51 @@ export class BlockchainService {
       isOnlyOnPrem: isOnlyOnPrem
     });
 
+    const deployRequestTime = Date.now();
+    const tempKey = 'unassigned_' + deployRequestTime;
+    this.saveDeployingData({ key: tempKey, create_params: params, requested: deployRequestTime });
+
     return this.consortiumService.create(params.consortium_name).pipe(
       flatMap(consort => {
         params.consortium_id = consort.consortium_id;
+        const deployData = this.loadDeployingData(tempKey);
+        deployData.responded = Date.now();
+        deployData.consortium_id = consort.consortium_id;
+        deployData.consortium_name = consort.consortium_name;
+        deployData.organization_id = consort.organization_id;
+        this.saveDeployingData(deployData);
         return this.http.post(Apis.blockchains, params);
       }),
       map(response => {
-        this.blockchainId = response['resource_id'];
+        const taskId = response['task_id'];
+        if (taskId) {
+          const deployData = this.loadDeployingData();
+          deployData[tempKey].responded_task = Date.now();
+          deployData[tempKey].task_id = taskId;
+
+          // change 'unassigned' to known taskId on registry, delete temp key
+          deployData[taskId] = deployData[tempKey];
+          delete deployData[tempKey];
+
+          this.saveDeployingData(deployData, true);
+
+          this.blockchainId = deployData.consortium_id;
+        }
         return response;
       })
     );
   }
 
-  getTasks(): Observable<any> {
-    return this.http.get('api/tasks');
+  get noConsortiumJoined(): boolean {
+    return (!this.blockchains || this.blockchains.length === 0);
   }
 
-  check(taskId: string): Observable<any> {
-    return this.http.get(`api/tasks/${taskId}`);
+  getTasks(): Observable<any> {
+    return this.http.get(Apis.tasks);
+  }
+
+  getTask(taskId: string): Observable<any> {
+    return this.http.get(`${Apis.tasks}/${taskId}`);
   }
 
   pollDeploy(taskId: string): Observable<any> {
@@ -78,14 +106,27 @@ export class BlockchainService {
     const interationAmount = stopAfter / interval;
     let iterationCount = 0;
     return timer(0, interval)
-      .pipe(concatMap(() => from(this.check(taskId))))
+      .pipe(concatMap(() => from(this.getTask(taskId))))
       .pipe(filter(backendData => {
         ++iterationCount;
         if (iterationCount >= interationAmount) {
           // tslint:disable-next-line
           throwError({ message: this.translateService.instant('error.timeout') });
         }
-        return backendData.state !== DeployStates.RUNNING;
+
+        const completed = backendData.state !== DeployStates.RUNNING;
+        const failed = (backendData.state === DeployStates.FAILED);
+        if (completed) {
+          const deployRegistry = this.loadDeployingData();
+          if (!failed) {
+            delete deployRegistry[taskId];
+          } else {
+            deployRegistry[taskId].state = DeployStates.FAILED;
+          }
+          this.saveDeployingData(deployRegistry, true);
+        }
+
+        return completed;
       }))
       .pipe(take(1));
   }
@@ -130,13 +171,17 @@ export class BlockchainService {
 
     this.blockchainId = bId;
     if (this.blockchains && this.blockchains.length) {
-      this.blockchainId = this.blockchains[0].id;
       this.blockchains.forEach(bc => {
         if (bc.id === bId) {
           this.selectedBlockchain = bc;
           this.blockchainId = this.selectedBlockchain.id;
         }
       });
+      if (this.blockchains.filter(item => (item.id === this.blockchainId)).length === 0) {
+        this.blockchainId = this.blockchains[0].id;
+      } else {
+        this.saveSelectedConsortium(this.blockchainId);
+      }
     }
     return this.getMetaData().pipe(
       map(metadata => {
@@ -202,7 +247,7 @@ export class BlockchainService {
   }
 
   testOnPremZoneConnection(zone: Zone): Observable<Zone> {
-    return this.http.post<OnPremZone>(Apis.zonesTextConnection, zone);
+    return this.http.post<OnPremZone>(Apis.zonesTestConnection, zone);
   }
 
   getZoneLatLong(name: string): Observable<any> {
@@ -233,7 +278,42 @@ export class BlockchainService {
   }
 
   isUUID(uuid: string): boolean {
-    return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(uuid);
+    return uuidRegExp.test(uuid);
+  }
+
+  saveDeployingData(deployData, entire: boolean = false) {
+    const data = localStorage.getItem('deployingNow');
+    let registry;
+    if (!data) { registry = {};
+    } else { try { registry = JSON.parse(data); } catch (e) { registry = {}; } }
+    if (entire) {
+      registry = deployData; // save as entire list
+    } else {
+      registry[deployData.key] = deployData; // save only the specific deploy
+    }
+    localStorage.setItem('deployingNow', JSON.stringify(registry));
+  }
+
+  loadDeployingData(key?: string) {
+    const data = localStorage.getItem('deployingNow');
+    if (!data) { return {};
+    } else {
+      try {
+        if (!key) {
+          return JSON.parse(data); // get all list
+        } else {
+          return JSON.parse(data)[key]; // get specific deploy try
+        }
+      } catch (e) { return {}; }
+    }
+  }
+
+  saveSelectedConsortium(consortiumId: string) {
+    localStorage.setItem('selectedConsortium', consortiumId);
+  }
+
+  loadSelectedConsortium() {
+    return localStorage.getItem('selectedConsortium');
   }
 
 }
@@ -249,9 +329,10 @@ export class BlockchainResolver implements Resolve<boolean> {
   ) { }
 
   resolve(
-    route: ActivatedRouteSnapshot
+    route?: ActivatedRouteSnapshot
   ): Observable<boolean | any> {
-    return this.blockchainService.set(route.params['consortiumId']).pipe(
+    const consortiumId = route ? route.params['consortiumId'] : undefined;
+    return this.blockchainService.set(consortiumId).pipe(
       catchError(error => {
         this.router.navigate(['error'], {
           queryParams: { error: JSON.stringify(error) }
@@ -263,26 +344,38 @@ export class BlockchainResolver implements Resolve<boolean> {
   }
 }
 
-export class BlockchainsServiceMock {
-  public notify = new BehaviorSubject({ message: '', type: '' });
-  public selectedBlockchain = {
-    consortium_id: 1
-  };
-  public blockchains = [];
-  public zones = fakeZones;
-  public blockchaindId = 1;
-  public type = ContractEngines.ETH;
+export class MockBlockchainsService {
+  notify = new BehaviorSubject({ message: '', type: '' });
+  selectedBlockchain = { consortium_id: 1 };
+  blockchains = [];
+  zones = fakeZones;
+  blockchaindId = 1;
+  type = ContractEngines.ETH;
 
-  public select(id: string): Observable<boolean> {
+  select(id: string): Observable<boolean> {
     return of(typeof id === 'string');
   }
 
-  public getZones(): Observable<Zone[]> {
+  getZones(): Observable<Zone[]> {
     return of(fakeZones);
   }
 
-  public deploy(params: BlockchainRequestParams): Observable<any> {
+  deploy(params: BlockchainRequestParams): Observable<any> {
     return of(params);
   }
 
+  saveSelectedConsortium(consortiumId: string) {
+    localStorage.setItem('selectedConsortium', consortiumId);
+  }
+
+  loadSelectedConsortium() {
+    return localStorage.getItem('selectedConsortium');
+  }
+
+}
+
+export class MockBlockchainResolver implements Resolve<boolean> {
+  resolve(): Observable<boolean | any> {
+    return of(true);
+  }
 }

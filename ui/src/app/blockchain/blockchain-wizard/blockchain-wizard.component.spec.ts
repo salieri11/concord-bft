@@ -3,46 +3,21 @@
  */
 
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
-import { FormsModule } from '@angular/forms';
-import { RouterTestingModule } from '@angular/router/testing';
 import { of as observableOf } from 'rxjs';
 import { BlockchainWizardComponent } from './blockchain-wizard.component';
-import { MockSharedModule } from '../../shared/shared.module';
-import { VmwComboboxComponent } from '../../shared/components/combobox/combobox.component';
-import { VmwAccordionGroupComponent } from '../../shared/components/accordion/accordion-group.component';
-import { VmwAccordionComponent } from '../../shared/components/accordion/accordion.component';
-import { VmwComboboxItemsComponent } from '../../shared/components/combobox/combobox-items/combobox-items.component';
-import { BlockchainService, BlockchainsServiceMock } from '../shared/blockchain.service';
-
-import { OnPremisesFormComponent } from '../on-premises-form/on-premises-form.component';
-import { OnPremisesModalComponent } from '../on-premises-modal/on-premises-modal.component';
+import { getSpecTestingModule } from '../../shared/shared.module';
 import { ZoneType } from '../shared/blockchain.model';
-import { FeatureFlagDirective } from '../../shared/directives/feature-flag.directive';
 
 describe('BlockchainWizardComponent', () => {
   let component: BlockchainWizardComponent;
   let fixture: ComponentFixture<BlockchainWizardComponent>;
 
-  beforeEach(async(() => {
-    TestBed.configureTestingModule({
-      imports: [
-        RouterTestingModule,
-        MockSharedModule,
-        FormsModule
-      ],
-      declarations: [
-        BlockchainWizardComponent,
-        VmwComboboxComponent,
-        VmwComboboxItemsComponent,
-        VmwAccordionGroupComponent,
-        VmwAccordionComponent,
-        OnPremisesModalComponent,
-        OnPremisesFormComponent,
-        FeatureFlagDirective,
-      ],
-      providers: [{provide: BlockchainService, useClass: BlockchainsServiceMock}],
-    })
-    .compileComponents();
+  beforeEach(async( async () => {
+    const tester = await getSpecTestingModule();
+    tester.importLanguagePack();
+    TestBed.configureTestingModule(tester.init({
+      imports: [], provides: [], declarations: []
+    })).compileComponents();
   }));
 
   beforeEach(() => {
@@ -148,7 +123,6 @@ describe('BlockchainWizardComponent', () => {
     });
 
     it('submits the form value', () => {
-      spyOn((component as any).router, 'navigate');
       component.form.controls.nodes['controls'].numberOfNodes.patchValue(4);
 
       component.onSubmit();

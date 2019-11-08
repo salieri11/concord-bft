@@ -1,16 +1,14 @@
 /*
  * Copyright 2018-2019 VMware, all rights reserved.
  */
-
-import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 import { getSpecTestingModule } from '../../shared/shared.module';
 
-import { DashboardComponent } from './dashboard.component';
+import { async, ComponentFixture, TestBed } from '@angular/core/testing';
+import { DeployComponent } from './deploy.component';
 
-
-describe('DashboardComponent', () => {
-  let component: DashboardComponent;
-  let fixture: ComponentFixture<DashboardComponent>;
+describe('DeployComponent', () => {
+  let component: DeployComponent;
+  let fixture: ComponentFixture<DeployComponent>;
 
   beforeEach(async( async () => {
     const tester = await getSpecTestingModule();
@@ -20,8 +18,8 @@ describe('DashboardComponent', () => {
     })).compileComponents();
   }));
 
-  beforeEach(() => {
-    fixture = TestBed.createComponent(DashboardComponent);
+  beforeEach( async () => {
+    fixture = TestBed.createComponent(DeployComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });

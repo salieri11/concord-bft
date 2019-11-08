@@ -8,7 +8,6 @@ import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { ClarityModule } from '@clr/angular';
 import { TranslateModule } from '@ngx-translate/core';
-import { MockTranslateModule } from '../mocks/mock-translate.module';
 import { VmwContextualHelpModule } from '@vmw/ngx-contextual-help';
 import { CspComponentsModule } from '@vmw/csp-ngx-components';
 import { VmwComponentsModule } from '@vmw/ngx-components';
@@ -35,7 +34,23 @@ import { VmwThemeSwitchButtonComponent } from './components/theme-switch-button/
 import { CodeHighlighterComponent } from './components/code-highlighter/code-highlighter.component';
 import { AppHeaderComponent } from './components/app-header/app-header.component';
 import { VersionComponent } from './components/version/version.component';
+import { RouterTestingModule } from '@angular/router/testing';
+import { MockTranslateModule } from '../mocks/mock-translate.module';
+import { SpecTestingModule } from './shared-testing.module';
+import { VmwClarityThemeService } from './../shared/theme.provider';
 
+export const defaultProvided: any[] = [
+  AuthenticationService,
+  AuthenticatedGuard,
+  AgreementGuard,
+  { provide: CONCORD_API_PREFIX, useValue: 'api/concord' },
+  { provide: ETHEREUM_API_PREFIX, useValue: 'api/concord/eth' },
+  { provide: LOG_API_PREFIX, useValue: 'logging/api' },
+  { provide: CSP_API_PREFIX, useValue: 'csp/api' },
+  PersonaService,
+  VmwTasksService,
+  VmwClarityThemeService
+];
 
 @NgModule({
   imports: [
@@ -92,17 +107,7 @@ export class SharedModule {
   public static forRoot(): ModuleWithProviders {
     return {
       ngModule: SharedModule,
-      providers: [
-        AuthenticationService,
-        AuthenticatedGuard,
-        AgreementGuard,
-        { provide: CONCORD_API_PREFIX, useValue: 'api/concord' },
-        { provide: ETHEREUM_API_PREFIX, useValue: 'api/concord/eth' },
-        { provide: LOG_API_PREFIX, useValue: 'logging/api' },
-        { provide: CSP_API_PREFIX, useValue: 'csp/api' },
-        PersonaService,
-        VmwTasksService
-      ]
+      providers: defaultProvided
     };
   }
 }
@@ -113,20 +118,13 @@ export class SharedModule {
     MockTranslateModule,
     ClarityModule,
     ReactiveFormsModule,
+    RouterTestingModule,
     BrowserAnimationsModule,
     VmwContextualHelpModule.forRoot(),
     CspComponentsModule.forRoot(),
     VmwComponentsModule.forRoot(),
   ],
-  providers: [
-    AuthenticationService,
-    AuthenticatedGuard,
-    { provide: CONCORD_API_PREFIX, useValue: 'api/concord' },
-    { provide: ETHEREUM_API_PREFIX, useValue: 'api/concord/eth' },
-    { provide: LOG_API_PREFIX, useValue: 'logging/api' },
-    { provide: CSP_API_PREFIX, useValue: 'csp/api' },
-    PersonaService
-  ],
+  providers: defaultProvided,
   exports: [
     CommonModule,
     MockTranslateModule,
@@ -139,3 +137,15 @@ export class SharedModule {
   ],
 })
 export class MockSharedModule { }
+
+export const getSpecTestingModule = (obj?: {except: any[]}): Promise<typeof SpecTestingModule> => {
+  // Lazy load, so this is called after SharedModule Init
+  return import('./shared-testing.module').then(m => {
+    const except = obj ? obj.except : [];
+    const moduleDef = m.SpecTestingModule;
+          moduleDef.reset(); // purge language enablement and provides
+          moduleDef.imports = [ m.SpecTestingModule.forTesting() ]
+                        .concat( m.SpecTestingModule.getTestingSuiteModulesExcept(except) );
+    return moduleDef;
+  });
+};

@@ -12,6 +12,7 @@ export interface Consortium {
 }
 
 export interface ConsortiumResponse {
+  organization_id: string;
   consortium_id: string;
   consortium_name: string;
 }

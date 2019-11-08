@@ -26,8 +26,11 @@ import { DeveloperModule } from '../developer/developer.module';
 import { ErrorAlertService, GlobalErrorHandlerService } from '../shared/global-error-handler.service';
 
 import { MainComponent } from './main/main.component';
+import { WelcomeContentComponent } from './welcome-content/welcome-content.component';
+import { DeployingInterstitialComponent } from './deploying-interstitial/deploying-interstitial.component';
+import { DeployComponent } from './deploy/deploy.component';
 import { WelcomeComponent } from './welcome/welcome.component';
-import { DeployingInterstialComponent } from './deploying-interstitial/deploying-interstitial.component';
+import { DeployingComponent } from './deploying/deploying.component';
 
 
 @NgModule({
@@ -52,8 +55,11 @@ import { DeployingInterstialComponent } from './deploying-interstitial/deploying
   ],
   declarations: [
     MainComponent,
+    WelcomeContentComponent,
+    DeployingInterstitialComponent,
+    DeployComponent,
     WelcomeComponent,
-    DeployingInterstialComponent,
+    DeployingComponent,
   ],
   providers: [
     {

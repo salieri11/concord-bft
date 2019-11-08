@@ -18,6 +18,7 @@ export enum External {
 
 export enum ConsortiumStates {
   deploying = 'deploying',
+  waiting = 'waiting', // waiting for taskId
   loginReturn = 'login-return'
 }
 
@@ -25,10 +26,28 @@ export enum FeatureFlagSource {
   URL = 'static/feature-flag.json'
 }
 
+export const uuidRegExp
+  = /^[0-9A-F]{8}-[0-9A-F]{4}-4[0-9A-F]{3}-[89AB][0-9A-F]{3}-[0-9A-F]{12}$/i;
+
+export const authRoutes = {
+  base: 'auth',
+  onboarding: 'onboarding', // used by TOS agreement
+  login: 'login', // ! no longer used, deprecated by CSP, only used by `npm test`
+  signup: 'signup', // ! no longer used, deprecated by CSP, only used by `npm test`
+
+  // Fleeting, part of temporary redirect flow
+  loginReturn: 'login-return'
+};
+
 export const mainRoutes = {
+  // General
   forbidden: 'forbidden',
   error: 'error',
-  // Blockchain child routes
+  get baseAllowed() { return [ // allowed 1st level dir, base path other than uuidv4
+    authRoutes.base, this.forbidden, this.error
+  ]; },
+
+  // Resolved Consortium ID and child routes
   dashboard: 'dashboard',
   blocks: 'blocks',
   nodes: 'nodes',
@@ -38,8 +57,37 @@ export const mainRoutes = {
   organizations: 'organizations',
   users: 'users',
   transactions: 'transactions',
-  developer: 'developer'
+  developer: 'developer',
+  get consortiumIdChildren() { return [ // allowed paths under /:consortiumId/*
+    this.dashboard, this.blocks, this.nodes, this.smartContracts, this.logging,
+    this.consortiums, this.organizations, this.users, this.transactions, this.developer
+  ]; },
+
+  // Path of /blockchain/*
+  blockchain: 'blockchain',
+  welcome: 'welcome',
+  deploy: 'deploy',
+  deploying: 'deploying',
+  get blockchainChildren() { return [ // allowed paths under /blockchain/*
+    this.welcome, this.deploy, this.deploying
+  ]; },
+
+  // Deploying flow URLs
+  get deployingBaseRoute() { return [mainRoutes.blockchain, mainRoutes.deploying]; },
+  get deployingWaitingURL() { return this.deployingBaseRoute.concat([ConsortiumStates.waiting]).join('/'); },
+
 };
+
+export const mainFragments = {
+  welcome: 'welcome',
+  defaultTour: 'orgTour',
+};
+
+// routes that cannot be destinations (only part of redirect flow)
+export const fleetingRoutesList = [
+  authRoutes.loginReturn,
+  mainRoutes.deployingWaitingURL,
+];
 
 export const FeatureFlagRouteMapping = {
   nodes: 'node_list',
@@ -50,23 +98,15 @@ export const Apis = {
   base: 'api',
   blockchainsApi: 'blockchains',
 
-  get blockchains() {
-    return `${this.base}/${this.blockchainsApi}`;
-  },
+  get blockchains() { return `${this.base}/${this.blockchainsApi}`; },
 
-  get zones() {
-    return `${this.blockchains}/zones`;
-  },
+  get tasks() { return `${this.base}/tasks`; },
 
-  get zonesReload() {
-    return `${this.zones}?action=reload`;
-  },
+  get zones() { return `${this.blockchains}/zones`; },
 
-  get zonesTextConnection() {
-    return `${this.zones}?action=test`;
-  },
+  get zonesReload() { return `${this.zones}?action=reload`; },
 
-  getReplicas(id: string) {
-    return `${this.blockchains}/${id}/replicas`;
-  },
+  get zonesTestConnection() { return `${this.zones}?action=test`; },
+
+  getReplicas(id: string) { return `${this.blockchains}/${id}/replicas`; },
 };

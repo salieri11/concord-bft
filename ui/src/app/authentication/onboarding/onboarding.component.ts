@@ -3,10 +3,11 @@
  */
 
 import { Component, OnInit, ViewChild, ElementRef } from '@angular/core';
-import { Router } from '@angular/router';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 
 import { AuthenticationService } from '../../shared/authentication.service';
+import { mainFragments } from '../../shared/urls.model';
+import { RouteService } from '../../shared/route.service';
 
 @Component({
   selector: 'concord-onboarding',
@@ -22,8 +23,8 @@ export class OnboardingComponent implements OnInit {
 
   constructor(
     private authService: AuthenticationService,
-    private router: Router,
     private fb: FormBuilder,
+    private routeService: RouteService,
   ) {
     this.agreementForm = this.fb.group({
       firstName: ['', Validators.required],
@@ -39,6 +40,7 @@ export class OnboardingComponent implements OnInit {
 
     this.agreementEl.nativeElement
       .addEventListener('scroll', this.scrollHandler.bind(this));
+
   }
 
   accept(): void {
@@ -55,17 +57,13 @@ export class OnboardingComponent implements OnInit {
       });
   }
 
-  next(): void {
-    this.goToWelcome();
-  }
-
   private handleAgreement(agreement: boolean) {
     if (agreement) {
       this.goToWelcome();
     } else {
       this.authService.getLegalAgreement().subscribe(agr => {
         this.agreement = agr;
-    });
+      });
     }
   }
 
@@ -79,8 +77,9 @@ export class OnboardingComponent implements OnInit {
     }
   }
 
-  private goToWelcome() {
-    this.router.navigate(['/', 'welcome'], { fragment: 'welcome' });
+  private async goToWelcome() {
+    await this.routeService.resolveConsortium();
+    this.routeService.redirectToDefault(mainFragments.welcome);
   }
 
 

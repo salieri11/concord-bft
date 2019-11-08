@@ -75,7 +75,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.blockchainType = this.blockchainService.type;
     this.setComponents();
     this.loadData();
-    this.blockchainId = this.route.snapshot.parent.parent.params['consortiumId'];
+    this.blockchainId = this.blockchainService.blockchainId; // this.route.snapshot.parent.parent.params['consortiumId'];
 
     this.pollIntervalId = setInterval(() => {
       this.loadData();

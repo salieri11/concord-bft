@@ -15,11 +15,10 @@ import { BlockchainResponse } from '../../blockchain/shared/blockchain.model';
 import { Personas, PersonaService } from '../../shared/persona.service';
 import { TourService } from '../../shared/tour.service';
 
-import { BlockchainWizardComponent } from '../../blockchain/blockchain-wizard/blockchain-wizard.component';
 import { OnPremisesModalComponent } from '../../blockchain/on-premises-modal/on-premises-modal.component';
-import { DeployingInterstialComponent } from '../deploying-interstitial/deploying-interstitial.component';
-import { External, ConsortiumStates } from '../../shared/urls.model';
+import { External, mainRoutes, uuidRegExp } from '../../shared/urls.model';
 import { ClrModal } from '@clr/angular';
+import { RouteService } from '../../shared/route.service';
 
 
 @Component({
@@ -28,10 +27,9 @@ import { ClrModal } from '@clr/angular';
   styleUrls: ['./main.component.scss']
 })
 export class MainComponent implements OnInit, OnDestroy {
+
   @ViewChild('welcomeModal', { static: true }) welcomeModal: ClrModal;
-  @ViewChild('blockchainWizard', { static: true }) blockchainWizard: BlockchainWizardComponent;
   @ViewChild('addOnPremises', { static: true }) addOnPremises: OnPremisesModalComponent;
-  @ViewChild('deployLoader', { static: true }) deployLoader: DeployingInterstialComponent;
 
   alerts: any = [];
   personas = Personas;
@@ -40,16 +38,18 @@ export class MainComponent implements OnInit, OnDestroy {
   navOption: string;
   openDeployDapp: boolean;
   enableRouterOutlet: Promise<boolean> | boolean = true;
+  sidemenuVisible = true;
   env: any;
   showErrorMessage: boolean = false;
   error: HttpErrorResponse;
   urls = External;
   disableDeploy: boolean;
-  welcomeCardVisible: boolean;
+  blockchainUnresolved: boolean = false;
   blockchainType: string;
+  welcomeFragmentExists: boolean = false;
 
   alertSub: Subscription;
-  routingSub: Subscription;
+  routeParamsSub: Subscription;
   routerFragmentChange: Subscription;
 
   // Blockchain Service is resolved in the router before loading
@@ -60,16 +60,18 @@ export class MainComponent implements OnInit, OnDestroy {
   set selectedConsortium(id: string) {
     let selectObs;
     selectObs = this.blockchainService.select(id).subscribe(selected => {
-      this.enableRouterOutlet = selected;
-      if (selectObs) {
-        selectObs.unsubscribe();
-      }
+      if (selected) { this.enableRouterOutlet = selected; }
+      if (selectObs) { selectObs.unsubscribe(); }
     });
   }
 
   get blockchains(): BlockchainResponse[] {
     return this.blockchainService.blockchains || [];
   }
+
+  // remove #welcome fragment on modal close.
+  set welcomeModalOpened(v) { if (!v && this.welcomeFragmentExists) { this.router.navigate([]); } }
+  get welcomeModalOpened() { return this.welcomeModal._open; }
 
   constructor(
     private authenticationService: AuthenticationService,
@@ -79,44 +81,36 @@ export class MainComponent implements OnInit, OnDestroy {
     public zone: NgZone,
     private tourService: TourService,
     private blockchainService: BlockchainService,
-    private personaService: PersonaService
+    private personaService: PersonaService,
+    private routeService: RouteService,
   ) {
     this.env = environment;
     this.blockchainType = this.blockchainService.type;
-
-    this.alertSub = this.alertService.notify
-      .subscribe(error => this.addAlert(error));
-
-    if (!environment.csp) {
-      this.setInactivityTimeout();
+    const validPath = this.handlePaths();
+    if (!validPath) {
+      this.routeService.redirectToDefault();
+      this.enableRouterOutlet = false;
+    } else {
+      this.routeParamsSub = this.route.params.subscribe(param => this.handleParams(param));
+      this.alertSub = this.alertService.notify.subscribe(error => this.addAlert(error));
+      if (!environment.csp) { this.setInactivityTimeout(); }
+      this.checkAuthorization();
     }
-    this.checkAuthorization();
   }
 
   ngOnInit() {
     this.tourService.initialUrl = this.router.url.substr(1);
     this.selectedConsortium = this.route.snapshot.params['consortiumId'];
 
-    this.routingSub = this.route.params
-      .subscribe(param => this.handleRouting(param));
-
     this.routerFragmentChange = this.route.fragment
       .subscribe(fragment => this.handleFragment(fragment));
 
-    this.blockchainWizard.setupComplete.subscribe(
-      response => {
-        this.welcomeCardVisible = false;
-        this.router.navigate(['/deploying', 'dashboard']);
-        this.enableRouterOutlet = false;
-        this.deployLoader.startLoading(response);
-      }
-    );
   }
 
   ngOnDestroy(): void {
-    this.routerFragmentChange.unsubscribe();
-    this.routingSub.unsubscribe();
-    this.alertSub.unsubscribe();
+    if (this.routerFragmentChange) { this.routerFragmentChange.unsubscribe(); }
+    if (this.routeParamsSub) { this.routeParamsSub.unsubscribe(); }
+    if (this.routeParamsSub) { this.alertSub.unsubscribe(); }
 
     if (!environment.csp) {
       this.deregisterWindowListeners();
@@ -126,8 +120,6 @@ export class MainComponent implements OnInit, OnDestroy {
   consortiumChange(): void {
     this.enableRouterOutlet = false;
     this.navDisabled = false;
-    this.deployLoader.showInterstitial = false;
-
     if (this.selectedConsortium) {
       this.router.navigate([`/${this.selectedConsortium}`, 'dashboard'])
         .then(() => {
@@ -144,59 +136,64 @@ export class MainComponent implements OnInit, OnDestroy {
     this.openDeployDapp = true;
   }
 
-  openDeployWizard() {
-    this.blockchainWizard.open();
+  private handlePaths(): boolean {
+    let path = decodeURI(this.router.url);
+    if (path.indexOf('#') >= 0) { path = path.substr(0, path.indexOf('#')); } // remove fragment part
+    if (path.indexOf('?') >= 0) { path = path.substr(0, path.indexOf('?')); } // remove param part
+    const paths = path.split('/'); paths.shift();
+    if (!paths[0]) {
+      return false;
+    } else if (paths[0] === mainRoutes.blockchain) { // path is /blockchain*
+      this.blockchainUnresolved = true;
+      if (mainRoutes.blockchainChildren.indexOf(paths[1]) === -1) {
+        return false;
+      }
+    } else if (uuidRegExp.test(paths[0])) { // valid :consortiumId
+      if (mainRoutes.consortiumIdChildren.indexOf(paths[1]) === -1) {
+        return false;
+      }
+    }
+    return true;
   }
 
-  private handleRouting(param: Params): void {
-    const blockchainId = param.consortiumId;
+  private handleParams(param: Params): void {
+    const blockchainId = param.consortiumId as string;
 
-    if (blockchainId) {
-      switch (blockchainId) {
-        case ConsortiumStates.deploying:
-          this.selectedConsortium = null;
-          this.navDisabled = true;
-          this.enableRouterOutlet = false;
-          break;
+    // valid uuidv4 resource string
+    if (blockchainId && uuidRegExp.test(blockchainId)) {
+      this.selectedConsortium = blockchainId;
+      this.navDisabled = false;
+      this.sidemenuVisible = true;
+      this.enableRouterOutlet = true;
 
-        case ConsortiumStates.loginReturn:
-          this.router.navigate([`/${this.selectedConsortium}`, 'dashboard']);
-          break;
-
-        /* :consortiumId route resolves to 'undefined' when no consortium joined
-          show welcome page with card in that case*/
-        case 'undefined':
-          this.welcomeCardVisible = (!this.blockchains || this.blockchains.length === 0);
-          break;
-
-        case 'deploying':
-          // Deploy progress insterstitial conflicts with welcome card
-          // TODO, make deploying interstitial and welcome into separate child route to avoid this conflict
-          this.welcomeCardVisible = false;
-          break;
-
-        default:
-          this.selectedConsortium = blockchainId;
-          this.navDisabled = false;
-          this.enableRouterOutlet = true;
-          break;
+    // starts with /blockchain/: {welcome, deploy, deploying}
+    } else if (this.blockchainUnresolved) {
+      this.navDisabled = true;
+      this.sidemenuVisible = true;
+      this.enableRouterOutlet = true;
+      if (this.blockchainService.noConsortiumJoined) {
+        // no consortium joined and was deploying?
+        // Resume 'deploying view' since nothing else to show.
+        this.routeService.resumeUnfinishedDeployIfExists();
       }
+
+    // catch everything else (including 'undefined', 'login-return')
+    } else {
+      this.navDisabled = false;
+      this.sidemenuVisible = false;
+      this.enableRouterOutlet = false;
+      this.routeService.redirectToDefault();
     }
   }
 
   private handleFragment(fragment: string): void {
     switch (fragment) {
       case 'welcome':
-        this.blockchainWizard.close();
+        this.welcomeFragmentExists = true;
         this.welcomeModal.open();
-        break;
-      case 'deploy':
-        this.welcomeModal.close();
-        this.openDeployWizard();
         break;
       default:
         this.welcomeModal.close();
-        this.blockchainWizard.close();
         break;
     }
   }
