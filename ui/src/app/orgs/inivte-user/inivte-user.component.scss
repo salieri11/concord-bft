@@ -1,6 +1,6 @@
 .modal-body {
   margin: 0 0 1rem;
 }
-::ng-deep .alert {
+:host ::ng-deep .alert {
   margin-bottom: 1rem;
 }

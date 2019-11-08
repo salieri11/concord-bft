@@ -88,7 +88,7 @@
   }
 }
 
-::ng-deep .task-container {
+:host ::ng-deep .task-container {
   h4  {
     font-size: 14px;
     font-weight: 400;
@@ -114,7 +114,7 @@
   }
 }
 
-::ng-deep .description {
+:host ::ng-deep .description {
   color: #FFF;
   font-size: 12px;
   line-height: 24px;
@@ -127,7 +127,7 @@
   margin-top: 7px;
 }
 
-::ng-deep button.cancel {
+:host ::ng-deep button.cancel {
   padding: 0;
   color: #89CBDF;
   font-size: 11px;

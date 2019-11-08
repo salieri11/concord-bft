@@ -31,7 +31,7 @@ $xxl-min-width: 1919px;
   }
 }
 
-::ng-deep .stack-block:not(.stack-block-expanded) .stack-children {
+:host ::ng-deep .stack-block:not(.stack-block-expanded) .stack-children {
   height: 0px;
 }
 
@@ -187,7 +187,7 @@ $xxl-min-width: 1919px;
   }
 }
 
-::ng-deep .compact {
+:host ::ng-deep .compact {
   .accordion-header {
     padding: 0 0 0 5px;
 
@@ -201,13 +201,13 @@ $xxl-min-width: 1919px;
   }
 }
 
-::ng-deep .no-border {
+:host ::ng-deep .no-border {
   .accordion-body.wrapper {
     border-bottom: none;
   }
 }
 
-::ng-deep .no-seperator {
+:host ::ng-deep .no-seperator {
   .accordion-header {
     border-bottom: none;
   }
@@ -219,7 +219,7 @@ $xxl-min-width: 1919px;
   }
 }
 
-::ng-deep .no-highlight {
+:host ::ng-deep .no-highlight {
   .expanded {
     > .accordion-header {
       background-color: transparent !important;
@@ -227,7 +227,7 @@ $xxl-min-width: 1919px;
   }
 }
 
-::ng-deep .dark {
+:host ::ng-deep .dark {
   .accordion-body.wrapper .accordion-overlay {
     background-color: $accordion-black-color !important;
   }

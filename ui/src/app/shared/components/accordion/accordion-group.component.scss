@@ -10,7 +10,7 @@
   }
 }
 
-::ng-deep .dark {
+:host ::ng-deep .dark {
   .accordion-group {
     border-color: #000;
   }

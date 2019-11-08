@@ -31,7 +31,7 @@ clr-icon {
   top: 5px;
 }
 
-::ng-deep form .form-group clr-icon {
+:host ::ng-deep form .form-group clr-icon {
   top: 10px;
 }
 
