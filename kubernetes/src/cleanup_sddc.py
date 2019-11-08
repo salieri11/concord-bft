@@ -167,6 +167,9 @@ def get_nat_rule(nsx_mgr, org, sddc, natrule):
     req = requests.get("%s/vmc/reverse-proxy/api/orgs/%s/sddcs/%s/"
                       "policy/api/v1/infra/tier-1s/cgw/nat/USER/nat-rules/%s" %
                        (nsx_mgr, org, sddc, natrule), headers=header)
+    if req.status_code != 200:
+        logger.error("Error getting nat rule %s" % natrule)
+        return None
     logger.info(req.json())
     return req.json()
 
@@ -252,6 +255,8 @@ def delete_ipam_resources(vms, dc_dict, metadata):
         natid = metadata[vm.name]
         data = get_nat_rule(dc_dict["nsx_mgr"],
             DC_CONSTANTS["ORG_ID"], dc_dict['id'], natid)
+        if data is None:
+            continue
         ipaddr = data["source_network"]
         logger.info("Deleting ipam for %s with address %s" %
                     (vm.name, ipaddr))
