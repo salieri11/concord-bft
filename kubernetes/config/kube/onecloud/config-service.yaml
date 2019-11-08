@@ -14,9 +14,10 @@ spec:
     spec:
       containers:
       - name: config-service
-        image: athena-docker-local.artifactory.eng.vmware.com/persephone-configuration:657
+        image: athena-docker-local.artifactory.eng.vmware.com/persephone-configuration:698
         ports:
         - containerPort: 9003
+          hostPort: 8000
         imagePullPolicy: Always
         volumeMounts:
         - name: config-volume
@@ -36,6 +37,7 @@ spec:
         configMap:
           name: config-service
           defaultMode: 0700
+      nodeName: k8node2
 ---
 apiVersion: v1
 kind: Service

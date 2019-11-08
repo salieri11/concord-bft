@@ -17,7 +17,7 @@
         "credential": {
             "type": "PASSWORD",
             "passwordCredential": {
-                "username": "vmbc-bintray-reader@vmware ",
+                "username": "vmbc-bintray-reader@vmware",
                 "password": "56228c3a7a4211a4726ed8c61436a0101f4eed5e"
             }
         }
@@ -27,121 +27,5 @@
         "transportSecurity": {
             "type":"TLSv1_2"
         }
-    },
-    "sites": [
-        {
-            "id": {
-                "low": "3915407548904001415",
-                "high": "-8205657032195148862"
-            },
-            "info": {
-                "type": "VMC",
-                "labels": {
-                    "name": "US East (N. Virginia)",
-                    "geo-latitude": "45.2551139",
-                    "geo-longitude": "-120.888727"
-                },
-                "vmc": {
-                    "authentication": {
-                        "address": "https://console.cloud.vmware.com",
-                        "credential": {
-                            "type": "BEARER",
-                            "tokenCredential": {
-                                "token": "6239e9e3-bd5c-4b7f-ba21-e764cfde5de2"
-                            }
-                        }
-                    },
-                    "api": {
-                        "address": "https://vmc.vmware.com"
-                    },
-                    "containerRegistry": {
-                        "address": "https://vmware-docker-blockchainsaas.bintray.io",
-                        "credential": {
-                            "type": "PASSWORD",
-                            "passwordCredential": {
-                                "username": "vmbc-bintray-reader@vmware",
-                                "password": "56228c3a7a4211a4726ed8c61436a0101f4eed5e"
-                            }
-                        }
-                    },
-                    "organization": "c56e116e-c36f-4f7d-b504-f9a33955b853",
-                    "datacenter": "3656526b-c74e-4f87-8e1f-a667975273c2",
-                    "vsphere":{
-                        "resourcePool": "Compute-ResourcePool",
-                        "datastore":"WorkloadDatastore",
-                        "folder": "Blockchain-Production",
-                        "network":{
-                            "name":"blockchain-control",
-                            "addressAllocation":"STATIC",
-                            "gateway":167903233,
-                            "subnet":16,
-                            "allocationServer":{
-                                "address":"ipam-vmbc.cloud.vmware.com",
-                                "transportSecurity": {
-                                    "type":"TLSv1_2"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        {
-            "id": {
-                "low": "7904274260995490129",
-                "high": "-8582273534973268630"
-            },
-            "info": {
-                "type": "VMC",
-                "labels": {
-                    "name": "EU Central (Frankfurt)",
-                    "geo-latitude": "52.270050",
-                    "geo-longitude": "10.394489"
-                },
-                "vmc": {
-                    "authentication": {
-                        "address": "https://console.cloud.vmware.com",
-                        "credential": {
-                            "type": "BEARER",
-                            "tokenCredential": {
-                                "token": "6239e9e3-bd5c-4b7f-ba21-e764cfde5de2"
-                            }
-                        }
-                    },
-                    "api": {
-                        "address": "https://vmc.vmware.com"
-                    },
-                    "containerRegistry": {
-                        "address": "https://vmware-docker-blockchainsaas.bintray.io",
-                        "credential": {
-                        "type": "PASSWORD",
-                            "passwordCredential": {
-                                "username": "vmbc-bintray-reader@vmware",
-                                "password": "56228c3a7a4211a4726ed8c61436a0101f4eed5e"
-                            }
-                        }
-                    },
-                    "organization": "c56e116e-c36f-4f7d-b504-f9a33955b853",
-                    "datacenter": "6db19f8f-cde6-4151-88e5-a3b0d6aead6a",
-                    "vsphere":{
-                        "resourcePool": "Compute-ResourcePool",
-                        "datastore":"WorkloadDatastore",
-                        "folder": "Blockchain-Production",
-                        "network":{
-                            "name":"blockchain-control",
-                            "addressAllocation":"STATIC",
-                            "gateway":167968769,
-                            "subnet":16,
-                            "allocationServer":{
-                                "address":"ipam-vmbc.cloud.vmware.com",
-                                "transportSecurity": {
-                                    "type":"TLSv1_2"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    ]
+    }
 }
