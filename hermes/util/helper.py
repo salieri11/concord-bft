@@ -492,6 +492,8 @@ def create_concord_support_bundle(replicas, concord_type, test_log_dir):
                      supput_bundle_created = True
 
                      log.info("  Exporting support bundle...")
+                     if not os.path.exists(test_log_dir):
+                        os.makedirs(test_log_dir)
                      dest_support_bundle = os.path.join(test_log_dir,
                                                         os.path.split(
                                                            support_bundle_to_upload)[

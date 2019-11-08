@@ -5,6 +5,7 @@ def call(){
   def agentLabel = "genericVM"
   def genericTests = true
   def additional_components_to_build = ""
+  def deployment_support_bundle_job_name = "Get Deployment support-bundle"
   def master_branch_job_name = "Master Branch"
   def lint_test_job_name = "Blockchain LINT Tests"
   def memory_leak_job_name = "BlockchainMemoryLeakTesting"
@@ -28,6 +29,9 @@ def call(){
     genericTests = false
   } else if (env.JOB_NAME.contains(lint_test_job_name)) {
     echo "**** Jenkins job for LINT Tests"
+    genericTests = false
+  } else if (env.JOB_NAME.contains(deployment_support_bundle_job_name)) {
+    echo "**** Jenkins job for collecting deployment support-bundle"
     genericTests = false
   } else {
     echo "**** Jenkins job for Generic Test Run"
@@ -74,6 +78,11 @@ def call(){
       string defaultValue: "10",
              description: "Performance Test: Enter number of votes for Ballot App (default 10 votes)",
              name: "performance_votes"
+
+      string defaultValue: "",
+             description: "To collect deployment support bundle, enter comma separated list of concord node IPs",
+             name: "concord_ips"
+      choice(choices: "DAML\nETHEREUM", description: 'To collect deployment support bundle, choose a concord type', name: 'concord_type')
     }
     stages {
       stage("Notify GitLab"){
@@ -97,6 +106,8 @@ def call(){
               // Set as env variables
               env.deployment_retention = params.deployment_retention
               env.performance_votes = params.performance_votes
+              env.concord_ips = params.concord_ips
+              env.concord_type = params.concord_type
 
               // Check parameters
               script{
@@ -486,6 +497,10 @@ EOF
                   sh '''
                     echo "No local build required for Memory Leak Testrun..."
                   '''
+                } else if (env.JOB_NAME.contains(deployment_support_bundle_job_name)) {
+                  sh '''
+                    echo "No local build required for collecting deployment support-bundle..."
+                  '''
                 } else {
                   sh '''
                     echo "Building All components..."
@@ -528,6 +543,7 @@ EOF
                     env.ui_test_logs = new File(env.test_log_root, "UI").toString()
                     env.sample_dapp_test_logs = new File(env.test_log_root, "SampleDApp").toString()
                     env.core_vm_test_logs = new File(env.test_log_root, "CoreVM").toString()
+                    env.deployment_support_logs = new File(env.test_log_root, "DeploymentSupportBundle").toString()
                     env.helen_api_test_logs = new File(env.test_log_root, "HelenAPI").toString()
                     env.extended_rpc_test_logs = new File(env.test_log_root, "ExtendedRPC").toString()
                     env.extended_rpc_test_helen_logs = new File(env.test_log_root, "ExtendedRPC-Helen").toString()
@@ -547,6 +563,14 @@ EOF
                       runGenericTests()
                     }
 
+                    if (env.JOB_NAME.contains(deployment_support_bundle_job_name)) {
+                      saveTimeEvent("Collect deployment support-bundle", "Start")
+                      sh '''
+                        echo "Running script to collect deployment support-bundle..."
+                        "${python}" create_deployment_support.py --replicas "${concord_ips}" --replicaType "${concord_type}" --saveTo "${deployment_support_logs}"
+                      '''
+                      saveTimeEvent("Collect deployment support-bundle", "End")
+                    }
                     if (env.JOB_NAME.contains(memory_leak_job_name)) {
                       saveTimeEvent("Memory leak tests", "Start")
                       sh '''
