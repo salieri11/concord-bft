@@ -153,7 +153,8 @@ def ssh_connect(host, username, password, command, log_mode=None):
       ssh = paramiko.SSHClient()
       ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
       ssh.connect(host, username=username, password=password)
-      ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command)
+      ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command,
+                                                           get_pty=True)
       outlines = ssh_stdout.readlines()
       resp = ''.join(outlines)
       log.debug(resp)
@@ -273,7 +274,8 @@ def protobuf_message_to_json(message_obj):
 
 
 def json_to_protobuf_message(j):
-   from vmware.blockchain.deployment.v1.provisioning_service_pb2 import DeploymentSessionIdentifier
+   from vmware.blockchain.deployment.v1.provisioning_service_pb2 import \
+      DeploymentSessionIdentifier
    from google.protobuf.json_format import Parse
    return Parse(j, DeploymentSessionIdentifier())
 
@@ -430,23 +432,27 @@ def verify_connectivity(ip, port, bytes_to_send=[], success_bytes=[], min_bytes=
 
    return False
 
-
-def create_concord_support_bundle(replicas, concord_username,
-                                     concord_password, containers,
-                                     test_log_dir):
+def create_concord_support_bundle(replicas, concord_type, test_log_dir):
    '''
    Helper method to create concord support bundle and upload to result dir
    :param replicas: List of IP addresses of concord nodes
-   :param concord_username: concord username
-   :param concord_password: password for username
-   :param containers: List of containers to be running on concord node
+   :param concord_type: Concord node type ("daml", "ethereum", etc)
    :param test_log_dir: Support bundle to be uploaded to
    '''
-   support_bundle_binary_name = "deployment-support.sh"
+   support_bundle_binary_name = "deployment_support.py"
    src_support_bundle_binary_path = os.path.join('util',
                                                  support_bundle_binary_name)
    remote_support_bundle_binary_path = os.path.join(tempfile.gettempdir(),
                                                   support_bundle_binary_name)
+   user_config = util.json_helper.readJsonFile(CONFIG_JSON)
+   concord_memeber_credentials = \
+      user_config["persephoneTests"]["provisioningService"]["concordNode"]
+   concord_username = concord_memeber_credentials["username"]
+   concord_password = concord_memeber_credentials["password"]
+
+   expected_docker_containers = list(
+      user_config["persephoneTests"]["modelService"]["defaults"][
+         "deployment_components"][concord_type.lower()].values())
 
    log.info("")
    log.info("**** Collecting Support bundle ****")
@@ -463,12 +469,12 @@ def create_concord_support_bundle(replicas, concord_username,
             log.debug("  Saved at '{}:{}'".format(concord_ip,
                                                  remote_support_bundle_binary_path))
 
-            cmd_execute_collect_support_bundle = "sh {} --concordIP {} " \
-                                                 "--username {} --password {} " \
-                                                 "--dockerContainers '{}' ".format(
-               remote_support_bundle_binary_path, concord_ip, concord_username,
-               concord_password, ','.join(containers))
+            cmd_execute_collect_support_bundle = "python3 {} --concordIP {} " \
+                                                 "--dockerContainers {}".format(
+               remote_support_bundle_binary_path, concord_ip,
+               ' '.join(expected_docker_containers))
 
+            log.info("  Gathering deployment support logs...")
             ssh_output = ssh_connect(concord_ip, concord_username,
                                      concord_password,
                                      cmd_execute_collect_support_bundle)
@@ -479,9 +485,9 @@ def create_concord_support_bundle(replicas, concord_username,
             if ssh_output:
                for line in ssh_output.split('\n'):
                   if "Support bundle created successfully:" in line:
-                     support_bundle_to_upload = line.split(':')[2].strip()
+                     support_bundle_to_upload = line.split(':')[-1].strip()
                      log.info(
-                        "  Support bundle created successfully on concord {}:{}".format(
+                        "  Support bundle created successfully on concord node {}:{}".format(
                            concord_ip, support_bundle_to_upload))
                      supput_bundle_created = True
 

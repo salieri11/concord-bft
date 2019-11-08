@@ -39,7 +39,7 @@ def retrieveCustomCmdlineData(pytestRequest):
     }
 
 
-def setUpPortForwarding(url, creds, containerList, logDir, timeout=300,):
+def setUpPortForwarding(url, creds, blockchainType, logDir, timeout=300,):
    '''
    Given a url and credentials, set up port forwarding.
    The VMs should be ready in two minutes; default timeout is 2.5 min just
@@ -63,8 +63,7 @@ def setUpPortForwarding(url, creds, containerList, logDir, timeout=300,):
          timeTaken += interval
 
    if not portForwardingSuccess:
-       util.helper.create_concord_support_bundle([host], creds["username"], creds["password"],
-                                                 containerList, logDir)
+       util.helper.create_concord_support_bundle([host], blockchainType, logDir)
        raise Exception("Failed to set up port forwarding on deployed nodes. Aborting.")
 
 
@@ -133,9 +132,7 @@ def deployToSddc(logDir, hermesData):
          for replicaDetails in blockchainDetails["node_list"]:
              credentials = hermesData["hermesUserConfig"]["persephoneTests"]["provisioningService"]["concordNode"]
              blockchainType = hermesData["hermesCmdlineArgs"].blockchainType
-             containerList = list(hermesData["hermesUserConfig"]["persephoneTests"]["modelService"]["defaults"]
-                                  ["deployment_components"][blockchainType].values())
-             setUpPortForwarding(replicaDetails["url"], credentials, containerList, logDir)
+             setUpPortForwarding(replicaDetails["url"], credentials, blockchainType, logDir)
 
    else:
       raise Exception("Failed to deploy a new blockchain.")
