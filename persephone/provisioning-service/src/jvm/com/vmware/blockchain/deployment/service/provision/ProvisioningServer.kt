@@ -138,6 +138,26 @@ private fun shutdownServer(server: ProvisioningServer): CompletableFuture<Void> 
 }
 
 /**
+ * Setup coroutine debugging.
+ *
+ * @return
+ *   `true` if debugging is setup, `false` otherwise.
+ */
+private fun setupCoroutineDebug(): Boolean {
+    return try {
+        // Install coroutine debug probe.
+        DebugProbes.install()
+
+        Signal.handle(Signal("TRAP")) { // TRAP == 5 in terms of "kill -5".
+            DebugProbes.dumpCoroutines()
+        }
+        true
+    } catch (error: Throwable) {
+        false
+    }
+}
+
+/**
  * Main entry point for the server instance.
  *
  * @param args
@@ -196,12 +216,8 @@ fun main(args: Array<String>) {
             .sslContext(sslContext)
             .build()
     try {
-        // Install coroutine debug probe.
-        DebugProbes.install()
-
-        Signal.handle(Signal("TRAP")) { // TRAP == 5 in terms of "kill -5".
-            DebugProbes.dumpCoroutines()
-        }
+        setupCoroutineDebug()
+                .also { log.info { "Coroutine debug probe initialization status($it)" } }
 
         log.info { "Initializing provisioning service" }
         provisioningServer.provisioningService().initialize()
