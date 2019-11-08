@@ -45,6 +45,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
 import com.vmware.blockchain.MvcConfig;
 import com.vmware.blockchain.auth.AuthenticationContext;
 import com.vmware.blockchain.common.BadRequestException;
@@ -55,7 +56,7 @@ import com.vmware.blockchain.deployment.v1.ValidateOrchestrationSiteRequest;
 import com.vmware.blockchain.deployment.v1.ValidateOrchestrationSiteResponse;
 import com.vmware.blockchain.security.MvcTestSecurityConfig;
 import com.vmware.blockchain.services.blockchains.BlockchainUtils;
-import com.vmware.blockchain.services.blockchains.zones.ZoneController.OnpremGetResponse;
+import com.vmware.blockchain.services.blockchains.zones.ZoneController.OnPremGetResponse;
 import com.vmware.blockchain.services.blockchains.zones.ZoneController.ZoneListResponse;
 import com.vmware.blockchain.services.blockchains.zones.ZoneController.ZoneResponse;
 import com.vmware.blockchain.services.profiles.Roles;
@@ -106,7 +107,13 @@ class ZoneControllerTest {
                                                    + "    \"url\": \"https://docker-repo.com\",\n"
                                                    + "    \"username\": \"user\",\n"
                                                    + "    \"password\": \"docker\"\n"
-                                                   + "  }\n"
+                                                   + "  },\n"
+                                                   + "  \"log_managements\": [{\n"
+                                                   + "    \"destination\": \"LOG_INSIGHT\",\n"
+                                                   + "    \"address\": \"10.78.20.10:9000\",\n"
+                                                   + "    \"username\": \"foo\",\n"
+                                                   + "    \"password\": \"bar\"\n"
+                                                   + "  }]\n"
                                                    + "}";
 
     private static final String POST_NO_ORG_BODY = "{\n"
@@ -319,15 +326,23 @@ class ZoneControllerTest {
         // This creates our default object mapper
         objectMapper = jacksonBuilder.build();
 
+        OnPremZone.LogManagementOnPrem logOnPrem = new OnPremZone.LogManagementOnPrem();
+        logOnPrem.destination = Zone.LogDestination.LOG_INSIGHT;
+        logOnPrem.address = "10.78.20.10:9000";
+        logOnPrem.username = "foo";
+        logOnPrem.password = "bar";
+
         Map<String, String> usWest =
                 ImmutableMap.of("name", "US_WEST1", "geo-latitude", "45.5946", "geo-longitude", "-121.1787");
         Map<String, String> usEast =
                 ImmutableMap.of("name", "US_EAST1", "geo-latitude", "33.1960", "geo-longitude", "-80.0131");
 
-        OnpremZone ozone = getOnpremZone(OP_SITE, ORG_ID);
+        OnPremZone ozone = getOnpremZone(OP_SITE, ORG_ID);
+        ozone.setLogManagements(Lists.newArrayList(logOnPrem));
         List<Zone> sites =
-                ImmutableList.of(new Zone(SITE_1, VMC_AWS, usWest), new Zone(SITE_2, VMC_AWS, usEast),
-                                 ozone);
+                ImmutableList.of(new Zone(SITE_1, VMC_AWS, usWest),
+                        new Zone(SITE_2, VMC_AWS, usEast),
+                        ozone);
         when(zoneService.getAllAuthorized()).thenReturn(sites);
         when(zoneService.getAuthorized(OP_SITE)).thenReturn(ozone);
         when(zoneService.put(any(Zone.class))).thenAnswer(i -> {
@@ -364,14 +379,16 @@ class ZoneControllerTest {
                 .andExpect(status().isOk()).andReturn();
         String body = result.getResponse().getContentAsString();
         ZoneResponse z = objectMapper.readValue(body, ZoneResponse.class);
-        Assertions.assertTrue(z instanceof OnpremGetResponse);
-        OnpremGetResponse r = (OnpremGetResponse) z;
+        Assertions.assertTrue(z instanceof OnPremGetResponse);
+        OnPremGetResponse r = (OnPremGetResponse) z;
         Assertions.assertEquals("On Prem", r.getName());
         Assertions.assertNotNull(r.getContainerRepo());
         Assertions.assertNotNull(r.getVcenter());
         Assertions.assertNotNull(r.getName());
         Assertions.assertEquals("Network 1", r.getNetwork().getName());
         Assertions.assertEquals("admin", r.getVcenter().getUsername());
+        Assertions.assertEquals(1, r.logManagements.size());
+        Assertions.assertEquals(Zone.LogDestination.LOG_INSIGHT, r.logManagements.get(0).destination);
     }
 
     @Test
@@ -382,23 +399,23 @@ class ZoneControllerTest {
     }
 
     @Test
-    void testPostOnprem() throws Exception {
+    void testPostOnPrem() throws Exception {
         MvcResult result = mockMvc.perform(post("/api/blockchains/zones").with(authentication(adminAuth))
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(POST_ONPREM_BODY))
                 .andExpect(status().isOk()).andReturn();
         String body = result.getResponse().getContentAsString();
-        ZoneResponse zone = objectMapper.readValue(body, ZoneResponse.class);
+        ZoneResponse zone = objectMapper.readValue(body, OnPremGetResponse.class);
         verify(zoneService, times(1)).put(any(Zone.class));
-        Assertions.assertTrue(zone instanceof OnpremGetResponse);
+        Assertions.assertTrue(zone instanceof OnPremGetResponse);
         // This was done as a consortium admin.  The org id should have been changed.
         Assertions.assertEquals(UUID.fromString("9ecb07bc-482c-48f3-80d0-23c4f9514902"),
-                                ((OnpremGetResponse) zone).getOrgId());
-        Assertions.assertEquals("admin", ((OnpremGetResponse) zone).getVcenter().getUsername());
+                                ((OnPremGetResponse) zone).getOrgId());
+        Assertions.assertEquals("admin", ((OnPremGetResponse) zone).getVcenter().getUsername());
     }
 
     @Test
-    void testPostOnpremNoOrg() throws Exception {
+    void testPostOnPremNoOrg() throws Exception {
         MvcResult result = mockMvc.perform(post("/api/blockchains/zones").with(authentication(adminAuth))
                                                    .contentType(MediaType.APPLICATION_JSON)
                                                    .content(POST_NO_ORG_BODY))
@@ -406,15 +423,15 @@ class ZoneControllerTest {
         String body = result.getResponse().getContentAsString();
         ZoneResponse zone = objectMapper.readValue(body, ZoneResponse.class);
         verify(zoneService, times(1)).put(any(Zone.class));
-        Assertions.assertTrue(zone instanceof OnpremGetResponse);
+        Assertions.assertTrue(zone instanceof OnPremGetResponse);
         // Org not specified, so it should be filled in
         Assertions.assertEquals(UUID.fromString("9ecb07bc-482c-48f3-80d0-23c4f9514902"),
-                                ((OnpremGetResponse) zone).getOrgId());
-        Assertions.assertEquals("admin", ((OnpremGetResponse) zone).getVcenter().getUsername());
+                                ((OnPremGetResponse) zone).getOrgId());
+        Assertions.assertEquals("admin", ((OnPremGetResponse) zone).getVcenter().getUsername());
     }
 
     @Test
-    void testPostOnpremSysadmin() throws Exception {
+    void testPostOnPremSysadmin() throws Exception {
         MvcResult result = mockMvc.perform(post("/api/blockchains/zones").with(authentication(systemAuth))
                                                    .contentType(MediaType.APPLICATION_JSON)
                                                    .content(POST_ONPREM_BODY))
@@ -423,12 +440,12 @@ class ZoneControllerTest {
         ZoneResponse zone = objectMapper.readValue(body, ZoneResponse.class);
         // This was done as a system admin.  The org_id should not have been changed.
         Assertions.assertEquals(UUID.fromString("5e5ff1c8-34b9-4fa3-9924-83eb14354d4c"),
-                                ((OnpremGetResponse) zone).getOrgId());
-        Assertions.assertEquals("admin", ((OnpremGetResponse) zone).getVcenter().getUsername());
+                                ((OnPremGetResponse) zone).getOrgId());
+        Assertions.assertEquals("admin", ((OnPremGetResponse) zone).getVcenter().getUsername());
     }
 
     @Test
-    void testPostOnpremSysadminNoOrg() throws Exception {
+    void testPostOnPremSysadminNoOrg() throws Exception {
         MvcResult result = mockMvc.perform(post("/api/blockchains/zones").with(authentication(systemAuth))
                                                    .contentType(MediaType.APPLICATION_JSON)
                                                    .content(POST_NO_ORG_BODY))
@@ -437,8 +454,8 @@ class ZoneControllerTest {
         ZoneResponse zone = objectMapper.readValue(body, ZoneResponse.class);
         // No org, so it should be filled in from OPER_ORG
         Assertions.assertEquals(OPER_ORG,
-                                ((OnpremGetResponse) zone).getOrgId());
-        Assertions.assertEquals("admin", ((OnpremGetResponse) zone).getVcenter().getUsername());
+                                ((OnPremGetResponse) zone).getOrgId());
+        Assertions.assertEquals("admin", ((OnPremGetResponse) zone).getVcenter().getUsername());
     }
 
     @Test

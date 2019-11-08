@@ -8,11 +8,17 @@ import static com.vmware.blockchain.services.blockchains.zones.Zone.LAT_KEY;
 import static com.vmware.blockchain.services.blockchains.zones.Zone.LONG_KEY;
 import static com.vmware.blockchain.services.blockchains.zones.Zone.NAME_KEY;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 
 import com.google.common.collect.ImmutableMap;
 import com.vmware.blockchain.common.BadRequestException;
@@ -21,6 +27,7 @@ import com.vmware.blockchain.deployment.v1.BearerTokenCredential;
 import com.vmware.blockchain.deployment.v1.Credential;
 import com.vmware.blockchain.deployment.v1.Endpoint;
 import com.vmware.blockchain.deployment.v1.IPv4Network;
+import com.vmware.blockchain.deployment.v1.LogManagement;
 import com.vmware.blockchain.deployment.v1.OrchestrationSiteInfo;
 import com.vmware.blockchain.deployment.v1.OutboundProxyInfo;
 import com.vmware.blockchain.deployment.v1.PasswordCredential;
@@ -28,32 +35,55 @@ import com.vmware.blockchain.deployment.v1.TransportSecurity;
 import com.vmware.blockchain.deployment.v1.VSphereDatacenterInfo;
 import com.vmware.blockchain.deployment.v1.VSphereOrchestrationSiteInfo;
 import com.vmware.blockchain.deployment.v1.VmcOrchestrationSiteInfo;
-import com.vmware.blockchain.services.blockchains.zones.OnpremZone;
+import com.vmware.blockchain.services.blockchains.zones.OnPremZone;
 import com.vmware.blockchain.services.blockchains.zones.VmcAwsZone;
 import com.vmware.blockchain.services.blockchains.zones.Zone;
 import com.vmware.blockchain.services.blockchains.zones.Zone.Type;
 
 /**
- * Convienient utilities for Blockchain stuff.
+ * Convenient utilities for Blockchain stuff.
  */
+@Component
 public class BlockchainUtils {
     private static Logger logger = LogManager.getLogger();
+    private static String lintEndpoint;
+    private static String lintAuthBearer;
+
+    @Autowired
+    public BlockchainUtils(@Value("${lint.logging.endpoint}") String lintEndpoint,
+                           @Value("${lint.logging.authbearer}") String lintAuthBearer) {
+        BlockchainUtils.lintEndpoint = lintEndpoint;
+        BlockchainUtils.lintAuthBearer = lintAuthBearer;
+    }
 
     private static ImmutableMap<Type, OrchestrationSiteInfo.Type> typeMap =
             ImmutableMap.of(Type.NONE, OrchestrationSiteInfo.Type.NONE,
                             Type.ON_PREM, OrchestrationSiteInfo.Type.VSPHERE,
                             Type.VMC_AWS, OrchestrationSiteInfo.Type.VMC);
 
-
     /**
-     * Create a Fleet credential.
+     * Create a Fleet Password Credential.
      */
-    public static Credential toCredential(String user, String password) {
+    private static Credential toPasswordCredential(String user, String password) {
         return Credential.newBuilder()
                 .setType(Credential.Type.PASSWORD)
-                .setPasswordCredential(PasswordCredential.newBuilder().setUsername(user).setPassword(password).build())
+                .setPasswordCredential(PasswordCredential.newBuilder()
+                        .setUsername(user)
+                        .setPassword(password)
+                        .build())
                 .build();
+    }
 
+    /**
+     * Create a Fleet Bearer Credential.
+     */
+    private static Credential toBearerCredential(String bearer) {
+        return Credential.newBuilder()
+                .setType(Credential.Type.BEARER)
+                .setTokenCredential(BearerTokenCredential.newBuilder()
+                        .setToken(bearer)
+                        .build())
+                .build();
     }
 
     /**
@@ -62,15 +92,15 @@ public class BlockchainUtils {
     public static OrchestrationSiteInfo toInfo(Zone zone)  {
 
         if (Type.ON_PREM.equals(zone.getType())) {
-            OnpremZone op = (OnpremZone) zone;
+            OnPremZone op = (OnPremZone) zone;
             if (op.getVCenter() == null) {
-                logger.info("Missing required field vCenter");
+                logger.info("Missing required field vcenter");
                 throw new BadRequestException(ErrorCode.BAD_REQUEST);
             }
 
             final Endpoint api = Endpoint.newBuilder()
                     .setAddress(op.getVCenter().getUrl())
-                    .setCredential(toCredential(op.getVCenter().getUsername(), op.getVCenter().getPassword()))
+                    .setCredential(toPasswordCredential(op.getVCenter().getUsername(), op.getVCenter().getPassword()))
                     .setTransportSecurity(TransportSecurity.newBuilder().build())
                     .build();
 
@@ -79,7 +109,7 @@ public class BlockchainUtils {
             if (op.getContainerRepo() != null) {
                 container = Endpoint.newBuilder()
                         .setAddress(op.getContainerRepo().getUrl())
-                        .setCredential(toCredential(op.getContainerRepo().getUsername(),
+                        .setCredential(toPasswordCredential(op.getContainerRepo().getUsername(),
                                                     op.getContainerRepo().getPassword()))
                         .setTransportSecurity(TransportSecurity.newBuilder().setType(TransportSecurity.Type.NONE))
                         .build();
@@ -126,17 +156,18 @@ public class BlockchainUtils {
                     .setOutboundProxy(outboundProxyInfo)
                     .build();
 
-            VSphereOrchestrationSiteInfo vspherInfo = VSphereOrchestrationSiteInfo.newBuilder()
+            VSphereOrchestrationSiteInfo vSphereInfo = VSphereOrchestrationSiteInfo.newBuilder()
                     .setApi(api)
                     .setContainerRegistry(container)
                     .setVsphere(dcInfo)
+                    .addAllLogManagements(toFleetLogManagements(op))
                     .build();
 
             return OrchestrationSiteInfo.newBuilder()
                     .setType(typeMap.get(zone.getType()))
                     .putAllLabels(toMap(zone))
                     .setVmc(VmcOrchestrationSiteInfo.newBuilder().build())
-                    .setVsphere(vspherInfo)
+                    .setVsphere(vSphereInfo)
                     .build();
 
         } else if (Type.VMC_AWS.equals(zone.getType())) {
@@ -164,13 +195,7 @@ public class BlockchainUtils {
 
             Endpoint authenticationEndpoint = Endpoint.newBuilder()
                     .setAddress(op.getCspUrl())
-                    .setCredential(Credential.newBuilder()
-                                           .setType(Credential.Type.BEARER)
-                                           .setTokenCredential(
-                                                   BearerTokenCredential.newBuilder()
-                                                           .setToken(op.getRefreshToken())
-                                                           .build())
-                                           .build())
+                    .setCredential(toBearerCredential(op.getRefreshToken()))
                     .build();
 
             VmcOrchestrationSiteInfo vmcOrchestrationSiteInfo = VmcOrchestrationSiteInfo.newBuilder()
@@ -179,6 +204,7 @@ public class BlockchainUtils {
                     .setOrganization(op.getOrganization())
                     .setDatacenter(op.getDatacenter())
                     .setVsphere(dcInfo)
+                    .addAllLogManagements(toFleetLogManagements(op))
                     .build();
             return OrchestrationSiteInfo.newBuilder()
                     .setType(typeMap.get(zone.getType()))
@@ -212,5 +238,52 @@ public class BlockchainUtils {
             map.put(LONG_KEY, z.getLongitude());
         }
         return map;
+    }
+
+    private static List<LogManagement> toFleetLogManagements(Zone zone) {
+
+        List<LogManagement> logManagements = new ArrayList<>();
+        if (Type.ON_PREM.equals(zone.getType())) {
+            OnPremZone opZone = (OnPremZone) zone;
+            if (opZone.getLogManagements() != null) {
+                logManagements = opZone.getLogManagements().stream()
+                        .map(lm -> LogManagement.newBuilder()
+                                    .setDestinationValue(lm.getDestination().getValue())
+                                    .setEndpoint(Endpoint.newBuilder()
+                                        .setAddress(lm.getAddress())
+                                        .setCredential(toPasswordCredential(lm.getUsername(), lm.getPassword()))
+                                        .build())
+                                    .setLogInsightAgentId(lm.getLogInsightAgentId())
+                                    .build())
+                        .collect(Collectors.toList());
+            }
+        }
+        else if (Type.VMC_AWS.equals(zone.getType())) {
+            VmcAwsZone vmcZone = (VmcAwsZone) zone;
+            if (vmcZone.getLogManagements() != null) {
+                logManagements = vmcZone.getLogManagements().stream()
+                        .map(lm -> LogManagement.newBuilder()
+                                    .setDestinationValue(lm.getDestination().getValue())
+                                    .setEndpoint(Endpoint.newBuilder()
+                                        .setAddress(lm.getAddress())
+                                        .setCredential(toBearerCredential(lm.getToken()))
+                                        .build())
+                                    .build())
+                        .collect(Collectors.toList());
+            } else {
+                // As of right now VMC AWS zones are not created from zones API
+                // Add static logging information for VMC for now
+                LogManagement vmcLogManagement = LogManagement.newBuilder()
+                                                .setDestination(LogManagement.Type.LOG_INTELLIGENCE)
+                                                .setEndpoint(Endpoint.newBuilder()
+                                                    .setAddress(lintEndpoint)
+                                                    .setCredential(toBearerCredential(lintAuthBearer))
+                                                    .build())
+                                                .build();
+                logManagements.add(vmcLogManagement);
+            }
+        }
+
+        return logManagements;
     }
 }

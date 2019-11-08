@@ -249,7 +249,7 @@ public class BlockchainController {
     }
 
     /**
-     * Get the blckchain details.
+     * Get the blockchain details.
      */
     @RequestMapping(path = "/api/blockchains/{id}", method = RequestMethod.GET)
     @PreAuthorize("@authHelper.canAccessChain(#id)")
@@ -271,6 +271,7 @@ public class BlockchainController {
         List<Entry> list;
         if (placementType == Type.FIXED) {
             if (zoneIds.size() != clusterSize) {
+                logger.info("Number of zones not equal to cluster size");
                 throw new BadRequestException(ErrorCode.BAD_REQUEST);
             }
             list = zoneIds.stream()
@@ -299,7 +300,7 @@ public class BlockchainController {
         var placementSpec = PlacementSpecification.newBuilder()
                 .addAllEntries(list)
                 .build();
-        // var placementSpec = new PlacementSpecification(list);
+
         var blockChainType = blockchainType == null ? ConcordModelSpecification.BlockchainType.ETHEREUM
                 : enumMapForBlockchainType.get(blockchainType);
 
@@ -427,6 +428,7 @@ public class BlockchainController {
             if (body.deploymentType == FIXED) {
                 if (body.getZoneIds() == null
                         || body.getZoneIds().size() != clusterSize) {
+                    logger.info("Number of zones not equal to cluster size");
                     throw new BadRequestException(ErrorCode.BAD_REQUEST);
                 }
             }
@@ -460,7 +462,7 @@ public class BlockchainController {
     public ResponseEntity<BlockchainTaskResponse> updateBlockchain(@PathVariable UUID id,
             @RequestBody BlockchainPatch body) throws NotFoundException {
 
-        // Temporary: create a completed task that points to the default bockchain
+        // Temporary: create a completed task that points to the default blockchain
         Task task = new Task();
         task.setState(State.SUCCEEDED);
         task.setMessage("Default Blockchain");

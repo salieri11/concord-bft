@@ -149,6 +149,7 @@ services:
                  "-Dspring.profiles.active=test", "-jar", "blockchain-helen.jar"]
     environment:
       - "LINT_API_TOKEN=${LINT_API_KEY}"
+      - "LINT_AUTHORIZATION_BEARER=${LINT_AUTHORIZATION_BEARER}"
       - APPCONTEXT=test
 
   ui:

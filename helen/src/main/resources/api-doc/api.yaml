@@ -673,7 +673,7 @@ paths:
       operationId: getBlockchainZones
       responses:
         200:
-          $ref: '#/components/responses/ZoneListReponse'
+          $ref: '#/components/responses/ZoneListResponse'
         400:
           $ref: '#/components/responses/ErrorResponse'
         404:
@@ -693,7 +693,7 @@ paths:
             enum: [reload]
       description: Create a new on-premises zone as defined
       requestBody:
-        $ref: '#/components/requestBodies/CreateZoneRequst'
+        $ref: '#/components/requestBodies/CreateZoneRequest'
       responses:
         200:
           $ref: '#/components/responses/ZoneGetResponse'
@@ -726,7 +726,7 @@ paths:
             type: string
             format: uuid
       requestBody:
-        $ref: '#/components/requestBodies/PatchZoneRequst'
+        $ref: '#/components/requestBodies/PatchZoneRequest'
       responses:
         200:
           $ref: '#/components/responses/ZoneGetResponse'
@@ -2572,7 +2572,7 @@ components:
           $ref: '#/components/schemas/PostEndpoint'
         network:
           $ref: '#/components/schemas/Network'
-        resouce_pool:
+        resource_pool:
           type: string
           description: Name of resource pool to use for deployment
           example:
@@ -2589,6 +2589,8 @@ components:
             Blockchain Folder
         container_repo:
           $ref: '#/components/schemas/PostEndpoint'
+        log_managements:
+          $ref: '#/components/schemas/OnPremLogManagementsPost'
 
     OnPremZoneGet:
       type: object
@@ -2624,8 +2626,10 @@ components:
             Blockchain Folder
         container_repo:
           $ref: '#/components/schemas/GetEndpoint'
+        log_managements:
+          $ref: '#/components/schemas/OnPremLogManagementsGet'
 
-    # Swagger viewer does not display discriminated types correctly.  Temporarliy changing this to allOf
+    # Swagger viewer does not display discriminated types correctly.  Temporarily changing this to allOf
     # just to get the fields listed
 #    Zone:
 #      type: object
@@ -2706,6 +2710,60 @@ components:
           items:
             type: string
 
+    OnPremLogManagementsPost:
+      description: List of configurations for logging setup
+      type: array
+      items:
+        type: object
+        required:
+          - destination
+          - address
+          - username
+          - password
+        properties:
+          destination:
+            type: string
+            description: |
+              Log destination. Currently supported options - "LOG_INTELLIGENCE" or "LOG_INSIGHT"
+            enum: [LOG_INTELLIGENCE, LOG_INSIGHT]
+            example: LOG_INSIGHT
+          address:
+            type: string
+            description: |
+              Endpoint of the logging setup. Specify port separated by a &#58; if the endpoint is an IP address
+            example: https://example.com
+          username:
+            type: string
+            description: Username to be used for authentication when sending logs to destination
+            example: foobar
+          password:
+            type: string
+            description: Password to be used for authentication when sending logs to destination
+            example: P@$$
+          log_insight_agent_id:
+            type: integer
+            description: ID of an agent setup for Log Insight
+            example: 100
+
+    OnPremLogManagementsGet:
+      description: Available logging setup
+      type: array
+      items:
+        type: object
+        properties:
+          destination:
+            type: string
+            description: Log destination
+            enum: [LOG_INTELLIGENCE, LOG_INSIGHT]
+            example: LOG_INSIGHT
+          address:
+            type: string
+            description: Endpoint of the logging setup
+            example: https://example.com
+          username:
+            type: string
+            description: Username used for sending logs to destination
+            example: foobar
 
 
   responses:
@@ -2716,7 +2774,7 @@ components:
           schema:
             $ref: '#/components/schemas/Error'
 
-    ZoneListReponse:
+    ZoneListResponse:
       description: List of available zones
       content:
         application/json:
@@ -2734,14 +2792,14 @@ components:
 
 
   requestBodies:
-    CreateZoneRequst:
+    CreateZoneRequest:
       description: Create a new zone
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/OnPremZonePost'
 
-    PatchZoneRequst:
+    PatchZoneRequest:
       description: Patch an existing zone
       content:
         application/json:

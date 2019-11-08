@@ -4,11 +4,14 @@
 
 package com.vmware.blockchain.services.blockchains.zones;
 
+import java.util.List;
 import java.util.UUID;
 
 import com.vmware.blockchain.dao.EntityColumnName;
 import com.vmware.blockchain.dao.LinkedEntityId;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
@@ -21,6 +24,19 @@ import lombok.NoArgsConstructor;
 @EqualsAndHashCode(callSuper = true)
 @NoArgsConstructor
 public class VmcAwsZone extends Zone {
+
+    /**
+     * Logging information for VMC AWS.
+     */
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class LogManagementVmcAws {
+        LogDestination destination;
+        String address;
+        String token;
+    }
 
     @LinkedEntityId
     UUID orgId;
@@ -36,5 +52,6 @@ public class VmcAwsZone extends Zone {
     String storage;
     String folder;
     Network network;
+    List<LogManagementVmcAws> logManagements;
 
 }

@@ -136,11 +136,11 @@ public class ZoneServiceTest {
         genericDao.put(v1, null);
         genericDao.put(v2, null);
 
-        OnpremZone ozone = getOnpremZone(ONPREM_ORG);
+        OnPremZone ozone = getOnpremZone(ONPREM_ORG);
         Zone z = zoneService.put(ozone);
         onPremId = z.getId();
 
-        OnpremZone ozone2 = getOnpremZone(ORG_2);
+        OnPremZone ozone2 = getOnpremZone(ORG_2);
         z = zoneService.put(ozone2);
         onPrem2Id = z.getId();
     }
@@ -166,7 +166,7 @@ public class ZoneServiceTest {
         Assertions.assertEquals(SITE_2, z2.getId());
         Assertions.assertEquals(NONE, z2.getType());
         Assertions.assertEquals("US_EAST", z2.getName());
-        Assertions.assertTrue(l.get(2) instanceof OnpremZone);
+        Assertions.assertTrue(l.get(2) instanceof OnPremZone);
     }
 
     @Test
@@ -177,7 +177,7 @@ public class ZoneServiceTest {
 
     @Test
     void onPremTest() throws Exception {
-        List<OnpremZone> l = zoneService.getOnpremZones(ONPREM_ORG);
+        List<OnPremZone> l = zoneService.getOnpremZones(ONPREM_ORG);
         Assertions.assertEquals(1, l.size());
     }
 
@@ -250,7 +250,7 @@ public class ZoneServiceTest {
     void getUuid() throws Exception {
         final UUID noSuchSite = UUID.fromString("0b51cd29-17cf-4baa-bfab-6bed938b1396");
         Zone z = zoneService.get(onPremId);
-        Assertions.assertTrue(z instanceof OnpremZone);
+        Assertions.assertTrue(z instanceof OnPremZone);
 
         z = zoneService.get(SITE_1);
         Assertions.assertNotNull(z);
