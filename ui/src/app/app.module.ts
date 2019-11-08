@@ -23,6 +23,10 @@ import { VmwClarityThemeService } from './shared/theme.provider';
 import { VIPModule } from '@vmw/ngx-vip';
 
 import { AppInitService } from './app.init';
+import { MainComponent } from './main/main/main.component';
+import { AuthenticatedGuard } from './shared/authenticated-guard.service';
+import { AgreementGuard } from './shared/agreement-guard.service';
+import { BlockchainResolver } from './blockchain/shared/blockchain.service';
 
 export function HttpLoaderFactory(http: HttpClient) {
   return new TranslateHttpLoader(http, 'static/i18n/', '.json');
@@ -91,7 +95,14 @@ export function init_app(appLoadService: AppInitService) {
         useFactory: HttpLoaderFactory,
         deps: [HttpClient]
       }
-    })
+    }),
+    RouterModule.forChild([{
+      // Redirect all unmatched to main dahboard
+      path: '**', // must be added AFTER all sub-modules (such as MainModule, SharedModule)
+      canActivate: [AuthenticatedGuard, AgreementGuard],
+      resolve: {blockchain: BlockchainResolver},
+      component: MainComponent
+    }]),
   ],
   providers: [
     AppInitService,

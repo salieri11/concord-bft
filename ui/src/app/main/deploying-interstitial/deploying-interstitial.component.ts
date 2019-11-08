@@ -2,22 +2,26 @@
  * Copyright 2018-2019 VMware, all rights reserved.
  */
 
-import { Component } from '@angular/core';
+import { Component, ViewChild, OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
 import { HttpResponse, HttpErrorResponse } from '@angular/common/http';
 import { TranslateService } from '@ngx-translate/core';
-import { of, Observable } from 'rxjs';
+import { of, Observable, Subscription } from 'rxjs';
 import { delay, map } from 'rxjs/operators';
 
 import { BlockchainService } from '../../blockchain/shared/blockchain.service';
 import { DeployStates, ContractEngines } from '../../blockchain/shared/blockchain.model';
+import { ClrProgressBar } from '@clr/angular';
 
 @Component({
   selector: 'concord-deploying-interstitial',
   templateUrl: './deploying-interstitial.component.html',
   styleUrls: ['./deploying-interstitial.component.scss']
 })
-export class DeployingInterstialComponent {
+export class DeployingInterstitialComponent implements OnDestroy {
+
+  @ViewChild('progressBar', { static: true }) progressBar: ClrProgressBar;
+
   loading: boolean = true;
   error: string;
   showInterstitial = false;
@@ -28,15 +32,16 @@ export class DeployingInterstialComponent {
   progress: number = 0;
   blockchainType: ContractEngines;
 
+  blockchainNotifySub: Subscription;
+
   constructor(
     private blockchainService: BlockchainService,
     private router: Router,
     private translate: TranslateService
   ) {
-    this.blockchainService.notify.subscribe(message => {
+    this.blockchainNotifySub = this.blockchainService.notify.subscribe(message => {
       if (message && message.message === 'deploying') {
         this.loading = true;
-        this.showInterstitial = true;
         this.blockchainType = message.type;
         this.isOnlyOnPrem = message.isOnlyOnPrem;
       }
@@ -44,16 +49,19 @@ export class DeployingInterstialComponent {
     this.message = this.translate.instant('deployLoader.waiting');
   }
 
-  startLoading(response: HttpResponse<any> | HttpErrorResponse) {
-    if (response && response['task_id']) {
-      this.pollUntilDeployFinished(response['task_id']);
+  startLoading(taskId: string, error?: HttpErrorResponse) {
+    if (error) {
+      this.showError(error);
     } else {
-      this.showError(response);
+      this.pollUntilDeployFinished(taskId);
     }
 
     this.error = null;
     this.loading = true;
-    this.showInterstitial = true;
+  }
+
+  ngOnDestroy() {
+    if (this.blockchainNotifySub) { this.blockchainNotifySub.unsubscribe(); }
   }
 
   private pollUntilDeployFinished(taskId: string) {
@@ -61,7 +69,6 @@ export class DeployingInterstialComponent {
 
     this.blockchainService.pollDeploy(taskId)
       .subscribe((response) => {
-
         if (response.state === DeployStates.SUCCEEDED) {
           message.unsubscribe();
           this.progress = 100;
@@ -72,7 +79,6 @@ export class DeployingInterstialComponent {
               const fragment = this.isOnlyOnPrem ? null : 'orgTour';
               // TODO: enable the dashboard to show a toast - response.resource_id is the bid
               this.router.navigate([`/${response.resource_id}`, 'dashboard'], {fragment: fragment});
-              this.showInterstitial = false;
               this.blockchainService.notify.next({message: 'deployed'});
             }, 3000);
           });
@@ -159,4 +165,5 @@ export class DeployingInterstialComponent {
     this.error = error['message'] || error['error_message'];
     this.loading = false;
   }
+
 }

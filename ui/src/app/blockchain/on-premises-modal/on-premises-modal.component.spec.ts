@@ -9,7 +9,7 @@ import { RouterTestingModule } from '@angular/router/testing';
 
 import { AuthenticationService } from '../../shared/authentication.service';
 import { PersonaService } from '../../shared/persona.service';
-import { BlockchainService, BlockchainsServiceMock } from './../shared/blockchain.service';
+import { BlockchainService, MockBlockchainsService } from './../shared/blockchain.service';
 
 import { OnPremisesFormComponent } from '../on-premises-form/on-premises-form.component';
 import { VmwComboboxComponent } from '../../shared/components/combobox/combobox.component';
@@ -33,7 +33,7 @@ describe('OnPremisesModalComponent', () => {
         PersonaService,
         {
           provide: BlockchainService,
-          useClass: BlockchainsServiceMock
+          useClass: MockBlockchainsService
         },
       ],
 

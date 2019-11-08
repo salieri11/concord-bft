@@ -5,17 +5,17 @@
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { ApiComponent } from './api.component';
-import { SwaggerComponent } from '../swagger/swagger.component';
+import { getSpecTestingModule } from '../../shared/shared.module';
 
 describe('ApiComponent', () => {
   let component: ApiComponent;
   let fixture: ComponentFixture<ApiComponent>;
 
-  beforeEach(async(() => {
-    TestBed.configureTestingModule({
-      declarations: [ ApiComponent, SwaggerComponent ]
-    })
-    .compileComponents();
+  beforeEach(async( async () => {
+    const tester = await getSpecTestingModule();
+    TestBed.configureTestingModule(tester.init({
+      imports: [], provides: [], declarations: []
+    })).compileComponents();
   }));
 
   beforeEach(() => {

@@ -15,29 +15,30 @@ import { LogInContainerComponent } from './login/login.component';
 
 import { OnboardingComponent } from './onboarding/onboarding.component';
 import { SignUpComponent } from './sign-up/sign-up.component';
+import { authRoutes } from '../shared/urls.model';
+
 import { AgreementGuard } from '../shared/agreement-guard.service';
+import { AuthenticatedGuard } from '../shared/authenticated-guard.service';
 
 const routes: Routes = [
+  // ROUTE: /auth/*
   {
-    path: 'auth',
-
-    children: [
-      {
-        path: 'login',
-        component: LogInContainerComponent,
-        canActivate: [AgreementGuard],
-      },
-      {
-        path: 'signup',
-        component: SignUpComponent,
-        canActivate: [AgreementGuard],
-      },
-      {
-        path: 'onboarding',
-        component: OnboardingComponent
-      },
-    ]
-  }
+    path: authRoutes.base,
+    children: [{
+      // ROUTE: /auth/onboarding (TOS agreement)
+      path: authRoutes.onboarding,
+      canActivate: [AuthenticatedGuard],
+      component: OnboardingComponent,
+    }, { // ? DEPRECATED BY CSP; ROUTE: /auth/login (kept for `npm test`)
+      path: authRoutes.login,
+      canActivate: [AgreementGuard],
+      component: LogInContainerComponent
+    }, { // ? DEPRECATED BY CSP; ROUTE: /auth/signup (kept for `npm test`)
+      path: authRoutes.signup,
+      canActivate: [AgreementGuard],
+      component: SignUpComponent
+    }]
+  },
 ];
 
 @NgModule({

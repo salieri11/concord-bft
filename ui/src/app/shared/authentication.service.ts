@@ -20,7 +20,6 @@ export class AuthenticationService {
   redirectUrl: string;
   accessToken: string;
   logoutPath: string = '/api/oauth/logout';
-  loginReturnPath: string = 'login-return';
   parsedToken: any;
 
   constructor(

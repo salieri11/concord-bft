@@ -1,16 +1,14 @@
 /*
  * Copyright 2018-2019 VMware, all rights reserved.
  */
-
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { getSpecTestingModule } from '../../shared.module';
-import { VersionComponent } from './version.component';
+import { DeployingComponent } from './deploying.component';
+import { getSpecTestingModule } from '../../shared/shared.module';
 
-describe('VersionComponent', () => {
-  let component: VersionComponent;
-  let fixture: ComponentFixture<VersionComponent>;
-  let element: Element;
+describe('DeployingComponent', () => {
+  let component: DeployingComponent;
+  let fixture: ComponentFixture<DeployingComponent>;
 
   beforeEach(async( async () => {
     const tester = await getSpecTestingModule();
@@ -21,8 +19,7 @@ describe('VersionComponent', () => {
   }));
 
   beforeEach(() => {
-    fixture = TestBed.createComponent(VersionComponent);
-    element = fixture.debugElement.nativeElement;
+    fixture = TestBed.createComponent(DeployingComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });
@@ -30,10 +27,4 @@ describe('VersionComponent', () => {
   it('should create', () => {
     expect(component).toBeTruthy();
   });
-
-  it('should have help text', () => {
-    const helpText = element.querySelector('p');
-    expect(helpText.innerText).toContain('Email blockchain-support@vmware.com');
-  });
-
 });

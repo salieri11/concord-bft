@@ -1,6 +1,6 @@
 <form *ngIf="form" [formGroup]="form" class="clr-form-horizontal">
   <clr-wizard #wizard clrWizardSize="lg" [(clrWizardOpen)]="isOpen" (clrWizardOnFinish)="onSubmit()"
-    (clrWizardOnCancel)="resetFragment()" class="blockchain-wizard extra-wide">
+    (clrWizardOnCancel)="onCancel()" class="blockchain-wizard extra-wide">
     <clr-wizard-title>{{'blockchainWizard.title' | translate}}</clr-wizard-title>
     <clr-wizard-button [type]="'cancel'">{{'common.cancel' | translate}}</clr-wizard-button>
     <clr-wizard-button [type]="'previous'">{{'common.back' | translate}}</clr-wizard-button>

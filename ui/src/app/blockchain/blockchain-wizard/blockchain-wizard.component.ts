@@ -10,7 +10,6 @@ import {
   EventEmitter,
   ElementRef
 } from '@angular/core';
-import { Router } from '@angular/router';
 import { FormControl, FormGroup, Validators, ValidatorFn, ValidationErrors } from '@angular/forms';
 import { ClrWizard, ClrWizardPage } from '@clr/angular';
 
@@ -19,6 +18,8 @@ import { BlockchainService } from '../shared/blockchain.service';
 import { BlockchainRequestParams, Zone, ContractEngines } from '../shared/blockchain.model';
 import { OnPremisesFormComponent } from '../on-premises-form/on-premises-form.component';
 import { ZoneType } from '../shared/blockchain.model';
+import { ConsortiumStates } from '../../shared/urls.model';
+import { RouteService } from '../../shared/route.service';
 
 const RegionCountValidator: ValidatorFn = (fg: FormGroup): ValidationErrors | null => {
   const nodes = fg['controls'].numberOfNodes.value;
@@ -32,6 +33,7 @@ const RegionCountValidator: ValidatorFn = (fg: FormGroup): ValidationErrors | nu
   return nodes === count ? { 'countIsCorrect': true } : { 'countIsCorrect': false };
 };
 
+interface EventData { type: string; data?: any; error?: Error; }
 
 @Component({
   selector: 'concord-blockchain-wizard',
@@ -46,7 +48,8 @@ export class BlockchainWizardComponent implements AfterViewInit {
   @ViewChild('replicaPage', { static: false }) replicaPage: ClrWizardPage;
   @ViewChild('onPremForm', { static: false }) onPremForm: OnPremisesFormComponent;
   @ViewChild('consortiumInput', { static: false }) consortiumInput: ElementRef;
-  @Output('setupComplete') setupComplete: EventEmitter<any> = new EventEmitter<any>();
+
+  @Output('events') events: EventEmitter<EventData> = new EventEmitter<EventData>();
 
   selectedEngine: string;
   isOpen = false;
@@ -62,8 +65,8 @@ export class BlockchainWizardComponent implements AfterViewInit {
   loadingFlag: boolean;
 
   constructor(
-    private router: Router,
-    private blockchainService: BlockchainService
+    private blockchainService: BlockchainService,
+    private routeService: RouteService,
   ) {
     this.filterZones();
     this.form = this.initForm();
@@ -77,8 +80,8 @@ export class BlockchainWizardComponent implements AfterViewInit {
     this.selectedEngine = type;
   }
 
-  resetFragment() {
-    this.router.navigate([]);
+  onCancel() {
+    this.events.emit({type: 'cancel'});
   }
 
   personaName(value): string {
@@ -131,16 +134,24 @@ export class BlockchainWizardComponent implements AfterViewInit {
     const zones = this.form.controls.nodes['controls'].zones.value;
     const isOnlyOnPrem = this.zones.some(zone => zone.type === ZoneType.ON_PREM);
     let zoneIds = [];
+
     // Create an array of zone ids for each deployed node instance.
     Object.keys(zones).forEach(zoneId => zoneIds = zoneIds.concat(Array(Number(zones[zoneId])).fill(zoneId)));
     params.zone_ids = zoneIds;
+
+    /**
+     * Sometimes API request takes seconds to return, then, UI will hang at a blank
+     * template (with wizard closed/submitted) which is likely to throw off the user.
+     * So route user right away to deploying page before response, and once the
+     * response returns :taskId will overridden by response task_id.
+     * */
+    this.routeService.goToDeploying(ConsortiumStates.waiting);
+
     this.blockchainService.deploy(params, isOnlyOnPrem).subscribe(response => {
-      this.setupComplete.emit(response);
-      this.router.navigate(['/deploying', 'dashboard'], {
-        queryParams: { task_id: response['task_id'] }
-      });
+      this.routeService.goToDeploying(response['task_id']);
     }, error => {
-      this.setupComplete.emit(error);
+      this.events.emit({type: 'error', data: error});
+      console.log(error);
     });
   }
 
@@ -149,6 +160,7 @@ export class BlockchainWizardComponent implements AfterViewInit {
   }
 
   doCancel() {
+    this.onCancel();
     this.wizard.close();
   }
 

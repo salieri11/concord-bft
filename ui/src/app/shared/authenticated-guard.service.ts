@@ -18,7 +18,8 @@ import { Personas, PersonaService } from './persona.service';
 import { ErrorAlertService } from './global-error-handler.service';
 import { FeatureFlagService } from './feature-flag.service';
 import { environment } from '../../environments/environment';
-import { QueryParams } from './urls.model';
+import { QueryParams, mainFragments, mainRoutes, authRoutes } from './urls.model';
+import { RouteService } from './route.service';
 
 
 @Injectable()
@@ -32,6 +33,7 @@ export class AuthenticatedGuard implements CanActivateChild, CanActivate {
     private errorService: ErrorAlertService,
     private translateService: TranslateService,
     private featureFlagService: FeatureFlagService,
+    private routeService: RouteService,
   ) { }
 
   async canActivateChild(
@@ -41,41 +43,38 @@ export class AuthenticatedGuard implements CanActivateChild, CanActivate {
     await this.featureFlagService.initialize().toPromise();
 
     if (!this.featureFlagService.routeIsAllowed(childRoute)) {
-      this.router.navigate(['/forbidden']);
+      this.router.navigate([mainRoutes.forbidden]);
       return false;
     } else if (this.env.csp) {
       return true;
     } else if (localStorage.getItem('changePassword') || !this.authenticationService.isAuthenticated()) {
-      this.router.navigate(['auth', 'login']);
+      this.router.navigate([authRoutes.base, authRoutes.login]);
       return false;
     } else if (personasAllowed && !this.personaService.hasAuthorization(personasAllowed)) {
       this.handleRoutingFailure();
-      this.router.navigate(['/forbidden']);
+      this.router.navigate([mainRoutes.forbidden]);
       return false;
     } else {
       return true;
     }
   }
 
-  async canActivate(
-    route: ActivatedRouteSnapshot,
-    state: RouterStateSnapshot
-  ) {
+  async canActivate(route: ActivatedRouteSnapshot, state: RouterStateSnapshot) {
+    if (!this.env.csp) { return true; }
+    if (this.authenticationService.accessToken) { return true; } // already logged in
 
-    if (this.env.csp) {
+    const auth = await this.authenticationService.getAccessToken().toPromise();
 
-      if (!this.authenticationService.accessToken) {
-        const auth = await this.authenticationService.getAccessToken().toPromise();
-
-       if (this.isNewUser(route, state, auth)) {
-          this.router.navigate(['/', 'welcome'], { fragment: 'welcome' });
-        }
-      }
-      return true;
-
-    } else {
-      return true;
+    if (this.isNewUser(route, state, auth)) {
+      await this.routeService.resolveConsortium();
+      this.routeService.redirectToDefault(mainFragments.welcome);
+      return false;
+    } else if (route.url.length === 0) { // emptry string path '', redirect to dashboard.
+      await this.routeService.resolveConsortium();
+      this.routeService.redirectToDefault();
+      return false;
     }
+    return true;
   }
 
   private handleRoutingFailure() {
@@ -87,7 +86,7 @@ export class AuthenticatedGuard implements CanActivateChild, CanActivate {
     state: RouterStateSnapshot,
     auth: UserAuthResponse
   ) {
-    return ((state.url.indexOf(this.authenticationService.loginReturnPath) !== -1
+    return ((state.url.indexOf(authRoutes.loginReturn) !== -1
       && route.queryParams[QueryParams.userKey] === QueryParams.userNewValue) ||
       auth.last_login === 0);
   }
