@@ -199,13 +199,17 @@ services:
     ports:
       - "24224:24224"
       - "24224:24224/udp"
+    volumes:
+          - /var/lib/docker/containers:/var/lib/docker/containers
     environment:
       - LOG_DESTINATION=LOG_INTELLIGENCE
-      - LINT_ENDPOINT_URL='https:\/\/data.mgmt.cloud.vmware.com\/le-mans\/v1\/streams\/ingestion-pipeline-stream'
-      - "LINT_API_KEY=${LINT_API_KEY}"
+      - LINT_ENDPOINT_URL=https://data.mgmt.cloud.vmware.com/le-mans/v1/streams/ingestion-pipeline-stream
+      - "LINT_AUTHORIZATION_BEARER=${LINT_AUTHORIZATION_BEARER}"
       - LOG_INSIGHT_HOST=10.78.20.10
       - LOG_INSIGHT_PORT=9000
       - LOG_INSIGHT_AGENT_ID=0
+      - CONSORTIUM_ID=100
+      - REPLICA_ID=1
 
   agent:
     image: "${persephone_agent_repo}:${persephone_agent_tag}"

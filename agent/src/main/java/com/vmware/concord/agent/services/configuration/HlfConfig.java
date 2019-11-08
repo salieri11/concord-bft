@@ -4,12 +4,12 @@
 
 package com.vmware.concord.agent.services.configuration;
 
-
 import java.util.List;
 
 import com.github.dockerjava.api.model.Bind;
 import com.github.dockerjava.api.model.ExposedPort;
 import com.github.dockerjava.api.model.Link;
+import com.github.dockerjava.api.model.LogConfig;
 import com.github.dockerjava.api.model.PortBinding;
 import com.github.dockerjava.api.model.Ports;
 
@@ -23,6 +23,10 @@ import lombok.Setter;
 
 @Getter
 public enum HlfConfig implements BaseContainerSpec {
+
+    LOGGING(LogConfig.LoggingType.FLUENTD.toString(), null,
+            List.of(Bind.parse("/var/lib/docker/containers:/var/lib/docker/containers")),
+            null, null, null),
     // HLF Configuration
     HLF_CONCORD("concord", List.of(
             new PortBinding(Ports.Binding.bindPort(50052), ExposedPort.tcp(50052)),
@@ -56,6 +60,7 @@ public enum HlfConfig implements BaseContainerSpec {
     private List<Bind> volumeBindings;
     private List<Link> links;
     private List<String> cmds;
+    @Setter
     private List<String> environment;
 
     HlfConfig(String containerName,

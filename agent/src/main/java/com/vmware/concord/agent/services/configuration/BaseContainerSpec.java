@@ -34,4 +34,6 @@ public interface BaseContainerSpec {
 
     List<String> getEnvironment();
 
+    void setEnvironment(List<String> environment);
+
 }

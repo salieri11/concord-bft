@@ -139,3 +139,24 @@ message OutboundProxyInfo {
     string https_host = 3;
     int32 https_port = 4;
 }
+
+/**
+ * Model definition for log managements.
+ *
+ * @property[destination]
+ *   destination of the logs.
+ * @property[endpoint]
+ *   endpoint information.
+ * @property[log_insight_agent_id]
+ *   if log insight has generated an agent id for use.
+ */
+message LogManagement {
+    enum Type {
+        LOG_INTELLIGENCE = 0;
+        LOG_INSIGHT = 1;
+    }
+
+    Type destination = 1;
+    Endpoint endpoint = 2;
+    uint32 log_insight_agent_id = 3;
+}

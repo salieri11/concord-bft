@@ -143,6 +143,8 @@ message VSphereDatacenterInfo {
  *   SDDC datacenter identifier owned by the organization.
  * @param[vsphere]
  *   information pertaining to the vSphere datacenter to use for compute deployment.
+ * @param[log_managements]
+ *   configurations for logging service deployment.
  */
 message VmcOrchestrationSiteInfo {
     Endpoint authentication = 1;
@@ -151,6 +153,7 @@ message VmcOrchestrationSiteInfo {
     string organization = 4;
     string datacenter = 5;
     VSphereDatacenterInfo vsphere = 6;
+    repeated LogManagement log_managements = 7 [packed=false];
 }
 
 /**
@@ -162,11 +165,14 @@ message VmcOrchestrationSiteInfo {
  *   container registry endpoint information.
  * @param[vsphere]
  *   information pertaining to the vSphere datacenter to use for compute deployment.
+ * @param[log_managements]
+ *   configuration for logging service deployment.
  */
 message VSphereOrchestrationSiteInfo {
     Endpoint api = 1;
     Endpoint container_registry = 2;
     VSphereDatacenterInfo vsphere = 3;
+    repeated LogManagement log_managements = 4 [packed=false];
 }
 
 /* [END messages] */
