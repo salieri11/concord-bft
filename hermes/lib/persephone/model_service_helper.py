@@ -39,6 +39,9 @@ class ModelServiceRPCHelper(RPCHelper):
 
       self.AGENT_ID = self.args.userConfig["persephoneTests"]["modelService"][
          "deployment_component_ids"]["AGENT"]
+      self.FLUENTD_ID = self.args.userConfig["persephoneTests"]["modelService"][
+         "deployment_component_ids"]["FLUENTD"]
+
       self.CONCORD_ID = self.args.userConfig["persephoneTests"]["modelService"][
          "deployment_component_ids"]["CONCORD"]
       self.ETHRPC_ID = self.args.userConfig["persephoneTests"]["modelService"][
@@ -116,6 +119,9 @@ class ModelServiceRPCHelper(RPCHelper):
             if self.AGENT_ID in component:
                concord_components.append(
                   (concord_model_pb2.ConcordComponent.GENERIC, component))
+            if self.FLUENTD_ID in component:
+               concord_components.append(
+                  (concord_model_pb2.ConcordComponent.LOGGING, component))
             if self.CONCORD_ID in component:
                concord_components.append(
                   (concord_model_pb2.ConcordComponent.DAML_CONCORD, component))
@@ -156,6 +162,9 @@ class ModelServiceRPCHelper(RPCHelper):
             if self.AGENT_ID in component:
                concord_components.append(
                   (concord_model_pb2.ConcordComponent.GENERIC, component))
+            if self.FLUENTD_ID in component:
+               concord_components.append(
+                  (concord_model_pb2.ConcordComponent.LOGGING, component))
             if self.CONCORD_ID in component:
                concord_components.append(
                   (concord_model_pb2.ConcordComponent.CONCORD, component))

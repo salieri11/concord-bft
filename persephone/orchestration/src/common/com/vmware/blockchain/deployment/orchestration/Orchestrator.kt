@@ -84,7 +84,8 @@ interface Orchestrator {
         val configurationSessionIdentifier: ConfigurationSessionIdentifier,
         val concordId: Int,
         val configServiceEndpoint: Endpoint,
-        val configServiceRestEndpoint: Endpoint
+        val configServiceRestEndpoint: Endpoint,
+        val consortium: String = ""
     )
 
     /**

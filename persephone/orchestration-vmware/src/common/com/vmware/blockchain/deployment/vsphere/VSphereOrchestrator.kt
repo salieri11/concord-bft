@@ -151,11 +151,14 @@ class VSphereOrchestrator constructor(
                                     network.nameServers,
                                     network.subnet,
                                     request.cluster,
+                                    request.node,
                                     request.concordId,
                                     request.configurationSessionIdentifier,
                                     request.configServiceEndpoint,
                                     request.configServiceRestEndpoint,
-                                    info.vsphere.outboundProxy
+                                    info.vsphere.outboundProxy,
+                                    info.logManagements,
+                                    request.consortium
                             )
                     )
 

@@ -16,6 +16,7 @@ from vmware.blockchain.ethereum.type import genesis_pb2
 sys.path.append('../../')
 from util.product import Product as Product
 import util.helper
+import uuid
 
 log = logging.getLogger(__name__)
 
@@ -181,11 +182,12 @@ class ProvisioningServiceRPCHelper(RPCHelper):
       :param model: Metadata for deployment
       :param placement: placement site/SDDC
       :param genesis_spec: genesis spec
+      :param consortium: randomly generated consortiumId
       :return: deployment specifcation
       '''
       deployment_specification = provisioning_service_pb2.DeploymentSpecification(
          cluster_size=cluster_size, model=model, placement=placement,
-         genesis=genesis_spec)
+         genesis=genesis_spec, consortium=str(uuid.uuid4()))
       return deployment_specification
 
    def create_cluster_request(self, header, specification):

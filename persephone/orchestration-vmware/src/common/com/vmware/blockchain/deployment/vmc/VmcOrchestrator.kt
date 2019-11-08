@@ -167,11 +167,14 @@ class VmcOrchestrator(
                                     network.nameServers,
                                     network.subnet,
                                     request.cluster,
+                                    request.node,
                                     request.concordId,
                                     request.configurationSessionIdentifier,
                                     request.configServiceEndpoint,
                                     request.configServiceRestEndpoint,
-                                    OutboundProxyInfo()
+                                    OutboundProxyInfo(),
+                                    info.logManagements,
+                                    request.consortium
                             )
                     )
 
