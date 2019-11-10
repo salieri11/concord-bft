@@ -34,11 +34,26 @@ COPY ./agent ./persephone/agent
 ## Build module with all of its dependencies.
 RUN mvn -f persephone/pom.xml package -pl agent -am -B
 
+# Environment preparation.
+FROM openjdk:11.0.2-jdk-slim as environment
+
+RUN apt-get update \
+    && apt-get install -y wget \
+    && wget --directory-prefix=/tmp/ https://dl.cacerts.digicert.com/DigiCertSHA2HighAssuranceServerCA.crt \
+    && keytool -importcert -alias vmwblockchain-cacert -cacerts -storepass changeit -file /tmp/DigiCertSHA2HighAssuranceServerCA.crt \
+    && wget --directory-prefix=/tmp/ https://vmbc-saas.s3.us-east-2.amazonaws.com/cacerts/config-service-test.crt \
+    && keytool -import -trustcacerts -cacerts -storepass changeit -noprompt -alias vmwb-test-config-cert -file /tmp/config-service-test.crt \
+    && wget --directory-prefix=/tmp/ http://aia.entrust.net/l1k-chain256.cer \
+    && keytool -importcert -alias vmwb-prod-config-cert  -cacerts -storepass changeit -file /tmp/l1k-chain256.cer
+
 # Runtime image (Persephone Agent).
 FROM openjdk:11.0.2-jdk-slim
 LABEL description="VMware Blockchain Concord Node Agent"
 
 RUN sed -i "/jdk.tls.disabledAlgorithms=/ s/=.*/=TLSv1.3, SSLv3, RC4, MD5withRSA, DH keySize < 1024, EC keySize < 224, DES40_CBC, RC4_40, 3DES_EDE_CBC/" $(readlink -f /usr/bin/java | sed "s:bin/java::")/conf/security/java.security
+
+## Install CA certificate.
+COPY --from=environment /docker-java-home/lib/security/cacerts /docker-java-home/lib/security/cacerts
 
 WORKDIR /persephone/agent
 COPY --from=0 ./persephone/agent/target/persephone-agent*with-dependencies.jar ./persephone-agent.jar

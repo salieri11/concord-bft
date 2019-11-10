@@ -7,7 +7,7 @@ import com.vmware.blockchain.deployment.agent.docker.DockerClient.ContainerPortB
 import com.vmware.blockchain.deployment.agent.docker.DockerClient.HostPortBinding
 
 /** Default component artifact target mount path. */
-private const val CONFIGURATION_MOUNT_PATH = "/config"
+const val CONFIGURATION_MOUNT_PATH = "/config"
 
 /**
  * Specification for customization settings of a container deployment.
@@ -110,6 +110,6 @@ enum class ContainerSettings(
                     ContainerPortBinding(8545, ContainerPortBinding.Protocol.TCP) to
                             listOf(HostPortBinding(port = 8545))
             ),
-            environment = mapOf("CONCORD_AUTHORITIES" to "concord")
+            environment = mapOf("CONCORD_AUTHORITIES" to "concord:5458")
     );
 }
