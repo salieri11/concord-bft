@@ -5,7 +5,7 @@ def call(){
   def agentLabel = "genericVM"
   def genericTests = true
   def additional_components_to_build = ""
-  def deployment_support_bundle_job_name = "Get Deployment support-bundle"
+  def deployment_support_bundle_job_name = "Get Deployment support bundle"
   def master_branch_job_name = "Master Branch"
   def lint_test_job_name = "Blockchain LINT Tests"
   def memory_leak_job_name = "BlockchainMemoryLeakTesting"
@@ -31,7 +31,7 @@ def call(){
     echo "**** Jenkins job for LINT Tests"
     genericTests = false
   } else if (env.JOB_NAME.contains(deployment_support_bundle_job_name)) {
-    echo "**** Jenkins job for collecting deployment support-bundle"
+    echo "**** Jenkins job for collecting deployment support bundle"
     genericTests = false
   } else {
     echo "**** Jenkins job for Generic Test Run"
@@ -499,7 +499,7 @@ EOF
                   '''
                 } else if (env.JOB_NAME.contains(deployment_support_bundle_job_name)) {
                   sh '''
-                    echo "No local build required for collecting deployment support-bundle..."
+                    echo "No local build required for collecting deployment support bundle..."
                   '''
                 } else {
                   sh '''
@@ -564,12 +564,12 @@ EOF
                     }
 
                     if (env.JOB_NAME.contains(deployment_support_bundle_job_name)) {
-                      saveTimeEvent("Collect deployment support-bundle", "Start")
+                      saveTimeEvent("Collect deployment support bundle", "Start")
                       sh '''
-                        echo "Running script to collect deployment support-bundle..."
+                        echo "Running script to collect deployment support bundle..."
                         "${python}" create_deployment_support.py --replicas "${concord_ips}" --replicaType "${concord_type}" --saveTo "${deployment_support_logs}"
                       '''
-                      saveTimeEvent("Collect deployment support-bundle", "End")
+                      saveTimeEvent("Collect deployment support bundle", "End")
                     }
                     if (env.JOB_NAME.contains(memory_leak_job_name)) {
                       saveTimeEvent("Memory leak tests", "Start")
