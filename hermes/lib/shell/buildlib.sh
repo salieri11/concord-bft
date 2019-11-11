@@ -130,9 +130,30 @@ retryIfNeeded(){
   fi
 
   if [ $FAIL_RUN = true ]; then
+    printBuildFailure "${BUILD_NAME}"
     killAllProcs
     exit 1
   fi
+}
+
+
+printBuildFailure(){
+  # Ignore leading blank spaces, do a case insensitive search for "error" in the first
+  # few characters, and then show the next several lines.
+  local BUILD_NAME="${1}"
+  local LOG_FILE=`pwd`/${BUILD_LOGS["${BUILD_NAME}"]}
+  info "================================================================================"
+  info "=========================== Attempting auto-triage! ============================"
+  info "================================================================================"
+  info "Searching ${LOG_FILE} for typical error indicators.  Results:"
+  grep -A10 -i "^ *.\{0,5\}error" "${LOG_FILE}"
+  if [ $? -ne 0 ]; then
+      info "Nothing matched.  Check ${LOG_FILE} for problems.  Here are the last few lines:"
+      tail -n 10 "${LOG_FILE}"
+  fi
+  info "================================================================================"
+  info "================================================================================"
+  info "================================================================================"
 }
 
 
