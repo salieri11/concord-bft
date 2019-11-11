@@ -9,6 +9,9 @@ import com.vmware.blockchain.deployment.agent.docker.api.v1_38.model.ContainerCr
 import com.vmware.blockchain.deployment.agent.docker.api.v1_38.model.ContainerSummary
 import com.vmware.blockchain.deployment.agent.docker.api.v1_38.model.HostConfig
 import com.vmware.blockchain.deployment.agent.docker.api.v1_38.model.Image
+import com.vmware.blockchain.deployment.agent.docker.api.v1_38.model.Network
+import com.vmware.blockchain.deployment.agent.docker.api.v1_38.model.NetworkConfig
+import com.vmware.blockchain.deployment.agent.docker.api.v1_38.model.NetworkCreateResponse
 import com.vmware.blockchain.deployment.agent.docker.api.v1_38.model.PortBinding
 
 /**
@@ -280,6 +283,65 @@ class DockerClient(private val docker: DockerHttpClient) {
             204, 404 -> true
             400, 409, 500 -> false // Possible errors. (Not handling for now)
             else -> false
+        }
+    }
+
+    /**
+     * Create a container network according to the given parameters.
+     *
+     * @param[name]
+     *   a name alias of the network to create.
+     *
+     * @return
+     *   identifier of the container network if created, `null` otherwise.
+     */
+    suspend fun createNetwork(name: String): String? {
+        val response = docker.post<NetworkConfig, NetworkCreateResponse>(
+                path = Endpoints.NETWORKS_CREATE.interpolate(),
+                contentType = "application/json",
+                headers = emptyList(),
+                body = NetworkConfig(
+                        Name = name,
+                        CheckDuplicate = true
+                )
+        )
+
+        return when (response.statusCode()) {
+            201 -> response.body()?.Id
+            403, 404, 409, 500 -> null // Possible errors. (Not handling for now)
+            else -> null
+        }
+    }
+
+    /**
+     * Find all container networks with a given name alias
+     *
+     * @param[name]
+     *   name alias of the container network.
+     *
+     * @return
+     *   a [List] of identifiers of networks matching the name.
+     */
+    suspend fun getNetworks(name: String): List<String> {
+        // Note: The current implementation does not utilize query filter, but relies on post-
+        // processing the result. This is less than the optimal solution of using filter.
+        val response = docker.get<Network>(
+                path = Endpoints.NETWORKS_LIST.interpolate(parameters = listOf("filter" to "")),
+                contentType = "application/json",
+                headers = emptyList(),
+                arrayResponse = true
+        )
+
+        return when (response.statusCode()) {
+            200 -> {
+                response.body().orEmpty().asSequence()
+                        .filter { network -> network.Name == name }
+                        .sortedBy { network -> network.Created }
+                        .map { it.Id }
+                        .toList()
+            }
+            500 -> emptyList() // Possible errors. (Not handling for now)
+            else -> emptyList()
         }
     }
 }

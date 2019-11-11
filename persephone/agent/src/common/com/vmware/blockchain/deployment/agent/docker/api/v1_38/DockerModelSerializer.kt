@@ -18,8 +18,13 @@ import com.vmware.blockchain.deployment.agent.docker.api.v1_38.model.HealthConfi
 import com.vmware.blockchain.deployment.agent.docker.api.v1_38.model.HostConfig
 import com.vmware.blockchain.deployment.agent.docker.api.v1_38.model.Image
 import com.vmware.blockchain.deployment.agent.docker.api.v1_38.model.ImageSummary
+import com.vmware.blockchain.deployment.agent.docker.api.v1_38.model.Ipam
 import com.vmware.blockchain.deployment.agent.docker.api.v1_38.model.Mount
 import com.vmware.blockchain.deployment.agent.docker.api.v1_38.model.MountPoint
+import com.vmware.blockchain.deployment.agent.docker.api.v1_38.model.Network
+import com.vmware.blockchain.deployment.agent.docker.api.v1_38.model.NetworkConfig
+import com.vmware.blockchain.deployment.agent.docker.api.v1_38.model.NetworkContainer
+import com.vmware.blockchain.deployment.agent.docker.api.v1_38.model.NetworkCreateResponse
 import com.vmware.blockchain.deployment.agent.docker.api.v1_38.model.NetworkSettings
 import com.vmware.blockchain.deployment.agent.docker.api.v1_38.model.Port
 import com.vmware.blockchain.deployment.agent.docker.api.v1_38.model.PortBinding
@@ -54,8 +59,13 @@ object DockerModelSerializer : JsonSerializer(
                         HostConfig::class to HostConfig.serializer(),
                         Image::class to Image.serializer(),
                         ImageSummary::class to ImageSummary.serializer(),
+                        Ipam::class to Ipam.serializer(),
                         Mount::class to Mount.serializer(),
                         MountPoint::class to MountPoint.serializer(),
+                        Network::class to Network.serializer(),
+                        NetworkConfig::class to NetworkConfig.serializer(),
+                        NetworkContainer::class to NetworkContainer.serializer(),
+                        NetworkCreateResponse::class to NetworkCreateResponse.serializer(),
                         NetworkSettings::class to NetworkSettings.serializer(),
                         Port::class to Port.serializer(),
                         PortBinding::class to PortBinding.serializer(),
