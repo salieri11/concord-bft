@@ -57,9 +57,6 @@ object KvbcLedgerServer extends App {
   val loggerFactory = NamedLoggerFactory.forParticipant(extConfig.participantId)
   val authService = AuthServiceWildcard
 
-  val indexerServer = StandaloneIndexerServer(readService, extConfig.config, loggerFactory)
-  val indexServer = StandaloneIndexServer(extConfig.config, readService, writeService, authService, loggerFactory).start()
-
   val indexersF: Future[(AutoCloseable, StandaloneIndexServer#SandboxState)] = for {
     indexerServer <- StandaloneIndexerServer(readService, extConfig.config, loggerFactory)
     indexServer <- StandaloneIndexServer(extConfig.config, readService, writeService, authService, loggerFactory).start()
