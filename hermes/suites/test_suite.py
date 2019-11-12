@@ -215,7 +215,8 @@ class TestSuite(ABC):
                self.ethrpcApiUrl,
                request_kwargs={
                   'headers': authHeader,
-                  'verify': False
+                  'verify': False,
+                  'timeout': 60
                }
             ))
 
