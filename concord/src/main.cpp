@@ -39,6 +39,7 @@
 #include "memorydb/key_comparator.h"
 #include "rocksdb/client.h"
 #include "rocksdb/key_comparator.h"
+#include "thin_replica/grpc_services.hpp"
 #include "time/time_pusher.hpp"
 #include "time/time_reading.hpp"
 #include "utils/concord_eth_sign.hpp"
@@ -97,6 +98,8 @@ using concord::daml::DamlKvbCommandsHandler;
 using concord::daml::DamlValidatorClient;
 using concord::daml::DataServiceImpl;
 using concord::daml::EventsServiceImpl;
+
+using concord::thin_replica::ThinReplicaImpl;
 
 // Parse BFT configuration
 using concord::consensus::initializeSBFTConfiguration;
@@ -257,6 +260,7 @@ void RunDamlGrpcServer(std::string server_address, KVBClientPool &pool,
   DataServiceImpl *dataService = new DataServiceImpl(pool, ro_storage);
   CommitServiceImpl *commitService = new CommitServiceImpl(pool);
   EventsServiceImpl *eventsService = new EventsServiceImpl(committedTxs);
+  ThinReplicaImpl *thinReplicaService = new ThinReplicaImpl();
 
   grpc::ResourceQuota quota;
   quota.SetMaxThreads(max_num_threads);
@@ -268,6 +272,7 @@ void RunDamlGrpcServer(std::string server_address, KVBClientPool &pool,
   builder.RegisterService(dataService);
   builder.RegisterService(commitService);
   builder.RegisterService(eventsService);
+  builder.RegisterService(thinReplicaService);
 
   daml_grpc_server = unique_ptr<grpc::Server>(builder.BuildAndStart());
 
