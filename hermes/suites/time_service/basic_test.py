@@ -19,7 +19,7 @@ import time
 from urllib.parse import urlparse
 from uuid import UUID
 
-from fixtures.common_fixtures import fxBlockchain, fxConnection, fxHermesRunSettings
+from fixtures.common_fixtures import fxBlockchain, fxConnection, fxHermesRunSettings, fxProduct
 from suites import test_suite
 from rest.request import Request
 from rpc.rpc_call import RPC
@@ -133,7 +133,7 @@ def get_summary(concordContainer=None):
 
 
 @pytest.mark.smoke
-def test_cli_get():
+def test_cli_get(fxBlockchain):
    '''
    Attempt to use conc_time to get the current blockchain
    time. Passes if there is no error_response, and there is a
@@ -146,7 +146,7 @@ def test_cli_get():
    assert re.findall("summary: ([:digit:]*)", output), "Summary with time not found: {}".format(output)
 
 
-def test_low_load_updates():
+def test_low_load_updates(fxBlockchain):
    '''
    Try to observe time updates happening with no input being
    generated. It is assumed that all sources are configured to publish
@@ -190,7 +190,7 @@ def test_low_load_updates():
       assert startTimes[k] != newTimes[k], "All sources should have updated"
 
 
-def test_time_is_recent():
+def test_time_is_recent(fxBlockchain):
    '''
    Test that the latest time from the time service is "recent". We'll
    defined recent as within 2x low-load update period. If the
@@ -349,7 +349,7 @@ def test_ethereum_time_does_not_reverse(fxConnection):
    if blockNTime - firstTrueNonZeroTime < 2 * expectedUpdatePeriodSec:
       log.warn("Only {} seconds passed between first and last timestamped block".format(blockNTime - firstTrueNonZeroTime))
 
-def test_reconfigure_pusher_period():
+def test_reconfigure_pusher_period(fxBlockchain):
    '''
    Test that conc_reconfig --time_pusher_period_ms can actually be used to
    reconfigure the time update period, and that setting non-positive/positive

@@ -7,7 +7,14 @@ import pytest
 import os
 import time
 
+# These are fixtures used by tests directly.
 from fixtures.common_fixtures import fxBlockchain, fxConnection, fxHermesRunSettings
+
+# These are fixtures that the fixtures above depend on.  The way pytest works,
+# these must be imported into a test file even though they are in the same
+# source code file.
+from fixtures.common_fixtures import fxProduct
+
 from rpc.rpc_call import RPC
 from util.numbers_strings import trimHexIndicator, stringOnlyContains
 import util

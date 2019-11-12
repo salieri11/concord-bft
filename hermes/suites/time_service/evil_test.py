@@ -22,7 +22,7 @@ import time
 from urllib.parse import urlparse
 from uuid import UUID
 
-from fixtures.common_fixtures import fxBlockchain, fxConnection, fxHermesRunSettings
+from fixtures.common_fixtures import fxBlockchain, fxConnection, fxHermesRunSettings, fxProduct
 from suites import test_suite
 from rest.request import Request
 from rpc.rpc_call import RPC
@@ -79,7 +79,7 @@ def find_faulty_clocks():
 
    return slow_sources, healthy_sources, fast_sources
 
-def test_publish_as_other():
+def test_publish_as_other(fxBlockchain):
    '''
    Make one node attempt to publish time as another, and make sure
    that the sample is rejected.
@@ -227,7 +227,7 @@ def run_faulty_clock(faulty_time):
       time.sleep(expectedUpdatePeriodSec / 2)
 
 
-def test_fast_clock():
+def test_fast_clock(fxBlockchain):
    '''
    Publish time intentionally ahead of "now", and make sure that it
    doesn't affect block time.

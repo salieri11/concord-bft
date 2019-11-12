@@ -72,7 +72,10 @@ class Product():
       "role": "all_roles"
    }
 
-   def __init__(self, cmdlineArgs, userConfig, suite=None):
+   def __init__(self, cmdlineArgs, userConfig, suite=None,
+                waitForStartupFunction=None,
+                waitForStartupParams=[]):
+      self._cleanupData = None
       self._cmdlineArgs = cmdlineArgs
       self._userConfig = userConfig
       self.userProductConfig = userConfig["product"]
@@ -81,7 +84,8 @@ class Product():
       self.concordNodesDeployed = []
       self._suite = suite
       self.testFailed = False
-
+      self.waitForStartupFunction = waitForStartupFunction if waitForStartupFunction else self._waitForProductStartup
+      self.waitForStartupParams = waitForStartupParams
 
    def launchProduct(self):
       '''
@@ -183,8 +187,8 @@ class Product():
          self._startContainers()
          self._startLogCollection()
 
-         if not self._waitForProductStartup():
-            raise Exception("The product did not start.")
+         if not self.waitForStartupFunction(*self.waitForStartupParams):
+               raise Exception("The product did not start.")
 
          self.concordNodesDeployed = self._getConcordNodes(dockerCfg)
       else:
@@ -204,7 +208,6 @@ class Product():
        This function may throw an exception in the event of any failures during
        configuraiton generation.
        '''
-
        # It is necessary to convert the path for the directory to run
        # configuration generation in to an absolute path (if it is not already)
        # as docker run will refuse to bind-mount host directories given by
