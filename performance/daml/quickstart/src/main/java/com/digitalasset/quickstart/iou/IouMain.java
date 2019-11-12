@@ -124,14 +124,14 @@ public class IouMain {
             }
     }
 
-    private static Empty submit(LedgerClient client, String party, Command c) {
+    public static Empty submit(LedgerClient client, String party, Command c) {
         return client.getCommandSubmissionClient().submit(
                 UUID.randomUUID().toString(),
                 "IouApp",
                 UUID.randomUUID().toString(),
                 party,
-                Instant.EPOCH,
-                Instant.EPOCH.plusSeconds(10),
+                Instant.now(),
+                Instant.now().plusSeconds(11),
                 Collections.singletonList(c))
                 .blockingGet();
     }
