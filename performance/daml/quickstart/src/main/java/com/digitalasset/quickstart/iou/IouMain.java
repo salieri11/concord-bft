@@ -19,14 +19,10 @@ import org.slf4j.LoggerFactory;
 import spark.Spark;
 
 import java.time.Instant;
-import java.util.Optional;
-import java.util.Map;
-import java.util.UUID;
-import java.util.Collections;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
-
 
 
 public class IouMain {
@@ -105,7 +101,6 @@ public class IouMain {
             Iou iou = g.fromJson(req.body(), Iou.class);
             CreateCommand iouCreate = iou.create();
             submit(client, party, iouCreate);
-            logger.info("Iou creation submitted!");
             return "Iou creation submitted.";
         }, g::toJson);
         Spark.post("/iou/:id/transfer", "application/json", (req, res) -> {
@@ -129,14 +124,14 @@ public class IouMain {
             }
     }
 
-    public static Empty submit(LedgerClient client, String party, Command c) {
+    private static Empty submit(LedgerClient client, String party, Command c) {
         return client.getCommandSubmissionClient().submit(
                 UUID.randomUUID().toString(),
                 "IouApp",
                 UUID.randomUUID().toString(),
                 party,
-                Instant.now(),
-                Instant.now().plusSeconds(15),
+                Instant.EPOCH,
+                Instant.EPOCH.plusSeconds(10),
                 Collections.singletonList(c))
                 .blockingGet();
     }

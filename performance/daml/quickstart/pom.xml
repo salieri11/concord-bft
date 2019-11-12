@@ -22,7 +22,7 @@
         <dependency>
             <groupId>com.daml.ledger</groupId>
             <artifactId>bindings-rxjava</artifactId>
-            <version>100.13.21</version>
+            <version>100.13.34</version>
             <exclusions>
                 <exclusion>
                     <groupId>com.google.protobuf</groupId>
@@ -52,7 +52,7 @@
                     <dependency>
                         <groupId>com.daml.java</groupId>
                         <artifactId>codegen</artifactId>
-                        <version>100.13.21</version>
+                        <version>100.13.34</version>
                         <type>jar</type>
                     </dependency>
                 </dependencies>
@@ -93,30 +93,6 @@
                     </execution>
                 </executions>
             </plugin>
-
-            <plugin>
-                <artifactId>maven-assembly-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>single</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <configuration>
-                    <archive>
-                        <manifest>
-                            <addClasspath>true</addClasspath>
-                            <mainClass>com.digitalasset.quickstart.iou.IouMain</mainClass>
-                        </manifest>
-                    </archive>
-                    <descriptorRefs>
-                        <descriptorRef>jar-with-dependencies</descriptorRef>
-                    </descriptorRefs>
-                </configuration>
-            </plugin>
-
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>build-helper-maven-plugin</artifactId>
