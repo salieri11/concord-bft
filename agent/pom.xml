@@ -24,8 +24,6 @@
         <maven.plugin.jar>3.1.1</maven.plugin.jar>
         <maven.plugin.javadoc>3.0.0</maven.plugin.javadoc>
         <maven.plugin.os>1.3.0.Final</maven.plugin.os>
-        <maven.plugin.protobuf>0.6.1</maven.plugin.protobuf>
-        <maven.plugin.protocjar.version>3.6.0</maven.plugin.protocjar.version>
         <maven.plugin.resources>3.0.2</maven.plugin.resources>
         <maven.plugin.source>3.0.1</maven.plugin.source>
         <maven.plugin.surefire>2.22.1</maven.plugin.surefire>
@@ -38,7 +36,6 @@
         <junit.platform.version>1.2.0</junit.platform.version>
         <kotlin.serialization.version>0.12.0</kotlin.serialization.version>
         <persephone.version>1.0.0-SNAPSHOT</persephone.version>
-        <protobuf.runtime.java.version>3.6.1</protobuf.runtime.java.version>
         <slf4j.version>1.7.28</slf4j.version>
     </properties>
 
@@ -177,20 +174,9 @@
             <version>2.6</version>
         </dependency>
         <dependency>
-           <groupId>com.google.protobuf</groupId>
-           <artifactId>protobuf-java</artifactId>
-           <version>3.6.1</version>
-        </dependency>
-        <dependency>
             <groupId>io.rest-assured</groupId>
             <artifactId>rest-assured</artifactId>
             <scope>test</scope>
-        </dependency>
-        <!-- https://mvnrepository.com/artifact/com.github.os72/protoc-jar -->
-        <dependency>
-            <groupId>com.github.os72</groupId>
-            <artifactId>protoc-jar</artifactId>
-            <version>3.6.0</version>
         </dependency>
         <dependency>
             <groupId>org.springframework</groupId>
@@ -226,24 +212,6 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
-            <plugin>
-                <groupId>com.github.os72</groupId>
-                <artifactId>protoc-jar-maven-plugin</artifactId>
-                <version>${maven.plugin.protocjar.version}</version>
-                <executions>
-                    <execution>
-                        <phase>generate-sources</phase>
-                        <goals>
-                            <goal>run</goal>
-                        </goals>
-                        <configuration>
-                            <inputDirectories>
-                                <include>src/main/proto</include>
-                            </inputDirectories>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
             <!--plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-assembly-plugin</artifactId>
@@ -264,10 +232,6 @@
                         </configuration>
                     </execution>
                 </executions>
-            </plugin-->
-            <!--plugin>
-                <groupId>com.github.os72</groupId>
-                <artifactId>protoc-jar-maven-plugin</artifactId>
             </plugin-->
         </plugins>
     </build>

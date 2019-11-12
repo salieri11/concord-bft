@@ -50,6 +50,9 @@ public final class AgentDockerClient {
 
     private static final Logger log = LoggerFactory.getLogger(AgentDockerClient.class);
 
+    /** Container network name alias. */
+    private static final String CONTAINER_NETWORK_NAME = "replica-fabric";
+
     /**
      * Regular expression pattern matching a Docker image name.
      *
@@ -104,18 +107,7 @@ public final class AgentDockerClient {
         this.configuration = configuration;
 
         // Temporary hack for supporting proxy and rest.
-
-        boolean useRest = false;
-
-        if (!configuration.getOutboundProxyInfo().getHttpsHost().isBlank()) {
-            useRest = true;
-
-            // Also set the proxy.
-            System.setProperty("http.proxyHost", configuration.getOutboundProxyInfo().getHttpHost());
-            System.setProperty("http.proxyPort", String.valueOf(configuration.getOutboundProxyInfo().getHttpPort()));
-            System.setProperty("https.proxyHost", configuration.getOutboundProxyInfo().getHttpsHost());
-            System.setProperty("https.proxyPort", String.valueOf(configuration.getOutboundProxyInfo().getHttpsPort()));
-        }
+        boolean useRest = !configuration.getOutboundProxyInfo().getHttpsHost().isBlank();
 
         this.configServiceInvoker = new ConfigServiceInvoker(configuration.getConfigService(), useRest);
     }
@@ -164,7 +156,7 @@ public final class AgentDockerClient {
 
         //setup special hlf networking
         if (configuration.getModel().getBlockchainType() == ConcordModelSpecification.BlockchainType.HLF) {
-            createNetwork(dockerClient, HlfConfig.HLF_DOCKER_NETWORK);
+            createNetwork(dockerClient, CONTAINER_NETWORK_NAME);
         }
 
         // Setup logging container's environment variables
@@ -331,7 +323,7 @@ public final class AgentDockerClient {
 
             //special network for hlf
             if (blockchainType == ConcordModelSpecification.BlockchainType.HLF) {
-                hostConfig.withNetworkMode(HlfConfig.HLF_DOCKER_NETWORK);
+                hostConfig.withNetworkMode(CONTAINER_NETWORK_NAME);
             }
 
             createContainerCmd.withHostConfig(hostConfig);
@@ -360,7 +352,5 @@ public final class AgentDockerClient {
 
         var id = createNetworkCmd.exec().getId();
         log.info("Created Network: {} Id: {}", networkName, id);
-
     }
-
 }
