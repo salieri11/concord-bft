@@ -6,6 +6,7 @@ package com.vmware.blockchain.services.lint;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import javax.servlet.http.HttpServletRequest;
@@ -40,6 +41,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.vmware.blockchain.auth.AuthHelper;
 import com.vmware.blockchain.common.csp.CspAuthenticationHelper;
 import com.vmware.blockchain.common.restclient.RestClientBuilder;
+import com.vmware.blockchain.services.blockchains.replicas.Replica;
+import com.vmware.blockchain.services.blockchains.replicas.ReplicaService;
 
 /**
  * Proxy requests to Log Intelligence.  We currently make queries using a Log Intelligence service user with admin
@@ -56,6 +59,7 @@ public class LintProxyController {
 
     private AuthHelper authHelper;
     private CspAuthenticationHelper cspAuthHelper;
+    private ReplicaService replicaService;
     private String lintAuthToken;
     private String lintApiToken;
     private String cspUrl;
@@ -63,13 +67,14 @@ public class LintProxyController {
     private RestTemplate restTemplate;
 
     @Autowired
-    public LintProxyController(AuthHelper authHelper,
+    public LintProxyController(AuthHelper authHelper, ReplicaService replicaService,
                                @Value("${lint.csp.url:https://console.cloud.vmware.com}") String cspUrl,
             @Value("${lint.apitoken:#null}") String lintApiToken, @Value("${lint.url}") String lintUrl) {
         this.authHelper = authHelper;
         this.cspUrl = cspUrl;
         this.cspAuthHelper = new CspAuthenticationHelper(cspUrl);
         this.lintApiToken = lintApiToken;
+        this.replicaService = replicaService;
 
         // set up the RestTemplate to talk to LINT
         SimpleRetryPolicy retryPolicy = new SimpleRetryPolicy(3);
@@ -97,17 +102,17 @@ public class LintProxyController {
     }
 
     // If the body has a field "logQuery", fix the query.
-    private String rewriteBody(String body, String function) {
+    private String rewriteBody(String body, String replicaId) {
         // Lint uses camelcase in json, so we use a different object mapper
         ObjectMapper mapper = new ObjectMapper();
         try {
-            // Since we don't know how this body might change over time, deserialze as a map.
+            // Since we don't know how this body might change over time, deserialize as a map.
             Map<String, Object> map = mapper.readValue(body, new TypeReference<Map<String, Object>>() {});
             // might throw class cast exception.  Leave the body unchanged if so
             String query = (String) map.get("logQuery");
             if (query != null) {
-                String whereClause = String.format("consortium_id = '%s' AND function = '%s'",
-                                                   authHelper.getOrganizationId(), function);
+                String whereClause = String.format("consortium_id = '%s' AND replica_id = '%s'",
+                                                   authHelper.getOrganizationId(), replicaId);
                 SimpleSqlParser sql = new SimpleSqlParser(query);
                 sql.addWhere(whereClause);
                 map.put("logQuery", sql.toSql());
@@ -115,6 +120,7 @@ public class LintProxyController {
             }
         } catch (IOException | ClassCastException e) {
             // If anything goes wrong, we simply use the original body
+            logger.info(e.getMessage());
         }
         return body;
     }
@@ -131,8 +137,14 @@ public class LintProxyController {
     @RequestMapping("/**")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<String> proxyToLint(@RequestBody(required = false) String body,
-            @RequestParam(name = "function", required = false, defaultValue = "ethLogger") String function,
-            HttpMethod method, HttpServletRequest request, HttpServletResponse response) {
+            @RequestParam(name = "replica_id") String replicaId,
+            HttpMethod method, HttpServletRequest request, HttpServletResponse response) throws IllegalAccessException {
+
+        Replica replica = replicaService.get(UUID.fromString(replicaId));
+        if (!authHelper.canAccessChain(replica.getBlockchainId())) {
+            throw new IllegalAccessException(String.format("Replica with ID %s cannot access blockchain", replicaId));
+        }
+
         // get the request URI, and convert to lint relative request
         String path = request.getRequestURI();
         final String lintPath = path.substring(LINT_API_LINK.length());
@@ -144,16 +156,16 @@ public class LintProxyController {
 
         // If this is a post, rewrite the body to handle consortium filter
         if (method == HttpMethod.POST) {
-            body = rewriteBody(body, function);
+            body = rewriteBody(body, replicaId);
         }
 
-        // If there was a function query param, we need to remove it
+        // If there was a 'replica_id' query param, we need to remove it
         MultiValueMap<String, String> queryMap = new LinkedMultiValueMap<>();
         if (request.getQueryString() != null) {
             // request.queryString strips off the leading ?, but UriComponentsBuilder needs it.
             UriComponents comp = UriComponentsBuilder.fromUriString("?" + request.getQueryString()).build();
             queryMap.addAll(comp.getQueryParams());
-            queryMap.remove("function");
+            queryMap.remove("replica_id");
         }
 
         // Now build the URI to make the lint call.  The lint url is handled by the restTemplate.
