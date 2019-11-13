@@ -37,10 +37,13 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.NestedServletException;
 
 import com.vmware.blockchain.MvcConfig;
 import com.vmware.blockchain.auth.AuthHelper;
 import com.vmware.blockchain.common.csp.CspAuthenticationHelper;
+import com.vmware.blockchain.services.blockchains.replicas.Replica;
+import com.vmware.blockchain.services.blockchains.replicas.ReplicaService;
 
 /**
  * Tests for the LintProxyController.
@@ -51,7 +54,9 @@ import com.vmware.blockchain.common.csp.CspAuthenticationHelper;
 @ContextConfiguration(classes = MvcConfig.class)
 @ComponentScan(basePackageClasses = { LintControllerTests.class })
 public class LintControllerTests {
-    private static final String CON_ID = "0d83f75d-edad-4c54-8dce-64d5b98df2b7";
+    private static final String CONSORTIUM_ID = "0d83f75d-edad-4c54-8dce-64d5b98df2b7";
+    private static final String REPLICA_ID = "542b9855-443b-4dd8-bde0-29bfc717acaa";
+    private static final String BLOCKCHAIN_ID = "7f94bbe9-fa8d-4143-9759-8912461d09a3";
 
     @Autowired
     MockMvc mockMvc;
@@ -62,6 +67,9 @@ public class LintControllerTests {
     @MockBean
     CspAuthenticationHelper cspAuthHelper;
 
+    @MockBean
+    ReplicaService replicaService;
+
     @Mock
     RestTemplate restTemplate;
 
@@ -69,22 +77,27 @@ public class LintControllerTests {
     LintProxyController lintProxyController;
 
     @Captor
-    ArgumentCaptor<String> uriCapcha;
+    ArgumentCaptor<String> uriCaptcha;
 
     @Captor
-    ArgumentCaptor<HttpEntity<String>> httpCapcha;
+    ArgumentCaptor<HttpEntity<String>> httpCaptcha;
 
     @Captor
-    ArgumentCaptor<HttpMethod> methodCapcha;
+    ArgumentCaptor<HttpMethod> methodCaptcha;
 
     @Captor
-    ArgumentCaptor<Class<?>> classCapcha;
+    ArgumentCaptor<Class<?>> classCaptcha;
 
 
     @BeforeEach
     void init() {
+        Replica replica = new Replica();
+        replica.setId(UUID.fromString(REPLICA_ID));
+        replica.setBlockchainId(UUID.fromString(BLOCKCHAIN_ID));
+        when(replicaService.get(UUID.fromString(REPLICA_ID))).thenReturn(replica);
+        when(authHelper.canAccessChain(UUID.fromString(BLOCKCHAIN_ID))).thenReturn(true);
         when(cspAuthHelper.fetchAuthTokenFromRefreshToken(anyString())).thenReturn("anAuthToken");
-        when(authHelper.getOrganizationId()).thenReturn(UUID.fromString(CON_ID));
+        when(authHelper.getOrganizationId()).thenReturn(UUID.fromString(CONSORTIUM_ID));
         when(restTemplate.exchange(any(URI.class), any(HttpMethod.class), any(HttpEntity.class), any(Class.class)))
             .thenReturn(new ResponseEntity<String>("the answer", HttpStatus.OK));
         ReflectionTestUtils.setField(lintProxyController, "restTemplate", restTemplate);
@@ -106,20 +119,41 @@ public class LintControllerTests {
         //  - Body proxied
         //  - Authorization header
 
-        mockMvc.perform(post("/api/lint/log")
+        mockMvc.perform(post("/api/lint/log?replica_id=" + REPLICA_ID)
                 .contentType(MediaType.APPLICATION_JSON).content("{\"one\": \"two\"}"))
                 .andExpect(status().isOk());
         // capture the values handed in to restTemplate.exchange
-        verify(restTemplate).exchange(uriCapcha.capture(), methodCapcha.capture(), httpCapcha.capture(),
-                classCapcha.capture());
+        verify(restTemplate).exchange(uriCaptcha.capture(), methodCaptcha.capture(), httpCaptcha.capture(),
+                classCaptcha.capture());
 
-        final HttpEntity<String> entity = httpCapcha.getValue();
+        final HttpEntity<String> entity = httpCaptcha.getValue();
 
-        Assertions.assertEquals("/log", uriCapcha.getValue().toString());
-        Assertions.assertEquals(HttpMethod.POST, methodCapcha.getValue());
+        Assertions.assertEquals("/log", uriCaptcha.getValue().toString());
+        Assertions.assertEquals(HttpMethod.POST, methodCaptcha.getValue());
         Assertions.assertEquals("{\"one\": \"two\"}", entity.getBody());
         Assertions.assertEquals("Bearer anAuthToken", entity.getHeaders().getFirst("Authorization"));
-        Assertions.assertEquals(String.class, classCapcha.getValue());
+        Assertions.assertEquals(String.class, classCaptcha.getValue());
+    }
+
+    @Test
+    void replicaAuthTest() throws Exception {
+
+        Replica replica = new Replica();
+        UUID replicaId = UUID.randomUUID();
+        replica.setId(replicaId);
+        replica.setBlockchainId(UUID.randomUUID());
+        when(replicaService.get(replicaId)).thenReturn(replica);
+        when(authHelper.canAccessChain(any(UUID.class))).thenReturn(false);
+
+        NestedServletException ex =
+            Assertions.assertThrows(NestedServletException.class, () ->
+                mockMvc.perform(post("/api/lint/log?replica_id=" + replicaId)
+                    .contentType(MediaType.APPLICATION_JSON).content("{\"one\": \"two\"}"))
+                    .andExpect(status().isOk()));
+
+        Assertions.assertTrue(ex.getCause() instanceof IllegalAccessException);
+        Assertions.assertEquals(String.format("Replica with ID %s cannot access blockchain", replicaId.toString()),
+                ex.getCause().getMessage());
     }
 
 
@@ -129,50 +163,50 @@ public class LintControllerTests {
                 "{\"logQuery\":\"SELECT * FROM logs ORDER BY ingest_timestamp DESC\","
                 + "\"start\":1548092484611,\"end\":1548697284611,\"rows\":20}";
         final String response =
-                "{\"logQuery\":\"SELECT * FROM logs WHERE consortium_id = '0d83f75d-edad-4c54-8dce-64d5b98df2b7' "
-                + "AND function = 'ethLogger' ORDER BY ingest_timestamp DESC\","
+                "{\"logQuery\":\"SELECT * FROM logs WHERE consortium_id = '" + CONSORTIUM_ID + "' "
+                + "AND replica_id = '" + REPLICA_ID + "' ORDER BY ingest_timestamp DESC\","
                 + "\"start\":1548092484611,\"end\":1548697284611,\"rows\":20}";
 
-        mockMvc.perform(post("/api/lint/log")
+        mockMvc.perform(post("/api/lint/log?replica_id=" + REPLICA_ID)
                 .contentType(MediaType.APPLICATION_JSON).content(query))
                 .andExpect(status().isOk());
         // capture the values handed in to restTemplate.exchange
-        verify(restTemplate).exchange(uriCapcha.capture(), methodCapcha.capture(), httpCapcha.capture(),
-                classCapcha.capture());
+        verify(restTemplate).exchange(uriCaptcha.capture(), methodCaptcha.capture(), httpCaptcha.capture(),
+                classCaptcha.capture());
 
-        final HttpEntity<String> entity = httpCapcha.getValue();
+        final HttpEntity<String> entity = httpCaptcha.getValue();
 
-        Assertions.assertEquals("/log", uriCapcha.getValue().toString());
-        Assertions.assertEquals(HttpMethod.POST, methodCapcha.getValue());
+        Assertions.assertEquals("/log", uriCaptcha.getValue().toString());
+        Assertions.assertEquals(HttpMethod.POST, methodCaptcha.getValue());
         Assertions.assertEquals(response, entity.getBody());
         Assertions.assertEquals("Bearer anAuthToken", entity.getHeaders().getFirst("Authorization"));
-        Assertions.assertEquals(String.class, classCapcha.getValue());
+        Assertions.assertEquals(String.class, classCaptcha.getValue());
     }
 
     @Test
-    void functionTest() throws Exception {
+    void replicaIdTest() throws Exception {
         final String query =
                 "{\"logQuery\":\"SELECT * FROM logs ORDER BY ingest_timestamp DESC\","
-                + "\"start\":1548092484611,\"end\":1548697284611,\"rows\":20}";
+                        + "\"start\":1548092484611,\"end\":1548697284611,\"rows\":20}";
         final String response =
-                "{\"logQuery\":\"SELECT * FROM logs WHERE consortium_id = '0d83f75d-edad-4c54-8dce-64d5b98df2b7' "
-                + "AND function = 'logger' ORDER BY ingest_timestamp DESC\","
-                + "\"start\":1548092484611,\"end\":1548697284611,\"rows\":20}";
+                "{\"logQuery\":\"SELECT * FROM logs WHERE consortium_id = '" + CONSORTIUM_ID + "' "
+                        + "AND replica_id = '" + REPLICA_ID + "' ORDER BY ingest_timestamp DESC\","
+                        + "\"start\":1548092484611,\"end\":1548697284611,\"rows\":20}";
 
-        mockMvc.perform(post("/api/lint/log?function=logger")
+        mockMvc.perform(post("/api/lint/log?replica_id=" + REPLICA_ID)
                 .contentType(MediaType.APPLICATION_JSON).content(query))
                 .andExpect(status().isOk());
         // capture the values handed in to restTemplate.exchange
-        verify(restTemplate).exchange(uriCapcha.capture(), methodCapcha.capture(), httpCapcha.capture(),
-                classCapcha.capture());
+        verify(restTemplate).exchange(uriCaptcha.capture(), methodCaptcha.capture(), httpCaptcha.capture(),
+                classCaptcha.capture());
 
-        final HttpEntity<String> entity = httpCapcha.getValue();
+        final HttpEntity<String> entity = httpCaptcha.getValue();
 
-        Assertions.assertEquals("/log", uriCapcha.getValue().toString());
-        Assertions.assertEquals(HttpMethod.POST, methodCapcha.getValue());
+        Assertions.assertEquals("/log", uriCaptcha.getValue().toString());
+        Assertions.assertEquals(HttpMethod.POST, methodCaptcha.getValue());
         Assertions.assertEquals(response, entity.getBody());
         Assertions.assertEquals("Bearer anAuthToken", entity.getHeaders().getFirst("Authorization"));
-        Assertions.assertEquals(String.class, classCapcha.getValue());
+        Assertions.assertEquals(String.class, classCaptcha.getValue());
     }
 
     @Test
@@ -181,50 +215,24 @@ public class LintControllerTests {
                 "{\"logQuery\":\"SELECT * FROM logs ORDER BY ingest_timestamp DESC\","
                 + "\"start\":1548092484611,\"end\":1548697284611,\"rows\":20}";
         final String response =
-                "{\"logQuery\":\"SELECT * FROM logs WHERE consortium_id = '0d83f75d-edad-4c54-8dce-64d5b98df2b7' "
-                + "AND function = 'ethLogger' ORDER BY ingest_timestamp DESC\","
+                "{\"logQuery\":\"SELECT * FROM logs WHERE consortium_id = '" + CONSORTIUM_ID + "' "
+                + "AND replica_id = '" + REPLICA_ID + "' ORDER BY ingest_timestamp DESC\","
                 + "\"start\":1548092484611,\"end\":1548697284611,\"rows\":20}";
 
-        mockMvc.perform(post("/api/lint/log?odata=*")
+        mockMvc.perform(post("/api/lint/log?odata=*&replica_id=" + REPLICA_ID)
                 .contentType(MediaType.APPLICATION_JSON).content(query))
                 .andExpect(status().isOk());
         // capture the values handed in to restTemplate.exchange
-        verify(restTemplate).exchange(uriCapcha.capture(), methodCapcha.capture(), httpCapcha.capture(),
-                classCapcha.capture());
+        verify(restTemplate).exchange(uriCaptcha.capture(), methodCaptcha.capture(), httpCaptcha.capture(),
+                classCaptcha.capture());
 
-        final HttpEntity<String> entity = httpCapcha.getValue();
+        final HttpEntity<String> entity = httpCaptcha.getValue();
 
-        Assertions.assertEquals("/log?odata=*", uriCapcha.getValue().toString());
-        Assertions.assertEquals(HttpMethod.POST, methodCapcha.getValue());
+        Assertions.assertEquals("/log?odata=*", uriCaptcha.getValue().toString());
+        Assertions.assertEquals(HttpMethod.POST, methodCaptcha.getValue());
         Assertions.assertEquals(response, entity.getBody());
         Assertions.assertEquals("Bearer anAuthToken", entity.getHeaders().getFirst("Authorization"));
-        Assertions.assertEquals(String.class, classCapcha.getValue());
-    }
-
-    @Test
-    void functionAndQueryparamTest() throws Exception {
-        final String query =
-                "{\"logQuery\":\"SELECT * FROM logs ORDER BY ingest_timestamp DESC\","
-                + "\"start\":1548092484611,\"end\":1548697284611,\"rows\":20}";
-        final String response =
-                "{\"logQuery\":\"SELECT * FROM logs WHERE consortium_id = '0d83f75d-edad-4c54-8dce-64d5b98df2b7' "
-                + "AND function = 'logger' ORDER BY ingest_timestamp DESC\","
-                + "\"start\":1548092484611,\"end\":1548697284611,\"rows\":20}";
-
-        mockMvc.perform(post("/api/lint/log?odate=*&function=logger")
-                .contentType(MediaType.APPLICATION_JSON).content(query))
-                .andExpect(status().isOk());
-        // capture the values handed in to restTemplate.exchange
-        verify(restTemplate).exchange(uriCapcha.capture(), methodCapcha.capture(), httpCapcha.capture(),
-                classCapcha.capture());
-
-        final HttpEntity<String> entity = httpCapcha.getValue();
-
-        Assertions.assertEquals("/log?odate=*", uriCapcha.getValue().toString());
-        Assertions.assertEquals(HttpMethod.POST, methodCapcha.getValue());
-        Assertions.assertEquals(response, entity.getBody());
-        Assertions.assertEquals("Bearer anAuthToken", entity.getHeaders().getFirst("Authorization"));
-        Assertions.assertEquals(String.class, classCapcha.getValue());
+        Assertions.assertEquals(String.class, classCaptcha.getValue());
     }
 
     @Test
@@ -233,24 +241,108 @@ public class LintControllerTests {
                 "{\"logQuery\":\"SELECT * FROM logs WHERE user = 'userId' ORDER BY ingest_timestamp DESC\","
                 + "\"start\":1548092484611,\"end\":1548697284611,\"rows\":20}";
         final String response =
-                "{\"logQuery\":\"SELECT * FROM logs WHERE (consortium_id = '0d83f75d-edad-4c54-8dce-64d5b98df2b7' "
-                + "AND function = 'ethLogger') AND (user = 'userId' ) ORDER BY ingest_timestamp DESC\","
+                "{\"logQuery\":\"SELECT * FROM logs WHERE (consortium_id = '" + CONSORTIUM_ID + "' "
+                + "AND replica_id = '" + REPLICA_ID + "') AND (user = 'userId' ) ORDER BY ingest_timestamp DESC\","
                 + "\"start\":1548092484611,\"end\":1548697284611,\"rows\":20}";
 
-        mockMvc.perform(post("/api/lint/log")
+        mockMvc.perform(post("/api/lint/log?replica_id=" + REPLICA_ID)
                 .contentType(MediaType.APPLICATION_JSON).content(query))
                 .andExpect(status().isOk());
         // capture the values handed in to restTemplate.exchange
-        verify(restTemplate).exchange(uriCapcha.capture(), methodCapcha.capture(), httpCapcha.capture(),
-                classCapcha.capture());
+        verify(restTemplate).exchange(uriCaptcha.capture(), methodCaptcha.capture(), httpCaptcha.capture(),
+                classCaptcha.capture());
 
-        final HttpEntity<String> entity = httpCapcha.getValue();
+        final HttpEntity<String> entity = httpCaptcha.getValue();
 
-        Assertions.assertEquals("/log", uriCapcha.getValue().toString());
-        Assertions.assertEquals(HttpMethod.POST, methodCapcha.getValue());
+        Assertions.assertEquals("/log", uriCaptcha.getValue().toString());
+        Assertions.assertEquals(HttpMethod.POST, methodCaptcha.getValue());
         Assertions.assertEquals(response, entity.getBody());
         Assertions.assertEquals("Bearer anAuthToken", entity.getHeaders().getFirst("Authorization"));
-        Assertions.assertEquals(String.class, classCapcha.getValue());
+        Assertions.assertEquals(String.class, classCaptcha.getValue());
+    }
+
+    @Test
+    void whereTestTwoConditions() throws Exception {
+        final String query =
+                "{\"logQuery\":\"SELECT * FROM logs WHERE service_name = 'concord' AND level = 'INFO' "
+                        + "ORDER BY ingest_timestamp DESC\","
+                        + "\"start\":1548092484611,\"end\":1548697284611,\"rows\":20}";
+        final String response =
+                "{\"logQuery\":\"SELECT * FROM logs WHERE (consortium_id = '" + CONSORTIUM_ID + "' "
+                        + "AND replica_id = '" + REPLICA_ID + "') AND (service_name = 'concord' AND level = 'INFO' ) "
+                        + "ORDER BY ingest_timestamp DESC\","
+                        + "\"start\":1548092484611,\"end\":1548697284611,\"rows\":20}";
+
+        mockMvc.perform(post("/api/lint/log?replica_id=" + REPLICA_ID)
+                .contentType(MediaType.APPLICATION_JSON).content(query))
+                .andExpect(status().isOk());
+        // capture the values handed in to restTemplate.exchange
+        verify(restTemplate).exchange(uriCaptcha.capture(), methodCaptcha.capture(), httpCaptcha.capture(),
+                classCaptcha.capture());
+
+        final HttpEntity<String> entity = httpCaptcha.getValue();
+
+        Assertions.assertEquals("/log", uriCaptcha.getValue().toString());
+        Assertions.assertEquals(HttpMethod.POST, methodCaptcha.getValue());
+        Assertions.assertEquals(response, entity.getBody());
+        Assertions.assertEquals("Bearer anAuthToken", entity.getHeaders().getFirst("Authorization"));
+        Assertions.assertEquals(String.class, classCaptcha.getValue());
+    }
+
+    @Test
+    void whereTestMultipleVerbosity() throws Exception {
+        final String query =
+                "{\"logQuery\":\"SELECT * FROM logs WHERE (level = 'INFO' OR level = 'ERROR') "
+                        + "ORDER BY ingest_timestamp DESC\","
+                        + "\"start\":1548092484611,\"end\":1548697284611,\"rows\":20}";
+        final String response =
+                "{\"logQuery\":\"SELECT * FROM logs WHERE (consortium_id = '" + CONSORTIUM_ID + "' "
+                        + "AND replica_id = '" + REPLICA_ID + "') AND ((level = 'INFO' OR level = 'ERROR') ) "
+                        + "ORDER BY ingest_timestamp DESC\","
+                        + "\"start\":1548092484611,\"end\":1548697284611,\"rows\":20}";
+
+        mockMvc.perform(post("/api/lint/log?replica_id=" + REPLICA_ID)
+                .contentType(MediaType.APPLICATION_JSON).content(query))
+                .andExpect(status().isOk());
+        // capture the values handed in to restTemplate.exchange
+        verify(restTemplate).exchange(uriCaptcha.capture(), methodCaptcha.capture(), httpCaptcha.capture(),
+                classCaptcha.capture());
+
+        final HttpEntity<String> entity = httpCaptcha.getValue();
+
+        Assertions.assertEquals("/log", uriCaptcha.getValue().toString());
+        Assertions.assertEquals(HttpMethod.POST, methodCaptcha.getValue());
+        Assertions.assertEquals(response, entity.getBody());
+        Assertions.assertEquals("Bearer anAuthToken", entity.getHeaders().getFirst("Authorization"));
+        Assertions.assertEquals(String.class, classCaptcha.getValue());
+    }
+
+    @Test
+    void whereTestMultipleConditionsAndVerbosity() throws Exception {
+        final String query =
+                "{\"logQuery\":\"SELECT * FROM logs WHERE service_name = 'concord' AND "
+                        + "(level = 'INFO' OR level = 'ERROR') ORDER BY ingest_timestamp DESC\","
+                        + "\"start\":1548092484611,\"end\":1548697284611,\"rows\":20}";
+        final String response =
+                "{\"logQuery\":\"SELECT * FROM logs WHERE (consortium_id = '" + CONSORTIUM_ID + "' "
+                        + "AND replica_id = '" + REPLICA_ID + "') AND (service_name = 'concord' AND "
+                        + "(level = 'INFO' OR level = 'ERROR') ) ORDER BY ingest_timestamp DESC\","
+                        + "\"start\":1548092484611,\"end\":1548697284611,\"rows\":20}";
+
+        mockMvc.perform(post("/api/lint/log?replica_id=" + REPLICA_ID)
+                .contentType(MediaType.APPLICATION_JSON).content(query))
+                .andExpect(status().isOk());
+        // capture the values handed in to restTemplate.exchange
+        verify(restTemplate).exchange(uriCaptcha.capture(), methodCaptcha.capture(), httpCaptcha.capture(),
+                classCaptcha.capture());
+
+        final HttpEntity<String> entity = httpCaptcha.getValue();
+
+        Assertions.assertEquals("/log", uriCaptcha.getValue().toString());
+        Assertions.assertEquals(HttpMethod.POST, methodCaptcha.getValue());
+        Assertions.assertEquals(response, entity.getBody());
+        Assertions.assertEquals("Bearer anAuthToken", entity.getHeaders().getFirst("Authorization"));
+        Assertions.assertEquals(String.class, classCaptcha.getValue());
     }
 
     @Test
@@ -261,20 +353,20 @@ public class LintControllerTests {
         final String response =
                 "{\"start\":1548092484611,\"end\":1548697284611,\"rows\":20}";
 
-        mockMvc.perform(post("/api/lint/log")
+        mockMvc.perform(post("/api/lint/log?replica_id=" + REPLICA_ID)
                 .contentType(MediaType.APPLICATION_JSON).content(query))
                 .andExpect(status().isOk());
         // capture the values handed in to restTemplate.exchange
-        verify(restTemplate).exchange(uriCapcha.capture(), methodCapcha.capture(), httpCapcha.capture(),
-                classCapcha.capture());
+        verify(restTemplate).exchange(uriCaptcha.capture(), methodCaptcha.capture(), httpCaptcha.capture(),
+                classCaptcha.capture());
 
-        final HttpEntity<String> entity = httpCapcha.getValue();
+        final HttpEntity<String> entity = httpCaptcha.getValue();
 
-        Assertions.assertEquals("/log", uriCapcha.getValue().toString());
-        Assertions.assertEquals(HttpMethod.POST, methodCapcha.getValue());
+        Assertions.assertEquals("/log", uriCaptcha.getValue().toString());
+        Assertions.assertEquals(HttpMethod.POST, methodCaptcha.getValue());
         Assertions.assertEquals(response, entity.getBody());
         Assertions.assertEquals("Bearer anAuthToken", entity.getHeaders().getFirst("Authorization"));
-        Assertions.assertEquals(String.class, classCapcha.getValue());
+        Assertions.assertEquals(String.class, classCaptcha.getValue());
     }
 
     @Test
@@ -283,41 +375,41 @@ public class LintControllerTests {
                 "{\"logQuery\":\"SELECT * FROM logs ORDER BY ingest_timestamp DESC\","
                 + "\"start\":1548092484611,\"end\":1548697284611,\"rows\":20,\"color\":\"red\"}";
         final String response =
-                "{\"logQuery\":\"SELECT * FROM logs WHERE consortium_id = '0d83f75d-edad-4c54-8dce-64d5b98df2b7' "
-                + "AND function = 'ethLogger' ORDER BY ingest_timestamp DESC\","
+                "{\"logQuery\":\"SELECT * FROM logs WHERE consortium_id = '" + CONSORTIUM_ID + "' "
+                + "AND replica_id = '" + REPLICA_ID + "' ORDER BY ingest_timestamp DESC\","
                 + "\"start\":1548092484611,\"end\":1548697284611,\"rows\":20,\"color\":\"red\"}";
 
-        mockMvc.perform(post("/api/lint/log")
+        mockMvc.perform(post("/api/lint/log?replica_id=" + REPLICA_ID)
                 .contentType(MediaType.APPLICATION_JSON).content(query))
                 .andExpect(status().isOk());
         // capture the values handed in to restTemplate.exchange
-        verify(restTemplate).exchange(uriCapcha.capture(), methodCapcha.capture(), httpCapcha.capture(),
-                classCapcha.capture());
+        verify(restTemplate).exchange(uriCaptcha.capture(), methodCaptcha.capture(), httpCaptcha.capture(),
+                classCaptcha.capture());
 
-        final HttpEntity<String> entity = httpCapcha.getValue();
+        final HttpEntity<String> entity = httpCaptcha.getValue();
 
-        Assertions.assertEquals("/log", uriCapcha.getValue().toString());
-        Assertions.assertEquals(HttpMethod.POST, methodCapcha.getValue());
+        Assertions.assertEquals("/log", uriCaptcha.getValue().toString());
+        Assertions.assertEquals(HttpMethod.POST, methodCaptcha.getValue());
         Assertions.assertEquals(response, entity.getBody());
         Assertions.assertEquals("Bearer anAuthToken", entity.getHeaders().getFirst("Authorization"));
-        Assertions.assertEquals(String.class, classCapcha.getValue());
+        Assertions.assertEquals(String.class, classCaptcha.getValue());
     }
 
 
     @Test
     void getTest() throws Exception {
-        mockMvc.perform(get("/api/lint/log"))
+        mockMvc.perform(get("/api/lint/log?replica_id=" + REPLICA_ID))
                 .andExpect(status().isOk());
         // capture the values handed in to restTemplate.exchange
-        verify(restTemplate).exchange(uriCapcha.capture(), methodCapcha.capture(), httpCapcha.capture(),
-                classCapcha.capture());
+        verify(restTemplate).exchange(uriCaptcha.capture(), methodCaptcha.capture(), httpCaptcha.capture(),
+                classCaptcha.capture());
 
-        final HttpEntity<String> entity = httpCapcha.getValue();
+        final HttpEntity<String> entity = httpCaptcha.getValue();
 
-        Assertions.assertEquals("/log", uriCapcha.getValue().toString());
-        Assertions.assertEquals(HttpMethod.GET, methodCapcha.getValue());
+        Assertions.assertEquals("/log", uriCaptcha.getValue().toString());
+        Assertions.assertEquals(HttpMethod.GET, methodCaptcha.getValue());
         Assertions.assertEquals("Bearer anAuthToken", entity.getHeaders().getFirst("Authorization"));
-        Assertions.assertEquals(String.class, classCapcha.getValue());
+        Assertions.assertEquals(String.class, classCaptcha.getValue());
 
     }
 }
