@@ -583,7 +583,7 @@ EOF
                       saveTimeEvent("Performance tests", "Start")
                       sh '''
                         echo "Running Entire Testsuite: Performance..."
-                        echo "${PASSWORD}" | sudo -SE "${python}" main.py PerformanceTests --dockerComposeFile ../docker/docker-compose.yml --performanceVotes 10000 --resultsDir "${performance_test_logs}" --runConcordConfigurationGeneration --concordConfigurationInput /concord/config/dockerConfigurationInput-perftest.yaml
+                        echo "${PASSWORD}" | sudo -SE "${python}" main.py PerformanceTests --dockerComposeFile ../docker/docker-compose.yml --performanceVotes 10000 --resultsDir "${performance_test_logs}" --runConcordConfigurationGeneration --concordConfigurationInput /concord/config/dockerConfigurationInput-perftest.yaml --logLevel debug
                       '''
                       saveTimeEvent("Performance tests", "End")
                     }
@@ -598,7 +598,7 @@ EOF
                         echo "${PASSWORD}" | sudo -S rm -rf ../docker/devdata/rocksdbdata*
                         echo "${PASSWORD}" | sudo -S rm -rf ../docker/devdata/cockroachDB
 
-                        "${python}" main.py LintTests --dockerComposeFile ../docker/docker-compose.yml ../docker/docker-compose-fluentd.yml --resultsDir "${lint_test_logs}" --runConcordConfigurationGeneration
+                        "${python}" main.py LintTests --dockerComposeFile ../docker/docker-compose.yml ../docker/docker-compose-fluentd.yml --resultsDir "${lint_test_logs}" --runConcordConfigurationGeneration --logLevel debug
                       '''
                       saveTimeEvent("LINT tests", "End")
                     }
@@ -662,20 +662,20 @@ EOF
                     if (env.JOB_NAME.contains(persephone_test_job_name)) {
                       sh '''
                         echo "Running Entire Testsuite: Persephone..."
-                        echo "${PASSWORD}" | sudo -SE "${python}" main.py PersephoneTests --useLocalConfigService --externalProvisioningServiceEndpoint ${EXT_PROVISIONING_SERVICE_ENDPOINT} --dockerComposeFile ../docker/docker-compose-persephone.yml --tests "all_tests" --resultsDir "${persephone_test_logs}" --deploymentComponents "${release_persephone_agent_repo}:${agent_docker_tag},${release_concord_repo}:${dep_comp_docker_tag},${release_ethrpc_repo}:${dep_comp_docker_tag},${release_daml_ledger_api_repo}:${dep_comp_docker_tag},${release_daml_execution_engine_repo}:${dep_comp_docker_tag},${release_daml_index_db_repo}:${dep_comp_docker_tag},${release_fluentd_repo}:${dep_comp_docker_tag}" --keepBlockchains ${deployment_retention}
+                        echo "${PASSWORD}" | sudo -SE "${python}" main.py PersephoneTests --useLocalConfigService --externalProvisioningServiceEndpoint ${EXT_PROVISIONING_SERVICE_ENDPOINT} --dockerComposeFile ../docker/docker-compose-persephone.yml --tests "all_tests" --resultsDir "${persephone_test_logs}" --deploymentComponents "${release_persephone_agent_repo}:${agent_docker_tag},${release_concord_repo}:${dep_comp_docker_tag},${release_ethrpc_repo}:${dep_comp_docker_tag},${release_daml_ledger_api_repo}:${dep_comp_docker_tag},${release_daml_execution_engine_repo}:${dep_comp_docker_tag},${release_daml_index_db_repo}:${dep_comp_docker_tag},${release_fluentd_repo}:${dep_comp_docker_tag}" --keepBlockchains ${deployment_retention} --logLevel debug
                       '''
                     } else {
                       if (env.JOB_NAME.contains(persephone_test_on_demand_job_name)) {
                         sh '''
                           echo "Running Persephone SMOKE Tests (ON DEMAND hitting local config-service)..."
-                          echo "${PASSWORD}" | sudo -SE "${python}" main.py PersephoneTests --useLocalConfigService --dockerComposeFile ../docker/docker-compose-persephone.yml --resultsDir "${persephone_test_logs}" --deploymentComponents "${release_persephone_agent_repo}:${agent_docker_tag},${release_concord_repo}:${dep_comp_docker_tag},${release_ethrpc_repo}:${dep_comp_docker_tag},${release_daml_ledger_api_repo}:${dep_comp_docker_tag},${release_daml_execution_engine_repo}:${dep_comp_docker_tag},${release_daml_index_db_repo}:${dep_comp_docker_tag},${release_fluentd_repo}:${dep_comp_docker_tag}" --keepBlockchains ${deployment_retention}
+                          echo "${PASSWORD}" | sudo -SE "${python}" main.py PersephoneTests --useLocalConfigService --dockerComposeFile ../docker/docker-compose-persephone.yml --resultsDir "${persephone_test_logs}" --deploymentComponents "${release_persephone_agent_repo}:${agent_docker_tag},${release_concord_repo}:${dep_comp_docker_tag},${release_ethrpc_repo}:${dep_comp_docker_tag},${release_daml_ledger_api_repo}:${dep_comp_docker_tag},${release_daml_execution_engine_repo}:${dep_comp_docker_tag},${release_daml_index_db_repo}:${dep_comp_docker_tag},${release_fluentd_repo}:${dep_comp_docker_tag}" --keepBlockchains ${deployment_retention} --logLevel debug
                         '''
                       } else {
                         // If bug VB-1770 (infra/product/test issue on config-service), is still seen after a couple of runs,
                         // remove --useLocalConfigService for MR/Master runs, and retain for ON DEMAND Job
                         sh '''
                           echo "Running Persephone SMOKE Tests..."
-                          echo "${PASSWORD}" | sudo -SE "${python}" main.py PersephoneTests --useLocalConfigService --dockerComposeFile ../docker/docker-compose-persephone.yml --resultsDir "${persephone_test_logs}" --deploymentComponents "${release_persephone_agent_repo}:${agent_docker_tag},${release_concord_repo}:${dep_comp_docker_tag},${release_ethrpc_repo}:${dep_comp_docker_tag},${release_daml_ledger_api_repo}:${dep_comp_docker_tag},${release_daml_execution_engine_repo}:${dep_comp_docker_tag},${release_daml_index_db_repo}:${dep_comp_docker_tag},${release_fluentd_repo}:${dep_comp_docker_tag}" --keepBlockchains ${deployment_retention}
+                          echo "${PASSWORD}" | sudo -SE "${python}" main.py PersephoneTests --useLocalConfigService --dockerComposeFile ../docker/docker-compose-persephone.yml --resultsDir "${persephone_test_logs}" --deploymentComponents "${release_persephone_agent_repo}:${agent_docker_tag},${release_concord_repo}:${dep_comp_docker_tag},${release_ethrpc_repo}:${dep_comp_docker_tag},${release_daml_ledger_api_repo}:${dep_comp_docker_tag},${release_daml_execution_engine_repo}:${dep_comp_docker_tag},${release_daml_index_db_repo}:${dep_comp_docker_tag},${release_fluentd_repo}:${dep_comp_docker_tag}" --keepBlockchains ${deployment_retention} --logLevel debug
                         '''
                       }
                     }
@@ -1587,19 +1587,19 @@ void runGenericTests(){
 
       # Make sure the test framework itself can run a basic test suite.
       saveTimeEvent SampleSuite Start
-      echo "${PASSWORD}" | sudo -S "${python}" main.py SampleSuite --resultsDir "${sample_suite_test_logs}"
+      echo "${PASSWORD}" | sudo -S "${python}" main.py SampleSuite --resultsDir "${sample_suite_test_logs}" --logLevel debug
       saveTimeEvent SampleSuite End
 
       saveTimeEvent SampleDAppTests Start
-      echo "${PASSWORD}" | sudo -S "${python}" main.py SampleDAppTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${sample_dapp_test_logs}" --runConcordConfigurationGeneration
+      echo "${PASSWORD}" | sudo -S "${python}" main.py SampleDAppTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${sample_dapp_test_logs}" --runConcordConfigurationGeneration --logLevel debug
       saveTimeEvent SampleDAppTests End
 
       saveTimeEvent CoreVMTests Start
-      echo "${PASSWORD}" | sudo -S "${python}" main.py CoreVMTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${core_vm_test_logs}" --runConcordConfigurationGeneration
+      echo "${PASSWORD}" | sudo -S "${python}" main.py CoreVMTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${core_vm_test_logs}" --runConcordConfigurationGeneration --logLevel debug
       saveTimeEvent CoreVMTests End
 
       saveTimeEvent PerformanceTests Start
-      echo "${PASSWORD}" | sudo -SE "${python}" main.py PerformanceTests --dockerComposeFile ../docker/docker-compose.yml --performanceVotes ${performance_votes} --resultsDir "${performance_test_logs}" --runConcordConfigurationGeneration --concordConfigurationInput /concord/config/dockerConfigurationInput-perftest.yaml
+      echo "${PASSWORD}" | sudo -SE "${python}" main.py PerformanceTests --dockerComposeFile ../docker/docker-compose.yml --performanceVotes ${performance_votes} --resultsDir "${performance_test_logs}" --runConcordConfigurationGeneration --concordConfigurationInput /concord/config/dockerConfigurationInput-perftest.yaml --logLevel debug
       saveTimeEvent PerformanceTests End
 
       saveTimeEvent HelenAPITests Start
@@ -1607,23 +1607,23 @@ void runGenericTests(){
       saveTimeEvent HelenAPITests End
 
       saveTimeEvent ExtendedRPCTests Start
-      echo "${PASSWORD}" | sudo -S "${python}" main.py ExtendedRPCTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${extended_rpc_test_logs}" --runConcordConfigurationGeneration
+      echo "${PASSWORD}" | sudo -S "${python}" main.py ExtendedRPCTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${extended_rpc_test_logs}" --runConcordConfigurationGeneration --logLevel debug
       saveTimeEvent ExtendedRPCTests End
 
       saveTimeEvent ExtendedRPCTestsEthrpc Start
-      echo "${PASSWORD}" | sudo -S "${python}" main.py ExtendedRPCTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${extended_rpc_test_helen_logs}" --ethrpcApiUrl https://localhost/blockchains/local/api/concord/eth --runConcordConfigurationGeneration
+      echo "${PASSWORD}" | sudo -S "${python}" main.py ExtendedRPCTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${extended_rpc_test_helen_logs}" --ethrpcApiUrl https://localhost/blockchains/local/api/concord/eth --runConcordConfigurationGeneration --logLevel debug
       saveTimeEvent ExtendedRPCTestsEthrpc End
 
       saveTimeEvent RegressionTests Start
-      echo "${PASSWORD}" | sudo -S "${python}" main.py RegressionTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${regression_test_logs}" --runConcordConfigurationGeneration
+      echo "${PASSWORD}" | sudo -S "${python}" main.py RegressionTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${regression_test_logs}" --runConcordConfigurationGeneration --logLevel debug
       saveTimeEvent RegressionTests End
 
       saveTimeEvent DamlTests Start
-      echo "${PASSWORD}" | sudo -S "${python}" main.py DamlTests --dockerComposeFile ../docker/docker-compose-daml.yml --resultsDir "${daml_test_logs}" --runConcordConfigurationGeneration --concordConfigurationInput /concord/config/dockerConfigurationInput-daml.yaml
+      echo "${PASSWORD}" | sudo -S "${python}" main.py DamlTests --dockerComposeFile ../docker/docker-compose-daml.yml --resultsDir "${daml_test_logs}" --runConcordConfigurationGeneration --concordConfigurationInput /concord/config/dockerConfigurationInput-daml.yaml --logLevel debug
       saveTimeEvent DamlTests End
 
       saveTimeEvent SimpleStateTransferTest Start
-      echo "${PASSWORD}" | sudo -S "${python}" main.py SimpleStateTransferTest --dockerComposeFile ../docker/docker-compose.yml ../docker/docker-compose-static-ips.yml --resultsDir "${statetransfer_test_logs}" --runConcordConfigurationGeneration
+      echo "${PASSWORD}" | sudo -S "${python}" main.py SimpleStateTransferTest --dockerComposeFile ../docker/docker-compose.yml ../docker/docker-compose-static-ips.yml --resultsDir "${statetransfer_test_logs}" --runConcordConfigurationGeneration --logLevel debug
       saveTimeEvent SimpleStateTransferTest End
 
       saveTimeEvent TruffleTests Start
@@ -1631,11 +1631,11 @@ void runGenericTests(){
       saveTimeEvent TruffleTests End
 
       saveTimeEvent ContractCompilerTests Start
-      echo "${PASSWORD}" | sudo -S "${python}" main.py ContractCompilerTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${contract_compiler_test_logs}" --runConcordConfigurationGeneration
+      echo "${PASSWORD}" | sudo -S "${python}" main.py ContractCompilerTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${contract_compiler_test_logs}" --runConcordConfigurationGeneration --logLevel debug
       saveTimeEvent ContractCompilerTests End
 
       # RV: Commenting out because these repeatedly cause the product to fail to launch in CI/CD.
-      # echo "${PASSWORD}" | sudo -S "${python}" main.py HlfTests --dockerComposeFile=../docker/docker-compose-hlf.yml --resultsDir "${hlf_test_logs}" --runConcordConfigurationGeneration --concordConfigurationInput /concord/config/dockerConfigurationInput-hlf.yaml
+      # echo "${PASSWORD}" | sudo -S "${python}" main.py HlfTests --dockerComposeFile=../docker/docker-compose-hlf.yml --resultsDir "${hlf_test_logs}" --runConcordConfigurationGeneration --concordConfigurationInput /concord/config/dockerConfigurationInput-hlf.yaml --logLevel debug
 
       # Turn the time service on. When the feature flag is removed, we can remove this sed.
       # The path to ...-time_service.yaml is different between the sed command and
@@ -1645,11 +1645,11 @@ void runGenericTests(){
       # during config generation.
       saveTimeEvent TimeTests Start
       sed -- \'s/\\(FEATURE_time_service: \\)false/\\1true/\' ../docker/config-public/dockerConfigurationInput.yaml > ../docker/config-public/dockerConfigurationInput-time_service.yaml
-      echo "${PASSWORD}" | sudo -S "${python}" main.py TimeTests --dockerComposeFile=../docker/docker-compose.yml --resultsDir "${time_test_logs}" --runConcordConfigurationGeneration --concordConfigurationInput /concord/config/dockerConfigurationInput-time_service.yaml
+      echo "${PASSWORD}" | sudo -S "${python}" main.py TimeTests --dockerComposeFile=../docker/docker-compose.yml --resultsDir "${time_test_logs}" --runConcordConfigurationGeneration --concordConfigurationInput /concord/config/dockerConfigurationInput-time_service.yaml --logLevel debug
       saveTimeEvent TimeTests End
 
       saveTimeEvent EvilTimeTests Start
-      echo "${PASSWORD}" | sudo -S "${python}" main.py EvilTimeTests --dockerComposeFile=../docker/docker-compose.yml --resultsDir "${time_test_logs}"
+      echo "${PASSWORD}" | sudo -S "${python}" main.py EvilTimeTests --dockerComposeFile=../docker/docker-compose.yml --resultsDir "${time_test_logs}" --logLevel debug
       saveTimeEvent EvilTimeTests End
 
       cd suites ; echo "${PASSWORD}" | sudo -SE ./memory_leak_test.sh --testSuite CoreVMTests --repeatSuiteRun 2 --tests 'vmArithmeticTest/add0.json' --resultsDir "${mem_leak_test_logs}" ; cd ..
@@ -1662,13 +1662,13 @@ void runGenericTests(){
       echo "${PASSWORD}" | sudo -S rm -rf ../docker/devdata/rocksdbdata*
       echo "${PASSWORD}" | sudo -S rm -rf ../docker/devdata/postgresql
       saveTimeEvent UITests Start
-      "${python}" main.py UiTests --dockerComposeFile ../docker/docker-compose.yml ../docker/docker-compose-persephone.yml --resultsDir "${ui_test_logs}" --runConcordConfigurationGeneration
+      "${python}" main.py UiTests --dockerComposeFile ../docker/docker-compose.yml ../docker/docker-compose-persephone.yml --resultsDir "${ui_test_logs}" --runConcordConfigurationGeneration --logLevel debug
       saveTimeEvent UITests End
 
       saveTimeEvent HelenDeployToSDDC Start
       echo "${PASSWORD}" | sudo -S "${python}" main.py CoreVMTests --blockchainLocation sddc \
            --dockerComposeFile ../docker/docker-compose.yml ../docker/docker-compose-persephone.yml \
-           --tests="-k vmArithmeticTest/add0.json" --resultsDir "${helen_sddc_deployment_logs}"
+           --tests="-k vmArithmeticTest/add0.json" --resultsDir "${helen_sddc_deployment_logs}" --logLevel debug
       saveTimeEvent HelenDeployToSDDC End
     ''')
   }
