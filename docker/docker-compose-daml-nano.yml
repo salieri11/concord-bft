@@ -112,8 +112,6 @@ services:
     command: /doc/daml/kvbc_validator/target/universal/stage/bin/kvbc-validator
     environment:
       - JAVA_OPTS=-XX:+UseG1GC -Xmx5G
-    depends_on:
-      - fluentd
     expose:
       - 55000
     ports:
