@@ -3101,11 +3101,13 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "type if an elliptic curve cryptosystem is selected).",
       "threshold-bls BN-P254");
   config.tagParameter("execution_cryptosys", defaultableByUtilityTags);
+  config.tagParameter("execution_cryptosys", optionalTags);
   config.addValidator("execution_cryptosys", validateCryptosys, nullptr);
 
   config.declareParameter("execution_public_key",
                           "Public key for the execution cryptosystem.");
   config.tagParameter("execution_public_key", publicGeneratedTags);
+  config.tagParameter("execution_public_key", optionalTags);
   config.addValidator("execution_public_key", validatePublicKey,
                       &(auxState->executionCryptosys));
   config.addGenerator("execution_public_key", getThresholdPublicKey,
@@ -3457,6 +3459,7 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "execution_private_key",
       "Private key for this replica under the execution cryptosystem.");
   replica.tagParameter("execution_private_key", privateGeneratedTags);
+  replica.tagParameter("execution_private_key", optionalTags);
   replica.addValidator("execution_private_key", validatePrivateKey,
                        &(auxState->executionCryptosys));
   replica.addGenerator("execution_private_key", getThresholdPrivateKey,
@@ -3466,6 +3469,7 @@ void specifyConfiguration(ConcordConfiguration& config) {
                            "Public verification key for this replica's "
                            "signature under the execution cryptosystem.");
   replica.tagParameter("execution_verification_key", publicGeneratedTags);
+  replica.tagParameter("execution_verification_key", optionalTags);
   replica.addValidator("execution_verification_key", validateVerificationKey,
                        &(auxState->executionCryptosys));
   replica.addGenerator("execution_verification_key",
@@ -3574,6 +3578,7 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "private_key",
       "Private RSA key for use in general communication by this client proxy.");
   clientProxy.tagParameter("private_key", privateGeneratedTags);
+  clientProxy.tagParameter("private_key", optionalTags);
   clientProxy.addValidator("private_key", validateRSAPrivateKey, nullptr);
   clientProxy.addGenerator("private_key", getRSAPrivateKey, nullptr);
 
@@ -3581,6 +3586,7 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "public_key",
       "Public RSA key for use in general communication by this client proxy.");
   clientProxy.tagParameter("public_key", publicGeneratedTags);
+  clientProxy.tagParameter("public_key", optionalTags);
   clientProxy.addValidator("public_key", validateRSAPublicKey, nullptr);
   clientProxy.addGenerator("public_key", getRSAPublicKey, nullptr);
 
@@ -4219,11 +4225,9 @@ void loadSBFTCryptosystems(ConcordConfiguration& config) {
   // validators as the configuration was loaded.
   vector<ConfigurationPath> requiredCryptosystemParameters(
       {ConfigurationPath("f_val", false), ConfigurationPath("c_val", false),
-       ConfigurationPath("execution_cryptosys", false),
        ConfigurationPath("slow_commit_cryptosys", false),
        ConfigurationPath("commit_cryptosys", false),
        ConfigurationPath("optimistic_commit_cryptosys", false),
-       ConfigurationPath("execution_public_key", false),
        ConfigurationPath("slow_commit_public_key", false),
        ConfigurationPath("commit_public_key", false),
        ConfigurationPath("optimistic_commit_public_key", false)});
@@ -4249,15 +4253,11 @@ void loadSBFTCryptosystems(ConcordConfiguration& config) {
 
   uint16_t fVal = config.getValue<uint16_t>("f_val");
   uint16_t cVal = config.getValue<uint16_t>("c_val");
-  uint16_t executionThresh = fVal + 1;
   uint16_t slowCommitThresh = 2 * fVal + cVal + 1;
   uint16_t commitThresh = 3 * fVal + cVal + 1;
   uint16_t optimisticCommitThresh = 3 * fVal + 2 * cVal + 1;
   uint16_t numSigners = 3 * fVal + 2 * cVal + 1;
 
-  std::pair<string, string> executionCryptoSelection =
-      parseCryptosystemSelection(
-          config.getValue<string>("execution_cryptosys"));
   std::pair<string, string> slowCommitCryptoSelection =
       parseCryptosystemSelection(
           config.getValue<string>("slow_commit_cryptosys"));
@@ -4267,9 +4267,6 @@ void loadSBFTCryptosystems(ConcordConfiguration& config) {
       parseCryptosystemSelection(
           config.getValue<string>("optimistic_commit_cryptosys"));
 
-  auxState->executionCryptosys.reset(new Cryptosystem(
-      executionCryptoSelection.first, executionCryptoSelection.second,
-      numSigners, executionThresh));
   auxState->slowCommitCryptosys.reset(new Cryptosystem(
       slowCommitCryptoSelection.first, slowCommitCryptoSelection.second,
       numSigners, slowCommitThresh));
@@ -4283,7 +4280,6 @@ void loadSBFTCryptosystems(ConcordConfiguration& config) {
 
   // Note these vectors will be given to Cryptosystems, which consider them to
   // be 1-indexed.
-  vector<string> executionVerificationKeys(numSigners + 1);
   vector<string> slowCommitVerificationKeys(numSigners + 1);
   vector<string> commitVerificationKeys(numSigners + 1);
   vector<string> optimisticCommitVerificationKeys(numSigners + 1);
@@ -4298,16 +4294,6 @@ void loadSBFTCryptosystems(ConcordConfiguration& config) {
     ConcordConfiguration& replicaConfig = nodeConfig.subscope("replica", 0);
     uint16_t replicaID = replicaConfig.getValue<uint16_t>("principal_id");
 
-    if (!replicaConfig.hasValue<string>("execution_verification_key")) {
-      hasRequired = false;
-      LOG4CPLUS_ERROR(logger,
-                      "Configuration missing required threshold verification "
-                      "key: execution_verification_key for replica " +
-                          to_string(i) + ".");
-    } else {
-      executionVerificationKeys[replicaID + 1] =
-          replicaConfig.getValue<string>("execution_verification_key");
-    }
     if (!replicaConfig.hasValue<string>("slow_commit_verification_key")) {
       hasRequired = false;
       LOG4CPLUS_ERROR(logger,
@@ -4345,9 +4331,6 @@ void loadSBFTCryptosystems(ConcordConfiguration& config) {
         "find all required parameters.");
   }
 
-  auxState->executionCryptosys->loadKeys(
-      config.getValue<string>("execution_public_key"),
-      executionVerificationKeys);
   auxState->slowCommitCryptosys->loadKeys(
       config.getValue<string>("slow_commit_public_key"),
       slowCommitVerificationKeys);
@@ -4361,16 +4344,6 @@ void loadSBFTCryptosystems(ConcordConfiguration& config) {
       config.subscope("node", detectLocalNode(config)).subscope("replica", 0);
   uint16_t localReplicaID =
       localReplicaConfig.getValue<uint16_t>("principal_id");
-  if (!localReplicaConfig.hasValue<string>("execution_private_key")) {
-    hasRequired = false;
-    LOG4CPLUS_ERROR(logger,
-                    "Configuration missing required threshold private key: "
-                    "execution_private_key for this node.");
-  } else {
-    auxState->executionCryptosys->loadPrivateKey(
-        (localReplicaID + 1),
-        localReplicaConfig.getValue<string>("execution_private_key"));
-  }
   if (!localReplicaConfig.hasValue<string>("slow_commit_private_key")) {
     hasRequired = false;
     LOG4CPLUS_ERROR(logger,
