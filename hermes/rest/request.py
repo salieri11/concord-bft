@@ -511,10 +511,46 @@ class Request():
       self._endpointName = "get_consortium_orgs"
       return self._send()
 
+   def createZone(self, zoneInfo):
+      '''
+      Creates a zone.
+      '''
+      self._subPath = "/api/blockchains/zones"
+      self._params = ""
+      self._data = zoneInfo
+      self._endpointName = "create_zone"
+      return self._send()
+
+   def getZone(self, zoneId):
+      '''
+      Get a single zone.
+      '''
+      self._subPath = "/api/blockchains/zones/{}".format(zoneId)
+      self._params = ""
+      self._data = None
+      self._endpointName = "get_zone"
+      return self._send()
+
+   def deleteZone(self, zoneId):
+      '''
+      Delete a zone.
+      '''
+      self._subPath = "/api/blockchains/zones/{}".format(zoneId)
+      self._params = ""
+      self._data = None
+      self._endpointName = "delete_zone"
+      return self._send(verb="DELETE")
+
+   def patchZone(self, zoneId, zoneInfo):
+      self._subPath = "/api/blockchains/zones/{}".format(zoneId)
+      self._params = ""
+      self._data = zoneInfo
+      self._endpointName = "patch_zone"
+      return self._send(verb="PATCH")
+
    def getZones(self):
       '''
-      Get the blockchain zones from Persephone.  Zones are SDDCs; we are fetching
-      the identifiers Persephone assigns to them.
+      Get all of the zones.
       '''
       self._subPath = "/api/blockchains/zones"
       self._params = ""

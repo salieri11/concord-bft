@@ -45,6 +45,10 @@ KEEP_BLOCKCHAINS_ALWAYS = "always"
 KEEP_BLOCKCHAINS_ON_FAILURE = "on-failure"
 KEEP_BLOCKCHAINS_NEVER = "never"
 
+# When creating a zone, it can be one of these.
+ZONE_TYPE_ON_PREM = "ON_PREM"
+ZONE_TYPE_SDDC = "VMC_AWS"
+
 def copy_docker_env_file(docker_env_file=docker_env_file):
    '''
    This file contains variables fed to docker-compose.yml. It is picked up from
