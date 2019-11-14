@@ -25,7 +25,6 @@ const std::string MAX_ITEM_LENGTH_STR = std::to_string(MAX_ITEM_LENGTH);
 void initializeSBFTThresholdPublicKeys(
     concord::config::ConcordConfiguration& config, bool isClient, uint16_t f,
     uint16_t c, bool supportDirectProofs,
-    IThresholdVerifier*& thresholdVerifierForExecution,
     IThresholdVerifier*& thresholdVerifierForSlowPathCommit,
     IThresholdVerifier*& thresholdVerifierForCommit,
     IThresholdVerifier*& thresholdVerifierForOptimisticCommit) {
@@ -33,12 +32,6 @@ void initializeSBFTThresholdPublicKeys(
   assert(auxState = dynamic_cast<
              concord::config::ConcordPrimaryConfigurationAuxiliaryState*>(
              config.getAuxiliaryState()));
-
-  if (supportDirectProofs) {
-    assert(auxState->executionCryptosys);
-    thresholdVerifierForExecution =
-        auxState->executionCryptosys->createThresholdVerifier();
-  }
 
   // The Client class only needs the f+1 parameters
   if (isClient) {
@@ -65,8 +58,7 @@ void initializeSBFTThresholdPublicKeys(
  */
 void initializeSBFTThresholdPrivateKeys(
     concord::config::ConcordConfiguration& config, uint16_t myReplicaId,
-    uint16_t f, uint16_t c, IThresholdSigner*& thresholdSignerForExecution,
-    IThresholdSigner*& thresholdSignerForSlowPathCommit,
+    uint16_t f, uint16_t c, IThresholdSigner*& thresholdSignerForSlowPathCommit,
     IThresholdSigner*& thresholdSignerForCommit,
     IThresholdSigner*& thresholdSignerForOptimisticCommit,
     bool supportDirectProofs) {
@@ -75,13 +67,8 @@ void initializeSBFTThresholdPrivateKeys(
              concord::config::ConcordPrimaryConfigurationAuxiliaryState*>(
              config.getAuxiliaryState()));
 
-  // f + 1
-  if (supportDirectProofs) {
-    assert(auxState->executionCryptosys);
-    thresholdSignerForExecution =
-        auxState->executionCryptosys->createThresholdSigner();
-  } else {
-    printf("\n does not support direct proofs!");
+  if (!supportDirectProofs) {
+    printf("\nDoes not support direct proofs!\n");
   }
 
   // 2f + c + 1
@@ -112,9 +99,6 @@ inline bool initializeSBFTCrypto(
     std::set<std::pair<uint16_t, std::string>> publicKeysOfReplicas,
     concord::consensus::ReplicaConsensusConfig* outConfig) {
   // Threshold signatures
-  IThresholdSigner* thresholdSignerForExecution;
-  IThresholdVerifier* thresholdVerifierForExecution;
-
   IThresholdSigner* thresholdSignerForSlowPathCommit;
   IThresholdVerifier* thresholdVerifierForSlowPathCommit;
 
@@ -129,13 +113,13 @@ inline bool initializeSBFTCrypto(
 
   initializeSBFTThresholdPublicKeys(
       config, false, maxFaulty, maxSlow, supportDirectProofs,
-      thresholdVerifierForExecution, thresholdVerifierForSlowPathCommit,
-      thresholdVerifierForCommit, thresholdVerifierForOptimisticCommit);
+      thresholdVerifierForSlowPathCommit, thresholdVerifierForCommit,
+      thresholdVerifierForOptimisticCommit);
 
   initializeSBFTThresholdPrivateKeys(
-      config, nodeId + 1, maxFaulty, maxSlow, thresholdSignerForExecution,
-      thresholdSignerForSlowPathCommit, thresholdSignerForCommit,
-      thresholdSignerForOptimisticCommit, supportDirectProofs);
+      config, nodeId + 1, maxFaulty, maxSlow, thresholdSignerForSlowPathCommit,
+      thresholdSignerForCommit, thresholdSignerForOptimisticCommit,
+      supportDirectProofs);
 
   outConfig->publicKeysOfReplicas = publicKeysOfReplicas;
 

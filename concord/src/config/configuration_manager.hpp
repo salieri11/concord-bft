@@ -1338,14 +1338,11 @@ class YAMLConfigurationOutput {
 // cryptographic state.
 struct ConcordPrimaryConfigurationAuxiliaryState
     : public ConfigurationAuxiliaryState {
-  std::unique_ptr<Cryptosystem> executionCryptosys;
   std::unique_ptr<Cryptosystem> slowCommitCryptosys;
   std::unique_ptr<Cryptosystem> commitCryptosys;
   std::unique_ptr<Cryptosystem> optimisticCommitCryptosys;
 
   std::vector<std::pair<std::string, std::string>> replicaRSAKeys;
-  std::vector<std::vector<std::pair<std::string, std::string>>>
-      clientProxyRSAKeys;
 
   ConcordPrimaryConfigurationAuxiliaryState();
   virtual ~ConcordPrimaryConfigurationAuxiliaryState();
