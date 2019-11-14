@@ -270,9 +270,9 @@ public class BlockchainController {
                     .map(z -> Entry.newBuilder()
                             .setType(placementType)
                             .setSite(OrchestrationSiteIdentifier.newBuilder()
-                                    .setLow(z.getId().getLeastSignificantBits())
-                                    .setHigh(z.getId().getMostSignificantBits())
-                                    .build())
+                                             .setLow(z.getId().getLeastSignificantBits())
+                                             .setHigh(z.getId().getMostSignificantBits())
+                                             .build())
                             .setSiteInfo(toInfo(z))
                             .build())
                     .collect(Collectors.toList());
@@ -281,9 +281,9 @@ public class BlockchainController {
                     .mapToObj(i -> Entry.newBuilder()
                             .setType(placementType)
                             .setSite(OrchestrationSiteIdentifier.newBuilder()
-                                    .setLow(1)
-                                    .setHigh(i)
-                                    .build())
+                                             .setLow(1)
+                                             .setHigh(i)
+                                             .build())
                             .setSiteInfo(OrchestrationSiteInfo.newBuilder().build())
                             .build())
                     .collect(Collectors.toList());
@@ -316,7 +316,8 @@ public class BlockchainController {
                 .build();
 
         var request = CreateClusterRequest.newBuilder()
-                .setHeader(MessageHeader.newBuilder().setId("").build())
+                .setHeader(MessageHeader.newBuilder()
+                                   .setId(operationContext.getId() != null ? operationContext.getId() : "").build())
                 .setSpecification(deploySpec)
                 .build();
 
