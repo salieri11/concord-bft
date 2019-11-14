@@ -1842,14 +1842,10 @@ YAMLConfigurationOutput::~YAMLConfigurationOutput() {}
 
 ConcordPrimaryConfigurationAuxiliaryState::
     ConcordPrimaryConfigurationAuxiliaryState()
-    : executionCryptosys(),
-      slowCommitCryptosys(),
-      commitCryptosys(),
-      optimisticCommitCryptosys() {}
+    : slowCommitCryptosys(), commitCryptosys(), optimisticCommitCryptosys() {}
 
 ConcordPrimaryConfigurationAuxiliaryState::
     ~ConcordPrimaryConfigurationAuxiliaryState() {
-  executionCryptosys.reset();
   slowCommitCryptosys.reset();
   commitCryptosys.reset();
   optimisticCommitCryptosys.reset();
@@ -1859,9 +1855,6 @@ ConfigurationAuxiliaryState*
 ConcordPrimaryConfigurationAuxiliaryState::clone() {
   ConcordPrimaryConfigurationAuxiliaryState* copy =
       new ConcordPrimaryConfigurationAuxiliaryState();
-  if (executionCryptosys) {
-    copy->executionCryptosys.reset(new Cryptosystem(*executionCryptosys));
-  }
   if (slowCommitCryptosys) {
     copy->slowCommitCryptosys.reset(new Cryptosystem(*slowCommitCryptosys));
   }
@@ -2196,15 +2189,13 @@ static ConcordConfiguration::ParameterStatus validateCryptosys(
   uint16_t numSigners = (uint16_t)unvalidatedNumSigners;
   uint16_t threshold;
 
-  // Compute the threshold, which is different for each of the four
+  // Compute the threshold, which is different for each of the three
   // cryptosystems we are currently using. The code specific to each
   // cryptosystem here will hopefully be factored out into its own function in a
   // futre round of code cleanup in which we intend to replace
   // validator/generator/scopesizer function pointers with objects.
   string sysName = path.getLeaf().name;
-  if (sysName == "execution_cryptosys") {
-    threshold = fVal + 1;
-  } else if (sysName == "slow_commit_cryptosys") {
+  if (sysName == "slow_commit_cryptosys") {
     threshold = 2 * fVal + cVal + 1;
   } else if (sysName == "commit_cryptosys") {
     threshold = 3 * fVal + cVal + 1;
@@ -2794,11 +2785,11 @@ static ConcordConfiguration::ParameterStatus validateRSAPrivateKey(
 static ConcordConfiguration::ParameterStatus getRSAPrivateKey(
     const ConcordConfiguration& config, const ConfigurationPath& path,
     string* output, void* state) {
-  // The path to an RSA private key should be of one of these forms:
+  // The path to an RSA private key should be of the form:
   //   node[i]/replica[0]/private_key
-  //   node[i]/client_proxy[j]/private_key
-  // We infer what replica or client proxy the key is for from the path.
-  assert(path.isScope && path.useInstance && path.subpath);
+  // We infer what replica the key is for from the path.
+  assert(path.isScope && path.useInstance && path.subpath &&
+         (path.subpath->name == "replica"));
   const ConcordPrimaryConfigurationAuxiliaryState* auxState =
       dynamic_cast<const ConcordPrimaryConfigurationAuxiliaryState*>(
           config.getAuxiliaryState());
@@ -2806,22 +2797,10 @@ static ConcordConfiguration::ParameterStatus getRSAPrivateKey(
 
   size_t nodeIndex = path.index;
 
-  if (path.subpath->name == "replica") {
-    if (nodeIndex >= auxState->replicaRSAKeys.size()) {
-      return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
-    }
-    *output = auxState->replicaRSAKeys[nodeIndex].first;
-  } else {
-    assert((path.subpath->name == "client_proxy") && path.subpath->isScope &&
-           path.subpath->useInstance);
-    size_t clientProxyIndex = path.subpath->index;
-
-    if ((nodeIndex >= auxState->clientProxyRSAKeys.size()) ||
-        (clientProxyIndex >= auxState->clientProxyRSAKeys[nodeIndex].size())) {
-      return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
-    }
-    *output = auxState->clientProxyRSAKeys[nodeIndex][clientProxyIndex].first;
+  if (nodeIndex >= auxState->replicaRSAKeys.size()) {
+    return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
   }
+  *output = auxState->replicaRSAKeys[nodeIndex].first;
   return ConcordConfiguration::ParameterStatus::VALID;
 }
 
@@ -2838,11 +2817,11 @@ static ConcordConfiguration::ParameterStatus validateRSAPublicKey(
 static ConcordConfiguration::ParameterStatus getRSAPublicKey(
     const ConcordConfiguration& config, const ConfigurationPath& path,
     string* output, void* state) {
-  // The path to an RSA public key should be of one of these forms:
+  // The path to an RSA public key should be of this form:
   //   node[i]/replica[0]/public_key
-  //   node[i]/client_proxy[j]/public_key
-  // We infer what replica or client proxy the key is for from the path.
-  assert(path.isScope && path.useInstance && path.subpath);
+  // We infer what replica the key is for from the path.
+  assert(path.isScope && path.useInstance && path.subpath &&
+         (path.subpath->name == "replica"));
   const ConcordPrimaryConfigurationAuxiliaryState* auxState =
       dynamic_cast<const ConcordPrimaryConfigurationAuxiliaryState*>(
           config.getAuxiliaryState());
@@ -2850,22 +2829,10 @@ static ConcordConfiguration::ParameterStatus getRSAPublicKey(
 
   size_t nodeIndex = path.index;
 
-  if (path.subpath->name == "replica") {
-    if (nodeIndex >= auxState->replicaRSAKeys.size()) {
-      return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
-    }
-    *output = auxState->replicaRSAKeys[nodeIndex].second;
-  } else {
-    assert((path.subpath->name == "client_proxy") && path.subpath->isScope &&
-           path.subpath->useInstance);
-    size_t clientProxyIndex = path.subpath->index;
-
-    if ((nodeIndex >= auxState->clientProxyRSAKeys.size()) ||
-        (clientProxyIndex >= auxState->clientProxyRSAKeys[nodeIndex].size())) {
-      return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
-    }
-    *output = auxState->clientProxyRSAKeys[nodeIndex][clientProxyIndex].second;
+  if (nodeIndex >= auxState->replicaRSAKeys.size()) {
+    return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
   }
+  *output = auxState->replicaRSAKeys[nodeIndex].second;
   return ConcordConfiguration::ParameterStatus::VALID;
 }
 
@@ -3101,28 +3068,6 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "before having to fall back on a slow path for consensus.");
   config.tagParameter("c_val", publicInputTags);
   config.addValidator("c_val", validateCVal, nullptr);
-
-  config.declareParameter(
-      "execution_cryptosys",
-      "Type of cryptosystem to use for consensus on the results of executing "
-      "transactions (threshold F + 1). This parameter should consist of two "
-      "space-separated strings, the first of which names the cryptosystem type "
-      "and the second of which is a type-specific parameter or subtype "
-      "selection (for example, the second string might be an elliptic curve "
-      "type if an elliptic curve cryptosystem is selected).",
-      "threshold-bls BN-P254");
-  config.tagParameter("execution_cryptosys", defaultableByUtilityTags);
-  config.tagParameter("execution_cryptosys", optionalTags);
-  config.addValidator("execution_cryptosys", validateCryptosys, nullptr);
-
-  config.declareParameter("execution_public_key",
-                          "Public key for the execution cryptosystem.");
-  config.tagParameter("execution_public_key", publicGeneratedTags);
-  config.tagParameter("execution_public_key", optionalTags);
-  config.addValidator("execution_public_key", validatePublicKey,
-                      &(auxState->executionCryptosys));
-  config.addGenerator("execution_public_key", getThresholdPublicKey,
-                      &(auxState->executionCryptosys));
 
   config.declareParameter(
       "f_val",
@@ -3466,27 +3411,6 @@ void specifyConfiguration(ConcordConfiguration& config) {
   replica.addGenerator("commit_verification_key", getThresholdVerificationKey,
                        &(auxState->commitCryptosys));
 
-  replica.declareParameter(
-      "execution_private_key",
-      "Private key for this replica under the execution cryptosystem.");
-  replica.tagParameter("execution_private_key", privateGeneratedTags);
-  replica.tagParameter("execution_private_key", optionalTags);
-  replica.addValidator("execution_private_key", validatePrivateKey,
-                       &(auxState->executionCryptosys));
-  replica.addGenerator("execution_private_key", getThresholdPrivateKey,
-                       &(auxState->executionCryptosys));
-
-  replica.declareParameter("execution_verification_key",
-                           "Public verification key for this replica's "
-                           "signature under the execution cryptosystem.");
-  replica.tagParameter("execution_verification_key", publicGeneratedTags);
-  replica.tagParameter("execution_verification_key", optionalTags);
-  replica.addValidator("execution_verification_key", validateVerificationKey,
-                       &(auxState->executionCryptosys));
-  replica.addGenerator("execution_verification_key",
-                       getThresholdVerificationKey,
-                       &(auxState->executionCryptosys));
-
   replica.declareParameter("optimistic_commit_private_key",
                            "Private key for this replica under the optimistic "
                            "fast path commit cryptosystem.");
@@ -3584,22 +3508,6 @@ void specifyConfiguration(ConcordConfiguration& config) {
   clientProxy.tagParameter("principal_id", publicGeneratedTags);
   clientProxy.addValidator("principal_id", validatePrincipalId, nullptr);
   clientProxy.addGenerator("principal_id", computePrincipalId, nullptr);
-
-  clientProxy.declareParameter(
-      "private_key",
-      "Private RSA key for use in general communication by this client proxy.");
-  clientProxy.tagParameter("private_key", privateGeneratedTags);
-  clientProxy.tagParameter("private_key", optionalTags);
-  clientProxy.addValidator("private_key", validateRSAPrivateKey, nullptr);
-  clientProxy.addGenerator("private_key", getRSAPrivateKey, nullptr);
-
-  clientProxy.declareParameter(
-      "public_key",
-      "Public RSA key for use in general communication by this client proxy.");
-  clientProxy.tagParameter("public_key", publicGeneratedTags);
-  clientProxy.tagParameter("public_key", optionalTags);
-  clientProxy.addValidator("public_key", validateRSAPublicKey, nullptr);
-  clientProxy.addGenerator("public_key", getRSAPublicKey, nullptr);
 
   // Configuration of HLF
   config.declareParameter("hlf_enable",
@@ -3907,8 +3815,7 @@ void generateConfigurationKeys(ConcordConfiguration& config) {
         "Cannot generate keys for Concord cluster: required cluster size "
         "parameters are not loaded.");
   }
-  if (!config.hasValue<string>("execution_cryptosys") ||
-      !config.hasValue<string>("slow_commit_cryptosys") ||
+  if (!config.hasValue<string>("slow_commit_cryptosys") ||
       !config.hasValue<string>("commit_cryptosys") ||
       !config.hasValue<string>("optimistic_commit_cryptosys")) {
     throw ConfigurationResourceNotFoundException(
@@ -3921,9 +3828,7 @@ void generateConfigurationKeys(ConcordConfiguration& config) {
   // accept the values again here in case any of them were previously unable to
   // fully validate a cryptosystem selection because cryptosystem selections
   // were loaded before cluster size parameters.
-  if ((config.validate("execution_cryptosys") !=
-       ConcordConfiguration::ParameterStatus::VALID) ||
-      (config.validate("slow_commit_cryptosys") !=
+  if ((config.validate("slow_commit_cryptosys") !=
        ConcordConfiguration::ParameterStatus::VALID) ||
       (config.validate("commit_cryptosys") !=
        ConcordConfiguration::ParameterStatus::VALID) ||
@@ -3935,13 +3840,10 @@ void generateConfigurationKeys(ConcordConfiguration& config) {
   }
   uint16_t fVal = config.getValue<uint16_t>("f_val");
   uint16_t cVal = config.getValue<uint16_t>("c_val");
-  uint16_t clientProxiesPerReplica =
-      config.getValue<uint16_t>("client_proxies_per_replica");
 
   uint16_t numReplicas = 3 * fVal + 2 * cVal + 1;
 
   uint16_t numSigners = numReplicas;
-  uint16_t executionThreshold = fVal + 1;
   uint16_t slowCommitThreshold = 2 * fVal + cVal + 1;
   uint16_t commitThreshold = 3 * fVal + cVal + 1;
   uint16_t optimisticCommitThreshold = 3 * fVal + 2 * cVal + 1;
@@ -3951,9 +3853,6 @@ void generateConfigurationKeys(ConcordConfiguration& config) {
       dynamic_cast<ConcordPrimaryConfigurationAuxiliaryState*>(
           config.getAuxiliaryState());
 
-  std::pair<string, string> executionCryptoSelection =
-      parseCryptosystemSelection(
-          config.getValue<string>("execution_cryptosys"));
   std::pair<string, string> slowCommitCryptoSelection =
       parseCryptosystemSelection(
           config.getValue<string>("slow_commit_cryptosys"));
@@ -3963,9 +3862,6 @@ void generateConfigurationKeys(ConcordConfiguration& config) {
       parseCryptosystemSelection(
           config.getValue<string>("optimistic_commit_cryptosys"));
 
-  auxState->executionCryptosys.reset(new Cryptosystem(
-      executionCryptoSelection.first, executionCryptoSelection.second,
-      numSigners, executionThreshold));
   auxState->slowCommitCryptosys.reset(new Cryptosystem(
       slowCommitCryptoSelection.first, slowCommitCryptoSelection.second,
       numSigners, slowCommitThreshold));
@@ -3977,10 +3873,6 @@ void generateConfigurationKeys(ConcordConfiguration& config) {
                        optimisticCommitCryptoSelection.second, numSigners,
                        optimisticCommitThreshold));
 
-  LOG4CPLUS_INFO(
-      logger,
-      "Generating threshold cryptographic keys for execution cryptosystem...");
-  auxState->executionCryptosys->generateNewPseudorandomKeys();
   LOG4CPLUS_INFO(logger,
                  "Generating threshold cryptographic keys for slow path commit "
                  "cryptosystem...");
@@ -3995,16 +3887,11 @@ void generateConfigurationKeys(ConcordConfiguration& config) {
   auxState->optimisticCommitCryptosys->generateNewPseudorandomKeys();
 
   auxState->replicaRSAKeys.clear();
-  auxState->clientProxyRSAKeys.clear();
 
-  LOG4CPLUS_INFO(logger, "Generating Concord-BFT principal RSA keys...");
+  LOG4CPLUS_INFO(logger, "Generating Concord-BFT replica RSA keys...");
   CryptoPP::AutoSeededRandomPool randomPool;
   for (uint16_t i = 0; i < numReplicas; ++i) {
     auxState->replicaRSAKeys.push_back(generateRSAKeyPair(randomPool));
-    auxState->clientProxyRSAKeys.push_back(vector<std::pair<string, string>>());
-    for (uint16_t j = 0; j < clientProxiesPerReplica; ++j) {
-      auxState->clientProxyRSAKeys[i].push_back(generateRSAKeyPair(randomPool));
-    }
   }
 }
 
