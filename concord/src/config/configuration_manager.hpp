@@ -1520,7 +1520,13 @@ void outputPrincipalLocationsMappingJSON(ConcordConfiguration& config,
 }  // namespace config
 }  // namespace concord
 
-boost::program_options::variables_map initialize_config(
-    concord::config::ConcordConfiguration& config, int argc, char** argv);
+// Parse Concord's command line options (storing them to opts_out) and load its
+// configuration from the configuration file specified by the command line to
+// config_out. Returns true if Concord's configuration was loaded successfully,
+// or if the command line invokes Concord in a recognized way not requiring a
+// configuration (ex: concord --help), and returns false otherwise.
+bool initialize_config(int agrc, char** argv,
+                       concord::config::ConcordConfiguration& config_out,
+                       boost::program_options::variables_map& opts_out);
 
 #endif  // CONFIG_CONFIGURATION_MANAGER_HPP

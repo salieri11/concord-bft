@@ -9,6 +9,8 @@
 #include "configuration_manager.hpp"
 #include "utils/json.hpp"
 
+using std::cerr;
+using std::endl;
 using std::invalid_argument;
 using std::ostream;
 using std::string;
@@ -27,11 +29,8 @@ using nlohmann::json;
 using concord::config::ConcordConfiguration;
 using concord::config::detectLocalNode;
 
-variables_map initialize_config(concord::config::ConcordConfiguration& config,
-                                int argc, char** argv) {
-  // A map to hold key-value pairs of all non-configuration options.
-  variables_map options_map;
-
+bool initialize_config(int argc, char** argv, ConcordConfiguration& config_out,
+                       variables_map& opts_out) {
   // Holds the file name of path of the configuration file for Concordthis is
   // NOT same as logger configuration file. Logger configuration file can be
   // specified as a property in configuration file.
@@ -45,7 +44,8 @@ variables_map initialize_config(concord::config::ConcordConfiguration& config,
   // clang-format off
   generic.add_options()
       ("help,h", "Print this help message")
-      ("config,c", boost::program_options::value<string>(&configFile),
+      ("config,c",
+       boost::program_options::value<string>(&configFile)->required(),
        "Path for configuration file")
       ("debug", "Sleep for 20 seconds to attach debug");
   // clang-format on
@@ -54,26 +54,37 @@ variables_map initialize_config(concord::config::ConcordConfiguration& config,
   // options was provided. In this case we don't need to
   // go for parsing config file. Otherwise call notify
   // for command line options and move to parsing config file.
-  store(command_line_parser(argc, argv).options(generic).run(), options_map);
+  store(command_line_parser(argc, argv).options(generic).run(), opts_out);
 
   // If cmdline options specified --help then we don't want
   // to do further processing for command line or
   // config file options
-  if (options_map.count("help")) {
+  if (opts_out.count("help")) {
     std::cout << "VMware Project Concord" << std::endl;
     std::cout << generic << std::endl;
-    return options_map;
+    return true;
   }
 
   // call notify after checking "help", so that required
   // parameters are not required to get help (this call throws an
   // exception to exit the program if any parameters are invalid)
-  notify(options_map);
+  notify(opts_out);
+
+  // Verify configuration file exists.
+  std::ifstream fileInput(configFile);
+  if (!fileInput.is_open()) {
+    cerr << "Concord could not open configuration file: " << configFile << endl;
+    return false;
+  }
+  if (fileInput.peek() == EOF) {
+    cerr << "Concord configuration file " << configFile
+         << " appears to be an empty file." << endl;
+    return false;
+  }
 
   // Parse configuration file.
-  std::ifstream fileInput(configFile);
-  concord::config::specifyConfiguration(config);
-  config.setConfigurationStateLabel("concord_node");
+  concord::config::specifyConfiguration(config_out);
+  config_out.setConfigurationStateLabel("concord_node");
   concord::config::YAMLConfigurationInput input(fileInput);
 
   try {
@@ -84,10 +95,10 @@ variables_map initialize_config(concord::config::ConcordConfiguration& config,
         << configFile << ": exception message: " << e.what() << std::endl;
   }
 
-  concord::config::loadNodeConfiguration(config, input);
-  concord::config::loadSBFTCryptosystems(config);
+  concord::config::loadNodeConfiguration(config_out, input);
+  concord::config::loadSBFTCryptosystems(config_out);
 
-  return options_map;
+  return true;
 }
 
 namespace concord {
@@ -3808,6 +3819,29 @@ void instantiateTemplatedConfiguration(YAMLConfigurationInput& input,
   }
 }
 
+// Helper function used in error reporting by a number of configuration-loading
+// functions that can possibly throw exceptions reporting multiple missing
+// parameters at once; it may be helpful to list them all in the exception
+// message instead of or in addition to logging each missing parameter
+// individually as it can be possible for log statements to get loast from the
+// output if they do not complete and their message does not get flushed to the
+// output stream(s) before an exception following them triggers the program to
+// exit.
+static string getErrorMessageListingParameters(
+    const string& base_error_message,
+    const vector<string>& parameters_missing) {
+  string error_message = base_error_message;
+  for (size_t i = 0; i < parameters_missing.size(); ++i) {
+    error_message += parameters_missing[i];
+    if (i < (parameters_missing.size() - 1)) {
+      error_message += ", ";
+    } else {
+      error_message += ".";
+    }
+  }
+  return error_message;
+}
+
 // Parameter selection function used by loadConfigurationInputParameters.
 static bool selectInputParameters(const ConcordConfiguration& config,
                                   const ConfigurationPath& path, void* state) {
@@ -3833,6 +3867,7 @@ void loadConfigurationInputParameters(YAMLConfigurationInput& input,
                           inputParameterSelection.end(), &logger, true);
 
   bool missingParameter = false;
+  vector<string> parameters_missing;
   for (auto iterator =
            config.begin(ConcordConfiguration::kIterateAllInstanceParameters);
        iterator !=
@@ -3847,6 +3882,7 @@ void loadConfigurationInputParameters(YAMLConfigurationInput& input,
     if (containingScope->isTagged(name, "input") &&
         !config.hasValue<string>(path)) {
       missingParameter = true;
+      parameters_missing.push_back(path.toString());
       LOG4CPLUS_ERROR(logger,
                       "Configuration input is missing value for required input "
                       "parameter: " +
@@ -3855,7 +3891,9 @@ void loadConfigurationInputParameters(YAMLConfigurationInput& input,
   }
   if (missingParameter) {
     throw ConfigurationResourceNotFoundException(
-        "Required input parameters are missing from configuration input.");
+        getErrorMessageListingParameters(
+            "Configuration input is missing required input parameter(s): ",
+            parameters_missing));
   }
 }
 
@@ -4155,6 +4193,7 @@ void loadNodeConfiguration(ConcordConfiguration& config,
   }
 
   bool hasAllRequired = true;
+  vector<string> parameters_missing;
   for (auto iterator = nodeConfiguration.begin();
        iterator != nodeConfiguration.end(); ++iterator) {
     ConfigurationPath path = *iterator;
@@ -4165,6 +4204,7 @@ void loadNodeConfiguration(ConcordConfiguration& config,
       }
       if (!(containingScope->isTagged(path.getLeaf().name, "optional"))) {
         hasAllRequired = false;
+        parameters_missing.push_back((*iterator).toString());
         LOG4CPLUS_ERROR(logger,
                         "Concord node configuration is missing a value for a "
                         "required parameter: " +
@@ -4174,45 +4214,81 @@ void loadNodeConfiguration(ConcordConfiguration& config,
   }
   if (!hasAllRequired) {
     throw ConfigurationResourceNotFoundException(
-        "Node configuration is missing values for required parameters.");
+        getErrorMessageListingParameters("Node configuration is missing "
+                                         "value(s) for required parameter(s): ",
+                                         parameters_missing));
   }
 }
 
 size_t detectLocalNode(ConcordConfiguration& config) {
   size_t nodeDetected;
   bool hasDetectedNode = false;
+  ConfigurationPath detectedPath;
+
+  bool hasValueForAnyNodePublicParameter = false;
+  bool hasValueForAnyNodeTemplateParameter = false;
+  bool hasValueForAnyNonNodeParameter = false;
 
   for (auto iterator =
-           config.begin(ConcordConfiguration::kIterateAllInstanceParameters);
-       iterator !=
-       config.end(ConcordConfiguration::kIterateAllInstanceParameters);
+           config.begin(ConcordConfiguration::kIterateAllParameters);
+       iterator != config.end(ConcordConfiguration::kIterateAllParameters);
        ++iterator) {
     ConfigurationPath path = *iterator;
-    if (config.hasValue<string>(path) && path.isScope) {
-      // If this path is not to a parameter in the root scope, we expect it to
-      // have the form node[i]/... (Note we have selected an iterator that
-      // returns paths to only instanced parameters).
-      assert((path.name == "node") && path.useInstance);
-
-      size_t node = path.index;
-      ConcordConfiguration* containingScope =
-          &(config.subscope(path.trimLeaf()));
-      if (containingScope->isTagged(path.getLeaf().name, "private")) {
-        if (hasDetectedNode && (node != nodeDetected)) {
-          throw ConfigurationResourceNotFoundException(
-              "Cannot determine which node configuration file is for: found "
-              "private values for multiple nodes.");
+    if (path.isScope && (path.name == "node")) {
+      if (path.useInstance) {
+        size_t node = path.index;
+        ConcordConfiguration* containingScope =
+            &(config.subscope(path.trimLeaf()));
+        if (containingScope->isTagged(path.getLeaf().name, "private") &&
+            config.hasValue<string>(path)) {
+          if (hasDetectedNode && (node != nodeDetected)) {
+            throw ConfigurationResourceNotFoundException(
+                "Cannot determine which node Concord configuration file is "
+                "for: found values for private configuration parameters for "
+                "multiple nodes. Conflicting private parameters are : " +
+                detectedPath.toString() + " and " + path.toString() + ".");
+          }
+          hasDetectedNode = true;
+          nodeDetected = node;
+          detectedPath = path;
+        } else if (config.hasValue<string>(path)) {
+          hasValueForAnyNodePublicParameter = true;
         }
-        hasDetectedNode = true;
-        nodeDetected = node;
+      } else {
+        if (config.hasValue<string>(path)) {
+          hasValueForAnyNodeTemplateParameter = true;
+        }
+      }
+    } else {
+      if (config.hasValue<string>(path)) {
+        hasValueForAnyNonNodeParameter = true;
       }
     }
   }
 
   if (!hasDetectedNode) {
-    throw ConfigurationResourceNotFoundException(
-        "Cannot determine which node configuration file is for: no private "
-        "values found in configuration.");
+    if (hasValueForAnyNodePublicParameter) {
+      throw ConfigurationResourceNotFoundException(
+          "Cannot determine which node configuration file is for: no values "
+          "found for any private configuration parameters in instances of the "
+          "node scope.");
+    } else if (hasValueForAnyNodeTemplateParameter) {
+      throw ConfigurationResourceNotFoundException(
+          "Cannot determine which node configuration file is for: no values "
+          "found for any parameters in instances of the node scope, though "
+          "there are values for parameters in the node template.");
+    } else if (hasValueForAnyNonNodeParameter) {
+      throw ConfigurationResourceNotFoundException(
+          "Cannot determine which node configuration file is for: no values "
+          "found for any parameters in the node scope (Is the node scope "
+          "missing or malformatted in Concord's configuration file?).");
+    } else {
+      throw ConfigurationResourceNotFoundException(
+          "Cannot determine which node configuration file is for: no values "
+          "found for any recognized parameters in Concord's configuration "
+          "file. (Has Concord been given the wrong file for its configuration? "
+          "Is the configuration file malformatted?)");
+    }
   }
   return nodeDetected;
 }
@@ -4232,9 +4308,11 @@ void loadSBFTCryptosystems(ConcordConfiguration& config) {
        ConfigurationPath("commit_public_key", false),
        ConfigurationPath("optimistic_commit_public_key", false)});
   bool hasRequired = true;
+  vector<string> parameters_missing;
   for (auto&& path : requiredCryptosystemParameters) {
     if (!config.hasValue<string>(path)) {
       hasRequired = false;
+      parameters_missing.push_back(path.toString());
       LOG4CPLUS_ERROR(
           logger,
           "Configuration missing value for required cryptosystem parameter: " +
@@ -4243,8 +4321,11 @@ void loadSBFTCryptosystems(ConcordConfiguration& config) {
   }
   if (!hasRequired) {
     throw ConfigurationResourceNotFoundException(
-        "Cannot load SBFT Cryptosystems for given configuration: could not "
-        "find all required parameters.");
+        getErrorMessageListingParameters(
+            "Cannot load SBFT Cryptosystems for given configuration: "
+            "configuration is missing value(s) for required crypto "
+            "parameter(s): ",
+            parameters_missing));
   }
 
   ConcordPrimaryConfigurationAuxiliaryState* auxState;
@@ -4296,6 +4377,8 @@ void loadSBFTCryptosystems(ConcordConfiguration& config) {
 
     if (!replicaConfig.hasValue<string>("slow_commit_verification_key")) {
       hasRequired = false;
+      parameters_missing.push_back("node[" + to_string(i) +
+                                   "]/replica[0]/slow_commit_verification_key");
       LOG4CPLUS_ERROR(logger,
                       "Configuration missing required threshold verification "
                       "key: slow_commit_verification_key for replica " +
@@ -4306,6 +4389,8 @@ void loadSBFTCryptosystems(ConcordConfiguration& config) {
     }
     if (!replicaConfig.hasValue<string>("commit_verification_key")) {
       hasRequired = false;
+      parameters_missing.push_back("node[" + to_string(i) +
+                                   "]/replica[0]/commit_verification_key");
       LOG4CPLUS_ERROR(logger,
                       "Configuration missing required threshold verification "
                       "key: commit_verification_key for replica " +
@@ -4316,6 +4401,9 @@ void loadSBFTCryptosystems(ConcordConfiguration& config) {
     }
     if (!replicaConfig.hasValue<string>("optimistic_commit_verification_key")) {
       hasRequired = false;
+      parameters_missing.push_back(
+          "node[" + to_string(i) +
+          "]/replica[0]/optimistic_commit_verification_key");
       LOG4CPLUS_ERROR(logger,
                       "Configuration missing required threshold verification "
                       "key: optimistic_commit_verification_key for replica " +
@@ -4327,8 +4415,10 @@ void loadSBFTCryptosystems(ConcordConfiguration& config) {
   }
   if (!hasRequired) {
     throw ConfigurationResourceNotFoundException(
-        "Cannot load SBFT Cryptosystems for given configuration: could not "
-        "find all required parameters.");
+        getErrorMessageListingParameters(
+            "Cannot load SBFT Cryptosystems: configuration is missing value(s) "
+            "for required parameter(s): ",
+            parameters_missing));
   }
 
   auxState->slowCommitCryptosys->loadKeys(
@@ -4340,12 +4430,15 @@ void loadSBFTCryptosystems(ConcordConfiguration& config) {
       config.getValue<string>("optimistic_commit_public_key"),
       optimisticCommitVerificationKeys);
 
+  size_t local_node = detectLocalNode(config);
   ConcordConfiguration& localReplicaConfig =
-      config.subscope("node", detectLocalNode(config)).subscope("replica", 0);
+      config.subscope("node", local_node).subscope("replica", 0);
   uint16_t localReplicaID =
       localReplicaConfig.getValue<uint16_t>("principal_id");
   if (!localReplicaConfig.hasValue<string>("slow_commit_private_key")) {
     hasRequired = false;
+    parameters_missing.push_back("node[" + to_string(local_node) +
+                                 "]/replica[0]/slow_commit_private_key");
     LOG4CPLUS_ERROR(logger,
                     "Configuration missing required threshold private key: "
                     "slow_commit_private_key for this node.");
@@ -4356,6 +4449,8 @@ void loadSBFTCryptosystems(ConcordConfiguration& config) {
   }
   if (!localReplicaConfig.hasValue<string>("commit_private_key")) {
     hasRequired = false;
+    parameters_missing.push_back("node[" + to_string(local_node) +
+                                 "]/replica[0]/commit_private_key");
     LOG4CPLUS_ERROR(logger,
                     "Configuration missing required threshold private key: "
                     "commit_private_key for this node.");
@@ -4366,6 +4461,8 @@ void loadSBFTCryptosystems(ConcordConfiguration& config) {
   }
   if (!localReplicaConfig.hasValue<string>("optimistic_commit_private_key")) {
     hasRequired = false;
+    parameters_missing.push_back("node[" + to_string(local_node) +
+                                 "]/replica[0]/optimistic_commit_private_key");
     LOG4CPLUS_ERROR(logger,
                     "Configuration missing required threshold private key: "
                     "optimistic_commit_private_key for this node.");
@@ -4376,8 +4473,10 @@ void loadSBFTCryptosystems(ConcordConfiguration& config) {
   }
   if (!hasRequired) {
     throw ConfigurationResourceNotFoundException(
-        "Cannot load SBFT Cryptosystems for given configuration: could not "
-        "find all required parameters.");
+        getErrorMessageListingParameters(
+            "Cannot load SBFT Cryptosystems: configuration is missing value(s) "
+            "for required parameter(s): ",
+            parameters_missing));
   }
 }
 

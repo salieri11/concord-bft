@@ -517,7 +517,10 @@ int main(int argc, char **argv) {
     // parameters or 'argc/argv'. Never directly operate on
     // config parameters or command line parameters directly
     // always use po::variables_map interface for that.
-    variables_map opts = initialize_config(config, argc, argv);
+    variables_map opts;
+    if (!initialize_config(argc, argv, config, opts)) {
+      return -1;
+    }
 
     if (opts.count("help")) return result;
 
