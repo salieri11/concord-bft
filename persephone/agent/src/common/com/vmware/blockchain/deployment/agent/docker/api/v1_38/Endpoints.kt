@@ -13,7 +13,7 @@ const val API_VERSION: String = "v1.38"
  */
 enum class Endpoints(
     override val path: String,
-    override val parameterMappings: Set<String>,
+    override val parameterMappings: Set<String> = emptySet(),
     override val pathMappings: Set<String> = emptySet()
 ) : EndpointEnumeration {
 
@@ -25,5 +25,7 @@ enum class Endpoints(
     CONTAINERS_STOP("/$API_VERSION/containers/{id}/stop", setOf("t"), setOf("{id}")),
     IMAGES_CREATE("/$API_VERSION/images/create", setOf("fromImage", "fromSrc", "repo", "tag", "platform")),
     IMAGES_INSPECT("/$API_VERSION/images/{name}/json", emptySet(), setOf("{name}")),
-    IMAGES_LIST("/$API_VERSION/images/json", setOf("all", "filters", "digests"))
+    IMAGES_LIST("/$API_VERSION/images/json", setOf("all", "filters", "digests")),
+    NETWORKS_CREATE("/$API_VERSION/networks/create"),
+    NETWORKS_LIST("/$API_VERSION/networks", setOf("filters"))
 }

@@ -6,7 +6,7 @@ package com.vmware.blockchain.deployment.service.grpc.support
 import com.vmware.blockchain.deployment.model.core.URI
 import com.vmware.blockchain.deployment.v1.Endpoint
 import com.vmware.blockchain.deployment.v1.TransportSecurity
-import io.grpc.Channel
+import io.grpc.ManagedChannel
 import io.grpc.netty.shaded.io.grpc.netty.GrpcSslContexts
 import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder
 import java.util.concurrent.Executor
@@ -39,12 +39,12 @@ fun Endpoint.resolveTransportSecurityServerSetting(): Endpoint {
 }
 
 /**
- * Create a new [Channel] matching the parameters specified in this [Endpoint] instance.
+ * Create a new [ManagedChannel] matching the parameters specified in this [Endpoint] instance.
  *
  * @return
- *   a new [Channel] instance.
+ *   a new [ManagedChannel] instance.
  */
-fun Endpoint.newClientRpcChannel(executor: Executor = ForkJoinPool.commonPool()): Channel {
+fun Endpoint.newClientRpcChannel(executor: Executor = ForkJoinPool.commonPool()): ManagedChannel {
     return NettyChannelBuilder.forTarget(address).apply {
         when (transportSecurity.type) {
             TransportSecurity.Type.NONE -> usePlaintext()

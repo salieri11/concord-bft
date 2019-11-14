@@ -36,6 +36,18 @@ class DockerHttpClient(
         /** Default Docker Engine API endpoint. */
         @JvmStatic
         val DEFAULT_DOCKER_ENGINE: Endpoint = Endpoint("http://host.docker.internal:2375")
+
+        /**
+         * Resolve the DNS-name of a container registry [Endpoint].
+         *
+         * @param[endpoint]
+         *   endpoint pertaining to a container registry.
+         */
+        fun resolveRegistryAddress(endpoint: Endpoint): String {
+            val url = URI.create(endpoint.address)
+
+            return url.host + (url.port.takeIf { it != -1 }?.let { ":$it" } ?: "")
+        }
     }
 
     /**
@@ -47,7 +59,7 @@ class DockerHttpClient(
      *   endpoint for the container registry to instruct the Docker Engine to pull images from.
      */
     data class Context(
-        val endpoint: Endpoint,
+        val endpoint: Endpoint = DEFAULT_DOCKER_ENGINE,
         val registryEndpoint: Endpoint = DEFAULT_CONTAINER_REGISTRY
     )
 
@@ -67,11 +79,7 @@ class DockerHttpClient(
     }
 
     /** DNS-name of the container registry that images should be created from. */
-    val registryAddress: String by lazy {
-        val url = URI.create(context.registryEndpoint.address)
-
-        url.host + (url.port.takeIf { it != -1 }?.let { ":$it" } ?: "")
-    }
+    val registryAddress: String by lazy { resolveRegistryAddress(context.registryEndpoint) }
 
     /** Specify whether HTTP requests should specify access token in HTTP header. */
     override val useAccessToken: Boolean = false

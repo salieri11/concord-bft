@@ -34,6 +34,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.channels.Channel
@@ -49,10 +50,10 @@ import kotlinx.serialization.json.JsonConfiguration
 import kotlinx.serialization.modules.EmptyModule
 
 /** Default configuration file path.  */
-private val DEFAULT_APPLICATION_CONFIG = URI.create("file:/config/config.json")
+private val DEFAULT_APPLICATION_CONFIG = URI.create("file:/config/agent/config.json")
 
 /** Default component artifact target mount path. */
-private val DEFAULT_COMPONENT_CONFIGURATION_MOUNT_PATH = URI.create("file:/config/")
+private val DEFAULT_COMPONENT_CONFIGURATION_MOUNT_PATH = URI.create("file:$CONFIGURATION_MOUNT_PATH")
 
 /** Default [ConcordAgentConfiguration] model. */
 private val DEFAULT_CONCORD_AGENT_CONFIGURATION by lazy {
@@ -83,7 +84,7 @@ private val DEFAULT_CONCORD_AGENT_CONFIGURATION by lazy {
             cluster = ConcordClusterIdentifier.defaultValue,
             node = 0,
             configService = configServiceEndpoint,
-            configurationSession = ConfigurationSessionIdentifier(8439530024453537582)
+            configurationSession = ConfigurationSessionIdentifier.defaultValue
     )
 }
 
@@ -115,13 +116,31 @@ class Application(private val configuration: ConcordAgentConfiguration) : Corout
         launch(coroutineContext) {
             // Each iteration of an established session does not propagate failure to parent.
             supervisorScope {
+                // One-time fetch this node's configuration.
                 prepareNodeConfiguration()
+
                 val services = configuration.model.components
                         .groupBy { it.serviceType }
                         .mapValues {
-                            ServiceController(it.key, it.value, configuration.containerRegistry)
-                                    .apply { initialize() }
+                            when (it.key) {
+                                // Note: GENERIC controller is currently used for controlling agent.
+                                ConcordComponent.ServiceType.GENERIC -> AgentServiceController
+                                else -> DefaultServiceController(
+                                        it.key,
+                                        it.value,
+                                        configuration.containerRegistry
+                                )
+                            }
                         }
+
+                // Initialize agent service first and wait for initialization completion.
+                services[ConcordComponent.ServiceType.GENERIC]?.apply { initializeAsync().await() }
+
+                // Initialize all services and wait for all to complete.
+                services.filterNot { it.key == ConcordComponent.ServiceType.GENERIC }
+                        .values
+                        .map { it.initializeAsync() }
+                        .awaitAll()
 
                 // Start each service iteratively.
                 services.forEach { it.value.start() }
@@ -270,6 +289,9 @@ class Application(private val configuration: ConcordAgentConfiguration) : Corout
                 }
             }
         }
+
+        // Config service channel is single-use, so tear it down when done.
+        channel.shutdown()
     }
 }
 
