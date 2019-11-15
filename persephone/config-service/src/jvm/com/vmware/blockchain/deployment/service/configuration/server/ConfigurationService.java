@@ -24,6 +24,8 @@ import org.slf4j.LoggerFactory;
 
 import com.vmware.blockchain.deployment.service.configuration.eccerts.ConcordEcCertificatesGenerator;
 import com.vmware.blockchain.deployment.service.configuration.generateconfig.ConcordConfigUtil;
+import com.vmware.blockchain.deployment.service.configuration.generateconfig.DamlIndexDbUtil;
+import com.vmware.blockchain.deployment.service.configuration.generateconfig.DamlLedgerApiUtil;
 import com.vmware.blockchain.deployment.service.configuration.generateconfig.GenesisUtil;
 import com.vmware.blockchain.deployment.v1.ConcordComponent.ServiceType;
 import com.vmware.blockchain.deployment.v1.ConfigurationComponent;
@@ -37,6 +39,7 @@ import com.vmware.blockchain.deployment.v1.IdentityComponent;
 import com.vmware.blockchain.deployment.v1.IdentityFactors;
 import com.vmware.blockchain.deployment.v1.NodeConfigurationRequest;
 import com.vmware.blockchain.deployment.v1.NodeConfigurationResponse;
+import com.vmware.blockchain.ethereum.type.Genesis;
 
 import io.grpc.Status;
 import io.grpc.StatusException;
@@ -132,81 +135,99 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
                                     @NotNull StreamObserver<ConfigurationSessionIdentifier> observer) {
 
         var sessionId = newSessionId();
-        log.info("Generated new session id {}", sessionId);
+        List<ConfigurationComponent> staticComponentList = new ArrayList<>();
 
-        var certGen = new ConcordEcCertificatesGenerator();
-        var identityFactor = certGen.getIdentityFactor();
+        // Static settings for each service Type.
+        for (ServiceType serviceType : request.getServices()) {
+
+            switch (serviceType) {
+                case DAML_LEDGER_API:
+                    DamlLedgerApiUtil ledgerApiUtil = new DamlLedgerApiUtil();
+                    staticComponentList.add(new ConfigurationComponent(
+                            serviceType,
+                            DamlLedgerApiUtil.envVarPath,
+                            ledgerApiUtil.generateConfig(),
+                            new IdentityFactors())
+                    );
+                    break;
+                case DAML_INDEX_DB:
+                    DamlIndexDbUtil damlIndexDbUtil = new DamlIndexDbUtil();
+                    staticComponentList.add(new ConfigurationComponent(
+                            ServiceType.DAML_INDEX_DB,
+                            DamlIndexDbUtil.envVarPath,
+                            damlIndexDbUtil.generateConfig(),
+                            new IdentityFactors())
+                    );
+                    break;
+                case CONCORD:
+                    log.info("Generated new session id {}", sessionId);
+                    ConfigurationComponent genesisJson = createGenesisComponent(request.getGenesis(), sessionId);
+                    staticComponentList.add(genesisJson);
+                    break;
+                case ETHEREUM_API:
+                    staticComponentList.addAll(getEthereumComponent());
+                    break;
+                default:
+                    log.info("No config required for serviceType {}", serviceType);
+            }
+        }
+
         Map<Integer, List<ConfigurationComponent>> nodeComponent = new HashMap<>();
 
-        // Generate Configuration
-        var configUtil = new ConcordConfigUtil();
-        log.info("Generated concord configurations for session id: {}", sessionId);
+        if (request.getServices().contains(ServiceType.CONCORD)
+            || request.getServices().contains(ServiceType.DAML_CONCORD)
+            || request.getServices().contains(ServiceType.HLF_CONCORD)) {
 
-        var genesisUtil = new GenesisUtil();
-        log.info("Generated genesis for session id: {}", sessionId);
+            var certGen = new ConcordEcCertificatesGenerator();
 
-        var tlsConfig = configUtil.getConcordConfig(request.getHosts(), request.getBlockchainType());
-        var genesisJson = genesisUtil.getGenesis(request.getGenesis());
+            // Generate Configuration
+            var configUtil = new ConcordConfigUtil();
+            var tlsConfig = configUtil.getConcordConfig(request.getHosts(), request.getBlockchainType());
 
-        List<Identity> tlsIdentityList = certGen.generateSelfSignedCertificates(configUtil.maxPrincipalId + 1,
-                ServiceType.CONCORD);
-        log.info("Generated tls identity elements for session id: {}", sessionId);
+            List<Identity> tlsIdentityList =
+                    generateEtheriumConfig(certGen, configUtil.maxPrincipalId + 1, ServiceType.CONCORD);
+            log.info("Generated tls identity elements for session id: {}", sessionId);
 
-        Map<Integer, List<IdentityComponent>> tlsNodeIdentities = buildTlsIdentity(tlsIdentityList,
-                configUtil.nodePrincipal, configUtil.maxPrincipalId + 1, request.getHosts().size());
+            Map<Integer, List<IdentityComponent>> tlsNodeIdentities = buildTlsIdentity(tlsIdentityList,
+                                                                                       configUtil.nodePrincipal,
+                                                                                       configUtil.maxPrincipalId + 1,
+                                                                                       request.getHosts().size());
 
-        //Generate EthRPC Configuration
-        List<Identity> ethrpcIdentityList = certGen.generateSelfSignedCertificates(request.getHosts().size(),
-                ServiceType.ETHEREUM_API);
+            for (int node = 0; node < request.getHosts().size(); node++) {
+                List<ConfigurationComponent> componentList = new ArrayList<>();
+                componentList.addAll(staticComponentList);
 
-        for (int node = 0; node < request.getHosts().size(); node++) {
-            List<ConfigurationComponent> componentList = new ArrayList<>();
+                // TLS list
+                componentList.add(new ConfigurationComponent(
+                        ServiceType.CONCORD,
+                        configUtil.configPath,
+                        tlsConfig.get(node),
+                        new IdentityFactors())
+                );
 
-            // TLS list
-            componentList.add(new ConfigurationComponent(
-                    ServiceType.CONCORD,
-                    configUtil.configPath,
-                    tlsConfig.get(node),
-                    new IdentityFactors())
-            );
+                tlsNodeIdentities.get(node)
+                        .forEach(entry -> componentList.add(
+                                new ConfigurationComponent(
+                                        ServiceType.CONCORD,
+                                        entry.getUrl(),
+                                        entry.getBase64Value(),
+                                        certGen.getIdentityFactor()
+                                )
+                        ));
 
-            // Genesis
-            componentList.add(new ConfigurationComponent(
-                    ServiceType.CONCORD,
-                    GenesisUtil.genesisPath,
-                    genesisJson,
-                    new IdentityFactors())
-            );
+                // put per node configs
+                nodeComponent.putIfAbsent(node, componentList);
+                log.info("Created configurations for session: {}", sessionId);
 
-            tlsNodeIdentities.get(node)
-                    .forEach(entry -> componentList.add(
-                            new ConfigurationComponent(
-                                    ServiceType.CONCORD,
-                                    entry.getUrl(),
-                                    entry.getBase64Value(),
-                                    identityFactor
-                            )
-                    ));
+            }
 
-            // ETHRPC list
-            componentList.add(new ConfigurationComponent(
-                    ServiceType.ETHEREUM_API,
-                    ethrpcIdentityList.get(node).getCertificate().getUrl(),
-                    ethrpcIdentityList.get(node).getCertificate().getBase64Value(),
-                    identityFactor
-            ));
-
-            componentList.add(new ConfigurationComponent(
-                    ServiceType.ETHEREUM_API,
-                    ethrpcIdentityList.get(node).getKey().getUrl(),
-                    ethrpcIdentityList.get(node).getKey().getBase64Value(),
-                    identityFactor
-            ));
-
-            // put per node configs
-            nodeComponent.putIfAbsent(node, componentList);
-            log.info("Created configurations for session: {}", sessionId);
-
+        } else {
+            for (int node = 0; node < request.getHosts().size(); node++) {
+                List<ConfigurationComponent> componentList = new ArrayList<>();
+                componentList.addAll(staticComponentList);
+                nodeComponent.putIfAbsent(node, componentList);
+                log.info("Created configurations for session: {}", sessionId);
+            }
         }
 
         log.info("Persisting configurations for session: {} in memory...", sessionId);
@@ -220,6 +241,47 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
             observer.onError(new StatusException(
                     Status.INTERNAL.withDescription("Could not persist configuration results")));
         }
+    }
+
+    private List<ConfigurationComponent> getEthereumComponent() {
+        List<ConfigurationComponent> output = new ArrayList<>();
+
+        var certGen = new ConcordEcCertificatesGenerator();
+        List<Identity> ethrpcIdentityList =
+                generateEtheriumConfig(certGen, 1, ServiceType.ETHEREUM_API);
+
+        output.add(new ConfigurationComponent(
+                ServiceType.ETHEREUM_API,
+                ethrpcIdentityList.get(0).getCertificate().getUrl(),
+                ethrpcIdentityList.get(0).getCertificate().getBase64Value(),
+                certGen.getIdentityFactor()
+        ));
+
+        output.add(new ConfigurationComponent(
+                ServiceType.ETHEREUM_API,
+                ethrpcIdentityList.get(0).getKey().getUrl(),
+                ethrpcIdentityList.get(0).getKey().getBase64Value(),
+                certGen.getIdentityFactor()
+        ));
+        return output;
+    }
+
+    private List<Identity> generateEtheriumConfig(ConcordEcCertificatesGenerator certGen, int size,
+                                                  ServiceType ethereumApi) {
+        //Generate EthRPC Configuration
+        return certGen.generateSelfSignedCertificates(size,
+                                                      ethereumApi);
+    }
+
+    private ConfigurationComponent createGenesisComponent(@NotNull Genesis genesis,
+                                          ConfigurationSessionIdentifier sessionId) {
+        var genesisUtil = new GenesisUtil();
+        log.info("Generated genesis for session id: {}", sessionId);
+        return new ConfigurationComponent(
+                ServiceType.CONCORD,
+                GenesisUtil.genesisPath,
+                genesisUtil.getGenesis(genesis),
+                new IdentityFactors());
     }
 
     @Override
