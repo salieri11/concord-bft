@@ -79,6 +79,12 @@ public class ConcordConfiguration {
                                 DAML_INDEX_DB,
                                 DAML_LEDGER_API));
 
+    private static final Map<ConcordModelSpecification.NodeType, List<ConcordComponent.ServiceType>>
+            componentListForNodeType =
+            ImmutableMap
+                    .of(ConcordModelSpecification.NodeType.DAML_PARTICIPANT, List.of(DAML_INDEX_DB,
+                            DAML_LEDGER_API));
+
     private static final Map<ConcordComponent.ServiceType, String> componentToImageName =
             ImmutableMap.<ConcordComponent.ServiceType, String>builder()
                     .put(GENERIC, "vmwblockchain/agent")
@@ -117,7 +123,25 @@ public class ConcordConfiguration {
                         .setServiceType(k)
                         .setName(getImageTag(k))
                         .build()
-                ));
+        ));
+        return response;
+    }
+
+    /**
+     * Get component list.
+     * @param nodeType node
+     * @return components.
+     */
+    public List<ConcordComponent> getComponentsByNodeType(ConcordModelSpecification.NodeType nodeType) {
+        List<ConcordComponent> response = new ArrayList<>();
+
+        componentListForNodeType.get(nodeType).stream().forEach(k -> response.add(
+                ConcordComponent.newBuilder()
+                        .setType(ConcordComponent.Type.CONTAINER_IMAGE)
+                        .setServiceType(k)
+                        .setName(getImageTag(k))
+                        .build()
+        ));
         return response;
     }
 
