@@ -116,6 +116,7 @@ public class BlockchainControllerTest {
     static final UUID BC_ID = UUID.fromString("437d97b2-76df-4596-b0d8-3d8a9412ff2f");
     static final UUID BC2_ID = UUID.fromString("7324cb8f-0ffc-4311-b57e-4c3e1e10a3aa");
     static final UUID BC_NEW = UUID.fromString("4b8a5ec6-91ad-437d-b574-45f5b7345b96");
+    static final UUID BC_DAML = UUID.fromString("fd7167b0-057d-11ea-8d71-362b9e155667");
     static final UUID C2_ID = UUID.fromString("04e4f62d-5364-4363-a582-b397075b65a3");
     static final UUID C3_ID = UUID.fromString("a4b8f7ed-00b3-451e-97bc-4aa51a211288");
     static final UUID TASK_ID = UUID.fromString("c23ed97d-f29c-472e-9f63-cc6be883a5f5");
@@ -175,6 +176,13 @@ public class BlockchainControllerTest {
                                           + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
                                           + "            \"275638a3-8860-4925-85de-c73d45cb7232\","
                                           + "            \"275638a3-8860-4925-85de-c73d45cb7232\"]" + "}";
+
+    // DAML participant
+    static final String POST_BODY_DAML_PARTICIPANT = "{"
+            + "    \"zone_ids\": ["
+            + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
+            + "            \"275638a3-8860-4925-85de-c73d45cb7232\","
+            + "            \"275638a3-8860-4925-85de-c73d45cb7232\"]" + "}";
 
     @Autowired
     private WebApplicationContext context;
@@ -307,15 +315,24 @@ public class BlockchainControllerTest {
                         .map(s -> new Blockchain.NodeEntry(UUID.randomUUID(), s, "http://".concat(s), "cert-".concat(s), SITE_2))
                         .collect(Collectors.toList()))
                 .build();
+        final Blockchain bcdaml = Blockchain.builder()
+                .consortium(UUID.fromString("5a0cebc0-057e-11ea-8d71-362b9e155667"))
+                .nodeList(Stream.of("one", "two", "three")
+                        .map(s -> new Blockchain.NodeEntry(UUID.randomUUID(), s, "http://".concat(s), "cert-".concat(s), SITE_2))
+                        .collect(Collectors.toList()))
+                .type(BlockchainType.DAML)
+                .build();
         when(blockchainService.listByConsortium(consortium)).thenReturn(Collections.singletonList(b));
         when(blockchainService.listByConsortium(c3)).thenReturn(Collections.emptyList());
         when(blockchainService.list()).thenReturn(ImmutableList.of(b, b2));
         b.setId(BC_ID);
         b2.setId(BC2_ID);
         bn.setId(BC_NEW);
+        bcdaml.setId(BC_DAML);
         when(blockchainService.get(BC_ID)).thenReturn(b);
         when(blockchainService.get(BC2_ID)).thenReturn(b2);
         when(blockchainService.get(BC_NEW)).thenReturn(bn);
+        when(blockchainService.get(BC_DAML)).thenReturn(bcdaml);
         when(blockchainService.get(C2_ID)).thenThrow(new NotFoundException("Not found"));
         when(blockchainService.listByIds(any(List.class))).thenAnswer(i -> {
             return ((List<UUID>) i.getArgument(0)).stream().map(blockchainService::get).collect(Collectors.toList());
@@ -567,6 +584,37 @@ public class BlockchainControllerTest {
                         .equals(e.getSite()))
                 .count());
         Assertions.assertEquals(1, entries.stream()
+                .filter(e -> OrchestrationSiteIdentifier.newBuilder()
+                        .setLow(SITE_2.getLeastSignificantBits())
+                        .setHigh(SITE_2.getMostSignificantBits())
+                        .build()
+                        .equals(e.getSite()))
+                .count());
+    }
+
+    @Test
+    void deployParticipant() throws Exception {
+        ArgumentCaptor<CreateClusterRequest> captor = ArgumentCaptor.forClass(CreateClusterRequest.class);
+        mockMvc.perform(post("/api/blockchains/" + BC_DAML.toString() + "/participant")
+                .with(authentication(adminAuth))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(POST_BODY_DAML_PARTICIPANT))
+                .andExpect(status().isAccepted());
+
+        verify(client).createCluster(captor.capture(), any(StreamObserver.class));
+        CreateClusterRequest request = captor.getValue();
+        Assertions.assertEquals(0, request.getSpecification().getClusterSize());
+        List<PlacementSpecification.Entry> entries = request.getSpecification().getPlacement().getEntriesList();
+        Assertions.assertEquals(3, entries.size());
+        Assertions.assertTrue(entries.stream().allMatch(e -> e.getType() == PlacementSpecification.Type.FIXED));
+        Assertions.assertEquals(1, entries.stream()
+                .filter(e -> OrchestrationSiteIdentifier.newBuilder()
+                        .setLow(SITE_1.getLeastSignificantBits())
+                        .setHigh(SITE_1.getMostSignificantBits())
+                        .build()
+                        .equals(e.getSite()))
+                .count());
+        Assertions.assertEquals(2, entries.stream()
                 .filter(e -> OrchestrationSiteIdentifier.newBuilder()
                         .setLow(SITE_2.getLeastSignificantBits())
                         .setHigh(SITE_2.getMostSignificantBits())

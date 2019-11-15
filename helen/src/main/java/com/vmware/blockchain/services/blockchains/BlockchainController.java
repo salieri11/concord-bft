@@ -82,15 +82,14 @@ public class BlockchainController {
         UNSPECIFIED
     }
 
-
     private static final Map<DeploymentType, PlacementSpecification.Type> enumMap =
             ImmutableMap.of(FIXED, Type.FIXED,
                             UNSPECIFIED, Type.UNSPECIFIED);
 
     private static final Map<BlockchainType, ConcordModelSpecification.BlockchainType> enumMapForBlockchainType =
             ImmutableMap.of(BlockchainType.ETHEREUM, ConcordModelSpecification.BlockchainType.ETHEREUM,
-                            BlockchainType.DAML, ConcordModelSpecification.BlockchainType.DAML,
-                            BlockchainType.HLF, ConcordModelSpecification.BlockchainType.HLF);
+                    BlockchainType.DAML, ConcordModelSpecification.BlockchainType.DAML,
+                    BlockchainType.HLF, ConcordModelSpecification.BlockchainType.HLF);
 
     @Getter
     @Setter
@@ -103,6 +102,13 @@ public class BlockchainController {
         private int cCount;
         private DeploymentType deploymentType;
         private BlockchainType blockchainType;
+        private List<UUID> zoneIds;
+    }
+
+    @Getter
+    @Setter
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    static class ParticipantPost {
         private List<UUID> zoneIds;
     }
 
@@ -257,7 +263,9 @@ public class BlockchainController {
      * The actual call which will contact server and add the model request.
      */
     private DeploymentSessionIdentifier createFixedSizeCluster(ProvisioningServiceStub client,
-            int clusterSize, PlacementSpecification.Type placementType, List<UUID> zoneIds,
+                                                               int clusterSize,
+                                                               PlacementSpecification.Type placementType,
+                                                               List<UUID> zoneIds,
                                                                BlockchainType blockchainType,
                                                                UUID consortiumId) throws Exception {
         List<Entry> list;
@@ -293,7 +301,7 @@ public class BlockchainController {
                 .build();
         // var placementSpec = new PlacementSpecification(list);
         var blockChainType = blockchainType == null ? ConcordModelSpecification.BlockchainType.ETHEREUM
-                                                    : enumMapForBlockchainType.get(blockchainType);
+                : enumMapForBlockchainType.get(blockchainType);
 
         var components = concordConfiguration.getComponentsByBlockchainType(blockChainType);
 
@@ -318,6 +326,58 @@ public class BlockchainController {
         var request = CreateClusterRequest.newBuilder()
                 .setHeader(MessageHeader.newBuilder()
                                    .setId(operationContext.getId() != null ? operationContext.getId() : "").build())
+                .setSpecification(deploySpec)
+                .build();
+
+        // Check that the API can be serviced normally after service initialization.
+        var promise = new CompletableFuture<DeploymentSessionIdentifier>();
+        client.createCluster(request, FleetUtils.blockedResultObserver(promise));
+        return promise.get();
+    }
+
+
+    /**
+     * The actual call which will contact server to add the participant.
+     */
+    private DeploymentSessionIdentifier createParticipantCluster(ProvisioningServiceStub client,
+                                                          List<UUID> zoneIds, UUID consortiumId) throws Exception {
+        List<Entry> list;
+
+        list = zoneIds.stream()
+                .map(zoneService::get)
+                .map(z -> Entry.newBuilder()
+                        .setType(Type.FIXED)
+                        .setSite(OrchestrationSiteIdentifier.newBuilder()
+                                .setLow(z.getId().getLeastSignificantBits())
+                                .setHigh(z.getId().getMostSignificantBits())
+                                .build())
+                        .setSiteInfo(toInfo(z))
+                        .build())
+                .collect(Collectors.toList());
+
+        var placementSpec = PlacementSpecification.newBuilder()
+                .addAllEntries(list)
+                .build();
+
+        var components = concordConfiguration
+                .getComponentsByNodeType(ConcordModelSpecification.NodeType.DAML_PARTICIPANT);
+
+        ConcordModelSpecification spec = ConcordModelSpecification.newBuilder()
+                .setVersion(concordConfiguration.getVersion())
+                .setTemplate(concordConfiguration.getTemplate())
+                .addAllComponents(components)
+                .setBlockchainType(ConcordModelSpecification.BlockchainType.DAML)
+                .setNodeType(ConcordModelSpecification.NodeType.DAML_PARTICIPANT)
+                .build();
+
+        DeploymentSpecification deploySpec = DeploymentSpecification.newBuilder()
+                .setModel(spec)
+                .setPlacement(placementSpec)
+                .setConsortium(consortiumId.toString())
+                .build();
+
+        var request = CreateClusterRequest.newBuilder()
+                .setHeader(MessageHeader.newBuilder().setId("").build())
                 .setSpecification(deploySpec)
                 .build();
 
@@ -394,6 +454,7 @@ public class BlockchainController {
 
     /**
      * Update the given blockchain.
+     * @throws NotFoundException NotFoundException
      */
     @RequestMapping(path = "/api/blockchains/{id}", method = RequestMethod.PATCH)
     @PreAuthorize("@authHelper.canUpdateChain(#id)")
@@ -409,6 +470,53 @@ public class BlockchainController {
             task.setResourceLink("/api/blockchains/".concat(defaultProfiles.getBlockchain().getId().toString()));
         }
         task = taskService.put(task);
+
+        return new ResponseEntity<>(new BlockchainTaskResponse(task.getId()), HttpStatus.ACCEPTED);
+    }
+
+    /**
+     * Deploy a DAML Participant node for given DAML blockchain.
+     */
+    @RequestMapping(path = "/api/blockchains/{bid}/participant", method = RequestMethod.POST)
+    @PreAuthorize("@authHelper.isConsortiumAdmin()")
+    public ResponseEntity<BlockchainTaskResponse> createParticipant(@PathVariable UUID bid,
+                                                                   @RequestBody ParticipantPost body) throws Exception {
+        Task task = new Task();
+        task.setState(Task.State.RUNNING);
+        task = taskService.put(task);
+
+        Blockchain blockchain = blockchainService.get(bid);
+        BlockchainType blockchainType = blockchain.getType();
+
+        if (blockchainType != BlockchainType.DAML) {
+            logger.info("Participant node can be deployed only for DAML blockchains.");
+            throw new BadRequestException(ErrorCode.BAD_REQUEST);
+        }
+
+        UUID bcConsortium = blockchain.getConsortium();
+
+        List<Blockchain.NodeEntry> nodeEntryList = blockchain.getNodeList();
+
+        List<UUID> zoneIdList = body.getZoneIds();
+
+        DeploymentSessionIdentifier dsId =  createParticipantCluster(client,
+                zoneIdList,
+                bcConsortium);
+
+        logger.info("Deployment started, id {} for the consortium id {}", dsId, blockchain.getConsortium().toString());
+
+        BlockchainObserver bo =
+                new BlockchainObserver(authHelper, operationContext, blockchainService, replicaService, taskService,
+                        task.getId(), bcConsortium, blockchainType);
+        // Watch for the event stream
+
+        StreamClusterDeploymentSessionEventRequest request = StreamClusterDeploymentSessionEventRequest.newBuilder()
+                .setHeader(MessageHeader.newBuilder().build())
+                .setSession(dsId)
+                .build();
+
+        client.streamClusterDeploymentSessionEvents(request, bo);
+        logger.info("Deployment scheduled");
 
         return new ResponseEntity<>(new BlockchainTaskResponse(task.getId()), HttpStatus.ACCEPTED);
     }

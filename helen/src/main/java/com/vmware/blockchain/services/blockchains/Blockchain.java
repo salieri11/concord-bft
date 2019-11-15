@@ -68,7 +68,7 @@ public class Blockchain extends AbstractEntity {
 
 
     @LinkedEntityId
-    UUID  consortium;
+    UUID consortium;
 
     BlockchainType type;
 
