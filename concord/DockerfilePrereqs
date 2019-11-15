@@ -49,19 +49,6 @@ WORKDIR /tmp
 RUN wget https://dl.google.com/go/go1.11.linux-amd64.tar.gz && \
     tar -C /usr/local -xf go1.11.linux-amd64.tar.gz
 
-# HLF peer binary
-# explicity want to build peer executable from hyperledger/fabric_tools version 1.3.1
-# any other hyperledeger fabric version creates undefined behaviour ( bug )
-WORKDIR /opt/gopath/src/github.com/hyperledger
-RUN git clone https://github.com/hyperledger/fabric.git && \
-    cd fabric && \
-    git checkout 80c6f6ba22b002eab3945fd4ea09d9cd303eb550
-WORKDIR /opt/gopath/src/github.com/hyperledger/fabric
-ENV GOPATH=/opt/gopath
-ENV PATH=$PATH:/usr/local/go/bin
-ENV EXECUTABLES go
-RUN make peer
-
 WORKDIR /
 RUN git clone https://github.com/google/googletest.git && \
     cd /googletest && \
