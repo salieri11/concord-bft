@@ -95,8 +95,6 @@ class ProvisioningServiceRPCHelper(RPCHelper):
 
          site_id = zone["id"]
 
-         orchestration_site_info = None
-         api_endpoint = core_pb2.Endpoint(address=zone["api"]["address"])
          vsphere_datacenter_info = orchestration_pb2.VSphereDatacenterInfo(
             datastore=zone["vsphere"]["datastore"],
             resource_pool=zone["vsphere"]["resourcePool"],
@@ -121,7 +119,7 @@ class ProvisioningServiceRPCHelper(RPCHelper):
                      )
                   )
                ),
-               api=api_endpoint,
+               api=core_pb2.Endpoint(address=zone["api"]["address"]),
                organization=zone["organization"],
                datacenter=zone["datacenter"],
                vsphere=vsphere_datacenter_info
@@ -136,7 +134,17 @@ class ProvisioningServiceRPCHelper(RPCHelper):
          elif zone_type == self.ZONE_TYPE_ON_PREM:
             type = orchestration_pb2.OrchestrationSiteInfo.VSPHERE
             site_info = orchestration_pb2.VSphereOrchestrationSiteInfo(
-               api=api_endpoint,
+               api=core_pb2.Endpoint(
+                  address=zone["api"]["address"],
+                  credential=core_pb2.Credential(
+                     password_credential=core_pb2.PasswordCredential(
+                        username=zone["api"]["credential"]
+                        ["passwordCredential"]["username"],
+                        password=zone["api"]["credential"]
+                        ["passwordCredential"]["password"]
+                     )
+                  )
+               ),
                vsphere=vsphere_datacenter_info
             )
             orchestration_site_info = orchestration_pb2.OrchestrationSiteInfo(

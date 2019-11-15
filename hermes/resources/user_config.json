@@ -307,6 +307,56 @@
               }
             ]
           }
+        ],
+        "on-prem": [
+          {
+            "id": {
+              "low": 0,
+              "high": 4
+            },
+            "info": {
+              "type": "VSPHERE"
+            },
+            "api": {
+              "address": "https://vcenter.sddc-52-62-59-206.vmwarevmc.com",
+              "credential": {
+                "type": "NONE",
+                "passwordCredential": {
+                  "username": "<ONPREM_VCENTER_USERNAME>",
+                  "password": "<ONPREM_VCENTER_PASSWORD>"
+                },
+                "tokenCredential": {
+                  "token": ""
+                }
+              }
+            },
+            "vsphere": {
+              "resourcePool": "Compute-ResourcePool",
+              "datastore": "WorkloadDatastore",
+              "folder": "HermesTesting",
+              "network": {
+                "name": "vmware-vpn-4b",
+                "addressAllocation": "STATIC",
+                "gateway": 172367361,
+                "nameServers": [],
+                "subnet": 23
+              }
+            },
+            "logManagements": [
+              {
+                "destination": "LOG_INTELLIGENCE",
+                "endpoint": {
+                  "address": "https://data.mgmt.cloud.vmware.com/le-mans/v1/streams/ingestion-pipeline-stream",
+                  "credential": {
+                    "type": "BEARER",
+                    "tokenCredential": {
+                      "token": "<FLUENTD_AUTHORIZATION_BEARER>"
+                    }
+                  }
+                }
+              }
+            ]
+          }
         ]
       },
       "concordNode": {
