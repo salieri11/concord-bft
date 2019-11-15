@@ -88,7 +88,7 @@ message PlacementAssignment {
  *   cluster placement specification.
  */
 message DeploymentSpecification {
-    uint32 cluster_size = 1;
+    uint32 cluster_size = 1 [deprecated=true];
     ConcordModelSpecification model = 2;
     PlacementSpecification placement = 3;
     vmware.blockchain.ethereum.type.Genesis genesis = 4;
