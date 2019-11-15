@@ -54,22 +54,26 @@ public class DAMLManager {
      */
     public void processDAMLTransactions(List<Node> nodes, int ledgerPort) {
         Map<DamlClient, Long> clientToTx = initClients(nodes, ledgerPort);
-        logger.info("Expected tx distribution: {}", clientToTx);
-        List<DamlClient> clients = assignClients(clientToTx);
+        logger.info("Tx count expected: {}", clientToTx);
+
+        Collection<DamlClient> clients = clientToTx.keySet();
+        logger.info("Ledger size before test: {}", getLedgerSize(clients));
+
+        List<DamlClient> txClients = assignClients(clientToTx);
 
         Random random = new Random();
         long startTime = nanoTime();
 
         logger.info("Starting transaction ...");
 
-        for (int i = 0; i < clients.size(); i++) {
+        for (int i = 0; i < txClients.size(); i++) {
             int iouAmount = random.nextInt(10_000) + 1;
             Iou iou = new Iou("Alice", "Alice", "AliceCoin", new BigDecimal(iouAmount), emptyList());
             if (logging) {
                 logger.info("{}", iou);
             }
             Command command = iou.create();
-            DamlClient client = clients.get(i);
+            DamlClient client = txClients.get(i);
             client.submitIou(command, party);
 
             if (rateControl != 0) {
@@ -80,7 +84,8 @@ public class DAMLManager {
         }
 
         long endTime = nanoTime();
-        summarize(ofNanos(endTime - startTime), clientToTx.keySet());
+
+        summarize(ofNanos(endTime - startTime), clients);
     }
 
     /**
@@ -145,13 +150,28 @@ public class DAMLManager {
     }
 
     /**
+     * Get submitted transaction count for each node.
+     */
+    private Map<String, Integer> getSubmissionCount(Collection<DamlClient> clients) {
+        return clients.stream().collect(toMap(DamlClient::getLedgerHost, DamlClient::getTxCount));
+    }
+
+    /**
+     * Get ledger size for each node.
+     */
+    private Map<String, Long> getLedgerSize(Collection<DamlClient> clients) {
+        return clients.stream().collect(toMap(DamlClient::getLedgerHost, DamlClient::getCurrentLedgerOffset));
+    }
+
+    /**
      * Summarize the result.
      */
     private void summarize(Duration totalTime, Collection<DamlClient> clients) {
         logger.info("Total time taken: {} s", totalTime.getSeconds());
         logger.info("Average latency: {} ms", totalTime.toMillis() / numOfTransactions);
         logger.info("Throughput: {} tps", numOfTransactions / totalTime.getSeconds());
-        logger.info("Distribution: {}", clients.stream().collect(toMap(DamlClient::getLedgerHost, DamlClient::getTxCount)));
+        logger.info("Tx count actual: {}", getSubmissionCount(clients));
+        logger.info("Ledger size after test: {}", getLedgerSize(clients));
     }
 
 }
