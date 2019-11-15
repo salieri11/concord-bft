@@ -24,6 +24,8 @@ public final class ErrorCodeType {
     public static final ErrorCodeType BAD_LOGIN_REQUEST = new ErrorCodeType("helen.invalid.email/password", 0);
     public static final ErrorCodeType BAD_PASSWORD_CHANGE = new ErrorCodeType("helen.cant.use.same.password", 0);
     public static final ErrorCodeType BAD_REQUEST = new ErrorCodeType("helen.bad.request.missing.request.body", 0);
+    public static final ErrorCodeType BAD_REQUEST_PARAM = new ErrorCodeType("helen.bad.request.missing.request.param",
+                                                                            0);
     public static final ErrorCodeType BAD_NUMBER_FORMAT = new ErrorCodeType("helen.bad.number.format", 1);
     public static final ErrorCodeType BAD_ORG_REMOVE = new ErrorCodeType("helen.cannot.remove.the.consortium.owner.org",
                                                                          0);
@@ -32,6 +34,7 @@ public final class ErrorCodeType {
     public static final ErrorCodeType BLOCKCHAIN_UNSPECIFIED = new ErrorCodeType("helen.no.blockchain.specified", 0);
     public static final ErrorCodeType BYTECODE_OR_METADATA_ALLOWED = new ErrorCodeType("helen.only."
                                       + "metadata.file.path.are.supported", 0);
+    public static final ErrorCodeType CANNOT_ACCESS_BLOCKCHAIN = new ErrorCodeType("helen.cannot.access.blockchain", 0);
     public static final ErrorCodeType CANNOT_EXCHANGE_TOKEN = new ErrorCodeType("helen.cannot.exchange.access.code",
                                                                                 0);
     public static final ErrorCodeType CANNOT_REDIRECT_TO_TARGET = new ErrorCodeType("helen.cannot.redirect.to.target",
