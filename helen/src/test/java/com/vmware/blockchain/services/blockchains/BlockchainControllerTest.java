@@ -529,7 +529,6 @@ public class BlockchainControllerTest {
                 .andExpect(status().isAccepted());
         verify(client).createCluster(captor.capture(), any(StreamObserver.class));
         CreateClusterRequest request = captor.getValue();
-        Assertions.assertEquals(4, request.getSpecification().getClusterSize());
         List<PlacementSpecification.Entry> entries = request.getSpecification().getPlacement().getEntriesList();
         Assertions.assertEquals(4, entries.size());
         Assertions.assertTrue(entries.stream().allMatch(e -> e.getType() == PlacementSpecification.Type.UNSPECIFIED));
@@ -544,7 +543,6 @@ public class BlockchainControllerTest {
                 .andExpect(status().isAccepted());
         verify(client).createCluster(captor.capture(), any(StreamObserver.class));
         CreateClusterRequest request = captor.getValue();
-        Assertions.assertEquals(4, request.getSpecification().getClusterSize());
         List<PlacementSpecification.Entry> entries = request.getSpecification().getPlacement().getEntriesList();
         Assertions.assertEquals(4, entries.size());
         Assertions.assertTrue(entries.stream().allMatch(e -> e.getType() == PlacementSpecification.Type.FIXED));
@@ -572,7 +570,6 @@ public class BlockchainControllerTest {
                 .andExpect(status().isAccepted());
         verify(client).createCluster(captor.capture(), any(StreamObserver.class));
         CreateClusterRequest request = captor.getValue();
-        Assertions.assertEquals(4, request.getSpecification().getClusterSize());
         List<PlacementSpecification.Entry> entries = request.getSpecification().getPlacement().getEntriesList();
         Assertions.assertEquals(4, entries.size());
         Assertions.assertTrue(entries.stream().allMatch(e -> e.getType() == PlacementSpecification.Type.FIXED));

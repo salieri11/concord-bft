@@ -316,7 +316,6 @@ public class BlockchainController {
                 .build();
 
         DeploymentSpecification deploySpec = DeploymentSpecification.newBuilder()
-                .setClusterSize(clusterSize)
                 .setModel(spec)
                 .setPlacement(placementSpec)
                 .setGenesis(genesis)
@@ -427,7 +426,7 @@ public class BlockchainController {
              */
             if (body.deploymentType == FIXED) {
                 if (body.getZoneIds() == null
-                        || body.getZoneIds().size() != body.getFCount() * 3 + body.getCCount() * 2 + 1) {
+                        || body.getZoneIds().size() != clusterSize) {
                     throw new BadRequestException(ErrorCode.BAD_REQUEST);
                 }
             }

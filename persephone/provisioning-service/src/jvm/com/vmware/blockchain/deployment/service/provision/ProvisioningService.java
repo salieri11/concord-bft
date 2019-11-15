@@ -272,8 +272,6 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
         var response = Objects.requireNonNull(observer);
 
         try {
-            // TODO: Verify number of placement entries should match cluster size.
-            // placement.getEntries().size() == specification.getClusterSize()
 
             // Simplistic state checking. More sophisticated checks requires setting up a reference
             // while the request is not yet completed.
