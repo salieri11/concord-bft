@@ -54,6 +54,7 @@ message ConcordComponent {
     Type type = 1;
     ServiceType service_type = 2;
     string name = 3;
+    ContainerSpecification container_specification = 4;
 }
 
 /**
@@ -70,6 +71,86 @@ message ConcordModelIdentifier {
 }
 
 /**
+ * Model definition of potential parameterization of a container-based component.
+ *
+ * @param[name]
+ *   name of the container.
+ * @param[ports]
+ *   container port to host ports binding.
+ * @param[volumes]
+ *   container volume mount-point bindings.
+ * @param[environments]
+ *   environment variable bindings to should be set in the container environment.
+ */
+message ContainerSpecification {
+
+    /**
+     * Model definition of a host target or container volume to container mount path.
+     *
+     * @param[source]
+     *   host mount point or container volume name.
+     * @param[destination]
+     *   container volume mount path.
+     * @param[read_only]
+     *   whether the mounted path should be read-only.
+     */
+    message VolumeBinding {
+        string source = 1;
+        string destination = 2;
+        bool read_only = 3;
+    }
+
+    /**
+     * Model definition of a container port that can be bound to [HostPort] targets.
+     *
+     * @param[protocol]
+     *   protocol of the L4 traffic (TCP, UDP).
+     * @param[port]
+     *   container port to be bound.
+     */
+    message ContainerPort {
+        enum Protocol {
+            TCP = 0; // Default to TCP according to specification.
+            UDP = 1;
+        }
+
+        Protocol protocol = 1;
+        int32 port = 2;
+    }
+
+    /**
+     * Model definition of a host port that can be bound to a [ContainerPort].
+     *
+     * @param[ip]
+     *   host IP to be bound.
+     * @param[port]
+     *   host port to be bound.
+     */
+    message HostPort {
+        string ip = 1;
+        int32 port = 2;
+    }
+
+    /**
+     * Model definition of a binding between a [ContainerPort] to list of [HostPort]s.
+     *
+     * @param[container_port]
+     *   container port to be bound.
+     * @param[host_ports]
+     *   list of host ports to be bound.
+     */
+    message PortBinding {
+        ContainerPort container_port = 1;
+        repeated HostPort host_ports = 2 [packed=false];
+    }
+
+    string name = 1;
+    repeated PortBinding ports = 2 [packed=false];
+    repeated VolumeBinding volumes = 3 [packed=false];
+    repeated string environments = 4;
+}
+
+/**
  * Model definition of a versioned Concord node template specification.
  *
  * @property[version]
@@ -81,11 +162,12 @@ message ConcordModelIdentifier {
  *   translate this value into template entity to be used internally for deployment workflow.
  * @property[components]
  *   Positionally ordered list of components to be deployed within a deployment unit.
- * @property[blockhain_type]
- *   Type of blockchain
- * @property[node_type]
- *   If applicable, Determines the characteristic of the node in the blockchain.
+ *
  *   Note: Orchestration engine may utilize the sequence order during deployment workflow.
+ * @property[blockchain_type]
+ *   Type of blockchain network.
+ * @property[node_type]
+ *   If applicable, determines the characteristic of the nodes in the blockchain.
  */
 message ConcordModelSpecification {
 
