@@ -28,6 +28,12 @@ def pytest_addoption(parser):
         action="store",
         default="",
         help="Hermes testLogDir. POPULATED BY HERMES.")
+    parser.addoption(
+        "--supportBundleFile",
+        action="store",
+        default="",
+        help="Path to a file a test suite should create to have the framework create support "
+            "bundles. POPULATED BY HERMES.")
 
 def pytest_generate_tests(metafunc):
     '''
