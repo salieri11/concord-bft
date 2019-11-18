@@ -1,10 +1,10 @@
 // Copyright 2019 VMware, all rights reserved
 //
-// Wrapper used by concord::consensus::ConcordCommandsHandler to store BFT
+// Wrapper used by concord::storage::ConcordCommandsHandler to store BFT
 // metadata (sequence number).
 
-#ifndef CONSENSUS_CONCORD_METADATA_STORAGE_HPP_
-#define CONSENSUS_CONCORD_METADATA_STORAGE_HPP_
+#ifndef CONCORD_STORAGE_CONCORD_METADATA_STORAGE_HPP_
+#define CONCORD_STORAGE_CONCORD_METADATA_STORAGE_HPP_
 
 #include <log4cplus/logger.h>
 #include <exception>
@@ -41,7 +41,7 @@ class ConcordMetadataStorage {
       const concord::storage::blockchain::ILocalKeyValueStorageReadOnly
           &storage)
       : logger_(log4cplus::Logger::getInstance(
-            "concord.consensus.ConcordMetadataStorage")),
+            "concord.storage.ConcordMetadataStorage")),
         storage_(storage),
         block_metadata_key_(new char[1]{kBlockMetadataKey}, 1) {}
 
@@ -55,4 +55,4 @@ class ConcordMetadataStorage {
 }  // namespace storage
 }  // namespace concord
 
-#endif  // CONSENSUS_CONCORD_METADATA_STORAGE_HPP_
+#endif  // CONCORD_STORAGE_CONCORD_METADATA_STORAGE_HPP_
