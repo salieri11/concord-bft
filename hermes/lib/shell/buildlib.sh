@@ -145,10 +145,10 @@ printBuildFailure(){
   info "================================================================================"
   info "=========================== Attempting auto-triage! ============================"
   info "================================================================================"
-  info "Searching ${LOG_FILE} for typical error indicators.  Results:"
+  info "Searching ${LOG_FILE} for errors.  Results:"
   grep -A10 -i "^ *.\{0,5\}error" "${LOG_FILE}"
   if [ $? -ne 0 ]; then
-      info "Nothing matched.  Check ${LOG_FILE} for problems.  Here are the last few lines:"
+      info "No lines with 'error' near the beginning found. Here are the last few lines of the log:"
       tail -n 10 "${LOG_FILE}"
   fi
   info "================================================================================"
@@ -186,9 +186,8 @@ isInfraBuildError(){
     # Return 0/success if we should, 1/failure if not.
     local BUILD_NAME="${1}"
 
-    if find50xArtifactoryError "${BUILD_NAME}" || \
-            findEOFArtifactoryError "${BUILD_NAME}" || \
-            findDockerHubTimeoutError "${BUILD_NAME}"; then
+    if grepLogForErrors "${BUILD_NAME}" || \
+            findEOFArtifactoryError "${BUILD_NAME}"; then
         return 0
     else
         return 1
@@ -196,20 +195,30 @@ isInfraBuildError(){
 }
 
 
-find50xArtifactoryError(){
-    # Look for a 50x error when Maven is pulling components from
-    # Artifactory
+grepLogForErrors(){
     local BUILD_NAME="${1}"
     local LOG_FILE=${BUILD_LOGS["${BUILD_NAME}"]}
-    info "Looking for 50x error in build log file ${LOG_FILE} to see if we should retry."
+    local ERROR_STRINGS=("\[ERROR\].*Could\ not\ transfer.*\ 50[23]" \
+                         "sbt.librarymanagement.ResolveException: download failed:" \
+                         "Too Many Requests (HAP429)" \
+                         "docker\.io.*Client\.Timeout\ exceeded")
+
+    info "Looking for errors in build log file ${LOG_FILE} to see if we should retry."
 
     if [ -f "${LOG_FILE}" ]; then
-      grep -e "\[ERROR\].*Could\ not\ transfer.*\ 50[23]" "${LOG_FILE}"
-      return $?
+      for ERR in "${ERROR_STRINGS[@]}"; do
+        grep -e "${ERR}" "${LOG_FILE}"
+
+        if [ $? -eq 0 ]; then
+            return 0
+        fi
+      done
     else
       error "Did not find the log file."
       return 1
     fi
+
+    return 1
 }
 
 
@@ -223,23 +232,6 @@ findEOFArtifactoryError(){
     if [ -f "${LOG_FILE}" ]; then
       local LAST_LINE=`tail -1l "${LOG_FILE}"`
       echo "${LAST_LINE}" | grep -e "^unexpected\ EOF"
-      return $?
-    else
-      error "Did not find the log file."
-      return 1
-    fi
-}
-
-
-findDockerHubTimeoutError(){
-    # Look for DockerHub's timeout error in the last line of a log.
-    local BUILD_NAME="${1}"
-    local LOG_FILE=${BUILD_LOGS["${BUILD_NAME}"]}
-    info "Looking for DockerHub's timeout error in the last line of build log file ${LOG_FILE} to see if we should retry."
-
-    if [ -f "${LOG_FILE}" ]; then
-      local LAST_LINE=`tail -1l "${LOG_FILE}"`
-      echo "${LAST_LINE}" | grep -e "docker\.io.*Client\.Timeout\ exceeded"
       return $?
     else
       error "Did not find the log file."
