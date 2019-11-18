@@ -647,9 +647,15 @@ EOF
                           }
                         }
                       }else{
-                        // This was something like manual build with paramseters. Run what the user picked.
-                        choices = params.tests_to_run.split(",")
-                        echo("Running enabled generic tests which the user selected: " + choices)
+                        // This was something like manual build with parameters or master run. Run what the
+                        // user picked or all for a master run.
+                        choices = null
+                        if (params.tests_to_run == null){
+                          // It was a master run or similar.  Run all.
+                          choices = getSelectableSuites().split(",")
+                        }else{
+                          choices = params.tests_to_run.split(",")
+                        }
 
                         for (suite in testSuites.keySet()){
                           if (testSuites[suite].enabled)
@@ -1755,7 +1761,12 @@ void runGenericTests(){
 
 // Use this function to generate a value to copy/paste into the Jenkins job.
 // That job cannot read from here, so the next best thing is to just say
-// NEVER MANUALLY CHANGE THOSE VALUES IN THE JENKINS JOB ITSELF.
+// NEVER MANUALLY CHANGE THOSE VALUES IN THE JENKINS JOB ITSELF BEYOND COPY/PASTE
+// FROM THIS FUNCTION'S OUTPUT.
 void printSelectableSuites(){
-  echo("List of suites which can be selected: " + testSuites.keySet())
+  echo("List of suites which can be selected: " + getSelectableSuites())
+}
+
+String getSelectableSuites(){
+  return testSuites.keySet().toString()
 }
