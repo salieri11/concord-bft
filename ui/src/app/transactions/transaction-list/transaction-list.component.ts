@@ -3,10 +3,10 @@
  */
 
 import { Component, Input, OnInit } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
 
 import { Transaction } from '../shared/transactions.model';
 import { TransactionsService } from '../shared/transactions.service';
+import { BlockchainService } from '../../blockchain/shared/blockchain.service';
 
 @Component({
   selector: 'concord-transaction-list',
@@ -16,24 +16,47 @@ import { TransactionsService } from '../shared/transactions.service';
 export class TransactionListComponent implements OnInit {
   @Input() transactions: Transaction[] = [];
   @Input() blockNumber?: number;
+  @Input() titleHidden: boolean = false;
+  @Input() pagination: number = 20;
+  @Input() listOnly: boolean = false;
+  @Input() expandAll: boolean = false;
+  @Input() noListIfSingle: boolean = false;
+  @Input() codeBlockMaxHeight: string;
   blockchainId: string;
+  transactionsLoaded: boolean = false;
 
   constructor(
     private transactionsService: TransactionsService,
-    private route: ActivatedRoute
-  ) { }
+    private blockchainService: BlockchainService,
+  ) {
+    if (!this.pagination) { this.pagination = 20; }
+  }
 
   ngOnInit() {
-    if (this.transactions.length === 0) {
+    if (!this.pagination) { this.pagination = 20; }
+    if (!isNaN(this.blockNumber) && this.blockNumber >= 0) { // valid number
+      this.loadBlockTransactions();
+    } else if (this.transactions.length === 0) {
       this.loadRecentTransActions();
     }
 
-    this.blockchainId = this.route.snapshot.parent.parent.params['consortiumId'];
+    this.blockchainId = this.blockchainService.blockchainId;
   }
 
   loadRecentTransActions() {
     this.transactionsService.getRecentTransactions()
-      .subscribe((resp) => this.transactions = resp);
+      .subscribe((resp) => {
+        this.transactions = resp;
+        this.transactionsLoaded = true;
+      });
+  }
+
+  loadBlockTransactions() {
+    this.transactionsService.getBlockTransactions(this.blockNumber)
+      .subscribe((resp) => {
+        this.transactions = resp;
+        this.transactionsLoaded = true;
+      });
   }
 
 }

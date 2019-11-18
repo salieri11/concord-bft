@@ -2,19 +2,18 @@
  * Copyright 2018-2019 VMware, all rights reserved.
  */
 
-import { async, ComponentFixture, TestBed } from '@angular/core/testing';
+import { async, TestBed, ComponentFixture } from '@angular/core/testing';
 
+import { getSpecTestingModule } from '../../shared/shared-testing.module';
 import { SwaggerComponent } from './swagger.component';
-import { getSpecTestingModule } from '../../shared/shared.module';
 
 
 describe('SwaggerComponent', () => {
   let component: SwaggerComponent;
   let fixture: ComponentFixture<SwaggerComponent>;
 
-  beforeEach(async( async () => {
-    const tester = await getSpecTestingModule();
-    tester.importLanguagePack();
+  beforeEach(async( () => {
+    const tester = getSpecTestingModule();
     TestBed.configureTestingModule(tester.init({
       imports: [], provides: [], declarations: []
     })).compileComponents();
@@ -23,6 +22,7 @@ describe('SwaggerComponent', () => {
   beforeEach(() => {
     fixture = TestBed.createComponent(SwaggerComponent);
     component = fixture.componentInstance;
+    component.ngAfterViewInit(false); // disable
     fixture.detectChanges();
   });
 

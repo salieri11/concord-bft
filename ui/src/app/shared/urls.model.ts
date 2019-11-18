@@ -26,6 +26,9 @@ export enum FeatureFlagSource {
   URL = 'static/feature-flag.json'
 }
 
+export const hexAddress160RegExp = /^0x[a-fA-F0-9]{40}$/; // hex, eth address 160-bit
+export const hexHash256HexRegExp = /^0x[a-fA-F0-9]{64}$/; // hex, tx hash, block hash, 256-bit
+
 export const uuidRegExp
   = /^[0-9A-F]{8}-[0-9A-F]{4}-4[0-9A-F]{3}-[89AB][0-9A-F]{3}-[0-9A-F]{12}$/i;
 
@@ -95,18 +98,68 @@ export const FeatureFlagRouteMapping = {
 };
 
 export const Apis = {
-  base: 'api',
-  blockchainsApi: 'blockchains',
 
-  get blockchains() { return `${this.base}/${this.blockchainsApi}`; },
+  base: '/api',
 
+  // Blockchains
+  get blockchains() { return `${this.base}/blockchains`; },
+
+  // Consortiums
+  get consortiums() { return `${this.base}/consortiums`; },
+
+  // Contract tools
+  get contractTools() { return `${this.base}/concord/contracts`; },
+  get contractCompileVersions() { return `${this.contractTools}/compiler_versions`; },
+  get contractCompile() { return `${this.contractTools}/compile`; },
+
+  // API Swagger yaml location
+  get swaggerYAML() { return `${this.base}/static/api.yaml`; },
+
+  // Task
   get tasks() { return `${this.base}/tasks`; },
 
+  // Zone Family
   get zones() { return `${this.blockchains}/zones`; },
-
   get zonesReload() { return `${this.zones}?action=reload`; },
-
   get zonesTestConnection() { return `${this.zones}?action=test`; },
 
-  getReplicas(id: string) { return `${this.blockchains}/${id}/replicas`; },
+
+
+  /**
+   * API that requires `blockchainId` already resolved.
+   * e.g. `/blockchains/{bid}*`
+   */
+   // base api path for a specific blockchain
+  specificBlockchain(bId: string) { return `${this.blockchains}/${bId}`; },
+
+  // Node (Replica) related
+  nodes(bId: string) { return `${this.specificBlockchain(bId)}/replicas`; },
+
+  // ! Deprecated
+  members(bId: string) { return `${this.specificBlockchain(bId)}/members`; },
+
+
+
+  /**
+   * API that requires `blockchainId` already resolved with `concord` prefix
+   * e.g. `/blockchains/{bid}/concord*`
+   */
+  specificConcord(bId: string) { return `${this.specificBlockchain(bId)}/concord`; },
+
+  // Blocks related
+  blocks(bId: string) { return `${this.specificConcord(bId)}/blocks`; },
+  block(bId: string, id) { return `${this.specificConcord(bId)}/blocks/${id}`; },
+
+  // Smart contract related
+  contracts(bId: string) { return `${this.specificConcord(bId)}/contracts`; },
+  contract(bId: string, id) { return `${this.specificConcord(bId)}/contracts/${id}`; },
+  contractVersion(bId: string, id, version) { return `${this.specificConcord(bId)}/contracts/${id}/versions/${version}`; },
+
+  // Node (Replica) related
+  ethrpc(bId: string) { return `${this.specificConcord(bId)}/eth`; },
+
+  // Transactions related
+  transactions(bId: string) { return `${this.specificConcord(bId)}/transactions`; },
+  transaction(bId: string, id) { return `${this.specificConcord(bId)}/transactions/${id}`; },
+
 };

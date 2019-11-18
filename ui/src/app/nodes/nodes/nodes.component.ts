@@ -6,7 +6,7 @@ import { Component } from '@angular/core';
 
 import { TranslateService } from '@ngx-translate/core';
 
-import { Node } from '../shared/nodes.model';
+import { NodeInfo } from '../shared/nodes.model';
 
 @Component({
   selector: 'concord-nodes',
@@ -23,7 +23,7 @@ export class NodesComponent {
     averageValidationTime: 1.98
   };
 
-  members: Node[] = [];
+  members: NodeInfo[] = [];
 
   graphData: any[];
 

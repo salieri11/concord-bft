@@ -2,6 +2,11 @@ body .main-container .content-container .content-area {
   padding: 0;
 }
 
+button.dropdown-item {
+  color: inherit;
+  background-color: transparent;
+}
+
 .page-title {
   margin-top: 0;
   margin-bottom: .75rem;

@@ -323,21 +323,19 @@ export class BlockchainService {
 })
 export class BlockchainResolver implements Resolve<boolean> {
 
+  resolveObservable: Observable<boolean | any>;
   constructor(
     private blockchainService: BlockchainService,
     private router: Router
   ) { }
 
-  resolve(
-    route?: ActivatedRouteSnapshot
-  ): Observable<boolean | any> {
+  resolve(route?: ActivatedRouteSnapshot): Observable<boolean | any> {
     const consortiumId = route ? route.params['consortiumId'] : undefined;
     return this.blockchainService.set(consortiumId).pipe(
       catchError(error => {
-        this.router.navigate(['error'], {
+        this.router.navigate(['/error'], {
           queryParams: { error: JSON.stringify(error) }
         });
-
         return error;
       })
     );
@@ -346,10 +344,10 @@ export class BlockchainResolver implements Resolve<boolean> {
 
 export class MockBlockchainsService {
   notify = new BehaviorSubject({ message: '', type: '' });
-  selectedBlockchain = { consortium_id: 1 };
+  selectedBlockchain = { consortium_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' };
   blockchains = [];
   zones = fakeZones;
-  blockchaindId = 1;
+  blockchaindId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
   type = ContractEngines.ETH;
 
   select(id: string): Observable<boolean> {

@@ -1,57 +1,19 @@
 <div class="p-2 break-word">
-  <h2 class="page-title">
-    {{'blocks.title' | translate}}: {{block?.number}}
+  <h2 class="page-title" *ngIf="block">
+    {{'blocks.title' | translate}} {{
+      (block.number !== 0) ? block.number :
+        ('0 (' + ('blocks.genesisBlock' | translate) + ')')
+    }}
   </h2>
 
-  <div>
-    <table class="table table-vertical">
-      <tbody>
-      <tr>
-        <th>{{'transactions.hash' | translate}}</th>
-        <td>
-          {{block?.hash}}
-          <concord-copy-to-clipboard-button
-            classList="ctc-btn-inline"
-            [tooltip]="'common.copyToClip' | translate"
-            tooltipDirection="top-right"
-            [value]="block?.hash"
-            [size]="12">
-          </concord-copy-to-clipboard-button>
-        </td>
-      </tr>
-      <tr>
-        <th>{{'transactions.parentHash' | translate}}</th>
-        <td>
-          {{block?.parentHash}}
-          <concord-copy-to-clipboard-button
-            classList="ctc-btn-inline"
-            [tooltip]="'common.copyToClip' | translate"
-            tooltipDirection="top-right"
-            [value]="block?.parentHash"
-            [size]="12">
-          </concord-copy-to-clipboard-button>
-        </td>
-      </tr>
-      <tr>
-        <th>{{'transactions.nonce' | translate}}</th>
-        <td>
-          {{block?.nonce}}
-          <concord-copy-to-clipboard-button
-            classList="ctc-btn-inline"
-            [tooltip]="'common.copyToClip' | translate"
-            tooltipDirection="top-right"
-            [value]="block?.nonce"
-            [size]="12">
-          </concord-copy-to-clipboard-button>
-        </td>
-      </tr>
-      <tr>
-        <th>{{'transactions.size' | translate}}</th>
-        <td>{{block?.size}}</td>
-      </tr>
-      </tbody>
-    </table>
-  </div>
+  <concord-block-details *ngIf="block" [blockNumber]="block?.number"></concord-block-details>
+  <h5 class="tx-title" *ngIf="block?.transactions?.length === 1">{{'transactions.title' | translate}}</h5>
 </div>
 
-<concord-transaction-list *ngIf="block" [transactions]="block?.transactions" [blockNumber]="block?.number"></concord-transaction-list>
+<concord-transaction-list *ngIf="block" 
+  [transactions]="block?.transactions" 
+  [blockNumber]="block?.number"
+  [noListIfSingle]="true"
+  [codeBlockMaxHeight]="'700px'"
+  >
+</concord-transaction-list>

@@ -11,8 +11,10 @@ import {
   platformBrowserDynamicTesting
 } from '@angular/platform-browser-dynamic/testing';
 
-const TIMEOUT_INTERVAL = 30000; // 30 seconds
+const TIMEOUT_INTERVAL = 60000; // 60 seconds, also defined in karma.conf.js (browserNoActivityTimeout)
 declare const require: any;
+
+window['UNIT_TEST_ENV'] = true;
 
 // First, initialize the Angular testing environment.
 getTestBed().initTestEnvironment(

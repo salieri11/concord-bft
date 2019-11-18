@@ -1,57 +1,64 @@
-<div class="p-2">
-  <div class="clr-row">
+<div *ngIf="!noListIfSingle || (transactionsLoaded && transactions.length !== 1)" 
+      [classList]="(listOnly || titleHidden) ? 'wrapper' : 'p-2 wrapper'">
+  <div *ngIf="!titleHidden && !listOnly" class="clr-row">
     <div class="clr-col-12">
       <h2 class="page-title">
-      {{'transactions.transactions' | translate}}
-    </h2>
+        {{'transactions.transactions' | translate}}
+      </h2>
     </div>
   </div>
   <div class="clr-row">
     <div class="clr-col-12">
-      <clr-datagrid [clrDgLoading]="!transactions.length">
-        <clr-dg-column [clrDgSortBy]="'hash'" class="hash">{{'transactions.hash' | translate}}</clr-dg-column>
-        <clr-dg-column>{{'transactions.nonce' | translate}}</clr-dg-column>
-        <clr-dg-column class="status">
+      <clr-datagrid [classList]="listOnly ? 'list-only' : ''" [clrDgLoading]="!transactionsLoaded">
+        <clr-dg-column *ngIf="!listOnly" [clrDgSortBy]="'hash'" class="hash">{{'transactions.txhash' | translate}}</clr-dg-column>
+        <clr-dg-column *ngIf="!listOnly" class="nonce">{{'transactions.nonce' | translate}}</clr-dg-column>
+        <clr-dg-column *ngIf="!listOnly">
           {{'transactions.status' | translate}}
           <clr-dg-filter [clrDgFilter]="statusFilter">
             <concord-transactions-status-filter #statusFilter></concord-transactions-status-filter>
           </clr-dg-filter>
         </clr-dg-column>
         <clr-dg-row *clrDgItems="let transaction of transactions">
-          <clr-dg-cell class="hash">
-            <a [routerLink]="['/' + blockchainId, 'blocks', transaction.block_number !== undefined ? transaction.block_number : blockNumber, 'transactions', transaction.hash]">{{transaction?.hash}}</a>
-            <concord-copy-to-clipboard-button
-              classList="ctc-btn-inline"
-              [tooltip]="'common.copyToClip' | translate"
-              tooltipDirection="top-right"
-              [value]="transaction?.hash"
-              [size]="12">
-            </concord-copy-to-clipboard-button>
+          <clr-dg-cell class="hash cell">
+            <div class="cell-inner">
+              <a [routerLink]="['/' + blockchainId, 'blocks', transaction.block_number !== undefined ? transaction.block_number : blockNumber, 'transactions', transaction.hash]">{{transaction?.hash}}</a>
+              <concord-copy-to-clipboard-button
+                classList="ctc-btn-inline"
+                [tooltip]="'common.copyToClip' | translate"
+                tooltipDirection="top-right"
+                [value]="transaction?.hash"
+                [size]="12">
+              </concord-copy-to-clipboard-button>
+            </div>
           </clr-dg-cell>
-          <clr-dg-cell>{{(transaction.nonce !== undefined ? transaction.nonce : 'transactions.none' | translate)  }}</clr-dg-cell>
-          <clr-dg-cell class="status">
-            <ng-container [ngSwitch]="transaction.status">
-              <ng-container *ngSwitchCase="1">
-                <span class="label label-success">
-                  {{'transactions.success' | translate}}
-                </span>
-              </ng-container>
-              <ng-container *ngSwitchCase="0">
-                <span class="label label-danger">
-                  {{ 'transactions.failure' | translate }}
-                </span>
-              </ng-container>
-              <ng-container *ngSwitchDefault>
-                {{ 'transactions.none' | translate }}
-              </ng-container>
-            </ng-container>
+          <clr-dg-cell *ngIf="!listOnly" class="nonce cell">
+            <div class="cell-inner">{{(transaction.nonce !== undefined ? transaction.nonce : 'transactions.none' | translate)  }}</div>
           </clr-dg-cell>
-          <clr-dg-row-detail *clrIfExpanded>
+          <clr-dg-cell class="status cell">
+            <div class="cell-inner">
+              <ng-container [ngSwitch]="transaction.status">
+                <ng-container *ngSwitchCase="1">
+                  <span class="label label-success">
+                    {{'transactions.success' | translate}}
+                  </span>
+                </ng-container>
+                <ng-container *ngSwitchCase="0">
+                  <span class="label label-danger">
+                    {{ 'transactions.failure' | translate }}
+                  </span>
+                </ng-container>
+                <ng-container *ngSwitchDefault>
+                  {{ 'transactions.none' | translate }}
+                </ng-container>
+              </ng-container>
+            </div>
+          </clr-dg-cell>
+          <clr-dg-row-detail class="details" *clrIfExpanded>
             <concord-transaction-details [transactionHash]="transaction?.hash" ngProjectAs="clr-dg-row-detail"></concord-transaction-details>
           </clr-dg-row-detail>
         </clr-dg-row>
-        <clr-dg-footer>
-          <clr-dg-pagination #pagination [clrDgPageSize]="10">
+        <clr-dg-footer *ngIf="!listOnly">
+          <clr-dg-pagination #pagination [clrDgPageSize]="20">
             {{'transactions.paginationSummary' | translate: { start: pagination.firstItem + 1, finish: pagination.lastItem + 1, total:
             pagination.totalItems} }}
           </clr-dg-pagination>
@@ -59,4 +66,8 @@
       </clr-datagrid>
     </div>
   </div>
+</div>
+<div *ngIf="noListIfSingle && (transactionsLoaded && transactions.length === 1)" class="p-2 wrapper single-show">
+  <concord-transaction-details [codeBlockMaxHeight]="codeBlockMaxHeight" [transactionHash]="transactions[0].hash">
+  </concord-transaction-details>
 </div>

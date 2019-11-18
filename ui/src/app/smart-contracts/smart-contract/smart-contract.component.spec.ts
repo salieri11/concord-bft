@@ -3,66 +3,21 @@
  */
 
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
-import { FormsModule } from '@angular/forms';
 import { of as observableOf } from 'rxjs';
-import { ActivatedRoute } from '@angular/router';
-import { HttpClientTestingModule } from '@angular/common/http/testing';
-import { MockSharedModule } from '../../shared/shared.module';
-import { RouterTestingModule } from '@angular/router/testing';
-import { TourService as NgxTourService } from 'ngx-tour-ngx-popper';
+import { getSpecTestingModule } from '../../shared/shared-testing.module';
 
 import { SmartContractComponent } from './smart-contract.component';
-import { SmartContractVersionComponent } from '../smart-contract-version/smart-contract-version.component';
-import {
-  SmartContractsSolidityFunctionInputsComponent
-} from '../smart-contracts-solidity-function-inputs/smart-contracts-solidity-function-inputs.component';
-import { ContractPayloadPreviewFormComponent } from '../contract-payload-preview-form/contract-payload-preview-form.component';
-import { ContractFormComponent } from '../contract-form/contract-form.component';
-import { VmwCopyToClipboardButtonComponent } from '../../shared/components/copy-to-clipboard-button/copy-to-clipboard-button.component';
-import { TransactionDetailsComponent } from '../../transactions/transaction-details/transaction-details.component';
-
-import { SmartContractsService } from '../shared/smart-contracts.service';
-import { TourService } from '../../shared/tour.service';
-import { CodeHighlighterComponent } from '../../shared/components/code-highlighter/code-highlighter.component';
 
 describe('SmartContractComponent', () => {
   let component: SmartContractComponent;
   let fixture: ComponentFixture<SmartContractComponent>;
 
-  beforeEach(async(() => {
-    TestBed.configureTestingModule({
-      imports: [
-        MockSharedModule,
-        RouterTestingModule,
-        FormsModule,
-        HttpClientTestingModule,
-      ],
-      declarations: [
-        SmartContractComponent,
-        SmartContractVersionComponent,
-        ContractFormComponent,
-        ContractPayloadPreviewFormComponent,
-        SmartContractsSolidityFunctionInputsComponent,
-        TransactionDetailsComponent,
-        VmwCopyToClipboardButtonComponent,
-        CodeHighlighterComponent
-      ],
-      providers: [
-        SmartContractsService,
-        TourService,
-        NgxTourService,
-        {
-          provide: ActivatedRoute,
-          useValue: {
-            snapshot: {parent: {parent: {params: {consortiumId: '1234'}}}},
-            params: observableOf({ contractId: '2', version: '1' }),
-            fragment: observableOf('')
-          }
-        }
-      ]
-    })
-      .compileComponents();
-
+  beforeEach(async( () => {
+    const tester = getSpecTestingModule();
+    tester.provideActivatedRoute({ params: { contractId: '2', version: '1' } });
+    TestBed.configureTestingModule(tester.init({
+      imports: [], provides: [], declarations: []
+    })).compileComponents();
   }));
 
   beforeEach(() => {
@@ -114,12 +69,19 @@ describe('SmartContractComponent', () => {
     component.smartContract = {
       contract_id: '1',
       owner: 'owner',
-      versions: undefined
+      versions: []
     };
 
-    component.versionSelected = 1;
+    component.versionSelected = '1';
     component.getVersionInfo();
-    expect(spy).toHaveBeenCalledWith(['1234', 'smart-contracts', '1', 'versions', 1], Object({ replaceUrl: true }));
+    let blockchainId = component.getBlockchainId();
+    if (!blockchainId) { blockchainId = 'undefined'; }
+    expect(spy).toHaveBeenCalledWith([
+      blockchainId,
+      'smart-contracts',
+      '1',
+      'versions',
+      '1'], Object({ replaceUrl: true }));
   });
 
   describe('should load smart contract with contractId in the params', () => {

@@ -24,6 +24,7 @@ export class RouteService {
 
   historyData: RouteHistoryData[] = [];
   currentRouteData: RouteHistoryData;
+  outletEnabled: Promise<boolean> | boolean = true;
 
   private initialized: boolean = false;
   private currentQueryParams: any;
@@ -59,6 +60,10 @@ export class RouteService {
     this.initialized = true;
   }
 
+  isPathAlreadyActive(path: string) {
+    return this.router.isActive(path, false);
+  }
+
   redirectToDefault(fragment?: string) {
     if (this.blockchainService.blockchains && this.blockchainService.blockchains.length > 0) {
       let consortiumId = this.blockchainService.loadSelectedConsortium();
@@ -73,6 +78,12 @@ export class RouteService {
     } else { // No consortium joined, redirect to welcome to let user deploy
       this.router.navigate([mainRoutes.blockchain, mainRoutes.welcome]);
     }
+  }
+
+  // Reloads router outlet to fresh fetch data and update view as needed
+  reloadOutlet() {
+    this.outletEnabled = false;
+    setTimeout(() => { this.outletEnabled = true; }, 1);
   }
 
   goToDeploying(taskId: string): boolean {

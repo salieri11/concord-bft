@@ -10,7 +10,7 @@ import { Subscription } from 'rxjs';
 import { GaugeComponent } from '@swimlane/ngx-charts';
 
 import { WorldMapComponent } from '../../graphs/world-map/world-map.component';
-import { BlockListingBlock } from '../../blocks/shared/blocks.model';
+import { BlockInfo } from '../../blocks/shared/blocks.model';
 import { OrgService } from '../../orgs/shared/org.service';
 import { TourService } from '../../shared/tour.service';
 import { SmartContractsService } from '../../smart-contracts/shared/smart-contracts.service';
@@ -20,12 +20,27 @@ import { BlocksService } from '../../blocks/shared/blocks.service';
 import { DashboardListConfig } from '../dashboard-list/dashboard-list.component';
 import { NodesService } from '../../nodes/shared/nodes.service';
 
-
-
 import * as NodeGeoJson from '../features.json';
+import { mainRoutes } from '../../shared/urls.model';
+import { SmartContract } from '../../smart-contracts/shared/smart-contracts.model';
+import { NodeInfo, NodeProperties } from '../../nodes/shared/nodes.model';
 
 const LONG_POLL_INTERVAL = 10000; // Ten seconds
 const BLOCK_TRANSACTION_LIMIT = 20;
+
+enum DashItems {
+  organizations = 0,
+  currentBlock = 1,
+  contracts = 2,
+  transactions = 3,
+}
+
+enum InfoListTable {
+  nodes = 0,
+  organizations = 1,
+  smartContracts = 2,
+  blocks = 3,
+}
 
 @Component({
   selector: 'concord-dashboard',
@@ -37,13 +52,14 @@ export class DashboardComponent implements OnInit, OnDestroy {
   @ViewChild('worldMap', { static: false }) worldMap: WorldMapComponent;
 
   blockchainId: string;
-  blocks: BlockListingBlock[] = [];
+  blocks: BlockInfo[] = [];
   orgs: any[] = [];
-  nodes: any[] = [];
-  nodesByLocation: any[] = [];
+  nodes: NodeInfo[] = [];
+  smartContracts: SmartContract[] = [];
+
+  nodesByLocation: NodeProperties[] = [];
   onlyOnPrem: boolean = false;
-  smartContracts = [];
-  nodeGeoJson: any = NodeGeoJson;
+  nodeGeoJson = NodeGeoJson;
   routerFragmentChange: Subscription;
   firstBlockTransactionCount: number = 0;
   pollIntervalId: any;
@@ -55,7 +71,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   };
 
   blockchainType: string;
-  infoLists: any[] = [];
+  infoLists: {config?: {}, items: any[], tourAnchor: string}[] = [];
 
   dashItems: { title: string, count: number, link: string[] }[];
 
@@ -73,9 +89,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     this.blockchainType = this.blockchainService.type;
+    this.blockchainId = this.blockchainService.blockchainId;
+
     this.setComponents();
     this.loadData();
-    this.blockchainId = this.blockchainService.blockchainId; // this.route.snapshot.parent.parent.params['consortiumId'];
 
     this.pollIntervalId = setInterval(() => {
       this.loadData();
@@ -132,10 +149,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
 
   get healthyNodesCount() {
-    const healthyNodeCount = this.nodes.filter((node) => {
-      return node.healthy;
-    }).length;
-
+    const healthyNodeCount = this.nodes.filter(node => node.healthy).length;
     return healthyNodeCount;
   }
 
@@ -163,7 +177,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
       displayProperties: ['number', 'hash'],
       tableHeader: 'blocks.blocks',
       itemLink: (block) => {
-        return [`/${this.blockchainId}`, 'blocks', block.number];
+        return [`/${this.blockchainId}`, mainRoutes.blocks, block.number];
       },
       paginationSummary: 'blocks.paginationSummary',
     };
@@ -175,7 +189,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
       displayProperties: ['contract_id', 'owner'],
       tableHeader: 'smartContracts.smartContracts',
       itemLink: (contract) => {
-        return [`/${this.blockchainId}`, 'smart-contracts', contract.contract_id];
+        return [`/${this.blockchainId}`, mainRoutes.smartContracts, contract.contract_id];
       },
       paginationSummary: 'smartContracts.paginationSummary',
     };
@@ -221,9 +235,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     switch (this.blockchainType) {
       case ContractEngines.DAML:
         this.dashItems = [{
-          title: this.translate.instant('organization.title'),
-          link: ['/', this.blockchainId, 'organizations'],
-          count: this.orgCount
+          title: this.translate.instant('organization.title'), link: [], count: null,
         }];
         this.infoLists = [
           { config: this.nodesConfig, items: this.nodes, tourAnchor: 'onboardingTour.nodes' },
@@ -234,20 +246,20 @@ export class DashboardComponent implements OnInit, OnDestroy {
       case ContractEngines.ETH:
         this.dashItems = [{
           title: this.translate.instant('organization.title'),
-          link: ['/', this.blockchainId, 'organizations'],
-          count: this.orgCount
+          link: ['/' + this.blockchainId, mainRoutes.organizations],
+          count: null,
         }, {
           title: this.translate.instant('blocks.currentBlock'),
-          link: ['/', this.blockchainId, 'blocks'],
-          count: this.currentBlock
+          link: ['/' + this.blockchainId, mainRoutes.blocks],
+          count: null,
         }, {
           title: this.translate.instant('dashboard.deployedContracts'),
-          link: ['/', this.blockchainId, 'smart-contracts'],
-          count: this.smartContracts.length
+          link: ['/' + this.blockchainId, mainRoutes.smartContracts],
+          count: null,
         }, {
           title: this.translate.instant('transactions.transactions'),
-          link: ['/', this.blockchainId, 'transactions'],
-          count: this.transactionCount
+          link: ['/' + this.blockchainId, mainRoutes.transactions],
+          count: null,
         }];
 
         this.infoLists = [
@@ -264,8 +276,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.smartContractsService.getSmartContracts().subscribe(
       smartContracts => {
         this.smartContracts = smartContracts;
-        this.infoLists[2].items = this.smartContracts;
-        this.dashItems[2].count = this.smartContracts.length;
+        this.infoLists[InfoListTable.smartContracts].items = this.smartContracts;
+        this.dashItems[DashItems.contracts].count = this.smartContracts.length;
       });
   }
 
@@ -284,20 +296,21 @@ export class DashboardComponent implements OnInit, OnDestroy {
   private loadBlocks() {
     this.blocksService.getBlocks(BLOCK_TRANSACTION_LIMIT).subscribe((resp) => {
       this.blocks = resp.blocks;
-      this.dashItems[1].count = this.currentBlock;
-      this.dashItems[3].count = this.transactionCount;
-      this.infoLists[3].items = this.blocks;
+      this.dashItems[DashItems.currentBlock].count = this.currentBlock;
+      this.dashItems[DashItems.transactions].count = this.transactionCount;
+      this.infoLists[InfoListTable.blocks].items = this.blocks;
     });
     this.blocksService.getBlock(0).subscribe((resp) => {
       this.firstBlockTransactionCount = resp.transactions.length;
+      this.dashItems[DashItems.transactions].count = this.transactionCount;
     });
   }
 
   private loadOrgs() {
     this.orgService.getList().subscribe(resp => {
       this.orgs = resp;
-      this.infoLists[1].items = this.orgs;
-      this.dashItems[0].count = this.orgCount;
+      this.infoLists[InfoListTable.organizations].items = this.orgs;
+      this.dashItems[DashItems.organizations].count = this.orgCount;
     });
   }
 

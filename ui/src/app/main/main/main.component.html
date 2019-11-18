@@ -11,8 +11,8 @@
   <concord-app-header></concord-app-header>
   <div class="content-container">
     <main class="content-area">
-      <router-outlet *ngIf="enableRouterOutlet"></router-outlet>
-      <div *ngIf="!enableRouterOutlet && showErrorMessage" class="clr-row clr-justify-content-center">
+      <router-outlet *ngIf="routeService.outletEnabled"></router-outlet>
+      <div *ngIf="!routeService.outletEnabled && showErrorMessage" class="clr-row clr-justify-content-center">
         <div class="clr-col-lg-5 clr-col-md-8 clr-col-12">
           <div class="card error">
             <div class="card-header">
@@ -74,11 +74,11 @@
           <clr-icon clrVerticalNavIcon shape="blocks-group"></clr-icon>
           {{'nav.blockList' | translate}}
         </a>
-        <a clrVerticalNavLink *ngIf="blockchainType !== 'DAML'" [routerLink]="['transactions']"
+        <!-- <a clrVerticalNavLink *ngIf="blockchainType !== 'DAML'" [routerLink]="['transactions']"
           routerLinkActive="active">
           <clr-icon clrVerticalNavIcon shape="tags"></clr-icon>
           {{'nav.transactionList' | translate}}
-        </a>
+        </a> -->
         <div class="nav-divider"></div>
         <label class="nav-header">
           {{'nav.developer.header' | translate}}

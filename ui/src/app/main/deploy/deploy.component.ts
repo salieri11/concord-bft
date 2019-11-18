@@ -33,7 +33,7 @@ export class DeployComponent implements OnInit, OnDestroy {
         case 'cancel':
           this.location.back();
           /**
-           * ? Possible Edge Case
+           * ? Possible Edge Cases
            *
            * if the user **directly lands** on this deploy page through temp redirects
            * such as `login-return`, location.back() will fail, and might lead to some
@@ -42,6 +42,9 @@ export class DeployComponent implements OnInit, OnDestroy {
            * However, this is only possible when user gets to this page
            * by a direct link, such as https://localhost.vmware.com/blockchain/deploy
            * or `login-return` itself redirects to this page
+           *
+           * Update: RouteService offers `goToPreviousPage` which safely navigates
+           * back to previous path with handling these edge cases and fleeting routes
            */
           break;
         case 'deployError':

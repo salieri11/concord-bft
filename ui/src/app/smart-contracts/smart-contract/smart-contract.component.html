@@ -1,24 +1,38 @@
-<div class="p-2">
+<div *ngIf="smartContract" class="p-2">
   <div class="contract-header">
+    <clr-tooltip *ngIf="versionSelected  && !versionIsExternal" class="verified">
+      <clr-icon clrTooltipTrigger shape="success-standard" class="is-solid" size=24></clr-icon>
+      <clr-tooltip-content clrPosition="top-right" clrSize="md" *clrIfOpen>
+        <span>{{'smartContracts.version.tooltips.verified' | translate}}</span>
+      </clr-tooltip-content>
+    </clr-tooltip>
     <h2 class="page-title">
       {{smartContract?.contract_id}}
     </h2>
-    <label class="ml-1" for="selectedVersion"> {{'smartContracts.version.title' | translate}}</label>
-    <div class="select version-select">
-      <select id="selectedVersion"
+    <h2 class="version-separator"> :: </h2>
+    <clr-dropdown class="select version-select">
+      <clr-dropdown [clrCloseMenuOnItemClick]="true">
+        <button clrDropdownTrigger class="no-border">
+          <span id="selectedVersion" class="version-label">{{ versionSelected }}</span>
+          <clr-icon shape="caret down"></clr-icon>
+        </button>
+        <clr-dropdown-menu *clrIfOpen class="inline">
+          <div clrDropdownItem *ngFor="let versionVar of smartContract?.versions"
+              (click)="getVersionInfo(versionVar.version)">
+            {{ versionVar.version }}
+          </div>
+        </clr-dropdown-menu>
+      </clr-dropdown>
+    </clr-dropdown>
+    <!-- <div class="select version-select">
+      <select id="selectedVersion" class="select-width"
               name="version"
               [(ngModel)]="versionSelected"
               (change)="getVersionInfo()">
         <option [value]="undefined" *ngIf="!versionSelected">{{'smartContracts.version.selectVersion' | translate}}</option>
         <option *ngFor="let versionVar of smartContract?.versions" [value]="versionVar.version">{{ versionVar.version }}</option>
       </select>
-    </div>
-    <clr-tooltip *ngIf="versionSelected  && !versionIsExternal" class="verified">
-      <clr-icon clrTooltipTrigger shape="success-standard" class="is-solid" size=25></clr-icon>
-      <clr-tooltip-content clrPosition="top-right" clrSize="md" *clrIfOpen>
-        <span>{{'smartContracts.version.tooltips.verified' | translate}}</span>
-      </clr-tooltip-content>
-    </clr-tooltip>
+    </div> -->
     <div class="options" *ngIf="versionSelected  && !versionIsExternal">
       <button type="button" class="btn btn-icon btn-link" (click)="startTour()" [attr.aria-label]="'tourSteps.title' | translate">
         <clr-icon size="24" shape="help"></clr-icon>

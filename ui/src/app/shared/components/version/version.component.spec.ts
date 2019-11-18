@@ -4,7 +4,7 @@
 
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { getSpecTestingModule } from '../../shared.module';
+import { getSpecTestingModule } from '../../shared-testing.module';
 import { VersionComponent } from './version.component';
 
 describe('VersionComponent', () => {
@@ -12,8 +12,8 @@ describe('VersionComponent', () => {
   let fixture: ComponentFixture<VersionComponent>;
   let element: Element;
 
-  beforeEach(async( async () => {
-    const tester = await getSpecTestingModule();
+  beforeEach(async( () => {
+    const tester = getSpecTestingModule();
     tester.importLanguagePack();
     TestBed.configureTestingModule(tester.init({
       imports: [], provides: [], declarations: []

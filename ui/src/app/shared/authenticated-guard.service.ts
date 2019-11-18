@@ -52,7 +52,7 @@ export class AuthenticatedGuard implements CanActivateChild, CanActivate {
       return false;
     } else if (personasAllowed && !this.personaService.hasAuthorization(personasAllowed)) {
       this.handleRoutingFailure();
-      this.router.navigate([mainRoutes.forbidden]);
+      this.router.navigate(['/' + mainRoutes.forbidden]);
       return false;
     } else {
       return true;

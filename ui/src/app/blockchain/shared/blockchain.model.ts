@@ -12,7 +12,7 @@ export class BlockchainRequestParams {
   blockchain_type: string;
 }
 
-export interface Node {
+export interface NodeCommitter {
   cert: string;
   ip: string;
   node_id: string;
@@ -24,7 +24,7 @@ export interface BlockchainResponse {
   id: string;
   consortium_id: string;
   consortium_name: string;
-  node_list: Node[];
+  node_list: NodeCommitter[];
 }
 
 export interface Zone {

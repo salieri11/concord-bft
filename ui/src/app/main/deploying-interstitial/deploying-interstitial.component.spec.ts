@@ -3,16 +3,15 @@
  */
 
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
-import { getSpecTestingModule } from '../../shared/shared.module';
+import { getSpecTestingModule } from '../../shared/shared-testing.module';
 import { DeployingInterstitialComponent } from './deploying-interstitial.component';
 
 describe('DeployingInterstialComponent', () => {
   let component: DeployingInterstitialComponent;
   let fixture: ComponentFixture<DeployingInterstitialComponent>;
 
-  beforeEach(async( async () => {
-    const tester = await getSpecTestingModule();
-    tester.importLanguagePack();
+  beforeEach(async( () => {
+    const tester = getSpecTestingModule();
     TestBed.configureTestingModule(tester.init({
       imports: [], provides: [], declarations: []
     })).compileComponents();

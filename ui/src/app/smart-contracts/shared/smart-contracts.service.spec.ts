@@ -7,7 +7,6 @@ import { HttpClient, HttpHandler } from '@angular/common/http';
 import { MockSharedModule } from '../../shared/shared.module';
 
 import { SmartContractsService } from './smart-contracts.service';
-import { CONCORD_API_PREFIX } from '../../shared/shared.config';
 
 describe('SmartContractsService', () => {
   let service: SmartContractsService;
@@ -17,7 +16,6 @@ describe('SmartContractsService', () => {
       imports: [MockSharedModule],
       providers: [
         SmartContractsService,
-        { provide: CONCORD_API_PREFIX, useValue: 'api/concord' },
         HttpClient,
         HttpHandler
       ]
@@ -33,20 +31,20 @@ describe('SmartContractsService', () => {
   it('should fetch all smart contracts', () => {
       const httpSpy = spyOn((service as any).httpClient, 'get');
       service.getSmartContracts();
-      expect(httpSpy).toHaveBeenCalledWith('api/blockchains/undefined/concord/contracts');
+      expect(httpSpy).toHaveBeenCalledWith(`/api/blockchains/undefined/concord/contracts`);
     }
   );
 
   it('should fetch smart contract with given id', () => {
       const httpSpy = spyOn((service as any).httpClient, 'get');
       service.getSmartContract('contractId');
-      expect(httpSpy).toHaveBeenCalledWith('api/blockchains/undefined/concord/contracts/contractId');
+      expect(httpSpy).toHaveBeenCalledWith(`/api/blockchains/undefined/concord/contracts/contractId`);
   });
 
   it('should fetch version details for given versionId and contractId', () => {
     const httpSpy = spyOn((service as any).httpClient, 'get');
     service.getVersionDetails('contractId', 'version');
-    expect(httpSpy).toHaveBeenCalledWith('api/blockchains/undefined/concord/contracts/contractId/versions/version');
+    expect(httpSpy).toHaveBeenCalledWith(`/api/blockchains/undefined/concord/contracts/contractId/versions/version`);
   });
 
   it('should post a smart contract with given payload', () => {
@@ -60,7 +58,7 @@ describe('SmartContractsService', () => {
     };
 
     service.postContract(contract);
-    expect(httpSpy).toHaveBeenCalledWith('api/blockchains/undefined/concord/contracts', contract);
+    expect(httpSpy).toHaveBeenCalledWith(`/api/blockchains/undefined/concord/contracts`, contract);
   });
 
   it('should put a smart contract with given payload', () => {
@@ -76,7 +74,7 @@ describe('SmartContractsService', () => {
     };
 
     service.updateExistingVersion('contractId', contract);
-    expect(httpSpy).toHaveBeenCalledWith('api/blockchains/undefined/concord/contracts/contractId', contract);
+    expect(httpSpy).toHaveBeenCalledWith(`/api/blockchains/undefined/concord/contracts/contractId`, contract);
   });
 
   it('should post smart contract source code', () => {
@@ -87,7 +85,7 @@ describe('SmartContractsService', () => {
     };
 
     service.postSourceCode(payload);
-    expect(httpSpy).toHaveBeenCalledWith('api/concord/contracts/compile', payload);
+    expect(httpSpy).toHaveBeenCalledWith('/api/concord/contracts/compile', payload);
   });
 
 });

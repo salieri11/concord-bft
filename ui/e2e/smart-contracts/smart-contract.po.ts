@@ -29,7 +29,7 @@ export class SmartContractPage {
   }
 
   getVersionName() {
-    return element(by.css('#selectedVersion option:checked')).getText();
+    return element(by.css('#selectedVersion')).getText();
   }
 
   getFunctionsForm() {

@@ -6,3 +6,118 @@ concord-block-graph {
   margin-top: 2rem;
   height: 300px;
 }
+
+.data-field-spacer {
+  display:inline-block;
+  height:16px;
+}
+
+.inline-block {
+  display:inline-block;
+}
+
+.search-input-area {
+  float: right;
+  margin-top: 0.3rem;
+  margin-right: 0.3rem;
+
+  $input_anim_t: 225ms;
+  $button_t: 275ms;
+  
+  .search-icon {
+    display: inline-block;
+    margin-right: 0.25rem;
+    margin-top: 0.35rem;
+    vertical-align:top;
+  }
+
+  .search-input-container {
+    display: inline-block;
+    .search-input {
+      transition: min-width $input_anim_t ease-out;
+      min-width: 240px;
+      vertical-align:top;
+    }
+    .search-input-mediumtext {
+      min-width: 460px;
+    }
+    .search-input-longtext {
+      min-width: 560px;
+    }
+    .not-found-text {
+      line-height: 0.65rem;
+      margin-top: 1px !important;
+      color: #c74600;
+    }
+  }
+}
+
+
+.loading-gif {
+  margin-left: 0.5rem;
+  margin-right: 0.3rem;
+}
+
+.no-padding-top {
+  padding-top:0px !important;
+}
+.transactions-title {
+  display: block;
+  margin: 1rem 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.limit-width {
+  width: 100%;
+  max-width: 65vw;
+}
+.full-width {
+  width: calc(100% - 1.5rem);
+}
+
+.block-number {
+  min-width: 140px;
+  width: 140px;
+  text-align: right;
+}
+
+.block-hash {
+  width:600px;
+  min-width:600px;
+}
+
+.tx-count {
+  min-width: 120px;
+  width:120px;
+}
+
+.time-info {
+  min-width: 300px;
+  width: 20%;
+}
+
+.details {
+  width:100%;
+  padding:0;
+  padding-bottom: 2rem;
+}
+
+:host ::ng-deep concord-transaction-list.has-left-margin {
+  > div {
+    margin-left : 1.5rem !important;
+    width: calc(100% - 3rem);
+  }
+}
+
+:host ::ng-deep clr-dg-column.block-number {
+  > div {
+    > span {
+      display: inline-block !important;
+      text-align: right !important;
+    }
+  }
+}
+
+:host ::ng-deep .search-input-area .clr-form-control { 
+  margin-top: 0.3rem;
+}

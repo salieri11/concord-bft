@@ -2,9 +2,11 @@
   <table class="mt-0 table table-vertical">
     <tbody>
     <tr>
-      <th>{{'transactions.hash' | translate}}</th>
+      <th>{{'blocks.blockHash' | translate}}</th>
       <td>
-        {{block?.hash}}
+        <a [routerLink]="getBlockPageRouterLink(block?.number)">
+          {{block?.hash}}
+        </a>
         <concord-copy-to-clipboard-button
           classList="ctc-btn-inline"
           [tooltip]="'common.copyToClip' | translate"
@@ -14,10 +16,12 @@
         </concord-copy-to-clipboard-button>
       </td>
     </tr>
-    <tr>
-      <th>{{'transactions.parentHash' | translate}}</th>
+    <tr *ngIf="block && block.number > 0">
+      <th>{{'blocks.parentHash' | translate}}</th>
       <td>
-        {{block?.parentHash}}
+        <a [routerLink]="getBlockPageRouterLink(block ? block.number - 1 : null)">
+          {{block?.parentHash}}
+        </a>
         <concord-copy-to-clipboard-button
           classList="ctc-btn-inline"
           [tooltip]="'common.copyToClip' | translate"
@@ -27,22 +31,22 @@
         </concord-copy-to-clipboard-button>
       </td>
     </tr>
-    <tr>
-      <th>{{'transactions.nonce' | translate}}</th>
+    <tr *ngIf="block?.timestamp">
+      <th>{{'blocks.timestamp' | translate}}</th>
       <td>
-        {{block?.nonce}}
+        {{ (block?.timestamp * 1000) | date: 'yyyy/MM/dd h:mm:ss a':'+0000' }} (UTC)
         <concord-copy-to-clipboard-button
           classList="ctc-btn-inline"
           [tooltip]="'common.copyToClip' | translate"
           tooltipDirection="top-right"
-          [value]="block?.nonce"
+          [value]="timestampToISOString(block?.timestamp * 1000)"
           [size]="12">
         </concord-copy-to-clipboard-button>
       </td>
     </tr>
     <tr>
-      <th>{{'transactions.size' | translate}}</th>
-      <td>{{block?.size}}</td>
+      <th>{{'blocks.txcount' | translate}}</th>
+      <td>{{block?.transactions?.length}}</td>
     </tr>
     </tbody>
   </table>

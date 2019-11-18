@@ -1,8 +1,25 @@
 .contract-owner {
   margin-left: 5px;
 }
-.version-select {
-  margin-left: 10px;
+.select-width {
+  padding-right: 20px;
+}
+.no-border {
+  border:none;
+}
+.version-label {
+  font-size: 0.65rem;
+  margin-right:10px;
+}
+.version-separator {
+  opacity: 0.4;
+  font-weight: 500;
+  margin-left: 0.5rem;
+  margin-right: 0.2rem;
+  float: left;
+  font-size:0.8rem;
+  margin-top: 0;
+  margin-bottom: 0;
 }
 label {
   font-weight: 600;
@@ -17,18 +34,18 @@ label {
 
   .page-title {
     float: left;
-    margin-right: 1rem;
     margin-bottom: 0;
   }
-  label, .version-select {
+  .version-select {
     float: left;
-    margin-top: .5rem;
-    margin-left: .5rem;
+    margin-top: .475rem;
   }
   .verified {
     float: left;
+    font-size: 1rem;
     margin-top: .4rem;
-    margin-left: .3rem;
+    margin-left: -0.5rem;
+    margin-right: .5rem;
   }
   .options {
     float: right;

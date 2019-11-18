@@ -24,7 +24,11 @@ import { TransactionDetailsComponent } from './transaction-details/transaction-d
     SharedModule,
     TourNgxPopperModule
   ],
-  declarations: [TransactionComponent, TransactionListComponent, TransactionDetailsComponent],
+  declarations: [
+    TransactionComponent,
+    TransactionListComponent,
+    TransactionDetailsComponent,
+  ],
   exports: [
     TransactionListComponent,
     TransactionDetailsComponent

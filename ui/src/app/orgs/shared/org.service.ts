@@ -4,7 +4,7 @@
 
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, of } from 'rxjs';
 
 import { Org } from './org.model';
 import { BlockchainService } from '../../blockchain/shared/blockchain.service';
@@ -24,7 +24,7 @@ export class OrgService {
   }
 
   getList(): Observable<Org[]> {
-    if (!this.blockchainService.selectedBlockchain) { return new Observable<Org[]>(); }
+    if (!this.blockchainService.selectedBlockchain) { return of([]); }
     return this.http.get<Org[]>(this.orgConsortiumPath);
   }
 
