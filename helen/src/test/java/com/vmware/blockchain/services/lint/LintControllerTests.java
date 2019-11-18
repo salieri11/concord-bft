@@ -41,6 +41,8 @@ import org.springframework.web.util.NestedServletException;
 
 import com.vmware.blockchain.MvcConfig;
 import com.vmware.blockchain.auth.AuthHelper;
+import com.vmware.blockchain.common.BadRequestException;
+import com.vmware.blockchain.common.ErrorCodeType;
 import com.vmware.blockchain.common.csp.CspAuthenticationHelper;
 import com.vmware.blockchain.services.blockchains.replicas.Replica;
 import com.vmware.blockchain.services.blockchains.replicas.ReplicaService;
@@ -106,7 +108,7 @@ public class LintControllerTests {
 
     @Test
     void testCspUrl() throws Exception {
-        // Make sure defaut cspUrl is pointing to production
+        // Make sure default cspUrl is pointing to production
         String cspUrl = (String) ReflectionTestUtils.getField(lintProxyController, "cspUrl");
         Assertions.assertEquals("https://console.cloud.vmware.com", cspUrl);
     }
@@ -136,7 +138,20 @@ public class LintControllerTests {
     }
 
     @Test
-    void replicaAuthTest() throws Exception {
+    void missingReplicaIdTest() {
+
+        NestedServletException ex =
+                Assertions.assertThrows(NestedServletException.class, () ->
+                        mockMvc.perform(post("/api/lint/log")
+                                .contentType(MediaType.APPLICATION_JSON).content("{\"one\": \"two\"}"))
+                                .andExpect(status().isOk()));
+
+        Assertions.assertTrue(ex.getCause() instanceof BadRequestException);
+        Assertions.assertEquals(ErrorCodeType.BAD_REQUEST_PARAM.getErrorCodeTypeValue(), ex.getCause().getMessage());
+    }
+
+    @Test
+    void replicaAuthTest() {
 
         Replica replica = new Replica();
         UUID replicaId = UUID.randomUUID();
@@ -151,8 +166,8 @@ public class LintControllerTests {
                     .contentType(MediaType.APPLICATION_JSON).content("{\"one\": \"two\"}"))
                     .andExpect(status().isOk()));
 
-        Assertions.assertTrue(ex.getCause() instanceof IllegalAccessException);
-        Assertions.assertEquals(String.format("Replica with ID %s cannot access blockchain", replicaId.toString()),
+        Assertions.assertTrue(ex.getCause() instanceof BadRequestException);
+        Assertions.assertEquals(ErrorCodeType.CANNOT_ACCESS_BLOCKCHAIN.getErrorCodeTypeValue(),
                 ex.getCause().getMessage());
     }
 
@@ -398,7 +413,7 @@ public class LintControllerTests {
 
     @Test
     void getTest() throws Exception {
-        mockMvc.perform(get("/api/lint/log?replica_id=" + REPLICA_ID))
+        mockMvc.perform(get("/api/lint/log/12e41ed8a9a77c7559748e221ba72"))
                 .andExpect(status().isOk());
         // capture the values handed in to restTemplate.exchange
         verify(restTemplate).exchange(uriCaptcha.capture(), methodCaptcha.capture(), httpCaptcha.capture(),
@@ -406,7 +421,7 @@ public class LintControllerTests {
 
         final HttpEntity<String> entity = httpCaptcha.getValue();
 
-        Assertions.assertEquals("/log", uriCaptcha.getValue().toString());
+        Assertions.assertEquals("/log/12e41ed8a9a77c7559748e221ba72", uriCaptcha.getValue().toString());
         Assertions.assertEquals(HttpMethod.GET, methodCaptcha.getValue());
         Assertions.assertEquals("Bearer anAuthToken", entity.getHeaders().getFirst("Authorization"));
         Assertions.assertEquals(String.class, classCaptcha.getValue());

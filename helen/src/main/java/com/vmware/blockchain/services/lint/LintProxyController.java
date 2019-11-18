@@ -39,6 +39,8 @@ import org.springframework.web.util.UriComponentsBuilder;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.vmware.blockchain.auth.AuthHelper;
+import com.vmware.blockchain.common.BadRequestException;
+import com.vmware.blockchain.common.ErrorCodeType;
 import com.vmware.blockchain.common.csp.CspAuthenticationHelper;
 import com.vmware.blockchain.common.restclient.RestClientBuilder;
 import com.vmware.blockchain.services.blockchains.replicas.Replica;
@@ -137,12 +139,19 @@ public class LintProxyController {
     @RequestMapping("/**")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<String> proxyToLint(@RequestBody(required = false) String body,
-            @RequestParam(name = "replica_id") String replicaId,
+            @RequestParam(name = "replica_id", required = false) String replicaId,
             HttpMethod method, HttpServletRequest request, HttpServletResponse response) throws IllegalAccessException {
 
-        Replica replica = replicaService.get(UUID.fromString(replicaId));
-        if (!authHelper.canAccessChain(replica.getBlockchainId())) {
-            throw new IllegalAccessException(String.format("Replica with ID %s cannot access blockchain", replicaId));
+        if (HttpMethod.POST == method) {
+            if (replicaId == null) {
+                logger.info("Missing replica_id request param in POST");
+                throw new BadRequestException(ErrorCodeType.BAD_REQUEST_PARAM);
+            }
+            Replica replica = replicaService.get(UUID.fromString(replicaId));
+            if (!authHelper.canAccessChain(replica.getBlockchainId())) {
+                logger.info(String.format("Replica %s cannot access blockchain", replicaId));
+                throw new BadRequestException(ErrorCodeType.CANNOT_ACCESS_BLOCKCHAIN);
+            }
         }
 
         // get the request URI, and convert to lint relative request
