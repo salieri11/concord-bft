@@ -19,7 +19,7 @@ grpc::Status ThinReplicaImpl::ReadState(
 
 grpc::Status ThinReplicaImpl::ReadStateHash(
     ServerContext* context,
-    const com::vmware::concord::thin_replica::ReadStateRequest* request,
+    const com::vmware::concord::thin_replica::ReadStateHashRequest* request,
     com::vmware::concord::thin_replica::Hash* hash) {
   return grpc::Status(grpc::StatusCode::UNIMPLEMENTED, "ReadStateHash");
 }
