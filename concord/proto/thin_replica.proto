@@ -16,7 +16,7 @@ service ThinReplica {
   rpc ReadState(ReadStateRequest) returns (stream Data);
 
   // Return the hash of the state at a given cursor
-  rpc ReadStateHash(ReadStateRequest) returns (Hash);
+  rpc ReadStateHash(ReadStateHashRequest) returns (Hash);
 
   // An endless stream of updates
   // The client needs to acknowledge the received updates (AckCursor) in order to help the server manage data growth
@@ -36,9 +36,14 @@ service ThinReplica {
 }
 
 message ReadStateRequest {
-  // Used for getting a hash only
-  bytes cursor = 1;
   // The client's read request is filtered by this prefix
+  bytes key_prefix = 1;
+}
+
+message ReadStateHashRequest {
+  // Cursor from a prior ReadState response
+  bytes cursor = 1;
+  // Same filter as used in the ReadState request
   bytes key_prefix = 2;
 }
 

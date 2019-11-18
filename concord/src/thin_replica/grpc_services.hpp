@@ -30,7 +30,7 @@ class ThinReplicaImpl final
 
   grpc::Status ReadStateHash(
       grpc::ServerContext* context,
-      const com::vmware::concord::thin_replica::ReadStateRequest* request,
+      const com::vmware::concord::thin_replica::ReadStateHashRequest* request,
       com::vmware::concord::thin_replica::Hash* hash) override;
 
   grpc::Status AckCursor(
