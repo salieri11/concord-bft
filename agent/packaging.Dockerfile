@@ -25,6 +25,3 @@ COPY ./src/main/resources/application.properties ./application.properties
 COPY ./target/concord-agent*.jar ./concord-agent.jar
 
 CMD ["java", "-jar", "concord-agent.jar", "config.json"]
-
-# Must match server.port in application.properties!
-EXPOSE 8645

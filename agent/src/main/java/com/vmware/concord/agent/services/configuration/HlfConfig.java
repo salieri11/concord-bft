@@ -73,6 +73,4 @@ public enum HlfConfig implements BaseContainerSpec {
         this.cmds = cmds;
         this.environment = environment;
     }
-
-    public static final String HLF_DOCKER_NETWORK = "fabric";
 }
