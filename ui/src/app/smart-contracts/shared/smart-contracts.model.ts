@@ -6,12 +6,14 @@ export interface SmartContract {
   contract_id: string;
   owner: string;
   url?: string;
-  versions?: [{
-    address: string;
-    metadata: {};
-    version: string;
-    url: string;
-  }];
+  versions?: SmartContractVersionHeader[];
+}
+
+export interface SmartContractVersionHeader {
+  address: string;
+  metadata: {};
+  version: string;
+  url: string;
 }
 
 export interface SmartContractVersion {
@@ -56,7 +58,7 @@ export interface AbiEventDefinition {
   inputs: AbiFunctionParameter[];
 }
 
-type AbiDefinition = AbiEventDefinition | AbiFunctionDefinition;
+export type AbiDefinition = AbiEventDefinition | AbiFunctionDefinition;
 
 export interface AbiFunctionParameter {
   indexed?: boolean;

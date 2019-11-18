@@ -2,44 +2,44 @@
  * Copyright 2018-2019 VMware, all rights reserved.
  */
 
-import { Inject, Injectable } from '@angular/core';
+import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { forkJoin as observableForkJoin } from 'rxjs';
 import { mergeMap } from 'rxjs/operators';
 
-import { CONCORD_API_PREFIX } from '../../shared/shared.config';
 import { Transaction, TransactionListing } from './transactions.model';
 import { BlocksService } from '../../blocks/shared/blocks.service';
-import { ConcordApiService } from '../../shared/concord-api';
+import { Apis } from '../../shared/urls.model';
 import { BlockchainService } from '../../blockchain/shared/blockchain.service';
 
 @Injectable({
   providedIn: 'root'
 })
-export class TransactionsService extends ConcordApiService {
+export class TransactionsService {
 
   constructor(
-    @Inject(CONCORD_API_PREFIX) concordApiPrefix: string,
     private httpClient: HttpClient,
+    private blockchainService: BlockchainService,
     private blocksService: BlocksService,
-    // @ts-ignore: no unused locals
-    private blockchainService: BlockchainService
-  ) {
-    super(concordApiPrefix);
-  }
-
-  get apiSubPath() {
-    return 'transactions';
-  }
+  ) { }
 
   getTransaction(transactionHash: string) {
-    return this.httpClient.get<Transaction>(this.resourcePath(transactionHash));
+    return this.httpClient.get<Transaction>(
+      Apis.transaction(this.blockchainService.blockchainId, transactionHash));
   }
 
   getTransactions(count: number) {
     const params = new HttpParams().set('count', count.toString());
+    return this.httpClient.get<TransactionListing>(
+      Apis.transactions(this.blockchainService.blockchainId), {params: params});
+  }
 
-    return this.httpClient.get<TransactionListing>(this.resourcePath(), {params: params});
+  getBlockTransactions(blockNumber: number) {
+    // Get blocks, then get individual block, then get individual transactions for all blocks.
+    // This is temporary until there is an endpoint to fetch recent transactions
+    return this.blocksService.getBlock(blockNumber).pipe(mergeMap(blockResp => {
+      return observableForkJoin(blockResp.transactions.map(transaction => this.getTransaction(transaction.hash)));
+    }));
   }
 
   getRecentTransactions(count: number = 1000) {

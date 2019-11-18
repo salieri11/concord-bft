@@ -2,11 +2,9 @@
  * Copyright 2018-2019 VMware, all rights reserved.
  */
 
-import { Inject, Injectable } from '@angular/core';
+import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-
-import { ETHEREUM_API_PREFIX } from './shared.config';
 
 import {
   EthRequest,
@@ -19,9 +17,8 @@ import {
   PersonalNewAccountParams,
   PersonalNewAccountResponse
 } from './eth-api.model';
-
+import { Apis } from './urls.model';
 import { BlockchainService } from '../blockchain/shared/blockchain.service';
-import { ConcordApiService } from './concord-api';
 
 
 const DEFAULT_BLOCK_PARAMETER = 'latest';
@@ -29,21 +26,12 @@ const DEFAULT_BLOCK_PARAMETER = 'latest';
 @Injectable({
   providedIn: 'root'
 })
-export class EthApiService extends ConcordApiService {
+export class EthApiService {
 
   constructor(
-    // @ts-ignore: no unused locals
-    @Inject(ETHEREUM_API_PREFIX) private ethereumApiPrefix: string,
     private httpClient: HttpClient,
-    // @ts-ignore: no unused locals
-    private blockchainService: BlockchainService
-  ) {
-    super(ethereumApiPrefix);
-  }
-
-  get apiSubPath() {
-    return '';
-  }
+    private blockchainService: BlockchainService,
+  ) { }
 
   createWallet(params: PersonalNewAccountParams): Observable<PersonalNewAccountResponse> {
     const request: EthRequest = {
@@ -52,7 +40,8 @@ export class EthApiService extends ConcordApiService {
       method: 'personal_newAccount',
       params: [params]
     };
-    return this.httpClient.post<PersonalNewAccountResponse>(this.resourcePath(), request);
+    return this.httpClient.post<PersonalNewAccountResponse>(
+      Apis.ethrpc(this.blockchainService.blockchainId), request);
   }
 
   sendTransaction(params: EthSendTransactionParams): Observable<EthSendTransactionResponse> {
@@ -62,7 +51,8 @@ export class EthApiService extends ConcordApiService {
       method: 'eth_sendTransaction',
       params: [params]
     };
-    return this.httpClient.post<EthSendTransactionResponse>(this.resourcePath(), request);
+    return this.httpClient.post<EthSendTransactionResponse>(
+      Apis.ethrpc(this.blockchainService.blockchainId), request);
   }
 
   sendCall(params: EthSendCallParams): Observable<EthSendCallResponse> {
@@ -72,7 +62,8 @@ export class EthApiService extends ConcordApiService {
       method: 'eth_call',
       params: [params, DEFAULT_BLOCK_PARAMETER]
     };
-    return this.httpClient.post<EthSendCallResponse>(this.resourcePath(), request);
+    return this.httpClient.post<EthSendCallResponse>(
+      Apis.ethrpc(this.blockchainService.blockchainId), request);
   }
 
   getTransactionReceipt(hash: EthGetTransactionReceiptParams): Observable<EthGetTransactionReceiptResponse> {
@@ -82,6 +73,7 @@ export class EthApiService extends ConcordApiService {
       method: 'eth_getTransactionReceipt',
       params: [hash]
     };
-    return this.httpClient.post<EthGetTransactionReceiptResponse>(this.resourcePath(), request);
+    return this.httpClient.post<EthGetTransactionReceiptResponse>(
+      Apis.ethrpc(this.blockchainService.blockchainId), request);
   }
 }

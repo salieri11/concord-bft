@@ -22,7 +22,13 @@
       html {
         font-size: 24px;
       }
-      .spinner {
+      .landing-page-spinner-container {
+        position: fixed; 
+        top: 0; right: 0; left: 0; bottom: 0; 
+        margin-top: 30vh;
+        text-align: center;
+      }
+      .landing-page-spinner {
         position: relative;
         display: inline-block;
         min-height: 3rem;
@@ -38,11 +44,7 @@
         box-sizing: inherit;
       }
     </style>
-    <div style="position: fixed; top: 0; right: 0; left: 0; bottom: 0; margin-top: 30vh; text-align: center;">
-      <span class="spinner">
-        Loading...
-      </span>
-    </div>
+    <div class="landing-page-spinner-container"><span class="landing-page-spinner">Loading...</span></div>
   </concord-root>
 </body>
 </html>

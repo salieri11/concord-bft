@@ -5,11 +5,11 @@
 import { async, TestBed } from '@angular/core/testing';
 
 import { RouteService } from './route.service';
-import { getSpecTestingModule } from './shared.module';
+import { getSpecTestingModule } from './shared-testing.module';
 
 describe('RouteService', () => {
-  beforeEach(async( async () => {
-    const tester = await getSpecTestingModule();
+  beforeEach(async( () => {
+    const tester = getSpecTestingModule();
     tester.provideActivatedRoute();
     TestBed.configureTestingModule(tester.init({
       imports: [], provides: [], declarations: []

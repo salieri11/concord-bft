@@ -3,36 +3,20 @@
  */
 
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
-import { RouterTestingModule } from '@angular/router/testing';
-import { HttpClientTestingModule } from '@angular/common/http/testing';
 
-import { MockSharedModule } from '../../shared/shared.module';
-import { TransactionListComponent } from '../../transactions/transaction-list/transaction-list.component';
-import { VmwCopyToClipboardButtonComponent } from '../../shared/components/copy-to-clipboard-button/copy-to-clipboard-button.component';
-import { TransactionsStatusFilterComponent } from '../../shared/components/transactions-status-filter/transactions-status-filter.component';
-import { TransactionDetailsComponent } from '../../transactions/transaction-details/transaction-details.component';
+import { getSpecTestingModule } from '../../shared/shared-testing.module';
 import { BlockComponent } from './block.component';
 
 describe('BlockComponent', () => {
   let component: BlockComponent;
   let fixture: ComponentFixture<BlockComponent>;
 
-  beforeEach(async(() => {
-    TestBed.configureTestingModule({
-      imports: [
-        RouterTestingModule,
-        HttpClientTestingModule,
-        MockSharedModule,
-      ],
-      declarations: [
-        BlockComponent,
-        TransactionListComponent,
-        TransactionsStatusFilterComponent,
-        TransactionDetailsComponent,
-        VmwCopyToClipboardButtonComponent,
-      ]
-    })
-    .compileComponents();
+  beforeEach(async( () => {
+    const tester = getSpecTestingModule();
+    tester.provideActivatedRoute();
+    TestBed.configureTestingModule(tester.init({
+      imports: [], provides: [], declarations: []
+    })).compileComponents();
   }));
 
   beforeEach(() => {

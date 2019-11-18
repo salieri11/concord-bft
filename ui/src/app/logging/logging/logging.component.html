@@ -10,13 +10,13 @@
     </div>
     <div class="clr-col-6">
       <div class="text-right">
-        <button type="button" class="btn btn-link" style="margin-right: 10px;" (click)="refresh()"
+        <button type="button" class="btn btn-link right-margined" (click)="refresh()"
           [disabled]="countLoading || listLoading">
           <clr-icon shape="refresh"></clr-icon>
           {{'logging.refresh' | translate}}
         </button>
         <clr-dropdown>
-          <button type="button" class="btn btn-outline-primary time-selector" style="margin-right: 10px;"
+          <button type="button" class="btn btn-outline-primary time-selector right-margined"
             clrDropdownTrigger [disabled]="countLoading || listLoading">
             {{selectedTimePeriod.title}}
             <clr-icon shape="caret down"></clr-icon>

@@ -1,3 +1,35 @@
 tr td {
   word-break: break-all;
 }
+
+.no-top-margin {
+  margin-top:0px !important;
+}
+.inline {
+  display:inline;
+}
+
+.space-after-link {
+  margin-right:0.15rem;
+}
+.registered-as {
+  margin-left:0.75rem;
+}
+.no-border {
+  border:none;
+}
+.contract-label {
+  font-weight:500;
+  margin-right:0.4rem;
+}
+.parent-table {
+  margin-bottom: 1rem;
+}
+
+$legendWidth: 100px;
+.legend {
+  width: $legendWidth;
+  min-width: $legendWidth;
+  max-width: $legendWidth;
+}
+

@@ -2,16 +2,14 @@
  * Copyright 2018-2019 VMware, all rights reserved.
  */
 
-import { Inject, Injectable } from '@angular/core';
+import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { TranslateService } from '@ngx-translate/core';
 import { map } from 'rxjs/operators';
 
-import { NodeProperties } from './nodes.model';
+import { NodeProperties, NodeInfo } from './nodes.model';
 import { ZoneType } from './../../blockchain/shared/blockchain.model';
-import { CONCORD_API_PREFIX } from '../../shared/shared.config';
-import { ConcordApiService } from '../../shared/concord-api';
 import { BlockchainService } from '../../blockchain/shared/blockchain.service';
 
 import { Apis } from '../../shared/urls.model';
@@ -31,23 +29,16 @@ const locations = [
 @Injectable({
   providedIn: 'root'
 })
-export class NodesService extends ConcordApiService {
+export class NodesService {
 
   constructor(
-    @Inject(CONCORD_API_PREFIX) concordApiPrefix: string,
     private http: HttpClient,
     private blockchainService: BlockchainService,
     private translate: TranslateService
-  ) {
-    super(concordApiPrefix);
-  }
-
-  get apiSubPath() {
-    return 'members';
-  }
+  ) { }
 
   getList() {
-    return this.http.get<any>(Apis.getReplicas(this.blockchainService.blockchainId)).pipe(
+    return this.http.get<NodeInfo[]>(Apis.nodes(this.blockchainService.blockchainId)).pipe(
       map(replicas => {
         const zonesMap = this.blockchainService.zonesMap;
         const groupedNodes: NodeProperties[] = [];
@@ -61,9 +52,9 @@ export class NodesService extends ConcordApiService {
             zoneData = {longitude: loc.geo[0], latitude: loc.geo[1], name: loc.region};
           }
 
-          replica['geo'] = [Number(zoneData.longitude), Number(zoneData.latitude)];
-          replica['location'] = zoneData.name;
-          replica['type'] = zoneData.type;
+          replica.geo = [Number(zoneData.longitude), Number(zoneData.latitude)];
+          replica.location = zoneData.name;
+          replica.zone_type = zoneData.type;
 
           // Fake Single location
           // replica['location'] = 'Palo Alto CA USA';
@@ -129,7 +120,7 @@ export class NodesService extends ConcordApiService {
   // This is using the deprecated API and should be removed at some point
   //
   getNodes(): Observable<any> {
-    return this.http.get<any>(this.resourcePath()).pipe(
+    return this.http.get<any>(Apis.members(this.blockchainService.blockchainId)).pipe(
       map(nodes => {
         const groupedNodes: NodeProperties[] = [];
         const tempNode = {};

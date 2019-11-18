@@ -3,28 +3,18 @@
  */
 
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
-import { HttpClientTestingModule } from '@angular/common/http/testing';
-
-import { VmwCopyToClipboardButtonComponent } from '../../shared/components/copy-to-clipboard-button/copy-to-clipboard-button.component';
-import { MockSharedModule } from '../../shared/shared.module';
+import { getSpecTestingModule } from '../../shared/shared-testing.module';
 import { TransactionDetailsComponent } from './transaction-details.component';
 
 describe('TransactionDetailsComponent', () => {
   let component: TransactionDetailsComponent;
   let fixture: ComponentFixture<TransactionDetailsComponent>;
 
-  beforeEach(async(() => {
-    TestBed.configureTestingModule({
-      imports: [
-        HttpClientTestingModule,
-        MockSharedModule
-      ],
-      declarations: [
-        TransactionDetailsComponent,
-        VmwCopyToClipboardButtonComponent,
-      ]
-    })
-      .compileComponents();
+  beforeEach(async( () => {
+    const tester = getSpecTestingModule();
+    TestBed.configureTestingModule(tester.init({
+      imports: [], provides: [], declarations: []
+    })).compileComponents();
   }));
 
   beforeEach(() => {

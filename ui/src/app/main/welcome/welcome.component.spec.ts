@@ -6,15 +6,14 @@
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { WelcomeComponent } from './welcome.component';
-import { getSpecTestingModule } from '../../shared/shared.module';
+import { getSpecTestingModule } from '../../shared/shared-testing.module';
 
 describe('WelcomeComponent', () => {
   let component: WelcomeComponent;
   let fixture: ComponentFixture<WelcomeComponent>;
 
-  beforeEach(async( async () => {
-    const tester = await getSpecTestingModule();
-    tester.importLanguagePack();
+  beforeEach(async( () => {
+    const tester = getSpecTestingModule();
     TestBed.configureTestingModule(tester.init({
       imports: [], provides: [], declarations: []
     })).compileComponents();

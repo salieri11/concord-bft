@@ -5,16 +5,14 @@
 import { TestBed, inject, async } from '@angular/core/testing';
 
 import { NodesService } from './nodes.service';
-import { getSpecTestingModule } from '../../shared/shared.module';
-import { CONCORD_API_PREFIX } from '../../shared/shared.config';
+import { getSpecTestingModule } from '../../shared/shared-testing.module';
 
 describe('NodesService', () => {
 
-  beforeEach(async( async () => {
-    const tester = await getSpecTestingModule();
-    tester.importLanguagePack();
+  beforeEach(async( () => {
+    const tester = getSpecTestingModule();
     TestBed.configureTestingModule(tester.init({
-      imports: [], provides: [{provide: CONCORD_API_PREFIX, useValue: 'api/concord'}], declarations: []
+      imports: [], provides: [], declarations: []
     })).compileComponents();
   }));
 

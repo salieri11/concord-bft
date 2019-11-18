@@ -6,17 +6,19 @@
  * GET response of fetching a list of blocks
  */
 export interface BlockListing {
-  blocks: BlockListingBlock[];
+  blocks: BlockInfo[];
   next: string;
 }
 
 /**
  * A simplified block provided when fetching a list of blocks
  */
-export interface BlockListingBlock {
+export interface BlockInfo {
   number: number;
   hash: string;
   url: string;
+  // TODO: Make Helen also fetch transaction count and timestamp of this block
+  blockData?: Block;
 }
 
 /**
@@ -28,5 +30,6 @@ export interface Block {
   parentHash: string;
   number: number;
   size: number;
+  timestamp: number;
   transactions: [{hash: string; url: string; }];
 }

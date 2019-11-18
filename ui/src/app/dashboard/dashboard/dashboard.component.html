@@ -29,8 +29,8 @@
               <div class="dashboard-stat-container" [class.b-b]="dashItems.length !== 1 && ((dashItems.length / 2) > i) ">
               <div class="title">{{ item.title }}</div>
                 <h2 class="mt-0">
-                  <a [routerLink]="item.link">
-                    {{ item.count }}
+                  <a [ngStyle]="{opacity: (item.count === null) ? 0.5 : 1}" [routerLink]="item.link">
+                    {{ (item.count === null) ? '_' : item.count }}
                   </a>
                 </h2>
               </div>

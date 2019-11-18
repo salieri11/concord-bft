@@ -9,6 +9,8 @@ import { SmartContract, SmartContractCreateResult, SmartContractVersion } from '
 import { SmartContractsService } from '../shared/smart-contracts.service';
 import { ContractFormComponent } from '../contract-form/contract-form.component';
 import { TourService } from '../../shared/tour.service';
+import { RouteService } from '../../shared/route.service';
+import { BlockchainService } from '../../blockchain/shared/blockchain.service';
 
 @Component({
   selector: 'concord-smart-contract',
@@ -22,11 +24,13 @@ export class SmartContractComponent implements OnInit {
 
   smartContract: SmartContract;
   version: SmartContractVersion;
-  versionSelected;
+  versionSelected: string;
 
   constructor(
     private smartContractsService: SmartContractsService,
+    private blockchainService: BlockchainService,
     private tourService: TourService,
+    private routeService: RouteService,
     private route: ActivatedRoute,
     private router: Router,
   ) {}
@@ -46,19 +50,26 @@ export class SmartContractComponent implements OnInit {
   loadSmartContract(contractId, versionId?) {
     const hasNewContractId = this.smartContract && this.smartContract.contract_id !== contractId;
 
-    this.smartContractsService.getSmartContract(contractId).subscribe((smartContract) => {
-      this.smartContract = smartContract;
-
-      if ((this.smartContract.versions.length && typeof versionId === 'undefined') || hasNewContractId) {
-        // Select the latest version on load if available
-        this.versionSelected = this.smartContract.versions[0].version;
-        this.getVersionInfo();
-      }
-    });
+    this.smartContractsService.getSmartContract(contractId).subscribe(
+      smartContract => {
+        this.smartContract = smartContract;
+        if ((this.smartContract.versions.length && typeof versionId === 'undefined') || hasNewContractId) {
+          // Select the latest version on load if available
+          if (this.smartContract.versions[0]) {
+            this.versionSelected = this.smartContract.versions[0].version;
+            this.getVersionInfo();
+          }
+        }
+      },
+      e => { this.routeService.redirectToDefault(); console.log(e); }
+    );
   }
 
   loadVersionDetails(contractId, version) {
-    this.smartContractsService.getVersionDetails(contractId, version).subscribe(versionResponse => this.version = versionResponse);
+    this.smartContractsService.getVersionDetails(contractId, version).subscribe(
+      versionResponse => { this.version = versionResponse; },
+      e => { this.routeService.redirectToDefault(); console.log(e); }
+    );
   }
 
   afterUpdateContract(response: SmartContractCreateResult) {
@@ -67,16 +78,20 @@ export class SmartContractComponent implements OnInit {
     this.getVersionInfo();
   }
 
-  getVersionInfo() {
-    const consortiumId = this.route.snapshot.parent.parent.params['consortiumId'];
+  getVersionInfo(versionVar?: string) {
+    if (versionVar) { this.versionSelected = versionVar; }
+    let blockchainId = this.blockchainService.blockchainId;
+    if (!blockchainId) { blockchainId = 'undefined'; }
     const path = [
-      consortiumId,
+      blockchainId,
       'smart-contracts',
       this.smartContract.contract_id,
       'versions',
       this.versionSelected
     ];
-    const url = `/${consortiumId}/smart-contracts/` + this.smartContract.contract_id + '/versions/' + this.versionSelected;
+    const url = `/${blockchainId}/smart-contracts/`
+              + this.smartContract.contract_id
+              + '/versions/' + this.versionSelected;
 
     if (this.router.url === url) {
       this.ngOnInit();
@@ -92,5 +107,9 @@ export class SmartContractComponent implements OnInit {
 
   startTour(): void {
     this.tourService.startContractTour();
+  }
+
+  getBlockchainId(): string {
+    return this.blockchainService.blockchainId;
   }
 }

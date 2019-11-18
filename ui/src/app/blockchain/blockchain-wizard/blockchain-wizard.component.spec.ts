@@ -5,15 +5,15 @@
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 import { of as observableOf } from 'rxjs';
 import { BlockchainWizardComponent } from './blockchain-wizard.component';
-import { getSpecTestingModule } from '../../shared/shared.module';
+import { getSpecTestingModule } from '../../shared/shared-testing.module';
 import { ZoneType } from '../shared/blockchain.model';
 
 describe('BlockchainWizardComponent', () => {
   let component: BlockchainWizardComponent;
   let fixture: ComponentFixture<BlockchainWizardComponent>;
 
-  beforeEach(async( async () => {
-    const tester = await getSpecTestingModule();
+  beforeEach(async( () => {
+    const tester = getSpecTestingModule();
     tester.importLanguagePack();
     TestBed.configureTestingModule(tester.init({
       imports: [], provides: [], declarations: []

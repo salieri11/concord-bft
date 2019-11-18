@@ -1,29 +1,74 @@
 <div class="p-2">
-  <h2 class="page-title">
-    {{'blocks.blocks' | translate}}
+  <div class="search-input-area">
+    <clr-icon size="20" class="is-highlight search-icon" shape="search"></clr-icon>
+    <clr-input-container class="search-input-container">btn-outline
+      <input #searchInput clrInput [placeholder]="'blocks.searchPlaceholder' | translate" class="search-input"/>
+      <clr-control-helper class="not-found-text">{{
+        searchInputMessage ? (searchInputMessage | translate) : ''
+      }}</clr-control-helper>
+    </clr-input-container>
+  </div>
+  <h2 class="page-title inline-block">
+    <span>{{'blocks.explorer' | translate}}</span>
   </h2>
-  <clr-datagrid>
-    <clr-dg-column [clrDgField]="'number'">{{'blocks.index' | translate}}:{{'blocks.hash' | translate}}</clr-dg-column>
+  <clr-datagrid [clrDgLoading]="!blocksLoaded || searching">
+    <clr-dg-column class="block-number">{{'blocks.number' | translate}}</clr-dg-column>
+    <clr-dg-column class="block-hash">{{'blocks.blockHash' | translate}}</clr-dg-column>
+    <clr-dg-column class="tx-count">{{'blocks.txcount' | translate}}</clr-dg-column>
+    <clr-dg-column class="time-info">{{'blocks.timestamp' | translate}}</clr-dg-column>
+
     <clr-dg-row *clrDgItems="let block of blocks">
-      <clr-dg-cell>
-        <a [routerLink]="[block.number]">
-          {{block.number}} : {{block.hash}}
-        </a>
+      <clr-dg-cell class="block-number">
+        <a [routerLink]="getBlockPageRouterLink(block.number)">{{
+          block.number
+        }}</a>
+        <div class="data-field-spacer"></div>
+      </clr-dg-cell>
+      <clr-dg-cell class="block-hash">
+        <a [routerLink]="getBlockPageRouterLink(block.number)">{{
+          block.hash
+        }} </a>
         <concord-copy-to-clipboard-button
           classList="ctc-btn-inline"
           [tooltip]="'common.copyToClip' | translate"
           tooltipDirection="top-right"
-          [value]="block.number + ' : ' + block.hash"
+          [value]="block.hash"
           [size]="12">
         </concord-copy-to-clipboard-button>
       </clr-dg-cell>
-      <clr-dg-row-detail *clrIfExpanded>
-        <concord-block-details ngProjectAs="clr-dg-row-detail"
-                              [blockNumber]="block?.number"></concord-block-details>
+      <clr-dg-cell class="tx-count">
+        {{block.blockData?.transactions.length}}
+        <div class="data-field-spacer"></div>
+      </clr-dg-cell>
+      <clr-dg-cell class="time-info">
+        {{ (block.blockData?.timestamp * 1000) | date: 'yyyy/MM/dd h:mm:ss a':'+0000' }} (UTC) 
+        <concord-copy-to-clipboard-button
+          classList="ctc-btn-inline"
+          [tooltip]="'common.copyToClip' | translate"
+          tooltipDirection="top-right"
+          [value]="timestampToISOString(block.blockData?.timestamp * 1000)"
+          [size]="12">
+        </concord-copy-to-clipboard-button>
+      </clr-dg-cell>
+      <clr-dg-row-detail class="details" *clrIfExpanded="autoExpandResult">
+        <div [classList]="block.blockData?.transactions.length > 1 ? 'full-width' : 'limit-width'">
+          <h3 class="transactions-title">{{
+            block.number === 0 ?   ('blocks.genesisBlock' | translate) : ('blocks.block' | translate) + ' ' + block.number
+          }}</h3>
+          <div class="p-2 no-padding-top">
+            <concord-block-details [blockNumber]="block.number"></concord-block-details>
+          </div>
+          <h5 class="transactions-title">{{'blocks.transactions' | translate}}</h5>
+          <concord-transaction-list
+            [classList]="block.blockData?.transactions.length > 1 ? 'has-left-margin' : ''"
+            [titleHidden]="true" [blockNumber]="block.number" 
+            [codeBlockMaxHeight]="'700px'" [noListIfSingle]="true" [pagination]="20">
+          </concord-transaction-list>
+        </div>
       </clr-dg-row-detail>
     </clr-dg-row>
     <clr-dg-footer>
-      <clr-dg-pagination #pagination [clrDgPageSize]="10">
+      <clr-dg-pagination #pagination [clrDgPageSize]="20">
         {{'blocks.paginationSummary' | translate: { start: pagination.firstItem + 1, finish: pagination.lastItem + 1,
         total: pagination.totalItems} }}
       </clr-dg-pagination>

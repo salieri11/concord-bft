@@ -1,7 +1,7 @@
 pre {
   &.break-word {
     word-break: break-all !important;
-    white-space: normal !important;
+    white-space: pre-wrap !important;
   }
   &.no-scroll {
     max-height: inherit;

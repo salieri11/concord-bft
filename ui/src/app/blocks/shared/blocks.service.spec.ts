@@ -7,7 +7,6 @@ import { HttpClient, HttpHandler } from '@angular/common/http';
 import { MockSharedModule } from '../../shared/shared.module';
 
 import { BlocksService } from './blocks.service';
-import { CONCORD_API_PREFIX } from '../../shared/shared.config';
 
 describe('BlocksService', () => {
   beforeEach(() => {
@@ -15,7 +14,6 @@ describe('BlocksService', () => {
       imports: [ MockSharedModule ],
       providers: [
         BlocksService,
-        {provide: CONCORD_API_PREFIX, useValue: 'api/concord'},
         HttpClient,
         HttpHandler,
       ]

@@ -1,20 +1,76 @@
 
-$hashWidth: 65%;
-$statusWidth: 20%;
+$hashWidth: 60%;
+$nonceWidth: 10%;
+$statusWidth: 30%;
 
 concord-transaction-details {
   width: 100%;
 }
-clr-dg-column.hash.datagrid-column {
-  min-width: $hashWidth;
+
+.details {
+  width:80%; 
+  padding-bottom:1.5rem;
 }
-clr-dg-cell.hash {
-  min-width: $hashWidth;
+.loading-gif {
+  margin-left: 0.5rem;
 }
-clr-dg-column.status.datagrid-column {
-  min-width: $statusWidth;
-}
-clr-dg-cell.status {
-  min-width: $statusWidth;
+.wrapper {
+  width:100%;
+  overflow-x: hidden;
 }
 
+.single-show {
+  padding-top: 0;
+}
+
+.cell {
+  min-height: 24px;
+  max-height: 24px;
+  padding: 0px;
+  display: table;
+}
+.hash {
+  min-width: $hashWidth;
+  width: $hashWidth;
+}
+.nonce {
+  min-width: $nonceWidth;
+  width: $nonceWidth;
+}
+.status {
+  min-width: $statusWidth;
+  width: $statusWidth;
+}
+.cell-inner {
+  width:100%;
+  min-height: 24px;
+  line-height: 24px;
+  padding: 8px;
+  display: table-cell;
+  vertical-align: middle;
+}
+
+:host ::ng-deep clr-datagrid { 
+  div.datagrid {
+    overflow-x: hidden;
+  }
+}
+
+:host ::ng-deep clr-datagrid.list-only {
+
+  > div.datagrid {
+    border:none;
+    > div.datagrid-table-wrapper {
+      > div.datagrid-table {
+        min-height:0;
+        > .datagrid-header {
+          display:none;
+        }
+        > clr-dg-placeholder {
+          display:none;
+        }
+      }
+    }
+  }
+
+}

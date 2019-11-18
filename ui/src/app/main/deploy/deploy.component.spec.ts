@@ -1,7 +1,7 @@
 /*
  * Copyright 2018-2019 VMware, all rights reserved.
  */
-import { getSpecTestingModule } from '../../shared/shared.module';
+import { getSpecTestingModule } from '../../shared/shared-testing.module';
 
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 import { DeployComponent } from './deploy.component';
@@ -10,9 +10,8 @@ describe('DeployComponent', () => {
   let component: DeployComponent;
   let fixture: ComponentFixture<DeployComponent>;
 
-  beforeEach(async( async () => {
-    const tester = await getSpecTestingModule();
-    tester.importLanguagePack();
+  beforeEach(async( () => {
+    const tester = getSpecTestingModule();
     TestBed.configureTestingModule(tester.init({
       imports: [], provides: [], declarations: []
     })).compileComponents();

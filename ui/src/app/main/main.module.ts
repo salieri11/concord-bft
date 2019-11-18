@@ -2,7 +2,7 @@
  * Copyright 2018-2019 VMware, all rights reserved.
  */
 
-import { NgModule } from '@angular/core';
+import { NgModule, ModuleWithProviders } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HTTP_INTERCEPTORS, HttpClientModule } from '@angular/common/http';
 import { TourNgxPopperModule } from 'ngx-tour-ngx-popper';
@@ -32,6 +32,11 @@ import { DeployComponent } from './deploy/deploy.component';
 import { WelcomeComponent } from './welcome/welcome.component';
 import { DeployingComponent } from './deploying/deploying.component';
 
+const defaultProvides: any[] = [
+  { provide: HTTP_INTERCEPTORS, useClass: RequestInterceptor, multi: true },
+  GlobalErrorHandlerService,
+  ErrorAlertService
+];
 
 @NgModule({
   imports: [
@@ -50,8 +55,8 @@ import { DeployingComponent } from './deploying/deploying.component';
     SmartContractsModule,
     UsersModule,
     LoggingModule,
-    TourNgxPopperModule,
     DeveloperModule,
+    TourNgxPopperModule,
   ],
   declarations: [
     MainComponent,
@@ -61,15 +66,18 @@ import { DeployingComponent } from './deploying/deploying.component';
     WelcomeComponent,
     DeployingComponent,
   ],
-  providers: [
-    {
-      provide: HTTP_INTERCEPTORS,
-      useClass: RequestInterceptor,
-      multi: true,
-    },
-    GlobalErrorHandlerService,
-    ErrorAlertService
-  ]
 })
 export class MainModule {
+  constructor() {
+    if (window['UNIT_TEST_ENV']) { MainModule.forRoot = MainModule.forChild = MainModule.forTesting; }
+  }
+  public static forRoot(): ModuleWithProviders {
+    return { ngModule: MainModule, providers: defaultProvides };
+  }
+  public static forChild(): ModuleWithProviders {
+    return { ngModule: MainModule, providers: defaultProvides };
+  }
+  public static forTesting(): ModuleWithProviders {
+    return { ngModule: SharedModule, providers: [GlobalErrorHandlerService, ErrorAlertService] };
+  }
 }

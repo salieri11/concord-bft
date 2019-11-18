@@ -37,7 +37,6 @@ export class MainComponent implements OnInit, OnDestroy {
   navDisabled = false;
   navOption: string;
   openDeployDapp: boolean;
-  enableRouterOutlet: Promise<boolean> | boolean = true;
   sidemenuVisible = true;
   env: any;
   showErrorMessage: boolean = false;
@@ -58,9 +57,10 @@ export class MainComponent implements OnInit, OnDestroy {
   }
 
   set selectedConsortium(id: string) {
+    if (this.blockchainService.blockchainId === id) { return; }
     let selectObs;
     selectObs = this.blockchainService.select(id).subscribe(selected => {
-      if (selected) { this.enableRouterOutlet = selected; }
+      if (selected) { this.routeService.outletEnabled = selected; }
       if (selectObs) { selectObs.unsubscribe(); }
     });
   }
@@ -74,22 +74,22 @@ export class MainComponent implements OnInit, OnDestroy {
   get welcomeModalOpened() { return this.welcomeModal._open; }
 
   constructor(
+    public zone: NgZone,
+    public routeService: RouteService,
     private authenticationService: AuthenticationService,
     private router: Router,
     private route: ActivatedRoute,
     private alertService: ErrorAlertService,
-    public zone: NgZone,
     private tourService: TourService,
     private blockchainService: BlockchainService,
     private personaService: PersonaService,
-    private routeService: RouteService,
   ) {
     this.env = environment;
     this.blockchainType = this.blockchainService.type;
     const validPath = this.handlePaths();
     if (!validPath) {
       this.routeService.redirectToDefault();
-      this.enableRouterOutlet = false;
+      this.routeService.outletEnabled = false;
     } else {
       this.routeParamsSub = this.route.params.subscribe(param => this.handleParams(param));
       this.alertSub = this.alertService.notify.subscribe(error => this.addAlert(error));
@@ -109,8 +109,7 @@ export class MainComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     if (this.routerFragmentChange) { this.routerFragmentChange.unsubscribe(); }
-    if (this.routeParamsSub) { this.routeParamsSub.unsubscribe(); }
-    if (this.routeParamsSub) { this.alertSub.unsubscribe(); }
+    if (this.alertSub) { this.alertSub.unsubscribe(); }
 
     if (!environment.csp) {
       this.deregisterWindowListeners();
@@ -118,16 +117,14 @@ export class MainComponent implements OnInit, OnDestroy {
   }
 
   consortiumChange(): void {
-    this.enableRouterOutlet = false;
+    this.routeService.outletEnabled = false;
     this.navDisabled = false;
     if (this.selectedConsortium) {
       this.router.navigate([`/${this.selectedConsortium}`, 'dashboard'])
         .then(() => {
           // This is to refresh all child components
           this.blockchainType = this.blockchainService.type;
-          setTimeout(() => {
-            this.enableRouterOutlet = true;
-          }, 10);
+          this.routeService.reloadOutlet();
         });
     }
   }
@@ -164,13 +161,13 @@ export class MainComponent implements OnInit, OnDestroy {
       this.selectedConsortium = blockchainId;
       this.navDisabled = false;
       this.sidemenuVisible = true;
-      this.enableRouterOutlet = true;
+      this.routeService.outletEnabled = true;
 
     // starts with /blockchain/: {welcome, deploy, deploying}
     } else if (this.blockchainUnresolved) {
       this.navDisabled = true;
       this.sidemenuVisible = true;
-      this.enableRouterOutlet = true;
+      this.routeService.outletEnabled = true;
       if (this.blockchainService.noConsortiumJoined) {
         // no consortium joined and was deploying?
         // Resume 'deploying view' since nothing else to show.
@@ -181,7 +178,7 @@ export class MainComponent implements OnInit, OnDestroy {
     } else {
       this.navDisabled = false;
       this.sidemenuVisible = false;
-      this.enableRouterOutlet = false;
+      this.routeService.outletEnabled = false;
       this.routeService.redirectToDefault();
     }
   }

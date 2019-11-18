@@ -84,7 +84,7 @@ export function init_app(appLoadService: AppInitService) {
     AppRoutingModule,
     VIPModule,
     ErrorsModule,
-    MainModule,
+    MainModule.forRoot(),
     ClarityModule,
     RouterModule,
     TourNgxPopperModule.forRoot(),
@@ -96,7 +96,7 @@ export function init_app(appLoadService: AppInitService) {
         deps: [HttpClient]
       }
     }),
-    RouterModule.forChild([{
+    RouterModule.forRoot([{
       // Redirect all unmatched to main dahboard
       path: '**', // must be added AFTER all sub-modules (such as MainModule, SharedModule)
       canActivate: [AuthenticatedGuard, AgreementGuard],

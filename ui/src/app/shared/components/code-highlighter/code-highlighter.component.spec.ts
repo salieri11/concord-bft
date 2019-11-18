@@ -5,16 +5,17 @@
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { CodeHighlighterComponent } from './code-highlighter.component';
+import { getSpecTestingModule } from '../../shared-testing.module';
 
 describe('CodeHighlighterComponent', () => {
   let component: CodeHighlighterComponent;
   let fixture: ComponentFixture<CodeHighlighterComponent>;
 
-  beforeEach(async(() => {
-    TestBed.configureTestingModule({
-      declarations: [ CodeHighlighterComponent ]
-    })
-      .compileComponents();
+  beforeEach(async( () => {
+    const tester = getSpecTestingModule();
+    TestBed.configureTestingModule(tester.init({
+      imports: [], provides: [], declarations: []
+    })).compileComponents();
   }));
 
   beforeEach(() => {

@@ -31,23 +31,14 @@ import { defaultProvided } from './shared.module';
 import { TourService as NgxTourService, TourNgxPopperModule } from 'ngx-tour-ngx-popper';
 import { TourService } from './tour.service';
 
-import { BlockchainModule } from '../blockchain/blockchain.module';
-import { AuthenticationModule } from '../authentication/authentication.module';
-import { BlocksModule } from '../blocks/blocks.module';
-import { ConsortiumModule } from '../consortium/consortium.module';
-import { DashboardModule } from '../dashboard/dashboard.module';
-import { DeveloperModule } from '../developer/developer.module';
-import { ErrorsModule } from '../errors/errors.module';
-import { GraphsModule } from '../graphs/graphs.module';
-import { GridModule } from '../grid/grid.module';
-import { LoggingModule } from '../logging/logging.module';
-import { MarketingModule } from '../marketing/marketing.module';
-import { OrgsModule } from '../orgs/orgs.module';
-import { NodesModule } from '../nodes/nodes.module';
-import { MainModule } from '../main/main.module';
 import { AgreementGuard } from './agreement-guard.service';
 import { AuthenticatedGuard } from './authenticated-guard.service';
 import { SwaggerComponent, MockSwaggerComponent } from '../developer/swagger/swagger.component';
+import { MockBlocksService, BlocksService } from '../blocks/shared/blocks.service';
+import { SmartContractsService, MockSmartContractsService } from '../smart-contracts/shared/smart-contracts.service';
+import { HTTP_INTERCEPTORS } from '@angular/common/http';
+import { MockRequestInterceptor } from '../app-interceptors';
+import { MainModule } from '../main/main.module';
 
 declare var require: any;
 
@@ -60,13 +51,21 @@ interface ModuleInterface { imports?: any[]; provides?: any[]; exports?: any[]; 
 
 // All default provides for spec testing
 const testingSuiteBasicProvided = [
+  { provide: HTTP_INTERCEPTORS, useClass: MockRequestInterceptor, multi: true, },
+
   { provide: FeatureFlagService, useClass: MockFeatureFlagService },
+
   { provide: BlockchainService, useClass: MockBlockchainsService },
+  { provide: BlocksService, useClass: MockBlocksService },
   { provide: BlockchainResolver, useClass: MockBlockchainResolver },
+  { provide: SmartContractsService, useClass: MockSmartContractsService },
+
   { provide: TranslateService, useClass: MockTranslateService },
+
   { provide: AgreementGuard, useClass: MockGuard },
   { provide: AuthenticatedGuard, useClass: MockGuard },
-  { provide: SwaggerComponent, useClass: MockSwaggerComponent }, // SwaggerUI throws
+
+  { provide: SwaggerComponent, useClass: MockSwaggerComponent },
   FeatureFlagDirective,
   TourService,
   NgxTourService,
@@ -131,39 +130,29 @@ export class SpecTestingModule {
 
   // TODO: make providing ActivateRoute more robust with easy options
   // This would be quite frequently used.
-  public static provideActivatedRoute() {
+  public static provideActivatedRoute(options?) {
+    const params = (options && options.params) ?  options.params : { consortiumId: 1 };
+    const fragment = (options && options.fragment) ? options.fragment : '';
+    const data = (options && options.data) ? options.data : {};
+    const queryParams = (options && options.queryParams) ? options.queryParams : {};
+    const snapshot = (options && options.snapshot) ? options.snapshot : { params: { consortiumId: 'test' } };
     SpecTestingModule.provides.push({
       provide: ActivatedRoute,
       useValue: {
-        snapshot: { params: { consortiumId: 'test' }, },
-        queryParams: { subscribe: (fn: (value) => void) => fn( {} ), },
-        data: { subscribe: (fn: (value) => void) => fn( { blockchains: [] } ), },
-        params: { subscribe: (fn: (value) => void) => fn({ consortiumId: 1 }), },
-        fragment: { subscribe: (fn: (value) => void) => fn(''), },
+        snapshot: snapshot,
+        fragment: { subscribe: (fn: (value) => void) => fn(fragment), },
+        data: { subscribe: (fn: (value) => void) => fn(data), },
+        params: { subscribe: (fn: (value) => void) => fn(params), },
+        queryParams: { subscribe: (fn: (value) => void) => fn(queryParams), },
       },
     });
   }
 
-  public static getTestingSuiteModulesExcept(except?: any[]): any[] {
-    if (!except) { except = []; }
-    // Let spec testing import all sub-modules of this application
+  public static getTestingModules(): any[] {
     const fullList: any[] = [
-      BlockchainModule,
-      AuthenticationModule,
-      BlocksModule,
-      ConsortiumModule,
-      DashboardModule,
-      DeveloperModule,
-      ErrorsModule,
-      GraphsModule,
-      GridModule,
-      LoggingModule,
-      MarketingModule,
-      OrgsModule,
-      NodesModule,
-      MainModule
+      MainModule // Main already contains ALL submodules, including SharedModule
     ];
-    return fullList.filter(x => !except.includes(x));
+    return fullList;
   }
 
   public static reset() {
@@ -172,6 +161,18 @@ export class SpecTestingModule {
   }
 
 }
+
+
+export const getSpecTestingModule = (): typeof SpecTestingModule => {
+  SpecTestingModule.reset(); // purge language enablement and provides
+  SpecTestingModule.imports = [ SpecTestingModule.forTesting() ]
+                        .concat( SpecTestingModule.getTestingModules() );
+  return SpecTestingModule;
+};
+
+
+
+
 
 function dotNotate(obj, target?, prefix?) {
   target = target || {},

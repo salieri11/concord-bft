@@ -50,6 +50,10 @@ concord-log-heat-map {
   margin-bottom: 200px;
 }
 
+.right-margined {
+  margin-right: 10px;
+}
+
 :host ::ng-deep {
   .datagrid-row {
     border: none;
