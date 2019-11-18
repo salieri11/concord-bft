@@ -3,7 +3,7 @@
 cmake_minimum_required(VERSION 3.10)
 
 # Generate Protobufs
-set(THIN_REPLICA_PROTO "/concord/proto/thin_replica.proto")
+set(THIN_REPLICA_PROTO "/proto/thin_replica.proto")
 protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ${CMAKE_CURRENT_BINARY_DIR}
   ${THIN_REPLICA_PROTO}
 )

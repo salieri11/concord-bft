@@ -15,7 +15,7 @@ set(HLF_PROTO
   hlf_storage.proto
 )
 
-set(THIN_REPLICA_PROTO thin_replica.proto)
+set(THIN_REPLICA_PROTO ${COMMUNICATION_PATH}/src/main/proto/thin_replica.proto)
 
 protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS
   ${CMAKE_CURRENT_BINARY_DIR}
