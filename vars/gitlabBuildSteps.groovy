@@ -650,16 +650,27 @@ EOF
                         // This was something like manual build with parameters or master run. Run what the
                         // user picked or all for a master run.
                         choices = null
-                        if (params.tests_to_run == null){
+                        echo("tests_to_run: " + params.tests_to_run)
+
+                        if (params.tests_to_run == null || env.JOB_NAME.contains(master_branch_job_name)){
                           // It was a master run or similar.  Run all.
-                          choices = getSelectableSuites().split(",")
+                          echo("tests_to_run was null, or it was a master run, so all selectable suites will be selected.")
+                          choices = getSelectableSuites()
                         }else{
+                          echo("Using suites selected by the user in tests_to_run.")
                           choices = params.tests_to_run.split(",")
                         }
 
+                        echo("Test suite choices: " + choices)
+
                         for (suite in testSuites.keySet()){
-                          if (testSuites[suite].enabled)
+                          if (testSuites[suite].enabled){
                             testSuites[suite].runSuite = choices.contains(suite)
+                            echo("Will run suite " + suite + ": " + testSuites[suite].runSuite)
+                          }else{
+                            echo("Test suite " + suite + " is disabled and will not be run, even if selected.")
+                            testSuites[suite].runSuite = false
+                          }
                         }
                       }
                       runGenericTests()
@@ -1764,9 +1775,9 @@ void runGenericTests(){
 // NEVER MANUALLY CHANGE THOSE VALUES IN THE JENKINS JOB ITSELF BEYOND COPY/PASTE
 // FROM THIS FUNCTION'S OUTPUT.
 void printSelectableSuites(){
-  echo("List of suites which can be selected: " + getSelectableSuites())
+  echo("List of suites which can be selected: " + getSelectableSuites().toString())
 }
 
 String getSelectableSuites(){
-  return testSuites.keySet().toString()
+  return testSuites.keySet()
 }
