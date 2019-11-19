@@ -258,14 +258,6 @@ BuildPersephoneGRPCpyBindings() {
     popd
 }
 
-# BuildSupplyChain() {
-#     pushd .
-#     cd vmware-blockchain-samples/supply-chain
-#     sed -i -e 's?<change-me>?http://helen:8080?g' docker-compose.yml
-#     docker-compose build supply-chain
-#     popd
-# }
-
 # TODO: Associative arrays don't work in OSX's default shell.
 declare -A BUILD_PROCS
 
