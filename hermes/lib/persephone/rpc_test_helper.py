@@ -103,6 +103,9 @@ class RPCTestHelper():
          self.UPDATE_DEPLOYMENT_ACTION_DEPROVISION_ALL = \
             self.provision_rpc_helper.UPDATE_DEPLOYMENT_ACTION_DEPROVISION_ALL
 
+         self.ZONE_TYPE_ON_PREM = self.provision_rpc_helper.ZONE_TYPE_ON_PREM
+         self.ZONE_TYPE_VMC = self.provision_rpc_helper.ZONE_TYPE_VMC
+
          self.persephone_config_file = self.provision_rpc_helper.persephone_config_file
          self.grpc_server = self.provision_rpc_helper.grpc_server
 
@@ -158,6 +161,8 @@ class RPCTestHelper():
       :param concord_type: Concord type (ethereum, DAML, etc)
       :return: deployment session ID
       '''
+      log.info("**** Deployment type: {}".format(zone_type))
+
       header = core_pb2.MessageHeader()
       concord_model_specification = self.model_rpc_helper.create_concord_model_specification(
          deployment_components=self.args.deploymentComponents, concord_type=concord_type)
