@@ -548,6 +548,14 @@
     }
   },
   "logging": {
+    "verbose": "Verbose",
+    "serviceName": {
+      "all": "All",
+      "concord": "Concord",
+      "daml_ledger_api": "DAML Ledger API",
+      "daml_execution_engine": "DAML Execution Engine",
+      "ethrpc": "Eth RPC"
+    },
     "refresh": "Refresh",
     "heatMap": {
       "dailyTitle": "Calls by time of day",

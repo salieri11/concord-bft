@@ -52,6 +52,16 @@ export class LoggingComponent implements OnInit {
   documentSelfLink: string = null;
 
   nodes: any[] = [];
+  replicaId: string;
+  logLevels: boolean = true;
+  service_name: string = 'all';
+
+  service_names = [
+    'concord',
+    'daml_ledger_api',
+    'daml_execution_engine',
+    'ethrpc'
+  ]
 
   timePeriods: LogTimePeriod[] = [
     {
@@ -122,13 +132,12 @@ export class LoggingComponent implements OnInit {
   }
 
   ngOnInit() {
-    this.onSelectTimePeriod(this.timePeriods[7]);
     this.loadNodes();
   }
 
   fetchLogs() {
     this.listLoading = true;
-    this.logApiService.postToTasks(this.startTime, this.endTime).subscribe((resp) => {
+    this.logApiService.postToTasks(this.startTime, this.endTime, this.replicaId, this.logLevels, this.service_name).subscribe((resp) => {
       this.documentSelfLink = resp.documentSelfLink;
       this.pollLogStatus(resp.documentSelfLink, LogQueryTypes.LogsQuery, this.onFetchLogsComplete.bind(this));
     }, this.handleLogsError.bind(this));
@@ -137,7 +146,7 @@ export class LoggingComponent implements OnInit {
   fetchLogCounts() {
     this.countLoading = true;
     this.heatMapData = [];
-    this.logApiService.postToTasksCount(this.startTime, this.endTime, this.selectedTimePeriod.interval).subscribe((resp) => {
+    this.logApiService.postToTasksCount(this.startTime, this.endTime, this.replicaId, this.logLevels, this.service_name, this.selectedTimePeriod.interval).subscribe((resp) => {
       this.pollLogStatus(resp.documentSelfLink, LogQueryTypes.CountsQuery, (logResp) => {
         this.logCounts = this.logApiService.padLogCounts(logResp.logQueryResults, this.startTime, this.endTime, this.selectedTimePeriod);
         this.totalCount = logResp.totalRecordCount;
@@ -213,6 +222,9 @@ export class LoggingComponent implements OnInit {
   private loadNodes() {
     return this.nodesService.getList().subscribe((resp) => {
       this.nodes = resp.nodes;
+
+      this.replicaId = this.nodes && this.nodes[0] ? this.nodes[0].id : '';
+      this.onSelectTimePeriod(this.timePeriods[7]);
     });
   }
 

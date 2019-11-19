@@ -45,7 +45,7 @@ export class ExportLogEventsModalComponent implements OnInit {
     this.isLoading = true;
     this.exportLogs = [];
 
-    this.logApiService.postToTasks(this.startTime, this.endTime, 1000).subscribe((taskResponse) => {
+    this.logApiService.postToTasks(this.startTime, this.endTime, '', false, '', 1000).subscribe((taskResponse) => {
       this.pollLogStatus(taskResponse.documentSelfLink, 'logs', this.buildExportLogs.bind(this));
     });
   }

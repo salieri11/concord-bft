@@ -3,8 +3,10 @@
     <div class="clr-col-6">
       <h2 class="page-title">{{ 'logging.bar.title' | translate }}</h2>
       <!-- (change)="distributeZones()" -->
-      <select clrSelect>
-        <option *ngFor="let node of nodes" [ngValue]="num">{{ node.name }}
+
+      <!-- select replica id -->
+      <select clrSelect (change)="refresh()" [(ngModel)]="replicaId">
+        <option *ngFor="let node of nodes" [value]="node?.id">{{ node.name }}
         </option>
       </select>
     </div>
@@ -15,10 +17,29 @@
           <clr-icon shape="refresh"></clr-icon>
           {{'logging.refresh' | translate}}
         </button>
+
+        <!-- select service -->
+        <select clrSelect (change)="refresh()" [(ngModel)]="service_name" [disabled]="countLoading || listLoading">
+          <option selected [value]="'all'">{{ 'logging.serviceName.all' | translate }}
+          </option>
+          <option *ngFor="let service of service_names" [value]="service">
+            {{'logging.serviceName.' + service | translate}}
+          </option>
+        </select>
+
+        <!-- verbose toggle button -->
+        <clr-toggle-container>
+          <clr-toggle-wrapper>
+            <input type="checkbox" clrToggle name="logLevels" value="logLevels" [(ngModel)]="logLevels"
+              (change)="refresh()" [disabled]="countLoading || listLoading" />
+            <label>{{ 'logging.verbose' | translate }}</label>
+          </clr-toggle-wrapper>
+        </clr-toggle-container>
+
         <clr-dropdown>
-          <button type="button" class="btn btn-outline-primary time-selector right-margined"
-            clrDropdownTrigger [disabled]="countLoading || listLoading">
-            {{selectedTimePeriod.title}}
+          <button type="button" class="btn btn-outline-primary time-selector right-margined" clrDropdownTrigger
+            [disabled]="countLoading || listLoading">
+            {{selectedTimePeriod?.title}}
             <clr-icon shape="caret down"></clr-icon>
           </button>
           <clr-dropdown-menu *clrIfOpen clrPosition="bottom-right">
@@ -29,6 +50,7 @@
             </button>
           </clr-dropdown-menu>
         </clr-dropdown>
+
         <clr-dropdown>
           <button type="button" class="btn btn-outline-primary" clrDropdownTrigger
             [disabled]="countLoading || listLoading">
@@ -55,7 +77,7 @@
             <span class="spinner spinner-lg"></span>
           </div>
           <concord-log-graph [graphData]="graphData" [xAxisTickFormatting]="xAxisTickFormatting"
-            [interval]="selectedTimePeriod.interval"></concord-log-graph>
+            [interval]="selectedTimePeriod?.interval"></concord-log-graph>
         </div>
       </div>
     </div>
