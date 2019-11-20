@@ -39,7 +39,7 @@ export class LogDetailsComponent implements OnInit {
 
     let parsedRes = '';
     try {
-      parsedRes = JSON.parse(jsonMessage)
+      parsedRes = JSON.parse(jsonMessage);
     } catch (e) {
       return jsonMessage;
     }

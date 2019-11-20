@@ -16,8 +16,14 @@ export class LogApiService {
 
   constructor(private httpClient: HttpClient) { }
 
-  postToTasks(start: number, end: number, replicaId: string, logLevels: boolean, service_name: string, rows: number = 20): Observable<LogTaskResponse> {
-    const query = `SELECT * FROM logs ${this.getWhereClause(logLevels, service_name)}ORDER BY ingest_timestamp DESC`
+  postToTasks(
+    start: number,
+    end: number,
+    replicaId: string,
+    logLevels: boolean,
+    service_name: string,
+    rows: number = 20): Observable<LogTaskResponse> {
+    const query = `SELECT * FROM logs ${this.getWhereClause(logLevels, service_name)}ORDER BY ingest_timestamp DESC`;
 
     console.log(query);
     const logQuery = {
@@ -29,8 +35,15 @@ export class LogApiService {
     return this.logQueryTask(logQuery, replicaId);
   }
 
-  postToTasksCount(start: number, end: number, replicaId: string, logLevels: boolean, service_name: string, interval: number): Observable<LogTaskResponse> {
-    const query = `SELECT COUNT(*), timestamp FROM logs ${this.getWhereClause(logLevels, service_name)}GROUP BY bucket(timestamp, ${interval}, ${start}, ${end}) ORDER BY timestamp DESC`
+  postToTasksCount(
+    start: number,
+    end: number,
+    replicaId: string,
+    logLevels: boolean,
+    service_name: string,
+    interval: number): Observable<LogTaskResponse> {
+    const query = `SELECT COUNT(*), timestamp FROM logs ` +
+      `${this.getWhereClause(logLevels, service_name)}GROUP BY bucket(timestamp, ${interval}, ${start}, ${end}) ORDER BY timestamp DESC`;
 
     console.log(query);
     const logQuery = {
@@ -42,7 +55,7 @@ export class LogApiService {
   }
 
   postToPureCount(start: number, end: number, replicaId: string, logLevels: boolean, service_name: string): Observable<LogTaskResponse> {
-    const query = `SELECT COUNT(*) FROM logs ${this.getWhereClause(logLevels, service_name)}`
+    const query = `SELECT COUNT(*) FROM logs ${this.getWhereClause(logLevels, service_name)}`;
 
     console.log(query);
     const logQuery = {

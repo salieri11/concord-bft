@@ -61,7 +61,7 @@ export class LoggingComponent implements OnInit {
     'daml_ledger_api',
     'daml_execution_engine',
     'ethrpc'
-  ]
+  ];
 
   timePeriods: LogTimePeriod[] = [
     {
@@ -146,7 +146,13 @@ export class LoggingComponent implements OnInit {
   fetchLogCounts() {
     this.countLoading = true;
     this.heatMapData = [];
-    this.logApiService.postToTasksCount(this.startTime, this.endTime, this.replicaId, this.logLevels, this.service_name, this.selectedTimePeriod.interval).subscribe((resp) => {
+    this.logApiService.postToTasksCount(
+      this.startTime,
+      this.endTime,
+      this.replicaId,
+      this.logLevels,
+      this.service_name,
+      this.selectedTimePeriod.interval).subscribe((resp) => {
       this.pollLogStatus(resp.documentSelfLink, LogQueryTypes.CountsQuery, (logResp) => {
         this.logCounts = this.logApiService.padLogCounts(logResp.logQueryResults, this.startTime, this.endTime, this.selectedTimePeriod);
         this.totalCount = logResp.totalRecordCount;
