@@ -20,7 +20,7 @@ export class LogDetailsComponent implements OnInit {
   }
 
   ngOnInit() {
-    this.message = this.convertStringToObj(this.log.message);
+    this.message = this.log.message ? this.convertStringToObj(this.log.message) : '';
   }
 
   // parse message  string from API
@@ -36,7 +36,14 @@ export class LogDetailsComponent implements OnInit {
       .replace(/"\[/g, '[\"')
       .replace(/\]"/g, '\"]');
 
-    return JSON.parse(jsonMessage);
+
+    let parsedRes = '';
+    try {
+      parsedRes = JSON.parse(jsonMessage);
+    } catch (e) {
+      return jsonMessage;
+    }
+    return parsedRes;
   }
 
   isResObject(res): boolean {

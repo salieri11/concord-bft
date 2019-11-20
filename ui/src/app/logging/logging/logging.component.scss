@@ -74,4 +74,12 @@ concord-log-heat-map {
     display: inline;
     margin-left: 0.5rem;
   }
+
+  clr-toggle-container {
+    display: inline;
+    margin-left: 1rem;
+    clr-toggle-wrapper {
+      margin-right: 1rem;
+    }
+  }
 }

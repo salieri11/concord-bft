@@ -1,20 +1,30 @@
-<clr-dg-cell>
-  <span>[{{ log.level }}] {{ log.ingest_timestamp | date: 'yyyy-mm-dd\'T\'HH:mm:ss' }} {{ message?.method }}</span>
-</clr-dg-cell>
-<ng-container *ngIf="message && message?.result">
+<ng-container *ngIf="message && message.method; else stringMessage">
+  <clr-dg-cell>
+    <span>[{{ log.level }}] {{ log.ingest_timestamp | date: 'yyyy-MM-dd\'T\'HH:mm:ss' }} {{ message?.method }}</span>
+  </clr-dg-cell>
+</ng-container>
+
+<ng-container *ngIf="message && message.result;">
 
   <ng-container *ngIf="isResObject(message?.result); else commaArray">
     <clr-dg-cell *ngFor="let key of objectKeys(message?.result)">
-      <span>[{{ log.level }}] {{ log.ingest_timestamp | date: 'yyyy-mm-dd\'T\'HH:mm:ss' }}
+      <span>[{{ log.level }}] {{ log.ingest_timestamp | date: 'yyyy-MM-dd\'T\'HH:mm:ss' }}
         <span class="tab"></span>{{ getFormattedKey(key) | titlecase }}: {{ message?.result[key] }}</span>
     </clr-dg-cell>
   </ng-container>
 
   <ng-template #commaArray>
     <clr-dg-cell>
-      <span>[{{ log.level }}] {{ log.ingest_timestamp | date: 'yyyy-mm-dd\'T\'HH:mm:ss' }}
+      <span>[{{ log.level }}] {{ log.ingest_timestamp | date: 'yyyy-MM-dd\'T\'HH:mm:ss' }}
         <span class="tab"></span>{{ message?.result }}</span>
     </clr-dg-cell>
   </ng-template>
 
 </ng-container>
+
+<ng-template #stringMessage>
+  <clr-dg-cell>
+    <span>[{{ log.level }}] {{ log.ingest_timestamp | date: 'yyyy-MM-dd\'T\'HH:mm:ss' }}
+      <span class="tab"></span>{{ message }}</span>
+  </clr-dg-cell>
+</ng-template>

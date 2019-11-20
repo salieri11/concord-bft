@@ -22,7 +22,9 @@ import {
   TWELVE_HOURS,
   ONE_DAY,
   SEVEN_DAYS,
-  THIRTY_DAYS
+  THIRTY_DAYS,
+  SERVICE_NAMES,
+  ALL_SERVICES
 } from '../shared/logging.constants';
 import { NodesService } from '../../nodes/shared/nodes.service';
 
@@ -52,6 +54,11 @@ export class LoggingComponent implements OnInit {
   documentSelfLink: string = null;
 
   nodes: any[] = [];
+  replicaId: string;
+  verbose: boolean = true;
+  service_name: string = ALL_SERVICES;
+
+  service_names = SERVICE_NAMES;
 
   timePeriods: LogTimePeriod[] = [
     {
@@ -122,13 +129,12 @@ export class LoggingComponent implements OnInit {
   }
 
   ngOnInit() {
-    this.onSelectTimePeriod(this.timePeriods[7]);
     this.loadNodes();
   }
 
   fetchLogs() {
     this.listLoading = true;
-    this.logApiService.postToTasks(this.startTime, this.endTime).subscribe((resp) => {
+    this.logApiService.postToTasks(this.startTime, this.endTime, this.replicaId, this.verbose, this.service_name).subscribe((resp) => {
       this.documentSelfLink = resp.documentSelfLink;
       this.pollLogStatus(resp.documentSelfLink, LogQueryTypes.LogsQuery, this.onFetchLogsComplete.bind(this));
     }, this.handleLogsError.bind(this));
@@ -137,14 +143,20 @@ export class LoggingComponent implements OnInit {
   fetchLogCounts() {
     this.countLoading = true;
     this.heatMapData = [];
-    this.logApiService.postToTasksCount(this.startTime, this.endTime, this.selectedTimePeriod.interval).subscribe((resp) => {
-      this.pollLogStatus(resp.documentSelfLink, LogQueryTypes.CountsQuery, (logResp) => {
-        this.logCounts = this.logApiService.padLogCounts(logResp.logQueryResults, this.startTime, this.endTime, this.selectedTimePeriod);
-        this.totalCount = logResp.totalRecordCount;
-        this.parseCounts();
-        this.countLoading = false;
-      });
-    }, this.handleCountsError.bind(this));
+    this.logApiService.postToTasksCount(
+      this.startTime,
+      this.endTime,
+      this.replicaId,
+      this.verbose,
+      this.service_name,
+      this.selectedTimePeriod.interval).subscribe((resp) => {
+        this.pollLogStatus(resp.documentSelfLink, LogQueryTypes.CountsQuery, (logResp) => {
+          this.logCounts = this.logApiService.padLogCounts(logResp.logQueryResults, this.startTime, this.endTime, this.selectedTimePeriod);
+          this.totalCount = logResp.totalRecordCount;
+          this.parseCounts();
+          this.countLoading = false;
+        });
+      }, this.handleCountsError.bind(this));
   }
 
   onClickExportLogEvents() {
@@ -213,6 +225,9 @@ export class LoggingComponent implements OnInit {
   private loadNodes() {
     return this.nodesService.getList().subscribe((resp) => {
       this.nodes = resp.nodes;
+
+      this.replicaId = this.nodes && this.nodes[0] ? this.nodes[0].id : '';
+      this.onSelectTimePeriod(this.timePeriods[7]);
     });
   }
 

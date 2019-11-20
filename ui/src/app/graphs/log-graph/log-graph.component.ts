@@ -31,13 +31,21 @@ export class LogGraphComponent implements OnInit {
   }
 
   getStartTimeText(model) {
-    const pastDate = new Date(model.name.valueOf() - this.interval);
+    if (model) {
+      const pastDate = new Date(model.name.valueOf() - this.interval);
+      return this.translate.instant('logging.bar.fromDate', { fromDate: pastDate.toUTCString() });
+    } else {
+      return this.translate.instant('logging.bar.fromDate', { fromDate: '' });
+    }
 
-    return this.translate.instant('logging.bar.fromDate', {fromDate: pastDate.toUTCString()});
   }
 
   getEndTimeText(model) {
-    return this.translate.instant('logging.bar.toDate', {toDate: model.name.toUTCString()});
+    if (model) {
+      return this.translate.instant('logging.bar.toDate', { toDate: model.name.toUTCString() });
+    } else {
+      return this.translate.instant('logging.bar.toDate', { toDate: '' });
+    }
   }
 
 }
