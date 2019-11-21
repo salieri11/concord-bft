@@ -264,7 +264,39 @@ public class ZoneController {
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
-    // TODO: implement Patch.  This will be a bit harder.
+    /**
+     * Get a zone from the user.
+     * Change properties to ones mentioned in the request body.
+     */
+    @RequestMapping(path = "/{zone_id}", method = RequestMethod.PATCH)
+    @PreAuthorize("@authHelper.isConsortiumAdmin()")
+    ResponseEntity<ZoneResponse> patchZone(@PathVariable("zone_id") UUID zoneId,
+                                           @RequestBody(required = false) ZoneRequest request)
+            throws Exception {
+        Zone zone = zoneService.getAuthorized(zoneId);
+
+        // everything from here on needs a request body.
+        if (request == null) {
+            throw new BadRequestException(ErrorCode.BAD_REQUEST);
+        }
+
+        if (request.getName()) zone.setName(request.getName());
+        if (request.getLattitude()) zone.setLattitude(request.getLattitude());
+        if (request.getLongitude()) zone.setLongitude(request.getLongitude());
+        if (request.getSite()) zone.setSite(request.getSite());
+
+        ValidateOrchestrationSiteRequest req = ValidateOrchestrationSiteRequest.newBuilder()
+                .setHeader(MessageHeader.newBuilder().build())
+                .setSite(BlockchainUtils.toInfo(zone))
+                .build();
+
+        CompletableFuture<ValidateOrchestrationSiteResponse> future = new CompletableFuture<>();
+
+        orcestrationClient.validateOrchestrationSite(req, FleetUtils.blockedResultObserver(future));
+        // We don't really need the value.  If this call succeeds, the connection is OK
+        future.get();
+        return new ResponseEntity<>(getZoneResponse(zone), HttpStatus.OK);
+    }
 
     //TODO: Think about this.  Do we really want to allow delete?
     @RequestMapping(path = "/{zone_id}", method = RequestMethod.DELETE)
