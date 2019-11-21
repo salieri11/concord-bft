@@ -10,6 +10,7 @@ import pytest
 import traceback
 
 import util.json_helper
+import util.helper
 from . import test_suite
 
 log = logging.getLogger(__name__)
@@ -20,6 +21,7 @@ class PytestSuite(test_suite.TestSuite):
        self._reportFile = "report.json"
        self._testFile = testFile
        super(PytestSuite, self).__init__(passedArgs)
+       self._supportBundleFile = os.path.join(self._testLogDir, "support_bundles.json")
 
 
    def getName(self):
@@ -42,13 +44,40 @@ class PytestSuite(test_suite.TestSuite):
                 "--hermesCmdlineArgs", cmdlineArgsJson,
                 "--hermesUserConfig", userConfigJson,
                 "--hermesTestLogDir", self._testLogDir,
+                "--supportBundleFile", self._supportBundleFile,
                 self._testFile]
 
       if self._args.tests:
          params += self._args.tests.split(" ")
 
       pytest.main(params)
+      self.collectSupportBundles()
       return self.parsePytestResults()
+
+
+   def collectSupportBundles(self):
+      '''
+      Collect support bundles found in support_bundles.json.  The structure must be:
+      {
+        "<host>": {
+          "type": "daml | ethereum",  (mandatory)
+          "dir": "<directory>"        (optional, defaults to the suite's _testLogDir)
+        }
+      }
+      '''
+      if os.path.isfile(self._supportBundleFile):
+         with open(self._supportBundleFile, "r") as f:
+            bundles = json.load(f)
+
+         log.info("bundles: {}".format(bundles))
+
+         for bundleHost in bundles:
+            if "dir" in bundles[bundleHost]:
+               logDir = bundles[bundleHost]["dir"]
+            else:
+               logDir = self._testLogDir
+
+            util.helper.create_concord_support_bundle([bundleHost], bundles[bundleHost]["type"], logDir)
 
 
    def parsePytestResults(self):

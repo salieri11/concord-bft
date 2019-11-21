@@ -31,11 +31,13 @@ def retrieveCustomCmdlineData(pytestRequest):
     cmdlineArgsObject = types.SimpleNamespace(**cmdlineArgsDict)
     userConfig = json.loads(pytestRequest.config.getoption("--hermesUserConfig"))
     logDir = pytestRequest.config.getoption("--hermesTestLogDir")
+    supportBundleFile = pytestRequest.config.getoption("--supportBundleFile")
 
     return {
         "hermesCmdlineArgs": cmdlineArgsObject,
         "hermesUserConfig": userConfig,
-        "hermesTestLogDir": logDir
+        "hermesTestLogDir": logDir,
+        "supportBundleFile": supportBundleFile
     }
 
 

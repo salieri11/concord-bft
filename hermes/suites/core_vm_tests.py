@@ -6,6 +6,7 @@ import logging
 import pytest
 import os
 import time
+from urllib.parse import urlparse
 
 # These are fixtures used by tests directly.
 from fixtures.common_fixtures import fxBlockchain, fxConnection, fxHermesRunSettings
@@ -63,6 +64,28 @@ def test_core_vm_tests(fxCoreVMTests, fxHermesRunSettings, fxConnection, fxBlock
                                 ethrpcUrl,
                                 fxHermesRunSettings["hermesUserConfig"],
                                 fxConnection)
+      if not result:
+         supportBundleFile = fxHermesRunSettings["supportBundleFile"]
+         urlObj = urlparse(ethrpcUrl)
+         bundles = {}
+
+         if os.path.isfile(supportBundleFile):
+            with open(supportBundleFile, "r") as f:
+               bundles = json.load(f)
+
+         log.info("Existing bundles: {}".format(bundles))
+
+         host = urlObj.hostname
+         if not host in bundles:
+            # This structure defined in PytestSuite's collectSupportBundles().
+            bundles[host] = {
+               "type": "ethereum"
+            }
+
+         log.debug("Writing {}".format(bundles))
+         with open(supportBundleFile, "w") as f:
+            f.write(json.dumps(bundles))
+
       assert result, info
 
 def loadCompiledTest(test):
