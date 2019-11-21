@@ -14,11 +14,13 @@
 # * <repo-url>/daml-ledger-api-test-tool:100.13.23
 # * <repo-url>/daml-ledger-api-test-tool:100.13.25
 # * <repo-url>/daml-ledger-api-test-tool:100.13.31
+# * <repo-url>/daml-ledger-api-test-tool:100.13.37
 
-FROM ubuntu:18.04
 
-RUN apt update && apt install -y wget openjdk-8-jdk-headless && \
-    rm -rf /var/lib/apt/lists/* && \
-    wget https://bintray.com/digitalassetsdk/DigitalAssetSDK/download_file?file_path=com%2Fdaml%2Fledger%2Ftesttool%2Fledger-api-test-tool_2.12%2F100.13.31%2Fledger-api-test-tool_2.12-100.13.31.jar \
-    -O /ledger-api-test-tool_2.12-100.13.31.jar && \
-    java -jar ledger-api-test-tool_2.12-100.13.31.jar -x
+FROM maven:3.6.2-jdk-8-slim
+
+RUN TEST_TOOL_VER='100.13.37' && \
+    mvn dependency:get -DrepoUrl=http://repo.maven.apache.org/maven2/ \ 
+      -Dartifact=com.daml.ledger.testtool:ledger-api-test-tool:${TEST_TOOL_VER}:jar \
+      -Dtransitive=false -Ddest=/ledger-api-test-tool-${TEST_TOOL_VER}.jar && \
+    java -jar /ledger-api-test-tool-${TEST_TOOL_VER}.jar -x
