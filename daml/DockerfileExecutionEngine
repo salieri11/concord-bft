@@ -21,6 +21,9 @@ RUN sbt update
 
 COPY concord/proto /doc/concord/proto
 COPY daml/kvbc_validator /doc/daml/kvbc_validator
-
+COPY daml/daml-execution-engine-entrypoint.sh /doc/daml/daml-execution-engine-entrypoint.sh
 RUN sbt stage
 EXPOSE 55000
+
+RUN chmod 755 /doc/daml/daml-execution-engine-entrypoint.sh
+ENTRYPOINT /doc/daml/daml-execution-engine-entrypoint.sh $@
