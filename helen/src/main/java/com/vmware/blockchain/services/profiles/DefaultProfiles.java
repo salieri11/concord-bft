@@ -17,7 +17,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.vmware.blockchain.common.ConcordConnectionException;
+import com.vmware.blockchain.common.Constants;
 import com.vmware.blockchain.common.NotFoundException;
 import com.vmware.blockchain.security.ServiceContext;
 import com.vmware.blockchain.services.blockchains.Blockchain;
@@ -178,6 +180,7 @@ public class DefaultProfiles {
             if (defaultOrgId != null) {
                 o.setId(defaultOrgId);
             }
+            o.setOrganizationProperties(ImmutableMap.of(Constants.ORG_MAX_CHAINS, "0"));
             o = organizationService.put(o);
             logger.info("Org created, orgId: {}", o.getId());
             return o;

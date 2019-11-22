@@ -54,6 +54,7 @@ import com.google.common.collect.ImmutableMap;
 import com.vmware.blockchain.MvcConfig;
 import com.vmware.blockchain.auth.AuthHelper;
 import com.vmware.blockchain.auth.AuthenticationContext;
+import com.vmware.blockchain.common.Constants;
 import com.vmware.blockchain.common.HelenExceptionHandler;
 import com.vmware.blockchain.common.NotFoundException;
 import com.vmware.blockchain.deployment.v1.ConcordCluster;
@@ -535,6 +536,66 @@ public class BlockchainControllerTest {
         List<PlacementSpecification.Entry> entries = request.getSpecification().getPlacement().getEntriesList();
         Assertions.assertEquals(4, entries.size());
         Assertions.assertTrue(entries.stream().allMatch(e -> e.getType() == PlacementSpecification.Type.UNSPECIFIED));
+    }
+
+    @Test
+    void createTooMany() throws Exception {
+        AuthenticationContext tooManyAuth = createContext("operator", ORG_ID,
+                                       ImmutableList.of(Roles.CONSORTIUM_ADMIN, Roles.ORG_USER),
+                                       ImmutableList.of(C2_ID),
+                                       ImmutableList.of(BC_ID), "");
+        mockMvc.perform(post("/api/blockchains").with(authentication(tooManyAuth))
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(POST_BODY_UNSP).characterEncoding("utf-8"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void orgHasLimit() throws Exception {
+        Organization org = new Organization();
+        org.setId(ORG_ID);
+        org.setOrganizationProperties(ImmutableMap.of(Constants.ORG_MAX_CHAINS, "2"));
+        when(organizationService.get(ORG_ID)).thenReturn(org);
+        AuthenticationContext tooManyAuth = createContext("operator", ORG_ID,
+                                                          ImmutableList.of(Roles.CONSORTIUM_ADMIN, Roles.ORG_USER),
+                                                          ImmutableList.of(C2_ID),
+                                                          ImmutableList.of(BC_ID), "");
+        mockMvc.perform(post("/api/blockchains").with(authentication(tooManyAuth))
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(POST_BODY_UNSP).characterEncoding("utf-8"))
+                .andExpect(status().isAccepted());
+    }
+
+    @Test
+    void orgHasLimitExceded() throws Exception {
+        Organization org = new Organization();
+        org.setId(ORG_ID);
+        org.setOrganizationProperties(ImmutableMap.of(Constants.ORG_MAX_CHAINS, "2"));
+        when(organizationService.get(ORG_ID)).thenReturn(org);
+        AuthenticationContext tooManyAuth = createContext("operator", ORG_ID,
+                                                          ImmutableList.of(Roles.CONSORTIUM_ADMIN, Roles.ORG_USER),
+                                                          ImmutableList.of(C2_ID),
+                                                          ImmutableList.of(BC_ID, BC2_ID), "");
+        mockMvc.perform(post("/api/blockchains").with(authentication(tooManyAuth))
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(POST_BODY_UNSP).characterEncoding("utf-8"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void orgHasUnlimited() throws Exception {
+        Organization org = new Organization();
+        org.setId(ORG_ID);
+        org.setOrganizationProperties(ImmutableMap.of(Constants.ORG_MAX_CHAINS, "0"));
+        when(organizationService.get(ORG_ID)).thenReturn(org);
+        AuthenticationContext tooManyAuth = createContext("operator", ORG_ID,
+                                                          ImmutableList.of(Roles.CONSORTIUM_ADMIN, Roles.ORG_USER),
+                                                          ImmutableList.of(C2_ID),
+                                                          ImmutableList.of(BC_ID, BC2_ID), "");
+        mockMvc.perform(post("/api/blockchains").with(authentication(tooManyAuth))
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(POST_BODY_UNSP).characterEncoding("utf-8"))
+                .andExpect(status().isAccepted());
     }
 
     @Test

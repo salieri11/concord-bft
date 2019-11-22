@@ -35,7 +35,9 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableMap;
 import com.vmware.blockchain.auth.AuthHelper;
 import com.vmware.blockchain.common.BadRequestException;
+import com.vmware.blockchain.common.Constants;
 import com.vmware.blockchain.common.ErrorCode;
+import com.vmware.blockchain.common.ErrorCodeType;
 import com.vmware.blockchain.common.NotFoundException;
 import com.vmware.blockchain.common.fleetmanagment.FleetUtils;
 import com.vmware.blockchain.deployment.v1.ConcordModelSpecification;
@@ -55,8 +57,9 @@ import com.vmware.blockchain.services.blockchains.Blockchain.NodeEntry;
 import com.vmware.blockchain.services.blockchains.replicas.ReplicaService;
 import com.vmware.blockchain.services.blockchains.zones.ZoneService;
 import com.vmware.blockchain.services.configuration.ConcordConfiguration;
-import com.vmware.blockchain.services.profiles.ConsortiumService;
 import com.vmware.blockchain.services.profiles.DefaultProfiles;
+import com.vmware.blockchain.services.profiles.Organization;
+import com.vmware.blockchain.services.profiles.OrganizationService;
 import com.vmware.blockchain.services.profiles.Roles;
 import com.vmware.blockchain.services.tasks.Task;
 import com.vmware.blockchain.services.tasks.Task.State;
@@ -193,20 +196,20 @@ public class BlockchainController {
     }
 
     private BlockchainService blockchainService;
-    private ConsortiumService consortiumService;
+    private OrganizationService organizationService;
+
     private AuthHelper authHelper;
     private DefaultProfiles defaultProfiles;
     private TaskService taskService;
     private ProvisioningServiceStub client;
     private OperationContext operationContext;
-    private boolean mockDeployment;
     private ReplicaService replicaService;
     private ZoneService zoneService;
     private ConcordConfiguration concordConfiguration;
 
     @Autowired
     public BlockchainController(BlockchainService blockchainService,
-                                ConsortiumService consortiumService,
+                                OrganizationService organizationService,
                                 AuthHelper authHelper,
                                 DefaultProfiles defaultProfiles,
                                 TaskService taskService,
@@ -217,7 +220,7 @@ public class BlockchainController {
                                 ConcordConfiguration concordConfiguration,
                                 @Value("${mock.deployment:false}") boolean mockDeployment) {
         this.blockchainService = blockchainService;
-        this.consortiumService = consortiumService;
+        this.organizationService = organizationService;
         this.authHelper = authHelper;
         this.defaultProfiles = defaultProfiles;
         this.taskService = taskService;
@@ -226,7 +229,6 @@ public class BlockchainController {
         this.replicaService = replicaService;
         this.zoneService = zoneService;
         this.concordConfiguration = concordConfiguration;
-        this.mockDeployment = mockDeployment;
     }
 
     /**
@@ -387,6 +389,22 @@ public class BlockchainController {
         return promise.get();
     }
 
+    private int getMaxChains(UUID orgId) {
+        // admins can create any number
+        if (authHelper.isSystemAdmin()) {
+            return Integer.MAX_VALUE;
+        }
+
+        Organization organization = organizationService.get(orgId);
+        // default to one
+        int m = 1;
+        if (organization.getOrganizationProperties() != null) {
+            String s = organization.getOrganizationProperties().getOrDefault(Constants.ORG_MAX_CHAINS, "1");
+            m = Integer.parseInt(s);
+        }
+        // m == 0 means no limit
+        return m == 0 ? Integer.MAX_VALUE : m;
+    }
 
     /**
      * Create a new blockchain in the given consortium, with the specified nodes.
@@ -397,6 +415,15 @@ public class BlockchainController {
     @RequestMapping(path = "/api/blockchains", method = RequestMethod.POST)
     @PreAuthorize("@authHelper.isConsortiumAdmin()")
     public ResponseEntity<BlockchainTaskResponse> createBlockchain(@RequestBody BlockchainPost body) throws Exception {
+
+        // Determine whether or not we can create a new blockchain
+        if (authHelper.getUpdateChains().size() >= getMaxChains(authHelper.getOrganizationId())) {
+            logger.info("Request for too many blockdhains: current {}, limit {}",
+                        authHelper.getUpdateChains().size(),
+                        getMaxChains(authHelper.getOrganizationId()));
+            throw new BadRequestException(ErrorCodeType.BLOCKCHAIN_LIMIT, authHelper.getUpdateChains().size());
+        }
+
         // start the deployment
         final int clusterSize = body.getFCount() * 3 + body.getCCount() * 2 + 1;
         logger.info("Creating new blockchain. Cluster size {}", clusterSize);
@@ -409,46 +436,34 @@ public class BlockchainController {
         BlockchainType blockchainType =
                 body.getBlockchainType() == null ? BlockchainType.ETHEREUM : body.getBlockchainType();
 
-        if (mockDeployment) {
-            Blockchain bc = blockchainService.get(defaultProfiles.getBlockchain().getId());
-            bc.setConsortium(body.getConsortiumId());
-            blockchainService.put(bc);
-            task.setResourceId(bc.getId());
-            task.setResourceLink(String.format("/api/blockchains/%s", bc.getId()));
-            task.setMessage("Operation finished");
-            task.setState(Task.State.SUCCEEDED);
-            taskService.put(task);
-            logger.info("Deployment mocked");
-        } else {
-            /*
-            If the deployment type is FIXED
-            zoneIds should not be null
-            Number of zoneIds should be equal to 3F + 2C + 1
-             */
-            if (body.deploymentType == FIXED) {
-                if (body.getZoneIds() == null
-                        || body.getZoneIds().size() != clusterSize) {
-                    logger.info("Number of zones not equal to cluster size");
-                    throw new BadRequestException(ErrorCode.BAD_REQUEST);
-                }
+        /*
+        If the deployment type is FIXED
+        zoneIds should not be null
+        Number of zoneIds should be equal to 3F + 2C + 1
+         */
+        if (body.deploymentType == FIXED) {
+            if (body.getZoneIds() == null
+                    || body.getZoneIds().size() != clusterSize) {
+                logger.info("Number of zones not equal to cluster size");
+                throw new BadRequestException(ErrorCode.BAD_REQUEST);
             }
-            DeploymentSessionIdentifier dsId =  createFixedSizeCluster(client, clusterSize,
-                                                                      enumMap.get(body.deploymentType),
-                                                                      body.getZoneIds(),
-                                                                      blockchainType,
-                                                                      body.consortiumId);
-            logger.info("Deployment started, id {} for the consortium id {}", dsId, body.consortiumId.toString());
-            BlockchainObserver bo =
-                    new BlockchainObserver(authHelper, operationContext, blockchainService, replicaService, taskService,
-                                           task.getId(), body.getConsortiumId(), blockchainType);
-            // Watch for the event stream
-            StreamClusterDeploymentSessionEventRequest request = StreamClusterDeploymentSessionEventRequest.newBuilder()
-                    .setHeader(MessageHeader.newBuilder().build())
-                    .setSession(dsId)
-                    .build();
-            client.streamClusterDeploymentSessionEvents(request, bo);
-            logger.info("Deployment scheduled");
         }
+        DeploymentSessionIdentifier dsId =  createFixedSizeCluster(client, clusterSize,
+                                                                  enumMap.get(body.deploymentType),
+                                                                  body.getZoneIds(),
+                                                                  blockchainType,
+                                                                  body.consortiumId);
+        logger.info("Deployment started, id {} for the consortium id {}", dsId, body.consortiumId.toString());
+        BlockchainObserver bo =
+                new BlockchainObserver(authHelper, operationContext, blockchainService, replicaService, taskService,
+                                       task.getId(), body.getConsortiumId(), blockchainType);
+        // Watch for the event stream
+        StreamClusterDeploymentSessionEventRequest request = StreamClusterDeploymentSessionEventRequest.newBuilder()
+                .setHeader(MessageHeader.newBuilder().build())
+                .setSession(dsId)
+                .build();
+        client.streamClusterDeploymentSessionEvents(request, bo);
+        logger.info("Deployment scheduled");
 
         return new ResponseEntity<>(new BlockchainTaskResponse(task.getId()), HttpStatus.ACCEPTED);
     }
