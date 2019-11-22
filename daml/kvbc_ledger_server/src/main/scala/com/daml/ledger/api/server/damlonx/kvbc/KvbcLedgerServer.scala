@@ -16,7 +16,7 @@ import com.digitalasset.platform.common.util.DirectExecutionContext
 import com.digitalasset.kvbc_sync_adapter.KVBCParticipantState
 import com.digitalasset.platform.index.{StandaloneIndexServer, StandaloneIndexerServer}
 import com.digitalasset.platform.common.logging.NamedLoggerFactory
-import com.digitalasset.platform.server.api.authorization.auth.AuthServiceWildcard
+import com.digitalasset.ledger.api.auth.AuthServiceWildcard
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal

@@ -6,7 +6,7 @@ ThisBuild / organization     := "com.daml"
 ThisBuild / organizationName := "Digital Asset, LLC"
 
 lazy val akkaVersion = "2.5.13"
-lazy val sdkVersion = "100.13.31"
+lazy val sdkVersion = "100.13.37"
 
 lazy val protobuf = "com.google.protobuf" % "protobuf-java" % "3.2.0"
 lazy val scalapb_runtime  = "com.thesamet.scalapb" %% "scalapb-runtime" % scalapb.compiler.Version.scalapbVersion % "protobuf"
@@ -47,7 +47,7 @@ lazy val kvbc_validator = (project in file("kvbc_validator"))
       "com.digitalasset" %% "daml-lf-data" % sdkVersion,
       "com.digitalasset" %% "daml-lf-engine" % sdkVersion,
       "com.digitalasset" %% "daml-lf-language" % sdkVersion,
-
+      
       "com.daml.ledger" %% "participant-state" % sdkVersion,
       "com.daml.ledger" %% "participant-state-kvutils" % sdkVersion,
 
@@ -114,6 +114,7 @@ lazy val kvbc_ledger_server = (project in file("kvbc_ledger_server"))
       "com.digitalasset" %% "daml-lf-engine" % sdkVersion,
       "com.digitalasset" %% "daml-lf-language" % sdkVersion,
       "com.digitalasset.platform" %% "sandbox" % sdkVersion,
+      "com.digitalasset.ledger" %% "ledger-api-auth" % sdkVersion,
 
       "com.daml.ledger" %% "participant-state" % sdkVersion,
       "com.daml.ledger" %% "participant-state-kvutils" % sdkVersion,
