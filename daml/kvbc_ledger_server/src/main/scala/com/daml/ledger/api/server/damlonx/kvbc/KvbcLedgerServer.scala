@@ -44,13 +44,14 @@ object KvbcLedgerServer extends App {
 
   logger.info(
     s"""Initialized vDAML ledger api server: version=${BuildInfo.Version},
-       |participantId=${extConfig.participantId.toString}, port=${extConfig.config.port},
+       |participantId=${extConfig.participantId.toString}, replicas=${extConfig.replicas},
        |jdbcUrl=${extConfig.config.jdbcUrl},
        |dar file(s)=${args.drop(2).mkString("(", ";", ")")}""".stripMargin.replaceAll("\n", " "))
 
-  logger.info(s"Connecting to core replica ${args(0)}")
+  logger.info(s"Connecting to the first core replica ${extConfig.replicas.head}")
+  val address = extConfig.replicas.head.split(":")
   val ledger = KVBCParticipantState(
-    "KVBC", extConfig.participantId, extConfig.replicaHost, extConfig.replicaPort, true)
+    "KVBC", extConfig.participantId, address(0), address(1).toInt, true)
 
   val readService = ledger
   val writeService = ledger

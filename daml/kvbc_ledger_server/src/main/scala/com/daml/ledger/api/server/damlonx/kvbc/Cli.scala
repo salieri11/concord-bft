@@ -10,16 +10,14 @@ import com.digitalasset.platform.index.config.Config
 final case class ExtConfig(
     config: Config,
     participantId: String,
-    replicaHost: String,
-    replicaPort: Int)
+    replicas: Seq[String])
 
 object ExtConfig {
   def default: ExtConfig =
     new ExtConfig(
       Config.default,
       "standalone-participant",
-      "localhost",
-      50051)
+      Seq("localhost:50051"))
 }
 
 object Cli {
@@ -79,14 +77,11 @@ object Cli {
         .optional()
         .text(s"The participant id given to all components of a ledger api server. Defaults to ${ExtConfig.default.participantId}")
         .action((p, c) => c.copy(participantId = p))
-      opt[Int]('p', "replica-port")
+      opt[Seq[String]]("replicas")
         .optional()
-        .action((x, c) => c.copy(replicaPort = x))
-        .text(s"Port of the concord replica. Defaults to ${ExtConfig.default.replicaPort}.")
-      opt[String]('h', "replica-host")
-        .optional()
-        .action((x, c) => c.copy(replicaHost = x))
-        .text(s"Host address of the concord replioca. Defaults to ${ExtConfig.default.replicaHost}.")
+        .action((x, c) => c.copy(replicas = x))
+        .valueName("<IP:PORT>,<IP:PORT>,...")
+        .text(s"List of replicas (<IP:PORT>). Initially, the server connects to the first replica in the list. Defaults to ${ExtConfig.default.replicas}.")
       arg[File]("<archive>...")
         .optional()
         .unbounded()

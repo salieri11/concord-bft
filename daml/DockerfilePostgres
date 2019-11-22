@@ -1,4 +1,8 @@
 FROM postgres:11.5
 COPY daml/create-postgres.sh /docker-entrypoint-initdb.d/
+COPY daml/daml-index-db-entrypoint.sh /doc/daml/daml-index-db-entrypoint.sh
 
 EXPOSE 5432
+
+RUN chmod 755 /doc/daml/daml-index-db-entrypoint.sh
+ENTRYPOINT /doc/daml/daml-index-db-entrypoint.sh $@

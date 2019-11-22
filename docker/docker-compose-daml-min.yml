@@ -95,8 +95,7 @@ services:
       - INDEXDB_HOST=index_db
       - INDEXDB_PORT=5432
       - INDEXDB_USER=indexdb
-      - CONCORD_HOST=concord1
-      - CONCORD_PORT=50051
+      - REPLICAS=concord1:50051,concord2:50051,concord3:50051,concord4:50051
       - PARTICIPANT_ID=daml_ledger_api1
       - JAVA_OPTS=-XX:+UseG1GC -Xmx4G
     depends_on:
@@ -113,8 +112,7 @@ services:
       - INDEXDB_HOST=index_db
       - INDEXDB_PORT=5432
       - INDEXDB_USER=indexdb
-      - CONCORD_HOST=concord2
-      - CONCORD_PORT=50051
+      - REPLICAS=concord2:50051,concord3:50051,concord4:50051,concord1:50051
       - PARTICIPANT_ID=daml_ledger_api2
       - JAVA_OPTS=-XX:+UseG1GC -Xmx4G
     depends_on:
@@ -127,7 +125,6 @@ services:
 
   daml_execution_engine1:
     image: "${daml_execution_engine_repo}:${daml_execution_engine_tag}"
-    command: /doc/daml/kvbc_validator/target/universal/stage/bin/kvbc-validator
     environment:
       - JAVA_OPTS=-XX:+UseG1GC -Xmx4G
     depends_on:
@@ -139,7 +136,6 @@ services:
 
   daml_execution_engine2:
     image: "${daml_execution_engine_repo}:${daml_execution_engine_tag}"
-    command: /doc/daml/kvbc_validator/target/universal/stage/bin/kvbc-validator
     environment:
       - JAVA_OPTS=-XX:+UseG1GC -Xmx4G
     depends_on:
@@ -151,7 +147,6 @@ services:
 
   daml_execution_engine3:
     image: "${daml_execution_engine_repo}:${daml_execution_engine_tag}"
-    command: /doc/daml/kvbc_validator/target/universal/stage/bin/kvbc-validator
     environment:
       - JAVA_OPTS=-XX:+UseG1GC -Xmx4G
     depends_on:
@@ -163,7 +158,6 @@ services:
 
   daml_execution_engine4:
     image: "${daml_execution_engine_repo}:${daml_execution_engine_tag}"
-    command: /doc/daml/kvbc_validator/target/universal/stage/bin/kvbc-validator
     environment:
       - JAVA_OPTS=-XX:+UseG1GC -Xmx4G
     depends_on:
@@ -175,11 +169,12 @@ services:
 
   index_db:
     image: "${daml_index_db_repo}:${daml_index_db_tag}"
-    command: postgres -c 'max_connections=300' -c 'shared_buffers=80MB'
     restart: always
     environment:
       - POSTGRES_USER=indexdb
       - POSTGRES_MULTIPLE_DATABASES=daml_ledger_api1,daml_ledger_api2
+      - MAX_CONNECTIONS=300
+      - BUFFER_SIZE=80MB
     volumes:
       - ./devdata/index_db:/var/lib/postgresql/data
     expose:
