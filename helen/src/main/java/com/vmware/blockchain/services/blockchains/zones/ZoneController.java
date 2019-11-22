@@ -227,7 +227,7 @@ public class ZoneController {
     @RequestMapping(method = RequestMethod.POST)
     @PreAuthorize("@authHelper.isConsortiumAdmin()")
     ResponseEntity<ZoneResponse> postZone(@RequestParam(required = false) Action action,
-                                                @RequestBody(required = false) ZoneRequest request)
+                                          @RequestBody(required = false) ZoneRequest request)
             throws Exception {
         if (RELOAD.equals(action)) {
 
@@ -264,6 +264,7 @@ public class ZoneController {
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
+
     /**
      * Get a zone from the user.
      * Change properties to ones mentioned in the request body.
@@ -280,10 +281,47 @@ public class ZoneController {
             throw new BadRequestException(ErrorCode.BAD_REQUEST);
         }
 
-        if (request.getName()) zone.setName(request.getName());
-        if (request.getLattitude()) zone.setLattitude(request.getLattitude());
-        if (request.getLongitude()) zone.setLongitude(request.getLongitude());
-        if (request.getSite()) zone.setSite(request.getSite());
+        Zone updatedZone = requestToZone(request);
+
+        OnpremRequest onpremRequest;
+
+        if (zone instanceof OnpremZone) {
+            OnpremZone op = (OnpremZone) zone;
+            OnpremZone opUpdated = (OnpremZone) updatedZone;
+            onpremRequest = (OnpremRequest) request;
+            if (op.getOrgId() == null || !authHelper.isSystemAdmin()) {
+                op.setOrgId(authHelper.getOrganizationId());
+            }
+
+            if (onpremRequest.getName() != null) {
+                zone.setName(onpremRequest.getName());
+            }
+            if (onpremRequest.getType() != null) {
+                zone.setType(onpremRequest.getType());
+            }
+            if (onpremRequest.getOrgId() != null) {
+                zone.setOrgId(onpremRequest.getOrgId());
+            }
+            if (onpremRequest.getVcenter() != null) {
+                ((OnpremZone)zone).setVCenter(onpremRequest.getVcenter());
+            }
+            if (onpremRequest.getResourcePool() != null) {
+                ((OnpremZone)zone).setResourcePool(onpremRequest.getResourcePool());
+            }
+            if (onpremRequest.getStorage() != null) {
+                ((OnpremZone)zone).setStorage(onpremRequest.getStorage());
+            }
+            if (onpremRequest.getFolder() != null) {
+                ((OnpremZone)zone).setFolder(onpremRequest.getFolder());
+            }
+            if (onpremRequest.getNetwork() != null) {
+                ((OnpremZone)zone).setNetwork(onpremRequest.getNetwork());
+            }
+            if (onpremRequest.getContainerRepo() != null) {
+                ((OnpremZone)zone).setContainerRepo(onpremRequest.getContainerRepo());
+            }
+        }
+
 
         ValidateOrchestrationSiteRequest req = ValidateOrchestrationSiteRequest.newBuilder()
                 .setHeader(MessageHeader.newBuilder().build())
@@ -331,7 +369,5 @@ public class ZoneController {
         }
         return response;
     }
-
-
 
 }

@@ -16,6 +16,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -656,6 +657,22 @@ class ZoneControllerTest {
         Zone op = getOnpremZone(OP_SITE, ORG_ID);
         OrchestrationSiteInfo info = BlockchainUtils.toInfo(op);
         System.out.println(info);
+    }
+
+    @Test
+    void testPatch() throws Exception {
+        MvcResult result = mockMvc.perform(patch("/api/blockchains/zones/" + OP_SITE).with(authentication(adminAuth))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(POST_ONPREM_BODY))
+                .andExpect(status().isOk()).andReturn();
+        String body = result.getResponse().getContentAsString();
+        ZoneResponse zone = objectMapper.readValue(body, ZoneResponse.class);
+        verify(zoneService, times(1)).put(any(Zone.class));
+        Assertions.assertTrue(zone instanceof OnpremGetResponse);
+        // Org not specified, so it should be filled in
+        Assertions.assertEquals(UUID.fromString("9ecb07bc-482c-48f3-80d0-23c4f9514902"),
+                ((OnpremGetResponse) zone).getOrgId());
+        Assertions.assertEquals("admin", ((OnpremGetResponse) zone).getVcenter().getUsername());
     }
 
 
