@@ -239,7 +239,7 @@ export class LoggingComponent implements OnInit {
       this.nodes = resp.nodes;
 
       this.replicaId = this.nodes && this.nodes[0] ? this.nodes[0].id : '';
-      this.onSelectTimePeriod(this.timePeriods[7]);
+      this.onSelectTimePeriod(this.timePeriods[3]);
     });
   }
 

@@ -22,7 +22,7 @@ export class LogApiService {
     replicaId: string,
     verbose: boolean,
     service_name: string,
-    rows: number = 20): Observable<LogTaskResponse> {
+    rows: number = 100): Observable<LogTaskResponse> {
     const query = `SELECT * FROM logs ${this.getWhereClause(verbose, service_name)}ORDER BY ingest_timestamp DESC`;
 
     const logQuery = {

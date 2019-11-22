@@ -1,5 +1,15 @@
 @import "~@clr/ui/src/color/_variables.color.scss";
 
+
+.log-header {
+  clr-select-container {
+    margin-right: .3rem;
+  }
+  select {
+    font-size: 110%;
+  }
+}
+
 concord-log-graph {
   height: 300px;
 }
@@ -61,6 +71,10 @@ concord-log-heat-map {
 :host ::ng-deep {
   .datagrid-row {
     border: none;
+
+    .datagrid-cell {
+      font-size: 11px;
+    }
   }
 
   .datagrid-host {
@@ -72,7 +86,7 @@ concord-log-heat-map {
 
   .page-title {
     display: inline;
-    margin-right: 0.5rem;
+    margin-right: 0.3rem;
   }
 
   clr-select-container {
@@ -85,7 +99,7 @@ concord-log-heat-map {
   }
 
   .service-dropdown {
-    width: 5.5rem;
+    width: 6.5rem;
   }
 
 }

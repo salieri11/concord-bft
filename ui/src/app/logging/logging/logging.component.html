@@ -1,6 +1,6 @@
 <div class="p-2">
   <div class="clr-row">
-    <div class="clr-col-5">
+    <div class="clr-col-5 log-header">
       <!-- select service -->
       <select clrSelect (change)="refresh()" [(ngModel)]="service_name" [disabled]="countLoading || listLoading"
         class="service-dropdown">
@@ -38,7 +38,7 @@
         </clr-toggle-container>
 
         <clr-dropdown>
-          <button type="button" class="btn btn-outline-primary time-selector left-margined" clrDropdownTrigger
+          <button type="button" class="btn btn-sm btn-outline-primary time-selector left-margined" clrDropdownTrigger
             [disabled]="countLoading || listLoading">
             {{selectedTimePeriod?.title}}
             <clr-icon shape="caret down"></clr-icon>
@@ -53,7 +53,7 @@
         </clr-dropdown>
 
         <clr-dropdown>
-          <button type="button" class="btn btn-outline-primary left-margined" clrDropdownTrigger
+          <button type="button" class="btn btn-sm btn-outline-primary left-margined" clrDropdownTrigger
             [disabled]="countLoading || listLoading">
             {{'logging.exports.title' | translate}}
             <clr-icon shape="caret down"></clr-icon>
