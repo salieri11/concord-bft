@@ -17,7 +17,6 @@ import java.util.stream.Collectors;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -78,7 +77,6 @@ public class ReplicaController {
     private FleetManagementServiceStub client;
     private OperationContext operationContext;
     private ConcordService concordService;
-    private boolean mockDeployment;
 
     @Autowired
     public ReplicaController(BlockchainService blockchainService,
@@ -88,8 +86,7 @@ public class ReplicaController {
                              TaskService taskService,
                              FleetManagementServiceStub client,
                              OperationContext operationContext,
-                             ConcordService concordService,
-                             @Value("${mock.deployment:false}") boolean mockDeployment) {
+                             ConcordService concordService) {
         this.blockchainService = blockchainService;
         this.consortiumService = consortiumService;
         this.authHelper = authHelper;
@@ -98,7 +95,6 @@ public class ReplicaController {
         this.client = client;
         this.operationContext = operationContext;
         this.concordService = concordService;
-        this.mockDeployment = mockDeployment;
     }
 
     @Data
