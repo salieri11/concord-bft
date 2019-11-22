@@ -12,7 +12,6 @@ import com.digitalasset.daml_lf_dev.DamlLf.Archive
 import org.slf4j.LoggerFactory
 
 import scala.util.Try
-import com.digitalasset.platform.common.util.DirectExecutionContext
 import com.digitalasset.kvbc_sync_adapter.KVBCParticipantState
 import com.digitalasset.platform.index.{StandaloneIndexServer, StandaloneIndexerServer}
 import com.digitalasset.platform.common.logging.NamedLoggerFactory

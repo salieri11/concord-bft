@@ -8,32 +8,28 @@ import akka.{Done, NotUsed}
 import akka.actor.ActorSystem
 import akka.stream.Materializer
 import akka.stream.scaladsl._
-import com.daml.ledger.participant.state.v1._
 import com.digitalasset.daml.lf.data.{Ref, Time}
+import com.digitalasset.daml.lf.data.Ref.Party
+import com.digitalasset.daml.lf.data.Time.Timestamp
 import com.digitalasset.daml_lf_dev.DamlLf.Archive
 import com.digitalasset.grpc.adapter.AkkaExecutionSequencerPool
 import com.digitalasset.kvbc.daml_commit._
 import com.digitalasset.kvbc.daml_data.ReadTransactionRequest
+import com.digitalasset.kvbc.daml_events.CommittedTx
+import com.digitalasset.ledger.api.domain.PartyDetails
 
-import scala.util.{Failure, Success}
+import com.daml.ledger.participant.state.v1._
 import com.daml.ledger.participant.state.kvutils._
-import com.digitalasset.platform.common.util.DirectExecutionContext
 import com.daml.ledger.participant.state.backport.TimeModel
 import org.slf4j.LoggerFactory
 
-import scala.collection.JavaConverters._
 import scala.compat.java8.FutureConverters._
 import scala.concurrent.ExecutionContext
+import scala.util.{Failure, Success}
 
-import java.util.concurrent.CompletionStage
-import java.util.concurrent.CompletableFuture
+import java.util.concurrent.{CompletionStage, CompletableFuture, CompletionException}
 import java.util.UUID
-
-import com.digitalasset.daml.lf.data.Ref.Party
-import com.digitalasset.daml.lf.data.Time.Timestamp
-import com.digitalasset.kvbc.daml_events.CommittedTx
-import com.digitalasset.ledger.api.domain.PartyDetails
-import io.grpc.ConnectivityState
+import io.grpc.{ConnectivityState, StatusRuntimeException, Status}
 
 /**
  * DAML Participant State implementation on top of VMware Blockchain.
@@ -123,10 +119,16 @@ class KVBCParticipantState(
               PartyAllocationResult.InvalidName(s"Party allocation failed with an error ${error.toString}")
           }
         else {
-          //TODO: convert to SubmissionResult.InternalError, when provided
           logger.error(s"Party allocation failed with an exception: party=$party, submissionId=$submissionId, " +
             s"exception=${e.toString}")
-          PartyAllocationResult.InvalidName(s"Party allocation failed with an exception ${e.toString}")}
+          e match {
+            case grpc: StatusRuntimeException if grpc.getStatus.getCode == Status.Code.RESOURCE_EXHAUSTED =>
+              PartyAllocationResult.Overloaded
+            case _ =>
+              //TODO: convert to SubmissionResult.InternalError, when provided
+              PartyAllocationResult.InternalError(e.toString)
+          }
+        }
       )
   }
 
@@ -172,12 +174,44 @@ class KVBCParticipantState(
               UploadPackagesResult.InvalidPackage(s"Package upload failed with an error ${error.toString}")
         }
         else {
-          //TODO: convert to SubmissionResult.InternalError, when provided
           logger.error(s"Package upload failed with an exception: submissionId=$submissionId, exception=${e.toString}")
-          UploadPackagesResult.InvalidPackage(s"Package upload failed with an exception ${e.toString}")
+          e match {
+            case grpc: StatusRuntimeException if grpc.getStatus.getCode == Status.Code.RESOURCE_EXHAUSTED =>
+              UploadPackagesResult.Overloaded
+            case _ =>
+              //TODO: convert to SubmissionResult.InternalError, when provided
+              UploadPackagesResult.InternalError(e.toString)
+          }
         }
       )
   }
+
+  private def submit(submissionId: String, commitReq: CommitRequest) : CompletionStage[SubmissionResult] = 
+    client
+      .commitTransaction(commitReq)
+      .toJava
+      .toCompletableFuture
+      .handle((resp, e) =>
+        if (resp != null)
+          resp.status match {
+            case CommitResponse.CommitStatus.OK =>
+              logger.info(s"Submission succeeded: submissionId=$submissionId")
+              SubmissionResult.Acknowledged
+            case error =>
+              logger.error(s"Submission failed with an error: submissionId=$submissionId, " +
+                s"error=${error.toString}")
+              SubmissionResult.InternalError(error.toString)
+          }
+        else {
+          logger.error(s"Submission failed with an exception: submissionId=$submissionId, exception=${e.toString}")
+          e match {
+            case grpc: StatusRuntimeException if grpc.getStatus.getCode == Status.Code.RESOURCE_EXHAUSTED =>
+              SubmissionResult.Overloaded
+            case _ =>
+              SubmissionResult.InternalError(e.toString)
+          }
+        }
+      )
 
   /** Submit a new configuration to the ledger. */
   override def submitConfiguration(
@@ -196,27 +230,7 @@ class KVBCParticipantState(
     logger.info(s"Submit configuration: submissionId=$submissionId, generation=${config.generation}")
 
     // FIXME(JM): Properly queue the transactions and execute in sequence from one place.
-    client
-      .commitTransaction(commitReq)
-      .toJava
-      .toCompletableFuture
-      .handle((resp, e) =>
-        if (resp != null)
-          resp.status match {
-            case CommitResponse.CommitStatus.OK =>
-              logger.info(s"Configuration submission succeeded: submissionId=$submissionId")
-              SubmissionResult.Acknowledged
-            case error =>
-              //TODO: convert to SubmissionResult.InternalError, when provided
-              logger.error(s"Configuration submission failed with an error: submissionId=$submissionId, " +
-                s"error=${error.toString}")
-              SubmissionResult.NotSupported
-          }
-        else {
-          logger.error(s"Configuration submission failed with an exception: submissionId=$submissionId, exception=${e.toString}")
-          SubmissionResult.Overloaded
-        }
-      )
+    submit(submissionId, commitReq)
   }
 
   override def submitTransaction(
@@ -241,26 +255,7 @@ class KVBCParticipantState(
     logger.info(s"Submitting transaction: commandId=$commandId")
 
     // FIXME(JM): Properly queue the transactions and execute in sequence from one place.
-    client
-      .commitTransaction(commitReq)
-      .toJava
-      .toCompletableFuture
-      .handle((resp, e) =>
-        if (resp != null)
-          resp.status match {
-            case CommitResponse.CommitStatus.OK =>
-              logger.info(s"Transaction submission succeeded: commandId=$commandId")
-              SubmissionResult.Acknowledged
-            case _ =>
-              //TODO: convert to SubmissionResult.InternalError, when provided
-              logger.error(s"Transaction submission failed with unexpected commit response: commandId=$commandId")
-              SubmissionResult.NotSupported
-          }
-        else {
-          logger.error(s"Transaction submission failed with an exception: commandId=$commandId, exception=${e.toString}")
-          SubmissionResult.Overloaded
-        }
-      )
+    submit(commandId, commitReq)
   }
 
   override def getLedgerInitialConditions(): Source[LedgerInitialConditions, NotUsed] =
@@ -313,19 +308,12 @@ class KVBCParticipantState(
 
   private def readTransaction(committedTx: CommittedTx): Source[(Offset,Update),NotUsed] = {
     Source.fromFuture(
-      client.readKeys(
-        ReadTransactionRequest(
-          keys = List(committedTx.transactionId),
-          blockId = committedTx.blockId
-        ))
-
-        //TODO: Stream breaks here, make sure index can deal with this
-        .recover {
-          case e =>
-            logger.error(s"Reading transaction keys failed with an exception: transactionId=${committedTx.transactionId.toStringUtf8}, " +
-              s"error=${e.toString}")
-            sys.error(e.toString)
-        }
+      client
+        .readKeys(
+          ReadTransactionRequest(
+            keys = List(committedTx.transactionId),
+            blockId = committedTx.blockId
+          ))
         .map { resp =>
           try {
             val logEntry =
