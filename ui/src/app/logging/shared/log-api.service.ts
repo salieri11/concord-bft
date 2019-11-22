@@ -25,7 +25,6 @@ export class LogApiService {
     rows: number = 20): Observable<LogTaskResponse> {
     const query = `SELECT * FROM logs ${this.getWhereClause(verbose, service_name)}ORDER BY ingest_timestamp DESC`;
 
-    console.log(query);
     const logQuery = {
       logQuery: query,
       start: start,
@@ -45,7 +44,6 @@ export class LogApiService {
     const query = `SELECT COUNT(*), timestamp FROM logs ` +
       `${this.getWhereClause(verbose, service_name)}GROUP BY bucket(timestamp, ${interval}, ${start}, ${end}) ORDER BY timestamp DESC`;
 
-    console.log(query);
     const logQuery = {
       logQuery: query,
       start: start,
@@ -57,7 +55,6 @@ export class LogApiService {
   postToPureCount(start: number, end: number, replicaId: string, verbose: boolean, service_name: string): Observable<LogTaskResponse> {
     const query = `SELECT COUNT(*) FROM logs ${this.getWhereClause(verbose, service_name)}`;
 
-    console.log(query);
     const logQuery = {
       logQuery: query,
       start: start,
@@ -67,9 +64,9 @@ export class LogApiService {
   }
 
   getWhereClause(verbose: boolean, service_name: string) {
-    if (verbose && service_name !== 'all') {
+    if (!verbose && service_name !== 'all') {
       return `WHERE service_name = '${service_name}' AND (level = 'INFO' OR level = 'ERROR') `;
-    } else if (verbose) {
+    } else if (!verbose) {
       return `WHERE (level = 'INFO' OR level = 'ERROR') `;
     } else if (service_name && service_name !== 'all') {
       return `WHERE service_name = '${service_name}' `;

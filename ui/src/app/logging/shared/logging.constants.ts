@@ -18,9 +18,13 @@ export const THIRTY_DAYS = ONE_DAY * 30;
 
 export const ALL_SERVICES = 'all';
 
-export const SERVICE_NAMES = [
+export const DAML_SERVICE_NAMES = [
   'concord',
   'daml_ledger_api',
-  'daml_execution_engine',
+  'daml_execution_engine'
+];
+
+export const ETHEREUM_SERVICE_NAMES = [
+  'concord',
   'ethrpc'
 ];

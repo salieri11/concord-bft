@@ -10,6 +10,10 @@ import { LogTaskCompletedResponse, LogListEntry, LogCountEntry, LogTimePeriod } 
 import { ExportLogEventsModalComponent } from '../export-log-events-modal/export-log-events-modal.component';
 import { ExportChartDataModalComponent } from '../export-chart-data-modal/export-chart-data-modal.component';
 import { ErrorAlertService } from '../../shared/global-error-handler.service';
+import { BlockchainService } from './../../blockchain/shared/blockchain.service';
+import {
+  ContractEngines
+} from './../../blockchain/shared/blockchain.model';
 import {
   ONE_SECOND,
   THIRTY_SECONDS,
@@ -23,9 +27,10 @@ import {
   ONE_DAY,
   SEVEN_DAYS,
   THIRTY_DAYS,
-  SERVICE_NAMES,
+  DAML_SERVICE_NAMES,
+  ETHEREUM_SERVICE_NAMES,
   ALL_SERVICES
-} from '../shared/logging.constants';
+} from './../shared/logging.constants';
 import { NodesService } from '../../nodes/shared/nodes.service';
 
 enum LogQueryTypes {
@@ -58,7 +63,7 @@ export class LoggingComponent implements OnInit {
   verbose: boolean = true;
   service_name: string = ALL_SERVICES;
 
-  service_names = SERVICE_NAMES;
+  service_names: any[];
 
   timePeriods: LogTimePeriod[] = [
     {
@@ -123,13 +128,20 @@ export class LoggingComponent implements OnInit {
     private errorService: ErrorAlertService,
     private logApiService: LogApiService,
     private translate: TranslateService,
-    private nodesService: NodesService
+    private nodesService: NodesService,
+    private blockchainService: BlockchainService
   ) {
     this.xAxisTickFormatting = this.xAxisTickFormatting.bind(this);
   }
 
   ngOnInit() {
     this.loadNodes();
+
+    if (this.blockchainService.type === ContractEngines.DAML) {
+      this.service_names = DAML_SERVICE_NAMES;
+    } else if (this.blockchainService.type === ContractEngines.ETH) {
+      this.service_names = ETHEREUM_SERVICE_NAMES;
+    }
   }
 
   fetchLogs() {

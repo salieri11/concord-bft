@@ -595,7 +595,7 @@
       "loadMore": "Load More"
     },
     "bar": {
-      "title": "Ethereum Logs for",
+      "title": "logs for",
       "xCalls": "{{num}} Calls",
       "toDate": "To: {{toDate}}",
       "fromDate": "From: {{fromDate}}"

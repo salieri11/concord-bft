@@ -54,6 +54,10 @@ concord-log-heat-map {
   margin-right: 10px;
 }
 
+.left-margined {
+  margin-left: 0.5rem;
+}
+
 :host ::ng-deep {
   .datagrid-row {
     border: none;
@@ -68,18 +72,20 @@ concord-log-heat-map {
 
   .page-title {
     display: inline;
+    margin-right: 0.5rem;
   }
 
   clr-select-container {
     display: inline;
-    margin-left: 0.5rem;
+    margin-right: 0.5rem;
   }
 
   clr-toggle-container {
     display: inline;
-    margin-left: 1rem;
-    clr-toggle-wrapper {
-      margin-right: 1rem;
-    }
   }
+
+  .service-dropdown {
+    width: 5.5rem;
+  }
+
 }

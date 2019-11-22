@@ -1,31 +1,32 @@
 <div class="p-2">
   <div class="clr-row">
-    <div class="clr-col-6">
+    <div class="clr-col-5">
+      <!-- select service -->
+      <select clrSelect (change)="refresh()" [(ngModel)]="service_name" [disabled]="countLoading || listLoading"
+        class="service-dropdown">
+        <option selected [value]="'all'">{{ 'logging.serviceName.all' | translate }}
+        </option>
+        <option *ngFor="let service of service_names" [value]="service">
+          {{'logging.serviceName.' + service | translate}}
+        </option>
+      </select>
+
+      <!-- logging title -->
       <h2 class="page-title">{{ 'logging.bar.title' | translate }}</h2>
-      <!-- (change)="distributeZones()" -->
 
       <!-- select replica id -->
-      <select clrSelect (change)="refresh()" [(ngModel)]="replicaId">
+      <select clrSelect (change)="refresh()" [(ngModel)]="replicaId" [disabled]="countLoading || listLoading">
         <option *ngFor="let node of nodes" [value]="node?.id">{{ node.name }}
         </option>
       </select>
     </div>
-    <div class="clr-col-6">
+    <div class="clr-col-7">
       <div class="text-right">
         <button type="button" class="btn btn-link right-margined" (click)="refresh()"
           [disabled]="countLoading || listLoading">
           <clr-icon shape="refresh"></clr-icon>
           {{'logging.refresh' | translate}}
         </button>
-
-        <!-- select service -->
-        <select clrSelect (change)="refresh()" [(ngModel)]="service_name" [disabled]="countLoading || listLoading">
-          <option selected [value]="'all'">{{ 'logging.serviceName.all' | translate }}
-          </option>
-          <option *ngFor="let service of service_names" [value]="service">
-            {{'logging.serviceName.' + service | translate}}
-          </option>
-        </select>
 
         <!-- verbose toggle button -->
         <clr-toggle-container>
@@ -37,7 +38,7 @@
         </clr-toggle-container>
 
         <clr-dropdown>
-          <button type="button" class="btn btn-outline-primary time-selector right-margined" clrDropdownTrigger
+          <button type="button" class="btn btn-outline-primary time-selector left-margined" clrDropdownTrigger
             [disabled]="countLoading || listLoading">
             {{selectedTimePeriod?.title}}
             <clr-icon shape="caret down"></clr-icon>
@@ -52,7 +53,7 @@
         </clr-dropdown>
 
         <clr-dropdown>
-          <button type="button" class="btn btn-outline-primary" clrDropdownTrigger
+          <button type="button" class="btn btn-outline-primary left-margined" clrDropdownTrigger
             [disabled]="countLoading || listLoading">
             {{'logging.exports.title' | translate}}
             <clr-icon shape="caret down"></clr-icon>
