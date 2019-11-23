@@ -1,24 +1,46 @@
 <div class="p-2">
   <div class="clr-row">
-    <div class="clr-col-6">
+    <div class="clr-col-5 log-header">
+      <!-- select service -->
+      <select clrSelect (change)="refresh()" [(ngModel)]="service_name" [disabled]="countLoading || listLoading"
+        class="service-dropdown">
+        <option selected [value]="'all'">{{ 'logging.serviceName.all' | translate }}
+        </option>
+        <option *ngFor="let service of service_names" [value]="service">
+          {{'logging.serviceName.' + service | translate}}
+        </option>
+      </select>
+
+      <!-- logging title -->
       <h2 class="page-title">{{ 'logging.bar.title' | translate }}</h2>
-      <!-- (change)="distributeZones()" -->
-      <select clrSelect>
-        <option *ngFor="let node of nodes" [ngValue]="num">{{ node.name }}
+
+      <!-- select replica id -->
+      <select clrSelect (change)="refresh()" [(ngModel)]="replicaId" [disabled]="countLoading || listLoading">
+        <option *ngFor="let node of nodes" [value]="node?.id">{{ node.name }}
         </option>
       </select>
     </div>
-    <div class="clr-col-6">
+    <div class="clr-col-7">
       <div class="text-right">
         <button type="button" class="btn btn-link right-margined" (click)="refresh()"
           [disabled]="countLoading || listLoading">
           <clr-icon shape="refresh"></clr-icon>
           {{'logging.refresh' | translate}}
         </button>
+
+        <!-- verbose toggle button -->
+        <clr-toggle-container>
+          <clr-toggle-wrapper>
+            <input type="checkbox" clrToggle name="verbose" value="verbose" [(ngModel)]="verbose" (change)="refresh()"
+              [disabled]="countLoading || listLoading" />
+            <label>{{ 'logging.verbose' | translate }}</label>
+          </clr-toggle-wrapper>
+        </clr-toggle-container>
+
         <clr-dropdown>
-          <button type="button" class="btn btn-outline-primary time-selector right-margined"
-            clrDropdownTrigger [disabled]="countLoading || listLoading">
-            {{selectedTimePeriod.title}}
+          <button type="button" class="btn btn-sm btn-outline-primary time-selector left-margined" clrDropdownTrigger
+            [disabled]="countLoading || listLoading">
+            {{selectedTimePeriod?.title}}
             <clr-icon shape="caret down"></clr-icon>
           </button>
           <clr-dropdown-menu *clrIfOpen clrPosition="bottom-right">
@@ -29,8 +51,9 @@
             </button>
           </clr-dropdown-menu>
         </clr-dropdown>
+
         <clr-dropdown>
-          <button type="button" class="btn btn-outline-primary" clrDropdownTrigger
+          <button type="button" class="btn btn-sm btn-outline-primary left-margined" clrDropdownTrigger
             [disabled]="countLoading || listLoading">
             {{'logging.exports.title' | translate}}
             <clr-icon shape="caret down"></clr-icon>
@@ -55,7 +78,7 @@
             <span class="spinner spinner-lg"></span>
           </div>
           <concord-log-graph [graphData]="graphData" [xAxisTickFormatting]="xAxisTickFormatting"
-            [interval]="selectedTimePeriod.interval"></concord-log-graph>
+            [interval]="selectedTimePeriod?.interval"></concord-log-graph>
         </div>
       </div>
     </div>

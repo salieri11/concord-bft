@@ -16,32 +16,62 @@ export class LogApiService {
 
   constructor(private httpClient: HttpClient) { }
 
-  postToTasks(start: number, end: number, rows: number = 20): Observable<LogTaskResponse> {
+  postToTasks(
+    start: number,
+    end: number,
+    replicaId: string,
+    verbose: boolean,
+    service_name: string,
+    rows: number = 100): Observable<LogTaskResponse> {
+    const query = `SELECT * FROM logs ${this.getWhereClause(verbose, service_name)}ORDER BY ingest_timestamp DESC`;
+
     const logQuery = {
-      logQuery: 'SELECT * FROM logs ORDER BY ingest_timestamp DESC',
+      logQuery: query,
       start: start,
       end: end,
       rows: rows
     };
-    return this.logQueryTask(logQuery);
+    return this.logQueryTask(logQuery, replicaId);
   }
 
-  postToTasksCount(start: number, end: number, interval: number): Observable<LogTaskResponse> {
+  postToTasksCount(
+    start: number,
+    end: number,
+    replicaId: string,
+    verbose: boolean,
+    service_name: string,
+    interval: number): Observable<LogTaskResponse> {
+    const query = `SELECT COUNT(*), timestamp FROM logs ` +
+      `${this.getWhereClause(verbose, service_name)}GROUP BY bucket(timestamp, ${interval}, ${start}, ${end}) ORDER BY timestamp DESC`;
+
     const logQuery = {
-      logQuery: `SELECT COUNT(*), timestamp FROM logs GROUP BY bucket(timestamp, ${interval}, ${start}, ${end}) ORDER BY timestamp DESC`,
+      logQuery: query,
       start: start,
       end: end
     };
-    return this.logQueryTask(logQuery);
+    return this.logQueryTask(logQuery, replicaId);
   }
 
-  postToPureCount(start: number, end: number): Observable<LogTaskResponse> {
+  postToPureCount(start: number, end: number, replicaId: string, verbose: boolean, service_name: string): Observable<LogTaskResponse> {
+    const query = `SELECT COUNT(*) FROM logs ${this.getWhereClause(verbose, service_name)}`;
+
     const logQuery = {
-      logQuery: 'SELECT COUNT(*) FROM logs',
+      logQuery: query,
       start: start,
       end: end
     };
-    return this.logQueryTask(logQuery);
+    return this.logQueryTask(logQuery, replicaId);
+  }
+
+  getWhereClause(verbose: boolean, service_name: string) {
+    if (!verbose && service_name !== 'all') {
+      return `WHERE service_name = '${service_name}' AND (level = 'INFO' OR level = 'ERROR') `;
+    } else if (!verbose) {
+      return `WHERE (level = 'INFO' OR level = 'ERROR') `;
+    } else if (service_name && service_name !== 'all') {
+      return `WHERE service_name = '${service_name}' `;
+    }
+    return '';
   }
 
   fetchLogStatus(path: string): Observable<LogTaskCompletedResponse> {
@@ -96,9 +126,9 @@ export class LogApiService {
     });
   }
 
-  private logQueryTask(logQuery: LogTaskParams): Observable<LogTaskResponse> {
+  private logQueryTask(logQuery: LogTaskParams, replicaId: string = ''): Observable<LogTaskResponse> {
     return this.httpClient.post<LogTaskResponse>(
-      `api/lint/ops/query/log-query-tasks/`,
+      `api/lint/ops/query/log-query-tasks?replica_id=${replicaId}`,
       logQuery
     );
   }

@@ -15,3 +15,16 @@ export const TWELVE_HOURS = ONE_HOUR * 12;
 export const ONE_DAY = ONE_HOUR * 24;
 export const SEVEN_DAYS = ONE_DAY * 7;
 export const THIRTY_DAYS = ONE_DAY * 30;
+
+export const ALL_SERVICES = 'all';
+
+export const DAML_SERVICE_NAMES = [
+  'concord',
+  'daml_ledger_api',
+  'daml_execution_engine'
+];
+
+export const ETHEREUM_SERVICE_NAMES = [
+  'concord',
+  'ethrpc'
+];
