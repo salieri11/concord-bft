@@ -5,6 +5,7 @@
 #include <vector>
 #include "common/concord_exception.hpp"
 #include "concord_storage.pb.h"
+#include "storage/kvb_key_types.h"
 #include "utils/concord_eth_hash.hpp"
 
 using concordUtils::Sliver;
@@ -15,6 +16,9 @@ using concord::common::EVMException;
 using concord::common::ReadOnlyModeException;
 using concord::common::zero_hash;
 
+using concord::storage::kKvbKeyHlfBlock;
+using concord::storage::kKvbKeyHlfState;
+using concord::storage::kKvbKeyHlfTransaction;
 using concord::storage::blockchain::IBlocksAppender;
 using concord::storage::blockchain::ILocalKeyValueStorageReadOnly;
 using concordUtils::BlockId;
@@ -85,15 +89,15 @@ Sliver HlfKvbStorage::KvbKey(uint8_t type, const uint8_t *bytes,
 }
 
 Sliver HlfKvbStorage::HlfStateKey(const string &key) const {
-  return KvbKey(kTypeHlfState, key);
+  return KvbKey(kKvbKeyHlfState, key);
 }
 
 Sliver HlfKvbStorage::HlfTransactionKey(const evm_uint256be &hash) const {
-  return KvbKey(kTypeHlfTransaction, hash.bytes, sizeof(evm_uint256be));
+  return KvbKey(kKvbKeyHlfTransaction, hash.bytes, sizeof(evm_uint256be));
 }
 
 Sliver HlfKvbStorage::HlfBlockKey(const evm_uint256be &hash) const {
-  return KvbKey(kTypeHlfBlock, hash.bytes, sizeof(evm_uint256be));
+  return KvbKey(kKvbKeyHlfBlock, hash.bytes, sizeof(evm_uint256be));
 }
 
 ////////////////////////////////////////
@@ -141,7 +145,7 @@ com::vmware::concord::hlf::storage::HlfBlock HlfKvbStorage::GetHlfBlock(
 
   if (status.isOK()) {
     for (auto kvp : out_blockData) {
-      if (kvp.first.data()[0] == kTypeHlfBlock) {
+      if (kvp.first.data()[0] == kKvbKeyHlfBlock) {
         com::vmware::concord::hlf::storage::HlfBlock hlfBlock;
         hlfBlock.ParseFromArray(kvp.second.data(), kvp.second.length());
         return hlfBlock;

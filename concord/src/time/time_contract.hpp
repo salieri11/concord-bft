@@ -48,6 +48,7 @@
 
 #include "blockchain/db_interfaces.h"
 #include "config/configuration_manager.hpp"
+#include "storage/kvb_key_types.h"
 #include "time_exception.hpp"
 #include "time_verification.hpp"
 
@@ -55,7 +56,6 @@ namespace concord {
 namespace time {
 
 const int64_t kTimeStorageVersion = 1;
-const char kTimeKey = 0x20;
 
 class TimeContract {
  public:
@@ -79,7 +79,7 @@ class TimeContract {
         verifier_(),
         samples_(nullptr),
         changed_(false),
-        time_key_(new char[1]{kTimeKey}, 1) {
+        time_key_(new char[1]{concord::storage::kKvbKeyTime}, 1) {
     if (config.hasValue<std::string>("time_verification")) {
       if (config.getValue<std::string>("time_verification") ==
           "rsa-time-signing") {
