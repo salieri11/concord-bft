@@ -33,6 +33,7 @@
 /performance/ @vlin @dparmar @rsg @bfink
 /persephone/ @jameschang @khank @sanchitar
 /src/ @rvollmar @rsg
+/thin-replica-client/ @rmuschner @upshawa
 /ui/ @mharrison @hbhavsar @tusharg @kkeunwoo @mandeab
 /vars/ @rvollmar @rsg
 /kubernetes/ @bsubramanian @jameschang @khank @rvollmar
