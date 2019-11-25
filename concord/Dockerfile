@@ -9,7 +9,7 @@
 ##         from parent: docker build -f concord/Dockerfile .
 
 ## Build image
-FROM athena-docker-local.artifactory.eng.vmware.com/concord-core:prereqs-v13
+FROM athena-docker-local.artifactory.eng.vmware.com/concord-core:prereqs-v14
 
 ## Remember context is the parent of this directory
 COPY ./communication /communication
@@ -87,7 +87,7 @@ COPY --from=0 /usr/local/go /usr/local/go
 # this peer is for cli calls for sending chaincode commands from c++ concord
 # to our custom golang peer defined in submodules/hlf-chcaincode-engine/Dockerfile-peer
 # built from 'integrate2concord' git branch and tagged as {hlf_peer_base}:{hlf_peer_base_tag}
-COPY --from=0 /opt/gopath/src/github.com/hyperledger/fabric/.build/bin/peer /concord/
+COPY --from=athena-docker-local.artifactory.eng.vmware.com/fabric-tools:prereqs-v1 /usr/local/bin/peer /concord/
 
 # HLF_HARDCODED_CONFIG
 COPY ./docker/hlf/crypto-config/ /concord/crypto-config
