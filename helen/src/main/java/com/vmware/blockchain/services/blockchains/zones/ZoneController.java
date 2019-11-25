@@ -271,10 +271,11 @@ public class ZoneController {
      */
     @RequestMapping(path = "/{zone_id}", method = RequestMethod.PATCH)
     @PreAuthorize("@authHelper.isConsortiumAdmin()")
-    ResponseEntity<ZoneResponse> patchZone(@PathVariable("zone_id") UUID zoneId,
+    ResponseEntity<ZoneResponse> patchZone(@PathVariable("zone_id") String zoneId,
                                            @RequestBody(required = false) ZoneRequest request)
             throws Exception {
-        Zone zone = zoneService.getAuthorized(zoneId);
+        // Only for ONPREM for now
+        Zone zone = zoneService.getAuthorized(UUID.fromString(zoneId));
 
         // everything from here on needs a request body.
         if (request == null) {
@@ -283,12 +284,9 @@ public class ZoneController {
 
         Zone updatedZone = requestToZone(request);
 
-        OnpremRequest onpremRequest;
-
         if (zone instanceof OnpremZone) {
             OnpremZone op = (OnpremZone) zone;
-            OnpremZone opUpdated = (OnpremZone) updatedZone;
-            onpremRequest = (OnpremRequest) request;
+            OnpremRequest onpremRequest = (OnpremRequest) request;
             if (op.getOrgId() == null || !authHelper.isSystemAdmin()) {
                 op.setOrgId(authHelper.getOrganizationId());
             }
@@ -303,25 +301,24 @@ public class ZoneController {
                 zone.setOrgId(onpremRequest.getOrgId());
             }
             if (onpremRequest.getVcenter() != null) {
-                ((OnpremZone)zone).setVCenter(onpremRequest.getVcenter());
+                ((OnpremZone) zone).setVCenter(onpremRequest.getVcenter());
             }
             if (onpremRequest.getResourcePool() != null) {
-                ((OnpremZone)zone).setResourcePool(onpremRequest.getResourcePool());
+                ((OnpremZone) zone).setResourcePool(onpremRequest.getResourcePool());
             }
             if (onpremRequest.getStorage() != null) {
-                ((OnpremZone)zone).setStorage(onpremRequest.getStorage());
+                ((OnpremZone) zone).setStorage(onpremRequest.getStorage());
             }
             if (onpremRequest.getFolder() != null) {
-                ((OnpremZone)zone).setFolder(onpremRequest.getFolder());
+                ((OnpremZone) zone).setFolder(onpremRequest.getFolder());
             }
             if (onpremRequest.getNetwork() != null) {
-                ((OnpremZone)zone).setNetwork(onpremRequest.getNetwork());
+                ((OnpremZone) zone).setNetwork(onpremRequest.getNetwork());
             }
             if (onpremRequest.getContainerRepo() != null) {
-                ((OnpremZone)zone).setContainerRepo(onpremRequest.getContainerRepo());
+                ((OnpremZone) zone).setContainerRepo(onpremRequest.getContainerRepo());
             }
         }
-
 
         ValidateOrchestrationSiteRequest req = ValidateOrchestrationSiteRequest.newBuilder()
                 .setHeader(MessageHeader.newBuilder().build())
