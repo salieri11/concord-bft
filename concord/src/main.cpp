@@ -363,6 +363,23 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
                                      std::move(daml_validator)));
     } else if (hlf_enabled) {
       LOG4CPLUS_INFO(logger, "Hyperledger Fabric feature is enabled");
+
+      // HLF
+      //
+      // Time service feature is causing HLF chaincode transactions
+      // to hang in consensus. FEATURE_time_service needs to be set to false,
+      // this is currently hardcoded for concord deployment as its the only
+      // custom parameter
+      // TODO(JB): debug issue & create task for time service with HLF
+      if (concord::time::IsTimeServiceEnabled(config)) {
+        LOG4CPLUS_WARN(
+            logger,
+            "Time Service Enabled ignored..not supported with HLF enabled");
+        config.loadValue("FEATURE_time_service", "false");
+      }
+
+      assert(!concord::time::IsTimeServiceEnabled(config));
+
       // Init chaincode invoker
       ChaincodeInvoker *chaincode_invoker = new ChaincodeInvoker(nodeConfig);
 
