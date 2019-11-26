@@ -325,7 +325,7 @@ public class ZoneController {
 
         CompletableFuture<ValidateOrchestrationSiteResponse> future = new CompletableFuture<>();
 
-        orcestrationClient.validateOrchestrationSite(req, FleetUtils.blockedResultObserver(future));
+        orchestrationClient.validateOrchestrationSite(req, FleetUtils.blockedResultObserver(future));
         // We don't really need the value.  If this call succeeds, the connection is OK
         future.get();
         return new ResponseEntity<>(getZoneResponse(zone), HttpStatus.OK);
