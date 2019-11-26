@@ -1,5 +1,5 @@
 // Copyright 2019 VMware, all rights reserved
- 
+
 #ifndef THIN_REPLICA_CLIENT_HPP_
 #define THIN_REPLICA_CLIENT_HPP_
 
@@ -15,8 +15,11 @@ class ThinReplicaClient {
 
  public:
   ThinReplicaClient(std::shared_ptr<grpc::Channel> channel)
-      : logger_(log4cplus::Logger::getInstance("com.vmware.thin_replica_client")),
-      stub_(com::vmware::concord::thin_replica::ThinReplica::NewStub(channel)) {}
+      : logger_(
+            log4cplus::Logger::getInstance("com.vmware.thin_replica_client")),
+        stub_(
+            com::vmware::concord::thin_replica::ThinReplica::NewStub(channel)) {
+  }
 
   grpc::Status ReadState();
 };
