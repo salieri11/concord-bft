@@ -34,7 +34,7 @@ import lombok.NoArgsConstructor;
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = EXISTING_PROPERTY, property = "type",
         visible = true, defaultImpl = Zone.class)
 @JsonSubTypes({
-        @Type(value = OnpremZone.class, name = "ON_PREM"),
+        @Type(value = OnPremZone.class, name = "ON_PREM"),
         @Type(value = VmcAwsZone.class, name = "VMC_AWS"),
     })
 public class Zone extends AbstractEntity {
@@ -97,6 +97,25 @@ public class Zone extends AbstractEntity {
         NONE,
         ON_PREM,
         VMC_AWS
+    }
+
+    /**
+     *  Log Destination Type.
+     */
+    public enum LogDestination {
+        LOG_INTELLIGENCE(0),
+        LOG_INSIGHT(1);
+
+        private final int value;
+
+        LogDestination(final int value) {
+            this.value = value;
+        }
+
+        public int getValue() {
+            return value;
+        }
+
     }
 
     @LinkedEntityId

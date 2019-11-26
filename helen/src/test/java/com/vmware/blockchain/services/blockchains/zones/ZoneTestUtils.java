@@ -10,6 +10,7 @@ import static com.vmware.blockchain.services.blockchains.zones.Zone.Type.ON_PREM
 import java.util.UUID;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 
 /**
  * Test utilities for Zone.
@@ -19,14 +20,14 @@ public class ZoneTestUtils {
     /**
      * create an on Prem zone.
      */
-    public static  OnpremZone getOnpremZone(UUID id, UUID orgId) {
+    public static OnPremZone getOnpremZone(UUID id, UUID orgId) {
         // Now construct an onprem zone
-        OnpremZone ozone = new OnpremZone();
+        OnPremZone ozone = new OnPremZone();
         ozone.setId(id);
         ozone.setType(ON_PREM);
         ozone.setName("On Prem");
         ozone.setOrgId(orgId);
-        ozone.setVCenter(new OnpremZone.EndPoint("http://vcenter", "admin", "password"));
+        ozone.setVCenter(new OnPremZone.EndPoint("http://vcenter", "admin", "password"));
         ozone.setResourcePool("pool");
         ozone.setStorage("datastore");
         ozone.setFolder("folder");
@@ -37,11 +38,17 @@ public class ZoneTestUtils {
                                  .gateway("10.1.1.1")
                                  .nameServers(ImmutableList.of("10.1.1.3"))
                                  .build());
-        ozone.setContainerRepo(new OnpremZone.EndPoint("docker-repo", "user", "docker"));
+        ozone.setLogManagements(Lists.newArrayList(OnPremZone.LogManagementOnPrem.builder()
+                                                    .destination(Zone.LogDestination.LOG_INSIGHT)
+                                                    .address("10.78.0.1:9000")
+                                                    .username("foo")
+                                                    .password("bar")
+                                                    .build()));
+        ozone.setContainerRepo(new OnPremZone.EndPoint("docker-repo", "user", "docker"));
         return ozone;
     }
 
-    public static  OnpremZone getOnpremZone(UUID orgId) {
+    public static OnPremZone getOnpremZone(UUID orgId) {
         return getOnpremZone(null, orgId);
     }
 

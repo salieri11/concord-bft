@@ -40,6 +40,7 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -71,6 +72,7 @@ import com.vmware.blockchain.deployment.v1.DeploymentSession.Status;
 import com.vmware.blockchain.deployment.v1.DeploymentSessionEvent;
 import com.vmware.blockchain.deployment.v1.DeploymentSessionEvent.Type;
 import com.vmware.blockchain.deployment.v1.DeploymentSessionIdentifier;
+import com.vmware.blockchain.deployment.v1.LogManagement;
 import com.vmware.blockchain.deployment.v1.OrchestrationSiteIdentifier;
 import com.vmware.blockchain.deployment.v1.PlacementSpecification;
 import com.vmware.blockchain.deployment.v1.ProvisionedResource;
@@ -108,6 +110,7 @@ import io.grpc.stub.StreamObserver;
  * Tests for the blockchain controller.
  */
 @ExtendWith(SpringExtension.class)
+@TestPropertySource(locations = "classpath:lint-test.properties")
 @WebMvcTest(controllers = { BlockchainController.class, TaskController.class })
 @ContextConfiguration(classes = {MvcTestSecurityConfig.class, MvcConfig.class})
 @ComponentScan(basePackageClasses = { BlockchainControllerTest.class, HelenExceptionHandler.class,
@@ -559,6 +562,26 @@ public class BlockchainControllerTest {
                                 .build()
                         .equals(e.getSite()))
                 .count());
+        Assertions.assertEquals(LogManagement.Type.LOG_INSIGHT, entries.stream()
+                .filter(e -> OrchestrationSiteIdentifier.newBuilder()
+                        .setLow(SITE_1.getLeastSignificantBits()).setHigh(SITE_1.getMostSignificantBits())
+                        .build()
+                        .equals(e.getSite()))
+                .findFirst()
+                .map(site -> site.getSiteInfo().getVsphere()
+                                .getLogManagements(0).getDestination())
+                     .orElse(LogManagement.Type.UNRECOGNIZED));
+        Assertions.assertEquals("LINT_TEST_KEY", entries.stream()
+                .filter(e -> OrchestrationSiteIdentifier.newBuilder()
+                        .setLow(SITE_2.getLeastSignificantBits())
+                        .setHigh(SITE_2.getMostSignificantBits())
+                        .build()
+                        .equals(e.getSite()))
+                .findFirst()
+                .map(site -> site.getSiteInfo().getVmc()
+                                .getLogManagements(0).getEndpoint()
+                                .getCredential().getTokenCredential().getToken())
+                     .orElse(""));
     }
 
     @Test

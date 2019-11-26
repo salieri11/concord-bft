@@ -9,6 +9,7 @@ import static com.vmware.blockchain.services.blockchains.zones.Zone.Action.RELOA
 import static com.vmware.blockchain.services.blockchains.zones.Zone.Action.TEST;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -53,15 +54,15 @@ import lombok.NoArgsConstructor;
 public class ZoneController {
     private ZoneService zoneService;
     private AuthHelper authHelper;
-    private OrchestrationSiteServiceStub orcestrationClient;
+    private OrchestrationSiteServiceStub orchestrationClient;
 
 
     @Autowired
     public ZoneController(ZoneService zoneService, AuthHelper authHelper,
-                          OrchestrationSiteServiceStub orcestrationClient) {
+                          OrchestrationSiteServiceStub orchestrationClient) {
         this.zoneService = zoneService;
         this.authHelper = authHelper;
-        this.orcestrationClient = orcestrationClient;
+        this.orchestrationClient = orchestrationClient;
     }
 
     // Response for get list.  We only want a few fields, and no subtyping.
@@ -89,7 +90,7 @@ public class ZoneController {
     @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = EXISTING_PROPERTY, property = "type",
             visible = true, defaultImpl = ZoneResponse.class)
     @JsonSubTypes({
-            @JsonSubTypes.Type(value = OnpremGetResponse.class, name = "ON_PREM"),
+            @JsonSubTypes.Type(value = OnPremGetResponse.class, name = "ON_PREM"),
             @JsonSubTypes.Type(value = VmcAwsGetResponse.class, name = "VMC_AWS"),
         })
     static class ZoneResponse {
@@ -108,10 +109,10 @@ public class ZoneController {
         }
     }
 
-    // detailed response for Onprem zone.
+    // detailed response for OnPrem zone.
     @Data
     @NoArgsConstructor
-    static class OnpremGetResponse extends ZoneResponse {
+    static class OnPremGetResponse extends ZoneResponse {
         UUID orgId;
         EndPoint vcenter;
         String resourcePool;
@@ -119,8 +120,9 @@ public class ZoneController {
         String folder;
         Zone.Network network;
         EndPoint containerRepo;
+        List<OnPremZone.LogManagementOnPrem> logManagements;
 
-        public OnpremGetResponse(OnpremZone z) {
+        public OnPremGetResponse(OnPremZone z) {
             super(z);
             this.orgId = z.getOrgId();
             this.vcenter = z.getVCenter();
@@ -129,6 +131,7 @@ public class ZoneController {
             this.folder = z.getFolder();
             this.network = z.getNetwork();
             this.containerRepo = z.containerRepo;
+            this.logManagements = (z.getLogManagements() == null) ? Collections.emptyList() : z.getLogManagements();
         }
     }
 
@@ -136,6 +139,7 @@ public class ZoneController {
     @Data
     @NoArgsConstructor
     static class VmcAwsGetResponse extends ZoneResponse {
+
         public VmcAwsGetResponse(VmcAwsZone z) {
             super(z);
         }
@@ -147,7 +151,7 @@ public class ZoneController {
     @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = EXISTING_PROPERTY, property = "type",
             visible = true, defaultImpl = ZoneRequest.class)
     @JsonSubTypes({
-            @JsonSubTypes.Type(value = OnpremRequest.class, name = "ON_PREM"),
+            @JsonSubTypes.Type(value = OnPremRequest.class, name = "ON_PREM"),
             @JsonSubTypes.Type(value = VmcAwsRequest.class, name = "VMC_AWS"),
         })
     static class ZoneRequest {
@@ -155,12 +159,11 @@ public class ZoneController {
         private String latitude;
         private String longitude;
         private Type type;
-
     }
 
     @Data
     @NoArgsConstructor
-    static class OnpremRequest extends ZoneRequest {
+    static class OnPremRequest extends ZoneRequest {
         UUID orgId;
         EndPoint vcenter;
         String resourcePool;
@@ -169,11 +172,13 @@ public class ZoneController {
         Zone.Network network;
         Zone.OutboundProxy outboundProxy;
         EndPoint containerRepo;
+        List<OnPremZone.LogManagementOnPrem> logManagements;
 
     }
 
-    static class VmcAwsRequest  extends ZoneRequest {
-        // Nothing for now
+    static class VmcAwsRequest extends ZoneRequest {
+        // TODO
+        // List<VmcAwsZone.LogManagementVmcAws> logManagements;
     }
 
     static class ZonePatchRequest {
@@ -234,8 +239,8 @@ public class ZoneController {
         Zone zone = requestToZone(request);
         // If this is an onPrem site, do the following check on org_id:
         // If the org_id is missing, or the user is not a system admin, set the org_id to the current org.
-        if (zone instanceof OnpremZone) {
-            OnpremZone op = (OnpremZone) zone;
+        if (zone instanceof OnPremZone) {
+            OnPremZone op = (OnPremZone) zone;
             if (op.getOrgId() == null || !authHelper.isSystemAdmin()) {
                 op.setOrgId(authHelper.getOrganizationId());
             }
@@ -247,7 +252,7 @@ public class ZoneController {
                     .build();
 
             CompletableFuture<ValidateOrchestrationSiteResponse> future = new CompletableFuture<>();
-            orcestrationClient.validateOrchestrationSite(req, FleetUtils.blockedResultObserver(future));
+            orchestrationClient.validateOrchestrationSite(req, FleetUtils.blockedResultObserver(future));
             // We don't really need the value.  If this call succeeds, the connection is OK
             future.get();
             return new ResponseEntity<>(getZoneResponse(zone), HttpStatus.OK);
@@ -280,7 +285,7 @@ public class ZoneController {
         ZoneResponse response;
         switch (z.type) {
             case ON_PREM:
-                response = new OnpremGetResponse((OnpremZone) z);
+                response = new OnPremGetResponse((OnPremZone) z);
                 break;
 
             case VMC_AWS:

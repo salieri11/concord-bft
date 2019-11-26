@@ -100,9 +100,9 @@ public class ZoneService {
         return genericDao.getByJsonQuery(json, Zone.class);
     }
 
-    public List<OnpremZone> getOnpremZones(UUID orgId) {
+    public List<OnPremZone> getOnpremZones(UUID orgId) {
         String json = JSONObject.toJSONString(Collections.singletonMap("type", ON_PREM.toString()));
-        return genericDao.getJsonByParentQuery(orgId, json, OnpremZone.class);
+        return genericDao.getJsonByParentQuery(orgId, json, OnPremZone.class);
     }
 
     /**
@@ -191,7 +191,7 @@ public class ZoneService {
         if (getAuthorizedTypes(org).contains(zone.getType())) {
             // next, if this is an onprem zone, see if this belongs to our org
             if (zone.getType().equals(ON_PREM)) {
-                if (!((OnpremZone) zone).getOrgId().equals(org.getId())) {
+                if (!((OnPremZone) zone).getOrgId().equals(org.getId())) {
                     throw new NotFoundException(ErrorCode.NOT_FOUND);
                 }
             }
