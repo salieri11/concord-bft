@@ -32,7 +32,8 @@ public enum DamlParticipantConfig implements BaseContainerSpec {
                   List.of(Bind.parse("/config/daml_index_db/daml_index_db:/var/lib/postgresql/data")),
                   null,
                   List.of("postgres", "-c", "max_connections=300", "-c", "shared_buffers=80MB"),
-                  List.of("POSTGRES_USER=indexdb", "POSTGRES_MULTIPLE_DATABASES=daml_ledger_api")),
+                  List.of("POSTGRES_USER=indexdb", "POSTGRES_MULTIPLE_DATABASES=daml_ledger_api",
+                          "BUFFER_SIZE=80MB", "MAX_CONNECTIONS=300")),
 
     DAML_LEDGER_API("daml_ledger_api", List.of(
             new PortBinding(Ports.Binding.bindPort(6865), ExposedPort.tcp(6865))), null,
