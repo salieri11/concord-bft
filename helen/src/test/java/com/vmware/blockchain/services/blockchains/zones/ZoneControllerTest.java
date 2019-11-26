@@ -681,11 +681,11 @@ class ZoneControllerTest {
         String body = result.getResponse().getContentAsString();
         ZoneResponse zone = objectMapper.readValue(body, ZoneResponse.class);
         // verify(zoneService, times(1)).put(any(Zone.class));
-        Assertions.assertTrue(zone instanceof OnpremGetResponse);
+        Assertions.assertTrue(zone instanceof OnPremGetResponse);
         // ORG ID for POST_ONPREM_BODY
         Assertions.assertEquals(UUID.fromString("5e5ff1c8-34b9-4fa3-9924-83eb14354d4c"),
-                ((OnpremGetResponse) zone).getOrgId());
-        Assertions.assertEquals("admin", ((OnpremGetResponse) zone).getVcenter().getUsername());
+                ((OnPremGetResponse) zone).getOrgId());
+        Assertions.assertEquals("admin", ((OnPremGetResponse) zone).getVcenter().getUsername());
     }
 
 }
