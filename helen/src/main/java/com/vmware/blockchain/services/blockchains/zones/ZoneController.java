@@ -282,9 +282,9 @@ public class ZoneController {
             throw new BadRequestException(ErrorCode.BAD_REQUEST);
         }
 
-        if (zone instanceof OnpremZone) {
-            OnpremZone op = (OnpremZone) zone;
-            OnpremRequest onpremRequest = (OnpremRequest) request;
+        if (zone instanceof OnPremZone) {
+            OnPremZone op = (OnPremZone) zone;
+            OnPremRequest onpremRequest = (OnPremRequest) request;
             if (op.getOrgId() == null || !authHelper.isSystemAdmin()) {
                 op.setOrgId(authHelper.getOrganizationId());
             }
@@ -299,22 +299,22 @@ public class ZoneController {
                 zone.setOrgId(onpremRequest.getOrgId());
             }
             if (onpremRequest.getVcenter() != null) {
-                ((OnpremZone) zone).setVCenter(onpremRequest.getVcenter());
+                ((OnPremZone) zone).setVCenter(onpremRequest.getVcenter());
             }
             if (onpremRequest.getResourcePool() != null) {
-                ((OnpremZone) zone).setResourcePool(onpremRequest.getResourcePool());
+                ((OnPremZone) zone).setResourcePool(onpremRequest.getResourcePool());
             }
             if (onpremRequest.getStorage() != null) {
-                ((OnpremZone) zone).setStorage(onpremRequest.getStorage());
+                ((OnPremZone) zone).setStorage(onpremRequest.getStorage());
             }
             if (onpremRequest.getFolder() != null) {
-                ((OnpremZone) zone).setFolder(onpremRequest.getFolder());
+                ((OnPremZone) zone).setFolder(onpremRequest.getFolder());
             }
             if (onpremRequest.getNetwork() != null) {
-                ((OnpremZone) zone).setNetwork(onpremRequest.getNetwork());
+                ((OnPremZone) zone).setNetwork(onpremRequest.getNetwork());
             }
             if (onpremRequest.getContainerRepo() != null) {
-                ((OnpremZone) zone).setContainerRepo(onpremRequest.getContainerRepo());
+                ((OnPremZone) zone).setContainerRepo(onpremRequest.getContainerRepo());
             }
         }
 
