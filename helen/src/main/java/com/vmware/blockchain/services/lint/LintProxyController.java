@@ -113,8 +113,7 @@ public class LintProxyController {
             // might throw class cast exception.  Leave the body unchanged if so
             String query = (String) map.get("logQuery");
             if (query != null) {
-                String whereClause = String.format("consortium_id = '%s' AND replica_id = '%s'",
-                                                   authHelper.getOrganizationId(), replicaId);
+                String whereClause = String.format("replica_id = '%s'", replicaId);
                 SimpleSqlParser sql = new SimpleSqlParser(query);
                 sql.addWhere(whereClause);
                 map.put("logQuery", sql.toSql());

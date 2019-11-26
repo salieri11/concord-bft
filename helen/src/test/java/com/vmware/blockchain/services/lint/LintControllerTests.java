@@ -178,35 +178,9 @@ public class LintControllerTests {
                 "{\"logQuery\":\"SELECT * FROM logs ORDER BY ingest_timestamp DESC\","
                 + "\"start\":1548092484611,\"end\":1548697284611,\"rows\":20}";
         final String response =
-                "{\"logQuery\":\"SELECT * FROM logs WHERE consortium_id = '" + CONSORTIUM_ID + "' "
-                + "AND replica_id = '" + REPLICA_ID + "' ORDER BY ingest_timestamp DESC\","
+                "{\"logQuery\":\"SELECT * FROM logs WHERE replica_id = '" + REPLICA_ID
+                + "' ORDER BY ingest_timestamp DESC\","
                 + "\"start\":1548092484611,\"end\":1548697284611,\"rows\":20}";
-
-        mockMvc.perform(post("/api/lint/log?replica_id=" + REPLICA_ID)
-                .contentType(MediaType.APPLICATION_JSON).content(query))
-                .andExpect(status().isOk());
-        // capture the values handed in to restTemplate.exchange
-        verify(restTemplate).exchange(uriCaptcha.capture(), methodCaptcha.capture(), httpCaptcha.capture(),
-                classCaptcha.capture());
-
-        final HttpEntity<String> entity = httpCaptcha.getValue();
-
-        Assertions.assertEquals("/log", uriCaptcha.getValue().toString());
-        Assertions.assertEquals(HttpMethod.POST, methodCaptcha.getValue());
-        Assertions.assertEquals(response, entity.getBody());
-        Assertions.assertEquals("Bearer anAuthToken", entity.getHeaders().getFirst("Authorization"));
-        Assertions.assertEquals(String.class, classCaptcha.getValue());
-    }
-
-    @Test
-    void replicaIdTest() throws Exception {
-        final String query =
-                "{\"logQuery\":\"SELECT * FROM logs ORDER BY ingest_timestamp DESC\","
-                        + "\"start\":1548092484611,\"end\":1548697284611,\"rows\":20}";
-        final String response =
-                "{\"logQuery\":\"SELECT * FROM logs WHERE consortium_id = '" + CONSORTIUM_ID + "' "
-                        + "AND replica_id = '" + REPLICA_ID + "' ORDER BY ingest_timestamp DESC\","
-                        + "\"start\":1548092484611,\"end\":1548697284611,\"rows\":20}";
 
         mockMvc.perform(post("/api/lint/log?replica_id=" + REPLICA_ID)
                 .contentType(MediaType.APPLICATION_JSON).content(query))
@@ -230,8 +204,8 @@ public class LintControllerTests {
                 "{\"logQuery\":\"SELECT * FROM logs ORDER BY ingest_timestamp DESC\","
                 + "\"start\":1548092484611,\"end\":1548697284611,\"rows\":20}";
         final String response =
-                "{\"logQuery\":\"SELECT * FROM logs WHERE consortium_id = '" + CONSORTIUM_ID + "' "
-                + "AND replica_id = '" + REPLICA_ID + "' ORDER BY ingest_timestamp DESC\","
+                "{\"logQuery\":\"SELECT * FROM logs WHERE replica_id = '" + REPLICA_ID
+                + "' ORDER BY ingest_timestamp DESC\","
                 + "\"start\":1548092484611,\"end\":1548697284611,\"rows\":20}";
 
         mockMvc.perform(post("/api/lint/log?odata=*&replica_id=" + REPLICA_ID)
@@ -256,8 +230,8 @@ public class LintControllerTests {
                 "{\"logQuery\":\"SELECT * FROM logs WHERE user = 'userId' ORDER BY ingest_timestamp DESC\","
                 + "\"start\":1548092484611,\"end\":1548697284611,\"rows\":20}";
         final String response =
-                "{\"logQuery\":\"SELECT * FROM logs WHERE (consortium_id = '" + CONSORTIUM_ID + "' "
-                + "AND replica_id = '" + REPLICA_ID + "') AND (user = 'userId' ) ORDER BY ingest_timestamp DESC\","
+                "{\"logQuery\":\"SELECT * FROM logs WHERE (replica_id = '" + REPLICA_ID + "') "
+                + "AND (user = 'userId' ) ORDER BY ingest_timestamp DESC\","
                 + "\"start\":1548092484611,\"end\":1548697284611,\"rows\":20}";
 
         mockMvc.perform(post("/api/lint/log?replica_id=" + REPLICA_ID)
@@ -283,8 +257,8 @@ public class LintControllerTests {
                         + "ORDER BY ingest_timestamp DESC\","
                         + "\"start\":1548092484611,\"end\":1548697284611,\"rows\":20}";
         final String response =
-                "{\"logQuery\":\"SELECT * FROM logs WHERE (consortium_id = '" + CONSORTIUM_ID + "' "
-                        + "AND replica_id = '" + REPLICA_ID + "') AND (service_name = 'concord' AND level = 'INFO' ) "
+                "{\"logQuery\":\"SELECT * FROM logs WHERE (replica_id = '" + REPLICA_ID + "') "
+                        + "AND (service_name = 'concord' AND level = 'INFO' ) "
                         + "ORDER BY ingest_timestamp DESC\","
                         + "\"start\":1548092484611,\"end\":1548697284611,\"rows\":20}";
 
@@ -311,8 +285,8 @@ public class LintControllerTests {
                         + "ORDER BY ingest_timestamp DESC\","
                         + "\"start\":1548092484611,\"end\":1548697284611,\"rows\":20}";
         final String response =
-                "{\"logQuery\":\"SELECT * FROM logs WHERE (consortium_id = '" + CONSORTIUM_ID + "' "
-                        + "AND replica_id = '" + REPLICA_ID + "') AND ((level = 'INFO' OR level = 'ERROR') ) "
+                "{\"logQuery\":\"SELECT * FROM logs WHERE (replica_id = '" + REPLICA_ID + "') "
+                        + "AND ((level = 'INFO' OR level = 'ERROR') ) "
                         + "ORDER BY ingest_timestamp DESC\","
                         + "\"start\":1548092484611,\"end\":1548697284611,\"rows\":20}";
 
@@ -339,9 +313,9 @@ public class LintControllerTests {
                         + "(level = 'INFO' OR level = 'ERROR') ORDER BY ingest_timestamp DESC\","
                         + "\"start\":1548092484611,\"end\":1548697284611,\"rows\":20}";
         final String response =
-                "{\"logQuery\":\"SELECT * FROM logs WHERE (consortium_id = '" + CONSORTIUM_ID + "' "
-                        + "AND replica_id = '" + REPLICA_ID + "') AND (service_name = 'concord' AND "
-                        + "(level = 'INFO' OR level = 'ERROR') ) ORDER BY ingest_timestamp DESC\","
+                "{\"logQuery\":\"SELECT * FROM logs WHERE (replica_id = '" + REPLICA_ID + "') "
+                        + "AND (service_name = 'concord' AND (level = 'INFO' OR level = 'ERROR') ) "
+                        + "ORDER BY ingest_timestamp DESC\","
                         + "\"start\":1548092484611,\"end\":1548697284611,\"rows\":20}";
 
         mockMvc.perform(post("/api/lint/log?replica_id=" + REPLICA_ID)
@@ -390,8 +364,8 @@ public class LintControllerTests {
                 "{\"logQuery\":\"SELECT * FROM logs ORDER BY ingest_timestamp DESC\","
                 + "\"start\":1548092484611,\"end\":1548697284611,\"rows\":20,\"color\":\"red\"}";
         final String response =
-                "{\"logQuery\":\"SELECT * FROM logs WHERE consortium_id = '" + CONSORTIUM_ID + "' "
-                + "AND replica_id = '" + REPLICA_ID + "' ORDER BY ingest_timestamp DESC\","
+                "{\"logQuery\":\"SELECT * FROM logs WHERE replica_id = '" + REPLICA_ID + "' "
+                + "ORDER BY ingest_timestamp DESC\","
                 + "\"start\":1548092484611,\"end\":1548697284611,\"rows\":20,\"color\":\"red\"}";
 
         mockMvc.perform(post("/api/lint/log?replica_id=" + REPLICA_ID)
