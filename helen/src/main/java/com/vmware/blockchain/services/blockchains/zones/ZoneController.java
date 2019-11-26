@@ -282,8 +282,6 @@ public class ZoneController {
             throw new BadRequestException(ErrorCode.BAD_REQUEST);
         }
 
-        Zone updatedZone = requestToZone(request);
-
         if (zone instanceof OnpremZone) {
             OnpremZone op = (OnpremZone) zone;
             OnpremRequest onpremRequest = (OnpremRequest) request;
@@ -366,5 +364,4 @@ public class ZoneController {
         }
         return response;
     }
-
 }
