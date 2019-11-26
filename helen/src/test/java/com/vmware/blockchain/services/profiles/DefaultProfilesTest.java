@@ -31,6 +31,8 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.vmware.blockchain.common.Constants;
 import com.vmware.blockchain.security.ServiceContext;
 import com.vmware.blockchain.services.blockchains.Blockchain;
 import com.vmware.blockchain.services.blockchains.Blockchain.NodeEntry;
@@ -246,6 +248,8 @@ class DefaultProfilesTest {
         List<String> certList = ImmutableList.of("/config/replica0-cacert.pem");
         Assertions.assertEquals(organization.getId(), profiles.getOrganization().getId());
         Assertions.assertEquals("ADMIN", profiles.getOrganization().getOrganizationName());
+        Assertions.assertEquals(ImmutableMap.of(Constants.ORG_MAX_CHAINS, "0"),
+                                profiles.getOrganization().getOrganizationProperties());
         Assertions.assertEquals(consortium.getId(), profiles.getConsortium().getId());
         Assertions.assertEquals("ADMIN", profiles.getConsortium().getConsortiumName());
         Assertions.assertEquals(blockchain.getId(), profiles.getBlockchain().getId());
