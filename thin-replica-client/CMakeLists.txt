@@ -15,9 +15,8 @@ include_directories(${PROTOBUF_INCLUDE_DIR})
 find_package(GRPC REQUIRED)
 include_directories(${GRPC_INCLUDE_DIR})
 
-# TODO: Run clang-format check over all source files
-
 add_subdirectory("lib")
+add_subdirectory("scripts")
 
 # Library header
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/lib)

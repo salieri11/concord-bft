@@ -5,8 +5,8 @@
 using grpc::ClientContext;
 using grpc::Status;
 
-using com::vmware::concord::thin_replica::ReadStateRequest;
 using com::vmware::concord::thin_replica::Data;
+using com::vmware::concord::thin_replica::ReadStateRequest;
 
 grpc::Status ThinReplicaClient::ReadState() {
   ReadStateRequest request;
