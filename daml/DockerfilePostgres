@@ -5,4 +5,13 @@ COPY daml/daml-index-db-entrypoint.sh /doc/daml/daml-index-db-entrypoint.sh
 EXPOSE 5432
 
 RUN chmod 755 /doc/daml/daml-index-db-entrypoint.sh
-ENTRYPOINT /doc/daml/daml-index-db-entrypoint.sh $@
+
+# Default environment variable values.
+ENV POSTGRES_USER=indexdb
+ENV POSTGRES_MULTIPLE_DATABASES=daml_ledger_api
+ENV BUFFER_SIZE=80MB
+ENV MAX_CONNECTIONS=300
+
+ENTRYPOINT ["/doc/daml/daml-index-db-entrypoint.sh"]
+
+CMD ["postgres"]

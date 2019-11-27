@@ -11,4 +11,4 @@ if [ -e ${CONFIG_FILE} ]; then
   source ${CONFIG_FILE}
 fi
 
-/doc/daml/kvbc_validator/target/universal/stage/bin/kvbc-validator
+/doc/daml/kvbc_validator/target/universal/stage/bin/kvbc-validator $@

@@ -26,4 +26,8 @@ RUN sbt stage
 EXPOSE 55000
 
 RUN chmod 755 /doc/daml/daml-execution-engine-entrypoint.sh
-ENTRYPOINT /doc/daml/daml-execution-engine-entrypoint.sh $@
+
+ENTRYPOINT ["/doc/daml/daml-execution-engine-entrypoint.sh"]
+
+CMD ["-J-Xmx4G"]
+

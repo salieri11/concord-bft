@@ -11,4 +11,5 @@ if [ -e ${CONFIG_FILE} ]; then
   source ${CONFIG_FILE}
 fi
 
-docker-entrypoint.sh -c 'shared_buffers='"$BUFFER_SIZE" -c 'max_connections='"$MAX_CONNECTIONS"
+echo "Running entry point script with $@ -c max_connections=${MAX_CONNECTIONS} -c shared_buffers=${BUFFER_SIZE}"
+docker-entrypoint.sh $@ -c max_connections=${MAX_CONNECTIONS} -c shared_buffers=${BUFFER_SIZE}
