@@ -30,7 +30,7 @@ message CommitResponse {
 
   enum CommitStatus {
     OK = 0;
-    CONFLICT = 1;
+    ERROR = 1;
   }
 }
 
