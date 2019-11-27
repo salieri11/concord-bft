@@ -349,6 +349,7 @@ export class MockBlockchainsService {
   zones = fakeZones;
   blockchaindId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
   type = ContractEngines.ETH;
+  metadata = {consortium_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'};
 
   select(id: string): Observable<boolean> {
     return of(typeof id === 'string');

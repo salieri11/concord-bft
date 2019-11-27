@@ -7,6 +7,7 @@ import { of as observableOf } from 'rxjs';
 import { BlockchainWizardComponent } from './blockchain-wizard.component';
 import { getSpecTestingModule } from '../../shared/shared-testing.module';
 import { ZoneType } from '../shared/blockchain.model';
+import { AuthenticationService } from '../../shared/authentication.service';
 
 describe('BlockchainWizardComponent', () => {
   let component: BlockchainWizardComponent;
@@ -16,7 +17,7 @@ describe('BlockchainWizardComponent', () => {
     const tester = getSpecTestingModule();
     tester.importLanguagePack();
     TestBed.configureTestingModule(tester.init({
-      imports: [], provides: [], declarations: []
+      imports: [], provides: [AuthenticationService], declarations: []
     })).compileComponents();
   }));
 

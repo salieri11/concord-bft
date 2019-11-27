@@ -6,11 +6,12 @@ import { Injectable } from '@angular/core';
 import { Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { map, flatMap } from 'rxjs/operators';
 
 import { Personas, PersonaService } from './persona.service';
 import { User, UserAuthResponse } from '../users/shared/user.model';
 import { UsersService } from '../users/shared/users.service';
+import { OrgService } from '../orgs/shared/org.service';
 
 @Injectable()
 export class AuthenticationService {
@@ -21,10 +22,12 @@ export class AuthenticationService {
   accessToken: string;
   logoutPath: string = '/api/oauth/logout';
   parsedToken: any;
+  orgProps: any;
 
   constructor(
     private personaService: PersonaService,
     private usersService: UsersService,
+    private orgService: OrgService,
     private http: HttpClient,
     private router: Router,
   ) {
@@ -36,7 +39,6 @@ export class AuthenticationService {
       wallet_address: localStorage['helen.wallet_address']
     });
     this.user = this.userSubject.asObservable();
-    // this.personaService.currentPersona.push(localStorage['helen.persona']);
   }
 
   isAuthenticated() {
@@ -62,7 +64,8 @@ export class AuthenticationService {
         this.setPersona(this.parsedToken.perms);
 
         return response;
-      })
+      }),
+      flatMap(response => this.resolveOrgProperties(response))
     );
   }
 
@@ -225,6 +228,22 @@ export class AuthenticationService {
     }).join(''));
 
     return JSON.parse(jsonPayload);
+  }
+
+  private resolveOrgProperties(response): Observable<any> {
+    const orgId = this.parsedToken.context_name;
+
+    return this.orgService.getDetail(orgId).pipe(
+      map(res => {
+        if (res.organization_properties === null) {
+          res.organization_properties = {max_chains: 1};
+        }
+        res.organization_properties.max_chains = Number(res.organization_properties.max_chains);
+        this.orgProps = res.organization_properties;
+
+        return response;
+      })
+    );
   }
 
   // TODO: Use country list from CSP VIP

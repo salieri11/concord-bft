@@ -6,17 +6,28 @@ import { TestBed, inject } from '@angular/core/testing';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { RouterTestingModule } from '@angular/router/testing';
 import { of as observableOf } from 'rxjs';
+import { MockSharedModule } from './shared.module';
 
 import { AuthenticationService } from './authentication.service';
 import { Personas, PersonaService } from './persona.service';
 import { User } from '../users/shared/user.model';
 import { UsersService } from '../users/shared/users.service';
+import { OrgService } from '../orgs/shared/org.service';
 
 describe('AuthenticationService', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
-      imports: [HttpClientTestingModule, RouterTestingModule],
-      providers: [AuthenticationService, PersonaService, UsersService]
+      imports: [
+        MockSharedModule,
+        HttpClientTestingModule,
+        RouterTestingModule
+      ],
+      providers: [
+        AuthenticationService,
+        PersonaService,
+        UsersService,
+        OrgService
+      ]
     });
   });
 

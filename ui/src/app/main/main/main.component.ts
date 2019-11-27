@@ -6,19 +6,21 @@ import { Component, NgZone, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { Router, ActivatedRoute, Params } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Subscription } from 'rxjs';
+import { ClrModal } from '@clr/angular';
 
 import { environment } from '../../../environments/environment';
 import { AuthenticationService } from '../../shared/authentication.service';
 import { ErrorAlertService } from '../../shared/global-error-handler.service';
 import { BlockchainService } from '../../blockchain/shared/blockchain.service';
-import { BlockchainResponse } from '../../blockchain/shared/blockchain.model';
 import { Personas, PersonaService } from '../../shared/persona.service';
 import { TourService } from '../../shared/tour.service';
+import { RouteService } from '../../shared/route.service';
+
+import { BlockchainResponse } from '../../blockchain/shared/blockchain.model';
+import { External, mainRoutes, uuidRegExp } from '../../shared/urls.model';
+import { OrgProperties } from '../../orgs/shared/org.model';
 
 import { OnPremisesModalComponent } from '../../blockchain/on-premises-modal/on-premises-modal.component';
-import { External, mainRoutes, uuidRegExp } from '../../shared/urls.model';
-import { ClrModal } from '@clr/angular';
-import { RouteService } from '../../shared/route.service';
 
 
 @Component({
@@ -42,7 +44,7 @@ export class MainComponent implements OnInit, OnDestroy {
   showErrorMessage: boolean = false;
   error: HttpErrorResponse;
   urls = External;
-  disableDeploy: boolean;
+  enableDeploy: boolean;
   blockchainUnresolved: boolean = false;
   blockchainType: string;
   welcomeFragmentExists: boolean = false;
@@ -50,6 +52,7 @@ export class MainComponent implements OnInit, OnDestroy {
   alertSub: Subscription;
   routeParamsSub: Subscription;
   routerFragmentChange: Subscription;
+  orgProps: OrgProperties;
 
   // Blockchain Service is resolved in the router before loading
   get selectedConsortium(): string {
@@ -94,8 +97,13 @@ export class MainComponent implements OnInit, OnDestroy {
       this.routeParamsSub = this.route.params.subscribe(param => this.handleParams(param));
       this.alertSub = this.alertService.notify.subscribe(error => this.addAlert(error));
       if (!environment.csp) { this.setInactivityTimeout(); }
+      this.orgProps = this.authenticationService.orgProps;
+      console.log(this.orgProps);
+
       this.checkAuthorization();
     }
+
+
   }
 
   ngOnInit() {
@@ -244,12 +252,21 @@ export class MainComponent implements OnInit, OnDestroy {
     }
   }
 
-  private checkAuthorization() {
-    if (this.personaService.hasAuthorization(Personas.SystemsAdmin)) {
-      this.disableDeploy = false;
-    } else if (this.blockchains.length >= 1) {
-      this.disableDeploy = true;
+  private checkAuthorization(): boolean {
+    const blockchainCount = this.blockchains.length;
+    const maxChain = this.orgProps.max_chains;
+    // Must be a system admin or consortium admin to deploy
+    if (!(this.personaService.hasAuthorization(Personas.SystemsAdmin)
+         || this.personaService.hasAuthorization(Personas.ConsortiumAdmin))) {
+      this.enableDeploy = false;
+
+      return this.enableDeploy;
     }
+
+
+    this.enableDeploy = (maxChain === 0) || (maxChain > blockchainCount);
+
+    return this.enableDeploy;
   }
 
 }

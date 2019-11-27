@@ -106,6 +106,7 @@ export const Apis = {
 
   // Consortiums
   get consortiums() { return `${this.base}/consortiums`; },
+  get organizations() { return `${this.base}/organizations`; },
 
   // Contract tools
   get contractTools() { return `${this.base}/concord/contracts`; },

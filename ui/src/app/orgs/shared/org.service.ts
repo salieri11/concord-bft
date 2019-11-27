@@ -4,17 +4,19 @@
 
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, of } from 'rxjs';
+import { Observable } from 'rxjs';
+
+import { BlockchainService } from '../../blockchain/shared/blockchain.service';
+import { Apis } from '../../shared/urls.model';
 
 import { Org } from './org.model';
-import { BlockchainService } from '../../blockchain/shared/blockchain.service';
 
 @Injectable({
   providedIn: 'root'
 })
 export class OrgService {
   get orgConsortiumPath() {
-    return `/api/consortiums/${this.blockchainService.selectedBlockchain.consortium_id}/organizations`;
+    return `/api/consortiums/${this.blockchainService.metadata.consortium_id}/organizations`;
   }
 
   constructor(
@@ -24,8 +26,11 @@ export class OrgService {
   }
 
   getList(): Observable<Org[]> {
-    if (!this.blockchainService.selectedBlockchain) { return of([]); }
     return this.http.get<Org[]>(this.orgConsortiumPath);
+  }
+
+  getDetail(id: string): Observable<Org> {
+    return this.http.get<Org>(`${Apis.organizations}/${id}`);
   }
 
 }
