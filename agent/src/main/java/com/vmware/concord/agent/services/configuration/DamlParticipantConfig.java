@@ -44,6 +44,7 @@ public enum DamlParticipantConfig implements BaseContainerSpec {
                             "INDEXDB_USER=indexdb",
                             "CONCORD_HOST=concord",
                             "CONCORD_PORT=50051",
+                            "REPLICAS=concord:50051",
                             "PARTICIPANT_ID=daml_ledger_api",
                             "JAVA_OPTS=-Xmx4G"));
 

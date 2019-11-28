@@ -30,6 +30,8 @@ public class DamlLedgerApiUtil {
         builder.append(System.getProperty("line.separator"));
         builder.append("export CONCORD_PORT=50051");
         builder.append(System.getProperty("line.separator"));
+        builder.append("export REPLICAS=concord:50051");
+        builder.append(System.getProperty("line.separator"));
         builder.append("export PARTICIPANT_ID=daml_ledger_api");
         builder.append(System.getProperty("line.separator"));
         builder.append("export JAVA_OPTS=-Xmx4G");

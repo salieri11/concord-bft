@@ -23,6 +23,10 @@ public class DamlIndexDbUtil {
         builder.append("export POSTGRES_USER=indexdb");
         builder.append(System.getProperty("line.separator"));
         builder.append("export POSTGRES_MULTIPLE_DATABASES=daml_ledger_api");
+        builder.append(System.getProperty("line.separator"));
+        builder.append("export MAX_CONNECTIONS=300");
+        builder.append(System.getProperty("line.separator"));
+        builder.append("export BUFFER_SIZE=80MB");
         return builder.toString();
     }
 
