@@ -299,22 +299,22 @@ public class ZoneController {
                 zone.setOrgId(onpremRequest.getOrgId());
             }
             if (onpremRequest.getVcenter() != null) {
-                ((OnPremZone) zone).setVCenter(onpremRequest.getVcenter());
+                op.setVCenter(onpremRequest.getVcenter());
             }
             if (onpremRequest.getResourcePool() != null) {
-                ((OnPremZone) zone).setResourcePool(onpremRequest.getResourcePool());
+                op.setResourcePool(onpremRequest.getResourcePool());
             }
             if (onpremRequest.getStorage() != null) {
-                ((OnPremZone) zone).setStorage(onpremRequest.getStorage());
+                op.setStorage(onpremRequest.getStorage());
             }
             if (onpremRequest.getFolder() != null) {
-                ((OnPremZone) zone).setFolder(onpremRequest.getFolder());
+                op.setFolder(onpremRequest.getFolder());
             }
             if (onpremRequest.getNetwork() != null) {
-                ((OnPremZone) zone).setNetwork(onpremRequest.getNetwork());
+                op.setNetwork(onpremRequest.getNetwork());
             }
             if (onpremRequest.getContainerRepo() != null) {
-                ((OnPremZone) zone).setContainerRepo(onpremRequest.getContainerRepo());
+                op.setContainerRepo(onpremRequest.getContainerRepo());
             }
         }
 
@@ -328,6 +328,7 @@ public class ZoneController {
         orchestrationClient.validateOrchestrationSite(req, FleetUtils.blockedResultObserver(future));
         // We don't really need the value.  If this call succeeds, the connection is OK
         future.get();
+        zone = zoneService.put(zone);
         return new ResponseEntity<>(getZoneResponse(zone), HttpStatus.OK);
     }
 
