@@ -20,7 +20,6 @@ import java.util.stream.IntStream;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -217,8 +216,7 @@ public class BlockchainController {
                                 OperationContext operationContext,
                                 ReplicaService replicaService,
                                 ZoneService zoneService,
-                                ConcordConfiguration concordConfiguration,
-                                @Value("${mock.deployment:false}") boolean mockDeployment) {
+                                ConcordConfiguration concordConfiguration) {
         this.blockchainService = blockchainService;
         this.organizationService = organizationService;
         this.authHelper = authHelper;
