@@ -12,12 +12,12 @@
 
 #include "blockchain/db_interfaces.h"
 #include "concord_storage.pb.h"
+#include "storage/kvb_key_types.h"
 
 namespace concord {
 namespace storage {
 
 const int64_t kBlockMetadataVersion = 1;
-const char kBlockMetadataKey = 0x21;
 
 class ConcordStorageException : public std::exception {
  public:
@@ -43,7 +43,7 @@ class ConcordMetadataStorage {
       : logger_(log4cplus::Logger::getInstance(
             "concord.storage.ConcordMetadataStorage")),
         storage_(storage),
-        block_metadata_key_(new char[1]{kBlockMetadataKey}, 1) {}
+        block_metadata_key_(new char[1]{kKvbKeyMetadata}, 1) {}
 
   Sliver BlockMetadataKey() const { return block_metadata_key_; }
 

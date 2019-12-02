@@ -29,11 +29,6 @@ class HlfKvbStorage {
   log4cplus::Logger logger_;
 
  public:
-  // 0x10 - 0x1F reserved for HLF
-  const uint8_t kTypeHlfBlock = 0x10;
-  const uint8_t kTypeHlfTransaction = 0x11;
-  const uint8_t kTypeHlfState = 0x12;
-
   // This is used for adding block id to the
   // result of GetHlfState
   const std::string kStateSeparator = "%%";
