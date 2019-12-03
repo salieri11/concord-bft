@@ -20,7 +20,6 @@ import com.digitalasset.ledger.api.domain.PartyDetails
 
 import com.daml.ledger.participant.state.v1._
 import com.daml.ledger.participant.state.kvutils._
-import com.daml.ledger.participant.state.backport.TimeModel
 import org.slf4j.LoggerFactory
 
 import scala.compat.java8.FutureConverters._
@@ -45,7 +44,6 @@ class KVBCParticipantState(
     participantId: ParticipantId,
     host: String, // KVBC Server hostname
     port: Int,    // KVBC Server port number
-    openWorld: Boolean
   )(implicit val mat: Materializer,
     system: ActorSystem)
   extends ReadService
@@ -220,7 +218,7 @@ class KVBCParticipantState(
     config: Configuration
   ): CompletionStage[SubmissionResult] = {
     val submission =
-      KeyValueSubmission.configurationToSubmission(maxRecordTime, submissionId, config)
+      KeyValueSubmission.configurationToSubmission(maxRecordTime, submissionId, participantId.toString, config)
 
     val commitReq = CommitRequest(
       submission = Envelope.enclose(submission),
@@ -265,9 +263,7 @@ class KVBCParticipantState(
 
         config = Configuration(
           generation = 0,
-          timeModel = TimeModel(Duration.ofSeconds(1), Duration.ofSeconds(10), Duration.ofMinutes(2)).get,
-          authorizedParticipantId = Some(participantId),
-          openWorld = openWorld
+          timeModel = TimeModel(Duration.ofSeconds(1), Duration.ofSeconds(10), Duration.ofMinutes(2)).get
         ),
 
         // FIXME(JM): This in principle should be the record time of block 0,
@@ -351,8 +347,7 @@ object KVBCParticipantState{
       participantId: String,
       host: String, // KVBC Server hostname
       port: Int,    // KVBC Server port number
-      openWorld: Boolean,
       )(implicit mat: Materializer, system: ActorSystem):KVBCParticipantState =
-    new KVBCParticipantState(thisLedgerId, Ref.LedgerString.assertFromString(participantId), host, port, openWorld)
+    new KVBCParticipantState(thisLedgerId, Ref.LedgerString.assertFromString(participantId), host, port)
 }
 

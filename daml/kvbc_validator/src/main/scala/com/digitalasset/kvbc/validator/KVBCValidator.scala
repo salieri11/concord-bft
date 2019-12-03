@@ -3,9 +3,8 @@
 package com.digitalasset.kvbc.validator
 
 import com.codahale.metrics
-import com.daml.ledger.participant.state.backport.TimeModel
 import com.daml.ledger.participant.state.kvutils.{DamlKvutils => KV, _}
-import com.daml.ledger.participant.state.v1.{Configuration, ParticipantId}
+import com.daml.ledger.participant.state.v1.{Configuration, ParticipantId, TimeModel}
 import com.digitalasset.daml.lf.data.{Ref, Time}
 import com.digitalasset.daml.lf.engine.Engine
 import com.digitalasset.kvbc.daml_data._
@@ -83,9 +82,7 @@ class KVBCValidator extends ValidationServiceGrpc.ValidationService {
   // FIXME(JM): Move into common place so getLedgerInitialConditions can use it as well.
   private val defaultConfig = Configuration(
     0,
-    TimeModel(Duration.ofSeconds(1), Duration.ofSeconds(10), Duration.ofMinutes(2)).get,
-    None,
-    true)
+    TimeModel(Duration.ofSeconds(1), Duration.ofSeconds(10), Duration.ofMinutes(2)).get)
 
   private def buildTimestamp(ts: Time.Timestamp): com.google.protobuf.timestamp.Timestamp = {
     val instant = ts.toInstant

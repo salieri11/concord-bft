@@ -2,25 +2,28 @@ package com.daml.ledger.api.server.damlonx.kvbc
 
 import java.io.File
 
+import com.digitalasset.daml.lf.data.Ref
 import com.digitalasset.ledger.api.tls.TlsConfiguration
 import com.digitalasset.platform.index.config.Config
 
+import scopt.Read
 
 //TODO: Replace with Config class after upgrade to version 100.13.22
 final case class ExtConfig(
     config: Config,
-    participantId: String,
     replicas: Seq[String])
 
 object ExtConfig {
   def default: ExtConfig =
     new ExtConfig(
       Config.default,
-      "standalone-participant",
       Seq("localhost:50051"))
 }
 
 object Cli {
+
+  private implicit val ledgerStringRead: Read[Ref.LedgerString] =
+    Read.stringRead.map(Ref.LedgerString.assertFromString)
 
   private val pemConfig = (path: String, ec: ExtConfig) =>
     ec.copy(
@@ -73,10 +76,10 @@ object Cli {
       opt[String]("jdbc-url")
         .text(s"The JDBC URL to the postgres database used for the indexer and the index.")
         .action((u, ec) => ec.copy(config = ec.config.copy(jdbcUrl = u)))
-      opt[String]("participant-id")
+      opt[Ref.LedgerString]("participant-id")
         .optional()
-        .text(s"The participant id given to all components of a ledger api server. Defaults to ${ExtConfig.default.participantId}")
-        .action((p, c) => c.copy(participantId = p))
+        .text(s"The participant id given to all components of a ledger api server. Defaults to ${Config.default.participantId}")
+        .action((p, ec) => ec.copy(config = ec.config.copy(participantId = p)))
       opt[Seq[String]]("replicas")
         .optional()
         .action((x, c) => c.copy(replicas = x))
