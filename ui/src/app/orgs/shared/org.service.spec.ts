@@ -7,12 +7,17 @@ import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { MockSharedModule } from '../../shared/shared.module';
 
 import { OrgService } from './org.service';
+import { BlockchainService, MockBlockchainsService } from './../../blockchain/shared/blockchain.service';
 
 describe('OrgService', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [HttpClientTestingModule, MockSharedModule],
       providers: [
+        {
+          provide: BlockchainService,
+          useClass: MockBlockchainsService
+        },
         OrgService,
       ]
     });

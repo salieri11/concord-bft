@@ -11,14 +11,16 @@ import {
   ElementRef
 } from '@angular/core';
 import { FormControl, FormGroup, Validators, ValidatorFn, ValidationErrors } from '@angular/forms';
+import { Router } from '@angular/router';
 import { ClrWizard, ClrWizardPage } from '@clr/angular';
 
 import { PersonaService } from '../../shared/persona.service';
 import { BlockchainService } from '../shared/blockchain.service';
+import { AuthenticationService } from '../../shared/authentication.service';
 import { BlockchainRequestParams, Zone, ContractEngines } from '../shared/blockchain.model';
 import { OnPremisesFormComponent } from '../on-premises-form/on-premises-form.component';
 import { ZoneType } from '../shared/blockchain.model';
-import { ConsortiumStates } from '../../shared/urls.model';
+import { ConsortiumStates, mainRoutes } from '../../shared/urls.model';
 import { RouteService } from '../../shared/route.service';
 
 const RegionCountValidator: ValidatorFn = (fg: FormGroup): ValidationErrors | null => {
@@ -66,8 +68,14 @@ export class BlockchainWizardComponent implements AfterViewInit {
 
   constructor(
     private blockchainService: BlockchainService,
+    private authService: AuthenticationService,
     private routeService: RouteService,
+    private router: Router,
   ) {
+    if (!this.isAuthorized()) {
+      this.router.navigate([mainRoutes.forbidden]);
+    }
+
     this.filterZones();
     this.form = this.initForm();
   }
@@ -263,6 +271,16 @@ export class BlockchainWizardComponent implements AfterViewInit {
       this.loadingFlag = false;
     });
 
+  }
+
+  private isAuthorized(): boolean {
+    const blockchainCount = this.blockchainService.blockchains.length;
+    let maxChain = 0;
+    if (this.authService.orgProps) {
+      maxChain = this.authService.orgProps.max_chains;
+    }
+
+    return (maxChain === 0) || (maxChain > blockchainCount);
   }
 
   private zoneGroup() {

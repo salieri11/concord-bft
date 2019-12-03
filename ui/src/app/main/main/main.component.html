@@ -29,7 +29,7 @@
     </main>
     <clr-vertical-nav *ngIf="sidemenuVisible">
       <ng-container *concordCanView="[personas.SystemsAdmin, personas.ConsortiumAdmin]">
-        <a clrVerticalNavLink [routerLink]="['/blockchain','deploy']" [ngClass]="{'disable': disableDeploy}"
+        <a clrVerticalNavLink [routerLink]="['/blockchain','deploy']" [ngClass]="{'disable': !enableDeploy}"
           id="sidebarDeploy">
           <clr-icon clrVerticalNavIcon shape="deploy"></clr-icon>
           {{'nav.deploy' | translate}}

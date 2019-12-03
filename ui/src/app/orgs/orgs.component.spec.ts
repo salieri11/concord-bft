@@ -12,10 +12,11 @@ import { ActivatedRoute, RouterModule } from '@angular/router';
 import { GridModule } from '../grid/grid.module';
 import { OrgListComponent } from './org-list/org-list.component';
 import { OrgService } from './shared/org.service';
-import { BlockchainService } from '../blockchain/shared/blockchain.service';
 import { MockSharedModule } from '../shared/shared.module';
 import { OrgsComponent } from './orgs.component';
 import { InivteUserComponent } from './inivte-user/inivte-user.component';
+
+import { BlockchainService, MockBlockchainsService } from './../blockchain/shared/blockchain.service';
 
 describe('OrgsComponent', () => {
   let component: OrgsComponent;
@@ -39,6 +40,10 @@ describe('OrgsComponent', () => {
       providers: [
         OrgService,
         {
+          provide: BlockchainService,
+          useClass: MockBlockchainsService
+        },
+        {
           provide: ActivatedRoute,
           useValue: {
             fragment: {
@@ -48,15 +53,6 @@ describe('OrgsComponent', () => {
             },
           },
         },
-        {
-          provide: BlockchainService,
-          useValue: {
-            selectedBlockchain: {
-              consortium_id: 1
-            },
-          },
-        }
-
       ]
     })
       .overrideModule(GridModule, {set: {
