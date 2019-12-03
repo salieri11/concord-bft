@@ -24,4 +24,4 @@ RUN TEST_TOOL_VER='100.13.38' && \
     mvn dependency:get -DrepoUrl=http://repo.maven.apache.org/maven2/ \ 
       -Dartifact=com.daml.ledger.testtool:ledger-api-test-tool:${TEST_TOOL_VER}:jar \
       -Dtransitive=false -Ddest=/ledger-api-test-tool-${TEST_TOOL_VER}.jar && \
-    java -jar /ledger-api-test-tool-${TEST_TOOL_VER}.jar -x
+    java -jar /ledger-api-test-tool-${TEST_TOOL_VER}.jar -x localhost:6865
