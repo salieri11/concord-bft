@@ -341,7 +341,7 @@ public class ZoneController {
             return new ResponseEntity<>(getZoneResponse(zone), HttpStatus.OK);
         } else {
             // TODO: Add zone patch for other blockchain types
-            logger.error("PATCH is only available for DAML blockchains");
+            logger.error("PATCH is only available for On-prem blockchains");
             throw new BadRequestException(ErrorCode.BAD_REQUEST);
         }
     }
