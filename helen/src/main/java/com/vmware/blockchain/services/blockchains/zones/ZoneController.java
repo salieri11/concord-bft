@@ -15,6 +15,8 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
+import org.apache.logging.log4j.*;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -56,6 +58,7 @@ public class ZoneController {
     private AuthHelper authHelper;
     private OrchestrationSiteServiceStub orchestrationClient;
 
+    private static final Logger logger = LogManager.getLogger(ZoneController.class);
 
     @Autowired
     public ZoneController(ZoneService zoneService, AuthHelper authHelper,
@@ -290,13 +293,13 @@ public class ZoneController {
             }
 
             if (onpremRequest.getName() != null) {
-                zone.setName(onpremRequest.getName());
+                op.setName(onpremRequest.getName());
             }
             if (onpremRequest.getType() != null) {
-                zone.setType(onpremRequest.getType());
+                op.setType(onpremRequest.getType());
             }
             if (onpremRequest.getOrgId() != null) {
-                zone.setOrgId(onpremRequest.getOrgId());
+                op.setOrgId(onpremRequest.getOrgId());
             }
             if (onpremRequest.getVcenter() != null) {
                 op.setVCenter(onpremRequest.getVcenter());
@@ -316,20 +319,24 @@ public class ZoneController {
             if (onpremRequest.getContainerRepo() != null) {
                 op.setContainerRepo(onpremRequest.getContainerRepo());
             }
+
+            ValidateOrchestrationSiteRequest req = ValidateOrchestrationSiteRequest.newBuilder()
+                    .setHeader(MessageHeader.newBuilder().build())
+                    .setSite(BlockchainUtils.toInfo(zone))
+                    .build();
+
+            CompletableFuture<ValidateOrchestrationSiteResponse> future = new CompletableFuture<>();
+
+            orchestrationClient.validateOrchestrationSite(req, FleetUtils.blockedResultObserver(future));
+            // We don't really need the value.  If this call succeeds, the connection is OK
+            future.get();
+            zone = zoneService.put(zone);
+            return new ResponseEntity<>(getZoneResponse(zone), HttpStatus.OK);
+        } else {
+            // TODO: Add zone patch for other blockchain types
+            logger.error("PATCH is only available for DAML blockchains");
+            throw new BadRequestException(ErrorCode.BAD_REQUEST);
         }
-
-        ValidateOrchestrationSiteRequest req = ValidateOrchestrationSiteRequest.newBuilder()
-                .setHeader(MessageHeader.newBuilder().build())
-                .setSite(BlockchainUtils.toInfo(zone))
-                .build();
-
-        CompletableFuture<ValidateOrchestrationSiteResponse> future = new CompletableFuture<>();
-
-        orchestrationClient.validateOrchestrationSite(req, FleetUtils.blockedResultObserver(future));
-        // We don't really need the value.  If this call succeeds, the connection is OK
-        future.get();
-        zone = zoneService.put(zone);
-        return new ResponseEntity<>(getZoneResponse(zone), HttpStatus.OK);
     }
 
     //TODO: Think about this.  Do we really want to allow delete?
