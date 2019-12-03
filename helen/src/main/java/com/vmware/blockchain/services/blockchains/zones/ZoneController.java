@@ -15,6 +15,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -316,8 +317,14 @@ public class ZoneController {
             if (onpremRequest.getNetwork() != null) {
                 op.setNetwork(onpremRequest.getNetwork());
             }
+            if (onpremRequest.getOutboundProxy() != null) {
+                op.setOutboundProxy(onpremRequest.getOutboundProxy());
+            }
             if (onpremRequest.getContainerRepo() != null) {
                 op.setContainerRepo(onpremRequest.getContainerRepo());
+            }
+            if (onpremRequest.getLogManagements() != null) {
+                op.setLogManagements(onpremRequest.getLogManagements());
             }
 
             ValidateOrchestrationSiteRequest req = ValidateOrchestrationSiteRequest.newBuilder()

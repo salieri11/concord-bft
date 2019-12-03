@@ -159,6 +159,49 @@ class ZoneControllerTest {
                                                    + "  }]\n"
                                                    + "}";
 
+    private static final String PATCH_ONPREM_BODY = "{\n"
+                                                + "  \"name\": \"OnPrem\",\n"
+                                                + "  \"type\": \"ON_PREM\",\n"
+                                                + "  \"org_id\": \"5e5ff1c8-34b9-4fa3-9924-83eb14354d4c\",\n"
+                                                + "  \"vcenter\": {\n"
+                                                + "    \"url\": \"http://vcenter\",\n"
+                                                + "    \"username\": \"admin\",\n"
+                                                + "    \"password\": \"password\"\n"
+                                                + "  },\n"
+                                                + "  \"resource_pool\": \"pool\",\n"
+                                                + "  \"storage\": \"datastore\",\n"
+                                                + "  \"folder\": \"folder\",\n"
+                                                + "  \"network\": {\n"
+                                                + "    \"name\": \"Network 1\",\n"
+                                                + "    \"ip_pool\": [\n"
+                                                + "      \"10.1.1.16-10.1.1.64\",\n"
+                                                + "      \"10.1.1.100-10.1.1.200\"\n"
+                                                + "    ],\n"
+                                                + "    \"gateway\": \"10.1.1.1\",\n"
+                                                + "    \"subnet\": \"24\",\n"
+                                                + "    \"name_servers\": [\n"
+                                                + "      \"10.1.1.3\"\n"
+                                                + "    ]\n"
+                                                + "  },\n"
+                                                + "  \"container_repo\": {\n"
+                                                + "    \"url\": \"https://docker-repo.com\",\n"
+                                                + "    \"username\": \"user\",\n"
+                                                + "    \"password\": \"docker\"\n"
+                                                + "  },\n"
+                                                + "  \"outbound_proxy\": {\n"
+                                                + "    \"http_host\": \"HTTP_HOST\",\n"
+                                                + "    \"http_port\": 8080,\n"
+                                                + "    \"https_host\": \"HTTPS_HOST\",\n"
+                                                + "    \"https_port\": 8080\n"
+                                                + "  },\n"
+                                                + "  \"log_managements\": [{\n"
+                                                + "    \"destination\": \"LOG_INSIGHT\",\n"
+                                                + "    \"address\": \"10.78.20.10:9000\",\n"
+                                                + "    \"username\": \"foo\",\n"
+                                                + "    \"password\": \"bar\"\n"
+                                                + "  }]\n"
+                                                + "}";
+
     private static final String POST_NO_ORG_BODY = "{\n"
                                                    + "  \"name\": \"OnPrem\",\n"
                                                    + "  \"type\": \"ON_PREM\",\n"
@@ -675,14 +718,14 @@ class ZoneControllerTest {
         MvcResult result = mockMvc.perform(patch("/api/blockchains/zones/" + OP_SITE)
                 .with(authentication(adminAuth))
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(POST_ONPREM_BODY))
+                .content(PATCH_ONPREM_BODY))
                 .andExpect(status().isOk()).andReturn();
 
         String body = result.getResponse().getContentAsString();
         ZoneResponse zone = objectMapper.readValue(body, ZoneResponse.class);
         // verify(zoneService, times(1)).put(any(Zone.class));
         Assertions.assertTrue(zone instanceof OnPremGetResponse);
-        // ORG ID for POST_ONPREM_BODY
+        // ORG ID for PATCH_ONPREM_BODY
         Assertions.assertEquals(UUID.fromString("5e5ff1c8-34b9-4fa3-9924-83eb14354d4c"),
                 ((OnPremGetResponse) zone).getOrgId());
         Assertions.assertEquals("admin", ((OnPremGetResponse) zone).getVcenter().getUsername());
