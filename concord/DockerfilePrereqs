@@ -151,4 +151,69 @@ RUN git clone https://github.com/grpc/grpc && \
     cd / && \
     rm -r grpc
 
+# thrift is a jaeger dependency
+WORKDIR /
+RUN wget http://apache.mirrors.hoobly.com/thrift/0.11.0/thrift-0.11.0.tar.gz && \
+    tar xzf thrift-0.11.0.tar.gz && \
+    cd thrift-0.11.0 && \
+    ./configure && \
+    make -j4 && \
+    make install && \
+    cd .. && \
+    rm -r thrift-0.11.0
+
+# opentracing is a jaeger dependency
+WORKDIR /
+RUN git clone https://github.com/opentracing/opentracing-cpp && \
+    cd opentracing-cpp && \
+    git checkout v1.5.0 && \
+    mkdir build && \
+    cd build && \
+    cmake .. && \
+    make -j4 && \
+    make install && \
+    cd ../.. && \
+    rm -r opentracing-cpp
+
+# json is a jaeger dependency (and also a concord dependency, and the versions must match)
+WORKDIR /
+RUN git clone https://github.com/nlohmann/json && \
+    cd json && \
+    git checkout v3.7.3 && \
+    mkdir build && \
+    cd build && \
+    cmake .. && \
+    make -j4 && \
+    make install && \
+    cd ../.. && \
+    rm -r json
+
+# Jaeger build notes:
+#
+# * Jaeger wants to use the Hunter dependency manager, but this
+#   ignores the dependencies (like Boost) we have already
+#   installed. So, this build the deps manually for now.
+#
+# * By the same token, concord needs a Findthrift.cmake, so we copy
+#   Jaeger's to the common cmake location.
+WORKDIR /
+RUN git clone https://github.com/jaegertracing/jaeger-client-cpp && \
+    cd jaeger-client-cpp && \
+    git checkout v0.5.0 && \
+    mkdir build && \
+    cd build && \
+    cmake -DHUNTER_ENABLED=NO -DBUILD_TESTING=NO -DBUILD_SHARED_LIBS=NO -DJAEGERTRACING_BUILD_EXAMPLES=NO .. && \
+    make -j4 && \
+    make install && \
+    cp ../cmake/Findthrift.cmake /usr/share/cmake-3.10/Modules/ && \
+    cd ../.. && \
+    rm -r jaeger-client-cpp
+
+# Jaeger really wants to find BoostConfig.cmake, not
+# FindBoost.cmake. But, this wasn't introduced until boost 1.70. This
+# doesn't matter anyway, because the jaegertracing.cmake finds
+# FindBoost.cmake first anyway. The following sed just removes the
+# search for BoostConfig.cmake.
+RUN sed -i '/boost_components/d' /usr/local/lib/cmake/jaegertracing/jaegertracingConfig.cmake
+
 ENV LD_LIBRARY_PATH /usr/local/lib
