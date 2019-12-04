@@ -1,30 +1,38 @@
 package dappbench;
 
-import static java.lang.Math.round;
-import static java.lang.System.exit;
-import static java.lang.System.nanoTime;
-import static java.time.Duration.ofNanos;
-import static java.util.Collections.emptyList;
-import static java.util.Collections.shuffle;
-import static java.util.concurrent.TimeUnit.SECONDS;
-import static java.util.stream.Collectors.summingInt;
-import static java.util.stream.Collectors.toMap;
-import static org.apache.logging.log4j.LogManager.getLogger;
+import com.daml.ledger.javaapi.data.Command;
+import com.digitalasset.quickstart.model.iou.Iou;
+import com.vmware.blockchain.performance.Utils;
+import com.wavefront.sdk.common.WavefrontSender;
+import com.wavefront.sdk.proxy.WavefrontProxyClient;
+import me.tongfei.progressbar.ProgressBar;
+import org.apache.logging.log4j.Logger;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Random;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.atomic.LongAdder;
 
-import org.apache.logging.log4j.Logger;
-
-import com.daml.ledger.javaapi.data.Command;
-import com.digitalasset.quickstart.model.iou.Iou;
-import com.vmware.blockchain.performance.Utils;
+import static java.lang.Integer.parseInt;
+import static java.lang.Math.max;
+import static java.lang.Math.round;
+import static java.lang.System.*;
+import static java.time.Instant.now;
+import static java.util.Collections.*;
+import static java.util.concurrent.Executors.newFixedThreadPool;
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static java.util.stream.Collectors.toMap;
+import static org.apache.logging.log4j.LogManager.getLogger;
 
 /**
  * This acts as a client side load balancer which distributes transactions
@@ -37,15 +45,20 @@ public class DAMLManager {
     private final int numOfTransactions;
     private final int rateControl;
     private final boolean logging;
+    private final int concurrency;
+    private final AdvancedConfig.Wavefront wavefront;
 
-    public DAMLManager(Workload workload) {
+    public DAMLManager(Workload workload, AdvancedConfig advancedConfig) {
         List<String> params = workload.getParams();
         this.party = params.get(0);
-        this.numOfTransactions = Integer.parseInt(params.get(1));
+        this.numOfTransactions = parseInt(params.get(1));
         this.rateControl = workload.getRateControl();
         this.logging = workload.getLogging();
+        this.concurrency = advancedConfig.getNumberThreads();
+        this.wavefront = advancedConfig.getWavefront();
 
         logger.info("Total transactions: {}", numOfTransactions);
+        logger.info("Concurrency: {}", concurrency);
         logger.info("Rate control: {} tps", rateControl);
     }
 
@@ -54,7 +67,7 @@ public class DAMLManager {
      */
     public void processDAMLTransactions(List<Node> nodes, int ledgerPort) {
         Map<DamlClient, Long> clientToTx = initClients(nodes, ledgerPort);
-        logger.info("Tx count expected: {}", clientToTx);
+        logger.info("Expected transactions: {}", clientToTx);
 
         Collection<DamlClient> clients = clientToTx.keySet();
         logger.info("Ledger size before test: {}", getLedgerSize(clients));
@@ -62,9 +75,16 @@ public class DAMLManager {
         List<DamlClient> txClients = assignClients(clientToTx);
 
         Random random = new Random();
-        long startTime = nanoTime();
+        long startTimeNanos = nanoTime();
 
         logger.info("Starting transaction ...");
+
+        ExecutorService executorService = newFixedThreadPool(concurrency);
+        CountDownLatch countDownLatch = new CountDownLatch(numOfTransactions);
+        ProgressBar progressBar = new ProgressBar("Transaction Progress", numOfTransactions);
+        Optional<WavefrontSender> optionalWavefrontSender = createWavefrontSender();
+
+        LongAdder totalResponseTimeMillis = new LongAdder();
 
         for (int i = 0; i < txClients.size(); i++) {
             int iouAmount = random.nextInt(10_000) + 1;
@@ -74,18 +94,75 @@ public class DAMLManager {
             }
             Command command = iou.create();
             DamlClient client = txClients.get(i);
-            client.submitIou(command, party);
+
+            executorService.execute(() -> {
+                Instant start = now();
+                try {
+                    client.submitIou(command, party);
+                } finally {
+                    Duration responseTime = Duration.between(start, now());
+                    totalResponseTimeMillis.add(responseTime.toMillis());
+                    optionalWavefrontSender.ifPresent(wavefrontSender -> sendMetric(wavefrontSender, responseTime, client.getLedgerHost()));
+                    countDownLatch.countDown();
+                    progressBar.step();
+                }
+            });
 
             if (rateControl != 0) {
                 // Average gap between transactions.
                 long timeToSleep = SECONDS.toNanos(1) / rateControl;
-                Utils.applyRateControl(timeToSleep, i, startTime);
+                Utils.applyRateControl(timeToSleep, i, startTimeNanos);
             }
         }
 
-        long endTime = nanoTime();
+        executorService.shutdown();
+        await(countDownLatch);
+        progressBar.close();
+        optionalWavefrontSender.ifPresent(this::close);
 
-        summarize(ofNanos(endTime - startTime), clients);
+        Duration testTime = Duration.ofNanos(nanoTime() - startTimeNanos);
+        summarize(testTime, totalResponseTimeMillis.longValue(), clients);
+    }
+
+    /**
+     * Create optional WavefrontSender if configured.
+     */
+    private Optional<WavefrontSender> createWavefrontSender() {
+        WavefrontProxyClient.Builder builder = wavefront.isEnabled() ? new WavefrontProxyClient.Builder(wavefront.getProxyHost()).metricsPort(wavefront.getMetricsPort()) : null;
+        return Optional.ofNullable(builder).map(WavefrontProxyClient.Builder::build);
+    }
+
+    /**
+     * Await on the countdown latch.
+     */
+    private void await(CountDownLatch countDownLatch) {
+        try {
+            countDownLatch.await();
+        } catch (InterruptedException e) {
+            logger.error("Thread interrupted", e);
+        }
+    }
+
+    /**
+     * Try to close WavefrontSender.
+     */
+    private void close(WavefrontSender wavefrontSender) {
+        try {
+            wavefrontSender.close();
+        } catch (IOException e) {
+            logger.error("Unable to close WavefrontSender", e);
+        }
+    }
+
+    /**
+     * Send transaction response time to Wavefront.
+     */
+    private void sendMetric(WavefrontSender wavefrontSender, Duration responseTime, String ledgerHost) {
+        try {
+            wavefrontSender.sendMetric("submitAndWait.response.ms", responseTime.toMillis(), currentTimeMillis(), wavefront.getSource(), singletonMap("ledgerHost", ledgerHost));
+        } catch (IOException e) {
+            logger.warn("Error sending metrics to Wavefront", e);
+        }
     }
 
     /**
@@ -142,7 +219,7 @@ public class DAMLManager {
      * Validate load distribution.
      */
     private void validate(List<Node> nodes) {
-        int total = nodes.stream().collect(summingInt(Node::getPercentage));
+        int total = nodes.stream().mapToInt(Node::getPercentage).sum();
         if (total != 100) {
             logger.warn("Percentage total mismatch! Expected: {}, Actual: {}", 100, total);
             exit(0);
@@ -166,11 +243,12 @@ public class DAMLManager {
     /**
      * Summarize the result.
      */
-    private void summarize(Duration totalTime, Collection<DamlClient> clients) {
-        logger.info("Total time taken: {} s", totalTime.getSeconds());
-        logger.info("Average latency: {} ms", totalTime.toMillis() / numOfTransactions);
-        logger.info("Throughput: {} tps", numOfTransactions / totalTime.getSeconds());
-        logger.info("Tx count actual: {}", getSubmissionCount(clients));
+    private void summarize(Duration testTime, long totalResponseTimeMillis, Collection<DamlClient> clients) {
+        logger.info("Total duration of test: {}", testTime);
+        logger.info("Throughput: {} tps", numOfTransactions / max(testTime.getSeconds(), 1));
+        logger.info("Average gRPC response time: {} ms", totalResponseTimeMillis / numOfTransactions);
+
+        logger.info("Successful transactions: {}", getSubmissionCount(clients));
         logger.info("Ledger size after test: {}", getLedgerSize(clients));
     }
 
