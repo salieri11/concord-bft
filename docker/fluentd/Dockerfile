@@ -9,7 +9,6 @@ RUN buildDeps="sudo make gcc g++ libc-dev" \
  && apt-get update && apt-get install -y --no-install-recommends $buildDeps \
  && sudo gem install fluent-plugin-multi-format-parser \
  && sudo gem install fluent-plugin-concat \
- && sudo gem install fluent-plugin-out-http-ext \
  && sudo gem install fluent-plugin-vmware-loginsight \
  && sudo gem install fluent-plugin-record-modifier --no-document \
  && sudo gem install fluent-plugin-rewrite-tag-filter \
