@@ -57,7 +57,6 @@ defaultTokenDescriptor = util.auth.getTokenDescriptor(util.auth.ROLE_CON_ADMIN,
 precreatedZones = ["6adaf48a-9075-4e35-9a71-4ef1fb4ac90f",
                    "623e6f81-5954-4b32-9cdb-eb5d8dd913db"]
 
-
 def removePrecreatedZones(zones):
    ret = []
    numRemovedZones = 0
@@ -437,8 +436,18 @@ def createZoneObject(zoneType=util.helper.ZONE_TYPE_ON_PREM):
          "username": "user@{}.com".format(uniqueId),
          "password": "container_repo_pa$$w0rd4{}".format(uniqueId)
       },
-      "log_managements": []
+      "log_managements": [createLogManagementObject(uniqueId)]
    }
+
+
+def createLogManagementObject(uniqueId, destination=util.helper.LOG_DESTINATION_LOG_INTELLIGENCE):
+   return {
+            "destination": destination,
+            "address": "https://example.com/",
+            "username": "admin@{}.com".format(uniqueId),
+            "password": "logging_pa$$w0rd4{}".format(uniqueId),
+            "log_insight_agent_id": 100
+}
 
 
 def createDefaultConsortiumAdminRequest(request):
@@ -465,16 +474,25 @@ def validateZoneResponse(origZoneInfo, zoneResponse, orgId):
    are checked separately, and then everything else is compared
    to the original info.
    '''
+   zoneResponse = dict(zoneResponse)
+
    assert zoneResponse["org_id"] == orgId, "Org_id was {}, expected {}". \
       format(zoneResponse["org_id"], orgId)
    UUID(zoneResponse["id"])
 
+   expected = copy.deepcopy(origZoneInfo)
    newZoneResponse = copy.deepcopy(zoneResponse)
    del(newZoneResponse["org_id"])
    del(newZoneResponse["id"])
 
-   # Pytest will output the difference.  Hooray.
-   assert origZoneInfo == newZoneResponse, "Values do not match."
+   # If the log management section was missing in the creation
+   # request, it is supposed to be present but empty in the response.
+   if "log_managements" not in expected:
+      expected["log_managements"] = []
+
+   assert expected == newZoneResponse, "Expected {}, response: {}". \
+      format(json.dumps(origZoneInfo, sort_keys=True, indent=4),
+             json.dumps(newZoneResponse, sort_keys=True, indent=4))
 
 
 @pytest.mark.smoke
@@ -2286,447 +2304,6 @@ def test_largeReply(fxConnection, fxBlockchain):
       "received only %d bytes, but expected %d" % (receviedDataSum, expectedDataSum)
 
 
-@pytest.mark.smoke
-@pytest.mark.skip(reason="Skipping role tests to check performance")
-def test_roles_consortium_creation(fxConnection):
-   '''
-   Users who are not consoritum admins should not be able to create a new consortium.
-   Note: VMWare SRE roles still need to be defined.
-   '''
-   org = "hermes_org0"
-
-   for username in util.auth.tokens[org]:
-      userdata = util.auth.tokens[org][username]
-      role = list(userdata.keys())[0]
-
-      if role != "all_roles":
-         defaultDescriptor = {
-            "org": org,
-            "user": username,
-            "role": role
-         }
-         tokenDescriptor = util.auth.getTokenDescriptor(role,
-                                                        True,
-                                                        defaultDescriptor)
-         suffix = util.numbers_strings.random_string_generator()
-         conName = "con_" + suffix
-         req = fxConnection.request.newWithToken(tokenDescriptor)
-         result = req.createConsortium(conName)
-
-         if tokenDescriptor["role"] == "consortium_admin":
-            log.info("Verifying {} could create a consortium.".format(role))
-            assert result["consortium_id"], "Consortium creation by a consortium admin failed."
-         else:
-            log.info("Verifying {} could not create a consortium.".format(role))
-            validateAccessDeniedResponse(result, "/api/consortiums/")
-
-
-@pytest.mark.smoke
-@pytest.mark.skip(reason="Skipping role tests to check performance")
-def test_role_list_consortiums(fxConnection):
-   '''
-   Everyone should only be able to use /consortiums (GET) to list the consortiums
-   they belong to.
-   '''
-   conAdminA = {
-      "org": "hermes_org0",
-      "user": "vmbc_test_con_admin",
-      "role": "consortium_admin"
-   }
-
-   conAdminB = {
-      "org": "hermes_org1",
-      "user": "vmbc_test_con_admin",
-      "role": "consortium_admin"
-   }
-
-   req = fxConnection.request.newWithToken(conAdminA)
-   suffix = util.numbers_strings.random_string_generator()
-   orgACon = req.createConsortium("con_{}".format(suffix))
-
-   req = fxConnection.request.newWithToken(conAdminB)
-   suffix = util.numbers_strings.random_string_generator()
-   orgBCon = req.createConsortium("con_{}".format(suffix))
-
-   for org in ["hermes_org0", "hermes_org1"]:
-      for username in util.auth.tokens[org]:
-         userdata = util.auth.tokens[org][username]
-         role = list(userdata.keys())[0]
-
-         if role != "all_roles":
-            defaultDescriptor = {
-               "org": org,
-               "user": username,
-               "role": role
-            }
-            tokenDescriptor = util.auth.getTokenDescriptor(role,
-                                                           True,
-                                                           defaultDescriptor)
-
-            req = fxConnection.request.newWithToken(tokenDescriptor)
-            response = req.getConsortiums()
-            conIds = []
-
-            for c in response:
-               conIds.append(c["consortium_id"])
-
-            if role == "no_roles":
-               # VB-1274: User with no service roles can list consortiums.
-               # Should probably be an empty list.
-               #assert len(response) == 0, "Expected an empty list for a user with no roles."
-               pass
-            elif org == "hermes_org0":
-               assert orgACon["consortium_id"] in conIds, "Expected consortium not present."
-               assert orgBCon["consortium_id"] not in conIds, "Unexpected consortium present."
-            else:
-               assert orgBCon["consortium_id"] in conIds, "Expected consortium not present."
-               assert orgACon["consortium_id"] not in conIds, "Unexpected consortium present."
-
-
-@pytest.mark.smoke
-@pytest.mark.skip(reason="Skipping role tests to check performance")
-def test_role_consortium_get(fxConnection):
-   '''
-   Everyone should be able to get a specific consortium they are part of.
-   (This is similar to the above.  That was to list all consortiums; this is to get
-   a specific one.)
-   '''
-   org0Admin = {
-      "org": "hermes_org0",
-      "user": "vmbc_test_con_admin",
-      "role": "consortium_admin"
-   }
-   req = fxConnection.request.newWithToken(org0Admin)
-   suffix = util.numbers_strings.random_string_generator()
-   org0Con = req.createConsortium("con_{}".format(suffix))
-
-   org1Admin = {
-      "org": "hermes_org1",
-      "user": "vmbc_test_con_admin",
-      "role": "consortium_admin"
-   }
-   req = fxConnection.request.newWithToken(org1Admin)
-   suffix = util.numbers_strings.random_string_generator()
-   org1Con = req.createConsortium("con_{}".format(suffix))
-
-   for requestorOrg in ["hermes_org0", "hermes_org1"]:
-      for username in util.auth.tokens[requestorOrg]:
-         userdata = util.auth.tokens[requestorOrg][username]
-         roles = list(userdata.keys())
-
-         for role in roles:
-            if role.endswith("org_user") and role != "all_roles" or role == "no_roles":
-               defaultDescriptor = {
-                  "org": requestorOrg,
-                  "user": username,
-                  "role": role
-               }
-               tokenDescriptor = util.auth.getTokenDescriptor(role,
-                                                              True,
-                                                              defaultDescriptor)
-
-               req = fxConnection.request.newWithToken(tokenDescriptor, True)
-               org0Response = req.getConsortium(org0Con["consortium_id"])
-               org1Response = req.getConsortium(org1Con["consortium_id"])
-
-               if role == "no_roles":
-                  # VB-1274
-                  # validateAccessDeniedResponse(org0Response,
-                  #                              "/api/consortiums/{}".format(org0Con["consortium_id"]))
-                  # validateAccessDeniedResponse(org1Response,
-                  #                              "/api/consortiums/{}".format(org1Con["consortium_id"]))
-                  pass
-               elif requestorOrg == "hermes_org0":
-                  log.info("org0Response for org {}, user {}, role {}: {}".format(
-                     requestorOrg, username, role, org0Response))
-                  assert org0Response["consortium_id"] == org0Con["consortium_id"], \
-                     "Expected to be able to fetch consortium in hermes_org0"
-                  validateAccessDeniedResponse(org1Response,
-                                              "/api/consortiums/{}".format(org1Con["consortium_id"]
-                                              ))
-               else:
-                  log.info("org1Response for org {}, user {}, role {}: {}".format(
-                     requestorOrg, username, role, org1Response))
-                  assert org1Response["consortium_id"] == org1Con["consortium_id"], \
-                     "Expected to be able to fetch consortium in hermes_org1"
-                  validateAccessDeniedResponse(org0Response,
-                                              "/api/consortiums/{}".format(org0Con["consortium_id"]
-                                              ))
-
-
-@pytest.mark.smoke
-@pytest.mark.skip(reason="Skipping role tests to check performance")
-def test_role_consortium_patch_users_in_org(fxConnection):
-   '''
-   Only consortium admins should be able to patch a consortium.
-   '''
-   suffix = util.numbers_strings.random_string_generator()
-   conName = "con_" + suffix
-   org = "hermes_org0"
-   tokenDescriptor = {
-      "org": org,
-      "user": "vmbc_test_con_admin",
-      "role": "consortium_admin"
-   }
-   req = fxConnection.request.newWithToken(tokenDescriptor)
-   createResponse = req.createConsortium(conName)
-
-   for username in util.auth.tokens[org]:
-      userdata = util.auth.tokens[org][username]
-      roles = list(userdata.keys())
-      for role in roles:
-         if role.endswith("org_user") and role != "all_roles" or role == "no_roles":
-            tokenDescriptor = {
-               "org": org,
-               "user": username,
-               "role": role
-            }
-            newName = "newName" + util.numbers_strings.random_string_generator()
-            req = fxConnection.request.newWithToken(tokenDescriptor, True)
-            result = req.patchConsortium(createResponse["consortium_id"],
-                                         newName=newName)
-
-            if role == "consortium_admin_and_org_user":
-               log.info("Verifying {} could patch a consortium.".format(role))
-               assert "consortium_name" in result, "Expected consortium_name in {}".format(result)
-               assert result["consortium_name"] == newName, \
-                  "Expected to be able to rename the consortium"
-            else:
-               log.info("Verifying {} could not patch a consortium.".format(role))
-               validateAccessDeniedResponse(result,
-                                           "/api/consortiums/{}".format(
-                                              createResponse["consortium_id"]))
-
-
-@pytest.mark.smoke
-@pytest.mark.skip(reason="Skipping role tests to check performance")
-def test_role_consortium_patch_other_admin(fxConnection):
-   '''
-   Make sure an outside consortium admin cannot change our consortium.
-   '''
-   suffix = util.numbers_strings.random_string_generator()
-   conName = "con_" + suffix
-   tokenDescriptor = {
-      "org": "hermes_org0",
-      "user": "vmbc_test_con_admin",
-      "role": "consortium_admin"
-   }
-   req = fxConnection.request.newWithToken(tokenDescriptor)
-   createResponse = req.createConsortium(conName)
-
-   tokenDescriptor = {
-      "org": "hermes_org1",
-      "user": "vmbc_test_con_admin",
-      "role": "consortium_admin"
-   }
-   req = fxConnection.request.newWithToken(tokenDescriptor)
-   newName = "newName" + util.numbers_strings.random_string_generator()
-   result = req.patchConsortium(createResponse["consortium_id"],
-                                newName=newName)
-   validateAccessDeniedResponse(result,
-                               "/api/consortiums/{}".format(
-                                  createResponse["consortium_id"]))
-
-
-@pytest.mark.smoke
-@pytest.mark.skip(reason="Skipping role tests to check performance")
-def test_role_consortium_list_orgs_across_orgs(fxConnection, fxInitializeOrgs):
-   '''
-   Make sure all roles can only list the orgs in a consortium they are part of.
-
-   consortium0: Has org0 and org1
-   consortium1: Has org1
-
-   org0 user: Can see orgs in consortium0, denied for consortium1
-   org1 user: Can see orgs in consortium0 and consortium1
-   '''
-   conName = "con_" + util.numbers_strings.random_string_generator()
-   tokenDescriptor = {
-      "org": "hermes_org0",
-      "user": "vmbc_test_con_admin",
-      "role": "consortium_admin"
-   }
-   req = fxConnection.request.newWithToken(tokenDescriptor)
-   consortium0 = req.createConsortium(conName)["consortium_id"]
-   req.patchConsortium(consortium0,
-                       orgsToAdd=[util.auth.orgs["hermes_org1"]])
-
-   conName = "con_" + util.numbers_strings.random_string_generator()
-   tokenDescriptor = {
-      "org": "hermes_org1",
-      "user": "vmbc_test_con_admin",
-      "role": "consortium_admin"
-   }
-   req = fxConnection.request.newWithToken(tokenDescriptor)
-   consortium1 = req.createConsortium(conName)["consortium_id"]
-   con0OrgIds = [util.auth.orgs["hermes_org0"], util.auth.orgs["hermes_org1"]]
-   con1OrgIds = [util.auth.orgs["hermes_org1"]]
-
-   # Loop through all roles for each org and be sure each can only list the orgs
-   # of consortiums they belong to.
-   for userOrg in ["hermes_org0", "hermes_org1"]:
-      for username in util.auth.tokens[userOrg]:
-         userdata = util.auth.tokens[userOrg][username]
-         roles = list(userdata.keys())
-
-         for role in roles:
-            if role.endswith("org_user") and role != "all_roles" and role != "no_roles":
-               tokenDescriptor = {
-                  "org": userOrg,
-                  "user": username,
-                  "role": role
-               }
-               req = fxConnection.request.newWithToken(tokenDescriptor, True)
-
-               # Users from both orgs can get the orgs in consortium0.
-               getOrgsResult = req.getOrgs(consortium0)
-               # log.info("getOrgs(consortium0) result for org {}, user {}, role {}: {}".format(
-               #    userOrg, username, role, getOrgsResult))
-               assert len(getOrgsResult) == 2, "Expected a list of two items, not {}".format(getOrgsResult)
-               for o in getOrgsResult:
-                  assert o["org_id"] in con0OrgIds
-
-               # Only users from org1 can get the orgs in consortium1.
-               getOrgsResult = req.getOrgs(consortium1)
-               # log.info("getOrgs(consortium1) result for org {}, user {}, role {}: {}".format(
-               #    userOrg, username, role, getOrgsResult))
-               if userOrg == "hermes_org0":
-                  validateAccessDeniedResponse(getOrgsResult,
-                                  "/api/consortiums/{}/organizations".format(consortium1))
-               elif userOrg == "hermes_org1":
-                  assert len(getOrgsResult) == 1, "Expected one item, not {}".format(getOrgsResult)
-                  assert getOrgsResult[0]["org_id"] in con1OrgIds, "Expected org ID {}".format(con1OrgIds)
-
-
-@pytest.mark.smoke
-@pytest.mark.skip(reason="Skipping role tests to check performance")
-def test_role_consortium_list_orgs_across_roles(fxConnection, fxInitializeOrgs):
-   '''
-   Everyone in a consortium should be able to see what orgs are in it.
-   '''
-   conName = "con_" + util.numbers_strings.random_string_generator()
-   mainOrg = "hermes_org0"
-   tokenDescriptor = {
-      "org": mainOrg,
-      "user": "vmbc_test_con_admin",
-      "role": "consortium_admin"
-   }
-   req = fxConnection.request.newWithToken(tokenDescriptor)
-   consortium = req.createConsortium(conName)["consortium_id"]
-   req.patchConsortium(consortium,
-                       orgsToAdd=[util.auth.orgs["hermes_org1"]])
-   expectedOrgIds = [util.auth.orgs[mainOrg], util.auth.orgs["hermes_org1"]]
-   expectedOrgNames = [mainOrg, "hermes_org1"]
-
-   for username in util.auth.tokens[mainOrg]:
-      userdata = util.auth.tokens[mainOrg][username]
-      roles = list(userdata.keys())
-
-      for role in roles:
-         if role.endswith("org_user") and role != "all_roles" or role == "no_roles":
-            tokenDescriptor = {
-               "org": mainOrg,
-               "user": username,
-               "role": role
-            }
-            req = fxConnection.request.newWithToken(tokenDescriptor, True)
-            getOrgsResult = req.getOrgs(consortium)
-
-            if role == "no_roles":
-               # VB-1274
-               # validateAccessDeniedResponse(getOrgsResult,
-               #                              "/api/consortiums/{}/organizations".format(consortium))
-               pass
-            else:
-               returnedOrgIds = []
-
-               log.info("getOrgs(consortium) result for org {}, user {}, role {}".format(
-                  mainOrg, username, role, getOrgsResult))
-
-               assert len(getOrgsResult) == 2, "Expected two items, not {}".format(getOrgsResult)
-
-               # Make sure everything returned is part of the expected list.
-               for o in getOrgsResult:
-                  returnedOrgIds.append(o["org_id"])
-
-                  assert o["org_id"] in expectedOrgIds, "Expected {} in {}".format(o["org_id"], expectedOrgIds)
-
-                  if o["org_id"] == expectedOrgIds[0]:
-                     assert o["organization_name"] == expectedOrgNames[0]
-                  elif o["org_id"] == expectedOrgIds[1]:
-                     assert o["organization_name"] == expectedOrgNames[1]
-
-               # Make sure everything expected is in the returned list.
-               for o in expectedOrgIds:
-                  assert o in returnedOrgIds
-
-
-@pytest.mark.smoke
-@pytest.mark.skip(reason="Skipping role tests to check performance")
-def test_role_list_blockchains(fxConnection):
-   '''
-   All users in a consortium should be able to list the blockchains in their consortium,
-   and only those blockchains.
-   Note: Currently, we only have the built in test blockchain.
-   '''
-   orgs = ["blockchain_service_dev", "hermes_org0"]
-
-   for org in orgs:
-      for username in util.auth.tokens[org]:
-         userdata = util.auth.tokens[org][username]
-         roles = list(userdata.keys())
-
-         for role in roles:
-            if role.endswith("org_user") or role == "no_roles":
-               tokenDescriptor = {
-                  "org": org,
-                  "user": username,
-                  "role": role
-               }
-               req = fxConnection.request.newWithToken(tokenDescriptor)
-               getBlockchainsResult = req.getBlockchains()
-
-               if role == "no_roles":
-                  validateAccessDeniedResponse(getBlockchainsResult,
-                                               "/api/blockchains")
-               elif org == "blockchain_service_dev":
-                  assert len(getBlockchainsResult) > 0, "Expected at least one blockchain."
-               else:
-                  assert req.getBlockchains() == [], "Expected an empty list"
-
-
-@pytest.mark.smoke
-@pytest.mark.skip(reason="Skipping role tests to check performance")
-def test_role_get_specific_blockchain(fxConnection, fxBlockchain):
-   orgs = ["blockchain_service_dev", "hermes_org0"]
-
-   for org in orgs:
-      for username in util.auth.tokens[org]:
-         userdata = util.auth.tokens[org][username]
-         roles = list(userdata.keys())
-
-         for role in roles:
-            if role.endswith("org_user"):
-               tokenDescriptor = {
-                  "org": org,
-                  "user": username,
-                  "role": role
-               }
-               req = fxConnection.request.newWithToken(tokenDescriptor)
-               getBlockchainResult = req.getBlockchainDetails(fxBlockchain.blockchainId)
-
-
-               if role == "no_roles":
-                  validateAccessDeniedResponse(getBlockchainResult,
-                                               "/api/blockchains/{}".format(fxBlockchain.blockchainId))
-               elif org == "blockchain_service_dev":
-                  assert getBlockchainResult["id"] == fxBlockchain.blockchainId, \
-                     "Expected to get the requested blockchain"
-               else:
-                  validateAccessDeniedResponse(getBlockchainResult,
-                                              "/api/blockchains/{}".format(fxBlockchain.blockchainId))
-
-
 @pytest.mark.zones
 def test_create_zone(fxConnection, fxBlockchain):
    '''
@@ -3000,6 +2577,152 @@ def test_delete_invalid_uuid_node(fxConnection, fxBlockchain):
                       "'java.lang.String' to required type 'java.util.UUID'; " \
                       "nested exception is java.lang.IllegalArgumentException: " \
                       "Invalid UUID string: 3")
+
+@pytest.mark.zones
+def test_no_log_management(fxConnection, fxBlockchain):
+   '''
+   The log management section is optional.  Remove it and test.
+   '''
+   zoneInfo = createZoneObject(zoneType=util.helper.ZONE_TYPE_ON_PREM)
+   req = createDefaultConsortiumAdminRequest(fxConnection.request)
+   orgId = util.auth.getOrgId("hermes_org0")
+   del(zoneInfo["log_managements"])
+   response = req.createZone(zoneInfo)
+   validateZoneResponse(zoneInfo, response, orgId)
+
+
+@pytest.mark.zones
+def test_log_management_multiple(fxConnection, fxBlockchain):
+   '''
+   Should be able to specify multiple log management structures.
+   '''
+   zoneInfo = createZoneObject(zoneType=util.helper.ZONE_TYPE_ON_PREM)
+   req = createDefaultConsortiumAdminRequest(fxConnection.request)
+   orgId = util.auth.getOrgId("hermes_org0")
+   newLogManagementObject = createLogManagementObject(util.numbers_strings.random_string_generator(),
+                                                      destination=util.helper.LOG_DESTINATION_LOG_INSIGHT)
+   zoneInfo["log_managements"].append(newLogManagementObject)
+   response = req.createZone(zoneInfo)
+   validateZoneResponse(zoneInfo, response, orgId)
+
+
+@pytest.mark.zones
+@pytest.mark.skip(reason="VB-2157")
+def test_log_management_no_destination(fxConnection, fxBlockchain):
+   '''
+   Destination is a required field.
+   '''
+   zoneInfo = createZoneObject(zoneType=util.helper.ZONE_TYPE_ON_PREM)
+   req = createDefaultConsortiumAdminRequest(fxConnection.request)
+   orgId = util.auth.getOrgId("hermes_org0")
+   del(zoneInfo["log_managements"][0]["destination"])
+   response = req.createZone(zoneInfo)
+   log.info("**** test_log_management_no_destination response: {}".format(response))
+   # validateBadRequest(...)
+
+
+@pytest.mark.zones
+@pytest.mark.skip(reason="VB-2154")
+def test_log_management_wrong_destination_type(fxConnection, fxBlockchain):
+   '''
+   Must be one of [LOG_INTELLIGENCE, LOG_INSIGHT].
+   '''
+   zoneInfo = createZoneObject(zoneType=util.helper.ZONE_TYPE_ON_PREM)
+   req = createDefaultConsortiumAdminRequest(fxConnection.request)
+   orgId = util.auth.getOrgId("hermes_org0")
+   zoneInfo["log_managements"][0]["destination"] = 3
+   response = req.createZone(zoneInfo)
+   # validateBadRequest(...)
+
+
+@pytest.mark.zones
+@pytest.mark.skip(reason="VB-2157")
+def test_log_management_no_address(fxConnection, fxBlockchain):
+   '''
+   Required field.
+   '''
+   zoneInfo = createZoneObject(zoneType=util.helper.ZONE_TYPE_ON_PREM)
+   req = createDefaultConsortiumAdminRequest(fxConnection.request)
+   orgId = util.auth.getOrgId("hermes_org0")
+   del(zoneInfo["log_managements"][0]["address"])
+   response = req.createZone(zoneInfo)
+   log.info("**** test_log_management_no_address response: {}".format(response))
+   # validateBadRequest(...)
+
+
+@pytest.mark.zones
+def test_log_management_wrong_address_type(fxConnection, fxBlockchain):
+   '''
+   Must be a string.
+   '''
+   zoneInfo = createZoneObject(zoneType=util.helper.ZONE_TYPE_ON_PREM)
+   req = createDefaultConsortiumAdminRequest(fxConnection.request)
+   orgId = util.auth.getOrgId("hermes_org0")
+   zoneInfo["log_managements"][0]["address"] = 3
+   response = req.createZone(zoneInfo)
+   # The product auto-converts it.  That's fine.
+   zoneInfo["log_managements"][0]["address"] = "3"
+   validateZoneResponse(zoneInfo, response, orgId)
+
+
+@pytest.mark.zones
+@pytest.mark.skip(reason="VB-2157")
+def test_log_management_no_username(fxConnection, fxBlockchain):
+   '''
+   Required field.
+   '''
+   zoneInfo = createZoneObject(zoneType=util.helper.ZONE_TYPE_ON_PREM)
+   req = createDefaultConsortiumAdminRequest(fxConnection.request)
+   orgId = util.auth.getOrgId("hermes_org0")
+   del(zoneInfo["log_managements"][0]["username"])
+   response = req.createZone(zoneInfo)
+   log.info("**** test_log_management_no_usernames response: {}".format(response))
+   # validateBadRequest(...)
+
+
+@pytest.mark.zones
+def test_log_management_wrong_username_type(fxConnection, fxBlockchain):
+   '''
+   Must be a string
+   '''
+   zoneInfo = createZoneObject(zoneType=util.helper.ZONE_TYPE_ON_PREM)
+   req = createDefaultConsortiumAdminRequest(fxConnection.request)
+   orgId = util.auth.getOrgId("hermes_org0")
+   zoneInfo["log_managements"][0]["username"] = 3
+   response = req.createZone(zoneInfo)
+   # The product auto-converts it.  That's fine.
+   zoneInfo["log_managements"][0]["username"] = "3"
+   validateZoneResponse(zoneInfo, response, orgId)
+
+
+@pytest.mark.zones
+@pytest.mark.skip(reason="VB-2157")
+def test_log_management_no_password(fxConnection, fxBlockchain):
+   '''
+   Required field.
+   '''
+   zoneInfo = createZoneObject(zoneType=util.helper.ZONE_TYPE_ON_PREM)
+   req = createDefaultConsortiumAdminRequest(fxConnection.request)
+   orgId = util.auth.getOrgId("hermes_org0")
+   del(zoneInfo["log_managements"][0]["password"])
+   response = req.createZone(zoneInfo)
+   log.info("**** test_log_management_no_password response: {}".format(response))
+   # validateBadRequest(...)
+
+
+@pytest.mark.zones
+def test_log_management_wrong_password_type(fxConnection, fxBlockchain):
+   '''
+   Must be a string
+   '''
+   zoneInfo = createZoneObject(zoneType=util.helper.ZONE_TYPE_ON_PREM)
+   req = createDefaultConsortiumAdminRequest(fxConnection.request)
+   orgId = util.auth.getOrgId("hermes_org0")
+   zoneInfo["log_managements"][0]["password"] = 3
+   response = req.createZone(zoneInfo)
+   # The product auto-converts it.  That's fine.
+   zoneInfo["log_managements"][0]["password"] = "3"
+   validateZoneResponse(zoneInfo, response, orgId)
 
 
 @pytest.mark.zones
