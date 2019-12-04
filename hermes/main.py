@@ -21,7 +21,7 @@ sys.path.append("lib/persephone")
 
 log = None
 suites = ["ContractCompilerTests", "CoreVMTests",
-          "LintTests", "EvilTimeTests", "ExtendedRPCTests", "HelenAPITests", "HlfTests", "PerformanceTests", "PersephoneTests",
+          "LintTests", "EvilTimeTests", "ExtendedRPCTests", "HelenAPITests", "HelenRoleTests", "HlfTests", "PerformanceTests", "PersephoneTests",
           "RegressionTests", "SampleDAppTests", "SampleSuite", "SimpleStateTransferTest", "TimeTests", "TruffleTests", "UiTests",
           "WebSocketRPCTests"]
 local_modules = [os.path.join(".", "lib", "persephone")]
@@ -253,6 +253,8 @@ def createTestSuite(args):
       return pytest_suite.PytestSuite(args, "suites/core_vm_tests.py")
    elif (args.suite == "HelenAPITests"):
       return pytest_suite.PytestSuite(args, "suites/helen/api_test.py")
+   elif (args.suite == "HelenRoleTests"):
+      return pytest_suite.PytestSuite(args, "suites/helen/roles.py")
    elif (args.suite == "ExtendedRPCTests"):
       return ext_rpc_tests.ExtendedRPCTests(args)
    elif (args.suite == "WebSocketRPCTests"):
