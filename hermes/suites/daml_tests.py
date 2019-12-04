@@ -30,11 +30,11 @@ productType = helper.TYPE_DAML
 def test_ledger_api_test_tool(fxProduct):
    """Run ledger_api_test_tool
    """
-   TEST_TOOL_NAME = "ledger-api-test-tool-100.38.jar"
+   TEST_TOOL_NAME = "ledger-api-test-tool-100.13.38.jar"
    TEST_DARS = ["SemanticTests.dar", "Test-dev.dar", "Test-stable.dar"]
    TEST_TOOL_CONTAINER = "docker_daml_test_tool_1"
    error_msg = None
-Í
+
    log.info("Copy DAR files to hermes...")
    tmpDars = []
    for testDar in TEST_DARS:

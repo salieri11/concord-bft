@@ -127,8 +127,6 @@ services:
     image: "${daml_execution_engine_repo}:${daml_execution_engine_tag}"
     environment:
       - JAVA_OPTS=-XX:+UseG1GC -Xmx4G
-    depends_on:
-      - fluentd
     expose:
       - 55000
     ports:
@@ -138,8 +136,6 @@ services:
     image: "${daml_execution_engine_repo}:${daml_execution_engine_tag}"
     environment:
       - JAVA_OPTS=-XX:+UseG1GC -Xmx4G
-    depends_on:
-      - fluentd
     expose:
       - 55000
     ports:
@@ -149,8 +145,6 @@ services:
     image: "${daml_execution_engine_repo}:${daml_execution_engine_tag}"
     environment:
       - JAVA_OPTS=-XX:+UseG1GC -Xmx4G
-    depends_on:
-      - fluentd
     expose:
       - 55000
     ports:
@@ -160,8 +154,6 @@ services:
     image: "${daml_execution_engine_repo}:${daml_execution_engine_tag}"
     environment:
       - JAVA_OPTS=-XX:+UseG1GC -Xmx4G
-    depends_on:
-      - fluentd
     expose:
       - 55000
     ports:
