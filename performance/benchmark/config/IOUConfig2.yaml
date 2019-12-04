@@ -37,6 +37,11 @@ simpleConfig:
   outputDir: ./perf_result
 
 advancedConfig:
+  wavefront:
+    enabled: true
+    proxyHost: 10.40.205.202
+    metricsPort: 2878
+    source:  blockchain-benchmark
   dockerStats: false
   esxTop: false
   esxtopCommand:

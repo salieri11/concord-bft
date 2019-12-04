@@ -33,6 +33,16 @@
             </exclusions>
         </dependency>
         <dependency>
+            <groupId>me.tongfei</groupId>
+            <artifactId>progressbar</artifactId>
+            <version>0.7.4</version>
+        </dependency>
+        <dependency>
+            <groupId>com.wavefront</groupId>
+            <artifactId>wavefront-sdk-java</artifactId>
+            <version>1.14</version>
+        </dependency>
+        <dependency>
             <groupId>com.github.spullara.mustache.java</groupId>
             <artifactId>compiler</artifactId>
             <version>0.9.6</version>
