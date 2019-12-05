@@ -24,11 +24,11 @@ grpc::Status ThinReplicaImpl::ReadStateHash(
   return grpc::Status(grpc::StatusCode::UNIMPLEMENTED, "ReadStateHash");
 }
 
-grpc::Status ThinReplicaImpl::AckCursor(
+grpc::Status ThinReplicaImpl::AckUpdate(
     ServerContext* context,
-    const com::vmware::concord::thin_replica::Cursor* cursor,
+    const com::vmware::concord::thin_replica::BlockId* block_id,
     google::protobuf::Empty* empty) {
-  return grpc::Status(grpc::StatusCode::UNIMPLEMENTED, "AckCursor");
+  return grpc::Status(grpc::StatusCode::UNIMPLEMENTED, "AckUpdate");
 }
 
 grpc::Status ThinReplicaImpl::SubscribeToUpdates(
