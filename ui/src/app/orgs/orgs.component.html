@@ -1,6 +1,11 @@
 <div class="p-2">
-  <h2 class="page-title">
-    {{ 'organization.title' | translate }}
+
+  <h2 class="page-title inline-block">
+    <span>{{ 'organization.title' | translate }}</span>
+    <!-- help button -->
+    <button #helpButton type="button" class="close help-btn" aria-label="Help" (click)="onClickToHelp('vmb_150')">
+      <clr-icon aria-hidden="true" shape="help" size="18"></clr-icon>
+    </button>
   </h2>
 
   <concord-org-list #orgList></concord-org-list>
