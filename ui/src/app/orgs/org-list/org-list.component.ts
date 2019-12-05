@@ -12,7 +12,6 @@ import { environment } from '../../../environments/environment';
 import { OrgService } from '../shared/org.service';
 import { Org } from '../shared/org.model';
 import { InivteUserComponent } from '../inivte-user/inivte-user.component';
-import { ContextualHelpService } from './../../shared/contextual-help.service';
 
 @Component({
   selector: 'concord-org-list',
@@ -25,15 +24,11 @@ export class OrgListComponent implements OnInit {
   env = environment;
 
   constructor(
-    private orgService: OrgService,
-    private helpService: ContextualHelpService
+    private orgService: OrgService
   ) {
     this.orgService.getList().subscribe(orgs => this.orgs = orgs);
   }
 
   ngOnInit() { }
 
-  onClickToHelp(helpId) {
-    this.helpService.openHelpPage(helpId);
-  }
 }

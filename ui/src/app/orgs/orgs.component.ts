@@ -6,7 +6,7 @@ import {
   Component,
   OnInit,
 } from '@angular/core';
-
+import { ContextualHelpService } from './../shared/contextual-help.service';
 
 @Component({
   selector: 'concord-org',
@@ -15,8 +15,12 @@ import {
 })
 export class OrgsComponent implements OnInit {
 
-  constructor() {}
+  constructor(private helpService: ContextualHelpService) { }
 
-  ngOnInit() {}
+  ngOnInit() { }
+
+  onClickToHelp(helpId) {
+    this.helpService.openHelpPage(helpId);
+  }
 
 }
