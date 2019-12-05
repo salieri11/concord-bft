@@ -33,9 +33,9 @@ class ThinReplicaImpl final
       const com::vmware::concord::thin_replica::ReadStateHashRequest* request,
       com::vmware::concord::thin_replica::Hash* hash) override;
 
-  grpc::Status AckCursor(
+  grpc::Status AckUpdate(
       grpc::ServerContext* context,
-      const com::vmware::concord::thin_replica::Cursor* cursor,
+      const com::vmware::concord::thin_replica::BlockId* block_id,
       google::protobuf::Empty* empty) override;
 
   grpc::Status SubscribeToUpdates(
