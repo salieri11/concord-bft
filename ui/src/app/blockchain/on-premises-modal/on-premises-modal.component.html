@@ -1,5 +1,12 @@
 <clr-modal [clrModalSize]="'xl'" [(clrModalOpen)]="isOpen" #modal>
-  <h3 class="modal-title">{{ 'onPrem.pageTitle' | translate }}</h3>
+
+  <ng-container class="modal-title">
+    <h3 class="modal-title">{{ 'onPrem.pageTitle' | translate }}</h3>
+    <button #helpButton type="button" class="close help-btn" aria-label="Help" (click)="onClickToHelp('vmb_120')">
+      <clr-icon aria-hidden="true" shape="help"></clr-icon>
+    </button>
+  </ng-container>
+
   <div class="modal-body">
     <concord-on-premises-form #form></concord-on-premises-form>
   </div>

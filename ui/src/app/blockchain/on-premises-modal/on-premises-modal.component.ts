@@ -7,6 +7,7 @@ import { Router } from '@angular/router';
 import { ClrWizard } from '@clr/angular';
 
 import { OnPremisesFormComponent } from '../on-premises-form/on-premises-form.component';
+import { ContextualHelpService } from './../../shared/contextual-help.service';
 
 @Component({
   selector: 'concord-on-premises-modal',
@@ -19,14 +20,14 @@ export class OnPremisesModalComponent implements AfterViewInit {
   isOpen: boolean;
   adding: boolean;
 
-  constructor(private router: Router) { }
+  constructor(private router: Router, private helpService: ContextualHelpService) { }
 
-  ngAfterViewInit() {}
+  ngAfterViewInit() { }
 
   addOnPrem() {
     this.adding = true;
     this.form.addOnPrem().subscribe(() => {
-        this.adding = false;
+      this.adding = false;
     });
   }
 
@@ -37,6 +38,10 @@ export class OnPremisesModalComponent implements AfterViewInit {
 
   resetFragment() {
     this.router.navigate([]);
+  }
+
+  onClickToHelp(helpId) {
+    this.helpService.openHelpPage(helpId);
   }
 
 }
