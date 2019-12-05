@@ -1,4 +1,5 @@
-.help-btn {
-  position: relative;
-  right: 0.75rem;
+:host ::ng-deep {
+  .datagrid-action-bar {
+    margin-left: 10rem;
+  }
 }
