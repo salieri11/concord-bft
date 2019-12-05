@@ -1,104 +1,135 @@
-  <clr-wizard #wizard
-              [(clrWizardOpen)]="isOpen"
-              clrWizardSize="lg"
-              [clrWizardPreventDefaultNext]="true"
-              (clrWizardOnCancel)="onClose()">
-    <clr-wizard-title>{{modalTitle}}</clr-wizard-title>
-    <clr-wizard-button [type]="'cancel'">{{'common.cancel' | translate}}</clr-wizard-button>
-    <clr-wizard-button [type]="'previous'">{{'common.back' | translate}}</clr-wizard-button>
-    <clr-wizard-button [type]="'next'">{{'common.next' | translate}}</clr-wizard-button>
-    <clr-wizard-button *ngIf="!modalState.isUpdateExternal" [type]="'finish'">{{'common.finish' | translate}}</clr-wizard-button>
-    <clr-wizard-button *ngIf="modalState.isUpdateExternal" [type]="'finish'">{{'common.verify' | translate}}</clr-wizard-button>
-    <div *ngIf="modalState.error">
-      <clr-alert [clrAlertClosable]="false" clrAlertType="danger">
-        <div class="alert-item">
+<clr-wizard #wizard [(clrWizardOpen)]="isOpen" clrWizardSize="lg" [clrWizardPreventDefaultNext]="true"
+  (clrWizardOnCancel)="onClose()">
+  <clr-wizard-title>{{modalTitle}}</clr-wizard-title>
+  <clr-wizard-button [type]="'cancel'">{{'common.cancel' | translate}}</clr-wizard-button>
+  <clr-wizard-button [type]="'previous'">{{'common.back' | translate}}</clr-wizard-button>
+  <clr-wizard-button [type]="'next'">{{'common.next' | translate}}</clr-wizard-button>
+  <clr-wizard-button *ngIf="!modalState.isUpdateExternal" [type]="'finish'">{{'common.finish' | translate}}
+  </clr-wizard-button>
+  <clr-wizard-button *ngIf="modalState.isUpdateExternal" [type]="'finish'">{{'common.verify' | translate}}
+  </clr-wizard-button>
+  <div *ngIf="modalState.error">
+    <clr-alert [clrAlertClosable]="false" clrAlertType="danger">
+      <div class="alert-item">
         <span class="alert-text">
           {{'smartContracts.createContractError' | translate}}
           <br><br>
           {{modalState.errorMessage}}
         </span>
-        </div>
-      </clr-alert>
-    </div>
-    <clr-wizard-page [clrWizardPageNextDisabled]="smartContractForm.invalid || loadingFlag" (clrWizardPageNext)="onSubmitSourceCode()">
-      <ng-template clrPageTitle>{{'smartContracts.form.generalInformationTitle' | translate}}</ng-template>
-      <form clrForm clrLayout="horizontal" [formGroup]="smartContractForm" class="contract-form">
-          <div class="spinner" *ngIf="loadingFlag">
-              Loading...
-          </div>
-        <section class="form-block">
-          <clr-input-container>
-            <label for="smartContractContractId" class="required">{{'smartContracts.name' | translate}}</label>
-            <input clrInput id="smartContractContractId" type="text" placeholder="{{'smartContracts.namePlaceholder' | translate}}" required formControlName="contractId">
-            <clr-control-error *clrIfError="'required'">{{'common.requiredValidationMessage' | translate}}</clr-control-error>
-          </clr-input-container>
-          <clr-input-container>
-            <label for="smartContractFrom" class="required">{{'smartContracts.version.from' | translate}}</label>
-            <input clrInput id="smartContractFrom" type="text" placeholder="0x0123456789abcdefgh0123456789abcdefgh0123" required formControlName="from">
-            <clr-control-error *clrIfError="'required'">{{'common.requiredValidationMessage' | translate}}</clr-control-error>
-            <clr-control-error *clrIfError="'minlength'">{{'smartContracts.version.addressLengthValidationMessage' | translate}}</clr-control-error>
-            <clr-control-error *clrIfError="'maxlength'">{{'smartContracts.version.addressLengthValidationMessage' | translate}}</clr-control-error>
-            <clr-control-error *clrIfError="'pattern'">{{'smartContracts.version.addressPatternValidationMessage' | translate}}</clr-control-error>
-            <clr-control-helper>
-              {{'smartContracts.form.addressHelper' | translate}}
-            </clr-control-helper>
-          </clr-input-container>
-          <clr-input-container>
-            <label for="smartContractVersion" class="required">{{'smartContracts.version.version' | translate}}</label>
-            <input clrInput id="smartContractVersion" type="text" placeholder="{{'smartContracts.version.placeholder' | translate}}" required formControlName="version">
-            <clr-control-helper *ngIf="modalState.isUpdate">{{'smartContracts.form.versionHelper' | translate}}</clr-control-helper>
-            <clr-control-error *clrIfError="'required'">{{'common.requiredValidationMessage' | translate}}</clr-control-error>
-            <clr-control-error *clrIfError="'versionExists'">{{'smartContracts.form.versionDuplicateValidationMessage' | translate}}</clr-control-error>
-            <clr-control-error *clrIfError="'maxlength'">{{'smartContracts.form.versionLengthValidationMessage' | translate}}</clr-control-error>
-          </clr-input-container>
-          <clr-select-container>
-            <label for="smartContractCompilerVersion" class="required">{{'smartContracts.version.compilerVersion' | translate}}</label>
-            <select clrSelect id="smartContractCompilerVersion" name="function" formControlName="compilerVersion">
-              <option *ngFor="let element of compilerVersions" [value]="element.commit">{{ element.version }}</option>
-            </select>
-            <clr-control-helper *ngIf="modalState.isUpdateExternal">{{'smartContracts.form.verifyHelper' | translate}}</clr-control-helper>
-          </clr-select-container>
-          <clr-toggle-wrapper class="optimize">
-            <input type="checkbox" clrToggle id="smartContractOptimizer" formControlName="isOptimize" (change)="changeOptimizer()" />
-            <label>{{'smartContracts.version.optimizer' | translate}}</label>
-          </clr-toggle-wrapper>
-          <clr-input-container>
-            <label for="smartContractRuns" class="required">{{'smartContracts.version.runs' | translate}}</label>
-            <input clrInput id="smartContractRuns" type="text" formControlName="runs" [disabled]="runsDisabled">
-          </clr-input-container>
-          <div class="clr-row clr-form-control">
-            <label for="smartContractFile" class="clr-control-label required">{{'smartContracts.file' | translate}}</label>
-            <div class="clr-control-container">
-              <div class="clr-input-wrapper">
-                <input id="smartContractFile" type="file" name="userFile" required #fileInput (change)="onSmartContractFileChange($event)" accept=".sol">
-              </div>
-            </div>
-          </div>
-        </section>
-      </form>
-    </clr-wizard-page>
-    <clr-wizard-page (clrWizardPageNext)="onSelectContract()">
-      <ng-template clrPageTitle>{{'smartContracts.form.contractSelectionTitle' | translate}}</ng-template>
-      <p>{{'smartContracts.form.contractSelectionHelper' | translate}}</p>
-      <form clrForm clrLayout="horizontal" [formGroup]="contractsForm" class="contract-form">
-        <clr-radio-container>
-          <clr-radio-wrapper *ngFor="let input of multiContractResponse">
-            <input type="radio" [value]="input.contract_name" clrRadio name="selectedContract" required formControlName="selectedContract" />
-            <label>{{input.contract_name}}</label>
-          </clr-radio-wrapper>
-        </clr-radio-container>
-      </form>
-    </clr-wizard-page>
-    <clr-wizard-page [clrWizardPageNextDisabled]="constructorParamsForm.invalid" (clrWizardPageFinish)="onSubmitSmartContract()">
+      </div>
+    </clr-alert>
+  </div>
+  <clr-wizard-page [clrWizardPageNextDisabled]="smartContractForm.invalid || loadingFlag"
+    (clrWizardPageNext)="onSubmitSourceCode()">
+    <ng-template clrPageTitle>{{'smartContracts.form.generalInformationTitle' | translate}}</ng-template>
+    <form clrForm clrLayout="horizontal" [formGroup]="smartContractForm" class="contract-form">
       <div class="spinner" *ngIf="loadingFlag">
         Loading...
       </div>
-      <ng-template clrPageTitle>{{'smartContracts.form.constructorParametersTitle' | translate}}</ng-template>
-      <p *ngIf="constructorAbi?.inputs.length">{{'smartContracts.form.constructorParametersRequiredHelper' | translate}}</p>
-      <p *ngIf="!constructorAbi?.inputs.length">{{'smartContracts.form.constructorParametersNotRequiredHelper' | translate}}</p>
-      <form *ngIf="constructorAbi?.inputs.length" clrForm clrLayout="horizontal" class="contract-form">
-          <concord-smart-contracts-solidity-function-inputs [formGroup]="constructorParamsForm"
-                                                           [functionInputs]="constructorAbi.inputs"></concord-smart-contracts-solidity-function-inputs>
-      </form>
-    </clr-wizard-page>
-  </clr-wizard>
+      <section class="form-block">
+        <clr-input-container>
+          <label for="smartContractContractId" class="required">{{'smartContracts.name' | translate}}</label>
+          <input clrInput id="smartContractContractId" type="text"
+            placeholder="{{'smartContracts.namePlaceholder' | translate}}" required formControlName="contractId">
+          <clr-control-error *clrIfError="'required'">{{'common.requiredValidationMessage' | translate}}
+          </clr-control-error>
+        </clr-input-container>
+        <clr-input-container>
+          <label for="smartContractFrom" class="required">{{'smartContracts.version.from' | translate}}</label>
+          <input clrInput id="smartContractFrom" type="text" placeholder="0x0123456789abcdefgh0123456789abcdefgh0123"
+            required formControlName="from">
+          <clr-control-error *clrIfError="'required'">{{'common.requiredValidationMessage' | translate}}
+          </clr-control-error>
+          <clr-control-error *clrIfError="'minlength'">
+            {{'smartContracts.version.addressLengthValidationMessage' | translate}}</clr-control-error>
+          <clr-control-error *clrIfError="'maxlength'">
+            {{'smartContracts.version.addressLengthValidationMessage' | translate}}</clr-control-error>
+          <clr-control-error *clrIfError="'pattern'">
+            {{'smartContracts.version.addressPatternValidationMessage' | translate}}</clr-control-error>
+          <clr-control-helper>
+            {{'smartContracts.form.addressHelper' | translate}}
+          </clr-control-helper>
+        </clr-input-container>
+        <clr-input-container>
+          <label for="smartContractVersion" class="required">{{'smartContracts.version.version' | translate}}</label>
+          <input clrInput id="smartContractVersion" type="text"
+            placeholder="{{'smartContracts.version.placeholder' | translate}}" required formControlName="version">
+          <clr-control-helper *ngIf="modalState.isUpdate">{{'smartContracts.form.versionHelper' | translate}}
+          </clr-control-helper>
+          <clr-control-error *clrIfError="'required'">{{'common.requiredValidationMessage' | translate}}
+          </clr-control-error>
+          <clr-control-error *clrIfError="'versionExists'">
+            {{'smartContracts.form.versionDuplicateValidationMessage' | translate}}</clr-control-error>
+          <clr-control-error *clrIfError="'maxlength'">
+            {{'smartContracts.form.versionLengthValidationMessage' | translate}}</clr-control-error>
+        </clr-input-container>
+        <clr-select-container>
+          <label for="smartContractCompilerVersion"
+            class="required">{{'smartContracts.version.compilerVersion' | translate}}</label>
+          <select clrSelect id="smartContractCompilerVersion" name="function" formControlName="compilerVersion">
+            <option *ngFor="let element of compilerVersions" [value]="element.commit">{{ element.version }}</option>
+          </select>
+          <clr-control-helper *ngIf="modalState.isUpdateExternal">{{'smartContracts.form.verifyHelper' | translate}}
+          </clr-control-helper>
+        </clr-select-container>
+        <clr-toggle-wrapper class="optimize">
+          <input type="checkbox" clrToggle id="smartContractOptimizer" formControlName="isOptimize"
+            (change)="changeOptimizer()" />
+          <label>{{'smartContracts.version.optimizer' | translate}}</label>
+        </clr-toggle-wrapper>
+        <clr-input-container>
+          <label for="smartContractRuns" class="required">{{'smartContracts.version.runs' | translate}}</label>
+          <input clrInput id="smartContractRuns" type="text" formControlName="runs" [disabled]="runsDisabled">
+        </clr-input-container>
+        <div class="clr-row clr-form-control">
+          <label for="smartContractFile"
+            class="clr-control-label required">{{'smartContracts.file' | translate}}</label>
+          <div class="clr-control-container">
+            <div class="clr-input-wrapper">
+              <input id="smartContractFile" type="file" name="userFile" required #fileInput
+                (change)="onSmartContractFileChange($event)" accept=".sol">
+            </div>
+          </div>
+        </div>
+      </section>
+    </form>
+  </clr-wizard-page>
+  <clr-wizard-page (clrWizardPageNext)="onSelectContract()">
+    <ng-template clrPageTitle>{{'smartContracts.form.contractSelectionTitle' | translate}}</ng-template>
+    <p>{{'smartContracts.form.contractSelectionHelper' | translate}}</p>
+    <form clrForm clrLayout="horizontal" [formGroup]="contractsForm" class="contract-form">
+      <clr-radio-container>
+        <clr-radio-wrapper *ngFor="let input of multiContractResponse">
+          <input type="radio" [value]="input.contract_name" clrRadio name="selectedContract" required
+            formControlName="selectedContract" />
+          <label>{{input.contract_name}}</label>
+        </clr-radio-wrapper>
+      </clr-radio-container>
+    </form>
+  </clr-wizard-page>
+
+  <clr-wizard-page [clrWizardPageNextDisabled]="constructorParamsForm.invalid"
+    (clrWizardPageFinish)="onSubmitSmartContract()">
+    <div class="spinner" *ngIf="loadingFlag">
+      Loading...
+    </div>
+
+    <ng-template clrPageTitle>
+      {{'smartContracts.form.constructorParametersTitle' | translate}}
+      <button #helpButton type="button" class="close help-btn" aria-label="Help" (click)="onClickToHelp('vmb_130')">
+        <clr-icon aria-hidden="true" shape="help"></clr-icon>
+      </button>
+    </ng-template>
+
+    <ng-template clrPageNavTitle>{{'smartContracts.form.constructorParametersTitle' | translate}}</ng-template>
+
+    <p *ngIf="constructorAbi?.inputs.length">{{'smartContracts.form.constructorParametersRequiredHelper' | translate}}
+    </p>
+    <p *ngIf="!constructorAbi?.inputs.length">
+      {{'smartContracts.form.constructorParametersNotRequiredHelper' | translate}}</p>
+    <form *ngIf="constructorAbi?.inputs.length" clrForm clrLayout="horizontal" class="contract-form">
+      <concord-smart-contracts-solidity-function-inputs [formGroup]="constructorParamsForm"
+        [functionInputs]="constructorAbi.inputs"></concord-smart-contracts-solidity-function-inputs>
+    </form>
+  </clr-wizard-page>
+</clr-wizard>

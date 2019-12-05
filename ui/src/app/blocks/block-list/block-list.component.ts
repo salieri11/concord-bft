@@ -9,6 +9,7 @@ import { BlocksService } from '../shared/blocks.service';
 import { mainRoutes, hexHash256HexRegExp } from '../../shared/urls.model';
 import { delay } from 'rxjs/operators';
 import { BlockchainService } from '../../blockchain/shared/blockchain.service';
+import { ContextualHelpService } from './../../shared/contextual-help.service';
 
 /**
  * Displays a paginated listing of blocks
@@ -38,6 +39,7 @@ export class BlockListComponent implements OnInit, OnDestroy {
   constructor(
     private blocksService: BlocksService,
     private blockchainService: BlockchainService,
+    private helpService: ContextualHelpService
   ) {}
 
   ngOnInit() {
@@ -173,6 +175,10 @@ export class BlockListComponent implements OnInit, OnDestroy {
 
   timestampToISOString(t) {
     return new Date(t).toISOString();
+  }
+
+  onClickToHelp(helpId) {
+    this.helpService.openHelpPage(helpId);
   }
 
 }
