@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import com.google.common.collect.ImmutableMap;
 import com.google.protobuf.InvalidProtocolBufferException;
 
@@ -63,9 +64,11 @@ public class HelenExceptionHandler {
         // However, if this is a helen exception, pull the code from exception
         if (ex instanceof HelenException) {
             status = ((HelenException) ex).getHttpStatus();
+        } else if (root instanceof InvalidFormatException && ((InvalidFormatException) root).getTargetType().isEnum()) {
+            status = HttpStatus.BAD_REQUEST;
         }
         // For now, let's always print a stacktrace.  This may change in the future.
-        logger.info("Error code {}, message {}, status {}",  errorCode, ex.getMessage(), status, ex);
+        logger.info("Error code {}, message {}, status {}", errorCode, ex.getMessage(), status, ex);
         return new ErrorMessage(errorCode, ex.getMessage(), status.value(), path);
     }
 

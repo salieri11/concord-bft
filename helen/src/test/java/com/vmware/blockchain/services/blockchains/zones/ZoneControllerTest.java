@@ -116,6 +116,43 @@ class ZoneControllerTest {
                                                    + "  }]\n"
                                                    + "}";
 
+    private static final String POST_MANGO_BODY = "{\n"
+                                                   + "  \"name\": \"Mango\",\n"
+                                                   + "  \"type\": \"Mango\",\n"
+                                                   + "  \"org_id\": \"5e5ff1c8-34b9-4fa3-9924-83eb14354d4c\",\n"
+                                                   + "  \"vcenter\": {\n"
+                                                   + "    \"url\": \"http://vcenter\",\n"
+                                                   + "    \"username\": \"admin\",\n"
+                                                   + "    \"password\": \"password\"\n"
+                                                   + "  },\n"
+                                                   + "  \"resource_pool\": \"pool\",\n"
+                                                   + "  \"storage\": \"datastore\",\n"
+                                                   + "  \"folder\": \"folder\",\n"
+                                                   + "  \"network\": {\n"
+                                                   + "    \"name\": \"Network 1\",\n"
+                                                   + "    \"ip_pool\": [\n"
+                                                   + "      \"10.1.1.16-10.1.1.64\",\n"
+                                                   + "      \"10.1.1.100-10.1.1.200\"\n"
+                                                   + "    ],\n"
+                                                   + "    \"gateway\": \"10.1.1.1\",\n"
+                                                   + "    \"subnet\": \"24\",\n"
+                                                   + "    \"name_servers\": [\n"
+                                                   + "      \"10.1.1.3\"\n"
+                                                   + "    ]\n"
+                                                   + "  },\n"
+                                                   + "  \"container_repo\": {\n"
+                                                   + "    \"url\": \"https://docker-repo.com\",\n"
+                                                   + "    \"username\": \"user\",\n"
+                                                   + "    \"password\": \"docker\"\n"
+                                                   + "  },\n"
+                                                   + "  \"log_managements\": [{\n"
+                                                   + "    \"destination\": \"LOG_INSIGHT\",\n"
+                                                   + "    \"address\": \"10.78.20.10:9000\",\n"
+                                                   + "    \"username\": \"foo\",\n"
+                                                   + "    \"password\": \"bar\"\n"
+                                                   + "  }]\n"
+                                                   + "}";
+
     private static final String POST_NO_ORG_BODY = "{\n"
                                                    + "  \"name\": \"OnPrem\",\n"
                                                    + "  \"type\": \"ON_PREM\",\n"
@@ -412,6 +449,14 @@ class ZoneControllerTest {
         Assertions.assertEquals(UUID.fromString("9ecb07bc-482c-48f3-80d0-23c4f9514902"),
                                 ((OnPremGetResponse) zone).getOrgId());
         Assertions.assertEquals("admin", ((OnPremGetResponse) zone).getVcenter().getUsername());
+    }
+
+    @Test
+    void testPostMango() throws Exception {
+        mockMvc.perform(post("/api/blockchains/zones").with(authentication(adminAuth))
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(POST_MANGO_BODY))
+                .andExpect(status().isBadRequest());
     }
 
     @Test
