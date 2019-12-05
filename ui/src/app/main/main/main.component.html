@@ -83,7 +83,7 @@
         <label class="nav-header">
           {{'nav.developer.header' | translate}}
         </label>
-        <a clrVerticalNavLink [href]="urls.docs">
+        <a clrVerticalNavLink (click)="onClickToHelp()">
           <clr-icon clrVerticalNavIcon shape="book"></clr-icon>
           {{'nav.developer.docs' | translate}}
         </a>

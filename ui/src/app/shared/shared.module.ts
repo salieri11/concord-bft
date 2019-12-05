@@ -20,6 +20,7 @@ import { CONCORD_API_PREFIX, CSP_API_PREFIX, ETHEREUM_API_PREFIX, LOG_API_PREFIX
 import { TransactionsStatusFilterComponent } from './components/transactions-status-filter/transactions-status-filter.component';
 import { RouterModule } from '@angular/router';
 import { PersonaService } from './persona.service';
+import { ContextualHelpService } from './contextual-help.service';
 import { CanViewDirective } from './directives/can-view.directive';
 import { FeatureFlagDirective } from './directives/feature-flag.directive';
 import { VmwTaskComponent } from './components/task-panel/task.component';
@@ -48,6 +49,7 @@ export const defaultProvided: any[] = [
   { provide: LOG_API_PREFIX, useValue: 'logging/api' },
   { provide: CSP_API_PREFIX, useValue: 'csp/api' },
   PersonaService,
+  ContextualHelpService,
   VmwTasksService,
   VmwClarityThemeService
 ];

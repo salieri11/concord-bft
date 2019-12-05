@@ -2,7 +2,7 @@
   <div class="search-input-area">
     <clr-icon size="20" class="is-highlight search-icon" shape="search"></clr-icon>
     <clr-input-container class="search-input-container">btn-outline
-      <input #searchInput clrInput [placeholder]="'blocks.searchPlaceholder' | translate" class="search-input"/>
+      <input #searchInput clrInput [placeholder]="'blocks.searchPlaceholder' | translate" class="search-input" />
       <clr-control-helper class="not-found-text">{{
         searchInputMessage ? (searchInputMessage | translate) : ''
       }}</clr-control-helper>
@@ -10,6 +10,10 @@
   </div>
   <h2 class="page-title inline-block">
     <span>{{'blocks.explorer' | translate}}</span>
+    <!-- help button -->
+    <button #helpButton type="button" class="close help-btn" aria-label="Help" (click)="onClickToHelp('vmb_150')">
+      <clr-icon aria-hidden="true" shape="help" size="18"></clr-icon>
+    </button>
   </h2>
   <clr-datagrid [clrDgLoading]="!blocksLoaded || searching">
     <clr-dg-column class="block-number">{{'blocks.number' | translate}}</clr-dg-column>
@@ -28,12 +32,8 @@
         <a [routerLink]="getBlockPageRouterLink(block.number)">{{
           block.hash
         }} </a>
-        <concord-copy-to-clipboard-button
-          classList="ctc-btn-inline"
-          [tooltip]="'common.copyToClip' | translate"
-          tooltipDirection="top-right"
-          [value]="block.hash"
-          [size]="12">
+        <concord-copy-to-clipboard-button classList="ctc-btn-inline" [tooltip]="'common.copyToClip' | translate"
+          tooltipDirection="top-right" [value]="block.hash" [size]="12">
         </concord-copy-to-clipboard-button>
       </clr-dg-cell>
       <clr-dg-cell class="tx-count">
@@ -41,13 +41,9 @@
         <div class="data-field-spacer"></div>
       </clr-dg-cell>
       <clr-dg-cell class="time-info">
-        {{ (block.blockData?.timestamp * 1000) | date: 'yyyy/MM/dd h:mm:ss a':'+0000' }} (UTC) 
-        <concord-copy-to-clipboard-button
-          classList="ctc-btn-inline"
-          [tooltip]="'common.copyToClip' | translate"
-          tooltipDirection="top-right"
-          [value]="timestampToISOString(block.blockData?.timestamp * 1000)"
-          [size]="12">
+        {{ (block.blockData?.timestamp * 1000) | date: 'yyyy/MM/dd h:mm:ss a':'+0000' }} (UTC)
+        <concord-copy-to-clipboard-button classList="ctc-btn-inline" [tooltip]="'common.copyToClip' | translate"
+          tooltipDirection="top-right" [value]="timestampToISOString(block.blockData?.timestamp * 1000)" [size]="12">
         </concord-copy-to-clipboard-button>
       </clr-dg-cell>
       <clr-dg-row-detail class="details" *clrIfExpanded="autoExpandResult">
@@ -59,10 +55,9 @@
             <concord-block-details [blockNumber]="block.number"></concord-block-details>
           </div>
           <h5 class="transactions-title">{{'blocks.transactions' | translate}}</h5>
-          <concord-transaction-list
-            [classList]="block.blockData?.transactions.length > 1 ? 'has-left-margin' : ''"
-            [titleHidden]="true" [blockNumber]="block.number" 
-            [codeBlockMaxHeight]="'700px'" [noListIfSingle]="true" [pagination]="20">
+          <concord-transaction-list [classList]="block.blockData?.transactions.length > 1 ? 'has-left-margin' : ''"
+            [titleHidden]="true" [blockNumber]="block.number" [codeBlockMaxHeight]="'700px'" [noListIfSingle]="true"
+            [pagination]="20">
           </concord-transaction-list>
         </div>
       </clr-dg-row-detail>
