@@ -7,6 +7,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 import akka.actor.ActorSystem
 import akka.stream.{ActorMaterializer, ActorMaterializerSettings, Supervision}
+import com.codahale.metrics.SharedMetricRegistries
 import com.digitalasset.daml.lf.archive.DarReader
 import com.digitalasset.daml_lf_dev.DamlLf.Archive
 import org.slf4j.LoggerFactory
@@ -40,26 +41,29 @@ object KvbcLedgerServer extends App {
   }
 
   val extConfig = Cli.parse(args, "ledger-api-server","vDAML Ledger API Server").getOrElse(sys.exit(1))
+  val participantId = extConfig.config.participantId
 
   logger.info(
     s"""Initialized vDAML ledger api server: version=${BuildInfo.Version},
-       |participantId=${extConfig.participantId.toString}, replicas=${extConfig.replicas},
+       |participantId=${participantId.toString}, replicas=${extConfig.replicas},
        |jdbcUrl=${extConfig.config.jdbcUrl},
        |dar file(s)=${args.drop(2).mkString("(", ";", ")")}""".stripMargin.replaceAll("\n", " "))
 
   logger.info(s"Connecting to the first core replica ${extConfig.replicas.head}")
   val address = extConfig.replicas.head.split(":")
   val ledger = KVBCParticipantState(
-    "KVBC", extConfig.participantId, address(0), address(1).toInt, true)
+    "KVBC", participantId, address(0), address(1).toInt)
 
   val readService = ledger
   val writeService = ledger
-  val loggerFactory = NamedLoggerFactory.forParticipant(extConfig.participantId)
+  val loggerFactory = NamedLoggerFactory.forParticipant(participantId)
   val authService = AuthServiceWildcard
+  val indexerMetrics = SharedMetricRegistries.getOrCreate(s"indexer-${participantId}")
+  val serverMetrics = SharedMetricRegistries.getOrCreate(s"ledger-api-server-${participantId}")
 
   val indexersF: Future[(AutoCloseable, StandaloneIndexServer#SandboxState)] = for {
-    indexerServer <- StandaloneIndexerServer(readService, extConfig.config, loggerFactory)
-    indexServer <- StandaloneIndexServer(extConfig.config, readService, writeService, authService, loggerFactory).start()
+    indexerServer <- StandaloneIndexerServer(readService, extConfig.config, loggerFactory, indexerMetrics)
+    indexServer <- StandaloneIndexServer(extConfig.config, readService, writeService, authService, loggerFactory, serverMetrics).start()
   } yield (indexerServer, indexServer)
 
   extConfig.config.archiveFiles.foreach { f =>
