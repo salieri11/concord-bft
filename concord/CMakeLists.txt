@@ -42,6 +42,8 @@ find_package(Boost 1.65 COMPONENTS system program_options thread filesystem
         REQUIRED)
 include_directories(${Boost_INCLUDE_DIRS})
 
+find_package(jaegertracing CONFIG REQUIRED)
+
 #find_package(Log4Cplus REQUIRED)
 configure_file(test/resources/log4cplus.properties test/resources/log4cplus.properties COPYONLY)
 configure_file(test/resources/concord1.config test/resources/concord1.config COPYONLY)

@@ -2,9 +2,10 @@
  * Copyright (c) 2019 VMware, Inc. All rights reserved. VMware Confidential
  */
 
+#include <nlohmann/json.hpp>
+
 #include "gtest/gtest.h"
 #include "utils/concord_utils.hpp"
-#include "utils/json.hpp"
 #include "utils/rlp.hpp"
 
 using namespace std;

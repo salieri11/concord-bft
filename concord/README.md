@@ -234,7 +234,7 @@ If you get an error then run:
 
 You should get 1_1_1a as your version.
 
-### gRPC 
+### gRPC
 
 Concord uses [gRPC](https://github.com/grpc/grpc) for DAML and HLF api server. You will need to install grpc version v1.17.x:
 
@@ -252,6 +252,79 @@ Concord uses [gRPC](https://github.com/grpc/grpc) for DAML and HLF api server. Y
    cd ../..
    make -j4 PROTOC=/opt/protobuf/bin/protoc
    sudo make prefix=/opt/grpc install
+```
+
+### Thrift
+
+Thrift is a dependency of Concord's tracing library, Jaeger.
+
+```shell
+wget http://apache.mirrors.hoobly.com/thrift/0.11.0/thrift-0.11.0.tar.gz
+tar xzf thrift-0.11.0.tar.gz
+cd thrift-0.11.0
+./configure
+make -j4
+sudo make install
+```
+
+### OpenTracing
+
+OpenTracing is a dependency of Concord's tracing library, Jaeger.
+
+```shell
+git clone https://github.com/opentracing/opentracing-cpp
+cd opentracing-cpp
+git checkout v1.5.0
+mkdir build
+cd build
+cmake ..
+make -j4
+sudo make install
+```
+
+### JSON
+
+JSON is a dependency of Concord's tracing library, Jaeger.
+
+```shell
+git clone https://github.com/nlohmann/json
+cd json
+git checkout v3.7.3
+mkdir build
+cd build
+cmake ..
+make -j4
+sudo make install
+```
+
+### Jaeger
+
+Jaeger is the tracing library that Concord uses. Note that these instructions are different from those in the Jaeger readme. These build Jaeger without using the Hunter dependency manager.
+
+```shell
+git clone https://github.com/jaegertracing/jaeger-client-cpp
+cd jaeger-client-cpp
+git checkout v0.5.0
+mkdir build
+cd build
+cmake -DHUNTER_ENABLED=NO -DBUILD_TESTING=NO -DBUILD_SHARED_LIBS=NO -DJAEGERTRACING_BUILD_EXAMPLES=NO ..
+make -j4
+sudo make install
+```
+
+Two additional small steps need to be executed, to allow Concord's
+build to find these dependencies.
+
+First, copy the Findthrift CMake script:
+
+```
+sudo cp ../cmake/Findthrift.cmake /usr/share/cmake-3.10/Modules/
+```
+
+Second, modify the jaegertracing CMake script to prevent use of a non-existent BoostConfig.cmake:
+
+```
+sudo sed -i '/boost_components/d' /usr/local/lib/cmake/jaegertracing/jaegertracingConfig.cmake
 ```
 
 ### Concord

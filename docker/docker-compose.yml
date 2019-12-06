@@ -16,6 +16,10 @@ services:
       - ./config-concord1:/concord/config-local
       - ./config-public:/concord/config-public:ro
       - ./tls_certs:/concord/tls_certs:ro
+# TODO: Add this once the jaeger-agent service is enabled, to make
+#       sure concord can resolve the jaeger-agent hostname at startup.
+#   depends_on:
+#     - jaeger-agent
 
   ethrpc1:
     image: "${ethrpc_repo}:${ethrpc_tag}"
@@ -50,6 +54,10 @@ services:
       - ./config-concord2:/concord/config-local
       - ./config-public:/concord/config-public:ro
       - ./tls_certs:/concord/tls_certs:ro
+# TODO: Add this once the jaeger-agent service is enabled, to make
+#       sure concord can resolve the jaeger-agent hostname at startup.
+#   depends_on:
+#     - jaeger-agent
 
   ethrpc2:
     image: "${ethrpc_repo}:${ethrpc_tag}"
@@ -84,6 +92,10 @@ services:
       - ./config-concord3:/concord/config-local
       - ./config-public:/concord/config-public:ro
       - ./tls_certs:/concord/tls_certs:ro
+# TODO: Add this once the jaeger-agent service is enabled, to make
+#       sure concord can resolve the jaeger-agent hostname at startup.
+#   depends_on:
+#     - jaeger-agent
 
   ethrpc3:
     image: "${ethrpc_repo}:${ethrpc_tag}"
@@ -118,6 +130,10 @@ services:
       - ./config-concord4:/concord/config-local
       - ./config-public:/concord/config-public:ro
       - ./tls_certs:/concord/tls_certs:ro
+# TODO: Add this once the jaeger-agent service is enabled, to make
+#       sure concord can resolve the jaeger-agent hostname at startup.
+#   depends_on:
+#     - jaeger-agent
 
   ethrpc4:
     image: "${ethrpc_repo}:${ethrpc_tag}"
@@ -193,3 +209,16 @@ services:
     image: "${persephone_agent_repo}:${persephone_agent_tag}"
     ports:
       - 50453:50453
+
+# TODO: Enable this once we have a wavefront proxy to push to. Without
+#       that, it just generates log spam about being unable to find it.
+# jaeger-agent:
+#   image: jaegertracing/jaeger-agent:1.11
+#   ports:
+#     - 5775:5775/udp
+#     - 6831:6831/udp
+#     - 6832:6832/udp
+#     - 5778:5778/tcp
+#   environment:
+#     REPORTER_TCHANNEL_HOST_PORT: todo_wavefront_proxy_host:todo_wavefront_proxy_port
+#     REPORTER_TYPE: tchannel

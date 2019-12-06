@@ -2,12 +2,11 @@
 
 #include <regex>
 
-#include <boost/algorithm/string.hpp>
-
 #include <cryptopp/dll.h>
+#include <boost/algorithm/string.hpp>
+#include <nlohmann/json.hpp>
 
 #include "configuration_manager.hpp"
-#include "utils/json.hpp"
 
 using std::cerr;
 using std::endl;
@@ -3354,6 +3353,12 @@ void specifyConfiguration(ConcordConfiguration& config) {
   node.tagParameter("logger_reconfig_time", defaultableByReplicaTags);
   node.addValidator("logger_reconfig_time", validatePositiveReplicaInt,
                     nullptr);
+
+  node.declareParameter(
+      "jaeger_agent",
+      "Host:Port of the jaeger-agent process to receive traces "
+      "(127.0.0.1:6831 by default).");
+  node.tagParameter("jaeger_agent", privateOptionalTags);
 
   node.declareParameter("service_host",
                         "Public IP address or hostname on which this replica's "

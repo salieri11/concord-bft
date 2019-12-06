@@ -38,6 +38,9 @@ target_link_libraries(concord
   ${Boost_LIBRARIES}
   log4cplus
   ${yaml-cpp_LIBRARIES}
+  jaegertracing
+  opentracing
+  thrift
   concord_common
   concord_consensus
   concord_ethereum

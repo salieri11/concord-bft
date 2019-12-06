@@ -10,6 +10,7 @@ node__TEMPLATE:
   genesis_block: /concord/config-public/genesis.json
   blockchain_db_path: /concord/rocksdbdata/
   time_pusher_period_ms: 1000
+  jaeger_agent: jaeger-agent:6831
 node:
   - service_host: 0.0.0.0
     service_port: 5458

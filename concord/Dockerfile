@@ -9,7 +9,7 @@
 ##         from parent: docker build -f concord/Dockerfile .
 
 ## Build image
-FROM athena-docker-local.artifactory.eng.vmware.com/concord-core:prereqs-v14
+FROM athena-docker-local.artifactory.eng.vmware.com/concord-core:prereqs-v15
 
 ## Remember context is the parent of this directory
 COPY ./communication /communication
@@ -106,6 +106,13 @@ RUN ln -s /usr/local/lib/librocksdb.so.5.7.3 /usr/local/lib/librocksdb.so
 COPY --from=0 /usr/local/lib/libsecp256k1.so.0.0.0 /usr/local/lib/
 RUN ln -s /usr/local/lib/libsecp256k1.so.0.0.0 /usr/local/lib/libsecp256k1.so.0
 RUN ln -s /usr/local/lib/libsecp256k1.so.0.0.0 /usr/local/lib/libsecp256k1.so
+
+COPY --from=0 /usr/local/lib/libopentracing.so.1.5.0 /usr/local/lib
+RUN ln -s /usr/local/lib/libopentracing.so.1.5.0 /usr/local/lib/libopentracing.so.1
+RUN ln -s /usr/local/lib/libopentracing.so.1.5.0 /usr/local/lib/libopentracing.so
+
+COPY --from=0 /usr/local/lib/libthrift-0.11.0.so /usr/local/lib
+RUN ln -s /usr/local/lib/libthrift-0.11.0.so /usr/local/lib/libthrift.so
 
 WORKDIR /concord/resources
 COPY --from=0 /concord/build/src/concord /concord/concord
