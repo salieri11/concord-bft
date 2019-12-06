@@ -9,7 +9,7 @@ import { TranslateService } from '@ngx-translate/core';
 import { map } from 'rxjs/operators';
 
 import { NodeProperties, NodeInfo } from './nodes.model';
-import { ZoneType } from './../../blockchain/shared/blockchain.model';
+import { ZoneType } from './../../zones/shared/zones.model';
 import { BlockchainService } from '../../blockchain/shared/blockchain.service';
 
 import { Apis } from '../../shared/urls.model';

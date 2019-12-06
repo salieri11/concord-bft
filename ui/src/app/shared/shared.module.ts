@@ -34,6 +34,7 @@ import { VmwThemeSwitchButtonComponent } from './components/theme-switch-button/
 import { CodeHighlighterComponent } from './components/code-highlighter/code-highlighter.component';
 import { AppHeaderComponent } from './components/app-header/app-header.component';
 import { VersionComponent } from './components/version/version.component';
+import { ConfirmModalComponent } from './components/confirm-modal/confirm-modal.component';
 import { RouterTestingModule } from '@angular/router/testing';
 import { MockTranslateModule } from '../mocks/mock-translate.module';
 import { VmwClarityThemeService } from './../shared/theme.provider';
@@ -78,6 +79,7 @@ export const defaultProvided: any[] = [
     CodeHighlighterComponent,
     AppHeaderComponent,
     VersionComponent,
+    ConfirmModalComponent
   ],
   exports: [
     CommonModule,
@@ -100,6 +102,7 @@ export const defaultProvided: any[] = [
     CodeHighlighterComponent,
     AppHeaderComponent,
     VersionComponent,
+    ConfirmModalComponent
   ]
 })
 export class SharedModule {

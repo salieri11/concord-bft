@@ -15,12 +15,13 @@ import { Router } from '@angular/router';
 import { ClrWizard, ClrWizardPage } from '@clr/angular';
 
 import { PersonaService } from '../../shared/persona.service';
+
 import { BlockchainService } from '../shared/blockchain.service';
 import { AuthenticationService } from '../../shared/authentication.service';
-import { BlockchainRequestParams, Zone, ContractEngines } from '../shared/blockchain.model';
-import { OnPremisesFormComponent } from '../on-premises-form/on-premises-form.component';
-import { ZoneType } from '../shared/blockchain.model';
+import { BlockchainRequestParams, ContractEngines } from '../shared/blockchain.model';
 import { ConsortiumStates, mainRoutes } from '../../shared/urls.model';
+import { Zone, ZoneType } from '../../zones/shared/zones.model';
+import { ZoneFormComponent } from '../../zones/zone-form/zone-form.component';
 import { RouteService } from '../../shared/route.service';
 
 const RegionCountValidator: ValidatorFn = (fg: FormGroup): ValidationErrors | null => {
@@ -48,7 +49,7 @@ export class BlockchainWizardComponent implements AfterViewInit {
   @ViewChild('usersPage', { static: false }) usersPage: ClrWizardPage;
   @ViewChild('onPremPage', { static: false }) onPremPage: ClrWizardPage;
   @ViewChild('replicaPage', { static: false }) replicaPage: ClrWizardPage;
-  @ViewChild('onPremForm', { static: false }) onPremForm: OnPremisesFormComponent;
+  @ViewChild('onPremForm', { static: false }) onPremForm: ZoneFormComponent;
   @ViewChild('consortiumInput', { static: false }) consortiumInput: ElementRef;
 
   @Output('events') events: EventEmitter<EventData> = new EventEmitter<EventData>();
@@ -110,28 +111,30 @@ export class BlockchainWizardComponent implements AfterViewInit {
   }
 
   filterZones() {
-    const isOnPremZone = this.blockchainService.zones.some(zone => zone.type === ZoneType.ON_PREM);
+    // this.blockchainService.getZones().subscribe(() => {
+      const isOnPremZone = this.blockchainService.zones.some(zone => zone.type === ZoneType.ON_PREM);
 
-    if (isOnPremZone) {
-      const onPremZones = this.blockchainService.zones.filter((zone) => zone.type === ZoneType.ON_PREM);
+      if (isOnPremZone) {
+        const onPremZones = this.blockchainService.zones.filter((zone) => zone.type === ZoneType.ON_PREM);
 
-      if (this.form) {
-        const zones = this.form['controls'].nodes['controls'].zones;
-        const pastZones = this.zones;
-        this.zones = [];
-        pastZones.forEach(zone => {
-          zones.removeControl(zone.id);
-        });
+        if (this.form) {
+          const zones = this.form['controls'].nodes['controls'].zones;
+          const pastZones = this.zones;
+          this.zones = [];
+          pastZones.forEach(zone => {
+            zones.removeControl(zone.id);
+          });
 
-        onPremZones.forEach(zone => {
-          zones.addControl(zone.id, new FormControl('', Validators.required));
-        });
+          onPremZones.forEach(zone => {
+            zones.addControl(zone.id, new FormControl('', Validators.required));
+          });
+        }
+
+        this.zones = onPremZones;
+      } else {
+        this.zones = this.blockchainService.zones;
       }
-
-      this.zones = onPremZones;
-    } else {
-      this.zones = this.blockchainService.zones;
-    }
+    // });
   }
 
   onSubmit() {
@@ -236,10 +239,6 @@ export class BlockchainWizardComponent implements AfterViewInit {
           this.consortiumInput.nativeElement.focus();
         }, 10);
 
-        break;
-
-      case this.onPremPage:
-        this.onPremForm.focusInput();
         break;
     }
   }

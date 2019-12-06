@@ -9,11 +9,13 @@ import { MainComponent } from './main.component';
 import { AuthenticatedGuard } from '../../shared/authenticated-guard.service';
 import { AgreementGuard } from '../../shared/agreement-guard.service';
 import { BlockchainResolver } from '../../blockchain/shared/blockchain.service';
+import { ZonesComponent } from '../../zones/zones.component';
 import { DeployComponent } from '../deploy/deploy.component';
 import { WelcomeComponent } from '../welcome/welcome.component';
 import { DeployingComponent } from '../deploying/deploying.component';
 
 import { mainRoutes } from './../../shared/urls.model';
+import { zonesRoutes } from '../../zones/zones-routing';
 import { dashboardRoutes } from '../../dashboard/dashboard-routing';
 import { transactionsRoutes } from '../../transactions/transactions-routing';
 import { blockRoutes } from '../../blocks/blocks-routing';
@@ -60,6 +62,12 @@ const routes: Routes = [
     canActivateChild: [AuthenticatedGuard],
     resolve: {blockchain: BlockchainResolver},
     children: [
+      // ROUTE: /:consortiumId/zones
+      {
+        component: ZonesComponent,
+        path: mainRoutes.zones,
+        children: zonesRoutes
+      },
       // ROUTE: /:consortiumId/dashboard
       { path: mainRoutes.dashboard, children: dashboardRoutes },
       // ROUTE: /:consortiumId/blocks

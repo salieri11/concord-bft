@@ -37,9 +37,9 @@
 
         <!-- comment later -->
         <a clrVerticalNavLink *concordCanView="[personas.SystemsAdmin, personas.ConsortiumAdmin]"
-          (click)="addOnPremises.open()" href="javscript:void(0)">
+          clrVerticalNavLink [routerLink]="[routePaths.zones]" routerLinkActive="active">
           <clr-icon clrVerticalNavIcon shape="rack-server"></clr-icon>
-          {{'nav.addOnPrem' | translate}}
+          {{'nav.zones' | translate}}
         </a>
 
         <div class="nav-divider"></div>
@@ -122,4 +122,3 @@
 <clr-modal #welcomeModal [(clrModalOpen)]="welcomeModalOpened">
   <concord-welcome-content #welcomeContentComponent class="modal-body"></concord-welcome-content>
 </clr-modal>
-<concord-on-premises-modal #addOnPremises></concord-on-premises-modal>

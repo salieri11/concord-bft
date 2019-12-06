@@ -8,6 +8,7 @@ import { HTTP_INTERCEPTORS, HttpClientModule } from '@angular/common/http';
 import { TourNgxPopperModule } from 'ngx-tour-ngx-popper';
 
 import { BlocksModule } from '../blocks/blocks.module';
+import { ZonesModule } from '../zones/zones.module';
 import { NodesModule } from '../nodes/nodes.module';
 import { TransactionsModule } from '../transactions/transactions.module';
 import { DashboardModule } from '../dashboard/dashboard.module';
@@ -47,6 +48,7 @@ const defaultProvides: any[] = [
     AuthenticationModule,
     DashboardModule,
     BlockchainModule,
+    ZonesModule,
     NodesModule,
     BlocksModule,
     TransactionsModule,
