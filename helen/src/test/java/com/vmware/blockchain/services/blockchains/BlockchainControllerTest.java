@@ -139,6 +139,12 @@ public class BlockchainControllerTest {
                                          + "    \"c_count\": 0,"
                                          + "    \"deployment_type\": \"UNSPECIFIED\"" + "}";
 
+    static final String POST_BODY_MANGO = "{"
+                                         + "    \"consortium_id\": \"04e4f62d-5364-4363-a582-b397075b65a3\","
+                                         + "    \"f_count\": 1,"
+                                         + "    \"c_count\": 0,"
+                                         + "    \"deployment_type\": \"MANGO\"" + "}";
+
     static final String POST_BODY_DAML = "{"
                                          + "    \"consortium_id\": \"04e4f62d-5364-4363-a582-b397075b65a3\","
                                          + "    \"f_count\": 1,"
@@ -709,6 +715,15 @@ public class BlockchainControllerTest {
         mockMvc.perform(post("/api/blockchains").with(authentication(consortiumAuth))
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(POST_BODY_BAD).characterEncoding("utf-8"))
+                .andExpect(status().isBadRequest());
+
+    }
+
+    @Test
+    void createMango() throws Exception {
+        mockMvc.perform(post("/api/blockchains").with(authentication(consortiumAuth))
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(POST_BODY_MANGO).characterEncoding("utf-8"))
                 .andExpect(status().isBadRequest());
 
     }
