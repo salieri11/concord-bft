@@ -1,12 +1,18 @@
-<h2 class="page-title">
-  {{ 'zones.title' | translate }}
+<h2 class="page-title inline-block">
+  <span>{{ 'zones.title' | translate }}</span>
+  <!-- help button -->
+  <button #helpButton type="button" class="close help-btn" aria-label="Help" (click)="onClickToHelp('vmb_120')">
+    <clr-icon aria-hidden="true" shape="help" size="18"></clr-icon>
+  </button>
 </h2>
+
 
 <div class="list-container">
   <clr-datagrid [clrDgLoading]="loading">
     <clr-dg-action-bar>
       <div class="btn-group">
-        <a [routerLink]="['new']" *concordCanView="[personas.SystemsAdmin, personas.ConsortiumAdmin]" class="btn btn-primary-outline btn-sm">
+        <a [routerLink]="['new']" *concordCanView="[personas.SystemsAdmin, personas.ConsortiumAdmin]"
+          class="btn btn-primary-outline btn-sm">
           {{ 'zones.actions.new' | translate }}
         </a>
       </div>

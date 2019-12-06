@@ -1,0 +1,14 @@
+.help-btn {
+  left: 0.5rem;
+  position: relative;
+}
+
+.inline-block {
+  display: inline-block;
+}
+
+:host ::ng-deep {
+  .datagrid-action-bar {
+    margin-left: 10rem;
+  }
+}
