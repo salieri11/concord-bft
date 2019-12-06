@@ -3,9 +3,10 @@
 // Unit tests the configuration management classes defined in
 // src/configuration_manager.hpp.
 
+#include <nlohmann/json.hpp>
+
 #include "config/configuration_manager.hpp"
 #include "gtest/gtest.h"
-#include "utils/json.hpp"
 
 using std::endl;
 using std::ostringstream;

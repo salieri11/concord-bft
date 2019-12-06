@@ -11,7 +11,7 @@
 #include <chrono>
 #include <fstream>
 #include <iostream>
-#include "json.hpp"
+#include <nlohmann/json.hpp>
 
 namespace concord {
 namespace utils {

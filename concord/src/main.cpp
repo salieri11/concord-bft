@@ -4,12 +4,14 @@
 
 #include <grpcpp/grpcpp.h>
 #include <grpcpp/resource_quota.h>
+#include <jaegertracing/Tracer.h>
 #include <log4cplus/configurator.h>
 #include <log4cplus/loggingmacros.h>
 #include <boost/program_options.hpp>
 #include <boost/thread.hpp>
 #include <csignal>
 #include <iostream>
+#include <regex>
 #include <string>
 #include <thread>
 #include "api/api_acceptor.hpp"
@@ -127,6 +129,80 @@ void signalHandler(int signum) {
   } catch (exception &e) {
     cout << "Exception in signal handler: " << e.what() << endl;
   }
+}
+
+// Directs Jaeger log messages to Log4cpp
+class JaegerLogger : public jaegertracing::logging::Logger {
+ private:
+  log4cplus::Logger logger = log4cplus::Logger::getInstance("jaeger");
+
+ public:
+  void error(const std::string &message) override {
+    LOG4CPLUS_ERROR(logger, message);
+  }
+
+  void info(const std::string &message) override {
+    LOG4CPLUS_INFO(logger, message);
+  }
+};
+
+const std::string kDefaultJaegerAgent = "127.0.0.1:6831";
+
+std::string resolve_host(std::string &host_port, Logger &logger) {
+  std::string host, port;
+
+  int colon = host_port.find(":");
+  if (colon >= 0) {
+    host = host_port.substr(0, colon);
+    port = host_port.substr(colon + 1, host_port.length());
+  } else {
+    host = host_port;
+    port = "6831";
+  }
+
+  tcp::resolver::query query(tcp::v4(), host, port);
+  boost::asio::io_service service;
+  tcp::resolver resolver(service);
+  boost::system::error_code ec;
+  tcp::resolver::iterator results = resolver.resolve(query, ec);
+  if (!ec && results != tcp::resolver::iterator()) {
+    tcp::endpoint ep = *results;
+    return ep.address().to_string() + ":" + std::to_string(ep.port());
+  } else {
+    LOG_WARN(logger, "Unable to resolve host " << host_port);
+    return kDefaultJaegerAgent;
+  }
+}
+
+void initialize_tracing(ConcordConfiguration &nodeConfig, Logger &logger) {
+  std::string jaeger_agent =
+      nodeConfig.hasValue<std::string>("jaeger_agent")
+          ? nodeConfig.getValue<std::string>("jaeger_agent")
+          : jaegertracing::reporters::Config::kDefaultLocalAgentHostPort;
+
+  // Yes, this is overly broad. Just trying to avoid lookup if the obvious
+  // ip:port is specified.
+  std::regex ipv4_with_port("^[0-9:.]*$");
+  if (!std::regex_match(jaeger_agent, ipv4_with_port)) {
+    jaeger_agent = resolve_host(jaeger_agent, logger);
+  }
+
+  LOG4CPLUS_INFO(logger, "Tracing to jaeger agent: " << jaeger_agent);
+
+  // No sampling for now - report all traces
+  jaegertracing::samplers::Config sampler_config(
+      jaegertracing::kSamplerTypeConst, 1.0);
+  jaegertracing::reporters::Config reporter_config(
+      jaegertracing::reporters::Config::kDefaultQueueSize,
+      jaegertracing::reporters::Config::defaultBufferFlushInterval(),
+      false /* do not log spans */, jaeger_agent);
+  jaegertracing::Config config(false /* not disabled */, sampler_config,
+                               reporter_config);
+  auto tracer = jaegertracing::Tracer::make(
+      "concord", config,
+      std::unique_ptr<jaegertracing::logging::Logger>(new JaegerLogger()));
+  opentracing::Tracer::InitGlobal(
+      std::static_pointer_cast<opentracing::Tracer>(tracer));
 }
 
 IDBClient *open_database(ConcordConfiguration &nodeConfig, Logger logger) {
@@ -515,6 +591,7 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
 
 int main(int argc, char **argv) {
   bool loggerInitialized = false;
+  bool tracingInitialized = false;
   int result = 0;
 
   try {
@@ -559,6 +636,9 @@ int main(int argc, char **argv) {
     Logger mainLogger = Logger::getInstance("com.vmware.concord.main");
     LOG4CPLUS_INFO(mainLogger, "VMware Project concord starting");
 
+    initialize_tracing(nodeConfig, mainLogger);
+    tracingInitialized = true;
+
     // actually run the service - when this call returns, the
     // service has shutdown
     result = run_service(config, nodeConfig, mainLogger);
@@ -572,6 +652,10 @@ int main(int argc, char **argv) {
       std::cerr << ex.what() << std::endl;
     }
     result = -1;
+  }
+
+  if (tracingInitialized) {
+    opentracing::Tracer::Global()->Close();
   }
 
   if (loggerInitialized) {

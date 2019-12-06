@@ -27,6 +27,7 @@
 
 #include <boost/predef/detail/endian_compat.h>
 #include <google/protobuf/util/time_util.h>
+#include <opentracing/tracer.h>
 #include <boost/bind.hpp>
 #include <iostream>
 #include <limits>
@@ -213,6 +214,7 @@ void ApiConnection::process_incoming() {
     LOG4CPLUS_DEBUG(logger_, "Parsed!");
 
     // handle the request
+    auto span = opentracing::Tracer::Global()->StartSpan("apiRequest");
     dispatch();
   } else {
     // Parsing failed
