@@ -8,6 +8,7 @@ import { ZonesService } from '../shared/zones.service';
 import { Personas } from '../../shared/persona.service';
 
 import { Zone, ZoneType } from '../shared/zones.model';
+import { ContextualHelpService } from './../../shared/contextual-help.service';
 
 @Component({
   selector: 'concord-zone-list',
@@ -22,7 +23,8 @@ export class ZoneListComponent implements OnInit {
   loading: boolean;
 
   constructor(
-    private zonesService: ZonesService
+    private zonesService: ZonesService,
+    private helpService: ContextualHelpService
   ) { }
 
   ngOnInit() {
@@ -32,4 +34,9 @@ export class ZoneListComponent implements OnInit {
       this.loading = false;
     }, () => this.loading = false);
   }
+
+  onClickToHelp(helpId) {
+    this.helpService.openHelpPage(helpId);
+  }
+
 }
