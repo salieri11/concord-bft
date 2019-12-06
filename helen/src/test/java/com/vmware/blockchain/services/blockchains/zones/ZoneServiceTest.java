@@ -179,6 +179,12 @@ public class ZoneServiceTest {
     void onPremTest() throws Exception {
         List<OnPremZone> l = zoneService.getOnpremZones(ONPREM_ORG);
         Assertions.assertEquals(1, l.size());
+        OnPremZone z = l.get(0);
+        Assertions.assertNotNull(z.getOutboundProxy());
+        Assertions.assertEquals("localhost", z.getOutboundProxy().getHttpHost());
+        Assertions.assertEquals(8080, z.getOutboundProxy().getHttpPort());
+        Assertions.assertEquals("localhosts", z.getOutboundProxy().getHttpsHost());
+        Assertions.assertEquals(443, z.getOutboundProxy().getHttpsPort());
     }
 
     @Test

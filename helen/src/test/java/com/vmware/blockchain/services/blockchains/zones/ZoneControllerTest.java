@@ -71,6 +71,7 @@ import io.grpc.stub.StreamObserver;
 @ContextConfiguration(classes = {MvcTestSecurityConfig.class, MvcConfig.class, ZoneConfig.class})
 @ComponentScan(basePackageClasses = {ZoneController.class, HelenExceptionHandler.class})
 
+
 class ZoneControllerTest {
 
     private static final UUID SITE_1 = UUID.fromString("84b9a0ed-c162-446a-b8c0-2e45755f3844");
@@ -102,6 +103,10 @@ class ZoneControllerTest {
                                                    + "    \"name_servers\": [\n"
                                                    + "      \"10.1.1.3\"\n"
                                                    + "    ]\n"
+                                                   + "  },\n"
+                                                   + "  \"outbound_proxy\": {\n"
+                                                   + "    \"http_host\": \"localhost\",\n"
+                                                   + "    \"http_port\": 8080\n"
                                                    + "  },\n"
                                                    + "  \"container_repo\": {\n"
                                                    + "    \"url\": \"https://docker-repo.com\",\n"
@@ -449,6 +454,8 @@ class ZoneControllerTest {
         Assertions.assertEquals(UUID.fromString("9ecb07bc-482c-48f3-80d0-23c4f9514902"),
                                 ((OnPremGetResponse) zone).getOrgId());
         Assertions.assertEquals("admin", ((OnPremGetResponse) zone).getVcenter().getUsername());
+        Assertions.assertNotNull(((OnPremGetResponse) zone).getOutboundProxy());
+        Assertions.assertEquals("localhost", ((OnPremGetResponse) zone).getOutboundProxy().getHttpHost());
     }
 
     @Test

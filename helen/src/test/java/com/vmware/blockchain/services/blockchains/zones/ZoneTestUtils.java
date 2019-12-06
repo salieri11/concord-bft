@@ -4,7 +4,6 @@
 
 package com.vmware.blockchain.services.blockchains.zones;
 
-import static com.vmware.blockchain.services.blockchains.zones.Zone.Network.builder;
 import static com.vmware.blockchain.services.blockchains.zones.Zone.Type.ON_PREM;
 
 import java.util.UUID;
@@ -31,13 +30,18 @@ public class ZoneTestUtils {
         ozone.setResourcePool("pool");
         ozone.setStorage("datastore");
         ozone.setFolder("folder");
-        ozone.setNetwork(builder()
+        ozone.setNetwork(Zone.Network.builder()
                                  .name("Network 1")
                                  .ipPool(ImmutableList.of("10.1.1.16-10.1.1.64", "10.1.1.100-10.1.1.200"))
                                  .subnet("24")
                                  .gateway("10.1.1.1")
                                  .nameServers(ImmutableList.of("10.1.1.3"))
                                  .build());
+        ozone.setOutboundProxy(Zone.OutboundProxy.builder()
+                                       .httpHost("localhost")
+                                       .httpPort(8080)
+                                       .httpsHost("localhosts")
+                                       .httpsPort(443).build());
         ozone.setLogManagements(Lists.newArrayList(OnPremZone.LogManagementOnPrem.builder()
                                                     .destination(Zone.LogDestination.LOG_INSIGHT)
                                                     .address("10.78.0.1:9000")
