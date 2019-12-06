@@ -201,7 +201,8 @@ grepLogForErrors(){
     local ERROR_STRINGS=("\[ERROR\].*Could\ not\ transfer.*\ 50[23]" \
                          "sbt.librarymanagement.ResolveException: download failed:" \
                          "Too Many Requests (HAP429)" \
-                         "docker\.io.*Client\.Timeout\ exceeded")
+                         "docker\.io.*Client\.Timeout\ exceeded" \
+                         "curl: (56) SSL read: error:00000000:lib(0):func(0):reason(0), errno 104")
 
     info "Looking for errors in build log file ${LOG_FILE} to see if we should retry."
 
