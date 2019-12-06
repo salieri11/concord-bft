@@ -53,7 +53,7 @@ grpc::Status DataServiceImpl::ReadTransaction(
 
   for (int i = 0; i < request->keys_size(); i++) {
     const string& keyStr = request->keys(i);
-    Key key = CreateSliver(keyStr);
+    Key key = CreateDamlKvbKey(keyStr);
     Value value;
     concordUtils::BlockId outBlockId;
     concordUtils::Status status =

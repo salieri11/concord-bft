@@ -7,6 +7,7 @@
 #include <map>
 #include <string>
 
+#include "storage/kvb_key_types.h"
 #include "time/time_contract.hpp"
 
 using std::map;
@@ -44,6 +45,14 @@ Sliver CreateSliver(const string& content) {
   return CreateSliver(content.c_str(), content.size());
 }
 
+Sliver CreateDamlKvbKey(const string& content) {
+  // TODO: This should be hidden in a separate DAML storage implementation
+  string full_key(content);
+  full_key.insert(0, &concord::storage::kKvbKeyDaml,
+                  sizeof(concord::storage::kKvbKeyDaml));
+  return CreateSliver(full_key.c_str(), full_key.size());
+}
+
 bool DamlKvbCommandsHandler::ExecuteRead(const da_kvbc::ReadCommand& request,
                                          ConcordResponse& response) {
   LOG4CPLUS_WARN(logger_, "NOT IMPLEMENTED");
@@ -55,7 +64,7 @@ std::map<string, string> DamlKvbCommandsHandler::GetFromStorage(
   std::map<string, string> result;
   for (const auto& skey : keys) {
     Value out;
-    Key key = CreateSliver(skey);
+    Key key = CreateDamlKvbKey(skey);
     if (storage_.get(key, out).isOK()) {
       result[skey] = string((const char*)out.data(), out.length());
     } else {
@@ -124,14 +133,15 @@ bool DamlKvbCommandsHandler::ExecuteCommit(
 
   // Insert the DAML log entry into the store.
   auto logEntry = result.log_entry();
-  updates.insert(KeyValuePair(CreateSliver(entryId), CreateSliver(logEntry)));
+  updates.insert(
+      KeyValuePair(CreateDamlKvbKey(entryId), CreateSliver(logEntry)));
 
   // Insert the DAML state updates into the store.
   // Currently just using the serialization of the DamlStateKey as the key
   // without any prefix.
   for (auto kv : result.state_updates()) {
     updates.insert(
-        KeyValuePair(CreateSliver(kv.key()), CreateSliver(kv.value())));
+        KeyValuePair(CreateDamlKvbKey(kv.key()), CreateSliver(kv.value())));
   }
 
   // Commit the block, if there were no conflicts.
@@ -192,6 +202,7 @@ bool DamlKvbCommandsHandler::ExecuteCommand(const ConcordRequest& concord_req,
       return ExecuteCommit(cmd.commit(), time_contract, response);
 
     default:
+      LOG4CPLUS_ERROR(logger_, "Neither commit nor read command");
       return false;
   }
 }

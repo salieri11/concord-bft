@@ -336,7 +336,7 @@ void RunDamlGrpcServer(std::string server_address, KVBClientPool &pool,
   DataServiceImpl *dataService = new DataServiceImpl(pool, ro_storage);
   CommitServiceImpl *commitService = new CommitServiceImpl(pool);
   EventsServiceImpl *eventsService = new EventsServiceImpl(committedTxs);
-  ThinReplicaImpl *thinReplicaService = new ThinReplicaImpl();
+  ThinReplicaImpl *thinReplicaService = new ThinReplicaImpl(ro_storage);
 
   grpc::ResourceQuota quota;
   quota.SetMaxThreads(max_num_threads);

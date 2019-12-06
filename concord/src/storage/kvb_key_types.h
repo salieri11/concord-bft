@@ -23,6 +23,9 @@ const char kKvbKeyHlfState = 0x12;
 const char kKvbKeyTime = 0x20;
 const char kKvbKeyMetadata = 0x21;
 
+// DAML 0x30 - 0x3f
+const char kKvbKeyDaml = 0x30;
+
 }  // namespace storage
 }  // namespace concord
 
