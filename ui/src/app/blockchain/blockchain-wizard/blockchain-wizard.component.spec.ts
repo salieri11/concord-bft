@@ -6,8 +6,8 @@ import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 import { of as observableOf } from 'rxjs';
 import { BlockchainWizardComponent } from './blockchain-wizard.component';
 import { getSpecTestingModule } from '../../shared/shared-testing.module';
-import { ZoneType } from '../shared/blockchain.model';
 import { AuthenticationService } from '../../shared/authentication.service';
+import { ZoneType } from '../../zones/shared/zones.model';
 
 describe('BlockchainWizardComponent', () => {
   let component: BlockchainWizardComponent;

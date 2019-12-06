@@ -54,6 +54,8 @@ export const mainRoutes = {
   dashboard: 'dashboard',
   blocks: 'blocks',
   nodes: 'nodes',
+  zones: 'zones',
+  new: 'new',
   smartContracts: 'smart-contracts',
   logging: 'logging',
   consortiums: 'consortiums',
@@ -61,9 +63,11 @@ export const mainRoutes = {
   users: 'users',
   transactions: 'transactions',
   developer: 'developer',
+
   get consortiumIdChildren() { return [ // allowed paths under /:consortiumId/*
     this.dashboard, this.blocks, this.nodes, this.smartContracts, this.logging,
-    this.consortiums, this.organizations, this.users, this.transactions, this.developer
+    this.consortiums, this.organizations, this.users, this.transactions, this.developer,
+    this.zones, this.new
   ]; },
 
   // Path of /blockchain/*

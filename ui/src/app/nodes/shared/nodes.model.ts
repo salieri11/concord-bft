@@ -1,7 +1,7 @@
 /*
  * Copyright 2018-2019 VMware, all rights reserved.
  */
-import { ZoneType } from '../../blockchain/shared/blockchain.model';
+import { ZoneType } from '../../zones/shared/zones.model';
 
 /**
  * GET response of fetching a list of members

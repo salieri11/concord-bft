@@ -6,6 +6,7 @@
     "add": "Add",
     "close": "Close",
     "cancel": "Cancel",
+    "delete": "Delete",
     "create": "Create",
     "deploy": "Deploy",
     "back": "Back",
@@ -17,7 +18,12 @@
     "verify": "Verify",
     "requiredValidationMessage": "This field is required",
     "copyToClip": "Copy to clipboard",
-    "help": "Need Help? Email"
+    "help": "Need Help? Email",
+    "url": "URL",
+    "urlPh": "https://<endpoint>",
+    "username": "Username",
+    "usernamePh": "username@company.com",
+    "password": "Password"
   },
   "error": {
     "title": "Error",
@@ -35,7 +41,7 @@
     },
     "consortium": "Current Consortium",
     "deploy": "Deploy Consortium",
-    "addOnPrem": "Add On Premises",
+    "zones": "Zones",
     "dashboard": "Dashboard",
     "organizations": "Organizations/Users",
     "nodeList": "Replica List",
@@ -82,6 +88,10 @@
     "pagination": {
       "of": "of"
     }
+  },
+  "confirmModal": {
+    "title": "Confirm",
+    "delete": "Are you sure you want to delete this?"
   },
   "marketing": {
     "subTitle": "Deploy The Industry's Most Advanced Permissioned Blockchains",
@@ -389,6 +399,88 @@
       "third": "Edit your truffle.js file so that it is similar to below, make sure to change your password, your email is your username.",
       "fourth": "Now you should be able to deploy using truffle."
     }
+  },
+  "zones": {
+    "title": "Zones",
+    "titleDetail": "Zone:",
+    "paginationSummary": "{{start}} - {{finish}} of {{total}} zones",
+    "columns": {
+      "name": "Name",
+      "type": "Type"
+    },
+    "actions": {
+      "new": "New On Premises Zone",
+      "delete": "delete"
+    },
+    "detail": {
+      "title": "Zone"
+    }
+  },
+  "onPrem": {
+    "help": {
+      "numberOfNodes": "Number of replicas are optimized for SBFT consensus engine"
+    },
+    "navTitle": "On Premises",
+    "pageTitle": "New On Premises Zone",
+    "name": "Zone Designation",
+    "namePH": "A",
+    "urlError": "Please add a valid url.",
+    "vcenter": {
+      "title": "vCenter",
+      "url": "URL",
+      "urlPH": "https://<endpoint>",
+      "username": "Username",
+      "usernamePH": "admin@onprem",
+      "password": "Password"
+    },
+    "resourcePool": "Resource Pool",
+    "resourcePoolPH": "My Resource",
+    "storage": "Storage",
+    "storagePH": "My Storage",
+    "folder": "Folder",
+    "folderPH": "Folder",
+    "network": {
+      "title": "Network",
+      "compNetwork": "Compute Network",
+      "compNetworkPH": "My Network name",
+      "gatewayIp": "Gateway IP",
+      "gatewayIpPH": "e.g. 10.1.1.254",
+      "subnet": "Subnet",
+      "subnetPH": "e.g. 24",
+      "nameServers": "Name Servers",
+      "nameServersPH": "List of IP addresses",
+      "ipPool": "IP Pool",
+      "ipPoolPH": "List of IP ranges"
+    },
+    "onPremConnSucc": "Connection successful to your on premises vCenter.",
+    "addedSuccessfully": "On premises zone added successfully.  You can now deploy a node to this zone.",
+    "logInsight": {
+      "title": "Log Insight"
+    },
+    "containerReg": {
+      "title": "Container Registry",
+      "url": "URL",
+      "urlPH": "https://<endpoint>",
+      "username": "Username",
+      "usernamePH": "admin@onprem",
+      "password": "Password"
+    },
+    "outboundProxy": {
+      "title": "Outbound Proxy",
+      "httpHost": "Http Host",
+      "httpPH": "1.2.3.4 or company.com",
+      "httpPort": "Http Port",
+      "httpPortPH": "80",
+      "httpsPortPH": "443",
+      "httpsHost": "Https Host",
+      "httpsPort": "Https Port"
+    },
+    "locationTitle": "Location/Name",
+    "location": "Location/Name",
+    "locationPH": "Palo Alto, CA, USA",
+    "cancel": "Cancel On Premises",
+    "ipError": "Please enter a valid IP address",
+    "listIpsError": "Please enter a valid list if IP addresses"
   },
   "organization": {
     "title": "Organizations",
@@ -910,69 +1002,7 @@
     "fourth": "Starting up Concord trust network...",
     "ending": "Deployment successful!"
   },
-  "onPrem": {
-    "help": {
-      "numberOfNodes": "Number of replicas are optimized for SBFT consensus engine"
-    },
-    "navTitle": "On Premises",
-    "pageTitle": "Add On Premises Region",
-    "name": "Zone Designation",
-    "namePH": "A",
-    "urlError": "Please add a valid url.",
-    "vcenter": {
-      "title": "vCenter",
-      "url": "URL",
-      "urlPH": "https://<endpoint>",
-      "username": "Username",
-      "usernamePH": "admin@onprem",
-      "password": "Password"
-    },
-    "resourcePool": "Resource Pool",
-    "resourcePoolPH": "My Resource",
-    "storage": "Storage",
-    "storagePH": "My Storage",
-    "folder": "Folder",
-    "folderPH": "Folder",
-    "network": {
-      "title": "Network",
-      "compNetwork": "Compute Network",
-      "compNetworkPH": "My Network name",
-      "gatewayIp": "Gateway IP",
-      "gatewayIpPH": "e.g. 10.1.1.254",
-      "subnet": "Subnet",
-      "subnetPH": "e.g. 24",
-      "nameServers": "Name Servers",
-      "nameServersPH": "List of IP addresses",
-      "ipPool": "IP Pool",
-      "ipPoolPH": "List of IP ranges"
-    },
-    "onPremConnSucc": "Connection successful to your on premises vCenter.",
-    "addedSuccessfully": "On premises region added successfully.  You can now deploy a consortium to this region or add another on premises region.",
-    "containerReg": {
-      "title": "Container Registry",
-      "url": "URL",
-      "urlPH": "https://<endpoint>",
-      "username": "Username",
-      "usernamePH": "admin@onprem",
-      "password": "Password"
-    },
-    "outboundProxy": {
-      "title": "Outbound Proxy",
-      "httpHost": "Http Host",
-      "httpPH": "1.2.3.4 or company.com",
-      "httpPort": "Http Port",
-      "httpPortPH": "80",
-      "httpsPortPH": "443",
-      "httpsHost": "Https Host",
-      "httpsPort": "Https Port"
-    },
-    "locationTitle": "Zone Location",
-    "location": "Location",
-    "locationPH": "Palo Alto, CA, USA",
-    "cancel": "Cancel On Premises",
-    "ipError": "Please enter a valid IP address",
-    "listIpsError": "Please enter a valid list if IP addresses"
-  },
+
   "mockTasks": {
     "creatingOrg": "Creating Organizations",
     "addingUsers": "Adding Users",

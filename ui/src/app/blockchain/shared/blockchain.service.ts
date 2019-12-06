@@ -3,7 +3,7 @@
  */
 
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { Resolve, ActivatedRouteSnapshot } from '@angular/router';
 import { BehaviorSubject, Observable, from, timer, zip, of, throwError } from 'rxjs';
@@ -14,13 +14,13 @@ import { ConsortiumService } from '../../consortium/shared/consortium.service';
 import {
   BlockchainRequestParams,
   BlockchainResponse,
-  Zone,
-  OnPremZone,
   BlockchainMeta,
   DeployStates,
-  fakeZones,
   ContractEngines
 } from './blockchain.model';
+
+import { Zone, fakeZones } from './../../zones/shared/zones.model';
+
 import { Apis, uuidRegExp } from '../../shared/urls.model';
 
 @Injectable({
@@ -228,53 +228,6 @@ export class BlockchainService {
           return this.metadata;
         })
       );
-  }
-
-  addOnPremZone(zone: OnPremZone): Observable<any> {
-    return this.http.post<OnPremZone>(Apis.zones, zone).pipe(
-      map(onPremZone => {
-        this.zones.push(onPremZone);
-        const zoneMap = {};
-        this.zones.forEach(z => zoneMap[zone.id] = z);
-        this.zonesMap = zoneMap;
-
-        return onPremZone;
-      }),
-      catchError(error => {
-        return error.message;
-      })
-    );
-  }
-
-  testOnPremZoneConnection(zone: Zone): Observable<Zone> {
-    return this.http.post<OnPremZone>(Apis.zonesTestConnection, zone);
-  }
-
-  getZoneLatLong(name: string): Observable<any> {
-    const params = new HttpParams().set(
-      'key', '349062d268624582b19e6a25d8a3fd60').set(
-        'q', name);
-
-    // const params = {};
-    return this.http.get('/geo', { params: params }).pipe(
-      // @ts-ignore
-      map<{ results: any[] }>(locations => {
-        const newLocations = [];
-
-        locations.results.forEach(loc => {
-          newLocations.push({
-            displayValue: loc.formatted,
-            value: `${loc.formatted}`,
-            geometry: {
-              lat: loc.geometry.lat,
-              long: loc.geometry.lng
-            }
-          });
-        });
-
-        return newLocations;
-      })
-    );
   }
 
   isUUID(uuid: string): boolean {

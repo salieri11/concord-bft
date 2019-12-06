@@ -20,8 +20,6 @@ import { BlockchainResponse } from '../../blockchain/shared/blockchain.model';
 import { External, mainRoutes, uuidRegExp } from '../../shared/urls.model';
 import { OrgProperties } from '../../orgs/shared/org.model';
 
-import { OnPremisesModalComponent } from '../../blockchain/on-premises-modal/on-premises-modal.component';
-
 
 @Component({
   selector: 'concord-main',
@@ -29,9 +27,7 @@ import { OnPremisesModalComponent } from '../../blockchain/on-premises-modal/on-
   styleUrls: ['./main.component.scss']
 })
 export class MainComponent implements OnInit, OnDestroy {
-
   @ViewChild('welcomeModal', { static: true }) welcomeModal: ClrModal;
-  @ViewChild('addOnPremises', { static: true }) addOnPremises: OnPremisesModalComponent;
 
   alerts: any = [];
   personas = Personas;
@@ -53,6 +49,7 @@ export class MainComponent implements OnInit, OnDestroy {
   routeParamsSub: Subscription;
   routerFragmentChange: Subscription;
   orgProps: OrgProperties;
+  routePaths = mainRoutes;
 
   // Blockchain Service is resolved in the router before loading
   get selectedConsortium(): string {
