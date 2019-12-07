@@ -42,8 +42,12 @@
       </clr-dg-cell>
       <clr-dg-cell class="time-info">
         {{ (block.blockData?.timestamp * 1000) | date: 'yyyy/MM/dd h:mm:ss a':'+0000' }} (UTC)
-        <concord-copy-to-clipboard-button classList="ctc-btn-inline" [tooltip]="'common.copyToClip' | translate"
-          tooltipDirection="top-right" [value]="timestampToISOString(block.blockData?.timestamp * 1000)" [size]="12">
+        <concord-copy-to-clipboard-button
+          classList="ctc-btn-inline"
+          [tooltip]="'common.copyToClip' | translate"
+          tooltipDirection="top-right"
+          [value]="timestampToISOString(block.blockData?.timestamp * 1000)"
+          [size]="12">
         </concord-copy-to-clipboard-button>
       </clr-dg-cell>
       <clr-dg-row-detail class="details" *clrIfExpanded="autoExpandResult">
@@ -55,8 +59,12 @@
             <concord-block-details [blockNumber]="block.number"></concord-block-details>
           </div>
           <h5 class="transactions-title">{{'blocks.transactions' | translate}}</h5>
-          <concord-transaction-list [classList]="block.blockData?.transactions.length > 1 ? 'has-left-margin' : ''"
-            [titleHidden]="true" [blockNumber]="block.number" [codeBlockMaxHeight]="'700px'" [noListIfSingle]="true"
+          <concord-transaction-list
+            [classList]="block.blockData?.transactions.length > 1 ? 'has-left-margin' : ''"
+            [titleHidden]="true"
+            [blockNumber]="block.number"
+            [codeBlockMaxHeight]="'700px'"
+            [noListIfSingle]="true"
             [pagination]="20">
           </concord-transaction-list>
         </div>
