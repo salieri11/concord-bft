@@ -22,6 +22,8 @@ services:
       - 3503/udp
       - 3504/udp
       - 3505/udp
+    ports:
+      - "50051:50051"
     volumes:
       - ./devdata/rocksdbdata1:/concord/rocksdbdata
       - ./devdata/log1:/concord/log
@@ -42,6 +44,8 @@ services:
       - 3503/udp
       - 3504/udp
       - 3505/udp
+    ports:
+      - "50052:50051"
     volumes:
       - ./devdata/rocksdbdata2:/concord/rocksdbdata
       - ./devdata/log2:/concord/log
@@ -62,6 +66,8 @@ services:
       - 3503/udp
       - 3504/udp
       - 3505/udp
+    ports:
+      - "50053:50051"
     volumes:
       - ./devdata/rocksdbdata3:/concord/rocksdbdata
       - ./devdata/log3:/concord/log
@@ -82,6 +88,8 @@ services:
       - 3503/udp
       - 3504/udp
       - 3505/udp
+    ports:
+      - "50054:50051"
     volumes:
       - ./devdata/rocksdbdata4:/concord/rocksdbdata
       - ./devdata/log4:/concord/log
