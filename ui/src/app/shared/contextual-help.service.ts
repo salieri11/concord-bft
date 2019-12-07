@@ -3,40 +3,16 @@
  */
 
 import { Injectable } from '@angular/core';
+import { environment } from './../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class ContextualHelpService {
-  public HELP_URL = {
-    STAGING: 'https://docs-staging.vmware.com/en/VMware-Blockchain/index.html',
-    PROD: 'https://docs.vmware.com/en/VMware-Blockchain/index.html',
-  };
-  public HELP_TOPIC_URL = {
-    STAGING: 'https://docs-staging.vmware.com/en/VMware-Blockchain/1.0/context?id=',
-    PROD: 'https://docs.vmware.com/en/VMware-Blockchain/1.0/context?id='
-  };
-
-  // TODO - change to session var later
-  tempEnv = 'staging';
+  env = environment;
 
   getHelpLink() {
-    const helpHomeUrlList = this.HELP_URL;
-    const helpTopicUrlList = this.HELP_TOPIC_URL;
-
-    let helpHomeURL = helpHomeUrlList.PROD;
-    let helpTopicURL = helpTopicUrlList.PROD;
-
-    let env = this.tempEnv;
-    if (!env) {
-      env = 'prod';
-    }
-
-    if (env.toUpperCase() === 'STAGING') {
-      helpTopicURL = helpTopicUrlList.STAGING;
-      helpHomeURL = helpHomeUrlList.STAGING;
-    }
-    return { helpTopicURL: helpTopicURL, helpHomeURL: helpHomeURL };
+    return { helpTopicURL: this.env.helpTopicUrl, helpHomeURL: this.env.helpUrl };
   }
 
   openInNewTab(url: string) {

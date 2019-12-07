@@ -13,6 +13,7 @@ import { OrgService } from '../shared/org.service';
 import { Org } from '../shared/org.model';
 import { InivteUserComponent } from '../inivte-user/inivte-user.component';
 
+
 @Component({
   selector: 'concord-org-list',
   templateUrl: './org-list.component.html',
@@ -24,11 +25,10 @@ export class OrgListComponent implements OnInit {
   env = environment;
 
   constructor(
-    private orgService: OrgService
+    private orgService: OrgService,
   ) {
     this.orgService.getList().subscribe(orgs => this.orgs = orgs);
   }
 
-  ngOnInit() { }
-
+  ngOnInit() {}
 }
