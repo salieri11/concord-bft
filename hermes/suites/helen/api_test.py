@@ -3,6 +3,7 @@
 #########################################################################
 
 import collections
+import copy
 import difflib
 import inspect
 import json
@@ -11,6 +12,7 @@ import os
 import pickle
 import pytest
 import queue
+import random
 import sys
 import threading
 import time
@@ -49,6 +51,24 @@ nonexistantVersionId = "bbbbbbbbbbbbbbbbbbbb"
 defaultTokenDescriptor = util.auth.getTokenDescriptor(util.auth.ROLE_CON_ADMIN,
                                                       True,
                                                       util.auth.internal_admin)
+
+# These zones are hard coded and added by the test framework until we set up zones
+# in the fixture infra.
+precreatedZones = ["6adaf48a-9075-4e35-9a71-4ef1fb4ac90f",
+                   "623e6f81-5954-4b32-9cdb-eb5d8dd913db"]
+
+def removePrecreatedZones(zones):
+   ret = []
+   numRemovedZones = 0
+
+   for zone in zones:
+      if zone in precreatedZones:
+         numRemovedZones += 1
+      else:
+         ret.append(zone)
+
+   return ret, numRemovedZones
+
 
 def addBlocksAndSearchForThem(request, blockchainId, rpc, numBlocks, pageSize):
    '''
@@ -352,23 +372,127 @@ def verifyContractVersionFields(blockchainId, request, rpc, actualDetails, expec
    assert not diffs, "Differences found in details: {}".format(diffs)
 
 
-def validateBadRequest(result, expectedPath):
+def validateBadRequest(result, expectedPath,
+                       errorCode="BadRequestException",
+                       errorMessage="Bad request (e.g. missing request body)."):
    '''
    Validates the returned result of a Bad Request error.
    The error code, error message, and status are the same.
    Accepts the result to evaluate and the expected value for "path".
    '''
+   log.info("Looking for bad request error in {}".format(result))
+
    assert "error_code" in result, "Expected a field called 'error_code'"
-   assert result["error_code"] == "BadRequestException", "Expected different error code."
+   assert result["error_code"] == errorCode, "Expected different error code."
+
+   assert "path" in result, "Expected a field called 'path'"
+   assert result["path"] == expectedPath, "Expected different path."
 
    assert "error_message" in result, "Expected a field called 'error_message'"
-   assert result["error_message"] == "Bad request (e.g. missing request body).", "Expected different error message."
+   assert result["error_message"] == errorMessage, "Expected different error message."
 
    assert "status" in result, "Expected a field called 'status'"
    assert result["status"] == 400, "Expected HTTP status 400."
 
-   assert "path" in result, "Expected a field called 'path'"
-   assert result["path"] == expectedPath, "Expected different path."
+
+def createZoneObject(zoneType=util.helper.ZONE_TYPE_ON_PREM):
+   '''
+   Returns a zone object, filling in all fields with generic info.
+   Does not actually send the zone to Helen.
+
+   '''
+   uniqueId = util.numbers_strings.random_string_generator()
+   gpsPoint = util.numbers_strings.randomGpsPoint()
+   return {
+      "type": zoneType,
+      "name": "Test Zone {}".format(uniqueId),
+      "latitude": str(gpsPoint[0]),
+      "longitude": str(gpsPoint[1]),
+      "vcenter": {
+         "url": "https://{}.com".format(uniqueId),
+         "username": "admin@{}.com".format(uniqueId),
+         "password": "vcenter_pa$$w0rd4{}".format(uniqueId)
+      },
+      "network": collections.OrderedDict({
+         "name": "Blockchain Network for {}".format(uniqueId),
+         "ip_pool": [
+            "{}-{}".format(util.numbers_strings.randomIP4Address(),util.numbers_strings.randomIP4Address()),
+            "{}-{}".format(util.numbers_strings.randomIP4Address(),util.numbers_strings.randomIP4Address()),
+            "{}-{}".format(util.numbers_strings.randomIP4Address(),util.numbers_strings.randomIP4Address()),
+            "{}".format(util.numbers_strings.randomIP4Address())
+         ],
+         "gateway": "{}".format(util.numbers_strings.randomIP4Address()),
+         "subnet": str(random.randrange(8, 32)),
+         "name_servers": [
+            "{}".format(util.numbers_strings.randomIP4Address()),
+            "{}".format(util.numbers_strings.randomIP4Address())
+         ]
+      }),
+      "resource_pool": "Resource Pool for {}".format(uniqueId),
+      "storage": "Datastore for {}".format(uniqueId),
+      "folder": "Blockchain Folder for {}".format(uniqueId),
+      "container_repo": {
+         "url": "https://{}.com".format(uniqueId),
+         "username": "user@{}.com".format(uniqueId),
+         "password": "container_repo_pa$$w0rd4{}".format(uniqueId)
+      },
+      "log_managements": [createLogManagementObject(uniqueId)]
+   }
+
+
+def createLogManagementObject(uniqueId, destination=util.helper.LOG_DESTINATION_LOG_INTELLIGENCE):
+   return {
+            "destination": destination,
+            "address": "https://example.com/",
+            "username": "admin@{}.com".format(uniqueId),
+            "password": "logging_pa$$w0rd4{}".format(uniqueId),
+            "log_insight_agent_id": 100
+}
+
+
+def createDefaultConsortiumAdminRequest(request):
+   '''
+   Given something like the fixture request, use it as a model
+   to create a new request object with the permissions of a
+   consortium admin and hermes_org0.
+   '''
+   descriptor = {
+      "org": "hermes_org0",
+      "user": "vmbc_test_con_admin",
+      "role": "consortium_admin"
+    }
+   tokenDescriptor = util.auth.getTokenDescriptor(util.auth.ROLE_CON_ADMIN,
+                                                  True,
+                                                  descriptor)
+   return request.newWithToken(tokenDescriptor)
+
+
+def validateZoneResponse(origZoneInfo, zoneResponse, orgId):
+   '''
+   Compares the original zone info to the response.
+   The response has two additional fields, org_id and id. Those
+   are checked separately, and then everything else is compared
+   to the original info.
+   '''
+   zoneResponse = dict(zoneResponse)
+
+   assert zoneResponse["org_id"] == orgId, "Org_id was {}, expected {}". \
+      format(zoneResponse["org_id"], orgId)
+   UUID(zoneResponse["id"])
+
+   expected = copy.deepcopy(origZoneInfo)
+   newZoneResponse = copy.deepcopy(zoneResponse)
+   del(newZoneResponse["org_id"])
+   del(newZoneResponse["id"])
+
+   # If the log management section was missing in the creation
+   # request, it is supposed to be present but empty in the response.
+   if "log_managements" not in expected:
+      expected["log_managements"] = []
+
+   assert expected == newZoneResponse, "Expected {}, response: {}". \
+      format(json.dumps(origZoneInfo, sort_keys=True, indent=4),
+             json.dumps(newZoneResponse, sort_keys=True, indent=4))
 
 
 @pytest.mark.smoke
@@ -863,15 +987,18 @@ def test_getABlockhain_invalid_uuid(fxConnection):
 
 
 @pytest.mark.smoke
-@pytest.mark.skip(reason="VB-954")
 def test_getABlockhain_invalid_uuid_format(fxConnection):
    '''
    Test GET /blockchains/{bid} with an invalid uuid format.
-   VB-954: A 500 error is not appropriate for this case.
    '''
-   blockchainId = "aa"
+   blockchainId = "3"
    response = fxConnection.request.getBlockchainDetails(blockchainId)
-   validateBadRequest(response, "/api/blockchains/{}".format(fxBlockchain.blockchainId))
+   validateBadRequest(response, "/api/blockchains/{}".format(blockchainId),
+                      errorCode="MethodArgumentTypeMismatchException",
+                      errorMessage="Failed to convert value of type " \
+                      "'java.lang.String' to required type 'java.util.UUID'; " \
+                      "nested exception is java.lang.IllegalArgumentException: " \
+                      "Invalid UUID string: 3")
 
 
 @pytest.mark.skip(reason="Need Hermes ability to stop/start the product.")
@@ -2082,16 +2209,8 @@ def test_get_consortium_orgs(fxConnection, fxInitializeOrgs):
    '''
    suffix = util.numbers_strings.random_string_generator()
    conName = "con_" + suffix
-   defaultDescriptor = {
-      "org": "hermes_org0",
-      "user": "vmbc_test_con_admin",
-      "role": "consortium_admin"
-    }
-   tokenDescriptor = util.auth.getTokenDescriptor(util.auth.ROLE_CON_ADMIN,
-                                                  True,
-                                                  defaultDescriptor)
-   originalOrg = tokenDescriptor["org"]
-   req = fxConnection.request.newWithToken(tokenDescriptor)
+   originalOrg = "hermes_org0"
+   req = createDefaultConsortiumAdminRequest(fxConnection.request)
    createResponse = req.createConsortium(conName)
    req.patchConsortium(createResponse["consortium_id"],
                        orgsToAdd=[util.auth.orgs["hermes_org1"]])
@@ -2183,3 +2302,499 @@ def test_largeReply(fxConnection, fxBlockchain):
    expectedDataSum = len(largeContract)*tr_count
    assert receivedDataSum == expectedDataSum, \
       "received only %d bytes, but expected %d" % (receviedDataSum, expectedDataSum)
+
+
+@pytest.mark.zones
+def test_create_zone(fxConnection, fxBlockchain):
+   '''
+   Basic test to create a zone.
+   '''
+   zoneInfo = createZoneObject()
+   req = createDefaultConsortiumAdminRequest(fxConnection.request)
+   orgId = util.auth.getOrgId("hermes_org0")
+   response = req.createZone(zoneInfo)
+   validateZoneResponse(zoneInfo, response, orgId)
+
+
+@pytest.mark.zones
+@pytest.mark.skip(reason="VB-2082")
+def test_create_zone_invalid_field(fxConnection, fxBlockchain):
+   '''
+   Oops, I misspelled the name of a key.  A bad request error should catch it.
+   '''
+   zoneInfo = createZoneObject()
+   zoneInfo["resurse_poule"] = "The Resource Pool"
+   req = createDefaultConsortiumAdminRequest(fxConnection.request)
+   response = req.createZone(zoneInfo)
+   validateBadRequest(response, "/api/zones")
+
+
+@pytest.mark.zones
+def test_create_aws_zone(fxConnection, fxBlockchain):
+   '''
+   The zone type must be "ON_PREM" or "VMC_AWS".
+   '''
+   zoneInfo = createZoneObject(zoneType=util.helper.ZONE_TYPE_ON_PREM)
+   req = createDefaultConsortiumAdminRequest(fxConnection.request)
+   orgId = util.auth.getOrgId("hermes_org0")
+   response = req.createZone(zoneInfo)
+   validateZoneResponse(zoneInfo, response, orgId)
+
+
+@pytest.mark.zones
+@pytest.mark.skip(reason="VB-2154")
+def test_invalid_zone_type(fxConnection, fxBlockchain):
+   '''
+   The zone type must be "ON_PREM" or "VMC_AWS".  We cannot deploy
+   into a mango.
+   '''
+   zoneInfo = createZoneObject(zoneType="mango")
+   req = createDefaultConsortiumAdminRequest(fxConnection.request)
+   response = req.createZone(zoneInfo)
+   validateBadRequest(response, "/api/zones")
+
+
+@pytest.mark.zones
+@pytest.mark.skip(reason="VB-2089")
+def test_create_zone_missing_required_field(fxConnection, fxBlockchain):
+   '''
+   Per helen/src/main/resources/api-doc/api.yaml, some fields are required.
+   e.g. See OnPremZonePost.
+   '''
+   # Fields which are required for the zone apis.
+   requiredZoneFields = {
+      "always": {
+         "type": {},
+         "name": {}
+      },
+      util.helper.ZONE_TYPE_ON_PREM: {
+         "vcenter": {
+            "url": {},
+            "username": {},
+            "password": {}
+         },
+         "network": {
+            "name": {},
+            "ip_pool": {},
+            "gateway": {},
+            "subnet": {},
+            "name_servers": {}
+         },
+         "resource_pool": {},
+         "storage": {},
+         "folder": {}
+      },
+      util.helper.ZONE_TYPE_SDDC: {}
+   }
+
+   req = createDefaultConsortiumAdminRequest(fxConnection.request)
+
+   for zoneType in [util.helper.ZONE_TYPE_ON_PREM, util.helper.ZONE_TYPE_SDDC]:
+      zoneObject = createZoneObject(zoneType)
+      checkRequiredZoneFields(req, zoneObject, zoneObject, requiredZoneFields["always"])
+      checkRequiredZoneFields(req, zoneObject, zoneObject, requiredZoneFields[zoneType])
+
+
+def checkRequiredZoneFields(req, fullZoneObject, partialZoneObject, requiredFields):
+   '''
+   For each field name in requiredFields, create a zone object without it and verify
+   that we get a Bad Request error when trying to use it.
+   '''
+   for keyToRemove in requiredFields.keys():
+      removedVal = partialZoneObject[keyToRemove]
+      del(partialZoneObject[keyToRemove])
+      response = req.createZone(fullZoneObject)
+      log.debug("Posting a new zone with the '{}' field missing".format(keyToRemove))
+      validateBadRequest(response, "/api/zones")
+
+      # Put it back.
+      partialZoneObject[keyToRemove] = removedVal
+
+      # If there are keys to remove within this key, test those also.
+      if requiredFields[keyToRemove]:
+         checkRequiredZoneFields(req, fullZoneObject, partialZoneObject[keyToRemove],
+                                 requiredFields[keyToRemove])
+
+
+@pytest.mark.zones
+def test_get_single_zone(fxConnection, fxBlockchain):
+   '''
+   Create a zone, then retrieve it.
+   '''
+   zoneInfo = createZoneObject()
+   req = createDefaultConsortiumAdminRequest(fxConnection.request)
+   createZoneResponse = req.createZone(zoneInfo)
+   zoneId = createZoneResponse["id"]
+   getZoneResponse = req.getZone(zoneId)
+   log.info("getZoneResponse: {}".format(getZoneResponse))
+   assert createZoneResponse == getZoneResponse, "Responses should be equal."
+
+
+@pytest.mark.zones
+@pytest.mark.skip(reason="VB-2090")
+def test_get_missing_zone(fxConnection, fxBlockchain):
+   '''
+   Try to get a zone which does not exist.
+   7d9cea53-33d3-4fe7-8cb3-7d367d2eb30b was a unique zone id seen during testing.
+   '''
+   req = createDefaultConsortiumAdminRequest(fxConnection.request)
+   getZoneResponse = req.getZone("7d9cea53-33d3-4fe7-8cb3-7d367d2eb30b")
+   log.info("getZoneResponse: {}".format(getZoneResponse))
+
+
+@pytest.mark.zones
+def test_get_invalid_zone(fxConnection, fxBlockchain):
+   '''
+   Try to get a zone with an invalid ID format.
+   '''
+   req = createDefaultConsortiumAdminRequest(fxConnection.request)
+   response = req.getZone("3")
+   validateBadRequest(response, "/api/blockchains/zones/3",
+                      errorCode="MethodArgumentTypeMismatchException",
+                      errorMessage="Failed to convert value of type " \
+                      "'java.lang.String' to required type 'java.util.UUID'; " \
+                      "nested exception is java.lang.IllegalArgumentException: " \
+                      "Invalid UUID string: 3")
+
+
+@pytest.mark.zones
+def test_get_all_zones(fxConnection, fxBlockchain):
+   '''
+   Create and retrieve multiple zones.
+   '''
+   addedZones = []
+   req = createDefaultConsortiumAdminRequest(fxConnection.request)
+
+   for _ in range(3):
+      zoneInfo = createZoneObject()
+      zoneInfo = req.createZone(zoneInfo)
+      # The /api/blockchains/zones api call returns a subset of fields for each zone.
+      addedZones.append({
+         "type": zoneInfo["type"],
+         "name": zoneInfo["name"],
+         "latitude": zoneInfo["latitude"],
+         "longitude": zoneInfo["longitude"],
+         "id": zoneInfo["id"]
+      })
+
+   retrievedZones = req.getZones()
+
+   for addedZone in addedZones:
+      log.debug("Looking for zone {}".format(addedZone["id"]))
+      assert addedZone in retrievedZones, "Zone {} not found in {}".format(addedZone, retrievedZones)
+
+
+@pytest.mark.zones
+@pytest.mark.skip(reason="VB-2150")
+def test_get_all_no_zones(fxConnection, fxBlockchain):
+   '''
+   Get all zones when there are none.  Uses the delete api if there are existing zones.
+   That does *not* mean this function tests the delete api, since it's possible this
+   test gets called before any zones have been added.
+   '''
+   req = createDefaultConsortiumAdminRequest(fxConnection.request)
+   retrievedZones = req.getZones()
+
+   if retrievedZones:
+      for zoneId in map(lambda x: x["id"], retrievedZones):
+         log.debug("Deleting zone {}".format(zoneId))
+         req.deleteZone(zoneId)
+
+      retrievedZones = req.getZones()
+
+   assert not retrievedZones, "Expected an empty list."
+
+
+@pytest.mark.zones
+def test_delete_some_zones(fxConnection, fxBlockchain):
+   '''
+   Add some zones, then delete them.
+   '''
+   req = createDefaultConsortiumAdminRequest(fxConnection.request)
+   zonesToAdd = list(map(lambda _: createZoneObject(), range(3)))
+   zoneIds = list(map(lambda zone: req.createZone(zone)["id"], zonesToAdd))
+   deleteResponses = list(map(lambda zoneId: req.deleteZone(zoneId), zoneIds))
+   expectedResponses = list(map(lambda zoneId: {"id": zoneId}, zoneIds))
+   assert expectedResponses == deleteResponses, "Zone IDs submitted for deletion, '{}' " \
+      "do not match the deletion responses, '{}'.".format(expectedResponses, deleteResponses)
+
+   allZones = req.getZones()
+   allZoneIds = list(map(lambda zone: zone["id"], allZones))
+   log.info("zoneIds added and deleted: {}".format(zoneIds))
+   log.info("zoneIds retrieved after deletion: {}".format(allZoneIds))
+
+@pytest.mark.zones
+def test_delete_all_zones(fxConnection, fxBlockchain):
+   '''
+   Add some zones, then delete all zones. Be sure Helen is still responsive
+   after doing so.
+   '''
+   req = createDefaultConsortiumAdminRequest(fxConnection.request)
+   zonesToAdd = list(map(lambda _: createZoneObject(), range(3)))
+   [req.createZone(zone) for zone in zonesToAdd]
+   allZoneIds = list(map(lambda zone: zone["id"], req.getZones()))
+
+   # Kinda defeats the purpose of a test to delete all zones.  But this will become
+   # valid when we stop hard coding some zones.
+   allZoneIds, numPrecreatedZonesRemoved = removePrecreatedZones(allZoneIds)
+
+   expectedResponses = list(map(lambda zoneId: {"id": zoneId}, allZoneIds))
+   deleteResponses = list(map(lambda zoneId: req.deleteZone(zoneId), allZoneIds))
+   assert expectedResponses == deleteResponses, "Zone IDs submitted for deletion, '{}' " \
+      "do not match the deletion responses, '{}'.".format(expectedResponses, deleteResponses)
+   assert len(req.getZones()) == numPrecreatedZonesRemoved, "Expected to have zero zones after deleting them all."
+
+   # Now just check Helen.
+   zoneObject = createZoneObject()
+   newZoneId = req.createZone(zoneObject)["id"]
+   validateZoneResponse(zoneObject,
+                        req.getZone(newZoneId),
+                        util.auth.getOrgId("hermes_org0"))
+
+
+@pytest.mark.zones
+@pytest.mark.skip(reason="VB-2090")
+def test_delete_nonexistant_node(fxConnection, fxBlockchain):
+   '''
+   Try to delete a zone which does not exist.
+   7d9cea53-33d3-4fe7-8cb3-7d367d2eb30b was a unique zone id seen during testing.
+   '''
+   req = createDefaultConsortiumAdminRequest(fxConnection.request)
+   deleteZoneResponse = req.deleteZone("7d9cea53-33d3-4fe7-8cb3-7d367d2eb30b")
+   log.info("getZoneResponse: {}".format(deleteZoneResponse))
+
+
+@pytest.mark.zones
+def test_delete_invalid_uuid_node(fxConnection, fxBlockchain):
+   '''
+   Try to delete a zone with an invalid ID format.
+   '''
+   req = createDefaultConsortiumAdminRequest(fxConnection.request)
+   response = req.deleteZone("3")
+   validateBadRequest(response, "/api/blockchains/zones/3",
+                      errorCode="MethodArgumentTypeMismatchException",
+                      errorMessage="Failed to convert value of type " \
+                      "'java.lang.String' to required type 'java.util.UUID'; " \
+                      "nested exception is java.lang.IllegalArgumentException: " \
+                      "Invalid UUID string: 3")
+
+@pytest.mark.zones
+def test_no_log_management(fxConnection, fxBlockchain):
+   '''
+   The log management section is optional.  Remove it and test.
+   '''
+   zoneInfo = createZoneObject(zoneType=util.helper.ZONE_TYPE_ON_PREM)
+   req = createDefaultConsortiumAdminRequest(fxConnection.request)
+   orgId = util.auth.getOrgId("hermes_org0")
+   del(zoneInfo["log_managements"])
+   response = req.createZone(zoneInfo)
+   validateZoneResponse(zoneInfo, response, orgId)
+
+
+@pytest.mark.zones
+def test_log_management_multiple(fxConnection, fxBlockchain):
+   '''
+   Should be able to specify multiple log management structures.
+   '''
+   zoneInfo = createZoneObject(zoneType=util.helper.ZONE_TYPE_ON_PREM)
+   req = createDefaultConsortiumAdminRequest(fxConnection.request)
+   orgId = util.auth.getOrgId("hermes_org0")
+   newLogManagementObject = createLogManagementObject(util.numbers_strings.random_string_generator(),
+                                                      destination=util.helper.LOG_DESTINATION_LOG_INSIGHT)
+   zoneInfo["log_managements"].append(newLogManagementObject)
+   response = req.createZone(zoneInfo)
+   validateZoneResponse(zoneInfo, response, orgId)
+
+
+@pytest.mark.zones
+@pytest.mark.skip(reason="VB-2157")
+def test_log_management_no_destination(fxConnection, fxBlockchain):
+   '''
+   Destination is a required field.
+   '''
+   zoneInfo = createZoneObject(zoneType=util.helper.ZONE_TYPE_ON_PREM)
+   req = createDefaultConsortiumAdminRequest(fxConnection.request)
+   orgId = util.auth.getOrgId("hermes_org0")
+   del(zoneInfo["log_managements"][0]["destination"])
+   response = req.createZone(zoneInfo)
+   log.info("**** test_log_management_no_destination response: {}".format(response))
+   # validateBadRequest(...)
+
+
+@pytest.mark.zones
+@pytest.mark.skip(reason="VB-2154")
+def test_log_management_wrong_destination_type(fxConnection, fxBlockchain):
+   '''
+   Must be one of [LOG_INTELLIGENCE, LOG_INSIGHT].
+   '''
+   zoneInfo = createZoneObject(zoneType=util.helper.ZONE_TYPE_ON_PREM)
+   req = createDefaultConsortiumAdminRequest(fxConnection.request)
+   orgId = util.auth.getOrgId("hermes_org0")
+   zoneInfo["log_managements"][0]["destination"] = 3
+   response = req.createZone(zoneInfo)
+   # validateBadRequest(...)
+
+
+@pytest.mark.zones
+@pytest.mark.skip(reason="VB-2157")
+def test_log_management_no_address(fxConnection, fxBlockchain):
+   '''
+   Required field.
+   '''
+   zoneInfo = createZoneObject(zoneType=util.helper.ZONE_TYPE_ON_PREM)
+   req = createDefaultConsortiumAdminRequest(fxConnection.request)
+   orgId = util.auth.getOrgId("hermes_org0")
+   del(zoneInfo["log_managements"][0]["address"])
+   response = req.createZone(zoneInfo)
+   log.info("**** test_log_management_no_address response: {}".format(response))
+   # validateBadRequest(...)
+
+
+@pytest.mark.zones
+def test_log_management_wrong_address_type(fxConnection, fxBlockchain):
+   '''
+   Must be a string.
+   '''
+   zoneInfo = createZoneObject(zoneType=util.helper.ZONE_TYPE_ON_PREM)
+   req = createDefaultConsortiumAdminRequest(fxConnection.request)
+   orgId = util.auth.getOrgId("hermes_org0")
+   zoneInfo["log_managements"][0]["address"] = 3
+   response = req.createZone(zoneInfo)
+   # The product auto-converts it.  That's fine.
+   zoneInfo["log_managements"][0]["address"] = "3"
+   validateZoneResponse(zoneInfo, response, orgId)
+
+
+@pytest.mark.zones
+@pytest.mark.skip(reason="VB-2157")
+def test_log_management_no_username(fxConnection, fxBlockchain):
+   '''
+   Required field.
+   '''
+   zoneInfo = createZoneObject(zoneType=util.helper.ZONE_TYPE_ON_PREM)
+   req = createDefaultConsortiumAdminRequest(fxConnection.request)
+   orgId = util.auth.getOrgId("hermes_org0")
+   del(zoneInfo["log_managements"][0]["username"])
+   response = req.createZone(zoneInfo)
+   log.info("**** test_log_management_no_usernames response: {}".format(response))
+   # validateBadRequest(...)
+
+
+@pytest.mark.zones
+def test_log_management_wrong_username_type(fxConnection, fxBlockchain):
+   '''
+   Must be a string
+   '''
+   zoneInfo = createZoneObject(zoneType=util.helper.ZONE_TYPE_ON_PREM)
+   req = createDefaultConsortiumAdminRequest(fxConnection.request)
+   orgId = util.auth.getOrgId("hermes_org0")
+   zoneInfo["log_managements"][0]["username"] = 3
+   response = req.createZone(zoneInfo)
+   # The product auto-converts it.  That's fine.
+   zoneInfo["log_managements"][0]["username"] = "3"
+   validateZoneResponse(zoneInfo, response, orgId)
+
+
+@pytest.mark.zones
+@pytest.mark.skip(reason="VB-2157")
+def test_log_management_no_password(fxConnection, fxBlockchain):
+   '''
+   Required field.
+   '''
+   zoneInfo = createZoneObject(zoneType=util.helper.ZONE_TYPE_ON_PREM)
+   req = createDefaultConsortiumAdminRequest(fxConnection.request)
+   orgId = util.auth.getOrgId("hermes_org0")
+   del(zoneInfo["log_managements"][0]["password"])
+   response = req.createZone(zoneInfo)
+   log.info("**** test_log_management_no_password response: {}".format(response))
+   # validateBadRequest(...)
+
+
+@pytest.mark.zones
+def test_log_management_wrong_password_type(fxConnection, fxBlockchain):
+   '''
+   Must be a string
+   '''
+   zoneInfo = createZoneObject(zoneType=util.helper.ZONE_TYPE_ON_PREM)
+   req = createDefaultConsortiumAdminRequest(fxConnection.request)
+   orgId = util.auth.getOrgId("hermes_org0")
+   zoneInfo["log_managements"][0]["password"] = 3
+   response = req.createZone(zoneInfo)
+   # The product auto-converts it.  That's fine.
+   zoneInfo["log_managements"][0]["password"] = "3"
+   validateZoneResponse(zoneInfo, response, orgId)
+
+
+@pytest.mark.zones
+@pytest.mark.skip(reason="VB-2099 (not supported yet)")
+def test_patch_zone_no_change(fxConnection, fxBlockchain):
+   '''
+   Create a zone, patch it with identical information, and ensure no fields changed.
+   '''
+   req = createDefaultConsortiumAdminRequest(fxConnection.request)
+   zoneInfo = createZoneObject()
+   createResponse = req.createZone(zoneInfo)
+   patchResponse = req.patchZone(createResponse["id"], zoneInfo)
+   getResponse = req.getZone(createResponse["id"])
+   assert createResponse == patchResponse, "Expected the zone patch response, '{}' " \
+      "to equal the zone creation response, '{}'".format(patchResponse, createResponse)
+   assert createResponse == getResponse, "Expected the zone get response, '{}' " \
+      "to equal the zone creation response, '{}'".format(getResponse, createResponse)
+
+
+@pytest.mark.zones
+@pytest.mark.skip(reason="VB-2099 (not supported yet)")
+def test_patch_zone_change_fields(fxConnection, fxBlockchain):
+   '''
+   Create a zone, patch all fields with new values.
+   '''
+   req = createDefaultConsortiumAdminRequest(fxConnection.request)
+   zoneInfo = createZoneObject()
+   createResponse = req.createZone(zoneInfo)
+   zoneId = createResponse["id"]
+
+   newZoneInfo = createZoneObject()
+   patchResponse = req.patchZone(zoneId, newZoneInfo)
+   assert patchResponse != createResponse, "Expected the response for creating the " \
+                           "zone, '{}', to differ from the response for patching " \
+                           "the zone, '{}'".format(createResponse, patchResponse)
+
+   getResponse = req.getZone(zoneId)
+   assert getResponse == patchResponse, "Expected the zone's new get response, '{}' " \
+      "to equal the patch response, '{}'".format(getResponse, patchResponse)
+
+
+@pytest.mark.zones
+@pytest.mark.skip(reason="VB-2099 (not supported yet)")
+def test_patch_zone_clear_required_fields(fxConnection, fxBlockchain):
+   req = createDefaultConsortiumAdminRequest(fxConnection.request)
+   zoneInfo = createZoneObject()
+   zoneId = req.createZone(zoneInfo)["id"]
+
+   newZoneInfo = createZoneObject()
+   patchResponse = req.patchZone(zoneId)
+
+   getResponse = req.getZone(zoneId)
+   assert getResponse == patchResponse, "Expected the zone's new get response, '{}' " \
+      "to equal the patch response, '{}'".format(getResponse, patchResponse)
+
+
+@pytest.mark.zones
+@pytest.mark.skip(reason="VB-2099 (not supported yet)")
+def test_patch_zone_missing_zone(fxConnection, fxBlockchain):
+   req = createDefaultConsortiumAdminRequest(fxConnection.request)
+   req.patchZone("7d9cea53-33d3-4fe7-8cb3-7d367d2eb30b")
+
+
+@pytest.mark.zones
+@pytest.mark.skip(reason="VB-2099 (not supported yet)")
+def test_patch_zone_invalid_uuid(fxConnection, fxBlockchain):
+   req = createDefaultConsortiumAdminRequest(fxConnection.request)
+   response = req.patchZone("3", createZoneObject())
+   validateBadRequest(response, "/api/blockchains/zones/3",
+                      errorCode="MethodArgumentTypeMismatchException",
+                      errorMessage="Failed to convert value of type " \
+                      "'java.lang.String' to required type 'java.util.UUID'; " \
+                      "nested exception is java.lang.IllegalArgumentException: " \
+                      "Invalid UUID string: 3")
+

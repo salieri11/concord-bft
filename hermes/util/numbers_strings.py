@@ -62,6 +62,31 @@ def epochToLegible(t):
    '''
    return time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(t))
 
+def randomGpsPoint():
+   '''
+   Returns a tuple of a randomly generated (latitude, longitude)
+   Latitude: -90 to +90
+   Longitude: -180 to +180
+   Decimal: Up to six digits.
+   '''
+   latInt = random.randrange(-90, 90)
+   latDec = random.randrange(0, 999999)
+   latitude = float("{}.{}".format(latInt,latDec))
+
+   lonInt = random.randrange(-180, 180)
+   lonDec = random.randrange(1, 999999)
+   longitude = float("{}.{}".format(lonInt,lonDec))
+
+   return (latitude, longitude)
+
+def randomIP4Address():
+   '''
+   Returns a random IP4 address.
+   '''
+   return "{}.{}.{}.{}".format(random.randrange(0, 255),
+                               random.randrange(0, 255),
+                               random.randrange(0, 255),
+                               random.randrange(0, 255))
 
 def to_signed_int(value: int, bits: int = 64) -> int:
    '''
