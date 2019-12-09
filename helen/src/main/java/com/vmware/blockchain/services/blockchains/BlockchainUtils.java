@@ -140,12 +140,17 @@ public class BlockchainUtils {
             OutboundProxyInfo outboundProxyInfo = OutboundProxyInfo.newBuilder().build();
 
             if (op.getOutboundProxy() != null) {
-                outboundProxyInfo = OutboundProxyInfo.newBuilder()
-                        .setHttpHost(op.getOutboundProxy().getHttpHost())
-                        .setHttpPort(op.getOutboundProxy().getHttpPort())
-                        .setHttpsHost(op.getOutboundProxy().getHttpsHost())
-                        .setHttpsPort(op.getOutboundProxy().getHttpsPort())
-                        .build();
+                // create a builder, and set non-null fields
+                OutboundProxyInfo.Builder b = OutboundProxyInfo.newBuilder();
+                if (op.getOutboundProxy().getHttpHost() != null) {
+                    b.setHttpHost(op.getOutboundProxy().getHttpHost());
+                }
+                if (op.getOutboundProxy().getHttpsHost() != null) {
+                    b.setHttpsHost(op.getOutboundProxy().getHttpsHost());
+                }
+                b.setHttpPort(op.getOutboundProxy().getHttpPort());
+                b.setHttpsPort(op.getOutboundProxy().getHttpsPort());
+                outboundProxyInfo =  b.build();
             }
 
             VSphereDatacenterInfo dcInfo = VSphereDatacenterInfo.newBuilder()

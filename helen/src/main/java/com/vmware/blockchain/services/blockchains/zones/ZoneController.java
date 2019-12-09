@@ -119,6 +119,7 @@ public class ZoneController {
         String storage;
         String folder;
         Zone.Network network;
+        Zone.OutboundProxy outboundProxy;
         EndPoint containerRepo;
         List<OnPremZone.LogManagementOnPrem> logManagements;
 
@@ -130,7 +131,8 @@ public class ZoneController {
             this.storage = z.getStorage();
             this.folder = z.getFolder();
             this.network = z.getNetwork();
-            this.containerRepo = z.containerRepo;
+            this.outboundProxy = z.getOutboundProxy();
+            this.containerRepo = z.getContainerRepo();
             this.logManagements = (z.getLogManagements() == null) ? Collections.emptyList() : z.getLogManagements();
         }
     }
