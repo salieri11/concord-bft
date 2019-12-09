@@ -15,7 +15,7 @@ services:
       - LINT_ENDPOINT_URL=https://data.mgmt.cloud.vmware.com/le-mans/v1/streams/ingestion-pipeline-stream
       - "LINT_AUTHORIZATION_BEARER=${LINT_AUTHORIZATION_BEARER}"
       - LOG_INSIGHT_HOST=10.78.20.10
-      - LOG_INSIGHT_PORT=9000
+      - LOG_INSIGHT_PORT=9543
       - LOG_INSIGHT_AGENT_ID=0
       - CONSORTIUM_ID=DEV_TEST_CONSORTIUM
       - REPLICA_ID=DEV_TEST_REPLICA
