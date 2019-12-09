@@ -14,6 +14,7 @@ import threading
 import time
 import traceback
 import util.auth
+import util.daml.daml_helper as daml_helper
 import util.helper as helper
 from util.product import Product as Product
 from . import test_suite
@@ -690,11 +691,21 @@ class PersephoneTests(test_suite.TestSuite):
                if concord_type is self.rpc_test_helper.CONCORD_TYPE_DAML:
                   if helper.verify_connectivity(concord_ip, 6865):
                      log.info("DAML Connectivity - PASS")
+                     try:
+                        log.info("dar upload/sanity check...")
+                        daml_helper.upload_dar(host=concord_ip,
+                                               port='6865')
+                        daml_helper.daml_sanity_checks(host=concord_ip,
+                                                       port='6865')
+                        log.info("dar upload/sanity check passed.")
+                     except Exception as e:
+                        log.error(e)
+                        return (False, "dar upload/sanity check failed")
                   else:
                      log.error("DAML Connectivity ({})- FAILED".format(concord_ip))
                      return (False, "DAML Connectivity - FAILED")
 
-            log.info("SSH Verification on all concord nodes are successful")
+            log.info("All post deployment sanity checks are successful")
             return (True, None)
          else:
             log.error("{} ethrpc endpoint not fetched".format(cluster_size))
