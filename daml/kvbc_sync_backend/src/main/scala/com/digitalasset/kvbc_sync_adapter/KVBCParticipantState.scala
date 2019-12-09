@@ -16,6 +16,7 @@ import com.digitalasset.grpc.adapter.AkkaExecutionSequencerPool
 import com.digitalasset.kvbc.daml_commit._
 import com.digitalasset.kvbc.daml_data.ReadTransactionRequest
 import com.digitalasset.kvbc.daml_events.CommittedTx
+import com.digitalasset.ledger.api.health.{HealthStatus, Healthy}
 import com.digitalasset.ledger.api.domain.PartyDetails
 
 import com.daml.ledger.participant.state.v1._
@@ -71,25 +72,12 @@ class KVBCParticipantState(
 
   /** Allocate a party on the ledger */
   override def allocateParty(
-      hint: Option[String],
-      displayName: Option[String]): CompletionStage[PartyAllocationResult] = {
+      hint: Option[Party],
+      displayName: Option[String],
+      submissionId: SubmissionId): CompletionStage[SubmissionResult] = {
 
-    hint.map(p => Party.fromString(p)) match {
-      case None =>
-        allocatePartyOnLedger(generateRandomId(), displayName)
-      case Some(Right(party)) =>
-        allocatePartyOnLedger(party, displayName)
-      case Some(Left(error)) =>
-        CompletableFuture.completedFuture(PartyAllocationResult.InvalidName(error))
-    }
-  }
+    val party = hint.getOrElse(generateRandomParty())
 
-  private def allocatePartyOnLedger(
-      party: String,
-      displayName: Option[String]): CompletionStage[PartyAllocationResult] = {
-
-    //Since the gRPC layer below is synchronous, it is not necessary to memorize the submissionId
-    val submissionId: String = UUID.randomUUID.toString
     val submission: DamlKvutils.DamlSubmission =
       KeyValueSubmission.partyToSubmission(submissionId, Some(party), displayName, participantId)
 
@@ -98,39 +86,14 @@ class KVBCParticipantState(
       participantId = participantId.toString
     )
 
-    logger.info(s"Allocating party: party=$party, submissionId: $submissionId")
+    logger.info(s"Allocating party, party=$party submissionId=$submissionId")
 
-    client
-      .commitTransaction(commitReq)
-      .toJava.toCompletableFuture
-      .handle((resp, e) =>
-        if (resp != null)
-          resp.status match {
-            case CommitResponse.CommitStatus.OK =>
-              logger.info(s"Party successfully allocated: party=$party, submissionId=$submissionId")
-              //TODO: Feed this response from the asynch channel
-              PartyAllocationResult.Ok(PartyDetails(Ref.Party.assertFromString(party),displayName,true))
-            case error =>
-              //TODO: convert to SubmissionResult.InternalError, when provided
-              logger.error(s"Party allocation failed with an error: party=$party, " +
-                s"submissionId=$submissionId, error=${error.toString}")
-              PartyAllocationResult.InvalidName(s"Party allocation failed with an error ${error.toString}")
-          }
-        else {
-          logger.error(s"Party allocation failed with an exception: party=$party, submissionId=$submissionId, " +
-            s"exception=${e.toString}")
-          e match {
-            case grpc: StatusRuntimeException if grpc.getStatus.getCode == Status.Code.RESOURCE_EXHAUSTED =>
-              PartyAllocationResult.Overloaded
-            case _ =>
-              //TODO: convert to SubmissionResult.InternalError, when provided
-              PartyAllocationResult.InternalError(e.toString)
-          }
-        }
-      )
+    // FIXME(JM): Properly queue the transactions and execute in sequence from one place.
+    submit(submissionId, commitReq)
   }
 
-  private def generateRandomId(): Ref.Party =
+
+  private def generateRandomParty(): Ref.Party =
     Ref.Party.assertFromString(s"party-${UUID.randomUUID().toString.take(8)}")
 
   /** Upload DAML-LF packages to the ledger */
@@ -214,11 +177,11 @@ class KVBCParticipantState(
   /** Submit a new configuration to the ledger. */
   override def submitConfiguration(
     maxRecordTime: Timestamp,
-    submissionId: String,
+    submissionId: SubmissionId,
     config: Configuration
   ): CompletionStage[SubmissionResult] = {
     val submission =
-      KeyValueSubmission.configurationToSubmission(maxRecordTime, submissionId, participantId.toString, config)
+      KeyValueSubmission.configurationToSubmission(maxRecordTime, submissionId, participantId, config)
 
     val commitReq = CommitRequest(
       submission = Envelope.enclose(submission),
@@ -272,7 +235,7 @@ class KVBCParticipantState(
       )
     )
 
-
+  override def currentHealth(): HealthStatus = Healthy
 
   override def stateUpdates(beginAfter: Option[Offset]): Source[(Offset, Update), NotUsed] = {
 

@@ -6,7 +6,7 @@ version: '3'
 services:
   # Create test tool container
   daml_test_tool:
-    image: athena-docker-local.artifactory.eng.vmware.com/daml-ledger-api-test-tool:100.13.38
+    image: athena-docker-local.artifactory.eng.vmware.com/daml-ledger-api-test-tool:100.13.39
 
   # Note: Make sure that Concord's configuration files have `daml_enable` set
   concord1:

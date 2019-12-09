@@ -63,7 +63,7 @@ object KvbcLedgerServer extends App {
 
   val indexersF: Future[(AutoCloseable, StandaloneIndexServer#SandboxState)] = for {
     indexerServer <- StandaloneIndexerServer(readService, extConfig.config, loggerFactory, indexerMetrics)
-    indexServer <- StandaloneIndexServer(extConfig.config, readService, writeService, authService, loggerFactory, serverMetrics).start()
+    indexServer <- new StandaloneIndexServer(extConfig.config, readService, writeService, authService, loggerFactory, serverMetrics).start()
   } yield (indexerServer, indexServer)
 
   extConfig.config.archiveFiles.foreach { f =>
