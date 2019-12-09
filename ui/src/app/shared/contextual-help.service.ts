@@ -25,8 +25,8 @@ export class ContextualHelpService {
   openHelpPage(helpId: string) {
     const helpLink = this.getHelpLink();
     let helpTopicURL = helpLink.helpTopicURL;
-    if (helpId) {
-      helpTopicURL = helpTopicURL + helpId;
+    if (helpId && helpTopicURL) {
+      helpTopicURL += helpId;
     }
     this.openInNewTab(helpTopicURL);
   }
