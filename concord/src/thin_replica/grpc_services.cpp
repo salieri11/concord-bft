@@ -7,6 +7,7 @@
 #include <chrono>
 #include <sstream>
 
+#include "hash_defs.h"
 #include "kv_types.hpp"
 #include "storage/kvb_app_filter.h"
 
@@ -23,6 +24,7 @@ using concord::storage::KvbAppFilter;
 using concordUtils::BlockId;
 using concordUtils::Key;
 using concordUtils::KeyValuePair;
+using concordUtils::SetOfKeyValuePairs;
 using concordUtils::Status;
 using concordUtils::Value;
 
@@ -108,15 +110,95 @@ grpc::Status ThinReplicaImpl::SubscribeToUpdates(
     ServerContext* context,
     const com::vmware::concord::thin_replica::SubscriptionRequest* request,
     ServerWriter<com::vmware::concord::thin_replica::Data>* stream) {
-  return grpc::Status(grpc::StatusCode::UNIMPLEMENTED, "SubscribeToUpdates");
+  bool close_write_stream = false;
+  std::pair<BlockId, SetOfKeyValuePairs> update;
+
+  auto updates = std::make_shared<SubUpdateBuffer>(100);
+  subscriber_list_.AddBuffer(updates);
+
+  // TODO: Read from KVB, filter, and sync with updates in the ring buffer
+  // For now: Read from the ring buffer and send to stream
+  while (!close_write_stream) {
+    SubUpdate update = updates->Pop();
+
+    Data data;
+    data.set_block_id(update.first);
+
+    SetOfKeyValuePairs kv_updates(update.second);
+    for (const auto& [key, value] : kv_updates) {
+      KVPair* kvp_out = data.add_data();
+      kvp_out->set_key(key.data(), key.length());
+      kvp_out->set_value(value.data(), value.length());
+    }
+
+    if (stream->Write(data)) {
+      continue;
+    }
+
+    LOG4CPLUS_INFO(logger_, "SubscibeToUpdates stream has been closed.");
+
+    // Remove from the subscriber list so that the cmds handler stops pushing
+    // new updates
+    subscriber_list_.RemoveBuffer(updates);
+    close_write_stream = true;
+  }
+
+  // Clear the update list
+  while (!updates->Empty()) {
+    updates->Pop();
+  }
+
+  return grpc::Status::OK;
 }
 
 grpc::Status ThinReplicaImpl::SubscribeToUpdateHashes(
     ServerContext* context,
     const com::vmware::concord::thin_replica::SubscriptionRequest* request,
     ServerWriter<com::vmware::concord::thin_replica::Hash>* stream) {
-  return grpc::Status(grpc::StatusCode::UNIMPLEMENTED,
-                      "SubscribeToUpdateHashes");
+  bool close_write_stream = false;
+  std::pair<BlockId, SetOfKeyValuePairs> update;
+
+  auto updates = std::make_shared<SubUpdateBuffer>(100);
+  subscriber_list_.AddBuffer(updates);
+
+  // TODO: Read from KVB, filter, and sync with updates in the ring buffer
+  // For now: Read from the ring buffer, compute hash, and send to stream
+  while (!close_write_stream) {
+    SubUpdate update = updates->Pop();
+    SetOfKeyValuePairs kv_updates(update.second);
+
+    size_t hash_out = 0;
+
+    // TODO: Same implementation in two places (see kvb_app_filter)
+    for (const auto& [key, value] : kv_updates) {
+      // (key1 XOR value1) XOR (key2 XOR value2) ...
+      auto key_hash = std::hash<string>{}(string{key.data(), key.length()});
+      key_hash ^= std::hash<string>{}(string{value.data(), value.length()});
+      hash_out ^= key_hash;
+    }
+
+    com::vmware::concord::thin_replica::Hash hash;
+    hash.set_block_id(update.first);
+    hash.set_hash(&hash_out, sizeof hash_out);
+
+    if (stream->Write(hash)) {
+      continue;
+    }
+
+    LOG4CPLUS_INFO(logger_, "SubscibeToUpdateHashes stream has been closed.");
+
+    // Remove from the subscriber list so that the cmds handler stops pushing
+    // new updates
+    subscriber_list_.RemoveBuffer(updates);
+    close_write_stream = true;
+  }
+
+  // Clear the update list
+  while (!updates->Empty()) {
+    updates->Pop();
+  }
+
+  return grpc::Status::OK;
 }
 
 grpc::Status ThinReplicaImpl::Unsubscribe(

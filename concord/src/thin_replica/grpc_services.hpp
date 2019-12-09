@@ -5,9 +5,11 @@
 
 #include <grpcpp/grpcpp.h>
 #include <log4cplus/loggingmacros.h>
+#include <boost/circular_buffer.hpp>
 
 #include "blockchain/db_interfaces.h"
 #include "thin_replica.grpc.pb.h"
+#include "thin_replica/subscription_buffer.hpp"
 
 namespace concord {
 namespace thin_replica {
@@ -17,14 +19,17 @@ class ThinReplicaImpl final
  private:
   log4cplus::Logger logger_;
   const concord::storage::blockchain::ILocalKeyValueStorageReadOnly* rostorage_;
+  SubBufferList& subscriber_list_;
 
  public:
   ThinReplicaImpl(
       const concord::storage::blockchain::ILocalKeyValueStorageReadOnly*
-          rostorage)
+          rostorage,
+      SubBufferList& subscriber_list)
       : logger_(
             log4cplus::Logger::getInstance("com.vmware.concord.thin_replica")),
-        rostorage_(rostorage) {}
+        rostorage_(rostorage),
+        subscriber_list_(subscriber_list) {}
 
   grpc::Status ReadState(
       grpc::ServerContext* context,

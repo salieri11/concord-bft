@@ -15,6 +15,7 @@
 #include "daml_validator_client.hpp"
 #include "hash_defs.h"
 #include "sliver.hpp"
+#include "thin_replica/subscription_buffer.hpp"
 
 namespace concord {
 namespace daml {
@@ -37,8 +38,9 @@ class DamlKvbCommandsHandler
       concord::storage::blockchain::IBlocksAppender& ba,
       BlockingPersistentQueue<com::digitalasset::kvbc::CommittedTx>&
           committed_txs,
+      concord::thin_replica::SubBufferList& subscriber_list,
       std::unique_ptr<DamlValidatorClient> validator)
-      : ConcordCommandsHandler(config, ros, ba),
+      : ConcordCommandsHandler(config, ros, ba, subscriber_list),
         logger_(log4cplus::Logger::getInstance("com.vmware.concord.daml")),
         committed_txs_(committed_txs),
         validator_client_(std::move(validator)) {}

@@ -10,6 +10,7 @@
 #include "concord.pb.h"
 #include "consensus/timing_stat.h"
 #include "storage/concord_metadata_storage.h"
+#include "thin_replica/subscription_buffer.hpp"
 #include "time/time_contract.hpp"
 #include "time/time_reading.hpp"
 
@@ -28,6 +29,7 @@ class ConcordCommandsHandler
   uint64_t executing_bft_sequence_num_;
   std::chrono::steady_clock::duration timing_log_period_;
   std::chrono::steady_clock::time_point timing_log_last_;
+  concord::thin_replica::SubBufferList &subscriber_list_;
 
   void log_timing();
 
@@ -53,7 +55,8 @@ class ConcordCommandsHandler
       const concord::config::ConcordConfiguration &config,
       const concord::storage::blockchain::ILocalKeyValueStorageReadOnly
           &storage,
-      concord::storage::blockchain::IBlocksAppender &appender);
+      concord::storage::blockchain::IBlocksAppender &appender,
+      concord::thin_replica::SubBufferList &subscriber_list);
   virtual ~ConcordCommandsHandler() {}
 
   // Callback from the replica via ICommandsHandler.

@@ -45,8 +45,10 @@ HlfKvbCommandsHandler::HlfKvbCommandsHandler(
     const concord::config::ConcordConfiguration& config,
     concord::config::ConcordConfiguration& node_config,
     const ILocalKeyValueStorageReadOnly& ro_storage,
-    IBlocksAppender& block_appender)
-    : ConcordCommandsHandler(config, ro_storage, block_appender),
+    IBlocksAppender& block_appender,
+    concord::thin_replica::SubBufferList& subscriber_list)
+    : ConcordCommandsHandler(config, ro_storage, block_appender,
+                             subscriber_list),
       logger_(log4cplus::Logger::getInstance("com.vmware.concord.hlf.handler")),
       chaincode_invoker_(chaincode_invoker),
       node_config_(node_config) {}

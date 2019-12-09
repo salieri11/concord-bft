@@ -4,6 +4,7 @@
 
 #include "concord_commands_handler.hpp"
 #include "hash_defs.h"
+#include "thin_replica/subscription_buffer.hpp"
 #include "time/time_contract.hpp"
 
 #include <opentracing/tracer.h>
@@ -13,6 +14,10 @@ using com::vmware::concord::ErrorResponse;
 using com::vmware::concord::TimeRequest;
 using com::vmware::concord::TimeResponse;
 using com::vmware::concord::TimeSample;
+using concord::thin_replica::SubUpdate;
+using concord::thin_replica::SubUpdateBuffer;
+using concordUtils::BlockId;
+using concordUtils::SetOfKeyValuePairs;
 using concordUtils::Sliver;
 
 using google::protobuf::Timestamp;
@@ -24,10 +29,12 @@ namespace consensus {
 ConcordCommandsHandler::ConcordCommandsHandler(
     const concord::config::ConcordConfiguration &config,
     const concord::storage::blockchain::ILocalKeyValueStorageReadOnly &storage,
-    concord::storage::blockchain::IBlocksAppender &appender)
+    concord::storage::blockchain::IBlocksAppender &appender,
+    concord::thin_replica::SubBufferList &subscriber_list)
     : logger_(log4cplus::Logger::getInstance(
           "concord.consensus.ConcordCommandsHandler")),
       metadata_storage_(storage),
+      subscriber_list_(subscriber_list),
       storage_(storage),
       timing_enabled_(config.getValue<bool>("replica_timing_enabled")),
       metrics_{concordMetrics::Component(
@@ -256,17 +263,25 @@ concordUtils::Status ConcordCommandsHandler::addBlock(
   // need to add items here, so we have to make a copy and work with that. In
   // the future, maybe we can figure out how to either make updates non-const,
   // or allow addBlock to take a list of const sets.
-  concord::storage::SetOfKeyValuePairs amended_updates(updates);
+  SetOfKeyValuePairs amended_updates(updates);
 
   if (time_ && time_->Changed()) {
-    pair<Sliver, Sliver> tc_state = time_->Serialize();
-    amended_updates[tc_state.first] = tc_state.second;
+    amended_updates.insert(time_->Serialize());
   }
 
   amended_updates[metadata_storage_.BlockMetadataKey()] =
       metadata_storage_.SerializeBlockMetadata(executing_bft_sequence_num_);
 
-  return appender_.addBlock(amended_updates, out_block_id);
+  concordUtils::Status status =
+      appender_.addBlock(amended_updates, out_block_id);
+  if (!status.isOK()) {
+    return status;
+  }
+
+  // Copy all updates to subscribers in the thin replica server
+  subscriber_list_.UpdateSubBuffers({out_block_id, amended_updates});
+
+  return status;
 }
 
 void ConcordCommandsHandler::log_timing() {

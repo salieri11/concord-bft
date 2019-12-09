@@ -14,6 +14,7 @@
 #include "consensus/concord_commands_handler.hpp"
 #include "consensus/timing_stat.h"
 #include "ethereum/concord_evm.hpp"
+#include "thin_replica/subscription_buffer.hpp"
 #include "time/time_contract.hpp"
 #include "utils/concord_eth_sign.hpp"
 
@@ -39,7 +40,8 @@ class EthKvbCommandsHandler
       const concord::config::ConcordConfiguration &nodeConfig,
       const concord::storage::blockchain::ILocalKeyValueStorageReadOnly
           &storage,
-      concord::storage::blockchain::IBlocksAppender &appender);
+      concord::storage::blockchain::IBlocksAppender &appender,
+      concord::thin_replica::SubBufferList &subscriber_list);
   ~EthKvbCommandsHandler();
 
   // concord::consensus::ConcordStateMachine

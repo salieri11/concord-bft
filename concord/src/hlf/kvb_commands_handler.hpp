@@ -16,6 +16,7 @@
 #include "hlf/kvb_storage.hpp"
 #include "hlf_services.pb.h"
 #include "hlf_storage.pb.h"
+#include "thin_replica/subscription_buffer.hpp"
 #include "time/time_contract.hpp"
 
 namespace concord {
@@ -36,7 +37,8 @@ class HlfKvbCommandsHandler
       concord::config::ConcordConfiguration& node_config,
       const concord::storage::blockchain::ILocalKeyValueStorageReadOnly&
           ro_storage,
-      concord::storage::blockchain::IBlocksAppender& block_appender);
+      concord::storage::blockchain::IBlocksAppender& block_appender,
+      concord::thin_replica::SubBufferList& subscriber_list);
 
   ~HlfKvbCommandsHandler();
 
