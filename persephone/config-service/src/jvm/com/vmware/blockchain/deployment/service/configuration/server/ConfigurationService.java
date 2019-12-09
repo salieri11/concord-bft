@@ -230,16 +230,23 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
             }
         }
 
-        log.info("Persisting configurations for session: {} in memory...", sessionId);
-        var persist = sessionConfig.putIfAbsent(sessionId, nodeComponent);
-
-        if (persist == null) {
-            log.info("Persisted configurations for session: {} in memory.", sessionId);
-            observer.onNext(sessionId);
-            observer.onCompleted();
+        // Error out if no configurations are generated.
+        if (staticComponentList.isEmpty()) {
+            String msg = "No configurations were generated for servive type(s)" + request.getServices();
+            log.error(msg);
+            observer.onError(new StatusException(Status.INVALID_ARGUMENT.withDescription(msg)));
         } else {
-            observer.onError(new StatusException(
-                    Status.INTERNAL.withDescription("Could not persist configuration results")));
+            log.info("Persisting configurations for session: {} in memory...", sessionId);
+            var persist = sessionConfig.putIfAbsent(sessionId, nodeComponent);
+
+            if (persist == null) {
+                log.info("Persisted configurations for session: {} in memory.", sessionId);
+                observer.onNext(sessionId);
+                observer.onCompleted();
+            } else {
+                observer.onError(new StatusException(
+                        Status.INTERNAL.withDescription("Could not persist configuration results")));
+            }
         }
     }
 
