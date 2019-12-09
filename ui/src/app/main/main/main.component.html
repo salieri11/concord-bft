@@ -88,11 +88,13 @@
           {{'nav.developer.docs' | translate}}
         </a>
         <!-- Logging NAV -->
-        <a clrVerticalNavLink [routerLink]="['logging']" routerLinkActive="active" id="logging"
-          *concordFeatureFlag="'developer_logging'">
-          <clr-icon clrVerticalNavIcon shape="file-group"></clr-icon>
-          {{'nav.developer.logs' | translate}}
-        </a>
+        <ng-container *ngIf="!isOnPrem">
+          <a clrVerticalNavLink [routerLink]="['logging']" routerLinkActive="active" id="logging"
+            *concordFeatureFlag="'developer_logging'">
+            <clr-icon clrVerticalNavIcon shape="file-group"></clr-icon>
+            {{'nav.developer.logs' | translate}}
+          </a>
+        </ng-container>
         <a clrVerticalNavLink [routerLink]="['developer/apis']" routerLinkActive="active" id="apis">
           <clr-icon clrVerticalNavIcon shape="info-circle"></clr-icon>
           {{'nav.developer.api' | translate}}
