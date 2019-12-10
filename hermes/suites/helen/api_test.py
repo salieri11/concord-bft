@@ -428,6 +428,12 @@ def createZoneObject(zoneType=util.helper.ZONE_TYPE_ON_PREM):
             "{}".format(util.numbers_strings.randomIP4Address())
          ]
       }),
+      "outbound_proxy": {
+         "http_host": "http://{}".format(util.numbers_strings.randomIP4Address()),
+         "http_port": 8080,
+         "https_host": "https://{}".format(util.numbers_strings.randomIP4Address()),
+         "https_port": 8081
+      },
       "resource_pool": "Resource Pool for {}".format(uniqueId),
       "storage": "Datastore for {}".format(uniqueId),
       "folder": "Blockchain Folder for {}".format(uniqueId),
