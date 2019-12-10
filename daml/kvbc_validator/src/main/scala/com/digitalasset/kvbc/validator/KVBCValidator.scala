@@ -9,16 +9,21 @@ import com.digitalasset.daml.lf.data.{Ref, Time}
 import com.digitalasset.daml.lf.engine.Engine
 import com.digitalasset.kvbc.daml_data._
 import com.digitalasset.kvbc.daml_validator._
+import com.digitalasset.ledger.api.health.{HealthStatus, Healthy, ReportsHealth}
 import com.github.blemale.scaffeine.{Cache, Scaffeine}
 import com.google.protobuf.ByteString
-import io.grpc.{Status, StatusRuntimeException}
+import io.grpc.{BindableService, ServerServiceDefinition, Status, StatusRuntimeException}
 import java.time.{Duration, Instant}
 import org.slf4j.LoggerFactory
 import scala.collection.JavaConverters._
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
 
-class KVBCValidator extends ValidationServiceGrpc.ValidationService {
+class KVBCValidator(implicit ec: ExecutionContext)
+    extends ValidationServiceGrpc.ValidationService
+    with ReportsHealth
+    with BindableService {
+
   private object Metrics {
     val registry = KVBCMetricsServer.registry
     val prefix = "validator.service"
@@ -38,10 +43,6 @@ class KVBCValidator extends ValidationServiceGrpc.ValidationService {
 
   private val logger = LoggerFactory.getLogger(this.getClass)
   private val engine = Engine()
-
-  // Use the global execution context. This uses threads proportional to
-  // available processors.
-  implicit val ec: ExecutionContext = ExecutionContext.global
 
   private val cache: Cache[(ReplicaId, KV.DamlStateKey), KV.DamlStateValue] = {
     val cacheSizeEnv = System.getenv("KVBC_VALIDATOR_CACHE_SIZE")
@@ -245,8 +246,13 @@ class KVBCValidator extends ValidationServiceGrpc.ValidationService {
 
     logger.info(s"Submission validated. entryId=${pendingSubmission.entryId.toStringUtf8} " +
       s"participantId=${pendingSubmission.participantId} inputStates=${pendingSubmission.inputState.size} stateUpdates=${stateUpdates.size} " +
-      s"resultPayload=${logEntry.getPayloadCase.toString} "
-    )
+      s"resultPayload=${logEntry.getPayloadCase.toString} ")
     result
   }
+
+  // A stateless component is always healthy
+  def currentHealth(): HealthStatus = Healthy
+
+  override def bindService(): ServerServiceDefinition =
+    ValidationServiceGrpc.bindService(this, ec)
 }
