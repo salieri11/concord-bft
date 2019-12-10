@@ -235,7 +235,7 @@ class KVBCParticipantState(
       )
     )
 
-  override def currentHealth(): HealthStatus = Healthy
+  override def currentHealth: HealthStatus = client.currentHealth
 
   override def stateUpdates(beginAfter: Option[Offset]): Source[(Offset, Update), NotUsed] = {
 

@@ -7,7 +7,9 @@ import com.digitalasset.kvbc.daml_data._
 import com.digitalasset.kvbc.daml_events._
 import com.digitalasset.grpc.adapter.ExecutionSequencerFactory
 import com.digitalasset.grpc.adapter.client.akka._
-import io.grpc.{ManagedChannel, ManagedChannelBuilder}
+import com.digitalasset.ledger.api.health.{HealthStatus, Healthy, Unhealthy}
+import io.grpc.{ManagedChannel, ManagedChannelBuilder, ConnectivityState}
+import org.slf4j.LoggerFactory
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration.DurationInt
@@ -21,6 +23,8 @@ import akka.stream.scaladsl.Source
 class KVBCClient private(host: String, port: Int) (implicit val ec: ExecutionContext) {
   private val ledgerInboundMessageSizeMax: Int = 50 * 1024 * 1024 // 50 MiBytes
 
+  private val logger = LoggerFactory.getLogger(this.getClass)
+
   val channel: ManagedChannel =
     ManagedChannelBuilder
       .forAddress(host, port)
@@ -32,6 +36,24 @@ class KVBCClient private(host: String, port: Int) (implicit val ec: ExecutionCon
   val dataClient: DataServiceGrpc.DataServiceStub = DataServiceGrpc.stub(channel)
   val eventsClient: EventsServiceGrpc.EventsServiceStub = EventsServiceGrpc.stub(channel)
   val backOff: RetryStrategy = RetryStrategy.exponentialBackoff(10,100.milliseconds)
+
+  @volatile
+  private var channelHealth: HealthStatus = Healthy
+
+  private def statusCallback: Runnable = new Runnable{
+    def run{
+      val currentState = channel.getState(false)
+      if( channelHealth == Healthy )
+        channelHealth = if (currentState == ConnectivityState.TRANSIENT_FAILURE) Unhealthy else Healthy
+      else
+        channelHealth = if (currentState == ConnectivityState.READY) Healthy else Unhealthy
+      logger.info(s"gRPC state changed $currentState")
+      channel.notifyWhenStateChanged(channel.getState(false), statusCallback)
+  }}
+
+  channel.notifyWhenStateChanged(channel.getState(false), statusCallback)
+
+  def currentHealth: HealthStatus = channelHealth
 
   //
   // Commit API
