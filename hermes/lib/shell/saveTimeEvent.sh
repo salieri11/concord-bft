@@ -1,8 +1,9 @@
 #!bin/bash
 
 #########################################################################
-# Copyright 2019 VMware, Inc.  All rights reserved. -- VMware Confidential
+# Copyright 2019-2020 VMware, Inc.  All rights reserved. -- VMware Confidential
 #########################################################################
+set +x
 
 # Define EVENT_RECORDER and EVENT_FILE in the parent because the paths
 # will be relative to that file.

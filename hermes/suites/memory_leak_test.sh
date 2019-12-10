@@ -67,7 +67,7 @@ launch_memory_test() {
         SPECIFIC_TESTS="\"--tests=-k ${TESTS}\""
     fi
 
-    COMMAND="\"${HERMES_START_FILE}\" \"${TEST_SUITE}\" --config resources/user_config_valgrind.json --repeatSuiteRun ${NO_OF_RUNS} --resultsDir \"${RESULTS_DIR}\" ${SPECIFIC_TESTS} --productLaunchAttempts 10  --runConcordConfigurationGeneration --concordConfigurationInput /concord/config/dockerConfigurationInput.yaml --dockerComposeFile ../docker/docker-compose.yml ../docker/docker-compose-memleak.yml --logLevel debug &"
+    COMMAND="\"${HERMES_START_FILE}\" \"${TEST_SUITE}\" --config resources/user_config_valgrind.json --repeatSuiteRun ${NO_OF_RUNS} --resultsDir \"${RESULTS_DIR}\" ${SPECIFIC_TESTS} --productLaunchAttempts 10  --runConcordConfigurationGeneration --concordConfigurationInput /concord/config/dockerConfigurationInput.yaml --dockerComposeFile ../docker/docker-compose.yml ../docker/docker-compose-memleak.yml --logLevel debug > \"${RESULTS_DIR}/memory_leak_tests.log\" 2>&1 &"
     echo python: "${python}"
     echo COMMAND: "${COMMAND}"
     eval "${python}" "${COMMAND}"
