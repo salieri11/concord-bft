@@ -12,7 +12,6 @@
     <name>Blockchain - Fleet Management</name>
 
     <modules>
-        <module>agent</module>
         <module>api</module>
         <module>config-service</module>
         <module>core</module>

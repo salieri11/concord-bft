@@ -6,7 +6,6 @@ COPY ./resources/checkstyle.xml ./persephone/resources/checkstyle.xml
 
 ## Copy the dependency-related POM files (rarely changing).
 COPY ./pom.xml ./persephone/pom.xml
-COPY ./agent/pom.xml ./persephone/agent/pom.xml
 COPY ./api/pom.xml ./persephone/api/pom.xml
 COPY ./config-service/pom.xml ./persephone/config-service/pom.xml
 COPY ./core/pom.xml ./persephone/core/pom.xml
