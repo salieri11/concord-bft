@@ -30,66 +30,103 @@ import hudson.util.Secret
 //   api.
 // - Move this to another file?
 @Field Map testSuites = [
-  "SampleSuite": ["enabled": true],
-  "SampleDAppTests": ["enabled": true],
-  "CoreVMTests": ["enabled": true],
+  "SampleSuite": [
+    "enabled": true,
+    "runWithGenericTests": true
+  ],
+  "SampleDAppTests": [
+    "enabled": true,
+    "runWithGenericTests": true
+  ],
+  "CoreVMTests": [
+    "enabled": true,
+    "runWithGenericTests": true
+  ],
   "PerformanceTests": [
     "enabled": true,
     "concordConfigurationInput": "/concord/config/dockerConfigurationInput-perftest.yaml",
     "performanceVotes": 10,
+    "runWithGenericTests": true
   ],
-  "HelenAPITests": ["enabled": true],
-  "ExtendedRPCTests": ["enabled": true],
+  "HelenAPITests": [
+    "enabled": true,
+    "runWithGenericTests": true
+  ],
+  "HelenRoleTests": [
+    "enabled": true,
+    "runWithGenericTests": false
+  ],
+  "ExtendedRPCTests": [
+    "enabled": true,
+    "runWithGenericTests": true
+  ],
   "ExtendedRPCTestsEthrpc": [
     "enabled": true,
-    "baseCommand": 'echo "${PASSWORD}" | sudo -S "${python}" main.py ExtendedRPCTests --ethrpcApiUrl https://localhost/blockchains/local/api/concord/eth'
+    "baseCommand": 'echo "${PASSWORD}" | sudo -S "${python}" main.py ExtendedRPCTests --ethrpcApiUrl https://localhost/blockchains/local/api/concord/eth',
+    "runWithGenericTests": true
   ],
-  "RegressionTests": ["enabled": true],
+  "RegressionTests": [
+    "enabled": true,
+    "runWithGenericTests": true
+  ],
   "DamlTests": [
     "enabled": true,
     "dockerComposeFiles": "../docker/docker-compose-daml.yml",
-    "concordConfigurationInput": "/concord/config/dockerConfigurationInput-daml.yaml"
+    "concordConfigurationInput": "/concord/config/dockerConfigurationInput-daml.yaml",
+    "runWithGenericTests": true
   ],
   "SimpleStateTransferTest": [
     "enabled": true,
-    "dockerComposeFiles": "../docker/docker-compose.yml ../docker/docker-compose-static-ips.yml"
+    "dockerComposeFiles": "../docker/docker-compose.yml ../docker/docker-compose-static-ips.yml",
+    "runWithGenericTests": true
   ],
-  "TruffleTests": ["enabled": true],
-  "ContractCompilerTests": ["enabled": true],
+  "TruffleTests": [
+    "enabled": true,
+    "runWithGenericTests": true
+  ],
+  "ContractCompilerTests": [
+    "enabled": true,
+    "runWithGenericTests": true
+  ],
   "HlfTests": [
     "enabled": false, // RV: Disabled because these repeatedly cause the product to fail to launch in CI/CD.
-    "concordConfigurationInput": "/concord/config/dockerConfigurationInput-hlf.yaml"
+    "concordConfigurationInput": "/concord/config/dockerConfigurationInput-hlf.yaml",
+    "runWithGenericTests": true
   ],
   "TimeTests": [
     "enabled": true,
     "concordConfigurationInput": "/concord/config/dockerConfigurationInput-time_service.yaml",
-    "setupFunction": "enableTimeService"
+    "setupFunction": "enableTimeService",
+    "runWithGenericTests": true
   ],
   "EvilTimeTests": [
     "enabled": true,
     "concordConfigurationInput": "/concord/config/dockerConfigurationInput-time_service.yaml",
-    "setupFunction": "enableTimeService"
+    "setupFunction": "enableTimeService",
+    "runWithGenericTests": true
   ],
   "MemoryLeakTests": [
     "enabled": true,
     "suiteDir": "suites",
     "baseCommand": 'echo "${PASSWORD}" | sudo -SE ./memory_leak_test.sh --testSuite CoreVMTests \
-      --repeatSuiteRun 2 --tests \'vmArithmeticTest/add0.json\''
+      --repeatSuiteRun 2 --tests \'vmArithmeticTest/add0.json\'',
+    "runWithGenericTests": true
   ],
   "UiTests": [
     "enabled": true,
     "setupFunction": "deleteDatabaseFiles",
     "dockerComposeFiles": "../docker/docker-compose.yml ../docker/docker-compose-persephone.yml",
-    "baseCommand": '"${python}" main.py UiTests'
+    "baseCommand": '"${python}" main.py UiTests',
+    "runWithGenericTests": true
   ],
   "HelenDeployToSDDC": [
     "enabled": true,
     "dockerComposeFiles": "../docker/docker-compose.yml ../docker/docker-compose-persephone.yml",
     "baseCommand": 'echo "${PASSWORD}" | sudo -S "${python}" main.py CoreVMTests --blockchainLocation sddc \
-      --tests="-k vmArithmeticTest/add0.json"'
+      --tests="-k vmArithmeticTest/add0.json"',
+    "runWithGenericTests": true
   ]
 ]
-
 
 def call(){
   def agentLabel = "genericVM"
@@ -102,29 +139,27 @@ def call(){
   def performance_test_job_name = "Blockchain Performance Test"
   def persephone_test_job_name = "Blockchain Persephone Tests"
   def persephone_test_on_demand_job_name = "ON DEMAND Persephone Testrun on GitLab"
+  def helen_role_test_job_name = "Helen Role Tests on GitLab"
 
-  if (env.JOB_NAME.contains(memory_leak_job_name)) {
-    echo "**** Jenkins job for Memory Leak Test"
-    agentLabel = "MemoryLeakTesting"
-    genericTests = false
-  } else if (env.JOB_NAME.contains(performance_test_job_name)) {
-    echo "**** Jenkins job for Performance Test"
-    genericTests = false
-    // additional_components_to_build = additional_components_to_build + "PerformanceTests,"
-  } else if (env.JOB_NAME.contains(persephone_test_job_name)) {
-    echo "**** Jenkins job for Persephone Test"
-    genericTests = false
-  } else if (env.JOB_NAME.contains(persephone_test_on_demand_job_name)) {
-    echo "**** Jenkins job for Persephone Test ON DEMAND"
-    genericTests = false
-  } else if (env.JOB_NAME.contains(lint_test_job_name)) {
-    echo "**** Jenkins job for LINT Tests"
-    genericTests = false
-  } else if (env.JOB_NAME.contains(deployment_support_bundle_job_name)) {
-    echo "**** Jenkins job for collecting deployment support bundle"
+  specialized_tests = [
+    memory_leak_job_name,
+    performance_test_job_name,
+    persephone_test_job_name,
+    persephone_test_on_demand_job_name,
+    lint_test_job_name,
+    deployment_support_bundle_job_name,
+    helen_role_test_job_name
+  ]
+
+  if (env.JOB_NAME in specialized_tests){
+    echo "**** Jenkins job for " + env.JOB_NAME
     genericTests = false
   } else {
     echo "**** Jenkins job for Generic Test Run"
+  }
+
+  if (env.JOB_NAME.contains(memory_leak_job_name)) {
+    agentLabel = "MemoryLeakTesting"
   }
 
   pipeline {
@@ -645,10 +680,12 @@ EOF
                         // Keep running everything.  We're going to allow selection for GitLab runs later.
                         echo("Running all enabled generic tests")
                         for (suite in testSuites.keySet()){
-                          if (testSuites[suite].enabled){
+                          if (testSuites[suite].enabled && testSuites[suite].runWithGenericTests){
                             testSuites[suite].runSuite = true
                           }
                         }
+
+
                       }else{
                         // This was something like manual build with parameters or master run. Run what the
                         // user picked or all for a master run.
@@ -676,8 +713,13 @@ EOF
                           }
                         }
                       }
-                      runGenericTests()
+                      runTests()
+                    } else if (env.JOB_NAME.contains(helen_role_test_job_name)) {
+                      selectOnlySuites(["HelenRoleTests"])
+                      runTests()
                     }
+
+                    // TODO: Make the items below follow the model above.
 
                     if (env.JOB_NAME.contains(deployment_support_bundle_job_name)) {
                       saveTimeEvent("Collect deployment support bundle", "Start")
@@ -1713,7 +1755,7 @@ void deleteDatabaseFiles(){
 }
 
 
-void runGenericTests(){
+void runTests(){
   sh(script:
   '''
     # So test suites not using sudo can write to test_logs.
@@ -1783,4 +1825,11 @@ void printSelectableSuites(){
 
 String getSelectableSuites(){
   return testSuites.keySet()
+}
+
+void selectOnlySuites(desiredSuites){
+  for (suite in testSuites.keySet()){
+    found = suite in desiredSuites
+    testSuites[suite].runSuite = found
+  }
 }
