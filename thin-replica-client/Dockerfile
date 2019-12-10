@@ -63,4 +63,5 @@ RUN cmake -DCMAKE_C_COMPILER=/usr/bin/clang-7 -DCMAKE_CXX_COMPILER=/usr/bin/clan
 
 # TODO: Create runtime container image
 ENV LOG4CPLUS_CONFIGURATION /thin-replica-client/example/log4cplus.properties
-CMD ["/thin-replica-client/build/example/trc_example", "concord1:50051"]
+CMD ["/thin-replica-client/build/example/trc_example", "4", "1", \
+     "concord1:50051", "concord2:50051", "concord3:50051", "concord4:50051"]
