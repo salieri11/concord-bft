@@ -496,6 +496,22 @@ def validateZoneResponse(origZoneInfo, zoneResponse, orgId):
    if "log_managements" not in expected:
       expected["log_managements"] = []
 
+   # If the outbound_proxy section was missing in the creation
+   # request, it is supposed to be present but empty in the response.
+   if "outbound_proxy" not in expected:
+      expected["outbound_proxy"] = None
+   else:
+      for port in ["http_port", "https_port"]:
+         if port not in expected["outbound_proxy"] or \
+            expected["outbound_proxy"][port] == None:
+            expected["outbound_proxy"][port] = 0
+
+      # Handle a test case where we provide an int for a host. Helen puts it
+      # into a string.
+      for host in ["http_host", "https_host"]:
+         if isinstance(expected["outbound_proxy"][host], int):
+            expected["outbound_proxy"][host] = str(expected["outbound_proxy"][host])
+
    assert expected == newZoneResponse, "Expected {}, response: {}". \
       format(json.dumps(origZoneInfo, sort_keys=True, indent=4),
              json.dumps(newZoneResponse, sort_keys=True, indent=4))
@@ -2804,3 +2820,90 @@ def test_patch_zone_invalid_uuid(fxConnection, fxBlockchain):
                       "nested exception is java.lang.IllegalArgumentException: " \
                       "Invalid UUID string: 3")
 
+
+@pytest.mark.zones
+def test_missing_outbound_proxy(fxConnection, fxBlockchain):
+   '''
+   The entire outbound_proxy field is missing.
+   '''
+   req = createDefaultConsortiumAdminRequest(fxConnection.request)
+   orgId = util.auth.getOrgId("hermes_org0")
+   zoneInfo = createZoneObject(zoneType=util.helper.ZONE_TYPE_ON_PREM)
+   del(zoneInfo["outbound_proxy"])
+   response = req.createZone(zoneInfo)
+   validateZoneResponse(zoneInfo, response, orgId)
+
+
+@pytest.mark.zones
+def test_empty_outbound_proxy_fields(fxConnection, fxBlockchain):
+   '''
+   All fields of the outbound proxy present, with empty values.
+   '''
+   zoneInfo = createZoneObject(zoneType=util.helper.ZONE_TYPE_ON_PREM)
+   req = createDefaultConsortiumAdminRequest(fxConnection.request)
+   orgId = util.auth.getOrgId("hermes_org0")
+   zoneInfo["outbound_proxy"] = {
+      "http_host": None,
+      "http_port": None,
+      "https_host": None,
+      "https_port": None
+   }
+   response = req.createZone(zoneInfo)
+   validateZoneResponse(zoneInfo, response, orgId)
+
+
+@pytest.mark.zones
+def test_empty_outbound_http_proxy(fxConnection, fxBlockchain):
+   '''
+   User defines an https proxy, and nothing for the http proxy.
+   '''
+   zoneInfo = createZoneObject(zoneType=util.helper.ZONE_TYPE_ON_PREM)
+   req = createDefaultConsortiumAdminRequest(fxConnection.request)
+   orgId = util.auth.getOrgId("hermes_org0")
+   zoneInfo["outbound_proxy"]["http_host"] = None
+   zoneInfo["outbound_proxy"]["http_port"] = None
+   response = req.createZone(zoneInfo)
+   validateZoneResponse(zoneInfo, response, orgId)
+
+
+@pytest.mark.zones
+def test_empty_outbound_https_proxy(fxConnection, fxBlockchain):
+   '''
+   User defines an http proxy, and nothing for the https proxy.
+   '''
+   zoneInfo = createZoneObject(zoneType=util.helper.ZONE_TYPE_ON_PREM)
+   req = createDefaultConsortiumAdminRequest(fxConnection.request)
+   orgId = util.auth.getOrgId("hermes_org0")
+   zoneInfo["outbound_proxy"]["https_host"] = None
+   zoneInfo["outbound_proxy"]["https_port"] = None
+   response = req.createZone(zoneInfo)
+   validateZoneResponse(zoneInfo, response, orgId)
+
+
+@pytest.mark.zones
+def test_invalid_outbound_host(fxConnection, fxBlockchain):
+   '''
+   User defines an invalid value for one of the outbound proxy hosts.
+   We just take whatever they provide and make it a string.
+   '''
+   zoneInfo = createZoneObject(zoneType=util.helper.ZONE_TYPE_ON_PREM)
+   req = createDefaultConsortiumAdminRequest(fxConnection.request)
+   orgId = util.auth.getOrgId("hermes_org0")
+   zoneInfo["outbound_proxy"]["https_host"] = 3
+   response = req.createZone(zoneInfo)
+   validateZoneResponse(zoneInfo, response, orgId)
+
+
+@pytest.mark.zones
+@pytest.mark.skip(reason="VB-2176")
+def test_invalid_outbound_port(fxConnection, fxBlockchain):
+   '''
+   User defines an invalid value for one of the outbound proxy ports.
+   This should be a 400 Bad Request.
+   '''
+   zoneInfo = createZoneObject(zoneType=util.helper.ZONE_TYPE_ON_PREM)
+   req = createDefaultConsortiumAdminRequest(fxConnection.request)
+   orgId = util.auth.getOrgId("hermes_org0")
+   zoneInfo["outbound_proxy"]["https_port"] = "a"
+   response = req.createZone(zoneInfo)
+   validateBadRequest(response, "/api/zones")
