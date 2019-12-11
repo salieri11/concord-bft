@@ -131,12 +131,13 @@
               <div *ngIf="!contractNotFound || !isSmartContract" clrDropdownItem (click)="chooseInputView('default')">
                 {{ 'transactions.inputView.default' | translate }}
               </div>
-              <div *ngIf="isSmartContract" clrDropdownItem (click)="chooseInputView('decompile')">
+              <!-- EVM package removed, needs alternative -->
+              <!-- <div *ngIf="isSmartContract" clrDropdownItem (click)="chooseInputView('decompile')">
                 {{ 'transactions.inputView.decompile' | translate }}
               </div>
               <div *ngIf="isSmartContract" clrDropdownItem (click)="chooseInputView('opcode')">
                   {{ 'transactions.inputView.opcode' | translate }}
-              </div>
+              </div> -->
               <div clrDropdownItem (click)="chooseInputView('original')">
                 {{ 'transactions.inputView.original' | translate }}
               </div>

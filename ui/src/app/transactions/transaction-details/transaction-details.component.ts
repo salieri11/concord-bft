@@ -17,7 +17,6 @@ import { BlockchainService } from '../../blockchain/shared/blockchain.service';
 
 declare var require: any;
 const createKeccakHash = require('keccak'); // import syntax cannot be used because of TS bug
-const opcodeLib = require('evm'); // import syntax cannot be used because of TS bug
 
 enum TransactionInputViewType {
   default = 'default',
@@ -37,17 +36,6 @@ interface DecodedArgument {
   name: string;
   type: string;
   data: string;
-}
-
-interface OpcodeData {
-  name: string;
-  opcode: number;
-  in: number;
-  out: number;
-  dynamic: boolean;
-  async?: boolean;
-  pc?: number;
-  pushData?: ArrayBuffer;
 }
 
 @Component({
@@ -156,32 +144,33 @@ export class TransactionDetailsComponent implements OnInit, OnChanges {
         case SmartContractInputViewType.default:
             this.decodedInput = this.contractData.sourcecode;
           return;
-        case SmartContractInputViewType.opcode:
-            const opcodes = (new opcodeLib.EVM(input)).getOpcodes() as OpcodeData[];
-            const lines = [];
-            for (const opdata of opcodes) {
-              const pushDataString = opdata.pushData ? '0x' + buf2hex(opdata.pushData) : '';
-              const opline = `${lineNumberPad(opdata.pc)} : ${opdata.name} ${pushDataString}`;
-              lines.push(opline);
-            }
-            this.decodedInput = lines.join('\n');
-          return;
-        case SmartContractInputViewType.decompile:
-            const EVM = (new opcodeLib.EVM(input));
-            this.decodedInput =
-                '=================================================\n\n'
-              + '  FUNCTIONS:\n\n'
-              + '=================================================\n'
-              + EVM.getFunctions().join('\n') + '\n\n\n\n\n'
-              + '=================================================\n\n'
-              + '  EVENTS:\n\n'
-              + '=================================================\n'
-              + (EVM.getEvents().length > 0 ? EVM.getEvents().join('\n') : '(NONE)') + '\n\n\n\n\n'
-              + '=================================================\n\n'
-              + '  DECOMPILED:\n\n'
-              + '=================================================\n'
-              + EVM.decompile();
-          return;
+        /* EVM package removed, needs alternative */
+        // case SmartContractInputViewType.opcode:
+        //     const opcodes = (new opcodeLib.EVM(input)).getOpcodes() as OpcodeData[];
+        //     const lines = [];
+        //     for (const opdata of opcodes) {
+        //       const pushDataString = opdata.pushData ? '0x' + buf2hex(opdata.pushData) : '';
+        //       const opline = `${lineNumberPad(opdata.pc)} : ${opdata.name} ${pushDataString}`;
+        //       lines.push(opline);
+        //     }
+        //     this.decodedInput = lines.join('\n');
+        //   return;
+        // case SmartContractInputViewType.decompile:
+        //     const EVM = (new opcodeLib.EVM(input));
+        //     this.decodedInput =
+        //         '=================================================\n\n'
+        //       + '  FUNCTIONS:\n\n'
+        //       + '=================================================\n'
+        //       + EVM.getFunctions().join('\n') + '\n\n\n\n\n'
+        //       + '=================================================\n\n'
+        //       + '  EVENTS:\n\n'
+        //       + '=================================================\n'
+        //       + (EVM.getEvents().length > 0 ? EVM.getEvents().join('\n') : '(NONE)') + '\n\n\n\n\n'
+        //       + '=================================================\n\n'
+        //       + '  DECOMPILED:\n\n'
+        //       + '=================================================\n'
+        //       + EVM.decompile();
+        //   return;
       }
 
     } else {
@@ -295,12 +284,12 @@ function toByteArray(hexString) {
   return result;
 }
 
-function lineNumberPad(n) { n = n.toString(16); while ((n + '').length < 4) { n = '0' + n; } return '0x' + n; }
-
 function getSHA3FrontHash(str: string) {
   return createKeccakHash('keccak256').update(str).digest('hex').substr(0, 8);
 }
+/* EVM package removed, needs alternative */
+// function lineNumberPad(n) { n = n.toString(16); while ((n + '').length < 4) { n = '0' + n; } return '0x' + n; }
 
-function buf2hex(buffer) {
-  return Array.prototype.map.call(new Uint8Array(buffer), x => ('00' + x.toString(16)).slice(-2)).join('');
-}
+// function buf2hex(buffer) {
+//   return Array.prototype.map.call(new Uint8Array(buffer), x => ('00' + x.toString(16)).slice(-2)).join('');
+// }

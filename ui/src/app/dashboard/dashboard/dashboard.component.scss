@@ -50,6 +50,10 @@
   }
 }
 
+// Max-width against ultra wide display (w > 1920)
+.dashstats-max-width { max-width: 1600px; }
+.cards-max-width { max-width: 812px; }
+
 :host ::ng-deep .ngx-charts text {
   margin-top: 2rem;
   fill: #60B515;

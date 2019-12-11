@@ -65,6 +65,7 @@ export class RouteService {
   }
 
   redirectToDefault(fragment?: string) {
+    if (this.outputAllRouterEvents) { console.log(new Error('Redirect to default called from stack trace:')); }
     if (this.blockchainService.blockchains && this.blockchainService.blockchains.length > 0) {
       let consortiumId = this.blockchainService.loadSelectedConsortium();
       if (!consortiumId || this.blockchainService.blockchains.filter(
