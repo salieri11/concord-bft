@@ -59,7 +59,7 @@ class KVBCValidatorServer() {
       .maxInboundMessageSize(ledgerInboundMessageSizeMax)
       .build
       .start
-    logger.info("Server started: port=" + port)
+    logger.info("Server started, port=" + port)
     sys.addShutdownHook {
       System.err.println("Shutting down...")
       stop()

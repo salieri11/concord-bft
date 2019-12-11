@@ -86,7 +86,7 @@ class KVBCParticipantState(
       participantId = participantId.toString
     )
 
-    logger.info(s"Allocating party, party=$party submissionId=$submissionId")
+    logger.info(s"Allocating party, party=$party correlationId=$submissionId")
 
     // FIXME(JM): Properly queue the transactions and execute in sequence from one place.
     submit(submissionId, commitReq)
@@ -113,7 +113,7 @@ class KVBCParticipantState(
       participantId = participantId.toString
     )
 
-    logger.info(s"""Uploading package(s): packages=[${archives.map(_.getHash).mkString(",")}], submissionId=$submissionId, 
+    logger.info(s"""Uploading package(s), packages=[${archives.map(_.getHash).mkString(",")}] correlationId=$submissionId 
           |envelopeSize=${envelope.size}""".stripMargin.stripLineEnd)
 
     client
@@ -124,18 +124,18 @@ class KVBCParticipantState(
         if (resp != null)
           resp.status match {
             case CommitResponse.CommitStatus.OK =>
-              logger.info(s"Package upload completed successfully: submissionId=$submissionId")
+              logger.info(s"Package upload completed successfully, correlationId=$submissionId")
               UploadPackagesResult.Ok
 
             case error =>
               //TODO: convert to SubmissionResult.InternalError, when provided
               //Unknown error is not a viable option. LedgerAPI client needs to get a meaningful error
-              logger.error(s"Package upload failed with an error: submissionId=$submissionId, " +
-                s"error=${error.toString}")
+              logger.error(s"Package upload failed with an error, correlationId=$submissionId " +
+                s"error='${error.toString}''")
               UploadPackagesResult.InvalidPackage(s"Package upload failed with an error ${error.toString}")
         }
         else {
-          logger.error(s"Package upload failed with an exception: submissionId=$submissionId, exception=${e.toString}")
+          logger.error(s"Package upload failed with an exception, correlationId=$submissionId exception='${e.toString}'")
           e match {
             case grpc: StatusRuntimeException if grpc.getStatus.getCode == Status.Code.RESOURCE_EXHAUSTED =>
               UploadPackagesResult.Overloaded
@@ -156,15 +156,15 @@ class KVBCParticipantState(
         if (resp != null)
           resp.status match {
             case CommitResponse.CommitStatus.OK =>
-              logger.info(s"Submission succeeded: submissionId=$submissionId")
+              logger.info(s"Submission succeeded, correlationId=$submissionId")
               SubmissionResult.Acknowledged
             case error =>
-              logger.error(s"Submission failed with an error: submissionId=$submissionId, " +
-                s"error=${error.toString}")
+              logger.error(s"Submission failed with an error, correlationId=$submissionId " +
+                s"error='${error.toString}''")
               SubmissionResult.InternalError(error.toString)
           }
         else {
-          logger.error(s"Submission failed with an exception: submissionId=$submissionId, exception=${e.toString}")
+          logger.error(s"Submission failed with an exception, correlationId=$submissionId exception='${e.toString}'")
           e match {
             case grpc: StatusRuntimeException if grpc.getStatus.getCode == Status.Code.RESOURCE_EXHAUSTED =>
               SubmissionResult.Overloaded
@@ -188,7 +188,7 @@ class KVBCParticipantState(
       participantId = participantId.toString
     )
 
-    logger.info(s"Submit configuration: submissionId=$submissionId, generation=${config.generation}")
+    logger.info(s"Submit configuration, correlationId=$submissionId generation=${config.generation}")
 
     // FIXME(JM): Properly queue the transactions and execute in sequence from one place.
     submit(submissionId, commitReq)
@@ -213,7 +213,7 @@ class KVBCParticipantState(
 
     val commandId = submission.getTransactionEntry.getSubmitterInfo.getCommandId
 
-    logger.info(s"Submitting transaction: commandId=$commandId")
+    logger.info(s"Submitting transaction, correlationId=$commandId")
 
     // FIXME(JM): Properly queue the transactions and execute in sequence from one place.
     submit(commandId, commitReq)
@@ -247,7 +247,7 @@ class KVBCParticipantState(
     client
       .committedTxs(beginFromBlockId)
       .flatMapConcat { committedTx =>
-        logger.trace(s"Reading transaction ${committedTx.transactionId.toStringUtf8}...")
+        logger.trace(s"Reading transaction, transactionId=${committedTx.transactionId.toStringUtf8}")
 
         readTransaction(committedTx)
           .filter {
@@ -258,9 +258,9 @@ class KVBCParticipantState(
           }
           .alsoTo(Sink.onComplete {
             case Success(Done) =>
-              logger.info(s"Transaction read successfully: transactionId=${committedTx.transactionId.toStringUtf8}");
+              logger.info(s"Transaction read successful, transactionId=${committedTx.transactionId.toStringUtf8}");
             case Failure(e) =>
-              logger.info(s"Transaction read failed: transactionId=${committedTx.transactionId.toStringUtf8}, error=$e")
+              logger.info(s"Transaction read failed, transactionId=${committedTx.transactionId.toStringUtf8} error='$e'")
         })
       }
   }
@@ -288,15 +288,15 @@ class KVBCParticipantState(
               logEntry
             ).zipWithIndex.map {
               case (update, idx) =>
-                logger.trace(s"Processing transaction: transactionId=${committedTx.transactionId.toStringUtf8}, " +
+                logger.trace(s"Processing transaction, transactionId=${committedTx.transactionId.toStringUtf8} " +
                   s"offset=${committedTx.blockId}:$idx")
                 Offset(Array(committedTx.blockId, idx.toLong)) -> update
             }
           } catch {
             //TODO: Stream breaks here, make sure index can deal with this
             case e: RuntimeException =>
-              logger.error(s"Processing transaction failed with an exception: transactionId=${committedTx.transactionId.toStringUtf8}, " +
-                s"error=${e.toString}")
+              logger.error(s"Processing transaction failed with an exception, transactionId=${committedTx.transactionId.toStringUtf8} " +
+                s"error='${e.toString}''")
               sys.error(e.toString)
           }
         })

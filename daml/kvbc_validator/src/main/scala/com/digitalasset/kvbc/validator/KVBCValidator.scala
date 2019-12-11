@@ -100,7 +100,7 @@ class KVBCValidator(implicit ec: ExecutionContext)
         act
       } catch {
         case e: Throwable =>
-          logger.error(s"Exception: $e")
+          logger.error(s"Submission validation failed, exception='$e'")
           throw e
       } finally {
         val _ = ctx.stop()
@@ -109,17 +109,18 @@ class KVBCValidator(implicit ec: ExecutionContext)
 
   def validatePendingSubmission(request: ValidatePendingSubmissionRequest): Future[ValidatePendingSubmissionResponse] = catchedTimedFutureThunk(Metrics.validatePendingTimer) {
     val replicaId = request.replicaId
-    logger.trace(s"Completing submission: replicaId=$replicaId, entryId=${request.entryId.toStringUtf8}")
+    //TODO(MZ) replace entryId with correlationId
+    logger.trace(s"Completing submission, replicaId=$replicaId entryId=${request.entryId.toStringUtf8}")
 
     val pendingSubmission =
         pendingSubmissions
           .remove(replicaId)
-          .getOrElse(sys.error(s"No pending submission for ${replicaId}!"))
+          .getOrElse(sys.error(s"No pending submission for ${replicaId}, entryId=${request.entryId.toStringUtf8}"))
 
     Metrics.pendingSubmissions.dec()
 
     if (pendingSubmission.entryId != request.entryId) {
-      sys.error(s"Pending submission was for different entryId: ${pendingSubmission.entryId} != ${request.entryId}")
+      sys.error(s"Pending submission was for different entryId, ${pendingSubmission.entryId} != ${request.entryId}")
     }
 
     val providedInputs: StateInputs =
@@ -136,7 +137,7 @@ class KVBCValidator(implicit ec: ExecutionContext)
                 cache.put(replicaId -> key, v)
                 Some(v)
               case _ =>
-                logger.error(s"Corrupted state value of $key")
+                logger.error(s"Corrupted state value of $key, entryId=${request.entryId.toStringUtf8}")
                 throw new StatusRuntimeException(
                   Status.INVALID_ARGUMENT.withDescription("Corrupted input state value")
                 )
@@ -156,7 +157,7 @@ class KVBCValidator(implicit ec: ExecutionContext)
     val replicaId = request.replicaId
     val participantId = Ref.LedgerString.assertFromString(request.participantId)
 
-    logger.trace(s"Validating submission: replicaId=$replicaId, participantId=${request.participantId}, entryId=${request.entryId.toStringUtf8}")
+    logger.trace(s"Validating submission, replicaId=$replicaId participantId=${request.participantId} entryId=${request.entryId.toStringUtf8}")
 
     Metrics.submissionSizes.update(request.submission.size())
 
@@ -165,7 +166,7 @@ class KVBCValidator(implicit ec: ExecutionContext)
       Envelope.open(request.submission) match {
         case Right(Envelope.SubmissionMessage(submission)) => submission
         case _ =>
-          logger.error("Failed to parse submission")
+          logger.error("Failed to parse submission, entryId=${request.entryId.toStringUtf8}")
           throw new StatusRuntimeException(
             Status.INVALID_ARGUMENT.withDescription("Unparseable submission")
           )
@@ -192,7 +193,7 @@ class KVBCValidator(implicit ec: ExecutionContext)
     Metrics.missingInputs.update(missingInputs.size)
 
     if (missingInputs.nonEmpty) {
-      logger.info(s"Requesting ${missingInputs.size} missing inputs...")
+      logger.trace(s"Requesting ${missingInputs.size} missing inputs, entryId=${request.entryId.toStringUtf8}")
       pendingSubmissions(replicaId) = pendingSubmission
       Metrics.pendingSubmissions.inc()
       ValidateResponse(
@@ -244,7 +245,7 @@ class KVBCValidator(implicit ec: ExecutionContext)
     }
     Metrics.outputSizes.update(result.logEntry.size())
 
-    logger.info(s"Submission validated. entryId=${pendingSubmission.entryId.toStringUtf8} " +
+    logger.info(s"Submission validated, entryId=${pendingSubmission.entryId.toStringUtf8} " +
       s"participantId=${pendingSubmission.participantId} inputStates=${pendingSubmission.inputState.size} stateUpdates=${stateUpdates.size} " +
       s"resultPayload=${logEntry.getPayloadCase.toString} ")
     result
