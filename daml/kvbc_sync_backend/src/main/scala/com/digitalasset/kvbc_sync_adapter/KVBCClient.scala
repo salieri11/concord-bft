@@ -40,16 +40,15 @@ class KVBCClient private(host: String, port: Int) (implicit val ec: ExecutionCon
   @volatile
   private var channelHealth: HealthStatus = Healthy
 
-  private def statusCallback: Runnable = new Runnable{
-    def run{
-      val currentState = channel.getState(false)
-      if( channelHealth == Healthy )
-        channelHealth = if (currentState == ConnectivityState.TRANSIENT_FAILURE) Unhealthy else Healthy
-      else
-        channelHealth = if (currentState == ConnectivityState.READY) Healthy else Unhealthy
-      logger.info(s"gRPC state changed $currentState")
-      channel.notifyWhenStateChanged(channel.getState(false), statusCallback)
-  }}
+  private val statusCallback: Runnable = { () =>
+    val currentState = channel.getState(false)
+    if( channelHealth == Healthy )
+      channelHealth = if (currentState == ConnectivityState.TRANSIENT_FAILURE) Unhealthy else Healthy
+    else
+      channelHealth = if (currentState == ConnectivityState.READY) Healthy else Unhealthy
+    logger.info(s"gRPC state changed $currentState")
+    channel.notifyWhenStateChanged(currentState, statusCallback)
+  }
 
   channel.notifyWhenStateChanged(channel.getState(false), statusCallback)
 

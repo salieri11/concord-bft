@@ -46,7 +46,7 @@ class KVBCValidatorServer() {
     new SingleThreadExecutionSequencerPool("validator-health", 1)
 
   private val validator = new KVBCValidator
-  private val healthChecks = new HealthChecks("valiadator" -> validator)
+  private val healthChecks = new HealthChecks("validator" -> validator)
   private val apiHealthService = new GrpcHealthService(healthChecks)
   private val apiReflectionService = ProtoReflectionService.newInstance()
 
