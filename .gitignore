@@ -97,6 +97,7 @@ hermes/report.json
 hermes/lib/persephone/vmware/blockchain/deployment/v1
 
 # Log files created by the build process
+log
 *.log
 
 # Microservice specific
