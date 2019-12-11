@@ -44,6 +44,7 @@ import com.vmware.blockchain.common.csp.CspCommon;
 import com.vmware.blockchain.common.csp.CspConfig;
 import com.vmware.blockchain.common.csp.CspConstants;
 
+import io.micrometer.core.annotation.Timed;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
@@ -52,6 +53,7 @@ import lombok.Data;
  * process, and implement the callback that exchanges the code for token, and redirects to the intended target page.
  */
 @RestController
+@Timed("oauth")
 public class Oauth2Controller {
     private static Logger logger = LogManager.getLogger(Oauth2Controller.class);
 
