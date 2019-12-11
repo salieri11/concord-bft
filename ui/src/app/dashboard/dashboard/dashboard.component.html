@@ -1,6 +1,6 @@
 <ng-container>
   <div class="ps-1 fadein">
-    <div class="card p-1-2" *ngIf="!onlyOnPrem">
+    <div class="card p-1-2 dashstats-max-width" *ngIf="!onlyOnPrem">
       <div class="clr-row" tourAnchor="onboardingTour.dashStats">
           <div class="clr-col-lg-3 clr-col-xl-2 col-gauge">
             <div class="node-health">
@@ -46,7 +46,7 @@
 
   <div class="ps-1 fadein">
     <div class="clr-row">
-      <div class="clr-col-sm-6 mt-1" *ngFor="let list of infoLists">
+      <div class="clr-col-sm-6 mt-1 cards-max-width" *ngFor="let list of infoLists">
           <concord-dashboard-list [listConfig]="list.config" [items]="list.items" [tourAnchor]="list.tourAnchor"></concord-dashboard-list>
       </div>
     </div>

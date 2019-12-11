@@ -76,7 +76,7 @@ export const mainRoutes = {
   deploy: 'deploy',
   deploying: 'deploying',
   get blockchainChildren() { return [ // allowed paths under /blockchain/*
-    this.welcome, this.deploy, this.deploying
+    this.welcome, this.deploy, this.deploying, this.zones
   ]; },
 
   // Deploying flow URLs
