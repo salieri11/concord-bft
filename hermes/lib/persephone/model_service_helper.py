@@ -20,6 +20,8 @@ log = logging.getLogger(__name__)
 
 class ModelServiceRPCHelper(RPCHelper):
    CONCORD_TYPE_DAML = "daml"
+   NODE_TYPE_COMMITTER = "committer"
+   NODE_TYPE_PARTICIPANT = "participant"
    CONCORD_TYPE_ETHEREUM = "ethereum"
    CONCORD_TYPE_HLF = "hlf"
 
@@ -78,7 +80,8 @@ class ModelServiceRPCHelper(RPCHelper):
 
    def create_concord_model_specification(self, version=None, template=None,
                                           deployment_components=None,
-                                          concord_type=CONCORD_TYPE_ETHEREUM):
+                                          concord_type=CONCORD_TYPE_ETHEREUM,
+                                          node_type=None):
       '''
       RPC Helper to create concord model specification
       :param version: Model Specification version
@@ -108,9 +111,14 @@ class ModelServiceRPCHelper(RPCHelper):
       if deployment_components:
          deployment_components = deployment_components.split(',')
       else:
+         if node_type is None:
+            concord_type_to_deploy = concord_type
+         else:
+            concord_type_to_deploy = "{}-{}".format(concord_type, node_type)
+
          deployment_components = \
-         self.args.userConfig["persephoneTests"]["modelService"]["defaults"][
-            "deployment_components"][concord_type].keys()
+            self.args.userConfig["persephoneTests"]["modelService"]["defaults"][
+               "deployment_components"][concord_type_to_deploy].keys()
 
       concord_components = []
       components_for_this_deployment = []
@@ -123,20 +131,25 @@ class ModelServiceRPCHelper(RPCHelper):
                concord_components.append(
                   (concord_model_pb2.ConcordComponent.LOGGING, component))
             if self.CONCORD_ID in component:
-               concord_components.append(
-                  (concord_model_pb2.ConcordComponent.DAML_CONCORD, component))
+               if node_type is None or node_type == self.NODE_TYPE_COMMITTER:
+                  concord_components.append((
+                                          concord_model_pb2.ConcordComponent.DAML_CONCORD,
+                                          component))
             if self.DAML_EXECUTION_ENGINE_ID in component:
-               concord_components.append((
-                                         concord_model_pb2.ConcordComponent.DAML_EXECUTION_ENGINE,
-                                         component))
+               if node_type is None or node_type == self.NODE_TYPE_COMMITTER:
+                  concord_components.append((
+                                          concord_model_pb2.ConcordComponent.DAML_EXECUTION_ENGINE,
+                                          component))
             if self.DAML_LEDGER_API_ID in component:
-               concord_components.append((
-                                         concord_model_pb2.ConcordComponent.DAML_LEDGER_API,
-                                         component))
+               if node_type is None or node_type == self.NODE_TYPE_PARTICIPANT:
+                  concord_components.append((
+                     concord_model_pb2.ConcordComponent.DAML_LEDGER_API,
+                     component))
             if self.DAML_INDEX_DB_ID in component:
-               concord_components.append((
-                  concord_model_pb2.ConcordComponent.DAML_INDEX_DB,
-                  component))
+               if node_type is None or node_type == self.NODE_TYPE_PARTICIPANT:
+                  concord_components.append((
+                     concord_model_pb2.ConcordComponent.DAML_INDEX_DB,
+                     component))
       elif concord_type is ModelServiceRPCHelper.CONCORD_TYPE_HLF:
          for component in deployment_components:
             if self.AGENT_ID in component:

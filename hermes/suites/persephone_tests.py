@@ -277,6 +277,8 @@ class PersephoneTests(test_suite.TestSuite):
          return [
             ("7_Node_DAML_Blockchain_ON-PREM",
              self._test_create_daml_blockchain_7_node_onprem),
+            # ("4_Node_DAML_committer_participant_ON-PREM",
+            #  self._test_daml_committer_participant_4_node_onprem),
          ]
       elif self.args.tests.lower() == "all_tests":
          return [
@@ -540,7 +542,8 @@ class PersephoneTests(test_suite.TestSuite):
 
    def perform_post_deployment_validations(self, events, cluster_size,
                                            session_id=None,
-                                           concord_type=None):
+                                           concord_type=None,
+                                           node_type=None):
       '''
       Perform post deploy validation, including validating EVENTS, Get ethrpc
       endpoints, SSH connection to concord nodes, verify docker container names
@@ -553,9 +556,14 @@ class PersephoneTests(test_suite.TestSuite):
       log.info("Performing Post deployment validations...")
       if concord_type is None:
          concord_type = self.rpc_test_helper.CONCORD_TYPE_ETHEREUM
+
+      if node_type is None:
+         concord_type_to_deploy = concord_type
+      else:
+         concord_type_to_deploy = "{}-{}".format(concord_type, node_type)
       expected_docker_containers = list(self._userConfig["persephoneTests"][
          "modelService"]["defaults"]["deployment_components"][
-         concord_type].values())
+         concord_type_to_deploy].values())
 
       response_events_json = helper.protobuf_message_to_json(events)
       if self.validate_cluster_deployment_events(cluster_size,
@@ -687,27 +695,23 @@ class PersephoneTests(test_suite.TestSuite):
                      return (False, "Ethrpc (get Block 0) Validation - FAILED")
 
                if concord_type is self.rpc_test_helper.CONCORD_TYPE_DAML:
-                  if helper.verify_connectivity(concord_ip, 6865):
-                     log.info("DAML Connectivity - PASS")
-
-                     # RV, Dec 13, 2019: The DAML tests are having some problems.
-                     # Disabling.  TODO: Whether to run these in CI should be tied
-                     # to the DAML suite's "enabled" setting in the Jenkins groovy
-                     # file.
-                     log.info("Skipping dar upload/sanity check")
-                     # try:
-                     #    log.info("dar upload/sanity check...")
-                     #    daml_helper.upload_test_tool_dars(host=concord_ip,
-                     #                           port='6865')
-                     #    daml_helper.verify_ledger_api_test_tool(host=concord_ip,
-                     #                                   port='6865')
-                     #    log.info("dar upload/sanity check passed.")
-                     # except Exception as e:
-                     #    log.error(e)
-                     #    return (False, "dar upload/sanity check failed")
-                  else:
-                     log.error("DAML Connectivity ({})- FAILED".format(concord_ip))
-                     return (False, "DAML Connectivity - FAILED")
+                  if node_type is None or node_type == self.rpc_test_helper.NODE_TYPE_PARTICIPANT:
+                     if helper.verify_connectivity(concord_ip, 6865):
+                        log.info("DAML Connectivity - PASS")
+                        log.info("Skipping dar upload/verification...")
+                        # try:
+                        #    log.info("dar upload/verification...")
+                        #    daml_helper.upload_test_tool_dars(host=concord_ip,
+                        #                           port='6865')
+                        #    daml_helper.verify_ledger_api_test_tool(host=concord_ip,
+                        #                                port='6865')
+                        #    log.info("dar upload/verification passed.")
+                        # except Exception as e:
+                        #    log.error(e)
+                        #    return (False, "dar upload/verification failed")
+                     else:
+                        log.error("DAML Connectivity ({})- FAILED".format(concord_ip))
+                        return (False, "DAML Connectivity - FAILED")
 
             log.info("All post deployment sanity checks are successful")
             return (True, None)
@@ -1148,3 +1152,109 @@ class PersephoneTests(test_suite.TestSuite):
                                           deployment_session_id=response_deployment_session_id)
 
       return self.parse_test_status(False, "Failed to get a valid deployment session ID")
+
+   def deploy_daml_committer_node(self, cluster_size=4):
+      '''
+      Deploy DAML committer nodes
+      :param cluster_size: No. of nodes on the cluster
+      '''
+      log.info("")
+      log.info("**** Deploying committer node...")
+      concord_type = self.rpc_test_helper.CONCORD_TYPE_DAML
+      node_type = self.rpc_test_helper.NODE_TYPE_COMMITTER
+
+      start_time = time.time()
+      log.info("Deployment Start Time: {}".format(start_time))
+      response = self.rpc_test_helper.rpc_create_cluster(
+         cluster_size=cluster_size,
+         concord_type=concord_type,
+         node_type=node_type,
+         zone_type=self.rpc_test_helper.ZONE_TYPE_ON_PREM)
+      if response:
+         response_session_id_json = helper.protobuf_message_to_json(response[0])
+         if "low" in response_session_id_json:
+            response_deployment_session_id = response[0]
+
+            events = self.rpc_test_helper.rpc_stream_cluster_deployment_session_events(
+               response_deployment_session_id)
+            end_time = time.time()
+            log.info("Deployment End Time: {}".format(end_time))
+            log.info("**** Time taken for this deployment: {} mins".format(
+               (end_time - start_time) / 60))
+
+            if events:
+               status, msg = self.perform_post_deployment_validations(events,
+                                                                      cluster_size,
+                                                                      response_deployment_session_id,
+                                                                      concord_type=concord_type,
+                                                                      node_type=node_type)
+               return self.parse_test_status(status, msg,
+                                             deployment_session_id=response_deployment_session_id)
+            return self.parse_test_status(False, "Failed to fetch Deployment Events",
+                                          deployment_session_id=response_deployment_session_id)
+
+      return self.parse_test_status(False, "Failed to get a valid deployment session ID")
+
+   def deploy_daml_participant_node(self, cluster_size=1):
+      '''
+      Deploy DAML participant node
+      :param cluster_size: No. of nodes on the cluster
+      '''
+      log.info("")
+      log.info("**** Deploying participant node...")
+      concord_type = self.rpc_test_helper.CONCORD_TYPE_DAML
+      node_type = self.rpc_test_helper.NODE_TYPE_PARTICIPANT
+
+      start_time = time.time()
+      log.info("Deployment Start Time: {}".format(start_time))
+      response = self.rpc_test_helper.rpc_create_cluster(
+         cluster_size=cluster_size,
+         concord_type=concord_type,
+         node_type=node_type,
+         zone_type=self.rpc_test_helper.ZONE_TYPE_ON_PREM)
+      if response:
+         response_session_id_json = helper.protobuf_message_to_json(response[0])
+         if "low" in response_session_id_json:
+            response_deployment_session_id = response[0]
+
+            events = self.rpc_test_helper.rpc_stream_cluster_deployment_session_events(
+               response_deployment_session_id)
+            end_time = time.time()
+            log.info("Deployment End Time: {}".format(end_time))
+            log.info("**** Time taken for this deployment: {} mins".format(
+               (end_time - start_time) / 60))
+
+            if events:
+               status, msg = self.perform_post_deployment_validations(events,
+                                                                      cluster_size,
+                                                                      response_deployment_session_id,
+                                                                      concord_type=concord_type,
+                                                                      node_type=node_type)
+               return self.parse_test_status(status, msg,
+                                             deployment_session_id=response_deployment_session_id)
+            return self.parse_test_status(False, "Failed to fetch Deployment Events",
+                                          deployment_session_id=response_deployment_session_id)
+
+      return self.parse_test_status(False, "Failed to get a valid deployment session ID")
+
+   def _test_daml_committer_participant_4_node_onprem(self,
+                                                         committer_nodes=4,
+                                                         participant_nodes=1):
+      '''
+      Test to create DAML committer & participant nodes on-prem
+      :param cluster_size: No. of concord nodes on the cluster
+      '''
+      status, msg = self.deploy_daml_committer_node(cluster_size=committer_nodes)
+      if status:
+         log.info("**** Committer nodes deployed Successfully\n")
+         status, msg = self.deploy_daml_participant_node(
+            cluster_size=participant_nodes)
+         if status:
+            log.info("**** Participant node(s) deployed Successfully\n")
+         else:
+            log.error("Failed to deploy participant node(s)")
+      else:
+         log.error("Failed to deploy committer nodes")
+
+      return status,msg
+
