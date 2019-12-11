@@ -950,6 +950,8 @@ class Product():
          with open(log_file) as f:
             persephone_log = f.read()
             log.debug(persephone_log)
+            if "daml_test_tool" in service:
+               return True
             if "Service instance initialized" in persephone_log:
                log.info("Microservice '{}' started successfully!".format(service))
                return True
