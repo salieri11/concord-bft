@@ -11,7 +11,7 @@ import os
 import sys
 import tempfile
 from time import strftime, localtime, sleep
-from suites import (contract_compiler_tests, core_vm_tests, daml_tests,
+from suites import (contract_compiler_tests, core_vm_tests,
                     ext_rpc_tests, lint_e2e_tests, hlf_tests, performance_tests, persephone_tests,
                     pytest_suite, regression_tests, sample_dapp_tests, simple_st_test, truffle_tests,
                     ui_tests, websocket_rpc_tests)
@@ -20,10 +20,28 @@ from util import helper, html, json_helper
 sys.path.append("lib/persephone")
 
 log = None
-suites = ["ContractCompilerTests", "CoreVMTests",
-          "LintTests", "EvilTimeTests", "ExtendedRPCTests", "HelenAPITests", "HelenRoleTests", "HlfTests", "PerformanceTests", "PersephoneTests",
-          "RegressionTests", "SampleDAppTests", "SampleSuite", "SimpleStateTransferTest", "TimeTests", "TruffleTests", "UiTests",
-          "WebSocketRPCTests"]
+suites = [
+   "ContractCompilerTests",
+   "CoreVMTests",
+   "DamlTests",
+   "EvilTimeTests",
+   "ExtendedRPCTests",
+   "HelenAPITests",
+   "HelenRoleTests",
+   "HlfTests",
+   "LintTests",
+   "PerformanceTests",
+   "PersephoneTests",
+   "RegressionTests",
+   "SampleDAppTests",
+   "SampleSuite",
+   "SimpleStateTransferTest",
+   "ThinReplicaTests",
+   "TimeTests",
+   "TruffleTests",
+   "UiTests",
+   "WebSocketRPCTests",
+]
 local_modules = [os.path.join(".", "lib", "persephone")]
 
 
@@ -283,6 +301,8 @@ def createTestSuite(args):
       return pytest_suite.PytestSuite(args, "suites/daml_tests.py")
    elif (args.suite == "HlfTests"):
       return hlf_tests.HlfTests(args)
+   elif (args.suite == "ThinReplicaTests"):
+      return pytest_suite.PytestSuite(args, "suites/thin_replica_tests.py")
    else:
       return None
 
