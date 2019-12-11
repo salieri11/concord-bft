@@ -16,6 +16,7 @@ import logging
 from tempfile import NamedTemporaryFile
 import subprocess
 import os
+import pytest
 
 import util.daml.upload_dar as darutil
 import util.helper as helper
@@ -28,14 +29,15 @@ LOG = logging.getLogger(__name__)
 # Read by the fxProduct fixture.
 productType = helper.TYPE_DAML
 
-def test_read_state(fxProduct):
-    """Query ReadState and compare all Concord's ReadStateHash output
+@pytest.fixture(scope="module")
+def setup_test_suite():
+    """Setup function for the whole test suite
+
+    Upload DAR file so each test has something to query.
     """
-    # We use the test tool to upload one test DAR file only
     TEST_DAR = "Test-stable.dar"
     TEST_TOOL_CONTAINER = "docker_daml_test_tool_1"
 
-    LOG.info("Copy {} to hermes...".format(TEST_DAR))
     tmp_dar = ""
     with NamedTemporaryFile(delete=False) as tmp:
         getDar = "docker cp {}:/{} {}".format(TEST_TOOL_CONTAINER, TEST_DAR, tmp.name)
@@ -46,17 +48,59 @@ def test_read_state(fxProduct):
             msg += "\n{}".format(e.output)
             LOG.error(msg)
             raise
-        LOG.info("Save %s to %s", TEST_DAR, tmp.name)
         tmp_dar = tmp.name
 
-    LOG.info("Upload {} ...".format(TEST_DAR))
     dar_uploaded = darutil.upload_dar(
         host="localhost", port="6861", darfile=tmp_dar)
     assert dar_uploaded, "Failed to upload test DAR " + tmp_dar
     os.remove(tmp_dar)
+    return ThinReplica("localhost", "50051")
 
-    # DAML data should be on the blockchain at this point. Let's query.
-    tr1 = ThinReplica("localhost", "50051")
+def test_basic_read_state(fxProduct, setup_test_suite):
+    """Basic read state
+
+    We uploaded a DAR, hence there must be at least two kv pairs on the
+    blockchain. One is the package, the other the transaction itself.
+    """
+    tr = setup_test_suite
+    data_stream = tr.read_state()
+    size = 0
+    for resp in data_stream:
+        size += len(resp.data)
+
+    assert size >= 2
+
+def test_read_state_key_prefix(fxProduct, setup_test_suite):
+    """Make sure we can filter by key_prefix
+
+    We know that there is at least one transaction and one package.
+    Hence, we can filter by transaction and compare against no filter.
+    """
+    tr = setup_test_suite
+    size_no_filter, size_filtered = 0, 0
+
+    for rsp in tr.read_state():
+        size_no_filter += len(rsp.data)
+    for rsp in tr.read_state(key_prefix=b"daml"):
+        size_filtered += len(rsp.data)
+
+    assert size_no_filter > size_filtered
+
+def test_no_state_for_filter(fxProduct, setup_test_suite):
+    """Make sure we don't leak data.
+
+    Filter with a key prefix that isn't on the blockchain should return no data.
+    """
+    tr = setup_test_suite
+    size = 0
+    for rsp in tr.read_state(key_prefix=b"WRITING_TESTS_IS_FUN"):
+        size += len(rsp.data)
+    assert size == 0
+
+def test_compare_all_hashes(fxProduct, setup_test_suite):
+    """Compare hashes from all Concord nodes at the same block id
+    """
+    tr1 = setup_test_suite
     tr2 = ThinReplica("localhost", "50052")
     tr3 = ThinReplica("localhost", "50053")
     tr4 = ThinReplica("localhost", "50054")
@@ -73,11 +117,46 @@ def test_read_state(fxProduct):
     hash3 = tr3.read_hash(bid).hash
     hash4 = tr4.read_hash(bid).hash
 
-    LOG.info("hash1 " + hash1.hex())
-    LOG.info("hash2 " + hash2.hex())
-    LOG.info("hash3 " + hash3.hex())
-    LOG.info("hash4 " + hash4.hex())
+    assert hash1 == hash2 == hash3 == hash4
+
+def test_zero_hash_if_no_state(fxProduct, setup_test_suite):
+    """We don't compute a hash if we don't find state.
+
+    The hash returned is 0.
+    Food-for-thought: Maybe we should return an error code?
+    """
+    tr = setup_test_suite
+    data_stream = tr.read_state()
+    bid = data_stream.next().block_id
+    data_stream.done()
+    hash = tr.read_hash(bid, key_prefix=b"WRITING_TESTS_IS_FUN").hash
+    assert hash == b"\x00\x00\x00\x00\x00\x00\x00\x00"
+
+def test_compare_all_filtered_hashes(fxProduct, setup_test_suite):
+    """Compare hashes from all Concord nodes at the same block id
+    """
+    tr1 = setup_test_suite
+    tr2 = ThinReplica("localhost", "50052")
+    tr3 = ThinReplica("localhost", "50053")
+    tr4 = ThinReplica("localhost", "50054")
+
+    data_stream = tr1.read_state()
+    bid = data_stream.next().block_id
+    data_stream.done()
+
+    hash1 = tr1.read_hash(bid, b"daml").hash
+    hash2 = tr2.read_hash(bid, b"daml").hash
+    hash3 = tr3.read_hash(bid, b"daml").hash
+    hash4 = tr4.read_hash(bid, b"daml").hash
 
     assert hash1 == hash2 == hash3 == hash4
 
-    LOG.info("ReadState/ReadStateHash test runner passed.")
+def test_compare_filter_with_no_filter_hash(fxProduct, setup_test_suite):
+    """Hashes should be different for a filtered read and a non-filtered read
+    """
+    tr = setup_test_suite
+    data_stream = tr.read_state()
+    bid = data_stream.next().block_id
+    data_stream.done()
+
+    assert tr.read_hash(bid).hash != tr.read_hash(bid, b"daml").hash

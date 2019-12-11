@@ -15,17 +15,17 @@ import thin_replica_pb2_grpc as trgrpc
 import thin_replica_pb2 as trproto
 
 class ThinReplica:
-    def __init__(self, host, port):
+    def __init__(self, host="localhost", port="50051"):
         self.channel = grpc.insecure_channel("{}:{}".format(host, port))
         self.stub = trgrpc.ThinReplicaStub(self.channel)
 
     def __del__(self):
         self.channel.close()
 
-    def read_state(self):
-        request = trproto.ReadStateRequest()
+    def read_state(self, key_prefix=b""):
+        request = trproto.ReadStateRequest(key_prefix=key_prefix)
         return self.stub.ReadState(request)
 
-    def read_hash(self, block_id):
-        request = trproto.ReadStateHashRequest(block_id=block_id)
+    def read_hash(self, block_id, key_prefix=b""):
+        request = trproto.ReadStateHashRequest(block_id=block_id, key_prefix=key_prefix)
         return self.stub.ReadStateHash(request)

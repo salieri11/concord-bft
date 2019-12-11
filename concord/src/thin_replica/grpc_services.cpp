@@ -41,9 +41,10 @@ grpc::Status ThinReplicaImpl::ReadState(
   LOG4CPLUS_INFO(logger_, "ReadState");
 
   // Create a future which pushes kv-pairs into the given queue
-  auto filter =
-      std::async(std::launch::async, &KvbAppFilter::ReadState, &kvb_filter,
-                 current_block_id, std::ref(queue), std::ref(stop_filter));
+  std::string key_prefix = request->key_prefix();
+  auto filter = std::async(std::launch::async, &KvbAppFilter::ReadState,
+                           &kvb_filter, current_block_id, std::ref(key_prefix),
+                           std::ref(queue), std::ref(stop_filter));
 
   KeyValuePair* kvp;
   // Read from the queue until the future returns and the queue is empty
@@ -82,7 +83,8 @@ grpc::Status ThinReplicaImpl::ReadStateHash(
   LOG4CPLUS_INFO(logger_, "ReadStateHash");
 
   BlockId block_id = request->block_id();
-  Status status = kvb_filter.ReadStateHash(block_id, kvb_hash);
+  std::string key_prefix = request->key_prefix();
+  Status status = kvb_filter.ReadStateHash(block_id, key_prefix, kvb_hash);
   if (!status.isOK()) {
     LOG4CPLUS_ERROR(logger_,
                     "Reading StateHash for block " << block_id << " failed");

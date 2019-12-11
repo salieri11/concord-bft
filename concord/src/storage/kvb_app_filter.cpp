@@ -30,7 +30,7 @@ using concordUtils::Status;
 namespace concord {
 namespace storage {
 
-Status KvbAppFilter::ReadState(BlockId block_id_end,
+Status KvbAppFilter::ReadState(BlockId block_id_end, std::string &key_prefix,
                                spsc_queue<KeyValuePair *> &queue_out,
                                std::atomic_bool &stop_execution) {
   BlockId block_id;
@@ -55,9 +55,14 @@ Status KvbAppFilter::ReadState(BlockId block_id_end,
       return Status::GeneralError(msg.str());
     }
 
-    // TODO: DAML filter active state
     for (const auto &[key, value] : out_kvs) {
+      // Filter by appliction type
       if (key[0] != kvb_key_id) {
+        continue;
+      }
+
+      // Filter by key prefix
+      if (key.toString().compare(1, key_prefix.size(), key_prefix) != 0) {
         continue;
       }
 
@@ -79,6 +84,7 @@ Status KvbAppFilter::ReadState(BlockId block_id_end,
 }
 
 Status KvbAppFilter::ReadStateHash(BlockId block_id_end,
+                                   std::string &key_prefix,
                                    KvbStateHash &hash_out) {
   BlockId block_id;
   SetOfKeyValuePairs out_kvs;
@@ -103,9 +109,14 @@ Status KvbAppFilter::ReadStateHash(BlockId block_id_end,
       return Status::GeneralError(msg.str());
     }
 
-    // TODO: DAML filter active state
     for (const auto &[key, value] : out_kvs) {
+      // Filter by appliction type
       if (key[0] != kvb_key_id) {
+        continue;
+      }
+
+      // Filter by key prefix
+      if (key.toString().compare(1, key_prefix.size(), key_prefix) != 0) {
         continue;
       }
 
