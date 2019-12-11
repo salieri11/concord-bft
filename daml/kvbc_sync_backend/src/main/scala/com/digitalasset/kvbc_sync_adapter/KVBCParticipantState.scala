@@ -83,7 +83,8 @@ class KVBCParticipantState(
 
     val commitReq = CommitRequest(
       submission = Envelope.enclose(submission),
-      participantId = participantId.toString
+      participantId = participantId.toString,
+      correlationId = submissionId.toString
     )
 
     logger.info(s"Allocating party, party=$party correlationId=$submissionId")
@@ -110,7 +111,8 @@ class KVBCParticipantState(
     val envelope = Envelope.enclose(submission)
     val commitReq = CommitRequest(
       submission = envelope,
-      participantId = participantId.toString
+      participantId = participantId.toString,
+      correlationId = submissionId
     )
 
     logger.info(s"""Uploading package(s), packages=[${archives.map(_.getHash).mkString(",")}] correlationId=$submissionId 
@@ -185,7 +187,8 @@ class KVBCParticipantState(
 
     val commitReq = CommitRequest(
       submission = Envelope.enclose(submission),
-      participantId = participantId.toString
+      participantId = participantId.toString,
+      correlationId = submissionId.toString
     )
 
     logger.info(s"Submit configuration, correlationId=$submissionId generation=${config.generation}")
@@ -205,13 +208,13 @@ class KVBCParticipantState(
         transactionMeta,
         transaction)
 
+    val commandId = submission.getTransactionEntry.getSubmitterInfo.getCommandId
 
     val commitReq = CommitRequest(
       submission = Envelope.enclose(submission),
-      participantId = participantId.toString
+      participantId = participantId.toString,
+      correlationId = commandId
     )
-
-    val commandId = submission.getTransactionEntry.getSubmitterInfo.getCommandId
 
     logger.info(s"Submitting transaction, correlationId=$commandId")
 
@@ -247,7 +250,7 @@ class KVBCParticipantState(
     client
       .committedTxs(beginFromBlockId)
       .flatMapConcat { committedTx =>
-        logger.trace(s"Reading transaction, transactionId=${committedTx.transactionId.toStringUtf8}")
+        logger.trace(s"Reading transaction, correlationId=${committedTx.correlationId}")
 
         readTransaction(committedTx)
           .filter {
@@ -258,9 +261,9 @@ class KVBCParticipantState(
           }
           .alsoTo(Sink.onComplete {
             case Success(Done) =>
-              logger.info(s"Transaction read successful, transactionId=${committedTx.transactionId.toStringUtf8}");
+              logger.info(s"Transaction read successful, correlationId=${committedTx.correlationId}");
             case Failure(e) =>
-              logger.info(s"Transaction read failed, transactionId=${committedTx.transactionId.toStringUtf8} error='$e'")
+              logger.info(s"Transaction read failed, correlationId=${committedTx.correlationId} error='$e'")
         })
       }
   }
@@ -288,14 +291,14 @@ class KVBCParticipantState(
               logEntry
             ).zipWithIndex.map {
               case (update, idx) =>
-                logger.trace(s"Processing transaction, transactionId=${committedTx.transactionId.toStringUtf8} " +
+                logger.trace(s"Processing transaction, correlationId=${committedTx.correlationId} " +
                   s"offset=${committedTx.blockId}:$idx")
                 Offset(Array(committedTx.blockId, idx.toLong)) -> update
             }
           } catch {
             //TODO: Stream breaks here, make sure index can deal with this
             case e: RuntimeException =>
-              logger.error(s"Processing transaction failed with an exception, transactionId=${committedTx.transactionId.toStringUtf8} " +
+              logger.error(s"Processing transaction failed with an exception, correlationId=${committedTx.correlationId} " +
                 s"error='${e.toString}''")
               sys.error(e.toString)
           }

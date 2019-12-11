@@ -102,7 +102,7 @@ bool DamlKvbCommandsHandler::ExecuteCommit(
   da_kvbc::ValidateResponse response;
   grpc::Status status = validator_client_->ValidateSubmission(
       entryId, commit_req.submission(), record_time,
-      commit_req.participant_id(), &response);
+      commit_req.participant_id(), commit_req.correlation_id(), &response);
   if (!status.ok()) {
     LOG4CPLUS_ERROR(logger_, "Validation failed " << status.error_code() << ": "
                                                   << status.error_message());
@@ -116,8 +116,8 @@ bool DamlKvbCommandsHandler::ExecuteCommit(
     // retry.
     std::map<string, string> input_state_entries =
         GetFromStorage(response.need_state().keys());
-    validator_client_->ValidatePendingSubmission(entryId, input_state_entries,
-                                                 &response2);
+    validator_client_->ValidatePendingSubmission(
+        entryId, input_state_entries, commit_req.correlation_id(), &response2);
     if (!status.ok()) {
       LOG4CPLUS_ERROR(logger_, "Validation failed " << status.error_code()
                                                     << ": "
@@ -159,6 +159,7 @@ bool DamlKvbCommandsHandler::ExecuteCommit(
   da_kvbc::CommittedTx commited_tx;
   commited_tx.set_transaction_id(entryId);
   commited_tx.set_block_id(new_block_id);
+  commited_tx.set_correlation_id(commit_req.correlation_id());
   committed_txs_.push(commited_tx);
 
   commit_response->set_status(da_kvbc::CommitResponse_CommitStatus_OK);

@@ -23,11 +23,13 @@ class DamlValidatorClient {
   grpc::Status ValidateSubmission(
       std::string entryId, std::string submission,
       google::protobuf::Timestamp& recordTime, std::string participant_id,
+      std::string correlationId,
       com::digitalasset::kvbc::ValidateResponse* out);
 
   grpc::Status ValidatePendingSubmission(
       std::string entryId,
       const std::map<std::string, std::string>& input_state_entries,
+      std::string correlationId,
       com::digitalasset::kvbc::ValidatePendingSubmissionResponse* out);
 
  private:

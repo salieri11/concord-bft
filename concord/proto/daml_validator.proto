@@ -29,6 +29,7 @@ message ValidateRequest {
   // state caches on the validator for setups that use single validator for multiple
   // replicas (e.g. during development)
   int64 replica_id = 6;
+  string correlation_id = 7;
 }
 
 message Result {
@@ -52,6 +53,7 @@ message ValidatePendingSubmissionRequest {
   bytes entry_id = 1;
   int64 replica_id = 2;
   repeated KeyValuePair input_state = 3;
+  string correlation_id = 4;
 }
 
 message ValidatePendingSubmissionResponse {
