@@ -21,6 +21,7 @@ namespace daml {
 
 concordUtils::Sliver CreateSliver(char* content, const size_t size);
 concordUtils::Sliver CreateSliver(const std::string& content);
+concordUtils::Sliver CreateDamlKvbKey(const std::string& content);
 
 class DamlKvbCommandsHandler
     : public concord::consensus::ConcordCommandsHandler {

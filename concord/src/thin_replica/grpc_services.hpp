@@ -6,6 +6,7 @@
 #include <grpcpp/grpcpp.h>
 #include <log4cplus/loggingmacros.h>
 
+#include "blockchain/db_interfaces.h"
 #include "thin_replica.grpc.pb.h"
 
 namespace concord {
@@ -14,13 +15,16 @@ namespace thin_replica {
 class ThinReplicaImpl final
     : public com::vmware::concord::thin_replica::ThinReplica::Service {
  private:
-  log4cplus::Logger logger;
+  log4cplus::Logger logger_;
+  const concord::storage::blockchain::ILocalKeyValueStorageReadOnly* rostorage_;
 
  public:
-  ThinReplicaImpl()
-      : logger(
-            log4cplus::Logger::getInstance("com.vmware.concord.thin_replica")) {
-  }
+  ThinReplicaImpl(
+      const concord::storage::blockchain::ILocalKeyValueStorageReadOnly*
+          rostorage)
+      : logger_(
+            log4cplus::Logger::getInstance("com.vmware.concord.thin_replica")),
+        rostorage_(rostorage) {}
 
   grpc::Status ReadState(
       grpc::ServerContext* context,
