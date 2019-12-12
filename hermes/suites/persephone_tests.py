@@ -691,9 +691,9 @@ class PersephoneTests(test_suite.TestSuite):
                      log.info("DAML Connectivity - PASS")
                      try:
                         log.info("dar upload/sanity check...")
-                        daml_helper.upload_dar(host=concord_ip,
+                        daml_helper.upload_test_tool_dars(host=concord_ip,
                                                port='6865')
-                        daml_helper.daml_sanity_checks(host=concord_ip,
+                        daml_helper.verify_ledger_api_test_tool(host=concord_ip,
                                                        port='6865')
                         log.info("dar upload/sanity check passed.")
                      except Exception as e:

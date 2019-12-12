@@ -30,8 +30,8 @@ def test_ledger_api_test_tool(fxProduct):
    """Run ledger_api_test_tool
    """
    try:
-      daml_helper.upload_dar(host='localhost', port='6861')
-      daml_helper.daml_sanity_checks(host='ledger', port='6865')
+      daml_helper.upload_test_tool_dars(host='localhost', port='6861')
+      daml_helper.verify_ledger_api_test_tool(host='ledger', port='6865')
    except Exception as e:
       log.error(e)
       raise

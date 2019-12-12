@@ -19,13 +19,13 @@ TEST_DARS = ["SemanticTests.dar", "Test-dev.dar", "Test-stable.dar"]
 TEST_TOOL_CONTAINER = "docker_daml_test_tool_1"
 error_msg = None
 
-def upload_dar(host='localhost', port='6861'):
+def upload_test_tool_dars(host='localhost', port='6861'):
    '''
-   Helper method to upload dar files
+   Helper method to upload test tool dar files
    :param host: daml-ledger-api host IP
    :param port: daml-ledger-api service port
    '''
-   log.info("Copy DAR files to hermes...")
+   log.info("Copy test tool DAR files to hermes...")
    tmpDars = []
    for testDar in TEST_DARS:
       with NamedTemporaryFile(delete=False) as tmp:
@@ -47,7 +47,7 @@ def upload_dar(host='localhost', port='6861'):
       os.remove(testDar)
 
 
-def daml_sanity_checks(host='ledger', port='6865'):
+def verify_ledger_api_test_tool(host='ledger', port='6865'):
    '''
    Helper method to perform sanity check with uploaded dar files
    :param host: daml-ledger-api host IP
