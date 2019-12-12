@@ -25,7 +25,7 @@ object KvbcLedgerServer extends App {
   val logger = LoggerFactory.getLogger(this.getClass)
 
   // Initialize Akka and log exceptions in flows.
-  implicit val system = ActorSystem("ReferenceServer")
+  implicit val system = ActorSystem("ledger-api-server")
   implicit val ec: ExecutionContext = system.dispatcher
   implicit val materializer = ActorMaterializer(
     ActorMaterializerSettings(system)
@@ -51,8 +51,7 @@ object KvbcLedgerServer extends App {
 
   logger.info(s"Connecting to the first core replica ${extConfig.replicas.head}")
   val address = extConfig.replicas.head.split(":")
-  val ledger = KVBCParticipantState(
-    "KVBC", participantId, address(0), address(1).toInt)
+  val ledger = KVBCParticipantState("KVBC", participantId, address(0), address(1).toInt)
 
   val readService = ledger
   val writeService = ledger
@@ -94,7 +93,7 @@ object KvbcLedgerServer extends App {
     }))
   catch {
     case NonFatal(t) =>
-      logger.error("Shutting down Sandbox application because of initialization error", t)
+      logger.error("Shutting down vDAML Ledger API Server because of initialization error", t)
       closeServer()
   }
 

@@ -2,10 +2,20 @@
 
 package com.digitalasset.kvbc.validator
 
+import akka.actor.ActorSystem
+import akka.stream.{ActorMaterializer, Materializer}
 import com.codahale.metrics.SharedMetricRegistries
-import com.codahale.metrics.jvm.{GarbageCollectorMetricSet, MemoryUsageGaugeSet, ThreadStatesGaugeSet}
+import com.codahale.metrics.jvm.{
+  GarbageCollectorMetricSet,
+  MemoryUsageGaugeSet,
+  ThreadStatesGaugeSet
+}
 import io.grpc.{Server, ServerBuilder}
+import io.grpc.protobuf.services.ProtoReflectionService
+import com.digitalasset.grpc.adapter.{SingleThreadExecutionSequencerPool, ExecutionSequencerFactory}
 import com.digitalasset.kvbc.daml_validator._
+import com.digitalasset.ledger.api.health.HealthChecks
+import com.digitalasset.platform.server.api.services.grpc.GrpcHealthService
 import org.slf4j.LoggerFactory
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -13,7 +23,7 @@ import scala.concurrent.{ExecutionContext, Future}
 object KVBCValidatorMain extends App {
   val metrics = KVBCMetricsServer.run()
 
-  val server = new KVBCValidatorServer(ExecutionContext.global)
+  val server = new KVBCValidatorServer()
   server.start()
   server.blockUntilShutdown()
 
@@ -21,17 +31,34 @@ object KVBCValidatorMain extends App {
   metrics.join()
 }
 
-class KVBCValidatorServer(executionContext: ExecutionContext) {
+class KVBCValidatorServer() {
   private[this] var server: Server = null
   private[this] val port = 55000
   private val logger = LoggerFactory.getLogger(this.getClass)
   private val ledgerInboundMessageSizeMax: Int = 50 * 1024 * 1024 // 50 MiBytes
 
+  // Use the global execution context. This uses threads proportional to
+  // available processors.
+  private implicit val ec: ExecutionContext = ExecutionContext.global
+  private implicit val system = ActorSystem("validator")
+  private implicit val mat: Materializer = ActorMaterializer()
+  private implicit val esf: ExecutionSequencerFactory =
+    new SingleThreadExecutionSequencerPool("validator-health", 1)
+
+  private val validator = new KVBCValidator
+  private val healthChecks = new HealthChecks("validator" -> validator)
+  private val apiHealthService = new GrpcHealthService(healthChecks)
+  private val apiReflectionService = ProtoReflectionService.newInstance()
+
   def start(): Unit = {
-    server = ServerBuilder.forPort(port)
-      .addService(ValidationServiceGrpc.bindService(new KVBCValidator, executionContext))
+    server = ServerBuilder
+      .forPort(port)
+      .addService(validator)
+      .addService(apiHealthService)
+      .addService(apiReflectionService)
       .maxInboundMessageSize(ledgerInboundMessageSizeMax)
-      .build.start
+      .build
+      .start
     logger.info("Server started: port=" + port)
     sys.addShutdownHook {
       System.err.println("Shutting down...")
