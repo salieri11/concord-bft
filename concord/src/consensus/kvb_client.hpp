@@ -6,6 +6,7 @@
 #define CONCORD_CONSENSUS_KVB_CLIENT_HPP_
 
 #include <log4cplus/loggingmacros.h>
+#include <opentracing/span.h>
 #include <chrono>
 #include <condition_variable>
 #include <mutex>
@@ -67,7 +68,7 @@ class KVBClient {
   }
 
   bool send_request_sync(com::vmware::concord::ConcordRequest &req,
-                         bool isReadOnly,
+                         bool isReadOnly, opentracing::Span &parent_span,
                          com::vmware::concord::ConcordResponse &resp);
 
  private:
@@ -114,7 +115,7 @@ class KVBClientPool {
   ~KVBClientPool();
 
   bool send_request_sync(com::vmware::concord::ConcordRequest &req,
-                         bool isReadOnly,
+                         bool isReadOnly, opentracing::Span &parent_span,
                          com::vmware::concord::ConcordResponse &resp);
 
   // Reconfigure the time period for the TimePusher (if any) managed by this

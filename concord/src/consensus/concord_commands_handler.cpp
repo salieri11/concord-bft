@@ -6,6 +6,7 @@
 #include "hash_defs.h"
 #include "time/time_contract.hpp"
 
+#include <opentracing/tracer.h>
 #include <vector>
 
 using com::vmware::concord::ErrorResponse;
@@ -64,6 +65,24 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
   bool result;
   if (request_.ParseFromArray(request_buffer, request_size)) {
     timing_parse_.End();
+
+    auto tracer = opentracing::Tracer::Global();
+    std::unique_ptr<opentracing::Span> span;
+    if (request_.has_trace_context()) {
+      std::istringstream tc_stream(request_.trace_context());
+      auto trace_context = tracer->Extract(tc_stream);
+      if (trace_context.has_value()) {
+        span = tracer->StartSpan(
+            "execute", {opentracing::ChildOf(trace_context.value().get())});
+      } else {
+        LOG4CPLUS_WARN(logger_, "Command has corrupted trace context");
+        span = tracer->StartSpan("execute");
+      }
+    } else {
+      LOG4CPLUS_DEBUG(logger_, "Command is missing trace context");
+      span = tracer->StartSpan("execute");
+    }
+
     if (time_ && request_.has_time_request() &&
         request_.time_request().has_sample()) {
       if (!read_only) {

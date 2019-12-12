@@ -2,6 +2,8 @@
 
 #include "hlf/grpc_services.hpp"
 
+#include <opentracing/tracer.h>
+
 using com::vmware::concord::hlf::services::HlfKeyValueService;
 using com::vmware::concord::hlf::services::KvbMessage;
 using com::vmware::concord::hlf::services::KvbMessage_type_INVALID;
@@ -84,6 +86,9 @@ grpc::Status HlfKeyValueServiceImpl::PutState(ServerContext* context,
 grpc::Status HlfChaincodeServiceImpl::TriggerChaincode(
     ServerContext* context, const ConcordRequest* concord_request,
     ConcordResponse* concord_response) {
+  // TODO: add correlation ID and/or tracing context from request
+  auto span = opentracing::Tracer::Global()->StartSpan("trigger_chaincode");
+
   if (concord_request->hlf_request_size() == 0) {
     ErrorResponse* e = concord_response->add_error_response();
     e->mutable_description()->assign(
@@ -163,7 +168,7 @@ grpc::Status HlfChaincodeServiceImpl::TriggerChaincode(
       internal_hlfRequest->CopyFrom(hlf_request);
 
       ConcordResponse internal_response;
-      if (pool_.send_request_sync(internal_request, is_read_only,
+      if (pool_.send_request_sync(internal_request, is_read_only, *span.get(),
                                   internal_response)) {
         concord_response->MergeFrom(internal_response);
       } else {

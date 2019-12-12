@@ -122,6 +122,9 @@ class ApiConnection : public boost::enable_shared_from_this<ApiConnection> {
    */
   com::vmware::concord::ConcordResponse concordResponse_;
 
+  /* The active tracing span. */
+  std::unique_ptr<opentracing::Span> span_;
+
   /* Logger. */
   log4cplus::Logger logger_;
 
