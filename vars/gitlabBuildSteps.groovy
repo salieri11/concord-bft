@@ -46,7 +46,7 @@ import hudson.util.Secret
   ],
   "RegressionTests": ["enabled": true],
   "DamlTests": [
-    "enabled": true,
+    "enabled": false,
     "dockerComposeFiles": "../docker/docker-compose-daml.yml",
     "concordConfigurationInput": "/concord/config/dockerConfigurationInput-daml.yaml"
   ],
