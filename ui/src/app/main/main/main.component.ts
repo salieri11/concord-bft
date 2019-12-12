@@ -19,6 +19,7 @@ import { RouteService } from '../../shared/route.service';
 import { BlockchainResponse } from '../../blockchain/shared/blockchain.model';
 import { External, mainRoutes, uuidRegExp } from '../../shared/urls.model';
 import { OrgProperties } from '../../orgs/shared/org.model';
+import { ZoneType } from '../../zones/shared/zones.model';
 
 
 @Component({
@@ -44,6 +45,7 @@ export class MainComponent implements OnInit, OnDestroy {
   blockchainUnresolved: boolean = false;
   blockchainType: string;
   welcomeFragmentExists: boolean = false;
+  isOnPrem: boolean;
 
   alertSub: Subscription;
   routeParamsSub: Subscription;
@@ -95,9 +97,8 @@ export class MainComponent implements OnInit, OnDestroy {
       this.alertSub = this.alertService.notify.subscribe(error => this.addAlert(error));
       if (!environment.csp) { this.setInactivityTimeout(); }
       this.orgProps = this.authenticationService.orgProps;
-      console.log(this.orgProps);
-
       this.checkAuthorization();
+      this.setPlatform();
     }
 
 
@@ -264,6 +265,12 @@ export class MainComponent implements OnInit, OnDestroy {
     this.enableDeploy = (maxChain === 0) || (maxChain > blockchainCount);
 
     return this.enableDeploy;
+  }
+
+  private setPlatform(): void {
+    if (this.blockchainService.zones) {
+      this.isOnPrem = this.blockchainService.zones.some((zone) => zone.type === ZoneType.ON_PREM);
+    }
   }
 
 }
