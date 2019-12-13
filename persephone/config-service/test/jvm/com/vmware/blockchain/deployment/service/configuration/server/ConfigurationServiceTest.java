@@ -154,7 +154,7 @@ public class ConfigurationServiceTest {
 
         ConfigurationServiceRequest request = new ConfigurationServiceRequest(new MessageHeader(messageId), hostIps,
                                                                               null, null,
-                                                                              null);
+                                                                              null, null);
 
         var promise = new CompletableFuture<ConfigurationSessionIdentifier>();
         service.createConfiguration(request, newResultObserver(promise));

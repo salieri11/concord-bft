@@ -51,7 +51,8 @@ message ConfigurationServiceRequest {
     repeated string hosts = 2;
     ConcordModelSpecification.BlockchainType blockchain_type = 3;
     vmware.blockchain.ethereum.type.Genesis genesis = 4;
-    repeated ConcordComponent.ServiceType services = 5;
+    repeated ConcordComponent.ServiceType services = 5 [packed=false];
+    Properties properties = 6;
 }
 
 /**

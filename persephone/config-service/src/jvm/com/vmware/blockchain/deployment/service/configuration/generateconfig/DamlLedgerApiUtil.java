@@ -4,10 +4,23 @@
 
 package com.vmware.blockchain.deployment.service.configuration.generateconfig;
 
+import com.google.common.base.Strings;
+
 /**
  * Utility class for generating the config(s) for Daml Ledger Api file.
  */
 public class DamlLedgerApiUtil {
+
+    /**
+     * This value cannot be changed without a change in persephone.
+     */
+    public static String REPLICAS_KEY = "replicas";
+
+    private String replicas;
+
+    public DamlLedgerApiUtil(String replicas) {
+        this.replicas = replicas;
+    }
 
     /**
      * file path.
@@ -26,11 +39,7 @@ public class DamlLedgerApiUtil {
         builder.append(System.getProperty("line.separator"));
         builder.append("export INDEXDB_USER=indexdb");
         builder.append(System.getProperty("line.separator"));
-        builder.append("export CONCORD_HOST=concord");
-        builder.append(System.getProperty("line.separator"));
-        builder.append("export CONCORD_PORT=50051");
-        builder.append(System.getProperty("line.separator"));
-        builder.append("export REPLICAS=concord:50051");
+        builder.append("export REPLICAS=" + getReplicas());
         builder.append(System.getProperty("line.separator"));
         builder.append("export PARTICIPANT_ID=daml_ledger_api");
         builder.append(System.getProperty("line.separator"));
@@ -38,4 +47,11 @@ public class DamlLedgerApiUtil {
         return builder.toString();
     }
 
+    private String getReplicas() {
+        if (Strings.isNullOrEmpty(replicas)) {
+            return "concord:50051";
+        } else {
+            return replicas;
+        }
+    }
 }

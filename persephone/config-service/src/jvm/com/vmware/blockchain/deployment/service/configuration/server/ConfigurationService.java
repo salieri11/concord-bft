@@ -27,6 +27,7 @@ import com.vmware.blockchain.deployment.service.configuration.generateconfig.Con
 import com.vmware.blockchain.deployment.service.configuration.generateconfig.DamlIndexDbUtil;
 import com.vmware.blockchain.deployment.service.configuration.generateconfig.DamlLedgerApiUtil;
 import com.vmware.blockchain.deployment.service.configuration.generateconfig.GenesisUtil;
+import com.vmware.blockchain.deployment.service.configuration.generateconfig.LoggingUtil;
 import com.vmware.blockchain.deployment.v1.ConcordComponent.ServiceType;
 import com.vmware.blockchain.deployment.v1.ConfigurationComponent;
 import com.vmware.blockchain.deployment.v1.ConfigurationServiceImplBase;
@@ -137,12 +138,14 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
         var sessionId = newSessionId();
         List<ConfigurationComponent> staticComponentList = new ArrayList<>();
 
+        log.info(request.toString());
         // Static settings for each service Type.
         for (ServiceType serviceType : request.getServices()) {
 
             switch (serviceType) {
                 case DAML_LEDGER_API:
-                    DamlLedgerApiUtil ledgerApiUtil = new DamlLedgerApiUtil();
+                    DamlLedgerApiUtil ledgerApiUtil = new DamlLedgerApiUtil(
+                            request.getProperties().getValues().get(DamlLedgerApiUtil.REPLICAS_KEY));
                     staticComponentList.add(new ConfigurationComponent(
                             serviceType,
                             DamlLedgerApiUtil.envVarPath,
@@ -156,6 +159,16 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
                             ServiceType.DAML_INDEX_DB,
                             DamlIndexDbUtil.envVarPath,
                             damlIndexDbUtil.generateConfig(),
+                            new IdentityFactors())
+                    );
+                    break;
+                case LOGGING:
+                    LoggingUtil loggingUtil =
+                            new LoggingUtil(request.getProperties().getValues().get(LoggingUtil.LOGGING_CONFIG));
+                    staticComponentList.add(new ConfigurationComponent(
+                            ServiceType.LOGGING,
+                            LoggingUtil.envVarPath,
+                            loggingUtil.generateConfig(),
                             new IdentityFactors())
                     );
                     break;
