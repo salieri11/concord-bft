@@ -4,7 +4,7 @@
 
 As all the concord replica nodes communicate with each other for consensus, it is important to measure the overhead of network between these nodes.
 
-## Do mutual PING
+## Collect Stats
 
 ### Overview
 
@@ -20,15 +20,19 @@ export SSHPASS=xxxx
 ```
 ### Usage
 
-./[mutual-ping.sh](mutual-ping.sh) \<node\>
+./[collect-stats.sh](collect-stats.sh) \<node\>
 
 *node* - IP address of one of the concord replica nodes
 
-## Show PING stats
+### Output
+
+Under directory *raw*, directories corresponding to each source node is created. Under each source node, files for each target nodes are created.  
+
+## Show stats
 
 ### Overview
 
-All the raw PING statistics are parsed and stored as JSON for post processing if needed. The same information is also rendered as ASCII table to get a quick overview.
+All the raw PING statistics are parsed into JSON and TSV format.
 
 ### Prerequisites
 
@@ -43,3 +47,7 @@ sudo apt install jq
 ### Usage
 
 ./[show-stats.sh](show-stats.sh)
+
+### Output
+
+Under the current directory, stats.json is created. The TSV output, sorted by rtt_avg is shown in the CLI itself.
