@@ -1,0 +1,595 @@
+$ ./show-stats.sh 
+Source          Target          Min     Max     Avg     Mdev
+=============================================================
+10.40.205.83	10.40.205.87	0.035	0.304	0.041	0.012
+10.40.205.85	10.40.205.84	0.029	0.235	0.044	0.011
+10.40.205.87	10.40.205.83	0.036	2.484	0.046	0.078
+10.40.205.84	10.40.205.85	0.039	0.208	0.053	0.014
+10.40.205.81	10.40.205.82	0.065	0.165	0.078	0.013
+10.40.205.83	10.40.205.81	0.072	0.352	0.08	0.018
+10.40.205.86	10.40.205.83	0.067	0.351	0.08	0.016
+10.40.205.87	10.40.205.81	0.064	0.739	0.083	0.027
+10.40.205.83	10.40.205.82	0.074	0.321	0.083	0.014
+10.40.205.87	10.40.205.82	0.067	0.222	0.084	0.013
+10.40.205.85	10.40.205.86	0.072	0.315	0.084	0.014
+10.40.205.83	10.40.205.86	0.066	0.181	0.084	0.012
+10.40.205.82	10.40.205.81	0.071	0.26	0.084	0.016
+10.40.205.81	10.40.205.87	0.072	0.254	0.085	0.018
+10.40.205.86	10.40.205.87	0.076	0.233	0.086	0.015
+10.40.205.82	10.40.205.87	0.07	0.376	0.086	0.017
+10.40.205.82	10.40.205.85	0.069	0.251	0.086	0.017
+10.40.205.81	10.40.205.83	0.073	1.556	0.086	0.048
+10.40.205.86	10.40.205.81	0.075	0.241	0.087	0.015
+10.40.205.87	10.40.205.84	0.069	0.738	0.087	0.027
+10.40.205.87	10.40.205.86	0.069	0.404	0.087	0.015
+10.40.205.85	10.40.205.87	0.074	0.431	0.088	0.021
+10.40.205.83	10.40.205.85	0.055	0.374	0.088	0.022
+10.40.205.82	10.40.205.83	0.077	0.367	0.088	0.014
+10.40.205.84	10.40.205.81	0.071	0.296	0.089	0.014
+10.40.205.86	10.40.205.82	0.074	0.32	0.089	0.017
+10.40.205.87	10.40.205.85	0.07	0.469	0.089	0.018
+10.40.205.85	10.40.205.83	0.07	0.211	0.089	0.015
+10.40.205.83	10.40.205.84	0.07	0.804	0.089	0.028
+10.40.205.82	10.40.205.86	0.075	0.25	0.089	0.011
+10.40.205.82	10.40.205.84	0.066	0.222	0.089	0.013
+10.40.205.84	10.40.205.82	0.072	1.126	0.09	0.036
+10.40.205.85	10.40.205.82	0.071	0.287	0.09	0.019
+10.40.205.81	10.40.205.86	0.073	3.005	0.09	0.093
+10.40.205.86	10.40.205.84	0.067	0.338	0.091	0.019
+10.40.205.86	10.40.205.85	0.073	1.139	0.091	0.042
+10.40.205.84	10.40.205.86	0.076	0.303	0.091	0.019
+10.40.205.85	10.40.205.81	0.072	0.287	0.091	0.016
+10.40.205.84	10.40.205.87	0.075	0.426	0.091	0.025
+10.40.205.84	10.40.205.83	0.079	0.486	0.093	0.023
+10.40.205.81	10.40.205.85	0.069	0.378	0.093	0.021
+10.40.205.81	10.40.205.84	0.06	0.285	0.094	0.019
+
+$ cat stats.json 
+{
+    "raw/10.40.205.86/10.40.205.87": {
+        "packet_loss_count": 0, 
+        "packet_receive": 1000, 
+        "packet_loss_rate": 0.0, 
+        "rtt_avg": 0.086, 
+        "destination": "10.40.205.87", 
+        "packet_transmit": 1000, 
+        "packet_duplicate_rate": 0.0, 
+        "rtt_min": 0.076, 
+        "rtt_max": 0.233, 
+        "packet_duplicate_count": 0, 
+        "rtt_mdev": 0.015
+    }, 
+    "raw/10.40.205.84/10.40.205.85": {
+        "packet_loss_count": 0, 
+        "packet_receive": 1000, 
+        "packet_loss_rate": 0.0, 
+        "rtt_avg": 0.053, 
+        "destination": "10.40.205.85", 
+        "packet_transmit": 1000, 
+        "packet_duplicate_rate": 0.0, 
+        "rtt_min": 0.039, 
+        "rtt_max": 0.208, 
+        "packet_duplicate_count": 0, 
+        "rtt_mdev": 0.014
+    }, 
+    "raw/10.40.205.87/10.40.205.82": {
+        "packet_loss_count": 0, 
+        "packet_receive": 1000, 
+        "packet_loss_rate": 0.0, 
+        "rtt_avg": 0.084, 
+        "destination": "10.40.205.82", 
+        "packet_transmit": 1000, 
+        "packet_duplicate_rate": 0.0, 
+        "rtt_min": 0.067, 
+        "rtt_max": 0.222, 
+        "packet_duplicate_count": 0, 
+        "rtt_mdev": 0.013
+    }, 
+    "raw/10.40.205.86/10.40.205.84": {
+        "packet_loss_count": 0, 
+        "packet_receive": 1000, 
+        "packet_loss_rate": 0.0, 
+        "rtt_avg": 0.091, 
+        "destination": "10.40.205.84", 
+        "packet_transmit": 1000, 
+        "packet_duplicate_rate": 0.0, 
+        "rtt_min": 0.067, 
+        "rtt_max": 0.338, 
+        "packet_duplicate_count": 0, 
+        "rtt_mdev": 0.019
+    }, 
+    "raw/10.40.205.84/10.40.205.81": {
+        "packet_loss_count": 0, 
+        "packet_receive": 1000, 
+        "packet_loss_rate": 0.0, 
+        "rtt_avg": 0.089, 
+        "destination": "10.40.205.81", 
+        "packet_transmit": 1000, 
+        "packet_duplicate_rate": 0.0, 
+        "rtt_min": 0.071, 
+        "rtt_max": 0.296, 
+        "packet_duplicate_count": 0, 
+        "rtt_mdev": 0.014
+    }, 
+    "raw/10.40.205.86/10.40.205.82": {
+        "packet_loss_count": 0, 
+        "packet_receive": 1000, 
+        "packet_loss_rate": 0.0, 
+        "rtt_avg": 0.089, 
+        "destination": "10.40.205.82", 
+        "packet_transmit": 1000, 
+        "packet_duplicate_rate": 0.0, 
+        "rtt_min": 0.074, 
+        "rtt_max": 0.32, 
+        "packet_duplicate_count": 0, 
+        "rtt_mdev": 0.017
+    }, 
+    "raw/10.40.205.86/10.40.205.81": {
+        "packet_loss_count": 0, 
+        "packet_receive": 1000, 
+        "packet_loss_rate": 0.0, 
+        "rtt_avg": 0.087, 
+        "destination": "10.40.205.81", 
+        "packet_transmit": 1000, 
+        "packet_duplicate_rate": 0.0, 
+        "rtt_min": 0.075, 
+        "rtt_max": 0.241, 
+        "packet_duplicate_count": 0, 
+        "rtt_mdev": 0.015
+    }, 
+    "raw/10.40.205.87/10.40.205.81": {
+        "packet_loss_count": 0, 
+        "packet_receive": 1000, 
+        "packet_loss_rate": 0.0, 
+        "rtt_avg": 0.083, 
+        "destination": "10.40.205.81", 
+        "packet_transmit": 1000, 
+        "packet_duplicate_rate": 0.0, 
+        "rtt_min": 0.064, 
+        "rtt_max": 0.739, 
+        "packet_duplicate_count": 0, 
+        "rtt_mdev": 0.027
+    }, 
+    "raw/10.40.205.86/10.40.205.85": {
+        "packet_loss_count": 0, 
+        "packet_receive": 1000, 
+        "packet_loss_rate": 0.0, 
+        "rtt_avg": 0.091, 
+        "destination": "10.40.205.85", 
+        "packet_transmit": 1000, 
+        "packet_duplicate_rate": 0.0, 
+        "rtt_min": 0.073, 
+        "rtt_max": 1.139, 
+        "packet_duplicate_count": 0, 
+        "rtt_mdev": 0.042
+    }, 
+    "raw/10.40.205.87/10.40.205.83": {
+        "packet_loss_count": 0, 
+        "packet_receive": 1000, 
+        "packet_loss_rate": 0.0, 
+        "rtt_avg": 0.046, 
+        "destination": "10.40.205.83", 
+        "packet_transmit": 1000, 
+        "packet_duplicate_rate": 0.0, 
+        "rtt_min": 0.036, 
+        "rtt_max": 2.484, 
+        "packet_duplicate_count": 0, 
+        "rtt_mdev": 0.078
+    }, 
+    "raw/10.40.205.84/10.40.205.86": {
+        "packet_loss_count": 0, 
+        "packet_receive": 1000, 
+        "packet_loss_rate": 0.0, 
+        "rtt_avg": 0.091, 
+        "destination": "10.40.205.86", 
+        "packet_transmit": 1000, 
+        "packet_duplicate_rate": 0.0, 
+        "rtt_min": 0.076, 
+        "rtt_max": 0.303, 
+        "packet_duplicate_count": 0, 
+        "rtt_mdev": 0.019
+    }, 
+    "raw/10.40.205.87/10.40.205.84": {
+        "packet_loss_count": 0, 
+        "packet_receive": 1000, 
+        "packet_loss_rate": 0.0, 
+        "rtt_avg": 0.087, 
+        "destination": "10.40.205.84", 
+        "packet_transmit": 1000, 
+        "packet_duplicate_rate": 0.0, 
+        "rtt_min": 0.069, 
+        "rtt_max": 0.738, 
+        "packet_duplicate_count": 0, 
+        "rtt_mdev": 0.027
+    }, 
+    "raw/10.40.205.87/10.40.205.85": {
+        "packet_loss_count": 0, 
+        "packet_receive": 1000, 
+        "packet_loss_rate": 0.0, 
+        "rtt_avg": 0.089, 
+        "destination": "10.40.205.85", 
+        "packet_transmit": 1000, 
+        "packet_duplicate_rate": 0.0, 
+        "rtt_min": 0.07, 
+        "rtt_max": 0.469, 
+        "packet_duplicate_count": 0, 
+        "rtt_mdev": 0.018
+    }, 
+    "raw/10.40.205.87/10.40.205.86": {
+        "packet_loss_count": 0, 
+        "packet_receive": 1000, 
+        "packet_loss_rate": 0.0, 
+        "rtt_avg": 0.087, 
+        "destination": "10.40.205.86", 
+        "packet_transmit": 1000, 
+        "packet_duplicate_rate": 0.0, 
+        "rtt_min": 0.069, 
+        "rtt_max": 0.404, 
+        "packet_duplicate_count": 0, 
+        "rtt_mdev": 0.015
+    }, 
+    "raw/10.40.205.84/10.40.205.82": {
+        "packet_loss_count": 0, 
+        "packet_receive": 1000, 
+        "packet_loss_rate": 0.0, 
+        "rtt_avg": 0.09, 
+        "destination": "10.40.205.82", 
+        "packet_transmit": 1000, 
+        "packet_duplicate_rate": 0.0, 
+        "rtt_min": 0.072, 
+        "rtt_max": 1.126, 
+        "packet_duplicate_count": 0, 
+        "rtt_mdev": 0.036
+    }, 
+    "raw/10.40.205.85/10.40.205.86": {
+        "packet_loss_count": 0, 
+        "packet_receive": 1000, 
+        "packet_loss_rate": 0.0, 
+        "rtt_avg": 0.084, 
+        "destination": "10.40.205.86", 
+        "packet_transmit": 1000, 
+        "packet_duplicate_rate": 0.0, 
+        "rtt_min": 0.072, 
+        "rtt_max": 0.315, 
+        "packet_duplicate_count": 0, 
+        "rtt_mdev": 0.014
+    }, 
+    "raw/10.40.205.85/10.40.205.87": {
+        "packet_loss_count": 0, 
+        "packet_receive": 1000, 
+        "packet_loss_rate": 0.0, 
+        "rtt_avg": 0.088, 
+        "destination": "10.40.205.87", 
+        "packet_transmit": 1000, 
+        "packet_duplicate_rate": 0.0, 
+        "rtt_min": 0.074, 
+        "rtt_max": 0.431, 
+        "packet_duplicate_count": 0, 
+        "rtt_mdev": 0.021
+    }, 
+    "raw/10.40.205.85/10.40.205.84": {
+        "packet_loss_count": 0, 
+        "packet_receive": 1000, 
+        "packet_loss_rate": 0.0, 
+        "rtt_avg": 0.044, 
+        "destination": "10.40.205.84", 
+        "packet_transmit": 1000, 
+        "packet_duplicate_rate": 0.0, 
+        "rtt_min": 0.029, 
+        "rtt_max": 0.235, 
+        "packet_duplicate_count": 0, 
+        "rtt_mdev": 0.011
+    }, 
+    "raw/10.40.205.85/10.40.205.82": {
+        "packet_loss_count": 0, 
+        "packet_receive": 1000, 
+        "packet_loss_rate": 0.0, 
+        "rtt_avg": 0.09, 
+        "destination": "10.40.205.82", 
+        "packet_transmit": 1000, 
+        "packet_duplicate_rate": 0.0, 
+        "rtt_min": 0.071, 
+        "rtt_max": 0.287, 
+        "packet_duplicate_count": 0, 
+        "rtt_mdev": 0.019
+    }, 
+    "raw/10.40.205.85/10.40.205.83": {
+        "packet_loss_count": 0, 
+        "packet_receive": 1000, 
+        "packet_loss_rate": 0.0, 
+        "rtt_avg": 0.089, 
+        "destination": "10.40.205.83", 
+        "packet_transmit": 1000, 
+        "packet_duplicate_rate": 0.0, 
+        "rtt_min": 0.07, 
+        "rtt_max": 0.211, 
+        "packet_duplicate_count": 0, 
+        "rtt_mdev": 0.015
+    }, 
+    "raw/10.40.205.85/10.40.205.81": {
+        "packet_loss_count": 0, 
+        "packet_receive": 1000, 
+        "packet_loss_rate": 0.0, 
+        "rtt_avg": 0.091, 
+        "destination": "10.40.205.81", 
+        "packet_transmit": 1000, 
+        "packet_duplicate_rate": 0.0, 
+        "rtt_min": 0.072, 
+        "rtt_max": 0.287, 
+        "packet_duplicate_count": 0, 
+        "rtt_mdev": 0.016
+    }, 
+    "raw/10.40.205.84/10.40.205.83": {
+        "packet_loss_count": 0, 
+        "packet_receive": 1000, 
+        "packet_loss_rate": 0.0, 
+        "rtt_avg": 0.093, 
+        "destination": "10.40.205.83", 
+        "packet_transmit": 1000, 
+        "packet_duplicate_rate": 0.0, 
+        "rtt_min": 0.079, 
+        "rtt_max": 0.486, 
+        "packet_duplicate_count": 0, 
+        "rtt_mdev": 0.023
+    }, 
+    "raw/10.40.205.83/10.40.205.84": {
+        "packet_loss_count": 0, 
+        "packet_receive": 1000, 
+        "packet_loss_rate": 0.0, 
+        "rtt_avg": 0.089, 
+        "destination": "10.40.205.84", 
+        "packet_transmit": 1000, 
+        "packet_duplicate_rate": 0.0, 
+        "rtt_min": 0.07, 
+        "rtt_max": 0.804, 
+        "packet_duplicate_count": 0, 
+        "rtt_mdev": 0.028
+    }, 
+    "raw/10.40.205.83/10.40.205.85": {
+        "packet_loss_count": 0, 
+        "packet_receive": 1000, 
+        "packet_loss_rate": 0.0, 
+        "rtt_avg": 0.088, 
+        "destination": "10.40.205.85", 
+        "packet_transmit": 1000, 
+        "packet_duplicate_rate": 0.0, 
+        "rtt_min": 0.055, 
+        "rtt_max": 0.374, 
+        "packet_duplicate_count": 0, 
+        "rtt_mdev": 0.022
+    }, 
+    "raw/10.40.205.83/10.40.205.86": {
+        "packet_loss_count": 0, 
+        "packet_receive": 1000, 
+        "packet_loss_rate": 0.0, 
+        "rtt_avg": 0.084, 
+        "destination": "10.40.205.86", 
+        "packet_transmit": 1000, 
+        "packet_duplicate_rate": 0.0, 
+        "rtt_min": 0.066, 
+        "rtt_max": 0.181, 
+        "packet_duplicate_count": 0, 
+        "rtt_mdev": 0.012
+    }, 
+    "raw/10.40.205.83/10.40.205.87": {
+        "packet_loss_count": 0, 
+        "packet_receive": 1000, 
+        "packet_loss_rate": 0.0, 
+        "rtt_avg": 0.041, 
+        "destination": "10.40.205.87", 
+        "packet_transmit": 1000, 
+        "packet_duplicate_rate": 0.0, 
+        "rtt_min": 0.035, 
+        "rtt_max": 0.304, 
+        "packet_duplicate_count": 0, 
+        "rtt_mdev": 0.012
+    }, 
+    "raw/10.40.205.83/10.40.205.81": {
+        "packet_loss_count": 0, 
+        "packet_receive": 1000, 
+        "packet_loss_rate": 0.0, 
+        "rtt_avg": 0.08, 
+        "destination": "10.40.205.81", 
+        "packet_transmit": 1000, 
+        "packet_duplicate_rate": 0.0, 
+        "rtt_min": 0.072, 
+        "rtt_max": 0.352, 
+        "packet_duplicate_count": 0, 
+        "rtt_mdev": 0.018
+    }, 
+    "raw/10.40.205.86/10.40.205.83": {
+        "packet_loss_count": 0, 
+        "packet_receive": 1000, 
+        "packet_loss_rate": 0.0, 
+        "rtt_avg": 0.08, 
+        "destination": "10.40.205.83", 
+        "packet_transmit": 1000, 
+        "packet_duplicate_rate": 0.0, 
+        "rtt_min": 0.067, 
+        "rtt_max": 0.351, 
+        "packet_duplicate_count": 0, 
+        "rtt_mdev": 0.016
+    }, 
+    "raw/10.40.205.83/10.40.205.82": {
+        "packet_loss_count": 0, 
+        "packet_receive": 1000, 
+        "packet_loss_rate": 0.0, 
+        "rtt_avg": 0.083, 
+        "destination": "10.40.205.82", 
+        "packet_transmit": 1000, 
+        "packet_duplicate_rate": 0.0, 
+        "rtt_min": 0.074, 
+        "rtt_max": 0.321, 
+        "packet_duplicate_count": 0, 
+        "rtt_mdev": 0.014
+    }, 
+    "raw/10.40.205.82/10.40.205.83": {
+        "packet_loss_count": 0, 
+        "packet_receive": 1000, 
+        "packet_loss_rate": 0.0, 
+        "rtt_avg": 0.088, 
+        "destination": "10.40.205.83", 
+        "packet_transmit": 1000, 
+        "packet_duplicate_rate": 0.0, 
+        "rtt_min": 0.077, 
+        "rtt_max": 0.367, 
+        "packet_duplicate_count": 0, 
+        "rtt_mdev": 0.014
+    }, 
+    "raw/10.40.205.82/10.40.205.81": {
+        "packet_loss_count": 0, 
+        "packet_receive": 1000, 
+        "packet_loss_rate": 0.0, 
+        "rtt_avg": 0.084, 
+        "destination": "10.40.205.81", 
+        "packet_transmit": 1000, 
+        "packet_duplicate_rate": 0.0, 
+        "rtt_min": 0.071, 
+        "rtt_max": 0.26, 
+        "packet_duplicate_count": 0, 
+        "rtt_mdev": 0.016
+    }, 
+    "raw/10.40.205.82/10.40.205.87": {
+        "packet_loss_count": 0, 
+        "packet_receive": 1000, 
+        "packet_loss_rate": 0.0, 
+        "rtt_avg": 0.086, 
+        "destination": "10.40.205.87", 
+        "packet_transmit": 1000, 
+        "packet_duplicate_rate": 0.0, 
+        "rtt_min": 0.07, 
+        "rtt_max": 0.376, 
+        "packet_duplicate_count": 0, 
+        "rtt_mdev": 0.017
+    }, 
+    "raw/10.40.205.82/10.40.205.86": {
+        "packet_loss_count": 0, 
+        "packet_receive": 1000, 
+        "packet_loss_rate": 0.0, 
+        "rtt_avg": 0.089, 
+        "destination": "10.40.205.86", 
+        "packet_transmit": 1000, 
+        "packet_duplicate_rate": 0.0, 
+        "rtt_min": 0.075, 
+        "rtt_max": 0.25, 
+        "packet_duplicate_count": 0, 
+        "rtt_mdev": 0.011
+    }, 
+    "raw/10.40.205.82/10.40.205.85": {
+        "packet_loss_count": 0, 
+        "packet_receive": 1000, 
+        "packet_loss_rate": 0.0, 
+        "rtt_avg": 0.086, 
+        "destination": "10.40.205.85", 
+        "packet_transmit": 1000, 
+        "packet_duplicate_rate": 0.0, 
+        "rtt_min": 0.069, 
+        "rtt_max": 0.251, 
+        "packet_duplicate_count": 0, 
+        "rtt_mdev": 0.017
+    }, 
+    "raw/10.40.205.82/10.40.205.84": {
+        "packet_loss_count": 0, 
+        "packet_receive": 1000, 
+        "packet_loss_rate": 0.0, 
+        "rtt_avg": 0.089, 
+        "destination": "10.40.205.84", 
+        "packet_transmit": 1000, 
+        "packet_duplicate_rate": 0.0, 
+        "rtt_min": 0.066, 
+        "rtt_max": 0.222, 
+        "packet_duplicate_count": 0, 
+        "rtt_mdev": 0.013
+    }, 
+    "raw/10.40.205.81/10.40.205.82": {
+        "packet_loss_count": 0, 
+        "packet_receive": 1000, 
+        "packet_loss_rate": 0.0, 
+        "rtt_avg": 0.078, 
+        "destination": "10.40.205.82", 
+        "packet_transmit": 1000, 
+        "packet_duplicate_rate": 0.0, 
+        "rtt_min": 0.065, 
+        "rtt_max": 0.165, 
+        "packet_duplicate_count": 0, 
+        "rtt_mdev": 0.013
+    }, 
+    "raw/10.40.205.81/10.40.205.83": {
+        "packet_loss_count": 0, 
+        "packet_receive": 1000, 
+        "packet_loss_rate": 0.0, 
+        "rtt_avg": 0.086, 
+        "destination": "10.40.205.83", 
+        "packet_transmit": 1000, 
+        "packet_duplicate_rate": 0.0, 
+        "rtt_min": 0.073, 
+        "rtt_max": 1.556, 
+        "packet_duplicate_count": 0, 
+        "rtt_mdev": 0.048
+    }, 
+    "raw/10.40.205.81/10.40.205.86": {
+        "packet_loss_count": 0, 
+        "packet_receive": 1000, 
+        "packet_loss_rate": 0.0, 
+        "rtt_avg": 0.09, 
+        "destination": "10.40.205.86", 
+        "packet_transmit": 1000, 
+        "packet_duplicate_rate": 0.0, 
+        "rtt_min": 0.073, 
+        "rtt_max": 3.005, 
+        "packet_duplicate_count": 0, 
+        "rtt_mdev": 0.093
+    }, 
+    "raw/10.40.205.81/10.40.205.87": {
+        "packet_loss_count": 0, 
+        "packet_receive": 1000, 
+        "packet_loss_rate": 0.0, 
+        "rtt_avg": 0.085, 
+        "destination": "10.40.205.87", 
+        "packet_transmit": 1000, 
+        "packet_duplicate_rate": 0.0, 
+        "rtt_min": 0.072, 
+        "rtt_max": 0.254, 
+        "packet_duplicate_count": 0, 
+        "rtt_mdev": 0.018
+    }, 
+    "raw/10.40.205.81/10.40.205.84": {
+        "packet_loss_count": 0, 
+        "packet_receive": 1000, 
+        "packet_loss_rate": 0.0, 
+        "rtt_avg": 0.094, 
+        "destination": "10.40.205.84", 
+        "packet_transmit": 1000, 
+        "packet_duplicate_rate": 0.0, 
+        "rtt_min": 0.06, 
+        "rtt_max": 0.285, 
+        "packet_duplicate_count": 0, 
+        "rtt_mdev": 0.019
+    }, 
+    "raw/10.40.205.81/10.40.205.85": {
+        "packet_loss_count": 0, 
+        "packet_receive": 1000, 
+        "packet_loss_rate": 0.0, 
+        "rtt_avg": 0.093, 
+        "destination": "10.40.205.85", 
+        "packet_transmit": 1000, 
+        "packet_duplicate_rate": 0.0, 
+        "rtt_min": 0.069, 
+        "rtt_max": 0.378, 
+        "packet_duplicate_count": 0, 
+        "rtt_mdev": 0.021
+    }, 
+    "raw/10.40.205.84/10.40.205.87": {
+        "packet_loss_count": 0, 
+        "packet_receive": 1000, 
+        "packet_loss_rate": 0.0, 
+        "rtt_avg": 0.091, 
+        "destination": "10.40.205.87", 
+        "packet_transmit": 1000, 
+        "packet_duplicate_rate": 0.0, 
+        "rtt_min": 0.075, 
+        "rtt_max": 0.426, 
+        "packet_duplicate_count": 0, 
+        "rtt_mdev": 0.025
+    }
+}
