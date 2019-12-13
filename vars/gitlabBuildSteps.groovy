@@ -141,6 +141,7 @@ def call(){
   def persephone_test_on_demand_job_name = "ON DEMAND Persephone Testrun on GitLab"
   def helen_role_test_job_name = "Helen Role Tests on GitLab"
 
+  // These job names are just substrings of the actual job names.
   specialized_tests = [
     memory_leak_job_name,
     performance_test_job_name,
@@ -151,10 +152,15 @@ def call(){
     helen_role_test_job_name
   ]
 
-  if (env.JOB_NAME in specialized_tests){
-    echo "**** Jenkins job for " + env.JOB_NAME
-    genericTests = false
-  } else {
+  for (specialized_test in specialized_tests){
+    if (env.JOB_NAME.contains(specialized_test)){
+      echo "**** Jenkins job for " + env.JOB_NAME
+      genericTests = false
+      break
+    }
+  }
+
+  if (genericTests){
     echo "**** Jenkins job for Generic Test Run"
   }
 
@@ -422,7 +428,7 @@ def call(){
                   env.docker_tag = env.recent_published_docker_tag
                   saveTimeEvent("Build", "Completed fetch build number from Job Update-onecloud-provisioning-service")
                 } else {
-                  echo "This run requries building components"
+                  echo "This run requires building components"
                   env.docker_tag = env.version_param ? env.version_param : env.BUILD_NUMBER
                 }
 
