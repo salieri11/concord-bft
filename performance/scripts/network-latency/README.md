@@ -8,7 +8,7 @@ As all the concord replica nodes communicate with each other for consensus, it i
 
 ### Overview
 
-First all the replicas nodes are discovered using the configuration of the given node. Then each node sends multiple ICMP echo requests to other replica nodes. The raw statistics output is saved in files with name format \<source\>_\<target\>. The script takes care of opening firewall on each node to accept PING requests and closes at end of it.  
+First all the replicas nodes are discovered using the configuration of the given node. Then each node sends multiple ICMP echo requests to other replica nodes. The script takes care of opening firewall on each node to accept PING requests and closes at end of it.  
 
 ### Prerequisites
 
@@ -26,7 +26,7 @@ export SSHPASS=xxxx
 
 ### Output
 
-Under directory *raw*, directories corresponding to each source node is created. Under each source node, files for each target nodes are created.  
+PING stats are saved in *raw* directory. Refer [./collect-stats.txt](sample-output/collect-stats.txt)
 
 ## Show stats
 
@@ -50,4 +50,5 @@ sudo apt install jq
 
 ### Output
 
-Under the current directory, stats.json is created. The TSV output, sorted by rtt_avg is shown in the CLI itself.
+PING stats are saved in *stats.json* file. Refer [./show-stats.txt](sample-output/show-stats.txt)
+TSV output, sorted by *rtt_avg* is shown in the CLI itself.
