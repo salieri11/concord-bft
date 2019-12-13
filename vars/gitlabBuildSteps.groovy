@@ -691,7 +691,7 @@ EOF
                       saveTimeEvent("Memory leak tests", "Start")
                       sh '''
                         echo "Running Entire Testsuite: Memory Leak..."
-                        cd suites ; echo "${PASSWORD}" | sudo -SE ./memory_leak_test.sh --testSuite CoreVMTests --repeatSuiteRun 5 --resultsDir "${mem_leak_test_logs}"
+                        cd suites ; echo "${PASSWORD}" | sudo -SE ./memory_leak_test.sh --testSuite CoreVMTests --repeatSuiteRun 6 --resultsDir "${mem_leak_test_logs}"
                       '''
                       saveTimeEvent("Memory leak tests", "End")
                     }
