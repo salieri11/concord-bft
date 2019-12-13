@@ -240,6 +240,10 @@ class CloudInitConfiguration(
                 LogManagement.Type.LOG_INSIGHT -> {
                     loggingEnvVariables.add("LOG_INSIGHT_HOST=$hostname")
                     loggingEnvVariables.add("LOG_INSIGHT_PORT=$port")
+                    loggingEnvVariables.add("LOG_INSIGHT_USERNAME=" +
+                            logManagement.endpoint.credential.passwordCredential.username)
+                    loggingEnvVariables.add("LOG_INSIGHT_PASSWORD=" +
+                            logManagement.endpoint.credential.passwordCredential.password)
                     loggingEnvVariables.add("LOG_INSIGHT_AGENT_ID=$logInsightAgentId")
                 }
             }
