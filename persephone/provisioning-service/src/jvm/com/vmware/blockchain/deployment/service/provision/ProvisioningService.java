@@ -75,6 +75,7 @@ import com.vmware.blockchain.deployment.v1.MessageHeader;
 import com.vmware.blockchain.deployment.v1.OrchestrationSiteIdentifier;
 import com.vmware.blockchain.deployment.v1.PlacementAssignment;
 import com.vmware.blockchain.deployment.v1.PlacementSpecification;
+import com.vmware.blockchain.deployment.v1.Properties;
 import com.vmware.blockchain.deployment.v1.ProvisionedResource;
 import com.vmware.blockchain.deployment.v1.ProvisioningServiceImplBase;
 import com.vmware.blockchain.deployment.v1.StreamAllClusterDeploymentSessionEventRequest;
@@ -524,7 +525,8 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
                 nodeIps, blockchainType,
                 genesis,
                 components.stream().filter(x -> !x.getServiceType().equals(ConcordComponent.ServiceType.GENERIC))
-                        .map(x -> x.getServiceType()).collect(Collectors.toList()));
+                        .map(x -> x.getServiceType()).collect(Collectors.toList()),
+                new Properties());
 
         var promise = new CompletableFuture<ConfigurationSessionIdentifier>();
         configurationServiceClient.createConfiguration(request, newResultObserver(promise));

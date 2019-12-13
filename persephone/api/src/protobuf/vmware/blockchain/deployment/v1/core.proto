@@ -160,3 +160,11 @@ message LogManagement {
     Endpoint endpoint = 2;
     uint32 log_insight_agent_id = 3;
 }
+
+/**
+ * Raw bag of properties.
+ * This structure can be used during initial development phase when all parameters are not known.
+ */
+message Properties {
+    map<string, string> values = 1;
+}
