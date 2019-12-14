@@ -10,6 +10,7 @@ import scala.concurrent.duration.DurationInt
 import scala.util.Try
 import scala.util.control.NonFatal
 
+
 object RetryStrategy {
 
   private[this] val timer: Timer = new Timer("retry-scheduler", true)
@@ -45,19 +46,20 @@ object RetryStrategy {
       task.future
     }
 
-  def exponentialBackoff(attempts: Int, firstWaitTime: Duration): RetryStrategy =
+  def exponentialBackoff(shouldRetry: Throwable => Boolean, attempts: Int, firstWaitTime: Duration): RetryStrategy =
     new RetryStrategy(
+      shouldRetry,
       attempts,
       firstWaitTime,
       firstWaitTime * math.pow(2.0, attempts.toDouble),
       _ * 2)
 
-  def constant(attempts: Int, waitTime: Duration): RetryStrategy =
-    new RetryStrategy(attempts, waitTime, waitTime, identity)
+  def constant(shouldRetry: Throwable => Boolean, attempts: Int, waitTime: Duration): RetryStrategy =
+    new RetryStrategy(shouldRetry, attempts, waitTime, waitTime, identity)
 
 }
 
-final class RetryStrategy(
+final class RetryStrategy( shouldRetry: Throwable => Boolean,
                            attempts: Int,
                            firstWaitTime: Duration,
                            waitTimeCap: Duration,
@@ -68,10 +70,11 @@ final class RetryStrategy(
     def go(attempt: Int, wait: Duration): Future[A] = {
       run(attempt)
         .recoverWith {
-          case throwable if attempt > attempts =>
-            Future.failed(throwable)
-          case _ =>
-            after(wait)(go(attempt + 1, clip(progression(wait))))
+          case err =>
+            if (shouldRetry(err) && attempt <= attempts)
+              after(wait)(go(attempt + 1, clip(progression(wait))))
+            else
+              Future.failed(err)
         }
     }
     go(1, clip(firstWaitTime))
