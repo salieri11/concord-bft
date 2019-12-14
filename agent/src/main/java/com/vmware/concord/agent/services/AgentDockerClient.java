@@ -40,6 +40,8 @@ import com.vmware.concord.agent.services.configuration.DamlConfig;
 import com.vmware.concord.agent.services.configuration.DamlParticipantConfig;
 import com.vmware.concord.agent.services.configuration.EthereumConfig;
 import com.vmware.concord.agent.services.configuration.HlfConfig;
+import com.vmware.concord.agent.services.configuration.MetricsAndTracingConfig;
+
 
 
 /**
@@ -179,12 +181,22 @@ public final class AgentDockerClient {
                 .getCredential().getPasswordCredential().getPassword();
 
         List<CompletableFuture<BaseContainerSpec>> futures = new ArrayList<>();
+
         for (var component : configuration.getModel().getComponents()) {
             // Bypass non service type image pull...
             if (component.getServiceType() != ConcordComponent.ServiceType.GENERIC) {
+                BaseContainerSpec containerSpec;
+
+                // FIXME: This could be grouped together and not needing a separate if clause
+                if (component.getServiceType() == ConcordComponent.ServiceType.WAVEFRONT_PROXY
+                        || component.getServiceType() == ConcordComponent.ServiceType.JAEGER_AGENT) {
+                    containerSpec = getMetricsAndTracingContainerSpec(component);
+                } else {
+                    containerSpec = getContainerSpec(
+                            configuration.getModel().getBlockchainType(), component);
+                }
                 futures.add(CompletableFuture
-                                    .supplyAsync(() -> getImageIdAfterDl(configuration.getModel().getBlockchainType(),
-                                                                         registryUsername,
+                                    .supplyAsync(() -> getImageIdAfterDl(containerSpec, registryUsername,
                                                                          registryPassword, component)));
             }
         }
@@ -195,36 +207,67 @@ public final class AgentDockerClient {
                 .collect(Collectors.toList())).join();
     }
 
-    private BaseContainerSpec getImageIdAfterDl(ConcordModelSpecification.BlockchainType blockchainType,
-                                                String registryUsername, String registryPassword,
-                                                ConcordComponent component) {
+    private BaseContainerSpec getContainerSpec(ConcordModelSpecification.BlockchainType blockchainType,
+                                               ConcordComponent component) {
+        BaseContainerSpec containerSpec;
 
-        log.info("Pulling image {}", component.getName());
-        BaseContainerSpec containerConfig;
         switch (blockchainType) {
             case ETHEREUM:
-                containerConfig = EthereumConfig.valueOf(component.getServiceType().name());
+                containerSpec = EthereumConfig.valueOf(component.getServiceType().name());
                 break;
             case DAML:
                 switch (configuration.getModel().getNodeType()) {
                     case DAML_COMMITTER:
-                        containerConfig = DamlCommitterConfig.valueOf(component.getServiceType().name());
+                        containerSpec = DamlCommitterConfig.valueOf(component.getServiceType().name());
                         break;
                     case DAML_PARTICIPANT:
-                        containerConfig = DamlParticipantConfig.valueOf(component.getServiceType().name());
+                        containerSpec = DamlParticipantConfig.valueOf(component.getServiceType().name());
                         break;
                     default:
-                        containerConfig = DamlConfig.valueOf(component.getServiceType().name());
+                        containerSpec = DamlConfig.valueOf(component.getServiceType().name());
                         break;
                 }
                 break;
             case HLF:
-                containerConfig = HlfConfig.valueOf(component.getServiceType().name());
+                containerSpec = HlfConfig.valueOf(component.getServiceType().name());
                 break;
             default:
                 var message = String.format("Invalid blockchain network type(%s)", blockchainType);
                 throw new RuntimeException(message);
         }
+
+        return containerSpec;
+    }
+
+    // FIXME: This could be re-grouped together in a better way, and include logging too.
+    private BaseContainerSpec getMetricsAndTracingContainerSpec(ConcordComponent component) {
+
+        BaseContainerSpec containerSpec;
+        switch (component.getServiceType()) {
+            case WAVEFRONT_PROXY:
+                containerSpec = MetricsAndTracingConfig.WAVEFRONT_PROXY;
+                containerSpec.setEnvironment(List.of(
+                        "WAVEFRONT_URL=" + configuration.getWavefrontUrl(),
+                        "WAVEFRONT_TOKEN=" + configuration.getWavefrontToken(),
+                        "WAVEFRONT_PROXY_ARGS=--traceJaegerListenerPorts 14267"));
+                break;
+            case JAEGER_AGENT:
+                containerSpec = MetricsAndTracingConfig.JAEGER_AGENT;
+                break;
+            default:
+                var message = String.format("Invalid service type(%s)", component.getServiceType());
+                throw new RuntimeException(message);
+        }
+
+        return containerSpec;
+    }
+
+    private BaseContainerSpec getImageIdAfterDl(BaseContainerSpec containerConfig,
+                                                String registryUsername, String registryPassword,
+                                                ConcordComponent component) {
+
+        log.info("Pulling image {}", component.getName());
+
         var registryUrl = URI.create(configuration.getContainerRegistry().getAddress());
         var clientConfig = DefaultDockerClientConfig.createDefaultConfigBuilder()
                 .withRegistryUrl(registryUrl.getAuthority())
