@@ -35,18 +35,20 @@ class KvbAppFilter {
   // available, given block_id] with the following conditions:
   //   * The key-value pair is part of a block
   //   * The key is of type type_ (see KvbAppFilter::AppType)
+  //   * The key starts with the given key_prefix
   // The result is pushed to the given queue. Thereby, the caller is responsible
   // for consuming the elements from the queue. The function will block if the
   // queue is full and therefore, it cannot push a new key-value pair.
   // Note: single producer & single consumer queue.
   concordUtils::Status ReadState(
-      concordUtils::BlockId current_block_id,
+      concordUtils::BlockId current_block_id, std::string &key_prefix,
       boost::lockfree::spsc_queue<concordUtils::KeyValuePair *> &queue_out,
       std::atomic_bool &stop_execution);
 
   // Compute the hash of all key-value pairs in the range of [earliest block
   // available, given block_id] based on the given KvbAppFilter::AppType.
   concordUtils::Status ReadStateHash(concordUtils::BlockId block_id,
+                                     std::string &key_prefix,
                                      KvbStateHash &hash_out);
 
  private:
