@@ -8,7 +8,7 @@ import com.digitalasset.kvbc.daml_events._
 import com.digitalasset.grpc.adapter.ExecutionSequencerFactory
 import com.digitalasset.grpc.adapter.client.akka._
 import com.digitalasset.ledger.api.health.{HealthStatus, Healthy, Unhealthy}
-import io.grpc.{ManagedChannel, ManagedChannelBuilder, ConnectivityState}
+import io.grpc.{ManagedChannel, ManagedChannelBuilder, ConnectivityState, Status, StatusRuntimeException}
 import org.slf4j.LoggerFactory
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -35,7 +35,13 @@ class KVBCClient private(host: String, port: Int) (implicit val ec: ExecutionCon
   val commitClient: CommitServiceGrpc.CommitServiceStub = CommitServiceGrpc.stub(channel)
   val dataClient: DataServiceGrpc.DataServiceStub = DataServiceGrpc.stub(channel)
   val eventsClient: EventsServiceGrpc.EventsServiceStub = EventsServiceGrpc.stub(channel)
-  val backOff: RetryStrategy = RetryStrategy.exponentialBackoff(10,100.milliseconds)
+  def shouldRetry(err: Throwable): Boolean = { 
+    err match {
+      case sre: StatusRuntimeException if (sre.getStatus.getCode == Status.RESOURCE_EXHAUSTED) => true
+      case _ => false
+    }
+  }
+  val backOff: RetryStrategy = RetryStrategy.exponentialBackoff(shouldRetry, 10, 100.milliseconds)
 
   @volatile
   private var channelHealth: HealthStatus = Healthy
