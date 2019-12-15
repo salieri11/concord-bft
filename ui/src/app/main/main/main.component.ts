@@ -17,11 +17,7 @@ import { TourService } from '../../shared/tour.service';
 import { BlockchainResponse } from '../../blockchain/shared/blockchain.model';
 import { External, mainRoutes, uuidRegExp } from '../../shared/urls.model';
 import { OrgProperties } from '../../orgs/shared/org.model';
-<<<<<<< HEAD
 import { ZoneType } from '../../zones/shared/zones.model';
-=======
-import { OnPremisesModalComponent } from '../../blockchain/on-premises-modal/on-premises-modal.component';
->>>>>>> Contextual Help
 
 import { ClrModal } from '@clr/angular';
 import { RouteService } from '../../shared/route.service';
