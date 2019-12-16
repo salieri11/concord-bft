@@ -43,8 +43,9 @@
     "deploy": "Deploy Consortium",
     "zones": "Zones",
     "dashboard": "Dashboard",
+
     "organizations": "Organizations/Users",
-    "nodeList": "Replica List",
+    "nodeList": "Nodes",
     "blockList": "Block Explorer",
     "transactionList": "Transactions",
     "testing": "Testing",
@@ -153,9 +154,9 @@
     "four": "iv. Sensitive data requiring a high level of security must not be kept in the PoC-grade service. Developers should use dummy data sets to develop and test their applications."
   },
   "dashboard": {
-    "totalActiveNodes": "Total Active Replicas",
-    "inactiveNodes": "Inactive Replicas",
-    "nodeHealth": "Replica Health",
+    "totalActiveNodes": "Total Active Committers",
+    "inactiveNodes": "Inactive Committers",
+    "nodeHealth": "Committer Health",
     "deployedContracts": "Contracts",
     "transactionsPerSecond": "Transactions/second",
     "averageValidationTime": "Avg Validation Time",
@@ -174,25 +175,30 @@
     "apply": "Apply"
   },
   "nodes": {
-    "title": "Replica",
-    "nodes": "Replicas",
-    "nodeActivity": "Replica Activity",
-    "overallNodeHealth": "Overall Replica Health",
+    "title": "Committer",
+    "nodes": "Committers",
+    "nodeActivity": "Committer Activity",
+    "overallNodeHealth": "Overall Committer Health",
     "transactionsPerSecond": "Transactions/second",
     "averageValidationTime": "Avg Validation Time",
     "xSeconds": "{{seconds}} <small>seconds</small>",
+    "getCert": "Download Certificate",
+    "start": "Start",
+    "stop": "Stop",
+    "restart": "Restart",
     "status": "Status",
     "live": "Live",
     "offline": "Offline",
-    "totalActiveNodes": "Total Active Replicas",
-    "inactiveNodes": "Inactive Replicas",
+    "totalActiveNodes": "Total Active Committers",
+    "inactiveNodes": "Inactive Committers",
     "searchPlaceholder": "Search...",
     "filters": "Filters",
     "hostname": "Hostname",
     "health": "Health",
     "healthy": "healthy",
     "unhealthy": "unhealthy",
-    "address": "Address",
+    "address": "Public IP",
+    "addressPrivate": "Private IP",
     "viewDetail": "View Detail",
     "network": "Network",
     "transactions": "Transactions",
@@ -203,7 +209,13 @@
     "amount": "Amount",
     "trans": "Trans",
     "length": "Length",
-    "paginationSummary": "{{start}} - {{finish}} of {{total}} replicas"
+    "paginationSummary": "{{start}} - {{finish}} of {{total}} committers",
+    "confirmModal": {
+      "title": "Confirm Committer Action",
+      "confirm": "REPLICA STOP",
+      "body": "Please type REPLICA STOP to confirm committer stoppage.",
+      "placeholder": "Type confirmation here"
+    }
   },
   "blocks": {
     "title": "Block",
@@ -243,7 +255,7 @@
     "success": "Success",
     "failure": "Failure",
     "none": "null",
-    "nodes": "Replicas",
+    "nodes": "Committers",
     "hash": "Hash",
     "txhash": "Tx Hash",
     "from": "From",
@@ -418,7 +430,7 @@
   },
   "onPrem": {
     "help": {
-      "numberOfNodes": "Number of replicas are optimized for SBFT consensus engine"
+      "numberOfNodes": "Number of committers are optimized for SBFT consensus engine"
     },
     "navTitle": "On Premises",
     "pageTitle": "New On Premises Zone",
@@ -873,7 +885,7 @@
       },
       "credentials": "Credentials",
       "downloadCertificate": {
-        "title": "Download Certificate",
+        "title": "Download TLS Certificate",
         "enterPassword": {
           "navTitle": "Enter Password",
           "pageTitle": "Password",
@@ -941,7 +953,7 @@
     "common": {
       "consortiumDescription": "Description",
       "consortiumName": "Consortium Name",
-      "numberOfNodes": "Number of Replicas"
+      "numberOfNodes": "Number of Committers"
     },
     "engine": {
       "pageTitle": "Choose Contract Engine",
@@ -955,7 +967,7 @@
     },
     "details": {
       "help": {
-        "numberOfNodes": "Replicas options are optimized for ConcordBFT consensus engine."
+        "numberOfNodes": "Committers options are optimized for ConcordBFT consensus engine."
       },
       "pageTitle": "Consortium Details",
       "navTitle": "Details",
@@ -964,12 +976,12 @@
     },
     "nodes": {
       "help": {
-        "numberOfNodes": "Number of replicas are optimized for SBFT consensus engine"
+        "numberOfNodes": "Number of committers are optimized for SBFT consensus engine"
       },
-      "pageTitle": "Replicas and Regional Distribution",
-      "navTitle": "Replicas",
+      "pageTitle": "Committers and Regional Distribution",
+      "navTitle": "Committers",
       "regionalTitle": "Regional Distribution",
-      "regionInfo": "Even distribution of replicas across regions is recommended for best network resiliency.  The cumulative amount in regions must equal number of replicas to continue to the next step.",
+      "regionInfo": "Even distribution of committers across regions is recommended for best network resiliency.  The cumulative amount in regions must equal number of committers to continue to the next step.",
       "onPremInfo": "Hybrid cloud is not yet available. If you add an on premise region, cloud regions will be disabled.",
       "add": "Add On Premises Region"
     },
@@ -989,7 +1001,7 @@
       "pageTitle": "Review and Deploy",
       "navTitle": "Deploy",
       "consortiumName": "Consortium Name",
-      "consortiumSetup": "Replicas",
+      "consortiumSetup": "Committers",
       "users": "Users"
     }
   },
@@ -997,7 +1009,7 @@
     "waiting": "Waiting for deployment task...",
     "initial": "Deploy consortium started...",
     "first": "Creating VM's...",
-    "second": "Deploying concord replicas...",
+    "second": "Deploying concord committers...",
     "third": "Distributing keys...",
     "fourth": "Starting up Concord trust network...",
     "ending": "Deployment successful!"
@@ -1021,12 +1033,12 @@
         "text": "Here you can see the general status of nodes, contracts, blocks and transactions.  Dashboard stats and lists refresh automatically, so no need to reload the page."
       },
       "nodeStatus": {
-        "title": "Replica Status",
-        "text": "Hover over a replica on the map to see its health and status."
+        "title": "Committer Status",
+        "text": "Hover over a committer on the map to see its health and status."
       },
       "nodes": {
-        "title": "Replica List",
-        "text": "Here you can see the replicas' name, IP address (with port), and their general health status."
+        "title": "Committer List",
+        "text": "Here you can see the committers' name, IP address (with port), and their general health status."
       },
       "organization": {
         "title": "Organizations",

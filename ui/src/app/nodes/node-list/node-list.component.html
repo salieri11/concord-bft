@@ -1,6 +1,13 @@
-<clr-datagrid>
+<clr-datagrid #grid>
+
+<!-- Commenting out node start stop functionality until it's ready to be implemented on the backend. -->
+<!--     <clr-dg-action-bar>
+      <div class="btn-group pull-right">
+        <button class="btn btn-sm btn-outline-danger" [disabled]="!batchStartEnabled" (click)="confirmAction('start', selected)">{{'nodes.start' | translate}}</button>
+        <button class="btn btn-sm btn-outline-danger" [disabled]="!batchStopEnabled" (click)="confirmAction('stop', selected)">{{'nodes.stop' | translate}}</button>
+      </div>
+    </clr-dg-action-bar> -->
   <clr-dg-column [clrDgField]="'hostname'">{{'nodes.hostname' | translate}}</clr-dg-column>
-  <clr-dg-column>{{'nodes.address' | translate}}</clr-dg-column>
   <clr-dg-column>
     {{'nodes.status' | translate}}
     <clr-dg-filter [clrDgFilter]="statusFilter">
@@ -10,17 +17,43 @@
   <clr-dg-column>
     {{'nodes.health' | translate}}
   </clr-dg-column>
-  <clr-dg-row *clrDgItems="let node of nodes">
-    <clr-dg-cell>{{node.hostname}}</clr-dg-cell>
-    <clr-dg-cell>{{node.address}}</clr-dg-cell>
-    <clr-dg-cell>{{node.status}}</clr-dg-cell>
+  <clr-dg-column>{{'nodes.address' | translate}}</clr-dg-column>
+  <clr-dg-column>{{'nodes.addressPrivate' | translate}}</clr-dg-column>
+
+  <clr-dg-row *clrDgItems="let node of nodes" [clrDgItem]="node">
+    <clr-dg-action-overflow>
+      <button [disabled]="!node.certificate" class="action-item" (click)="downloadCert(node)">{{'nodes.getCert' | translate}}</button>
+
+<!-- Commenting out node start stop functionality until it's ready to be implemented on the backend. -->
+<!--       <button class="action-item" [disabled]="node.state === 'live'" (click)="confirmAction('start', node)">{{'nodes.start' | translate}}</button>
+      <button class="action-item" [disabled]="node.state !== 'live'" (click)="confirmAction('stop', node)">{{'nodes.stop' | translate}}</button> -->
+
+    </clr-dg-action-overflow>
+    <clr-dg-cell>{{node.name}}</clr-dg-cell>
+    <clr-dg-cell>{{node.state}}</clr-dg-cell>
+    <clr-dg-cell [innerHTML]="node.healthHTML"></clr-dg-cell>
     <clr-dg-cell>
-      <span *ngIf="node.millis_since_last_message < node.millis_since_last_message_threshold" class="label label-success">
-        {{'nodes.healthy' | translate}}
-      </span>
-      <span *ngIf="node.millis_since_last_message >= node.millis_since_last_message_threshold" class="label label-danger">
-        {{'nodes.unhealthy' | translate}}
-      </span>
+      {{node.public_ip}}
+      <concord-copy-to-clipboard-button
+        classList="ctc-btn-inline dash-list"
+        [tooltip]="'common.copyToClip' | translate"
+        tooltipDirection="top-right"
+        [value]="node.public_ip"
+        [size]="12">
+      </concord-copy-to-clipboard-button>
+
+    </clr-dg-cell>
+    <clr-dg-cell>
+      {{node.private_ip}}
+      <concord-copy-to-clipboard-button
+        classList="ctc-btn-inline dash-list"
+        [tooltip]="'common.copyToClip' | translate"
+        tooltipDirection="top-left"
+        [value]="node.private_ip"
+        [size]="12">
+      </concord-copy-to-clipboard-button>
+
     </clr-dg-cell>
   </clr-dg-row>
+
 </clr-datagrid>

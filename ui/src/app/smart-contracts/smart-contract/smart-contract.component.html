@@ -33,6 +33,7 @@
         <option *ngFor="let versionVar of smartContract?.versions" [value]="versionVar.version">{{ versionVar.version }}</option>
       </select>
     </div> -->
+
     <div class="options" *ngIf="versionSelected  && !versionIsExternal">
       <button type="button" class="btn btn-icon btn-link" (click)="startTour()" [attr.aria-label]="'tourSteps.title' | translate">
         <clr-icon size="24" shape="help"></clr-icon>

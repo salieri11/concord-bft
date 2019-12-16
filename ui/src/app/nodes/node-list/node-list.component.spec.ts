@@ -9,6 +9,7 @@ import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { MockSharedModule } from '../../shared/shared.module';
 import { NodeListComponent } from './node-list.component';
 import { NodesStatusFilterComponent } from '../nodes-status-filter/nodes-status-filter.component';
+import { VmwCopyToClipboardButtonComponent } from '../../shared/components/copy-to-clipboard-button/copy-to-clipboard-button.component';
 
 describe('NodeListComponent', () => {
   let component: NodeListComponent;
@@ -24,6 +25,7 @@ describe('NodeListComponent', () => {
       declarations: [
         NodeListComponent,
         NodesStatusFilterComponent,
+        VmwCopyToClipboardButtonComponent
       ]
     })
     .compileComponents();

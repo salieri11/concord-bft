@@ -59,3 +59,12 @@ body nav.subnav .theme-select {
 .popper-content .ngxp__container {
   z-index: 999;
 }
+
+.datagrid-cell {
+  button.ctc-btn-inline {
+    margin: 0;
+  }
+  .label {
+    height: .675rem;
+  }
+}
