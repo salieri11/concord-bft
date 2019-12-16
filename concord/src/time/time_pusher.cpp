@@ -4,6 +4,7 @@
 
 #include <google/protobuf/util/time_util.h>
 #include <log4cplus/loggingmacros.h>
+#include <opentracing/tracer.h>
 #include <chrono>
 #include <mutex>
 #include <thread>
@@ -179,6 +180,7 @@ void TimePusher::ThreadFunction() {
     std::this_thread::sleep_for(
         std::chrono::milliseconds(TimeUtil::DurationToMilliseconds(period_)));
 
+    auto span = opentracing::Tracer::Global()->StartSpan("time_update");
     Timestamp time = ReadTime();
     if (time < lastPublishTime_ + period_) {
       // Time was published by a transaction recently - no need to publish again
@@ -188,7 +190,8 @@ void TimePusher::ThreadFunction() {
 
     try {
       AddTimeToCommand(req, time);
-      clientPool_->send_request_sync(req, false /* not read-only */, resp);
+      clientPool_->send_request_sync(req, false /* not read-only */,
+                                     *(span.get()), resp);
       req.Clear();
       resp.Clear();
     } catch (...) {

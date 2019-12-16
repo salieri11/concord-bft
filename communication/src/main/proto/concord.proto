@@ -22,6 +22,7 @@ message ConcordRequest {
    repeated HlfRequest hlf_request = 10;
    optional DamlRequest daml_request = 11;
    optional ReconfigurationRequest reconfiguration_request = 12;
+   optional bytes trace_context = 13;
 
    // 13-2045 open for definition
    // Likely: metrics/stats, non-eth blockchain, other admin
@@ -42,6 +43,7 @@ message ConcordResponse {
    repeated HlfResponse hlf_response = 10;
    optional DamlResponse daml_response = 11;
    optional ReconfigurationResponse reconfiguration_response = 12;
+   // 13: trace_context has no response
 
    // 13-2045 open for definition
    optional TestResponse test_response = 2046;

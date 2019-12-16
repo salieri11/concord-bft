@@ -7,6 +7,7 @@
 
 #include "kvb_client.hpp"
 
+#include <opentracing/tracer.h>
 #include <boost/thread.hpp>
 
 using com::vmware::concord::ConcordRequest;
@@ -20,6 +21,12 @@ using std::chrono::steady_clock;
 namespace concord {
 namespace consensus {
 
+void AddTracingContext(ConcordRequest &req, opentracing::Span &parent_span) {
+  std::ostringstream req_context;
+  parent_span.tracer().Inject(parent_span.context(), req_context);
+  req.set_trace_context(req_context.str());
+}
+
 /**
  * Send a request to the replicas. Returns true if the response contains
  * something to forward (either a response message or an appropriate error
@@ -27,7 +34,12 @@ namespace consensus {
  * failed).
  */
 bool KVBClient::send_request_sync(ConcordRequest &req, bool isReadOnly,
+                                  opentracing::Span &parent_span,
                                   ConcordResponse &resp) {
+  auto span = parent_span.tracer().StartSpan(
+      "send_request_sync", {opentracing::ChildOf(&parent_span.context())});
+  AddTracingContext(req, *span.get());
+
   if (!isReadOnly && timePusher_) {
     timePusher_->AddTimeToCommand(req);
   }
@@ -104,6 +116,7 @@ KVBClientPool::~KVBClientPool() {
 }
 
 bool KVBClientPool::send_request_sync(ConcordRequest &req, bool isReadOnly,
+                                      opentracing::Span &parent_span,
                                       ConcordResponse &resp) {
   KVBClient *client;
   {
@@ -146,7 +159,7 @@ bool KVBClientPool::send_request_sync(ConcordRequest &req, bool isReadOnly,
     }
   }  // scope unlocks mutex
 
-  bool result = client->send_request_sync(req, isReadOnly, resp);
+  bool result = client->send_request_sync(req, isReadOnly, parent_span, resp);
 
   {
     std::unique_lock<std::mutex> clients_lock(clients_mutex_);

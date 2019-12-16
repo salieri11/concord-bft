@@ -213,9 +213,15 @@ void ApiConnection::process_incoming() {
                                      get_message_length(inMsgBuffer_))) {
     LOG4CPLUS_DEBUG(logger_, "Parsed!");
 
+    // TODO: add correlation ID and/or tracing context from request
+    span_ = opentracing::Tracer::Global()->StartSpan("apiRequest");
+
     // handle the request
-    auto span = opentracing::Tracer::Global()->StartSpan("apiRequest");
     dispatch();
+
+    // Reseting the unique_ptr destructs the span, ending its timing and
+    // publishing it.
+    span_.reset(nullptr);
   } else {
     // Parsing failed
     ErrorResponse *e = concordResponse_.add_error_response();
@@ -521,7 +527,7 @@ void ApiConnection::handle_eth_request(int i) {
     }
 
     ConcordResponse internalResponse;
-    if (clientPool_.send_request_sync(internalRequest, isReadOnly,
+    if (clientPool_.send_request_sync(internalRequest, isReadOnly, *span_.get(),
                                       internalResponse)) {
       concordResponse_.MergeFrom(internalResponse);
     } else {
@@ -578,7 +584,7 @@ void ApiConnection::handle_block_list_request() {
   ConcordResponse internalConcResponse;
 
   if (clientPool_.send_request_sync(internalConcRequest, true /* read only */,
-                                    internalConcResponse)) {
+                                    *span_.get(), internalConcResponse)) {
     concordResponse_.MergeFrom(internalConcResponse);
   } else {
     ErrorResponse *error = concordResponse_.add_error_response();
@@ -604,7 +610,7 @@ void ApiConnection::handle_block_request() {
 
   ConcordResponse internalResponse;
   if (clientPool_.send_request_sync(internalRequest, true /* read only */,
-                                    internalResponse)) {
+                                    *span_.get(), internalResponse)) {
     concordResponse_.MergeFrom(internalResponse);
   } else {
     LOG4CPLUS_ERROR(logger_, "Error parsing read-only response");
@@ -631,7 +637,7 @@ void ApiConnection::handle_transaction_request() {
 
   ConcordResponse internalResponse;
   if (clientPool_.send_request_sync(internalRequest, true /* read only */,
-                                    internalResponse)) {
+                                    *span_.get(), internalResponse)) {
     concordResponse_.MergeFrom(internalResponse);
   } else {
     LOG4CPLUS_ERROR(logger_, "Error parsing read-only response");
@@ -650,7 +656,8 @@ void ApiConnection::handle_transaction_list_request() {
   txListReq->CopyFrom(request);
 
   ConcordResponse internalResponse;
-  if (clientPool_.send_request_sync(internalRequest, true, internalResponse)) {
+  if (clientPool_.send_request_sync(internalRequest, true, *span_.get(),
+                                    internalResponse)) {
     concordResponse_.MergeFrom(internalResponse);
   } else {
     LOG4CPLUS_ERROR(logger_, "Error parsing read-only response");
@@ -667,7 +674,8 @@ void ApiConnection::handle_logs_request() {
   logsReq->CopyFrom(request);
 
   ConcordResponse internalResponse;
-  if (clientPool_.send_request_sync(internalRequest, true, internalResponse)) {
+  if (clientPool_.send_request_sync(internalRequest, true, *span_.get(),
+                                    internalResponse)) {
     concordResponse_.MergeFrom(internalResponse);
   } else {
     LOG4CPLUS_ERROR(logger_, "Error parsing read-only response");
@@ -691,7 +699,7 @@ void ApiConnection::handle_time_request() {
   // sample was provided, this is just a request to read the latest state.
   bool readOnly = !request.has_sample();
 
-  if (clientPool_.send_request_sync(internalConcRequest, readOnly,
+  if (clientPool_.send_request_sync(internalConcRequest, readOnly, *span_.get(),
                                     internalConcResponse)) {
     concordResponse_.MergeFrom(internalConcResponse);
   } else {
@@ -780,7 +788,7 @@ uint64_t ApiConnection::current_block_number() {
   ConcordResponse internalResp;
 
   if (clientPool_.send_request_sync(internalReq, true /* read only */,
-                                    internalResp)) {
+                                    *span_.get(), internalResp)) {
     if (internalResp.eth_response_size() > 0) {
       std::string strblk = internalResp.eth_response(0).data();
       evm_uint256be rawNumber;

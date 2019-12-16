@@ -2,6 +2,7 @@
 
 #include "grpc_services.hpp"
 
+#include <opentracing/tracer.h>
 #include <string>
 
 #include "daml/daml_kvb_commands_handler.hpp"
@@ -84,11 +85,14 @@ grpc::Status CommitServiceImpl::CommitTransaction(ServerContext* context,
   Command cmd;
   cmd.mutable_commit()->CopyFrom(*request);
 
+  // TODO: add correlation ID and/or tracing context from request
+  auto span = opentracing::Tracer::Global()->StartSpan("commit_transaction");
+
   std::string cmd_string;
   cmd.SerializeToString(&cmd_string);
   daml_request->set_command(cmd_string.c_str(), cmd_string.size());
 
-  if (!pool.send_request_sync(req, false /* read-only */, resp)) {
+  if (!pool.send_request_sync(req, false /* read-only */, *span.get(), resp)) {
     LOG4CPLUS_ERROR(logger, "DAML commit transaction failed");
     return grpc::Status::CANCELLED;
   }
