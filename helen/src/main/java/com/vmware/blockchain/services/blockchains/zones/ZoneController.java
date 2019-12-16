@@ -15,6 +15,9 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -56,6 +59,7 @@ public class ZoneController {
     private AuthHelper authHelper;
     private OrchestrationSiteServiceStub orchestrationClient;
 
+    private static final Logger logger = LogManager.getLogger(ZoneController.class);
 
     @Autowired
     public ZoneController(ZoneService zoneService, AuthHelper authHelper,
@@ -227,7 +231,7 @@ public class ZoneController {
     @RequestMapping(method = RequestMethod.POST)
     @PreAuthorize("@authHelper.isConsortiumAdmin()")
     ResponseEntity<ZoneResponse> postZone(@RequestParam(required = false) Action action,
-                                                @RequestBody(required = false) ZoneRequest request)
+                                          @RequestBody(required = false) ZoneRequest request)
             throws Exception {
         if (RELOAD.equals(action)) {
 
@@ -264,7 +268,83 @@ public class ZoneController {
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
-    // TODO: implement Patch.  This will be a bit harder.
+
+    /**
+     * Get a zone from the user.
+     * Change properties to ones mentioned in the request body.
+     */
+    @RequestMapping(path = "/{zone_id}", method = RequestMethod.PATCH)
+    @PreAuthorize("@authHelper.isConsortiumAdmin()")
+    ResponseEntity<ZoneResponse> patchZone(@PathVariable("zone_id") String zoneId,
+                                           @RequestBody(required = false) ZoneRequest request)
+            throws Exception {
+        // Only for ONPREM for now
+        Zone zone = zoneService.getAuthorized(UUID.fromString(zoneId));
+
+        // everything from here on needs a request body.
+        if (request == null) {
+            throw new BadRequestException(ErrorCode.BAD_REQUEST);
+        }
+
+        if (zone instanceof OnPremZone) {
+            OnPremZone op = (OnPremZone) zone;
+            OnPremRequest onpremRequest = (OnPremRequest) request;
+            if (op.getOrgId() == null || !authHelper.isSystemAdmin()) {
+                op.setOrgId(authHelper.getOrganizationId());
+            }
+
+            if (onpremRequest.getName() != null) {
+                op.setName(onpremRequest.getName());
+            }
+            if (onpremRequest.getType() != null) {
+                op.setType(onpremRequest.getType());
+            }
+            if (onpremRequest.getOrgId() != null) {
+                op.setOrgId(onpremRequest.getOrgId());
+            }
+            if (onpremRequest.getVcenter() != null) {
+                op.setVCenter(onpremRequest.getVcenter());
+            }
+            if (onpremRequest.getResourcePool() != null) {
+                op.setResourcePool(onpremRequest.getResourcePool());
+            }
+            if (onpremRequest.getStorage() != null) {
+                op.setStorage(onpremRequest.getStorage());
+            }
+            if (onpremRequest.getFolder() != null) {
+                op.setFolder(onpremRequest.getFolder());
+            }
+            if (onpremRequest.getNetwork() != null) {
+                op.setNetwork(onpremRequest.getNetwork());
+            }
+            if (onpremRequest.getOutboundProxy() != null) {
+                op.setOutboundProxy(onpremRequest.getOutboundProxy());
+            }
+            if (onpremRequest.getContainerRepo() != null) {
+                op.setContainerRepo(onpremRequest.getContainerRepo());
+            }
+            if (onpremRequest.getLogManagements() != null) {
+                op.setLogManagements(onpremRequest.getLogManagements());
+            }
+
+            ValidateOrchestrationSiteRequest req = ValidateOrchestrationSiteRequest.newBuilder()
+                    .setHeader(MessageHeader.newBuilder().build())
+                    .setSite(BlockchainUtils.toInfo(zone))
+                    .build();
+
+            CompletableFuture<ValidateOrchestrationSiteResponse> future = new CompletableFuture<>();
+
+            orchestrationClient.validateOrchestrationSite(req, FleetUtils.blockedResultObserver(future));
+            // We don't really need the value.  If this call succeeds, the connection is OK
+            future.get();
+            zone = zoneService.put(zone);
+            return new ResponseEntity<>(getZoneResponse(zone), HttpStatus.OK);
+        } else {
+            // TODO: Add zone patch for other blockchain types
+            logger.error("PATCH is only available for On-prem blockchains");
+            throw new BadRequestException(ErrorCode.BAD_REQUEST);
+        }
+    }
 
     //TODO: Think about this.  Do we really want to allow delete?
     @RequestMapping(path = "/{zone_id}", method = RequestMethod.DELETE)
@@ -299,7 +379,4 @@ public class ZoneController {
         }
         return response;
     }
-
-
-
 }
