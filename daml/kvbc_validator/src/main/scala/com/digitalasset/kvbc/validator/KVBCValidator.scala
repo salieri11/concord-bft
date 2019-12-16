@@ -248,9 +248,9 @@ class KVBCValidator(implicit ec: ExecutionContext)
     }
     Metrics.outputSizes.update(result.logEntry.size())
 
-    logger.info(s"Submission validated, correlationId=$correlationId " +
-      s"participantId=${pendingSubmission.participantId} inputStates=${pendingSubmission.inputState.size} stateUpdates=${stateUpdates.size} " +
-      s"resultPayload=${logEntry.getPayloadCase.toString} ")
+    logger.info(s"Submission validated, correlationId=$correlationId participantId=${pendingSubmission.participantId} " +
+      s"entryId=${pendingSubmission.entryId.toStringUtf8} inputStates=${pendingSubmission.inputState.size} stateUpdates=${stateUpdates.size} " +
+      s"resultPayload=${logEntry.getPayloadCase.toString} recordTime=${pendingSubmission.recordTime.toString}")
     result
   }
 
