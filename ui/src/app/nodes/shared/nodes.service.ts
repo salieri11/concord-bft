@@ -4,13 +4,16 @@
 
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+// import { FormData } from '@angular/forms';
 import { TranslateService } from '@ngx-translate/core';
-import { Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { Observable, from, timer, of, Subject } from 'rxjs';
+import { map, concatMap, filter, take, delay } from 'rxjs/operators';
+import { VmwTasksService, VmwTask, VmwTaskState, IVmwTaskInfo } from '../../shared/components/task-panel/tasks.service';
 
 import { NodeProperties, NodeInfo } from './nodes.model';
 import { ZoneType } from './../../zones/shared/zones.model';
 import { BlockchainService } from '../../blockchain/shared/blockchain.service';
+import { DeployStates } from '../../blockchain/shared/blockchain.model';
 
 import { Apis } from '../../shared/urls.model';
 
@@ -31,10 +34,14 @@ const locations = [
   providedIn: 'root'
 })
 export class NodesService {
+  tasks: {[key: string]: {taskDetails?: IVmwTaskInfo, trackedTask?: VmwTask}} = {};
+  private _changedSubject: Subject<VmwTask> = new Subject();
+  tasksUpdated: Observable<any> = this._changedSubject.asObservable();
 
   constructor(
     private http: HttpClient,
     private blockchainService: BlockchainService,
+    private taskService: VmwTasksService,
     private translate: TranslateService
   ) { }
 
@@ -56,6 +63,7 @@ export class NodesService {
           replica.geo = [Number(zoneData.longitude), Number(zoneData.latitude)];
           replica.location = zoneData.name;
           replica.zone_type = zoneData.type;
+          replica['state'] = replica['status'];
 
           // Fake Single location
           // replica['location'] = 'Palo Alto CA USA';
@@ -116,6 +124,130 @@ export class NodesService {
       })
     );
   }
+
+
+  getClients() {
+    return this.http.get<NodeInfo[]>(Apis.clients(this.blockchainService.blockchainId));
+  }
+
+  deployClients(zoneIds: string[], name: string) {
+    this.http.post<any>(
+      Apis.clients(this.blockchainService.blockchainId),
+      {zone_ids: zoneIds}
+    ).subscribe(response => {
+      this.pollUntilDeployFinished(response['task_id'], name);
+    });
+  }
+
+  pollDeploy(taskId: string): Observable<any> {
+    const interval = 2500;
+
+    return timer(0, interval)
+      .pipe(concatMap(() => from(this.blockchainService.getTask(taskId))))
+      .pipe(filter(backendData => {
+        const completed = backendData.state !== DeployStates.RUNNING;
+        const failed = (backendData.state === DeployStates.FAILED);
+
+        return completed || failed;
+      }))
+      .pipe(take(1));
+  }
+
+  private startNotification(taskId: string, name: string): Observable<any> {
+    const currentTask = this.tasks[taskId] = {taskDetails: null, trackedTask: null};
+    currentTask.taskDetails = {
+      title: this.translate.instant('nodes.deployingClient'),
+      description: `${this.translate.instant('nodes.deployingClientDesc')}: ${name}`,
+      progress: 10
+    };
+
+    currentTask.trackedTask = this.taskService.trackTask(currentTask.taskDetails);
+
+    const multiplier = 5;
+    const duration = 1000 * multiplier;
+
+    return of(true).pipe(
+      delay(duration),
+      map(response => {
+        currentTask.taskDetails.progress = 10;
+        return response;
+      }),
+      delay(duration),
+      map(() => {currentTask.taskDetails.progress = 11; }),
+      delay(duration / 2),
+      map(() => {currentTask.taskDetails.progress = 14; }),
+      delay(duration / 2),
+      map(() => {currentTask.taskDetails.progress = 19; }),
+      delay(duration),
+      map(() => {
+        currentTask.taskDetails.progress = 25;
+      }),
+      delay(duration),
+      map(() => {currentTask.taskDetails.progress = 31; }),
+      delay(duration),
+      map(() => {currentTask.taskDetails.progress = 34; }),
+      delay(duration),
+      map(() => {currentTask.taskDetails.progress = 34; }),
+      delay(duration / 2),
+      map(() => {currentTask.taskDetails.progress = 38; }),
+      delay(duration / 2),
+      map(() => {currentTask.taskDetails.progress = 40; }),
+      delay(duration / 2),
+      map(() => {
+        currentTask.taskDetails.progress = 41;
+      }),
+      delay(duration),
+      map(() => {currentTask.taskDetails.progress = 43; }),
+      delay(duration),
+      map(() => {
+        currentTask.taskDetails.progress = 45;
+      }),
+      delay(duration),
+      map(() => {currentTask.taskDetails.progress = 45; }),
+      delay(duration / 2),
+      map(() => {currentTask.taskDetails.progress = 50; }),
+      delay(duration / 2),
+      map(() => {currentTask.taskDetails.progress = 53; }),
+      delay(duration),
+      map(() => {currentTask.taskDetails.progress = 60; }),
+      delay(duration / 2),
+      map(() => {currentTask.taskDetails.progress = 62; }),
+      delay(duration / 2),
+      map(() => {currentTask.taskDetails.progress = 72; }),
+      delay(duration / 2),
+      map(() => {currentTask.taskDetails.progress = 80; }),
+      delay(duration),
+      map(() => {currentTask.taskDetails.progress = 85; }),
+      delay(duration),
+    );
+
+  }
+
+  private pollUntilDeployFinished(taskId: string, name: string) {
+    const message = this.startNotification(taskId, name).subscribe();
+
+    this.pollDeploy(taskId).subscribe(response => {
+      const currentTask = this.tasks[taskId];
+      this._changedSubject.next(response);
+
+      switch (response.state) {
+        case DeployStates.SUCCEEDED:
+          message.unsubscribe();
+          currentTask.taskDetails.progress = 100;
+          currentTask.trackedTask.state = VmwTaskState.COMPLETED;
+          currentTask.taskDetails.description = this.translate.instant('nodes.deployClientSuccess');
+          break;
+
+        case DeployStates.FAILED:
+          message.unsubscribe();
+          currentTask.taskDetails.progress = 0;
+          currentTask.trackedTask.state = VmwTaskState.ERROR;
+          currentTask.taskDetails.description = `${this.translate.instant('nodes.deployClientFailed')} ${taskId}`;
+          break;
+      }
+    });
+  }
+
 
   //
   // This is using the deprecated API and should be removed at some point

@@ -7,6 +7,11 @@ import { Routes } from '@angular/router';
 import { NodesComponent } from './nodes/nodes.component';
 
 export const nodeRoutes: Routes = [
-  { path: '', component: NodesComponent }
+  {
+    path: ':nodeType', component: NodesComponent
+  },
+  {
+    path: '', redirectTo: 'committers', pathMatch: 'full'
+  }
 ];
 

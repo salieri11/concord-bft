@@ -1,0 +1,23 @@
+<clr-modal [(clrModalOpen)]="isOpen">
+    <h3 class="modal-title">{{ 'nodes.deployClient' | translate }}</h3>
+    <div class="modal-body">
+      <form clrForm [formGroup]="deployClient" (ngSubmit)="deploy()">
+<!--           <clr-input-container>
+              <label>{{ 'common.name' | translate }}</label>
+              <input clrInput type="text" formControlName="name" />
+          </clr-input-container> -->
+          <clr-select-container>
+            <label>{{ 'zones.detail.title' | translate }}</label>
+            <select clrSelect formControlName="zone">
+              <option *ngFor="let zone of zones" [value]="zone.id">
+                {{ zone.name }}
+              </option>
+            </select>
+          </clr-select-container>
+      </form>
+    </div>
+    <div class="modal-footer">
+        <button type="button" class="btn btn-outline" (click)="closeModal()">{{ 'common.cancel' | translate }}</button>
+        <button type="button" class="btn btn-primary" (click)="deploy()" [disabled]="deployClient.invalid">{{ 'common.deploy' | translate }}</button>
+    </div>
+</clr-modal>

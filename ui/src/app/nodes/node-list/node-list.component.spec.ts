@@ -8,8 +8,10 @@ import { HttpClientTestingModule } from '@angular/common/http/testing';
 
 import { MockSharedModule } from '../../shared/shared.module';
 import { NodeListComponent } from './node-list.component';
+import { DeployClientComponent } from './../deploy-client/deploy-client.component';
 import { NodesStatusFilterComponent } from '../nodes-status-filter/nodes-status-filter.component';
 import { VmwCopyToClipboardButtonComponent } from '../../shared/components/copy-to-clipboard-button/copy-to-clipboard-button.component';
+import { CanViewDirective } from '../../shared/directives/can-view.directive';
 
 describe('NodeListComponent', () => {
   let component: NodeListComponent;
@@ -25,7 +27,9 @@ describe('NodeListComponent', () => {
       declarations: [
         NodeListComponent,
         NodesStatusFilterComponent,
-        VmwCopyToClipboardButtonComponent
+        VmwCopyToClipboardButtonComponent,
+        DeployClientComponent,
+        CanViewDirective
       ]
     })
     .compileComponents();

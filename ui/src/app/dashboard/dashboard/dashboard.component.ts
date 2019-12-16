@@ -157,7 +157,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     return {
       headers: ['nodes.hostname', 'nodes.address', 'nodes.health'],
       displayProperties: ['name', 'public_ip', 'healthHTML'],
-      tableHeader: 'nodes.nodes',
+      tableHeader: 'nodes.committers',
       paginationSummary: 'nodes.paginationSummary',
     };
   }
