@@ -100,7 +100,7 @@ class KVBCValidator(implicit ec: ExecutionContext)
         act
       } catch {
         case e: Throwable =>
-          logger.error(s"Exception: $e")
+          logger.error(s"Submission validation failed, exception='$e'")
           throw e
       } finally {
         val _ = ctx.stop()
@@ -109,17 +109,19 @@ class KVBCValidator(implicit ec: ExecutionContext)
 
   def validatePendingSubmission(request: ValidatePendingSubmissionRequest): Future[ValidatePendingSubmissionResponse] = catchedTimedFutureThunk(Metrics.validatePendingTimer) {
     val replicaId = request.replicaId
-    logger.trace(s"Completing submission: replicaId=$replicaId, entryId=${request.entryId.toStringUtf8}")
+    val correlationId = request.correlationId;
+
+    logger.trace(s"Completing submission, replicaId=$replicaId correlationId=$correlationId")
 
     val pendingSubmission =
         pendingSubmissions
           .remove(replicaId)
-          .getOrElse(sys.error(s"No pending submission for ${replicaId}!"))
+          .getOrElse(sys.error(s"No pending submission for ${replicaId}, correlationId=$correlationId"))
 
     Metrics.pendingSubmissions.dec()
 
     if (pendingSubmission.entryId != request.entryId) {
-      sys.error(s"Pending submission was for different entryId: ${pendingSubmission.entryId} != ${request.entryId}")
+      sys.error(s"Entry ids don't match, pending=${pendingSubmission.entryId} supplied=${request.entryId} correlationId=$correlationId")
     }
 
     val providedInputs: StateInputs =
@@ -136,7 +138,7 @@ class KVBCValidator(implicit ec: ExecutionContext)
                 cache.put(replicaId -> key, v)
                 Some(v)
               case _ =>
-                logger.error(s"Corrupted state value of $key")
+                logger.error(s"Corrupted state value of $key, correlationId=$correlationId")
                 throw new StatusRuntimeException(
                   Status.INVALID_ARGUMENT.withDescription("Corrupted input state value")
                 )
@@ -147,7 +149,8 @@ class KVBCValidator(implicit ec: ExecutionContext)
 
     val result = processPendingSubmission(
       replicaId,
-      pendingSubmission.copy(inputState = pendingSubmission.inputState ++ providedInputs)
+      pendingSubmission.copy(inputState = pendingSubmission.inputState ++ providedInputs),
+      correlationId
     )
     ValidatePendingSubmissionResponse(Some(result))
   }
@@ -155,8 +158,9 @@ class KVBCValidator(implicit ec: ExecutionContext)
   def validateSubmission(request: ValidateRequest): Future[ValidateResponse] = catchedTimedFutureThunk(Metrics.validateTimer) {
     val replicaId = request.replicaId
     val participantId = Ref.LedgerString.assertFromString(request.participantId)
+    val correlationId = request.correlationId;
 
-    logger.trace(s"Validating submission: replicaId=$replicaId, participantId=${request.participantId}, entryId=${request.entryId.toStringUtf8}")
+    logger.trace(s"Validating submission, replicaId=$replicaId participantId=${request.participantId} correlationId=$correlationId")
 
     Metrics.submissionSizes.update(request.submission.size())
 
@@ -165,7 +169,7 @@ class KVBCValidator(implicit ec: ExecutionContext)
       Envelope.open(request.submission) match {
         case Right(Envelope.SubmissionMessage(submission)) => submission
         case _ =>
-          logger.error("Failed to parse submission")
+          logger.error("Failed to parse submission, correlationId=$correlationId")
           throw new StatusRuntimeException(
             Status.INVALID_ARGUMENT.withDescription("Unparseable submission")
           )
@@ -192,7 +196,7 @@ class KVBCValidator(implicit ec: ExecutionContext)
     Metrics.missingInputs.update(missingInputs.size)
 
     if (missingInputs.nonEmpty) {
-      logger.info(s"Requesting ${missingInputs.size} missing inputs...")
+      logger.trace(s"Requesting ${missingInputs.size} missing inputs, correlationId=$correlationId")
       pendingSubmissions(replicaId) = pendingSubmission
       Metrics.pendingSubmissions.inc()
       ValidateResponse(
@@ -202,13 +206,13 @@ class KVBCValidator(implicit ec: ExecutionContext)
     } else {
       ValidateResponse(
         ValidateResponse.Response.Result(
-          processPendingSubmission(replicaId, pendingSubmission)
+          processPendingSubmission(replicaId, pendingSubmission, correlationId)
         )
       )
     }
   }
 
-  private def processPendingSubmission(replicaId: ReplicaId, pendingSubmission: PendingSubmission): Result = {
+  private def processPendingSubmission(replicaId: ReplicaId, pendingSubmission: PendingSubmission, correlationId: String): Result = {
     val submission = pendingSubmission.submission
     val allInputs: Set[KV.DamlStateKey] = submission.getInputDamlStateList.asScala.toSet
     assert((allInputs -- pendingSubmission.inputState.keySet).isEmpty)
@@ -244,9 +248,9 @@ class KVBCValidator(implicit ec: ExecutionContext)
     }
     Metrics.outputSizes.update(result.logEntry.size())
 
-    logger.info(s"Submission validated. entryId=${pendingSubmission.entryId.toStringUtf8} " +
-      s"participantId=${pendingSubmission.participantId} inputStates=${pendingSubmission.inputState.size} stateUpdates=${stateUpdates.size} " +
-      s"resultPayload=${logEntry.getPayloadCase.toString} ")
+    logger.info(s"Submission validated, correlationId=$correlationId participantId=${pendingSubmission.participantId} " +
+      s"entryId=${pendingSubmission.entryId.toStringUtf8} inputStates=${pendingSubmission.inputState.size} stateUpdates=${stateUpdates.size} " +
+      s"resultPayload=${logEntry.getPayloadCase.toString} recordTime=${pendingSubmission.recordTime.toString}")
     result
   }
 

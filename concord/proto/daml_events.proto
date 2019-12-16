@@ -25,5 +25,7 @@ message CommittedTx {
 
   // The transaction id, that is, the key at which the transaction is stored.
   bytes transaction_id = 2;
+
+  string correlation_id = 3;
 }
 
