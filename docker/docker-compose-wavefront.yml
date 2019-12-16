@@ -1,0 +1,49 @@
+# Docker-compose overlay adding the path from Concord to Wavefront.
+#
+# Use:
+#   1. `export WAVEFRONT_TOKEN="your-wavefront-api-token"` in your shell
+#   2. If you're not using vmware's sandbox wavefront, also
+#      `export WAVEFRONT_URL="https://your.wavefront.com/api/"`
+#   3. docker-compose -f [the compose file for concord et al] \
+#                     -f docker-compose-wavefront.yml
+#                     up
+
+version: '3'
+services:
+  concord1:
+    depends_on:
+      - jaeger-agent
+
+  concord2:
+    depends_on:
+      - jaeger-agent
+
+  concord3:
+    depends_on:
+      - jaeger-agent
+
+  concord4:
+    depends_on:
+      - jaeger-agent
+
+  jaeger-agent:
+    image: jaegertracing/jaeger-agent:1.11
+    ports:
+      - 5775:5775/udp
+      - 6831:6831/udp
+      - 6832:6832/udp
+      - 5778:5778/tcp
+    environment:
+      REPORTER_TCHANNEL_HOST_PORT: wavefront-proxy:14267
+      REPORTER_TYPE: tchannel
+    depends_on:
+      - wavefront-proxy
+
+  wavefront-proxy:
+    image: wavefronthq/proxy:5.7
+    ports:
+      - 14267:14267/tcp
+    environment:
+      WAVEFRONT_URL: ${WAVEFRONT_URL:-https://vmware.wavefront.com/api/}
+      WAVEFRONT_TOKEN: ${WAVEFRONT_TOKEN:?Missing required WAVEFRONT_TOKEN in environment}
+      WAVEFRONT_PROXY_ARGS: --traceJaegerListenerPorts 14267
