@@ -16,6 +16,7 @@ import time
 
 from . import test_suite
 from util.product import Product
+from random import randrange
 
 log = logging.getLogger(__name__)
 
@@ -75,6 +76,9 @@ class HlfTests(test_suite.TestSuite):
    def run(self):
       '''Runs all tests
       '''
+      # cleanup chaincode containers from previous runs 
+      self.cleanUp()
+
       try:
          log.info("Launching product...")
          self.launchProduct(self._args,
@@ -103,12 +107,35 @@ class HlfTests(test_suite.TestSuite):
          info += "Log: <a href=\"{}\">{}</a>".format(relativeLogDir,
                                                      testLogDir)
          self.writeResult(testName, result, info)
+         if result == False: 
+            break 
 
       log.info("HLFTests are done.")
       return self._resultFile
 
+   def cleanUp(self):
+      '''
+      Cleanup from previous run 
+      
+      chaincode containers are not part of docker-compose, so need to be removed before tests are run
+      containers are named "dev.peer1.prg1.example.com=mycc-1.0" 
+
+      command to manually cleanup chain code container: 
+
+      $ docker rm -f $(docker ps -aq --filter name=dev.peer --filter name=org1.example.com-mycc-1.0)
+      '''
+
+      cmd = "docker ps -aq --filter name=dev.peer --filter name=org1.example.com-mycc-1.0"
+      p = subprocess.check_output(cmd.split())
+      containers = p.split()
+      if len(containers) > 0: 
+         cmd = ["docker", "rm", "-f"]
+         cmd += containers
+         subprocess.run(cmd)
+
    def _getTests(self):
-      return [("chaincode_fabcar_install", self._test_chaincode_fabcar_install),
+      return [("consensus_ping_pong", self._test_consensus_ping_pong),
+              ("chaincode_fabcar_install", self._test_chaincode_fabcar_install),
               ("chaincode_fabcar_invoke_init_ledger",
                   self._test_chaincode_fabcar_invoke_init_ledger),
               ("chaincode_fabcar_invoke_change_car_owner",
@@ -118,9 +145,8 @@ class HlfTests(test_suite.TestSuite):
               ("chaincode_fabcar_query_history",
                   self._test_chaincode_fabcar_query_history),
               ("chaincode_fabcar_query_range_state",
-                  self._test_chaincode_fabcar_query_range_state),
-              ("chaincode_fabcar_upgrade", self._test_chaincode_fabcar_upgrade)
-              ]
+                  self._test_chaincode_fabcar_query_range_state)]
+            #   ("chaincode_fabcar_upgrade", self._test_chaincode_fabcar_upgrade)]
 
    def _test_chaincode_fabcar_install(self):
        '''
@@ -139,12 +165,12 @@ class HlfTests(test_suite.TestSuite):
        this article: 
        https://hyperledger-fabric.readthedocs.io/en/release-1.3/chaincode4noah.html
        '''
+       cmds = ["docker exec -t concord1 " \
+             "./conc_hlf_client -p 50051 -i {\"Args\":[\"init\"]} " \
+             "-f /concord/src/chaincode/fabcar/go/fabcar.go" \
+             " -m install -c mycc -v 1.0"]
 
-       cmds = ["docker exec -t concord-client " \
-             "./conc_hlf_client -a concord1 -p 50051 -i {\"Args\":[\"init\"]} " \
-             "-f src/chaincode/fabcar/go/fabcar.go " \
-             "-m install -c mycc -v 1.0"]
-
+       log.debug(cmds)
        for cmd in cmds:
           try:
              c = subprocess.run(cmd.split(), check=True, timeout=1000, stdout=subprocess.PIPE)
@@ -162,6 +188,39 @@ class HlfTests(test_suite.TestSuite):
 
        return (True, None)
 
+   def _test_consensus_ping_pong(self):
+       '''
+       Test the ping command for concord-hlf 
+
+       This will send the ping request through consensus and reply with "Ponmg" on seccess. 
+
+       The expected output is as follow:
+         '{"data": "Pong", "status": 0}'  
+       '''
+       cmds = ["docker exec -t concord" + str(randrange(4)+1) + \
+             " ./conc_hlf_client -p 50051 -t ping"]
+
+       log.info(cmds)
+       for cmd in cmds:
+          try:
+             c = subprocess.run(cmd.split(), check=True, timeout=1000, stdout=subprocess.PIPE)
+          except subprocess.TimeoutExpired as e:
+             log.error("HLF Ping timeout: %s", str(e))
+             return (False, str(e))
+          except subprocess.CalledProcessError as e:
+             log.error("HLF Ping returned error code: %s", str(e))
+             return (False, str(e))
+
+          result = str(c.stdout)
+          log.debug(result)
+          if StatusOk not in result:
+             return (False, "HLF Ping Concord returned Non-zero status.")
+            
+          if "data: \"Pong\"" not in result: 
+            return (False, "HLF Ping Sent - Expected Pong.")
+
+       return (True, None)
+
    def _test_chaincode_fabcar_upgrade(self):
        '''
        Test the upgrade of the chaincode "fabcar"
@@ -175,8 +234,8 @@ class HlfTests(test_suite.TestSuite):
          '{"data": "Successfully upgraded chaincode: mycc", "status": 0}'
        '''
 
-       cmd = "docker exec -t concord-client " \
-             "./conc_hlf_client -a concord1 -p 50051 -m upgrade " \
+       cmd = "docker exec -t concord1 " \
+             "./conc_hlf_client -p 50051 -m upgrade " \
              "-f src/chaincode/fabcar/go/fabcar.go -c mycc -i {\"Args\":[\"init\"]} -v 2.0"
        try:
           c = subprocess.run(cmd.split(), check=True, timeout=10000, stdout=subprocess.PIPE)
@@ -192,7 +251,7 @@ class HlfTests(test_suite.TestSuite):
        if StatusOk in result:
           return (True, None)
        else:
-          return (False, "Concord returned Non-zero status.")
+          return (False, "Concord upgrade returned Non-zero status.")
 
    def _test_chaincode_fabcar_invoke_init_ledger(self):
        '''
@@ -211,30 +270,31 @@ class HlfTests(test_suite.TestSuite):
 
        If invoke successfully, then call chaincode query to verify the data.
        '''
+       loop = 5
+       for i in range(loop):
+         cmd = "docker exec -t concord" + str(randrange(4)+1) + \
+               " ./conc_hlf_client -p 50051 -m invoke -c mycc -i {\"function\":\"initLedger\",\"Args\":[]}"
 
-       # sleep 3 secodes for peer to commit the block
-       time.sleep(3)
+         time.sleep(i+1)
+         try:
+            c = subprocess.run(cmd.split(), check=True, timeout=1000, stdout=subprocess.PIPE)
+         except subprocess.TimeoutExpired as e:
+            log.error("Chaincode invoke timeout: %s", str(e))
+            return (False, str(e))
+         except subprocess.CalledProcessError as e:
+            log.error("Chaincode invoke returned error code: %s", str(e))
+            return (False, str(e))
 
-       cmd = "docker exec -t concord-client " \
-             "./conc_hlf_client -a concord1 -p 50051 -m invoke -c mycc -i {\"Function\":\"initLedger\",\"Args\":[]}"
-       try:
-          c = subprocess.run(cmd.split(), check=True, timeout=1000, stdout=subprocess.PIPE)
-       except subprocess.TimeoutExpired as e:
-          log.error("Chaincode invoke timeout: %s", str(e))
-          return (False, str(e))
-       except subprocess.CalledProcessError as e:
-          log.error("Chaincode invoke returned error code: %s", str(e))
-          return (False, str(e))
-
-       result = str(c.stdout)
-       log.debug(result)
-       if StatusOk in result:
-           return self._test_chaincode_query(
-                   "{\"function\":\"queryCar\",\"Args\":[\"CAR0\"]}",
-                   "\"owner\":\"Tomoko\"")
-       else:
-          return (False, "Concord returned Non-zero status.")
-       return (True, None)
+         result = str(c.stdout)
+         log.debug(result)
+         if StatusOk in result:
+            return self._test_chaincode_query(
+                     "{\"function\":\"queryCar\",\"Args\":[\"CAR0\"]}",
+                     "\"owner\":\"Tomoko\"")
+         elif i < loop-1:
+            log.warning("Concord invoke returned Non-zero status. try again " + str(i) )
+         else:
+            return (False, "Concord invoke returned Non-zero status.")
 
    def _test_chaincode_fabcar_invoke_change_car_owner(self):
        '''
@@ -248,9 +308,8 @@ class HlfTests(test_suite.TestSuite):
 
        If invoke successfully, then call chaincode query to verify the data.
        '''
-
-       cmd = "docker exec -t concord-client " \
-             "./conc_hlf_client -a concord1 -p 50051 -m invoke -c mycc -i {\"Function\":\"changeCarOwner\",\"Args\":[\"CAR0\",\"Luke\"]}"
+       cmd = "docker exec -t concord" + str(randrange(4)+1) + \
+             " ./conc_hlf_client -p 50051 -m invoke -c mycc -i {\"Function\":\"changeCarOwner\",\"Args\":[\"CAR0\",\"Luke\"]}"
        try:
           c = subprocess.run(cmd.split(), check=True, timeout=1000, stdout=subprocess.PIPE)
        except subprocess.TimeoutExpired as e:
@@ -267,7 +326,7 @@ class HlfTests(test_suite.TestSuite):
                   "{\"function\":\"queryCar\",\"Args\":[\"CAR0\"]}",
                   "\"owner\":\"Luke\"")
        else:
-          return (False, "Concord returned Non-zero status.")
+          return (False, "Concord invoke returned Non-zero status.")
        return (True, None)
 
    def _test_chaincode_fabcar_invoke_create_car(self):
@@ -284,8 +343,8 @@ class HlfTests(test_suite.TestSuite):
        If invoke successfully, then call chaincode query to verify the data.
        '''
 
-       cmd = "docker exec -t concord-client " \
-             "./conc_hlf_client -a concord1 -p 50051 -m invoke -c mycc -i {\"Function\":\"createCar\",\"Args\":[\"CAR99\",\"Make99\",\"Model99\",\"Colour99\",\"Owner99\"]}"
+       cmd = "docker exec -t concord" + str(randrange(4)+1) + \
+             " ./conc_hlf_client -p 50051 -m invoke -c mycc -i {\"Function\":\"createCar\",\"Args\":[\"CAR99\",\"Make99\",\"Model99\",\"Colour99\",\"Owner99\"]}"
        try:
           c = subprocess.run(cmd.split(), check=True, timeout=1000, stdout=subprocess.PIPE)
        except subprocess.TimeoutExpired as e:
@@ -302,7 +361,7 @@ class HlfTests(test_suite.TestSuite):
                   "{\"function\":\"queryCar\",\"Args\":[\"CAR99\"]}",
                   "\"owner\":\"Owner99\"")
        else:
-          return (False, "Concord returned Non-zero status.")
+          return (False, "Concord invoke returned Non-zero status.")
        return (True, None)
 
    def _test_chaincode_query(self, query_input, expected_result=StatusOk):
@@ -313,8 +372,8 @@ class HlfTests(test_suite.TestSuite):
        verify the result.
 
        '''
-       cmd = "docker exec -t concord-client " \
-             "./conc_hlf_client -a concord1 -p 50051 -m query -c mycc -i " + query_input
+       cmd = "docker exec -t concord" + str(randrange(4)+1) + \
+             " ./conc_hlf_client -p 50051 -m query -c mycc -i " + query_input
        try:
           c = subprocess.run(cmd.split(), check=True, timeout=1000, stdout=subprocess.PIPE)
        except subprocess.TimeoutExpired as e:
@@ -329,7 +388,7 @@ class HlfTests(test_suite.TestSuite):
        if expected_result in result:
           return (True, None)
        else:
-          return (False, "Concord returned Non-zero status.")
+          return (False, "Concord query returned Non-zero status.")
 
    def _test_chaincode_fabcar_query_history(self):
     '''
@@ -338,8 +397,8 @@ class HlfTests(test_suite.TestSuite):
     Query the historical value of the "CAR0" key.
 
     '''
-    cmd = "docker exec -t concord-client " \
-          "./conc_hlf_client -a concord1 -p 50051 -m query -c mycc -i {\"function\":\"queryCarHistory\",\"Args\":[\"CAR0\"]}" 
+    cmd = "docker exec -t concord" + str(randrange(4)+1) + \
+          " ./conc_hlf_client -p 50051 -m query -c mycc -i {\"function\":\"queryCarHistory\",\"Args\":[\"CAR0\"]}" 
     try:
        c = subprocess.run(cmd.split(), check=True, timeout=1000, stdout=subprocess.PIPE)
     except subprocess.TimeoutExpired as e:
@@ -354,7 +413,7 @@ class HlfTests(test_suite.TestSuite):
     if "Tomoko" in result and "Luke" in result:
        return (True, None)
     else:
-       return (False, "Concord returned Non-zero status.")
+       return (False, "Concord query history returned Non-zero status.")
 
    def _test_chaincode_fabcar_initial(self):
        '''
@@ -362,8 +421,8 @@ class HlfTests(test_suite.TestSuite):
 
        "initial" combines upload, install, instantiate three steps into one.
        '''
-       cmd = "docker exec -t concord-client " \
-             "./conc_hlf_client -p 50051 -a concord1 -m initial -c mycc2 -i {\"Function\":\"initLedger\",\"Args\":[]} \
+       cmd = "docker exec -t concord" + str(randrange(4)+1) + \
+             " ./conc_hlf_client -p 50051 -m invoke -c mycc -i {\"Function\":\"initLedger\",\"Args\":[]} \
              -v 1.0 -f src/chaincode/fabcar/go/fabcar.go"
        try:
           c = subprocess.run(cmd.split(), check=True, timeout=1000, stdout=subprocess.PIPE)
@@ -388,8 +447,8 @@ class HlfTests(test_suite.TestSuite):
        Peform the range query against key "CAR0" ~ "CAR99".
     
        '''
-       cmd = "docker exec -t concord-client " \
-             "./conc_hlf_client -a concord1 -p 50051 -m query -c mycc -i {\"function\":\"queryAllCars\",\"Args\":[\"\"]}" 
+       cmd = "docker exec -t concord" + str(randrange(4)+1) + \
+             " ./conc_hlf_client -p 50051 -m query -c mycc -i {\"function\":\"queryAllCars\",\"Args\":[\"\"]}" 
        try:
           c = subprocess.run(cmd.split(), check=True, timeout=1000, stdout=subprocess.PIPE)
        except subprocess.TimeoutExpired as e:

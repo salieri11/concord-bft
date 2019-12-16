@@ -1,39 +1,24 @@
 version: '3'
 
 networks:
-  basic-1:
+  hlf:
+  fabric-1:
+  fabric-2:
+  fabric-3:
+  fabric-4:
 
 services:
-# Copy peer tool to shared dir
-  initial:
-    container_name: initial
-    image: "${hlf_tools_base_repo}:${hlf_tools_base_tag}"
-    volumes:
-      - ./hlf:/hlf
-    command: /bin/bash -c 'cp /usr/local/bin/peer /hlf/peer; sleep 3600;'
-
 # Concord-Hlf cluster 1
   orderer1.example.com:
     container_name: orderer1.example.com
-    image: "${hlf_orderer_base_repo}:${hlf_orderer_base_tag}"
-    environment:
-      - ORDERER_GENERAL_LOGLEVEL=info
-      - ORDERER_GENERAL_LISTENADDRESS=0.0.0.0
-      - ORDERER_GENERAL_GENESISMETHOD=file
-      - ORDERER_GENERAL_GENESISFILE=/etc/hyperledger/configtx/genesis.block
-      - ORDERER_GENERAL_LOCALMSPID=OrdererMSP
-      - ORDERER_GENERAL_LOCALMSPDIR=/etc/hyperledger/msp/orderer/msp
-      - ORDERER_GENERAL_GENESISPROFILE=SampleDevModeSolo
-    working_dir: /opt/gopath/src/github.com/hyperledger/fabric/orderer
+    image: "${hlf_orderer_repo}:${hlf_orderer_tag}"
     command: orderer
     ports:
-      - 7050:7050
+      - 7050
+    networks:
+      - fabric-1
     volumes:
       - ./hlf/configtx-peer1/:/etc/hyperledger/configtx
-      - ./hlf/crypto-config/ordererOrganizations/example.com/orderers/orderer.example.com/:/etc/hyperledger/msp/orderer
-      - ./hlf/crypto-config/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/:/etc/hyperledger/msp/peerOrg1
-    networks:
-      - basic-1
 
   peer1.org1.example.com:
     container_name: peer1.org1.example.com
@@ -48,58 +33,33 @@ services:
       - CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/msp/peer/
       - CORE_PEER_ADDRESS=peer1.org1.example.com:7051
       - CORE_PEER_CHAINCODELISTENADDRESS=0.0.0.0:7052
-      - CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=docker_basic-1
+      - CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=docker_fabric-1
       - CORE_CONCORD_ADDRESS=concord1:50052
     working_dir: /opt/gopath/src/github.com/hyperledger/fabric
     command: peer node start
     ports:
-      - 7051:7051
-      - 7052:7052
-      - 7053:7053
+      - 7051
     volumes:
       - /var/run/:/host/var/run/
       - ./hlf/crypto-config/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/msp:/etc/hyperledger/msp/peer
       - ./hlf/crypto-config/peerOrganizations/org1.example.com/users:/etc/hyperledger/msp/users
       - ./hlf/configtx-peer1/:/etc/hyperledger/configtx
-    depends_on:
-      - orderer1.example.com
     networks:
-      - basic-1
+      - fabric-1
 
   cli1:
     container_name: cli1
-    image: "${hlf_tools_base_repo}:${hlf_tools_base_tag}"
-    tty: true
+    image: "${hlf_tools_repo}:${hlf_tools_tag}"
+    networks:
+      - fabric-1
     environment:
-      - GOPATH=/opt/gopath
-      - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
-      - FABRIC_LOGGING_SPEC=info
-      - CORE_PEER_ID=cli
       - CORE_PEER_ADDRESS=peer1.org1.example.com:7051
       - CORE_ORDERER_ADDRESS=orderer1.example.com:7050
-      - CORE_PEER_LOCALMSPID=Org1MSP
-      - CORE_PEER_MSPCONFIGPATH=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/org1.example.com/users/Admin@org1.example.com/msp
-      - CORE_CHAINCODE_KEEPALIVE=10
-    working_dir: /opt/gopath/src/github.com/hyperledger/fabric/peer
-    command: /bin/bash initialize_channel.sh
-    volumes:
-      - /var/run/:/host/var/run/
-      - ./hlf/crypto-config:/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/
-      - ./hlf/configtx-peer1/:/etc/hyperledger/configtx
-      - ./hlf/scripts/initialize_channel.sh:/opt/gopath/src/github.com/hyperledger/fabric/peer/initialize_channel.sh
-    networks:
-      - basic-1
-    depends_on:
-      - peer1.org1.example.com
 
   concord1:
     container_name: concord1
     image: "${concord_repo}:${concord_tag}"
     privileged: true
-    environment:
-      - GOPATH=/concord
-       # gRPC port
-      - CONCORD_KV_SERVICE=0.0.0.0:50052
     expose:
       - 50052
       - 5458
@@ -108,45 +68,28 @@ services:
       - 3503/udp
       - 3504/udp
       - 3505/udp
-    ports:
-      - 5458:5458
     volumes:
       - ./devdata/rocksdbdata1:/concord/rocksdbdata
       - ./devdata/log1:/concord/log
       - ./config-public:/concord/config-public:ro
       - ./config-concord1:/concord/config-local
-      - ./hlf/core.yaml:/concord/core.yaml
-      - ./hlf/peer:/concord/peer:ro
-      - ./hlf/crypto-config:/concord/crypto-config
       - ./tls_certs:/concord/tls_certs:ro
+      - ../hermes/resources/chaincode:/concord/src/chaincode
     networks:
-      - basic-1
-    depends_on:
-      - initial
-
+      - fabric-1
+      - hlf 
 
 # Concord-Hlf cluster 2
   orderer2.example.com:
     container_name: orderer2.example.com
-    image: "${hlf_orderer_base_repo}:${hlf_orderer_base_tag}"
-    environment:
-      - ORDERER_GENERAL_LOGLEVEL=info
-      - ORDERER_GENERAL_LISTENADDRESS=0.0.0.0
-      - ORDERER_GENERAL_GENESISMETHOD=file
-      - ORDERER_GENERAL_GENESISFILE=/etc/hyperledger/configtx/genesis.block
-      - ORDERER_GENERAL_LOCALMSPID=OrdererMSP
-      - ORDERER_GENERAL_LOCALMSPDIR=/etc/hyperledger/msp/orderer/msp
-      - ORDERER_GENERAL_GENESISPROFILE=SampleDevModeSolo
-    working_dir: /opt/gopath/src/github.com/hyperledger/fabric/orderer
+    image: "${hlf_orderer_repo}:${hlf_orderer_tag}"
     command: orderer
     ports:
-      - 8050:7050
-    volumes:
-        - ./hlf/configtx-peer2/:/etc/hyperledger/configtx
-        - ./hlf/crypto-config/ordererOrganizations/example.com/orderers/orderer.example.com/:/etc/hyperledger/msp/orderer
-        - ./hlf/crypto-config/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/:/etc/hyperledger/msp/peerOrg1
+      - 7050
     networks:
-      - basic-1
+      - fabric-2
+    volumes:
+      - ./hlf/configtx-peer2/:/etc/hyperledger/configtx
 
   peer2.org1.example.com:
     container_name: peer2.org1.example.com
@@ -161,58 +104,33 @@ services:
       - CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/msp/peer/
       - CORE_PEER_ADDRESS=peer2.org1.example.com:7051
       - CORE_PEER_CHAINCODELISTENADDRESS=0.0.0.0:7052
-      - CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=docker_basic-1
+      - CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=docker_fabric-2
       - CORE_CONCORD_ADDRESS=concord2:50052
     working_dir: /opt/gopath/src/github.com/hyperledger/fabric
     command: peer node start
     ports:
-      - 8051:7051
+      - 7051
     volumes:
       - /var/run/:/host/var/run/
       - ./hlf/crypto-config/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/msp:/etc/hyperledger/msp/peer
       - ./hlf/crypto-config/peerOrganizations/org1.example.com/users:/etc/hyperledger/msp/users
       - ./hlf/configtx-peer2/:/etc/hyperledger/configtx
-      - ./tls_certs:/concord/tls_certs:ro
-    depends_on:
-      - orderer2.example.com
     networks:
-      - basic-1
+      - fabric-2
 
   cli2:
     container_name: cli2
-    image: "${hlf_tools_base_repo}:${hlf_tools_base_tag}"
-    tty: true
+    image: "${hlf_tools_repo}:${hlf_tools_tag}"
+    networks:
+      - fabric-2
     environment:
-      - GOPATH=/opt/gopath
-      - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
-        #- CORE_LOGGING_LEVEL=info
-      - FABRIC_LOGGING_SPEC=info
-      - CORE_PEER_ID=cli
       - CORE_PEER_ADDRESS=peer2.org1.example.com:7051
       - CORE_ORDERER_ADDRESS=orderer2.example.com:7050
-      - CORE_PEER_LOCALMSPID=Org1MSP
-      - CORE_PEER_MSPCONFIGPATH=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/org1.example.com/users/Admin@org1.example.com/msp
-      - CORE_CHAINCODE_KEEPALIVE=10
-    working_dir: /opt/gopath/src/github.com/hyperledger/fabric/peer
-    command: /bin/bash initialize_channel.sh
-    volumes:
-      - /var/run/:/host/var/run/
-      - ./hlf/crypto-config:/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/
-      - ./hlf/configtx-peer2/:/etc/hyperledger/configtx
-      - ./hlf/scripts/initialize_channel.sh:/opt/gopath/src/github.com/hyperledger/fabric/peer/initialize_channel.sh
-    networks:
-      - basic-1
-    depends_on:
-      - peer2.org1.example.com
 
   concord2:
     container_name: concord2
     image: "${concord_repo}:${concord_tag}"
     privileged: true
-    environment:
-      - GOPATH=/concord
-       # gRPC port
-      - CONCORD_KV_SERVICE=0.0.0.0:50052
     expose:
       - 50052
       - 5458
@@ -221,44 +139,28 @@ services:
       - 3503/udp
       - 3504/udp
       - 3505/udp
-    ports:
-      - 5459:5458
     volumes:
       - ./devdata/rocksdbdata2:/concord/rocksdbdata
       - ./devdata/log2:/concord/log
       - ./config-public:/concord/config-public:ro
       - ./config-concord2:/concord/config-local
-      - ./hlf/core.yaml:/concord/core.yaml
-      - ./hlf/peer:/concord/peer:ro
-      - ./hlf/crypto-config:/concord/crypto-config
       - ./tls_certs:/concord/tls_certs:ro
     networks:
-      - basic-1
-    depends_on:
-      - initial
+      - fabric-2
+      - hlf
+
 
 # Concord-Hlf cluster 3
   orderer3.example.com:
     container_name: orderer3.example.com
-    image: "${hlf_orderer_base_repo}:${hlf_orderer_base_tag}"
-    environment:
-      - ORDERER_GENERAL_LOGLEVEL=info
-      - ORDERER_GENERAL_LISTENADDRESS=0.0.0.0
-      - ORDERER_GENERAL_GENESISMETHOD=file
-      - ORDERER_GENERAL_GENESISFILE=/etc/hyperledger/configtx/genesis.block
-      - ORDERER_GENERAL_LOCALMSPID=OrdererMSP
-      - ORDERER_GENERAL_LOCALMSPDIR=/etc/hyperledger/msp/orderer/msp
-      - ORDERER_GENERAL_GENESISPROFILE=SampleDevModeSolo
-    working_dir: /opt/gopath/src/github.com/hyperledger/fabric/orderer
+    image: "${hlf_orderer_repo}:${hlf_orderer_tag}"
     command: orderer
     ports:
-      - 9050:7050
+      - 7050
+    networks:
+      - fabric-3
     volumes:
       - ./hlf/configtx-peer3/:/etc/hyperledger/configtx
-      - ./hlf/crypto-config/ordererOrganizations/example.com/orderers/orderer.example.com/:/etc/hyperledger/msp/orderer
-      - ./hlf/crypto-config/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/:/etc/hyperledger/msp/peerOrg1
-    networks:
-      - basic-1
 
   peer3.org1.example.com:
     container_name: peer3.org1.example.com
@@ -273,57 +175,34 @@ services:
       - CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/msp/peer/
       - CORE_PEER_ADDRESS=peer3.org1.example.com:7051
       - CORE_PEER_CHAINCODELISTENADDRESS=0.0.0.0:7052
-      - CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=docker_basic-1
+      - CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=docker_fabric-3
       - CORE_CONCORD_ADDRESS=concord3:50052
     working_dir: /opt/gopath/src/github.com/hyperledger/fabric
     command: peer node start
     ports:
-      - 9051:7051
+      - 7051
     volumes:
       - /var/run/:/host/var/run/
       - ./hlf/crypto-config/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/msp:/etc/hyperledger/msp/peer
       - ./hlf/crypto-config/peerOrganizations/org1.example.com/users:/etc/hyperledger/msp/users
-      - ./hlf/configtx-peer3:/etc/hyperledger/configtx
-      - ./tls_certs:/concord/tls_certs:ro
-    depends_on:
-      - orderer3.example.com
+      - ./hlf/configtx-peer3/:/etc/hyperledger/configtx
     networks:
-      - basic-1
+      - fabric-3
 
   cli3:
     container_name: cli3
-    image: "${hlf_tools_base_repo}:${hlf_tools_base_tag}"
-    tty: true
+    image: "${hlf_tools_repo}:${hlf_tools_tag}"
+    networks:
+      - fabric-3
     environment:
-      - GOPATH=/opt/gopath
-      - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
-      - FABRIC_LOGGING_SPEC=info
-      - CORE_PEER_ID=cli
       - CORE_PEER_ADDRESS=peer3.org1.example.com:7051
       - CORE_ORDERER_ADDRESS=orderer3.example.com:7050
-      - CORE_PEER_LOCALMSPID=Org1MSP
-      - CORE_PEER_MSPCONFIGPATH=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/org1.example.com/users/Admin@org1.example.com/msp
-      - CORE_CHAINCODE_KEEPALIVE=10
-    working_dir: /opt/gopath/src/github.com/hyperledger/fabric/peer
-    command: /bin/bash initialize_channel.sh
-    volumes:
-      - /var/run/:/host/var/run/
-      - ./hlf/configtx-peer3:/etc/hyperledger/configtx
-      - ./hlf/crypto-config:/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/
-      - ./hlf/scripts/initialize_channel.sh:/opt/gopath/src/github.com/hyperledger/fabric/peer/initialize_channel.sh
-    networks:
-      - basic-1
-    depends_on:
-      - peer3.org1.example.com
+
 
   concord3:
     container_name: concord3
     image: "${concord_repo}:${concord_tag}"
     privileged: true
-    environment:
-      - GOPATH=/concord
-       # gRPC port
-      - CONCORD_KV_SERVICE=0.0.0.0:50052
     expose:
       - 50052
       - 5458
@@ -332,51 +211,34 @@ services:
       - 3503/udp
       - 3504/udp
       - 3505/udp
-    ports:
-      - 5460:5458
     volumes:
       - ./devdata/rocksdbdata3:/concord/rocksdbdata
       - ./devdata/log3:/concord/log
       - ./config-public:/concord/config-public:ro
       - ./config-concord3:/concord/config-local
-      - ./hlf/core.yaml:/concord/core.yaml
-      - ./hlf/peer:/concord/peer:ro
-      - ./hlf/crypto-config:/concord/crypto-config
       - ./tls_certs:/concord/tls_certs:ro
     networks:
-      - basic-1
-    depends_on:
-      - initial
+      - fabric-3
+      - hlf
 
 # Concord-Hlf cluster 4
   orderer4.example.com:
     container_name: orderer4.example.com
-    image: "${hlf_orderer_base_repo}:${hlf_orderer_base_tag}"
-    environment:
-      - ORDERER_GENERAL_LOGLEVEL=info
-      - ORDERER_GENERAL_LISTENADDRESS=0.0.0.0
-      - ORDERER_GENERAL_GENESISMETHOD=file
-      - ORDERER_GENERAL_GENESISFILE=/etc/hyperledger/configtx/genesis.block
-      - ORDERER_GENERAL_LOCALMSPID=OrdererMSP
-      - ORDERER_GENERAL_LOCALMSPDIR=/etc/hyperledger/msp/orderer/msp
-      - ORDERER_GENERAL_GENESISPROFILE=SampleDevModeSolo
-    working_dir: /opt/gopath/src/github.com/hyperledger/fabric/orderer
+    image: "${hlf_orderer_repo}:${hlf_orderer_tag}"
     command: orderer
     ports:
-      - 10050:7050
+      - 7050
+    networks:
+      - fabric-4
     volumes:
       - ./hlf/configtx-peer4/:/etc/hyperledger/configtx
-      - ./hlf/crypto-config/ordererOrganizations/example.com/orderers/orderer.example.com/:/etc/hyperledger/msp/orderer
-      - ./hlf/crypto-config/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/:/etc/hyperledger/msp/peerOrg1
-    networks:
-      - basic-1
 
   peer4.org1.example.com:
     container_name: peer4.org1.example.com
     image: "${hlf_peer_base_repo}:${hlf_peer_base_tag}"
     environment:
       - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
-      - CORE_PEER_ID=peer0.org1.example.com
+      - CORE_PEER_ID=peer4.org1.example.com
       - CORE_LOGGING_LEVEL=INFO
       - CORE_LOGGING_PEER=DEBUG
       - CORE_CHAINCODE_LOGGING_LEVEL=debug
@@ -384,58 +246,33 @@ services:
       - CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/msp/peer/
       - CORE_PEER_ADDRESS=peer4.org1.example.com:7051
       - CORE_PEER_CHAINCODELISTENADDRESS=0.0.0.0:7052
-      - CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=docker_basic-1
+      - CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=docker_fabric-4
       - CORE_CONCORD_ADDRESS=concord4:50052
     working_dir: /opt/gopath/src/github.com/hyperledger/fabric
     command: peer node start
-    #command: peer node start --peer-chaincodedev=true
     ports:
-      - 10051:7051
+      - 7051
     volumes:
       - /var/run/:/host/var/run/
       - ./hlf/crypto-config/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/msp:/etc/hyperledger/msp/peer
       - ./hlf/crypto-config/peerOrganizations/org1.example.com/users:/etc/hyperledger/msp/users
       - ./hlf/configtx-peer4/:/etc/hyperledger/configtx
-    depends_on:
-      - orderer4.example.com
     networks:
-      - basic-1
+      - fabric-4
 
   cli4:
     container_name: cli4
-    image: "${hlf_tools_base_repo}:${hlf_tools_base_tag}"
-    tty: true
+    image: "${hlf_tools_repo}:${hlf_tools_tag}"
+    networks:
+      - fabric-4
     environment:
-      - GOPATH=/opt/gopath
-      - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
-      - FABRIC_LOGGING_SPEC=info
-      - CORE_PEER_ID=cli
       - CORE_PEER_ADDRESS=peer4.org1.example.com:7051
       - CORE_ORDERER_ADDRESS=orderer4.example.com:7050
-      - CORE_PEER_LOCALMSPID=Org1MSP
-      - CORE_PEER_MSPCONFIGPATH=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/org1.example.com/users/Admin@org1.example.com/msp
-      - CORE_CHAINCODE_KEEPALIVE=10
-    working_dir: /opt/gopath/src/github.com/hyperledger/fabric/peer
-    command: /bin/bash initialize_channel.sh
-    volumes:
-      - /var/run/:/host/var/run/
-      - ./hlf/configtx-peer4/:/etc/hyperledger/configtx
-      - ./hlf/crypto-config:/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/
-      - ./hlf/scripts/initialize_channel.sh:/opt/gopath/src/github.com/hyperledger/fabric/peer/initialize_channel.sh
-
-    networks:
-      - basic-1
-    depends_on:
-      - peer4.org1.example.com
 
   concord4:
     container_name: concord4
     image: "${concord_repo}:${concord_tag}"
     privileged: true
-    environment:
-      - GOPATH=/concord
-       # gRPC port
-      - CONCORD_KV_SERVICE=0.0.0.0:50052
     expose:
       - 50052
       - 5458
@@ -444,32 +281,14 @@ services:
       - 3503/udp
       - 3504/udp
       - 3505/udp
-    ports:
-      - 5461:5458
     volumes:
       - ./devdata/rocksdbdata4:/concord/rocksdbdata
       - ./devdata/log4:/concord/log
       - ./config-public:/concord/config-public:ro
       - ./config-concord4:/concord/config-local
-      - ./hlf/core.yaml:/concord/core.yaml
-      - ./hlf/peer:/concord/peer:ro
-      - ./hlf/crypto-config:/concord/crypto-config
       - ./tls_certs:/concord/tls_certs:ro
     networks:
-      - basic-1
-    depends_on:
-      - initial
+      - fabric-4
+      - hlf
 
-  concord-client:
-    container_name: concord-client
-    image: "${concord_repo}:${concord_tag}"
-    volumes:
-      - ../hermes/resources/chaincode:/concord/src/chaincode
-    networks:
-      - basic-1
-    command: /bin/bash -c 'sleep 99999999;'
-    depends_on:
-      - concord1
-      - concord2
-      - concord3
-      - concord4
+
