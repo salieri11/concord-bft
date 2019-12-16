@@ -12,5 +12,7 @@ export const environment = {
   csp: false,
   loginPath: undefined,
   refLink: undefined,
-  iamLink: undefined
+  iamLink: undefined,
+  helpUrl: undefined,
+  helpTopicUrl: undefined
 };

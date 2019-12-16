@@ -6,7 +6,6 @@ import { Component, NgZone, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { Router, ActivatedRoute, Params } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Subscription } from 'rxjs';
-import { ClrModal } from '@clr/angular';
 
 import { environment } from '../../../environments/environment';
 import { AuthenticationService } from '../../shared/authentication.service';
@@ -14,13 +13,15 @@ import { ErrorAlertService } from '../../shared/global-error-handler.service';
 import { BlockchainService } from '../../blockchain/shared/blockchain.service';
 import { Personas, PersonaService } from '../../shared/persona.service';
 import { TourService } from '../../shared/tour.service';
-import { RouteService } from '../../shared/route.service';
 
 import { BlockchainResponse } from '../../blockchain/shared/blockchain.model';
 import { External, mainRoutes, uuidRegExp } from '../../shared/urls.model';
 import { OrgProperties } from '../../orgs/shared/org.model';
 import { ZoneType } from '../../zones/shared/zones.model';
 
+import { ClrModal } from '@clr/angular';
+import { RouteService } from '../../shared/route.service';
+import { ContextualHelpService } from './../../shared/contextual-help.service';
 
 @Component({
   selector: 'concord-main',
@@ -85,6 +86,7 @@ export class MainComponent implements OnInit, OnDestroy {
     private tourService: TourService,
     private blockchainService: BlockchainService,
     private personaService: PersonaService,
+    private helpService: ContextualHelpService
   ) {
     this.env = environment;
     this.blockchainType = this.blockchainService.type;
@@ -169,7 +171,7 @@ export class MainComponent implements OnInit, OnDestroy {
       this.sidemenuVisible = true;
       this.routeService.outletEnabled = true;
 
-    // starts with /blockchain/: {welcome, deploy, deploying}
+      // starts with /blockchain/: {welcome, deploy, deploying}
     } else if (this.blockchainUnresolved) {
       this.navDisabled = true;
       this.sidemenuVisible = true;
@@ -180,7 +182,7 @@ export class MainComponent implements OnInit, OnDestroy {
         this.routeService.resumeUnfinishedDeployIfExists();
       }
 
-    // catch everything else (including 'undefined', 'login-return')
+      // catch everything else (including 'undefined', 'login-return')
     } else {
       this.navDisabled = false;
       this.sidemenuVisible = false;
@@ -255,7 +257,7 @@ export class MainComponent implements OnInit, OnDestroy {
     const maxChain = this.orgProps.max_chains;
     // Must be a system admin or consortium admin to deploy
     if (!(this.personaService.hasAuthorization(Personas.SystemsAdmin)
-         || this.personaService.hasAuthorization(Personas.ConsortiumAdmin))) {
+      || this.personaService.hasAuthorization(Personas.ConsortiumAdmin))) {
       this.enableDeploy = false;
 
       return this.enableDeploy;
@@ -271,6 +273,10 @@ export class MainComponent implements OnInit, OnDestroy {
     if (this.blockchainService.zones) {
       this.isOnPrem = this.blockchainService.zones.some((zone) => zone.type === ZoneType.ON_PREM);
     }
+  }
+
+  onClickToHelp() {
+    this.helpService.openHelpHome();
   }
 
 }

@@ -18,6 +18,7 @@ import {
   SmartContractVersion, SmartContractCompileResult
 } from '../shared/smart-contracts.model';
 import { newVersionValue } from '../shared/custom-validators';
+import { ContextualHelpService } from './../../shared/contextual-help.service';
 
 const addressValidators = [
   Validators.maxLength(ADDRESS_LENGTH),
@@ -67,7 +68,8 @@ export class ContractFormComponent implements OnInit {
     private changeDetectorRef: ChangeDetectorRef,
     private smartContractsService: SmartContractsService,
     private route: ActivatedRoute,
-    private translate: TranslateService
+    private translate: TranslateService,
+    private helpService: ContextualHelpService
   ) {
     this.smartContractForm = this.formBuilder.group({
       from: ['', [Validators.required, ...addressValidators]],
@@ -348,5 +350,9 @@ export class ContractFormComponent implements OnInit {
     } else {
       this.smartContractForm.get('runs').disable();
     }
+  }
+
+  onClickToHelp(helpId) {
+    this.helpService.openHelpPage(helpId);
   }
 }

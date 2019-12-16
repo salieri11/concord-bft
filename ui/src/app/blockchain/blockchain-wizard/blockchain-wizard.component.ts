@@ -23,6 +23,7 @@ import { ConsortiumStates, mainRoutes } from '../../shared/urls.model';
 import { Zone, ZoneType } from '../../zones/shared/zones.model';
 import { ZoneFormComponent } from '../../zones/zone-form/zone-form.component';
 import { RouteService } from '../../shared/route.service';
+import { ContextualHelpService } from './../../shared/contextual-help.service';
 
 const RegionCountValidator: ValidatorFn = (fg: FormGroup): ValidationErrors | null => {
   const nodes = fg['controls'].numberOfNodes.value;
@@ -72,6 +73,7 @@ export class BlockchainWizardComponent implements AfterViewInit {
     private authService: AuthenticationService,
     private routeService: RouteService,
     private router: Router,
+    private helpService: ContextualHelpService
   ) {
     if (!this.isAuthorized()) {
       this.router.navigate([mainRoutes.forbidden]);
@@ -90,7 +92,7 @@ export class BlockchainWizardComponent implements AfterViewInit {
   }
 
   onCancel() {
-    this.events.emit({type: 'cancel'});
+    this.events.emit({ type: 'cancel' });
   }
 
   personaName(value): string {
@@ -161,7 +163,7 @@ export class BlockchainWizardComponent implements AfterViewInit {
     this.blockchainService.deploy(params, isOnlyOnPrem).subscribe(response => {
       this.routeService.goToDeploying(response['task_id']);
     }, error => {
-      this.events.emit({type: 'error', data: error});
+      this.events.emit({ type: 'error', data: error });
       console.log(error);
     });
   }
@@ -290,6 +292,10 @@ export class BlockchainWizardComponent implements AfterViewInit {
     });
 
     return new FormGroup(group);
+  }
+
+  onClickToHelp(helpId) {
+    this.helpService.openHelpPage(helpId);
   }
 
 }

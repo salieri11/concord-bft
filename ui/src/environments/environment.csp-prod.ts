@@ -10,6 +10,9 @@ class Environment extends DynamicEnvironment {
   loginPath: string = '/api/oauth/login';
   iamLink: string = 'https://console.cloud.vmware.com/csp/gateway/portal/#/consumer/usermgmt/users';
 
+  helpUrl: 'https://docs.vmware.com/en/VMware-Blockchain/index.html';
+  helpTopicUrl: 'https://docs.vmware.com/en/VMware-Blockchain/1.0/context?id=';
+
   constructor() {
     super();
   }

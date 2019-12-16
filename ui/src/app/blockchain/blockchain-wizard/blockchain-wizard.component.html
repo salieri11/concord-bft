@@ -14,7 +14,8 @@
           <div id="damlEngine" class="card clickable sideways" (click)="selectEngine(engines.DAML)"
             [ngClass]="{'active': selectedEngine === engines.DAML}">
             <div class="card-icon">
-              <img src="static/images/contract-types/daml.svg" [attr.alt]="'blockchainWizard.engine.damlTitle' | translate">
+              <img src="static/images/contract-types/daml.svg"
+                [attr.alt]="'blockchainWizard.engine.damlTitle' | translate">
             </div>
             <div class="card-endorsement">
               <h3>{{ 'blockchainWizard.engine.damlTitle' | translate }}</h3>
@@ -28,7 +29,8 @@
           <div id="ethEngine" class="card clickable sideways" (click)="selectEngine(engines.ETH)"
             [ngClass]="{'active': selectedEngine === engines.ETH}">
             <div class="card-icon">
-              <img src="static/images/contract-types/eth.svg" [attr.alt]="'blockchainWizard.engine.ethTitle' | translate">
+              <img src="static/images/contract-types/eth.svg"
+                [attr.alt]="'blockchainWizard.engine.ethTitle' | translate">
             </div>
             <div class="card-endorsement">
               <h3>{{ 'blockchainWizard.engine.ethTitle' | translate }}</h3>
@@ -39,9 +41,11 @@
       </div>
       <div class="clr-row" *concordFeatureFlag="'deploy_HLF'">
         <div class="clr-col-12">
-          <div class="card clickable sideways" (click)="selectEngine(engines.HLF)" [ngClass]="{'active': selectedEngine === engines.HLF}">
+          <div class="card clickable sideways" (click)="selectEngine(engines.HLF)"
+            [ngClass]="{'active': selectedEngine === engines.HLF}">
             <div class="card-icon">
-              <img src="static/images/contract-types/hlf.svg" [attr.alt]="'blockchainWizard.engine.hlfTitle' | translate">
+              <img src="static/images/contract-types/hlf.svg"
+                [attr.alt]="'blockchainWizard.engine.hlfTitle' | translate">
             </div>
             <div class="card-endorsement">
               <h3>{{ 'blockchainWizard.engine.hlfTitle' | translate }}</h3>
@@ -86,7 +90,14 @@
 
     <clr-wizard-page #replicaPage formGroupName="nodes"
       [clrWizardPageNextDisabled]="!form.controls.nodes.errors?.countIsCorrect">
-      <ng-template clrPageTitle>{{'blockchainWizard.nodes.pageTitle' | translate}}</ng-template>
+
+      <ng-template clrPageTitle>
+        {{'blockchainWizard.nodes.pageTitle' | translate}}
+        <button #helpButton type="button" class="close help-btn" aria-label="Help" (click)="onClickToHelp('vmb_110')">
+          <clr-icon aria-hidden="true" shape="help"></clr-icon>
+        </button>
+      </ng-template>
+
       <ng-template clrPageNavTitle>{{'blockchainWizard.nodes.navTitle' | translate}}</ng-template>
       <div clrForm class="form-block blockchain-form nodes">
         <clr-select-container>
