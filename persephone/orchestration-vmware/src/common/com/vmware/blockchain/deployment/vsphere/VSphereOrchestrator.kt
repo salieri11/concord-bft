@@ -158,6 +158,7 @@ class VSphereOrchestrator constructor(
                                     request.configServiceRestEndpoint,
                                     info.vsphere.outboundProxy,
                                     info.logManagements,
+                                    info.wavefront,
                                     request.consortium
                             )
                     )

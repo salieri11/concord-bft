@@ -537,6 +537,10 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
                         .map(x -> x.getServiceType()).collect(Collectors.toList()),
                 rawProperties);
 
+        // FIXME: Remove the below lines once the new protos are attached to config service on staging/prod
+        request.getServices().remove(ConcordComponent.ServiceType.JAEGER_AGENT);
+        request.getServices().remove(ConcordComponent.ServiceType.WAVEFRONT_PROXY);
+
         var promise = new CompletableFuture<ConfigurationSessionIdentifier>();
         configurationServiceClient.createConfiguration(request, newResultObserver(promise));
         return promise;
