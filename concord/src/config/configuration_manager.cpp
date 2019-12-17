@@ -3248,23 +3248,6 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "replica_timing_log_period_sec", validateUInt,
       const_cast<void*>(reinterpret_cast<const void*>(&kUInt32Limits)));
 
-  config.declareParameter(
-      "client_timing_enabled",
-      "Whether or not timing stats about client use should be captured. "
-      "If \"true\" the captured stats will be printed every "
-      "client_timing_log_period_sec seconds.",
-      "true");
-  config.tagParameter("client_timing_enabled", publicDefaultableTags);
-
-  config.declareParameter(
-      "client_timing_log_period_sec",
-      "How often to log accumulated client execution statistics, in seconds.",
-      "5");
-  config.tagParameter("client_timing_log_period_sec", publicDefaultableTags);
-  config.addValidator(
-      "client_timing_log_period_sec", validateUInt,
-      const_cast<void*>(reinterpret_cast<const void*>(&kUInt32Limits)));
-
   node.declareParameter("daml_service_addr",
                         "IP address and port (<IP>:<PORT>) on which Concord's "
                         "DAML service can be reached.",
