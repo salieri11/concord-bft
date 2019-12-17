@@ -96,7 +96,7 @@ inline bool initializeSBFTCrypto(
     uint16_t nodeId, uint16_t numOfReplicas, uint16_t maxFaulty,
     uint16_t maxSlow, concord::config::ConcordConfiguration& config,
     concord::config::ConcordConfiguration& replicaConfig,
-    std::set<std::pair<uint16_t, std::string>> publicKeysOfReplicas,
+    std::set<std::pair<uint16_t, const std::string>> publicKeysOfReplicas,
     concord::consensus::ReplicaConsensusConfig* outConfig) {
   // Threshold signatures
   IThresholdSigner* thresholdSignerForSlowPathCommit;
@@ -146,7 +146,7 @@ inline bool initializeSBFTPrincipals(
     concord::config::ConcordConfiguration& config, uint16_t selfNumber,
     uint16_t numOfPrincipals, uint16_t numOfReplicas,
     concord::consensus::CommConfig* outCommConfig,
-    std::set<std::pair<uint16_t, std::string>>& outReplicasPublicKeys) {
+    std::set<std::pair<uint16_t, const std::string>>& outReplicasPublicKeys) {
   uint16_t clientProxiesPerReplica =
       config.getValue<uint16_t>("client_proxies_per_replica");
   for (uint16_t i = 0; i < numOfReplicas; ++i) {
@@ -222,7 +222,7 @@ inline bool initializeSBFTConfiguration(
   uint16_t numOfPrincipals = config.getValue<uint16_t>("num_principals");
   uint16_t numOfReplicas = config.getValue<uint16_t>("num_replicas");
 
-  std::set<pair<uint16_t, string>> publicKeysOfReplicas;
+  std::set<pair<uint16_t, const std::string>> publicKeysOfReplicas;
   if (commConfig) {
     bool res = initializeSBFTPrincipals(config, selfNumber, numOfPrincipals,
                                         numOfReplicas, commConfig,
@@ -255,7 +255,7 @@ inline bool initializeSBFTConfiguration(
         nodeConfig.getValue<bool>("concord-bft_enable_debug_statistics");
 
     // TODO(IG): add to config file
-    repConf->autoViewChangeEnabled = true;
+    repConf->viewChangeProtocolEnabled = true;
 
 #define DEFAULT(field, userCfg)                            \
   {                                                        \

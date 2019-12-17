@@ -211,7 +211,8 @@ ReplicaImp::ReplicaImp(CommConfig &commConfig,
   m_replicaConfig.cVal = replicaConfig.cVal;
   m_replicaConfig.fVal = replicaConfig.fVal;
   m_replicaConfig.replicaId = replicaConfig.replicaId;
-  m_replicaConfig.autoViewChangeEnabled = replicaConfig.autoViewChangeEnabled;
+  m_replicaConfig.viewChangeProtocolEnabled =
+      replicaConfig.viewChangeProtocolEnabled;
   m_replicaConfig.concurrencyLevel = replicaConfig.concurrencyLevel;
   m_replicaConfig.numOfClientProxies = replicaConfig.numOfClientProxies;
   m_replicaConfig.publicKeysOfReplicas = replicaConfig.publicKeysOfReplicas;
