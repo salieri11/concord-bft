@@ -35,11 +35,6 @@ class ConcordCommandsHandler
   const concord::storage::blockchain::ILocalKeyValueStorageReadOnly &storage_;
   bool timing_enabled_;
   concordMetrics::Component metrics_;
-  TimingStat timing_parse_;
-  TimingStat timing_time_update_;
-  TimingStat timing_time_response_;
-  TimingStat timing_execute_;
-  TimingStat timing_serialize_;
 
  public:
   concord::storage::blockchain::IBlocksAppender &appender_;

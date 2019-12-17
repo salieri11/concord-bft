@@ -49,13 +49,9 @@ bool KVBClient::send_request_sync(ConcordRequest &req, bool isReadOnly,
   memset(m_outBuffer, 0, OUT_BUFFER_SIZE);
 
   uint32_t actualReplySize = 0;
-  timing_bft_.Start();
   concordUtils::Status status = client_->invokeCommandSynch(
       command.c_str(), command.size(), isReadOnly, timeout_, OUT_BUFFER_SIZE,
       m_outBuffer, &actualReplySize);
-  timing_bft_.End();
-
-  log_timing();
 
   if (status.isOK() && actualReplySize) {
     return resp.ParseFromArray(m_outBuffer, actualReplySize);
@@ -67,16 +63,6 @@ bool KVBClient::send_request_sync(ConcordRequest &req, bool isReadOnly,
     ErrorResponse *err = resp.add_error_response();
     err->set_description("Internal concord Error");
     return true;
-  }
-}
-
-void KVBClient::log_timing() {
-  if (timing_enabled_ &&
-      steady_clock::now() - timing_log_last_ > timing_log_period_) {
-    LOG_INFO(logger_, metrics_.ToJson());
-    timing_log_last_ = steady_clock::now();
-
-    timing_bft_.Reset();
   }
 }
 
