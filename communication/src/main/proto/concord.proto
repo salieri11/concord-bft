@@ -23,8 +23,10 @@ message ConcordRequest {
    optional DamlRequest daml_request = 11;
    optional ReconfigurationRequest reconfiguration_request = 12;
    optional bytes trace_context = 13;
+   optional LatestPrunableBlockRequest latest_prunable_block_request = 14;
+   optional PruneRequest prune_request = 15;
 
-   // 13-2045 open for definition
+   // 16-2045 open for definition
    // Likely: metrics/stats, non-eth blockchain, other admin
 
    optional TestRequest test_request = 2046;
@@ -44,8 +46,10 @@ message ConcordResponse {
    optional DamlResponse daml_response = 11;
    optional ReconfigurationResponse reconfiguration_response = 12;
    // 13: trace_context has no response
+   optional LatestPrunableBlockResponse latest_prunable_block_response = 14;
+   optional PruneResponse prune_response = 15;
 
-   // 13-2045 open for definition
+   // 16-2045 open for definition
    optional TestResponse test_response = 2046;
    repeated ErrorResponse error_response = 2047;
 }
@@ -173,6 +177,19 @@ message HlfResponse {
   optional int32 status = 3;
 }
 
+message LatestPrunableBlock {
+   optional uint64 replica = 1;
+   optional uint64 block_id = 2;
+   // signature of prior fields by 'replica'
+   optional bytes signature = 3;
+}
+
+message LatestPrunableBlockRequest {}
+
+message LatestPrunableBlockResponse {
+   repeated LatestPrunableBlock block = 1;
+}
+
 message LogResponse {
    optional bytes contract_address = 1;
    repeated bytes topic = 2;
@@ -226,6 +243,19 @@ message ProtocolRequest {
 message ProtocolResponse {
    optional int32 server_version = 1;
    optional int64 net_version = 2;
+}
+
+message PruneRequest {
+   optional uint64 sender = 1;
+   // N out of N latest prunable block replies signed by replicas
+   repeated LatestPrunableBlock latest_prunable_block = 2;
+   // signature of prior fields by 'sender'
+   optional bytes signature = 3;
+}
+
+message PruneResponse {
+   optional bool ok = 1;
+   optional string error_msg = 2;
 }
 
 message ReconfigureTimePusherPeriodRequest {
