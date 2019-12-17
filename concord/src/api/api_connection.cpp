@@ -214,7 +214,7 @@ void ApiConnection::process_incoming() {
     LOG4CPLUS_DEBUG(logger_, "Parsed!");
 
     // TODO: add correlation ID and/or tracing context from request
-    span_ = opentracing::Tracer::Global()->StartSpan("apiRequest");
+    span_ = opentracing::Tracer::Global()->StartSpan("api_request");
 
     // handle the request
     dispatch();
