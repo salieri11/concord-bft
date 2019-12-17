@@ -12,6 +12,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.vmware.blockchain.common.BadRequestException;
+
 /**
  * Test controller for operation context.
  */
@@ -26,5 +28,11 @@ public class OperationTestController {
     void apiAuthTest() {
         logger.info("In the controller method");
         Assertions.assertNotNull(operationContext.getId());
+    }
+
+    @RequestMapping(method = RequestMethod.GET, path = "/api/bad")
+    void apiBadTest() {
+        logger.info("In the controller method");
+        throw new BadRequestException("Bad request");
     }
 }

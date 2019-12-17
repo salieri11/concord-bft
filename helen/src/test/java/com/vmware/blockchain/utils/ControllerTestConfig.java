@@ -20,6 +20,7 @@ import com.vmware.blockchain.common.csp.CspJwksSigningKeyResolver;
 import com.vmware.blockchain.connections.ConcordConnectionPool;
 import com.vmware.blockchain.connections.ConnectionPoolManager;
 import com.vmware.blockchain.dao.GenericDao;
+import com.vmware.blockchain.operation.OperationContext;
 import com.vmware.blockchain.security.JwtTokenProvider;
 import com.vmware.blockchain.security.ServiceContext;
 import com.vmware.blockchain.security.VmbcTokenValidator;
@@ -111,6 +112,12 @@ public class ControllerTestConfig {
     @Primary
     CspJwksSigningKeyResolver cspJwksSigningKeyResolver() {
         return Mockito.mock(CspJwksSigningKeyResolver.class);
+    }
+
+    @Bean
+    @Primary
+    OperationContext operationContext() {
+        return Mockito.mock(OperationContext.class);
     }
 
 }

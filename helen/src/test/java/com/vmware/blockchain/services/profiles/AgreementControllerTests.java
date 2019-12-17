@@ -44,6 +44,7 @@ import com.vmware.blockchain.common.ConcordProperties;
 import com.vmware.blockchain.common.HelenExceptionHandler;
 import com.vmware.blockchain.connections.ConcordConnectionPool;
 import com.vmware.blockchain.dao.GenericDao;
+import com.vmware.blockchain.operation.OperationContext;
 import com.vmware.blockchain.security.JwtTokenProvider;
 import com.vmware.blockchain.security.ServiceContext;
 import com.vmware.blockchain.services.blockchains.BlockchainService;
@@ -74,6 +75,9 @@ public class AgreementControllerTests {
 
     @Autowired
     MockMvc mockMvc;
+
+    @MockBean
+    OperationContext operationContext;
 
     @MockBean
     OrganizationService organizationService;
