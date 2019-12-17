@@ -60,7 +60,7 @@ public class TokenAuthenticationProviderTests {
         cspConfig = mock(CspConfig.class);
         cspApiClient = mock(CspApiClient.class);
         operatorOrg = UUID.randomUUID();
-        tokenAuthenticationProvider = new TokenAuthenticationProvider(mockRequest, cspConfig, cspApiClient,
+        tokenAuthenticationProvider = new TokenAuthenticationProvider(cspConfig, cspApiClient,
                 tokenValidator, operatorOrg.toString());
 
     }

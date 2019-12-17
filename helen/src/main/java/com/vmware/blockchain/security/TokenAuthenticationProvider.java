@@ -20,6 +20,9 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.authentication.preauth.PreAuthenticatedAuthenticationToken;
 import org.springframework.stereotype.Component;
+import org.springframework.web.context.request.RequestAttributes;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 import com.vmware.blockchain.auth.AuthenticationContext;
 import com.vmware.blockchain.auth.TokenValidator;
@@ -36,7 +39,6 @@ import lombok.Data;
 public class TokenAuthenticationProvider implements AuthenticationProvider {
     private static Logger logger = LogManager.getLogger(TokenAuthenticationProvider.class);
 
-    private HttpServletRequest request;
     private CspConfig cspConfig;
     private CspApiClient cspApiClient;
     private TokenValidator tokenValidator;
@@ -59,10 +61,9 @@ public class TokenAuthenticationProvider implements AuthenticationProvider {
      * a lot of the ss-base components. In particular - don't include FeatureService here.
      */
     @Autowired
-    public TokenAuthenticationProvider(HttpServletRequest request, CspConfig cspConfig, CspApiClient cspApiClient,
+    public TokenAuthenticationProvider(CspConfig cspConfig, CspApiClient cspApiClient,
             TokenValidator tokenValidator,
             @Value("${ss.operator.org:#{null}}") String operatorOrg) {
-        this.request = request;
         this.cspConfig = cspConfig;
         this.cspApiClient = cspApiClient;
         this.tokenValidator = tokenValidator;
@@ -101,12 +102,20 @@ public class TokenAuthenticationProvider implements AuthenticationProvider {
         ThreadContext.put("orgName", userInfo.getOrgId().toString());
         UUID userId = userInfo.getUserId();
         // set the current tenant based on tenantId in url.
-
         AuthenticationContext authContext =  new AuthenticationContext(userInfo, userInfo.getAuthorities());
+
+        // If this request is coming in on an actuator, we need to use RequstContextHolder to get the
+        // request info.
+        RequestAttributes requestAttributes = RequestContextHolder.getRequestAttributes();
+        String requestUri = "unknown";
+        if (requestAttributes instanceof ServletRequestAttributes) {
+            HttpServletRequest request = ((ServletRequestAttributes) requestAttributes).getRequest();
+            requestUri = request.getRequestURI();
+        }
         logger.info(
                 "Setting authContext for {} id {} orgId {} roles {}  request {}",
                 userInfo.getUsername(), userId, userInfo.getOrgId(),
-                userInfo.getAuthorities(), request.getRequestURI());
+                userInfo.getAuthorities(), requestUri);
         return authContext;
     }
 
