@@ -109,7 +109,8 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
     {
       auto sub_execute_span = tracer->StartSpan(
           "sub_execute", {opentracing::ChildOf(&execute_span->context())});
-      result = Execute(request_, read_only, time_.get(), response_);
+      result = Execute(request_, read_only, time_.get(),
+                       *sub_execute_span.get(), response_);
     }
 
     if (time_ && request_.has_time_request()) {
