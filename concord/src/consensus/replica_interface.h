@@ -38,16 +38,15 @@ struct ReplicaConsensusConfig {
   // 1 <= concurrencyLevel <= 30
   uint16_t concurrencyLevel;
 
-  // autoViewChangeEnabled=true , if the automatic view change protocol is
-  // enabled
-  bool autoViewChangeEnabled;
+  // viewChangeProtocolEnabled=true , if the view change protocol is enabled
+  bool viewChangeProtocolEnabled;
 
   // a time interval in milliseconds. represents the timeout used by the  view
   // change protocol (TODO: add more details)
   uint16_t viewChangeTimerMillisec;
 
   // public keys of all replicas. map from replica identifier to a public key
-  std::set<std::pair<uint16_t, std::string>> publicKeysOfReplicas;
+  std::set<std::pair<uint16_t, const std::string>> publicKeysOfReplicas;
 
   // private key of the current replica
   std::string replicaPrivateKey;
