@@ -8,7 +8,7 @@ set -e
 # generic way to set these application specific variables.
 CONFIG_FILE=/config/daml-execution-engine/environment-vars
 if [ -e ${CONFIG_FILE} ]; then
-  source ${CONFIG_FILE}
+  . ${CONFIG_FILE}
 fi
 
 /doc/daml/kvbc_validator/target/universal/stage/bin/kvbc-validator $@
