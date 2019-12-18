@@ -8,7 +8,7 @@ set -e
 # generic way to set these application specific variables.
 CONFIG_FILE=/config/daml-index-db/environment-vars
 if [ -e ${CONFIG_FILE} ]; then
-  source ${CONFIG_FILE}
+  . ${CONFIG_FILE}
 fi
 
 echo "Running entry point script with $@ -c max_connections=${MAX_CONNECTIONS} -c shared_buffers=${BUFFER_SIZE}"
