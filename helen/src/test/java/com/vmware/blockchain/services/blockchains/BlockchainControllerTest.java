@@ -824,6 +824,22 @@ public class BlockchainControllerTest {
 
     }
 
+    @Test
+    void postDamlV2() throws Exception {
+        Organization org = new Organization();
+        org.setId(ORG_ID);
+        org.setOrganizationProperties(ImmutableMap.of("DAML_V2", "enabled"));
+        when(organizationService.get(ORG_ID)).thenReturn(org);
+
+        ArgumentCaptor<CreateClusterRequest> captor = ArgumentCaptor.forClass(CreateClusterRequest.class);
+        mockMvc.perform(post("/api/blockchains/")
+                .with(authentication(adminAuth))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(POST_BODY_FIXED_WITH_TYPE))
+                .andExpect(status().isAccepted());
+    }
+
+
     ConcordNode buildNode(UUID nodeId, UUID siteId, int ip, String url) {
         ConcordNodeEndpoint endpoint = ConcordNodeEndpoint.newBuilder()
                 .setUrl(url)
