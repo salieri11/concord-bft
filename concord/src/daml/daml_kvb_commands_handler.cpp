@@ -78,7 +78,7 @@ std::map<string, string> DamlKvbCommandsHandler::GetFromStorage(
 
 bool DamlKvbCommandsHandler::ExecuteCommit(
     const da_kvbc::CommitRequest& commit_req, TimeContract* time,
-    ConcordResponse& concord_response) {
+    opentracing::Span& parent_span, ConcordResponse& concord_response) {
   LOG4CPLUS_DEBUG(logger_, "Handle DAML commit command");
 
   string prefix = "daml";
@@ -102,7 +102,8 @@ bool DamlKvbCommandsHandler::ExecuteCommit(
   da_kvbc::ValidateResponse response;
   grpc::Status status = validator_client_->ValidateSubmission(
       entryId, commit_req.submission(), record_time,
-      commit_req.participant_id(), commit_req.correlation_id(), &response);
+      commit_req.participant_id(), commit_req.correlation_id(), parent_span,
+      &response);
   if (!status.ok()) {
     LOG4CPLUS_ERROR(logger_, "Validation failed " << status.error_code() << ": "
                                                   << status.error_message());
@@ -116,8 +117,9 @@ bool DamlKvbCommandsHandler::ExecuteCommit(
     // retry.
     std::map<string, string> input_state_entries =
         GetFromStorage(response.need_state().keys());
-    validator_client_->ValidatePendingSubmission(
-        entryId, input_state_entries, commit_req.correlation_id(), &response2);
+    validator_client_->ValidatePendingSubmission(entryId, input_state_entries,
+                                                 commit_req.correlation_id(),
+                                                 parent_span, &response2);
     if (!status.ok()) {
       LOG4CPLUS_ERROR(logger_, "Validation failed " << status.error_code()
                                                     << ": "
@@ -175,6 +177,7 @@ bool DamlKvbCommandsHandler::ExecuteCommit(
 
 bool DamlKvbCommandsHandler::ExecuteCommand(const ConcordRequest& concord_req,
                                             TimeContract* time_contract,
+                                            opentracing::Span& parent_span,
                                             ConcordResponse& response) {
   DamlRequest daml_req;
 
@@ -200,7 +203,7 @@ bool DamlKvbCommandsHandler::ExecuteCommand(const ConcordRequest& concord_req,
       return ExecuteRead(cmd.read(), response);
 
     case da_kvbc::Command::kCommit:
-      return ExecuteCommit(cmd.commit(), time_contract, response);
+      return ExecuteCommit(cmd.commit(), time_contract, parent_span, response);
 
     default:
       LOG4CPLUS_ERROR(logger_, "Neither commit nor read command");
@@ -248,7 +251,7 @@ bool DamlKvbCommandsHandler::Execute(const ConcordRequest& request,
   if (read_only) {
     return ExecuteReadOnlyCommand(request, response);
   } else {
-    return ExecuteCommand(request, time_contract, response);
+    return ExecuteCommand(request, time_contract, parent_span, response);
   }
 }
 
