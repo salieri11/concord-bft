@@ -140,6 +140,7 @@ services:
     image: "${helen_repo}:${helen_tag}"
     ports:
       - 8080:8080
+      - 9081:9081
     depends_on:
       - db-server
     volumes:
