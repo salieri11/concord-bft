@@ -5,7 +5,7 @@
 #
 # Rules defined later in the file take precedence, so we define a default first.
 # I've just included a handful of people from across the blockchain team.
-* @andrewstone @bfink @bjay @bsubramanian @hbhavsar @jameschang @khank @kkeunwoo @machenbach @mandeab @mharrison @panamika @rmuschner @rsg @rvollmar @sanchitar @tusharg @upshawa
+* @andrewstone @bfink @bjay @bsubramanian @hbhavsar @khank @kkeunwoo @machenbach @mandeab @mharrison @panamika @rmuschner @rsg @rvollmar @sanchitar @tusharg @upshawa
 
 # Here are the descriptions for our source tree.
 # When editing these descriptions, do NOT add lines which:
@@ -16,7 +16,7 @@
 #    /foo/ @some_user
 #   That means that some_user needs no reviews.
 # In the above cases, it is better to remove the line and use the default rule.
-/agent/ @jameschang @khank @sanchitar @rsg
+/agent/ @khank @sanchitar @rsg
 /buildall.sh @rvollmar @rsg @khank
 /communication/ @bfink @rmuschner
 /concord/ @bfink @upshawa @rmuschner @andrewstone
@@ -26,14 +26,14 @@
 /docker/config-public/ @upshawa @bfink @rmuschner
 /docker/fluentd/ @hbhavsar @mharrison
 /ethrpc/ @bfink @machenbach @panamika @mandeab
-/helen/ @machenbach @panamika @mandeab
+/helen/ @machenbach @panamika @mandeab @khank
 /helen/src/main/resources/api-doc/api.yaml @machenbach @panamika @mandeab @tfidali
 /hermes/ @rvollmar @rsg @khank
 /Jenkinsfile @rvollmar @rsg
 /performance/ @vlin @dparmar @rsg @bfink
-/persephone/ @jameschang @khank @sanchitar @rsg
+/persephone/ @khank @sanchitar @rsg
 /src/ @rvollmar @rsg
 /thin-replica-client/ @rmuschner @upshawa
 /ui/ @mharrison @hbhavsar @tusharg @kkeunwoo @mandeab
 /vars/ @rvollmar @rsg @khank
-/kubernetes/ @bsubramanian @jameschang @khank @rvollmar
+/kubernetes/ @bsubramanian @khank @rvollmar
