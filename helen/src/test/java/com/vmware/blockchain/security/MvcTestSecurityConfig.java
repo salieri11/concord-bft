@@ -7,12 +7,14 @@ package com.vmware.blockchain.security;
 import java.util.List;
 import java.util.UUID;
 
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.cache.CacheManager;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
+import org.springframework.core.annotation.Order;
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -25,6 +27,7 @@ import com.vmware.blockchain.auth.AuthenticationContext;
 import com.vmware.blockchain.common.DatabaseService;
 import com.vmware.blockchain.connections.ConnectionPoolManager;
 import com.vmware.blockchain.dao.GenericDao;
+import com.vmware.blockchain.operation.OperationContext;
 import com.vmware.blockchain.services.ethereum.EthDispatcher;
 import com.vmware.blockchain.services.profiles.Roles;
 import com.vmware.blockchain.services.tasks.TaskService;
@@ -120,5 +123,11 @@ public class MvcTestSecurityConfig extends WebSecurityConfigurerAdapter {
 
     @MockBean
     CacheManager cacheManager;
+
+    @Bean
+    @Order(99)
+    public OperationContext operationContext() {
+        return Mockito.mock(OperationContext.class);
+    }
 
 }

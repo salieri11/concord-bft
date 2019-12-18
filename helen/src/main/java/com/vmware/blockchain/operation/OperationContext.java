@@ -17,7 +17,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class OperationContext {
 
-    private ThreadLocal<String> id = new InheritableThreadLocal<>();
+    private static ThreadLocal<String> id = new InheritableThreadLocal<>();
 
     /**
      * Initialize, set, get and remove ID.

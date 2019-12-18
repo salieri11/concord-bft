@@ -11,6 +11,7 @@ import javax.servlet.http.HttpServletRequest;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.NestedExceptionUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -23,6 +24,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import com.google.common.collect.ImmutableMap;
 import com.google.protobuf.InvalidProtocolBufferException;
+import com.vmware.blockchain.operation.OperationContext;
 
 import lombok.Value;
 
@@ -31,6 +33,12 @@ import lombok.Value;
  */
 @RestControllerAdvice(basePackages = "com.vmware.blockchain")
 public class HelenExceptionHandler {
+    private OperationContext operationContext;
+
+    @Autowired
+    public HelenExceptionHandler(OperationContext operationContext) {
+        this.operationContext = operationContext;
+    }
 
     private static final Logger logger = LogManager.getLogger(HelenExceptionHandler.class);
 
@@ -53,6 +61,7 @@ public class HelenExceptionHandler {
         String errorMessage;
         int status;
         String path;
+        String opId;
     }
 
     private ErrorMessage getErrorMessage(Throwable ex, String path) {
@@ -69,7 +78,8 @@ public class HelenExceptionHandler {
         }
         // For now, let's always print a stacktrace.  This may change in the future.
         logger.info("Error code {}, message {}, status {}", errorCode, ex.getMessage(), status, ex);
-        return new ErrorMessage(errorCode, ex.getMessage(), status.value(), path);
+        return new ErrorMessage(errorCode, ex.getMessage(), status.value(), path,
+                                operationContext == null ? "" : operationContext.getId());
     }
 
     /**

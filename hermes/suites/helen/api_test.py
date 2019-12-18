@@ -379,6 +379,7 @@ def validateBadRequest(result, expectedPath,
    Validates the returned result of a Bad Request error.
    The error code, error message, and status are the same.
    Accepts the result to evaluate and the expected value for "path".
+   Check that a valid op_id has been returned
    '''
    log.info("Looking for bad request error in {}".format(result))
 
@@ -393,6 +394,10 @@ def validateBadRequest(result, expectedPath,
 
    assert "status" in result, "Expected a field called 'status'"
    assert result["status"] == 400, "Expected HTTP status 400."
+
+   assert "op_id" in result, "Expected a field called 'op_id'"
+   # opid is a uuid string
+   assert len(result["op_id"]) == 36
 
 
 def createZoneObject(zoneType=util.helper.ZONE_TYPE_ON_PREM):
