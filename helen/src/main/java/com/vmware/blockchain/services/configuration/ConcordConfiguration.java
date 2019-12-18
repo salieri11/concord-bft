@@ -83,7 +83,9 @@ public class ConcordConfiguration {
             componentListForNodeType =
             ImmutableMap
                     .of(ConcordModelSpecification.NodeType.DAML_PARTICIPANT, List.of(DAML_INDEX_DB,
-                            DAML_LEDGER_API));
+                            DAML_LEDGER_API),
+                            ConcordModelSpecification.NodeType.DAML_COMMITTER, List.of(GENERIC, LOGGING, DAML_CONCORD,
+                                    DAML_EXECUTION_ENGINE));
 
     private static final Map<ConcordComponent.ServiceType, String> componentToImageName =
             ImmutableMap.<ConcordComponent.ServiceType, String>builder()

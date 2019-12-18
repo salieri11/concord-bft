@@ -267,7 +267,8 @@ public class BlockchainController {
                                                                PlacementSpecification.Type placementType,
                                                                List<UUID> zoneIds,
                                                                BlockchainType blockchainType,
-                                                               UUID consortiumId) throws Exception {
+                                                               UUID consortiumId,
+                                                               boolean deployCommitter) throws Exception {
         List<Entry> list;
         if (placementType == Type.FIXED) {
             if (zoneIds.size() != clusterSize) {
@@ -304,17 +305,32 @@ public class BlockchainController {
         var blockChainType = blockchainType == null ? ConcordModelSpecification.BlockchainType.ETHEREUM
                 : enumMapForBlockchainType.get(blockchainType);
 
-        var components = concordConfiguration.getComponentsByBlockchainType(blockChainType);
-
         var genesis = ConcordConfiguration.getGenesisObject();
 
-        ConcordModelSpecification spec = ConcordModelSpecification.newBuilder()
-                .setVersion(concordConfiguration.getVersion())
-                .setTemplate(concordConfiguration.getTemplate())
-                .addAllComponents(components)
-                .setBlockchainType(blockChainType)
-                .setNodeType(ConcordModelSpecification.NodeType.NONE)
-                .build();
+        ConcordModelSpecification spec;
+
+        if (deployCommitter) {
+            var components = concordConfiguration.getComponentsByNodeType(ConcordModelSpecification
+                    .NodeType.DAML_COMMITTER);
+
+            spec = ConcordModelSpecification.newBuilder()
+                    .setVersion(concordConfiguration.getVersion())
+                    .setTemplate(concordConfiguration.getTemplate())
+                    .addAllComponents(components)
+                    .setBlockchainType(blockChainType)
+                    .setNodeType(ConcordModelSpecification.NodeType.DAML_COMMITTER)
+                    .build();
+        } else {
+            var components = concordConfiguration.getComponentsByBlockchainType(blockChainType);
+
+            spec = ConcordModelSpecification.newBuilder()
+                    .setVersion(concordConfiguration.getVersion())
+                    .setTemplate(concordConfiguration.getTemplate())
+                    .addAllComponents(components)
+                    .setBlockchainType(blockChainType)
+                    .setNodeType(ConcordModelSpecification.NodeType.NONE)
+                    .build();
+        }
 
         DeploymentSpecification deploySpec = DeploymentSpecification.newBuilder()
                 .setModel(spec)
@@ -422,7 +438,6 @@ public class BlockchainController {
             throw new BadRequestException(ErrorCodeType.BLOCKCHAIN_LIMIT, authHelper.getUpdateChains().size());
         }
 
-        // start the deployment
         final int clusterSize = body.getFCount() * 3 + body.getCCount() * 2 + 1;
         logger.info("Creating new blockchain. Cluster size {}", clusterSize);
 
@@ -446,11 +461,30 @@ public class BlockchainController {
                 throw new BadRequestException(ErrorCode.BAD_REQUEST);
             }
         }
-        DeploymentSessionIdentifier dsId =  createFixedSizeCluster(client, clusterSize,
-                                                                  enumMap.get(body.deploymentType),
-                                                                  body.getZoneIds(),
-                                                                  blockchainType,
-                                                                  body.consortiumId);
+
+        DeploymentSessionIdentifier dsId;
+
+        Organization org = organizationService.get(authHelper.getOrganizationId());
+
+        if (org.getOrganizationProperties() != null
+                && org.getOrganizationProperties().containsKey("DAML_V2")
+                && org.getOrganizationProperties().get("DAML_V2").equals("enabled")
+                && blockchainType == BlockchainType.DAML) {
+            dsId = createFixedSizeCluster(client, clusterSize,
+                    enumMap.get(body.deploymentType),
+                    body.getZoneIds(),
+                    blockchainType,
+                    body.consortiumId,
+                    true);
+        } else {
+            dsId = createFixedSizeCluster(client, clusterSize,
+                    enumMap.get(body.deploymentType),
+                    body.getZoneIds(),
+                    blockchainType,
+                    body.consortiumId,
+                    false);
+        }
+
         logger.info("Deployment started, id {} for the consortium id {}", dsId, body.consortiumId.toString());
         BlockchainObserver bo =
                 new BlockchainObserver(authHelper, operationContext, blockchainService, replicaService, taskService,
