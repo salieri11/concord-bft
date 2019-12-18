@@ -5,6 +5,7 @@
 #define CONCORD_HLF_KVB_COMMANDS_HANDLER_H_
 
 #include <log4cplus/loggingmacros.h>
+#include <opentracing/span.h>
 #include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>
 #include <iostream>
@@ -42,6 +43,7 @@ class HlfKvbCommandsHandler
 
   bool Execute(const com::vmware::concord::ConcordRequest& request,
                bool read_only, concord::time::TimeContract* time_contract,
+               opentracing::Span& parent_span,
                com::vmware::concord::ConcordResponse& response) override;
   void WriteEmptyBlock(concord::time::TimeContract* time_contract) override;
 

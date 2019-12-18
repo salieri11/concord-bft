@@ -243,6 +243,7 @@ bool DamlKvbCommandsHandler::ExecuteReadOnlyCommand(
 bool DamlKvbCommandsHandler::Execute(const ConcordRequest& request,
                                      bool read_only,
                                      TimeContract* time_contract,
+                                     opentracing::Span& parent_span,
                                      ConcordResponse& response) {
   if (read_only) {
     return ExecuteReadOnlyCommand(request, response);

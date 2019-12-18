@@ -14,6 +14,7 @@
 #include "time/time_reading.hpp"
 
 #include <log4cplus/logger.h>
+#include <opentracing/span.h>
 #include <chrono>
 
 namespace concord {
@@ -35,11 +36,6 @@ class ConcordCommandsHandler
   const concord::storage::blockchain::ILocalKeyValueStorageReadOnly &storage_;
   bool timing_enabled_;
   concordMetrics::Component metrics_;
-  TimingStat timing_parse_;
-  TimingStat timing_time_update_;
-  TimingStat timing_time_response_;
-  TimingStat timing_execute_;
-  TimingStat timing_serialize_;
 
  public:
   concord::storage::blockchain::IBlocksAppender &appender_;
@@ -82,6 +78,7 @@ class ConcordCommandsHandler
   virtual bool Execute(const com::vmware::concord::ConcordRequest &request,
                        bool read_only,
                        concord::time::TimeContract *time_contract,
+                       opentracing::Span &parent_span,
                        com::vmware::concord::ConcordResponse &response) = 0;
 
   // In some cases, commands may arrive that require writing a KVB block to

@@ -33,11 +33,6 @@ ConcordCommandsHandler::ConcordCommandsHandler(
       metrics_{concordMetrics::Component(
           "concord_commands_handler",
           std::make_shared<concordMetrics::Aggregator>())},
-      timing_parse_("parse", timing_enabled_, metrics_),
-      timing_time_update_("time_update", timing_enabled_, metrics_),
-      timing_time_response_("time_response", timing_enabled_, metrics_),
-      timing_execute_("execute", timing_enabled_, metrics_),
-      timing_serialize_("serialize", timing_enabled_, metrics_),
       appender_(appender) {
   if (concord::time::IsTimeServiceEnabled(config)) {
     time_ = std::unique_ptr<concord::time::TimeContract>(
@@ -61,32 +56,31 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
   request_.Clear();
   response_.Clear();
 
-  timing_parse_.Start();
+  auto tracer = opentracing::Tracer::Global();
+  std::unique_ptr<opentracing::Span> execute_span;
+
   bool result;
   if (request_.ParseFromArray(request_buffer, request_size)) {
-    timing_parse_.End();
-
-    auto tracer = opentracing::Tracer::Global();
-    std::unique_ptr<opentracing::Span> span;
     if (request_.has_trace_context()) {
       std::istringstream tc_stream(request_.trace_context());
       auto trace_context = tracer->Extract(tc_stream);
       if (trace_context.has_value()) {
-        span = tracer->StartSpan(
+        execute_span = tracer->StartSpan(
             "execute", {opentracing::ChildOf(trace_context.value().get())});
       } else {
         LOG4CPLUS_WARN(logger_, "Command has corrupted trace context");
-        span = tracer->StartSpan("execute");
+        execute_span = tracer->StartSpan("execute");
       }
     } else {
       LOG4CPLUS_DEBUG(logger_, "Command is missing trace context");
-      span = tracer->StartSpan("execute");
+      execute_span = tracer->StartSpan("execute");
     }
 
     if (time_ && request_.has_time_request() &&
         request_.time_request().has_sample()) {
       if (!read_only) {
-        timing_time_update_.Start();
+        auto time_update_span = tracer->StartSpan(
+            "time_update", {opentracing::ChildOf(&execute_span->context())});
         TimeRequest tr = request_.time_request();
         TimeSample ts = tr.sample();
         if (!(time_->SignaturesEnabled()) && ts.has_source() && ts.has_time()) {
@@ -106,16 +100,18 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
                              "] signature")
                           : ""));
         }
-        timing_time_update_.End();
       } else {
         LOG4CPLUS_INFO(logger_,
                        "Ignoring time sample sent in read-only command");
       }
     }
 
-    timing_execute_.Start();
-    result = Execute(request_, read_only, time_.get(), response_);
-    timing_execute_.End();
+    {
+      auto sub_execute_span = tracer->StartSpan(
+          "sub_execute", {opentracing::ChildOf(&execute_span->context())});
+      result = Execute(request_, read_only, time_.get(),
+                       *sub_execute_span.get(), response_);
+    }
 
     if (time_ && request_.has_time_request()) {
       TimeRequest tr = request_.time_request();
@@ -159,34 +155,35 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
         }
       }
 
-      timing_time_response_.Start();
-      if (tr.return_summary()) {
-        TimeResponse *tp = response_.mutable_time_response();
-        Timestamp *sum = new Timestamp(time_->GetTime());
-        tp->set_allocated_summary(sum);
-      }
+      {  // scope for time_response_span
+        auto time_response_span = tracer->StartSpan(
+            "time_response", {opentracing::ChildOf(&execute_span->context())});
+        if (tr.return_summary()) {
+          TimeResponse *tp = response_.mutable_time_response();
+          Timestamp *sum = new Timestamp(time_->GetTime());
+          tp->set_allocated_summary(sum);
+        }
 
-      if (tr.return_samples()) {
-        TimeResponse *tp = response_.mutable_time_response();
+        if (tr.return_samples()) {
+          TimeResponse *tp = response_.mutable_time_response();
 
-        for (auto &s : time_->GetSamples()) {
-          TimeSample *ts = tp->add_sample();
-          ts->set_source(s.first);
-          Timestamp *t = new Timestamp(s.second.time);
-          ts->set_allocated_time(t);
-          if (s.second.signature) {
-            ts->set_signature(s.second.signature->data(),
-                              s.second.signature->size());
+          for (auto &s : time_->GetSamples()) {
+            TimeSample *ts = tp->add_sample();
+            ts->set_source(s.first);
+            Timestamp *t = new Timestamp(s.second.time);
+            ts->set_allocated_time(t);
+            if (s.second.signature) {
+              ts->set_signature(s.second.signature->data(),
+                                s.second.signature->size());
+            }
           }
         }
       }
-      timing_time_response_.End();
     } else if (!time_ && request_.has_time_request()) {
       ErrorResponse *err = response_.add_error_response();
       err->set_description("Time service is disabled.");
     }
   } else {
-    timing_parse_.End();
     ErrorResponse *err = response_.add_error_response();
     err->set_description("Unable to parse concord request");
 
@@ -194,7 +191,14 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
     result = true;
   }
 
-  timing_serialize_.Start();
+  // Don't bother timing serialization if the response if we didn't successfully
+  // parse the request.
+  std::unique_ptr<opentracing::Span> serialize_span =
+      execute_span == nullptr
+          ? nullptr
+          : tracer->StartSpan("serialize",
+                              {opentracing::ChildOf(&execute_span->context())});
+
   if (response_.ByteSizeLong() == 0) {
     LOG4CPLUS_ERROR(logger_, "Request produced empty response.");
     ErrorResponse *err = response_.add_error_response();
@@ -242,7 +246,6 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
       out_response_size = 0;
     }
   }
-  timing_serialize_.End();
 
   log_timing();
 
@@ -275,10 +278,6 @@ void ConcordCommandsHandler::log_timing() {
     LOG_INFO(logger_, metrics_.ToJson());
     timing_log_last_ = steady_clock::now();
 
-    timing_parse_.Reset();
-    timing_time_update_.Reset();
-    timing_execute_.Reset();
-    timing_serialize_.Reset();
     // TODO: reset execution count?
     ClearStats();
   }
