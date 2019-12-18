@@ -42,6 +42,7 @@
 #include "rocksdb/client.h"
 #include "rocksdb/key_comparator.h"
 #include "thin_replica/grpc_services.hpp"
+#include "thin_replica/subscription_buffer.hpp"
 #include "time/time_pusher.hpp"
 #include "time/time_reading.hpp"
 #include "utils/concord_eth_sign.hpp"
@@ -101,6 +102,7 @@ using concord::daml::DamlValidatorClient;
 using concord::daml::DataServiceImpl;
 using concord::daml::EventsServiceImpl;
 
+using concord::thin_replica::SubBufferList;
 using concord::thin_replica::ThinReplicaImpl;
 
 // Parse BFT configuration
@@ -330,13 +332,14 @@ void start_worker_threads(int number) {
 void RunDamlGrpcServer(std::string server_address, KVBClientPool &pool,
                        const ILocalKeyValueStorageReadOnly *ro_storage,
                        BlockingPersistentQueue<CommittedTx> &committedTxs,
-                       int max_num_threads) {
+                       SubBufferList &subscriber_list, int max_num_threads) {
   Logger logger = Logger::getInstance("com.vmware.concord.daml");
 
   DataServiceImpl *dataService = new DataServiceImpl(pool, ro_storage);
   CommitServiceImpl *commitService = new CommitServiceImpl(pool);
   EventsServiceImpl *eventsService = new EventsServiceImpl(committedTxs);
-  ThinReplicaImpl *thinReplicaService = new ThinReplicaImpl(ro_storage);
+  ThinReplicaImpl *thinReplicaService =
+      new ThinReplicaImpl(ro_storage, subscriber_list);
 
   grpc::ResourceQuota quota;
   quota.SetMaxThreads(max_num_threads);
@@ -372,7 +375,13 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
   unique_ptr<EthSign> ethVerifier;
   EVMInitParams params;
   uint64_t chainID;
+
+  // Subscription service
+  // Old - to be removed once thin replica is integrated
   BlockingPersistentQueue<CommittedTx> committedTxs;
+  // New - List of ring buffers (one per subscriber)
+  SubBufferList subscriber_list;
+
   bool daml_enabled = config.getValue<bool>("daml_enable");
   bool hlf_enabled = config.getValue<bool>("hlf_enable");
   bool eth_enabled = config.getValue<bool>("eth_enable");
@@ -434,9 +443,10 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
           grpc::CreateCustomChannel(
               nodeConfig.getValue<string>("daml_execution_engine_addr"),
               grpc::InsecureChannelCredentials(), chArgs)));
-      kvb_commands_handler = unique_ptr<ICommandsHandler>(
-          new DamlKvbCommandsHandler(config, replica, replica, committedTxs,
-                                     std::move(daml_validator)));
+      kvb_commands_handler =
+          unique_ptr<ICommandsHandler>(new DamlKvbCommandsHandler(
+              config, replica, replica, committedTxs, subscriber_list,
+              std::move(daml_validator)));
     } else if (hlf_enabled) {
       LOG4CPLUS_INFO(logger, "Hyperledger Fabric feature is enabled");
 
@@ -459,14 +469,14 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
       // Init chaincode invoker
       ChaincodeInvoker *chaincode_invoker = new ChaincodeInvoker(nodeConfig);
 
-      kvb_commands_handler =
-          unique_ptr<ICommandsHandler>(new HlfKvbCommandsHandler(
-              chaincode_invoker, config, nodeConfig, replica, replica));
+      kvb_commands_handler = unique_ptr<ICommandsHandler>(
+          new HlfKvbCommandsHandler(chaincode_invoker, config, nodeConfig,
+                                    replica, replica, subscriber_list));
     } else {
       assert(eth_enabled);
-      kvb_commands_handler =
-          unique_ptr<ICommandsHandler>(new EthKvbCommandsHandler(
-              *concevm, *ethVerifier, config, nodeConfig, replica, replica));
+      kvb_commands_handler = unique_ptr<ICommandsHandler>(
+          new EthKvbCommandsHandler(*concevm, *ethVerifier, config, nodeConfig,
+                                    replica, replica, subscriber_list));
       // Genesis must be added before the replica is started.
       concordUtils::Status genesis_status =
           create_genesis_block(&replica, params, logger);
@@ -527,7 +537,8 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
 
       // Spawn a thread in order to start management API server as well
       std::thread(RunDamlGrpcServer, daml_addr, std::ref(pool), &replica,
-                  std::ref(committedTxs), max_num_threads)
+                  std::ref(committedTxs), std::ref(subscriber_list),
+                  max_num_threads)
           .detach();
     } else if (hlf_enabled) {
       // Get listening address for services

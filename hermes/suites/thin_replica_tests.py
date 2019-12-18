@@ -17,6 +17,7 @@ from tempfile import NamedTemporaryFile
 import subprocess
 import os
 import pytest
+import itertools
 
 import util.daml.upload_dar as darutil
 import util.helper as helper
@@ -160,3 +161,47 @@ def test_compare_filter_with_no_filter_hash(fxProduct, setup_test_suite):
     data_stream.done()
 
     assert tr.read_hash(bid).hash != tr.read_hash(bid, b"daml").hash
+
+def test_basic_subscribe_to_updates(fxProduct, setup_test_suite):
+    """We should be able to continously receive updates
+
+    Each update contains a block number and a list of key-value pairs.
+    """
+    tr = setup_test_suite
+
+    # For now, nothing is filtered and hence we assume monotonically increasing
+    # block numbers by 1. Also, the starting block number is ignored.
+    block_id = 0
+
+    stream = tr.subscribe_to_updates(block_id=1, key_prefix=b"")
+    for update in itertools.islice(stream, 5):
+        if block_id == 0:
+            block_id = update.block_id
+            continue
+
+        assert update.block_id == block_id + 1
+        block_id += 1
+
+def test_basic_subscribe_to_update_hashes(fxProduct, setup_test_suite):
+    """We should be able to continously retrieve hashes for produced updates
+    """
+    tr1 = setup_test_suite
+    tr2 = ThinReplica("localhost", "50052")
+    tr3 = ThinReplica("localhost", "50053")
+    tr4 = ThinReplica("localhost", "50054")
+
+    tr1_stream = tr1.subscribe_to_update_hashes(block_id=1, key_prefix=b"")
+    tr2_stream = tr2.subscribe_to_update_hashes(block_id=1, key_prefix=b"")
+    tr3_stream = tr3.subscribe_to_update_hashes(block_id=1, key_prefix=b"")
+    tr4_stream = tr4.subscribe_to_update_hashes(block_id=1, key_prefix=b"")
+
+    # Note: In the current implementation, we don't respect the block number.
+    # Get the first 5 updates from thin replica 4 and get the hashes for the
+    # same block id's from the other thin replicas as well. As with the
+    # subscribe_to_updates test, we rely on the time services to produce new blocks
+    tr4_hashes = {x.block_id : x.hash for x in itertools.islice(tr4_stream, 5)}
+    tr3_hashes = {x.block_id : x.hash for x in itertools.islice(tr3_stream, 10) if x.block_id in tr4_hashes}
+    tr2_hashes = {x.block_id : x.hash for x in itertools.islice(tr2_stream, 10) if x.block_id in tr4_hashes}
+    tr1_hashes = {x.block_id : x.hash for x in itertools.islice(tr1_stream, 10) if x.block_id in tr4_hashes}
+
+    assert tr1_hashes == tr2_hashes == tr3_hashes == tr4_hashes

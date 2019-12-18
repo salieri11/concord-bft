@@ -29,3 +29,11 @@ class ThinReplica:
     def read_hash(self, block_id, key_prefix=b""):
         request = trproto.ReadStateHashRequest(block_id=block_id, key_prefix=key_prefix)
         return self.stub.ReadStateHash(request)
+
+    def subscribe_to_updates(self, block_id=1, key_prefix=b""):
+        request = trproto.SubscriptionRequest(block_id=block_id, key_prefix=key_prefix)
+        return self.stub.SubscribeToUpdates(request)
+
+    def subscribe_to_update_hashes(self, block_id=1, key_prefix=b""):
+        request = trproto.SubscriptionRequest(block_id=block_id, key_prefix=key_prefix)
+        return self.stub.SubscribeToUpdateHashes(request)
