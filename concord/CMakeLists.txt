@@ -8,8 +8,7 @@ set(CMAKE_CXX_EXTENSIONS Off)
 #set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall")
 
 # Storage options
-set(USE_ROCKSDB True)
-set(BUILD_ROCKSDB_STORAGE TRUE CACHE BOOL "concord needs rocksdb")
+option(BUILD_ROCKSDB_STORAGE "concord needs rocksdb" TRUE)
 
 #concord flags
 # Default USE_LOG4CPP to true

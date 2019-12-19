@@ -272,8 +272,8 @@ concordUtils::Status ConcordCommandsHandler::addBlock(
     amended_updates.insert(time_->Serialize());
   }
 
-  amended_updates[metadata_storage_.BlockMetadataKey()] =
-      metadata_storage_.SerializeBlockMetadata(executing_bft_sequence_num_);
+  amended_updates[metadata_storage_.getKey()] =
+      metadata_storage_.serialize(executing_bft_sequence_num_);
 
   concordUtils::Status status =
       appender_.addBlock(amended_updates, out_block_id);

@@ -27,7 +27,7 @@ add_executable(concord
   ${GRPC_SRCS}
 )
 
-if(USE_ROCKSDB)
+if(BUILD_ROCKSDB_STORAGE)
 target_compile_definitions(concord PRIVATE USE_ROCKSDB=1)
 endif()
 
