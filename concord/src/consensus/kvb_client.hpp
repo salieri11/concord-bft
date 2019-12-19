@@ -13,8 +13,8 @@
 #include <queue>
 #include <vector>
 
-#include "client_imp.h"
-#include "client_interface.h"
+#include "ClientImp.h"
+#include "KVBCInterfaces.h"
 #include "concord.pb.h"
 #include "time/time_pusher.hpp"
 
@@ -27,10 +27,10 @@ class TimePusher;
 }  // namespace time
 
 namespace consensus {
-
+using concord::kvbc::IClient;
 class KVBClient {
  private:
-  IClient *client_;
+  std::unique_ptr<IClient> client_;
   std::chrono::milliseconds timeout_;
   std::shared_ptr<concord::time::TimePusher> timePusher_;
   log4cplus::Logger logger_;
@@ -45,10 +45,7 @@ class KVBClient {
         timePusher_(timePusher),
         logger_(log4cplus::Logger::getInstance("com.vmware.concord")) {}
 
-  ~KVBClient() {
-    client_->stop();
-    releaseClient(client_);
-  }
+  ~KVBClient() { client_->stop(); }
 
   bool send_request_sync(com::vmware::concord::ConcordRequest &req,
                          bool isReadOnly, opentracing::Span &parent_span,

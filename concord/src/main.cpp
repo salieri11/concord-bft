@@ -14,16 +14,18 @@
 #include <regex>
 #include <string>
 #include <thread>
+#include "ClientImp.h"
+#include "KVBCInterfaces.h"
+#include "Logger.hpp"
+#include "ReplicaImp.h"
 #include "api/api_acceptor.hpp"
+#include "bftengine/ReplicaConfig.hpp"
 #include "blockchain/db_adapter.h"
 #include "blockchain/db_interfaces.h"
 #include "common/concord_exception.hpp"
 #include "common/status_aggregator.hpp"
 #include "config/configuration_manager.hpp"
 #include "consensus/bft_configuration.hpp"
-#include "consensus/client_imp.h"
-#include "consensus/replica_imp.h"
-#include "consensus/replica_state_sync_imp.hpp"
 #include "daml/blocking_queue.h"
 #include "daml/daml_kvb_commands_handler.hpp"
 #include "daml/daml_validator_client.hpp"
@@ -39,8 +41,11 @@
 #include "hlf/kvb_storage.hpp"
 #include "memorydb/client.h"
 #include "memorydb/key_comparator.h"
+#include "replica_state_sync_imp.hpp"
+
 #include "rocksdb/client.h"
 #include "rocksdb/key_comparator.h"
+#include "storage/concord_block_metadata.h"
 #include "thin_replica/grpc_services.hpp"
 #include "thin_replica/subscription_buffer.hpp"
 #include "time/time_pusher.hpp"
@@ -65,18 +70,20 @@ using concord::common::zero_hash;
 using concord::config::ConcordConfiguration;
 using concord::ethereum::EthKvbStorage;
 using concord::common::operator<<;
-using concord::consensus::ClientConsensusConfig;
+using bftEngine::ReplicaConfig;
 using concord::consensus::CommConfig;
-using concord::consensus::IClient;
-using concord::consensus::ICommandsHandler;
-using concord::consensus::IReplica;
 using concord::consensus::KVBClient;
 using concord::consensus::KVBClientPool;
-using concord::consensus::ReplicaConsensusConfig;
-using concord::consensus::ReplicaImp;
 using concord::ethereum::EthKvbCommandsHandler;
 using concord::ethereum::EVM;
 using concord::ethereum::EVMInitParams;
+using concord::kvbc::ClientConfig;
+using concord::kvbc::IClient;
+using concord::kvbc::ICommandsHandler;
+using concord::kvbc::IReplica;
+using concord::kvbc::ReplicaImp;
+using concord::kvbc::ReplicaStateSyncImp;
+using concord::storage::ConcordBlockMetadata;
 using concord::storage::IDBClient;
 using concord::storage::blockchain::DBAdapter;
 using concord::storage::blockchain::IBlocksAppender;
@@ -415,31 +422,49 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
     CommConfig commConfig;
     StatusAggregator sag;
     commConfig.statusCallback = sag.get_update_connectivity_fn();
-    ReplicaConsensusConfig replicaConsensusConfig;
+    ReplicaConfig replicaConfig;
 
     // TODO(IG): check return value and shutdown concord if false
     initializeSBFTConfiguration(config, nodeConfig, &commConfig, nullptr, 0,
-                                &replicaConsensusConfig);
+                                &replicaConfig);
 
     DBAdapter db_adapter(open_database(nodeConfig, logger));
 
     // Replica
     //
     // TODO(IG): since ReplicaImpl is used as an implementation of few
-    // intefaces, this object will be used for constructing
-    // EthKvbCommandsHandler and thus we cant use IReplica here. Need to
+    // interfaces, this object will be used for constructing
+    // EthKvbCommandsHandler and thus we can't use IReplica here. Need to
     // restructure the code, to split interfaces implementation and to construct
     // objects in more clear way
-    concord::consensus::ReplicaStateSyncImp replicaStateSync;
-    ReplicaImp replica(commConfig, replicaConsensusConfig, &db_adapter,
-                       replicaStateSync);
+    bftEngine::ICommunication *icomm = nullptr;
+    if (commConfig.commType == "tls") {
+      TlsTcpConfig config(commConfig.listenIp, commConfig.listenPort,
+                          commConfig.bufferLength, commConfig.nodes,
+                          commConfig.maxServerId, commConfig.selfId,
+                          commConfig.certificatesRootPath,
+                          commConfig.cipherSuite, commConfig.statusCallback);
+      icomm = bftEngine::CommFactory::create(config);
+    } else if (commConfig.commType == "udp") {
+      PlainUdpConfig config(commConfig.listenIp, commConfig.listenPort,
+                            commConfig.bufferLength, commConfig.nodes,
+                            commConfig.selfId, commConfig.statusCallback);
+      icomm = bftEngine::CommFactory::create(config);
+    } else {
+      throw std::invalid_argument("Unknown communication module type" +
+                                  commConfig.commType);
+    }
+    ReplicaImp replica(icomm, replicaConfig, &db_adapter,
+                       std::make_shared<concordMetrics::Aggregator>());
+    replica.setReplicaStateSync(
+        new ReplicaStateSyncImp(new ConcordBlockMetadata(replica)));
 
     unique_ptr<ICommandsHandler> kvb_commands_handler;
     if (daml_enabled) {
       grpc::ChannelArguments chArgs;
       chArgs.SetMaxReceiveMessageSize(kDamlServerMsgSizeMax);
       unique_ptr<DamlValidatorClient> daml_validator(new DamlValidatorClient(
-          replicaConsensusConfig.replicaId,
+          replicaConfig.replicaId,
           grpc::CreateCustomChannel(
               nodeConfig.getValue<string>("daml_execution_engine_addr"),
               grpc::InsecureChannelCredentials(), chArgs)));
@@ -503,14 +528,33 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
         nodeConfig.getValue<uint32_t>("bft_client_timeout_ms"));
     for (uint16_t i = 0;
          i < config.getValue<uint16_t>("client_proxies_per_replica"); ++i) {
-      ClientConsensusConfig clientConsensusConfig;
+      ClientConfig clientConfig;
       // TODO(IG): check return value and shutdown concord if false
       CommConfig clientCommConfig;
       initializeSBFTConfiguration(config, nodeConfig, &clientCommConfig,
-                                  &clientConsensusConfig, i, nullptr);
+                                  &clientConfig, i, nullptr);
 
-      IClient *client = concord::consensus::createClient(clientCommConfig,
-                                                         clientConsensusConfig);
+      ICommunication *comm = nullptr;
+      if (commConfig.commType == "tls") {
+        TlsTcpConfig config(
+            clientCommConfig.listenIp, clientCommConfig.listenPort,
+            clientCommConfig.bufferLength, clientCommConfig.nodes,
+            clientCommConfig.maxServerId, clientCommConfig.selfId,
+            clientCommConfig.certificatesRootPath, clientCommConfig.cipherSuite,
+            clientCommConfig.statusCallback);
+        comm = bftEngine::CommFactory::create(config);
+      } else if (commConfig.commType == "udp") {
+        PlainUdpConfig config(
+            clientCommConfig.listenIp, clientCommConfig.listenPort,
+            clientCommConfig.bufferLength, clientCommConfig.nodes,
+            clientCommConfig.selfId, clientCommConfig.statusCallback);
+        comm = bftEngine::CommFactory::create(config);
+      } else {
+        throw std::invalid_argument("Unknown communication module type" +
+                                    commConfig.commType);
+      }
+
+      IClient *client = concord::kvbc::createClient(clientConfig, comm);
       client->start();
       KVBClient *kvbClient = new KVBClient(client, clientTimeout, timePusher);
       clients.push_back(kvbClient);

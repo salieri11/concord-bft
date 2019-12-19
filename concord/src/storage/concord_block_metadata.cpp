@@ -3,16 +3,15 @@
 // Wrapper used by concord::consensus::ConcordCommandsHandler to store BFT
 // metadata (sequence number).
 
-#include "concord_metadata_storage.h"
-#include <log4cplus/loggingmacros.h>
+#include "concord_block_metadata.h"
+
 #include "kv_types.hpp"
 
 namespace concord {
 namespace storage {
 
-Sliver ConcordMetadataStorage::SerializeBlockMetadata(
-    uint64_t bft_sequence_num) {
-  block_metadata_.Clear();
+Sliver ConcordBlockMetadata::serialize(uint64_t bft_sequence_num) const {
+  com::vmware::concord::kvb::BlockMetadata block_metadata_;
   block_metadata_.set_version(kBlockMetadataVersion);
   block_metadata_.set_bft_sequence_num(bft_sequence_num);
 
@@ -26,7 +25,7 @@ Sliver ConcordMetadataStorage::SerializeBlockMetadata(
   return Sliver(raw_buffer, serialized_size);
 }
 
-uint64_t ConcordMetadataStorage::GetBlockMetadata(Sliver& key) {
+uint64_t ConcordBlockMetadata::getSequenceNum(const Sliver& key) const {
   Sliver outValue;
   Status status = storage_.get(key, outValue);
   uint64_t sequenceNum = 0;
@@ -49,8 +48,7 @@ uint64_t ConcordMetadataStorage::GetBlockMetadata(Sliver& key) {
                                 << status
                                 << ", outValue.length = " << outValue.length());
   }
-  LOG4CPLUS_DEBUG(logger_,
-                  "key = " << key << ", sequenceNum = " << sequenceNum);
+  LOG_DEBUG(logger_, "key = " << key << ", sequenceNum = " << sequenceNum);
   return sequenceNum;
 }
 

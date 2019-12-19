@@ -5,11 +5,11 @@
 #ifndef CONSENSUS_CONCORD_COMMANDS_HANDLER_HPP_
 #define CONSENSUS_CONCORD_COMMANDS_HANDLER_HPP_
 
+#include "KVBCInterfaces.h"
 #include "blockchain/db_interfaces.h"
-#include "commands_handler.h"
 #include "concord.pb.h"
 #include "consensus/timing_stat.h"
-#include "storage/concord_metadata_storage.h"
+#include "storage/concord_block_metadata.h"
 #include "thin_replica/subscription_buffer.hpp"
 #include "time/time_contract.hpp"
 #include "time/time_reading.hpp"
@@ -22,11 +22,11 @@ namespace concord {
 namespace consensus {
 
 class ConcordCommandsHandler
-    : public ICommandsHandler,
+    : public concord::kvbc::ICommandsHandler,
       public concord::storage::blockchain::IBlocksAppender {
  private:
   log4cplus::Logger logger_;
-  concord::storage::ConcordMetadataStorage metadata_storage_;
+  concord::storage::ConcordBlockMetadata metadata_storage_;
   uint64_t executing_bft_sequence_num_;
   std::chrono::steady_clock::duration timing_log_period_;
   std::chrono::steady_clock::time_point timing_log_last_;

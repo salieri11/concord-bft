@@ -11,10 +11,9 @@
 #include "IThresholdFactory.h"
 #include "IThresholdSigner.h"
 #include "IThresholdVerifier.h"
+#include "KVBCInterfaces.h"
 #include "config/configuration_manager.hpp"
-#include "consensus/client_interface.h"
 #include "consensus/communication.h"
-#include "consensus/replica_interface.h"
 
 namespace concord {
 namespace consensus {
@@ -97,7 +96,7 @@ inline bool initializeSBFTCrypto(
     uint16_t maxSlow, concord::config::ConcordConfiguration& config,
     concord::config::ConcordConfiguration& replicaConfig,
     std::set<std::pair<uint16_t, const std::string>> publicKeysOfReplicas,
-    concord::consensus::ReplicaConsensusConfig* outConfig) {
+    bftEngine::ReplicaConfig* outConfig) {
   // Threshold signatures
   IThresholdSigner* thresholdSignerForSlowPathCommit;
   IThresholdVerifier* thresholdVerifierForSlowPathCommit;
@@ -204,8 +203,8 @@ inline bool initializeSBFTConfiguration(
     concord::config::ConcordConfiguration& config,
     concord::config::ConcordConfiguration& nodeConfig,
     concord::consensus::CommConfig* commConfig,
-    concord::consensus::ClientConsensusConfig* clConf, uint16_t clientIndex,
-    concord::consensus::ReplicaConsensusConfig* repConf) {
+    concord::kvbc::ClientConfig* clConf, uint16_t clientIndex,
+    bftEngine::ReplicaConfig* repConf) {
   assert(!clConf != !repConf);
 
   // Initialize random number generator
@@ -270,8 +269,8 @@ inline bool initializeSBFTConfiguration(
 #undef DEFAULT
   } else {
     clConf->clientId = selfNumber;
-    clConf->maxFaulty = maxFaulty;
-    clConf->maxSlow = maxSlow;
+    clConf->fVal = maxFaulty;
+    clConf->cVal = maxSlow;
   }
 
   return true;
