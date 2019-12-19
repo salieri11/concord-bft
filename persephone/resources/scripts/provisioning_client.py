@@ -65,6 +65,16 @@ def get_component(blockchain_type, node_type) -> List[concord_model.ConcordCompo
         return [
             concord_model.ConcordComponent(
                 type=concord_model.ConcordComponent.CONTAINER_IMAGE,
+                service_type=concord_model.ConcordComponent.WAVEFRONT_PROXY,
+                name="wavefronthq/proxy:5.7"
+            ),
+            concord_model.ConcordComponent(
+                type=concord_model.ConcordComponent.CONTAINER_IMAGE,
+                service_type=concord_model.ConcordComponent.JAEGER_AGENT,
+                name="jaegertracing/jaeger-agent:1.11"
+            ),
+            concord_model.ConcordComponent(
+                type=concord_model.ConcordComponent.CONTAINER_IMAGE,
                 service_type=concord_model.ConcordComponent.CONCORD,
                 name="vmwblockchain/concord-core:latest"
             ),
@@ -76,7 +86,7 @@ def get_component(blockchain_type, node_type) -> List[concord_model.ConcordCompo
             concord_model.ConcordComponent(
                 type=concord_model.ConcordComponent.CONTAINER_IMAGE,
                 service_type=concord_model.ConcordComponent.GENERIC,
-                name="vmwblockchain/agent:latest"
+                name="vmwblockchain/agent-testing:testwf1"
             ),
             concord_model.ConcordComponent(
                 type=concord_model.ConcordComponent.CONTAINER_IMAGE,
@@ -324,13 +334,15 @@ def getPlacementEntry(site):
                     address="https://console.cloud.vmware.com",
                     credential=core.Credential(
                         token_credential=core.BearerTokenCredential(
-                            token="<ADD REFRESH TOKEN>"
+                            token="<REFRESH TOKEN>"
                         )
                     )
                 ),
                 api=core.Endpoint(
                     address="https://vmc.vmware.com"
                 ),
+                wavefront_url="<WAVEFRONT URL>",
+                wavefront_token="<WAVEFRONT TOKEN>",
                 organization="c56e116e-c36f-4f7d-b504-f9a33955b853",
                 datacenter="6db19f8f-cde6-4151-88e5-a3b0d6aead6a",
                 vsphere=orchestration.VSphereDatacenterInfo(
