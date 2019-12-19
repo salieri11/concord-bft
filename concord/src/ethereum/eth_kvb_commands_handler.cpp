@@ -1045,8 +1045,6 @@ evm_result EthKvbCommandsHandler::run_evm(const EthRequest &request,
   }
 
   if (!kvbStorage.is_read_only()) {
-    auto write_span = parent_span.tracer().StartSpan(
-        "evm_write", {opentracing::ChildOf(&parent_span.context())});
     // If this is a transaction, and not just a call, record it.
     txhash = record_transaction(message, request, nonce, result, timestamp,
                                 logs, kvbStorage);

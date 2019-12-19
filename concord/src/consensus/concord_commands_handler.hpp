@@ -32,6 +32,10 @@ class ConcordCommandsHandler
   std::chrono::steady_clock::time_point timing_log_last_;
   concord::thin_replica::SubBufferList &subscriber_list_;
 
+  // The tracing span that should be used as the parent to the span covering the
+  // addBlock function.
+  std::unique_ptr<opentracing::Span> addBlock_parent_span;
+
   void log_timing();
 
  protected:

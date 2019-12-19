@@ -113,12 +113,14 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
       }
     }
 
-    {
-      auto sub_execute_span = tracer->StartSpan(
-          "sub_execute", {opentracing::ChildOf(&execute_span->context())});
-      result = Execute(request_, read_only, time_.get(),
-                       *sub_execute_span.get(), response_);
-    }
+    // Stashing this span in our state, so that if the subclass calls addBlock,
+    // we can use it as the parent for the add_block span.
+    addBlock_parent_span = tracer->StartSpan(
+        "sub_execute", {opentracing::ChildOf(&execute_span->context())});
+    result = Execute(request_, read_only, time_.get(),
+                     *addBlock_parent_span.get(), response_);
+    // Manually stopping the span after execute.
+    addBlock_parent_span.reset();
 
     if (time_ && request_.has_time_request()) {
       TimeRequest tr = request_.time_request();
@@ -128,9 +130,16 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
         // the rest of the command did not write its state. What should we do?
         if (result) {
           if (!read_only) {
+            // WriteEmptyBlock is going to call addBlock, and we need to tell it
+            // what tracing span to use as its parent.
+            addBlock_parent_span = std::move(execute_span);
+
             // The state machine might have had no commands in the request. Go
             // ahead and store just the time update.
             WriteEmptyBlock(time_.get());
+
+            // Reclaim control of the addBlock_span.
+            execute_span = std::move(addBlock_parent_span);
 
             // Create an empty time response, so that out_response_size is not
             // zero.
@@ -198,7 +207,7 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
     result = true;
   }
 
-  // Don't bother timing serialization if the response if we didn't successfully
+  // Don't bother timing serialization of the response if we didn't successfully
   // parse the request.
   std::unique_ptr<opentracing::Span> serialize_span =
       execute_span == nullptr
@@ -262,6 +271,8 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
 concordUtils::Status ConcordCommandsHandler::addBlock(
     const concord::storage::SetOfKeyValuePairs &updates,
     concord::storage::blockchain::BlockId &out_block_id) {
+  auto add_block_span = addBlock_parent_span->tracer().StartSpan(
+      "add_block", {opentracing::ChildOf(&addBlock_parent_span->context())});
   // The IBlocksAppender interface specifies that updates must be const, but we
   // need to add items here, so we have to make a copy and work with that. In
   // the future, maybe we can figure out how to either make updates non-const,
