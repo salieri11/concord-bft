@@ -1010,7 +1010,11 @@ def test_getABlockhain_invalid_uuid(fxConnection):
    '''
    blockchainId = "8fecf880-26e3-4d71-9778-ad1592324684"
    response = fxConnection.request.getBlockchainDetails(blockchainId)
-   rest.test_methods.validateAccessDeniedResponse(response, "/api/blockchains/{}".format(blockchainId))
+   assert response["error_code"] == "NotFoundException", "Expected NotFoundException"
+   assert response["status"] == 404, "Expected 404 response"
+   expectedPath = "/api/blockchains/{}".format(blockchainId)
+   assert response["path"] == expectedPath, "Expected path {}".format(expectedPath)
+   
 
 
 @pytest.mark.smoke
@@ -2148,8 +2152,8 @@ def test_consortiums_get_nonexistant(fxConnection):
    oldId = "865d9e5c-aa7d-4a69-a7b5-1744be8d56f9"
    req = fxConnection.request.newWithToken(defaultTokenDescriptor)
    response = req.getConsortium(oldId)
-   assert response["error_code"] == "AccessDeniedException", "Expected AccessDeniedException"
-   assert response["status"] == 403, "Expected 403 response"
+   assert response["error_code"] == "NotFoundException", "Expected NotFoundException"
+   assert response["status"] == 404, "Expected 404 response"
    expectedPath = "/api/consortiums/{}".format(oldId)
    assert response["path"] == expectedPath, "Expected path {}".format(expectedPath)
 
