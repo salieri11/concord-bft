@@ -32,6 +32,7 @@ import com.vmware.blockchain.deployment.v1.OrchestrationSiteIdentifier;
 import com.vmware.blockchain.deployment.v1.OrchestrationSiteInfo;
 import com.vmware.blockchain.deployment.v1.PlacementSpecification;
 import com.vmware.blockchain.deployment.v1.PlacementSpecification.Entry;
+import com.vmware.blockchain.deployment.v1.Properties;
 import com.vmware.blockchain.deployment.v1.ProvisionedResource;
 import com.vmware.blockchain.deployment.v1.StreamClusterDeploymentSessionEventRequest;
 import com.vmware.blockchain.ethereum.type.Genesis;
@@ -83,7 +84,8 @@ class ProvisioningServiceTest {
         var genesis = new Genesis();
         ConcordModelSpecification spec = new ConcordModelSpecification();
 
-        return new DeploymentSpecification(clusterSize, spec, placementSpec, genesis, UUID.randomUUID().toString());
+        return new DeploymentSpecification(clusterSize, spec, placementSpec, genesis, UUID.randomUUID().toString(),
+                                           new Properties());
     }
 
     /**

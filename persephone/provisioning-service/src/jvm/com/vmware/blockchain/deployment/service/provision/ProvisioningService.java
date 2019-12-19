@@ -510,8 +510,8 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
     private CompletableFuture<ConfigurationSessionIdentifier> generateConfigurationId(
             ConcurrentHashMap<PlacementAssignment.Entry, NetworkResourceEvent.Created> privateNetworkAddressMap,
             ConcordModelSpecification.BlockchainType blockchainType,
-            Genesis genesis, ConcordModelSpecification.NodeType nodeType,
-            List<ConcordComponent> components) {
+            Genesis genesis, List<ConcordComponent> components,
+            Properties properties) {
         List<String> nodeIps = new ArrayList<>();
 
 
@@ -520,13 +520,22 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
             nodeIps.add(nodeIp);
             concordIdentifierMap.put(key.getNode(), nodeIps.indexOf(nodeIp));
         });
+
+        Properties rawProperties = new Properties();
+        if (!properties.getValues().isEmpty()) {
+            // TODO Take the key name from constants.
+            String ipList = properties.getValues().getOrDefault("committers", "concord:50051");
+            rawProperties.getValues().put("replicas", ipList);
+        }
+
+        // TODO put log properties here and remove from cloudInit
         var request = new ConfigurationServiceRequest(
                 new MessageHeader(),
                 nodeIps, blockchainType,
                 genesis,
                 components.stream().filter(x -> !x.getServiceType().equals(ConcordComponent.ServiceType.GENERIC))
                         .map(x -> x.getServiceType()).collect(Collectors.toList()),
-                new Properties());
+                rawProperties);
 
         var promise = new CompletableFuture<ConfigurationSessionIdentifier>();
         configurationServiceClient.createConfiguration(request, newResultObserver(promise));
@@ -770,8 +779,8 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
                             privateNetworkAddressMap,
                             session.getSpecification().getModel().getBlockchainType(),
                             session.getSpecification().getGenesis(),
-                            session.getSpecification().getModel().getNodeType(),
-                            session.getSpecification().getModel().getComponents()), executor
+                            session.getSpecification().getModel().getComponents(),
+                            session.getSpecification().getProperties()), executor
                     )
                     // Setup node deployment workflow with its assigned network address.
                     .thenComposeAsync(configGenId -> {

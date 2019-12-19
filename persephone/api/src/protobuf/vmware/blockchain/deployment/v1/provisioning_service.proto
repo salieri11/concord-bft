@@ -93,6 +93,7 @@ message DeploymentSpecification {
     PlacementSpecification placement = 3;
     vmware.blockchain.ethereum.type.Genesis genesis = 4;
     string consortium = 5;
+    Properties properties = 6;
 }
 
 /**
