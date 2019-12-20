@@ -34,7 +34,7 @@ import com.vmware.blockchain.connections.ConnectionPoolManager;
 import com.vmware.blockchain.dao.GenericDao;
 import com.vmware.blockchain.dao.TestDaoConfig;
 import com.vmware.blockchain.db.DbConfig;
-import com.vmware.blockchain.db.TestMapper;
+import com.vmware.blockchain.db.mapper.TestMapper;
 import com.vmware.blockchain.security.JwtTokenProvider;
 import com.vmware.blockchain.security.ServiceContext;
 import com.vmware.blockchain.services.blockchains.BlockchainService;

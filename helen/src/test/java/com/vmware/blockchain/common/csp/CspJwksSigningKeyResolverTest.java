@@ -65,19 +65,18 @@ public class CspJwksSigningKeyResolverTest {
         PublicKey key1Pk = mock(PublicKey.class);
         when(cspApiClient.getJwtPublicKeys()).thenReturn(ImmutableMap.of(keyId1, key1Pk));
 
-        InternalFailureException e = Assertions.assertThrows(InternalFailureException.class,
-            () -> {
-                CspJwksSigningKeyResolver signingKeyResolver =
-                        new CspJwksSigningKeyResolver(cspApiClient);
-                Assertions.assertEquals(key1Pk, signingKeyResolver
-                        .resolveSigningKey(
-                                new DefaultJwsHeader(ImmutableMap.of(JwsHeader.KEY_ID, keyId1)),
-                                mock(Claims.class)));
+        InternalFailureException e = Assertions.assertThrows(InternalFailureException.class, () -> {
+            CspJwksSigningKeyResolver signingKeyResolver =
+                    new CspJwksSigningKeyResolver(cspApiClient);
+            Assertions.assertEquals(key1Pk, signingKeyResolver
+                    .resolveSigningKey(
+                            new DefaultJwsHeader(ImmutableMap.of(JwsHeader.KEY_ID, keyId1)),
+                            mock(Claims.class)));
 
-                signingKeyResolver.resolveSigningKey(
-                        new DefaultJwsHeader(ImmutableMap.of(JwsHeader.KEY_ID, keyId2)),
-                        mock(Claims.class));
-            });
+            signingKeyResolver.resolveSigningKey(
+                    new DefaultJwsHeader(ImmutableMap.of(JwsHeader.KEY_ID, keyId2)),
+                    mock(Claims.class));
+        });
         Assertions.assertEquals("Invalid Key ID super_than_super_duper_key", e.getMessage());
 
     }

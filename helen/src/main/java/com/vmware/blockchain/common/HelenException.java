@@ -12,7 +12,7 @@ import org.springframework.http.HttpStatus;
  * Base class for Helen exceptions.  The message is a MessageFormat string, to aid in transition
  * to localization latter on.
  */
-public class HelenException extends RuntimeException {
+public class HelenException extends VmbcException {
 
     private static final long serialVersionUID = 1L;
 

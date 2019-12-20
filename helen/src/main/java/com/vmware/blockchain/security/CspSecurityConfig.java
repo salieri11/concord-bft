@@ -28,7 +28,7 @@ import org.springframework.security.web.csrf.CsrfFilter;
 import com.vmware.blockchain.common.Constants;
 import com.vmware.blockchain.operation.OperationContext;
 import com.vmware.blockchain.operation.RequestTrackingFilter;
-import com.vmware.blockchain.services.profiles.Roles;
+import com.vmware.blockchain.services.profiles.VmbcRoles;
 
 /**
  * Security Configuration for Helen.
@@ -75,7 +75,7 @@ public class CspSecurityConfig extends WebSecurityConfigurerAdapter {
                 // anyone can look at the health
                 .antMatchers("/api/management/health").permitAll()
                 .antMatchers("/api/management/prometheus").permitAll()
-                .antMatchers("/api/management/**").hasAnyRole(Roles.SYSTEM_ADMIN.getName())
+                .antMatchers("/api/management/**").hasAnyRole(VmbcRoles.SYSTEM_ADMIN.getName())
                 .anyRequest()
                 .authenticated().and().exceptionHandling()
                 .authenticationEntryPoint(restAuthticationEntryPoint)

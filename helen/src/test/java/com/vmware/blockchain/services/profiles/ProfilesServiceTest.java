@@ -90,14 +90,14 @@ class ProfilesServiceTest {
         existingUser.setLastName("User");
         existingUser.setPassword("foobar");
         existingUser.setOrganization(ORG_ID);
-        existingUser.setRoles(Collections.singletonList(Roles.ORG_ADMIN));
+        existingUser.setServiceRoles(Collections.singletonList(VmbcRoles.ORG_ADMIN));
         newUser = new User();
         newUser.setEmail("newbie@a.com");
         newUser.setFirstName("New B.");
         newUser.setLastName("User");
         newUser.setPassword("foobar");
         newUser.setOrganization(ORG_ID);
-        newUser.setRoles(Collections.singletonList(Roles.ORG_USER));
+        newUser.setServiceRoles(Collections.singletonList(VmbcRoles.ORG_USER));
         when(userService.get(USER_ID)).thenReturn(existingUser);
         when(userService.getByEmail("test@a.com")).thenReturn(existingUser);
         when(userService.get(AdditionalMatchers.not(eq(USER_ID))))
@@ -191,7 +191,7 @@ class ProfilesServiceTest {
         Assertions.assertEquals("old-test@a.com", u.getEmail());
         Assertions.assertEquals("Test", u.getFirstName());
         Assertions.assertEquals("User", u.getLastName());
-        Assertions.assertEquals(Roles.ORG_ADMIN.getName(), u.getRoles().get(0).getName());
+        Assertions.assertEquals(VmbcRoles.ORG_ADMIN.getName(), u.getServiceRoles().get(0).getName());
     }
 
     @Test
@@ -216,5 +216,4 @@ class ProfilesServiceTest {
         prm.loginUser(existingUser);
         Assertions.assertNotEquals(0, existingUser.getLastLogin());
     }
-
 }

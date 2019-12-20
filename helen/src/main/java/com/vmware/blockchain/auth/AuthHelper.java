@@ -16,24 +16,24 @@ import org.apache.logging.log4j.ThreadContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.security.access.expression.SecurityExpressionRoot;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
 import com.vmware.blockchain.BaseCacheHelper;
+import com.vmware.blockchain.base.auth.BaseAuthHelper;
+import com.vmware.blockchain.base.auth.BaseUserDetails;
 import com.vmware.blockchain.common.Constants;
 import com.vmware.blockchain.security.HelenUserDetails;
 import com.vmware.blockchain.services.profiles.DefaultProfiles;
 import com.vmware.blockchain.services.profiles.Roles;
+import com.vmware.blockchain.services.profiles.VmbcRoles;
 
 /**
  * A few helper functions for getting fields of Auth.
  */
 @Component
-public class AuthHelper {
+public class AuthHelper extends BaseAuthHelper {
 
     private static Logger logger = LogManager.getLogger(AuthHelper.class);
 
@@ -43,54 +43,22 @@ public class AuthHelper {
     private DefaultProfiles defaultProfiles;
 
     @Autowired
+    VmbcRoles vmbcRoles;
+
+    @Autowired
     private BaseCacheHelper baseCacheHelper;
 
     /**
-     * Get the current Authentication.  Return null if none.
-     * Sigh... In order to support basic auth, we need to handle
-     * the case that the Authentication is a UsernamePasswordAuthenticationToken from deep
-     * inside Spring.
-     */
-    private Authentication getAuthentication() {
-        SecurityContext ctx = SecurityContextHolder.getContext();
-        if (ctx == null) {
-            return null;
-        }
-        return ctx.getAuthentication();
-    }
-
-    /**
-     * Get the HelenUserDetails from the security context, bassed on whether this
-     * is AuthenticationContext or UsernamePasswordAuthenticationToken.
+     * BaseAuthHelper will return BaseUserDetails.  All user details going in from this level
+     * should already have been HelenUserDetails.
      */
     public HelenUserDetails getDetails() {
-        Authentication auth = getAuthentication();
-        if (auth == null) {
-            return null;
-        } else if (auth instanceof AuthenticationContext) {
-            return ((AuthenticationContext) auth).getDetails();
-        } else if (auth instanceof UsernamePasswordAuthenticationToken) {
-            // Well, this looks nasty
-            return (HelenUserDetails) ((UsernamePasswordAuthenticationToken) auth).getPrincipal();
+        BaseUserDetails details = super.getDetails();
+        if (details instanceof HelenUserDetails) {
+            return (HelenUserDetails) details;
         }
         // Don't recognize the Authentication type.
         return null;
-    }
-
-    public UUID getUserId() {
-        HelenUserDetails details = getDetails();
-        return details == null ? null : details.getUserId();
-    }
-
-    public String getEmail() {
-        HelenUserDetails details = getDetails();
-        return details == null ? null : details.getUsername();
-    }
-
-    // Switching to consortiumId, since internally we're still calling it that
-    public UUID getOrganizationId() {
-        HelenUserDetails details = getDetails();
-        return details == null ? null : details.getOrgId();
     }
 
     public String getAuthToken() {
@@ -134,7 +102,7 @@ public class AuthHelper {
     public boolean canAccessChain(UUID id) {
         logger.info("can access chain {}", id);
         return hasAnyAuthority(Roles.systemAdmin()) || (getAccessChains().contains(id)
-                && hasAnyAuthority(Roles.hasAnyRole()));
+                                                        && hasAnyAuthority(Roles.hasAnyRole()));
     }
 
     /**
@@ -158,8 +126,8 @@ public class AuthHelper {
      */
     public boolean canUpdateChain(UUID id) {
         logger.debug("can update chain {}", id);
-        return hasAnyAuthority(Roles.systemAdmin())
-                               || (hasAnyAuthority(Roles.consortiumAdmin()) && getUpdateChains().contains(id));
+        return hasAnyAuthority(vmbcRoles.systemAdmin())
+                               || (hasAnyAuthority(vmbcRoles.consortiumAdmin()) && getUpdateChains().contains(id));
     }
 
     /**
@@ -167,8 +135,8 @@ public class AuthHelper {
      */
     public boolean canUpdateChain(Optional<UUID> oid) {
         UUID id = oid.orElse(defaultProfiles.getBlockchain().getId());
-        return hasAnyAuthority(Roles.systemAdmin())
-               || (hasAnyAuthority(Roles.consortiumAdmin()) && getAccessChains().contains(id));
+        return hasAnyAuthority(vmbcRoles.systemAdmin())
+               || (hasAnyAuthority(vmbcRoles.consortiumAdmin()) && getAccessChains().contains(id));
     }
 
     public boolean canAccessConsortium(UUID id) {
@@ -177,8 +145,8 @@ public class AuthHelper {
     }
 
     public boolean canUpdateConsortium(UUID id) {
-        return hasAnyAuthority(Roles.systemAdmin())
-               || (hasAnyAuthority(Roles.consortiumAdmin()) && getUpdateConsortiums().contains(id));
+        return hasAnyAuthority(vmbcRoles.systemAdmin())
+               || (hasAnyAuthority(vmbcRoles.consortiumAdmin()) && getUpdateConsortiums().contains(id));
     }
 
     public boolean canAccessOrg(UUID id) {
@@ -187,37 +155,37 @@ public class AuthHelper {
     }
 
     public boolean canUpdateOrg(UUID id) {
-        return hasAnyAuthority(Roles.systemAdmin())
-               || (hasAnyAuthority(Roles.orgAdmin()) && getOrganizationId().equals(id));
+        return hasAnyAuthority(vmbcRoles.systemAdmin())
+               || (hasAnyAuthority(vmbcRoles.orgAdmin()) && getOrganizationId().equals(id));
     }
 
     public boolean isUser() {
-        return hasAnyAuthority(Roles.user());
+        return hasAnyAuthority(vmbcRoles.user());
     }
 
     public boolean isUserName(String userId) {
-        return hasAnyAuthority(Roles.systemAdmin())
-               || (hasAnyAuthority(Roles.user()) && getUserId().equals(userId));
+        return hasAnyAuthority(vmbcRoles.systemAdmin())
+               || (hasAnyAuthority(vmbcRoles.user()) && getUserId().equals(userId));
     }
 
     public boolean isConsortiumAdmin() {
-        return hasAnyAuthority(Roles.consortiumAdmin());
+        return hasAnyAuthority(vmbcRoles.consortiumAdmin());
     }
 
     public boolean isDeveloper() {
-        return hasAnyAuthority(Roles.developer());
+        return hasAnyAuthority(vmbcRoles.developer());
     }
 
     public boolean isCspOrgOwner() {
-        return hasAnyAuthority(Roles.cspOrgOwner());
+        return hasAnyAuthority(vmbcRoles.cspOrgOwner());
     }
 
     public boolean isSystemAdmin() {
-        return hasAnyAuthority(Roles.systemAdmin());
+        return hasAnyAuthority(vmbcRoles.systemAdmin());
     }
 
     public boolean isServiceAdmin() {
-        return hasAnyAuthority(Roles.serviceAdmin());
+        return hasAnyAuthority(vmbcRoles.serviceAdmin());
     }
 
     public void evictToken() {

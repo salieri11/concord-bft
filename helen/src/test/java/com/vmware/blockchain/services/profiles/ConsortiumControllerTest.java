@@ -32,6 +32,7 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -56,8 +57,9 @@ import com.vmware.blockchain.services.profiles.OrganizationContoller.OrgGetRespo
  */
 @ExtendWith(SpringExtension.class)
 @WebMvcTest(controllers = {ConsortiumController.class})
-@ContextConfiguration(classes = {MvcConfig.class, MvcTestSecurityConfig.class})
+@ContextConfiguration(classes = {MvcTestSecurityConfig.class, MvcConfig.class})
 @ComponentScan(basePackageClasses = {ConsortiumControllerTest.class, HelenExceptionHandler.class})
+@TestPropertySource(properties = "spring.main.allow-bean-definition-overriding=true")
 public class ConsortiumControllerTest {
 
     static final UUID C_1 = UUID.fromString("110da5dc-39c1-4148-a911-ec985b9448b0");
@@ -71,6 +73,9 @@ public class ConsortiumControllerTest {
 
     @MockBean
     DefaultProfiles defaultProfiles;
+
+    @MockBean
+    UserAuthenticator userAuthenticator;
 
     @Autowired
     Jackson2ObjectMapperBuilder jacksonBuilder;
@@ -86,6 +91,9 @@ public class ConsortiumControllerTest {
 
     @Autowired
     AuthHelper authHelper;
+
+    VmbcRoles vmbcRoles = new VmbcRoles();
+
 
     private ObjectMapper objectMapper;
 
@@ -117,12 +125,12 @@ public class ConsortiumControllerTest {
         when(consortiumService.getOrganizations(C_1)).thenReturn(Collections.singletonList(o1));
         objectMapper = jacksonBuilder.build();
         adminAuth = createContext("operator", O_1,
-                                  ImmutableList.of(Roles.SYSTEM_ADMIN, Roles.ORG_USER),
+                                  ImmutableList.of(vmbcRoles.SYSTEM_ADMIN, vmbcRoles.ORG_USER),
                                   ImmutableList.of(C_1),
                                   Collections.emptyList(), "");
 
         userAuth = createContext("operator", O_1,
-                                 ImmutableList.of(Roles.ORG_USER),
+                                 ImmutableList.of(vmbcRoles.ORG_USER),
                                  ImmutableList.of(C_1),
                                  Collections.emptyList(), "");
 

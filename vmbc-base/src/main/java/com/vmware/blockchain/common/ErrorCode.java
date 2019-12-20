@@ -41,7 +41,7 @@ public final class ErrorCode {
     public static final String DUPLICATE_CONTRACT_ID = "ContractVersion with id {0} and version {1} already exists";
     public static final String DUPLICATE_EMAIL = "Duplicate email address";
     public static final String DUPLICATE_UPDATION = "The row has already been updated";
-    public static final String ENTITY_NOT_FOUND = "Entity is not found for Id {0}, column name {1}.";
+    public static final String ENTITY_NOT_FOUND = "Entity is not found for Id {0}";
     public static final String ELEMENTS_SPECIFIED_MORE = "'params' must contain only one element";
     public static final String ENTITY_ISSUES = "Issues with entity";
     public static final String ENTITY_CONVERSION_UNSUCCESSFUL = "Could not convert from DB to Entity {0}";

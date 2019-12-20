@@ -17,11 +17,15 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import com.vmware.blockchain.auth.AuthHelper;
+import com.vmware.blockchain.common.EntityModificationException;
+import com.vmware.blockchain.common.ErrorCode;
+import com.vmware.blockchain.common.ForbiddenException;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -87,5 +91,42 @@ public class ProfileController {
     @NoArgsConstructor
     private static class UsersCreateResponse {
         UUID userId;
+    }
+
+    private void validatePatchRequest(UserPatchRequest upr) throws EntityModificationException {
+        if (upr.getRole() != null && !VmbcRoles.contains(upr.getRole())) {
+            throw new EntityModificationException(ErrorCode.INVALID_ROLE);
+        }
+        if (upr.getDetails() != null) {
+            if (upr.getDetails().getLastName() != null && upr.getDetails().getLastName().isEmpty()) {
+                throw new EntityModificationException(ErrorCode.INVALID_NAME);
+            }
+            if (upr.getDetails().getFirstName() != null && upr.getDetails().getFirstName().isEmpty()) {
+                throw new EntityModificationException(ErrorCode.INVALID_NAME);
+            }
+        }
+        if (upr.getEmail() != null && upr.getEmail().isEmpty()) {
+            throw new EntityModificationException(ErrorCode.INVALID_EMAIL);
+        }
+        if (upr.getName() != null && upr.getName().isEmpty()) {
+            throw new EntityModificationException(ErrorCode.INVALID_NAME);
+        }
+    }
+
+    /**
+     * Update user information.
+     */
+    @RequestMapping(path = "/api/users/{user_id}", method = RequestMethod.PATCH)
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<String> doPatch(@PathVariable(name = "user_id") String userId,
+            @RequestBody UserPatchRequest upr) {
+        if (!authHelper.isSystemAdmin()) {
+            throw new ForbiddenException(ErrorCode.NOT_ALLOWED);
+        }
+
+        upr.setUserId(UUID.fromString(userId));
+        validatePatchRequest(upr);
+        prm.updateUser(upr);
+        return new ResponseEntity<>("{}", HttpStatus.OK);
     }
 }

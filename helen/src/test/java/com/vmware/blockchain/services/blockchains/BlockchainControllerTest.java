@@ -79,7 +79,7 @@ import com.vmware.blockchain.services.profiles.ConsortiumService;
 import com.vmware.blockchain.services.profiles.DefaultProfiles;
 import com.vmware.blockchain.services.profiles.Organization;
 import com.vmware.blockchain.services.profiles.OrganizationService;
-import com.vmware.blockchain.services.profiles.Roles;
+import com.vmware.blockchain.services.profiles.VmbcRoles;
 import com.vmware.blockchain.services.tasks.Task;
 import com.vmware.blockchain.services.tasks.Task.State;
 import com.vmware.blockchain.services.tasks.TaskController;
@@ -358,22 +358,22 @@ public class BlockchainControllerTest {
 
         // Create authorizations for the different users.
         adminAuth = createContext("operator", ORG_ID,
-                                  ImmutableList.of(Roles.SYSTEM_ADMIN, Roles.ORG_USER),
+                                  ImmutableList.of(VmbcRoles.SYSTEM_ADMIN, VmbcRoles.ORG_USER),
                                   ImmutableList.of(C2_ID),
                                   ImmutableList.of(BC_ID), "");
 
         consortiumAuth = createContext("consortium", ORG_ID,
-                                  ImmutableList.of(Roles.CONSORTIUM_ADMIN, Roles.ORG_USER),
+                                  ImmutableList.of(VmbcRoles.CONSORTIUM_ADMIN, VmbcRoles.ORG_USER),
                                   Collections.emptyList(),
                                   Collections.emptyList(), "");
 
         userAuth = createContext("operator", ORG_ID,
-                                 ImmutableList.of(Roles.ORG_USER),
+                                 ImmutableList.of(VmbcRoles.ORG_USER),
                                  ImmutableList.of(C2_ID),
                                  ImmutableList.of(BC_ID), "");
 
         user2Auth = createContext("operator", ORG2_ID,
-                                 ImmutableList.of(Roles.ORG_USER),
+                                 ImmutableList.of(VmbcRoles.ORG_USER),
                                  ImmutableList.of(C3_ID),
                                  Collections.emptyList(), "");
 
@@ -518,7 +518,7 @@ public class BlockchainControllerTest {
     @Test
     void createTooMany() throws Exception {
         AuthenticationContext tooManyAuth = createContext("operator", ORG_ID,
-                                       ImmutableList.of(Roles.CONSORTIUM_ADMIN, Roles.ORG_USER),
+                                       ImmutableList.of(VmbcRoles.CONSORTIUM_ADMIN, VmbcRoles.ORG_USER),
                                        ImmutableList.of(C2_ID),
                                        ImmutableList.of(BC_ID), "");
         mockMvc.perform(post("/api/blockchains").with(authentication(tooManyAuth))
@@ -534,7 +534,8 @@ public class BlockchainControllerTest {
         org.setOrganizationProperties(ImmutableMap.of(Constants.ORG_MAX_CHAINS, "2"));
         when(organizationService.get(ORG_ID)).thenReturn(org);
         AuthenticationContext tooManyAuth = createContext("operator", ORG_ID,
-                                                          ImmutableList.of(Roles.CONSORTIUM_ADMIN, Roles.ORG_USER),
+                                                          ImmutableList
+                                                                  .of(VmbcRoles.CONSORTIUM_ADMIN, VmbcRoles.ORG_USER),
                                                           ImmutableList.of(C2_ID),
                                                           ImmutableList.of(BC_ID), "");
         mockMvc.perform(post("/api/blockchains").with(authentication(tooManyAuth))
@@ -550,7 +551,8 @@ public class BlockchainControllerTest {
         org.setOrganizationProperties(ImmutableMap.of(Constants.ORG_MAX_CHAINS, "2"));
         when(organizationService.get(ORG_ID)).thenReturn(org);
         AuthenticationContext tooManyAuth = createContext("operator", ORG_ID,
-                                                          ImmutableList.of(Roles.CONSORTIUM_ADMIN, Roles.ORG_USER),
+                                                          ImmutableList
+                                                                  .of(VmbcRoles.CONSORTIUM_ADMIN, VmbcRoles.ORG_USER),
                                                           ImmutableList.of(C2_ID),
                                                           ImmutableList.of(BC_ID, BC2_ID), "");
         mockMvc.perform(post("/api/blockchains").with(authentication(tooManyAuth)));
@@ -567,7 +569,8 @@ public class BlockchainControllerTest {
         org.setOrganizationProperties(ImmutableMap.of(Constants.ORG_MAX_CHAINS, "0"));
         when(organizationService.get(ORG_ID)).thenReturn(org);
         AuthenticationContext tooManyAuth = createContext("operator", ORG_ID,
-                                                          ImmutableList.of(Roles.CONSORTIUM_ADMIN, Roles.ORG_USER),
+                                                          ImmutableList
+                                                                  .of(VmbcRoles.CONSORTIUM_ADMIN, VmbcRoles.ORG_USER),
                                                           ImmutableList.of(C2_ID),
                                                           ImmutableList.of(BC_ID, BC2_ID), "");
         mockMvc.perform(post("/api/blockchains").with(authentication(tooManyAuth))

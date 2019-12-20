@@ -27,7 +27,7 @@ import com.vmware.blockchain.common.csp.api.client.CspApiClient;
 import com.vmware.blockchain.common.csp.exception.CspApiException;
 import com.vmware.blockchain.services.profiles.Organization;
 import com.vmware.blockchain.services.profiles.OrganizationService;
-import com.vmware.blockchain.services.profiles.Roles;
+import com.vmware.blockchain.services.profiles.VmbcRoles;
 
 /**
  * Invitation controller.  Handles the call backs from CSP.
@@ -100,7 +100,7 @@ public class InvitationService {
                 // break on comma and strip out extra space on either side
                 roles.addAll(Arrays.asList(rolesStr.strip().split("\\s?,\\s?")));
             }
-            roles.addAll(ImmutableList.of(Roles.CONSORTIUM_ADMIN.toString(), Roles.ORG_ADMIN.toString()));
+            roles.addAll(ImmutableList.of(VmbcRoles.CONSORTIUM_ADMIN.toString(), VmbcRoles.ORG_ADMIN.toString()));
             body.setRoleNamesToAdd(roles);
             // VB-1727: Need to get the user from CSP, so we can reliably get the email.
             CspCommon.CspUser user = cspApiClient.getUser(authHelper.getAuthToken());

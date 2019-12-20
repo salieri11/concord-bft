@@ -19,8 +19,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.GenericFilterBean;
 
 import com.vmware.blockchain.common.ErrorCode;
-import com.vmware.blockchain.common.HelenException;
 import com.vmware.blockchain.common.UnauthorizedException;
+import com.vmware.blockchain.common.VmbcException;
 
 /**
  * Security filter to check that the JWT token is valid.
@@ -49,7 +49,7 @@ public class JwtTokenFilter extends GenericFilterBean {
                     throw new UnauthorizedException(ErrorCode.NO_AUTHORIZATION);
                 }
             }
-        } catch (HelenException ex) {
+        } catch (VmbcException ex) {
             HttpServletResponse response = (HttpServletResponse) res;
             response.sendError(ex.getHttpStatus().value(), ex.getMessage());
             return;

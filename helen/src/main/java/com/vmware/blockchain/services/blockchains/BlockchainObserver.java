@@ -39,8 +39,8 @@ import com.vmware.blockchain.services.tasks.TaskService;
 import io.grpc.stub.StreamObserver;
 
 /**
- * Stream observer for creating a blockchain cluster.  Need to save the current Auth Context,
- * and update task and blockchain objects as they occur.
+ * Stream observer for creating a blockchain cluster.  Need to save the current Auth Context, and update task and
+ * blockchain objects as they occur.
  */
 public class BlockchainObserver implements StreamObserver<DeploymentExecutionEvent> {
 
@@ -290,8 +290,8 @@ public class BlockchainObserver implements StreamObserver<DeploymentExecutionEve
                                     DeployedResource.DeployedResourcePropertyKey.NODE_LOGIN.name()));
 
                             replicaNode.setUrl(attributes.get(DeployedResource
-                                                                     .DeployedResourcePropertyKey
-                                                                     .CLIENT_ENDPOINT.name()));
+                                                                      .DeployedResourcePropertyKey
+                                                                      .CLIENT_ENDPOINT.name()));
                             break;
                         case NETWORK_RESOURCE:
                             if (attributes
@@ -326,8 +326,8 @@ public class BlockchainObserver implements StreamObserver<DeploymentExecutionEve
                             clientNode.setAuthJwtUrl(attributes.get(NodeProperty.Name.CLIENT_AUTH_JWT.name()));
 
                             clientNode.setUrl(attributes.get(DeployedResource
-                                                                             .DeployedResourcePropertyKey
-                                                                             .CLIENT_ENDPOINT.name()));
+                                                                     .DeployedResourcePropertyKey
+                                                                     .CLIENT_ENDPOINT.name()));
                             break;
                         case NETWORK_RESOURCE:
                             if (attributes

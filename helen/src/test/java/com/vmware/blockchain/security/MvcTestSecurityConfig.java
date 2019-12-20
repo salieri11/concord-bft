@@ -24,12 +24,13 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import com.vmware.blockchain.BaseCacheHelper;
 import com.vmware.blockchain.auth.AuthHelper;
 import com.vmware.blockchain.auth.AuthenticationContext;
+import com.vmware.blockchain.base.auth.Role;
 import com.vmware.blockchain.common.DatabaseService;
 import com.vmware.blockchain.connections.ConnectionPoolManager;
 import com.vmware.blockchain.dao.GenericDao;
 import com.vmware.blockchain.operation.OperationContext;
 import com.vmware.blockchain.services.ethereum.EthDispatcher;
-import com.vmware.blockchain.services.profiles.Roles;
+import com.vmware.blockchain.services.profiles.VmbcRoles;
 import com.vmware.blockchain.services.tasks.TaskService;
 
 import io.grpc.ManagedChannel;
@@ -56,6 +57,12 @@ public class MvcTestSecurityConfig extends WebSecurityConfigurerAdapter {
 
     @Bean
     @Primary
+    VmbcRoles vmbcRoles() {
+        return new VmbcRoles();
+    }
+
+    @Bean
+    @Primary
     AuthHelper authHelper() {
         return new AuthHelper();
     }
@@ -63,7 +70,7 @@ public class MvcTestSecurityConfig extends WebSecurityConfigurerAdapter {
     /**
      * Utility funtion to create an auth contrext for testing.
      */
-    public static  AuthenticationContext createContext(String userName, UUID orgId, List<Roles> perms,
+    public static  AuthenticationContext createContext(String userName, UUID orgId, List<Role> perms,
                                                        List<UUID> cons, List<UUID> chains, String authToken) {
         return createContext(userName, orgId, perms, cons, cons, chains, chains, authToken);
     }
@@ -81,7 +88,7 @@ public class MvcTestSecurityConfig extends WebSecurityConfigurerAdapter {
      * @param authToken     Auth token.  Actaully not used much.
      * @return              An auth context that can be passed in the invokation.
      */
-    public static  AuthenticationContext createContext(String userName, UUID orgId, List<Roles> perms,
+    public static  AuthenticationContext createContext(String userName, UUID orgId, List<Role> perms,
                                                        List<UUID> cons, List<UUID> updateCons,
                                                        List<UUID> chains, List<UUID> updateChains,
                                                        String authToken) {

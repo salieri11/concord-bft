@@ -64,7 +64,7 @@ import com.vmware.blockchain.services.blockchains.zones.ZoneService;
 import com.vmware.blockchain.services.profiles.DefaultProfiles;
 import com.vmware.blockchain.services.profiles.Organization;
 import com.vmware.blockchain.services.profiles.OrganizationService;
-import com.vmware.blockchain.services.profiles.Roles;
+import com.vmware.blockchain.services.profiles.VmbcRoles;
 import com.vmware.blockchain.services.tasks.Task;
 import com.vmware.blockchain.services.tasks.Task.State;
 import com.vmware.blockchain.services.tasks.TaskService;
@@ -129,7 +129,7 @@ public class BlockchainController {
         boolean getAllBlockchains = Boolean.valueOf(all);
         List<Blockchain> chains;
         // if we are operator, we can get all blockchains.
-        if (authHelper.hasAnyAuthority(Roles.systemAdmin())) {
+        if (authHelper.hasAnyAuthority(VmbcRoles.systemAdmin())) {
             chains = blockchainService.list();
         } else {
             // Otherwise, we can only see our consortium.

@@ -55,7 +55,7 @@ import com.vmware.blockchain.services.concord.ConcordService;
 import com.vmware.blockchain.services.profiles.Consortium;
 import com.vmware.blockchain.services.profiles.ConsortiumService;
 import com.vmware.blockchain.services.profiles.DefaultProfiles;
-import com.vmware.blockchain.services.profiles.Roles;
+import com.vmware.blockchain.services.profiles.VmbcRoles;
 import com.vmware.blockchain.services.tasks.TaskController;
 import com.vmware.blockchain.services.tasks.TestTaskService;
 import com.vmware.concord.Concord.Peer;
@@ -144,12 +144,12 @@ class ReplicaControllerTest {
         taskService = new TestTaskService();
 
         userAuth = createContext("operator", ORG_ID,
-                                 ImmutableList.of(Roles.ORG_USER),
+                                 ImmutableList.of(VmbcRoles.ORG_USER),
                                  ImmutableList.of(c1Id),
                                  ImmutableList.of(B1), "");
 
         adminAuth = createContext("operator", ORG_ID,
-                                  ImmutableList.of(Roles.CONSORTIUM_ADMIN, Roles.ORG_USER),
+                                  ImmutableList.of(VmbcRoles.CONSORTIUM_ADMIN, VmbcRoles.ORG_USER),
                                   ImmutableList.of(c1Id),
                                   ImmutableList.of(B1), "");
 

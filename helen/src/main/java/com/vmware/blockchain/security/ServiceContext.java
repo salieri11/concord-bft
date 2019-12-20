@@ -13,7 +13,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
 import com.vmware.blockchain.auth.AuthenticationContext;
-import com.vmware.blockchain.services.profiles.Roles;
+import com.vmware.blockchain.services.profiles.VmbcRoles;
 
 /**
  * Some calls to set and clear the security context to be the service user. This is needed in a couple of places in the
@@ -33,8 +33,9 @@ public class ServiceContext {
     @Autowired
     public ServiceContext(@Value("${vmbc.service.id}") UUID serviceId,
             @Value("${vmbc.service.name}") String serviceName) {
-        this.systemDetails = new HelenUserDetails(serviceId, serviceName, Collections.singletonList(Roles.SYSTEM));
-        this.anonymousDetails = new HelenUserDetails(ANON_ID, ANON_USER, Collections.singletonList(Roles.ANONYMOUS));
+        this.systemDetails = new HelenUserDetails(serviceId, serviceName, Collections.singletonList(VmbcRoles.SYSTEM));
+        this.anonymousDetails =
+                new HelenUserDetails(ANON_ID, ANON_USER, Collections.singletonList(VmbcRoles.ANONYMOUS));
     }
 
     /**

@@ -172,7 +172,7 @@ public class DefaultProfiles {
             u.setName("ADMIN");
             u.setEmail(email);
             u.setPassword(passwordEncoder.encode(password));
-            u.setRoles(ImmutableList.of(Roles.ORG_USER, Roles.SYSTEM_ADMIN));
+            u.setServiceRoles(ImmutableList.of(VmbcRoles.ORG_USER, VmbcRoles.SYSTEM_ADMIN));
             u.setOrganization(organization.getId());
             // Note: The order of next 5 statements is very important, The user
             // object must be saved before it can be added and saved into

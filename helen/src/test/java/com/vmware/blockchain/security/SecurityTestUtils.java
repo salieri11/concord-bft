@@ -12,8 +12,8 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 import com.vmware.blockchain.services.profiles.Consortium;
 import com.vmware.blockchain.services.profiles.Organization;
-import com.vmware.blockchain.services.profiles.Roles;
 import com.vmware.blockchain.services.profiles.User;
+import com.vmware.blockchain.services.profiles.VmbcRoles;
 
 /**
  * Just isolating some useful funtions shared by the security tests.
@@ -36,7 +36,7 @@ public class SecurityTestUtils {
                 .firstName("U")
                 .lastName("Ser")
                 .organization(ORG_ID)
-                .roles(Collections.singletonList(Roles.ORG_USER))
+                .serviceRoles(Collections.singletonList(VmbcRoles.ORG_USER))
                 .build();
         user.setId(USER_ID);
         return user;

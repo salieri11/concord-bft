@@ -21,6 +21,7 @@ COPY ./persephone/api/pom.xml ./persephone/api/pom.xml
 COPY ./persephone/config-service/pom.xml ./persephone/config-service/pom.xml
 COPY ./persephone/ip-allocation-service/pom.xml ./persephone/ip-allocation-service/pom.xml
 COPY ./persephone/provisioning-service/pom.xml ./persephone/provisioning-service/pom.xml
+COPY ./vmbc-base/pom.xml ./vmbc-base/pom.xml
 
 ## Copy the dependency-related POM files (rarely changing).
 COPY ./helen/pom.xml ./helen/pom.xml
@@ -38,12 +39,17 @@ RUN sed -i -e 's/archive.ubuntu.com/old-releases.ubuntu.com/g' /etc/apt/sources.
 RUN chown -R test:test .
 USER test
 
-# Resolve / fetch all dependencies for communication module.
+# Resolve / fetch all dependencies for communication modules.
 RUN mvn -f communication/pom.xml dependency:go-offline -B
 
 # Build communication module.
 COPY ./communication/src ./communication/src
 RUN mvn -f communication/pom.xml install
+
+# Build vmbc module.
+RUN mvn -f vmbc-base/pom.xml dependency:go-offline -B
+COPY ./vmbc-base/src ./vmbc-base/src
+RUN mvn -f vmbc-base/pom.xml install
 
 # Copy Persephone API files.
 COPY ./persephone/api/src ./persephone/api/src

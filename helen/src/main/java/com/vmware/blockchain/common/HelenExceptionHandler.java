@@ -74,8 +74,8 @@ public class HelenExceptionHandler {
         // if the exception class is in the map, use that type
         HttpStatus status = statusCodes.getOrDefault(root.getClass(), HttpStatus.INTERNAL_SERVER_ERROR);
         // However, if this is a helen exception, pull the code from exception
-        if (ex instanceof HelenException) {
-            status = ((HelenException) ex).getHttpStatus();
+        if (ex instanceof VmbcException) {
+            status = ((VmbcException) ex).getHttpStatus();
         } else if (root instanceof InvalidFormatException && ((InvalidFormatException) root).getTargetType().isEnum()) {
             status = HttpStatus.BAD_REQUEST;
         }
