@@ -17,6 +17,7 @@ using google::protobuf::Duration;
 
 using concord::time::TimePusher;
 using std::chrono::steady_clock;
+using namespace std::chrono_literals;
 
 namespace concord {
 namespace consensus {
@@ -34,6 +35,7 @@ void AddTracingContext(ConcordRequest &req, opentracing::Span &parent_span) {
  * failed).
  */
 bool KVBClient::send_request_sync(ConcordRequest &req, bool isReadOnly,
+                                  std::chrono::milliseconds timeout,
                                   opentracing::Span &parent_span,
                                   ConcordResponse &resp) {
   auto span = parent_span.tracer().StartSpan(
@@ -50,7 +52,7 @@ bool KVBClient::send_request_sync(ConcordRequest &req, bool isReadOnly,
 
   uint32_t actualReplySize = 0;
   concordUtils::Status status = client_->invokeCommandSynch(
-      command.c_str(), command.size(), isReadOnly, timeout_, OUT_BUFFER_SIZE,
+      command.c_str(), command.size(), isReadOnly, timeout, OUT_BUFFER_SIZE,
       m_outBuffer, &actualReplySize);
 
   if (status.isOK() && actualReplySize) {
@@ -67,12 +69,14 @@ bool KVBClient::send_request_sync(ConcordRequest &req, bool isReadOnly,
 }
 
 KVBClientPool::KVBClientPool(std::vector<KVBClient *> &clients,
+                             std::chrono::milliseconds timeout,
                              shared_ptr<TimePusher> time_pusher)
     : logger_(
           log4cplus::Logger::getInstance("com.vmware.concord.KVBClientPool")),
       time_pusher_(time_pusher),
       client_count_{clients.size()},
       clients_(),
+      timeout_(timeout),
       clients_mutex_(),
       clients_condition_(),
       wait_queue_(),
@@ -104,6 +108,13 @@ KVBClientPool::~KVBClientPool() {
 bool KVBClientPool::send_request_sync(ConcordRequest &req, bool isReadOnly,
                                       opentracing::Span &parent_span,
                                       ConcordResponse &resp) {
+  return send_request_sync(req, isReadOnly, timeout_, parent_span, resp);
+}
+
+bool KVBClientPool::send_request_sync(ConcordRequest &req, bool isReadOnly,
+                                      std::chrono::milliseconds timeout,
+                                      opentracing::Span &parent_span,
+                                      ConcordResponse &resp) {
   KVBClient *client;
   {
     std::unique_lock<std::mutex> clients_lock(clients_mutex_);
@@ -113,13 +124,24 @@ bool KVBClientPool::send_request_sync(ConcordRequest &req, bool isReadOnly,
     std::thread::id my_thread_id = std::this_thread::get_id();
     wait_queue_.push(my_thread_id);
 
-    // TODO: timeout
-    clients_condition_.wait(clients_lock, [this, my_thread_id] {
+    auto predicate = [this, my_thread_id] {
       // Only continue if either the node is shutting down, or if it's this
       // thread's turn.
       return this->shutdown_ ||
              (my_thread_id == wait_queue_.front() && !clients_.empty());
-    });
+    };
+
+    if (timeout > 0ms && timeout < std::chrono::milliseconds::max()) {
+      if (!clients_condition_.wait_for(clients_lock, timeout, predicate)) {
+        LOG4CPLUS_WARN(logger_, "Unable to claim a client in time.");
+        ErrorResponse *err = resp.add_error_response();
+        err->set_description("Internal concord Error");
+        return true;
+      }
+    } else {
+      // no timeout specified; wait unconditionally
+      clients_condition_.wait(clients_lock, predicate);
+    }
 
     if (shutdown_) {
       // TODO: To make things super clean, we should find and remove ourselves
@@ -145,7 +167,8 @@ bool KVBClientPool::send_request_sync(ConcordRequest &req, bool isReadOnly,
     }
   }  // scope unlocks mutex
 
-  bool result = client->send_request_sync(req, isReadOnly, parent_span, resp);
+  bool result =
+      client->send_request_sync(req, isReadOnly, timeout, parent_span, resp);
 
   {
     std::unique_lock<std::mutex> clients_lock(clients_mutex_);
