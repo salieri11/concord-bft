@@ -35,13 +35,14 @@ class DamlKvbCommandsHandler
  public:
   DamlKvbCommandsHandler(
       const concord::config::ConcordConfiguration& config,
+      const concord::config::ConcordConfiguration& node_config,
       const concord::storage::blockchain::ILocalKeyValueStorageReadOnly& ros,
       concord::storage::blockchain::IBlocksAppender& ba,
       BlockingPersistentQueue<com::digitalasset::kvbc::CommittedTx>&
           committed_txs,
       concord::thin_replica::SubBufferList& subscriber_list,
       std::unique_ptr<DamlValidatorClient> validator)
-      : ConcordCommandsHandler(config, ros, ba, subscriber_list),
+      : ConcordCommandsHandler(config, node_config, ros, ba, subscriber_list),
         logger_(log4cplus::Logger::getInstance("com.vmware.concord.daml")),
         committed_txs_(committed_txs),
         validator_client_(std::move(validator)) {}

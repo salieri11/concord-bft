@@ -2013,6 +2013,8 @@ static const std::pair<unsigned long long, unsigned long long> kUInt16Limits(
     {0, UINT16_MAX});
 static const std::pair<unsigned long long, unsigned long long> kUInt32Limits(
     {0, UINT32_MAX});
+static const std::pair<unsigned long long, unsigned long long> kUInt64Limits(
+    {0, UINT64_MAX});
 static const std::pair<long long, long long> kInt32Limits({INT32_MIN,
                                                            INT32_MAX});
 
@@ -3128,6 +3130,15 @@ void specifyConfiguration(ConcordConfiguration& config) {
                       &(auxState->optimisticCommitCryptosys));
   config.addGenerator("optimistic_commit_public_key", getThresholdPublicKey,
                       &(auxState->optimisticCommitCryptosys));
+
+  config.declareParameter(
+      "pruning_num_blocks_to_keep",
+      "Minimum number of blocks to always keep in storage when pruning. If not "
+      "specified, a value of 0 is assumed.");
+  config.tagParameter("pruning_num_blocks_to_keep", publicOptionalTags);
+  config.addValidator(
+      "pruning_num_blocks_to_keep", validateUInt,
+      const_cast<void*>(reinterpret_cast<const void*>(&kUInt64Limits)));
 
   config.declareParameter(
       "slow_commit_cryptosys",

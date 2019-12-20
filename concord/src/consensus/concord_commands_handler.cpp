@@ -28,6 +28,7 @@ namespace consensus {
 
 ConcordCommandsHandler::ConcordCommandsHandler(
     const concord::config::ConcordConfiguration &config,
+    const concord::config::ConcordConfiguration &node_config,
     const concord::storage::blockchain::ILocalKeyValueStorageReadOnly &storage,
     concord::storage::blockchain::IBlocksAppender &appender,
     concord::thin_replica::SubBufferList &subscriber_list)
@@ -40,7 +41,8 @@ ConcordCommandsHandler::ConcordCommandsHandler(
       metrics_{concordMetrics::Component(
           "concord_commands_handler",
           std::make_shared<concordMetrics::Aggregator>())},
-      appender_(appender) {
+      appender_(appender),
+      pruning_(storage, config, node_config) {
   if (concord::time::IsTimeServiceEnabled(config)) {
     time_ = std::unique_ptr<concord::time::TimeContract>(
         new concord::time::TimeContract(storage_, config));
@@ -189,6 +191,11 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
     } else if (!time_ && request_.has_time_request()) {
       ErrorResponse *err = response_.add_error_response();
       err->set_description("Time service is disabled.");
+    }
+
+    if (request_.has_prune_request() ||
+        request_.has_latest_prunable_block_request()) {
+      pruning_.Handle(request_, response_, read_only, *execute_span);
     }
   } else {
     ErrorResponse *err = response_.add_error_response();

@@ -470,8 +470,8 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
               grpc::InsecureChannelCredentials(), chArgs)));
       kvb_commands_handler =
           unique_ptr<ICommandsHandler>(new DamlKvbCommandsHandler(
-              config, replica, replica, committedTxs, subscriber_list,
-              std::move(daml_validator)));
+              config, nodeConfig, replica, replica, committedTxs,
+              subscriber_list, std::move(daml_validator)));
     } else if (hlf_enabled) {
       LOG4CPLUS_INFO(logger, "Hyperledger Fabric feature is enabled");
 
@@ -613,7 +613,7 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
     tcp::endpoint endpoint(address::from_string(ip), port);
     uint64_t gasLimit = config.getValue<uint64_t>("gas_limit");
     ApiAcceptor acceptor(*api_service, endpoint, pool, sag, gasLimit, chainID,
-                         eth_enabled);
+                         eth_enabled, nodeConfig);
     LOG4CPLUS_INFO(logger, "API Listening on " << endpoint);
 
     start_worker_threads(nodeConfig.getValue<int>("api_worker_pool_size") - 1);
