@@ -43,6 +43,7 @@ export class ExportChartDataModalComponent implements OnInit {
       } else {
         // download log
         generateDownload(`${this.startTime}-${this.endTime}-log-chart-data.csv`, csv);
+        this.onClose();
       }
     });
 

@@ -23,6 +23,9 @@ export class ExportLogEventsModalComponent implements OnInit {
   @Input('startTime') startTime: number;
   @Input('endTime') endTime: number;
   @Input('totalCount') totalCount: number;
+  @Input('replicaId') replicaId: number;
+  @Input('serviceName') serviceName: string;
+
   isLoading: boolean = false;
   exportLogs: LogListEntry[] = [];
   isOpen: boolean = false;
@@ -45,7 +48,14 @@ export class ExportLogEventsModalComponent implements OnInit {
     this.isLoading = true;
     this.exportLogs = [];
 
-    this.logApiService.postToTasks(this.startTime, this.endTime, '', false, '', 1000).subscribe((taskResponse) => {
+    this.logApiService.postToTasks(
+      this.startTime,
+      this.endTime,
+      this.replicaId.toString(),
+      false,
+      this.serviceName,
+      1000
+    ).subscribe((taskResponse) => {
       this.pollLogStatus(taskResponse.documentSelfLink, 'logs', this.buildExportLogs.bind(this));
     });
   }
@@ -77,6 +87,7 @@ export class ExportLogEventsModalComponent implements OnInit {
           generateDownload(`${this.startTime}-${this.endTime}-log-events.csv`, csv);
         }
       });
+      this.onClose();
     }
   }
 
