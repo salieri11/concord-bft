@@ -1,0 +1,14 @@
+{
+  "user_id":"670e173d-8741-4826-b215-86d68b30cd91",
+  "user_name":"mockauthuser",
+  "created":"2018-03-02T02:46:10.000894Z",
+  "version":1,"id":"b179d62d-ea0b-4d3d-abd2-8cfbf51f1b32",
+  "tenant_id":"a1a050ec-4193-43de-b192-3862618a7160",
+  "configured":1519958770894,
+  "body":"This json has jackson settings that default dates as timestamps (sigh). This we believe only matters if @JsonFormat isn't attached to a date - and the only instance of this is the 'Instant' in EsxHost",
+  "age":37,
+  "cost":3.14,
+  "others":"e5",
+  "zone_date":1.515245864245E9,
+  "instant":1.19667693E9
+}
