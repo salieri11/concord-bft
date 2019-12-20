@@ -25,7 +25,7 @@ using std::stringstream;
 using std::to_string;
 using std::unique_ptr;
 using std::vector;
-using thin_replica_client::RingBufferUpdateQueue;
+using thin_replica_client::BasicUpdateQueue;
 using thin_replica_client::ThinReplicaClient;
 using thin_replica_client::Update;
 using thin_replica_client::UpdateQueue;
@@ -131,9 +131,7 @@ int main(int argc, char** argv) {
     return -1;
   }
 
-  size_t queue_buffer_size = 1 << 12;
-  shared_ptr<UpdateQueue> update_queue(
-      new RingBufferUpdateQueue(queue_buffer_size));
+  shared_ptr<UpdateQueue> update_queue(new BasicUpdateQueue());
   string private_key;
   vector<pair<string, shared_ptr<Channel>>> servers;
   for (uint16_t i = 0; i < num_servers; ++i) {
@@ -153,29 +151,40 @@ int main(int argc, char** argv) {
     trc->Subscribe("");
     LOG4CPLUS_INFO(logger, "ThinReplicaClient subscribed.");
 
-    unique_ptr<Update> update = update_queue->Pop();
-    vector<pair<string, string>>& update_data = update->kv_pairs;
-    stringstream update_report;
-    update_report << "ThinReplicaClient reported an update." << endl;
-    if (update_data.size() < 1) {
-      update_report << "The update appears to be empty.";
-    } else {
-      update_report << "Update contains:";
-      for (const auto& kv_pair : update_data) {
-        update_report << "0x" << hex << setfill('0');
-        for (size_t i = 0; i < kv_pair.first.length(); ++i) {
-          update_report << setw(2) << kv_pair.first[i];
-        }
-        update_report << ": 0x";
-        for (size_t i = 0; i < kv_pair.second.length(); ++i) {
-          update_report << setw(2) << kv_pair.second[i];
+    unique_ptr<Update> update = update_queue->TryPop();
+    bool has_update = (bool)update;
+    uint64_t latest_block_id = 0;
+    if (!has_update) {
+      LOG4CPLUS_INFO(
+          logger,
+          "Subscription call did not yield any updates as initial state.");
+    }
+    while (update) {
+      vector<pair<string, string>>& update_data = update->kv_pairs;
+      stringstream update_report;
+      update_report << "ThinReplicaClient reported an update (Block ID: "
+                    << update->block_id << ")." << endl;
+      if (update_data.size() < 1) {
+        update_report << "The update appears to be empty.";
+      } else {
+        update_report << "Update contains data for the following key(s) (not "
+                         "displaying values for concision):";
+        for (const auto& kv_pair : update_data) {
+          update_report << endl << "  0x" << hex << setfill('0');
+          for (size_t i = 0; i < kv_pair.first.length(); ++i) {
+            update_report << setw(2) << (unsigned int)(kv_pair.first[i]);
+          }
         }
       }
+      LOG4CPLUS_INFO(logger, update_report.str());
+      latest_block_id = update->block_id;
+      update = update_queue->TryPop();
     }
-    LOG4CPLUS_INFO(logger, update_report.str());
 
-    trc->AcknowledgeBlockID(update->block_id);
-    LOG4CPLUS_INFO(logger, "Update acknowledged.");
+    if (has_update) {
+      trc->AcknowledgeBlockID(latest_block_id);
+      LOG4CPLUS_INFO(logger, "Update(s) acknowledged.");
+    }
     trc->Unsubscribe();
     LOG4CPLUS_INFO(logger, "ThinReplicaClient unsubscribed.");
   } catch (const exception& e) {
