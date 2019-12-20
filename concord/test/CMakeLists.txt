@@ -14,6 +14,7 @@ add_test(NAME ConfigTests COMMAND ConfigTests)
 add_test(NAME ReplicaStateSyncTests COMMAND ReplicaStateSyncTests)
 add_test(NAME TimeContractTests COMMAND TimeContractTests)
 add_test(NAME HlfTest COMMAND HlfTest)
+add_test(NAME PruningSMTest COMMAND PruningSMTest)
 
 add_executable(UtilsTests
   utils_test.cpp)
@@ -117,4 +118,22 @@ target_link_libraries(HlfTest
   gtest_main
   proto
   log4cplus
+  $<TARGET_OBJECTS:logging_dev>)
+
+add_executable(PruningSMTest
+  pruning_sm_test.cpp
+  ../src/config/configuration_manager.cpp)
+
+target_link_libraries(PruningSMTest
+  ${Boost_LIBRARIES}
+  ${GTEST_LIBRARIES}
+  ${yaml-cpp_LIBRARIES}
+  log4cplus
+  gtest
+  gtest_main
+  proto
+  concord_utils
+  concord_consensus
+  concord_common
+  concord_pruning
   $<TARGET_OBJECTS:logging_dev>)

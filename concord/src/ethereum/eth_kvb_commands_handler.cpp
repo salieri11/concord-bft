@@ -65,7 +65,8 @@ EthKvbCommandsHandler::EthKvbCommandsHandler(
     const concord::storage::blockchain::ILocalKeyValueStorageReadOnly &storage,
     concord::storage::blockchain::IBlocksAppender &appender,
     concord::thin_replica::SubBufferList &subscriber_list)
-    : ConcordCommandsHandler(config, storage, appender, subscriber_list),
+    : ConcordCommandsHandler(config, nodeConfig, storage, appender,
+                             subscriber_list),
       logger(log4cplus::Logger::getInstance("com.vmware.concord")),
       concevm_(concevm),
       verifier_(verifier),

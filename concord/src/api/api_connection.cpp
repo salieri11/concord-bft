@@ -65,9 +65,10 @@ namespace api {
 ApiConnection::pointer ApiConnection::create(
     io_service &io_service, ConnectionManager &connManager,
     KVBClientPool &clientPool, StatusAggregator &sag, uint64_t gasLimit,
-    uint64_t chainID, bool ethEnabled) {
+    uint64_t chainID, bool ethEnabled,
+    const concord::config::ConcordConfiguration &nodeConfig) {
   return pointer(new ApiConnection(io_service, connManager, clientPool, sag,
-                                   gasLimit, chainID, ethEnabled));
+                                   gasLimit, chainID, ethEnabled, nodeConfig));
 }
 
 tcp::socket &ApiConnection::socket() { return socket_; }
@@ -300,6 +301,12 @@ void ApiConnection::dispatch() {
   }
   if (concordRequest_.has_time_request()) {
     handle_time_request();
+  }
+  if (concordRequest_.has_latest_prunable_block_request()) {
+    handle_latest_prunable_block_request();
+  }
+  if (concordRequest_.has_prune_request()) {
+    handle_prune_request();
   }
   if (concordRequest_.has_test_request()) {
     handle_test_request();
@@ -709,6 +716,52 @@ void ApiConnection::handle_time_request() {
 }
 
 /**
+ * Handle a request for the latest prunable block.
+ */
+void ApiConnection::handle_latest_prunable_block_request() {
+  const auto request = concordRequest_.latest_prunable_block_request();
+
+  ConcordRequest internalConcRequest;
+  auto internalLatestPrunableBlockRequest =
+      internalConcRequest.mutable_latest_prunable_block_request();
+  internalLatestPrunableBlockRequest->CopyFrom(request);
+  ConcordResponse internalConcResponse;
+
+  // TODO: Assumption here is that the KVB client will accumulate different
+  // responses from replicas into LatestPrunableBlockResponse's list.
+  if (clientPool_.send_request_sync(internalConcRequest, true, *span_.get(),
+                                    internalConcResponse)) {
+    concordResponse_.MergeFrom(internalConcResponse);
+  } else {
+    concordResponse_.add_error_response()->set_description(
+        "Internal concord Error");
+  }
+}
+
+/**
+ * Handle a prune request.
+ */
+void ApiConnection::handle_prune_request() {
+  const auto request = concordRequest_.prune_request();
+
+  ConcordRequest internalConcRequest;
+  auto internalPruneRequest = internalConcRequest.mutable_prune_request();
+  internalPruneRequest->CopyFrom(request);
+  ConcordResponse internalConcResponse;
+
+  internalPruneRequest->set_sender(pruneRequestSenderId_);
+  pruningSigner_.Sign(*internalPruneRequest);
+
+  if (clientPool_.send_request_sync(internalConcRequest, false, *span_.get(),
+                                    internalConcResponse)) {
+    concordResponse_.MergeFrom(internalConcResponse);
+  } else {
+    concordResponse_.add_error_response()->set_description(
+        "Internal concord Error");
+  }
+}
+
+/**
  * Check that an eth_getStorageAt request is valid.
  */
 bool ApiConnection::is_valid_eth_getStorageAt(const EthRequest &request) {
@@ -800,10 +853,11 @@ uint64_t ApiConnection::current_block_number() {
   return 0;
 }
 
-ApiConnection::ApiConnection(io_service &io_service, ConnectionManager &manager,
-                             KVBClientPool &clientPool, StatusAggregator &sag,
-                             uint64_t gasLimit, uint64_t chainID,
-                             bool ethEnabled)
+ApiConnection::ApiConnection(
+    io_service &io_service, ConnectionManager &manager,
+    KVBClientPool &clientPool, StatusAggregator &sag, uint64_t gasLimit,
+    uint64_t chainID, bool ethEnabled,
+    const concord::config::ConcordConfiguration &nodeConfig)
     : socket_(io_service),
       logger_(
           log4cplus::Logger::getInstance("com.vmware.concord.ApiConnection")),
@@ -812,8 +866,17 @@ ApiConnection::ApiConnection(io_service &io_service, ConnectionManager &manager,
       sag_(sag),
       gasLimit_(gasLimit),
       chainID_(chainID),
-      ethEnabled_(ethEnabled) {
-  // nothing to do here yet other than initialize the socket and logger
+      ethEnabled_(ethEnabled),
+      pruningSigner_{nodeConfig} {
+  // Always use the first client proxy's principal_id for PruneRequest messages.
+  // This is a workaround to support signed PruneRequest messages coming from
+  // the API. Support for PruneRequest over the API can be removed at a later
+  // stage when the operator node uses its own BFT client.
+  if (nodeConfig.containsScope("client_proxy") &&
+      nodeConfig.scopeSize("client_proxy")) {
+    pruneRequestSenderId_ = nodeConfig.subscope("client_proxy", 0)
+                                .getValue<uint64_t>("principal_id");
+  }
 }
 
 }  // namespace api
