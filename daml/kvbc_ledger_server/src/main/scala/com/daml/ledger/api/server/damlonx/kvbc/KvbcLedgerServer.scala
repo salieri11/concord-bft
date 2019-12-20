@@ -13,6 +13,7 @@ import com.digitalasset.daml_lf_dev.DamlLf.Archive
 import org.slf4j.LoggerFactory
 
 import scala.util.Try
+import com.digitalasset.kvbc.common.{KVBCHttpServer, KVBCMetricsRegistry, KVBCPrometheusMetricsEndpoint}
 import com.digitalasset.kvbc_sync_adapter.KVBCParticipantState
 import com.digitalasset.platform.index.{StandaloneIndexServer, StandaloneIndexerServer}
 import com.digitalasset.platform.common.logging.NamedLoggerFactory
@@ -43,6 +44,13 @@ object KvbcLedgerServer extends App {
   val extConfig = Cli.parse(args, "ledger-api-server","vDAML Ledger API Server").getOrElse(sys.exit(1))
   val participantId = extConfig.config.participantId
 
+  private val kvMetrics = new KVBCMetricsRegistry("kvutils")
+  private val indexerMetrics = SharedMetricRegistries.getOrCreate(s"indexer")
+  private val serverMetrics = SharedMetricRegistries.getOrCreate(s"ledger-api-server")
+  private val httpServer = new KVBCHttpServer()
+  KVBCPrometheusMetricsEndpoint.createEndpoint(List(kvMetrics.registry,indexerMetrics,serverMetrics), httpServer.context)
+  httpServer.start()
+
   logger.info(
     s"""Initialized vDAML ledger api server: version=${BuildInfo.Version}
        |participantId=${participantId.toString} replicas=${extConfig.replicas}
@@ -57,8 +65,7 @@ object KvbcLedgerServer extends App {
   val writeService = ledger
   val loggerFactory = NamedLoggerFactory.forParticipant(participantId)
   val authService = AuthServiceWildcard
-  val indexerMetrics = SharedMetricRegistries.getOrCreate(s"indexer-${participantId}")
-  val serverMetrics = SharedMetricRegistries.getOrCreate(s"ledger-api-server-${participantId}")
+
 
   val indexersF: Future[(AutoCloseable, StandaloneIndexServer#SandboxState)] = for {
     indexerServer <- StandaloneIndexerServer(readService, extConfig.config, loggerFactory, indexerMetrics)
@@ -82,6 +89,7 @@ object KvbcLedgerServer extends App {
           indexer.close()
           indexServer.close()
       }
+      httpServer.stop()
       materializer.shutdown()
       val _ = system.terminate()
     }

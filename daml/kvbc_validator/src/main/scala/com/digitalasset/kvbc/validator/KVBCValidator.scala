@@ -2,7 +2,7 @@
 
 package com.digitalasset.kvbc.validator
 
-import com.codahale.metrics
+import com.codahale.metrics.{MetricRegistry, Timer}
 import com.daml.ledger.participant.state.kvutils.{DamlKvutils => KV, _}
 import com.daml.ledger.participant.state.v1.{Configuration, ParticipantId, TimeModel}
 import com.digitalasset.daml.lf.data.{Ref, Time}
@@ -19,13 +19,12 @@ import scala.collection.JavaConverters._
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
 
-class KVBCValidator(implicit ec: ExecutionContext)
+class KVBCValidator(registry: MetricRegistry)(implicit ec: ExecutionContext)
     extends ValidationServiceGrpc.ValidationService
     with ReportsHealth
     with BindableService {
 
   private object Metrics {
-    val registry = KVBCMetricsServer.registry
     val prefix = "validator.service"
 
     val pendingSubmissions = registry.counter(s"$prefix.pending-submissions")
@@ -55,7 +54,7 @@ class KVBCValidator(implicit ec: ExecutionContext)
       }
 
     Scaffeine()
-      .recordStats({ () => new KVBCMetricsStatsCounter })
+      .recordStats({ () => new KVBCMetricsStatsCounter(registry) })
       .expireAfterWrite(1.hour)
       .maximumWeight(cacheSize)
       .weigher[(ReplicaId, KV.DamlStateKey), KV.DamlStateValue]{
@@ -93,7 +92,7 @@ class KVBCValidator(implicit ec: ExecutionContext)
   private def parseTimestamp(ts: com.google.protobuf.timestamp.Timestamp): Time.Timestamp =
     Time.Timestamp.assertFromInstant(Instant.ofEpochSecond(ts.seconds, ts.nanos))
 
-  def catchedTimedFutureThunk[A](timer: metrics.Timer)(act: => A): Future[A] =
+  def catchedTimedFutureThunk[A](timer: Timer)(act: => A): Future[A] =
     Future {
       val ctx = timer.time()
       try {

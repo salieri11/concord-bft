@@ -1,11 +1,9 @@
 package com.digitalasset.kvbc.validator
 
-import com.codahale.metrics.SharedMetricRegistries
+import com.codahale.metrics.MetricRegistry
 import com.github.benmanes.caffeine.cache.stats.{CacheStats, StatsCounter}
 
-
-class KVBCMetricsStatsCounter extends StatsCounter {
-  private val registry = SharedMetricRegistries.getDefault()
+class KVBCMetricsStatsCounter(registry: MetricRegistry) extends StatsCounter {
   private val prefix = "validator.cache"
   private val hits = registry.counter(s"$prefix.hits")
   private val misses = registry.counter(s"$prefix.misses")

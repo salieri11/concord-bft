@@ -36,6 +36,28 @@ lazy val protos = (project in file("protos"))
     ),
   )
 
+lazy val kvbc_common = (project in file("kvbc_common"))
+  .enablePlugins(JavaAppPackaging)
+  .settings(
+    commonSettings,
+    name := "KVBC Common",
+    libraryDependencies ++= Seq(
+      
+      // Logging and monitoring
+      "org.slf4j" % "slf4j-api" % "1.7.25",
+      "ch.qos.logback" % "logback-core" % "1.2.3",
+      "ch.qos.logback" % "logback-classic" % "1.2.3",
+      "io.dropwizard.metrics" % "metrics-core" % "4.0.0",
+      "io.dropwizard.metrics" % "metrics-jvm" % "4.0.0",
+      "io.dropwizard.metrics" % "metrics-servlets" % "4.0.0",
+      "io.prometheus" % "simpleclient" % "0.8.0",
+      "io.prometheus" % "simpleclient_dropwizard" % "0.8.0",
+      "io.prometheus" % "simpleclient_servlet" % "0.8.0",
+      "org.eclipse.jetty"   %   "jetty-webapp"      % "9.4.20.v20190813",
+      "org.eclipse.jetty"   %   "jetty-servlets"    % "9.4.20.v20190813",
+    ),
+  )
+
 lazy val kvbc_validator = (project in file("kvbc_validator"))
   .enablePlugins(JavaAppPackaging)
   .settings(
@@ -67,11 +89,14 @@ lazy val kvbc_validator = (project in file("kvbc_validator"))
       "io.dropwizard.metrics" % "metrics-core" % "4.0.0",
       "io.dropwizard.metrics" % "metrics-jvm" % "4.0.0",
       "io.dropwizard.metrics" % "metrics-servlets" % "4.0.0",
+      "io.prometheus" % "simpleclient" % "0.8.0",
+      "io.prometheus" % "simpleclient_dropwizard" % "0.8.0",
+      "io.prometheus" % "simpleclient_servlet" % "0.8.0",
       "org.eclipse.jetty"   %   "jetty-webapp"      % "9.4.20.v20190813",
       "org.eclipse.jetty"   %   "jetty-servlets"    % "9.4.20.v20190813",
     ),
   )
-  .dependsOn(protos)
+  .dependsOn(protos, kvbc_common)
 
 lazy val kvbc_sync_backend = (project in file("kvbc_sync_backend"))
   .settings(
@@ -132,4 +157,4 @@ lazy val kvbc_ledger_server = (project in file("kvbc_ledger_server"))
 
     ),
   )
-  .dependsOn(protos, kvbc_sync_backend)
+  .dependsOn(protos, kvbc_sync_backend, kvbc_common)
