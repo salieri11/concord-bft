@@ -21,6 +21,7 @@ RUN sbt update
 
 COPY daml/entrypoint.sh /doc/daml/entrypoint.sh
 COPY concord/proto /doc/concord/proto
+COPY daml/kvbc_common /doc/daml/kvbc_common
 COPY daml/kvbc_sync_backend /doc/daml/kvbc_sync_backend
 COPY daml/kvbc_ledger_server /doc/daml/kvbc_ledger_server
 

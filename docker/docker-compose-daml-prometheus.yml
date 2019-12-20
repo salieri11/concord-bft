@@ -1,0 +1,29 @@
+version: '3'
+services:
+  prometheus:
+    image: prom/prometheus
+    ports:
+      - 9090:9090
+    volumes:
+      - ./config-daml-prometheus.yml:/etc/prometheus/prometheus.yml
+    # extra_hosts:
+    #   - daml_execution_engine:${DAML_EXECUTION_ENGINE_IP}
+    # depends_on: 
+    #   - daml_execution_engine
+
+  grafana:
+    image: grafana/grafana
+    ports:
+      - 3010:3000
+    depends_on:
+      - prometheus
+
+  # daml_execution_engine:
+  #   image: daml-execution-engine:latest
+  #   environment:
+  #     - JAVA_OPTS=-XX:+UseG1GC -Xmx5G
+  #   expose:
+  #     - 55000
+  #     - 55001
+  #   ports:
+  #     - "55001:55001" # metrics dashboard

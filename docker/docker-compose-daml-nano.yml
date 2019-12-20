@@ -27,8 +27,6 @@ services:
       - 3503/udp
       - 3504/udp
       - 3505/udp
-    ports:
-      - "50051:50051"
     volumes:
       - ./devdata/rocksdbdata1:/concord/rocksdbdata
       - ./devdata/log1:/concord/log
@@ -49,8 +47,6 @@ services:
       - 3503/udp
       - 3504/udp
       - 3505/udp
-    ports:
-      - "50052:50051"
     volumes:
       - ./devdata/rocksdbdata2:/concord/rocksdbdata
       - ./devdata/log2:/concord/log
@@ -71,8 +67,6 @@ services:
       - 3503/udp
       - 3504/udp
       - 3505/udp
-    ports:
-      - "50053:50051"
     volumes:
       - ./devdata/rocksdbdata3:/concord/rocksdbdata
       - ./devdata/log3:/concord/log
@@ -93,8 +87,6 @@ services:
       - 3503/udp
       - 3504/udp
       - 3505/udp
-    ports:
-      - "50054:50051"
     volumes:
       - ./devdata/rocksdbdata4:/concord/rocksdbdata
       - ./devdata/log4:/concord/log
@@ -116,8 +108,10 @@ services:
       - index_db
     expose:
       - 6865
+      - 55001
     ports:
       - "6861:6865"
+      - "55051:55001" # http server for prometheus metrics
 
   daml_execution_engine1:
     image: "${daml_execution_engine_repo}:${daml_execution_engine_tag}"
@@ -125,15 +119,16 @@ services:
       - JAVA_OPTS=-XX:+UseG1GC -Xmx5G
     expose:
       - 55000
+      - 55001
     ports:
-      - "55001:55001" # metrics dashboard
+      - "55001:55001" # http server for graph and prometheus metrics
 
   index_db:
     image: "${daml_index_db_repo}:${daml_index_db_tag}"
     restart: always
     environment:
       - POSTGRES_USER=indexdb
-      - POSTGRES_MULTIPLE_DATABASES=daml_ledger_api1,daml_ledger_api2
+      - POSTGRES_MULTIPLE_DATABASES=daml_ledger_api1
       - MAX_CONNECTIONS=300
       - BUFFER_SIZE=80MB
     volumes:
