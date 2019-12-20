@@ -198,11 +198,13 @@ isInfraBuildError(){
 grepLogForErrors(){
     local BUILD_NAME="${1}"
     local LOG_FILE=${BUILD_LOGS["${BUILD_NAME}"]}
-    local ERROR_STRINGS=("\[ERROR\].*Could\ not\ transfer.*\ 50[23]" \
+    local ERROR_STRINGS=("\[ERROR\].*Could not transfer.* 50[23]" \
+                         "\[ERROR\].*Could not transfer.* Connection reset" \
                          "sbt.librarymanagement.ResolveException: download failed:" \
                          "Too Many Requests (HAP429)" \
-                         "docker\.io.*Client\.Timeout\ exceeded" \
-                         "curl: (56) SSL read: error:00000000:lib(0):func(0):reason(0), errno 104")
+                         "docker\.io.*Client\.Timeout exceeded" \
+                         "curl: (56) SSL read: error:00000000:lib(0):func(0):reason(0), errno 104" \
+                         "Failed to fetch.*Undetermined Error")
 
     info "Looking for errors in build log file ${LOG_FILE} to see if we should retry."
 
