@@ -70,7 +70,7 @@ import hudson.util.Secret
     "runWithGenericTests": true
   ],
   "DamlTests": [
-    "enabled": false,
+    "enabled": true,
     "dockerComposeFiles": "../docker/docker-compose-daml.yml",
     "concordConfigurationInput": "/concord/config/dockerConfigurationInput-daml.yaml",
     "runWithGenericTests": true
