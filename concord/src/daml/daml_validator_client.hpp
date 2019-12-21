@@ -5,6 +5,7 @@
 
 #include <google/protobuf/timestamp.pb.h>
 #include <grpcpp/grpcpp.h>
+#include <opentracing/span.h>
 #include <map>
 #include <string>
 
@@ -23,13 +24,13 @@ class DamlValidatorClient {
   grpc::Status ValidateSubmission(
       std::string entryId, std::string submission,
       google::protobuf::Timestamp& recordTime, std::string participant_id,
-      std::string correlationId,
+      std::string correlationId, opentracing::Span& parent_span,
       com::digitalasset::kvbc::ValidateResponse* out);
 
   grpc::Status ValidatePendingSubmission(
       std::string entryId,
       const std::map<std::string, std::string>& input_state_entries,
-      std::string correlationId,
+      std::string correlationId, opentracing::Span& parent_span,
       com::digitalasset::kvbc::ValidatePendingSubmissionResponse* out);
 
  private:

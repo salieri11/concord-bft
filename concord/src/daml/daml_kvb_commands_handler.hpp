@@ -58,10 +58,12 @@ class DamlKvbCommandsHandler
                    com::vmware::concord::ConcordResponse& concord_response);
   bool ExecuteCommit(const com::digitalasset::kvbc::CommitRequest& commitReq,
                      concord::time::TimeContract* time_contract,
+                     opentracing::Span& parent_span,
                      com::vmware::concord::ConcordResponse& concord_response);
 
   bool ExecuteCommand(const com::vmware::concord::ConcordRequest& request,
                       concord::time::TimeContract* time_contract,
+                      opentracing::Span& parent_span,
                       com::vmware::concord::ConcordResponse& response);
   bool ExecuteReadOnlyCommand(
       const com::vmware::concord::ConcordRequest& request,
