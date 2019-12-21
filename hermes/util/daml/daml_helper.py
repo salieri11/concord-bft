@@ -72,8 +72,8 @@ def verify_ledger_api_test_tool(host='ledger', port='6865'):
              "--link docker_daml_ledger_api1_1:ledger " + \
              testToolImage + \
              " java -jar " + TEST_TOOL_NAME + \
-                " --timeout-scale-factor 3.5" + \
-                " --command-submission-ttl-scale-factor 3.5" + \
+                " --timeout-scale-factor 20" + \
+                " --command-submission-ttl-scale-factor 20" + \
                 " {}:{}".format(host, port)
    log.info("Run %s...", TEST_TOOL_NAME)
    try:
