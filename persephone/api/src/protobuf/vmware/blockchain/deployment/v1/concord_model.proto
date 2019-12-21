@@ -49,6 +49,8 @@ message ConcordComponent {
         HLF_PEER = 9;
         HLF_ORDERER = 10;
         LOGGING = 11;
+        WAVEFRONT_PROXY = 12;
+        JAEGER_AGENT = 13;
     }
 
     Type type = 1;
