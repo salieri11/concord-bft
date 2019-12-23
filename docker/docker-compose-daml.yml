@@ -15,8 +15,9 @@ services:
     privileged: true
     depends_on:
       - daml_execution_engine1
+    ports:
+      - "50051:50051"
     expose:
-      - 50051
       - 5458
       - 3501/udp
       - 3502/udp
@@ -35,8 +36,9 @@ services:
     privileged: true
     depends_on:
       - daml_execution_engine2
+    ports:
+      - "50052:50051"
     expose:
-      - 50051
       - 5458
       - 3501/udp
       - 3502/udp
@@ -55,8 +57,9 @@ services:
     privileged: true
     depends_on:
       - daml_execution_engine3
+    ports:
+      - "50053:50051"
     expose:
-      - 50051
       - 5458
       - 3501/udp
       - 3502/udp
@@ -75,8 +78,9 @@ services:
     privileged: true
     depends_on:
       - daml_execution_engine4
+    ports:
+      - "50054:50051"
     expose:
-      - 50051
       - 5458
       - 3501/udp
       - 3502/udp
