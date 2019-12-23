@@ -26,7 +26,7 @@ public enum HlfConfig implements BaseContainerSpec {
 
     LOGGING(LogConfig.LoggingType.FLUENTD.toString(), null,
             List.of(Bind.parse("/var/lib/docker/containers:/var/lib/docker/containers")),
-            null, null, null),
+            null, null),
     // HLF Configuration
     HLF_CONCORD("concord", List.of(
             new PortBinding(Ports.Binding.bindPort(50052), ExposedPort.tcp(50052)),
@@ -39,18 +39,18 @@ public enum HlfConfig implements BaseContainerSpec {
             new PortBinding(Ports.Binding.bindPort(3505), ExposedPort.tcp(3505))),
                  List.of(Bind.parse("/config/concord/config-local:/concord/config-local"),
                          Bind.parse("/config/concord/config-public:/concord/config-public")),
-                 null, null, null),
+                 null, null),
 
     HLF_ORDERER("orderer1.example.com", List.of(
             new PortBinding(Ports.Binding.bindPort(7050), ExposedPort.tcp(7050))),
-                 null, null, null, null),
+                 null, null, null),
 
     HLF_PEER("peer1.org1.example.com", List.of(
             new PortBinding(Ports.Binding.bindPort(7051), ExposedPort.tcp(7051))),
             List.of(Bind.parse("/var/run/:/host/var/run/")),
-            null, null, null),
+            null, null),
 
-    HLF_TOOLS("cli", null, null, null, null, null);
+    HLF_TOOLS("cli", null, null, null, null);
 
     @Setter
     private String imageId;
@@ -59,18 +59,16 @@ public enum HlfConfig implements BaseContainerSpec {
     private List<PortBinding> portBindings;
     private List<Bind> volumeBindings;
     private List<Link> links;
-    private List<String> cmds;
     @Setter
     private List<String> environment;
 
     HlfConfig(String containerName,
                List<PortBinding> portBindings, List<Bind> volumeBindings,
-               List<Link> links, List<String> cmds, List<String> environment) {
+               List<Link> links, List<String> environment) {
         this.containerName = containerName;
         this.portBindings = portBindings;
         this.volumeBindings = volumeBindings;
         this.links = links;
-        this.cmds = cmds;
         this.environment = environment;
     }
 }
