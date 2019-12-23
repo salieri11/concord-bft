@@ -24,6 +24,7 @@ import org.slf4j.LoggerFactory;
 
 import com.github.dockerjava.api.DockerClient;
 import com.github.dockerjava.api.model.AuthConfig;
+import com.github.dockerjava.api.model.Bind;
 import com.github.dockerjava.api.model.HostConfig;
 import com.github.dockerjava.api.model.LogConfig;
 import com.github.dockerjava.core.DefaultDockerClientConfig;
@@ -337,20 +338,22 @@ public final class AgentDockerClient {
 
     private void launchContainer(DockerClient dockerClient, BaseContainerSpec containerParam) {
 
-        var createContainerCmd = dockerClient.createContainerCmd(containerParam.getContainerName())
-                .withName(containerParam.getContainerName())
-                .withImage(containerParam.getImageId());
+        // Mount Default volume per container.
+        String containerName = containerParam.getContainerName().replace("_", "-");
 
-        if (containerParam.getCmds() != null) {
-            createContainerCmd.withCmd(containerParam.getCmds());
+        // FIXME There is a standard change in naming containers.
+        String defaultVolumeString = "/config/" + containerName + ":/config/" + containerName;
+        Bind defaultVolume = Bind.parse(defaultVolumeString);
+        List<Bind> volumes = new ArrayList<>();
+        volumes.add(defaultVolume);
+
+        if (containerParam.getVolumeBindings() != null) {
+            volumes.addAll(containerParam.getVolumeBindings());
         }
 
         HostConfig hostConfig = HostConfig.newHostConfig()
-                .withNetworkMode(CONTAINER_NETWORK_NAME);
-
-        if (containerParam.getVolumeBindings() != null) {
-            hostConfig.withBinds(containerParam.getVolumeBindings());
-        }
+                .withNetworkMode(CONTAINER_NETWORK_NAME)
+                .withBinds(volumes);
 
         if (containerParam.getPortBindings() != null) {
             hostConfig.withPortBindings(containerParam.getPortBindings());
@@ -359,7 +362,11 @@ public final class AgentDockerClient {
         if (containerParam.getLinks() != null) {
             hostConfig.withLinks(containerParam.getLinks());
         }
-        createContainerCmd.withHostConfig(hostConfig);
+
+        var createContainerCmd = dockerClient.createContainerCmd(containerParam.getContainerName())
+                .withName(containerParam.getContainerName())
+                .withImage(containerParam.getImageId())
+                .withHostConfig(hostConfig);
 
         if (containerParam.getEnvironment() != null) {
             createContainerCmd.withEnv(containerParam.getEnvironment());

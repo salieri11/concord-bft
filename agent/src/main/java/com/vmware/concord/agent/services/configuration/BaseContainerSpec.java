@@ -30,10 +30,10 @@ public interface BaseContainerSpec {
 
     List<Link> getLinks();
 
-    List<String> getCmds();
-
+    @Deprecated
     List<String> getEnvironment();
 
+    @Deprecated
     void setEnvironment(List<String> environment);
 
 }

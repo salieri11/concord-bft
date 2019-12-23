@@ -25,15 +25,15 @@ public enum EthereumConfig implements BaseContainerSpec {
 
     LOGGING(LogConfig.LoggingType.FLUENTD.toString(), null,
             List.of(Bind.parse("/var/lib/docker/containers:/var/lib/docker/containers")),
-            null, null, null),
+            null, null),
 
     CONCORD("concord", ConcordHelper.getDefaultPortBindings(),
             ConcordHelper.getDefaultVolBinds(),
-            null, null, null),
+            null, null),
     ETHEREUM_API("ethrpc",
             List.of(new PortBinding(Ports.Binding.bindPort(8545), ExposedPort.tcp(8545))),
             null,
-            List.of(new Link("concord", "concord")), null,
+            List.of(new Link("concord", "concord")),
             List.of("CONCORD_AUTHORITIES=concord:5458"));
 
     @Setter
@@ -43,18 +43,16 @@ public enum EthereumConfig implements BaseContainerSpec {
     private List<PortBinding> portBindings;
     private List<Bind> volumeBindings;
     private List<Link> links;
-    private List<String> cmds;
     @Setter
     private List<String> environment;
 
     EthereumConfig(String containerName,
                    List<PortBinding> portBindings, List<Bind> volumeBindings,
-                   List<Link> links, List<String> cmds, List<String> environment) {
+                   List<Link> links, List<String> environment) {
         this.containerName = containerName;
         this.portBindings = portBindings;
         this.volumeBindings = volumeBindings;
         this.links = links;
-        this.cmds = cmds;
         this.environment = environment;
     }
 
