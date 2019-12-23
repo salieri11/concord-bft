@@ -33,6 +33,6 @@ grpc_generate_cpp(GRPC_SRCS GRPC_HDRS ${CMAKE_CURRENT_BINARY_DIR}
 )
 
 add_library(proto STATIC ${PROTO_SRCS} ${PROTO_HDRS} ${GRPC_SRCS} ${GRPC_SRCS})
-target_link_libraries(proto protobuf::libprotobuf)
+target_link_libraries(proto protobuf::libprotobuf gRPC::grpc++)
 target_include_directories(proto PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 
