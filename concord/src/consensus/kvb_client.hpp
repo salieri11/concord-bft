@@ -31,24 +31,23 @@ using concord::kvbc::IClient;
 class KVBClient {
  private:
   std::unique_ptr<IClient> client_;
-  std::chrono::milliseconds timeout_;
   std::shared_ptr<concord::time::TimePusher> timePusher_;
   log4cplus::Logger logger_;
   static constexpr size_t OUT_BUFFER_SIZE = 512000;
   char m_outBuffer[OUT_BUFFER_SIZE];
 
  public:
-  KVBClient(IClient *client, std::chrono::milliseconds timeout,
+  KVBClient(IClient *client,
             std::shared_ptr<concord::time::TimePusher> timePusher)
       : client_(client),
-        timeout_(timeout),
         timePusher_(timePusher),
         logger_(log4cplus::Logger::getInstance("com.vmware.concord")) {}
 
   ~KVBClient() { client_->stop(); }
 
   bool send_request_sync(com::vmware::concord::ConcordRequest &req,
-                         bool isReadOnly, opentracing::Span &parent_span,
+                         bool isReadOnly, std::chrono::milliseconds timeout,
+                         opentracing::Span &parent_span,
                          com::vmware::concord::ConcordResponse &resp);
 };
 
@@ -62,6 +61,10 @@ class KVBClientPool {
 
   // Clients that are available for use (i.e. not already in use).
   std::queue<KVBClient *> clients_;
+
+  // How long to wait for a client, and also how long to wait for the claimed
+  // client to respond.
+  std::chrono::milliseconds timeout_;
 
   // Mutex to grab before modifying clients_.
   std::mutex clients_mutex_;
@@ -88,11 +91,17 @@ class KVBClientPool {
   // point to should be a valid TimePusher if the time service is enabled
   // and should be a null pointer if the time service is disabled.
   KVBClientPool(std::vector<KVBClient *> &clients,
+                std::chrono::milliseconds timeout,
                 std::shared_ptr<concord::time::TimePusher> time_pusher);
   ~KVBClientPool();
 
   bool send_request_sync(com::vmware::concord::ConcordRequest &req,
                          bool isReadOnly, opentracing::Span &parent_span,
+                         com::vmware::concord::ConcordResponse &resp);
+
+  bool send_request_sync(com::vmware::concord::ConcordRequest &req,
+                         bool isReadOnly, std::chrono::milliseconds timeout,
+                         opentracing::Span &parent_span,
                          com::vmware::concord::ConcordResponse &resp);
 
   // Reconfigure the time period for the TimePusher (if any) managed by this

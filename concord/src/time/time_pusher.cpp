@@ -190,8 +190,10 @@ void TimePusher::ThreadFunction() {
 
     try {
       AddTimeToCommand(req, time);
-      clientPool_->send_request_sync(req, false /* not read-only */,
-                                     *(span.get()), resp);
+      clientPool_->send_request_sync(
+          req, false /* not read-only */,
+          std::chrono::milliseconds(TimeUtil::DurationToMilliseconds(period_)),
+          *(span.get()), resp);
       req.Clear();
       resp.Clear();
     } catch (...) {
