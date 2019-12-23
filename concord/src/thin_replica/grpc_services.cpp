@@ -21,6 +21,7 @@ using com::vmware::concord::thin_replica::Data;
 using com::vmware::concord::thin_replica::Hash;
 using com::vmware::concord::thin_replica::KVPair;
 using concord::storage::KvbAppFilter;
+using concord::storage::KvbUpdate;
 using concordUtils::BlockId;
 using concordUtils::Key;
 using concordUtils::KeyValuePair;
@@ -31,45 +32,173 @@ using concordUtils::Value;
 namespace concord {
 namespace thin_replica {
 
+class StreamClosed : public std::exception {
+ public:
+  explicit StreamClosed(){};
+  virtual const char* what() const noexcept override { return "Stream closed"; }
+};
+
+// Send* prepares the response object and puts it on the stream
+void SendData(ServerWriter<Data>* stream,
+              concord::thin_replica::SubUpdate& update) {
+  Data data;
+  data.set_block_id(update.first);
+
+  for (const auto& [key, value] : update.second) {
+    KVPair* kvp_out = data.add_data();
+    kvp_out->set_key(key.data(), key.length());
+    kvp_out->set_value(value.data(), value.length());
+  }
+  if (!stream->Write(data)) {
+    throw StreamClosed();
+  }
+}
+
+void SendHash(ServerWriter<Hash>* stream, BlockId block_id,
+              size_t update_hash) {
+  com::vmware::concord::thin_replica::Hash hash;
+  hash.set_block_id(block_id);
+  hash.set_hash(&update_hash, sizeof update_hash);
+  if (!stream->Write(hash)) {
+    throw StreamClosed();
+  }
+}
+
+void ReadFromKvbAndSendData(
+    log4cplus::Logger logger,
+    ServerWriter<com::vmware::concord::thin_replica::Data>* stream,
+    const concord::storage::blockchain::ILocalKeyValueStorageReadOnly* kvb,
+    BlockId start, BlockId end, const std::string& key_prefix) {
+  spsc_queue<KvbUpdate> queue{10};
+  KvbAppFilter kvb_filter(kvb, KvbAppFilter::kDaml);
+  std::atomic_bool close_stream = false;
+
+  auto kvb_reader = std::async(
+      std::launch::async, &KvbAppFilter::ReadBlockRange, &kvb_filter, start,
+      end, std::ref(key_prefix), std::ref(queue), std::ref(close_stream));
+
+  KvbUpdate kvb_update;
+  while (kvb_reader.wait_for(0s) != std::future_status::ready ||
+         !queue.empty()) {
+    while (queue.pop(kvb_update)) {
+      try {
+        SendData(stream, kvb_update);
+      } catch (StreamClosed& error) {
+        LOG4CPLUS_WARN(logger,
+                       "Data stream closed at block " << kvb_update.first);
+
+        // Stop kvb_reader and empty queue
+        close_stream = true;
+        while (!queue.empty()) {
+          queue.pop(kvb_update);
+        }
+        throw;
+      }
+    }
+  }
+  assert(queue.empty());
+
+  // Throws exception if something went wrong
+  kvb_reader.get();
+}
+
+void ReadFromKvbAndSendHashes(
+    log4cplus::Logger logger,
+    ServerWriter<com::vmware::concord::thin_replica::Hash>* stream,
+    const concord::storage::blockchain::ILocalKeyValueStorageReadOnly* kvb,
+    BlockId start, BlockId end, const std::string& key_prefix) {
+  BlockId block_id = start;
+  KvbAppFilter kvb_filter(kvb, KvbAppFilter::kDaml);
+
+  for (; block_id <= end; ++block_id) {
+    size_t hash = kvb_filter.ReadBlockHash(block_id, key_prefix);
+    SendHash(stream, block_id, hash);
+  }
+}
+
+// Read from KVB until we are in sync with the live updates. This function
+// returns when the next update can be taken from the given live updates.
+template <typename T>
+void ThinReplicaImpl::SyncAndSend(BlockId start, const std::string& key_prefix,
+                                  std::shared_ptr<SubUpdateBuffer> live_updates,
+                                  ServerWriter<T>* stream) {
+  SubUpdate update;
+  BlockId end = rostorage_->getLastBlock();
+  assert(start <= end);
+
+#define SEND_HASHES_OR_DATA(log, stream, storage, start, end, prefix)     \
+  {                                                                       \
+    if constexpr (std::is_same<T, Data>()) {                              \
+      ReadFromKvbAndSendData(log, stream, storage, start, end, prefix);   \
+    } else if constexpr (std::is_same<T, Hash>()) {                       \
+      ReadFromKvbAndSendHashes(log, stream, storage, start, end, prefix); \
+    } else {                                                              \
+      assert(false);                                                      \
+    }                                                                     \
+  };
+
+  // Let's not wait for a live update yet due to there might be lots of history
+  // we have to catch up with first
+  LOG4CPLUS_INFO(logger_,
+                 "Sync reading from KVB [" << start << ", " << end << "]");
+  SEND_HASHES_OR_DATA(logger_, stream, rostorage_, start, end, key_prefix);
+
+  // Let's wait until we have at least one live update
+  // TODO: Notify instead of busy wait?
+  while (live_updates->Empty())
+    ;
+
+  // We are in sync already
+  if (!live_updates->Full() && live_updates->OldestBlockId() == (end + 1)) {
+    return;
+  }
+
+  // Gap:
+  // The ring buffer (live updates) could have filled up and we are overwriting
+  // old updates already. Or the first live update is not the follow-up to the
+  // last read block from KVB. In either case, we need to fill the gap. Let's
+  // read from KVB starting at end + 1 up to updates that are part of the live
+  // updates already. Thereby, we create an overlap between what we read from
+  // KVB and what is currently in the live updates.
+  if (live_updates->Full() || live_updates->OldestBlockId() > (end + 1)) {
+    start = end + 1;
+    end = live_updates->NewestBlockId();
+
+    LOG4CPLUS_INFO(logger_,
+                   "Sync filling gap [" << start << ", " << end << "]");
+    SEND_HASHES_OR_DATA(logger_, stream, rostorage_, start, end, key_prefix);
+  }
+
+  // Overlap:
+  // If we read updates from KVB that were added to the live updates already
+  // then we just need to drop the overlap and return
+  assert(live_updates->OldestBlockId() <= end);
+  do {
+    update = live_updates->Pop();
+    LOG4CPLUS_INFO(logger_, "Sync dropping " << update.first);
+  } while (update.first < end);
+#undef SEND_HASHES_OR_DATA
+}
+
 grpc::Status ThinReplicaImpl::ReadState(
     ServerContext* context,
     const com::vmware::concord::thin_replica::ReadStateRequest* request,
     ServerWriter<com::vmware::concord::thin_replica::Data>* stream) {
-  spsc_queue<KeyValuePair*> queue{10};
-  BlockId current_block_id = rostorage_->getLastBlock();
   KvbAppFilter kvb_filter(rostorage_, KvbAppFilter::kDaml);
-  std::atomic_bool stop_filter = false;
 
-  LOG4CPLUS_INFO(logger_, "ReadState");
+  LOG4CPLUS_DEBUG(logger_, "ReadState");
 
-  // Create a future which pushes kv-pairs into the given queue
-  std::string key_prefix = request->key_prefix();
-  auto filter = std::async(std::launch::async, &KvbAppFilter::ReadState,
-                           &kvb_filter, current_block_id, std::ref(key_prefix),
-                           std::ref(queue), std::ref(stop_filter));
+  // TODO: Determine oldest block available (pruning)
+  BlockId start = 1;
+  BlockId end = rostorage_->getLastBlock();
 
-  KeyValuePair* kvp;
-  // Read from the queue until the future returns and the queue is empty
-  while (filter.wait_for(0s) != std::future_status::ready || !queue.empty()) {
-    while (queue.pop(kvp)) {
-      Data data;
-      data.set_block_id(current_block_id);
-
-      KVPair* kvp_out = data.add_data();
-      kvp_out->set_key(kvp->first.data(), kvp->first.length());
-      kvp_out->set_value(kvp->second.data(), kvp->second.length());
-      delete kvp;
-
-      if (!stop_filter && !stream->Write(data)) {
-        LOG4CPLUS_ERROR(logger_, "ReadState gRPC stream has been closed");
-        stop_filter = true;
-      }
-    }
-  }
-
-  Status status = filter.get();
-  if (!status.isOK()) {
-    return grpc::Status(grpc::StatusCode::UNKNOWN, status.toString());
+  try {
+    ReadFromKvbAndSendData(logger_, stream, rostorage_, start, end,
+                           request->key_prefix());
+  } catch (std::exception& error) {
+    LOG4CPLUS_ERROR(logger_, "Failed to read and send state: " << error.what());
+    return grpc::Status(grpc::StatusCode::UNKNOWN,
+                        "Failed to read and send state");
   }
 
   return grpc::Status::OK;
@@ -82,18 +211,24 @@ grpc::Status ThinReplicaImpl::ReadStateHash(
   KvbAppFilter kvb_filter(rostorage_, KvbAppFilter::kDaml);
   concord::storage::KvbStateHash kvb_hash;
 
-  LOG4CPLUS_INFO(logger_, "ReadStateHash");
+  LOG4CPLUS_DEBUG(logger_, "ReadStateHash");
 
-  BlockId block_id = request->block_id();
+  // TODO: Determine oldest block available (pruning)
+  BlockId block_id_start = 1;
+  BlockId block_id_end = request->block_id();
+
   std::string key_prefix = request->key_prefix();
-  Status status = kvb_filter.ReadStateHash(block_id, key_prefix, kvb_hash);
-  if (!status.isOK()) {
-    LOG4CPLUS_ERROR(logger_,
-                    "Reading StateHash for block " << block_id << " failed");
-    return grpc::Status(grpc::StatusCode::UNKNOWN, status.toString());
+  try {
+    kvb_hash =
+        kvb_filter.ReadBlockRangeHash(block_id_start, block_id_end, key_prefix);
+  } catch (concord::storage::KvbReadError& error) {
+    LOG4CPLUS_ERROR(logger_, error.what());
+    std::stringstream msg;
+    msg << "Reading StateHash for block " << block_id_end << " failed";
+    return grpc::Status(grpc::StatusCode::UNKNOWN, msg.str());
   }
 
-  hash->set_block_id(block_id);
+  hash->set_block_id(block_id_end);
   hash->set_hash(&kvb_hash, sizeof kvb_hash);
 
   return grpc::Status::OK;
@@ -110,44 +245,52 @@ grpc::Status ThinReplicaImpl::SubscribeToUpdates(
     ServerContext* context,
     const com::vmware::concord::thin_replica::SubscriptionRequest* request,
     ServerWriter<com::vmware::concord::thin_replica::Data>* stream) {
-  bool close_write_stream = false;
+  KvbAppFilter kvb_filter(rostorage_, KvbAppFilter::kDaml);
   std::pair<BlockId, SetOfKeyValuePairs> update;
+  SubUpdate live_update;
 
-  auto updates = std::make_shared<SubUpdateBuffer>(100);
-  subscriber_list_.AddBuffer(updates);
+  // Subscribe before we start reading from KVB
+  auto live_updates = std::make_shared<SubUpdateBuffer>(100);
+  subscriber_list_.AddBuffer(live_updates);
 
-  // TODO: Read from KVB, filter, and sync with updates in the ring buffer
-  // For now: Read from the ring buffer and send to stream
-  while (!close_write_stream) {
-    SubUpdate update = updates->Pop();
-
-    Data data;
-    data.set_block_id(update.first);
-
-    SetOfKeyValuePairs kv_updates(update.second);
-    for (const auto& [key, value] : kv_updates) {
-      KVPair* kvp_out = data.add_data();
-      kvp_out->set_key(key.data(), key.length());
-      kvp_out->set_value(value.data(), value.length());
-    }
-
-    if (stream->Write(data)) {
-      continue;
-    }
-
-    LOG4CPLUS_INFO(logger_, "SubscibeToUpdates stream has been closed.");
-
-    // Remove from the subscriber list so that the cmds handler stops pushing
-    // new updates
-    subscriber_list_.RemoveBuffer(updates);
-    close_write_stream = true;
+  if (request->block_id() > rostorage_->getLastBlock()) {
+    subscriber_list_.RemoveBuffer(live_updates);
+    live_updates->RemoveAllUpdates();
+    std::stringstream msg;
+    msg << "Block " << request->block_id() << " doesn't exist yet";
+    return grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, msg.str());
   }
 
-  // Clear the update list
-  while (!updates->Empty()) {
-    updates->Pop();
+  try {
+    SyncAndSend<Data>(request->block_id(), request->key_prefix(), live_updates,
+                      stream);
+  } catch (std::exception& error) {
+    LOG4CPLUS_ERROR(logger_, error.what());
+    subscriber_list_.RemoveBuffer(live_updates);
+    live_updates->RemoveAllUpdates();
+
+    std::stringstream msg;
+    msg << "Couldn't transition from block id " << request->block_id()
+        << " to new blocks";
+    return grpc::Status(grpc::StatusCode::UNKNOWN, msg.str());
   }
 
+  // Read, filter, and send live updates
+  while (true) {
+    update = live_updates->Pop();
+    SubUpdate filtered_update =
+        kvb_filter.FilterUpdate(update, request->key_prefix());
+    try {
+      SendData(stream, filtered_update);
+    } catch (std::exception& error) {
+      LOG4CPLUS_INFO(logger_,
+                     "Data subscription stream closed: " << error.what());
+      break;
+    }
+  }
+
+  subscriber_list_.RemoveBuffer(live_updates);
+  live_updates->RemoveAllUpdates();
   return grpc::Status::OK;
 }
 
@@ -155,55 +298,58 @@ grpc::Status ThinReplicaImpl::SubscribeToUpdateHashes(
     ServerContext* context,
     const com::vmware::concord::thin_replica::SubscriptionRequest* request,
     ServerWriter<com::vmware::concord::thin_replica::Hash>* stream) {
-  bool close_write_stream = false;
   std::pair<BlockId, SetOfKeyValuePairs> update;
+  KvbAppFilter kvb_filter(rostorage_, KvbAppFilter::kDaml);
 
-  auto updates = std::make_shared<SubUpdateBuffer>(100);
-  subscriber_list_.AddBuffer(updates);
+  auto live_updates = std::make_shared<SubUpdateBuffer>(100);
+  subscriber_list_.AddBuffer(live_updates);
 
-  // TODO: Read from KVB, filter, and sync with updates in the ring buffer
-  // For now: Read from the ring buffer, compute hash, and send to stream
-  while (!close_write_stream) {
-    SubUpdate update = updates->Pop();
-    SetOfKeyValuePairs kv_updates(update.second);
-
-    size_t hash_out = 0;
-
-    // TODO: Same implementation in two places (see kvb_app_filter)
-    for (const auto& [key, value] : kv_updates) {
-      // (key1 XOR value1) XOR (key2 XOR value2) ...
-      auto key_hash = std::hash<string>{}(string{key.data(), key.length()});
-      key_hash ^= std::hash<string>{}(string{value.data(), value.length()});
-      hash_out ^= key_hash;
-    }
-
-    com::vmware::concord::thin_replica::Hash hash;
-    hash.set_block_id(update.first);
-    hash.set_hash(&hash_out, sizeof hash_out);
-
-    if (stream->Write(hash)) {
-      continue;
-    }
-
-    LOG4CPLUS_INFO(logger_, "SubscibeToUpdateHashes stream has been closed.");
-
-    // Remove from the subscriber list so that the cmds handler stops pushing
-    // new updates
-    subscriber_list_.RemoveBuffer(updates);
-    close_write_stream = true;
+  if (request->block_id() > rostorage_->getLastBlock()) {
+    subscriber_list_.RemoveBuffer(live_updates);
+    live_updates->RemoveAllUpdates();
+    std::stringstream msg;
+    msg << "Block " << request->block_id() << " doesn't exist yet";
+    return grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, msg.str());
   }
 
-  // Clear the update list
-  while (!updates->Empty()) {
-    updates->Pop();
+  try {
+    SyncAndSend<Hash>(request->block_id(), request->key_prefix(), live_updates,
+                      stream);
+  } catch (std::exception& error) {
+    LOG4CPLUS_ERROR(logger_, error.what());
+    subscriber_list_.RemoveBuffer(live_updates);
+    live_updates->RemoveAllUpdates();
+
+    std::stringstream msg;
+    msg << "Couldn't transition from block id " << request->block_id()
+        << " to new blocks";
+    return grpc::Status(grpc::StatusCode::UNKNOWN, msg.str());
   }
 
+  // Read, filter, compute hash, and send live updates
+  while (true) {
+    update = live_updates->Pop();
+    SubUpdate filtered_update =
+        kvb_filter.FilterUpdate(update, request->key_prefix());
+    try {
+      SendHash(stream, update.first, kvb_filter.HashUpdate(filtered_update));
+    } catch (std::exception& error) {
+      LOG4CPLUS_INFO(logger_,
+                     "Hash subscription stream closed: " << error.what());
+      break;
+    }
+  }
+
+  subscriber_list_.RemoveBuffer(live_updates);
+  live_updates->RemoveAllUpdates();
   return grpc::Status::OK;
 }
 
 grpc::Status ThinReplicaImpl::Unsubscribe(
     ServerContext* context, const google::protobuf::Empty* request,
     google::protobuf::Empty* response) {
+  // Note: In order to unsubscribe in a separate gRPC call, we need to connect
+  // the sub buffer with the thin replica client id.
   return grpc::Status(grpc::StatusCode::UNIMPLEMENTED, "Unsubscribe");
 }
 

@@ -62,6 +62,12 @@ class ThinReplicaImpl final
   grpc::Status Unsubscribe(grpc::ServerContext* context,
                            const google::protobuf::Empty* request,
                            google::protobuf::Empty* response) override;
+
+ private:
+  template <typename T>
+  void SyncAndSend(concordUtils::BlockId start, const std::string& key_prefix,
+                   std::shared_ptr<SubUpdateBuffer> live_updates,
+                   grpc::ServerWriter<T>* stream);
 };
 
 }  // namespace thin_replica

@@ -61,7 +61,23 @@ class SubUpdateBuffer {
     return out;
   };
 
+  void RemoveAllUpdates() {
+    std::lock_guard<std::mutex> lock(buffer_mutex_);
+    cb_.erase_begin(cb_.size());
+  }
+
+  concordUtils::BlockId NewestBlockId() {
+    std::lock_guard<std::mutex> lock(buffer_mutex_);
+    return cb_.back().first;
+  }
+
+  concordUtils::BlockId OldestBlockId() {
+    std::lock_guard<std::mutex> lock(buffer_mutex_);
+    return cb_.front().first;
+  }
+
   bool Empty() { return cb_.empty(); }
+  bool Full() { return cb_.full(); }
 };
 
 // Thread-safe list implementation which manages subscribers' ring buffers. You
