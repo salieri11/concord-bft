@@ -2,9 +2,11 @@
 #include "DBDataStore.hpp"
 #include "storage/db_interface.h"
 #include "Serializable.h"
+#include <chrono>
 
 using bftEngine::SimpleBlockchainStateTransfer::BLOCK_DIGEST_SIZE;
 using concord::serialize::Serializable;
+using namespace std::chrono;
 
 namespace bftEngine {
 namespace SimpleBlockchainStateTransfer {
@@ -147,10 +149,16 @@ void DBDataStore::deserializeCheckpoint(std::istream& is, CheckpointDesc& desc) 
 }
 void DBDataStore::setCheckpointDesc(uint64_t checkpoint, const CheckpointDesc& desc) {
   LOG_DEBUG(logger(), toString(desc));
+  
+   auto s = std::chrono::steady_clock::now();
+
   std::ostringstream oss;
   serializeCheckpoint(oss, desc);
   put(chkpDescKey(checkpoint), oss.str());
   inmem_->setCheckpointDesc(checkpoint, desc);
+
+  auto e = std::chrono::steady_clock::now();
+  LOG_DEBUG(logger(), "DBDataStore::setCheckpointDesc time: " << duration_cast<milliseconds>(e - s).count());
 }
 bool DBDataStore::hasCheckpointDesc(uint64_t checkpoint) {
   if (inmem_->hasCheckpointDesc(checkpoint)) return true;
@@ -233,7 +241,15 @@ void DBDataStore::serializeResPage(std::ostream& os,
   Serializable::serialize(os, inCheckpoint);
   Serializable::serialize(os, inPageDigest.get(), BLOCK_DIGEST_SIZE);
   Serializable::serialize(os, inmem_->getSizeOfReservedPage());
-  Serializable::serialize(os, inPage, inmem_->getSizeOfReservedPage());
+  
+  uint8_t tmp[4096]; 
+  memset(tmp, 0, 4096);
+  bool e = memcmp(tmp, inPage, inmem_->getSizeOfReservedPage()) == 0;
+  uint32_t empty = e ? 1: 0;
+  Serializable::serialize(os, empty);
+  if(!e) {
+    Serializable::serialize(os, inPage, inmem_->getSizeOfReservedPage());
+  }
 }
 void DBDataStore::deserializeResPage(
     std::istream& is, uint32_t& outPageId, uint64_t& outCheckpoint, STDigest& outPageDigest, char*& outPage) const {
@@ -245,7 +261,14 @@ void DBDataStore::deserializeResPage(
   std::uint32_t sizeOfReseredPage;
   Serializable::deserialize(is, sizeOfReseredPage);
   assert(sizeOfReseredPage == inmem_->getSizeOfReservedPage());
-  Serializable::deserialize(is, outPage, sizeOfReseredPage);
+
+  uint32_t empty;
+  Serializable::deserialize(is, empty);
+  if(empty) {
+   memset(outPage, 0, sizeOfReseredPage); 
+  } else {
+    Serializable::deserialize(is, outPage, sizeOfReseredPage);
+  }
 }
 void DBDataStore::loadResPages() {
   LOG_DEBUG(logger(), "");
@@ -274,14 +297,33 @@ void DBDataStore::loadResPages() {
 void DBDataStore::setResPageTxn(
     uint32_t inPageId, uint64_t inCheckpoint, const STDigest& inPageDigest, const char* inPage, ITransaction* txn) {
   std::ostringstream oss;
+
+  auto s1 = std::chrono::steady_clock::now();
   serializeResPage(oss, inPageId, inCheckpoint, inPageDigest, inPage);
+  auto e1 = std::chrono::steady_clock::now();
+  LOG_DEBUG(logger(), "DBDataStore::setResPageTxn1 time: " << duration_cast<std::chrono::microseconds>(e1 - s1).count() << ", page: " << inPageId);                                                          
+
+  auto s2 = std::chrono::steady_clock::now();
   Sliver dynamic_key = dynamicResPageKey(inPageId, inCheckpoint);
+  auto e2 = std::chrono::steady_clock::now();
+  LOG_DEBUG(logger(), "DBDataStore::setResPageTxn2 time: " << duration_cast<std::chrono::microseconds>(e2 - s2).count() << ", page: " << inPageId);
+  
+  auto s3 = std::chrono::steady_clock::now();
   txn->put(dynamic_key, oss.str());
+  auto e3 = std::chrono::steady_clock::now();
+  LOG_DEBUG(logger(), "DBDataStore::setResPageTxn3 time: " << duration_cast<std::chrono::microseconds>(e3 - s3).count() << ", page: " << inPageId);
+
+  auto s4 = std::chrono::steady_clock::now();
   txn->put(staticResPageKey(inPageId, inCheckpoint), dynamic_key);
+  auto e4 = std::chrono::steady_clock::now();
+  LOG_DEBUG(logger(), "DBDataStore::setResPageTxn4 time: " << duration_cast<std::chrono::microseconds>(e4 - s4).count() << ", page: " << inPageId);
+
+  /*
   LOG_DEBUG(logger(),
             "page: " << inPageId << " chkp: " << inCheckpoint << " digest: " << inPageDigest.toString()
                      << " txn: " << txn->getId() << " static key: " << staticResPageKey(inPageId, inCheckpoint)
                      << " dynamic key: " << dynamic_key);
+                     */
 }
 
 void DBDataStore::setResPage(uint32_t inPageId,
@@ -332,28 +374,55 @@ void DBDataStore::setPendingResPage(uint32_t inPageId, const char* inPage, uint3
 void DBDataStore::associatePendingResPageWithCheckpoint(uint32_t inPageId,
                                                         uint64_t inCheckpoint,
                                                         const STDigest& inPageDigest) {
+
+  auto s = std::chrono::steady_clock::now();
+  
   if (txn_)
     associatePendingResPageWithCheckpointTxn(inPageId, inCheckpoint, inPageDigest, txn_);
   else {
     ITransaction::Guard g(dbc_->beginTransaction());
     associatePendingResPageWithCheckpointTxn(inPageId, inCheckpoint, inPageDigest, g.txn());
   }
+
+  auto s1 = std::chrono::steady_clock::now();
   inmem_->associatePendingResPageWithCheckpoint(inPageId, inCheckpoint, inPageDigest);
+  auto e1 = std::chrono::steady_clock::now();
+  LOG_DEBUG(logger(), "DBDataStore::associatePendingResPageWithCheckpoint1 time: " << duration_cast<std::chrono::microseconds>(e1 - s1).count() << ", page: " << inPageId);                                                          
+
+  auto e = std::chrono::steady_clock::now();
+  LOG_DEBUG(logger(), "DBDataStore::associatePendingResPageWithCheckpoint time: " << duration_cast<std::chrono::microseconds>(e - s).count() << ", page: " << inPageId);                                                          
 }
 
 void DBDataStore::associatePendingResPageWithCheckpointTxn(uint32_t inPageId,
                                                            uint64_t inCheckpoint,
                                                            const STDigest& inPageDigest,
                                                            ITransaction* txn) {
+  /*                                                           
   LOG_DEBUG(logger(),
             "page: " << inPageId << " chkp: " << inCheckpoint << " digest: " << inPageDigest.toString()
                      << " txn: " << txn->getId());
+  */                     
+
+  auto s1 = std::chrono::steady_clock::now();
   auto& pendingPages = inmem_->getPendingPagesMap();
+  auto e1 = std::chrono::steady_clock::now();
+  LOG_DEBUG(logger(), "DBDataStore::associatePendingResPageWithCheckpointTxn1 time: " << duration_cast<std::chrono::microseconds>(e1 - s1).count() << ", page: " << inPageId);
+
+  auto s2 = std::chrono::steady_clock::now();
   auto page = pendingPages.find(inPageId);
   assert(page != pendingPages.end());
+  auto e2 = std::chrono::steady_clock::now();
+  LOG_DEBUG(logger(), "DBDataStore::associatePendingResPageWithCheckpointTxn2 time: " << duration_cast<std::chrono::microseconds>(e2 - s2).count() << ", page: " << inPageId);
 
+  auto s3 = std::chrono::steady_clock::now();
   setResPageTxn(inPageId, inCheckpoint, inPageDigest, page->second, txn);
+  auto e3 = std::chrono::steady_clock::now();
+  LOG_DEBUG(logger(), "DBDataStore::associatePendingResPageWithCheckpointTxn3 time: " << duration_cast<std::chrono::microseconds>(e3 - s3).count() << ", page: " << inPageId);
+
+  auto s4 = std::chrono::steady_clock::now();
   txn->del(pendingPageKey(inPageId));
+  auto e4 = std::chrono::steady_clock::now();
+  LOG_DEBUG(logger(), "DBDataStore::associatePendingResPageWithCheckpointTxn4 time: " << duration_cast<std::chrono::microseconds>(e4 - s4).count() << ", page: " << inPageId);
 }
 void DBDataStore::deleteAllPendingPagesTxn(ITransaction* txn) {
   std::set<uint32_t> pageIds = getNumbersOfPendingResPages();

@@ -22,8 +22,30 @@
 #include "rocksdb/client.h"
 #include "rocksdb/key_comparator.h"
 #endif
+#if USE_LOG4CPP
+#include <log4cplus/logger.h>
+#include <log4cplus/consoleappender.h>
+#include <log4cplus/layout.h>
+#include <log4cplus/ndc.h>
+#include <log4cplus/mdc.h>
+#include <log4cplus/helpers/loglog.h>
+#include <log4cplus/thread/threads.h>
+#include <log4cplus/helpers/sleep.h>
+#include <log4cplus/loggingmacros.h>
+#include <log4cplus/configurator.h>
+using namespace log4cplus;
+using namespace log4cplus::helpers;
+
+#endif
+
 using namespace concord::kvbc;
 int main(int argc, char** argv) {
+
+#if USE_LOG4CPP
+    log4cplus::initialize ();
+    log4cplus::BasicConfigurator::doConfigure();
+#endif
+
   auto setup = concord::kvbc::TestSetup::ParseArgs(argc, argv);
   auto logger = setup->GetLogger();
   auto* key_manipulator = new concord::storage::blockchain::KeyManipulator();

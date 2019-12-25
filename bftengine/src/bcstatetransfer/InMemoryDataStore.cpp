@@ -189,8 +189,17 @@ uint32_t InMemoryDataStore::numOfAllPendingResPage() { return (uint32_t)(pending
 
 set<uint32_t> InMemoryDataStore::getNumbersOfPendingResPages() {
   set<uint32_t> retSet;
+  uint8_t tmp[4096];  
+  memset(tmp, 0, 4096);
+    
 
-  for (auto p : pendingPages) retSet.insert(p.first);
+  for (auto p : pendingPages) {
+    if(memcmp(p.second, tmp, 4096) == 0) {
+      continue;
+    }
+
+    retSet.insert(p.first);
+  }
 
   return retSet;
 }
@@ -343,7 +352,7 @@ DataStore::ResPagesDescriptor* InMemoryDataStore::getResPagesDescriptor(uint64_t
       }
     }
 
-    assert(nextPage == numberOfReservedPages_);
+    // assert(nextPage == numberOfReservedPages_);
   } else {
     // inCheckpoint == 0
     for (uint32_t i = 0; i < numberOfReservedPages_; i++) {

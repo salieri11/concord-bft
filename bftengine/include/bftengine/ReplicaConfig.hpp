@@ -77,11 +77,11 @@ struct ReplicaConfig {
   bool debugPersistentStorageEnabled = false;
 
   // Messages
-  uint32_t maxExternalMessageSize = 65536;
-  uint32_t maxReplyMessageSize = 8192;
+  uint32_t maxExternalMessageSize = 6553600;
+  uint32_t maxReplyMessageSize = 6553600;
 
   // StateTransfer
-  uint32_t maxNumOfReservedPages = 2048;
+  uint32_t maxNumOfReservedPages = 65536;
   uint32_t sizeOfReservedPage = 4096;
 
   // If set to true, this replica will periodically log debug statistics such as

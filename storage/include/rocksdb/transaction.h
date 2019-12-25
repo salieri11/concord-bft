@@ -13,6 +13,7 @@
 #include "storage/db_interface.h"
 #include "client.h"
 #include "Logger.hpp"
+#include <chrono>
 #pragma once
 
 namespace concord {
@@ -25,10 +26,13 @@ namespace rocksdb {
 
 class Transaction : public ITransaction {
  public:
-  Transaction(::rocksdb::Transaction* txn, ID id) : ITransaction(id), txn_(txn) {}
+  Transaction(::rocksdb::Transaction* txn, ID id) : ITransaction(id), txn_(txn) {
+    scopeStart_ = std::chrono::steady_clock::now();
+  }
   ~Transaction() { LOG_TRACE(logger(), "txn: " << getId()); }
   void commit() override {
-    LOG_DEBUG(logger(), "commit txn: " << getId());
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - scopeStart_).count();
+    LOG_DEBUG(logger(), "commit txn: " << getId() << ", time: " << duration << " micro");
     ::rocksdb::Status s = txn_->Commit();
     if (!s.ok()) ROCKSDB_THROW("Commit", s);
   }
@@ -38,7 +42,7 @@ class Transaction : public ITransaction {
     if (!s.ok()) ROCKSDB_THROW("Rollback", s);
   }
   void put(const Sliver& key, const Sliver& value) override {
-    LOG_DEBUG(logger(), "put txn: " << getId() << " key:" << key << " val: " << value);
+    // LOG_DEBUG(logger(), "put txn: " << getId() << " key:" << key << " val: " << value);
     ::rocksdb::Status s = txn_->Put(toRocksdbSlice(key), toRocksdbSlice(value));
     if (!s.ok()) ROCKSDB_THROW("Put", s);
   }
@@ -61,6 +65,7 @@ class Transaction : public ITransaction {
     return logger_;
   }
   std::unique_ptr<::rocksdb::Transaction> txn_;
+  std::chrono::time_point<std::chrono::steady_clock> scopeStart_;
 };
 
 }  // namespace rocksdb

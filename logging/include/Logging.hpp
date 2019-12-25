@@ -25,7 +25,7 @@ namespace concordlogger {
 // log levels as defined in log4cpp
 enum LogLevel { trace, debug, info, warn, error, fatal, off, all = trace };
 
-constexpr LogLevel CURRENT_LEVEL = LogLevel::info;
+constexpr LogLevel CURRENT_LEVEL = LogLevel::debug;
 
 class Logger {
   std::string _name;

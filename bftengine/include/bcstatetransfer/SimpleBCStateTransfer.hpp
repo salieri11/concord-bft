@@ -111,7 +111,7 @@ struct Config {
 
   uint32_t maxBlockSize = 10 * 1024 * 1024;                      // 10MB
   uint32_t maxPendingDataFromSourceReplica = 256 * 1024 * 1024;  // Maximal internal buffer size for all ST data
-  uint32_t maxNumOfReservedPages = 2048;
+  uint32_t maxNumOfReservedPages = 65536;
   uint32_t sizeOfReservedPage = 4096;
 
   uint32_t refreshTimerMilli = 300;                               // ms

@@ -382,6 +382,9 @@ bool BCStateTran::isRunning() const { return running_; }
 // data.
 DataStore::CheckpointDesc BCStateTran::createCheckpointDesc(uint64_t checkpointNumber,
                                                             STDigest digestOfResPagesDescriptor) {
+
+  auto s = std::chrono::steady_clock::now();                                                       
+
   uint64_t lastBlock = as_->getLastReachableBlockNum();
   Assert(lastBlock == as_->getLastBlockNum());
   metrics_.last_block_.Get().Set(lastBlock);
@@ -405,6 +408,9 @@ DataStore::CheckpointDesc BCStateTran::createCheckpointDesc(uint64_t checkpointN
   checkDesc.digestOfLastBlock = digestOfLastBlock;
   checkDesc.digestOfResPagesDescriptor = digestOfResPagesDescriptor;
 
+  auto e = std::chrono::steady_clock::now();
+  LOG_DEBUG(STLogger, "BCStateTran::createCheckpointDesc time: " << duration_cast<std::chrono::milliseconds>(e - s).count());
+
   return checkDesc;
 }
 
@@ -416,27 +422,55 @@ STDigest BCStateTran::checkpointReservedPages(uint64_t checkpointNumber, DataSto
   set<uint32_t> pages = txn->getNumbersOfPendingResPages();
   LOG_DEBUG(STLogger, "associating " << pages.size() << " pending pages with checkpoint " << checkpointNumber);
 
+  auto s = std::chrono::steady_clock::now();
+
   for (uint32_t p : pages) {
     STDigest d;
+    
+    auto s11 = std::chrono::steady_clock::now();
     txn->getPendingResPage(p, buffer_, sizeOfReservedPage_);
+    auto e11 = std::chrono::steady_clock::now();
+    LOG_DEBUG(STLogger, "BCStateTran::checkpointReservedPages11 time: " << duration_cast<std::chrono::microseconds>(e11 - s11).count() <<
+     ", page: " << p);
+    
+    auto s12 = std::chrono::steady_clock::now();
     computeDigestOfPage(p, checkpointNumber, buffer_, sizeOfReservedPage_, d);
+    auto e12 = std::chrono::steady_clock::now();
+    LOG_DEBUG(STLogger, "BCStateTran::checkpointReservedPages12 time: " << duration_cast<std::chrono::microseconds>(e12 - s12).count());
+
+    auto s13 = std::chrono::steady_clock::now();
     txn->associatePendingResPageWithCheckpoint(p, checkpointNumber, d);
+    auto e13 = std::chrono::steady_clock::now();
+    LOG_DEBUG(STLogger, "BCStateTran::  time: " << duration_cast<std::chrono::microseconds>(e13 - s13).count());
   }
 
+  auto e1 = std::chrono::steady_clock::now();
+  LOG_DEBUG(STLogger, "BCStateTran::checkpointReservedPages1 time: " << duration_cast<std::chrono::microseconds>(e1 - s).count());
+
   memset(buffer_, 0, sizeOfReservedPage_);
-  Assert(txn->numOfAllPendingResPage() == 0);
+  // Assert(txn->numOfAllPendingResPage() == 0);
   DataStore::ResPagesDescriptor *allPagesDesc = txn->getResPagesDescriptor(checkpointNumber);
   Assert(allPagesDesc->numOfPages == numberOfReservedPages_);
+  auto e2 = std::chrono::steady_clock::now();
+  LOG_DEBUG(STLogger, "BCStateTran::checkpointReservedPages2 time: " << duration_cast<std::chrono::microseconds>(e2 - s).count());
 
   STDigest digestOfResPagesDescriptor;
   computeDigestOfPagesDescriptor(allPagesDesc, digestOfResPagesDescriptor);
+  
+  auto e = std::chrono::steady_clock::now();
+  LOG_DEBUG(STLogger, "BCStateTran::checkpointReservedPages time: " << duration_cast<std::chrono::microseconds>(e - s).count() << 
+  ", allPagesDesc->numOfPages: " << allPagesDesc->numOfPages);
 
   txn->free(allPagesDesc);
+
   return digestOfResPagesDescriptor;
 }
 
 // Remove old checkpoints from the data store
 void BCStateTran::deleteOldCheckpoints(uint64_t checkpointNumber, DataStoreTransaction *txn) {
+
+  auto s = std::chrono::steady_clock::now();
+
   uint64_t minRelevantCheckpoint = 0;
   if (checkpointNumber > maxNumOfStoredCheckpoints_) {
     minRelevantCheckpoint = checkpointNumber - maxNumOfStoredCheckpoints_ + 1;
@@ -457,6 +491,9 @@ void BCStateTran::deleteOldCheckpoints(uint64_t checkpointNumber, DataStoreTrans
   LOG_DEBUG(STLogger,
             "first stored checkpoint=" << std::max(minRelevantCheckpoint, oldFirstStoredCheckpoint)
                                        << "; last stored checkpoint=" << checkpointNumber);
+
+  auto e = std::chrono::steady_clock::now();
+  LOG_DEBUG(STLogger, "BCStateTran::deleteOldCheckpoints time: " << duration_cast<std::chrono::milliseconds>(e - s).count());
 }
 
 void BCStateTran::createCheckpointOfCurrentState(uint64_t checkpointNumber) {
@@ -469,6 +506,7 @@ void BCStateTran::createCheckpointOfCurrentState(uint64_t checkpointNumber) {
 
   metrics_.create_checkpoint_.Get().Inc();
 
+  auto s = steady_clock::now();
   {  // txn scope
     DataStoreTransaction::Guard g(psd_->beginTransaction());
     auto digestOfResPagesDescriptor = checkpointReservedPages(checkpointNumber, g.txn());
@@ -477,6 +515,8 @@ void BCStateTran::createCheckpointOfCurrentState(uint64_t checkpointNumber) {
     deleteOldCheckpoints(checkpointNumber, g.txn());
     metrics_.last_stored_checkpoint_.Get().Set(psd_->getLastStoredCheckpoint());
   }
+  auto e = steady_clock::now();
+  LOG_DEBUG(STLogger, "BCStateTran::createCheckpointOfCurrentState txn time: " << duration_cast<std::chrono::microseconds>(e - s).count());
 }
 
 void BCStateTran::markCheckpointAsStable(uint64_t checkpointNumber) {

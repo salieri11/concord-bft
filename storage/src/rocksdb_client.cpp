@@ -18,9 +18,12 @@
 #include "Logger.hpp"
 #include "hash_defs.h"
 #include <atomic>
+#include <chrono>
 
 using concordUtils::Sliver;
 using concordUtils::Status;
+
+using namespace std::chrono;
 
 namespace concord {
 namespace storage {
@@ -66,6 +69,8 @@ Sliver copyRocksdbSlice(::rocksdb::Slice _s) {
 }
 
 ITransaction *Client::beginTransaction() {
+
+
   static std::atomic_uint64_t current_transaction_id(0);
   ::rocksdb::WriteOptions wo;
   if (!txn_db_) throw std::runtime_error("Failed to start transaction, reason: RO mode");
@@ -239,12 +244,17 @@ Status Client::put(const Sliver &_key, const Sliver &_value) {
 
   ::rocksdb::Status s = dbInstance_->Put(woptions, toRocksdbSlice(_key), toRocksdbSlice(_value));
 
+  // auto ss = std::chrono::steady_clock::now();
+
   LOG_TRACE(logger(), "Rocksdb Put " << _key << " : " << _value);
 
   if (!s.ok()) {
     LOG_ERROR(logger(), "Failed to put key " << _key << ", value " << _value);
     return Status::GeneralError("Failed to put key");
   }
+
+  // auto e = std::chrono::steady_clock::now();
+  // LOG_DEBUG(logger(), "Client::put write time: " << duration_cast<milliseconds>(e - ss).count());
 
   return Status::OK();
 }
@@ -293,8 +303,15 @@ Status Client::multiGet(const KeysVector &_keysVec, OUT ValuesVector &_valuesVec
 
 Status Client::launchBatchJob(::rocksdb::WriteBatch &batch) {
   LOG_DEBUG(logger(), "launcBatchJob: batch data size=" << batch.GetDataSize() << " num updates=" << batch.Count());
+
+  // auto s = std::chrono::steady_clock::now();
+
   ::rocksdb::WriteOptions wOptions = ::rocksdb::WriteOptions();
   ::rocksdb::Status status = dbInstance_->Write(wOptions, &batch);
+
+  // auto e = std::chrono::steady_clock::now();
+  // LOG_DEBUG(logger(), "Client::launchBatchJob write time: " << duration_cast<milliseconds>(e - s).count());
+
   if (!status.ok()) {
     LOG_ERROR(
         logger(),

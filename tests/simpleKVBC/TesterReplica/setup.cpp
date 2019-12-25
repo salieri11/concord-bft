@@ -16,7 +16,7 @@
 #include <string>
 #include <cstring>
 #include <unistd.h>
-
+#include <chrono>
 #include "setup.hpp"
 #include "CommFactory.hpp"
 #include "config/test_comm_config.hpp"
@@ -42,7 +42,7 @@ std::unique_ptr<TestSetup> TestSetup::ParseArgs(int argc, char** argv) {
   string idStr;
 
   int o = 0;
-  while ((o = getopt(argc, argv, "r:i:k:n:s:v:p")) != EOF) {
+  while ((o = getopt(argc, argv, "r:i:k:n:s:v:p:d")) != EOF) {
     switch (o) {
       case 'i': {
         strncpy(argTempBuffer, optarg, sizeof(argTempBuffer) - 1);
@@ -85,10 +85,16 @@ std::unique_ptr<TestSetup> TestSetup::ParseArgs(int argc, char** argv) {
       case 'p':
         rp.persistencyMode = PersistencyMode::RocksDB;
         break;
-
+      case 'd':
+        rp.debug = true;
+        break;  
       default:
         break;
     }
+  }
+
+  if(rp.debug) {
+    std::this_thread::sleep_for(std::chrono::seconds(20));
   }
 
   if (rp.replicaId == UINT16_MAX || rp.keysFilePrefix.empty()) {
@@ -105,7 +111,7 @@ std::unique_ptr<TestSetup> TestSetup::ParseArgs(int argc, char** argv) {
 
   // This allows more concurrency and only affects known ids in the
   // communication classes.
-  replicaConfig.numOfClientProxies = 100;
+  replicaConfig.numOfClientProxies = 16;
   replicaConfig.autoViewChangeEnabled = rp.viewChangeEnabled;
   replicaConfig.viewChangeTimerMillisec = rp.viewChangeTimeout;
   replicaConfig.statusReportTimerMillisec = rp.statusReportTimerMillisec;
