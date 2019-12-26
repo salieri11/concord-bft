@@ -13,6 +13,7 @@ import { SharedModule } from '../shared/shared.module';
 import { TransactionComponent } from './transaction/transaction.component';
 import { TransactionListComponent } from './transaction-list/transaction-list.component';
 import { TransactionDetailsComponent } from './transaction-details/transaction-details.component';
+import { TransactionListDamlComponent } from './transaction-list-daml/transaction-list-daml.component';
 
 
 @NgModule({
@@ -28,10 +29,12 @@ import { TransactionDetailsComponent } from './transaction-details/transaction-d
     TransactionComponent,
     TransactionListComponent,
     TransactionDetailsComponent,
+    TransactionListDamlComponent,
   ],
   exports: [
     TransactionListComponent,
-    TransactionDetailsComponent
+    TransactionDetailsComponent,
+    TransactionListDamlComponent
   ]
 
 })

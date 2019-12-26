@@ -33,17 +33,16 @@
         <option *ngFor="let versionVar of smartContract?.versions" [value]="versionVar.version">{{ versionVar.version }}</option>
       </select>
     </div> -->
-
-    <div class="options" *ngIf="versionSelected  && !versionIsExternal">
+    <div class="options" *ngIf="versionSelected  && !versionIsExternal && version?.type !== 'DAML'">
       <button type="button" class="btn btn-icon btn-link" (click)="startTour()" [attr.aria-label]="'tourSteps.title' | translate">
         <clr-icon size="24" shape="help"></clr-icon>
       </button>
       <button class="btn btn-primary-outline" type="button" (click)="contractFormModal.open(smartContract, version)">{{'common.update' | translate}}</button>
     </div>
   </div>
-  <div class="user">
+  <div class="user" *ngIf="version?.type !== 'DAML'">
     <clr-icon shape="user"></clr-icon>
-    <clr-tooltip>
+    <clr-tooltip class="left-margined">
       <span class="contract-owner" clrTooltipTrigger>{{smartContract?.owner}}</span>
       <clr-tooltip-content clrPosition="top-right" clrSize="md" *clrIfOpen>
         <span>
@@ -52,7 +51,7 @@
       </clr-tooltip-content>
     </clr-tooltip>
     <concord-copy-to-clipboard-button
-      classList="ctc-btn-inline"
+      classList="ctc-btn-inline left-margined"
       [tooltip]="'common.copyToClip' | translate"
       tooltipDirection="top-right"
       [value]="smartContract?.owner"
@@ -70,7 +69,8 @@
     </div>
   </clr-alert>
   <concord-smart-contract-version *ngIf="version"
-                                  [version]="version"></concord-smart-contract-version>
+                                  [version]="version"
+                                  ></concord-smart-contract-version>
 </div>
 
 <concord-contract-form #contractFormModal

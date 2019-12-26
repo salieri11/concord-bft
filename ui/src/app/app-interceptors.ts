@@ -7,7 +7,7 @@ import {
   HttpRequest,
   HttpHandler,
   HttpEvent,
-  HttpInterceptor, HttpResponse, HttpErrorResponse
+  HttpInterceptor, HttpResponse, HttpErrorResponse, HttpClient
 } from '@angular/common/http';
 import { Router } from '@angular/router';
 
@@ -16,6 +16,8 @@ import { tap, catchError, switchMap, take, finalize, filter } from 'rxjs/operato
 import { AuthenticationService } from './shared/authentication.service';
 import { ErrorAlertService } from './shared/global-error-handler.service';
 import { environment } from './../environments/environment';
+import { interceptDAMLCalls } from './app-intercept.daml.proxy';
+import { FeatureFlagService, FeatureFlags } from './shared/feature-flag.service';
 
 /**
  * Checks for successful HTTP responses (status code 2XX) that are actually errors and throws.
@@ -32,15 +34,44 @@ export class RequestInterceptor implements HttpInterceptor {
   constructor(
     private authService: AuthenticationService,
     private router: Router,
-    private alertService: ErrorAlertService
+    private http: HttpClient,
+    private alertService: ErrorAlertService,
+    private featureFlagService: FeatureFlagService
   ) { }
 
   intercept(request: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
     if (this.env.csp) {
+
+      /**
+       * ! Temporary
+       * requires: feature-flag, daml_contracts_explorer true
+       * until helen supports authenticated proxy pass to DAML json-api
+       */
+      if (this.featureFlagService.check(FeatureFlags.daml_contracts_explorer)) {
+        // intercept, proxy pass to json-api
+        const result = interceptDAMLCalls(request, this.http);
+        if (result) { return result; }
+      }
+
       return next.handle(request).pipe(
 
         catchError((error) => {
           if (error instanceof HttpErrorResponse) {
+
+            /**
+             * ! Temporary
+             * requires: feature-flag, daml_contracts_explorer true
+             * until helen supports authenticated proxy pass to DAML json-api
+             */
+            if (this.featureFlagService.check(FeatureFlags.daml_contracts_explorer)) {
+              // Intercept json-api error
+              if (request.url === '/daml-json-api/contracts/search') {
+                return of(new HttpResponse<any>({
+                  status: 200,
+                  body: { result: { error: 'Cannot connect to JSON API endpoint of DAML Ledger'} }
+                }));
+              }
+            }
 
             switch ((<HttpErrorResponse>error).status) {
               case 401:
@@ -48,14 +79,11 @@ export class RequestInterceptor implements HttpInterceptor {
                   if (window.location.search.indexOf('org_link') !== -1) {
                     window.location.href = `https://${window.location.host}/api/oauth/login${window.location.search}`;
                     return;
-                    break;
                   }
 
                 this.cspErrors = [];
                 window.location.href = this.env.loginPath;
                 return throwError(error);
-
-                break;
               case 403:
                 this.router.navigate(['/forbidden']);
                 return throwError(error);
@@ -70,7 +98,7 @@ export class RequestInterceptor implements HttpInterceptor {
           } else {
             return throwError(error);
           }
-        })
+         })
       );
     }
 

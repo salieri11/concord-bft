@@ -7,6 +7,7 @@ import { Component, Input, OnChanges, SimpleChanges,
 
 import { HighlightService } from '../../highlight.service';
 import { Router } from '@angular/router';
+import { RouteService } from '../../route.service';
 
 @Component({
   selector: 'concord-code-highlighter',
@@ -21,6 +22,8 @@ export class CodeHighlighterComponent implements OnChanges, OnInit, OnDestroy {
   @Input() breakWord: boolean = false;
   @Input() noScroll: boolean = false;
   @Input() noBorder: boolean = false;
+  @Input() noMargin: boolean = false;
+  @Input() minHeight: string;
   @Input() maxHeight: string;
   @Input() textToHighlight: string = '';
   @Input() otherStyles: string = '';
@@ -34,6 +37,7 @@ export class CodeHighlighterComponent implements OnChanges, OnInit, OnDestroy {
 
   constructor(
     private highlighter: HighlightService,
+    private routeService: RouteService,
     private router: Router
     ) { }
 
@@ -59,8 +63,9 @@ export class CodeHighlighterComponent implements OnChanges, OnInit, OnDestroy {
     if (changes.textToHighlight) {
       const highlightLanguage = this.language === 'c-like' ? 'solidity' : this.language;
 
-      this.classList = `language-${this.language} ${this.breakWordClass()} `
-                      + `${this.noScrollClass()} ${this.noBorderClass()} ${this.otherStyles}`;
+      this.classList = `language-${this.language} ${this.breakWordClass()}`
+                      + ` ${this.noScrollClass()} ${this.noBorderClass()} ${this.noMarginClass()}`
+                      + ` ${this.otherStyles}`;
 
       const highlightedText = this.highlighter.highlight(
         this.textToHighlight, this.highlighter.languages[highlightLanguage], {
@@ -68,6 +73,9 @@ export class CodeHighlighterComponent implements OnChanges, OnInit, OnDestroy {
         }
       );
       this.highlightedText = highlightedText;
+    }
+    if (changes.minHeight) {
+      this.preElement.nativeElement.style.minHeight = this.minHeight ? this.minHeight : null;
     }
     if (changes.maxHeight) {
       if (!this.maxHeight) { this.maxHeight = '15rem'; }
@@ -87,6 +95,10 @@ export class CodeHighlighterComponent implements OnChanges, OnInit, OnDestroy {
     return this.noBorder ? 'no-border' : '';
   }
 
+  private noMarginClass() {
+    return this.noBorder ? 'no-margin' : '';
+  }
+
   private noScrollClass() {
     return this.noScroll ? 'no-scroll' : '';
   }
@@ -99,9 +111,13 @@ export class CodeHighlighterComponent implements OnChanges, OnInit, OnDestroy {
             const href = el.getAttribute('href');
             if (href.startsWith('http://') || href.startsWith('https://')) {
               // Do nothing, and have this click redirect the user to the external destination
+            }  else if (RouteService.isLinkAction(href)) {
+              // Link action must trigger linkActionEvent but not change route
+              this.routeService.triggerLinkActionEvent(href);
+              e.preventDefault();
             } else {
               // Cancel redirection and use Angular router to go to the internal route
-              this.router.navigate([el.getAttribute('href')]);
+              this.router.navigate([href]);
               e.preventDefault();
             }
           };
@@ -113,10 +129,18 @@ export class CodeHighlighterComponent implements OnChanges, OnInit, OnDestroy {
   private forAllAddedNodes(list: MutationRecord[], func: (el: HTMLElement) => void) {
     for (const mutation of list) {
       for (let i = 0; i < mutation.addedNodes.length; ++i) {
-        const el = mutation.addedNodes[i] as HTMLAnchorElement;
-        func(el);
+        const target = mutation.addedNodes[i] as HTMLElement;
+        const allElements = this.getAllElements(target) as HTMLElement[];
+        for (const el of allElements) { func(el as HTMLAnchorElement); }
       }
     }
+  }
+
+  private getAllElements(el, list: any[] = []) {
+    if (!el) { return list; } list.push(el);
+    if (!el.children || el.children.length === 0) { return list; }
+    for (let i = 0; i < el.children.length; ++i) { this.getAllElements(el.children[i], list); }
+    return list;
   }
 
 }

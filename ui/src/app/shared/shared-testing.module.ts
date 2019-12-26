@@ -21,7 +21,7 @@ import { ActivatedRoute, CanActivateChild, CanActivate } from '@angular/router';
 import { BlockchainService, MockBlockchainsService,
   MockBlockchainResolver, BlockchainResolver
 } from '../blockchain/shared/blockchain.service';
-import { FeatureFlagService, MockFeatureFlagService } from './feature-flag.service';
+import { FeatureFlagService } from './feature-flag.service';
 import { TranslateService } from '@ngx-translate/core';
 import { FeatureFlagDirective } from './directives/feature-flag.directive';
 import { MockTranslateService, mockLanguagePack } from '../mocks/mock-translate.module';
@@ -53,8 +53,6 @@ interface ModuleInterface { imports?: any[]; provides?: any[]; exports?: any[]; 
 const testingSuiteBasicProvided = [
   { provide: HTTP_INTERCEPTORS, useClass: MockRequestInterceptor, multi: true, },
 
-  { provide: FeatureFlagService, useClass: MockFeatureFlagService },
-
   { provide: BlockchainService, useClass: MockBlockchainsService },
   { provide: BlocksService, useClass: MockBlocksService },
   { provide: BlockchainResolver, useClass: MockBlockchainResolver },
@@ -66,6 +64,7 @@ const testingSuiteBasicProvided = [
   { provide: AuthenticatedGuard, useClass: MockGuard },
 
   { provide: SwaggerComponent, useClass: MockSwaggerComponent },
+  FeatureFlagService,
   FeatureFlagDirective,
   TourService,
   NgxTourService,
@@ -91,25 +90,25 @@ const testingSuiteBasicProvided = [
   providers: defaultProvided,
 })
 export class SpecTestingModule {
-  public static imports: any[] = [];
-  public static provides: any[] = [];
-  public static exports: any[] = [];
-  public static declarations: any[] = [];
+  public imports: any[] = [];
+  public provides: any[] = [];
+  public exports: any[] = [];
+  public declarations: any[] = [];
 
-  public static forTesting(): ModuleWithProviders {
+  public forTesting(): ModuleWithProviders {
     return {
       ngModule: SpecTestingModule,
       providers: testingSuiteBasicProvided
     };
   }
 
-  public static init(obj: ModuleInterface = {}) {
+  public init(obj: ModuleInterface = {}) {
     if (!obj) { obj = {}; }
     const def: ModuleInterface = {
-      imports: SpecTestingModule.imports,
-      provides: SpecTestingModule.provides,
-      exports: SpecTestingModule.exports,
-      declarations: SpecTestingModule.declarations,
+      imports: this.imports,
+      provides: this.provides,
+      exports: this.exports,
+      declarations: this.declarations,
     };
     if (obj && Array.isArray(obj.imports)) { def.imports = def.imports.concat(obj.imports); }
     if (obj && Array.isArray(obj.provides)) { def.provides = def.provides.concat(obj.provides); }
@@ -118,7 +117,7 @@ export class SpecTestingModule {
     return def;
   }
 
-  public static importLanguagePack(lang: string = 'en') {
+  public importLanguagePack(lang: string = 'en') {
     if (!mockLanguagePack.langs[lang]) {
       const mockLanguagePackJSON = require(`../../static/i18n/${lang}.json`);
       const mockLanguagePackData = dotNotate(mockLanguagePackJSON);
@@ -130,13 +129,13 @@ export class SpecTestingModule {
 
   // TODO: make providing ActivateRoute more robust with easy options
   // This would be quite frequently used.
-  public static provideActivatedRoute(options?) {
+  public provideActivatedRoute(options?) {
     const params = (options && options.params) ?  options.params : { consortiumId: 1 };
     const fragment = (options && options.fragment) ? options.fragment : '';
     const data = (options && options.data) ? options.data : {};
     const queryParams = (options && options.queryParams) ? options.queryParams : {};
     const snapshot = (options && options.snapshot) ? options.snapshot : { params: { consortiumId: 'test' } };
-    SpecTestingModule.provides.push({
+    this.provides.push({
       provide: ActivatedRoute,
       useValue: {
         snapshot: snapshot,
@@ -148,26 +147,26 @@ export class SpecTestingModule {
     });
   }
 
-  public static getTestingModules(): any[] {
+  public getTestingModules(): any[] {
     const fullList: any[] = [
       MainModule // Main already contains ALL submodules, including SharedModule
     ];
     return fullList;
   }
 
-  public static reset() {
-    SpecTestingModule.provides = [];
+  public reset() {
+    this.provides = [];
     mockLanguagePack.enabled = false;
   }
 
 }
 
 
-export const getSpecTestingModule = (): typeof SpecTestingModule => {
-  SpecTestingModule.reset(); // purge language enablement and provides
-  SpecTestingModule.imports = [ SpecTestingModule.forTesting() ]
-                        .concat( SpecTestingModule.getTestingModules() );
-  return SpecTestingModule;
+export const getSpecTestingModule = (): SpecTestingModule => {
+  const tester = new SpecTestingModule();
+  tester.reset();
+  tester.imports = [ tester.forTesting() ].concat( tester.getTestingModules() );
+  return tester;
 };
 
 

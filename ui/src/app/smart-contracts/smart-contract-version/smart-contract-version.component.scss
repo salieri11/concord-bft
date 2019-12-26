@@ -1,5 +1,67 @@
 @import "~@clr/ui/src/color/_variables.color.scss";
 
+.templates-container {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.template-select-top-spacer {
+  height: 0.5rem;
+}
+
+:host ::ng-deep .sidenav {
+  padding: 0 !important;
+  max-height: calc(100vh - 96px - 132px);
+  .sidenav-content {
+    .nav-link {
+      margin-left: 0.0rem !important;
+      margin-top: 0.2rem !important;
+      padding-right: 0.5rem;
+      border-radius: 0.2rem;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .active {
+      border-left: 3px solid #0077b8;
+    }
+  }
+}
+
+.card-wide {
+  min-width: 1000px;
+}
+
+.sidenav-no-border {
+  border-right: none;
+  width: 160px;
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.sidenav-wide {
+  width: 320px;
+  display: inline-flex;
+  flex-shrink: 0;
+  overflow: scroll;
+}
+
+.template-content-panel {
+  display: inline-flex;
+  flex-grow: 1;
+  //flex: 2 50%;
+}
+
+.func-dropdown {
+  position:relative; z-index:0;
+}
+
+.func-input {
+  position:relative; z-index:1; 
+}
+
 form {
   label {
     text-align: left !important;
@@ -24,4 +86,117 @@ form {
 
 .transaction-details {
   overflow-x: auto;
+}
+
+.progress-label {
+  margin-left:0.5rem;
+}
+
+// Source tree for DAML
+:host ::ng-deep clr-tree {
+  .tree-node-pointer {
+    cursor: pointer;
+  }
+  .clr-treenode-caret {
+    width: 1.05rem;
+    height: 1.0405rem;
+    max-width: 1.1rem;
+    margin-left: 0.15rem;
+  }
+  .clr-treenode-content {
+    line-height: 1.05rem;  
+    white-space: nowrap;
+  }
+  .clr-treenode-caret-icon {
+    transform: translate(0, -0.086rem);
+  }
+  .clr-treenode-children {
+    margin-left:0.35rem;
+    overflow-x: hidden;
+  }
+  .active-node > .clr-tree-node-content-container {
+    background-color: rgba(0,0,0,0.1);
+  }
+  
+  .clr-treenode-spinner-container {
+    max-height: 1.05rem;
+    width: 1.25rem;
+    transform: translate(-0.03rem, -0.175rem);
+  }
+}
+
+.daml-sourcecode-width {
+  margin-left: 12px;
+  width: calc(100% - 24px);
+  max-width: calc(100% - 24px);
+}
+
+.fixed-height {
+  min-height: calc(100vh - 10.5rem);
+  max-height: calc(100vh - 10.5rem);
+  overflow: hidden;
+}
+
+.sidenav-section {
+  padding-top: 10px;
+}
+
+.daml-sourcecode-view {
+  margin-top: 0.5rem;
+  max-width: none;
+}
+
+.extract-body {
+  width:90%; 
+  margin-top: 12vh;
+  align-items:center;
+  .card-middle {
+    padding: 1.25rem 1.5rem;
+    max-width: 700px;
+    margin:0 auto;
+    overflow-x: hidden;
+  }
+  .inner-text {
+    line-height: 1.42;
+    font-size:0.7rem;
+  }
+  .heading-no-margin {
+    display:block;
+    margin-top:0.2rem;
+  }
+}
+
+.source-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+
+  .source-title-container {
+    width: 100%;
+    display: flex;
+    height: 1.25rem;
+    background-color: rgba(0,0,0,0.1);
+    .source-title {
+      margin-left: 0.5rem;
+      width: 100%;
+      height: 1.25rem;
+      line-height: 1.25rem;
+      transition: opacity 0.3s ease-in-out;
+      opacity: 0.75;
+    }
+    .source-title:hover {
+      opacity: 1;
+    }
+  }
+  .source-body-container {
+    width: 100%;
+    display: flex;
+    flex-grow: 1;
+    overflow-y: scroll;
+
+    concord-code-highlighter {
+      width: 100%;
+    }
+  }
 }

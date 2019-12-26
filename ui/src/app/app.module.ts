@@ -97,7 +97,7 @@ export function init_app(appLoadService: AppInitService) {
       }
     }),
     RouterModule.forRoot([{
-      // Redirect all unmatched to main dahboard
+      // Redirect all unmatched to main dashboard
       path: '**', // must be added AFTER all sub-modules (such as MainModule, SharedModule)
       canActivate: [AuthenticatedGuard, AgreementGuard],
       resolve: {blockchain: BlockchainResolver},

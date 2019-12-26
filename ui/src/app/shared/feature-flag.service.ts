@@ -47,11 +47,16 @@ export class FeatureFlagService {
 
 }
 
-@Injectable({
-  providedIn: 'root'
-})
-export class MockFeatureFlagService {
-  initialize() {}
-  routeIsAllowed() {return true; }
-  check(): boolean { return true; }
+/**
+ * Avoid hardcoding of string value feature flags in the codebase
+ * Keep single source of truth here, and consistent under this exported enum
+ */
+export enum FeatureFlags {
+  node_list = 'node_list',
+  developer_logging = 'node_list',
+  deploy_HLF = 'deploy_HLF',
+
+  // Temp flags for DAML contract explorer feature
+  daml_contracts_explorer = 'daml_contracts_explorer',
+  daml_contracts_explorer_testdar = 'daml_contracts_explorer_testdar',
 }

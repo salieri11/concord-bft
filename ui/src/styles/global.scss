@@ -262,3 +262,23 @@ body.dark {
 .pull-right {
   float: right;
 }
+
+// Text highlight disabled elements
+.noselect {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+// autolinker (links in prism text highlight under <pre><a>)
+concord-code-highlighter[ng-reflect-plugins~="autolinker"] {
+  text-align:left;
+  pre {
+    a {
+      text-decoration: underline;    
+    }
+  }
+}

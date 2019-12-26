@@ -15,6 +15,7 @@ import { isBytes, isBytesArray, isHexAddress, isInt, isUint } from '../shared/cu
 })
 export class SmartContractsSolidityFunctionInputsComponent implements OnInit, OnChanges {
 
+  @Input() versionData: any;
   @Input() formGroup: FormGroup;
   @Input() functionInputs: AbiFunctionParameter[];
 

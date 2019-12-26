@@ -3,6 +3,7 @@
  */
 
 export interface SmartContract {
+  type?: string; // ! Temporary - MR 994, temp indicator of ETH/DAML/HLF
   contract_id: string;
   owner: string;
   url?: string;
@@ -10,6 +11,7 @@ export interface SmartContract {
 }
 
 export interface SmartContractVersionHeader {
+  type?: string; // ! Temporary - MR 994, temp indicator of ETH/DAML/HLF
   address: string;
   metadata: {};
   version: string;
@@ -17,6 +19,7 @@ export interface SmartContractVersionHeader {
 }
 
 export interface SmartContractVersion {
+  type?: string; // ! Temporary - MR 994, temp indicator of ETH/DAML/HLF
   contract_id: string;
   version: string;
   owner: string;
@@ -41,14 +44,16 @@ export interface SmartContractMetadata {
   version: number;
 }
 
+// TODO: ETH/DAML/HLF ABI might be too different; allocate separate interface/module for each
 export interface AbiFunctionDefinition {
+  id?: string;
   type: string;
   name?: string;
   constant?: boolean;
-  payable: boolean;
-  stateMutability: string;
-  inputs: AbiFunctionParameter[];
-  outputs: AbiFunctionParameter[];
+  payable?: boolean;
+  stateMutability?: string;
+  inputs?: AbiFunctionParameter[];
+  outputs?: AbiFunctionParameter[];
 }
 
 export interface AbiEventDefinition {

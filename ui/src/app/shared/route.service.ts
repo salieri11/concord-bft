@@ -4,17 +4,20 @@
 
 import { Injectable } from '@angular/core';
 import { BlockchainService, BlockchainResolver } from '../blockchain/shared/blockchain.service';
-import { Router, NavigationEnd, ActivatedRoute } from '@angular/router';
+import { Router, NavigationEnd, ActivatedRoute, NavigationStart } from '@angular/router';
 import { mainRoutes, fleetingRoutesList, ConsortiumStates, uuidRegExp } from './urls.model';
 import { DeployStates } from '../blockchain/shared/blockchain.model';
+import { Subject } from 'rxjs';
 
 interface RouteHistoryData {
+  action?: string;
   request?: RouteHistoryData;
   url: string;
   base: string;
   paths: string[];
-  params: { [name: string]: string; };
   fragment: string;
+  currentQueryParams: { [name: string]: string; };
+  params?: { [name: string]: string; };
 }
 
 @Injectable({
@@ -22,9 +25,12 @@ interface RouteHistoryData {
 })
 export class RouteService {
 
+  public static linkActionIdentifier = '/ng-link-action/';
+
   historyData: RouteHistoryData[] = [];
   currentRouteData: RouteHistoryData;
   outletEnabled: Promise<boolean> | boolean = true;
+  readonly linkAction: Subject<RouteHistoryData>  = new Subject<RouteHistoryData>();
 
   private initialized: boolean = false;
   private currentQueryParams: any;
@@ -37,6 +43,22 @@ export class RouteService {
     private blockchainResolver: BlockchainResolver
   ) { this.initialize(); }
 
+  public static isLinkAction(url: string) {
+    return url.startsWith(RouteService.linkActionIdentifier);
+  }
+
+  public static createLinkAction(data: {text: string, action: string, params: object}) {
+    return `[${data.text}](${RouteService.getLinkActionPath(data.action, data.params)})`;
+  }
+
+  public static getLinkActionPath(actionName: string, params: object) {
+    const paramsArray = [];
+    for (const paramName of Object.keys(params)) {
+      paramsArray.push(encodeURIName(paramName) + '=' + encodeURIName(params[paramName]));
+    }
+    return RouteService.linkActionIdentifier + actionName + '?' + paramsArray.join('&');
+  }
+
   async resolveConsortium() {
     if (this.blockchainService.blockchains) { return; } // already resolved;
     await this.blockchainResolver.resolve().toPromise();
@@ -44,11 +66,16 @@ export class RouteService {
 
   initialize() {
     if (this.initialized) { return; }
-    this.route.queryParams.subscribe(params => {
-      this.currentQueryParams = JSON.parse(JSON.stringify(params));
-    });
+    if (this.route.queryParams) {
+      this.route.queryParams.subscribe(params => {
+        this.currentQueryParams = JSON.parse(JSON.stringify(params));
+      });
+    }
     this.router.events.subscribe(e => {
       if (this.outputAllRouterEvents) { console.log(e); }
+      if (e instanceof NavigationStart && RouteService.isLinkAction(e.url)) {
+        return this.triggerLinkActionEvent(e.url);
+      }
       if (e instanceof NavigationEnd) {
         if (this.currentRouteData !== undefined) {
           this.historyData.push(this.currentRouteData);
@@ -159,9 +186,19 @@ export class RouteService {
     return (fleetingRoutesList.indexOf(pathJoined) === 0);
   }
 
+  triggerLinkActionEvent(url: string) {
+    if (!RouteService.isLinkAction(url)) { return; }
+    const routeData = this.parseURLData(url);
+    routeData.action = routeData.paths[1];
+    this.linkAction.next(routeData);
+    if (routeData.params && routeData.params.redirectTo) {
+      this.router.navigate([routeData.params.redirectTo]);
+    }
+  }
+
   private parseURLData(url: string): RouteHistoryData {
     try {
-      url = decodeURI(url);
+      url = decodeURIComponent(url);
       const original = url;
       let fragment = null;
       if (url.indexOf('#') >= 0) {
@@ -193,12 +230,18 @@ export class RouteService {
         url: original,
         base: base, // 1st level path
         paths: paths, // all dirs paths
-        fragment: fragment,
-        params: this.currentQueryParams
+        fragment: fragment, // parsed fragment from given url
+        params: params, // parsed params from given url
+        currentQueryParams: this.currentQueryParams, // Query params from ActivatedRoute
       };
     } catch (e) {
       console.log(e);
     }
   }
 
+}
+
+function encodeURIName(text: string) {
+  text = encodeURIComponent(text);
+  return text.replace(/\(/g, '%28').replace(/\)/g, '%29');
 }
