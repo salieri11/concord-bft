@@ -1,199 +1,327 @@
-<clr-tabs>
-  <clr-tab>
-    <button clrTabLink>{{'smartContracts.version.tabs.execute' | translate}}</button>
-    <clr-tab-content>
-      <ng-container *ngIf="version.metadata.compiler">
-        <form clrForm clrLayout="horizontal" class="p-0 clr-form-horizontal" [formGroup]="versionForm">
-          <div class="clr-row">
-            <div class="clr-col-sm-12 clr-col-md-7 contract-form">
-              <div class="card">
-                <div class="card-block">
-                  <clr-alert *ngIf="alertMessage && resultType === 'error'" [clrAlertType]="alertType" [clrAlertClosable]="false">
-                    <div class="alert-item">
-                      <span class="alert-text">
-                          {{alertMessage}}
-                      </span>
-                    </div>
-                  </clr-alert>
-                  <div class="form">
-                    <div class="clr-form-control clr-row">
-                      <label class="clr-control-label" for="address"> {{'smartContracts.version.address' | translate}}</label>
-                      <div class="clr-control-container clr-col-md-10 clr-col-xs-12">
-                        <div class="clr-input-wrapper" tourAnchor="contract.deployed">
-                          <clr-tooltip>
-                            <span clrTooltipTrigger id="address">
-                              {{version?.address}}
-                            </span>
-                            <clr-tooltip-content clrPosition="top-right" clrSize="md" *clrIfOpen>
-                              <span>{{'smartContracts.version.tooltips.contractAddress' | translate}}</span>
-                            </clr-tooltip-content>
-                          </clr-tooltip>
-                          <concord-copy-to-clipboard-button
-                            classList="ctc-btn-inline"
-                            [tooltip]="'common.copyToClip' | translate"
-                            tooltipDirection="top-right"
-                            [value]="version?.address"
-                            [size]="12">
-                          </concord-copy-to-clipboard-button>
+<div>
+  <!-- DAML Extraction UI -->
+  <div *ngIf="daml.extracting || parseIncomplete" class="ps-1 extract-body">
+    <div class="card card-middle">
+      <div class="card-block">
+          <div class="card-text">
+            <div *ngIf="!daml.extracting">
+              <h2 class="heading-no-margin">Package Needs Extraction</h2>
+              <br>
+              <div class="inner-text">
+                This smart contract package has not been extracted automatically because of its large binary size (Package Size: {{ sizeFormat(version?.metadata.size) }})
+                <br><br>
+                Extraction is needed before interacting with the package. This may take several minutes.
+              </div>
+              <br>
+              <button class="btn btn-primary" (click)="damlLoadDarMetadata()">
+                Extract Package
+              </button>
+            </div>
+            <div *ngIf="daml.extracting">
+              <h2 class="heading-no-margin">DAR Package Extraction</h2><br>
+              <div class="progress-block">
+                <clr-progress-bar #progressBar [clrValue]="daml.extractProgress"></clr-progress-bar>
+                <span class="progress-label">{{ daml.extractProgress + '%'}}</span>
+              </div>
+              <h5>{{ daml.extractMessage }}</h5>
+              <h6 class="heading-no-margin">{{ daml.extractFilename }}</h6>
+            </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <clr-tabs *ngIf="!daml.extracting && !parseIncomplete">
+
+    <!-- DAML Active Contracts -->
+    <clr-tab *ngIf="isDAML">
+      <button clrTabLink>{{'smartContracts.contracts' | translate}}</button>
+      <clr-tab-content class="templates-container">
+        <div class="content-container">
+          <nav class="sidenav sidenav-no-border">
+            <section class="sidenav-content">
+              <div class="template-select-top-spacer"></div>
+              <a *ngFor="let func of functions" 
+                [ngClass]="daml.selectedTemplate === func.name ? 'nav-link active' : 'nav-link'" 
+                (click)="damlTemplateSelect(func.name)">
+                {{ func.name }}
+              </a>
+            </section>
+          </nav>
+          <div class="content-area">
+            <concord-transaction-list-daml
+              *ngIf="daml.selectedTemplateDef"
+              [moduleName]="daml.selectedModuleName"
+              [entityName]="daml.selectedEntityName"
+              [templateDef]="daml.selectedTemplateDef"
+              [structMap]="daml.contractStructMap">
+            </concord-transaction-list-daml>
+          </div>
+        </div>
+      </clr-tab-content>
+    </clr-tab>
+
+    <!-- Execute -->
+    <clr-tab>
+      <button clrTabLink>{{'smartContracts.version.tabs.execute' | translate}}</button>
+      <clr-tab-content>
+        <ng-container *ngIf="version.metadata.compiler">
+          <form clrForm clrLayout="horizontal" class="p-0 clr-form-horizontal" [formGroup]="versionForm">
+            <div class="clr-row">
+              <div class="clr-col-sm-12 clr-col-md-7 contract-form">
+                <div [classList]="isDAML ? 'card card-wide' : 'card'">
+                  <div class="card-block">
+                    <clr-alert *ngIf="alertMessage && resultType === 'error'" [clrAlertType]="alertType" [clrAlertClosable]="false">
+                      <div class="alert-item">
+                        <span class="alert-text">
+                            {{alertMessage}}
+                        </span>
+                      </div>
+                    </clr-alert>
+                    <div class="form">
+                      <div class="clr-form-control clr-row">
+                        <label class="clr-control-label" for="address">{{
+                          (isETH ? 'smartContracts.version.address' : 'smartContracts.version.packageId') | translate
+                        }}</label>
+                        <div class="clr-control-container clr-col-md-10 clr-col-xs-12">
+                          <div class="clr-input-wrapper" tourAnchor="contract.deployed">
+                            <clr-tooltip>
+                              <span clrTooltipTrigger id="address">
+                                {{version?.address}}
+                              </span>
+                              <clr-tooltip-content clrPosition="top-right" clrSize="md" *clrIfOpen>
+                                <span>{{'smartContracts.version.tooltips.contractAddress' | translate}}</span>
+                              </clr-tooltip-content>
+                            </clr-tooltip>
+                            <concord-copy-to-clipboard-button
+                              classList="ctc-btn-inline"
+                              [tooltip]="'common.copyToClip' | translate"
+                              tooltipDirection="top-right"
+                              [value]="version?.address"
+                              [size]="12">
+                            </concord-copy-to-clipboard-button>
+                          </div>
                         </div>
                       </div>
+                      <clr-select-container class="func-dropdown">
+                        <label *ngIf="isDAML">{{'smartContracts.version.templates' | translate}}</label>
+                        <label *ngIf="isETH">{{'smartContracts.version.functions' | translate}}</label>
+                        <select *ngIf="functions?.length" clrSelect id="selectedFunction" 
+                          tourAnchor="contract.availableActions" name="function" formControlName="functionName"
+                          (change)="getFunctionDetails()">
+                          <option *ngFor="let func of functions" [value]="func.name">{{ func.name }}</option>
+                        </select>
+                        <clr-control-helper>{{'smartContracts.version.tooltips.availableActions' | translate}}</clr-control-helper>
+                      </clr-select-container>
                     </div>
-                    <clr-select-container>
-                      <label>{{'smartContracts.version.functions' | translate}}</label>
-                      <select clrSelect id="selectedFunction" tourAnchor="contract.availableActions" name="function" *ngIf="functions?.length" formControlName="functionName"
-                              (change)="getFunctionDetails()">
-                        <option *ngFor="let func of functions" [value]="func.name">{{ func.name }}</option>
-                      </select>
-                      <clr-control-helper>{{'smartContracts.version.tooltips.availableActions' | translate}}</clr-control-helper>
-                    </clr-select-container>
+                    <div *ngIf="versionForm.value.functionName" formGroupName="contractForm">
+                      <clr-input-container *ngIf="isETH">
+                        <label class="required">{{'smartContracts.version.from' | translate}}</label>
+                        <input clrInput type="text" formControlName="from" required>
+                        <clr-control-helper>{{'smartContracts.version.addressHelper' | translate}}</clr-control-helper>
+                        <clr-control-error *clrIfError="'required'">{{'common.requiredValidationMessage' | translate}}</clr-control-error>
+                        <clr-control-error *clrIfError="'hexAddress'">{{'smartContracts.version.addressPatternValidationMessage' | translate}}</clr-control-error>
+                      </clr-input-container>
+                      <concord-smart-contracts-solidity-function-inputs 
+                        class="func-input"
+                        [versionData]="version"
+                        [formGroup]="versionForm.get('contractForm.functionInputs')"
+                        [functionInputs]="inputs">
+                      </concord-smart-contracts-solidity-function-inputs>
+                    </div>
                   </div>
-                  <div *ngIf="versionForm.value.functionName" formGroupName="contractForm">
-                    <clr-input-container>
-                      <label class="required">{{'smartContracts.version.from' | translate}}</label>
-                      <input clrInput type="text" formControlName="from" required>
-                      <clr-control-helper>{{'smartContracts.version.addressHelper' | translate}}</clr-control-helper>
-                      <clr-control-error *clrIfError="'required'">{{'common.requiredValidationMessage' | translate}}</clr-control-error>
-                      <clr-control-error *clrIfError="'hexAddress'">{{'smartContracts.version.addressPatternValidationMessage' | translate}}</clr-control-error>
-                    </clr-input-container>
-                    <concord-smart-contracts-solidity-function-inputs [formGroup]="versionForm.get('contractForm.functionInputs')"
-                                                                     [functionInputs]="inputs"></concord-smart-contracts-solidity-function-inputs>
+                  <div class="card-footer">
+                    <button id="callSubmit" type="button" class="btn btn-primary" (click)="onCall()" [disabled]="versionForm.invalid" tourAnchor="contract.call">
+                      {{'smartContracts.version.call' | translate}}
+                    </button>
+                    <button id="transactionSubmit" type="button" class="btn btn-primary" (click)="onSend()" [disabled]="versionForm.invalid" tourAnchor="contract.send">
+                      {{'smartContracts.version.send' | translate}}
+                    </button>
+                    <button id="previewSubmit" type="button" class="btn btn-outline" (click)="onPreview()" [disabled]="versionForm.invalid">
+                      {{'smartContracts.version.preview' | translate}}
+                    </button>
+                    <clr-tooltip>
+                      <clr-icon clrTooltipTrigger shape="info-circle" size="24" class="is-info"></clr-icon>
+                      <clr-tooltip-content clrPosition="top-right" clrSize="md" *clrIfOpen>
+                        <span>{{'smartContracts.version.tooltips.callHelper' | translate}}</span>
+                      </clr-tooltip-content>
+                    </clr-tooltip>
                   </div>
                 </div>
-                <div class="card-footer">
-                  <button id="callSubmit" type="button" class="btn btn-primary" (click)="onCall()" [disabled]="versionForm.invalid" tourAnchor="contract.call">
-                    {{'smartContracts.version.call' | translate}}
-                  </button>
-                  <button id="transactionSubmit" type="button" class="btn btn-primary" (click)="onSend()" [disabled]="versionForm.invalid" tourAnchor="contract.send">
-                    {{'smartContracts.version.send' | translate}}
-                  </button>
-                  <button id="previewSubmit" type="button" class="btn btn-outline" (click)="onPreview()" [disabled]="versionForm.invalid">
-                    {{'smartContracts.version.preview' | translate}}
-                  </button>
+              </div>
+              <div *ngIf="resultType === 'call' && alertType === 'alert-success'" class="clr-col-sm-12 clr-col-md-5 call-success">
+                <div class="card">
+                  <div class="card-header">
+                    {{'smartContracts.version.returnValues' | translate}}
+                  </div>
+                  <div class="card-block">
+                    {{'smartContracts.version.decoded' | translate}}
+                    <concord-code-highlighter [textToHighlight]="callReturnValue" [language]="'json'"></concord-code-highlighter>
+                    {{'smartContracts.version.raw' | translate}}
+                    <concord-code-highlighter [textToHighlight]="rawCallReturnValue"
+                                            [language]="'markup'"
+                                            [breakWord]="true"></concord-code-highlighter>
+                  </div>
+                </div>
+              </div>
+              <div *ngIf="resultType === 'send' && alertType === 'alert-success'" class="clr-col-sm-12 clr-col-md-5 send-success">
+                <div class="card">
+                  <div class="card-header">
+                    {{'smartContracts.version.transaction' | translate}}
+                  </div>
+                  <div class="card-block transaction-details">
+                    <concord-transaction-details [transactionHash]="alertMessage"></concord-transaction-details>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </form>
+        </ng-container>
+      </clr-tab-content>
+    </clr-tab>
+    
+    <!-- Source -->
+    <clr-tab>
+      <button tourAnchor="contract.tabs" clrTabLink>{{'smartContracts.version.tabs.source' | translate}}</button>
+      <clr-tab-content>
+        <ng-container *ngIf="version">
+          <div class="clr-row">
+            <div [classList]="isDAML ? 'daml-sourcecode-width' : 'clr-col-sm-12 clr-col-md-10'">
+              <div [classList]="isDAML ? 'card daml-sourcecode-view' : 'card'">
+                <!-- Download Link -->
+                <div *ngIf="isETH && !parseIncomplete" class="card-header text-xs-right">
                   <clr-tooltip>
-                    <clr-icon clrTooltipTrigger shape="info-circle" size="24" class="is-info"></clr-icon>
-                    <clr-tooltip-content clrPosition="top-right" clrSize="md" *clrIfOpen>
-                      <span>{{'smartContracts.version.tooltips.callHelper' | translate}}</span>
+                    <button clrTooltipTrigger (click)="onSourceCodeDownload()" type="button" class="btn btn-primary-outline btn-icon" [attr.aria-label]="'smartContracts.version.download' | translate">
+                      <clr-icon shape="download"></clr-icon>
+                    </button>
+                    <clr-tooltip-content clrPosition="top-right" clrSize="sm" *clrIfOpen>
+                      <span>{{'smartContracts.version.download' | translate}}</span>
                     </clr-tooltip-content>
                   </clr-tooltip>
                 </div>
+                <div class="card-block" style="padding:0;">
+                  <div class="content-container">
+                    <!-- Source Tree View DAML -->
+                    <nav *ngIf="isDAML" class="sidenav sidenav-wide fixed-height">
+                      <section #fileTreeView class="sidenav-content sidenav-section">
+                        <clr-tree *ngIf="daml.sourceTree" [clrLazy]="true" class="noselect tree-node-pointer">
+                          <clr-tree-node 
+                              *clrRecursiveFor="let file of daml.sourceTree | async; getChildren: daml.sourceGetChildren;"
+                              [classList]="file.handleActive ? 'active-node' : ''"
+                              [clrExpandable]="file.isFolder" 
+                              [clrExpanded]="file.expanded"
+                              [clrLoading]="file.loading"
+                              (click)="damlOnFileHandleClick($event, file)">
+                            <span *ngIf="file">
+                              <clr-icon *ngIf="!file.isFolder" [attr.shape]="'file'" style="margin-left:-1rem;"></clr-icon>
+                              {{ file.name }}
+                            </span>
+                          </clr-tree-node>
+                        </clr-tree>
+                      </section>
+                    </nav>
+                    <div *ngIf="isDAML" class="content-area fixed-height source-container">
+                      <div *ngIf="daml.sourceFileActive && !daml.sourceFileActive.isFolder" class="noselect source-title-container">
+                        <div class="source-title">{{ daml.sourceFileActive.name }}</div>
+                      </div>
+                      <div class="source-body-container">
+                        <concord-code-highlighter 
+                          [textToHighlight]="version.sourcecode"
+                          [language]="'haskell'"
+                          [plugins]="'autolinker'"
+                          [noScroll]="true"
+                          [minHeight]="'calc(100%)'"
+                          [noMargin]="true"
+                          [noBorder]="true">
+                        </concord-code-highlighter>
+                      </div>
+                    </div>
+                    <!-- Source View ETH -->
+                    <div *ngIf="isETH" style="width:100%; padding:1em;">
+                      <concord-code-highlighter 
+                        [textToHighlight]="version.sourcecode"
+                        [language]="'solidity'"
+                        [plugins]="'autolinker'"
+                        [noScroll]="true"
+                        [noMargin]="true"
+                        [noBorder]="true">
+                      </concord-code-highlighter>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
-            <div *ngIf="resultType === 'call' && alertType === 'alert-success'" class="clr-col-sm-12 clr-col-md-5 call-success">
+          </div>
+        </ng-container>
+      </clr-tab-content>
+    </clr-tab>
+
+    <!-- Bytecode View ETH -->
+    <clr-tab *ngIf="isETH">
+      <button clrTabLink>{{'smartContracts.version.tabs.bytecode' | translate}}</button>
+      <clr-tab-content>
+        <div class="clr-row">
+          <div class="clr-col-sm-12 clr-col-md-10">
+            <div class="card">
+              <div *ngIf="parseIncomplete" class="card-header text-xs-right">
+                <clr-tooltip>
+                  <button clrTooltipTrigger (click)="onByteCodeDownload()" type="button" class="btn btn-primary-outline btn-icon" [attr.aria-label]="'smartContracts.version.download' | translate">
+                    <clr-icon shape="download"></clr-icon>
+                  </button>
+                  <clr-tooltip-content clrPosition="top-right" clrSize="sm" *clrIfOpen>
+                    <span>{{'smartContracts.version.download' | translate}}</span>
+                  </clr-tooltip-content>
+                </clr-tooltip>
+              </div>
+              <div class="card-block">
+                <concord-code-highlighter
+                  [textToHighlight]="version?.bytecode"
+                  [language]="'markup'"
+                  [noScroll]="true"
+                  [noBorder]="true"
+                  [breakWord]="true">
+                </concord-code-highlighter>
+              </div>
+            </div>
+          </div>
+        </div>
+      </clr-tab-content>
+    </clr-tab>
+    
+    <!-- Metadata JSON -->
+    <clr-tab>
+      <button clrTabLink>{{'smartContracts.version.tabs.metadata' | translate}}</button>
+      <clr-tab-content>
+        <ng-container *ngIf="version.metadata.compiler">
+          <div class="clr-row">
+            <div class="clr-col-sm-12 clr-col-md-10">
               <div class="card">
-                <div class="card-header">
-                  {{'smartContracts.version.returnValues' | translate}}
+                <div *ngIf="!parseIncomplete" class="card-header text-xs-right">
+                  <clr-tooltip>
+                    <button clrTooltipTrigger (click)="onMetadataDownload()" type="button" class="btn btn-primary-outline btn-icon" [attr.aria-label]="'smartContracts.version.download' | translate">
+                      <clr-icon shape="download"></clr-icon>
+                    </button>
+                    <clr-tooltip-content clrPosition="top-right" clrSize="sm" *clrIfOpen>
+                      <span>{{'smartContracts.version.download' | translate}}</span>
+                    </clr-tooltip-content>
+                  </clr-tooltip>
                 </div>
                 <div class="card-block">
-                  {{'smartContracts.version.decoded' | translate}}
-                  <concord-code-highlighter [textToHighlight]="callReturnValue" [language]="'json'"></concord-code-highlighter>
-                  {{'smartContracts.version.raw' | translate}}
-                  <concord-code-highlighter [textToHighlight]="rawCallReturnValue"
-                                           [language]="'markup'"
-                                           [breakWord]="true"></concord-code-highlighter>
-                </div>
-              </div>
-            </div>
-            <div *ngIf="resultType === 'send' && alertType === 'alert-success'" class="clr-col-sm-12 clr-col-md-5 send-success">
-              <div class="card">
-                <div class="card-header">
-                  {{'smartContracts.version.transaction' | translate}}
-                </div>
-                <div class="card-block transaction-details">
-                  <concord-transaction-details [transactionHash]="alertMessage"></concord-transaction-details>
+                  <concord-code-highlighter
+                    [textToHighlight]="metadataString"
+                    [language]="'json'"
+                    [plugins]="'autolinker'"
+                    [noScroll]="true"
+                    [noBorder]="true">
+                  </concord-code-highlighter>
                 </div>
               </div>
             </div>
           </div>
-        </form>
-      </ng-container>
-    </clr-tab-content>
-  </clr-tab>
-  <clr-tab>
-    <button tourAnchor="contract.tabs" clrTabLink>{{'smartContracts.version.tabs.source' | translate}}</button>
-    <clr-tab-content>
-      <ng-container *ngIf="version.sourcecode">
-        <div class="clr-row">
-          <div class="clr-col-sm-12 clr-col-md-10">
-            <div class="card">
-              <div class="card-header text-xs-right">
-                <clr-tooltip>
-                  <button clrTooltipTrigger (click)="onSourceCodeDownload()" type="button" class="btn btn-primary-outline btn-icon" [attr.aria-label]="'smartContracts.version.download' | translate">
-                    <clr-icon shape="download"></clr-icon>
-                  </button>
-                  <clr-tooltip-content clrPosition="top-right" clrSize="sm" *clrIfOpen>
-                    <span>{{'smartContracts.version.download' | translate}}</span>
-                  </clr-tooltip-content>
-                </clr-tooltip>
-              </div>
-              <div class="card-block">
-                <concord-code-highlighter [textToHighlight]="version.sourcecode"
-                                         [language]="'solidity'"
-                                         [noScroll]="true"
-                                         [noBorder]="true"></concord-code-highlighter>
-              </div>
-            </div>
-          </div>
-        </div>
-      </ng-container>
-    </clr-tab-content>
-  </clr-tab>
-  <clr-tab>
-    <button clrTabLink>{{'smartContracts.version.tabs.bytecode' | translate}}</button>
-    <clr-tab-content>
-      <div class="clr-row">
-        <div class="clr-col-sm-12 clr-col-md-10">
-          <div class="card">
-            <div class="card-header text-xs-right">
-              <clr-tooltip>
-                <button clrTooltipTrigger (click)="onByteCodeDownload()" type="button" class="btn btn-primary-outline btn-icon" [attr.aria-label]="'smartContracts.version.download' | translate">
-                  <clr-icon shape="download"></clr-icon>
-                </button>
-                <clr-tooltip-content clrPosition="top-right" clrSize="sm" *clrIfOpen>
-                  <span>{{'smartContracts.version.download' | translate}}</span>
-                </clr-tooltip-content>
-              </clr-tooltip>
-            </div>
-            <div class="card-block">
-              <concord-code-highlighter [textToHighlight]="version?.bytecode"
-                                       [language]="'markup'"
-                                       [noScroll]="true"
-                                       [noBorder]="true"
-                                       [breakWord]="true"></concord-code-highlighter>
-            </div>
-          </div>
-        </div>
-      </div>
-    </clr-tab-content>
-  </clr-tab>
-  <clr-tab>
-    <button clrTabLink>{{'smartContracts.version.tabs.metadata' | translate}}</button>
-    <clr-tab-content>
-      <ng-container *ngIf="version.metadata.compiler">
-        <div class="clr-row">
-          <div class="clr-col-sm-12 clr-col-md-10">
-            <div class="card">
-              <div class="card-header text-xs-right">
-                <clr-tooltip>
-                  <button clrTooltipTrigger (click)="onMetadataDownload()" type="button" class="btn btn-primary-outline btn-icon" [attr.aria-label]="'smartContracts.version.download' | translate">
-                    <clr-icon shape="download"></clr-icon>
-                  </button>
-                  <clr-tooltip-content clrPosition="top-right" clrSize="sm" *clrIfOpen>
-                    <span>{{'smartContracts.version.download' | translate}}</span>
-                  </clr-tooltip-content>
-                </clr-tooltip>
-              </div>
-              <div class="card-block">
-                <concord-code-highlighter [textToHighlight]="metadataString"
-                                         [language]="'json'"
-                                         [noScroll]="true"
-                                         [noBorder]="true"></concord-code-highlighter>
-              </div>
-            </div>
-          </div>
-        </div>
-      </ng-container>
-    </clr-tab-content>
-  </clr-tab>
-</clr-tabs>
-
+        </ng-container>
+      </clr-tab-content>
+    </clr-tab>
+    
+  </clr-tabs>
+</div>
 <concord-contract-payload-preview-form #payloadPreviewModal></concord-contract-payload-preview-form>

@@ -1,5 +1,11 @@
 @import "~@clr/ui/src/color/_variables.color.scss";
 
+.tooltip-inline {
+  display: inline-block;
+  margin-left: 0.133rem;
+  transform: translate(0, -0.07rem);
+}
+
 label {
   text-align: left !important;
   &.required {

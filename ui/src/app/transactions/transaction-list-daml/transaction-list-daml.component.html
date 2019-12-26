@@ -1,0 +1,37 @@
+<div class="card card-padded">
+  <div class="entity-name">{{ entityName }}</div>
+  <div *ngIf="transactionsFetchError" class="alert alert-danger" role="alert">
+    <div class="alert-items">
+      <div class="alert-item static">
+        <div class="alert-icon-wrapper">
+            <clr-icon class="alert-icon" shape="exclamation-circle"></clr-icon>
+        </div>
+        <span class="alert-text">{{ transactionsFetchError }}</span>
+      </div>
+    </div>
+  </div>
+  <div [classList]="transactionsFetchError ? 'clr-row has-error' : 'clr-row'">
+    <div class="clr-col-12">
+      <clr-datagrid [clrDgLoading]="!transactionsLoaded">
+        <clr-dg-column [clrDgSortBy]="'hash'" class="hash">{{'smartContracts.contractId' | translate}}</clr-dg-column>
+        <clr-dg-column *ngFor="let prop of templateProperties" class="nonce">{{ getPropertyName(prop.name) }}</clr-dg-column>
+        <clr-dg-row *clrDgItems="let transaction of transactions">
+          <clr-dg-cell class="hash cell">
+            <div class="cell-inner">
+              <a [routerLink]="['/dashboard']">{{transaction?.contractId}}</a>
+            </div>
+          </clr-dg-cell>
+          <clr-dg-cell *ngFor="let prop of templateProperties" class="nonce cell">
+            <div class="cell-inner">{{ getPropertyData(transaction, prop.name) }}</div>
+          </clr-dg-cell>
+        </clr-dg-row>
+        <clr-dg-footer>
+          <clr-dg-pagination #pagination [clrDgPageSize]="20">
+            {{'transactions.paginationSummary' | translate: { start: pagination.firstItem + 1, finish: pagination.lastItem + 1, total:
+            pagination.totalItems} }}
+          </clr-dg-pagination>
+        </clr-dg-footer>
+      </clr-datagrid>
+    </div>
+  </div>
+</div>

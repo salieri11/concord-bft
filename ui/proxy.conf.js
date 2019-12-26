@@ -7,6 +7,15 @@ const PROXY_CONFIG = {
     },
     "secure": false,
   },
+  "/daml-json-api": {
+    "target": "http://localhost:7575",
+    "headers": {
+      'X-Forwarded-Proto': 'https',
+      'X-Forwarded-For': 'localhost.vmware.com'
+    },
+    "secure": false,
+    "pathRewrite": { "^/daml-json-api": "" }
+  },
   "/csp": {
     "target": "https://console-stg.cloud.vmware.com",
     "secure": true
@@ -14,9 +23,7 @@ const PROXY_CONFIG = {
   "/dapp": {
     "target": "http://localhost:4000",
     "secure": false,
-    "pathRewrite": {
-      "^/dapp": ""
-    }
+    "pathRewrite": { "^/dapp": "" }
   },
   "/swagger": {
     "target": "http://localhost:8080",

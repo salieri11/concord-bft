@@ -2,64 +2,18 @@
  * Copyright 2018-2019 VMware, all rights reserved.
  */
 
-import { Component, ViewChild } from '@angular/core';
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 import { of as observableOf, throwError } from 'rxjs';
-import { RouterTestingModule } from '@angular/router/testing';
-import { MockSharedModule } from '../../shared/shared.module';
-import { FormsModule } from '@angular/forms';
-import { HttpClientTestingModule } from '@angular/common/http/testing';
-import { TourService as NgxTourService } from 'ngx-tour-ngx-popper';
 
 import { SmartContractVersionComponent } from './smart-contract-version.component';
-import {
-  SmartContractsSolidityFunctionInputsComponent
-} from '../smart-contracts-solidity-function-inputs/smart-contracts-solidity-function-inputs.component';
-import { ContractPayloadPreviewFormComponent } from '../contract-payload-preview-form/contract-payload-preview-form.component';
-import { TransactionDetailsComponent } from '../../transactions/transaction-details/transaction-details.component';
 import { SmartContractVersion } from '../shared/smart-contracts.model';
-import { VmwCopyToClipboardButtonComponent } from '../../shared/components/copy-to-clipboard-button/copy-to-clipboard-button.component';
-import { CodeHighlighterComponent } from '../../shared/components/code-highlighter/code-highlighter.component';
 import * as DownloadHelpers from '../../shared/download-helpers';
-
-const initialVersion = {
-  contract_id: 'id',
-  version: 'version',
-  owner: 'owner',
-  metadata: {
-    compiler: {
-      version: 'version'
-    },
-    language: 'language',
-    output: {
-      abi: [],
-      devdoc: {},
-      userdoc: {},
-    },
-    settings: {},
-    sources: {},
-    version: 1
-  },
-  address: 'address',
-  bytecode: 'bytecode',
-  sourcecode: 'sourcecode'
-};
-
-@Component({
-  selector: 'concord-test-wrapper',
-  template: `
-        <concord-smart-contract-version #versionComponent [version]="version"></concord-smart-contract-version>
-    `
-})
-class TestWrapperClassComponent {
-  @ViewChild('versionComponent', { static: false }) versionComponent: SmartContractVersionComponent;
-  version: SmartContractVersion = initialVersion;
-}
+import { getSpecTestingModule } from '../../shared/shared-testing.module';
 
 describe('SmartContractVersionComponent', () => {
-  let component: TestWrapperClassComponent;
-  let fixture: ComponentFixture<TestWrapperClassComponent>;
-  const nextVersion: SmartContractVersion = {
+  let component: SmartContractVersionComponent;
+  let fixture: ComponentFixture<SmartContractVersionComponent>;
+  const mockVersion: SmartContractVersion = {
     contract_id: 'id2',
     version: 'version2',
     owner: 'owner2',
@@ -90,33 +44,18 @@ describe('SmartContractVersionComponent', () => {
     sourcecode: 'sourcecode2'
   };
 
-  beforeEach(async(() => {
-    TestBed.configureTestingModule({
-      imports: [
-        RouterTestingModule,
-        MockSharedModule,
-        HttpClientTestingModule,
-        FormsModule
-      ],
-      declarations: [
-        SmartContractVersionComponent,
-        ContractPayloadPreviewFormComponent,
-        SmartContractsSolidityFunctionInputsComponent,
-        TransactionDetailsComponent,
-        TestWrapperClassComponent,
-        VmwCopyToClipboardButtonComponent,
-        CodeHighlighterComponent
-      ],
-      providers: [
-        NgxTourService
-      ]
-    })
-    .compileComponents();
+  beforeEach(async( () => {
+    const tester = getSpecTestingModule();
+    TestBed.configureTestingModule(tester.init({
+      imports: [], provides: [], declarations: []
+    })).compileComponents();
   }));
 
   beforeEach(() => {
-    fixture = TestBed.createComponent(TestWrapperClassComponent);
+    fixture = TestBed.createComponent(SmartContractVersionComponent);
     component = fixture.componentInstance;
+    component.version = mockVersion;
+    component.onVersionChange(mockVersion);
     fixture.detectChanges();
   });
 
@@ -124,74 +63,35 @@ describe('SmartContractVersionComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  describe('On changes', () => {
-    it('calls onVersionChange', () => {
-      spyOn((component.versionComponent as any), 'onVersionChange');
-      component.version = nextVersion;
-      fixture.detectChanges();
-
-      expect((component.versionComponent as any).onVersionChange).toHaveBeenCalled();
-    });
-
-    it('resets the version form', () => {
-      spyOn(component.versionComponent.versionForm, 'reset');
-      component.version = nextVersion;
-      fixture.detectChanges();
-
-      expect(component.versionComponent.versionForm.reset).toHaveBeenCalled();
-    });
-    it('sets inputs and function definition when functions are present', () => {
-      spyOn((component.versionComponent as any), 'onVersionChange').and.callThrough();
-      expect(component.versionComponent.inputs).toEqual([]);
-      expect(component.versionComponent.functionDefinition).toBeFalsy();
-      component.version = nextVersion;
-      fixture.detectChanges();
-
-      expect((component.versionComponent as any).onVersionChange).toHaveBeenCalled();
-      expect(component.versionComponent.inputs.length).toEqual(1);
-      expect(component.versionComponent.functionDefinition).toBeTruthy();
-    });
-    it('empties inputs and function definition when functions are not present', () => {
-      spyOn((component.versionComponent as any), 'onVersionChange').and.callThrough();
-      expect(component.versionComponent.inputs).toEqual([]);
-      expect(component.versionComponent.functionDefinition).toBeFalsy();
-      component.version = {...initialVersion};
-      fixture.detectChanges();
-
-      expect((component.versionComponent as any).onVersionChange).toHaveBeenCalled();
-      expect(component.versionComponent.inputs).toEqual([]);
-      expect(component.versionComponent.functionDefinition).toBeFalsy();
-    });
-  });
 
   describe('Download functions', () => {
     it('generates the source code file name properly', () => {
-      const expectedFileName = `${initialVersion.contract_id}_${initialVersion.version}_source_code.sol`;
+      const expectedFileName = `${mockVersion.contract_id}_${mockVersion.version}_source_code.sol`;
       const setPropertyTypeSpy = jasmine.createSpy('setPropertyTypeSpy');
       spyOnProperty(DownloadHelpers, 'generateDownload').and.returnValue(setPropertyTypeSpy);
 
-      component.versionComponent.onSourceCodeDownload();
+      component.onSourceCodeDownload();
 
       expect(DownloadHelpers.generateDownload)
-        .toHaveBeenCalledWith(expectedFileName, initialVersion.sourcecode);
+        .toHaveBeenCalledWith(expectedFileName, mockVersion.sourcecode);
     });
     it('generates the byte code file name properly', () => {
-      const expectedFileName = `${initialVersion.contract_id}_${initialVersion.version}_bytecode.bin`;
+      const expectedFileName = `${mockVersion.contract_id}_${mockVersion.version}_bytecode.bin`;
       const setPropertyTypeSpy = jasmine.createSpy('setPropertyTypeSpy');
       spyOnProperty(DownloadHelpers, 'generateDownload').and.returnValue(setPropertyTypeSpy);
-      component.versionComponent.onByteCodeDownload();
+      component.onByteCodeDownload();
 
       expect(DownloadHelpers.generateDownload)
-        .toHaveBeenCalledWith(expectedFileName, initialVersion.bytecode);
+        .toHaveBeenCalledWith(expectedFileName, mockVersion.bytecode);
     });
     it('generates the metadata file name properly', () => {
-      const expectedFileName = `${initialVersion.contract_id}_${initialVersion.version}_metadata.json`;
+      const expectedFileName = `${mockVersion.contract_id}_${mockVersion.version}_metadata.json`;
       const setPropertyTypeSpy = jasmine.createSpy('setPropertyTypeSpy');
       spyOnProperty(DownloadHelpers, 'generateDownload').and.returnValue(setPropertyTypeSpy);
-      component.versionComponent.onMetadataDownload();
+      component.onMetadataDownload();
 
       expect(DownloadHelpers.generateDownload)
-        .toHaveBeenCalledWith(expectedFileName, JSON.stringify(initialVersion.metadata, null, 4));
+        .toHaveBeenCalledWith(expectedFileName, JSON.stringify(mockVersion.metadata, null, 4));
     });
     it('generates a source code download link', () => {
       const createUrlSpy = spyOn(window.URL, 'createObjectURL').and.callThrough();
@@ -203,7 +103,7 @@ describe('SmartContractVersionComponent', () => {
         linkClicked = true;
       }, {once: true});
 
-      component.versionComponent.onSourceCodeDownload();
+      component.onSourceCodeDownload();
 
       expect(linkClicked).toBe(true);
       expect(createUrlSpy).toHaveBeenCalled();
@@ -220,7 +120,7 @@ describe('SmartContractVersionComponent', () => {
         linkClicked = true;
       }, {once: true});
 
-      component.versionComponent.onByteCodeDownload();
+      component.onByteCodeDownload();
 
       expect(linkClicked).toBe(true);
       expect(createUrlSpy).toHaveBeenCalled();
@@ -237,7 +137,7 @@ describe('SmartContractVersionComponent', () => {
         linkClicked = true;
       }, {once: true});
 
-      component.versionComponent.onMetadataDownload();
+      component.onMetadataDownload();
 
       expect(linkClicked).toBe(true);
       expect(createUrlSpy).toHaveBeenCalled();
@@ -247,10 +147,10 @@ describe('SmartContractVersionComponent', () => {
 
   describe('Preview', () => {
     it('calls open on the preview modal and passes the encoded function', () => {
-      const modalSpy = spyOn(component.versionComponent.payloadPreviewModal, 'open');
-      const encodeSpy = spyOn((component.versionComponent as any), 'encodeFunction');
+      const modalSpy = spyOn(component.payloadPreviewModal, 'open');
+      const encodeSpy = spyOn((component as any), 'encodeFunction');
 
-      component.versionComponent.onPreview();
+      component.onPreview();
 
       expect(modalSpy).toHaveBeenCalled();
       expect(encodeSpy).toHaveBeenCalled();
@@ -266,43 +166,40 @@ describe('SmartContractVersionComponent', () => {
         gas: '0xF4240',
         data: '0x4ad12c050000000000000000000000000000000000000000000000000000000000000000'
       };
-      const callSpy = spyOn((component.versionComponent as any).ethApiService, 'sendCall')
+      const callSpy = spyOn((component as any).ethApiService, 'sendCall')
         .and.returnValue(observableOf({result: '0x0000000000000000000000000000000000000000000000000000000000000000'}));
 
-      component.version = nextVersion;
       fixture.detectChanges();
-      component.versionComponent.onCall();
+      component.onCall();
 
       expect(callSpy).toHaveBeenCalledWith(expectedPayload);
-      expect(component.versionComponent.alertMessage).toBe(successResult);
-      expect(component.versionComponent.alertType).toBe('alert-success');
-      expect(component.versionComponent.resultType).toBe('call');
+      expect(component.alertMessage).toBe(successResult);
+      expect(component.alertType).toBe('alert-success');
+      expect(component.resultType).toBe('call');
     });
     it('handles call errors in success responses', () => {
       const errorResult = 'error';
-      spyOn((component.versionComponent as any).ethApiService, 'sendCall')
+      spyOn((component as any).ethApiService, 'sendCall')
         .and.returnValue(observableOf({error: errorResult}));
 
-      component.version = nextVersion;
       fixture.detectChanges();
-      component.versionComponent.onCall();
+      component.onCall();
 
-      expect(component.versionComponent.alertMessage).toBe(errorResult);
-      expect(component.versionComponent.alertType).toBe('alert-danger');
-      expect(component.versionComponent.resultType).toBe('error');
+      expect(component.alertMessage).toBe(errorResult);
+      expect(component.alertType).toBe('alert-danger');
+      expect(component.resultType).toBe('error');
     });
     it('handles call errors in error responses', () => {
       const errorResult = 'error';
-      spyOn((component.versionComponent as any).ethApiService, 'sendCall')
+      spyOn((component as any).ethApiService, 'sendCall')
         .and.returnValue(throwError({error: errorResult}));
 
-      component.version = nextVersion;
       fixture.detectChanges();
-      component.versionComponent.onCall();
+      component.onCall();
 
-      expect(component.versionComponent.alertMessage).toBe(errorResult);
-      expect(component.versionComponent.alertType).toBe('alert-danger');
-      expect(component.versionComponent.resultType).toBe('error');
+      expect(component.alertMessage).toBe(errorResult);
+      expect(component.alertType).toBe('alert-danger');
+      expect(component.resultType).toBe('error');
     });
 
     it('sends a transaction with the encoded function', () => {
@@ -313,43 +210,40 @@ describe('SmartContractVersionComponent', () => {
         gas: '0xF4240',
         data: '0x4ad12c050000000000000000000000000000000000000000000000000000000000000000'
       };
-      const callSpy = spyOn((component.versionComponent as any).ethApiService, 'sendTransaction')
+      const callSpy = spyOn((component as any).ethApiService, 'sendTransaction')
         .and.returnValue(observableOf({result: successResult}));
 
-      component.version = nextVersion;
       fixture.detectChanges();
-      component.versionComponent.onSend();
+      component.onSend();
 
       expect(callSpy).toHaveBeenCalledWith(expectedPayload);
-      expect(component.versionComponent.alertMessage).toBe(successResult);
-      expect(component.versionComponent.alertType).toBe('alert-success');
-      expect(component.versionComponent.resultType).toBe('send');
+      expect(component.alertMessage).toBe(successResult);
+      expect(component.alertType).toBe('alert-success');
+      expect(component.resultType).toBe('send');
     });
     it('handles transaction errors in success responses', () => {
       const errorResult = 'error';
-      spyOn((component.versionComponent as any).ethApiService, 'sendTransaction')
+      spyOn((component as any).ethApiService, 'sendTransaction')
         .and.returnValue(observableOf({error: errorResult}));
 
-      component.version = nextVersion;
       fixture.detectChanges();
-      component.versionComponent.onSend();
+      component.onSend();
 
-      expect(component.versionComponent.alertMessage).toBe(errorResult);
-      expect(component.versionComponent.alertType).toBe('alert-danger');
-      expect(component.versionComponent.resultType).toBe('error');
+      expect(component.alertMessage).toBe(errorResult);
+      expect(component.alertType).toBe('alert-danger');
+      expect(component.resultType).toBe('error');
     });
     it('handles transaction errors in error responses', () => {
       const errorResult = 'error';
-      spyOn((component.versionComponent as any).ethApiService, 'sendTransaction')
+      spyOn((component as any).ethApiService, 'sendTransaction')
         .and.returnValue(throwError({error: errorResult}));
 
-      component.version = nextVersion;
       fixture.detectChanges();
-      component.versionComponent.onSend();
+      component.onSend();
 
-      expect(component.versionComponent.alertMessage).toBe(errorResult);
-      expect(component.versionComponent.alertType).toBe('alert-danger');
-      expect(component.versionComponent.resultType).toBe('error');
+      expect(component.alertMessage).toBe(errorResult);
+      expect(component.alertType).toBe('alert-danger');
+      expect(component.resultType).toBe('error');
     });
 
   });

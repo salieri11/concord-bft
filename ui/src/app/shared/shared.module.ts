@@ -21,8 +21,10 @@ import { TransactionsStatusFilterComponent } from './components/transactions-sta
 import { RouterModule } from '@angular/router';
 import { PersonaService } from './persona.service';
 import { ContextualHelpService } from './contextual-help.service';
+import { IndexedDBService } from './indexeddb.service';
 import { CanViewDirective } from './directives/can-view.directive';
 import { FeatureFlagDirective } from './directives/feature-flag.directive';
+
 import { VmwTaskComponent } from './components/task-panel/task.component';
 import { VmwTaskPanelComponent } from './components/task-panel/task-panel.component';
 import { VmwTasksService } from './components/task-panel/tasks.service';
@@ -32,6 +34,7 @@ import { VmwComboboxComponent } from './components/combobox/combobox.component';
 import { VmwComboboxItemsComponent } from './components/combobox/combobox-items/combobox-items.component';
 import { VmwCopyToClipboardButtonComponent } from './components/copy-to-clipboard-button/copy-to-clipboard-button.component';
 import { VmwThemeSwitchButtonComponent } from './components/theme-switch-button/theme-switch-button.component';
+
 import { CodeHighlighterComponent } from './components/code-highlighter/code-highlighter.component';
 import { AppHeaderComponent } from './components/app-header/app-header.component';
 import { VersionComponent } from './components/version/version.component';
@@ -51,7 +54,8 @@ export const defaultProvided: any[] = [
   PersonaService,
   ContextualHelpService,
   VmwTasksService,
-  VmwClarityThemeService
+  VmwClarityThemeService,
+  IndexedDBService
 ];
 
 @NgModule({

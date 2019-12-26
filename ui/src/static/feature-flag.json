@@ -1,5 +1,7 @@
 {
   "node_list": true,
   "developer_logging": true,
-  "deploy_HLF": false
+  "deploy_HLF": false,
+  
+  "daml_contracts_explorer": false
 }

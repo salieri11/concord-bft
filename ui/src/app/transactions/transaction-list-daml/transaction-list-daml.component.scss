@@ -1,0 +1,16 @@
+.card-padded {
+  padding: 1rem 1rem;
+  padding-top: 18px;
+  margin-top: 0.4rem !important;
+}
+
+.module-name { font-size: 0.7rem; display: inline; }
+.entity-name { font-size: 0.7rem; display: inline; font-weight: bold; }
+
+:host clr-datagrid {
+  min-height: calc(100vh - 308px);
+}
+
+:host .has-error clr-datagrid {
+  min-height: calc(100vh - 308px - 50px) !important;
+}

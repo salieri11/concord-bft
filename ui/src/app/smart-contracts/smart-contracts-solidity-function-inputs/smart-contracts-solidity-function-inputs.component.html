@@ -1,11 +1,14 @@
 <div *ngIf="functionInputs?.length" [formGroup]="formGroup">
-  <h5 class="font-weight-bold d-inline-block mb-1">{{'smartContracts.version.functionParameters' | translate}}</h5>
-  <clr-tooltip>
-    <clr-icon clrTooltipTrigger shape="info-circle" size="24" class="is-info"></clr-icon>
-    <clr-tooltip-content clrPosition="top-right" clrSize="md" *clrIfOpen>
-      <span>{{'smartContracts.version.tooltips.requiredParameters' | translate}}</span>
-    </clr-tooltip-content>
-  </clr-tooltip>
+  <h5 class="font-weight-bold d-inline-block mb-1">
+    <span *ngIf="!versionData || versionData?.type !== 'DAML'">{{'smartContracts.version.functionParameters' | translate}}</span>
+    <span *ngIf="versionData?.type === 'DAML'">{{'smartContracts.version.templateParameters' | translate}}</span>
+    <clr-tooltip class="tooltip-inline">
+      <clr-icon clrTooltipTrigger shape="info-circle" size="24" class="is-info"></clr-icon>
+      <clr-tooltip-content clrPosition="top-right" clrSize="md" *clrIfOpen>
+        <span>{{'smartContracts.version.tooltips.requiredParameters' | translate}}</span>
+      </clr-tooltip-content>
+    </clr-tooltip>
+  </h5>
   <ng-container *ngFor="let input of functionInputs">
     <clr-input-container *ngIf="!isByteArray(input.type)">
       <label class="required clr-col-xs-12 clr-col-md-3">{{input.name}}</label>
