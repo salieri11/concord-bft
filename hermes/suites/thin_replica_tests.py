@@ -128,7 +128,7 @@ def test_compare_all_hashes(fxProduct, setup_test_suite):
 
     assert hash1 == hash2 == hash3 == hash4
 
-def test_zero_hash_if_no_state(fxProduct, setup_test_suite):
+def test_hash_not_zero_if_no_state(fxProduct, setup_test_suite):
     """We don't compute a hash if we don't find state.
 
     The hash returned is 0.
@@ -137,7 +137,7 @@ def test_zero_hash_if_no_state(fxProduct, setup_test_suite):
     tr = setup_test_suite
     bid = get_newest_block_id(tr)
     hash = tr.read_hash(bid, key_prefix=b"WRITING_TESTS_IS_FUN").hash
-    assert hash == b"\x00\x00\x00\x00\x00\x00\x00\x00"
+    assert int(hash.hex(), 16) != 0
 
 def test_compare_all_filtered_hashes(fxProduct, setup_test_suite):
     """Compare hashes from all Concord nodes at the same block id

@@ -65,7 +65,7 @@ KvbUpdate KvbAppFilter::FilterUpdate(const KvbUpdate &update,
 }
 
 size_t KvbAppFilter::HashUpdate(const KvbUpdate update) {
-  size_t hash = 0;
+  size_t hash = std::hash<string>{}(std::to_string(update.first));
   for (const auto &[key, value] : update.second) {
     // (key1 XOR value1) XOR (key2 XOR value2) ...
     auto key_hash = std::hash<string>{}(string{key.data(), key.length()});
