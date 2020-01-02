@@ -75,6 +75,12 @@ import hudson.util.Secret
     "concordConfigurationInput": "/concord/config/dockerConfigurationInput-daml.yaml",
     "runWithGenericTests": true
   ],
+  "ThinReplicaTests": [
+    "enabled": true,
+    "dockerComposeFiles": "../docker/docker-compose-daml-nano.yml",
+    "concordConfigurationInput": "/concord/config/dockerConfigurationInput-daml-nano.yaml",
+    "runWithGenericTests": true
+  ],
   "SimpleStateTransferTest": [
     "enabled": true,
     "dockerComposeFiles": "../docker/docker-compose.yml ../docker/docker-compose-static-ips.yml",
