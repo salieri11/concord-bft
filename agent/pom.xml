@@ -28,47 +28,42 @@
         <maven.plugin.source>3.0.1</maven.plugin.source>
         <maven.plugin.surefire>2.22.1</maven.plugin.surefire>
 
+        <maven.plugin.protobuf>0.6.1</maven.plugin.protobuf>
+        <protobuf.runtime.java.version>3.7.1</protobuf.runtime.java.version>
+        <persephone.protobuf.source.path>../persephone/api/src/protobuf</persephone.protobuf.source.path>
+
         <!-- Dependency-related properties. -->
         <assertj.version>3.11.1</assertj.version>
-        <grpc.runtime.java.version>1.22.2</grpc.runtime.java.version>
-        <grpc.runtime.kotlinx.serialization.version>0.0.4-SNAPSHOT</grpc.runtime.kotlinx.serialization.version>
+        <grpc.runtime.java.version>1.26.0</grpc.runtime.java.version>
         <junit.jupiter.version>5.2.0</junit.jupiter.version>
         <junit.platform.version>1.2.0</junit.platform.version>
-        <kotlin.serialization.version>0.12.0</kotlin.serialization.version>
         <persephone.version>1.0.0-SNAPSHOT</persephone.version>
         <slf4j.version>1.7.28</slf4j.version>
     </properties>
 
     <dependencies>
-        <!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        ~ First-party dependencies. (Lexicographical order)         ~
-        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
-        <dependency>
-            <groupId>com.fasterxml.jackson.module</groupId>
-            <artifactId>jackson-module-kotlin</artifactId>
-            <version>2.9.10</version>
-        </dependency>
-        <dependency>
-            <groupId>com.vmware.blockchain</groupId>
-            <artifactId>persephone-api</artifactId>
-            <version>${persephone.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.vmware.blockchain</groupId>
-            <artifactId>persephone-core</artifactId>
-            <version>${persephone.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.vmware.blockchain.protobuf</groupId>
-            <artifactId>grpc-runtime-kotlinx-serialization</artifactId>
-            <version>${grpc.runtime.kotlinx.serialization.version}</version>
-        </dependency>
+
         <!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         ~ External dependencies.                                    ~
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
         <dependency>
+            <groupId>com.google.protobuf</groupId>
+            <artifactId>protobuf-java</artifactId>
+            <version>3.11.1</version>
+        </dependency>
+        <dependency>
+            <groupId>com.google.protobuf</groupId>
+            <artifactId>protobuf-java-util</artifactId>
+            <version>3.11.1</version>
+        </dependency>
+        <dependency>
             <groupId>com.googlecode.json-simple</groupId>
             <artifactId>json-simple</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.datatype</groupId>
+            <artifactId>jackson-datatype-guava</artifactId>
+            <version>2.10.1</version>
         </dependency>
         <!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         ~ Special dependencies. (Custom order)                      ~
@@ -134,6 +129,11 @@
         </dependency>
         <dependency>
             <groupId>io.grpc</groupId>
+            <artifactId>grpc-protobuf</artifactId>
+            <version>${grpc.runtime.java.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.grpc</groupId>
             <artifactId>grpc-netty-shaded</artifactId>
             <version>${grpc.runtime.java.version}</version>
         </dependency>
@@ -147,11 +147,7 @@
             <artifactId>assertj-core</artifactId>
             <version>${assertj.version}</version>
         </dependency>
-        <dependency>
-            <groupId>org.jetbrains.kotlinx</groupId>
-            <artifactId>kotlinx-serialization-runtime</artifactId>
-            <version>${kotlin.serialization.version}</version>
-        </dependency>
+
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-api</artifactId>
@@ -195,6 +191,13 @@
     </dependencies>
 
     <build>
+        <extensions>
+            <extension>
+                <groupId>kr.motd.maven</groupId>
+                <artifactId>os-maven-plugin</artifactId>
+                <version>1.6.2</version>
+            </extension>
+        </extensions>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -212,27 +215,41 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
-            <!--plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-assembly-plugin</artifactId>
+            <!--Protobuf to Java compiler plugin-->
+            <plugin>
+                <groupId>org.xolstice.maven.plugins</groupId>
+                <artifactId>protobuf-maven-plugin</artifactId>
+                <version>${maven.plugin.protobuf}</version>
+                <extensions>true</extensions>
                 <executions>
                     <execution>
-                        <id>make-assembly</id>
-                        <phase>package</phase>
-                        <goals> <goal>single</goal> </goals>
+                        <id>protobuf-java</id>
+                        <goals>
+                            <goal>compile</goal>
+                        </goals>
                         <configuration>
-                            <archive>
-                                <manifest>
-                                    <mainClass>com.vmware.concord.agent.Application</mainClass>
-                                </manifest>
-                            </archive>
-                            <descriptorRefs>
-                                <descriptorRef>jar-with-dependencies</descriptorRef>
-                            </descriptorRefs>
+                            <protoSourceRoot>${persephone.protobuf.source.path}</protoSourceRoot>
+                            <outputDirectory>${project.build.directory}/generated-sources/protobuf/</outputDirectory>
+                            <protocArtifact>com.google.protobuf:protoc:${protobuf.runtime.java.version}:exe:${os.detected.classifier}</protocArtifact>
+                            <clearOutputDirectory>false</clearOutputDirectory>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>grpc-java</id>
+                        <goals>
+                            <goal>compile-custom</goal>
+                        </goals>
+                        <configuration>
+                            <pluginId>grpc-java</pluginId>
+                            <protoSourceRoot>${persephone.protobuf.source.path}</protoSourceRoot>
+                            <outputDirectory>${project.build.directory}/generated-sources/protobuf/</outputDirectory>
+                            <protocArtifact>com.google.protobuf:protoc:${protobuf.runtime.java.version}:exe:${os.detected.classifier}</protocArtifact>
+                            <pluginArtifact>io.grpc:protoc-gen-grpc-java:${grpc.runtime.java.version}:exe:${os.detected.classifier}</pluginArtifact>
+                            <clearOutputDirectory>false</clearOutputDirectory>
                         </configuration>
                     </execution>
                 </executions>
-            </plugin-->
+            </plugin>
         </plugins>
     </build>
 </project>

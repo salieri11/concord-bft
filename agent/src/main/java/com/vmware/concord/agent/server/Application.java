@@ -13,14 +13,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
+import com.google.protobuf.util.JsonFormat;
 import com.vmware.blockchain.deployment.v1.ConcordAgentConfiguration;
 import com.vmware.blockchain.deployment.v1.OutboundProxyInfo;
 import com.vmware.concord.agent.services.AgentDockerClient;
-
-import kotlinx.serialization.UpdateMode;
-import kotlinx.serialization.json.Json;
-import kotlinx.serialization.json.JsonConfiguration;
-import kotlinx.serialization.modules.EmptyModule;
 
 /**
  * Concord-agent --
@@ -38,27 +34,14 @@ public class Application {
      * Main - Entry into SpringBoot application.
      */
     public static void main(String[] args) throws Exception {
-        // Construct configuration from input parameters.
-        var json = new Json(
-                new JsonConfiguration(
-                        false, /* encodeDefaults */
-                        true, /* strictMode */
-                        false, /* unquoted */
-                        false, /* allowStructuredMapKeys */
-                        false, /* prettyPrint */
-                        "    ", /* indent */
-                        false, /* useArrayPolymorphism */
-                        "type", /* classDiscriminator */
-                        UpdateMode.OVERWRITE /* updateMode */
-                ),
-                EmptyModule.INSTANCE
-        );
 
         if (Files.exists(Path.of(CONCORD_AGENT_MODEL_URI))) {
-            ConcordAgentConfiguration configuration = json.parse(
-                    ConcordAgentConfiguration.getSerializer(),
-                    Files.readString(Path.of(CONCORD_AGENT_MODEL_URI))
-            );
+
+            ConcordAgentConfiguration.Builder builder = ConcordAgentConfiguration.newBuilder();
+            JsonFormat.parser().ignoringUnknownFields().merge(Files.readString(Path.of(CONCORD_AGENT_MODEL_URI)),
+                                                              builder);
+
+            ConcordAgentConfiguration configuration = builder.build();
 
             // Setup process-level proxy before starting main agent machinery.
             configureNetworkProxyConfiguration(configuration.getOutboundProxyInfo());
@@ -79,7 +62,7 @@ public class Application {
      *   network proxy configuration.
      */
     private static void configureNetworkProxyConfiguration(OutboundProxyInfo proxy) {
-        if (!OutboundProxyInfo.Companion.getDefaultValue().equals(proxy)) {
+        if (!OutboundProxyInfo.getDefaultInstance().equals(proxy)) {
             log.info("Configuring process for network proxy environment, info({})", proxy);
 
             System.setProperty("http.proxyHost", proxy.getHttpHost());
