@@ -556,11 +556,11 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
 
       IClient *client = concord::kvbc::createClient(clientConfig, comm);
       client->start();
-      KVBClient *kvbClient = new KVBClient(client, clientTimeout, timePusher);
+      KVBClient *kvbClient = new KVBClient(client, timePusher);
       clients.push_back(kvbClient);
     }
 
-    KVBClientPool pool(clients, timePusher);
+    KVBClientPool pool(clients, clientTimeout, timePusher);
 
     if (timePusher) {
       timePusher->Start(&pool);
