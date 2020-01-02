@@ -21,7 +21,6 @@ using concordUtils::SetOfKeyValuePairs;
 using concordUtils::Sliver;
 
 using google::protobuf::Timestamp;
-using std::chrono::steady_clock;
 
 namespace concord {
 namespace consensus {
@@ -37,7 +36,6 @@ ConcordCommandsHandler::ConcordCommandsHandler(
       metadata_storage_(storage),
       subscriber_list_(subscriber_list),
       storage_(storage),
-      timing_enabled_(config.getValue<bool>("replica_timing_enabled")),
       metrics_{concordMetrics::Component(
           "concord_commands_handler",
           std::make_shared<concordMetrics::Aggregator>())},
@@ -46,11 +44,6 @@ ConcordCommandsHandler::ConcordCommandsHandler(
   if (concord::time::IsTimeServiceEnabled(config)) {
     time_ = std::unique_ptr<concord::time::TimeContract>(
         new concord::time::TimeContract(storage_, config));
-  }
-  if (timing_enabled_) {
-    timing_log_period_ = std::chrono::seconds(
-        config.getValue<uint32_t>("replica_timing_log_period_sec"));
-    timing_log_last_ = steady_clock::now();
   }
 }
 
@@ -270,8 +263,6 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
     }
   }
 
-  log_timing();
-
   return result ? 0 : 1;
 }
 
@@ -303,17 +294,6 @@ concordUtils::Status ConcordCommandsHandler::addBlock(
   subscriber_list_.UpdateSubBuffers({out_block_id, amended_updates});
 
   return status;
-}
-
-void ConcordCommandsHandler::log_timing() {
-  if (timing_enabled_ &&
-      steady_clock::now() - timing_log_last_ > timing_log_period_) {
-    LOG_INFO(logger_, metrics_.ToJson());
-    timing_log_last_ = steady_clock::now();
-
-    // TODO: reset execution count?
-    ClearStats();
-  }
 }
 
 }  // namespace consensus

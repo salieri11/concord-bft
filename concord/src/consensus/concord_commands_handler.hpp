@@ -8,7 +8,6 @@
 #include "KVBCInterfaces.h"
 #include "blockchain/db_interfaces.h"
 #include "concord.pb.h"
-#include "consensus/timing_stat.h"
 #include "pruning/kvb_pruning_sm.hpp"
 #include "storage/concord_block_metadata.h"
 #include "thin_replica/subscription_buffer.hpp"
@@ -17,7 +16,6 @@
 
 #include <log4cplus/logger.h>
 #include <opentracing/span.h>
-#include <chrono>
 
 namespace concord {
 namespace consensus {
@@ -29,19 +27,14 @@ class ConcordCommandsHandler
   log4cplus::Logger logger_;
   concord::storage::ConcordBlockMetadata metadata_storage_;
   uint64_t executing_bft_sequence_num_;
-  std::chrono::steady_clock::duration timing_log_period_;
-  std::chrono::steady_clock::time_point timing_log_last_;
   concord::thin_replica::SubBufferList &subscriber_list_;
 
   // The tracing span that should be used as the parent to the span covering the
   // addBlock function.
   std::unique_ptr<opentracing::Span> addBlock_parent_span;
 
-  void log_timing();
-
  protected:
   const concord::storage::blockchain::ILocalKeyValueStorageReadOnly &storage_;
-  bool timing_enabled_;
   concordMetrics::Component metrics_;
 
  public:
@@ -96,11 +89,6 @@ class ConcordCommandsHandler
   // subclass a chance to add its own data to that block (for example, an
   // "empty" smart-contract-level block).
   virtual void WriteEmptyBlock(concord::time::TimeContract *time_contract) = 0;
-
-  // After stats have been logged, this function will be called to allow the
-  // subclass to clear any stats before beginning to count for the next
-  // interval.
-  virtual void ClearStats(){};
 };
 
 }  // namespace consensus
