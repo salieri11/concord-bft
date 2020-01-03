@@ -4,6 +4,7 @@
 
 #include <google/protobuf/util/time_util.h>
 #include <log4cplus/loggingmacros.h>
+#include <log4cplus/mdc.h>
 #include <map>
 #include <string>
 
@@ -202,8 +203,14 @@ bool DamlKvbCommandsHandler::ExecuteCommand(const ConcordRequest& concord_req,
     case da_kvbc::Command::kRead:
       return ExecuteRead(cmd.read(), response);
 
-    case da_kvbc::Command::kCommit:
-      return ExecuteCommit(cmd.commit(), time_contract, parent_span, response);
+    case da_kvbc::Command::kCommit: {
+      auto commit_req = cmd.commit();
+      log4cplus::getMDC().put("cid", commit_req.correlation_id());
+      bool result =
+          ExecuteCommit(commit_req, time_contract, parent_span, response);
+      log4cplus::getMDC().clear();
+      return result;
+    }
 
     default:
       LOG4CPLUS_ERROR(logger_, "Neither commit nor read command");

@@ -2,6 +2,7 @@
 
 #include "grpc_services.hpp"
 
+#include <log4cplus/mdc.h>
 #include <opentracing/tracer.h>
 #include <string>
 
@@ -85,7 +86,7 @@ grpc::Status CommitServiceImpl::CommitTransaction(ServerContext* context,
   Command cmd;
   cmd.mutable_commit()->CopyFrom(*request);
 
-  // TODO: add correlation ID and/or tracing context from request
+  log4cplus::getMDC().put("cid", request->correlation_id());
   auto span = opentracing::Tracer::Global()->StartSpan("commit_transaction");
 
   std::string cmd_string;
@@ -94,6 +95,7 @@ grpc::Status CommitServiceImpl::CommitTransaction(ServerContext* context,
 
   if (!pool.send_request_sync(req, false /* read-only */, *span.get(), resp)) {
     LOG4CPLUS_ERROR(logger, "DAML commit transaction failed");
+    log4cplus::getMDC().clear();
     return grpc::Status::CANCELLED;
   }
 
@@ -101,10 +103,12 @@ grpc::Status CommitServiceImpl::CommitTransaction(ServerContext* context,
     LOG4CPLUS_ERROR(logger,
                     "DAML commit transaction failed with concord error: "
                         << resp.error_response(0).description());
+    log4cplus::getMDC().clear();
     return grpc::Status::CANCELLED;
   }
 
   if (!resp.has_daml_response()) {
+    log4cplus::getMDC().clear();
     return grpc::Status::CANCELLED;
   }
 
@@ -112,11 +116,13 @@ grpc::Status CommitServiceImpl::CommitTransaction(ServerContext* context,
   CommandReply cmd_reply;
   if (!cmd_reply.ParseFromString(resp.daml_response().command_reply())) {
     LOG4CPLUS_ERROR(logger, "Failed to parse DAML/CommandReply");
+    log4cplus::getMDC().clear();
     return grpc::Status::CANCELLED;
   }
   assert(cmd_reply.has_commit());
 
   reply->CopyFrom(cmd_reply.commit());
+  log4cplus::getMDC().clear();
   return grpc::Status::OK;
 }
 
