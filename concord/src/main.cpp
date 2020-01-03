@@ -1,4 +1,4 @@
-// Copyright 2018-2019 VMware, all rights reserved
+// Copyright 2018-2020 VMware, all rights reserved
 //
 // Concord node startup.
 
@@ -42,6 +42,8 @@
 #include "memorydb/client.h"
 #include "memorydb/key_comparator.h"
 #include "replica_state_sync_imp.hpp"
+#include "tee/grpc_services.hpp"
+#include "tee/tee_commands_handler.hpp"
 
 #include "rocksdb/client.h"
 #include "rocksdb/key_comparator.h"
@@ -113,8 +115,12 @@ using concord::daml::EventsServiceImpl;
 using concord::thin_replica::SubBufferList;
 using concord::thin_replica::ThinReplicaImpl;
 
+using concord::tee::TeeServiceImpl;
+
 // Parse BFT configuration
 using concord::consensus::initializeSBFTConfiguration;
+
+using concord::tee::TeeCommandsHandler;
 
 static unique_ptr<grpc::Server> daml_grpc_server = nullptr;
 // the Boost service hosting our Helen connections
@@ -122,6 +128,7 @@ static io_service *api_service = nullptr;
 static boost::thread_group worker_pool;
 // 50 MiBytes
 static const int kDamlServerMsgSizeMax = 50 * 1024 * 1024;
+static unique_ptr<grpc::Server> tee_grpc_server = nullptr;
 
 void signalHandler(int signum) {
   try {
@@ -135,6 +142,10 @@ void signalHandler(int signum) {
     if (daml_grpc_server) {
       LOG4CPLUS_INFO(logger, "Stopping DAML gRPC service");
       daml_grpc_server->Shutdown();
+    }
+    if (tee_grpc_server) {
+      LOG4CPLUS_INFO(logger, "Stopping TEE gRPC service");
+      tee_grpc_server->Shutdown();
     }
   } catch (exception &e) {
     cout << "Exception in signal handler: " << e.what() << endl;
@@ -367,11 +378,31 @@ void RunDamlGrpcServer(std::string server_address, KVBClientPool &pool,
   daml_grpc_server->Wait();
 }
 
+void RunTeeGrpcServer(std::string server_address, KVBClientPool &pool,
+                      int max_num_threads) {
+  Logger logger = Logger::getInstance("com.vmware.concord.tee");
+  TeeServiceImpl *teeService = new TeeServiceImpl(pool);
+
+  grpc::ResourceQuota quota;
+  quota.SetMaxThreads(max_num_threads);
+
+  grpc::ServerBuilder builder;
+  builder.SetResourceQuota(quota);
+  builder.AddListeningPort(server_address, grpc::InsecureServerCredentials());
+  builder.RegisterService(teeService);
+
+  tee_grpc_server = unique_ptr<grpc::Server>(builder.BuildAndStart());
+
+  LOG4CPLUS_INFO(logger, "TEE gRPC server listening on " << server_address);
+  tee_grpc_server->Wait();
+}
+
 /*
- * Check whether one and only one of the three provided booleans is true.
+ * Check whether one and only one of the four provided booleans is true.
  */
-bool OnlyOneTrue(bool a, bool b, bool c) {
-  return ((a != b) != c) && !(a && b && c);
+bool OnlyOneTrue(bool a, bool b, bool c, bool d) {
+  return (a && !b && !c && !d) || (!a && b && !c && !d) ||
+         (!a && !b && c && !d) || (!a && !b && !c && d);
 }
 
 std::shared_ptr<concord::utils::PrometheusRegistry>
@@ -414,11 +445,12 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
   bool daml_enabled = config.getValue<bool>("daml_enable");
   bool hlf_enabled = config.getValue<bool>("hlf_enable");
   bool eth_enabled = config.getValue<bool>("eth_enable");
+  bool tee_enabled = config.getValue<bool>("tee_enable");
 
-  if (!OnlyOneTrue(daml_enabled, hlf_enabled, eth_enabled)) {
+  if (!OnlyOneTrue(daml_enabled, hlf_enabled, eth_enabled, tee_enabled)) {
     LOG4CPLUS_WARN(logger,
-                   "Make sure one and only one execution engine (DAML, or Eth, "
-                   "or HLF) is set");
+                   "Make sure one and only one execution engine (DAML, Eth, "
+                   "HLF, or TEE) is set");
     return 0;
   }
   std::string metricsConfigPath =
@@ -528,6 +560,10 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
           unique_ptr<ICommandsHandler>(new HlfKvbCommandsHandler(
               chaincode_invoker, config, nodeConfig, replica, replica,
               subscriber_list, prometheus_registry));
+    } else if (tee_enabled) {
+      kvb_commands_handler = unique_ptr<ICommandsHandler>(
+          new TeeCommandsHandler(config, nodeConfig, replica, replica,
+                                 subscriber_list, prometheus_registry));
     } else {
       assert(eth_enabled);
       kvb_commands_handler =
@@ -634,6 +670,14 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
       // Start HLF gRPC services
       std::thread(RunHlfGrpcServer, std::ref(kvb_storage), std::ref(pool),
                   key_value_service_addr, chaincode_service_addr)
+          .detach();
+    } else if (tee_enabled) {
+      std::string tee_addr{
+          nodeConfig.getValue<std::string>("tee_service_addr")};
+
+      int max_num_threads = nodeConfig.getValue<int>("tee_service_threads");
+
+      std::thread(RunTeeGrpcServer, tee_addr, std::ref(pool), max_num_threads)
           .detach();
     }
 

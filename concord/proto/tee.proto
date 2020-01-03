@@ -1,0 +1,18 @@
+//
+// Test execution engine service
+//
+
+syntax = "proto3";
+package com.vmware.concord.tee;
+
+service TeeService {
+  rpc RunTest (TestInput) returns (TestOutput) {}
+}
+
+message TestInput {
+  string test_input = 1;
+}
+
+message TestOutput {
+  string test_output = 1;
+}

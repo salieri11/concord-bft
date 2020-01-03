@@ -4,6 +4,7 @@ file(GLOB concord_src "main.cpp"
   "daml/*.cpp"         "daml/*.hpp"
   "hlf/*.cpp"          "hlf/*.hpp"
   "thin_replica/*.cpp" "thin_replica/*.hpp"
+  "tee/*.cpp"          "tee/*.hpp"
 )
 
 string(APPEND CMAKE_CXX_FLAGS " -Wall")
