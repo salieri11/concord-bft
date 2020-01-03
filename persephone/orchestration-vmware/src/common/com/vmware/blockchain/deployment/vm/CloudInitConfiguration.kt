@@ -17,6 +17,7 @@ import com.vmware.blockchain.deployment.v1.Credential
 import com.vmware.blockchain.deployment.v1.Endpoint
 import com.vmware.blockchain.deployment.v1.LogManagement
 import com.vmware.blockchain.deployment.v1.OutboundProxyInfo
+import com.vmware.blockchain.deployment.v1.Wavefront
 import kotlinx.serialization.modules.serializersModuleOf
 
 import java.util.UUID
@@ -39,6 +40,7 @@ class CloudInitConfiguration(
     configServiceRestEndpoint: Endpoint,
     outboundProxy: OutboundProxyInfo,
     logManagements : List<LogManagement>,
+    wavefront: Wavefront,
     private val consortium: String
 ) {
     object ConcordAgentConfigurationSerializer
@@ -108,7 +110,9 @@ class CloudInitConfiguration(
                     ?: configServiceRestEndpoint,
             configurationSession =  configGenId,
             outboundProxyInfo = outboundProxy,
-            loggingEnvVariables = logManagements.loggingEnvVariablesSetup()
+            loggingEnvVariables = logManagements.loggingEnvVariablesSetup(),
+            wavefrontUrl = wavefront.wavefrontUrl,
+            wavefrontToken = wavefront.wavefrontToken
     )
 
     private val script =

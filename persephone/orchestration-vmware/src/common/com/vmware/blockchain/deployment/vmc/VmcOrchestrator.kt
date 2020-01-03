@@ -174,6 +174,7 @@ class VmcOrchestrator(
                                     request.configServiceRestEndpoint,
                                     OutboundProxyInfo(),
                                     info.logManagements,
+                                    info.wavefront,
                                     request.consortium
                             )
                     )

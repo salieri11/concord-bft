@@ -154,6 +154,7 @@ message VmcOrchestrationSiteInfo {
     string datacenter = 5;
     VSphereDatacenterInfo vsphere = 6;
     repeated LogManagement log_managements = 7 [packed=false];
+    Wavefront wavefront = 8;
 }
 
 /**
@@ -173,6 +174,16 @@ message VSphereOrchestrationSiteInfo {
     Endpoint container_registry = 2;
     VSphereDatacenterInfo vsphere = 3;
     repeated LogManagement log_managements = 4 [packed=false];
+    Wavefront wavefront = 5;
+}
+
+/**
+* Model definition of wavefront object.
+*
+*/
+message Wavefront {
+    string wavefront_url = 1;
+    string wavefront_token = 2;
 }
 
 /* [END messages] */
