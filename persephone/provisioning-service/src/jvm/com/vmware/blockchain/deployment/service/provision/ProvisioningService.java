@@ -37,6 +37,7 @@ import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.ImmutableMap;
 import com.vmware.blockchain.deployment.orchestration.NetworkAddress;
 import com.vmware.blockchain.deployment.orchestration.Orchestrator;
 import com.vmware.blockchain.deployment.orchestration.Orchestrator.ComputeResourceEvent;
@@ -521,11 +522,12 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
             concordIdentifierMap.put(key.getNode(), nodeIps.indexOf(nodeIp));
         });
 
+
         Properties rawProperties = new Properties();
         if (!properties.getValues().isEmpty()) {
             // TODO Take the key name from constants.
             String ipList = properties.getValues().getOrDefault("committers", "concord:50051");
-            rawProperties.getValues().put("replicas", ipList);
+            rawProperties = new Properties(ImmutableMap.of("replicas", ipList));
         }
 
         // TODO put log properties here and remove from cloudInit
