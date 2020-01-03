@@ -8,6 +8,7 @@
 #include <boost/circular_buffer.hpp>
 
 #include "blockchain/db_interfaces.h"
+#include "storage/kvb_app_filter.h"
 #include "thin_replica.grpc.pb.h"
 #include "thin_replica/subscription_buffer.hpp"
 
@@ -67,7 +68,8 @@ class ThinReplicaImpl final
   template <typename T>
   void SyncAndSend(concordUtils::BlockId start, const std::string& key_prefix,
                    std::shared_ptr<SubUpdateBuffer> live_updates,
-                   grpc::ServerWriter<T>* stream);
+                   grpc::ServerWriter<T>* stream,
+                   std::shared_ptr<concord::storage::KvbAppFilter> filter);
 };
 
 }  // namespace thin_replica

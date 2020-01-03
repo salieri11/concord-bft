@@ -38,6 +38,15 @@ class StreamClosed : public std::exception {
   virtual const char* what() const noexcept override { return "Stream closed"; }
 };
 
+std::string GetClientId(ServerContext* context) {
+  auto metadata = context->client_metadata();
+  auto client_id = metadata.find("client_id");
+  if (client_id != metadata.end()) {
+    return std::string(client_id->second.data());
+  }
+  throw std::invalid_argument("client_id metadata is missing");
+}
+
 // Send* prepares the response object and puts it on the stream
 void SendData(ServerWriter<Data>* stream,
               concord::thin_replica::SubUpdate& update) {
@@ -68,14 +77,14 @@ void ReadFromKvbAndSendData(
     log4cplus::Logger logger,
     ServerWriter<com::vmware::concord::thin_replica::Data>* stream,
     const concord::storage::blockchain::ILocalKeyValueStorageReadOnly* kvb,
-    BlockId start, BlockId end, const std::string& key_prefix) {
+    BlockId start, BlockId end, const std::string& key_prefix,
+    std::shared_ptr<KvbAppFilter> kvb_filter) {
   spsc_queue<KvbUpdate> queue{10};
-  KvbAppFilter kvb_filter(kvb, KvbAppFilter::kDaml);
   std::atomic_bool close_stream = false;
 
   auto kvb_reader = std::async(
-      std::launch::async, &KvbAppFilter::ReadBlockRange, &kvb_filter, start,
-      end, std::ref(key_prefix), std::ref(queue), std::ref(close_stream));
+      std::launch::async, &KvbAppFilter::ReadBlockRange, kvb_filter, start, end,
+      std::ref(key_prefix), std::ref(queue), std::ref(close_stream));
 
   KvbUpdate kvb_update;
   while (kvb_reader.wait_for(0s) != std::future_status::ready ||
@@ -106,12 +115,12 @@ void ReadFromKvbAndSendHashes(
     log4cplus::Logger logger,
     ServerWriter<com::vmware::concord::thin_replica::Hash>* stream,
     const concord::storage::blockchain::ILocalKeyValueStorageReadOnly* kvb,
-    BlockId start, BlockId end, const std::string& key_prefix) {
+    BlockId start, BlockId end, const std::string& key_prefix,
+    std::shared_ptr<KvbAppFilter> kvb_filter) {
   BlockId block_id = start;
-  KvbAppFilter kvb_filter(kvb, KvbAppFilter::kDaml);
 
   for (; block_id <= end; ++block_id) {
-    size_t hash = kvb_filter.ReadBlockHash(block_id, key_prefix);
+    size_t hash = kvb_filter->ReadBlockHash(block_id, key_prefix);
     SendHash(stream, block_id, hash);
   }
 }
@@ -121,7 +130,8 @@ template <typename T>
 inline void ReadAndSend(
     log4cplus::Logger logger, ServerWriter<T>* stream,
     const concord::storage::blockchain::ILocalKeyValueStorageReadOnly* kvb,
-    BlockId start, BlockId end, const std::string& key_prefix) {
+    BlockId start, BlockId end, const std::string& key_prefix,
+    std::shared_ptr<KvbAppFilter> kvb_filter) {
   static_assert(std::is_same<T, Data>() || std::is_same<T, Hash>(),
                 "We expect either a Data or Hash type");
   if constexpr (std::is_same<T, Data>()) {
@@ -136,7 +146,8 @@ inline void ReadAndSend(
 template <typename T>
 void ThinReplicaImpl::SyncAndSend(BlockId start, const std::string& key_prefix,
                                   std::shared_ptr<SubUpdateBuffer> live_updates,
-                                  ServerWriter<T>* stream) {
+                                  ServerWriter<T>* stream,
+                                  std::shared_ptr<KvbAppFilter> kvb_filter) {
   SubUpdate update;
   BlockId end = rostorage_->getLastBlock();
   assert(start <= end);
@@ -145,7 +156,8 @@ void ThinReplicaImpl::SyncAndSend(BlockId start, const std::string& key_prefix,
   // we have to catch up with first
   LOG4CPLUS_INFO(logger_,
                  "Sync reading from KVB [" << start << ", " << end << "]");
-  ReadAndSend<T>(logger_, stream, rostorage_, start, end, key_prefix);
+  ReadAndSend<T>(logger_, stream, rostorage_, start, end, key_prefix,
+                 kvb_filter);
 
   // Let's wait until we have at least one live update
   // TODO: Notify instead of busy wait?
@@ -170,7 +182,8 @@ void ThinReplicaImpl::SyncAndSend(BlockId start, const std::string& key_prefix,
 
     LOG4CPLUS_INFO(logger_,
                    "Sync filling gap [" << start << ", " << end << "]");
-    ReadAndSend<T>(logger_, stream, rostorage_, start, end, key_prefix);
+    ReadAndSend<T>(logger_, stream, rostorage_, start, end, key_prefix,
+                   kvb_filter);
   }
 
   // Overlap:
@@ -187,7 +200,17 @@ grpc::Status ThinReplicaImpl::ReadState(
     ServerContext* context,
     const com::vmware::concord::thin_replica::ReadStateRequest* request,
     ServerWriter<com::vmware::concord::thin_replica::Data>* stream) {
-  KvbAppFilter kvb_filter(rostorage_, KvbAppFilter::kDaml);
+  std::shared_ptr<KvbAppFilter> kvb_filter;
+
+  try {
+    kvb_filter = std::make_shared<KvbAppFilter>(rostorage_, KvbAppFilter::kDaml,
+                                                GetClientId(context));
+  } catch (std::exception& error) {
+    LOG4CPLUS_ERROR(logger_, error.what());
+    std::stringstream msg;
+    msg << "Failed to set up filter: " << error.what();
+    return grpc::Status(grpc::StatusCode::UNKNOWN, msg.str());
+  }
 
   LOG4CPLUS_DEBUG(logger_, "ReadState");
 
@@ -197,7 +220,7 @@ grpc::Status ThinReplicaImpl::ReadState(
 
   try {
     ReadFromKvbAndSendData(logger_, stream, rostorage_, start, end,
-                           request->key_prefix());
+                           request->key_prefix(), kvb_filter);
   } catch (std::exception& error) {
     LOG4CPLUS_ERROR(logger_, "Failed to read and send state: " << error.what());
     return grpc::Status(grpc::StatusCode::UNKNOWN,
@@ -211,8 +234,18 @@ grpc::Status ThinReplicaImpl::ReadStateHash(
     ServerContext* context,
     const com::vmware::concord::thin_replica::ReadStateHashRequest* request,
     com::vmware::concord::thin_replica::Hash* hash) {
-  KvbAppFilter kvb_filter(rostorage_, KvbAppFilter::kDaml);
   concord::storage::KvbStateHash kvb_hash;
+  std::shared_ptr<KvbAppFilter> kvb_filter;
+
+  try {
+    kvb_filter = std::make_shared<KvbAppFilter>(rostorage_, KvbAppFilter::kDaml,
+                                                GetClientId(context));
+  } catch (std::exception& error) {
+    LOG4CPLUS_ERROR(logger_, error.what());
+    std::stringstream msg;
+    msg << "Failed to set up filter: " << error.what();
+    return grpc::Status(grpc::StatusCode::UNKNOWN, msg.str());
+  }
 
   LOG4CPLUS_DEBUG(logger_, "ReadStateHash");
 
@@ -222,8 +255,8 @@ grpc::Status ThinReplicaImpl::ReadStateHash(
 
   std::string key_prefix = request->key_prefix();
   try {
-    kvb_hash =
-        kvb_filter.ReadBlockRangeHash(block_id_start, block_id_end, key_prefix);
+    kvb_hash = kvb_filter->ReadBlockRangeHash(block_id_start, block_id_end,
+                                              key_prefix);
   } catch (concord::storage::KvbReadError& error) {
     LOG4CPLUS_ERROR(logger_, error.what());
     std::stringstream msg;
@@ -248,9 +281,19 @@ grpc::Status ThinReplicaImpl::SubscribeToUpdates(
     ServerContext* context,
     const com::vmware::concord::thin_replica::SubscriptionRequest* request,
     ServerWriter<com::vmware::concord::thin_replica::Data>* stream) {
-  KvbAppFilter kvb_filter(rostorage_, KvbAppFilter::kDaml);
   std::pair<BlockId, SetOfKeyValuePairs> update;
   SubUpdate live_update;
+  std::shared_ptr<KvbAppFilter> kvb_filter;
+
+  try {
+    kvb_filter = std::make_shared<KvbAppFilter>(rostorage_, KvbAppFilter::kDaml,
+                                                GetClientId(context));
+  } catch (std::exception& error) {
+    LOG4CPLUS_ERROR(logger_, error.what());
+    std::stringstream msg;
+    msg << "Failed to set up filter: " << error.what();
+    return grpc::Status(grpc::StatusCode::UNKNOWN, msg.str());
+  }
 
   // Subscribe before we start reading from KVB
   auto live_updates = std::make_shared<SubUpdateBuffer>(100);
@@ -266,7 +309,7 @@ grpc::Status ThinReplicaImpl::SubscribeToUpdates(
 
   try {
     SyncAndSend<Data>(request->block_id(), request->key_prefix(), live_updates,
-                      stream);
+                      stream, kvb_filter);
   } catch (std::exception& error) {
     LOG4CPLUS_ERROR(logger_, error.what());
     subscriber_list_.RemoveBuffer(live_updates);
@@ -282,7 +325,7 @@ grpc::Status ThinReplicaImpl::SubscribeToUpdates(
   while (true) {
     update = live_updates->Pop();
     SubUpdate filtered_update =
-        kvb_filter.FilterUpdate(update, request->key_prefix());
+        kvb_filter->FilterUpdate(update, request->key_prefix());
     try {
       SendData(stream, filtered_update);
     } catch (std::exception& error) {
@@ -302,7 +345,17 @@ grpc::Status ThinReplicaImpl::SubscribeToUpdateHashes(
     const com::vmware::concord::thin_replica::SubscriptionRequest* request,
     ServerWriter<com::vmware::concord::thin_replica::Hash>* stream) {
   std::pair<BlockId, SetOfKeyValuePairs> update;
-  KvbAppFilter kvb_filter(rostorage_, KvbAppFilter::kDaml);
+  std::shared_ptr<KvbAppFilter> kvb_filter;
+
+  try {
+    kvb_filter = std::make_shared<KvbAppFilter>(rostorage_, KvbAppFilter::kDaml,
+                                                GetClientId(context));
+  } catch (std::exception& error) {
+    LOG4CPLUS_ERROR(logger_, error.what());
+    std::stringstream msg;
+    msg << "Failed to set up filter: " << error.what();
+    return grpc::Status(grpc::StatusCode::UNKNOWN, msg.str());
+  }
 
   auto live_updates = std::make_shared<SubUpdateBuffer>(100);
   subscriber_list_.AddBuffer(live_updates);
@@ -317,7 +370,7 @@ grpc::Status ThinReplicaImpl::SubscribeToUpdateHashes(
 
   try {
     SyncAndSend<Hash>(request->block_id(), request->key_prefix(), live_updates,
-                      stream);
+                      stream, kvb_filter);
   } catch (std::exception& error) {
     LOG4CPLUS_ERROR(logger_, error.what());
     subscriber_list_.RemoveBuffer(live_updates);
@@ -333,9 +386,9 @@ grpc::Status ThinReplicaImpl::SubscribeToUpdateHashes(
   while (true) {
     update = live_updates->Pop();
     SubUpdate filtered_update =
-        kvb_filter.FilterUpdate(update, request->key_prefix());
+        kvb_filter->FilterUpdate(update, request->key_prefix());
     try {
-      SendHash(stream, update.first, kvb_filter.HashUpdate(filtered_update));
+      SendHash(stream, update.first, kvb_filter->HashUpdate(filtered_update));
     } catch (std::exception& error) {
       LOG4CPLUS_INFO(logger_,
                      "Hash subscription stream closed: " << error.what());

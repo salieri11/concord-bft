@@ -48,6 +48,8 @@ SetOfKeyValuePairs KvbAppFilter::FilterKeyValuePairs(
       continue;
     }
 
+    // TODO: Filter by Client ID
+
     // Strip KVB key type
     Key new_key =
         key.subsliver(sizeof kvb_key_id, key.length() - (sizeof kvb_key_id));

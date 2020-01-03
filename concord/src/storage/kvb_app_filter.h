@@ -37,10 +37,12 @@ class KvbAppFilter {
 
   KvbAppFilter(const concord::storage::blockchain::ILocalKeyValueStorageReadOnly
                    *rostorage,
-               const KvbAppFilter::AppType app_type)
+               const KvbAppFilter::AppType app_type,
+               const std::string &client_id)
       : logger_(log4cplus::Logger::getInstance("concord.storage.KvbFilter")),
         rostorage_(rostorage),
-        type_(app_type) {}
+        type_(app_type),
+        client_id_(client_id) {}
 
   // Filter the given update
   KvbUpdate FilterUpdate(const KvbUpdate &update,
@@ -75,6 +77,7 @@ class KvbAppFilter {
   log4cplus::Logger logger_;
   const concord::storage::blockchain::ILocalKeyValueStorageReadOnly *rostorage_;
   const KvbAppFilter::AppType type_;
+  const std::string client_id_;
 
   // Filter the given set of key-value pairs and return the result.
   SetOfKeyValuePairs FilterKeyValuePairs(const SetOfKeyValuePairs &kvs,
