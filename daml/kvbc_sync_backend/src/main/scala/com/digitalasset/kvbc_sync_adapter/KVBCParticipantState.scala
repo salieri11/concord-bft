@@ -99,11 +99,9 @@ class KVBCParticipantState(
 
   /** Upload DAML-LF packages to the ledger */
   override def uploadPackages(
+      submissionId: SubmissionId,
       archives: List[Archive],
-      sourceDescription: Option[String]): CompletionStage[UploadPackagesResult] = {
-
-    //Since the gRPC layer below is synchronous, it is not necessary to memorize the submissionId
-    val submissionId: String = UUID.randomUUID.toString
+      sourceDescription: Option[String]): CompletionStage[SubmissionResult] = {
 
     val submission: DamlKvutils.DamlSubmission =
       KeyValueSubmission.archivesToSubmission(submissionId, archives, sourceDescription.getOrElse(""), participantId)
@@ -118,35 +116,8 @@ class KVBCParticipantState(
     logger.info(s"""Uploading package(s), packages=[${archives.map(_.getHash).mkString(",")}] correlationId=$submissionId 
           |envelopeSize=${envelope.size}""".stripMargin.stripLineEnd)
 
-    client
-      .commitTransaction(commitReq)
-      .toJava
-      .toCompletableFuture
-      .handle((resp, e) =>
-        if (resp != null)
-          resp.status match {
-            case CommitResponse.CommitStatus.OK =>
-              logger.info(s"Package upload completed successfully, correlationId=$submissionId")
-              UploadPackagesResult.Ok
-
-            case error =>
-              //TODO: convert to SubmissionResult.InternalError, when provided
-              //Unknown error is not a viable option. LedgerAPI client needs to get a meaningful error
-              logger.error(s"Package upload failed with an error, correlationId=$submissionId " +
-                s"error='${error.toString}''")
-              UploadPackagesResult.InvalidPackage(s"Package upload failed with an error ${error.toString}")
-        }
-        else {
-          logger.error(s"Package upload failed with an exception, correlationId=$submissionId exception='${e.toString}'")
-          e match {
-            case grpc: StatusRuntimeException if grpc.getStatus.getCode == Status.Code.RESOURCE_EXHAUSTED =>
-              UploadPackagesResult.Overloaded
-            case _ =>
-              //TODO: convert to SubmissionResult.InternalError, when provided
-              UploadPackagesResult.InternalError(e.toString)
-          }
-        }
-      )
+    // FIXME(JM): Properly queue the transactions and execute in sequence from one place.
+    submit(submissionId, commitReq)
   }
 
   private def submit(submissionId: String, commitReq: CommitRequest) : CompletionStage[SubmissionResult] = 
@@ -241,6 +212,8 @@ class KVBCParticipantState(
   override def currentHealth: HealthStatus = client.currentHealth
 
   override def stateUpdates(beginAfter: Option[Offset]): Source[(Offset, Update), NotUsed] = {
+
+    logger.info(s"Initializing transaction source")
 
     val beginFromBlockId: Long =
       beginAfter
