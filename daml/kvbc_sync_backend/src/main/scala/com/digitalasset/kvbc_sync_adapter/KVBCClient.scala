@@ -37,7 +37,7 @@ class KVBCClient private(host: String, port: Int) (implicit val ec: ExecutionCon
   val eventsClient: EventsServiceGrpc.EventsServiceStub = EventsServiceGrpc.stub(channel)
   def shouldRetry(err: Throwable): Boolean = { 
     err match {
-      case sre: StatusRuntimeException if (sre.getStatus.getCode == Status.RESOURCE_EXHAUSTED) => true
+      case sre: StatusRuntimeException if (sre.getStatus.getCode == Status.Code.RESOURCE_EXHAUSTED) => true
       case _ => false
     }
   }

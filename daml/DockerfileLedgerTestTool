@@ -18,11 +18,12 @@
 # * <repo-url>/daml-ledger-api-test-tool:100.13.38
 # * <repo-url>/daml-ledger-api-test-tool:100.13.39
 # * <repo-url>/daml-ledger-api-test-tool:100.13.40
+# * <repo-url>/daml-ledger-api-test-tool:100.13.41
 
 FROM maven:3.6.2-jdk-8-slim
 
-RUN TEST_TOOL_VER='100.13.40' && \
-    mvn dependency:get -DrepoUrl=http://repo.maven.apache.org/maven2/ \ 
+RUN TEST_TOOL_VER='100.13.41' && \
+    mvn dependency:get -DrepoUrl=http://repo.maven.apache.org/maven2/ \
       -Dartifact=com.daml.ledger.testtool:ledger-api-test-tool:${TEST_TOOL_VER}:jar \
       -Dtransitive=false -Ddest=/ledger-api-test-tool-${TEST_TOOL_VER}.jar && \
     java -jar /ledger-api-test-tool-${TEST_TOOL_VER}.jar -x localhost:6865
