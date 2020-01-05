@@ -439,17 +439,17 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
     // objects in more clear way
     bftEngine::ICommunication *icomm = nullptr;
     if (commConfig.commType == "tls") {
-      TlsTcpConfig config(commConfig.listenIp, commConfig.listenPort,
-                          commConfig.bufferLength, commConfig.nodes,
-                          commConfig.maxServerId, commConfig.selfId,
-                          commConfig.certificatesRootPath,
-                          commConfig.cipherSuite, commConfig.statusCallback);
-      icomm = bftEngine::CommFactory::create(config);
+      bftEngine::TlsTcpConfig configuration(
+          commConfig.listenIp, commConfig.listenPort, commConfig.bufferLength,
+          commConfig.nodes, commConfig.maxServerId, commConfig.selfId,
+          commConfig.certificatesRootPath, commConfig.cipherSuite,
+          commConfig.statusCallback);
+      icomm = bftEngine::CommFactory::create(configuration);
     } else if (commConfig.commType == "udp") {
-      PlainUdpConfig config(commConfig.listenIp, commConfig.listenPort,
-                            commConfig.bufferLength, commConfig.nodes,
-                            commConfig.selfId, commConfig.statusCallback);
-      icomm = bftEngine::CommFactory::create(config);
+      bftEngine::PlainUdpConfig configuration(
+          commConfig.listenIp, commConfig.listenPort, commConfig.bufferLength,
+          commConfig.nodes, commConfig.selfId, commConfig.statusCallback);
+      icomm = bftEngine::CommFactory::create(configuration);
     } else {
       throw std::invalid_argument("Unknown communication module type" +
                                   commConfig.commType);
@@ -534,9 +534,9 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
       initializeSBFTConfiguration(config, nodeConfig, &clientCommConfig,
                                   &clientConfig, i, nullptr);
 
-      ICommunication *comm = nullptr;
+      bftEngine::ICommunication *comm = nullptr;
       if (commConfig.commType == "tls") {
-        TlsTcpConfig config(
+        bftEngine::TlsTcpConfig config(
             clientCommConfig.listenIp, clientCommConfig.listenPort,
             clientCommConfig.bufferLength, clientCommConfig.nodes,
             clientCommConfig.maxServerId, clientCommConfig.selfId,
@@ -544,7 +544,7 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
             clientCommConfig.statusCallback);
         comm = bftEngine::CommFactory::create(config);
       } else if (commConfig.commType == "udp") {
-        PlainUdpConfig config(
+        bftEngine::PlainUdpConfig config(
             clientCommConfig.listenIp, clientCommConfig.listenPort,
             clientCommConfig.bufferLength, clientCommConfig.nodes,
             clientCommConfig.selfId, clientCommConfig.statusCallback);

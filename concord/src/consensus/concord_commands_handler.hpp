@@ -56,7 +56,7 @@ class ConcordCommandsHandler
   virtual ~ConcordCommandsHandler() {}
 
   // Callback from the replica via ICommandsHandler.
-  int execute(uint16_t client_id, uint64_t sequence_num, bool read_only,
+  int execute(uint16_t client_id, uint64_t sequence_num, uint8_t flags,
               uint32_t request_size, const char *request,
               uint32_t max_reply_size, char *out_reply,
               uint32_t &out_reply_size) override;

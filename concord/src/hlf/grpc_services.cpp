@@ -210,15 +210,17 @@ bool HlfChaincodeServiceImpl::VerifyChaincodeBytes(HlfRequest& hlf_request,
   if (hlf_request.chaincode_source_bytes().length() >
       HlfKeyValueServiceImpl::kMaxChaincodeBytesize) {
     LOG4CPLUS_ERROR(
-        logger_, "Size of Chaincode file is too large."
-                     << " The chaincode size is "
-                     << to_string(hlf_request.chaincode_source_bytes().length())
-                     << " Bytes");
+        logger_,
+        "Size of Chaincode file is too large."
+            << " The chaincode size is "
+            << std::to_string(hlf_request.chaincode_source_bytes().length())
+            << " Bytes");
 
     msg =
         "Failed to upload because the chaincode size is larger "
         "than MAX allowed size: " +
-        to_string(HlfKeyValueServiceImpl::kMaxChaincodeBytesize / 1024) + " MB";
+        std::to_string(HlfKeyValueServiceImpl::kMaxChaincodeBytesize / 1024) +
+        " MB";
 
     return false;
   }

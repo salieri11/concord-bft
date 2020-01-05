@@ -48,12 +48,13 @@ ConcordCommandsHandler::ConcordCommandsHandler(
 }
 
 int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
-                                    bool read_only, uint32_t request_size,
+                                    uint8_t flags, uint32_t request_size,
                                     const char *request_buffer,
                                     uint32_t max_response_size,
                                     char *response_buffer,
                                     uint32_t &out_response_size) {
   executing_bft_sequence_num_ = sequence_num;
+  bool read_only = flags & bftEngine::MsgFlag::READ_ONLY_FLAG;
 
   request_.Clear();
   response_.Clear();
