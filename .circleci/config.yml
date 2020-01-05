@@ -7,14 +7,21 @@ jobs:
     steps:
       - checkout
       - run:
-          name: Installing GCC
-          command: 'sudo apt-get update && sudo apt-get install -y gcc g++'
+          name: Installing toolchain
+          ommand: 'sudo apt-get update && sudo apt-get install -y gcc g++ cmake clang-format libgmp3-dev'
       - run:
-          name: Install CMAKE
-          command: 'sudo apt-get install -y cmake'
+          name: Install RELIC
+          command: 'git clone https://github.com/relic-toolkit/relic && cd relic && git checkout b984e901ba78c83ea4093ea96addd13628c8c2d0 && mkdir -p build && /
+		    cd build && /
+		    cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DALLOC=AUTO -DWSIZE=64 -DRAND=UDEV -DSHLIB=ON -DSTLIB=ON -DSTBIN=OFF -DTIMER=HREAL -DCHECK=on -DVERBS=on -DARITH=x64-asm-254 -DFP_PRIME=254 -DFP_METHD="INTEG;INTEG;INTEG;MONTY;LOWER;SLIDE" -DCOMP="-O3 -funroll-loops -fomit-frame-pointer -finline-small-functions -march=native -mtune=native" -DFP_PMERS=off -DFP_QNRES=on -DFPX_METHD="INTEG;INTEG;LAZYR" -DPP_METHD="LAZYR;OATEP" .. && /
+		    make -j4 && /
+                    sudo make install'
+      - run:
+	  name: Install CryptoPP
+	  command: 'cd ../.. && git clone https://github.com/weidai11/cryptopp.git && cd cryptopp && git checkout CRYPTOPP_8_2_0; && make -j4 && sudo make install'
       - run:
           name: Creating Build Files
-          command: 'mkdir build && cd build && cmake -DBUILD_TESTING=1 ..'
+          command: 'cd ../.. && mkdir build && cd build && cmake -DBUILD_TESTING=1 ..'
       - run:
           name: Creating Binary Files
           command: 'make -j4'
