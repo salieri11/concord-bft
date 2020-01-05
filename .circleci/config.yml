@@ -33,7 +33,7 @@ jobs:
       - run:
           name: Creating Build Files
           command: |
-              cd ~/concord-bft
+              cd
               mkdir build
               cd build
               cmake -DBUILD_TESTING=1 ..
