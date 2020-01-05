@@ -12,6 +12,7 @@ jobs:
       - run:
           name: Install RELIC
           command: |
+             cd
              git clone https://github.com/relic-toolkit/relic
              cd relic
              git checkout b984e901ba78c83ea4093ea96addd13628c8c2d0
@@ -23,7 +24,7 @@ jobs:
       - run:
           name: Install CryptoPP
           command: |
-              cd ../..
+              cd
               git clone https://github.com/weidai11/cryptopp.git
               cd cryptopp
               git checkout CRYPTOPP_8_2_0;
@@ -31,7 +32,11 @@ jobs:
               sudo make install
       - run:
           name: Creating Build Files
-          command: 'cd ../.. && mkdir build && cd build && cmake -DBUILD_TESTING=1 ..'
+          command: |
+              cd
+              mkdir build
+              cd build
+              cmake -DBUILD_TESTING=1 ..
       - run:
           name: Creating Binary Files
           command: 'make -j4'
