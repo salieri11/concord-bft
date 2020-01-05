@@ -30,7 +30,7 @@ jobs:
               make -j4
               sudo make install
       - checkout
-      -run:
+      - run:
           name: Init submodules
           command: |
              cd ~/project
