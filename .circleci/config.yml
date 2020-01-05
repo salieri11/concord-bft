@@ -48,4 +48,4 @@ jobs:
           command: 'cd ~/project/build && make -j4'
       - run:
           name: Run Unit Testing
-          command: 'cd ~/project/build && make test'
+          command: 'cd ~/project/build && sudo make test'
