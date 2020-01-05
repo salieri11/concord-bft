@@ -30,17 +30,20 @@ jobs:
               make -j4
               sudo make install
       - checkout
-      - run:
-          name: Creating Build Files
+      -run:
+          name: Init submodules
           command: |
-              cd
-              pwd
-              ls
+             cd ~/project
+             git submodule init
+             git submodule update --recursive
+      - run:
+          name: Running CMake
+          command: |
               mkdir build
               cd build
               cmake -DBUILD_TESTING=1 ..
       - run:
-          name: Creating Binary Files
+          name: Building
           command: 'make -j4'
       - run:
           name: Run Unit Testing
