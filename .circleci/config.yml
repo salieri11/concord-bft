@@ -17,8 +17,8 @@ jobs:
                     make -j4 && /
                     sudo make install'
       - run:
-	  name: Install CryptoPP
-	  command: 'cd ../.. && git clone https://github.com/weidai11/cryptopp.git && cd cryptopp && git checkout CRYPTOPP_8_2_0; && make -j4 && sudo make install'
+          name: Install CryptoPP
+          command: 'cd ../.. && git clone https://github.com/weidai11/cryptopp.git && cd cryptopp && git checkout CRYPTOPP_8_2_0; && make -j4 && sudo make install'
       - run:
           name: Creating Build Files
           command: 'cd ../.. && mkdir build && cd build && cmake -DBUILD_TESTING=1 ..'
