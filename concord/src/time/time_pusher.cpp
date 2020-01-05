@@ -55,7 +55,7 @@ TimePusher::TimePusher(const concord::config::ConcordConfiguration &config,
     } else if ((config.getValue<string>("time_verification") !=
                 "bft-client-proxy-id") &&
                (config.getValue<string>("time_verification") != "none")) {
-      throw invalid_argument(
+      throw std::invalid_argument(
           "Cannot construct TimePusher: Unrecognized selection for "
           "time_verification in configuration: \"" +
           config.getValue<string>("time_verification") + "\".");
@@ -110,7 +110,7 @@ void TimePusher::AddTimeToCommand(ConcordRequest &command, Timestamp time) {
     Timestamp *t = new Timestamp(time);
     ts->set_allocated_time(t);
     if (signer_) {
-      vector<uint8_t> signature = signer_->Sign(time);
+      std::vector<uint8_t> signature = signer_->Sign(time);
       ts->set_signature(signature.data(), signature.size());
     }
   }

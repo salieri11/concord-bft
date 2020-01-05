@@ -70,7 +70,7 @@ bool KVBClient::send_request_sync(ConcordRequest &req, bool isReadOnly,
 
 KVBClientPool::KVBClientPool(std::vector<KVBClient *> &clients,
                              std::chrono::milliseconds timeout,
-                             shared_ptr<TimePusher> time_pusher)
+                             std::shared_ptr<TimePusher> time_pusher)
     : logger_(
           log4cplus::Logger::getInstance("com.vmware.concord.KVBClientPool")),
       time_pusher_(time_pusher),
