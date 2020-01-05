@@ -5,7 +5,6 @@ jobs:
     docker:
       - image: "circleci/buildpack-deps:18.04"
     steps:
-      - checkout
       - run:
           name: Installing toolchain
           command: 'sudo apt-get update && sudo apt-get install -y gcc g++ cmake clang-format libgmp3-dev'
@@ -30,10 +29,11 @@ jobs:
               git checkout CRYPTOPP_8_2_0;
               make -j4
               sudo make install
+      - checkout
       - run:
           name: Creating Build Files
           command: |
-              cd
+              cd ~/concord-bft
               mkdir build
               cd build
               cmake -DBUILD_TESTING=1 ..
