@@ -2,6 +2,7 @@
 
 #include "thin_replica_client.hpp"
 
+using com::vmware::concord::thin_replica::BlockId;
 using com::vmware::concord::thin_replica::Data;
 using com::vmware::concord::thin_replica::Hash;
 using com::vmware::concord::thin_replica::KVPair;
@@ -427,9 +428,27 @@ void ThinReplicaClient::Unsubscribe() {
       "thin_replica_client::ThinReplicaClient::Unsubscribe is unimplemented.");
 }
 
+// Note that acknowledgement is not currently implemented on the Thin Replica
+// Server side. As such, the current implementation is a placeholder that
+// prepares the acknowledgement message and picks a server to send it to, but is
+// missing a call to actually send it; that call will be added once
+// acknowledgement is supported on the server side.
+//
+// Thin Replica Client applications should still call this placeholder so they
+// will not need to be modified once we replace it with a real implementation.
+//
+// TODO (Alex):
+//     - Add lines to actually send message once the Thin Replica Server
+//       supports receiving it.
+//     - Add logic for signing the acknowledgement once the signature scheme is
+//       defined.
+//     - Add logic to pick a different server to send the acknowledgement to if
+//       server 0 is known to be down or faulty.
 void ThinReplicaClient::AcknowledgeBlockID(uint64_t block_id) {
-  // TODO (Alex): Implement.
-  LOG4CPLUS_FATAL(logger_,
-                  "thin_replica_client::ThinReplicaClient::AcknowledgeBlockID "
-                  "is unimplemented.");
+  BlockId AckMessage;
+  AckMessage.set_block_id(block_id);
+
+  size_t replica_to_acknowledge_to = 0;
+  assert(server_stubs_.size() > replica_to_acknowledge_to);
+  assert(server_stubs_[replica_to_acknowledge_to]);
 }
