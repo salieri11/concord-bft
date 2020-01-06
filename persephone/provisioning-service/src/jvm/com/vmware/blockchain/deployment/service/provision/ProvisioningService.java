@@ -716,7 +716,7 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
                         Map.entry(
                                 entry.getSite(),
                                 orchestratorProvider.newOrchestrator(
-                                        OrchestrationSites.Companion.buildSiteInfo(
+                                        OrchestrationSites.buildSiteInfo(
                                                 entry.getSiteInfo(),
                                                 containerRegistry,
                                                 allocationServer
@@ -1336,7 +1336,7 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
     ) {
         return new ConcordNode(
                 event.getNode(),
-                ConcordNodeInfos.Companion.toConcordNode(blockchainType),
+                ConcordNodeInfos.toConcordNode(blockchainType),
                 toConcordNodeHostInfo(event, placementEntryByNodeName)
         );
     }
@@ -1364,7 +1364,7 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
     ) {
         return new ConcordNode(
                 placementEntryByNodeName.get(publicNetworkEvent.getName()).getNode(),
-                ConcordNodeInfos.Companion.toConcordNode(blockchainType),
+                ConcordNodeInfos.toConcordNode(blockchainType),
                 toConcordNodeHostInfo(
                         publicNetworkEvent,
                         privateNetworkEvent,
