@@ -40,7 +40,8 @@ public class OrchestrationSites {
                                                              original.getVsphere().getApi(),
                                                              containerRegistry,
                                                              original.getVsphere().getVsphere(),
-                                                             original.getVsphere().getLogManagements()));
+                                                             original.getVsphere().getLogManagements(),
+                                                             original.getVsphere().getWavefront()));
             }
 
             if (Strings.isEmpty(
@@ -71,7 +72,8 @@ public class OrchestrationSites {
                                                                                              .getNameServers()),
                                                                      original.getVsphere().getVsphere()
                                                                              .getOutboundProxy()),
-                                                             original.getVsphere().getLogManagements()));
+                                                             original.getVsphere().getLogManagements(),
+                                                             original.getVsphere().getWavefront()));
             }
         }
 
@@ -87,7 +89,8 @@ public class OrchestrationSites {
                                                      original.getVmc().getDatacenter(),
                                                      original.getVmc().getVsphere(),
                                                      original.getVmc()
-                                                             .getLogManagements()),
+                                                             .getLogManagements(),
+                                                     original.getVmc().getWavefront()),
                         new VSphereOrchestrationSiteInfo());
             }
 
@@ -134,7 +137,8 @@ public class OrchestrationSites {
                                                              original.getVmc().getVsphere()
                                                                      .getOutboundProxy()),
                                                      original.getVmc()
-                                                             .getLogManagements()),
+                                                             .getLogManagements(),
+                                                     original.getVmc().getWavefront()),
                         new VSphereOrchestrationSiteInfo());
             }
         }
