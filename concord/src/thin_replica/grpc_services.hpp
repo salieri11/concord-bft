@@ -66,7 +66,7 @@ class ThinReplicaImpl final
 
  private:
   template <typename T>
-  void SyncAndSend(concordUtils::BlockId start, const std::string& key_prefix,
+  void SyncAndSend(concordUtils::BlockId start,
                    std::shared_ptr<SubUpdateBuffer> live_updates,
                    grpc::ServerWriter<T>* stream,
                    std::shared_ptr<concord::storage::KvbAppFilter> filter);

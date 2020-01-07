@@ -38,15 +38,15 @@ class KvbAppFilter {
   KvbAppFilter(const concord::storage::blockchain::ILocalKeyValueStorageReadOnly
                    *rostorage,
                const KvbAppFilter::AppType app_type,
-               const std::string &client_id)
+               const std::string &client_id, const std::string &key_prefix)
       : logger_(log4cplus::Logger::getInstance("concord.storage.KvbFilter")),
         rostorage_(rostorage),
         type_(app_type),
-        client_id_(client_id) {}
+        client_id_(client_id),
+        key_prefix_(key_prefix) {}
 
   // Filter the given update
-  KvbUpdate FilterUpdate(const KvbUpdate &update,
-                         const std::string &key_prefix);
+  KvbUpdate FilterUpdate(const KvbUpdate &update);
 
   // Compute hash for the given update
   size_t HashUpdate(const KvbUpdate update);
@@ -61,27 +61,24 @@ class KvbAppFilter {
   // queue is full and therefore, it cannot push a new key-value pair.
   // Note: single producer & single consumer queue.
   void ReadBlockRange(concordUtils::BlockId start, concordUtils::BlockId end,
-                      const std::string &key_prefix,
                       boost::lockfree::spsc_queue<KvbUpdate> &queue_out,
                       const std::atomic_bool &stop_execution);
 
   // Compute the hash of all key-value pairs in the range of [earliest block
   // available, given block_id] based on the given KvbAppFilter::AppType.
   KvbStateHash ReadBlockRangeHash(concordUtils::BlockId start,
-                                  concordUtils::BlockId end,
-                                  const std::string &key_prefix);
-  KvbStateHash ReadBlockHash(concordUtils::BlockId block_id,
-                             const std::string &key_prefix);
+                                  concordUtils::BlockId end);
+  KvbStateHash ReadBlockHash(concordUtils::BlockId block_id);
 
  private:
   log4cplus::Logger logger_;
   const concord::storage::blockchain::ILocalKeyValueStorageReadOnly *rostorage_;
   const KvbAppFilter::AppType type_;
   const std::string client_id_;
+  const std::string key_prefix_;
 
   // Filter the given set of key-value pairs and return the result.
-  SetOfKeyValuePairs FilterKeyValuePairs(const SetOfKeyValuePairs &kvs,
-                                         const std::string &key_prefix);
+  SetOfKeyValuePairs FilterKeyValuePairs(const SetOfKeyValuePairs &kvs);
 };
 
 }  // namespace storage
