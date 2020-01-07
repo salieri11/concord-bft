@@ -11,4 +11,4 @@ if [ -e ${CONFIG_FILE} ]; then
   . ${CONFIG_FILE}
 fi
 
-/doc/daml/kvbc_validator/target/universal/stage/bin/kvbc-validator $@
+/doc/daml/execution-engine/target/universal/stage/bin/daml-on-vmware-execution-engine $@
