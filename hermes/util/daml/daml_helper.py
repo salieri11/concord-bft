@@ -77,7 +77,7 @@ def verify_ledger_api_test_tool(host='ledger', port='6865'):
                 " {}:{}".format(host, port)
    log.info("Run %s...", TEST_TOOL_NAME)
    try:
-      subprocess.check_call(cmd.split(), timeout=240)
+      subprocess.check_call(cmd.split(), timeout=360)
    except subprocess.TimeoutExpired as e:
       msg = "Ledger API test tool timed out: {}".format(e)
       msg += "\n{}".format(e.output)
