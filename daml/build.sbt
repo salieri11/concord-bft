@@ -2,7 +2,7 @@
 
 ThisBuild / scalaVersion     := "2.12.8"
 ThisBuild / version          := "0.1.3-SNAPSHOT"
-ThisBuild / organization     := "com.daml"
+ThisBuild / organization     := "com.digitalasset"
 ThisBuild / organizationName := "Digital Asset, LLC"
 
 lazy val akkaVersion = "2.5.13"
@@ -36,11 +36,11 @@ lazy val protos = (project in file("protos"))
     ),
   )
 
-lazy val kvbc_common = (project in file("kvbc_common"))
+lazy val common = (project in file("common"))
   .enablePlugins(JavaAppPackaging)
   .settings(
     commonSettings,
-    name := "KVBC Common",
+    name := "DAML on VMware Common",
     libraryDependencies ++= Seq(
       
       // Logging and monitoring
@@ -58,11 +58,11 @@ lazy val kvbc_common = (project in file("kvbc_common"))
     ),
   )
 
-lazy val kvbc_validator = (project in file("kvbc_validator"))
+lazy val execution_engine = (project in file("execution-engine"))
   .enablePlugins(JavaAppPackaging)
   .settings(
     commonSettings,
-    name := "KVBC Validator",
+    name := "DAML on VMware Execution Engine",
     libraryDependencies ++= Seq(
       // DAML
       "com.digitalasset" % "daml-lf-dev-archive-java-proto" % sdkVersion,
@@ -96,12 +96,12 @@ lazy val kvbc_validator = (project in file("kvbc_validator"))
       "org.eclipse.jetty"   %   "jetty-servlets"    % "9.4.20.v20190813",
     ),
   )
-  .dependsOn(protos, kvbc_common)
+  .dependsOn(protos, common)
 
-lazy val kvbc_sync_backend = (project in file("kvbc_sync_backend"))
+lazy val write_service = (project in file("write-service"))
   .settings(
     commonSettings,
-    name := "KVBC Participant State",
+    name := "DAML on VMware Write Service",
     libraryDependencies ++= Seq(
       // DAML
       "com.digitalasset" % "daml-lf-dev-archive-java-proto" % sdkVersion,
@@ -127,11 +127,11 @@ lazy val kvbc_sync_backend = (project in file("kvbc_sync_backend"))
   .dependsOn(protos)
 
 
-lazy val kvbc_ledger_server = (project in file("kvbc_ledger_server"))
+lazy val ledger_api_server = (project in file("ledger-api-server"))
   .enablePlugins(JavaAppPackaging)
   .settings(
     commonSettings,
-    name := "KVBC Ledger Server",
+    name := "DAML on VMware Ledger API Server",
     libraryDependencies ++= Seq(
       // DAML
       "com.digitalasset" % "daml-lf-dev-archive-java-proto" % sdkVersion,
@@ -157,4 +157,4 @@ lazy val kvbc_ledger_server = (project in file("kvbc_ledger_server"))
 
     ),
   )
-  .dependsOn(protos, kvbc_sync_backend, kvbc_common)
+  .dependsOn(protos, write_service, common)
