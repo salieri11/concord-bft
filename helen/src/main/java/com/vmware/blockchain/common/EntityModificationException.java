@@ -17,7 +17,7 @@ public class EntityModificationException extends HelenException {
     }
 
     public EntityModificationException(ErrorCodeType codeType, Object... args) {
-        super(ExceptionMessageHelper.getMessageOrErrorCode(codeType.getErrorCodeTypeValue(),
-              HttpStatus.BAD_REQUEST, args));
+        super(HttpStatus.BAD_REQUEST, ExceptionMessageHelper.getMessageOrErrorCode(codeType.getErrorCodeTypeValue(),
+                args));
     }
 }

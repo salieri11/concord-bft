@@ -27,8 +27,8 @@ public class BadRequestException extends HelenException {
     }
 
     public BadRequestException(ErrorCodeType codeType, Throwable cause, Object... args) {
-        super(HttpStatus.BAD_REQUEST, ExceptionMessageHelper.getMessageOrErrorCode(codeType.getErrorCodeTypeValue(),
-              cause, args));
+        super(HttpStatus.BAD_REQUEST, cause, ExceptionMessageHelper.getMessageOrErrorCode(codeType.getErrorCodeTypeValue(),
+              args));
     }
 
 }

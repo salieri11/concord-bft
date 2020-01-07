@@ -20,7 +20,7 @@ public class ConflictException extends HelenException {
     }
 
     public ConflictException(ErrorCodeType codeType, Object... args) {
-        super(ExceptionMessageHelper.getMessageOrErrorCode(codeType.getErrorCodeTypeValue(),
-              HttpStatus.CONFLICT, args));
+        super(HttpStatus.CONFLICT, ExceptionMessageHelper.getMessageOrErrorCode(codeType.getErrorCodeTypeValue(),
+              args));
     }
 }

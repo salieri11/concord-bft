@@ -22,12 +22,12 @@ public class NotFoundException extends HelenException {
     }
 
     public NotFoundException(ErrorCodeType codeType, Object... args) {
-        super(ExceptionMessageHelper.getMessageOrErrorCode(codeType.getErrorCodeTypeValue(),
-             HttpStatus.NOT_FOUND, args));
+        super(HttpStatus.NOT_FOUND,
+                ExceptionMessageHelper.getMessageOrErrorCode(codeType.getErrorCodeTypeValue(), args));
     }
 
     public NotFoundException(ErrorCodeType codeType, Throwable cause, Object... args) {
-        super(ExceptionMessageHelper.getMessageOrErrorCode(codeType.getErrorCodeTypeValue(),
-             HttpStatus.NOT_FOUND, cause, args));
+        super(HttpStatus.NOT_FOUND, cause, ExceptionMessageHelper.getMessageOrErrorCode(codeType.getErrorCodeTypeValue(),
+             args));
     }
 }
