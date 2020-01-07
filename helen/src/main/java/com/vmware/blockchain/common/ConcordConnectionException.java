@@ -17,6 +17,7 @@ public class ConcordConnectionException extends HelenException {
     }
 
     public ConcordConnectionException(ErrorCodeType codeType, Object... args) {
-        super(HttpStatus.INTERNAL_SERVER_ERROR, ExceptionMessageHelper.getMessageOrErrorCode(codeType.getErrorCodeTypeValue(), args));
+        super(HttpStatus.INTERNAL_SERVER_ERROR,
+                ExceptionMessageHelper.getMessageOrErrorCode(codeType.getErrorCodeTypeValue(), args));
     }
 }
