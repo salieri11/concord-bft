@@ -169,6 +169,7 @@ class ProfilesServiceTest {
                 prm.createUser(msg);
             } catch (EntityModificationException e) {
                 Assertions.assertEquals("Duplicate email address", e.getMessage());
+                Assertions.assertEquals(400, e.getHttpStatus().value());
                 verify(userService, times(0)).put(any());
                 throw e;
             }
@@ -187,6 +188,7 @@ class ProfilesServiceTest {
                 Assertions.assertEquals(
                     "Organization with ID 82634974-88cf-4944-a99d-6b92664bb765 not found.",
                     e.getMessage());
+                Assertions.assertEquals(400, e.getHttpStatus().value());
                 verify(userService, times(0)).put(any());
                 throw e;
             }
@@ -203,6 +205,7 @@ class ProfilesServiceTest {
                 prm.updateUser(msg);
             } catch (EntityModificationException e) {
                 Assertions.assertEquals("No user found with ID " + USER_ID, e.getMessage());
+                Assertions.assertEquals(400, e.getHttpStatus().value());
                 verify(userService, times(0)).put(any());
                 throw e;
             }
@@ -219,6 +222,7 @@ class ProfilesServiceTest {
                 prm.updateUser(msg);
             } catch (EntityModificationException e) {
                 Assertions.assertEquals("Duplicate email address", e.getMessage());
+                Assertions.assertEquals(400, e.getHttpStatus().value());
                 verify(userService, times(0)).put(any());
                 throw e;
             }
@@ -252,6 +256,7 @@ class ProfilesServiceTest {
                 prm.updateUser(msg);
             } catch (EntityModificationException e) {
                 Assertions.assertEquals("Invalid role value: invalid_role", e.getMessage());
+                Assertions.assertEquals(400, e.getHttpStatus().value());
                 verify(userService, times(0)).put(any());
                 throw e;
             }
