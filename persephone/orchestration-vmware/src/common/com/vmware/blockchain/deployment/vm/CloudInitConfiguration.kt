@@ -143,6 +143,10 @@ class CloudInitConfiguration(
             mkdir -p /config/agent
             echo '{{agentConfig}}' > /config/agent/config.json
 
+            # Output node details
+            mkdir -p /config/generic
+            echo '{{identifiers}}' > /config/generic/identifiers.env
+
             # Update guest-info's network information in vSphere.
             touch /etc/vmware-tools/tools.conf
             printf '[guestinfo]\nprimary-nics=eth*\nexclude-nics=docker*,veth*' > /etc/vmware-tools/tools.conf
@@ -155,6 +159,7 @@ class CloudInitConfiguration(
                     .replace("{{registrySecuritySetting}}", containerRegistry.toRegistrySecuritySetting())
                     .replace("{{agentImage}}", URI.create(containerRegistry.address).authority + "/" + agentImageName)
                     .replace("{{agentConfig}}", ConcordAgentConfigurationSerializer.toJson(configuration))
+                    .replace("{{identifiers}}", identifiers())
                     .replace("{{networkAddressCommand}}", ipAddress.takeIf { it.isNotBlank() }?.let { networkAddressCommand }?: "")
                     .replace("{{staticIp}}", ipAddress)
                     .replace("{{gateway}}", gateway)
@@ -162,6 +167,20 @@ class CloudInitConfiguration(
                     .replace("{{dockerDns}}", dockerDnsSetupCommand)
                     .replace("{{setupOutboundProxy}}", setupOutboundProxy)
 
+    /**
+     * Provides uuids as key value pairs.
+     *
+     * @return
+     *   key-value pair of uuids as [String].
+     */
+    private fun identifiers(): String {
+        val nodeUuid = UUID(replicaId.high, replicaId.low).toString()
+        val builder = StringBuilder()
+        builder.append("NODE_UUID")
+                .append("=")
+                .append(nodeUuid)
+        return builder.toString()
+    }
 
     /**
      * Convert an endpoint to a Docker Registry login command.
