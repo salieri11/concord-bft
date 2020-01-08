@@ -1,4 +1,4 @@
-// Copyright 2019 VMware, all rights reserved
+// Copyright 2019-2020 VMware, all rights reserved
 
 #include <grpcpp/grpcpp.h>
 #include <log4cplus/configurator.h>
@@ -29,6 +29,26 @@ using thin_replica_client::BasicUpdateQueue;
 using thin_replica_client::ThinReplicaClient;
 using thin_replica_client::Update;
 using thin_replica_client::UpdateQueue;
+
+static void ReportUpdate(Logger& logger, const Update& update) {
+  const vector<pair<string, string>>& update_data = update.kv_pairs;
+  stringstream update_report;
+  update_report << "ThinReplicaClient reported an update (Block ID: "
+                << update.block_id << ")." << endl;
+  if (update_data.size() < 1) {
+    update_report << "    The update appears to be empty.";
+  } else {
+    update_report << "    Update contains data for the following key(s) (not "
+                     "displaying values for concision):";
+    for (const auto& kv_pair : update_data) {
+      update_report << endl << "        0x" << hex << setfill('0');
+      for (size_t i = 0; i < kv_pair.first.length(); ++i) {
+        update_report << setw(2) << (unsigned int)(kv_pair.first[i]);
+      }
+    }
+  }
+  LOG4CPLUS_INFO(logger, update_report.str());
+}
 
 int main(int argc, char** argv) {
   log4cplus::initialize();
@@ -158,33 +178,48 @@ int main(int argc, char** argv) {
       LOG4CPLUS_INFO(
           logger,
           "Subscription call did not yield any updates as initial state.");
+    } else {
+      LOG4CPLUS_INFO(
+          logger,
+          "The subscribe appears to have returned initial state to the update "
+          "queue; fetching state from the update queue...");
     }
     while (update) {
-      vector<pair<string, string>>& update_data = update->kv_pairs;
-      stringstream update_report;
-      update_report << "ThinReplicaClient reported an update (Block ID: "
-                    << update->block_id << ")." << endl;
-      if (update_data.size() < 1) {
-        update_report << "The update appears to be empty.";
-      } else {
-        update_report << "Update contains data for the following key(s) (not "
-                         "displaying values for concision):";
-        for (const auto& kv_pair : update_data) {
-          update_report << endl << "  0x" << hex << setfill('0');
-          for (size_t i = 0; i < kv_pair.first.length(); ++i) {
-            update_report << setw(2) << (unsigned int)(kv_pair.first[i]);
-          }
-        }
-      }
-      LOG4CPLUS_INFO(logger, update_report.str());
+      ReportUpdate(logger, *update);
       latest_block_id = update->block_id;
       update = update_queue->TryPop();
     }
 
     if (has_update) {
-      trc->AcknowledgeBlockID(latest_block_id);
-      LOG4CPLUS_INFO(logger, "Update(s) acknowledged.");
+      LOG4CPLUS_INFO(
+          logger,
+          "The (at least initial) contents of the update queue have been "
+          "exhausted; will now wait for and report any additional updates...");
+
+      // Acknowledgement is currently unimplemented.
+      // trc->AcknowledgeBlockID(latest_block_id);
+      // LOG4CPLUS_INFO(logger, "Update(s) acknowledged.");
+
+    } else {
+      LOG4CPLUS_INFO(logger, "Will wait for and report any updates...");
     }
+
+    update = update_queue->Pop();
+    while (update) {
+      ReportUpdate(logger, *update);
+      latest_block_id = update->block_id;
+
+      // Acknowledgement is currently unimplemented.
+      // trc->AcknowledgeBlockID(latest_block_id);
+      // LOG4CPLUS_INFO(logger, "Acknowledged update with with Block ID "
+      //                            << latest_block_id << ".");
+
+      update = update_queue->Pop();
+    }
+
+    LOG4CPLUS_INFO(logger,
+                   "It appears the update consumer thread was recalled.");
+
     trc->Unsubscribe();
     LOG4CPLUS_INFO(logger, "ThinReplicaClient unsubscribed.");
   } catch (const exception& e) {

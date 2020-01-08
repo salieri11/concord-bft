@@ -1,4 +1,4 @@
-// Copyright 2019 VMware, all rights reserved
+// Copyright 2019-2020 VMware, all rights reserved
 //
 // Primary Thin Replica Client Library header file; you should include this file
 // to use the Thin Replica Client Library.
@@ -41,6 +41,7 @@
 
 #include <grpcpp/grpcpp.h>
 #include <log4cplus/loggingmacros.h>
+#include <thread>
 
 namespace thin_replica_client {
 
@@ -187,6 +188,23 @@ class ThinReplicaClient final {
   std::shared_ptr<UpdateQueue> update_queue_;
   uint16_t max_faulty_;
 
+  std::string key_prefix_;
+  uint64_t latest_verified_block_id_;
+
+  std::unique_ptr<std::thread> subscription_thread_;
+  std::atomic_bool stop_subscription_thread_;
+
+  std::unique_ptr<grpc::ClientReader<com::vmware::concord::thin_replica::Data>>
+      subscription_data_stream_;
+  std::unique_ptr<grpc::ClientContext> sub_data_context_;
+  std::vector<std::unique_ptr<
+      grpc::ClientReader<com::vmware::concord::thin_replica::Hash>>>
+      subscription_hash_streams_;
+  std::vector<std::unique_ptr<grpc::ClientContext>> sub_hash_contexts_;
+
+  // Thread function to start subscription_thread_ with.
+  void ReceiveUpdates();
+
   // Function(s) for computing hashes as we anticipate they exist according to
   // non-faulty Thin Replica Servers.
   // XXX: We anticipate it is very possible the data type for hashes and hash
@@ -195,7 +213,12 @@ class ThinReplicaClient final {
   //      hardened for production.
   typedef size_t StateHashType;
   StateHashType AppendToReadStateHash(
-      StateHashType, const std::pair<std::string, std::string>& kvp) const;
+      StateHashType preceding_hash,
+      const std::pair<std::string, std::string>& kvp) const;
+  typedef size_t UpdateHashType;
+  UpdateHashType AppendToSubscribeToUpdatesHash(
+      UpdateHashType preceding_hash,
+      const std::pair<std::string, std::string>& kvp) const;
 
  public:
   // Constructor for ThinReplicaClient. Note that, as the ThinReplicaClient
@@ -233,7 +256,15 @@ class ThinReplicaClient final {
             log4cplus::Logger::getInstance("com.vmware.thin_replica_client")),
         server_stubs_(),
         update_queue_(update_queue),
-        max_faulty_(max_faulty) {
+        max_faulty_(max_faulty),
+        key_prefix_(),
+        latest_verified_block_id_(0),
+        subscription_thread_(),
+        stop_subscription_thread_(false),
+        subscription_data_stream_(),
+        sub_data_context_(),
+        subscription_hash_streams_(),
+        sub_hash_contexts_() {
     while (begin_servers != end_servers) {
       const auto& server_info = *begin_servers;
       server_stubs_.push_back(
