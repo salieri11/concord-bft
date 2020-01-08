@@ -20,47 +20,39 @@ FROM maven:3.6.1-jdk-11 as builder
 
 ## Copy build-dependent resource files.
 COPY ./persephone/resources/checkstyle.xml ./persephone/resources/checkstyle.xml
+COPY ./persephone/resources/checkstyle.xml ../resources/checkstyle.xml
 
 ## Copy the dependency-related POM files (rarely changing).
 COPY ./persephone/pom.xml ./persephone/pom.xml
+COPY ./persephone/deployment/pom.xml ./persephone/deployment/pom.xml
 COPY ./persephone/api/pom.xml ./persephone/api/pom.xml
 COPY ./persephone/config-service/pom.xml ./persephone/config-service/pom.xml
-COPY ./persephone/core/pom.xml ./persephone/core/pom.xml
-COPY ./persephone/fleet-service/pom.xml ./persephone/fleet-service/pom.xml
-COPY ./persephone/ip-allocation-service/pom.xml ./persephone/ip-allocation-service/pom.xml
-COPY ./persephone/metadata-service/pom.xml ./persephone/metadata-service/pom.xml
-COPY ./persephone/orchestration/pom.xml ./persephone/orchestration/pom.xml
-COPY ./persephone/orchestration-vmware/pom.xml ./persephone/orchestration-vmware/pom.xml
-COPY ./persephone/persistence/pom.xml ./persephone/persistence/pom.xml
-COPY ./persephone/persistence-rocksdb/pom.xml ./persephone/persistence-rocksdb/pom.xml
-COPY ./persephone/provisioning-service/pom.xml ./persephone/provisioning-service/pom.xml
-COPY ./persephone/server-support/pom.xml ./persephone/server-support/pom.xml
-
-## Run an empty package step to keep as much exogenous dependencies in a cached layer as possible.
-RUN mvn -f persephone/pom.xml dependency:resolve-plugins dependency:resolve clean package -B
 
 ## Copy the dependent module sources.
 COPY ./persephone/api ./persephone/api
-COPY ./persephone/core ./persephone/core
-COPY ./persephone/server-support ./persephone/server-support
 
 ## Copy the module sources.
 COPY ./persephone/config-service ./persephone/config-service
 
 ## Build module with all of its dependencies.
-RUN mvn -f persephone/pom.xml install -pl 'api' -am -B
-RUN mvn -f persephone/pom.xml package -pl config-service -am -B
+RUN mvn -f persephone/api/pom.xml install
+
+## Build agent module.
+RUN mvn -f ./persephone/config-service/pom.xml install
+
 
 # Concord's configuration generation utility, conc_genconfig, is statically
 # linked when Concord is built so that it can just be copied into the Persephone
 # configuration service's image without needing to build Concord in Persephone's
 # Dockerfile or copy its runtime dependencies into the configuration service
 # image.
+
 FROM ${concord_repo}:${concord_tag} as concord_image
+#FROM athena-docker-local.artifactory.eng.vmware.com/concord-core:861 as concord_image
 
 # Runtime image (Metadata Service).
 FROM openjdk:11.0.2-jdk-slim
-LABEL description="VMware Blockchain Fleet Management Provisioning Service"
+LABEL description="VMware Blockchain Configuration Service"
 
 WORKDIR /app
 COPY --from=concord_image /concord/conc_genconfig /app/
@@ -68,9 +60,14 @@ COPY --from=concord_image /concord/conc_genconfig /app/
 RUN sed -i "/jdk.tls.disabledAlgorithms=/ s/=.*/=TLSv1.3, SSLv3, RC4, MD5withRSA, DH keySize < 1024, EC keySize < 224, DES40_CBC, RC4_40, 3DES_EDE_CBC/" $(readlink -f /usr/bin/java | sed "s:bin/java::")/conf/security/java.security
 
 WORKDIR /persephone-config-service
-COPY --from=0 ./persephone/config-service/target/persephone-config-service*with-dependencies.jar ./config-service.jar
+COPY ./persephone/config-service/src/main/resources .
 
-ENTRYPOINT ["java", "-jar", "config-service.jar"]
+COPY --from=0 ./persephone/config-service/target/persephone-config-service*.jar ./config-service.jar
+
+# env variable for parameterizing application profile
+ENV APPCONTEXT test
+
+ENTRYPOINT ["java", "-Dspring.config.location=/config/app/profiles/,./", "-Dspring.profiles.active=${APPCONTEXT}",  "-jar", "config-service.jar"]
 
 EXPOSE 9003
 
