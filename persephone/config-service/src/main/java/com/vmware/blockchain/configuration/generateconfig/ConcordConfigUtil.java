@@ -239,6 +239,10 @@ public class ConcordConfigUtil {
         //FIXME: Add provision to have more than one BlockchainType
         if (blockchainType == null || blockchainType.equals(BlockchainType.ETHEREUM)) {
             configInput.put(ConfigProperty.ETHEREUM_ENABLED.name, true);
+
+            // FIXME: for https://jira.eng.vmware.com/browse/VB-1925
+            //  Remove once bug is fixed OR when remodeled to have per-blockchain config template
+            configInput.put("FEATURE_time_service", false);
         } else if (blockchainType.equals(BlockchainType.DAML)) {
             configInput.put(ConfigProperty.DAML_ENABLED.name, true);
         } else if (blockchainType.equals(BlockchainType.HLF)) {
