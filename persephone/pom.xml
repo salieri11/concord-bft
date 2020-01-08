@@ -13,7 +13,6 @@
 
     <modules>
         <module>api</module>
-        <module>config-service</module>
         <module>core</module>
         <module>fleet-service</module>
         <module>ip-allocation-service</module>
