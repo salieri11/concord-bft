@@ -15,6 +15,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import com.vmware.blockchain.common.ConflictException;
+import com.vmware.blockchain.common.ForbiddenException;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -104,6 +105,7 @@ public class ContractsControllerTest {
                 .blockchainId(BC_ID)
                 .build();
         List<Contract> cList = ImmutableList.of(c1, c2);
+        List<Contract> cList2 = ImmutableList.of(c3);
         when(contractService.list(BC_ID)).thenReturn(cList);
         when(contractService.listByName("My Test Contract", BC_ID)).thenReturn(cList);
         when(contractService.listByName("ID", BC_ID)).thenReturn(cList);
@@ -188,5 +190,27 @@ public class ContractsControllerTest {
                 mvcResult.getResolvedException());
 
         Assertions.assertEquals(409, someException.get().getHttpStatus().value());
+    }
+
+    @Test
+    void testPostDifferentOwners() throws  Exception {
+        String postBody = "{\n"
+                + "  \"from\": \"P. Plup\",\n"
+                + "  \"contract_id\": \"ID\",\n"
+                + "  \"version\": \"3.0\",\n"
+                + "  \"sourcecode\": \"//source\",\n"
+                + "  \"contract_name\": \"My Test Contract\",\n"
+                + "  \"compiler_version\": \"1.0\"\n"
+                + "}\n";
+
+        String url = String.format("/api/blockchains/%s/concord/contracts", BC_ID.toString());
+        MvcResult mvcResult = mockMvc.perform(post(url).contentType(MediaType.APPLICATION_JSON).content(postBody))
+                .andExpect(status().isForbidden())
+                .andReturn();
+
+        Optional<ForbiddenException> someException = Optional.ofNullable((ForbiddenException)
+                mvcResult.getResolvedException());
+
+        Assertions.assertEquals(403, someException.get().getHttpStatus().value());
     }
 }
