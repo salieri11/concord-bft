@@ -78,6 +78,7 @@ class ZoneControllerTest {
     private static final UUID SITE_1 = UUID.fromString("84b9a0ed-c162-446a-b8c0-2e45755f3844");
     private static final UUID SITE_2 = UUID.fromString("275638a3-8860-4925-85de-c73d45cb7232");
     private static final UUID OP_SITE = UUID.fromString("2aa01247-dd51-4460-bba0-0a0934f0419e");
+    private static final UUID OP_SITE2 = UUID.fromString("2aa01247-dd51-4460-bba0-0a0934f0419f");
     private static final UUID ORG_ID = UUID.fromString("9ecb07bc-482c-48f3-80d0-23c4f9514902");
     private static final UUID OPER_ORG = UUID.fromString("0b93680b-e99d-4f83-bcfd-e2d52c6ea697");
 
@@ -158,6 +159,43 @@ class ZoneControllerTest {
                                                    + "    \"password\": \"bar\"\n"
                                                    + "  }]\n"
                                                    + "}";
+
+    private static final String PATCH_VMC_AWS_BODY = "{\n"
+                                                + "  \"name\": \"Mango\",\n"
+                                                + "  \"type\": \"VMC_AWS\",\n"
+                                                + "  \"org_id\": \"5e5ff1c8-34b9-4fa3-9924-83eb14354d4c\",\n"
+                                                + "  \"vcenter\": {\n"
+                                                + "    \"url\": \"http://vcenter\",\n"
+                                                + "    \"username\": \"admin\",\n"
+                                                + "    \"password\": \"password\"\n"
+                                                + "  },\n"
+                                                + "  \"resource_pool\": \"pool\",\n"
+                                                + "  \"storage\": \"datastore\",\n"
+                                                + "  \"folder\": \"folder\",\n"
+                                                + "  \"network\": {\n"
+                                                + "    \"name\": \"Network 1\",\n"
+                                                + "    \"ip_pool\": [\n"
+                                                + "      \"10.1.1.16-10.1.1.64\",\n"
+                                                + "      \"10.1.1.100-10.1.1.200\"\n"
+                                                + "    ],\n"
+                                                + "    \"gateway\": \"10.1.1.1\",\n"
+                                                + "    \"subnet\": \"24\",\n"
+                                                + "    \"name_servers\": [\n"
+                                                + "      \"10.1.1.3\"\n"
+                                                + "    ]\n"
+                                                + "  },\n"
+                                                + "  \"container_repo\": {\n"
+                                                + "    \"url\": \"https://docker-repo.com\",\n"
+                                                + "    \"username\": \"user\",\n"
+                                                + "    \"password\": \"docker\"\n"
+                                                + "  },\n"
+                                                + "  \"log_managements\": [{\n"
+                                                + "    \"destination\": \"LOG_INSIGHT\",\n"
+                                                + "    \"address\": \"10.78.20.10:9000\",\n"
+                                                + "    \"username\": \"foo\",\n"
+                                                + "    \"password\": \"bar\"\n"
+                                                + "  }]\n"
+                                                + "}";
 
     private static final String PATCH_ONPREM_BODY = "{\n"
                                                 + "  \"name\": \"OnPrem\",\n"
@@ -431,6 +469,8 @@ class ZoneControllerTest {
                         ozone);
         when(zoneService.getAllAuthorized()).thenReturn(sites);
         when(zoneService.getAuthorized(OP_SITE)).thenReturn(ozone);
+        VmcAwsZone vmcAwsZone = new VmcAwsZone();
+        when(zoneService.getAuthorized(OP_SITE2)).thenReturn(vmcAwsZone);
         when(zoneService.put(any(Zone.class))).thenAnswer(i -> {
             Zone z = i.getArgument(0);
             z.setId(UUID.randomUUID());
@@ -729,6 +769,28 @@ class ZoneControllerTest {
         Assertions.assertEquals(UUID.fromString("5e5ff1c8-34b9-4fa3-9924-83eb14354d4c"),
                 ((OnPremGetResponse) zone).getOrgId());
         Assertions.assertEquals("admin", ((OnPremGetResponse) zone).getVcenter().getUsername());
+    }
+
+    @Test
+    void testPatchVmcAws() throws Exception {
+        // We do not support PATCH for VMC_AWS zones as of now
+        // This might change in the future, change this test when that happens
+        ValidateOrchestrationSiteResponse r = ValidateOrchestrationSiteResponse.newBuilder().build();
+        doAnswer(i -> {
+            StreamObserver ob = i.getArgument(1);
+            ob.onNext(r);
+            ob.onCompleted();
+            return null;
+        })
+                .when(orchestrationClient)
+                .validateOrchestrationSite(any(ValidateOrchestrationSiteRequest.class),
+                        any(StreamObserver.class));
+
+        MvcResult result = mockMvc.perform(patch("/api/blockchains/zones/" + OP_SITE2)
+                .with(authentication(adminAuth))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(PATCH_VMC_AWS_BODY))
+                .andExpect(status().isBadRequest()).andReturn();
     }
 
 }

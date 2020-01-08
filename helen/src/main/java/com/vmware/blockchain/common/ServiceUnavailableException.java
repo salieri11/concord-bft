@@ -20,7 +20,7 @@ public class ServiceUnavailableException extends HelenException {
     }
 
     public ServiceUnavailableException(ErrorCodeType codeType, Object... args) {
-        super(ExceptionMessageHelper.getMessageOrErrorCode(codeType.getErrorCodeTypeValue(),
-              HttpStatus.SERVICE_UNAVAILABLE, args));
+        super(HttpStatus.SERVICE_UNAVAILABLE,
+                ExceptionMessageHelper.getMessageOrErrorCode(codeType.getErrorCodeTypeValue(), args));
     }
 }

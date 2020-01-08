@@ -22,12 +22,12 @@ public class InternalFailureException extends HelenException {
     }
 
     public InternalFailureException(ErrorCodeType codeType, Object... args) {
-        super(ExceptionMessageHelper.getMessageOrErrorCode(codeType.getErrorCodeTypeValue(),
-              HttpStatus.INTERNAL_SERVER_ERROR, args));
+        super(HttpStatus.INTERNAL_SERVER_ERROR,
+                ExceptionMessageHelper.getMessageOrErrorCode(codeType.getErrorCodeTypeValue(), args));
     }
 
     public InternalFailureException(ErrorCodeType codeType, Throwable cause, Object... args) {
-        super(ExceptionMessageHelper.getMessageOrErrorCode(codeType.getErrorCodeTypeValue(),
-             HttpStatus.INTERNAL_SERVER_ERROR, cause, args));
+        super(HttpStatus.INTERNAL_SERVER_ERROR,
+                ExceptionMessageHelper.getMessageOrErrorCode(codeType.getErrorCodeTypeValue(), cause, args));
     }
 }

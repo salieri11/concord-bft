@@ -520,7 +520,6 @@ public class ContractsController extends ConcordServlet {
         // If there are any, the version name must be different
         if (contracts.stream().anyMatch(c -> c.getVersionName().equals(contractVersion))) {
             throw new ConflictException(ErrorCode.DUPLICATE_CONTRACT_ID, contractId, contractVersion);
-
         }
         // If there are contracts, make sure the own is the same
         if (!contracts.isEmpty() && !isSameAddress(contracts.get(0).getOwner(), from)) {

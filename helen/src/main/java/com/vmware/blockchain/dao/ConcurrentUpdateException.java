@@ -28,13 +28,13 @@ public class ConcurrentUpdateException extends HelenException {
     }
 
     public ConcurrentUpdateException(ErrorCodeType codeType, Object... args) {
-        super(ExceptionMessageHelper.getMessageOrErrorCode(codeType.getErrorCodeTypeValue(),
-              HttpStatus.CONFLICT, args));
+        super(HttpStatus.CONFLICT, ExceptionMessageHelper.getMessageOrErrorCode(codeType.getErrorCodeTypeValue(),
+                args));
     }
 
     public ConcurrentUpdateException(ErrorCodeType codeType, Throwable cause, Object... args) {
-        super(ExceptionMessageHelper.getMessageOrErrorCode(codeType.getErrorCodeTypeValue(),
-              HttpStatus.CONFLICT, cause, args));
+        super(HttpStatus.CONFLICT, cause, ExceptionMessageHelper.getMessageOrErrorCode(codeType.getErrorCodeTypeValue(),
+                args));
     }
 
 }
