@@ -145,7 +145,7 @@ public final class AgentDockerClient {
     /**
      * Start the local setup as a Concord node.
      */
-    public void bootstrapConcord() {
+    public void bootstrapConcord() throws Exception {
         // Download configuration and certs.
         setupConfig();
 
@@ -166,9 +166,9 @@ public final class AgentDockerClient {
         Optional<BaseContainerSpec> loggingContainerConfigOptional = containerConfigList.stream()
                 .filter(predicate)
                 .findFirst();
-        if (loggingContainerConfigOptional.isPresent() && !configuration.getLoggingEnvVariables().isEmpty()) {
+        if (loggingContainerConfigOptional.isPresent() && !configuration.getLoggingEnvVariablesList().isEmpty()) {
             var loggingContainerConfig = loggingContainerConfigOptional.get();
-            loggingContainerConfig.setEnvironment(configuration.getLoggingEnvVariables());
+            loggingContainerConfig.setEnvironment(configuration.getLoggingEnvVariablesList());
         }
 
         // Start all containers
@@ -183,7 +183,7 @@ public final class AgentDockerClient {
 
         List<CompletableFuture<BaseContainerSpec>> futures = new ArrayList<>();
 
-        for (var component : configuration.getModel().getComponents()) {
+        for (var component : configuration.getModel().getComponentsList()) {
             // Bypass non service type image pull...
             if (component.getServiceType() != ConcordComponent.ServiceType.GENERIC) {
                 BaseContainerSpec containerSpec;
@@ -326,7 +326,7 @@ public final class AgentDockerClient {
         return containerConfig;
     }
 
-    private void setupConfig() {
+    private void setupConfig() throws Exception {
         log.info("Reading config file");
 
         var configList = configServiceInvoker.retrieveConfiguration(configuration.getConfigurationSession(),

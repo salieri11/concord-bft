@@ -6,8 +6,6 @@ package com.vmware.concord.agent.services.configservice;
 
 import java.util.List;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -18,9 +16,8 @@ import org.springframework.web.client.RestTemplate;
 
 import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.module.kotlin.KotlinModule;
 import com.vmware.blockchain.deployment.v1.ConfigurationComponent;
-import com.vmware.blockchain.deployment.v1.ConfigurationServiceStub;
+import com.vmware.blockchain.deployment.v1.ConfigurationServiceGrpc;
 import com.vmware.blockchain.deployment.v1.ConfigurationSessionIdentifier;
 import com.vmware.blockchain.deployment.v1.Endpoint;
 import com.vmware.blockchain.deployment.v1.MessageHeader;
@@ -28,15 +25,15 @@ import com.vmware.blockchain.deployment.v1.NodeConfigurationRequest;
 import com.vmware.blockchain.deployment.v1.NodeConfigurationResponse;
 import com.vmware.blockchain.deployment.v1.TransportSecurity;
 
-import io.grpc.CallOptions;
+import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Wrapper class which hides the gRPC vs REST invocation of the API.
  */
+@Slf4j
 public class ConfigServiceInvoker {
-
-    private static final Logger log = LoggerFactory.getLogger(ConfigServiceInvoker.class);
 
     private final Endpoint endpoint;
     private final boolean useRest;
@@ -46,24 +43,21 @@ public class ConfigServiceInvoker {
         this.useRest = useRest;
     }
 
-    private static ConfigurationServiceStub generateConfigServiceStub(Endpoint configServiceEndpoint) {
+    private static ConfigurationServiceGrpc.ConfigurationServiceFutureStub generateConfigServiceStub(
+            Endpoint configServiceEndpoint) {
+        ManagedChannel channel = null;
         if (configServiceEndpoint.getTransportSecurity().getType()
             == TransportSecurity.Type.NONE) {
-            return new ConfigurationServiceStub(
-                    ManagedChannelBuilder
-                            .forTarget(configServiceEndpoint.getAddress())
-                            .usePlaintext()
-                            .build(),
-                    CallOptions.DEFAULT
-            );
+            channel = ManagedChannelBuilder
+                    .forTarget(configServiceEndpoint.getAddress())
+                    .usePlaintext()
+                    .build();
         } else {
-            return new ConfigurationServiceStub(
-                    ManagedChannelBuilder
-                            .forTarget(configServiceEndpoint.getAddress())
-                            .build(),
-                    CallOptions.DEFAULT
-            );
+            channel = ManagedChannelBuilder
+                    .forTarget(configServiceEndpoint.getAddress())
+                    .build();
         }
+        return ConfigurationServiceGrpc.newFutureStub(channel);
     }
 
     /**
@@ -76,13 +70,13 @@ public class ConfigServiceInvoker {
     public List<ConfigurationComponent> retrieveConfiguration(
             ConfigurationSessionIdentifier session,
             int node
-    ) {
-        var request = new NodeConfigurationRequest(new MessageHeader(), session, node);
+    ) throws Exception {
+        var request = NodeConfigurationRequest.newBuilder().setHeader(MessageHeader.newBuilder().build())
+                .setIdentifier(session).setNode(node).build();
 
         try {
             if (useRest) {
                 ObjectMapper objectMapper = new ObjectMapper();
-                objectMapper.registerModule(new KotlinModule());
                 objectMapper.configure(MapperFeature.ACCEPT_CASE_INSENSITIVE_PROPERTIES, true);
 
                 MappingJackson2HttpMessageConverter converter = new MappingJackson2HttpMessageConverter();
@@ -98,16 +92,13 @@ public class ConfigServiceInvoker {
                         restTemplate.exchange(endpoint.getAddress() + "/v1/configuration/node", HttpMethod.POST,
                                               new HttpEntity<>(request, headers),
                                               NodeConfigurationResponse.class);
-                return result.getBody().getConfigurationComponent();
+                return result.getBody().getConfigurationComponentList();
 
             } else {
-                var responseObserver = new StreamObservers.MonoObserverFuture<NodeConfigurationResponse>();
-
-                // Request for config.
-                generateConfigServiceStub(endpoint).getNodeConfiguration(request, responseObserver);
+                var promise = generateConfigServiceStub(endpoint).getNodeConfiguration(request);
 
                 // Synchronously wait for result to return.
-                return responseObserver.asCompletableFuture().join().getConfigurationComponent();
+                return promise.get().getConfigurationComponentList();
             }
         } catch (Exception e) {
             log.error("Configuration retrieval failed", e);
