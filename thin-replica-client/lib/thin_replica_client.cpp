@@ -1,4 +1,4 @@
-// Copyright 2019 VMware, all rights reserved
+// Copyright 2019-2020 VMware, all rights reserved
 
 #include "thin_replica_client.hpp"
 
@@ -7,7 +7,9 @@ using com::vmware::concord::thin_replica::Hash;
 using com::vmware::concord::thin_replica::KVPair;
 using com::vmware::concord::thin_replica::ReadStateHashRequest;
 using com::vmware::concord::thin_replica::ReadStateRequest;
+using com::vmware::concord::thin_replica::SubscriptionRequest;
 using grpc::ClientContext;
+using grpc::ClientReader;
 using grpc::Status;
 using std::hash;
 using std::lock_guard;
@@ -16,6 +18,7 @@ using std::pair;
 using std::runtime_error;
 using std::string;
 using std::stringstream;
+using std::thread;
 using std::to_string;
 using std::unique_lock;
 using std::unique_ptr;
@@ -75,6 +78,174 @@ unique_ptr<Update> BasicUpdateQueue::TryPop() {
   }
 }
 
+void ThinReplicaClient::ReceiveUpdates() {
+  assert(!stop_subscription_thread_);
+  assert(!subscription_data_stream_);
+  assert(subscription_hash_streams_.size() == 0);
+  assert(server_stubs_.size() > 0);
+
+  SubscriptionRequest sub_request;
+  sub_data_context_.reset(new ClientContext());
+  sub_request.set_block_id(latest_verified_block_id_);
+  sub_request.set_key_prefix(key_prefix_);
+
+  assert(server_stubs_[0]);
+  subscription_data_stream_ = server_stubs_[0]->SubscribeToUpdates(
+      sub_data_context_.get(), sub_request);
+  subscription_hash_streams_ =
+      vector<unique_ptr<ClientReader<Hash>>>(server_stubs_.size());
+
+  sub_hash_contexts_ = vector<unique_ptr<ClientContext>>(server_stubs_.size());
+
+  Data update_in;
+  while (!stop_subscription_thread_ &&
+         (subscription_data_stream_->Read(&update_in))) {
+    if (update_in.block_id() < latest_verified_block_id_) {
+      LOG4CPLUS_ERROR(logger_,
+                      "ThinReplicaClient subscription received an update with "
+                      "a decreasing Block ID.");
+      stop_subscription_thread_ = true;
+      continue;
+    }
+
+    unique_ptr<Update> update(new Update());
+    UpdateHashType expected_hash = 0;
+
+    update->block_id = update_in.block_id();
+    for (int i = 0; i < update_in.data_size(); ++i) {
+      KVPair kvp_in = update_in.data(i);
+      pair<string, string> kvp_out = make_pair(kvp_in.key(), kvp_in.value());
+      update->kv_pairs.push_back(kvp_out);
+      expected_hash = AppendToSubscribeToUpdatesHash(expected_hash, kvp_out);
+    }
+
+    size_t agreeing_hashes = 0;
+    vector<bool> servers_checked(server_stubs_.size(), false);
+
+    // Search for hashes agreeing with the update we have.
+    // First, we check any hash subscriptions that we already have open (closing
+    // any that are found to be in disagreement). After that, if we still do not
+    // have enough agreeing hashes, then we try opening hash subscriptions to
+    // other replicas. We do both of these searches with a single loop in order
+    // to share certain logic that would otherwise be duplicated between
+    // separate loops for each of these steps.
+    size_t i = 1;
+    bool has_tried_all_open_subscriptions = false;
+    while (!stop_subscription_thread_ && (agreeing_hashes < max_faulty_) &&
+           (!has_tried_all_open_subscriptions || (i < server_stubs_.size()))) {
+      if (has_tried_all_open_subscriptions && !servers_checked[i]) {
+        assert(server_stubs_[i]);
+        sub_hash_contexts_[i].reset(new ClientContext());
+        sub_request.set_block_id(latest_verified_block_id_);
+        subscription_hash_streams_[i] =
+            server_stubs_[i]->SubscribeToUpdateHashes(
+                sub_hash_contexts_[i].get(), sub_request);
+      }
+
+      // Logic to get a hash from the selected hash subscription and compare it
+      // to the update (note this is the same whether this is an existing or a
+      // new subscription).
+      if (subscription_hash_streams_[i]) {
+        Hash hash;
+
+        if (subscription_hash_streams_[i]->Read(&hash)) {
+          if ((hash.block_id() == update->block_id) &&
+              (hash.hash() == string(reinterpret_cast<char*>(&expected_hash),
+                                     sizeof(StateHashType)))) {
+            ++agreeing_hashes;
+          } else {
+            LOG4CPLUS_WARN(logger_,
+                           "A hash subscription stream (from server "
+                               << to_string(i)
+                               << ") was found to be in disagreement with the "
+                                  "active data subscription.");
+            sub_hash_contexts_[i]->TryCancel();
+            subscription_hash_streams_[i]->Finish();
+            subscription_hash_streams_[i].reset();
+          }
+
+        } else {
+          // Case where a hash subscription stream ended unexpectedly.
+          Status status = subscription_hash_streams_[i]->Finish();
+          if (!status.ok()) {
+            LOG4CPLUS_WARN(logger_, "A hash subscription stream (from server "
+                                        << to_string(i)
+                                        << ") to a Thin Replica Server was "
+                                           "closed unexpectedly (error code: "
+                                        << status.error_code()
+                                        << ", error message:\""
+                                        << status.error_message() << "\")");
+          } else {
+            LOG4CPLUS_WARN(
+                logger_,
+                "A hash subscription stream (from server "
+                    << to_string(i)
+                    << ") to a Thin Replica Server finished unexpectedly, but "
+                       "without reporting an error.");
+          }
+          subscription_hash_streams_[i].reset();
+        }
+        servers_checked[i] = true;
+      }
+
+      ++i;
+      if (!has_tried_all_open_subscriptions && i >= server_stubs_.size()) {
+        i = 1;
+        has_tried_all_open_subscriptions = true;
+      }
+    }
+
+    // We need to find at least (max_faulty_ + 1) Thin Replica Servers in
+    // agreement to consider an update verified; agreeing_hashes only needs to
+    // be at least max_faulty_, however, as the server we received the update
+    // data itself (and computed the expected hash) from is also counted as part
+    // of the agreeing set.
+    if (agreeing_hashes >= max_faulty_) {
+      latest_verified_block_id_ = update->block_id;
+      update_queue_->Push(move(update));
+    } else {
+      LOG4CPLUS_ERROR(logger_,
+                      "Could not find enough hashes in agreement with a "
+                      "received update; ending subscription.");
+      stop_subscription_thread_ = true;
+    }
+  }
+
+  if (stop_subscription_thread_) {
+    sub_data_context_->TryCancel();
+  }
+
+  Status status = subscription_data_stream_->Finish();
+
+  if (!stop_subscription_thread_) {
+    if (status.ok()) {
+      LOG4CPLUS_WARN(logger_,
+                     "The data subscription stream ended unexpectedly without "
+                     "a reported error.");
+    } else {
+      LOG4CPLUS_WARN(
+          logger_,
+          "The data subscription stream ended unexpectedly(error code: "
+              << status.error_code() << ", error message: \""
+              << status.error_message() << "\").");
+    }
+  }
+  subscription_data_stream_.reset();
+
+  for (size_t i = 0; i < subscription_hash_streams_.size(); ++i) {
+    if (subscription_hash_streams_[i]) {
+      sub_hash_contexts_[i]->TryCancel();
+      subscription_hash_streams_[i]->Finish();
+      subscription_hash_streams_[i].reset();
+    }
+  }
+
+  stop_subscription_thread_ = true;
+
+  // TODO (Alex): Complete, revise, and clean up error handling for this
+  //              function.
+}
+
 ThinReplicaClient::StateHashType ThinReplicaClient::AppendToReadStateHash(
     ThinReplicaClient::StateHashType preceding_hash,
     const pair<string, string>& kvp) const {
@@ -85,10 +256,30 @@ ThinReplicaClient::StateHashType ThinReplicaClient::AppendToReadStateHash(
   return preceding_hash;
 }
 
-ThinReplicaClient::~ThinReplicaClient() {}
+ThinReplicaClient::UpdateHashType
+ThinReplicaClient::AppendToSubscribeToUpdatesHash(
+    ThinReplicaClient::UpdateHashType preceding_hash,
+    const pair<string, string>& kvp) const {
+  // The hash implementation for streaming update hashes currently happens to be
+  // the same as the implementation for initial state hashes, so we re-use its
+  // implementation to minimize code duplication; however, the equivalence of
+  // the hash functions remains subject to change at this time, so
+  // AppendToReadStateHash should not be called directly as a substitute for
+  // AppendToSubscribeToUpdateHash.
+  return AppendToReadStateHash(preceding_hash, kvp);
+}
+
+ThinReplicaClient::~ThinReplicaClient() {
+  stop_subscription_thread_ = true;
+  if (subscription_thread_) {
+    assert(subscription_thread_->joinable());
+    subscription_thread_->join();
+  }
+}
 
 void ThinReplicaClient::Subscribe(const string& key_prefix_bytes) {
   assert(server_stubs_.size() > 0);
+  // TODO (Alex): Stop, cleanup, and destroy any existing subscription thread.
 
   // XXX: The following implementation does not achieve Subscribe's specified
   //      interface and behavior (see the comments with Subscribe's declaration
@@ -203,33 +394,42 @@ void ThinReplicaClient::Subscribe(const string& key_prefix_bytes) {
     update_queue_->Push(move(state.front()));
     state.pop_front();
   }
+  key_prefix_ = key_prefix_bytes;
+  latest_verified_block_id_ = block_id;
+
+  // Create and launch thread to stream updates from the servers and push them
+  // into the queue.
+  stop_subscription_thread_ = false;
+  subscription_thread_.reset(
+      new thread(&ThinReplicaClient::ReceiveUpdates, this));
 
   // TODO (Alex): Complete, revise, and clean up error handling for this
   //              function.
-  // TODO (Alex): Add logic to setup actual subscription.
-  LOG4CPLUS_WARN(logger_,
-                 "concord::thin_replica_client::ThinReplicaClient::Subscribe "
-                 "is incompletely implemented.");
+  LOG4CPLUS_WARN(
+      logger_,
+      "thin_replica_client::ThinReplicaClient::Subscribe is incomplete in its "
+      "error handling and recovery; the worker thread Subscribe creates is "
+      "also incomple in its error handling and recovery.");
 }
 
 void ThinReplicaClient::Subscribe(const string& key_prefix_bytes,
                                   uint64_t last_known_block_id) {
-  // TODO (Alex): Provide real implementation.
+  // TODO (Alex): Implement.
   LOG4CPLUS_FATAL(logger_,
-                  "concord::thin_replica_client::ThinReplicaClient::Subscribe "
-                  "is unimplemented.");
+                  "thin_replica_client::ThinReplicaClient::Subscribe(const "
+                  "string&, uint64_t) is unimplemented.");
 }
 
 void ThinReplicaClient::Unsubscribe() {
   // TODO (Alex): Implement.
-  LOG4CPLUS_FATAL(logger_,
-                  "concord::thin_replica_client::ThinReplicaClient::"
-                  "Unsubscribe is unimplemented.");
+  LOG4CPLUS_FATAL(
+      logger_,
+      "thin_replica_client::ThinReplicaClient::Unsubscribe is unimplemented.");
 }
 
 void ThinReplicaClient::AcknowledgeBlockID(uint64_t block_id) {
   // TODO (Alex): Implement.
   LOG4CPLUS_FATAL(logger_,
-                  "concord::thin_replica_client::ThinReplicaClient::"
-                  "AcknowledgeBlockID is unimplemented.");
+                  "thin_replica_client::ThinReplicaClient::AcknowledgeBlockID "
+                  "is unimplemented.");
 }
