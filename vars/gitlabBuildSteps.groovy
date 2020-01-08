@@ -701,7 +701,7 @@ EOF
                       saveTimeEvent("Performance tests", "Start")
                       sh '''
                         echo "Running Entire Testsuite: Performance..."
-                        mkdir "${performance_test_logs}"
+                        mkdir -p "${performance_test_logs}"
                         echo "${PASSWORD}" | sudo -SE "${python}" main.py PerformanceTests --dockerComposeFile ../docker/docker-compose.yml --performanceVotes 10000 --resultsDir "${performance_test_logs}" --runConcordConfigurationGeneration --concordConfigurationInput /concord/config/dockerConfigurationInput-perftest.yaml --logLevel debug > "${performance_test_logs}/performance_tests.log" 2>&1
                       '''
                       saveTimeEvent("Performance tests", "End")
@@ -717,7 +717,7 @@ EOF
                         echo "${PASSWORD}" | sudo -S rm -rf ../docker/devdata/rocksdbdata*
                         echo "${PASSWORD}" | sudo -S rm -rf ../docker/devdata/cockroachDB
 
-                        mkdir "${lint_test_logs}"
+                        mkdir -p "${lint_test_logs}"
                         "${python}" main.py LintTests --dockerComposeFile ../docker/docker-compose.yml ../docker/docker-compose-fluentd.yml --resultsDir "${lint_test_logs}" --runConcordConfigurationGeneration --logLevel debug > "${lint_test_logs}/lint_tests.log" 2>&1
                       '''
                       saveTimeEvent("LINT tests", "End")
@@ -780,7 +780,7 @@ EOF
                       }
                     }
 
-                    sh(script: 'mkdir "${persephone_test_logs}"')
+                    sh(script: 'mkdir -p "${persephone_test_logs}"')
 
                     if (env.JOB_NAME.contains(persephone_test_job_name)) {
                       sh '''
