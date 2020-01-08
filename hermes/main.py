@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 
 #########################################################################
-# Copyright 2018 - 2019 VMware, Inc.  All rights reserved. -- VMware Confidential
+# Copyright 2018 - 2020 VMware, Inc.  All rights reserved. -- VMware Confidential
 #########################################################################
 
 import argparse
@@ -342,6 +342,8 @@ def processResults(resultsFile):
 
    msg = "{color}{symbol} " + suiteName + " {tests}" + reset
 
+   # If this output changes, make sure vars/gitlabBuildSteps.groovy, runTests(),
+   # will still be able to find it.
    if failCount > 0:
       msg = msg.format(color=red, symbol="\u2717",
                        tests="{} tests failed".format(failCount))
@@ -350,7 +352,7 @@ def processResults(resultsFile):
                        tests="{} tests succeeded".format(passCount))
 
    if skippedCount > 0:
-      msg += " {}{} skipped{}".format(yellow, skippedCount, reset)
+      msg += " {}{} tests skipped{}".format(yellow, skippedCount, reset)
 
    log.info(msg)
 

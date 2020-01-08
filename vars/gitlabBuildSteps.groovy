@@ -275,10 +275,9 @@ def call(){
             try{
               script {
                 fetchSourceRepos()
-
                 env.blockchain_root = new File(env.WORKSPACE, "blockchain").toString()
                 // Check if persephone tests are to be executed in this run
-                env.run_persephone_tests = has_repo_changed('vars') || has_repo_changed('buildall.sh') || has_repo_changed('hermes') || has_repo_changed('persephone') || has_repo_changed('agent') || has_repo_changed('concord') || env.JOB_NAME.contains("Master Branch") || env.JOB_NAME.contains("Blockchain Persephone Tests")
+                env.run_persephone_tests = need_persephone_tests()
                 echo "Run Persephone Tests? " + env.run_persephone_tests
               }
             }catch(Exception ex){
@@ -420,76 +419,23 @@ def call(){
                 git config --global user.name "build system"
               '''
 
-              // Set up repo variables.
-              script {
-                if (env.JOB_NAME.contains(persephone_test_job_name) ||
-                    env.JOB_NAME.contains(performance_test_job_name) ||
-                    env.JOB_NAME.contains(memory_leak_job_name)) {
-                  saveTimeEvent("Build", "Fetch build number from Job Update-onecloud-provisioning-service")
-                  echo "For nightly runs (other than MR/Master/Manual Run/ON DEMAND), fetching latest build number"
-                  def build = build job: 'Update-onecloud-provisioning-service', propagate: true, wait: true
-                  env.recent_published_docker_tag = "${build.buildVariables.concord_tag}"
-                  echo "Most recent build/tag: " + env.recent_published_docker_tag
-                  echo "Assigning '" + env.recent_published_docker_tag + "' to docker_tag"
-                  env.docker_tag = env.recent_published_docker_tag
-                  saveTimeEvent("Build", "Completed fetch build number from Job Update-onecloud-provisioning-service")
-                } else {
-                  echo "This run requires building components"
-                  env.docker_tag = env.version_param ? env.version_param : env.BUILD_NUMBER
-                }
-
-                env.release_repo = "vmwblockchain"
-                env.internal_repo_name = "athena-docker-local"
-                env.internal_repo = env.internal_repo_name + ".artifactory.eng.vmware.com"
-
-                // These are constants which mirror the DockerHub repos.  DockerHub is only used for publishing releases.
-                env.release_asset_transfer_repo = env.release_repo + "/asset-transfer"
-                env.release_concord_repo = env.release_repo + "/concord-core"
-                env.release_ethrpc_repo = env.release_repo + "/ethrpc"
-                env.release_fluentd_repo = env.release_repo + "/fluentd"
-                env.release_helen_repo = env.release_repo + "/concord-ui"
-                env.release_memleak_concord_repo = env.release_repo + "/memleak-concord-core"
-                env.release_persephone_agent_repo = env.release_repo + "/agent"
-                env.release_persephone_configuration_repo = env.release_repo + "/persephone-configuration"
-                env.release_persephone_fleet_repo = env.release_repo + "/persephone-fleet"
-                env.release_persephone_ipam_repo = env.release_repo + "/persephone-ipam"
-                env.release_persephone_metadata_repo = env.release_repo + "/persephone-metadata"
-                env.release_persephone_provisioning_repo = env.release_repo + "/persephone-provisioning"
-                env.release_ui_repo = env.release_repo + "/ui"
-                env.release_contract_compiler_repo = env.release_repo + "/contract-compiler"
-                env.release_hlf_tools_repo = env.release_repo + "/hlf-tools"
-                env.release_hlf_peer_repo = env.release_repo + "/hlf-peer"
-                env.release_hlf_orderer_repo = env.release_repo + "/hlf-orderer"
-                env.release_daml_ledger_api_repo = env.release_repo + "/daml-ledger-api"
-                env.release_daml_execution_engine_repo = env.release_repo + "/daml-execution-engine"
-                env.release_daml_index_db_repo = env.release_repo + "/daml-index-db"
-
-                // These are constants which mirror the internal artifactory repos.  We put all merges
-                // to master in the internal VMware artifactory.
-                env.internal_asset_transfer_repo = env.release_asset_transfer_repo.replace(env.release_repo, env.internal_repo)
-                env.internal_concord_repo = env.release_concord_repo.replace(env.release_repo, env.internal_repo)
-                env.internal_ethrpc_repo = env.release_ethrpc_repo.replace(env.release_repo, env.internal_repo)
-                env.internal_fluentd_repo = env.release_fluentd_repo.replace(env.release_repo, env.internal_repo)
-                env.internal_helen_repo = env.internal_repo + "/helen"
-                env.internal_memleak_concord_repo = env.release_memleak_concord_repo.replace(env.release_repo, env.internal_repo)
-                env.internal_persephone_agent_repo = env.release_persephone_agent_repo.replace(env.release_repo, env.internal_repo)
-                env.internal_persephone_configuration_repo = env.release_persephone_configuration_repo.replace(env.release_repo, env.internal_repo)
-                env.internal_persephone_fleet_repo = env.release_persephone_fleet_repo.replace(env.release_repo, env.internal_repo)
-                env.internal_persephone_ipam_repo = env.release_persephone_ipam_repo.replace(env.release_repo, env.internal_repo)
-                env.internal_persephone_metadata_repo = env.release_persephone_metadata_repo.replace(env.release_repo, env.internal_repo)
-                env.internal_persephone_provisioning_repo = env.release_persephone_provisioning_repo.replace(env.release_repo, env.internal_repo)
-                env.internal_ui_repo = env.release_ui_repo.replace(env.release_repo, env.internal_repo)
-                env.internal_contract_compiler_repo = env.release_contract_compiler_repo.replace(env.release_repo, env.internal_repo)
-                env.internal_hlf_tools_repo = env.release_hlf_tools_repo.replace(env.release_repo, env.internal_repo)
-                env.internal_hlf_peer_repo = env.release_hlf_peer_repo.replace(env.release_repo, env.internal_repo)
-                env.internal_hlf_orderer_repo = env.release_hlf_orderer_repo.replace(env.release_repo, env.internal_repo)
-                env.internal_hlf_tools_base_repo = env.internal_repo + "/fabric-tools"
-                env.internal_hlf_peer_base_repo = env.internal_repo + "/fabric-peer"
-                env.internal_hlf_orderer_base_repo = env.internal_repo + "/fabric-orderer"
-                env.internal_daml_ledger_api_repo = env.release_daml_ledger_api_repo.replace(env.release_repo, env.internal_repo)
-                env.internal_daml_execution_engine_repo = env.release_daml_execution_engine_repo.replace(env.release_repo, env.internal_repo)
-                env.internal_daml_index_db_repo = env.release_daml_index_db_repo.replace(env.release_repo, env.internal_repo)
+              if (env.JOB_NAME.contains(persephone_test_job_name) ||
+                  env.JOB_NAME.contains(performance_test_job_name) ||
+                  env.JOB_NAME.contains(memory_leak_job_name)) {
+                saveTimeEvent("Build", "Fetch build number from Job Update-onecloud-provisioning-service")
+                echo "For nightly runs (other than MR/Master/Manual Run/ON DEMAND), fetching latest build number"
+                def build = build job: 'Update-onecloud-provisioning-service', propagate: true, wait: true
+                env.recent_published_docker_tag = "${build.buildVariables.concord_tag}"
+                echo "Most recent build/tag: " + env.recent_published_docker_tag
+                echo "Assigning '" + env.recent_published_docker_tag + "' to docker_tag"
+                env.docker_tag = env.recent_published_docker_tag
+                saveTimeEvent("Build", "Completed fetch build number from Job Update-onecloud-provisioning-service")
+              } else {
+                echo "This run requries building components"
+                env.docker_tag = env.version_param ? env.version_param : env.BUILD_NUMBER
               }
+
+              setUpRepoVariables()
 
               // Docker-compose picks up values from the .env file in the directory from which
               // docker-compose is run.
@@ -753,7 +699,8 @@ EOF
                       saveTimeEvent("Performance tests", "Start")
                       sh '''
                         echo "Running Entire Testsuite: Performance..."
-                        echo "${PASSWORD}" | sudo -SE "${python}" main.py PerformanceTests --dockerComposeFile ../docker/docker-compose.yml --performanceVotes 10000 --resultsDir "${performance_test_logs}" --runConcordConfigurationGeneration --concordConfigurationInput /concord/config/dockerConfigurationInput-perftest.yaml --logLevel debug
+                        mkdir "${performance_test_logs}"
+                        echo "${PASSWORD}" | sudo -SE "${python}" main.py PerformanceTests --dockerComposeFile ../docker/docker-compose.yml --performanceVotes 10000 --resultsDir "${performance_test_logs}" --runConcordConfigurationGeneration --concordConfigurationInput /concord/config/dockerConfigurationInput-perftest.yaml --logLevel debug > "${performance_test_logs}/performance_tests.log" 2>&1
                       '''
                       saveTimeEvent("Performance tests", "End")
                     }
@@ -768,7 +715,8 @@ EOF
                         echo "${PASSWORD}" | sudo -S rm -rf ../docker/devdata/rocksdbdata*
                         echo "${PASSWORD}" | sudo -S rm -rf ../docker/devdata/cockroachDB
 
-                        "${python}" main.py LintTests --dockerComposeFile ../docker/docker-compose.yml ../docker/docker-compose-fluentd.yml --resultsDir "${lint_test_logs}" --runConcordConfigurationGeneration --logLevel debug
+                        mkdir "${lint_test_logs}"
+                        "${python}" main.py LintTests --dockerComposeFile ../docker/docker-compose.yml ../docker/docker-compose-fluentd.yml --resultsDir "${lint_test_logs}" --runConcordConfigurationGeneration --logLevel debug > "${lint_test_logs}/lint_tests.log" 2>&1
                       '''
                       saveTimeEvent("LINT tests", "End")
                     }
@@ -776,6 +724,7 @@ EOF
                 }
               }
             }catch(Exception ex){
+              echo("A failure occurred while running the tests.")
               failRun()
               throw ex
             }
@@ -829,23 +778,25 @@ EOF
                       }
                     }
 
+                    sh(script: 'mkdir "${persephone_test_logs}"')
+
                     if (env.JOB_NAME.contains(persephone_test_job_name)) {
                       sh '''
                         echo "Running Entire Testsuite: Persephone..."
-                        echo "${PASSWORD}" | sudo -SE "${python}" main.py PersephoneTests --useLocalConfigService --externalProvisioningServiceEndpoint ${EXT_PROVISIONING_SERVICE_ENDPOINT} --dockerComposeFile ../docker/docker-compose-persephone.yml --tests "all_tests" --resultsDir "${persephone_test_logs}" --deploymentComponents "${release_persephone_agent_repo}:${agent_docker_tag},${release_concord_repo}:${dep_comp_docker_tag},${release_ethrpc_repo}:${dep_comp_docker_tag},${release_daml_ledger_api_repo}:${dep_comp_docker_tag},${release_daml_execution_engine_repo}:${dep_comp_docker_tag},${release_daml_index_db_repo}:${dep_comp_docker_tag},${release_fluentd_repo}:${dep_comp_docker_tag}" --keepBlockchains ${deployment_retention}
+                        echo "${PASSWORD}" | sudo -SE "${python}" main.py PersephoneTests --useLocalConfigService --externalProvisioningServiceEndpoint ${EXT_PROVISIONING_SERVICE_ENDPOINT} --dockerComposeFile ../docker/docker-compose-persephone.yml --tests "all_tests" --resultsDir "${persephone_test_logs}" --deploymentComponents "${release_persephone_agent_repo}:${agent_docker_tag},${release_concord_repo}:${dep_comp_docker_tag},${release_ethrpc_repo}:${dep_comp_docker_tag},${release_daml_ledger_api_repo}:${dep_comp_docker_tag},${release_daml_execution_engine_repo}:${dep_comp_docker_tag},${release_daml_index_db_repo}:${dep_comp_docker_tag},${release_fluentd_repo}:${dep_comp_docker_tag}" --keepBlockchains ${deployment_retention} > "${persephone_test_logs}/persephone_tests.log" 2>&1
                       '''
                     } else {
                       if (env.JOB_NAME.contains(persephone_test_on_demand_job_name)) {
                         sh '''
                           echo "Running Persephone SMOKE Tests (ON DEMAND hitting local config-service)..."
-                          echo "${PASSWORD}" | sudo -SE "${python}" main.py PersephoneTests --useLocalConfigService --dockerComposeFile ../docker/docker-compose-persephone.yml --resultsDir "${persephone_test_logs}" --deploymentComponents "${release_persephone_agent_repo}:${agent_docker_tag},${release_concord_repo}:${dep_comp_docker_tag},${release_ethrpc_repo}:${dep_comp_docker_tag},${release_daml_ledger_api_repo}:${dep_comp_docker_tag},${release_daml_execution_engine_repo}:${dep_comp_docker_tag},${release_daml_index_db_repo}:${dep_comp_docker_tag},${release_fluentd_repo}:${dep_comp_docker_tag}" --keepBlockchains ${deployment_retention}
+                          echo "${PASSWORD}" | sudo -SE "${python}" main.py PersephoneTests --useLocalConfigService --dockerComposeFile ../docker/docker-compose-persephone.yml --resultsDir "${persephone_test_logs}" --deploymentComponents "${release_persephone_agent_repo}:${agent_docker_tag},${release_concord_repo}:${dep_comp_docker_tag},${release_ethrpc_repo}:${dep_comp_docker_tag},${release_daml_ledger_api_repo}:${dep_comp_docker_tag},${release_daml_execution_engine_repo}:${dep_comp_docker_tag},${release_daml_index_db_repo}:${dep_comp_docker_tag},${release_fluentd_repo}:${dep_comp_docker_tag}" --keepBlockchains ${deployment_retention} > "${persephone_test_logs}/persephone_tests.log" 2>&1
                         '''
                       } else {
                         // If bug VB-1770 (infra/product/test issue on config-service), is still seen after a couple of runs,
                         // remove --useLocalConfigService for MR/Master runs, and retain for ON DEMAND Job
                         sh '''
                           echo "Running Persephone SMOKE Tests..."
-                          echo "${PASSWORD}" | sudo -SE "${python}" main.py PersephoneTests --dockerComposeFile ../docker/docker-compose-persephone.yml --resultsDir "${persephone_test_logs}" --deploymentComponents "${release_persephone_agent_repo}:${agent_docker_tag},${release_concord_repo}:${dep_comp_docker_tag},${release_ethrpc_repo}:${dep_comp_docker_tag},${release_daml_ledger_api_repo}:${dep_comp_docker_tag},${release_daml_execution_engine_repo}:${dep_comp_docker_tag},${release_daml_index_db_repo}:${dep_comp_docker_tag},${release_fluentd_repo}:${dep_comp_docker_tag}" --keepBlockchains ${deployment_retention}
+                          echo "${PASSWORD}" | sudo -SE "${python}" main.py PersephoneTests --dockerComposeFile ../docker/docker-compose-persephone.yml --resultsDir "${persephone_test_logs}" --deploymentComponents "${release_persephone_agent_repo}:${agent_docker_tag},${release_concord_repo}:${dep_comp_docker_tag},${release_ethrpc_repo}:${dep_comp_docker_tag},${release_daml_ledger_api_repo}:${dep_comp_docker_tag},${release_daml_execution_engine_repo}:${dep_comp_docker_tag},${release_daml_index_db_repo}:${dep_comp_docker_tag},${release_fluentd_repo}:${dep_comp_docker_tag}" --keepBlockchains ${deployment_retention} > "${persephone_test_logs}/persephone_tests.log" 2>&1
                         '''
                       }
                     }
@@ -854,6 +805,7 @@ EOF
               }
               saveTimeEvent("Persephone tests", "End")
             }catch(Exception ex){
+              echo("A failure occurred while running the tests.")
               failRun()
               throw ex
             }
@@ -1550,23 +1502,44 @@ void handleKnownHosts(host){
   }
 }
 
-Boolean has_repo_changed(directory){
-  dir(env.blockchain_root){
-    // Check if arg: directory had a diff change with master
-    absolute_path = new File(env.blockchain_root, directory).toString()
-    status = sh (
-      script: "git diff origin/master --name-only --exit-code '" + absolute_path + "'",
-      returnStatus: true
-    )
+Boolean need_persephone_tests(){
+  paths_changed = have_any_paths_changed(['vars', 'buildall.sh', 'hermes', 'persephone', 'agent', 'concord'])
 
-    if(status != 0){
-      // There was a change in git diff
-      return true
-    } else{
-      // There was NO change in git diff
-      return false
+  if(paths_changed){
+     echo("Running Persephone tests because one or more paths in the diff match the criteria.")
+  }
+
+  needed_per_job_name = env.JOB_NAME.contains("Master Branch") || env.JOB_NAME.contains("Blockchain Persephone Tests")
+
+  if(needed_per_job_name){
+        echo("Running Persephone tests because the job name matches the criteria.")
+  }
+
+  return paths_changed || needed_per_job_name
+}
+
+// Returns whether any of the passed in list of paths has changed.
+// Paths should be relative to the root of the blockchain project.
+Boolean have_any_paths_changed(paths){
+  changed = false
+
+  for(i = 0; i < paths.size() && !changed; ++i){
+    dir(env.blockchain_root){
+      absolute_path = new File(env.blockchain_root, paths[i]).toString()
+
+      status = sh (
+        script: "git diff origin/master --name-only --exit-code '" + absolute_path + "'",
+        returnStatus: true
+      )
+
+      if(status != 0){
+        // There was a change in git diff
+        changed = true
+      }
     }
   }
+
+  return changed
 }
 
 // Remove all containers.
@@ -1779,6 +1752,7 @@ void runTests(){
   // but we can iterate over a list of keys.
   for (suite in testSuites.keySet()) {
     if (testSuites[suite].runSuite){
+      echo("**** Starting suite " + suite + " ****")
       env.suiteName = suite
       env.suiteCmd = testSuites[suite].baseCommand ? testSuites[suite].baseCommand :
                    'echo ${PASSWORD} | sudo -SE ' + env.python + " main.py " + suite
@@ -1787,7 +1761,7 @@ void runTests(){
                                             "" : "--runConcordConfigurationGeneration"
       resultsDir = testSuites[suite].resultsDir ? testSuites[suite].resultsDir : suite
       //GAAAH mixed case horror.
-      env.suiteResultsDir = "\"" + new File(env.test_log_root, resultsDir).toString() + "\""
+      env.suiteResultsDir = new File(env.test_log_root, resultsDir).toString()
 
       env.suitePerformanceVotes = testSuites[suite].performanceVotes ?
                                 "--performanceVotes " + testSuites[suite].performanceVotes : ""
@@ -1796,6 +1770,7 @@ void runTests(){
       env.suiteDockerComposeFiles = testSuites[suite].dockerComposeFiles ?
                                   "--dockerComposeFile " + testSuites[suite].dockerComposeFiles : ""
       env.suiteDir = testSuites[suite].suiteDir ? testSuites[suite].suiteDir : "."
+      env.testLogFileName = suite + ".log"
 
       if (testSuites[suite].setupFunction){
         setupFunction = testSuites[suite].setupFunction
@@ -1805,9 +1780,6 @@ void runTests(){
       withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
         sh(script:
         '''
-          # Source NVM.  Is this still needed for UI tests?  Try removing it.
-          . ~/.nvm/nvm.sh
-
           # Pull in the shell script saveTimeEvent.
           . lib/shell/saveTimeEvent.sh
           EVENTS_FILE="${eventsFullPath}"
@@ -1817,9 +1789,33 @@ void runTests(){
           # pushd is not available in the Jenkins shell.
           origDir=`pwd`
           cd "${suiteDir}"
-          eval "${suiteCmd} --resultsDir ${suiteResultsDir} ${suiteRunConcordConfigGeneration} ${suitePerformanceVotes} ${suiteConcordConfigInput} ${suiteDockerComposeFiles} --logLevel debug"
+          mkdir "${suiteResultsDir}"
+
+          # Change to set -x for debugging the command.
+          # Keep at +x for production.
+          # set -x
+
+          # Set +e so we can grep for the result summary instead of exiting immediately on failure.
+          set +e
+
+          eval "${suiteCmd} --resultsDir \\\"${suiteResultsDir}\\\" ${suiteRunConcordConfigGeneration} ${suitePerformanceVotes} ${suiteConcordConfigInput} ${suiteDockerComposeFiles} --logLevel debug" > "${suiteResultsDir}/${testLogFileName}" 2>&1
+          suiteSuccess=$?
+
           saveTimeEvent "${suiteName}" End
+
+          # Print a line for jenkinslogs to search for.
+          # Search for text output by hermes/main.py, processResults().
+          set +x
+          echo "Getting resultSummary"
+          resultSummary=`grep -E "tests succeeded|tests failed|tests skipped" "${suiteResultsDir}/${testLogFileName}"`
+          echo Test result summary: "${resultSummary}"
           cd "${origDir}"
+
+          # Now that we have finished our work, let the script fail.
+          set -e
+          if [ ${suiteSuccess} -ne 0 ]; then
+             false
+          fi
         '''
         )
       }
@@ -1844,4 +1840,59 @@ void selectOnlySuites(desiredSuites){
     found = suite in desiredSuites
     testSuites[suite].runSuite = found
   }
+}
+
+// Sets up a bunch of environment variables.
+void setUpRepoVariables(){
+  env.release_repo = "vmwblockchain"
+  env.internal_repo_name = "athena-docker-local"
+  env.internal_repo = env.internal_repo_name + ".artifactory.eng.vmware.com"
+
+  // These are constants which mirror the DockerHub repos.  DockerHub is only used for publishing releases.
+  env.release_asset_transfer_repo = env.release_repo + "/asset-transfer"
+  env.release_concord_repo = env.release_repo + "/concord-core"
+  env.release_ethrpc_repo = env.release_repo + "/ethrpc"
+  env.release_fluentd_repo = env.release_repo + "/fluentd"
+  env.release_helen_repo = env.release_repo + "/concord-ui"
+  env.release_memleak_concord_repo = env.release_repo + "/memleak-concord-core"
+  env.release_persephone_agent_repo = env.release_repo + "/agent"
+  env.release_persephone_configuration_repo = env.release_repo + "/persephone-configuration"
+  env.release_persephone_fleet_repo = env.release_repo + "/persephone-fleet"
+  env.release_persephone_ipam_repo = env.release_repo + "/persephone-ipam"
+  env.release_persephone_metadata_repo = env.release_repo + "/persephone-metadata"
+  env.release_persephone_provisioning_repo = env.release_repo + "/persephone-provisioning"
+  env.release_ui_repo = env.release_repo + "/ui"
+  env.release_contract_compiler_repo = env.release_repo + "/contract-compiler"
+  env.release_hlf_tools_repo = env.release_repo + "/hlf-tools"
+  env.release_hlf_peer_repo = env.release_repo + "/hlf-peer"
+  env.release_hlf_orderer_repo = env.release_repo + "/hlf-orderer"
+  env.release_daml_ledger_api_repo = env.release_repo + "/daml-ledger-api"
+  env.release_daml_execution_engine_repo = env.release_repo + "/daml-execution-engine"
+  env.release_daml_index_db_repo = env.release_repo + "/daml-index-db"
+
+  // These are constants which mirror the internal artifactory repos.  We put all merges
+  // to master in the internal VMware artifactory.
+  env.internal_asset_transfer_repo = env.release_asset_transfer_repo.replace(env.release_repo, env.internal_repo)
+  env.internal_concord_repo = env.release_concord_repo.replace(env.release_repo, env.internal_repo)
+  env.internal_ethrpc_repo = env.release_ethrpc_repo.replace(env.release_repo, env.internal_repo)
+  env.internal_fluentd_repo = env.release_fluentd_repo.replace(env.release_repo, env.internal_repo)
+  env.internal_helen_repo = env.internal_repo + "/helen"
+  env.internal_memleak_concord_repo = env.release_memleak_concord_repo.replace(env.release_repo, env.internal_repo)
+  env.internal_persephone_agent_repo = env.release_persephone_agent_repo.replace(env.release_repo, env.internal_repo)
+  env.internal_persephone_configuration_repo = env.release_persephone_configuration_repo.replace(env.release_repo, env.internal_repo)
+  env.internal_persephone_fleet_repo = env.release_persephone_fleet_repo.replace(env.release_repo, env.internal_repo)
+  env.internal_persephone_ipam_repo = env.release_persephone_ipam_repo.replace(env.release_repo, env.internal_repo)
+  env.internal_persephone_metadata_repo = env.release_persephone_metadata_repo.replace(env.release_repo, env.internal_repo)
+  env.internal_persephone_provisioning_repo = env.release_persephone_provisioning_repo.replace(env.release_repo, env.internal_repo)
+  env.internal_ui_repo = env.release_ui_repo.replace(env.release_repo, env.internal_repo)
+  env.internal_contract_compiler_repo = env.release_contract_compiler_repo.replace(env.release_repo, env.internal_repo)
+  env.internal_hlf_tools_repo = env.release_hlf_tools_repo.replace(env.release_repo, env.internal_repo)
+  env.internal_hlf_peer_repo = env.release_hlf_peer_repo.replace(env.release_repo, env.internal_repo)
+  env.internal_hlf_orderer_repo = env.release_hlf_orderer_repo.replace(env.release_repo, env.internal_repo)
+  env.internal_hlf_tools_base_repo = env.internal_repo + "/fabric-tools"
+  env.internal_hlf_peer_base_repo = env.internal_repo + "/fabric-peer"
+  env.internal_hlf_orderer_base_repo = env.internal_repo + "/fabric-orderer"
+  env.internal_daml_ledger_api_repo = env.release_daml_ledger_api_repo.replace(env.release_repo, env.internal_repo)
+  env.internal_daml_execution_engine_repo = env.release_daml_execution_engine_repo.replace(env.release_repo, env.internal_repo)
+  env.internal_daml_index_db_repo = env.release_daml_index_db_repo.replace(env.release_repo, env.internal_repo)
 }
