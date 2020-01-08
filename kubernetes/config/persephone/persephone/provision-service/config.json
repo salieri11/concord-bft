@@ -27,5 +27,11 @@
         "transportSecurity": {
             "type":"TLSv1_2"
         }
+    },
+    "configServiceRest":{
+        "address":"https://cs-rest.vdp.vmware.com",
+        "transportSecurity": {
+            "type":"TLSv1_2"
+        }
     }
 }

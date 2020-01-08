@@ -17,7 +17,7 @@ spec:
       hostname: ui
       containers:
       - name: ui
-        image: vmware-docker-blockchainsaas.bintray.io/ui:latest
+        image: vmware-docker-blockchainsaas.bintray.io/vmwblockchain/ui:{{BUILDNUM}}
         imagePullPolicy: Always
         ports:
         - containerPort: 80

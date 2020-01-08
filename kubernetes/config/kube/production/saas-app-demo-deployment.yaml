@@ -23,37 +23,13 @@ spec:
         - "contract-compiler"
         - "persephone-provisioning"
       containers:
-      - name: cockroachdb
-        image: cockroachdb/cockroach:v2.0.2
-        imagePullPolicy: Always
-        ports:
-        - containerPort: 26257
-        command:
-        - /opt/vmbc/helen/entrypoint-persistent-firstboot.sh
-        volumeMounts:
-        - name: helenmap-volume
-          mountPath: /opt/vmbc/helen/
-          readOnly: true
-        - name: datadir
-          mountPath: /opt/cockroach/data/
-        resources:
-          requests:
-            memory: "1024Mi"
-            cpu: "512m"
-          limits:
-            memory: "1024Mi"
-            cpu: "1024m"
-        lifecycle:
-          preStop:
-            exec:
-              command: ["/bin/sh", "-c", "/cockroach/cockroach quit --insecure"]
       - name: contract-compiler
-        image: vmware-docker-blockchainsaas.bintray.io/vmwblockchain/contract-compiler:latest
+        image: vmware-docker-blockchainsaas.bintray.io/vmwblockchain/contract-compiler:869
         imagePullPolicy: Always
         ports:
         - containerPort: 3000
       - name: helen
-        image: vmware-docker-blockchainsaas.bintray.io/vmwblockchain/helen:latest
+        image: vmware-docker-blockchainsaas.bintray.io/vmwblockchain/helen:869
         imagePullPolicy: Always
         env:
         - name: APPCONTEXT
@@ -64,8 +40,11 @@ spec:
         - name: helencontext-volume
           mountPath: /config/app/profiles/
           readOnly: true
+        - name: helendb-volume
+          mountPath: /config/app/db/migration/
+          readOnly: true
       - name: ui
-        image: vmware-docker-blockchainsaas.bintray.io/vmwblockchain/ui:latest
+        image: vmware-docker-blockchainsaas.bintray.io/vmwblockchain/ui:869
         imagePullPolicy: Always
         ports:
         - containerPort: 80
@@ -74,7 +53,7 @@ spec:
           mountPath: /usr/share/nginx/html/static/app-config.json
           subPath: app-config.json
       - name: persephone-provisioning
-        image: vmware-docker-blockchainsaas.bintray.io/vmwblockchain/persephone-provisioning:latest
+        image: vmware-docker-blockchainsaas.bintray.io/vmwblockchain/persephone-provisioning:869
         ports:
         - containerPort: 9002
         imagePullPolicy: Always
@@ -83,16 +62,13 @@ spec:
           mountPath: /config/persephone/provisioning/
           readOnly: true
       volumes:
-      - name: datadir
-        persistentVolumeClaim:
-          claimName: cockroach-demo
-      - name: helenmap-volume
-        configMap:
-          name: helendbpersistentfb
-          defaultMode: 0700
       - name: helencontext-volume
         configMap:
           name: helencontext-demo
+          defaultMode: 0700
+      - name: helendb-volume
+        configMap:
+          name: helenzones-demo
           defaultMode: 0700
       - name: fleet-volume
         configMap:

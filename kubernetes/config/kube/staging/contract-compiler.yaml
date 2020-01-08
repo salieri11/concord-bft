@@ -17,7 +17,7 @@ spec:
       hostname: contract-compiler
       containers:
       - name: contract-compiler
-        image: vmware-docker-blockchainsaas.bintray.io/contract-compiler:latest
+        image: vmware-docker-blockchainsaas.bintray.io/vmwblockchain/contract-compiler:{{BUILDNUM}}
         imagePullPolicy: Always
         ports:
         - containerPort: 3000
