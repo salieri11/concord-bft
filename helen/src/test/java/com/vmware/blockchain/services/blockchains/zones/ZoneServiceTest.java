@@ -263,7 +263,7 @@ public class ZoneServiceTest {
         Assertions.assertTrue(z instanceof Zone);
         Exception exception = Assertions.assertThrows(NotFoundException.class, () -> zoneService.get(noSuchSite));
 
-        Assertions.assertEquals(((NotFoundException)exception).getHttpStatus().value(), 404);
+        Assertions.assertEquals(((NotFoundException) exception).getHttpStatus().value(), 404);
 
     }
 

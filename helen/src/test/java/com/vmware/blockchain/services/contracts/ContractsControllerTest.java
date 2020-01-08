@@ -14,8 +14,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
-import com.vmware.blockchain.common.ConflictException;
-import com.vmware.blockchain.common.ForbiddenException;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -36,11 +34,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 import com.vmware.blockchain.MvcConfig;
 import com.vmware.blockchain.auth.AuthHelper;
+import com.vmware.blockchain.common.ConflictException;
+import com.vmware.blockchain.common.ForbiddenException;
 import com.vmware.blockchain.common.HelenExceptionHandler;
 import com.vmware.blockchain.services.blockchains.Blockchain;
 import com.vmware.blockchain.services.profiles.DefaultProfiles;
 import com.vmware.blockchain.services.profiles.Roles;
 import com.vmware.blockchain.utils.ControllerTestConfig;
+
 
 /**
  * Tests for the ContractsController.

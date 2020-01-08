@@ -462,7 +462,6 @@ class ZoneControllerTest {
                 ImmutableMap.of("name", "US_EAST1", "geo-latitude", "33.1960", "geo-longitude", "-80.0131");
 
         OnPremZone ozone = getOnpremZone(OP_SITE, ORG_ID);
-        VmcAwsZone vmcAwsZone = new VmcAwsZone();
         ozone.setLogManagements(Lists.newArrayList(logOnPrem));
         List<Zone> sites =
                 ImmutableList.of(new Zone(SITE_1, VMC_AWS, usWest),
@@ -470,6 +469,7 @@ class ZoneControllerTest {
                         ozone);
         when(zoneService.getAllAuthorized()).thenReturn(sites);
         when(zoneService.getAuthorized(OP_SITE)).thenReturn(ozone);
+        VmcAwsZone vmcAwsZone = new VmcAwsZone();
         when(zoneService.getAuthorized(OP_SITE2)).thenReturn(vmcAwsZone);
         when(zoneService.put(any(Zone.class))).thenAnswer(i -> {
             Zone z = i.getArgument(0);
