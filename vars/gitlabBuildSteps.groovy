@@ -87,8 +87,8 @@ import hudson.util.Secret
     "runWithGenericTests": true
   ],
   "TruffleTests": [
-    "enabled": true,
-    "runWithGenericTests": true
+    "enabled": false,
+    "runWithGenericTests": false
   ],
   "ContractCompilerTests": [
     "enabled": true,
