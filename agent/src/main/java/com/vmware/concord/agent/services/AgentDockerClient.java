@@ -347,6 +347,11 @@ public final class AgentDockerClient {
         List<Bind> volumes = new ArrayList<>();
         volumes.add(defaultVolume);
 
+        // Mount "generic" to all containers
+        String genericMountString = "/config/generic:/config/generic";
+        Bind genericVolume = Bind.parse(genericMountString);
+        volumes.add(genericVolume);
+
         if (containerParam.getVolumeBindings() != null) {
             volumes.addAll(containerParam.getVolumeBindings());
         }
