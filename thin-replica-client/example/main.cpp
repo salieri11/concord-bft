@@ -195,10 +195,8 @@ int main(int argc, char** argv) {
           logger,
           "The (at least initial) contents of the update queue have been "
           "exhausted; will now wait for and report any additional updates...");
-
-      // Acknowledgement is currently unimplemented.
-      // trc->AcknowledgeBlockID(latest_block_id);
-      // LOG4CPLUS_INFO(logger, "Update(s) acknowledged.");
+      trc->AcknowledgeBlockID(latest_block_id);
+      LOG4CPLUS_INFO(logger, "Update(s) acknowledged.");
 
     } else {
       LOG4CPLUS_INFO(logger, "Will wait for and report any updates...");
@@ -208,11 +206,9 @@ int main(int argc, char** argv) {
     while (update) {
       ReportUpdate(logger, *update);
       latest_block_id = update->block_id;
-
-      // Acknowledgement is currently unimplemented.
-      // trc->AcknowledgeBlockID(latest_block_id);
-      // LOG4CPLUS_INFO(logger, "Acknowledged update with with Block ID "
-      //                            << latest_block_id << ".");
+      trc->AcknowledgeBlockID(latest_block_id);
+      LOG4CPLUS_INFO(logger, "Acknowledged update with with Block ID "
+                                 << latest_block_id << ".");
 
       update = update_queue->Pop();
     }

@@ -326,17 +326,33 @@ class ThinReplicaClient final {
   // before sending them. If a value for last_known_block_id is given, the
   // ThinReplicaClient will begin the subscription at the point specifed by that
   // Block ID, otherwise, subscription will begin by attempting to read all
-  // current state. Once the subscription is successfully setup, each update
-  // received will be pushed to the update_queue this ThinReplicaClient was
-  // constructed with. If this ThinReplicaClient already has an active
-  // subscription open, that subscription will be ended when Subscribe is
-  // called. If there are any updates leftover in update_queue when Subscribe is
-  // called, the queue will be cleared. Any initial state received when opening
-  // a new subscription will be treated the same as regular updates and pushed
-  // to the queue. The subscribe call should be expected to block the calling
+  // current state.The subscribe call should be expected to block the calling
   // thread until the subscription is successfully completed and any initial
-  // state is read; Subscribe will throw an exception if it cannot successfully
-  // make the requested subscription.
+  // state is read.
+  //
+  // The Thin Replica mechanism subscription procedure begins with fetching of
+  // initial state, followed by the creation of a subscription stream through
+  // which further updates are pushed as they are generated. The updates
+  // contained in the initial state will all be synchronously pushed to the
+  // UpdateQueue this ThinReplicaClient was constructed with before the
+  // Subscribe function returns. Once the subscription stream is successfully
+  // setup, each update received via the stream will also be asynchronously
+  // pushed to that UpdateQueue (these asynchronous updates may begin before the
+  // Subscribe function returns and may continue after it returns until the
+  // Unsubscribe function is called and returned, Subscribe is called again to
+  // create another subscription and returns, or the ThinReplicaClient object is
+  // completely destoyed). It is expected that Thin Replica Client applications
+  // will make a reasonable effort to call AcknowledgeBlockID for the most
+  // recent Block ID they have received when they receive new update(s); please
+  // see ThinReplicaClient::AcknowledgeBlockID's comments in this header file
+  // for details.
+  //
+  // If this ThinReplicaClient already has an active subscription open when
+  // Subscribe is called, that subscription may be ended when Subscribe is
+  // called, and will always be ended before Subscribe returns if no error
+  // occurs. If there are any updates leftover in update_queue when Subscribe is
+  // called, the queue will be cleared. Subscribe will throw an exception if it
+  // cannot successfully make the requested subscription.
   void Subscribe(const std::string& key_prefix_bytes);
   void Subscribe(const std::string& key_prefix_bytes,
                  uint64_t last_known_block_id);
@@ -349,11 +365,29 @@ class ThinReplicaClient final {
   // if called for a ThinReplicaClient that has no active subscription.
   void Unsubscribe();
 
-  // Acknowledge receipt of the update for a given Block ID to the thin replica
-  // servers. This function should not be called unless the application has
-  // persisted whatever it needs for the update as, after calling
-  // AcknowledgeBlockID, the Thin Replica Servers are free to slate the update
-  // for pruning.
+  // Acknowledge receipt of the update for a given Block ID to the Thin Replica
+  // Servers. Thin Replica Client applications should make a reasonable effort
+  // to call this function every time they receive, process, and persist changes
+  // from new update(s).
+  //
+  // If any form of blockchain pruning is supported by the Concord cluster
+  // containing the Thin Replica Servers to which this ThinReplicaClient
+  // subscribes, AcknowledgeBlockID may inform those servers that this Thin
+  // Replica Client has received and (as applicable) persisted the update
+  // referenced by block_id; the Concord cluster may use this information in its
+  // decisions about state to prune. For this reason, AcknowledgeBlockID must be
+  // called strictly after the Thin Replica Client application has made
+  // sufficient changes to its persisted state to recover from a crash or other
+  // restart without needing to retrieve the acknowledged update from the Thin
+  // Replica Server(s).
+  //
+  // Note that, as Block IDs are monotonically increasing with respect to the
+  // order updates are sent and received, acknowledgement of one Block ID may be
+  // taken to imply receipt and persistence of all preceding updates. For this
+  // reason, an application that processes and persists updates out of order
+  // should still acknowledge updates only in order; furthermore, in
+  // applications where multiple sequential updates are received and processed
+  // at once, it is sufficient to only acknowledge the latest update of a batch.
   void AcknowledgeBlockID(uint64_t block_id);
 };
 
