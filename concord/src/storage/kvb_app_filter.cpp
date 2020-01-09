@@ -65,7 +65,7 @@ KvbUpdate KvbAppFilter::FilterUpdate(const KvbUpdate &update,
 }
 
 size_t KvbAppFilter::HashUpdate(const KvbUpdate update) {
-  size_t hash = 0;
+  size_t hash = std::hash<string>{}(std::to_string(update.first));
   for (const auto &[key, value] : update.second) {
     // (key1 XOR value1) XOR (key2 XOR value2) ...
     auto key_hash = std::hash<string>{}(string{key.data(), key.length()});
@@ -84,8 +84,8 @@ void KvbAppFilter::ReadBlockRange(BlockId block_id_start, BlockId block_id_end,
 
   SetOfKeyValuePairs kvb_kvs;
 
-  LOG4CPLUS_INFO(logger_,
-                 "ReadBlockRange block " << block_id << " to " << block_id_end);
+  LOG4CPLUS_DEBUG(
+      logger_, "ReadBlockRange block " << block_id << " to " << block_id_end);
 
   for (; block_id <= block_id_end; ++block_id) {
     Status status = rostorage_->getBlockData(block_id, kvb_kvs);
@@ -123,8 +123,8 @@ KvbStateHash KvbAppFilter::ReadBlockRangeHash(BlockId block_id_start,
 
   SetOfKeyValuePairs kvb_kvs;
 
-  LOG4CPLUS_INFO(logger_, "ReadBlockRangeHash block " << block_id << " to "
-                                                      << block_id_end);
+  LOG4CPLUS_DEBUG(logger_, "ReadBlockRangeHash block " << block_id << " to "
+                                                       << block_id_end);
 
   size_t hash_out = 0;
   for (; block_id <= block_id_end; ++block_id) {

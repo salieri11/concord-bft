@@ -109,11 +109,11 @@ void ThinReplicaClient::ReceiveUpdates() {
     }
 
     unique_ptr<Update> update(new Update());
-    UpdateHashType expected_hash = 0;
+    UpdateHashType expected_hash =
+        hash<string>{}(to_string(update_in.block_id()));
 
     update->block_id = update_in.block_id();
-    for (int i = 0; i < update_in.data_size(); ++i) {
-      KVPair kvp_in = update_in.data(i);
+    for (const auto& kvp_in : update_in.data()) {
       pair<string, string> kvp_out = make_pair(kvp_in.key(), kvp_in.value());
       update->kv_pairs.push_back(kvp_out);
       expected_hash = AppendToSubscribeToUpdatesHash(expected_hash, kvp_out);
@@ -308,7 +308,8 @@ void ThinReplicaClient::Subscribe(const string& key_prefix_bytes) {
     }
     block_id = response.block_id();
     unique_ptr<Update> update(new Update());
-    update->block_id = response.block_id();
+    update->block_id = block_id;
+    expected_hash ^= hash<string>{}(to_string(block_id));
 
     for (int i = 0; i < response.data_size(); ++i) {
       KVPair kvp = response.data(i);

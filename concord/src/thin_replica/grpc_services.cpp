@@ -116,6 +116,21 @@ void ReadFromKvbAndSendHashes(
   }
 }
 
+// Read from KVB and send to the given stream depending on the data type
+template <typename T>
+inline void ReadAndSend(
+    log4cplus::Logger logger, ServerWriter<T>* stream,
+    const concord::storage::blockchain::ILocalKeyValueStorageReadOnly* kvb,
+    BlockId start, BlockId end, const std::string& key_prefix) {
+  static_assert(std::is_same<T, Data>() || std::is_same<T, Hash>(),
+                "We expect either a Data or Hash type");
+  if constexpr (std::is_same<T, Data>()) {
+    ReadFromKvbAndSendData(logger, stream, kvb, start, end, key_prefix);
+  } else if constexpr (std::is_same<T, Hash>()) {
+    ReadFromKvbAndSendHashes(logger, stream, kvb, start, end, key_prefix);
+  }
+}
+
 // Read from KVB until we are in sync with the live updates. This function
 // returns when the next update can be taken from the given live updates.
 template <typename T>
@@ -126,22 +141,11 @@ void ThinReplicaImpl::SyncAndSend(BlockId start, const std::string& key_prefix,
   BlockId end = rostorage_->getLastBlock();
   assert(start <= end);
 
-#define SEND_HASHES_OR_DATA(log, stream, storage, start, end, prefix)     \
-  {                                                                       \
-    if constexpr (std::is_same<T, Data>()) {                              \
-      ReadFromKvbAndSendData(log, stream, storage, start, end, prefix);   \
-    } else if constexpr (std::is_same<T, Hash>()) {                       \
-      ReadFromKvbAndSendHashes(log, stream, storage, start, end, prefix); \
-    } else {                                                              \
-      assert(false);                                                      \
-    }                                                                     \
-  };
-
   // Let's not wait for a live update yet due to there might be lots of history
   // we have to catch up with first
   LOG4CPLUS_INFO(logger_,
                  "Sync reading from KVB [" << start << ", " << end << "]");
-  SEND_HASHES_OR_DATA(logger_, stream, rostorage_, start, end, key_prefix);
+  ReadAndSend<T>(logger_, stream, rostorage_, start, end, key_prefix);
 
   // Let's wait until we have at least one live update
   // TODO: Notify instead of busy wait?
@@ -166,7 +170,7 @@ void ThinReplicaImpl::SyncAndSend(BlockId start, const std::string& key_prefix,
 
     LOG4CPLUS_INFO(logger_,
                    "Sync filling gap [" << start << ", " << end << "]");
-    SEND_HASHES_OR_DATA(logger_, stream, rostorage_, start, end, key_prefix);
+    ReadAndSend<T>(logger_, stream, rostorage_, start, end, key_prefix);
   }
 
   // Overlap:
@@ -177,7 +181,6 @@ void ThinReplicaImpl::SyncAndSend(BlockId start, const std::string& key_prefix,
     update = live_updates->Pop();
     LOG4CPLUS_INFO(logger_, "Sync dropping " << update.first);
   } while (update.first < end);
-#undef SEND_HASHES_OR_DATA
 }
 
 grpc::Status ThinReplicaImpl::ReadState(
