@@ -1015,9 +1015,10 @@ class Product():
    def action_on_concord_container(self, containerName, action):
       command = "docker {0} {1}".format(action, containerName)
       output = subprocess.Popen(command,stderr=subprocess.PIPE, shell=True, stdout=subprocess.PIPE).stdout.read().decode().replace(os.linesep,"")
-      log.info("Action on " + containerName + ": " + action)
+      log.debug("Action on " + containerName + ": " + action)
       if output != containerName:
-        return False
+         log.error("Action on " + containerName + ": " + action + " failed")
+         return False
       return True
 
    def inspect_container(self, containerName):
@@ -1026,8 +1027,8 @@ class Product():
 
    def start_concord_replica(self, id):
        if len(self._concordProcessesMetaData) == 0:
-          containerName = "docker_concord{}_1".format(id)
-          return self.action_on_concord_container(containerName, "start")
+         containerName = "docker_concord{}_1".format(id)
+         return self.action_on_concord_container(containerName, "start")
 
        originalCwd = os.getcwd()
        result = False
