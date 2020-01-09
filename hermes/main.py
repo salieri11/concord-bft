@@ -14,7 +14,7 @@ from time import strftime, localtime, sleep
 from suites import (contract_compiler_tests, core_vm_tests,
                     ext_rpc_tests, lint_e2e_tests, hlf_tests, performance_tests, persephone_tests,
                     pytest_suite, regression_tests, sample_dapp_tests, simple_st_test, truffle_tests,
-                    ui_tests, websocket_rpc_tests)
+                    ui_tests, websocket_rpc_tests, persistency_tests)
 from util import helper, html, json_helper
 
 sys.path.append("lib/persephone")
@@ -41,6 +41,7 @@ suites = [
    "TruffleTests",
    "UiTests",
    "WebSocketRPCTests",
+   "MetadataPersistencyTests"
 ]
 local_modules = [os.path.join(".", "lib", "persephone")]
 
@@ -303,6 +304,8 @@ def createTestSuite(args):
       return hlf_tests.HlfTests(args)
    elif (args.suite == "ThinReplicaTests"):
       return pytest_suite.PytestSuite(args, "suites/thin_replica_tests.py")
+   elif (args.suite == "MetadataPersistencyTests"):
+      return persistency_tests.MetadataPersistencyTests(args)
    else:
       return None
 

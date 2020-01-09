@@ -94,6 +94,12 @@ import hudson.util.Secret
     "enabled": true,
     "runWithGenericTests": true
   ],
+  "MetadataPersistencyTests": [
+    "enabled": true,
+    "dockerComposeFiles": "../docker/docker-compose.yml ../docker/docker-compose-static-ips.yml",
+    "baseCommand": 'echo "${PASSWORD}" | sudo -S "${python}" main.py MetadataPersistencyTests --ethrpcApiUrl https://localhost:8547/blockchains/local/api/concord/eth',
+    "runWithGenericTests": true
+  ],
   "HlfTests": [
     "enabled": false, // RV: Disabled because these repeatedly cause the product to fail to launch in CI/CD.
     "concordConfigurationInput": "/concord/config/dockerConfigurationInput-hlf.yaml",
