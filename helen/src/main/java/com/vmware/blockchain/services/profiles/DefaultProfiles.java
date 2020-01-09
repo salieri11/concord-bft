@@ -219,9 +219,7 @@ public class DefaultProfiles {
         try {
             List<Peer> peers = concordService.getMembers(b.getId());
             List<NodeEntry> nodes = b.getNodeList();
-            Replica.ReplicaType replicaType = b.getType() == Blockchain.BlockchainType.DAML
-                    ? Replica.ReplicaType.DAML_COMMITTER
-                    : Replica.ReplicaType.NONE;
+            Replica.ReplicaType replicaType = Replica.ReplicaType.NONE;
             for (int i = 0; i < nodes.size(); i++) {
                 NodeEntry n = nodes.get(i);
                 Peer p = peers.get(i);

@@ -477,15 +477,16 @@ public class BlockchainController {
         Organization org = organizationService.get(authHelper.getOrganizationId());
 
         // true if we are deploying a DAML committer, else false
-        boolean deployCommitter;
+        // this is for DAML v2 deployment
+        boolean deployDamlCommitter;
 
         if (org.getOrganizationProperties() != null
                 && org.getOrganizationProperties().containsKey("DAML_V2")
                 && org.getOrganizationProperties().get("DAML_V2").equals("enabled")
                 && blockchainType == BlockchainType.DAML) {
-            deployCommitter = true;
+            deployDamlCommitter = true;
         } else {
-            deployCommitter = false;
+            deployDamlCommitter = false;
         }
 
         dsId = createFixedSizeCluster(client, clusterSize,
@@ -493,16 +494,12 @@ public class BlockchainController {
                 body.getZoneIds(),
                 blockchainType,
                 body.consortiumId,
-                deployCommitter);
+                deployDamlCommitter);
 
         Replica.ReplicaType replicaType = Replica.ReplicaType.NONE;
 
-        if (blockchainType == BlockchainType.DAML) {
-            if (deployCommitter) {
-                replicaType = Replica.ReplicaType.DAML_COMMITTER;
-            } else {
-                replicaType = Replica.ReplicaType.DAML_PARTICIPANT;
-            }
+        if (blockchainType == BlockchainType.DAML && !deployDamlCommitter) {
+            replicaType = Replica.ReplicaType.DAML_PARTICIPANT;
         }
 
         logger.info("Deployment started, id {} for the consortium id {}", dsId, body.consortiumId.toString());
@@ -580,7 +577,8 @@ public class BlockchainController {
                 bcConsortium,
                 properties);
 
-        logger.info("Deployment for participant node started, id {} for the consortium id {}", dsId, blockchain.getConsortium().toString());
+        logger.info("Deployment for participant node started, id {} for the consortium id {}", dsId,
+                blockchain.getConsortium().toString());
 
         BlockchainObserver bo =
                 new BlockchainObserver(authHelper, operationContext, blockchainService, replicaService, taskService,
