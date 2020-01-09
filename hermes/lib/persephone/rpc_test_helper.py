@@ -95,6 +95,8 @@ class RPCTestHelper():
 
          self.CONCORD_TYPE_ETHEREUM = self.model_rpc_helper.CONCORD_TYPE_ETHEREUM
          self.CONCORD_TYPE_DAML = self.model_rpc_helper.CONCORD_TYPE_DAML
+         self.NODE_TYPE_COMMITTER = self.model_rpc_helper.NODE_TYPE_COMMITTER
+         self.NODE_TYPE_PARTICIPANT = self.model_rpc_helper.NODE_TYPE_PARTICIPANT
 
          self.PLACEMENT_TYPE_FIXED = self.provision_rpc_helper.PLACEMENT_TYPE_FIXED
          self.PLACEMENT_TYPE_UNSPECIFIED = self.provision_rpc_helper.PLACEMENT_TYPE_UNSPECIFIED
@@ -151,6 +153,7 @@ class RPCTestHelper():
                           placement_type=ProvisioningServiceRPCHelper.PLACEMENT_TYPE_FIXED,
                           stub=None,
                           concord_type=ModelServiceRPCHelper.CONCORD_TYPE_ETHEREUM,
+                          node_type=None,
                           zone_type=ProvisioningServiceRPCHelper.ZONE_TYPE_VMC):
       '''
       Helper method to call create cluster gRPC
@@ -165,7 +168,8 @@ class RPCTestHelper():
 
       header = core_pb2.MessageHeader()
       concord_model_specification = self.model_rpc_helper.create_concord_model_specification(
-         deployment_components=self.args.deploymentComponents, concord_type=concord_type)
+         deployment_components=self.args.deploymentComponents,
+         concord_type=concord_type, node_type=node_type)
       placement_specification = self.provision_rpc_helper.create_placement_specification(
          cluster_size, zone_type=zone_type)
       genesis_spec = self.provision_rpc_helper.create_genesis_specification()
