@@ -193,7 +193,7 @@ persephone() {
     # configuration service in the build process.
 
     info "Build persephone..."
-    docker_build . agent/Dockerfile ${persephone_agent_repo} ${persephone_agent_tag}
+    docker_build persephone persephone/agent/Dockerfile ${persephone_agent_repo} ${persephone_agent_tag}
     docker_build persephone persephone/fleet-service/Dockerfile ${persephone_fleet_repo} ${persephone_fleet_tag}
     docker_build persephone persephone/ip-allocation-service/Dockerfile ${persephone_ipam_repo} ${persephone_ipam_tag}
     waitForProcesses
