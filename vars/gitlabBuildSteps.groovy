@@ -86,10 +86,6 @@ import hudson.util.Secret
     "dockerComposeFiles": "../docker/docker-compose.yml ../docker/docker-compose-static-ips.yml",
     "runWithGenericTests": true
   ],
-  "TruffleTests": [
-    "enabled": true,
-    "runWithGenericTests": true
-  ],
   "ContractCompilerTests": [
     "enabled": true,
     "runWithGenericTests": true

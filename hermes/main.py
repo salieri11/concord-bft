@@ -13,7 +13,7 @@ import tempfile
 from time import strftime, localtime, sleep
 from suites import (contract_compiler_tests, core_vm_tests,
                     ext_rpc_tests, lint_e2e_tests, hlf_tests, performance_tests, persephone_tests,
-                    pytest_suite, regression_tests, sample_dapp_tests, simple_st_test, truffle_tests,
+                    pytest_suite, regression_tests, sample_dapp_tests, simple_st_test,
                     ui_tests, websocket_rpc_tests, persistency_tests)
 from util import helper, html, json_helper
 
