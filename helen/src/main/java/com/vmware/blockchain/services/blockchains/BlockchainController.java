@@ -55,6 +55,7 @@ import com.vmware.blockchain.deployment.v1.ProvisioningServiceGrpc.ProvisioningS
 import com.vmware.blockchain.deployment.v1.StreamClusterDeploymentSessionEventRequest;
 import com.vmware.blockchain.operation.OperationContext;
 import com.vmware.blockchain.services.blockchains.Blockchain.NodeEntry;
+import com.vmware.blockchain.services.blockchains.replicas.Replica;
 import com.vmware.blockchain.services.blockchains.replicas.ReplicaService;
 import com.vmware.blockchain.services.blockchains.zones.ZoneService;
 import com.vmware.blockchain.services.configuration.ConcordConfiguration;
@@ -475,29 +476,39 @@ public class BlockchainController {
 
         Organization org = organizationService.get(authHelper.getOrganizationId());
 
+        // true if we are deploying a DAML committer, else false
+        boolean deployCommitter;
+
         if (org.getOrganizationProperties() != null
                 && org.getOrganizationProperties().containsKey("DAML_V2")
                 && org.getOrganizationProperties().get("DAML_V2").equals("enabled")
                 && blockchainType == BlockchainType.DAML) {
-            dsId = createFixedSizeCluster(client, clusterSize,
-                    enumMap.get(body.deploymentType),
-                    body.getZoneIds(),
-                    blockchainType,
-                    body.consortiumId,
-                    true);
+            deployCommitter = true;
         } else {
-            dsId = createFixedSizeCluster(client, clusterSize,
-                    enumMap.get(body.deploymentType),
-                    body.getZoneIds(),
-                    blockchainType,
-                    body.consortiumId,
-                    false);
+            deployCommitter = false;
+        }
+
+        dsId = createFixedSizeCluster(client, clusterSize,
+                enumMap.get(body.deploymentType),
+                body.getZoneIds(),
+                blockchainType,
+                body.consortiumId,
+                deployCommitter);
+
+        Replica.ReplicaType replicaType = Replica.ReplicaType.NONE;
+
+        if (blockchainType == BlockchainType.DAML) {
+            if (deployCommitter) {
+                replicaType = Replica.ReplicaType.DAML_COMMITTER;
+            } else {
+                replicaType = Replica.ReplicaType.DAML_PARTICIPANT;
+            }
         }
 
         logger.info("Deployment started, id {} for the consortium id {}", dsId, body.consortiumId.toString());
         BlockchainObserver bo =
                 new BlockchainObserver(authHelper, operationContext, blockchainService, replicaService, taskService,
-                                       task.getId(), body.getConsortiumId(), blockchainType);
+                                       task.getId(), body.getConsortiumId(), blockchainType, replicaType);
         // Watch for the event stream
         StreamClusterDeploymentSessionEventRequest request = StreamClusterDeploymentSessionEventRequest.newBuilder()
                 .setHeader(MessageHeader.newBuilder().build())
@@ -569,11 +580,11 @@ public class BlockchainController {
                 bcConsortium,
                 properties);
 
-        logger.info("Deployment started, id {} for the consortium id {}", dsId, blockchain.getConsortium().toString());
+        logger.info("Deployment for participant node started, id {} for the consortium id {}", dsId, blockchain.getConsortium().toString());
 
         BlockchainObserver bo =
                 new BlockchainObserver(authHelper, operationContext, blockchainService, replicaService, taskService,
-                        task.getId(), bcConsortium, blockchainType);
+                        task.getId(), bcConsortium, blockchainType, Replica.ReplicaType.DAML_PARTICIPANT);
         // Watch for the event stream
 
         StreamClusterDeploymentSessionEventRequest request = StreamClusterDeploymentSessionEventRequest.newBuilder()

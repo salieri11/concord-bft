@@ -344,9 +344,11 @@ class ReplicaControllerTest {
     }
 
     private List<Replica> nodeEntries() {
-        Replica r1 = new Replica("1.2.3.4", "4.3.2.1", "localhost", "http://localhost", "cert1", Z1, B1);
+        Replica r1 = new Replica("1.2.3.4", "4.3.2.1", "localhost", "http://localhost", "cert1", Z1,
+                Replica.ReplicaType.NONE, B1);
         r1.setId(N1);
-        Replica r2 = new Replica("1.2.3.5", "4.3.2.2", "localhost", "http://localhost", "cert2", Z1, B1);
+        Replica r2 = new Replica("1.2.3.5", "4.3.2.2", "localhost", "http://localhost", "cert2", Z1,
+                Replica.ReplicaType.NONE, B1);
         r2.setId(N2);
         return ImmutableList.of(r1, r2);
     }

@@ -51,6 +51,7 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
     private UUID clusterId;
     private String opId;
     private BlockchainType type;
+    private Replica.ReplicaType replicaType;
 
     /**
      * Create a new Blockchain Observer.  This handles the callbacks from the deployment
@@ -68,7 +69,8 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
             TaskService taskService,
             UUID taskId,
             UUID consortiumId,
-            BlockchainType type) {
+            BlockchainType type,
+            Replica.ReplicaType replicaType) {
         this.authHelper = authHelper;
         this.operationContext = operationContext;
         this.blockchainService = blockchainService;
@@ -79,6 +81,7 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
         auth = SecurityContextHolder.getContext().getAuthentication();
         opId = operationContext.getId();
         this.type = type;
+        this.replicaType = replicaType;
     }
 
     private void logNode(ConcordNode node) {
@@ -124,7 +127,7 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
 
                     // create the and save the replicas.
                     cluster.getInfo().getMembersList().stream()
-                            .map(n -> toReplica(clusterId, n))
+                            .map(n -> toReplica(clusterId, n, this.replicaType))
                             .peek(replica -> logger.info("Node entry, id {}", replica.getId()))
                             .forEach(replicaService::put);
 
@@ -256,7 +259,7 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
         return endpoint;
     }
 
-    private static Replica toReplica(UUID blockchainId, ConcordNode node) {
+    private static Replica toReplica(UUID blockchainId, ConcordNode node, Replica.ReplicaType replicaType) {
         // Fetch the first IP address in the data payload, or return 0.
         UUID replicaId = FleetUtils.toUuid(node.getId());
         String name = node.getInfo().getIpv4Addresses().keySet().stream().findFirst().orElse("replica");
@@ -270,7 +273,7 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
         OrchestrationSiteIdentifier site = node.getHostInfo().getSite();
         UUID zoneId = FleetUtils.toUuid(site);
         Replica replica = new Replica(toCanonicalIpAddress(publicIp), toCanonicalIpAddress(privateIp),
-                                      name, endpoint.getUrl(), endpoint.getCertificate(), zoneId, blockchainId);
+                name, endpoint.getUrl(), endpoint.getCertificate(), zoneId, replicaType, blockchainId);
         replica.setId(replicaId);
         return replica;
     }
