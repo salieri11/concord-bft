@@ -42,7 +42,7 @@ std::string GetClientId(ServerContext* context) {
   auto metadata = context->client_metadata();
   auto client_id = metadata.find("client_id");
   if (client_id != metadata.end()) {
-    return std::string(client_id->second.data());
+    return std::string(client_id->second.data(), client_id->second.length());
   }
   throw std::invalid_argument("client_id metadata is missing");
 }

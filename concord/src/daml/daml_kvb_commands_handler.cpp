@@ -8,11 +8,13 @@
 #include <map>
 #include <string>
 
+#include "concord_storage.pb.h"
 #include "storage/kvb_key_types.h"
 #include "time/time_contract.hpp"
 
 using std::map;
 using std::string;
+using std::vector;
 
 using concord::storage::blockchain::IBlocksAppender;
 using concord::storage::blockchain::ILocalKeyValueStorageReadOnly;
@@ -28,6 +30,7 @@ using com::vmware::concord::ConcordRequest;
 using com::vmware::concord::ConcordResponse;
 using com::vmware::concord::DamlRequest;
 using com::vmware::concord::DamlResponse;
+using com::vmware::concord::kvb::ValueWithTrids;
 
 using google::protobuf::util::TimeUtil;
 
@@ -54,6 +57,20 @@ Sliver CreateDamlKvbKey(const string& content) {
   return CreateSliver(full_key.c_str(), full_key.size());
 }
 
+Sliver CreateDamlKvbValue(const string& value, vector<string> trid_list) {
+  ValueWithTrids proto;
+  proto.set_value(value);
+  for (const auto& trid : trid_list) {
+    proto.add_trid(trid);
+  }
+
+  size_t size = proto.ByteSizeLong();
+  char* data = new char[size];
+  proto.SerializeWithCachedSizesToArray(reinterpret_cast<unsigned char*>(data));
+
+  return Sliver(data, size);
+}
+
 bool DamlKvbCommandsHandler::ExecuteRead(const da_kvbc::ReadCommand& request,
                                          ConcordResponse& response) {
   read_ops_.Increment();
@@ -67,13 +84,30 @@ std::map<string, string> DamlKvbCommandsHandler::GetFromStorage(
   for (const auto& skey : keys) {
     Value out;
     Key key = CreateDamlKvbKey(skey);
-    if (storage_.get(key, out).isOK()) {
-      result[skey] = string((const char*)out.data(), out.length());
-    } else {
-      // FIXME(JM): We likely should construct a command rejection from this,
-      // for which we again would need the C++ protobuf definitions of kvutils.
-      LOG4CPLUS_ERROR(logger_, "input '" << skey << "' not found in storage!");
+    if (!storage_.get(key, out).isOK()) {
+      std::stringstream msg;
+      msg << "Couldn't find key " << skey;
+      throw std::runtime_error(msg.str());
     }
+
+    if (out.length() == 0) {
+      // TODO: Why do we have a DAML key w/ an empty value in the KVB?
+      result[skey] = string();
+      continue;
+    }
+
+    ValueWithTrids proto;
+    if (!proto.ParseFromArray(out.data(), out.length())) {
+      std::stringstream msg;
+      msg << "Couldn't decode ValueWithTrids for " << skey;
+      throw std::runtime_error(msg.str());
+    }
+    if (!proto.has_value()) {
+      std::stringstream msg;
+      msg << "Couldn't find value in ValueWithTrids for " << skey;
+      throw std::runtime_error(msg.str());
+    }
+    result[skey] = proto.value();
   }
   return result;
 }
@@ -117,8 +151,13 @@ bool DamlKvbCommandsHandler::ExecuteCommit(
     LOG4CPLUS_DEBUG(logger_, "Validator requested input state");
     // The submission failed due to missing input state, retrieve the inputs and
     // retry.
-    std::map<string, string> input_state_entries =
-        GetFromStorage(response.need_state().keys());
+    std::map<string, string> input_state_entries;
+    try {
+      input_state_entries = GetFromStorage(response.need_state().keys());
+    } catch (const std::exception& e) {
+      LOG4CPLUS_ERROR(logger_, e.what());
+      return false;
+    }
     validator_client_->ValidatePendingSubmission(entryId, input_state_entries,
                                                  commit_req.correlation_id(),
                                                  parent_span, &response2);
@@ -134,18 +173,19 @@ bool DamlKvbCommandsHandler::ExecuteCommit(
     return false;
   }
   auto result = response.has_result() ? response.result() : response2.result();
+  vector<string> trids{};
 
   // Insert the DAML log entry into the store.
   auto logEntry = result.log_entry();
-  updates.insert(
-      KeyValuePair(CreateDamlKvbKey(entryId), CreateSliver(logEntry)));
+  updates.insert(KeyValuePair(CreateDamlKvbKey(entryId),
+                              CreateDamlKvbValue(logEntry, trids)));
 
   // Insert the DAML state updates into the store.
   // Currently just using the serialization of the DamlStateKey as the key
   // without any prefix.
   for (auto kv : result.state_updates()) {
-    updates.insert(
-        KeyValuePair(CreateDamlKvbKey(kv.key()), CreateSliver(kv.value())));
+    updates.insert(KeyValuePair(CreateDamlKvbKey(kv.key()),
+                                CreateDamlKvbValue(kv.value(), trids)));
   }
 
   // Commit the block, if there were no conflicts.

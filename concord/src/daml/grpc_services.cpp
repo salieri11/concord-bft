@@ -6,6 +6,7 @@
 #include <opentracing/tracer.h>
 #include <string>
 
+#include "concord_storage.pb.h"
 #include "daml/daml_kvb_commands_handler.hpp"
 
 using com::digitalasset::kvbc::Command;
@@ -26,6 +27,7 @@ using com::vmware::concord::DamlResponse;
 using grpc::ServerContext;
 using grpc::ServerWriter;
 
+using com::vmware::concord::kvb::ValueWithTrids;
 using concord::consensus::IClient;
 using concord::storage::blockchain::ILocalKeyValueStorageReadOnly;
 using concordUtils::Key;
@@ -54,20 +56,32 @@ grpc::Status DataServiceImpl::ReadTransaction(
   }
 
   for (int i = 0; i < request->keys_size(); i++) {
-    const string& keyStr = request->keys(i);
-    Key key = CreateDamlKvbKey(keyStr);
+    const string& key_str = request->keys(i);
+    Key key = CreateDamlKvbKey(key_str);
     Value value;
     concordUtils::BlockId outBlockId;
     concordUtils::Status status =
         ro_storage_->get(readBlockId, key, value, outBlockId);
-    if (status.isOK()) {
-      com::digitalasset::kvbc::KeyValuePair* kv = reply->add_results();
-      kv->set_key(keyStr);
-      kv->set_value(value.data(), value.length());
-    } else {
+    if (!status.isOK()) {
       LOG4CPLUS_ERROR(logger, "DataService: key '"
-                                  << keyStr << "' was not found! " << status);
+                                  << key_str << "' was not found! " << status);
+      return grpc::Status::CANCELLED;
     }
+    ValueWithTrids proto;
+    if (!proto.ParseFromArray(value.data(), value.length())) {
+      LOG4CPLUS_ERROR(
+          logger, "DataService: Couldn't parse ValueWithTrids for key " << key);
+      return grpc::Status::CANCELLED;
+    }
+    if (!proto.has_value()) {
+      LOG4CPLUS_ERROR(
+          logger,
+          "DataService: No DAML data in ValueWithTrids for key " << key);
+      return grpc::Status::CANCELLED;
+    }
+    com::digitalasset::kvbc::KeyValuePair* kv = reply->add_results();
+    kv->set_key(key_str);
+    kv->set_allocated_value(proto.release_value());
   }
   // FIXME(JM): Return block ids of each separate get, or return max block id?
   reply->set_block_id(readBlockId);
