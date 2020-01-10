@@ -56,6 +56,7 @@ public final class AgentDockerClient {
     /** Container network name alias. */
     private static final String CONTAINER_NETWORK_NAME = "blockchain-fabric";
 
+    private static final String configDownloadMarker = "/config/agent/configDownloadMarker";
     /**
      * Regular expression pattern matching a Docker image name.
      *
@@ -125,7 +126,7 @@ public final class AgentDockerClient {
      * @param artifacts
      *   list of {@link ConfigurationComponent} to be written.
      */
-    private void writeConfiguration(List<ConfigurationComponent> artifacts) {
+    private void writeConfiguration(List<ConfigurationComponent> artifacts) throws Exception {
         for (var artifact : artifacts) {
             var destination = URI.create(artifact.getComponentUrl());
             var filepath = Path.of("/config", destination.getPath());
@@ -138,8 +139,13 @@ public final class AgentDockerClient {
                 outputStream.write(artifact.getComponent().getBytes(StandardCharsets.UTF_8));
             } catch (Exception error) {
                 log.error("Error populating configuration for {}", destination, error);
+                throw error;
             }
         }
+
+        // Inserting marker file
+        var filepath = Path.of(configDownloadMarker);
+        Files.createFile(filepath);
     }
 
     /**
@@ -286,27 +292,32 @@ public final class AgentDockerClient {
                     componentImage.getRepository()
             );
             log.info("Component image name {} tag {}", componentImageName, componentImage.getTag());
-            var command = docker.pullImageCmd(componentImageName)
-                    .withRegistry(registryUrl.getAuthority())
-                    .withTag(componentImage.getTag())
-                    .withAuthConfig(
-                            new AuthConfig()
-                                    .withUsername(registryUsername)
-                                    .withPassword(registryPassword)
-                    )
-                    .exec(new PullImageResultCallback());
+            int pullTryCount = 3;
+            boolean imagePullPending = true;
+            while (imagePullPending && pullTryCount-- > 0) {
+                var command = docker.pullImageCmd(componentImageName)
+                        .withRegistry(registryUrl.getAuthority())
+                        .withTag(componentImage.getTag())
+                        .withAuthConfig(
+                                new AuthConfig()
+                                        .withUsername(registryUsername)
+                                        .withPassword(registryPassword)
+                        )
+                        .exec(new PullImageResultCallback());
 
-            // For now, just block synchronously.
-            try {
-                log.info("Waiting image {}", component.getName());
-                command.awaitCompletion();
-                log.info("Pulled image {}", component.getName());
-            } catch (Throwable error) {
-                // If imaging fetching fails, try to proceed forward anyway.
-                log.error("Pulling image({}:{}) from registry({}) failed",
-                          componentImage.getRepository(),
-                          componentImage.getTag(),
-                          configuration.getContainerRegistry().getAddress());
+                // For now, just block synchronously.
+                try {
+                    log.info("Waiting image {}", component.getName());
+                    command.awaitCompletion();
+                    imagePullPending = false;
+                    log.info("Pulled image {}", component.getName());
+                } catch (Throwable error) {
+                    // If imaging fetching fails, try to proceed forward anyway.
+                    log.error("Pulling image({}:{}) from registry({}) failed",
+                              componentImage.getRepository(),
+                              componentImage.getTag(),
+                              configuration.getContainerRegistry().getAddress());
+                }
             }
 
             var inspectResponse = docker
@@ -316,6 +327,7 @@ public final class AgentDockerClient {
             log.info("Container image ID: {}", containerConfig.getImageId());
         } catch (Throwable error) {
             log.error("Error while pulling image for component({})", component.getName(), error);
+            throw error;
         } finally {
             try {
                 docker.close();
@@ -327,13 +339,16 @@ public final class AgentDockerClient {
     }
 
     private void setupConfig() throws Exception {
-        log.info("Reading config file");
+        log.info("Reading from Config Service");
 
-        var configList = configServiceInvoker.retrieveConfiguration(configuration.getConfigurationSession(),
-                                                                    configuration.getNode());
-        writeConfiguration(configList);
-
-        log.info("Populated the config file");
+        if (Files.notExists(Path.of(configDownloadMarker))) {
+            var configList = configServiceInvoker.retrieveConfiguration(configuration.getConfigurationSession(),
+                                                                        configuration.getNode());
+            writeConfiguration(configList);
+            log.info("Populated the configurations");
+        } else {
+            log.info("Configurations already downloaded.");
+        }
     }
 
     private void launchContainer(DockerClient dockerClient, BaseContainerSpec containerParam) {
