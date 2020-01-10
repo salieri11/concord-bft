@@ -187,6 +187,34 @@ public class BlockchainController {
     }
 
 
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    static class ReplicaGetResponse {
+        private String publicIp;
+        private String privateIp;
+        private String hostName;
+        private String url;
+        private String cert;
+        private UUID zoneId;
+        private Replica.ReplicaType replicaType;
+        private UUID blockchainId;
+
+        public ReplicaGetResponse(Replica r) {
+            this.publicIp = r.getPublicIp();
+            this.privateIp = r.getPrivateIp();
+            this.hostName = r.getHostName();
+            this.url = r.getUrl();
+            this.cert = r.getCert();
+            this.zoneId = r.getZoneId();
+            this.replicaType = r.getReplicaType();
+            this.blockchainId = r.getBlockchainId();
+        }
+    }
+
+
+
     /**
      * Response from blockchain post, with a task id.
      */
@@ -250,6 +278,21 @@ public class BlockchainController {
         List<BlockchainGetResponse> idList = chains.stream().map(BlockchainGetResponse::new)
                 .collect(Collectors.toList());
         return new ResponseEntity<>(idList, HttpStatus.OK);
+    }
+
+    /**
+     * Get the list of all participant nodes.
+     */
+    @RequestMapping(path = "/api/blockchains/{bid}/client", method = RequestMethod.GET)
+    @PreAuthorize("@authHelper.isUser()")
+    ResponseEntity<List<ReplicaGetResponse>> listParticipants(@PathVariable("bid") UUID bid) {
+        List<ReplicaGetResponse> replicaGetResponseList = blockchainService.getReplicas(bid)
+                .stream()
+                .filter(replica -> replica.getReplicaType() == Replica.ReplicaType.DAML_PARTICIPANT)
+                .map(ReplicaGetResponse::new)
+                .collect(Collectors.toList());
+
+        return new ResponseEntity<>(replicaGetResponseList, HttpStatus.OK);
     }
 
     /**
@@ -542,9 +585,9 @@ public class BlockchainController {
     /**
      * Deploy a DAML Participant node for given DAML blockchain.
      */
-    @RequestMapping(path = "/api/blockchains/{bid}/participant", method = RequestMethod.POST)
+    @RequestMapping(path = "/api/blockchains/{bid}/client", method = RequestMethod.POST)
     @PreAuthorize("@authHelper.isConsortiumAdmin()")
-    public ResponseEntity<BlockchainTaskResponse> createParticipant(@PathVariable UUID bid,
+    public ResponseEntity<BlockchainTaskResponse> createParticipant(@PathVariable("bid") UUID bid,
                                                                    @RequestBody ParticipantPost body) throws Exception {
         Task task = new Task();
         task.setState(Task.State.RUNNING);

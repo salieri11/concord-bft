@@ -86,6 +86,7 @@ import com.vmware.blockchain.services.blockchains.Blockchain.BlockchainType;
 import com.vmware.blockchain.services.blockchains.BlockchainController.BlockchainNodeEntry;
 import com.vmware.blockchain.services.blockchains.BlockchainController.BlockchainReplicaEntry;
 import com.vmware.blockchain.services.blockchains.BlockchainController.BlockchainTaskResponse;
+import com.vmware.blockchain.services.blockchains.replicas.Replica;
 import com.vmware.blockchain.services.blockchains.zones.VmcAwsZone;
 import com.vmware.blockchain.services.blockchains.zones.Zone;
 import com.vmware.blockchain.services.blockchains.zones.ZoneService;
@@ -121,6 +122,7 @@ public class BlockchainControllerTest {
     static final UUID BC2_ID = UUID.fromString("7324cb8f-0ffc-4311-b57e-4c3e1e10a3aa");
     static final UUID BC_NEW = UUID.fromString("4b8a5ec6-91ad-437d-b574-45f5b7345b96");
     static final UUID BC_DAML = UUID.fromString("fd7167b0-057d-11ea-8d71-362b9e155667");
+    static final UUID BC_DAML_GET_CLIENT = UUID.fromString("ded15efc-33e3-11ea-978f-2e728ce88125");
     static final UUID C2_ID = UUID.fromString("04e4f62d-5364-4363-a582-b397075b65a3");
     static final UUID C3_ID = UUID.fromString("a4b8f7ed-00b3-451e-97bc-4aa51a211288");
     static final UUID TASK_ID = UUID.fromString("c23ed97d-f29c-472e-9f63-cc6be883a5f5");
@@ -131,6 +133,10 @@ public class BlockchainControllerTest {
     private static final UUID SITE_2 = UUID.fromString("275638a3-8860-4925-85de-c73d45cb7232");
     private static final UUID NODE_1 = UUID.fromString("f81899ce-861f-4479-9adf-f3ad753fcaf6");
     private static final UUID NODE_2 = UUID.fromString("81a70aeb-c13c-4f36-9e98-564c1e6eccdc");
+    private static final UUID REPLICA_1 = UUID.fromString("987ec776-679f-4428-9135-4db872a0a64b");
+    private static final UUID REPLICA_2 = UUID.fromString("2462e0bf-ccbd-4e7b-b5ee-70514d3188cf");
+    private static final UUID REPLICA_3 = UUID.fromString("e10a68e3-faa5-4ab6-a69f-53e10bc0d490");
+    private static final UUID REPLICA_4 = UUID.fromString("493b84d7-5333-4294-bba7-c56ade48cb73");
 
     // use consortium c2 in this, Unspecified placement
     static final String POST_BODY_UNSP = "{"
@@ -332,6 +338,21 @@ public class BlockchainControllerTest {
                         .collect(Collectors.toList()))
                 .type(BlockchainType.DAML)
                 .build();
+
+        final Replica replica1 = new Replica("publicIp", "privateIp", "hostName", "url", "cert", REPLICA_1,
+                Replica.ReplicaType.NONE, BC_DAML_GET_CLIENT);
+
+        final Replica replica2 = new Replica("publicIp", "privateIp", "hostName", "url", "cert", REPLICA_2,
+                Replica.ReplicaType.DAML_PARTICIPANT, BC_DAML_GET_CLIENT);
+
+        final Replica replica3 = new Replica("publicIp", "privateIp", "hostName", "url", "cert", REPLICA_3,
+                Replica.ReplicaType.DAML_PARTICIPANT, BC_DAML_GET_CLIENT);
+
+        final Replica replica4 = new Replica("publicIp", "privateIp", "hostName", "url", "cert", REPLICA_4,
+                Replica.ReplicaType.NONE, BC_DAML_GET_CLIENT);
+
+        when(blockchainService.getReplicas(BC_DAML_GET_CLIENT))
+                .thenReturn(ImmutableList.of(replica1, replica2, replica3, replica4));
         when(blockchainService.listByConsortium(consortium)).thenReturn(Collections.singletonList(b));
         when(blockchainService.listByConsortium(c3)).thenReturn(Collections.emptyList());
         when(blockchainService.list()).thenReturn(ImmutableList.of(b, b2));
@@ -453,6 +474,23 @@ public class BlockchainControllerTest {
         // Now check that the lists are equivalent
         assertEquivalentLists(res.get(0).getNodeList(), res.get(0).getReplicaList());
         assertEquivalentLists(res.get(1).getNodeList(), res.get(1).getReplicaList());
+    }
+
+    @Test
+    void getParticipantNodeList() throws Exception {
+        MvcResult result = mockMvc.perform(
+                get("/api/blockchains/" + BC_DAML_GET_CLIENT.toString() + "/client")
+                        .with(authentication(adminAuth))
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk()).andReturn();
+
+        String body = result.getResponse().getContentAsString();
+        List<BlockchainController.ReplicaGetResponse> res =
+                objectMapper.readValue(body, new TypeReference<List<BlockchainController.ReplicaGetResponse>>() {});
+
+        Assertions.assertEquals(2, res.size());
+        Assertions.assertEquals(Replica.ReplicaType.DAML_PARTICIPANT, res.get(0).getReplicaType());
+        Assertions.assertEquals(Replica.ReplicaType.DAML_PARTICIPANT, res.get(1).getReplicaType());
     }
 
     @Test
@@ -682,7 +720,7 @@ public class BlockchainControllerTest {
     @Test
     void deployParticipant() throws Exception {
         ArgumentCaptor<CreateClusterRequest> captor = ArgumentCaptor.forClass(CreateClusterRequest.class);
-        mockMvc.perform(post("/api/blockchains/" + BC_DAML.toString() + "/participant")
+        mockMvc.perform(post("/api/blockchains/" + BC_DAML.toString() + "/client")
                 .with(authentication(adminAuth))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(POST_BODY_DAML_PARTICIPANT))
@@ -773,7 +811,6 @@ public class BlockchainControllerTest {
         Assertions.assertEquals(SITE_1, blockchain.getNodeList().get(0).getZoneId());
         Assertions.assertEquals(NODE_2, blockchain.getNodeList().get(1).getNodeId());
         Assertions.assertEquals(SITE_2, blockchain.getNodeList().get(1).getZoneId());
-
     }
 
     @Test

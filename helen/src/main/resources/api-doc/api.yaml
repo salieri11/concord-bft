@@ -617,7 +617,7 @@ paths:
             schema:
               type: object
               required:
-                - concortium_id
+                - consortium_id
                 - f_count
                 - c_count
                 - deployment_type
@@ -1533,6 +1533,93 @@ paths:
                   sourcecode:
                     type: string
                     description: String representing the actual source code of this version
+
+  /blockchains/{bid}/client:
+    summary: Client GET/POST API
+    post:
+      tags:
+        - client
+      summary: Call the named procedure
+      operationId: postClient
+      parameters:
+        - name: bid
+          required: true
+          in: path
+          description: Blockchain ID
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        description: RPC Request
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - zoneIds
+              properties:
+                zoneIds:
+                  type: array
+                  items:
+                    type: object
+      responses:
+        202:
+          description: Returns the deployment task ID
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  task_id:
+                    type: string
+                    format: uuid
+                    description: Task ID
+    get:
+      tags:
+        - blockchains
+      summary: List all client nodes
+      operationId: getClients
+      responses:
+        200:
+          description: Returns a list of all client nodes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    public_ip:
+                      type: string
+                      format: ip
+                      description: Public IP
+                    private_ip:
+                      type: string
+                      format: ip
+                      description: Private IP
+                    host_name:
+                      type: string
+                      description: Host Name
+                    url:
+                      type: string
+                      description: URL
+                    cert:
+                      type: string
+                      description: Cert
+                    zone_id:
+                      type: string
+                      format: uuid
+                      description: Zone ID
+                    replica_type:
+                      type: string
+                      enum:
+                        - NONE
+                        - DAML_PARTICIPANT
+                      description: Type of replica
+                    blockchain_id:
+                      type: string
+                      format: uuid
+                      description: Blockchain ID
   /consortiums:
     summary: GetConsortium
     get:
