@@ -91,7 +91,7 @@ import hudson.util.Secret
     "runWithGenericTests": true
   ],
   "MetadataPersistencyTests": [
-    "enabled": true,
+    "enabled": false,
     "dockerComposeFiles": "../docker/docker-compose.yml ../docker/docker-compose-static-ips.yml",
     "baseCommand": 'echo "${PASSWORD}" | sudo -S "${python}" main.py MetadataPersistencyTests --ethrpcApiUrl https://localhost:8547/blockchains/local/api/concord/eth',
     "runWithGenericTests": true
