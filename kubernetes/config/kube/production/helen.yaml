@@ -17,7 +17,7 @@ spec:
       hostname: helen
       containers:
       - name: helen
-        image: vmware-docker-blockchainsaas.bintray.io/vmwblockchain/helen:714
+        image: vmware-docker-blockchainsaas.bintray.io/vmwblockchain/helen:{{BUILDNUM}}
         imagePullPolicy: Always
         env:
         - name: APPCONTEXT

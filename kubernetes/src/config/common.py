@@ -20,9 +20,9 @@ BINTRAY_BUILD_LABEL = "docker_label_com_vmware_blockchain_version"
 BC_COMPONENTS={
             "saas": ["ui", "contract-compiler", "persephone-provisioning",
                     "persephone-metadata", "helen", "persephone-configuration",
-                    "persephone-ipam"],
+                    "persephone-ipam", "fluentd", "persephone-fleet"],
             "blockchain": ["concord-core", "agent", "ethrpc", "daml-ledger-api",
-                    "daml-execution-engine", "daml-index-db", 
+                    "daml-execution-engine", "daml-index-db",
 					"fabric-tools", "fabric-peer", "fabric-orderer",
 					"hlf-tools", "hlf-peer", "hlf-orderer" ]
             }

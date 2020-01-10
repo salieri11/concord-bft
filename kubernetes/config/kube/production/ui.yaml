@@ -17,7 +17,7 @@ spec:
       hostname: ui
       containers:
       - name: ui
-        image: vmware-docker-blockchainsaas.bintray.io/vmwblockchain/ui:latest
+        image: vmware-docker-blockchainsaas.bintray.io/vmwblockchain/ui:{{BUILDNUM}}
         imagePullPolicy: Always
         ports:
         - containerPort: 80
@@ -33,7 +33,7 @@ spec:
           readOnly: true
       volumes:
       - name: nginx-volume
-        configMap: 
+        configMap:
           name: nginx
           defaultMode: 0700
       - name: ui-volume

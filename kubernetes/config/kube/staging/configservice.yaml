@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: config-service
-        image: vmware-docker-blockchainsaas.bintray.io/persephone-configuration:beta2
+        image: vmware-docker-blockchainsaas.bintray.io/vmwblockchain/persephone-configuration:{{BUILDNUM}}
         ports:
         - containerPort: 9003
         imagePullPolicy: Always

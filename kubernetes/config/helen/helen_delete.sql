@@ -45,3 +45,9 @@ select * from entity where column_name = 'helen.organization' \gx
 
 "grab task for org"
 select * from entity where column_name = 'helen.task' AND row_key in (select to_row from link where from_row = 'c56e116e-c36f-4f7d-b504-f9a33955b853');
+
+"delete zones for given org_id"
+delete from entity where column_name = 'helen.zone' AND row_key in (select to_row from link where from_row = 'org_id');
+
+	delete from link where to_row = 'zone_id';
+	delete from link where to_row = 'zone_id'

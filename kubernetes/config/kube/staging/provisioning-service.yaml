@@ -1,7 +1,7 @@
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
-  name: provisioning-service  
+  name: provisioning-service
 spec:
   replicas: 1
   selector:
@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: provisioning-service
-        image: vmware-docker-blockchainsaas.bintray.io/persephone-provisioning:latest
+        image: vmware-docker-blockchainsaas.bintray.io/vmwblockchain/persephone-provisioning:{{BUILDNUM}}
         ports:
         - containerPort: 9002
         imagePullPolicy: Always

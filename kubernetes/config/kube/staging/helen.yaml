@@ -17,21 +17,29 @@ spec:
       hostname: helen
       containers:
       - name: helen
-        image: vmware-docker-blockchainsaas.bintray.io/helen:latest
+        image: vmware-docker-blockchainsaas.bintray.io/vmwblockchain/helen:{{BUILDNUM}}
         imagePullPolicy: Always
         env:
         - name: APPCONTEXT
           value: "staging"
         ports:
         - containerPort: 8080
+        - containerPort: 8000
         volumeMounts:
         - name: helencontext-volume
           mountPath: /config/app/profiles/
           readOnly: true
+        - name: helendb-volume
+          mountPath: /config/app/db/migration/
+          readOnly: true
       volumes:
       - name: helencontext-volume
         configMap:
-          name: helencontext-beta
+          name: helencontext-staging
+          defaultMode: 0700
+      - name: helendb-volume
+        configMap:
+          name: helenzones-staging
           defaultMode: 0700
 ---
 apiVersion: v1
