@@ -479,7 +479,7 @@ public class BlockchainControllerTest {
     @Test
     void getParticipantNodeList() throws Exception {
         MvcResult result = mockMvc.perform(
-                get("/api/blockchains/" + BC_DAML_GET_CLIENT.toString() + "/client")
+                get("/api/blockchains/" + BC_DAML_GET_CLIENT.toString() + "/clients")
                         .with(authentication(adminAuth))
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk()).andReturn();
@@ -720,7 +720,7 @@ public class BlockchainControllerTest {
     @Test
     void deployParticipant() throws Exception {
         ArgumentCaptor<CreateClusterRequest> captor = ArgumentCaptor.forClass(CreateClusterRequest.class);
-        mockMvc.perform(post("/api/blockchains/" + BC_DAML.toString() + "/client")
+        mockMvc.perform(post("/api/blockchains/" + BC_DAML.toString() + "/clients")
                 .with(authentication(adminAuth))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(POST_BODY_DAML_PARTICIPANT))

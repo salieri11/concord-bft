@@ -1534,7 +1534,7 @@ paths:
                     type: string
                     description: String representing the actual source code of this version
 
-  /blockchains/{bid}/client:
+  /blockchains/{bid}/clients:
     summary: Client GET/POST API
     post:
       tags:

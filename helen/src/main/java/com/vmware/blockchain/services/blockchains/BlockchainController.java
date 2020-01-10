@@ -283,7 +283,7 @@ public class BlockchainController {
     /**
      * Get the list of all participant nodes.
      */
-    @RequestMapping(path = "/api/blockchains/{bid}/client", method = RequestMethod.GET)
+    @RequestMapping(path = "/api/blockchains/{bid}/clients", method = RequestMethod.GET)
     @PreAuthorize("@authHelper.isUser()")
     ResponseEntity<List<ReplicaGetResponse>> listParticipants(@PathVariable("bid") UUID bid) {
         List<ReplicaGetResponse> replicaGetResponseList = blockchainService.getReplicas(bid)
@@ -315,7 +315,7 @@ public class BlockchainController {
                                                                List<UUID> zoneIds,
                                                                BlockchainType blockchainType,
                                                                UUID consortiumId,
-                                                               boolean deployCommitter) throws Exception {
+                                                               boolean deployDamlCommitter) throws Exception {
         List<Entry> list;
         if (placementType == Type.FIXED) {
             if (zoneIds.size() != clusterSize) {
@@ -356,7 +356,7 @@ public class BlockchainController {
 
         ConcordModelSpecification spec;
 
-        if (deployCommitter) {
+        if (deployDamlCommitter) {
             var components = concordConfiguration.getComponentsByNodeType(ConcordModelSpecification
                     .NodeType.DAML_COMMITTER);
 
@@ -585,7 +585,7 @@ public class BlockchainController {
     /**
      * Deploy a DAML Participant node for given DAML blockchain.
      */
-    @RequestMapping(path = "/api/blockchains/{bid}/client", method = RequestMethod.POST)
+    @RequestMapping(path = "/api/blockchains/{bid}/clients", method = RequestMethod.POST)
     @PreAuthorize("@authHelper.isConsortiumAdmin()")
     public ResponseEntity<BlockchainTaskResponse> createParticipant(@PathVariable("bid") UUID bid,
                                                                    @RequestBody ParticipantPost body) throws Exception {
