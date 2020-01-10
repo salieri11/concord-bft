@@ -9,8 +9,8 @@ export class LoggingPage {
     element(by.id('logging')).click();
   }
 
-  getPageTitle() {
-    return element(by.css('.page-title')).getText();
+  getConcordOption() {
+    return element(by.css('.service-dropdown option:nth-child(1)'));
   }
 
   getLoadMoreButton() {
