@@ -23,9 +23,7 @@ COPY ./persephone/resources/checkstyle.xml ./persephone/resources/checkstyle.xml
 COPY ./persephone/resources/checkstyle.xml ../resources/checkstyle.xml
 
 ## Copy the dependency-related POM files (rarely changing).
-COPY ./persephone/pom.xml ./persephone/pom.xml
 COPY ./persephone/deployment/pom.xml ./persephone/deployment/pom.xml
-COPY ./persephone/api/pom.xml ./persephone/api/pom.xml
 COPY ./persephone/config-service/pom.xml ./persephone/config-service/pom.xml
 
 ## Copy the dependent module sources.
@@ -34,12 +32,8 @@ COPY ./persephone/api ./persephone/api
 ## Copy the module sources.
 COPY ./persephone/config-service ./persephone/config-service
 
-## Build module with all of its dependencies.
-RUN mvn -f persephone/api/pom.xml install
-
 ## Build agent module.
 RUN mvn -f ./persephone/config-service/pom.xml install
-
 
 # Concord's configuration generation utility, conc_genconfig, is statically
 # linked when Concord is built so that it can just be copied into the Persephone

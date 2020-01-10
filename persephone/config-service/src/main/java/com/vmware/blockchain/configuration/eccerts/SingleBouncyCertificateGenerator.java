@@ -151,18 +151,27 @@ public class SingleBouncyCertificateGenerator {
         String keyPath = String.join("/", path, "pk.pem");
         String key = returnPemString(keyPair.getPrivate());
 
-        IdentityComponent keyIdentity = new IdentityComponent(
-                IdentityComponent.Type.KEY, keyPath, key);
+        IdentityComponent keyIdentity = IdentityComponent.newBuilder()
+                .setType(IdentityComponent.Type.KEY)
+                .setUrl(keyPath)
+                .setBase64Value(key)
+                .build();
 
         // get string cert
         String certPath = String.join("/", path,
                 path.substring(path.lastIndexOf("/") + 1) + ".cert");
         String cert = returnPemString(certificate);
 
-        IdentityComponent certIdentity = new IdentityComponent(
-                IdentityComponent.Type.CERTIFICATE, certPath, cert);
+        IdentityComponent certIdentity = IdentityComponent.newBuilder()
+                .setType(IdentityComponent.Type.CERTIFICATE)
+                .setUrl(certPath)
+                .setBase64Value(cert)
+                .build();
 
-        return new Identity(keyIdentity, certIdentity);
+        return Identity.newBuilder()
+                .setKey(keyIdentity)
+                .setCertificate(certIdentity)
+                .build();
     }
 
     /**

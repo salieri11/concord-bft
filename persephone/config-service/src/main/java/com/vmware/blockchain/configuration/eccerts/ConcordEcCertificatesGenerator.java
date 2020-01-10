@@ -63,7 +63,11 @@ public class ConcordEcCertificatesGenerator implements
 
     @Override
     public IdentityFactors getIdentityFactor() {
-        return new IdentityFactors("ECDSA", "secp384r1", "SHA384WITHECDSA");
+        return IdentityFactors.newBuilder()
+                .setAlgorithm("ECDSA")
+                .setCurve("secp384r1")
+                .setSigningAlgorithm("SHA384WITHECDSA")
+                .build();
     }
 
     /**

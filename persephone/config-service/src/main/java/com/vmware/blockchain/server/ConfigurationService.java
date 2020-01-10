@@ -13,15 +13,13 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import javax.validation.constraints.NotNull;
+
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.jetbrains.annotations.NotNull;
 import org.lognet.springboot.grpc.GRpcService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 
@@ -33,7 +31,7 @@ import com.vmware.blockchain.configuration.generateconfig.GenesisUtil;
 import com.vmware.blockchain.configuration.generateconfig.LoggingUtil;
 import com.vmware.blockchain.deployment.v1.ConcordComponent.ServiceType;
 import com.vmware.blockchain.deployment.v1.ConfigurationComponent;
-import com.vmware.blockchain.deployment.v1.ConfigurationServiceImplBase;
+import com.vmware.blockchain.deployment.v1.ConfigurationServiceGrpc.ConfigurationServiceImplBase;
 import com.vmware.blockchain.deployment.v1.ConfigurationServiceRequest;
 import com.vmware.blockchain.deployment.v1.ConfigurationSessionIdentifier;
 import com.vmware.blockchain.deployment.v1.DeleteConfigurationRequest;
@@ -48,37 +46,19 @@ import com.vmware.blockchain.ethereum.type.Genesis;
 import io.grpc.Status;
 import io.grpc.StatusException;
 import io.grpc.stub.StreamObserver;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Implementation of ConfigurationService server.
  */
 @GRpcService
+@Slf4j
 public class ConfigurationService extends ConfigurationServiceImplBase {
 
     private String configPath;
 
-    /**
-     * Enumeration of possible service instance state.
-     */
-    private enum State {
-        STOPPED,
-        INITIALIZING,
-        ACTIVE,
-        STOPPING
-    }
-
-    /** Logger instance. */
-    private static Logger log = LoggerFactory.getLogger(ConfigurationService.class);
-
-    /** Atomic update for service instance state. */
-    private static final AtomicReferenceFieldUpdater<ConfigurationService, State> STATE =
-            AtomicReferenceFieldUpdater.newUpdater(ConfigurationService.class, State.class, "state");
-
     /** Executor to use for all async service operations. */
     private final ExecutorService executor;
-
-    /** Service state. */
-    private volatile State state = State.STOPPED;
 
     /** per session all node tls configuration. */
     private final Map<ConfigurationSessionIdentifier,
@@ -102,43 +82,10 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
      *   {@link CompletableFuture} that completes when initialization is done.
      */
     CompletableFuture<Void> initialize() {
-        if (STATE.compareAndSet(this, State.STOPPED, State.INITIALIZING)) {
-            return CompletableFuture.runAsync(() -> {
-                Security.addProvider(new BouncyCastleProvider());
-
-                // Set instance to ACTIVE state.
-                STATE.set(this, State.ACTIVE);
-
-                log.info("ConfigurationService instance initialized");
-            }, executor);
-        } else {
-            return CompletableFuture.failedFuture(
-                    new IllegalStateException("ConfigurationService instance is not in stopped state")
-            );
-        }
-    }
-
-    /**
-     * Shutdown the service instance asynchronously.
-     *
-     * @return
-     *   {@link CompletableFuture} that completes when shutdown is done.
-     */
-    CompletableFuture<Void> shutdown() {
-        if (STATE.compareAndSet(this, State.ACTIVE, State.STOPPING)
-                || STATE.compareAndSet(this, State.INITIALIZING, State.STOPPING)) {
-            return CompletableFuture.runAsync(() -> {
-                log.info("ConfigurationService instance shutting down");
-                Security.removeProvider("BC");
-
-                // Set instance to STOPPED state.
-                STATE.set(this, State.STOPPED);
-            }, executor);
-        } else {
-            return CompletableFuture.failedFuture(
-                    new IllegalStateException("ConfigurationService instance is not in active state")
-            );
-        }
+        return CompletableFuture.runAsync(() -> {
+            Security.addProvider(new BouncyCastleProvider());
+            log.info("ConfigurationService instance initialized");
+        }, executor);
     }
 
     @Override
@@ -150,37 +97,37 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
 
         log.info(request.toString());
         // Static settings for each service Type.
-        for (ServiceType serviceType : request.getServices()) {
+        for (ServiceType serviceType : request.getServicesList()) {
 
             switch (serviceType) {
                 case DAML_LEDGER_API:
                     DamlLedgerApiUtil ledgerApiUtil = new DamlLedgerApiUtil(
                             request.getProperties().getValues().get(DamlLedgerApiUtil.REPLICAS_KEY));
-                    staticComponentList.add(new ConfigurationComponent(
-                            serviceType,
-                            DamlLedgerApiUtil.envVarPath,
-                            ledgerApiUtil.generateConfig(),
-                            new IdentityFactors())
-                    );
+                    staticComponentList.add(ConfigurationComponent.newBuilder()
+                                                    .setType(serviceType)
+                                            .setComponentUrl(DamlLedgerApiUtil.envVarPath)
+                                            .setComponent(ledgerApiUtil.generateConfig())
+                                            .setIdentityFactors(IdentityFactors.newBuilder().build())
+                                            .build());
                     break;
                 case DAML_INDEX_DB:
                     DamlIndexDbUtil damlIndexDbUtil = new DamlIndexDbUtil();
-                    staticComponentList.add(new ConfigurationComponent(
-                            ServiceType.DAML_INDEX_DB,
-                            DamlIndexDbUtil.envVarPath,
-                            damlIndexDbUtil.generateConfig(),
-                            new IdentityFactors())
-                    );
+                    staticComponentList.add(ConfigurationComponent.newBuilder()
+                                                    .setType(serviceType)
+                                                    .setComponentUrl(DamlIndexDbUtil.envVarPath)
+                                                    .setComponent(damlIndexDbUtil.generateConfig())
+                                                    .setIdentityFactors(IdentityFactors.newBuilder().build())
+                                                    .build());
                     break;
                 case LOGGING:
                     LoggingUtil loggingUtil =
                             new LoggingUtil(request.getProperties().getValues().get(LoggingUtil.LOGGING_CONFIG));
-                    staticComponentList.add(new ConfigurationComponent(
-                            ServiceType.LOGGING,
-                            LoggingUtil.envVarPath,
-                            loggingUtil.generateConfig(),
-                            new IdentityFactors())
-                    );
+                    staticComponentList.add(ConfigurationComponent.newBuilder()
+                                                    .setType(ServiceType.LOGGING)
+                                                    .setComponentUrl(LoggingUtil.envVarPath)
+                                                    .setComponent(loggingUtil.generateConfig())
+                                                    .setIdentityFactors(IdentityFactors.newBuilder().build())
+                                                    .build());
                     break;
                 case CONCORD:
                     log.info("Generated new session id {}", sessionId);
@@ -197,15 +144,15 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
 
         Map<Integer, List<ConfigurationComponent>> nodeComponent = new HashMap<>();
 
-        if (request.getServices().contains(ServiceType.CONCORD)
-            || request.getServices().contains(ServiceType.DAML_CONCORD)
-            || request.getServices().contains(ServiceType.HLF_CONCORD)) {
+        if (request.getServicesList().contains(ServiceType.CONCORD)
+            || request.getServicesList().contains(ServiceType.DAML_CONCORD)
+            || request.getServicesList().contains(ServiceType.HLF_CONCORD)) {
 
             var certGen = new ConcordEcCertificatesGenerator();
 
             // Generate Configuration
             var configUtil = new ConcordConfigUtil(configPath);
-            var tlsConfig = configUtil.getConcordConfig(request.getHosts(), request.getBlockchainType());
+            var tlsConfig = configUtil.getConcordConfig(request.getHostsList(), request.getBlockchainType());
 
             List<Identity> tlsIdentityList =
                     generateEtheriumConfig(certGen, configUtil.maxPrincipalId + 1, ServiceType.CONCORD);
@@ -214,28 +161,28 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
             Map<Integer, List<IdentityComponent>> tlsNodeIdentities = buildTlsIdentity(tlsIdentityList,
                                                                                        configUtil.nodePrincipal,
                                                                                        configUtil.maxPrincipalId + 1,
-                                                                                       request.getHosts().size());
+                                                                                       request.getHostsList().size());
 
-            for (int node = 0; node < request.getHosts().size(); node++) {
+            for (int node = 0; node < request.getHostsList().size(); node++) {
                 List<ConfigurationComponent> componentList = new ArrayList<>();
                 componentList.addAll(staticComponentList);
 
                 // TLS list
-                componentList.add(new ConfigurationComponent(
-                        ServiceType.CONCORD,
-                        configUtil.configPath,
-                        tlsConfig.get(node),
-                        new IdentityFactors())
-                );
+                componentList.add(ConfigurationComponent.newBuilder()
+                        .setType(ServiceType.CONCORD)
+                        .setComponentUrl(configUtil.configPath)
+                        .setComponent(tlsConfig.get(node))
+                        .setIdentityFactors(IdentityFactors.newBuilder().build())
+                        .build());
 
                 tlsNodeIdentities.get(node)
                         .forEach(entry -> componentList.add(
-                                new ConfigurationComponent(
-                                        ServiceType.CONCORD,
-                                        entry.getUrl(),
-                                        entry.getBase64Value(),
-                                        certGen.getIdentityFactor()
-                                )
+                                ConfigurationComponent.newBuilder()
+                                        .setType(ServiceType.CONCORD)
+                                        .setComponentUrl(entry.getUrl())
+                                        .setComponent(tlsConfig.get(entry.getBase64Value()))
+                                        .setIdentityFactors(certGen.getIdentityFactor())
+                                        .build()
                         ));
 
                 // put per node configs
@@ -245,7 +192,7 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
             }
 
         } else {
-            for (int node = 0; node < request.getHosts().size(); node++) {
+            for (int node = 0; node < request.getHostsList().size(); node++) {
                 List<ConfigurationComponent> componentList = new ArrayList<>();
                 componentList.addAll(staticComponentList);
                 nodeComponent.putIfAbsent(node, componentList);
@@ -255,7 +202,7 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
 
         // Error out if no configurations are generated.
         if (staticComponentList.isEmpty()) {
-            String msg = "No configurations were generated for servive type(s)" + request.getServices();
+            String msg = "No configurations were generated for servive type(s)" + request.getServicesList();
             log.error(msg);
             observer.onError(new StatusException(Status.INVALID_ARGUMENT.withDescription(msg)));
         } else {
@@ -280,19 +227,20 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
         List<Identity> ethrpcIdentityList =
                 generateEtheriumConfig(certGen, 1, ServiceType.ETHEREUM_API);
 
-        output.add(new ConfigurationComponent(
-                ServiceType.ETHEREUM_API,
-                ethrpcIdentityList.get(0).getCertificate().getUrl(),
-                ethrpcIdentityList.get(0).getCertificate().getBase64Value(),
-                certGen.getIdentityFactor()
-        ));
+        output.add(ConfigurationComponent.newBuilder()
+                        .setType(ServiceType.ETHEREUM_API)
+                        .setComponentUrl(ethrpcIdentityList.get(0).getCertificate().getUrl())
+                        .setComponent(ethrpcIdentityList.get(0).getCertificate().getBase64Value())
+                        .setIdentityFactors(certGen.getIdentityFactor())
+                        .build());
 
-        output.add(new ConfigurationComponent(
-                ServiceType.ETHEREUM_API,
-                ethrpcIdentityList.get(0).getKey().getUrl(),
-                ethrpcIdentityList.get(0).getKey().getBase64Value(),
-                certGen.getIdentityFactor()
-        ));
+        output.add(ConfigurationComponent.newBuilder()
+                           .setType(ServiceType.ETHEREUM_API)
+                           .setComponentUrl(ethrpcIdentityList.get(0).getKey().getUrl())
+                           .setComponent(ethrpcIdentityList.get(0).getKey().getBase64Value())
+                           .setIdentityFactors(certGen.getIdentityFactor())
+                           .build());
+
         return output;
     }
 
@@ -307,11 +255,13 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
                                           ConfigurationSessionIdentifier sessionId) {
         var genesisUtil = new GenesisUtil();
         log.info("Generated genesis for session id: {}", sessionId);
-        return new ConfigurationComponent(
-                ServiceType.CONCORD,
-                GenesisUtil.genesisPath,
-                genesisUtil.getGenesis(genesis),
-                new IdentityFactors());
+
+        return ConfigurationComponent.newBuilder()
+                .setType(ServiceType.CONCORD)
+                .setComponentUrl(GenesisUtil.genesisPath)
+                .setComponent(genesisUtil.getGenesis(genesis))
+                .setIdentityFactors(IdentityFactors.newBuilder().build())
+                .build();
     }
 
     @Override
@@ -325,7 +275,12 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
             var nodeComponents = components.get(request.getNode());
 
             if (nodeComponents.size() != 0) {
-                observer.onNext(new NodeConfigurationResponse(nodeComponents));
+                NodeConfigurationResponse.Builder builder = NodeConfigurationResponse.newBuilder();
+                for (int i = 0; i < nodeComponents.size(); i++) {
+                    builder.setConfigurationComponent(i, nodeComponents.get(i));
+                }
+
+                observer.onNext(builder.build());
                 observer.onCompleted();
             } else {
                 observer.onError(new StatusException(Status.NOT_FOUND.withDescription(
@@ -347,7 +302,7 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
         try {
             sessionConfig.remove(request.getId());
             log.info("Deleted configurations for session id: {}", request.getId());
-            observer.onNext(new DeleteConfigurationResponse());
+            observer.onNext(DeleteConfigurationResponse.newBuilder().build());
             observer.onCompleted();
         } catch (Exception e) {
             observer.onError(new StatusException(
@@ -362,7 +317,7 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
     *   a new {@link ConfigurationSessionIdentifier} instance.
     */
     private static ConfigurationSessionIdentifier newSessionId() {
-        return new ConfigurationSessionIdentifier(new SecureRandom().nextLong());
+        return ConfigurationSessionIdentifier.newBuilder().setIdentifier(new SecureRandom().nextLong()).build();
     }
 
     /**
