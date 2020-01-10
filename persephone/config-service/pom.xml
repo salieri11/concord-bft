@@ -10,40 +10,33 @@
         <relativePath>../deployment/pom.xml</relativePath>
     </parent>
 
-    <groupId>com.vmware.concord</groupId>
+    <groupId>com.vmware.deployment</groupId>
     <artifactId>persephone-config-service</artifactId>
     <packaging>jar</packaging>
     <name>Blockchain - Configuration Service</name>
     <version>1.0.0-SNAPSHOT</version>
 
     <properties>
+        <maven.plugin.protobuf>0.6.1</maven.plugin.protobuf>
+        <protobuf.runtime.java.version>3.7.1</protobuf.runtime.java.version>
+        <persephone.protobuf.source.path>../api/src/protobuf</persephone.protobuf.source.path>
         <grpc.runtime.java.version>1.22.2</grpc.runtime.java.version>
-        <grpc.runtime.kotlinx.serialization.version>0.0.4-SNAPSHOT</grpc.runtime.kotlinx.serialization.version>
-        <kotlin.serialization.version>0.12.0</kotlin.serialization.version>
         <persephone.version>1.0.0-SNAPSHOT</persephone.version>
     </properties>
 
     <dependencies>
         <!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        ~ First-party dependencies. (Lexicographical order)         ~
-        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
-        <dependency>
-            <groupId>com.vmware.blockchain</groupId>
-            <artifactId>persephone-api</artifactId>
-            <version>${persephone.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.vmware.blockchain.protobuf</groupId>
-            <artifactId>grpc-runtime-kotlinx-serialization</artifactId>
-            <version>${grpc.runtime.kotlinx.serialization.version}</version>
-        </dependency>
-        <!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         ~ External dependencies.                                    ~
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
         <dependency>
-            <groupId>com.fasterxml.jackson.module</groupId>
-            <artifactId>jackson-module-kotlin</artifactId>
-            <version>2.9.10</version>
+            <groupId>com.google.protobuf</groupId>
+            <artifactId>protobuf-java</artifactId>
+            <version>3.11.1</version>
+        </dependency>
+        <dependency>
+            <groupId>com.google.protobuf</groupId>
+            <artifactId>protobuf-java-util</artifactId>
+            <version>3.11.1</version>
         </dependency>
         <dependency>
             <groupId>org.bouncycastle</groupId>
@@ -122,6 +115,11 @@
         </dependency>
         <dependency>
             <groupId>io.grpc</groupId>
+            <artifactId>grpc-protobuf</artifactId>
+            <version>${grpc.runtime.java.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.grpc</groupId>
             <artifactId>grpc-stub</artifactId>
         </dependency>
         <dependency>
@@ -150,14 +148,17 @@
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
         </dependency>
-        <dependency>
-            <groupId>org.jetbrains.kotlinx</groupId>
-            <artifactId>kotlinx-serialization-runtime</artifactId>
-            <version>${kotlin.serialization.version}</version>
-        </dependency>
     </dependencies>
 
     <build>
+        <extensions>
+            <extension>
+                <groupId>kr.motd.maven</groupId>
+                <artifactId>os-maven-plugin</artifactId>
+                <version>1.6.2</version>
+            </extension>
+        </extensions>
+
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -174,6 +175,41 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+            <!--Protobuf to Java compiler plugin-->
+            <plugin>
+                <groupId>org.xolstice.maven.plugins</groupId>
+                <artifactId>protobuf-maven-plugin</artifactId>
+                <version>${maven.plugin.protobuf}</version>
+                <extensions>true</extensions>
+                <executions>
+                    <execution>
+                        <id>protobuf-java</id>
+                        <goals>
+                            <goal>compile</goal>
+                        </goals>
+                        <configuration>
+                            <protoSourceRoot>${persephone.protobuf.source.path}</protoSourceRoot>
+                            <outputDirectory>${project.build.directory}/generated-sources/protobuf/</outputDirectory>
+                            <protocArtifact>com.google.protobuf:protoc:${protobuf.runtime.java.version}:exe:${os.detected.classifier}</protocArtifact>
+                            <clearOutputDirectory>false</clearOutputDirectory>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>grpc-java</id>
+                        <goals>
+                            <goal>compile-custom</goal>
+                        </goals>
+                        <configuration>
+                            <pluginId>grpc-java</pluginId>
+                            <protoSourceRoot>${persephone.protobuf.source.path}</protoSourceRoot>
+                            <outputDirectory>${project.build.directory}/generated-sources/protobuf/</outputDirectory>
+                            <protocArtifact>com.google.protobuf:protoc:${protobuf.runtime.java.version}:exe:${os.detected.classifier}</protocArtifact>
+                            <pluginArtifact>io.grpc:protoc-gen-grpc-java:${grpc.runtime.java.version}:exe:${os.detected.classifier}</pluginArtifact>
+                            <clearOutputDirectory>false</clearOutputDirectory>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>
