@@ -10,6 +10,7 @@ import static com.vmware.blockchain.services.blockchains.BlockchainController.De
 import static com.vmware.blockchain.services.blockchains.BlockchainUtils.toInfo;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -49,6 +50,7 @@ import com.vmware.blockchain.deployment.v1.OrchestrationSiteInfo;
 import com.vmware.blockchain.deployment.v1.PlacementSpecification;
 import com.vmware.blockchain.deployment.v1.PlacementSpecification.Entry;
 import com.vmware.blockchain.deployment.v1.PlacementSpecification.Type;
+import com.vmware.blockchain.deployment.v1.Properties;
 import com.vmware.blockchain.deployment.v1.ProvisioningServiceGrpc.ProvisioningServiceStub;
 import com.vmware.blockchain.deployment.v1.StreamClusterDeploymentSessionEventRequest;
 import com.vmware.blockchain.operation.OperationContext;
@@ -68,6 +70,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+
 
 /**
  * Controller to create and list blockchains.
@@ -356,7 +359,8 @@ public class BlockchainController {
      * The actual call which will contact server to add the participant.
      */
     private DeploymentSessionIdentifier createParticipantCluster(ProvisioningServiceStub client,
-                                                          List<UUID> zoneIds, UUID consortiumId) throws Exception {
+                                                                 List<UUID> zoneIds, UUID consortiumId,
+                                                                 Map<String, String> properties) throws Exception {
         List<Entry> list;
 
         list = zoneIds.stream()
@@ -390,6 +394,11 @@ public class BlockchainController {
                 .setModel(spec)
                 .setPlacement(placementSpec)
                 .setConsortium(consortiumId.toString())
+                .setProperties(
+                        Properties.newBuilder()
+                                .putAllValues(properties)
+                                .build()
+                )
                 .build();
 
         var request = CreateClusterRequest.newBuilder()
@@ -534,7 +543,17 @@ public class BlockchainController {
         task = taskService.put(task);
 
         Blockchain blockchain = blockchainService.get(bid);
+
         BlockchainType blockchainType = blockchain.getType();
+
+        List<Blockchain.NodeEntry> nodeEntryList = blockchain.getNodeList();
+
+        String ipList = String.join(",", nodeEntryList.stream()
+                .map(nodeEntry -> nodeEntry.ip + ":50051")
+                .collect(Collectors.toList()));
+
+        Map<String, String> properties = new HashMap<>();
+        properties.put("committers", ipList);
 
         if (blockchainType != BlockchainType.DAML) {
             logger.info("Participant node can be deployed only for DAML blockchains.");
@@ -543,13 +562,12 @@ public class BlockchainController {
 
         UUID bcConsortium = blockchain.getConsortium();
 
-        List<Blockchain.NodeEntry> nodeEntryList = blockchain.getNodeList();
-
         List<UUID> zoneIdList = body.getZoneIds();
 
         DeploymentSessionIdentifier dsId =  createParticipantCluster(client,
                 zoneIdList,
-                bcConsortium);
+                bcConsortium,
+                properties);
 
         logger.info("Deployment started, id {} for the consortium id {}", dsId, blockchain.getConsortium().toString());
 
