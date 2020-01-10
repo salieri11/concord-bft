@@ -182,6 +182,7 @@ class BasicUpdateQueue : public UpdateQueue {
 class ThinReplicaClient final {
  private:
   log4cplus::Logger logger_;
+  std::string client_id_;
   std::vector<
       std::unique_ptr<com::vmware::concord::thin_replica::ThinReplica::Stub>>
       server_stubs_;
@@ -249,11 +250,13 @@ class ThinReplicaClient final {
   //   the preferred order to try connecting to the servers.
   // - end_servers: End iterator corresponding to begin_servers.
   template <class Iterator>
-  ThinReplicaClient(std::shared_ptr<UpdateQueue> update_queue,
+  ThinReplicaClient(std::string client_id,
+                    std::shared_ptr<UpdateQueue> update_queue,
                     uint16_t max_faulty, const std::string& private_key,
                     Iterator begin_servers, Iterator end_servers)
       : logger_(
             log4cplus::Logger::getInstance("com.vmware.thin_replica_client")),
+        client_id_(client_id),
         server_stubs_(),
         update_queue_(update_queue),
         max_faulty_(max_faulty),

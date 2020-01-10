@@ -165,8 +165,9 @@ int main(int argc, char** argv) {
 
   try {
     LOG4CPLUS_INFO(logger, "Attempting to construct ThinReplicaClient...");
-    trc.reset(new ThinReplicaClient(update_queue, max_faulty, private_key,
-                                    servers.begin(), servers.end()));
+    trc.reset(new ThinReplicaClient("example_client_id", update_queue,
+                                    max_faulty, private_key, servers.begin(),
+                                    servers.end()));
     LOG4CPLUS_INFO(logger, "ThinReplicaClient constructed.");
     trc->Subscribe("");
     LOG4CPLUS_INFO(logger, "ThinReplicaClient subscribed.");

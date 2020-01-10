@@ -31,7 +31,7 @@ namespace concord {
 namespace storage {
 
 SetOfKeyValuePairs KvbAppFilter::FilterKeyValuePairs(
-    const SetOfKeyValuePairs &kvs, const std::string &key_prefix) {
+    const SetOfKeyValuePairs &kvs) {
   assert(type_ == KvbAppFilter::kDaml);
   char kvb_key_id = concord::storage::kKvbKeyDaml;
 
@@ -44,9 +44,11 @@ SetOfKeyValuePairs KvbAppFilter::FilterKeyValuePairs(
     }
 
     // Filter by key prefix
-    if (key.toString().compare(1, key_prefix.size(), key_prefix) != 0) {
+    if (key.toString().compare(1, key_prefix_.size(), key_prefix_) != 0) {
       continue;
     }
+
+    // TODO: Filter by Client ID
 
     // Strip KVB key type
     Key new_key =
@@ -58,10 +60,8 @@ SetOfKeyValuePairs KvbAppFilter::FilterKeyValuePairs(
   return filtered_kvs;
 }
 
-KvbUpdate KvbAppFilter::FilterUpdate(const KvbUpdate &update,
-                                     const std::string &key_prefix) {
-  return KvbUpdate{update.first,
-                   FilterKeyValuePairs(update.second, key_prefix)};
+KvbUpdate KvbAppFilter::FilterUpdate(const KvbUpdate &update) {
+  return KvbUpdate{update.first, FilterKeyValuePairs(update.second)};
 }
 
 size_t KvbAppFilter::HashUpdate(const KvbUpdate update) {
@@ -76,7 +76,6 @@ size_t KvbAppFilter::HashUpdate(const KvbUpdate update) {
 }
 
 void KvbAppFilter::ReadBlockRange(BlockId block_id_start, BlockId block_id_end,
-                                  const std::string &key_prefix,
                                   spsc_queue<KvbUpdate> &queue_out,
                                   const std::atomic_bool &stop_execution) {
   assert(block_id_start <= block_id_end);
@@ -95,7 +94,7 @@ void KvbAppFilter::ReadBlockRange(BlockId block_id_start, BlockId block_id_end,
       throw KvbReadError(msg.str());
     }
 
-    KvbUpdate update{block_id, FilterKeyValuePairs(kvb_kvs, key_prefix)};
+    KvbUpdate update{block_id, FilterKeyValuePairs(kvb_kvs)};
     while (!stop_execution) {
       if (queue_out.push(update)) {
         break;
@@ -110,14 +109,12 @@ void KvbAppFilter::ReadBlockRange(BlockId block_id_start, BlockId block_id_end,
   }
 }
 
-KvbStateHash KvbAppFilter::ReadBlockHash(BlockId block_id,
-                                         const std::string &key_prefix) {
-  return ReadBlockRangeHash(block_id, block_id, key_prefix);
+KvbStateHash KvbAppFilter::ReadBlockHash(BlockId block_id) {
+  return ReadBlockRangeHash(block_id, block_id);
 }
 
 KvbStateHash KvbAppFilter::ReadBlockRangeHash(BlockId block_id_start,
-                                              BlockId block_id_end,
-                                              const std::string &key_prefix) {
+                                              BlockId block_id_end) {
   assert(block_id_start <= block_id_end);
   BlockId block_id(block_id_start);
 
@@ -135,8 +132,7 @@ KvbStateHash KvbAppFilter::ReadBlockRangeHash(BlockId block_id_start,
       throw KvbReadError(msg.str());
     }
 
-    KvbUpdate filtered_update{block_id,
-                              FilterKeyValuePairs(kvb_kvs, key_prefix)};
+    KvbUpdate filtered_update{block_id, FilterKeyValuePairs(kvb_kvs)};
     hash_out ^= HashUpdate(filtered_update);
   }
   return hash_out;

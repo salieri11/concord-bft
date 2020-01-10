@@ -87,6 +87,7 @@ void ThinReplicaClient::ReceiveUpdates() {
 
   SubscriptionRequest sub_request;
   sub_data_context_.reset(new ClientContext());
+  sub_data_context_->AddMetadata("client_id", client_id_);
   sub_request.set_block_id(latest_verified_block_id_);
   sub_request.set_key_prefix(key_prefix_);
 
@@ -137,6 +138,7 @@ void ThinReplicaClient::ReceiveUpdates() {
       if (has_tried_all_open_subscriptions && !servers_checked[i]) {
         assert(server_stubs_[i]);
         sub_hash_contexts_[i].reset(new ClientContext());
+        sub_hash_contexts_[i]->AddMetadata("client_id", client_id_);
         sub_request.set_block_id(latest_verified_block_id_);
         subscription_hash_streams_[i] =
             server_stubs_[i]->SubscribeToUpdateHashes(
@@ -293,6 +295,7 @@ void ThinReplicaClient::Subscribe(const string& key_prefix_bytes) {
 
   ReadStateRequest request;
   ClientContext read_context;
+  read_context.AddMetadata("client_id", client_id_);
 
   std::list<unique_ptr<Update>> state;
   StateHashType expected_hash = 0;
@@ -344,6 +347,7 @@ void ThinReplicaClient::Subscribe(const string& key_prefix_bytes) {
     hash_request.set_key_prefix(key_prefix_bytes);
     Hash hash_response;
     ClientContext hash_context;
+    hash_context.AddMetadata("client_id", client_id_);
     status = server_stubs_[i]->ReadStateHash(&hash_context, hash_request,
                                              &hash_response);
     ++i;
