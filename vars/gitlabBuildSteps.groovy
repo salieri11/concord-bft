@@ -149,6 +149,15 @@ def call(){
   def persephone_test_on_demand_job_name = "ON DEMAND Persephone Testrun on GitLab"
   def helen_role_test_job_name = "Helen Role Tests on GitLab"
 
+  // These runs will never run Persehpone tests. Persephone tests have special criteria,
+  // and these runs can end up running them unintentionally.
+  def runs_excluding_persephone_tests = [
+    lint_test_job_name,
+    memory_leak_job_name,
+    performance_test_job_name,
+    helen_role_test_job_name
+  ]
+
   // These job names are just substrings of the actual job names.
   specialized_tests = [
     memory_leak_job_name,
@@ -279,7 +288,7 @@ def call(){
                 fetchSourceRepos()
                 env.blockchain_root = new File(env.WORKSPACE, "blockchain").toString()
                 // Check if persephone tests are to be executed in this run
-                env.run_persephone_tests = need_persephone_tests()
+                env.run_persephone_tests = need_persephone_tests(runs_excluding_persephone_tests)
                 echo "Run Persephone Tests? " + env.run_persephone_tests
               }
             }catch(Exception ex){
@@ -1504,20 +1513,32 @@ void handleKnownHosts(host){
   }
 }
 
-Boolean need_persephone_tests(){
+Boolean need_persephone_tests(always_exclude_jobs){
   paths_changed = have_any_paths_changed(['vars', 'buildall.sh', 'hermes', 'persephone', 'agent', 'concord'])
-
-  if(paths_changed){
-     echo("Running Persephone tests because one or more paths in the diff match the criteria.")
-  }
-
   needed_per_job_name = env.JOB_NAME.contains("Master Branch") || env.JOB_NAME.contains("Blockchain Persephone Tests")
 
-  if(needed_per_job_name){
-        echo("Running Persephone tests because the job name matches the criteria.")
+  // Never run for nightly runs which are focused on someting else.
+  must_exclude = false
+  for(always_exclude_job in always_exclude_jobs){
+    if(env.JOB_NAME.contains(always_exclude_job)){
+      must_exclude = true
+    }
   }
 
-  return paths_changed || needed_per_job_name
+  if(paths_changed){
+    echo("One or more paths in the diff match the criteria for running Persephone tests.")
+  }
+
+  if(needed_per_job_name){
+    echo("The job name matches the criteria for running Persephone tests.")
+  }
+
+  if(must_exclude){
+    echo("Regardless of what other criteria say, job " + env.JOB_NAME + " will never run Persephone tests.")
+    return false
+  }else{
+    return paths_changed || needed_per_job_name
+  }
 }
 
 // Returns whether any of the passed in list of paths has changed.
