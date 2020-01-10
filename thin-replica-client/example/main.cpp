@@ -30,6 +30,8 @@ using thin_replica_client::ThinReplicaClient;
 using thin_replica_client::Update;
 using thin_replica_client::UpdateQueue;
 
+const static size_t kNumUpdatesToDisplayBeforeUnsubscribing = 1 << 7;
+
 static void ReportUpdate(Logger& logger, const Update& update) {
   const vector<pair<string, string>>& update_data = update.kv_pairs;
   stringstream update_report;
@@ -202,19 +204,31 @@ int main(int argc, char** argv) {
       LOG4CPLUS_INFO(logger, "Will wait for and report any updates...");
     }
 
+    size_t updates_displayed = 0;
     update = update_queue->Pop();
-    while (update) {
+    LOG4CPLUS_INFO(logger, "This example application will wait for "
+                               << kNumUpdatesToDisplayBeforeUnsubscribing
+                               << " updates before trying to unsubscribe...");
+
+    while (update &&
+           (updates_displayed < kNumUpdatesToDisplayBeforeUnsubscribing)) {
       ReportUpdate(logger, *update);
       latest_block_id = update->block_id;
       trc->AcknowledgeBlockID(latest_block_id);
       LOG4CPLUS_INFO(logger, "Acknowledged update with with Block ID "
                                  << latest_block_id << ".");
+      ++updates_displayed;
 
       update = update_queue->Pop();
     }
 
-    LOG4CPLUS_INFO(logger,
-                   "It appears the update consumer thread was recalled.");
+    if (updates_displayed < kNumUpdatesToDisplayBeforeUnsubscribing) {
+      LOG4CPLUS_INFO(logger,
+                     "It appears the update consumer thread was recalled.");
+    } else {
+      LOG4CPLUS_INFO(logger, "Received " << updates_displayed
+                                         << " updates; unsubscribing...");
+    }
 
     trc->Unsubscribe();
     LOG4CPLUS_INFO(logger, "ThinReplicaClient unsubscribed.");
