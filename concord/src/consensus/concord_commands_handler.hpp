@@ -82,7 +82,7 @@ class ConcordCommandsHandler
   // The subclass should fill out any fields in `response` that it wants to
   // return to the client.
   virtual bool Execute(const com::vmware::concord::ConcordRequest &request,
-                       bool read_only,
+                       bool read_only, bool pre_execute, bool has_pre_executed,
                        concord::time::TimeContract *time_contract,
                        opentracing::Span &parent_span,
                        com::vmware::concord::ConcordResponse &response) = 0;

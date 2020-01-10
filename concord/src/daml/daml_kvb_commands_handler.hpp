@@ -56,7 +56,8 @@ class DamlKvbCommandsHandler
                                            {"operation", "daml_reads"}})} {}
 
   bool Execute(const com::vmware::concord::ConcordRequest& request,
-               bool read_only, concord::time::TimeContract* time_contract,
+               bool read_only, bool pre_execute, bool has_pre_executed,
+               concord::time::TimeContract* time_contract,
                opentracing::Span& parent_span,
                com::vmware::concord::ConcordResponse& response) override;
   void WriteEmptyBlock(concord::time::TimeContract* time_contract) override;
@@ -65,11 +66,13 @@ class DamlKvbCommandsHandler
   bool ExecuteRead(const com::digitalasset::kvbc::ReadCommand& readCmd,
                    com::vmware::concord::ConcordResponse& concord_response);
   bool ExecuteCommit(const com::digitalasset::kvbc::CommitRequest& commitReq,
+                     bool pre_execute,
                      concord::time::TimeContract* time_contract,
                      opentracing::Span& parent_span,
                      com::vmware::concord::ConcordResponse& concord_response);
 
   bool ExecuteCommand(const com::vmware::concord::ConcordRequest& request,
+                      bool pre_execute,
                       concord::time::TimeContract* time_contract,
                       opentracing::Span& parent_span,
                       com::vmware::concord::ConcordResponse& response);

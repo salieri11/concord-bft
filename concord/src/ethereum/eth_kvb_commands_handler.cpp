@@ -80,14 +80,22 @@ EthKvbCommandsHandler::~EthKvbCommandsHandler() {
 // Callback from SBFT/KVB. Process the request (mostly by talking to
 // EVM). Returns false if the command is illegal or invalid; true otherwise.
 bool EthKvbCommandsHandler::Execute(const ConcordRequest &request,
-                                    bool read_only, TimeContract *time,
+                                    bool read_only, bool pre_execute,
+                                    bool has_pre_executed, TimeContract *time,
                                     opentracing::Span &parent_span,
                                     ConcordResponse &response) {
   EthKvbStorage kvb_storage =
       read_only ? EthKvbStorage(storage_) : EthKvbStorage(storage_, this);
 
   bool result;
-  if (request.eth_request_size() > 0) {
+
+  if (pre_execute || has_pre_executed) {
+    LOG4CPLUS_ERROR(logger,
+                    "Pre-execution not supported for Ethereum requests.");
+    // TODO: the EVM doesn't seem to return the read set, which is essential for
+    // pre-execution
+    result = false;
+  } else if (request.eth_request_size() > 0) {
     // TODO: make sure handle_eth_request handles read-only check
     result =
         handle_eth_request(request, kvb_storage, time, parent_span, response);

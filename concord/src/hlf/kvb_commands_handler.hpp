@@ -44,7 +44,8 @@ class HlfKvbCommandsHandler
   ~HlfKvbCommandsHandler();
 
   bool Execute(const com::vmware::concord::ConcordRequest& request,
-               bool read_only, concord::time::TimeContract* time_contract,
+               bool read_only, bool pre_execute, bool has_pre_executed,
+               concord::time::TimeContract* time_contract,
                opentracing::Span& parent_span,
                com::vmware::concord::ConcordResponse& response) override;
   void WriteEmptyBlock(concord::time::TimeContract* time_contract) override;

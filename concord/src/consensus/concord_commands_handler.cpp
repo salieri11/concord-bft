@@ -63,6 +63,10 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
   executing_bft_sequence_num_ = sequence_num;
   bool read_only = flags & bftEngine::MsgFlag::READ_ONLY_FLAG;
 
+  bool pre_execute = flags & bftEngine::MsgFlag::PRE_EXECUTE_FLAG;
+  bool has_pre_executed = flags & bftEngine::MsgFlag::PRE_EXECUTED_FLAG;
+  assert(!(pre_execute && has_pre_executed));
+
   request_.Clear();
   response_.Clear();
 
@@ -120,8 +124,8 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
     // we can use it as the parent for the add_block span.
     addBlock_parent_span = tracer->StartSpan(
         "sub_execute", {opentracing::ChildOf(&execute_span->context())});
-    result = Execute(request_, read_only, time_.get(),
-                     *addBlock_parent_span.get(), response_);
+    result = Execute(request_, read_only, pre_execute, has_pre_executed,
+                     time_.get(), *addBlock_parent_span.get(), response_);
     // Manually stopping the span after execute.
     addBlock_parent_span.reset();
 

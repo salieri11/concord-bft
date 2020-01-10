@@ -113,8 +113,9 @@ std::map<string, string> DamlKvbCommandsHandler::GetFromStorage(
 }
 
 bool DamlKvbCommandsHandler::ExecuteCommit(
-    const da_kvbc::CommitRequest& commit_req, TimeContract* time,
-    opentracing::Span& parent_span, ConcordResponse& concord_response) {
+    const da_kvbc::CommitRequest& commit_req, bool pre_execute,
+    TimeContract* time, opentracing::Span& parent_span,
+    ConcordResponse& concord_response) {
   LOG4CPLUS_DEBUG(logger_, "Handle DAML commit command");
 
   string prefix = "daml";
@@ -188,6 +189,30 @@ bool DamlKvbCommandsHandler::ExecuteCommit(
                                 CreateDamlKvbValue(kv.value(), trids)));
   }
 
+  if (pre_execute) {
+    com::vmware::concord::PreExecutionResponse* pre_execution_response =
+        concord_response.mutable_pre_execution_response();
+
+    pre_execution_response->set_read_set_version(current_block_id);
+
+    auto* write_set = pre_execution_response->add_write_set();
+    for (const auto& kv : updates) {
+      auto* new_kv = write_set->add_kv_writes();
+      new_kv->set_key(kv.first.data(), kv.first.length());
+      new_kv->set_value(kv.second.data(), kv.second.length());
+    }
+
+    com::vmware::concord::ReadSet* read_set =
+        pre_execution_response->add_read_set();
+    for (auto& k : response.need_state().keys()) {
+      const Key& key = CreateDamlKvbKey(k);
+      read_set->add_keys(key.data(), key.length());
+    }
+
+    LOG4CPLUS_DEBUG(logger_, "Done: Pre-execution of DAML command.");
+    return true;
+  }
+
   // Commit the block, if there were no conflicts.
   DamlResponse* daml_response = concord_response.mutable_daml_response();
 
@@ -218,6 +243,7 @@ bool DamlKvbCommandsHandler::ExecuteCommit(
 }
 
 bool DamlKvbCommandsHandler::ExecuteCommand(const ConcordRequest& concord_req,
+                                            bool pre_execute,
                                             TimeContract* time_contract,
                                             opentracing::Span& parent_span,
                                             ConcordResponse& response) {
@@ -247,8 +273,8 @@ bool DamlKvbCommandsHandler::ExecuteCommand(const ConcordRequest& concord_req,
     case da_kvbc::Command::kCommit: {
       auto commit_req = cmd.commit();
       log4cplus::getMDC().put("cid", commit_req.correlation_id());
-      bool result =
-          ExecuteCommit(commit_req, time_contract, parent_span, response);
+      bool result = ExecuteCommit(commit_req, pre_execute, time_contract,
+                                  parent_span, response);
       log4cplus::getMDC().clear();
       return result;
     }
@@ -292,14 +318,16 @@ bool DamlKvbCommandsHandler::ExecuteReadOnlyCommand(
 }
 
 bool DamlKvbCommandsHandler::Execute(const ConcordRequest& request,
-                                     bool read_only,
+                                     bool read_only, bool pre_execute,
+                                     bool has_pre_executed,
                                      TimeContract* time_contract,
                                      opentracing::Span& parent_span,
                                      ConcordResponse& response) {
   if (read_only) {
     return ExecuteReadOnlyCommand(request, response);
   } else {
-    return ExecuteCommand(request, time_contract, parent_span, response);
+    return ExecuteCommand(request, pre_execute, time_contract, parent_span,
+                          response);
   }
 }
 

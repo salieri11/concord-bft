@@ -58,10 +58,18 @@ HlfKvbCommandsHandler::~HlfKvbCommandsHandler() {
 }
 
 bool HlfKvbCommandsHandler::Execute(const ConcordRequest& request,
-                                    bool read_only, TimeContract* time_contract,
+                                    bool read_only, bool pre_execute,
+                                    bool has_pre_executed,
+                                    TimeContract* time_contract,
                                     opentracing::Span& parent_span,
                                     ConcordResponse& response) {
-  if (read_only) {
+  if (pre_execute || has_pre_executed) {
+    LOG4CPLUS_ERROR(logger_,
+                    "Pre-execution not supported for Hyperledger requests.");
+    // TODO: the HLF chaincode runner doesn't seem to return the read set, which
+    // is essential for pre-execution
+    return false;
+  } else if (read_only) {
     return ExecuteReadOnlyCommand(request, time_contract, response);
   } else {
     return ExecuteCommand(request, time_contract, response);
