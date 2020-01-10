@@ -20,6 +20,7 @@ node:
   - service_host: 0.0.0.0
     service_port: 5458
     daml_execution_engine_addr: daml_execution_engine:55000
+    jaeger_agent: jaeger-agent:6831
     replica:
       - replica_host: 10.0.0.1
         replica_port: 3501
