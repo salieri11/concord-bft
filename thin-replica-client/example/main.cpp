@@ -11,18 +11,24 @@ using grpc::Channel;
 using grpc::InsecureChannelCredentials;
 using grpc::Status;
 using log4cplus::Logger;
+using std::atomic_bool;
+using std::condition_variable;
 using std::cout;
 using std::endl;
 using std::exception;
 using std::hex;
+using std::mutex;
 using std::pair;
+using std::ref;
 using std::setfill;
 using std::setw;
 using std::shared_ptr;
 using std::stoull;
 using std::string;
 using std::stringstream;
+using std::thread;
 using std::to_string;
+using std::unique_lock;
 using std::unique_ptr;
 using std::vector;
 using thin_replica_client::BasicUpdateQueue;
@@ -51,6 +57,26 @@ static void ReportUpdate(Logger& logger, const Update& update) {
   }
   LOG4CPLUS_INFO(logger, update_report.str());
 }
+
+static void ReportFailureNotifications(
+    Logger& logger, shared_ptr<condition_variable> failure_condition,
+    shared_ptr<mutex> failure_mutex, shared_ptr<atomic_bool> stop_thread,
+    shared_ptr<UpdateQueue> update_queue) {
+  assert(failure_condition);
+  assert(failure_mutex);
+  assert(stop_thread);
+
+  unique_lock<mutex> failure_lock(*failure_mutex);
+  while (!(*stop_thread)) {
+    failure_condition->wait(failure_lock);
+    if (!(*stop_thread)) {
+      LOG4CPLUS_ERROR(logger,
+                      "ThinReplicaClient reported it cannot make progress on "
+                      "the active subscription.");
+      update_queue->ReleaseConsumers();
+    }
+  }
+};
 
 int main(int argc, char** argv) {
   log4cplus::initialize();
@@ -162,6 +188,15 @@ int main(int argc, char** argv) {
         CreateChannel(argv[kServersOffset + i], InsecureChannelCredentials())));
   }
 
+  shared_ptr<condition_variable> failure_condition(new condition_variable());
+  shared_ptr<mutex> failure_condition_mutex(new mutex());
+  shared_ptr<atomic_bool> stop_reporting_failure_notifications(
+      new atomic_bool(false));
+  thread failure_reporting_thread(&ReportFailureNotifications, ref(logger),
+                                  failure_condition, failure_condition_mutex,
+                                  stop_reporting_failure_notifications,
+                                  update_queue);
+
   int ret_status = 0;
   unique_ptr<ThinReplicaClient> trc;
 
@@ -171,6 +206,9 @@ int main(int argc, char** argv) {
                                     max_faulty, private_key, servers.begin(),
                                     servers.end()));
     LOG4CPLUS_INFO(logger, "ThinReplicaClient constructed.");
+    trc->RegisterSubscriptionFailureCondition(failure_condition);
+    LOG4CPLUS_INFO(logger,
+                   "Failure condition registered with ThinReplicaClient.");
     trc->Subscribe("");
     LOG4CPLUS_INFO(logger, "ThinReplicaClient subscribed.");
 
@@ -224,8 +262,7 @@ int main(int argc, char** argv) {
     }
 
     if (updates_displayed < kNumUpdatesToDisplayBeforeUnsubscribing) {
-      LOG4CPLUS_INFO(logger,
-                     "It appears the update consumer thread was recalled.");
+      LOG4CPLUS_INFO(logger, "The update consumer thread was recalled.");
     } else {
       LOG4CPLUS_INFO(logger, "Received " << updates_displayed
                                          << " updates; unsubscribing...");
@@ -244,6 +281,10 @@ int main(int argc, char** argv) {
   }
 
   trc.reset();
+  *stop_reporting_failure_notifications = true;
+  failure_condition->notify_all();
+  assert(failure_reporting_thread.joinable());
+  failure_reporting_thread.join();
   update_queue.reset();
   return ret_status;
 }
