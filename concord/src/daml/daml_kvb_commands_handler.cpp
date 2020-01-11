@@ -190,12 +190,12 @@ bool DamlKvbCommandsHandler::ExecuteCommit(
   }
 
   if (pre_execute) {
-    com::vmware::concord::PreExecutionResponse* pre_execution_response =
-        concord_response.mutable_pre_execution_response();
+    com::vmware::concord::PreExecutionResult* pre_execution_result =
+        concord_response.mutable_pre_execution_result();
 
-    pre_execution_response->set_read_set_version(current_block_id);
+    pre_execution_result->set_read_set_version(current_block_id);
 
-    auto* write_set = pre_execution_response->add_write_set();
+    auto* write_set = pre_execution_result->mutable_write_set();
     for (const auto& kv : updates) {
       auto* new_kv = write_set->add_kv_writes();
       new_kv->set_key(kv.first.data(), kv.first.length());
@@ -203,9 +203,9 @@ bool DamlKvbCommandsHandler::ExecuteCommit(
     }
 
     com::vmware::concord::ReadSet* read_set =
-        pre_execution_response->add_read_set();
-    for (auto& k : response.need_state().keys()) {
-      const Key& key = CreateDamlKvbKey(k);
+        pre_execution_result->mutable_read_set();
+    for (const auto& k : response.need_state().keys()) {
+      const auto& key = CreateDamlKvbKey(k);
       read_set->add_keys(key.data(), key.length());
     }
 

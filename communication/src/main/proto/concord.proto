@@ -25,7 +25,7 @@ message ConcordRequest {
    optional bytes trace_context = 13;
    optional LatestPrunableBlockRequest latest_prunable_block_request = 14;
    optional PruneRequest prune_request = 15;
-   optional PreExecutionResponse pre_execution_response = 16;
+   optional PreExecutionResult pre_execution_result = 16;
 
    // 17-2045 open for definition
    // Likely: metrics/stats, non-eth blockchain, other admin
@@ -49,7 +49,7 @@ message ConcordResponse {
    // 13: trace_context has no response
    optional LatestPrunableBlockResponse latest_prunable_block_response = 14;
    optional PruneResponse prune_response = 15;
-   optional PreExecutionResponse pre_execution_response = 16;
+   optional PreExecutionResult pre_execution_result = 16;
 
    // 17-2045 open for definition
    optional TestResponse test_response = 2046;
@@ -260,10 +260,10 @@ message PruneResponse {
    optional string error_msg = 2;
 }
 
-message PreExecutionResponse {
+message PreExecutionResult {
    required int64 read_set_version = 1;
-   repeated ReadSet read_set = 2;
-   repeated WriteSet write_set = 3;
+   required ReadSet read_set = 2;
+   required WriteSet write_set = 3;
 }
 
 message ReadSet {

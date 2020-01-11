@@ -56,13 +56,18 @@ class ConcordCommandsHandler
           &storage,
       concord::storage::blockchain::IBlocksAppender &appender,
       concord::thin_replica::SubBufferList &subscriber_list);
-  virtual ~ConcordCommandsHandler() {}
+  virtual ~ConcordCommandsHandler() = default;
   std::shared_ptr<prometheus::Registry> getRegistry();
   // Callback from the replica via ICommandsHandler.
   int execute(uint16_t client_id, uint64_t sequence_num, uint8_t flags,
               uint32_t request_size, const char *request,
               uint32_t max_reply_size, char *out_reply,
               uint32_t &out_reply_size) override;
+
+  // Parses the request buffer in case of a pre-executed request
+  static bool parsePreExecutedRequest(
+      bool has_pre_executed, const char *request_buffer, uint32_t request_size,
+      com::vmware::concord::ConcordRequest &parsed_request);
 
   // Our concord::storage::blockchain::IBlocksAppender implementation, where we
   // can add lower-level data like time contract status, before forwarding to
