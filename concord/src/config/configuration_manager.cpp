@@ -3337,6 +3337,11 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "(127.0.0.1:6831 by default).");
   node.tagParameter("jaeger_agent", privateOptionalTags);
 
+  node.declareParameter("prometheus_port",
+                        "Port of prometheus client to publish metrics on "
+                        "(9891 by default).");
+  node.tagParameter("prometheus_port", privateOptionalTags);
+
   node.declareParameter("service_host",
                         "Public IP address or hostname on which this replica's "
                         "external API service can be reached.");

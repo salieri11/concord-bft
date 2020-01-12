@@ -9,8 +9,7 @@
 ##         from parent: docker build -f concord/Dockerfile .
 
 ## Build image
-FROM athena-docker-local.artifactory.eng.vmware.com/concord-core:prereqs-v15
-
+FROM athena-docker-local.artifactory.eng.vmware.com/concord-core:prereqs-v16
 ## Remember context is the parent of this directory
 COPY ./communication /communication
 
@@ -58,6 +57,24 @@ RUN apt-get update \
 COPY --from=0 /usr/local/lib/liblog4cplus-1.2.so.5.1.6 /usr/local/lib/
 RUN ln -s /usr/local/lib/liblog4cplus-1.2.so.5.1.6 /usr/local/lib/liblog4cplus-1.2.so.5
 RUN ln -s /usr/local/lib/liblog4cplus-1.2.so.5.1.6 /usr/local/lib/liblog4cplus.so
+
+COPY --from=0 /usr/local/lib/libprometheus-cpp-core.so.0.8.0 /usr/local/lib/
+RUN for x in /usr/local/lib/libprometheus-cpp-core.so.0.8.0; do \
+        ln -s $x ${x%%.0} && \
+        ln -s $x ${x%%.0.8.0}; \
+    done
+
+COPY --from=0 /usr/local/lib/libprometheus-cpp-pull.so.0.8.0 /usr/local/lib/
+RUN for x in /usr/local/lib/libprometheus-cpp-pull.so.0.8.0; do \
+        ln -s $x ${x%%.0} && \
+        ln -s $x ${x%%.0.8.0}; \
+    done
+
+COPY --from=0 /usr/local/lib/libprometheus-cpp-push.so.0.8.0 /usr/local/lib/
+RUN for x in /usr/local/lib/libprometheus-cpp-push.so.0.8.0; do \
+        ln -s $x ${x%%.0} && \
+        ln -s $x ${x%%.0.8.0}; \
+    done
 
 COPY --from=0 /opt/protobuf/lib/*.so.17.0.0 /opt/protobuf/lib/
 RUN for x in /opt/protobuf/lib/*.so.17.0.0; do \

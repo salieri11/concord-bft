@@ -56,6 +56,7 @@ Sliver CreateDamlKvbKey(const string& content) {
 
 bool DamlKvbCommandsHandler::ExecuteRead(const da_kvbc::ReadCommand& request,
                                          ConcordResponse& response) {
+  read_ops_.Increment();
   LOG4CPLUS_WARN(logger_, "NOT IMPLEMENTED");
   return false;
 }
@@ -171,7 +172,7 @@ bool DamlKvbCommandsHandler::ExecuteCommit(
   string cmd_string;
   command_reply.SerializeToString(&cmd_string);
   daml_response->set_command_reply(cmd_string.c_str(), cmd_string.size());
-
+  write_ops_.Increment();
   LOG4CPLUS_DEBUG(logger_, "Done: Handle DAML commit command.");
   return true;
 }
