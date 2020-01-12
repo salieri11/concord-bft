@@ -177,33 +177,31 @@ bool DamlKvbCommandsHandler::ExecuteCommit(
   vector<string> trids{};
 
   // Insert the DAML log entry into the store.
-  auto logEntry = result.log_entry();
+  auto& logEntry = result.log_entry();
   updates.insert(KeyValuePair(CreateDamlKvbKey(entryId),
                               CreateDamlKvbValue(logEntry, trids)));
 
   // Insert the DAML state updates into the store.
   // Currently just using the serialization of the DamlStateKey as the key
   // without any prefix.
-  for (auto kv : result.state_updates()) {
+  for (const auto& kv : result.state_updates()) {
     updates.insert(KeyValuePair(CreateDamlKvbKey(kv.key()),
                                 CreateDamlKvbValue(kv.value(), trids)));
   }
 
   if (pre_execute) {
-    com::vmware::concord::PreExecutionResult* pre_execution_result =
-        concord_response.mutable_pre_execution_result();
+    auto pre_execution_result = concord_response.mutable_pre_execution_result();
 
     pre_execution_result->set_read_set_version(current_block_id);
 
-    auto* write_set = pre_execution_result->mutable_write_set();
+    auto write_set = pre_execution_result->mutable_write_set();
     for (const auto& kv : updates) {
-      auto* new_kv = write_set->add_kv_writes();
+      auto new_kv = write_set->add_kv_writes();
       new_kv->set_key(kv.first.data(), kv.first.length());
       new_kv->set_value(kv.second.data(), kv.second.length());
     }
 
-    com::vmware::concord::ReadSet* read_set =
-        pre_execution_result->mutable_read_set();
+    auto read_set = pre_execution_result->mutable_read_set();
     for (const auto& k : response.need_state().keys()) {
       const auto& key = CreateDamlKvbKey(k);
       read_set->add_keys(key.data(), key.length());
@@ -318,11 +316,12 @@ bool DamlKvbCommandsHandler::ExecuteReadOnlyCommand(
 }
 
 bool DamlKvbCommandsHandler::Execute(const ConcordRequest& request,
-                                     bool read_only, bool pre_execute,
-                                     bool has_pre_executed,
-                                     TimeContract* time_contract,
+                                     uint8_t flags, TimeContract* time_contract,
                                      opentracing::Span& parent_span,
                                      ConcordResponse& response) {
+  bool read_only = flags & bftEngine::MsgFlag::READ_ONLY_FLAG;
+  bool pre_execute = flags & bftEngine::MsgFlag::PRE_EXECUTE_FLAG;
+
   if (read_only) {
     return ExecuteReadOnlyCommand(request, response);
   } else {
