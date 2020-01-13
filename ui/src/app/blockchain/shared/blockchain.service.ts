@@ -200,6 +200,7 @@ export class BlockchainService {
 
         zones.forEach(zone => zoneMap[zone.id] = zone);
         this.zonesMap = zoneMap;
+        this.zones = zones;
 
         return zones;
       }),

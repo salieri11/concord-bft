@@ -6,7 +6,7 @@ import { Component, OnInit, ViewChild } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { ClrDatagrid } from '@clr/angular';
 
-import { NodeInfo, NodeType } from '../shared/nodes.model';
+import { NodeInfo, NodeType, ClientNode } from '../shared/nodes.model';
 import { DeployClientComponent } from '../deploy-client/deploy-client.component';
 import { NodesService } from '../shared/nodes.service';
 import { BlockchainService } from '../../blockchain/shared/blockchain.service';
@@ -23,6 +23,7 @@ export class NodeListComponent implements OnInit {
   @ViewChild('deployClient', {static: false}) deployClient: DeployClientComponent;
 
   nodes: NodeInfo[];
+  clients: ClientNode[];
   selected: any[] = [];
   batchStartEnabled: boolean;
   batchStopEnabled: boolean;
@@ -84,7 +85,7 @@ export class NodeListComponent implements OnInit {
 
   loadClients() {
     this.nodesService.getClients()
-    .subscribe(nodes => this.nodes = nodes);
+    .subscribe(clients => this.clients = clients);
   }
 
   openDeployClient() {

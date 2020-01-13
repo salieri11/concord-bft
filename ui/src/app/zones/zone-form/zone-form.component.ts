@@ -10,6 +10,7 @@ import { Observable, throwError } from 'rxjs';
 import { VmwComboboxItem } from '../../shared/components/combobox/combobox-items/combobox-item.model';
 import { OnPremZone, ZoneType } from './../../zones/shared/zones.model';
 import { ZonesService } from '../shared/zones.service';
+import { BlockchainService } from './../../blockchain/shared/blockchain.service';
 
 
 @Component({
@@ -29,7 +30,10 @@ export class ZoneFormComponent implements AfterViewInit {
 
   get log_managements() { return this.form.get('log_managements'); }
 
-  constructor(private zonesService: ZonesService) {
+  constructor(
+    private zonesService: ZonesService,
+    private blockchainService: BlockchainService
+  ) {
     this.form = this.initForm();
   }
 
@@ -193,6 +197,7 @@ export class ZoneFormComponent implements AfterViewInit {
     this.onPremConnectionSuccessful = false;
     this.addedOnPrem = true;
     this.form.reset();
+    this.blockchainService.getZones().subscribe();
 
     return response;
   }

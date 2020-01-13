@@ -85,7 +85,7 @@
               {{'nodes.zoneId' | translate}}
             </clr-dg-column>
 
-            <clr-dg-row *clrDgItems="let node of nodes" [clrDgItem]="node">
+            <clr-dg-row *clrDgItems="let node of clients" [clrDgItem]="node">
               <clr-dg-action-overflow>
                 <button [disabled]="!node.certificate" class="action-item" (click)="downloadCert(node)">{{'nodes.getCert' | translate}}</button>
 
@@ -126,7 +126,7 @@
                   [size]="12">
                 </concord-copy-to-clipboard-button>
               </clr-dg-cell>
-              <clr-dg-cell>{{node.zone_id}}</clr-dg-cell>
+              <clr-dg-cell>{{node.zone_name}}</clr-dg-cell>
             </clr-dg-row>
           </clr-datagrid>
         </clr-tab-content>

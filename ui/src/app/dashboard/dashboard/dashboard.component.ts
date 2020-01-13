@@ -23,24 +23,36 @@ import { NodesService } from '../../nodes/shared/nodes.service';
 import * as NodeGeoJson from '../features.json';
 import { mainRoutes } from '../../shared/urls.model';
 import { SmartContract } from '../../smart-contracts/shared/smart-contracts.model';
-import { NodeInfo, NodeProperties } from '../../nodes/shared/nodes.model';
+import { NodeInfo, NodeProperties, ClientNode } from '../../nodes/shared/nodes.model';
 
 const LONG_POLL_INTERVAL = 10000; // Ten seconds
 const BLOCK_TRANSACTION_LIMIT = 20;
 
-enum DashItems {
+enum EthDashItems {
   organizations = 0,
   currentBlock = 1,
   contracts = 2,
   transactions = 3,
 }
 
-enum InfoListTable {
+enum DamlDashItems {
+  clients = 0,
+  organizations = 1,
+}
+
+enum EthInfoListTable {
   nodes = 0,
   organizations = 1,
   smartContracts = 2,
   blocks = 3,
 }
+
+enum DamlInfoListTable {
+  nodes = 0,
+  clients = 1,
+  organizations = 2,
+}
+
 
 @Component({
   selector: 'concord-dashboard',
@@ -51,12 +63,15 @@ export class DashboardComponent implements OnInit, OnDestroy {
   @ViewChild('nodeGuage', { static: false }) nodeGuage: GaugeComponent;
   @ViewChild('worldMap', { static: false }) worldMap: WorldMapComponent;
 
+  dashInfo: any;
+  infoList: any;
+
   blockchainId: string;
   blocks: BlockInfo[] = [];
   orgs: any[] = [];
   nodes: NodeInfo[] = [];
+  clients: ClientNode[] = [];
   smartContracts: SmartContract[] = [];
-
   nodesByLocation: NodeProperties[] = [];
   onlyOnPrem: boolean = false;
   nodeGeoJson = NodeGeoJson;
@@ -153,12 +168,21 @@ export class DashboardComponent implements OnInit, OnDestroy {
     return healthyNodeCount;
   }
 
-  get nodesConfig(): DashboardListConfig {
+  get commitersConfig(): DashboardListConfig {
     return {
       headers: ['nodes.hostname', 'nodes.address', 'nodes.health'],
       displayProperties: ['name', 'public_ip', 'healthHTML'],
       tableHeader: 'nodes.committers',
       paginationSummary: 'nodes.paginationSummary',
+    };
+  }
+
+  get clientsConfig(): DashboardListConfig {
+    return {
+      headers: ['nodes.hostname', 'nodes.url', 'nodes.zoneId'],
+      displayProperties: ['hostname', 'url', 'zone_name'],
+      tableHeader: 'nodes.clients',
+      paginationSummary: 'nodes.clientPaginationSummary',
     };
   }
 
@@ -220,6 +244,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
       case ContractEngines.DAML:
         this.loadOrgs();
         this.loadNodes();
+        this.loadClients();
         break;
 
       case ContractEngines.ETH:
@@ -234,16 +259,25 @@ export class DashboardComponent implements OnInit, OnDestroy {
   private setComponents() {
     switch (this.blockchainType) {
       case ContractEngines.DAML:
+        this.dashInfo = DamlDashItems;
+        this.infoList = DamlInfoListTable;
         this.dashItems = [{
+          title: this.translate.instant('nodes.clients'),
+          link: ['/' + this.blockchainId, mainRoutes.nodes, mainRoutes.clients],
+          count: null,
+        }, {
           title: this.translate.instant('organization.title'), link: [], count: null,
         }];
         this.infoLists = [
-          { config: this.nodesConfig, items: this.nodes, tourAnchor: 'onboardingTour.nodes' },
+          { config: this.commitersConfig, items: this.nodes, tourAnchor: 'onboardingTour.nodes' },
+          { config: this.clientsConfig, items: this.clients, tourAnchor: null },
           { config: this.organizationsConfig, items: this.orgs, tourAnchor: 'onboardingTour.organization' },
         ];
         break;
 
       case ContractEngines.ETH:
+        this.dashInfo = EthDashItems;
+        this.infoList = EthInfoListTable;
         this.dashItems = [{
           title: this.translate.instant('organization.title'),
           link: ['/' + this.blockchainId, mainRoutes.organizations],
@@ -263,7 +297,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
         }];
 
         this.infoLists = [
-          { config: this.nodesConfig, items: this.nodes, tourAnchor: 'onboardingTour.nodes' },
+          { config: this.commitersConfig, items: this.nodes, tourAnchor: 'onboardingTour.nodes' },
           { config: this.organizationsConfig, items: this.orgs, tourAnchor: 'onboardingTour.organization' },
           { config: this.contractsConfig, items: this.smartContracts, tourAnchor: 'onboardingTour.smartContracts' },
           { config: this.blocksConfig, items: this.blocks, tourAnchor: 'onboardingTour.blocks' }
@@ -276,8 +310,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.smartContractsService.getSmartContracts().subscribe(
       smartContracts => {
         this.smartContracts = smartContracts;
-        this.infoLists[InfoListTable.smartContracts].items = this.smartContracts;
-        this.dashItems[DashItems.contracts].count = this.smartContracts.length;
+        this.infoLists[this.infoList.smartContracts].items = this.smartContracts;
+        this.dashItems[this.dashInfo.contracts].count = this.smartContracts.length;
       });
   }
 
@@ -289,28 +323,36 @@ export class DashboardComponent implements OnInit, OnDestroy {
       this.nodeHealth = this.healthyNodesCount / this.nodes.length;
       this.setNodeData();
       this.setNodeColor();
-      this.infoLists[0].items = this.nodes;
+      this.infoLists[this.infoList.nodes].items = this.nodes;
+    });
+  }
+
+  private loadClients() {
+    return this.nodesService.getClients().subscribe((clients) => {
+      this.clients = clients;
+      this.dashItems[this.dashInfo.clients].count = this.clients.length;
+      this.infoLists[this.infoList.clients].items = this.clients;
     });
   }
 
   private loadBlocks() {
     this.blocksService.getBlocks(BLOCK_TRANSACTION_LIMIT).subscribe((resp) => {
       this.blocks = resp.blocks;
-      this.dashItems[DashItems.currentBlock].count = this.currentBlock;
-      this.dashItems[DashItems.transactions].count = this.transactionCount;
-      this.infoLists[InfoListTable.blocks].items = this.blocks;
+      this.dashItems[this.dashInfo.currentBlock].count = this.currentBlock;
+      this.dashItems[this.dashInfo.transactions].count = this.transactionCount;
+      this.infoLists[this.infoList.blocks].items = this.blocks;
     });
     this.blocksService.getBlock(0).subscribe((resp) => {
       this.firstBlockTransactionCount = resp.transactions.length;
-      this.dashItems[DashItems.transactions].count = this.transactionCount;
+      this.dashItems[this.dashInfo.transactions].count = this.transactionCount;
     });
   }
 
   private loadOrgs() {
     this.orgService.getList().subscribe(resp => {
       this.orgs = resp;
-      this.infoLists[InfoListTable.organizations].items = this.orgs;
-      this.dashItems[DashItems.organizations].count = this.orgCount;
+      this.infoLists[this.infoList.organizations].items = this.orgs;
+      this.dashItems[this.dashInfo.organizations].count = this.orgCount;
     });
   }
 

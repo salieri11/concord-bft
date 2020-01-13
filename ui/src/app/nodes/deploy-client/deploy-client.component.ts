@@ -28,8 +28,7 @@ export class DeployClientComponent implements OnInit {
     this.zones = this.blockchainService.zones;
   }
 
-  ngOnInit() {
-  }
+  ngOnInit() {}
 
   deploy() {
     const selectedZoneId = this.deployClient.controls['zone'].value;
@@ -46,6 +45,7 @@ export class DeployClientComponent implements OnInit {
   }
 
   openModal() {
+    this.zones = this.blockchainService.zones;
     this.isOpen = true;
   }
 

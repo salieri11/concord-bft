@@ -10,7 +10,7 @@ import { Observable, from, timer, of, Subject } from 'rxjs';
 import { map, concatMap, filter, take, delay } from 'rxjs/operators';
 import { VmwTasksService, VmwTask, VmwTaskState, IVmwTaskInfo } from '../../shared/components/task-panel/tasks.service';
 
-import { NodeProperties, NodeInfo } from './nodes.model';
+import { NodeProperties, NodeInfo, ClientNode } from './nodes.model';
 import { ZoneType } from './../../zones/shared/zones.model';
 import { BlockchainService } from '../../blockchain/shared/blockchain.service';
 import { DeployStates } from '../../blockchain/shared/blockchain.model';
@@ -126,8 +126,24 @@ export class NodesService {
   }
 
 
-  getClients() {
-    return this.http.get<NodeInfo[]>(Apis.clients(this.blockchainService.blockchainId));
+  getClients(): Observable<ClientNode[]> {
+    const zonesMap = this.blockchainService.zonesMap;
+
+    return this.http.get<ClientNode[]>(
+      Apis.clients(this.blockchainService.blockchainId)
+    ).pipe(
+      map(response => {
+        // Add zone name
+        response.forEach(client => {
+          if (zonesMap[client.zone_id]) {
+            client['zone_name'] = zonesMap[client.zone_id].name;
+          } else {
+            client['zone_name'] = undefined;
+          }
+        });
+        return response;
+      })
+    );
   }
 
   deployClients(zoneIds: string[], name: string) {
