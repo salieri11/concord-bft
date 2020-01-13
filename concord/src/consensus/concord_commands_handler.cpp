@@ -290,7 +290,9 @@ bool ConcordCommandsHandler::parsePreExecutedRequest(
     com::vmware::concord::ConcordResponse pre_executed_request;
     if (pre_executed_request.ParseFromArray(request_buffer, request_size) &&
         pre_executed_request.has_pre_execution_result()) {
-      parsed_request.mutable_pre_execution_result()->MergeFrom(
+      auto *pre_execution_result =
+          parsed_request.mutable_pre_execution_result();
+      pre_execution_result->MergeFrom(
           pre_executed_request.pre_execution_result());
       return true;
     }
