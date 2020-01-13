@@ -139,6 +139,7 @@ export const Apis = {
 
   // Node (Replica) related
   nodes(bId: string) { return `${this.specificBlockchain(bId)}/replicas`; },
+  clients(bId: string) { return `${this.specificBlockchain(bId)}/clients`; },
 
   // ! Deprecated
   members(bId: string) { return `${this.specificBlockchain(bId)}/members`; },

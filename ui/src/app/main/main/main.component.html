@@ -61,12 +61,12 @@
           <clr-icon clrVerticalNavIcon shape="home"></clr-icon>
           {{'nav.dashboard' | translate}}
         </a>
-        <a clrVerticalNavLink [routerLink]="['nodes']" routerLinkActive="active">
+        <a clrVerticalNavLink [routerLink]="['nodes']" links="['nodes']" routerLinkActive="active">
           <clr-icon clrVerticalNavIcon shape="cluster"></clr-icon>
           {{'nav.nodeList' | translate}}
         </a>
 
-        <a clrVerticalNavLink [routerLink]="['organizations']" routerLinkActive="active">
+        <a clrVerticalNavLink [routerLink]="['organizations']" routerLinkActive="active" [routerLinkActiveOptions]="{exact: false}">
           <clr-icon clrVerticalNavIcon shape="organization"></clr-icon>
           {{'nav.organizations' | translate}}
         </a>
@@ -79,11 +79,6 @@
           <clr-icon clrVerticalNavIcon shape="blocks-group"></clr-icon>
           {{'nav.blockList' | translate}}
         </a>
-        <!-- <a clrVerticalNavLink *ngIf="blockchainType !== 'DAML'" [routerLink]="['transactions']"
-          routerLinkActive="active">
-          <clr-icon clrVerticalNavIcon shape="tags"></clr-icon>
-          {{'nav.transactionList' | translate}}
-        </a> -->
         <div class="nav-divider"></div>
         <label class="nav-header">
           {{'nav.developer.header' | translate}}
@@ -124,8 +119,11 @@
         </ng-container>
       </ng-container>
     </clr-vertical-nav>
+    <concord-task-panel class="panel-7"></concord-task-panel>
+
   </div>
 </clr-main-container>
 <clr-modal #welcomeModal [(clrModalOpen)]="welcomeModalOpened">
   <concord-welcome-content #welcomeContentComponent class="modal-body"></concord-welcome-content>
 </clr-modal>
+

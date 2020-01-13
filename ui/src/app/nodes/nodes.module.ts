@@ -11,6 +11,7 @@ import { TransactionsModule } from '../transactions/transactions.module';
 import { NodesComponent } from './nodes/nodes.component';
 import { NodesStatusFilterComponent } from './nodes-status-filter/nodes-status-filter.component';
 import { NodeListComponent } from './node-list/node-list.component';
+import { DeployClientComponent } from './deploy-client/deploy-client.component';
 
 @NgModule({
   imports: [
@@ -23,6 +24,7 @@ import { NodeListComponent } from './node-list/node-list.component';
     NodesComponent,
     NodesStatusFilterComponent,
     NodeListComponent,
+    DeployClientComponent,
   ],
   exports: [NodeListComponent]
 })

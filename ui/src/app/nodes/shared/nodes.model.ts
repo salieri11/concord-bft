@@ -41,3 +41,8 @@ export interface NodesResponse {
   onlyOnPrem: boolean;
   zone_id?: string;
 }
+
+export enum NodeType {
+  committers = 'committers',
+  clients = 'clients',
+}
