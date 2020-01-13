@@ -12,11 +12,13 @@ using com::vmware::concord::thin_replica::SubscriptionRequest;
 using grpc::ClientContext;
 using grpc::ClientReader;
 using grpc::Status;
+using std::condition_variable;
 using std::hash;
 using std::lock_guard;
 using std::mutex;
 using std::pair;
 using std::runtime_error;
+using std::shared_ptr;
 using std::string;
 using std::stringstream;
 using std::thread;
@@ -211,6 +213,9 @@ void ThinReplicaClient::ReceiveUpdates() {
                       "Could not find enough hashes in agreement with a "
                       "received update; ending subscription.");
       stop_subscription_thread_ = true;
+      lock_guard<mutex> failure_condition_reassignment_lock(
+          failure_condition_mutex_);
+      subscription_failure_condition_->notify_all();
     }
   }
 
@@ -232,6 +237,9 @@ void ThinReplicaClient::ReceiveUpdates() {
               << status.error_code() << ", error message: \""
               << status.error_message() << "\").");
     }
+    lock_guard<mutex> failure_condition_reassignment_lock(
+        failure_condition_mutex_);
+    subscription_failure_condition_->notify_all();
   }
   subscription_data_stream_.reset();
 
@@ -278,6 +286,12 @@ ThinReplicaClient::~ThinReplicaClient() {
     assert(subscription_thread_->joinable());
     subscription_thread_->join();
   }
+}
+
+void ThinReplicaClient::RegisterSubscriptionFailureCondition(
+    shared_ptr<condition_variable> failure_condition) {
+  lock_guard<mutex> condition_reassignment_lock(failure_condition_mutex_);
+  subscription_failure_condition_ = failure_condition;
 }
 
 void ThinReplicaClient::Subscribe(const string& key_prefix_bytes) {

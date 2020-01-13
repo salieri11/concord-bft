@@ -189,6 +189,16 @@ class ThinReplicaClient final {
   std::shared_ptr<UpdateQueue> update_queue_;
   uint16_t max_faulty_;
 
+  // Condition variable to notify if an active subscription can no longer
+  // progress.
+  std::shared_ptr<std::condition_variable> subscription_failure_condition_;
+
+  // Additional mutex needed to prevent race conditions that could arise if
+  // ThinReplicaClient::RegisterSubscriptionFailureCondition runs concurrently
+  // with an attempt from subscription worker thread(s) to notify the failure
+  // condition.
+  std::mutex failure_condition_mutex_;
+
   std::string key_prefix_;
   uint64_t latest_verified_block_id_;
 
@@ -260,6 +270,8 @@ class ThinReplicaClient final {
         server_stubs_(),
         update_queue_(update_queue),
         max_faulty_(max_faulty),
+        subscription_failure_condition_(),
+        failure_condition_mutex_(),
         key_prefix_(),
         latest_verified_block_id_(0),
         subscription_thread_(),
@@ -319,11 +331,17 @@ class ThinReplicaClient final {
 
   // Register a condition variable for this ThinReplicaClient to notify in the
   // event it has an active subscription and becomes unable to receive or
-  // validate a new update, given that condition variable and a mutex
-  // controlling access to that condition variable. Reasons the
-  // ThinReplicaClient may become unable to receive or validate updates include
-  // disconnection from or unresponsiveness of Thin Replica Server(s),
-  // disagreement among Thin Replica Server(s), or some combination thereof.
+  // validate a new update, given a shared pointer to that condition variable.
+  // Note this is the primary programatic way to learn of failure(s) in the
+  // ThinReplicaClient's worker thread(s) for managing active subscriptions,
+  // which run asynchronously with all ThinReplicaClient functions after their
+  // initial creation by ThinReplicaClient::Subscribe.
+  //
+  // Reasons the ThinReplicaClient may become unable to receive or validate
+  // updates include disconnection from or unresponsiveness of Thin Replica
+  // Server(s), disagreement among Thin Replica Server(s), or some combination
+  // thereof.
+  //
   // Note the ThinReplicaClient will notify all waiting threads (not just one
   // waiting thread) on the failure conditioin. Note ThinReplicaClient only
   // supports the registration of a single condition variable for subscription
@@ -331,9 +349,10 @@ class ThinReplicaClient final {
   // registered will overwrite the existing condition (without notifying any
   // threads waiting on it). Also note that the ThinReplicaClient::Unsubscribe
   // and ThinReplicaClient's destructor will not cause the ThinReplicaClient to
-  // notify a registered condition.
+  // notify a registered condition. Note calling
+  // RegisterSubscriptionFailureCondition with a null failure_condition pointer
+  // will effectively de-register any currently registered failure condition.
   void RegisterSubscriptionFailureCondition(
-      std::shared_ptr<std::mutex> failure_mutex,
       std::shared_ptr<std::condition_variable> failure_condition);
 
   // Subscribe to updates from the Thin Replica Servers. key_prefix_bytes should
