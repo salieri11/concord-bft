@@ -31,6 +31,8 @@ class DamlKvbCommandsHandler
   log4cplus::Logger logger_;
   BlockingPersistentQueue<com::digitalasset::kvbc::CommittedTx>& committed_txs_;
   std::unique_ptr<DamlValidatorClient> validator_client_;
+  prometheus::Counter& write_ops_;
+  prometheus::Counter& read_ops_;
 
  public:
   DamlKvbCommandsHandler(
@@ -45,7 +47,13 @@ class DamlKvbCommandsHandler
       : ConcordCommandsHandler(config, node_config, ros, ba, subscriber_list),
         logger_(log4cplus::Logger::getInstance("com.vmware.concord.daml")),
         committed_txs_(committed_txs),
-        validator_client_(std::move(validator)) {}
+        validator_client_(std::move(validator)),
+        write_ops_{
+            command_handler_counters_.Add({{"layer", "DamlKvbCommandsHandler"},
+                                           {"operation", "daml_writes"}})},
+        read_ops_{
+            command_handler_counters_.Add({{"layer", "DamlKvbCommandsHandler"},
+                                           {"operation", "daml_reads"}})} {}
 
   bool Execute(const com::vmware::concord::ConcordRequest& request,
                bool read_only, concord::time::TimeContract* time_contract,

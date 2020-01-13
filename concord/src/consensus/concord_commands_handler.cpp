@@ -8,6 +8,7 @@
 #include "time/time_contract.hpp"
 
 #include <opentracing/tracer.h>
+#include <prometheus/counter.h>
 #include <vector>
 
 using com::vmware::concord::ErrorResponse;
@@ -36,9 +37,15 @@ ConcordCommandsHandler::ConcordCommandsHandler(
       metadata_storage_(storage),
       subscriber_list_(subscriber_list),
       storage_(storage),
-      metrics_{concordMetrics::Component(
-          "concord_commands_handler",
-          std::make_shared<concordMetrics::Aggregator>())},
+      registry_{std::make_shared<prometheus::Registry>()},
+      command_handler_counters_{
+          prometheus::BuildCounter()
+              .Name("concord_command_handler_operation_counters_total")
+              .Help("counts how many operations the command handler has done")
+              .Register(*registry_)},
+      written_blocks_{
+          command_handler_counters_.Add({{"layer", "ConcordCommandsHandler"},
+                                         {"operation", "written_blocks"}})},
       appender_(appender),
       pruning_(storage, config, node_config) {
   if (concord::time::IsTimeServiceEnabled(config)) {
@@ -290,11 +297,15 @@ concordUtils::Status ConcordCommandsHandler::addBlock(
   if (!status.isOK()) {
     return status;
   }
-
+  written_blocks_.Increment();
   // Copy all updates to subscribers in the thin replica server
   subscriber_list_.UpdateSubBuffers({out_block_id, amended_updates});
 
   return status;
+}
+
+std::shared_ptr<prometheus::Registry> ConcordCommandsHandler::getRegistry() {
+  return registry_;
 }
 
 }  // namespace consensus

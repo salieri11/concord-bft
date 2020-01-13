@@ -28,7 +28,7 @@ sudo apt-get install cmake clang-7 clang-format-7 g++ parallel autoconf \
   automake llvm-5.0 llvm-5.0-dev libgmp3-dev libtool libboost1.65-dev \
   libboost-program-options1.65-dev libboost-program-options1.65.1 \
   libboost-system1.65-dev libboost-system1.65.1 libboost-thread1.65-dev \
-  libboost-filesystem1.65-dev libboost-thread1.65.1 libyaml-cpp0.5v5 libyaml-cpp-dev
+  libboost-filesystem1.65-dev libboost-thread1.65.1 libyaml-cpp0.5v5 libyaml-cpp-dev libcurl4-openssl-dev
 ```
 
 #### Relic
@@ -310,7 +310,7 @@ cd build
 cmake -DHUNTER_ENABLED=NO -DBUILD_TESTING=NO -DBUILD_SHARED_LIBS=NO -DJAEGERTRACING_BUILD_EXAMPLES=NO ..
 make -j4
 sudo make install
-```
+````
 
 Two additional small steps need to be executed, to allow Concord's
 build to find these dependencies.
@@ -327,6 +327,20 @@ Second, modify the jaegertracing CMake script to prevent use of a non-existent B
 sudo sed -i '/boost_components/d' /usr/local/lib/cmake/jaegertracing/jaegertracingConfig.cmake
 ```
 
+### Prometheus-cpp
+Prometheus-cpp is a prometheus client library that concord uses. Note that these instructions are different from those in the Prometheus-cpp readme.
+
+```shell
+git clone https://github.com/jupp0r/prometheus-cpp.git 
+cd prometheus-cpp 
+git submodule init 
+git submodule update 
+mkdir _build 
+cd _build
+cmake -DBUILD_SHARED_LIBS=ON ..
+make
+sudo make install
+```
 ### Concord
 
 At build-time, concord takes advantage of clang-format (v7) to check code

@@ -5,6 +5,10 @@
 #ifndef CONSENSUS_CONCORD_COMMANDS_HANDLER_HPP_
 #define CONSENSUS_CONCORD_COMMANDS_HANDLER_HPP_
 
+#include <log4cplus/logger.h>
+#include <opentracing/span.h>
+#include <prometheus/counter.h>
+#include <prometheus/registry.h>
 #include "KVBCInterfaces.h"
 #include "blockchain/db_interfaces.h"
 #include "concord.pb.h"
@@ -13,9 +17,6 @@
 #include "thin_replica/subscription_buffer.hpp"
 #include "time/time_contract.hpp"
 #include "time/time_reading.hpp"
-
-#include <log4cplus/logger.h>
-#include <opentracing/span.h>
 
 namespace concord {
 namespace consensus {
@@ -35,7 +36,9 @@ class ConcordCommandsHandler
 
  protected:
   const concord::storage::blockchain::ILocalKeyValueStorageReadOnly &storage_;
-  concordMetrics::Component metrics_;
+  std::shared_ptr<prometheus::Registry> registry_;
+  prometheus::Family<prometheus::Counter> &command_handler_counters_;
+  prometheus::Counter &written_blocks_;
 
  public:
   concord::storage::blockchain::IBlocksAppender &appender_;
@@ -54,7 +57,7 @@ class ConcordCommandsHandler
       concord::storage::blockchain::IBlocksAppender &appender,
       concord::thin_replica::SubBufferList &subscriber_list);
   virtual ~ConcordCommandsHandler() {}
-
+  std::shared_ptr<prometheus::Registry> getRegistry();
   // Callback from the replica via ICommandsHandler.
   int execute(uint16_t client_id, uint64_t sequence_num, uint8_t flags,
               uint32_t request_size, const char *request,
