@@ -296,6 +296,18 @@ class ThinReplicaClient final {
   // Destructor for ThinReplicaClient. Calling this destructor may block the
   // calling thread as necessary to stop and join worker thread(s) owned by the
   // ThinReplicaClient if the ThinReplicaClient has an active subscription.
+  //
+  // Any active subscription will be stopped in the process of destroying the
+  // ThinReplicaClient, but destroying a ThinReplicaClient will not cause it to
+  // request a final cancellation of that subscription with the Thin Replica
+  // Server(s). An application can later resume that subscription by
+  // constructing a new ThinReplicaClient and calling
+  // ThinReplicaClient::Subscribe with the same key prefix and the last block ID
+  // the application received before the subscription was stopped. If an
+  // application has no intention of later resuming a subscription, it should
+  // call ThinReplicaClient::Unsubscribe before destroying the ThinReplicaClient
+  // to inform the Thin Replica Server(s) that this subscripiton is being
+  // cancelled.
   ~ThinReplicaClient();
 
   // Copying or moving of a ThinReplicaClient object is explicitly disallowed as
@@ -360,8 +372,19 @@ class ThinReplicaClient final {
   void Subscribe(const std::string& key_prefix_bytes,
                  uint64_t last_known_block_id);
 
-  // End any currently open subscription this ThinReplicaClient has. Note this
-  // function will not automatically clear any updates still in the
+  // End any currently open subscription this ThinReplicaClient has; this will
+  // stop any worker thread(s) this ThinReplicaClient has for maintaining this
+  // subscription, close connection(s) to the Thin Replica Server(s) specific to
+  // this subscription, and send message(s) informing the server(s) that this
+  // subscription is being permanently cancelled (the cancellation may be
+  // considered by the server(s) in pruning decisions). For this reason,
+  // ThinReplicaClient::Unsubscribe should not be used to temporarilly stop
+  // subscriptions that the application intends to resume soon. (Note destroying
+  // the ThinReplicaClient object can be used to stop the subscriptions it has
+  // without telling the server(s) that the subscription is being permanently
+  // cancelled).
+  //
+  // Note this function will not automatically clear any updates still in the
   // update_queue. Unsubscribe may block the thread calling it as necessary to
   // stop and join worker thread(s) created by the ThinReplicaClient for the
   // subscription being terminated. Note Unsubscribe will effectively do nothing

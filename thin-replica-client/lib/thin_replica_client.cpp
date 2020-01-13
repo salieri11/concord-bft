@@ -206,7 +206,7 @@ void ThinReplicaClient::ReceiveUpdates() {
     if (agreeing_hashes >= max_faulty_) {
       latest_verified_block_id_ = update->block_id;
       update_queue_->Push(move(update));
-    } else {
+    } else if (!stop_subscription_thread_) {
       LOG4CPLUS_ERROR(logger_,
                       "Could not find enough hashes in agreement with a "
                       "received update; ending subscription.");
@@ -426,21 +426,31 @@ void ThinReplicaClient::Subscribe(const string& key_prefix_bytes,
                   "string&, uint64_t) is unimplemented.");
 }
 
+// This is a placeholder implementation as the Unsubscribe gRPC call is not yet
+// implemented on the server side.
+//
+// TODO (Alex):
+//     - Add lines to actually send an unsubscription one the Thin Replica
+//       Server supports receiving it.
+//     - Add logic for signing the unsubscription once the signature scheme is
+//       defined.
+//     - Add logic to pick a different server to send the acknowledgement to if
+//       server 0 is known to be down or faulty.
 void ThinReplicaClient::Unsubscribe() {
-  // TODO (Alex): Implement.
-  LOG4CPLUS_FATAL(
-      logger_,
-      "thin_replica_client::ThinReplicaClient::Unsubscribe is unimplemented.");
+  stop_subscription_thread_ = true;
+  if (subscription_thread_) {
+    assert(subscription_thread_->joinable());
+    subscription_thread_->join();
+    subscription_thread_.reset();
+  }
+
+  size_t server_to_send_unsubscription_to = 0;
+  assert(server_stubs_.size() > server_to_send_unsubscription_to);
+  assert(server_stubs_[server_to_send_unsubscription_to]);
 }
 
-// Note that acknowledgement is not currently implemented on the Thin Replica
-// Server side. As such, the current implementation is a placeholder that
-// prepares the acknowledgement message and picks a server to send it to, but is
-// missing a call to actually send it; that call will be added once
-// acknowledgement is supported on the server side.
-//
-// Thin Replica Client applications should still call this placeholder so they
-// will not need to be modified once we replace it with a real implementation.
+// This is a placeholder implementation as the AckUpdate gRPC call is not yet
+// implemented on the server side.
 //
 // TODO (Alex):
 //     - Add lines to actually send message once the Thin Replica Server
@@ -453,7 +463,7 @@ void ThinReplicaClient::AcknowledgeBlockID(uint64_t block_id) {
   BlockId AckMessage;
   AckMessage.set_block_id(block_id);
 
-  size_t replica_to_acknowledge_to = 0;
-  assert(server_stubs_.size() > replica_to_acknowledge_to);
-  assert(server_stubs_[replica_to_acknowledge_to]);
+  size_t server_to_acknowledge_to = 0;
+  assert(server_stubs_.size() > server_to_acknowledge_to);
+  assert(server_stubs_[server_to_acknowledge_to]);
 }
