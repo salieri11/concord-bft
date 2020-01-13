@@ -30,6 +30,18 @@ public class Replica extends AbstractEntity {
     String url;
     String cert;
     UUID zoneId;
+
+    /**
+     * Indicate the type of replica.
+     */
+    public enum ReplicaType {
+        // Only dealing with either NONE or DAML_PARTICIPANT for now
+        // None: Ethereum, HFL, DAML Committer
+        NONE,
+        DAML_PARTICIPANT
+    }
+
+    ReplicaType replicaType;
     @LinkedEntityId
     UUID blockchainId;
 

@@ -219,12 +219,14 @@ public class DefaultProfiles {
         try {
             List<Peer> peers = concordService.getMembers(b.getId());
             List<NodeEntry> nodes = b.getNodeList();
+            Replica.ReplicaType replicaType = Replica.ReplicaType.NONE;
             for (int i = 0; i < nodes.size(); i++) {
                 NodeEntry n = nodes.get(i);
                 Peer p = peers.get(i);
                 Replica r = new Replica(n.getIp(),
                                         p.getAddress().split(":")[0],
-                                        p.getHostname(), n.getUrl(), n.getCert(), n.getZoneId(), b.getId());
+                                        p.getHostname(), n.getUrl(), n.getCert(), n.getZoneId(), replicaType,
+                                        b.getId());
                 r.setId(n.getNodeId());
                 replicaService.put(r);
             }

@@ -55,6 +55,7 @@ import com.vmware.blockchain.deployment.v1.ProvisioningServiceGrpc.ProvisioningS
 import com.vmware.blockchain.deployment.v1.StreamClusterDeploymentSessionEventRequest;
 import com.vmware.blockchain.operation.OperationContext;
 import com.vmware.blockchain.services.blockchains.Blockchain.NodeEntry;
+import com.vmware.blockchain.services.blockchains.replicas.Replica;
 import com.vmware.blockchain.services.blockchains.replicas.ReplicaService;
 import com.vmware.blockchain.services.blockchains.zones.ZoneService;
 import com.vmware.blockchain.services.configuration.ConcordConfiguration;
@@ -186,6 +187,34 @@ public class BlockchainController {
     }
 
 
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    static class ReplicaGetResponse {
+        private String publicIp;
+        private String privateIp;
+        private String hostName;
+        private String url;
+        private String cert;
+        private UUID zoneId;
+        private Replica.ReplicaType replicaType;
+        private UUID blockchainId;
+
+        public ReplicaGetResponse(Replica r) {
+            this.publicIp = r.getPublicIp();
+            this.privateIp = r.getPrivateIp();
+            this.hostName = r.getHostName();
+            this.url = r.getUrl();
+            this.cert = r.getCert();
+            this.zoneId = r.getZoneId();
+            this.replicaType = r.getReplicaType();
+            this.blockchainId = r.getBlockchainId();
+        }
+    }
+
+
+
     /**
      * Response from blockchain post, with a task id.
      */
@@ -252,6 +281,21 @@ public class BlockchainController {
     }
 
     /**
+     * Get the list of all participant nodes.
+     */
+    @RequestMapping(path = "/api/blockchains/{bid}/clients", method = RequestMethod.GET)
+    @PreAuthorize("@authHelper.isUser()")
+    ResponseEntity<List<ReplicaGetResponse>> listParticipants(@PathVariable("bid") UUID bid) {
+        List<ReplicaGetResponse> replicaGetResponseList = blockchainService.getReplicas(bid)
+                .stream()
+                .filter(replica -> replica.getReplicaType() == Replica.ReplicaType.DAML_PARTICIPANT)
+                .map(ReplicaGetResponse::new)
+                .collect(Collectors.toList());
+
+        return new ResponseEntity<>(replicaGetResponseList, HttpStatus.OK);
+    }
+
+    /**
      * Get the blockchain details.
      */
     @RequestMapping(path = "/api/blockchains/{id}", method = RequestMethod.GET)
@@ -271,7 +315,7 @@ public class BlockchainController {
                                                                List<UUID> zoneIds,
                                                                BlockchainType blockchainType,
                                                                UUID consortiumId,
-                                                               boolean deployCommitter) throws Exception {
+                                                               boolean deployDamlCommitter) throws Exception {
         List<Entry> list;
         if (placementType == Type.FIXED) {
             if (zoneIds.size() != clusterSize) {
@@ -312,7 +356,7 @@ public class BlockchainController {
 
         ConcordModelSpecification spec;
 
-        if (deployCommitter) {
+        if (deployDamlCommitter) {
             var components = concordConfiguration.getComponentsByNodeType(ConcordModelSpecification
                     .NodeType.DAML_COMMITTER);
 
@@ -475,29 +519,36 @@ public class BlockchainController {
 
         Organization org = organizationService.get(authHelper.getOrganizationId());
 
+        // true if we are deploying a DAML committer, else false
+        // this is for DAML v2 deployment
+        boolean deployDamlCommitter;
+
         if (org.getOrganizationProperties() != null
                 && org.getOrganizationProperties().containsKey("DAML_V2")
                 && org.getOrganizationProperties().get("DAML_V2").equals("enabled")
                 && blockchainType == BlockchainType.DAML) {
-            dsId = createFixedSizeCluster(client, clusterSize,
-                    enumMap.get(body.deploymentType),
-                    body.getZoneIds(),
-                    blockchainType,
-                    body.consortiumId,
-                    true);
+            deployDamlCommitter = true;
         } else {
-            dsId = createFixedSizeCluster(client, clusterSize,
-                    enumMap.get(body.deploymentType),
-                    body.getZoneIds(),
-                    blockchainType,
-                    body.consortiumId,
-                    false);
+            deployDamlCommitter = false;
+        }
+
+        dsId = createFixedSizeCluster(client, clusterSize,
+                enumMap.get(body.deploymentType),
+                body.getZoneIds(),
+                blockchainType,
+                body.consortiumId,
+                deployDamlCommitter);
+
+        Replica.ReplicaType replicaType = Replica.ReplicaType.NONE;
+
+        if (blockchainType == BlockchainType.DAML && !deployDamlCommitter) {
+            replicaType = Replica.ReplicaType.DAML_PARTICIPANT;
         }
 
         logger.info("Deployment started, id {} for the consortium id {}", dsId, body.consortiumId.toString());
         BlockchainObserver bo =
                 new BlockchainObserver(authHelper, operationContext, blockchainService, replicaService, taskService,
-                                       task.getId(), body.getConsortiumId(), blockchainType);
+                                       task.getId(), body.getConsortiumId(), blockchainType, replicaType);
         // Watch for the event stream
         StreamClusterDeploymentSessionEventRequest request = StreamClusterDeploymentSessionEventRequest.newBuilder()
                 .setHeader(MessageHeader.newBuilder().build())
@@ -534,9 +585,9 @@ public class BlockchainController {
     /**
      * Deploy a DAML Participant node for given DAML blockchain.
      */
-    @RequestMapping(path = "/api/blockchains/{bid}/participant", method = RequestMethod.POST)
+    @RequestMapping(path = "/api/blockchains/{bid}/clients", method = RequestMethod.POST)
     @PreAuthorize("@authHelper.isConsortiumAdmin()")
-    public ResponseEntity<BlockchainTaskResponse> createParticipant(@PathVariable UUID bid,
+    public ResponseEntity<BlockchainTaskResponse> createParticipant(@PathVariable("bid") UUID bid,
                                                                    @RequestBody ParticipantPost body) throws Exception {
         Task task = new Task();
         task.setState(Task.State.RUNNING);
@@ -569,11 +620,12 @@ public class BlockchainController {
                 bcConsortium,
                 properties);
 
-        logger.info("Deployment started, id {} for the consortium id {}", dsId, blockchain.getConsortium().toString());
+        logger.info("Deployment for participant node started, id {} for the consortium id {}", dsId,
+                blockchain.getConsortium().toString());
 
         BlockchainObserver bo =
                 new BlockchainObserver(authHelper, operationContext, blockchainService, replicaService, taskService,
-                        task.getId(), bcConsortium, blockchainType);
+                        task.getId(), bcConsortium, blockchainType, Replica.ReplicaType.DAML_PARTICIPANT);
         // Watch for the event stream
 
         StreamClusterDeploymentSessionEventRequest request = StreamClusterDeploymentSessionEventRequest.newBuilder()
