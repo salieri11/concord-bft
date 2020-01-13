@@ -653,8 +653,6 @@ EOF
                             testSuites[suite].runSuite = true
                           }
                         }
-
-
                       }else{
                         // This was something like manual build with parameters or master run. Run what the
                         // user picked or all for a master run.
@@ -736,6 +734,12 @@ EOF
               }
             }catch(Exception ex){
               echo("A failure occurred while running the tests.")
+
+              // See if this suite failed due to SR 19062354609.
+              // HelenDeployToSDDC is the only one of the above which uses Persephone.
+              helen_deploy_test_log_dir = new File(env.test_log_root, "HelenDeployToSDDC").toString()
+              handleFailedTestSuite(helen_deploy_test_log_dir)
+
               failRun()
               throw ex
             }
@@ -817,6 +821,10 @@ EOF
               saveTimeEvent("Persephone tests", "End")
             }catch(Exception ex){
               echo("A failure occurred while running the tests.")
+
+              // See if this suite failed due to SR 19062354609.
+              handleFailedTestSuite(env.persephone_test_logs)
+
               failRun()
               throw ex
             }
@@ -1918,4 +1926,55 @@ void setUpRepoVariables(){
   env.internal_daml_ledger_api_repo = env.release_daml_ledger_api_repo.replace(env.release_repo, env.internal_repo)
   env.internal_daml_execution_engine_repo = env.release_daml_execution_engine_repo.replace(env.release_repo, env.internal_repo)
   env.internal_daml_index_db_repo = env.release_daml_index_db_repo.replace(env.release_repo, env.internal_repo)
+}
+
+// Carry out any special activities related to analysis or reporting
+// when a suite fails.
+// results_dir: Path to the test suite's results directory.
+void handleFailedTestSuite(results_dir){
+  lookForSR19062354609(results_dir)
+}
+
+void lookForSR19062354609(results_dir){
+  found_match = false
+
+  search_lines = [
+    "Cannot find the storage backing of library S3-Subscriber",
+    "due to the failure of importing file photon-ova.ovf",
+    "Error exporting file photon-ova.ovf",
+    "This error may occur due to restore of a deleted library"
+  ]
+  search_results_file = "SR19062354609.log"
+
+  if (fileExists(results_dir)){
+    echo("Searching directory '" + results_dir + "' for evidence of SR 19062354609.")
+
+    for(int i = 0; i < search_lines.size(); ++i){
+      search_line = search_lines[i]
+      command = "grep -e '" + search_line + "' -r '" + results_dir + "' >> " + search_results_file
+      status = sh(
+        script: command,
+        returnStatus: true
+      )
+
+      if(status == 0){
+        echo("Found: '" + search_line + "'")
+        found_match = true
+        break
+      }
+    }
+  }
+
+  if(found_match){
+    found_text = readFile(search_results_file)
+    // Don't bother with the File object because readFile() dictates this format.
+    recipients_file = "blockchain/vars/SR_19062354609_recipients.txt"
+    recipients = readFile(recipients_file).replaceAll("\n", " ")
+    msg = "Found an instance of SR 19062354609.\n" +
+        "Build url: " + env.BUILD_URL + "\n" +
+        "Text that led to this conclusion: " + found_text
+    emailext body: msg,
+             to: recipients,
+             subject: "Instance of SR 19062354609 found!"
+  }
 }
