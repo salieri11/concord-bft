@@ -118,6 +118,19 @@ public class Zone extends AbstractEntity {
 
     }
 
+    /**
+     * Wavefront Endpoint Config.
+     */
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class Wavefront {
+        String url;
+        String token;
+    }
+
+
     @LinkedEntityId
     UUID orgId;
 
@@ -125,6 +138,7 @@ public class Zone extends AbstractEntity {
     String latitude;
     String longitude;
     Type type;
+    Wavefront wavefront;
 
     /**
      * Default constructor.

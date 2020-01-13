@@ -159,6 +159,16 @@ export class ZoneFormComponent implements AfterViewInit {
         username: new FormControl('', { updateOn: 'blur' }),
         password: new FormControl('', { updateOn: 'blur' })
       }),
+      wavefront: new FormGroup({
+        url: new FormControl(
+          '',
+          {
+            validators: Validators.pattern(urlRegEx),
+            updateOn: 'blur'
+          }
+        ),
+        token: new FormControl('', { updateOn: 'blur' }),
+      }),
       outbound_proxy: new FormGroup({
         http_host: new FormControl(
           '',

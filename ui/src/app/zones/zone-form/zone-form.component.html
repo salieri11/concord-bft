@@ -139,6 +139,20 @@
         </div>
         </div>
       </div>
+      <div formGroupName="wavefront">
+        <div class="divider"></div>
+        <h6>{{ 'onPrem.wavefront.title' | translate }}</h6>
+        <clr-input-container>
+          <label class="clr-col-12 clr-col-md-4">{{ 'onPrem.containerReg.url' | translate }}</label>
+          <input #ipInput clrInput type="text" [placeholder]="'onPrem.containerReg.urlPH' | translate" class="clr-col-12 clr-col-md-6" formControlName="url" />
+          <clr-control-error>{{ 'onPrem.urlError' | translate }}</clr-control-error>
+          <clr-control-helper>{{ 'onPrem.containerReg.url' | translate }}</clr-control-helper>
+        </clr-input-container>
+        <clr-input-container>
+          <label class="clr-col-12 clr-col-md-4">{{ 'common.token' | translate }}</label>
+          <input clrInput type="text" [placeholder]="'common.token' | translate" class="clr-col-12 clr-col-md-6" formControlName="token" />
+        </clr-input-container>
+      </div>
       <div formGroupName="container_repo">
         <div class="divider"></div>
         <h6>{{'onPrem.containerReg.title' | translate}}</h6>

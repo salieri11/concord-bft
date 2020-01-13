@@ -35,6 +35,7 @@ import com.vmware.blockchain.deployment.v1.TransportSecurity;
 import com.vmware.blockchain.deployment.v1.VSphereDatacenterInfo;
 import com.vmware.blockchain.deployment.v1.VSphereOrchestrationSiteInfo;
 import com.vmware.blockchain.deployment.v1.VmcOrchestrationSiteInfo;
+import com.vmware.blockchain.deployment.v1.Wavefront;
 import com.vmware.blockchain.services.blockchains.zones.OnPremZone;
 import com.vmware.blockchain.services.blockchains.zones.VmcAwsZone;
 import com.vmware.blockchain.services.blockchains.zones.Zone;
@@ -90,6 +91,15 @@ public class BlockchainUtils {
      * Convert a Helen Zone to a Fleet Orchestration Site.
      */
     public static OrchestrationSiteInfo toInfo(Zone zone)  {
+        Zone.Wavefront wf = zone.getWavefront();
+        Wavefront wavefront = Wavefront.newBuilder().build();
+
+        if (wf != null) {
+            wavefront = Wavefront.newBuilder()
+                    .setUrl(wf.getUrl())
+                    .setToken(wf.getToken())
+                    .build();
+        }
 
         if (Type.ON_PREM.equals(zone.getType())) {
             OnPremZone op = (OnPremZone) zone;
@@ -165,6 +175,7 @@ public class BlockchainUtils {
                     .setApi(api)
                     .setContainerRegistry(container)
                     .setVsphere(dcInfo)
+                    .setWavefront(wavefront)
                     .addAllLogManagements(toFleetLogManagements(op))
                     .build();
 
@@ -209,6 +220,7 @@ public class BlockchainUtils {
                     .setOrganization(op.getOrganization())
                     .setDatacenter(op.getDatacenter())
                     .setVsphere(dcInfo)
+                    .setWavefront(wavefront)
                     .addAllLogManagements(toFleetLogManagements(op))
                     .build();
             return OrchestrationSiteInfo.newBuilder()

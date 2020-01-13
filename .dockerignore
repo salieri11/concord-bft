@@ -5,3 +5,4 @@ hermes/suites/*/__pycache__
 docker/devdata
 performance/benchmark/perf_result
 performance/ballotApp/target
+ui/node_modules
