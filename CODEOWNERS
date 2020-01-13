@@ -18,12 +18,12 @@
 # In the above cases, it is better to remove the line and use the default rule.
 /agent/ @khank @sanchitar @rsg
 /buildall.sh @rvollmar @rsg @khank
-/communication/ @bfink @rmuschner
-/concord/ @bfink @upshawa @rmuschner @andrewstone @tkournik @ysherman @igolikov @petari @tparvanov
+/communication/ @bfink @rmuschner @andrewstone @machenbach
+/concord/ @bfink @upshawa @rmuschner @andrewstone @bjay @tkournik @ysherman @igolikov @petari @tparvanov
 /csp-dev/ @machenbach @rvollmar @panamika @mandeab
-/daml/ @rmuschner @bfink
-/docker/config-concord*/ @upshawa @bfink @rmuschner
-/docker/config-public/ @upshawa @bfink @rmuschner
+/daml/ @rmuschner @bfink @upshaw @bjay
+/docker/config-concord*/ @upshawa @bfink @rmuschner @andrewstone @bjay
+/docker/config-public/ @upshawa @bfink @rmuschner @andrewstone @bjay
 /docker/fluentd/ @hbhavsar @mharrison
 /ethrpc/ @bfink @machenbach @panamika @mandeab
 /helen/ @machenbach @panamika @mandeab @khank
@@ -33,7 +33,7 @@
 /performance/ @vlin @dparmar @rsg @bfink
 /persephone/ @khank @sanchitar @rsg
 /src/ @rvollmar @rsg
-/thin-replica-client/ @rmuschner @upshawa
+/thin-replica-client/ @rmuschner @upshawa @andrewstone @bjay
 /ui/ @mharrison @hbhavsar @tusharg @kkeunwoo @mandeab
 /vars/ @rvollmar @rsg @khank
 /kubernetes/ @bsubramanian @khank @rvollmar
