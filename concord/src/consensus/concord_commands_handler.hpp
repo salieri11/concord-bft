@@ -64,10 +64,10 @@ class ConcordCommandsHandler
               uint32_t max_reply_size, char *out_reply,
               uint32_t &out_reply_size) override;
 
-  // Parses the request buffer in case of a pre-executed request
-  static bool parsePreExecutedRequest(
-      bool has_pre_executed, const char *request_buffer, uint32_t request_size,
-      com::vmware::concord::ConcordRequest &parsed_request);
+  // Parses the request buffer in case it contains a pre-execution response
+  static bool parseFromPreExecutionResponse(
+      const char *request_buffer, uint32_t request_size,
+      com::vmware::concord::ConcordRequest &request);
 
   // Our concord::storage::blockchain::IBlocksAppender implementation, where we
   // can add lower-level data like time contract status, before forwarding to

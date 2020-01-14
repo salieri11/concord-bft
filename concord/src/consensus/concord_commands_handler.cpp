@@ -75,8 +75,8 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
 
   bool result;
   if (request_.ParseFromArray(request_buffer, request_size) ||
-      parsePreExecutedRequest(has_pre_executed, request_buffer, request_size,
-                              request_)) {
+      (has_pre_executed &&
+       parseFromPreExecutionResponse(request_buffer, request_size, request_))) {
     if (request_.has_trace_context()) {
       std::istringstream tc_stream(request_.trace_context());
       auto trace_context = tracer->Extract(tc_stream);
@@ -280,24 +280,22 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
   return result ? 0 : 1;
 }
 
-bool ConcordCommandsHandler::parsePreExecutedRequest(
-    bool has_pre_executed, const char *request_buffer, uint32_t request_size,
-    com::vmware::concord::ConcordRequest &parsed_request) {
-  if (has_pre_executed) {
-    // transform the ConcordResponse produced by pre-execution into a
-    // ConcordRequest for seamless integration into the rest of the execution
-    // flow
-    com::vmware::concord::ConcordResponse pre_executed_request;
-    if (pre_executed_request.ParseFromArray(request_buffer, request_size) &&
-        pre_executed_request.has_pre_execution_result()) {
-      auto *pre_execution_result =
-          parsed_request.mutable_pre_execution_result();
-      pre_execution_result->MergeFrom(
-          pre_executed_request.pre_execution_result());
-      return true;
-    }
+bool ConcordCommandsHandler::parseFromPreExecutionResponse(
+    const char *request_buffer, uint32_t request_size,
+    com::vmware::concord::ConcordRequest &request) {
+  // transform the ConcordResponse produced by pre-execution into a
+  // ConcordRequest for seamless integration into the rest of the execution
+  // flow
+  com::vmware::concord::ConcordResponse pre_execution_response;
+  if (pre_execution_response.ParseFromArray(request_buffer, request_size) &&
+      pre_execution_response.has_pre_execution_result()) {
+    auto *pre_execution_result = request.mutable_pre_execution_result();
+    pre_execution_result->MergeFrom(
+        pre_execution_response.pre_execution_result());
+    return true;
+  } else {
+    return false;
   }
-  return false;
 }
 
 concordUtils::Status ConcordCommandsHandler::addBlock(

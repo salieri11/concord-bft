@@ -261,9 +261,9 @@ message PruneResponse {
 }
 
 message PreExecutionResult {
-   required int64 read_set_version = 1;
-   required ReadSet read_set = 2;
-   required WriteSet write_set = 3;
+   optional int64 read_set_version = 1;
+   optional ReadSet read_set = 2;
+   optional WriteSet write_set = 3;
 }
 
 message ReadSet {
