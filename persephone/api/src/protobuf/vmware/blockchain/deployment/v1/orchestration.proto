@@ -182,8 +182,8 @@ message VSphereOrchestrationSiteInfo {
 *
 */
 message Wavefront {
-    string wavefront_url = 1;
-    string wavefront_token = 2;
+    string url = 1;
+    string token = 2;
 }
 
 /* [END messages] */
