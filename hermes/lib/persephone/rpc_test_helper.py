@@ -154,7 +154,8 @@ class RPCTestHelper():
                           stub=None,
                           concord_type=ModelServiceRPCHelper.CONCORD_TYPE_ETHEREUM,
                           node_type=None,
-                          zone_type=ProvisioningServiceRPCHelper.ZONE_TYPE_VMC):
+                          zone_type=ProvisioningServiceRPCHelper.ZONE_TYPE_VMC,
+                          replicas=None):
       '''
       Helper method to call create cluster gRPC
       :param cluster_size: cluster size
@@ -162,6 +163,8 @@ class RPCTestHelper():
       :param stub: Default stub if running default provisioning service on port 9002
       else, stub for the non-default instance
       :param concord_type: Concord type (ethereum, DAML, etc)
+      :param node_type: DAML node type (committer/participant)
+      :param replicas: List of replicas
       :return: deployment session ID
       '''
       log.info("**** Deployment type: {}".format(zone_type))
@@ -173,9 +176,12 @@ class RPCTestHelper():
       placement_specification = self.provision_rpc_helper.create_placement_specification(
          cluster_size, zone_type=zone_type)
       genesis_spec = self.provision_rpc_helper.create_genesis_specification()
+      replica_properties = None
+      if replicas:
+         replica_properties = self.provision_rpc_helper.create_properties(replicas)
       deployment_specification = self.provision_rpc_helper.create_deployment_specification(
          cluster_size, concord_model_specification, placement_specification,
-         genesis_spec)
+         genesis_spec, replica_properties)
       create_cluster_request = self.provision_rpc_helper.create_cluster_request(
          header, deployment_specification)
 

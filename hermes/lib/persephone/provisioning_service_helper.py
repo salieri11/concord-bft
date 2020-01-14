@@ -183,19 +183,32 @@ class ProvisioningServiceRPCHelper(RPCHelper):
       )
       return genesis_spec
 
-   def create_deployment_specification(self, cluster_size, model, placement, genesis_spec):
+   def create_properties(self, replicas):
+      '''
+      Helper method to create custom properties, like "committers=concord1:50051"
+      :param replicas: List of replicas
+      :return: properties proto message
+      '''
+      replicas_with_port = map(lambda x: "{}:50051".format(x), replicas)
+      values = ",".join(list(replicas_with_port))
+      properties = core_pb2.Properties(
+         values={"committers": values}
+      )
+      return properties
+
+   def create_deployment_specification(self, cluster_size, model, placement, genesis_spec, properties):
       '''
       Helper method to create deployment specification
       :param cluster_size: Number of concord members on the cluster cluster
       :param model: Metadata for deployment
       :param placement: placement site/SDDC
       :param genesis_spec: genesis spec
-      :param consortium: randomly generated consortiumId
-      :return: deployment specifcation
+      :param properties: custom properties to be passed to deployment spec
+      :return: deployment specification
       '''
       deployment_specification = provisioning_service_pb2.DeploymentSpecification(
          cluster_size=cluster_size, model=model, placement=placement,
-         genesis=genesis_spec, consortium=str(uuid.uuid4()))
+         genesis=genesis_spec, consortium=str(uuid.uuid4()), properties=properties)
       return deployment_specification
 
    def create_cluster_request(self, header, specification):
