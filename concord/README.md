@@ -333,6 +333,7 @@ Prometheus-cpp is a prometheus client library that concord uses. Note that these
 ```shell
 git clone https://github.com/jupp0r/prometheus-cpp.git 
 cd prometheus-cpp 
+git checkout v0.8.0
 git submodule init 
 git submodule update 
 mkdir _build 
