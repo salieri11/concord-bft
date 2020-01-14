@@ -341,8 +341,10 @@ def getPlacementEntry(site):
                 api=core.Endpoint(
                     address="https://vmc.vmware.com"
                 ),
-                wavefront_url="<WAVEFRONT URL>",
-                wavefront_token="<WAVEFRONT TOKEN>",
+                wavefront=orchestration.Wavefront(
+                    url="<URL>",
+                    token="<TOKEN>"
+                ),
                 organization="c56e116e-c36f-4f7d-b504-f9a33955b853",
                 datacenter="6db19f8f-cde6-4151-88e5-a3b0d6aead6a",
                 vsphere=orchestration.VSphereDatacenterInfo(

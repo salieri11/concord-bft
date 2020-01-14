@@ -111,8 +111,7 @@ class CloudInitConfiguration(
             configurationSession =  configGenId,
             outboundProxyInfo = outboundProxy,
             loggingEnvVariables = logManagements.loggingEnvVariablesSetup(),
-            wavefrontUrl = wavefront.wavefrontUrl,
-            wavefrontToken = wavefront.wavefrontToken
+            wavefront = Wavefront(url = wavefront.url, token = wavefront.token)
     )
 
     private val script =
