@@ -19,7 +19,7 @@
 /agent/ @khank @sanchitar @rsg
 /buildall.sh @rvollmar @rsg @khank
 /communication/ @bfink @rmuschner
-/concord/ @bfink @upshawa @rmuschner @andrewstone
+/concord/ @bfink @upshawa @rmuschner @andrewstone @tkournik @ysherman @igolikov @petari @tparvanov
 /csp-dev/ @machenbach @rvollmar @panamika @mandeab
 /daml/ @rmuschner @bfink
 /docker/config-concord*/ @upshawa @bfink @rmuschner
