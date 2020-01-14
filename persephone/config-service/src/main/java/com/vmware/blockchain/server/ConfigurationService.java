@@ -180,7 +180,7 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
                                 ConfigurationComponent.newBuilder()
                                         .setType(ServiceType.CONCORD)
                                         .setComponentUrl(entry.getUrl())
-                                        .setComponent(tlsConfig.get(entry.getBase64Value()))
+                                        .setComponent(entry.getBase64Value())
                                         .setIdentityFactors(certGen.getIdentityFactor())
                                         .build()
                         ));
@@ -276,9 +276,7 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
 
             if (nodeComponents.size() != 0) {
                 NodeConfigurationResponse.Builder builder = NodeConfigurationResponse.newBuilder();
-                for (int i = 0; i < nodeComponents.size(); i++) {
-                    builder.setConfigurationComponent(i, nodeComponents.get(i));
-                }
+                builder.addAllConfigurationComponent(nodeComponents);
 
                 observer.onNext(builder.build());
                 observer.onCompleted();
