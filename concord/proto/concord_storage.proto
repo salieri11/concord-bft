@@ -8,6 +8,15 @@ package com.vmware.concord.kvb;
 
 import "google/protobuf/timestamp.proto";
 
+// Store a value with ThinReplica IDs attached.
+// Those IDs are used to filter the KV pair for a ThinReplica subscriber.
+// NOTE: For now, this is used for the DAML only.
+message ValueWithTrids {
+   // List of Thin Replica IDs that are allowed to view the KV-pair
+   repeated bytes trid = 1;
+   optional bytes value = 2;
+}
+
 message Block {
    optional int64 version = 1;
    optional int64 number = 2;

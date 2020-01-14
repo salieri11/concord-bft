@@ -6,6 +6,7 @@
 #include <opentracing/tracer.h>
 #include <string>
 
+#include "concord_storage.pb.h"
 #include "daml/daml_kvb_commands_handler.hpp"
 
 using com::digitalasset::kvbc::Command;
@@ -26,6 +27,7 @@ using com::vmware::concord::DamlResponse;
 using grpc::ServerContext;
 using grpc::ServerWriter;
 
+using com::vmware::concord::kvb::ValueWithTrids;
 using concord::consensus::IClient;
 using concord::storage::blockchain::ILocalKeyValueStorageReadOnly;
 using concordUtils::Key;
@@ -46,7 +48,7 @@ grpc::Status DataServiceImpl::GetLatestBlockId(
 grpc::Status DataServiceImpl::ReadTransaction(
     ServerContext* context, const ReadTransactionRequest* request,
     ReadTransactionResponse* reply) {
-  LOG4CPLUS_DEBUG(logger, "DataService: ReadTransaction...");
+  LOG4CPLUS_DEBUG(logger_, "DataService: ReadTransaction...");
 
   concordUtils::BlockId readBlockId = request->block_id();
   if (readBlockId <= 0) {
@@ -54,20 +56,33 @@ grpc::Status DataServiceImpl::ReadTransaction(
   }
 
   for (int i = 0; i < request->keys_size(); i++) {
-    const string& keyStr = request->keys(i);
-    Key key = CreateDamlKvbKey(keyStr);
+    const string& key_str = request->keys(i);
+    Key key = CreateDamlKvbKey(key_str);
     Value value;
     concordUtils::BlockId outBlockId;
     concordUtils::Status status =
         ro_storage_->get(readBlockId, key, value, outBlockId);
-    if (status.isOK()) {
-      com::digitalasset::kvbc::KeyValuePair* kv = reply->add_results();
-      kv->set_key(keyStr);
-      kv->set_value(value.data(), value.length());
-    } else {
-      LOG4CPLUS_ERROR(logger, "DataService: key '"
-                                  << keyStr << "' was not found! " << status);
+    if (!status.isOK()) {
+      LOG4CPLUS_ERROR(logger_, "DataService: key '"
+                                   << key_str << "' was not found! " << status);
+      return grpc::Status::CANCELLED;
     }
+    ValueWithTrids proto;
+    if (!proto.ParseFromArray(value.data(), value.length())) {
+      LOG4CPLUS_ERROR(
+          logger_,
+          "DataService: Couldn't parse ValueWithTrids for key " << key);
+      return grpc::Status::CANCELLED;
+    }
+    if (!proto.has_value()) {
+      LOG4CPLUS_ERROR(
+          logger_,
+          "DataService: No DAML data in ValueWithTrids for key " << key);
+      return grpc::Status::CANCELLED;
+    }
+    com::digitalasset::kvbc::KeyValuePair* kv = reply->add_results();
+    kv->set_key(key_str);
+    kv->set_allocated_value(proto.release_value());
   }
   // FIXME(JM): Return block ids of each separate get, or return max block id?
   reply->set_block_id(readBlockId);
@@ -77,7 +92,7 @@ grpc::Status DataServiceImpl::ReadTransaction(
 grpc::Status CommitServiceImpl::CommitTransaction(ServerContext* context,
                                                   const CommitRequest* request,
                                                   CommitResponse* reply) {
-  LOG4CPLUS_DEBUG(logger, "CommitService: Transactions...");
+  LOG4CPLUS_DEBUG(logger_, "CommitService: Transactions...");
 
   ConcordResponse resp;
   ConcordRequest req;
@@ -94,13 +109,13 @@ grpc::Status CommitServiceImpl::CommitTransaction(ServerContext* context,
   daml_request->set_command(cmd_string.c_str(), cmd_string.size());
 
   if (!pool.send_request_sync(req, false /* read-only */, *span.get(), resp)) {
-    LOG4CPLUS_ERROR(logger, "DAML commit transaction failed");
+    LOG4CPLUS_ERROR(logger_, "DAML commit transaction failed");
     log4cplus::getMDC().clear();
     return grpc::Status::CANCELLED;
   }
 
   if (resp.error_response_size() >= 1) {
-    LOG4CPLUS_ERROR(logger,
+    LOG4CPLUS_ERROR(logger_,
                     "DAML commit transaction failed with concord error: "
                         << resp.error_response(0).description());
     log4cplus::getMDC().clear();
@@ -115,7 +130,7 @@ grpc::Status CommitServiceImpl::CommitTransaction(ServerContext* context,
   assert(resp.daml_response().has_command_reply());
   CommandReply cmd_reply;
   if (!cmd_reply.ParseFromString(resp.daml_response().command_reply())) {
-    LOG4CPLUS_ERROR(logger, "Failed to parse DAML/CommandReply");
+    LOG4CPLUS_ERROR(logger_, "Failed to parse DAML/CommandReply");
     log4cplus::getMDC().clear();
     return grpc::Status::CANCELLED;
   }
@@ -129,15 +144,15 @@ grpc::Status CommitServiceImpl::CommitTransaction(ServerContext* context,
 grpc::Status EventsServiceImpl::CommittedTxs(
     ServerContext* context, const CommittedTxsRequest* request,
     ServerWriter<CommittedTx>* writer) {
-  LOG4CPLUS_DEBUG(logger, "EventsService: CommittedTxs...");
+  LOG4CPLUS_DEBUG(logger_, "EventsService: CommittedTxs...");
 
   BlockingPersistentQueueReader<CommittedTx> reader =
       committed_txs_.newReader(0);
 
   while (1) {
     CommittedTx committed_tx = reader.pop();
-    LOG4CPLUS_DEBUG(logger, "KVBCEventsService: Sending event for blockId "
-                                << committed_tx.block_id());
+    LOG4CPLUS_DEBUG(logger_, "KVBCEventsService: Sending event for blockId "
+                                 << committed_tx.block_id());
 
     if (!writer->Write(committed_tx)) {
       break;

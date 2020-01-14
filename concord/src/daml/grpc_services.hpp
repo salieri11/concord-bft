@@ -19,7 +19,7 @@ namespace daml {
 class DataServiceImpl final
     : public com::digitalasset::kvbc::DataService::Service {
  private:
-  log4cplus::Logger logger;
+  log4cplus::Logger logger_;
   const concord::storage::blockchain::ILocalKeyValueStorageReadOnly*
       ro_storage_;
 
@@ -27,7 +27,7 @@ class DataServiceImpl final
   DataServiceImpl(
       concord::consensus::KVBClientPool& p,
       const concord::storage::blockchain::ILocalKeyValueStorageReadOnly* ro)
-      : logger(log4cplus::Logger::getInstance("com.vmware.concord.daml")),
+      : logger_(log4cplus::Logger::getInstance("com.vmware.concord.daml.data")),
         ro_storage_(ro) {}
 
   grpc::Status GetLatestBlockId(
@@ -44,13 +44,14 @@ class DataServiceImpl final
 class CommitServiceImpl final
     : public com::digitalasset::kvbc::CommitService::Service {
  private:
-  log4cplus::Logger logger;
+  log4cplus::Logger logger_;
   concord::consensus::KVBClientPool& pool;
   std::mutex mutex;
 
  public:
   explicit CommitServiceImpl(concord::consensus::KVBClientPool& p)
-      : logger(log4cplus::Logger::getInstance("com.vmware.concord.daml")),
+      : logger_(
+            log4cplus::Logger::getInstance("com.vmware.concord.daml.commit")),
         pool(p) {}
 
   grpc::Status CommitTransaction(
@@ -62,13 +63,14 @@ class CommitServiceImpl final
 class EventsServiceImpl final
     : public com::digitalasset::kvbc::EventsService::Service {
  private:
-  log4cplus::Logger logger;
+  log4cplus::Logger logger_;
 
  public:
   explicit EventsServiceImpl(
       BlockingPersistentQueue<com::digitalasset::kvbc::CommittedTx>&
           committed_txs)
-      : logger(log4cplus::Logger::getInstance("com.vmware.concord.daml")),
+      : logger_(
+            log4cplus::Logger::getInstance("com.vmware.concord.daml.event")),
         committed_txs_(committed_txs) {}
 
   grpc::Status CommittedTxs(

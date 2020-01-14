@@ -9,8 +9,10 @@
 #include <boost/lockfree/spsc_queue.hpp>
 #include <cassert>
 #include <chrono>
+#include <exception>
 #include <sstream>
 
+#include "concord_storage.pb.h"
 #include "kv_types.hpp"
 #include "kvb_key_types.h"
 // TODO: SetOfKeyValuePairs needs a hash definition provided in hash_defs.h
@@ -26,6 +28,8 @@ using concordUtils::Key;
 using concordUtils::KeyValuePair;
 using concordUtils::SetOfKeyValuePairs;
 using concordUtils::Status;
+
+using com::vmware::concord::kvb::ValueWithTrids;
 
 namespace concord {
 namespace storage {
@@ -48,13 +52,39 @@ SetOfKeyValuePairs KvbAppFilter::FilterKeyValuePairs(
       continue;
     }
 
-    // TODO: Filter by Client ID
-
     // Strip KVB key type
     Key new_key =
         key.subsliver(sizeof kvb_key_id, key.length() - (sizeof kvb_key_id));
 
-    filtered_kvs.insert({new_key, value});
+    ValueWithTrids proto;
+    if (!proto.ParseFromArray(value.data(), value.length())) {
+      continue;
+    }
+
+    // If no TRIDs attached then everyon is allowed to view the pair
+    // Otherwise, check against the client id
+    if (proto.trid_size() > 0) {
+      bool contains_client_id = false;
+      for (const auto &trid : proto.trid()) {
+        if (trid.compare(client_id_) == 0) {
+          contains_client_id = true;
+          break;
+        }
+      }
+      if (!contains_client_id) {
+        continue;
+      }
+    }
+
+    // We expect a value - this should never trigger
+    if (!proto.has_value()) {
+      std::stringstream msg;
+      msg << "Couldn't decode value with trids " << new_key.data();
+      throw KvbReadError(msg.str());
+    }
+
+    auto val = proto.release_value();
+    filtered_kvs.insert({new_key, Sliver(val->c_str(), val->size())});
   }
 
   return filtered_kvs;
