@@ -254,8 +254,8 @@ public final class AgentDockerClient {
             case WAVEFRONT_PROXY:
                 containerSpec = MetricsAndTracingConfig.WAVEFRONT_PROXY;
                 containerSpec.setEnvironment(List.of(
-                        "WAVEFRONT_URL=" + configuration.getWavefrontUrl(),
-                        "WAVEFRONT_TOKEN=" + configuration.getWavefrontToken(),
+                        "WAVEFRONT_URL=" + configuration.getWavefront().getUrl(),
+                        "WAVEFRONT_TOKEN=" + configuration.getWavefront().getToken(),
                         "WAVEFRONT_PROXY_ARGS=--traceJaegerListenerPorts 14267"));
                 break;
             case JAEGER_AGENT:

@@ -6,6 +6,7 @@ import "vmware/blockchain/deployment/v1/concord_cluster.proto";
 import "vmware/blockchain/deployment/v1/concord_model.proto";
 import "vmware/blockchain/deployment/v1/core.proto";
 import "vmware/blockchain/deployment/v1/configuration_service.proto";
+import "vmware/blockchain/deployment/v1/orchestration.proto";
 /* [END declaration] */
 
 option go_package = "vmware.com/blockchain/deployment/v1;deployment";
@@ -26,7 +27,6 @@ message ConcordAgentConfiguration {
     ConfigurationSessionIdentifier configuration_session = 7;
     OutboundProxyInfo outbound_proxy_info = 8;
     repeated string logging_env_variables = 9;
-    string wavefront_url = 10;
-    string wavefront_token = 11;
+    Wavefront wavefront = 10;
 }
 /* [END messages] */
