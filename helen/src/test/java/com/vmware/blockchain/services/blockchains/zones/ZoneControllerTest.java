@@ -57,6 +57,7 @@ import com.vmware.blockchain.deployment.v1.ValidateOrchestrationSiteRequest;
 import com.vmware.blockchain.deployment.v1.ValidateOrchestrationSiteResponse;
 import com.vmware.blockchain.security.MvcTestSecurityConfig;
 import com.vmware.blockchain.services.blockchains.BlockchainUtils;
+import com.vmware.blockchain.services.blockchains.zones.Zone.Wavefront;
 import com.vmware.blockchain.services.blockchains.zones.ZoneController.OnPremGetResponse;
 import com.vmware.blockchain.services.blockchains.zones.ZoneController.ZoneListResponse;
 import com.vmware.blockchain.services.blockchains.zones.ZoneController.ZoneResponse;
@@ -506,6 +507,7 @@ class ZoneControllerTest {
                 ImmutableMap.of("name", "US_EAST1", "geo-latitude", "33.1960", "geo-longitude", "-80.0131");
 
         OnPremZone ozone = getOnpremZone(OP_SITE, ORG_ID);
+        ozone.setWavefront(new Wavefront("https://wavefront.com", "token"));
         ozone.setLogManagements(Lists.newArrayList(logOnPrem));
         List<Zone> sites =
                 ImmutableList.of(new Zone(SITE_1, VMC_AWS, usWest),
