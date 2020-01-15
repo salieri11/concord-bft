@@ -38,7 +38,7 @@
           </div>
         </div>
         <div  class="clr-col-lg-5 clr-col-md-12">
-          <concord-world-map #worldMap [features]="nodesByLocation"></concord-world-map>
+          <concord-world-map *ngIf="nodesByLocation.length" #worldMap [features]="nodesByLocation"></concord-world-map>
         </div>
       </div>
     </div>

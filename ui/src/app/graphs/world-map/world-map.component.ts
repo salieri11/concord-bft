@@ -67,6 +67,7 @@ export class WorldMapComponent implements AfterViewInit, OnChanges, OnDestroy {
 
   // An observable collection of features for the map
   private featureCollection = new Collection();
+  noLocationAvailable: boolean = false;
 
   private theme: any;
 
@@ -92,8 +93,13 @@ export class WorldMapComponent implements AfterViewInit, OnChanges, OnDestroy {
 
     if (changes.features) {
       this.featureCollection.clear();
-
+      this.noLocationAvailable = false;
       changes.features.currentValue.forEach(cluster => {
+        if (cluster.geo && cluster.geo[0] === 0 && cluster.geo[1] === 0) {
+          this.noLocationAvailable = true;
+
+          console.log('no location');
+        }
         const feature = new Feature(new Point(fromLonLat(cluster.geo)));
         feature.setProperties(cluster);
         this.featureCollection.push(feature);

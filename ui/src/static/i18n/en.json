@@ -207,7 +207,7 @@
     "inactiveNodes": "Inactive Committers",
     "searchPlaceholder": "Search...",
     "filters": "Filters",
-    "hostname": "Hostname",
+    "hostname": "Name",
     "health": "Health",
     "healthy": "healthy",
     "unhealthy": "unhealthy",
@@ -1104,6 +1104,9 @@
         "text": "Click here to download your certificate to connect this blockchain with third-party apps."
       }
     }
+  },
+  "map": {
+    "noLocation": "No Location Available"
   },
   "graph": {
     "days": {
