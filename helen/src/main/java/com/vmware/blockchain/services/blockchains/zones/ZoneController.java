@@ -125,6 +125,7 @@ public class ZoneController {
         Zone.Network network;
         Zone.OutboundProxy outboundProxy;
         EndPoint containerRepo;
+        Zone.Wavefront wavefront;
         List<OnPremZone.LogManagementOnPrem> logManagements;
 
         public OnPremGetResponse(OnPremZone z) {
@@ -137,6 +138,7 @@ public class ZoneController {
             this.network = z.getNetwork();
             this.outboundProxy = z.getOutboundProxy();
             this.containerRepo = z.getContainerRepo();
+            this.wavefront = z.getWavefront();
             this.logManagements = (z.getLogManagements() == null) ? Collections.emptyList() : z.getLogManagements();
         }
     }
@@ -178,6 +180,7 @@ public class ZoneController {
         Zone.Network network;
         Zone.OutboundProxy outboundProxy;
         EndPoint containerRepo;
+        Zone.Wavefront wavefront;
         List<OnPremZone.LogManagementOnPrem> logManagements;
 
     }
@@ -322,6 +325,9 @@ public class ZoneController {
             }
             if (onpremRequest.getContainerRepo() != null) {
                 op.setContainerRepo(onpremRequest.getContainerRepo());
+            }
+            if (onpremRequest.getWavefront() != null) {
+                op.setWavefront(onpremRequest.getWavefront());
             }
             if (onpremRequest.getLogManagements() != null) {
                 op.setLogManagements(onpremRequest.getLogManagements());

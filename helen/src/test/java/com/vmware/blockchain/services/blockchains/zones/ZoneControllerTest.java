@@ -57,6 +57,7 @@ import com.vmware.blockchain.deployment.v1.ValidateOrchestrationSiteRequest;
 import com.vmware.blockchain.deployment.v1.ValidateOrchestrationSiteResponse;
 import com.vmware.blockchain.security.MvcTestSecurityConfig;
 import com.vmware.blockchain.services.blockchains.BlockchainUtils;
+import com.vmware.blockchain.services.blockchains.zones.Zone.Wavefront;
 import com.vmware.blockchain.services.blockchains.zones.ZoneController.OnPremGetResponse;
 import com.vmware.blockchain.services.blockchains.zones.ZoneController.ZoneListResponse;
 import com.vmware.blockchain.services.blockchains.zones.ZoneController.ZoneResponse;
@@ -115,6 +116,10 @@ class ZoneControllerTest {
                                                    + "    \"username\": \"user\",\n"
                                                    + "    \"password\": \"docker\"\n"
                                                    + "  },\n"
+                                                   + "  \"wavefront\": {\n"
+                                                   + "    \"url\": \"https://wavefront.com\",\n"
+                                                   + "    \"token\": \"token\"\n"
+                                                   + "  },\n"
                                                    + "  \"log_managements\": [{\n"
                                                    + "    \"destination\": \"LOG_INSIGHT\",\n"
                                                    + "    \"address\": \"10.78.20.10:9000\",\n"
@@ -152,6 +157,10 @@ class ZoneControllerTest {
                                                    + "    \"username\": \"user\",\n"
                                                    + "    \"password\": \"docker\"\n"
                                                    + "  },\n"
+                                                   + "  \"wavefront\": {\n"
+                                                   + "    \"url\": \"https://wavefront.com\",\n"
+                                                   + "    \"token\": \"token\"\n"
+                                                   + "  },\n"
                                                    + "  \"log_managements\": [{\n"
                                                    + "    \"destination\": \"LOG_INSIGHT\",\n"
                                                    + "    \"address\": \"10.78.20.10:9000\",\n"
@@ -188,6 +197,10 @@ class ZoneControllerTest {
                                                 + "    \"url\": \"https://docker-repo.com\",\n"
                                                 + "    \"username\": \"user\",\n"
                                                 + "    \"password\": \"docker\"\n"
+                                                + "  },\n"
+                                                + "  \"wavefront\": {\n"
+                                                + "    \"url\": \"https://wavefront.com\",\n"
+                                                + "    \"token\": \"token\"\n"
                                                 + "  },\n"
                                                 + "  \"log_managements\": [{\n"
                                                 + "    \"destination\": \"LOG_INSIGHT\",\n"
@@ -232,6 +245,10 @@ class ZoneControllerTest {
                                                 + "    \"https_host\": \"HTTPS_HOST\",\n"
                                                 + "    \"https_port\": 8080\n"
                                                 + "  },\n"
+                                                + "  \"wavefront\": {\n"
+                                                + "    \"url\": \"https://wavefront.com\",\n"
+                                                + "    \"token\": \"token\"\n"
+                                                + "  },\n"
                                                 + "  \"log_managements\": [{\n"
                                                 + "    \"destination\": \"LOG_INSIGHT\",\n"
                                                 + "    \"address\": \"10.78.20.10:9000\",\n"
@@ -263,6 +280,10 @@ class ZoneControllerTest {
                                                    + "      \"10.1.1.3\"\n"
                                                    + "    ]\n"
                                                    + "  },\n"
+                                                   + "  \"wavefront\": {\n"
+                                                   + "    \"url\": \"https://wavefront.com\",\n"
+                                                   + "    \"token\": \"token\"\n"
+                                                   + "  },\n"
                                                    + "  \"container_repo\": {\n"
                                                    + "    \"url\": \"https://docker-repo.com\",\n"
                                                    + "    \"username\": \"user\",\n"
@@ -288,6 +309,10 @@ class ZoneControllerTest {
                                                    + "      \"10.1.1.3\"\n"
                                                    + "    ]\n"
                                                    + "  },\n"
+                                                   + "  \"wavefront\": {\n"
+                                                   + "    \"url\": \"https://wavefront.com\",\n"
+                                                   + "    \"token\": \"token\"\n"
+                                                   + "  },\n"
                                                    + "  \"container_repo\": {\n"
                                                    + "    \"url\": \"https://docker-repo.com\",\n"
                                                    + "    \"username\": \"user\",\n"
@@ -306,6 +331,10 @@ class ZoneControllerTest {
                                                        + "  \"resource_pool\": \"pool\",\n"
                                                        + "  \"storage\": \"datastore\",\n"
                                                        + "  \"folder\": \"folder\",\n"
+                                                      + "  \"wavefront\": {\n"
+                                                      + "    \"url\": \"https://wavefront.com\",\n"
+                                                      + "    \"token\": \"token\"\n"
+                                                      + "  },\n"
                                                        + "  \"container_repo\": {\n"
                                                        + "    \"url\": \"https://docker-repo.com\",\n"
                                                        + "    \"username\": \"user\",\n"
@@ -334,6 +363,10 @@ class ZoneControllerTest {
                                                    + "    \"name_servers\": [\n"
                                                    + "      \"10.1.1.3\"\n"
                                                    + "    ]\n"
+                                                   + "  },\n"
+                                                   + "  \"wavefront\": {\n"
+                                                   + "    \"url\": \"https://wavefront.com\",\n"
+                                                   + "    \"token\": \"token\"\n"
                                                    + "  },\n"
                                                    + "  \"container_repo\": {\n"
                                                    + "    \"url\": \"https://docker-repo.com\",\n"
@@ -365,6 +398,10 @@ class ZoneControllerTest {
                                                          + "      \"10.1.1.3\"\n"
                                                          + "    ]\n"
                                                          + "  },\n"
+                                                         + "  \"wavefront\": {\n"
+                                                         + "    \"url\": \"https://wavefront.com\",\n"
+                                                         + "    \"token\": \"token\"\n"
+                                                         + "  },\n"
                                                          + "  \"container_repo\": {\n"
                                                          + "    \"url\": \"https://docker-repo.com\",\n"
                                                          + "    \"username\": \"user\",\n"
@@ -394,6 +431,10 @@ class ZoneControllerTest {
                                                    + "    \"name_servers\": [\n"
                                                    + "      \"10.1.1.3\"\n"
                                                    + "    ]\n"
+                                                   + "  },\n"
+                                                   + "  \"wavefront\": {\n"
+                                                   + "    \"url\": \"https://wavefront.com\",\n"
+                                                   + "    \"token\": \"token\"\n"
                                                    + "  }\n"
                                                    + "}";
 
@@ -401,7 +442,11 @@ class ZoneControllerTest {
                                                  + "  \"name\": \"OnPrem\",\n"
                                                  + "  \"latitude\": \"45.5946\",\n"
                                                  + "  \"longitude\": \"-121.1787\",\n"
-                                                 + "  \"type\": \"VMC_AWS\"\n"
+                                                 + "  \"type\": \"VMC_AWS\",\n"
+                                                 + "  \"wavefront\": {\n"
+                                                 + "    \"url\": \"https://wavefront.com\",\n"
+                                                 + "    \"token\": \"token\"\n"
+                                                 + "  }\n"
                                                  + "}";
 
     @Autowired
@@ -462,6 +507,7 @@ class ZoneControllerTest {
                 ImmutableMap.of("name", "US_EAST1", "geo-latitude", "33.1960", "geo-longitude", "-80.0131");
 
         OnPremZone ozone = getOnpremZone(OP_SITE, ORG_ID);
+        ozone.setWavefront(new Wavefront("https://wavefront.com", "token"));
         ozone.setLogManagements(Lists.newArrayList(logOnPrem));
         List<Zone> sites =
                 ImmutableList.of(new Zone(SITE_1, VMC_AWS, usWest),
@@ -513,6 +559,7 @@ class ZoneControllerTest {
         Assertions.assertNotNull(r.getName());
         Assertions.assertEquals("Network 1", r.getNetwork().getName());
         Assertions.assertEquals("admin", r.getVcenter().getUsername());
+        Assertions.assertEquals("https://wavefront.com", r.getWavefront().getUrl());
         Assertions.assertEquals(1, r.logManagements.size());
         Assertions.assertEquals(Zone.LogDestination.LOG_INSIGHT, r.logManagements.get(0).destination);
     }

@@ -106,6 +106,9 @@ export class ZoneComponent implements OnInit {
     if (zone.container_repo) {
       this.zoneForm.form.controls.container_repo.patchValue(zone.container_repo);
     }
+    if (zone.wavefront) {
+      this.zoneForm.form.controls.wavefront.patchValue(zone.wavefront);
+    }
     if (zone.log_insight) {
       this.zoneForm.form.controls.log_insight.patchValue(zone.log_insight);
     }

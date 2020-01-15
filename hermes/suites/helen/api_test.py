@@ -447,7 +447,11 @@ def createZoneObject(zoneType=util.helper.ZONE_TYPE_ON_PREM):
          "username": "user@{}.com".format(uniqueId),
          "password": "container_repo_pa$$w0rd4{}".format(uniqueId)
       },
-      "log_managements": [createLogManagementObject(uniqueId)]
+      "log_managements": [createLogManagementObject(uniqueId)],
+      "wavefront": {
+         "url": "https://wavefront.com",
+         "token": "<test token>"
+      }
    }
 
 

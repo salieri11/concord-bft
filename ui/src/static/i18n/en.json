@@ -21,6 +21,7 @@
     "requiredValidationMessage": "This field is required",
     "update": "Update",
     "url": "URL",
+    "token": "Token",
     "urlPh": "https://<endpoint>",
     "username": "Username",
     "usernamePh": "username@company.com",
@@ -480,6 +481,9 @@
       "nameServersPH": "List of IP addresses",
       "ipPool": "IP Pool",
       "ipPoolPH": "List of IP ranges"
+    },
+    "wavefront": {
+      "title": "Wavefront"
     },
     "onPremConnSucc": "Connection successful to your on premises vCenter.",
     "addedSuccessfully": "On premises zone added successfully.  You can now deploy a node to this zone.",
