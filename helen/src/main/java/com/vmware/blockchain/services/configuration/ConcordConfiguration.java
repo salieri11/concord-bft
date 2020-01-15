@@ -17,6 +17,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -64,28 +66,38 @@ public class ConcordConfiguration {
                  dockerImageBuild);
     }
 
+    // ConcordComponents for blockchains
+    private static final List<ConcordComponent.ServiceType> GENERIC_COMPONENTS = List.of(GENERIC, LOGGING);
+    private static final List<ConcordComponent.ServiceType> ETHEREUM_COMPONENTS = List.of(CONCORD, ETHEREUM_API);
+    private static final List<ConcordComponent.ServiceType> DAML_COMPONENTS = List.of(DAML_CONCORD,
+            DAML_EXECUTION_ENGINE, DAML_INDEX_DB, DAML_LEDGER_API);
+
+    //ConcordComponents for nodes
+    private static final List<ConcordComponent.ServiceType> DAML_PARTICIPANT_COMPONENTS = List.of(DAML_INDEX_DB,
+            DAML_LEDGER_API);
+    private static final List<ConcordComponent.ServiceType> DAML_COMMITTER_COMPONENTS = List.of(DAML_CONCORD,
+            DAML_EXECUTION_ENGINE, DAML_INDEX_DB, DAML_LEDGER_API);
+
+
     private static final Map<ConcordModelSpecification.BlockchainType, List<ConcordComponent.ServiceType>>
             componentListForBlockchainType =
             ImmutableMap
-                    .of(ConcordModelSpecification.BlockchainType.ETHEREUM, List.of(GENERIC,
-                                                                                   LOGGING,
-                                                                                   CONCORD,
-                                                                                   ETHEREUM_API),
-                        ConcordModelSpecification.BlockchainType.DAML,
-                        List.of(GENERIC,
-                                LOGGING,
-                                DAML_CONCORD,
-                                DAML_EXECUTION_ENGINE,
-                                DAML_INDEX_DB,
-                                DAML_LEDGER_API));
+                    .of(ConcordModelSpecification.BlockchainType.ETHEREUM,
+                            Stream.concat(GENERIC_COMPONENTS.stream(), ETHEREUM_COMPONENTS.stream())
+                                    .collect(Collectors.toList()),
+                            ConcordModelSpecification.BlockchainType.DAML,
+                            Stream.concat(GENERIC_COMPONENTS.stream(), DAML_COMPONENTS.stream())
+                                    .collect(Collectors.toList()));
 
     private static final Map<ConcordModelSpecification.NodeType, List<ConcordComponent.ServiceType>>
             componentListForNodeType =
             ImmutableMap
-                    .of(ConcordModelSpecification.NodeType.DAML_PARTICIPANT, List.of(DAML_INDEX_DB,
-                            DAML_LEDGER_API),
-                            ConcordModelSpecification.NodeType.DAML_COMMITTER, List.of(GENERIC, LOGGING, DAML_CONCORD,
-                                    DAML_EXECUTION_ENGINE));
+                    .of(ConcordModelSpecification.NodeType.DAML_PARTICIPANT,
+                            Stream.concat(GENERIC_COMPONENTS.stream(), DAML_PARTICIPANT_COMPONENTS.stream())
+                                    .collect(Collectors.toList()),
+                            ConcordModelSpecification.NodeType.DAML_COMMITTER,
+                            Stream.concat(GENERIC_COMPONENTS.stream(), DAML_COMMITTER_COMPONENTS.stream())
+                                    .collect(Collectors.toList()));
 
     private static final Map<ConcordComponent.ServiceType, String> componentToImageName =
             ImmutableMap.<ConcordComponent.ServiceType, String>builder()
