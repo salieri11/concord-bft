@@ -178,6 +178,10 @@ class CloudInitConfiguration(
         builder.append("NODE_UUID")
                 .append("=")
                 .append(nodeUuid)
+                .append("\n")
+                .append("CLIENT_GROUP_ID")
+                .append("=")
+                .append(nodeUuid)
         return builder.toString()
     }
 
