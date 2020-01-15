@@ -61,7 +61,11 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
                                     char *response_buffer,
                                     uint32_t &out_response_size) {
   executing_bft_sequence_num_ = sequence_num;
+
   bool read_only = flags & bftEngine::MsgFlag::READ_ONLY_FLAG;
+  bool pre_execute = flags & bftEngine::MsgFlag::PRE_EXECUTE_FLAG;
+  bool has_pre_executed = flags & bftEngine::MsgFlag::PRE_EXECUTED_FLAG;
+  assert(!(pre_execute && has_pre_executed));
 
   request_.Clear();
   response_.Clear();
@@ -70,7 +74,10 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
   std::unique_ptr<opentracing::Span> execute_span;
 
   bool result;
-  if (request_.ParseFromArray(request_buffer, request_size)) {
+  if ((!has_pre_executed &&
+       request_.ParseFromArray(request_buffer, request_size)) ||
+      (has_pre_executed &&
+       parseFromPreExecutionResponse(request_buffer, request_size, request_))) {
     if (request_.has_trace_context()) {
       std::istringstream tc_stream(request_.trace_context());
       auto trace_context = tracer->Extract(tc_stream);
@@ -120,8 +127,8 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
     // we can use it as the parent for the add_block span.
     addBlock_parent_span = tracer->StartSpan(
         "sub_execute", {opentracing::ChildOf(&execute_span->context())});
-    result = Execute(request_, read_only, time_.get(),
-                     *addBlock_parent_span.get(), response_);
+    result = Execute(request_, flags, time_.get(), *addBlock_parent_span.get(),
+                     response_);
     // Manually stopping the span after execute.
     addBlock_parent_span.reset();
 
@@ -272,6 +279,24 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
   }
 
   return result ? 0 : 1;
+}
+
+bool ConcordCommandsHandler::parseFromPreExecutionResponse(
+    const char *request_buffer, uint32_t request_size,
+    com::vmware::concord::ConcordRequest &request) {
+  // transform the ConcordResponse produced by pre-execution into a
+  // ConcordRequest for seamless integration into the rest of the execution
+  // flow
+  com::vmware::concord::ConcordResponse pre_execution_response;
+  if (pre_execution_response.ParseFromArray(request_buffer, request_size) &&
+      pre_execution_response.has_pre_execution_result()) {
+    auto *pre_execution_result = request.mutable_pre_execution_result();
+    pre_execution_result->MergeFrom(
+        pre_execution_response.pre_execution_result());
+    return true;
+  } else {
+    return false;
+  }
 }
 
 concordUtils::Status ConcordCommandsHandler::addBlock(
