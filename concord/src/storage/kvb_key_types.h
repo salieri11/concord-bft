@@ -20,8 +20,9 @@ const char kKvbKeyHlfTransaction = 0x11;
 const char kKvbKeyHlfState = 0x12;
 
 // Concord 0x20 - 0x2f
-const char kKvbKeyTime = 0x20;
+const char kKvbKeyTimeSamples = 0x20;
 const char kKvbKeyMetadata = 0x21;
+const char kKvbKeySummarizedTime = 0x22;
 
 // DAML 0x30 - 0x3f
 const char kKvbKeyDaml = 0x30;

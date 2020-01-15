@@ -18,6 +18,10 @@
 #include <log4cplus/hierarchy.h>
 #include <log4cplus/loggingmacros.h>
 
+#include <string>
+#include <utility>
+#include <vector>
+
 using namespace std;
 
 using com::vmware::concord::kvb::Time;
@@ -717,6 +721,39 @@ TEST(time_contract_test, time_verification_enforcement) {
       << "Time Contract with client proxy ID-based time verification enabled "
          "fails to reject time updates from client proxies that do not match "
          "the time source.";
+}
+
+// Verify summarized time handling is correct.
+TEST(time_contract_test, summarized_time) {
+  TestStorage database;
+  const ConcordConfiguration config =
+      TestConfiguration({"A", "B", "C", "D", "E"}, "none");
+  TimeContract tc(database, config);
+
+  const std::vector samples = {
+      std::make_pair("A"s, TimeUtil::SecondsToTimestamp(1)),
+      std::make_pair("B"s, TimeUtil::SecondsToTimestamp(2)),
+      std::make_pair("C"s, TimeUtil::SecondsToTimestamp(3)),
+      std::make_pair("D"s, TimeUtil::SecondsToTimestamp(4)),
+      std::make_pair("E"s, TimeUtil::SecondsToTimestamp(5))};
+
+  for (auto i = 0u; i < samples.size(); ++i) {
+    const auto& [source, timestamp] = samples[i];
+    tc.Update(source, GetSomeClientIDFromNode(i), timestamp);
+  }
+
+  const auto current_time = tc.GetTime();
+
+  const SetOfKeyValuePairs updates({tc.SerializeSummarizedTime()});
+  BlockId block_id;
+  const auto result = database.addBlock(updates, block_id);
+  ASSERT_TRUE(result.isOK());
+
+  const auto summarized_time0 = tc.GetSummarizedTimeAtBlock(block_id);
+  ASSERT_EQ(current_time, summarized_time0);
+
+  const auto summarized_time1 = tc.GetSummarizedTimeAtBlock(block_id + 1);
+  ASSERT_EQ(current_time, summarized_time1);
 }
 
 }  // end namespace
