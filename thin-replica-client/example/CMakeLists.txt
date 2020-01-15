@@ -6,5 +6,4 @@ add_executable(trc_example main.cpp)
 target_link_libraries(trc_example
   thin_replica_client
   log4cplus
-  gRPC::grpc++
 )

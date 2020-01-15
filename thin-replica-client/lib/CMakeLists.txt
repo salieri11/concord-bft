@@ -13,14 +13,22 @@ grpc_generate_cpp(GRPC_SRCS GRPC_HDRS ${CMAKE_CURRENT_BINARY_DIR}
 message(STATUS "gRPC/protobuf generated - see " ${CMAKE_CURRENT_BINARY_DIR})
 
 # Thin Replica Protobuf Library
-add_library(proto STATIC ${PROTO_SRCS} ${PROTO_HDRS} ${GRPC_SRCS} ${GRPC_SRCS})
+add_library(proto SHARED ${PROTO_SRCS} ${PROTO_HDRS} ${GRPC_SRCS} ${GRPC_SRCS})
 target_link_libraries(proto protobuf::libprotobuf)
+install(TARGETS proto DESTINATION lib)
 
 # Build the Thin Replica Client library
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
-add_library(thin_replica_client STATIC
-  "thin_replica_client.cpp" "thin_replica_client.hpp")
+add_library(thin_replica_client SHARED
+  "thin_replica_client.cpp" "thin_replica_client.hpp"
+  "thin_replica_client_facade.cpp" "thin_replica_client_facade.hpp"
+  "update.hpp")
 target_link_libraries(thin_replica_client
   proto
   log4cplus
+  gRPC::grpc++
 )
+
+install(TARGETS thin_replica_client DESTINATION lib)
+install(FILES thin_replica_client.hpp thin_replica_client_facade.hpp update.hpp DESTINATION "include/thin_replica_client")
+

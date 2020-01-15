@@ -97,7 +97,6 @@ be expected to look like if everything works as expected:
 ```
 2020-01-11T02:41:15.879 INFO  thin_replica.example: Attempting to construct ThinReplicaClient...
 2020-01-11T02:41:15.880 INFO  thin_replica.example: ThinReplicaClient constructed.
-2020-01-11T02:41:15.880 INFO  thin_replica.example: Failure condition registered with ThinReplicaClient.
 2020-01-11T02:41:15.996 WARN  com.vmware.thin_replica_client: thin_replica_client::ThinReplicaClient::Subscribe is incomplete in its error handling and recovery; the worker thread Subscribe creates is also incomple in its error handling and recovery.
 2020-01-11T02:41:15.996 INFO  thin_replica.example: ThinReplicaClient subscribed.
 2020-01-11T02:41:15.996 INFO  thin_replica.example: The subscribe appears to have returned initial state to the update queue; fetching state from the update queue...
@@ -205,32 +204,4 @@ receives its fixed number of updates and unsubscribes:
 2020-01-11T02:41:48.150 INFO  thin_replica.example: Acknowledged update with with Block ID 355.
 2020-01-11T02:41:48.192 INFO  thin_replica.example: Received 128 updates; unsubscribing...
 2020-01-11T02:41:48.773 INFO  thin_replica.example: ThinReplicaClient unsubscribed.
-```
-
-An additional feature of the example application is that it registers a
-condition variable, via
-`ThinReplicaClient::RegisterSubscriptionFailureCondition` , to monitor for
-failures that prevent the Thin Replica Client from continuing an active
-subscription. If the example application learns of a failure via this condition
-variable preventing further progress of its active subscription, it will log a
-message about this and terminate. Here is an example of how the application's
-output might conclude in such a case (in this example, the blockchain instance
-(including the Concord nodes hosting the Thin Replica Servers the example
-application was subscribed to) was brought down before the example application
-finished running):
-
-```
-2020-01-11T02:54:33.843 INFO  thin_replica.example: ThinReplicaClient reported an update (Block ID: 232).
-    The update appears to be empty.
-2020-01-11T02:54:33.843 INFO  thin_replica.example: Acknowledged update with with Block ID 232.
-2020-01-11T02:54:33.865 INFO  thin_replica.example: ThinReplicaClient reported an update (Block ID: 233).
-    The update appears to be empty.
-2020-01-11T02:54:33.865 INFO  thin_replica.example: Acknowledged update with with Block ID 233.
-2020-01-11T02:54:34.319 INFO  thin_replica.example: ThinReplicaClient reported an update (Block ID: 234).
-    The update appears to be empty.
-2020-01-11T02:54:34.319 INFO  thin_replica.example: Acknowledged update with with Block ID 234.
-2020-01-11T02:54:53.752 WARN  com.vmware.thin_replica_client: The data subscription stream ended unexpectedly(error code: 14, error message: "Socket closed").
-2020-01-11T02:54:53.752 ERROR thin_replica.example: ThinReplicaClient reported it cannot make progress on the active subscription.
-2020-01-11T02:54:53.752 INFO  thin_replica.example: The update consumer thread was recalled.
-2020-01-11T02:54:53.752 INFO  thin_replica.example: ThinReplicaClient unsubscribed.
 ```

@@ -1,40 +1,30 @@
 // Copyright 2019-2020 VMware, all rights reserved
 
-#include <grpcpp/grpcpp.h>
 #include <log4cplus/configurator.h>
 #include <log4cplus/logger.h>
 #include <log4cplus/loggingmacros.h>
 #include <iomanip>
-#include "thin_replica_client.hpp"
+#include <iostream>
+#include "thin_replica_client_facade.hpp"
 
-using grpc::Channel;
-using grpc::InsecureChannelCredentials;
-using grpc::Status;
 using log4cplus::Logger;
-using std::atomic_bool;
-using std::condition_variable;
 using std::cout;
 using std::endl;
 using std::exception;
 using std::hex;
-using std::mutex;
+using std::make_pair;
 using std::pair;
-using std::ref;
 using std::setfill;
 using std::setw;
 using std::shared_ptr;
 using std::stoull;
 using std::string;
 using std::stringstream;
-using std::thread;
 using std::to_string;
-using std::unique_lock;
 using std::unique_ptr;
 using std::vector;
-using thin_replica_client::BasicUpdateQueue;
-using thin_replica_client::ThinReplicaClient;
+using thin_replica_client::ThinReplicaClientFacade;
 using thin_replica_client::Update;
-using thin_replica_client::UpdateQueue;
 
 const static size_t kNumUpdatesToDisplayBeforeUnsubscribing = 1 << 7;
 
@@ -57,26 +47,6 @@ static void ReportUpdate(Logger& logger, const Update& update) {
   }
   LOG4CPLUS_INFO(logger, update_report.str());
 }
-
-static void ReportFailureNotifications(
-    Logger& logger, shared_ptr<condition_variable> failure_condition,
-    shared_ptr<mutex> failure_mutex, shared_ptr<atomic_bool> stop_thread,
-    shared_ptr<UpdateQueue> update_queue) {
-  assert(failure_condition);
-  assert(failure_mutex);
-  assert(stop_thread);
-
-  unique_lock<mutex> failure_lock(*failure_mutex);
-  while (!(*stop_thread)) {
-    failure_condition->wait(failure_lock);
-    if (!(*stop_thread)) {
-      LOG4CPLUS_ERROR(logger,
-                      "ThinReplicaClient reported it cannot make progress on "
-                      "the active subscription.");
-      update_queue->ReleaseConsumers();
-    }
-  }
-};
 
 int main(int argc, char** argv) {
   log4cplus::initialize();
@@ -179,40 +149,24 @@ int main(int argc, char** argv) {
     return -1;
   }
 
-  shared_ptr<UpdateQueue> update_queue(new BasicUpdateQueue());
   string private_key;
-  vector<pair<string, shared_ptr<Channel>>> servers;
+  vector<pair<string, string>> servers;
   for (uint16_t i = 0; i < num_servers; ++i) {
-    servers.push_back(pair<string, shared_ptr<Channel>>(
-        string(),
-        CreateChannel(argv[kServersOffset + i], InsecureChannelCredentials())));
+    servers.push_back(make_pair(string(), argv[kServersOffset + i]));
   }
 
-  shared_ptr<condition_variable> failure_condition(new condition_variable());
-  shared_ptr<mutex> failure_condition_mutex(new mutex());
-  shared_ptr<atomic_bool> stop_reporting_failure_notifications(
-      new atomic_bool(false));
-  thread failure_reporting_thread(&ReportFailureNotifications, ref(logger),
-                                  failure_condition, failure_condition_mutex,
-                                  stop_reporting_failure_notifications,
-                                  update_queue);
-
   int ret_status = 0;
-  unique_ptr<ThinReplicaClient> trc;
+  unique_ptr<ThinReplicaClientFacade> trcf;
 
   try {
     LOG4CPLUS_INFO(logger, "Attempting to construct ThinReplicaClient...");
-    trc.reset(new ThinReplicaClient("example_client_id", update_queue,
-                                    max_faulty, private_key, servers.begin(),
-                                    servers.end()));
+    trcf.reset(new ThinReplicaClientFacade("example_client_id", max_faulty,
+                                           private_key, servers));
     LOG4CPLUS_INFO(logger, "ThinReplicaClient constructed.");
-    trc->RegisterSubscriptionFailureCondition(failure_condition);
-    LOG4CPLUS_INFO(logger,
-                   "Failure condition registered with ThinReplicaClient.");
-    trc->Subscribe("");
+    trcf->Subscribe("");
     LOG4CPLUS_INFO(logger, "ThinReplicaClient subscribed.");
 
-    unique_ptr<Update> update = update_queue->TryPop();
+    unique_ptr<Update> update = trcf->TryPop();
     bool has_update = (bool)update;
     uint64_t latest_block_id = 0;
     if (!has_update) {
@@ -228,7 +182,7 @@ int main(int argc, char** argv) {
     while (update) {
       ReportUpdate(logger, *update);
       latest_block_id = update->block_id;
-      update = update_queue->TryPop();
+      update = trcf->TryPop();
     }
 
     if (has_update) {
@@ -236,7 +190,7 @@ int main(int argc, char** argv) {
           logger,
           "The (at least initial) contents of the update queue have been "
           "exhausted; will now wait for and report any additional updates...");
-      trc->AcknowledgeBlockID(latest_block_id);
+      trcf->AcknowledgeBlockID(latest_block_id);
       LOG4CPLUS_INFO(logger, "Update(s) acknowledged.");
 
     } else {
@@ -244,7 +198,7 @@ int main(int argc, char** argv) {
     }
 
     size_t updates_displayed = 0;
-    update = update_queue->Pop();
+    update = trcf->Pop();
     LOG4CPLUS_INFO(logger, "This example application will wait for "
                                << kNumUpdatesToDisplayBeforeUnsubscribing
                                << " updates before trying to unsubscribe...");
@@ -253,12 +207,12 @@ int main(int argc, char** argv) {
            (updates_displayed < kNumUpdatesToDisplayBeforeUnsubscribing)) {
       ReportUpdate(logger, *update);
       latest_block_id = update->block_id;
-      trc->AcknowledgeBlockID(latest_block_id);
+      trcf->AcknowledgeBlockID(latest_block_id);
       LOG4CPLUS_INFO(logger, "Acknowledged update with with Block ID "
                                  << latest_block_id << ".");
       ++updates_displayed;
 
-      update = update_queue->Pop();
+      update = trcf->Pop();
     }
 
     if (updates_displayed < kNumUpdatesToDisplayBeforeUnsubscribing) {
@@ -268,7 +222,7 @@ int main(int argc, char** argv) {
                                          << " updates; unsubscribing...");
     }
 
-    trc->Unsubscribe();
+    trcf->Unsubscribe();
     LOG4CPLUS_INFO(logger, "ThinReplicaClient unsubscribed.");
   } catch (const exception& e) {
     LOG4CPLUS_ERROR(
@@ -280,11 +234,6 @@ int main(int argc, char** argv) {
     ret_status = -1;
   }
 
-  trc.reset();
-  *stop_reporting_failure_notifications = true;
-  failure_condition->notify_all();
-  assert(failure_reporting_thread.joinable());
-  failure_reporting_thread.join();
-  update_queue.reset();
+  trcf.reset();
   return ret_status;
 }
