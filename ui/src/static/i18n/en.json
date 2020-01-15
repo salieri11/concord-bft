@@ -214,7 +214,7 @@
     "address": "Public IP",
     "addressPrivate": "Private IP",
     "url": "Url",
-    "zoneId": "Zone Name",
+    "zoneId": "Zone",
     "viewDetail": "View Detail",
     "network": "Network",
     "transactions": "Transactions",

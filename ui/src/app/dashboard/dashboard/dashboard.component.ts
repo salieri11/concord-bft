@@ -180,7 +180,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   get clientsConfig(): DashboardListConfig {
     return {
       headers: ['nodes.hostname', 'nodes.url', 'nodes.zoneId'],
-      displayProperties: ['hostname', 'url', 'zone_name'],
+      displayProperties: ['host_name', 'url', 'zone_name'],
       tableHeader: 'nodes.clients',
       paginationSummary: 'nodes.clientPaginationSummary',
     };
