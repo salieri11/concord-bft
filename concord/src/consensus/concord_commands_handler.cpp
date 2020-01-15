@@ -74,7 +74,8 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
   std::unique_ptr<opentracing::Span> execute_span;
 
   bool result;
-  if (request_.ParseFromArray(request_buffer, request_size) ||
+  if ((!has_pre_executed &&
+       request_.ParseFromArray(request_buffer, request_size)) ||
       (has_pre_executed &&
        parseFromPreExecutionResponse(request_buffer, request_size, request_))) {
     if (request_.has_trace_context()) {

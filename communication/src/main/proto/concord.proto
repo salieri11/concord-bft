@@ -237,6 +237,25 @@ message PeerResponse {
    repeated Peer peer = 1;
 }
 
+message PreExecutionResult {
+   optional int64 read_set_version = 1;
+   optional ReadSet read_set = 2;
+   optional WriteSet write_set = 3;
+}
+
+message ReadSet {
+   repeated bytes keys = 1;
+}
+
+message WriteSet {
+   repeated KeyValuePair kv_writes = 1;
+}
+
+message KeyValuePair {
+   required bytes key = 1;
+   required bytes value = 2;
+}
+
 message ProtocolRequest {
    optional int32 client_version = 1;
    // TODO: probably some auth in here too
@@ -258,25 +277,6 @@ message PruneRequest {
 message PruneResponse {
    optional bool ok = 1;
    optional string error_msg = 2;
-}
-
-message PreExecutionResult {
-   optional int64 read_set_version = 1;
-   optional ReadSet read_set = 2;
-   optional WriteSet write_set = 3;
-}
-
-message ReadSet {
-   repeated bytes keys = 1;
-}
-
-message WriteSet {
-   repeated KeyValuePair kv_writes = 1;
-}
-
-message KeyValuePair {
-   required bytes key = 1;
-   required bytes value = 2;
 }
 
 message ReconfigureTimePusherPeriodRequest {
