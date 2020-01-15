@@ -48,6 +48,7 @@
 
 #include "blockchain/db_interfaces.h"
 #include "config/configuration_manager.hpp"
+#include "kv_types.hpp"
 #include "storage/kvb_key_types.h"
 #include "time_exception.hpp"
 #include "time_verification.hpp"
@@ -79,7 +80,9 @@ class TimeContract {
         verifier_(),
         samples_(nullptr),
         changed_(false),
-        time_key_(new char[1]{concord::storage::kKvbKeyTime}, 1) {
+        time_samples_key_(new char[1]{concord::storage::kKvbKeyTimeSamples}, 1),
+        summarized_time_key_(
+            new char[1]{concord::storage::kKvbKeySummarizedTime}, 1) {
     if (config.hasValue<std::string>("time_verification")) {
       if (config.getValue<std::string>("time_verification") ==
           "rsa-time-signing") {
@@ -139,6 +142,14 @@ class TimeContract {
   // loaded is corrupted or otherwise invalid.
   google::protobuf::Timestamp GetTime();
 
+  // Get the time at the passed block ID based on the summarized time saved in
+  // storage. The summarized time is the time as returned by GetTime() at the
+  // time of block creation. If no summarized time is set for the passed block
+  // ID, the summarized time at the most recent block before it is returned.
+  // Throws a TimeException if the summarized time cannot be read from storage.
+  google::protobuf::Timestamp GetSummarizedTimeAtBlock(
+      concordUtils::BlockId) const;
+
   // Has the contract been updated since being loaded or since last
   // serialization?
   bool Changed() { return changed_; }
@@ -150,6 +161,10 @@ class TimeContract {
   // Produce a key-value pair that encodes the state of the time contract for
   // KVB.
   pair<concordUtils::Sliver, concordUtils::Sliver> Serialize();
+
+  // Produce a key-value pair that encodes the current summarized time as
+  // returned by GetTime() .
+  pair<concordUtils::Sliver, concordUtils::Sliver> SerializeSummarizedTime();
 
   // Clear all cached data.
   void Reset() {
@@ -189,7 +204,8 @@ class TimeContract {
   std::unique_ptr<concord::time::TimeVerifier> verifier_;
   std::unordered_map<std::string, SampleBody>* samples_;
   bool changed_;
-  const concordUtils::Sliver time_key_;
+  const concordUtils::Sliver time_samples_key_;
+  const concordUtils::Sliver summarized_time_key_;
 
   void LoadLatestSamples();
   google::protobuf::Timestamp SummarizeTime();

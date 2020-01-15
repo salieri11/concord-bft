@@ -310,8 +310,11 @@ concordUtils::Status ConcordCommandsHandler::addBlock(
   // or allow addBlock to take a list of const sets.
   SetOfKeyValuePairs amended_updates(updates);
 
-  if (time_ && time_->Changed()) {
-    amended_updates.insert(time_->Serialize());
+  if (time_) {
+    if (time_->Changed()) {
+      amended_updates.insert(time_->Serialize());
+    }
+    amended_updates.insert(time_->SerializeSummarizedTime());
   }
 
   amended_updates[metadata_storage_.getKey()] =
