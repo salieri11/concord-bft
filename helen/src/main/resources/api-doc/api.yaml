@@ -2804,9 +2804,6 @@ components:
     WavefrontData:
       description: Configurations for wavefront setup
       type: object
-      required:
-        - url
-        - token
       properties:
         url:
           type: string
