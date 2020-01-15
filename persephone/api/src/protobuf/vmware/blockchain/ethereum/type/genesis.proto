@@ -45,10 +45,10 @@ message Genesis {
      *   EIP158 HF block.
      */
     message Config {
-        uint64 chain_id = 1;
-        uint64 homestead_block = 2;
-        uint64 eip155_block = 3;
-        uint64 eip158_block = 4;
+        int32 chain_id = 1;
+        int32 homestead_block = 2;
+        int32 eip155_block = 3;
+        int32 eip158_block = 4;
     }
 
     /**

@@ -16,7 +16,6 @@
         <module>ethrpc</module>
         <module>persephone</module>
         <module>helen</module>
-        <module>agent</module>
         <module>vmbc-base</module>
     </modules>
 </project>

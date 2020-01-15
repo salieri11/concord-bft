@@ -42,10 +42,10 @@ class EthereumGenesisSerializationTest {
      */
     @Provide
     Arbitrary<Genesis> geneses() {
-        var chainId = Arbitraries.longs().between(0, Integer.MAX_VALUE);
-        var homesteadBlock = Arbitraries.longs().between(0, Integer.MAX_VALUE);
-        var eip155Block = Arbitraries.longs().between(0, Integer.MAX_VALUE);
-        var eip158Block = Arbitraries.longs().between(0, Integer.MAX_VALUE);
+        var chainId = Arbitraries.integers().between(0, Integer.MAX_VALUE);
+        var homesteadBlock = Arbitraries.integers().between(0, Integer.MAX_VALUE);
+        var eip155Block = Arbitraries.integers().between(0, Integer.MAX_VALUE);
+        var eip158Block = Arbitraries.integers().between(0, Integer.MAX_VALUE);
         var config = Combinators.combine(chainId, homesteadBlock, eip155Block, eip158Block)
                 .as(Genesis.Config::new);
         var walletAddress = Arbitraries.strings().withChars(hexdigits).ofLength(40);
