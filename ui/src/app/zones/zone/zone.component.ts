@@ -52,8 +52,9 @@ export class ZoneComponent implements OnInit {
 
   update() {
     this.saving = true;
-    this.zoneForm.update(this.zoneId).subscribe(() => {
+    this.zoneForm.update(this.zoneId).subscribe(zone => {
       this.saving = false;
+      this.setZone(zone);
     }, () => this.saving = false);
   }
 
