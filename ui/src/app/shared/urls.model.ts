@@ -54,6 +54,7 @@ export const mainRoutes = {
   dashboard: 'dashboard',
   blocks: 'blocks',
   nodes: 'nodes',
+  clients: 'clients',
   zones: 'zones',
   new: 'new',
   smartContracts: 'smart-contracts',

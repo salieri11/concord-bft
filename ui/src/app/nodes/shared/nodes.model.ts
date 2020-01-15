@@ -23,6 +23,16 @@ export interface NodeInfo {
   zone_type?: ZoneType;
 }
 
+export interface ClientNode {
+  id: string;
+  hostname: string;
+  url: string;
+  public_ip: string;
+  private_ip: string;
+  zone_id?: string;
+  zone_type?: ZoneType;
+}
+
 export enum GeoCoordinate {
   longitude = 0,
   latitude = 1,

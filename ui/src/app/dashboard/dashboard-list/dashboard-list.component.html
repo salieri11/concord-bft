@@ -10,14 +10,13 @@
         <ng-template #textProp>
           <div class="dash-item" [innerHTML]="getItemProp(item, prop)"></div>
           <concord-copy-to-clipboard-button
-            *ngIf="prop === 'public_ip'"
+            *ngIf=" ['public_ip', 'url'].indexOf(prop) !== -1"
             classList="ctc-btn-inline dash-list"
             [tooltip]="'common.copyToClip' | translate"
             tooltipDirection="top-right"
             [value]="item[prop]"
             [size]="12">
           </concord-copy-to-clipboard-button>
-
         </ng-template>
       </clr-dg-cell>
     </clr-dg-row>
