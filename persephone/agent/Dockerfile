@@ -42,4 +42,4 @@ COPY --from=builder ./agent/target/node-agent*.jar ./node-agent.jar
 
 VOLUME ["/config"]
 
-CMD ["java", "-jar", "node-agent.jar", "config.json"]
+CMD ["java", "-jar", "node-agent.jar"]

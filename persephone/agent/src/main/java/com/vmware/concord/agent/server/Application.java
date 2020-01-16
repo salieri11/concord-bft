@@ -8,8 +8,6 @@ import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
@@ -18,27 +16,28 @@ import com.vmware.blockchain.deployment.v1.ConcordAgentConfiguration;
 import com.vmware.blockchain.deployment.v1.OutboundProxyInfo;
 import com.vmware.concord.agent.services.AgentDockerClient;
 
+import lombok.extern.slf4j.Slf4j;
+
 /**
  * Concord-agent --
  * This is the main for running agent.
  */
 @SpringBootApplication
+@Slf4j
 public class Application {
-
-    private static final URI CONCORD_AGENT_MODEL_URI = URI.create("file:/config/agent/config.json");
-
-    /** Logger instance. */
-    private static Logger log = LoggerFactory.getLogger(Application.class);
 
     /**
      * Main - Entry into SpringBoot application.
      */
     public static void main(String[] args) throws Exception {
+        // Default path used in production. Property is added to improve local development
+        String filePath = "file:" + System.getProperty("config.file", "/config/agent/config.json");
 
-        if (Files.exists(Path.of(CONCORD_AGENT_MODEL_URI))) {
+        URI configUri = URI.create(filePath);
+        if (Files.exists(Path.of(configUri))) {
 
             ConcordAgentConfiguration.Builder builder = ConcordAgentConfiguration.newBuilder();
-            JsonFormat.parser().ignoringUnknownFields().merge(Files.readString(Path.of(CONCORD_AGENT_MODEL_URI)),
+            JsonFormat.parser().ignoringUnknownFields().merge(Files.readString(Path.of(configUri)),
                                                               builder);
 
             ConcordAgentConfiguration configuration = builder.build();
