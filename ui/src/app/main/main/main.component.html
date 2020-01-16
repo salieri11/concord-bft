@@ -83,10 +83,11 @@
         <label class="nav-header">
           {{'nav.developer.header' | translate}}
         </label>
-        <a clrVerticalNavLink (click)="onClickToHelp()">
+        <!-- To be used once docs are in production -->
+        <!-- <a clrVerticalNavLink (click)="onClickToHelp()">
           <clr-icon clrVerticalNavIcon shape="book"></clr-icon>
           {{'nav.developer.docs' | translate}}
-        </a>
+        </a> -->
         <!-- Logging NAV -->
         <ng-container *ngIf="!isOnPrem">
           <a clrVerticalNavLink [routerLink]="['logging']" routerLinkActive="active" id="logging"

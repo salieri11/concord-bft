@@ -17,6 +17,8 @@
     "invite": "Invite",
     "name": "Name",
     "next": "Next",
+    "port": "Port",
+    "portPh": "8080",
     "password": "Password",
     "requiredValidationMessage": "This field is required",
     "update": "Update",
@@ -32,6 +34,9 @@
     "timeout": "Deploying consortium timed out, please contact blockchain-support@vmware.com to report this issue.",
     "help": "Please contact blockchain-support@vmware.com if the problem persists.",
     "403": "You are unable to access this service, please contact your service owner for more information."
+  },
+  "formCommon": {
+    "commaSeperated": "Use comma separated values, no spaces."
   },
   "nav": {
     "personaSelector": {
@@ -202,14 +207,14 @@
     "inactiveNodes": "Inactive Committers",
     "searchPlaceholder": "Search...",
     "filters": "Filters",
-    "hostname": "Hostname",
+    "hostname": "Name",
     "health": "Health",
     "healthy": "healthy",
     "unhealthy": "unhealthy",
     "address": "Public IP",
     "addressPrivate": "Private IP",
     "url": "Url",
-    "zoneId": "Zone Name",
+    "zoneId": "Zone",
     "viewDetail": "View Detail",
     "network": "Network",
     "transactions": "Transactions",
@@ -478,14 +483,15 @@
       "subnet": "Subnet",
       "subnetPH": "e.g. 24",
       "nameServers": "Name Servers",
-      "nameServersPH": "List of IP addresses",
+      "nameServersPH": "1.1.1.1, 1.1.1.1 List of IP addresses",
       "ipPool": "IP Pool",
-      "ipPoolPH": "List of IP ranges"
+      "ipPoolPH": "1.1.1.1-1.1.1.1 Range of IP ranges"
     },
     "wavefront": {
       "title": "Wavefront"
     },
     "onPremConnSucc": "Connection successful to your on premises vCenter.",
+    "onPremConnError": "Cannot connect to your on premises vCenter, please ensure your configuration below is accurate.",
     "addedSuccessfully": "On premises zone added successfully.  You can now deploy a node to this zone.",
     "logInsight": {
       "title": "Log Insight"
@@ -513,7 +519,7 @@
     "locationPH": "Palo Alto, CA, USA",
     "cancel": "Cancel On Premises",
     "ipError": "Please enter a valid IP address",
-    "listIpsError": "Please enter a valid list if IP addresses"
+    "listIpsError": "Please enter a comma separated list of IPs"
   },
   "organization": {
     "title": "Organizations",
@@ -1098,6 +1104,9 @@
         "text": "Click here to download your certificate to connect this blockchain with third-party apps."
       }
     }
+  },
+  "map": {
+    "noLocation": "No Location Available"
   },
   "graph": {
     "days": {

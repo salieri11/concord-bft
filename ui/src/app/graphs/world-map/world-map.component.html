@@ -1,12 +1,17 @@
-<div #mapContainer id="map-container"></div>
-<div #tooltipContainer id="tooltip-container"
-     (mouseleave)="onLeaveTooltip()">
-  <div *ngIf="nodeProperties">
-    <strong>{{nodeProperties.location}}</strong>
-    <div *ngFor="let node of nodeProperties.nodes">
-      <a [routerLink]="['nodes', node.id]" class="label clickable" [ngClass]="{'label-success': node.healthy, 'label-danger': !node.healthy}">
-        {{node.name}} <span class="badge" [ngClass]="{'badge-success': node.healthy, 'badge-danger': !node.healthy}">{{ node.status }}</span>
-      </a>
+<div *ngIf="noLocationAvailable" class="no-location">
+  <h5>{{ 'map.noLocation' | translate }}</h5>
+</div>
+<div [class.hide]="noLocationAvailable">
+  <div #mapContainer id="map-container"></div>
+  <div #tooltipContainer id="tooltip-container"
+       (mouseleave)="onLeaveTooltip()">
+    <div *ngIf="nodeProperties">
+      <strong>{{nodeProperties.location}}</strong>
+      <div *ngFor="let node of nodeProperties.nodes">
+        <a [routerLink]="['nodes', node.id]" class="label clickable" [ngClass]="{'label-success': node.healthy, 'label-danger': !node.healthy}">
+          {{node.name}} <span class="badge" [ngClass]="{'badge-success': node.healthy, 'badge-danger': !node.healthy}">{{ node.status }}</span>
+        </a>
+      </div>
     </div>
   </div>
 </div>

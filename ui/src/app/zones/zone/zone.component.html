@@ -8,10 +8,10 @@
         <concord-zone-form #form></concord-zone-form>
       </div>
       <div class="card-footer" *concordCanView="[personas.SystemsAdmin, personas.ConsortiumAdmin]">
-        <button *ngIf="!isNewZoneState" (click)="update()" [clrLoading]="saving" class="btn btn-outline-primary">
+        <button *ngIf="!isNewZoneState" (click)="update()" [clrLoading]="saving" class="btn btn-primary">
           {{ 'common.update' | translate }}
         </button>
-        <button *ngIf="isNewZoneState" (click)="addZone()" class="btn btn-outline-primary" [clrLoading]="saving" [disabled]="!zoneForm.onPremConnectionSuccessful || zoneForm.form.controls.onPrem.invalid || zoneForm.form.controls.onPremLocation.invalid">
+        <button *ngIf="isNewZoneState" (click)="addZone()" class="btn btn-primary" [clrLoading]="saving" [disabled]="!zoneForm.onPremConnectionSuccessful || zoneForm.form.controls.onPrem.invalid || zoneForm.form.controls.onPremLocation.invalid">
           {{ 'common.add' | translate }}
         </button>
         <ng-container *ngIf="!isNewZoneState">

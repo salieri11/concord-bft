@@ -147,6 +147,9 @@ export class ZoneFormComponent implements AfterViewInit {
               updateOn: 'blur'
             }
           ),
+          port: new FormControl('', {
+            validators: Validators.maxLength(4), updateOn: 'blur'
+          }),
           username: new FormControl('', { updateOn: 'blur' }),
           password: new FormControl('', { updateOn: 'blur' }),
           log_insight_agent_id: new FormControl(100)
@@ -203,10 +206,10 @@ export class ZoneFormComponent implements AfterViewInit {
     });
   }
 
-  private handleSave(response: OnPremZone) {
+  private handleSave(response: OnPremZone): OnPremZone {
     this.onPremConnectionSuccessful = false;
     this.addedOnPrem = true;
-    this.form.reset();
+    // Update zones in blockchainservice
     this.blockchainService.getZones().subscribe();
 
     return response;

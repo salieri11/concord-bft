@@ -94,7 +94,7 @@
                 <button class="action-item" [disabled]="node.state !== 'live'" (click)="confirmAction('stop', node)">{{'nodes.stop' | translate}}</button> -->
 
               </clr-dg-action-overflow>
-              <clr-dg-cell>{{node.hostname}}</clr-dg-cell>
+              <clr-dg-cell>{{node.host_name}}</clr-dg-cell>
               <clr-dg-cell>
                 {{node.url}}
                 <concord-copy-to-clipboard-button
