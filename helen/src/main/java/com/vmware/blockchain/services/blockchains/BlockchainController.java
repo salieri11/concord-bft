@@ -541,14 +541,11 @@ public class BlockchainController {
 
         Replica.ReplicaType replicaType = Replica.ReplicaType.NONE;
 
-        if (blockchainType == BlockchainType.DAML && !deployDamlCommitter) {
-            replicaType = Replica.ReplicaType.DAML_PARTICIPANT;
-        }
-
         logger.info("Deployment started, id {} for the consortium id {}", dsId, body.consortiumId.toString());
         BlockchainObserver bo =
                 new BlockchainObserver(authHelper, operationContext, blockchainService, replicaService, taskService,
-                                       task.getId(), body.getConsortiumId(), blockchainType, replicaType);
+                                       task.getId(), body.getConsortiumId(), null, blockchainType,
+                                       replicaType);
         // Watch for the event stream
         StreamClusterDeploymentSessionEventRequest request = StreamClusterDeploymentSessionEventRequest.newBuilder()
                 .setHeader(MessageHeader.newBuilder().build())
@@ -625,7 +622,7 @@ public class BlockchainController {
 
         BlockchainObserver bo =
                 new BlockchainObserver(authHelper, operationContext, blockchainService, replicaService, taskService,
-                        task.getId(), bcConsortium, blockchainType, Replica.ReplicaType.DAML_PARTICIPANT);
+                        task.getId(), bcConsortium, bid, blockchainType, Replica.ReplicaType.DAML_PARTICIPANT);
         // Watch for the event stream
 
         StreamClusterDeploymentSessionEventRequest request = StreamClusterDeploymentSessionEventRequest.newBuilder()
