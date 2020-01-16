@@ -11,7 +11,10 @@ import static com.vmware.blockchain.deployment.v1.ConcordComponent.ServiceType.D
 import static com.vmware.blockchain.deployment.v1.ConcordComponent.ServiceType.DAML_LEDGER_API;
 import static com.vmware.blockchain.deployment.v1.ConcordComponent.ServiceType.ETHEREUM_API;
 import static com.vmware.blockchain.deployment.v1.ConcordComponent.ServiceType.GENERIC;
+import static com.vmware.blockchain.deployment.v1.ConcordComponent.ServiceType.JAEGER_AGENT;
 import static com.vmware.blockchain.deployment.v1.ConcordComponent.ServiceType.LOGGING;
+import static com.vmware.blockchain.deployment.v1.ConcordComponent.ServiceType.WAVEFRONT_PROXY;
+
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -67,7 +70,8 @@ public class ConcordConfiguration {
     }
 
     // ConcordComponents for blockchains
-    private static final List<ConcordComponent.ServiceType> GENERIC_COMPONENTS = List.of(GENERIC, LOGGING);
+    private static final List<ConcordComponent.ServiceType> GENERIC_COMPONENTS = List.of(GENERIC, LOGGING,
+            WAVEFRONT_PROXY, JAEGER_AGENT);
     private static final List<ConcordComponent.ServiceType> ETHEREUM_COMPONENTS = List.of(CONCORD, ETHEREUM_API);
     private static final List<ConcordComponent.ServiceType> DAML_COMPONENTS = List.of(DAML_CONCORD,
             DAML_EXECUTION_ENGINE, DAML_INDEX_DB, DAML_LEDGER_API);
@@ -103,6 +107,8 @@ public class ConcordConfiguration {
             ImmutableMap.<ConcordComponent.ServiceType, String>builder()
                     .put(GENERIC, "vmwblockchain/agent")
                     .put(LOGGING, "vmwblockchain/fluentd")
+                    .put(WAVEFRONT_PROXY, "vmwblockchain/wavefront-proxy")
+                    .put(JAEGER_AGENT, "vmwblockchain/jaeger-agent")
                     .put(DAML_CONCORD, "vmwblockchain/concord-core")
                     .put(DAML_EXECUTION_ENGINE, "vmwblockchain/daml-execution-engine")
                     .put(DAML_INDEX_DB, "vmwblockchain/daml-index-db")
