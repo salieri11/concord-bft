@@ -252,13 +252,35 @@ blockchain$ docker build -f persephone/config-service/Dockerfile -t \
     --build-arg "concord_tag=512"
 ```
 
+### Building the Thin Replica Client Library via Docker
+
+The Thin Replica Client Library can be built directly in a docker container. The
+Thin Replica Client Library is not itself a runnable application or
+microservice, but building it via docker (or pulling an existing image of it
+from Artifactory) is currently the canonical means we support for obtaining
+include files and binaries for the Thin Replica Client Library for use in
+building applications consuming the library. For this reason, you do not
+necessarily need an image of the Thin Replica Client Library Docker image to run
+the product unless you are locally building other images that are dependent on
+this library. To build the Thin Replica Client Library Docker Image (note this
+command is run from the same directory as this README, and *not* from the
+`thin-replica-client` subdirectory):
+
+```
+blockchain$ docker build -f thin-replica-client/Dockerfile . -t trc-lib:latest
+```
+
 ### Building Natively
 
-Each component can also be built outside of Docker. For instructions
-on how to do this, please see the README file in each project
-subdirectory. For the Java-based subprojects, the following
-"Alternative" instructions for using a dockerized Maven can also be
-helpful.
+It is technically possible to build each component outside of Docker if you have
+set up and configured your machine/build environment/toolchain in a way that is
+sufficiently compatible with the Dockerized build. For some components, native
+builds are even explicitly supported. If a component explicitly supports native
+builds, then native build instructions should be available in the README file
+for that component's subdirectory in this repository.
+
+For the Java-based subprojects, the following "Alternative" instructions for
+using a dockerized Maven can also be helpful.
 
 #### Alternative Build Steps for Maven-build Components
 

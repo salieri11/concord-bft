@@ -508,6 +508,8 @@ daml_execution_engine_repo=${internal_daml_execution_engine_repo}
 daml_execution_engine_tag=${docker_tag}
 daml_index_db_repo=${internal_daml_index_db_repo}
 daml_index_db_tag=${docker_tag}
+trc_lib_repo=${internal_trc_lib_repo}
+trc_lib_tag=${docker_tag}
 commit_hash=${commit}
 LINT_API_KEY=${LINT_API_KEY}
 LINT_AUTHORIZATION_BEARER=${FLUENTD_AUTHORIZATION_BEARER}
@@ -1683,7 +1685,8 @@ void pushToArtifactory(){
     env.internal_hlf_tools_base_repo,
     env.internal_hlf_orderer_repo,
     env.internal_hlf_peer_repo,
-    env.internal_hlf_tools_repo
+    env.internal_hlf_tools_repo,
+    env.internal_trc_lib_repo
   ]
 
   withCredentials([string(credentialsId: 'ARTIFACTORY_API_KEY', variable: 'ARTIFACTORY_API_KEY')]) {
@@ -1926,6 +1929,12 @@ void setUpRepoVariables(){
   env.internal_daml_ledger_api_repo = env.release_daml_ledger_api_repo.replace(env.release_repo, env.internal_repo)
   env.internal_daml_execution_engine_repo = env.release_daml_execution_engine_repo.replace(env.release_repo, env.internal_repo)
   env.internal_daml_index_db_repo = env.release_daml_index_db_repo.replace(env.release_repo, env.internal_repo)
+
+  // Note the Thin Replica Client Library (trc-lib) image is given only an
+  // internal repo and not a release repo; this is because this image is not a
+  // deliverable part of our product, but tagged builds of it may be used as
+  // input to other product components.
+  env.internal_trc_lib_repo = env.internal_repo + "/trc-lib"
 }
 
 // Carry out any special activities related to analysis or reporting

@@ -24,6 +24,29 @@ in this file provide primary documentation of the interface.
 At the time of this writing, the Thin Replica Client Library is still under
 development and has not yet been fully implemented.
 
+## Building the Thin Replica Client Library
+
+The Thin Replica Client Library can be built with Docker. To build an image with
+the header files and binaries needed to use this library (note this command is
+to be run in the `vmwathena_blockchain` repository, one directory above where
+this README is):
+
+```
+vmwathena_blockchain$ docker build -f thin-replica-client/Dockerfile . \
+                                   -t trc-lib:latest
+```
+
+As it is anticipated applications consuming the Thin Replica Client Library will
+be Dockerized, using Docker images of the Thin Replica Client Library built like
+this as input to the Docker build of applications in order to obtain the
+library's outward-facing header files and binaries is considered to be the
+officially supported means of consuming this library at a build level.
+
+CI for our project repository should regularly push builds of this image from
+the `master` branch to Artifactory, tagged with a build number. Targeting a
+specific artifact by build number as input to an application's Docker build is
+recommended in order to maximize reproducability of application builds.
+
 ## Example Thin Replica Application
 
 We provide an example application using the Thin Replica Client Library. The
@@ -51,13 +74,34 @@ includes these calls to the library functions.
 
 ### Building and Running the Example Application
 
-From the `vmwathena_blockchain directory` (one directory above the
-`thin-replica-client` directory this README file is in), the Thin Replica Client
-example application can be built with:
+The example application is built with Docker from a Docker image of the Thin
+Replica Client Library (see "Building the Thin Replica Client Library" above).
+By default, the example application build targets a library build at
+`trc-lib:latest`. If you have built or tagged a Thin Replica Client Library
+image as such on your machine, then from the `vmwathena_blockchain` directory
+(one directory above the `thin-replica-client` directory this README file is
+in), the Thin Replica Client example application can be built with:
 
 ```
-~/vmwathena_blockchain$ docker build . -f thin-replica-client/Dockerfile \
-                                       -t trc:latest
+~/vmwathena_blockchain$ docker build . \
+                                     -f thin-replica-client/DockerfileExample \
+				     -t trc-example:latest
+```
+
+Docker build arguments can be used to target a different Docker image for the
+build of the example application. For example, from the `vmwathena_blockchain`
+directory (one above the `thin-replica-client` directory this README file is
+in), the Thin Replica Client example application can be built targeting a Thin
+Replica Client Library Image uploaded to
+`athena-docker-local.artifactory.eng.vmware.com/trc-lib` with tag `1024` with:
+
+```
+~/vmwathena_blockchain$ docker build . \
+                                     -f thin-replica-client/DockerfileExample \
+				     -t trc-example:latest \
+				     --build-arg \
+         "trc_lib_repo=athena-docker-local.artifactory.eng.vmware.com/trc-lib" \
+	                             --build-arg "trc_lib_tag=1024"
 ```
 
 To run the example Thin Replica Client application and connect it to a local
@@ -88,7 +132,8 @@ To run the Thin Replica Client example application in a container that can
 connect to the cluster launched in the previous step:
 
 ```
-~/vmwathena_blockchain$ docker run --rm --network docker_default trc:latest
+~/vmwathena_blockchain$ docker run --rm --network docker_default \
+                                   trc-example:latest
 ```
 
 Here is an example of what the initial output from the example application might
