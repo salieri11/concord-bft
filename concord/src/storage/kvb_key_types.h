@@ -26,6 +26,7 @@ const char kKvbKeySummarizedTime = 0x22;
 
 // DAML 0x30 - 0x3f
 const char kKvbKeyDaml = 0x30;
+const char kKvbKeyAdminIdentifier = 0x40;
 
 }  // namespace storage
 }  // namespace concord

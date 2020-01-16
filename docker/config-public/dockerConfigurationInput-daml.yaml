@@ -13,7 +13,7 @@ comm_to_use: tls
 FEATURE_time_service: true
 node__TEMPLATE:
   logger_config: /concord/config-public/log4cplus.properties
-  genesis_block: /concord/config-public/genesis.json
+  genesis_block: /concord/config-public/daml_genesis.json
   blockchain_db_path: /concord/rocksdbdata/
   time_pusher_period_ms: 1000
   bft_client_timeout_ms: 20000

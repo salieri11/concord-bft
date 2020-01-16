@@ -7,11 +7,13 @@
 #include <jaegertracing/Tracer.h>
 #include <log4cplus/configurator.h>
 #include <log4cplus/loggingmacros.h>
+#include <boost/asio.hpp>
 #include <boost/program_options.hpp>
 #include <boost/thread.hpp>
 #include <csignal>
 #include <iostream>
 #include <regex>
+#include <sstream>
 #include <string>
 #include <thread>
 #include "ClientImp.h"
@@ -27,6 +29,7 @@
 #include "config/configuration_manager.hpp"
 #include "consensus/bft_configuration.hpp"
 #include "daml/blocking_queue.h"
+#include "daml/daml_init_params.hpp"
 #include "daml/daml_kvb_commands_handler.hpp"
 #include "daml/daml_validator_client.hpp"
 #include "daml/grpc_services.hpp"
@@ -39,6 +42,7 @@
 #include "hlf/grpc_services.hpp"
 #include "hlf/kvb_commands_handler.hpp"
 #include "hlf/kvb_storage.hpp"
+#include "kv_types.hpp"
 #include "memorydb/client.h"
 #include "memorydb/key_comparator.h"
 #include "replica_state_sync_imp.hpp"
@@ -46,6 +50,7 @@
 #include "rocksdb/client.h"
 #include "rocksdb/key_comparator.h"
 #include "storage/concord_block_metadata.h"
+#include "storage/kvb_key_types.h"
 #include "thin_replica/grpc_services.hpp"
 #include "thin_replica/subscription_buffer.hpp"
 #include "time/time_pusher.hpp"
@@ -123,7 +128,7 @@ static boost::thread_group worker_pool;
 // 50 MiBytes
 static const int kDamlServerMsgSizeMax = 50 * 1024 * 1024;
 
-void signalHandler(int signum) {
+static void signalHandler(int signum) {
   try {
     Logger logger = Logger::getInstance("com.vmware.concord.main");
     LOG4CPLUS_INFO(logger, "Signal received (" << signum << ")");
@@ -245,8 +250,8 @@ IDBClient *open_database(ConcordConfiguration &nodeConfig, Logger logger) {
 /**
  * IdleBlockAppender is a shim to wrap IReplica::addBlocktoIdleReplica in an
  * IBlocksAppender interface, so that it can be rewrapped in a EthKvbStorage
- * object, thus allowing the create_genesis_block function to use the same
- * functions as concord_evm to put data in the genesis block.
+ * object, thus allowing the create_ethereum_genesis_block function to use the
+ * same functions as concord_evm to put data in the genesis block.
  */
 class IdleBlockAppender : public IBlocksAppender {
  private:
@@ -262,12 +267,31 @@ class IdleBlockAppender : public IBlocksAppender {
   }
 };
 
+static concordUtils::Status create_daml_genesis_block(
+    IReplica *replica, ConcordConfiguration &nodeConfig, Logger logger) {
+  if (replica->getReadOnlyStorage().getLastBlock() > 0) {
+    LOG4CPLUS_INFO(logger, "Blocks already loaded, skipping genesis");
+    return concordUtils::Status::OK();
+  }
+  if (!nodeConfig.hasValue<std::string>("genesis_block")) {
+    throw concord::daml::DamlInitParamException("Genesis block path is absent");
+  }
+  const auto &genesis_file_path =
+      nodeConfig.getValue<std::string>("genesis_block");
+  concord::daml::DamlInitParams init_params(genesis_file_path);
+  const auto &key = concordUtils::Key(
+      std::string({concord::storage::kKvbKeyAdminIdentifier}));
+  return replica->addBlockToIdleReplica(
+      SetOfKeyValuePairs{{key, init_params.get_admin_authentication_key()}});
+}
+
 /**
  * Create the initial transactions and a genesis block based on the
  * genesis file.
  */
-concordUtils::Status create_genesis_block(IReplica *replica,
-                                          EVMInitParams params, Logger logger) {
+static concordUtils::Status create_ethereum_genesis_block(IReplica *replica,
+                                                          EVMInitParams params,
+                                                          Logger logger) {
   const ILocalKeyValueStorageReadOnly &storage = replica->getReadOnlyStorage();
   IdleBlockAppender blockAppender(replica);
   EthKvbStorage kvbStorage(storage, &blockAppender);
@@ -501,7 +525,14 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
           unique_ptr<ICommandsHandler>(new DamlKvbCommandsHandler(
               config, nodeConfig, replica, replica, committedTxs,
               subscriber_list, std::move(daml_validator), prometheus_registry));
-
+      const auto &status =
+          create_daml_genesis_block(&replica, nodeConfig, logger);
+      if (status.isOK()) {
+        LOG4CPLUS_INFO(logger, "Successfully loaded DAML genesis block");
+      } else {
+        throw concord::daml::DamlInitParamException(
+            "Unable to load DAML genesis block: " + status.toString());
+      }
     } else if (hlf_enabled) {
       LOG4CPLUS_INFO(logger, "Hyperledger Fabric feature is enabled");
 
@@ -536,7 +567,7 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
               subscriber_list, prometheus_registry));
       // Genesis must be added before the replica is started.
       concordUtils::Status genesis_status =
-          create_genesis_block(&replica, params, logger);
+          create_ethereum_genesis_block(&replica, params, logger);
       if (!genesis_status.isOK()) {
         LOG4CPLUS_FATAL(logger,
                         "Unable to load genesis block: " << genesis_status);
