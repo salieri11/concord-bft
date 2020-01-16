@@ -37,7 +37,8 @@ class EthKvbCommandsHandler
       const concord::storage::blockchain::ILocalKeyValueStorageReadOnly
           &storage,
       concord::storage::blockchain::IBlocksAppender &appender,
-      concord::thin_replica::SubBufferList &subscriber_list);
+      concord::thin_replica::SubBufferList &subscriber_list,
+      std::shared_ptr<concord::utils::PrometheusRegistry> prometheus_registry);
   ~EthKvbCommandsHandler();
 
   // concord::consensus::ConcordStateMachine

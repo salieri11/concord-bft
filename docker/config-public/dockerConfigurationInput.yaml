@@ -8,6 +8,7 @@ FEATURE_time_service: false
 node__TEMPLATE:
   logger_config: /concord/config-public/log4cplus.properties
   genesis_block: /concord/config-public/genesis.json
+  metrics_config: /concord/config-public/metrics_config.yaml
   blockchain_db_path: /concord/rocksdbdata/
   time_pusher_period_ms: 1000
   jaeger_agent: jaeger-agent:6831

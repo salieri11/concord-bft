@@ -64,9 +64,10 @@ EthKvbCommandsHandler::EthKvbCommandsHandler(
     const concord::config::ConcordConfiguration &nodeConfig,
     const concord::storage::blockchain::ILocalKeyValueStorageReadOnly &storage,
     concord::storage::blockchain::IBlocksAppender &appender,
-    concord::thin_replica::SubBufferList &subscriber_list)
+    concord::thin_replica::SubBufferList &subscriber_list,
+    std::shared_ptr<concord::utils::PrometheusRegistry> prometheus_registry)
     : ConcordCommandsHandler(config, nodeConfig, storage, appender,
-                             subscriber_list),
+                             subscriber_list, prometheus_registry),
       logger(log4cplus::Logger::getInstance("com.vmware.concord")),
       concevm_(concevm),
       verifier_(verifier),

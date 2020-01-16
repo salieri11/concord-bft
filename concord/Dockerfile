@@ -140,6 +140,7 @@ COPY ./concord/test/concord.supp /concord/concord.supp
 # Copy default Concord logger configuration so logging will be sanely configured
 # if no custom configuration was provided when the cluster was set up.
 COPY ./concord/resources/log4cplus.properties /concord/resources/log4cplus.properties
+COPY ./concord/resources/metrics_config.yaml /concord/resources/metrics_config.yaml
 
 # Management port
 EXPOSE 5458

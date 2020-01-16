@@ -43,17 +43,19 @@ class DamlKvbCommandsHandler
       BlockingPersistentQueue<com::digitalasset::kvbc::CommittedTx>&
           committed_txs,
       concord::thin_replica::SubBufferList& subscriber_list,
-      std::unique_ptr<DamlValidatorClient> validator)
-      : ConcordCommandsHandler(config, node_config, ros, ba, subscriber_list),
+      std::unique_ptr<DamlValidatorClient> validator,
+      std::shared_ptr<concord::utils::PrometheusRegistry> prometheus_registry)
+      : ConcordCommandsHandler(config, node_config, ros, ba, subscriber_list,
+                               prometheus_registry),
         logger_(log4cplus::Logger::getInstance("com.vmware.concord.daml")),
         committed_txs_(committed_txs),
         validator_client_(std::move(validator)),
-        write_ops_{
-            command_handler_counters_.Add({{"layer", "DamlKvbCommandsHandler"},
-                                           {"operation", "daml_writes"}})},
-        read_ops_{
-            command_handler_counters_.Add({{"layer", "DamlKvbCommandsHandler"},
-                                           {"operation", "daml_reads"}})} {}
+        write_ops_{prometheus_registry->createCounter(
+            command_handler_counters_, {{"layer", "DamlKvbCommandsHandler"},
+                                        {"operation", "daml_writes"}})},
+        read_ops_{prometheus_registry->createCounter(
+            command_handler_counters_, {{"layer", "DamlKvbCommandsHandler"},
+                                        {"operation", "daml_reads"}})} {}
 
   bool Execute(const com::vmware::concord::ConcordRequest& request,
                uint8_t flags, concord::time::TimeContract* time_contract,
