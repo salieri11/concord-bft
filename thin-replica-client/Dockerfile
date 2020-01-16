@@ -59,7 +59,10 @@ COPY ./thin-replica-client /thin-replica-client
 
 # Build
 WORKDIR /thin-replica-client/build
-RUN cmake -DCMAKE_C_COMPILER=/usr/bin/clang-7 -DCMAKE_CXX_COMPILER=/usr/bin/clang++-7 -DCMAKE_CXX_FLAGS="-march=x86-64 -mtune=generic" .. && make -j$(nproc) all
+RUN cmake -DCMAKE_C_COMPILER=/usr/bin/clang-7 \
+     -DCMAKE_CXX_COMPILER=/usr/bin/clang++-7 \
+     -DCMAKE_CXX_FLAGS="-march=x86-64 -mtune=generic" .. && \
+     make -j$(nproc) all install
 
 # TODO: Create runtime container image
 ENV LOG4CPLUS_CONFIGURATION /thin-replica-client/example/log4cplus.properties
