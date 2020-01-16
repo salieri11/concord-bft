@@ -35,6 +35,7 @@ public class VmcAwsZone extends Zone {
     public static class LogManagementVmcAws {
         LogDestination destination;
         String address;
+        int port;
         String token;
     }
 

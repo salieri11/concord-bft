@@ -267,7 +267,7 @@ public class BlockchainUtils {
                         .map(lm -> LogManagement.newBuilder()
                                     .setDestinationValue(lm.getDestination().getValue())
                                     .setEndpoint(Endpoint.newBuilder()
-                                        .setAddress(lm.getAddress())
+                                        .setAddress(createAddress(lm.getAddress(), lm.getPort()))
                                         .setCredential(toPasswordCredential(lm.getUsername(), lm.getPassword()))
                                         .build())
                                     .setLogInsightAgentId(lm.getLogInsightAgentId())
@@ -282,7 +282,7 @@ public class BlockchainUtils {
                         .map(lm -> LogManagement.newBuilder()
                                     .setDestinationValue(lm.getDestination().getValue())
                                     .setEndpoint(Endpoint.newBuilder()
-                                        .setAddress(lm.getAddress())
+                                        .setAddress(createAddress(lm.getAddress(), lm.getPort()))
                                         .setCredential(toBearerCredential(lm.getToken()))
                                         .build())
                                     .build())
@@ -302,5 +302,9 @@ public class BlockchainUtils {
         }
 
         return logManagements;
+    }
+
+    private static String createAddress(String address, int port) {
+        return port == 0 ? address : address + ':' + port;
     }
 }

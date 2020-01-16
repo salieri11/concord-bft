@@ -676,6 +676,15 @@ public class BlockchainControllerTest {
                 .map(site -> site.getSiteInfo().getVsphere()
                                 .getLogManagements(0).getDestination())
                      .orElse(LogManagement.Type.UNRECOGNIZED));
+        Assertions.assertEquals("10.78.0.1:9000", entries.stream()
+                .filter(e -> OrchestrationSiteIdentifier.newBuilder()
+                        .setLow(SITE_1.getLeastSignificantBits()).setHigh(SITE_1.getMostSignificantBits())
+                        .build()
+                        .equals(e.getSite()))
+                .findFirst()
+                .map(site -> site.getSiteInfo().getVsphere()
+                        .getLogManagements(0).getEndpoint().getAddress())
+                .orElse(""));
         Assertions.assertEquals("LINT_TEST_KEY", entries.stream()
                 .filter(e -> OrchestrationSiteIdentifier.newBuilder()
                         .setLow(SITE_2.getLeastSignificantBits())
