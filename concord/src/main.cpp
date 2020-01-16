@@ -375,14 +375,24 @@ bool OnlyOneTrue(bool a, bool b, bool c) {
 }
 
 std::shared_ptr<concord::utils::PrometheusRegistry>
-initialize_prometheus_metrics(ConcordConfiguration &config, Logger &logger) {
+initialize_prometheus_metrics(ConcordConfiguration &config, Logger &logger,
+                              const std::string &metricsConfigPath) {
   uint16_t prometheus_port = config.hasValue<uint16_t>("prometheus_port")
                                  ? config.getValue<uint16_t>("prometheus_port")
                                  : 9891;
   std::string host = config.getValue<std::string>("service_host");
   std::string prom_bindaddress = host + ":" + std::to_string(prometheus_port);
   LOG4CPLUS_INFO(logger, "prometheus metrics address is: " << prom_bindaddress);
-  return std::make_shared<concord::utils::PrometheusRegistry>(prom_bindaddress);
+  return std::make_shared<concord::utils::PrometheusRegistry>(
+      prom_bindaddress, concord::utils::PrometheusRegistry::parseConfiguration(
+                            metricsConfigPath));
+}
+
+std::shared_ptr<concord::utils::ConcordBftMetricsManager>
+initialize_prometheus_for_concordbft(const std::string &metricsConfigPath) {
+  return std::make_shared<concord::utils::ConcordBftMetricsManager>(
+      concord::utils::ConcordBftMetricsManager::parseConfiguration(
+          metricsConfigPath));
 }
 
 /*
@@ -411,28 +421,14 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
                    "or HLF) is set");
     return 0;
   }
-  auto prometheus_registry = initialize_prometheus_metrics(nodeConfig, logger);
-  // For now, we statically configure which metrics concordbft exposes to
-  // concord
-  std::vector<std::string> replicaCounters{"receivedReplicaStatusMsgs",
-                                           "receivedPrePrepareMsgs"};
-  std::vector<std::string> replicaGauges{"view", "lastExecutedSeqNum"};
-  std::vector<std::string> stateTransferCounters{"sent_item_data_msg",
-                                                 "received_item_data_msg"};
-  std::vector<std::string> stateTransferGauges{"last_msg_seq_num",
-                                               "last_block_"};
-  concord::utils::ConcordBftPrometheusCollector::MetricsConfiguration
-      prometheus_config_for_bft = {
-          {"replica",
-           std::make_tuple(std::move(replicaCounters), std::move(replicaGauges),
-                           std::vector<std::string>())},
-          {"bc_state_transfer",
-           std::make_tuple(std::move(stateTransferCounters),
-                           std::move(stateTransferGauges),
-                           std::vector<std::string>())}};
-  auto prometheus_for_concord =
-      std::make_shared<concord::utils::ConcordBftPrometheusCollector>(
-          prometheus_config_for_bft);
+  std::string metricsConfigPath =
+      nodeConfig.getValue<std::string>("metrics_config");
+  LOG4CPLUS_INFO(logger,
+                 "metrics configuration file is: " << metricsConfigPath);
+  auto prometheus_registry =
+      initialize_prometheus_metrics(nodeConfig, logger, metricsConfigPath);
+  auto prometheus_for_concordbft =
+      initialize_prometheus_for_concordbft(metricsConfigPath);
   try {
     if (eth_enabled) {
       // The genesis parsing is Eth specific.
@@ -488,7 +484,7 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
                                   commConfig.commType);
     }
     ReplicaImp replica(icomm, replicaConfig, &db_adapter,
-                       prometheus_for_concord->getAggregator());
+                       prometheus_for_concordbft->getAggregator());
     replica.setReplicaStateSync(
         new ReplicaStateSyncImp(new ConcordBlockMetadata(replica)));
 
@@ -504,7 +500,7 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
       kvb_commands_handler =
           unique_ptr<ICommandsHandler>(new DamlKvbCommandsHandler(
               config, nodeConfig, replica, replica, committedTxs,
-              subscriber_list, std::move(daml_validator)));
+              subscriber_list, std::move(daml_validator), prometheus_registry));
 
     } else if (hlf_enabled) {
       LOG4CPLUS_INFO(logger, "Hyperledger Fabric feature is enabled");
@@ -528,14 +524,16 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
       // Init chaincode invoker
       ChaincodeInvoker *chaincode_invoker = new ChaincodeInvoker(nodeConfig);
 
-      kvb_commands_handler = unique_ptr<ICommandsHandler>(
-          new HlfKvbCommandsHandler(chaincode_invoker, config, nodeConfig,
-                                    replica, replica, subscriber_list));
+      kvb_commands_handler =
+          unique_ptr<ICommandsHandler>(new HlfKvbCommandsHandler(
+              chaincode_invoker, config, nodeConfig, replica, replica,
+              subscriber_list, prometheus_registry));
     } else {
       assert(eth_enabled);
-      kvb_commands_handler = unique_ptr<ICommandsHandler>(
-          new EthKvbCommandsHandler(*concevm, *ethVerifier, config, nodeConfig,
-                                    replica, replica, subscriber_list));
+      kvb_commands_handler =
+          unique_ptr<ICommandsHandler>(new EthKvbCommandsHandler(
+              *concevm, *ethVerifier, config, nodeConfig, replica, replica,
+              subscriber_list, prometheus_registry));
       // Genesis must be added before the replica is started.
       concordUtils::Status genesis_status =
           create_genesis_block(&replica, params, logger);
@@ -545,13 +543,11 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
         throw EVMException("Unable to load genesis block");
       }
     }
-    prometheus_registry->scrapeRegistry(
-        dynamic_cast<concord::consensus::ConcordCommandsHandler &>(
-            *kvb_commands_handler)
-            .getRegistry());
+
     replica.set_command_handler(kvb_commands_handler.get());
     replica.start();
-    prometheus_registry->scrapeRegistry(prometheus_for_concord);
+    prometheus_registry->scrapeRegistry(
+        prometheus_for_concordbft->getCollector());
     // Clients
 
     std::shared_ptr<TimePusher> timePusher;

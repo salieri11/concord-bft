@@ -31,21 +31,19 @@ ConcordCommandsHandler::ConcordCommandsHandler(
     const concord::config::ConcordConfiguration &node_config,
     const concord::storage::blockchain::ILocalKeyValueStorageReadOnly &storage,
     concord::storage::blockchain::IBlocksAppender &appender,
-    concord::thin_replica::SubBufferList &subscriber_list)
+    concord::thin_replica::SubBufferList &subscriber_list,
+    std::shared_ptr<concord::utils::PrometheusRegistry> prometheus_registry)
     : logger_(log4cplus::Logger::getInstance(
           "concord.consensus.ConcordCommandsHandler")),
       metadata_storage_(storage),
       subscriber_list_(subscriber_list),
       storage_(storage),
-      registry_{std::make_shared<prometheus::Registry>()},
-      command_handler_counters_{
-          prometheus::BuildCounter()
-              .Name("concord_command_handler_operation_counters_total")
-              .Help("counts how many operations the command handler has done")
-              .Register(*registry_)},
-      written_blocks_{
-          command_handler_counters_.Add({{"layer", "ConcordCommandsHandler"},
-                                         {"operation", "written_blocks"}})},
+      command_handler_counters_{prometheus_registry->createCounterFamily(
+          "concord_command_handler_operation_counters_total",
+          "counts how many operations the command handler has done", {})},
+      written_blocks_{prometheus_registry->createCounter(
+          command_handler_counters_, {{"layer", "ConcordCommandsHandler"},
+                                      {"operation", "written_blocks"}})},
       appender_(appender),
       pruning_(storage, config, node_config) {
   if (concord::time::IsTimeServiceEnabled(config)) {
@@ -330,10 +328,6 @@ concordUtils::Status ConcordCommandsHandler::addBlock(
   subscriber_list_.UpdateSubBuffers({out_block_id, amended_updates});
 
   return status;
-}
-
-std::shared_ptr<prometheus::Registry> ConcordCommandsHandler::getRegistry() {
-  return registry_;
 }
 
 }  // namespace consensus

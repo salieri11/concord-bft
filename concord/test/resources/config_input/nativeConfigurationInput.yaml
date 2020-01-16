@@ -8,6 +8,7 @@ FEATURE_time_service: false
 node__TEMPLATE:
   genesis_block: ./test/resources/genesis.json
   logger_config: test/resources/log4cplus.properties
+  metrics_config: test/resources/metrics_config.yaml
 node:
   - service_host: 0.0.0.0
     service_port: 5458

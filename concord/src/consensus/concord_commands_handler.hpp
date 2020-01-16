@@ -8,7 +8,7 @@
 #include <log4cplus/logger.h>
 #include <opentracing/span.h>
 #include <prometheus/counter.h>
-#include <prometheus/registry.h>
+#include <utils/concord_prometheus_metrics.hpp>
 #include "KVBCInterfaces.h"
 #include "blockchain/db_interfaces.h"
 #include "concord.pb.h"
@@ -36,7 +36,6 @@ class ConcordCommandsHandler
 
  protected:
   const concord::storage::blockchain::ILocalKeyValueStorageReadOnly &storage_;
-  std::shared_ptr<prometheus::Registry> registry_;
   prometheus::Family<prometheus::Counter> &command_handler_counters_;
   prometheus::Counter &written_blocks_;
 
@@ -55,9 +54,10 @@ class ConcordCommandsHandler
       const concord::storage::blockchain::ILocalKeyValueStorageReadOnly
           &storage,
       concord::storage::blockchain::IBlocksAppender &appender,
-      concord::thin_replica::SubBufferList &subscriber_list);
+      concord::thin_replica::SubBufferList &subscriber_list,
+      std::shared_ptr<concord::utils::PrometheusRegistry> prometheus_registry);
   virtual ~ConcordCommandsHandler() = default;
-  std::shared_ptr<prometheus::Registry> getRegistry();
+
   // Callback from the replica via ICommandsHandler.
   int execute(uint16_t client_id, uint64_t sequence_num, uint8_t flags,
               uint32_t request_size, const char *request,

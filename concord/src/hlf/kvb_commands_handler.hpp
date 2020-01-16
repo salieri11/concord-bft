@@ -39,7 +39,8 @@ class HlfKvbCommandsHandler
       const concord::storage::blockchain::ILocalKeyValueStorageReadOnly&
           ro_storage,
       concord::storage::blockchain::IBlocksAppender& block_appender,
-      concord::thin_replica::SubBufferList& subscriber_list);
+      concord::thin_replica::SubBufferList& subscriber_list,
+      std::shared_ptr<concord::utils::PrometheusRegistry> prometheus_registry);
 
   ~HlfKvbCommandsHandler();
 

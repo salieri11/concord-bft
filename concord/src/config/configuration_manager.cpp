@@ -3342,6 +3342,12 @@ void specifyConfiguration(ConcordConfiguration& config) {
                         "(9891 by default).");
   node.tagParameter("prometheus_port", privateOptionalTags);
 
+  node.declareParameter("metrics_config",
+                        "Path, in this node's local filesystem, to a "
+                        "configuration for concord metrics",
+                        "/concord/resources/metrics_config.yaml");
+  node.tagParameter("metrics_config", defaultableByReplicaTags);
+
   node.declareParameter("service_host",
                         "Public IP address or hostname on which this replica's "
                         "external API service can be reached.");
