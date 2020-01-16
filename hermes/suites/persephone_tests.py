@@ -275,10 +275,10 @@ class PersephoneTests(test_suite.TestSuite):
    def _get_tests(self):
       if self.args.tests is None or self.args.tests.lower() == "smoke":
          return [
-            ("7_Node_DAML_Blockchain_ON-PREM",
-             self._test_create_daml_blockchain_7_node_onprem),
-            # ("4_Node_DAML_committer_participant_ON-PREM",
-            #  self._test_daml_committer_participant_4_node_onprem),
+            # ("7_Node_DAML_Blockchain_ON-PREM",
+            #  self._test_create_daml_blockchain_7_node_onprem),
+            ("4_Node_DAML_committer_participant_ON-PREM",
+             self._test_daml_committer_participant_4_node_onprem),
          ]
       elif self.args.tests.lower() == "all_tests":
          return [
@@ -698,17 +698,18 @@ class PersephoneTests(test_suite.TestSuite):
                   if node_type is None or node_type == self.rpc_test_helper.NODE_TYPE_PARTICIPANT:
                      if helper.verify_connectivity(concord_ip, 6865):
                         log.info("DAML Connectivity - PASS")
-                        log.info("Skipping dar upload/verification...")
-                        # try:
-                        #    log.info("dar upload/verification...")
-                        #    daml_helper.upload_test_tool_dars(host=concord_ip,
-                        #                           port='6865')
-                        #    daml_helper.verify_ledger_api_test_tool(host=concord_ip,
-                        #                                port='6865')
-                        #    log.info("dar upload/verification passed.")
-                        # except Exception as e:
-                        #    log.error(e)
-                        #    return (False, "dar upload/verification failed")
+
+                        try:
+                           log.info("dar upload/verification...")
+                           daml_helper.upload_test_tool_dars(host=concord_ip,
+                                                             port='6865')
+                           daml_helper.verify_ledger_api_test_tool(
+                              host=concord_ip,
+                              port='6865')
+                           log.info("dar upload/verification passed.")
+                        except Exception as e:
+                           log.error(e)
+                           return (False, "dar upload/verification failed")
                      else:
                         log.error("DAML Connectivity ({})- FAILED".format(concord_ip))
                         return (False, "DAML Connectivity - FAILED")
@@ -1159,9 +1160,10 @@ class PersephoneTests(test_suite.TestSuite):
       :param cluster_size: No. of nodes on the cluster
       '''
       log.info("")
-      log.info("**** Deploying committer node...")
+      log.info("**** Deploying committer node(s)...")
       concord_type = self.rpc_test_helper.CONCORD_TYPE_DAML
       node_type = self.rpc_test_helper.NODE_TYPE_COMMITTER
+      replicas = None
 
       start_time = time.time()
       log.info("Deployment Start Time: {}".format(start_time))
@@ -1188,17 +1190,29 @@ class PersephoneTests(test_suite.TestSuite):
                                                                       response_deployment_session_id,
                                                                       concord_type=concord_type,
                                                                       node_type=node_type)
-               return self.parse_test_status(status, msg,
+               if status:
+                  for deployment_info in self.rpc_test_helper.deployment_info:
+                     if deployment_info["deployment_session_id"][
+                        0] == response_deployment_session_id:
+                        if "replicas" in deployment_info and deployment_info[
+                           "replicas"]:
+                           replicas = deployment_info["replicas"]
+
+               status, msg = self.parse_test_status(status, msg,
                                              deployment_session_id=response_deployment_session_id)
-            return self.parse_test_status(False, "Failed to fetch Deployment Events",
+               return status, msg, replicas
+            status, msg = self.parse_test_status(False, "Failed to fetch Deployment Events",
                                           deployment_session_id=response_deployment_session_id)
+            return status, msg, replicas
 
-      return self.parse_test_status(False, "Failed to get a valid deployment session ID")
+      status, msg = self.parse_test_status(False, "Failed to get a valid deployment session ID")
+      return status, msg, replicas
 
-   def deploy_daml_participant_node(self, cluster_size=1):
+   def deploy_daml_participant_node(self, cluster_size=1, replicas=None):
       '''
       Deploy DAML participant node
       :param cluster_size: No. of nodes on the cluster
+      :param replicas: List of replicas (committers)
       '''
       log.info("")
       log.info("**** Deploying participant node...")
@@ -1211,7 +1225,8 @@ class PersephoneTests(test_suite.TestSuite):
          cluster_size=cluster_size,
          concord_type=concord_type,
          node_type=node_type,
-         zone_type=self.rpc_test_helper.ZONE_TYPE_ON_PREM)
+         zone_type=self.rpc_test_helper.ZONE_TYPE_ON_PREM,
+         replicas=replicas)
       if response:
          response_session_id_json = helper.protobuf_message_to_json(response[0])
          if "low" in response_session_id_json:
@@ -1244,11 +1259,12 @@ class PersephoneTests(test_suite.TestSuite):
       Test to create DAML committer & participant nodes on-prem
       :param cluster_size: No. of concord nodes on the cluster
       '''
-      status, msg = self.deploy_daml_committer_node(cluster_size=committer_nodes)
-      if status:
+      status, msg, replicas = self.deploy_daml_committer_node(
+         cluster_size=committer_nodes)
+      if status and replicas:
          log.info("**** Committer nodes deployed Successfully\n")
          status, msg = self.deploy_daml_participant_node(
-            cluster_size=participant_nodes)
+            cluster_size=participant_nodes, replicas=replicas)
          if status:
             log.info("**** Participant node(s) deployed Successfully\n")
          else:
