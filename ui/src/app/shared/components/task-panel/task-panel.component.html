@@ -39,3 +39,15 @@
     </div>
   </div>
 </ng-container>
+<vmw-toast-container>
+  <vmw-toast *ngFor="let t of toasts; let i = index;"
+        [primaryButtonText]="t.primaryActionTitle"
+        (primaryButtonClick)="t.primaryClickHandler()"
+        [secondaryButtonText]="t.secondaryActionTitle"
+        (secondaryButtonClick)="t.secondaryClickHandler()"
+        [type]="t.type">
+    <div class="toast-title">{{t.title}}</div>
+    <p class="toast-description">{{t.description}}</p>
+    <span class="toast-date">{{t.date}}</span>
+  </vmw-toast>
+</vmw-toast-container>

@@ -7,7 +7,7 @@ import { FormGroup, FormControl, Validators } from '@angular/forms';
 
 import { BlockchainService } from '../../blockchain/shared/blockchain.service';
 import { NodesService } from '../shared/nodes.service';
-import { Zone } from '../../zones/shared/zones.model';
+import { Zone, ZoneType } from '../../zones/shared/zones.model';
 
 @Component({
   selector: 'concord-deploy-client',
@@ -25,7 +25,7 @@ export class DeployClientComponent implements OnInit {
     private blockchainService: BlockchainService,
     private nodesService: NodesService,
   ) {
-    this.zones = this.blockchainService.zones;
+    this.setZones();
   }
 
   ngOnInit() {}
@@ -45,9 +45,21 @@ export class DeployClientComponent implements OnInit {
   }
 
   openModal() {
-    this.zones = this.blockchainService.zones;
+    this.setZones();
     this.isOpen = true;
   }
 
+  private setZones() {
+
+    if (this.blockchainService.zones) {
+      const isOnPremZone = this.blockchainService.zones.some(zone => zone.type === ZoneType.ON_PREM);
+      if (isOnPremZone) {
+        const onPremZones = this.blockchainService.zones.filter((zone) => zone.type === ZoneType.ON_PREM);
+        this.zones = onPremZones;
+      } else {
+        this.zones = this.blockchainService.zones;
+      }
+    }
+  }
 
 }

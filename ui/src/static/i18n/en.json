@@ -6,6 +6,8 @@
     "all": "All",
     "back": "Back",
     "cancel": "Cancel",
+    "fail": "Fail",
+    "success": "Success",
     "close": "Close",
     "copyToClip": "Copy to clipboard",
     "create": "Create",
@@ -445,7 +447,10 @@
     },
     "actions": {
       "new": "New On Premises Zone",
-      "delete": "delete"
+      "delete": "delete",
+      "updated": "Zone Updated Successfully",
+      "onPre": "Zone Updated Successfully",
+      "added": "Zone Added Successfully"
     },
     "detail": {
       "title": "Zone"
@@ -1035,7 +1040,7 @@
   "deployLoader": {
     "waiting": "Waiting for deployment task...",
     "initial": "Deploy consortium started...",
-    "first": "Creating VM's...",
+    "first": "Creating VMs...",
     "second": "Deploying concord committers...",
     "third": "Distributing keys...",
     "fourth": "Starting up Concord trust network...",

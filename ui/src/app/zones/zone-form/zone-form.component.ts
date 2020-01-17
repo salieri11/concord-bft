@@ -5,12 +5,17 @@
 import { Component, AfterViewInit, ViewChild, ElementRef } from '@angular/core';
 import { FormControl, FormGroup, FormArray, Validators } from '@angular/forms';
 import { map, catchError, debounceTime, distinctUntilChanged } from 'rxjs/operators';
+import { ActivatedRoute } from '@angular/router';
 import { Observable, throwError } from 'rxjs';
+import { VmwToastType } from '@vmw/ngx-components';
+import { TranslateService } from '@ngx-translate/core';
 
 import { VmwComboboxItem } from '../../shared/components/combobox/combobox-items/combobox-item.model';
 import { OnPremZone, ZoneType } from './../../zones/shared/zones.model';
+import { VmwTasksService } from '../../shared/components/task-panel/tasks.service';
 import { ZonesService } from '../shared/zones.service';
 import { BlockchainService } from './../../blockchain/shared/blockchain.service';
+import { mainRoutes } from '../../shared/urls.model';
 
 
 @Component({
@@ -27,12 +32,16 @@ export class ZoneFormComponent implements AfterViewInit {
   onPremError: any;
   locations: any[] = [];
   selectedLocation: any;
+  zoneId: string;
 
   get log_managements() { return this.form.get('log_managements'); }
 
   constructor(
     private zonesService: ZonesService,
-    private blockchainService: BlockchainService
+    private blockchainService: BlockchainService,
+    private route: ActivatedRoute,
+    private translate: TranslateService,
+    private taskService: VmwTasksService
   ) {
     this.form = this.initForm();
   }
@@ -40,6 +49,10 @@ export class ZoneFormComponent implements AfterViewInit {
   ngAfterViewInit() {
     this.form.controls.onPrem.statusChanges
       .subscribe(status => this.handleOnPremTesting(status));
+
+    this.route.params.subscribe(params => {
+      this.zoneId = params['zoneId'];
+    });
 
     this.form.controls.onPremLocation.get('location')
       .valueChanges.pipe(
@@ -228,10 +241,22 @@ export class ZoneFormComponent implements AfterViewInit {
         .testOnPremZoneConnection(this.getOnPremInfo())
         .subscribe(() => {
           this.onPremConnectionSuccessful = true;
+          if (this.zoneId === mainRoutes.new) {
+            this.taskService.addToast({
+              title: this.translate.instant('common.success'),
+              description: this.translate.instant('onPrem.onPremConnSucc'),
+              type: VmwToastType.INFO
+            });
+          }
           testCon.unsubscribe();
         }, error => {
           this.onPremConnectionSuccessful = false;
           this.onPremError = error.message;
+          this.taskService.addToast({
+            title: this.translate.instant('common.fail'),
+            description: this.translate.instant('onPrem.onPremConnError'),
+            type: VmwToastType.FAILURE
+          });
           testCon.unsubscribe();
           return error;
         });

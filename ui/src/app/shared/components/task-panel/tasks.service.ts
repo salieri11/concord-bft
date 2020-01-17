@@ -5,6 +5,7 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject,  Observable,  Subject,  PartialObserver } from 'rxjs';
 import { mapTo, takeUntil, tap } from 'rxjs/operators';
+import { VmwToastType } from '@vmw/ngx-components';
 
 export interface IVmwTaskInfo {
   /**
@@ -45,6 +46,15 @@ export enum VmwTaskState {
   COMPLETED = <any>'COMPLETED',
   ERROR = <any>'ERROR',
   CANCELLED = <any>'CANCELLED'
+}
+
+export interface Toast {
+  title: string;
+  description?: string;
+  date?: string;
+  type: VmwToastType;
+  primaryActionTitle?: String;
+  primaryActionHandler?: any;
 }
 
 export class VmwTask {
@@ -156,8 +166,10 @@ export class VmwTask {
 export class VmwTasksService {
 
   private _taskListSubject: BehaviorSubject<VmwTask[]> = new BehaviorSubject([]);
+  private _toastListSubject: BehaviorSubject<Toast> = new BehaviorSubject(null);
 
   tasks$: Observable<VmwTask[]> = this._taskListSubject.asObservable();
+  toasts$: Observable<Toast> = this._toastListSubject.asObservable();
 
   /**
    * Includes the given Task in the inner TasksList
@@ -177,6 +189,14 @@ export class VmwTasksService {
 
     return task;
   }
+
+    addToast(toast: Toast) {
+      this._toastListSubject.next(toast);
+    }
+
+    // removeToast(index: number) {
+    //     this.toasts.splice(index, 1);
+    // }
 
   /**
    * Clear the given task

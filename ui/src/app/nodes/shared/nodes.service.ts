@@ -173,7 +173,7 @@ export class NodesService {
     const currentTask = this.tasks[taskId] = {taskDetails: null, trackedTask: null};
     currentTask.taskDetails = {
       title: this.translate.instant('nodes.deployingClient'),
-      description: `${this.translate.instant('nodes.deployingClientDesc')}: ${name}`,
+      description: `${this.translate.instant('nodes.deployingClientDesc')} ${name}`,
       progress: 10
     };
 

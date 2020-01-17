@@ -24,7 +24,8 @@ import { map } from 'rxjs/operators';
 import {
   VmwTasksService,
   VmwTask,
-  VmwTaskState
+  VmwTaskState,
+  Toast
 } from './tasks.service';
 
 @Component({
@@ -82,6 +83,7 @@ export class VmwTaskPanelComponent implements AfterViewInit, OnInit {
   }>;
 
   state = 'open';
+  toasts: Toast[] = [];
 
   constructor(private vmwTasksService: VmwTasksService) { }
 
@@ -104,6 +106,13 @@ export class VmwTaskPanelComponent implements AfterViewInit, OnInit {
     this.tasksFromService.changes.subscribe(() => {
       this.configureTasks(this.tasksFromService);
     });
+
+    this.vmwTasksService.toasts$.subscribe(toast => {
+      if (toast) {
+        this.toasts.push(toast);
+      }
+    });
+
   }
 
   configureTasks(tasks: QueryList<VmwTaskComponent>) {
