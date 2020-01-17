@@ -114,6 +114,9 @@ lazy val write_service = (project in file("write-service"))
       "com.daml.ledger" %% "participant-state" % sdkVersion,
       "com.daml.ledger" %% "participant-state-kvutils" % sdkVersion,
 
+      // Database support
+      "org.postgresql" % "postgresql" % "42.2.6",
+
       // Akka
       "com.typesafe.akka" %% "akka-stream" % akkaVersion,
 
