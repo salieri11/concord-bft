@@ -112,7 +112,7 @@ object KvbcLedgerServer extends App {
         config.participantId,
         config.archiveFiles,
         config.port,
-        None, // address to bind to
+        Some("0.0.0.0"), // address to bind to
         config.jdbcUrl,
         config.tlsConfig,
         config.timeProvider,
