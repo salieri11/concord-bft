@@ -65,14 +65,14 @@ object KvbcLedgerServer extends App {
        |dar_file(s)=${args.drop(2).mkString("(", ";", ")")}""".stripMargin.replaceAll("\n", " "))
 
   logger.info(s"Connecting to the first core replica ${config.replicas.head}")
-  val address = config.replicas.head.split(":")
-  val ledger = KVBCParticipantState("KVBC", participantId, address(0), address(1).toInt)
+  val addresses: Array[String] = config.replicas.toArray
+  val ledger = KVBCParticipantState("KVBC", participantId, addresses, 
+        config.useThinReplica, config.maxFaultyReplicas)
 
   val readService = ledger
   val writeService = ledger
   val loggerFactory = NamedLoggerFactory.forParticipant(participantId)
   val authService = AuthServiceWildcard
-
 
   val resource = for {
     // FIXME(JM): The resource cleanup isn't clean as
