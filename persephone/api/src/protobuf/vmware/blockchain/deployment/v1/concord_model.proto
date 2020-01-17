@@ -51,6 +51,7 @@ message ConcordComponent {
         LOGGING = 11;
         WAVEFRONT_PROXY = 12;
         JAEGER_AGENT = 13;
+        TELEGRAF = 14;
     }
 
     Type type = 1;

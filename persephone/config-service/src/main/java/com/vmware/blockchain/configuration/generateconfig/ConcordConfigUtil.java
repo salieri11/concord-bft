@@ -55,7 +55,8 @@ public class ConcordConfigUtil {
         CLIENT_PROXY("client_proxy"),
         REPLICA_HOST("replica_host"),
         CLIENT_HOST("client_host"),
-        CLIENT_PORT("client_port");
+        CLIENT_PORT("client_port"),
+        METRICS_CONFIG("metrics_config");
 
         String name;
 
@@ -208,9 +209,9 @@ public class ConcordConfigUtil {
         try {
             configInput = yaml.load(new FileInputStream(configTemplatePath));
         } catch (FileNotFoundException e) {
-            //FIXME: To make backwards compatible. This could be removed later.
-            log.error(String.format("File %s does not exist: %s\n Using localized config yaml input template",
-                                    configTemplatePath, e.getLocalizedMessage()));
+            // For unit tests only.
+            log.error("File {} does not exist: {}\n Using localized config yaml input template",
+                                    configTemplatePath, e.getLocalizedMessage());
             ClassLoader classLoader = getClass().getClassLoader();
             configInput = yaml.load(classLoader.getResourceAsStream("ConcordConfigTemplate.yaml"));
         }
@@ -230,6 +231,7 @@ public class ConcordConfigUtil {
 
         configInput.put(ConfigProperty.F_VAL.name, fVal);
         configInput.put(ConfigProperty.C_VAL.name, cVal);
+        configInput.put(ConfigProperty.METRICS_CONFIG.name, TelegrafConfigUtil.metricsConfigPath);
 
         // Prepare per replica config
         List node = (List) configInput.get(ConfigProperty.NODE.name);

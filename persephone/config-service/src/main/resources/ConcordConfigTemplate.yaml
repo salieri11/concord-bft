@@ -15,6 +15,7 @@ tls_certificates_folder_path: /concord/config-local/cert
 node__TEMPLATE:
   genesis_block: /concord/config-public/genesis.json
   blockchain_db_path: /concord/rocksdbdata/
+  prometheus_port: 9891
   time_pusher_period_ms: 1000
 node:
   - service_host: 0.0.0.0
