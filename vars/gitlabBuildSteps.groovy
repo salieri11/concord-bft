@@ -194,16 +194,12 @@ def call(){
       gitLabConnection('TheGitlabConnection')
     }
     parameters {
-      booleanParam defaultValue: false, description: "Whether to deploy the docker images for production. REQUIRES A VERSION NUMBER IN THE 'version_param' FIELD.", name: "deploy"
+      booleanParam defaultValue: false, description: "Whether to deploy the docker images for production. Only supported for the Master Jenkins job", name: "deploy"
 
       booleanParam defaultValue: true, description: "Whether to run tests.", name: "run_tests"
       password defaultValue: "",
              description: "If this is a run which pushes items to a repo (e.g. Artifactory, Bintray, Dockerhub), and you are bypassing tests, a password is needed.",
              name: "skip_tests_password"
-
-      string defaultValue: "",
-             description: "The version number for releases. Used as a tag in DockerHub and Git.  REQUIRED IF THE 'deploy' CHECKBOX IS CHECKED.",
-             name: "version_param"
 
       string defaultValue: "",
              description: "Blockchain commit or branch to use.  Providing a branch name will pull the branch's latest commit.",
@@ -262,8 +258,9 @@ def call(){
               script{
                 errString = "Parameter check error: "
 
-                if (params.deploy && (!params.version_param || !params.version_param.trim())){
-                  throw new Exception (errString + "A version number must be entered when the 'deploy' checkbox is checked.")
+                if (params.deploy && (!env.JOB_NAME.contains(master_branch_job_name))){
+                  throw new Exception (errString + "Only do releases from the Master " +
+                                       "Jenkins job.  The build number is based on that.")
                 }
               }
 
@@ -364,14 +361,15 @@ def call(){
         }
       }
 
-      stage('Write version for GUI') {
+      stage('Get Version') {
         steps() {
           script{
             try{
               dir('blockchain') {
                 script {
-                  version = env.version_param ? env.version_param : env.commit
-                  env.version_json = createVersionInfo(version, env.commit)
+                  setProductVersion()
+                  echo("product_version: " + env.product_version)
+                  env.version_json = createGUIVersionInfo()
                 }
                 // The groovy calls to create directories and files fail, only in Jenkins,
                 // so do those in a shell block.  Jenkins has some quirky ideas of security?
@@ -442,8 +440,8 @@ def call(){
                 env.docker_tag = env.recent_published_docker_tag
                 saveTimeEvent("Build", "Completed fetch build number from Job Update-onecloud-provisioning-service")
               } else {
-                echo "This run requries building components"
-                env.docker_tag = env.version_param ? env.version_param : env.BUILD_NUMBER
+                echo "This run requires building components"
+                env.docker_tag = env.product_version
               }
 
               setUpRepoVariables()
@@ -1023,7 +1021,7 @@ EOF
             try{
               saveTimeEvent("Push to DockerHub", "Start")
               dir('blockchain') {
-                createAndPushGitTag(env.version_param)
+                createAndPushGitTag(env.product_version)
               }
 
               tagImagesForRelease()
@@ -1038,7 +1036,7 @@ EOF
                     release_notification_recipients = readFile(release_notification_address_file).replaceAll("\n", " ")
                     emailext body: "Changes: \n" + getChangesSinceLastTag(),
                          to: release_notification_recipients,
-                         subject: "[Build] Concord version " + env.version_param + " has been pushed to DockerHub."
+                         subject: "[Build] Concord version " + env.product_version + " has been pushed to DockerHub."
                   }
                 }
               }
@@ -1284,11 +1282,11 @@ String getChangesSinceLastTag(){
 }
 
 // Use groovy to create and return json for the version and commit
-// for this run.
-void createVersionInfo(version, commit){
+// for this run.  This gives the GUI something to display.
+void createGUIVersionInfo(){
   versionObject = [:]
-  versionObject.version = version
-  versionObject.commit = commit
+  versionObject.version = env.product_version
+  versionObject.commit = env.commit
   return new JsonOutput().toJson(versionObject)
 }
 
@@ -1986,4 +1984,17 @@ void lookForSR19062354609(results_dir){
              to: recipients,
              subject: "Instance of SR 19062354609 found!"
   }
+}
+
+// The version is: major.minor.patch.build
+// The first three are read from build_info data file.
+// The fourth digit is the Jenkins build number for
+// the current run.
+void setProductVersion(){
+  raw_data = readFile("vars/build_info.json")
+  version_object = new JsonSlurperClassic().parseText(raw_data)
+  env.product_version = version_object["build_numbers"]["major"] + "." +
+                        version_object["build_numbers"]["minor"] + "." +
+                        version_object["build_numbers"]["patch"] + "." +
+                        env.BUILD_NUMBER
 }
