@@ -46,6 +46,7 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
     private TaskService taskService;
     private UUID taskId;
     private UUID consortiumId;
+    private UUID blockchainId;
     private final List<NodeEntry> nodeList = new ArrayList<>();
     private DeploymentSession.Status status = DeploymentSession.Status.UNKNOWN;
     private UUID clusterId;
@@ -60,6 +61,7 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
      * @param taskService       Task service
      * @param taskId            The task ID we are reporting this on.
      * @param consortiumId      ID for the consortium creating this blockchain
+     * @param blockchainId      ID for the blockchain if present.
      */
     public BlockchainObserver(
             AuthHelper authHelper,
@@ -69,6 +71,7 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
             TaskService taskService,
             UUID taskId,
             UUID consortiumId,
+            UUID blockchainId,
             BlockchainType type,
             Replica.ReplicaType replicaType) {
         this.authHelper = authHelper;
@@ -78,6 +81,7 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
         this.taskService = taskService;
         this.taskId = taskId;
         this.consortiumId = consortiumId;
+        this.blockchainId = blockchainId;
         auth = SecurityContextHolder.getContext().getAuthentication();
         opId = operationContext.getId();
         this.type = type;
@@ -113,17 +117,23 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
                     break;
 
                 case CLUSTER_DEPLOYED:
-                    ConcordCluster cluster = value.getCluster();
-                    // force the blockchain id to be the same as the cluster id
-                    clusterId = FleetUtils.toUuid(cluster.getId());
-                    message = String.format("Cluster %s deployed", clusterId);
-                    logger.info("Blockchain ID: {}", clusterId);
 
-                    // create the nodeList for the cluster
-                    cluster.getInfo().getMembersList().stream()
-                            .map(BlockchainObserver::toNodeEntry)
-                            .peek(node -> logger.info("Node entry, id {}", node.getNodeId()))
-                            .forEach(nodeList::add);
+                    ConcordCluster cluster = value.getCluster();
+                    if (replicaType == Replica.ReplicaType.DAML_PARTICIPANT) {
+                        // Temporary hack to allow client deployment.
+                        clusterId = blockchainId;
+                    } else {
+                        // force the blockchain id to be the same as the cluster id
+                        clusterId = FleetUtils.toUuid(cluster.getId());
+                        message = String.format("Cluster %s deployed", clusterId);
+                        logger.info("Blockchain ID: {}", clusterId);
+
+                        // create the nodeList for the cluster
+                        cluster.getInfo().getMembersList().stream()
+                                .map(BlockchainObserver::toNodeEntry)
+                                .peek(node -> logger.info("Node entry, id {}", node.getNodeId()))
+                                .forEach(nodeList::add);
+                    }
 
                     // create the and save the replicas.
                     cluster.getInfo().getMembersList().stream()
@@ -189,10 +199,15 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
         task.setMessage("Operation finished");
 
         if (status == DeploymentSession.Status.SUCCESS) {
-            // Create blockchain entity based on collected information.
-            Blockchain blockchain = blockchainService.create(clusterId, consortiumId, type, nodeList);
-            task.setResourceId(blockchain.getId());
-            task.setResourceLink(String.format("/api/blockchains/%s", blockchain.getId()));
+            if (replicaType == Replica.ReplicaType.DAML_PARTICIPANT) {
+                task.setResourceId(blockchainId);
+                task.setResourceLink(String.format("/api/blockchains/%s/clients", blockchainId));
+            } else {
+                // Create blockchain entity based on collected information.
+                Blockchain blockchain = blockchainService.create(clusterId, consortiumId, type, nodeList);
+                task.setResourceId(blockchain.getId());
+                task.setResourceLink(String.format("/api/blockchains/%s", blockchain.getId()));
+            }
             task.setState(Task.State.SUCCEEDED);
         } else {
             task.setState(Task.State.FAILED);

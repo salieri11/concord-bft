@@ -120,7 +120,8 @@ public class BlockchainObserverTest {
         operationContext = new OperationContext();
         operationContext.initId();
         blockchainObserver = new BlockchainObserver(authHelper, operationContext, blockchainService, replicaService,
-                                                    taskService, TASK_ID, CONS_ID, BlockchainType.ETHEREUM,
+                                                    taskService, TASK_ID, CONS_ID, null,
+                                                    BlockchainType.ETHEREUM,
                                                     Replica.ReplicaType.NONE);
         ConcordCluster cluster = createTestCluster(CLUSTER_ID);
         DeploymentSessionIdentifier deploymentSessionIdentifier = DeploymentSessionIdentifier.newBuilder()
