@@ -198,13 +198,18 @@ int main(int argc, char** argv) {
     }
 
     size_t updates_displayed = 0;
+    size_t updates_per_subscription_call =
+        (kNumUpdatesToDisplayBeforeUnsubscribing / 2);
+    LOG4CPLUS_INFO(
+        logger, "This example application will wait for "
+                    << updates_per_subscription_call
+                    << " updates before trying to stop and restart the "
+                       "subscription, then wait for an additional "
+                    << updates_per_subscription_call
+                    << " updates before trying to permanently unsubscribe...");
     update = trcf->Pop();
-    LOG4CPLUS_INFO(logger, "This example application will wait for "
-                               << kNumUpdatesToDisplayBeforeUnsubscribing
-                               << " updates before trying to unsubscribe...");
 
-    while (update &&
-           (updates_displayed < kNumUpdatesToDisplayBeforeUnsubscribing)) {
+    while (update && (updates_displayed < updates_per_subscription_call)) {
       ReportUpdate(logger, *update);
       latest_block_id = update->block_id;
       trcf->AcknowledgeBlockID(latest_block_id);
@@ -215,11 +220,44 @@ int main(int argc, char** argv) {
       update = trcf->Pop();
     }
 
-    if (updates_displayed < kNumUpdatesToDisplayBeforeUnsubscribing) {
+    if (updates_displayed < updates_per_subscription_call) {
       LOG4CPLUS_INFO(logger, "The update consumer thread was recalled.");
     } else {
-      LOG4CPLUS_INFO(logger, "Received " << updates_displayed
-                                         << " updates; unsubscribing...");
+      LOG4CPLUS_INFO(logger, "Received "
+                                 << updates_displayed
+                                 << " updates; restarting subscription...");
+      trcf.reset();
+      LOG4CPLUS_INFO(logger, "Destroyed ThinReplicaClient object in use.");
+      trcf.reset(new ThinReplicaClientFacade("example_client_id", max_faulty,
+                                             private_key, servers));
+      LOG4CPLUS_INFO(logger, "New ThinReplicaClient object constructed.");
+      trcf->Subscribe("", latest_block_id);
+      LOG4CPLUS_INFO(
+          logger,
+          "Subscription resumed from block "
+              << latest_block_id << "; will wait for an additional "
+              << updates_per_subscription_call
+              << " updates before trying to permanently unsubscribe...");
+
+      updates_displayed = 0;
+      update = trcf->Pop();
+      while (update && (updates_displayed < updates_per_subscription_call)) {
+        ReportUpdate(logger, *update);
+        latest_block_id = update->block_id;
+        trcf->AcknowledgeBlockID(latest_block_id);
+        LOG4CPLUS_INFO(logger, "Acknowledged update with with Block ID "
+                                   << latest_block_id << ".");
+        ++updates_displayed;
+
+        update = trcf->Pop();
+      }
+
+      if (updates_displayed < updates_per_subscription_call) {
+        LOG4CPLUS_INFO(logger, "The update consumer thread was recalled.");
+      } else {
+        LOG4CPLUS_INFO(logger, "Received " << updates_displayed
+                                           << " updates; unsubscribing...");
+      }
     }
 
     trcf->Unsubscribe();
