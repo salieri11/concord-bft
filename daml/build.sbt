@@ -6,7 +6,8 @@ ThisBuild / organization     := "com.digitalasset"
 ThisBuild / organizationName := "Digital Asset, LLC"
 
 lazy val akkaVersion = "2.5.13"
-lazy val sdkVersion = "100.13.46"
+lazy val sdkVersion = "100.13.52"
+lazy val integrationKitVersion = "0.0.3"
 
 lazy val protobuf = "com.google.protobuf" % "protobuf-java" % "3.2.0"
 lazy val scalapb_runtime  = "com.thesamet.scalapb" %% "scalapb-runtime" % scalapb.compiler.Version.scalapbVersion % "protobuf"
@@ -15,10 +16,15 @@ lazy val scalapb_runtime_grpc = "com.thesamet.scalapb" %% "scalapb-runtime-grpc"
 resolvers in Global ++=
   Seq(
     "Digital Asset SDK" at "https://digitalassetsdk.bintray.com/DigitalAssetSDK",
-    // "DA release" at "file:///tmp/repository"
+    "Digital Asset KV OEM integration kit" at "https://digitalassetsdk.bintray.com/vmware-integration-kit",
   )
 
 lazy val commonSettings = Seq()
+credentials += Credentials("Bintray",
+ "digitalassetsdk.bintray.com", "khank@digitalassetsdk",
+ "950e28835107431095fe4b98b6b1e0bd484ea9fa")
+ resolvers += "Bintray".at("https://digitalassetsdk.bintray.com/vmware-integration-kit")
+
 
 lazy val protos = (project in file("protos"))
   .settings(
@@ -42,7 +48,8 @@ lazy val common = (project in file("common"))
     commonSettings,
     name := "DAML on VMware Common",
     libraryDependencies ++= Seq(
-      
+      protobuf,
+
       // Logging and monitoring
       "org.slf4j" % "slf4j-api" % "1.7.25",
       "ch.qos.logback" % "logback-core" % "1.2.3",
@@ -69,9 +76,11 @@ lazy val execution_engine = (project in file("execution-engine"))
       "com.digitalasset" %% "daml-lf-data" % sdkVersion,
       "com.digitalasset" %% "daml-lf-engine" % sdkVersion,
       "com.digitalasset" %% "daml-lf-language" % sdkVersion,
-      
+
       "com.daml.ledger" %% "participant-state" % sdkVersion,
       "com.daml.ledger" %% "participant-state-kvutils" % sdkVersion,
+
+      "com.daml.ledger.participant.state.pkvutils" % "pkvutils" % integrationKitVersion,
 
       // Akka
       "com.typesafe.akka" %% "akka-stream" % akkaVersion,
@@ -116,6 +125,8 @@ lazy val write_service = (project in file("write-service"))
       // Database support
       "org.postgresql" % "postgresql" % "42.2.6",
 
+      "com.daml.ledger.participant.state.pkvutils" % "pkvutils" % integrationKitVersion,
+
       // Akka
       "com.typesafe.akka" %% "akka-stream" % akkaVersion,
 
@@ -128,7 +139,7 @@ lazy val write_service = (project in file("write-service"))
       "ch.qos.logback" % "logback-classic" % "1.2.3",
     ),
   )
-  .dependsOn(protos, trc_core)
+  .dependsOn(protos, common, trc_core)
 
 
 lazy val ledger_api_server = (project in file("ledger-api-server"))
@@ -148,6 +159,9 @@ lazy val ledger_api_server = (project in file("ledger-api-server"))
 
       "com.daml.ledger" %% "participant-state" % sdkVersion,
       "com.daml.ledger" %% "participant-state-kvutils" % sdkVersion,
+
+      // Database support
+      "org.postgresql" % "postgresql" % "42.2.6",
 
       // Akka
       "com.typesafe.akka" %% "akka-stream" % akkaVersion,

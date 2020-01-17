@@ -30,13 +30,11 @@
 #include "common/status_aggregator.hpp"
 #include "config/configuration_manager.hpp"
 #include "consensus/bft_configuration.hpp"
-#include "daml/blocking_queue.h"
 #include "daml/daml_init_params.hpp"
 #include "daml/daml_kvb_commands_handler.hpp"
 #include "daml/daml_validator_client.hpp"
 #include "daml/grpc_services.hpp"
 #include "daml_commit.grpc.pb.h"
-#include "daml_events.grpc.pb.h"
 #include "ethereum/concord_evm.hpp"
 #include "ethereum/eth_kvb_commands_handler.hpp"
 #include "ethereum/eth_kvb_storage.hpp"
@@ -111,13 +109,9 @@ using concord::hlf::RunHlfGrpcServer;
 using concord::time::TimePusher;
 using concord::utils::EthSign;
 
-using com::digitalasset::kvbc::CommittedTx;
-using concord::daml::BlockingPersistentQueue;
 using concord::daml::CommitServiceImpl;
 using concord::daml::DamlKvbCommandsHandler;
 using concord::daml::DamlValidatorClient;
-using concord::daml::DataServiceImpl;
-using concord::daml::EventsServiceImpl;
 
 using concord::thin_replica::SubBufferList;
 using concord::thin_replica::ThinReplicaImpl;
@@ -382,13 +376,10 @@ void start_worker_threads(int number) {
 
 void RunDamlGrpcServer(std::string server_address, KVBClientPool &pool,
                        const ILocalKeyValueStorageReadOnly *ro_storage,
-                       BlockingPersistentQueue<CommittedTx> &committedTxs,
                        SubBufferList &subscriber_list, int max_num_threads) {
   Logger logger = Logger::getInstance("com.vmware.concord.daml");
 
-  DataServiceImpl *dataService = new DataServiceImpl(pool, ro_storage);
   CommitServiceImpl *commitService = new CommitServiceImpl(pool);
-  EventsServiceImpl *eventsService = new EventsServiceImpl(committedTxs);
   ThinReplicaImpl *thinReplicaService =
       new ThinReplicaImpl(ro_storage, subscriber_list);
 
@@ -399,9 +390,7 @@ void RunDamlGrpcServer(std::string server_address, KVBClientPool &pool,
   builder.SetResourceQuota(quota);
   builder.SetMaxMessageSize(kDamlServerMsgSizeMax);
   builder.AddListeningPort(server_address, grpc::InsecureServerCredentials());
-  builder.RegisterService(dataService);
   builder.RegisterService(commitService);
-  builder.RegisterService(eventsService);
   builder.RegisterService(thinReplicaService);
 
   daml_grpc_server = unique_ptr<grpc::Server>(builder.BuildAndStart());
@@ -468,10 +457,8 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
   EVMInitParams params;
   uint64_t chainID;
 
-  // Subscription service
-  // Old - to be removed once thin replica is integrated
-  BlockingPersistentQueue<CommittedTx> committedTxs;
-  // New - List of ring buffers (one per subscriber)
+  // List of ring buffers (one per subscriber) for thin replica subscription
+  // service.
   SubBufferList subscriber_list;
 
   bool daml_enabled = config.getValue<bool>("daml_enable");
@@ -563,8 +550,8 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
               grpc::InsecureChannelCredentials(), chArgs)));
       kvb_commands_handler =
           unique_ptr<ICommandsHandler>(new DamlKvbCommandsHandler(
-              config, nodeConfig, replica, replica, committedTxs,
-              subscriber_list, std::move(daml_validator), prometheus_registry));
+              config, nodeConfig, replica, replica, subscriber_list,
+              std::move(daml_validator), prometheus_registry));
       const auto &status =
           create_daml_genesis_block(&replica, nodeConfig, logger);
       if (status.isOK()) {
@@ -689,8 +676,7 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
 
       // Spawn a thread in order to start management API server as well
       std::thread(RunDamlGrpcServer, daml_addr, std::ref(pool), &replica,
-                  std::ref(committedTxs), std::ref(subscriber_list),
-                  max_num_threads)
+                  std::ref(subscriber_list), max_num_threads)
           .detach();
     } else if (hlf_enabled) {
       // Get listening address for services

@@ -8,10 +8,10 @@ package com.digitalasset.kvbc;
 option java_package = "com.digitalasset.kvbc";
 
 import "google/protobuf/timestamp.proto";
-import "daml_data.proto";
+import "google/protobuf/empty.proto";
 
 // The validation service provides a gRPC API taking the `DamlSubmission` message, along
-// with the inputs to the submission and returns the resulting log entry and state updates.
+// with the inputs to the submission and returns the resulting fragments and state updates.
 service ValidationService {
   rpc ValidateSubmission (ValidateRequest) returns (ValidateResponse) {}
 
@@ -32,12 +32,28 @@ message ValidateRequest {
   string correlation_id = 7;
 }
 
+message ProtectedKeyValuePair {
+  bytes key = 1;
+  bytes value = 2;
+
+  // Thin replica ids to which this key-value pair is visible to.
+  // If the list is empty, the key-value pair is publicly visible.
+  // To only show the key-value pair to replica the list should contain
+  // the replica's id.
+  // FIXME(JM): What should we use as the replica's id?
+  repeated string trids = 3;
+}
+
 message Result {
-  bytes log_entry = 1;
-  repeated KeyValuePair state_updates = 2;
+  repeated ProtectedKeyValuePair updates = 1;
   repeated bytes read_set = 3;
 }
 
+
+message KeyValuePair {
+  bytes key = 1;
+  bytes value = 2;
+}
 
 message ValidateResponse {
   message NeedState {
