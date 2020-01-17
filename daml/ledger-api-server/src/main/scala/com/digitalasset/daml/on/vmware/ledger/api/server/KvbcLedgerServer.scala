@@ -20,10 +20,12 @@ import com.digitalasset.ledger.api.auth.AuthServiceWildcard
 import com.digitalasset.platform.apiserver.{ApiServerConfig, StandaloneApiServer}
 import com.digitalasset.platform.common.logging.NamedLoggerFactory
 import com.digitalasset.platform.indexer.{IndexerConfig, StandaloneIndexerServer}
+import com.digitalasset.platform.resources.{Resource, ResourceOwner}
 
 import org.slf4j.LoggerFactory
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.duration.DurationInt
+import scala.concurrent.{ExecutionContext, Future, Await}
 import scala.util.Try
 import scala.util.control.NonFatal
 
@@ -72,10 +74,20 @@ object KvbcLedgerServer extends App {
   val authService = AuthServiceWildcard
 
 
-  val participantF: Future[(AutoCloseable, AutoCloseable)] = for {
-    indexer <- newIndexer(config, indexerMetrics)
-    apiServer <- newApiServer(config, serverMetrics).start()
-  } yield (indexer, apiServer)
+  val resource = for {
+    // FIXME(JM): The resource cleanup isn't clean as
+    // Akka and the KVBC parts aren't under this. Since
+    // we're moving most of the logic here and in validator
+    // into kv-oem-integration-kit very soon I'm leaving this
+    // in this state.
+    _ <- newIndexer(config, indexerMetrics).acquire()
+    _ <- newApiServer(config, serverMetrics).acquire()
+  } yield ()
+
+  resource.asFuture.failed.foreach { exception =>
+    logger.error("Shutting down because of an initialization error.", exception)
+    System.exit(1)
+  }
 
   config.archiveFiles.foreach { f =>
     val submissionId = SubmissionId.assertFromString(UUID.randomUUID().toString)
@@ -87,7 +99,7 @@ object KvbcLedgerServer extends App {
   }
 
   def newIndexer(config: Config, metrics: MetricRegistry) =
-    StandaloneIndexerServer(
+    new StandaloneIndexerServer(
       readService,
       IndexerConfig(config.participantId, config.jdbcUrl, config.startupMode),
       NamedLoggerFactory.forParticipant(config.participantId),
@@ -100,6 +112,7 @@ object KvbcLedgerServer extends App {
         config.participantId,
         config.archiveFiles,
         config.port,
+        None, // address to bind to
         config.jdbcUrl,
         config.tlsConfig,
         config.timeProvider,
@@ -117,11 +130,7 @@ object KvbcLedgerServer extends App {
 
   def closeServer(): Unit = {
     if (closed.compareAndSet(false, true)) {
-      participantF.foreach {
-        case (indexer, apiServer) =>
-          indexer.close()
-          apiServer.close()
-      }
+      Await.result(resource.release(), 10.seconds)
       httpServer.stop()
       materializer.shutdown()
       val _ = system.terminate()
@@ -132,9 +141,6 @@ object KvbcLedgerServer extends App {
     logger.error("Shutting down vDAML Ledger API Server because of initialization error", e)
     closeServer()
   }
-
-  participantF.failed.foreach(startupFailed)
-
 
   try
     Runtime.getRuntime.addShutdownHook(new Thread(() => {

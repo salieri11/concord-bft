@@ -2,6 +2,7 @@
 package com.digitalasset.daml.on.vmware.ledger.api.server
 
 import java.io.File
+import java.nio.file.Path
 
 import com.daml.ledger.participant.state.v1.ParticipantId
 import com.digitalasset.api.util.TimeProvider
@@ -11,7 +12,7 @@ import com.digitalasset.platform.indexer.IndexerStartupMode
 
 final case class Config(
     port: Int,
-    portFile: Option[File],
+    portFile: Option[Path],
     archiveFiles: List[File],
     maxInboundMessageSize: Int,
     timeProvider: TimeProvider, // enables use of non-wall-clock time in tests
