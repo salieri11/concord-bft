@@ -434,10 +434,25 @@ void ThinReplicaClient::Subscribe(const string& key_prefix_bytes) {
 
 void ThinReplicaClient::Subscribe(const string& key_prefix_bytes,
                                   uint64_t last_known_block_id) {
-  // TODO (Alex): Implement.
-  LOG4CPLUS_FATAL(logger_,
-                  "thin_replica_client::ThinReplicaClient::Subscribe(const "
-                  "string&, uint64_t) is unimplemented.");
+  // TODO (Alex): Stop, cleanup, and destroy any existing subscription thread.
+
+  update_queue_->Clear();
+  key_prefix_ = key_prefix_bytes;
+  latest_verified_block_id_ = last_known_block_id;
+
+  // Create and launch thread to stream updatees from the servers and push them
+  // into the queue.
+  stop_subscription_thread_ = false;
+  subscription_thread_.reset(
+      new thread(&ThinReplicaClient::ReceiveUpdates, this));
+
+  // TODO (Alex): Complete, revise, and clean up error handling for this
+  //              function.
+  LOG4CPLUS_WARN(
+      logger_,
+      "thin_replica_client::ThinReplicaClient::Subscribe is incomplete in its "
+      "error handling and recovery; the worker thread Subscribe creates is "
+      "also incomple in its error handling and recovery.");
 }
 
 // This is a placeholder implementation as the Unsubscribe gRPC call is not yet

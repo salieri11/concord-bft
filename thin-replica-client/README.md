@@ -144,7 +144,7 @@ be expected to look like if everything works as expected:
     The update appears to be empty.
 2020-01-11T02:41:15.997 INFO  thin_replica.example: The (at least initial) contents of the update queue have been exhausted; will now wait for and report any additional updates...
 2020-01-11T02:41:15.997 INFO  thin_replica.example: Update(s) acknowledged.
-2020-01-11T02:41:16.001 INFO  thin_replica.example: This example application will wait for 128 updates before trying to unsubscribe...
+2020-01-11T02:41:16.001 INFO  thin_replica.example: This example application will wait for 64 updates before trying to stop and restart the subscription, then wait for an additional 64 updates before trying to permanently unsubscribe...
 ```
 
 Note that `<SOME LINES OMITTED FOR CONCISION>` is not actually expected in the
@@ -158,9 +158,13 @@ real time for the generated updates. The example application will wait to
 receive a fixed number of updates before attempting to unsubscribe and
 terminating (128 updates in the example output here; which sounds like a lot,
 though it should not take too long as the time service causes the generation of
-a steady stream of empty updates).
+a steady stream of empty updates). In order to demonstrate the Thin Replica
+Client Library's support for resuming a stopped subscription via a saved Block
+ID, the example application will destroy and reconstruct its Thin Replica Client
+object half way through this fixed number of updates, then try to re-subscribe
+with the last Block ID it received before destroying its first client.
 
-Here is an example of what some of this additional output might look like:
+Here is an example of what some of the additional output from updates received in real time might look like:
 
 ```
 2020-01-11T02:41:24.397 INFO  thin_replica.example: Acknowledged update with with Block ID 261.
@@ -188,6 +192,35 @@ Here is an example of what some of this additional output might look like:
     The update appears to be empty.
 ```
 
+Here is an example of what the point in the output might look like at which the
+example application destroys and reconstructs its Thin Replica Client object and
+tries to resume its existing subscription:
+
+```
+2020-01-17T02:26:50.876 INFO  thin_replica.example: ThinReplicaClient reported an update (Block ID: 267).
+    The update appears to be empty.
+2020-01-17T02:26:50.876 INFO  thin_replica.example: Acknowledged update with with Block ID 267.
+2020-01-17T02:26:51.063 INFO  thin_replica.example: ThinReplicaClient reported an update (Block ID: 268).
+    The update appears to be empty.
+2020-01-17T02:26:51.063 INFO  thin_replica.example: Acknowledged update with with Block ID 268.
+2020-01-17T02:26:51.085 INFO  thin_replica.example: ThinReplicaClient reported an update (Block ID: 269).
+    The update appears to be empty.
+2020-01-17T02:26:51.085 INFO  thin_replica.example: Acknowledged update with with Block ID 269.
+2020-01-17T02:26:51.107 INFO  thin_replica.example: Received 64 updates; restarting subscription...
+2020-01-17T02:26:51.892 INFO  thin_replica.example: Destroyed ThinReplicaClient object in use.
+2020-01-17T02:26:51.893 INFO  thin_replica.example: New ThinReplicaClient object constructed.
+2020-01-17T02:26:51.893 WARN  com.vmware.thin_replica_client: thin_replica_client::ThinReplicaClient::Subscribe is incomplete in its error handling and recovery; the worker thread Subscribe creates is also incomple in its error handling and recovery.
+2020-01-17T02:26:51.893 INFO  thin_replica.example: Subscription resumed from block 269; will wait for an additional 64 updates before trying to permanently unsubscribe...
+2020-01-17T02:26:51.900 INFO  thin_replica.example: ThinReplicaClient reported an update (Block ID: 269).
+    The update appears to be empty.
+2020-01-17T02:26:51.900 INFO  thin_replica.example: Acknowledged update with with Block ID 269.
+2020-01-17T02:26:51.900 INFO  thin_replica.example: ThinReplicaClient reported an update (Block ID: 270).
+    The update appears to be empty.
+2020-01-17T02:26:51.900 INFO  thin_replica.example: Acknowledged update with with Block ID 270.
+2020-01-17T02:26:51.900 INFO  thin_replica.example: ThinReplicaClient reported an update (Block ID: 271).
+    The update appears to be empty.
+```
+
 Here is an example of how the output might conclude once the example application
 receives its fixed number of updates and unsubscribes:
 
@@ -202,6 +235,6 @@ receives its fixed number of updates and unsubscribes:
 2020-01-11T02:41:48.150 INFO  thin_replica.example: ThinReplicaClient reported an update (Block ID: 355).
     The update appears to be empty.
 2020-01-11T02:41:48.150 INFO  thin_replica.example: Acknowledged update with with Block ID 355.
-2020-01-11T02:41:48.192 INFO  thin_replica.example: Received 128 updates; unsubscribing...
+2020-01-11T02:41:48.192 INFO  thin_replica.example: Received 64 updates; unsubscribing...
 2020-01-11T02:41:48.773 INFO  thin_replica.example: ThinReplicaClient unsubscribed.
 ```
