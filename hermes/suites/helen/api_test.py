@@ -459,6 +459,7 @@ def createLogManagementObject(uniqueId, destination=util.helper.LOG_DESTINATION_
    return {
             "destination": destination,
             "address": "https://example.com/",
+            "port": 8080,
             "username": "admin@{}.com".format(uniqueId),
             "password": "logging_pa$$w0rd4{}".format(uniqueId),
             "log_insight_agent_id": 100
@@ -1018,7 +1019,7 @@ def test_getABlockhain_invalid_uuid(fxConnection):
    assert response["status"] == 404, "Expected 404 response"
    expectedPath = "/api/blockchains/{}".format(blockchainId)
    assert response["path"] == expectedPath, "Expected path {}".format(expectedPath)
-   
+
 
 
 @pytest.mark.smoke

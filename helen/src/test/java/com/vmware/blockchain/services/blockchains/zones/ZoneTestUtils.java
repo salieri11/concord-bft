@@ -44,7 +44,8 @@ public class ZoneTestUtils {
                                        .httpsPort(443).build());
         ozone.setLogManagements(Lists.newArrayList(OnPremZone.LogManagementOnPrem.builder()
                                                     .destination(Zone.LogDestination.LOG_INSIGHT)
-                                                    .address("10.78.0.1:9000")
+                                                    .address("10.78.0.1")
+                                                    .port(9000)
                                                     .username("foo")
                                                     .password("bar")
                                                     .build()));

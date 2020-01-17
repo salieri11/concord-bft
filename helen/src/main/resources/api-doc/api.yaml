@@ -2816,12 +2816,13 @@ components:
 
     OnPremLogManagementsPost:
       description: List of configurations for logging setup
-      type: object
+      type: array
       items:
         type: object
         required:
           - destination
           - address
+          - port
           - username
           - password
         properties:
@@ -2833,9 +2834,12 @@ components:
             example: LOG_INSIGHT
           address:
             type: string
-            description: |
-              Endpoint of the logging setup. Specify port separated by a &#58; if the endpoint is an IP address
-            example: https://example.com
+            description: Endpoint of the logging setup (URL or IP address).
+            example: 10.70.200.100
+          port:
+            type: integer
+            description: Port associated with the address, on which logs are ingested
+            example: 9000
           username:
             type: string
             description: Username to be used for authentication when sending logs to destination
@@ -2863,11 +2867,11 @@ components:
           address:
             type: string
             description: Endpoint of the logging setup
-            example: https://example.com
-          username:
-            type: string
-            description: Username used for sending logs to destination
-            example: foobar
+            example: 10.70.200.100
+          port:
+            type: integer
+            description: Port associated with the address, on which logs are ingested
+            example: 9000
 
 
   responses:

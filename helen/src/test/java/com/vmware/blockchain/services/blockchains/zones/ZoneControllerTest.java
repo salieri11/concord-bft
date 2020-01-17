@@ -122,7 +122,8 @@ class ZoneControllerTest {
                                                    + "  },\n"
                                                    + "  \"log_managements\": [{\n"
                                                    + "    \"destination\": \"LOG_INSIGHT\",\n"
-                                                   + "    \"address\": \"10.78.20.10:9000\",\n"
+                                                   + "    \"address\": \"10.78.20.10\",\n"
+                                                   + "    \"port\": 9000,\n"
                                                    + "    \"username\": \"foo\",\n"
                                                    + "    \"password\": \"bar\"\n"
                                                    + "  }]\n"
@@ -163,7 +164,8 @@ class ZoneControllerTest {
                                                    + "  },\n"
                                                    + "  \"log_managements\": [{\n"
                                                    + "    \"destination\": \"LOG_INSIGHT\",\n"
-                                                   + "    \"address\": \"10.78.20.10:9000\",\n"
+                                                   + "    \"address\": \"10.78.20.10\",\n"
+                                                   + "    \"port\": 9000,\n"
                                                    + "    \"username\": \"foo\",\n"
                                                    + "    \"password\": \"bar\"\n"
                                                    + "  }]\n"
@@ -204,7 +206,8 @@ class ZoneControllerTest {
                                                 + "  },\n"
                                                 + "  \"log_managements\": [{\n"
                                                 + "    \"destination\": \"LOG_INSIGHT\",\n"
-                                                + "    \"address\": \"10.78.20.10:9000\",\n"
+                                                + "    \"address\": \"10.78.20.10\",\n"
+                                                + "    \"port\": 9000,\n"
                                                 + "    \"username\": \"foo\",\n"
                                                 + "    \"password\": \"bar\"\n"
                                                 + "  }]\n"
@@ -251,7 +254,8 @@ class ZoneControllerTest {
                                                 + "  },\n"
                                                 + "  \"log_managements\": [{\n"
                                                 + "    \"destination\": \"LOG_INSIGHT\",\n"
-                                                + "    \"address\": \"10.78.20.10:9000\",\n"
+                                                + "    \"address\": \"10.78.20.10\",\n"
+                                                + "    \"port\": 9000,\n"
                                                 + "    \"username\": \"foo\",\n"
                                                 + "    \"password\": \"bar\"\n"
                                                 + "  }]\n"
@@ -497,7 +501,8 @@ class ZoneControllerTest {
 
         OnPremZone.LogManagementOnPrem logOnPrem = new OnPremZone.LogManagementOnPrem();
         logOnPrem.destination = Zone.LogDestination.LOG_INSIGHT;
-        logOnPrem.address = "10.78.20.10:9000";
+        logOnPrem.address = "10.78.20.10";
+        logOnPrem.port = 9000;
         logOnPrem.username = "foo";
         logOnPrem.password = "bar";
 
@@ -562,6 +567,7 @@ class ZoneControllerTest {
         Assertions.assertEquals("https://wavefront.com", r.getWavefront().getUrl());
         Assertions.assertEquals(1, r.logManagements.size());
         Assertions.assertEquals(Zone.LogDestination.LOG_INSIGHT, r.logManagements.get(0).destination);
+        Assertions.assertEquals(9000, r.getLogManagements().get(0).port);
     }
 
     @Test

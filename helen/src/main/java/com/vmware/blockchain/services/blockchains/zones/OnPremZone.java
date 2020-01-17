@@ -35,6 +35,7 @@ public class OnPremZone extends Zone {
     public static class LogManagementOnPrem {
         LogDestination destination;
         String address;
+        int port;
         String username;
         String password;
         int logInsightAgentId;
