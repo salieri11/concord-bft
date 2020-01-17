@@ -244,6 +244,11 @@ daml() {
     docker_build . daml/DockerfilePostgres ${daml_index_db_repo} ${daml_index_db_tag}
 }
 
+trc-lib() {
+    info "Build Thin Replica Client Library..."
+    docker_build . thin-replica-client/Dockerfile ${trc_lib_repo} ${trc_lib_tag}
+}
+
 PerformanceTests() {
     pushd .
     cd performance/benchmark
@@ -307,6 +312,7 @@ then
     fluentd
     ethereum
     helen
+    trc-lib
     waitForProcesses
     memleak_concord # concord should be built as a pre-req
     waitForProcesses
