@@ -19,8 +19,16 @@ JNIEXPORT jboolean JNICALL Java_com_digitalasset_daml_on_vmware_thin_replica_cli
  * Method:    subscribe
  * Signature: (Ljava/lang/String;)Z
  */
-JNIEXPORT jboolean JNICALL Java_com_digitalasset_daml_on_vmware_thin_replica_client_core_Library_00024_subscribe
+JNIEXPORT jboolean JNICALL Java_com_digitalasset_daml_on_vmware_thin_replica_client_core_Library_00024_subscribe__Ljava_lang_String_2
   (JNIEnv *, jobject, jstring);
+
+/*
+ * Class:     com.digitalasset.daml.on.vmware.thin.replica.client.core.Library_00024
+ * Method:    subscribe
+ * Signature: (Ljava/lang/String;J)Z
+ */
+JNIEXPORT jboolean JNICALL Java_com_digitalasset_daml_on_vmware_thin_replica_client_core_Library_00024_subscribe__Ljava_lang_String_2J
+  (JNIEnv *, jobject, jstring, jlong);
 
 /*
  * Class:     com.digitalasset.daml.on.vmware.thin.replica.client.core.Library_00024

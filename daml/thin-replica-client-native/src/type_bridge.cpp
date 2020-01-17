@@ -256,6 +256,20 @@ extern "C" jboolean subscribe(JNIEnv* env, jobject obj, jstring j_prefix) {
   return JNI_TRUE;
 }
 
+extern "C" jboolean subscribeFrom(JNIEnv* env, jobject obj, jstring j_prefix,
+                              jlong j_last_known_block_id) {
+  ThinReplicaClientFacade* trcf = TRCFFactory::GetInstance();
+  if (!trcf) return JNI_FALSE;
+  JNIConverter* converter = JNIConverterFactory::CreateInstance(env);
+  string prefix = converter->ToString(j_prefix);
+  try {
+    trcf->Subscribe(prefix, j_last_known_block_id);
+  } catch (const exception&) {
+    return JNI_FALSE;
+  }
+  return JNI_TRUE;
+}
+
 extern "C" jboolean unsubscribe(JNIEnv* env, jobject obj) {
   ThinReplicaClientFacade* trcf = TRCFFactory::GetInstance();
   if (!trcf) return JNI_FALSE;

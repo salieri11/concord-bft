@@ -7,7 +7,7 @@
 #include "type_bridge.hpp"
 
 /*
- * Class:     thin.replica.client.core.Library_00024
+ * Class: com.digitalasset.daml.on.vmware.thin.replica.client.core.Library_00024
  * Method:    createTRC
  * Signature: (Ljava/lang/String;SLjava/lang/String;[Ljava/lang/String;)Z
  */
@@ -19,14 +19,25 @@ Java_com_digitalasset_daml_on_vmware_thin_replica_client_core_Library_00024_crea
 }
 
 /*
- * Class:     thin.replica.client.core.Library_00024
+ * Class: com.digitalasset.daml.on.vmware.thin.replica.client.core.Library_00024
  * Method:    subscribe
  * Signature: (Ljava/lang/String;)Z
  */
 JNIEXPORT jboolean JNICALL
-Java_com_digitalasset_daml_on_vmware_thin_replica_client_core_Library_00024_subscribe(
+Java_com_digitalasset_daml_on_vmware_thin_replica_client_core_Library_00024_subscribe__Ljava_lang_String_2(
     JNIEnv *env, jobject obj, jstring prefix) {
   return subscribe(env, obj, prefix);
+}
+
+/*
+ * Class: com.digitalasset.daml.on.vmware.thin.replica.client.core.Library_00024
+ * Method:    subscribe
+ * Signature: (Ljava/lang/String;J)Z
+ */
+JNIEXPORT jboolean JNICALL
+Java_com_digitalasset_daml_on_vmware_thin_replica_client_core_Library_00024_subscribe__Ljava_lang_String_2J(
+    JNIEnv *env, jobject obj, jstring prefix, jlong last_known_block_id) {
+  return subscribeFrom(env, obj, prefix, last_known_block_id);
 }
 
 /*
@@ -41,7 +52,7 @@ Java_com_digitalasset_daml_on_vmware_thin_replica_client_core_Library_00024_unsu
 }
 
 /*
- * Class:     thin.replica.client.core.Library_00024
+ * Class: com.digitalasset.daml.on.vmware.thin.replica.client.core.Library_00024
  * Method:    pop
  * Signature: ()Lscala/Option;
  */
@@ -52,7 +63,7 @@ Java_com_digitalasset_daml_on_vmware_thin_replica_client_core_Library_00024_pop(
 }
 
 /*
- * Class:     thin.replica.client.core.Library_00024
+ * Class: com.digitalasset.daml.on.vmware.thin.replica.client.core.Library_00024
  * Method:    tryPop
  * Signature: ()Lscala/Option;
  */
@@ -63,7 +74,7 @@ Java_com_digitalasset_daml_on_vmware_thin_replica_client_core_Library_00024_tryP
 }
 
 /*
- * Class:     thin.replica.client.core.Library_00024
+ * Class: com.digitalasset.daml.on.vmware.thin.replica.client.core.Library_00024
  * Method:    acknowledgeBlockId
  * Signature: (J)Z
  */

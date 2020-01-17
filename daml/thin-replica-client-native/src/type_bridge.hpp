@@ -15,6 +15,8 @@ jboolean createTRC(JNIEnv *env, jobject obj, jstring j_client_id,
                    jobjectArray j_servers);
 
 jboolean subscribe(JNIEnv *env, jobject obj, jstring j_prefix);
+jboolean subscribeFrom(JNIEnv *env, jobject obj, jstring j_prefix,
+                   jlong j_last_known_block_id);
 jboolean unsubscribe(JNIEnv *env, jobject obj);
 
 jobject pop(JNIEnv *env, jobject obj);

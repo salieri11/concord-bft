@@ -27,6 +27,7 @@ object Library {
                           privateKey: String,
                           servers: Array[String]) : Boolean
   @native def subscribe(prefix: String) : Boolean
+  @native def subscribe(prefix: String, lastKnownBlockId: Long) : Boolean
   @native def unsubscribe() : Boolean
 
   @native def pop() : Option[Update]
