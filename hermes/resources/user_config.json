@@ -248,6 +248,7 @@
                 "name": "vmware-vpn",
                 "addressAllocation": "STATIC",
                 "gateway": 172319745,
+                "nameServers": [],
                 "subnet": 24
               }
             },
@@ -301,6 +302,7 @@
                 "name": "vmware-vpn",
                 "addressAllocation": "STATIC",
                 "gateway": 172321025,
+                "nameServers": [],
                 "subnet": 24
               }
             },
