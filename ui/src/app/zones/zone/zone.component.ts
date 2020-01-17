@@ -12,7 +12,9 @@ import { mainRoutes } from '../../shared/urls.model';
 import { ConfirmModalComponent } from '../../shared/components/confirm-modal/confirm-modal.component';
 
 import { ZonesService } from '../shared/zones.service';
+import { VmwTasksService } from '../../shared/components/task-panel/tasks.service';
 import { ZoneFormComponent } from '../zone-form/zone-form.component';
+import { VmwToastType } from '@vmw/ngx-components';
 
 @Component({
   selector: 'concord-zone',
@@ -35,7 +37,8 @@ export class ZoneComponent implements OnInit {
     private route: ActivatedRoute,
     private zoneService: ZonesService,
     private router: Router,
-    private translate: TranslateService
+    private translate: TranslateService,
+    private taskService: VmwTasksService
   ) { }
 
   ngOnInit() {
@@ -55,6 +58,13 @@ export class ZoneComponent implements OnInit {
     this.zoneForm.update(this.zoneId).subscribe(zone => {
       this.saving = false;
       this.setZone(zone);
+
+      this.taskService.addToast({
+        title: this.translate.instant('zones.actions.updated'),
+        description: `${this.translate.instant('zones.titleDetail')} ${this.zoneName}`,
+        type: VmwToastType.INFO,
+      });
+
     }, () => this.saving = false);
   }
 
@@ -72,7 +82,6 @@ export class ZoneComponent implements OnInit {
     this.zoneService.delete(this.zoneId).subscribe(() => {
       const path = this.loc.path().split('/');
       path.pop();
-
       this.router.navigate([path.join('/')]);
       this.deleting = false;
     }, () => this.deleting = false);
@@ -85,6 +94,12 @@ export class ZoneComponent implements OnInit {
       path.pop();
       this.router.navigate([path.join('/'), zone.id]);
       this.saving = false;
+      this.taskService.addToast({
+        title: this.translate.instant('zones.actions.added'),
+        description: `${this.translate.instant('zones.titleDetail')} ${zone.name}`,
+        type: VmwToastType.INFO,
+      });
+
     }, () => this.saving = false);
   }
 

@@ -18,6 +18,7 @@ export interface OnPremZone extends Zone {
   vcenter: OnPremVCenter;
   container_repo: OnPremContainerRepo;
   network: OnPremNetwork;
+  log_managements: LogManagements[];
 }
 
 export interface OnPremVCenter {
@@ -38,6 +39,13 @@ export interface OnPremNetwork {
   ip_pool: [];
   name: string;
   subnet: string;
+}
+
+export interface LogManagements {
+  address: string;
+  port: number;
+  username: string;
+  password: string;
 }
 
 export enum ZoneType {
