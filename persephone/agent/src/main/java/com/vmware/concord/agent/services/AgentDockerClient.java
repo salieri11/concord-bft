@@ -261,6 +261,9 @@ public final class AgentDockerClient {
             case JAEGER_AGENT:
                 containerSpec = MetricsAndTracingConfig.JAEGER_AGENT;
                 break;
+            case TELEGRAF:
+                containerSpec = MetricsAndTracingConfig.TELEGRAF;
+                break;
             default:
                 var message = String.format("Invalid service type(%s)", component.getServiceType());
                 throw new RuntimeException(message);

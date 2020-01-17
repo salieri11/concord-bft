@@ -33,7 +33,11 @@ public enum MetricsAndTracingConfig implements BaseContainerSpec {
             List.of(new Link("wavefront-proxy", "wavefront-proxy")),
             null,
             List.of("REPORTER_TCHANNEL_HOST_PORT=wavefront-proxy:14267",
-                    "REPORTER_TYPE=tchannel"));
+                    "REPORTER_TYPE=tchannel")),
+    TELEGRAF("telegraf",
+            List.of(new PortBinding(Ports.Binding.bindPort(9090), ExposedPort.tcp(9090))),
+            List.of(Bind.parse("/config/telegraf/telegraf.conf:/etc/telegraf/telegraf.conf")),
+            null, null, null);
 
     @Setter
     private String imageId;
