@@ -111,8 +111,9 @@
           <h6>{{'onPrem.logInsight.title' | translate}}</h6>
           <clr-input-container>
             <label class="clr-col-12 clr-col-md-4">{{ 'common.url' | translate }}</label>
-            <input #ipInput clrInput type="text" [placeholder]="'onPrem.outboundProxy.httpPH' | translate" class="clr-col-12 clr-col-md-6" formControlName="address" />
-            <clr-control-error>{{ 'onPrem.urlError' | translate }}</clr-control-error>
+            <input #ipInput clrInput type="text" [placeholder]="'onPrem.logInsight.ipPH' | translate" class="clr-col-12 clr-col-md-6" formControlName="address" />
+            <clr-control-helper>{{ 'onPrem.logInsight.ipHelper' | translate }}</clr-control-helper>
+            <clr-control-error>{{ 'onPrem.ipDnsError' | translate }}</clr-control-error>
           </clr-input-container>
           <clr-input-container>
             <label class="clr-col-12 clr-col-md-4">{{ 'common.port' | translate }}</label>
@@ -166,7 +167,7 @@
         <clr-input-container>
           <label class="clr-col-12 clr-col-md-4">{{ 'onPrem.outboundProxy.httpHost' | translate }}</label>
           <input #ipInput clrInput type="text" [placeholder]="'onPrem.outboundProxy.httpPH' | translate" class="clr-col-12 clr-col-md-6" formControlName="http_host" />
-          <clr-control-error>{{ 'onPrem.urlError' | translate }}</clr-control-error>
+          <clr-control-error>{{ 'onPrem.ipDnsError' | translate }}</clr-control-error>
         </clr-input-container>
         <clr-input-container>
           <label class="clr-col-12 clr-col-md-4">{{ 'onPrem.outboundProxy.httpPort' | translate }}</label>
@@ -175,7 +176,7 @@
         <clr-input-container>
           <label class="clr-col-12 clr-col-md-4">{{ 'onPrem.outboundProxy.httpsHost' | translate }}</label>
           <input clrInput type="text" [placeholder]="'onPrem.outboundProxy.httpPH' | translate" class="clr-col-12 clr-col-md-6" formControlName="https_host" />
-          <clr-control-error>{{ 'onPrem.urlError' | translate }}</clr-control-error>
+          <clr-control-error>{{ 'onPrem.ipDnsError' | translate }}</clr-control-error>
         </clr-input-container>
         <clr-input-container>
           <label class="clr-col-12 clr-col-md-4">{{ 'onPrem.outboundProxy.httpsPort' | translate }}</label>

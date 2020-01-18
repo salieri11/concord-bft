@@ -28,7 +28,7 @@
     "token": "Token",
     "urlPh": "https://<endpoint>",
     "username": "Username",
-    "usernamePh": "username@company.com",
+    "usernamePh": "username",
     "verify": "Verify"
   },
   "error": {
@@ -465,6 +465,8 @@
     "name": "Zone Designation",
     "namePH": "A",
     "urlError": "Please add a valid url.",
+    "ipError": "Please add a valid address.",
+    "ipDnsError": "Please add a valid IP or DNS without protocol.",
     "vcenter": {
       "title": "vCenter",
       "url": "URL",
@@ -499,7 +501,10 @@
     "onPremConnError": "Cannot connect to your on premises vCenter, please ensure your configuration below is accurate.",
     "addedSuccessfully": "On premises zone added successfully.  You can now deploy a node to this zone.",
     "logInsight": {
-      "title": "Log Insight"
+      "title": "Log Insight",
+      "ipAddress": "IP Address",
+      "ipPH": "10.1.1.1 or company.com",
+      "ipHelper": "IP address or DNS, no protocol i.e no https://"
     },
     "containerReg": {
       "title": "Container Registry",
@@ -512,7 +517,7 @@
     "outboundProxy": {
       "title": "Outbound Proxy",
       "httpHost": "Http Host",
-      "httpPH": "1.2.3.4 or company.com",
+      "httpPH": "10.1.1.1 or company.com",
       "httpPort": "Http Port",
       "httpPortPH": "80",
       "httpsPortPH": "443",

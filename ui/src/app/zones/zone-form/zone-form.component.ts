@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2019 VMware, all rights reserved.
+ * Copyright 2018-2020 VMware, all rights reserved.
  */
 
 import { Component, AfterViewInit, ViewChild, ElementRef } from '@angular/core';
@@ -11,11 +11,11 @@ import { VmwToastType } from '@vmw/ngx-components';
 import { TranslateService } from '@ngx-translate/core';
 
 import { VmwComboboxItem } from '../../shared/components/combobox/combobox-items/combobox-item.model';
+import { protocolNotAllowed, urlRegEx, ipRegEx, listOfIpsRegEx } from '../../shared/custom-validators';
 import { OnPremZone, ZoneType } from './../../zones/shared/zones.model';
 import { VmwTasksService } from '../../shared/components/task-panel/tasks.service';
 import { ZonesService } from '../shared/zones.service';
 import { BlockchainService } from './../../blockchain/shared/blockchain.service';
-import { mainRoutes } from '../../shared/urls.model';
 
 
 @Component({
@@ -33,6 +33,7 @@ export class ZoneFormComponent implements AfterViewInit {
   locations: any[] = [];
   selectedLocation: any;
   zoneId: string;
+  initPageLoad: boolean = false;
 
   get log_managements() { return this.form.get('log_managements'); }
 
@@ -59,6 +60,11 @@ export class ZoneFormComponent implements AfterViewInit {
         debounceTime(500),
         distinctUntilChanged()
       ).subscribe(value => this.handleGetLocation(value));
+
+    // Don't want toast to fire off for initial page load
+    setTimeout(() => {
+      this.initPageLoad = true;
+    }, 2000);
   }
 
   getZoneInfo() {
@@ -120,11 +126,6 @@ export class ZoneFormComponent implements AfterViewInit {
 
   private initForm(): FormGroup {
     // tslint:disable-next-line
-    const urlRegEx = /^(https?:\/\/)?((([a-z\d]([a-z\d-]*[a-z\d])*)\.)+[a-z]{2,}|((\d{1,3}\.){3}\d{1,3}))(\:\d+)?(\/[-a-z\d%_.~+]*)*(\?[;&a-z\d%_.~+=-]*)?(\#[-a-z\d_]*)?$/i;
-    const ipRegEx = /^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$/gm;
-    const listOfIpsRegEx = new RegExp(['^((((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]',
-      '|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.',
-      '(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\,?)*)-?)*$'].join(''));
 
     return new FormGroup({
       onPrem: new FormGroup({
@@ -156,11 +157,11 @@ export class ZoneFormComponent implements AfterViewInit {
           address: new FormControl(
             '',
             {
-              validators: [Validators.pattern(urlRegEx)],
+              validators: [protocolNotAllowed()],
               updateOn: 'blur'
             }
           ),
-          port: new FormControl('', {
+          port: new FormControl(null, {
             validators: Validators.maxLength(4), updateOn: 'blur'
           }),
           username: new FormControl('', { updateOn: 'blur' }),
@@ -193,24 +194,23 @@ export class ZoneFormComponent implements AfterViewInit {
         http_host: new FormControl(
           '',
           {
-            validators: Validators.pattern(urlRegEx),
+            validators: [protocolNotAllowed()],
             updateOn: 'blur'
           }
         ),
-        http_port: new FormControl('', {
+        http_port: new FormControl(null, {
           validators: Validators.maxLength(4), updateOn: 'blur'
         }),
         https_host: new FormControl(
           '',
           {
-            validators: Validators.pattern(urlRegEx),
+            validators: [protocolNotAllowed()],
             updateOn: 'blur'
           }
         ),
         https_port: new FormControl('', {
           validators: Validators.maxLength(4), updateOn: 'blur'
         }),
-
       }),
       onPremLocation: new FormGroup({
         name: new FormControl('', Validators.required),
@@ -221,7 +221,7 @@ export class ZoneFormComponent implements AfterViewInit {
 
   private handleSave(response: OnPremZone): OnPremZone {
     this.onPremConnectionSuccessful = false;
-    this.addedOnPrem = true;
+    // this.addedOnPrem = true;
     // Update zones in blockchainservice
     this.blockchainService.getZones().subscribe();
 
@@ -241,13 +241,11 @@ export class ZoneFormComponent implements AfterViewInit {
         .testOnPremZoneConnection(this.getOnPremInfo())
         .subscribe(() => {
           this.onPremConnectionSuccessful = true;
-          if (this.zoneId === mainRoutes.new) {
             this.taskService.addToast({
               title: this.translate.instant('common.success'),
               description: this.translate.instant('onPrem.onPremConnSucc'),
               type: VmwToastType.INFO
             });
-          }
           testCon.unsubscribe();
         }, error => {
           this.onPremConnectionSuccessful = false;
