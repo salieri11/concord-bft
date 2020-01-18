@@ -23,7 +23,7 @@ COPY concord/proto /doc/concord/proto
 COPY daml/execution-engine /doc/daml/execution-engine
 COPY daml/common /doc/daml/common
 COPY daml/daml-execution-engine-entrypoint.sh /doc/daml/daml-execution-engine-entrypoint.sh
-RUN sbt stage
+RUN sbt execution_engine/stage
 EXPOSE 55000
 
 RUN chmod 755 /doc/daml/daml-execution-engine-entrypoint.sh
