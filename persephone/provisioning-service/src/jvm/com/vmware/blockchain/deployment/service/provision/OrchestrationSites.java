@@ -17,6 +17,7 @@ import com.vmware.blockchain.deployment.v1.VmcOrchestrationSiteInfo;
 /**
  * Helper class for @OrchestrationSite.
  */
+
 public class OrchestrationSites {
 
     /**
@@ -51,7 +52,7 @@ public class OrchestrationSites {
                                                      new VmcOrchestrationSiteInfo(),
                                                      new VSphereOrchestrationSiteInfo(
                                                              original.getVsphere().getApi(),
-                                                             containerRegistry,
+                                                             original.getVsphere().getContainerRegistry(),
                                                              new VSphereDatacenterInfo(
                                                                      original.getVsphere().getVsphere()
                                                                              .getResourcePool(),
@@ -101,7 +102,7 @@ public class OrchestrationSites {
                         original.getLabels(),
                         new VmcOrchestrationSiteInfo(original.getVmc().getAuthentication(),
                                                      original.getVmc().getApi(),
-                                                     containerRegistry,
+                                                     original.getVmc().getContainerRegistry(),
                                                      original.getVmc().getOrganization(),
                                                      original.getVmc().getDatacenter(),
 

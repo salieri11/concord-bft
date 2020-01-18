@@ -209,7 +209,13 @@ public class ReplicaController {
         if (replicas.isEmpty()) {
             // empty replica map is either old Blockchain instance, or blockchain not found.
             throw new NotFoundException(ErrorCode.NOT_FOUND);
+        } else {
+            // Temporary work around.
+            replicas = replicas.stream()
+                    .filter(replica -> replica.getReplicaType() != Replica.ReplicaType.DAML_PARTICIPANT)
+                    .collect(Collectors.toList());
         }
+
         // Create a map of private IP to replica instance.
         Map<String, Replica> ipToReplica =
                 replicas.stream().collect(Collectors.toMap(r -> r.getPrivateIp(), Function.identity()));
