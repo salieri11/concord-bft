@@ -129,7 +129,7 @@ lazy val write_service = (project in file("write-service"))
       "ch.qos.logback" % "logback-classic" % "1.2.3",
     ),
   )
-  .dependsOn(protos)
+  .dependsOn(protos, trc_core)
 
 
 lazy val ledger_api_server = (project in file("ledger-api-server"))
@@ -162,4 +162,16 @@ lazy val ledger_api_server = (project in file("ledger-api-server"))
 
     ),
   )
-  .dependsOn(protos, write_service, common)
+  .dependsOn(protos, write_service, common, trc_core)
+
+lazy val trc_core = (project in file("thin-replica-client-core")) // regular scala code with @native methods
+  .enablePlugins(JavaAppPackaging)
+  .settings(target in javah := (sourceDirectory in nativeCompile in trc_native).value / "include")
+  .dependsOn(trc_native % Runtime) // remove this if `core` is a library, leave choice to end-user
+
+lazy val trc_native = (project in file("thin-replica-client-native")) // native code and build script
+  .settings(sourceDirectory in nativeCompile := sourceDirectory.value)
+  .enablePlugins(JniNative) // JniNative needs to be explicitly enabled
+
+lazy val printInfo = taskKey[Unit]("Prints env info")
+printInfo := println(s"${(sourceDirectory in nativeCompile in trc_native).value.toString}")

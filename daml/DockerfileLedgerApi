@@ -2,7 +2,9 @@
 
 # daml_ledger_api
 
-FROM ubuntu:18.04
+ARG trc_lib_repo="trc-lib"
+ARG trc_lib_tag="latest"
+FROM ${trc_lib_repo}:${trc_lib_tag}
 
 ENV SBT_VERSION 1.3.0
 
@@ -24,7 +26,12 @@ COPY concord/proto /doc/concord/proto
 COPY daml/common /doc/daml/common
 COPY daml/write-service /doc/daml/write-service
 COPY daml/ledger-api-server /doc/daml/ledger-api-server
+COPY daml/thin-replica-client-native /doc/daml/thin-replica-client-native
+COPY daml/thin-replica-client-core /doc/daml/thin-replica-client-core
 
+ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib:/opt/grpc/lib:/opt/protobuf/lib
+
+RUN sbt nativeCompile
 RUN sbt stage
 EXPOSE 6865
 
