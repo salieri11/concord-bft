@@ -342,6 +342,21 @@ def reap_orphaned_entities(vcobj, dc_dict, nat=True, eip=True, dryrun=False):
                              DC_CONSTANTS["ORG_ID"], dc_dict['id'], eip)
 
 
+def reap_network_entities(vcobj, networkname, dc_dict, reap_ipam=False):
+    """
+        Reap all vm's in a given network
+    """
+    network = vcobj.get_network(networkname)
+    vms = network.vm
+    logger.info("Cleaning up %s vm resources for network %s" %
+                (len(vms), networkname))
+    metadata = get_network_metadata(vms)
+    if reap_ipam is True:
+        delete_ipam_resources(vms, dc_dict, metadata)
+    delete_network_resources(metadata, dc_dict)
+    delete_vms(vms)
+
+
 def setup_arguments():
     """
         Arg setup
@@ -351,6 +366,12 @@ def setup_arguments():
                     choices=DC_CONSTANTS["SDDCS"].keys(),
                     help="SDDC to clean up")
     subparsers = parser.add_subparsers(help='Subparsers for resource mgmt')
+    nwresource = subparsers.add_parser("nwresource", help="Default")
+    nwresource.set_defaults(which='nwresource')
+    nwresource.add_argument("--networkname", type=str, required=True,
+                    help="Network name for cleanup")
+    nwresource.add_argument("--reap-ipam", action='store_true', default=False,
+                    help="Choose to delete ipam entry for collected vm's")
     resource = subparsers.add_parser("resource-cleanup",
                                     help="Default")
     resource.set_defaults(which='resource')
@@ -387,3 +408,5 @@ if __name__ == "__main__":
     elif args.which == "resource":
         clean_sddc_folder(vcenterobj, args.folder,
                          dc_dict, args.olderthan, args.reap_ipam)
+    elif args.which == "nwresource":
+        reap_network_entities(vcenterobj, args.networkname, dc_dict, args.reap_ipam)

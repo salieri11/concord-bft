@@ -18,9 +18,12 @@ spec:
         ports:
         - containerPort: 9003
         imagePullPolicy: Always
+        env:
+        - name: APPCONTEXT
+          value: "staging"
         volumeMounts:
         - name: config-volume
-          mountPath: /config/persephone/configuration/
+          mountPath: /config/app/profiles/
           readOnly: true
         resources:
           requests:

@@ -1,9 +1,0 @@
-{
-    "port":9003,
-    "transportSecurity":{
-        "type":"TLSv1_2",
-        "trustedCertificatesUrl":"",
-        "certificateUrl":"file:/config/persephone/configuration/server.crt",
-        "privateKeyUrl":"file:/config/persephone/configuration/server.pem"
-    }
-}
