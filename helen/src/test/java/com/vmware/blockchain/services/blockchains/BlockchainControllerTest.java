@@ -871,10 +871,10 @@ public class BlockchainControllerTest {
     }
 
     @Test
-    void postDamlV2() throws Exception {
+    void postDamlV0() throws Exception {
         Organization org = new Organization();
         org.setId(ORG_ID);
-        org.setOrganizationProperties(ImmutableMap.of("DAML_V2", "enabled"));
+        org.setOrganizationProperties(ImmutableMap.of("DAML_V0", "enabled"));
         when(organizationService.get(ORG_ID)).thenReturn(org);
 
         ArgumentCaptor<CreateClusterRequest> captor = ArgumentCaptor.forClass(CreateClusterRequest.class);

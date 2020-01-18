@@ -523,14 +523,18 @@ public class BlockchainController {
         // this is for DAML v2 deployment
         boolean deployDamlCommitter;
 
-        if (org.getOrganizationProperties() != null
-                && org.getOrganizationProperties().containsKey("DAML_V2")
-                && org.getOrganizationProperties().get("DAML_V2").equals("enabled")
-                && blockchainType == BlockchainType.DAML) {
-            deployDamlCommitter = true;
+        if (blockchainType == BlockchainType.DAML) {
+            if (org.getOrganizationProperties() != null
+                && org.getOrganizationProperties().containsKey("DAML_V0")
+                && org.getOrganizationProperties().get("DAML_V0").equals("enabled")) {
+                deployDamlCommitter = false;
+            } else {
+                deployDamlCommitter = true;
+            }
         } else {
             deployDamlCommitter = false;
         }
+
 
         dsId = createFixedSizeCluster(client, clusterSize,
                 enumMap.get(body.deploymentType),
