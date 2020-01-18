@@ -239,7 +239,7 @@ hlf() {
 
 daml() {
     info "Build DAML..."
-    docker_build . daml/DockerfileLedgerApi ${daml_ledger_api_repo} ${daml_ledger_api_tag}
+    docker_build . daml/DockerfileLedgerApi ${daml_ledger_api_repo} ${daml_ledger_api_tag} --build-arg "trc_lib_repo=${trc_lib_repo}" --build-arg "trc_lib_tag=${trc_lib_tag}"
     docker_build . daml/DockerfileExecutionEngine ${daml_execution_engine_repo} ${daml_execution_engine_tag}
     docker_build . daml/DockerfilePostgres ${daml_index_db_repo} ${daml_index_db_tag}
 }
