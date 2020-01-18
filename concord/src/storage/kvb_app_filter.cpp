@@ -129,7 +129,6 @@ void KvbAppFilter::ReadBlockRange(BlockId block_id_start, BlockId block_id_end,
       if (queue_out.push(update)) {
         break;
       }
-      std::this_thread::sleep_for(10ms);
     }
 
     if (stop_execution) {
