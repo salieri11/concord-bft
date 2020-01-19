@@ -464,9 +464,6 @@
     "pageTitle": "New On Premises Zone",
     "name": "Zone Designation",
     "namePH": "A",
-    "urlError": "Please add a valid url.",
-    "ipError": "Please add a valid address.",
-    "ipDnsError": "Please add a valid IP or DNS without protocol.",
     "vcenter": {
       "title": "vCenter",
       "url": "URL",
@@ -529,7 +526,10 @@
     "locationPH": "Palo Alto, CA, USA",
     "cancel": "Cancel On Premises",
     "ipError": "Please enter a valid IP address",
-    "listIpsError": "Please enter a comma separated list of IPs"
+    "urlError": "Please add a valid url.",
+    "ipDnsError": "Please add a valid IP or DNS without protocol.",
+    "listIpsError": "Please enter a comma separated list of IPs.",
+    "rangeIpsError": "Please enter a - separated range of IPs."
   },
   "organization": {
     "title": "Organizations",
