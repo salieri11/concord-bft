@@ -32,7 +32,7 @@ COPY daml/thin-replica-client-core /doc/daml/thin-replica-client-core
 ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib:/opt/grpc/lib:/opt/protobuf/lib
 
 RUN sbt nativeCompile
-RUN sbt stage
+RUN sbt ledger_api_server/stage
 EXPOSE 6865
 
 RUN chmod 755 /doc/daml/entrypoint.sh

@@ -309,7 +309,7 @@ class KVBCParticipantState(
       .committedBlocks(beginFromBlockId)
       .flatMapConcat { block =>
         //TODO: Reinstate correlation ids - "correlationId=${committedTx.correlationId}"
-        logger.trace(s"Reading block, blockId=${block.blockId}")
+        logger.trace(s"Reading block, offset=${block.blockId}")
 
         processBlock(block)
           .filter {
@@ -321,10 +321,10 @@ class KVBCParticipantState(
           .alsoTo(Sink.onComplete {
             case Success(Done) =>
               //TODO: Reinstate correlation ids - "correlationId=${committedTx.correlationId}"
-              logger.info(s"Block read successful, blockId=${block.blockId}");
+              logger.info(s"Block read successful, offset=${block.blockId}");
             case Failure(e) =>
               //TODO: Reinstate correlation ids - "correlationId=${committedTx.correlationId}"
-              logger.info(s"Block read failed, blockId=${block.blockId} error='$e'")
+              logger.info(s"Block read failed, offset=${block.blockId} error='$e'")
         })
       }
   }
@@ -335,7 +335,7 @@ class KVBCParticipantState(
       .map { case Tuple2(entryId, value) =>
         try {
           val logEntry =
-            Envelope.open(ByteString.copyFromUtf8(value)) match {
+            Envelope.open(ByteString.copyFrom(value)) match {
               case Right(Envelope.LogEntryMessage(logEntry)) =>
                 logEntry
               case _ =>
@@ -343,7 +343,7 @@ class KVBCParticipantState(
             }
 
           KeyValueConsumption.logEntryToUpdate(
-            DamlKvutils.DamlLogEntryId.newBuilder.setEntryId(ByteString.copyFromUtf8(entryId)).build,
+            DamlKvutils.DamlLogEntryId.newBuilder.setEntryId(ByteString.copyFrom(entryId)).build,
             logEntry
           ).zipWithIndex.map {
             case (update, idx) =>
@@ -355,7 +355,7 @@ class KVBCParticipantState(
           //TODO: Stream breaks here, make sure index can deal with this
           case e: RuntimeException =>
             //TODO: Reinstate correlation ids - "correlationId=${committedTx.correlationId}"
-            logger.error(s"Processing block failed with an exception, error='${e.toString}'")
+            logger.error(s"Processing block failed with an exception, offset=${block.blockId}, entryId=${entryId}, error='${e.toString}'")
             sys.error(e.toString)
         }
       }

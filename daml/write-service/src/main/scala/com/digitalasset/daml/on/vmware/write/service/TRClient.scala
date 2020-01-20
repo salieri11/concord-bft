@@ -28,7 +28,10 @@ class TRClient(clientId: String , maxFaulty: Short,
           () => Library.subscribe("daml", offset),
           // read
           // None return signals end of resource
-          subsResult => Library.pop(),
+          subsResult => if(subsResult)
+                          Library.pop()
+                        else
+                          None,
           // close
           subsResult => Library.unsubscribe())
         .dropWhile { committedTx => committedTx.blockId < offset }

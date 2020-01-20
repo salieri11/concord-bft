@@ -162,11 +162,18 @@ lazy val ledger_api_server = (project in file("ledger-api-server"))
 
     ),
   )
-  .dependsOn(protos, write_service, common, trc_core)
+  .dependsOn(protos, write_service, common, trc_core, trc_native % Runtime)
 
 lazy val trc_core = (project in file("thin-replica-client-core")) // regular scala code with @native methods
   .enablePlugins(JavaAppPackaging)
-  .settings(target in javah := (sourceDirectory in nativeCompile in trc_native).value / "include")
+  .settings(
+    target in javah := (sourceDirectory in nativeCompile in trc_native).value / "include",
+    libraryDependencies ++= Seq(
+      protobuf,
+      "com.daml.ledger" %% "participant-state" % sdkVersion,
+      "com.daml.ledger" %% "participant-state-kvutils" % sdkVersion
+    )
+  )
   .dependsOn(trc_native % Runtime) // remove this if `core` is a library, leave choice to end-user
 
 lazy val trc_native = (project in file("thin-replica-client-native")) // native code and build script
