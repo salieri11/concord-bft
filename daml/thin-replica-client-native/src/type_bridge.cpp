@@ -269,7 +269,7 @@ extern "C" jboolean subscribeFrom(JNIEnv* env, jobject obj, jstring j_prefix,
   JNIConverter* converter = JNIConverterFactory::CreateInstance(env);
   string prefix = converter->ToString(j_prefix);
   try {
-    trcf->Subscribe(prefix, j_last_known_block_id);
+    trcf->Subscribe(prefix, j_last_known_block_id>0?j_last_known_block_id:1);
   } catch (const exception&) {
     return JNI_FALSE;
   }

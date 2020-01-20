@@ -3,8 +3,6 @@
 #include "thin_replica_client_facade.hpp"
 #include "thin_replica_client.hpp"
 
-#include <cassert>
-
 using grpc::Channel;
 using grpc::InsecureChannelCredentials;
 using log4cplus::Logger;
@@ -61,29 +59,24 @@ ThinReplicaClientFacade::ThinReplicaClientFacade(
 ThinReplicaClientFacade::~ThinReplicaClientFacade() {}
 
 void ThinReplicaClientFacade::Subscribe(const std::string& prefix) {
-  assert(impl->update_queue);
   impl->trc->Subscribe(prefix);
 }
 
 void ThinReplicaClientFacade::Subscribe(const std::string& prefix,
                                         uint64_t last_known_block_id) {
-  assert(impl->update_queue);
   impl->trc->Subscribe(prefix, last_known_block_id);
 }
 
 void ThinReplicaClientFacade::Unsubscribe() { impl->trc->Unsubscribe(); }
 
 std::unique_ptr<Update> ThinReplicaClientFacade::Pop() {
-  assert(impl->update_queue);
   return impl->update_queue->Pop();
 }
 
 std::unique_ptr<Update> ThinReplicaClientFacade::TryPop() {
-  assert(impl->update_queue);
   return impl->update_queue->TryPop();
 }
 
 void ThinReplicaClientFacade::AcknowledgeBlockID(uint64_t block_id) {
-  assert(impl->update_queue);
   impl->trc->AcknowledgeBlockID(block_id);
 }

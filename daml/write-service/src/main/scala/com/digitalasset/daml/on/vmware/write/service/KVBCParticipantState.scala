@@ -321,7 +321,8 @@ class KVBCParticipantState(
           .alsoTo(Sink.onComplete {
             case Success(Done) =>
               //TODO: Reinstate correlation ids - "correlationId=${committedTx.correlationId}"
-              logger.info(s"Block read successful, offset=${block.blockId}");
+              if(!block.kvPairs.isEmpty)
+                logger.info(s"Block read successful, offset=${block.blockId}");
             case Failure(e) =>
               //TODO: Reinstate correlation ids - "correlationId=${committedTx.correlationId}"
               logger.info(s"Block read failed, offset=${block.blockId} error='$e'")
@@ -332,32 +333,33 @@ class KVBCParticipantState(
   private def processBlock(block: TRClient.Block): Source[(Offset,Update),NotUsed] = {
     Source(block.kvPairs.to[collection.immutable.Seq])
         // For transaction k/v pairs, key is the entryId
-      .map { case Tuple2(entryId, value) =>
-        try {
-          val logEntry =
-            Envelope.open(ByteString.copyFrom(value)) match {
-              case Right(Envelope.LogEntryMessage(logEntry)) =>
-                logEntry
-              case _ =>
-                sys.error(s"Envelope did not contain log entry")
-            }
+      .map { 
+        case Tuple2(entryId, value) =>
+          try {
+            val logEntry =
+              Envelope.open(ByteString.copyFrom(value)) match {
+                case Right(Envelope.LogEntryMessage(logEntry)) =>
+                  logEntry
+                case _ =>
+                  sys.error(s"Envelope did not contain log entry")
+              }
 
-          KeyValueConsumption.logEntryToUpdate(
-            DamlKvutils.DamlLogEntryId.newBuilder.setEntryId(ByteString.copyFrom(entryId)).build,
-            logEntry
-          ).zipWithIndex.map {
-            case (update, idx) =>
+            KeyValueConsumption.logEntryToUpdate(
+              DamlKvutils.DamlLogEntryId.newBuilder.setEntryId(ByteString.copyFrom(entryId)).build,
+              logEntry
+            ).zipWithIndex.map {
+              case (update, idx) =>
+                //TODO: Reinstate correlation ids - "correlationId=${committedTx.correlationId}"
+                logger.trace(s"Processing block, offset=${block.blockId}:$idx")
+                Offset(Array(block.blockId, idx.toLong)) -> update
+            }
+          } catch {
+            //TODO: Stream breaks here, make sure index can deal with this
+            case e: RuntimeException =>
               //TODO: Reinstate correlation ids - "correlationId=${committedTx.correlationId}"
-              logger.trace(s"Processing block, offset=${block.blockId}:$idx")
-              Offset(Array(block.blockId, idx.toLong)) -> update
+              logger.error(s"Processing block failed with an exception, offset=${block.blockId} entryId=${entryId} error='${e.toString}'")
+              sys.error(e.toString)
           }
-        } catch {
-          //TODO: Stream breaks here, make sure index can deal with this
-          case e: RuntimeException =>
-            //TODO: Reinstate correlation ids - "correlationId=${committedTx.correlationId}"
-            logger.error(s"Processing block failed with an exception, offset=${block.blockId}, entryId=${entryId}, error='${e.toString}'")
-            sys.error(e.toString)
-        }
       }
       .mapConcat(identity) //Source[List[(Offset,Update)]] => Source[(Offset,Update)]
   }
