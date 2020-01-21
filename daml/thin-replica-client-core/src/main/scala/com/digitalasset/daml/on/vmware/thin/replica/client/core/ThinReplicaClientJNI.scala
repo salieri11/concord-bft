@@ -2,21 +2,16 @@
 package com.digitalasset.daml.on.vmware.thin.replica.client.core
 
 import ch.jodersky.jni.nativeLoader
+import scala.language.implicitConversions
+
 
 final case class Update(
   blockId: Long,
-  kvPairs: Array[(String, String)]
+  kvPairs: Array[(Array[Byte], Array[Byte])]
 ) {
-  def canEqual(a: Any) = a.isInstanceOf[Update] 
-  override def toString(): String = this.getClass.getSimpleName + "(" + blockId.toString + ",[" + kvPairs.mkString(",") + "])"
-  override def equals(that: Any): Boolean =
-    that match 
-    { 
-      case that: Update => that.canEqual(this) &&  
-                  this.blockId == that.blockId &&
-                  this.kvPairs.deep == that.kvPairs.deep 
-      case _ => false
-    }
+  override def toString(): String = this.getClass.getSimpleName + 
+    "(" + blockId.toString + ",[" + 
+    kvPairs.map(p=> "(" + new String(p._1) + "," + new String(p._2) + ")").mkString(",") + "])"
 }
 
 // By adding this annotation, there is no need to call

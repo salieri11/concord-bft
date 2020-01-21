@@ -20,7 +20,9 @@ final case class Config(
     tlsConfig: Option[TlsConfiguration],
     participantId: ParticipantId,
     startupMode: IndexerStartupMode,
-    replicas: Seq[String]
+    replicas: Seq[String],
+    useThinReplica: Boolean,
+    maxFaultyReplicas: Short,
 ) {
   def withTlsConfig(modify: TlsConfiguration => TlsConfiguration): Config =
     copy(tlsConfig = Some(modify(tlsConfig.getOrElse(TlsConfiguration.Empty))))
@@ -42,6 +44,8 @@ object Config {
       tlsConfig = None,
       participantId = LedgerString.assertFromString("standalone-participant"),
       startupMode = IndexerStartupMode.MigrateAndStart,
-      replicas = Seq("localhost:50051")
+      replicas = Seq("localhost:50051"),
+      useThinReplica = false,
+      maxFaultyReplicas = 1,
     )
 }

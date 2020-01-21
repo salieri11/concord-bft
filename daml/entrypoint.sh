@@ -23,4 +23,5 @@ done
   --replicas $REPLICAS \
   --participant-id $PARTICIPANT_ID --port 6865\
   --jdbc-url="jdbc:postgresql://$INDEXDB_HOST:$INDEXDB_PORT/$PARTICIPANT_ID?user=$INDEXDB_USER" \
-  --maxInboundMessageSize=67108864
+  --maxInboundMessageSize=67108864 \
+  $THIN_REPLICA_SETTINGS

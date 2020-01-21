@@ -19,6 +19,8 @@ import com.digitalasset.kvbc.daml_events.CommittedTx
 import com.digitalasset.ledger.api.health.{HealthStatus, Healthy}
 import com.digitalasset.ledger.api.domain.PartyDetails
 
+import com.google.protobuf.ByteString
+
 import com.daml.ledger.participant.state.v1._
 import com.daml.ledger.participant.state.kvutils._
 import org.slf4j.LoggerFactory
@@ -43,12 +45,17 @@ import io.grpc.{ConnectivityState, StatusRuntimeException, Status}
 class KVBCParticipantState(
     thisLedgerId: LedgerId, // Our ledger id.
     participantId: ParticipantId,
-    host: String, // KVBC Server hostname
-    port: Int,    // KVBC Server port number
+    addresses: Array[String],
+    useThinReplica: Boolean,
+    maxFaultyReplicas: Short,
   )(implicit val mat: Materializer,
     system: ActorSystem)
   extends ReadService
   with WriteService {
+
+  val firstAddr = addresses.head.split(":")
+  private val host: String = firstAddr(0)    // KVBC Server hostname
+  private val port: Int = firstAddr(1).toInt // KVBC Server port number
 
   implicit val ec: ExecutionContext = mat.executionContext
 
@@ -63,6 +70,11 @@ class KVBCParticipantState(
 
   private val logger = LoggerFactory.getLogger(this.getClass)
   val client = KVBCClient(host, port)(ec)
+  val trc: Option[TRClient] = 
+    if(useThinReplica)
+      Some(new TRClient(participantId, maxFaultyReplicas, "", addresses))
+    else
+      None
 
   // Make sure the server is ready to receive requests
   while(client.channel.getState(true) != ConnectivityState.READY) {
@@ -212,13 +224,19 @@ class KVBCParticipantState(
   override def currentHealth: HealthStatus = client.currentHealth
 
   override def stateUpdates(beginAfter: Option[Offset]): Source[(Offset, Update), NotUsed] = {
+    if(trc.isDefined)
+      stateUpdatesTRC(beginAfter)
+    else
+      stateUpdatesLegacy(beginAfter)
+  }
 
-    logger.info(s"Initializing transaction source")
-
+  private def stateUpdatesLegacy(beginAfter: Option[Offset]): Source[(Offset, Update), NotUsed] = {
     val beginFromBlockId: Long =
       beginAfter
         .flatMap(_.components.headOption)
         .getOrElse(beginning)
+
+    logger.info(s"Initializing transaction source, offset=${beginFromBlockId}")
 
     client
       .committedTxs(beginFromBlockId)
@@ -278,15 +296,88 @@ class KVBCParticipantState(
         })
       .mapConcat(identity) //Source[List[(Offset,Update)]] => Source[(Offset,Update)]
   }
+
+  private def stateUpdatesTRC(beginAfter: Option[Offset]): Source[(Offset, Update), NotUsed] = {
+    val beginFromBlockId: Long =
+      beginAfter
+        .flatMap(_.components.headOption)
+        .getOrElse(beginning)
+
+    logger.info(s"Initializing thin replica source, offset=${beginFromBlockId}")
+
+    trc.get
+      .committedBlocks(beginFromBlockId)
+      .flatMapConcat { block =>
+        //TODO: Reinstate correlation ids - "correlationId=${committedTx.correlationId}"
+        logger.trace(s"Reading block, offset=${block.blockId}")
+
+        processBlock(block)
+          .filter {
+            case (offset, _) =>
+              if (beginAfter.isDefined)
+                offset > beginAfter.get
+              else true
+          }
+          .alsoTo(Sink.onComplete {
+            case Success(Done) =>
+              //TODO: Reinstate correlation ids - "correlationId=${committedTx.correlationId}"
+              if(!block.kvPairs.isEmpty)
+                logger.info(s"Block read successful, offset=${block.blockId}");
+            case Failure(e) =>
+              //TODO: Reinstate correlation ids - "correlationId=${committedTx.correlationId}"
+              logger.info(s"Block read failed, offset=${block.blockId} error='$e'")
+        })
+      }
+  }
+
+  private def processBlock(block: TRClient.Block): Source[(Offset,Update),NotUsed] = {
+    Source(block.kvPairs.to[collection.immutable.Seq])
+        // For transaction k/v pairs, key is the entryId
+      .map { 
+        case Tuple2(entryId, value) =>
+          try {
+            val logEntry =
+              Envelope.open(ByteString.copyFrom(value)) match {
+                case Right(Envelope.LogEntryMessage(logEntry)) =>
+                  logEntry
+                case _ =>
+                  sys.error(s"Envelope did not contain log entry")
+              }
+
+            KeyValueConsumption.logEntryToUpdate(
+              DamlKvutils.DamlLogEntryId.newBuilder.setEntryId(ByteString.copyFrom(entryId)).build,
+              logEntry
+            ).zipWithIndex.map {
+              case (update, idx) =>
+                //TODO: Reinstate correlation ids - "correlationId=${committedTx.correlationId}"
+                logger.trace(s"Processing block, offset=${block.blockId}:$idx")
+                Offset(Array(block.blockId, idx.toLong)) -> update
+            }
+          } catch {
+            //TODO: Stream breaks here, make sure index can deal with this
+            case e: RuntimeException =>
+              //TODO: Reinstate correlation ids - "correlationId=${committedTx.correlationId}"
+              logger.error(s"Processing block failed with an exception, offset=${block.blockId} entryId=${entryId} error='${e.toString}'")
+              sys.error(e.toString)
+          }
+      }
+      .mapConcat(identity) //Source[List[(Offset,Update)]] => Source[(Offset,Update)]
+  }
 }
 
 object KVBCParticipantState{
   def apply (
       thisLedgerId: LedgerId, // Our ledger id.
       participantId: String,
-      host: String, // KVBC Server hostname
-      port: Int,    // KVBC Server port number
+      addresses: Array[String],
+      useThinReplica: Boolean,
+      maxFaultyReplicas: Short,
       )(implicit mat: Materializer, system: ActorSystem):KVBCParticipantState =
-    new KVBCParticipantState(thisLedgerId, Ref.LedgerString.assertFromString(participantId), host, port)
+    new KVBCParticipantState(
+        thisLedgerId,
+        Ref.LedgerString.assertFromString(participantId),
+        addresses,
+        useThinReplica,
+        maxFaultyReplicas)
 }
 

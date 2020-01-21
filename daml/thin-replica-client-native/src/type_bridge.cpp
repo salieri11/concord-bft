@@ -150,6 +150,12 @@ class JNIConverter {
     return (env->NewStringUTF(str.c_str()));
   }
 
+  jbyteArray CreateByteArray(const std::string& str) const {
+    jbyteArray jBuff = env->NewByteArray(str.length());
+    env->SetByteArrayRegion(jBuff, 0, str.length(), (jbyte*) str.c_str());
+    return jBuff;
+  }
+
   jobjectArray CreateStringArray(size_t size) const {
     return env->NewObjectArray(size, stringClass, NULL);
   }
@@ -263,7 +269,7 @@ extern "C" jboolean subscribeFrom(JNIEnv* env, jobject obj, jstring j_prefix,
   JNIConverter* converter = JNIConverterFactory::CreateInstance(env);
   string prefix = converter->ToString(j_prefix);
   try {
-    trcf->Subscribe(prefix, j_last_known_block_id);
+    trcf->Subscribe(prefix, j_last_known_block_id>0?j_last_known_block_id:1);
   } catch (const exception&) {
     return JNI_FALSE;
   }
@@ -288,8 +294,8 @@ jobject processUpdate(JNIEnv* env, JNIConverter* converter,
   size_t i = 0;
   for (Pairs::const_iterator it = update->kv_pairs.begin();
        it != update->kv_pairs.end(); ++it) {
-    jobject tup = converter->CreateTuple(converter->CreateString(it->first),
-                                         converter->CreateString(it->second));
+    jobject tup = converter->CreateTuple(converter->CreateByteArray(it->first),
+                                         converter->CreateByteArray(it->second));
     env->SetObjectArrayElement(kvPairs, i++, tup);
   }
   jobject u = converter->CreateUpdate(update->block_id, kvPairs);
@@ -338,8 +344,8 @@ extern "C" jobject getTestUpdate(JNIEnv* env, jobject obj) {
   JNIConverter* converter = JNIConverterFactory::CreateInstance(env);
   jobjectArray kvPairs = converter->CreateTupleArray(1);
   if (!kvPairs) return converter->CreateOption(NULL);
-  jstring alice = converter->CreateString("Alice");
-  jstring bob = converter->CreateString("Bob");
+  jbyteArray alice = converter->CreateByteArray("Alice");
+  jbyteArray bob = converter->CreateByteArray("Bob");
   jobject tup = converter->CreateTuple(alice, bob);
   env->SetObjectArrayElement(kvPairs, 0, tup);
   jobject u = converter->CreateUpdate(17, kvPairs);
