@@ -5,7 +5,7 @@
 #
 # Rules defined later in the file take precedence, so we define a default first.
 # I've just included a handful of people from across the blockchain team.
-* @andrewstone @bfink @bjay @bsubramanian @hbhavsar @khank @kkeunwoo @machenbach @mandeab @mharrison @panamika @rmuschner @rsg @rvollmar @sanchitar @tusharg @upshawa
+* @andrewstone @bjay @bsubramanian @hbhavsar @khank @kkeunwoo @machenbach @mandeab @mharrison @panamika @rmuschner @rsg @rvollmar @sanchitar @tusharg @upshawa
 
 # Here are the descriptions for our source tree.
 # When editing these descriptions, do NOT add lines which:
@@ -18,19 +18,19 @@
 # In the above cases, it is better to remove the line and use the default rule.
 /agent/ @khank @sanchitar @rsg
 /buildall.sh @rvollmar @rsg @khank
-/communication/ @bfink @rmuschner @andrewstone @machenbach
-/concord/ @bfink @upshawa @rmuschner @andrewstone @bjay @tkournik @ysherman @igolikov @petari @tparvanov
+/communication/ @rmuschner @andrewstone @machenbach
+/concord/ @upshawa @rmuschner @andrewstone @bjay @tkournik @ysherman @igolikov @petari @tparvanov
 /csp-dev/ @machenbach @rvollmar @panamika @mandeab
-/daml/ @rmuschner @bfink @upshawa @bjay
-/docker/config-concord*/ @upshawa @bfink @rmuschner @andrewstone @bjay
-/docker/config-public/ @upshawa @bfink @rmuschner @andrewstone @bjay
+/daml/ @rmuschner @upshawa @bjay
+/docker/config-concord*/ @upshawa @rmuschner @andrewstone @bjay
+/docker/config-public/ @upshawa @rmuschner @andrewstone @bjay
 /docker/fluentd/ @hbhavsar @mharrison
-/ethrpc/ @bfink @machenbach @panamika @mandeab
+/ethrpc/ @machenbach @panamika @mandeab
 /helen/ @machenbach @panamika @mandeab @khank
 /helen/src/main/resources/api-doc/api.yaml @machenbach @panamika @mandeab @tfidali
 /hermes/ @rvollmar @rsg @khank
 /Jenkinsfile @rvollmar @rsg
-/performance/ @vlin @dparmar @rsg @bfink
+/performance/ @vlin @dparmar @rsg
 /persephone/ @khank @sanchitar @rsg
 /src/ @rvollmar @rsg
 /thin-replica-client/ @rmuschner @upshawa @andrewstone @bjay
