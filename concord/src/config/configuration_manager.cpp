@@ -1,4 +1,4 @@
-// Copyright 2018-2019 VMware, all rights reserved
+// Copyright 2018-2020 VMware, all rights reserved
 
 #include <regex>
 
@@ -3229,16 +3229,17 @@ void specifyConfiguration(ConcordConfiguration& config) {
 
   config.declareParameter(
       "eth_enable",
-      "Enable Ethereum support. At the moment, DAML/Eth/HLF "
+      "Enable Ethereum support. At the moment, DAML/Eth/HLF/TEE "
       "support are mutually exclusive.",
       "true");
   config.tagParameter("eth_enable", publicDefaultableTags);
   config.addValidator("eth_enable", validateBoolean, nullptr);
 
-  config.declareParameter("daml_enable",
-                          "Enable DAML support. At the moment, DAML/Eth/HLF "
-                          "support are mutually exclusive.",
-                          "false");
+  config.declareParameter(
+      "daml_enable",
+      "Enable DAML support. At the moment, DAML/Eth/HLF/TEE "
+      "support are mutually exclusive.",
+      "false");
   config.tagParameter("daml_enable", publicDefaultableTags);
   config.addValidator("daml_enable", validateBoolean, nullptr);
 
@@ -3262,6 +3263,30 @@ void specifyConfiguration(ConcordConfiguration& config) {
   node.tagParameter("daml_service_threads", defaultableByReplicaTags);
   node.addValidator(
       "daml_service_threads", validateUInt,
+      const_cast<void*>(reinterpret_cast<const void*>(&kUInt16Limits)));
+
+  // Test Execution Engine (TEE) Parameters
+  config.declareParameter(
+      "tee_enable",
+      "Enable Test Execution Engine support. At the moment, "
+      "DAML/Eth/HLF/TEE support are mutually exclusive.",
+      "false");
+  config.tagParameter("tee_enable", publicDefaultableTags);
+  config.addValidator("tee_enable", validateBoolean, nullptr);
+
+  node.declareParameter("tee_service_addr",
+                        "IP address and port (<IP>:<PORT>) on which Concord's "
+                        "TEE service can be reached.",
+                        "0.0.0.0:50051");
+  node.tagParameter("tee_service_addr", defaultableByReplicaTags);
+
+  node.declareParameter("tee_service_threads",
+                        "Number of threads to be used by the TEE gRPC"
+                        "server.",
+                        "32");
+  node.tagParameter("tee_service_threads", defaultableByReplicaTags);
+  node.addValidator(
+      "tee_service_threads", validateUInt,
       const_cast<void*>(reinterpret_cast<const void*>(&kUInt16Limits)));
 
   node.declareParameter(
@@ -3504,7 +3529,7 @@ void specifyConfiguration(ConcordConfiguration& config) {
 
   // Configuration of HLF
   config.declareParameter("hlf_enable",
-                          "Enable HLF support. At the moment, DAML/Eth/HLF "
+                          "Enable HLF support. At the moment, DAML/Eth/HLF/TEE "
                           "support are mutually exclusive.",
                           "false");
   config.tagParameter("hlf_enable", publicDefaultableTags);

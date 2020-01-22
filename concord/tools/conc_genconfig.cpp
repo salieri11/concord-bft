@@ -148,7 +148,7 @@ int main(int argc, char** argv) {
   if (config.loadAllDefaults(false, false) !=
       ConcordConfiguration::ParameterStatus::VALID) {
     LOG4CPLUS_FATAL(concGenconfigLogger,
-                    "Failed to load default values for configuraiton "
+                    "Failed to load default values for configuration "
                     "parameters not included in input.");
     return -1;
   }

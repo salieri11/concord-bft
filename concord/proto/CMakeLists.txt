@@ -17,6 +17,8 @@ set(HLF_PROTO
 
 set(THIN_REPLICA_PROTO ${COMMUNICATION_PATH}/src/main/proto/thin_replica.proto)
 
+set(TEE_PROTO tee.proto)
+
 protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS
   ${CMAKE_CURRENT_BINARY_DIR}
   ${COMMUNICATION_PATH}/src/main/proto/concord.proto
@@ -24,15 +26,16 @@ protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS
   ${DAML_PROTO}
   ${HLF_PROTO}
   ${THIN_REPLICA_PROTO}
+  ${TEE_PROTO}
 )
 
 grpc_generate_cpp(GRPC_SRCS GRPC_HDRS ${CMAKE_CURRENT_BINARY_DIR}
   ${DAML_PROTO}
   ${HLF_PROTO}
   ${THIN_REPLICA_PROTO}
+  ${TEE_PROTO}
 )
 
 add_library(proto STATIC ${PROTO_SRCS} ${PROTO_HDRS} ${GRPC_SRCS} ${GRPC_SRCS})
 target_link_libraries(proto protobuf::libprotobuf gRPC::grpc++)
 target_include_directories(proto PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
-
