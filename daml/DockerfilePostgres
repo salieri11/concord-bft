@@ -11,6 +11,7 @@ ENV POSTGRES_USER=indexdb
 ENV POSTGRES_MULTIPLE_DATABASES=daml_ledger_api
 ENV BUFFER_SIZE=80MB
 ENV MAX_CONNECTIONS=300
+ENV THIN_REPLICA_SETTINGS="--use-thin-replica --max-faulty-replicas 1"
 
 ENTRYPOINT ["/doc/daml/daml-index-db-entrypoint.sh"]
 
