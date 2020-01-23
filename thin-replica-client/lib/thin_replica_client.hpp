@@ -46,6 +46,14 @@
 
 namespace thin_replica_client {
 
+// The default message size for incoming data is 4MiB but certain workloads
+// demand a higher limit. With the tested workloads, the incoming message size
+// from the TRS is less than 16MiB. This correlates with the maximum message
+// size that we specify for the SBFT protocol in Concord's configuration file.
+// Note: We can set the upper bound to unlimited (-1) but we do want to know
+// when & why the message size increases.
+const int kGrpcMaxInboundMsgSizeInBytes = 1 << 24;
+
 // Interface for a synchronized queue to be used to transfer updates between a
 // ThinReplicaClient and an application. The Thin Replica Client Library
 // provides BasicUpdateQueue as an implementation of this interface, though

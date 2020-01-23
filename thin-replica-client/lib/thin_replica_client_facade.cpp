@@ -4,6 +4,7 @@
 #include "thin_replica_client.hpp"
 
 using grpc::Channel;
+using grpc::ChannelArguments;
 using grpc::InsecureChannelCredentials;
 using log4cplus::Logger;
 using std::endl;
@@ -35,11 +36,14 @@ ThinReplicaClientFacade::ThinReplicaClientFacade(
     const std::vector<std::pair<std::string, std::string>>& servers)
     : impl(new Impl()) {
   try {
+    ChannelArguments args;
+    args.SetMaxReceiveMessageSize(kGrpcMaxInboundMsgSizeInBytes);
     vector<pair<string, shared_ptr<Channel>>> serverChannels;
     for (auto& server : servers) {
       serverChannels.push_back(pair<string, shared_ptr<Channel>>(
           server.first,
-          CreateChannel(server.second, InsecureChannelCredentials())));
+          CreateCustomChannel(server.second, InsecureChannelCredentials(),
+                              args)));
     }
 
     impl->trc.reset(new ThinReplicaClient(
