@@ -29,10 +29,9 @@ import { developerRoutes } from '../../developer/developer-routing';
 
 
 const routes: Routes = [
-
-  // ROUTE: /blockchain/* {welcome, deploy, deploying/:taskId}
+  // ROUTE: /:consortiumId
   {
-    path: mainRoutes.blockchain,
+    path: ':consortiumId',
     component: MainComponent,
     canActivate: [AuthenticatedGuard, AgreementGuard],
     canActivateChild: [AuthenticatedGuard],
@@ -50,18 +49,6 @@ const routes: Routes = [
           path: ':taskId', component: DeployingComponent
         }]
       },
-    ]
-  },
-
-
-  // ROUTE: /:consortiumId
-  {
-    path: ':consortiumId',
-    component: MainComponent,
-    canActivate: [AuthenticatedGuard, AgreementGuard],
-    canActivateChild: [AuthenticatedGuard],
-    resolve: {blockchain: BlockchainResolver},
-    children: [
       // ROUTE: /:consortiumId/zones
       {
         component: ZonesComponent,
