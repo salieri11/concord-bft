@@ -30,6 +30,7 @@ COPY daml/thin-replica-client-native /doc/daml/thin-replica-client-native
 COPY daml/thin-replica-client-core /doc/daml/thin-replica-client-core
 
 ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib:/opt/grpc/lib:/opt/protobuf/lib
+ENV THIN_REPLICA_SETTINGS="--use-thin-replica --max-faulty-replicas 1"
 
 RUN sbt nativeCompile
 RUN sbt ledger_api_server/stage
