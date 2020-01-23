@@ -29,6 +29,8 @@ import com.vmware.blockchain.configuration.generateconfig.DamlIndexDbUtil;
 import com.vmware.blockchain.configuration.generateconfig.DamlLedgerApiUtil;
 import com.vmware.blockchain.configuration.generateconfig.GenesisUtil;
 import com.vmware.blockchain.configuration.generateconfig.LoggingUtil;
+import com.vmware.blockchain.configuration.generateconfig.TelegrafConfigUtil;
+
 import com.vmware.blockchain.deployment.v1.ConcordComponent.ServiceType;
 import com.vmware.blockchain.deployment.v1.ConfigurationComponent;
 import com.vmware.blockchain.deployment.v1.ConfigurationServiceGrpc.ConfigurationServiceImplBase;
@@ -55,7 +57,16 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class ConfigurationService extends ConfigurationServiceImplBase {
 
+    /** Concord config Template path. **/
+    // FIXME: Rename to concordConfigPath
     private String configPath;
+
+    /** Telegraf config template path. **/
+    private String telegrafConfigPath;
+
+    /** Metrics config template path. **/
+    private String metricsConfigPath;
+
 
     /** Executor to use for all async service operations. */
     private final ExecutorService executor;
@@ -68,9 +79,16 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
      * Constructor.
      */
     @Autowired
-    ConfigurationService(ExecutorService executor, @Value("${config.template.path:ConcordConfigTemplate.yaml}")
-            String configTemplatePath)  {
+    ConfigurationService(ExecutorService executor,
+                         @Value("${config.template.path:ConcordConfigTemplate.yaml}")
+                                 String configTemplatePath,
+                         @Value("${config.template.path:TelegrafConfigTemplate.config}")
+                                 String telegrafConfigTemplatePath,
+                         @Value("${config.template.path:MetricsConfig.yaml}")
+                                 String metricsConfigPath)  {
         this.configPath = configTemplatePath;
+        this.telegrafConfigPath = telegrafConfigTemplatePath;
+        this.metricsConfigPath = metricsConfigPath;
         this.executor = executor;
         initialize();
     }
@@ -146,13 +164,19 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
 
         if (request.getServicesList().contains(ServiceType.CONCORD)
             || request.getServicesList().contains(ServiceType.DAML_CONCORD)
-            || request.getServicesList().contains(ServiceType.HLF_CONCORD)) {
+            || request.getServicesList().contains(ServiceType.HLF_CONCORD)
+            || request.getServicesList().contains(ServiceType.TELEGRAF)) {
 
             var certGen = new ConcordEcCertificatesGenerator();
 
             // Generate Configuration
             var configUtil = new ConcordConfigUtil(configPath);
             var tlsConfig = configUtil.getConcordConfig(request.getHostsList(), request.getBlockchainType());
+
+            // Generate telegraf config
+            var telegrafConfigUtil = new TelegrafConfigUtil(telegrafConfigPath, metricsConfigPath);
+            var metricsConfigYaml = telegrafConfigUtil.getMetricsConfigYaml();
+            var telegrafConfig = telegrafConfigUtil.getTelegrafConfig(request.getHostsList());
 
             List<Identity> tlsIdentityList =
                     generateEtheriumConfig(certGen, configUtil.maxPrincipalId + 1, ServiceType.CONCORD);
@@ -184,6 +208,21 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
                                         .setIdentityFactors(certGen.getIdentityFactor())
                                         .build()
                         ));
+
+                // telegraf configs
+                componentList.add(ConfigurationComponent.newBuilder()
+                        .setType(ServiceType.TELEGRAF)
+                        .setComponentUrl(telegrafConfigUtil.configPath)
+                        .setComponent(telegrafConfig.get(node))
+                        .setIdentityFactors(IdentityFactors.newBuilder().build())
+                        .build());
+
+                componentList.add(ConfigurationComponent.newBuilder()
+                        .setType(ServiceType.TELEGRAF)
+                        .setComponentUrl(TelegrafConfigUtil.metricsConfigPath)
+                        .setComponent(metricsConfigYaml)
+                        .setIdentityFactors(IdentityFactors.newBuilder().build())
+                        .build());
 
                 // put per node configs
                 nodeComponent.putIfAbsent(node, componentList);
