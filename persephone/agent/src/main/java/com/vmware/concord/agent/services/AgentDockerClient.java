@@ -196,7 +196,8 @@ public final class AgentDockerClient {
 
                 // FIXME: This could be grouped together and not needing a separate if clause
                 if (component.getServiceType() == ConcordComponent.ServiceType.WAVEFRONT_PROXY
-                        || component.getServiceType() == ConcordComponent.ServiceType.JAEGER_AGENT) {
+                        || component.getServiceType() == ConcordComponent.ServiceType.JAEGER_AGENT
+                        || component.getServiceType() == ConcordComponent.ServiceType.TELEGRAF) {
                     containerSpec = getMetricsAndTracingContainerSpec(component);
                 } else {
                     containerSpec = getContainerSpec(
