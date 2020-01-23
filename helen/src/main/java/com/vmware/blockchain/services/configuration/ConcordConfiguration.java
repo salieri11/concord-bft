@@ -13,6 +13,7 @@ import static com.vmware.blockchain.deployment.v1.ConcordComponent.ServiceType.E
 import static com.vmware.blockchain.deployment.v1.ConcordComponent.ServiceType.GENERIC;
 import static com.vmware.blockchain.deployment.v1.ConcordComponent.ServiceType.JAEGER_AGENT;
 import static com.vmware.blockchain.deployment.v1.ConcordComponent.ServiceType.LOGGING;
+import static com.vmware.blockchain.deployment.v1.ConcordComponent.ServiceType.TELEGRAF;
 import static com.vmware.blockchain.deployment.v1.ConcordComponent.ServiceType.WAVEFRONT_PROXY;
 
 
@@ -71,16 +72,17 @@ public class ConcordConfiguration {
 
     // ConcordComponents for blockchains
     private static final List<ConcordComponent.ServiceType> GENERIC_COMPONENTS = List.of(GENERIC, LOGGING,
-            WAVEFRONT_PROXY, JAEGER_AGENT);
-    private static final List<ConcordComponent.ServiceType> ETHEREUM_COMPONENTS = List.of(CONCORD, ETHEREUM_API);
-    private static final List<ConcordComponent.ServiceType> DAML_COMPONENTS = List.of(DAML_CONCORD,
+            WAVEFRONT_PROXY, TELEGRAF);
+    private static final List<ConcordComponent.ServiceType> ETHEREUM_COMPONENTS = List.of(CONCORD, JAEGER_AGENT,
+            ETHEREUM_API);
+    private static final List<ConcordComponent.ServiceType> DAML_COMPONENTS = List.of(DAML_CONCORD, JAEGER_AGENT,
             DAML_EXECUTION_ENGINE, DAML_INDEX_DB, DAML_LEDGER_API);
 
     //ConcordComponents for nodes
     private static final List<ConcordComponent.ServiceType> DAML_PARTICIPANT_COMPONENTS = List.of(DAML_INDEX_DB,
             DAML_LEDGER_API);
     private static final List<ConcordComponent.ServiceType> DAML_COMMITTER_COMPONENTS = List.of(DAML_CONCORD,
-            DAML_EXECUTION_ENGINE);
+            JAEGER_AGENT, DAML_EXECUTION_ENGINE);
 
 
     private static final Map<ConcordModelSpecification.BlockchainType, List<ConcordComponent.ServiceType>>
@@ -114,7 +116,8 @@ public class ConcordConfiguration {
                     .put(DAML_INDEX_DB, "vmwblockchain/daml-index-db")
                     .put(DAML_LEDGER_API, "vmwblockchain/daml-ledger-api")
                     .put(CONCORD, "vmwblockchain/concord-core")
-                    .put(ETHEREUM_API, "vmwblockchain/ethrpc").build();
+                    .put(ETHEREUM_API, "vmwblockchain/ethrpc")
+                    .put(TELEGRAF, "vmwblockchain/telegraf").build();
 
     private String getImageTag(ConcordComponent.ServiceType type) {
         log.info("ServiceType: {}", type);
