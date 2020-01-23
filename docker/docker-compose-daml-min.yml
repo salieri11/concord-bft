@@ -107,7 +107,6 @@ services:
       - REPLICAS=concord1:50051,concord2:50051,concord3:50051,concord4:50051
       - PARTICIPANT_ID=daml_ledger_api1
       - JAVA_OPTS=-XX:+UseG1GC -Xmx4G
-      - THIN_REPLICA_SETTINGS=--use-thin-replica --max-faulty-replicas 1
     depends_on:
       - concord1
       - index_db
@@ -125,7 +124,6 @@ services:
       - REPLICAS=concord2:50051,concord3:50051,concord4:50051,concord1:50051
       - PARTICIPANT_ID=daml_ledger_api2
       - JAVA_OPTS=-XX:+UseG1GC -Xmx4G
-      - THIN_REPLICA_SETTINGS=--use-thin-replica --max-faulty-replicas 1
     depends_on:
       - concord2
       - index_db
