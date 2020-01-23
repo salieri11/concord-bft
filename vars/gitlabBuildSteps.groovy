@@ -66,7 +66,7 @@ import hudson.util.Secret
     "runWithGenericTests": true
   ],
   "RegressionTests": [
-    "enabled": true,
+    "enabled": false,
     "runWithGenericTests": true
   ],
   "DamlTests": [
@@ -141,13 +141,25 @@ def call(){
   def genericTests = true
   def additional_components_to_build = ""
   def deployment_support_bundle_job_name = "Get Deployment support bundle"
-  def master_branch_job_name = "Master Branch"
   def lint_test_job_name = "Blockchain LINT Tests"
   def memory_leak_job_name = "BlockchainMemoryLeakTesting"
   def performance_test_job_name = "Blockchain Performance Test"
   def persephone_test_job_name = "Blockchain Persephone Tests"
   def persephone_test_on_demand_job_name = "ON DEMAND Persephone Testrun on GitLab"
   def helen_role_test_job_name = "Helen Role Tests on GitLab"
+
+  // This is a unique substring of the Jenkins job which tests ToT after a
+  // change has been merged.
+  // Change this when creating a release branch.
+  env.tot_job_name = "Master Branch"
+
+  // This is the name of the branch into which a commit is being merged,
+  // and the name of the branch whose ToT will be used for the above
+  // Jenkins run (tot_job_name).
+  // It would be great if we could get this from the shared lib load branch
+  // instead of hard coding, but I don't see it in the env.
+  // Change this when creating a release branch.
+  env.tot_branch = "master"
 
   // These runs will never run Persehpone tests. Persephone tests have special criteria,
   // and these runs can end up running them unintentionally.
@@ -194,7 +206,7 @@ def call(){
       gitLabConnection('TheGitlabConnection')
     }
     parameters {
-      booleanParam defaultValue: false, description: "Whether to deploy the docker images for production. Only supported for the Master Jenkins job", name: "deploy"
+      booleanParam defaultValue: false, description: "Whether to deploy the docker images for production. Only supported for the ToT Jenkins jobs", name: "deploy"
 
       booleanParam defaultValue: true, description: "Whether to run tests.", name: "run_tests"
       password defaultValue: "",
@@ -205,7 +217,7 @@ def call(){
              description: "Blockchain commit or branch to use.  Providing a branch name will pull the branch's latest commit.",
              name: "blockchain_branch_or_commit"
       booleanParam defaultValue: true,
-                   description: "Whether to merge the above commit/branch into the local master branch before building and testing.\
+                   description: "Whether to merge the above commit/branch into the local master or release branch before building and testing.\
   This is a --no-ff merge, just like GitLab will do when it will try to merge your change.",
                    name: "merge_branch_or_commit"
 
@@ -258,9 +270,9 @@ def call(){
               script{
                 errString = "Parameter check error: "
 
-                if (params.deploy && (!env.JOB_NAME.contains(master_branch_job_name))){
-                  throw new Exception (errString + "Only do releases from the Master " +
-                                       "Jenkins job.  The build number is based on that.")
+                if (params.deploy && (!env.JOB_NAME.contains(env.tot_job_name))){
+                  throw new Exception (errString + "For this branch, only do releases from the '" +
+                        env.tot_job_name + "' Jenkins job.  The build number is based on that.")
                 }
               }
 
@@ -432,7 +444,7 @@ def call(){
                   env.JOB_NAME.contains(performance_test_job_name) ||
                   env.JOB_NAME.contains(memory_leak_job_name)) {
                 saveTimeEvent("Build", "Fetch build number from Job Update-onecloud-provisioning-service")
-                echo "For nightly runs (other than MR/Master/Manual Run/ON DEMAND), fetching latest build number"
+                echo "For nightly runs (other than MR/ToT/Manual Run/ON DEMAND), fetching latest build number"
                 def build = build job: 'Update-onecloud-provisioning-service', propagate: true, wait: true
                 env.recent_published_docker_tag = "${build.buildVariables.concord_tag}"
                 echo "Most recent build/tag: " + env.recent_published_docker_tag
@@ -654,14 +666,14 @@ EOF
                           }
                         }
                       }else{
-                        // This was something like manual build with parameters or master run. Run what the
-                        // user picked or all for a master run.
+                        // This was something like manual build with parameters or a ToT run. Run what the
+                        // user picked or all for a ToT run.
                         choices = null
                         echo("tests_to_run: " + params.tests_to_run)
 
-                        if (params.tests_to_run == null || env.JOB_NAME.contains(master_branch_job_name)){
-                          // It was a master run or similar.  Run all.
-                          echo("tests_to_run was null, or it was a master run, so all selectable suites will be selected.")
+                        if (params.tests_to_run == null || env.JOB_NAME.contains(env.tot_job_name)){
+                          // It was a ToT or similar run.  Run all.
+                          echo("tests_to_run was null, or it was a ToT run, so all selectable suites will be selected.")
                           choices = getSelectableSuites()
                         }else{
                           echo("Using suites selected by the user in tests_to_run.")
@@ -763,7 +775,7 @@ EOF
                   string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD'),
                 ]) {
                   script {
-                    // Set docker tag to "latest", unless overridden for master run with ToT & nightly with recent pushed images
+                    // Set docker tag to "latest", unless overridden for ToT run or nightly with recent pushed images
                     env.dep_comp_docker_tag = "latest"
 
                     // For nightly run, deployment components are recent builds already published to bintray
@@ -780,8 +792,8 @@ EOF
                       pullTagPushDockerImage(env.internal_persephone_agent_repo, env.release_persephone_agent_repo, env.docker_tag, false)
                       env.agent_docker_tag = env.docker_tag
 
-                      // Only for master runs, deployment components are ToT
-                      if (env.JOB_NAME.contains(master_branch_job_name)) {
+                      // Only for ToT runs, deployment components are ToT
+                      if (env.JOB_NAME.contains(env.tot_job_name)) {
                         pullTagPushDockerImage(env.internal_concord_repo, env.release_concord_repo, env.docker_tag, false)
                         pullTagPushDockerImage(env.internal_ethrpc_repo, env.release_ethrpc_repo, env.docker_tag, false)
                         pullTagPushDockerImage(env.internal_daml_ledger_api_repo, env.release_daml_ledger_api_repo, env.docker_tag, false)
@@ -808,7 +820,7 @@ EOF
                         '''
                       } else {
                         // If bug VB-1770 (infra/product/test issue on config-service), is still seen after a couple of runs,
-                        // remove --useLocalConfigService for MR/Master runs, and retain for ON DEMAND Job
+                        // remove --useLocalConfigService for MR/ToT runs, and retain for ON DEMAND Job
                         sh '''
                           echo "Running Persephone SMOKE Tests..."
                           echo "${PASSWORD}" | sudo -SE "${python}" main.py PersephoneTests --dockerComposeFile ../docker/docker-compose-persephone.yml --resultsDir "${persephone_test_logs}" --deploymentComponents "${release_persephone_agent_repo}:${agent_docker_tag},${release_concord_repo}:${dep_comp_docker_tag},${release_ethrpc_repo}:${dep_comp_docker_tag},${release_daml_ledger_api_repo}:${dep_comp_docker_tag},${release_daml_execution_engine_repo}:${dep_comp_docker_tag},${release_daml_index_db_repo}:${dep_comp_docker_tag},${release_fluentd_repo}:${dep_comp_docker_tag}" --keepBlockchains ${deployment_retention} > "${persephone_test_logs}/persephone_tests.log" 2>&1
@@ -995,7 +1007,7 @@ EOF
       stage("Save to artifactory"){
         when {
           expression {
-            env.JOB_NAME.contains(master_branch_job_name) || params.deploy
+            env.JOB_NAME.contains(env.tot_job_name) || params.deploy
           }
         }
         steps{
@@ -1140,9 +1152,11 @@ EOF
 
 // The user's parameter is top priority, and if it fails, let an exception be thrown.
 // First, tries to fetch at branch_or_commit.
-// Next, get master.
-// Next, try to get the branch.
-// Returns the short form commit hash.
+// Next, try to get the branch of the developer's MR which triggered this run.
+// Failing the above, get ToT.
+// Finally, if testing a commit, it merges the commit being tested into ToT of the
+// current main branch (which is either master or a release branch).
+// Returns the short form commit hash of the commit being tested.
 String getRepoCode(repo_url, branch_or_commit, merge_branch_or_commit){
   refPrefix = "refs/heads/"
   gitlabRun = false
@@ -1167,20 +1181,20 @@ String getRepoCode(repo_url, branch_or_commit, merge_branch_or_commit){
     checkoutRepo(repo_url, refPrefix + env.gitlabSourceBranch)
   }else{
     // This was launched some other way. Just get latest.
-    echo("Not given a branch or commit, and not a GitLab run, checking out master for repo " + repo_url)
-    checkoutRepo(repo_url, "master")
+    echo("Not given a branch or commit, and not a GitLab run, checking out ToT for repo " + repo_url)
+    checkoutRepo(repo_url, env.tot_branch)
   }
 
   commitBeingTested = getHead()
 
   if (gitlabRun){
-    echo("Merging into TOT.")
-    mergeToTOT(env.gitlabSourceBranch)
+    echo("Merging into ToT.")
+    mergeToTot(env.gitlabSourceBranch)
   }else if (merge_branch_or_commit && branch_or_commit){
-    echo("Merging into TOT.")
-    mergeToTOT(branch_or_commit)
+    echo("Merging into ToT.")
+    mergeToTot(branch_or_commit)
   }else{
-    echo("Not merging into TOT.")
+    echo("Not merging into ToT.")
   }
 
   return commitBeingTested
@@ -1199,22 +1213,22 @@ void checkoutRepo(repo_url, branch_or_commit){
 // We are going to build/test against what things will look like after merge.
 // These steps to merge were taken from GitLab, so we should be getting exactly
 // what GitLab will get when it does a merge, unless someone else merges first.
-void mergeToTOT(branch_or_commit){
+void mergeToTot(branch_or_commit){
   if (branch_or_commit){
     sh(script: "git checkout ${branch_or_commit}")
     branchHash = getHead()
 
-    sh(script: "git checkout master")
-    origMasterHash = getHead()
+    sh(script: "git checkout ${tot_branch}")
+    origTotHash = getHead()
 
     sh(script: "git merge --no-ff ${branch_or_commit}")
     sh(script: "git submodule update --recursive")
-    newMasterHash = getHead()
+    newTotHash = getHead()
 
     echo "Merged '" + branch_or_commit + "' " +
-         "(hash '" + branchHash + "') with master at commit " +
-         "'" + origMasterHash + "' resulting in new master " +
-         "TOT hash '" + newMasterHash + "'.  This is just a " +
+         "(hash '" + branchHash + "') with ToT at commit " +
+         "'" + origTotHash + "' resulting in new " +
+         "ToT hash '" + newTotHash + "'.  This is just a " +
          "local merge and will not be pushed."
   }
 }
@@ -1304,7 +1318,7 @@ void pushHermesDataFile(fileToPush){
 
   echo "git push"
   sh (
-    script: "git pull --no-edit ; git push origin master",
+    script: "git pull --no-edit ; git push origin ${tot_branch}",
     returnStdout: false
   )
 }
@@ -1523,7 +1537,7 @@ void handleKnownHosts(host){
 
 Boolean need_persephone_tests(always_exclude_jobs){
   paths_changed = have_any_paths_changed(['vars', 'buildall.sh', 'hermes', 'persephone', 'agent', 'concord'])
-  needed_per_job_name = env.JOB_NAME.contains("Master Branch") || env.JOB_NAME.contains("Blockchain Persephone Tests")
+  needed_per_job_name = env.JOB_NAME.contains(env.tot_job_name) || env.JOB_NAME.contains("Blockchain Persephone Tests")
 
   // Never run for nightly runs which are focused on someting else.
   must_exclude = false
@@ -1559,7 +1573,7 @@ Boolean have_any_paths_changed(paths){
       absolute_path = new File(env.blockchain_root, paths[i]).toString()
 
       status = sh (
-        script: "git diff origin/master --name-only --exit-code '" + absolute_path + "'",
+        script: "git diff origin/${tot_branch} --name-only --exit-code '" + absolute_path + "'",
         returnStatus: true
       )
 
@@ -1605,9 +1619,9 @@ void reportSystemStats(){
   sh(script: "docker system df")
 }
 
-// Returns whether the current run should run tests.
+// Returns whether we are pushing.  (If we are, the current run should run tests.)
 Boolean runWillPush(){
-  return env.JOB_NAME.contains("Master Branch") || params.deploy
+  return env.JOB_NAME.contains(env.tot_job_name) || params.deploy
 }
 
 // If someone is trying to skip tests, and it is a run which pushes
@@ -1640,8 +1654,8 @@ void fetchSourceRepos() {
   echo "Fetch VMware blockchain hermes-data source"
   sh 'mkdir hermes-data'
   dir('hermes-data') {
-    env.actual_hermes_data_fetched = getRepoCode("git@gitlab.eng.vmware.com:blockchain/hermes-data","master",false)
-    sh 'git checkout master'
+    env.actual_hermes_data_fetched = getRepoCode("git@gitlab.eng.vmware.com:blockchain/hermes-data", env.tot_branch, false)
+    sh 'git checkout ${tot_branch}'
   }
 
   echo "Fetch samples from github"
