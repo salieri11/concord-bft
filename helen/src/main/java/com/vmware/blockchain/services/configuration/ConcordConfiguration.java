@@ -80,7 +80,7 @@ public class ConcordConfiguration {
     private static final List<ConcordComponent.ServiceType> DAML_PARTICIPANT_COMPONENTS = List.of(DAML_INDEX_DB,
             DAML_LEDGER_API);
     private static final List<ConcordComponent.ServiceType> DAML_COMMITTER_COMPONENTS = List.of(DAML_CONCORD,
-            DAML_EXECUTION_ENGINE, DAML_INDEX_DB, DAML_LEDGER_API);
+            DAML_EXECUTION_ENGINE);
 
 
     private static final Map<ConcordModelSpecification.BlockchainType, List<ConcordComponent.ServiceType>>

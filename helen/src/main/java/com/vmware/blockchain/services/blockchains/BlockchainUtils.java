@@ -9,6 +9,7 @@ import static com.vmware.blockchain.services.blockchains.zones.Zone.LONG_KEY;
 import static com.vmware.blockchain.services.blockchains.zones.Zone.NAME_KEY;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -137,7 +138,7 @@ public class BlockchainUtils {
                     .setGateway(fromIpAddr(n.getGateway()))
                     .setSubnet(Integer.parseInt(n.getSubnet()))
                     .setAllocationServer(Endpoint.newBuilder().build())
-                    .addAllNameServers(n.getNameServers())
+                    .addAllNameServers(n.getNameServers() == null ? Arrays.asList() : n.getNameServers())
                     .build();
 
             if (op.getResourcePool() == null || op.getResourcePool().isBlank()
