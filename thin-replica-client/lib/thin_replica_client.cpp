@@ -215,7 +215,9 @@ void ThinReplicaClient::ReceiveUpdates() {
       stop_subscription_thread_ = true;
       lock_guard<mutex> failure_condition_reassignment_lock(
           failure_condition_mutex_);
-      subscription_failure_condition_->notify_all();
+      if (subscription_failure_condition_) {
+        subscription_failure_condition_->notify_all();
+      }
     }
   }
 
@@ -239,7 +241,9 @@ void ThinReplicaClient::ReceiveUpdates() {
     }
     lock_guard<mutex> failure_condition_reassignment_lock(
         failure_condition_mutex_);
-    subscription_failure_condition_->notify_all();
+    if (subscription_failure_condition_) {
+      subscription_failure_condition_->notify_all();
+    }
   }
   subscription_data_stream_.reset();
 
