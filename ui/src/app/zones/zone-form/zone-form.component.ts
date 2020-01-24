@@ -224,6 +224,7 @@ export class ZoneFormComponent implements AfterViewInit {
     // this.addedOnPrem = true;
     // Update zones in blockchainservice
     this.blockchainService.getZones().subscribe();
+    this.form.markAsUntouched();
 
     return response;
   }
@@ -241,11 +242,15 @@ export class ZoneFormComponent implements AfterViewInit {
         .testOnPremZoneConnection(this.getOnPremInfo())
         .subscribe(() => {
           this.onPremConnectionSuccessful = true;
+
+          if (this.form.controls.onPrem.touched) {
             this.taskService.addToast({
               title: this.translate.instant('common.success'),
               description: this.translate.instant('onPrem.onPremConnSucc'),
               type: VmwToastType.INFO
             });
+
+          }
           testCon.unsubscribe();
         }, error => {
           this.onPremConnectionSuccessful = false;

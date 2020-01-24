@@ -165,7 +165,8 @@ export class MainComponent implements OnInit, OnDestroy {
     const blockchainId = param.consortiumId as string;
 
     // valid uuidv4 resource string
-    if (blockchainId && uuidRegExp.test(blockchainId)) {
+    if (blockchainId && (uuidRegExp.test(blockchainId)
+        || blockchainId === mainRoutes.blockchain)) {
       this.selectedConsortium = blockchainId;
       this.navDisabled = false;
       this.sidemenuVisible = true;
