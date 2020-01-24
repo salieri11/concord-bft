@@ -20,8 +20,8 @@ log = logging.getLogger(__name__)
 
 class ModelServiceRPCHelper(RPCHelper):
    CONCORD_TYPE_DAML = "daml"
-   NODE_TYPE_COMMITTER = "committer"
-   NODE_TYPE_PARTICIPANT = "participant"
+   NODE_TYPE_COMMITTER = "daml_committer"
+   NODE_TYPE_PARTICIPANT = "daml_participant"
    CONCORD_TYPE_ETHEREUM = "ethereum"
    CONCORD_TYPE_HLF = "hlf"
 
@@ -114,7 +114,7 @@ class ModelServiceRPCHelper(RPCHelper):
          if node_type is None:
             concord_type_to_deploy = concord_type
          else:
-            concord_type_to_deploy = "{}-{}".format(concord_type, node_type)
+            concord_type_to_deploy = node_type
 
          deployment_components = \
             self.args.userConfig["persephoneTests"]["modelService"]["defaults"][
@@ -150,6 +150,7 @@ class ModelServiceRPCHelper(RPCHelper):
                   concord_components.append((
                      concord_model_pb2.ConcordComponent.DAML_INDEX_DB,
                      component))
+
       elif concord_type is ModelServiceRPCHelper.CONCORD_TYPE_HLF:
          for component in deployment_components:
             if self.AGENT_ID in component:
@@ -170,6 +171,7 @@ class ModelServiceRPCHelper(RPCHelper):
                concord_components.append((
                   concord_model_pb2.ConcordComponent.HLF_TOOLS,
                   component))
+
       else:
          for component in deployment_components:
             if self.AGENT_ID in component:
@@ -192,10 +194,19 @@ class ModelServiceRPCHelper(RPCHelper):
          version=version,
          template=template,
          components=self.get_concord_components(concord_components),
-         blockchain_type=blockchain_type
+         blockchain_type=blockchain_type,
+         node_type=self.get_node_type(node_type)
       )
       log.debug("Model Specification: {}".format(model_specification))
       return model_specification
+
+   def get_node_type(self, node_type):
+      if node_type == self.NODE_TYPE_COMMITTER:
+         return concord_model_pb2.ConcordModelSpecification.DAML_COMMITTER
+      elif node_type == self.NODE_TYPE_PARTICIPANT:
+         return concord_model_pb2.ConcordModelSpecification.DAML_PARTICIPANT
+      else:
+         return concord_model_pb2.ConcordModelSpecification.NONE
 
    def get_concord_components(self, concord_components):
       '''

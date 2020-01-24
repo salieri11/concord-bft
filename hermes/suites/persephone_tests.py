@@ -560,7 +560,7 @@ class PersephoneTests(test_suite.TestSuite):
       if node_type is None:
          concord_type_to_deploy = concord_type
       else:
-         concord_type_to_deploy = "{}-{}".format(concord_type, node_type)
+         concord_type_to_deploy = node_type
       expected_docker_containers = list(self._userConfig["persephoneTests"][
          "modelService"]["defaults"]["deployment_components"][
          concord_type_to_deploy].values())

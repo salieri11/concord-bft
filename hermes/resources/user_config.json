@@ -187,13 +187,13 @@
             "vmwblockchain/daml-ledger-api:latest": "daml_ledger_api",
             "vmwblockchain/daml-index-db:latest": "daml_index_db"
           },
-          "daml-committer": {
+          "daml_committer": {
             "vmwblockchain/agent:latest": "agent",
             "vmwblockchain/fluentd:latest": "fluentd",
             "vmwblockchain/concord-core:latest": "concord",
             "vmwblockchain/daml-execution-engine:latest": "daml_execution_engine"
           },
-          "daml-participant": {
+          "daml_participant": {
             "vmwblockchain/agent:latest": "agent",
             "vmwblockchain/fluentd:latest": "fluentd",
             "vmwblockchain/daml-ledger-api:latest": "daml_ledger_api",
