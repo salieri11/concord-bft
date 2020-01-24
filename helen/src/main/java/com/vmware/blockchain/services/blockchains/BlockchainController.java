@@ -598,10 +598,10 @@ public class BlockchainController {
 
         BlockchainType blockchainType = blockchain.getType();
 
-        List<Blockchain.NodeEntry> nodeEntryList = blockchain.getNodeList();
+        List<Replica> nodeEntryList = blockchainService.getReplicas(bid);
 
         String ipList = String.join(",", nodeEntryList.stream()
-                .map(nodeEntry -> nodeEntry.ip + ":50051")
+                .map(nodeEntry -> nodeEntry.getPrivateIp() + ":50051")
                 .collect(Collectors.toList()));
 
         Map<String, String> properties = new HashMap<>();
