@@ -11,15 +11,31 @@ using log4cplus::Logger;
 using std::endl;
 using std::exception;
 using std::pair;
+using std::runtime_error;
 using std::shared_ptr;
 using std::string;
+using std::to_string;
 using std::unique_ptr;
 using std::vector;
+using std::chrono::operator""s;
+using std::chrono::seconds;
+using std::chrono::system_clock;
+using std::this_thread::sleep_for;
 using thin_replica_client::BasicUpdateQueue;
 using thin_replica_client::ThinReplicaClient;
 using thin_replica_client::ThinReplicaClientFacade;
 using thin_replica_client::Update;
 using thin_replica_client::UpdateQueue;
+
+// If the ThinReplicaClientFacade constructor fails to find enough servers to be
+// responsive, it will repeatedly sleep for kTimeToSleepBetweenConectionAttempts
+// and retry connection, for up to kMaxTimeToWaitForServerConnectivity, after
+// which point it will throw an exception; this can help prevent failures of the
+// Thin Replica Client induced when it tries to connect to a cluster that is
+// still in the process of coming up, which may be common in testing scenarios.
+const static seconds kMaxTimeToWaitForServerConnectivity = 60s;
+const static string kMaxTimeToWaitForServerConnectivityUnitLabel = "seconds";
+const static seconds kTimeToSleepBetweenConnectionAttempts = 1s;
 
 // A global instance of LoggerInitializer class is created when the thin
 // replica client library is loaded into process and destroyed when it is
@@ -72,6 +88,42 @@ ThinReplicaClientFacade::ThinReplicaClientFacade(
           server.first,
           CreateCustomChannel(server.second, InsecureChannelCredentials(),
                               args)));
+    }
+
+    // Wait (up to a timeout) to validate the server(s) to connect to are
+    // responsive before proceeding to construct the ThinReplicaClient object;
+    // this should prevent crashes and exceptions possibly arising from trying
+    // to connect to a cluster in a transient start-up state that is not yet
+    // fully up and running.
+    //
+    // Note this is a temporary fix; we intend for the ThinReplicaClient itself
+    // will more gracefully error-handle this case in the future. Note this
+    // check assumes the ThinReplicaClient implementation will need to be able
+    // to connect to a total of max_faulty + 1 servers to make progress.
+    assert(serverChannels.size() > 0);
+    bool servers_responsive = false;
+    system_clock::time_point time_to_wait_until =
+        system_clock::now() + kMaxTimeToWaitForServerConnectivity;
+    while (!servers_responsive && (system_clock::now() <= time_to_wait_until)) {
+      size_t num_responsive_servers = 0;
+      for (const auto& server : serverChannels) {
+        if (server.second->GetState(true) ==
+            grpc_connectivity_state::GRPC_CHANNEL_READY) {
+          ++num_responsive_servers;
+        }
+      }
+      if (num_responsive_servers >= (max_faulty + 1)) {
+        servers_responsive = true;
+      } else {
+        sleep_for(kTimeToSleepBetweenConnectionAttempts);
+      }
+    }
+    if (!servers_responsive) {
+      throw runtime_error(
+          "Failed to construct Thin Replica Client: could not connect to "
+          "enough of the provided servers within " +
+          to_string(kMaxTimeToWaitForServerConnectivity.count()) + " " +
+          kMaxTimeToWaitForServerConnectivityUnitLabel + ".");
     }
 
     impl->trc.reset(new ThinReplicaClient(
