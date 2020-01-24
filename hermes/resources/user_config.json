@@ -167,7 +167,10 @@
         "DAML_INDEX_DB": "daml-index-db",
         "HLF_ORDERER": "hlf-orderer",
         "HLF_PEER": "hlf-peer",
-        "HLF_TOOLS": "hlf-tools"
+        "HLF_TOOLS": "hlf-tools",
+        "WAVEFRONT_PROXY": "wavefront-proxy",
+        "JAEGER_AGENT": "jaeger-agent",
+        "TELEGRAF": "telegraf"
       },
       "defaults": {
         "concord_model_version": "1.0",
@@ -177,7 +180,9 @@
             "vmwblockchain/agent:latest": "agent",
             "vmwblockchain/fluentd:latest": "fluentd",
             "vmwblockchain/concord-core:latest": "concord",
-            "vmwblockchain/ethrpc:latest": "ethrpc"
+            "vmwblockchain/ethrpc:latest": "ethrpc",
+            "vmwblockchain/wavefront-proxy:latest": "wavefront-proxy",
+            "vmwblockchain/jaeger-agent:latest": "jaeger-agent"
             },
           "daml": {
             "vmwblockchain/agent:latest": "agent",
@@ -185,26 +190,33 @@
             "vmwblockchain/concord-core:latest": "concord",
             "vmwblockchain/daml-execution-engine:latest": "daml_execution_engine",
             "vmwblockchain/daml-ledger-api:latest": "daml_ledger_api",
-            "vmwblockchain/daml-index-db:latest": "daml_index_db"
+            "vmwblockchain/daml-index-db:latest": "daml_index_db",
+            "vmwblockchain/wavefront-proxy:latest": "wavefront-proxy",
+            "vmwblockchain/jaeger-agent:latest": "jaeger-agent"
           },
           "daml_committer": {
             "vmwblockchain/agent:latest": "agent",
             "vmwblockchain/fluentd:latest": "fluentd",
             "vmwblockchain/concord-core:latest": "concord",
-            "vmwblockchain/daml-execution-engine:latest": "daml_execution_engine"
+            "vmwblockchain/daml-execution-engine:latest": "daml_execution_engine",
+            "vmwblockchain/wavefront-proxy:latest": "wavefront-proxy",
+            "vmwblockchain/jaeger-agent:latest": "jaeger-agent"
           },
           "daml_participant": {
             "vmwblockchain/agent:latest": "agent",
             "vmwblockchain/fluentd:latest": "fluentd",
             "vmwblockchain/daml-ledger-api:latest": "daml_ledger_api",
-            "vmwblockchain/daml-index-db:latest": "daml_index_db"
+            "vmwblockchain/daml-index-db:latest": "daml_index_db",
+            "vmwblockchain/wavefront-proxy:latest": "wavefront-proxy"
           },
           "hlf": {
             "vmwblockchain/agent:latest": "agent",
             "vmwblockchain/concord-core:latest": "concord",
             "vmwblockchain/hlf-orderer:latest": "hlf-orderer",
             "vmwblockchain/hlf-peer:latest": "hlf-peer",
-            "vmwblockchain/hlf-tools:latest": "hlf-tools"
+            "vmwblockchain/hlf-tools:latest": "hlf-tools",
+            "vmwblockchain/wavefront-proxy:latest": "wavefront-proxy",
+            "vmwblockchain/jaeger-agent:latest": "jaeger-agent"
           }
 
         }
@@ -251,6 +263,10 @@
                 "nameServers": [],
                 "subnet": 24
               }
+            },
+            "wavefront": {
+              "url": "https://vmware.wavefront.com",
+              "token": "<WAVEFRONT_API_TOKEN>"
             },
             "logManagements": [
               {
@@ -306,6 +322,10 @@
                 "subnet": 24
               }
             },
+            "wavefront": {
+              "url": "https://vmware.wavefront.com",
+              "token": "<WAVEFRONT_API_TOKEN>"
+            },
             "logManagements": [
               {
                 "destination": "LOG_INTELLIGENCE",
@@ -355,6 +375,10 @@
                 "nameServers": [],
                 "subnet": 23
               }
+            },
+            "wavefront": {
+              "url": "https://vmware.wavefront.com",
+              "token": "<WAVEFRONT_API_TOKEN>"
             },
             "logManagements": [
               {
