@@ -35,20 +35,27 @@ fi
 
 ARTIFACTORY_BASE_URL="https://build-artifactory.eng.vmware.com/api/storage/athena-docker-local"
 ARTIFACTORY_BASE_IMAGE_PATH="athena-docker-local.artifactory.eng.vmware.com/"
+MAJOR=`grep -e "major" ../vars/build_info.json | sed 's/[^0-9]*//g'`
+MINOR=`grep -e "minor" ../vars/build_info.json | sed 's/[^0-9]*//g'`
+PATCH=`grep -e "patch" ../vars/build_info.json | sed 's/[^0-9]*//g'`
+VERSION_DIR=${MAJOR}.${MINOR}.${PATCH}
 
 # Find the last athena-docker-local change and extract the tag from it:
 #   1. curl output is JSON containing https://.../athena-docker-local/<some image>/<TAG>/<maybe more stuff>
 #   2. First grep extracts https://.../<TAG> (dropping /<maybe more stuff>)
 #   3. Second grep extracts <TAG> (droping https://.../)
-LATEST_TAG=$(curl -s -H "X-JFrog-Art-Api: ${ARTIFACTORY_KEY}" ${ARTIFACTORY_BASE_URL}/ethrpc?lastModified |
-                   perl -ne 'print $1 if /\/([a-f0-9\.]+)\//')
+LATEST_TAG=$(curl -s -H "X-JFrog-Art-Api: ${ARTIFACTORY_KEY}" ${ARTIFACTORY_BASE_URL}/ethrpc/${VERSION_DIR}?lastModified |
+                   perl -ne 'print $1 if /\/([a-f0-9\.]+\.[a-f0-9]+\.[a-f0.9]+\.[a-f0-9]+)\//')
 
 while IFS= read -r LINE
 do
     if [[ $LINE =~ repo ]]; then
-        # Ex: concord_repo=persephone
+        # Ex: concord_repo=concord-core
         #     ^-----^      ^----------^
         #     SERVICE      IMAGE_BASE_NAME
+        #
+        #     ^----------^
+        #     SERVICE_REPO
         SERVICE_REPO=`echo ${LINE} | cut -d "=" -f 1 -`
         SERVICE=${SERVICE_REPO%_repo}
         IMAGE_BASE_NAME=`echo ${LINE} | cut -d "=" -f 2 -`
@@ -62,7 +69,7 @@ do
             IMAGE_BASE_NAME=`echo ${IMAGE_BASE_NAME} | cut -d "/" -f 2 -`
         fi
 
-        echo "${SERVICE}_repo=${ARTIFACTORY_BASE_IMAGE_PATH}${IMAGE_BASE_NAME}"
+        echo "${SERVICE}_repo=${ARTIFACTORY_BASE_IMAGE_PATH}${IMAGE_BASE_NAME}/${VERSION_DIR}"
         echo "${SERVICE}_tag=${LATEST_TAG}"
     fi
 done < $SOURCE_FILE
