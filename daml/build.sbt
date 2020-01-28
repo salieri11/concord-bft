@@ -6,7 +6,7 @@ ThisBuild / organization     := "com.digitalasset"
 ThisBuild / organizationName := "Digital Asset, LLC"
 
 lazy val akkaVersion = "2.5.13"
-lazy val sdkVersion = "100.13.42"
+lazy val sdkVersion = "100.13.46"
 
 lazy val protobuf = "com.google.protobuf" % "protobuf-java" % "3.2.0"
 lazy val scalapb_runtime  = "com.thesamet.scalapb" %% "scalapb-runtime" % scalapb.compiler.Version.scalapbVersion % "protobuf"
@@ -83,7 +83,6 @@ lazy val execution_engine = (project in file("execution-engine"))
       protobuf,
       "io.grpc" % "grpc-services" % "1.22.1",
 
-
       // Logging and monitoring
       "org.slf4j" % "slf4j-api" % "1.7.25",
       "ch.qos.logback" % "logback-core" % "1.2.3",
@@ -140,6 +139,7 @@ lazy val ledger_api_server = (project in file("ledger-api-server"))
     libraryDependencies ++= Seq(
       // DAML
       "com.digitalasset" % "daml-lf-dev-archive-java-proto" % sdkVersion,
+      "com.digitalasset" %% "contextualized-logging" % sdkVersion,
       "com.digitalasset" %% "daml-lf-data" % sdkVersion,
       "com.digitalasset" %% "daml-lf-engine" % sdkVersion,
       "com.digitalasset" %% "daml-lf-language" % sdkVersion,

@@ -18,9 +18,10 @@ import com.digitalasset.daml.on.vmware.common.{KVBCHttpServer, KVBCMetricsRegist
 import com.digitalasset.daml.on.vmware.write.service.KVBCParticipantState
 import com.digitalasset.ledger.api.auth.AuthServiceWildcard
 import com.digitalasset.platform.apiserver.{ApiServerConfig, StandaloneApiServer}
-import com.digitalasset.platform.common.logging.NamedLoggerFactory
+import com.digitalasset.logging.LoggingContext
+import com.digitalasset.logging.LoggingContext.newLoggingContext
 import com.digitalasset.platform.indexer.{IndexerConfig, StandaloneIndexerServer}
-import com.digitalasset.platform.resources.{Resource, ResourceOwner}
+import com.digitalasset.resources.{Resource, ResourceOwner}
 
 import org.slf4j.LoggerFactory
 
@@ -71,18 +72,19 @@ object KvbcLedgerServer extends App {
 
   val readService = ledger
   val writeService = ledger
-  val loggerFactory = NamedLoggerFactory.forParticipant(participantId)
   val authService = AuthServiceWildcard
 
-  val resource = for {
-    // FIXME(JM): The resource cleanup isn't clean as
-    // Akka and the KVBC parts aren't under this. Since
-    // we're moving most of the logic here and in validator
-    // into kv-oem-integration-kit very soon I'm leaving this
-    // in this state.
-    _ <- newIndexer(config, indexerMetrics).acquire()
-    _ <- newApiServer(config, serverMetrics).acquire()
-  } yield ()
+  val resource = newLoggingContext { implicit logCtx =>
+    for {
+      // FIXME(JM): The resource cleanup isn't clean as
+      // Akka and the KVBC parts aren't under this. Since
+      // we're moving most of the logic here and in validator
+      // into kv-oem-integration-kit very soon I'm leaving this
+      // in this state.
+      _ <- newIndexer(config, indexerMetrics).acquire()
+      _ <- newApiServer(config, serverMetrics).acquire()
+    } yield ()
+  }
 
   resource.asFuture.failed.foreach { exception =>
     logger.error("Shutting down because of an initialization error.", exception)
@@ -98,15 +100,16 @@ object KvbcLedgerServer extends App {
     ledger.uploadPackages(submissionId, archives, Some("uploaded on startup by participant"))
   }
 
-  def newIndexer(config: Config, metrics: MetricRegistry) =
+  def newIndexer(config: Config, metrics: MetricRegistry)(
+      implicit logCtx: LoggingContext) =
     new StandaloneIndexerServer(
       readService,
       IndexerConfig(config.participantId, config.jdbcUrl, config.startupMode),
-      NamedLoggerFactory.forParticipant(config.participantId),
       metrics,
     )
 
-  def newApiServer(config: Config, metrics: MetricRegistry) =
+  def newApiServer(config: Config, metrics: MetricRegistry)(
+      implicit logCtx: LoggingContext) =
     new StandaloneApiServer(
       ApiServerConfig(
         config.participantId,
@@ -122,7 +125,6 @@ object KvbcLedgerServer extends App {
       readService,
       writeService,
       authService,
-      NamedLoggerFactory.forParticipant(config.participantId),
       metrics,
     )
 
