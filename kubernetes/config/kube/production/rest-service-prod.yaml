@@ -14,14 +14,14 @@ spec:
     spec:
       containers:
       - name: persephone-configuration-rest
-        image: vmware-docker-blockchainsaas.bintray.io/vmwblockchain/persephone-configuration-rest:4a9990523409
+        image: vmware-docker-blockchainsaas.bintray.io/vmwblockchain/persephone-configuration-rest:0.5.0-4
         imagePullPolicy: Always
         volumeMounts:
         - name: config-volume
           mountPath: /config/
           readOnly: true
         ports:
-        - containerPort: 8088
+        - containerPort: 9083
         command:
           - "/bin/bash"
           - "-ecx"
@@ -42,8 +42,8 @@ metadata:
     app: cs-rest-prod
 spec:
   ports:
-  - port: 8088
-    targetPort: 8088
+  - port: 9083
+    targetPort: 9083
     name: cs-rest-prod
   selector:
     app: cs-rest-prod
@@ -61,4 +61,4 @@ spec:
       paths:
       - backend:
           serviceName: cs-rest-prod
-          servicePort: 8088
+          servicePort: 9083
