@@ -5,6 +5,7 @@
 #include <nlohmann/json.hpp>
 
 #include "gtest/gtest.h"
+#include "utils/concord_prometheus_metrics.hpp"
 #include "utils/concord_utils.hpp"
 #include "utils/rlp.hpp"
 
@@ -176,9 +177,76 @@ TEST(utils_test, from_uint256_t_test) {
   EXPECT_EQ(0, memcmp(expected.bytes, out.bytes, sizeof(evm_uint256be)));
 }
 
+TEST(utils_test, test_configuration_parser) {
+  auto conf = concord::utils::PrometheusRegistry::parseConfiguration(
+      "resources/metrics_config.yaml");
+  ASSERT_EQ(conf[0].name_, "concord_command_handler_operation_counters_total");
+  ASSERT_EQ(conf[0].type_, "counter");
+  ASSERT_EQ(conf[0].exposed_, true);
+
+  auto conf2 = concord::utils::ConcordBftMetricsManager::parseConfiguration(
+      "resources/metrics_config.yaml");
+  ASSERT_EQ(conf2[0].name_, "view");
+  ASSERT_EQ(conf2[0].component_, "replica");
+  ASSERT_EQ(conf2[0].type_, "gauge");
+  ASSERT_EQ(conf2[0].exposed_, true);
+}
+
+TEST(utils_test, test_prometheus_create_families) {
+  auto conf = std::vector<concord::utils::ConcordMetricConf>(
+      {{"m1", {}, "counter", "", "", true}, {"m2", {}, "gauge", "", "", true}});
+  auto pr = concord::utils::PrometheusRegistry("0.0.0.0:9891", conf);
+  auto& cf = pr.createCounterFamily("m1", "h1", {});
+  auto& counter = pr.createCounter(cf, {{"l1", "v1"}});
+  counter.Increment();
+  ASSERT_EQ(counter.Value(), 1);
+  auto& gf = pr.createGaugeFamily("m2", "h2", {});
+  auto& gauge = pr.createGauge(gf, {{"l1", "v1"}});
+  gauge.Set(100);
+  ASSERT_EQ(gauge.Value(), 100);
+}
+
+TEST(utils_test, test_prometheus_create) {
+  auto conf = std::vector<concord::utils::ConcordMetricConf>(
+      {{"m1", {}, "counter", "", "", true}, {"m2", {}, "gauge", "", "", true}});
+  auto pr = concord::utils::PrometheusRegistry("0.0.0.0:9891", conf);
+  auto& counter = pr.createCounter("m1", "h1", {{"l1", "v1"}});
+  counter.Increment();
+  ASSERT_EQ(counter.Value(), 1);
+  auto& gauge = pr.createGauge("m2", "h2", {{"l1", "v1"}});
+  gauge.Set(100);
+  ASSERT_EQ(gauge.Value(), 100);
+}
+
+TEST(utils_test, test_prometheus_with_concord_bft_metrics) {
+  auto conf = std::vector<concord::utils::ConcordMetricConf>(
+      {{"m1", {{"l1", "v1"}}, "counter", "c1", "d1", true},
+       {"m2", {{"l2", "v2"}}, "gauge", "c1", "d2", true}});
+  auto pr = concord::utils::PrometheusRegistry("0.0.0.0:9891", {});
+  auto cbft = concord::utils::ConcordBftMetricsManager(conf);
+  concordMetrics::Component c1("c1", cbft.getAggregator());
+  auto counter = c1.RegisterCounter("m1");
+  auto gauge = c1.RegisterGauge("m2", 0);
+  c1.Register();
+  counter.Get().Inc();
+  gauge.Get().Set(100);
+  c1.UpdateAggregator();
+  pr.scrapeRegistry(cbft.getCollector());
+  for (auto& mf : cbft.getCollector()->Collect()) {
+    if (mf.type == prometheus::MetricType::Counter) {
+      ASSERT_EQ(mf.name, "m1");
+      ASSERT_EQ(mf.metric[0].counter.value, 1);
+    }
+    if (mf.type == prometheus::MetricType::Gauge) {
+      ASSERT_EQ(mf.name, "m2");
+      ASSERT_EQ(mf.metric[0].gauge.value, 100);
+    }
+  }
+}
+
 }  // namespace
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
 }
