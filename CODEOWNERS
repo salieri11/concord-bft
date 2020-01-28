@@ -18,12 +18,12 @@
 # In the above cases, it is better to remove the line and use the default rule.
 /agent/ @khank @sanchitar @rsg
 /buildall.sh @rvollmar @rsg @khank
-/communication/ @rmuschner @andrewstone @machenbach
+/communication/ @rmuschner @andrewstone @machenbach @ysherman @tparvanov
 /concord/ @upshawa @rmuschner @andrewstone @bjay @tkournik @ysherman @igolikov @petari @tparvanov
 /csp-dev/ @machenbach @rvollmar @panamika @mandeab
 /daml/ @rmuschner @upshawa @bjay
-/docker/config-concord*/ @upshawa @rmuschner @andrewstone @bjay
-/docker/config-public/ @upshawa @rmuschner @andrewstone @bjay
+/docker/config-concord*/ @upshawa @rmuschner @andrewstone @bjay @tparvanov @ybuchnik @igolikov @petari
+/docker/config-public/ @upshawa @rmuschner @andrewstone @bjay @tparvanov @ybuchnik @igolikov @petari
 /docker/fluentd/ @hbhavsar @mharrison
 /ethrpc/ @machenbach @panamika @mandeab
 /helen/ @machenbach @panamika @mandeab @khank
