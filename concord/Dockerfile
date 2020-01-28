@@ -164,6 +164,9 @@ EXPOSE 3503/udp
 EXPOSE 3504/udp
 EXPOSE 3505/udp
 
+# Metrics port
+EXPOSE 9891
+
 # ENV
 ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib:/opt/grpc/lib:/opt/protobuf/lib
 ENV GOPATH=/concord
