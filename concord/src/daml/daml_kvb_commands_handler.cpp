@@ -203,7 +203,7 @@ bool DamlKvbCommandsHandler::ExecuteCommit(
     }
 
     auto* read_set = pre_execution_result->mutable_read_set();
-    for (const auto& k : response.need_state().keys()) {
+    for (const auto& k : result.read_set()) {
       const auto& key = CreateDamlKvbKey(k);
       read_set->add_keys(key.data(), key.length());
     }

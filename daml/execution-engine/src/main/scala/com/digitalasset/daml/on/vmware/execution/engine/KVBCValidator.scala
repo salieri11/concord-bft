@@ -242,7 +242,8 @@ class KVBCValidator(registry: MetricRegistry)(implicit ec: ExecutionContext)
 
       Result(
         Envelope.enclose(logEntry),
-        outKeyPairs
+        outKeyPairs,
+        allInputs.toSeq.map(_.toByteString)
       )
     }
     Metrics.outputSizes.update(result.logEntry.size())
