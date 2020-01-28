@@ -25,15 +25,26 @@ class TRClient(clientId: String , maxFaulty: Short,
       Source
         .unfoldResource[Block, Boolean](
           // open
-          () => Library.subscribe("daml", offset),
+          () => {
+            logger.info(s"Subscribing to `daml` key/value feed using thin replica, offset=$offset")
+            // If subscription is done for the first time, let the TRC
+            // figure out the earliest available offset. After pruning
+            // this offset may have quite high value.
+            if (offset > 0)
+              Library.subscribe("daml", offset)
+            else
+              Library.subscribe("daml")},
           // read
-          // None return signals end of resource
-          subsResult => if(subsResult)
+          subsResult => 
+            // None return signals end of resource
+            if(subsResult)
                           Library.pop()
                         else
                           None,
           // close
-          subsResult => Library.unsubscribe())
+          subsResult =>
+            // Do nothing, unsubscribe should not be called here.
+            logger.info("Deleting thin replica instance"))
         .dropWhile { committedTx => committedTx.blockId < offset }
     else
       Source.empty
