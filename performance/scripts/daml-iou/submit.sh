@@ -8,10 +8,10 @@ set_values() {
   export application_id="IouApp"
   export command_id=$(uuidgen)
   export party="Alice"
-  export ledger_effective_time=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-  export maximum_record_time=$(date -v +15S -u +"%Y-%m-%dT%H:%M:%SZ")
+  export ledger_effective_time=$(date -I'seconds')
+  export maximum_record_time=$(date --date='15 seconds' -I'seconds')
 
-  export package_id="9b6430501726001a5c5ecc829b48c8588640dd0309d24516b43bf75bb3f4fe3d"
+  export package_id="164d14178afe1dc4de698c70390e054407a270ba7d9882f8a3b6c1950d019640" # corresponds to sdk-version: 0.13.46
   export module_name="Iou"
   export entity_name="Iou"
 
