@@ -3,6 +3,8 @@ services:
   concord1:
     image: "${concord_repo}:${concord_tag}"
     privileged: true
+    ports:
+      - 9891:9891
     expose:
       - 5458
       - 3501/tcp
@@ -37,6 +39,8 @@ services:
   concord2:
     image: "${concord_repo}:${concord_tag}"
     privileged: true
+    ports:
+      - 9892:9891
     expose:
       - 5458
       - 3501/tcp
@@ -71,6 +75,8 @@ services:
   concord3:
     image: "${concord_repo}:${concord_tag}"
     privileged: true
+    ports:
+      - 9893:9891
     expose:
       - 5458
       - 3501/tcp
@@ -105,6 +111,8 @@ services:
   concord4:
     image: "${concord_repo}:${concord_tag}"
     privileged: true
+    ports:
+      - 9894:9891
     expose:
       - 5458
       - 3501/tcp

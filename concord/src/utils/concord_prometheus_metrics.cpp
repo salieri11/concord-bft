@@ -24,7 +24,7 @@ prometheus::ClientMetric ConcordBftPrometheusCollector::collect(
 prometheus::ClientMetric ConcordBftPrometheusCollector::collect(
     const ConcordMetricConf& conf, concordMetrics::Gauge g) const {
   ClientMetric metric;
-  metric.counter.value = g.Get();
+  metric.gauge.value = g.Get();
   metric.label = {{"source", "concordbft"}, {"component", conf.component_}};
   for (const auto& pair : conf.labels_) {
     metric.label.insert(metric.label.end(), {pair.first, pair.second});
