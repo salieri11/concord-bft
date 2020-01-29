@@ -7,6 +7,7 @@
 #include <jaegertracing/Tracer.h>
 #include <log4cplus/configurator.h>
 #include <log4cplus/loggingmacros.h>
+#include <sys/stat.h>
 #include <boost/asio.hpp>
 #include <boost/program_options.hpp>
 #include <boost/thread.hpp>
@@ -289,6 +290,11 @@ static concordUtils::Status create_daml_genesis_block(
   }
   const auto &genesis_file_path =
       nodeConfig.getValue<std::string>("genesis_block");
+  if (access(genesis_file_path.c_str(), F_OK) == -1) {
+    LOG4CPLUS_WARN(logger, "Genesis config specified but doesn't exist: "
+                               << genesis_file_path);
+    return concordUtils::Status::OK();
+  }
   concord::daml::DamlInitParams init_params(genesis_file_path);
   const auto &key = concordUtils::Key(
       std::string({concord::storage::kKvbKeyAdminIdentifier}));
