@@ -1,14 +1,24 @@
-// Copyright 2018-2019 VMware, all rights reserved
+// Copyright 2019 VMware, all rights reserved
 
+#include "blockchain/db_adapter.h"
 #include "blockchain/db_interfaces.h"
 #include "config/configuration_manager.hpp"
 #include "gtest/gtest.h"
+#include "hash_defs.h"
+#include "memorydb/client.h"
+#include "memorydb/key_comparator.h"
 #include "pruning/kvb_pruning_sm.hpp"
 #include "pruning/pruning_exception.hpp"
 #include "pruning/rsa_pruning_signer.hpp"
 #include "pruning/rsa_pruning_verifier.hpp"
+#include "status.hpp"
+#include "storage/kvb_key_types.h"
+#include "time/time_contract.hpp"
+#include "time/time_reading.hpp"
 
 #include <cryptopp/osrng.h>
+#include <google/protobuf/timestamp.pb.h>
+#include <google/protobuf/util/time_util.h>
 #include <log4cplus/configurator.h>
 #include <log4cplus/hierarchy.h>
 #include <log4cplus/loggingmacros.h>
@@ -26,31 +36,41 @@
 using namespace concord::config;
 using namespace concordUtils;
 using namespace concord::pruning;
+using namespace concord::storage;
 using namespace concord::storage::blockchain;
+using namespace concord::storage::memorydb;
+using namespace concord::time;
+
 using namespace com::vmware::concord;
+using google::protobuf::util::TimeUtil;
 
 using CryptoPP::AutoSeededRandomPool;
 
 namespace {
 
-const auto LATEST_BLOCK_ID = BlockId{150};
-const auto NUM_BLOCKS_TO_KEEP = 30;
+const auto GENESIS_BLOCK_ID = BlockId{1};
+const auto LAST_BLOCK_ID = BlockId{150};
 const auto REPLICA_PRINCIPAL_ID_START = 0;
 const auto CLIENT_PRINCIPAL_ID_START = 20000;
 
-class TestStorage : public ILocalKeyValueStorageReadOnly {
+const auto now = ReadTime();
+
+class TestStorage : public ILocalKeyValueStorageReadOnly,
+                    public IBlocksAppender {
  public:
-  Status get(const Key&, Value&) const override {
-    EXPECT_TRUE(false) << "get(key) should not be called by this test";
-    return Status::IllegalOperation("get() not supported in test mode");
+  Status get(const Key& key, Value& outValue) const override {
+    BlockId outBlockId;
+    return get(blockId_, key, outValue, outBlockId);
   }
 
-  Status get(BlockId, const Sliver&, Sliver&, BlockId&) const override {
-    EXPECT_TRUE(false) << "get(version, key) should not be called by this test";
-    return Status::IllegalOperation("get() not supported in test mode");
+  Status get(BlockId readVersion, const Sliver& key, Sliver& outValue,
+             BlockId& outBlock) const override {
+    outBlock = readVersion;
+    KeyManipulator internalManip;
+    return db_.get(internalManip.genDataDbKey(key, readVersion), outValue);
   }
 
-  BlockId getLastBlock() const override { return LATEST_BLOCK_ID; }
+  BlockId getLastBlock() const override { return blockId_; }
 
   Status getBlockData(BlockId, SetOfKeyValuePairs&) const override {
     EXPECT_TRUE(false) << "getBlockData() should not be called by this test";
@@ -82,6 +102,27 @@ class TestStorage : public ILocalKeyValueStorageReadOnly {
   void monitor() const override {
     EXPECT_TRUE(false) << "monitor() should not be called by this test";
   }
+
+  Status addBlock(const SetOfKeyValuePairs& updates,
+                  BlockId& outBlockId) override {
+    outBlockId = ++blockId_;
+    KeyManipulator internalManip;
+    for (const auto& u : updates) {
+      const auto status =
+          db_.put(internalManip.genDataDbKey(u.first, blockId_), u.second);
+      if (!status.isOK()) {
+        return status;
+      }
+    }
+    return Status::OK();
+  }
+
+  void setBlockId(BlockId id) { blockId_ = id; }
+
+ private:
+  KeyComparator comp{new KeyManipulator{}};
+  Client db_{comp};
+  BlockId blockId_{LAST_BLOCK_ID};
 };
 
 ConcordConfiguration::ParameterStatus NodeScopeSizer(
@@ -105,19 +146,32 @@ ConcordConfiguration::ParameterStatus ClientProxyScopeSizer(
   return ConcordConfiguration::ParameterStatus::VALID;
 }
 
-ConcordConfiguration TestConfiguration(std::size_t replica_count,
-                                       std::size_t proxies_per_replica,
-                                       std::uint64_t num_blocks_to_keep = 0) {
+ConcordConfiguration TestConfiguration(
+    std::size_t replica_count, std::size_t proxies_per_replica,
+    std::uint64_t num_blocks_to_keep = 0,
+    std::uint32_t duration_to_keep_minutes = 0, bool pruning_enabled = true) {
   ConcordConfiguration config;
 
   config.declareScope("node", "Node scope", NodeScopeSizer, &replica_count);
+  config.declareParameter("pruning_enabled",
+                          "A flag indicating if pruning is enabled");
   config.declareParameter("pruning_num_blocks_to_keep",
                           "Number of blocks to keep when pruning");
+  config.declareParameter("pruning_duration_to_keep_minutes",
+                          "Pruning duration to keep in minutes");
+
+  config.declareParameter("FEATURE_time_service", "Enable time service");
+  config.loadValue("FEATURE_time_service", "true");
+  config.declareParameter("time_verification",
+                          "Time verification scheme to use.");
+  config.loadValue("time_verification", "none");
+
   auto& nodeTemplate = config.subscope("node");
   nodeTemplate.declareScope("replica", "Replica scope", ReplicaScopeSizer,
                             nullptr);
   nodeTemplate.declareScope("client_proxy", "Client proxy scope",
                             ClientProxyScopeSizer, &proxies_per_replica);
+  nodeTemplate.declareParameter("time_source_id", "Time Source ID");
 
   auto& replicaTemplate = nodeTemplate.subscope("replica");
   replicaTemplate.declareParameter("private_key", "Private RSA key");
@@ -127,9 +181,18 @@ ConcordConfiguration TestConfiguration(std::size_t replica_count,
   auto& clientProxyTemplate = nodeTemplate.subscope("client_proxy");
   clientProxyTemplate.declareParameter("principal_id", "Client proxy ID");
 
+  if (pruning_enabled) {
+    config.loadValue("pruning_enabled", "true");
+  }
+
   if (num_blocks_to_keep) {
     config.loadValue("pruning_num_blocks_to_keep",
                      std::to_string(num_blocks_to_keep));
+  }
+
+  if (duration_to_keep_minutes) {
+    config.loadValue("pruning_duration_to_keep_minutes",
+                     std::to_string(duration_to_keep_minutes));
   }
 
   config.instantiateScope("node");
@@ -138,6 +201,8 @@ ConcordConfiguration TestConfiguration(std::size_t replica_count,
   auto client_principal_id = CLIENT_PRINCIPAL_ID_START;
   for (auto i = 0; i < replica_count; ++i) {
     auto& node_scope = config.subscope("node", i);
+
+    node_scope.loadValue("time_source_id", "time_source_" + std::to_string(i));
 
     node_scope.instantiateScope("replica");
     auto& replica_scope = node_scope.subscope("replica", 0);
@@ -189,6 +254,113 @@ const ConcordConfiguration& NodeConfig(const ConcordConfiguration& config,
 
 auto test_span = opentracing::Tracer::Global() -> StartSpan("pruning_sm_test");
 
+void CheckLatestPrunableResp(const ConcordResponse& resp, int replica_idx,
+                             const RSAPruningVerifier& verifier,
+                             LatestPrunableBlock& block) {
+  ASSERT_TRUE(resp.has_latest_prunable_block_response());
+  const auto& latest_prunable_resp = resp.latest_prunable_block_response();
+  ASSERT_EQ(latest_prunable_resp.block_size(), 1);
+  block = latest_prunable_resp.block(0);
+  ASSERT_EQ(block.replica(), replica_idx);
+  ASSERT_TRUE(verifier.Verify(block));
+}
+
+void InitBlockchainStorage(TimeContract& tc, std::size_t replica_count,
+                           TestStorage& s, bool offset_ts = false,
+                           bool empty_blockchain = false,
+                           bool increment_now = false) {
+  for (auto i = 0u; i < replica_count; ++i) {
+    // If increment_now=true, make it so that TimeContract::GetTime() returns a
+    // big value, but the last block in storage has a normal timestamp of the
+    // real now .
+    const auto increment_duration = increment_now
+                                        ? TimeUtil::HoursToDuration(24 * 356)
+                                        : TimeUtil::NanosecondsToDuration(0);
+    tc.Update("time_source_" + std::to_string(i), 0,
+              now + increment_duration + TimeUtil::SecondsToDuration(i));
+  }
+
+  if (empty_blockchain) {
+    s.setBlockId(0);
+    ASSERT_EQ(s.getLastBlock(), 0);
+    return;
+  }
+
+  // ensure that blockId_ == LAST_BLOCK_ID at the end
+  s.setBlockId(GENESIS_BLOCK_ID - 1);
+  const Sliver key{new char[1]{kKvbKeySummarizedTime}, 1};
+  for (auto i = GENESIS_BLOCK_ID; i <= LAST_BLOCK_ID; ++i) {
+    // Blocks are spaced in 1-second intervals, except for the last block which
+    // uses the summarized time.
+    auto ts = now - TimeUtil::SecondsToDuration(LAST_BLOCK_ID - i);
+    if (offset_ts) {
+      ts -= TimeUtil::MillisecondsToDuration(500);
+    } else if (i == LAST_BLOCK_ID) {
+      if (increment_now) {
+        ts = now;
+      } else {
+        ts = tc.GetTime();
+      }
+    }
+
+    const auto buf_size = ts.ByteSize();
+    Sliver buf(new char[buf_size], buf_size);
+    ts.SerializeToArray(const_cast<char*>(buf.data()), buf_size);
+    const SetOfKeyValuePairs block{{std::make_pair(key, buf)}};
+    BlockId blockId;
+    s.addBlock(block, blockId);
+
+    // Make sure we've inserted the correct block ID.
+    ASSERT_EQ(i, blockId);
+
+    // Make sure our storage mock works properly.
+    {
+      BlockId outBlockId;
+      Sliver out;
+      const auto status = s.get(i, key, out, outBlockId);
+      ASSERT_EQ(status, Status::OK());
+      ASSERT_EQ(outBlockId, i);
+      ASSERT_EQ(buf, out);
+    }
+  }
+
+  // Make sure getLastBlock() works properly and it is equal to
+  // LAST_BLOCK_ID.
+  ASSERT_EQ(s.getLastBlock(), LAST_BLOCK_ID);
+}
+
+ConcordRequest ConstructPruneRequest(const ConcordConfiguration& config,
+                                     std::size_t client_idx) {
+  ConcordRequest req;
+  auto prune_req = req.mutable_prune_request();
+
+  const auto sender = config.subscope("node", client_idx)
+                          .subscope("client_proxy", 0)
+                          .getValue<std::uint64_t>("principal_id");
+  prune_req->set_sender(sender);
+
+  for (auto i = 0u; i < config.scopeSize("node"); ++i) {
+    const auto& node_config = config.subscope("node", i);
+    const auto& replica_config = node_config.subscope("replica", 0);
+
+    auto latest_block = prune_req->add_latest_prunable_block();
+    latest_block->set_replica(
+        replica_config.getValue<std::uint64_t>("principal_id"));
+    // Send different block IDs.
+    latest_block->set_block_id(LAST_BLOCK_ID + i);
+
+    const auto block_signer = RSAPruningSigner{GetNodeConfig(config, i)};
+    block_signer.Sign(*latest_block);
+  }
+
+  const auto req_signer = RSAPruningSigner{GetNodeConfig(config, client_idx)};
+  req_signer.Sign(*prune_req);
+
+  return req;
+}
+
+// Tests follow.
+
 TEST(pruning_sm_test, sign_verify_parse_configuration) {
   {
     EXPECT_ANY_THROW({
@@ -238,7 +410,10 @@ TEST(pruning_sm_test, sm_parse_configuration) {
     const auto client_proxies = 4;
     const auto c = TestConfiguration(replicas, client_proxies);
     const auto& n = GetNodeConfig(c, 1);
-    EXPECT_NO_THROW({ KVBPruningSM sm(s, c, n); });
+    EXPECT_NO_THROW({
+      TimeContract tc(s, c);
+      KVBPruningSM sm(s, c, n, &tc);
+    });
   }
 
   {
@@ -246,7 +421,10 @@ TEST(pruning_sm_test, sm_parse_configuration) {
     const auto client_proxies = 8;
     const auto c = TestConfiguration(replicas, client_proxies);
     const auto& n = GetNodeConfig(c, 1);
-    EXPECT_NO_THROW({ KVBPruningSM sm(s, c, n); });
+    EXPECT_NO_THROW({
+      TimeContract tc(s, c);
+      KVBPruningSM sm(s, c, n, &tc);
+    });
   }
 
   {
@@ -254,7 +432,10 @@ TEST(pruning_sm_test, sm_parse_configuration) {
     const auto client_proxies = 2;
     const auto c = TestConfiguration(replicas, client_proxies);
     const auto& n = GetNodeConfig(c, 1);
-    EXPECT_NO_THROW({ KVBPruningSM sm(s, c, n); });
+    EXPECT_NO_THROW({
+      TimeContract tc(s, c);
+      KVBPruningSM sm(s, c, n, &tc);
+    });
   }
 
   {
@@ -262,7 +443,10 @@ TEST(pruning_sm_test, sm_parse_configuration) {
     const auto client_proxies = 3;
     const auto c = TestConfiguration(replicas, client_proxies);
     const auto& n = GetNodeConfig(c, 1);
-    EXPECT_NO_THROW({ KVBPruningSM sm(s, c, n); });
+    EXPECT_NO_THROW({
+      TimeContract tc(s, c);
+      KVBPruningSM sm(s, c, n, &tc);
+    });
   }
 
   {
@@ -270,7 +454,10 @@ TEST(pruning_sm_test, sm_parse_configuration) {
     const auto client_proxies = 0;
     const auto c = TestConfiguration(replicas, client_proxies);
     const auto& n = GetNodeConfig(c, 1);
-    EXPECT_NO_THROW({ KVBPruningSM sm(s, c, n); });
+    EXPECT_NO_THROW({
+      TimeContract tc(s, c);
+      KVBPruningSM sm(s, c, n, &tc);
+    });
   }
 }
 
@@ -289,7 +476,7 @@ TEST(pruning_sm_test, sign_verify_correct) {
   {
     LatestPrunableBlock block;
     block.set_replica(REPLICA_PRINCIPAL_ID_START + sending_id);
-    block.set_block_id(LATEST_BLOCK_ID);
+    block.set_block_id(LAST_BLOCK_ID);
     signers[sending_id].Sign(block);
 
     EXPECT_TRUE(verifier.Verify(block));
@@ -303,7 +490,7 @@ TEST(pruning_sm_test, sign_verify_correct) {
     for (auto i = 0; i < replica_count; ++i) {
       auto block = request.add_latest_prunable_block();
       block->set_replica(REPLICA_PRINCIPAL_ID_START + i);
-      block->set_block_id(LATEST_BLOCK_ID);
+      block->set_block_id(LAST_BLOCK_ID);
       signers[i].Sign(*block);
     }
     signers[sending_id].Sign(request);
@@ -343,7 +530,7 @@ TEST(pruning_sm_test, sign_malformed_messages) {
   // Omit the replica ID in LatestPrunableBlock and sign.
   {
     LatestPrunableBlock block;
-    block.set_block_id(LATEST_BLOCK_ID);
+    block.set_block_id(LAST_BLOCK_ID);
     EXPECT_THROW(signers[sending_id].Sign(block), PruningRuntimeException)
         << "RSAPruningSigner fails to sign a malformed(missing replica ID) "
            "LatestPrunableBlock message";
@@ -361,7 +548,7 @@ TEST(pruning_sm_test, sign_malformed_messages) {
     PruneRequest request;
     auto block = request.add_latest_prunable_block();
     block->set_replica(REPLICA_PRINCIPAL_ID_START + sending_id);
-    block->set_block_id(LATEST_BLOCK_ID);
+    block->set_block_id(LAST_BLOCK_ID);
     signers[sending_id].Sign(*block);
     EXPECT_THROW(signers[sending_id].Sign(request), PruningRuntimeException)
         << "RSAPruningSigner fails to sign a malformed(missing sender ID) "
@@ -393,7 +580,7 @@ TEST(pruning_sm_test, verify_malformed_messages) {
   {
     LatestPrunableBlock block;
     block.set_replica(REPLICA_PRINCIPAL_ID_START + sending_id);
-    block.set_block_id(LATEST_BLOCK_ID);
+    block.set_block_id(LAST_BLOCK_ID);
     signers[sending_id].Sign(block);
 
     // Change the replica ID after signing.
@@ -405,11 +592,11 @@ TEST(pruning_sm_test, verify_malformed_messages) {
     EXPECT_TRUE(verifier.Verify(block));
 
     // Change the block ID after signing.
-    block.set_block_id(LATEST_BLOCK_ID + 1);
+    block.set_block_id(LAST_BLOCK_ID + 1);
     EXPECT_FALSE(verifier.Verify(block));
 
     // Make sure it works with the correct block ID.
-    block.set_block_id(LATEST_BLOCK_ID);
+    block.set_block_id(LAST_BLOCK_ID);
     EXPECT_TRUE(verifier.Verify(block));
 
     // Change a single byte from the signature and make sure it doesn't verify.
@@ -425,7 +612,7 @@ TEST(pruning_sm_test, verify_malformed_messages) {
     for (auto i = 0; i < replica_count; ++i) {
       auto block = request.add_latest_prunable_block();
       block->set_replica(REPLICA_PRINCIPAL_ID_START + i);
-      block->set_block_id(LATEST_BLOCK_ID);
+      block->set_block_id(LAST_BLOCK_ID);
       signers[i].Sign(*block);
     }
     signers[sending_id].Sign(request);
@@ -442,7 +629,7 @@ TEST(pruning_sm_test, verify_malformed_messages) {
     for (auto i = 0; i < replica_count; ++i) {
       auto block = request.add_latest_prunable_block();
       block->set_replica(REPLICA_PRINCIPAL_ID_START + i);
-      block->set_block_id(LATEST_BLOCK_ID);
+      block->set_block_id(LAST_BLOCK_ID);
       signers[i].Sign(*block);
     }
     signers[sending_id].Sign(request);
@@ -459,7 +646,7 @@ TEST(pruning_sm_test, verify_malformed_messages) {
     for (auto i = 0; i < replica_count - 1; ++i) {
       auto block = request.add_latest_prunable_block();
       block->set_replica(REPLICA_PRINCIPAL_ID_START + i);
-      block->set_block_id(LATEST_BLOCK_ID);
+      block->set_block_id(LAST_BLOCK_ID);
       signers[i].Sign(*block);
     }
     signers[sending_id].Sign(request);
@@ -476,7 +663,7 @@ TEST(pruning_sm_test, verify_malformed_messages) {
     for (auto i = 0; i < replica_count; ++i) {
       auto block = request.add_latest_prunable_block();
       block->set_replica(REPLICA_PRINCIPAL_ID_START + i);
-      block->set_block_id(LATEST_BLOCK_ID);
+      block->set_block_id(LAST_BLOCK_ID);
       signers[i].Sign(*block);
     }
     request.mutable_latest_prunable_block(0)->set_replica(
@@ -495,7 +682,7 @@ TEST(pruning_sm_test, verify_malformed_messages) {
     for (auto i = 0; i < replica_count; ++i) {
       auto block = request.add_latest_prunable_block();
       block->set_replica(REPLICA_PRINCIPAL_ID_START + i);
-      block->set_block_id(LATEST_BLOCK_ID);
+      block->set_block_id(LAST_BLOCK_ID);
       signers[i].Sign(*block);
     }
     signers[sending_id].Sign(request);
@@ -506,43 +693,44 @@ TEST(pruning_sm_test, verify_malformed_messages) {
   }
 }
 
-TEST(pruning_sm_test, sm_handle_latest_prunable_request) {
+TEST(pruning_sm_test, sm_latest_prunable_request_correct_num_bocks_to_keep) {
   const auto replica_count = 4;
   const auto client_proxy_count = replica_count;
+  const auto num_blocks_to_keep = 30;
   const auto replica_idx = 1;
   const auto config =
-      TestConfiguration(replica_count, client_proxy_count, NUM_BLOCKS_TO_KEEP);
+      TestConfiguration(replica_count, client_proxy_count, num_blocks_to_keep);
   TestStorage storage;
   const auto verifier = RSAPruningVerifier{config};
 
-  const auto sm =
-      KVBPruningSM{storage, config, GetNodeConfig(config, replica_idx)};
+  // Construct the pruning state machine with a nullptr TimeContract to verify
+  // it works in case the time service is disabled.
+  const auto sm = KVBPruningSM{storage, config,
+                               GetNodeConfig(config, replica_idx), nullptr};
 
   ConcordRequest req;
   ConcordResponse resp;
   req.mutable_latest_prunable_block_request();
   sm.Handle(req, resp, true, *test_span);
 
-  ASSERT_TRUE(resp.has_latest_prunable_block_response());
-  const auto& latest_prunable_resp = resp.latest_prunable_block_response();
-  ASSERT_EQ(latest_prunable_resp.block_size(), 1);
-  const auto& block = latest_prunable_resp.block(0);
-  ASSERT_EQ(block.replica(), replica_idx);
-  ASSERT_EQ(block.block_id(), LATEST_BLOCK_ID - NUM_BLOCKS_TO_KEEP);
-  ASSERT_TRUE(verifier.Verify(block));
+  LatestPrunableBlock block;
+  CheckLatestPrunableResp(resp, replica_idx, verifier, block);
+  ASSERT_EQ(block.block_id(), LAST_BLOCK_ID - num_blocks_to_keep);
 }
 
 TEST(pruning_sm_test, sm_latest_prunable_request_big_num_blocks_to_keep) {
   const auto replica_count = 4;
   const auto client_proxy_count = replica_count;
+  const auto num_blocks_to_keep = LAST_BLOCK_ID + 42;
   const auto replica_idx = 1;
-  const auto config = TestConfiguration(replica_count, client_proxy_count,
-                                        LATEST_BLOCK_ID + 42);
+  const auto config =
+      TestConfiguration(replica_count, client_proxy_count, num_blocks_to_keep);
   TestStorage storage;
   const auto verifier = RSAPruningVerifier{config};
 
+  auto tc = TimeContract{storage, config};
   const auto sm =
-      KVBPruningSM{storage, config, GetNodeConfig(config, replica_idx)};
+      KVBPruningSM{storage, config, GetNodeConfig(config, replica_idx), &tc};
 
   ConcordRequest req;
   ConcordResponse resp;
@@ -550,58 +738,307 @@ TEST(pruning_sm_test, sm_latest_prunable_request_big_num_blocks_to_keep) {
 
   sm.Handle(req, resp, true, *test_span);
 
-  ASSERT_TRUE(resp.has_latest_prunable_block_response());
-  const auto& latest_prunable_resp = resp.latest_prunable_block_response();
-  ASSERT_EQ(latest_prunable_resp.block_size(), 1);
-  const auto& block = latest_prunable_resp.block(0);
-  ASSERT_EQ(block.replica(), replica_idx);
+  LatestPrunableBlock block;
+  CheckLatestPrunableResp(resp, replica_idx, verifier, block);
   // Verify that the returned block ID is 0 when pruning_num_blocks_to_keep is
   // bigger than the latest block ID.
   ASSERT_EQ(block.block_id(), 0);
-  ASSERT_TRUE(verifier.Verify(block));
 }
 
-ConcordRequest ConstructPruneRequest(const ConcordConfiguration& config,
-                                     std::size_t client_idx) {
+// The blockchain created in this test is represented by the following
+// (id,timestamp[seconds]) pair list where LB=LAST_BLOCK_ID seconds and
+// genesis block ID=1:
+// -------------------------------------------------
+// | 1;now-LB+1,2;now-LB+2,...,LB-1;now-1,LB;now+x |
+// -------------------------------------------------
+// The last block has a time (now+x) that is different from now, because of
+// TimeContract's median-based summarized time handling (see
+// InitBlockchainStorage()).
+TEST(pruning_sm_test, sm_latest_prunable_request_time_range) {
+  const auto replica_count = 7;
+  const auto client_proxy_count = replica_count;
+  const auto replica_idx = 1;
+  const auto duration_to_keep_minutes = 1;
+  const auto config = TestConfiguration(replica_count, client_proxy_count, 0,
+                                        duration_to_keep_minutes);
+  TestStorage storage;
+  const auto verifier = RSAPruningVerifier{config};
+
+  auto tc = TimeContract{storage, config};
+  InitBlockchainStorage(tc, replica_count, storage);
+
+  const auto sm =
+      KVBPruningSM{storage, config, GetNodeConfig(config, replica_idx), &tc};
+
   ConcordRequest req;
-  auto prune_req = req.mutable_prune_request();
+  ConcordResponse resp;
+  req.mutable_latest_prunable_block_request();
 
-  const auto sender = config.subscope("node", client_idx)
-                          .subscope("client_proxy", 0)
-                          .getValue<std::uint64_t>("principal_id");
-  prune_req->set_sender(sender);
+  sm.Handle(req, resp, true, *test_span);
 
-  for (auto i = 0u; i < config.scopeSize("node"); ++i) {
-    const auto& node_config = config.subscope("node", i);
-    const auto& replica_config = node_config.subscope("replica", 0);
+  LatestPrunableBlock block;
+  CheckLatestPrunableResp(resp, replica_idx, verifier, block);
+  const auto latest_prunable_ts =
+      tc.GetTime() - TimeUtil::MinutesToDuration(duration_to_keep_minutes);
+  const auto genesis_ts = tc.GetSummarizedTimeAtBlock(GENESIS_BLOCK_ID);
+  const auto latest_prunable_block =
+      TimeUtil::DurationToSeconds(latest_prunable_ts - genesis_ts) + 1;
+  ASSERT_EQ(block.block_id(), latest_prunable_block);
+}
 
-    auto latest_block = prune_req->add_latest_prunable_block();
-    latest_block->set_replica(
-        replica_config.getValue<std::uint64_t>("principal_id"));
-    // Send different block IDs.
-    latest_block->set_block_id(LATEST_BLOCK_ID + i);
+// The blockchain created in this test is represented by the following
+// (id,timestamp[seconds]) pair list where LB=LAST_BLOCK_ID seconds,
+// genesis block ID=1 and time offset OFF=500ms :
+// -------------------------------------------------------------
+// | 1;now-LB+1-OFF,2;now-LB+2-OFF,...,LB-1;now-1-OFF,LB;now+x |
+// -------------------------------------------------------------
+// The intention of this test is to verify a case where the pruning state
+// machine won't find an exact match on timestamp and will return the parent
+// block of the one returned by std::lower_bound() .
+//
+// The last block has a time (now+x) that is different that now, because of
+// TimeContract's median-based summarized time handling (see
+// InitBlockchainStorage()).
+TEST(pruning_sm_test, sm_latest_prunable_request_time_range_offset) {
+  const auto replica_count = 7;
+  const auto client_proxy_count = replica_count;
+  const auto replica_idx = 1;
+  const auto duration_to_keep_minutes = 1;
+  const auto config = TestConfiguration(replica_count, client_proxy_count, 0,
+                                        duration_to_keep_minutes);
+  TestStorage storage;
+  const auto verifier = RSAPruningVerifier{config};
 
-    const auto block_signer = RSAPruningSigner{GetNodeConfig(config, i)};
-    block_signer.Sign(*latest_block);
-  }
+  auto tc = TimeContract{storage, config};
+  InitBlockchainStorage(tc, replica_count, storage, true);
 
-  const auto req_signer = RSAPruningSigner{GetNodeConfig(config, client_idx)};
-  req_signer.Sign(*prune_req);
+  const auto sm =
+      KVBPruningSM{storage, config, GetNodeConfig(config, replica_idx), &tc};
 
-  return req;
+  ConcordRequest req;
+  ConcordResponse resp;
+  req.mutable_latest_prunable_block_request();
+
+  sm.Handle(req, resp, true, *test_span);
+
+  LatestPrunableBlock block;
+  CheckLatestPrunableResp(resp, replica_idx, verifier, block);
+  const auto latest_prunable_ts =
+      tc.GetTime() - TimeUtil::MinutesToDuration(duration_to_keep_minutes);
+  const auto genesis_ts = tc.GetSummarizedTimeAtBlock(GENESIS_BLOCK_ID);
+  const auto latest_prunable_block =
+      TimeUtil::DurationToSeconds(latest_prunable_ts - genesis_ts) + 1;
+  ASSERT_EQ(block.block_id(), latest_prunable_block);
+}
+
+// The blockchain created in this test is the same as the one in the
+// sm_latest_prunable_request_time_range test.
+TEST(pruning_sm_test, sm_latest_prunable_request_time_range_empty_chain) {
+  const auto replica_count = 7;
+  const auto client_proxy_count = replica_count;
+  const auto replica_idx = 1;
+  const auto duration_to_keep_minutes = 1;
+  const auto config = TestConfiguration(replica_count, client_proxy_count, 0,
+                                        duration_to_keep_minutes);
+  TestStorage storage;
+  const auto verifier = RSAPruningVerifier{config};
+
+  auto tc = TimeContract{storage, config};
+  InitBlockchainStorage(tc, replica_count, storage, false, true);
+
+  const auto sm =
+      KVBPruningSM{storage, config, GetNodeConfig(config, replica_idx), &tc};
+
+  ConcordRequest req;
+  ConcordResponse resp;
+  req.mutable_latest_prunable_block_request();
+
+  sm.Handle(req, resp, true, *test_span);
+
+  LatestPrunableBlock block;
+  CheckLatestPrunableResp(resp, replica_idx, verifier, block);
+  // Verify that 0 is returned when num_blocks_to_keep=0,
+  // duration_to_keep_minutes=1 and there are no blocks in the blockchain.
+  ASSERT_EQ(block.block_id(), 0);
+}
+
+// The blockchain created in this test is represented by the following
+// (id,timestamp[seconds]) pair list where LB=LAST_BLOCK_ID seconds and
+// genesis block ID=1:
+// -----------------------------------------------
+// | 1;now-LB+1,2;now-LB+2,...,LB-1;now-1,LB;now |
+// -----------------------------------------------
+// The intention of this test is to verify that if the last block has a
+// timestamp that is significantly earlier than TimeContract::GetTime(), the
+// pruning state machine will return the last block ID as the latest prunable
+// one. This can happen if the TimeContract has been updated, but the current
+// block hasn't been written to storage.
+TEST(pruning_sm_test, sm_latest_prunable_request_time_range_missing_last) {
+  const auto replica_count = 7;
+  const auto client_proxy_count = replica_count;
+  const auto replica_idx = 1;
+  const auto duration_to_keep_minutes = 1;
+  const auto config = TestConfiguration(replica_count, client_proxy_count, 0,
+                                        duration_to_keep_minutes);
+  TestStorage storage;
+  const auto verifier = RSAPruningVerifier{config};
+
+  auto tc = TimeContract{storage, config};
+  InitBlockchainStorage(tc, replica_count, storage, false, false, true);
+
+  const auto sm =
+      KVBPruningSM{storage, config, GetNodeConfig(config, replica_idx), &tc};
+
+  ConcordRequest req;
+  ConcordResponse resp;
+  req.mutable_latest_prunable_block_request();
+
+  sm.Handle(req, resp, true, *test_span);
+
+  LatestPrunableBlock block;
+  CheckLatestPrunableResp(resp, replica_idx, verifier, block);
+  // Verify that the pruning state machine will return the last block ID as the
+  // latest prunable one.
+  ASSERT_EQ(block.block_id(), LAST_BLOCK_ID);
+}
+
+// The blockchain created in this test is the same as the one in the
+// sm_latest_prunable_request_time_range test.
+TEST(pruning_sm_test, sm_latest_prunable_request_time_range_and_num_blocks) {
+  const auto replica_count = 7;
+  const auto client_proxy_count = replica_count;
+  const auto num_blocks_to_keep = LAST_BLOCK_ID - 5;  // prune a few blocks only
+  const auto replica_idx = 1;
+  const auto duration_to_keep_minutes = 1;
+  const auto config =
+      TestConfiguration(replica_count, client_proxy_count, num_blocks_to_keep,
+                        duration_to_keep_minutes);
+  TestStorage storage;
+  const auto verifier = RSAPruningVerifier{config};
+
+  auto tc = TimeContract{storage, config};
+  InitBlockchainStorage(tc, replica_count, storage);
+
+  const auto sm =
+      KVBPruningSM{storage, config, GetNodeConfig(config, replica_idx), &tc};
+
+  ConcordRequest req;
+  ConcordResponse resp;
+  req.mutable_latest_prunable_block_request();
+
+  sm.Handle(req, resp, true, *test_span);
+
+  LatestPrunableBlock block;
+  CheckLatestPrunableResp(resp, replica_idx, verifier, block);
+  // Verify that the more conservative 'number of blocks to keep' option takes
+  // precedence.
+  ASSERT_EQ(block.block_id(), LAST_BLOCK_ID - num_blocks_to_keep);
+}
+
+// The blockchain created in this test is the same as the one in the
+// sm_latest_prunable_request_time_range test.
+TEST(pruning_sm_test, sm_latest_prunable_request_no_pruning_conf) {
+  const auto replica_count = 7;
+  const auto client_proxy_count = replica_count;
+  const auto num_blocks_to_keep = 0;
+  const auto replica_idx = 1;
+  const auto duration_to_keep_minutes = 0;
+  const auto config =
+      TestConfiguration(replica_count, client_proxy_count, num_blocks_to_keep,
+                        duration_to_keep_minutes);
+  TestStorage storage;
+  const auto verifier = RSAPruningVerifier{config};
+
+  auto tc = TimeContract{storage, config};
+  InitBlockchainStorage(tc, replica_count, storage);
+
+  const auto sm =
+      KVBPruningSM{storage, config, GetNodeConfig(config, replica_idx), &tc};
+
+  ConcordRequest req;
+  ConcordResponse resp;
+  req.mutable_latest_prunable_block_request();
+
+  sm.Handle(req, resp, true, *test_span);
+
+  LatestPrunableBlock block;
+  CheckLatestPrunableResp(resp, replica_idx, verifier, block);
+  // Verify that when pruning is enabled and both pruning_num_blocks_to_keep and
+  // duration_to_keep_minutes are set to 0, then LAST_BLOCK_ID will be returned.
+  ASSERT_EQ(block.block_id(), LAST_BLOCK_ID);
+}
+
+TEST(pruning_sm_test, sm_latest_prunable_request_pruning_disabled) {
+  const auto replica_count = 7;
+  const auto client_proxy_count = replica_count;
+  const auto num_blocks_to_keep = 0;
+  const auto replica_idx = 1;
+  const auto duration_to_keep_minutes = 0;
+  const auto config =
+      TestConfiguration(replica_count, client_proxy_count, num_blocks_to_keep,
+                        duration_to_keep_minutes, false);
+  TestStorage storage;
+  const auto verifier = RSAPruningVerifier{config};
+
+  auto tc = TimeContract{storage, config};
+  InitBlockchainStorage(tc, replica_count, storage);
+
+  const auto sm =
+      KVBPruningSM{storage, config, GetNodeConfig(config, replica_idx), &tc};
+
+  ConcordRequest req;
+  ConcordResponse resp;
+  req.mutable_latest_prunable_block_request();
+
+  sm.Handle(req, resp, true, *test_span);
+
+  LatestPrunableBlock block;
+  CheckLatestPrunableResp(resp, replica_idx, verifier, block);
+  // Verify that when pruning is disabled, 0 is returned.
+  ASSERT_EQ(block.block_id(), 0);
+}
+
+TEST(pruning_sm_test, sm_handle_prune_request_on_pruning_disabled) {
+  const auto replica_count = 4;
+  const auto client_proxy_count = replica_count;
+  const auto num_blocks_to_keep = 30;
+  const auto replica_idx = 1;
+  const auto duration_to_keep_minutes = 0;
+  const auto client_idx = 0;
+  const auto config =
+      TestConfiguration(replica_count, client_proxy_count, num_blocks_to_keep,
+                        duration_to_keep_minutes, false);
+  TestStorage storage;
+
+  auto tc = TimeContract{storage, config};
+  const auto sm =
+      KVBPruningSM{storage, config, GetNodeConfig(config, replica_idx), &tc};
+
+  const auto req = ConstructPruneRequest(config, client_idx);
+  ConcordResponse resp;
+
+  sm.Handle(req, resp, false, *test_span);
+
+  ASSERT_EQ(resp.error_response_size(), 1);
+  ASSERT_TRUE(resp.error_response(0).has_description());
+  ASSERT_EQ(
+      resp.error_response(0).description(),
+      "KVBPruningSM pruning is disabled, returning an error on PruneRequest");
 }
 
 TEST(pruning_sm_test, sm_handle_correct_prune_request) {
   const auto replica_count = 4;
   const auto client_proxy_count = replica_count;
+  const auto num_blocks_to_keep = 30;
   const auto replica_idx = 1;
   const auto client_idx = 0;
   const auto config =
-      TestConfiguration(replica_count, client_proxy_count, NUM_BLOCKS_TO_KEEP);
+      TestConfiguration(replica_count, client_proxy_count, num_blocks_to_keep);
   TestStorage storage;
 
+  auto tc = TimeContract{storage, config};
   const auto sm =
-      KVBPruningSM{storage, config, GetNodeConfig(config, replica_idx)};
+      KVBPruningSM{storage, config, GetNodeConfig(config, replica_idx), &tc};
 
   const auto req = ConstructPruneRequest(config, client_idx);
   ConcordResponse resp;
@@ -617,14 +1054,16 @@ TEST(pruning_sm_test, sm_handle_correct_prune_request) {
 TEST(pruning_sm_test, sm_handle_incorrect_prune_request) {
   const auto replica_count = 4;
   const auto client_proxy_count = replica_count;
+  const auto num_blocks_to_keep = 30;
   const auto replica_idx = 1;
   const auto client_idx = 0;
   const auto config =
-      TestConfiguration(replica_count, client_proxy_count, NUM_BLOCKS_TO_KEEP);
+      TestConfiguration(replica_count, client_proxy_count, num_blocks_to_keep);
   TestStorage storage;
 
+  auto tc = TimeContract{storage, config};
   const auto sm =
-      KVBPruningSM{storage, config, GetNodeConfig(config, replica_idx)};
+      KVBPruningSM{storage, config, GetNodeConfig(config, replica_idx), &tc};
 
   // Set an invalid sender.
   {

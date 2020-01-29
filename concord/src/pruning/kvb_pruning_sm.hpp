@@ -10,6 +10,8 @@
 
 #include "blockchain/db_interfaces.h"
 #include "config/configuration_manager.hpp"
+#include "kv_types.hpp"
+#include "time/time_contract.hpp"
 
 #include "concord.pb.h"
 
@@ -25,13 +27,31 @@ namespace pruning {
 // well as providing read-only information to the operator node.
 //
 // The following configuration options are honored by the state machine:
+// * pruning_enabled - a system-wide configuration option that indicates if
+// pruning is enabled for the replcia. If set to false,
+// LatestPrunableBlockRequest will return 0 as a latest block(indicating no
+// blocks can be pruned) and PruneRequest will return an error. If not
+// specified, a value of false is assumed.
+//
 //  * pruning_num_blocks_to_keep - a system-wide configuration option that
 //  specifies a minimum number of blocks to always keep in storage when pruning.
-//  If not specified, a value of 0 is assumed.
+//  If not specified, a value of 0 is assumed. If
+//  pruning_duration_to_keep_minutes is specified too, the more conservative
+//  pruning range of the two options will be used (the one that prunes less
+//  blocks).
+//
+//  * pruning_duration_to_keep_minutes - a system-wide configuration option that
+//  specifies a time range (in minutes) from now to the past that determines
+//  which blocks to keep and which are older than (now -
+//  pruning_duration_to_keep_minutes) and can, therefore, be pruned. If not
+//  specified, a value of 0 is assumed. If pruning_num_blocks_to_keep is
+//  specified too, the more conservative pruning range of the two will be used
+//  (the one that prunes less blocks). This option requires the time service to
+//  be enabled.
 //
 // The LatestPrunableBlockRequest command returns the latest block ID from the
-// replica's storage minus the configured pruning_num_blocks_to_keep . If
-// pruning_num_blocks_to_keep is greater than the latest block, 0 is returned.
+// replica's storage that is safe to prune. If no blocks can be pruned, 0 is
+// returned.
 //
 // The PruneRequest command prunes blocks from storage by:
 //  - verifying the PruneRequest message's signature
@@ -48,7 +68,8 @@ class KVBPruningSM {
   // and tracing facilities.
   KVBPruningSM(const storage::blockchain::ILocalKeyValueStorageReadOnly&,
                const config::ConcordConfiguration& config,
-               const config::ConcordConfiguration& node_config);
+               const config::ConcordConfiguration& node_config,
+               concord::time::TimeContract*);
 
   // Handles a ConcordRequest that contains a pruning request. If an invalid
   // request has been passed or no pruning request is contained, the request is
@@ -65,13 +86,19 @@ class KVBPruningSM {
               com::vmware::concord::ConcordResponse&, bool read_only,
               opentracing::Span& parent_span) const;
 
+  concordUtils::BlockId LatestBasedOnNumBlocks() const;
+  concordUtils::BlockId LatestBasedOnTimeRange() const;
+
  private:
   log4cplus::Logger logger_;
   RSAPruningSigner signer_;
   RSAPruningVerifier verifier_;
   const storage::blockchain::ILocalKeyValueStorageReadOnly& ro_storage_;
+  concord::time::TimeContract* time_contract_{nullptr};
+  bool pruning_enabled_{false};
   std::uint64_t replica_id_{0};
   std::uint64_t num_blocks_to_keep_{0};
+  std::uint32_t duration_to_keep_minutes_{0};
 };
 
 }  // namespace pruning
