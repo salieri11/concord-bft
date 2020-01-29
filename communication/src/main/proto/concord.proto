@@ -252,6 +252,7 @@ message PreExecutionResult {
    optional int64 read_set_version = 1;
    optional ReadSet read_set = 2;
    optional WriteSet write_set = 3;
+   optional string request_correlation_id = 4;
 }
 
 message ReadSet {
