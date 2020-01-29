@@ -4,6 +4,7 @@
 
 package com.vmware.concord.agent.services.configservice;
 
+import java.util.Arrays;
 import java.util.List;
 
 import org.springframework.http.HttpEntity;
@@ -11,11 +12,9 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
+import org.springframework.http.converter.protobuf.ProtobufHttpMessageConverter;
 import org.springframework.web.client.RestTemplate;
 
-import com.fasterxml.jackson.databind.MapperFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.vmware.blockchain.deployment.v1.ConfigurationComponent;
 import com.vmware.blockchain.deployment.v1.ConfigurationServiceGrpc;
 import com.vmware.blockchain.deployment.v1.ConfigurationSessionIdentifier;
@@ -76,22 +75,18 @@ public class ConfigServiceInvoker {
 
         try {
             if (useRest) {
-                ObjectMapper objectMapper = new ObjectMapper();
-                objectMapper.configure(MapperFeature.ACCEPT_CASE_INSENSITIVE_PROPERTIES, true);
-
-                MappingJackson2HttpMessageConverter converter = new MappingJackson2HttpMessageConverter();
-                converter.setObjectMapper(objectMapper);
-
-                RestTemplate restTemplate = new RestTemplate();
-                restTemplate.getMessageConverters().add(0, converter);
+                final RestTemplate restTemplate = new RestTemplate(Arrays.asList(new ProtobufHttpMessageConverter()));
 
                 final HttpHeaders headers = new HttpHeaders();
                 headers.setContentType(MediaType.APPLICATION_JSON);
 
+                HttpEntity<NodeConfigurationRequest> entity = new HttpEntity<>(request, headers);
+
                 ResponseEntity<NodeConfigurationResponse> result =
                         restTemplate.exchange(endpoint.getAddress() + "/v1/configuration/node", HttpMethod.POST,
-                                              new HttpEntity<>(request, headers),
+                                              entity,
                                               NodeConfigurationResponse.class);
+
                 return result.getBody().getConfigurationComponentList();
 
             } else {
