@@ -67,7 +67,14 @@
       "api": "APIs",
       "samples": "Samples"
     },
-    "sysadmin": "SYSTEM ADMIN",
+    "sysadmin": {
+      "header": "SYSTEM ADMIN",
+      "consortiums": "Consortiums",
+      "tasks": "Active Tasks",
+      "features": "Features",
+      "roles": "Role Assignment",
+      "env": "Enviornment"
+    },
     "organization": "Organizations",
     "blockchains": "Blockchains",
     "kubernetes": "Kubernetes",
@@ -955,6 +962,36 @@
       "errors": {
         "fetchUserError": "Failed to get user, please try again. If error persists contact blockchain-support@vmware.com.",
         "fetchWalletError": "Failed to get wallet, please try again. If error persists contact blockchain-support@vmware.com."
+      }
+    }
+  },
+  "tasks": {
+    "title": "Active Tasks",
+    "grid": {
+      "pagination": {
+        "title": "Active Tasks"
+      },
+      "columns": {
+        "id": "Task ID",
+        "state": "State",
+        "resId": "Resource ID",
+        "message": "Message",
+        "resLink": "Resource Link"
+      }
+    }
+  },
+  "features": {
+    "title": "Features",
+    "grid": {
+      "pagination": {
+        "title": "Features"
+      },
+      "columns": {
+        "name": "Name",
+        "state": "State",
+        "category": "Category",
+        "scope": "Scope",
+        "action": "Action"
       }
     }
   },

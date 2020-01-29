@@ -12,13 +12,16 @@ import { UserListComponent } from './user-list/user-list.component';
 import { UserFormComponent } from './user-form/user-form.component';
 import { UserSettingsComponent } from './user-settings/user-settings.component';
 import { SharedModule } from '../shared/shared.module';
+import { CommonModule } from '@angular/common';
 import { WalletFormComponent } from './wallet-form/wallet-form.component';
 
 @NgModule({
   imports: [
     GridModule,
     SharedModule,
-    TourNgxPopperModule
+    TourNgxPopperModule,
+    CommonModule,
+    SharedModule
   ],
   declarations: [
     UsersComponent,

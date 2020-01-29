@@ -124,6 +124,9 @@ export const Apis = {
   // Task
   get tasks() { return `${this.base}/tasks`; },
 
+  // Features
+  get features() { return `${this.base}/features`; },
+
   // Zone Family
   get zones() { return `${this.blockchains}/zones`; },
   get zonesReload() { return `${this.zones}?action=reload`; },
