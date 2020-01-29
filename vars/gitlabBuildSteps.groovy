@@ -790,17 +790,17 @@ EOF
                       env.dep_comp_docker_tag = env.recent_published_docker_tag
                       env.agent_docker_tag = env.recent_published_docker_tag
                     } else {
-                      pullTagPushDockerImage(env.internal_persephone_agent_repo, env.release_persephone_agent_repo, env.docker_tag, false)
+                      pullTagPushDockerImage(env.internal_persephone_agent_repo, env.release_persephone_agent_repo, env.docker_tag)
                       env.agent_docker_tag = env.docker_tag
 
                       // Only for ToT runs, deployment components are ToT
                       if (env.JOB_NAME.contains(env.tot_job_name)) {
-                        pullTagPushDockerImage(env.internal_concord_repo, env.release_concord_repo, env.docker_tag, false)
-                        pullTagPushDockerImage(env.internal_ethrpc_repo, env.release_ethrpc_repo, env.docker_tag, false)
-                        pullTagPushDockerImage(env.internal_daml_ledger_api_repo, env.release_daml_ledger_api_repo, env.docker_tag, false)
-                        pullTagPushDockerImage(env.internal_daml_execution_engine_repo, env.release_daml_execution_engine_repo, env.docker_tag, false)
-                        pullTagPushDockerImage(env.internal_daml_index_db_repo, env.release_daml_index_db_repo, env.docker_tag, false)
-                        pullTagPushDockerImage(env.internal_fluentd_repo, env.release_fluentd_repo, env.docker_tag, false)
+                        pullTagPushDockerImage(env.internal_concord_repo, env.release_concord_repo, env.docker_tag)
+                        pullTagPushDockerImage(env.internal_ethrpc_repo, env.release_ethrpc_repo, env.docker_tag)
+                        pullTagPushDockerImage(env.internal_daml_ledger_api_repo, env.release_daml_ledger_api_repo, env.docker_tag)
+                        pullTagPushDockerImage(env.internal_daml_execution_engine_repo, env.release_daml_execution_engine_repo, env.docker_tag)
+                        pullTagPushDockerImage(env.internal_daml_index_db_repo, env.release_daml_index_db_repo, env.docker_tag)
+                        pullTagPushDockerImage(env.internal_fluentd_repo, env.release_fluentd_repo, env.docker_tag)
 
                         env.dep_comp_docker_tag = env.docker_tag
                       }
@@ -1245,22 +1245,45 @@ String getHead(){
 // are currently logged into (set up by the caller).  If tagAsLatest
 // is set to true, that image will be re-tagged as latest and pushed
 // again.
-void pushDockerImage(repo, tag, tagAsLatest){
-  if (repo.contains(env.internal_repo_name)){
-    // Re-pushing to artifactory will trigger an error.
-    component = repo.split("eng.vmware.com")[1]
-    apiLookupString = env.internal_repo_name + component + "/" + tag
+//
+// useVersionDir means to use this format:
+//   concord-core/1.0.0/<tag>
+// instead of this format:
+//   concord-core/<tag>
+void pushDockerImage(repo1, tag, tagAsLatest, useVersionDir){
+  // Short term, until we are sure the Jenkins job which sets up OneCloud
+  // is working with version subdirs, we will push twice.
+  // Always push the "old format" second, so it is newest, until all
+  // tools are working with the new format.
+  repo0 = repo1 + "/" + env.major_minor_patch
+  repos = [repo0, repo1]
+  newFormatIndex = 0 // Just to make it clear in code.
 
-    if (existsInArtifactory(apiLookupString)){
-      return
+  repos.eachWithIndex {repo, index ->
+    if(index == newFormatIndex && !useVersionDir){
+      echo("Not pushing to Artifactory version subdirectory.")
+    } else {
+      if (repo.contains(env.internal_repo_name)){
+        // Re-pushing to artifactory will trigger an error.
+        component = repo.split("eng.vmware.com")[1]
+        apiLookupString = env.internal_repo_name + component + "/" + tag
+
+        if (existsInArtifactory(apiLookupString)){
+          return
+        }
+      }
+
+      if(index == newFormatIndex){
+        echo("Pushing to Artifactory version subdirectory.")
+      }
+
+      retryCommand("docker push ${repo}:${tag}", true)
+
+      if(tagAsLatest){
+        command = "docker tag ${repo}:${tag} ${repo}:latest && docker push ${repo}:latest"
+        retryCommand(command, true)
+      }
     }
-  }
-
-  retryCommand("docker push ${repo}:${tag}", true)
-
-  if(tagAsLatest){
-    command = "docker tag ${repo}:${tag} ${repo}:latest && docker push ${repo}:latest"
-    retryCommand(command, true)
   }
 }
 
@@ -1280,12 +1303,9 @@ void createAndPushGitTag(tag){
 
 // For persephone tests, tag and push images to dockerhub
 // And if boolean parameter pull_from_artifactory is true, pull images from artifactory before tagging/pushing
-void pullTagPushDockerImage(internal_repo, release_repo, docker_tag, pull_from_artifactory) {
-  if (pull_from_artifactory) {
-    retryCommand("docker pull ${internal_repo}:${docker_tag}", true)
-  }
+void pullTagPushDockerImage(internal_repo, release_repo, docker_tag) {
   retryCommand("docker tag ${internal_repo}:${docker_tag} ${release_repo}:${docker_tag}", true)
-  pushDockerImage(release_repo, docker_tag, false)
+  pushDockerImage(release_repo, docker_tag, false, false)
 }
 
 // Returns all changes since the last git tag.
@@ -1704,7 +1724,7 @@ void pushToArtifactory(){
 
   withCredentials([string(credentialsId: 'ARTIFACTORY_API_KEY', variable: 'ARTIFACTORY_API_KEY')]) {
    for (repo in pushList){
-     pushDockerImage(repo, env.docker_tag, false)
+     pushDockerImage(repo, env.docker_tag, false, true)
     }
   }
 }
@@ -1735,7 +1755,7 @@ void pushToDockerHub(){
 
   withCredentials([string(credentialsId: 'BLOCKCHAIN_REPOSITORY_WRITER_PWD', variable: 'DOCKERHUB_PASSWORD')]) {
     for (repo in pushList){
-      pushDockerImage(repo, env.docker_tag, true)
+      pushDockerImage(repo, env.docker_tag, true, false)
     }
   }
 }
@@ -2008,8 +2028,10 @@ void lookForSR19062354609(results_dir){
 void setProductVersion(){
   raw_data = readFile("vars/build_info.json")
   version_object = new JsonSlurperClassic().parseText(raw_data)
-  env.product_version = version_object["build_numbers"]["major"] + "." +
-                        version_object["build_numbers"]["minor"] + "." +
-                        version_object["build_numbers"]["patch"] + "." +
-                        env.BUILD_NUMBER
+
+  env.major_minor_patch = version_object["build_numbers"]["major"] + "." +
+    version_object["build_numbers"]["minor"] + "." +
+    version_object["build_numbers"]["patch"]
+
+  env.product_version = env.major_minor_patch + "." + env.BUILD_NUMBER
 }
