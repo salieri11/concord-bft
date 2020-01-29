@@ -1936,17 +1936,7 @@ static std::pair<string, string> parseCryptosystemSelection(string selection) {
   return parseRes;
 }
 
-// Declaration and implementation of various functions used by
-// specifyConfiguration to specify how to size scopes and validatate and
-// generate parameters. Pointers to these functions are given to the
-// ConcordConfiguration object specifyConfiguration builds so that the
-// configuration system can call them at the appropriate time (for example,
-// parameter validators are called automatically when parameters are loaded).
-
-// Computes the total number of Concord nodes. Note we currently assume there is
-// one Concord node per SBFT replica, and the SBFT algorithm specifies that the
-// cluster size in terms of its F and C parameters is (3F + 2C + 1) replicas.
-static ConcordConfiguration::ParameterStatus sizeNodes(
+ConcordConfiguration::ParameterStatus sizeNodes(
     const ConcordConfiguration& config, const ConfigurationPath& path,
     size_t* output, void* state) {
   assert(output);
@@ -1972,10 +1962,7 @@ static ConcordConfiguration::ParameterStatus sizeNodes(
   return ConcordConfiguration::ParameterStatus::VALID;
 }
 
-// Computes the number of SBFT replicas per Concord node. Note that, at the time
-// of this writing, we assume there is exactly one SBFT replica per Concord
-// node.
-static ConcordConfiguration::ParameterStatus sizeReplicas(
+ConcordConfiguration::ParameterStatus sizeReplicas(
     const ConcordConfiguration& config, const ConfigurationPath& path,
     size_t* output, void* state) {
   assert(output);
@@ -2000,28 +1987,6 @@ static ConcordConfiguration::ParameterStatus sizeClientProxies(
   *output = config.getValue<uint16_t>("client_proxies_per_replica");
   return ConcordConfiguration::ParameterStatus::VALID;
 }
-
-static const std::pair<unsigned long long, unsigned long long>
-    kPositiveIntLimits({1, INT_MAX});
-static const std::pair<unsigned long long, unsigned long long>
-    kPositiveUInt16Limits({1, UINT16_MAX});
-static const std::pair<unsigned long long, unsigned long long>
-    kPositiveUInt64Limits({1, UINT64_MAX});
-static const std::pair<unsigned long long, unsigned long long>
-    kPositiveULongLongLimits({1, ULLONG_MAX});
-static const std::pair<unsigned long long, unsigned long long> kUInt16Limits(
-    {0, UINT16_MAX});
-static const std::pair<unsigned long long, unsigned long long> kUInt32Limits(
-    {0, UINT32_MAX});
-static const std::pair<unsigned long long, unsigned long long> kUInt64Limits(
-    {0, UINT64_MAX});
-static const std::pair<long long, long long> kInt32Limits({INT32_MIN,
-                                                           INT32_MAX});
-
-// We enforce a minimum size on communication buffers to ensure at least
-// minimal error responses can be passed through them.
-static const std::pair<unsigned long long, unsigned long long>
-    kConcordBFTCommunicationBufferSizeLimits({512, UINT32_MAX});
 
 static ConcordConfiguration::ParameterStatus validateBoolean(
     const string& value, const ConcordConfiguration& config,
@@ -2079,7 +2044,7 @@ static ConcordConfiguration::ParameterStatus validateInt(
   return ConcordConfiguration::ParameterStatus::VALID;
 }
 
-static ConcordConfiguration::ParameterStatus validateUInt(
+ConcordConfiguration::ParameterStatus validateUInt(
     const string& value, const ConcordConfiguration& config,
     const ConfigurationPath& path, string* failureMessage, void* state) {
   assert(state);

@@ -15,6 +15,7 @@ add_test(NAME ReplicaStateSyncTests COMMAND ReplicaStateSyncTests)
 add_test(NAME TimeContractTests COMMAND TimeContractTests)
 add_test(NAME HlfTest COMMAND HlfTest)
 add_test(NAME PruningSMTest COMMAND PruningSMTest)
+add_test(NAME ExternalClientTest COMMAND ExternalClientTest)
 
 add_executable(UtilsTests
   utils_test.cpp)
@@ -136,4 +137,16 @@ target_link_libraries(PruningSMTest
   concord_consensus
   concord_common
   concord_pruning
+  $<TARGET_OBJECTS:logging_dev>)
+
+add_executable(ExternalClientTest external_client_test.cpp)
+
+get_property(thresh_include GLOBAL PROPERTY thresh_include_folder)
+target_include_directories(ExternalClientTest PRIVATE ${thresh_include})
+
+target_link_libraries(ExternalClientTest
+  ${GTEST_LIBRARIES}
+  gtest
+  gtest_main
+  concord_external_client
   $<TARGET_OBJECTS:logging_dev>)

@@ -12,9 +12,8 @@
 #include "IThresholdSigner.h"
 #include "IThresholdVerifier.h"
 #include "KVBCInterfaces.h"
+#include "config/communication.hpp"
 #include "config/configuration_manager.hpp"
-#include "consensus/communication.h"
-
 namespace concord {
 namespace consensus {
 
@@ -144,7 +143,7 @@ inline bool initializeSBFTCrypto(
 inline bool initializeSBFTPrincipals(
     concord::config::ConcordConfiguration& config, uint16_t selfNumber,
     uint16_t numOfPrincipals, uint16_t numOfReplicas,
-    concord::consensus::CommConfig* outCommConfig,
+    concord::config::CommConfig* outCommConfig,
     std::set<std::pair<uint16_t, const std::string>>& outReplicasPublicKeys) {
   uint16_t clientProxiesPerReplica =
       config.getValue<uint16_t>("client_proxies_per_replica");
@@ -202,7 +201,7 @@ inline bool initializeSBFTPrincipals(
 inline bool initializeSBFTConfiguration(
     concord::config::ConcordConfiguration& config,
     concord::config::ConcordConfiguration& nodeConfig,
-    concord::consensus::CommConfig* commConfig,
+    concord::config::CommConfig* commConfig,
     concord::kvbc::ClientConfig* clConf, uint16_t clientIndex,
     bftEngine::ReplicaConfig* repConf) {
   assert(!clConf != !repConf);
