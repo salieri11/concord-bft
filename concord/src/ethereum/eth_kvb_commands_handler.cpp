@@ -85,7 +85,7 @@ bool EthKvbCommandsHandler::Execute(const ConcordRequest &request,
                                     opentracing::Span &parent_span,
                                     ConcordResponse &response) {
   bool read_only = flags & bftEngine::MsgFlag::READ_ONLY_FLAG;
-  bool pre_execute = flags & bftEngine::MsgFlag::PRE_EXECUTE_FLAG;
+  bool pre_execute = flags & bftEngine::MsgFlag::PRE_PROCESS_FLAG;
 
   EthKvbStorage kvb_storage =
       read_only ? EthKvbStorage(storage_) : EthKvbStorage(storage_, this);

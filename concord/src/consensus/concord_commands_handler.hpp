@@ -42,7 +42,7 @@ class ConcordCommandsHandler
  public:
   concord::storage::blockchain::IBlocksAppender &appender_;
   std::unique_ptr<concord::time::TimeContract> time_;
-  concord::pruning::KVBPruningSM pruning_;
+  std::unique_ptr<concord::pruning::KVBPruningSM> pruning_sm_;
 
   com::vmware::concord::ConcordRequest request_;
   com::vmware::concord::ConcordResponse response_;

@@ -44,12 +44,14 @@ ConcordCommandsHandler::ConcordCommandsHandler(
       written_blocks_{prometheus_registry->createCounter(
           command_handler_counters_, {{"layer", "ConcordCommandsHandler"},
                                       {"operation", "written_blocks"}})},
-      appender_(appender),
-      pruning_(storage, config, node_config) {
+      appender_(appender) {
   if (concord::time::IsTimeServiceEnabled(config)) {
     time_ = std::unique_ptr<concord::time::TimeContract>(
         new concord::time::TimeContract(storage_, config));
   }
+
+  pruning_sm_ = std::make_unique<concord::pruning::KVBPruningSM>(
+      storage, config, node_config, time_.get());
 }
 
 int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
@@ -61,8 +63,8 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
   executing_bft_sequence_num_ = sequence_num;
 
   bool read_only = flags & bftEngine::MsgFlag::READ_ONLY_FLAG;
-  bool pre_execute = flags & bftEngine::MsgFlag::PRE_EXECUTE_FLAG;
-  bool has_pre_executed = flags & bftEngine::MsgFlag::PRE_EXECUTED_FLAG;
+  bool pre_execute = flags & bftEngine::MsgFlag::PRE_PROCESS_FLAG;
+  bool has_pre_executed = flags & bftEngine::MsgFlag::HAS_PRE_PROCESSED_FLAG;
   assert(!(pre_execute && has_pre_executed));
 
   request_.Clear();
@@ -210,7 +212,7 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
 
     if (request_.has_prune_request() ||
         request_.has_latest_prunable_block_request()) {
-      pruning_.Handle(request_, response_, read_only, *execute_span);
+      pruning_sm_->Handle(request_, response_, read_only, *execute_span);
     }
   } else {
     ErrorResponse *err = response_.add_error_response();

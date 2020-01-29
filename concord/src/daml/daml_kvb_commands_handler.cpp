@@ -117,8 +117,8 @@ bool DamlKvbCommandsHandler::ExecuteCommit(
     TimeContract* time, opentracing::Span& parent_span,
     ConcordResponse& concord_response) {
   LOG4CPLUS_DEBUG(logger_, "Handle DAML commit command");
-  bool pre_execute = flags & bftEngine::MsgFlag::PRE_EXECUTE_FLAG;
-  bool has_pre_executed = flags & bftEngine::MsgFlag::PRE_EXECUTED_FLAG;
+  bool pre_execute = flags & bftEngine::MsgFlag::PRE_PROCESS_FLAG;
+  bool has_pre_executed = flags & bftEngine::MsgFlag::HAS_PRE_PROCESSED_FLAG;
 
   string prefix = "daml";
   BlockId current_block_id = storage_.getLastBlock();
