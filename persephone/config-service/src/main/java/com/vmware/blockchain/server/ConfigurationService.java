@@ -240,7 +240,7 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
         }
 
         // Error out if no configurations are generated.
-        if (staticComponentList.isEmpty()) {
+        if (nodeComponent.isEmpty()) {
             String msg = "No configurations were generated for servive type(s)" + request.getServicesList();
             log.error(msg);
             observer.onError(new StatusException(Status.INVALID_ARGUMENT.withDescription(msg)));

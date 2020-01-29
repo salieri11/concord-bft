@@ -28,7 +28,8 @@ public class ConcordHelper {
                 new PortBinding(Ports.Binding.bindPort(3502), ExposedPort.tcp(3502)),
                 new PortBinding(Ports.Binding.bindPort(3503), ExposedPort.tcp(3503)),
                 new PortBinding(Ports.Binding.bindPort(3504), ExposedPort.tcp(3504)),
-                new PortBinding(Ports.Binding.bindPort(3505), ExposedPort.tcp(3505)));
+                new PortBinding(Ports.Binding.bindPort(3505), ExposedPort.tcp(3505)),
+                new PortBinding(Ports.Binding.bindPort(9891), ExposedPort.tcp(9891)));
     }
 
     /**

@@ -38,7 +38,7 @@ public class TelegrafConfigUtil {
     /**
      * telegraf config path.
      */
-    public final String configPath = "/config/telegraf/telegraf.conf";
+    public final String configPath = "/telegraf/telegraf.conf";
 
     /**
      * metrics config yaml path.
