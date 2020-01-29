@@ -7,10 +7,10 @@
         <clr-icon shape="caret down"></clr-icon>
       </button>
       <clr-dropdown-menu *clrIfOpen clrPosition="bottom-left">
-        <button type="button" (click)="consortiumForm.openAddConsortium()" clrDropdownItem>
+        <button type="button" (click)="consortiumForm?.openAddConsortium()" clrDropdownItem>
           {{ 'consortium.actions.options.add.title' | translate }}
         </button>
-        <button type="button" [disabled]="selected.length === 0" (click)="consortiumForm.confirmDeleteConsortium()" clrDropdownItem>
+        <button type="button" [disabled]="selected?.length === 0" (click)="consortiumForm?.confirmDeleteConsortium()" clrDropdownItem>
           {{ 'consortium.actions.options.delete.title' | translate }}
         </button>
       </clr-dropdown-menu>

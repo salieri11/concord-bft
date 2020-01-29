@@ -3,9 +3,7 @@
  */
 
 import { Routes } from '@angular/router';
-
 import { LoggingComponent } from './logging/logging.component';
-
 
 export const loggingRoutes: Routes = [
   { path: '', component: LoggingComponent }

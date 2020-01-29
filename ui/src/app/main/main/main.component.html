@@ -104,17 +104,49 @@
           <clr-icon clrVerticalNavIcon shape="tools"></clr-icon>
           {{'nav.developer.samples' | translate}}
         </a>
-        <ng-container *ngIf="!env.csp">
+        <ng-container>
+          <!-- TODO - ONLY FOR TESTING -->
+            <!-- <ng-container *ngIf="!env.csp"> -->
           <ng-container *concordCanView="[personas.SystemsAdmin, personas.ConsortiumAdmin, personas.OrgAdmin]">
             <div class="nav-divider"></div>
             <label class="nav-header">
-              {{'nav.sysadmin' | translate}}
+              {{'nav.sysadmin.header' | translate}}
             </label>
-            <a clrVerticalNavLink [routerLink]="['users']" routerLinkActive="active"
+
+            <!-- consortiums -->
+            <a clrVerticalNavLink [routerLink]="['users/consortiums']" routerLinkActive="active"
+              *concordCanView="[personas.SystemsAdmin, personas.ConsortiumAdmin, personas.OrgAdmin]">
+              <clr-icon clrVerticalNavIcon shape="network-globe"></clr-icon>
+              {{'nav.sysadmin.consortiums' | translate}}
+            </a>
+
+            <!-- active tasks -->
+            <a clrVerticalNavLink [routerLink]="['users/tasks']"
+              *concordCanView="[personas.SystemsAdmin, personas.ConsortiumAdmin, personas.OrgAdmin]">
+              <clr-icon clrVerticalNavIcon shape="tasks"></clr-icon>
+              {{'nav.sysadmin.tasks' | translate}}
+            </a>
+
+            <!-- features -->
+            <a clrVerticalNavLink [routerLink]="['users/features']"
+              *concordCanView="[personas.SystemsAdmin, personas.ConsortiumAdmin, personas.OrgAdmin]">
+              <clr-icon clrVerticalNavIcon shape="list"></clr-icon>
+              {{'nav.sysadmin.features' | translate}}
+            </a>
+
+            <!-- roles -->
+            <a clrVerticalNavLink [routerLink]="['users/roles']"
               *concordCanView="[personas.SystemsAdmin, personas.ConsortiumAdmin, personas.OrgAdmin]"
               tourAnchor="onboardingTour.userManagement">
-              <clr-icon clrVerticalNavIcon shape="administrator"></clr-icon>
-              {{'nav.users' | translate}}
+              <clr-icon clrVerticalNavIcon shape="users"></clr-icon>
+              {{'nav.sysadmin.roles' | translate}}
+            </a>
+
+            <!-- enviornment -->
+            <a clrVerticalNavLink [routerLink]="['users/enviornment']"
+              *concordCanView="[personas.SystemsAdmin, personas.ConsortiumAdmin, personas.OrgAdmin]">
+              <clr-icon clrVerticalNavIcon shape="network-settings"></clr-icon>
+              {{'nav.sysadmin.env' | translate}}
             </a>
           </ng-container>
         </ng-container>

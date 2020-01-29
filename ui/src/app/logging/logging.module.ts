@@ -18,7 +18,12 @@ import { ExportLogEventsModalComponent } from './export-log-events-modal/export-
     SharedModule,
     GraphsModule
   ],
-  declarations: [LoggingComponent, LogDetailsComponent, ExportChartDataModalComponent, ExportLogEventsModalComponent]
+  declarations: [
+    LoggingComponent,
+    LogDetailsComponent,
+    ExportChartDataModalComponent,
+    ExportLogEventsModalComponent
+  ]
 })
 export class LoggingModule { }
 

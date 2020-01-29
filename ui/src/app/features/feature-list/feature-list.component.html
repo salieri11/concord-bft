@@ -1,0 +1,20 @@
+<clr-datagrid #grid>
+  <clr-dg-column>{{'features.grid.columns.name' | translate}}</clr-dg-column>
+  <clr-dg-column>
+    {{'features.grid.columns.state' | translate}}
+  </clr-dg-column>
+  <clr-dg-column>
+    {{'features.grid.columns.category' | translate}}
+  </clr-dg-column>
+  <clr-dg-column>{{'features.grid.columns.scope' | translate}}</clr-dg-column>
+  <clr-dg-column>{{'features.grid.columns.action' | translate}}</clr-dg-column>
+
+  <clr-dg-row *clrDgItems="let node of nodes" [clrDgItem]="node">
+    <clr-dg-cell>{{feature.name}}</clr-dg-cell>
+    <clr-dg-cell>{{feature.state}}</clr-dg-cell>
+    <clr-dg-cell>{{feature.category}}</clr-dg-cell>
+    <clr-dg-cell>{{feature.scope}}</clr-dg-cell>
+    <clr-dg-cell>{{feature.action}}</clr-dg-cell>
+  </clr-dg-row>
+
+</clr-datagrid>
