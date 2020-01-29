@@ -71,7 +71,7 @@ public class ConcordConfigUtil {
     /**
      * file path.
      */
-    public final String configPath = "/concord/config-local/concord.config";
+    public static final String configPath = "/concord/config-local/concord.config";
 
     /**
      * persistence.

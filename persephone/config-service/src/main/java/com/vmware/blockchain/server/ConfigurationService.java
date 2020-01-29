@@ -111,7 +111,15 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
                                     @NotNull StreamObserver<ConfigurationSessionIdentifier> observer) {
 
         var sessionId = newSessionId();
+
+        // Initialize needed components
+        // FIXME: use one or minumum number of unified datastructure instead.
         List<ConfigurationComponent> staticComponentList = new ArrayList<>();
+        Map<Integer, List<IdentityComponent>> tlsNodeIdentities = new HashMap<>();
+        Map<Integer, String> tlsConfig = new HashMap<>();
+        Map<Integer, String> telegrafConfig = new HashMap<>();
+        var certGen = new ConcordEcCertificatesGenerator();
+
 
         log.info(request.toString());
         // Static settings for each service Type.
@@ -155,50 +163,56 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
                 case ETHEREUM_API:
                     staticComponentList.addAll(getEthereumComponent());
                     break;
+                case TELEGRAF:
+                    var telegrafConfigUtil = new TelegrafConfigUtil(telegrafConfigPath, metricsConfigPath);
+                    var metricsConfigYaml = telegrafConfigUtil.getMetricsConfigYaml();
+                    telegrafConfig = telegrafConfigUtil.getTelegrafConfig(request.getHostsList());
+                    staticComponentList.add(ConfigurationComponent.newBuilder()
+                            .setType(ServiceType.TELEGRAF)
+                            .setComponentUrl(TelegrafConfigUtil.metricsConfigPath)
+                            .setComponent(metricsConfigYaml)
+                            .setIdentityFactors(IdentityFactors.newBuilder().build())
+                            .build());
+                    break;
                 default:
                     log.info("No config required for serviceType {}", serviceType);
             }
         }
-
-        Map<Integer, List<ConfigurationComponent>> nodeComponent = new HashMap<>();
 
         if (request.getServicesList().contains(ServiceType.CONCORD)
             || request.getServicesList().contains(ServiceType.DAML_CONCORD)
             || request.getServicesList().contains(ServiceType.HLF_CONCORD)
             || request.getServicesList().contains(ServiceType.TELEGRAF)) {
 
-            var certGen = new ConcordEcCertificatesGenerator();
-
             // Generate Configuration
             var configUtil = new ConcordConfigUtil(configPath);
-            var tlsConfig = configUtil.getConcordConfig(request.getHostsList(), request.getBlockchainType());
-
-            // Generate telegraf config
-            var telegrafConfigUtil = new TelegrafConfigUtil(telegrafConfigPath, metricsConfigPath);
-            var metricsConfigYaml = telegrafConfigUtil.getMetricsConfigYaml();
-            var telegrafConfig = telegrafConfigUtil.getTelegrafConfig(request.getHostsList());
+            tlsConfig = configUtil.getConcordConfig(request.getHostsList(), request.getBlockchainType());
 
             List<Identity> tlsIdentityList =
                     generateEtheriumConfig(certGen, configUtil.maxPrincipalId + 1, ServiceType.CONCORD);
             log.info("Generated tls identity elements for session id: {}", sessionId);
 
-            Map<Integer, List<IdentityComponent>> tlsNodeIdentities = buildTlsIdentity(tlsIdentityList,
-                                                                                       configUtil.nodePrincipal,
-                                                                                       configUtil.maxPrincipalId + 1,
-                                                                                       request.getHostsList().size());
+            tlsNodeIdentities = buildTlsIdentity(tlsIdentityList,
+                    configUtil.nodePrincipal,
+                    configUtil.maxPrincipalId + 1,
+                    request.getHostsList().size());
+        }
 
-            for (int node = 0; node < request.getHostsList().size(); node++) {
-                List<ConfigurationComponent> componentList = new ArrayList<>();
-                componentList.addAll(staticComponentList);
+        Map<Integer, List<ConfigurationComponent>> nodeComponent = new HashMap<>();
+        for (int node = 0; node < request.getHostsList().size(); node++) {
+            List<ConfigurationComponent> componentList = new ArrayList<>();
+            componentList.addAll(staticComponentList);
 
-                // TLS list
+            // TLS list
+            if (!tlsConfig.isEmpty()) {
                 componentList.add(ConfigurationComponent.newBuilder()
                         .setType(ServiceType.CONCORD)
-                        .setComponentUrl(configUtil.configPath)
+                        .setComponentUrl(ConcordConfigUtil.configPath)
                         .setComponent(tlsConfig.get(node))
                         .setIdentityFactors(IdentityFactors.newBuilder().build())
                         .build());
-
+            }
+            if (!tlsNodeIdentities.isEmpty()) {
                 tlsNodeIdentities.get(node)
                         .forEach(entry -> componentList.add(
                                 ConfigurationComponent.newBuilder()
@@ -208,35 +222,20 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
                                         .setIdentityFactors(certGen.getIdentityFactor())
                                         .build()
                         ));
+            }
 
-                // telegraf configs
+            // telegraf configs
+            if (!telegrafConfig.isEmpty()) {
                 componentList.add(ConfigurationComponent.newBuilder()
                         .setType(ServiceType.TELEGRAF)
-                        .setComponentUrl(telegrafConfigUtil.configPath)
+                        .setComponentUrl(TelegrafConfigUtil.configPath)
                         .setComponent(telegrafConfig.get(node))
                         .setIdentityFactors(IdentityFactors.newBuilder().build())
                         .build());
-
-                componentList.add(ConfigurationComponent.newBuilder()
-                        .setType(ServiceType.TELEGRAF)
-                        .setComponentUrl(TelegrafConfigUtil.metricsConfigPath)
-                        .setComponent(metricsConfigYaml)
-                        .setIdentityFactors(IdentityFactors.newBuilder().build())
-                        .build());
-
-                // put per node configs
-                nodeComponent.putIfAbsent(node, componentList);
-                log.info("Created configurations for session: {}", sessionId);
-
             }
-
-        } else {
-            for (int node = 0; node < request.getHostsList().size(); node++) {
-                List<ConfigurationComponent> componentList = new ArrayList<>();
-                componentList.addAll(staticComponentList);
-                nodeComponent.putIfAbsent(node, componentList);
-                log.info("Created configurations for session: {}", sessionId);
-            }
+            // put per node configs
+            nodeComponent.putIfAbsent(node, componentList);
+            log.info("Created configurations for session: {}", sessionId);
         }
 
         // Error out if no configurations are generated.
