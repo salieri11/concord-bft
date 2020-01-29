@@ -66,15 +66,14 @@ class DamlKvbCommandsHandler
  private:
   bool ExecuteRead(const com::digitalasset::kvbc::ReadCommand& readCmd,
                    com::vmware::concord::ConcordResponse& concord_response);
+
   bool ExecuteCommit(const com::digitalasset::kvbc::CommitRequest& commitReq,
-                     bool pre_execute,
-                     concord::time::TimeContract* time_contract,
+                     uint8_t flags, concord::time::TimeContract* time_contract,
                      opentracing::Span& parent_span,
                      com::vmware::concord::ConcordResponse& concord_response);
 
   bool ExecuteCommand(const com::vmware::concord::ConcordRequest& request,
-                      bool pre_execute,
-                      concord::time::TimeContract* time_contract,
+                      uint8_t flags, concord::time::TimeContract* time_contract,
                       opentracing::Span& parent_span,
                       com::vmware::concord::ConcordResponse& response);
   bool ExecuteReadOnlyCommand(
@@ -82,6 +81,14 @@ class DamlKvbCommandsHandler
       com::vmware::concord::ConcordResponse& response);
   std::map<string, string> GetFromStorage(
       const google::protobuf::RepeatedPtrField<std::string>& keys);
+
+  std::optional<std::string> GetCorrelationId(
+      const com::vmware::concord::DamlRequest& daml_request) const;
+
+  void RecordTransaction(
+      const string& entryId, const concordUtils::SetOfKeyValuePairs& updates,
+      concordUtils::BlockId current_block_id, const string& correlation_id,
+      com::vmware::concord::ConcordResponse& concord_response);
 };
 
 }  // namespace daml

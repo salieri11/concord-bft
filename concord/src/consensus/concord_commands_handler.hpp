@@ -76,6 +76,10 @@ class ConcordCommandsHandler
       const concord::storage::SetOfKeyValuePairs &updates,
       concordUtils::BlockId &out_block_id) override;
 
+  // Checks the pre-executed result for read/write conflicts
+  bool HasPreExecutionConflicts(const com::vmware::concord::PreExecutionResult
+                                    &pre_execution_result) const;
+
   // Functions the subclass must implement are below here.
 
   // The up-call to execute a command. This base class's execute function calls

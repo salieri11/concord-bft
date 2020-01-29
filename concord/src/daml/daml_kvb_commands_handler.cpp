@@ -113,10 +113,12 @@ std::map<string, string> DamlKvbCommandsHandler::GetFromStorage(
 }
 
 bool DamlKvbCommandsHandler::ExecuteCommit(
-    const da_kvbc::CommitRequest& commit_req, bool pre_execute,
+    const da_kvbc::CommitRequest& commit_req, const uint8_t flags,
     TimeContract* time, opentracing::Span& parent_span,
     ConcordResponse& concord_response) {
   LOG4CPLUS_DEBUG(logger_, "Handle DAML commit command");
+  bool pre_execute = flags & bftEngine::MsgFlag::PRE_EXECUTE_FLAG;
+  bool has_pre_executed = flags & bftEngine::MsgFlag::PRE_EXECUTED_FLAG;
 
   string prefix = "daml";
   BlockId current_block_id = storage_.getLastBlock();
@@ -133,6 +135,36 @@ bool DamlKvbCommandsHandler::ExecuteCommit(
   } else {
     record_time = google::protobuf::util::TimeUtil::GetEpoch();
     LOG4CPLUS_DEBUG(logger_, "Using epoch time " << record_time);
+  }
+
+  std::string correlation_id = commit_req.correlation_id();
+
+  if (has_pre_executed && request_.has_pre_execution_result()) {
+    auto* pre_execution_result = request_.mutable_pre_execution_result();
+    if (HasPreExecutionConflicts(request_.pre_execution_result())) {
+      // TODO in the future, we should create a block based on a
+      // write set specific for the case of conflicts
+      return false;
+    }
+
+    correlation_id = pre_execution_result->request_correlation_id();
+
+    auto* write_set = pre_execution_result->mutable_write_set();
+    auto& kv_writes = *write_set->mutable_kv_writes();
+    for (auto& kv : kv_writes) {
+      auto key = std::unique_ptr<std::string>{kv.release_key()};
+      auto val = std::unique_ptr<std::string>{kv.release_value()};
+
+      updates.insert(concordUtils::KeyValuePair(Sliver{std::move(*key)},
+                                                Sliver{std::move(*val)}));
+    }
+
+    RecordTransaction(entryId, updates, current_block_id, correlation_id,
+                      concord_response);
+    LOG4CPLUS_DEBUG(
+        logger_,
+        "Done: Successfully validated and recorded pre-executed DAML command.");
+    return true;
   }
 
   // Send the submission for validation.
@@ -208,10 +240,32 @@ bool DamlKvbCommandsHandler::ExecuteCommit(
       read_set->add_keys(key.data(), key.length());
     }
 
+    const DamlRequest& daml_request = request_.daml_request();
+    const auto optional_cid = GetCorrelationId(daml_request);
+    if (optional_cid) {
+      correlation_id = optional_cid.value();
+    } else {
+      LOG4CPLUS_ERROR(logger_,
+                      "Failed to retrieve the correlation ID from the "
+                      "pre-executed DAML commit.");
+    }
+    pre_execution_result->set_request_correlation_id(correlation_id.c_str(),
+                                                     correlation_id.size());
+
     LOG4CPLUS_DEBUG(logger_, "Done: Pre-execution of DAML command.");
     return true;
   }
 
+  RecordTransaction(entryId, updates, current_block_id, correlation_id,
+                    concord_response);
+  LOG4CPLUS_DEBUG(logger_, "Done: Handle DAML commit command.");
+  return true;
+}
+
+void DamlKvbCommandsHandler::RecordTransaction(
+    const string& entryId, const SetOfKeyValuePairs& updates,
+    BlockId current_block_id, const string& correlation_id,
+    ConcordResponse& concord_response) {
   // Commit the block, if there were no conflicts.
   DamlResponse* daml_response = concord_response.mutable_daml_response();
 
@@ -227,7 +281,7 @@ bool DamlKvbCommandsHandler::ExecuteCommit(
   da_kvbc::CommittedTx commited_tx;
   commited_tx.set_transaction_id(entryId);
   commited_tx.set_block_id(new_block_id);
-  commited_tx.set_correlation_id(commit_req.correlation_id());
+  commited_tx.set_correlation_id(correlation_id);
   committed_txs_.push(commited_tx);
 
   commit_response->set_status(da_kvbc::CommitResponse_CommitStatus_OK);
@@ -237,12 +291,23 @@ bool DamlKvbCommandsHandler::ExecuteCommit(
   command_reply.SerializeToString(&cmd_string);
   daml_response->set_command_reply(cmd_string.c_str(), cmd_string.size());
   write_ops_.Increment();
-  LOG4CPLUS_DEBUG(logger_, "Done: Handle DAML commit command.");
-  return true;
+}
+
+std::optional<std::string> DamlKvbCommandsHandler::GetCorrelationId(
+    const DamlRequest& daml_request) const {
+  da_kvbc::Command cmd;
+  if (!cmd.ParseFromString(daml_request.command())) {
+    return std::nullopt;
+  }
+  if (cmd.cmd_case() == da_kvbc::Command::kCommit) {
+    const auto& original_commit_req = cmd.commit();
+    return std::optional<std::string>(original_commit_req.correlation_id());
+  }
+  return std::nullopt;
 }
 
 bool DamlKvbCommandsHandler::ExecuteCommand(const ConcordRequest& concord_req,
-                                            bool pre_execute,
+                                            const uint8_t flags,
                                             TimeContract* time_contract,
                                             opentracing::Span& parent_span,
                                             ConcordResponse& response) {
@@ -272,8 +337,8 @@ bool DamlKvbCommandsHandler::ExecuteCommand(const ConcordRequest& concord_req,
     case da_kvbc::Command::kCommit: {
       auto commit_req = cmd.commit();
       log4cplus::getMDC().put("cid", commit_req.correlation_id());
-      bool result = ExecuteCommit(commit_req, pre_execute, time_contract,
-                                  parent_span, response);
+      bool result = ExecuteCommit(commit_req, flags, time_contract, parent_span,
+                                  response);
       log4cplus::getMDC().clear();
       return result;
     }
@@ -317,17 +382,16 @@ bool DamlKvbCommandsHandler::ExecuteReadOnlyCommand(
 }
 
 bool DamlKvbCommandsHandler::Execute(const ConcordRequest& request,
-                                     uint8_t flags, TimeContract* time_contract,
+                                     const uint8_t flags,
+                                     TimeContract* time_contract,
                                      opentracing::Span& parent_span,
                                      ConcordResponse& response) {
   bool read_only = flags & bftEngine::MsgFlag::READ_ONLY_FLAG;
-  bool pre_execute = flags & bftEngine::MsgFlag::PRE_EXECUTE_FLAG;
 
   if (read_only) {
     return ExecuteReadOnlyCommand(request, response);
   } else {
-    return ExecuteCommand(request, pre_execute, time_contract, parent_span,
-                          response);
+    return ExecuteCommand(request, flags, time_contract, parent_span, response);
   }
 }
 
