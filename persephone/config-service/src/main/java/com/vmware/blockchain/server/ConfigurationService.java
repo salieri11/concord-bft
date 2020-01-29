@@ -43,6 +43,7 @@ import com.vmware.blockchain.deployment.v1.IdentityComponent;
 import com.vmware.blockchain.deployment.v1.IdentityFactors;
 import com.vmware.blockchain.deployment.v1.NodeConfigurationRequest;
 import com.vmware.blockchain.deployment.v1.NodeConfigurationResponse;
+import com.vmware.blockchain.deployment.v1.Property;
 import com.vmware.blockchain.ethereum.type.Genesis;
 
 import io.grpc.Status;
@@ -120,6 +121,11 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
         Map<Integer, String> telegrafConfig = new HashMap<>();
         var certGen = new ConcordEcCertificatesGenerator();
 
+        Map<Property.Name, String> propertyMap = new HashMap<>();
+        if (request.hasProperties()) {
+            request.getProperties().getValuesList().stream().forEach(prop ->
+                    propertyMap.put(prop.getName(), prop.getValue()));
+        }
 
         log.info(request.toString());
         // Static settings for each service Type.
@@ -128,7 +134,7 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
             switch (serviceType) {
                 case DAML_LEDGER_API:
                     DamlLedgerApiUtil ledgerApiUtil = new DamlLedgerApiUtil(
-                            request.getProperties().getValues().get(DamlLedgerApiUtil.REPLICAS_KEY));
+                            propertyMap.getOrDefault(Property.Name.COMMITTERS, "concord:50051"));
                     staticComponentList.add(ConfigurationComponent.newBuilder()
                                                     .setType(serviceType)
                                             .setComponentUrl(DamlLedgerApiUtil.envVarPath)
@@ -147,7 +153,7 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
                     break;
                 case LOGGING:
                     LoggingUtil loggingUtil =
-                            new LoggingUtil(request.getProperties().getValues().get(LoggingUtil.LOGGING_CONFIG));
+                            new LoggingUtil(propertyMap.get(Property.Name.LOGGING_CONFIG));
                     staticComponentList.add(ConfigurationComponent.newBuilder()
                                                     .setType(ServiceType.LOGGING)
                                                     .setComponentUrl(LoggingUtil.envVarPath)

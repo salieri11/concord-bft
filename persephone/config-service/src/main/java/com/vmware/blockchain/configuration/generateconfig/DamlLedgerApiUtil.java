@@ -11,11 +11,6 @@ import com.google.common.base.Strings;
  */
 public class DamlLedgerApiUtil {
 
-    /**
-     * This value cannot be changed without a change in persephone.
-     */
-    public static String REPLICAS_KEY = "replicas";
-
     private String replicas;
 
     public DamlLedgerApiUtil(String replicas) {

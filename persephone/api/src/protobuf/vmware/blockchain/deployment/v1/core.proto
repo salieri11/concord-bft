@@ -162,9 +162,26 @@ message LogManagement {
 }
 
 /**
+ * Enum supporting properties
+ */
+message Property {
+    enum Name {
+        GENERIC = 0;
+        COMMITTERS = 1;
+        BLOCKCHAIN_ID = 2;
+        NODE_ID = 3;
+        CLIENT_GROUP_ID = 4;
+        LOGGING_CONFIG = 5;
+    }
+
+    Name name = 1;
+    string value = 2;
+}
+
+/**
  * Raw bag of properties.
  * This structure can be used during initial development phase when all parameters are not known.
  */
 message Properties {
-    map<string, string> values = 1;
+    repeated Property values = 1;
 }

@@ -37,7 +37,6 @@ import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.ImmutableMap;
 import com.vmware.blockchain.deployment.orchestration.NetworkAddress;
 import com.vmware.blockchain.deployment.orchestration.Orchestrator;
 import com.vmware.blockchain.deployment.orchestration.Orchestrator.ComputeResourceEvent;
@@ -522,14 +521,6 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
             concordIdentifierMap.put(key.getNode(), nodeIps.indexOf(nodeIp));
         });
 
-
-        Properties rawProperties = new Properties();
-        if (!properties.getValues().isEmpty()) {
-            // TODO Take the key name from constants.
-            String ipList = properties.getValues().getOrDefault("committers", "concord:50051");
-            rawProperties = new Properties(ImmutableMap.of("replicas", ipList));
-        }
-
         // TODO put log properties here and remove from cloudInit
         var request = new ConfigurationServiceRequest(
                 new MessageHeader(),
@@ -537,7 +528,7 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
                 genesis,
                 components.stream().filter(x -> !x.getServiceType().equals(ConcordComponent.ServiceType.GENERIC))
                         .map(x -> x.getServiceType()).collect(Collectors.toList()),
-                rawProperties);
+                properties);
 
         // FIXME: Remove the below lines once the new protos are attached to config service on staging/prod
         request.getServices().remove(ConcordComponent.ServiceType.JAEGER_AGENT);
