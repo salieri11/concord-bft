@@ -1,0 +1,286 @@
+version: '3'
+services:
+  concord1:
+    image: "${concord_repo}:${concord_tag}"
+    privileged: true
+    expose:
+      - 5458
+      - 3501/tcp
+      - 3502/tcp
+      - 3503/tcp
+      - 3504/tcp
+      - 3505/tcp
+    ports:
+      - 9891:9891
+    volumes:
+      - ./devdata/rocksdbdata1:/concord/rocksdbdata
+      - ./devdata/log1:/concord/log
+      - ./config-concord1:/concord/config-local
+      - ./config-public:/concord/config-public:ro
+      - ./tls_certs:/concord/tls_certs:ro
+
+  ethrpc1:
+    image: "${ethrpc_repo}:${ethrpc_tag}"
+    ports:
+      - 8545:8545
+    volumes:
+      - ./config-ethrpc1:/config:ro
+    command:
+      - java
+      - -jar
+      - concord-ethrpc.jar
+      - --ConcordAuthorities=concord1:5458
+      - --security.require-ssl=true
+      - --server.ssl.key-store-type=PKCS12
+      - --server.ssl.key-store=/config/keystore.p12
+      - '--server.ssl.key-store-password=Ethrpc!23'
+      - --server.ssl.key-alias=ethrpc
+
+  telegraf1:
+    image: telegraf
+    expose:
+      - 9090
+    environment:
+      - REPLICA=concord1
+      - WAVEFRONT=wavefront1
+    volumes:
+      - ./telegraf/telegraf.conf:/etc/telegraf/telegraf.conf:ro
+    depends_on:
+      - concord1
+      - wavefront1
+
+  wavefront1:
+    image: wavefronthq/proxy:latest
+    environment:
+      - WAVEFRONT_URL=${WAVEFRONT_URL:-https://vmware.wavefront.com/api/}
+      - WAVEFRONT_TOKEN=${WAVEFRONT_TOKEN:?Missing Wavefront Token}
+      - JAVA_HEAP_USAGE=512m
+    expose:
+      - 2878
+
+  concord2:
+    image: "${concord_repo}:${concord_tag}"
+    privileged: true
+    expose:
+      - 5458
+      - 3501/tcp
+      - 3502/tcp
+      - 3503/tcp
+      - 3504/tcp
+      - 3505/tcp
+    volumes:
+      - ./devdata/rocksdbdata2:/concord/rocksdbdata
+      - ./devdata/log2:/concord/log
+      - ./config-concord2:/concord/config-local
+      - ./config-public:/concord/config-public:ro
+      - ./tls_certs:/concord/tls_certs:ro
+
+  ethrpc2:
+    image: "${ethrpc_repo}:${ethrpc_tag}"
+    ports:
+      - 8546:8545
+    volumes:
+      - ./config-ethrpc2:/config:ro
+    command:
+      - java
+      - -jar
+      - concord-ethrpc.jar
+      - --ConcordAuthorities=concord2:5458
+      - --security.require-ssl=true
+      - --server.ssl.key-store-type=PKCS12
+      - --server.ssl.key-store=/config/keystore.p12
+      - '--server.ssl.key-store-password=Ethrpc!23'
+      - --server.ssl.key-alias=ethrpc
+
+  telegraf2:
+    image: telegraf
+    expose:
+      - 9090
+    environment:
+      - REPLICA=concord2
+      - WAVEFRONT=wavefront2
+    volumes:
+      - ./telegraf/telegraf.conf:/etc/telegraf/telegraf.conf:ro
+    depends_on:
+      - concord2
+      - wavefront2
+
+  wavefront2:
+    image: wavefronthq/proxy:latest
+    environment:
+      - WAVEFRONT_URL=${WAVEFRONT_URL:-https://vmware.wavefront.com/api/}
+      - WAVEFRONT_TOKEN=${WAVEFRONT_TOKEN:?Missing Wavefront Token}
+      - JAVA_HEAP_USAGE=512m
+    expose:
+      - 2878
+
+  concord3:
+    image: "${concord_repo}:${concord_tag}"
+    privileged: true
+    expose:
+      - 5458
+      - 3501/tcp
+      - 3502/tcp
+      - 3503/tcp
+      - 3504/tcp
+      - 3505/tcp
+    volumes:
+      - ./devdata/rocksdbdata3:/concord/rocksdbdata
+      - ./devdata/log3:/concord/log
+      - ./config-concord3:/concord/config-local
+      - ./config-public:/concord/config-public:ro
+      - ./tls_certs:/concord/tls_certs:ro
+
+  ethrpc3:
+    image: "${ethrpc_repo}:${ethrpc_tag}"
+    ports:
+      - 8547:8545
+    volumes:
+      - ./config-ethrpc3:/config:ro
+    command:
+      - java
+      - -jar
+      - concord-ethrpc.jar
+      - --ConcordAuthorities=concord3:5458
+      - --security.require-ssl=true
+      - --server.ssl.key-store-type=PKCS12
+      - --server.ssl.key-store=/config/keystore.p12
+      - '--server.ssl.key-store-password=Ethrpc!23'
+      - --server.ssl.key-alias=ethrpc
+
+  telegraf3:
+    image: telegraf
+    expose:
+      - 9090
+    environment:
+      - REPLICA=concord3
+      - WAVEFRONT=wavefront3
+    volumes:
+      - ./telegraf/telegraf.conf:/etc/telegraf/telegraf.conf:ro
+    depends_on:
+      - concord3
+      - wavefront3
+
+  wavefront3:
+    image: wavefronthq/proxy:latest
+    environment:
+      - WAVEFRONT_URL=${WAVEFRONT_URL:-https://vmware.wavefront.com/api/}
+      - WAVEFRONT_TOKEN=${WAVEFRONT_TOKEN:?Missing Wavefront Token}
+      - JAVA_HEAP_USAGE=512m
+    expose:
+      - 2878
+
+  concord4:
+    image: "${concord_repo}:${concord_tag}"
+    privileged: true
+    expose:
+      - 5458
+      - 3501/tcp
+      - 3502/tcp
+      - 3503/tcp
+      - 3504/tcp
+      - 3505/tcp
+    volumes:
+      - ./devdata/rocksdbdata4:/concord/rocksdbdata
+      - ./devdata/log4:/concord/log
+      - ./config-concord4:/concord/config-local
+      - ./config-public:/concord/config-public:ro
+      - ./tls_certs:/concord/tls_certs:ro
+
+  ethrpc4:
+    image: "${ethrpc_repo}:${ethrpc_tag}"
+    ports:
+      - 8548:8545
+    volumes:
+      - ./config-ethrpc4:/config:ro
+    command:
+      - java
+      - -jar
+      - concord-ethrpc.jar
+      - --ConcordAuthorities=concord4:5458
+      - --security.require-ssl=true
+      - --server.ssl.key-store-type=PKCS12
+      - --server.ssl.key-store=/config/keystore.p12
+      - '--server.ssl.key-store-password=Ethrpc!23'
+      - --server.ssl.key-alias=ethrpc
+
+  telegraf4:
+    image: telegraf
+    expose:
+      - 9090
+    environment:
+      - REPLICA=concord4
+      - WAVEFRONT=wavefront4
+    volumes:
+      - ./telegraf/telegraf.conf:/etc/telegraf/telegraf.conf:ro
+    depends_on:
+      - concord4
+      - wavefront4
+
+  wavefront4:
+    image: wavefronthq/proxy:latest
+    environment:
+      - WAVEFRONT_URL=${WAVEFRONT_URL:-https://vmware.wavefront.com/api/}
+      - WAVEFRONT_TOKEN=${WAVEFRONT_TOKEN:?Missing Wavefront Token}
+      - JAVA_HEAP_USAGE=512m
+    expose:
+      - 2878
+
+  helen:
+    image: "${helen_repo}:${helen_tag}"
+    ports:
+      - 8080:8080
+      - 9081:9081
+    depends_on:
+      - db-server
+    volumes:
+      - ./config-helen:/config:ro
+    entrypoint: ['./wait-for-it.sh', 'db-server:26257', '-t', '60', '--',
+                 "java", "-Dspring.config.location=/config/app/profiles/,./",
+                 "-Dspring.profiles.active=test", "-jar", "blockchain-helen.jar"]
+    environment:
+      - "LINT_API_TOKEN=${LINT_API_KEY}"
+      - "LINT_AUTHORIZATION_BEARER=${LINT_AUTHORIZATION_BEARER}"
+      - APPCONTEXT=test
+
+  ui:
+    image: "${ui_repo}:${ui_tag}"
+    ports:
+      - 80:80
+    depends_on:
+      - helen
+    volumes:
+      - ./ui/app-config.json:/usr/share/nginx/html/static/app-config.json
+
+  contract-compiler:
+    image: "${contract_compiler_repo}:${contract_compiler_tag}"
+    ports:
+      - 3000:3000
+
+  db-server:
+    image: postgres:10.6
+    ports:
+      - 26257:26257
+    environment:
+      POSTGRES_USER: helen_admin
+      POSTGRES_DB: helen
+      POSTGRES_PASSWORD: VMware!23
+    command: -p 26257
+    volumes:
+      - ./devdata/postgresql:/var/lib/postgresql/data
+
+
+  reverse-proxy:
+    image: athena-docker-local.artifactory.eng.vmware.com/reverse-proxy:0.1.2
+    ports:
+      - "443:443"
+      - "8843:8843"
+    volumes:
+      - ./data/nginx/docker-compose.conf.d:/etc/nginx/conf.d
+    depends_on:
+      - helen
+
+  agent:
+    image: "${persephone_agent_repo}:${persephone_agent_tag}"
+    ports:
+      - 50453:50453

@@ -1,0 +1,21 @@
+version: '3'
+services:
+  telegraf:
+    image: telegraf
+    ports:
+      - 9090:9090
+    volumes:
+      - ./telegraf.conf:/etc/telegraf/telegraf.conf:ro
+    extra_hosts:
+      - helen:${helen_ip}
+    depends_on:
+      - wavefront
+
+  wavefront:
+    image: wavefronthq/proxy:latest
+    environment:
+      - WAVEFRONT_URL=${WAVEFRONT_URL:-https://vmware.wavefront.com/api/}
+      - WAVEFRONT_TOKEN=${WAVEFRONT_TOKEN:?Missing Wavefront Token}
+      - JAVA_HEAP_USAGE=512m
+    ports:
+      - 2878:2878
