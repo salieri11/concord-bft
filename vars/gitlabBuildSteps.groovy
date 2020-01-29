@@ -66,7 +66,7 @@ import hudson.util.Secret
     "runWithGenericTests": true
   ],
   "RegressionTests": [
-    "enabled": false,
+    "enabled": true,
     "runWithGenericTests": true
   ],
   "DamlTests": [
