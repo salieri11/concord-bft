@@ -69,6 +69,16 @@ class ModelServiceRPCHelper(RPCHelper):
          self.args.userConfig["persephoneTests"]["modelService"][
             "deployment_component_ids"]["HLF_TOOLS"]
 
+      self.WAVEFRONT_PROXY = \
+         self.args.userConfig["persephoneTests"]["modelService"][
+            "deployment_component_ids"]["WAVEFRONT_PROXY"]
+      self.JAEGER_AGENT = \
+         self.args.userConfig["persephoneTests"]["modelService"][
+            "deployment_component_ids"]["JAEGER_AGENT"]
+      self.TELEGRAF = \
+         self.args.userConfig["persephoneTests"]["modelService"][
+            "deployment_component_ids"]["TELEGRAF"]
+
    def __del__(self):
       self.close_channel(self.service_name)
 
@@ -124,12 +134,19 @@ class ModelServiceRPCHelper(RPCHelper):
       components_for_this_deployment = []
       if concord_type is ModelServiceRPCHelper.CONCORD_TYPE_DAML:
          for component in deployment_components:
-            if self.AGENT_ID in component:
+            if self.AGENT_ID in component and self.JAEGER_AGENT not in component:
                concord_components.append(
                   (concord_model_pb2.ConcordComponent.GENERIC, component))
             if self.FLUENTD_ID in component:
                concord_components.append(
                   (concord_model_pb2.ConcordComponent.LOGGING, component))
+            if self.WAVEFRONT_PROXY in component:
+               concord_components.append(
+                  (concord_model_pb2.ConcordComponent.WAVEFRONT_PROXY, component))
+            if self.TELEGRAF in component:
+               concord_components.append(
+                  (concord_model_pb2.ConcordComponent.TELEGRAF, component))
+
             if self.CONCORD_ID in component:
                if node_type is None or node_type == self.NODE_TYPE_COMMITTER:
                   concord_components.append((
@@ -140,6 +157,12 @@ class ModelServiceRPCHelper(RPCHelper):
                   concord_components.append((
                                           concord_model_pb2.ConcordComponent.DAML_EXECUTION_ENGINE,
                                           component))
+            if self.JAEGER_AGENT in component:
+               if node_type is None or node_type == self.NODE_TYPE_COMMITTER:
+                  concord_components.append((
+                                          concord_model_pb2.ConcordComponent.JAEGER_AGENT,
+                                          component))
+
             if self.DAML_LEDGER_API_ID in component:
                if node_type is None or node_type == self.NODE_TYPE_PARTICIPANT:
                   concord_components.append((
@@ -153,7 +176,7 @@ class ModelServiceRPCHelper(RPCHelper):
 
       elif concord_type is ModelServiceRPCHelper.CONCORD_TYPE_HLF:
          for component in deployment_components:
-            if self.AGENT_ID in component:
+            if self.AGENT_ID in component and self.JAEGER_AGENT not in component:
                concord_components.append(
                   (concord_model_pb2.ConcordComponent.GENERIC, component))
             if self.CONCORD_ID in component:
@@ -169,12 +192,21 @@ class ModelServiceRPCHelper(RPCHelper):
                                          component))
             if self.HLF_TOOLS in component:
                concord_components.append((
-                  concord_model_pb2.ConcordComponent.HLF_TOOLS,
-                  component))
+                  concord_model_pb2.ConcordComponent.HLF_TOOLS, component))
+            if self.JAEGER_AGENT in component:
+               concord_components.append((
+                  concord_model_pb2.ConcordComponent.JAEGER_AGENT, component))
+            if self.WAVEFRONT_PROXY in component:
+               concord_components.append(
+                  (concord_model_pb2.ConcordComponent.WAVEFRONT_PROXY, component))
+            if self.TELEGRAF in component:
+               concord_components.append(
+                  (concord_model_pb2.ConcordComponent.TELEGRAF, component))
+
 
       else:
          for component in deployment_components:
-            if self.AGENT_ID in component:
+            if self.AGENT_ID in component and self.JAEGER_AGENT not in component:
                concord_components.append(
                   (concord_model_pb2.ConcordComponent.GENERIC, component))
             if self.FLUENTD_ID in component:
@@ -186,6 +218,16 @@ class ModelServiceRPCHelper(RPCHelper):
             if self.ETHRPC_ID in component:
                concord_components.append(
                   (concord_model_pb2.ConcordComponent.ETHEREUM_API, component))
+            if self.JAEGER_AGENT in component:
+               concord_components.append((
+                  concord_model_pb2.ConcordComponent.JAEGER_AGENT, component))
+            if self.WAVEFRONT_PROXY in component:
+               concord_components.append(
+                  (concord_model_pb2.ConcordComponent.WAVEFRONT_PROXY, component))
+            if self.TELEGRAF in component:
+               concord_components.append(
+                  (concord_model_pb2.ConcordComponent.TELEGRAF, component))
+
 
       log.info(
          "**** Using Deployment components: {}".format(concord_components))

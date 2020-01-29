@@ -107,6 +107,10 @@ class ProvisioningServiceRPCHelper(RPCHelper):
                subnet=zone["vsphere"]["network"]["subnet"]
             )
          )
+         wavefront = orchestration_pb2.Wavefront(
+            url=zone["wavefront"]["url"],
+            token=zone["wavefront"]["token"]
+         )
 
          if zone_type == self.ZONE_TYPE_VMC:
             type = orchestration_pb2.OrchestrationSiteInfo.VMC
@@ -123,7 +127,8 @@ class ProvisioningServiceRPCHelper(RPCHelper):
                api=core_pb2.Endpoint(address=zone["api"]["address"]),
                organization=zone["organization"],
                datacenter=zone["datacenter"],
-               vsphere=vsphere_datacenter_info
+               vsphere=vsphere_datacenter_info,
+               wavefront=wavefront
             )
             orchestration_site_info = orchestration_pb2.OrchestrationSiteInfo(
                type=type, vmc=site_info)
@@ -146,7 +151,8 @@ class ProvisioningServiceRPCHelper(RPCHelper):
                      )
                   )
                ),
-               vsphere=vsphere_datacenter_info
+               vsphere=vsphere_datacenter_info,
+               wavefront=wavefront
             )
             orchestration_site_info = orchestration_pb2.OrchestrationSiteInfo(
                type=type, vsphere=site_info)
