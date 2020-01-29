@@ -79,7 +79,7 @@ using concord::config::ConcordConfiguration;
 using concord::ethereum::EthKvbStorage;
 using concord::common::operator<<;
 using bftEngine::ReplicaConfig;
-using concord::consensus::CommConfig;
+using concord::config::CommConfig;
 using concord::consensus::KVBClient;
 using concord::consensus::KVBClientPool;
 using concord::ethereum::EthKvbCommandsHandler;

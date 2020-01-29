@@ -50,6 +50,8 @@ configure_file(test/resources/concord1.config test/resources/concord1.config COP
 configure_file(test/resources/concord2.config test/resources/concord2.config COPYONLY)
 configure_file(test/resources/concord3.config test/resources/concord3.config COPYONLY)
 configure_file(test/resources/concord4.config test/resources/concord4.config COPYONLY)
+configure_file(test/resources/external_client_tls.config test/resources/external_client_tls.config COPYONLY)
+configure_file(test/resources/external_client_udp.config test/resources/external_client_udp.config COPYONLY)
 file(COPY test/resources/tls_certs DESTINATION test/resources)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
