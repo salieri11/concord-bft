@@ -24,6 +24,10 @@ RUN protoc -I/usr/local/include -I/build/protobuf -I$GOPATH/src \
     /build/protobuf/vmware/blockchain/deployment/v1/concord_model.proto \
     /build/protobuf/vmware/blockchain/deployment/v1/security_identity.proto \
     /build/protobuf/vmware/blockchain/deployment/v1/configuration_service.proto
+RUN protoc -I/usr/local/include -I/build/protobuf -I$GOPATH/src \
+    -I$GOPATH/src/github.com/grpc-ecosystem/grpc-gateway/third_party/googleapis \
+    --go_out=plugins=grpc:$GOPATH/src/. \
+    /build/protobuf/vmware/blockchain/ethereum/type/genesis.proto
 RUN protoc -I/usr/local/include -I/build/protobuf \
     -I$GOPATH/src/github.com/grpc-ecosystem/grpc-gateway/third_party/googleapis \
     --grpc-gateway_out=logtostderr=true,grpc_api_configuration=/build/resources/configuration_service.yaml:$GOPATH/src/. \
@@ -35,6 +39,8 @@ RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main /go/src/main
 # Runtime image (minimal footprint).
 FROM alpine:3.10
 LABEL description="VMware Blockchain Fleet Management Configuration Service REST Gateway"
+
+RUN apk add bash
 
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 
