@@ -3,7 +3,7 @@
  */
 import { Component, OnInit, ViewChild } from '@angular/core';
 import { ClrDatagrid } from '@clr/angular';
-// import { Feeature } from '../shared/fearture.model';
+import { Feature } from '../shared/feature.model';
 // import { FeaturesService } from '../shared/feartures.service';
 
 @Component({
@@ -14,19 +14,20 @@ import { ClrDatagrid } from '@clr/angular';
 export class FeaturesListComponent implements OnInit {
   @ViewChild('grid', {static: false}) grid: ClrDatagrid;
 
-  // tasks: Task[];
+  features: Feature[];
   selected: any[] = [];
+  loading: boolean;
 
   constructor(
     // private featuresService: FeaturesService
   ) { }
 
   ngOnInit() {
-    this.loadNodes();
+    this.loadFeatures();
   }
 
-  loadNodes() {
+  loadFeatures() {
     // this.tasksService.getTasks()
-    //   .subscribe(nodes => this.nodes = nodes.nodes);
+    //   .subscribe(features => this.features = features.features);
   }
 }
