@@ -19,6 +19,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.yaml.snakeyaml.Yaml;
 
+import com.vmware.blockchain.deployment.v1.Property;
+
 /**
  * Utility class to generate telegraf configurations.
  */
@@ -50,7 +52,8 @@ public class TelegrafConfigUtil {
      * @param hostIps hopst names/ips.
      * @return map of host ips vs configs.
      */
-    public Map<Integer, String> getTelegrafConfig(List<String> hostIps) {
+    public Map<Integer, String> getTelegrafConfig(List<String> hostIps,
+                                                  Map<Property.Name, String> propertyMap) {
 
         Map<Integer, String> configMap = new HashMap<>();
 
@@ -71,6 +74,8 @@ public class TelegrafConfigUtil {
                 return null;
             }
         }
+
+        content.replace("$BLOCKCHAIN_ID", propertyMap.get(Property.Name.BLOCKCHAIN_ID));
 
         // FIXME: This could ideally be hostIps -> config once we remove dependency on list ordering.
         for (int num = 0; num < hostIps.size(); num++) {

@@ -172,7 +172,7 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
                 case TELEGRAF:
                     var telegrafConfigUtil = new TelegrafConfigUtil(telegrafConfigPath, metricsConfigPath);
                     var metricsConfigYaml = telegrafConfigUtil.getMetricsConfigYaml();
-                    telegrafConfig = telegrafConfigUtil.getTelegrafConfig(request.getHostsList());
+                    telegrafConfig = telegrafConfigUtil.getTelegrafConfig(request.getHostsList(), propertyMap);
                     staticComponentList.add(ConfigurationComponent.newBuilder()
                             .setType(ServiceType.TELEGRAF)
                             .setComponentUrl(TelegrafConfigUtil.metricsConfigPath)
