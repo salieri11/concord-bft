@@ -76,10 +76,14 @@ export class RequestInterceptor implements HttpInterceptor {
             switch ((<HttpErrorResponse>error).status) {
               case 401:
                 this.cspErrors.push(error);
-                  if (window.location.search.indexOf('org_link') !== -1) {
-                    window.location.href = `https://${window.location.host}/api/oauth/login${window.location.search}`;
-                    return;
-                  }
+                if (window.location.search.indexOf('org_link') !== -1) {
+                  window.location.href = `https://${window.location.host}/api/oauth/login${window.location.search}`;
+                  return;
+                }
+                // Store last location, so that on redirect we redirect them to the last used location.
+                // We are adding a date so that we only use this for recent redirects that have happened
+                // in the last couple minutes.
+                localStorage.setItem('lastLocation', `${new Date()}--${window.location.pathname}`);
 
                 this.cspErrors = [];
                 window.location.href = this.env.loginPath;

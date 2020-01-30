@@ -64,13 +64,14 @@ export class AuthenticatedGuard implements CanActivateChild, CanActivate {
     if (this.authenticationService.accessToken) { return true; } // already logged in
 
     const auth = await this.authenticationService.getAccessToken().toPromise();
+    await this.routeService.resolveConsortium();
 
     if (this.isNewUser(route, state, auth)) {
-      await this.routeService.resolveConsortium();
       this.routeService.redirectToDefault(mainFragments.welcome);
       return false;
+    } else if (state.url.indexOf(authRoutes.loginReturn) !== -1) {
+      return this.routeService.loginReturnHandler();
     } else if (route.url.length === 0) { // emptry string path '', redirect to dashboard.
-      await this.routeService.resolveConsortium();
       this.routeService.redirectToDefault();
       return false;
     }
