@@ -168,10 +168,13 @@ void ThinReplicaClient::CloseStream(unique_ptr<ReaderType>& stream,
 }
 
 void ThinReplicaClient::ReceiveUpdates() {
-  assert(!stop_subscription_thread_);
   assert(!subscription_data_stream_);
   assert(subscription_hash_streams_.size() == 0);
   assert(server_stubs_.size() > 0);
+
+  if (stop_subscription_thread_) {
+    return;
+  }
 
   subscription_hash_streams_ =
       vector<unique_ptr<ClientReader<Hash>>>(server_stubs_.size());
@@ -455,7 +458,6 @@ void ThinReplicaClient::RegisterSubscriptionFailureCondition(
 
 void ThinReplicaClient::Subscribe(const string& key_prefix_bytes) {
   assert(server_stubs_.size() > 0);
-  // TODO (Alex): Stop, cleanup, and destroy any existing subscription thread.
 
   // XXX: The following implementation does not achieve Subscribe's specified
   //      interface and behavior (see the comments with Subscribe's declaration
@@ -465,6 +467,14 @@ void ThinReplicaClient::Subscribe(const string& key_prefix_bytes) {
   //      to preserve the general behavior of the example Thin Replica Client
   //      application (which at this time just connects to a server and checks
   //      the status returned for a ReadStateRequest).
+
+  // Stop any existing subscription before trying to start a new one.
+  stop_subscription_thread_ = true;
+  if (subscription_thread_) {
+    assert(subscription_thread_->joinable());
+    subscription_thread_->join();
+    subscription_thread_.reset();
+  }
 
   bool has_verified_state = false;
   size_t data_server_index = 0;
@@ -619,7 +629,13 @@ void ThinReplicaClient::Subscribe(const string& key_prefix_bytes) {
 
 void ThinReplicaClient::Subscribe(const string& key_prefix_bytes,
                                   uint64_t last_known_block_id) {
-  // TODO (Alex): Stop, cleanup, and destroy any existing subscription thread.
+  // Stop any existing subscription before trying to start a new one.
+  stop_subscription_thread_ = true;
+  if (subscription_thread_) {
+    assert(subscription_thread_->joinable());
+    subscription_thread_->join();
+    subscription_thread_.reset();
+  }
 
   update_queue_->Clear();
   key_prefix_ = key_prefix_bytes;
