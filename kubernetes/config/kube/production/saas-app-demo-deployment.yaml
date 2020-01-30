@@ -11,6 +11,10 @@ spec:
     metadata:
       labels:
         app: vmbc
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: "/api/management/prometheus"
+        prometheus.io/port: "9081"
     spec:
       imagePullSecrets:
         - name: bintray
@@ -24,12 +28,12 @@ spec:
         - "persephone-provisioning"
       containers:
       - name: contract-compiler
-        image: vmware-docker-blockchainsaas.bintray.io/vmwblockchain/contract-compiler:869
+        image: vmware-docker-blockchainsaas.bintray.io/vmwblockchain/contract-compiler:892
         imagePullPolicy: Always
         ports:
         - containerPort: 3000
       - name: helen
-        image: vmware-docker-blockchainsaas.bintray.io/vmwblockchain/helen:869
+        image: vmware-docker-blockchainsaas.bintray.io/vmwblockchain/helen:892
         imagePullPolicy: Always
         env:
         - name: APPCONTEXT
@@ -44,7 +48,7 @@ spec:
           mountPath: /config/app/db/migration/
           readOnly: true
       - name: ui
-        image: vmware-docker-blockchainsaas.bintray.io/vmwblockchain/ui:869
+        image: vmware-docker-blockchainsaas.bintray.io/vmwblockchain/ui:892
         imagePullPolicy: Always
         ports:
         - containerPort: 80
@@ -53,7 +57,7 @@ spec:
           mountPath: /usr/share/nginx/html/static/app-config.json
           subPath: app-config.json
       - name: persephone-provisioning
-        image: vmware-docker-blockchainsaas.bintray.io/vmwblockchain/persephone-provisioning:869
+        image: vmware-docker-blockchainsaas.bintray.io/vmwblockchain/persephone-provisioning:892
         ports:
         - containerPort: 9002
         imagePullPolicy: Always

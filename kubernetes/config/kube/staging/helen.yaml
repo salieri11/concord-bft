@@ -11,20 +11,23 @@ spec:
     metadata:
       labels:
         app: helen
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: "/api/management/prometheus"
+        prometheus.io/port: "9081"
     spec:
       imagePullSecrets:
         - name: bintray
       hostname: helen
       containers:
       - name: helen
-        image: vmware-docker-blockchainsaas.bintray.io/vmwblockchain/helen:{{BUILDNUM}}
+        image: vmware-docker-blockchainsaas.bintray.io/vmwblockchain/helen:{{BUILD_NUM}}
         imagePullPolicy: Always
         env:
         - name: APPCONTEXT
           value: "staging"
         ports:
         - containerPort: 8080
-        - containerPort: 8000
         volumeMounts:
         - name: helencontext-volume
           mountPath: /config/app/profiles/

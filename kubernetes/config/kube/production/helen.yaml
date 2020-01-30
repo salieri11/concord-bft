@@ -11,6 +11,10 @@ spec:
     metadata:
       labels:
         app: helen-prod
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: "/api/management/prometheus"
+        prometheus.io/port: "9081"
     spec:
       imagePullSecrets:
         - name: bintray
