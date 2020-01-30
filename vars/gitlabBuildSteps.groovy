@@ -1247,6 +1247,15 @@ String getHead(){
 // is set to true, that image will be re-tagged as latest and pushed
 // again.
 void pushDockerImage(repo, tag, tagAsLatest){
+  // TESTING CODE ONLY
+  // Push to a test repo in artifactory instead of the real one when testing push.
+  // if (repo.contains("athena-docker-local")){
+  //     old_repo = repo
+  //     repo = repo.replace("athena-docker-local.artifactory.eng.vmware.com", "athena-docker-local.artifactory.eng.vmware.com/test")
+  //     command = "docker tag ${old_repo}:${tag} ${repo}:${tag}"
+  //     retryCommand(command, true)
+  // }
+
   if (repo.contains(env.internal_repo_name)){
     // Re-pushing to artifactory will trigger an error.
     component = repo.split("eng.vmware.com")[1]
@@ -1704,8 +1713,17 @@ void pushToArtifactory(){
   ]
 
   withCredentials([string(credentialsId: 'ARTIFACTORY_API_KEY', variable: 'ARTIFACTORY_API_KEY')]) {
-   for (repo in pushList){
-     pushDockerImage(repo, env.docker_tag, false)
+    for (repo in pushList){
+      // Short term, until we are sure the Jenkins job which sets up OneCloud
+      // is working with version subdirs, we will push twice.
+      // Always push the "old format" second, so it is newest, until all
+      // tools are working with the new format.
+      subdirRepo = repo + "/" + env.major_minor_patch
+      command = "docker tag ${repo}:${env.docker_tag} ${subdirRepo}:${env.docker_tag}"
+      retryCommand(command, true)
+
+      pushDockerImage(subdirRepo, env.docker_tag, false)
+      pushDockerImage(repo, env.docker_tag, false)
     }
   }
 }
@@ -2009,8 +2027,9 @@ void lookForSR19062354609(results_dir){
 void setProductVersion(){
   raw_data = readFile("vars/build_info.json")
   version_object = new JsonSlurperClassic().parseText(raw_data)
-  env.product_version = version_object["build_numbers"]["major"] + "." +
-                        version_object["build_numbers"]["minor"] + "." +
-                        version_object["build_numbers"]["patch"] + "." +
-                        env.BUILD_NUMBER
+
+  env.major_minor_patch = version_object["build_numbers"]["major"] + "." +
+                          version_object["build_numbers"]["minor"] + "." +
+                          version_object["build_numbers"]["patch"]
+  env.product_version = env.major_minor_patch + "." + env.BUILD_NUMBER
 }
