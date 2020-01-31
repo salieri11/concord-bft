@@ -203,13 +203,11 @@ class ThinReplicaClient final {
   std::unique_ptr<grpc::ClientReader<com::vmware::concord::thin_replica::Data>>
       subscription_data_stream_;
   std::unique_ptr<grpc::ClientContext> sub_data_context_;
+  size_t current_data_source_;
   std::vector<std::unique_ptr<
       grpc::ClientReader<com::vmware::concord::thin_replica::Hash>>>
       subscription_hash_streams_;
   std::vector<std::unique_ptr<grpc::ClientContext>> sub_hash_contexts_;
-
-  // Thread function to start subscription_thread_ with.
-  void ReceiveUpdates();
 
   // Function(s) for computing hashes as we anticipate they exist according to
   // non-faulty Thin Replica Servers.
@@ -225,6 +223,28 @@ class ThinReplicaClient final {
   UpdateHashType AppendToSubscribeToUpdatesHash(
       UpdateHashType preceding_hash,
       const std::pair<std::string, std::string>& kvp) const;
+
+  // Thread function to start subscription_thread_ with.
+  void ReceiveUpdates();
+
+  // Helper functions to ReceiveUpdates.
+  UpdateHashType ComputeUpdateDataHash(
+      const com::vmware::concord::thin_replica::Data& data) const;
+  void RecordCollectedHash(
+      size_t update_source, uint64_t block_id, UpdateHashType update_hash,
+      std::map<std::pair<uint64_t, UpdateHashType>, std::unordered_set<size_t>>&
+          server_indexes_by_reported_update,
+      size_t& maximal_agreeing_subset_size,
+      std::pair<uint64_t, UpdateHashType>& maximally_agreed_on_update);
+  void ReadUpdateHashFromStream(
+      size_t server_index,
+      std::map<std::pair<uint64_t, UpdateHashType>, std::unordered_set<size_t>>&
+          server_indexes_by_reported_update,
+      size_t& maximal_agreeing_subset_size,
+      std::pair<uint64_t, UpdateHashType>& maximally_agreed_on_update);
+  template <class ReaderType>
+  void CloseStream(std::unique_ptr<ReaderType>& stream,
+                   std::unique_ptr<grpc::ClientContext>& context);
 
  public:
   // Constructor for ThinReplicaClient. Note that, as the ThinReplicaClient
@@ -273,6 +293,7 @@ class ThinReplicaClient final {
         stop_subscription_thread_(false),
         subscription_data_stream_(),
         sub_data_context_(),
+        current_data_source_(0),
         subscription_hash_streams_(),
         sub_hash_contexts_() {
     while (begin_servers != end_servers) {
