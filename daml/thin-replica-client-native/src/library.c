@@ -36,8 +36,8 @@ Java_com_digitalasset_daml_on_vmware_thin_replica_client_core_Library_00024_subs
  */
 JNIEXPORT jboolean JNICALL
 Java_com_digitalasset_daml_on_vmware_thin_replica_client_core_Library_00024_subscribe__Ljava_lang_String_2J(
-    JNIEnv *env, jobject obj, jstring prefix, jlong last_known_block_id) {
-  return subscribeFrom(env, obj, prefix, last_known_block_id);
+    JNIEnv *env, jobject obj, jstring prefix, jlong block_id) {
+  return subscribeFrom(env, obj, prefix, block_id);
 }
 
 /*
