@@ -79,12 +79,13 @@ SetOfKeyValuePairs KvbAppFilter::FilterKeyValuePairs(
     // We expect a value - this should never trigger
     if (!proto.has_value()) {
       std::stringstream msg;
-      msg << "Couldn't decode value with trids " << new_key.data();
+      msg << "Couldn't decode value with trids " << new_key.string_view();
       throw KvbReadError(msg.str());
     }
 
     auto val = proto.release_value();
-    filtered_kvs.insert({new_key, Sliver(val->c_str(), val->size())});
+    filtered_kvs.insert({new_key, Sliver(std::move(*val))});
+    delete val;
   }
 
   return filtered_kvs;
