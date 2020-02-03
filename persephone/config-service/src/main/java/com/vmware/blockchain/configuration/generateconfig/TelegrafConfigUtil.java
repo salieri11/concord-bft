@@ -50,6 +50,7 @@ public class TelegrafConfigUtil {
     /**
      * Generate telegraf configurations.
      * @param hostIps hopst names/ips.
+     * @param propertyMap Map of node properties.
      * @return map of host ips vs configs.
      */
     public Map<Integer, String> getTelegrafConfig(List<String> hostIps,

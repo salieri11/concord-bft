@@ -181,7 +181,8 @@ message Property {
 /**
  * Raw bag of properties.
  * This structure can be used during initial development phase when all parameters are not known.
+ * TODO: think of possible restructuring for per-node configs
  */
 message Properties {
-    repeated Property values = 1;
+    repeated Property values = 1 [packed=false];
 }

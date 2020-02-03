@@ -35,10 +35,10 @@ public class ConcordConfigUtil {
 
     private static final Logger log = LoggerFactory.getLogger(ConcordConfigUtil.class);
 
-    private String configTemplatePath;
+    private String concordConfigTemplatePath;
 
-    public ConcordConfigUtil(String configTemplatePath) {
-        this.configTemplatePath = configTemplatePath;
+    public ConcordConfigUtil(String concordConfigTemplatePath) {
+        this.concordConfigTemplatePath = concordConfigTemplatePath;
     }
 
     /**
@@ -207,11 +207,11 @@ public class ConcordConfigUtil {
         Yaml yaml = new Yaml();
         Map<String, Object> configInput;
         try {
-            configInput = yaml.load(new FileInputStream(configTemplatePath));
+            configInput = yaml.load(new FileInputStream(concordConfigTemplatePath));
         } catch (FileNotFoundException e) {
             // For unit tests only.
             log.error("File {} does not exist: {}\n Using localized config yaml input template",
-                                    configTemplatePath, e.getLocalizedMessage());
+                    concordConfigTemplatePath, e.getLocalizedMessage());
             ClassLoader classLoader = getClass().getClassLoader();
             configInput = yaml.load(classLoader.getResourceAsStream("ConcordConfigTemplate.yaml"));
         }
