@@ -13,6 +13,7 @@ import javax.net.ssl.SSLException;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
+import org.springframework.http.converter.protobuf.ProtobufHttpMessageConverter;
 
 /**
  * gRPC server that serves config-service-related API operations.
@@ -40,5 +41,10 @@ public class Application {
     @Bean
     public ExecutorService executorService() {
         return ForkJoinPool.commonPool();
+    }
+
+    @Bean
+    ProtobufHttpMessageConverter protobufHttpMessageConverter() {
+        return new ProtobufHttpMessageConverter();
     }
 }

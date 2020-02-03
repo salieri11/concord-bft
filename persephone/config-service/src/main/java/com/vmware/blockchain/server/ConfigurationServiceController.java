@@ -6,12 +6,10 @@ package com.vmware.blockchain.server;
 
 import java.util.concurrent.CompletableFuture;
 
-import javax.validation.constraints.NotNull;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -19,11 +17,13 @@ import com.vmware.blockchain.deployment.v1.NodeConfigurationRequest;
 import com.vmware.blockchain.deployment.v1.NodeConfigurationResponse;
 
 import io.grpc.stub.StreamObserver;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Implementation of ConfigurationService server.
  */
 @RestController
+@Slf4j
 public class ConfigurationServiceController {
 
     @Autowired
@@ -32,13 +32,12 @@ public class ConfigurationServiceController {
     /**
      * Rest.
      */
-    @GetMapping(path = "/v1/configuration/node")
-    public ResponseEntity<NodeConfigurationResponse> getNodeConfiguration(@RequestBody @NotNull NodeConfigurationRequest
+    @PostMapping(path = "/v1/configuration/node")
+    public ResponseEntity<NodeConfigurationResponse> getNodeConfiguration(@RequestBody NodeConfigurationRequest
                                                                                   request) throws Exception {
-
+        log.info("Received request: " + request);
         var promise = new CompletableFuture<NodeConfigurationResponse>();
         configurationService.getNodeConfiguration(request, newResultObserver(promise));
-
         return new ResponseEntity<>(promise.get(), HttpStatus.OK);
     }
 
