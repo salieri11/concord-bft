@@ -176,12 +176,13 @@ class RPCTestHelper():
       placement_specification = self.provision_rpc_helper.create_placement_specification(
          cluster_size, zone_type=zone_type)
       genesis_spec = self.provision_rpc_helper.create_genesis_specification()
-      replica_properties = None
       if replicas:
-         replica_properties = self.provision_rpc_helper.create_properties(replicas)
+         properties = self.provision_rpc_helper.create_properties(replicas)
+      else:
+          properties = self.provision_rpc_helper.create_properties()
       deployment_specification = self.provision_rpc_helper.create_deployment_specification(
          cluster_size, concord_model_specification, placement_specification,
-         genesis_spec, replica_properties)
+         genesis_spec, properties)
       create_cluster_request = self.provision_rpc_helper.create_cluster_request(
          header, deployment_specification)
 

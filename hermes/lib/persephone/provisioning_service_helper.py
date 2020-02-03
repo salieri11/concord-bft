@@ -190,16 +190,23 @@ class ProvisioningServiceRPCHelper(RPCHelper):
       )
       return genesis_spec
 
-   def create_properties(self, replicas):
+   def create_properties(self, replicas=None):
       '''
       Helper method to create custom properties, like "committers=concord1:50051"
       :param replicas: List of replicas
       :return: properties proto message
       '''
-      replicas_with_port = map(lambda x: "{}:50051".format(x), replicas)
-      values = ",".join(list(replicas_with_port))
+      blockchain_id_property = core_pb2.Property(name=core_pb2.Property.BLOCKCHAIN_ID, value="testBlockchain")
+      property_values = [blockchain_id_property]
+
+      if replicas is not None:
+          replicas_with_port = map(lambda x: "{}:50051".format(x), replicas)
+          values = ",".join(list(replicas_with_port))
+          replica_property = core_pb2.Property(name=core_pb2.Property.COMMITTERS, value=values)
+          property_values.append(replica_property)
+
       properties = core_pb2.Properties(
-         values={"committers": values}
+         values=property_values
       )
       return properties
 

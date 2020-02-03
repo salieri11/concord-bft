@@ -9,11 +9,6 @@ package com.vmware.blockchain.configuration.generateconfig;
  */
 public class LoggingUtil {
 
-    /**
-     * This value cannot be changed without a change in persephone.
-     */
-    public static String LOGGING_CONFIG = "loggingConfig";
-
     private String config;
 
     public LoggingUtil(String config) {
