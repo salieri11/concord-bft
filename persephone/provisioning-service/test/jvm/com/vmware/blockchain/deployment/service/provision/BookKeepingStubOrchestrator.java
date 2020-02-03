@@ -8,6 +8,7 @@ import java.net.URI;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ForkJoinPool;
@@ -103,8 +104,9 @@ class BookKeepingStubOrchestrator implements Orchestrator {
     public Publisher<NetworkResourceEvent> createNetworkAddress(
             CreateNetworkResourceRequest request
     ) {
+        Random random = new Random();
         var name = request.getName();
-        var privateAddress = "4.4.4.4";
+        var privateAddress = "10.10.10." + random.nextInt(500);
         var publicAddress = "8.8.8.8";
         var privateResource = URI.create("http://orchestrator.local/networks/private/" + name);
         var publicResource = URI.create("http://orchestrator.local/networks/public/" + name);

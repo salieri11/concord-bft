@@ -76,6 +76,7 @@ import com.vmware.blockchain.deployment.v1.OrchestrationSiteIdentifier;
 import com.vmware.blockchain.deployment.v1.PlacementAssignment;
 import com.vmware.blockchain.deployment.v1.PlacementSpecification;
 import com.vmware.blockchain.deployment.v1.Properties;
+import com.vmware.blockchain.deployment.v1.Property;
 import com.vmware.blockchain.deployment.v1.ProvisionedResource;
 import com.vmware.blockchain.deployment.v1.ProvisioningServiceImplBase;
 import com.vmware.blockchain.deployment.v1.StreamAllClusterDeploymentSessionEventRequest;
@@ -512,14 +513,24 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
             ConcordModelSpecification.BlockchainType blockchainType,
             Genesis genesis, List<ConcordComponent> components,
             Properties properties) {
-        List<String> nodeIps = new ArrayList<>();
 
+        List<String> nodeIps = new ArrayList<>();
+        List<String> nodeIds = new ArrayList<>();
 
         privateNetworkAddressMap.forEach((key, value) -> {
             var nodeIp = value.getAddress();
             nodeIps.add(nodeIp);
-            concordIdentifierMap.put(key.getNode(), nodeIps.indexOf(nodeIp));
+            var nodeIndex = nodeIps.indexOf(nodeIp);
+            var nodeUuid = new UUID(key.getNode().getHigh(), key.getNode().getLow()).toString();
+            nodeIds.add(nodeIndex + ":" + nodeUuid);
+            concordIdentifierMap.put(key.getNode(), nodeIndex);
         });
+
+        Property nodeProperty = new Property(Property.Name.NODE_ID,
+                String.join(";", nodeIds));
+        List<Property> propertyList = new ArrayList<>();
+        propertyList.addAll(properties.getValues());
+        propertyList.add(nodeProperty);
 
         // TODO put log properties here and remove from cloudInit
         var request = new ConfigurationServiceRequest(
@@ -528,7 +539,7 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
                 genesis,
                 components.stream().filter(x -> !x.getServiceType().equals(ConcordComponent.ServiceType.GENERIC))
                         .map(x -> x.getServiceType()).collect(Collectors.toList()),
-                properties);
+                new Properties(propertyList));
 
         // FIXME: Remove the below lines once the new protos are attached to config service on staging/prod
         request.getServices().remove(ConcordComponent.ServiceType.JAEGER_AGENT);
