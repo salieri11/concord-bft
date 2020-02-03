@@ -42,7 +42,7 @@ RUN mvn -f ./persephone/config-service/pom.xml install
 # image.
 
 FROM ${concord_repo}:${concord_tag} as concord_image
-#FROM athena-docker-local.artifactory.eng.vmware.com/concord-core:861 as concord_image
+#FROM athena-docker-local.artifactory.eng.vmware.com/concord-core:0.6.0.968 as concord_image
 
 # Runtime image (Metadata Service).
 FROM openjdk:11.0.2-jdk-slim
@@ -64,5 +64,6 @@ ENV APPCONTEXT test
 ENTRYPOINT ["java", "-Dspring.config.location=/config/app/profiles/,./", "-Dspring.profiles.active=${APPCONTEXT}",  "-jar", "config-service.jar"]
 
 EXPOSE 9003
+EXPOSE 9023
 
 VOLUME ["/config"]
