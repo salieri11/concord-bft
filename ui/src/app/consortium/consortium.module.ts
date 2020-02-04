@@ -15,6 +15,7 @@ import { ClarityModule } from '@clr/angular';
 
 import { GridModule } from '../grid/grid.module';
 import { ConsortiumComponent } from './consortium.component';
+import { ConsortiumListComponent } from './consortium-list/consortium-list.component';
 
 @NgModule({
   imports: [
@@ -28,6 +29,6 @@ import { ConsortiumComponent } from './consortium.component';
     GridModule,
     TranslateModule
   ],
-  declarations: [ConsortiumComponent]
+  declarations: [ConsortiumComponent, ConsortiumListComponent]
 })
 export class ConsortiumModule { }

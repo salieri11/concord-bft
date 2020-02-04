@@ -1,27 +1,12 @@
-<div class="p-2">
-  <h2 class="page-title">
-    <clr-icon shape="administrator" size="30"></clr-icon>
-    {{ 'users.title' | translate }} |
-    <clr-dropdown #userActionsMenu>
-      <button class="nav-link" clrDropdownTrigger tourAnchor="onboardingTour.userActions">
-        {{ 'users.actions.title' | translate }}
-        <clr-icon shape="caret down"></clr-icon>
-      </button>
-      <clr-dropdown-menu clrPosition="bottom-left">
-        <button clrDropdownItem (click)="userForm.openAddUserForm()">
-          {{ 'users.actions.options.add.title' | translate }}
-        </button>
-        <button [disabled]="selected?.length !== 1" (click)="userForm.openEditUserForm()" clrDropdownItem>
-          {{ 'users.actions.options.edit.title' | translate }}
-        </button>
-      </clr-dropdown-menu>
-    </clr-dropdown>
-  </h2>
+<div class="p-2 fadein">
+  <div class="clr-row">
+    <div class="clr-col-12">
+      <h3 class="page-title">{{ 'users.title' | translate }}</h3>
+    </div>
+  </div>
   <concord-user-list #usersList [users]="users" (selected)="onSelectedUsersChange($event)"></concord-user-list>
   <concord-user-form #userForm [selected]="selected"
                     (createUser)="addUser()"
                     (updateUser)="editUser()"
                     (deleteUsers)="deleteUsers()"></concord-user-form>
 </div>
-
-

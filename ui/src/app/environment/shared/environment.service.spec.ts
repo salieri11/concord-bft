@@ -3,13 +3,13 @@
  */
 import { TestBed } from '@angular/core/testing';
 
-import { EnviornmentService } from './enviornment.service';
+import { EnvironmentService } from './environment.service';
 
-describe('EnviornmentService', () => {
+describe('EnvironmentService', () => {
   beforeEach(() => TestBed.configureTestingModule({}));
 
   it('should be created', () => {
-    const service: EnviornmentService = TestBed.get(EnviornmentService);
+    const service: EnvironmentService = TestBed.get(EnvironmentService);
     expect(service).toBeTruthy();
   });
 });

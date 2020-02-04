@@ -13,6 +13,7 @@ import { GridModule } from '../grid/grid.module';
 import { ConsortiumService } from './shared/consortium.service';
 import { MockSharedModule } from '../shared/shared.module';
 import { ConsortiumComponent } from './consortium.component';
+import { ConsortiumListComponent } from './consortium-list/consortium-list.component';
 
 describe('ConsortiumComponent', () => {
   let component: ConsortiumComponent;
@@ -28,7 +29,7 @@ describe('ConsortiumComponent', () => {
         FormsModule,
         GridModule
       ],
-      declarations: [ConsortiumComponent, ],
+      declarations: [ ConsortiumComponent, ConsortiumListComponent ],
       providers: [
         ConsortiumService,
         {

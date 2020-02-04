@@ -10,11 +10,13 @@
   <clr-dg-column>{{'tasks.grid.columns.resLink' | translate}}</clr-dg-column>
 
   <clr-dg-row *clrDgItems="let task of tasks" [clrDgItem]="node">
-    <clr-dg-cell class="task-id">{{task.task_id}}</clr-dg-cell>
+    <clr-dg-cell><p class="task-id">{{task.task_id}}</p></clr-dg-cell>
     <clr-dg-cell>{{task.state}}</clr-dg-cell>
     <clr-dg-cell>{{task.resource_id}}</clr-dg-cell>
     <clr-dg-cell>{{task.message}}</clr-dg-cell>
     <clr-dg-cell>{{task.resource_link}}</clr-dg-cell>
   </clr-dg-row>
+
+  <clr-dg-footer>{{tasks?.length}} {{ tasks?.length > 1 ? ('tasks.grid.pagination.plural' | translate) : ('tasks.grid.pagination.single' | translate) }}</clr-dg-footer>
 
 </clr-datagrid>
