@@ -1,0 +1,596 @@
+maven:io.zipkin.reporter:zipkin-reporter:1.0.2:
+  maven-scopes: [compile]
+  maven-artifactId: zipkin-reporter
+  name: io.zipkin.reporter:zipkin-reporter
+  repository: Maven
+  version: 1.0.2
+  maven-groupId: io.zipkin.reporter
+maven:io.spray:spray-json_2.12:1.3.3:
+  maven-scopes: [compile]
+  maven-artifactId: spray-json_2.12
+  name: io.spray:spray-json_2.12
+  repository: Maven
+  version: 1.3.3
+  maven-groupId: io.spray
+maven:com.google.api.grpc:proto-google-common-protos:1.12.0:
+  maven-scopes: [compile]
+  maven-artifactId: proto-google-common-protos
+  name: com.google.api.grpc:proto-google-common-protos
+  repository: Maven
+  version: 1.12.0
+  maven-groupId: com.google.api.grpc
+maven:org.postgresql:postgresql:42.2.6:
+  maven-scopes: [compile]
+  maven-artifactId: postgresql
+  name: org.postgresql:postgresql
+  repository: Maven
+  version: 42.2.6
+  maven-groupId: org.postgresql
+maven:io.grpc:grpc-stub:1.22.1:
+  maven-scopes: [compile]
+  maven-artifactId: grpc-stub
+  name: io.grpc:grpc-stub
+  repository: Maven
+  version: 1.22.1
+  maven-groupId: io.grpc
+maven:io.netty:netty-resolver:4.1.37.Final:
+  maven-scopes: [compile]
+  maven-artifactId: netty-resolver
+  name: io.netty:netty-resolver
+  repository: Maven
+  version: 4.1.37.Final
+  maven-groupId: io.netty
+maven:io.netty:netty-tcnative-boringssl-static:2.0.25.Final:
+  maven-scopes: [compile]
+  maven-artifactId: netty-tcnative-boringssl-static
+  name: io.netty:netty-tcnative-boringssl-static
+  repository: Maven
+  version: 2.0.25.Final
+  maven-groupId: io.netty
+maven:com.auth0:java-jwt:3.8.2:
+  maven-scopes: [compile]
+  maven-artifactId: java-jwt
+  name: com.auth0:java-jwt
+  repository: Maven
+  version: 3.8.2
+  maven-groupId: com.auth0
+maven:net.logstash.logback:logstash-logback-encoder:6.3:
+  maven-scopes: [compile]
+  maven-artifactId: logstash-logback-encoder
+  name: net.logstash.logback:logstash-logback-encoder
+  repository: Maven
+  version: '6.3'
+  maven-groupId: net.logstash.logback
+maven:com.lihaoyi:sourcecode_2.12:0.1.7:
+  maven-scopes: [compile]
+  maven-artifactId: sourcecode_2.12
+  name: com.lihaoyi:sourcecode_2.12
+  repository: Maven
+  version: 0.1.7
+  maven-groupId: com.lihaoyi
+maven:com.typesafe.scala-logging:scala-logging_2.12:3.9.2:
+  maven-scopes: [compile]
+  maven-artifactId: scala-logging_2.12
+  name: com.typesafe.scala-logging:scala-logging_2.12
+  repository: Maven
+  version: 3.9.2
+  maven-groupId: com.typesafe.scala-logging
+maven:com.google.code.gson:gson:2.7:
+  maven-scopes: [compile]
+  maven-artifactId: gson
+  name: com.google.code.gson:gson
+  repository: Maven
+  version: '2.7'
+  maven-groupId: com.google.code.gson
+maven:com.typesafe:config:1.4.0:
+  maven-scopes: [compile]
+  maven-artifactId: config
+  name: com.typesafe:config
+  repository: Maven
+  version: 1.4.0
+  maven-groupId: com.typesafe
+maven:org.slf4j:slf4j-api:1.7.25:
+  maven-scopes: [compile]
+  maven-artifactId: slf4j-api
+  name: org.slf4j:slf4j-api
+  repository: Maven
+  version: 1.7.25
+  maven-groupId: org.slf4j
+maven:io.netty:netty-codec-socks:4.1.35.Final:
+  maven-scopes: [compile]
+  maven-artifactId: netty-codec-socks
+  name: io.netty:netty-codec-socks
+  repository: Maven
+  version: 4.1.35.Final
+  maven-groupId: io.netty
+maven:io.grpc:grpc-api:1.22.1:
+  maven-scopes: [compile]
+  maven-artifactId: grpc-api
+  name: io.grpc:grpc-api
+  repository: Maven
+  version: 1.22.1
+  maven-groupId: io.grpc
+maven:org.codehaus.mojo:animal-sniffer-annotations:1.17:
+  maven-scopes: [compile]
+  maven-artifactId: animal-sniffer-annotations
+  name: org.codehaus.mojo:animal-sniffer-annotations
+  repository: Maven
+  version: '1.17'
+  maven-groupId: org.codehaus.mojo
+maven:io.grpc:grpc-context:1.22.1:
+  maven-scopes: [compile]
+  maven-artifactId: grpc-context
+  name: io.grpc:grpc-context
+  repository: Maven
+  version: 1.22.1
+  maven-groupId: io.grpc
+maven:com.fasterxml.jackson.core:jackson-databind:2.10.1:
+  maven-scopes: [compile]
+  maven-artifactId: jackson-databind
+  name: com.fasterxml.jackson.core:jackson-databind
+  repository: Maven
+  version: 2.10.1
+  maven-groupId: com.fasterxml.jackson.core
+maven:io.opencensus:opencensus-contrib-grpc-metrics:0.21.0:
+  maven-scopes: [compile]
+  maven-artifactId: opencensus-contrib-grpc-metrics
+  name: io.opencensus:opencensus-contrib-grpc-metrics
+  repository: Maven
+  version: 0.21.0
+  maven-groupId: io.opencensus
+maven:io.netty:netty-handler:4.1.37.Final:
+  maven-scopes: [compile]
+  maven-artifactId: netty-handler
+  name: io.netty:netty-handler
+  repository: Maven
+  version: 4.1.37.Final
+  maven-groupId: io.netty
+maven:com.typesafe.akka:akka-actor_2.12:2.6.1:
+  maven-scopes: [compile]
+  maven-artifactId: akka-actor_2.12
+  name: com.typesafe.akka:akka-actor_2.12
+  repository: Maven
+  version: 2.6.1
+  maven-groupId: com.typesafe.akka
+maven:io.netty:netty-transport:4.1.37.Final:
+  maven-scopes: [compile]
+  maven-artifactId: netty-transport
+  name: io.netty:netty-transport
+  repository: Maven
+  version: 4.1.37.Final
+  maven-groupId: io.netty
+maven:commons-codec:commons-codec:1.12:
+  maven-scopes: [runtime]
+  maven-artifactId: commons-codec
+  name: commons-codec:commons-codec
+  repository: Maven
+  version: '1.12'
+  maven-groupId: commons-codec
+maven:com.thesamet.scalapb:scalapb-runtime_2.12:0.9.0:
+  maven-scopes: [compile]
+  maven-artifactId: scalapb-runtime_2.12
+  name: com.thesamet.scalapb:scalapb-runtime_2.12
+  repository: Maven
+  version: 0.9.0
+  maven-groupId: com.thesamet.scalapb
+maven:joda-time:joda-time:2.9.7:
+  maven-scopes: [compile]
+  maven-artifactId: joda-time
+  name: joda-time:joda-time
+  repository: Maven
+  version: 2.9.7
+  maven-groupId: joda-time
+maven:com.auth0:jwks-rsa:0.8.3:
+  maven-scopes: [compile]
+  maven-artifactId: jwks-rsa
+  name: com.auth0:jwks-rsa
+  repository: Maven
+  version: 0.8.3
+  maven-groupId: com.auth0
+maven:com.fasterxml.jackson.core:jackson-core:2.10.1:
+  maven-scopes: [compile]
+  maven-artifactId: jackson-core
+  name: com.fasterxml.jackson.core:jackson-core
+  repository: Maven
+  version: 2.10.1
+  maven-groupId: com.fasterxml.jackson.core
+maven:io.netty:netty-codec-http:4.1.35.Final:
+  maven-scopes: [compile]
+  maven-artifactId: netty-codec-http
+  name: io.netty:netty-codec-http
+  repository: Maven
+  version: 4.1.35.Final
+  maven-groupId: io.netty
+maven:org.checkerframework:checker-compat-qual:2.0.0:
+  maven-scopes: [compile]
+  maven-artifactId: checker-compat-qual
+  name: org.checkerframework:checker-compat-qual
+  repository: Maven
+  version: 2.0.0
+  maven-groupId: org.checkerframework
+maven:io.netty:netty-buffer:4.1.37.Final:
+  maven-scopes: [compile]
+  maven-artifactId: netty-buffer
+  name: io.netty:netty-buffer
+  repository: Maven
+  version: 4.1.37.Final
+  maven-groupId: io.netty
+maven:io.netty:netty-codec:4.1.37.Final:
+  maven-scopes: [compile]
+  maven-artifactId: netty-codec
+  name: io.netty:netty-codec
+  repository: Maven
+  version: 4.1.37.Final
+  maven-groupId: io.netty
+maven:org.flywaydb:flyway-core:5.2.4:
+  maven-scopes: [compile]
+  maven-artifactId: flyway-core
+  name: org.flywaydb:flyway-core
+  repository: Maven
+  version: 5.2.4
+  maven-groupId: org.flywaydb
+maven:com.google.errorprone:error_prone_annotations:2.3.2:
+  maven-scopes: [compile]
+  maven-artifactId: error_prone_annotations
+  name: com.google.errorprone:error_prone_annotations
+  repository: Maven
+  version: 2.3.2
+  maven-groupId: com.google.errorprone
+maven:org.scalaz:scalaz-core_2.12:7.2.24:
+  maven-scopes: [compile]
+  maven-artifactId: scalaz-core_2.12
+  name: org.scalaz:scalaz-core_2.12
+  repository: Maven
+  version: 7.2.24
+  maven-groupId: org.scalaz
+maven:io.netty:netty-codec-http2:4.1.35.Final:
+  maven-scopes: [compile]
+  maven-artifactId: netty-codec-http2
+  name: io.netty:netty-codec-http2
+  repository: Maven
+  version: 4.1.35.Final
+  maven-groupId: io.netty
+maven:com.zaxxer:HikariCP:3.2.0:
+  maven-scopes: [compile]
+  maven-artifactId: HikariCP
+  name: com.zaxxer:HikariCP
+  repository: Maven
+  version: 3.2.0
+  maven-groupId: com.zaxxer
+maven:com.github.ghik:silencer-lib_2.12:1.3.1:
+  maven-scopes: [compile]
+  maven-artifactId: silencer-lib_2.12
+  name: com.github.ghik:silencer-lib_2.12
+  repository: Maven
+  version: 1.3.1
+  maven-groupId: com.github.ghik
+maven:io.perfmark:perfmark-api:0.16.0:
+  maven-scopes: [compile]
+  maven-artifactId: perfmark-api
+  name: io.perfmark:perfmark-api
+  repository: Maven
+  version: 0.16.0
+  maven-groupId: io.perfmark
+maven:com.thesamet.scalapb:lenses_2.12:0.9.0:
+  maven-scopes: [compile]
+  maven-artifactId: lenses_2.12
+  name: com.thesamet.scalapb:lenses_2.12
+  repository: Maven
+  version: 0.9.0
+  maven-groupId: com.thesamet.scalapb
+maven:com.google.code.findbugs:jsr305:3.0.2:
+  maven-scopes: [compile]
+  maven-artifactId: jsr305
+  name: com.google.code.findbugs:jsr305
+  repository: Maven
+  version: 3.0.2
+  maven-groupId: com.google.code.findbugs
+maven:com.typesafe.play:anorm_2.12:2.5.3:
+  maven-scopes: [compile]
+  maven-artifactId: anorm_2.12
+  name: com.typesafe.play:anorm_2.12
+  repository: Maven
+  version: 2.5.3
+  maven-groupId: com.typesafe.play
+maven:com.daml.ledger:participant-state-kvutils-java-proto:100.13.46:
+  maven-scopes: [compile]
+  maven-artifactId: participant-state-kvutils-java-proto
+  name: com.daml.ledger:participant-state-kvutils-java-proto
+  repository: Maven
+  version: 100.13.46
+  maven-groupId: com.daml.ledger
+maven:org.joda:joda-convert:1.8.1:
+  maven-scopes: [compile]
+  maven-artifactId: joda-convert
+  name: org.joda:joda-convert
+  repository: Maven
+  version: 1.8.1
+  maven-groupId: org.joda
+maven:com.google.j2objc:j2objc-annotations:1.1:
+  maven-scopes: [compile]
+  maven-artifactId: j2objc-annotations
+  name: com.google.j2objc:j2objc-annotations
+  repository: Maven
+  version: '1.1'
+  maven-groupId: com.google.j2objc
+maven:com.jsuereth:scala-arm_2.12:2.0:
+  maven-scopes: [compile]
+  maven-artifactId: scala-arm_2.12
+  name: com.jsuereth:scala-arm_2.12
+  repository: Maven
+  version: '2.0'
+  maven-groupId: com.jsuereth
+maven:io.grpc:grpc-protobuf:1.22.1:
+  maven-scopes: [compile]
+  maven-artifactId: grpc-protobuf
+  name: io.grpc:grpc-protobuf
+  repository: Maven
+  version: 1.22.1
+  maven-groupId: io.grpc
+maven:io.zipkin.brave:brave:4.6.0:
+  maven-scopes: [compile]
+  maven-artifactId: brave
+  name: io.zipkin.brave:brave
+  repository: Maven
+  version: 4.6.0
+  maven-groupId: io.zipkin.brave
+maven:io.dropwizard.metrics:metrics-core:4.1.2:
+  maven-scopes: [compile]
+  maven-artifactId: metrics-core
+  name: io.dropwizard.metrics:metrics-core
+  repository: Maven
+  version: 4.1.2
+  maven-groupId: io.dropwizard.metrics
+maven:io.netty:netty-common:4.1.37.Final:
+  maven-scopes: [compile]
+  maven-artifactId: netty-common
+  name: io.netty:netty-common
+  repository: Maven
+  version: 4.1.37.Final
+  maven-groupId: io.netty
+maven:io.grpc:grpc-services:1.22.1:
+  maven-scopes: [compile]
+  maven-artifactId: grpc-services
+  name: io.grpc:grpc-services
+  repository: Maven
+  version: 1.22.1
+  maven-groupId: io.grpc
+maven:com.typesafe:ssl-config-core_2.12:0.2.3:
+  maven-scopes: [compile]
+  maven-artifactId: ssl-config-core_2.12
+  name: com.typesafe:ssl-config-core_2.12
+  repository: Maven
+  version: 0.2.3
+  maven-groupId: com.typesafe
+maven:org.scala-lang:scala-reflect:2.12.8:
+  maven-scopes: [provided]
+  maven-artifactId: scala-reflect
+  name: org.scala-lang:scala-reflect
+  repository: Maven
+  version: 2.12.8
+  maven-groupId: org.scala-lang
+maven:com.daml.ledger:participant-state-ledger-configuration-java-proto:100.13.46:
+  maven-scopes: [compile]
+  maven-artifactId: participant-state-ledger-configuration-java-proto
+  name: com.daml.ledger:participant-state-ledger-configuration-java-proto
+  repository: Maven
+  version: 100.13.46
+  maven-groupId: com.daml.ledger
+maven:io.grpc:grpc-core:1.22.1:
+  maven-scopes: [compile]
+  maven-artifactId: grpc-core
+  name: io.grpc:grpc-core
+  repository: Maven
+  version: 1.22.1
+  maven-groupId: io.grpc
+maven:org.scala-lang.modules:scala-java8-compat_2.12:0.9.0:
+  maven-scopes: [compile]
+  maven-artifactId: scala-java8-compat_2.12
+  name: org.scala-lang.modules:scala-java8-compat_2.12
+  repository: Maven
+  version: 0.9.0
+  maven-groupId: org.scala-lang.modules
+maven:com.google.protobuf:protobuf-java-util:3.7.1:
+  maven-scopes: [compile]
+  maven-artifactId: protobuf-java-util
+  name: com.google.protobuf:protobuf-java-util
+  repository: Maven
+  version: 3.7.1
+  maven-groupId: com.google.protobuf
+maven:io.zipkin.java:zipkin:1.31.0:
+  maven-scopes: [compile]
+  maven-artifactId: zipkin
+  name: io.zipkin.java:zipkin
+  repository: Maven
+  version: 1.31.0
+  maven-groupId: io.zipkin.java
+maven:io.grpc:grpc-protobuf-lite:1.22.1:
+  maven-scopes: [compile]
+  maven-artifactId: grpc-protobuf-lite
+  name: io.grpc:grpc-protobuf-lite
+  repository: Maven
+  version: 1.22.1
+  maven-groupId: io.grpc
+maven:io.dropwizard.metrics:metrics-jmx:4.1.2:
+  maven-scopes: [compile]
+  maven-artifactId: metrics-jmx
+  name: io.dropwizard.metrics:metrics-jmx
+  repository: Maven
+  version: 4.1.2
+  maven-groupId: io.dropwizard.metrics
+maven:com.fasterxml.jackson.core:jackson-annotations:2.10.1:
+  maven-scopes: [compile]
+  maven-artifactId: jackson-annotations
+  name: com.fasterxml.jackson.core:jackson-annotations
+  repository: Maven
+  version: 2.10.1
+  maven-groupId: com.fasterxml.jackson.core
+maven:org.scala-lang:scala-library:2.12.8:
+  maven-scopes: [compile]
+  maven-artifactId: scala-library
+  name: org.scala-lang:scala-library
+  repository: Maven
+  version: 2.12.8
+  maven-groupId: org.scala-lang
+maven:com.lihaoyi:fastparse_2.12:2.1.3:
+  maven-scopes: [compile]
+  maven-artifactId: fastparse_2.12
+  name: com.lihaoyi:fastparse_2.12
+  repository: Maven
+  version: 2.1.3
+  maven-groupId: com.lihaoyi
+maven:com.daml.scala:bindings_2.12:100.13.46:
+  maven-scopes: [compile]
+  maven-artifactId: bindings_2.12
+  name: com.daml.scala:bindings_2.12
+  repository: Maven
+  version: 100.13.46
+  maven-groupId: com.daml.scala
+maven:com.daml.ledger:participant-state-kvutils_2.12:100.13.46:
+  maven-scopes: [compile]
+  maven-artifactId: participant-state-kvutils_2.12
+  name: com.daml.ledger:participant-state-kvutils_2.12
+  repository: Maven
+  version: 100.13.46
+  maven-groupId: com.daml.ledger
+maven:com.google.protobuf:protobuf-java:3.2.0:
+  maven-scopes: [compile]
+  maven-artifactId: protobuf-java
+  name: com.google.protobuf:protobuf-java
+  repository: Maven
+  version: 3.2.0
+  maven-groupId: com.google.protobuf
+maven:com.github.scopt:scopt_2.12:3.7.1:
+  maven-scopes: [compile]
+  maven-artifactId: scopt_2.12
+  name: com.github.scopt:scopt_2.12
+  repository: Maven
+  version: 3.7.1
+  maven-groupId: com.github.scopt
+maven:com.typesafe.play:anorm-tokenizer_2.12:2.5.3:
+  maven-scopes: [compile]
+  maven-artifactId: anorm-tokenizer_2.12
+  name: com.typesafe.play:anorm-tokenizer_2.12
+  repository: Maven
+  version: 2.5.3
+  maven-groupId: com.typesafe.play
+maven:org.typelevel:paiges-core_2.12:0.2.1:
+  maven-scopes: [compile]
+  maven-artifactId: paiges-core_2.12
+  name: org.typelevel:paiges-core_2.12
+  repository: Maven
+  version: 0.2.1
+  maven-groupId: org.typelevel
+maven:com.daml.ledger:participant-state-index_2.12:100.13.46:
+  maven-scopes: [compile]
+  maven-artifactId: participant-state-index_2.12
+  name: com.daml.ledger:participant-state-index_2.12
+  repository: Maven
+  version: 100.13.46
+  maven-groupId: com.daml.ledger
+maven:org.scala-lang.modules:scala-parser-combinators_2.12:1.0.4:
+  maven-scopes: [compile]
+  maven-artifactId: scala-parser-combinators_2.12
+  name: org.scala-lang.modules:scala-parser-combinators_2.12
+  repository: Maven
+  version: 1.0.4
+  maven-groupId: org.scala-lang.modules
+maven:ch.qos.logback:logback-core:1.2.3:
+  maven-scopes: [compile]
+  maven-artifactId: logback-core
+  name: ch.qos.logback:logback-core
+  repository: Maven
+  version: 1.2.3
+  maven-groupId: ch.qos.logback
+maven:com.google.android:annotations:4.1.1.4:
+  maven-scopes: [compile]
+  maven-artifactId: annotations
+  name: com.google.android:annotations
+  repository: Maven
+  version: 4.1.1.4
+  maven-groupId: com.google.android
+maven:ch.qos.logback:logback-classic:1.2.3:
+  maven-scopes: [compile]
+  maven-artifactId: logback-classic
+  name: ch.qos.logback:logback-classic
+  repository: Maven
+  version: 1.2.3
+  maven-groupId: ch.qos.logback
+maven:commons-io:commons-io:2.5:
+  maven-scopes: [compile]
+  maven-artifactId: commons-io
+  name: commons-io:commons-io
+  repository: Maven
+  version: '2.5'
+  maven-groupId: commons-io
+maven:io.opencensus:opencensus-api:0.21.0:
+  maven-scopes: [compile]
+  maven-artifactId: opencensus-api
+  name: io.opencensus:opencensus-api
+  repository: Maven
+  version: 0.21.0
+  maven-groupId: io.opencensus
+maven:com.thesamet.scalapb:scalapb-runtime-grpc_2.12:0.9.0:
+  maven-scopes: [compile]
+  maven-artifactId: scalapb-runtime-grpc_2.12
+  name: com.thesamet.scalapb:scalapb-runtime-grpc_2.12
+  repository: Maven
+  version: 0.9.0
+  maven-groupId: com.thesamet.scalapb
+maven:org.reactivestreams:reactive-streams:1.0.2:
+  maven-scopes: [compile]
+  maven-artifactId: reactive-streams
+  name: org.reactivestreams:reactive-streams
+  repository: Maven
+  version: 1.0.2
+  maven-groupId: org.reactivestreams
+maven:io.grpc:grpc-netty:1.22.1:
+  maven-scopes: [compile]
+  maven-artifactId: grpc-netty
+  name: io.grpc:grpc-netty
+  repository: Maven
+  version: 1.22.1
+  maven-groupId: io.grpc
+maven:com.h2database:h2:1.4.200:
+  maven-scopes: [compile]
+  maven-artifactId: h2
+  name: com.h2database:h2
+  repository: Maven
+  version: 1.4.200
+  maven-groupId: com.h2database
+maven:com.typesafe.akka:akka-stream_2.12:2.5.13:
+  maven-scopes: [compile]
+  maven-artifactId: akka-stream_2.12
+  name: com.typesafe.akka:akka-stream_2.12
+  repository: Maven
+  version: 2.5.13
+  maven-groupId: com.typesafe.akka
+maven:com.google.guava:guava:24.0-jre:
+  maven-scopes: [compile]
+  maven-artifactId: guava
+  name: com.google.guava:guava
+  repository: Maven
+  version: 24.0-jre
+  maven-groupId: com.google.guava
+maven:com.typesafe.akka:akka-protobuf_2.12:2.5.13:
+  maven-scopes: [compile]
+  maven-artifactId: akka-protobuf_2.12
+  name: com.typesafe.akka:akka-protobuf_2.12
+  repository: Maven
+  version: 2.5.13
+  maven-groupId: com.typesafe.akka
+maven:com.daml.ledger:participant-state_2.12:100.13.46:
+  maven-scopes: [compile]
+  maven-artifactId: participant-state_2.12
+  name: com.daml.ledger:participant-state_2.12
+  repository: Maven
+  version: 100.13.46
+  maven-groupId: com.daml.ledger
+maven:io.netty:netty-handler-proxy:4.1.35.Final:
+  maven-scopes: [compile]
+  maven-artifactId: netty-handler-proxy
+  name: io.netty:netty-handler-proxy
+  repository: Maven
+  version: 4.1.35.Final
+  maven-groupId: io.netty
+

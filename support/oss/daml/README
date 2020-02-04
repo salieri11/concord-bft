@@ -1,0 +1,8 @@
+
+To generate daml oss package inventory
+1) download src
+2) cd daml
+3) sbt -> makePom
+4) cd to all target directories and rename .pom to pom.xml
+5) include osstp plugin inventory in pom.xml (https://osm.eng.vmware.com/doc/utilities/maven.html)
+6) mvn-inventory --mvn-exclude-group="com.digitalasset" -m osstp_<component>.yaml
