@@ -128,6 +128,29 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
         }
 
         log.info(request.toString());
+
+        List<String> prometheusUrls = new ArrayList<>();
+
+        if (request.getServicesList().contains(ServiceType.CONCORD)
+                || request.getServicesList().contains(ServiceType.DAML_CONCORD)
+                || request.getServicesList().contains(ServiceType.HLF_CONCORD)) {
+
+            // Generate Configuration
+            var configUtil = new ConcordConfigUtil(configPath);
+            tlsConfig = configUtil.getConcordConfig(request.getHostsList(), request.getBlockchainType());
+
+            List<Identity> tlsIdentityList =
+                    generateEtheriumConfig(certGen, configUtil.maxPrincipalId + 1, ServiceType.CONCORD);
+            log.info("Generated tls identity elements for session id: {}", sessionId);
+
+            tlsNodeIdentities = buildTlsIdentity(tlsIdentityList,
+                    configUtil.nodePrincipal,
+                    configUtil.maxPrincipalId + 1,
+                    request.getHostsList().size());
+
+            prometheusUrls.add("http://concord:9891/metrics");
+        }
+
         // Static settings for each service Type.
         for (ServiceType serviceType : request.getServicesList()) {
 
@@ -172,7 +195,8 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
                 case TELEGRAF:
                     var telegrafConfigUtil = new TelegrafConfigUtil(telegrafConfigPath, metricsConfigPath);
                     var metricsConfigYaml = telegrafConfigUtil.getMetricsConfigYaml();
-                    telegrafConfig = telegrafConfigUtil.getTelegrafConfig(request.getHostsList(), propertyMap);
+                    telegrafConfig = telegrafConfigUtil.getTelegrafConfig(request.getHostsList(),
+                            propertyMap, prometheusUrls);
                     staticComponentList.add(ConfigurationComponent.newBuilder()
                             .setType(ServiceType.TELEGRAF)
                             .setComponentUrl(TelegrafConfigUtil.metricsConfigPath)
@@ -183,25 +207,6 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
                 default:
                     log.info("No config required for serviceType {}", serviceType);
             }
-        }
-
-        if (request.getServicesList().contains(ServiceType.CONCORD)
-            || request.getServicesList().contains(ServiceType.DAML_CONCORD)
-            || request.getServicesList().contains(ServiceType.HLF_CONCORD)
-            || request.getServicesList().contains(ServiceType.TELEGRAF)) {
-
-            // Generate Configuration
-            var configUtil = new ConcordConfigUtil(configPath);
-            tlsConfig = configUtil.getConcordConfig(request.getHostsList(), request.getBlockchainType());
-
-            List<Identity> tlsIdentityList =
-                    generateEtheriumConfig(certGen, configUtil.maxPrincipalId + 1, ServiceType.CONCORD);
-            log.info("Generated tls identity elements for session id: {}", sessionId);
-
-            tlsNodeIdentities = buildTlsIdentity(tlsIdentityList,
-                    configUtil.nodePrincipal,
-                    configUtil.maxPrincipalId + 1,
-                    request.getHostsList().size());
         }
 
         Map<Integer, List<ConfigurationComponent>> nodeComponent = new HashMap<>();

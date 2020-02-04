@@ -53,7 +53,8 @@ public class TelegrafConfigUtil {
      * @return map of host ips vs configs.
      */
     public Map<Integer, String> getTelegrafConfig(List<String> hostIps,
-                                                  Map<Property.Name, String> propertyMap) {
+                                                  Map<Property.Name, String> propertyMap,
+                                                  List<String> prometheusUrlList) {
 
         Map<Integer, String> configMap = new HashMap<>();
 
@@ -75,11 +76,17 @@ public class TelegrafConfigUtil {
             }
         }
 
+        String prometheusUrls = "";
+        if (!prometheusUrlList.isEmpty()) {
+            prometheusUrls = String.join(",", prometheusUrlList);
+        }
+
         content.replace("$BLOCKCHAIN_ID", propertyMap.get(Property.Name.BLOCKCHAIN_ID));
 
         // FIXME: This could ideally be hostIps -> config once we remove dependency on list ordering.
         for (int num = 0; num < hostIps.size(); num++) {
             String hostConfigCopy = content.replace("$REPLICA", hostIps.get(num));
+            hostConfigCopy.replace("$URL", "[" + prometheusUrls + "]");
             configMap.put(num, hostConfigCopy);
         }
 
