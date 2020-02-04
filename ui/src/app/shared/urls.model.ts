@@ -61,7 +61,7 @@ export const mainRoutes = {
   logging: 'logging',
   consortiums: 'consortiums',
   organizations: 'organizations',
-  users: 'users',
+  system: 'system',
   transactions: 'transactions',
   developer: 'developer',
 

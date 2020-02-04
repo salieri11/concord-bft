@@ -11,10 +11,10 @@ import { HttpClientModule } from '@angular/common/http';
 import { TranslateModule } from '@ngx-translate/core';
 import { ClarityModule } from '@clr/angular';
 import { GridModule } from '../grid/grid.module';
-import { EnviornmentComponent } from './enviornment/enviornment.component';
+import { EnvironmentComponent } from './environment/environment.component';
 
 @NgModule({
-  declarations: [EnviornmentComponent],
+  declarations: [EnvironmentComponent],
   imports: [
     CommonModule,
     ClarityModule,
@@ -27,4 +27,4 @@ import { EnviornmentComponent } from './enviornment/enviornment.component';
     TranslateModule
   ]
 })
-export class EnviornmentModule { }
+export class EnvironmentModule { }

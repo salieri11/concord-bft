@@ -177,14 +177,4 @@ describe('UsersComponent', () => {
       expect(getUserSpy).toHaveBeenCalled();
     });
   });
-
-  describe('On destroy', () => {
-    it('should unsubscribe from user action menu toggle changes', () => {
-      component.ngOnInit();
-      const unsubSpy = spyOn(component.userActionMenuToggleChanges, 'unsubscribe')
-        .and.callThrough();
-      component.ngOnDestroy();
-      expect(unsubSpy).toHaveBeenCalled();
-    });
-  });
 });

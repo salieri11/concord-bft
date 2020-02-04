@@ -1,0 +1,18 @@
+<clr-datagrid #grid>
+  <clr-dg-column [clrDgField]="'hostname'">{{'consortium.grid.columns.id' | translate}}</clr-dg-column>
+  <clr-dg-column>
+    {{'consortium.grid.columns.name' | translate}}
+  </clr-dg-column>
+  <clr-dg-column>
+    {{'consortium.grid.columns.orgId' | translate}}
+  </clr-dg-column>
+
+  <clr-dg-row *clrDgItems="let consortium of consortiums" [clrDgItem]="node">
+    <clr-dg-cell class="consortium-id">{{consortium.consortium_id}}</clr-dg-cell>
+    <clr-dg-cell>{{consortium.consortium_name}}</clr-dg-cell>
+    <clr-dg-cell>{{consortium.organization_id}}</clr-dg-cell>
+  </clr-dg-row>
+
+  <clr-dg-footer>{{consortiums?.length}} {{ consortiums?.length > 1 ? ('consortium.grid.pagination.plural' | translate) : ('consortium.grid.pagination.single' | translate) }}</clr-dg-footer>
+
+</clr-datagrid>

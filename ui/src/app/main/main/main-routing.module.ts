@@ -70,7 +70,7 @@ const routes: Routes = [
       // ROUTE: /:consortiumId/organizations
       { path: mainRoutes.organizations, children: orgRoutes },
       // ROUTE: /:consortiumId/users
-      { path: mainRoutes.users, children: usersRoutes },
+      { path: mainRoutes.system, children: usersRoutes },
       // ROUTE: /:consortiumId/transactions
       { path: mainRoutes.transactions, children: transactionsRoutes },
       // ROUTE: /:consortiumId/developer

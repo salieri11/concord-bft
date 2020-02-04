@@ -23,7 +23,7 @@ import { ConsortiumModule } from '../consortium/consortium.module';
 import { UsersModule } from '../users/users.module';
 import { TasksModule } from '../tasks/tasks.module';
 import { FeaturesModule } from '../features/features.module';
-import { EnviornmentModule } from './../enviornment/enviornment.module';
+import { EnvironmentModule } from './../environment/environment.module';
 import { LoggingModule } from '../logging/logging.module';
 import { DeveloperModule } from '../developer/developer.module';
 
@@ -61,7 +61,7 @@ const defaultProvides: any[] = [
     UsersModule,
     TasksModule,
     FeaturesModule,
-    EnviornmentModule,
+    EnvironmentModule,
     LoggingModule,
     DeveloperModule,
     TourNgxPopperModule,

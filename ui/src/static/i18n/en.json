@@ -73,7 +73,7 @@
       "tasks": "Active Tasks",
       "features": "Features",
       "roles": "Role Assignment",
-      "env": "Enviornment"
+      "env": "Environment"
     },
     "organization": "Organizations",
     "blockchains": "Blockchains",
@@ -553,6 +553,14 @@
       "inviteToOrg": "Invite User(s) To My Organization"
     }
   },
+  "environment": {
+    "title": "Environment Information",
+    "card": {
+      "header": "Build Information",
+      "build": "Build",
+      "commit": "Commit ID"
+    }
+  },
   "consortium": {
     "title": "Consortium Management",
     "actions": {
@@ -568,18 +576,13 @@
     },
     "grid": {
       "pagination": {
-        "title": "Consortium"
+        "single": "Consortium",
+        "plural": "Consortiums"
       },
       "columns": {
-        "name": {
-          "title": "Name"
-        },
-        "members": {
-          "title": "Members"
-        },
-        "created": {
-          "title": "Created On"
-        }
+        "id": "ID",
+        "name": "Name",
+        "orgId": "Organization ID"
       }
     },
     "addConsortiumForm": {
@@ -969,7 +972,8 @@
     "title": "Active Tasks",
     "grid": {
       "pagination": {
-        "title": "Active Tasks"
+        "single": "Active Task",
+        "plural": "Active Tasks"
       },
       "columns": {
         "id": "Task ID",
@@ -984,7 +988,8 @@
     "title": "Features",
     "grid": {
       "pagination": {
-        "title": "Features"
+        "single": "Feature",
+        "plural": "Features"
       },
       "columns": {
         "name": "Name",
