@@ -35,6 +35,7 @@ message ValidateRequest {
 message Result {
   bytes log_entry = 1;
   repeated KeyValuePair state_updates = 2;
+  repeated bytes read_set = 3;
 }
 
 
