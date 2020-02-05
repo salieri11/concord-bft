@@ -465,6 +465,7 @@ def call(){
                 string(credentialsId: 'LINT_API_KEY', variable: 'LINT_API_KEY'),
                 string(credentialsId: 'FLUENTD_AUTHORIZATION_BEARER', variable: 'FLUENTD_AUTHORIZATION_BEARER'),
                 string(credentialsId: 'VMC_API_TOKEN', variable: 'VMC_API_TOKEN'),
+                string(credentialsId: 'WAVEFRONT_API_TOKEN', variable: 'WAVEFRONT_API_TOKEN'),
                 usernamePassword(credentialsId: 'BINTRAY_CREDENTIALS', usernameVariable: 'BINTRAY_CONTAINER_REGISTRY_USERNAME', passwordVariable: 'BINTRAY_CONTAINER_REGISTRY_PASSWORD'),
                 usernamePassword(credentialsId: 'DOCKERHUB_CREDENTIALS', usernameVariable: 'DOCKERHUB_REPO_READER_USERNAME', passwordVariable: 'DOCKERHUB_REPO_READER_PASSWORD'),
                 usernamePassword(credentialsId: 'VMC_SDDC4_VC_CREDENTIALS', usernameVariable: 'VMC_SDDC4_VC_CREDENTIALS_USERNAME', passwordVariable: 'VMC_SDDC4_VC_CREDENTIALS_PASSWORD'),
