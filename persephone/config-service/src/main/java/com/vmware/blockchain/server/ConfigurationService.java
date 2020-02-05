@@ -148,7 +148,7 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
                     configUtil.maxPrincipalId + 1,
                     request.getHostsList().size());
 
-            prometheusUrls.add("http://concord:9891/metrics");
+            prometheusUrls.add("\"http://concord:9891/metrics\"");
         }
 
         // Static settings for each service Type.
