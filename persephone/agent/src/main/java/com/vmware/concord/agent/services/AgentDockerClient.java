@@ -23,6 +23,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.github.dockerjava.api.DockerClient;
+import com.github.dockerjava.api.exception.DockerException;
 import com.github.dockerjava.api.model.AuthConfig;
 import com.github.dockerjava.api.model.Bind;
 import com.github.dockerjava.api.model.HostConfig;
@@ -408,12 +409,24 @@ public final class AgentDockerClient {
     }
 
     private void createNetwork(DockerClient dockerClient, String networkName) {
+        var deleteNetworkCmd = dockerClient.removeNetworkCmd(networkName);
+        var listNetworkCmd = dockerClient.listNetworksCmd();
         var createNetworkCmd = dockerClient.createNetworkCmd();
-
         createNetworkCmd.withName(networkName);
         createNetworkCmd.withCheckDuplicate(true);
 
-        var id = createNetworkCmd.exec().getId();
-        log.info("Created Network: {} Id: {}", networkName, id);
+        try {
+            List<String> networks = listNetworkCmd.exec()
+                    .stream()
+                    .map(network -> network.getName())
+                    .collect(Collectors.toList());
+            if (networks.contains(networkName)) {
+                deleteNetworkCmd.exec();
+            }
+            var id = createNetworkCmd.exec().getId();
+            log.info("Created Network: {} Id: {}", networkName, id);
+        } catch (DockerException de) {
+            log.info("Docker Network creation failed with error:\n{}", de.getLocalizedMessage());
+        }
     }
 }
