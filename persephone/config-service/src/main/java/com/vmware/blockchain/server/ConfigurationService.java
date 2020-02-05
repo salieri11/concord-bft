@@ -27,6 +27,7 @@ import com.vmware.blockchain.configuration.eccerts.ConcordEcCertificatesGenerato
 import com.vmware.blockchain.configuration.generateconfig.ConcordConfigUtil;
 import com.vmware.blockchain.configuration.generateconfig.DamlIndexDbUtil;
 import com.vmware.blockchain.configuration.generateconfig.DamlLedgerApiUtil;
+import com.vmware.blockchain.configuration.generateconfig.GenericConfigUtil;
 import com.vmware.blockchain.configuration.generateconfig.GenesisUtil;
 import com.vmware.blockchain.configuration.generateconfig.LoggingUtil;
 import com.vmware.blockchain.configuration.generateconfig.TelegrafConfigUtil;
@@ -59,8 +60,7 @@ import lombok.extern.slf4j.Slf4j;
 public class ConfigurationService extends ConfigurationServiceImplBase {
 
     /** Concord config Template path. **/
-    // FIXME: Rename to concordConfigPath
-    private String configPath;
+    private String concordConfigPath;
 
     /** Telegraf config template path. **/
     private String telegrafConfigPath;
@@ -68,6 +68,8 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
     /** Metrics config template path. **/
     private String metricsConfigPath;
 
+    /** Generic config template path. **/
+    private String identifiersTemplatePath;
 
     /** Executor to use for all async service operations. */
     private final ExecutorService executor;
@@ -82,14 +84,17 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
     @Autowired
     ConfigurationService(ExecutorService executor,
                          @Value("${config.template.path:ConcordConfigTemplate.yaml}")
-                                 String configTemplatePath,
+                                 String concordConfigTemplatePath,
                          @Value("${config.template.path:TelegrafConfigTemplate.config}")
                                  String telegrafConfigTemplatePath,
                          @Value("${config.template.path:MetricsConfig.yaml}")
-                                 String metricsConfigPath)  {
-        this.configPath = configTemplatePath;
+                                 String metricsConfigPath,
+                         @Value("${config.template.path:IdentifiersTemplate.env}")
+                                 String identifiersTemplatePath)  {
+        this.concordConfigPath = concordConfigTemplatePath;
         this.telegrafConfigPath = telegrafConfigTemplatePath;
         this.metricsConfigPath = metricsConfigPath;
+        this.identifiersTemplatePath = identifiersTemplatePath;
         this.executor = executor;
         initialize();
     }
@@ -136,7 +141,7 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
                 || request.getServicesList().contains(ServiceType.HLF_CONCORD)) {
 
             // Generate Configuration
-            var configUtil = new ConcordConfigUtil(configPath);
+            var configUtil = new ConcordConfigUtil(concordConfigPath);
             tlsConfig = configUtil.getConcordConfig(request.getHostsList(), request.getBlockchainType());
 
             List<Identity> tlsIdentityList =
@@ -209,10 +214,20 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
             }
         }
 
+        GenericConfigUtil genericUtil = new GenericConfigUtil(identifiersTemplatePath);
+        var genericConfigs = genericUtil.getGenericConfig(propertyMap);
+
         Map<Integer, List<ConfigurationComponent>> nodeComponent = new HashMap<>();
         for (int node = 0; node < request.getHostsList().size(); node++) {
             List<ConfigurationComponent> componentList = new ArrayList<>();
             componentList.addAll(staticComponentList);
+
+            componentList.add(ConfigurationComponent.newBuilder()
+                    .setType(ServiceType.GENERIC)
+                    .setComponentUrl(GenericConfigUtil.configPath)
+                    .setComponent(genericConfigs.getOrDefault(node, ""))
+                    .setIdentityFactors(IdentityFactors.newBuilder().build())
+                    .build());
 
             // TLS list
             if (!tlsConfig.isEmpty()) {

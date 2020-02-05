@@ -19,7 +19,6 @@ import java.util.stream.IntStream;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import com.vmware.blockchain.deployment.orchestration.NetworkAddress;
 import com.vmware.blockchain.deployment.v1.ConcordModelSpecification;
 import com.vmware.blockchain.deployment.v1.CreateClusterRequest;
 import com.vmware.blockchain.deployment.v1.DeploymentSession;
@@ -33,6 +32,7 @@ import com.vmware.blockchain.deployment.v1.OrchestrationSiteInfo;
 import com.vmware.blockchain.deployment.v1.PlacementSpecification;
 import com.vmware.blockchain.deployment.v1.PlacementSpecification.Entry;
 import com.vmware.blockchain.deployment.v1.Properties;
+import com.vmware.blockchain.deployment.v1.Property;
 import com.vmware.blockchain.deployment.v1.ProvisionedResource;
 import com.vmware.blockchain.deployment.v1.StreamClusterDeploymentSessionEventRequest;
 import com.vmware.blockchain.ethereum.type.Genesis;
@@ -84,8 +84,10 @@ class ProvisioningServiceTest {
         var genesis = new Genesis();
         ConcordModelSpecification spec = new ConcordModelSpecification();
 
+        Property property = new Property(Property.Name.BLOCKCHAIN_ID, "testBlockchain");
+
         return new DeploymentSpecification(clusterSize, spec, placementSpec, genesis, UUID.randomUUID().toString(),
-                                           new Properties());
+                                           new Properties(List.of(property)));
     }
 
     /**
@@ -249,14 +251,6 @@ class ProvisioningServiceTest {
 
                 for (var node : clusterInfo.getMembers()) {
                     var hostInfo = node.getHostInfo();
-
-                    // BookKeepingStubOrchestrator has a very specific IP assignment.
-                    var addressMapEntry = Map.entry(
-                            NetworkAddress.toIPv4Address("8.8.8.8"),
-                            NetworkAddress.toIPv4Address("4.4.4.4")
-                    );
-                    Assertions.assertThat(hostInfo.getIpv4AddressMap())
-                            .containsExactly(addressMapEntry);
 
                     // Make sure the node was placed on one of the sites.
                     Assertions.assertThat(sites).contains(hostInfo.getSite());
