@@ -84,6 +84,9 @@ public class ConcordConfiguration {
     private static final List<ConcordComponent.ServiceType> DAML_COMMITTER_COMPONENTS = List.of(DAML_CONCORD,
             JAEGER_AGENT, DAML_EXECUTION_ENGINE);
 
+    public static final Map<ConcordComponent.ServiceType, String> STATIC_TAG_LIST = ImmutableMap.of(
+            WAVEFRONT_PROXY, "5.7", TELEGRAF, "1.11", JAEGER_AGENT, "1.11"
+    );
 
     private static final Map<ConcordModelSpecification.BlockchainType, List<ConcordComponent.ServiceType>>
             componentListForBlockchainType =
@@ -121,6 +124,7 @@ public class ConcordConfiguration {
 
     private String getImageTag(ConcordComponent.ServiceType type) {
         log.info("ServiceType: {}", type);
+
         StringBuilder sb = new StringBuilder(componentToImageName.get(type));
         sb.append(":");
         Map<String, String> orgProperties =
@@ -128,7 +132,11 @@ public class ConcordConfiguration {
         if (orgProperties == null) {
             orgProperties = new HashMap<>();
         }
-        sb.append(orgProperties.getOrDefault(Constants.ORG_DOCKER_IMAGE_OVERRIDE, dockerImageBuild));
+        if (STATIC_TAG_LIST.containsKey(type)) {
+            sb.append(STATIC_TAG_LIST.get(type));
+        } else {
+            sb.append(orgProperties.getOrDefault(Constants.ORG_DOCKER_IMAGE_OVERRIDE, dockerImageBuild));
+        }
         return sb.toString();
     }
 
