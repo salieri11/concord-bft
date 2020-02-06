@@ -21,6 +21,9 @@ import { SmartContractsModule } from '../smart-contracts/smart-contracts.module'
 import { OrgsModule } from '../orgs/orgs.module';
 import { ConsortiumModule } from '../consortium/consortium.module';
 import { UsersModule } from '../users/users.module';
+import { TasksModule } from '../tasks/tasks.module';
+import { FeaturesModule } from '../features/features.module';
+import { EnvironmentModule } from './../environment/environment.module';
 import { LoggingModule } from '../logging/logging.module';
 import { DeveloperModule } from '../developer/developer.module';
 
@@ -56,6 +59,9 @@ const defaultProvides: any[] = [
     ConsortiumModule,
     SmartContractsModule,
     UsersModule,
+    TasksModule,
+    FeaturesModule,
+    EnvironmentModule,
     LoggingModule,
     DeveloperModule,
     TourNgxPopperModule,

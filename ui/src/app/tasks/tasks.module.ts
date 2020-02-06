@@ -1,23 +1,26 @@
 /*
- * Copyright 2018-2019 VMware, all rights reserved.
+ * Copyright 2019-2020 VMware, all rights reserved.
  */
-
 import { NgModule } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { BrowserModule } from '@angular/platform-browser';
 import { ReactiveFormsModule } from '@angular/forms';  // <-- #1 import module
 import { FormsModule } from '@angular/forms';  // <-- #1 import module
 import { HttpClientModule } from '@angular/common/http';
-import { CommonModule } from '@angular/common';
 import { TranslateModule } from '@ngx-translate/core';
-
 import { ClarityModule } from '@clr/angular';
-
 import { GridModule } from '../grid/grid.module';
-import { ConsortiumComponent } from './consortium.component';
-import { ConsortiumListComponent } from './consortium-list/consortium-list.component';
+import { SharedModule } from '../shared/shared.module';
+import { TasksComponent } from './tasks/tasks.component';
+import { TaskListComponent } from './task-list/task-list.component';
+import { TasksService } from './shared/tasks.service';
 
 @NgModule({
+  declarations: [
+    TasksComponent,
+    TaskListComponent
+  ],
   imports: [
     CommonModule,
     ClarityModule,
@@ -27,8 +30,11 @@ import { ConsortiumListComponent } from './consortium-list/consortium-list.compo
     ReactiveFormsModule,
     FormsModule,
     GridModule,
-    TranslateModule
+    TranslateModule,
+    SharedModule
   ],
-  declarations: [ConsortiumComponent, ConsortiumListComponent]
+  providers: [
+    TasksService
+  ]
 })
-export class ConsortiumModule { }
+export class TasksModule { }

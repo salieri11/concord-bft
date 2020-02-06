@@ -61,7 +61,7 @@ export const mainRoutes = {
   logging: 'logging',
   consortiums: 'consortiums',
   organizations: 'organizations',
-  users: 'users',
+  system: 'system',
   transactions: 'transactions',
   developer: 'developer',
 
@@ -123,6 +123,9 @@ export const Apis = {
 
   // Task
   get tasks() { return `${this.base}/tasks`; },
+
+  // Features
+  get features() { return `${this.base}/features`; },
 
   // Zone Family
   get zones() { return `${this.blockchains}/zones`; },

@@ -67,7 +67,14 @@
       "api": "APIs",
       "samples": "Samples"
     },
-    "sysadmin": "SYSTEM ADMIN",
+    "sysadmin": {
+      "header": "SYSTEM ADMIN",
+      "consortiums": "Consortiums",
+      "tasks": "Active Tasks",
+      "features": "Features",
+      "roles": "Role Assignment",
+      "env": "Environment"
+    },
     "organization": "Organizations",
     "blockchains": "Blockchains",
     "kubernetes": "Kubernetes",
@@ -546,6 +553,14 @@
       "inviteToOrg": "Invite User(s) To My Organization"
     }
   },
+  "environment": {
+    "title": "Environment Information",
+    "card": {
+      "header": "Build Information",
+      "build": "Build",
+      "commit": "Commit ID"
+    }
+  },
   "consortium": {
     "title": "Consortium Management",
     "actions": {
@@ -561,18 +576,13 @@
     },
     "grid": {
       "pagination": {
-        "title": "Consortium"
+        "single": "Consortium",
+        "plural": "Consortiums"
       },
       "columns": {
-        "name": {
-          "title": "Name"
-        },
-        "members": {
-          "title": "Members"
-        },
-        "created": {
-          "title": "Created On"
-        }
+        "id": "ID",
+        "name": "Name",
+        "orgId": "Organization ID"
       }
     },
     "addConsortiumForm": {
@@ -955,6 +965,38 @@
       "errors": {
         "fetchUserError": "Failed to get user, please try again. If error persists contact blockchain-support@vmware.com.",
         "fetchWalletError": "Failed to get wallet, please try again. If error persists contact blockchain-support@vmware.com."
+      }
+    }
+  },
+  "tasks": {
+    "title": "Active Tasks",
+    "grid": {
+      "pagination": {
+        "single": "Active Task",
+        "plural": "Active Tasks"
+      },
+      "columns": {
+        "id": "Task ID",
+        "state": "State",
+        "resId": "Resource ID",
+        "message": "Message",
+        "resLink": "Resource Link"
+      }
+    }
+  },
+  "features": {
+    "title": "Features",
+    "grid": {
+      "pagination": {
+        "single": "Feature",
+        "plural": "Features"
+      },
+      "columns": {
+        "name": "Name",
+        "state": "State",
+        "category": "Category",
+        "scope": "Scope",
+        "action": "Action"
       }
     }
   },
