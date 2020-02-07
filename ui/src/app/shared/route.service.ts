@@ -196,6 +196,31 @@ export class RouteService {
     }
   }
 
+  //
+  // Handle /login-return redirects
+  // Check to see if the login-return was to reauthenticate,
+  // if so redirect to last location, otherwise redirect to default
+  //
+  loginReturnHandler(): boolean {
+    const twoMinutes = 2 * 60 * 1000;
+    const lastLocation = localStorage.getItem('lastLocation');
+
+    if (lastLocation) {
+      const locItems = lastLocation.split('--');
+      const lastLocDate = +new Date(locItems[0]);
+      const valid = ((+new Date) - lastLocDate) < twoMinutes;
+
+      // Expire redirect after two minutes
+      if (valid) {
+        this.router.navigateByUrl(locItems[1]);
+        return false;
+      }
+    }
+
+    this.redirectToDefault();
+    return false;
+  }
+
   private parseURLData(url: string): RouteHistoryData {
     try {
       url = decodeURIComponent(url);
