@@ -14,7 +14,6 @@ import java.util.stream.Collectors;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
-import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.Cacheable;
@@ -40,6 +39,7 @@ import com.vmware.blockchain.services.profiles.UserService;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.SigningKeyResolver;
+import lombok.NonNull;
 
 /**
  * Token validator for Helen.
@@ -184,7 +184,7 @@ public class VmbcTokenValidator implements TokenValidator {
         return details;
     }
 
-    @NotNull
+    @NonNull
     private List<Roles> getRoles(Jws<Claims> parsedToken) {
         @SuppressWarnings("unchecked")
         ArrayList<String> perms = (ArrayList<String>) parsedToken.getBody().get("perms");
