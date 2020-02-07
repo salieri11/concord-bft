@@ -45,9 +45,8 @@ RUN mvn -f communication/pom.xml dependency:go-offline -B
 COPY ./communication/src ./communication/src
 RUN mvn -f communication/pom.xml install
 
-# Build persephone API.
+# Copy Persephone API files.
 COPY ./persephone/api/src ./persephone/api/src
-RUN mvn -f persephone/pom.xml install -pl api -am -B
 
 # Resolve / fetch all dependencies for helen module.
 RUN mvn -f helen/pom.xml dependency:go-offline -B
