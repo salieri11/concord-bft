@@ -164,6 +164,15 @@ is run from the same directory as this README, and *not* from the
 blockchain$ docker build . -f helen/Dockerfile -t helen:latest
 ```
 
+Helen can also be built much faster in the lite mode by using a
+prebuilt .jar file from `helen/target` by running the following
+command from the same directory as this README, and *not* from the
+`helen` subdirectory):
+
+```
+blockchain$ docker build . -f helen/Dockerfile-lite -t helen:latest
+```
+
 ### Building Hermes via Docker
 
 Hermes does not need to be built before being used. See notes later
