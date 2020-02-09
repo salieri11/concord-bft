@@ -1,11 +1,13 @@
 include_directories(
   ${GTEST_INCLUDE_DIR}
+  ${GMOCK_INCLUDE_DIR}
   ${PROJECT_SOURCE_DIR}/src
   ../build/proto/
   )
 
 message("test including " ${GTEST_LIBRARY})
 message("test including " ${GTEST_MAIN_LIBRARY})
+message("test including " ${GMOCK_LIBRARY})
 
 enable_testing()
 add_test(NAME UtilsTests COMMAND UtilsTests)
@@ -14,6 +16,7 @@ add_test(NAME ConfigTests COMMAND ConfigTests)
 add_test(NAME ReplicaStateSyncTests COMMAND ReplicaStateSyncTests)
 add_test(NAME TimeContractTests COMMAND TimeContractTests)
 add_test(NAME HlfTest COMMAND HlfTest)
+add_test(NAME DamlTest COMMAND DamlTest)
 add_test(NAME PruningSMTest COMMAND PruningSMTest)
 add_test(NAME ExternalClientTest COMMAND ExternalClientTest)
 
@@ -33,7 +36,7 @@ add_executable(SignTests
   signature_test.cpp)
 
 target_link_libraries(SignTests
-  ${GTEST_LIBRARIES}
+  ${GTEST_LIBRARY}
   concord_utils
   gtest
   gtest_main
@@ -48,12 +51,10 @@ add_executable(ConfigTests
 
 target_link_libraries(ConfigTests
   ${Boost_LIBRARIES}
-  ${GTEST_LIBRARIES}
+  ${GTEST_LIBRARY}
   ${yaml-cpp_LIBRARIES}
   concord_utils
   concord_consensus
-  gtest
-  gtest_main
   log4cplus
   $<TARGET_OBJECTS:logging_dev>)
 
@@ -70,11 +71,9 @@ add_executable(ReplicaStateSyncTests
 
 target_link_libraries(ReplicaStateSyncTests
   ${Boost_LIBRARIES}
-  ${GTEST_LIBRARIES}
+  ${GTEST_LIBRARY}
   ${yaml-cpp_LIBRARIES}
   log4cplus
-  gtest
-  gtest_main
   proto
   ${EVM_LIBRARIES}
   LLVMSupport
@@ -88,16 +87,35 @@ add_executable(TimeContractTests
 
 target_link_libraries(TimeContractTests
   ${Boost_LIBRARIES}
-  ${GTEST_LIBRARIES}
+  ${GTEST_LIBRARY}
   ${yaml-cpp_LIBRARIES}
   log4cplus
-  gtest
-  gtest_main
   proto
   concord_utils
   concord_consensus
   concord_common
   concord_time
+  $<TARGET_OBJECTS:logging_dev>)
+
+add_executable(DamlTest
+  daml_test.cpp
+  mocks.hpp
+  mocks.cpp
+  ../src/daml/daml_kvb_commands_handler.cpp
+  ../src/daml/daml_validator_client.cpp
+  ../src/daml/grpc_services.cpp
+  ../src/config/configuration_manager.cpp
+  )
+
+target_link_libraries(DamlTest
+  ${GTEST_LIBRARY}
+  ${GMOCK_LIBRARY}
+  ${Boost_LIBRARIES}
+  concord_consensus
+  concord_utils
+  concord_common
+  proto
+  log4cplus
   $<TARGET_OBJECTS:logging_dev>)
 
 add_executable(HlfTest
@@ -109,29 +127,27 @@ add_executable(HlfTest
   )
 
 target_link_libraries(HlfTest
-  ${GTEST_LIBRARIES}
+  ${GTEST_LIBRARY}
   ${Boost_LIBRARIES}
   ${yaml-cpp_LIBRARIES}
   concord_consensus
   concord_utils
   concord_common
-  gtest
-  gtest_main
   proto
   log4cplus
   $<TARGET_OBJECTS:logging_dev>)
 
 add_executable(PruningSMTest
   pruning_sm_test.cpp
+  mocks.hpp
+  mocks.cpp
   ../src/config/configuration_manager.cpp)
 
 target_link_libraries(PruningSMTest
   ${Boost_LIBRARIES}
-  ${GTEST_LIBRARIES}
+  ${GTEST_LIBRARY}
   ${yaml-cpp_LIBRARIES}
   log4cplus
-  gtest
-  gtest_main
   proto
   concord_utils
   concord_consensus

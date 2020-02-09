@@ -30,7 +30,7 @@ class DamlKvbCommandsHandler
  private:
   log4cplus::Logger logger_;
   BlockingPersistentQueue<com::digitalasset::kvbc::CommittedTx>& committed_txs_;
-  std::unique_ptr<DamlValidatorClient> validator_client_;
+  std::unique_ptr<IDamlValidatorClient> validator_client_;
   prometheus::Counter& write_ops_;
   prometheus::Counter& read_ops_;
 
@@ -43,8 +43,8 @@ class DamlKvbCommandsHandler
       BlockingPersistentQueue<com::digitalasset::kvbc::CommittedTx>&
           committed_txs,
       concord::thin_replica::SubBufferList& subscriber_list,
-      std::unique_ptr<DamlValidatorClient> validator,
-      std::shared_ptr<concord::utils::PrometheusRegistry> prometheus_registry)
+      std::unique_ptr<IDamlValidatorClient> validator,
+      std::shared_ptr<concord::utils::IPrometheusRegistry> prometheus_registry)
       : ConcordCommandsHandler(config, node_config, ros, ba, subscriber_list,
                                prometheus_registry),
         logger_(log4cplus::Logger::getInstance("com.vmware.concord.daml")),

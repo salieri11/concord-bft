@@ -38,7 +38,39 @@ class ConcordCustomCollector : public prometheus::Collectable {
   friend class PrometheusRegistry;
 };
 
-class PrometheusRegistry {
+class IPrometheusRegistry {
+ public:
+  virtual void scrapeRegistry(
+      std::shared_ptr<prometheus::Collectable> registry) = 0;
+
+  virtual prometheus::Family<prometheus::Counter>& createCounterFamily(
+      const std::string& name, const std::string& help,
+      const std::map<std::string, std::string>& labels) = 0;
+
+  virtual prometheus::Counter& createCounter(
+      prometheus::Family<prometheus::Counter>& source,
+      const std::map<std::string, std::string>& labels) = 0;
+
+  virtual prometheus::Counter& createCounter(
+      const std::string& name, const std::string& help,
+      const std::map<std::string, std::string>& labels) = 0;
+
+  virtual prometheus::Family<prometheus::Gauge>& createGaugeFamily(
+      const std::string& name, const std::string& help,
+      const std::map<std::string, std::string>& labels) = 0;
+
+  virtual prometheus::Gauge& createGauge(
+      prometheus::Family<prometheus::Gauge>& source,
+      const std::map<std::string, std::string>& labels) = 0;
+
+  virtual prometheus::Gauge& createGauge(
+      const std::string& name, const std::string& help,
+      const std::map<std::string, std::string>& labels) = 0;
+
+  virtual ~IPrometheusRegistry() = default;
+};
+
+class PrometheusRegistry : public IPrometheusRegistry {
   prometheus::Exposer exposer_;
   std::vector<ConcordMetricConf> metrics_configuration_;
   std::shared_ptr<ConcordCustomCollector<prometheus::Counter>>
@@ -51,31 +83,32 @@ class PrometheusRegistry {
       const std::string& bindAddress,
       const std::vector<ConcordMetricConf>& metricsConfiguration);
 
-  void scrapeRegistry(std::shared_ptr<prometheus::Collectable> registry);
+  void scrapeRegistry(
+      std::shared_ptr<prometheus::Collectable> registry) override;
 
   prometheus::Family<prometheus::Counter>& createCounterFamily(
       const std::string& name, const std::string& help,
-      const std::map<std::string, std::string>& labels);
+      const std::map<std::string, std::string>& labels) override;
 
   prometheus::Counter& createCounter(
       prometheus::Family<prometheus::Counter>& source,
-      const std::map<std::string, std::string>& labels);
+      const std::map<std::string, std::string>& labels) override;
 
   prometheus::Counter& createCounter(
       const std::string& name, const std::string& help,
-      const std::map<std::string, std::string>& labels);
+      const std::map<std::string, std::string>& labels) override;
 
   prometheus::Family<prometheus::Gauge>& createGaugeFamily(
       const std::string& name, const std::string& help,
-      const std::map<std::string, std::string>& labels);
+      const std::map<std::string, std::string>& labels) override;
 
   prometheus::Gauge& createGauge(
       prometheus::Family<prometheus::Gauge>& source,
-      const std::map<std::string, std::string>& labels);
+      const std::map<std::string, std::string>& labels) override;
 
   prometheus::Gauge& createGauge(
       const std::string& name, const std::string& help,
-      const std::map<std::string, std::string>& labels);
+      const std::map<std::string, std::string>& labels) override;
 
   static std::vector<ConcordMetricConf> parseConfiguration(
       const std::string& configurationFilePath);

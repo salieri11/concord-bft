@@ -55,7 +55,7 @@ class ConcordCommandsHandler
           &storage,
       concord::storage::blockchain::IBlocksAppender &appender,
       concord::thin_replica::SubBufferList &subscriber_list,
-      std::shared_ptr<concord::utils::PrometheusRegistry> prometheus_registry);
+      std::shared_ptr<concord::utils::IPrometheusRegistry> prometheus_registry);
   virtual ~ConcordCommandsHandler() = default;
 
   // Callback from the replica via ICommandsHandler.

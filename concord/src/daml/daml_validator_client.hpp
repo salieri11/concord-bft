@@ -14,7 +14,24 @@
 namespace concord {
 namespace daml {
 
-class DamlValidatorClient {
+class IDamlValidatorClient {
+ public:
+  virtual grpc::Status ValidateSubmission(
+      std::string entryId, std::string submission,
+      google::protobuf::Timestamp& recordTime, std::string participant_id,
+      std::string correlationId, opentracing::Span& parent_span,
+      com::digitalasset::kvbc::ValidateResponse* out) = 0;
+
+  virtual grpc::Status ValidatePendingSubmission(
+      std::string entryId,
+      const std::map<std::string, std::string>& input_state_entries,
+      std::string correlationId, opentracing::Span& parent_span,
+      com::digitalasset::kvbc::ValidatePendingSubmissionResponse* out) = 0;
+
+  virtual ~IDamlValidatorClient() = default;
+};
+
+class DamlValidatorClient : public IDamlValidatorClient {
  public:
   DamlValidatorClient(uint16_t replica_id,
                       std::shared_ptr<grpc::ChannelInterface> channel)
@@ -25,13 +42,13 @@ class DamlValidatorClient {
       std::string entryId, std::string submission,
       google::protobuf::Timestamp& recordTime, std::string participant_id,
       std::string correlationId, opentracing::Span& parent_span,
-      com::digitalasset::kvbc::ValidateResponse* out);
+      com::digitalasset::kvbc::ValidateResponse* out) override;
 
   grpc::Status ValidatePendingSubmission(
       std::string entryId,
       const std::map<std::string, std::string>& input_state_entries,
       std::string correlationId, opentracing::Span& parent_span,
-      com::digitalasset::kvbc::ValidatePendingSubmissionResponse* out);
+      com::digitalasset::kvbc::ValidatePendingSubmissionResponse* out) override;
 
  private:
   std::unique_ptr<com::digitalasset::kvbc::ValidationService::Stub> stub_;

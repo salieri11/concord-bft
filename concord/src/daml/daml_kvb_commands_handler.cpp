@@ -313,39 +313,52 @@ bool DamlKvbCommandsHandler::ExecuteCommand(const ConcordRequest& concord_req,
                                             ConcordResponse& response) {
   DamlRequest daml_req;
 
-  if (!concord_req.has_daml_request()) {
+  if (!concord_req.has_daml_request() &&
+      !concord_req.has_pre_execution_result()) {
     // we have to ignore this, to allow time-only updates
     return true;
   }
 
-  daml_req = concord_req.daml_request();
-  if (!daml_req.has_command()) {
-    LOG4CPLUS_ERROR(logger_, "No Command specified in DAML request");
-    return false;
-  }
-
-  da_kvbc::Command cmd;
-  if (!cmd.ParseFromString(daml_req.command())) {
-    LOG4CPLUS_ERROR(logger_, "Failed to parse DAML/Command request");
-    return false;
-  }
-
-  switch (cmd.cmd_case()) {
-    case da_kvbc::Command::kRead:
-      return ExecuteRead(cmd.read(), response);
-
-    case da_kvbc::Command::kCommit: {
-      auto commit_req = cmd.commit();
-      log4cplus::getMDC().put("cid", commit_req.correlation_id());
-      bool result = ExecuteCommit(commit_req, flags, time_contract, parent_span,
-                                  response);
-      log4cplus::getMDC().clear();
-      return result;
+  if (concord_req.has_pre_execution_result()) {
+    da_kvbc::CommitRequest commit_req;
+    const std::string correlation_id =
+        concord_req.pre_execution_result().request_correlation_id();
+    commit_req.set_correlation_id(correlation_id);
+    log4cplus::getMDC().put("cid", correlation_id);
+    bool result =
+        ExecuteCommit(commit_req, flags, time_contract, parent_span, response);
+    log4cplus::getMDC().remove("cid");
+    return result;
+  } else {
+    daml_req = concord_req.daml_request();
+    if (!daml_req.has_command()) {
+      LOG4CPLUS_ERROR(logger_, "No Command specified in DAML request");
+      return false;
     }
 
-    default:
-      LOG4CPLUS_ERROR(logger_, "Neither commit nor read command");
+    da_kvbc::Command cmd;
+    if (!cmd.ParseFromString(daml_req.command())) {
+      LOG4CPLUS_ERROR(logger_, "Failed to parse DAML/Command request");
       return false;
+    }
+
+    switch (cmd.cmd_case()) {
+      case da_kvbc::Command::kRead:
+        return ExecuteRead(cmd.read(), response);
+
+      case da_kvbc::Command::kCommit: {
+        auto commit_req = cmd.commit();
+        log4cplus::getMDC().put("cid", commit_req.correlation_id());
+        bool result = ExecuteCommit(commit_req, flags, time_contract,
+                                    parent_span, response);
+        log4cplus::getMDC().clear();
+        return result;
+      }
+
+      default:
+        LOG4CPLUS_ERROR(logger_, "Neither commit nor read command");
+        return false;
+    }
   }
 }
 
