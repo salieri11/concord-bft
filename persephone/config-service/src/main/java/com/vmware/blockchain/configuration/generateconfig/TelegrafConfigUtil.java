@@ -19,7 +19,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.yaml.snakeyaml.Yaml;
 
-import com.vmware.blockchain.deployment.v1.Property;
+import com.vmware.blockchain.deployment.v1.NodeProperty;
+import com.vmware.blockchain.deployment.v1.Properties;
 
 /**
  * Utility class to generate telegraf configurations.
@@ -50,11 +51,11 @@ public class TelegrafConfigUtil {
     /**
      * Generate telegraf configurations.
      * @param hostIps hopst names/ips.
-     * @param propertyMap Map of node properties.
+     * @param properties raw properties.
      * @return map of host ips vs configs.
      */
     public Map<Integer, String> getTelegrafConfig(List<String> hostIps,
-                                                  Map<Property.Name, String> propertyMap,
+                                                  Properties properties,
                                                   List<String> prometheusUrlList) {
 
         Map<Integer, String> configMap = new HashMap<>();
@@ -82,7 +83,8 @@ public class TelegrafConfigUtil {
             prometheusUrls = String.join(",", prometheusUrlList);
         }
 
-        content = content.replace("$BLOCKCHAIN_ID", propertyMap.getOrDefault(Property.Name.BLOCKCHAIN_ID, ""));
+        content = content.replace("$BLOCKCHAIN_ID", properties.getValuesMap()
+                .getOrDefault(NodeProperty.Name.BLOCKCHAIN_ID.toString(), ""));
 
         // FIXME: This could ideally be hostIps -> config once we remove dependency on list ordering.
         for (int num = 0; num < hostIps.size(); num++) {

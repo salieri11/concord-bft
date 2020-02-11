@@ -196,14 +196,12 @@ class ProvisioningServiceRPCHelper(RPCHelper):
       :param replicas: List of replicas
       :return: properties proto message
       '''
-      blockchain_id_property = core_pb2.Property(name=core_pb2.Property.BLOCKCHAIN_ID, value="testBlockchain")
-      property_values = [blockchain_id_property]
+      property_values = {"BLOCKCHAIN_ID": "testBlockchain"}
 
       if replicas is not None:
           replicas_with_port = map(lambda x: "{}:50051".format(x), replicas)
           values = ",".join(list(replicas_with_port))
-          replica_property = core_pb2.Property(name=core_pb2.Property.COMMITTERS, value=values)
-          property_values.append(replica_property)
+          property_values["COMMITTERS"] = values
 
       properties = core_pb2.Properties(
          values=property_values

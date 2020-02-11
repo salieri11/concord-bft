@@ -9,6 +9,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -71,12 +72,14 @@ import com.vmware.blockchain.deployment.v1.DeploymentSessionEvent;
 import com.vmware.blockchain.deployment.v1.DeploymentSessionIdentifier;
 import com.vmware.blockchain.deployment.v1.DeploymentSpecification;
 import com.vmware.blockchain.deployment.v1.Endpoint;
+import com.vmware.blockchain.deployment.v1.LogManagement;
 import com.vmware.blockchain.deployment.v1.MessageHeader;
+import com.vmware.blockchain.deployment.v1.NodeProperty;
 import com.vmware.blockchain.deployment.v1.OrchestrationSiteIdentifier;
+import com.vmware.blockchain.deployment.v1.OrchestrationSiteInfo;
 import com.vmware.blockchain.deployment.v1.PlacementAssignment;
 import com.vmware.blockchain.deployment.v1.PlacementSpecification;
 import com.vmware.blockchain.deployment.v1.Properties;
-import com.vmware.blockchain.deployment.v1.Property;
 import com.vmware.blockchain.deployment.v1.ProvisionedResource;
 import com.vmware.blockchain.deployment.v1.ProvisioningServiceImplBase;
 import com.vmware.blockchain.deployment.v1.StreamAllClusterDeploymentSessionEventRequest;
@@ -88,7 +91,10 @@ import com.vmware.blockchain.ethereum.type.Genesis;
 import io.grpc.Status;
 import io.grpc.stub.ServerCallStreamObserver;
 import io.grpc.stub.StreamObserver;
-
+import kotlinx.serialization.UpdateMode;
+import kotlinx.serialization.json.Json;
+import kotlinx.serialization.json.JsonConfiguration;
+import kotlinx.serialization.modules.EmptyModule;
 
 /**
  * Implementation of ProvisioningService server.
@@ -510,36 +516,38 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
 
     private CompletableFuture<ConfigurationSessionIdentifier> generateConfigurationId(
             ConcurrentHashMap<PlacementAssignment.Entry, NetworkResourceEvent.Created> privateNetworkAddressMap,
-            ConcordModelSpecification.BlockchainType blockchainType,
-            Genesis genesis, List<ConcordComponent> components,
-            Properties properties) {
+            DeploymentSession session) {
 
         List<String> nodeIps = new ArrayList<>();
-        List<String> nodeIds = new ArrayList<>();
+        Map<Integer, String> nodeIds = new HashMap<>();
+        Map<Integer, String> loggingProperties = new HashMap<>();
 
         privateNetworkAddressMap.forEach((key, value) -> {
             var nodeIp = value.getAddress();
             nodeIps.add(nodeIp);
             var nodeIndex = nodeIps.indexOf(nodeIp);
             var nodeUuid = new UUID(key.getNode().getHigh(), key.getNode().getLow()).toString();
-            nodeIds.add(nodeIndex + ":" + nodeUuid);
+            nodeIds.put(nodeIndex, nodeUuid);
+            loggingProperties.put(nodeIndex, getLogManagementJson(key.getSiteInfo()));
             concordIdentifierMap.put(key.getNode(), nodeIndex);
         });
 
-        Property nodeProperty = new Property(Property.Name.NODE_ID,
-                String.join(";", nodeIds));
-        List<Property> propertyList = new ArrayList<>();
-        propertyList.addAll(properties.getValues());
-        propertyList.add(nodeProperty);
+        NodeProperty nodeProperty = new NodeProperty(NodeProperty.Name.NODE_ID, nodeIds);
+        NodeProperty loggingProperty = new NodeProperty(NodeProperty.Name.LOGGING_CONFIG, loggingProperties);
 
-        // TODO put log properties here and remove from cloudInit
+        Map<String, String> properties = new HashMap<>(session.getSpecification().getProperties().getValues());
+        properties.put(NodeProperty.Name.CONSORTIUM_ID.toString(), session.getSpecification().getConsortium());
+
         var request = new ConfigurationServiceRequest(
                 new MessageHeader(),
-                nodeIps, blockchainType,
-                genesis,
-                components.stream().filter(x -> !x.getServiceType().equals(ConcordComponent.ServiceType.GENERIC))
+                nodeIps,
+                session.getSpecification().getModel().getBlockchainType(),
+                session.getSpecification().getGenesis(),
+                session.getSpecification().getModel().getComponents()
+                        .stream().filter(x -> !x.getServiceType().equals(ConcordComponent.ServiceType.GENERIC))
                         .map(x -> x.getServiceType()).collect(Collectors.toList()),
-                new Properties(propertyList));
+                new Properties(properties),
+                Arrays.asList(nodeProperty, loggingProperty));
 
         // FIXME: Remove the below lines once the new protos are attached to config service on staging/prod
         request.getServices().remove(ConcordComponent.ServiceType.JAEGER_AGENT);
@@ -548,6 +556,46 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
         var promise = new CompletableFuture<ConfigurationSessionIdentifier>();
         configurationServiceClient.createConfiguration(request, newResultObserver(promise));
         return promise;
+    }
+
+    private String getLogManagementJson(OrchestrationSiteInfo siteInfo) {
+
+        List<LogManagement> logManagements = new ArrayList<>();
+        LogManagement logManagement = new LogManagement();
+        switch (siteInfo.getType()) {
+            case VMC:
+                logManagements.addAll(siteInfo.getVmc().getLogManagements());
+                break;
+            case VSPHERE:
+                logManagements.addAll(siteInfo.getVsphere().getLogManagements());
+                break;
+            default:
+                break;
+        }
+
+        // TODO: It takes only the first one, subject to change if design changes.
+        if (!logManagements.isEmpty()) {
+            logManagement = logManagements.get(0);
+        }
+
+        // TODO: Use google.protobuf.JsonFormat here
+        var json = new Json(
+                new JsonConfiguration(
+                        false, /* encodeDefaults */
+                        true, /* strictMode */
+                        false, /* unquoted */
+                        false, /* allowStructuredMapKeys */
+                        false, /* prettyPrint */
+                        "    ", /* indent */
+                        false, /* useArrayPolymorphism */
+                        "type", /* classDiscriminator */
+                        UpdateMode.OVERWRITE /* updateMode */
+                ),
+                EmptyModule.INSTANCE
+        );
+
+        var serializer = LogManagement.getSerializer();
+        return json.toJson(serializer, logManagement).toString();
     }
 
     /**
@@ -785,10 +833,7 @@ public class ProvisioningService extends ProvisioningServiceImplBase {
             CompletableFuture.allOf(networkAddressPromises)
                     .thenComposeAsync(__ -> generateConfigurationId(
                             privateNetworkAddressMap,
-                            session.getSpecification().getModel().getBlockchainType(),
-                            session.getSpecification().getGenesis(),
-                            session.getSpecification().getModel().getComponents(),
-                            session.getSpecification().getProperties()), executor
+                            session), executor
                     )
                     // Setup node deployment workflow with its assigned network address.
                     .thenComposeAsync(configGenId -> {
