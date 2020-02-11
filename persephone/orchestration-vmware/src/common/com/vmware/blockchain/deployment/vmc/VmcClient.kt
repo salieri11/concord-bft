@@ -3,6 +3,7 @@
  * *************************************************************************/
 package com.vmware.blockchain.deployment.vmc
 
+import com.vmware.blockchain.deployment.logging.logger
 import com.vmware.blockchain.deployment.model.core.URI
 import com.vmware.blockchain.deployment.model.nsx.NatRule
 import com.vmware.blockchain.deployment.model.nsx.PublicIP
@@ -11,6 +12,8 @@ import com.vmware.blockchain.deployment.model.nsx.SegmentSubnet
 import com.vmware.blockchain.deployment.model.vmc.Sddc
 import com.vmware.blockchain.deployment.orchestration.randomSubnet
 import com.vmware.blockchain.deployment.orchestration.toIPv4Address
+import kotlinx.coroutines.delay
+import kotlin.math.pow
 
 /**
  * A client for issuing commands to a VMware Cloud on AWS environment targeted by a given
@@ -20,6 +23,9 @@ import com.vmware.blockchain.deployment.orchestration.toIPv4Address
  *   underlying [VmcHttpClient] to use for REST API communication.
  */
 class VmcClient(private val client: VmcHttpClient) {
+
+    /** Logging instance. */
+    private val log by logger()
 
     /**
      * Get SDDC information associated with the associated [VmcHttpClient].
@@ -112,37 +118,52 @@ class VmcClient(private val client: VmcHttpClient) {
         sourceNetwork: String? = null,
         destinationNetwork: String? = null,
         translatedNetwork: String? = null,
-        translatedPorts: String? = null
+        translatedPorts: String? = null,
+        maxRetries : Int = 3,
+        maxDelayInSeconds : Long = 20L
     ): NatRule? {
         val endpoint = Endpoints.NSX_NAT_RULE.interpolate(
                 pathVariables = listOf("{tier1}" to tier1, "{nat}" to nat, "{nat_rule}" to name)
         )
-        val response = client
-                .patch<NatRule, Unit>(
-                        path = endpoint,
-                        contentType = "application/json",
-                        headers = emptyList(),
-                        body = NatRule(
-                                action = action,
-                                source_network = sourceNetwork,
-                                destination_network = destinationNetwork,
-                                translated_network = translatedNetwork,
-                                translated_ports = translatedPorts
-                        )
-                )
 
-        // PATCH does not return a body, follow up with another GET to obtain metadata information
-        // that is assigned post-creation (e.g. ID, infra path, etc).
-        return when (response.statusCode()) {
-            200 -> {
-                client.get<NatRule>(path = endpoint,
-                                 contentType = "application/json",
-                                 headers = emptyList())
-                        .takeIf { it.statusCode() == 200 }
-                        ?.let { it.body() }
+        for(retries in 1..maxRetries) {
+
+            log.info("Creating NAT rule - attempt $retries")
+            val response = client
+                    .patch<NatRule, Unit>(
+                            path = endpoint,
+                            contentType = "application/json",
+                            headers = emptyList(),
+                            body = NatRule(
+                                    action = action,
+                                    source_network = sourceNetwork,
+                                    destination_network = destinationNetwork,
+                                    translated_network = translatedNetwork,
+                                    translated_ports = translatedPorts
+                            )
+                    )
+
+            // PATCH does not return a body, follow up with another GET to obtain metadata information
+            // that is assigned post-creation (e.g. ID, infra path, etc).
+            when (response.statusCode()) {
+                200 -> {
+                    return client.get<NatRule>(path = endpoint,
+                                        contentType = "application/json",
+                                        headers = emptyList())
+                                        .takeIf { it.statusCode() == 200 }?.body()
+                }
+                500 -> {
+                    val delay = 2.0.pow(retries + 1).toLong().coerceAtMost(maxDelayInSeconds)
+                    if (retries < maxRetries) // do not delay after last retry
+                        delay(delay * 1000L)
+                }
+                else -> return null
             }
-            else -> null
+
         }
+
+        return null
+
     }
 
     /**
