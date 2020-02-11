@@ -1,16 +1,33 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Configuration status="INFO">
+    <Properties>
+        <Property name="LOG_PATTERN">%d{HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n</Property>
+        <Property name="APP_LOG_ROOT">perf_result</Property>
+    </Properties>
     <CustomLevels>
-        <CustomLevel name="STAT" intLevel="350" />
+        <CustomLevel name="STAT" intLevel="350"/>
     </CustomLevels>
     <Appenders>
+        <!-- Console Appender -->
         <Console name="console" target="SYSTEM_OUT">
-            <PatternLayout pattern="%d{HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"/>
+            <PatternLayout pattern="${LOG_PATTERN}"/>
         </Console>
+
+        <!-- File Appenders on need basis -->
+        <RollingFile name="runLog" fileName="${APP_LOG_ROOT}/detailrun.log"
+                     filePattern="${APP_LOG_ROOT}/detailrun-%d{yyyy-MM-dd HH:mm}-%i.log">
+            <LevelRangeFilter minLevel="INFO" maxLevel="INFO" onMatch="ACCEPT" onMismatch="DENY"/>
+            <PatternLayout pattern="${LOG_PATTERN}"/>
+            <Policies>
+                <SizeBasedTriggeringPolicy size="19500KB"/>
+            </Policies>
+            <DefaultRolloverStrategy max="10"/>
+        </RollingFile>
     </Appenders>
     <Loggers>
         <Root level="info" additivity="false">
-            <AppenderRef ref="console" />
+            <AppenderRef ref="console"/>
+            <AppenderRef ref="runLog"/>
         </Root>
     </Loggers>
 </Configuration>
