@@ -6,24 +6,16 @@ simpleConfig:
   environment: onprem
   nodeCount: 4
   port: 6865
-  http: false
+  http: true
   nodes:
-    - ip: 10.40.205.101
+    - ip: 10.158.161.42
       percentage: 100
-      username: username
-      password: password
-    - ip: 10.40.205.102
+    - ip: 10.40.205.82
       percentage: 0
-      username: username
-      password: password
-    - ip: 10.40.205.103
+    - ip: 10.40.205.83
       percentage: 0
-      username: username
-      password: password
-    - ip: 10.40.205.104
+    - ip: 10.40.205.84
       percentage: 0
-      username: username
-      password: password
   workloads:
     - dapp: IOU
       language: DAML
@@ -32,8 +24,9 @@ simpleConfig:
       logging: false
       params:
         - Alice #party
-        - 1 #numOfTrasactions
+        - 10 #numOfTrasactions
   sleepTime: 1000
+  numberThreads: 4 #0 or undefined is default
   outputDir: ./perf_result
 
 advancedConfig:
@@ -42,19 +35,3 @@ advancedConfig:
     proxyHost: 10.40.205.202
     metricsPort: 2878
     source:  blockchain-benchmark
-  dockerStats: false
-  esxTop: false
-  esxtopCommand:
-    - [prme-awperf-a009] #hostnames
-    - [username] #usernames
-    - [password] #passwords
-    - /vmfs/volumes/5b6c1162-9e8767c6-6315-246e96d05bec/datahl/ethConcor-esxtop-result-timestamp.csv #path for saving esxtop results
-    - -a
-    - -b
-    - -d 3
-    - -n 14000
-  numberThreads: 4 #0 or undefined is default
-  concordUsername: concordUsername #this is optional
-  concordPassword: concordPassword # this optional
-
-#java -Xmx1g -jar ../target/performance-1.0-SNAPSHOT-jar-with-dependencies.jar --concord 10.40.205.133 500 ../data/proposals ./perf_result/wordload0

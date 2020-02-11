@@ -1,0 +1,37 @@
+simpleConfig:
+  blockchain: etheruem #concord, etheruem, or quorum
+  environment: onprem
+  nodeCount: 4
+  port: 8545
+  http: true
+  nodes:
+      - ip: 10.158.161.43
+        percentage: 50
+      - ip: 10.158.161.44
+        percentage: 50
+      - ip: 10.158.161.45
+        percentage: 0
+      - ip: 10.158.161.46
+        percentage: 0
+  workloads:
+    - dapp: Ballot
+      language: Solidity
+      numOfRuns: 3
+      rateControl: 200
+      logging: false
+      params:
+        - --concord           #use concord, helen, or ethereum
+        - 10.158.161.43      #concordIP, helenIP, or ethereumIP
+        - 100                #numberVotes
+        - ../data/proposals   #input data
+  sleepTime: 1000
+  outputDir: ./perf_result
+  numberThreads: 4 #0 or undefined is default
+
+advancedConfig:
+  wavefront:
+    enabled: false
+  concordUsername: concordUsername #this is optional
+  concordPassword: concordPassword # this optional
+
+#java -Xmx1g -jar ../target/performance-1.0-SNAPSHOT-jar-with-dependencies.jar --concord 10.40.205.133 500 ../data/proposals ./perf_result/wordload0
