@@ -1,6 +1,7 @@
 // Copyright (c) 2020 VMware, Inc. All rights reserved. VMware Confidential
 
 #include "thin_replica_client_facade.hpp"
+#include <log4cplus/configurator.h>
 #include "thin_replica_client.hpp"
 
 using grpc::Channel;
@@ -19,6 +20,33 @@ using thin_replica_client::ThinReplicaClient;
 using thin_replica_client::ThinReplicaClientFacade;
 using thin_replica_client::Update;
 using thin_replica_client::UpdateQueue;
+
+// A global instance of LoggerInitializer class is created when the thin
+// replica client library is loaded into process and destroyed when it is
+// unloaded. It follows the steps suggested for code using log4cplus
+// versions prior to 2.0:
+// https://sourceforge.net/p/log4cplus/wiki/CodeExamples/
+// LoggerInitializer is responsible for calling log4cplus::initialize in
+// the constructor followed by a one-time configuration based on the settings
+// from a file pointed to by the LOG4CPLUS_CONFIGURATION environment variable.
+class LoggerInitializer {
+ public:
+  LoggerInitializer() {
+    log4cplus::initialize();
+    if (const char* log_properties = std::getenv("LOG4CPLUS_CONFIGURATION")) {
+      log4cplus::PropertyConfigurator::doConfigure(log_properties);
+    } else {
+      log4cplus::BasicConfigurator cfg;
+      cfg.configure();
+    }
+  }
+  ~LoggerInitializer() { log4cplus::Logger::shutdown(); }
+  LoggerInitializer(LoggerInitializer const&) = delete;
+  LoggerInitializer(LoggerInitializer&&) = delete;
+  LoggerInitializer& operator=(LoggerInitializer const&) = delete;
+  LoggerInitializer& operator=(LoggerInitializer&&) = delete;
+};
+LoggerInitializer loggerInitializer;
 
 class thin_replica_client::ThinReplicaClientFacade::Impl {
  public:
