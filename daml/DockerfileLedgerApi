@@ -31,6 +31,7 @@ COPY daml/thin-replica-client-core /doc/daml/thin-replica-client-core
 
 ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib:/opt/grpc/lib:/opt/protobuf/lib
 ENV THIN_REPLICA_SETTINGS="--use-thin-replica --max-faulty-replicas 1"
+ENV LOG4CPLUS_CONFIGURATION /doc/daml/ledger-api-server/src/main/resources/log4cplus.properties
 
 RUN sbt nativeCompile
 RUN sbt ledger_api_server/stage
