@@ -118,6 +118,13 @@ concord-block-graph {
   }
 }
 
+:host ::ng-deep clr-dg-cell.block-hash {
+  margin-top: 0.2rem;
+}
+:host ::ng-deep clr-dg-cell.time-info {
+  margin-top: 0.2rem;
+}
+
 :host ::ng-deep .search-input-area .clr-form-control { 
   margin-top: 0.3rem;
 }

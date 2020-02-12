@@ -37,12 +37,20 @@
         </concord-copy-to-clipboard-button>
       </clr-dg-cell>
       <clr-dg-cell class="tx-count">
-        {{block.blockData?.transactions.length}}
+        {{
+          block.blockData?.transactions.length ?
+            block.blockData?.transactions.length
+          : "_"
+        }}
         <div class="data-field-spacer"></div>
       </clr-dg-cell>
       <clr-dg-cell class="time-info">
-        {{ (block.blockData?.timestamp * 1000) | date: 'yyyy/MM/dd h:mm:ss a':'+0000' }} (UTC)
+        {{ block.blockData?.timestamp ? 
+            ((block.blockData?.timestamp * 1000) | date: 'yyyy/MM/dd h:mm:ss a':'+0000') + "(UTC)"
+          : "N/A"
+        }}
         <concord-copy-to-clipboard-button
+          *ngIf="block.blockData?.timestamp"
           classList="ctc-btn-inline"
           [tooltip]="'common.copyToClip' | translate"
           tooltipDirection="top-right"
