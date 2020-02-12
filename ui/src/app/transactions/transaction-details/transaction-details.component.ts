@@ -126,7 +126,7 @@ export class TransactionDetailsComponent implements OnInit, OnChanges {
     if (this.contractNotFound && this.isSmartContract) {
       // For 404 contracts, default raw source code view is not possible
       if (this.inputView === SmartContractInputViewType.default) {
-        this.inputView = SmartContractInputViewType.decompile;
+        this.inputView = SmartContractInputViewType.original;
         this.inputViewName = `transactions.inputView.` + this.inputView;
       }
     }
