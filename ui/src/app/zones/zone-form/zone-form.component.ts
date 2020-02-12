@@ -148,7 +148,7 @@ export class ZoneFormComponent implements AfterViewInit {
           gateway: new FormControl('', { validators: [Validators.required, Validators.pattern(ipRegEx)], updateOn: 'blur' }),
           subnet: new FormControl('', { validators: Validators.required, updateOn: 'blur' }),
           name_servers: new FormControl('', { validators: Validators.pattern(listOfIpsRegEx), updateOn: 'blur' }),
-          ip_pool: new FormControl('', { validators: [Validators.required, Validators.pattern(listOfIpsRegEx)], updateOn: 'blur' })
+          ip_pool: new FormControl('', { validators: [Validators.pattern(listOfIpsRegEx)], updateOn: 'blur' })
         })
       }),
       log_managements: new FormArray([

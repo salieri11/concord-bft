@@ -22,7 +22,6 @@ describe('concord-ui Deployment Flow', () => {
 
   afterEach(() => {
     authHelper = new AuthHelper();
-    authHelper.deleteSessionData();
   });
 
   beforeEach(() => {
@@ -33,22 +32,22 @@ describe('concord-ui Deployment Flow', () => {
     browser.waitForAngularEnabled(false);
   });
 
-  it('should login', () => {
-    loginPage = new CSPLogin();
-    loginPage.navigateTo();
-    waitForURLContains('console-stg.cloud.vmware.com/csp/gateway/discovery');
-    browser.sleep(500);
-    loginPage.fillInEmail();
-    waitForURLContains('csp-local.vidmpreview.com/SAAS/auth/login');
-    browser.sleep(1000);
-    loginPage.fillInPassword();
-  });
+  // it('should login', () => {
+  //   loginPage = new CSPLogin();
+  //   loginPage.navigateTo();
+  //   waitForURLContains('console-stg.cloud.vmware.com/csp/gateway/discovery');
+  //   browser.sleep(500);
+  //   loginPage.fillInEmail();
+  //   waitForURLContains('csp-local.vidmpreview.com/SAAS/auth/login');
+  //   browser.sleep(1000);
+  //   loginPage.fillInPassword();
+  // });
 
-  it('should accept terms of service', () => {
-    browser.sleep(2000);
-    onboardingPage.readAndClickAccept('Reinhard', 'von Lohengramm', 'Galactic Empire');
-    browser.sleep(1500);
-  });
+  // it('should accept terms of service', () => {
+  //   browser.sleep(2000);
+  //   onboardingPage.readAndClickAccept('Reinhard', 'von Lohengramm', 'Galactic Empire');
+  //   browser.sleep(1500);
+  // });
 
   it('should deploy a blockchain', () => {
     const title = 'DAML e2e';

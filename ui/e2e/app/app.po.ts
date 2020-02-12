@@ -20,6 +20,10 @@ export class AppPage {
     }
   }
 
+  goToZoneList() {
+    element(by.css('#zones')).click();
+  }
+
   getTourTitle() {
     return element(by.css('.ngxp-title'));
   }

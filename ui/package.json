@@ -31,7 +31,7 @@
     "e2e:dev:csp": "ng e2e -c csp-dev",
     "e2e:build": "npm run webdriver-update && npm run flake-e2e",
     "e2e:dev:integration": "ng e2e -c csp-dev-integration",
-    "e2e:integration": "npm run flake-e2e:integration",
+    "e2e:integration": "npm run webdriver-update && npm run flake-e2e:integration",
     "webdriver-update": "webdriver-manager update --versions.chrome=2.46 --gecko false",
     "flake-e2e": "protractor-flake --parser standard  --max-attempts=3 -- protractor.conf.js --baseUrl=https://localhost.vmware.com/",
     "flake-e2e:integration": "protractor-flake --parser standard  --max-attempts=3 -- protractor.integration.conf.js --baseUrl=https://localhost.vmware.com/",
