@@ -6,6 +6,7 @@ package com.vmware.blockchain.deployment.service.provision;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -26,13 +27,13 @@ import com.vmware.blockchain.deployment.v1.DeploymentSessionEvent;
 import com.vmware.blockchain.deployment.v1.DeploymentSessionIdentifier;
 import com.vmware.blockchain.deployment.v1.DeploymentSpecification;
 import com.vmware.blockchain.deployment.v1.MessageHeader;
+import com.vmware.blockchain.deployment.v1.NodeProperty;
 import com.vmware.blockchain.deployment.v1.OrchestrationSite;
 import com.vmware.blockchain.deployment.v1.OrchestrationSiteIdentifier;
 import com.vmware.blockchain.deployment.v1.OrchestrationSiteInfo;
 import com.vmware.blockchain.deployment.v1.PlacementSpecification;
 import com.vmware.blockchain.deployment.v1.PlacementSpecification.Entry;
 import com.vmware.blockchain.deployment.v1.Properties;
-import com.vmware.blockchain.deployment.v1.Property;
 import com.vmware.blockchain.deployment.v1.ProvisionedResource;
 import com.vmware.blockchain.deployment.v1.StreamClusterDeploymentSessionEventRequest;
 import com.vmware.blockchain.ethereum.type.Genesis;
@@ -84,10 +85,11 @@ class ProvisioningServiceTest {
         var genesis = new Genesis();
         ConcordModelSpecification spec = new ConcordModelSpecification();
 
-        Property property = new Property(Property.Name.BLOCKCHAIN_ID, "testBlockchain");
+        Map<String, String> propertyMap = new HashMap<>();
+        propertyMap.put(NodeProperty.Name.BLOCKCHAIN_ID.toString(), "testBlockchain");
 
         return new DeploymentSpecification(clusterSize, spec, placementSpec, genesis, UUID.randomUUID().toString(),
-                                           new Properties(List.of(property)));
+                                           new Properties(propertyMap));
     }
 
     /**

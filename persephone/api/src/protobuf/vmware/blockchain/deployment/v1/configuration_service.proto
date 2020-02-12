@@ -45,6 +45,7 @@ message ConfigurationComponent {
  *   message header.
  * @property[hostIps]
  *   list of host ips for the cluster
+ *  TODO: genesis should be sent via properties/node_properties
  */
 message ConfigurationServiceRequest {
     MessageHeader header = 1;
@@ -53,6 +54,7 @@ message ConfigurationServiceRequest {
     vmware.blockchain.ethereum.type.Genesis genesis = 4;
     repeated ConcordComponent.ServiceType services = 5 [packed=false];
     Properties properties = 6;
+    repeated NodeProperty node_properties = 7;
 }
 
 /**

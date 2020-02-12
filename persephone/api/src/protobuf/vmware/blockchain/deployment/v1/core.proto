@@ -162,9 +162,9 @@ message LogManagement {
 }
 
 /**
- * Enum supporting properties
+ * Enum supporting properties per node
  */
-message Property {
+message NodeProperty {
     enum Name {
         GENERIC = 0;
         COMMITTERS = 1;
@@ -172,17 +172,17 @@ message Property {
         NODE_ID = 3;
         CLIENT_GROUP_ID = 4;
         LOGGING_CONFIG = 5;
+        CONSORTIUM_ID = 6;
     }
 
     Name name = 1;
-    string value = 2;
+    map<int32, string> value = 2;
 }
 
 /**
  * Raw bag of properties.
  * This structure can be used during initial development phase when all parameters are not known.
- * TODO: think of possible restructuring for per-node configs
  */
 message Properties {
-    repeated Property values = 1 [packed=false];
+    map<string, string> values = 1 [packed=false];
 }

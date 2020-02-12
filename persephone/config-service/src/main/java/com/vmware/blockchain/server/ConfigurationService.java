@@ -44,7 +44,7 @@ import com.vmware.blockchain.deployment.v1.IdentityComponent;
 import com.vmware.blockchain.deployment.v1.IdentityFactors;
 import com.vmware.blockchain.deployment.v1.NodeConfigurationRequest;
 import com.vmware.blockchain.deployment.v1.NodeConfigurationResponse;
-import com.vmware.blockchain.deployment.v1.Property;
+import com.vmware.blockchain.deployment.v1.NodeProperty;
 import com.vmware.blockchain.ethereum.type.Genesis;
 
 import io.grpc.Status;
@@ -71,6 +71,9 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
     /** Generic config template path. **/
     private String identifiersTemplatePath;
 
+    /** Logging config template path. **/
+    private String loggingEnvTemplatePath;
+
     /** Executor to use for all async service operations. */
     private final ExecutorService executor;
 
@@ -90,11 +93,14 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
                          @Value("${config.template.path:MetricsConfig.yaml}")
                                  String metricsConfigPath,
                          @Value("${config.template.path:IdentifiersTemplate.env}")
-                                 String identifiersTemplatePath)  {
+                                 String identifiersTemplatePath,
+                         @Value("${config.template.path:LoggingTemplate.env}")
+                                 String loggingEnvTemplatePath)  {
         this.concordConfigPath = concordConfigTemplatePath;
         this.telegrafConfigPath = telegrafConfigTemplatePath;
         this.metricsConfigPath = metricsConfigPath;
         this.identifiersTemplatePath = identifiersTemplatePath;
+        this.loggingEnvTemplatePath = loggingEnvTemplatePath;
         this.executor = executor;
         initialize();
     }
@@ -124,13 +130,8 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
         Map<Integer, List<IdentityComponent>> tlsNodeIdentities = new HashMap<>();
         Map<Integer, String> tlsConfig = new HashMap<>();
         Map<Integer, String> telegrafConfig = new HashMap<>();
+        Map<Integer, String> loggingConfig = new HashMap<>();
         var certGen = new ConcordEcCertificatesGenerator();
-
-        Map<Property.Name, String> propertyMap = new HashMap<>();
-        if (request.hasProperties()) {
-            request.getProperties().getValuesList().stream().forEach(prop ->
-                    propertyMap.put(prop.getName(), prop.getValue()));
-        }
 
         log.info(request.toString());
 
@@ -156,13 +157,20 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
             prometheusUrls.add("\"http://concord:9891/metrics\"");
         }
 
+        if (request.getServicesList().contains(ServiceType.LOGGING)) {
+            LoggingUtil loggingUtil = new LoggingUtil(loggingEnvTemplatePath);
+            loggingConfig.putAll(loggingUtil.generateConfig(
+                    request.getNodePropertiesList(),
+                    request.getProperties()));
+        }
+
         // Static settings for each service Type.
         for (ServiceType serviceType : request.getServicesList()) {
 
             switch (serviceType) {
                 case DAML_LEDGER_API:
                     DamlLedgerApiUtil ledgerApiUtil = new DamlLedgerApiUtil(
-                            propertyMap.getOrDefault(Property.Name.COMMITTERS, "concord:50051"));
+                            request.getProperties().getValuesMap().get(NodeProperty.Name.COMMITTERS.toString()));
                     staticComponentList.add(ConfigurationComponent.newBuilder()
                                                     .setType(serviceType)
                                             .setComponentUrl(DamlLedgerApiUtil.envVarPath)
@@ -179,16 +187,6 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
                                                     .setIdentityFactors(IdentityFactors.newBuilder().build())
                                                     .build());
                     break;
-                case LOGGING:
-                    LoggingUtil loggingUtil =
-                            new LoggingUtil(propertyMap.get(Property.Name.LOGGING_CONFIG));
-                    staticComponentList.add(ConfigurationComponent.newBuilder()
-                                                    .setType(ServiceType.LOGGING)
-                                                    .setComponentUrl(LoggingUtil.envVarPath)
-                                                    .setComponent(loggingUtil.generateConfig())
-                                                    .setIdentityFactors(IdentityFactors.newBuilder().build())
-                                                    .build());
-                    break;
                 case CONCORD:
                     log.info("Generated new session id {}", sessionId);
                     ConfigurationComponent genesisJson = createGenesisComponent(request.getGenesis(), sessionId);
@@ -201,7 +199,7 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
                     var telegrafConfigUtil = new TelegrafConfigUtil(telegrafConfigPath, metricsConfigPath);
                     var metricsConfigYaml = telegrafConfigUtil.getMetricsConfigYaml();
                     telegrafConfig = telegrafConfigUtil.getTelegrafConfig(request.getHostsList(),
-                            propertyMap, prometheusUrls);
+                            request.getProperties(), prometheusUrls);
                     staticComponentList.add(ConfigurationComponent.newBuilder()
                             .setType(ServiceType.TELEGRAF)
                             .setComponentUrl(TelegrafConfigUtil.metricsConfigPath)
@@ -215,7 +213,7 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
         }
 
         GenericConfigUtil genericUtil = new GenericConfigUtil(identifiersTemplatePath);
-        var genericConfigs = genericUtil.getGenericConfig(propertyMap);
+        var genericConfigs = genericUtil.getGenericConfig(request.getNodePropertiesList());
 
         Map<Integer, List<ConfigurationComponent>> nodeComponent = new HashMap<>();
         for (int node = 0; node < request.getHostsList().size(); node++) {
@@ -259,6 +257,17 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
                         .setIdentityFactors(IdentityFactors.newBuilder().build())
                         .build());
             }
+
+            // logging configs
+            if (!loggingConfig.isEmpty()) {
+                componentList.add(ConfigurationComponent.newBuilder()
+                        .setType(ServiceType.LOGGING)
+                        .setComponentUrl(LoggingUtil.envVarPath)
+                        .setComponent(loggingConfig.get(node))
+                        .setIdentityFactors(IdentityFactors.newBuilder().build())
+                        .build());
+            }
+
             // put per node configs
             nodeComponent.putIfAbsent(node, componentList);
             log.info("Created configurations for session: {}", sessionId);

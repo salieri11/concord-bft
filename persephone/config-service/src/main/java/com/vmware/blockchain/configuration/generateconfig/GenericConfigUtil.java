@@ -10,12 +10,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.vmware.blockchain.deployment.v1.Property;
+import com.vmware.blockchain.deployment.v1.NodeProperty;
 
 /**
  * Utility class for generating the generic configurations irrespective node type.
@@ -37,10 +38,10 @@ public class GenericConfigUtil {
 
     /**
      * Generates the generic config file with node ids.
-     * @param propertyMap Map of node properties.
+     * @param nodeProperties Map of node properties.
      * @return map of host ips vs configs.
      */
-    public Map<Integer, String> getGenericConfig(Map<Property.Name, String> propertyMap) {
+    public Map<Integer, String> getGenericConfig(List<NodeProperty> nodeProperties) {
 
         Map<Integer, String> configMap = new HashMap<>();
 
@@ -54,7 +55,7 @@ public class GenericConfigUtil {
                     identifiersTemplatePath, e.getLocalizedMessage());
             ClassLoader classLoader = getClass().getClassLoader();
             try {
-                File file = new File(classLoader.getResource("IdentifiersTemplate.config").getFile());
+                File file = new File(classLoader.getResource("IdentifiersTemplate.env").getFile());
                 content = new String(Files.readAllBytes(file.toPath()));
             } catch (IOException | NullPointerException ex) {
                 log.error("Identifier config could not be read due to: {}", ex.getLocalizedMessage());
@@ -62,16 +63,30 @@ public class GenericConfigUtil {
             }
         }
 
-        // Naive string representation support, might need rethinking at some point.
-        String[] nodes = propertyMap.getOrDefault(Property.Name.NODE_ID, ";").split(";");
+        Map<Integer, String> clientGroupIds = new HashMap<>();
+        Map<Integer, String> nodeIds = new HashMap<>();
 
-        for (String node : nodes) {
-            var localContent = content.replace("$NODEID", node.split(":")[1]);
-            localContent = localContent.replace("$CLIENTGROUPID",
-                    propertyMap.getOrDefault(Property.Name.CLIENT_GROUP_ID, node.split(":")[1]));
+        nodeProperties.stream().forEach(nodeProperty -> {
+            switch (nodeProperty.getName()) {
+                case CLIENT_GROUP_ID:
+                    clientGroupIds.putAll(nodeProperty.getValueMap());
+                    break;
+                case NODE_ID:
+                    nodeIds.putAll(nodeProperty.getValueMap());
+                    break;
+                default:
+                    log.debug("property {} not relevant for generic", nodeProperty.getName());
+            }
+        });
 
-            configMap.put(Integer.valueOf(node.split(":")[0]), localContent);
-        }
+        String finalContent = content;
+        nodeIds.forEach((node, value) -> {
+            var localContent = finalContent
+                    .replace("$NODEID", value.toString())
+                    .replace("$CLIENTGROUPID", clientGroupIds.getOrDefault(node, value));
+            configMap.put(node, localContent);
+        });
+
         return configMap;
     }
 
