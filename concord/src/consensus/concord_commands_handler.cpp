@@ -32,7 +32,7 @@ ConcordCommandsHandler::ConcordCommandsHandler(
     const concord::storage::blockchain::ILocalKeyValueStorageReadOnly &storage,
     concord::storage::blockchain::IBlocksAppender &appender,
     concord::thin_replica::SubBufferList &subscriber_list,
-    std::shared_ptr<concord::utils::PrometheusRegistry> prometheus_registry)
+    std::shared_ptr<concord::utils::IPrometheusRegistry> prometheus_registry)
     : logger_(log4cplus::Logger::getInstance(
           "concord.consensus.ConcordCommandsHandler")),
       metadata_storage_(storage),
@@ -291,7 +291,7 @@ bool ConcordCommandsHandler::HasPreExecutionConflicts(
   // pessimistically assume there is a conflict
   bool has_conflict = true;
   for (const auto &k : read_set.keys()) {
-    const Sliver key{k.c_str(), k.size()};
+    const Sliver key{std::string{k}};
     storage_.mayHaveConflictBetween(key, read_set_version + 1, current_block_id,
                                     has_conflict);
     if (has_conflict) {
