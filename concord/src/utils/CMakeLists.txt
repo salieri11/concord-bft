@@ -7,7 +7,7 @@ add_library(concord_utils STATIC
 )
 target_link_libraries(concord_utils secp256k1 util prometheus-cpp::core
         prometheus-cpp::pull yaml-cpp)
-    target_include_directories(concord_utils PUBLIC ${CRYPTOPP_INCLUDE_DIRS})
+target_include_directories(concord_utils PUBLIC ${Cryptopp_INCLUDE_DIRS})
 
 install (FILES utils.hpp rlp.hpp concord_eth_hash.hpp concord_eth_sign.hpp
   DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")

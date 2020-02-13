@@ -21,10 +21,10 @@ using namespace log4cplus;
 using com::vmware::concord::HlfRequest;
 using concord::hlf::ChaincodeInvoker;
 using concord::storage::IDBClient;
-using concord::storage::blockchain::DBKeyComparator;
 using concord::storage::blockchain::IBlocksAppender;
 using concord::storage::blockchain::ILocalKeyValueStorageReadOnly;
 using concord::storage::blockchain::ILocalKeyValueStorageReadOnlyIterator;
+using concord::storage::blockchain::KeyManipulator;
 using concord::storage::memorydb::Client;
 using concord::storage::memorydb::KeyComparator;
 using concordUtils::BlockId;
@@ -45,7 +45,7 @@ Logger* logger = nullptr;
 class TestStorage : public ILocalKeyValueStorageReadOnly,
                     public IBlocksAppender {
  private:
-  KeyComparator comp = KeyComparator(new DBKeyComparator());
+  KeyComparator comp = KeyComparator(new KeyManipulator());
   Client db_ = Client(comp);
 
  public:

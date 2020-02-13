@@ -13,9 +13,6 @@ FROM athena-docker-local.artifactory.eng.vmware.com/concord-core:prereqs-v16
 ## Remember context is the parent of this directory
 COPY ./communication /communication
 
-## Patch for gtest backward compatibility until conan is supported
-RUN make -C /googletest/_build install
-
 ## Copy the blockchain repo .git directory so submodules can run git commands
 ## While this is somewhat dirty it makes the relative path in
 ## concord/submodule/concord-bft/.git work. Alternatively, we could change all
@@ -27,7 +24,7 @@ COPY .git /.git
 WORKDIR /concord
 COPY ./concord /concord
 WORKDIR /concord/build
-RUN cmake -DCMAKE_C_COMPILER=/usr/bin/clang-7 -DCMAKE_CXX_COMPILER=/usr/bin/clang++-7 -DCMAKE_CXX_FLAGS="-march=x86-64 -mtune=generic" -DUSE_CONAN=OFF .. && CTEST_OUTPUT_ON_FAILURE=true make -j$(nproc) all test
+RUN cmake -DCMAKE_C_COMPILER=/usr/bin/clang-7 -DCMAKE_CXX_COMPILER=/usr/bin/clang++-7 -DCMAKE_CXX_FLAGS="-march=x86-64 -mtune=generic" .. && CTEST_OUTPUT_ON_FAILURE=true make -j$(nproc) all test
 
 ## Base Run image
 FROM ubuntu:18.04

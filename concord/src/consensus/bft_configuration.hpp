@@ -244,7 +244,6 @@ inline bool initializeSBFTConfiguration(
         config.getValue<uint16_t>("status_time_interval");
     repConf->concurrencyLevel = config.getValue<uint16_t>("concurrency_level");
 
-    repConf->numReplicas = numOfReplicas;
     repConf->replicaId = selfNumber;
     repConf->fVal = maxFaulty;
     repConf->cVal = maxSlow;

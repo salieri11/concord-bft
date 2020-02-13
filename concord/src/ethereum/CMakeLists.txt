@@ -9,7 +9,7 @@ target_link_libraries(concord_ethereum PUBLIC
   LLVMSupport
   proto
   secp256k1
-  ${CRYPTOPP_LIBRARIES})
+  ${Cryptopp_LIBRARIES})
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/..)
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/..)
