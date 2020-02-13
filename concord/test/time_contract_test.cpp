@@ -28,10 +28,11 @@ using com::vmware::concord::kvb::Time;
 using concord::config::ConcordConfiguration;
 using concord::config::ConfigurationPath;
 using concord::storage::IDBClient;
+using concord::storage::blockchain::DBKeyComparator;
+using concord::storage::blockchain::DBKeyManipulator;
 using concord::storage::blockchain::IBlocksAppender;
 using concord::storage::blockchain::ILocalKeyValueStorageReadOnly;
 using concord::storage::blockchain::ILocalKeyValueStorageReadOnlyIterator;
-using concord::storage::blockchain::KeyManipulator;
 using concord::storage::memorydb::Client;
 using concord::storage::memorydb::KeyComparator;
 using concord::time::ClientProxyIDTimeVerifier;
@@ -58,7 +59,7 @@ namespace {
 class TestStorage : public ILocalKeyValueStorageReadOnly,
                     public IBlocksAppender {
  private:
-  KeyComparator comp = KeyComparator(new KeyManipulator());
+  KeyComparator comp = KeyComparator(new DBKeyComparator());
   Client db_ = Client(comp);
 
  public:
@@ -70,10 +71,7 @@ class TestStorage : public ILocalKeyValueStorageReadOnly,
   Status get(BlockId readVersion, const Sliver& key, Sliver& outValue,
              BlockId& outBlock) const override {
     outBlock = 0;
-    // KeyManipulator::genDataDbKey is non-const, but this function must be
-    // const. Work around by creating a local manipulator.
-    KeyManipulator internalManip;
-    return db_.get(internalManip.genDataDbKey(key, 0), outValue);
+    return db_.get(DBKeyManipulator::genDataDbKey(key, 0), outValue);
   }
 
   BlockId getLastBlock() const override { return 0; }
@@ -110,8 +108,8 @@ class TestStorage : public ILocalKeyValueStorageReadOnly,
   Status addBlock(const SetOfKeyValuePairs& updates,
                   BlockId& outBlockId) override {
     for (auto u : updates) {
-      KeyManipulator internalManip;
-      Status status = db_.put(internalManip.genDataDbKey(u.first, 0), u.second);
+      Status status =
+          db_.put(DBKeyManipulator::genDataDbKey(u.first, 0), u.second);
       if (!status.isOK()) {
         return status;
       }
