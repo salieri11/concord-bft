@@ -70,7 +70,7 @@ else(DEFINED USE_HERA)
   find_package(LLVM REQUIRED CONFIG)
 endif(DEFINED USE_HERA)
 
-find_package(Cryptopp REQUIRED)
+find_package(cryptopp REQUIRED)
 
 find_package(yaml-cpp REQUIRED)
 include_directories(${yaml-cpp_INCLUDE_DIRS})

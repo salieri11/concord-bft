@@ -68,8 +68,7 @@ class TestStorage : public ILocalKeyValueStorageReadOnly,
   Status get(BlockId readVersion, const Sliver& key, Sliver& outValue,
              BlockId& outBlock) const override {
     outBlock = readVersion;
-    KeyManipulator internalManip;
-    return db_.get(internalManip.genDataDbKey(key, readVersion), outValue);
+    return db_.get(DBKeyManipulator::genDataDbKey(key, readVersion), outValue);
   }
 
   BlockId getLastBlock() const override { return blockId_; }
@@ -108,10 +107,9 @@ class TestStorage : public ILocalKeyValueStorageReadOnly,
   Status addBlock(const SetOfKeyValuePairs& updates,
                   BlockId& outBlockId) override {
     outBlockId = ++blockId_;
-    KeyManipulator internalManip;
     for (const auto& u : updates) {
       const auto status =
-          db_.put(internalManip.genDataDbKey(u.first, blockId_), u.second);
+          db_.put(DBKeyManipulator::genDataDbKey(u.first, blockId_), u.second);
       if (!status.isOK()) {
         return status;
       }
@@ -122,7 +120,7 @@ class TestStorage : public ILocalKeyValueStorageReadOnly,
   void setBlockId(BlockId id) { blockId_ = id; }
 
  private:
-  KeyComparator comp{new KeyManipulator{}};
+  KeyComparator comp{new DBKeyComparator{}};
   Client db_{comp};
   BlockId blockId_{LAST_BLOCK_ID};
 };
