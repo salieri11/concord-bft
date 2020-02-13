@@ -70,7 +70,6 @@ TEST(daml_test, successful_commit_creates_block) {
   EXPECT_CALL(ro_storage, getLastBlock()).WillRepeatedly(Return(last_block_id));
 
   SubBufferList subscriber_list{};
-  BlockingPersistentQueue<da_kvbc::CommittedTx> committedTxs{};
 
   const auto replicas = 4;
   const auto client_proxies = 4;
@@ -89,7 +88,6 @@ TEST(daml_test, successful_commit_creates_block) {
                                                GetNodeConfig(config, 1),
                                                ro_storage,
                                                blocks_appender,
-                                               committedTxs,
                                                subscriber_list,
                                                std::move(daml_validator_client),
                                                prometheus_registry};
@@ -122,7 +120,6 @@ TEST(daml_test, pre_execute_commit_no_new_block) {
   EXPECT_CALL(ro_storage, getLastBlock()).WillRepeatedly(Return(last_block_id));
 
   SubBufferList subscriber_list{};
-  BlockingPersistentQueue<da_kvbc::CommittedTx> committedTxs{};
 
   const auto replicas = 4;
   const auto client_proxies = 4;
@@ -139,7 +136,6 @@ TEST(daml_test, pre_execute_commit_no_new_block) {
                                                GetNodeConfig(config, 1),
                                                ro_storage,
                                                blocks_appender,
-                                               committedTxs,
                                                subscriber_list,
                                                std::move(daml_validator_client),
                                                prometheus_registry};
@@ -179,7 +175,6 @@ TEST(daml_test, valid_pre_execution_creates_block) {
       .WillRepeatedly(DoAll(SetArgReferee<3>(false), Return(Status::OK())));
 
   SubBufferList subscriber_list{};
-  BlockingPersistentQueue<da_kvbc::CommittedTx> committedTxs{};
 
   const auto replicas = 4;
   const auto client_proxies = 4;
@@ -198,7 +193,6 @@ TEST(daml_test, valid_pre_execution_creates_block) {
                                                GetNodeConfig(config, 1),
                                                ro_storage,
                                                blocks_appender,
-                                               committedTxs,
                                                subscriber_list,
                                                std::move(daml_validator_client),
                                                prometheus_registry};
@@ -232,7 +226,6 @@ TEST(daml_test, conflicting_pre_execution_no_block) {
       .WillRepeatedly(DoAll(SetArgReferee<3>(true), Return(Status::OK())));
 
   SubBufferList subscriber_list{};
-  BlockingPersistentQueue<da_kvbc::CommittedTx> committedTxs{};
 
   const auto replicas = 4;
   const auto client_proxies = 4;
@@ -249,7 +242,6 @@ TEST(daml_test, conflicting_pre_execution_no_block) {
                                                GetNodeConfig(config, 1),
                                                ro_storage,
                                                blocks_appender,
-                                               committedTxs,
                                                subscriber_list,
                                                std::move(daml_validator_client),
                                                prometheus_registry};
