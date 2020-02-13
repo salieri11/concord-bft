@@ -8,7 +8,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.util.LinkedHashMap;
@@ -174,84 +173,6 @@ public class OrganizationContollerTest {
         Map<String, String> properties = new LinkedHashMap<>();
         properties.put("Test", "wow");
         Assertions.assertEquals(properties, res.organizationProperties);
-    }
-
-    @Test
-    void createOrg() throws Exception {
-        String content = String.format("    {"
-                + "        \"organization_name\": \"Acme Inc.\","
-                + "        \"organization_properties\": {"
-                + "                                         \"hello\" : \"world\""
-                + "                                     }"
-                + "    }");
-
-        MvcResult result = mockMvc.perform(post("/api/organizations")
-                .contentType(MediaType.APPLICATION_JSON).content(content))
-                .andExpect(status().isOk()).andReturn();
-
-        String body = result.getResponse().getContentAsString();
-
-        OrgGetResponse res = objectMapper.readValue(body, OrgGetResponse.class);
-
-        Assertions.assertEquals("Acme Inc.", res.organizationName);
-    }
-
-    @Test
-    void createOrgWithoutName() throws Exception {
-        String content = String.format("    {"
-                + "        \"organization_name\": null,"
-                + "        \"organization_properties\": {"
-                + "                                         \"hello\" : \"world\""
-                + "                                     }"
-                + "    }");
-
-        MvcResult result = mockMvc.perform(post("/api/organizations")
-                .contentType(MediaType.APPLICATION_JSON).content(content))
-                .andExpect(status().isOk()).andReturn();
-
-        String body = result.getResponse().getContentAsString();
-
-        OrgGetResponse res = objectMapper.readValue(body, OrgGetResponse.class);
-
-        Assertions.assertEquals(null, res.organizationName);
-    }
-
-    @Test
-    void createOrgWithoutProperties() throws Exception {
-        String content = String.format("    {"
-                + "        \"organization_name\": \"Acme Inc.\","
-                + "        \"organization_properties\": null"
-                + "    }");
-
-        MvcResult result = mockMvc.perform(post("/api/organizations")
-                .contentType(MediaType.APPLICATION_JSON).content(content))
-                .andExpect(status().isOk()).andReturn();
-
-        String body = result.getResponse().getContentAsString();
-
-        OrgGetResponse res = objectMapper.readValue(body, OrgGetResponse.class);
-
-        Assertions.assertEquals("Acme Inc.", res.organizationName);
-        Assertions.assertEquals(null, res.organizationProperties);
-    }
-
-    @Test
-    void createOrgWithoutNameAndProperties() throws Exception {
-        String content = String.format("    {"
-                + "        \"organization_name\": null,"
-                + "        \"organization_properties\": null"
-                + "    }");
-
-        MvcResult result = mockMvc.perform(post("/api/organizations")
-                .contentType(MediaType.APPLICATION_JSON).content(content))
-                .andExpect(status().isOk()).andReturn();
-
-        String body = result.getResponse().getContentAsString();
-
-        OrgGetResponse res = objectMapper.readValue(body, OrgGetResponse.class);
-
-        Assertions.assertEquals(null, res.organizationName);
-        Assertions.assertEquals(null, res.organizationProperties);
     }
 
     @Test
