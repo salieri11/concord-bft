@@ -21,6 +21,7 @@
 # * <repo-url>/daml-ledger-api-test-tool:100.13.41
 # * <repo-url>/daml-ledger-api-test-tool:100.13.42
 # * <repo-url>/daml-ledger-api-test-tool:100.13.46
+# * <repo-url>/daml-ledger-api-test-tool:100.13.52
 
 FROM maven:3.6.2-jdk-8-slim
 
