@@ -17,7 +17,7 @@
 
 using namespace std;
 using concord::storage::blockchain::DBAdapter;
-using concord::storage::blockchain::DBKeyComparator;
+using concord::storage::blockchain::KeyManipulator;
 using concord::storage::rocksdb::Client;
 using concord::storage::rocksdb::KeyComparator;
 using concordUtils::BlockId;
@@ -142,10 +142,10 @@ int main(int argc, char **argv) {
     readOnly = true;
   }
 
-  std::unique_ptr<DBKeyComparator> manip(new DBKeyComparator());
+  std::unique_ptr<KeyManipulator> manip(new KeyManipulator());
   std::unique_ptr<KeyComparator> comp(new KeyComparator(manip.get()));
-  std::shared_ptr<Client> client(new Client(path, comp.get()));
-  std::unique_ptr<DBAdapter> adapter(new DBAdapter(client, readOnly));
+  std::unique_ptr<Client> client(new Client(path, comp.get()));
+  std::unique_ptr<DBAdapter> adapter(new DBAdapter(client.get(), readOnly));
 
   switch (opTypes[op]) {
     case OpType::GetBlockDigest: {

@@ -43,7 +43,7 @@ target_link_libraries(SignTests
   pthread
   log4cplus
   secp256k1
-  ${CRYPTOPP_LIBRARIES})
+  ${Cryptopp_LIBRARIES})
 
 add_executable(ConfigTests
   config_test.cpp
