@@ -1852,42 +1852,6 @@ paths:
                       type: string
                       format: string
                       description: Name of organization
-    post:
-      deprecated: true
-      tags:
-        - deprecated
-      summary: Creates a new organization
-      operationId: organizationPost
-      requestBody:
-        description: New organization POST request body
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - organization_name
-              properties:
-                organization_name:
-                  type: string
-                  format: string
-                  description: Name of organization
-        required: true
-      responses:
-        200:
-          description: Returns the organization ID and Name
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  org_id:
-                    type: string
-                    format: uuid
-                    description: Organization ID
-                  OrganizationName:
-                    type: string
-                    format: string
-                    description: Organization Name
   /organizations/{org_id}:
     summary: GetOrganization_byid
     get:

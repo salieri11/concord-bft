@@ -41,10 +41,11 @@ public class OrganizationContoller {
     }
 
     @Data
-    static class OrgPostBody {
+    static class OrgPatchBody {
         String organizationName;
         Map<String, String> organizationProperties;
     }
+
 
     @Autowired
     public OrganizationContoller(OrganizationService orgService) {
@@ -78,29 +79,14 @@ public class OrganizationContoller {
     }
 
     /**
-     * Creates a new organization.
-     * Note.  Using CSP is this is not valid.
-     * @param body request body with org name
-     * @return the new org
-     */
-    @RequestMapping(path = "/api/organizations", method = RequestMethod.POST)
-    @PreAuthorize("@authHelper.isSystemAdmin()")
-    public ResponseEntity<OrgGetResponse> createOrg(@RequestBody OrgPostBody body) throws Exception {
-        Organization org = new Organization(body.getOrganizationName());
-        org.setOrganizationProperties(body.getOrganizationProperties());
-        org = orgService.put(org);
-        return new ResponseEntity<>(new OrgGetResponse(org.getId(), org.getOrganizationName(),
-                org.getOrganizationProperties()), HttpStatus.OK);
-    }
-
-    /**
      * Updates an organization.
      * @param body request body with org name
      * @return the new org
      */
     @RequestMapping(path = "/api/organizations/{org_id}", method = RequestMethod.PATCH)
     @PreAuthorize("@authHelper.canUpdateOrg(#orgId)")
-    public ResponseEntity<OrgGetResponse> updateOrg(@PathVariable("org_id") UUID orgId, @RequestBody OrgPostBody body) {
+    public ResponseEntity<OrgGetResponse> updateOrg(@PathVariable("org_id") UUID orgId,
+                                                    @RequestBody OrgPatchBody body) {
         Organization org = orgService.get(orgId);
         if (body.getOrganizationName() != null) {
             org.setOrganizationName(body.getOrganizationName());
