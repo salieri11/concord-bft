@@ -117,6 +117,7 @@ bool DamlKvbCommandsHandler::ExecuteCommit(
     TimeContract* time, opentracing::Span& parent_span,
     ConcordResponse& concord_response) {
   LOG4CPLUS_DEBUG(logger_, "Handle DAML commit command");
+  bool pre_execute = flags & bftEngine::MsgFlag::PRE_PROCESS_FLAG;
   bool has_pre_executed = flags & bftEngine::MsgFlag::HAS_PRE_PROCESSED_FLAG;
 
   BlockId current_block_id = storage_.getLastBlock();
@@ -215,7 +216,7 @@ bool DamlKvbCommandsHandler::ExecuteCommit(
                                 CreateDamlKvbValue(kv.value(), trids)));
   }
 
-  if (has_pre_executed) {
+  if (pre_execute) {
     auto* pre_execution_result =
         concord_response.mutable_pre_execution_result();
 
