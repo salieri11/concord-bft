@@ -10,6 +10,10 @@
 
 ## Build image
 FROM athena-docker-local.artifactory.eng.vmware.com/concord-core:prereqs-v16
+
+## Install gtest - patch for backward compatibility until conan is supported
+RUN make -C /googletest/_build install
+
 ## Remember context is the parent of this directory
 COPY ./communication /communication
 
@@ -24,7 +28,7 @@ COPY .git /.git
 WORKDIR /concord
 COPY ./concord /concord
 WORKDIR /concord/build
-RUN cmake -DCMAKE_C_COMPILER=/usr/bin/clang-7 -DCMAKE_CXX_COMPILER=/usr/bin/clang++-7 -DCMAKE_CXX_FLAGS="-march=x86-64 -mtune=generic" .. && CTEST_OUTPUT_ON_FAILURE=true make -j$(nproc) all test
+RUN cmake -DCMAKE_C_COMPILER=/usr/bin/clang-7 -DCMAKE_CXX_COMPILER=/usr/bin/clang++-7 -DCMAKE_CXX_FLAGS="-march=x86-64 -mtune=generic" -DUSE_CONAN=OFF .. && CTEST_OUTPUT_ON_FAILURE=true make -j$(nproc) all test
 
 ## Base Run image
 FROM ubuntu:18.04

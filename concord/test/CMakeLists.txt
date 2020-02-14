@@ -26,11 +26,10 @@ add_executable(UtilsTests
 configure_file(resources/genesis.json resources/genesis.json COPYONLY)
 
 target_link_libraries(UtilsTests
-  ${GTEST_LIBRARIES}
+  ${GTEST_LIBRARY}
   concord_utils
-  gtest
-  gtest_main
-  pthread)
+  pthread
+  ${CRYPTOPP_LIBRARIES})
 
 add_executable(SignTests
   signature_test.cpp)
@@ -38,12 +37,10 @@ add_executable(SignTests
 target_link_libraries(SignTests
   ${GTEST_LIBRARY}
   concord_utils
-  gtest
-  gtest_main
   pthread
   log4cplus
   secp256k1
-  ${Cryptopp_LIBRARIES})
+  ${CRYPTOPP_LIBRARIES})
 
 add_executable(ConfigTests
   config_test.cpp
@@ -161,8 +158,6 @@ get_property(thresh_include GLOBAL PROPERTY thresh_include_folder)
 target_include_directories(ExternalClientTest PRIVATE ${thresh_include})
 
 target_link_libraries(ExternalClientTest
-  ${GTEST_LIBRARIES}
-  gtest
-  gtest_main
+  ${GTEST_LIBRARY}
   concord_external_client
   $<TARGET_OBJECTS:logging_dev>)
