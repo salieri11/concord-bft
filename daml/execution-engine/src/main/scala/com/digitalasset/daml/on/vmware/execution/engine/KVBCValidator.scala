@@ -7,7 +7,6 @@ import com.daml.ledger.participant.state.kvutils.{DamlKvutils => KV, _}
 import com.daml.ledger.participant.state.v1.{Configuration, ParticipantId, TimeModel}
 import com.digitalasset.daml.lf.data.{Ref, Time}
 import com.digitalasset.daml.lf.engine.Engine
-import com.digitalasset.kvbc.daml_data._
 import com.digitalasset.kvbc.daml_validator._
 import com.digitalasset.ledger.api.health.{HealthStatus, Healthy, ReportsHealth}
 import com.github.blemale.scaffeine.{Cache, Scaffeine}
@@ -18,6 +17,10 @@ import org.slf4j.LoggerFactory
 import scala.collection.JavaConverters._
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
+import com.digitalasset.daml.on.vmware.common.Constants
+
+import com.daml.ledger.participant.state.pkvutils.Fragmenter
+import com.daml.ledger.participant.state.pkvutils
 
 class KVBCValidator(registry: MetricRegistry)(implicit ec: ExecutionContext)
     extends ValidationServiceGrpc.ValidationService
@@ -126,7 +129,7 @@ class KVBCValidator(registry: MetricRegistry)(implicit ec: ExecutionContext)
     val providedInputs: StateInputs =
       request.inputState.map { kv =>
         val key =
-          KeyValueCommitting.unpackDamlStateKey(kv.key)
+          KeyValueCommitting.unpackDamlStateKey(kv.key.substring(1))
 
         key ->
           (if (kv.value.isEmpty)
@@ -190,7 +193,7 @@ class KVBCValidator(registry: MetricRegistry)(implicit ec: ExecutionContext)
     // process the submission.
     val missingInputs =
       (allInputs -- cachedInputs.keySet)
-        .map(KeyValueCommitting.packDamlStateKey)
+        .map(packStateKey)
         .toSeq
     Metrics.missingInputs.update(missingInputs.size)
 
@@ -211,15 +214,22 @@ class KVBCValidator(registry: MetricRegistry)(implicit ec: ExecutionContext)
     }
   }
 
+  private def packStateKey(key: KV.DamlStateKey): ByteString =
+    Constants.stateKeyPrefix.concat(KeyValueCommitting.packDamlStateKey(key))
+
+  private def packFragmentKey(key: pkvutils.protobuf.LogEntryFragmentKey): ByteString =
+    Constants.fragmentKeyPrefix.concat(key.toByteString)
+
   private def processPendingSubmission(replicaId: ReplicaId, pendingSubmission: PendingSubmission, correlationId: String): Result = {
     val submission = pendingSubmission.submission
     val allInputs: Set[KV.DamlStateKey] = submission.getInputDamlStateList.asScala.toSet
     assert((allInputs -- pendingSubmission.inputState.keySet).isEmpty)
+    val entryId = KV.DamlLogEntryId.newBuilder.setEntryId(pendingSubmission.entryId).build
 
     val (logEntry, stateUpdates) = KeyValueCommitting.processSubmission(
       engine = engine,
-      entryId = KV.DamlLogEntryId.newBuilder.setEntryId(pendingSubmission.entryId).build,
       recordTime = pendingSubmission.recordTime,
+      entryId = entryId,
       defaultConfig = defaultConfig,
       submission = submission,
       participantId = pendingSubmission.participantId,
@@ -227,13 +237,24 @@ class KVBCValidator(registry: MetricRegistry)(implicit ec: ExecutionContext)
 
     stateUpdates.foreach { case(k, v) => cache.put(replicaId -> k, v) }
 
+    val fragments = Fragmenter.logEntryToFragments(
+      entryId,
+      logEntry,
+      pendingSubmission.participantId,
+      pendingSubmission.inputState.collect {
+        case (k, Some(v)) => k -> v
+      },
+      stateUpdates)
+
     val result = Metrics.envelopeCloseTimer.time { () =>
       val outKeyPairs = stateUpdates
         .toArray
         .map { case (k, v) =>
-          KeyValuePair(
-            KeyValueCommitting.packDamlStateKey(k),
-            Envelope.enclose(v)
+          ProtectedKeyValuePair(
+            packStateKey(k),
+            Envelope.enclose(v),
+            Seq("dummy-replica-id"), // only readable by the replica
+            // FIXME(JM): ^ what to put here?
           )
         }
         // NOTE(JM): Since kvutils (still) uses 'Map' the results end up
@@ -241,12 +262,26 @@ class KVBCValidator(registry: MetricRegistry)(implicit ec: ExecutionContext)
         .sortBy(_.key.toByteArray.toIterable)
 
       Result(
-        Envelope.enclose(logEntry),
-        outKeyPairs,
+        fragments.map { kv =>
+          ProtectedKeyValuePair(
+            packFragmentKey(kv.key),
+            kv.value.toByteString,
+            if (kv.acl.hasPublic) {
+              Seq.empty
+            } else {
+              val ps = kv.acl.getProtected.getParticipantIdList.asScala
+              if (ps.isEmpty) {
+                Seq("dummy-replica-id")
+              } else {
+                ps
+              }
+            }
+          )
+        } ++ outKeyPairs,
         allInputs.toSeq.map(_.toByteString)
       )
     }
-    Metrics.outputSizes.update(result.logEntry.size())
+    Metrics.outputSizes.update(result.serializedSize)
 
     logger.info(s"Submission validated, correlationId=$correlationId participantId=${pendingSubmission.participantId} " +
       s"entryId=${pendingSubmission.entryId.toStringUtf8} inputStates=${pendingSubmission.inputState.size} stateUpdates=${stateUpdates.size} " +

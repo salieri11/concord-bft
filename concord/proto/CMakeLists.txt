@@ -5,8 +5,6 @@ set(PROTOBUF_IMPORT_DIRS ${COMMUNICATION_PATH}/src/main/proto/)
 
 set(DAML_PROTO
   daml_commit.proto
-  daml_data.proto
-  daml_events.proto
   daml_validator.proto
 )
 

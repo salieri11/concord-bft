@@ -70,8 +70,8 @@ def get_newest_block_id(thin_replica):
 
 def test_basic_read_state(fxProduct, setup_test_suite):
     """Basic read state
-    We uploaded a DAR, hence there must be at least two kv pairs on the
-    blockchain. One is the package, the other the transaction itself.
+    We uploaded a DAR, hence we should be able to read the log entry
+    fragment.
     """
     tr = setup_test_suite
     data_stream = tr.read_state()
@@ -79,7 +79,7 @@ def test_basic_read_state(fxProduct, setup_test_suite):
     for resp in data_stream:
         size += len(resp.data)
 
-    assert size >= 2
+    assert size >= 1
 
 def test_read_state_key_prefix(fxProduct, setup_test_suite):
     """Make sure we can filter by key_prefix

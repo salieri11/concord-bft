@@ -14,8 +14,6 @@ import com.digitalasset.daml.lf.data.Time.Timestamp
 import com.digitalasset.daml_lf_dev.DamlLf.Archive
 import com.digitalasset.grpc.adapter.AkkaExecutionSequencerPool
 import com.digitalasset.kvbc.daml_commit._
-import com.digitalasset.kvbc.daml_data.ReadTransactionRequest
-import com.digitalasset.kvbc.daml_events.CommittedTx
 import com.digitalasset.ledger.api.health.{HealthStatus, Healthy}
 import com.digitalasset.ledger.api.domain.PartyDetails
 
@@ -33,13 +31,17 @@ import java.util.concurrent.{CompletionStage, CompletableFuture, CompletionExcep
 import java.util.UUID
 import io.grpc.{ConnectivityState, StatusRuntimeException, Status}
 
+import com.daml.ledger.participant.state.pkvutils.Defragmenter
+
+import com.daml.ledger.participant.state.pkvutils.protobuf
+
 /**
  * DAML Participant State implementation on top of VMware Blockchain.
  */
 @SuppressWarnings(
   Array(
     "org.wartremover.warts.EitherProjectionPartial",
-        "org.wartremover.warts.OptionPartial",
+    "org.wartremover.warts.OptionPartial",
     "org.wartremover.warts.Var"
   ))
 class KVBCParticipantState(
@@ -224,80 +226,6 @@ class KVBCParticipantState(
   override def currentHealth: HealthStatus = client.currentHealth
 
   override def stateUpdates(beginAfter: Option[Offset]): Source[(Offset, Update), NotUsed] = {
-    if(trc.isDefined)
-      stateUpdatesTRC(beginAfter)
-    else
-      stateUpdatesLegacy(beginAfter)
-  }
-
-  private def stateUpdatesLegacy(beginAfter: Option[Offset]): Source[(Offset, Update), NotUsed] = {
-    val beginFromBlockId: Long =
-      beginAfter
-        .flatMap(_.components.headOption)
-        .getOrElse(beginning)
-
-    logger.info(s"Initializing transaction source, offset=${beginFromBlockId}")
-
-    client
-      .committedTxs(beginFromBlockId)
-      .flatMapConcat { committedTx =>
-        logger.trace(s"Reading transaction, correlationId=${committedTx.correlationId}")
-
-        readTransaction(committedTx)
-          .filter {
-            case (offset, _) =>
-              if (beginAfter.isDefined)
-                offset > beginAfter.get
-              else true
-          }
-          .alsoTo(Sink.onComplete {
-            case Success(Done) =>
-              logger.info(s"Transaction read successful, correlationId=${committedTx.correlationId}");
-            case Failure(e) =>
-              logger.info(s"Transaction read failed, correlationId=${committedTx.correlationId} error='$e'")
-        })
-      }
-  }
-
-  private def readTransaction(committedTx: CommittedTx): Source[(Offset,Update),NotUsed] = {
-    Source.fromFuture(
-      client
-        .readKeys(
-          ReadTransactionRequest(
-            keys = List(committedTx.transactionId),
-            blockId = committedTx.blockId
-          ))
-        .map { resp =>
-          try {
-            val logEntry =
-              Envelope.open(resp.results.head.value) match {
-                case Right(Envelope.LogEntryMessage(logEntry)) =>
-                  logEntry
-                case _ =>
-                  sys.error(s"Envelope did not contain log entry")
-              }
-
-            KeyValueConsumption.logEntryToUpdate(
-              DamlKvutils.DamlLogEntryId.newBuilder.setEntryId(committedTx.transactionId).build,
-              logEntry
-            ).zipWithIndex.map {
-              case (update, idx) =>
-                logger.trace(s"Processing transaction, correlationId=${committedTx.correlationId} " +
-                  s"offset=${committedTx.blockId}:$idx")
-                Offset(Array(committedTx.blockId, idx.toLong)) -> update
-            }
-          } catch {
-            //TODO: Stream breaks here, make sure index can deal with this
-            case e: RuntimeException =>
-              logger.error(s"Processing transaction failed with an exception, correlationId=${committedTx.correlationId} " +
-                s"error='${e.toString}''")
-              sys.error(e.toString)
-          }
-        })
-      .mapConcat(identity) //Source[List[(Offset,Update)]] => Source[(Offset,Update)]
-  }
-
-  private def stateUpdatesTRC(beginAfter: Option[Offset]): Source[(Offset, Update), NotUsed] = {
     val beginFromBlockId: Long =
       beginAfter
         .flatMap(_.components.headOption)
@@ -307,61 +235,46 @@ class KVBCParticipantState(
 
     trc.get
       .committedBlocks(beginFromBlockId)
-      .flatMapConcat { block =>
-        //TODO: Reinstate correlation ids - "correlationId=${committedTx.correlationId}"
-        logger.trace(s"Reading block, offset=${block.blockId}")
-
-        processBlock(block)
-          .filter {
-            case (offset, _) =>
-              if (beginAfter.isDefined)
-                offset > beginAfter.get
-              else true
-          }
-          .alsoTo(Sink.onComplete {
-            case Success(Done) =>
-              //TODO: Reinstate correlation ids - "correlationId=${committedTx.correlationId}"
-              if(!block.kvPairs.isEmpty)
-                logger.info(s"Block read successful, offset=${block.blockId}");
-            case Failure(e) =>
-              //TODO: Reinstate correlation ids - "correlationId=${committedTx.correlationId}"
-              logger.info(s"Block read failed, offset=${block.blockId} error='$e'")
-        })
+      .flatMapConcat(processBlock)
+      .filter {
+        case (offset, _) =>
+          if (beginAfter.isDefined)
+            offset > beginAfter.get
+          else true
       }
   }
 
   private def processBlock(block: TRClient.Block): Source[(Offset,Update),NotUsed] = {
-    Source(block.kvPairs.to[collection.immutable.Seq])
-        // For transaction k/v pairs, key is the entryId
-      .map { 
-        case Tuple2(entryId, value) =>
-          try {
-            val logEntry =
-              Envelope.open(ByteString.copyFrom(value)) match {
-                case Right(Envelope.LogEntryMessage(logEntry)) =>
-                  logEntry
-                case _ =>
-                  sys.error(s"Envelope did not contain log entry")
-              }
+    logger.trace(s"Processing block ${block.blockId}")
 
-            KeyValueConsumption.logEntryToUpdate(
-              DamlKvutils.DamlLogEntryId.newBuilder.setEntryId(ByteString.copyFrom(entryId)).build,
-              logEntry
-            ).zipWithIndex.map {
-              case (update, idx) =>
-                //TODO: Reinstate correlation ids - "correlationId=${committedTx.correlationId}"
-                logger.trace(s"Processing block, offset=${block.blockId}:$idx")
-                Offset(Array(block.blockId, idx.toLong)) -> update
-            }
-          } catch {
-            //TODO: Stream breaks here, make sure index can deal with this
-            case e: RuntimeException =>
-              //TODO: Reinstate correlation ids - "correlationId=${committedTx.correlationId}"
-              logger.error(s"Processing block failed with an exception, offset=${block.blockId} entryId=${entryId} error='${e.toString}'")
-              sys.error(e.toString)
+    try {
+      val fragments =
+        block.kvPairs
+          .to[Array]
+          .map { case Tuple2(prefixedKey, value) =>
+            val fragmentKey =
+              protobuf.LogEntryFragmentKey.parseFrom(prefixedKey.drop(1))
+            val fragment = protobuf.LogEntryFragment.parseFrom(value)
+            fragmentKey -> fragment
           }
-      }
-      .mapConcat(identity) //Source[List[(Offset,Update)]] => Source[(Offset,Update)]
+
+      val updates =
+        Defragmenter
+          .fragmentsToUpdates(fragments)
+          .zipWithIndex.map {
+            case (update, idx) =>
+              //TODO: Reinstate correlation ids - "correlationId=${committedTx.correlationId}"
+              logger.trace(s"Processing block, offset=${block.blockId}:$idx")
+              Offset(Array(block.blockId, idx.toLong)) -> update
+          }
+
+      Source(updates)
+    } catch {
+       case e: RuntimeException =>
+         //TODO: Reinstate correlation ids - "correlationId=${committedTx.correlationId}"
+         logger.error(s"Processing block failed with an exception, offset=${block.blockId} error='${e}'")
+         Source.failed(e)
+     }
   }
 }
 

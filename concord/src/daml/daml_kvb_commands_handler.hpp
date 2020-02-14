@@ -6,12 +6,9 @@
 #include <grpcpp/grpcpp.h>
 #include <opentracing/span.h>
 
-#include "blocking_queue.h"
 #include "concord.pb.h"
 #include "consensus/concord_commands_handler.hpp"
 #include "daml_commit.grpc.pb.h"
-#include "daml_data.grpc.pb.h"
-#include "daml_events.grpc.pb.h"
 #include "daml_validator.grpc.pb.h"
 #include "daml_validator_client.hpp"
 #include "hash_defs.h"
@@ -29,7 +26,6 @@ class DamlKvbCommandsHandler
     : public concord::consensus::ConcordCommandsHandler {
  private:
   log4cplus::Logger logger_;
-  BlockingPersistentQueue<com::digitalasset::kvbc::CommittedTx>& committed_txs_;
   std::unique_ptr<IDamlValidatorClient> validator_client_;
   prometheus::Counter& write_ops_;
   prometheus::Counter& read_ops_;
@@ -40,15 +36,12 @@ class DamlKvbCommandsHandler
       const concord::config::ConcordConfiguration& node_config,
       const concord::storage::blockchain::ILocalKeyValueStorageReadOnly& ros,
       concord::storage::blockchain::IBlocksAppender& ba,
-      BlockingPersistentQueue<com::digitalasset::kvbc::CommittedTx>&
-          committed_txs,
       concord::thin_replica::SubBufferList& subscriber_list,
       std::unique_ptr<IDamlValidatorClient> validator,
       std::shared_ptr<concord::utils::IPrometheusRegistry> prometheus_registry)
       : ConcordCommandsHandler(config, node_config, ros, ba, subscriber_list,
                                prometheus_registry),
         logger_(log4cplus::Logger::getInstance("com.vmware.concord.daml")),
-        committed_txs_(committed_txs),
         validator_client_(std::move(validator)),
         write_ops_{prometheus_registry->createCounter(
             command_handler_counters_, {{"layer", "DamlKvbCommandsHandler"},

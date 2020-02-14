@@ -120,13 +120,12 @@ bool DamlKvbCommandsHandler::ExecuteCommit(
   bool pre_execute = flags & bftEngine::MsgFlag::PRE_PROCESS_FLAG;
   bool has_pre_executed = flags & bftEngine::MsgFlag::HAS_PRE_PROCESSED_FLAG;
 
-  string prefix = "daml";
   BlockId current_block_id = storage_.getLastBlock();
   SetOfKeyValuePairs updates;
 
   // Since we're not batching, lets keep it simple and use the next block id as
   // the DAML log entry id.
-  string entryId = prefix + "/" + std::to_string(current_block_id + 1);
+  string entryId = std::to_string(current_block_id + 1);
 
   google::protobuf::Timestamp record_time;
   if (time) {
@@ -206,17 +205,13 @@ bool DamlKvbCommandsHandler::ExecuteCommit(
     return false;
   }
   auto result = response.has_result() ? response.result() : response2.result();
-  vector<string> trids{};
 
-  // Insert the DAML log entry into the store.
-  auto& logEntry = result.log_entry();
-  updates.insert(KeyValuePair(CreateDamlKvbKey(entryId),
-                              CreateDamlKvbValue(logEntry, trids)));
+  vector<string> no_trids;
 
-  // Insert the DAML state updates into the store.
-  // Currently just using the serialization of the DamlStateKey as the key
-  // without any prefix.
-  for (const auto& kv : result.state_updates()) {
+  // Insert the key-value updates into the store.
+  for (const auto& kv : result.updates()) {
+    const auto& protoTrids = kv.trids();
+    vector<string> trids(protoTrids.begin(), protoTrids.end());
     updates.insert(KeyValuePair(CreateDamlKvbKey(kv.key()),
                                 CreateDamlKvbValue(kv.value(), trids)));
   }
@@ -276,13 +271,6 @@ void DamlKvbCommandsHandler::RecordTransaction(
   concordUtils::Status res = addBlock(updates, new_block_id);
   assert(res.isOK());
   assert(new_block_id == current_block_id + 1);
-
-  // Inform consumers that a transaction has been committed.
-  da_kvbc::CommittedTx commited_tx;
-  commited_tx.set_transaction_id(entryId);
-  commited_tx.set_block_id(new_block_id);
-  commited_tx.set_correlation_id(correlation_id);
-  committed_txs_.push(commited_tx);
 
   commit_response->set_status(da_kvbc::CommitResponse_CommitStatus_OK);
   commit_response->set_block_id(new_block_id);

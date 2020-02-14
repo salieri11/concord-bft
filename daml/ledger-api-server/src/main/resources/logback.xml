@@ -31,7 +31,7 @@
             <appender-ref ref="STDERR"/>
     </logger>
 
-    <root level="INFO">
+    <root level="TRACE">
         <appender-ref ref="STDOUT"/>
         <appender-ref ref="ASYNC"/>
     </root>

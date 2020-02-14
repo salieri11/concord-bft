@@ -14,7 +14,7 @@ log = logging.getLogger(__name__)
 # Read by the fxProduct fixture.
 productType = helper.TYPE_DAML
 
-TEST_TOOL_NAME = "ledger-api-test-tool-100.13.46.jar"
+TEST_TOOL_NAME = "ledger-api-test-tool-100.13.52.jar"
 TEST_DARS = ["SemanticTests.dar", "Test-dev.dar", "Test-stable.dar"]
 TEST_TOOL_CONTAINER = "docker_daml_test_tool_1"
 error_msg = None
@@ -74,6 +74,7 @@ def verify_ledger_api_test_tool(host='ledger', port='6865'):
              " java -jar " + TEST_TOOL_NAME + \
                 " --timeout-scale-factor 20" + \
                 " --command-submission-ttl-scale-factor 20" + \
+                " --no-wait-for-parties" + \
                 " {}:{}".format(host, port)
    log.info("Run %s...", TEST_TOOL_NAME)
    try:

@@ -4,6 +4,7 @@ package com.digitalasset.daml.on.vmware.write.service
 
 import com.digitalasset.daml.on.vmware.thin.replica.client.core.Library
 import com.digitalasset.daml.on.vmware.thin.replica.client.core.Update
+import com.digitalasset.daml.on.vmware.common.Constants
 import org.slf4j.LoggerFactory
 import akka.NotUsed
 import akka.stream.scaladsl.Source
@@ -30,10 +31,11 @@ class TRClient(clientId: String , maxFaulty: Short,
             // If subscription is done for the first time, let the TRC
             // figure out the earliest available offset. After pruning
             // this offset may have quite high value.
+            // TODO(JM): subscribe should take array of bytes
             if (offset > 0)
-              Library.subscribe("daml", offset)
+              Library.subscribe(Constants.fragmentKeyPrefix.toStringUtf8, offset)
             else
-              Library.subscribe("daml")},
+              Library.subscribe(Constants.fragmentKeyPrefix.toStringUtf8)},
           // read
           subsResult => 
             // None return signals end of resource

@@ -3,8 +3,6 @@
 package com.digitalasset.daml.on.vmware.write.service
 
 import com.digitalasset.kvbc.daml_commit._
-import com.digitalasset.kvbc.daml_data._
-import com.digitalasset.kvbc.daml_events._
 import com.digitalasset.grpc.adapter.ExecutionSequencerFactory
 import com.digitalasset.grpc.adapter.client.akka._
 import com.digitalasset.ledger.api.health.{HealthStatus, Healthy, Unhealthy}
@@ -33,8 +31,6 @@ class KVBCClient private(host: String, port: Int) (implicit val ec: ExecutionCon
       .build
 
   val commitClient: CommitServiceGrpc.CommitServiceStub = CommitServiceGrpc.stub(channel)
-  val dataClient: DataServiceGrpc.DataServiceStub = DataServiceGrpc.stub(channel)
-  val eventsClient: EventsServiceGrpc.EventsServiceStub = EventsServiceGrpc.stub(channel)
   def shouldRetry(err: Throwable): Boolean = { 
     err match {
       case sre: StatusRuntimeException if (sre.getStatus.getCode == Status.Code.RESOURCE_EXHAUSTED) => true
@@ -65,27 +61,6 @@ class KVBCClient private(host: String, port: Int) (implicit val ec: ExecutionCon
   //
   def commitTransaction(req: CommitRequest): Future[CommitResponse] =
     backOff(n => commitClient.commitTransaction(req))
-
-  //
-  // Data API
-  //
-  def readKeys(req: ReadTransactionRequest): Future[ReadTransactionResponse] =
-    backOff(n => dataClient.readTransaction(req))
-
-  def getLatestBlockId: Future[BlockId] =
-    backOff(n => dataClient.getLatestBlockId(GetLatestBlockIdRequest()))
-
-  //
-  // Events API
-  //
-
-  def committedTxs(offset: Long)(implicit esf: ExecutionSequencerFactory): Source[CommittedTx, NotUsed] =
-    ClientAdapter
-      .serverStreaming(
-         CommittedTxsRequest(),
-         eventsClient.committedTxs
-      )
-      .dropWhile { committedTx => committedTx.blockId < offset }
 
 }
 

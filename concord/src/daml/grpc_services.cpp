@@ -15,82 +15,20 @@ using com::digitalasset::kvbc::CommitRequest;
 using com::digitalasset::kvbc::CommitResponse;
 using com::digitalasset::kvbc::CommitResponse_CommitStatus;
 using com::digitalasset::kvbc::CommitResponse_CommitStatus_OK;
-using com::digitalasset::kvbc::CommittedTx;
-using com::digitalasset::kvbc::CommittedTxsRequest;
-using com::digitalasset::kvbc::GetLatestBlockIdRequest;
-using com::digitalasset::kvbc::ReadTransactionRequest;
-using com::digitalasset::kvbc::ReadTransactionResponse;
 using com::vmware::concord::ConcordRequest;
 using com::vmware::concord::ConcordResponse;
 using com::vmware::concord::DamlRequest;
 using com::vmware::concord::DamlResponse;
 using grpc::ServerContext;
-using grpc::ServerWriter;
-
-using com::vmware::concord::kvb::ValueWithTrids;
-using concord::consensus::IClient;
-using concord::storage::blockchain::ILocalKeyValueStorageReadOnly;
-using concordUtils::Key;
-using concordUtils::Value;
 
 using namespace std;
 
 namespace concord {
 namespace daml {
 
-grpc::Status DataServiceImpl::GetLatestBlockId(
-    ServerContext* context, const GetLatestBlockIdRequest* request,
-    com::digitalasset::kvbc::BlockId* reply) {
-  reply->set_block_id(ro_storage_->getLastBlock());
-  return grpc::Status::OK;
-}
-
-grpc::Status DataServiceImpl::ReadTransaction(
-    ServerContext* context, const ReadTransactionRequest* request,
-    ReadTransactionResponse* reply) {
-  LOG4CPLUS_DEBUG(logger_, "DataService: ReadTransaction...");
-
-  concordUtils::BlockId readBlockId = request->block_id();
-  if (readBlockId <= 0) {
-    readBlockId = ro_storage_->getLastBlock();
-  }
-
-  for (int i = 0; i < request->keys_size(); i++) {
-    const string& key_str = request->keys(i);
-    Key key = CreateDamlKvbKey(key_str);
-    Value value;
-    concordUtils::BlockId outBlockId;
-    concordUtils::Status status =
-        ro_storage_->get(readBlockId, key, value, outBlockId);
-    if (!status.isOK()) {
-      LOG4CPLUS_ERROR(logger_, "DataService: key '"
-                                   << key_str << "' was not found! " << status);
-      return grpc::Status::CANCELLED;
-    }
-    ValueWithTrids proto;
-    if (!proto.ParseFromArray(value.data(), value.length())) {
-      LOG4CPLUS_ERROR(
-          logger_,
-          "DataService: Couldn't parse ValueWithTrids for key " << key);
-      return grpc::Status::CANCELLED;
-    }
-    if (!proto.has_value()) {
-      LOG4CPLUS_ERROR(
-          logger_,
-          "DataService: No DAML data in ValueWithTrids for key " << key);
-      return grpc::Status::CANCELLED;
-    }
-    com::digitalasset::kvbc::KeyValuePair* kv = reply->add_results();
-    kv->set_key(key_str);
-    kv->set_allocated_value(proto.release_value());
-  }
-  // FIXME(JM): Return block ids of each separate get, or return max block id?
-  reply->set_block_id(readBlockId);
-  return grpc::Status::OK;
-}
-
 grpc::Status CommitServiceImpl::CommitTransaction(ServerContext* context,
                                                   const CommitRequest* request,
+
                                                   CommitResponse* reply) {
   LOG4CPLUS_DEBUG(logger_, "CommitService: Transactions...");
 
@@ -138,26 +76,6 @@ grpc::Status CommitServiceImpl::CommitTransaction(ServerContext* context,
 
   reply->CopyFrom(cmd_reply.commit());
   log4cplus::getMDC().clear();
-  return grpc::Status::OK;
-}
-
-grpc::Status EventsServiceImpl::CommittedTxs(
-    ServerContext* context, const CommittedTxsRequest* request,
-    ServerWriter<CommittedTx>* writer) {
-  LOG4CPLUS_DEBUG(logger_, "EventsService: CommittedTxs...");
-
-  BlockingPersistentQueueReader<CommittedTx> reader =
-      committed_txs_.newReader(0);
-
-  while (1) {
-    CommittedTx committed_tx = reader.pop();
-    LOG4CPLUS_DEBUG(logger_, "KVBCEventsService: Sending event for blockId "
-                                 << committed_tx.block_id());
-
-    if (!writer->Write(committed_tx)) {
-      break;
-    }
-  }
   return grpc::Status::OK;
 }
 
