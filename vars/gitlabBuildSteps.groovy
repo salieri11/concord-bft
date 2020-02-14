@@ -15,6 +15,8 @@ import hudson.util.Secret
 //   "resultsDir": String, defaults to the map key
 //   "performanceVotes": Int, for performance testing
 //   "concordConfigurationInput": String, files to use for concord config generation.
+//   "runWithGenericTests": Boolean, whether to run in a job not named in specialized_tests. Defaults to true.
+//   "runWithToTTests": Boolean, whether to run with ToT runs.  Defaults to true.
 //   "suiteDir": String, directory to cd into (and then out of when done)
 //   "setupFunction": String, name of a function in this file to run before running the suite
 // - Keys have to match the Jenkins job's list of test suites. We can't read them
@@ -31,108 +33,90 @@ import hudson.util.Secret
 // - Move this to another file?
 @Field Map testSuites = [
   "SampleSuite": [
-    "enabled": true,
-    "runWithGenericTests": true
+    "enabled": true
   ],
   "SampleDAppTests": [
-    "enabled": true,
-    "runWithGenericTests": true
+    "enabled": true
   ],
   "CoreVMTests": [
-    "enabled": true,
-    "runWithGenericTests": true
+    "enabled": true
   ],
   "PerformanceTests": [
     "enabled": true,
     "concordConfigurationInput": "/concord/config/dockerConfigurationInput-perftest.yaml",
-    "performanceVotes": 10,
-    "runWithGenericTests": true
+    "performanceVotes": 10
   ],
   "HelenAPITests": [
-    "enabled": true,
-    "runWithGenericTests": true
+    "enabled": true
   ],
   "HelenRoleTests": [
     "enabled": true,
-    "runWithGenericTests": false
+    "runWithGenericTests": false,
+    "runWithToTTests": false
   ],
   "ExtendedRPCTests": [
-    "enabled": true,
-    "runWithGenericTests": true
+    "enabled": true
   ],
   "ExtendedRPCTestsEthrpc": [
     "enabled": true,
-    "baseCommand": 'echo "${PASSWORD}" | sudo -S "${python}" main.py ExtendedRPCTests --ethrpcApiUrl https://localhost/blockchains/local/api/concord/eth',
-    "runWithGenericTests": true
+    "baseCommand": 'echo "${PASSWORD}" | sudo -S "${python}" main.py ExtendedRPCTests --ethrpcApiUrl https://localhost/blockchains/local/api/concord/eth'
   ],
   "RegressionTests": [
-    "enabled": true,
-    "runWithGenericTests": true
+    "enabled": true
   ],
   "DamlTests": [
     "enabled": true,
     "dockerComposeFiles": "../docker/docker-compose-daml.yml",
-    "concordConfigurationInput": "/concord/config/dockerConfigurationInput-daml.yaml",
-    "runWithGenericTests": true
+    "concordConfigurationInput": "/concord/config/dockerConfigurationInput-daml.yaml"
   ],
   "ThinReplicaTests": [
     "enabled": true,
     "dockerComposeFiles": "../docker/docker-compose-daml-nano.yml",
-    "concordConfigurationInput": "/concord/config/dockerConfigurationInput-daml-nano.yaml",
-    "runWithGenericTests": true
+    "concordConfigurationInput": "/concord/config/dockerConfigurationInput-daml-nano.yaml"
   ],
   "SimpleStateTransferTest": [
     "enabled": true,
-    "dockerComposeFiles": "../docker/docker-compose.yml ../docker/docker-compose-static-ips.yml",
-    "runWithGenericTests": true
+    "dockerComposeFiles": "../docker/docker-compose.yml ../docker/docker-compose-static-ips.yml"
   ],
   "ContractCompilerTests": [
-    "enabled": true,
-    "runWithGenericTests": true
+    "enabled": true
   ],
   "MetadataPersistencyTests": [
     "enabled": false,
     "dockerComposeFiles": "../docker/docker-compose.yml ../docker/docker-compose-static-ips.yml",
-    "baseCommand": 'echo "${PASSWORD}" | sudo -S "${python}" main.py MetadataPersistencyTests --ethrpcApiUrl https://localhost:8547/blockchains/local/api/concord/eth',
-    "runWithGenericTests": true
+    "baseCommand": 'echo "${PASSWORD}" | sudo -S "${python}" main.py MetadataPersistencyTests --ethrpcApiUrl https://localhost:8547/blockchains/local/api/concord/eth'
   ],
   "HlfTests": [
     "enabled": false, // RV: Disabled because these repeatedly cause the product to fail to launch in CI/CD.
-    "concordConfigurationInput": "/concord/config/dockerConfigurationInput-hlf.yaml",
-    "runWithGenericTests": true
+    "concordConfigurationInput": "/concord/config/dockerConfigurationInput-hlf.yaml"
   ],
   "TimeTests": [
     "enabled": true,
     "concordConfigurationInput": "/concord/config/dockerConfigurationInput-time_service.yaml",
-    "setupFunction": "enableTimeService",
-    "runWithGenericTests": true
+    "setupFunction": "enableTimeService"
   ],
   "EvilTimeTests": [
     "enabled": true,
     "concordConfigurationInput": "/concord/config/dockerConfigurationInput-time_service.yaml",
-    "setupFunction": "enableTimeService",
-    "runWithGenericTests": true
+    "setupFunction": "enableTimeService"
   ],
   "MemoryLeakTests": [
     "enabled": true,
     "suiteDir": "suites",
     "baseCommand": 'echo "${PASSWORD}" | sudo -SE ./memory_leak_test.sh --testSuite CoreVMTests \
-      --repeatSuiteRun 2 --tests \'vmArithmeticTest/add0.json\'',
-    "runWithGenericTests": true
+      --repeatSuiteRun 2 --tests \'vmArithmeticTest/add0.json\''
   ],
   "UiTests": [
     "enabled": true,
     "setupFunction": "deleteDatabaseFiles",
     "dockerComposeFiles": "../docker/docker-compose.yml ../docker/docker-compose-persephone.yml",
-    "baseCommand": '"${python}" main.py UiTests',
-    "runWithGenericTests": true
+    "baseCommand": '"${python}" main.py UiTests'
   ],
   "HelenDeployToSDDC": [
     "enabled": true,
     "dockerComposeFiles": "../docker/docker-compose.yml ../docker/docker-compose-persephone.yml",
     "baseCommand": 'echo "${PASSWORD}" | sudo -S "${python}" main.py CoreVMTests --blockchainLocation sddc \
-      --tests="-k vmArithmeticTest/add0.json"',
-    "runWithGenericTests": true
+      --tests="-k vmArithmeticTest/add0.json"'
   ]
 ]
 
@@ -663,21 +647,32 @@ EOF
                         // Keep running everything.  We're going to allow selection for GitLab runs later.
                         echo("Running all enabled generic tests")
                         for (suite in testSuites.keySet()){
-                          if (testSuites[suite].enabled && testSuites[suite].runWithGenericTests){
+                          if (testSuites[suite].enabled &&
+                              (testSuites[suite].runWithGenericTests || testSuites[suite].runWithGenericTests == null)){
                             testSuites[suite].runSuite = true
                           }
                         }
-                      }else{
-                        // This was something like manual build with parameters or a ToT run. Run what the
-                        // user picked or all for a ToT run.
+                      } else if (env.JOB_NAME.contains(env.tot_job_name)){
+                        echo("Running all enabled tests for a ToT run")
+                        for (suite in testSuites.keySet()){
+                          echo("Suite: " + suite + " runWithToTTests: " + testSuites[suite].runWithToTTests)
+                          if (testSuites[suite].enabled &&
+                              (testSuites[suite].runWithToTTests || testSuites[suite].runWithToTTests == null)){
+                            testSuites[suite].runSuite = true
+                          }
+                        }
+                      } else {
+                        // This was something like manual build with parameters.  Gather tests from the
+                        // user's choices.
                         choices = null
-                        echo("tests_to_run: " + params.tests_to_run)
 
-                        if (params.tests_to_run == null || env.JOB_NAME.contains(env.tot_job_name)){
-                          // It was a ToT or similar run.  Run all.
-                          echo("tests_to_run was null, or it was a ToT run, so all selectable suites will be selected.")
+                        if (params.tests_to_run == null) {
+                          // This shouldn't happen in our workflows, but it could be possible as more
+                          // Jenkins jobs are created.
+                          echo("tests_to_run was null, so all selectable suites will be selected.")
                           choices = getSelectableSuites()
-                        }else{
+                        } else {
+                          echo("tests_to_run: " + params.tests_to_run)
                           echo("Using suites selected by the user in tests_to_run.")
                           choices = params.tests_to_run.split(",")
                         }
@@ -1813,6 +1808,13 @@ void runTests(){
     rm -rf "${test_log_root}"
     mkdir "${test_log_root}"
   ''')
+
+  echo("The following tests will be run in this invocation of runTests:")
+  for (suite in testSuites.keySet()) {
+    if (testSuites[suite].runSuite){
+      echo("  " + suite)
+    }
+  }
 
   // Do everything via keySet().  Jenkins does not support iterating through a hashmap,
   // but we can iterate over a list of keys.
