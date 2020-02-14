@@ -13,6 +13,7 @@
 #include <boost/thread.hpp>
 #include <csignal>
 #include <iostream>
+#include <memory>
 #include <regex>
 #include <sstream>
 #include <string>
@@ -95,9 +96,9 @@ using concord::kvbc::ReplicaStateSyncImp;
 using concord::storage::ConcordBlockMetadata;
 using concord::storage::IDBClient;
 using concord::storage::blockchain::DBAdapter;
+using concord::storage::blockchain::DBKeyComparator;
 using concord::storage::blockchain::IBlocksAppender;
 using concord::storage::blockchain::ILocalKeyValueStorageReadOnly;
-using concord::storage::blockchain::KeyManipulator;
 using concordUtils::BlockId;
 using concordUtils::SetOfKeyValuePairs;
 using concordUtils::Status;
@@ -232,7 +233,8 @@ void initialize_tracing(ConcordConfiguration &nodeConfig, Logger &logger) {
       std::static_pointer_cast<opentracing::Tracer>(tracer));
 }
 
-IDBClient *open_database(ConcordConfiguration &nodeConfig, Logger logger) {
+std::shared_ptr<IDBClient> open_database(ConcordConfiguration &nodeConfig,
+                                         Logger logger) {
   if (!nodeConfig.hasValue<std::string>("blockchain_db_impl")) {
     LOG4CPLUS_FATAL(logger, "Missing blockchain_db_impl config");
     throw EVMException("Missing blockchain_db_impl config");
@@ -243,15 +245,15 @@ IDBClient *open_database(ConcordConfiguration &nodeConfig, Logger logger) {
     LOG4CPLUS_INFO(logger, "Using memory blockchain database");
     // Client makes a copy of comparator, so scope lifetime is not a problem
     // here.
-    concord::storage::memorydb::KeyComparator comparator(new KeyManipulator);
-    return new concord::storage::memorydb::Client(comparator);
+    concord::storage::memorydb::KeyComparator comparator(new DBKeyComparator);
+    return std::make_shared<concord::storage::memorydb::Client>(comparator);
 #ifdef USE_ROCKSDB
   } else if (db_impl_name == "rocksdb") {
     LOG4CPLUS_INFO(logger, "Using rocksdb blockchain database");
     string rocks_path = nodeConfig.getValue<std::string>("blockchain_db_path");
-    return new concord::storage::rocksdb::Client(
+    return std::make_shared<concord::storage::rocksdb::Client>(
         rocks_path,
-        new concord::storage::rocksdb::KeyComparator(new KeyManipulator()));
+        new concord::storage::rocksdb::KeyComparator(new DBKeyComparator()));
 #endif
   } else {
     LOG4CPLUS_FATAL(logger, "Unknown blockchain_db_impl " << db_impl_name);

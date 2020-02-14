@@ -2,6 +2,11 @@
 
 #pragma once
 
+// Keep googletest includes on top as the Assert macro from assertUtils.hpp can
+// interfere.
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
+
 #include <concord.pb.h>
 #include <daml_commit.pb.h>
 #include <log4cplus/configurator.h>
@@ -10,8 +15,6 @@
 #include <daml/daml_validator_client.hpp>
 #include <utils/concord_prometheus_metrics.hpp>
 #include "blockchain/db_interfaces.h"
-#include "gmock/gmock.h"
-#include "gtest/gtest.h"
 #include "hash_defs.h"
 
 using namespace concord::storage::blockchain;
