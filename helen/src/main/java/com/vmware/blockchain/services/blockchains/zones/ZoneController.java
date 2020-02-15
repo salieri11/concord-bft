@@ -14,6 +14,9 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
+import javax.validation.Valid;
+import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotNull;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -41,8 +44,8 @@ import com.vmware.blockchain.deployment.v1.OrchestrationSiteServiceGrpc.Orchestr
 import com.vmware.blockchain.deployment.v1.ValidateOrchestrationSiteRequest;
 import com.vmware.blockchain.deployment.v1.ValidateOrchestrationSiteResponse;
 import com.vmware.blockchain.services.blockchains.BlockchainUtils;
+import com.vmware.blockchain.services.blockchains.zones.OnPremZone.EndPoint;
 import com.vmware.blockchain.services.blockchains.zones.Zone.Action;
-import com.vmware.blockchain.services.blockchains.zones.Zone.EndPoint;
 import com.vmware.blockchain.services.blockchains.zones.Zone.Type;
 
 import lombok.AllArgsConstructor;
@@ -163,9 +166,11 @@ public class ZoneController {
             @JsonSubTypes.Type(value = VmcAwsRequest.class, name = "VMC_AWS"),
         })
     static class ZoneRequest {
+        @NotBlank(message = "Name cannot be blank")
         private String name;
         private String latitude;
         private String longitude;
+        @NotNull(message = "Type cannot be blank")
         private Type type;
     }
 
@@ -173,16 +178,23 @@ public class ZoneController {
     @NoArgsConstructor
     static class OnPremRequest extends ZoneRequest {
         UUID orgId;
+        @NotNull(message = "vCenter cannot be empty")
+        @Valid
         EndPoint vcenter;
+        @NotBlank(message = "Resource Pool cannot be blank")
         String resourcePool;
+        @NotBlank(message = "Storage cannot be blank")
         String storage;
+        @NotBlank(message = "Folder cannot be blank")
         String folder;
+        @NotNull(message = "Network cannot be empty")
+        @Valid
         Zone.Network network;
         Zone.OutboundProxy outboundProxy;
         EndPoint containerRepo;
         Zone.Wavefront wavefront;
+        @Valid
         List<OnPremZone.LogManagementOnPrem> logManagements;
-
     }
 
     static class VmcAwsRequest extends ZoneRequest {
@@ -234,7 +246,7 @@ public class ZoneController {
     @RequestMapping(method = RequestMethod.POST)
     @PreAuthorize("@authHelper.isConsortiumAdmin()")
     ResponseEntity<ZoneResponse> postZone(@RequestParam(required = false) Action action,
-                                          @RequestBody(required = false) ZoneRequest request)
+                                                @Valid @RequestBody(required = false) ZoneRequest request)
             throws Exception {
         if (RELOAD.equals(action)) {
 
