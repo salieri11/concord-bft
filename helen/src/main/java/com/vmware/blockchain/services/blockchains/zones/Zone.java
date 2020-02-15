@@ -11,6 +11,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import javax.validation.Valid;
+import javax.validation.constraints.NotBlank;
+
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.vmware.blockchain.dao.AbstractEntity;
@@ -52,11 +55,16 @@ public class Zone extends AbstractEntity {
     @AllArgsConstructor
     @Builder
     public static class Network {
+        @NotBlank(message = "Network name cannot be null")
         String name;
-        List<String> ipPool;
+        @Valid
+        List<@NotBlank(message = "IP cannot be empty") String> ipPool;
+        @NotBlank(message = "Gateway cannot be empty")
         String gateway;
+        @NotBlank(message = "Subnet cannot be empty")
         String subnet;
-        List<String> nameServers;
+        @Valid
+        List<@NotBlank(message = "Name Servers cannot be blank.") String> nameServers;
     }
 
     /**
@@ -71,18 +79,6 @@ public class Zone extends AbstractEntity {
         int httpPort;
         String httpsHost;
         int httpsPort;
-    }
-
-    /**
-     * Repo to pick up images from.
-     */
-    @Data
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class EndPoint {
-        String url;
-        String username;
-        String password;
     }
 
     enum Action {

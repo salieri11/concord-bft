@@ -7,6 +7,9 @@ package com.vmware.blockchain.services.blockchains.zones;
 import java.util.List;
 import java.util.UUID;
 
+import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotNull;
+
 import com.vmware.blockchain.dao.EntityColumnName;
 import com.vmware.blockchain.dao.LinkedEntityId;
 
@@ -33,12 +36,32 @@ public class OnPremZone extends Zone {
     @AllArgsConstructor
     @Builder
     public static class LogManagementOnPrem {
+        @NotNull(message = "Destination cannot be empty")
         LogDestination destination;
+        @NotBlank(message = "Address cannot be empty")
         String address;
-        int port;
+        @NotNull(message = "Port cannot be empty")
+        Integer port;
+        @NotBlank(message = "Username cannot be empty")
         String username;
+        @NotBlank(message = "Password cannot be empty")
         String password;
         int logInsightAgentId;
+    }
+
+    /**
+     * Repo to pick up images from.
+     */
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class EndPoint {
+        @NotBlank(message = "url cannot be null")
+        String url;
+        @NotBlank(message = "username cannot be null")
+        String username;
+        @NotBlank(message = "password cannot be null")
+        String password;
     }
 
     @LinkedEntityId

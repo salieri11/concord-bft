@@ -2364,6 +2364,28 @@ def test_create_zone_invalid_field(fxConnection, fxBlockchain):
    response = req.createZone(zoneInfo)
    validateBadRequest(response, "/api/zones")
 
+@pytest.mark.zones
+def test_create_zone_blank_field(fxConnection, fxBlockchain):
+   '''
+   Oops, a key is blank. A bad request error should catch it.
+   '''
+   zoneInfo = createZoneObject()
+   zoneInfo["name"] = "    "
+
+   errorMessage = "Validation failed for argument [1] in org.springframework.http.ResponseEntity<com.vmware." + \
+        "blockchain.services.blockchains.zones.ZoneController$ZoneResponse> com.vmware.blockchain.services.blockchains" + \
+        ".zones.ZoneController.postZone(com.vmware.blockchain.services.blockchains.zones.Zone$Action,com.vmware." + \
+        "blockchain.services.blockchains.zones.ZoneController$ZoneRequest) throws java.lang.Exception: " + \
+        "[Field error in object 'zoneRequest' on field 'name': rejected value [    ]; codes [NotBlank.zoneRequest." + \
+        "name,NotBlank.name,NotBlank.java.lang.String,NotBlank]; arguments [org.springframework.context.support." + \
+        "DefaultMessageSourceResolvable: codes [zoneRequest.name,name]; arguments []; default message [name]]; " + \
+        "default message [Name cannot be blank]] "
+
+   req = createDefaultConsortiumAdminRequest(fxConnection.request)
+   response = req.createZone(zoneInfo)
+   validateBadRequest(response, "/api/blockchains/zones", errorCode = "MethodArgumentNotValidException", \
+   errorMessage = errorMessage)
+
 
 @pytest.mark.zones
 def test_create_aws_zone(fxConnection, fxBlockchain):
