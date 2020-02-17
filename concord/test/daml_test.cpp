@@ -165,6 +165,9 @@ TEST(daml_test, pre_execute_commit_no_new_block) {
   ASSERT_EQ(result, 0);
   ASSERT_FALSE(concord_response.has_daml_response());
   ASSERT_TRUE(concord_response.has_pre_execution_result());
+  ASSERT_EQ(
+      concord_response.pre_execution_result().write_set().kv_writes_size(), 2);
+  ASSERT_EQ(concord_response.pre_execution_result().read_set().keys_size(), 3);
   ASSERT_EQ(concord_response.pre_execution_result().read_set_version(),
             last_block_id);
   ASSERT_EQ(concord_response.pre_execution_result().request_correlation_id(),
@@ -417,6 +420,18 @@ std::unique_ptr<MockDamlValidatorClient> build_mock_daml_validator_client(
         std::make_unique<da_kvbc::ValidatePendingSubmissionResponse>();
     auto result2 = std::make_unique<da_kvbc::Result>();
     mock_response2->mutable_result()->MergeFrom(*result2);
+
+    auto* result = mock_response2->mutable_result();
+    da_kvbc::ProtectedKeyValuePair* u1 = result->add_updates();
+    u1->set_key("wk1");
+    u1->set_value("wk1");
+    da_kvbc::ProtectedKeyValuePair* u2 = result->add_updates();
+    u2->set_key("wk2");
+    u2->set_value("wv2");
+
+    result->add_read_set("rk1");
+    result->add_read_set("rk2");
+    result->add_read_set("rk3");
 
     EXPECT_CALL(*daml_validator_client,
                 ValidatePendingSubmission(_, _, _, _, _))

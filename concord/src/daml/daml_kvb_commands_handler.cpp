@@ -121,7 +121,6 @@ bool DamlKvbCommandsHandler::ExecuteCommit(
   bool has_pre_executed = flags & bftEngine::MsgFlag::HAS_PRE_PROCESSED_FLAG;
 
   BlockId current_block_id = storage_.getLastBlock();
-  SetOfKeyValuePairs updates;
 
   // Since we're not batching, lets keep it simple and use the next block id as
   // the DAML log entry id.
@@ -139,13 +138,151 @@ bool DamlKvbCommandsHandler::ExecuteCommit(
   std::string correlation_id = commit_req.correlation_id();
 
   if (has_pre_executed && request_.has_pre_execution_result()) {
-    auto* pre_execution_result = request_.mutable_pre_execution_result();
-    if (HasPreExecutionConflicts(request_.pre_execution_result())) {
-      // TODO in the future, we should create a block based on a
-      // write set specific for the case of conflicts
-      return false;
-    }
+    return CommitPreExecutionResult(current_block_id, entryId, correlation_id,
+                                    concord_response);
+  }
 
+  da_kvbc::ValidateResponse response;
+  da_kvbc::ValidatePendingSubmissionResponse response2;
+  da_kvbc::Result result;
+
+  bool daml_execution_success = RunDamlExecution(
+      commit_req, entryId, record_time, parent_span, response, response2);
+
+  SetOfKeyValuePairs updates;
+
+  if (daml_execution_success) {
+    result = response.has_result() ? response.result() : response2.result();
+    GetUpdatesFromExecutionResult(result, entryId, updates);
+  } else {
+    LOG4CPLUS_DEBUG(logger_, "DAML commit execution has failed.");
+    return false;
+  }
+
+  if (pre_execute) {
+    BuildPreExecutionResult(updates, current_block_id, correlation_id, result,
+                            concord_response);
+    LOG4CPLUS_DEBUG(logger_, "Done: Pre-execution of DAML command.");
+  } else {
+    RecordTransaction(entryId, updates, current_block_id, correlation_id,
+                      concord_response);
+    LOG4CPLUS_DEBUG(logger_, "Done: Handle DAML commit command.");
+  }
+
+  return true;
+}
+
+bool DamlKvbCommandsHandler::RunDamlExecution(
+    const da_kvbc::CommitRequest& commit_req, const string& entryId,
+    google::protobuf::Timestamp& record_time, opentracing::Span& parent_span,
+    da_kvbc::ValidateResponse& response,
+    da_kvbc::ValidatePendingSubmissionResponse& response2) {
+  bool daml_execution_success = true;
+  // Send the submission for validation.
+  grpc::Status status = validator_client_->ValidateSubmission(
+      entryId, commit_req.submission(), record_time,
+      commit_req.participant_id(), commit_req.correlation_id(), parent_span,
+      &response);
+  if (!status.ok()) {
+    LOG4CPLUS_ERROR(logger_, "Validation failed " << status.error_code() << ": "
+                                                  << status.error_message());
+    daml_execution_success = false;
+  } else {
+    if (response.has_need_state()) {
+      LOG4CPLUS_DEBUG(logger_, "Validator requested input state");
+      // The submission failed due to missing input state, retrieve the inputs
+      // and retry.
+      std::map<string, string> input_state_entries;
+      try {
+        input_state_entries = GetFromStorage(response.need_state().keys());
+      } catch (const std::exception& e) {
+        LOG4CPLUS_ERROR(logger_, e.what());
+        daml_execution_success = false;
+      }
+
+      if (daml_execution_success) {
+        validator_client_->ValidatePendingSubmission(
+            entryId, input_state_entries, commit_req.correlation_id(),
+            parent_span, &response2);
+        if (!status.ok()) {
+          LOG4CPLUS_ERROR(logger_, "Validation failed "
+                                       << status.error_code() << ": "
+                                       << status.error_message());
+          daml_execution_success = false;
+        } else {
+          if (!response2.has_result()) {
+            daml_execution_success = false;
+          }
+        }
+      }
+    } else if (!response.has_result()) {
+      LOG4CPLUS_ERROR(logger_, "Validation missing result!");
+      daml_execution_success = false;
+    }
+  }
+
+  return daml_execution_success;
+}
+
+void DamlKvbCommandsHandler::GetUpdatesFromExecutionResult(
+    const da_kvbc::Result& result, const string& entryId,
+    SetOfKeyValuePairs& updates) const {
+  vector<string> no_trids;
+
+  // Insert the key-value updates into the store.
+  for (const auto& kv : result.updates()) {
+    const auto& protoTrids = kv.trids();
+    vector<string> trids(protoTrids.begin(), protoTrids.end());
+    updates.insert(KeyValuePair(CreateDamlKvbKey(kv.key()),
+                                CreateDamlKvbValue(kv.value(), trids)));
+  }
+}
+
+void DamlKvbCommandsHandler::BuildPreExecutionResult(
+    const SetOfKeyValuePairs& updates, BlockId current_block_id,
+    string& correlation_id, const da_kvbc::Result& result,
+    ConcordResponse& concord_response) const {
+  auto* pre_execution_result = concord_response.mutable_pre_execution_result();
+
+  pre_execution_result->set_read_set_version(current_block_id);
+
+  auto* write_set = pre_execution_result->mutable_write_set();
+  for (const auto& kv : updates) {
+    auto* new_kv = write_set->add_kv_writes();
+    new_kv->set_key(kv.first.data(), kv.first.length());
+    new_kv->set_value(kv.second.data(), kv.second.length());
+  }
+
+  auto* read_set = pre_execution_result->mutable_read_set();
+  for (const auto& k : result.read_set()) {
+    const auto& key = CreateDamlKvbKey(k);
+    read_set->add_keys(key.data(), key.length());
+  }
+
+  const DamlRequest& daml_request = request_.daml_request();
+  const auto optional_cid = GetCorrelationId(daml_request);
+  if (optional_cid) {
+    correlation_id = optional_cid.value();
+  } else {
+    LOG4CPLUS_ERROR(logger_,
+                    "Failed to retrieve the correlation ID from the "
+                    "pre-executed DAML commit.");
+  }
+  pre_execution_result->set_request_correlation_id(correlation_id.c_str(),
+                                                   correlation_id.size());
+}
+
+bool DamlKvbCommandsHandler::CommitPreExecutionResult(
+    BlockId current_block_id, const string& entryId, string& correlation_id,
+    ConcordResponse& concord_response) {
+  bool commit_pre_execution_result;
+  SetOfKeyValuePairs updates;
+  auto* pre_execution_result = request_.mutable_pre_execution_result();
+  if (HasPreExecutionConflicts(request_.pre_execution_result())) {
+    // TODO in the future, we should create a block based on a
+    // write set specific for the case of conflicts
+    commit_pre_execution_result = false;
+  } else {
     correlation_id = pre_execution_result->request_correlation_id();
 
     auto* write_set = pre_execution_result->mutable_write_set();
@@ -163,98 +300,9 @@ bool DamlKvbCommandsHandler::ExecuteCommit(
     LOG4CPLUS_DEBUG(
         logger_,
         "Done: Successfully validated and recorded pre-executed DAML command.");
-    return true;
+    commit_pre_execution_result = true;
   }
-
-  // Send the submission for validation.
-  da_kvbc::ValidateResponse response;
-  grpc::Status status = validator_client_->ValidateSubmission(
-      entryId, commit_req.submission(), record_time,
-      commit_req.participant_id(), commit_req.correlation_id(), parent_span,
-      &response);
-  if (!status.ok()) {
-    LOG4CPLUS_ERROR(logger_, "Validation failed " << status.error_code() << ": "
-                                                  << status.error_message());
-    return false;
-  }
-
-  da_kvbc::ValidatePendingSubmissionResponse response2;
-  if (response.has_need_state()) {
-    LOG4CPLUS_DEBUG(logger_, "Validator requested input state");
-    // The submission failed due to missing input state, retrieve the inputs and
-    // retry.
-    std::map<string, string> input_state_entries;
-    try {
-      input_state_entries = GetFromStorage(response.need_state().keys());
-    } catch (const std::exception& e) {
-      LOG4CPLUS_ERROR(logger_, e.what());
-      return false;
-    }
-    validator_client_->ValidatePendingSubmission(entryId, input_state_entries,
-                                                 commit_req.correlation_id(),
-                                                 parent_span, &response2);
-    if (!status.ok()) {
-      LOG4CPLUS_ERROR(logger_, "Validation failed " << status.error_code()
-                                                    << ": "
-                                                    << status.error_message());
-      return false;
-    }
-    assert(response2.has_result());
-  } else if (!response.has_result()) {
-    LOG4CPLUS_ERROR(logger_, "Validation missing result!");
-    return false;
-  }
-  auto result = response.has_result() ? response.result() : response2.result();
-
-  vector<string> no_trids;
-
-  // Insert the key-value updates into the store.
-  for (const auto& kv : result.updates()) {
-    const auto& protoTrids = kv.trids();
-    vector<string> trids(protoTrids.begin(), protoTrids.end());
-    updates.insert(KeyValuePair(CreateDamlKvbKey(kv.key()),
-                                CreateDamlKvbValue(kv.value(), trids)));
-  }
-
-  if (pre_execute) {
-    auto* pre_execution_result =
-        concord_response.mutable_pre_execution_result();
-
-    pre_execution_result->set_read_set_version(current_block_id);
-
-    auto* write_set = pre_execution_result->mutable_write_set();
-    for (const auto& kv : updates) {
-      auto* new_kv = write_set->add_kv_writes();
-      new_kv->set_key(kv.first.data(), kv.first.length());
-      new_kv->set_value(kv.second.data(), kv.second.length());
-    }
-
-    auto* read_set = pre_execution_result->mutable_read_set();
-    for (const auto& k : result.read_set()) {
-      const auto& key = CreateDamlKvbKey(k);
-      read_set->add_keys(key.data(), key.length());
-    }
-
-    const DamlRequest& daml_request = request_.daml_request();
-    const auto optional_cid = GetCorrelationId(daml_request);
-    if (optional_cid) {
-      correlation_id = optional_cid.value();
-    } else {
-      LOG4CPLUS_ERROR(logger_,
-                      "Failed to retrieve the correlation ID from the "
-                      "pre-executed DAML commit.");
-    }
-    pre_execution_result->set_request_correlation_id(correlation_id.c_str(),
-                                                     correlation_id.size());
-
-    LOG4CPLUS_DEBUG(logger_, "Done: Pre-execution of DAML command.");
-    return true;
-  }
-
-  RecordTransaction(entryId, updates, current_block_id, correlation_id,
-                    concord_response);
-  LOG4CPLUS_DEBUG(logger_, "Done: Handle DAML commit command.");
-  return true;
+  return commit_pre_execution_result;
 }
 
 void DamlKvbCommandsHandler::RecordTransaction(
