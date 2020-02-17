@@ -13,6 +13,7 @@
 
 using ::testing::_;
 using ::testing::AtLeast;
+using ::testing::Cardinality;
 using ::testing::DoAll;
 using ::testing::Exactly;
 using ::testing::Return;
@@ -37,11 +38,17 @@ namespace {
 
 constexpr size_t OUT_BUFFER_SIZE = 512000;
 
+const auto NEVER = Exactly(0);
+
 ConcordRequest build_commit_request();
 std::shared_ptr<MockPrometheusRegistry> build_mock_prometheus_registry();
 std::unique_ptr<MockDamlValidatorClient> build_mock_daml_validator_client(
     bool expect_never = false);
-ConcordRequest build_pre_executed_request(BlockId block_id);
+ConcordRequest build_pre_executed_request(
+    BlockId pre_execution_block_id,
+    const std::vector<std::string>& reads = {"read-key"},
+    const std::map<std::string, std::string>& writes = {
+        {"write-key", "write-value"}});
 
 TEST(daml_test, validate_commit_command_type) {
   da_kvbc::Command daml_commit_command;
@@ -66,6 +73,11 @@ TEST(daml_test, successful_commit_creates_block) {
   const BlockId last_block_id = 100;
 
   MockBlockAppender blocks_appender{};
+  EXPECT_CALL(blocks_appender, addBlock(_, _))
+      .Times(1)
+      .WillOnce(
+          DoAll(SetArgReferee<1>(last_block_id + 1), Return(Status::OK())));
+
   MockLocalKeyValueStorageReadOnly ro_storage{};
   EXPECT_CALL(ro_storage, getLastBlock()).WillRepeatedly(Return(last_block_id));
 
@@ -78,11 +90,6 @@ TEST(daml_test, successful_commit_creates_block) {
 
   auto prometheus_registry = build_mock_prometheus_registry();
   auto daml_validator_client = build_mock_daml_validator_client();
-
-  EXPECT_CALL(blocks_appender, addBlock(_, _))
-      .Times(1)
-      .WillOnce(
-          DoAll(SetArgReferee<1>(last_block_id + 1), Return(Status::OK())));
 
   DamlKvbCommandsHandler daml_commands_handler{config,
                                                GetNodeConfig(config, 1),
@@ -116,6 +123,8 @@ TEST(daml_test, pre_execute_commit_no_new_block) {
   const BlockId last_block_id = 100;
 
   MockBlockAppender blocks_appender{};
+  EXPECT_CALL(blocks_appender, addBlock(_, _)).Times(NEVER);
+
   MockLocalKeyValueStorageReadOnly ro_storage{};
   EXPECT_CALL(ro_storage, getLastBlock()).WillRepeatedly(Return(last_block_id));
 
@@ -128,9 +137,6 @@ TEST(daml_test, pre_execute_commit_no_new_block) {
 
   auto prometheus_registry = build_mock_prometheus_registry();
   auto daml_validator_client = build_mock_daml_validator_client();
-
-  const auto never = Exactly(0);
-  EXPECT_CALL(blocks_appender, addBlock(_, _)).Times(never);
 
   DamlKvbCommandsHandler daml_commands_handler{config,
                                                GetNodeConfig(config, 1),
@@ -169,6 +175,11 @@ TEST(daml_test, valid_pre_execution_creates_block) {
   const BlockId last_block_id = 100;
 
   MockBlockAppender blocks_appender{};
+  EXPECT_CALL(blocks_appender, addBlock(_, _))
+      .Times(1)
+      .WillOnce(
+          DoAll(SetArgReferee<1>(last_block_id + 1), Return(Status::OK())));
+
   MockLocalKeyValueStorageReadOnly ro_storage{};
   EXPECT_CALL(ro_storage, getLastBlock()).WillRepeatedly(Return(last_block_id));
   EXPECT_CALL(ro_storage, mayHaveConflictBetween(_, _, _, _))
@@ -183,11 +194,6 @@ TEST(daml_test, valid_pre_execution_creates_block) {
 
   auto prometheus_registry = build_mock_prometheus_registry();
   auto daml_validator_client = build_mock_daml_validator_client(true);
-
-  EXPECT_CALL(blocks_appender, addBlock(_, _))
-      .Times(1)
-      .WillOnce(
-          DoAll(SetArgReferee<1>(last_block_id + 1), Return(Status::OK())));
 
   DamlKvbCommandsHandler daml_commands_handler{config,
                                                GetNodeConfig(config, 1),
@@ -220,8 +226,11 @@ TEST(daml_test, conflicting_pre_execution_no_block) {
   const BlockId last_block_id = 100;
 
   MockBlockAppender blocks_appender{};
+  EXPECT_CALL(blocks_appender, addBlock(_, _)).Times(NEVER);
+
   MockLocalKeyValueStorageReadOnly ro_storage{};
   EXPECT_CALL(ro_storage, getLastBlock()).WillRepeatedly(Return(last_block_id));
+
   EXPECT_CALL(ro_storage, mayHaveConflictBetween(_, _, _, _))
       .WillRepeatedly(DoAll(SetArgReferee<3>(true), Return(Status::OK())));
 
@@ -234,9 +243,6 @@ TEST(daml_test, conflicting_pre_execution_no_block) {
 
   auto prometheus_registry = build_mock_prometheus_registry();
   auto daml_validator_client = build_mock_daml_validator_client(true);
-
-  const auto never = Exactly(0);
-  EXPECT_CALL(blocks_appender, addBlock(_, _)).Times(never);
 
   DamlKvbCommandsHandler daml_commands_handler{config,
                                                GetNodeConfig(config, 1),
@@ -262,6 +268,128 @@ TEST(daml_test, conflicting_pre_execution_no_block) {
   ConcordResponse concord_response;
   concord_response.ParseFromArray(reply_buffer, reply_size);
 
+  ASSERT_EQ(result, 1);
+}
+
+TEST(daml_test, conflicting_write_set) {
+  const BlockId last_block_id = 100;
+
+  MockBlockAppender blocks_appender{};
+  EXPECT_CALL(blocks_appender, addBlock(_, _)).Times(NEVER);
+
+  MockLocalKeyValueStorageReadOnly ro_storage{};
+  EXPECT_CALL(ro_storage, getLastBlock()).WillRepeatedly(Return(last_block_id));
+
+  const Sliver rk{std::string{"read-key"}};
+  const Sliver wk{std::string{"write-key"}};
+  EXPECT_CALL(ro_storage, getLastBlock()).WillRepeatedly(Return(last_block_id));
+  EXPECT_CALL(ro_storage, mayHaveConflictBetween(rk, _, _, _))
+      .WillOnce(DoAll(SetArgReferee<3>(false), Return(Status::OK())));
+  EXPECT_CALL(ro_storage, mayHaveConflictBetween(wk, _, _, _))
+      .WillOnce(DoAll(SetArgReferee<3>(true), Return(Status::OK())));
+
+  SubBufferList subscriber_list{};
+
+  const auto replicas = 4;
+  const auto client_proxies = 4;
+  const auto config =
+      TestConfiguration(replicas, client_proxies, 0, 0, false, false);
+
+  auto prometheus_registry = build_mock_prometheus_registry();
+  auto daml_validator_client = build_mock_daml_validator_client(true);
+
+  DamlKvbCommandsHandler daml_commands_handler{config,
+                                               GetNodeConfig(config, 1),
+                                               ro_storage,
+                                               blocks_appender,
+                                               subscriber_list,
+                                               std::move(daml_validator_client),
+                                               prometheus_registry};
+
+  ConcordRequest concord_request = build_pre_executed_request(50);
+
+  std::string req_string;
+  concord_request.SerializeToString(&req_string);
+
+  uint32_t reply_size = 0;
+  char reply_buffer[OUT_BUFFER_SIZE];
+  memset(reply_buffer, 0, OUT_BUFFER_SIZE);
+
+  int result = daml_commands_handler.execute(
+      1, 1, bftEngine::MsgFlag::HAS_PRE_PROCESSED_FLAG, req_string.size(),
+      req_string.c_str(), OUT_BUFFER_SIZE, reply_buffer, reply_size);
+
+  ConcordResponse concord_response;
+  concord_response.ParseFromArray(reply_buffer, reply_size);
+
+  ASSERT_EQ(result, 1);
+}
+
+TEST(daml_test, conflicting_write_of_new_key) {
+  const BlockId last_block_id = 100;
+
+  MockBlockAppender blocks_appender{};
+  MockLocalKeyValueStorageReadOnly ro_storage{};
+  EXPECT_CALL(ro_storage, getLastBlock()).WillRepeatedly(Return(last_block_id));
+
+  SubBufferList subscriber_list{};
+
+  const auto replicas = 4;
+  const auto client_proxies = 4;
+  const auto config =
+      TestConfiguration(replicas, client_proxies, 0, 0, false, false);
+
+  auto prometheus_registry = build_mock_prometheus_registry();
+  auto daml_validator_client = build_mock_daml_validator_client(true);
+
+  DamlKvbCommandsHandler daml_commands_handler{config,
+                                               GetNodeConfig(config, 1),
+                                               ro_storage,
+                                               blocks_appender,
+                                               subscriber_list,
+                                               std::move(daml_validator_client),
+                                               prometheus_registry};
+
+  ConcordRequest concord_request_1 =
+      build_pre_executed_request(90, {}, {{"k", "v1"}});
+  ConcordRequest concord_request_2 =
+      build_pre_executed_request(91, {}, {{"k", "v2"}});
+
+  const Sliver k{std::string{"k"}};
+  EXPECT_CALL(ro_storage, mayHaveConflictBetween(k, 90 + 1, _, _))
+      .WillOnce(DoAll(SetArgReferee<3>(false), Return(Status::OK())));
+
+  EXPECT_CALL(blocks_appender, addBlock(_, _))
+      .Times(1)
+      .WillOnce(
+          DoAll(SetArgReferee<1>(last_block_id + 1), Return(Status::OK())));
+
+  EXPECT_CALL(ro_storage, mayHaveConflictBetween(k, 91 + 1, _, _))
+      .WillOnce(DoAll(SetArgReferee<3>(true), Return(Status::OK())));
+
+  uint32_t reply_size = 0;
+  char reply_buffer[OUT_BUFFER_SIZE];
+  memset(reply_buffer, 0, OUT_BUFFER_SIZE);
+
+  std::string req_string;
+  int result;
+  ConcordResponse concord_response;
+
+  concord_request_1.SerializeToString(&req_string);
+  result = daml_commands_handler.execute(
+      1, 1, bftEngine::MsgFlag::HAS_PRE_PROCESSED_FLAG, req_string.size(),
+      req_string.c_str(), OUT_BUFFER_SIZE, reply_buffer, reply_size);
+  concord_response.ParseFromArray(reply_buffer, reply_size);
+  ASSERT_EQ(result, 0);
+
+  memset(reply_buffer, 0, OUT_BUFFER_SIZE);
+  concord_request_2.SerializeToString(&req_string);
+
+  result = daml_commands_handler.execute(
+      1, 1, bftEngine::MsgFlag::HAS_PRE_PROCESSED_FLAG, req_string.size(),
+      req_string.c_str(), OUT_BUFFER_SIZE, reply_buffer, reply_size);
+
+  concord_response.ParseFromArray(reply_buffer, reply_size);
   ASSERT_EQ(result, 1);
 }
 
@@ -332,25 +460,26 @@ ConcordRequest build_commit_request() {
   return concord_request;
 }
 
-ConcordRequest build_pre_executed_request(BlockId block_id) {
+ConcordRequest build_pre_executed_request(
+    BlockId pre_execution_block_id, const std::vector<std::string>& reads,
+    const std::map<std::string, std::string>& writes) {
   ConcordRequest concord_request;
   PreExecutionResult pre_execution_result;
 
   pre_execution_result.set_request_correlation_id("correlation_id");
-  pre_execution_result.set_read_set_version(block_id);
-
-  std::string r_key = "read-key";
-
-  std::string w_key = "write-key";
-  std::string w_val = "write-value";
+  pre_execution_result.set_read_set_version(pre_execution_block_id);
 
   auto* read_set = pre_execution_result.mutable_read_set();
-  read_set->add_keys(r_key.c_str(), r_key.size());
+  for (const auto& r_key : reads) {
+    read_set->add_keys(r_key.c_str(), r_key.size());
+  }
 
   auto* write_set = pre_execution_result.mutable_write_set();
-  auto* new_kv = write_set->add_kv_writes();
-  new_kv->set_key(w_key.c_str(), w_key.size());
-  new_kv->set_value(w_val.c_str(), w_val.size());
+  for (const auto& kv : writes) {
+    auto* new_kv = write_set->add_kv_writes();
+    new_kv->set_key(kv.first.c_str(), kv.first.size());
+    new_kv->set_value(kv.second.c_str(), kv.second.size());
+  }
 
   concord_request.mutable_pre_execution_result()->MergeFrom(
       pre_execution_result);
