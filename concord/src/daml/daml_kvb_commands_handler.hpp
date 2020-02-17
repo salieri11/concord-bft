@@ -82,6 +82,28 @@ class DamlKvbCommandsHandler
       const string& entryId, const concordUtils::SetOfKeyValuePairs& updates,
       concordUtils::BlockId current_block_id, const string& correlation_id,
       com::vmware::concord::ConcordResponse& concord_response);
+
+  bool CommitPreExecutionResult(
+      concordUtils::BlockId current_block_id, const string& entryId,
+      string& correlation_id,
+      com::vmware::concord::ConcordResponse& concord_response);
+
+  void BuildPreExecutionResult(
+      const concordUtils::SetOfKeyValuePairs& updates,
+      concordUtils::BlockId current_block_id, string& correlation_id,
+      const com::digitalasset::kvbc::Result& result,
+      com::vmware::concord::ConcordResponse& concord_response) const;
+
+  bool RunDamlExecution(
+      const com::digitalasset::kvbc::CommitRequest& commit_req,
+      const string& entryId, google::protobuf::Timestamp& record_time,
+      opentracing::Span& parent_span,
+      com::digitalasset::kvbc::ValidateResponse& response,
+      com::digitalasset::kvbc::ValidatePendingSubmissionResponse& response2);
+
+  void GetUpdatesFromExecutionResult(
+      const com::digitalasset::kvbc::Result& result, const string& entryId,
+      concordUtils::SetOfKeyValuePairs& updates) const;
 };
 
 }  // namespace daml
