@@ -44,7 +44,7 @@ ConcordRequest build_commit_request();
 std::shared_ptr<MockPrometheusRegistry> build_mock_prometheus_registry();
 std::unique_ptr<MockDamlValidatorClient> build_mock_daml_validator_client(
     bool expect_never = false);
-ConcordRequest build_pre_executed_request(
+ConcordResponse build_pre_execution_response(
     BlockId pre_execution_block_id,
     const std::vector<std::string>& reads = {"read-key"},
     const std::map<std::string, std::string>& writes = {
@@ -206,10 +206,10 @@ TEST(daml_test, valid_pre_execution_creates_block) {
                                                std::move(daml_validator_client),
                                                prometheus_registry};
 
-  ConcordRequest concord_request = build_pre_executed_request(50);
+  ConcordResponse pre_execution_response = build_pre_execution_response(50);
 
   std::string req_string;
-  concord_request.SerializeToString(&req_string);
+  pre_execution_response.SerializeToString(&req_string);
 
   uint32_t reply_size = 0;
   char reply_buffer[OUT_BUFFER_SIZE];
@@ -255,10 +255,10 @@ TEST(daml_test, conflicting_pre_execution_no_block) {
                                                std::move(daml_validator_client),
                                                prometheus_registry};
 
-  ConcordRequest concord_request = build_pre_executed_request(50);
+  ConcordResponse pre_execution_response = build_pre_execution_response(50);
 
   std::string req_string;
-  concord_request.SerializeToString(&req_string);
+  pre_execution_response.SerializeToString(&req_string);
 
   uint32_t reply_size = 0;
   char reply_buffer[OUT_BUFFER_SIZE];
@@ -309,10 +309,10 @@ TEST(daml_test, conflicting_write_set) {
                                                std::move(daml_validator_client),
                                                prometheus_registry};
 
-  ConcordRequest concord_request = build_pre_executed_request(50);
+  ConcordResponse pre_execution_response = build_pre_execution_response(50);
 
   std::string req_string;
-  concord_request.SerializeToString(&req_string);
+  pre_execution_response.SerializeToString(&req_string);
 
   uint32_t reply_size = 0;
   char reply_buffer[OUT_BUFFER_SIZE];
@@ -353,10 +353,10 @@ TEST(daml_test, conflicting_write_of_new_key) {
                                                std::move(daml_validator_client),
                                                prometheus_registry};
 
-  ConcordRequest concord_request_1 =
-      build_pre_executed_request(90, {}, {{"k", "v1"}});
-  ConcordRequest concord_request_2 =
-      build_pre_executed_request(91, {}, {{"k", "v2"}});
+  ConcordResponse pre_execution_response_1 =
+      build_pre_execution_response(90, {}, {{"k", "v1"}});
+  ConcordResponse pre_execution_response_2 =
+      build_pre_execution_response(91, {}, {{"k", "v2"}});
 
   const Sliver k{std::string{"k"}};
   EXPECT_CALL(ro_storage, mayHaveConflictBetween(k, 90 + 1, _, _))
@@ -378,7 +378,7 @@ TEST(daml_test, conflicting_write_of_new_key) {
   int result;
   ConcordResponse concord_response;
 
-  concord_request_1.SerializeToString(&req_string);
+  pre_execution_response_1.SerializeToString(&req_string);
   result = daml_commands_handler.execute(
       1, 1, bftEngine::MsgFlag::HAS_PRE_PROCESSED_FLAG, req_string.size(),
       req_string.c_str(), OUT_BUFFER_SIZE, reply_buffer, reply_size);
@@ -386,7 +386,7 @@ TEST(daml_test, conflicting_write_of_new_key) {
   ASSERT_EQ(result, 0);
 
   memset(reply_buffer, 0, OUT_BUFFER_SIZE);
-  concord_request_2.SerializeToString(&req_string);
+  pre_execution_response_2.SerializeToString(&req_string);
 
   result = daml_commands_handler.execute(
       1, 1, bftEngine::MsgFlag::HAS_PRE_PROCESSED_FLAG, req_string.size(),
@@ -475,10 +475,10 @@ ConcordRequest build_commit_request() {
   return concord_request;
 }
 
-ConcordRequest build_pre_executed_request(
+ConcordResponse build_pre_execution_response(
     BlockId pre_execution_block_id, const std::vector<std::string>& reads,
     const std::map<std::string, std::string>& writes) {
-  ConcordRequest concord_request;
+  ConcordResponse pre_execution_response;
   PreExecutionResult pre_execution_result;
 
   pre_execution_result.set_request_correlation_id("correlation_id");
@@ -496,10 +496,10 @@ ConcordRequest build_pre_executed_request(
     new_kv->set_value(kv.second.c_str(), kv.second.size());
   }
 
-  concord_request.mutable_pre_execution_result()->MergeFrom(
+  pre_execution_response.mutable_pre_execution_result()->MergeFrom(
       pre_execution_result);
 
-  return concord_request;
+  return pre_execution_response;
 }
 
 }  // anonymous namespace
