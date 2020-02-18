@@ -116,7 +116,14 @@ import hudson.util.Secret
     "enabled": true,
     "dockerComposeFiles": "../docker/docker-compose.yml ../docker/docker-compose-persephone.yml",
     "baseCommand": 'echo "${PASSWORD}" | sudo -S "${python}" main.py CoreVMTests --blockchainLocation sddc \
-      --tests="-k vmArithmeticTest/add0.json"'
+      --tests="-k vmArithmeticTest/add0.json"',
+    "runWithGenericTests": true
+  ],
+  "LoggingTests": [
+    "enabled": true,
+    "dockerComposeFiles": "../docker/docker-compose.yml ../docker/docker-compose-persephone.yml",
+    "runWithGenericTests": false,
+    "baseCommand": 'echo "${PASSWORD}" | sudo -S "${python}" main.py LoggingTests --blockchainType daml --numReplicas 7 --blockchainLocation sddc'
   ]
 ]
 
@@ -131,6 +138,7 @@ def call(){
   def persephone_test_job_name = "Blockchain Persephone Tests"
   def persephone_test_on_demand_job_name = "ON DEMAND Persephone Testrun on GitLab"
   def helen_role_test_job_name = "Helen Role Tests on GitLab"
+  def log_insight_test_job_name = "Log Insight Integration Test"
 
   // This is a unique substring of the Jenkins job which tests ToT after a
   // change has been merged.
@@ -149,6 +157,7 @@ def call(){
   // and these runs can end up running them unintentionally.
   def runs_excluding_persephone_tests = [
     lint_test_job_name,
+    log_insight_test_job_name,
     memory_leak_job_name,
     performance_test_job_name,
     helen_role_test_job_name
@@ -161,6 +170,7 @@ def call(){
     persephone_test_job_name,
     persephone_test_on_demand_job_name,
     lint_test_job_name,
+    log_insight_test_job_name,
     deployment_support_bundle_job_name,
     helen_role_test_job_name
   ]
@@ -646,6 +656,7 @@ EOF
                     env.performance_test_logs = new File(env.test_log_root, "PerformanceTest").toString()
                     env.persephone_test_logs = new File(env.test_log_root, "PersephoneTest").toString()
                     env.lint_test_logs = new File(env.test_log_root, "LintTest").toString()
+                    env.log_insight_logs = new File(env.test_log_root, "LogInsightTest").toString()
 
                     if (genericTests) {
                       if (isGitLabRun()){
@@ -698,6 +709,9 @@ EOF
                     } else if (env.JOB_NAME.contains(helen_role_test_job_name)) {
                       selectOnlySuites(["HelenRoleTests"])
                       runTests()
+                    } else if (env.JOB_NAME.contains(log_insight_test_job_name)) {
+                      selectOnlySuites(["LoggingTests"])
+                      runTests()
                     }
 
                     // TODO: Make the items below follow the model above.
@@ -743,6 +757,7 @@ EOF
                       '''
                       saveTimeEvent("LINT tests", "End")
                     }
+
                   }
                 }
               }
