@@ -54,6 +54,14 @@ ZONE_TYPE_SDDC = "VMC_AWS"
 LOG_DESTINATION_LOG_INTELLIGENCE = "LOG_INTELLIGENCE"
 LOG_DESTINATION_LOG_INSIGHT = "LOG_INSIGHT"
 
+CONTAINER_NAMES_IN_DAML_COMMITTER = ["agent",
+                                     "concord",
+                                     "daml_execution_engine",
+                                     "fluentd",
+                                     "jaeger-agent",
+                                     "telegraf",
+                                     "wavefront-proxy"]
+
 def copy_docker_env_file(docker_env_file=docker_env_file):
    '''
    This file contains variables fed to docker-compose.yml. It is picked up from
@@ -678,3 +686,27 @@ def mergeDictionaries(orig, new):
             orig[newK] = newV
       else:
          orig[newK] = newV
+
+def waitForDockerContainers(host, username, password, names, timeout=600):
+   '''
+   Wait for a list of docker containers to come up.
+   '''
+   for name in names:
+      cmd = "docker ps | grep '{}' | grep ' Up [0-9]* '".format(name)
+      elapsed = 0
+      sleep_time = 5
+      up = False
+
+      while elapsed <= timeout and not up:
+         ssh_output = ssh_connect(host, username, password, cmd)
+
+         if ssh_output:
+            log.info("Container '{}' on '{}' is up.".format(name, host))
+            up = True
+         else:
+            log.info("Waiting for container '{}' on '{}' to come up.".format(name, host))
+            time.sleep(sleep_time)
+            elapsed += sleep_time
+
+      if not up:
+         raise Exception("Container '{}' on '{}' failed to come up.".format(name, host))
