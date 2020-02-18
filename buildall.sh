@@ -307,6 +307,7 @@ if [ -z "${COMPONENTS_TO_BUILD_ON_DEMAND}" ]
 then
     info "**** Building all components..."
     node-dependency
+
     concord
     ui
     fluentd
@@ -314,17 +315,18 @@ then
     helen
     trc-lib
     waitForProcesses
+
     memleak_concord # concord should be built as a pre-req
-    waitForProcesses
     persephone
     hlf_submodules
+    daml
     waitForProcesses
+
     cockroachDB # Do we still need this?
     reverse-proxy
     asset-transfer
     contract-compiler
     hlf
-    daml
     BuildPersephoneGRPCpyBindings
     BuildSupplyChain
     PerformanceTests
