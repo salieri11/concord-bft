@@ -6,6 +6,7 @@
 #include <grpcpp/grpcpp.h>
 #include <grpcpp/impl/codegen/status.h>
 #include <log4cplus/loggingmacros.h>
+#include <chrono>
 #include <memory>
 #include <stdexcept>
 #include <string>
@@ -261,9 +262,7 @@ class ThinReplicaImpl {
     ReadAndSend<ServerWriterT, DataT>(logger_, stream, start, end, kvb_filter);
 
     // Let's wait until we have at least one live update
-    // TODO: Notify instead of busy wait?
-    while (live_updates->Empty())
-      ;
+    live_updates->WaitUntilNonEmpty();
 
     // We are in sync already
     if (!live_updates->Full() && live_updates->OldestBlockId() == (end + 1)) {

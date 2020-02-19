@@ -26,15 +26,11 @@ typedef std::pair<concordUtils::BlockId, concordUtils::SetOfKeyValuePairs>
 class SubUpdateBuffer {
  private:
   std::mutex buffer_mutex_;
+  std::condition_variable cv_;
   boost::circular_buffer<SubUpdate> cb_;
 
-  std::mutex cv_mutex_;
-  std::condition_variable cv_;
-
  public:
-  SubUpdateBuffer(size_t buffer_size) {
-    cb_ = boost::circular_buffer<SubUpdate>(buffer_size);
-  }
+  explicit SubUpdateBuffer(size_t buffer_size) : cb_(buffer_size) {}
 
   // Let's help ourselves and make sure we don't copy this buffer
   SubUpdateBuffer(const SubUpdateBuffer&) = delete;
@@ -50,16 +46,27 @@ class SubUpdateBuffer {
   // Return the oldest update from the ring buffer and block if no update is
   // available
   SubUpdate Pop() {
-    if (cb_.empty()) {
-      // Wait until an update is added to the buffer
-      std::unique_lock<std::mutex> lock(cv_mutex_);
-      cv_.wait(lock);
-    }
-    std::lock_guard<std::mutex> lock(buffer_mutex_);
+    // NOTE(DD): We do not use WaitUntilNonEmpty to wait
+    // because we want to leave the buffer_mutex_ locked
+    // while extracting an item
+    std::unique_lock<std::mutex> lock(buffer_mutex_);
+    cv_.wait(lock, [this] { return !cb_.empty(); });
     auto out = cb_.front();
     cb_.pop_front();
     return out;
   };
+
+  void WaitUntilNonEmpty() {
+    std::unique_lock<std::mutex> lock(buffer_mutex_);
+    cv_.wait(lock, [this] { return !cb_.empty(); });
+  }
+
+  template <typename RepT, typename PeriodT>
+  [[nodiscard]] bool WaitUntilNonEmpty(
+      const std::chrono::duration<RepT, PeriodT>& duration) {
+    std::unique_lock<std::mutex> lock(buffer_mutex_);
+    return cv_.wait_for(lock, duration, [this] { return !cb_.empty(); });
+  }
 
   void RemoveAllUpdates() {
     std::lock_guard<std::mutex> lock(buffer_mutex_);
@@ -76,8 +83,15 @@ class SubUpdateBuffer {
     return cb_.front().first;
   }
 
-  bool Empty() { return cb_.empty(); }
-  bool Full() { return cb_.full(); }
+  bool Empty() {
+    std::lock_guard<std::mutex> lock(buffer_mutex_);
+    return cb_.empty();
+  }
+
+  bool Full() {
+    std::lock_guard<std::mutex> lock(buffer_mutex_);
+    return cb_.full();
+  }
 };
 
 // Thread-safe list implementation which manages subscribers' ring buffers. You
