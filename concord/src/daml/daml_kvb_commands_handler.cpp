@@ -448,7 +448,8 @@ void DamlKvbCommandsHandler::WriteEmptyBlock(TimeContract* time_contract) {
   BlockId currentBlockId = storage_.getLastBlock();
   SetOfKeyValuePairs empty_updates;
   BlockId newBlockId = 0;
-  assert(addBlock(empty_updates, newBlockId).isOK());
+  auto status = addBlock(empty_updates, newBlockId);
+  assert(status.isOK());
   assert(newBlockId == currentBlockId + 1);
 }
 
