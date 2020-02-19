@@ -19,6 +19,7 @@ add_test(NAME HlfTest COMMAND HlfTest)
 add_test(NAME DamlTest COMMAND DamlTest)
 add_test(NAME PruningSMTest COMMAND PruningSMTest)
 add_test(NAME ExternalClientTest COMMAND ExternalClientTest)
+add_test(NAME ThinReplicaTest COMMAND ThinReplicaTest)
 
 add_executable(UtilsTests
   utils_test.cpp)
@@ -150,6 +151,20 @@ target_link_libraries(PruningSMTest
   concord_consensus
   concord_common
   concord_pruning
+  $<TARGET_OBJECTS:logging_dev>)
+
+add_executable(ThinReplicaTest
+  thin_replica_test.cpp
+  ../src/config/configuration_manager.cpp)
+
+target_link_libraries(ThinReplicaTest
+  ${Boost_LIBRARIES}
+  ${GTEST_LIBRARY}
+  log4cplus
+  proto
+  concord_utils
+  concord_consensus
+  concord_common
   $<TARGET_OBJECTS:logging_dev>)
 
 add_executable(ExternalClientTest external_client_test.cpp)

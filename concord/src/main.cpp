@@ -55,6 +55,7 @@
 #include "storage/kvb_key_types.h"
 #include "thin_replica/grpc_services.hpp"
 #include "thin_replica/subscription_buffer.hpp"
+#include "thin_replica/thin_replica_impl.hpp"
 #include "time/time_pusher.hpp"
 #include "time/time_reading.hpp"
 #include "utils/concord_eth_sign.hpp"
@@ -115,6 +116,7 @@ using concord::daml::DamlValidatorClient;
 
 using concord::thin_replica::SubBufferList;
 using concord::thin_replica::ThinReplicaImpl;
+using concord::thin_replica::ThinReplicaService;
 
 using concord::tee::TeeServiceImpl;
 
@@ -380,8 +382,8 @@ void RunDamlGrpcServer(std::string server_address, KVBClientPool &pool,
   Logger logger = Logger::getInstance("com.vmware.concord.daml");
 
   CommitServiceImpl *commitService = new CommitServiceImpl(pool);
-  ThinReplicaImpl *thinReplicaService =
-      new ThinReplicaImpl(ro_storage, subscriber_list);
+  ThinReplicaService *thinReplicaService = new ThinReplicaService{
+      std::make_unique<ThinReplicaImpl>(ro_storage, subscriber_list)};
 
   grpc::ResourceQuota quota;
   quota.SetMaxThreads(max_num_threads);

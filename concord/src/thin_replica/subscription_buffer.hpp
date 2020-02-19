@@ -85,7 +85,7 @@ class SubUpdateBuffer {
 // represented by its ring buffer. The presence or absence of a buffer
 // determines whether a subscriber is subscribed or unsubscribed respectively.
 class SubBufferList {
- private:
+ protected:
   std::list<std::shared_ptr<SubUpdateBuffer>> subscriber_;
   std::mutex mutex_;
 
@@ -97,24 +97,25 @@ class SubBufferList {
   SubBufferList& operator=(const SubBufferList&) = delete;
 
   // Add a subscriber
-  void AddBuffer(std::shared_ptr<SubUpdateBuffer> elem) {
+  virtual void AddBuffer(std::shared_ptr<SubUpdateBuffer> elem) {
     std::lock_guard<std::mutex> lock(mutex_);
     subscriber_.push_back(elem);
   }
 
   // Remove a subscriber
-  void RemoveBuffer(std::shared_ptr<SubUpdateBuffer> elem) {
+  virtual void RemoveBuffer(std::shared_ptr<SubUpdateBuffer> elem) {
     std::lock_guard<std::mutex> lock(mutex_);
     subscriber_.remove(elem);
   }
 
   // Populate updates to all subscribers
-  void UpdateSubBuffers(SubUpdate update) {
+  virtual void UpdateSubBuffers(SubUpdate update) {
     std::lock_guard<std::mutex> lock(mutex_);
     for (const auto& it : subscriber_) {
       it->Push(update);
     }
   }
+  virtual ~SubBufferList() = default;
 };
 
 }  // namespace thin_replica
