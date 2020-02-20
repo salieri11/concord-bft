@@ -1057,11 +1057,13 @@
       "help": {
         "numberOfNodes": "Number of committers are optimized for SBFT consensus engine"
       },
-      "pageTitle": "Committers and Regional Distribution",
+      "pageTitle": "Committers and Zone Distribution",
       "navTitle": "Committers",
-      "regionalTitle": "Regional Distribution",
-      "regionInfo": "Even distribution of committers across regions is recommended for best network resiliency.  The cumulative amount in regions must equal number of committers to continue to the next step.",
+      "regionalTitle": "Zone Distribution",
+      "regionInfo": "Even distribution of committers across zones is recommended for best network resiliency.  The cumulative amount in zones must equal number of committers to continue to the next step.",
       "onPremInfo": "Hybrid cloud is not yet available. If you add an on premise region, cloud regions will be disabled.",
+      "onPremTitle": "On Prem Zones",
+      "cloudTitle": "Cloud Zones",
       "add": "Add On Premises Region"
     },
     "users": {
