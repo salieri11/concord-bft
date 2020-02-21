@@ -49,7 +49,7 @@ describe('BlockchainWizardComponent', () => {
   });
 
   describe('Distribute regions', () => {
-    it('regions should be evenly distributed', () => {
+    it('should be evenly distributed', () => {
       component.zones = [{
         name: 'US West - Oregon',
         id: 'us-west',
@@ -76,7 +76,8 @@ describe('BlockchainWizardComponent', () => {
         longitude: 0,
         type: ZoneType.VMC_AWS
       }];
-
+      component.onPremActive = false;
+      component.tabSelect();
       const zones = component.form.controls.nodes['controls'].zones;
       const regionKeys = Object.keys(zones.value);
 

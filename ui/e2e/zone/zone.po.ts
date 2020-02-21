@@ -22,14 +22,14 @@ export class Zone {
     element(by.css('#vcUsername')).sendKeys('cloudadmin@vmc.local');
     element(by.css('#vcPassword')).sendKeys('o8Sa*SsI!rITsR9');
     element(by.css('#vcRp')).sendKeys('Compute-ResourcePool');
-    element(by.css('#vcStorage')).sendKeys('WorkloadDatastore"');
+    element(by.css('#vcStorage')).sendKeys('WorkloadDatastore');
     element(by.css('#vcFolder')).sendKeys('HermesTesting');
     element(by.css('#netName')).sendKeys('vmware-vpn-4b');
     element(by.css('#netGateway')).sendKeys('10.70.30.1');
-    element(by.css('#netSubnet')).sendKeys(23);
-    element(by.css('#netNS')).sendKeys('');
-    element(by.css('#netPool')).sendKeys('');
-
+    element(by.css('#netSubnet')).sendKeys('23');
+    element(by.css('#netNS')).sendKeys('1.1.1.1,1.1.1.1');
+    element(by.css('#netPool')).sendKeys('1.1.1.1-1.1.1.1');
+    element(by.css('#liUrl')).sendKeys('10.78.20.10');
   }
 
   getSuccessMessage() {
@@ -37,7 +37,6 @@ export class Zone {
   }
 
   fillOutRest() {
-    element(by.css('#liUrl')).sendKeys('10.78.20.10');
     element(by.css('#liPort')).sendKeys('9543');
     element(by.css('#liUsername')).sendKeys('fluentd');
     element(by.css('#liPasswor')).sendKeys('Fluentd!23');
@@ -56,7 +55,7 @@ export class Zone {
     element(by.css('#addZone')).click();
   }
 
-  udpate() {
+  update() {
     element(by.css('#updateZone')).click();
   }
 

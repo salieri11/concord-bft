@@ -117,7 +117,6 @@ export class ZoneComponent implements OnInit {
 
     this.zoneForm.form.controls.onPrem.patchValue(zone);
     this.zoneForm.form.controls.onPremLocation.patchValue({ name: zoneDesignation, location: zoneName });
-    this.zoneForm.form.patchValue(zone);
 
     if (zone.container_repo) {
       this.zoneForm.form.controls.container_repo.patchValue(zone.container_repo);
@@ -125,8 +124,8 @@ export class ZoneComponent implements OnInit {
     if (zone.wavefront) {
       this.zoneForm.form.controls.wavefront.patchValue(zone.wavefront);
     }
-    if (zone.log_insight) {
-      this.zoneForm.form.controls.log_insight.patchValue(zone.log_insight);
+    if (zone.log_managements) {
+      this.zoneForm.form.controls.log_managements.patchValue(zone.log_managements);
     }
     if (zone.outbound_proxy) {
       this.zoneForm.form.controls.outbound_proxy.patchValue(zone.outbound_proxy);

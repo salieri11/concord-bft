@@ -109,21 +109,22 @@
           </select>
           <clr-control-helper>{{'blockchainWizard.details.help.numberOfNodes' | translate}}</clr-control-helper>
         </clr-select-container>
-        <div class="regions">
-          <h6 class="sub-title">{{'blockchainWizard.nodes.regionalTitle' | translate}}</h6>
-          <clr-alert [clrAlertClosable]="false">
-            <clr-alert-item>
-              <span class="alert-text">
-                {{'blockchainWizard.nodes.regionInfo' | translate}}
-              </span>
-            </clr-alert-item>
-          </clr-alert>
+        <div class="regions" formGroupName="zones">
+          <!-- <h6 class="sub-title">{{'blockchainWizard.nodes.regionalTitle' | translate}}</h6> -->
           <clr-tabs>
             <clr-tab *ngIf="hasOnPrem">
-              <button clrTabLink>{{'blockchainWizard.nodes.onPremTitle' | translate}}</button>
+              <button clrTabLink (click)="tabSelect()">{{'blockchainWizard.nodes.onPremTitle' | translate}}</button>
               <ng-template  [(clrIfActive)]="onPremActive">
-                <clr-tab-content formGroupName="onPremZones">
-                  <clr-input-container *ngFor="let zone of onPremZones" class="show-no-helper">
+                <clr-tab-content id="onPremZones">
+                <clr-alert [clrAlertClosable]="false">
+                  <clr-alert-item>
+                    <span class="alert-text">
+                      {{'blockchainWizard.nodes.regionInfo' | translate}}
+                    </span>
+                  </clr-alert-item>
+                </clr-alert>
+
+                  <clr-input-container *ngFor="let zone of zones" class="show-no-helper">
                     <label class="clr-col-12 clr-col-md-4">{{ zone.name }}</label>
                     <input clrInput type="text" class="clr-col-12 clr-col-md-8" [formControlName]="zone.id" />
                     <clr-control-helper>{{ zone.name }}</clr-control-helper>
@@ -132,10 +133,18 @@
               </ng-template>
             </clr-tab>
             <clr-tab>
-              <button clrTabLink>{{'blockchainWizard.nodes.cloudTitle' | translate}}</button>
+              <button clrTabLink (click)="tabSelect()">{{'blockchainWizard.nodes.cloudTitle' | translate}}</button>
               <ng-template [(clrIfActive)]="cloudActive">
-                <clr-tab-content formGroupName="cloudZones">
-                  <clr-input-container *ngFor="let zone of cloudZones" class="show-no-helper">
+                <clr-tab-content id="cloudZones">
+                  <clr-alert [clrAlertClosable]="false">
+                    <clr-alert-item>
+                      <span class="alert-text">
+                        {{'blockchainWizard.nodes.regionInfo' | translate}}
+                      </span>
+                    </clr-alert-item>
+                  </clr-alert>
+
+                  <clr-input-container *ngFor="let zone of zones" class="show-no-helper">
                     <label class="clr-col-12 clr-col-md-4">{{ zone.name }}</label>
                     <input clrInput type="text" class="clr-col-12 clr-col-md-8" [formControlName]="zone.id" />
                     <clr-control-helper>{{ zone.name }}</clr-control-helper>

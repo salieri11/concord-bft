@@ -12,7 +12,7 @@ import sys
 import tempfile
 from time import strftime, localtime, sleep
 from suites import (contract_compiler_tests, core_vm_tests,
-                    ext_rpc_tests, lint_e2e_tests, hlf_tests, performance_tests, persephone_tests,
+                    ext_rpc_tests, ui_e2e_deploy_daml, hlf_tests, performance_tests, persephone_tests,
                     pytest_suite, regression_tests, sample_dapp_tests, simple_st_test,
                     ui_tests, websocket_rpc_tests, persistency_tests)
 from util import helper, html, json_helper
@@ -303,8 +303,8 @@ def createTestSuite(args):
       return truffle_tests.TruffleTests(args)
    elif (args.suite == "UiTests"):
       return ui_tests.UiTests(args)
-   elif (args.suite == "LintTests"):
-      return lint_e2e_tests.LintTests(args)
+   elif (args.suite == "DeployDamlTests"):
+      return ui_e2e_deploy_daml.DeployDamlTests(args)
    elif (args.suite == "DamlTests"):
       return pytest_suite.PytestSuite(args, "suites/daml_tests.py")
    elif (args.suite == "HlfTests"):

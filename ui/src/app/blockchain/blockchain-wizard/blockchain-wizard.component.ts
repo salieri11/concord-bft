@@ -27,7 +27,7 @@ import { ContextualHelpService } from './../../shared/contextual-help.service';
 
 const RegionCountValidator: ValidatorFn = (fg: FormGroup): ValidationErrors | null => {
   const nodes = fg['controls'].numberOfNodes.value;
-  const zones = fg['controls'].cloudZones;
+  const zones = fg['controls'].zones;
   let count = 0;
 
   Object.keys(zones.value).forEach(key => {
@@ -71,7 +71,8 @@ export class BlockchainWizardComponent implements AfterViewInit {
   loadingFlag: boolean;
 
   onPremActive: boolean;
-  cloudActive: boolean = true;
+  cloudActive: boolean;
+  hasOnPrem: boolean = true;
 
   constructor(
     private blockchainService: BlockchainService,
@@ -84,7 +85,7 @@ export class BlockchainWizardComponent implements AfterViewInit {
       this.router.navigate([mainRoutes.forbidden]);
     }
 
-    this.filterZones();
+    // this.filterZones();
     this.form = this.initForm();
   }
 
@@ -109,7 +110,7 @@ export class BlockchainWizardComponent implements AfterViewInit {
     this.showOnPrem = false;
     this.selectedEngine = undefined;
 
-    this.filterZones();
+    // this.filterZones();
 
     if (this.form && this.wizard) {
       this.wizard.reset();
@@ -117,32 +118,38 @@ export class BlockchainWizardComponent implements AfterViewInit {
     }
   }
 
-  filterZones() {
+  tabSelect() {
+    this.setupZones();
+  }
+
+  private setupZones() {
     this.hasOnPrem = this.blockchainService.zones.some(zone => zone.type === ZoneType.ON_PREM);
-    // this.onPremActive = this.blockchainService.zones.some(zone => zone.type === ZoneType.ON_PREM);
-    // this.cloudActive = this.blockchainService.zones.some(zone => zone.type === ZoneType.VMC_AWS);
+    const onPremZones = this.blockchainService.zones.filter((zone) => zone.type === ZoneType.ON_PREM);
+    const cloudZones = this.blockchainService.zones.filter((zone) => zone.type === ZoneType.VMC_AWS);
 
-    // if (isOnPremZone) {
-    this.onPremZones = this.blockchainService.zones.filter((zone) => zone.type === ZoneType.ON_PREM);
-    this.cloudZones = this.blockchainService.zones.filter((zone) => zone.type === ZoneType.VMC_AWS);
+    if (this.form) {
+      const zones = this.form['controls'].nodes['controls'].zones;
+      const pastZones = this.zones;
+      this.zones = [];
+      pastZones.forEach(zone => {
+        zones.removeControl(zone.id);
+      });
 
-    //   if (this.form) {
-    //     const zones = this.form['controls'].nodes['controls'].zones;
-    //     const pastZones = this.zones;
-    //     this.zones = [];
-    //     pastZones.forEach(zone => {
-    //       zones.removeControl(zone.id);
-    //     });
+      if (this.onPremActive) {
+        onPremZones.forEach(zone => {
+          zones.addControl(zone.id, new FormControl('', Validators.required));
+        });
+        this.zones = onPremZones;
+      } else {
+        cloudZones.forEach(zone => {
+          zones.addControl(zone.id, new FormControl('', Validators.required));
+        });
+        this.zones = cloudZones;
+      }
 
-    //     onPremZones.forEach(zone => {
-    //       zones.addControl(zone.id, new FormControl('', Validators.required));
-    //     });
-    //   }
+    }
 
-    //   this.zones = onPremZones;
-    // // } else {
-    //   this.zones = this.blockchainService.zones;
-    // }
+    this.distributeZones();
   }
 
   onSubmit() {
@@ -184,7 +191,7 @@ export class BlockchainWizardComponent implements AfterViewInit {
   }
 
   distributeZones() {
-    const zones = this.form.controls.nodes['controls'].cloudZones;
+    const zones = this.form.controls.nodes['controls'].zones;
     const nodes = this.form.controls.nodes['controls'].numberOfNodes;
     const regionKeys = Object.keys(zones.value);
     const ratio = regionKeys.length;
@@ -220,8 +227,8 @@ export class BlockchainWizardComponent implements AfterViewInit {
       }),
       nodes: new FormGroup({
         numberOfNodes: new FormControl('', Validators.required),
-        cloudZones: this.zoneGroup('cloudZones'),
-        onPremZones: this.zoneGroup('onPremZones'),
+        zones: this.zoneGroup(),
+        // onPremZones: this.zoneGroup('onPremZones'),
       }, { validators: RegionCountValidator }),
     });
   }
@@ -248,6 +255,9 @@ export class BlockchainWizardComponent implements AfterViewInit {
           this.consortiumInput.nativeElement.focus();
         }, 10);
 
+        break;
+      case this.replicaPage:
+        this.setupZones();
         break;
     }
   }
@@ -291,10 +301,10 @@ export class BlockchainWizardComponent implements AfterViewInit {
     return (maxChain === 0) || (maxChain > blockchainCount);
   }
 
-  private zoneGroup(type: 'string') {
+  private zoneGroup() {
     const group = {};
 
-    this[type].forEach(zone => {
+    this.zones.forEach(zone => {
       group[zone.id] = new FormControl('');
     });
 

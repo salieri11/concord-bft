@@ -1059,11 +1059,10 @@
       },
       "pageTitle": "Committers and Zone Distribution",
       "navTitle": "Committers",
-      "regionalTitle": "Zone Distribution",
+      "onPremTitle": "On Premises Zone Distribution",
+      "cloudTitle": "Cloud Zone Distribution",
       "regionInfo": "Even distribution of committers across zones is recommended for best network resiliency.  The cumulative amount in zones must equal number of committers to continue to the next step.",
       "onPremInfo": "Hybrid cloud is not yet available. If you add an on premise region, cloud regions will be disabled.",
-      "onPremTitle": "On Prem Zones",
-      "cloudTitle": "Cloud Zones",
       "add": "Add On Premises Region"
     },
     "users": {

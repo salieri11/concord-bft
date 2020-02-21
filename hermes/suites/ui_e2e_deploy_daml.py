@@ -16,7 +16,7 @@ from . import test_suite
 log = logging.getLogger(__name__)
 
 
-class LintTests(test_suite.TestSuite):
+class DeployDamlTests(test_suite.TestSuite):
     _args = None
     _userConfig = None
     _productMode = True
@@ -25,10 +25,10 @@ class LintTests(test_suite.TestSuite):
     _testCaseDir = None
 
     def __init__(self, passedArgs):
-        super(LintTests, self).__init__(passedArgs)
+        super(DeployDamlTests, self).__init__(passedArgs)
 
     def getName(self):
-        return "LintTests"
+        return "DeployDamlTests"
 
     def run(self):
         repo_path = os.getcwd().split('/')[:-1]
