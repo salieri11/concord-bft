@@ -19,6 +19,7 @@ import tempfile
 import time
 import util.json_helper
 from . import numbers_strings
+from . import vsphere
 from urllib.parse import urlparse, urlunparse
 
 log = logging.getLogger(__name__)
@@ -27,6 +28,10 @@ docker_env_file = ".env"
 # The config file contains information aobut how to run things, as opposed to
 # command line parameters, which are about running tests.
 CONFIG_JSON = "resources/user_config.json"
+
+# CONFIG_CACHED["data"] is populated by `loadConfigFile`
+# (containing data from user_config.json OR command line argument overrides)
+CONFIG_CACHED = {}
 
 # These are command line options for --blockchainLocation.  Various parts
 # of the code need to know them.
@@ -55,6 +60,17 @@ ZONE_TYPE_SDDC = "VMC_AWS"
 LOG_DESTINATION_LOG_INTELLIGENCE = "LOG_INTELLIGENCE"
 LOG_DESTINATION_LOG_INSIGHT = "LOG_INSIGHT"
 
+# all open infra sessions for accessing VMs & Folders on the datacenter connection
+# e.g. vm = INFRA["SDDC3"].getByIP("10.69.100.46")
+#     populated by `sddcGetConnection` (ConnectionToSDDC objects defined in vsphere.py)
+INFRA = {}
+
+# list of all deployed replicas by Hermes from this particular build
+#     auto populated by `sddcGiveDeploymentContextToVM` with replicaInfo
+DEPLOYED_REPLICAS = []
+
+
+
 def copy_docker_env_file(docker_env_file=docker_env_file):
    '''
    This file contains variables fed to docker-compose.yml. It is picked up from
@@ -64,6 +80,7 @@ def copy_docker_env_file(docker_env_file=docker_env_file):
    if not os.path.isfile(docker_env_file):
       log.debug("Copying {} file from docker/".format(docker_env_file))
       shutil.copyfile(os.path.join("../docker/", docker_env_file), docker_env_file)
+
 
 def get_docker_env(key=None):
    '''
@@ -88,6 +105,7 @@ def get_docker_env(key=None):
          return None
    else:
       return env
+
 
 def get_docker_compose_value(docker_compose_files, service_name, key):
    '''
@@ -129,6 +147,7 @@ def get_docker_compose_value(docker_compose_files, service_name, key):
       raise Exception("Key '{}' not found in docker file(s): {}".format(key,
          docker_compose_files))
 
+
 def get_deployment_service_config_file(docker_compose_files, service_name):
    '''
    Helper method to get config file for a given "service_name"
@@ -144,6 +163,7 @@ def get_deployment_service_config_file(docker_compose_files, service_name):
    except Exception as e:
       raise
    return config_file
+
 
 def ssh_connect(host, username, password, command, log_mode=None):
    '''
@@ -343,18 +363,22 @@ def add_ethrpc_port_forwarding(host, username, password):
          dest_port)
       docker_ethrpc_ip = ssh_connect(host, username, password,
                                      cmd_get_docker_ethrpc_ip)
+      
+      log.debug("Extracted IP to port forward: {}".format(docker_ethrpc_ip))
 
       if docker_ethrpc_ip:
-         docker_ethrpc_ip = docker_ethrpc_ip.rstrip()
+         docker_ethrpc_ip = docker_ethrpc_ip.strip()
          cmd_port_forward = "iptables -t nat -A PREROUTING -p tcp --dport {} -j DNAT --to-destination {}:{}".format(
             src_port, docker_ethrpc_ip, dest_port)
+         log.debug("Port forwarding command: {}".format(cmd_port_forward))
          output = ssh_connect(host, username, password, cmd_port_forward)
+         log.debug("Port forwarded command output: {}".format(output))
 
-         cmd_check_port_forward = "iptables -t nat -vnL | grep {}".format(
-            src_port)
+         cmd_check_port_forward = "iptables -t nat -vnL | grep {}".format(src_port)
+         log.debug("Port forwarding check command: {}".format(cmd_check_port_forward))
          port_forward_output = ssh_connect(host, username, password,
                                            cmd_check_port_forward)
-         log.debug("Port Forwarded output: {}".format(port_forward_output))
+         log.debug("Port forwarding check output: {}".format(port_forward_output))
 
          check_str_port_forward = "dpt:{} to:{}:{}".format(src_port,
                                                            docker_ethrpc_ip,
@@ -367,6 +391,7 @@ def add_ethrpc_port_forwarding(host, username, password):
 
    log.debug("Port forwarding failed")
    return False
+
 
 def verify_connectivity(ip, port, bytes_to_send=[], success_bytes=[], min_bytes=1):
    '''
@@ -441,6 +466,7 @@ def verify_connectivity(ip, port, bytes_to_send=[], success_bytes=[], min_bytes=
          bytes_to_search = []
 
    return False
+
 
 def create_concord_support_bundle(replicas, concord_type, test_log_dir):
    '''
@@ -585,7 +611,7 @@ def loadConfigFile(args):
    '''
    configObject = None
 
-   if args.config:
+   if args and args.config:
       configObject = util.json_helper.readJsonFile(args.config)
    else:
       configObject = util.json_helper.readJsonFile(CONFIG_JSON)
@@ -595,6 +621,8 @@ def loadConfigFile(args):
 
       configObject["ethereum"]["testRoot"] = \
          os.path.expanduser(configObject["ethereum"]["testRoot"])
+
+   CONFIG_CACHED['data'] = configObject
 
    return configObject
 
@@ -681,41 +709,183 @@ def mergeDictionaries(orig, new):
          orig[newK] = newV
 
 
-def getReplicaContainers(replicaType):
+
+'''
+  Helper functions relevant to Hermes infrastructure automation
+'''
+def sddcCredentialsAreGood(sddcName, sddcInfo):
+   c = sddcInfo
+   if not c["host"] or not c["username"] or not c["password"]: 
+      log.debug("Target 'vSphere/{}' is not well-defined in user_config.json".format(sddcName))
+      return False
+   if c["username"].startswith("<") and c["username"].endswith(">"): # user_config not injected correctly with credential
+      log.debug("vSphere/{}: username credential is not injected (user_config.json)".format(sddcName))
+      return False
+   if c["password"].startswith("<") and c["password"].endswith(">"): # user_config not injected correctly with credential
+      log.debug("vSphere/{}: password credential is not injected (user_config.json)".format(sddcName))
+      return False
+   return True
+
+
+def sddcGetConnection(sddcName):
    '''
-   Given the name of a replica, as defined in persephoneTests["modelService"]["defaults"]["deployment_components"],
-   return a list of the names of the docker containers which are expected to be in that replica.
+      Initializes vSphere connection to the target SDDC.
+      Host and Credentials are fed from `user_config.json`, for example: {
+        ...
+        "infra":{
+          "SDDC3":{
+            "type": "vSphere",
+            "host": "vcenter.sddc-35-156-16-204.vmwarevmc.com", 
+            "username": "<VMC_SDDC3_VC_CREDENTIALS_USERNAME>",
+            "password": "<VMC_SDDC3_VC_CREDENTIALS_PASSWORD>" 
+          }
+          ...
+        }
+      }
+      where Jenkins-kept credentials brought from `withCredentials` call,
+      which get injected to `user_config.json` in `gitlabBuildSteps.groovy` 
    '''
-   user_config = util.json_helper.readJsonFile(CONFIG_JSON)
+   # get config from user_config.json
+   configObject = CONFIG_CACHED['data'] if 'data' in CONFIG_CACHED else loadConfigFile(None)
+   try:
+      if sddcName not in INFRA:
+         if sddcName not in configObject["infra"]:
+           log.debug("Cannot open session to {}, no vSphere credential in config object.".format(sddcName))
+           return False
+         
+         sddcInfo = configObject["infra"][sddcName]
+         
+         if not sddcCredentialsAreGood(sddcName, sddcInfo):
+           log.debug("Cannot open session to {}, credentials are bad".format(sddcName))
+           return False
+         
+         conn = vsphere.ConnectionToSDDC(
+            sddcName = sddcName,
+            hostname = sddcInfo["host"],
+            username = sddcInfo["username"],
+            password = sddcInfo["password"],
+         )
+         if not conn.ready:
+           log.debug("Cannot open session to {}, connection is not ready".format(sddcName))
+           return False
+         
+         INFRA[sddcName] = conn
+      return INFRA[sddcName]
 
-   if replicaType in user_config["persephoneTests"]["modelService"]["defaults"]["deployment_components"]:
-      return list(user_config["persephoneTests"]["modelService"]["defaults"]["deployment_components"][replicaType].values())
-   else:
-      log.error("Invalid replica name in getReplicaContainers(): '{}'".format(replicaType))
-      return None
+   except Exception as e:
+     log.debug(e)
+     return False
 
 
-def waitForDockerContainers(host, username, password, replicaType, timeout=600):
+def sddcGetListFromConfig(configObject = None):
+  '''
+      Returns sddcNumber list from config object
+      (List of all SDDCs affected by Hermes testing)
+      :param configObject: (optional), if not given, auto-resolved by loadConfigFile
+  '''
+  if configObject is None:
+    configObject = CONFIG_CACHED['data'] if 'data' in CONFIG_CACHED else loadConfigFile(None)
+  sddcs = []
+  # Can be vSphere SDDC or other on-prem locations
+  #  e.g. Other on-prem location name with any string val
+  for sddcName in configObject["infra"]:
+    sddcs.append(sddcName)
+  return sddcs
+
+
+def sddcFindReplicaVM(replicaId, sddcs = None):
+  '''
+      Returns VM by the supplied replicaId
+      :param sddc: (optional), if not given, all SDDCs defined in user_config.json used
+  '''
+  # if narrow sddcs search not given, search in all SDDCs in user_config
+  sddcs = sddcs if sddcs is not None else sddcGetListFromConfig()
+  for sddcName in sddcs:
+    if sddcGetConnection(sddcName):
+      vm = INFRA[sddcName].getByNameContaining(replicaId)
+      if vm:
+        return {"vm": vm, "sddc": INFRA[sddcName]}
+  log.debug("Cannot find vm with its name containing '{}' in datacenters [{}]".format(replicaId, ', '.join(sddcs)))
+  return None
+
+
+def sddcGiveDeploymentContextToVM(blockchainDetails, otherMetadata=""):
    '''
-   Wait for a list of docker containers to come up, given a replica type as defined in
-   persephoneTests["modelService"]["defaults"]["deployment_components"].
+      Add detailed deployment context to the Hermes-deployed VMs
+      ```python
+      blockchainDetails = {
+          "id": "c035100f-22e9-4596-b9d6-5daa349db342",
+          "consortium_id": "bfaa0041-8ab2-4072-9023-4cedd0e81a78",
+          "blockchain_type": "ETHEREUM",
+          "node_list": [ ... ], # `NOT USED`
+          "replica_list": [{
+            "ip": "52.63.165.178",
+            "url": "https://52.63.165.178:8545", # `NOT USED`
+            "cert": "", # `NOT USED`
+            "zone_id": "6adaf48a-9075-4e35-9a71-4ef1fb4ac90f", # `NOT USED`
+            "replica_id": "a193f7b8-6ec5-4802-8c2f-33cb33516c3c"
+          }, ...]
+      }
+      ```
    '''
-   for name in getReplicaContainers(replicaType):
-      cmd = "docker ps | grep '{}' | grep ' Up [0-9]* '".format(name)
-      elapsed = 0
-      sleep_time = 5
-      up = False
+   # get config from user_config.json
+   try: 
+      configObject = CONFIG_CACHED['data'] if 'data' in CONFIG_CACHED else loadConfigFile(None)
+      sddcs = sddcGetListFromConfig(configObject)
+      jobName = configObject["metainf"]["env"]["jobName"]
+      buildNumber = configObject["metainf"]["env"]["buildNumber"]
+      productVersion = configObject["metainf"]["env"]["productVersion"]
+      pytestContext = os.getenv("PYTEST_CURRENT_TEST")
+      if pytestContext is None: pytestContext = ""
+      runCommand = os.getenv("SUDO_COMMAND")
+      if runCommand is None: runCommand = ""
 
-      while elapsed <= timeout and not up:
-         ssh_output = ssh_connect(host, username, password, cmd)
+      for replicaInfo in blockchainDetails["replica_list"]:
+        alreadyRegistered = [replica for replica in DEPLOYED_REPLICAS if replica.get("replica_id") == replicaInfo["replica_id"]]
+        if len(alreadyRegistered) > 0: continue # this replica is already registered to DEPLOYED_REPLICAS
+        DEPLOYED_REPLICAS.append(replicaInfo)
 
-         if ssh_output:
-            log.info("Container '{}' on '{}' is up.".format(name, host))
-            up = True
-         else:
-            log.info("Waiting for container '{}' on '{}' to come up.".format(name, host))
-            time.sleep(sleep_time)
-            elapsed += sleep_time
+        vmAndSourceSDDC = sddcFindReplicaVM(
+          replicaId = replicaInfo["replica_id"],
+          sddcs = sddcs
+          # above "sddcs": Perhaps, this can be abtracted later to "datacenters" and also support AWS/Azure/GCP/etc
+          # It would be interesting to test concord with various mixed cloud environment set-up.
+          # They all have their own version of inventory system with: instance notes, descriptions and/or tags, etc.
+        )
+        if vmAndSourceSDDC is None: continue # vm with the given replicaId is not found
+        vm = vmAndSourceSDDC["vm"]
+        sddc = vmAndSourceSDDC["sddc"]
+        sddc.vmAnnotate(vm, # edit VM Notes with detailed deployment context
+            "Public IP: {}\nReplica ID: {}\nBlockchain: {}\nConsortium: {}\nType: {}\n".format(
+              replicaInfo["ip"],
+              replicaInfo["replica_id"],
+              blockchainDetails["id"],
+              blockchainDetails["consortium_id"],
+              blockchainDetails["blockchain_type"],
+            ) + "\nDeployed By: Hermes\nProduct Version: {}\nJob Name: {}\nBuild Number: {}\nBuild URL: {}\n".format(
+              productVersion,
+              jobName,
+              buildNumber,
+              "https://blockchain.svc.eng.vmware.com/job/{}/{}".format(jobName, buildNumber)
+            ) + "\nPytest Context: {}\n\nRun Command: {}\n\nOther Metadata: {}\n\n".format(
+              pytestContext,
+              runCommand,
+              otherMetadata
+            )
+        )
+        # Add custom attributes
+        sddc.vmSetCustomAttribute(vm, "up_since", str(int(time.time()))) # UNIX timestamp in seconds
+        sddc.vmSetCustomAttribute(vm, "realm", "testing")
+        sddc.vmSetCustomAttribute(vm, "product_version", productVersion)
+        sddc.vmSetCustomAttribute(vm, "job_name", jobName)
+        sddc.vmSetCustomAttribute(vm, "build_number", buildNumber)
+        sddc.vmSetCustomAttribute(vm, "replica_id", replicaInfo["replica_id"])
+        sddc.vmSetCustomAttribute(vm, "ip", replicaInfo["ip"])
+        sddc.vmSetCustomAttribute(vm, "blockchain_id", blockchainDetails["id"])
+        sddc.vmSetCustomAttribute(vm, "consortium_id", blockchainDetails["consortium_id"])
+        sddc.vmSetCustomAttribute(vm, "blockchain_type", blockchainDetails["blockchain_type"])
+        sddc.vmSetCustomAttribute(vm, "other_metadata", otherMetadata)
 
-      if not up:
-         raise Exception("Container '{}' on '{}' failed to come up.".format(name, host))
+   except Exception as e:
+      log.debug(e)
+

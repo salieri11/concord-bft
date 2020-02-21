@@ -134,6 +134,8 @@ def deployToSddc(logDir, hermesData):
                "manually: {}".format(json.dumps(blockchainDetails, indent=4)))
       credentials = hermesData["hermesUserConfig"]["persephoneTests"]["provisioningService"]["concordNode"]
 
+      util.helper.sddcGiveDeploymentContextToVM(blockchainDetails)
+
       if hermesData["hermesCmdlineArgs"].blockchainType.lower() == util.helper.TYPE_ETHEREUM:
          for replicaDetails in blockchainDetails["node_list"]:
             blockchainType = hermesData["hermesCmdlineArgs"].blockchainType
