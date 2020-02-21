@@ -1,0 +1,73 @@
+tee_enable: true
+eth_enable: false
+client_proxies_per_replica: 4
+c_val: 0
+f_val: 1
+tls_cipher_suite_list: ECDHE-ECDSA-AES256-GCM-SHA384
+tls_certificates_folder_path: ./tls_certs
+comm_to_use: tls
+FEATURE_time_service: false
+node__TEMPLATE:
+  logger_config: /concord/config-public/log4cplus.properties
+  blockchain_db_path: /concord/rocksdbdata/
+node:
+  - service_host: 0.0.0.0
+    service_port: 5458
+    tee_service_addr: 0.0.0.0:50051
+    replica:
+      - replica_host: concord1
+        replica_port: 3501
+    client_proxy:
+      - client_host: concord1
+        client_port: 3502
+      - client_host: concord1
+        client_port: 3503
+      - client_host: concord1
+        client_port: 3504
+      - client_host: concord1
+        client_port: 3505
+  - service_host: 0.0.0.0
+    service_port: 5458
+    tee_service_addr: 0.0.0.0:50051
+    replica:
+      - replica_host: concord2
+        replica_port: 3501
+    client_proxy:
+      - client_host: concord2
+        client_port: 3502
+      - client_host: concord2
+        client_port: 3503
+      - client_host: concord2
+        client_port: 3504
+      - client_host: concord2
+        client_port: 3505
+  - service_host: 0.0.0.0
+    service_port: 5458
+    tee_service_addr: 0.0.0.0:50051
+    replica:
+      - replica_host: concord3
+        replica_port: 3501
+    client_proxy:
+      - client_host: concord3
+        client_port: 3502
+      - client_host: concord3
+        client_port: 3503
+      - client_host: concord3
+        client_port: 3504
+      - client_host: concord3
+        client_port: 3505
+  - service_host: 0.0.0.0
+    service_port: 5458
+    tee_service_addr: 0.0.0.0:50051
+    replica:
+      - replica_host: concord4
+        replica_port: 3501
+    client_proxy:
+      - client_host: concord4
+        client_port: 3502
+      - client_host: concord4
+        client_port: 3503
+      - client_host: concord4
+        client_port: 3504
+      - client_host: concord4
+        client_port: 3505
