@@ -91,7 +91,6 @@ class RPCTestHelper():
       try:
          self.model_rpc_helper = ModelServiceRPCHelper(self.args)
          self.provision_rpc_helper = ProvisioningServiceRPCHelper(self.args)
-         # self.fleet_rpc_helper = FleetServiceRPCHelper(self.args)
 
          self.CONCORD_TYPE_ETHEREUM = self.model_rpc_helper.CONCORD_TYPE_ETHEREUM
          self.CONCORD_TYPE_DAML = self.model_rpc_helper.CONCORD_TYPE_DAML
@@ -115,39 +114,6 @@ class RPCTestHelper():
       except Exception as e:
          traceback.print_stack()
          raise Exception(e)
-
-   def rpc_add_model(self):
-      '''
-      Helper method to call AddModel gRPC
-      '''
-      header = core_pb2.MessageHeader()
-      concord_model_specification = self.model_rpc_helper.create_concord_model_specification(
-         deployment_components=self.args.deploymentComponents)
-      add_model_request = self.model_rpc_helper.create_add_model_request(
-         header,
-         concord_model_specification)
-
-      add_model_response = self.model_rpc_helper.rpc_AddModel(
-         add_model_request)
-      log.debug("AddModel response:")
-      if add_model_response:
-         for item in add_model_response:
-            log.debug(item)
-
-      return add_model_request, add_model_response
-
-   def rpc_list_models(self):
-      '''
-      Helper method to call ListModel gRPC
-      :return: Metadata
-      '''
-      metadata = self.model_rpc_helper.rpc_ListModels()
-
-      if metadata:
-         for item in metadata:
-            log.debug("Metadata: {}".format(item))
-
-      return metadata
 
    def rpc_create_cluster(self, cluster_size=4,
                           placement_type=ProvisioningServiceRPCHelper.PLACEMENT_TYPE_FIXED,

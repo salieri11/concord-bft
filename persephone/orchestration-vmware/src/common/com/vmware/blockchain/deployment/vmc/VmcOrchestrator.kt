@@ -13,23 +13,28 @@ import com.vmware.blockchain.deployment.orchestration.ORCHESTRATOR_TIMEOUT_MILLI
 import com.vmware.blockchain.deployment.orchestration.Orchestrator
 import com.vmware.blockchain.deployment.orchestration.toIPv4Address
 import com.vmware.blockchain.deployment.reactive.Publisher
-import com.vmware.blockchain.deployment.service.grpc.support.newClientRpcChannel
 import com.vmware.blockchain.deployment.v1.Address
 import com.vmware.blockchain.deployment.v1.AllocateAddressRequest
 import com.vmware.blockchain.deployment.v1.AllocateAddressResponse
-import com.vmware.blockchain.deployment.v1.IPAllocationServiceStub
+import com.vmware.blockchain.deployment.v1.Endpoint
+import com.vmware.blockchain.deployment.v1.IPAllocationServiceGrpc.IPAllocationServiceStub
+import com.vmware.blockchain.deployment.v1.IPAllocationServiceGrpc.newStub
 import com.vmware.blockchain.deployment.v1.IPv4Network
 import com.vmware.blockchain.deployment.v1.MessageHeader
 import com.vmware.blockchain.deployment.v1.OrchestrationSiteInfo
 import com.vmware.blockchain.deployment.v1.OutboundProxyInfo
 import com.vmware.blockchain.deployment.v1.ReleaseAddressRequest
 import com.vmware.blockchain.deployment.v1.ReleaseAddressResponse
+import com.vmware.blockchain.deployment.v1.TransportSecurity
 import com.vmware.blockchain.deployment.v1.VmcOrchestrationSiteInfo
 import com.vmware.blockchain.deployment.vm.CloudInitConfiguration
+import com.vmware.blockchain.deployment.vsphere.ChannelStreamObserver
 import com.vmware.blockchain.deployment.vsphere.VSphereClient
 import com.vmware.blockchain.deployment.vsphere.VSphereHttpClient
 import com.vmware.blockchain.deployment.vsphere.VSphereModelSerializer
-import com.vmware.blockchain.grpc.kotlinx.serialization.ChannelStreamObserver
+import io.grpc.ManagedChannel
+import io.grpc.netty.shaded.io.grpc.netty.GrpcSslContexts
+import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -38,6 +43,8 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.reactive.publish
 import kotlinx.coroutines.withTimeout
+import java.util.concurrent.Executor
+import java.util.concurrent.ForkJoinPool
 import kotlin.coroutines.CoroutineContext
 
 /**
@@ -113,9 +120,7 @@ class VmcOrchestrator(
                 // contain more than one entry.
                 networkAddressAllocationServers = mapOf(
                         info.vsphere.network.let {
-                            it.name to IPAllocationServiceStub(
-                                    it.allocationServer.newClientRpcChannel()
-                            )
+                            it.name to newStub(newClientRpcChannel(it.allocationServer))
                         }
                 )
             }
@@ -164,7 +169,7 @@ class VmcOrchestrator(
                                     request.model,
                                     request.privateNetworkAddress,
                                     network.gateway.toIPv4Address(),
-                                    network.nameServers,
+                                    network.nameServersList,
                                     network.subnet,
                                     request.cluster,
                                     request.node,
@@ -172,8 +177,8 @@ class VmcOrchestrator(
                                     request.configurationSessionIdentifier,
                                     request.configServiceEndpoint,
                                     request.configServiceRestEndpoint,
-                                    OutboundProxyInfo(),
-                                    info.logManagements,
+                                    OutboundProxyInfo.newBuilder().build(),
+                                    info.logManagementsList,
                                     info.wavefront,
                                     request.consortium
                             )
@@ -225,7 +230,6 @@ class VmcOrchestrator(
         request: Orchestrator.CreateNetworkResourceRequest
     ): Publisher<Orchestrator.NetworkResourceEvent> {
         val network = info.vsphere.network
-
         return publish<Orchestrator.NetworkResourceEvent> {
             withTimeout(ORCHESTRATOR_TIMEOUT_MILLIS) {
                 try {
@@ -400,10 +404,9 @@ class VmcOrchestrator(
      */
     @Suppress("DuplicatedCode")
     private suspend fun allocatedPrivateIP(network: IPv4Network): Address? {
-        val requestAllocateAddress = AllocateAddressRequest(
-                header = MessageHeader(),
-                parent = IPAM_RESOURCE_NAME_PREFIX + info.datacenter + "-" + network.name
-        )
+        val requestAllocateAddress = AllocateAddressRequest.newBuilder()
+                .setHeader(MessageHeader.newBuilder().build())
+                .setParent(IPAM_RESOURCE_NAME_PREFIX + info.datacenter + "-" + network.name).build()
 
         val observer = ChannelStreamObserver<AllocateAddressResponse>(1)
         val ipAllocationService = requireNotNull(networkAddressAllocationServers[network.name])
@@ -427,15 +430,62 @@ class VmcOrchestrator(
     @Suppress("DuplicatedCode")
     private suspend fun releasePrivateIP(network: IPv4Network, resource: URI): Boolean {
         val observer = ChannelStreamObserver<ReleaseAddressResponse>(1)
-        val requestAllocateAddress = ReleaseAddressRequest(
-                header = MessageHeader(),
-                name = resource.path.removePrefix("/")
-        )
+        val requestAllocateAddress = ReleaseAddressRequest.newBuilder().setHeader(MessageHeader.newBuilder().build())
+                .setName(resource.path.removePrefix("/")).build()
 
         // IP allocation service client.
         val ipAllocationService = requireNotNull(networkAddressAllocationServers[network.name])
         ipAllocationService.releaseAddress(requestAllocateAddress, observer)
 
         return observer.asReceiveChannel().receive().status == ReleaseAddressResponse.Status.OK
+    }
+
+    fun newClientRpcChannel(endpoint: Endpoint,
+                            executor: Executor = ForkJoinPool.commonPool()): ManagedChannel {
+        return NettyChannelBuilder.forTarget(endpoint.address).apply {
+            when (endpoint.transportSecurity.type) {
+                TransportSecurity.Type.NONE -> usePlaintext()
+                TransportSecurity.Type.TLSv1_2 -> {
+                    // Trusted certificates (favor local data over URL).
+                    val trustedCertificates = when {
+                        endpoint.transportSecurity.trustedCertificatesData.isNotEmpty() ->
+                            endpoint.transportSecurity.trustedCertificatesData.toByteArray()
+                        endpoint.transportSecurity.trustedCertificatesUrl.isNotEmpty() ->
+                            URI.create(endpoint.transportSecurity.trustedCertificatesUrl).toURL().readBytes()
+                        else -> null
+                    }?.inputStream()
+
+                    // Key certificate chain (favor local data over URL).
+                    val keyCertificateChain = when {
+                        endpoint.transportSecurity.certificateData.isNotEmpty() ->
+                            endpoint.transportSecurity.certificateData.toByteArray()
+                        endpoint.transportSecurity.certificateUrl.isNotEmpty() ->
+                            URI.create(endpoint.transportSecurity.certificateUrl).toURL().readBytes()
+                        else -> null
+                    }?.inputStream()
+
+                    // Private key (favor local data over URL).
+                    val privateKey = when {
+                        endpoint.transportSecurity.privateKeyData.isNotEmpty() ->
+                            endpoint.transportSecurity.privateKeyData.toByteArray()
+                        endpoint.transportSecurity.privateKeyUrl.isNotEmpty() ->
+                            URI.create(endpoint.transportSecurity.privateKeyUrl).toURL().readBytes()
+                        else -> null
+                    }?.inputStream()
+
+                    // Setup SSL context and enable TLS.
+                    sslContext(
+                            GrpcSslContexts.forClient()
+                                    .trustManager(trustedCertificates)
+                                    .keyManager(keyCertificateChain, privateKey)
+                                    .build()
+                    )
+                    useTransportSecurity()
+                }
+            }
+
+            // Set the executor for background task execution.
+            executor(executor)
+        }.build()
     }
 }

@@ -5,15 +5,14 @@
 
     <parent>
         <groupId>com.vmware.blockchain</groupId>
-        <artifactId>deployment</artifactId>
+        <artifactId>persephone</artifactId>
         <version>${revision}</version>
-        <relativePath>../deployment/pom.xml</relativePath>
     </parent>
 
     <groupId>com.vmware.deployment</groupId>
     <artifactId>persephone-config-service</artifactId>
     <packaging>jar</packaging>
-    <name>Blockchain - Configuration Service</name>
+    <name>Blockchain - Fleet Management Configuration Service</name>
     <version>1.0.0-SNAPSHOT</version>
 
     <properties>

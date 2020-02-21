@@ -473,12 +473,8 @@ persephone_agent_repo=${internal_persephone_agent_repo}
 persephone_agent_tag=${docker_tag}
 persephone_configuration_repo=${internal_persephone_configuration_repo}
 persephone_configuration_tag=${docker_tag}
-persephone_fleet_repo=${internal_persephone_fleet_repo}
-persephone_fleet_tag=${docker_tag}
 persephone_ipam_repo=${internal_persephone_ipam_repo}
 persephone_ipam_tag=${docker_tag}
-persephone_metadata_repo=${internal_persephone_metadata_repo}
-persephone_metadata_tag=${docker_tag}
 persephone_provisioning_repo=${internal_persephone_provisioning_repo}
 persephone_provisioning_tag=${docker_tag}
 ui_repo=${internal_ui_repo}
@@ -515,8 +511,8 @@ EOF
 
                 script {
                   sh '''
-                    # Update provisioning service config.json
-                    sed -i -e 's/'"CHANGE_THIS_TO_HermesTesting"'/'"${PROVISIONING_SERVICE_NETWORK_NAME}"'/g' blockchain/hermes/resources/persephone/provisioning/config.json
+                    # Update provisioning service application-test.properties
+                    sed -i -e 's/'"CHANGE_THIS_TO_HermesTesting"'/'"${PROVISIONING_SERVICE_NETWORK_NAME}"'/g' blockchain/hermes/resources/persephone/provisioning/app/profiles/application-test.properties
                     sed -i -e 's/'"<VMC_API_TOKEN>"'/'"${VMC_API_TOKEN}"'/g' blockchain/hermes/resources/user_config.json
                     sed -i -e 's/'"<WAVEFRONT_API_TOKEN>"'/'"${WAVEFRONT_API_TOKEN}"'/g' blockchain/hermes/resources/user_config.json
                     sed -i -e 's/'"<FLUENTD_AUTHORIZATION_BEARER>"'/'"${FLUENTD_AUTHORIZATION_BEARER}"'/g' blockchain/hermes/resources/user_config.json
@@ -526,17 +522,17 @@ EOF
 
                   if (env.JOB_NAME.contains(persephone_test_job_name)) {
                     sh '''
-                      # Update provisioning service config.json with bintray registry for nightly runs
-                      sed -i -e 's!'"<CONTAINER_REGISTRY_ADDRESS>"'!'"${BINTRAY_CONTAINER_REGISTRY_ADDRESS}"'!g' blockchain/hermes/resources/persephone/provisioning/config.json
-                      sed -i -e 's/'"<CONTAINER_REGISTRY_USERNAME>"'/'"${BINTRAY_CONTAINER_REGISTRY_USERNAME}"'/g' blockchain/hermes/resources/persephone/provisioning/config.json
-                      sed -i -e 's/'"<CONTAINER_REGISTRY_PASSWORD>"'/'"${BINTRAY_CONTAINER_REGISTRY_PASSWORD}"'/g' blockchain/hermes/resources/persephone/provisioning/config.json
+                      # Update provisioning service application-test.properties with bintray registry for nightly runs
+                      sed -i -e 's!'"<CONTAINER_REGISTRY_ADDRESS>"'!'"${BINTRAY_CONTAINER_REGISTRY_ADDRESS}"'!g' blockchain/hermes/resources/persephone/provisioning/app/profiles/application-test.properties
+                      sed -i -e 's/'"<CONTAINER_REGISTRY_USERNAME>"'/'"${BINTRAY_CONTAINER_REGISTRY_USERNAME}"'/g' blockchain/hermes/resources/persephone/provisioning/app/profiles/application-test.properties
+                      sed -i -e 's/'"<CONTAINER_REGISTRY_PASSWORD>"'/'"${BINTRAY_CONTAINER_REGISTRY_PASSWORD}"'/g' blockchain/hermes/resources/persephone/provisioning/app/profiles/application-test.properties
                     '''
                   } else {
                     sh '''
-                      # Update provisioning service config.json with dockerhub registry for non-nightly runs
-                      sed -i -e 's!'"<CONTAINER_REGISTRY_ADDRESS>"'!'"${DOCKERHUB_CONTAINER_REGISTRY_ADDRESS}"'!g' blockchain/hermes/resources/persephone/provisioning/config.json
-                      sed -i -e 's/'"<CONTAINER_REGISTRY_USERNAME>"'/'"${DOCKERHUB_REPO_READER_USERNAME}"'/g' blockchain/hermes/resources/persephone/provisioning/config.json
-                      sed -i -e 's/'"<CONTAINER_REGISTRY_PASSWORD>"'/'"${DOCKERHUB_REPO_READER_PASSWORD}"'/g' blockchain/hermes/resources/persephone/provisioning/config.json
+                      # Update provisioning service application-test.properties with dockerhub registry for non-nightly runs
+                      sed -i -e 's!'"<CONTAINER_REGISTRY_ADDRESS>"'!'"${DOCKERHUB_CONTAINER_REGISTRY_ADDRESS}"'!g' blockchain/hermes/resources/persephone/provisioning/app/profiles/application-test.properties
+                      sed -i -e 's/'"<CONTAINER_REGISTRY_USERNAME>"'/'"${DOCKERHUB_REPO_READER_USERNAME}"'/g' blockchain/hermes/resources/persephone/provisioning/app/profiles/application-test.properties
+                      sed -i -e 's/'"<CONTAINER_REGISTRY_PASSWORD>"'/'"${DOCKERHUB_REPO_READER_PASSWORD}"'/g' blockchain/hermes/resources/persephone/provisioning/app/profiles/application-test.properties
                     '''
                   }
                 }
@@ -804,6 +800,7 @@ EOF
 
                     sh(script: 'mkdir -p "${persephone_test_logs}"')
 
+                    // Kashfat: Revert back.
                     if (env.JOB_NAME.contains(persephone_test_job_name)) {
                       sh '''
                         echo "Running Entire Testsuite: Persephone..."
@@ -813,14 +810,14 @@ EOF
                       if (env.JOB_NAME.contains(persephone_test_on_demand_job_name)) {
                         sh '''
                           echo "Running Persephone SMOKE Tests (ON DEMAND hitting local config-service)..."
-                          echo "${PASSWORD}" | sudo -SE "${python}" main.py PersephoneTests --useLocalConfigService --dockerComposeFile ../docker/docker-compose-persephone.yml --resultsDir "${persephone_test_logs}" --deploymentComponents "${release_persephone_agent_repo}:${agent_docker_tag},${release_concord_repo}:${dep_comp_docker_tag},${release_ethrpc_repo}:${dep_comp_docker_tag},${release_daml_ledger_api_repo}:${dep_comp_docker_tag},${release_daml_execution_engine_repo}:${dep_comp_docker_tag},${release_daml_index_db_repo}:${dep_comp_docker_tag},${release_fluentd_repo}:${dep_comp_docker_tag}",vmwblockchain/wavefront-proxy:5.7,vmwblockchain/jaeger-agent:1.11,vmwblockchain/telegraf:1.11 --keepBlockchains ${deployment_retention} > "${persephone_test_logs}/persephone_tests.log" 2>&1
+                          echo "${PASSWORD}" | sudo -SE "${python}" main.py PersephoneTests --dockerComposeFile ../docker/docker-compose-persephone.yml --resultsDir "${persephone_test_logs}" --deploymentComponents "${release_persephone_agent_repo}:${agent_docker_tag},${release_concord_repo}:${dep_comp_docker_tag},${release_ethrpc_repo}:${dep_comp_docker_tag},${release_daml_ledger_api_repo}:${dep_comp_docker_tag},${release_daml_execution_engine_repo}:${dep_comp_docker_tag},${release_daml_index_db_repo}:${dep_comp_docker_tag},${release_fluentd_repo}:${dep_comp_docker_tag}",vmwblockchain/wavefront-proxy:5.7,vmwblockchain/jaeger-agent:1.11,vmwblockchain/telegraf:1.11 --keepBlockchains ${deployment_retention} > "${persephone_test_logs}/persephone_tests.log" 2>&1
                         '''
                       } else {
                         // If bug VB-1770 (infra/product/test issue on config-service), is still seen after a couple of runs,
                         // remove --useLocalConfigService for MR/ToT runs, and retain for ON DEMAND Job
                         sh '''
                           echo "Running Persephone SMOKE Tests..."
-                          echo "${PASSWORD}" | sudo -SE "${python}" main.py PersephoneTests --useLocalConfigService --dockerComposeFile ../docker/docker-compose-persephone.yml --resultsDir "${persephone_test_logs}" --deploymentComponents "${release_persephone_agent_repo}:${agent_docker_tag},${release_concord_repo}:${dep_comp_docker_tag},${release_ethrpc_repo}:${dep_comp_docker_tag},${release_daml_ledger_api_repo}:${dep_comp_docker_tag},${release_daml_execution_engine_repo}:${dep_comp_docker_tag},${release_daml_index_db_repo}:${dep_comp_docker_tag},${release_fluentd_repo}:${dep_comp_docker_tag}",vmwblockchain/wavefront-proxy:5.7,vmwblockchain/jaeger-agent:1.11,vmwblockchain/telegraf:1.11 --keepBlockchains ${deployment_retention} > "${persephone_test_logs}/persephone_tests.log" 2>&1
+                          echo "${PASSWORD}" | sudo -SE "${python}" main.py PersephoneTests --dockerComposeFile ../docker/docker-compose-persephone.yml --resultsDir "${persephone_test_logs}" --deploymentComponents "${release_persephone_agent_repo}:${agent_docker_tag},${release_concord_repo}:${dep_comp_docker_tag},${release_ethrpc_repo}:${dep_comp_docker_tag},${release_daml_ledger_api_repo}:${dep_comp_docker_tag},${release_daml_execution_engine_repo}:${dep_comp_docker_tag},${release_daml_index_db_repo}:${dep_comp_docker_tag},${release_fluentd_repo}:${dep_comp_docker_tag}",vmwblockchain/wavefront-proxy:5.7,vmwblockchain/jaeger-agent:1.11,vmwblockchain/telegraf:1.11 --keepBlockchains ${deployment_retention} > "${persephone_test_logs}/persephone_tests.log" 2>&1
                         '''
                       }
                     }
@@ -1689,9 +1686,7 @@ void pushToArtifactory(){
     env.internal_memleak_concord_repo,
     env.internal_persephone_agent_repo,
     env.internal_persephone_configuration_repo,
-    env.internal_persephone_fleet_repo,
     env.internal_persephone_ipam_repo,
-    env.internal_persephone_metadata_repo,
     env.internal_persephone_provisioning_repo,
     env.internal_ui_repo,
     env.internal_contract_compiler_repo,
@@ -1733,9 +1728,7 @@ void pushToDockerHub(){
     env.release_helen_repo,
     env.release_persephone_agent_repo,
     // env.release_persephone_configuration_repo,
-    // env.release_persephone_fleet_repo,
     // env.release_persephone_ipam_repo,
-    // env.release_persephone_metadata_repo,
     // env.release_persephone_provisioning_repo,
     env.release_ui_repo,
     env.release_contract_compiler_repo,
@@ -1765,9 +1758,7 @@ void tagImagesForRelease(){
     docker tag ${internal_helen_repo}:${docker_tag} ${release_helen_repo}:${docker_tag}
     docker tag ${internal_persephone_agent_repo}:${docker_tag} ${release_persephone_agent_repo}:${docker_tag}
     docker tag ${internal_persephone_configuration_repo}:${docker_tag} ${release_persephone_configuration_repo}:${docker_tag}
-    docker tag ${internal_persephone_fleet_repo}:${docker_tag} ${release_persephone_fleet_repo}:${docker_tag}
     docker tag ${internal_persephone_ipam_repo}:${docker_tag} ${release_persephone_ipam_repo}:${docker_tag}
-    docker tag ${internal_persephone_metadata_repo}:${docker_tag} ${release_persephone_metadata_repo}:${docker_tag}
     docker tag ${internal_persephone_provisioning_repo}:${docker_tag} ${release_persephone_provisioning_repo}:${docker_tag}
     docker tag ${internal_ui_repo}:${docker_tag} ${release_ui_repo}:${docker_tag}
     docker tag ${internal_contract_compiler_repo}:${docker_tag} ${release_contract_compiler_repo}:${docker_tag}
@@ -1925,9 +1916,7 @@ void setUpRepoVariables(){
   env.release_memleak_concord_repo = env.release_repo + "/memleak-concord-core"
   env.release_persephone_agent_repo = env.release_repo + "/agent"
   env.release_persephone_configuration_repo = env.release_repo + "/persephone-configuration"
-  env.release_persephone_fleet_repo = env.release_repo + "/persephone-fleet"
   env.release_persephone_ipam_repo = env.release_repo + "/persephone-ipam"
-  env.release_persephone_metadata_repo = env.release_repo + "/persephone-metadata"
   env.release_persephone_provisioning_repo = env.release_repo + "/persephone-provisioning"
   env.release_ui_repo = env.release_repo + "/ui"
   env.release_contract_compiler_repo = env.release_repo + "/contract-compiler"
@@ -1948,9 +1937,7 @@ void setUpRepoVariables(){
   env.internal_memleak_concord_repo = env.release_memleak_concord_repo.replace(env.release_repo, env.internal_repo)
   env.internal_persephone_agent_repo = env.release_persephone_agent_repo.replace(env.release_repo, env.internal_repo)
   env.internal_persephone_configuration_repo = env.release_persephone_configuration_repo.replace(env.release_repo, env.internal_repo)
-  env.internal_persephone_fleet_repo = env.release_persephone_fleet_repo.replace(env.release_repo, env.internal_repo)
   env.internal_persephone_ipam_repo = env.release_persephone_ipam_repo.replace(env.release_repo, env.internal_repo)
-  env.internal_persephone_metadata_repo = env.release_persephone_metadata_repo.replace(env.release_repo, env.internal_repo)
   env.internal_persephone_provisioning_repo = env.release_persephone_provisioning_repo.replace(env.release_repo, env.internal_repo)
   env.internal_ui_repo = env.release_ui_repo.replace(env.release_repo, env.internal_repo)
   env.internal_contract_compiler_repo = env.release_contract_compiler_repo.replace(env.release_repo, env.internal_repo)

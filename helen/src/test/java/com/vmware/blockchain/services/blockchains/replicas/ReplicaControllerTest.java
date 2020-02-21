@@ -6,8 +6,6 @@ package com.vmware.blockchain.services.blockchains.replicas;
 
 import static com.vmware.blockchain.security.MvcTestSecurityConfig.createContext;
 import static com.vmware.blockchain.security.SecurityTestUtils.ORG_ID;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
@@ -46,19 +44,12 @@ import com.vmware.blockchain.MvcConfig;
 import com.vmware.blockchain.auth.AuthHelper;
 import com.vmware.blockchain.auth.AuthenticationContext;
 import com.vmware.blockchain.common.HelenExceptionHandler;
-import com.vmware.blockchain.deployment.v1.FleetManagementServiceGrpc.FleetManagementServiceStub;
-import com.vmware.blockchain.deployment.v1.MessageHeader;
-import com.vmware.blockchain.deployment.v1.UpdateInstanceRequest;
-import com.vmware.blockchain.deployment.v1.UpdateInstanceResponse;
 import com.vmware.blockchain.operation.OperationContext;
 import com.vmware.blockchain.security.MvcTestSecurityConfig;
 import com.vmware.blockchain.security.SecurityTestUtils;
 import com.vmware.blockchain.services.blockchains.Blockchain;
-import com.vmware.blockchain.services.blockchains.BlockchainController.BlockchainTaskResponse;
 import com.vmware.blockchain.services.blockchains.BlockchainService;
 import com.vmware.blockchain.services.blockchains.replicas.ReplicaController.ReplicaGetResponse;
-import com.vmware.blockchain.services.blockchains.replicas.ReplicaController.ReplicaObserver;
-import com.vmware.blockchain.services.blockchains.replicas.ReplicaController.TaskList;
 import com.vmware.blockchain.services.concord.ConcordService;
 import com.vmware.blockchain.services.profiles.Consortium;
 import com.vmware.blockchain.services.profiles.ConsortiumService;
@@ -66,8 +57,6 @@ import com.vmware.blockchain.services.profiles.DefaultProfiles;
 import com.vmware.blockchain.services.profiles.Roles;
 import com.vmware.blockchain.services.profiles.User;
 import com.vmware.blockchain.services.profiles.UserService;
-import com.vmware.blockchain.services.tasks.Task;
-import com.vmware.blockchain.services.tasks.Task.State;
 import com.vmware.blockchain.services.tasks.TaskController;
 import com.vmware.blockchain.services.tasks.TestTaskService;
 import com.vmware.concord.Concord.Peer;
@@ -116,9 +105,6 @@ class ReplicaControllerTest {
     @Autowired
     AuthHelper authHelper;
 
-    @MockBean
-    FleetManagementServiceStub fleetServiceStub;
-
     @Autowired
     ReplicaController replicaController;
 
@@ -131,8 +117,7 @@ class ReplicaControllerTest {
     private AuthenticationContext user2Auth;
 
     private void setCallbacks(Answer answer) {
-        doAnswer(answer).when(fleetServiceStub)
-                .updateInstance(any(UpdateInstanceRequest.class), any(ReplicaObserver.class));
+
     }
 
     @BeforeEach
@@ -174,34 +159,7 @@ class ReplicaControllerTest {
         objectMapper = jacksonBuilder.build();
 
         // Set assorted mocked fields in the controller
-        ReflectionTestUtils.setField(replicaController, "client", fleetServiceStub);
         ReflectionTestUtils.setField(replicaController, "taskService", taskService);
-    }
-
-    @Test
-    void nodeAction() throws Exception {
-        setCallbacks(i -> {
-            ReplicaObserver n = i.getArgument(1);
-            n.onNext(UpdateInstanceResponse.newBuilder()
-                    .setHeader(MessageHeader.newBuilder()
-                            .setId("done")
-                            .build())
-                    .build());
-            n.onCompleted();
-            return null;
-        });
-
-        String url = "/api/blockchains/6d2bc86f-8556-4092-a9d6-5436f6c113d1"
-                     + "/replicas/3e2e5bbe-dd46-4db4-9b83-79004c61c65f?action=stop";
-        MvcResult result = mockMvc.perform(post(url).with(authentication(adminAuth))
-                                .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isAccepted()).andReturn();
-        String body = result.getResponse().getContentAsString();
-        BlockchainTaskResponse response = objectMapper.readValue(body, BlockchainTaskResponse.class);
-        Task task = taskService.get(response.getTaskId());
-        Assertions.assertEquals(State.SUCCEEDED, task.getState());
-        Assertions.assertEquals("Operation Complete", task.getMessage());
-        Assertions.assertEquals(1, taskService.list().size());
     }
 
     @Test
@@ -229,104 +187,6 @@ class ReplicaControllerTest {
         mockMvc.perform(post(url).with(authentication(adminAuth))
                                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isBadRequest());
-    }
-
-    @Test
-    void nodeActionFail() throws Exception {
-        setCallbacks(i -> {
-            ReplicaObserver n = i.getArgument(1);
-            n.onNext(UpdateInstanceResponse.newBuilder()
-                    .setHeader(MessageHeader.newBuilder()
-                            .setId("done")
-                            .build())
-                    .build());
-
-            n.onError(new Exception("oof"));
-
-            return null;
-        });
-
-        String url = "/api/blockchains/6d2bc86f-8556-4092-a9d6-5436f6c113d1"
-                     + "/replicas/3e2e5bbe-dd46-4db4-9b83-79004c61c65f?action=stop";
-        MvcResult result = mockMvc.perform(post(url).with(authentication(adminAuth))
-                                .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isAccepted()).andReturn();
-        String body = result.getResponse().getContentAsString();
-        BlockchainTaskResponse response = objectMapper.readValue(body, BlockchainTaskResponse.class);
-        Task task = taskService.get(response.getTaskId());
-        Assertions.assertEquals(State.FAILED, task.getState());
-        Assertions.assertEquals("oof", task.getMessage());
-    }
-
-    @Test
-    void nodeListAction() throws Exception {
-        setCallbacks(i -> {
-            ReplicaObserver n = i.getArgument(1);
-            n.onNext(UpdateInstanceResponse.newBuilder()
-                    .setHeader(MessageHeader.newBuilder()
-                            .setId("done")
-                            .build())
-                    .build());
-            n.onCompleted();
-            return null;
-        });
-
-        String url = "/api/blockchains/6d2bc86f-8556-4092-a9d6-5436f6c113d1/replicas?action=stop";
-        String postBody = "    {"
-                      + "        \"node_ids\": ["
-                      + "                \"3e2e5bbe-dd46-4db4-9b83-79004c61c65f\","
-                      + "                \"5860d051-f189-4bfe-966d-35628875b4e4\","
-                      + "                \"8096b245-f8cf-4c6a-846f-bad92641a592\""
-                      + "                ]"
-                      + "    }";
-        MvcResult result = mockMvc.perform(post(url).with(authentication(adminAuth))
-                                                   .contentType(MediaType.APPLICATION_JSON)
-                                                   .content(postBody).characterEncoding("utf-8"))
-                .andExpect(status().isAccepted()).andReturn();
-        String body = result.getResponse().getContentAsString();
-        TaskList taskList = objectMapper.readValue(body, TaskList.class);
-        for (UUID tid : taskList.getTaskIds()) {
-            Task task = taskService.get(tid);
-            Assertions.assertEquals(State.SUCCEEDED, task.getState());
-            Assertions.assertEquals("Operation Complete", task.getMessage());
-        }
-        Assertions.assertEquals(3, taskService.list().size());
-    }
-
-    @Test
-    void replicaListAction() throws Exception {
-        setCallbacks(i -> {
-            ReplicaObserver n = i.getArgument(1);
-            n.onNext(UpdateInstanceResponse.newBuilder()
-                    .setHeader(MessageHeader.newBuilder()
-                            .setId("done")
-                            .build())
-                    .build());
-
-            n.onCompleted();
-            return null;
-        });
-
-        String url = "/api/blockchains/6d2bc86f-8556-4092-a9d6-5436f6c113d1/replicas?action=stop";
-        String postBody = "    {"
-                          + "        \"replica_ids\": ["
-                          + "                \"3e2e5bbe-dd46-4db4-9b83-79004c61c65f\","
-                          + "                \"5860d051-f189-4bfe-966d-35628875b4e4\","
-                          + "                \"8096b245-f8cf-4c6a-846f-bad92641a592\""
-                          + "                ]"
-                          + "    }";
-        MvcResult result = mockMvc.perform(post(url).with(authentication(adminAuth))
-                                                   .contentType(MediaType.APPLICATION_JSON)
-                                                   .content(postBody).characterEncoding("utf-8"))
-                .andExpect(status().isAccepted()).andReturn();
-        String body = result.getResponse().getContentAsString();
-        TaskList taskList = objectMapper.readValue(body, TaskList.class);
-        for (UUID tid : taskList.getTaskIds()) {
-            Task task = taskService.get(tid);
-            Assertions.assertEquals(State.SUCCEEDED, task.getState());
-            Assertions.assertEquals("Operation Complete", task.getMessage());
-        }
-        Assertions.assertEquals(3, taskService.list().size());
     }
 
     @Test

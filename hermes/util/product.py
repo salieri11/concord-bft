@@ -25,7 +25,7 @@ PRODUCT_LOGS_DIR = "product_logs"
 log = logging.getLogger(__name__)
 
 # Persephone config file for testing.  We read the SDDC IDs from this.
-persephoneConfigFile = "resources/persephone/provisioning/config.json"
+persephoneConfigFile = "resources/persephone/provisioning/app/profiles/application-test.properties"
 
 class ConcordInstsanceMetaData():
    _processIndex = None
@@ -60,11 +60,9 @@ class Product():
    docker_env = util.helper.get_docker_env()
 
    STARTUP_TIMEOUT = "240"
-   PERSEPHONE_SERVICE_METADATA = docker_env["persephone_metadata_repo"]
    PERSEPHONE_SERVICE_PROVISIONING = docker_env["persephone_provisioning_repo"] # name as seen by helen
    PERSEPHONE_CONFIG_SERVICE = "config-service"
    PERSEPHONE_SERVICE_PROVISIONING_2 = PERSEPHONE_SERVICE_PROVISIONING + "-2" # 2nd instance of provisioning service for IPAM test
-   # PERSEPHONE_SERVICE_FLEET = docker_env["persephone_fleet_repo"]
 
    STARTUP_TOKEN_DESCRIPTOR = {
       "org": "blockchain_service_dev",
@@ -952,7 +950,7 @@ class Product():
             log.debug(persephone_log)
             if "daml_test_tool" in service:
                return True
-            if "Service instance initialized" in persephone_log:
+            if "gRPC Server started" in persephone_log:
                log.info("Microservice '{}' started successfully!".format(service))
                return True
             if "port is already allocated" in persephone_log:

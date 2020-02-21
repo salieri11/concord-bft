@@ -8,8 +8,6 @@ import logging
 import sys
 from rpc_helper import RPCHelper
 from vmware.blockchain.deployment.v1 import concord_model_pb2
-from vmware.blockchain.deployment.v1 import metadata_service_pb2
-from vmware.blockchain.deployment.v1 import metadata_service_pb2_grpc
 
 sys.path.append('../../')
 from util.product import Product as Product
@@ -29,7 +27,7 @@ class ModelServiceRPCHelper(RPCHelper):
    def __init__(self, args):
       super().__init__(args)
       self.args = args
-      self.service_name = Product.PERSEPHONE_SERVICE_METADATA
+      self.service_name = Product.PERSEPHONE_SERVICE_PROVISIONING
       self.service_port = self.get_persephone_service_port(self.service_name)
 
       self.grpc_server = "localhost:{}".format(self.service_port)
@@ -81,12 +79,6 @@ class ModelServiceRPCHelper(RPCHelper):
 
    def __del__(self):
       self.close_channel(self.service_name)
-
-   def create_add_model_request(self, header, concord_model_specification):
-      add_model_request = metadata_service_pb2.AddModelRequest(
-         header=header,
-         specification=concord_model_specification)
-      return add_model_request
 
    def create_concord_model_specification(self, version=None, template=None,
                                           deployment_components=None,
@@ -273,20 +265,6 @@ class ModelServiceRPCHelper(RPCHelper):
       response = None
       try:
          response = self.call_api(self.stub.AddModel, add_model_request)
-      except Exception as e:
-         self.handle_exception(e)
-      return response
-
-   def rpc_ListModels(self):
-      '''
-      Call to ListModels RPC
-      '''
-      log.info("ListModels RPC")
-      response = None
-      try:
-         response = self.call_api(self.stub.ListModels,
-                                  metadata_service_pb2.ListModelsRequest(),
-                                  stream=True)
       except Exception as e:
          self.handle_exception(e)
       return response

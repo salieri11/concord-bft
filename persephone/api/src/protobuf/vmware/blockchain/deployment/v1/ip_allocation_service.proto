@@ -13,53 +13,6 @@ option java_multiple_files = true;
 /* [END java_declaration] */
 
 /* [START messages] */
-/**
- * Resource definition of an IP address block.
- *
- * @property[name]
- *   resource name of the address block.
- * @property[epoch]
- *   uniqueness value assigned to the resource during creation.
- * @property[state]
- *   existential state of the address block.
- * @property[specification]
- *   model specification of the address block.
- */
-message AddressBlock {
-    /**
-     * Denote the existential state of an [AddressBlock]
-     */
-    enum State {
-        ACTIVE = 0;
-        CREATING = 1;
-        DELETING = 2;
-    }
-
-    string name = 1;
-    int32 epoch = 2;
-    State state = 3;
-    AddressBlockSpecification specification = 4;
-}
-
-/**
- * Resource definition of an IP address block segment.
- *
- * @property[name]
- *   resource name of the address block segment.
- * @property[epoch]
- *   uniqueness value assigned to the resource during creation.
- * @property[segment]
- *   starting address of this block segment.
- * @property[allocations]
- *   address allocations in segments of 32-bytes bitmap (256 bits), where the key is the starting
- *   address of the segment, and the value is the bitmap marking allocations as set/unset bits.
- */
-message AddressBlockSegment {
-    string name = 1;
-    int32 epoch = 2;
-    int32 segment = 3;
-    bytes allocations = 4;
-}
 
 /**
  * Model definition of an IP address block specification.

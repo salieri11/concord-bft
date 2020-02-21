@@ -13,39 +13,42 @@
 
     <modules>
         <module>api</module>
+        <module>agent</module>
         <module>core</module>
-        <module>fleet-service</module>
+        <module>config-service</module>
         <module>ip-allocation-service</module>
-        <module>metadata-service</module>
         <module>orchestration</module>
         <module>orchestration-vmware</module>
-        <module>persistence</module>
-        <module>persistence-rocksdb</module>
         <module>provisioning-service</module>
-        <module>server-support</module>
     </modules>
 
     <distributionManagement>
         <repository>
-            <id>athena-release</id>
+            <id>blockchain-release</id>
             <url>https://build-artifactory.eng.vmware.com/artifactory/athena-maven-release</url>
         </repository>
         <snapshotRepository>
-            <id>athena-snapshot</id>
+            <id>blockchain-snapshot</id>
             <url>https://build-artifactory.eng.vmware.com/artifactory/athena-maven-snapshot</url>
         </snapshotRepository>
     </distributionManagement>
 
     <repositories>
         <repository>
-            <id>central</id>
+            <id>vmware-central</id>
             <name>maven</name>
             <url>https://build-artifactory.eng.vmware.com/artifactory/maven</url>
         </repository>
         <repository>
-            <id>kotlin-bintray</id>
-            <name>kotlin</name>
-            <url>https://build-artifactory.eng.vmware.com/kotlin.bintray.com</url>
+            <!-- Explicitly disable Maven's central repository. -->
+            <id>central</id>
+            <url>http://build-squid.eng.vmware.com/nexus/content/groups/repo</url>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+            <releases>
+                <enabled>false</enabled>
+            </releases>
         </repository>
         <repository>
             <!-- Use VMware Artifactory for first-party artifacts. -->
@@ -75,143 +78,94 @@
 
     <pluginRepositories>
         <pluginRepository>
-            <id>central</id>
-            <name>plugins-release</name>
-            <url>https://build-artifactory.eng.vmware.com/artifactory/plugins-release</url>
+            <!-- Use VMware Nexus repository for plugin artifacts. -->
+            <id>vmware-nexus</id>
+            <url>http://build-squid.eng.vmware.com/nexus/content/groups/repo</url>
         </pluginRepository>
         <pluginRepository>
-            <id>kotlin-bintray</id>
-            <name>kotlin</name>
-            <url>https://build-artifactory.eng.vmware.com/kotlin.bintray.com</url>
+            <!-- Explicitly disable Maven's central repository. -->
+            <id>central</id>
+            <url>http://build-squid.eng.vmware.com/nexus/content/groups/repo</url>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+            <releases>
+                <enabled>false</enabled>
+            </releases>
         </pluginRepository>
     </pluginRepositories>
 
     <properties>
         <!-- Project properties. -->
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <revision>1.0.0-SNAPSHOT</revision>
         <java.version>11</java.version>
-        <kotlin.version>1.3.50</kotlin.version>
-        <kotlin.coroutines.version>1.3.0</kotlin.coroutines.version>
-        <kotlin.serialization.version>0.12.0</kotlin.serialization.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <revision>1.0.0-SNAPSHOT</revision> <!-- Default / development environment. -->
 
-        <!-- Maven-related properties. -->
-        <kotlin.compiler.incremental>true</kotlin.compiler.incremental>
-        <kotlin.compiler.jvmTarget>1.8</kotlin.compiler.jvmTarget>
-        <maven.plugin.assembly>3.1.0</maven.plugin.assembly>
-        <maven.plugin.checkstyle>3.0.0</maven.plugin.checkstyle>
-        <maven.plugin.compiler>3.8.0</maven.plugin.compiler>
-        <maven.plugin.flatten>1.1.0</maven.plugin.flatten>
+        <!-- Maven plugin properties. -->
         <maven.plugin.jar>3.1.1</maven.plugin.jar>
-        <maven.plugin.javadoc>3.0.0</maven.plugin.javadoc>
-        <maven.plugin.ktlint>1.0.2</maven.plugin.ktlint>
-        <maven.plugin.os>1.3.0.Final</maven.plugin.os>
-        <maven.plugin.protobuf>0.6.1</maven.plugin.protobuf>
-        <maven.plugin.resources>3.0.2</maven.plugin.resources>
-        <maven.plugin.source>3.0.1</maven.plugin.source>
-        <maven.plugin.surefire>2.22.1</maven.plugin.surefire>
+        <maven.plugin.ktlint.version>1.0.2</maven.plugin.ktlint.version>
+        <maven.plugin.checkstyle.version>3.0.0</maven.plugin.checkstyle.version>
+        <maven.plugin.compiler.version>3.7.0</maven.plugin.compiler.version>
+        <maven.plugin.failsafe.version>2.22.1</maven.plugin.failsafe.version>
+        <maven.plugin.flatten.version>1.0.1</maven.plugin.flatten.version>
+        <maven.plugin.protocjar.version>3.8.0</maven.plugin.protocjar.version>
+        <maven.plugin.surefire.version>2.22.0</maven.plugin.surefire.version>
+        <maven.plugin.flatten>1.1.0</maven.plugin.flatten>
 
-        <!-- First-party dependency-related properties. -->
-        <blockchain.protobuf.version>0.0.4-SNAPSHOT</blockchain.protobuf.version>
-
-        <!-- Dependency-related properties. -->
+        <!-- Library properties. -->
+        <bouncycastle.version>1.60</bouncycastle.version>
+        <ehcache.version>2.10.6</ehcache.version>
+        <grpc.runtime.java.version>1.26.0</grpc.runtime.java.version>
+        <guava.version>27.0-jre</guava.version>
+        <h2.version>1.4.197</h2.version>
+        <javassist.version>3.23.1-GA</javassist.version>
+        <jaxb.version>2.3.0</jaxb.version>
+        <json-simple.version>1.1.1</json-simple.version>
+        <jsonwebtoken.version>0.7.0</jsonwebtoken.version>
+        <junit.jupiter.version>5.2.0</junit.jupiter.version>
+        <junit.platform.version>1.2.0</junit.platform.version>
+        <junit.vintage.version>4.12.0</junit.vintage.version>
+        <lombok.version>1.18.2</lombok.version>
+        <mockito.version>2.23.4</mockito.version>
+        <postgresql.version>42.2.2</postgresql.version>
+        <protobuf.version>3.11.1</protobuf.version>
+        <slf4j.version>1.7.25</slf4j.version>
+        <springframework.boot.version>2.2.2.RELEASE</springframework.boot.version>
         <assertj.version>3.11.1</assertj.version>
         <atomicfu.version>0.12.11</atomicfu.version>
-        <dagger.version>2.21</dagger.version>
-        <grpc.runtime.java.version>1.22.2</grpc.runtime.java.version>
-        <hamcrest.version>2.1</hamcrest.version>
         <jqwik.version>1.1.0</jqwik.version>
-        <junit.jupiter.version>5.4.0</junit.jupiter.version>
-        <log4j.version>2.11.2</log4j.version>
-        <kotlinpoet.version>1.0.1</kotlinpoet.version>
-        <protobuf.runtime.java.version>3.7.1</protobuf.runtime.java.version>
-        <reactive.stream.version>1.0.2</reactive.stream.version>
-        <rocksdb.version>6.0.1</rocksdb.version>
-        <slf4j.version>1.7.28</slf4j.version>
         <wiremock.version>2.23.2</wiremock.version>
     </properties>
 
     <dependencyManagement>
         <dependencies>
             <!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-            ~ Platform dependencies.                                    ~
+            ~ Third-party dependencies. (Lexicographical order)         ~
             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
             <dependency>
-                <!-- There is transitive dependency from this base set to
-                     a set of Kotlin standard library and annotations. -->
-                <groupId>org.jetbrains.kotlin</groupId>
-                <artifactId>kotlin-stdlib-jdk8</artifactId>
-                <version>${kotlin.version}</version>
+                <groupId>com.google.guava</groupId>
+                <artifactId>guava</artifactId>
+                <version>${guava.version}</version>
             </dependency>
             <dependency>
-                <groupId>org.jetbrains.kotlin</groupId>
-                <artifactId>kotlin-reflect</artifactId>
-                <version>${kotlin.version}</version>
-            </dependency>
-            <!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-            ~ Internal dependencies.                                    ~
-            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
-            <dependency>
-                <groupId>com.vmware.blockchain</groupId>
-                <artifactId>persephone-api</artifactId>
-                <version>${project.version}</version>
+                <groupId>com.google.protobuf</groupId>
+                <artifactId>protobuf-java</artifactId>
+                <version>${protobuf.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.vmware.blockchain</groupId>
-                <artifactId>persephone-core</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.vmware.blockchain</groupId>
-                <artifactId>persephone-orchestration</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.vmware.blockchain</groupId>
-                <artifactId>persephone-orchestration-vmware</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.vmware.blockchain</groupId>
-                <artifactId>persephone-persistence</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.vmware.blockchain</groupId>
-                <artifactId>persephone-persistence-rocksdb</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.vmware.blockchain</groupId>
-                <artifactId>persephone-server-support</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-            ~ External dependencies.                                    ~
-            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
-            <dependency>
-                <groupId>com.github.tomakehurst</groupId>
-                <artifactId>wiremock</artifactId>
-                <version>${wiremock.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.google.dagger</groupId>
-                <artifactId>dagger</artifactId>
-                <version>${dagger.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.vmware.blockchain.protobuf</groupId>
-                <artifactId>grpc-runtime-kotlinx-serialization</artifactId>
-                <version>${blockchain.protobuf.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.vmware.blockchain.protobuf</groupId>
-                <artifactId>protobuf-runtime-kotlinx-serialization</artifactId>
-                <version>${blockchain.protobuf.version}</version>
+                <groupId>com.googlecode.json-simple</groupId>
+                <artifactId>json-simple</artifactId>
+                <version>${json-simple.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.grpc</groupId>
                 <artifactId>grpc-core</artifactId>
+                <version>${grpc.runtime.java.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.grpc</groupId>
+                <artifactId>grpc-protobuf</artifactId>
                 <version>${grpc.runtime.java.version}</version>
             </dependency>
             <dependency>
@@ -225,81 +179,66 @@
                 <version>${grpc.runtime.java.version}</version>
             </dependency>
             <dependency>
-                <groupId>net.jqwik</groupId>
-                <artifactId>jqwik</artifactId>
-                <version>${jqwik.version}</version>
+                <groupId>io.jsonwebtoken</groupId>
+                <artifactId>jjwt</artifactId>
+                <version>${jsonwebtoken.version}</version>
             </dependency>
             <dependency>
-                <groupId>org.apache.logging.log4j</groupId>
-                <artifactId>log4j-bom</artifactId>
-                <version>${log4j.version}</version>
-                <scope>import</scope>
+                <groupId>javax.xml.bind</groupId>
+                <artifactId>jaxb-api</artifactId>
+                <version>${jaxb.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>net.sf.ehcache</groupId>
+                <artifactId>ehcache</artifactId>
+                <version>${ehcache.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.bouncycastle</groupId>
+                <artifactId>bcprov-jdk15on</artifactId>
+                <version>${bouncycastle.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.javassist</groupId>
+                <artifactId>javassist</artifactId>
+                <version>${javassist.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.postgresql</groupId>
+                <artifactId>postgresql</artifactId>
+                <version>${postgresql.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.projectlombok</groupId>
+                <artifactId>lombok</artifactId>
+                <version>${lombok.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.datatype</groupId>
+                <artifactId>jackson-datatype-guava</artifactId>
+                <version>2.10.1</version>
+            </dependency>
+            <dependency>
+                <!-- Master Spring Boot dependency. -->
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-dependencies</artifactId>
+                <version>${springframework.boot.version}</version>
                 <type>pom</type>
-            </dependency>
-            <dependency>
-                <groupId>org.assertj</groupId>
-                <artifactId>assertj-core</artifactId>
-                <version>${assertj.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.hamcrest</groupId>
-                <artifactId>hamcrest-core</artifactId>
-                <version>${hamcrest.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.jetbrains.kotlinx</groupId>
-                <artifactId>atomicfu</artifactId>
-                <version>${atomicfu.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.jetbrains.kotlinx</groupId>
-                <artifactId>kotlinx-coroutines-core</artifactId>
-                <version>${kotlin.coroutines.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.jetbrains.kotlinx</groupId>
-                <artifactId>kotlinx-coroutines-debug</artifactId>
-                <version>${kotlin.coroutines.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.jetbrains.kotlinx</groupId>
-                <artifactId>kotlinx-coroutines-jdk8</artifactId>
-                <version>${kotlin.coroutines.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.jetbrains.kotlinx</groupId>
-                <artifactId>kotlinx-coroutines-reactive</artifactId>
-                <version>${kotlin.coroutines.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.jetbrains.kotlinx</groupId>
-                <artifactId>kotlinx-serialization-runtime</artifactId>
-                <version>${kotlin.serialization.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.junit.jupiter</groupId>
-                <artifactId>junit-jupiter-api</artifactId>
-                <version>${junit.jupiter.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.junit.jupiter</groupId>
-                <artifactId>junit-jupiter-engine</artifactId>
-                <version>${junit.jupiter.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.junit.jupiter</groupId>
-                <artifactId>junit-jupiter-params</artifactId>
-                <version>${junit.jupiter.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.reactivestreams</groupId>
-                <artifactId>reactive-streams</artifactId>
-                <version>${reactive.stream.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.rocksdb</groupId>
-                <artifactId>rocksdbjni</artifactId>
-                <version>${rocksdb.version}</version>
+                <scope>import</scope>
+                <!--Since we want to use log4j for logging exclude it from
+                    spring -->
+                <!--dependency and include it as a separate dependency -->
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.springframework.boot</groupId>
+                        <artifactId>spring-boot-starter-logging</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.springframework.boot</groupId>
+                        <artifactId>spring-boot-starter-tomcat</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
             <dependency>
                 <groupId>org.slf4j</groupId>
@@ -308,253 +247,208 @@
             </dependency>
             <dependency>
                 <groupId>org.slf4j</groupId>
+                <artifactId>slf4j-log4j12</artifactId>
+                <version>${slf4j.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.google.protobuf</groupId>
+                <artifactId>protobuf-java-util</artifactId>
+                <version>3.11.1</version>
+            </dependency>
+            <!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            ~ Third-party test dependencies. (Lexicographical order)    ~
+            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
+            <dependency>
+                <groupId>com.h2database</groupId>
+                <artifactId>h2</artifactId>
+                <version>${h2.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <!-- Scope is provided to not propagate dependency. -->
+                <groupId>org.jetbrains.kotlinx</groupId>
+                <artifactId>atomicfu</artifactId>
+                <scope>provided</scope>
+                 <version>${atomicfu.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.github.tomakehurst</groupId>
+                <artifactId>wiremock</artifactId>
+                <scope>test</scope>
+                <version>${wiremock.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>net.jqwik</groupId>
+                <artifactId>jqwik</artifactId>
+                <scope>test</scope>
+                <version>${jqwik.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.junit.jupiter</groupId>
+                <artifactId>junit-jupiter-api</artifactId>
+                <version>${junit.jupiter.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.junit.jupiter</groupId>
+                <artifactId>junit-jupiter-engine</artifactId>
+                <version>${junit.jupiter.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.junit.jupiter</groupId>
+                <artifactId>junit-jupiter-params</artifactId>
+                <version>${junit.jupiter.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.mockito</groupId>
+                <artifactId>mockito-core</artifactId>
+                <version>${mockito.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.slf4j</groupId>
                 <artifactId>slf4j-simple</artifactId>
                 <version>${slf4j.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-starter-actuator</artifactId>
+                <version>${springframework.boot.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-starter-test</artifactId>
+                <version>${springframework.boot.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-starter-cache</artifactId>
+                <version>${springframework.boot.version}</version>
+            </dependency>
+            <dependency>
+                <!-- Spring Boot logging with log4j2. -->
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-starter-log4j2</artifactId>
+                <version>${springframework.boot.version}</version>
+            </dependency>
+            <dependency>
+                <!-- Spring Boot's Spring Security Starter. -->
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-starter-security</artifactId>
+                <version>${springframework.boot.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-starter-jetty</artifactId>
+                <version>${springframework.boot.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.github.lognet</groupId>
+                <artifactId>grpc-spring-boot-starter</artifactId>
+                <version>3.5.0</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>io.grpc</groupId>
+                        <artifactId>grpc-netty</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.springframework.boot</groupId>
+                        <artifactId>spring-boot-starter</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>io.grpc</groupId>
+                <artifactId>grpc-stub</artifactId>
+                <version>${grpc.runtime.java.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.grpc</groupId>
+                <artifactId>grpc-netty-shaded</artifactId>
+                <version>${grpc.runtime.java.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.grpc</groupId>
+                <artifactId>grpc-api</artifactId>
+                <version>1.26.0</version>
+            </dependency>
+            <dependency>
+                <groupId>org.assertj</groupId>
+                <artifactId>assertj-core</artifactId>
+                <version>${assertj.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.junit.jupiter</groupId>
+                <artifactId>junit-jupiter-api</artifactId>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.junit.jupiter</groupId>
+                <artifactId>junit-jupiter-engine</artifactId>
+                <version>${junit.jupiter.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.projectlombok</groupId>
+                <artifactId>lombok</artifactId>
+            </dependency>
+            <dependency>
+                <groupId>commons-io</groupId>
+                <artifactId>commons-io</artifactId>
+                <version>2.6</version>
+            </dependency>
+            <dependency>
+                <!-- Main Spring Boot dependency. -->
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-starter-web</artifactId>
+                <version>${springframework.boot.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.springframework.boot</groupId>
+                        <artifactId>spring-boot-starter-logging</artifactId>
+                    </exclusion>
+                    <!-- Exclude the Tomcat dependency. -->
+                    <exclusion>
+                        <groupId>org.springframework.boot</groupId>
+                        <artifactId>spring-boot-starter-tomcat</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
         </dependencies>
     </dependencyManagement>
+
     <build>
-        <!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        ~ Per-project tree layout.                                  ~
-        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
-        <sourceDirectory>${project.basedir}/src/jvm</sourceDirectory>
-        <testSourceDirectory>${project.basedir}/test/jvm</testSourceDirectory>
-        <resources>
-            <resource>
-                <directory>${project.basedir}/src/resources</directory>
-            </resource>
-        </resources>
-        <testResources>
-            <testResource>
-                <directory>${project.basedir}/test/resources</directory>
-            </testResource>
-        </testResources>
-        <!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        ~ Plug-in configurations.                                   ~
-        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
         <pluginManagement>
             <plugins>
                 <plugin>
-                    <!-- Kotlin compile plugin must be specified before Java.
-                         (Supports polyglot projects. -->
-                    <groupId>org.jetbrains.kotlin</groupId>
-                    <artifactId>kotlin-maven-plugin</artifactId>
-                    <version>${kotlin.version}</version>
-                    <configuration>
-                        <jvmTarget>${kotlin.compiler.jvmTarget}</jvmTarget>
-                        <args>
-                            <!-- Multi-platform project to allow "expect"/"actual" declarations. -->
-                            <arg>-Xmulti-platform</arg>
-                            <!-- Remove wrapper object abstraction cost. -->
-                            <!--<arg>-XXLanguage:+InlineClasses</arg>-->
-                            <arg>-Xuse-experimental=kotlin.ExperimentalUnsignedTypes</arg>
-                            <arg>-Xuse-experimental=kotlinx.coroutines.ExperimentalCoroutinesApi</arg>
-                        </args>
-                        <compilerPlugins>
-                            <plugin>kotlinx-serialization</plugin>
-                        </compilerPlugins>
-                    </configuration>
-                    <dependencies>
-                        <dependency>
-                            <groupId>org.jetbrains.kotlin</groupId>
-                            <artifactId>kotlin-maven-serialization</artifactId>
-                            <version>${kotlin.version}</version>
-                        </dependency>
-                    </dependencies>
-                    <executions>
-                        <execution>
-                            <id>kapt</id>
-                            <goals>
-                                <goal>kapt</goal>
-                            </goals>
-                            <configuration>
-                                <sourceDirs>
-                                    <sourceDir>${project.basedir}/src/common</sourceDir>
-                                    <sourceDir>${project.basedir}/src/jvm</sourceDir>
-                                    <sourceDir>${project.basedir}/target/generated-sources/protobuf/common</sourceDir>
-                                    <sourceDir>${project.basedir}/target/generated-sources/protobuf/jvm</sourceDir>
-                                </sourceDirs>
-                                <annotationProcessorPaths>
-                                    <annotationProcessorPath>
-                                        <groupId>com.google.dagger</groupId>
-                                        <artifactId>dagger-compiler</artifactId>
-                                        <version>${dagger.version}</version>
-                                    </annotationProcessorPath>
-                                </annotationProcessorPaths>
-                            </configuration>
-                        </execution>
-                        <execution>
-                            <id>test-kapt</id>
-                            <goals>
-                                <goal>test-kapt</goal>
-                            </goals>
-                            <configuration>
-                                <sourceDirs>
-                                    <sourceDir>${project.basedir}/test/common</sourceDir>
-                                    <sourceDir>${project.basedir}/test/jvm</sourceDir>
-                                    <sourceDir>${project.basedir}/target/generated-sources/test-protobuf/common</sourceDir>
-                                    <sourceDir>${project.basedir}/target/generated-sources/test-protobuf/jvm</sourceDir>
-                                </sourceDirs>
-                                <annotationProcessorPaths>
-                                    <annotationProcessorPath>
-                                        <groupId>com.google.dagger</groupId>
-                                        <artifactId>dagger-compiler</artifactId>
-                                        <version>${dagger.version}</version>
-                                    </annotationProcessorPath>
-                                </annotationProcessorPaths>
-                            </configuration>
-                        </execution>
-                        <execution>
-                            <id>kotlin-compile</id>
-                            <phase>compile</phase>
-                            <goals>
-                                <goal>compile</goal>
-                            </goals>
-                            <configuration>
-                                <sourceDirs>
-                                    <sourceDir>${project.basedir}/src/common</sourceDir>
-                                    <sourceDir>${project.basedir}/src/jvm</sourceDir>
-                                    <sourceDir>${project.basedir}/target/generated-sources/kapt/compile</sourceDir>
-                                    <sourceDir>${project.basedir}/target/generated-sources/kaptKotlin/compile</sourceDir>
-                                    <sourceDir>${project.basedir}/target/generated-sources/protobuf/common</sourceDir>
-                                    <sourceDir>${project.basedir}/target/generated-sources/protobuf/jvm</sourceDir>
-                                </sourceDirs>
-                                <output>${project.build.directory}/classes-atomicfu</output>
-                            </configuration>
-                        </execution>
-                        <execution>
-                            <id>kotlin-test-compile</id>
-                            <phase>test-compile</phase>
-                            <goals>
-                                <goal>test-compile</goal>
-                            </goals>
-                            <configuration>
-                                <sourceDirs>
-                                    <sourceDir>${project.basedir}/test/common</sourceDir>
-                                    <sourceDir>${project.basedir}/test/jvm</sourceDir>
-                                    <sourceDir>${project.basedir}/target/generated-sources/kapt/test</sourceDir>
-                                    <sourceDir>${project.basedir}/target/generated-sources/kaptKotlin/test</sourceDir>
-                                    <sourceDir>${project.basedir}/target/generated-sources/test-protobuf/common</sourceDir>
-                                    <sourceDir>${project.basedir}/target/generated-sources/test-protobuf/jvm</sourceDir>
-                                </sourceDirs>
-                            </configuration>
-                        </execution>
-                    </executions>
-                </plugin>
-                <plugin>
-                    <groupId>org.jetbrains.kotlinx</groupId>
-                    <artifactId>atomicfu-maven-plugin</artifactId>
-                    <version>${atomicfu.version}</version>
-                    <executions>
-                        <execution>
-                            <phase>compile</phase>
-                            <goals>
-                                <goal>transform</goal>
-                            </goals>
-                            <configuration>
-                                <input>${project.build.directory}/classes-atomicfu</input>
-                                <variant>FU</variant>
-                            </configuration>
-                        </execution>
-                    </executions>
-                </plugin>
-                <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-compiler-plugin</artifactId>
-                    <version>${maven.plugin.compiler}</version>
+                    <version>${maven.plugin.compiler.version}</version>
                     <configuration>
                         <source>${java.version}</source>
                         <target>${java.version}</target>
-                        <release>${java.version}</release>
+
                         <fork>true</fork>
-                        <meminitial>1024m</meminitial>
-                        <maxmem>4048m</maxmem>
-                        <generatedSourcesDirectory>${project.build.directory}/generated-sources/annotations</generatedSourcesDirectory>
-                        <generatedTestSourcesDirectory>${project.build.directory}/generated-sources/test-annotations</generatedTestSourcesDirectory>
-                        <includes>
-                            <include>**/*.java</include>
-                        </includes>
-                        <compilerArgs>
-                            <arg>-Xlint:all</arg>
-                        </compilerArgs>
-                        <annotationProcessorPaths>
-                            <path>
-                                <groupId>com.google.dagger</groupId>
-                                <artifactId>dagger-compiler</artifactId>
-                                <version>${dagger.version}</version>
-                            </path>
-                        </annotationProcessorPaths>
-                    </configuration>
-                    <executions>
-                        <!-- Disable default-compile (treated specially by Maven). -->
-                        <execution>
-                            <id>default-compile</id>
-                            <phase>none</phase>
-                        </execution>
-                        <!-- Disable default-testCompile (treated specially by Maven). -->
-                        <execution>
-                            <id>default-testCompile</id>
-                            <phase>none</phase>
-                        </execution>
-                        <execution>
-                            <id>java-compile</id>
-                            <phase>compile</phase>
-                            <goals>
-                                <goal>compile</goal>
-                            </goals>
-                        </execution>
-                        <execution>
-                            <id>java-test-compile</id>
-                            <phase>test-compile</phase>
-                            <goals>
-                                <goal>testCompile</goal>
-                            </goals>
-                        </execution>
-                    </executions>
-                </plugin>
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-assembly-plugin</artifactId>
-                    <version>${maven.plugin.assembly}</version>
-                </plugin>
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-jar-plugin</artifactId>
-                    <version>${maven.plugin.jar}</version>
-                </plugin>
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-source-plugin</artifactId>
-                    <version>${maven.plugin.source}</version>
-                    <executions>
-                        <execution>
-                            <id>attach-sources</id>
-                            <goals>
-                                <goal>jar</goal>
-                            </goals>
-                        </execution>
-                    </executions>
-                </plugin>
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-surefire-plugin</artifactId>
-                    <version>${maven.plugin.surefire}</version>
-                    <configuration>
-                        <includes>
-                            <include>**/*Test.java</include>
-                        </includes>
+                        <meminitial>128m</meminitial>
+                        <maxmem>512m</maxmem>
+                        <showDeprecation>true</showDeprecation>
+                        <showWarnings>true</showWarnings>
                     </configuration>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-checkstyle-plugin</artifactId>
-                    <version>${maven.plugin.checkstyle}</version>
+                    <version>${maven.plugin.checkstyle.version}</version>
                     <executions>
                         <execution>
                             <id>validate</id>
                             <phase>validate</phase>
                             <configuration>
-                                <configLocation>resources/checkstyle.xml</configLocation>
+                                <configLocation>../resources/checkstyle.xml</configLocation>
                                 <encoding>UTF-8</encoding>
                                 <consoleOutput>true</consoleOutput>
                                 <failsOnError>true</failsOnError>
@@ -572,15 +466,31 @@
                     </executions>
                 </plugin>
                 <plugin>
-                    <groupId>com.github.gantsign.maven</groupId>
-                    <artifactId>ktlint-maven-plugin</artifactId>
-                    <version>${maven.plugin.ktlint}</version>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-surefire-plugin</artifactId>
+                    <version>${maven.plugin.surefire.version}</version>
+                    <dependencies>
+                        <dependency>
+                            <groupId>org.junit.platform</groupId>
+                            <artifactId>junit-platform-surefire-provider</artifactId>
+                            <version>${junit.platform.version}</version>
+                        </dependency>
+                    </dependencies>
+                    <configuration>
+                        <includes>
+                            <include>**/*Test.java</include>
+                        </includes>
+                    </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-failsafe-plugin</artifactId>
+                    <version>${maven.plugin.failsafe.version}</version>
                     <executions>
                         <execution>
-                            <id>check</id>
-                            <phase>validate</phase>
+                            <id>integration-test</id>
                             <goals>
-                                <goal>check</goal>
+                                <goal>integration-test</goal>
                             </goals>
                         </execution>
                     </executions>
@@ -588,7 +498,7 @@
                 <plugin>
                     <groupId>org.codehaus.mojo</groupId>
                     <artifactId>flatten-maven-plugin</artifactId>
-                    <version>${maven.plugin.flatten}</version>
+                    <version>${maven.plugin.flatten.version}</version>
                     <configuration>
                         <flattenMode>defaults</flattenMode>
                         <updatePomFile>true</updatePomFile>
@@ -610,8 +520,43 @@
                         </execution>
                     </executions>
                 </plugin>
+                <plugin>
+                    <groupId>com.github.os72</groupId>
+                    <artifactId>protoc-jar-maven-plugin</artifactId>
+                    <version>${maven.plugin.protocjar.version}</version>
+                    <executions>
+                        <execution>
+                            <phase>generate-sources</phase>
+                            <goals>
+                                <goal>run</goal>
+                            </goals>
+                            <configuration>
+                                <includeStdTypes>true</includeStdTypes>
+                                <inputDirectories>
+                                    <include>src/main/proto</include>
+                                </inputDirectories>
+                            </configuration>
+                        </execution>
+                    </executions>
+                </plugin>
+                <plugin>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-maven-plugin</artifactId>
+                    <version>${springframework.boot.version}</version>
+                    <executions>
+                        <execution>
+                            <goals>
+                                <goal>repackage</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
             </plugins>
         </pluginManagement>
+
+        <!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        ~ Common plug-ins run for every project.                    ~
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
         <plugins>
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
@@ -619,37 +564,4 @@
             </plugin>
         </plugins>
     </build>
-
-    <profiles>
-        <profile>
-            <id>ide</id>
-            <dependencies>
-                <dependency>
-                    <!--
-                      This is ABSOLUTELY a hack and not supposed to be necessary.
-                      The issue is that the bytecode transformer swaps out the class artifacts
-                      placeholders in atomicfu for JDK's native atomic field updaters.
-                      But in an IDE setting like IntelliJ IDEA or Eclipse, a "plug-in" would be
-                      necessary for IDE native build to perform a similar bytecode transformation,
-                      or the placeholder target for the classes becomes actual dependencies to be
-                      depended upon.
-                      Even without transformation, the placeholders that are in atomicfu is CORRECT
-                      albeit less efficient. But that's not really the problem as the problem is
-                      that there should not have been any runtime dependencies to begin with if
-                      bytecode-transformation were done.
-                      The workaround here is to place a phantom "provided" scope artifact to be
-                      included for every project. The actual Maven-produced artifacts won't be
-                      utilizing this at all as all atomicfu placeholders are erased. The workaround
-                      here is for IDEs that don't use Maven workflows. "provided" scope dependencies
-                      are not transitive and would require the running application container to
-                      actually supply the dependency, which can be easily done in IDEs by specifying
-                      additional library dependencies on the classpath.
-                    -->
-                    <groupId>org.jetbrains.kotlinx</groupId>
-                    <artifactId>atomicfu</artifactId>
-                    <scope>provided</scope>
-                </dependency>
-            </dependencies>
-        </profile>
-    </profiles>
 </project>

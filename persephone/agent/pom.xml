@@ -5,9 +5,8 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>com.vmware.blockchain</groupId>
-        <artifactId>deployment</artifactId>
+        <artifactId>persephone</artifactId>
         <version>${revision}</version>
-        <relativePath>../deployment/pom.xml</relativePath>
     </parent>
 
     <groupId>com.vmware.concord</groupId>

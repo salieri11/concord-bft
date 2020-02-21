@@ -161,7 +161,7 @@ class TestSuite(ABC):
       a test suite to identify configuration issues before continuing with the launch.
       - If we're running tests which deploy a new blockchain (e.g. Helen invoking
         Persephone), be sure we have a docker config that includes Persephone.
-      - Be sure replaceable values in the Persephone config.json file have been replaced
+      - Be sure replaceable values in the Persephone application-test.properties file have been replaced
         with real values.
       '''
       if self._args.blockchainLocation != util.helper.LOCATION_LOCAL:
@@ -171,7 +171,7 @@ class TestSuite(ABC):
             if "persephone-provisioning" in key:
                foundPersephoneDockerConfig = True
                provisioningConfig = None
-               provisioningConfigFile = "resources/persephone/provisioning/config.json"
+               provisioningConfigFile = "resources/persephone/provisioning/application-test.properties"
                invalidValues = ["<VMC_API_TOKEN>", "<DOCKERHUB_REPO_READER_PASSWORD>"]
 
                with open(provisioningConfigFile, "r") as f:

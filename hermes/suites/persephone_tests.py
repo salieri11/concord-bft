@@ -121,7 +121,7 @@ class PersephoneTests(test_suite.TestSuite):
       self.args.cancel_stream = True
       self.background_thread.join()
 
-      # Replace provisioning config.json to default, if modified.
+      # Replace provisioning application-test.properties to default, if modified.
       self.update_provisioning_config_file(mode="RESET")
 
       log.info("Tests are done.")
@@ -129,7 +129,7 @@ class PersephoneTests(test_suite.TestSuite):
 
    def update_provisioning_config_file(self, mode="UPDATE"):
       '''
-      Helper method to update provisioning service config.json with local
+      Helper method to update provisioning service application-test.properties with local
       config-service and use security None for local testing
       '''
       try:
@@ -147,14 +147,6 @@ class PersephoneTests(test_suite.TestSuite):
                log.info("  [backup: {}]".format(persephone_config_file_orig))
                log.debug("Config file: {}".format(persephone_config_file))
                shutil.copy(persephone_config_file, persephone_config_file_orig)
-
-               with open(persephone_config_file, "r") as config_fp:
-                  data = json.load(config_fp)
-               config_service = data["configService"]
-
-               log.info("  Setting config-service[\"transportSecurity\"] to None")
-               if "transportSecurity" in config_service:
-                  config_service["transportSecurity"] = {}
 
                ports = helper.get_docker_compose_value(self.args.dockerComposeFile,
                                                        Product.PERSEPHONE_CONFIG_SERVICE,
@@ -178,11 +170,9 @@ class PersephoneTests(test_suite.TestSuite):
                log.info(
                   "  Updating configService[\"address\"] to: {}:{}".format(host_ip,
                                                                            config_service_port))
-               config_service["address"] = '{}:{}'.format(host_ip,
-                                                          config_service_port)
 
-               with open(persephone_config_file, "w") as config_fp:
-                  json.dump(data, config_fp, indent=2)
+               # a = "provisioning.config.service.address=" + '{}:{}'.format(host_ip, config_service_port)
+               # b = "provisioning.config.service.transportSecurity.type=NONE"
 
                log.info("Update completed!")
                log.info("****************************************")
@@ -282,8 +272,6 @@ class PersephoneTests(test_suite.TestSuite):
          ]
       elif self.args.tests.lower() == "all_tests":
          return [
-            ("add_model", self._test_add_model),
-            ("list_models", self._test_list_models),
             ("7_Node_DAML_Blockchain_ON-PREM",
              self._test_create_daml_blockchain_7_node_onprem),
             ("4_Node_Blockchain_FIXED_Site",
@@ -780,35 +768,6 @@ class PersephoneTests(test_suite.TestSuite):
                      log.info("No replicas found to get support logs")
 
       return (status, msg)
-
-
-   def _test_add_model(self):
-      '''
-      Test to add metadata and validate AddModel RPC
-      '''
-      request, response = self.rpc_test_helper.rpc_add_model()
-      response_add_model_json = helper.protobuf_message_to_json(response[0])
-      if "id" in response_add_model_json:
-         self.request_add_model = helper.protobuf_message_to_json(request)
-         self.response_add_model_id = response_add_model_json["id"]
-         return self.parse_test_status(True, None)
-      return self.parse_test_status(False, "AddModel RPC Call Failed")
-
-   def _test_list_models(self):
-      '''
-      Test to list the metadata that was added using AddModel RPC
-      '''
-      time.sleep(2)
-      response = self.rpc_test_helper.rpc_list_models()
-      response_list_models_json = helper.protobuf_message_to_json(response)
-      for metadata in response_list_models_json:
-         if self.response_add_model_id == metadata["id"]:
-            if self.request_add_model["specification"] == metadata[
-               "specification"]:
-               return self.parse_test_status(True, None)
-      return self.parse_test_status(False,
-              "ListModels does not contain the added metadata: {}".format(
-                 self.response_add_model_id))
 
 
    def _test_create_blockchain_4_node_fixed_site(self, cluster_size=4):

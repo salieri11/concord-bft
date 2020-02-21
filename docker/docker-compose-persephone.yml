@@ -5,25 +5,19 @@ services:
     ports:
       - 8000:9003
     volumes:
-      - ../hermes/resources/persephone/configuration:/config/persephone/configuration:ro
-  persephone-metadata:
-    image: "${persephone_metadata_repo}:${persephone_metadata_tag}"
-    ports:
-      - 9001:9001
-    volumes:
-      - ../hermes/resources/persephone/metadata:/config/persephone/metadata:ro
+      - ../hermes/resources/persephone/configuration:/config:ro
   persephone-provisioning:
     image: "${persephone_provisioning_repo}:${persephone_provisioning_tag}"
     ports:
       - 9002:9002
     volumes:
-      - ../hermes/resources/persephone/provisioning:/config/persephone/provisioning:ro
+      - ../hermes/resources/persephone/provisioning:/config:ro
   persephone-provisioning-2:
     image: "${persephone_provisioning_repo}:${persephone_provisioning_tag}"
     ports:
       - 9102:9002
     volumes:
-      - ../hermes/resources/persephone/provisioning:/config/persephone/provisioning:ro
+      - ../hermes/resources/persephone/provisioning:/config:ro
   daml_test_tool:
     image: athena-docker-local.artifactory.eng.vmware.com/daml-ledger-api-test-tool:100.13.52
 
