@@ -232,7 +232,8 @@ class Request():
          "f_count": f,
          "c_count": c,
          "deployment_type": "FIXED" if fixed else "UNSPECIFIED",
-         "zone_ids": siteIds
+         "zone_ids": siteIds,
+         "blockchain_type": blockchainType
       }
 
       self._endpointName = "create_blockchain"

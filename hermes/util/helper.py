@@ -38,6 +38,7 @@ LOCATION_ONPREM = "onprem"
 # These need to match Helen.  See helen/src/main/resources/api-doc/api.yaml.
 TYPE_ETHEREUM = "ethereum"
 TYPE_DAML = "daml"
+TYPE_DAML_COMMITTER = "daml_committer"
 TYPE_HLF = "hlf"
 
 # These are command line options for --keepBlockchains.
@@ -678,3 +679,43 @@ def mergeDictionaries(orig, new):
             orig[newK] = newV
       else:
          orig[newK] = newV
+
+
+def getReplicaContainers(replicaType):
+   '''
+   Given the name of a replica, as defined in persephoneTests["modelService"]["defaults"]["deployment_components"],
+   return a list of the names of the docker containers which are expected to be in that replica.
+   '''
+   user_config = util.json_helper.readJsonFile(CONFIG_JSON)
+
+   if replicaType in user_config["persephoneTests"]["modelService"]["defaults"]["deployment_components"]:
+      return list(user_config["persephoneTests"]["modelService"]["defaults"]["deployment_components"][replicaType].values())
+   else:
+      log.error("Invalid replica name in getReplicaContainers(): '{}'".format(replicaType))
+      return None
+
+
+def waitForDockerContainers(host, username, password, replicaType, timeout=600):
+   '''
+   Wait for a list of docker containers to come up, given a replica type as defined in
+   persephoneTests["modelService"]["defaults"]["deployment_components"].
+   '''
+   for name in getReplicaContainers(replicaType):
+      cmd = "docker ps | grep '{}' | grep ' Up [0-9]* '".format(name)
+      elapsed = 0
+      sleep_time = 5
+      up = False
+
+      while elapsed <= timeout and not up:
+         ssh_output = ssh_connect(host, username, password, cmd)
+
+         if ssh_output:
+            log.info("Container '{}' on '{}' is up.".format(name, host))
+            up = True
+         else:
+            log.info("Waiting for container '{}' on '{}' to come up.".format(name, host))
+            time.sleep(sleep_time)
+            elapsed += sleep_time
+
+      if not up:
+         raise Exception("Container '{}' on '{}' failed to come up.".format(name, host))

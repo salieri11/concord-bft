@@ -116,10 +116,13 @@ def deployToSddc(logDir, hermesData):
        zoneIds.append(zone["id"])
 
    log.info(zoneIds)
-   siteIds = util.helper.distributeItemsRoundRobin(4, zoneIds)
+   numNodes = int(hermesData["hermesCmdlineArgs"].numReplicas)
+   f = (numNodes - 1) / 3
+   siteIds = util.helper.distributeItemsRoundRobin(numNodes, zoneIds)
    response = conAdminRequest.createBlockchain(conId,
                                                siteIds,
-                                               blockchainType=hermesData["hermesCmdlineArgs"].blockchainType.upper())
+                                               blockchainType=hermesData["hermesCmdlineArgs"].blockchainType.upper(),
+                                               f=f)
    taskId = response["task_id"]
    timeout=60*15
    success, response = util.helper.waitForTask(conAdminRequest, taskId, timeout=timeout)
@@ -129,13 +132,18 @@ def deployToSddc(logDir, hermesData):
       blockchainDetails = conAdminRequest.getBlockchainDetails(blockchainId)
       log.info("Details of the deployed blockchain, in case you need to delete its resources " \
                "manually: {}".format(json.dumps(blockchainDetails, indent=4)))
+      credentials = hermesData["hermesUserConfig"]["persephoneTests"]["provisioningService"]["concordNode"]
 
       if hermesData["hermesCmdlineArgs"].blockchainType.lower() == util.helper.TYPE_ETHEREUM:
          for replicaDetails in blockchainDetails["node_list"]:
-             credentials = hermesData["hermesUserConfig"]["persephoneTests"]["provisioningService"]["concordNode"]
-             blockchainType = hermesData["hermesCmdlineArgs"].blockchainType
-             setUpPortForwarding(replicaDetails["url"], credentials, blockchainType, logDir)
-
+            blockchainType = hermesData["hermesCmdlineArgs"].blockchainType
+            setUpPortForwarding(replicaDetails["url"], credentials, blockchainType, logDir)
+      elif hermesData["hermesCmdlineArgs"].blockchainType.lower() == util.helper.TYPE_DAML:
+         for replicaDetails in blockchainDetails["node_list"]:
+            host = replicaDetails["ip"]
+            util.helper.waitForDockerContainers(host, credentials["username"],
+                                                credentials["password"],
+                                                util.helper.TYPE_DAML_COMMITTER)
    else:
       raise Exception("Failed to deploy a new blockchain.")
 
