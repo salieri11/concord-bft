@@ -2,39 +2,32 @@
 FROM maven:3.6.1-jdk-11 as builder
 
 ## Copy build-dependent resource files.
-COPY ./resources/checkstyle.xml ./persephone/resources/checkstyle.xml
+COPY ./resources/checkstyle.xml ../resources/checkstyle.xml
 
-## Copy the dependency-related POM files (rarely changing).
-COPY ./pom.xml ./persephone/pom.xml
-COPY ./api/pom.xml ./persephone/api/pom.xml
-COPY ./config-service/pom.xml ./persephone/config-service/pom.xml
-COPY ./core/pom.xml ./persephone/core/pom.xml
-COPY ./fleet-service/pom.xml ./persephone/fleet-service/pom.xml
-COPY ./ip-allocation-service/pom.xml ./persephone/ip-allocation-service/pom.xml
-COPY ./metadata-service/pom.xml ./persephone/metadata-service/pom.xml
-COPY ./orchestration/pom.xml ./persephone/orchestration/pom.xml
-COPY ./orchestration-vmware/pom.xml ./persephone/orchestration-vmware/pom.xml
-COPY ./persistence/pom.xml ./persephone/persistence/pom.xml
-COPY ./persistence-rocksdb/pom.xml ./persephone/persistence-rocksdb/pom.xml
-COPY ./provisioning-service/pom.xml ./persephone/provisioning-service/pom.xml
-COPY ./server-support/pom.xml ./persephone/server-support/pom.xml
+## Copy the POM files (rarely changing).
+COPY ./pom.xml ./pom.xml
+COPY ./api/pom.xml ./api/pom.xml
+COPY ./core/pom.xml ./core/pom.xml
+COPY ./orchestration/pom.xml ./orchestration/pom.xml
+COPY ./orchestration-vmware/pom.xml ./orchestration-vmware/pom.xml
+COPY ./provisioning-service/pom.xml ./provisioning-service/pom.xml
 
-## Run an empty package step to keep as much exogenous dependencies in a cached layer as possible.
-RUN mvn -f persephone/pom.xml dependency:resolve-plugins dependency:resolve clean package -B
+COPY ./agent/pom.xml ./agent/pom.xml
+COPY ./config-service/pom.xml ./config-service/pom.xml
+COPY ./ip-allocation-service/pom.xml ./ip-allocation-service/pom.xml
 
 ## Copy the dependent module sources.
-COPY ./api ./persephone/api
-COPY ./core ./persephone/core
-COPY ./orchestration ./persephone/orchestration
-COPY ./orchestration-vmware ./persephone/orchestration-vmware
-COPY ./persistence ./persephone/persistence
-COPY ./server-support ./persephone/server-support
+COPY ./api ./api
+COPY ./core ./core
+COPY ./orchestration ./orchestration
+COPY ./orchestration-vmware ./orchestration-vmware
 
 ## Copy the module sources.
-COPY ./provisioning-service ./persephone/provisioning-service
+COPY ./provisioning-service  ./provisioning-service
 
 ## Build module with all of its dependencies.
-RUN mvn -f persephone/pom.xml package -pl provisioning-service -am -B
+RUN mvn -f pom.xml package -pl provisioning-service -am -B
+#RUN mvn -f persephone/provisioning-service/pom.xml install
 
 # Environment preparation.
 FROM openjdk:11.0.2-jdk-slim as environment
@@ -58,13 +51,21 @@ RUN sed -i "/jdk.tls.disabledAlgorithms=/ s/=.*/=TLSv1.3, SSLv3, RC4, MD5withRSA
 ## Install CA certificate.
 COPY --from=environment /docker-java-home/lib/security/cacerts /docker-java-home/lib/security/cacerts
 
-WORKDIR /persephone/provisioning-service
-COPY --from=builder ./persephone/provisioning-service/target/persephone-provisioning-service*with-dependencies.jar ./provisioning-service.jar
+WORKDIR /persephone-provisioning-service
 
-VOLUME ["/config"]
+#RUN echo ${ls ./persephone/provisioning-service}
+
+COPY ./provisioning-service/src/main/resources .
+
+COPY --from=builder ./provisioning-service/target/persephone-provisioning-service*.jar ./provisioning-service.jar
+
+# env variable for parameterizing application profile
+ENV APPCONTEXT test
+
+ENTRYPOINT ["java", "-Dspring.config.location=/config/app/profiles/,./", "-Dspring.profiles.active=${APPCONTEXT}",  "-jar", "provisioning-service.jar"]
 
 # Expose port 8000 for debug or profiling usage.
 # Expose service port
 EXPOSE 8000 9002
 
-CMD ["java", "-jar", "provisioning-service.jar", "-Dkotlinx.coroutines.debug=on"]
+VOLUME ["/config"]

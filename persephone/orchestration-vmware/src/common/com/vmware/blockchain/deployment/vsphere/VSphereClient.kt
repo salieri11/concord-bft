@@ -3,6 +3,7 @@
  * *************************************************************************/
 package com.vmware.blockchain.deployment.vsphere
 
+import com.google.protobuf.ByteString
 import com.vmware.blockchain.deployment.model.core.URI
 import com.vmware.blockchain.deployment.model.vsphere.GetDatastoreResponse
 import com.vmware.blockchain.deployment.model.vsphere.GetFolderResponse
@@ -24,9 +25,8 @@ import com.vmware.blockchain.deployment.model.vsphere.VirtualMachineGuestIdentit
 import com.vmware.blockchain.deployment.model.vsphere.VirtualMachinePowerResponse
 import com.vmware.blockchain.deployment.model.vsphere.VirtualMachinePowerState
 import com.vmware.blockchain.deployment.vm.CloudInitConfiguration
-import com.vmware.blockchain.protobuf.kotlinx.serialization.ByteString
-import com.vmware.blockchain.protobuf.kotlinx.serialization.encodeBase64
 import kotlinx.coroutines.delay
+import java.util.*
 
 /**
  * A client for issuing commands to a vSphere environment targeted by a given [VSphereHttpClient]..
@@ -179,7 +179,7 @@ class VSphereClient(private val client: VSphereHttpClient) {
         networks: List<Pair<String, String>>,
         cloudInit: CloudInitConfiguration
     ): String? {
-        val encodedUserData = ByteString(cloudInit.userData().toByteArray()).encodeBase64()
+        val encodedUserData = Base64.getEncoder().encodeToString(cloudInit.userData().toByteArray())
         val deployRequest = LibraryItemDeployRequest(
                 LibraryItemDeploymentSpec(
                         name = name,
@@ -195,7 +195,7 @@ class VSphereClient(private val client: VSphereHttpClient) {
                                                 OvfProperty("hostname", "replica"),
                                                 OvfProperty(
                                                         "user-data",
-                                                        String(encodedUserData.asByteArray())
+                                                        encodedUserData
                                                 )
                                         )
                                 )

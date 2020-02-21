@@ -13,12 +13,8 @@ import sys
 import threading
 import time
 from google.protobuf.json_format import MessageToJson
-from vmware.blockchain.deployment.v1 import metadata_service_pb2
-from vmware.blockchain.deployment.v1 import metadata_service_pb2_grpc
 from vmware.blockchain.deployment.v1 import provisioning_service_pb2
 from vmware.blockchain.deployment.v1 import provisioning_service_pb2_grpc
-from vmware.blockchain.deployment.v1 import fleet_service_pb2
-from vmware.blockchain.deployment.v1 import fleet_service_pb2_grpc
 
 sys.path.append('../../')
 from util.product import Product as Product
@@ -60,7 +56,7 @@ class RPCHelper():
    def create_channel(self, service_name):
       '''
       Helper method to create a gRPC channel conneting to a gRPC server
-      :param service_name: Service name like persephone-metadata, etc
+      :param service_name: Service name like persephone-provisioning-service, etc
       :return: gRPC channel
       '''
       log.info("Creating channel to microservice '{}'".format(service_name))
@@ -90,12 +86,8 @@ class RPCHelper():
       log.info("Creating stub...")
       stub = None
       log.info("  Creating stub for {}".format(self.service_name))
-      if self.service_name is Product.PERSEPHONE_SERVICE_METADATA:
-         stub = metadata_service_pb2_grpc.ConcordModelServiceStub(channel)
       if self.service_name is Product.PERSEPHONE_SERVICE_PROVISIONING:
          stub = provisioning_service_pb2_grpc.ProvisioningServiceStub(channel)
-      # if self.service_name is Product.PERSEPHONE_SERVICE_FLEET:
-      #    stub = fleet_service_pb2_grpc.FleetServiceStub(channel)
 
       if stub is None:
          raise Exception(

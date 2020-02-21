@@ -11,7 +11,6 @@
 
     <modules>
         <module>blockchain-build</module>
-        <module>protobuf</module>
         <module>communication</module>
         <module>ethrpc</module>
         <module>persephone</module>

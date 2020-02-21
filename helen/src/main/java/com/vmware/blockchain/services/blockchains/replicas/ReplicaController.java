@@ -5,7 +5,6 @@
 package com.vmware.blockchain.services.blockchains.replicas;
 
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.SortedMap;
@@ -20,8 +19,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -29,19 +26,10 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.google.common.collect.ImmutableMap;
 import com.vmware.blockchain.auth.AuthHelper;
 import com.vmware.blockchain.common.BadRequestException;
 import com.vmware.blockchain.common.ErrorCode;
 import com.vmware.blockchain.common.NotFoundException;
-import com.vmware.blockchain.deployment.v1.ConcordClusterIdentifier;
-import com.vmware.blockchain.deployment.v1.ConcordComponent.ServiceType;
-import com.vmware.blockchain.deployment.v1.ConcordNodeIdentifier;
-import com.vmware.blockchain.deployment.v1.FleetManagementServiceGrpc.FleetManagementServiceStub;
-import com.vmware.blockchain.deployment.v1.MessageHeader;
-import com.vmware.blockchain.deployment.v1.ServiceState;
-import com.vmware.blockchain.deployment.v1.UpdateInstanceRequest;
-import com.vmware.blockchain.deployment.v1.UpdateInstanceResponse;
 import com.vmware.blockchain.operation.OperationContext;
 import com.vmware.blockchain.services.blockchains.Blockchain;
 import com.vmware.blockchain.services.blockchains.BlockchainController.BlockchainTaskResponse;
@@ -55,7 +43,6 @@ import com.vmware.blockchain.services.tasks.Task.State;
 import com.vmware.blockchain.services.tasks.TaskService;
 import com.vmware.concord.Concord.Peer;
 
-import io.grpc.stub.StreamObserver;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -74,7 +61,6 @@ public class ReplicaController {
     private AuthHelper authHelper;
     private DefaultProfiles defaultProfiles;
     private ITaskService taskService;
-    private FleetManagementServiceStub client;
     private OperationContext operationContext;
     private ConcordService concordService;
 
@@ -84,7 +70,6 @@ public class ReplicaController {
                              AuthHelper authHelper,
                              DefaultProfiles defaultProfiles,
                              TaskService taskService,
-                             FleetManagementServiceStub client,
                              OperationContext operationContext,
                              ConcordService concordService) {
         this.blockchainService = blockchainService;
@@ -92,7 +77,6 @@ public class ReplicaController {
         this.authHelper = authHelper;
         this.defaultProfiles = defaultProfiles;
         this.taskService = taskService;
-        this.client = client;
         this.operationContext = operationContext;
         this.concordService = concordService;
     }
@@ -131,73 +115,6 @@ public class ReplicaController {
         String certificate;
         UUID zoneId;
     }
-
-    // ReplicaObserver.  This is the callback from GRPC when starting/stoping nodes.  Package private for testing.
-    static class ReplicaObserver implements StreamObserver<UpdateInstanceResponse> {
-        private UUID taskId;
-        private ITaskService taskService;
-        private Authentication auth;
-        private OperationContext operationContext;
-        private String opId;
-
-        public ReplicaObserver(UUID taskId, ITaskService taskService, OperationContext operationContext) {
-            this.taskId = taskId;
-            this.taskService = taskService;
-            this.operationContext = operationContext;
-            auth = SecurityContextHolder.getContext().getAuthentication();
-            opId = operationContext.getId();
-        }
-
-        @Override
-        public void onNext(UpdateInstanceResponse value) {
-            // Not really much to do here
-        }
-
-        @Override
-        public void onError(Throwable t) {
-            SecurityContextHolder.getContext().setAuthentication(auth);
-            operationContext.setId(opId);
-            try {
-                logger.info("Error during stop/start", t);
-                Task task = taskService.get(taskId);
-                task.setState(State.FAILED);
-                task.setMessage(t.getMessage());
-                taskService.put(task);
-            } finally {
-                SecurityContextHolder.getContext().setAuthentication(null);
-                operationContext.removeId();
-            }
-        }
-
-        @Override
-        public void onCompleted() {
-            SecurityContextHolder.getContext().setAuthentication(auth);
-            operationContext.setId(opId);
-            try {
-                logger.info("Start/stop completed");
-                Task task = taskService.get(taskId);
-                task.setState(State.SUCCEEDED);
-                task.setMessage("Operation Complete");
-                taskService.put(task);
-            } finally {
-                SecurityContextHolder.getContext().setAuthentication(null);
-                operationContext.removeId();
-            }
-        }
-    }
-
-    // map our actions to the FleetService actions
-    private final Map<NodeAction, ServiceState> actionMap =
-            ImmutableMap.of(NodeAction.START,
-                    ServiceState.newBuilder()
-                            .setServiceType(ServiceType.CONCORD)
-                            .setState(ServiceState.State.ACTIVE)
-                            .build(),
-                    NodeAction.STOP,
-                    ServiceState.newBuilder()
-                            .setServiceType(ServiceType.CONCORD)
-                            .setState(ServiceState.State.INACTIVE)
-                            .build());
 
     /**
      * Get the list of replicas, and their status.
@@ -348,27 +265,14 @@ public class ReplicaController {
 
 
     private Task startStopNode(UUID bid, UUID nodeId, NodeAction action) {
-        final UpdateInstanceRequest request = UpdateInstanceRequest.newBuilder()
-                .setHeader(MessageHeader.newBuilder().build())
-                .setCluster(ConcordClusterIdentifier.newBuilder()
-                        .setLow(bid.getLeastSignificantBits())
-                        .setHigh(bid.getMostSignificantBits())
-                        .build())
-                .setNode(ConcordNodeIdentifier.newBuilder()
-                        .setLow(nodeId.getLeastSignificantBits())
-                        .setHigh(nodeId.getMostSignificantBits())
-                        .build())
-                .addAllServiceStates(Collections.singletonList(actionMap.get(action)))
-                .build();
 
+        // TODO Implement the functionality when the messaging platform is ready.
         // make sure the string is start or stop
         Task task = new Task();
         task.setState(State.RUNNING);
         task.setResourceId(bid);
         task.setResourceLink(String.format("/api/blockchains/%s", bid));
         task = taskService.put(task);
-        ReplicaObserver replicaObserver = new ReplicaObserver(task.getId(), taskService, operationContext);
-        client.updateInstance(request, replicaObserver);
         return task;
     }
 

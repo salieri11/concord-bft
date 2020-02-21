@@ -5,7 +5,7 @@ FROM maven:3.6.1-jdk-11 as builder
 COPY ./resources/checkstyle.xml ../resources/checkstyle.xml
 
 ## Copy the POM files (rarely changing).
-COPY ./deployment/pom.xml ./deployment/pom.xml
+COPY ./pom.xml ./pom.xml
 COPY ./agent/pom.xml ./agent/pom.xml
 
 ## Build persephone API.

@@ -9,7 +9,6 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import com.vmware.blockchain.deployment.v1.FleetManagementServiceGrpc;
 import com.vmware.blockchain.deployment.v1.OrchestrationSiteServiceGrpc;
 import com.vmware.blockchain.deployment.v1.ProvisioningServiceGrpc;
 
@@ -22,20 +21,12 @@ import io.grpc.ManagedChannel;
 public class FleetConfig {
 
     private final ManagedChannel provisioningServerChannel;
-    private final ManagedChannel fleetManagementServerChannel;
 
     @Autowired
     public FleetConfig(
-            @Qualifier("provisioningServerChannel") ManagedChannel provisioningServerChannel,
-            @Qualifier("fleetManagementServerChannel") ManagedChannel fleetManagementServerChannel
+            @Qualifier("provisioningServerChannel") ManagedChannel provisioningServerChannel
     ) {
         this.provisioningServerChannel = provisioningServerChannel;
-        this.fleetManagementServerChannel = fleetManagementServerChannel;
-    }
-
-    @Bean
-    FleetManagementServiceGrpc.FleetManagementServiceStub fleetManagementServiceStub() {
-        return FleetManagementServiceGrpc.newStub(fleetManagementServerChannel);
     }
 
     @Bean

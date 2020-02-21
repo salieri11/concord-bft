@@ -6,21 +6,18 @@ package com.vmware.blockchain.deployment.vm
 import com.vmware.blockchain.deployment.model.core.URI
 import com.vmware.blockchain.deployment.orchestration.toIPv4Address
 import com.vmware.blockchain.deployment.orchestration.toIPv4SubnetMask
-import com.vmware.blockchain.deployment.http.JsonSerializer
 import com.vmware.blockchain.deployment.v1.ConcordAgentConfiguration
 import com.vmware.blockchain.deployment.v1.ConcordClusterIdentifier
-import com.vmware.blockchain.deployment.v1.ConcordNodeIdentifier
 import com.vmware.blockchain.deployment.v1.ConcordComponent
 import com.vmware.blockchain.deployment.v1.ConcordModelSpecification
+import com.vmware.blockchain.deployment.v1.ConcordNodeIdentifier
 import com.vmware.blockchain.deployment.v1.ConfigurationSessionIdentifier
 import com.vmware.blockchain.deployment.v1.Credential
 import com.vmware.blockchain.deployment.v1.Endpoint
 import com.vmware.blockchain.deployment.v1.LogManagement
 import com.vmware.blockchain.deployment.v1.OutboundProxyInfo
 import com.vmware.blockchain.deployment.v1.Wavefront
-import kotlinx.serialization.modules.serializersModuleOf
-
-import java.util.UUID
+import java.util.*
 
 /**
  * Initialization script run either on first-boot of a deployed virtual machine.
@@ -43,14 +40,8 @@ class CloudInitConfiguration(
     wavefront: Wavefront,
     private val consortium: String
 ) {
-    object ConcordAgentConfigurationSerializer
-        : JsonSerializer(
-            serializersModuleOf(
-                    ConcordAgentConfiguration::class, ConcordAgentConfiguration.serializer()
-            )
-    )
 
-    private val agentImageName: String = model.components.asSequence()
+    private val agentImageName: String = model.componentsList
             .filter { it.type == ConcordComponent.Type.CONTAINER_IMAGE }
             .filter { it.serviceType == ConcordComponent.ServiceType.GENERIC }.first().name
 
@@ -97,22 +88,20 @@ class CloudInitConfiguration(
     }
 
     /** Concord agent startup configuration parameters. */
-    private val configuration: ConcordAgentConfiguration = ConcordAgentConfiguration (
-            model = model,
-            containerRegistry = containerRegistry,
-            fleetService = Endpoint(), // TODO: need to inject fleet service endpoint info.
-            cluster = clusterId,
-            node = nodeId,
-            configService = outboundProxy.takeIf { outboundProxy.httpsHost.isNullOrBlank() }
+    private val configuration: ConcordAgentConfiguration = ConcordAgentConfiguration.newBuilder()
+            .setModel(model)
+            .setContainerRegistry(containerRegistry)
+            .setCluster(clusterId)
+            .setNode(nodeId)
+            .setConfigService(outboundProxy.takeIf { outboundProxy.httpsHost.isNullOrBlank() }
                     ?.let {
                         configServiceEndpoint
                     }
-                    ?: configServiceRestEndpoint,
-            configurationSession =  configGenId,
-            outboundProxyInfo = outboundProxy,
-            loggingEnvVariables = logManagements.loggingEnvVariablesSetup(),
-            wavefront = Wavefront(url = wavefront.url, token = wavefront.token)
-    )
+                    ?: configServiceRestEndpoint)
+            .setConfigurationSession(configGenId)
+            .setOutboundProxyInfo(outboundProxy)
+            .addAllLoggingEnvVariables(logManagements.loggingEnvVariablesSetup())
+            .setWavefront(Wavefront.newBuilder().setUrl(wavefront.url).setToken(wavefront.token).build()).build()
 
     private val script =
             """
@@ -153,7 +142,7 @@ class CloudInitConfiguration(
                     .replace("{{dockerLoginCommand}}", containerRegistry.toRegistryLoginCommand())
                     .replace("{{registrySecuritySetting}}", containerRegistry.toRegistrySecuritySetting())
                     .replace("{{agentImage}}", URI.create(containerRegistry.address).authority + "/" + agentImageName)
-                    .replace("{{agentConfig}}", ConcordAgentConfigurationSerializer.toJson(configuration))
+                    .replace("{{agentConfig}}", com.google.protobuf.util.JsonFormat.printer().print(configuration))
                     .replace("{{networkAddressCommand}}", ipAddress.takeIf { it.isNotBlank() }?.let { networkAddressCommand }?: "")
                     .replace("{{staticIp}}", ipAddress)
                     .replace("{{gateway}}", gateway)
