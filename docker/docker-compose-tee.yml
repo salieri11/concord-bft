@@ -1,0 +1,82 @@
+# for running local concord with Test Execution Engine
+#
+# ./gen-docker-concord-config.sh config-public/dockerConfigurationInput-tee.yaml
+# docker-compose -f docker-compose-tee.yml up
+#
+version: '3'
+services:
+  concord1:
+    image: "${concord_repo}:${concord_tag}"
+    privileged: true
+    ports:
+      - "50051:50051"
+    expose:
+      - 5458
+      - 3501/udp
+      - 3502/udp
+      - 3503/udp
+      - 3504/udp
+      - 3505/udp
+    volumes:
+      - ./devdata/rocksdbdata1:/concord/rocksdbdata
+      - ./devdata/log1:/concord/log
+      - ./config-concord1:/concord/config-local
+      - ./config-public:/concord/config-public:ro
+      - ./tls_certs:/concord/tls_certs:ro
+
+  concord2:
+    image: "${concord_repo}:${concord_tag}"
+    privileged: true
+    ports:
+      - "50052:50051"
+    expose:
+      - 5458
+      - 3501/udp
+      - 3502/udp
+      - 3503/udp
+      - 3504/udp
+      - 3505/udp
+    volumes:
+      - ./devdata/rocksdbdata2:/concord/rocksdbdata
+      - ./devdata/log2:/concord/log
+      - ./config-concord2:/concord/config-local
+      - ./config-public:/concord/config-public:ro
+      - ./tls_certs:/concord/tls_certs:ro
+
+  concord3:
+    image: "${concord_repo}:${concord_tag}"
+    privileged: true
+    ports:
+      - "50053:50051"
+    expose:
+      - 5458
+      - 3501/udp
+      - 3502/udp
+      - 3503/udp
+      - 3504/udp
+      - 3505/udp
+    volumes:
+      - ./devdata/rocksdbdata3:/concord/rocksdbdata
+      - ./devdata/log3:/concord/log
+      - ./config-concord3:/concord/config-local
+      - ./config-public:/concord/config-public:ro
+      - ./tls_certs:/concord/tls_certs:ro
+
+  concord4:
+    image: "${concord_repo}:${concord_tag}"
+    privileged: true
+    ports:
+      - "50054:50051"
+    expose:
+      - 5458
+      - 3501/udp
+      - 3502/udp
+      - 3503/udp
+      - 3504/udp
+      - 3505/udp
+    volumes:
+      - ./devdata/rocksdbdata4:/concord/rocksdbdata
+      - ./devdata/log4:/concord/log
+      - ./config-concord4:/concord/config-local
+      - ./config-public:/concord/config-public:ro
+      - ./tls_certs:/concord/tls_certs:ro
