@@ -190,10 +190,11 @@ def main():
                                helper.TYPE_HLF,
                                helper.TYPE_HLF),
                        default=helper.TYPE_ETHEREUM)
-   parser.add_argument("--f",
-                       help="The f value of a blockchain deployment.  Only applies if deploying (e.g. to SDDC or on-prem). " \
-                       "Tip: 1 for four nodes, 2 for seven nodes.",
-                       default=1)
+   parser.add_argument("--numReplicas",
+                       help="The number of blockchain replicas to deploy. The 'f' value will be " \
+                       "calculated automatically using f = (numReplicas - 1)/3. If Helen does not " \
+                       "like the combination of the replica count and f value, deployment will fail.",
+                       default=4)
    parser.add_argument("--keepBlockchains",
                        help="Whether to keep the blockchain(s) deployed by this run. " \
                             "Valid values: {}.  Default: '{}'".format([helper.KEEP_BLOCKCHAINS_ALWAYS,

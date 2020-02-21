@@ -38,6 +38,7 @@ LOCATION_ONPREM = "onprem"
 # These need to match Helen.  See helen/src/main/resources/api-doc/api.yaml.
 TYPE_ETHEREUM = "ethereum"
 TYPE_DAML = "daml"
+TYPE_DAML_COMMITTER = "daml_committer"
 TYPE_HLF = "hlf"
 
 # These are command line options for --keepBlockchains.
@@ -53,14 +54,6 @@ ZONE_TYPE_SDDC = "VMC_AWS"
 # be one of these:
 LOG_DESTINATION_LOG_INTELLIGENCE = "LOG_INTELLIGENCE"
 LOG_DESTINATION_LOG_INSIGHT = "LOG_INSIGHT"
-
-CONTAINER_NAMES_IN_DAML_COMMITTER = ["agent",
-                                     "concord",
-                                     "daml_execution_engine",
-                                     "fluentd",
-                                     "jaeger-agent",
-                                     "telegraf",
-                                     "wavefront-proxy"]
 
 def copy_docker_env_file(docker_env_file=docker_env_file):
    '''
@@ -687,11 +680,27 @@ def mergeDictionaries(orig, new):
       else:
          orig[newK] = newV
 
-def waitForDockerContainers(host, username, password, names, timeout=600):
+
+def getReplicaContainers(replicaType):
    '''
-   Wait for a list of docker containers to come up.
+   Given the name of a replica, as defined in persephoneTests["modelService"]["defaults"]["deployment_components"],
+   return a list of the names of the docker containers which are expected to be in that replica.
    '''
-   for name in names:
+   user_config = util.json_helper.readJsonFile(CONFIG_JSON)
+
+   if replicaType in user_config["persephoneTests"]["modelService"]["defaults"]["deployment_components"]:
+      return list(user_config["persephoneTests"]["modelService"]["defaults"]["deployment_components"][replicaType].values())
+   else:
+      log.error("Invalid replica name in getReplicaContainers(): '{}'".format(replicaType))
+      return None
+
+
+def waitForDockerContainers(host, username, password, replicaType, timeout=600):
+   '''
+   Wait for a list of docker containers to come up, given a replica type as defined in
+   persephoneTests["modelService"]["defaults"]["deployment_components"].
+   '''
+   for name in getReplicaContainers(replicaType):
       cmd = "docker ps | grep '{}' | grep ' Up [0-9]* '".format(name)
       elapsed = 0
       sleep_time = 5

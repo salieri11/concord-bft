@@ -116,8 +116,8 @@ def deployToSddc(logDir, hermesData):
        zoneIds.append(zone["id"])
 
    log.info(zoneIds)
-   f = int(hermesData["hermesCmdlineArgs"].f)
-   numNodes = 3 * f + 1
+   numNodes = int(hermesData["hermesCmdlineArgs"].numReplicas)
+   f = (numNodes - 1) / 3
    siteIds = util.helper.distributeItemsRoundRobin(numNodes, zoneIds)
    response = conAdminRequest.createBlockchain(conId,
                                                siteIds,
@@ -133,7 +133,7 @@ def deployToSddc(logDir, hermesData):
       log.info("Details of the deployed blockchain, in case you need to delete its resources " \
                "manually: {}".format(json.dumps(blockchainDetails, indent=4)))
       credentials = hermesData["hermesUserConfig"]["persephoneTests"]["provisioningService"]["concordNode"]
-      
+
       if hermesData["hermesCmdlineArgs"].blockchainType.lower() == util.helper.TYPE_ETHEREUM:
          for replicaDetails in blockchainDetails["node_list"]:
             blockchainType = hermesData["hermesCmdlineArgs"].blockchainType
@@ -143,7 +143,7 @@ def deployToSddc(logDir, hermesData):
             host = replicaDetails["ip"]
             util.helper.waitForDockerContainers(host, credentials["username"],
                                                 credentials["password"],
-                                                util.helper.CONTAINER_NAMES_IN_DAML_COMMITTER)
+                                                util.helper.TYPE_DAML_COMMITTER)
    else:
       raise Exception("Failed to deploy a new blockchain.")
 
