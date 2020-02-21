@@ -155,6 +155,20 @@
         "../docker/config-concord3/concord.config",
         "../docker/config-concord4/concord.config"]
   },
+  "infra":{
+    "SDDC3":{
+      "type":"vSphere",
+      "host":"vcenter.sddc-35-156-16-204.vmwarevmc.com",
+      "username":"<VMC_SDDC3_VC_CREDENTIALS_USERNAME>",
+      "password":"<VMC_SDDC3_VC_CREDENTIALS_PASSWORD>"
+    },
+    "SDDC4":{
+      "type":"vSphere",
+      "host":"vcenter.sddc-52-62-59-206.vmwarevmc.com",
+      "username":"<VMC_SDDC4_VC_CREDENTIALS_USERNAME>",
+      "password":"<VMC_SDDC4_VC_CREDENTIALS_PASSWORD>"
+    }
+  },
   "persephoneTests": {
     "modelService": {
       "deployment_component_ids": {
@@ -406,6 +420,13 @@
         "username": "root",
         "password": "c0nc0rd"
       }
+    }
+  },
+  "metainf": {
+    "env":{
+      "productVersion": "<METAINF_ENV_PRODUCT_VERSION>",
+      "jobName": "<METAINF_ENV_JOB_NAME>",
+      "buildNumber": "<METAINF_ENV_BUILD_NUMBER>"
     }
   }
 }
