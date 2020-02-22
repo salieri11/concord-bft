@@ -8,7 +8,6 @@ import java.util.List;
 import java.util.UUID;
 
 import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotNull;
 
 import com.vmware.blockchain.dao.EntityColumnName;
 import com.vmware.blockchain.dao.LinkedEntityId;
@@ -36,15 +35,10 @@ public class OnPremZone extends Zone {
     @AllArgsConstructor
     @Builder
     public static class LogManagementOnPrem {
-        @NotNull(message = "Destination cannot be empty")
         LogDestination destination;
-        @NotBlank(message = "Address cannot be empty")
         String address;
-        @NotNull(message = "Port cannot be empty")
         Integer port;
-        @NotBlank(message = "Username cannot be empty")
         String username;
-        @NotBlank(message = "Password cannot be empty")
         String password;
         int logInsightAgentId;
     }

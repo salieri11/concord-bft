@@ -5,7 +5,7 @@
 #
 # Rules defined later in the file take precedence, so we define a default first.
 # I've just included a handful of people from across the blockchain team.
-* @andrewstone @bjay @bsubramanian @hbhavsar @khank @kkeunwoo @machenbach @mandeab @mharrison @panamika @rmuschner @rsg @rvollmar @sanchitar @tusharg @upshawa
+* @andrewstone @bjay @bsubramanian @hbhavsar @khank @kkeunwoo @machenbach @mandeab @mharrison @panamika @rmuschner @rsg @rvollmar @sanchitar @upshawa
 
 # Here are the descriptions for our source tree.
 # When editing these descriptions, do NOT add lines which:
@@ -27,14 +27,14 @@
 /docker/fluentd/ @hbhavsar @mharrison
 /ethrpc/ @machenbach @panamika @mandeab
 /helen/ @machenbach @panamika @mandeab @khank
-/helen/src/main/resources/api-doc/api.yaml @machenbach @panamika @mandeab @tfidali
+/helen/src/main/resources/api-doc/api.yaml @machenbach @panamika @mandeab @tfidali @mharrison
 /hermes/ @rvollmar @rsg @khank
 /Jenkinsfile @rvollmar @rsg
 /performance/ @vlin @dparmar @rsg
 /persephone/ @khank @sanchitar @rsg
 /src/ @rvollmar @rsg
 /thin-replica-client/ @rmuschner @upshawa @andrewstone @bjay
-/ui/ @mharrison @hbhavsar @tusharg @kkeunwoo @mandeab
+/ui/ @mharrison @hbhavsar @kkeunwoo @mandeab
 /vars/ @rvollmar @rsg @khank
 /kubernetes/ @bsubramanian @khank @rvollmar
 /support/ @bsubramanian @khank
