@@ -511,6 +511,7 @@ EOF
                 '''
 
                 script {
+                  env.JOB_NAME_ESCAPED = env.JOB_NAME.replaceAll('/', '___')
                   sh '''
                     # Update provisioning service application-test.properties
                     sed -i -e 's/'"CHANGE_THIS_TO_HermesTesting"'/'"${PROVISIONING_SERVICE_NETWORK_NAME}"'/g' blockchain/hermes/resources/persephone/provisioning/app/profiles/application-test.properties
@@ -523,7 +524,7 @@ EOF
                     sed -i -e 's/'"<VMC_SDDC3_VC_CREDENTIALS_PASSWORD>"'/'"${VMC_SDDC3_VC_CREDENTIALS_PASSWORD}"'/g' blockchain/hermes/resources/user_config.json
                     sed -i -e 's/'"<VMC_SDDC4_VC_CREDENTIALS_USERNAME>"'/'"${VMC_SDDC4_VC_CREDENTIALS_USERNAME}"'/g' blockchain/hermes/resources/user_config.json
                     sed -i -e 's/'"<VMC_SDDC4_VC_CREDENTIALS_PASSWORD>"'/'"${VMC_SDDC4_VC_CREDENTIALS_PASSWORD}"'/g' blockchain/hermes/resources/user_config.json
-                    sed -i -e 's/'"<METAINF_ENV_JOB_NAME>"'/'"${JOB_NAME}"'/g' blockchain/hermes/resources/user_config.json
+                    sed -i -e 's/'"<METAINF_ENV_JOB_NAME>"'/'"${JOB_NAME_ESCAPED}"'/g' blockchain/hermes/resources/user_config.json
                     sed -i -e 's/'"<METAINF_ENV_BUILD_NUMBER>"'/'"${BUILD_NUMBER}"'/g' blockchain/hermes/resources/user_config.json
                     sed -i -e 's/'"<METAINF_ENV_PRODUCT_VERSION>"'/'"${product_version}"'/g' blockchain/hermes/resources/user_config.json
                   '''
