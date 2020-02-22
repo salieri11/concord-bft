@@ -2783,12 +2783,6 @@ components:
       type: array
       items:
         type: object
-        required:
-          - destination
-          - address
-          - port
-          - username
-          - password
         properties:
           destination:
             type: string

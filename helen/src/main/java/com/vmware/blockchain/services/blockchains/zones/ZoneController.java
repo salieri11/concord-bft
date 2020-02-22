@@ -193,7 +193,6 @@ public class ZoneController {
         Zone.OutboundProxy outboundProxy;
         EndPoint containerRepo;
         Zone.Wavefront wavefront;
-        @Valid
         List<OnPremZone.LogManagementOnPrem> logManagements;
     }
 

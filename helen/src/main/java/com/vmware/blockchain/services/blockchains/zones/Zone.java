@@ -63,8 +63,7 @@ public class Zone extends AbstractEntity {
         String gateway;
         @NotBlank(message = "Subnet cannot be empty")
         String subnet;
-        @Valid
-        List<@NotBlank(message = "Name Servers cannot be blank.") String> nameServers;
+        List<String> nameServers;
     }
 
     /**
