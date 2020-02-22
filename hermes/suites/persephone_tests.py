@@ -10,6 +10,7 @@ import queue
 import shutil
 import subprocess
 import sys
+import tempfile
 import threading
 import time
 import traceback
@@ -171,8 +172,14 @@ class PersephoneTests(test_suite.TestSuite):
                   "  Updating configService[\"address\"] to: {}:{}".format(host_ip,
                                                                            config_service_port))
 
-               # a = "provisioning.config.service.address=" + '{}:{}'.format(host_ip, config_service_port)
-               # b = "provisioning.config.service.transportSecurity.type=NONE"
+               provisioning_config_service_address = "{}:{}".format(host_ip,
+                                                                    config_service_port)
+               helper.replace_key(persephone_config_file,
+                                  'provisioning.config.service.address',
+                                  provisioning_config_service_address)
+               helper.replace_key(persephone_config_file,
+                                  'provisioning.config.service.transportSecurity.type',
+                                  "NONE")
 
                log.info("Update completed!")
                log.info("****************************************")
