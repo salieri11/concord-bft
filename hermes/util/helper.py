@@ -178,12 +178,10 @@ def replace_key(filename, key, value):
          tempfile.NamedTemporaryFile('w', dir=os.path.dirname(filename),
                                      delete=False) as f_out:
          for line in f_in.readlines():
-            if line.startswith(key):
+            if line.startswith("{}=".format(key)):
                line = '='.join((line.split('=')[0], '{}\n'.format(value)))
             f_out.write(line)
-
-      os.unlink(filename)
-      os.rename(f_out.name, filename)
+      os.replace(f_out.name, filename)
    except Exception as e:
       log.error("Unable to update properties file: {}".format(filename))
       raise
