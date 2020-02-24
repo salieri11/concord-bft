@@ -45,26 +45,16 @@ class CloudInitConfiguration(
             .filter { it.type == ConcordComponent.Type.CONTAINER_IMAGE }
             .filter { it.serviceType == ConcordComponent.ServiceType.GENERIC }.first().name
 
-    /** Network configuration command. */
-    private val networkAddressCommand: String by lazy {
-        val netmask = toIPv4SubnetMask(subnet).toIPv4Address()
-        val nic = "`basename -a /sys/class/net/* | grep -e eth -e ens | sort -u | head -1`"
-        ipAddress.takeIf { it.isNotBlank() }
-                ?.let {
-                    "ifconfig $nic $ipAddress netmask $netmask && route add default gw $gateway $nic"
-                }
-                // ?.let { "tdnf install netmgmt -y && netmgr ip4_address --set --interface eth0 --mode static --addr $ipAddress/$subnet --gateway $gateway" }
-                ?: "" // No-action defaults to DHCP.
-    }
-
-    private val dnsSetupCommand: String by lazy {
+    private val networkSetupCommand: String by lazy {
+        var dnsEntry = ""
         nameServers.takeIf { !it.isNullOrEmpty() }
                 ?.let {
                     val dnsString = nameServers.joinToString(separator = " ")
-                    "echo -e \"[Resolve]\\nDNS=$dnsString\" > /etc/systemd/resolved.conf ;" +
-                            " systemctl restart systemd-resolved.service"
+                    dnsEntry = "\\nDNS=$dnsString"
                 }
-                ?: ""
+        "echo -e \"[Match]\\nName=eth0\\n\\n[Network]\\nAddress=$ipAddress/$subnet" +
+                "\\nGateway=$gateway $dnsEntry\" > /etc/systemd/network/10-eth0-static.network; " +
+                "chmod 644 /etc/systemd/network/10-eth0-static.network; systemctl restart systemd-networkd;"
     }
 
     private val dockerDnsSetupCommand: String by lazy {
@@ -107,11 +97,8 @@ class CloudInitConfiguration(
             """
             #!/bin/sh
             echo -e "c0nc0rd\nc0nc0rd" | /bin/passwd
-            {{networkAddressCommand}}
-            {{dnsSetupCommand}}
-            
-            # Enable when there are multiple interfaces for separate networks.
-            # route add default gw `ip route show | grep "dev eth0" | grep -v kernel | grep -v default | cut -d' ' -f 1` eth0
+
+            {{networkSetupCommand}}
 
             sed -i 's_/usr/bin/dockerd.*_/usr/bin/dockerd {{dockerDns}} -H tcp://127.0.0.1:2375 -H unix:///var/run/docker.sock {{registrySecuritySetting}}_g' /lib/systemd/system/docker.service
 
@@ -143,10 +130,7 @@ class CloudInitConfiguration(
                     .replace("{{registrySecuritySetting}}", containerRegistry.toRegistrySecuritySetting())
                     .replace("{{agentImage}}", URI.create(containerRegistry.address).authority + "/" + agentImageName)
                     .replace("{{agentConfig}}", com.google.protobuf.util.JsonFormat.printer().print(configuration))
-                    .replace("{{networkAddressCommand}}", ipAddress.takeIf { it.isNotBlank() }?.let { networkAddressCommand }?: "")
-                    .replace("{{staticIp}}", ipAddress)
-                    .replace("{{gateway}}", gateway)
-                    .replace("{{dnsSetupCommand}}", dnsSetupCommand)
+                    .replace("{{networkSetupCommand}}", networkSetupCommand)
                     .replace("{{dockerDns}}", dockerDnsSetupCommand)
                     .replace("{{setupOutboundProxy}}", setupOutboundProxy)
 
