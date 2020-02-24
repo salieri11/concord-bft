@@ -41,7 +41,7 @@ import util.numbers_strings
 from rest.request import Request
 from datetime import datetime
 
-log = logging.getLogger(__name__)
+log = logging.getLogger("main")
 
 def wait():
     input('Press enter to continue...')

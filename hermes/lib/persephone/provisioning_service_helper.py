@@ -18,7 +18,7 @@ from util.product import Product as Product
 import util.helper
 import uuid
 
-log = logging.getLogger(__name__)
+log = logging.getLogger("main")
 
 
 class ProvisioningServiceRPCHelper(RPCHelper):

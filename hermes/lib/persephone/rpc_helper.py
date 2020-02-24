@@ -21,7 +21,7 @@ from util.product import Product as Product
 from util import helper
 
 
-log = logging.getLogger(__name__)
+log = logging.getLogger("main")
 
 
 class RPCHelper():

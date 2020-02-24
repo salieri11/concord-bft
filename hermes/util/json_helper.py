@@ -2,7 +2,7 @@ import collections
 import json
 import logging
 
-log = logging.getLogger(__name__)
+log = logging.getLogger("main")
 
 def readJsonFile(path):
    '''

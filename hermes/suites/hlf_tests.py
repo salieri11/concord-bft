@@ -18,7 +18,7 @@ from . import test_suite
 from util.product import Product
 from random import randrange
 
-log = logging.getLogger(__name__)
+log = logging.getLogger("main")
 
 # The status is set by the kvb command handler.
 StatusOk = "status: 0"

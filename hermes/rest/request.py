@@ -16,7 +16,7 @@ from util.debug import pp as pp
 
 from util.auth import getAccessToken, tokens
 
-log = logging.getLogger(__name__)
+log = logging.getLogger("main")
 
 class Request():
    # Class

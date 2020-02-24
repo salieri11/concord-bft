@@ -23,7 +23,7 @@ from util.product import Product as Product
 import util.helper
 
 
-log = logging.getLogger(__name__)
+log = logging.getLogger("main")
 
 
 def startMonitoringBlockchainDeployments(args, logDir):

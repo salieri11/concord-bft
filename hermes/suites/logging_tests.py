@@ -22,7 +22,7 @@ from fixtures.common_fixtures import (
     fxBlockchain, fxConnection, fxHermesRunSettings,
     fxInitializeOrgs, fxProduct)
 
-log = logging.getLogger(__name__)
+log = logging.getLogger("main")
 
 log_insight_host = 'https://localhost.vmware.com'
 log_insight_url = '{0}/api/lint/ops/query/log-query-tasks'.format(

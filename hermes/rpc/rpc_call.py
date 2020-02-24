@@ -12,7 +12,7 @@ from numbers import Number
 import util.json_helper
 from util.auth import getAccessToken
 
-log = logging.getLogger(__name__)
+log = logging.getLogger("main")
 
 class RPC():
    # Class

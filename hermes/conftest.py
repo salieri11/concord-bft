@@ -9,7 +9,7 @@ import os
 import pytest
 import util
 
-log = logging.getLogger(__name__)
+log = logging.getLogger("main")
 INTENTIONALLY_SKIPPED_TESTS = "suites/skipped/core_vm_tests_to_skip.json"
 
 def pytest_addoption(parser):

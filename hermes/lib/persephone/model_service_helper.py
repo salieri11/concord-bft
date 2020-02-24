@@ -13,7 +13,7 @@ sys.path.append('../../')
 from util.product import Product as Product
 
 
-log = logging.getLogger(__name__)
+log = logging.getLogger("main")
 
 
 class ModelServiceRPCHelper(RPCHelper):

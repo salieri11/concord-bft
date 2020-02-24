@@ -14,7 +14,7 @@ import time
 import util
 import util.numbers_strings
 
-log = logging.getLogger(__name__)
+log = logging.getLogger("main")
 docker_env_file = ".env"
 
 # The number if blocks/transactions in a page when invoking the

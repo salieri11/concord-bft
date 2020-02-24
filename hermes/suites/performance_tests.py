@@ -19,7 +19,7 @@ from . import test_suite
 from rest.request import Request
 import util.json_helper
 
-log = logging.getLogger(__name__)
+log = logging.getLogger("main")
 
 class PerformanceTests(test_suite.TestSuite):
    _args = None

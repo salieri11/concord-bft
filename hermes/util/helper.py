@@ -26,7 +26,7 @@ from . import numbers_strings
 from . import vsphere
 from urllib.parse import urlparse, urlunparse
 
-log = logging.getLogger(__name__)
+log = logging.getLogger("main")
 docker_env_file = ".env"
 
 # The config file contains information aobut how to run things, as opposed to

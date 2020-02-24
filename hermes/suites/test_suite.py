@@ -25,7 +25,9 @@ from util.auth import getAccessToken
 import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-log = logging.getLogger(__name__)
+import util.hermes_logging
+
+log = logging.getLogger("main")
 
 CONTRACTS_DIR = "resources/contracts"
 TEST_LOG_DIR = "test_logs"
@@ -36,11 +38,16 @@ class TestSuite(ABC):
 
    @abstractmethod
    def run(self):
+      '''
+      Other test suites call this after they have finished.
+      '''
+      log.removeHandler(self._logHandler)
       return self._resultFile, self.product
 
    def __init__(self, passedArgs, product=None):
       self._args = passedArgs
       self._testLogDir = os.path.join(self._args.resultsDir, TEST_LOG_DIR)
+      self._testLogFile = os.path.join(self._args.resultsDir, self.getName() + ".log")
       self._resultFile = os.path.join(passedArgs.resultsDir,
                                       self.getName() + ".json")
       self._userConfig = util.helper.loadConfigFile(self._args)
@@ -51,6 +58,8 @@ class TestSuite(ABC):
       self.reverseProxyApiBaseUrl = passedArgs.reverseProxyApiBaseUrl
       self.inDockerReverseProxyApiBaseUrl = passedArgs.inDockerReverseProxyApiBaseUrl
       self.contractCompilerApiBaseUrl = passedArgs.contractCompilerApiBaseUrl
+
+      self._logHandler = util.hermes_logging.addFileHandler(self._testLogFile, self._args.logLevel)
 
       # If running multiple suites, just keep the same product object.
       if product:
@@ -77,6 +86,13 @@ class TestSuite(ABC):
       else:
          self._repeatSuiteRun = False
       self._hermes_home = self._args.hermes_dir
+
+   def getResultFile(self):
+      '''
+      Typically, a suite will return its file.  However, in case
+      dies, let's provide a way for the framework to try to get it.
+      '''
+      return self._resultFile
 
    def getTestLogDir(self):
       return self._testLogDir

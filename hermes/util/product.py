@@ -22,7 +22,7 @@ import util.blockchain.eth
 import util.helper
 
 PRODUCT_LOGS_DIR = "product_logs"
-log = logging.getLogger(__name__)
+log = logging.getLogger("main")
 
 # Persephone config file for testing.  We read the SDDC IDs from this.
 persephoneConfigFile = "resources/persephone/provisioning/app/profiles/application-test.properties"

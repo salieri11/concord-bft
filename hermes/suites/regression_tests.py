@@ -27,7 +27,7 @@ from rest.request import Request
 from datetime import datetime
 from web3 import Web3
 
-log = logging.getLogger(__name__)
+log = logging.getLogger("main")
 
 # Constants used in the large transaction test.
 
@@ -110,11 +110,13 @@ class RegressionTests(test_suite.TestSuite):
       return super().run()
 
    def _getTests(self):
-      return [("nested_contract_creation", self._test_nested_contract_creation),
+      return [
+              ("nested_contract_creation", self._test_nested_contract_creation),
               ("invalid_addresses", self._test_invalid_addresses),
               ("call_writer", self._test_call_writer),
               ("large_transactions", self._test_large_transactions),
-              ("zero_exit_code", self._test_zero_exit_code)]
+              ("zero_exit_code", self._test_zero_exit_code)
+      ]
 
    def _runRpcTest(self, testName, testFun, testLogDir):
       ''' Runs one test. '''
@@ -281,7 +283,7 @@ class RegressionTests(test_suite.TestSuite):
       else:
          #Skip the test if running in Ethereum mode
          return (None, None)
-  
+
    def _test_large_transactions(self, rpc):
       '''
       Tests that Concord does not appear to gracelessly handle any large
@@ -327,7 +329,7 @@ class RegressionTests(test_suite.TestSuite):
          # Check that the contract appears to be working.
          contract.functions.setString("Example string.").transact(txArgs)
          storedString = contract.functions.storedString().call()
-         
+
          if (storedString != "Example string."):
            return (False, "String storage contract failed to store a string.")
 
@@ -335,7 +337,7 @@ class RegressionTests(test_suite.TestSuite):
          # to go through to Concord.
          maximumAdmittedSize = 1
          minimumRejectedSize = MIN_ETHRPC_REJECTION_SIZE_TO_START_WITH
-         
+
          # This test attempts to make minimal assumptions about the minimum size
          # EthRPC rejects, so it will bump up the limit it starts with if it
          # doesn't find transactions of this size to be rejected.
@@ -371,7 +373,7 @@ class RegressionTests(test_suite.TestSuite):
                if ((minimumRejectedSize > MAX_TESTABLE_TRANSACTION_SIZE) \
                      and (not wasMaximal)):
                   minimumRejectedSize = MAX_TESTABLE_TRANSACTION_SIZE
-         
+
          # Note we give up on this test if no transaction within
          # MAX_TESTABLE_TRANSACTION_SIZE is rejected by EthRPC; giving up on the
          # test in this case is interest of not attempting to handle the case
@@ -422,7 +424,7 @@ class RegressionTests(test_suite.TestSuite):
          # above cause the Concord cluster to crash.
          contract.functions.setString("Final string.").transact(txArgs)
          storedString = contract.functions.storedString().call()
-         
+
          if (storedString != "Final string."):
            return (False, "Concord cluster does not seem to work any more after"
                  + " sending a number of large transactions.")

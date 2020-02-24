@@ -26,7 +26,7 @@ import requests
 from . import test_suite
 from util.auth import tokens
 
-log = logging.getLogger(__name__)
+log = logging.getLogger("main")
 
 class SampleDAppTests(test_suite.TestSuite):
    # Set in init based on whether an endpoint was passed in.

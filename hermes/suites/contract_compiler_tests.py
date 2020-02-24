@@ -11,7 +11,7 @@ import traceback
 from . import test_suite
 from rest.request import Request
 
-log = logging.getLogger(__name__)
+log = logging.getLogger("main")
 
 contractBytecode_0_5_2 = ('608060405234801561001057600080fd5b5061013980610020600039'
                           '6000f3fe608060405234801561001057600080fd5b50600436106100'

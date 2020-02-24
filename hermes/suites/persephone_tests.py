@@ -21,7 +21,7 @@ from util.product import Product as Product
 from . import test_suite
 sys.path.append('lib')
 
-log = logging.getLogger(__name__)
+log = logging.getLogger("main")
 
 
 class PersephoneTests(test_suite.TestSuite):

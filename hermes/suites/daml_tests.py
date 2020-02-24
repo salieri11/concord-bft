@@ -21,7 +21,7 @@ import util.daml.daml_helper as daml_helper
 from . import test_suite
 from fixtures.common_fixtures import fxHermesRunSettings, fxProduct
 
-log = logging.getLogger(__name__)
+log = logging.getLogger("main")
 
 # Read by the fxProduct fixture.
 productType = helper.TYPE_DAML

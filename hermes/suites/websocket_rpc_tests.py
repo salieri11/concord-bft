@@ -17,7 +17,7 @@ import traceback
 import websocket
 from . import test_suite
 
-log = logging.getLogger(__name__)
+log = logging.getLogger("main")
 
 
 class WebSocketRPCTests(test_suite.TestSuite):

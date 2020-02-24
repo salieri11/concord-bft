@@ -22,7 +22,7 @@ import util
 import util.blockchain.eth
 import util.json_helper
 
-log = logging.getLogger(__name__)
+log = logging.getLogger("main")
 TEST_SOURCE_CODE_SUFFIX = "Filler.json"
 
 def test_core_vm_tests(fxCoreVMTests, fxHermesRunSettings, fxConnection, fxBlockchain):

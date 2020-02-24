@@ -26,7 +26,7 @@ from rpc.rpc_call import RPC
 import util.blockchain.eth
 import util.numbers_strings
 
-log = logging.getLogger(__name__)
+log = logging.getLogger("main")
 
 def run_conc_time(concordContainer=None, args=""):
    '''

@@ -8,7 +8,7 @@ import time
 
 import logging
 
-log = logging.getLogger(__name__)
+log = logging.getLogger("main")
 
 class ConnectionToSDDC:
   

@@ -13,7 +13,7 @@ import util.json_helper
 import util.helper
 from . import test_suite
 
-log = logging.getLogger(__name__)
+log = logging.getLogger("main")
 
 class PytestSuite(test_suite.TestSuite):
 
@@ -45,7 +45,7 @@ class PytestSuite(test_suite.TestSuite):
                 "--hermesUserConfig", userConfigJson,
                 "--hermesTestLogDir", self._testLogDir,
                 "--supportBundleFile", self._supportBundleFile,
-                "--log-cli-level", log.level,
+                "--log-cli-level", logging.getLevelName(log.level),
                 self._testFile]
 
       if self._args.tests:

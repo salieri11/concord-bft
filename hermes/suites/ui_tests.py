@@ -13,7 +13,7 @@ from xvfbwrapper import Xvfb
 
 from . import test_suite
 
-log = logging.getLogger(__name__)
+log = logging.getLogger("main")
 
 
 class UiTests(test_suite.TestSuite):
