@@ -38,6 +38,8 @@ public final class ErrorCode {
     public static final String DATABASE_UNAVAILABLE = "Database service is not available";
     public static final String DELETE_INTEGRITY_ERROR =
             "Cannot delete entity with id {0} and column name {1}. It is referenced by other entities.";
+
+    public static final String DE_REGISTERED = "Deregistered blockchains are hidden";
     public static final String DUPLICATE_CONTRACT_ID = "ContractVersion with id {0} and version {1} already exists";
     public static final String DUPLICATE_EMAIL = "Duplicate email address";
     public static final String DUPLICATE_UPDATION = "The row has already been updated";
