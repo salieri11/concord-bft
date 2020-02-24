@@ -4,6 +4,7 @@
 
 package com.vmware.blockchain.services.blockchains;
 
+import static com.vmware.blockchain.services.blockchains.Blockchain.BlockchainState;
 import static com.vmware.blockchain.services.blockchains.Blockchain.BlockchainType;
 import static com.vmware.blockchain.services.blockchains.BlockchainController.DeploymentType.FIXED;
 import static com.vmware.blockchain.services.blockchains.BlockchainController.DeploymentType.UNSPECIFIED;
@@ -95,8 +96,8 @@ public class BlockchainController {
 
     private static final Map<BlockchainType, ConcordModelSpecification.BlockchainType> enumMapForBlockchainType =
             ImmutableMap.of(BlockchainType.ETHEREUM, ConcordModelSpecification.BlockchainType.ETHEREUM,
-                    BlockchainType.DAML, ConcordModelSpecification.BlockchainType.DAML,
-                    BlockchainType.HLF, ConcordModelSpecification.BlockchainType.HLF);
+                            BlockchainType.DAML, ConcordModelSpecification.BlockchainType.DAML,
+                            BlockchainType.HLF, ConcordModelSpecification.BlockchainType.HLF);
 
     @Getter
     @Setter
@@ -126,6 +127,7 @@ public class BlockchainController {
         private String ipList;
         private String rpcUrls;
         private String rpcCerts;
+        private BlockchainState blockchainState;
     }
 
     @Getter
@@ -173,6 +175,7 @@ public class BlockchainController {
         private UUID id;
         private UUID consortiumId;
         private BlockchainType blockchainType;
+        private BlockchainState blockchainState;
         @Deprecated
         private List<BlockchainNodeEntry> nodeList;
         private List<BlockchainReplicaEntry> replicaList;
@@ -181,6 +184,7 @@ public class BlockchainController {
             this.id = b.getId();
             this.consortiumId = b.getConsortium();
             this.blockchainType = b.getType() == null ? BlockchainType.ETHEREUM : b.getType();
+            this.blockchainState = b.getState() == null ?  BlockchainState.INACTIVE : b.getState();
             // For the moment, return both node_list and replica_list
             this.nodeList = b.getNodeList().stream().map(BlockchainNodeEntry::new).collect(Collectors.toList());
             this.replicaList = b.getNodeList().stream().map(BlockchainReplicaEntry::new).collect(Collectors.toList());
@@ -303,9 +307,13 @@ public class BlockchainController {
     @PreAuthorize("@authHelper.canAccessChain(#id)")
     ResponseEntity<BlockchainGetResponse> get(@PathVariable UUID id) throws NotFoundException {
         Blockchain b = blockchainService.get(id);
+        if (b.getState() != BlockchainState.INACTIVE) {
+            logger.info("de-registered states not visible");
+        }
         BlockchainGetResponse br = new BlockchainGetResponse(b);
         return new ResponseEntity<>(br, HttpStatus.OK);
     }
+
 
     /**
      * The actual call which will contact server and add the model request.
@@ -351,7 +359,7 @@ public class BlockchainController {
                 .build();
 
         var blockChainType = blockchainType == null ? ConcordModelSpecification.BlockchainType.ETHEREUM
-                : enumMapForBlockchainType.get(blockchainType);
+                                                    : enumMapForBlockchainType.get(blockchainType);
 
         var genesis = ConcordConfiguration.getGenesisObject();
 
@@ -359,7 +367,7 @@ public class BlockchainController {
 
         if (deployDamlCommitter) {
             var components = concordConfiguration.getComponentsByNodeType(ConcordModelSpecification
-                    .NodeType.DAML_COMMITTER);
+                                                                                  .NodeType.DAML_COMMITTER);
 
             spec = ConcordModelSpecification.newBuilder()
                     .setVersion(concordConfiguration.getVersion())
@@ -413,9 +421,9 @@ public class BlockchainController {
                 .map(z -> Entry.newBuilder()
                         .setType(Type.FIXED)
                         .setSite(OrchestrationSiteIdentifier.newBuilder()
-                                .setLow(z.getId().getLeastSignificantBits())
-                                .setHigh(z.getId().getMostSignificantBits())
-                                .build())
+                                         .setLow(z.getId().getLeastSignificantBits())
+                                         .setHigh(z.getId().getMostSignificantBits())
+                                         .build())
                         .setSiteInfo(toInfo(z))
                         .build())
                 .collect(Collectors.toList());
@@ -510,7 +518,7 @@ public class BlockchainController {
          */
         if (body.deploymentType == FIXED) {
             if (body.getZoneIds() == null
-                    || body.getZoneIds().size() != clusterSize) {
+                || body.getZoneIds().size() != clusterSize) {
                 logger.info("Number of zones not equal to cluster size");
                 throw new BadRequestException(ErrorCode.BAD_REQUEST);
             }
@@ -538,11 +546,11 @@ public class BlockchainController {
 
 
         dsId = createFixedSizeCluster(client, clusterSize,
-                enumMap.get(body.deploymentType),
-                body.getZoneIds(),
-                blockchainType,
-                body.consortiumId,
-                deployDamlCommitter);
+                                      enumMap.get(body.deploymentType),
+                                      body.getZoneIds(),
+                                      blockchainType,
+                                      body.consortiumId,
+                                      deployDamlCommitter);
 
         Replica.ReplicaType replicaType = Replica.ReplicaType.NONE;
 
@@ -569,7 +577,8 @@ public class BlockchainController {
     @RequestMapping(path = "/api/blockchains/{id}", method = RequestMethod.PATCH)
     @PreAuthorize("@authHelper.canUpdateChain(#id)")
     public ResponseEntity<BlockchainTaskResponse> updateBlockchain(@PathVariable UUID id,
-            @RequestBody BlockchainPatch body) throws NotFoundException {
+                                                                   @RequestBody BlockchainPatch body)
+                                                                    throws NotFoundException {
 
         // Temporary: create a completed task that points to the default blockchain
         Task task = new Task();
@@ -585,12 +594,36 @@ public class BlockchainController {
     }
 
     /**
+     * De-register the blockchain.
+     */
+    @RequestMapping(path = "/api/blockchains/{bid}", method = RequestMethod.PATCH)
+    @PreAuthorize("@authHelper.canUpdateChain(#bid)")
+    public ResponseEntity<BlockchainGetResponse> deRegister(@PathVariable("bid") UUID bid,
+                                                                   @RequestBody BlockchainPatch body) throws Exception {
+        Blockchain blockchain = blockchainService.get(bid);
+        BlockchainState blockchainState = blockchain.getState();
+        if (blockchainState != null) {
+            if (blockchainState == BlockchainState.INACTIVE) {
+                logger.info("Setting state to active so the blockchains can be de-registered");
+                blockchain.setState(BlockchainState.ACTIVE);
+            } else {
+                logger.info("Blockchain State is active already: blockchain is de-registered");
+            }
+            logger.info("State cannot be null");
+            throw new BadRequestException(ErrorCode.BAD_REQUEST);
+        }
+        blockchain = blockchainService.put(blockchain);
+        return new ResponseEntity<>(new BlockchainGetResponse(blockchain), HttpStatus.ACCEPTED);
+    }
+
+    /**
      * Deploy a DAML Participant node for given DAML blockchain.
      */
     @RequestMapping(path = "/api/blockchains/{bid}/clients", method = RequestMethod.POST)
     @PreAuthorize("@authHelper.isConsortiumAdmin()")
     public ResponseEntity<BlockchainTaskResponse> createParticipant(@PathVariable("bid") UUID bid,
-                                                                   @RequestBody ParticipantPost body) throws Exception {
+                                                                    @RequestBody ParticipantPost body)
+                                                                    throws Exception {
         Task task = new Task();
         task.setState(Task.State.RUNNING);
         task = taskService.put(task);
@@ -599,10 +632,10 @@ public class BlockchainController {
 
         BlockchainType blockchainType = blockchain.getType();
 
-        List<Replica> nodeEntryList = blockchainService.getReplicas(bid);
+        List<Blockchain.NodeEntry> nodeEntryList = blockchain.getNodeList();
 
         String ipList = String.join(",", nodeEntryList.stream()
-                .map(nodeEntry -> nodeEntry.getPrivateIp() + ":50051")
+                .map(nodeEntry -> nodeEntry.ip + ":50051")
                 .collect(Collectors.toList()));
 
         Map<String, String> properties = new HashMap<>();
@@ -620,16 +653,17 @@ public class BlockchainController {
         List<UUID> zoneIdList = body.getZoneIds();
 
         DeploymentSessionIdentifier dsId =  createParticipantCluster(client,
-                zoneIdList,
-                bcConsortium,
-                properties);
+                                                                     zoneIdList,
+                                                                     bcConsortium,
+                                                                     properties);
 
         logger.info("Deployment for participant node started, id {} for the consortium id {}", dsId,
-                blockchain.getConsortium().toString());
+                    blockchain.getConsortium().toString());
 
         BlockchainObserver bo =
                 new BlockchainObserver(authHelper, operationContext, blockchainService, replicaService, taskService,
-                        task.getId(), bcConsortium, bid, blockchainType, Replica.ReplicaType.DAML_PARTICIPANT);
+                                       task.getId(), bcConsortium, bid, blockchainType,
+                                       Replica.ReplicaType.DAML_PARTICIPANT);
         // Watch for the event stream
 
         StreamClusterDeploymentSessionEventRequest request = StreamClusterDeploymentSessionEventRequest.newBuilder()

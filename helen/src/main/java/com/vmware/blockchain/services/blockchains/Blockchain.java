@@ -65,12 +65,21 @@ public class Blockchain extends AbstractEntity {
         HLF
     }
 
+    /**
+     * Enum to determine blockchain state.
+     */
+    public static enum BlockchainState {
+        INACTIVE,   //for blockchains that need to be visible
+        ACTIVE      //for de-registered blockchains
+    }
 
 
     @LinkedEntityId
     UUID consortium;
 
     BlockchainType type;
+
+    BlockchainState state;
 
     List<NodeEntry> nodeList;
 

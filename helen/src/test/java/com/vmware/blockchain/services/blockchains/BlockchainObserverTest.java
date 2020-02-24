@@ -107,7 +107,7 @@ public class BlockchainObserverTest {
         });
         when(authHelper.getOrganizationId()).thenReturn(ORG_ID);
         blockchain = new Blockchain(new UUID(1, 2), BlockchainType.ETHEREUM,
-                                    Collections.emptyList());
+                                    Blockchain.BlockchainState.INACTIVE, Collections.emptyList());
         blockchain.setId(CLUSTER_ID);
         when(blockchainService.create(any(UUID.class), any(UUID.class), any(BlockchainType.class), any()))
                 .thenAnswer(i -> {
