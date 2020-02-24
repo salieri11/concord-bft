@@ -19,7 +19,7 @@ import util.blockchain.eth
 import rest.request
 from util.bytecode import getPushInstruction, addBytePadding
 from util.numbers_strings import trimHexIndicator, decToEvenHexNo0x
-from util.product import Product
+from util.product import Product, ProductLaunchException
 from util.auth import getAccessToken
 # Suppress security warnings
 import urllib3
@@ -35,9 +35,10 @@ class TestSuite(ABC):
    def getName(self): pass
 
    @abstractmethod
-   def run(self): pass
+   def run(self):
+      return self._resultFile, self.product
 
-   def __init__(self, passedArgs):
+   def __init__(self, passedArgs, product=None):
       self._args = passedArgs
       self._testLogDir = os.path.join(self._args.resultsDir, TEST_LOG_DIR)
       self._resultFile = os.path.join(passedArgs.resultsDir,
@@ -50,7 +51,12 @@ class TestSuite(ABC):
       self.reverseProxyApiBaseUrl = passedArgs.reverseProxyApiBaseUrl
       self.inDockerReverseProxyApiBaseUrl = passedArgs.inDockerReverseProxyApiBaseUrl
       self.contractCompilerApiBaseUrl = passedArgs.contractCompilerApiBaseUrl
-      self.product = Product(self._args, self._userConfig)
+
+      # If running multiple suites, just keep the same product object.
+      if product:
+         self.product = product
+      else:
+         self.product = Product(self._args, self._userConfig)
 
       self._results = {
          self.getName(): {
@@ -71,6 +77,9 @@ class TestSuite(ABC):
       else:
          self._repeatSuiteRun = False
       self._hermes_home = self._args.hermes_dir
+
+   def getTestLogDir(self):
+      return self._testLogDir
 
    def makeRelativeTestPath(self, fullTestPath):
       '''
@@ -149,10 +158,11 @@ class TestSuite(ABC):
       if force or (self._productMode and not self._noLaunch):
          try:
             self.product.launchProduct()
+            return True
          except Exception as e:
             log.error(str(e))
             self.writeResult("All Tests", False, "The product did not start.")
-            raise(e)
+            raise ProductLaunchException(str(e), self._resultFile)
 
 
    def validateLaunchConfig(self, dockerCfg):
@@ -196,15 +206,16 @@ class TestSuite(ABC):
       launches the product.  Passing in force=True means the
       product will always be launched.
       '''
-      self.product = Product(cmdlineArgs, userConfig)
+      if not self.product:
+         self.product = Product(cmdlineArgs, userConfig)
 
-      if force or (self._productMode and not self._noLaunch):
-         try:
-            self.product.launchPersephone()
-         except Exception as e:
-            log.error(str(e))
-            self.writeResult("All Tests", False, "The product did not start.")
-            raise(e)
+         if force or (self._productMode and not self._noLaunch):
+            try:
+               self.product.launchPersephone()
+            except Exception as e:
+               log.error(str(e))
+               self.writeResult("All Tests", False, "The product did not start.")
+               raise(e)
 
    def getWeb3Instance(self):
       '''

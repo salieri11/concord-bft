@@ -15,12 +15,13 @@ from suites import (contract_compiler_tests, core_vm_tests,
                     ext_rpc_tests, ui_e2e_deploy_daml, hlf_tests, performance_tests, persephone_tests,
                     pytest_suite, regression_tests, sample_dapp_tests, simple_st_test,
                     ui_tests, websocket_rpc_tests, persistency_tests)
-from util import helper, html, json_helper
+from util import helper, html, json_helper, numbers_strings
+from util.product import ProductLaunchException
 
 sys.path.append("lib/persephone")
 
 log = None
-suites = [
+suiteList = [
    "ContractCompilerTests",
    "CoreVMTests",
    "DamlTests",
@@ -67,8 +68,8 @@ def main():
 
    startTime = datetime.datetime.now()
    parser = argparse.ArgumentParser()
-   parser.add_argument("suite", help="Test suite name.  Available suites: {}". \
-                       format(suites))
+   parser.add_argument("suites", help="Comma delimited list of test suites. " \
+                       "Available suites: {}".format(suiteList))
    parser.add_argument("--ethereumMode",
                        help="Run tests against Ethereum",
                        default=False,
@@ -209,38 +210,92 @@ def main():
    args = parser.parse_args()
    parent_results_dir = args.resultsDir
 
-   dir_path = os.path.dirname(os.path.realpath(__file__))
    # In future, if the location of main.py changes from hermes/,
    # update args.hermes_dir accordingly
+   dir_path = os.path.dirname(os.path.realpath(__file__))
    args.hermes_dir = dir_path
 
    setUpLogging(args)
    log.debug("Args: {}".format(args))
+   product = None
+   resultsFile = None
+   totalSuccess = True
+   allResults = {}
+   log.info("Suites to run: {}".format(args.suites.split(",")))
 
-   for run_count in range(1, args.repeatSuiteRun+1):
-      log.info("\nTestrun: {0}/{1}".format(run_count, args.repeatSuiteRun))
-      log.info("Start time: {}".format(startTime))
-      args.resultsDir = createResultsDir(args.suite,
-                                         parent_results_dir=parent_results_dir)
-      log.info("Results directory: {}".format(args.resultsDir))
-      suite = createTestSuite(args)
-      if suite is None:
-         log.error("Unknown test suite")
-         exit(3)
+   for suiteName in args.suites.split(","):
+       for run_count in range(1, args.repeatSuiteRun+1):
+          log.info("\nTestrun: {0}/{1}".format(run_count, args.repeatSuiteRun))
+          log.info("Start time: {}".format(startTime))
+          args.resultsDir = createResultsDir(suiteName,
+                                             parent_results_dir=parent_results_dir)
+          log.info("Results directory: {}".format(args.resultsDir))
+          suite = createTestSuite(args, suiteName, product)
+          if suite is None:
+             log.error("Unknown test suite")
+             exit(3)
 
-      log.info("Running {}".format(args.suite))
-      success = processResults(suite.run())
-      endTime = datetime.datetime.now()
-      log.info("End time: {}".format(endTime))
-      log.info("Elapsed time: {}".format(str(endTime - startTime)))
-      if not success:
-         update_repeated_suite_run_result(parent_results_dir, "fail", args.repeatSuiteRun)
-         exit(2)
+          log.info("Running {}".format(suiteName))
 
-      if args.repeatSuiteRun > 1:
-         args.noLaunch = True
+          try:
+             resultsFile, product = suite.run()
+          except ProductLaunchException as e:
+             resultsFile = e.logFile
+             product = None
+
+          try:
+             suiteSuccess, suiteSuccessMessage = processResults(resultsFile)
+          except Exception as e:
+             suiteSuccess = False
+             suiteSuccessMessage = "Log {} for suite {} could not be processed.".format(resultsFile, suiteName)
+
+          allResults[suiteName] = {
+             "message": suiteSuccessMessage,
+             "logs": suite.getTestLogDir()
+          }
+          totalSuccess = totalSuccess and suiteSuccess
+          endTime = datetime.datetime.now()
+          log.info("End time: {}".format(endTime))
+          log.info("Elapsed time: {}".format(str(endTime - startTime)))
+          if not totalSuccess:
+             update_repeated_suite_run_result(parent_results_dir, "fail", args.repeatSuiteRun)
+             break
 
    update_repeated_suite_run_result(parent_results_dir, "pass", args.repeatSuiteRun)
+
+   printAllResults(allResults)
+
+   if not totalSuccess:
+      exit(2)
+
+
+def printAllResults(allResults):
+   '''
+   Summarize the suite results on the console.
+   '''
+   longestName = 0
+   longestMessage = 0
+   longestDir = 0
+
+   for suiteName in allResults:
+      longestName = len(suiteName) if len(suiteName) > longestName else longestName
+
+      messageLength = len(numbers_strings.stripEscapes(allResults[suiteName]["message"]))
+      longestMessage = messageLength if messageLength > longestMessage else longestMessage
+
+      logPath = allResults[suiteName]["logs"]
+      longestDir = len(logPath) if len(logPath) > longestDir else longestDir
+
+   longestValues = [longestName, longestMessage, longestDir]
+   header = numbers_strings.createLogRow(["Suite", "Result", "Logs"], longestValues)
+   log.info(header)
+
+   for suiteName in allResults:
+      row = numbers_strings.createLogRow([suiteName,
+                                          allResults[suiteName]["message"],
+                                          allResults[suiteName]["logs"]],
+                                         longestValues)
+      log.info(row)
 
 
 def update_repeated_suite_run_result(parent_results_dir, result, no_of_runs):
@@ -272,55 +327,57 @@ def setUpLogging(args):
             "values. Exiting")
       exit(1)
 
-def createTestSuite(args):
-   if (args.suite == "SampleDAppTests"):
-      return sample_dapp_tests.SampleDAppTests(args)
-   elif (args.suite == "ContractCompilerTests"):
-       return contract_compiler_tests.ContractCompilerTests(args)
-   elif (args.suite == "CoreVMTests"):
-      return pytest_suite.PytestSuite(args, "suites/core_vm_tests.py")
-   elif (args.suite == "HelenAPITests"):
-      return pytest_suite.PytestSuite(args, "suites/helen/api_test.py")
-   elif (args.suite == "HelenRoleTests"):
-      return pytest_suite.PytestSuite(args, "suites/helen/roles.py")
-   elif (args.suite == "ExtendedRPCTests"):
-      return ext_rpc_tests.ExtendedRPCTests(args)
-   elif (args.suite == "WebSocketRPCTests"):
-      return websocket_rpc_tests.WebSocketRPCTests(args)
-   elif (args.suite == "PerformanceTests"):
-      return performance_tests.PerformanceTests(args)
-   elif (args.suite == "PersephoneTests"):
-      return persephone_tests.PersephoneTests(args)
-   elif (args.suite == "RegressionTests"):
-      return regression_tests.RegressionTests(args)
-   elif (args.suite == "SampleSuite"):
-      return pytest_suite.PytestSuite(args, "suites/sample_suite.py")
-   elif (args.suite == "SimpleStateTransferTest"):
-      return simple_st_test.SimpleStateTransferTest(args)
-   elif (args.suite == "TimeTests"):
-      return pytest_suite.PytestSuite(args, "suites/time_service/basic_test.py")
-   elif (args.suite == "EvilTimeTests"):
-      return pytest_suite.PytestSuite(args, "suites/time_service/evil_test.py")
-   elif (args.suite == "TruffleTests"):
-      return truffle_tests.TruffleTests(args)
-   elif (args.suite == "UiTests"):
-      return ui_tests.UiTests(args)
+
+def createTestSuite(args, suiteName, product):
+   if (suiteName == "SampleDAppTests"):
+      return sample_dapp_tests.SampleDAppTests(args, product)
+   elif (suiteName == "ContractCompilerTests"):
+       return contract_compiler_tests.ContractCompilerTests(args, product)
+   elif (suiteName == "CoreVMTests"):
+      return pytest_suite.PytestSuite(args, "suites/core_vm_tests.py", product)
+   elif (suiteName == "HelenAPITests"):
+      return pytest_suite.PytestSuite(args, "suites/helen/api_test.py", product)
+   elif (suiteName == "HelenRoleTests"):
+      return pytest_suite.PytestSuite(args, "suites/helen/roles.py", product)
+   elif (suiteName == "ExtendedRPCTests"):
+      return ext_rpc_tests.ExtendedRPCTests(args, product)
+   elif (suiteName == "WebSocketRPCTests"):
+      return websocket_rpc_tests.WebSocketRPCTests(args, product)
+   elif (suiteName == "PerformanceTests"):
+      return performance_tests.PerformanceTests(args, product)
+   elif (suiteName == "PersephoneTests"):
+      return persephone_tests.PersephoneTests(args, product)
+   elif (suiteName == "RegressionTests"):
+      return regression_tests.RegressionTests(args, product)
+   elif (suiteName == "SampleSuite"):
+      return pytest_suite.PytestSuite(args, "suites/sample_suite.py", product)
+   elif (suiteName == "SimpleStateTransferTest"):
+      return simple_st_test.SimpleStateTransferTest(args, product)
+   elif (suiteName == "TimeTests"):
+      return pytest_suite.PytestSuite(args, "suites/time_service/basic_test.py", product)
+   elif (suiteName == "EvilTimeTests"):
+      return pytest_suite.PytestSuite(args, "suites/time_service/evil_test.py", product)
+   elif (suiteName == "TruffleTests"):
+      return truffle_tests.TruffleTests(args, product)
+   elif (suiteName == "UiTests"):
+      return ui_tests.UiTests(args, product)
    elif (args.suite == "DeployDamlTests"):
-      return ui_e2e_deploy_daml.DeployDamlTests(args)
-   elif (args.suite == "DamlTests"):
-      return pytest_suite.PytestSuite(args, "suites/daml_tests.py")
-   elif (args.suite == "HlfTests"):
-      return hlf_tests.HlfTests(args)
-   elif (args.suite == "ThinReplicaTests"):
-      return pytest_suite.PytestSuite(args, "suites/thin_replica_tests.py")
-   elif (args.suite == "LoggingTests"):
-      return pytest_suite.PytestSuite(args, "suites/logging_tests.py")
-   elif (args.suite == "MetadataPersistencyTests"):
-      return persistency_tests.MetadataPersistencyTests(args)
-   elif (args.suite == "PrivacyTeeTests"):
-      return pytest_suite.PytestSuite(args, "suites/privacy_tee_tests.py")
+      return ui_e2e_deploy_daml.DeployDamlTests(args, product)
+   elif (suiteName == "DamlTests"):
+      return pytest_suite.PytestSuite(args, "suites/daml_tests.py", product)
+   elif (suiteName == "HlfTests"):
+      return hlf_tests.HlfTests(args, product)
+   elif (suiteName == "ThinReplicaTests"):
+      return pytest_suite.PytestSuite(args, "suites/thin_replica_tests.py", product)
+   elif (suiteName == "LoggingTests"):
+      return pytest_suite.PytestSuite(args, "suites/logging_tests.py", product)
+   elif (suiteName == "MetadataPersistencyTests"):
+      return persistency_tests.MetadataPersistencyTests(args, product)
+   elif (suiteName == "PrivacyTeeTests"):
+      return pytest_suite.PytestSuite(args, "suites/privacy_tee_tests.py", product)   
    else:
       return None
+
 
 def createResultsDir(suiteName, parent_results_dir=tempfile.gettempdir()):
    prefix = suiteName + "_" + strftime("%Y%m%d_%H%M%S", localtime())
@@ -333,7 +390,6 @@ def processResults(resultsFile):
    Process a result file, outputting an html file.  If we ever need to output
    a file in another format (such as a CI tool), do that here.
    '''
-   log.debug("Processing results for '{}'".format(resultsFile))
    results = json_helper.readJsonFile(resultsFile)
    testCount, passCount, failCount, skippedCount = tallyResults(results)
    fileContents = html.createResultHeader(results,
@@ -372,7 +428,7 @@ def processResults(resultsFile):
 
    log.info(msg)
 
-   return failCount == 0
+   return failCount == 0, msg
 
 def tallyResults(results):
    '''

@@ -26,8 +26,8 @@ class PerformanceTests(test_suite.TestSuite):
    _userConfig = None
    _resultFile = None
 
-   def __init__(self, passedArgs):
-      super(PerformanceTests, self).__init__(passedArgs)
+   def __init__(self, passedArgs, product):
+      super(PerformanceTests, self).__init__(passedArgs, product)
       self._performance_submodule = os.path.join(self._hermes_home,
                                             '..', 'performance')
 
@@ -43,14 +43,8 @@ class PerformanceTests(test_suite.TestSuite):
 
    def run(self):
       ''' Runs all of the tests. '''
-      try:
-         log.info("Launching product...")
-         self.launchProduct(self._args,
-                            self._userConfig)
-      except Exception as e:
-         log.error(traceback.format_exc())
-         return self._resultFile
-
+      self.launchProduct(self._args,
+                         self._userConfig)
       tests = self._getTests()
 
       for (testName, testFun) in tests:
@@ -87,7 +81,7 @@ class PerformanceTests(test_suite.TestSuite):
          self.writeResult(testName, result, info)
 
       log.info("Tests are done.")
-      return self._resultFile
+      return super().run()
 
 
    def _getTests(self):

@@ -51,8 +51,8 @@ class SimpleStateTransferTest(test_suite.TestSuite):
    _funcPref = "0xe4b421f2000000000000000000000000000000000000000000000000000000000000"
    _gas = "100000000"
 
-   def __init__(self, passedArgs):
-      super(SimpleStateTransferTest, self).__init__(passedArgs)
+   def __init__(self, passedArgs, product):
+      super(SimpleStateTransferTest, self).__init__(passedArgs, product)
       self.existing_transactions = 2
 
    def getName(self):
@@ -258,13 +258,8 @@ class SimpleStateTransferTest(test_suite.TestSuite):
       ("pause_replica", self._run_pause_replica_test)]
 
    def run(self):
-      try:
-         self.launchProduct(self._args,
-                            self._userConfig)
-      except Exception as e:
-         log.error(traceback.format_exc())
-         return self._resultFile
-
+      self.launchProduct(self._args,
+                         self._userConfig)
       log.info("Starting tests")
 
       tests = self._get_tests()
@@ -285,8 +280,4 @@ class SimpleStateTransferTest(test_suite.TestSuite):
          self.writeResult(testName, res, info)
 
       log.info("Tests are done")
-
-      if self._productMode and not self._noLaunch:
-         self.product.stopProduct()
-
-      return self._resultFile
+      return super().run()

@@ -33,8 +33,8 @@ class PersephoneTests(test_suite.TestSuite):
    _resultFile = None
    _unintentionallySkippedFile = None
 
-   def __init__(self, cmdlineArgs):
-      super().__init__(cmdlineArgs)
+   def __init__(self, cmdlineArgs, product):
+      super().__init__(cmdlineArgs, product)
       self.args = self._args
       self.args.userConfig = self._userConfig
       self.concord_ips = []

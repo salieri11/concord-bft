@@ -424,7 +424,7 @@ def add_ethrpc_port_forwarding(host, username, password):
    return False
 
 
-def verify_connectivity(ip, port, bytes_to_send=[], success_bytes=[], min_bytes=1):
+def verify_connectivity(ip, port, bytes_to_send=[], success_bytes=[], min_bytes=1, max_tries=15):
    '''
    Helper method to validate connectivity.
    :param ip: IP address
@@ -443,7 +443,6 @@ def verify_connectivity(ip, port, bytes_to_send=[], success_bytes=[], min_bytes=
    '''
    log.info("Verifying connectivity ({}:{})".format(ip, port))
    attempt = 0
-   max_tries = 15
    sleep_time = 10
    socket_timeout = 5
    receive_buffer_size = 256

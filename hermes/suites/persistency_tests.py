@@ -45,8 +45,8 @@ from fixtures.common_fixtures import fxHermesRunSettings, fxProduct
 log = logging.getLogger(__name__)
 
 class MetadataPersistencyTests(test_suite.TestSuite):
-   def __init__(self, passedArgs):
-      super(MetadataPersistencyTests, self).__init__(passedArgs)
+   def __init__(self, passedArgs, product):
+      super(MetadataPersistencyTests, self).__init__(passedArgs, product)
       self._done = False
       self._error = False
       self._to = "0x262c0d7ab5ffd4ede2199f6ea793f819e1abb019" #from genesis file
@@ -330,13 +330,8 @@ class MetadataPersistencyTests(test_suite.TestSuite):
       ("primary_down_viewchange_statetransfer", self.primary_down_viewchange_statetransfer)]
 
    def run(self):
-      try:
-         self.launchProduct(self._args,
-                            self._userConfig)
-      except Exception as e:
-         log.error(traceback.format_exc())
-         return self._resultFile
-
+      self.launchProduct(self._args,
+                         self._userConfig)
       log.info("Starting tests")
 
       tests = self._get_tests()
@@ -357,8 +352,4 @@ class MetadataPersistencyTests(test_suite.TestSuite):
          self.writeResult(testName, res, info)
 
       log.info("Tests are done")
-
-      if self._productMode and not self._noLaunch:
-         self.product.stopProduct()
-
-      return self._resultFile
+      return super().run()
