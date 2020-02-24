@@ -30,6 +30,8 @@ using concordUtils::Value;
 
 using com::vmware::concord::ConcordRequest;
 using com::vmware::concord::ConcordResponse;
+using com::vmware::concord::SkvbcRequest;
+using com::vmware::concord::SkvbcResponse;
 using com::vmware::concord::TeeRequest;
 using com::vmware::concord::TeeResponse;
 using com::vmware::concord::kvb::ValueWithTrids;
@@ -83,6 +85,11 @@ bool TeeCommandsHandler::Execute(const ConcordRequest& concord_request,
   const TeeRequest& tee_request = concord_request.tee_request();
   com::vmware::concord::TeeResponse* tee_response =
       concord_response.mutable_tee_response();
+
+  if (tee_request.has_skvbc_request() &&
+      tee_request.skvbc_request().has_request_content()) {
+    return ExecuteSkvbcRequest(tee_request, flags, tee_response);
+  }
 
   if (!tee_request.has_tee_input()) {
     tee_response->set_tee_output("TeeCommandsHandler received no input");
@@ -146,6 +153,38 @@ bool TeeCommandsHandler::Execute(const ConcordRequest& concord_request,
     RecordTransaction(updates, tee_response);
   }
 
+  return true;
+}
+
+bool TeeCommandsHandler::ExecuteSkvbcRequest(const TeeRequest& tee_request,
+                                             uint8_t flags,
+                                             TeeResponse* tee_response) {
+  LOG4CPLUS_DEBUG(logger_, "Processing SKVBC request...");
+  const std::string& request_content =
+      tee_request.skvbc_request().request_content();
+
+  const auto max_response_size = request_context_->max_response_size;
+
+  uint32_t reply_size = 0;
+  char reply_buffer[max_response_size];
+  memset(reply_buffer, 0, max_response_size);
+
+  int result = skvbc_commands_handler_.execute(
+      request_context_->client_id, request_context_->sequence_num, flags,
+      request_content.size(), request_content.c_str(), max_response_size,
+      reply_buffer, reply_size);
+
+  if (result != 0) {
+    LOG4CPLUS_ERROR(logger_, "Failed to process SKVBC request.");
+    return false;
+  }
+
+  com::vmware::concord::SkvbcResponse skvbc_response;
+  skvbc_response.mutable_response_content()->assign(reply_buffer, reply_size);
+
+  tee_response->mutable_skvbc_response()->MergeFrom(skvbc_response);
+
+  LOG4CPLUS_DEBUG(logger_, "Successfully processed SKVBC request.");
   return true;
 }
 

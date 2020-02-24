@@ -107,10 +107,20 @@ message DamlResponse {
 // TEE refers to the Test Execution Engine.
 message TeeRequest {
    optional string tee_input = 1;
+   optional SkvbcRequest skvbc_request = 2;
 }
 
 message TeeResponse {
    optional string tee_output = 1;
+   optional SkvbcResponse skvbc_response = 2;
+}
+
+message SkvbcRequest {
+   optional bytes request_content = 1;
+}
+
+message SkvbcResponse {
+   optional bytes response_content = 1;
 }
 
 message ErrorResponse {
