@@ -126,6 +126,7 @@ import hudson.util.Secret
   ],
   "UiDAMLDeploy": [
     "enabled": true,
+    "runWithGenericTests": false,
     "setupFunction": "deleteDatabaseFiles",
     "dockerComposeFiles": "../docker/docker-compose.yml ../docker/docker-compose-persephone.yml",
     "baseCommand": '"${python}" main.py DeployDamlTests'
@@ -170,6 +171,7 @@ def call(){
 
   // These job names are just substrings of the actual job names.
   specialized_tests = [
+    ui_e2e_daml_on_prem_job_name,
     memory_leak_job_name,
     performance_test_job_name,
     persephone_test_job_name,

@@ -33,6 +33,7 @@ const screenshotReporter = new HtmlScreenshotReporter({
 exports.config = {
   allScriptsTimeout: 3 * 60 * 1000, // 3 minutes, needed for deploying.
   specs: [
+    './e2e/login/login.e2e-spec.ts',
     './e2e/zone/zone.e2e-spec.ts',
     './e2e/deploy/deploy.e2e-spec.ts'
   ],

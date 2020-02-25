@@ -16,7 +16,7 @@ export class Zone {
     // zone location
     element(by.css('#location')).sendKeys('test');
     // zone designation
-    element(by.css('#clr-form-control-2')).sendKeys('A');
+    element(by.css('#locationDesignation')).sendKeys('A');
     // zone designation
     element(by.css('#vcUrl')).sendKeys('https://vcenter.sddc-52-62-59-206.vmwarevmc.com');
     element(by.css('#vcUsername')).sendKeys('cloudadmin@vmc.local');
@@ -51,6 +51,37 @@ export class Zone {
     element(by.css('#opHttpsHost')).sendKeys('443');
   }
 
+  getValues(): any[] {
+    return [
+        element(by.css('#location')).getAttribute('value'),
+        element(by.css('#locationDesignation')).getAttribute('value'),
+        element(by.css('#vcUrl')).getAttribute('value'),
+        element(by.css('#vcUsername')).getAttribute('value'),
+        element(by.css('#vcPassword')).getAttribute('value'),
+        element(by.css('#vcRp')).getAttribute('value'),
+        element(by.css('#vcStorage')).getAttribute('value'),
+        element(by.css('#vcFolder')).getAttribute('value'),
+        element(by.css('#netName')).getAttribute('value'),
+        element(by.css('#netGateway')).getAttribute('value'),
+        element(by.css('#netSubnet')).getAttribute('value'),
+        element(by.css('#netNS')).getAttribute('value'),
+        element(by.css('#netPool')).getAttribute('value'),
+        element(by.css('#liUrl')).getAttribute('value'),
+        element(by.css('#liPort')).getAttribute('value'),
+        element(by.css('#liUsername')).getAttribute('value'),
+        element(by.css('#liPasswor')).getAttribute('value'),
+        element(by.css('#wfUrl')).getAttribute('value'),
+        element(by.css('#wfToken')).getAttribute('value'),
+        element(by.css('#conUrl')).getAttribute('value'),
+        element(by.css('#conUsername')).getAttribute('value'),
+        element(by.css('#conPassword')).getAttribute('value'),
+        element(by.css('#opHttpHost')).getAttribute('value'),
+        element(by.css('#opHttpPort')).getAttribute('value'),
+        element(by.css('#opHttpsHost')).getAttribute('value'),
+        element(by.css('#opHttpsHost')).getAttribute('value')
+    ];
+  }
+
   add() {
     element(by.css('#addZone')).click();
   }
@@ -59,7 +90,7 @@ export class Zone {
     element(by.css('#updateZone')).click();
   }
 
-  toastDescription() {
+  updateText() {
     return element(by.css('#updateZone')).getText();
   }
 

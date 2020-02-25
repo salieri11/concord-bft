@@ -40,7 +40,7 @@ export class DeployWizard {
     return element(by.css('.clr-wizard-btn.btn-success')).click();
   }
 
-  getPercentage(): string {
+  getPercentage(): Promise<string> {
     return element(by.css(this.progPerceEl)).getText();
   }
 }
