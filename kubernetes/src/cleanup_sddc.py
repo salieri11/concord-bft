@@ -285,7 +285,7 @@ def delete_ipam_entry(nw_name, ipaddr, cidr, sddc_id):
     if rc == 0:
         logger.info("Successfully removed ipam entry %s" % ipaddr)
     else:
-        raise Exception("Error cleaning up ipam entry %s" % rv)
+        logger.error("Error cleaning up ipam entry %s" % rv)
 
 
 def delete_network_resources(metadata, dc_dict):

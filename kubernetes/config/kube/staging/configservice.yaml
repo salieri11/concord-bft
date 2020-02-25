@@ -17,6 +17,7 @@ spec:
         image: vmware-docker-blockchainsaas.bintray.io/vmwblockchain/persephone-configuration:{{BUILDNUM}}
         ports:
         - containerPort: 9003
+        - containerPort: 9023
         imagePullPolicy: Always
         env:
         - name: APPCONTEXT
@@ -54,6 +55,34 @@ spec:
   selector:
     app: config-service
 ---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cs-rest-stg
+  labels:
+    app: cs-rest-stg
+spec:
+  ports:
+  - port: 9023
+    targetPort: 9023
+    name: cs-rest
+  selector:
+    app: config-service
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: cs-rest-stg
+  annotations:
+      kubernetes.io/ingress.class: "vdp-nginx-l7-ext"
+spec:
+  rules:
+  - host: cs-rest-stg.vdp.vmware.com
+    http:
+      paths:
+      - backend:
+          serviceName: cs-rest-stg
+          servicePort: 9023
 # apiVersion: extensions/v1beta1
 # kind: Ingress
 # metadata:
