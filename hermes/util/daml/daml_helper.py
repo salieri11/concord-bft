@@ -47,11 +47,11 @@ def upload_test_tool_dars(host='localhost', port='6861'):
       assert dar_uploaded, "Failed to upload test DAR " + testDar
       os.remove(testDar)
 
-def get_list_of_tests(tests_to_include="DEFAULT"):
+def get_list_of_tests(run_all_tests=False):
    '''
-   Hlpeer method to list all the tests from test tool.jar
-   :param tests_to_include: Mode "DEFAULT: returns only the default tests set (
-   marked with a * from list tests), otherwise include the complete list of tests
+   Helper method to list all the tests from test tool.jar
+   :param run_all_tests: False to run only default set  of tests(marked with a * from list tests),
+    True, to include the complete list of tests
    :return: list of tests
    '''
    getTestToolImage = \
@@ -77,11 +77,11 @@ def get_list_of_tests(tests_to_include="DEFAULT"):
    if status:
       for item in output:
          if item and item != '\r' and ("Tests marked with * are run by default." not in item):
-            if tests_to_include == "DEFAULT":
+            if run_all_tests:
+               tests.append(item.split("*")[0].strip())
+            else:
                if "*" in item:
                   tests.append(item.split("*")[0].strip())
-            else:
-               tests.append(item.split("*")[0].strip())
    else:
       raise Exception("Failed to fetch list of DAML tests")
 
@@ -92,7 +92,7 @@ def get_list_of_tests(tests_to_include="DEFAULT"):
 
    return tests
 
-def verify_ledger_api_test_tool(host='ledger', port='6865', tests_to_include="DEFAULT"):
+def verify_ledger_api_test_tool(host='ledger', port='6865', run_all_tests=False):
    '''
    Helper method to perform sanity check with uploaded dar files
    :param host: daml-ledger-api host IP
@@ -114,7 +114,7 @@ def verify_ledger_api_test_tool(host='ledger', port='6865', tests_to_include="DE
       raise
 
    overall_test_status = None
-   for test in get_list_of_tests(tests_to_include=tests_to_include):
+   for test in get_list_of_tests(run_all_tests=run_all_tests):
       log.info(
          "######################################################################")
       if test not in DAML_TESTS_IGNORE_LIST:
