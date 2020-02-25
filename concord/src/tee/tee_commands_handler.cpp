@@ -1,23 +1,75 @@
 // Copyright 2020 VMware, all rights reserved
+#include "tee_commands_handler.hpp"
+
 #include <google/protobuf/util/time_util.h>
 #include <log4cplus/loggingmacros.h>
+#include <log4cplus/mdc.h>
+#include <map>
+#include <string>
 
-#include "concord.pb.h"
-#include "tee.pb.h"
-#include "tee_commands_handler.hpp"
+#include "concord_storage.pb.h"
+#include "storage/kvb_key_types.h"
 #include "time/time_contract.hpp"
+
+// #include "concord.pb.h"
+// #include "tee.pb.h"
+
+using std::map;
+using std::string;
+using std::vector;
+
+using concord::storage::blockchain::IBlocksAppender;
+using concord::storage::blockchain::ILocalKeyValueStorageReadOnly;
+using concord::time::TimeContract;
+using concordUtils::BlockId;
+using concordUtils::Key;
+using concordUtils::KeyValuePair;
+using concordUtils::SetOfKeyValuePairs;
+using concordUtils::Sliver;
+using concordUtils::Value;
 
 using com::vmware::concord::ConcordRequest;
 using com::vmware::concord::ConcordResponse;
 using com::vmware::concord::TeeRequest;
 using com::vmware::concord::TeeResponse;
-using concord::time::TimeContract;
-using concordUtils::BlockId;
-using concordUtils::SetOfKeyValuePairs;
-using std::string;
+using com::vmware::concord::kvb::ValueWithTrids;
+
+using google::protobuf::util::TimeUtil;
 
 namespace concord {
 namespace tee {
+
+Sliver CreateSliver(const char* content, size_t size) {
+  char* val = new char[size];
+  memcpy(val, content, size);
+  return Sliver(val, size);
+}
+
+Sliver CreateSliver(const string& content) {
+  return CreateSliver(content.c_str(), content.size());
+}
+
+Sliver CreateTeeKvbKey(const string& content) {
+  string full_key(content);
+  // filter system is currently hardcoded for kKvbKeyDaml storage type
+  full_key.insert(0, &concord::storage::kKvbKeyDaml,
+                  sizeof(concord::storage::kKvbKeyDaml));
+  return CreateSliver(full_key.c_str(), full_key.size());
+}
+
+Sliver CreateTeeKvbValue(const string& value, vector<string> trid_list) {
+  ValueWithTrids proto;
+  proto.set_value(value);
+  for (const auto& trid : trid_list) {
+    proto.add_trid(trid);
+  }
+
+  size_t size = proto.ByteSizeLong();
+  char* data = new char[size];
+  proto.SerializeWithCachedSizesToArray(reinterpret_cast<unsigned char*>(data));
+
+  return Sliver(data, size);
+}
 
 bool TeeCommandsHandler::Execute(const ConcordRequest& concord_request,
                                  uint8_t flags, TimeContract* time_contract,
@@ -28,27 +80,87 @@ bool TeeCommandsHandler::Execute(const ConcordRequest& concord_request,
     return true;
   }
 
+  const TeeRequest& tee_request = concord_request.tee_request();
   com::vmware::concord::TeeResponse* tee_response =
       concord_response.mutable_tee_response();
 
-  const TeeRequest& tee_request = concord_request.tee_request();
-
-  if (tee_request.has_tee_input()) {
+  if (!tee_request.has_tee_input()) {
+    tee_response->set_tee_output("TeeCommandsHandler received no input");
+  } else if (tee_request.tee_input() != "PrivacySanityTest") {
+    // for backward compatibily
     tee_response->set_tee_output("Test Execution Handler received input '" +
                                  tee_request.tee_input() + "'");
-  } else {
-    tee_response->set_tee_output("TeeCommandsHandler received no input");
+  } else {  // PrivacySanityTest
+    /*
+      Mock transaction, on receipt of "PrivacySanityTest"
+      {
+        [
+          {
+            trids: ["client_id_1", "client_id_2", "client_id_3"],
+            k: key-123
+            v: value-123
+          },
+          {
+            trids: ["client_id_1"],
+            k: key-1
+            v: value-1
+          },
+          {
+            trids: ["client_id_2"],
+            k: key-2
+            v: value-2
+          },
+          {
+            trids: ["client_id_1", "client_id_2"],
+            k: key-12
+            v: value-12
+          },
+          {
+            trids: [],
+            k: key-qll
+            v: value-all
+          }
+        ]
+      }
+    */
+    SetOfKeyValuePairs updates;
+    vector<string> trid1, trid2, trid3;
+    trid1.push_back("client_id_1");
+    trid2.push_back("client_id_2");
+    trid3.push_back("client_id_3");
+    vector<string> trid12{trid1.at(0), trid2.at(0)};
+    vector<string> trid123(begin(trid12), end(trid12));
+    trid123.push_back(trid3.at(0));
+
+    updates.insert(KeyValuePair(CreateTeeKvbKey("key-123"),
+                                CreateTeeKvbValue("value-123", trid123)));
+    updates.insert(KeyValuePair(CreateTeeKvbKey("key-1"),
+                                CreateTeeKvbValue("value-1", trid1)));
+    updates.insert(KeyValuePair(CreateTeeKvbKey("key-2"),
+                                CreateTeeKvbValue("value-2", trid2)));
+    updates.insert(KeyValuePair(CreateTeeKvbKey("key-12"),
+                                CreateTeeKvbValue("value-12", trid12)));
+    updates.insert(KeyValuePair(CreateTeeKvbKey("key-all"),
+                                CreateTeeKvbValue("value-all", {})));
+
+    RecordTransaction(updates, tee_response);
   }
 
   return true;
 }
 
+void TeeCommandsHandler::RecordTransaction(const SetOfKeyValuePairs& updates,
+                                           TeeResponse* tee_response) {
+  BlockId new_block_id = 0;
+  concordUtils::Status res = addBlock(updates, new_block_id);
+  assert(res.isOK());
+  write_ops_.Increment();
+}
+
 void TeeCommandsHandler::WriteEmptyBlock(TimeContract* time_contract) {
-  BlockId currentBlockId = storage_.getLastBlock();
   SetOfKeyValuePairs empty_updates;
   BlockId newBlockId = 0;
   assert(addBlock(empty_updates, newBlockId).isOK());
-  assert(newBlockId == currentBlockId + 1);
 }
 
 }  // namespace tee
