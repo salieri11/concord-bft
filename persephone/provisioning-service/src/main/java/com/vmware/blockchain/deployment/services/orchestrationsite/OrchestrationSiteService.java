@@ -2,14 +2,16 @@
  * Copyright (c) 2019 VMware, Inc. All rights reserved. VMware Confidential
  * **************************************************************************/
 
-package com.vmware.blockchain.deployment.services.orchestrationsite;
+package com.vmware.blockchain.deployment.server;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.lognet.springboot.grpc.GRpcService;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import com.vmware.blockchain.deployment.orchestration.Orchestrator;
 import com.vmware.blockchain.deployment.orchestration.OrchestratorProvider;
+import com.vmware.blockchain.deployment.orchestration.vmware.OrchestratorFactory;
 import com.vmware.blockchain.deployment.v1.OrchestrationSiteServiceGrpc;
 import com.vmware.blockchain.deployment.v1.ValidateOrchestrationSiteRequest;
 import com.vmware.blockchain.deployment.v1.ValidateOrchestrationSiteResponse;
@@ -29,8 +31,9 @@ public class OrchestrationSiteService extends OrchestrationSiteServiceGrpc.Orche
     /**
      * Constructor.
      */
-    public OrchestrationSiteService(OrchestratorProvider orchestratorProvider) {
-        this.orchestratorProvider = orchestratorProvider;
+    @Autowired
+    public OrchestrationSiteService() {
+        this.orchestratorProvider = OrchestratorFactory.INSTANCE;
     }
 
     @Override
