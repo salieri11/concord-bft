@@ -4,8 +4,6 @@
 
 package com.vmware.blockchain.deployment.services.configservice;
 
-import org.springframework.stereotype.Component;
-
 import com.vmware.blockchain.deployment.v1.ConfigurationServiceGrpc;
 import com.vmware.blockchain.deployment.v1.Endpoint;
 import com.vmware.blockchain.deployment.v1.TransportSecurity;
@@ -18,7 +16,6 @@ import lombok.extern.slf4j.Slf4j;
  * Wrapper class which hides the gRPC vs REST invocation of the API.
  */
 @Slf4j
-@Component
 public class ConfigServiceInvoker {
 
     private final Endpoint endpoint;
