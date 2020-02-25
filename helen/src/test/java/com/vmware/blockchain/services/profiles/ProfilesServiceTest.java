@@ -144,58 +144,6 @@ class ProfilesServiceTest {
     }
 
     @Test
-    void testCreateUser() {
-        when(organizationService.get(ORG_ID)).thenReturn(organization);
-        when(consortiumService.get(CONSORTIUM_ID)).thenReturn(consortium);
-        UserCreateRequest ucr = loadUcr(newUser);
-        ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
-        prm.createUser(ucr);
-        verify(userService, times(1)).put(captor.capture());
-        User u = captor.getValue();
-        Assertions.assertEquals(newUser.getFirstName(), u.getFirstName());
-        Assertions.assertEquals(newUser.getLastName(), u.getLastName());
-        Assertions.assertEquals(newUser.getEmail(), u.getEmail());
-        Assertions.assertEquals(newUser.getRoles(), u.getRoles());
-    }
-
-
-    @Test
-    void testCreateExistingUser() {
-        when(organizationService.get(ORG_ID)).thenReturn(organization);
-        when(consortiumService.get(CONSORTIUM_ID)).thenReturn(consortium);
-        UserCreateRequest msg = loadUcr(existingUser);
-        Assertions.assertThrows(EntityModificationException.class, () -> {
-            try {
-                prm.createUser(msg);
-            } catch (EntityModificationException e) {
-                Assertions.assertEquals("Duplicate email address", e.getMessage());
-                Assertions.assertEquals(400, e.getHttpStatus().value());
-                verify(userService, times(0)).put(any());
-                throw e;
-            }
-        });
-    }
-
-    @Test
-    void testCreateUserBadOrg() {
-        when(organizationService.get(ORG_ID)).thenThrow(new NotFoundException("not found"));
-        when(consortiumService.get(CONSORTIUM_ID)).thenReturn(consortium);
-        UserCreateRequest msg = loadUcr(newUser);
-        Assertions.assertThrows(EntityModificationException.class, () -> {
-            try {
-                prm.createUser(msg);
-            } catch (EntityModificationException e) {
-                Assertions.assertEquals(
-                    "Organization with ID 82634974-88cf-4944-a99d-6b92664bb765 not found.",
-                    e.getMessage());
-                Assertions.assertEquals(400, e.getHttpStatus().value());
-                verify(userService, times(0)).put(any());
-                throw e;
-            }
-        });
-    }
-
-    @Test
     void testUpdateNoUser() {
         when(userService.get(USER_ID)).thenThrow(new NotFoundException("not found"));
         UserPatchRequest msg = new UserPatchRequest();
@@ -267,17 +215,6 @@ class ProfilesServiceTest {
     void testLoginUser() {
         prm.loginUser(existingUser);
         Assertions.assertNotEquals(0, existingUser.getLastLogin());
-    }
-
-    private UserCreateRequest loadUcr(User user) {
-        UserCreateRequest ucr = new UserCreateRequest();
-        ucr.setName(user.getName());
-        ucr.setPassword(user.getPassword());
-        ucr.setEmail(user.getEmail());
-        ucr.setOrganization(new OrganizationData(user.getOrganization(), organization.getOrganizationName()));
-        ucr.setDetails(new Details(user.getFirstName(), user.getLastName()));
-        ucr.setRole(user.getRoles().get(0).getName());
-        return ucr;
     }
 
 }

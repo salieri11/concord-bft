@@ -152,42 +152,6 @@ public class ProfilesService {
         }
     }
 
-
-    /**
-     * Create a new user.
-     * @param request   User Create Request, with all the user fields filled in.
-     * @return          new User
-     */
-    @Transactional(rollbackOn = Exception.class)
-    public User createUser(UserCreateRequest request) throws EntityModificationException {
-
-        // First check if user with same email already exists
-        if (isDuplicateEmail(request.getEmail())) {
-            throw new EntityModificationException(ErrorCode.DUPLICATE_EMAIL);
-        }
-        try {
-            // next, make sure the org exists.  Note this throws not found if it doesn't
-            organizationService.get(request.getOrganization().getOrganizationId());
-        } catch (NotFoundException e) {
-            throw new EntityModificationException(ErrorCode.ORG_NOT_FOUND,
-                    request.getOrganization().getOrganizationId());
-        }
-
-        if (!Roles.contains(request.getRole())) {
-            throw new EntityModificationException(ErrorCode.INVALID_ROLE, request.getRole());
-        }
-        User u = new User();
-        u.setName(request.getName());
-        u.setEmail(request.getEmail());
-        u.setPassword(passwordEncoder.encode(request.getPassword()));
-        u.setRoles(Collections.singletonList(Roles.get(request.getRole())));
-        u.setOrganization(request.getOrganization().getOrganizationId());
-        u.setFirstName(request.getDetails().getFirstName());
-        u.setLastName(request.getDetails().getLastName());
-
-        return userService.put(u);
-    }
-
     /**
      * Patch an existing user. Use the same structure as for create.
      * @param request   User Patch request, with desired changes.

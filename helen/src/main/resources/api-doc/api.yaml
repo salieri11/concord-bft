@@ -2073,9 +2073,6 @@ paths:
   /users:
     summary: Helen User management
     get:
-      deprecated: true
-      tags:
-        - deprecated
       summary: Get a list of user which belong to specific organization and specific consortium
       operationId: usersGet
       parameters:
@@ -2146,74 +2143,6 @@ paths:
                         organization_name:
                           type: string
                           description: Name of organization to which this user belongs
-    post:
-      deprecated: true
-      tags:
-        - deprecated
-      summary: Create a new user in Helen
-      operationId: usersPost
-      requestBody:
-        description: User creation POST request body
-        required: true
-        content:
-          application/json:
-            schema:
-              required:
-                - name
-                - email
-                - role
-                - consortium
-                - organization
-                - password
-              type: object
-              properties:
-                name:
-                  type: string
-                  description: String representing name of this user
-                email:
-                  type: string
-                  description: String representing email of this user
-                role:
-                  type: string
-                  description: String representing role of this user
-                details:
-                  type: object
-                  properties:
-                    first_name:
-                      type: string
-                      description: First name of this user
-                    last_name:
-                      type: string
-                      description: Last name of this user
-                consortium:
-                  type: object
-                  properties:
-                    consortium_id:
-                      type: string
-                      format: uuid
-                      description: ID of consortium to which this user belongs
-                organization:
-                  type: object
-                  properties:
-                    organization_id:
-                      type: string
-                      format: uuid
-                      description: ID of organization to which this user belongs
-                password:
-                  type: string
-                  description: Password of this user
-      responses:
-        200:
-          description: User ID of newly created user
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  user_id:
-                    type: string
-                    format: uuid
-                    description: User ID of newly created user
   /users/{user_id}:
     summary: Helen User management
     get:
@@ -2283,55 +2212,6 @@ paths:
                       organization_name:
                         type: string
                         description: Name of organization to which this user belongs
-    patch:
-      deprecated: true
-      tags:
-        - deprecated
-      summary: Update user information
-      operationId: UpdateUser
-      parameters:
-        - name: user_id
-          in: path
-          description: The id of the user to update
-          required: true
-          schema:
-            type: string
-            format: uuid
-          style: simple
-      requestBody:
-        description: User PATCH request body
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                name:
-                  type: string
-                  description: New name of the user
-                email:
-                  type: string
-                  description: New email of the user
-                role:
-                  type: string
-                  description: New role of the user
-                details:
-                  type: object
-                  properties:
-                    first_name:
-                      type: string
-                      description: New first name of the user
-                    last_name:
-                      type: string
-                      description: New last name of the user
-        required: true
-      responses:
-        200:
-          description: Successful patch
-          content:
-            application/json:
-              schema:
-                type: object
-                properties: {}
   /auth/login:
     summary: Helen User management
     post:
