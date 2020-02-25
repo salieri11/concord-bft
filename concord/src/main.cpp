@@ -402,9 +402,13 @@ void RunDamlGrpcServer(std::string server_address, KVBClientPool &pool,
 }
 
 void RunTeeGrpcServer(std::string server_address, KVBClientPool &pool,
-                      int max_num_threads) {
+                      const ILocalKeyValueStorageReadOnly *ro_storage,
+                      SubBufferList &subscriber_list, int max_num_threads) {
   Logger logger = Logger::getInstance("com.vmware.concord.tee");
+
   TeeServiceImpl *teeService = new TeeServiceImpl(pool);
+  ThinReplicaService *thinReplicaService = new ThinReplicaService{
+      std::make_unique<ThinReplicaImpl>(ro_storage, subscriber_list)};
 
   grpc::ResourceQuota quota;
   quota.SetMaxThreads(max_num_threads);
@@ -413,6 +417,7 @@ void RunTeeGrpcServer(std::string server_address, KVBClientPool &pool,
   builder.SetResourceQuota(quota);
   builder.AddListeningPort(server_address, grpc::InsecureServerCredentials());
   builder.RegisterService(teeService);
+  builder.RegisterService(thinReplicaService);
 
   tee_grpc_server = unique_ptr<grpc::Server>(builder.BuildAndStart());
 
@@ -704,7 +709,8 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
 
       int max_num_threads = nodeConfig.getValue<int>("tee_service_threads");
 
-      std::thread(RunTeeGrpcServer, tee_addr, std::ref(pool), max_num_threads)
+      std::thread(RunTeeGrpcServer, tee_addr, std::ref(pool), &replica,
+                  std::ref(subscriber_list), max_num_threads)
           .detach();
     }
 
