@@ -2,7 +2,7 @@ kind: Role
 apiVersion: rbac.authorization.k8s.io/v1beta1
 metadata:
   name: tiller-manager
-  namespace: vmbc-prod-saas
+  namespace: vmbc-stg-saas
 rules:
 - apiGroups: [""]
   resources: ["pods", "endpoints", "services", "replicationcontrollers", "secrets","configmaps", "persistentvolumeclaims","serviceaccounts"]
@@ -14,7 +14,7 @@ rules:
   resources: ["resourcequotas"]
   verbs: ["get", "watch", "list"]
 - apiGroups: ["apps"]
-  resources: ["deployments", "statefulsets", "daemonsets"]
+  resources: ["deployments", "statefulsets", "daemonsets", "replicasets"]
   verbs: ["*"]
 - apiGroups: ["extensions"]
   resources: ["daemonsets", "ingresses", "deployments", "replicasets"]
@@ -30,5 +30,5 @@ rules:
   verbs: ["*"]
 - apiGroups: [""]
   resources: ["namespaces"]
-  resourceNames: ["vmbc-prod-saas"]
+  resourceNames: ["vmbc-stg-saas"]
   verbs: ["get", "watch", "list"]
