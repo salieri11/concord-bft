@@ -1,3 +1,7 @@
+find_path(SKVBC_INCLUDE_DIR simpleKVBTestsBuilder.hpp
+        HINTS ${CMAKE_CURRENT_SOURCE_DIR}/../submodules/concord-bft/tests/simpleKVBC)
+set(SKVBC_COMMANDS_HANDLER_DIR "${SKVBC_INCLUDE_DIR}/TesterReplica")
+
 file(GLOB concord_src "main.cpp"
   "api/*.cpp"          "api/*.hpp"
   "config/*.cpp"       "config/*.hpp"
@@ -5,6 +9,8 @@ file(GLOB concord_src "main.cpp"
   "hlf/*.cpp"          "hlf/*.hpp"
   "thin_replica/*.cpp" "thin_replica/*.hpp"
   "tee/*.cpp"          "tee/*.hpp"
+  "${SKVBC_COMMANDS_HANDLER_DIR}/internalCommandsHandler.hpp"
+  "${SKVBC_COMMANDS_HANDLER_DIR}/internalCommandsHandler.cpp"
 )
 
 string(APPEND CMAKE_CXX_FLAGS " -Wall")
@@ -14,6 +20,7 @@ endif()
 
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+include_directories(${SKVBC_INCLUDE_DIR})
 
 add_subdirectory("common")
 add_subdirectory("consensus")

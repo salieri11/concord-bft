@@ -9,6 +9,7 @@
 #include <grpcpp/grpcpp.h>
 #include <opentracing/span.h>
 
+#include "TesterReplica/internalCommandsHandler.hpp"
 #include "concord.pb.h"
 #include "consensus/concord_commands_handler.hpp"
 #include "daml_commit.grpc.pb.h"
@@ -26,6 +27,10 @@ concordUtils::Sliver CreateDamlKvbKey(const std::string& content);
 class TeeCommandsHandler : public concord::consensus::ConcordCommandsHandler {
  private:
   log4cplus::Logger logger_;
+  concordlogger::Logger internal_logger_ =
+      concordlogger::Log::getLogger("skvbc.internal.handler");
+  InternalCommandsHandler skvbc_commands_handler_;
+
   prometheus::Counter& write_ops_;
   prometheus::Counter& read_ops_;
 
@@ -33,13 +38,14 @@ class TeeCommandsHandler : public concord::consensus::ConcordCommandsHandler {
   TeeCommandsHandler(
       const concord::config::ConcordConfiguration& config,
       const concord::config::ConcordConfiguration& node_config,
-      const concord::storage::blockchain::ILocalKeyValueStorageReadOnly& ros,
+      concord::storage::blockchain::ILocalKeyValueStorageReadOnly& ros,
       concord::storage::blockchain::IBlocksAppender& ba,
       concord::thin_replica::SubBufferList& subscriber_list,
       std::shared_ptr<concord::utils::PrometheusRegistry> prometheus_registry)
       : ConcordCommandsHandler(config, node_config, ros, ba, subscriber_list,
                                prometheus_registry),
         logger_(log4cplus::Logger::getInstance("com.vmware.concord.tee")),
+        skvbc_commands_handler_(&ros, &ba, internal_logger_),
         write_ops_{prometheus_registry->createCounter(
             command_handler_counters_,
             {{"layer", "TeeCommandsHandler"}, {"operation", "tee_writes"}})},
@@ -55,6 +61,9 @@ class TeeCommandsHandler : public concord::consensus::ConcordCommandsHandler {
   void WriteEmptyBlock(concord::time::TimeContract* time_contract) override;
 
  private:
+  bool ExecuteSkvbcRequest(const com::vmware::concord::TeeRequest& tee_request,
+                           uint8_t flags,
+                           com::vmware::concord::TeeResponse* tee_response);
   void RecordTransaction(const concordUtils::SetOfKeyValuePairs& updates,
                          com::vmware::concord::TeeResponse* tee_response);
 };

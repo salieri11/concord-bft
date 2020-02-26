@@ -12,6 +12,8 @@
 #include "consensus/kvb_client.hpp"
 #include "tee.grpc.pb.h"
 
+using com::vmware::concord::tee::RawSkvbcRequest;
+using com::vmware::concord::tee::RawSkvbcResponse;
 using com::vmware::concord::tee::TestInput;
 using com::vmware::concord::tee::TestOutput;
 
@@ -25,12 +27,22 @@ class TeeServiceImpl final
   concord::consensus::KVBClientPool& pool_;
 
  public:
-  TeeServiceImpl(concord::consensus::KVBClientPool& p)
+  explicit TeeServiceImpl(concord::consensus::KVBClientPool& p)
       : logger_(log4cplus::Logger::getInstance("com.vmware.concord.tee")),
         pool_(p) {}
 
   grpc::Status RunTest(grpc::ServerContext* context, const TestInput* request,
-                       TestOutput* response);
+                       TestOutput* response) override;
+
+  grpc::Status SkvbcRead(
+      ::grpc::ServerContext* context,
+      const ::com::vmware::concord::tee::RawSkvbcRequest* request,
+      ::com::vmware::concord::tee::RawSkvbcResponse* response) override;
+
+  grpc::Status SkvbcWrite(
+      ::grpc::ServerContext* context,
+      const ::com::vmware::concord::tee::RawSkvbcRequest* request,
+      ::com::vmware::concord::tee::RawSkvbcResponse* response) override;
 };
 
 }  // namespace tee

@@ -69,6 +69,7 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
 
   request_.Clear();
   response_.Clear();
+  request_context_.reset(nullptr);
 
   auto tracer = opentracing::Tracer::Global();
   std::unique_ptr<opentracing::Span> execute_span;
@@ -78,6 +79,11 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
        request_.ParseFromArray(request_buffer, request_size)) ||
       (has_pre_executed &&
        parseFromPreExecutionResponse(request_buffer, request_size, request_))) {
+    request_context_ = std::make_unique<ConcordRequestContext>();
+    request_context_->client_id = client_id;
+    request_context_->sequence_num = sequence_num;
+    request_context_->max_response_size = max_response_size;
+
     if (request_.has_trace_context()) {
       std::istringstream tc_stream(request_.trace_context());
       auto trace_context = tracer->Extract(tc_stream);

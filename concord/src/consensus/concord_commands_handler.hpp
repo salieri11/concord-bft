@@ -21,6 +21,12 @@
 namespace concord {
 namespace consensus {
 
+struct ConcordRequestContext {
+  uint16_t client_id;
+  uint64_t sequence_num;
+  uint32_t max_response_size;
+};
+
 class ConcordCommandsHandler
     : public concord::kvbc::ICommandsHandler,
       public concord::storage::blockchain::IBlocksAppender {
@@ -46,6 +52,8 @@ class ConcordCommandsHandler
 
   com::vmware::concord::ConcordRequest request_;
   com::vmware::concord::ConcordResponse response_;
+
+  std::unique_ptr<ConcordRequestContext> request_context_;
 
  public:
   ConcordCommandsHandler(
