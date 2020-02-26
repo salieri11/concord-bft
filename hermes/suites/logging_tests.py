@@ -23,7 +23,7 @@ log_insight_host = 'https://localhost.vmware.com'
 log_insight_url = '{0}/api/lint/ops/query/log-query-tasks'.format(
     log_insight_host
 )
-wait_time = 15 * 60  # Fifteen Minutes
+wait_time = 10 * 60  # Twenty Minutes
 
 headers = {
     "Authorization": "Bearer {}".format(getAccessToken()),
@@ -34,15 +34,28 @@ headers = {
 
 def li_sql_query_builder(
     where,
-    level="(level = 'INFO' OR level = 'ERROR')"
 ):
-    select = "SELECT * FROM logs WHERE"
+    select = "SELECT * FROM logs"
 
-    return "{0} {1} {2} ORDER BY ingest_timestamp DESC".format(
+    return "{0} {1}ORDER BY ingest_timestamp DESC".format(
         select,
         where,
-        level
     )
+
+# Returns start and in end in milliseconds
+# start and end are hours
+def get_start_to_end_ms(start=1, end=0):
+    start_ms = 0
+    end_ms = 0
+
+    now = datetime.now()
+    start_minutes_ago = now - timedelta(hours=start)
+    end_minutes_ago = now - timedelta(hours=end)
+    start_ms = int(time.mktime(start_minutes_ago.timetuple()) * 1000)
+    end_ms = int(time.mktime(end_minutes_ago.timetuple()) * 1000)
+
+    return start_ms, end_ms
+
 
 # Log Insight Cloud Query
 # First it creates a query task with a replica ID
@@ -53,6 +66,8 @@ def li_cloud_query(fxConnection):
         log_dict = {}
         max_iterations = 7
         cur_iterations = 0
+        where = ""
+        start, end = get_start_to_end_ms()
 
         # Get our replica id
         blockchain = fxConnection.request.getBlockchains()[0]
@@ -63,17 +78,10 @@ def li_cloud_query(fxConnection):
             replica_id
         )
 
-        # Set our time range
-        now = datetime.utcnow()
-        minutes_ago = now - timedelta(minutes=60)
-
         # Set our where clause
-
-        where = ""
         extra_where = data.get('where', False)
-
         if extra_where:
-            where = '{0} {1}'.format(where, extra_where)
+            where = 'WHERE {1} '.format(where, extra_where)
 
         query = li_sql_query_builder(where)
         log.info('LI Cloud Query: {0}'.format(query))
@@ -83,8 +91,8 @@ def li_cloud_query(fxConnection):
             headers=headers,
             data=json.dumps({
                 "logQuery": query,
-                "start": round(minutes_ago.timestamp()),
-                "end": round(now.timestamp())
+                "start": start,
+                "end": end
             }),
             verify=False
         )
@@ -130,9 +138,6 @@ def deploy(deployToSddc):
     UUID(blockchain_id)
     UUID(consortium_id)
 
-    # Wait for blockchain to deploy
-    time.sleep(wait_time)
-
 
 @pytest.mark.smoke
 def test_log_insight_cloud_api(li_cloud_query):
@@ -148,7 +153,7 @@ def test_log_insight_cloud_api(li_cloud_query):
 @pytest.mark.smoke
 def test_log_insight_concord_log(li_cloud_query):
     parsed_logs = li_cloud_query(data={
-        "where": "service_name='concord AND'"
+        "where": "service_name='concord'"
     })
 
     results = parsed_logs.get('logQueryResults', None)
@@ -159,7 +164,7 @@ def test_log_insight_concord_log(li_cloud_query):
 @pytest.mark.smoke
 def test_log_insight_concord_log(li_cloud_query):
     parsed_logs = li_cloud_query(data={
-        "where": "service_name='concord AND'"
+        "where": "service_name='concord'"
     })
 
     results = parsed_logs.get('logQueryResults', None)
@@ -170,7 +175,7 @@ def test_log_insight_concord_log(li_cloud_query):
 @pytest.mark.smoke
 def test_log_insight_concord_message(li_cloud_query):
     parsed_logs = li_cloud_query(data={
-        "where": "service_name='concord' AND text='sends ReqMissingDataMsg AND'"
+        "where": "service_name='concord' AND text='sends ReqMissingDataMsg'"
     })
 
     results = parsed_logs.get('logQueryResults', None)
@@ -238,7 +243,7 @@ def test_log_insight_concord_message(li_cloud_query):
 def test_log_insight_daml_execution_engine(li_cloud_query):
 
     parsed_logs = li_cloud_query(data={
-        "where": "service_name='daml_execution_engine' AND text='Server started, AND'"
+        "where": "service_name='daml_execution_engine' AND text='Server started,'"
     })
 
     results = parsed_logs.get('logQueryResults', None)
