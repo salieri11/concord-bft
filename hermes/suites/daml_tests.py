@@ -31,9 +31,10 @@ def test_ledger_api_test_tool(fxProduct):
    """
    try:
       daml_helper.upload_test_tool_dars(host='localhost', port='6861')
-      daml_helper.verify_ledger_api_test_tool(host='ledger', port='6865')
+      daml_helper.verify_ledger_api_test_tool(host='ledger', port='6865',
+                                              run_all_tests=True)
    except Exception as e:
       log.error(e)
       raise
 
-   log.info("Semantic test runner passed.")
+   log.info("DAML tests passed.")

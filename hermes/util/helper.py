@@ -275,9 +275,9 @@ def execute_ext_command(command):
          "Command '{}' failed to execute: {}".format(command, e.returncode))
       log.error("stdout: '{}', stderr: '{}'".format(completedProcess.stdout,
                                                     completedProcess.stderr))
-      return False
+      return False, completedProcess.stderr
 
-   return True
+   return True, completedProcess.stdout.decode().split("\n")
 
 
 def protobuf_message_to_json(message_obj):
