@@ -52,6 +52,7 @@ RUN apt-get update \
     libzstd1 \
     libyaml-cpp0.5v5 \
     llvm-5.0 \
+    gdb \
     && rm -rf /var/lib/apt/lists/*
 
 # SYMLINK NOTE: If you COPY a symlink, docker will copy the contents
@@ -177,8 +178,11 @@ ENV GOPATH=/concord
 ENV PATH=$PATH:/usr/local/go/bin
 
 # Mountable volumes.
-VOLUME [ "/concord/config", "/concord/rocksdbdata", "/concord/log", "/concord/tls_certs" ]
+VOLUME [ "/concord/config", "/concord/rocksdbdata", "/concord/log", "/concord/tls_certs", "/concord/cores" ]
+
+# Concord starting script 
+COPY ./concord/scripts/concord-entrypoint.sh /concord/concord-entrypoint.sh
 
 # Set working directory and start.
 WORKDIR /concord
-CMD ["/concord/concord","-c","/concord/config-local/concord.config"]
+ENTRYPOINT ["/concord/concord-entrypoint.sh"]
