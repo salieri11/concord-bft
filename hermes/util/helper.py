@@ -159,10 +159,32 @@ def get_deployment_service_config_file(docker_compose_files, service_name):
       docker_compose_files, service_name, "volumes")
    try:
       config_folder = config_folder[0].split(':')[0]
-      config_file = "{}/config.json".format(config_folder)
+      config_file = "{}/app/profiles/application-test.properties".format(
+         config_folder)
    except Exception as e:
       raise
    return config_file
+
+
+def replace_key(filename, key, value):
+   '''
+   method to replace value in a properties file
+   :param filename: properties file name
+   :param key: key to look for
+   :param value: new value for the key
+   '''
+   try:
+      with open(filename, 'r') as f_in, \
+         tempfile.NamedTemporaryFile('w', dir=os.path.dirname(filename),
+                                     delete=False) as f_out:
+         for line in f_in.readlines():
+            if line.startswith("{}=".format(key)):
+               line = '='.join((line.split('=')[0], '{}\n'.format(value)))
+            f_out.write(line)
+      os.replace(f_out.name, filename)
+   except Exception as e:
+      log.error("Unable to update properties file: {}".format(filename))
+      raise
 
 
 def ssh_connect(host, username, password, command, log_mode=None):
