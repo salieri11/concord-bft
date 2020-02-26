@@ -27,7 +27,7 @@
 /docker/fluentd/ @hbhavsar @mharrison
 /ethrpc/ @machenbach @panamika @mandeab
 /helen/ @machenbach @panamika @mandeab @khank
-/helen/src/main/resources/api-doc/api.yaml @machenbach @panamika @mandeab @tfidali @mharrison
+/helen/src/main/resources/api-doc/api.yaml @machenbach @panamika @mandeab @tfidali @mharrison @khank
 /hermes/ @rvollmar @rsg @khank
 /Jenkinsfile @rvollmar @rsg
 /performance/ @vlin @dparmar @rsg
