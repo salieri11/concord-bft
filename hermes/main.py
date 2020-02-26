@@ -42,6 +42,7 @@ suites = [
    "UiTests",
    "WebSocketRPCTests",
    "MetadataPersistencyTests"
+   "PrivacyTeeTests"
 ]
 local_modules = [os.path.join(".", "lib", "persephone")]
 
@@ -184,11 +185,11 @@ def main():
                        default=helper.LOCATION_LOCAL)
    parser.add_argument("--blockchainType",
                        help="Type of blockchain to deploy if --blockchainLocation is not 'local'.  Values: " \
-                            "{} (default), {}, {}.  {} not implemented." \
+                            "{} (default), {}, {}, {}" \
                        .format(helper.TYPE_ETHEREUM,
                                helper.TYPE_DAML,
                                helper.TYPE_HLF,
-                               helper.TYPE_HLF),
+                               helper.TYPE_TEE),
                        default=helper.TYPE_ETHEREUM)
    parser.add_argument("--numReplicas",
                        help="The number of blockchain replicas to deploy. The 'f' value will be " \
@@ -311,6 +312,8 @@ def createTestSuite(args):
       return pytest_suite.PytestSuite(args, "suites/thin_replica_tests.py")
    elif (args.suite == "MetadataPersistencyTests"):
       return persistency_tests.MetadataPersistencyTests(args)
+   elif (args.suite == "PrivacyTeeTests"):
+      return pytest_suite.PytestSuite(args, "suites/privacy_tee_tests.py")
    else:
       return None
 

@@ -45,6 +45,7 @@ TYPE_ETHEREUM = "ethereum"
 TYPE_DAML = "daml"
 TYPE_DAML_COMMITTER = "daml_committer"
 TYPE_HLF = "hlf"
+TYPE_TEE = "tee"
 
 # These are command line options for --keepBlockchains.
 KEEP_BLOCKCHAINS_ALWAYS = "always"
