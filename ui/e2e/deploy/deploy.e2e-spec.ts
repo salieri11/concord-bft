@@ -32,23 +32,6 @@ describe('concord-ui Deployment Flow', () => {
     browser.waitForAngularEnabled(false);
   });
 
-  // it('should login', () => {
-  //   loginPage = new CSPLogin();
-  //   loginPage.navigateTo();
-  //   waitForURLContains('console-stg.cloud.vmware.com/csp/gateway/discovery');
-  //   browser.sleep(500);
-  //   loginPage.fillInEmail();
-  //   waitForURLContains('csp-local.vidmpreview.com/SAAS/auth/login');
-  //   browser.sleep(1000);
-  //   loginPage.fillInPassword();
-  // });
-
-  // it('should accept terms of service', () => {
-  //   browser.sleep(2000);
-  //   onboardingPage.readAndClickAccept('Reinhard', 'von Lohengramm', 'Galactic Empire');
-  //   browser.sleep(1500);
-  // });
-
   it('should deploy a blockchain', () => {
     const title = 'DAML e2e';
 
@@ -77,30 +60,20 @@ describe('concord-ui Deployment Flow', () => {
 
   it('should show progress of the blockchain', () => {
     const progressEl = '#deployProgress';
-    const progMessageEl = `${progressEl} h5`;
-    const progPerceEl = `${progressEl} .progress span`;
+    const progMessageEl = '.deploy-message';
+    const progPerceEl = '.progress-label';
     waitFor(progressEl);
-    waitForText(element(by.cssContainingText(progMessageEl, `Creating VM's...`)));
-    waitForText(element(by.cssContainingText(progMessageEl, `Deploying concord replicas...`)));
+    waitForText(element(by.cssContainingText(progMessageEl, `Deploy consortium started...`)));
+    waitForText(element(by.cssContainingText(progMessageEl, `Creating VMs...`)));
+    waitForText(element(by.cssContainingText(progMessageEl, `Deploying concord committers...`)));
     waitForText(element(by.cssContainingText(progPerceEl, `100%`)));
     expect(deployWiz.getPercentage()).toBe('100%');
-    browser.sleep(4000);
+    browser.sleep(5000);
   });
 
-  it('should do the DAML tour', () => {
+  it('should be a healthy network', () => {
     browser.sleep(1000);
-    expect(appPage.getTourTitle().getText()).toEqual('General Status');
-    browser.sleep(300);
-    appPage.getTourNextButton().click();
-    browser.sleep(300);
-    expect(appPage.getTourTitle().getText()).toEqual('Committer List');
-    appPage.getTourNextButton().click();
-    browser.sleep(300);
-    expect(appPage.getTourTitle().getText()).toEqual('Organizations');
-    appPage.clickTourEndButton();
-    browser.sleep(300);
-    expect(appPage.getTourTitle().isDisplayed()).toBe(false);
-    browser.waitForAngularEnabled(true);
+    expect(deployWiz.getHealthNumber()).toEqual('4/4');
   });
 
   it('should switch to the default blockchain', () => {

@@ -31,7 +31,7 @@ const screenshotReporter = new HtmlScreenshotReporter({
 });
 
 exports.config = {
-  allScriptsTimeout: 3 * 60 * 1000, // 3 minutes, needed for deploying.
+  allScriptsTimeout: 8 * 60 * 1000, // 8 minutes, needed for deploying.
   specs: [
     './e2e/login/login.e2e-spec.ts',
     './e2e/zone/zone.e2e-spec.ts',
@@ -46,7 +46,7 @@ exports.config = {
   framework: 'jasmine',
   jasmineNodeOpts: {
     showColors: true,
-    defaultTimeoutInterval: 3 * 60 * 1000, // 3 minutes, needed for deploying.
+    defaultTimeoutInterval: 8 * 60 * 1000, // 8 minutes, needed for deploying.
     print: function() { }
   },
   beforeLaunch: function() {

@@ -48,7 +48,7 @@ export class Zone {
     element(by.css('#opHttpHost')).sendKeys('127.0.0.1');
     element(by.css('#opHttpPort')).sendKeys('80');
     element(by.css('#opHttpsHost')).sendKeys('127.0.0.1');
-    element(by.css('#opHttpsHost')).sendKeys('443');
+    element(by.css('#opHttpsPort')).sendKeys('443');
   }
 
   getValues(): any[] {
@@ -78,7 +78,7 @@ export class Zone {
         element(by.css('#opHttpHost')).getAttribute('value'),
         element(by.css('#opHttpPort')).getAttribute('value'),
         element(by.css('#opHttpsHost')).getAttribute('value'),
-        element(by.css('#opHttpsHost')).getAttribute('value')
+        element(by.css('#opHttpsPort')).getAttribute('value')
     ];
   }
 

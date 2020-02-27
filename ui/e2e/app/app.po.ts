@@ -11,7 +11,7 @@ export class AppPage {
   }
 
   goToDeployWizard() {
-    const deploy = element(by.css('#deploy'));
+    const deploy = element(by.css('#sidebarDeploy'));
 
     if (deploy.isPresent()) {
       return deploy;

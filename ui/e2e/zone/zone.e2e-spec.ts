@@ -59,7 +59,7 @@ describe('concord-ui Add Zone', () => {
     expect(values[8]).toEqual('vmware-vpn-4b');
     expect(values[9]).toEqual('10.70.30.1');
     expect(values[10]).toEqual('23');
-    expect(values[11]).toEqual('1.1.1.1;1.1.1.1');
+    expect(values[11]).toEqual('1.1.1.1,1.1.1.1');
     expect(values[12]).toEqual('1.1.1.1-1.1.1.1');
     expect(values[13]).toEqual('10.78.20.10');
     expect(values[14]).toEqual('9543');

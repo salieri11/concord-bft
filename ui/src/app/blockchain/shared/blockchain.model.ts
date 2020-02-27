@@ -18,6 +18,7 @@ export interface NodeCommitter {
   cert: string;
   ip: string;
   node_id: string;
+  zone_id: string;
   region: string;
   url: string;
 }

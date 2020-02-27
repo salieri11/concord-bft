@@ -87,6 +87,8 @@ export class BlockchainWizardComponent implements AfterViewInit {
 
     // this.filterZones();
     this.form = this.initForm();
+    this.onPremActive = this.hasOnPrem = this.blockchainService.zones.some(zone => zone.type === ZoneType.ON_PREM);
+
   }
 
   ngAfterViewInit() {
@@ -126,7 +128,6 @@ export class BlockchainWizardComponent implements AfterViewInit {
     this.hasOnPrem = this.blockchainService.zones.some(zone => zone.type === ZoneType.ON_PREM);
     const onPremZones = this.blockchainService.zones.filter((zone) => zone.type === ZoneType.ON_PREM);
     const cloudZones = this.blockchainService.zones.filter((zone) => zone.type === ZoneType.VMC_AWS);
-
     if (this.form) {
       const zones = this.form['controls'].nodes['controls'].zones;
       const pastZones = this.zones;
@@ -141,6 +142,7 @@ export class BlockchainWizardComponent implements AfterViewInit {
         });
         this.zones = onPremZones;
       } else {
+        this.cloudActive = true;
         cloudZones.forEach(zone => {
           zones.addControl(zone.id, new FormControl('', Validators.required));
         });

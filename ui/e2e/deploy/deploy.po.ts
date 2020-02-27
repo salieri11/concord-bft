@@ -36,11 +36,15 @@ export class DeployWizard {
     return element(by.css('.number-of-replicas')).getText();
   }
 
+  getHealthNumber() {
+    return element(by.css('.health-number')).getText();
+  }
+
   deploy() {
     return element(by.css('.clr-wizard-btn.btn-success')).click();
   }
 
   getPercentage(): Promise<string> {
-    return element(by.css(this.progPerceEl)).getText();
+    return element(by.css('.progress-label')).getText();
   }
 }
