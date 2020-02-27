@@ -45,6 +45,9 @@ class CloudInitConfiguration(
             .filter { it.type == ConcordComponent.Type.CONTAINER_IMAGE }
             .filter { it.serviceType == ConcordComponent.ServiceType.GENERIC }.first().name
 
+    // Temporary fix until wavefront team pushes feature to error out on incorrect url
+    private val excludedModel: ConcordModelSpecification = createMetricsExcludedModel(model, wavefront)
+
     private val networkSetupCommand: String by lazy {
         var dnsEntry = ""
         nameServers.takeIf { !it.isNullOrEmpty() }
@@ -79,7 +82,7 @@ class CloudInitConfiguration(
 
     /** Concord agent startup configuration parameters. */
     private val configuration: ConcordAgentConfiguration = ConcordAgentConfiguration.newBuilder()
-            .setModel(model)
+            .setModel(excludedModel)
             .setContainerRegistry(containerRegistry)
             .setCluster(clusterId)
             .setNode(nodeId)
@@ -151,6 +154,31 @@ class CloudInitConfiguration(
         }
 
         return "docker login $address $credential"
+    }
+
+    /**
+     * Temporary fix until wavefront team pushes feature to error out on incorrect url
+     */
+    private fun createMetricsExcludedModel(model: ConcordModelSpecification,
+                                           wavefront: Wavefront): ConcordModelSpecification {
+        val exclusionList = listOf(ConcordComponent.ServiceType.WAVEFRONT_PROXY,
+                ConcordComponent.ServiceType.TELEGRAF,
+                ConcordComponent.ServiceType.JAEGER_AGENT)
+        if (wavefront.url.isNullOrEmpty()
+                || wavefront.url.isNullOrBlank()
+                || wavefront.token.isNullOrBlank()
+                || wavefront.token.isNullOrEmpty()) {
+            val compList = model.componentsList.filter { it.serviceType !in exclusionList}
+            return ConcordModelSpecification.newBuilder()
+                    .setBlockchainType(model.blockchainType)
+                    .setNodeType(model.nodeType)
+                    .setVersion(model.version)
+                    .setTemplate(model.template)
+                    .addAllComponents(compList)
+                    .build()
+        } else {
+            return model
+        }
     }
 
     /**
