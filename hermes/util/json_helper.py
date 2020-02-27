@@ -1,9 +1,13 @@
+import sys
 import collections
 import json
-import logging
 
-import util.hermes_logging
-log = util.hermes_logging.getMainLogger()
+if 'hermes_util' in sys.modules.keys():
+   import hermes_util.hermes_logging as logging
+else:
+   import util.hermes_logging as logging
+
+log = logging.getMainLogger()
 
 def readJsonFile(path):
    '''

@@ -47,7 +47,8 @@ suiteList = [
    "UiTests",
    "WebSocketRPCTests",
    "MetadataPersistencyTests"
-   "PrivacyTeeTests"
+   "PrivacyTeeTests",
+   "ApolloBftTests"
 ]
 local_modules = [os.path.join(".", "lib", "persephone")]
 
@@ -374,6 +375,8 @@ def createTestSuite(args, suiteName, product):
       return persistency_tests.MetadataPersistencyTests(args, product)
    elif (suiteName == "PrivacyTeeTests"):
       return pytest_suite.PytestSuite(args, "suites/privacy_tee_tests.py", product)
+   elif (suiteName == "ApolloBftTests"):
+       return pytest_suite.PytestSuite(args, "suites/apollo_bft_tests.py", product)
    else:
       return None
 
