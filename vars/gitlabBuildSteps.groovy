@@ -116,8 +116,7 @@ import hudson.util.Secret
     "enabled": true,
     "dockerComposeFiles": "../docker/docker-compose.yml ../docker/docker-compose-persephone.yml",
     "baseCommand": 'echo "${PASSWORD}" | sudo -S "${python}" main.py CoreVMTests --blockchainLocation sddc \
-      --tests="-k vmArithmeticTest/add0.json"',
-    "runWithGenericTests": true
+      --tests="-k vmArithmeticTest/add0.json"'
   ],
   "LoggingTests": [
     "enabled": true,

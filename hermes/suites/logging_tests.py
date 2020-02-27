@@ -1,8 +1,13 @@
 #########################################################################
 # Copyright 2018 - 2020 VMware, Inc.  All rights reserved. -- VMware Confidential
 #
-# Utility to test the performance of the Helen+concord ecosystem
+# For testing e2e logs on sddc nodes to log insight cloud
+# Deploy from Helen to persephone to sddc
+# Logs stream from containers in sddc vms via fluentd to log insight cloud
+# Testing logs via queries through helen log proxy
+# Logs tested are from concord, daml execution engine, daml index db and daml ledger api
 #########################################################################
+
 import logging
 import pytest
 import requests
@@ -23,7 +28,7 @@ log_insight_host = 'https://localhost.vmware.com'
 log_insight_url = '{0}/api/lint/ops/query/log-query-tasks'.format(
     log_insight_host
 )
-wait_time = 10 * 60  # Twenty Minutes
+wait_time = 10 * 60  # Ten Minutes
 
 headers = {
     "Authorization": "Bearer {}".format(getAccessToken()),
@@ -32,9 +37,7 @@ headers = {
 }
 
 
-def li_sql_query_builder(
-    where,
-):
+def li_sql_query_builder(where):
     select = "SELECT * FROM logs"
 
     return "{0} {1}ORDER BY ingest_timestamp DESC".format(
@@ -59,7 +62,7 @@ def get_start_to_end_ms(start=1, end=0):
 
 # Log Insight Cloud Query
 # First it creates a query task with a replica ID
-# Then polls on query task, until it's completed
+# Then polls on query task until it's completed
 @pytest.fixture
 def li_cloud_query(fxConnection):
     def _init(data={}):
@@ -183,6 +186,10 @@ def test_log_insight_concord_message(li_cloud_query):
     assert len(results) != 0
 
 
+#
+# I'll revisit these tests on the next PR BC-1511
+# Commenting out until I can deploy a client node
+#
 # @pytest.mark.smoke
 # def test_log_insight_daml_api_log(li_cloud_query):
 #     parsed_logs = li_cloud_query(data={
