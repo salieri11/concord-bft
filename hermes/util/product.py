@@ -967,6 +967,9 @@ class Product():
                sleepTime))
          time.sleep(sleepTime)
 
+      log.error(
+         "Service '{}' took more than {} seconds (or) there was no expected log match found".format(
+            service, retries * sleepTime))
       return False
 
 
