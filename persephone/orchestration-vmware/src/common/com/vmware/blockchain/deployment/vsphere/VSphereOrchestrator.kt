@@ -155,15 +155,12 @@ class VSphereOrchestrator constructor(
                                     network.nameServersList,
                                     network.subnet,
                                     request.cluster,
-                                    request.node,
                                     request.concordId,
                                     request.configurationSessionIdentifier,
                                     request.configServiceEndpoint,
                                     request.configServiceRestEndpoint,
                                     info.vsphere.outboundProxy,
-                                    info.logManagementsList,
-                                    info.wavefront,
-                                    request.consortium
+                                    info.wavefront
                             ),
                             vmProfile = request.vmProfile
                     )

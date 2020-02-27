@@ -172,15 +172,12 @@ class VmcOrchestrator(
                                     network.nameServersList,
                                     network.subnet,
                                     request.cluster,
-                                    request.node,
                                     request.concordId,
                                     request.configurationSessionIdentifier,
                                     request.configServiceEndpoint,
                                     request.configServiceRestEndpoint,
                                     OutboundProxyInfo.newBuilder().build(),
-                                    info.logManagementsList,
-                                    info.wavefront,
-                                    request.consortium
+                                    info.wavefront
                             ),
                             vmProfile = request.vmProfile
                     )
