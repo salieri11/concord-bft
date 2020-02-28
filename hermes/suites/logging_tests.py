@@ -20,7 +20,7 @@ from util.daml import daml_helper
 from util.auth import getAccessToken
 from fixtures.common_fixtures import (
     fxBlockchain, fxConnection, fxHermesRunSettings,
-    fxInitializeOrgs, fxProduct, deployToSddc)
+    fxInitializeOrgs, fxProduct)
 
 log = logging.getLogger(__name__)
 
@@ -64,16 +64,20 @@ def get_start_to_end_ms(start=1, end=0):
 # First it creates a query task with a replica ID
 # Then polls on query task until it's completed
 @pytest.fixture
-def li_cloud_query(fxConnection):
+def li_cloud_query(fxConnection, fxBlockchain):
     def _init(data={}):
         log_dict = {}
         max_iterations = 7
         cur_iterations = 0
         where = ""
         start, end = get_start_to_end_ms()
+        blockchain = None
+
+        for bc in fxConnection.request.getBlockchains():
+            if fxBlockchain.blockchainId == bc.get('id', None):
+                blockchain = bc
 
         # Get our replica id
-        blockchain = fxConnection.request.getBlockchains()[0]
         replicas = blockchain.get('node_list', None)
         replica_id = replicas[0].get('node_id', None)
         replica_url = "{0}?replica_id={1}".format(
@@ -135,14 +139,6 @@ def li_cloud_query(fxConnection):
 
 
 @pytest.mark.smoke
-def deploy(deployToSddc):
-    # Wait for tasks to finish
-    blockchain_id, consortium_id = deployToSddc
-    UUID(blockchain_id)
-    UUID(consortium_id)
-
-
-@pytest.mark.smoke
 def test_log_insight_cloud_api(li_cloud_query):
     # Wait for logs to ingest
     time.sleep(wait_time)
@@ -165,14 +161,14 @@ def test_log_insight_concord_log(li_cloud_query):
 
 
 @pytest.mark.smoke
-def test_log_insight_concord_log(li_cloud_query):
+def test_log_insight_service_fake(li_cloud_query):
     parsed_logs = li_cloud_query(data={
-        "where": "service_name='concord'"
+        "where": "service_name='fake'"
     })
 
     results = parsed_logs.get('logQueryResults', None)
     log.info('Log Query Results: {0}'.format(results))
-    assert len(results) != 0
+    assert len(results) == 0
 
 
 @pytest.mark.smoke
@@ -185,6 +181,16 @@ def test_log_insight_concord_message(li_cloud_query):
     log.info('Log Query Results: {0}'.format(results))
     assert len(results) != 0
 
+@pytest.mark.smoke
+def test_log_insight_concord_message_negative(li_cloud_query):
+    # This should not exist and return 0 logs
+    parsed_logs = li_cloud_query(data={
+        "where": "service_name='concord' AND text='fake data'"
+    })
+
+    results = parsed_logs.get('logQueryResults', None)
+    log.info('Log Query Results: {0}'.format(results))
+    assert len(results) == 0
 
 #
 # I'll revisit these tests on the next PR BC-1511
@@ -256,3 +262,15 @@ def test_log_insight_daml_execution_engine(li_cloud_query):
     results = parsed_logs.get('logQueryResults', None)
     log.info('Log Query Results: {0}'.format(results))
     assert len(results) != 0
+
+
+@pytest.mark.smoke
+def test_log_insight_daml_execution_engine_negative(li_cloud_query):
+    # This should not exist and return 0 logs
+    parsed_logs = li_cloud_query(data={
+        "where": "service_name='daml_execution_engine' AND text='fake data'"
+    })
+
+    results = parsed_logs.get('logQueryResults', None)
+    log.info('Log Query Results: {0}'.format(results))
+    assert len(results) == 0
