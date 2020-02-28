@@ -3,7 +3,9 @@
 cmake_minimum_required(VERSION 3.10)
 
 # Generate Protobufs
-set(THIN_REPLICA_PROTO "/proto/thin_replica.proto")
+
+set(COMMUNICATION_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../communication")
+set(THIN_REPLICA_PROTO ${COMMUNICATION_PATH}/src/main/proto/thin_replica.proto)
 protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ${CMAKE_CURRENT_BINARY_DIR}
   ${THIN_REPLICA_PROTO}
 )
