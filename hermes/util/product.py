@@ -938,7 +938,7 @@ class Product():
       '''
       Check if all microservices of persephone are up
       '''
-      retries = 5
+      retries = 10
       attempts = 0
       sleepTime = 3
       log_filename = "{}.log".format(
