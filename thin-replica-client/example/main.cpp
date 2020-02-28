@@ -32,7 +32,8 @@ static void ReportUpdate(Logger& logger, const Update& update) {
   const vector<pair<string, string>>& update_data = update.kv_pairs;
   stringstream update_report;
   update_report << "ThinReplicaClient reported an update (Block ID: "
-                << update.block_id << ")." << endl;
+                << update.block_id << " CID: " << update.correlation_id_ << ")."
+                << endl;
   if (update_data.size() < 1) {
     update_report << "    The update appears to be empty.";
   } else {

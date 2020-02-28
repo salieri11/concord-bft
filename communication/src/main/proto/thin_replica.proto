@@ -63,6 +63,7 @@ message Data {
   // The location of the update on the server
   uint64 block_id = 1;
   repeated KVPair data = 2;
+  string correlation_id = 3;
 }
 
 message KVPair {

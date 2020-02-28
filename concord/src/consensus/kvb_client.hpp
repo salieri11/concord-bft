@@ -48,7 +48,8 @@ class KVBClient {
   bool send_request_sync(com::vmware::concord::ConcordRequest &req,
                          bool isReadOnly, std::chrono::milliseconds timeout,
                          opentracing::Span &parent_span,
-                         com::vmware::concord::ConcordResponse &resp);
+                         com::vmware::concord::ConcordResponse &resp,
+                         const std::string &correlation_id = "");
 };
 
 class KVBClientPool {
@@ -97,12 +98,14 @@ class KVBClientPool {
 
   bool send_request_sync(com::vmware::concord::ConcordRequest &req,
                          bool isReadOnly, opentracing::Span &parent_span,
-                         com::vmware::concord::ConcordResponse &resp);
+                         com::vmware::concord::ConcordResponse &resp,
+                         const std::string &correlation_id = "");
 
   bool send_request_sync(com::vmware::concord::ConcordRequest &req,
                          bool isReadOnly, std::chrono::milliseconds timeout,
                          opentracing::Span &parent_span,
-                         com::vmware::concord::ConcordResponse &resp);
+                         com::vmware::concord::ConcordResponse &resp,
+                         const std::string &correlation_id = "");
 
   // Reconfigure the time period for the TimePusher (if any) managed by this
   // KVBClientPool and shared by its KVBClients. Calls to this function will be

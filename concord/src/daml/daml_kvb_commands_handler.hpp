@@ -29,6 +29,8 @@ class DamlKvbCommandsHandler
   std::unique_ptr<IDamlValidatorClient> validator_client_;
   prometheus::Counter& write_ops_;
   prometheus::Counter& read_ops_;
+  concordUtils::Key cid_key_ =
+      concordUtils::Key(new char[1]{storage::kKvbKeyCorrelationId}, 1);
 
  public:
   DamlKvbCommandsHandler(

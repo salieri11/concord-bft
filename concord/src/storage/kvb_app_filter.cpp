@@ -36,12 +36,17 @@ namespace storage {
 
 SetOfKeyValuePairs KvbAppFilter::FilterKeyValuePairs(
     const SetOfKeyValuePairs &kvs) {
-  assert(type_ == KvbAppFilter::kDaml);
+  assert(types_.find(KvbAppFilter::kDaml) != types_.end());
   char kvb_key_id = concord::storage::kKvbKeyDaml;
 
   SetOfKeyValuePairs filtered_kvs;
 
+  bool keep_cid = types_.find(KvbAppFilter::kCid) != types_.end();
   for (const auto &[key, value] : kvs) {
+    if (keep_cid && key[0] == kKvbKeyCorrelationId) {
+      filtered_kvs.insert({key, value});
+      continue;
+    }
     // Filter by appliction type
     if (key[0] != kvb_key_id) {
       continue;

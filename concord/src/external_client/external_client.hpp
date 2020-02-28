@@ -79,6 +79,13 @@ class ConcordClient {
                        std::uint32_t reply_size, void* out_reply,
                        std::uint32_t* out_actual_reply_size);
 
+  void SendRequestSync(const void* request, std::uint32_t request_size,
+                       bftEngine::ClientMsgFlag flags,
+                       std::chrono::milliseconds timeout_ms,
+                       std::uint32_t reply_size, void* out_reply,
+                       std::uint32_t* out_actual_reply_size,
+                       const std::string& correlation_id);
+
  private:
   void Initialize(std::istream& config_stream,
                   UPDATE_CONNECTIVITY_FN status_callback);
