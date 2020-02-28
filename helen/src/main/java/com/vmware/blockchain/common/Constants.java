@@ -13,6 +13,7 @@ public class Constants {
     public static final String ORG_ZONES = "org_zones";
     public static final String ORG_DOCKER_IMAGE_OVERRIDE = "org_docker_image_override";
     public static final String ORG_MAX_CHAINS = "max_chains";
+    public static final String NODE_VM_PROFILE = "node_vm_profile";
 
     //API Endpoints
     // Below endpoints are needed because some servlets still use this information

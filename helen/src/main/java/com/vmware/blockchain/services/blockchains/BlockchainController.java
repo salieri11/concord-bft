@@ -649,6 +649,12 @@ public class BlockchainController {
 
         Map<String, String> properties = new HashMap<>();
         properties.put(NodeProperty.Name.COMMITTERS.toString(), ipList);
+        if (organizationService.get(authHelper.getOrganizationId()).getOrganizationProperties() != null) {
+            properties.put(NodeProperty.Name.VM_PROFILE.toString(),
+                           organizationService.get(authHelper.getOrganizationId()).getOrganizationProperties()
+                                   .getOrDefault(Constants.NODE_VM_PROFILE, "small"));
+        }
+
 
         if (blockchainType != BlockchainType.DAML) {
             logger.info("Participant node can be deployed only for DAML blockchains.");
