@@ -138,6 +138,7 @@ public class BlockchainControllerTest {
     private static final UUID REPLICA_3 = UUID.fromString("e10a68e3-faa5-4ab6-a69f-53e10bc0d490");
     private static final UUID REPLICA_4 = UUID.fromString("493b84d7-5333-4294-bba7-c56ade48cb73");
 
+
     // use consortium c2 in this, Unspecified placement
     static final String POST_BODY_UNSP = "{"
                                          + "    \"consortium_id\": \"04e4f62d-5364-4363-a582-b397075b65a3\","
@@ -192,13 +193,6 @@ public class BlockchainControllerTest {
                                           + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
                                           + "            \"275638a3-8860-4925-85de-c73d45cb7232\","
                                           + "            \"275638a3-8860-4925-85de-c73d45cb7232\"]" + "}";
-
-    // DAML participant
-    static final String POST_BODY_DAML_PARTICIPANT = "{"
-            + "    \"zone_ids\": ["
-            + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-            + "            \"275638a3-8860-4925-85de-c73d45cb7232\","
-            + "            \"275638a3-8860-4925-85de-c73d45cb7232\"]" + "}";
 
     @Autowired
     private WebApplicationContext context;
@@ -340,16 +334,20 @@ public class BlockchainControllerTest {
                 .build();
 
         final Replica replica1 = new Replica("publicIp", "privateIp", "hostName", "url", "cert", REPLICA_1,
-                Replica.ReplicaType.NONE, BC_DAML_GET_CLIENT);
+                                             Replica.ReplicaType.NONE, BC_DAML_GET_CLIENT);
 
         final Replica replica2 = new Replica("publicIp", "privateIp", "hostName", "url", "cert", REPLICA_2,
-                Replica.ReplicaType.DAML_PARTICIPANT, BC_DAML_GET_CLIENT);
+                                             Replica.ReplicaType.DAML_PARTICIPANT, BC_DAML_GET_CLIENT);
 
         final Replica replica3 = new Replica("publicIp", "privateIp", "hostName", "url", "cert", REPLICA_3,
-                Replica.ReplicaType.DAML_PARTICIPANT, BC_DAML_GET_CLIENT);
+                                             Replica.ReplicaType.DAML_PARTICIPANT, BC_DAML_GET_CLIENT);
 
         final Replica replica4 = new Replica("publicIp", "privateIp", "hostName", "url", "cert", REPLICA_4,
-                Replica.ReplicaType.NONE, BC_DAML_GET_CLIENT);
+                                             Replica.ReplicaType.NONE, BC_DAML_GET_CLIENT);
+
+        when(blockchainService.getReplicas(BC_DAML_GET_CLIENT))
+                .thenReturn(ImmutableList.of(replica1, replica2, replica3, replica4));
+
 
         when(blockchainService.getReplicas(BC_DAML_GET_CLIENT))
                 .thenReturn(ImmutableList.of(replica1, replica2, replica3, replica4));
@@ -474,23 +472,6 @@ public class BlockchainControllerTest {
         // Now check that the lists are equivalent
         assertEquivalentLists(res.get(0).getNodeList(), res.get(0).getReplicaList());
         assertEquivalentLists(res.get(1).getNodeList(), res.get(1).getReplicaList());
-    }
-
-    @Test
-    void getParticipantNodeList() throws Exception {
-        MvcResult result = mockMvc.perform(
-                get("/api/blockchains/" + BC_DAML_GET_CLIENT.toString() + "/clients")
-                        .with(authentication(adminAuth))
-                .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk()).andReturn();
-
-        String body = result.getResponse().getContentAsString();
-        List<BlockchainController.ReplicaGetResponse> res =
-                objectMapper.readValue(body, new TypeReference<List<BlockchainController.ReplicaGetResponse>>() {});
-
-        Assertions.assertEquals(2, res.size());
-        Assertions.assertEquals(Replica.ReplicaType.DAML_PARTICIPANT, res.get(0).getReplicaType());
-        Assertions.assertEquals(Replica.ReplicaType.DAML_PARTICIPANT, res.get(1).getReplicaType());
     }
 
     @Test
@@ -620,6 +601,7 @@ public class BlockchainControllerTest {
                                                           ImmutableList.of(Roles.CONSORTIUM_ADMIN, Roles.ORG_USER),
                                                           ImmutableList.of(C2_ID),
                                                           ImmutableList.of(BC_ID, BC2_ID), "");
+        mockMvc.perform(post("/api/blockchains").with(authentication(tooManyAuth)));
         mockMvc.perform(post("/api/blockchains").with(authentication(tooManyAuth))
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(POST_BODY_UNSP).characterEncoding("utf-8"))
@@ -726,36 +708,6 @@ public class BlockchainControllerTest {
                 .count());
     }
 
-    @Test
-    void deployParticipant() throws Exception {
-        ArgumentCaptor<CreateClusterRequest> captor = ArgumentCaptor.forClass(CreateClusterRequest.class);
-        mockMvc.perform(post("/api/blockchains/" + BC_DAML.toString() + "/clients")
-                .with(authentication(adminAuth))
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(POST_BODY_DAML_PARTICIPANT))
-                .andExpect(status().isAccepted());
-
-        verify(client).createCluster(captor.capture(), any(StreamObserver.class));
-        CreateClusterRequest request = captor.getValue();
-        Assertions.assertEquals(0, request.getSpecification().getClusterSize());
-        List<PlacementSpecification.Entry> entries = request.getSpecification().getPlacement().getEntriesList();
-        Assertions.assertEquals(3, entries.size());
-        Assertions.assertTrue(entries.stream().allMatch(e -> e.getType() == PlacementSpecification.Type.FIXED));
-        Assertions.assertEquals(1, entries.stream()
-                .filter(e -> OrchestrationSiteIdentifier.newBuilder()
-                        .setLow(SITE_1.getLeastSignificantBits())
-                        .setHigh(SITE_1.getMostSignificantBits())
-                        .build()
-                        .equals(e.getSite()))
-                .count());
-        Assertions.assertEquals(2, entries.stream()
-                .filter(e -> OrchestrationSiteIdentifier.newBuilder()
-                        .setLow(SITE_2.getLeastSignificantBits())
-                        .setHigh(SITE_2.getMostSignificantBits())
-                        .build()
-                        .equals(e.getSite()))
-                .count());
-    }
 
     @Test
     void creatBad() throws Exception {

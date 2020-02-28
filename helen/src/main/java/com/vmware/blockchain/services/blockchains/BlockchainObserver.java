@@ -25,7 +25,9 @@ import com.vmware.blockchain.operation.OperationContext;
 import com.vmware.blockchain.services.blockchains.Blockchain.BlockchainType;
 import com.vmware.blockchain.services.blockchains.Blockchain.NodeEntry;
 import com.vmware.blockchain.services.blockchains.replicas.Replica;
+import com.vmware.blockchain.services.blockchains.replicas.Replica.ReplicaType;
 import com.vmware.blockchain.services.blockchains.replicas.ReplicaService;
+import com.vmware.blockchain.services.clients.Client.ClientType;
 import com.vmware.blockchain.services.tasks.Task;
 import com.vmware.blockchain.services.tasks.TaskService;
 
@@ -52,7 +54,8 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
     private UUID clusterId;
     private String opId;
     private BlockchainType type;
-    private Replica.ReplicaType replicaType;
+    private ClientType clientType;
+    private ReplicaType replicaType;
 
     /**
      * Create a new Blockchain Observer.  This handles the callbacks from the deployment
@@ -73,7 +76,8 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
             UUID consortiumId,
             UUID blockchainId,
             BlockchainType type,
-            Replica.ReplicaType replicaType) {
+            ReplicaType  replicaType,
+            ClientType clientType) {
         this.authHelper = authHelper;
         this.operationContext = operationContext;
         this.blockchainService = blockchainService;
@@ -86,6 +90,7 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
         opId = operationContext.getId();
         this.type = type;
         this.replicaType = replicaType;
+        this.clientType = clientType;
     }
 
     private void logNode(ConcordNode node) {
@@ -119,7 +124,7 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
                 case CLUSTER_DEPLOYED:
 
                     ConcordCluster cluster = value.getCluster();
-                    if (replicaType == Replica.ReplicaType.DAML_PARTICIPANT) {
+                    if (replicaType ==  replicaType.DAML_PARTICIPANT) {
                         // Temporary hack to allow client deployment.
                         clusterId = blockchainId;
                     } else {
@@ -137,7 +142,8 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
 
                     // create the and save the replicas.
                     cluster.getInfo().getMembersList().stream()
-                            .map(n -> toReplica(clusterId, n, this.replicaType))
+                            .map(n -> toReplica(clusterId, n, this.replicaType,
+                                                this.clientType))
                             .peek(replica -> logger.info("Node entry, id {}", replica.getId()))
                             .forEach(replicaService::put);
 
@@ -199,7 +205,7 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
         task.setMessage("Operation finished");
 
         if (status == DeploymentSession.Status.SUCCESS) {
-            if (replicaType == Replica.ReplicaType.DAML_PARTICIPANT) {
+            if (replicaType == ReplicaType.DAML_PARTICIPANT) {
                 task.setResourceId(blockchainId);
                 task.setResourceLink(String.format("/api/blockchains/%s/clients", blockchainId));
             } else {
@@ -274,7 +280,8 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
         return endpoint;
     }
 
-    private static Replica toReplica(UUID blockchainId, ConcordNode node, Replica.ReplicaType replicaType) {
+    private static Replica toReplica(UUID blockchainId, ConcordNode node, ReplicaType replicaType,
+                                     ClientType clientType) {
         // Fetch the first IP address in the data payload, or return 0.
         UUID replicaId = FleetUtils.toUuid(node.getId());
         String name = node.getInfo().getIpv4Addresses().keySet().stream().findFirst().orElse("replica");

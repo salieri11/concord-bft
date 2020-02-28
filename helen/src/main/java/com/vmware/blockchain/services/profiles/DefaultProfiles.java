@@ -27,6 +27,7 @@ import com.vmware.blockchain.services.blockchains.Blockchain.NodeEntry;
 import com.vmware.blockchain.services.blockchains.BlockchainService;
 import com.vmware.blockchain.services.blockchains.replicas.Replica;
 import com.vmware.blockchain.services.blockchains.replicas.ReplicaService;
+import com.vmware.blockchain.services.clients.Client;
 import com.vmware.blockchain.services.concord.ConcordService;
 import com.vmware.concord.Concord.Peer;
 
@@ -220,6 +221,7 @@ public class DefaultProfiles {
             List<Peer> peers = concordService.getMembers(b.getId());
             List<NodeEntry> nodes = b.getNodeList();
             Replica.ReplicaType replicaType = Replica.ReplicaType.NONE;
+            Client.ClientType clientType = Client.ClientType.NONE;
             for (int i = 0; i < nodes.size(); i++) {
                 NodeEntry n = nodes.get(i);
                 Peer p = peers.get(i);

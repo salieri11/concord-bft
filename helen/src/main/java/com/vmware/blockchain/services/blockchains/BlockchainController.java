@@ -4,14 +4,12 @@
 
 package com.vmware.blockchain.services.blockchains;
 
-import static com.vmware.blockchain.services.blockchains.Blockchain.BlockchainState;
 import static com.vmware.blockchain.services.blockchains.Blockchain.BlockchainType;
 import static com.vmware.blockchain.services.blockchains.BlockchainController.DeploymentType.FIXED;
 import static com.vmware.blockchain.services.blockchains.BlockchainController.DeploymentType.UNSPECIFIED;
 import static com.vmware.blockchain.services.blockchains.BlockchainUtils.toInfo;
 
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -46,20 +44,19 @@ import com.vmware.blockchain.deployment.v1.CreateClusterRequest;
 import com.vmware.blockchain.deployment.v1.DeploymentSessionIdentifier;
 import com.vmware.blockchain.deployment.v1.DeploymentSpecification;
 import com.vmware.blockchain.deployment.v1.MessageHeader;
-import com.vmware.blockchain.deployment.v1.NodeProperty;
 import com.vmware.blockchain.deployment.v1.OrchestrationSiteIdentifier;
 import com.vmware.blockchain.deployment.v1.OrchestrationSiteInfo;
 import com.vmware.blockchain.deployment.v1.PlacementSpecification;
 import com.vmware.blockchain.deployment.v1.PlacementSpecification.Entry;
 import com.vmware.blockchain.deployment.v1.PlacementSpecification.Type;
-import com.vmware.blockchain.deployment.v1.Properties;
 import com.vmware.blockchain.deployment.v1.ProvisioningServiceGrpc.ProvisioningServiceStub;
 import com.vmware.blockchain.deployment.v1.StreamClusterDeploymentSessionEventRequest;
 import com.vmware.blockchain.operation.OperationContext;
 import com.vmware.blockchain.services.blockchains.Blockchain.NodeEntry;
-import com.vmware.blockchain.services.blockchains.replicas.Replica;
+import com.vmware.blockchain.services.blockchains.replicas.Replica.ReplicaType;
 import com.vmware.blockchain.services.blockchains.replicas.ReplicaService;
 import com.vmware.blockchain.services.blockchains.zones.ZoneService;
+import com.vmware.blockchain.services.clients.Client.ClientType;
 import com.vmware.blockchain.services.configuration.ConcordConfiguration;
 import com.vmware.blockchain.services.profiles.DefaultProfiles;
 import com.vmware.blockchain.services.profiles.Organization;
@@ -96,8 +93,8 @@ public class BlockchainController {
 
     private static final Map<BlockchainType, ConcordModelSpecification.BlockchainType> enumMapForBlockchainType =
             ImmutableMap.of(BlockchainType.ETHEREUM, ConcordModelSpecification.BlockchainType.ETHEREUM,
-                            BlockchainType.DAML, ConcordModelSpecification.BlockchainType.DAML,
-                            BlockchainType.HLF, ConcordModelSpecification.BlockchainType.HLF);
+                    BlockchainType.DAML, ConcordModelSpecification.BlockchainType.DAML,
+                    BlockchainType.HLF, ConcordModelSpecification.BlockchainType.HLF);
 
     @Getter
     @Setter
@@ -116,18 +113,10 @@ public class BlockchainController {
     @Getter
     @Setter
     @JsonIgnoreProperties(ignoreUnknown = true)
-    static class ParticipantPost {
-        private List<UUID> zoneIds;
-    }
-
-    @Getter
-    @Setter
-    @JsonIgnoreProperties(ignoreUnknown = true)
     static class BlockchainPatch {
         private String ipList;
         private String rpcUrls;
         private String rpcCerts;
-        private BlockchainState blockchainState;
     }
 
     @Getter
@@ -175,7 +164,6 @@ public class BlockchainController {
         private UUID id;
         private UUID consortiumId;
         private BlockchainType blockchainType;
-        private BlockchainState blockchainState;
         @Deprecated
         private List<BlockchainNodeEntry> nodeList;
         private List<BlockchainReplicaEntry> replicaList;
@@ -184,41 +172,11 @@ public class BlockchainController {
             this.id = b.getId();
             this.consortiumId = b.getConsortium();
             this.blockchainType = b.getType() == null ? BlockchainType.ETHEREUM : b.getType();
-            this.blockchainState = b.getState() == null ?  BlockchainState.INACTIVE : b.getState();
             // For the moment, return both node_list and replica_list
             this.nodeList = b.getNodeList().stream().map(BlockchainNodeEntry::new).collect(Collectors.toList());
             this.replicaList = b.getNodeList().stream().map(BlockchainReplicaEntry::new).collect(Collectors.toList());
         }
     }
-
-
-    @Getter
-    @Setter
-    @NoArgsConstructor
-    @AllArgsConstructor
-    static class ReplicaGetResponse {
-        private String publicIp;
-        private String privateIp;
-        private String hostName;
-        private String url;
-        private String cert;
-        private UUID zoneId;
-        private Replica.ReplicaType replicaType;
-        private UUID blockchainId;
-
-        public ReplicaGetResponse(Replica r) {
-            this.publicIp = r.getPublicIp();
-            this.privateIp = r.getPrivateIp();
-            this.hostName = r.getHostName();
-            this.url = r.getUrl();
-            this.cert = r.getCert();
-            this.zoneId = r.getZoneId();
-            this.replicaType = r.getReplicaType();
-            this.blockchainId = r.getBlockchainId();
-        }
-    }
-
-
 
     /**
      * Response from blockchain post, with a task id.
@@ -286,34 +244,15 @@ public class BlockchainController {
     }
 
     /**
-     * Get the list of all participant nodes.
-     */
-    @RequestMapping(path = "/api/blockchains/{bid}/clients", method = RequestMethod.GET)
-    @PreAuthorize("@authHelper.isUser()")
-    ResponseEntity<List<ReplicaGetResponse>> listParticipants(@PathVariable("bid") UUID bid) {
-        List<ReplicaGetResponse> replicaGetResponseList = blockchainService.getReplicas(bid)
-                .stream()
-                .filter(replica -> replica.getReplicaType() == Replica.ReplicaType.DAML_PARTICIPANT)
-                .map(ReplicaGetResponse::new)
-                .collect(Collectors.toList());
-
-        return new ResponseEntity<>(replicaGetResponseList, HttpStatus.OK);
-    }
-
-    /**
      * Get the blockchain details.
      */
     @RequestMapping(path = "/api/blockchains/{id}", method = RequestMethod.GET)
     @PreAuthorize("@authHelper.canAccessChain(#id)")
     ResponseEntity<BlockchainGetResponse> get(@PathVariable UUID id) throws NotFoundException {
         Blockchain b = blockchainService.get(id);
-        if (b.getState() != BlockchainState.INACTIVE) {
-            logger.info("de-registered states not visible");
-        }
         BlockchainGetResponse br = new BlockchainGetResponse(b);
         return new ResponseEntity<>(br, HttpStatus.OK);
     }
-
 
     /**
      * The actual call which will contact server and add the model request.
@@ -359,7 +298,7 @@ public class BlockchainController {
                 .build();
 
         var blockChainType = blockchainType == null ? ConcordModelSpecification.BlockchainType.ETHEREUM
-                                                    : enumMapForBlockchainType.get(blockchainType);
+                : enumMapForBlockchainType.get(blockchainType);
 
         var genesis = ConcordConfiguration.getGenesisObject();
 
@@ -367,7 +306,7 @@ public class BlockchainController {
 
         if (deployDamlCommitter) {
             var components = concordConfiguration.getComponentsByNodeType(ConcordModelSpecification
-                                                                                  .NodeType.DAML_COMMITTER);
+                    .NodeType.DAML_COMMITTER);
 
             spec = ConcordModelSpecification.newBuilder()
                     .setVersion(concordConfiguration.getVersion())
@@ -398,64 +337,6 @@ public class BlockchainController {
         var request = CreateClusterRequest.newBuilder()
                 .setHeader(MessageHeader.newBuilder()
                                    .setId(operationContext.getId() != null ? operationContext.getId() : "").build())
-                .setSpecification(deploySpec)
-                .build();
-
-        // Check that the API can be serviced normally after service initialization.
-        var promise = new CompletableFuture<DeploymentSessionIdentifier>();
-        client.createCluster(request, FleetUtils.blockedResultObserver(promise));
-        return promise.get();
-    }
-
-
-    /**
-     * The actual call which will contact server to add the participant.
-     */
-    private DeploymentSessionIdentifier createParticipantCluster(ProvisioningServiceStub client,
-                                                                 List<UUID> zoneIds, UUID consortiumId,
-                                                                 Map<String, String> properties) throws Exception {
-        List<Entry> list;
-
-        list = zoneIds.stream()
-                .map(zoneService::get)
-                .map(z -> Entry.newBuilder()
-                        .setType(Type.FIXED)
-                        .setSite(OrchestrationSiteIdentifier.newBuilder()
-                                         .setLow(z.getId().getLeastSignificantBits())
-                                         .setHigh(z.getId().getMostSignificantBits())
-                                         .build())
-                        .setSiteInfo(toInfo(z))
-                        .build())
-                .collect(Collectors.toList());
-
-        var placementSpec = PlacementSpecification.newBuilder()
-                .addAllEntries(list)
-                .build();
-
-        var components = concordConfiguration
-                .getComponentsByNodeType(ConcordModelSpecification.NodeType.DAML_PARTICIPANT);
-
-        ConcordModelSpecification spec = ConcordModelSpecification.newBuilder()
-                .setVersion(concordConfiguration.getVersion())
-                .setTemplate(concordConfiguration.getTemplate())
-                .addAllComponents(components)
-                .setBlockchainType(ConcordModelSpecification.BlockchainType.DAML)
-                .setNodeType(ConcordModelSpecification.NodeType.DAML_PARTICIPANT)
-                .build();
-
-        DeploymentSpecification deploySpec = DeploymentSpecification.newBuilder()
-                .setModel(spec)
-                .setPlacement(placementSpec)
-                .setConsortium(consortiumId.toString())
-                .setProperties(
-                        Properties.newBuilder()
-                                .putAllValues(properties)
-                                .build()
-                )
-                .build();
-
-        var request = CreateClusterRequest.newBuilder()
-                .setHeader(MessageHeader.newBuilder().setId("").build())
                 .setSpecification(deploySpec)
                 .build();
 
@@ -518,7 +399,7 @@ public class BlockchainController {
          */
         if (body.deploymentType == FIXED) {
             if (body.getZoneIds() == null
-                || body.getZoneIds().size() != clusterSize) {
+                    || body.getZoneIds().size() != clusterSize) {
                 logger.info("Number of zones not equal to cluster size");
                 throw new BadRequestException(ErrorCode.BAD_REQUEST);
             }
@@ -546,19 +427,20 @@ public class BlockchainController {
 
 
         dsId = createFixedSizeCluster(client, clusterSize,
-                                      enumMap.get(body.deploymentType),
-                                      body.getZoneIds(),
-                                      blockchainType,
-                                      body.consortiumId,
-                                      deployDamlCommitter);
+                enumMap.get(body.deploymentType),
+                body.getZoneIds(),
+                blockchainType,
+                body.consortiumId,
+                deployDamlCommitter);
 
-        Replica.ReplicaType replicaType = Replica.ReplicaType.NONE;
+        ClientType clientType = ClientType.NONE;
+        ReplicaType replicaType = ReplicaType.NONE;
 
         logger.info("Deployment started, id {} for the consortium id {}", dsId, body.consortiumId.toString());
         BlockchainObserver bo =
                 new BlockchainObserver(authHelper, operationContext, blockchainService, replicaService, taskService,
-                                       task.getId(), body.getConsortiumId(), null, blockchainType,
-                                       replicaType);
+                                       task.getId(), body.getConsortiumId(), null, blockchainType, replicaType,
+                                       null);
         // Watch for the event stream
         StreamClusterDeploymentSessionEventRequest request = StreamClusterDeploymentSessionEventRequest.newBuilder()
                 .setHeader(MessageHeader.newBuilder().build())
@@ -577,8 +459,7 @@ public class BlockchainController {
     @RequestMapping(path = "/api/blockchains/{id}", method = RequestMethod.PATCH)
     @PreAuthorize("@authHelper.canUpdateChain(#id)")
     public ResponseEntity<BlockchainTaskResponse> updateBlockchain(@PathVariable UUID id,
-                                                                   @RequestBody BlockchainPatch body)
-                                                                    throws NotFoundException {
+            @RequestBody BlockchainPatch body) throws NotFoundException {
 
         // Temporary: create a completed task that points to the default blockchain
         Task task = new Task();
@@ -593,87 +474,4 @@ public class BlockchainController {
         return new ResponseEntity<>(new BlockchainTaskResponse(task.getId()), HttpStatus.ACCEPTED);
     }
 
-    /**
-     * De-register the blockchain.
-     */
-    @RequestMapping(path = "/api/blockchains/{bid}", method = RequestMethod.PATCH)
-    @PreAuthorize("@authHelper.canUpdateChain(#bid)")
-    public ResponseEntity<BlockchainGetResponse> deRegister(@PathVariable("bid") UUID bid,
-                                                                   @RequestBody BlockchainPatch body) throws Exception {
-        Blockchain blockchain = blockchainService.get(bid);
-        BlockchainState blockchainState = blockchain.getState();
-        if (blockchainState != null) {
-            if (blockchainState == BlockchainState.INACTIVE) {
-                logger.info("Setting state to active so the blockchains can be de-registered");
-                blockchain.setState(BlockchainState.ACTIVE);
-            } else {
-                logger.info("Blockchain State is active already: blockchain is de-registered");
-            }
-            logger.info("State cannot be null");
-            throw new BadRequestException(ErrorCode.BAD_REQUEST);
-        }
-        blockchain = blockchainService.put(blockchain);
-        return new ResponseEntity<>(new BlockchainGetResponse(blockchain), HttpStatus.ACCEPTED);
-    }
-
-    /**
-     * Deploy a DAML Participant node for given DAML blockchain.
-     */
-    @RequestMapping(path = "/api/blockchains/{bid}/clients", method = RequestMethod.POST)
-    @PreAuthorize("@authHelper.isConsortiumAdmin()")
-    public ResponseEntity<BlockchainTaskResponse> createParticipant(@PathVariable("bid") UUID bid,
-                                                                    @RequestBody ParticipantPost body)
-                                                                    throws Exception {
-        Task task = new Task();
-        task.setState(Task.State.RUNNING);
-        task = taskService.put(task);
-
-        Blockchain blockchain = blockchainService.get(bid);
-
-        BlockchainType blockchainType = blockchain.getType();
-
-        List<Replica> nodeEntryList = blockchainService.getReplicas(bid);
-
-        String ipList = String.join(",", nodeEntryList.stream()
-                .map(nodeEntry -> nodeEntry.getPrivateIp() + ":50051")
-                .collect(Collectors.toList()));
-
-        Map<String, String> properties = new HashMap<>();
-        properties.put(NodeProperty.Name.COMMITTERS.toString(), ipList);
-
-        if (blockchainType != BlockchainType.DAML) {
-            logger.info("Participant node can be deployed only for DAML blockchains.");
-            throw new BadRequestException(ErrorCode.BAD_REQUEST);
-        }
-
-        UUID bcConsortium = blockchain.getConsortium();
-
-        properties.put(NodeProperty.Name.BLOCKCHAIN_ID.toString(), bcConsortium.toString());
-
-        List<UUID> zoneIdList = body.getZoneIds();
-
-        DeploymentSessionIdentifier dsId =  createParticipantCluster(client,
-                                                                     zoneIdList,
-                                                                     bcConsortium,
-                                                                     properties);
-
-        logger.info("Deployment for participant node started, id {} for the consortium id {}", dsId,
-                    blockchain.getConsortium().toString());
-
-        BlockchainObserver bo =
-                new BlockchainObserver(authHelper, operationContext, blockchainService, replicaService, taskService,
-                                       task.getId(), bcConsortium, bid, blockchainType,
-                                       Replica.ReplicaType.DAML_PARTICIPANT);
-        // Watch for the event stream
-
-        StreamClusterDeploymentSessionEventRequest request = StreamClusterDeploymentSessionEventRequest.newBuilder()
-                .setHeader(MessageHeader.newBuilder().build())
-                .setSession(dsId)
-                .build();
-
-        client.streamClusterDeploymentSessionEvents(request, bo);
-        logger.info("Deployment scheduled");
-
-        return new ResponseEntity<>(new BlockchainTaskResponse(task.getId()), HttpStatus.ACCEPTED);
-    }
 }
