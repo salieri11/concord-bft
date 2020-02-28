@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "configservice.name" . }}
+  labels:
+    app: {{ template "configservice.name" . }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  revisionHistoryLimit: 1
+  selector:
+    matchLabels:
+      app: {{ include "configservice.name" . }}
+  template:
+    metadata:
+      labels:
+        app: {{ include "configservice.name" . }}
+    spec:
+      imagePullSecrets:
+        - name: {{ .Values.image.pullSecret }}
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+          - containerPort: {{ .Values.service.grpccontainerPort }}
+          - containerPort: {{ .Values.service.restcontainerPort }}
+          volumeMounts:
+          - name: {{ .Values.configmap.volumename }}
+            mountPath: {{ .Values.configmap.mountPath }}
+            readOnly: true
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+      - name: {{ .Values.configmap.volumename }}
+        configMap:
+          name: {{ .Values.configmap.name }}
+          defaultMode: 0700
+
