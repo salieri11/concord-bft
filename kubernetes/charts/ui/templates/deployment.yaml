@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "ui.name" . }}
+  labels:
+    app: {{ template "ui.name" . }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  revisionHistoryLimit: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "ui.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "ui.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      imagePullSecrets:
+        - name: {{ .Values.image.pullSecret }}
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+          - containerPort: {{ .Values.service.containerPort }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+          - name: {{ .Values.nginxcm.volumename }}
+            mountPath: {{ .Values.nginxcm.mountPath }}
+            readOnly: true
+          - name: {{ .Values.uicm.volumename }}
+            mountPath: {{ .Values.uicm.mountPath }}
+            subPath: {{ .Values.uicm.subPath }}
+      volumes:
+      - name: {{ .Values.nginxcm.volumename }}
+        configMap:
+          name: {{ .Values.nginxcm.name }}
+          defaultMode: 0700
+      - name: {{ .Values.uicm.volumename }}
+        configMap:
+          name: {{ .Values.uicm.name }}
+          defaultMode: 0755

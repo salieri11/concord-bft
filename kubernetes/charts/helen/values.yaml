@@ -1,0 +1,76 @@
+# Default values for helen.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 1
+
+image:
+  repository: vmware-docker-blockchainsaas.bintray.io/vmwblockchain/helen
+  tag: stable
+  pullPolicy: Always
+  pullSecret: bintray
+
+service:
+  type: ClusterIP
+  containerPort: 8080
+  targetPort: 8080
+  terminationGracePeriod: 10
+
+prometheus:
+  scrape: "true"
+  path: "/api/management/prometheus"
+  port: "9081"
+
+helen:
+  env: "staging"
+  concordbuild: stable
+  dbserver: vmbc-staging.cgyazxnlc4ii.us-west-2.rds.amazonaws.com
+  dbport: 5432
+  dbpassword: password
+  dbname: helen
+  dbuser: user
+  propertyfile: application-staging.properties
+  cspurl: https://console-stg.cloud.vmware.com
+  provisioningservice: grpc://provisioning-service.vmbc-stg-saas.svc.cluster.local:9002
+  compilerservice: http://contract-compiler.vmbc-stg-saas.svc.cluster.local:3000/api/v1/contracts
+  linttoken: ytng9AxRjtS0QXWYU0ruBXTbbyeg1u5P
+  zones: 19a63658-0878-4ec2-a165-081b9e1820ad,7dd33511-f847-4137-858b-1499558cfea7
+
+
+configmap: |
+  vmbc.url.public=https://vmbc.us-west-2.vdp-stg.vmware.com
+  vmbc.client.id=8g8NvX8doGk2E00ldKfE3HTyAC5ENFiP6qf
+  vmbc.client.secret=2rMYMAZmcsF8cnUIXJ8L1Qni1sQkNx8ZWO2t4U01Gf3h5xlIoe
+  vmbc.service.id=9133b8d4-d228-49be-9dca-e51039061fc7
+  vmbc.csp.service.user.refresh.token=qLLq9PAyG9ouVMayHvINsb3Sol5c7lSy6Rxp2Z88y9l3ePoByy4cynIn2Jr55wdE
+  vmbc.auth.csp=true
+  vmbc.default.blockchain=false
+
+resources:
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  # limits:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+  requests:
+    memory: 1024Mi
+    cpu: 512m
+  limits:
+    memory: 1024Mi
+    cpu: 1024m
+
+helencontext:
+  name: helencontext-staging
+  volumename: helencontext-volume
+  mountPath: /config/app/profiles/
+
+helenzones:
+  name: helenzones-staging
+  volumename: helenzones-volume
+  mountPath: /config/app/db/migration/
+

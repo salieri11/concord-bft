@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "configservice.name" . }}
+  labels:
+    app: {{ template "configservice.name" . }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.grpccontainerPort }}
+      targetPort: {{ .Values.service.grpctargetPort }}
+  selector:
+    app: {{ include "configservice.name" . }}
