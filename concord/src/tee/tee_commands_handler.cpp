@@ -11,9 +11,6 @@
 #include "storage/kvb_key_types.h"
 #include "time/time_contract.hpp"
 
-// #include "concord.pb.h"
-// #include "tee.pb.h"
-
 using std::map;
 using std::string;
 using std::vector;
@@ -197,9 +194,11 @@ void TeeCommandsHandler::RecordTransaction(const SetOfKeyValuePairs& updates,
 }
 
 void TeeCommandsHandler::WriteEmptyBlock(TimeContract* time_contract) {
+  BlockId currentBlockId = storage_.getLastBlock();
   SetOfKeyValuePairs empty_updates;
   BlockId newBlockId = 0;
   assert(addBlock(empty_updates, newBlockId).isOK());
+  assert(newBlockId == currentBlockId + 1);
 }
 
 }  // namespace tee

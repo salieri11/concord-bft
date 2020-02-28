@@ -22,7 +22,7 @@ namespace tee {
 
 concordUtils::Sliver CreateSliver(char* content, const size_t size);
 concordUtils::Sliver CreateSliver(const std::string& content);
-concordUtils::Sliver CreateDamlKvbKey(const std::string& content);
+concordUtils::Sliver CreateTeeKvbKey(const std::string& content);
 
 class TeeCommandsHandler : public concord::consensus::ConcordCommandsHandler {
  private:
