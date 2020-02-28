@@ -6,10 +6,12 @@
 #include <grpcpp/grpcpp.h>
 #include <grpcpp/impl/codegen/status.h>
 #include <log4cplus/loggingmacros.h>
+#include <storage/kvb_key_types.h>
 #include <chrono>
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <utils/concord_logging.hpp>
 
 #include "blockchain/db_interfaces.h"
 #include "storage/kvb_app_filter.h"
@@ -50,7 +52,8 @@ class ThinReplicaImpl {
       ServerContextT* context,
       const com::vmware::concord::thin_replica::ReadStateRequest* request,
       ServerWriterT* stream) {
-    auto [status, kvb_filter] = CreateKvbFilter(context, request);
+    auto [status, kvb_filter] = CreateKvbFilter(
+        context, request, true /* Keep correlation id while filtering */);
     if (!status.ok()) {
       return status;
     }
@@ -76,7 +79,8 @@ class ThinReplicaImpl {
       ServerContextT* context,
       const com::vmware::concord::thin_replica::ReadStateHashRequest* request,
       com::vmware::concord::thin_replica::Hash* hash) {
-    auto [status, kvb_filter] = CreateKvbFilter(context, request);
+    auto [status, kvb_filter] = CreateKvbFilter(
+        context, request, false /* Don't keep correlation id */);
     if (!status.ok()) {
       return status;
     }
@@ -116,7 +120,16 @@ class ThinReplicaImpl {
       ServerContextT* context,
       const com::vmware::concord::thin_replica::SubscriptionRequest* request,
       ServerWriterT* stream) {
-    auto [kvb_status, kvb_filter] = CreateKvbFilter(context, request);
+    bool read_cid = false;
+    // If DataT == Data we want to read the correlation is when filtering the
+    // updates in order to update the correlation id in the returned Update
+    // item. If DataT = Hash we won't read the correlation id while filtering in
+    // order to adjust the hashes values to the updates.
+    if constexpr (std::is_same<DataT,
+                               com::vmware::concord::thin_replica::Data>()) {
+      read_cid = true;
+    }
+    auto [kvb_status, kvb_filter] = CreateKvbFilter(context, request, read_cid);
     if (!kvb_status.ok()) {
       return kvb_status;
     }
@@ -141,13 +154,16 @@ class ThinReplicaImpl {
     }
 
     // Read, filter, and send live updates
+    std::string correlation_id;
     while (true) {
       const auto& update = live_updates->Pop();
-      const auto& filtered_update = kvb_filter->FilterUpdate(update);
+      auto filtered_update = kvb_filter->FilterUpdate(update);
+      auto& kv = filtered_update.second;
+      correlation_id = GetAndRemoveCidFromUpdates(kv);
       try {
         if constexpr (std::is_same<
                           DataT, com::vmware::concord::thin_replica::Data>()) {
-          SendData(stream, filtered_update);
+          SendData(stream, filtered_update, correlation_id);
         } else if constexpr (std::is_same<
                                  DataT,
                                  com::vmware::concord::thin_replica::Hash>()) {
@@ -190,11 +206,14 @@ class ThinReplicaImpl {
         start, end, std::ref(queue), std::ref(close_stream));
 
     storage::KvbUpdate kvb_update;
+    std::string correlation_id;
     while (kvb_reader.wait_for(0s) != std::future_status::ready ||
            !queue.empty()) {
       while (queue.pop(kvb_update)) {
         try {
-          SendData(stream, kvb_update);
+          auto& kv = kvb_update.second;
+          correlation_id = GetAndRemoveCidFromUpdates(kv);
+          SendData(stream, kvb_update, correlation_id);
         } catch (StreamClosed& error) {
           LOG4CPLUS_WARN(logger,
                          "Data stream closed at block " << kvb_update.first);
@@ -300,7 +319,8 @@ class ThinReplicaImpl {
   // Send* prepares the response object and puts it on the stream
   template <typename ServerWriterT>
   void SendData(ServerWriterT* stream,
-                const concord::thin_replica::SubUpdate& update) {
+                const concord::thin_replica::SubUpdate& update,
+                const std::string& correlation_id) {
     com::vmware::concord::thin_replica::Data data;
     data.set_block_id(update.first);
 
@@ -309,6 +329,7 @@ class ThinReplicaImpl {
       kvp_out->set_key(key.data(), key.length());
       kvp_out->set_value(value.data(), value.length());
     }
+    data.set_correlation_id(correlation_id);
     if (!stream->Write(data)) {
       throw StreamClosed();
     }
@@ -337,12 +358,14 @@ class ThinReplicaImpl {
 
   template <typename ServerContextT, typename RequestT>
   std::tuple<grpc::Status, KvbAppFilterPtr> CreateKvbFilter(
-      ServerContextT* context, const RequestT* request) {
+      ServerContextT* context, const RequestT* request, bool keep_cid) {
     KvbAppFilterPtr kvb_filter;
+    std::set<storage::KvbAppFilter::AppType> types = {
+        storage::KvbAppFilter::kDaml};
+    if (keep_cid) types.emplace(storage::KvbAppFilter::kCid);
     try {
       kvb_filter = std::make_shared<storage::KvbAppFilter>(
-          rostorage_, storage::KvbAppFilter::kDaml, GetClientId(context),
-          request->key_prefix());
+          rostorage_, types, GetClientId(context), request->key_prefix());
     } catch (std::exception& error) {
       std::stringstream msg;
       msg << "Failed to set up filter: " << error.what();
@@ -373,6 +396,19 @@ class ThinReplicaImpl {
   log4cplus::Logger logger_;
   const concord::storage::blockchain::ILocalKeyValueStorageReadOnly* rostorage_;
   SubBufferList& subscriber_list_;
+  concordUtils::Key cid_key_ =
+      concordUtils::Key(new char[1]{concord::storage::kKvbKeyCorrelationId}, 1);
+
+  std::string GetAndRemoveCidFromUpdates(concordUtils::SetOfKeyValuePairs& kv) {
+    std::string ret;
+    auto pos = kv.find(cid_key_);
+    if (pos != kv.end()) {
+      auto& val = pos->second;
+      ret = val.toString();
+      kv.erase(pos);
+    }
+    return ret;
+  }
 };
 }  // namespace thin_replica
 }  // namespace concord

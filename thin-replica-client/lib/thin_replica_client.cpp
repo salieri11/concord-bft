@@ -345,6 +345,7 @@ void ThinReplicaClient::ReceiveUpdates() {
       latest_verified_block_id_ = update_in.block_id();
       unique_ptr<Update> update(new Update());
       update->block_id = update_in.block_id();
+      update->correlation_id_ = update_in.correlation_id();
       for (const auto& kvp_in : update_in.data()) {
         update->kv_pairs.push_back(make_pair(kvp_in.key(), kvp_in.value()));
       }
@@ -458,7 +459,6 @@ void ThinReplicaClient::RegisterSubscriptionFailureCondition(
 
 void ThinReplicaClient::Subscribe(const string& key_prefix_bytes) {
   assert(server_stubs_.size() > 0);
-
   // XXX: The following implementation does not achieve Subscribe's specified
   //      interface and behavior (see the comments with Subscribe's declaration
   //      in the Thin Replica Client Library header file for documentation of
@@ -507,6 +507,7 @@ void ThinReplicaClient::Subscribe(const string& key_prefix_bytes) {
         block_id = response.block_id();
         unique_ptr<Update> update(new Update());
         update->block_id = block_id;
+        update->correlation_id_ = response.correlation_id();
         expected_hash ^= hash<string>{}(to_string(block_id));
         for (int i = 0; i < response.data_size(); ++i) {
           KVPair kvp = response.data(i);
@@ -611,7 +612,6 @@ void ThinReplicaClient::Subscribe(const string& key_prefix_bytes) {
   }
   key_prefix_ = key_prefix_bytes;
   latest_verified_block_id_ = block_id;
-
   // Create and launch thread to stream updates from the servers and push them
   // into the queue.
   stop_subscription_thread_ = false;
@@ -640,7 +640,6 @@ void ThinReplicaClient::Subscribe(const string& key_prefix_bytes,
   update_queue_->Clear();
   key_prefix_ = key_prefix_bytes;
   latest_verified_block_id_ = last_known_block_id;
-
   // Create and launch thread to stream updatees from the servers and push them
   // into the queue.
   stop_subscription_thread_ = false;

@@ -241,9 +241,21 @@ void ConcordClient::SendRequestSync(const void* request,
                                     std::chrono::milliseconds timeout_ms,
                                     std::uint32_t reply_size, void* out_reply,
                                     std::uint32_t* out_actual_reply_size) {
+  SendRequestSync(request, request_size, flags, timeout_ms, reply_size,
+                  out_reply, out_actual_reply_size, string());
+}
+
+void ConcordClient::SendRequestSync(const void* request,
+                                    std::uint32_t request_size,
+                                    ClientMsgFlag flags,
+                                    std::chrono::milliseconds timeout_ms,
+                                    std::uint32_t reply_size, void* out_reply,
+                                    std::uint32_t* out_actual_reply_size,
+                                    const std::string& correlation_id) {
   const auto status = client_->invokeCommandSynch(
       static_cast<const char*>(request), request_size, flags, timeout_ms,
-      reply_size, static_cast<char*>(out_reply), out_actual_reply_size);
+      reply_size, static_cast<char*>(out_reply), out_actual_reply_size,
+      correlation_id);
 
   if (!status.isOK()) {
     throw ClientRequestException{
