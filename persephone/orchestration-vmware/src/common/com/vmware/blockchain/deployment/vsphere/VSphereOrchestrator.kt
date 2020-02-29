@@ -164,7 +164,8 @@ class VSphereOrchestrator constructor(
                                     info.logManagementsList,
                                     info.wavefront,
                                     request.consortium
-                            )
+                            ),
+                            vmProfile = request.vmProfile
                     )
 
                     // 1. If instance is created, send the created event signal.

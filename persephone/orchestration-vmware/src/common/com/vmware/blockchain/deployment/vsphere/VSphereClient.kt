@@ -5,25 +5,7 @@ package com.vmware.blockchain.deployment.vsphere
 
 import com.google.protobuf.ByteString
 import com.vmware.blockchain.deployment.model.core.URI
-import com.vmware.blockchain.deployment.model.vsphere.GetDatastoreResponse
-import com.vmware.blockchain.deployment.model.vsphere.GetFolderResponse
-import com.vmware.blockchain.deployment.model.vsphere.GetNetworkResponse
-import com.vmware.blockchain.deployment.model.vsphere.GetResourcePoolResponse
-import com.vmware.blockchain.deployment.model.vsphere.LibraryItemDeployRequest
-import com.vmware.blockchain.deployment.model.vsphere.LibraryItemDeployResponse
-import com.vmware.blockchain.deployment.model.vsphere.LibraryItemDeploymentSpec
-import com.vmware.blockchain.deployment.model.vsphere.LibraryItemDeploymentTarget
-import com.vmware.blockchain.deployment.model.vsphere.LibraryItemFindRequest
-import com.vmware.blockchain.deployment.model.vsphere.LibraryItemFindResponse
-import com.vmware.blockchain.deployment.model.vsphere.LibraryItemFindSpec
-import com.vmware.blockchain.deployment.model.vsphere.NetworkMapping
-import com.vmware.blockchain.deployment.model.vsphere.OvfParameter
-import com.vmware.blockchain.deployment.model.vsphere.OvfParameterTypes
-import com.vmware.blockchain.deployment.model.vsphere.OvfProperty
-import com.vmware.blockchain.deployment.model.vsphere.VirtualMachineGuestIdentityInfo
-import com.vmware.blockchain.deployment.model.vsphere.VirtualMachineGuestIdentityResponse
-import com.vmware.blockchain.deployment.model.vsphere.VirtualMachinePowerResponse
-import com.vmware.blockchain.deployment.model.vsphere.VirtualMachinePowerState
+import com.vmware.blockchain.deployment.model.vsphere.*
 import com.vmware.blockchain.deployment.vm.CloudInitConfiguration
 import kotlinx.coroutines.delay
 import java.util.*
@@ -177,7 +159,8 @@ class VSphereClient(private val client: VSphereHttpClient) {
         resourcePool: String,
         folder: String,
         networks: List<Pair<String, String>>,
-        cloudInit: CloudInitConfiguration
+        cloudInit: CloudInitConfiguration,
+        vmProfile: String
     ): String? {
         val encodedUserData = Base64.getEncoder().encodeToString(cloudInit.userData().toByteArray())
         val deployRequest = LibraryItemDeployRequest(
@@ -192,12 +175,18 @@ class VSphereClient(private val client: VSphereHttpClient) {
                                         type = OvfParameterTypes.PROPERTY_PARAMS.type,
                                         properties = listOf(
                                                 OvfProperty("instance-id", name),
+                                                // TODO: change hostname from "replica" to uuid
                                                 OvfProperty("hostname", "replica"),
                                                 OvfProperty(
                                                         "user-data",
                                                         encodedUserData
                                                 )
                                         )
+                                ),
+                                OvfParameter(
+                                        `@class` = OvfParameterTypes.DEPLOYMENT_OPTION_PARAMS.classValue,
+                                        type = OvfParameterTypes.DEPLOYMENT_OPTION_PARAMS.type,
+                                        selected_key = vmProfile
                                 )
                         )
                 ),
