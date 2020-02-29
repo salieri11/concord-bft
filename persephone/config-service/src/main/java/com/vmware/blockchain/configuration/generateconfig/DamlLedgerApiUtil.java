@@ -4,7 +4,10 @@
 
 package com.vmware.blockchain.configuration.generateconfig;
 
+import java.util.List;
+
 import com.google.common.base.Strings;
+import com.vmware.blockchain.deployment.v1.NodeProperty;
 
 /**
  * Utility class for generating the config(s) for Daml Ledger Api file.
@@ -26,7 +29,15 @@ public class DamlLedgerApiUtil {
      * Utility to daml ledger api config.
      * @return json string
      */
-    public String generateConfig() {
+    public String generateConfig(List<NodeProperty> nodeProperties) {
+
+        var nodeId = nodeProperties.stream().filter(nodeProperty ->
+                nodeProperty.getName().equals(NodeProperty.Name.NODE_ID)).findFirst();
+
+        // Assuming user sends one client per configuration.
+        // TODO: might require a change when multiple clients deploys together.
+        var nodeName = nodeId.get().getValueMap().get(0).replace("-", "_");
+
         StringBuilder builder = new StringBuilder();
         builder.append("export INDEXDB_HOST=daml_index_db");
         builder.append(System.getProperty("line.separator"));
@@ -36,7 +47,7 @@ public class DamlLedgerApiUtil {
         builder.append(System.getProperty("line.separator"));
         builder.append("export REPLICAS=" + getReplicas());
         builder.append(System.getProperty("line.separator"));
-        builder.append("export PARTICIPANT_ID=daml_ledger_api");
+        builder.append("export PARTICIPANT_ID=" + nodeName);
         builder.append(System.getProperty("line.separator"));
         builder.append("export JAVA_OPTS=-Xmx4G");
         return builder.toString();

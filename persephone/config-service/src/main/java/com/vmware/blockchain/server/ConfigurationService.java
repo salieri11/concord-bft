@@ -174,7 +174,7 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
                     staticComponentList.add(ConfigurationComponent.newBuilder()
                                                     .setType(serviceType)
                                             .setComponentUrl(DamlLedgerApiUtil.envVarPath)
-                                            .setComponent(ledgerApiUtil.generateConfig())
+                                            .setComponent(ledgerApiUtil.generateConfig(request.getNodePropertiesList()))
                                             .setIdentityFactors(IdentityFactors.newBuilder().build())
                                             .build());
                     break;
@@ -183,7 +183,9 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
                     staticComponentList.add(ConfigurationComponent.newBuilder()
                                                     .setType(serviceType)
                                                     .setComponentUrl(DamlIndexDbUtil.envVarPath)
-                                                    .setComponent(damlIndexDbUtil.generateConfig())
+                                                    .setComponent(
+                                                            damlIndexDbUtil.generateConfig(
+                                                                    request.getNodePropertiesList()))
                                                     .setIdentityFactors(IdentityFactors.newBuilder().build())
                                                     .build());
                     break;
