@@ -54,7 +54,7 @@ RUN git clone https://github.com/grpc/grpc && \
 
 # Copy sources
 COPY ./concord/cmake /concord/cmake
-COPY ./communication/src/main/proto /proto
+COPY ./communication/src/main/proto /communication/src/main/proto
 COPY ./thin-replica-client /thin-replica-client
 
 # Build Thin Replica Client Library
