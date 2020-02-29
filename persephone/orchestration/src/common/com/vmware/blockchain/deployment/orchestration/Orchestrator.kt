@@ -85,7 +85,8 @@ interface Orchestrator {
         val concordId: Int,
         val configServiceEndpoint: Endpoint,
         val configServiceRestEndpoint: Endpoint,
-        val consortium: String = ""
+        val consortium: String = "",
+        val vmProfile: String = "small"
     )
 
     /**

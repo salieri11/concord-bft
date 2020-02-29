@@ -173,6 +173,7 @@ message NodeProperty {
         CLIENT_GROUP_ID = 4;
         LOGGING_CONFIG = 5;
         CONSORTIUM_ID = 6;
+        VM_PROFILE = 7;
     }
 
     Name name = 1;
