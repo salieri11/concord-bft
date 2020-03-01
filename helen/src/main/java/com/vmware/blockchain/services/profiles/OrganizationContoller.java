@@ -42,7 +42,6 @@ public class OrganizationContoller {
 
     @Data
     static class OrgPatchBody {
-        String organizationName;
         Map<String, String> organizationProperties;
     }
 
@@ -88,15 +87,16 @@ public class OrganizationContoller {
     public ResponseEntity<OrgGetResponse> updateOrg(@PathVariable("org_id") UUID orgId,
                                                     @RequestBody OrgPatchBody body) {
         Organization org = orgService.get(orgId);
-        if (body.getOrganizationName() != null) {
-            org.setOrganizationName(body.getOrganizationName());
+
+        Map<String, String> currentMap = org.getOrganizationProperties();
+        Map<String, String> patchMap = body.getOrganizationProperties();
+
+        if (patchMap != null) {
+            currentMap.putAll(patchMap);
         }
-        if (body.getOrganizationProperties() != null) {
-            org.setOrganizationProperties(body.getOrganizationProperties());
-        }
+
         org = orgService.put(org);
         return new ResponseEntity<>(new OrgGetResponse(org.getId(), org.getOrganizationName(),
                 org.getOrganizationProperties()), HttpStatus.OK);
-
     }
 }
