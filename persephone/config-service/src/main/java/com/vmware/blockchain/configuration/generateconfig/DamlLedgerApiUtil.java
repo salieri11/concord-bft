@@ -47,7 +47,7 @@ public class DamlLedgerApiUtil {
         builder.append(System.getProperty("line.separator"));
         builder.append("export REPLICAS=" + getReplicas());
         builder.append(System.getProperty("line.separator"));
-        builder.append("export PARTICIPANT_ID=" + nodeName);
+        builder.append("export PARTICIPANT_ID=p" + nodeName);
         builder.append(System.getProperty("line.separator"));
         builder.append("export JAVA_OPTS=-Xmx4G");
         return builder.toString();
