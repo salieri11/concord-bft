@@ -19,6 +19,9 @@ import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import javax.validation.Valid;
+import javax.validation.constraints.NotNull;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -101,13 +104,18 @@ public class BlockchainController {
 
     @Getter
     @Setter
+    @Valid
     @JsonIgnoreProperties(ignoreUnknown = true)
     static class BlockchainPost {
+        @NotNull(message = "Consortium ID cannot be empty")
         private UUID consortiumId;
+        @NotNull(message = "f count cannot be empty")
         @JsonProperty("f_count")
-        private int fCount;
+        private Integer fCount;
+        @NotNull(message = "c count cannot be empty")
         @JsonProperty("c_count")
-        private int cCount;
+        private Integer cCount;
+        @NotNull(message =  "Deployment type cannot be null")
         private DeploymentType deploymentType;
         private BlockchainType blockchainType;
         private List<UUID> zoneIds;
@@ -490,7 +498,8 @@ public class BlockchainController {
      */
     @RequestMapping(path = "/api/blockchains", method = RequestMethod.POST)
     @PreAuthorize("@authHelper.isConsortiumAdmin()")
-    public ResponseEntity<BlockchainTaskResponse> createBlockchain(@RequestBody BlockchainPost body) throws Exception {
+    public ResponseEntity<BlockchainTaskResponse> createBlockchain(@Valid @RequestBody BlockchainPost body)
+            throws Exception {
 
         // Determine whether or not we can create a new blockchain
         if (authHelper.getUpdateChains().size() >= getMaxChains(authHelper.getOrganizationId())) {
