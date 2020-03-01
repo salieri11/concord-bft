@@ -145,6 +145,16 @@ public class BlockchainControllerTest {
                                          + "    \"c_count\": 0,"
                                          + "    \"deployment_type\": \"UNSPECIFIED\"" + "}";
 
+    static final String POST_BODY_UNSP_MISSING_COUNT = "{"
+                                        + "    \"consortium_id\": \"04e4f62d-5364-4363-a582-b397075b65a3\","
+                                        + "    \"f_count\": 1,"
+                                        + "    \"deployment_type\": \"UNSPECIFIED\"" + "}";
+
+    static final String POST_BODY_MISSING_DEPLOYMENT_TYPE = "{"
+                                        + "    \"consortium_id\": \"04e4f62d-5364-4363-a582-b397075b65a3\","
+                                        + "    \"f_count\": 1,"
+                                        + "    \"c_count\": 0" + "}";
+
     static final String POST_BODY_MANGO = "{"
                                          + "    \"consortium_id\": \"04e4f62d-5364-4363-a582-b397075b65a3\","
                                          + "    \"f_count\": 1,"
@@ -884,6 +894,23 @@ public class BlockchainControllerTest {
                 .content(POST_BODY_FIXED_WITH_TYPE))
                 .andExpect(status().isAccepted());
     }
+
+    @Test
+    void createUnspecifiedBadCount() throws Exception {
+        mockMvc.perform(post("/api/blockchains").with(authentication(adminAuth))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(POST_BODY_UNSP_MISSING_COUNT).characterEncoding("utf-8"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void createMissingDeploymentType() throws Exception {
+        mockMvc.perform(post("/api/blockchains").with(authentication(adminAuth))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(POST_BODY_MISSING_DEPLOYMENT_TYPE).characterEncoding("utf-8"))
+                .andExpect(status().isBadRequest());
+    }
+
 
 
     ConcordNode buildNode(UUID nodeId, UUID siteId, int ip, String url) {
