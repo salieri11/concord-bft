@@ -74,6 +74,11 @@ import hudson.util.Secret
     "dockerComposeFiles": "../docker/docker-compose-daml-nano.yml",
     "concordConfigurationInput": "/concord/config/dockerConfigurationInput-daml-nano.yaml"
   ],
+  "PrivacyTeeTests": [
+    "enabled": true,
+    "dockerComposeFiles": "../docker/docker-compose-tee.yml",
+    "concordConfigurationInput": "/concord/config/dockerConfigurationInput-tee.yaml"
+  ],
   "SimpleStateTransferTest": [
     "enabled": true,
     "dockerComposeFiles": "../docker/docker-compose.yml ../docker/docker-compose-static-ips.yml"
