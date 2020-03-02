@@ -11,9 +11,6 @@ COPY ./ip-allocation-service/pom.xml ./ip-allocation-service/pom.xml
 ## Copy the dependent module sources.
 COPY ./api ./persephone/api
 
-## Resolve / fetch all dependencies for agent module.
-#RUN mvn -f ip-allocation-service/pom.xml dependency:go-offline -B
-
 ## Copy the module sources.
 COPY ./ip-allocation-service ./persephone/ip-allocation-service
 
@@ -29,6 +26,7 @@ RUN sed -i "/jdk.tls.disabledAlgorithms=/ s/=.*/=TLSv1.3, SSLv3, RC4, MD5withRSA
 
 WORKDIR /persephone/ip-allocation-service
 COPY --from=builder ./ip-allocation-service/target/persephone-ip-allocation-service*.jar ./ip-allocation-service.jar
+COPY ./resources/logging/log4j2.properties .
 
 VOLUME ["/config"]
 

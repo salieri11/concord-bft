@@ -52,10 +52,8 @@ RUN sed -i "/jdk.tls.disabledAlgorithms=/ s/=.*/=TLSv1.3, SSLv3, RC4, MD5withRSA
 COPY --from=environment /docker-java-home/lib/security/cacerts /docker-java-home/lib/security/cacerts
 
 WORKDIR /persephone-provisioning-service
-
-#RUN echo ${ls ./persephone/provisioning-service}
-
 COPY ./provisioning-service/src/main/resources .
+COPY ./resources/logging/log4j2.properties .
 
 COPY --from=builder ./provisioning-service/target/persephone-provisioning-service*.jar ./provisioning-service.jar
 
