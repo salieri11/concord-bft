@@ -175,8 +175,7 @@ class VSphereClient(private val client: VSphereHttpClient) {
                                         type = OvfParameterTypes.PROPERTY_PARAMS.type,
                                         properties = listOf(
                                                 OvfProperty("instance-id", name),
-                                                // TODO: change hostname from "replica" to uuid
-                                                OvfProperty("hostname", "replica"),
+                                                OvfProperty("hostname", name),
                                                 OvfProperty(
                                                         "user-data",
                                                         encodedUserData
