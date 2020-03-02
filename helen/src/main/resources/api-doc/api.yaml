@@ -1658,8 +1658,6 @@ paths:
               type: object
               required:
                 - consortium_name
-                - consortium_type
-                - organization
               properties:
                 consortium_name:
                   type: string
