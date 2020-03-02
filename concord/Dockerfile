@@ -53,6 +53,8 @@ RUN apt-get update \
     libyaml-cpp0.5v5 \
     llvm-5.0 \
     gdb \
+    lldb \
+    vim \
     && rm -rf /var/lib/apt/lists/*
 
 # SYMLINK NOTE: If you COPY a symlink, docker will copy the contents

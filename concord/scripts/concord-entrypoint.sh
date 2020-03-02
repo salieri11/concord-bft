@@ -4,8 +4,6 @@ echo ==========  RUNNING CONCORD ==========
 echo "$0 $@"
 echo ======================================
 
-set -e 
-
 if [ "$#" -eq 0  ]; then
 	sysctl kernel.core_pattern=/concord/cores/core.%e.%h.%s.%t
 	ulimit -c unlimited
