@@ -30,6 +30,7 @@ suites = [
    "HelenRoleTests",
    "HlfTests",
    "LintTests",
+   "LoggingTests",
    "PerformanceTests",
    "PersephoneTests",
    "RegressionTests",
@@ -310,6 +311,8 @@ def createTestSuite(args):
       return hlf_tests.HlfTests(args)
    elif (args.suite == "ThinReplicaTests"):
       return pytest_suite.PytestSuite(args, "suites/thin_replica_tests.py")
+   elif (args.suite == "LoggingTests"):
+      return pytest_suite.PytestSuite(args, "suites/logging_tests.py")
    elif (args.suite == "MetadataPersistencyTests"):
       return persistency_tests.MetadataPersistencyTests(args)
    elif (args.suite == "PrivacyTeeTests"):
