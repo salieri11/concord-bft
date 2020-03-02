@@ -8,6 +8,9 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import javax.validation.Valid;
+import javax.validation.constraints.NotBlank;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -57,6 +60,7 @@ public class ConsortiumController {
 
     @Data
     static class ConPostBody {
+        @NotBlank(message = "Consortium name cannot be blank.")
         String consortiumName;
         String consortiumType;
         private UUID organization;
@@ -111,12 +115,8 @@ public class ConsortiumController {
      */
     @RequestMapping(path = "/api/consortiums", method = RequestMethod.POST)
     @PreAuthorize("@authHelper.isConsortiumAdmin()")
-    public ResponseEntity<ConGetResponse> createCon(@RequestBody ConPostBody body) {
+    public ResponseEntity<ConGetResponse> createCon(@Valid @RequestBody ConPostBody body) {
         // VB-994: Able to create consortia with missing and empty names.
-        if (body.consortiumName == null || body.consortiumName.isBlank()) {
-            throw new BadRequestException(ErrorCode.BAD_REQUEST);
-        }
-
         Consortium consortium = new Consortium(body.getConsortiumName(),
                                                "default", authHelper.getOrganizationId());
         consortium = consortiumService.put(consortium);
