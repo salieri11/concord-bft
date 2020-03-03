@@ -628,7 +628,7 @@ void ThinReplicaClient::Subscribe(const string& key_prefix_bytes) {
 }
 
 void ThinReplicaClient::Subscribe(const string& key_prefix_bytes,
-                                  uint64_t last_known_block_id) {
+                                  uint64_t block_id) {
   // Stop any existing subscription before trying to start a new one.
   stop_subscription_thread_ = true;
   if (subscription_thread_) {
@@ -639,8 +639,9 @@ void ThinReplicaClient::Subscribe(const string& key_prefix_bytes,
 
   update_queue_->Clear();
   key_prefix_ = key_prefix_bytes;
-  latest_verified_block_id_ = last_known_block_id;
-  // Create and launch thread to stream updatees from the servers and push them
+  latest_verified_block_id_ = block_id;
+
+  // Create and launch thread to stream updates from the servers and push them
   // into the queue.
   stop_subscription_thread_ = false;
   subscription_thread_.reset(

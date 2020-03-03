@@ -147,8 +147,8 @@ void ThinReplicaClientFacade::Subscribe(const std::string& prefix) {
 }
 
 void ThinReplicaClientFacade::Subscribe(const std::string& prefix,
-                                        uint64_t last_known_block_id) {
-  impl->trc->Subscribe(prefix, last_known_block_id);
+                                        uint64_t block_id) {
+  impl->trc->Subscribe(prefix, block_id);
 }
 
 void ThinReplicaClientFacade::Unsubscribe() { impl->trc->Unsubscribe(); }
