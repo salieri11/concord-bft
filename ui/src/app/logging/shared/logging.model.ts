@@ -68,3 +68,9 @@ export interface LogTimePeriod {
   xAxisLabel?: string;
   yAxisLabel?: string;
 }
+
+export enum LogLevels {
+  info = 'INFO',
+  warn = 'WARN',
+  error = 'ERROR'
+}

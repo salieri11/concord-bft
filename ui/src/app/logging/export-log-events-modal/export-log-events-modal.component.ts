@@ -25,6 +25,8 @@ export class ExportLogEventsModalComponent implements OnInit {
   @Input('totalCount') totalCount: number;
   @Input('replicaId') replicaId: number;
   @Input('serviceName') serviceName: string;
+  @Input('search') search: string;
+  @Input('logLevels') logLevels: string[];
 
   isLoading: boolean = false;
   exportLogs: LogListEntry[] = [];
@@ -52,7 +54,8 @@ export class ExportLogEventsModalComponent implements OnInit {
       this.startTime,
       this.endTime,
       this.replicaId.toString(),
-      false,
+      this.logLevels,
+      this.search,
       this.serviceName,
       1000
     ).subscribe((taskResponse) => {

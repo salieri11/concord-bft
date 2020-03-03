@@ -20,10 +20,11 @@ export class LogApiService {
     start: number,
     end: number,
     replicaId: string,
-    verbose: boolean,
+    level: string[],
+    search: string,
     service_name: string,
     rows: number = 100): Observable<LogTaskResponse> {
-    const query = `SELECT * FROM logs ${this.getWhereClause(verbose, service_name)}ORDER BY ingest_timestamp DESC`;
+    const query = `SELECT * FROM logs ${this.getWhereClause(level, service_name, search)}ORDER BY ingest_timestamp DESC`;
 
     const logQuery = {
       logQuery: query,
@@ -38,11 +39,13 @@ export class LogApiService {
     start: number,
     end: number,
     replicaId: string,
-    verbose: boolean,
+    level: string[],
+    search: string,
     service_name: string,
     interval: number): Observable<LogTaskResponse> {
     const query = `SELECT COUNT(*), timestamp FROM logs ` +
-      `${this.getWhereClause(verbose, service_name)}GROUP BY bucket(timestamp, ${interval}, ${start}, ${end}) ORDER BY timestamp DESC`;
+      `${this.getWhereClause(level, service_name, search)}` +
+      `GROUP BY bucket(timestamp, ${interval}, ${start}, ${end}) ORDER BY timestamp DESC`;
 
     const logQuery = {
       logQuery: query,
@@ -52,8 +55,14 @@ export class LogApiService {
     return this.logQueryTask(logQuery, replicaId);
   }
 
-  postToPureCount(start: number, end: number, replicaId: string, verbose: boolean, service_name: string): Observable<LogTaskResponse> {
-    const query = `SELECT COUNT(*) FROM logs ${this.getWhereClause(verbose, service_name)}`;
+  postToPureCount(
+    start: number,
+    end: number,
+    replicaId: string,
+    level: string[],
+    search: string,
+    service_name: string): Observable<LogTaskResponse> {
+    const query = `SELECT COUNT(*) FROM logs ${this.getWhereClause(level, service_name, search)}`;
 
     const logQuery = {
       logQuery: query,
@@ -63,15 +72,58 @@ export class LogApiService {
     return this.logQueryTask(logQuery, replicaId);
   }
 
-  getWhereClause(verbose: boolean, service_name: string) {
-    if (!verbose && service_name !== 'all') {
-      return `WHERE service_name = '${service_name}' AND (level = 'INFO' OR level = 'ERROR') `;
-    } else if (!verbose) {
-      return `WHERE (level = 'INFO' OR level = 'ERROR') `;
-    } else if (service_name && service_name !== 'all') {
-      return `WHERE service_name = '${service_name}' `;
+  getWhereClause(level: string[], service_name: string, search: string) {
+    let where = '';
+    // Start our where clause if needed
+    if (level.length || service_name !== 'all' || search.length) {
+      where = 'WHERE';
+    } else {
+      return where;
     }
-    return '';
+
+    if (service_name !== 'all') {
+      where += ` service_name = '${service_name}' `;
+    }
+
+    if (search.length) {
+      // If other clause has been added, then we need an AND
+      if (where.length > 5) {
+        where += 'AND';
+      }
+
+      where += ` text = '${search}' `;
+    }
+
+    if (level.length) {
+      let levelsString = '';
+
+      // Create our string
+      level.forEach((l, i) => {
+        // Add an or statement if more than one level
+        if (i !== 0) {
+          levelsString += ' OR ';
+        }
+
+        levelsString += `level = ${l}`;
+      });
+
+      // If other clause has been added, then we need an AND
+      if (where.length > 5) {
+        where += 'AND';
+      }
+
+      where += ` (${levelsString}) `;
+    }
+
+
+    // if (!level && service_name !== 'all') {
+    //   return `WHERE service_name = '${service_name}' AND (level = 'INFO' OR level = 'ERROR') `;
+    // } else if (!level) {
+    //   return `WHERE (level = 'INFO' OR level = 'ERROR') `;
+    // } else if (service_name && service_name !== 'all') {
+    //   return `WHERE service_name = '${service_name}' `;
+    // }
+    return where;
   }
 
   fetchLogStatus(path: string): Observable<LogTaskCompletedResponse> {

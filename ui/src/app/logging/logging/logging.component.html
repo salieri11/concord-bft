@@ -22,20 +22,25 @@
     </div>
     <div class="clr-col-7">
       <div class="text-right">
-        <button type="button" class="btn btn-link right-margined" (click)="refresh()"
+        <button type="button" class="btn btn-link refresh" (click)="refresh()"
           [disabled]="countLoading || listLoading">
           <clr-icon shape="refresh"></clr-icon>
-          {{'logging.refresh' | translate}}
         </button>
 
-        <!-- verbose toggle button -->
-        <clr-toggle-container>
-          <clr-toggle-wrapper>
-            <input type="checkbox" clrToggle name="verbose" value="verbose" [(ngModel)]="verbose" (change)="refresh()"
-              [disabled]="countLoading || listLoading" />
-            <label>{{ 'logging.verbose' | translate }}</label>
-          </clr-toggle-wrapper>
-        </clr-toggle-container>
+        <clr-dropdown [clrCloseMenuOnItemClick]="false">
+          <button type="button" class="btn btn-sm btn-outline-primary time-selector left-margined" clrDropdownTrigger
+            [disabled]="countLoading || listLoading">
+            {{'logging.logLevel' | translate}}
+            <clr-icon shape="caret down"></clr-icon>
+          </button>
+          <clr-dropdown-menu *clrIfOpen clrPosition="bottom-right">
+            <button type="button" *ngFor="let level of levels"
+              [ngClass]="{'active': selectedLevels.indexOf(level) !== -1}" (click)="onSelectLevels(level)"
+              clrDropdownItem>
+              {{level}}
+            </button>
+          </clr-dropdown-menu>
+        </clr-dropdown>
 
         <clr-dropdown>
           <button type="button" class="btn btn-sm btn-outline-primary time-selector left-margined" clrDropdownTrigger
@@ -70,6 +75,17 @@
           </clr-dropdown-menu>
         </clr-dropdown>
       </div>
+    </div>
+    <div class="clr-col-12 search-wrapper">
+      <clr-icon shape="search"></clr-icon>
+      <input placeholder="Search logs text"
+             clrInput
+             name="input"
+             [(ngModel)]="search"
+             #searchInput
+             (keyup.enter)="refresh()"
+             class="clr-col-12 search">
+      <button class="btn btn-primary btn-sm" (click)="refresh()">{{'common.search' | translate}}</button>
     </div>
     <div class="clr-col-12">
       <div class="card area-chart-container">
@@ -116,7 +132,7 @@
     </div>
   </div>
   <concord-export-log-events-modal #exportLogEventsModal [startTime]="startTime" [endTime]="endTime"
-    [totalCount]="totalCount" [replicaId]="replicaId" [serviceName]="service_name"></concord-export-log-events-modal>
+    [totalCount]="totalCount" [replicaId]="replicaId" [serviceName]="service_name" [search]="search" [logLevels]="selectedLevels"></concord-export-log-events-modal>
   <concord-export-chart-data-modal #exportChartDataModal [chartData]="logCounts" [startTime]="startTime"
     [endTime]="endTime">
   </concord-export-chart-data-modal>
