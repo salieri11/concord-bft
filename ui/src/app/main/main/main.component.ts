@@ -46,7 +46,7 @@ export class MainComponent implements OnInit, OnDestroy {
   blockchainUnresolved: boolean = false;
   blockchainType: string;
   welcomeFragmentExists: boolean = false;
-  isOnPrem: boolean;
+  isOnPrem: boolean = true;
 
   alertSub: Subscription;
   routeParamsSub: Subscription;
@@ -102,8 +102,6 @@ export class MainComponent implements OnInit, OnDestroy {
       this.checkAuthorization();
       this.setPlatform();
     }
-
-
   }
 
   ngOnInit() {
@@ -133,6 +131,7 @@ export class MainComponent implements OnInit, OnDestroy {
           // This is to refresh all child components
           this.blockchainType = this.blockchainService.type;
           this.routeService.reloadOutlet();
+          this.setPlatform();
         });
     }
   }
@@ -264,15 +263,23 @@ export class MainComponent implements OnInit, OnDestroy {
       return this.enableDeploy;
     }
 
-
     this.enableDeploy = (maxChain === 0) || (maxChain > blockchainCount);
 
     return this.enableDeploy;
   }
 
+  // Set if all nodes are on prem
   private setPlatform(): void {
-    if (this.blockchainService.zones) {
-      this.isOnPrem = this.blockchainService.zones.some((zone) => zone.type === ZoneType.ON_PREM);
+    if (this.blockchainService.selectedBlockchain) {
+      const nodeList = this.blockchainService.selectedBlockchain.node_list;
+      const zonesMap = this.blockchainService.zonesMap;
+      this.isOnPrem = true;
+
+      nodeList.forEach(node => {
+         if (zonesMap[node.zone_id] && zonesMap[node.zone_id].type === ZoneType.VMC_AWS) {
+           this.isOnPrem = false;
+         }
+      });
     }
   }
 

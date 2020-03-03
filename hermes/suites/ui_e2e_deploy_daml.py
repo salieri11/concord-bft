@@ -16,7 +16,7 @@ from . import test_suite
 log = logging.getLogger(__name__)
 
 
-class LintTests(test_suite.TestSuite):
+class DeployDamlTests(test_suite.TestSuite):
     _args = None
     _userConfig = None
     _productMode = True
@@ -25,10 +25,10 @@ class LintTests(test_suite.TestSuite):
     _testCaseDir = None
 
     def __init__(self, passedArgs):
-        super(LintTests, self).__init__(passedArgs)
+        super(DeployDamlTests, self).__init__(passedArgs)
 
     def getName(self):
-        return "LintTests"
+        return "DeployDamlTests"
 
     def run(self):
         repo_path = os.getcwd().split('/')[:-1]
@@ -88,6 +88,15 @@ class LintTests(test_suite.TestSuite):
 
     def _test_lint_e2e(self):
         cmd = ["npm", "run", "e2e:integration", ]
+
+        # Add the path to logs output to a file so we can save screenshot
+        # from e2e tests in a directory that is familiar to other users
+        fileTxtDirPath = os.path.join(self.ui_path, "ui_e2e_path.txt")
+        save_path = self._testCaseDir
+        with open(fileTxtDirPath, "w") as fileDir:
+            fileDir.write(save_path)
+
+
         logFilePath = os.path.join(self._testCaseDir, "e2e.log")
         with open(logFilePath, "wb+") as logFile:
             proc_output = subprocess.run(cmd,

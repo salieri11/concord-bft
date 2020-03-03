@@ -1,4 +1,4 @@
-<div id="deployProgress" class="ps-1">
+<div class="ps-1 deploy-progress">
   <div class="card">
     <div class="card-block">
       <div class="card-text">
@@ -15,11 +15,11 @@
             <clr-icon shape="arrow" size="64" dir="right"></clr-icon>
             <clr-icon shape="host-group" size="64"></clr-icon>
           </div>
-          <div class="progress-block">
+          <div class="progress-block" id="deployProgress">
             <clr-progress-bar #progressBar [clrValue]="progress" [clrLoop]="loop"></clr-progress-bar>
             <span class="progress-label">{{ progress + '%'}}</span>
           </div>
-          <h5>{{ message }}</h5>
+          <h5 class="deploy-message">{{ message }}</h5>
         </div>
       </div>
     </div>

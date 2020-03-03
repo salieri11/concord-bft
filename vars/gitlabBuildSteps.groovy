@@ -123,6 +123,13 @@ import hudson.util.Secret
     "dockerComposeFiles": "../docker/docker-compose.yml ../docker/docker-compose-persephone.yml",
     "runWithGenericTests": false,
     "baseCommand": 'echo "${PASSWORD}" | sudo -S "${python}" main.py LoggingTests --blockchainType daml --numReplicas 7 --blockchainLocation sddc'
+  ],
+  "UiDAMLDeploy": [
+    "enabled": true,
+    "runWithGenericTests": false,
+    "setupFunction": "deleteDatabaseFiles",
+    "dockerComposeFiles": "../docker/docker-compose.yml ../docker/docker-compose-persephone.yml",
+    "baseCommand": '"${python}" main.py DeployDamlTests'
   ]
 ]
 
@@ -131,7 +138,7 @@ def call(){
   def genericTests = true
   def additional_components_to_build = ""
   def deployment_support_bundle_job_name = "Get Deployment support bundle"
-  def lint_test_job_name = "Blockchain LINT Tests"
+  def ui_e2e_daml_on_prem_job_name = "UI E2E Deploy DAML On Premises"
   def memory_leak_job_name = "BlockchainMemoryLeakTesting"
   def performance_test_job_name = "Blockchain Performance Test"
   def persephone_test_job_name = "Blockchain Persephone Tests"
@@ -155,8 +162,8 @@ def call(){
   // These runs will never run Persehpone tests. Persephone tests have special criteria,
   // and these runs can end up running them unintentionally.
   def runs_excluding_persephone_tests = [
-    lint_test_job_name,
     log_insight_test_job_name,
+    ui_e2e_daml_on_prem_job_name,
     memory_leak_job_name,
     performance_test_job_name,
     helen_role_test_job_name
@@ -164,12 +171,13 @@ def call(){
 
   // These job names are just substrings of the actual job names.
   specialized_tests = [
+    ui_e2e_daml_on_prem_job_name,
     memory_leak_job_name,
     performance_test_job_name,
     persephone_test_job_name,
     persephone_test_on_demand_job_name,
-    lint_test_job_name,
     log_insight_test_job_name,
+    ui_e2e_daml_on_prem_job_name,
     deployment_support_bundle_job_name,
     helen_role_test_job_name
   ]
@@ -711,6 +719,9 @@ EOF
                     } else if (env.JOB_NAME.contains(log_insight_test_job_name)) {
                       selectOnlySuites(["LoggingTests"])
                       runTests()
+                    } else if (env.JOB_NAME.contains(ui_e2e_daml_on_prem_job_name)) {
+                      selectOnlySuites(["UiDAMLDeploy", "UiTests"])
+                      runTests()
                     }
 
                     // TODO: Make the items below follow the model above.
@@ -740,23 +751,6 @@ EOF
                       '''
                       saveTimeEvent("Performance tests", "End")
                     }
-                    if (env.JOB_NAME.contains(lint_test_job_name)) {
-                      saveTimeEvent("LINT tests", "Start")
-                      sh '''
-                        echo "Running Entire Testsuite: Lint E2E..."
-
-                        # We need to delete the database files before running UI tests because
-                        # Selenium cannot launch Chrome with sudo.  (The only reason Hermes
-                        # needs to be run with sudo is so it can delete any existing DB files.)
-                        echo "${PASSWORD}" | sudo -S rm -rf ../docker/devdata/rocksdbdata*
-                        echo "${PASSWORD}" | sudo -S rm -rf ../docker/devdata/cockroachDB
-
-                        mkdir -p "${lint_test_logs}"
-                        "${python}" main.py LintTests --dockerComposeFile ../docker/docker-compose.yml ../docker/docker-compose-fluentd.yml --resultsDir "${lint_test_logs}" --runConcordConfigurationGeneration --logLevel debug > "${lint_test_logs}/lint_tests.log" 2>&1
-                      '''
-                      saveTimeEvent("LINT tests", "End")
-                    }
-
                   }
                 }
               }

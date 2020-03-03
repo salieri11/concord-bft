@@ -50,65 +50,6 @@ describe('concord-ui Onboarding Flow', () => {
     browser.sleep(1500);
   });
 
-  // it('should deploy a blockchain', () => {
-  //   const title = 'DAML e2e';
-
-  //   browser.sleep(2000);
-  //   appPage.goToDeployWizard().click();
-  //   browser.sleep(800);
-  //   deployWiz.selectDaml();
-  //   browser.sleep(100);
-  //   deployWiz.next();
-  //   browser.sleep(100);
-  //   deployWiz.consortiumTitleInput().sendKeys(title);
-  //   browser.sleep(100);
-  //   deployWiz.next();
-  //   browser.sleep(100);
-  //   deployWiz.selectFourReplicas();
-  //   browser.sleep(100);
-  //   deployWiz.next();
-  //   browser.sleep(100);
-
-  //   expect(deployWiz.getTitle()).toBe(title);
-  //   expect(deployWiz.getEngine()).toBe('DAML');
-  //   expect(deployWiz.getNumberOfReplicas()).toBe('4');
-
-  //   deployWiz.deploy();
-  // });
-
-  // it('should show progress of the blockchain', () => {
-  //   const progressEl = '#deployProgress';
-  //   const progMessageEl = `${progressEl} h5`;
-  //   const progPerceEl = `${progressEl} .progress span`;
-  //   waitFor(progressEl);
-  //   waitForText(element(by.cssContainingText(progMessageEl, `Creating VM's...`)));
-  //   waitForText(element(by.cssContainingText(progMessageEl, `Deploying concord replicas...`)));
-  //   waitForText(element(by.cssContainingText(progPerceEl, `100%`)));
-  //   expect(deployWiz.getPercentage()).toBe('100%');
-  //   browser.sleep(4000);
-  // });
-
-  // it('should do the DAML tour', () => {
-  //   browser.sleep(1000);
-  //   expect(appPage.getTourTitle().getText()).toEqual('General Status');
-  //   browser.sleep(300);
-  //   appPage.getTourNextButton().click();
-  //   browser.sleep(300);
-  //   expect(appPage.getTourTitle().getText()).toEqual('Replica List');
-  //   appPage.getTourNextButton().click();
-  //   browser.sleep(300);
-  //   expect(appPage.getTourTitle().getText()).toEqual('Organizations');
-  //   appPage.clickTourEndButton();
-  //   browser.sleep(300);
-  //   expect(appPage.getTourTitle().isDisplayed()).toBe(false);
-  //   browser.waitForAngularEnabled(true);
-  // });
-
-  // it('should switch to the default blockchain', () => {
-  //   dashboardPage.switchToDefault();
-  //   waitForText(element(by.cssContainingText('.nav-text', 'Smart Contracts')));
-  // });
-
   it('should do the Ethereum tour', () => {
     browser.sleep(1000);
     appPage.goToConsortium().click();

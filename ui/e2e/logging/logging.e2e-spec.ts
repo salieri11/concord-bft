@@ -29,23 +29,29 @@ describe('concord-ui Logging', () => {
     loggingPage.navigateTo();
   });
 
-  it('should load the logging UI', () => {
-    expect(loggingPage.getPageTitle()).toBe('Ethereum RPC Method Calls');
+  it('should have a concord option and wait for logs', () => {
+    const threeMinutes = 3 * 60 * 1000;
+    expect(loggingPage.getConcordOption().getText()).toBe('Concord');
+    browser.sleep(threeMinutes);
   });
 
-  // it('should load more items when clicking load more', () => {
-    // expect(loggingPage.getLoadMoreButton().isPresent()).toBe(true);
+  it('should select concord option', () => {
+    loggingPage.getConcordOption().click();
+  });
+
+  it('should load more items when clicking load more', () => {
+    expect(loggingPage.getLoadMoreButton().isPresent()).toBe(true);
     // expect the count of items to be 20
-    // expect(loggingPage.getLogItemRowCount()).toBe(2);
+    expect(loggingPage.getLogItemRowCount()).toBe(100);
     // Lint pagination is broken
     // click the next page button
-    // expect(loggingPage.getLoadMoreButton().isEnabled()).toBe(true);
-    // loggingPage.getLoadMoreButton().click();
-    // // Once the button is enabled again, the count should be 40
-    // browser
-    //   .wait(until.elementToBeClickable(loggingPage.getLoadMoreButton()), BROWSER_WAIT_TIME);
-    // expect(loggingPage.getLogItemRowCount()).toBe(40);
-  // });
+    expect(loggingPage.getLoadMoreButton().isEnabled()).toBe(true);
+    loggingPage.getLoadMoreButton().click();
+    // Once the button is enabled again, the count should be 40
+    browser
+      .wait(until.elementToBeClickable(loggingPage.getLoadMoreButton()), BROWSER_WAIT_TIME);
+    expect(loggingPage.getLogItemRowCount()).toBe(200);
+  });
 
   it('should load a different time series on selection', () => {
     // total count will be present after initial load
