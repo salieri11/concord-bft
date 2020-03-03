@@ -274,8 +274,8 @@ class PersephoneTests(test_suite.TestSuite):
          return [
             # ("7_Node_DAML_Blockchain_ON-PREM",
             #  self._test_create_daml_blockchain_7_node_onprem),
-            ("4_Node_DAML_committer_participant_ON-PREM",
-             self._test_daml_committer_participant_4_node_onprem),
+            ("7_Node_DAML_committer_participant_ON-PREM",
+             self._test_daml_committer_participant_7_node_onprem),
          ]
       elif self.args.tests.lower() == "all_tests":
          return [
@@ -1240,3 +1240,24 @@ class PersephoneTests(test_suite.TestSuite):
 
       return status,msg
 
+   def _test_daml_committer_participant_7_node_onprem(self,
+                                                         committer_nodes=7,
+                                                         participant_nodes=1):
+      '''
+      Test to create DAML committer & participant nodes on-prem
+      :param cluster_size: No. of concord nodes on the cluster
+      '''
+      status, msg, replicas = self.deploy_daml_committer_node(
+         cluster_size=committer_nodes)
+      if status and replicas:
+         log.info("**** Committer nodes deployed Successfully\n")
+         status, msg = self.deploy_daml_participant_node(
+            cluster_size=participant_nodes, replicas=replicas)
+         if status:
+            log.info("**** Participant node(s) deployed Successfully\n")
+         else:
+            log.error("Failed to deploy participant node(s)")
+      else:
+         log.error("Failed to deploy committer nodes")
+
+      return status,msg
