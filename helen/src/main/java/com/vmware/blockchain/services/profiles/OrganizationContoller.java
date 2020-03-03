@@ -4,6 +4,7 @@
 
 package com.vmware.blockchain.services.profiles;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -92,6 +93,9 @@ public class OrganizationContoller {
         Map<String, String> patchMap = body.getOrganizationProperties();
 
         if (patchMap != null) {
+            if (currentMap == null) {
+                currentMap = new HashMap<>();
+            }
             currentMap.putAll(patchMap);
         }
 

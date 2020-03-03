@@ -643,7 +643,8 @@ public class BlockchainController {
 
         List<Replica> nodeEntryList = blockchainService.getReplicas(bid);
 
-        String ipList = String.join(",", nodeEntryList.stream()
+        String ipList = String.join(",", nodeEntryList.stream().filter(k -> k.getReplicaType()
+                                                                            != Replica.ReplicaType.DAML_PARTICIPANT)
                 .map(nodeEntry -> nodeEntry.getPrivateIp() + ":50051")
                 .collect(Collectors.toList()));
 
