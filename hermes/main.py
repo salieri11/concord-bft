@@ -68,7 +68,6 @@ def main():
    # Initialize the runtime environment for this instance.
    initialize()
 
-   startTime = datetime.datetime.now()
    parser = argparse.ArgumentParser()
    parser.add_argument("suites", help="Comma delimited list of test suites. " \
                        "Available suites: {}".format(suiteList))
@@ -233,7 +232,6 @@ def main():
 
       for run_count in range(1, args.repeatSuiteRun+1):
          log.info("\nTestrun: {0}/{1}".format(run_count, args.repeatSuiteRun))
-         log.info("Start time: {}".format(startTime))
          args.resultsDir = createResultsDir(suiteName,
                                             parent_results_dir=parent_results_dir)
          log.info("Results directory: {}".format(args.resultsDir))
@@ -261,9 +259,7 @@ def main():
             "logs": suite.getTestLogDir()
          }
          totalSuccess = totalSuccess and suiteSuccess
-         endTime = datetime.datetime.now()
-         log.info("End time: {}".format(endTime))
-         log.info("Elapsed time: {}".format(str(endTime - startTime)))
+
          if not totalSuccess:
             update_repeated_suite_run_result(parent_results_dir, "fail", args.repeatSuiteRun)
             break
