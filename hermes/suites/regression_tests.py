@@ -71,8 +71,7 @@ class RegressionTests(test_suite.TestSuite):
 
    def run(self):
       ''' Runs all of the tests. '''
-      self.launchProduct(self._args,
-                         self._userConfig)
+      self.launchProduct()
       tests = self._getTests()
 
       for (testName, testFun) in tests:

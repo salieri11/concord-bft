@@ -258,8 +258,7 @@ class SimpleStateTransferTest(test_suite.TestSuite):
       ("pause_replica", self._run_pause_replica_test)]
 
    def run(self):
-      self.launchProduct(self._args,
-                         self._userConfig)
+      self.launchProduct()
       log.info("Starting tests")
 
       tests = self._get_tests()

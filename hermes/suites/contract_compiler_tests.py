@@ -65,8 +65,7 @@ class ContractCompilerTests(test_suite.TestSuite):
 
     def run(self):
         ''' Runs all of the tests. '''
-        p = self.launchProduct(self._args,
-                               self._userConfig)
+        p = self.launchProduct()
 
         if self._ethereumMode:
             info = "ContractCompilerTests are not applicable to ethereumMode."

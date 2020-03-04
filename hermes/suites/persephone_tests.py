@@ -49,8 +49,7 @@ class PersephoneTests(test_suite.TestSuite):
          self.update_provisioning_config_file()
 
          log.info("Launching Persephone Server...")
-         self.launchPersephone(self._args,
-                               self._userConfig)
+         self.launchPersephone()
       except Exception as e:
          log.error(traceback.format_exc())
          return self._resultFile
@@ -126,7 +125,7 @@ class PersephoneTests(test_suite.TestSuite):
       self.update_provisioning_config_file(mode="RESET")
 
       log.info("Tests are done.")
-      return self._resultFile
+      return super().run()
 
    def update_provisioning_config_file(self, mode="UPDATE"):
       '''

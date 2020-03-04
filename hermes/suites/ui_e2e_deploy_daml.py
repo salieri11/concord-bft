@@ -35,8 +35,7 @@ class DeployDamlTests(test_suite.TestSuite):
         repo_path.append("ui")
         self.ui_path = '/'.join(repo_path)
         self._start_vdisplay()
-        self.launchProduct(self._args,
-                           self._userConfig,)
+        self.launchProduct()
         tests = self._get_tests()
         for (testName, testFun) in tests:
             result = False

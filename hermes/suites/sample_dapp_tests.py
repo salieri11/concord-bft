@@ -78,8 +78,7 @@ class SampleDAppTests(test_suite.TestSuite):
    def run(self):
       ''' Runs all of the tests. '''
       log.info("Launching product...")
-      self.launchProduct(self._args,
-                         self._userConfig)
+      self.launchProduct()
       self._cleanUp()
       tests = self._getTests()
 

@@ -330,8 +330,7 @@ class MetadataPersistencyTests(test_suite.TestSuite):
       ("primary_down_viewchange_statetransfer", self.primary_down_viewchange_statetransfer)]
 
    def run(self):
-      self.launchProduct(self._args,
-                         self._userConfig)
+      self.launchProduct()
       log.info("Starting tests")
 
       tests = self._get_tests()
