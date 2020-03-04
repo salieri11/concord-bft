@@ -181,10 +181,11 @@ public final class AgentDockerClient {
             if (component.getServiceType() != ConcordComponent.ServiceType.GENERIC) {
                 BaseContainerSpec containerSpec;
 
-                // FIXME: This could be grouped together and not needing a separate if clause
+                // TODO: This block goes away once wavefront uses config file instead of env var
                 if (component.getServiceType() == ConcordComponent.ServiceType.WAVEFRONT_PROXY
                         || component.getServiceType() == ConcordComponent.ServiceType.JAEGER_AGENT
-                        || component.getServiceType() == ConcordComponent.ServiceType.TELEGRAF) {
+                        || component.getServiceType() == ConcordComponent.ServiceType.TELEGRAF
+                        || component.getServiceType() == ConcordComponent.ServiceType.LOGGING) {
                     containerSpec = getMetricsAndTracingContainerSpec(component);
                 } else {
                     containerSpec = getContainerSpec(
@@ -234,7 +235,7 @@ public final class AgentDockerClient {
         return containerSpec;
     }
 
-    // FIXME: This could be re-grouped together in a better way, and include logging too.
+    // FIXME: This goes away once wavefront takes in from configuration file.
     private BaseContainerSpec getMetricsAndTracingContainerSpec(ConcordComponent component) {
 
         BaseContainerSpec containerSpec;
@@ -251,6 +252,9 @@ public final class AgentDockerClient {
                 break;
             case TELEGRAF:
                 containerSpec = MetricsAndTracingConfig.TELEGRAF;
+                break;
+            case LOGGING:
+                containerSpec = MetricsAndTracingConfig.LOGGING;
                 break;
             default:
                 var message = String.format("Invalid service type(%s)", component.getServiceType());

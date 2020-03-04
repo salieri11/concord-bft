@@ -9,6 +9,7 @@ import java.util.List;
 import com.github.dockerjava.api.model.Bind;
 import com.github.dockerjava.api.model.ExposedPort;
 import com.github.dockerjava.api.model.Link;
+import com.github.dockerjava.api.model.LogConfig;
 import com.github.dockerjava.api.model.PortBinding;
 import com.github.dockerjava.api.model.Ports;
 
@@ -21,6 +22,9 @@ import lombok.Setter;
 @Getter
 public enum MetricsAndTracingConfig implements BaseContainerSpec {
 
+    LOGGING(LogConfig.LoggingType.FLUENTD.toString(), null,
+            List.of(Bind.parse("/var/lib/docker/containers:/var/lib/docker/containers")),
+            null,  null, null),
     WAVEFRONT_PROXY("wavefront-proxy",
             List.of(new PortBinding(Ports.Binding.bindPort(14267), ExposedPort.tcp(14267))),
             null, null, null, null),
@@ -47,6 +51,7 @@ public enum MetricsAndTracingConfig implements BaseContainerSpec {
     private List<Bind> volumeBindings;
     private List<Link> links;
     private List<String> cmds;
+    private int ordinal;
     @Setter
     private List<String> environment;
 
@@ -59,5 +64,6 @@ public enum MetricsAndTracingConfig implements BaseContainerSpec {
         this.links = links;
         this.cmds = cmds;
         this.environment = environment;
+        this.ordinal = 2;
     }
 }

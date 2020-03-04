@@ -9,7 +9,6 @@ import java.util.List;
 import com.github.dockerjava.api.model.Bind;
 import com.github.dockerjava.api.model.ExposedPort;
 import com.github.dockerjava.api.model.Link;
-import com.github.dockerjava.api.model.LogConfig;
 import com.github.dockerjava.api.model.PortBinding;
 import com.github.dockerjava.api.model.Ports;
 
@@ -22,10 +21,6 @@ import lombok.Setter;
  */
 @Getter
 public enum DamlParticipantConfig implements BaseContainerSpec {
-
-    LOGGING(LogConfig.LoggingType.FLUENTD.toString(), null,
-            List.of(Bind.parse("/var/lib/docker/containers:/var/lib/docker/containers")),
-            null, null),
 
     DAML_INDEX_DB("daml_index_db", List.of(
             new PortBinding(Ports.Binding.bindPort(5432), ExposedPort.tcp(5432))),
@@ -46,6 +41,7 @@ public enum DamlParticipantConfig implements BaseContainerSpec {
     private List<PortBinding> portBindings;
     private List<Bind> volumeBindings;
     private List<Link> links;
+    private int ordinal;
     @Setter
     private List<String> environment;
 
@@ -57,6 +53,7 @@ public enum DamlParticipantConfig implements BaseContainerSpec {
         this.volumeBindings = volumeBindings;
         this.links = links;
         this.environment = environment;
+        this.ordinal = 1;
     }
 
 }
