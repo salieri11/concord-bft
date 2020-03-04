@@ -11,6 +11,8 @@ import os
 import sys
 import tempfile
 from time import strftime, localtime, sleep
+
+import event_recorder
 from suites import (contract_compiler_tests, core_vm_tests,
                     ext_rpc_tests, ui_e2e_deploy_daml, hlf_tests, performance_tests, persephone_tests,
                     pytest_suite, regression_tests, sample_dapp_tests, simple_st_test,
@@ -81,6 +83,8 @@ def main():
    parser.add_argument("--resultsDir",
                        default=tempfile.gettempdir(),
                        help="Results directory")
+   parser.add_argument("--eventsFile",
+                       help="File to receive timing events.")
    parser.add_argument("--tests",
                        help="Run specific tests. Details depend on the suite " \
                        "being run. For CoreVMTests, this is a directory or " \
@@ -224,45 +228,50 @@ def main():
    log.info("Suites to run: {}".format(args.suites.split(",")))
 
    for suiteName in args.suites.split(","):
-       for run_count in range(1, args.repeatSuiteRun+1):
-          log.info("\nTestrun: {0}/{1}".format(run_count, args.repeatSuiteRun))
-          log.info("Start time: {}".format(startTime))
-          args.resultsDir = createResultsDir(suiteName,
-                                             parent_results_dir=parent_results_dir)
-          log.info("Results directory: {}".format(args.resultsDir))
-          suite = createTestSuite(args, suiteName, product)
-          if suite is None:
-             log.error("Unknown test suite")
-             exit(3)
+      if args.eventsFile:
+         event_recorder.record_event(suiteName, "Start", args.eventsFile)
 
-          log.info("Running {}".format(suiteName))
+      for run_count in range(1, args.repeatSuiteRun+1):
+         log.info("\nTestrun: {0}/{1}".format(run_count, args.repeatSuiteRun))
+         log.info("Start time: {}".format(startTime))
+         args.resultsDir = createResultsDir(suiteName,
+                                            parent_results_dir=parent_results_dir)
+         log.info("Results directory: {}".format(args.resultsDir))
+         suite = createTestSuite(args, suiteName, product)
+         if suite is None:
+            log.error("Unknown test suite")
+            exit(3)
 
-          try:
-             resultsFile, product = suite.run()
-          except ProductLaunchException as e:
-             resultsFile = e.logFile
-             product = None
+         log.info("Running {}".format(suiteName))
 
-          try:
-             suiteSuccess, suiteSuccessMessage = processResults(resultsFile)
-          except Exception as e:
-             suiteSuccess = False
-             suiteSuccessMessage = "Log {} for suite {} could not be processed.".format(resultsFile, suiteName)
+         try:
+            resultsFile, product = suite.run()
+         except ProductLaunchException as e:
+            resultsFile = e.logFile
+            product = None
 
-          allResults[suiteName] = {
-             "message": suiteSuccessMessage,
-             "logs": suite.getTestLogDir()
-          }
-          totalSuccess = totalSuccess and suiteSuccess
-          endTime = datetime.datetime.now()
-          log.info("End time: {}".format(endTime))
-          log.info("Elapsed time: {}".format(str(endTime - startTime)))
-          if not totalSuccess:
-             update_repeated_suite_run_result(parent_results_dir, "fail", args.repeatSuiteRun)
-             break
+         try:
+            suiteSuccess, suiteSuccessMessage = processResults(resultsFile)
+         except Exception:
+            suiteSuccess = False
+            suiteSuccessMessage = "Log {} for suite {} could not be processed.".format(resultsFile, suiteName)
+
+         allResults[suiteName] = {
+            "message": suiteSuccessMessage,
+            "logs": suite.getTestLogDir()
+         }
+         totalSuccess = totalSuccess and suiteSuccess
+         endTime = datetime.datetime.now()
+         log.info("End time: {}".format(endTime))
+         log.info("Elapsed time: {}".format(str(endTime - startTime)))
+         if not totalSuccess:
+            update_repeated_suite_run_result(parent_results_dir, "fail", args.repeatSuiteRun)
+            break
+
+      if args.eventsFile:
+         event_recorder.record_event(suiteName, "End", args.eventsFile)
 
    update_repeated_suite_run_result(parent_results_dir, "pass", args.repeatSuiteRun)
-
    printAllResults(allResults)
 
    if not totalSuccess:
@@ -361,7 +370,7 @@ def createTestSuite(args, suiteName, product):
       return truffle_tests.TruffleTests(args, product)
    elif (suiteName == "UiTests"):
       return ui_tests.UiTests(args, product)
-   elif (args.suite == "DeployDamlTests"):
+   elif (suiteName == "DeployDamlTests"):
       return ui_e2e_deploy_daml.DeployDamlTests(args, product)
    elif (suiteName == "DamlTests"):
       return pytest_suite.PytestSuite(args, "suites/daml_tests.py", product)
@@ -374,7 +383,7 @@ def createTestSuite(args, suiteName, product):
    elif (suiteName == "MetadataPersistencyTests"):
       return persistency_tests.MetadataPersistencyTests(args, product)
    elif (suiteName == "PrivacyTeeTests"):
-      return pytest_suite.PytestSuite(args, "suites/privacy_tee_tests.py", product)   
+      return pytest_suite.PytestSuite(args, "suites/privacy_tee_tests.py", product)
    else:
       return None
 
