@@ -544,7 +544,7 @@ EOF
                     sed -i -e 's/'"<VMC_SDDC4_VC_CREDENTIALS_PASSWORD>"'/'"${VMC_SDDC4_VC_CREDENTIALS_PASSWORD}"'/g' blockchain/hermes/resources/user_config.json
                     sed -i -e 's/'"<METAINF_ENV_JOB_NAME>"'/'"${JOB_NAME_ESCAPED}"'/g' blockchain/hermes/resources/user_config.json
                     sed -i -e 's/'"<METAINF_ENV_BUILD_NUMBER>"'/'"${BUILD_NUMBER}"'/g' blockchain/hermes/resources/user_config.json
-                    sed -i -e 's/'"<METAINF_ENV_PRODUCT_VERSION>"'/'"${product_version}"'/g' blockchain/hermes/resources/user_config.json
+                    sed -i -e 's/'"<METAINF_ENV_DOCKER_TAG>"'/'"${docker_tag}"'/g' blockchain/hermes/resources/user_config.json
                   '''
 
                   if (env.JOB_NAME.contains(persephone_test_job_name)) {
