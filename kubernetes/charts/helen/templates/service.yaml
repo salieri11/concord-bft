@@ -10,5 +10,4 @@ spec:
     - port: {{ .Values.service.containerPort }}
       targetPort: {{ .Values.service.targetPort }}
   selector:
-    app.kubernetes.io/name: {{ include "helen.name" . }}
-    app.kubernetes.io/instance: {{ include "helen.name" . }}
+    app: {{ template "helen.name" . }}
