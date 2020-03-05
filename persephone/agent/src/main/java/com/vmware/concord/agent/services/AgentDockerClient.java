@@ -13,9 +13,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -27,7 +25,6 @@ import com.github.dockerjava.api.exception.DockerException;
 import com.github.dockerjava.api.model.AuthConfig;
 import com.github.dockerjava.api.model.Bind;
 import com.github.dockerjava.api.model.HostConfig;
-import com.github.dockerjava.api.model.LogConfig;
 import com.github.dockerjava.core.DefaultDockerClientConfig;
 import com.github.dockerjava.core.DockerClientBuilder;
 import com.github.dockerjava.core.command.PullImageResultCallback;
@@ -166,17 +163,6 @@ public final class AgentDockerClient {
 
         //setup special hlf networking
         createNetwork(dockerClient, CONTAINER_NETWORK_NAME);
-
-        // Setup logging container's environment variables
-        Predicate<BaseContainerSpec> predicate =
-            containerConfig -> containerConfig.getContainerName().equals(LogConfig.LoggingType.FLUENTD.toString());
-        Optional<BaseContainerSpec> loggingContainerConfigOptional = containerConfigList.stream()
-                .filter(predicate)
-                .findFirst();
-        if (loggingContainerConfigOptional.isPresent() && !configuration.getLoggingEnvVariablesList().isEmpty()) {
-            var loggingContainerConfig = loggingContainerConfigOptional.get();
-            loggingContainerConfig.setEnvironment(configuration.getLoggingEnvVariablesList());
-        }
 
         // Start all containers
         containerConfigList.forEach(container -> launchContainer(dockerClient, container));

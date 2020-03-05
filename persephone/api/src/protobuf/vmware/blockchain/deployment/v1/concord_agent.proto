@@ -26,7 +26,6 @@ message ConcordAgentConfiguration {
     Endpoint config_service = 6;
     ConfigurationSessionIdentifier configuration_session = 7;
     OutboundProxyInfo outbound_proxy_info = 8;
-    repeated string logging_env_variables = 9;
-    Wavefront wavefront = 10;
+    Wavefront wavefront = 9;
 }
 /* [END messages] */
