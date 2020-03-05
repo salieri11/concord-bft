@@ -22,7 +22,9 @@
 
 using boost::lockfree::spsc_queue;
 using com::vmware::concord::kvb::ValueWithTrids;
+using concord::storage::InvalidBlockRange;
 using concord::storage::kKvbKeyDaml;
+using concord::storage::kKvbKeyEthBlock;
 using concord::storage::KvbAppFilter;
 using concord::storage::KvbReadError;
 using concord::storage::SetOfKeyValuePairs;
@@ -88,9 +90,9 @@ class FakeStorage : public ILocalKeyValueStorageReadOnly {
     ADD_FAILURE() << "monitor() should not be called by this test";
   }
 
-  string concatDaml(string key) {
+  string concatKeyType(string key, char keyType) {
     std::string str1;
-    str1.push_back(kKvbKeyDaml);
+    str1.push_back(keyType);
     str1 += key;
     return str1;
   }
@@ -102,7 +104,7 @@ class FakeStorage : public ILocalKeyValueStorageReadOnly {
   // to watch>>
   void fillWithData(BlockId num_of_blocks) {
     blockId_ = num_of_blocks;
-    std::string str1 = concatDaml("Key");
+    std::string str1 = concatKeyType("Key", kKvbKeyDaml);
     Sliver key1(std::move(str1));
     for (BlockId i = 0; i <= num_of_blocks; i++) {
       ValueWithTrids proto;
@@ -125,10 +127,10 @@ TEST(kvbfilter_test, kvbfilter_update_success) {
   string key_prefix = "Ke";
   auto kvb_filter = KvbAppFilter(&storage, {KvbAppFilter::AppType::kDaml},
                                  std::to_string(client_id), key_prefix);
-  std::string expected_key1 = storage.concatDaml("Key1");
-  Sliver key1(storage.concatDaml("Key1"));
-  std::string expected_key2 = storage.concatDaml("Key2");
-  Sliver key2(storage.concatDaml("Key2"));
+  std::string expected_key1 = storage.concatKeyType("Key1", kKvbKeyDaml);
+  Sliver key1(storage.concatKeyType("Key1", kKvbKeyDaml));
+  std::string expected_key2 = storage.concatKeyType("Key2", kKvbKeyDaml);
+  Sliver key2(storage.concatKeyType("Key2", kKvbKeyDaml));
 
   ValueWithTrids proto1, proto2;
   proto1.add_trid("0");
@@ -161,10 +163,10 @@ TEST(kvbfilter_test, kvbfilter_update_message_prefix_only_one_matched) {
   string key_prefix = "Ke";
   auto kvb_filter = KvbAppFilter(&storage, {KvbAppFilter::AppType::kDaml},
                                  std::to_string(client_id), key_prefix);
-  std::string expected_key = storage.concatDaml("Rey");
-  Sliver key(storage.concatDaml("Rey"));
-  std::string expected_key1 = storage.concatDaml("Key");
-  Sliver key1(storage.concatDaml("Key"));
+  std::string expected_key = storage.concatKeyType("Rey", kKvbKeyDaml);
+  Sliver key(storage.concatKeyType("Rey", kKvbKeyDaml));
+  std::string expected_key1 = storage.concatKeyType("Key", kKvbKeyDaml);
+  Sliver key1(storage.concatKeyType("Key", kKvbKeyDaml));
   ValueWithTrids proto;
   proto.add_trid("0");
   proto.set_value("TridVal");
@@ -192,10 +194,10 @@ TEST(kvbfilter_test, kvbfilter_update_message_empty_prefix) {
   auto kvb_filter = KvbAppFilter(&storage, {KvbAppFilter::AppType::kDaml},
                                  std::to_string(client_id), key_prefix);
   std::unordered_set<std::string> expected_key_set;
-  expected_key_set.insert(storage.concatDaml("Rey"));
-  expected_key_set.insert(storage.concatDaml("Key"));
-  Sliver key(storage.concatDaml("Rey"));
-  Sliver key1(storage.concatDaml("Key"));
+  expected_key_set.insert(storage.concatKeyType("Rey", kKvbKeyDaml));
+  expected_key_set.insert(storage.concatKeyType("Key", kKvbKeyDaml));
+  Sliver key(storage.concatKeyType("Rey", kKvbKeyDaml));
+  Sliver key1(storage.concatKeyType("Key", kKvbKeyDaml));
   ValueWithTrids proto;
   proto.add_trid("0");
   proto.set_value("TridVal");
@@ -212,7 +214,8 @@ TEST(kvbfilter_test, kvbfilter_update_message_empty_prefix) {
   EXPECT_EQ(filtered_kv_pairs.size(), 2);
   int index = 0;
   for (const auto& [key, val] : filtered_kv_pairs) {
-    EXPECT_TRUE(expected_key_set.count(storage.concatDaml(key.toString())));
+    EXPECT_TRUE(expected_key_set.count(
+        storage.concatKeyType(key.toString(), kKvbKeyDaml)));
     EXPECT_EQ(val.toString(), proto.value());
     index++;
   }
@@ -224,8 +227,8 @@ TEST(kvbfilter_test, kvbfilter_update_client_has_no_trids) {
   string key_prefix = "";
   auto kvb_filter = KvbAppFilter(&storage, {KvbAppFilter::AppType::kDaml},
                                  std::to_string(client_id), key_prefix);
-  Sliver key(storage.concatDaml("Rey"));
-  Sliver key1(storage.concatDaml("Key"));
+  Sliver key(storage.concatKeyType("Rey", kKvbKeyDaml));
+  Sliver key1(storage.concatKeyType("Key", kKvbKeyDaml));
   ValueWithTrids proto;
   proto.add_trid("0");
   proto.set_value("TridVal");
@@ -248,8 +251,8 @@ TEST(kvbfilter_test, kvbfilter_hash_update_success) {
   string key_prefix = "";
   auto kvb_filter = KvbAppFilter(&storage, {KvbAppFilter::AppType::kDaml},
                                  std::to_string(client_id), key_prefix);
-  Sliver key(storage.concatDaml("Rey"));
-  Sliver key1(storage.concatDaml("Key"));
+  Sliver key(storage.concatKeyType("Rey", kKvbKeyDaml));
+  Sliver key1(storage.concatKeyType("Key", kKvbKeyDaml));
   ValueWithTrids proto;
   proto.add_trid("0");
   proto.set_value("TridVal");
@@ -337,6 +340,23 @@ TEST(kvbfilter_test, kvbfilter_block_out_of_range) {
       , KvbReadError);
 };
 
+TEST(kvbfilter_test, kvbfilter_end_block_greater_then_start_block) {
+  FakeStorage storage;
+  int client_id = 1;
+  string key_prefix = "";
+  auto kvb_filter = KvbAppFilter(&storage, {KvbAppFilter::AppType::kDaml},
+                                 std::to_string(client_id), key_prefix);
+  storage.fillWithData(kLastBlockId);
+  BlockId block_id_end = 0;
+  BlockId block_id_start = 10;
+  KvbUpdate temporary;
+  spsc_queue<KvbUpdate> queue_out{storage.getLastBlock()};
+  std::atomic_bool stop_exec = false;
+  EXPECT_THROW(kvb_filter.ReadBlockRange(block_id_start, block_id_end,
+                                         queue_out, stop_exec);
+               , InvalidBlockRange);
+};
+
 TEST(kvbfilter_test, kvbfilter_success_hash_of_blocks_in_range) {
   FakeStorage storage;
   int client_id = 1;
@@ -346,7 +366,7 @@ TEST(kvbfilter_test, kvbfilter_success_hash_of_blocks_in_range) {
   storage.fillWithData(kLastBlockId);
 
   // add Trid 1 to watch on another value -> now Trid 1 watches on 2 values
-  std::string str1 = storage.concatDaml("Key");
+  std::string str1 = storage.concatKeyType("Key", kKvbKeyDaml);
   Sliver key1(std::move(str1));
   ValueWithTrids proto;
   proto.add_trid(std::to_string(2));
@@ -413,6 +433,47 @@ TEST(kvbfilter_test, kvbfilter_hash_filter_block_out_of_range) {
 
   EXPECT_THROW(kvb_filter.ReadBlockRangeHash(block_id_start, block_id_end);
                , KvbReadError);
+};
+
+TEST(kvbfilter_test, kvbfilter_update_for_not_daml_prefix) {
+  FakeStorage storage;
+  int client_id = 1;
+  string key_prefix = "Ke";
+  auto kvb_filter = KvbAppFilter(&storage, {KvbAppFilter::AppType::kDaml},
+                                 std::to_string(client_id), key_prefix);
+  std::string expected_key1 = storage.concatKeyType("Key", kKvbKeyEthBlock);
+  Sliver key1(std::move(expected_key1));
+
+  ValueWithTrids proto1;
+  proto1.add_trid("1");
+  proto1.set_value("TridVal1");
+  std::string serialized = proto1.SerializeAsString();
+  Sliver buf1(std::move(serialized));
+  const SetOfKeyValuePairs block{{std::make_pair(key1, buf1)}};
+  BlockId block_id = 0;
+
+  auto filtered = kvb_filter.FilterUpdate(std::make_pair(block_id, block));
+
+  EXPECT_EQ(filtered.first, block_id);
+  SetOfKeyValuePairs filtered_kv_pairs = filtered.second;
+  EXPECT_EQ(filtered_kv_pairs.size(), 0);
+};
+
+TEST(kvbfilter_test, kvbfilter_update_empty_kv_pair) {
+  FakeStorage storage;
+  int client_id = 1;
+  string key_prefix = "Ke";
+  auto kvb_filter = KvbAppFilter(&storage, {KvbAppFilter::AppType::kDaml},
+                                 std::to_string(client_id), key_prefix);
+
+  const SetOfKeyValuePairs block{};
+  BlockId block_id = 0;
+
+  auto filtered = kvb_filter.FilterUpdate(std::make_pair(block_id, block));
+
+  EXPECT_EQ(filtered.first, block_id);
+  SetOfKeyValuePairs filtered_kv_pairs = filtered.second;
+  EXPECT_EQ(filtered_kv_pairs.size(), 0);
 };
 
 }  // anonymous namespace

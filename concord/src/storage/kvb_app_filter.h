@@ -29,6 +29,11 @@ class KvbReadError : public std::exception {
   std::string msg;
 };
 
+class InvalidBlockRange : public std::runtime_error {
+ public:
+  InvalidBlockRange() : std::runtime_error("Invalid block range"){};
+};
+
 class KvbAppFilter {
  public:
   enum AppType {
