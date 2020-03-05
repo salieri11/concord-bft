@@ -15,7 +15,7 @@ log = logging.getLogger(__name__)
 productType = helper.TYPE_DAML
 
 TEST_TOOL_NAME = "ledger-api-test-tool-100.13.52.jar"
-TEST_DARS = ["SemanticTests.dar", "Test-stable.dar"]
+TEST_DARS = ["SemanticTests.dar", "Test-dev.dar", "Test-stable.dar"]
 TEST_TOOL_CONTAINER = "docker_daml_test_tool_1"
 DAML_TESTS_IGNORE_LIST=["TimeIT","LotsOfPartiesIT", "TransactionScaleIT", "TransactionServiceIT"]
 error_msg = None
