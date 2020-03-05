@@ -176,7 +176,8 @@ def main():
            "Note: The path specified is the absolute path within a Concord container",
       default="/concord/config/dockerConfigurationInput.yaml")
 
-   parser.add_argument("--blockchainLocation",
+   nonLocalDeployConfig = parser.add_argument_group("SDDC Deployment Parameters")
+   nonLocalDeployConfig.add_argument("--blockchainLocation",
                        help="Location of the blockchain being tested.  Values: " \
                             "{} (default), {}, {}. {} not implemented." \
                        .format(helper.LOCATION_LOCAL,
@@ -184,7 +185,7 @@ def main():
                                helper.LOCATION_ONPREM,
                                helper.LOCATION_ONPREM),
                        default=helper.LOCATION_LOCAL)
-   parser.add_argument("--blockchainType",
+   nonLocalDeployConfig.add_argument("--blockchainType",
                        help="Type of blockchain to deploy if --blockchainLocation is not 'local'.  Values: " \
                             "{} (default), {}, {}, {}" \
                        .format(helper.TYPE_ETHEREUM,
@@ -192,18 +193,19 @@ def main():
                                helper.TYPE_HLF,
                                helper.TYPE_TEE),
                        default=helper.TYPE_ETHEREUM)
-   parser.add_argument("--numReplicas",
+   nonLocalDeployConfig.add_argument("--numReplicas",
                        help="The number of blockchain replicas to deploy. The 'f' value will be " \
                        "calculated automatically using f = (numReplicas - 1)/3. If Helen does not " \
                        "like the combination of the replica count and f value, deployment will fail.",
                        default=4)
-   parser.add_argument("--keepBlockchains",
+   nonLocalDeployConfig.add_argument("--keepBlockchains",
                        help="Whether to keep the blockchain(s) deployed by this run. " \
                             "Valid values: {}.  Default: '{}'".format([helper.KEEP_BLOCKCHAINS_ALWAYS,
                                                                        helper.KEEP_BLOCKCHAINS_ON_FAILURE,
                                                                        helper.KEEP_BLOCKCHAINS_NEVER],
                                                                       helper.KEEP_BLOCKCHAINS_NEVER),
                        default=helper.KEEP_BLOCKCHAINS_NEVER)
+
    args = parser.parse_args()
    parent_results_dir = args.resultsDir
 

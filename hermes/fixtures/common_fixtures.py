@@ -41,7 +41,7 @@ def retrieveCustomCmdlineData(pytestRequest):
     }
 
 
-def setUpPortForwarding(url, creds, blockchainType, logDir, timeout=300,):
+def setUpPortForwarding(url, creds, blockchainType, logDir, timeout=600,):
    '''
    Given a url and credentials, set up port forwarding.
    The VMs should be ready in two minutes; default timeout is 2.5 min just

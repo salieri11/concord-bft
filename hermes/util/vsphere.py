@@ -4,6 +4,7 @@ from pyVmomi import vim
 import atexit
 import ssl
 import threading
+import time
 
 import logging
 
@@ -28,7 +29,7 @@ class ConnectionToSDDC:
       sslContext = None # skip cert checking
       if hasattr(ssl, '_create_unverified_context'): 
         sslContext = ssl._create_unverified_context()
-      log.info("Connecting to vSphere on SDDC {}...".format(sddcName))
+      log.info("Connecting to vSphere on {}...".format(sddcName))
       self.connection = SmartConnect(host = hostname,
                                     user = username,
                                     pwd = password,
@@ -41,6 +42,7 @@ class ConnectionToSDDC:
         self.content = self.connection.RetrieveContent() # main content obj of vSphere
         self.services = self.connection.RetrieveServiceContent() # all managers
         self.attrByName = {}
+        self.attrByKey = {}
 
         log.info("Fetching all VMs and Folders on {}...".format(sddcName))
         self.updateAllEntityHandles() # populate `allEntityHandlesByName` with all VMs & Folders in this SDDC
@@ -51,17 +53,20 @@ class ConnectionToSDDC:
       log.debug(e)
 
 
-  def getByName(self, name):
+  def getByName(self, name, getAsHandle=False):
     '''
         Returns VM or Folder that matches the name exactly
     '''
     if name in self.allEntityHandlesByName:
-      return self.allEntityHandlesByName[name]["entity"]
+      if getAsHandle:
+        return self.allEntityHandlesByName[name]
+      else:
+        return self.allEntityHandlesByName[name]["entity"]
     else:
       return None
 
 
-  def getByNameContaining(self, substring):
+  def getByNameContaining(self, substring, getAsHandle=False):
     '''
         Returns first VM or Folder that has substring in the name
         (mainly used for matching `replicaId`, which is the second
@@ -69,15 +74,20 @@ class ConnectionToSDDC:
     '''
     for name in self.allEntityHandlesByName:
       if substring in name:
-        return self.allEntityHandlesByName[name]["entity"]
+        if getAsHandle:
+          return self.allEntityHandlesByName[name]
+        else:
+          return self.allEntityHandlesByName[name]["entity"]
     return None
 
 
-  def getByIP(self, ipAddress):
+  def getByIP(self, ipAddress, getAsHandle=False):
     '''
         Returns VMs (vim.VirtualMachine) matching the supplied IP
     '''
-    return self.content.searchIndex.FindAllByIp(ip=ipAddress, vmSearch=True)
+    return self.vmFilterByAttributeValue("public_ip", ipAddress, getAsHandle=getAsHandle)
+    # API method
+    # return self.content.searchIndex.FindAllByIp(ip=ipAddress, vmSearch=True)
 
 
   def getEntityType(self, entity):
@@ -87,6 +97,65 @@ class ConnectionToSDDC:
       return "Folder"
     else:
       return None
+
+
+  def vmGetUID(self, vm):
+    return str(vm).replace("'", "")
+
+
+  def vmFilterByNames(self, names, matchExactly=True, getAsHandle=False):
+    result = []
+    for name in names:
+      vm = None
+      if matchExactly:
+        vm = self.getByName(name, getAsHandle=getAsHandle)
+      else:
+        vm = self.getByNameContaining(name, getAsHandle=getAsHandle)
+      if vm is not None:
+        result.append(vm)
+    return result
+
+
+  def vmFilterByAttributeValue(self, attrName, attrValue, matchExactly=True, getAsHandle=False):
+    result = []
+    if attrName not in self.allEntityHandlesByAttribute: return []
+    if matchExactly:
+      if type(attrValue) in [list]:
+        for attrValueN in attrValue:
+          if attrValueN in self.allEntityHandlesByAttribute[attrName]:
+            handles = self.allEntityHandlesByAttribute[attrName][attrValueN]
+            for handle in handles:
+              if getAsHandle:
+                result.append(handle)
+              else:
+                result.append(handle["entity"])
+      else:
+        if attrValue not in self.allEntityHandlesByAttribute[attrName]:
+          return []
+        handles = self.allEntityHandlesByAttribute[attrName][attrValue]
+        for handle in handles:
+          if getAsHandle:
+            result.append(handle)
+          else:
+            result.append(handle["entity"])
+    else:
+      for value in self.allEntityHandlesByAttribute[attrName]:
+        if type(attrValue) in [list]:
+          for attrValueN in attrValue:
+            if attrValueN in value:
+              for handle in self.allEntityHandlesByAttribute[attrName][value]:
+                if getAsHandle:
+                  result.append(handle)
+                else:
+                  result.append(handle["entity"])
+        else:
+          if attrValue in value:
+            for handle in self.allEntityHandlesByAttribute[attrName][value]:
+              if getAsHandle:
+                result.append(handle)
+              else:
+                result.append(handle["entity"])
+    return result
 
 
   def vmAnnotate(self, vm, noteContent):
@@ -144,78 +213,16 @@ class ConnectionToSDDC:
     if attr is None:
       log.debug("Attribute by name '{}' is not found in this SDDC.".format(name))
       return None
+    if self.vmGetUID(vm) in self.allEntityHandlesByUID:
+      vmHandle = self.allEntityHandlesByUID[self.vmGetUID(vm)]
+      if name in vmHandle["attrMap"]:
+        return vmHandle["attrMap"][name]
+      else:
+        return None
     for attrOnVM in vm.customValue:
       if attr.key == attrOnVM.key:
         return attrOnVM.value
     return None
-
-  
-  def vmMoveToFolderByName(self, folderName, entityNames, matchExactly=True, suspendVMs=False, appendAnnotation="", attrSet=[]):
-    '''
-        Moves VMs with matching names to another folder.
-        (Mainly used for keeping suspect VMs alive for further investigation)
-
-        ```
-        # e.g.: Move select `replicaIds` to another folder
-          sddcConn.moveVMsToFolder("HermesTesting-LongInvestigation", [
-            "fb50a73f-605f-4b39-9d13-9b1abfc52471",
-            "fb50a73f-605f-4b39-9d13-9b1abfc52472",
-            "fb50a73f-605f-4b39-9d13-9b1abfc52473",
-            "fb50a73f-605f-4b39-9d13-9b1abfc52474"
-          ], matchExactly = False)
-        ```
-    '''
-    if len(entityNames) == 0:
-      log.debug("Supplied entity name list is empty")
-      return False
-    
-    folder = self.getByName(folderName)
-    if folder is None:
-      log.debug("Folder not found (name='{}')".format(folderName))
-      return False
-    
-    vmNames = []
-    vmList = []
-    for entityName in entityNames:
-      vm = None
-      if matchExactly: 
-        vm = self.getByName(entityName)
-      else:
-        vm = self.getByNameContaining(entityName)
-      if vm is not None:
-        vmList.append(vm)
-        vmNames.append(vm.name)
-    
-    if len(vmList) == 0:
-      log.debug("Cannot find any VM matching the name description")
-      return False
-    
-    log.info("Moving VMs [{}] to {}".format(', '.join(vmNames), folderName))
-    folder.MoveIntoFolder_Task(list = vmList)
-
-    # While moving, additioanlly append annotation why it was moved
-    if len(appendAnnotation) > 0:
-      for vm in vmList:
-        currentAnnotation = vm.config.annotation
-        self.vmAnnotate(vm, currentAnnotation + "\n\nMoved, Reason: " + appendAnnotation)
-
-    # While moving, additioanlly set/modify VM attributes (e.g. "moved" : yes)
-    if len(attrSet) > 0:
-      for vm in vmList:
-        for attr in attrSet:
-          self.vmSetCustomAttribute(vm, attr["name"], attr["value"])
-
-    # While moving additional option to suspend the VM
-    #    note: `suspending` actually takes the VM down (even IP assignment)
-    #    if you want TRUE `pausing` you gotta pause the VM with esxcli command
-    #    kill -STOP [VMX_PROCESS_PID] # pauses
-    #    kill -CONT [VMX_PROCESS_PID] # resumes
-    #    more info: https://www.virtuallyghetto.com/2013/03/how-to-pause-not-suspend-virtual.html
-    if suspendVMs:
-      for vm in vmList:
-        vm.SuspendVM_Task()
-
-    return True
 
 
   def findRegisteredAttributeByName(self, name):
@@ -227,6 +234,8 @@ class ConnectionToSDDC:
       for attr in manager.field: 
         if attr.name not in self.attrByName:
           self.attrByName[attr.name] = attr
+        if attr.key not in self.attrByKey:
+          self.attrByKey[attr.key] = attr
         if attr.name == name: 
           found = attr
       return found
@@ -236,21 +245,55 @@ class ConnectionToSDDC:
     '''
         Fetches and maps all VMs and Folders in the SDDC by name for easy look-up.
     '''
-    self.allEntityHandlesByName = {} # clear array and get latest
-    containerView = self.content.viewManager.CreateContainerView(
-      container = self.content.rootFolder, 
-      type = [vim.Folder, vim.VirtualMachine], # VMs & Folders Only
-      recursive = True
-    )
-    handles = self.parallelIteratePropsFetchedByAPI(
-      iterable = containerView.view,
-      props = ["name"]
-    )
-    for handle in handles:
-      if "name" in handle:
-        name = handle["name"]
-        entity = handle["entity"]
-        self.allEntityHandlesByName[name] = handle
+    try:
+      # clear and get latest
+      self.allEntityHandlesByName = {} # by VM name
+      self.allEntityHandlesByUID = {} # by VM id (e.g. vim.VirtualMachine:vm-28102)
+      self.allEntityHandlesByAttribute = {} # by custom attritube and its value
+      containerView = self.content.viewManager.CreateContainerView(
+        container = self.content.rootFolder, 
+        type = [vim.Folder, vim.VirtualMachine], # VMs & Folders Only
+        recursive = True
+      )
+      handles = self.parallelIteratePropsFetchedByAPI(
+        iterable = containerView.view,
+        props = ["name", "customValue"]
+      )
+      self.findRegisteredAttributeByName("public_ip")
+      for handle in handles:
+        handle["isHandle"] = True
+        handle["attrMap"] = {}
+        handle["sddc"] = self.sddcName
+        if "name" in handle:
+          name = handle["name"]
+          entity = handle["entity"]
+          self.allEntityHandlesByName[name] = handle
+          if self.getEntityType(entity) == "VM":
+            vmUID = self.vmGetUID(entity)
+            handle["uid"] = vmUID
+            self.allEntityHandlesByUID[vmUID] = handle
+            attrs = handle["customValue"]
+            for attr in attrs:
+              attrDef = self.attrByKey[attr.key]
+              attrName = attrDef.name
+              handle["attrMap"][attrName] = attr.value
+              if attrName not in self.allEntityHandlesByAttribute:
+                self.allEntityHandlesByAttribute[attrName] = {}
+              if attr.value not in self.allEntityHandlesByAttribute[attrName]:
+                self.allEntityHandlesByAttribute[attrName][attr.value] = []
+              self.allEntityHandlesByAttribute[attrName][attr.value].append(handle)
+    except Exception as e:
+      print(e)
+
+
+  def filterHandleList(self, handleList):
+    if len(handleList) == 0: return handleList
+    if handleList[0].__class__ is vim.VirtualMachine:
+      return handleList
+    newList = []
+    for handle in handleList:
+      newList.append(handle["entity"])
+    return newList
 
 
   def parallelIteratePropsFetchedByAPI(self, iterable, props):
