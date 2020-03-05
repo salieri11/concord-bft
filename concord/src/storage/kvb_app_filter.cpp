@@ -23,6 +23,7 @@ using namespace std::chrono_literals;
 
 using boost::lockfree::spsc_queue;
 
+using concord::storage::InvalidBlockRange;
 using concordUtils::BlockId;
 using concordUtils::Key;
 using concordUtils::KeyValuePair;
@@ -114,7 +115,8 @@ size_t KvbAppFilter::HashUpdate(const KvbUpdate update) {
 void KvbAppFilter::ReadBlockRange(BlockId block_id_start, BlockId block_id_end,
                                   spsc_queue<KvbUpdate> &queue_out,
                                   const std::atomic_bool &stop_execution) {
-  assert(block_id_start <= block_id_end);
+  if (block_id_start > block_id_end) throw InvalidBlockRange();
+
   BlockId block_id(block_id_start);
 
   SetOfKeyValuePairs kvb_kvs;
@@ -150,7 +152,7 @@ KvbStateHash KvbAppFilter::ReadBlockHash(BlockId block_id) {
 
 KvbStateHash KvbAppFilter::ReadBlockRangeHash(BlockId block_id_start,
                                               BlockId block_id_end) {
-  assert(block_id_start <= block_id_end);
+  if (block_id_start > block_id_end) throw InvalidBlockRange();
   BlockId block_id(block_id_start);
 
   SetOfKeyValuePairs kvb_kvs;
