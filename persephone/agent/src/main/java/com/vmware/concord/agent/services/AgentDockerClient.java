@@ -374,6 +374,14 @@ public final class AgentDockerClient {
             hostConfig.withLinks(containerParam.getLinks());
         }
 
+        if (containerParam == DamlCommitterConfig.DAML_CONCORD
+            || containerParam == DamlConfig.DAML_CONCORD
+            || containerParam == EthereumConfig.CONCORD) {
+            // TODO Evaluate this with security.
+            log.warn("Setting privilege mode");
+            hostConfig.withPrivileged(true);
+        }
+
         var createContainerCmd = dockerClient.createContainerCmd(containerParam.getContainerName())
                 .withName(containerParam.getContainerName())
                 .withImage(containerParam.getImageId())
