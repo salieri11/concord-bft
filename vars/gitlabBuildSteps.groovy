@@ -141,6 +141,7 @@ def call(){
   def deployment_support_bundle_job_name = "Get Deployment support bundle"
   def ui_e2e_daml_on_prem_job_name = "UI E2E Deploy DAML On Premises"
   def memory_leak_job_name = "BlockchainMemoryLeakTesting"
+  def monitor_replicas_job_name = "Monitor Blockchain replica health and status"
   def performance_test_job_name = "Blockchain Performance Test"
   def persephone_test_job_name = "Blockchain Persephone Tests"
   def persephone_test_on_demand_job_name = "ON DEMAND Persephone Testrun on GitLab"
@@ -165,6 +166,7 @@ def call(){
   def runs_excluding_persephone_tests = [
     log_insight_test_job_name,
     ui_e2e_daml_on_prem_job_name,
+    monitor_replicas_job_name,
     memory_leak_job_name,
     performance_test_job_name,
     helen_role_test_job_name
@@ -180,6 +182,7 @@ def call(){
     log_insight_test_job_name,
     ui_e2e_daml_on_prem_job_name,
     deployment_support_bundle_job_name,
+    monitor_replicas_job_name,
     helen_role_test_job_name
   ]
 
@@ -241,6 +244,16 @@ def call(){
              description: "To collect deployment support bundle, enter comma separated list of concord node IPs",
              name: "concord_ips"
       choice(choices: "DAML\nETHEREUM", description: 'To collect deployment support bundle, choose a concord type', name: 'concord_type')
+
+      string defaultValue: "",
+             description: "Monitor replicas: Enter a repeated set of blockchain_type:<set of replicas> (example: daml_committer:10.70.30.226,10.70.30.225,10.70.30.227,10.70.30.228 daml_participant:10.70.30.229)",
+             name: "replicas_with_bc_type"
+      string defaultValue: "6",
+             description: "Monitor replicas: Enter number of hours to monitor replicas (default 6 hrs)",
+             name: "run_duration"
+      string defaultValue: "1",
+             description: "Monitor replicas: Enter number of minutes to wait between monitors (default 60 mins)",
+             name: "load_interval"
     }
     stages {
       stage("Notify GitLab"){
@@ -267,6 +280,9 @@ def call(){
               env.performance_votes = params.performance_votes
               env.concord_ips = params.concord_ips
               env.concord_type = params.concord_type
+              env.replicas_with_bc_type = params.replicas_with_bc_type
+              env.run_duration = params.run_duration
+              env.load_interval = params.load_interval
 
               // Check parameters
               script{
@@ -442,7 +458,8 @@ def call(){
                 git config --global user.name "build system"
               '''
 
-              if (env.JOB_NAME.contains(persephone_test_job_name) ||
+              if (env.JOB_NAME.contains(monitor_replicas_job_name) ||
+                  env.JOB_NAME.contains(persephone_test_job_name) ||
                   env.JOB_NAME.contains(performance_test_job_name) ||
                   env.JOB_NAME.contains(memory_leak_job_name)) {
                 saveTimeEvent("Build", "Fetch build number from Job Update-onecloud-provisioning-service")
@@ -616,6 +633,10 @@ EOF
                   sh '''
                     echo "No local build required for Memory Leak Testrun..."
                   '''
+                } else if (env.JOB_NAME.contains(monitor_replicas_job_name)) {
+                  sh '''
+                    echo "No local build required for monitoring health and status of replicas..."
+                  '''
                 } else if (env.JOB_NAME.contains(deployment_support_bundle_job_name)) {
                   sh '''
                     echo "No local build required for collecting deployment support bundle..."
@@ -660,6 +681,7 @@ EOF
                     // AAAAARGH mixed camel/snake.  We must fix this file.
                     env.test_log_root = new File(env.WORKSPACE, "testLogs").toString()
                     env.deployment_support_logs = new File(env.test_log_root, "DeploymentSupportBundle").toString()
+                    env.monitor_replicas_logs = new File(env.test_log_root, "MonitorReplicas").toString()
                     env.mem_leak_test_logs = new File(env.test_log_root, "MemoryLeak").toString()
                     env.performance_test_logs = new File(env.test_log_root, "PerformanceTest").toString()
                     env.persephone_test_logs = new File(env.test_log_root, "PersephoneTest").toString()
@@ -734,6 +756,22 @@ EOF
                         "${python}" create_deployment_support.py --replicas "${concord_ips}" --replicaType "${concord_type}" --saveTo "${deployment_support_logs}"
                       '''
                       saveTimeEvent("Collect deployment support bundle", "End")
+                    }
+                    if (env.JOB_NAME.contains(monitor_replicas_job_name)) {
+                      saveTimeEvent("Monitor health and status of replicas", "Start")
+                      py_arg_replica_with_bc_type = ""
+                      for (replica_set in env.replicas_with_bc_type.split()) {
+                        echo replica_set
+                        py_arg_replica_with_bc_type = py_arg_replica_with_bc_type + " --replicas " + replica_set
+                      }
+                      echo py_arg_replica_with_bc_type
+                      env.py_arg_replica_with_bc_type = py_arg_replica_with_bc_type
+                      sh '''
+                        echo "Running script to monitor health and status of replicas..."
+                        cd ../docker ; docker-compose -f ../docker/docker-compose-persephone.yml up -d ; cd -
+                        "${python}" monitor_replicas.py ${py_arg_replica_with_bc_type} --runDuration "${run_duration}" --loadInterval "${load_interval}" --saveSupportLogsTo "${monitor_replicas_logs}"
+                      '''
+                      saveTimeEvent("Monitor health and status of replicas", "End")
                     }
                     if (env.JOB_NAME.contains(memory_leak_job_name)) {
                       saveTimeEvent("Memory leak tests", "Start")

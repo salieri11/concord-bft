@@ -1,8 +1,9 @@
 #########################################################################
-# Copyright 2019 VMware, Inc.  All rights reserved. -- VMware Confidential
+# Copyright 2019-2020 VMware, Inc.  All rights reserved. -- VMware Confidential
 #########################################################################
 
 # Helper file with common utility methods
+import base64
 import collections
 import os
 import yaml
@@ -19,7 +20,7 @@ import sys
 import tempfile
 import time
 import threading
-import base64
+import util.daml.daml_helper as daml_helper
 import util.json_helper
 from . import numbers_strings
 from . import vsphere
@@ -47,6 +48,7 @@ LOCATION_ONPREM = "onprem"
 TYPE_ETHEREUM = "ethereum"
 TYPE_DAML = "daml"
 TYPE_DAML_COMMITTER = "daml_committer"
+TYPE_DAML_PARTICIPANT = "daml_participant"
 TYPE_HLF = "hlf"
 TYPE_TEE = "tee"
 
@@ -64,7 +66,6 @@ ZONE_TYPE_SDDC = "VMC_AWS"
 LOG_DESTINATION_LOG_INTELLIGENCE = "LOG_INTELLIGENCE"
 LOG_DESTINATION_LOG_INSIGHT = "LOG_INSIGHT"
 
-# ! Temp
 # Health Reporting Daemon path
 HEALTHD_CRASH_FILE = "/var/log/replica_crashed"
 HEALTHD_LOG_PATH = "/var/log/healthd.log"
@@ -77,8 +78,6 @@ INFRA = {}
 # list of all deployed replicas by Hermes from this particular build
 #     auto populated by `sddcGiveDeploymentContextToVM` with replicaInfo
 DEPLOYED_REPLICAS = []
-
-
 
 def copy_docker_env_file(docker_env_file=docker_env_file):
    '''
@@ -497,6 +496,105 @@ def verify_connectivity(ip, port, bytes_to_send=[], success_bytes=[], min_bytes=
          bytes_to_search = []
 
    return False
+
+
+def check_replica_health(replicas, username, password):
+   '''
+   Helper util method to check the health of replicas supplied. This method checks the
+   crash file created by the health daemon incase of a failure (like container not up)
+   :param replicas: List of replicas to be monitored
+   :param username: replica login username
+   :param password: replica login password
+   :return: False if a replica is crashed, else True
+   '''
+   log.info("************************************************************")
+   for blockchain_type, replica_ips in replicas.items():
+      log.info("Verifying health on {} ({})".format(replica_ips, blockchain_type))
+      for ip in replica_ips:
+         log.info("{}...".format(ip))
+         cmd = "stat {}".format(HEALTHD_CRASH_FILE)
+         ssh_output = ssh_connect(ip, username, password, cmd)
+         log.debug("cmd '{}' output: {}".format(cmd, ssh_output))
+         if ssh_output:
+            for line in ssh_output.split('\n'):
+               if "File: {}".format(HEALTHD_CRASH_FILE) in line:
+                  log.error("replica '{}' crashed".format(ip))
+                  return False
+         else:
+            log.error("Unable to connect to host: {}".format(ip))
+            return False
+   log.info("**** All replicas are healthy")
+   log.info("")
+   return True
+
+
+def monitor_replicas(replicas, run_duration, load_interval, save_support_logs_to):
+   '''
+   Helper util method to monitor the health of the replicas, and do a blockchain
+   test (send/get transactions) and collect support logs incase of a replica
+   failed status (crash or failed  txn test)
+   :param replicas: List of replicas to be monitored
+   :param run_duration: No. of hrs to monitor the replicas
+   :param load_interval: Interval in moins between every monitoring call
+   :param save_support_logs_to: Support logs archiving location in case of a failure
+   :return:False if replicas reported a failure during the run_duration time, else True
+   '''
+
+   configObject = getUserConfig()
+   credentials = configObject["persephoneTests"]["provisioningService"][
+      "concordNode"]
+   username = credentials["username"]
+   password = credentials["password"]
+
+   start_time = time.time()
+   while ((time.time() - start_time)/3600 < run_duration):
+      replica_status = None
+      if not check_replica_health(replicas, username, password):
+         log.error("**** replica status is unhealthy")
+         replica_status = False
+      else:
+         replica_status = True
+         for blockchain_type, replica_ips in replicas.items():
+            if blockchain_type == TYPE_DAML_PARTICIPANT:
+               log.info("Performing validation test...")
+               for endpoint_node in replica_ips:
+                  log.info("{}...".format(endpoint_node))
+                  try:
+                     daml_helper.upload_test_tool_dars(host=endpoint_node,
+                                                       port='6865')
+                     daml_helper.verify_ledger_api_test_tool(
+                        host=endpoint_node,
+                        port='6865',
+                        run_all_tests=True)
+                     log.info("**** DAML test verification passed.")
+                  except Exception as e:
+                     log.error(e)
+                     replica_status = False
+            elif blockchain_type == "ethereum":
+               log.info("Performing validation test...")
+               for endpoint_node in replica_ips:
+                  log.info("{}...".format(endpoint_node))
+                  try:
+                     # TODO: Add a ethereum test here
+                     log.info("**** ethereum test verification passed.")
+                  except Exception as e:
+                     log.error(e)
+                     replica_status = False
+
+
+      # Collect support logs incase of a failed replica
+      if not replica_status:
+         for blockchain_type, replica_ips in replicas.items():
+            log.info("Collect support bundle from all replica IPs: {}".format(
+               replica_ips))
+            create_concord_support_bundle(replica_ips, blockchain_type,
+                                          save_support_logs_to)
+         return False
+
+      log.info("")
+      log.info("sleep for {} min(s) and continue monitoring...".format(load_interval))
+      time.sleep(load_interval*60)
+   return True
 
 
 def create_concord_support_bundle(replicas, concord_type, test_log_dir):
