@@ -106,6 +106,9 @@ class CloudInitConfiguration(
             # To enable docker on boot.
             systemctl enable docker
 
+            # Enable time sync
+            vmware-toolbox-cmd timesync enable
+
             {{dockerLoginCommand}}
 
             # Output the node's model specification.
