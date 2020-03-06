@@ -532,6 +532,7 @@ def validateZoneResponse(origZoneInfo, zoneResponse, orgId):
 
 
 @pytest.mark.smoke
+@pytest.mark.foo
 def test_blockchains_fields(fxConnection):
    blockchains = fxConnection.request.getBlockchains()
    idValid = False
@@ -650,8 +651,7 @@ def test_members_millis_since_last_message(fxConnection, fxBlockchain, fxHermesR
    HermesArgs = collections.namedtuple("HermesArgs", "resultsDir")
    hermesArgs = HermesArgs(resultsDir = fxHermesRunSettings["hermesCmdlineArgs"].resultsDir)
    product = util.product.Product(hermesArgs,
-                                  fxHermesRunSettings["hermesUserConfig"],
-                                  fxHermesRunSettings["hermesCmdlineArgs"].suite)
+                                  fxHermesRunSettings["hermesUserConfig"])
 
    try:
       product.resumeMembers(allMembers)
@@ -1049,8 +1049,7 @@ def test_blockchains_none(fxConnection, fxHermesRunSettings):
    '''
    # restartTheProductWithNoBlockchains()
    product = util.product.Product(hermesArgs,
-                                  fxHermesRunSettings["hermesUserConfig"],
-                                  fxHermesRunSettings["hermesCmdlineArgs"]["suite"])
+                                  fxHermesRunSettings["hermesUserConfig"])
    product.stopProduct()
    util.helper.setHelenProperty("vmbc.default.blockchain", "false")
 

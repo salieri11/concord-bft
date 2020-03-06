@@ -17,10 +17,10 @@ log = logging.getLogger(__name__)
 
 class PytestSuite(test_suite.TestSuite):
 
-   def __init__(self, passedArgs, testFile):
+   def __init__(self, passedArgs, testFile, product):
        self._reportFile = "report.json"
        self._testFile = testFile
-       super(PytestSuite, self).__init__(passedArgs)
+       super(PytestSuite, self).__init__(passedArgs, product)
        self._supportBundleFile = os.path.join(self._testLogDir, "support_bundles.json")
 
 
@@ -45,6 +45,7 @@ class PytestSuite(test_suite.TestSuite):
                 "--hermesUserConfig", userConfigJson,
                 "--hermesTestLogDir", self._testLogDir,
                 "--supportBundleFile", self._supportBundleFile,
+                "--log-cli-level", log.level,
                 self._testFile]
 
       if self._args.tests:
@@ -52,7 +53,8 @@ class PytestSuite(test_suite.TestSuite):
 
       pytest.main(params)
       self.collectSupportBundles()
-      return self.parsePytestResults()
+      self.parsePytestResults()
+      return super().run()
 
 
    def collectSupportBundles(self):
@@ -105,11 +107,6 @@ class PytestSuite(test_suite.TestSuite):
          self.writeResult(testResult["name"],
                           passed,
                           info)
-
-      if self._shouldStop():
-         self.product.stopProduct()
-
-      return self._resultFile
 
 
    def parsePytestTestName(self, parseMe):

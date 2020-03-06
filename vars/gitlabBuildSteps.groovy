@@ -1895,11 +1895,7 @@ void runTests(){
       withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
         sh(script:
         '''
-          # Pull in the shell script saveTimeEvent.
-          . lib/shell/saveTimeEvent.sh
           EVENTS_FILE="${eventsFullPath}"
-          EVENTS_RECORDER="${eventsRecorder}"
-          saveTimeEvent "${suiteName}" Start
 
           # pushd is not available in the Jenkins shell.
           origDir=`pwd`
@@ -1913,10 +1909,8 @@ void runTests(){
           # Set +e so we can grep for the result summary instead of exiting immediately on failure.
           set +e
 
-          eval "${suiteCmd} --resultsDir \\\"${suiteResultsDir}\\\" ${suiteRunConcordConfigGeneration} ${suitePerformanceVotes} ${suiteConcordConfigInput} ${suiteDockerComposeFiles} --logLevel debug" > "${suiteResultsDir}/${testLogFileName}" 2>&1
+          eval "${suiteCmd} --resultsDir \\\"${suiteResultsDir}\\\" ${suiteRunConcordConfigGeneration} ${suitePerformanceVotes} ${suiteConcordConfigInput} ${suiteDockerComposeFiles} --logLevel debug" --eventsFile \\\"${EVENTS_FILE}\\\" > "${suiteResultsDir}/${testLogFileName}" 2>&1
           suiteSuccess=$?
-
-          saveTimeEvent "${suiteName}" End
 
           # Print a line for jenkinslogs to search for.
           # Search for text output by hermes/main.py, processResults().

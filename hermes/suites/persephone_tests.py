@@ -33,8 +33,8 @@ class PersephoneTests(test_suite.TestSuite):
    _resultFile = None
    _unintentionallySkippedFile = None
 
-   def __init__(self, cmdlineArgs):
-      super().__init__(cmdlineArgs)
+   def __init__(self, cmdlineArgs, product):
+      super().__init__(cmdlineArgs, product)
       self.args = self._args
       self.args.userConfig = self._userConfig
       self.concord_ips = []
@@ -49,8 +49,7 @@ class PersephoneTests(test_suite.TestSuite):
          self.update_provisioning_config_file()
 
          log.info("Launching Persephone Server...")
-         self.launchPersephone(self._args,
-                               self._userConfig)
+         self.launchPersephone()
       except Exception as e:
          log.error(traceback.format_exc())
          return self._resultFile
@@ -126,7 +125,7 @@ class PersephoneTests(test_suite.TestSuite):
       self.update_provisioning_config_file(mode="RESET")
 
       log.info("Tests are done.")
-      return self._resultFile
+      return super().run()
 
    def update_provisioning_config_file(self, mode="UPDATE"):
       '''

@@ -41,8 +41,8 @@ class SampleDAppTests(test_suite.TestSuite):
    _user = None
    _password = None
 
-   def __init__(self, passedArgs):
-      super(SampleDAppTests, self).__init__(passedArgs)
+   def __init__(self, passedArgs, product):
+      super(SampleDAppTests, self).__init__(passedArgs, product)
       self._args = passedArgs
 
       user = self._userConfig.get('product').get('db_users')[0]
@@ -77,14 +77,8 @@ class SampleDAppTests(test_suite.TestSuite):
 
    def run(self):
       ''' Runs all of the tests. '''
-      try:
-         log.info("Launching product...")
-         self.launchProduct(self._args,
-                            self._userConfig)
-      except Exception as e:
-         log.error(traceback.format_exc())
-         return self._resultFile
-
+      log.info("Launching product...")
+      self.launchProduct()
       self._cleanUp()
       tests = self._getTests()
 
@@ -112,7 +106,7 @@ class SampleDAppTests(test_suite.TestSuite):
 
       log.info("Tests are done.")
       self._cleanUp()
-      return self._resultFile
+      return super().run()
 
 
    def _getTests(self):

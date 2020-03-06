@@ -24,8 +24,8 @@ class UiTests(test_suite.TestSuite):
     _xvfb_present = False
     _testCaseDir = None
 
-    def __init__(self, passedArgs):
-        super(UiTests, self).__init__(passedArgs)
+    def __init__(self, passedArgs, product):
+        super(UiTests, self).__init__(passedArgs, product)
 
     def getName(self):
         return "UiTests"
@@ -35,14 +35,7 @@ class UiTests(test_suite.TestSuite):
         repo_path.append("ui")
         self.ui_path = '/'.join(repo_path)
         self._start_vdisplay()
-
-        try:
-           self.launchProduct(self._args,
-                              self._userConfig,)
-        except Exception as e:
-           log.error(traceback.format_exc())
-           return self._resultFile
-
+        self.launchProduct()
         tests = self._get_tests()
         for (testName, testFun) in tests:
             result = False
@@ -66,11 +59,7 @@ class UiTests(test_suite.TestSuite):
         relativeLogDir = self.makeRelativeTestPath(self._testLogDir)
         info += "Log: <a href=\"{}\">{}</a>".format(relativeLogDir,
                                                     self._testLogDir)
-
-        if self._shouldStop():
-            self.product.stopProduct()
-
-        return self._resultFile
+        return super().run()
 
     def _start_vdisplay(self):
         # Checking to see if xvfb is installed.

@@ -63,21 +63,15 @@ class RegressionTests(test_suite.TestSuite):
    _unintentionallySkippedFile = None
    _userUnlocked = False
 
-   def __init__(self, passedArgs):
-      super(RegressionTests, self).__init__(passedArgs)
+   def __init__(self, passedArgs, product):
+      super(RegressionTests, self).__init__(passedArgs, product)
 
    def getName(self):
       return "RegressionTests"
 
    def run(self):
       ''' Runs all of the tests. '''
-      try:
-         self.launchProduct(self._args,
-                            self._userConfig)
-      except Exception as e:
-         log.error(traceback.format_exc())
-         return self._resultFile
-
+      self.launchProduct()
       tests = self._getTests()
 
       for (testName, testFun) in tests:
@@ -113,15 +107,11 @@ class RegressionTests(test_suite.TestSuite):
          self.writeResult(testName, result, info)
 
       log.info("Tests are done.")
-
-      if self._shouldStop():
-         self.product.stopProduct()
-
-      return self._resultFile
+      return super().run()
 
    def _getTests(self):
-      return [("nested_contract_creation", self._test_nested_contract_creation), \
-              ("invalid_addresses", self._test_invalid_addresses), \
+      return [("nested_contract_creation", self._test_nested_contract_creation),
+              ("invalid_addresses", self._test_invalid_addresses),
               ("call_writer", self._test_call_writer),
               ("large_transactions", self._test_large_transactions),
               ("zero_exit_code", self._test_zero_exit_code)]

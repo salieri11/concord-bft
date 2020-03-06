@@ -72,7 +72,8 @@ class Product():
 
    def __init__(self, cmdlineArgs, userConfig, suite=None,
                 waitForStartupFunction=None,
-                waitForStartupParams=[]):
+                waitForStartupParams={"retries": 20},
+                checkProductStatusParams={"retries": 1}):
       self._cleanupData = None
       self._cmdlineArgs = cmdlineArgs
       self._userConfig = userConfig
@@ -82,45 +83,53 @@ class Product():
       self.concordNodesDeployed = []
       self._suite = suite
       self.testFailed = False
+
       self.waitForStartupFunction = waitForStartupFunction if waitForStartupFunction else self._waitForProductStartup
       self.waitForStartupParams = waitForStartupParams
 
+      # Same as waitForStartupParams, but used to check if the product is running.  e.g.
+      # Just send an initial check to see if it is running without doing a retry loop.
+      self.checkProductStatusParams = checkProductStatusParams if checkProductStatusParams else waitForStartupParams
+
    def launchProduct(self):
       '''
-      Given the user's product config section, launch the product.
+      Given the user's product config section, launch the product if not launched
+      already.
       Raises an exception if it cannot start.
       '''
-      Product._numProductStarts += 1
+      if self.waitForStartupFunction(**self.checkProductStatusParams):
+         log.info("**** The product is running, so we will not try to start it. ****")
+      else:
+         log.info("**** The product is not running, so we will start it. ****")
+         Product._numProductStarts += 1
 
-      if not Product._atexitSetup:
-         atexit.register(self.stopProduct)
-         Product._atexitSetup = True
+         if not Product._atexitSetup:
+            atexit.register(self.stopProduct)
+            Product._atexitSetup = True
 
-      # Workaround for intermittent product launch issues.
-      numAttempts = 0
-      launched = False
+         # Workaround for intermittent product launch issues.
+         numAttempts = 0
+         launched = False
 
-      while (not launched) and (numAttempts < self._cmdlineArgs.productLaunchAttempts):
-         try:
-            self._productLogsDir = self._productLogsDir.split("_attempt_")[0]
-            self._productLogsDir += "_attempt_{}".format(numAttempts)
-            pathlib.Path(self._productLogsDir).mkdir(parents=True, exist_ok=True)
-            self._launchViaDocker()
-            launched = True
+         while (not launched) and (numAttempts < self._cmdlineArgs.productLaunchAttempts):
+            try:
+               self._productLogsDir = self._productLogsDir.split("_attempt_")[0]
+               self._productLogsDir += "_attempt_{}".format(numAttempts)
+               pathlib.Path(self._productLogsDir).mkdir(parents=True, exist_ok=True)
+               self._launchViaDocker()
+               launched = True
+            except Exception as e:
+               numAttempts += 1
+               log.info("Attempt {} to launch the product failed. Exception: '{}'".format(
+                  numAttempts, str(e)))
+               log.info(traceback.format_exc())
 
-         except Exception as e:
-            numAttempts += 1
-            log.info("Attempt {} to launch the product failed. Exception: '{}'".format(
-               numAttempts, str(e)))
-            log.info(traceback.format_exc())
+               if numAttempts < self._cmdlineArgs.productLaunchAttempts:
+                  log.info("Stopping whatever was launched and attempting to launch again.")
+                  self.stopProduct()
 
-            if numAttempts < self._cmdlineArgs.productLaunchAttempts:
-               log.info("Stopping whatever was launched and attempting to launch again.")
-               self.stopProduct()
-
-      if not launched:
-         raise Exception("Failed to launch the product after {} attempt(s). Exiting".format(numAttempts))
-
+         if not launched:
+            raise Exception("Failed to launch the product after {} attempt(s). Exiting".format(numAttempts))
 
    def launchPersephone(self):
       '''
@@ -185,7 +194,7 @@ class Product():
          self._startContainers()
          self._startLogCollection()
 
-         if not self.waitForStartupFunction(*self.waitForStartupParams):
+         if not self.waitForStartupFunction(**self.waitForStartupParams):
                raise Exception("The product did not start.")
 
          self.concordNodesDeployed = self._getConcordNodes(dockerCfg)
@@ -869,20 +878,21 @@ class Product():
          self._logs.remove(l)
 
 
-   def _waitForProductStartup(self):
+   def _waitForProductStartup(self, retries=20):
       '''
       Waits for Helen to be up, then waits for Concord to be up.
 
       TODO: Change this to fetch /api/management/health.  When it returns with "status": "UP", helen is ready
       '''
-      retries = 20
       attempts = 0
       sleepTime = 15
       startupLogDir = os.path.join(self._cmdlineArgs.resultsDir, PRODUCT_LOGS_DIR,
                                    "waitForStartup")
       nodes = None
+      started = False
 
       while attempts < retries:
+         attempts += 1
          request = Request(self._productLogsDir,
                            "getMembers",
                            self._cmdlineArgs.reverseProxyApiBaseUrl,
@@ -897,13 +907,15 @@ class Product():
             nodes = request.getMemberList(blockchainId)
 
             if self.nodesReady(nodes):
+               started = True
                break
             else:
                raise Exception("Still waiting for Concord nodes to be ready.")
          except Exception as e:
-            attempts += 1
-            log.info("Caught an exception, probably because Helen is still starting up: {}".format(e))
-            log.info(traceback.format_exc())
+            log.info("Caught an exception, probably because Helen is still starting up.  Run in " \
+                     "debug mode for details.")
+            log.debug(e)
+            log.debug(traceback.format_exc())
 
             if attempts <= retries:
                time.sleep(sleepTime)
@@ -911,6 +923,9 @@ class Product():
             else:
                log.error("Helen never returned ethrpc nodes.")
                return False
+
+      if not started:
+         return False
 
       if self._cmdlineArgs.ethrpcApiUrl:
          self._ethrpcApiUrl = self._cmdlineArgs.ethrpcApiUrl
@@ -1119,3 +1134,8 @@ class Product():
             siteIds.append(site["info"]["vmc"]["datacenter"])
 
          return siteIds
+
+class ProductLaunchException(Exception):
+   def __init__(self, message, logFile):
+      self.message = message
+      self.logFile = logFile
