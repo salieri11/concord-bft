@@ -552,7 +552,9 @@ EOF
                     sed -i -e 's/'"CHANGE_THIS_TO_HermesTesting"'/'"${PROVISIONING_SERVICE_NETWORK_NAME}"'/g' blockchain/hermes/resources/persephone/provisioning/app/profiles/application-test.properties
                     sed -i -e 's/'"<VMC_API_TOKEN>"'/'"${VMC_API_TOKEN}"'/g' blockchain/hermes/resources/user_config.json
                     sed -i -e 's/'"<WAVEFRONT_API_TOKEN>"'/'"${WAVEFRONT_API_TOKEN}"'/g' blockchain/hermes/resources/user_config.json
+                    sed -i -e 's/'"<WAVEFRONT_API_TOKEN>"'/'"${WAVEFRONT_API_TOKEN}"'/g' blockchain/helen/src/main/resources/db/migration/V3__zone_entities.sql
                     sed -i -e 's/'"<FLUENTD_AUTHORIZATION_BEARER>"'/'"${FLUENTD_AUTHORIZATION_BEARER}"'/g' blockchain/hermes/resources/user_config.json
+                    sed -i -e 's/'"<FLUENTD_AUTHORIZATION_BEARER>"'/'"${FLUENTD_AUTHORIZATION_BEARER}"'/g' blockchain/helen/src/main/resources/db/migration/V3__zone_entities.sql
                     sed -i -e 's/'"<ONPREM_VCENTER_USERNAME>"'/'"${VMC_SDDC4_VC_CREDENTIALS_USERNAME}"'/g' blockchain/hermes/resources/user_config.json
                     sed -i -e 's/'"<ONPREM_VCENTER_PASSWORD>"'/'"${VMC_SDDC4_VC_CREDENTIALS_PASSWORD}"'/g' blockchain/hermes/resources/user_config.json
                     sed -i -e 's/'"<VMC_SDDC3_VC_CREDENTIALS_USERNAME>"'/'"${VMC_SDDC3_VC_CREDENTIALS_USERNAME}"'/g' blockchain/hermes/resources/user_config.json

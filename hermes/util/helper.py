@@ -372,19 +372,20 @@ def setHelenProperty(key, val):
          f.write(prop + "=" + testProperties[prop] + "\n")
 
 
-def add_ethrpc_port_forwarding(host, username, password):
+# TODO: refactor this method to make it generic
+def add_ethrpc_port_forwarding(host, username, password, src_port=443, dest_port=8545):
    '''
-   Enable port forwarding on concord node to facilititate hitting ethrpc endpoint
+   Enable port forwarding on concord node to facilitate hitting ethrpc endpoint
    on port 443, which redirects to 8545. This is a workaround to support hitting
    ethrpc end points from within vmware network, as non 443/80 ports are blocked.
    Bug/Story: VB-1170
    :param host: concord host IP
    :param username: concord node login - username
    :param password: concord node login - password
+   :param src_port: The port to be hit from outside VMware network
+   :param dest_port: The port that src_port maps to on the host
    :return: Port forward status (True/False)
    '''
-   src_port= 443
-   dest_port = 8545
    try:
       log.info(
          "Adding port forwarding to enable ethrpc listen on {}:{}".format(host,
