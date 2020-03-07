@@ -121,7 +121,7 @@ public class LintControllerTests {
         //  - Body proxied
         //  - Authorization header
 
-        mockMvc.perform(post("/api/lint/log?replica_id=" + REPLICA_ID)
+        mockMvc.perform(post("/api/lint/log?blockchain_id=" + BLOCKCHAIN_ID)
                 .contentType(MediaType.APPLICATION_JSON).content("{\"one\": \"two\"}"))
                 .andExpect(status().isOk());
         // capture the values handed in to restTemplate.exchange
@@ -162,7 +162,7 @@ public class LintControllerTests {
 
         NestedServletException ex =
             Assertions.assertThrows(NestedServletException.class, () ->
-                mockMvc.perform(post("/api/lint/log?replica_id=" + replicaId)
+                mockMvc.perform(post("/api/lint/log?blockchain_id=" + replicaId)
                     .contentType(MediaType.APPLICATION_JSON).content("{\"one\": \"two\"}"))
                     .andExpect(status().isOk()));
 
@@ -178,11 +178,11 @@ public class LintControllerTests {
                 "{\"logQuery\":\"SELECT * FROM logs ORDER BY ingest_timestamp DESC\","
                 + "\"start\":1548092484611,\"end\":1548697284611,\"rows\":20}";
         final String response =
-                "{\"logQuery\":\"SELECT * FROM logs WHERE replica_id = '" + REPLICA_ID
+                "{\"logQuery\":\"SELECT * FROM logs WHERE blockchain_id = '" + BLOCKCHAIN_ID
                 + "' ORDER BY ingest_timestamp DESC\","
                 + "\"start\":1548092484611,\"end\":1548697284611,\"rows\":20}";
 
-        mockMvc.perform(post("/api/lint/log?replica_id=" + REPLICA_ID)
+        mockMvc.perform(post("/api/lint/log?blockchain_id=" + BLOCKCHAIN_ID)
                 .contentType(MediaType.APPLICATION_JSON).content(query))
                 .andExpect(status().isOk());
         // capture the values handed in to restTemplate.exchange
@@ -204,11 +204,11 @@ public class LintControllerTests {
                 "{\"logQuery\":\"SELECT * FROM logs ORDER BY ingest_timestamp DESC\","
                 + "\"start\":1548092484611,\"end\":1548697284611,\"rows\":20}";
         final String response =
-                "{\"logQuery\":\"SELECT * FROM logs WHERE replica_id = '" + REPLICA_ID
+                "{\"logQuery\":\"SELECT * FROM logs WHERE blockchain_id = '" + BLOCKCHAIN_ID
                 + "' ORDER BY ingest_timestamp DESC\","
                 + "\"start\":1548092484611,\"end\":1548697284611,\"rows\":20}";
 
-        mockMvc.perform(post("/api/lint/log?odata=*&replica_id=" + REPLICA_ID)
+        mockMvc.perform(post("/api/lint/log?odata=*&blockchain_id=" + BLOCKCHAIN_ID)
                 .contentType(MediaType.APPLICATION_JSON).content(query))
                 .andExpect(status().isOk());
         // capture the values handed in to restTemplate.exchange
@@ -230,11 +230,11 @@ public class LintControllerTests {
                 "{\"logQuery\":\"SELECT * FROM logs WHERE user = 'userId' ORDER BY ingest_timestamp DESC\","
                 + "\"start\":1548092484611,\"end\":1548697284611,\"rows\":20}";
         final String response =
-                "{\"logQuery\":\"SELECT * FROM logs WHERE (replica_id = '" + REPLICA_ID + "') "
+                "{\"logQuery\":\"SELECT * FROM logs WHERE (blockchain_id = '" + BLOCKCHAIN_ID + "') "
                 + "AND (user = 'userId' ) ORDER BY ingest_timestamp DESC\","
                 + "\"start\":1548092484611,\"end\":1548697284611,\"rows\":20}";
 
-        mockMvc.perform(post("/api/lint/log?replica_id=" + REPLICA_ID)
+        mockMvc.perform(post("/api/lint/log?blockchain_id=" + BLOCKCHAIN_ID)
                 .contentType(MediaType.APPLICATION_JSON).content(query))
                 .andExpect(status().isOk());
         // capture the values handed in to restTemplate.exchange
@@ -257,12 +257,12 @@ public class LintControllerTests {
                         + "ORDER BY ingest_timestamp DESC\","
                         + "\"start\":1548092484611,\"end\":1548697284611,\"rows\":20}";
         final String response =
-                "{\"logQuery\":\"SELECT * FROM logs WHERE (replica_id = '" + REPLICA_ID + "') "
+                "{\"logQuery\":\"SELECT * FROM logs WHERE (blockchain_id = '" + BLOCKCHAIN_ID + "') "
                         + "AND (service_name = 'concord' AND level = 'INFO' ) "
                         + "ORDER BY ingest_timestamp DESC\","
                         + "\"start\":1548092484611,\"end\":1548697284611,\"rows\":20}";
 
-        mockMvc.perform(post("/api/lint/log?replica_id=" + REPLICA_ID)
+        mockMvc.perform(post("/api/lint/log?blockchain_id=" + BLOCKCHAIN_ID)
                 .contentType(MediaType.APPLICATION_JSON).content(query))
                 .andExpect(status().isOk());
         // capture the values handed in to restTemplate.exchange
@@ -285,12 +285,12 @@ public class LintControllerTests {
                         + "ORDER BY ingest_timestamp DESC\","
                         + "\"start\":1548092484611,\"end\":1548697284611,\"rows\":20}";
         final String response =
-                "{\"logQuery\":\"SELECT * FROM logs WHERE (replica_id = '" + REPLICA_ID + "') "
+                "{\"logQuery\":\"SELECT * FROM logs WHERE (blockchain_id = '" + BLOCKCHAIN_ID + "') "
                         + "AND ((level = 'INFO' OR level = 'ERROR') ) "
                         + "ORDER BY ingest_timestamp DESC\","
                         + "\"start\":1548092484611,\"end\":1548697284611,\"rows\":20}";
 
-        mockMvc.perform(post("/api/lint/log?replica_id=" + REPLICA_ID)
+        mockMvc.perform(post("/api/lint/log?blockchain_id=" + BLOCKCHAIN_ID)
                 .contentType(MediaType.APPLICATION_JSON).content(query))
                 .andExpect(status().isOk());
         // capture the values handed in to restTemplate.exchange
@@ -313,12 +313,12 @@ public class LintControllerTests {
                         + "(level = 'INFO' OR level = 'ERROR') ORDER BY ingest_timestamp DESC\","
                         + "\"start\":1548092484611,\"end\":1548697284611,\"rows\":20}";
         final String response =
-                "{\"logQuery\":\"SELECT * FROM logs WHERE (replica_id = '" + REPLICA_ID + "') "
+                "{\"logQuery\":\"SELECT * FROM logs WHERE (blockchain_id = '" + BLOCKCHAIN_ID + "') "
                         + "AND (service_name = 'concord' AND (level = 'INFO' OR level = 'ERROR') ) "
                         + "ORDER BY ingest_timestamp DESC\","
                         + "\"start\":1548092484611,\"end\":1548697284611,\"rows\":20}";
 
-        mockMvc.perform(post("/api/lint/log?replica_id=" + REPLICA_ID)
+        mockMvc.perform(post("/api/lint/log?blockchain_id=" + BLOCKCHAIN_ID)
                 .contentType(MediaType.APPLICATION_JSON).content(query))
                 .andExpect(status().isOk());
         // capture the values handed in to restTemplate.exchange
@@ -342,7 +342,7 @@ public class LintControllerTests {
         final String response =
                 "{\"start\":1548092484611,\"end\":1548697284611,\"rows\":20}";
 
-        mockMvc.perform(post("/api/lint/log?replica_id=" + REPLICA_ID)
+        mockMvc.perform(post("/api/lint/log?blockchain_id=" + BLOCKCHAIN_ID)
                 .contentType(MediaType.APPLICATION_JSON).content(query))
                 .andExpect(status().isOk());
         // capture the values handed in to restTemplate.exchange
@@ -364,11 +364,11 @@ public class LintControllerTests {
                 "{\"logQuery\":\"SELECT * FROM logs ORDER BY ingest_timestamp DESC\","
                 + "\"start\":1548092484611,\"end\":1548697284611,\"rows\":20,\"color\":\"red\"}";
         final String response =
-                "{\"logQuery\":\"SELECT * FROM logs WHERE replica_id = '" + REPLICA_ID + "' "
+                "{\"logQuery\":\"SELECT * FROM logs WHERE blockchain_id = '" + BLOCKCHAIN_ID + "' "
                 + "ORDER BY ingest_timestamp DESC\","
                 + "\"start\":1548092484611,\"end\":1548697284611,\"rows\":20,\"color\":\"red\"}";
 
-        mockMvc.perform(post("/api/lint/log?replica_id=" + REPLICA_ID)
+        mockMvc.perform(post("/api/lint/log?blockchain_id=" + BLOCKCHAIN_ID)
                 .contentType(MediaType.APPLICATION_JSON).content(query))
                 .andExpect(status().isOk());
         // capture the values handed in to restTemplate.exchange

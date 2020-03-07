@@ -6,6 +6,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
+import { BlockchainService } from './../../blockchain/shared/blockchain.service';
 import { LogTaskResponse, LogTaskCompletedResponse, LogTaskParams, LogTimePeriod, LogCountEntry } from './logging.model';
 import { ONE_MINUTE, FIFTEEN_MINUTES } from './logging.constants';
 
@@ -14,7 +15,10 @@ import { ONE_MINUTE, FIFTEEN_MINUTES } from './logging.constants';
 })
 export class LogApiService {
 
-  constructor(private httpClient: HttpClient) { }
+  constructor(
+    private httpClient: HttpClient,
+    private blockchainService: BlockchainService
+  ) { }
 
   postToTasks(
     start: number,
@@ -32,7 +36,7 @@ export class LogApiService {
       end: end,
       rows: rows
     };
-    return this.logQueryTask(logQuery, replicaId);
+    return this.logQueryTask(logQuery);
   }
 
   postToTasksCount(
@@ -52,7 +56,7 @@ export class LogApiService {
       start: start,
       end: end
     };
-    return this.logQueryTask(logQuery, replicaId);
+    return this.logQueryTask(logQuery);
   }
 
   postToPureCount(
@@ -69,7 +73,7 @@ export class LogApiService {
       start: start,
       end: end
     };
-    return this.logQueryTask(logQuery, replicaId);
+    return this.logQueryTask(logQuery);
   }
 
   getWhereClause(level: string[], service_name: string, search: string) {
@@ -178,9 +182,9 @@ export class LogApiService {
     });
   }
 
-  private logQueryTask(logQuery: LogTaskParams, replicaId: string = ''): Observable<LogTaskResponse> {
+  private logQueryTask(logQuery: LogTaskParams): Observable<LogTaskResponse> {
     return this.httpClient.post<LogTaskResponse>(
-      `api/lint/ops/query/log-query-tasks?replica_id=${replicaId}`,
+      `api/lint/ops/query/log-query-tasks?blockchain_id=${this.blockchainService.blockchainId}`,
       logQuery
     );
   }
