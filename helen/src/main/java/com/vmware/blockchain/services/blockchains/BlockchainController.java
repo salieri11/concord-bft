@@ -362,14 +362,9 @@ public class BlockchainController {
                             .build())
                     .collect(Collectors.toList());
         }
-        var placementSpec = PlacementSpecification.newBuilder()
-                .addAllEntries(list)
-                .build();
 
         var blockChainType = blockchainType == null ? ConcordModelSpecification.BlockchainType.ETHEREUM
                                                     : enumMapForBlockchainType.get(blockchainType);
-
-        var genesis = ConcordConfiguration.getGenesisObject();
 
         ConcordModelSpecification spec;
 
@@ -396,11 +391,30 @@ public class BlockchainController {
                     .build();
         }
 
+        var genesis = ConcordConfiguration.getGenesisObject();
+        var placementSpec = PlacementSpecification.newBuilder()
+                .addAllEntries(list)
+                .build();
+
+        Map<String, String> properties = new HashMap<>();
+        if (organizationService.get(authHelper.getOrganizationId()).getOrganizationProperties() != null) {
+            properties.put(NodeProperty.Name.VM_PROFILE.toString(),
+                    organizationService.get(authHelper.getOrganizationId()).getOrganizationProperties()
+                            .getOrDefault(Constants.NODE_VM_PROFILE, "small"));
+        }
+
+        properties.put(NodeProperty.Name.BLOCKCHAIN_ID.toString(), consortiumId.toString());
+
         DeploymentSpecification deploySpec = DeploymentSpecification.newBuilder()
                 .setModel(spec)
                 .setPlacement(placementSpec)
                 .setGenesis(genesis)
                 .setConsortium(consortiumId.toString())
+                .setProperties(
+                        Properties.newBuilder()
+                                .putAllValues(properties)
+                                .build()
+                )
                 .build();
 
         var request = CreateClusterRequest.newBuilder()
