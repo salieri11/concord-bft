@@ -1554,14 +1554,11 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              required:
-                - zoneIds
-              properties:
-                zoneIds:
-                  type: array
-                  items:
-                    type: object
+              type: array
+              items:
+                description: zoneIds
+                type: string
+                format: uuid
       responses:
         202:
           description: Returns the deployment task ID
