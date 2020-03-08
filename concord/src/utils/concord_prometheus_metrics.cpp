@@ -1,6 +1,9 @@
 // Copyright 2018 VMware, all rights reserved
 
 #include "concord_prometheus_metrics.hpp"
+#include <log4cplus/loggingmacros.h>
+#include <prometheus/serializer.h>
+#include <prometheus/text_serializer.h>
 #include <algorithm>
 #include <tuple>
 #include "yaml-cpp/yaml.h"
@@ -117,16 +120,25 @@ std::vector<ConcordMetricConf> ConcordBftMetricsManager::parseConfiguration(
 
 PrometheusRegistry::PrometheusRegistry(
     const std::string& bindAddress,
-    const std::vector<ConcordMetricConf>& metricsConfiguration)
+    const std::vector<ConcordMetricConf>& metricsConfiguration,
+    uint64_t metricsDumpInterval)
     : exposer_(bindAddress, "/metrics", 1),
       metrics_configuration_(metricsConfiguration),
       counters_custom_collector_(
-          std::make_shared<ConcordCustomCollector<prometheus::Counter>>()),
+          std::make_shared<ConcordCustomCollector<prometheus::Counter>>(
+              std::chrono::seconds(metricsDumpInterval))),
       gauges_custom_collector_(
-          std::make_shared<ConcordCustomCollector<prometheus::Gauge>>()) {
+          std::make_shared<ConcordCustomCollector<prometheus::Gauge>>(
+              std::chrono::seconds(metricsDumpInterval))) {
   exposer_.RegisterCollectable(counters_custom_collector_);
   exposer_.RegisterCollectable(gauges_custom_collector_);
 }
+
+PrometheusRegistry::PrometheusRegistry(
+    const std::string& bindAddress,
+    const std::vector<ConcordMetricConf>& metricsConfiguration)
+    : PrometheusRegistry(bindAddress, metricsConfiguration,
+                         defaultMetricsDumpInterval){};
 
 void PrometheusRegistry::scrapeRegistry(
     std::shared_ptr<prometheus::Collectable> registry) {
@@ -250,6 +262,16 @@ std::vector<prometheus::MetricFamily> ConcordCustomCollector<T>::Collect() {
     res.insert(res.end(), std::move_iterator(tmp.begin()),
                std::move_iterator(tmp.end()));
   }
+  if (!res.empty()) {
+    auto currTime = std::chrono::duration_cast<std::chrono::seconds>(
+        std::chrono::steady_clock::now().time_since_epoch());
+    if (currTime - last_dump_time_ >= dumpInterval_) {
+      last_dump_time_ = currTime;
+      LOG4CPLUS_INFO(logger_, "prometheus metrics dump: " +
+                                  prometheus::TextSerializer().Serialize(res));
+    }
+  }
+
   return res;
 }
 }  // namespace concord::utils
