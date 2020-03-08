@@ -30,6 +30,9 @@ BC_COMPONENTS={
 CSP_PROD = "https://console.cloud.vmware.com/csp/gateway"
 CSP_STG = "https://console-stg.cloud.vmware.com/csp/gateway"
 
+CSP_PROD_KEY = "PRODUCTION_API_TOKEN"
+CSP_STG_KEY = "STAGING_API_TOKEN"
+
 GIT_API = "https://git.eng.vmware.com/desperado/api/repos"
 GITLAB_API = "https://gitlab.eng.vmware.com/api/v4/"
 GITLAB_DEFAULT_GROUP = "blockchain"

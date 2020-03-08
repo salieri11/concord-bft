@@ -12,6 +12,7 @@ import datetime
 import ipaddress
 import json
 import os
+import re
 import sys
 import tempfile
 import time
@@ -43,6 +44,14 @@ def validate_uuid4(uuid_string):
         return False
     return True
 
+
+def is_blockchain_vm(uuid_string):
+    BC_UUID_PATTERN = re.compile(r'^[\da-f]{8}-([\da-f]{4}-){3}[\da-f]{12}-'\
+            '[\da-f]{8}-([\da-f]{4}-){3}[\da-f]{12}$', re.IGNORECASE)
+    if BC_UUID_PATTERN.match(uuid_string) is None:
+        return False
+    else:
+        return True
 
 def source_ipam_certificate():
     """
@@ -236,9 +245,10 @@ def clean_sddc_folder(vcobj, folder, dc_dict,
         Should be leaf folder
     """
     if hours == 0:
-        vms = vcobj.get_vms_from_folder(folder)
+        folder_vms = vcobj.get_vms_from_folder(folder)
     else:
-        vms = get_dated_vms(vcobj, folder, hours)
+        folder_vms = get_dated_vms(vcobj, folder, hours)
+    vms = [vm for vm in folder_vms if is_blockchain_vm(vm.name) is True]
     logger.info("Cleaning up %s vm resources" % len(vms))
     metadata = get_network_metadata(vms)
     if reap_ipam is True:
@@ -347,7 +357,7 @@ def reap_network_entities(vcobj, networkname, dc_dict, reap_ipam=False):
         Reap all vm's in a given network
     """
     network = vcobj.get_network(networkname)
-    vms = network.vm
+    vms = [vm for vm in network.vm if is_blockchain_vm(vm.name) is True]
     logger.info("Cleaning up %s vm resources for network %s" %
                 (len(vms), networkname))
     metadata = get_network_metadata(vms)
