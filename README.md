@@ -229,7 +229,7 @@ docker push vmwblockchain/agent-testing
 Persephone, the deployment service for VMware Blockchain, is itself composed of
 a number of distinct microservices which can be built directly in Docker
 containers. Note not all Persephone microservices' build processes are
-documented here. 
+documented here.
 
 #### Building Persephone Configuration Service via Docker
 The Persephone Configuration Service can be built directly in a Docker
@@ -244,7 +244,7 @@ immediate subsection are run from the same directory as this README, and *not*
 from the `persephone` or `persephone/config-service` directories)
 
 By default, `concord-core:latest` is target as the Concord image for the
-Persephone Configuration Service build. If you have built Concord as 
+Persephone Configuration Service build. If you have built Concord as
 `concord-core:latest`, you can build the Persephone Configuration Service with:
 ```
 blockchain$ docker build -f persephone/config-service/Dockerfile -t \
@@ -360,5 +360,6 @@ positional arguments:
                         'ContractCompilerTests', 'CoreVMTests',
                         'LintTests', 'ExtendedRPCTests', 'HelenAPITests',
                         'PerformanceTests', 'RegressionTests', 'SampleDAppTests',
-                        'SimpleStateTransferTest', 'TruffleTests', 'UiTests']
+                        'SimpleStateTransferTest', 'TruffleTests', 'UiTests',
+                        'LoggingTests']
 ```

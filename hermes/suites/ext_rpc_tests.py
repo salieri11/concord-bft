@@ -44,7 +44,7 @@ class ExtendedRPCTests(test_suite.TestSuite):
    _httpProvider = None
    _reverseProxyhttpProvider = None
 
-   def __init__(self, passedArgs):
+   def __init__(self, passedArgs, product):
       accessToken = getAccessToken()
       authHeader = {'Authorization': 'Bearer {0}'.format(accessToken)}
       self._reverseProxyhttpProvider = HTTPProvider(
@@ -54,20 +54,16 @@ class ExtendedRPCTests(test_suite.TestSuite):
             'verify': False
          }
       )
-      super(ExtendedRPCTests, self).__init__(passedArgs)
+
+      self._userConfig = util.helper.loadConfigFile(passedArgs)
+      super(ExtendedRPCTests, self).__init__(passedArgs, product)
 
    def getName(self):
       return "ExtendedRPCTests"
 
    def run(self):
       ''' Runs all of the tests. '''
-      try:
-         self.launchProduct(self._args,
-                            self._userConfig)
-      except Exception as e:
-         log.error(traceback.format_exc())
-         return self._resultFile
-
+      self.launchProduct()
       tests = self._getTests()
 
       for (testName, testFun) in tests:
@@ -103,11 +99,8 @@ class ExtendedRPCTests(test_suite.TestSuite):
          self.writeResult(testName, result, info)
 
       log.info("Tests are done.")
+      return super().run()
 
-      if self._shouldStop():
-         self.product.stopProduct()
-
-      return self._resultFile
 
    def _getTests(self):
       all_tests = [

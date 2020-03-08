@@ -330,12 +330,10 @@ class ThinReplicaClient final {
   // request a final cancellation of that subscription with the Thin Replica
   // Server(s). An application can later resume that subscription by
   // constructing a new ThinReplicaClient and calling
-  // ThinReplicaClient::Subscribe with the same key prefix and the last block ID
-  // the application received before the subscription was stopped. If an
-  // application has no intention of later resuming a subscription, it should
-  // call ThinReplicaClient::Unsubscribe before destroying the ThinReplicaClient
-  // to inform the Thin Replica Server(s) that this subscripiton is being
-  // cancelled.
+  // ThinReplicaClient::Subscribe. If an application has no intention of later
+  // resuming a subscription, it should call ThinReplicaClient::Unsubscribe
+  // before destroying the ThinReplicaClient to inform the Thin Replica
+  // Server(s) that this subscripiton is being cancelled.
   ~ThinReplicaClient();
 
   // Copying or moving of a ThinReplicaClient object is explicitly disallowed as
@@ -373,12 +371,12 @@ class ThinReplicaClient final {
 
   // Subscribe to updates from the Thin Replica Servers. key_prefix_bytes should
   // be a byte string to request the thin replica servers filter updates on
-  // before sending them. If a value for last_known_block_id is given, the
-  // ThinReplicaClient will begin the subscription at the point specifed by that
-  // Block ID, otherwise, subscription will begin by attempting to read all
-  // current state.The subscribe call should be expected to block the calling
-  // thread until the subscription is successfully completed and any initial
-  // state is read.
+  // before sending them. If a value for block_id is given, the
+  // ThinReplicaClient will begin the subscription at and including that Block
+  // ID, otherwise, subscription will begin by attempting to read all current
+  // state. The subscribe call should be expected to block the calling thread
+  // until the subscription is successfully completed and any initial state is
+  // read.
   //
   // The Thin Replica mechanism subscription procedure begins with fetching of
   // initial state, followed by the creation of a subscription stream through
@@ -404,8 +402,7 @@ class ThinReplicaClient final {
   // called, the queue will be cleared. Subscribe will throw an exception if it
   // cannot successfully make the requested subscription.
   void Subscribe(const std::string& key_prefix_bytes);
-  void Subscribe(const std::string& key_prefix_bytes,
-                 uint64_t last_known_block_id);
+  void Subscribe(const std::string& key_prefix_bytes, uint64_t block_id);
 
   // End any currently open subscription this ThinReplicaClient has; this will
   // stop any worker thread(s) this ThinReplicaClient has for maintaining this

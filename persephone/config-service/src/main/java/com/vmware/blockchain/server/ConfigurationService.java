@@ -146,7 +146,7 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
             tlsConfig = configUtil.getConcordConfig(request.getHostsList(), request.getBlockchainType());
 
             List<Identity> tlsIdentityList =
-                    generateEtheriumConfig(certGen, configUtil.maxPrincipalId + 1, ServiceType.CONCORD);
+                    generateEthereumConfig(certGen, configUtil.maxPrincipalId + 1, ServiceType.CONCORD);
             log.info("Generated tls identity elements for session id: {}", sessionId);
 
             tlsNodeIdentities = buildTlsIdentity(tlsIdentityList,
@@ -174,7 +174,7 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
                     staticComponentList.add(ConfigurationComponent.newBuilder()
                                                     .setType(serviceType)
                                             .setComponentUrl(DamlLedgerApiUtil.envVarPath)
-                                            .setComponent(ledgerApiUtil.generateConfig())
+                                            .setComponent(ledgerApiUtil.generateConfig(request.getNodePropertiesList()))
                                             .setIdentityFactors(IdentityFactors.newBuilder().build())
                                             .build());
                     break;
@@ -183,7 +183,9 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
                     staticComponentList.add(ConfigurationComponent.newBuilder()
                                                     .setType(serviceType)
                                                     .setComponentUrl(DamlIndexDbUtil.envVarPath)
-                                                    .setComponent(damlIndexDbUtil.generateConfig())
+                                                    .setComponent(
+                                                            damlIndexDbUtil.generateConfig(
+                                                                    request.getNodePropertiesList()))
                                                     .setIdentityFactors(IdentityFactors.newBuilder().build())
                                                     .build());
                     break;
@@ -298,7 +300,7 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
 
         var certGen = new ConcordEcCertificatesGenerator();
         List<Identity> ethrpcIdentityList =
-                generateEtheriumConfig(certGen, 1, ServiceType.ETHEREUM_API);
+                generateEthereumConfig(certGen, 1, ServiceType.ETHEREUM_API);
 
         output.add(ConfigurationComponent.newBuilder()
                         .setType(ServiceType.ETHEREUM_API)
@@ -317,7 +319,7 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
         return output;
     }
 
-    private List<Identity> generateEtheriumConfig(ConcordEcCertificatesGenerator certGen, int size,
+    private List<Identity> generateEthereumConfig(ConcordEcCertificatesGenerator certGen, int size,
                                                   ServiceType ethereumApi) {
         //Generate EthRPC Configuration
         return certGen.generateSelfSignedCertificates(size,

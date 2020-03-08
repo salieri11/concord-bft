@@ -19,7 +19,7 @@
         <maven.plugin.protobuf>0.6.1</maven.plugin.protobuf>
         <protobuf.runtime.java.version>3.7.1</protobuf.runtime.java.version>
         <persephone.protobuf.source.path>../api/src/protobuf</persephone.protobuf.source.path>
-        <grpc.runtime.java.version>1.22.2</grpc.runtime.java.version>
+        <grpc.runtime.java.version>1.27.1</grpc.runtime.java.version>
         <persephone.version>1.0.0-SNAPSHOT</persephone.version>
     </properties>
 

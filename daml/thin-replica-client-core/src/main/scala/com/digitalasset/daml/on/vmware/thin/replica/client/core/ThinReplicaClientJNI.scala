@@ -19,10 +19,9 @@ final case class Update(
 @nativeLoader("thin-replica-client-native0")
 object Library {
   @native def createTRC(clientId: String , maxFaulty: Short,
-                          privateKey: String,
-                          servers: Array[String]) : Boolean
+                        privateKey: String, servers: Array[String]) : Boolean
   @native def subscribe(prefix: String) : Boolean
-  @native def subscribe(prefix: String, lastKnownBlockId: Long) : Boolean
+  @native def subscribe(prefix: String, blockId: Long) : Boolean
   @native def unsubscribe() : Boolean
 
   @native def pop() : Option[Update]

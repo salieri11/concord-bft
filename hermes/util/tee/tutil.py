@@ -26,3 +26,15 @@ class Tee:
     def run_test(self, test_input=b""):
         request = tproto.TestInput(test_input=test_input)
         return self.stub.RunTest(request, metadata=self.meta)
+
+    def skvbc_write(self, raw_skvbc_write):
+        raw_skvbc_write = tproto.RawSkvbcRequest(content=bytes(raw_skvbc_write))
+        result = self.stub.SkvbcWrite(raw_skvbc_write, metadata=self.meta)
+
+        return result.content
+
+    def skvbc_read(self, raw_skvbc_read):
+        raw_skvbc_read = tproto.RawSkvbcRequest(content=bytes(raw_skvbc_read))
+        result = self.stub.SkvbcRead(raw_skvbc_read, metadata=self.meta)
+
+        return result.content

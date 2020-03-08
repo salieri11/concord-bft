@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "provisioning-service.name" . }}
+  labels:
+    app: {{ include "provisioning-service.name" . }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.containerPort }}
+      targetPort: {{ .Values.service.targetPort }}
+  selector:
+    app.kubernetes.io/name: {{ include "provisioning-service.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}

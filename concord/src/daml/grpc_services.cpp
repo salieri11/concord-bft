@@ -2,9 +2,9 @@
 
 #include "grpc_services.hpp"
 
-#include <log4cplus/mdc.h>
 #include <opentracing/tracer.h>
 #include <string>
+#include "utils/concord_logging.hpp"
 
 #include "concord_storage.pb.h"
 #include "daml/daml_kvb_commands_handler.hpp"
@@ -39,16 +39,15 @@ grpc::Status CommitServiceImpl::CommitTransaction(ServerContext* context,
   Command cmd;
   cmd.mutable_commit()->CopyFrom(*request);
 
-  log4cplus::getMDC().put("cid", request->correlation_id());
+  concord::utils::RAIIMDC mdc("cid", request->correlation_id());
   auto span = opentracing::Tracer::Global()->StartSpan("commit_transaction");
 
   std::string cmd_string;
   cmd.SerializeToString(&cmd_string);
   daml_request->set_command(cmd_string.c_str(), cmd_string.size());
-
-  if (!pool.send_request_sync(req, false /* read-only */, *span.get(), resp)) {
+  if (!pool.send_request_sync(req, false /* read-only */, *span.get(), resp,
+                              request->correlation_id())) {
     LOG4CPLUS_ERROR(logger_, "DAML commit transaction failed");
-    log4cplus::getMDC().clear();
     return grpc::Status::CANCELLED;
   }
 
@@ -56,12 +55,10 @@ grpc::Status CommitServiceImpl::CommitTransaction(ServerContext* context,
     LOG4CPLUS_ERROR(logger_,
                     "DAML commit transaction failed with concord error: "
                         << resp.error_response(0).description());
-    log4cplus::getMDC().clear();
     return grpc::Status::CANCELLED;
   }
 
   if (!resp.has_daml_response()) {
-    log4cplus::getMDC().clear();
     return grpc::Status::CANCELLED;
   }
 
@@ -69,13 +66,11 @@ grpc::Status CommitServiceImpl::CommitTransaction(ServerContext* context,
   CommandReply cmd_reply;
   if (!cmd_reply.ParseFromString(resp.daml_response().command_reply())) {
     LOG4CPLUS_ERROR(logger_, "Failed to parse DAML/CommandReply");
-    log4cplus::getMDC().clear();
     return grpc::Status::CANCELLED;
   }
   assert(cmd_reply.has_commit());
 
   reply->CopyFrom(cmd_reply.commit());
-  log4cplus::getMDC().clear();
   return grpc::Status::OK;
 }
 

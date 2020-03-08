@@ -24,21 +24,15 @@ class WebSocketRPCTests(test_suite.TestSuite):
    _endpoint = "wss://localhost:8545/ws"
    _ws = websocket.WebSocket()
 
-   def __init__(self, passedArgs):
-      super(WebSocketRPCTests, self).__init__(passedArgs)
+   def __init__(self, passedArgs, product):
+      super(WebSocketRPCTests, self).__init__(passedArgs, product)
 
    def getName(self):
-      return "ExtendedRPCTests"
+      return "WebSocketRPCTests"
 
    def run(self):
       ''' Runs all of the tests. '''
-      try:
-         self.launchProduct(self._args,
-                            self._userConfig)
-      except Exception as e:
-         log.error(traceback.format_exc())
-         return self._resultFile
-
+      self.launchProduct()
       tests = self._getTests()
 
       self._connect
@@ -47,7 +41,7 @@ class WebSocketRPCTests(test_suite.TestSuite):
          testLogDir = os.path.join(self._testLogDir, testName)
 
          try:
-            result, info = testFun
+            result, info = testFun()
          except Exception as e:
             result = False
             info = str(e) + "\n" + traceback.format_exc()
@@ -66,11 +60,7 @@ class WebSocketRPCTests(test_suite.TestSuite):
 
       self._close
       log.info("Websocket Tests are done.")
-
-      if self._shouldStop():
-         self.product.stopProduct()
-
-      return self._resultFile
+      return super().run()
 
    def _getTests(self):
       all_tests = [

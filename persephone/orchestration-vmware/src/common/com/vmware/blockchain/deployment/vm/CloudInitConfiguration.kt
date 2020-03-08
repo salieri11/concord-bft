@@ -4,20 +4,15 @@
 package com.vmware.blockchain.deployment.vm
 
 import com.vmware.blockchain.deployment.model.core.URI
-import com.vmware.blockchain.deployment.orchestration.toIPv4Address
-import com.vmware.blockchain.deployment.orchestration.toIPv4SubnetMask
 import com.vmware.blockchain.deployment.v1.ConcordAgentConfiguration
 import com.vmware.blockchain.deployment.v1.ConcordClusterIdentifier
 import com.vmware.blockchain.deployment.v1.ConcordComponent
 import com.vmware.blockchain.deployment.v1.ConcordModelSpecification
-import com.vmware.blockchain.deployment.v1.ConcordNodeIdentifier
 import com.vmware.blockchain.deployment.v1.ConfigurationSessionIdentifier
 import com.vmware.blockchain.deployment.v1.Credential
 import com.vmware.blockchain.deployment.v1.Endpoint
-import com.vmware.blockchain.deployment.v1.LogManagement
 import com.vmware.blockchain.deployment.v1.OutboundProxyInfo
 import com.vmware.blockchain.deployment.v1.Wavefront
-import java.util.*
 
 /**
  * Initialization script run either on first-boot of a deployed virtual machine.
@@ -30,20 +25,20 @@ class CloudInitConfiguration(
     nameServers: List<String>,
     subnet: Int,
     clusterId: ConcordClusterIdentifier,
-    private val replicaId: ConcordNodeIdentifier,
     nodeId: Int,
     configGenId: ConfigurationSessionIdentifier,
     configServiceEndpoint: Endpoint,
     configServiceRestEndpoint: Endpoint,
     outboundProxy: OutboundProxyInfo,
-    logManagements : List<LogManagement>,
-    wavefront: Wavefront,
-    private val consortium: String
+    wavefront: Wavefront
 ) {
 
     private val agentImageName: String = model.componentsList
             .filter { it.type == ConcordComponent.Type.CONTAINER_IMAGE }
             .filter { it.serviceType == ConcordComponent.ServiceType.GENERIC }.first().name
+
+    // Temporary fix until wavefront team pushes feature to error out on incorrect url
+    private val excludedModel: ConcordModelSpecification = createMetricsExcludedModel(model, wavefront)
 
     private val networkSetupCommand: String by lazy {
         var dnsEntry = ""
@@ -79,7 +74,7 @@ class CloudInitConfiguration(
 
     /** Concord agent startup configuration parameters. */
     private val configuration: ConcordAgentConfiguration = ConcordAgentConfiguration.newBuilder()
-            .setModel(model)
+            .setModel(excludedModel)
             .setContainerRegistry(containerRegistry)
             .setCluster(clusterId)
             .setNode(nodeId)
@@ -90,7 +85,6 @@ class CloudInitConfiguration(
                     ?: configServiceRestEndpoint)
             .setConfigurationSession(configGenId)
             .setOutboundProxyInfo(outboundProxy)
-            .addAllLoggingEnvVariables(logManagements.loggingEnvVariablesSetup())
             .setWavefront(Wavefront.newBuilder().setUrl(wavefront.url).setToken(wavefront.token).build()).build()
 
     private val script =
@@ -111,6 +105,9 @@ class CloudInitConfiguration(
             
             # To enable docker on boot.
             systemctl enable docker
+
+            # Enable time sync
+            vmware-toolbox-cmd timesync enable
 
             {{dockerLoginCommand}}
 
@@ -154,6 +151,31 @@ class CloudInitConfiguration(
     }
 
     /**
+     * Temporary fix until wavefront team pushes feature to error out on incorrect url
+     */
+    private fun createMetricsExcludedModel(model: ConcordModelSpecification,
+                                           wavefront: Wavefront): ConcordModelSpecification {
+        val exclusionList = listOf(ConcordComponent.ServiceType.WAVEFRONT_PROXY,
+                ConcordComponent.ServiceType.TELEGRAF,
+                ConcordComponent.ServiceType.JAEGER_AGENT)
+        if (wavefront.url.isNullOrEmpty()
+                || wavefront.url.isNullOrBlank()
+                || wavefront.token.isNullOrBlank()
+                || wavefront.token.isNullOrEmpty()) {
+            val compList = model.componentsList.filter { it.serviceType !in exclusionList}
+            return ConcordModelSpecification.newBuilder()
+                    .setBlockchainType(model.blockchainType)
+                    .setNodeType(model.nodeType)
+                    .setVersion(model.version)
+                    .setTemplate(model.template)
+                    .addAllComponents(compList)
+                    .build()
+        } else {
+            return model
+        }
+    }
+
+    /**
      * Return appropriate container registry setting for Docker daemon depending on the registry's
      * URL scheme.
      *
@@ -167,65 +189,6 @@ class CloudInitConfiguration(
             "http" -> "--insecure-registry ${endpoint.authority}"
             else -> ""
         }
-    }
-
-    /**
-     * Returns Logging environment variables as a string to be injected at container deployment time
-     *
-     * @return
-     *   environment variables as a List<String> in the format ["key=value", "foo=bar"]
-     */
-    private fun List<LogManagement>.loggingEnvVariablesSetup(): List<String> {
-
-        if (this.isNotEmpty()) {
-            // Get first configuration for now
-            val logManagement = this.first()
-            // Split address to see if port was configured in the endpoint
-            // e.g. https://hostname:9000
-            val address: List<String> = logManagement.endpoint.address.split(":")
-            val portInt = address.last().toIntOrNull()
-            val port: String
-            val hostname: String
-            when(portInt) {
-                null -> {
-                    port = ""
-                    hostname = logManagement.endpoint.address
-                }
-                else -> {
-                    port = "$portInt"
-                    hostname = address.take(address.size-1).joinToString()
-                }
-            }
-            val bearerToken = logManagement.endpoint.credential.tokenCredential.token
-            val logInsightAgentId = logManagement.logInsightAgentId
-
-            val loggingEnvVariables: MutableList<String> = mutableListOf()
-            // Add consortiumId and replicaId information
-            loggingEnvVariables.add("CONSORTIUM_ID=$consortium")
-            val replicaUUID : String = UUID(replicaId.high, replicaId.low).toString()
-            loggingEnvVariables.add("REPLICA_ID=$replicaUUID")
-
-            // Add logging configurations
-            loggingEnvVariables.add("LOG_DESTINATION=${logManagement.destination.name}")
-            when(logManagement.destination) {
-                LogManagement.Type.LOG_INTELLIGENCE -> {
-                    loggingEnvVariables.add("LINT_AUTHORIZATION_BEARER=$bearerToken")
-                    loggingEnvVariables.add("LINT_ENDPOINT_URL=$hostname")
-                }
-                LogManagement.Type.LOG_INSIGHT -> {
-                    loggingEnvVariables.add("LOG_INSIGHT_HOST=$hostname")
-                    loggingEnvVariables.add("LOG_INSIGHT_PORT=$port")
-                    loggingEnvVariables.add("LOG_INSIGHT_USERNAME=" +
-                            logManagement.endpoint.credential.passwordCredential.username)
-                    loggingEnvVariables.add("LOG_INSIGHT_PASSWORD=" +
-                            logManagement.endpoint.credential.passwordCredential.password)
-                    loggingEnvVariables.add("LOG_INSIGHT_AGENT_ID=$logInsightAgentId")
-                }
-            }
-
-            return loggingEnvVariables
-        }
-        return emptyList()
     }
 
     /**

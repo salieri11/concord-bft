@@ -261,3 +261,11 @@ def get_changelog(higher, lower, repo):
         msg_list.append("Commit message: %s" % commit_data['message'])
         msg_list.append("#############################")
     return msg_list
+
+
+def json_to_file(payload, filename):
+    try:
+        with open(filename, 'w') as outfile:
+            json.dump(data, outfile)
+    except Exception as e:
+        logger.exception("Error dumping json data")

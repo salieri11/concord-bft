@@ -11,13 +11,17 @@ export class AppPage {
   }
 
   goToDeployWizard() {
-    const deploy = element(by.css('#deploy'));
+    const deploy = element(by.css('#sidebarDeploy'));
 
     if (deploy.isPresent()) {
       return deploy;
     } else {
       return element(by.css('#sidebarDeploy'));
     }
+  }
+
+  goToZoneList() {
+    element(by.css('#zones')).click();
   }
 
   getTourTitle() {

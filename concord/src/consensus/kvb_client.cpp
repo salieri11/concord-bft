@@ -37,7 +37,8 @@ void AddTracingContext(ConcordRequest &req, opentracing::Span &parent_span) {
 bool KVBClient::send_request_sync(ConcordRequest &req, bool isReadOnly,
                                   std::chrono::milliseconds timeout,
                                   opentracing::Span &parent_span,
-                                  ConcordResponse &resp) {
+                                  ConcordResponse &resp,
+                                  const std::string &correlation_id) {
   auto span = parent_span.tracer().StartSpan(
       "send_request_sync", {opentracing::ChildOf(&parent_span.context())});
   AddTracingContext(req, *span.get());
@@ -53,7 +54,7 @@ bool KVBClient::send_request_sync(ConcordRequest &req, bool isReadOnly,
   uint32_t actualReplySize = 0;
   concordUtils::Status status = client_->invokeCommandSynch(
       command.c_str(), command.size(), isReadOnly, timeout, OUT_BUFFER_SIZE,
-      m_outBuffer, &actualReplySize);
+      m_outBuffer, &actualReplySize, correlation_id);
 
   if (status.isOK() && actualReplySize) {
     return resp.ParseFromArray(m_outBuffer, actualReplySize);
@@ -107,14 +108,17 @@ KVBClientPool::~KVBClientPool() {
 
 bool KVBClientPool::send_request_sync(ConcordRequest &req, bool isReadOnly,
                                       opentracing::Span &parent_span,
-                                      ConcordResponse &resp) {
-  return send_request_sync(req, isReadOnly, timeout_, parent_span, resp);
+                                      ConcordResponse &resp,
+                                      const std::string &correlation_id) {
+  return send_request_sync(req, isReadOnly, timeout_, parent_span, resp,
+                           correlation_id);
 }
 
 bool KVBClientPool::send_request_sync(ConcordRequest &req, bool isReadOnly,
                                       std::chrono::milliseconds timeout,
                                       opentracing::Span &parent_span,
-                                      ConcordResponse &resp) {
+                                      ConcordResponse &resp,
+                                      const std::string &correlation_id) {
   KVBClient *client;
   {
     std::unique_lock<std::mutex> clients_lock(clients_mutex_);
@@ -167,8 +171,8 @@ bool KVBClientPool::send_request_sync(ConcordRequest &req, bool isReadOnly,
     }
   }  // scope unlocks mutex
 
-  bool result =
-      client->send_request_sync(req, isReadOnly, timeout, parent_span, resp);
+  bool result = client->send_request_sync(req, isReadOnly, timeout, parent_span,
+                                          resp, correlation_id);
 
   {
     std::unique_lock<std::mutex> clients_lock(clients_mutex_);

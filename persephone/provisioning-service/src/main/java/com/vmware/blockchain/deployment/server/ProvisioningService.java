@@ -756,7 +756,7 @@ public class ProvisioningService extends ProvisioningServiceGrpc.ProvisioningSer
                                             session.getSpecification().getGenesis(),
                                             privateNetworkAddressMap.get(placement),
                                             configGenId,
-                                            session.getSpecification().getConsortium()
+                                            session.getSpecification().getProperties()
                                     );
 
                                     return Map.entry(placement, publisher);
@@ -913,7 +913,7 @@ public class ProvisioningService extends ProvisioningServiceGrpc.ProvisioningSer
             Genesis genesis,
             Orchestrator.NetworkResourceEvent.Created networkResourceEvent,
             ConfigurationSessionIdentifier configGenId,
-            String consortium
+            Properties properties
     ) {
         var computeRequest = new Orchestrator.CreateComputeResourceRequest(
                 ConcordClusterIdentifier.newBuilder()
@@ -928,7 +928,7 @@ public class ProvisioningService extends ProvisioningServiceGrpc.ProvisioningSer
                 concordIdentifierMap.get(nodeId),
                 configurationService,
                 configurationServiceRest,
-                consortium
+                properties.getValues().getOrDefault(NodeProperty.Name.VM_PROFILE.toString(), "small")
         );
         return orchestrator.createDeployment(computeRequest);
     }

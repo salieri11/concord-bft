@@ -1,0 +1,42 @@
+# Default values for configservice.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 1
+
+image:
+  repository: vmware-docker-blockchainsaas.bintray.io/vmwblockchain/persephone-configuration
+  tag: stable
+  pullPolicy: Always
+  pullSecret: bintray
+
+service:
+  type: ClusterIP
+  grpccontainerPort: 9003
+  restcontainerPort: 9023
+  grpctargetPort: 9003
+  resttargerPort: 9023
+  terminationGracePeriod: 10
+
+resources:
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  # limits:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+  requests:
+    memory: 1024Mi
+    cpu: 512m
+  limits:
+    memory: 1024Mi
+    cpu: 1024m
+
+configmap:
+  name: config-service
+  volumename: config-volume
+  mountPath: /config/app/profiles/

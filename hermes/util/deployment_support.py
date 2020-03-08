@@ -16,6 +16,7 @@ import time
 
 files_folders_to_backup = [
    "/config",
+   "/var/log/healthd.log",
    "/var/log/cloud-init.log",
    "/var/log/cloud-init-output.log",
    "/var/lib/cloud/instance/user-data.txt",

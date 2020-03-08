@@ -117,6 +117,20 @@ import hudson.util.Secret
     "dockerComposeFiles": "../docker/docker-compose.yml ../docker/docker-compose-persephone.yml",
     "baseCommand": 'echo "${PASSWORD}" | sudo -S "${python}" main.py CoreVMTests --blockchainLocation sddc \
       --tests="-k vmArithmeticTest/add0.json"'
+  ],
+  "LoggingTests": [
+    "enabled": true,
+    "dockerComposeFiles": "../docker/docker-compose.yml ../docker/docker-compose-persephone.yml",
+    "runWithGenericTests": false,
+    "runWithToTTests": false,
+    "baseCommand": 'echo "${PASSWORD}" | sudo -S "${python}" main.py LoggingTests --blockchainType daml --numReplicas 7 --blockchainLocation sddc'
+  ],
+  "UiDAMLDeploy": [
+    "enabled": true,
+    "runWithGenericTests": false,
+    "setupFunction": "deleteDatabaseFiles",
+    "dockerComposeFiles": "../docker/docker-compose.yml ../docker/docker-compose-persephone.yml",
+    "baseCommand": '"${python}" main.py DeployDamlTests'
   ]
 ]
 
@@ -125,12 +139,14 @@ def call(){
   def genericTests = true
   def additional_components_to_build = ""
   def deployment_support_bundle_job_name = "Get Deployment support bundle"
-  def lint_test_job_name = "Blockchain LINT Tests"
+  def ui_e2e_daml_on_prem_job_name = "UI E2E Deploy DAML On Premises"
   def memory_leak_job_name = "BlockchainMemoryLeakTesting"
+  def monitor_replicas_job_name = "Monitor Blockchain replica health and status"
   def performance_test_job_name = "Blockchain Performance Test"
   def persephone_test_job_name = "Blockchain Persephone Tests"
   def persephone_test_on_demand_job_name = "ON DEMAND Persephone Testrun on GitLab"
   def helen_role_test_job_name = "Helen Role Tests on GitLab"
+  def log_insight_test_job_name = "Log Insight Integration Test"
 
   // This is a unique substring of the Jenkins job which tests ToT after a
   // change has been merged.
@@ -148,7 +164,9 @@ def call(){
   // These runs will never run Persehpone tests. Persephone tests have special criteria,
   // and these runs can end up running them unintentionally.
   def runs_excluding_persephone_tests = [
-    lint_test_job_name,
+    log_insight_test_job_name,
+    ui_e2e_daml_on_prem_job_name,
+    monitor_replicas_job_name,
     memory_leak_job_name,
     performance_test_job_name,
     helen_role_test_job_name
@@ -156,12 +174,15 @@ def call(){
 
   // These job names are just substrings of the actual job names.
   specialized_tests = [
+    ui_e2e_daml_on_prem_job_name,
     memory_leak_job_name,
     performance_test_job_name,
     persephone_test_job_name,
     persephone_test_on_demand_job_name,
-    lint_test_job_name,
+    log_insight_test_job_name,
+    ui_e2e_daml_on_prem_job_name,
     deployment_support_bundle_job_name,
+    monitor_replicas_job_name,
     helen_role_test_job_name
   ]
 
@@ -223,6 +244,16 @@ def call(){
              description: "To collect deployment support bundle, enter comma separated list of concord node IPs",
              name: "concord_ips"
       choice(choices: "DAML\nETHEREUM", description: 'To collect deployment support bundle, choose a concord type', name: 'concord_type')
+
+      string defaultValue: "",
+             description: "Monitor replicas: Enter a repeated set of blockchain_type:<set of replicas> (example: daml_committer:10.70.30.226,10.70.30.225,10.70.30.227,10.70.30.228 daml_participant:10.70.30.229)",
+             name: "replicas_with_bc_type"
+      string defaultValue: "6",
+             description: "Monitor replicas: Enter number of hours to monitor replicas (default 6 hrs)",
+             name: "run_duration"
+      string defaultValue: "1",
+             description: "Monitor replicas: Enter number of minutes to wait between monitors (default 60 mins)",
+             name: "load_interval"
     }
     stages {
       stage("Notify GitLab"){
@@ -249,6 +280,9 @@ def call(){
               env.performance_votes = params.performance_votes
               env.concord_ips = params.concord_ips
               env.concord_type = params.concord_type
+              env.replicas_with_bc_type = params.replicas_with_bc_type
+              env.run_duration = params.run_duration
+              env.load_interval = params.load_interval
 
               // Check parameters
               script{
@@ -424,7 +458,8 @@ def call(){
                 git config --global user.name "build system"
               '''
 
-              if (env.JOB_NAME.contains(persephone_test_job_name) ||
+              if (env.JOB_NAME.contains(monitor_replicas_job_name) ||
+                  env.JOB_NAME.contains(persephone_test_job_name) ||
                   env.JOB_NAME.contains(performance_test_job_name) ||
                   env.JOB_NAME.contains(memory_leak_job_name)) {
                 saveTimeEvent("Build", "Fetch build number from Job Update-onecloud-provisioning-service")
@@ -526,7 +561,7 @@ EOF
                     sed -i -e 's/'"<VMC_SDDC4_VC_CREDENTIALS_PASSWORD>"'/'"${VMC_SDDC4_VC_CREDENTIALS_PASSWORD}"'/g' blockchain/hermes/resources/user_config.json
                     sed -i -e 's/'"<METAINF_ENV_JOB_NAME>"'/'"${JOB_NAME_ESCAPED}"'/g' blockchain/hermes/resources/user_config.json
                     sed -i -e 's/'"<METAINF_ENV_BUILD_NUMBER>"'/'"${BUILD_NUMBER}"'/g' blockchain/hermes/resources/user_config.json
-                    sed -i -e 's/'"<METAINF_ENV_PRODUCT_VERSION>"'/'"${product_version}"'/g' blockchain/hermes/resources/user_config.json
+                    sed -i -e 's/'"<METAINF_ENV_DOCKER_TAG>"'/'"${docker_tag}"'/g' blockchain/hermes/resources/user_config.json
                   '''
 
                   if (env.JOB_NAME.contains(persephone_test_job_name)) {
@@ -598,6 +633,10 @@ EOF
                   sh '''
                     echo "No local build required for Memory Leak Testrun..."
                   '''
+                } else if (env.JOB_NAME.contains(monitor_replicas_job_name)) {
+                  sh '''
+                    echo "No local build required for monitoring health and status of replicas..."
+                  '''
                 } else if (env.JOB_NAME.contains(deployment_support_bundle_job_name)) {
                   sh '''
                     echo "No local build required for collecting deployment support bundle..."
@@ -642,10 +681,12 @@ EOF
                     // AAAAARGH mixed camel/snake.  We must fix this file.
                     env.test_log_root = new File(env.WORKSPACE, "testLogs").toString()
                     env.deployment_support_logs = new File(env.test_log_root, "DeploymentSupportBundle").toString()
+                    env.monitor_replicas_logs = new File(env.test_log_root, "MonitorReplicas").toString()
                     env.mem_leak_test_logs = new File(env.test_log_root, "MemoryLeak").toString()
                     env.performance_test_logs = new File(env.test_log_root, "PerformanceTest").toString()
                     env.persephone_test_logs = new File(env.test_log_root, "PersephoneTest").toString()
                     env.lint_test_logs = new File(env.test_log_root, "LintTest").toString()
+                    env.log_insight_logs = new File(env.test_log_root, "LogInsightTest").toString()
 
                     if (genericTests) {
                       if (isGitLabRun()){
@@ -698,6 +739,12 @@ EOF
                     } else if (env.JOB_NAME.contains(helen_role_test_job_name)) {
                       selectOnlySuites(["HelenRoleTests"])
                       runTests()
+                    } else if (env.JOB_NAME.contains(log_insight_test_job_name)) {
+                      selectOnlySuites(["LoggingTests"])
+                      runTests()
+                    } else if (env.JOB_NAME.contains(ui_e2e_daml_on_prem_job_name)) {
+                      selectOnlySuites(["UiDAMLDeploy", "UiTests"])
+                      runTests()
                     }
 
                     // TODO: Make the items below follow the model above.
@@ -709,6 +756,22 @@ EOF
                         "${python}" create_deployment_support.py --replicas "${concord_ips}" --replicaType "${concord_type}" --saveTo "${deployment_support_logs}"
                       '''
                       saveTimeEvent("Collect deployment support bundle", "End")
+                    }
+                    if (env.JOB_NAME.contains(monitor_replicas_job_name)) {
+                      saveTimeEvent("Monitor health and status of replicas", "Start")
+                      py_arg_replica_with_bc_type = ""
+                      for (replica_set in env.replicas_with_bc_type.split()) {
+                        echo replica_set
+                        py_arg_replica_with_bc_type = py_arg_replica_with_bc_type + " --replicas " + replica_set
+                      }
+                      echo py_arg_replica_with_bc_type
+                      env.py_arg_replica_with_bc_type = py_arg_replica_with_bc_type
+                      sh '''
+                        echo "Running script to monitor health and status of replicas..."
+                        cd ../docker ; docker-compose -f ../docker/docker-compose-persephone.yml up -d ; cd -
+                        "${python}" monitor_replicas.py ${py_arg_replica_with_bc_type} --runDuration "${run_duration}" --loadInterval "${load_interval}" --saveSupportLogsTo "${monitor_replicas_logs}"
+                      '''
+                      saveTimeEvent("Monitor health and status of replicas", "End")
                     }
                     if (env.JOB_NAME.contains(memory_leak_job_name)) {
                       saveTimeEvent("Memory leak tests", "Start")
@@ -726,22 +789,6 @@ EOF
                         echo "${PASSWORD}" | sudo -SE "${python}" main.py PerformanceTests --dockerComposeFile ../docker/docker-compose.yml --performanceVotes 10000 --resultsDir "${performance_test_logs}" --runConcordConfigurationGeneration --concordConfigurationInput /concord/config/dockerConfigurationInput-perftest.yaml --logLevel debug > "${performance_test_logs}/performance_tests.log" 2>&1
                       '''
                       saveTimeEvent("Performance tests", "End")
-                    }
-                    if (env.JOB_NAME.contains(lint_test_job_name)) {
-                      saveTimeEvent("LINT tests", "Start")
-                      sh '''
-                        echo "Running Entire Testsuite: Lint E2E..."
-
-                        # We need to delete the database files before running UI tests because
-                        # Selenium cannot launch Chrome with sudo.  (The only reason Hermes
-                        # needs to be run with sudo is so it can delete any existing DB files.)
-                        echo "${PASSWORD}" | sudo -S rm -rf ../docker/devdata/rocksdbdata*
-                        echo "${PASSWORD}" | sudo -S rm -rf ../docker/devdata/cockroachDB
-
-                        mkdir -p "${lint_test_logs}"
-                        "${python}" main.py LintTests --dockerComposeFile ../docker/docker-compose.yml ../docker/docker-compose-fluentd.yml --resultsDir "${lint_test_logs}" --runConcordConfigurationGeneration --logLevel debug > "${lint_test_logs}/lint_tests.log" 2>&1
-                      '''
-                      saveTimeEvent("LINT tests", "End")
                     }
                   }
                 }
@@ -1848,11 +1895,7 @@ void runTests(){
       withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
         sh(script:
         '''
-          # Pull in the shell script saveTimeEvent.
-          . lib/shell/saveTimeEvent.sh
           EVENTS_FILE="${eventsFullPath}"
-          EVENTS_RECORDER="${eventsRecorder}"
-          saveTimeEvent "${suiteName}" Start
 
           # pushd is not available in the Jenkins shell.
           origDir=`pwd`
@@ -1866,10 +1909,8 @@ void runTests(){
           # Set +e so we can grep for the result summary instead of exiting immediately on failure.
           set +e
 
-          eval "${suiteCmd} --resultsDir \\\"${suiteResultsDir}\\\" ${suiteRunConcordConfigGeneration} ${suitePerformanceVotes} ${suiteConcordConfigInput} ${suiteDockerComposeFiles} --logLevel debug" > "${suiteResultsDir}/${testLogFileName}" 2>&1
+          eval "${suiteCmd} --resultsDir \\\"${suiteResultsDir}\\\" ${suiteRunConcordConfigGeneration} ${suitePerformanceVotes} ${suiteConcordConfigInput} ${suiteDockerComposeFiles} --logLevel debug" --eventsFile \\\"${EVENTS_FILE}\\\" > "${suiteResultsDir}/${testLogFileName}" 2>&1
           suiteSuccess=$?
-
-          saveTimeEvent "${suiteName}" End
 
           # Print a line for jenkinslogs to search for.
           # Search for text output by hermes/main.py, processResults().

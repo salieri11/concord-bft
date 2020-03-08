@@ -38,6 +38,8 @@ public class ConcordHelper {
      */
     public static List<Bind> getDefaultVolBinds() {
         return List.of(Bind.parse("/config/concord/config-local:/concord/config-local"),
-                Bind.parse("/config/concord/config-public:/concord/config-public"));
+                       Bind.parse("/config/concord/config-public:/concord/config-public"),
+                       Bind.parse("/config/concord/rocksdbdata:/concord/rocksdbdata"),
+                       Bind.parse("/config/concord/cores:/concord/cores"));
     }
 }

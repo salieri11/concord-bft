@@ -1,8 +1,9 @@
 #########################################################################
-# Copyright 2019 VMware, Inc.  All rights reserved. -- VMware Confidential
+# Copyright 2019-2020 VMware, Inc.  All rights reserved. -- VMware Confidential
 #########################################################################
 
 # Helper file with common utility methods
+import base64
 import collections
 import os
 import yaml
@@ -12,11 +13,14 @@ import logging
 import paramiko
 import warnings
 import cryptography
+import traceback
 import socket
 import subprocess
 import sys
 import tempfile
 import time
+import threading
+import util.daml.daml_helper as daml_helper
 import util.json_helper
 from . import numbers_strings
 from . import vsphere
@@ -44,6 +48,7 @@ LOCATION_ONPREM = "onprem"
 TYPE_ETHEREUM = "ethereum"
 TYPE_DAML = "daml"
 TYPE_DAML_COMMITTER = "daml_committer"
+TYPE_DAML_PARTICIPANT = "daml_participant"
 TYPE_HLF = "hlf"
 TYPE_TEE = "tee"
 
@@ -61,6 +66,10 @@ ZONE_TYPE_SDDC = "VMC_AWS"
 LOG_DESTINATION_LOG_INTELLIGENCE = "LOG_INTELLIGENCE"
 LOG_DESTINATION_LOG_INSIGHT = "LOG_INSIGHT"
 
+# Health Reporting Daemon path
+HEALTHD_CRASH_FILE = "/var/log/replica_crashed"
+HEALTHD_LOG_PATH = "/var/log/healthd.log"
+
 # all open infra sessions for accessing VMs & Folders on the datacenter connection
 # e.g. vm = INFRA["SDDC3"].getByIP("10.69.100.46")
 #     populated by `sddcGetConnection` (ConnectionToSDDC objects defined in vsphere.py)
@@ -69,8 +78,6 @@ INFRA = {}
 # list of all deployed replicas by Hermes from this particular build
 #     auto populated by `sddcGiveDeploymentContextToVM` with replicaInfo
 DEPLOYED_REPLICAS = []
-
-
 
 def copy_docker_env_file(docker_env_file=docker_env_file):
    '''
@@ -250,7 +257,7 @@ def sftp_client(host, username, password, src, dest, action="download", log_mode
          sftp.get(src, dest)
          cmd_verify_ftp = ["ls", dest]
          if execute_ext_command(cmd_verify_ftp):
-            log.debug("File downloaded successfully: {}".format(dest))
+            log.debug("File downloaded from {} successfully: {}".format(host, dest))
             result = True
       else:
          sftp.put(src, dest)
@@ -259,7 +266,7 @@ def sftp_client(host, username, password, src, dest, action="download", log_mode
          log.debug(ssh_output)
          if ssh_output:
             if ssh_output.rstrip() == dest:
-               log.debug("File downloaded successfully: {}".format(dest))
+               log.debug("File uploaded to {} successfully: {}".format(host, dest))
                result = True
    except paramiko.AuthenticationException as e:
       log.error("Authentication failed when connecting to {}".format(host))
@@ -410,13 +417,13 @@ def add_ethrpc_port_forwarding(host, username, password):
             log.debug("Port forwarded successfully")
             return True
    except Exception as e:
-      log.debug(e)
+      log.debug(str(e))
 
    log.debug("Port forwarding failed")
    return False
 
 
-def verify_connectivity(ip, port, bytes_to_send=[], success_bytes=[], min_bytes=1):
+def verify_connectivity(ip, port, bytes_to_send=[], success_bytes=[], min_bytes=1, max_tries=15):
    '''
    Helper method to validate connectivity.
    :param ip: IP address
@@ -435,7 +442,6 @@ def verify_connectivity(ip, port, bytes_to_send=[], success_bytes=[], min_bytes=
    '''
    log.info("Verifying connectivity ({}:{})".format(ip, port))
    attempt = 0
-   max_tries = 15
    sleep_time = 10
    socket_timeout = 5
    receive_buffer_size = 256
@@ -489,6 +495,105 @@ def verify_connectivity(ip, port, bytes_to_send=[], success_bytes=[], min_bytes=
          bytes_to_search = []
 
    return False
+
+
+def check_replica_health(replicas, username, password):
+   '''
+   Helper util method to check the health of replicas supplied. This method checks the
+   crash file created by the health daemon incase of a failure (like container not up)
+   :param replicas: List of replicas to be monitored
+   :param username: replica login username
+   :param password: replica login password
+   :return: False if a replica is crashed, else True
+   '''
+   log.info("************************************************************")
+   for blockchain_type, replica_ips in replicas.items():
+      log.info("Verifying health on {} ({})".format(replica_ips, blockchain_type))
+      for ip in replica_ips:
+         log.info("{}...".format(ip))
+         cmd = "stat {}".format(HEALTHD_CRASH_FILE)
+         ssh_output = ssh_connect(ip, username, password, cmd)
+         log.debug("cmd '{}' output: {}".format(cmd, ssh_output))
+         if ssh_output:
+            for line in ssh_output.split('\n'):
+               if "File: {}".format(HEALTHD_CRASH_FILE) in line:
+                  log.error("replica '{}' crashed".format(ip))
+                  return False
+         else:
+            log.error("Unable to connect to host: {}".format(ip))
+            return False
+   log.info("**** All replicas are healthy")
+   log.info("")
+   return True
+
+
+def monitor_replicas(replicas, run_duration, load_interval, save_support_logs_to):
+   '''
+   Helper util method to monitor the health of the replicas, and do a blockchain
+   test (send/get transactions) and collect support logs incase of a replica
+   failed status (crash or failed  txn test)
+   :param replicas: List of replicas to be monitored
+   :param run_duration: No. of hrs to monitor the replicas
+   :param load_interval: Interval in moins between every monitoring call
+   :param save_support_logs_to: Support logs archiving location in case of a failure
+   :return:False if replicas reported a failure during the run_duration time, else True
+   '''
+
+   configObject = getUserConfig()
+   credentials = configObject["persephoneTests"]["provisioningService"][
+      "concordNode"]
+   username = credentials["username"]
+   password = credentials["password"]
+
+   start_time = time.time()
+   while ((time.time() - start_time)/3600 < run_duration):
+      replica_status = None
+      if not check_replica_health(replicas, username, password):
+         log.error("**** replica status is unhealthy")
+         replica_status = False
+      else:
+         replica_status = True
+         for blockchain_type, replica_ips in replicas.items():
+            if blockchain_type == TYPE_DAML_PARTICIPANT:
+               log.info("Performing validation test...")
+               for endpoint_node in replica_ips:
+                  log.info("{}...".format(endpoint_node))
+                  try:
+                     daml_helper.upload_test_tool_dars(host=endpoint_node,
+                                                       port='6865')
+                     daml_helper.verify_ledger_api_test_tool(
+                        host=endpoint_node,
+                        port='6865',
+                        run_all_tests=True)
+                     log.info("**** DAML test verification passed.")
+                  except Exception as e:
+                     log.error(e)
+                     replica_status = False
+            elif blockchain_type == "ethereum":
+               log.info("Performing validation test...")
+               for endpoint_node in replica_ips:
+                  log.info("{}...".format(endpoint_node))
+                  try:
+                     # TODO: Add a ethereum test here
+                     log.info("**** ethereum test verification passed.")
+                  except Exception as e:
+                     log.error(e)
+                     replica_status = False
+
+
+      # Collect support logs incase of a failed replica
+      if not replica_status:
+         for blockchain_type, replica_ips in replicas.items():
+            log.info("Collect support bundle from all replica IPs: {}".format(
+               replica_ips))
+            create_concord_support_bundle(replica_ips, blockchain_type,
+                                          save_support_logs_to)
+         return False
+
+      log.info("")
+      log.info("sleep for {} min(s) and continue monitoring...".format(load_interval))
+      time.sleep(load_interval*60)
+   return True
 
 
 def create_concord_support_bundle(replicas, concord_type, test_log_dir):
@@ -627,7 +732,7 @@ def waitForTask(request, taskId, expectSuccess=True, timeout=600):
    return (success, response)
 
 
-def loadConfigFile(args):
+def loadConfigFile(args=None):
    '''
    Given the cmdline args, loads the main Hermes config file and returns
    the config object.
@@ -654,6 +759,11 @@ def loadConfigFile(args):
    CONFIG_CACHED['data'] = configObject
 
    return configObject
+
+
+def getUserConfig():
+  configObject = CONFIG_CACHED['data'] if 'data' in CONFIG_CACHED else loadConfigFile()
+  return configObject
 
 
 def checkRpcTestHelperImport():
@@ -779,6 +889,18 @@ def waitForDockerContainers(host, username, password, replicaType, timeout=600):
          raise Exception("Container '{}' on '{}' failed to come up.".format(name, host))
 
 
+def getJenkinsBuildId(jobName=None, buildNumber=None):
+  try: 
+    configObject = getUserConfig()
+    jobName = jobName if jobName is not None else configObject["metainf"]["env"]["jobName"]
+    buildNumber = buildNumber if buildNumber is not None else configObject["metainf"]["env"]["buildNumber"]
+    return jobName + '/' + buildNumber
+  except Exception as e:
+    log.debug(str(e))
+    return ""
+
+
+
 '''
   Helper functions relevant to Hermes infrastructure automation
 '''
@@ -815,7 +937,7 @@ def sddcGetConnection(sddcName):
       which get injected to `user_config.json` in `gitlabBuildSteps.groovy` 
    '''
    # get config from user_config.json
-   configObject = CONFIG_CACHED['data'] if 'data' in CONFIG_CACHED else loadConfigFile(None)
+   configObject = getUserConfig()
    try:
       if sddcName not in INFRA:
          if sddcName not in configObject["infra"]:
@@ -842,7 +964,7 @@ def sddcGetConnection(sddcName):
       return INFRA[sddcName]
 
    except Exception as e:
-     log.debug(e)
+     log.debug(str(e))
      return False
 
 
@@ -853,7 +975,7 @@ def sddcGetListFromConfig(configObject = None):
       :param configObject: (optional), if not given, auto-resolved by loadConfigFile
   '''
   if configObject is None:
-    configObject = CONFIG_CACHED['data'] if 'data' in CONFIG_CACHED else loadConfigFile(None)
+    configObject = getUserConfig()
   sddcs = []
   # Can be vSphere SDDC or other on-prem locations
   #  e.g. Other on-prem location name with any string val
@@ -896,18 +1018,18 @@ def sddcGiveDeploymentContextToVM(blockchainDetails, otherMetadata=""):
           }, ...]
       }
       ```
+      TODO: user this on persephone deployment test as well
    '''
    # get config from user_config.json
    try: 
-      configObject = CONFIG_CACHED['data'] if 'data' in CONFIG_CACHED else loadConfigFile(None)
+      configObject = getUserConfig()
       sddcs = sddcGetListFromConfig(configObject)
       jobName = configObject["metainf"]["env"]["jobName"]
       buildNumber = configObject["metainf"]["env"]["buildNumber"]
-      productVersion = configObject["metainf"]["env"]["productVersion"]
-      pytestContext = os.getenv("PYTEST_CURRENT_TEST")
-      if pytestContext is None: pytestContext = ""
-      runCommand = os.getenv("SUDO_COMMAND")
-      if runCommand is None: runCommand = ""
+      jenkinsBuildId = jobName + '/' + buildNumber
+      dockerTag = configObject["metainf"]["env"]["dockerTag"]
+      pytestContext = os.getenv("PYTEST_CURRENT_TEST") if os.getenv("PYTEST_CURRENT_TEST") is not None else ""
+      runCommand = os.getenv("SUDO_COMMAND") if os.getenv("SUDO_COMMAND") is not None else ""
 
       for replicaInfo in blockchainDetails["replica_list"]:
         alreadyRegistered = [replica for replica in DEPLOYED_REPLICAS if replica.get("replica_id") == replicaInfo["replica_id"]]
@@ -924,32 +1046,34 @@ def sddcGiveDeploymentContextToVM(blockchainDetails, otherMetadata=""):
         if vmAndSourceSDDC is None: continue # vm with the given replicaId is not found
         vm = vmAndSourceSDDC["vm"]
         sddc = vmAndSourceSDDC["sddc"]
-        sddc.vmAnnotate(vm, # edit VM Notes with detailed deployment context
-            "Public IP: {}\nReplica ID: {}\nBlockchain: {}\nConsortium: {}\nType: {}\n".format(
-              replicaInfo["ip"],
-              replicaInfo["replica_id"],
-              blockchainDetails["id"],
-              blockchainDetails["consortium_id"],
-              blockchainDetails["blockchain_type"],
-            ) + "\nDeployed By: Hermes\nProduct Version: {}\nJob Name: {}\nBuild Number: {}\nBuild URL: {}\n".format(
-              productVersion,
-              jobName,
-              buildNumber,
-              "https://blockchain.svc.eng.vmware.com/job/{}/{}".format(jobName, buildNumber)
-            ) + "\nPytest Context: {}\n\nRun Command: {}\n\nOther Metadata: {}\n\n".format(
-              pytestContext,
-              runCommand,
-              otherMetadata
-            )
-        )
+        notes = "Public IP: {}\nReplica ID: {}\nBlockchain: {}\nConsortium: {}\nType: {}\n".format(
+                replicaInfo["ip"],
+                replicaInfo["replica_id"],
+                blockchainDetails["id"],
+                blockchainDetails["consortium_id"],
+                blockchainDetails["blockchain_type"]
+              ) + "\nDeployed By: Hermes\nJob Name: {}\nBuild Number: {}\nDocker Tag: {}\n".format(
+                # Below 3 attributes: if run locally, user_config will have default "<VAR_NAMES>", in this case use "None"
+                jobName if not jobName.startswith("<") else "None",
+                buildNumber if not buildNumber.startswith("<") else "None",
+                dockerTag if not dockerTag.startswith("<") else "None"
+              ) + "\nPytest Context: {}\n\nRun Command: {}\n\nOther Metadata: {}\n\n".format(
+                pytestContext,
+                runCommand,
+                otherMetadata
+              )
+        log.info("Annotating VM ({}) for better tracking & life-cycle management...\n{}\n\n".format(replicaInfo["ip"], notes))
+        # edit VM Notes with detailed deployment context
+        sddc.vmAnnotate(vm, notes)
         # Add custom attributes
         sddc.vmSetCustomAttribute(vm, "up_since", str(int(time.time()))) # UNIX timestamp in seconds
         sddc.vmSetCustomAttribute(vm, "realm", "testing")
-        sddc.vmSetCustomAttribute(vm, "product_version", productVersion)
-        sddc.vmSetCustomAttribute(vm, "job_name", jobName)
-        sddc.vmSetCustomAttribute(vm, "build_number", buildNumber)
+        # below 3 attributes: if run locally, user_config will have default "<VAR_NAME>", in this case use ""
+        sddc.vmSetCustomAttribute(vm, "docker_tag", dockerTag if not dockerTag.startswith("<") else "")
+        sddc.vmSetCustomAttribute(vm, "jenkins_build_id", jenkinsBuildId if not jenkinsBuildId.startswith("<") else "")
+        sddc.vmSetCustomAttribute(vm, "job_name", jobName if not jobName.startswith("<") else "")
         sddc.vmSetCustomAttribute(vm, "replica_id", replicaInfo["replica_id"])
-        sddc.vmSetCustomAttribute(vm, "ip", replicaInfo["ip"])
+        sddc.vmSetCustomAttribute(vm, "public_ip", replicaInfo["ip"])
         sddc.vmSetCustomAttribute(vm, "blockchain_id", blockchainDetails["id"])
         sddc.vmSetCustomAttribute(vm, "consortium_id", blockchainDetails["consortium_id"])
         sddc.vmSetCustomAttribute(vm, "blockchain_type", blockchainDetails["blockchain_type"])
@@ -958,3 +1082,105 @@ def sddcGiveDeploymentContextToVM(blockchainDetails, otherMetadata=""):
    except Exception as e:
       log.debug(e)
 
+
+def sddcGetVMsByAttribute(attrName, matchValue, mapBySDDC=False):
+  '''
+      Returns list of VMs (or map if mapBySDDC set to True)
+      That satisfies the supplied attribute value condition
+  '''
+  sddcs = sddcGetListFromConfig()
+  vms = []
+  resultMap = {}
+  for sddcName in sddcs:
+    if sddcGetConnection(sddcName):
+      vmHandles = INFRA[sddcName].vmFilterByAttributeValue(attrName, matchValue, getAsHandle=True)
+      if mapBySDDC:
+        resultMap[sddcName] = vmHandles
+      else:
+        for vmHandle in vmHandles:
+          vms.append(vmHandle)
+  return resultMap if mapBySDDC else vms
+
+
+def sddcInstallHealthDaemon(replicas):
+  '''
+      Installs local, small-footprint health daemon on the nodes:
+      {
+        "node_type1": [ip1, ip2, ip3, ..., ip_n],
+        "node_type2": [ip1, ip2, ip3, ..., ip_n],
+      }
+      This will collect useful information leading up to possible crash,
+      and will create crash file when supplied list of containers
+      are missing from the node.
+  '''
+  try:
+    # Config object injected by the Jenkins run, which is calling this script
+    configObject = getUserConfig()
+
+    # credential for SSH and SFTP
+    configObject = getUserConfig()
+    credentials = configObject["persephoneTests"]["provisioningService"]["concordNode"]
+    username = credentials["username"]; password = credentials["password"]
+    
+    # Daemon behavior config
+    reportingInterval = 20 # seconds
+    announceInterval = 21600 # 6-hours, relatively static info (e.g. CPU spec, total RAM, total disk size)
+
+    # install function to be called so installation is in parallel
+    results = []
+    def installOn(ip, deployedType):
+      # Identifying information
+      jenkinsBuildId = getJenkinsBuildId() # if called by Jenkins, user_config will have the id, otherwise ""
+      blockchainType = deployedType if deployedType.find("_") == -1 else deployedType.split("_")[0]
+      nodeType = deployedType if deployedType.find("_") == -1 else deployedType.split("_")[1]
+      # Components (container) to watch
+      componentsWatchList = getReplicaContainers(deployedType)
+      if componentsWatchList: componentsWatchList = ','.join(componentsWatchList)
+      # Load config file for healthd
+      command= (f'mkdir -p health-daemon\n'
+                f'cd health-daemon\n'
+                f'echo "'
+                  f'ip={ip}\n'
+                  f'blockchainId=test-blockchain\n' # need to be resolved as well by looking up VM properties
+                  f'blockchainType={blockchainType}\n'
+                  f'nodeType={nodeType}\n'
+                  f'buildId={jenkinsBuildId}\n'
+                  f'logFile={HEALTHD_LOG_PATH}\n'
+                  f'crashReportFile={HEALTHD_CRASH_FILE}\n'
+                  f'reportingInterval={reportingInterval}\n'
+                  f'announceInterval={announceInterval}\n'
+                  f'componentsWatchList={componentsWatchList}\n'
+                f'" > healthd.conf\n'
+                )
+      daemonConfInstallOutput = ssh_connect(ip, username, password, command)
+      log.debug("Replica: {}\nCommand: {}\nOutput: {}\n\n\n\n".format(ip, command, daemonConfInstallOutput))
+      # Load deamon source code and shell script to run it in the background
+      destBasePath = '/root/health-daemon/'
+      sftp_client(ip, username, password, os.path.join('util/healthd', "healthd.py"), destBasePath + 'healthd.py', action="upload")
+      sftp_client(ip, username, password, os.path.join('util/healthd', "healthd.sh"), destBasePath + 'healthd.sh', action="upload")
+      # Actually run the daemon
+      command= (f'cd health-daemon\n'
+                f'nohup bash healthd.sh > /dev/null\n')
+      daemonStartOutput = ssh_connect(ip, username, password, command)
+      log.debug("Replica: {}\nCommand: {}\nOutput: {}\n\n\n\n".format(ip, command, daemonStartOutput))
+      log.info("healthd reporting daemon started on {}".format(ip))
+
+    threads = []
+    for deployedType in replicas:
+      ipListOfThatType = replicas[deployedType]
+      for ip in ipListOfThatType:
+        log.info("Installing health reporting daemon on {} as {}...".format(ip, deployedType))
+        thr = threading.Thread(
+          target = lambda publicIP, deployedType: installOn(publicIP, deployedType),
+          args = (ip, deployedType, )
+        )
+        threads.append(thr)
+        thr.start()
+    
+    for thd in threads: thd.join() # wait for all installations to return
+    for result in results: log.info(result)
+    return True
+
+  except Exception as e:
+    log.debug(str(e))
+    return False

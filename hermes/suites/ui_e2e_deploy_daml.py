@@ -16,7 +16,7 @@ from . import test_suite
 log = logging.getLogger(__name__)
 
 
-class LintTests(test_suite.TestSuite):
+class DeployDamlTests(test_suite.TestSuite):
     _args = None
     _userConfig = None
     _productMode = True
@@ -24,25 +24,18 @@ class LintTests(test_suite.TestSuite):
     _xvfb_present = False
     _testCaseDir = None
 
-    def __init__(self, passedArgs):
-        super(LintTests, self).__init__(passedArgs)
+    def __init__(self, passedArgs, product):
+        super(DeployDamlTests, self).__init__(passedArgs, product)
 
     def getName(self):
-        return "LintTests"
+        return "DeployDamlTests"
 
     def run(self):
         repo_path = os.getcwd().split('/')[:-1]
         repo_path.append("ui")
         self.ui_path = '/'.join(repo_path)
         self._start_vdisplay()
-
-        try:
-           self.launchProduct(self._args,
-                              self._userConfig,)
-        except Exception as e:
-           log.error(traceback.format_exc())
-           return self._resultFile
-
+        self.launchProduct()
         tests = self._get_tests()
         for (testName, testFun) in tests:
             result = False
@@ -66,11 +59,8 @@ class LintTests(test_suite.TestSuite):
         relativeLogDir = self.makeRelativeTestPath(self._testLogDir)
         info += "Log: <a href=\"{}\">{}</a>".format(relativeLogDir,
                                                     self._testLogDir)
+        return super().run()
 
-        if self._shouldStop():
-            self.product.stopProduct()
-
-        return self._resultFile
 
     def _start_vdisplay(self):
         # Checking to see if xvfb is installed.
@@ -88,6 +78,15 @@ class LintTests(test_suite.TestSuite):
 
     def _test_lint_e2e(self):
         cmd = ["npm", "run", "e2e:integration", ]
+
+        # Add the path to logs output to a file so we can save screenshot
+        # from e2e tests in a directory that is familiar to other users
+        fileTxtDirPath = os.path.join(self.ui_path, "ui_e2e_path.txt")
+        save_path = self._testCaseDir
+        with open(fileTxtDirPath, "w") as fileDir:
+            fileDir.write(save_path)
+
+
         logFilePath = os.path.join(self._testCaseDir, "e2e.log")
         with open(logFilePath, "wb+") as logFile:
             proc_output = subprocess.run(cmd,

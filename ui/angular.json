@@ -18,6 +18,12 @@
               "devServerTarget": "concord-ui:serve:csp-dev",
               "host": "localhost.vmware.com",
               "port": 443
+            },
+            "csp-dev-integration": {
+              "devServerTarget": "concord-ui:serve:csp-dev",
+              "host": "localhost.vmware.com",
+              "port": 443,
+              "protractorConfig": "protractor.integration.conf.js"
             }
           },
           "builder": "@angular-devkit/build-angular:protractor",

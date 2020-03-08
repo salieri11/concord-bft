@@ -3357,6 +3357,11 @@ void specifyConfiguration(ConcordConfiguration& config) {
                         "(9891 by default).");
   node.tagParameter("prometheus_port", privateOptionalTags);
 
+  node.declareParameter("dump_metrics_interval_sec",
+                        "Time interval for dumping concord metrics to log "
+                        "(600 seconds by default).");
+  node.tagParameter("dump_metrics_interval_sec", privateOptionalTags);
+
   node.declareParameter("metrics_config",
                         "Path, in this node's local filesystem, to a "
                         "configuration for concord metrics",

@@ -33,8 +33,8 @@ class PersephoneTests(test_suite.TestSuite):
    _resultFile = None
    _unintentionallySkippedFile = None
 
-   def __init__(self, cmdlineArgs):
-      super().__init__(cmdlineArgs)
+   def __init__(self, cmdlineArgs, product):
+      super().__init__(cmdlineArgs, product)
       self.args = self._args
       self.args.userConfig = self._userConfig
       self.concord_ips = []
@@ -49,8 +49,7 @@ class PersephoneTests(test_suite.TestSuite):
          self.update_provisioning_config_file()
 
          log.info("Launching Persephone Server...")
-         self.launchPersephone(self._args,
-                               self._userConfig)
+         self.launchPersephone()
       except Exception as e:
          log.error(traceback.format_exc())
          return self._resultFile
@@ -126,7 +125,7 @@ class PersephoneTests(test_suite.TestSuite):
       self.update_provisioning_config_file(mode="RESET")
 
       log.info("Tests are done.")
-      return self._resultFile
+      return super().run()
 
    def update_provisioning_config_file(self, mode="UPDATE"):
       '''
@@ -274,8 +273,8 @@ class PersephoneTests(test_suite.TestSuite):
          return [
             # ("7_Node_DAML_Blockchain_ON-PREM",
             #  self._test_create_daml_blockchain_7_node_onprem),
-            ("4_Node_DAML_committer_participant_ON-PREM",
-             self._test_daml_committer_participant_4_node_onprem),
+            ("7_Node_DAML_committer_participant_ON-PREM",
+             self._test_daml_committer_participant_7_node_onprem),
          ]
       elif self.args.tests.lower() == "all_tests":
          return [
@@ -1240,3 +1239,24 @@ class PersephoneTests(test_suite.TestSuite):
 
       return status,msg
 
+   def _test_daml_committer_participant_7_node_onprem(self,
+                                                         committer_nodes=7,
+                                                         participant_nodes=1):
+      '''
+      Test to create DAML committer & participant nodes on-prem
+      :param cluster_size: No. of concord nodes on the cluster
+      '''
+      status, msg, replicas = self.deploy_daml_committer_node(
+         cluster_size=committer_nodes)
+      if status and replicas:
+         log.info("**** Committer nodes deployed Successfully\n")
+         status, msg = self.deploy_daml_participant_node(
+            cluster_size=participant_nodes, replicas=replicas)
+         if status:
+            log.info("**** Participant node(s) deployed Successfully\n")
+         else:
+            log.error("Failed to deploy participant node(s)")
+      else:
+         log.error("Failed to deploy committer nodes")
+
+      return status,msg

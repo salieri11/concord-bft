@@ -55,6 +55,7 @@ RUN sed -i "/jdk.tls.disabledAlgorithms=/ s/=.*/=TLSv1.3, SSLv3, RC4, MD5withRSA
 
 WORKDIR /persephone-config-service
 COPY ./persephone/config-service/src/main/resources .
+COPY ./persephone/resources/logging/log4j2.properties .
 
 COPY --from=0 ./persephone/config-service/target/persephone-config-service*.jar ./config-service.jar
 

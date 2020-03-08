@@ -113,7 +113,7 @@ public class LoggingUtil {
                         .replace("$consortiumId", consortiumId)
                         .replace("$replicaId", nodeMap.get(entry.getKey()))
                         .replace("$logDestination", logManagement.getDestination().name())
-                        .replace("$listAuthorizationBearer", logManagement.getEndpoint()
+                        .replace("$lintAuthorizationBearer", logManagement.getEndpoint()
                                 .getCredential().getTokenCredential().getToken())
                         .replace("$lintEndpointUrl", hostName)
                         .replace("$logInsightHost", hostName)

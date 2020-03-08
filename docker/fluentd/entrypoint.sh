@@ -5,6 +5,8 @@ FLUENTD_CONF_LOG_INSIGHT="/fluentd/etc/fluent-log-insight.conf"
 LOG_INTELLIGENCE="LOG_INTELLIGENCE"
 LOG_INSIGHT="LOG_INSIGHT"
 
+export $(grep -v '^#' /config/fluentd/logging.env | xargs -d '\n')
+
 if [ "$LOG_DESTINATION" = $LOG_INTELLIGENCE ]; then
   # replace '/' in the URL with '\/' at every position, to match Fluentd plugin's expectations
   LINT_ENDPOINT_URL=$(echo $LINT_ENDPOINT_URL | sed 's/\//\\\//'g)

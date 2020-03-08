@@ -29,19 +29,25 @@ class KvbReadError : public std::exception {
   std::string msg;
 };
 
+class InvalidBlockRange : public std::runtime_error {
+ public:
+  InvalidBlockRange() : std::runtime_error("Invalid block range"){};
+};
+
 class KvbAppFilter {
  public:
   enum AppType {
     kDaml = 0,
+    kCid = 1,
   };
 
   KvbAppFilter(const concord::storage::blockchain::ILocalKeyValueStorageReadOnly
                    *rostorage,
-               const KvbAppFilter::AppType app_type,
+               const std::set<KvbAppFilter::AppType> &app_types,
                const std::string &client_id, const std::string &key_prefix)
       : logger_(log4cplus::Logger::getInstance("concord.storage.KvbFilter")),
         rostorage_(rostorage),
-        type_(app_type),
+        types_(app_types),
         client_id_(client_id),
         key_prefix_(key_prefix) {}
 
@@ -73,7 +79,7 @@ class KvbAppFilter {
  private:
   log4cplus::Logger logger_;
   const concord::storage::blockchain::ILocalKeyValueStorageReadOnly *rostorage_;
-  const KvbAppFilter::AppType type_;
+  const std::set<KvbAppFilter::AppType> types_;
   const std::string client_id_;
   const std::string key_prefix_;
 

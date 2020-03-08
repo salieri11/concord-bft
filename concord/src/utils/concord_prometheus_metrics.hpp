@@ -2,6 +2,7 @@
 
 #ifndef UTILS_CONCORD_PROMETHEUS_METRICS_HPP
 #define UTILS_CONCORD_PROMETHEUS_METRICS_HPP
+#include <log4cplus/logger.h>
 #include <prometheus/counter.h>
 #include <prometheus/exposer.h>
 #include <prometheus/gauge.h>
@@ -24,8 +25,11 @@ class PrometheusRegistry;
 class ConcordBftMetricsManager;
 template <typename T>
 class ConcordCustomCollector : public prometheus::Collectable {
+  log4cplus::Logger logger_;
   std::vector<std::shared_ptr<prometheus::Family<T>>> metrics_;
   std::vector<std::shared_ptr<prometheus::Family<T>>> active_metrics_;
+  std::chrono::seconds dumpInterval_;
+  std::chrono::seconds last_dump_time_;
   std::mutex lock_;
   prometheus::Family<T>& createFamily(
       const std::string& name, const std::string& help,
@@ -34,6 +38,11 @@ class ConcordCustomCollector : public prometheus::Collectable {
   void deactivateMetric(const std::string& metricName);
 
  public:
+  ConcordCustomCollector(std::chrono::seconds dumpInterval)
+      : logger_(
+            log4cplus::Logger::getInstance("com.vmware.concord.prometheus")),
+        dumpInterval_(dumpInterval),
+        last_dump_time_(0) {}
   std::vector<prometheus::MetricFamily> Collect() override;
   friend class PrometheusRegistry;
 };
@@ -81,6 +90,11 @@ class PrometheusRegistry : public IPrometheusRegistry {
  public:
   explicit PrometheusRegistry(
       const std::string& bindAddress,
+      const std::vector<ConcordMetricConf>& metricsConfiguration,
+      uint64_t metricsDumpInterval /* 10 minutes by default */);
+
+  explicit PrometheusRegistry(
+      const std::string& bindAddress,
       const std::vector<ConcordMetricConf>& metricsConfiguration);
 
   void scrapeRegistry(
@@ -112,6 +126,9 @@ class PrometheusRegistry : public IPrometheusRegistry {
 
   static std::vector<ConcordMetricConf> parseConfiguration(
       const std::string& configurationFilePath);
+
+ private:
+  static const uint64_t defaultMetricsDumpInterval = 600;
 };
 
 class ConcordBftPrometheusCollector : public prometheus::Collectable {

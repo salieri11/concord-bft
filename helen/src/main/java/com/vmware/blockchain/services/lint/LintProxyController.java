@@ -159,6 +159,7 @@ public class LintProxyController {
 
         // Set the HttpHeaders to include the lint auth token
         final HttpHeaders headers = new HttpHeaders();
+        headers.set(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON.toString());
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.set(HttpHeaders.AUTHORIZATION, "Bearer " + getAuthToken());
 

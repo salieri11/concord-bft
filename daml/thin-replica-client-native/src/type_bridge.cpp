@@ -152,7 +152,7 @@ class JNIConverter {
 
   jbyteArray CreateByteArray(const std::string& str) const {
     jbyteArray jBuff = env->NewByteArray(str.length());
-    env->SetByteArrayRegion(jBuff, 0, str.length(), (jbyte*) str.c_str());
+    env->SetByteArrayRegion(jBuff, 0, str.length(), (jbyte*)str.c_str());
     return jBuff;
   }
 
@@ -263,13 +263,13 @@ extern "C" jboolean subscribe(JNIEnv* env, jobject obj, jstring j_prefix) {
 }
 
 extern "C" jboolean subscribeFrom(JNIEnv* env, jobject obj, jstring j_prefix,
-                              jlong j_last_known_block_id) {
+                                  jlong j_block_id) {
   ThinReplicaClientFacade* trcf = TRCFFactory::GetInstance();
   if (!trcf) return JNI_FALSE;
   JNIConverter* converter = JNIConverterFactory::CreateInstance(env);
   string prefix = converter->ToString(j_prefix);
   try {
-    trcf->Subscribe(prefix, j_last_known_block_id);
+    trcf->Subscribe(prefix, j_block_id);
   } catch (const exception&) {
     return JNI_FALSE;
   }
@@ -294,8 +294,9 @@ jobject processUpdate(JNIEnv* env, JNIConverter* converter,
   size_t i = 0;
   for (Pairs::const_iterator it = update->kv_pairs.begin();
        it != update->kv_pairs.end(); ++it) {
-    jobject tup = converter->CreateTuple(converter->CreateByteArray(it->first),
-                                         converter->CreateByteArray(it->second));
+    jobject tup =
+        converter->CreateTuple(converter->CreateByteArray(it->first),
+                               converter->CreateByteArray(it->second));
     env->SetObjectArrayElement(kvPairs, i++, tup);
   }
   jobject u = converter->CreateUpdate(update->block_id, kvPairs);

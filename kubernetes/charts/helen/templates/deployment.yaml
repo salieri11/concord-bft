@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "helen.name" . }}
+  labels:
+    app: {{ template "helen.name" . }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  revisionHistoryLimit: 1
+  selector:
+    matchLabels:
+      app: {{ template "helen.name" . }}
+  template:
+    metadata:
+      labels:
+        app: {{ template "helen.name" . }}
+      annotations:
+        prometheus.io/scrape: {{ .Values.prometheus.scrape | quote }}
+        prometheus.io/path: {{ .Values.prometheus.path | quote }}
+        prometheus.io/port: {{ .Values.prometheus.port | quote }}
+    spec:
+      imagePullSecrets:
+        - name: {{ .Values.image.pullSecret }}
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+          - name: APPCONTEXT
+            value: {{ .Values.helen.env }}
+          ports:
+          - containerPort: {{ .Values.service.containerPort }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+          - name: {{ .Values.helencontext.volumename }}
+            mountPath: {{ .Values.helencontext.mountPath }}
+            readOnly: true
+          - name: {{ .Values.helenzones.volumename }}
+            mountPath: {{ .Values.helenzones.mountPath }}
+      volumes:
+      - name: {{ .Values.helencontext.volumename }}
+        configMap:
+          name: {{ .Values.helencontext.name }}
+          defaultMode: 0700
+      - name: {{ .Values.helenzones.volumename }}
+        configMap:
+          name: {{ .Values.helenzones.name }}
+          defaultMode: 0700
+

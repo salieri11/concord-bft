@@ -57,20 +57,15 @@ class ContractCompilerTests(test_suite.TestSuite):
     _productMode = True
     _resultFile = None
 
-    def __init__(self, passedArgs):
-        super(ContractCompilerTests, self).__init__(passedArgs)
+    def __init__(self, passedArgs, product):
+        super(ContractCompilerTests, self).__init__(passedArgs, product)
 
     def getName(self):
         return "ContractCompilerTests"
 
     def run(self):
         ''' Runs all of the tests. '''
-        try:
-            p = self.launchProduct(self._args,
-                                   self._userConfig)
-        except Exception as e:
-            log.error(traceback.format_exc())
-            return self._resultFile
+        p = self.launchProduct()
 
         if self._ethereumMode:
             info = "ContractCompilerTests are not applicable to ethereumMode."
@@ -104,11 +99,7 @@ class ContractCompilerTests(test_suite.TestSuite):
             self.writeResult(testName, result, info)
 
         log.info("Tests are done.")
-
-        if self._shouldStop():
-            self.product.stopProduct()
-
-        return self._resultFile
+        return super().run()
 
     def _runRestTest(self, testName, testFun, testLogDir):
         log.info("Starting test '{}'".format(testName))

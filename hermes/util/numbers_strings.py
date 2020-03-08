@@ -2,10 +2,20 @@
 # Copyright 2018 VMware, Inc.  All rights reserved. -- VMware Confidential
 #########################################################################
 import random
+import re
 import string
 import time
 
 hexIndicator = "0x"
+stripEscapesExp = re.compile(r"""
+    \x1b     # literal ESC
+    \[       # literal [
+    [;\d]*   # zero or more digits or semicolons
+    [A-Za-z] # a letter
+    """, re.VERBOSE).sub
+
+def stripEscapes(s):
+    return stripEscapesExp("", s)
 
 def trimHexIndicator(s):
    '''
@@ -106,4 +116,39 @@ def random_string_generator(size=6, chars=string.ascii_uppercase + string.digits
 
       if ret != mustNotMatch:
          return ret
+
+
+def createLogRow(valuesList, maxLenList):
+   '''
+   Returns a string containing the items in valuesList,
+   each value padded with spaces such that len(value) +
+   len(calculated # spaces) = the matching value in maxLenList.
+
+   e.g.
+   Calling this function multiple times, with values like this:
+
+   ["hop", "on", "pop"] and [4, 6, 8]
+   ["aaaa", "b", "c"] and [4, 6, 8]
+   ["a", "bbbbbb", "c"] and [4, 6, 8]
+   ["a", "b", "cccccccc"] and [4, 6, 8]
+
+   returns rows (one per call) like:
+
+   hop  on     pop
+   aaaa b      c
+   a    bbbbbb c
+   a    b      cccccccc
+   '''
+   row = ""
+   i = 0
+
+   for val in valuesList:
+      longest = maxLenList[i]
+      i += 1
+      if not isinstance(val, str):
+         val = val.decode("utf-8")
+
+      row += val + (" " * (longest - len(stripEscapes(val)) + 1))
+
+   return row
 

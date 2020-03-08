@@ -8,14 +8,14 @@
         <concord-zone-form #form></concord-zone-form>
       </div>
       <div class="card-footer" *concordCanView="[personas.SystemsAdmin, personas.ConsortiumAdmin]">
-        <button *ngIf="!isNewZoneState" (click)="update()" [clrLoading]="saving" class="btn btn-primary" [disabled]="!zoneForm.onPremConnectionSuccessful || zoneForm.form.controls.onPrem.invalid || zoneForm.form.controls.onPremLocation.invalid">
+        <button *ngIf="!isNewZoneState" (click)="update()" [clrLoading]="saving" class="btn btn-primary" [disabled]="!zoneForm.onPremConnectionSuccessful || zoneForm.form.controls.onPrem.invalid || zoneForm.form.controls.onPremLocation.invalid" id="updateZone">
           {{ 'common.update' | translate }}
         </button>
-        <button *ngIf="isNewZoneState" (click)="addZone()" class="btn btn-primary" [clrLoading]="saving" [disabled]="!zoneForm.onPremConnectionSuccessful || zoneForm.form.controls.onPrem.invalid || zoneForm.form.controls.onPremLocation.invalid">
+        <button *ngIf="isNewZoneState" (click)="addZone()" class="btn btn-primary" [clrLoading]="saving" [disabled]="!zoneForm.onPremConnectionSuccessful || zoneForm.form.controls.onPrem.invalid || zoneForm.form.controls.onPremLocation.invalid" id="addZone">
           {{ 'common.add' | translate }}
         </button>
         <ng-container *ngIf="!isNewZoneState">
-          <button (click)="openConfirmDelete()" [clrLoading]="deleting" *concordCanView="[personas.SystemsAdmin, personas.ConsortiumAdmin]" class="btn btn-outline-danger">
+          <button (click)="openConfirmDelete()" [clrLoading]="deleting" *concordCanView="[personas.SystemsAdmin, personas.ConsortiumAdmin]" class="btn btn-outline-danger" id="deleteZone">
             {{ 'common.delete' | translate }}
           </button>
         </ng-container>

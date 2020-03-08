@@ -1554,14 +1554,11 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              required:
-                - zoneIds
-              properties:
-                zoneIds:
-                  type: array
-                  items:
-                    type: object
+              type: array
+              items:
+                description: zoneIds
+                type: string
+                format: uuid
       responses:
         202:
           description: Returns the deployment task ID
@@ -1658,8 +1655,6 @@ paths:
               type: object
               required:
                 - consortium_name
-                - consortium_type
-                - organization
               properties:
                 consortium_name:
                   type: string
@@ -2503,6 +2498,8 @@ components:
           $ref: '#/components/schemas/PostEndpoint'
         network:
           $ref: '#/components/schemas/Network'
+        outbound_proxy:
+          $ref: '#/components/schemas/OutboundProxy'
         resource_pool:
           type: string
           description: Name of resource pool to use for deployment
@@ -2542,6 +2539,8 @@ components:
           $ref: '#/components/schemas/GetEndpoint'
         network:
           $ref: '#/components/schemas/Network'
+        outbound_proxy:
+          $ref: '#/components/schemas/OutboundProxy'
         resouce_pool:
           type: string
           description: Name of resource pool to use for deployment
@@ -2711,6 +2710,26 @@ components:
             description: Port associated with the address, on which logs are ingested
             example: 9000
 
+    OutboundProxy:
+      description: Outbound Proxy information
+      type: object
+      properties:
+        httpHost:
+          type: string
+          description: Address for the HTTP Host
+          example: 1.2.3.4
+        httpPort:
+          type: int
+          description: Port for the HTTP Host
+          example: 80
+        httpsHost:
+          type: string
+          description: Address for the HTTPS Host
+          example: 1.2.3.4
+        httpsPort:
+            type: int
+            description: Port for the HTTPS Host
+            example: 80
 
   responses:
     ErrorResponse:

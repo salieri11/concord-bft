@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "ui.name" . }}
+  labels:
+    app: {{ template "ui.name" . }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.containerPort }}
+      targetPort: {{ .Values.service.targetPort }}
+  selector:
+    app.kubernetes.io/name: {{ include "ui.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}

@@ -67,28 +67,9 @@ export class ZoneFormComponent implements AfterViewInit {
     }, 2000);
   }
 
-  getZoneInfo() {
-    const onPremLocData = this.form['controls'].onPremLocation.value;
-
-    // When updating we need to grab the first index
-    if (Array.isArray(onPremLocData.location)) {
-      onPremLocData.location = onPremLocData.location[0];
-    }
-
-    const id = onPremLocData.location.value.replace(' ', '_');
-
-    this.onPremZone = this.getOnPremInfo();
-    this.onPremZone.id = id;
-    this.onPremZone.name = `${onPremLocData.location.value} - ${onPremLocData.name}`;
-    this.onPremZone.latitude = onPremLocData.location && onPremLocData.location.geometry ? onPremLocData.location.geometry.lat : null;
-    this.onPremZone.longitude = onPremLocData.location && onPremLocData.location.geometry ? onPremLocData.location.geometry.long : null;
-
-    return this.onPremZone;
-  }
-
   addOnPrem(): Observable<OnPremZone> {
 
-    return this.zonesService.addZone(this.getZoneInfo()).pipe(
+    return this.zonesService.addZone(this.getOnPremInfo()).pipe(
       map(response => this.handleSave(response)),
       // @ts-ignore
       catchError<OnPremZone>(error => this.handleError(error))
@@ -96,7 +77,9 @@ export class ZoneFormComponent implements AfterViewInit {
   }
 
   update(id: string): Observable<OnPremZone> {
-    return this.zonesService.update(id, this.getZoneInfo()).pipe(
+    console.log(this.getOnPremInfo());
+
+    return this.zonesService.update(id, this.getOnPremInfo()).pipe(
       map(response => this.handleSave(response)),
       // @ts-ignore
       catchError<OnPremZone>(error => this.handleError(error))
@@ -104,9 +87,19 @@ export class ZoneFormComponent implements AfterViewInit {
   }
 
   private getOnPremInfo() {
-    const formValues = this.form.value;
+    let formValues = this.form.value;
     const onPrem = this.form['controls'].onPrem;
     const network = onPrem.value['network'];
+    const onPremLocData = this.form['controls'].onPremLocation.value;
+
+    // When updating we need to grab the first index
+    if (Array.isArray(onPremLocData.location)) {
+      onPremLocData.location = onPremLocData.location[0];
+    }
+
+    onPrem.value.name = `${onPremLocData.location.value} - ${onPremLocData.name}`;
+    // onPrem.value.latitude = onPremLocData.location && onPremLocData.location.geometry ? onPremLocData.location.geometry.lat : null;
+    // onPrem.value.longitude = onPremLocData.location && onPremLocData.location.geometry ? onPremLocData.location.geometry.long : null;
 
     onPrem.value['network'].name_servers = network.name_servers && network.name_servers.length === 0 ? [] : network.name_servers;
     onPrem.value['network'].name_servers = !Array.isArray(network.name_servers) && network.name_servers ?
@@ -120,6 +113,7 @@ export class ZoneFormComponent implements AfterViewInit {
 
     // Remove onPrem info that hasn't been massaged
     delete formValues.onPrem;
+    formValues = this.validateData(formValues);
 
     return {...formValues, ...onPrem.value};
   }
@@ -219,6 +213,38 @@ export class ZoneFormComponent implements AfterViewInit {
     });
   }
 
+  private validateData(formValues: any): any {
+    // Temporary till we refactor the form with the stepper
+    // If no values added set to null or empty array
+    if (formValues.log_managements
+        && formValues.log_managements[0]
+        && formValues.log_managements[0].address.length === 0) {
+
+      formValues.log_managements = [];
+    }
+
+
+    if (formValues.container_repo
+        && formValues.container_repo.url.length === 0) {
+
+      formValues.container_repo = null;
+    }
+
+    if (formValues.wavefront
+        && formValues.wavefront.url.length === 0) {
+
+      formValues.wavefront = null;
+    }
+
+    if (formValues.outbound_proxy
+        && formValues.outbound_proxy.http_host.length === 0) {
+
+      formValues.outbound_proxy = null;
+    }
+
+    return formValues;
+  }
+
   private handleSave(response: OnPremZone): OnPremZone {
     this.onPremConnectionSuccessful = false;
     // this.addedOnPrem = true;
@@ -238,6 +264,7 @@ export class ZoneFormComponent implements AfterViewInit {
   private handleOnPremTesting(status: string) {
     if (status === 'VALID') {
       this.onPremError = undefined;
+
       const testCon = this.zonesService
         .testOnPremZoneConnection(this.getOnPremInfo())
         .subscribe(() => {

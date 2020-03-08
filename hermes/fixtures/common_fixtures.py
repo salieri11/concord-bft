@@ -41,7 +41,7 @@ def retrieveCustomCmdlineData(pytestRequest):
     }
 
 
-def setUpPortForwarding(url, creds, blockchainType, logDir, timeout=300,):
+def setUpPortForwarding(url, creds, blockchainType, logDir, timeout=600,):
    '''
    Given a url and credentials, set up port forwarding.
    The VMs should be ready in two minutes; default timeout is 2.5 min just
@@ -169,12 +169,14 @@ def fxProduct(request, fxHermesRunSettings):
    if not fxHermesRunSettings["hermesCmdlineArgs"].noLaunch:
       try:
          waitForStartupFunction = None
-         waitForStartupParams = []
+         waitForStartupParams = {}
+         checkProductStatusParams = {"retries": 1}
          productType = getattr(request.module, "productType", util.helper.TYPE_ETHEREUM)
 
          if productType == util.helper.TYPE_DAML:
              waitForStartupFunction = util.helper.verify_connectivity
-             waitForStartupParams = ["localhost", 6861]
+             waitForStartupParams = {"ip": "localhost", "port": 6861}
+             checkProductStatusParams = {"ip": "localhost", "port": 6861, "max_tries": 1}
 
          if productType == util.helper.TYPE_TEE:
              waitForStartupFunction = util.helper.verify_connectivity
@@ -183,8 +185,10 @@ def fxProduct(request, fxHermesRunSettings):
          product = Product(fxHermesRunSettings["hermesCmdlineArgs"],
                            fxHermesRunSettings["hermesUserConfig"],
                            waitForStartupFunction=waitForStartupFunction,
-                           waitForStartupParams=waitForStartupParams)
+                           waitForStartupParams=waitForStartupParams,
+                           checkProductStatusParams=checkProductStatusParams)
          product.launchProduct()
+
       except Exception as e:
          log.error("The product did not start.")
          raise

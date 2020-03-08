@@ -4,9 +4,9 @@
 
 #include <google/protobuf/util/time_util.h>
 #include <log4cplus/loggingmacros.h>
-#include <log4cplus/mdc.h>
 #include <map>
 #include <string>
+#include "utils/concord_logging.hpp"
 
 #include "concord_storage.pb.h"
 #include "storage/kvb_key_types.h"
@@ -314,9 +314,11 @@ void DamlKvbCommandsHandler::RecordTransaction(
 
   da_kvbc::CommandReply command_reply;
   da_kvbc::CommitResponse* commit_response = command_reply.mutable_commit();
-
+  auto cid = correlation_id;
+  SetOfKeyValuePairs amended_updates(updates);
+  amended_updates.insert({cid_key_, concordUtils::Value(std::move(cid))});
   BlockId new_block_id = 0;
-  concordUtils::Status res = addBlock(updates, new_block_id);
+  concordUtils::Status res = addBlock(amended_updates, new_block_id);
   assert(res.isOK());
   assert(new_block_id == current_block_id + 1);
 
@@ -360,10 +362,9 @@ bool DamlKvbCommandsHandler::ExecuteCommand(const ConcordRequest& concord_req,
     const std::string correlation_id =
         concord_req.pre_execution_result().request_correlation_id();
     commit_req.set_correlation_id(correlation_id);
-    log4cplus::getMDC().put("cid", correlation_id);
+    concord::utils::RAIIMDC mdc("cid", correlation_id);
     bool result =
         ExecuteCommit(commit_req, flags, time_contract, parent_span, response);
-    log4cplus::getMDC().remove("cid");
     return result;
   } else {
     daml_req = concord_req.daml_request();
@@ -384,10 +385,9 @@ bool DamlKvbCommandsHandler::ExecuteCommand(const ConcordRequest& concord_req,
 
       case da_kvbc::Command::kCommit: {
         auto commit_req = cmd.commit();
-        log4cplus::getMDC().put("cid", commit_req.correlation_id());
+        concord::utils::RAIIMDC mdc("cid", commit_req.correlation_id());
         bool result = ExecuteCommit(commit_req, flags, time_contract,
                                     parent_span, response);
-        log4cplus::getMDC().clear();
         return result;
       }
 
