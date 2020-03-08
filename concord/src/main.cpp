@@ -439,12 +439,20 @@ initialize_prometheus_metrics(ConcordConfiguration &config, Logger &logger,
   uint16_t prometheus_port = config.hasValue<uint16_t>("prometheus_port")
                                  ? config.getValue<uint16_t>("prometheus_port")
                                  : 9891;
+  uint64_t dump_time_interval =
+      config.hasValue<uint64_t>("dump_metrics_interval_sec")
+          ? config.getValue<uint64_t>("dump_metrics_interval_sec")
+          : 600;
   std::string host = config.getValue<std::string>("service_host");
   std::string prom_bindaddress = host + ":" + std::to_string(prometheus_port);
-  LOG4CPLUS_INFO(logger, "prometheus metrics address is: " << prom_bindaddress);
+  LOG4CPLUS_INFO(
+      logger, "prometheus metrics address is: " << prom_bindaddress
+                                                << " dumping metrics interval: "
+                                                << dump_time_interval);
   return std::make_shared<concord::utils::PrometheusRegistry>(
-      prom_bindaddress, concord::utils::PrometheusRegistry::parseConfiguration(
-                            metricsConfigPath));
+      prom_bindaddress,
+      concord::utils::PrometheusRegistry::parseConfiguration(metricsConfigPath),
+      dump_time_interval);
 }
 
 std::shared_ptr<concord::utils::ConcordBftMetricsManager>
