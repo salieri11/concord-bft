@@ -72,5 +72,6 @@ export interface LogTimePeriod {
 export enum LogLevels {
   info = 'INFO',
   warn = 'WARN',
-  error = 'ERROR'
+  error = 'ERROR',
+  debug = 'DEBUG'
 }

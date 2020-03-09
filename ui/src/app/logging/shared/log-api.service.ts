@@ -23,12 +23,12 @@ export class LogApiService {
   postToTasks(
     start: number,
     end: number,
-    replicaId: string,
+    nodes: string[],
     level: string[],
     search: string,
-    service_name: string,
+    service_names: string[],
     rows: number = 100): Observable<LogTaskResponse> {
-    const query = `SELECT * FROM logs ${this.getWhereClause(level, service_name, search)}ORDER BY ingest_timestamp DESC`;
+    const query = `SELECT * FROM logs ${this.getWhereClause(level, service_names, search, nodes)}ORDER BY ingest_timestamp DESC`;
 
     const logQuery = {
       logQuery: query,
@@ -42,13 +42,13 @@ export class LogApiService {
   postToTasksCount(
     start: number,
     end: number,
-    replicaId: string,
+    nodes: string[],
     level: string[],
     search: string,
-    service_name: string,
+    service_names: string[],
     interval: number): Observable<LogTaskResponse> {
     const query = `SELECT COUNT(*), timestamp FROM logs ` +
-      `${this.getWhereClause(level, service_name, search)}` +
+      `${this.getWhereClause(level, service_names, search, nodes)}` +
       `GROUP BY bucket(timestamp, ${interval}, ${start}, ${end}) ORDER BY timestamp DESC`;
 
     const logQuery = {
@@ -62,11 +62,11 @@ export class LogApiService {
   postToPureCount(
     start: number,
     end: number,
-    replicaId: string,
+    nodes: string[],
     level: string[],
     search: string,
-    service_name: string): Observable<LogTaskResponse> {
-    const query = `SELECT COUNT(*) FROM logs ${this.getWhereClause(level, service_name, search)}`;
+    service_names: string[]): Observable<LogTaskResponse> {
+    const query = `SELECT COUNT(*) FROM logs ${this.getWhereClause(level, service_names, search, nodes)}`;
 
     const logQuery = {
       logQuery: query,
@@ -76,18 +76,24 @@ export class LogApiService {
     return this.logQueryTask(logQuery);
   }
 
-  getWhereClause(level: string[], service_name: string, search: string) {
+  getWhereClause(
+    level: string[],
+    service_names: string[],
+    search: string,
+    nodes: string[]
+  ) {
     let where = '';
+    const flatNodes = nodes.flatMap(obj => obj.id);
     // Start our where clause if needed
-    if (level.length || service_name !== 'all' || search.length) {
+    if (level.length || service_names.length || search.length || flatNodes.length) {
       where = 'WHERE';
     } else {
       return where;
     }
 
-    if (service_name !== 'all') {
-      where += ` service_name = '${service_name}' `;
-    }
+    where = this.logQueryListHelper(where, 'service_name', service_names);
+    where = this.logQueryListHelper(where, 'level', level);
+    where = this.logQueryListHelper(where, 'replica_id', flatNodes);
 
     if (search.length) {
       // If other clause has been added, then we need an AND
@@ -98,35 +104,6 @@ export class LogApiService {
       where += ` text = '${search}' `;
     }
 
-    if (level.length) {
-      let levelsString = '';
-
-      // Create our string
-      level.forEach((l, i) => {
-        // Add an or statement if more than one level
-        if (i !== 0) {
-          levelsString += ' OR ';
-        }
-
-        levelsString += `level = ${l}`;
-      });
-
-      // If other clause has been added, then we need an AND
-      if (where.length > 5) {
-        where += 'AND';
-      }
-
-      where += ` (${levelsString}) `;
-    }
-
-
-    // if (!level && service_name !== 'all') {
-    //   return `WHERE service_name = '${service_name}' AND (level = 'INFO' OR level = 'ERROR') `;
-    // } else if (!level) {
-    //   return `WHERE (level = 'INFO' OR level = 'ERROR') `;
-    // } else if (service_name && service_name !== 'all') {
-    //   return `WHERE service_name = '${service_name}' `;
-    // }
     return where;
   }
 
@@ -182,7 +159,33 @@ export class LogApiService {
     });
   }
 
+  private logQueryListHelper(queryString: string, key: string, list: string[]): string {
+    if (list.length) {
+      let listQuery = '';
+
+      // Create our string
+      list.forEach((l, i) => {
+        // Add an or statement if more than one level
+        if (i !== 0) {
+          listQuery += ' OR ';
+        }
+
+        listQuery += `${key} = '${l}'`;
+      });
+
+      // If other clause has been added, then we need an AND
+      if (queryString.length > 5) {
+        queryString += 'AND';
+      }
+
+      queryString += ` (${listQuery}) `;
+    }
+
+    return queryString;
+  }
+
   private logQueryTask(logQuery: LogTaskParams): Observable<LogTaskResponse> {
+
     return this.httpClient.post<LogTaskResponse>(
       `api/lint/ops/query/log-query-tasks?blockchain_id=${this.blockchainService.blockchainId}`,
       logQuery

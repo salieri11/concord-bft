@@ -69,13 +69,19 @@ export class LoggingComponent implements OnInit {
   documentSelfLink: string = null;
 
   nodes: any[] = [];
+  selectedNodes: any[] = [];
   replicaId: string;
   verbose: boolean = true;
-  service_name: string = ALL_SERVICES;
+  selectedServiceNames: string[] = [];
 
-  service_names: any[];
+  service_names: any[] = ALL_SERVICES;
 
-  levels: string[] = [LogLevels.info, LogLevels.warn, LogLevels.error];
+  levels: LogLevels[] = [
+    LogLevels.info,
+    LogLevels.warn,
+    LogLevels.error,
+    LogLevels.debug
+  ];
   selectedLevels: LogLevels[] = [];
 
   timePeriods: LogTimePeriod[] = [
@@ -163,10 +169,10 @@ export class LoggingComponent implements OnInit {
     this.logApiService.postToTasks(
       this.startTime,
       this.endTime,
-      this.replicaId,
+      this.selectedNodes,
       this.selectedLevels,
       this.search,
-      this.service_name
+      this.selectedServiceNames
       ).subscribe((resp) => {
         this.documentSelfLink = resp.documentSelfLink;
         this.pollLogStatus(resp.documentSelfLink, LogQueryTypes.LogsQuery, this.onFetchLogsComplete.bind(this));
@@ -179,9 +185,9 @@ export class LoggingComponent implements OnInit {
     this.logApiService.postToTasksCount(
       this.startTime,
       this.endTime,
-      this.replicaId,
+      this.selectedNodes,
       this.selectedLevels, this.search,
-      this.service_name,
+      this.selectedServiceNames,
       this.selectedTimePeriod.interval).subscribe((resp) => {
         this.pollLogStatus(resp.documentSelfLink, LogQueryTypes.CountsQuery, (logResp) => {
           this.logCounts = this.logApiService.padLogCounts(logResp.logQueryResults, this.startTime, this.endTime, this.selectedTimePeriod);
@@ -214,6 +220,32 @@ export class LoggingComponent implements OnInit {
     this.selectedTimePeriod = timePeriod;
 
     this.refresh();
+  }
+
+  onSelectService(service) {
+    const levIdx = this.selectedServiceNames.indexOf(service);
+    if (levIdx === -1) {
+      this.selectedServiceNames.push(service);
+    } else {
+      this.selectedServiceNames.splice(levIdx, 1);
+    }
+
+    this.refresh();
+  }
+
+  onSelectNode(node) {
+    const levIdx = this.selectedNodes.indexOf(node);
+    if (levIdx === -1) {
+      this.selectedNodes.push(node);
+    } else {
+      this.selectedNodes.splice(levIdx, 1);
+    }
+
+    this.refresh();
+  }
+
+  nodeNames(): string {
+    return this.selectedNodes.flatMap(obj => obj.name).join(', ')
   }
 
   onSelectLevels(level) {

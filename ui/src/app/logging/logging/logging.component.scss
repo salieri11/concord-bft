@@ -2,17 +2,19 @@
 
 
 .log-header {
-  clr-select-container {
-    margin-right: .3rem;
-  }
-  select {
-    font-size: 110%;
+  .margin-top: 1rem;
+  .services-selector {
+    margin-left: 0;
   }
 }
+
 .refresh {
   padding-right: 0;
   padding-left: 0;
+  margin-top: 0;
+  margin-bottom: 0;
   min-width: 1.5rem;
+  height: 1.2rem;
 }
 concord-log-graph {
   height: 300px;

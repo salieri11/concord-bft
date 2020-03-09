@@ -766,6 +766,7 @@
   "logging": {
     "verbose": "Verbose",
     "serviceName": {
+      "title": "Services",
       "all": "All",
       "concord": "Concord",
       "daml_ledger_api": "DAML Ledger API",
