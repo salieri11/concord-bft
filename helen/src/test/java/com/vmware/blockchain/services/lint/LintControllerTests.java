@@ -178,7 +178,7 @@ public class LintControllerTests {
                 "{\"logQuery\":\"SELECT * FROM logs ORDER BY ingest_timestamp DESC\","
                 + "\"start\":1548092484611,\"end\":1548697284611,\"rows\":20}";
         final String response =
-                "{\"logQuery\":\"SELECT * FROM logs WHERE blockchain_id = '" + BLOCKCHAIN_ID
+                "{\"logQuery\":\"SELECT * FROM logs WHERE consortium_id = '" + CONSORTIUM_ID
                 + "' ORDER BY ingest_timestamp DESC\","
                 + "\"start\":1548092484611,\"end\":1548697284611,\"rows\":20}";
 
@@ -204,7 +204,7 @@ public class LintControllerTests {
                 "{\"logQuery\":\"SELECT * FROM logs ORDER BY ingest_timestamp DESC\","
                 + "\"start\":1548092484611,\"end\":1548697284611,\"rows\":20}";
         final String response =
-                "{\"logQuery\":\"SELECT * FROM logs WHERE blockchain_id = '" + BLOCKCHAIN_ID
+                "{\"logQuery\":\"SELECT * FROM logs WHERE consortium_id = '" + CONSORTIUM_ID
                 + "' ORDER BY ingest_timestamp DESC\","
                 + "\"start\":1548092484611,\"end\":1548697284611,\"rows\":20}";
 
@@ -230,7 +230,7 @@ public class LintControllerTests {
                 "{\"logQuery\":\"SELECT * FROM logs WHERE user = 'userId' ORDER BY ingest_timestamp DESC\","
                 + "\"start\":1548092484611,\"end\":1548697284611,\"rows\":20}";
         final String response =
-                "{\"logQuery\":\"SELECT * FROM logs WHERE (blockchain_id = '" + BLOCKCHAIN_ID + "') "
+                "{\"logQuery\":\"SELECT * FROM logs WHERE (consortium_id = '" + CONSORTIUM_ID + "') "
                 + "AND (user = 'userId' ) ORDER BY ingest_timestamp DESC\","
                 + "\"start\":1548092484611,\"end\":1548697284611,\"rows\":20}";
 
@@ -257,7 +257,7 @@ public class LintControllerTests {
                         + "ORDER BY ingest_timestamp DESC\","
                         + "\"start\":1548092484611,\"end\":1548697284611,\"rows\":20}";
         final String response =
-                "{\"logQuery\":\"SELECT * FROM logs WHERE (blockchain_id = '" + BLOCKCHAIN_ID + "') "
+                "{\"logQuery\":\"SELECT * FROM logs WHERE (consortium_id = '" + CONSORTIUM_ID + "') "
                         + "AND (service_name = 'concord' AND level = 'INFO' ) "
                         + "ORDER BY ingest_timestamp DESC\","
                         + "\"start\":1548092484611,\"end\":1548697284611,\"rows\":20}";
@@ -285,7 +285,7 @@ public class LintControllerTests {
                         + "ORDER BY ingest_timestamp DESC\","
                         + "\"start\":1548092484611,\"end\":1548697284611,\"rows\":20}";
         final String response =
-                "{\"logQuery\":\"SELECT * FROM logs WHERE (blockchain_id = '" + BLOCKCHAIN_ID + "') "
+                "{\"logQuery\":\"SELECT * FROM logs WHERE (consortium_id = '" + CONSORTIUM_ID + "') "
                         + "AND ((level = 'INFO' OR level = 'ERROR') ) "
                         + "ORDER BY ingest_timestamp DESC\","
                         + "\"start\":1548092484611,\"end\":1548697284611,\"rows\":20}";
@@ -313,7 +313,7 @@ public class LintControllerTests {
                         + "(level = 'INFO' OR level = 'ERROR') ORDER BY ingest_timestamp DESC\","
                         + "\"start\":1548092484611,\"end\":1548697284611,\"rows\":20}";
         final String response =
-                "{\"logQuery\":\"SELECT * FROM logs WHERE (blockchain_id = '" + BLOCKCHAIN_ID + "') "
+                "{\"logQuery\":\"SELECT * FROM logs WHERE (consortium_id = '" + CONSORTIUM_ID + "') "
                         + "AND (service_name = 'concord' AND (level = 'INFO' OR level = 'ERROR') ) "
                         + "ORDER BY ingest_timestamp DESC\","
                         + "\"start\":1548092484611,\"end\":1548697284611,\"rows\":20}";
@@ -364,7 +364,7 @@ public class LintControllerTests {
                 "{\"logQuery\":\"SELECT * FROM logs ORDER BY ingest_timestamp DESC\","
                 + "\"start\":1548092484611,\"end\":1548697284611,\"rows\":20,\"color\":\"red\"}";
         final String response =
-                "{\"logQuery\":\"SELECT * FROM logs WHERE blockchain_id = '" + BLOCKCHAIN_ID + "' "
+                "{\"logQuery\":\"SELECT * FROM logs WHERE consortium_id = '" + CONSORTIUM_ID + "' "
                 + "ORDER BY ingest_timestamp DESC\","
                 + "\"start\":1548092484611,\"end\":1548697284611,\"rows\":20,\"color\":\"red\"}";
 

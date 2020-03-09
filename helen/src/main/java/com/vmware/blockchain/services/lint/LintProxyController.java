@@ -45,7 +45,6 @@ import com.vmware.blockchain.common.csp.CspAuthenticationHelper;
 import com.vmware.blockchain.common.restclient.RestClientBuilder;
 import com.vmware.blockchain.services.blockchains.Blockchain;
 import com.vmware.blockchain.services.blockchains.BlockchainService;
-import com.vmware.blockchain.services.blockchains.replicas.ReplicaService;
 
 /**
  * Proxy requests to Log Intelligence.  We currently make queries using a Log Intelligence service user with admin
@@ -62,7 +61,6 @@ public class LintProxyController {
 
     private AuthHelper authHelper;
     private CspAuthenticationHelper cspAuthHelper;
-    private ReplicaService replicaService;
     private BlockchainService blockchainService;
     private String lintAuthToken;
     private String lintApiToken;
@@ -71,14 +69,14 @@ public class LintProxyController {
     private RestTemplate restTemplate;
 
     @Autowired
-    public LintProxyController(AuthHelper authHelper, ReplicaService replicaService,
+    public LintProxyController(AuthHelper authHelper, BlockchainService blockchainService,
                                @Value("${lint.csp.url:https://console.cloud.vmware.com}") String cspUrl,
             @Value("${lint.apitoken:#null}") String lintApiToken, @Value("${lint.url}") String lintUrl) {
         this.authHelper = authHelper;
         this.cspUrl = cspUrl;
         this.cspAuthHelper = new CspAuthenticationHelper(cspUrl);
         this.lintApiToken = lintApiToken;
-        this.replicaService = replicaService;
+        this.blockchainService = blockchainService;
 
         // set up the RestTemplate to talk to LINT
         SimpleRetryPolicy retryPolicy = new SimpleRetryPolicy(3);
