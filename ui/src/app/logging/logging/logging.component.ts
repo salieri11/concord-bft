@@ -36,7 +36,6 @@ import {
   THIRTY_DAYS,
   DAML_SERVICE_NAMES,
   ETHEREUM_SERVICE_NAMES,
-  ALL_SERVICES
 } from './../shared/logging.constants';
 import { NodesService } from '../../nodes/shared/nodes.service';
 
@@ -70,11 +69,10 @@ export class LoggingComponent implements OnInit {
 
   nodes: any[] = [];
   selectedNodes: any[] = [];
-  replicaId: string;
   verbose: boolean = true;
   selectedServiceNames: string[] = [];
 
-  service_names: any[] = ALL_SERVICES;
+  service_names: any[] = [];
 
   levels: LogLevels[] = [
     LogLevels.info,
@@ -245,7 +243,7 @@ export class LoggingComponent implements OnInit {
   }
 
   nodeNames(): string {
-    return this.selectedNodes.flatMap(obj => obj.name).join(', ')
+    return this.selectedNodes.flatMap(obj => obj.name).join(', ');
   }
 
   onSelectLevels(level) {
@@ -303,7 +301,6 @@ export class LoggingComponent implements OnInit {
     return this.nodesService.getAllNodeTypes().subscribe((resp) => {
       this.nodes = resp;
 
-      this.replicaId = this.nodes && this.nodes[0] ? this.nodes[0].id : '';
       this.onSelectTimePeriod(this.timePeriods[3]);
     });
   }

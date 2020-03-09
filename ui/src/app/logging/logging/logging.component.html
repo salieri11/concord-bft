@@ -7,7 +7,7 @@
           {{'logging.serviceName.title' | translate}}: {{  selectedServiceNames.length ? selectedServiceNames.join(', ') : 'common.all' | translate }}
           <clr-icon shape="caret down"></clr-icon>
         </button>
-        <clr-dropdown-menu *clrIfOpen>
+        <clr-dropdown-menu *clrIfOpen clrPosition="bottom-left">
           <button type="button" *ngFor="let service of service_names"
             [ngClass]="{'active': selectedServiceNames.indexOf(service) !== -1}" (click)="onSelectService(service)"
             clrDropdownItem>
@@ -22,7 +22,7 @@
           {{'nodes.nodes' | translate}}: {{  selectedNodes.length ? nodeNames() : 'common.all' | translate }}
           <clr-icon shape="caret down"></clr-icon>
         </button>
-        <clr-dropdown-menu *clrIfOpen>
+        <clr-dropdown-menu *clrIfOpen clrPosition="bottom-left">
           <button type="button" *ngFor="let node of nodes"
             [ngClass]="{'active': selectedNodes.indexOf(node) !== -1}" (click)="onSelectNode(node)"
             clrDropdownItem>
@@ -37,7 +37,7 @@
           {{'logging.logLevel' | translate}}: {{  selectedLevels.length ? selectedLevels.join(', ') : 'common.all' | translate }}
           <clr-icon shape="caret down"></clr-icon>
         </button>
-        <clr-dropdown-menu *clrIfOpen>
+        <clr-dropdown-menu *clrIfOpen clrPosition="bottom-left">
           <button type="button" *ngFor="let level of levels"
             [ngClass]="{'active': selectedLevels.indexOf(level) !== -1}" (click)="onSelectLevels(level)"
             clrDropdownItem>
@@ -143,7 +143,7 @@
     </div>
   </div>
   <concord-export-log-events-modal #exportLogEventsModal [startTime]="startTime" [endTime]="endTime"
-    [totalCount]="totalCount" [replicaId]="replicaId" [serviceName]="service_name" [search]="search" [logLevels]="selectedLevels"></concord-export-log-events-modal>
+    [totalCount]="totalCount" [nodes]="selectedNodes" [serviceName]="selectedServiceNames" [search]="search" [logLevels]="selectedLevels"></concord-export-log-events-modal>
   <concord-export-chart-data-modal #exportChartDataModal [chartData]="logCounts" [startTime]="startTime"
     [endTime]="endTime">
   </concord-export-chart-data-modal>

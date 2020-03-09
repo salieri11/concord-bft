@@ -23,7 +23,7 @@ export class LogApiService {
   postToTasks(
     start: number,
     end: number,
-    nodes: string[],
+    nodes: any[],
     level: string[],
     search: string,
     service_names: string[],
@@ -42,7 +42,7 @@ export class LogApiService {
   postToTasksCount(
     start: number,
     end: number,
-    nodes: string[],
+    nodes: any[],
     level: string[],
     search: string,
     service_names: string[],
@@ -80,7 +80,7 @@ export class LogApiService {
     level: string[],
     service_names: string[],
     search: string,
-    nodes: string[]
+    nodes: any[]
   ) {
     let where = '';
     const flatNodes = nodes.flatMap(obj => obj.id);
