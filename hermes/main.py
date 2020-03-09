@@ -209,6 +209,9 @@ def main():
                                                                        helper.KEEP_BLOCKCHAINS_NEVER],
                                                                       helper.KEEP_BLOCKCHAINS_NEVER),
                        default=helper.KEEP_BLOCKCHAINS_NEVER)
+   nonLocalDeployConfig.add_argument("--numParticipants",
+                       help="The number of participant/client nodes to deploy.",
+                       default=1)
 
    args = parser.parse_args()
    parent_results_dir = args.resultsDir

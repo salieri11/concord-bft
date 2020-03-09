@@ -15,7 +15,18 @@ INSERT into entity(row_key, column_name, version, body, user_id, user_name) VALU
     "name": "vmware-vpn",
     "gateway": "10.69.105.1",
     "subnet": "24"
-  }
+  },
+  "wavefront": {
+    "url": "https://vmware.wavefront.com",
+    "token": "<WAVEFRONT_API_TOKEN>"
+  },
+  "log_managements": [
+    {
+      "destination": "LOG_INTELLIGENCE",
+      "address": "https://data.mgmt.cloud.vmware.com/le-mans/v1/streams/ingestion-pipeline-stream",
+      "token": "<FLUENTD_AUTHORIZATION_BEARER>"
+    }
+  ]
 }'::JSONB, '51123b25-d017-4afa-8a1c-4e99badb24c6', 'khank@vmware.com') ON CONFLICT (row_key,version) DO UPDATE SET body = excluded.body;
 
 
@@ -36,5 +47,16 @@ INSERT into entity(row_key, column_name, version, body, user_id, user_name) VALU
     "name": "vmware-vpn",
     "gateway": "10.69.100.1",
     "subnet": "24"
-  }
+  },
+  "wavefront": {
+    "url": "https://vmware.wavefront.com",
+    "token": "<WAVEFRONT_API_TOKEN>"
+  },
+  "log_managements": [
+    {
+      "destination": "LOG_INTELLIGENCE",
+      "address": "https://data.mgmt.cloud.vmware.com/le-mans/v1/streams/ingestion-pipeline-stream",
+      "token": "<FLUENTD_AUTHORIZATION_BEARER>"
+    }
+  ]
 }'::JSONB, '51123b25-d017-4afa-8a1c-4e99badb24c6', 'khank@vmware.com') ON CONFLICT (row_key,version) DO UPDATE SET body = excluded.body;

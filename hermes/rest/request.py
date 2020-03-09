@@ -240,6 +240,22 @@ class Request():
 
       return self._send()
 
+   def create_participant(self, blockchain_id, zone_ids):
+      """
+      Deploys participants on the given blockchain_id
+      :param blockchain_id: The blockchain id to deploy the participant in
+      :param zone_ids: List of zones that will form the participants cluster
+      :return: BlockchainTaskResponse
+      """
+      self._subPath = "/api/blockchains/{}/clients".format(blockchain_id)
+      self._params = ""
+      self._data = {
+         "zone_ids": zone_ids
+      }
+      self._endpointName = "create_participant"
+
+      return self._send()
+
    def getBlockchainDetails(self, blockchainId):
       '''
       Get the details for a given blockchain ID.
@@ -248,6 +264,19 @@ class Request():
       self._params = ""
       self._endpointName = "blockchain"
       return self._send()
+
+   def get_participant_details(self, blockchain_id):
+      """
+      Returns participants details
+      :param blockchain_id: he blockchain id the participants are in
+      :return: List of ReplicaGetResponse
+      """
+      self._subPath = "/api/blockchains/{}/clients".format(blockchain_id)
+      self._params = ""
+      self._endpointName = "participants"
+      self._data = None
+      return self._send()
+
 
    def getBlockList(self, blockchainId, nextUrl=None, latest=None, count=None):
       '''

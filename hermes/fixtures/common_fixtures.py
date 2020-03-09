@@ -13,10 +13,12 @@ from rest.request import Request
 from rpc.rpc_call import RPC
 import types
 import util
+import util.helper as helper
+import util.daml.daml_helper as daml_helper
 
 log = logging.getLogger(__name__)
 ConnectionFixture = collections.namedtuple("ConnectionFixture", "request, rpc")
-BlockchainFixture = collections.namedtuple("BlockchainFixture", "blockchainId, consortiumId")
+BlockchainFixture = collections.namedtuple("BlockchainFixture", "blockchainId, consortiumId, replicas")
 
 def retrieveCustomCmdlineData(pytestRequest):
     '''
@@ -41,6 +43,7 @@ def retrieveCustomCmdlineData(pytestRequest):
     }
 
 
+# TODO: refactor this method to make it generic
 def setUpPortForwarding(url, creds, blockchainType, logDir, timeout=600,):
    '''
    Given a url and credentials, set up port forwarding.
@@ -56,7 +59,7 @@ def setUpPortForwarding(url, creds, blockchainType, logDir, timeout=600,):
    portForwardingSuccess = False
 
    while not portForwardingSuccess and timeTaken < timeout:
-      portForwardingSuccess = util.helper.add_ethrpc_port_forwarding(host, creds["username"], creds["password"])
+      portForwardingSuccess = helper.add_ethrpc_port_forwarding(host, creds["username"], creds["password"])
 
       if not portForwardingSuccess:
          log.info("Port forwarding setup failed.  The VM is probably still coming up. " \
@@ -65,7 +68,7 @@ def setUpPortForwarding(url, creds, blockchainType, logDir, timeout=600,):
          timeTaken += interval
 
    if not portForwardingSuccess:
-       util.helper.create_concord_support_bundle([host], blockchainType, logDir)
+       helper.create_concord_support_bundle([host], blockchainType, logDir)
        raise Exception("Failed to set up port forwarding on deployed nodes. Aborting.")
 
 
@@ -118,14 +121,15 @@ def deployToSddc(logDir, hermesData):
    log.info(zoneIds)
    numNodes = int(hermesData["hermesCmdlineArgs"].numReplicas)
    f = (numNodes - 1) / 3
-   siteIds = util.helper.distributeItemsRoundRobin(numNodes, zoneIds)
+   siteIds = helper.distributeItemsRoundRobin(numNodes, zoneIds)
+   blockchain_type = hermesData["hermesCmdlineArgs"].blockchainType
    response = conAdminRequest.createBlockchain(conId,
                                                siteIds,
-                                               blockchainType=hermesData["hermesCmdlineArgs"].blockchainType.upper(),
+                                               blockchainType=blockchain_type.upper(),
                                                f=f)
    taskId = response["task_id"]
    timeout=60*15
-   success, response = util.helper.waitForTask(conAdminRequest, taskId, timeout=timeout)
+   success, response = helper.waitForTask(conAdminRequest, taskId, timeout=timeout)
 
    if success:
       blockchainId = response["resource_id"]
@@ -134,28 +138,111 @@ def deployToSddc(logDir, hermesData):
                "manually: {}".format(json.dumps(blockchainDetails, indent=4)))
       credentials = hermesData["hermesUserConfig"]["persephoneTests"]["provisioningService"]["concordNode"]
 
-      util.helper.sddcGiveDeploymentContextToVM(blockchainDetails)
+      helper.sddcGiveDeploymentContextToVM(blockchainDetails)
 
-      if hermesData["hermesCmdlineArgs"].blockchainType.lower() == util.helper.TYPE_ETHEREUM:
-         for replicaDetails in blockchainDetails["node_list"]:
-            blockchainType = hermesData["hermesCmdlineArgs"].blockchainType
-            setUpPortForwarding(replicaDetails["url"], credentials, blockchainType, logDir)
-      elif hermesData["hermesCmdlineArgs"].blockchainType.lower() == util.helper.TYPE_DAML:
-         for replicaDetails in blockchainDetails["node_list"]:
-            host = replicaDetails["ip"]
-            util.helper.waitForDockerContainers(host, credentials["username"],
-                                                credentials["password"],
-                                                util.helper.TYPE_DAML_COMMITTER)
+      ethereum_replicas = []
+      daml_committer_replicas = []
+      daml_participant_replicas = []
+      if blockchain_type.lower() == helper.TYPE_ETHEREUM:
+         for replica_entry in blockchainDetails["replica_list"]:
+            setUpPortForwarding(replica_entry["url"], credentials, blockchain_type, logDir)
+            ethereum_replicas.append(replica_entry)
+      elif blockchain_type.lower() == helper.TYPE_DAML:
+         for replica_entry in blockchainDetails["replica_list"]:
+            host = replica_entry["ip"]
+            helper.waitForDockerContainers(host, credentials["username"], credentials["password"],
+                                           helper.TYPE_DAML_COMMITTER)
+            daml_committer_replicas.append(replica_entry)
+            log.info("Committer node {} running successfully".format(host))
+
+         log.info("All committer nodes running successfully")
+         num_participants = int(hermesData["hermesCmdlineArgs"].numParticipants)
+         daml_participant_replicas = deploy_participants(conAdminRequest, blockchainId, siteIds, credentials,
+                                                    num_participants)
+
+      replica_dict = save_replicas_to_json(blockchain_type, ethereum_replicas, daml_committer_replicas,
+                                           daml_participant_replicas)
+      log.info("Blockchain deployed successfully")
    else:
       raise Exception("Failed to deploy a new blockchain.")
 
-   return blockchainId, conId
+   return blockchainId, conId, replica_dict
+
+
+def deploy_participants(con_admin_request, blockchain_id, site_ids, credentials, num_participants=1):
+    """
+    Deploys participants in the given blockchain
+    :param con_admin_request: REST requests helper object
+    :param blockchain_id: The blockchain ID for the blockchain to deploy participants in
+    :param site_ids: Zone IDs to deploy in
+    :param credentials: Credential information for accessing VMs after deployment
+    :param num_participants: Number of participants to deploy (defaults to 1)
+    :return: List of participant IPs
+    """
+
+    log.info("Deploying {} participants for blockchain {}".format(num_participants, blockchain_id))
+    zone_ids = helper.distributeItemsRoundRobin(num_participants, site_ids)
+    response = con_admin_request.create_participant(blockchain_id, zone_ids)
+    task_id = response["task_id"]
+    success, response = helper.waitForTask(con_admin_request, task_id)
+
+    participant_replicas = []
+    if success:
+        username = credentials["username"]
+        password = credentials["password"]
+        participant_details = con_admin_request.get_participant_details(blockchain_id)
+        for participant_entry in participant_details:
+            public_ip = participant_entry["public_ip"]
+            helper.waitForDockerContainers(public_ip, username, password, helper.TYPE_DAML_PARTICIPANT)
+            participant_replicas.append(participant_entry)
+            log.info("Participant node {} running successfully".format(public_ip))
+            helper.add_ethrpc_port_forwarding(public_ip, username, password, dest_port=6865)
+            log.info("Starting DAR upload test on participant {}".format(public_ip))
+            daml_helper.upload_test_tool_dars(host=public_ip, port='443')
+            log.info("Starting DAR upload verification test on participant {}".format(public_ip))
+            daml_helper.verify_ledger_api_test_tool(host=public_ip, port='443')
+            log.info("DAR upload and verification successful on participant {}".format(public_ip))
+        log.info("All participant nodes running successfully")
+    else:
+        raise Exception("Failed to deploy participants")
+
+    return participant_replicas
+
+
+def save_replicas_to_json(blockchain_type, ethereum_replicas, daml_committer_replicas, daml_participant_replicas):
+    """
+    Saves committer and participant IPs in a json file
+    :param blockchain_type: Type of blockchain. Will determine the replica dictionary structure
+    :param ethereum_replicas: List of ethereum IPs
+    :param daml_committer_replicas: List of DAML committer IPs
+    :param daml_participant_replicas: List of DAML participant IPs
+    :return: None
+    """
+
+    replica_dict = {}
+    if blockchain_type.lower() == helper.TYPE_ETHEREUM:
+        replica_dict[helper.TYPE_ETHEREUM] = ethereum_replicas
+    else:
+        replica_dict[helper.TYPE_DAML_COMMITTER] = daml_committer_replicas
+        replica_dict[helper.TYPE_DAML_PARTICIPANT] = daml_participant_replicas
+
+    replica_file_path = "/tmp/replicas.json"
+    try:
+        os.remove(replica_file_path)
+    except OSError:
+        pass
+
+    with open(replica_file_path, 'w') as fp:
+        json.dump(replica_dict, fp, indent=2)
+
+    log.info("Saved replicas information in {}".format(replica_file_path))
+    return replica_dict
 
 
 @pytest.fixture(scope="module")
 def fxHermesRunSettings(request):
     '''
-    Returne a dictionary of information about the Hermes run.
+    Returns a dictionary of information about the Hermes run.
     '''
     return retrieveCustomCmdlineData(request)
 
@@ -171,15 +258,15 @@ def fxProduct(request, fxHermesRunSettings):
          waitForStartupFunction = None
          waitForStartupParams = {}
          checkProductStatusParams = {"retries": 1}
-         productType = getattr(request.module, "productType", util.helper.TYPE_ETHEREUM)
+         productType = getattr(request.module, "productType", helper.TYPE_ETHEREUM)
 
-         if productType == util.helper.TYPE_DAML:
-             waitForStartupFunction = util.helper.verify_connectivity
+         if productType == helper.TYPE_DAML:
+             waitForStartupFunction = helper.verify_connectivity
              waitForStartupParams = {"ip": "localhost", "port": 6861}
              checkProductStatusParams = {"ip": "localhost", "port": 6861, "max_tries": 1}
 
-         if productType == util.helper.TYPE_TEE:
-             waitForStartupFunction = util.helper.verify_connectivity
+         if productType == helper.TYPE_TEE:
+             waitForStartupFunction = helper.verify_connectivity
              waitForStartupParams = ["localhost", 50051]
 
          product = Product(fxHermesRunSettings["hermesCmdlineArgs"],
@@ -209,6 +296,7 @@ def fxBlockchain(request, fxHermesRunSettings, fxProduct):
    '''
    blockchainId = None
    conId = None
+   replicas = None
    hermesData = retrieveCustomCmdlineData(request)
    logDir = os.path.join(hermesData["hermesTestLogDir"], "fxBlockchain")
 
@@ -227,8 +315,8 @@ def fxBlockchain(request, fxHermesRunSettings, fxProduct):
    elif hermesData["hermesCmdlineArgs"].blockchainLocation == "onprem":
       raise Exception("On prem deployments not supported yet.")
    elif hermesData["hermesCmdlineArgs"].blockchainLocation == "sddc":
-      log.warn("Some test suites do not work with SDDC deployments yet.")
-      blockchainId, conId = deployToSddc(logDir, hermesData)
+      log.warning("Some test suites do not work with SDDC deployments yet.")
+      blockchainId, conId, replicas = deployToSddc(logDir, hermesData)
    elif len(devAdminRequest.getBlockchains()) > 0:
       # Hermes was not told to deloy a new blockchain, and there is one.  That means
       # we are using the default built in test blockchain.
@@ -242,7 +330,7 @@ def fxBlockchain(request, fxHermesRunSettings, fxProduct):
       blockchainId = None
       conId = None
 
-   return BlockchainFixture(blockchainId=blockchainId, consortiumId=conId)
+   return BlockchainFixture(blockchainId=blockchainId, consortiumId=conId, replicas=replicas)
 
 
 @pytest.fixture(scope="module")
@@ -311,7 +399,7 @@ def fxConnection(request, fxBlockchain, fxHermesRunSettings):
                      tokenDescriptor=tokenDescriptor)
 
    if fxBlockchain.blockchainId and \
-      hermesData["hermesCmdlineArgs"].blockchainType == util.helper.TYPE_ETHEREUM:
+      hermesData["hermesCmdlineArgs"].blockchainType == helper.TYPE_ETHEREUM:
 
       ethrpcUrl = util.blockchain.eth.getEthrpcApiUrl(request, fxBlockchain.blockchainId)
       rpc = RPC(request.logDir,
