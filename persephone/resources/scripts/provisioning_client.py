@@ -66,12 +66,12 @@ def get_component(blockchain_type, node_type) -> List[concord_model.ConcordCompo
             concord_model.ConcordComponent(
                 type=concord_model.ConcordComponent.CONTAINER_IMAGE,
                 service_type=concord_model.ConcordComponent.WAVEFRONT_PROXY,
-                name="wavefronthq/proxy:5.7"
+                name="vmwblockchain/wavefront-proxy:latest"
             ),
             concord_model.ConcordComponent(
                 type=concord_model.ConcordComponent.CONTAINER_IMAGE,
                 service_type=concord_model.ConcordComponent.JAEGER_AGENT,
-                name="jaegertracing/jaeger-agent:1.11"
+                name="vmwblockchain/jaeger-agent:latest"
             ),
             concord_model.ConcordComponent(
                 type=concord_model.ConcordComponent.CONTAINER_IMAGE,
@@ -86,7 +86,12 @@ def get_component(blockchain_type, node_type) -> List[concord_model.ConcordCompo
             concord_model.ConcordComponent(
                 type=concord_model.ConcordComponent.CONTAINER_IMAGE,
                 service_type=concord_model.ConcordComponent.GENERIC,
-                name="vmwblockchain/agent-testing:testwf1"
+                name="vmwblockchain/agent:latest"
+            ),
+            concord_model.ConcordComponent(
+                type=concord_model.ConcordComponent.CONTAINER_IMAGE,
+                service_type=concord_model.ConcordComponent.TELEGRAF,
+                name="vmwblockchain/telegraf:latest"
             ),
             concord_model.ConcordComponent(
                 type=concord_model.ConcordComponent.CONTAINER_IMAGE,
@@ -100,6 +105,16 @@ def get_component(blockchain_type, node_type) -> List[concord_model.ConcordCompo
             return [
                 concord_model.ConcordComponent(
                     type=concord_model.ConcordComponent.CONTAINER_IMAGE,
+                    service_type=concord_model.ConcordComponent.WAVEFRONT_PROXY,
+                    name="vmwblockchain/wavefront-proxy:latest"
+                ),
+                concord_model.ConcordComponent(
+                    type=concord_model.ConcordComponent.CONTAINER_IMAGE,
+                    service_type=concord_model.ConcordComponent.JAEGER_AGENT,
+                    name="vmwblockchain/jaeger-agent:latest"
+                ),
+                concord_model.ConcordComponent(
+                    type=concord_model.ConcordComponent.CONTAINER_IMAGE,
                     service_type=concord_model.ConcordComponent.CONCORD,
                     name="vmwblockchain/concord-core:latest"
                 ),
@@ -110,12 +125,27 @@ def get_component(blockchain_type, node_type) -> List[concord_model.ConcordCompo
                 ),
                 concord_model.ConcordComponent(
                     type=concord_model.ConcordComponent.CONTAINER_IMAGE,
+                    service_type=concord_model.ConcordComponent.TELEGRAF,
+                    name="vmwblockchain/telegraf:latest"
+                ),
+                concord_model.ConcordComponent(
+                    type=concord_model.ConcordComponent.CONTAINER_IMAGE,
                     service_type=concord_model.ConcordComponent.GENERIC,
-                    name="vmwblockchain/agent-testing:oct-30"
+                    name="vmwblockchain/agent:latest"
                 )
             ]
         elif node_type == "DAML_PARTICIPANT":
             return [
+                concord_model.ConcordComponent(
+                    type=concord_model.ConcordComponent.CONTAINER_IMAGE,
+                    service_type=concord_model.ConcordComponent.WAVEFRONT_PROXY,
+                    name="vmwblockchain/wavefront-proxy:latest"
+                ),
+                concord_model.ConcordComponent(
+                    type=concord_model.ConcordComponent.CONTAINER_IMAGE,
+                    service_type=concord_model.ConcordComponent.TELEGRAF,
+                    name="vmwblockchain/telegraf:latest"
+                ),
                 concord_model.ConcordComponent(
                     type=concord_model.ConcordComponent.CONTAINER_IMAGE,
                     service_type=concord_model.ConcordComponent.DAML_INDEX_DB,
@@ -129,7 +159,7 @@ def get_component(blockchain_type, node_type) -> List[concord_model.ConcordCompo
                 concord_model.ConcordComponent(
                     type=concord_model.ConcordComponent.CONTAINER_IMAGE,
                     service_type=concord_model.ConcordComponent.GENERIC,
-                    name="vmwblockchain/agent-testing:oct-30"
+                    name="vmwblockchain/agent:latest"
                 )
             ]
         else:
@@ -164,8 +194,23 @@ def get_component(blockchain_type, node_type) -> List[concord_model.ConcordCompo
                     type=concord_model.ConcordComponent.CONTAINER_IMAGE,
                     service_type=concord_model.ConcordComponent.LOGGING,
                     name="vmwblockchain/fluentd:latest"
+                ),
+                concord_model.ConcordComponent(
+                    type=concord_model.ConcordComponent.CONTAINER_IMAGE,
+                    service_type=concord_model.ConcordComponent.WAVEFRONT_PROXY,
+                    name="vmwblockchain/wavefront-proxy:latest"
+                ),
+                concord_model.ConcordComponent(
+                    type=concord_model.ConcordComponent.CONTAINER_IMAGE,
+                    service_type=concord_model.ConcordComponent.JAEGER_AGENT,
+                    name="vmwblockchain/jaeger-agent:latest"
+                ),
+                concord_model.ConcordComponent(
+                    type=concord_model.ConcordComponent.CONTAINER_IMAGE,
+                    service_type=concord_model.ConcordComponent.TELEGRAF,
+                    name="vmwblockchain/telegraf:latest"
                 )
-        ]
+            ]
     elif blockchain_type == "HLF":
         return [
             concord_model.ConcordComponent(
@@ -192,6 +237,21 @@ def get_component(blockchain_type, node_type) -> List[concord_model.ConcordCompo
                 type=concord_model.ConcordComponent.CONTAINER_IMAGE,
                 service_type=concord_model.ConcordComponent.GENERIC,
                 name="vmwblockchain/agent:latest"
+            ),
+            concord_model.ConcordComponent(
+                type=concord_model.ConcordComponent.CONTAINER_IMAGE,
+                service_type=concord_model.ConcordComponent.WAVEFRONT_PROXY,
+                name="vmwblockchain/wavefront-proxy:latest"
+            ),
+            concord_model.ConcordComponent(
+                type=concord_model.ConcordComponent.CONTAINER_IMAGE,
+                service_type=concord_model.ConcordComponent.JAEGER_AGENT,
+                name="vmwblockchain/jaeger-agent:latest"
+            ),
+            concord_model.ConcordComponent(
+                type=concord_model.ConcordComponent.CONTAINER_IMAGE,
+                service_type=concord_model.ConcordComponent.TELEGRAF,
+                name="vmwblockchain/telegraf:latest"
             )
         ]
 
@@ -282,6 +342,10 @@ def main():
                     getPlacementEntry(site)
                 ]
             ),
+            properties=core.Properties(
+                values={"BLOCKCHAIN_ID":"testBlockchain",
+                        "VM_PROFILE":"medium"}
+            ),
             genesis=genesis.Genesis(
                 config=genesis.Genesis.Config(
                     chain_id=1,
@@ -321,7 +385,6 @@ def main():
 
     return
 
-
 def getPlacementEntry(site):
     # Insert from a file
     return provisioning_service.PlacementSpecification.Entry(
@@ -334,7 +397,7 @@ def getPlacementEntry(site):
                     address="https://console.cloud.vmware.com",
                     credential=core.Credential(
                         token_credential=core.BearerTokenCredential(
-                            token="<REFRESH TOKEN>"
+                            token="<TOKEN>"
                         )
                     )
                 ),
@@ -342,7 +405,7 @@ def getPlacementEntry(site):
                     address="https://vmc.vmware.com"
                 ),
                 wavefront=orchestration.Wavefront(
-                    url="<URL>",
+                    url="https://vmware.wavefront.com",
                     token="<TOKEN>"
                 ),
                 organization="c56e116e-c36f-4f7d-b504-f9a33955b853",
@@ -364,7 +427,7 @@ def getPlacementEntry(site):
                         address="https://data.mgmt.cloud.vmware.com/le-mans/v1/streams/ingestion-pipeline-stream",
                         credential=core.Credential(
                             token_credential=core.BearerTokenCredential(
-                                token="<FLUENTD_AUTHORIZATION_BEARER>"
+                                token="<TOKEN>"
                             )
                         )
                     )
