@@ -34,6 +34,8 @@ export interface ClientNode {
   name_ordinal?: string;
   url: string;
   public_ip: string;
+  host_name: string;
+  name?: string;
   private_ip: string;
   zone_id?: string;
   zone_type?: ZoneType;

@@ -165,6 +165,23 @@ export class NodesService {
     );
   }
 
+  getAllNodeTypes(): Observable<any[]> {
+    return zip(this.getList(), this.getClients())
+      .pipe(
+        map(response => {
+          let nodes = [];
+          const clients = response[1];
+          clients.forEach(cl => {
+            cl.name = cl.host_name;
+          });
+          nodes = nodes.concat(response[0].nodes);
+          nodes = nodes.concat(clients);
+          // Merge client and replica nodes together in one array
+          return nodes;
+        })
+       );
+  }
+
   /**
    * @deprecated by V2 API; dynamic adding of clients deprecated.
   */
