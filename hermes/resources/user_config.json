@@ -428,5 +428,27 @@
       "buildNumber": "<METAINF_ENV_BUILD_NUMBER>",
       "dockerTag": "<METAINF_ENV_DOCKER_TAG>"
     }
+  },
+  "communication":{
+    "slack": {
+      "workspaces":{
+        "vmware": {
+          "name": "VMware Internal Workspace",
+          "teamId": "T024JFTN4",
+          "appToken": "<SLACK_BOT_API_TOKEN>"
+        },
+        "vmw-da":{
+          "name": "VMW-DA Joint Workspace",
+          "teamId": "TGG9FQXCK",
+          "appToken": "<VMW_DA_SLACK_BOT_API_TOKEN>"
+        }
+      },
+      "channels": {
+        "vdaml-devops":{
+          "workspace": "vmw-da",
+          "channelId": "CR94YNQPQ"
+        }
+      }
+    }
   }
 }

@@ -516,6 +516,8 @@ def call(){
                 string(credentialsId: 'FLUENTD_AUTHORIZATION_BEARER', variable: 'FLUENTD_AUTHORIZATION_BEARER'),
                 string(credentialsId: 'VMC_API_TOKEN', variable: 'VMC_API_TOKEN'),
                 string(credentialsId: 'WAVEFRONT_API_TOKEN', variable: 'WAVEFRONT_API_TOKEN'),
+                string(credentialsId: 'SLACK_BOT_API_TOKEN', variable: 'SLACK_BOT_API_TOKEN'),
+                string(credentialsId: 'VMW_DA_SLACK_BOT_API_TOKEN', variable: 'VMW_DA_SLACK_BOT_API_TOKEN'),
                 usernamePassword(credentialsId: 'BINTRAY_CREDENTIALS', usernameVariable: 'BINTRAY_CONTAINER_REGISTRY_USERNAME', passwordVariable: 'BINTRAY_CONTAINER_REGISTRY_PASSWORD'),
                 usernamePassword(credentialsId: 'DOCKERHUB_CREDENTIALS', usernameVariable: 'DOCKERHUB_REPO_READER_USERNAME', passwordVariable: 'DOCKERHUB_REPO_READER_PASSWORD'),
                 usernamePassword(credentialsId: 'VMC_SDDC3_VC_CREDENTIALS', usernameVariable: 'VMC_SDDC3_VC_CREDENTIALS_USERNAME', passwordVariable: 'VMC_SDDC3_VC_CREDENTIALS_PASSWORD'),
@@ -595,6 +597,8 @@ EOF
                     sed -i -e 's/'"<METAINF_ENV_JOB_NAME>"'/'"${JOB_NAME_ESCAPED}"'/g' blockchain/hermes/resources/user_config.json
                     sed -i -e 's/'"<METAINF_ENV_BUILD_NUMBER>"'/'"${BUILD_NUMBER}"'/g' blockchain/hermes/resources/user_config.json
                     sed -i -e 's/'"<METAINF_ENV_DOCKER_TAG>"'/'"${docker_tag}"'/g' blockchain/hermes/resources/user_config.json
+                    sed -i -e 's/'"<SLACK_BOT_API_TOKEN>"'/'"${SLACK_BOT_API_TOKEN}"'/g' blockchain/hermes/resources/user_config.json
+                    sed -i -e 's/'"<VMW_DA_SLACK_BOT_API_TOKEN>"'/'"${VMW_DA_SLACK_BOT_API_TOKEN}"'/g' blockchain/hermes/resources/user_config.json
                   '''
 
                   if (env.JOB_NAME.contains(persephone_test_job_name)) {
