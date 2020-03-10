@@ -52,6 +52,7 @@ import com.vmware.blockchain.operation.OperationContext;
 import com.vmware.blockchain.services.blockchains.Blockchain.BlockchainType;
 import com.vmware.blockchain.services.blockchains.replicas.Replica;
 import com.vmware.blockchain.services.blockchains.replicas.ReplicaService;
+import com.vmware.blockchain.services.clients.Client;
 import com.vmware.blockchain.services.tasks.Task;
 import com.vmware.blockchain.services.tasks.Task.State;
 import com.vmware.blockchain.services.tasks.TaskService;
@@ -122,7 +123,7 @@ public class BlockchainObserverTest {
         blockchainObserver = new BlockchainObserver(authHelper, operationContext, blockchainService, replicaService,
                                                     taskService, TASK_ID, CONS_ID, null,
                                                     BlockchainType.ETHEREUM,
-                                                    Replica.ReplicaType.NONE);
+                                                    Replica.ReplicaType.NONE, Client.ClientType.NONE);
         ConcordCluster cluster = createTestCluster(CLUSTER_ID);
         DeploymentSessionIdentifier deploymentSessionIdentifier = DeploymentSessionIdentifier.newBuilder()
                 .setLow(0)

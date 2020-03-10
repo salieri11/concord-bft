@@ -2,7 +2,7 @@
  * Copyright (c) 2019 VMware, Inc. All rights reserved. VMware Confidential
  */
 
-package com.vmware.blockchain.services.blockchains.replicas;
+package com.vmware.blockchain.services.clients;
 
 import java.util.UUID;
 
@@ -12,37 +12,31 @@ import com.vmware.blockchain.dao.LinkedEntityId;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
 /**
  * Entity representing a single replica.
  */
-@EntityColumnName("helen.replica")
+@EntityColumnName("helen.client")
 @Data
-@EqualsAndHashCode(callSuper = true)
 @NoArgsConstructor
 @AllArgsConstructor
-public class Replica extends AbstractEntity {
-    String publicIp;
-    String privateIp;
-    String hostName;
-    String url;
-    String cert;
+public class Client extends AbstractEntity {
+    String nodeId; //do we really need this?
+    String clientGroupId; //up for discussion with ui
+    @LinkedEntityId
+    String blockchainId; //for metrics?
     UUID zoneId;
 
     /**
-     * Type of Replica.
+     * Indicate the type of replica.
      */
-    @Deprecated
-    public enum ReplicaType {
+    public enum ClientType {
         // Only dealing with either NONE or DAML_PARTICIPANT for now
         // None: Ethereum, HFL, DAML Committer
         NONE,
         DAML_PARTICIPANT
     }
 
-    ReplicaType replicaType;
-    @LinkedEntityId
-    UUID blockchainId;
+    ClientType clientType;
 }
