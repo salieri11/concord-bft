@@ -113,7 +113,6 @@ export class MainComponent implements OnInit, OnDestroy {
 
     this.routerFragmentChange = this.route.fragment
       .subscribe(fragment => this.handleFragment(fragment));
-
   }
 
   ngOnDestroy(): void {
@@ -170,6 +169,9 @@ export class MainComponent implements OnInit, OnDestroy {
 
   private handleParams(param: Params): void {
     const blockchainId = param.consortiumId as string;
+    // Refresh sidebar
+    this.setPlatform();
+    this.blockchainType = this.blockchainService.type;
 
     // valid uuidv4 resource string
     if (blockchainId && (uuidRegExp.test(blockchainId)
