@@ -267,7 +267,8 @@ def fxProduct(request, fxHermesRunSettings):
 
          if productType == helper.TYPE_TEE:
              waitForStartupFunction = helper.verify_connectivity
-             waitForStartupParams = ["localhost", 50051]
+             waitForStartupParams = {"ip": "localhost", "port": 50051}
+             checkProductStatusParams = {"ip": "localhost", "port": 50051, "max_tries": 1}
 
          product = Product(fxHermesRunSettings["hermesCmdlineArgs"],
                            fxHermesRunSettings["hermesUserConfig"],
