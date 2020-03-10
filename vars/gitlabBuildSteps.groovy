@@ -136,6 +136,11 @@ import hudson.util.Secret
     "setupFunction": "deleteDatabaseFiles",
     "dockerComposeFiles": "../docker/docker-compose.yml ../docker/docker-compose-persephone.yml",
     "baseCommand": '"${python}" main.py DeployDamlTests'
+  ],
+  "SDDCDeploymentOnly" : [
+    "enabled": false,
+    "dockerComposeFiles": "../docker/docker-compose.yml ../docker/docker-compose-persephone.yml",
+    "baseCommand": 'echo "${PASSWORD}" | sudo -S "${python}" main.py HelenAPITests --blockchainLocation=sddc --test="-m deployment_only"'
   ]
 ]
 
@@ -153,6 +158,7 @@ def call(){
   def helen_role_test_job_name = "Helen Role Tests on GitLab"
   def log_insight_test_job_name = "Log Insight Integration Test"
   def main_mr_run_job_name = "Main Blockchain Run on GitLab"
+  def long_tests_job_name = "Blockchain Long Tests"
 
   // This is a unique substring of the Jenkins job which tests ToT after a
   // change has been merged.
@@ -175,7 +181,8 @@ def call(){
     monitor_replicas_job_name,
     memory_leak_job_name,
     performance_test_job_name,
-    helen_role_test_job_name
+    helen_role_test_job_name,
+    long_tests_job_name
   ]
 
   // These job names are just substrings of the actual job names.
@@ -189,7 +196,8 @@ def call(){
     ui_e2e_daml_on_prem_job_name,
     deployment_support_bundle_job_name,
     monitor_replicas_job_name,
-    helen_role_test_job_name
+    helen_role_test_job_name,
+    long_tests_job_name
   ]
 
   for (specialized_test in specialized_tests){
@@ -483,7 +491,8 @@ def call(){
               if (env.JOB_NAME.contains(monitor_replicas_job_name) ||
                   env.JOB_NAME.contains(persephone_test_job_name) ||
                   env.JOB_NAME.contains(performance_test_job_name) ||
-                  env.JOB_NAME.contains(memory_leak_job_name)) {
+                  env.JOB_NAME.contains(memory_leak_job_name) ||
+                  env.JOB_NAME.contains(long_tests_job_name)) {
                 saveTimeEvent("Build", "Fetch build number from Job Update-onecloud-provisioning-service")
                 echo "For nightly runs (other than MR/ToT/Manual Run/ON DEMAND), fetching latest build number"
                 def build = build job: 'Update-onecloud-provisioning-service', propagate: true, wait: true
@@ -665,6 +674,10 @@ EOF
                   sh '''
                     echo "No local build required for collecting deployment support bundle..."
                   '''
+                } else if (env.JOB_NAME.contains(long_tests_job_name)) {
+                  sh '''
+                    echo "No local build required for Blockchain Long Tests..."
+                  '''
                 } else {
                   sh '''
                     echo "Building All components..."
@@ -769,6 +782,19 @@ EOF
                     } else if (env.JOB_NAME.contains(ui_e2e_daml_on_prem_job_name)) {
                       selectOnlySuites(["UiDAMLDeploy", "UiTests"])
                       runTests()
+                    } else if (env.JOB_NAME.contains(long_tests_job_name)) {
+                      testSuites["SDDCDeploymentOnly"]["otherParameters"] = 
+                          " --blockchainType " + params.concord_type.toLowerCase() +
+                          " --numReplicas " + params.num_replicas + " "
+                      selectOnlySuites(["SDDCDeploymentOnly"])
+                      runTests()
+
+                      env.run_duration = params.run_duration
+                      sh '''
+                        echo "Running script to monitor health and status of replicas..."
+                        cd ../docker ; docker-compose -f ../docker/docker-compose-persephone.yml up -d ; cd -
+                        "${python}" monitor_replicas.py --replicaConfig /tmp/replicas.json --loadInterval "${load_interval}" --runDuration "${run_duration}"
+                      '''
                     }
 
                     // TODO: Make the items below follow the model above.
@@ -1214,6 +1240,9 @@ EOF
             sh 'echo Calling Job Cleanup-SDDC-folder to cleanup resources on SDDCs under folder HermesTesting...'
             build job: 'Cleanup-SDDC-folder', parameters: [[$class: 'StringParameterValue', name: 'SDDC', value: 'VMware-Blockchain-SDDC-3'], [$class: 'StringParameterValue', name: 'VMFolder', value: 'HermesTesting'], [$class: 'StringParameterValue', name: 'OLDERTHAN', value: '1']]
             build job: 'Cleanup-SDDC-folder', parameters: [[$class: 'StringParameterValue', name: 'SDDC', value: 'VMware-Blockchain-SDDC-4'], [$class: 'StringParameterValue', name: 'VMFolder', value: 'HermesTesting'], [$class: 'StringParameterValue', name: 'OLDERTHAN', value: '1']]
+            // LongTests Clean up older than 168 hours (7 days)
+            build job: 'Cleanup-SDDC-folder', parameters: [[$class: 'StringParameterValue', name: 'SDDC', value: 'VMware-Blockchain-SDDC-3'], [$class: 'StringParameterValue', name: 'VMFolder', value: 'HermesTesting-LongTests'], [$class: 'StringParameterValue', name: 'OLDERTHAN', value: '168']]
+            build job: 'Cleanup-SDDC-folder', parameters: [[$class: 'StringParameterValue', name: 'SDDC', value: 'VMware-Blockchain-SDDC-4'], [$class: 'StringParameterValue', name: 'VMFolder', value: 'HermesTesting-LongTests'], [$class: 'StringParameterValue', name: 'OLDERTHAN', value: '168']]
             saveTimeEvent("Clean up SDDCs", "End")
           }catch(Exception ex){
             echo("Warning!  A script to clean up the SDDCs failed!  Error: " + ex)
