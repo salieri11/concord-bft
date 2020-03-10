@@ -11,7 +11,8 @@ import util
 from datetime import datetime
 from urllib3.util.retry import Retry
 
-log = logging.getLogger("main")
+import util.hermes_logging
+log = util.hermes_logging.getMainLogger()
 CSP_STAGE_URL = "https://console-stg.cloud.vmware.com/csp/gateway/am/api/auth/api-tokens/authorize"
 CUSTOM_ORG = "custom_org"
 CUSTOM_BLOCKCHAIN = "custom_blockchain"

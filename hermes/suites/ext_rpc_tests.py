@@ -31,7 +31,8 @@ from requests.auth import HTTPBasicAuth
 import web3
 from web3 import Web3, HTTPProvider
 
-log = logging.getLogger("main")
+import util.hermes_logging
+log = util.hermes_logging.getMainLogger()
 
 class ExtendedRPCTests(test_suite.TestSuite):
    _args = None

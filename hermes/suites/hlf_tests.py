@@ -18,7 +18,8 @@ from . import test_suite
 from util.product import Product
 from random import randrange
 
-log = logging.getLogger("main")
+import util.hermes_logging
+log = util.hermes_logging.getMainLogger()
 
 # The status is set by the kvb command handler.
 StatusOk = "status: 0"

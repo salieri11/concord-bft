@@ -42,7 +42,8 @@ from rest.request import Request
 from datetime import datetime
 from fixtures.common_fixtures import fxHermesRunSettings, fxProduct
 
-log = logging.getLogger("main")
+import util.hermes_logging
+log = util.hermes_logging.getMainLogger()
 
 class MetadataPersistencyTests(test_suite.TestSuite):
    def __init__(self, passedArgs, product):

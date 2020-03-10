@@ -18,7 +18,8 @@ from util.product import Product as Product
 import util.helper
 import uuid
 
-log = logging.getLogger("main")
+import util.hermes_logging
+log = util.hermes_logging.getMainLogger()
 
 
 class ProvisioningServiceRPCHelper(RPCHelper):

@@ -19,7 +19,8 @@ from . import test_suite
 from rest.request import Request
 import util.json_helper
 
-log = logging.getLogger("main")
+import util.hermes_logging
+log = util.hermes_logging.getMainLogger()
 
 class PerformanceTests(test_suite.TestSuite):
    _args = None

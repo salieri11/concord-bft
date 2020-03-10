@@ -26,7 +26,8 @@ from . import numbers_strings
 from . import vsphere
 from urllib.parse import urlparse, urlunparse
 
-log = logging.getLogger("main")
+import util.hermes_logging
+log = util.hermes_logging.getMainLogger()
 docker_env_file = ".env"
 
 # The config file contains information aobut how to run things, as opposed to

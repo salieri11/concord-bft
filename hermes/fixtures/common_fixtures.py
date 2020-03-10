@@ -16,7 +16,8 @@ import util
 import util.helper as helper
 import util.daml.daml_helper as daml_helper
 
-log = logging.getLogger("main")
+import util.hermes_logging
+log = util.hermes_logging.getMainLogger()
 ConnectionFixture = collections.namedtuple("ConnectionFixture", "request, rpc")
 BlockchainFixture = collections.namedtuple("BlockchainFixture", "blockchainId, consortiumId, replicas")
 

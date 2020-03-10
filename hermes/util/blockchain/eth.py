@@ -14,7 +14,8 @@ import time
 import util
 import util.numbers_strings
 
-log = logging.getLogger("main")
+import util.hermes_logging
+log = util.hermes_logging.getMainLogger()
 docker_env_file = ".env"
 
 # The number if blocks/transactions in a page when invoking the

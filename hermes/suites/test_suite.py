@@ -27,7 +27,8 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 import util.hermes_logging
 
-log = logging.getLogger("main")
+import util.hermes_logging
+log = util.hermes_logging.getMainLogger()
 
 CONTRACTS_DIR = "resources/contracts"
 TEST_LOG_DIR = "test_logs"

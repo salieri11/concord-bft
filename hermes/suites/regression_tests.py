@@ -27,7 +27,8 @@ from rest.request import Request
 from datetime import datetime
 from web3 import Web3
 
-log = logging.getLogger("main")
+import util.hermes_logging
+log = util.hermes_logging.getMainLogger()
 
 # Constants used in the large transaction test.
 

@@ -6,7 +6,12 @@ import logging
 import sys
 import traceback
 
-log = logging.getLogger("main")
+def getMainLogger():
+    '''
+    Returns the main logger used throughout Hermes.
+    '''
+    return logging.getLogger("main")
+
 
 def getHermesLoggingFormatter():
     '''
@@ -24,7 +29,7 @@ def addStreamHandler(level):
    streamHandler.setLevel(level)
    formatter = getHermesLoggingFormatter()
    streamHandler.setFormatter(formatter)
-   log.addHandler(streamHandler)
+   getMainLogger().addHandler(streamHandler)
 
 
 def addFileHandler(fileName, level):
@@ -43,7 +48,7 @@ def addFileHandler(fileName, level):
    fileHandler.setLevel(level)
    formatter = getHermesLoggingFormatter()
    fileHandler.setFormatter(formatter)
-   log.addHandler(fileHandler)
+   getMainLogger().addHandler(fileHandler)
    return fileHandler
 
 
@@ -58,7 +63,7 @@ def logException(exType, exValue, exTb):
    for line in lines:
       traceString += line
 
-   log.error(traceString)
+   getMainLogger().error(traceString)
 
 
 def logStringToInt(s):
@@ -73,7 +78,7 @@ def setUpLogging(args):
    '''
    Given the args passed to Hermes, sets up Hermes logging.
    '''
-   log.setLevel(args.logLevel)
+   getMainLogger().setLevel(args.logLevel)
 
    # Console output for the entire run.
    addStreamHandler(args.logLevel)

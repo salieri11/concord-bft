@@ -1,5 +1,5 @@
-import groovy.json.*
-import static groovy.json.JsonOutput.*
+import groovy.json.JsonOutput
+import groovy.json.JsonSlurperClassic
 import groovy.transform.Field
 import hudson.util.Secret
 
@@ -2031,7 +2031,6 @@ Map createTestGroups(){
     }
   }
 
-  echo("All groups when done: " + prettyPrint(JsonOutput.toJson(groups)))
   return groups
 }
 

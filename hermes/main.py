@@ -223,7 +223,8 @@ def main():
    args.hermes_dir = dir_path
 
    global log
-   log = logging.getLogger("main")
+   import util.hermes_logging
+   log = util.hermes_logging.getMainLogger()
    args.logLevel = hermes_logging.logStringToInt(args.logLevel)
    hermes_logging.setUpLogging(args)
    log.info("Args: {}".format(args))
@@ -380,8 +381,8 @@ def createTestSuite(args, suiteName, product):
 def createResultsDir(suiteName, parent_results_dir=tempfile.gettempdir()):
    '''
    Create
-   <passed in results dir>/ContractCompilerTests/ContractCompilerTests_20200305_140416
-   <passed in results dir>/ContractCompilerTests/ContractCompilerTests.log
+   <parent_results_dir>/ContractCompilerTests/ContractCompilerTests_20200305_140416
+   <parent_results_dir>/ContractCompilerTests/ContractCompilerTests.log
    '''
    prefix = suiteName + "_" + strftime("%Y%m%d_%H%M%S", localtime())
    results_dir = os.path.join(suiteName, parent_results_dir, prefix)

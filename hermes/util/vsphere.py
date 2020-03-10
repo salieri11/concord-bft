@@ -8,7 +8,8 @@ import time
 
 import logging
 
-log = logging.getLogger("main")
+import util.hermes_logging
+log = util.hermes_logging.getMainLogger()
 
 class ConnectionToSDDC:
   

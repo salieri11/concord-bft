@@ -35,7 +35,8 @@ import util.product
 # For hermes/lib/persephone, used for saving streamed events and deleting them.
 sys.path.append('lib')
 
-log = logging.getLogger("main")
+import util.hermes_logging
+log = util.hermes_logging.getMainLogger()
 
 # A user.  This will only work until CSP is implemented and
 # concord starts requiring signed transactions.

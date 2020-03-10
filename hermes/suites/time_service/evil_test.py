@@ -31,7 +31,8 @@ import util.numbers_strings
 
 from suites.time_service.basic_test import time_service_is_disabled, run_conc_time, get_samples, extract_samples_from_response, extract_time_summary_response
 
-log = logging.getLogger("main")
+import util.hermes_logging
+log = util.hermes_logging.getMainLogger()
 
 pytestmark = pytest.mark.skipif(time_service_is_disabled(), reason="Time service is disabled")
 
