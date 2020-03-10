@@ -1336,6 +1336,47 @@ paths:
                       type: string
                       format: string
                       description: Name of organization
+    patch:
+      deprecated: true
+      tags:
+        - deprecated
+      summary: Update an existing organization
+      operationId: organizationPatch
+      parameters:
+        - name: org_id
+          in: path
+          description: Organization ID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        description: Organization items to patch
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                Organization_name:
+                  type: string
+                  description: Updating name of the organization
+        required: true
+      responses:
+        200:
+          description: Returns the organization ID and Name
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  org_id:
+                    type: string
+                    format: uuid
+                    description: Organization ID
+                  OrganizationName:
+                    type: string
+                    format: string
+                    description: Organization Name
   /tasks:
     summary: Get all Tasks
     get:
