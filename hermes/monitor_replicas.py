@@ -47,13 +47,24 @@ def main(args):
       log.error("Usage: pass either --replicas (or) --replicasConfig")
       sys.exit(1)
 
+   all_replicas = {}
+
    if args.replicasConfig:
       log.info("Using replicas config: {}".format(args.replicasConfig))
       with open(args.replicasConfig, "r") as fp:
-         all_replicas = json.load(fp)
+         all_replicas_details = json.load(fp)
+         for replica_type in all_replicas_details:
+            all_replicas[replica_type] = []
+            for replica_info in all_replicas_details[replica_type]:
+               if "ip" in replica_info: # committer node returns "ip"
+                  all_replicas[replica_type].append(replica_info["ip"])
+               elif "public_ip" in replica_info: # participant node returns "public_ip" and "private_ip"
+                  all_replicas[replica_type].append(replica_info["ip"])
+               else:
+                  log.error("replica config file should map replica info with property 'ip' or 'public_ip'")
+                  sys.exit(1)
    else:
       log.info("Using replicas: {}".format(args.replicas))
-      all_replicas = {}
       for item in args.replicas:
          blockchain_type, ips = item[0].split(':')
          all_replicas[blockchain_type] = ips.split(',')
