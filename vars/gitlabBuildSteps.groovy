@@ -152,6 +152,7 @@ def call(){
   def persephone_test_on_demand_job_name = "ON DEMAND Persephone Testrun on GitLab"
   def helen_role_test_job_name = "Helen Role Tests on GitLab"
   def log_insight_test_job_name = "Log Insight Integration Test"
+  def main_mr_run_job_name = "Main Blockchain Run on GitLab"
 
   // This is a unique substring of the Jenkins job which tests ToT after a
   // change has been merged.
@@ -462,6 +463,22 @@ def call(){
                 git config --global user.email "vmwathenabot@vmware.com"
                 git config --global user.name "build system"
               '''
+
+              if (env.JOB_NAME.contains(main_mr_run_job_name)) {
+                // Figure out which components have changed based on git diff
+                // From this information, you can: 
+                //    1) choose to pull pre-built images, instead of building everything
+                //    2) skip component-internal unit tests of components that didn't change
+                // Output the changed components map to `blockchain/vars/affected_components.json`
+                withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
+                  script {
+                    dir('blockchain/vars') {
+                      env.python = "/var/jenkins/workspace/venv_py37/bin/python"
+                      sh 'echo "${PASSWORD}" | sudo -SE "${python}" getChangedPaths.py'
+                    }
+                  }
+                }
+              }
 
               if (env.JOB_NAME.contains(monitor_replicas_job_name) ||
                   env.JOB_NAME.contains(persephone_test_job_name) ||
@@ -1278,7 +1295,7 @@ void mergeToTot(branch_or_commit){
     sh(script: "git checkout ${tot_branch}")
     origTotHash = getHead()
 
-    sh(script: "git merge --no-ff ${branch_or_commit}")
+    sh(script: "git merge --no-ff ${branch_or_commit} | tee '${env.WORKSPACE}/blockchain/vars/merge_output.log'")
     sh(script: "git submodule update --recursive")
     newTotHash = getHead()
 
@@ -1639,7 +1656,7 @@ Boolean have_any_paths_changed(paths){
       absolute_path = new File(env.blockchain_root, paths[i]).toString()
 
       status = sh (
-        script: "git diff origin/${tot_branch} --name-only --exit-code '" + absolute_path + "'",
+        script: "git diff origin/${tot_branch} --name-only --exit-code '${absolute_path}'",
         returnStatus: true
       )
 
