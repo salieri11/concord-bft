@@ -25,6 +25,7 @@ simpleConfig:
       params:
         - Alice #party
         - 10 #numOfTrasactions
+        - 1 #noOfCommandsPerTransaction
   sleepTime: 1000
   numberThreads: 4 #0 or undefined is default
   outputDir: ./perf_result

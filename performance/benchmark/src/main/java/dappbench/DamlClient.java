@@ -13,7 +13,6 @@ import java.util.concurrent.atomic.LongAdder;
 import static com.daml.ledger.rxjava.DamlLedgerClient.forHostWithLedgerIdDiscovery;
 import static java.lang.Long.parseLong;
 import static java.time.Instant.now;
-import static java.util.Collections.singletonList;
 import static java.util.Optional.empty;
 import static java.util.UUID.randomUUID;
 import static org.apache.logging.log4j.LogManager.getLogger;
@@ -56,14 +55,13 @@ public class DamlClient {
   }
 
   /** Submit IOU creation. */
-  public void submitIou(Command command, String party) {
+  public void submitIou(List<Command> commands, String party) {
     String workflowId = randomUUID().toString();
     String applicationId = "IouApp";
     String commandId = randomUUID().toString();
     // Difference between following two - Min: PT11S, Max: PT2M
     Instant ledgerEffectiveTime = now();
     Instant maximumRecordTime = now().plusSeconds(11);
-    List<Command> commands = singletonList(command);
 
     client
         .getCommandClient()

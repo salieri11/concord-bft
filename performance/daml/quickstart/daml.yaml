@@ -1,4 +1,4 @@
-sdk-version: 0.13.37
+sdk-version: 0.13.54
 name: quickstart
 source: daml
 scenario: Main:setup

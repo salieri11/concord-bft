@@ -11,7 +11,7 @@ set_values() {
   export ledger_effective_time=$(date -I'seconds')
   export maximum_record_time=$(date --date='15 seconds' -I'seconds')
 
-  export package_id="164d14178afe1dc4de698c70390e054407a270ba7d9882f8a3b6c1950d019640" # corresponds to sdk-version: 0.13.46
+  export package_id="b3ed27b3af1d8aa0e5a8789348ac7906a67d7eccd2fa5cc5b975a28a62c484bb" # corresponds to sdk-version: 0.13.54
   export module_name="Iou"
   export entity_name="Iou"
 

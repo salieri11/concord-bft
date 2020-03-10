@@ -14,6 +14,7 @@ import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.LongAdder;
 
 import static java.lang.Integer.parseInt;
@@ -25,8 +26,11 @@ import static java.time.Instant.now;
 import static java.util.Collections.*;
 import static java.util.concurrent.Executors.newFixedThreadPool;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
+import static java.util.stream.Stream.generate;
 import static org.apache.logging.log4j.LogManager.getLogger;
+
 
 /**
  * This acts as a client side load balancer which distributes transactions between multiple DAML
@@ -37,6 +41,7 @@ public class DAMLManager {
 
   private final String party;
   private final int numOfTransactions;
+  private final int noOfCommandsPerTransaction;
   private final int rateControl;
   private final boolean logging;
   private final int concurrency;
@@ -55,6 +60,7 @@ public class DAMLManager {
     List<String> params = workload.getParams();
     this.party = params.get(0);
     this.numOfTransactions = parseInt(params.get(1));
+    this.noOfCommandsPerTransaction = parseInt(params.get(2));
     this.rateControl = workload.getRateControl();
     this.logging = workload.getLogging();
     this.concurrency = simpleconfig.getNumberThreads();
@@ -93,7 +99,6 @@ public class DAMLManager {
 
     List<DamlClient> txClients = assignClients(clientToTx);
 
-    Random random = new Random();
     long startTimeNanos = nanoTime();
 
     logger.info("Starting transaction ...");
@@ -105,19 +110,14 @@ public class DAMLManager {
     LongAdder totalResponseTimeMillis = new LongAdder();
 
     for (int i = 0; i < txClients.size(); i++) {
-      int iouAmount = random.nextInt(10_000) + 1;
-      Iou iou = new Iou("Alice", "Alice", "AliceCoin", new BigDecimal(iouAmount), emptyList());
-      if (logging) {
-        logger.info("{}", iou);
-      }
-      Command command = iou.create();
+      List<Command> commands = generate(this::createCommand).limit(noOfCommandsPerTransaction).collect(toList());
       DamlClient client = txClients.get(i);
 
       executorService.execute(
           () -> {
             Instant start = now();
             try {
-              client.submitIou(command, party);
+              client.submitIou(commands, party);
             } finally {
               Duration responseTime = Duration.between(start, now());
               totalResponseTimeMillis.add(responseTime.toMillis());
@@ -146,6 +146,16 @@ public class DAMLManager {
 
     Reporting report = new Reporting(data);
     report.process(simpleConfig.getOutputDir());
+  }
+
+  /** Create a contract to submit */
+  private Command createCommand() {
+    int iouAmount = ThreadLocalRandom.current().nextInt(10_000) + 1;
+    Iou iou = new Iou("Alice", "Alice", "AliceCoin", new BigDecimal(iouAmount), emptyList());
+    if (logging) {
+      logger.info("{}", iou);
+    }
+    return iou.create();
   }
 
   /** Await on the countdown latch. */
