@@ -24,7 +24,7 @@ public class GenericConfigUtilTest {
 
     @BeforeEach
     public void createObject() {
-        this.genericConfigUtil = new GenericConfigUtil("IdentifiersTemplate.env");
+        this.genericConfigUtil = new GenericConfigUtil();
     }
 
     @Test

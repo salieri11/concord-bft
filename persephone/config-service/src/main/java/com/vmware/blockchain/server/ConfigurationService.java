@@ -68,9 +68,6 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
     /** Metrics config template path. **/
     private String metricsConfigPath;
 
-    /** Generic config template path. **/
-    private String identifiersTemplatePath;
-
     /** Logging config template path. **/
     private String loggingEnvTemplatePath;
 
@@ -92,14 +89,11 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
                                  String telegrafConfigTemplatePath,
                          @Value("${config.template.path:MetricsConfig.yaml}")
                                  String metricsConfigPath,
-                         @Value("${config.template.path:IdentifiersTemplate.env}")
-                                 String identifiersTemplatePath,
                          @Value("${config.template.path:LoggingTemplate.env}")
                                  String loggingEnvTemplatePath)  {
         this.concordConfigPath = concordConfigTemplatePath;
         this.telegrafConfigPath = telegrafConfigTemplatePath;
         this.metricsConfigPath = metricsConfigPath;
-        this.identifiersTemplatePath = identifiersTemplatePath;
         this.loggingEnvTemplatePath = loggingEnvTemplatePath;
         this.executor = executor;
         initialize();
@@ -214,8 +208,7 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
             }
         }
 
-        GenericConfigUtil genericUtil = new GenericConfigUtil(identifiersTemplatePath);
-        var genericConfigs = genericUtil.getGenericConfig(request.getNodePropertiesList());
+        var genericConfigs = new GenericConfigUtil().getGenericConfig(request.getNodePropertiesList());
 
         Map<Integer, List<ConfigurationComponent>> nodeComponent = new HashMap<>();
         for (int node = 0; node < request.getHostsList().size(); node++) {

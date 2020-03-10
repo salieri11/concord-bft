@@ -4,11 +4,6 @@
 
 package com.vmware.blockchain.configuration.generateconfig;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -25,12 +20,6 @@ public class GenericConfigUtil {
 
     private static final Logger log = LoggerFactory.getLogger(GenericConfigUtil.class);
 
-    private String identifiersTemplatePath;
-
-    public GenericConfigUtil(String identifiersTemplatePath) {
-        this.identifiersTemplatePath = identifiersTemplatePath;
-    }
-
     /**
      * generic config path.
      */
@@ -44,24 +33,6 @@ public class GenericConfigUtil {
     public Map<Integer, String> getGenericConfig(List<NodeProperty> nodeProperties) {
 
         Map<Integer, String> configMap = new HashMap<>();
-
-        String content = "";
-        try {
-            InputStream inputStream = new FileInputStream(identifiersTemplatePath);
-            content = new String(inputStream.readAllBytes());
-        } catch (IOException e) {
-            // For unit tests only.
-            log.error("File {} does not exist: {}\n Using localized identifier config input template",
-                    identifiersTemplatePath, e.getLocalizedMessage());
-            ClassLoader classLoader = getClass().getClassLoader();
-            try {
-                File file = new File(classLoader.getResource("IdentifiersTemplate.env").getFile());
-                content = new String(Files.readAllBytes(file.toPath()));
-            } catch (IOException | NullPointerException ex) {
-                log.error("Identifier config could not be read due to: {}", ex.getLocalizedMessage());
-                return null;
-            }
-        }
 
         Map<Integer, String> clientGroupIds = new HashMap<>();
         Map<Integer, String> nodeIds = new HashMap<>();
@@ -79,12 +50,13 @@ public class GenericConfigUtil {
             }
         });
 
-        String finalContent = content;
         nodeIds.forEach((node, value) -> {
-            var localContent = finalContent
-                    .replace("$NODEID", value.toString())
-                    .replace("$CLIENTGROUPID", clientGroupIds.getOrDefault(node, value));
-            configMap.put(node, localContent);
+            StringBuilder builder = new StringBuilder();
+            builder.append("NODE_UUID=")
+                    .append(value)
+                    .append("CLIENT_GROUP_ID=")
+                    .append(clientGroupIds.getOrDefault(node, value));
+            configMap.put(node, builder.toString());
         });
 
         return configMap;
