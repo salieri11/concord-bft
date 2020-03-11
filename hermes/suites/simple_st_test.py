@@ -41,7 +41,8 @@ import util.numbers_strings
 from rest.request import Request
 from datetime import datetime
 
-log = logging.getLogger(__name__)
+import util.hermes_logging
+log = util.hermes_logging.getMainLogger()
 
 def wait():
     input('Press enter to continue...')

@@ -136,7 +136,8 @@ if __name__ == '__main__':
    logging.basicConfig(level=logging.INFO,
                        format='%(asctime)s %(levelname)s %(message)s',
                        datefmt='%Y-%m-%d %H:%M:%S')
-   log = logging.getLogger(__name__)
+   import util.hermes_logging
+log = util.hermes_logging.getMainLogger()
 
    time_stamp=time.strftime("%Y-%m-%d-%H-%M-%S", time.gmtime())
    deployment_support_bundle_base_dir = tempfile.gettempdir()

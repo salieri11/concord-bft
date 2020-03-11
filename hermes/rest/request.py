@@ -16,7 +16,8 @@ from util.debug import pp as pp
 
 from util.auth import getAccessToken, tokens
 
-log = logging.getLogger(__name__)
+import util.hermes_logging
+log = util.hermes_logging.getMainLogger()
 
 class Request():
    # Class

@@ -9,7 +9,8 @@ import util.auth
 
 from fixtures.common_fixtures import fxBlockchain, fxConnection, fxInitializeOrgs, fxHermesRunSettings, fxProduct
 
-log = logging.getLogger(__name__)
+import util.hermes_logging
+log = util.hermes_logging.getMainLogger()
 
 
 @pytest.mark.roles

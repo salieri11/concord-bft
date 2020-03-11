@@ -22,7 +22,8 @@ import util
 import util.blockchain.eth
 import util.json_helper
 
-log = logging.getLogger(__name__)
+import util.hermes_logging
+log = util.hermes_logging.getMainLogger()
 TEST_SOURCE_CODE_SUFFIX = "Filler.json"
 
 def test_core_vm_tests(fxCoreVMTests, fxHermesRunSettings, fxConnection, fxBlockchain):

@@ -10,6 +10,7 @@ import logging
 import os
 import sys
 import tempfile
+import traceback
 from time import strftime, localtime, sleep
 
 import event_recorder
@@ -17,7 +18,7 @@ from suites import (contract_compiler_tests, core_vm_tests,
                     ext_rpc_tests, ui_e2e_deploy_daml, hlf_tests, performance_tests, persephone_tests,
                     pytest_suite, regression_tests, sample_dapp_tests, simple_st_test,
                     ui_tests, websocket_rpc_tests, persistency_tests)
-from util import helper, html, json_helper, numbers_strings
+from util import helper, hermes_logging, html, json_helper, numbers_strings
 from util.product import ProductLaunchException
 
 sys.path.append("lib/persephone")
@@ -221,10 +222,14 @@ def main():
    dir_path = os.path.dirname(os.path.realpath(__file__))
    args.hermes_dir = dir_path
 
-   setUpLogging(args)
-   log.debug("Args: {}".format(args))
+   global log
+   import util.hermes_logging
+   log = util.hermes_logging.getMainLogger()
+   args.logLevel = hermes_logging.logStringToInt(args.logLevel)
+   hermes_logging.setUpLogging(args)
+   log.info("Args: {}".format(args))
    product = None
-   resultsFile = None
+   resultFile = None
    totalSuccess = True
    allResults = {}
    log.info("Suites to run: {}".format(args.suites.split(",")))
@@ -243,24 +248,32 @@ def main():
             log.error("Unknown test suite")
             exit(3)
 
-         log.info("Running {}".format(suiteName))
-
          try:
-            resultsFile, product = suite.run()
+            log.info("Running {}".format(suiteName))
+            resultFile, product = suite.run()
+            log.info("Finished running {}".format(suiteName))
          except ProductLaunchException as e:
-            resultsFile = e.logFile
+            log.error("Product launch exception with suite {}".format(suiteName))
+            traceback.print_exc()
+            resultFile = e.logFile
             product = None
+         except Exception as e:
+            log.error("Uncaught test exception in suite {}".format(suiteName))
+            log.error(e)
+            traceback.print_exc()
+            resultFile = suite.getResultFile()
 
          try:
-            suiteSuccess, suiteSuccessMessage = processResults(resultsFile)
+            suiteSuccess, suiteSuccessMessage = processResults(resultFile)
          except Exception:
             suiteSuccess = False
-            suiteSuccessMessage = "Log {} for suite {} could not be processed.".format(resultsFile, suiteName)
+            suiteSuccessMessage = "Log {} for suite {} could not be processed.".format(resultFile, suiteName)
 
          allResults[suiteName] = {
             "message": suiteSuccessMessage,
             "logs": suite.getTestLogDir()
          }
+
          totalSuccess = totalSuccess and suiteSuccess
 
          if not totalSuccess:
@@ -312,28 +325,6 @@ def update_repeated_suite_run_result(parent_results_dir, result, no_of_runs):
                                  'test_status.{0}'.format(result))
       log.info("Repeated Suite run result: {0} [{1}]".format(result, result_file))
       open(result_file, 'a').close()
-
-
-def setUpLogging(args):
-   '''
-   Checks the log level passed in by the user and sets up logging.
-   After running, get a logger and use it like this:
-
-   log = logging.getLogger(__name__)
-   log.info("Two things: {} {}".format("pen", "pencil"))
-   '''
-   stringLevel = args.logLevel.upper()
-
-   try:
-      intLevel = getattr(logging, stringLevel)
-      logging.basicConfig(level=intLevel, format='%(asctime)s %(levelname)s %(message)s',
-                          datefmt='%Y-%m-%d %H:%M:%S')
-      global log
-      log = logging.getLogger(__name__)
-   except AttributeError:
-      print("Log level", args.logLevel, "not valid.  See the help for valid",
-            "values. Exiting")
-      exit(1)
 
 
 def createTestSuite(args, suiteName, product):
@@ -388,17 +379,22 @@ def createTestSuite(args, suiteName, product):
 
 
 def createResultsDir(suiteName, parent_results_dir=tempfile.gettempdir()):
+   '''
+   Create
+   <parent_results_dir>/ContractCompilerTests/ContractCompilerTests_20200305_140416
+   <parent_results_dir>/ContractCompilerTests/ContractCompilerTests.log
+   '''
    prefix = suiteName + "_" + strftime("%Y%m%d_%H%M%S", localtime())
-   results_dir = os.path.join(parent_results_dir, prefix)
+   results_dir = os.path.join(suiteName, parent_results_dir, prefix)
    os.makedirs(results_dir)
    return results_dir
 
-def processResults(resultsFile):
+def processResults(resultFile):
    '''
    Process a result file, outputting an html file.  If we ever need to output
    a file in another format (such as a CI tool), do that here.
    '''
-   results = json_helper.readJsonFile(resultsFile)
+   results = json_helper.readJsonFile(resultFile)
    testCount, passCount, failCount, skippedCount = tallyResults(results)
    fileContents = html.createResultHeader(results,
                                           testCount,
@@ -407,7 +403,7 @@ def processResults(resultsFile):
                                           skippedCount)
    fileContents += html.createResultTable(results)
    fileContents += html.createHtmlFooter()
-   fileLocation = os.path.join(os.path.dirname(resultsFile), "results.html")
+   fileLocation = os.path.join(os.path.dirname(resultFile), "results.html")
 
    with open(fileLocation, "w") as f:
       f.write(fileContents)

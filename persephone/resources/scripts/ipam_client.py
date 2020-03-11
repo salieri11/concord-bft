@@ -89,7 +89,7 @@ def to_block_reservation(reserved: List[str], prefix: int, broadcast: int) -> Di
     Returns:
         a dictionary of block segment prefix to its 32-byte-wide reserved addresses byte-array.
     """
-    log = logging.getLogger(__name__)
+    log = logging.getLogger("main")
 
     reserved_allocations = collections.defaultdict(default_block_reservation)
     for str_value in reserved:
@@ -135,7 +135,7 @@ def create_address_block(
     Returns:
         address block creation response from server.
     """
-    log = logging.getLogger(__name__)
+    log = logging.getLogger("main")
 
     prefix = int("0x" + block_prefix, 16)
     broadcast = prefix + (1 << (32 - subnet)) - 1
@@ -173,7 +173,7 @@ def delete_address_block(
     Returns:
         address block deletion response from server.
     """
-    log = logging.getLogger(__name__)
+    log = logging.getLogger("main")
 
     block_name = "blocks/" + block_name
     delete_address_block_request = ip_allocation_service.DeleteAddressBlockRequest(
@@ -204,7 +204,7 @@ def smoke_test(
     Returns:
         None
     """
-    log = logging.getLogger(__name__)
+    log = logging.getLogger("main")
 
     create_address_block_response = create_address_block(
         stub,

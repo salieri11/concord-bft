@@ -26,7 +26,8 @@ from rpc.rpc_call import RPC
 import util.blockchain.eth
 import util.numbers_strings
 
-log = logging.getLogger(__name__)
+import util.hermes_logging
+log = util.hermes_logging.getMainLogger()
 
 def run_conc_time(concordContainer=None, args=""):
    '''

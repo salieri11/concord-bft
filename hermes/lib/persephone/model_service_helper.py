@@ -13,7 +13,8 @@ sys.path.append('../../')
 from util.product import Product as Product
 
 
-log = logging.getLogger(__name__)
+import util.hermes_logging
+log = util.hermes_logging.getMainLogger()
 
 
 class ModelServiceRPCHelper(RPCHelper):

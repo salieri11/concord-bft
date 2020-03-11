@@ -38,7 +38,7 @@ from util.thin_replica.trutil import ThinReplica
 
 from fixtures.common_fixtures import fxHermesRunSettings, fxProduct
 
-LOG = logging.getLogger(__name__)
+LOG = logging.getLogger("main")
 
 # Read by the fxProduct fixture.
 productType = helper.TYPE_TEE

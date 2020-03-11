@@ -23,7 +23,8 @@ from util.product import Product as Product
 import util.helper
 
 
-log = logging.getLogger(__name__)
+import util.hermes_logging
+log = util.hermes_logging.getMainLogger()
 
 
 def startMonitoringBlockchainDeployments(args, logDir):

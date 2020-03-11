@@ -307,7 +307,7 @@ def main():
         level=logging.DEBUG,
         format="[%(asctime)s] [%(levelname)s] [%(name)s]: %(message)s",
     )
-    log = logging.getLogger(__name__)
+    log = logging.getLogger("main")
 
     args = parse_arguments()
     if args["trusted_certs"]:

@@ -13,7 +13,8 @@ from xvfbwrapper import Xvfb
 
 from . import test_suite
 
-log = logging.getLogger(__name__)
+import util.hermes_logging
+log = util.hermes_logging.getMainLogger()
 
 
 class UiTests(test_suite.TestSuite):

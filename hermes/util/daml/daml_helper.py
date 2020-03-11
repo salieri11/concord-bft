@@ -9,7 +9,8 @@ from tempfile import NamedTemporaryFile
 import util.daml.upload_dar as darutil
 import util.helper as helper
 
-log = logging.getLogger(__name__)
+import util.hermes_logging
+log = util.hermes_logging.getMainLogger()
 
 TEST_TOOL_NAME = "ledger-api-test-tool-100.13.52.jar"
 TEST_DARS = ["SemanticTests.dar", "Test-dev.dar", "Test-stable.dar"]

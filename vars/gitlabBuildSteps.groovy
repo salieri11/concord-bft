@@ -1,4 +1,5 @@
-import groovy.json.*
+import groovy.json.JsonOutput
+import groovy.json.JsonSlurperClassic
 import groovy.transform.Field
 import hudson.util.Secret
 
@@ -15,6 +16,7 @@ import hudson.util.Secret
 //   "resultsDir": String, defaults to the map key
 //   "performanceVotes": Int, for performance testing
 //   "concordConfigurationInput": String, files to use for concord config generation.
+//   "runAlone": Boolean, causes this suite to be run on a clean invocation of the product, by itself.
 //   "runWithGenericTests": Boolean, whether to run in a job not named in specialized_tests. Defaults to true.
 //   "runWithToTTests": Boolean, whether to run with ToT runs.  Defaults to true.
 //   "suiteDir": String, directory to cd into (and then out of when done)
@@ -1920,73 +1922,120 @@ void runTests(){
     }
   }
 
+  testGroups = createTestGroups()
+
   // Do everything via keySet().  Jenkins does not support iterating through a hashmap,
   // but we can iterate over a list of keys.
-  for (suite in testSuites.keySet()) {
-    if (testSuites[suite].runSuite){
-      echo("**** Starting suite " + suite + " ****")
-      env.suiteName = suite
-      env.suiteCmd = testSuites[suite].baseCommand ? testSuites[suite].baseCommand :
-                   'echo ${PASSWORD} | sudo -SE ' + env.python + " main.py " + suite
-      env.suiteCmd += testSuites[suite].otherParameters ? " " + testSuites[suite].otherParameters : ""
-      env.suiteRunConcordConfigGeneration = testSuites[suite].runConcordConfigurationGeneration == false ?
-                                            "" : "--runConcordConfigurationGeneration"
-      resultsDir = testSuites[suite].resultsDir ? testSuites[suite].resultsDir : suite
-      //GAAAH mixed case horror.
-      env.suiteResultsDir = new File(env.test_log_root, resultsDir).toString()
+  for (group in testGroups.keySet()){
+    echo("**** Starting group " + group + " ****")
+    env.suiteNames = groups[group]["suites"].join(",")
+    suiteParams = groups[group]["params"]
 
-      env.suitePerformanceVotes = testSuites[suite].performanceVotes ?
-                                "--performanceVotes " + testSuites[suite].performanceVotes : ""
-      env.suiteConcordConfigInput = testSuites[suite].concordConfigurationInput ?
-                                  "--concordConfigurationInput \"" + testSuites[suite].concordConfigurationInput + "\"" : ""
-      env.suiteDockerComposeFiles = testSuites[suite].dockerComposeFiles ?
-                                  "--dockerComposeFile " + testSuites[suite].dockerComposeFiles : ""
-      env.suiteDir = testSuites[suite].suiteDir ? testSuites[suite].suiteDir : "."
-      env.testLogFileName = suite + ".log"
+    env.suiteCmd = suiteParams.baseCommand ? suiteParams.baseCommand :
+                 'echo ${PASSWORD} | sudo -SE ' + env.python + " main.py " + env.suiteNames
+    env.suiteCmd += suiteParams.otherParameters ? " " + suiteParams.otherParameters : ""
+    env.suiteRunConcordConfigGeneration = suiteParams.runConcordConfigurationGeneration == false ?
+                                          "" : "--runConcordConfigurationGeneration"
+    resultsDir = suiteParams.resultsDir ? suiteParams.resultsDir : group
+    //GAAAH mixed case horror.
+    env.suiteResultsDir = new File(env.test_log_root, resultsDir).toString()
 
-      if (testSuites[suite].setupFunction){
-        setupFunction = testSuites[suite].setupFunction
-        "$setupFunction"()
-      }
+    env.suitePerformanceVotes = suiteParams.performanceVotes ?
+                              "--performanceVotes " + suiteParams.performanceVotes : ""
+    env.suiteConcordConfigInput = suiteParams.concordConfigurationInput ?
+                                "--concordConfigurationInput \"" + suiteParams.concordConfigurationInput + "\"" : ""
+    env.suiteDockerComposeFiles = suiteParams.dockerComposeFiles ?
+                                "--dockerComposeFile " + suiteParams.dockerComposeFiles : ""
+    env.suiteDir = suiteParams.suiteDir ? suiteParams.suiteDir : "."
+    env.groupLogFileName = group + ".log"
 
-      withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
-        sh(script:
-        '''
-          EVENTS_FILE="${eventsFullPath}"
+    if (suiteParams.setupFunction){
+      setupFunction = suiteParams.setupFunction
+      "$setupFunction"()
+    }
 
-          # pushd is not available in the Jenkins shell.
-          origDir=`pwd`
-          cd "${suiteDir}"
-          mkdir "${suiteResultsDir}"
+    withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
+      sh(script:
+      '''
+        EVENTS_FILE="${eventsFullPath}"
 
-          # Change to set -x for debugging the command.
-          # Keep at +x for production.
-          # set -x
+        # pushd is not available in the Jenkins shell.
+        origDir=`pwd`
+        cd "${suiteDir}"
+        mkdir "${suiteResultsDir}"
 
-          # Set +e so we can grep for the result summary instead of exiting immediately on failure.
-          set +e
+        # Change to set -x for debugging the command.
+        # Keep at +x for production.
+        # set -x
 
-          eval "${suiteCmd} --resultsDir \\\"${suiteResultsDir}\\\" ${suiteRunConcordConfigGeneration} ${suitePerformanceVotes} ${suiteConcordConfigInput} ${suiteDockerComposeFiles} --logLevel debug" --eventsFile \\\"${EVENTS_FILE}\\\" > "${suiteResultsDir}/${testLogFileName}" 2>&1
-          suiteSuccess=$?
+        # Set +e so we can grep for the result summary instead of exiting immediately on failure.
+        set +e
 
-          # Print a line for jenkinslogs to search for.
-          # Search for text output by hermes/main.py, processResults().
-          set +x
-          echo "Getting resultSummary"
-          resultSummary=`grep -E "tests succeeded|tests failed|tests skipped" "${suiteResultsDir}/${testLogFileName}"`
-          echo Test result summary: "${resultSummary}"
-          cd "${origDir}"
+        eval "${suiteCmd} --resultsDir \\\"${suiteResultsDir}\\\" ${suiteRunConcordConfigGeneration} ${suitePerformanceVotes} ${suiteConcordConfigInput} ${suiteDockerComposeFiles} --logLevel debug" --eventsFile \\\"${EVENTS_FILE}\\\" > "${suiteResultsDir}/${groupLogFileName}" 2>&1
+        suiteSuccess=$?
 
-          # Now that we have finished our work, let the script fail.
-          set -e
-          if [ ${suiteSuccess} -ne 0 ]; then
-             false
-          fi
-        '''
-        )
-      }
+        # Print a line for jenkinslogs to search for.
+        # Search for text output by hermes/main.py, processResults().
+        set +x
+        echo "Getting resultSummary"
+        resultSummary=`grep -E "tests succeeded|tests failed|tests skipped" "${suiteResultsDir}/${groupLogFileName}"`
+        echo Test result summary: "${resultSummary}"
+        cd "${origDir}"
+
+        # Now that we have finished our work, let the script fail.
+        set -e
+        if [ ${suiteSuccess} -ne 0 ]; then
+           false
+        fi
+      '''
+      )
     }
   }
+}
+
+
+Map createTestGroups(){
+  groups = [:]
+
+  for (suite in testSuites.keySet()) {
+    if (testSuites[suite].runSuite){
+      System.out.println("Finding or creating a group for suite: " + suite)
+
+      inGroup = false
+
+      if (!testSuites[suite].runAlone){
+        deletedKey = null
+        newMap = [:]
+
+        if (!groups.isEmpty()){
+          for (group in groups.keySet()){
+            if (testSuites[suite] == groups[group]["params"]){
+              inGroup = true
+              groups[group]["suites"].add(suite)
+              newMap[group + "_" + suite] = groups[group]
+              deletedKey = group
+              break
+            }
+          }
+
+          if (inGroup) {
+            groups.remove(deletedKey)
+            groups = groups + newMap
+          }
+        }
+      }
+
+      if (!inGroup){
+        groups["group_" + suite] = [
+          "suites": [suite],
+          "params": testSuites[suite]
+        ]
+      }
+
+    }
+  }
+
+  return groups
 }
 
 // Use this function to generate a value to copy/paste into the Jenkins job.

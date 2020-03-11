@@ -12,7 +12,8 @@ from numbers import Number
 import util.json_helper
 from util.auth import getAccessToken
 
-log = logging.getLogger(__name__)
+import util.hermes_logging
+log = util.hermes_logging.getMainLogger()
 
 class RPC():
    # Class
