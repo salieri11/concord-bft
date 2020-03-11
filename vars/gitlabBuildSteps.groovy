@@ -64,7 +64,8 @@ import hudson.util.Secret
     "baseCommand": 'echo "${PASSWORD}" | sudo -S "${python}" main.py ExtendedRPCTests --ethrpcApiUrl https://localhost/blockchains/local/api/concord/eth'
   ],
   "RegressionTests": [
-    "enabled": true
+    "enabled": true,
+    "runAlone": true
   ],
   "DamlTests": [
     "enabled": true,
