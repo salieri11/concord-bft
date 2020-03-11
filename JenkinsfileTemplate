@@ -1,4 +1,4 @@
-node{
+node('name of your node here'){
   checkout scm
 
   def rootDir = pwd()
