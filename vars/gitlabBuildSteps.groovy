@@ -486,11 +486,13 @@ def call(){
                 //    1) choose to pull pre-built images, instead of building everything
                 //    2) skip component-internal unit tests of components that didn't change
                 // Output the changed components map to `blockchain/vars/affected_components.json`
+                // Also, extract effective commits and authors affecting this MR
                 withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
                   script {
                     dir('blockchain/vars') {
                       env.python = "/var/jenkins/workspace/venv_py37/bin/python"
                       sh 'echo "${PASSWORD}" | sudo -SE "${python}" getChangedPaths.py'
+                      sh 'echo "${PASSWORD}" | sudo -SE "${python}" getCommitsBlame.py'
                     }
                   }
                 }
