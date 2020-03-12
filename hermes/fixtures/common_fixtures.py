@@ -139,6 +139,8 @@ def deployToSddc(logDir, hermesData):
                "manually: {}".format(json.dumps(blockchainDetails, indent=4)))
       credentials = hermesData["hermesUserConfig"]["persephoneTests"]["provisioningService"]["concordNode"]
 
+      log.info("Annotating VMs with deployment context...")
+      blockchainDetails["nodes_type"] = helper.PRETTY_TYPE_COMMITTER
       helper.sddcGiveDeploymentContextToVM(blockchainDetails)
 
       ethereum_replicas = []
@@ -188,6 +190,7 @@ def deploy_participants(con_admin_request, blockchain_id, site_ids, credentials,
     success, response = helper.waitForTask(con_admin_request, task_id)
 
     participant_replicas = []
+    replica_list = []
     if success:
         username = credentials["username"]
         password = credentials["password"]
@@ -203,7 +206,22 @@ def deploy_participants(con_admin_request, blockchain_id, site_ids, credentials,
             log.info("Starting DAR upload verification test on participant {}".format(public_ip))
             daml_helper.verify_ledger_api_test_tool(host=public_ip, port='443')
             log.info("DAR upload and verification successful on participant {}".format(public_ip))
+            private_ip = participant_entry["private_ip"]
+            vmHandle = util.helper.sddcFindVMByInternalIP(private_ip)
+            if vmHandle: replica_list.append({
+              "ip": public_ip, 
+              "replica_id": vmHandle["replicaId"] if vmHandle is not None else "None"
+            })
         log.info("All participant nodes running successfully")
+        
+        log.info("Annotating VMs with deployment context...")
+        helper.sddcGiveDeploymentContextToVM({
+          "id": blockchain_id,
+          "consortium_id": "None",
+          "blockchain_type": util.helper.TYPE_DAML,
+          "nodes_type": helper.PRETTY_TYPE_PARTICIPANT,
+          "replica_list": replica_list
+        })
     else:
         raise Exception("Failed to deploy participants")
 

@@ -59,7 +59,7 @@ def main(args):
                if "ip" in replica_info: # committer node returns "ip"
                   all_replicas[replica_type].append(replica_info["ip"])
                elif "public_ip" in replica_info: # participant node returns "public_ip" and "private_ip"
-                  all_replicas[replica_type].append(replica_info["ip"])
+                  all_replicas[replica_type].append(replica_info["public_ip"])
                else:
                   log.error("replica config file should map replica info with property 'ip' or 'public_ip'")
                   sys.exit(1)
