@@ -575,9 +575,24 @@ class PersephoneTests(test_suite.TestSuite):
 
          if session_id:
             replicas = []
+            replica_list = []
             for endpoint in ethrpc_endpoints:
                replica_ip = endpoint.split('//')[1].split(':')[0]
                replicas.append(replica_ip)
+               vmHandle = util.helper.sddcFindVMByInternalIP(replica_ip)
+               if vmHandle: replica_list.append({
+                 "ip": replica_ip, 
+                 "replica_id": vmHandle["replicaId"] if vmHandle is not None else "None"
+               })
+
+            log.info("Annotating VMs with deployment context...")
+            util.helper.sddcGiveDeploymentContextToVM({
+              "id": "None",
+              "consortium_id": "None",
+              "blockchain_type": concord_type if concord_type is not None else util.helper.TYPE_ETHEREUM,
+              "nodes_type": util.helper.PRETTY_TYPE_COMMITTER,
+              "replica_list": replica_list
+            })
 
             for deployment_info in self.rpc_test_helper.deployment_info:
                if deployment_info["deployment_session_id"][0] == session_id:

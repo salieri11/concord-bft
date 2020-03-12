@@ -157,16 +157,26 @@
   },
   "infra":{
     "SDDC3":{
-      "type":"vSphere",
-      "host":"vcenter.sddc-35-156-16-204.vmwarevmc.com",
-      "username":"<VMC_SDDC3_VC_CREDENTIALS_USERNAME>",
-      "password":"<VMC_SDDC3_VC_CREDENTIALS_PASSWORD>"
+      "name": "SDDC3",
+      "type": "vSphere",
+      "orgId": "c56e116e-c36f-4f7d-b504-f9a33955b853",
+      "sddcId": "6db19f8f-cde6-4151-88e5-a3b0d6aead6a",
+      "publicIP": "35.156.16.204",
+      "username": "<VMC_SDDC3_VC_CREDENTIALS_USERNAME>",
+      "password": "<VMC_SDDC3_VC_CREDENTIALS_PASSWORD>",
+      "vmcToken": "<VMC_API_TOKEN>",
+      "active": true
     },
     "SDDC4":{
-      "type":"vSphere",
-      "host":"vcenter.sddc-52-62-59-206.vmwarevmc.com",
-      "username":"<VMC_SDDC4_VC_CREDENTIALS_USERNAME>",
-      "password":"<VMC_SDDC4_VC_CREDENTIALS_PASSWORD>"
+      "name": "SDDC4",
+      "type": "vSphere",
+      "orgId": "c56e116e-c36f-4f7d-b504-f9a33955b853",
+      "sddcId": "abb0fe0e-1f2f-470c-a427-774aa08ce2ea",
+      "publicIP": "52.62.59.206",
+      "username": "<VMC_SDDC4_VC_CREDENTIALS_USERNAME>",
+      "password": "<VMC_SDDC4_VC_CREDENTIALS_PASSWORD>",
+      "vmcToken": "<VMC_API_TOKEN>",
+      "active": true
     }
   },
   "persephoneTests": {

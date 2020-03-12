@@ -805,7 +805,7 @@ EOF
                       sh '''
                         echo "Running script to monitor health and status of replicas..."
                         cd ../docker ; docker-compose -f ../docker/docker-compose-persephone.yml up -d ; cd -
-                        "${python}" monitor_replicas.py --replicaConfig /tmp/replicas.json --loadInterval "${load_interval}" --runDuration "${run_duration}"
+                        "${python}" monitor_replicas.py --replicasConfig /tmp/replicas.json --loadInterval "${load_interval}" --runDuration "${run_duration}"
                       '''
                     }
 

@@ -58,6 +58,10 @@ TYPE_DAML_PARTICIPANT = "daml_participant"
 TYPE_HLF = "hlf"
 TYPE_TEE = "tee"
 
+# Node type pretty name print for annotation
+PRETTY_TYPE_COMMITTER = "Committer" # eth/daml regular nodes are committers
+PRETTY_TYPE_PARTICIPANT = "Participant" # applicable to daml only, for now
+
 # These are command line options for --keepBlockchains.
 KEEP_BLOCKCHAINS_ALWAYS = "always"
 KEEP_BLOCKCHAINS_ON_FAILURE = "on-failure"
@@ -913,7 +917,7 @@ def getJenkinsBuildId(jobName=None, buildNumber=None):
 '''
 def sddcCredentialsAreGood(sddcName, sddcInfo):
    c = sddcInfo
-   if not c["host"] or not c["username"] or not c["password"]: 
+   if not c["username"] or not c["password"]: 
       log.debug("Target 'vSphere/{}' is not well-defined in user_config.json".format(sddcName))
       return False
    if c["username"].startswith("<") and c["username"].endswith(">"): # user_config not injected correctly with credential
@@ -932,10 +936,15 @@ def sddcGetConnection(sddcName):
         ...
         "infra":{
           "SDDC3":{
+            "name": "SDDC3",
             "type": "vSphere",
-            "host": "vcenter.sddc-35-156-16-204.vmwarevmc.com", 
+            "orgId": "c56e116e-c36f-4f7d-b504-f9a33955b853",
+            "sddcId": "6db19f8f-cde6-4151-88e5-a3b0d6aead6a",
+            "publicIP": "35.156.16.204",
             "username": "<VMC_SDDC3_VC_CREDENTIALS_USERNAME>",
-            "password": "<VMC_SDDC3_VC_CREDENTIALS_PASSWORD>" 
+            "password": "<VMC_SDDC3_VC_CREDENTIALS_PASSWORD>",
+            "vmcToken": "<VMC_API_TOKEN>",
+            "active": true
           }
           ...
         }
@@ -949,30 +958,31 @@ def sddcGetConnection(sddcName):
       if sddcName not in INFRA:
          if sddcName not in configObject["infra"]:
            log.debug("Cannot open session to {}, no vSphere credential in config object.".format(sddcName))
-           return False
+           return None
          
          sddcInfo = configObject["infra"][sddcName]
          
+         if not sddcInfo["active"]:
+           log.debug("Cannot open session to {}, this SDDC is inactive".format(sddcName))
+           return None
+
          if not sddcCredentialsAreGood(sddcName, sddcInfo):
            log.debug("Cannot open session to {}, credentials are bad".format(sddcName))
-           return False
+           return None
          
-         conn = vsphere.ConnectionToSDDC(
-            sddcName = sddcName,
-            hostname = sddcInfo["host"],
-            username = sddcInfo["username"],
-            password = sddcInfo["password"],
-         )
+         conn = vsphere.ConnectionToSDDC(sddcInfo)
+
          if not conn.ready:
            log.debug("Cannot open session to {}, connection is not ready".format(sddcName))
-           return False
+           return None
          
          INFRA[sddcName] = conn
+         return conn
       return INFRA[sddcName]
 
    except Exception as e:
      log.debug(str(e))
-     return False
+     return None
 
 
 def sddcGetListFromConfig(configObject = None):
@@ -1000,10 +1010,24 @@ def sddcFindReplicaVM(replicaId, sddcs = None):
   sddcs = sddcs if sddcs is not None else sddcGetListFromConfig()
   for sddcName in sddcs:
     if sddcGetConnection(sddcName):
-      vm = INFRA[sddcName].getByNameContaining(replicaId)
-      if vm:
-        return {"vm": vm, "sddc": INFRA[sddcName]}
+      vmHandle = INFRA[sddcName].getByNameContaining(replicaId, getAsHandle=True)
+      if vmHandle: return {"vmHandle": vmHandle, "sddc": INFRA[sddcName]}
   log.debug("Cannot find vm with its name containing '{}' in datacenters [{}]".format(replicaId, ', '.join(sddcs)))
+  return None
+
+
+def sddcFindVMByInternalIP(ip, sddcs = None):
+  '''
+      Returns VM by the supplied internal IP (e.g. 10.*.*.*)
+      :param sddc: (optional), if not given, all SDDCs defined in user_config.json used
+  '''
+  # if narrow sddcs search not given, search in all SDDCs in user_config
+  sddcs = sddcs if sddcs is not None else sddcGetListFromConfig()
+  for sddcName in sddcs:
+    if sddcGetConnection(sddcName):
+      vmHandle = INFRA[sddcName].getByInternalIP(ip, getAsHandle=True)
+      if vmHandle: return vmHandle
+  log.debug(f"Cannot find vm with internal IP '{ip}' in datacenters {sddcs}")
   return None
 
 
@@ -1015,6 +1039,7 @@ def sddcGiveDeploymentContextToVM(blockchainDetails, otherMetadata=""):
           "id": "c035100f-22e9-4596-b9d6-5daa349db342",
           "consortium_id": "bfaa0041-8ab2-4072-9023-4cedd0e81a78",
           "blockchain_type": "ETHEREUM",
+          "nodes_type": "Committer" | "Participant",
           "node_list": [ ... ], # `NOT USED`
           "replica_list": [{
             "ip": "52.63.165.178",
@@ -1051,14 +1076,21 @@ def sddcGiveDeploymentContextToVM(blockchainDetails, otherMetadata=""):
           # They all have their own version of inventory system with: instance notes, descriptions and/or tags, etc.
         )
         if vmAndSourceSDDC is None: continue # vm with the given replicaId is not found
-        vm = vmAndSourceSDDC["vm"]
+        vmHandle = vmAndSourceSDDC["vmHandle"]
+        if "realm" in vmHandle["attrMap"]: # already has context given
+          log.info("VM ({}) has deployment context annotations already\n".format(replicaInfo["ip"]))
+          continue
+        vm = vmHandle["entity"]
         sddc = vmAndSourceSDDC["sddc"]
-        notes = "Public IP: {}\nReplica ID: {}\nBlockchain: {}\nConsortium: {}\nType: {}\n".format(
+        ipType = "Private" if replicaInfo["ip"].startswith("10.") else "Public"
+        notes = "{} IP: {}\nReplica ID: {}\nBlockchain: {}\nConsortium: {}\nNetwork Type: {}\nNode Type: {}\n".format(
+                ipType,
                 replicaInfo["ip"],
                 replicaInfo["replica_id"],
                 blockchainDetails["id"],
                 blockchainDetails["consortium_id"],
-                blockchainDetails["blockchain_type"]
+                blockchainDetails["blockchain_type"],
+                blockchainDetails["nodes_type"]
               ) + "\nDeployed By: Hermes\nJob Name: {}\nBuild Number: {}\nDocker Tag: {}\n".format(
                 # Below 3 attributes: if run locally, user_config will have default "<VAR_NAMES>", in this case use "None"
                 jobName if not jobName.startswith("<") else "None",
@@ -1080,11 +1112,16 @@ def sddcGiveDeploymentContextToVM(blockchainDetails, otherMetadata=""):
         sddc.vmSetCustomAttribute(vm, "jenkins_build_id", jenkinsBuildId if not jenkinsBuildId.startswith("<") else "")
         sddc.vmSetCustomAttribute(vm, "job_name", jobName if not jobName.startswith("<") else "")
         sddc.vmSetCustomAttribute(vm, "replica_id", replicaInfo["replica_id"])
-        sddc.vmSetCustomAttribute(vm, "public_ip", replicaInfo["ip"])
         sddc.vmSetCustomAttribute(vm, "blockchain_id", blockchainDetails["id"])
         sddc.vmSetCustomAttribute(vm, "consortium_id", blockchainDetails["consortium_id"])
         sddc.vmSetCustomAttribute(vm, "blockchain_type", blockchainDetails["blockchain_type"])
+        sddc.vmSetCustomAttribute(vm, "node_type", blockchainDetails["nodes_type"].lower())
         sddc.vmSetCustomAttribute(vm, "other_metadata", otherMetadata)
+        if ipType == "Public":
+          sddc.vmSetCustomAttribute(vm, "public_ip", replicaInfo["ip"])
+        else:
+          sddc.vmSetCustomAttribute(vm, "private_ip", replicaInfo["ip"])
+
 
    except Exception as e:
       log.debug(e)
