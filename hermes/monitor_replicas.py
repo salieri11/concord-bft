@@ -93,10 +93,12 @@ def main(args):
             args.runDuration))
          log.error("**** Blockchain sustained only for {} hrs".format(
             (end_time - start_time) / 3600))
+         sys.exit(1)
    else:
       log.error(
          "**** Failed to install status monitoring daemon on nodes: {}".format(
             all_replicas))
+      sys.exit(1)
 
 if __name__ == '__main__':
    logging.basicConfig(level=logging.INFO,
