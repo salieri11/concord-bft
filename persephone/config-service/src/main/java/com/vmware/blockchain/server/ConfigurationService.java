@@ -31,6 +31,7 @@ import com.vmware.blockchain.configuration.generateconfig.GenericConfigUtil;
 import com.vmware.blockchain.configuration.generateconfig.GenesisUtil;
 import com.vmware.blockchain.configuration.generateconfig.LoggingUtil;
 import com.vmware.blockchain.configuration.generateconfig.TelegrafConfigUtil;
+import com.vmware.blockchain.configuration.generateconfig.WavefrontConfigUtil;
 
 import com.vmware.blockchain.deployment.v1.ConcordComponent.ServiceType;
 import com.vmware.blockchain.deployment.v1.ConfigurationComponent;
@@ -65,6 +66,9 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
     /** Telegraf config template path. **/
     private String telegrafConfigPath;
 
+    /** Wavefront config template path. **/
+    private String wavefrontConfigPath;
+
     /** Metrics config template path. **/
     private String metricsConfigPath;
 
@@ -89,11 +93,14 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
                                  String telegrafConfigTemplatePath,
                          @Value("${config.template.path:MetricsConfig.yaml}")
                                  String metricsConfigPath,
+                         @Value("${config.template.path:wavefrontConfigTemplate.conf}")
+                                 String wavefrontConfigPath,
                          @Value("${config.template.path:LoggingTemplate.env}")
                                  String loggingEnvTemplatePath)  {
         this.concordConfigPath = concordConfigTemplatePath;
         this.telegrafConfigPath = telegrafConfigTemplatePath;
         this.metricsConfigPath = metricsConfigPath;
+        this.wavefrontConfigPath = wavefrontConfigPath;
         this.loggingEnvTemplatePath = loggingEnvTemplatePath;
         this.executor = executor;
         initialize();
@@ -124,6 +131,7 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
         Map<Integer, List<IdentityComponent>> tlsNodeIdentities = new HashMap<>();
         Map<Integer, String> tlsConfig = new HashMap<>();
         Map<Integer, String> telegrafConfig = new HashMap<>();
+        Map<Integer, String> wavefrontConfig = new HashMap<>();
         Map<Integer, String> loggingConfig = new HashMap<>();
         var certGen = new ConcordEcCertificatesGenerator();
 
@@ -203,6 +211,11 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
                             .setIdentityFactors(IdentityFactors.newBuilder().build())
                             .build());
                     break;
+                case WAVEFRONT_PROXY:
+                    var wavefrontConfigUtil = new WavefrontConfigUtil(wavefrontConfigPath);
+                    wavefrontConfig = wavefrontConfigUtil.getWavefrontConfig(request.getProperties(),
+                            request.getHostsList());
+                    break;
                 default:
                     log.info("No config required for serviceType {}", serviceType);
             }
@@ -249,6 +262,16 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
                         .setType(ServiceType.TELEGRAF)
                         .setComponentUrl(TelegrafConfigUtil.configPath)
                         .setComponent(telegrafConfig.get(node))
+                        .setIdentityFactors(IdentityFactors.newBuilder().build())
+                        .build());
+            }
+
+            //wavefront configs
+            if (!wavefrontConfig.isEmpty()) {
+                componentList.add(ConfigurationComponent.newBuilder()
+                        .setType(ServiceType.WAVEFRONT_PROXY)
+                        .setComponentUrl(WavefrontConfigUtil.configPath)
+                        .setComponent(wavefrontConfig.get(node))
                         .setIdentityFactors(IdentityFactors.newBuilder().build())
                         .build());
             }
