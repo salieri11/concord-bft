@@ -164,8 +164,13 @@ class PersephoneTests(test_suite.TestSuite):
                   "ipconfig output: {}".format(ifconfig_output.stdout.decode()))
                for line in ifconfig_output.stdout.decode().split('\n'):
                   fields = line.split()
+                  log.info("***** fields: {}".format(fields))
                   if fields[0] == 'inet':
-                     host_ip = fields[1].split(':')[1]
+                     if ":" in fields[1]:
+                        host_ip = fields[1].split(':')[1]
+                     else:
+                        host_ip = fields[1]
+
                      break
 
                log.info(
@@ -188,8 +193,9 @@ class PersephoneTests(test_suite.TestSuite):
                log.info("****************************************")
                log.info(
                   "Reverting changes made to provisioning service config file")
-               modified_config_file = "{}.modified.{}".format(
-                  persephone_config_file, time.time())
+               modified_config_file = persephone_config_file.replace("properties", "")
+               modified_config_file += time.strftime('%Y-%m-%d_%H-%M-%S', time.gmtime(time.time()))
+               modified_config_file += ".properties"
                shutil.copy(persephone_config_file, modified_config_file)
                shutil.move(persephone_config_file_orig, persephone_config_file)
                log.info("  Updated config file for this run: {}".format(
@@ -581,7 +587,7 @@ class PersephoneTests(test_suite.TestSuite):
                replicas.append(replica_ip)
                vmHandle = util.helper.sddcFindVMByInternalIP(replica_ip)
                if vmHandle: replica_list.append({
-                 "ip": replica_ip, 
+                 "ip": replica_ip,
                  "replica_id": vmHandle["replicaId"] if vmHandle is not None else "None"
                })
 
