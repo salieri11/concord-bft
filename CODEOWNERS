@@ -26,12 +26,12 @@
 /docker/config-public/ @upshawa @rmuschner @andrewstone @bjay @tparvanov @ybuchnik @igolikov @petari
 /docker/fluentd/ @hbhavsar @mharrison
 /ethrpc/ @machenbach @panamika @mandeab
-/helen/ @machenbach @panamika @mandeab @khank
+/helen/ @machenbach @panamika @mandeab @khank @sanchitar
 /helen/src/main/resources/api-doc/api.yaml @machenbach @panamika @mandeab @tfidali @mharrison @khank
 /hermes/ @rvollmar @rsg @khank
 /Jenkinsfile @rvollmar @rsg
 /performance/ @vlin @dparmar @rsg
-/persephone/ @khank @sanchitar @rsg
+/persephone/ @khank @sanchitar @rsg @panamika @mandeab
 /src/ @rvollmar @rsg
 /thin-replica-client/ @rmuschner @upshawa @andrewstone @bjay @ysherman @igolikov @tkournik
 /ui/ @mharrison @hbhavsar @kkeunwoo @mandeab
