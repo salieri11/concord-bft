@@ -1215,11 +1215,11 @@ EOF
           def logMap = [
             "tests": [
               "base": "**/testLogs/**/*.",
-              "types": ["log", "csv", "txt", "json", "html", "png", "gz"]
+              "types": ["log", "csv", "txt", "json", "html", "png", "gz", "properties"]
             ],
             "builds": [
               "base": "**/blockchain/**/*.",
-              "types": ["log", "json"]
+              "types": ["log", "json", "properties"]
             ]
           ]
 
