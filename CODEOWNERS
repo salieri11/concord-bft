@@ -21,7 +21,7 @@
 /communication/ @rmuschner @andrewstone @machenbach @ysherman @tparvanov
 /concord/ @upshawa @rmuschner @andrewstone @bjay @tkournik @ysherman @igolikov @petari @tparvanov
 /csp-dev/ @machenbach @rvollmar @panamika @mandeab
-/daml/ @rmuschner @upshawa @bjay
+/daml/ @rmuschner @upshawa @bjay @bhealy @ftudane @jmaki @mmiklos @mziolek
 /docker/config-concord*/ @upshawa @rmuschner @andrewstone @bjay @tparvanov @ybuchnik @igolikov @petari
 /docker/config-public/ @upshawa @rmuschner @andrewstone @bjay @tparvanov @ybuchnik @igolikov @petari
 /docker/fluentd/ @hbhavsar @mharrison
