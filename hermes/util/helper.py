@@ -20,14 +20,19 @@ import sys
 import tempfile
 import time
 import threading
-import util.daml.daml_helper as daml_helper
-import util.json_helper
 from . import numbers_strings
 from . import vsphere
 from urllib.parse import urlparse, urlunparse
+if 'hermes_util' in sys.modules.keys():
+   import hermes_util.daml.daml_helper as daml_helper
+   import hermes_util.json_helper as json_helper_util
+   import hermes_util.hermes_logging as hermes_logging_util
+else:
+   import util.daml.daml_helper as daml_helper
+   import util.json_helper as json_helper_util
+   import util.hermes_logging as hermes_logging_util
 
-import util.hermes_logging
-log = util.hermes_logging.getMainLogger()
+log = hermes_logging_util.getMainLogger()
 docker_env_file = ".env"
 
 # The config file contains information aobut how to run things, as opposed to
@@ -610,7 +615,7 @@ def create_concord_support_bundle(replicas, concord_type, test_log_dir):
                                                  support_bundle_binary_name)
    remote_support_bundle_binary_path = os.path.join(tempfile.gettempdir(),
                                                   support_bundle_binary_name)
-   user_config = util.json_helper.readJsonFile(CONFIG_JSON)
+   user_config = json_helper_util.readJsonFile(CONFIG_JSON)
    concord_memeber_credentials = \
       user_config["persephoneTests"]["provisioningService"]["concordNode"]
    concord_username = concord_memeber_credentials["username"]
@@ -742,9 +747,9 @@ def loadConfigFile(args=None):
    configObject = None
 
    if args and args.config:
-      configObject = util.json_helper.readJsonFile(args.config)
+      configObject = json_helper_util.readJsonFile(args.config)
    else:
-      configObject = util.json_helper.readJsonFile(CONFIG_JSON)
+      configObject = json_helper_util.readJsonFile(CONFIG_JSON)
 
    if "ethereum" in configObject and \
       "testRoot" in configObject["ethereum"]:
@@ -811,7 +816,7 @@ def helenIsRemote(args):
 
 
 def blockchainIsRemote(args):
-   return args.blockchainLocation != util.helper.LOCATION_LOCAL
+   return args.blockchainLocation != LOCATION_LOCAL
 
 
 def needToCollectDeploymentEvents(cmdlineArgs):
@@ -856,7 +861,7 @@ def getReplicaContainers(replicaType):
    Given the name of a replica, as defined in persephoneTests["modelService"]["defaults"]["deployment_components"],
    return a list of the names of the docker containers which are expected to be in that replica.
    '''
-   user_config = util.json_helper.readJsonFile(CONFIG_JSON)
+   user_config = json_helper_util.readJsonFile(CONFIG_JSON)
 
    if replicaType in user_config["persephoneTests"]["modelService"]["defaults"]["deployment_components"]:
       return list(user_config["persephoneTests"]["modelService"]["defaults"]["deployment_components"][replicaType].values())

@@ -34,6 +34,11 @@ import hudson.util.Secret
 //   api.
 // - Move this to another file?
 @Field Map testSuites = [
+  "ApolloBftTests": [
+    "enabled": true,
+    "dockerComposeFiles": "../docker/docker-compose-tee.yml",
+    "concordConfigurationInput": "/concord/config/dockerConfigurationInput-tee.yaml"
+  ],
   "SampleSuite": [
     "enabled": true
   ],

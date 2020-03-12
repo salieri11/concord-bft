@@ -1,16 +1,21 @@
 # Copyright 2019-2020 VMware, Inc.  All rights reserved. -- VMware Confidential
 # DAML util file to perform daml tests
 
-import logging
+import sys
 import os
 import subprocess
 from tempfile import NamedTemporaryFile
 
-import util.daml.upload_dar as darutil
-import util.helper as helper
+if 'hermes_util' in sys.modules.keys():
+   import hermes_util.daml.upload_dar as darutil
+   import hermes_util.helper as helper
+   import hermes_util.hermes_logging as logging
+else:
+   import util.daml.upload_dar as darutil
+   import util.helper as helper
+   import util.hermes_logging as logging
 
-import util.hermes_logging
-log = util.hermes_logging.getMainLogger()
+log = logging.getMainLogger()
 
 TEST_TOOL_NAME = "ledger-api-test-tool-100.13.52.jar"
 TEST_DARS = ["SemanticTests.dar", "Test-dev.dar", "Test-stable.dar"]
