@@ -256,8 +256,8 @@ public class ClientController {
                 .collect(Collectors.toList()));
 
         Map<String, String> properties = new HashMap<>();
-        var propertiesBuilder = Properties.newBuilder().putAllValues(properties).build();
         properties.put(NodeProperty.Name.COMMITTERS.toString(), ipList);
+        var propertiesBuilder = Properties.newBuilder().putAllValues(properties).build();
 
 
         if (blockchainType != Blockchain.BlockchainType.DAML) {
