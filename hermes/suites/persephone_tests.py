@@ -7,6 +7,8 @@ import json
 import logging
 import os
 import queue
+import struct
+import socket
 import shutil
 import subprocess
 import sys
@@ -278,25 +280,23 @@ class PersephoneTests(test_suite.TestSuite):
    def _get_tests(self):
       if self.args.tests is None or self.args.tests.lower() == "smoke":
          return [
-            # ("7_Node_DAML_Blockchain_ON-PREM",
-            #  self._test_create_daml_blockchain_7_node_onprem),
             ("7_Node_DAML_committer_participant_ON-PREM",
              self._test_daml_committer_participant_7_node_onprem),
          ]
       elif self.args.tests.lower() == "all_tests":
          return [
-            ("7_Node_DAML_Blockchain_ON-PREM",
-             self._test_create_daml_blockchain_7_node_onprem),
+            ("7_Node_DAML_committer_participant_ON-PREM",
+             self._test_daml_committer_participant_7_node_onprem),
+            ("4_Node_DAML_committer_participant_CLOUD",
+             self._test_daml_committer_participant_deployment),
             ("4_Node_Blockchain_FIXED_Site",
              self._test_create_blockchain_4_node_fixed_site),
             ("7_Node_Blockchain_FIXED_Site",
              self._test_create_blockchain_7_node_fixed_site),
             ("concurrent_deployments_fixed_site",
              self._test_concurrent_deployments_fixed_site),
-            ("7_Node_DAML_Blockchain_FIXED_Site",
-             self._test_create_daml_blockchain_7_node_fixed_site),
-            ("concurrent_DAML_deployments_fixed_site",
-             self._test_concurrent_daml_deployments_fixed_site),
+            # ("concurrent_DAML_deployments_fixed_site",
+            #  self._test_concurrent_daml_deployments_fixed_site),
          ]
 
    def verify_ethrpc_block_0(self, concord_ip, ethrpc_port=443):
@@ -380,7 +380,7 @@ class PersephoneTests(test_suite.TestSuite):
       return True
 
    def add_ethrpc_port_forwarding(self, concord_ip, concord_username,
-                                     concord_password):
+                                     concord_password, src_port=443, dest_port=8545):
       '''
       This is a workaround to enable ethrpc to listen on port 443, so tests and
       other users like performance team can hit ethrpc over vmware network.
@@ -392,7 +392,9 @@ class PersephoneTests(test_suite.TestSuite):
       '''
       port_forwarding_status = helper.add_ethrpc_port_forwarding(concord_ip,
                                                                  concord_username,
-                                                                 concord_password)
+                                                                 concord_password,
+                                                                 src_port=src_port,
+                                                                 dest_port=dest_port)
       if port_forwarding_status:
          log.info("Port 443 forwarded to {}:8545 - Successful".format(concord_ip))
       else:
@@ -571,7 +573,7 @@ class PersephoneTests(test_suite.TestSuite):
                                                  response_events_json):
          log.info("Deployment Events validated")
 
-         ethrpc_endpoints = self.get_ethrpc_endpoints(response_events_json,
+         ethrpc_endpoints, private_ips = self.get_ethrpc_endpoints(response_events_json,
                                                       concord_type)
          concord_memeber_credentials = \
             self._userConfig["persephoneTests"]["provisioningService"][
@@ -605,6 +607,7 @@ class PersephoneTests(test_suite.TestSuite):
                   log.debug(
                      "Updating more info for deployment ID: {}".format(session_id))
                   deployment_info["replicas"] = replicas
+                  deployment_info["private_ips"] = private_ips
                   deployment_info["concord_username"] = concord_username
                   deployment_info["concord_password"] = concord_password
                   deployment_info["docker_containers"] = expected_docker_containers
@@ -712,16 +715,21 @@ class PersephoneTests(test_suite.TestSuite):
 
                if concord_type is self.rpc_test_helper.CONCORD_TYPE_DAML:
                   if node_type is None or node_type == self.rpc_test_helper.NODE_TYPE_PARTICIPANT:
-                     if helper.verify_connectivity(concord_ip, 6865):
+                     self.add_ethrpc_port_forwarding(concord_ip,
+                                                     concord_username,
+                                                     concord_password,
+                                                     dest_port=6865)
+
+                     if helper.verify_connectivity(concord_ip, 443):
                         log.info("DAML Connectivity - PASS")
 
                         try:
                            log.info("dar upload/verification...")
                            daml_helper.upload_test_tool_dars(host=concord_ip,
-                                                             port='6865')
+                                                             port='443')
                            daml_helper.verify_ledger_api_test_tool(
                               host=concord_ip,
-                              port='6865')
+                              port='443')
                            log.info("dar upload/verification passed.")
                         except Exception as e:
                            log.error(e)
@@ -751,6 +759,7 @@ class PersephoneTests(test_suite.TestSuite):
          endpoint_id = "daml-ledger-api"
 
       ethrpc_endpoints = []
+      private_ips = []
       try:
          for event in response_events_json:
             if event["type"] == "CLUSTER_DEPLOYED":
@@ -758,11 +767,15 @@ class PersephoneTests(test_suite.TestSuite):
                   # TODO: Add another validation to check "blockchainType"
                   ethrpc_endpoints.append(
                      member["hostInfo"]["endpoints"][endpoint_id]["url"])
+
+                  private_ip_in_decimal = list(member["hostInfo"]["ipv4AddressMap"].values())[0]
+                  private_ip = socket.inet_ntoa(struct.pack('!L', private_ip_in_decimal))
+                  private_ips.append(private_ip)
       except KeyError as e:
          log.error("ERROR fetching ethrpc endpoint: {}".format(e))
 
       log.debug("ethrpc Endpoints: {}".format(ethrpc_endpoints))
-      return ethrpc_endpoints
+      return ethrpc_endpoints, private_ips
 
    def parse_test_status(self, status, msg, deployment_session_id=None):
       '''
@@ -1141,7 +1154,7 @@ class PersephoneTests(test_suite.TestSuite):
 
       return self.parse_test_status(False, "Failed to get a valid deployment session ID")
 
-   def deploy_daml_committer_node(self, cluster_size=4):
+   def deploy_daml_committer_node(self, cluster_size=4, zone_type=helper.LOCATION_SDDC):
       '''
       Deploy DAML committer nodes
       :param cluster_size: No. of nodes on the cluster
@@ -1158,7 +1171,7 @@ class PersephoneTests(test_suite.TestSuite):
          cluster_size=cluster_size,
          concord_type=concord_type,
          node_type=node_type,
-         zone_type=self.rpc_test_helper.ZONE_TYPE_ON_PREM)
+         zone_type=zone_type)
       if response:
          response_session_id_json = helper.protobuf_message_to_json(response[0])
          if "low" in response_session_id_json:
@@ -1181,9 +1194,9 @@ class PersephoneTests(test_suite.TestSuite):
                   for deployment_info in self.rpc_test_helper.deployment_info:
                      if deployment_info["deployment_session_id"][
                         0] == response_deployment_session_id:
-                        if "replicas" in deployment_info and deployment_info[
-                           "replicas"]:
-                           replicas = deployment_info["replicas"]
+                        if "private_ips" in deployment_info and deployment_info[
+                           "private_ips"]:
+                           replicas = deployment_info["private_ips"]
 
                status, msg = self.parse_test_status(status, msg,
                                              deployment_session_id=response_deployment_session_id)
@@ -1195,7 +1208,7 @@ class PersephoneTests(test_suite.TestSuite):
       status, msg = self.parse_test_status(False, "Failed to get a valid deployment session ID")
       return status, msg, replicas
 
-   def deploy_daml_participant_node(self, cluster_size=1, replicas=None):
+   def deploy_daml_participant_node(self, cluster_size=1, replicas=None, zone_type=helper.LOCATION_SDDC):
       '''
       Deploy DAML participant node
       :param cluster_size: No. of nodes on the cluster
@@ -1212,7 +1225,7 @@ class PersephoneTests(test_suite.TestSuite):
          cluster_size=cluster_size,
          concord_type=concord_type,
          node_type=node_type,
-         zone_type=self.rpc_test_helper.ZONE_TYPE_ON_PREM,
+         zone_type=zone_type,
          replicas=replicas)
       if response:
          response_session_id_json = helper.protobuf_message_to_json(response[0])
@@ -1240,18 +1253,20 @@ class PersephoneTests(test_suite.TestSuite):
       return self.parse_test_status(False, "Failed to get a valid deployment session ID")
 
    def _test_daml_committer_participant_4_node_onprem(self,
-                                                         committer_nodes=4,
-                                                         participant_nodes=1):
+                                                      committer_nodes=4,
+                                                      participant_nodes=1,
+                                                      zone_type=helper.LOCATION_ONPREM):
       '''
       Test to create DAML committer & participant nodes on-prem
       :param cluster_size: No. of concord nodes on the cluster
       '''
       status, msg, replicas = self.deploy_daml_committer_node(
-         cluster_size=committer_nodes)
+         cluster_size=committer_nodes, zone_type=zone_type)
       if status and replicas:
          log.info("**** Committer nodes deployed Successfully\n")
          status, msg = self.deploy_daml_participant_node(
-            cluster_size=participant_nodes, replicas=replicas)
+            cluster_size=participant_nodes, replicas=replicas,
+            zone_type=zone_type)
          if status:
             log.info("**** Participant node(s) deployed Successfully\n")
          else:
@@ -1262,18 +1277,44 @@ class PersephoneTests(test_suite.TestSuite):
       return status,msg
 
    def _test_daml_committer_participant_7_node_onprem(self,
-                                                         committer_nodes=7,
-                                                         participant_nodes=1):
+                                                      committer_nodes=7,
+                                                      participant_nodes=1,
+                                                      zone_type=helper.LOCATION_ONPREM):
       '''
       Test to create DAML committer & participant nodes on-prem
       :param cluster_size: No. of concord nodes on the cluster
       '''
       status, msg, replicas = self.deploy_daml_committer_node(
-         cluster_size=committer_nodes)
+         cluster_size=committer_nodes, zone_type=zone_type)
       if status and replicas:
          log.info("**** Committer nodes deployed Successfully\n")
          status, msg = self.deploy_daml_participant_node(
-            cluster_size=participant_nodes, replicas=replicas)
+            cluster_size=participant_nodes, replicas=replicas,
+            zone_type=zone_type)
+         if status:
+            log.info("**** Participant node(s) deployed Successfully\n")
+         else:
+            log.error("Failed to deploy participant node(s)")
+      else:
+         log.error("Failed to deploy committer nodes")
+
+      return status,msg
+
+
+   def _test_daml_committer_participant_deployment(self, committer_nodes=7,
+                                                     participant_nodes=1,
+                                                     zone_type=helper.LOCATION_SDDC):
+      '''
+      Test to create DAML committer & participant nodes on-prem
+      :param cluster_size: No. of concord nodes on the cluster
+      '''
+      status, msg, replicas = self.deploy_daml_committer_node(
+         cluster_size=committer_nodes, zone_type=zone_type)
+      if status and replicas:
+         log.info("**** Committer nodes deployed Successfully\n")
+         status, msg = self.deploy_daml_participant_node(
+            cluster_size=participant_nodes, replicas=replicas,
+            zone_type=zone_type)
          if status:
             log.info("**** Participant node(s) deployed Successfully\n")
          else:

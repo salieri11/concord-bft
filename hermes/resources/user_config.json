@@ -253,7 +253,7 @@
     },
     "provisioningService": {
       "zones": {
-        "vmc": [
+        "sddc": [
           {
             "id": {
               "low": 0,
@@ -371,7 +371,7 @@
             ]
           }
         ],
-        "on-prem": [
+        "onprem": [
           {
             "id": {
               "low": 0,
