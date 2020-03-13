@@ -263,16 +263,14 @@ class KVBCParticipantState(
           .fragmentsToUpdates(fragments)
           .zipWithIndex.map {
             case (update, idx) =>
-              //TODO: Reinstate correlation ids - "correlationId=${committedTx.correlationId}"
-              logger.trace(s"Processing block, offset=${block.blockId}:$idx")
+              logger.info(s"Processing block, offset=${block.blockId}:$idx correlationId=${block.correlationId}")
               Offset(Array(block.blockId, idx.toLong)) -> update
           }
 
       Source(updates)
     } catch {
        case e: RuntimeException =>
-         //TODO: Reinstate correlation ids - "correlationId=${committedTx.correlationId}"
-         logger.error(s"Processing block failed with an exception, offset=${block.blockId} error='${e}'")
+         logger.error(s"Processing block failed with an exception, offset=${block.blockId} correlationId=${block.correlationId} error='${e}'")
          Source.failed(e)
      }
   }

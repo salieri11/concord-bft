@@ -7,7 +7,8 @@ import scala.language.implicitConversions
 
 final case class Update(
   blockId: Long,
-  kvPairs: Array[(Array[Byte], Array[Byte])]
+  kvPairs: Array[(Array[Byte], Array[Byte])],
+  correlationId: String
 ) {
   override def toString(): String = this.getClass.getSimpleName + 
     "(" + blockId.toString + ",[" + 

@@ -50,7 +50,7 @@ object Main extends App {
   
   val u = Library.getTestUpdate
   System.out.println(u)
-  assert(isEqual(u, Some(Update(17,Array("Alice".getBytes->"Bob".getBytes)))))
+  assert(isEqual(u, Some(Update(17,Array("Alice".getBytes->"Bob".getBytes),"test"))))
 
   val creatResult = Library.createTRC("example_client_id", 1, "", 
     Array[String]("concord1:50051", "concord2:50051", "concord3:50051", "concord4:50051"))
