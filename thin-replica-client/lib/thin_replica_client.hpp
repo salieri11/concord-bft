@@ -178,8 +178,8 @@ class ThinReplicaClient final {
  private:
   log4cplus::Logger logger_;
   std::string client_id_;
-  std::vector<
-      std::unique_ptr<com::vmware::concord::thin_replica::ThinReplica::Stub>>
+  std::vector<std::unique_ptr<
+      com::vmware::concord::thin_replica::ThinReplica::StubInterface>>
       server_stubs_;
   std::shared_ptr<UpdateQueue> update_queue_;
   uint16_t max_faulty_;
@@ -200,12 +200,13 @@ class ThinReplicaClient final {
   std::unique_ptr<std::thread> subscription_thread_;
   std::atomic_bool stop_subscription_thread_;
 
-  std::unique_ptr<grpc::ClientReader<com::vmware::concord::thin_replica::Data>>
+  std::unique_ptr<
+      grpc::ClientReaderInterface<com::vmware::concord::thin_replica::Data>>
       subscription_data_stream_;
   std::unique_ptr<grpc::ClientContext> sub_data_context_;
   size_t current_data_source_;
   std::vector<std::unique_ptr<
-      grpc::ClientReader<com::vmware::concord::thin_replica::Hash>>>
+      grpc::ClientReaderInterface<com::vmware::concord::thin_replica::Hash>>>
       subscription_hash_streams_;
   std::vector<std::unique_ptr<grpc::ClientContext>> sub_hash_contexts_;
 
@@ -266,13 +267,24 @@ class ThinReplicaClient final {
   // - private_key: Private cryptographic key identifying and authenticating the
   //   ThinReplicaClient being constructed to the Thin Replica Servers.
   // - begin_servers: Iterator returning elements of type
-  //   std::pair<std::string, std::shared_ptr<grpc::Channel>> representing each
-  //   server available for this ThinReplicaClient to connect to; the string in
-  //   each pair should be the public key used to identify and validate messages
-  //   from this server, and the pointer to a grpc::Channel should provide a
-  //   gRPC connection to that Thin Replica Server. Furthermore, the order this
-  //   iterator returns the server will be used by this ThinReplicaClient as
-  //   the preferred order to try connecting to the servers.
+  //   std::pair<std::string,
+  //   std::unique_ptr<
+  //      com::vmware::concord::thin_replica::ThinReplica::StubInterface>>
+  //   representing each server available for this ThinReplicaClient to connect
+  //   to; the string in each pair should be the public key used to identify and
+  //   validate messages from this server, and the unique pointer to a
+  //   com::vmware::concord::thin_replica::ThinReplica::StubInterface should
+  //   point to a grpc server stub connecting to that Thin Replica Server. Note
+  //   this ThinReplicaClient object will take ownership of the server stub
+  //   unique pointers; they will be left pointing to null when this constructor
+  //   returns if it is successful, and this object will handle destroying those
+  //   stubs at the time of its own destruction. If this constructor fails, no
+  //   guarantees are made about which StubInterface pointers will have been
+  //   left intact and which will have been moved and set to null, but the
+  //   constructor does guarantee that any pointer that is set to null will be
+  //   destroyed. Furthermore, the order this iterator returns the servers will
+  //   be used by this ThinReplicaClient as the preferred order to try
+  //   connecting to the servers.
   // - end_servers: End iterator corresponding to begin_servers.
   template <class Iterator>
   ThinReplicaClient(std::string client_id,
@@ -297,10 +309,17 @@ class ThinReplicaClient final {
         subscription_hash_streams_(),
         sub_hash_contexts_() {
     while (begin_servers != end_servers) {
-      const auto& server_info = *begin_servers;
-      server_stubs_.push_back(
-          com::vmware::concord::thin_replica::ThinReplica::NewStub(
-              server_info.second));
+      auto& server_info = *begin_servers;
+      if (!(server_info.second)) {
+        server_stubs_.clear();
+        update_queue_.reset();
+        throw std::invalid_argument(
+            "Null ThinReplica::StubInterface provided to ThinReplicaClient "
+            "constructor (only non-null StubInterface pointers are valid for "
+            "this purpose).");
+      }
+      server_stubs_.push_back(std::move(server_info.second));
+      server_info.second.reset();
       ++begin_servers;
     }
 

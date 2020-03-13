@@ -24,3 +24,8 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/lib)
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/lib)
 
 add_subdirectory("example")
+
+# Unit tests
+find_package(GTEST REQUIRED)
+add_subdirectory("test")
+enable_testing()
