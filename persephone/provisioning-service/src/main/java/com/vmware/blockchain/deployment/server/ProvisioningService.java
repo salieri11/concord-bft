@@ -87,6 +87,7 @@ import com.vmware.blockchain.deployment.v1.StreamAllClusterDeploymentSessionEven
 import com.vmware.blockchain.deployment.v1.StreamClusterDeploymentSessionEventRequest;
 import com.vmware.blockchain.deployment.v1.UpdateDeploymentSessionRequest;
 import com.vmware.blockchain.deployment.v1.UpdateDeploymentSessionResponse;
+import com.vmware.blockchain.deployment.v1.Wavefront;
 import com.vmware.blockchain.ethereum.type.Genesis;
 
 import io.grpc.stub.ServerCallStreamObserver;
@@ -425,24 +426,46 @@ public class ProvisioningService extends ProvisioningServiceGrpc.ProvisioningSer
         Map<Integer, String> nodeIds = new HashMap<>();
         Map<Integer, String> loggingProperties = new HashMap<>();
 
-        privateNetworkAddressMap.forEach((key, value) -> {
-            var nodeIp = value.getAddress();
+        Wavefront wavefront = Wavefront.newBuilder().build();
+        for (Map.Entry<PlacementAssignment.Entry,
+                Orchestrator.NetworkResourceEvent.Created> entry : privateNetworkAddressMap.entrySet()) {
+            var nodeIp = entry.getValue().getAddress();
+            var siteInfo = entry.getKey().getSiteInfo();
             nodeIps.add(nodeIp);
             var nodeIndex = nodeIps.indexOf(nodeIp);
-            var nodeUuid = new UUID(key.getNode().getHigh(), key.getNode().getLow()).toString();
+            var nodeUuid = new UUID(entry.getKey().getNode().getHigh(), entry.getKey().getNode().getLow()).toString();
             nodeIds.put(nodeIndex, nodeUuid);
-            loggingProperties.put(nodeIndex, getLogManagementJson(key.getSiteInfo()));
-            concordIdentifierMap.put(key.getNode(), nodeIndex);
-        });
+            loggingProperties.put(nodeIndex, getLogManagementJson(siteInfo));
+            concordIdentifierMap.put(entry.getKey().getNode(), nodeIndex);
+
+            // PS: this keeps the provision open for multiple wavefront config in multiple zones,
+            // however, taking only the last indeterministically. Need a design fix here.
+            wavefront = getWavefront(siteInfo);
+        }
+
+        Map<String, String> properties = new HashMap<>(session.getSpecification().getProperties().getValues());
+        properties.put(NodeProperty.Name.CONSORTIUM_ID.toString(), session.getSpecification().getConsortium());
+        properties.put(NodeProperty.Name.WAVEFRONT_URL.toString(), wavefront.getUrl());
+        properties.put(NodeProperty.Name.WAVEFRONT_TOKEN.toString(), wavefront.getToken());
+
+        if (!wavefront.getProxyHost().isEmpty()) {
+            properties.put(NodeProperty.Name.WAVEFRONT_PROXY_HOST.toString(), wavefront.getProxyHost());
+        }
+        if (!wavefront.getProxyPort().isEmpty()) {
+            properties.put(NodeProperty.Name.WAVEFRONT_PROXY_PORT.toString(), wavefront.getProxyPort());
+        }
+        if (!wavefront.getProxyUsername().isEmpty()) {
+            properties.put(NodeProperty.Name.WAVEFRONT_PROXY_USER.toString(), wavefront.getProxyUsername());
+        }
+        if (!wavefront.getProxyPassword().isEmpty()) {
+            properties.put(NodeProperty.Name.WAVEFRONT_PROXY_PASSWORD.toString(), wavefront.getProxyPassword());
+        }
 
         NodeProperty nodeProperty =
                 NodeProperty.newBuilder().setName(NodeProperty.Name.NODE_ID).putAllValue(nodeIds).build();
         NodeProperty loggingProperty =
                 NodeProperty.newBuilder().setName(NodeProperty.Name.LOGGING_CONFIG).putAllValue(loggingProperties)
                         .build();
-
-        Map<String, String> properties = new HashMap<>(session.getSpecification().getProperties().getValues());
-        properties.put(NodeProperty.Name.CONSORTIUM_ID.toString(), session.getSpecification().getConsortium());
 
         var request = ConfigurationServiceRequest.newBuilder()
                 .setHeader(MessageHeader.getDefaultInstance())
@@ -479,6 +502,21 @@ public class ProvisioningService extends ProvisioningServiceGrpc.ProvisioningSer
             }
         }, executor);
         return completable;
+    }
+
+    private Wavefront getWavefront(OrchestrationSiteInfo siteInfo) {
+        Wavefront wavefront = Wavefront.newBuilder().build();
+        switch (siteInfo.getType()) {
+            case VMC:
+                wavefront = siteInfo.getVmc().getWavefront();
+                break;
+            case VSPHERE:
+                wavefront = siteInfo.getVsphere().getWavefront();
+                break;
+            default:
+                break;
+        }
+        return wavefront;
     }
 
     private String getLogManagementJson(OrchestrationSiteInfo siteInfo) {
@@ -745,7 +783,8 @@ public class ProvisioningService extends ProvisioningServiceGrpc.ProvisioningSer
                     )
                     // Setup node deployment workflow with its assigned network address.
                     .thenComposeAsync(configGenId -> {
-                        var model = session.getSpecification().getModel();
+                        var model = createMetricsExcludedModel(session.getSpecification().getModel(),
+                                privateNetworkAddressMap);
                         var nodePublishers = session.getAssignment().getEntriesList().stream()
                                 .map(placement -> {
                                     var publisher = deployNode(
@@ -894,6 +933,51 @@ public class ProvisioningService extends ProvisioningServiceGrpc.ProvisioningSer
             );
         }
     }
+
+    /**
+     * Temporary fix until wavefront team pushes feature to error out on incorrect url.
+     * PS: do not deploy wavefront when even one zone does not have it.
+     */
+    private ConcordModelSpecification createMetricsExcludedModel(ConcordModelSpecification model,
+                                                                 ConcurrentHashMap<PlacementAssignment.Entry,
+                                                                         Orchestrator.NetworkResourceEvent.Created>
+                                                                         privateNetworkAddressMap) {
+        boolean isWavefront = true;
+        List<ConcordComponent.ServiceType> exclusionList = List.of(
+                ConcordComponent.ServiceType.WAVEFRONT_PROXY,
+                ConcordComponent.ServiceType.TELEGRAF,
+                ConcordComponent.ServiceType.JAEGER_AGENT);
+
+        for (Map.Entry<PlacementAssignment.Entry,
+                Orchestrator.NetworkResourceEvent.Created> entry : privateNetworkAddressMap.entrySet()) {
+            var siteInfo = entry.getKey().getSiteInfo();
+            Wavefront wavefront = getWavefront(siteInfo);
+            if (wavefront.getUrl().isEmpty()
+                    || wavefront.getUrl().isBlank()
+                    || wavefront.getToken().isEmpty()
+                    || wavefront.getToken().isBlank()) {
+                isWavefront = false;
+            }
+        }
+
+        if (!isWavefront) {
+            log.info("Wavfront URL and/or token not provided.\n"
+                    + "wavefront-proxy, telegraf and jaeger-agent will not be deployed.");
+            var compList = model.getComponentsList().stream()
+                    .filter(comp -> !exclusionList.contains(comp))
+                    .collect(Collectors.toList());
+            return ConcordModelSpecification.newBuilder()
+                    .setBlockchainType(model.getBlockchainType())
+                    .setNodeType(model.getNodeType())
+                    .setVersion(model.getVersion())
+                    .setTemplate(model.getTemplate())
+                    .addAllComponents(compList)
+                    .build();
+        } else {
+            return model;
+        }
+    }
+
 
     /**
      * Execute a Concord node deployment workflow.

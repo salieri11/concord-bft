@@ -159,8 +159,7 @@ class VSphereOrchestrator constructor(
                                     request.configurationSessionIdentifier,
                                     request.configServiceEndpoint,
                                     request.configServiceRestEndpoint,
-                                    info.vsphere.outboundProxy,
-                                    info.wavefront
+                                    info.vsphere.outboundProxy
                             ),
                             vmProfile = request.vmProfile
                     )
