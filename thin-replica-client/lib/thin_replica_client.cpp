@@ -10,7 +10,7 @@ using com::vmware::concord::thin_replica::ReadStateHashRequest;
 using com::vmware::concord::thin_replica::ReadStateRequest;
 using com::vmware::concord::thin_replica::SubscriptionRequest;
 using grpc::ClientContext;
-using grpc::ClientReader;
+using grpc::ClientReaderInterface;
 using grpc::Status;
 using std::condition_variable;
 using std::exception;
@@ -177,7 +177,7 @@ void ThinReplicaClient::ReceiveUpdates() {
   }
 
   subscription_hash_streams_ =
-      vector<unique_ptr<ClientReader<Hash>>>(server_stubs_.size());
+      vector<unique_ptr<ClientReaderInterface<Hash>>>(server_stubs_.size());
   sub_hash_contexts_ = vector<unique_ptr<ClientContext>>(server_stubs_.size());
 
   // Main subscription-driving loop; one iteration of this outer loop
@@ -491,7 +491,7 @@ void ThinReplicaClient::Subscribe(const string& key_prefix_bytes) {
     request.set_key_prefix(key_prefix_bytes);
     ClientContext read_context;
     read_context.AddMetadata("client_id", client_id_);
-    unique_ptr<ClientReader<Data>> stream =
+    unique_ptr<ClientReaderInterface<Data>> stream =
         server_stubs_[data_server_index]->ReadState(&read_context, request);
 
     Data response;

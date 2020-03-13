@@ -2,7 +2,9 @@
 
 #include "thin_replica_client_facade.hpp"
 #include <log4cplus/configurator.h>
+#include "thin_replica.grpc.pb.h"
 #include "thin_replica_client.hpp"
+#include "thin_replica_client_facade_impl.hpp"
 
 using grpc::Channel;
 using grpc::ChannelArguments;
@@ -18,6 +20,7 @@ using std::to_string;
 using std::unique_ptr;
 using std::vector;
 using std::chrono::operator""s;
+using com::vmware::concord::thin_replica::ThinReplica;
 using std::chrono::seconds;
 using std::chrono::system_clock;
 using std::this_thread::sleep_for;
@@ -64,16 +67,6 @@ class LoggerInitializer {
 };
 LoggerInitializer loggerInitializer;
 
-class thin_replica_client::ThinReplicaClientFacade::Impl {
- public:
-  shared_ptr<UpdateQueue> update_queue;
-  unique_ptr<ThinReplicaClient> trc;
-  Logger logger;
-  Impl() : logger(Logger::getInstance("thin_replica.facade")) {
-    update_queue.reset(new BasicUpdateQueue());
-  }
-};
-
 ThinReplicaClientFacade::ThinReplicaClientFacade(
     const std::string& client_id, uint16_t max_faulty,
     const std::string& private_key,
@@ -82,12 +75,10 @@ ThinReplicaClientFacade::ThinReplicaClientFacade(
   try {
     ChannelArguments args;
     args.SetMaxReceiveMessageSize(kGrpcMaxInboundMsgSizeInBytes);
-    vector<pair<string, shared_ptr<Channel>>> serverChannels;
+    vector<shared_ptr<Channel>> serverChannels;
     for (auto& server : servers) {
-      serverChannels.push_back(pair<string, shared_ptr<Channel>>(
-          server.first,
-          CreateCustomChannel(server.second, InsecureChannelCredentials(),
-                              args)));
+      serverChannels.push_back(shared_ptr<Channel>(CreateCustomChannel(
+          server.second, InsecureChannelCredentials(), args)));
     }
 
     // Wait (up to a timeout) to validate the server(s) to connect to are
@@ -107,7 +98,7 @@ ThinReplicaClientFacade::ThinReplicaClientFacade(
     while (!servers_responsive && (system_clock::now() <= time_to_wait_until)) {
       size_t num_responsive_servers = 0;
       for (const auto& server : serverChannels) {
-        if (server.second->GetState(true) ==
+        if (server->GetState(true) ==
             grpc_connectivity_state::GRPC_CHANNEL_READY) {
           ++num_responsive_servers;
         }
@@ -126,9 +117,17 @@ ThinReplicaClientFacade::ThinReplicaClientFacade(
           kMaxTimeToWaitForServerConnectivityUnitLabel + ".");
     }
 
+    vector<pair<string, unique_ptr<ThinReplica::StubInterface>>> server_stubs;
+    assert(serverChannels.size() == servers.size());
+    for (size_t i = 0; i < servers.size(); ++i) {
+      server_stubs.push_back(
+          pair<string, unique_ptr<ThinReplica::StubInterface>>{
+              servers[i].first, ThinReplica::NewStub(serverChannels[i])});
+    }
+
     impl->trc.reset(new ThinReplicaClient(
         client_id, impl->update_queue, max_faulty, private_key,
-        serverChannels.begin(), serverChannels.end()));
+        server_stubs.begin(), server_stubs.end()));
   } catch (const exception& e) {
     LOG4CPLUS_ERROR(
         impl->logger,
@@ -164,3 +163,7 @@ std::unique_ptr<Update> ThinReplicaClientFacade::TryPop() {
 void ThinReplicaClientFacade::AcknowledgeBlockID(uint64_t block_id) {
   impl->trc->AcknowledgeBlockID(block_id);
 }
+
+ThinReplicaClientFacade::ThinReplicaClientFacade(
+    unique_ptr<ThinReplicaClientFacade::Impl>&& impl)
+    : impl(move(impl)) {}

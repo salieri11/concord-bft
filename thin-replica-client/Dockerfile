@@ -52,6 +52,14 @@ RUN git clone https://github.com/grpc/grpc && \
     cd / && \
     rm -r grpc
 
+# Googletest
+WORKDIR /
+RUN git clone https://github.com/google/googletest.git && \
+    cd /googletest && \
+    git checkout e93da23920e5b6887d6a6a291c3a59f83f5b579e
+WORKDIR /googletest/_build
+RUN cmake -DCMAKE_CXX_FLAGS="-std=c++11 -march=x86-64 -mtune=generic" .. && make -j$(nproc)
+
 # Copy sources
 COPY ./concord/cmake /concord/cmake
 COPY ./communication/src/main/proto /communication/src/main/proto
@@ -62,4 +70,5 @@ WORKDIR /thin-replica-client/build
 RUN cmake -DCMAKE_C_COMPILER=/usr/bin/clang-7 \
      -DCMAKE_CXX_COMPILER=/usr/bin/clang++-7 \
      -DCMAKE_CXX_FLAGS="-march=x86-64 -mtune=generic" .. && \
-     make -j$(nproc) all install
+     make -j$(nproc) all test && \
+     make -j$(nproc) install
