@@ -11,6 +11,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -181,14 +182,10 @@ public final class AgentDockerClient {
             if (component.getServiceType() != ConcordComponent.ServiceType.GENERIC) {
                 BaseContainerSpec containerSpec;
 
-                // TODO: This block goes away once wavefront uses config file instead of env var
-                if (component.getServiceType() == ConcordComponent.ServiceType.WAVEFRONT_PROXY
-                        || component.getServiceType() == ConcordComponent.ServiceType.JAEGER_AGENT
-                        || component.getServiceType() == ConcordComponent.ServiceType.TELEGRAF
-                        || component.getServiceType() == ConcordComponent.ServiceType.LOGGING) {
+                if (getEnumNames(MetricsAndTracingConfig.class).contains(component.getServiceType().toString())) {
                     containerSpec = getMetricsAndTracingContainerSpec(component);
                 } else {
-                    containerSpec = getContainerSpec(
+                    containerSpec = getCoreContainerSpec(
                             configuration.getModel().getBlockchainType(), component);
                 }
                 futures.add(CompletableFuture
@@ -203,8 +200,8 @@ public final class AgentDockerClient {
                 .collect(Collectors.toList())).join();
     }
 
-    private BaseContainerSpec getContainerSpec(ConcordModelSpecification.BlockchainType blockchainType,
-                                               ConcordComponent component) {
+    private BaseContainerSpec getCoreContainerSpec(ConcordModelSpecification.BlockchainType blockchainType,
+                                                   ConcordComponent component) {
         BaseContainerSpec containerSpec;
 
         switch (blockchainType) {
@@ -235,33 +232,15 @@ public final class AgentDockerClient {
         return containerSpec;
     }
 
-    // FIXME: This goes away once wavefront takes in from configuration file.
     private BaseContainerSpec getMetricsAndTracingContainerSpec(ConcordComponent component) {
 
         BaseContainerSpec containerSpec;
-        switch (component.getServiceType()) {
-            case WAVEFRONT_PROXY:
-                containerSpec = MetricsAndTracingConfig.WAVEFRONT_PROXY;
-                containerSpec.setEnvironment(List.of(
-                        "WAVEFRONT_URL=" + configuration.getWavefront().getUrl(),
-                        "WAVEFRONT_TOKEN=" + configuration.getWavefront().getToken(),
-                        "WAVEFRONT_PROXY_ARGS=--traceJaegerListenerPorts 14267"));
-                break;
-            case JAEGER_AGENT:
-                containerSpec = MetricsAndTracingConfig.JAEGER_AGENT;
-                break;
-            case TELEGRAF:
-                containerSpec = MetricsAndTracingConfig.TELEGRAF;
-                break;
-            case LOGGING:
-                containerSpec = MetricsAndTracingConfig.LOGGING;
-                break;
-            default:
-                var message = String.format("Invalid service type(%s)", component.getServiceType());
-                throw new RuntimeException(message);
-        }
-
+        containerSpec = MetricsAndTracingConfig.valueOf(component.getServiceType().name());
         return containerSpec;
+    }
+
+    private static List<String> getEnumNames(Class<? extends Enum<?>> e) {
+        return Arrays.stream(e.getEnumConstants()).map(Enum::name).collect(Collectors.toList());
     }
 
     private BaseContainerSpec getImageIdAfterDl(BaseContainerSpec containerConfig,
