@@ -538,12 +538,13 @@ def check_replica_health(replicas, username, password):
    return True
 
 
-def monitor_replicas(replicas, run_duration, load_interval, save_support_logs_to):
+def monitor_replicas(replicas, blockchain_location, run_duration, load_interval, save_support_logs_to):
    '''
    Helper util method to monitor the health of the replicas, and do a blockchain
    test (send/get transactions) and collect support logs incase of a replica
    failed status (crash or failed  txn test)
    :param replicas: List of replicas to be monitored
+   :param blockchain_location (sddc/onprem) of the blockchain being tested
    :param run_duration: No. of hrs to monitor the replicas
    :param load_interval: Interval in moins between every monitoring call
    :param save_support_logs_to: Support logs archiving location in case of a failure
@@ -569,12 +570,17 @@ def monitor_replicas(replicas, run_duration, load_interval, save_support_logs_to
                log.info("Performing validation test...")
                for endpoint_node in replica_ips:
                   log.info("{}...".format(endpoint_node))
+                  if blockchain_location == LOCATION_SDDC:
+                     endpoint_port = '443'
+                     log.info("Using overridden port: {}".format(endpoint_port))
+                  else:
+                     endpoint_port = '6865'
                   try:
                      daml_helper.upload_test_tool_dars(host=endpoint_node,
-                                                       port='6865')
+                                                       port=endpoint_port)
                      daml_helper.verify_ledger_api_test_tool(
                         host=endpoint_node,
-                        port='6865',
+                        port=endpoint_port,
                         run_all_tests=True)
                      log.info("**** DAML test verification passed.")
                   except Exception as e:
