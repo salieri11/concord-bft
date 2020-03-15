@@ -3362,6 +3362,16 @@ void specifyConfiguration(ConcordConfiguration& config) {
                         "(600 seconds by default).");
   node.tagParameter("dump_metrics_interval_sec", privateOptionalTags);
 
+  node.declareParameter("preexec_requests_status_check_period_millisec",
+                        "Time interval for a periodic detection of timed out "
+                        "pre-execution requests "
+                        "(5000 milliseconds by default).",
+                        "5000");
+  node.tagParameter("preexec_requests_status_check_period_millisec",
+                    privateOptionalTags);
+  node.addValidator("preexec_requests_status_check_period_millisec",
+                    validatePositiveReplicaInt, nullptr);
+
   node.declareParameter("metrics_config",
                         "Path, in this node's local filesystem, to a "
                         "configuration for concord metrics",
