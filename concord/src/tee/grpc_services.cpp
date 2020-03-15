@@ -32,7 +32,7 @@ grpc::Status TeeServiceImpl::RunTest(grpc::ServerContext* context,
 
   tee_request->set_tee_input(test_input->test_input());
 
-  if (!pool_.send_request_sync(conc_request, true, *span.get(),
+  if (!pool_.send_request_sync(conc_request, false, *span.get(),
                                conc_response)) {
     LOG4CPLUS_ERROR(logger_, "RunTest transaction failed");
     log4cplus::getMDC().clear();
