@@ -10,6 +10,7 @@ services:
     privileged: true
     ports:
       - "50051:50051"
+      - "4501:4501/udp"
     expose:
       - 5458
       - 3501/udp
@@ -29,6 +30,7 @@ services:
     privileged: true
     ports:
       - "50052:50051"
+      - "4502:4501/udp"
     expose:
       - 5458
       - 3501/udp
@@ -48,6 +50,7 @@ services:
     privileged: true
     ports:
       - "50053:50051"
+      - "4503:4501/udp"
     expose:
       - 5458
       - 3501/udp
@@ -67,6 +70,7 @@ services:
     privileged: true
     ports:
       - "50054:50051"
+      - "4504:4501/udp"
     expose:
       - 5458
       - 3501/udp

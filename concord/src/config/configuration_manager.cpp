@@ -3389,6 +3389,11 @@ void specifyConfiguration(ConcordConfiguration& config) {
   node.tagParameter("service_port", privateInputTags);
   node.addValidator("service_port", validatePortNumber, nullptr);
 
+  node.declareParameter("bft_metrics_udp_port",
+                        "Port for reading BFT metrics (JSON payload) via UDP.");
+  node.tagParameter("bft_metrics_udp_port", privateOptionalTags);
+  node.addValidator("bft_metrics_udp_port", validatePortNumber, nullptr);
+
   node.declareParameter(
       "transaction_list_max_count",
       "Maximum number of transactions to allow this replica to return to "
