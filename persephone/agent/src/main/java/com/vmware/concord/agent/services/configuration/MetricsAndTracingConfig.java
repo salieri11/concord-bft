@@ -37,8 +37,11 @@ public enum MetricsAndTracingConfig implements BaseContainerSpec {
     TELEGRAF("telegraf",
             List.of(new PortBinding(Ports.Binding.bindPort(9090), ExposedPort.tcp(9090))),
             List.of(Bind.parse("/config/telegraf/telegraf.conf:/etc/telegraf/telegraf.conf"),
-                    Bind.parse("/var/run/docker.sock:/var/run/docker.sock")),
-            null, null, null);
+                    Bind.parse("/var/run/docker.sock:/var/run/docker.sock"),
+                    Bind.parse("/:/hostfs:ro")),
+            null, null,
+            List.of("HOST_MOUNT_PREFIX=/hostfs",
+                    "HOST_PROC=/hostfs/proc"));
 
     @Setter
     private String imageId;
