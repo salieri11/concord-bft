@@ -294,7 +294,7 @@
               }
             },
             "wavefront": {
-              "url": "https://vmware.wavefront.com",
+              "url": "https://vmware.wavefront.com/api/",
               "token": "<WAVEFRONT_API_TOKEN>"
             },
             "logManagements": [
@@ -352,7 +352,7 @@
               }
             },
             "wavefront": {
-              "url": "https://vmware.wavefront.com",
+              "url": "https://vmware.wavefront.com/api/",
               "token": "<WAVEFRONT_API_TOKEN>"
             },
             "logManagements": [
@@ -406,7 +406,7 @@
               }
             },
             "wavefront": {
-              "url": "https://vmware.wavefront.com",
+              "url": "https://vmware.wavefront.com/api/",
               "token": "<WAVEFRONT_API_TOKEN>"
             },
             "logManagements": [
