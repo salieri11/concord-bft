@@ -73,7 +73,7 @@ public final class ErrorCodeType {
             new ErrorCodeType("helen.could.not.convert.from.db.to.entity", 1);
     public static final ErrorCodeType ENTITY_ISSUES = new ErrorCodeType("helen.issues.with.entity", 0);
     public static final ErrorCodeType ENTITY_NOT_FOUND =
-            new ErrorCodeType("helen.entity.is.not.found.for.Id.and.column.name", 2);
+            new ErrorCodeType("helen.entity.is.not.found.for.Id", 1);
     public static final ErrorCodeType EXCEPTION_NOT_ALLOWED = new ErrorCodeType("helen.not.allowed", 0);
     public static final ErrorCodeType EXPECTED_AZPS_NULL_OR_EMPTY =
             new ErrorCodeType("helen.expected.list.of.authentication", 0);
