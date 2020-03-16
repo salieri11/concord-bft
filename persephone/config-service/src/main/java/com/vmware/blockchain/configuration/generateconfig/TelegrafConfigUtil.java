@@ -84,12 +84,12 @@ public class TelegrafConfigUtil {
         }
 
         content = content.replace("$BLOCKCHAIN_ID", properties.getValuesMap()
-                .getOrDefault(NodeProperty.Name.BLOCKCHAIN_ID.toString(), ""));
+                .getOrDefault(NodeProperty.Name.BLOCKCHAIN_ID.toString(), ""))
+                .replace("$URL", "[" + prometheusUrls + "]");
 
         // FIXME: This could ideally be hostIps -> config once we remove dependency on list ordering.
         for (int num = 0; num < hostIps.size(); num++) {
-            String hostConfigCopy = content.replace("$REPLICA", hostIps.get(num))
-                    .replace("$URL", "[" + prometheusUrls + "]");
+            String hostConfigCopy = content.replace("$REPLICA", hostIps.get(num));
             configMap.put(num, hostConfigCopy);
         }
 
