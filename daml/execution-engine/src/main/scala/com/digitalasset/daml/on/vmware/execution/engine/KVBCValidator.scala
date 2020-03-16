@@ -198,7 +198,7 @@ class KVBCValidator(registry: MetricRegistry)(implicit ec: ExecutionContext)
     Metrics.missingInputs.update(missingInputs.size)
 
     if (missingInputs.nonEmpty) {
-      logger.trace(s"Requesting ${missingInputs.size} missing inputs, correlationId=$correlationId")
+      logger.info(s"Requesting missing inputs, size=${missingInputs.size} correlationId=$correlationId participantId=${pendingSubmission.participantId}")
       pendingSubmissions(replicaId) = pendingSubmission
       Metrics.pendingSubmissions.inc()
       ValidateResponse(

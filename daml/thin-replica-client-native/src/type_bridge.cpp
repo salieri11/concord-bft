@@ -71,6 +71,12 @@ class JNIClass {
     return (env->*ctorPtr)(javaClass, javaCtor, a1, a2);
   }
 
+  // Call a constructor with three arguments
+  template <typename T1, typename T2, typename T3>
+  jobject CreateInstance(const T1& a1, const T2& a2, const T3& a3) const {
+    return (env->*ctorPtr)(javaClass, javaCtor, a1, a2, a3);
+  }
+
   jobjectArray CreateArray(size_t size) const {
     return env->NewObjectArray(size, javaClass, NULL);
   }
@@ -99,7 +105,8 @@ class JNIConverter {
         update(CreateClass(
             "com/digitalasset/daml/on/vmware/thin/replica/client/core/Update",
             "apply",
-            "(J[Lscala/Tuple2;)Lcom/digitalasset/daml/on/vmware/thin/replica/"
+            "(J[Lscala/Tuple2;Ljava/lang/String;)Lcom/digitalasset/daml/on/"
+            "vmware/thin/replica/"
             "client/core/Update;")),
         stringClass(env->FindClass("java/lang/String")) {}
 
@@ -175,8 +182,9 @@ class JNIConverter {
     return tuple->CreateArray(size);
   }
 
-  jobject CreateUpdate(long blockId, jobject kvPairs) const {
-    return update->CreateInstance(blockId, kvPairs);
+  jobject CreateUpdate(long blockId, jobject kvPairs,
+                       jstring correlationId) const {
+    return update->CreateInstance(blockId, kvPairs, correlationId);
   }
 };
 
@@ -299,7 +307,8 @@ jobject processUpdate(JNIEnv* env, JNIConverter* converter,
                                converter->CreateByteArray(it->second));
     env->SetObjectArrayElement(kvPairs, i++, tup);
   }
-  jobject u = converter->CreateUpdate(update->block_id, kvPairs);
+  jstring correlationId = converter->CreateString(update->correlation_id_);
+  jobject u = converter->CreateUpdate(update->block_id, kvPairs, correlationId);
   return converter->CreateOption(u);
 }
 
@@ -348,7 +357,8 @@ extern "C" jobject getTestUpdate(JNIEnv* env, jobject obj) {
   jbyteArray alice = converter->CreateByteArray("Alice");
   jbyteArray bob = converter->CreateByteArray("Bob");
   jobject tup = converter->CreateTuple(alice, bob);
+  jstring correlationId = converter->CreateString("test");
   env->SetObjectArrayElement(kvPairs, 0, tup);
-  jobject u = converter->CreateUpdate(17, kvPairs);
+  jobject u = converter->CreateUpdate(17, kvPairs, correlationId);
   return converter->CreateOption(u);
 }
