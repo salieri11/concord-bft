@@ -149,6 +149,9 @@ def deployToSddc(logDir, hermesData):
       if blockchain_type.lower() == helper.TYPE_ETHEREUM:
          for replica_entry in blockchainDetails["replica_list"]:
             setUpPortForwarding(replica_entry["url"], credentials, blockchain_type, logDir)
+            host = replica_entry["ip"]
+            helper.waitForDockerContainers(host, credentials["username"], credentials["password"],
+                                           helper.TYPE_ETHEREUM)
             ethereum_replicas.append(replica_entry)
       elif blockchain_type.lower() == helper.TYPE_DAML:
          for replica_entry in blockchainDetails["replica_list"]:
