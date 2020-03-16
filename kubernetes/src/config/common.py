@@ -43,6 +43,7 @@ IPAM_URL = "ipam-vmbc.cloud.vmware.com:443"
 VAULT_ENDPOINT = "http://10.78.20.9:8200"
 VAULT_KEY = os.environ.get("VAULT_KEY", None)
 
+SLACK_CHANNELS = ["vdaml-devops", "slackbot"]
 
 KUBE_CONFIGS = {
 	"local":

@@ -26,11 +26,15 @@ def setup_arguments():
     parser.add_argument("--cspenv", type=str, default="stg",
                     choices=["stg", "prod"],
                     help="CSP env associated for the helen deployment")
+    parser.add_argument("--slack", action="store_true", default=False,
+                    help="Notify on slack")
+    parser.add_argument("--email", action="store_true", default=False,
+                    help="Notify via email")
     subparsers = parser.add_subparsers(help='Subparsers for '
                         'blockchain deployment')
     committer = subparsers.add_parser("committer",
                                 help="Deploy comitter nodes from helen")
-    committer.set_defaults(which='comitter')
+    committer.set_defaults(which='committer')
     committer.add_argument("--consortium", type=str, required=True,
                     help="Consortium name to use for deployment")
     committer.add_argument("--nodenumber", type=int, required=True,
@@ -91,8 +95,8 @@ class HelenApi():
             Given a consortium name, creates it.
         """
         data = {
-            "consortiumName": name,
-            "consortiumType": "string",
+            "consortium_name": name,
+            "consortium_type": "string",
             "organization": orgid
             }
         req = requests.post("%s/api/consortiums" % (self.helen_url),
@@ -113,7 +117,7 @@ class HelenApi():
                 headers=self.auth_header)
         return req.json()
 
-    def create_blockchain(consortium_id, blockchaintype, nodes=4):
+    def create_blockchain(self, consortium_id, blockchaintype, nodes=4):
         """
             Create blockchain for given consortium, assumes equal distribution
             among cloud zones
@@ -125,10 +129,11 @@ class HelenApi():
             "consortium_id": consortium_id,
             "f_count": int(f),
             "c_count": 0,
-            "deployment_type": "UNSPECIFIED",
+            "deployment_type": "FIXED",
             "zone_ids": siteids[:nodes],
             "blockchain_type": blockchaintype
         }
+        logger.info("Creating blockchain with specifications %s" % data)
         req = requests.post(url, headers=self.auth_header, json=data)
         taskid = req.json()["task_id"]
         blockchainid, blockchain_link = self.poll_task(taskid)
@@ -188,7 +193,7 @@ class HelenApi():
         else:
             return True
 
-    def get_blockchain(self, blockchain_id):
+    def get_blockchain_info(self, blockchain_id):
         """
             Retrieve blockchain info for given blockchainid
         """
@@ -200,7 +205,7 @@ class HelenApi():
         else:
             return req.json()
 
-    def get_replica(self, blockchain_id):
+    def get_replica_info(self, blockchain_id):
         """
             Retrieve participants for given blockchain id
         """
@@ -212,28 +217,43 @@ class HelenApi():
         else:
             return req.json()
 
-    def deploy_participant(self, blockchainid, number):
+    def deploy_participant(self, blockchain_id, number):
         """
             Deploy participant for given blockchain
         """
         zones = self.compute_cloud_zones(1)
-        data = {
-                "zone_ids": zones[0]
-        }
+        data = {"zone_ids": zones[:1]}
         for i in range(number):
             url = ("%s/api/blockchains/%s/clients" % (self.helen_url,
-                        blockchainid))
+                        blockchain_id))
             req = requests.post(url, headers=self.auth_header, json=data)
             logger.info(req.text)
             taskid = req.json()["task_id"]
             participantid, participant_link = self.poll_task(taskid)
             if participantid is False:
                 raise Exception("Unable to create participant for blockchain %s"
-                                % blockchainid)
+                                % blockchain_id)
             else:
                 logger.info("Created new participant with id %s: resource %s" %
                             (participantid, participant_link))
         return True
+
+    def parse_blockchain_nodeinfo(self, blockchain_id):
+        """
+            Parse committer and participant node info
+        """
+        committers = self.get_blockchain_info(blockchain_id)
+        participants = self.get_replica_info(blockchain_id)
+        msg = ("Node information for new blockchain "
+                "deployment\n\nComitters\n%s\n" % ("-"*15))
+        for committer in committers["node_list"]:
+            msg = msg + ("nodeip: %s\nnodeurl: %s\n\n" %
+                        (committer["ip"], committer["url"]))
+        msg = msg + "Participants\n%s\n" % ("-"*15)
+        for participant in participants:
+            msg = msg + ("nodeip: %s\nnodeurl: %s\n\n" %
+                        (participant["public_ip"], participant["url"]))
+        return msg
 
 if __name__ == "__main__":
     args = setup_arguments()
@@ -251,6 +271,11 @@ if __name__ == "__main__":
             sys.exit(1)
         if args.numparticipants > 0:
             helen.deploy_participant(blockchainid, args.numparticipants)
+        result = helen.parse_blockchain_nodeinfo(blockchainid)
+        if args.slack is True:
+            utils.post_slack_channel(common.SLACK_CHANNELS[0], result)
+        logger.info("Succesfully deployed blockchain with id %s" % blockchainid)
+        logger.info("Blockchain info %s" % result)
     elif args.which == "participant":
         helen = HelenApi(args.helenurl, None, args.cspenv)
         res = helen.get_blockchain(args.blockchainid)
@@ -259,4 +284,4 @@ if __name__ == "__main__":
         if helen.deploy_participant(args.blockchainid, args.participants) is True:
             logger.info("Deployed %s participants for blockchain id %s" %
                         (args.participants, args.blockchainid))
-            logger.info(helen.get_replica(args.blockchainid))
+            logger.info(helen.get_replica_info(args.blockchainid))

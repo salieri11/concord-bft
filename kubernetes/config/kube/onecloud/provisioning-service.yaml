@@ -14,13 +14,13 @@ spec:
     spec:
       containers:
       - name: provisioning-service
-        image: athena-docker-local.artifactory.eng.vmware.com/persephone-provisioning:658
+        image: athena-docker-local.artifactory.eng.vmware.com/persephone-provisioning:0.6.0.1101
         ports:
         - containerPort: 9002
         imagePullPolicy: Always
         volumeMounts:
         - name: provision-volume
-          mountPath: /config/persephone/provisioning/
+          mountPath: /config/app/profiles/
           readOnly: true
         resources:
           requests:
@@ -34,7 +34,7 @@ spec:
       volumes:
       - name: provision-volume
         configMap:
-          name: fleetprod-noauth
+          name: provision-service-local
           defaultMode: 0700
 ---
 apiVersion: v1
