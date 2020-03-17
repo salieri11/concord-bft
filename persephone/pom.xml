@@ -107,7 +107,7 @@
         <maven.plugin.ktlint.version>1.0.2</maven.plugin.ktlint.version>
         <maven.plugin.checkstyle.version>3.0.0</maven.plugin.checkstyle.version>
         <maven.plugin.compiler.version>3.8.1</maven.plugin.compiler.version>
-        <maven.plugin.failsafe.version>3.0.0</maven.plugin.failsafe.version>
+        <maven.plugin.failsafe.version>2.22.1</maven.plugin.failsafe.version>
         <maven.plugin.flatten.version>1.2.1</maven.plugin.flatten.version>
         <maven.plugin.protocjar.version>3.11.1</maven.plugin.protocjar.version>
         <maven.plugin.surefire.version>2.22.2</maven.plugin.surefire.version>
@@ -123,8 +123,8 @@
         <jaxb.version>2.4.0-b180830.0359</jaxb.version>
         <json-simple.version>1.1.1</json-simple.version>
         <jsonwebtoken.version>0.9.1</jsonwebtoken.version>
-        <junit.jupiter.version>5.6.0</junit.jupiter.version>
-        <junit.platform.version>1.3.2</junit.platform.version>
+        <junit.jupiter.version>5.2.0</junit.jupiter.version>
+        <junit.platform.version>1.2.0</junit.platform.version>
         <junit.vintage.version>4.12.0</junit.vintage.version>
         <lombok.version>1.18.12</lombok.version>
         <mockito.version>3.3.0</mockito.version>
@@ -363,38 +363,8 @@
             </dependency>
             <dependency>
                 <groupId>io.grpc</groupId>
-                <artifactId>grpc-stub</artifactId>
-                <version>${grpc.runtime.java.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.grpc</groupId>
-                <artifactId>grpc-netty-shaded</artifactId>
-                <version>${grpc.runtime.java.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.grpc</groupId>
                 <artifactId>grpc-api</artifactId>
                 <version>1.26.0</version>
-            </dependency>
-            <dependency>
-                <groupId>org.assertj</groupId>
-                <artifactId>assertj-core</artifactId>
-                <version>${assertj.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.junit.jupiter</groupId>
-                <artifactId>junit-jupiter-api</artifactId>
-                <scope>test</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.junit.jupiter</groupId>
-                <artifactId>junit-jupiter-engine</artifactId>
-                <version>${junit.jupiter.version}</version>
-                <scope>test</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.projectlombok</groupId>
-                <artifactId>lombok</artifactId>
             </dependency>
             <dependency>
                 <groupId>commons-io</groupId>
@@ -469,18 +439,6 @@
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-surefire-plugin</artifactId>
                     <version>${maven.plugin.surefire.version}</version>
-                    <dependencies>
-                        <dependency>
-                            <groupId>org.junit.platform</groupId>
-                            <artifactId>junit-platform-surefire-provider</artifactId>
-                            <version>${junit.platform.version}</version>
-                        </dependency>
-                    </dependencies>
-                    <configuration>
-                        <includes>
-                            <include>**/*Test.java</include>
-                        </includes>
-                    </configuration>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
