@@ -19,7 +19,10 @@
         <kotlin.version>1.3.61</kotlin.version>
         <kotlin.compiler.jvmTarget>1.8</kotlin.compiler.jvmTarget>
         <protobuf.runtime.java.version>3.7.1</protobuf.runtime.java.version>
-<!--        <spring.boot.mainclass>com.vmware.blockchain.deployment.server.Application</spring.boot.mainclass>-->
+        <mockito.inline.version>2.28.2</mockito.inline.version>
+        <kr.motd.maven.version>1.6.2</kr.motd.maven.version>
+        <springframework.security.version>5.1.8.RELEASE</springframework.security.version>
+        <com.github.tomakehurst.version>2.20.0</com.github.tomakehurst.version>
     </properties>
 
     <dependencies>
@@ -74,11 +77,6 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-test</artifactId>
-            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -139,114 +137,119 @@
             <scope>test</scope>
         </dependency>
         <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-inline</artifactId>
+            <version>${mockito.inline.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.tomakehurst</groupId>
+            <artifactId>wiremock</artifactId>
+            <version>${com.github.tomakehurst.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+        </dependency>
+        <dependency>
+            <!-- Make method-based security testing easier. -->
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-test</artifactId>
+            <version>${springframework.security.version}</version>
+        </dependency>
+        <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
         </dependency>
-        <dependency>
-            <groupId>commons-io</groupId>
-            <artifactId>commons-io</artifactId>
-        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>commons-io</groupId>-->
+<!--            <artifactId>commons-io</artifactId>-->
+<!--        </dependency>-->
     </dependencies>
     <build>
+<!--        <testSourceDirectory>src/test</testSourceDirectory>-->
         <extensions>
             <extension>
                 <groupId>kr.motd.maven</groupId>
                 <artifactId>os-maven-plugin</artifactId>
-                <version>1.6.2</version>
+                <version>${kr.motd.maven.version}</version>
             </extension>
         </extensions>
         <plugins>
-            <plugin>
-                <!-- Kotlin compile plugin must be specified before Java.
-                     (Supports polyglot projects. -->
-                <groupId>org.jetbrains.kotlin</groupId>
-                <artifactId>kotlin-maven-plugin</artifactId>
-                <version>${kotlin.version}</version>
-                <configuration>
-                    <jvmTarget>${kotlin.compiler.jvmTarget}</jvmTarget>
-                    <args>
-                        <!-- Multi-platform project to allow "expect"/"actual" declarations. -->
-                        <arg>-Xmulti-platform</arg>
-                        <!-- Remove wrapper object abstraction cost. -->
-                        <!--<arg>-XXLanguage:+InlineClasses</arg>-->
-                        <arg>-Xuse-experimental=kotlin.ExperimentalUnsignedTypes</arg>
-                        <arg>-Xuse-experimental=kotlinx.coroutines.ExperimentalCoroutinesApi</arg>
-                    </args>
-                    <compilerPlugins>
-                        <plugin>kotlinx-serialization</plugin>
-                    </compilerPlugins>
-                </configuration>
-                <dependencies>
-                    <dependency>
-                        <groupId>org.jetbrains.kotlin</groupId>
-                        <artifactId>kotlin-maven-serialization</artifactId>
-                        <version>${kotlin.version}</version>
-                    </dependency>
-                </dependencies>
-                <executions>
-                    <execution>
-                        <id>kapt</id>
-                        <goals>
-                            <goal>kapt</goal>
-                        </goals>
-                        <configuration>
-                            <sourceDirs>
-                                <sourceDir>${project.basedir}/src/main/java</sourceDir>
-                                <sourceDir>${project.basedir}/target/generated-sources/protobuf</sourceDir>
-                                <sourceDir>${project.basedir}/target/generated-sources/protobuf/common</sourceDir>
-                                <sourceDir>${project.basedir}/target/generated-sources/protobuf/jvm</sourceDir>
-                            </sourceDirs>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>test-kapt</id>
-                        <goals>
-                            <goal>test-kapt</goal>
-                        </goals>
-                        <configuration>
-                            <sourceDirs>
-                                <sourceDir>${project.basedir}/src/main/test/java</sourceDir>
-                                <sourceDir>${project.basedir}/target/generated-sources/test-protobuf/common</sourceDir>
-                                <sourceDir>${project.basedir}/target/generated-sources/test-protobuf/jvm</sourceDir>
-                            </sourceDirs>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>kotlin-compile</id>
-                        <phase>compile</phase>
-                        <goals>
-                            <goal>compile</goal>
-                        </goals>
-                        <configuration>
-                            <sourceDirs>
-                                <sourceDir>${project.basedir}/src/main/java</sourceDir>
-                                <sourceDir>${project.basedir}/target/generated-sources/kapt/compile</sourceDir>
-                                <sourceDir>${project.basedir}/target/generated-sources/protobuf</sourceDir>
-                                <sourceDir>${project.basedir}/target/generated-sources/kaptKotlin/compile</sourceDir>
-                                <sourceDir>${project.basedir}/target/generated-sources/protobuf/common</sourceDir>
-                                <sourceDir>${project.basedir}/target/generated-sources/protobuf/jvm</sourceDir>
-                            </sourceDirs>
-                            <output>${project.build.directory}/classes</output>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>kotlin-test-compile</id>
-                        <phase>test-compile</phase>
-                        <goals>
-                            <goal>test-compile</goal>
-                        </goals>
-                        <configuration>
-                            <sourceDirs>
-                                <sourceDir>${project.basedir}/src/main/test/java</sourceDir>
-                                <sourceDir>${project.basedir}/target/generated-sources/kapt/test</sourceDir>
-                                <sourceDir>${project.basedir}/target/generated-sources/kaptKotlin/test</sourceDir>
-                                <sourceDir>${project.basedir}/target/generated-sources/test-protobuf/common</sourceDir>
-                                <sourceDir>${project.basedir}/target/generated-sources/test-protobuf/jvm</sourceDir>
-                            </sourceDirs>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
+<!--            <plugin>-->
+<!--                &lt;!&ndash; Kotlin compile plugin must be specified before Java.-->
+<!--                     (Supports polyglot projects. &ndash;&gt;-->
+<!--                <groupId>org.jetbrains.kotlin</groupId>-->
+<!--                <artifactId>kotlin-maven-plugin</artifactId>-->
+<!--                <version>${kotlin.version}</version>-->
+<!--                <configuration>-->
+<!--                    <jvmTarget>${kotlin.compiler.jvmTarget}</jvmTarget>-->
+<!--                    <args>-->
+<!--                        &lt;!&ndash; Multi-platform project to allow "expect"/"actual" declarations. &ndash;&gt;-->
+<!--                        <arg>-Xmulti-platform</arg>-->
+<!--                        &lt;!&ndash; Remove wrapper object abstraction cost. &ndash;&gt;-->
+<!--                        &lt;!&ndash;<arg>-XXLanguage:+InlineClasses</arg>&ndash;&gt;-->
+<!--                        <arg>-Xuse-experimental=kotlin.ExperimentalUnsignedTypes</arg>-->
+<!--                        <arg>-Xuse-experimental=kotlinx.coroutines.ExperimentalCoroutinesApi</arg>-->
+<!--                    </args>-->
+<!--                    <compilerPlugins>-->
+<!--                        <plugin>kotlinx-serialization</plugin>-->
+<!--                    </compilerPlugins>-->
+<!--                </configuration>-->
+<!--                <dependencies>-->
+<!--                    <dependency>-->
+<!--                        <groupId>org.jetbrains.kotlin</groupId>-->
+<!--                        <artifactId>kotlin-maven-serialization</artifactId>-->
+<!--                        <version>${kotlin.version}</version>-->
+<!--                    </dependency>-->
+<!--                </dependencies>-->
+<!--                <executions>-->
+<!--                    <execution>-->
+<!--                        <id>kapt</id>-->
+<!--                        <goals>-->
+<!--                            <goal>kapt</goal>-->
+<!--                        </goals>-->
+<!--                        <configuration>-->
+<!--                            <sourceDirs>-->
+<!--                                <sourceDir>${project.basedir}/src/main/java</sourceDir>-->
+<!--                                <sourceDir>${project.basedir}/target/generated-sources/protobuf</sourceDir>-->
+<!--                                <sourceDir>${project.basedir}/target/generated-sources/protobuf/common</sourceDir>-->
+<!--                                <sourceDir>${project.basedir}/target/generated-sources/protobuf/jvm</sourceDir>-->
+<!--                            </sourceDirs>-->
+<!--                        </configuration>-->
+<!--                    </execution>-->
+<!--                    <execution>-->
+<!--                        <id>test-kapt</id>-->
+<!--                        <goals>-->
+<!--                            <goal>test-kapt</goal>-->
+<!--                        </goals>-->
+<!--                        <configuration>-->
+<!--                            <sourceDirs>-->
+<!--                                <sourceDir>${project.basedir}/src/main/test/java</sourceDir>-->
+<!--                                <sourceDir>${project.basedir}/target/generated-sources/test-protobuf/common</sourceDir>-->
+<!--                                <sourceDir>${project.basedir}/target/generated-sources/test-protobuf/jvm</sourceDir>-->
+<!--                            </sourceDirs>-->
+<!--                        </configuration>-->
+<!--                    </execution>-->
+<!--                    <execution>-->
+<!--                        <id>kotlin-compile</id>-->
+<!--                        <phase>compile</phase>-->
+<!--                        <goals>-->
+<!--                            <goal>compile</goal>-->
+<!--                        </goals>-->
+<!--                        <configuration>-->
+<!--                            <sourceDirs>-->
+<!--                                <sourceDir>${project.basedir}/src/main/java</sourceDir>-->
+<!--                                <sourceDir>${project.basedir}/target/generated-sources/kapt/compile</sourceDir>-->
+<!--                                <sourceDir>${project.basedir}/target/generated-sources/protobuf</sourceDir>-->
+<!--                                <sourceDir>${project.basedir}/target/generated-sources/kaptKotlin/compile</sourceDir>-->
+<!--                                <sourceDir>${project.basedir}/target/generated-sources/protobuf/common</sourceDir>-->
+<!--                                <sourceDir>${project.basedir}/target/generated-sources/protobuf/jvm</sourceDir>-->
+<!--                            </sourceDirs>-->
+<!--                            <output>${project.build.directory}/classes</output>-->
+<!--                        </configuration>-->
+<!--                    </execution>-->
+<!--                </executions>-->
+<!--            </plugin>-->
 
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -255,47 +258,41 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <configuration>
-                    <source>${java.version}</source>
-                    <target>${java.version}</target>
-                    <release>${java.version}</release>
-                    <fork>true</fork>
-                    <meminitial>1024m</meminitial>
-                    <maxmem>4048m</maxmem>
-                    <generatedSourcesDirectory>${project.build.directory}/generated-sources/annotations</generatedSourcesDirectory>
-                    <generatedTestSourcesDirectory>${project.build.directory}/generated-sources/test-annotations</generatedTestSourcesDirectory>
-                    <includes>
-                        <include>**/*.java</include>
-                    </includes>
-                    <compilerArgs>
-                        <arg>-Xlint:all</arg>
-                    </compilerArgs>
-                    <annotationProcessorPaths>
-                        <path>
-                            <groupId>org.springframework.boot</groupId>
-                            <artifactId>spring-boot-configuration-processor</artifactId>
-                            <version>2.2.2.RELEASE</version>
-                        </path>
-                    </annotationProcessorPaths>
-                </configuration>
+<!--                <configuration>-->
+<!--                    <source>${java.version}</source>-->
+<!--                    <target>${java.version}</target>-->
+<!--                    <release>${java.version}</release>-->
+<!--                    <fork>true</fork>-->
+<!--                    <meminitial>1024m</meminitial>-->
+<!--                    <maxmem>4048m</maxmem>-->
+<!--                    <generatedSourcesDirectory>${project.build.directory}/generated-sources/annotations</generatedSourcesDirectory>-->
+<!--                    <generatedTestSourcesDirectory>${project.build.directory}/generated-sources/test-annotations</generatedTestSourcesDirectory>-->
+<!--                    <includes>-->
+<!--                        <include>**/*.java</include>-->
+<!--                    </includes>-->
+<!--                    <compilerArgs>-->
+<!--                        <arg>-Xlint:all</arg>-->
+<!--                    </compilerArgs>-->
+<!--                    <annotationProcessorPaths>-->
+<!--                        <path>-->
+<!--                            <groupId>org.springframework.boot</groupId>-->
+<!--                            <artifactId>spring-boot-configuration-processor</artifactId>-->
+<!--                            <version>2.2.2.RELEASE</version>-->
+<!--                        </path>-->
+<!--                    </annotationProcessorPaths>-->
+<!--                </configuration>-->
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
             </plugin>
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+            </plugin>
+            <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>repackage</goal>
-                        </goals>
-<!--                        <configuration>-->
-<!--                            <mainClass>${spring.boot.mainclass}</mainClass>-->
-<!--                        </configuration>-->
-                    </execution>
-                </executions>
             </plugin>
             <!--Protobuf to Java compiler plugin-->
             <plugin>
