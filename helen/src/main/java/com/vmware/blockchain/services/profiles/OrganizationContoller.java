@@ -42,7 +42,8 @@ public class OrganizationContoller {
 
     @Data
     static class OrgPatchBody {
-        Map<String, String> organizationProperties;
+        Map<String, String> addProperties;
+        Map<String, String> deleteProperties;
     }
 
 
@@ -88,13 +89,17 @@ public class OrganizationContoller {
                                                     @RequestBody OrgPatchBody body) {
         Organization org = orgService.get(orgId);
 
-        Map<String, String> patchMap = body.getOrganizationProperties();
+        Map<String, String> addMap = body.getAddProperties();
+        Map<String, String> delMap = body.getDeleteProperties();
+        Map<String, String> orgMap = org.getOrganizationProperties();
 
-        if (patchMap != null) {
-            if (org.getOrganizationProperties() == null) {
-                org.setOrganizationProperties(patchMap);
-            } else {
-                org.getOrganizationProperties().putAll(patchMap);
+        if (addMap != null) {
+            orgMap.putAll(addMap);
+        }
+
+        if (delMap != null) {
+            for (String property: delMap.keySet()) {
+                orgMap.remove(property);
             }
         }
 

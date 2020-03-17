@@ -4,6 +4,7 @@
 
 package com.vmware.blockchain.services.profiles;
 
+import java.util.HashMap;
 import java.util.Map;
 
 import com.vmware.blockchain.dao.AbstractEntity;
@@ -24,7 +25,7 @@ public class Organization extends AbstractEntity {
 
     private String organizationName;
 
-    private Map<String, String> organizationProperties;
+    private Map<String, String> organizationProperties = new HashMap<String, String>();
 
     public Organization(String organizationName) {
         this.organizationName = organizationName;

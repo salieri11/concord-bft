@@ -1337,9 +1337,6 @@ paths:
                       format: string
                       description: Name of organization
     patch:
-      deprecated: true
-      tags:
-        - deprecated
       summary: Update an existing organization
       operationId: organizationPatch
       parameters:
@@ -1357,9 +1354,14 @@ paths:
             schema:
               type: object
               properties:
-                Organization_name:
-                  type: string
-                  description: Updating name of the organization
+                add_properties:
+                  type: object
+                  additionalProperties:
+                    type: string
+                delete_properties:
+                  type: object
+                  additionalProperties:
+                    type: string
         required: true
       responses:
         200:
