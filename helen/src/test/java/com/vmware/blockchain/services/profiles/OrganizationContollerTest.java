@@ -59,6 +59,7 @@ import io.grpc.ManagedChannel;
 @ComponentScan(basePackageClasses = { OrganizationContoller.class })
 public class OrganizationContollerTest {
     static final UUID ORG_1 = UUID.fromString("fdd53f14-acaa-4c55-a41c-cad76154cd1f");
+    static final UUID ORG_NO_PROPERTIES = UUID.fromString("fbb53f14-acaa-4c55-a41c-cad76154cd1f");
 
     @Autowired
     MockMvc mockMvc;
@@ -133,10 +134,15 @@ public class OrganizationContollerTest {
         Map<String, String> org2Map = new LinkedHashMap<>();
         org2Map.put("Test", "sugoi");
         org2.setOrganizationProperties(org2Map);
-        List<Organization> orgList = ImmutableList.of(org1, org2);
+
+        Organization orgWithEmptyProperties = new Organization("TrySail");
+        orgWithEmptyProperties.setId(ORG_NO_PROPERTIES);
+
+        List<Organization> orgList = ImmutableList.of(org1, org2, orgWithEmptyProperties);
 
         Mockito.when(organizationService.list()).thenReturn(orgList);
         Mockito.when(organizationService.get(ORG_1)).thenReturn(org1);
+        Mockito.when(organizationService.get(ORG_NO_PROPERTIES)).thenReturn(orgWithEmptyProperties);
         when(organizationService.put(any(Organization.class))).thenAnswer(i -> {
             Organization organization = i.getArgument(0);
             if (organization.getId() == null) {
@@ -154,7 +160,7 @@ public class OrganizationContollerTest {
         String body = result.getResponse().getContentAsString();
         List<OrganizationContoller.OrgGetResponse> res = objectMapper.readValue(body, new TypeReference<>() {});
         // As an operator, we should see both blockchains.
-        Assertions.assertEquals(2, res.size());
+        Assertions.assertEquals(3, res.size());
     }
 
     @Test
@@ -178,7 +184,7 @@ public class OrganizationContollerTest {
     @Test
     void updateOrg() throws Exception {
         String content = String.format("    {"
-                + "        \"organization_properties\": {"
+                + "        \"add_properties\": {"
                 + "                                         \"hello\" : \"world\""
                 + "                                     }"
                 + "    }");
@@ -199,9 +205,102 @@ public class OrganizationContollerTest {
     }
 
     @Test
+    void updateOrgWithNoProperties() throws Exception {
+        String content = String.format("    {"
+                + "        \"add_properties\": {"
+                + "                                         \"soda\" : \"pops\""
+                + "                             }"
+                + "    }");
+
+        MvcResult result = mockMvc.perform(patch("/api/organizations/" + ORG_NO_PROPERTIES.toString())
+                .contentType(MediaType.APPLICATION_JSON).content(content))
+                .andExpect(status().isOk()).andReturn();
+
+        String body = result.getResponse().getContentAsString();
+
+        OrgGetResponse res = objectMapper.readValue(body, OrgGetResponse.class);
+
+        Assertions.assertEquals(ORG_NO_PROPERTIES, res.orgId);
+        Map<String, String> properties = new LinkedHashMap<>();
+        properties.put("soda", "pops");
+        Assertions.assertEquals(properties, res.organizationProperties);
+    }
+
+    @Test
+    void updateOrgDeleteProperties() throws Exception {
+        String content = String.format("    {"
+                + "        \"delete_properties\": {"
+                + "                                         \"Test\" : \"\""
+                + "                             }"
+                + "    }");
+
+        MvcResult result = mockMvc.perform(patch("/api/organizations/" + ORG_1.toString())
+                .contentType(MediaType.APPLICATION_JSON).content(content))
+                .andExpect(status().isOk()).andReturn();
+
+        String body = result.getResponse().getContentAsString();
+
+        OrgGetResponse res = objectMapper.readValue(body, OrgGetResponse.class);
+
+        Assertions.assertEquals(ORG_1, res.orgId);
+        Map<String, String> properties = new LinkedHashMap<>();
+        Assertions.assertEquals(properties, res.organizationProperties);
+    }
+
+    @Test
+    void updateOrgAddAndDeleteProperties() throws Exception {
+        String content = String.format("    {"
+                + "        \"add_properties\": {"
+                + "                                         \"Orbital\" : \"Beat\""
+                + "                             },"
+                + "        \"delete_properties\": {"
+                + "                                         \"Test\" : \"\""
+                + "                             }"
+                + "    }");
+
+        MvcResult result = mockMvc.perform(patch("/api/organizations/" + ORG_1.toString())
+                .contentType(MediaType.APPLICATION_JSON).content(content))
+                .andExpect(status().isOk()).andReturn();
+
+        String body = result.getResponse().getContentAsString();
+
+        OrgGetResponse res = objectMapper.readValue(body, OrgGetResponse.class);
+
+        Assertions.assertEquals(ORG_1, res.orgId);
+        Map<String, String> properties = new LinkedHashMap<>();
+        properties.put("Orbital", "Beat");
+        Assertions.assertEquals(properties, res.organizationProperties);
+    }
+
+    @Test
+    void updateOrgAddAndDeletePropertiesNoExistingProperties() throws Exception {
+        String content = String.format("    {"
+                + "        \"add_properties\": {"
+                + "                                         \"Orbital\" : \"Beat\""
+                + "                             },"
+                + "        \"delete_properties\": {"
+                + "                                         \"Test\" : \"\""
+                + "                             }"
+                + "    }");
+
+        MvcResult result = mockMvc.perform(patch("/api/organizations/" + ORG_NO_PROPERTIES.toString())
+                .contentType(MediaType.APPLICATION_JSON).content(content))
+                .andExpect(status().isOk()).andReturn();
+
+        String body = result.getResponse().getContentAsString();
+
+        OrgGetResponse res = objectMapper.readValue(body, OrgGetResponse.class);
+
+        Assertions.assertEquals(ORG_NO_PROPERTIES, res.orgId);
+        Map<String, String> properties = new LinkedHashMap<>();
+        properties.put("Orbital", "Beat");
+        Assertions.assertEquals(properties, res.organizationProperties);
+    }
+
+    @Test
     void updateOrgWithNullProperties() throws Exception {
         String content = String.format("    {"
-                + "        \"organization_properties\": null"
+                + "        \"add_properties\": null"
                 + "    }");
 
         MvcResult result = mockMvc.perform(patch("/api/organizations/" + ORG_1.toString())
@@ -223,7 +322,7 @@ public class OrganizationContollerTest {
         // Current org properties are {Test:wow}
         // Update them to {Test:SUGOI}
         String content = String.format("    {"
-                + "        \"organization_properties\": {"
+                + "        \"add_properties\": {"
                 + "                                         \"Test\" : \"SUGOI\""
                 + "                                     }"
                 + "    }");
@@ -247,7 +346,7 @@ public class OrganizationContollerTest {
         // Current org properties are {Test:wow}
         // Update them to {Test:SUGOI, Platinum:Disco, Delusion:Express}
         String content = String.format("    {"
-                + "        \"organization_properties\": {"
+                + "        \"add_properties\": {"
                 + "                                         \"Test\" : \"SUGOI\","
                 + "                                         \"Platinum\" : \"Disco\","
                 + "                                         \"Delusion\" : \"Express\""
