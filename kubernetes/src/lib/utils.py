@@ -8,6 +8,7 @@ import requests
 import kubernetes
 import docker
 import hvac
+import slack
 from socket import gethostbyname, gaierror
 from logging.handlers import RotatingFileHandler
 from config import common
@@ -197,6 +198,15 @@ def get_artifactory_creds():
                         mount_point="kv", path="artifactory")["data"]["data"]
 
 
+def get_slack_creds():
+    """
+        Get slack credentials from default vault
+    """
+    client = get_authenticated_hvac(common.VAULT_ENDPOINT)
+    return client.secrets.kv.v2.read_secret_version(
+                        mount_point="kv", path="slack")["data"]["data"]
+
+
 def get_auth_header(service, apitoken):
     """
         get auth header for csp service
@@ -269,3 +279,12 @@ def json_to_file(payload, filename):
             json.dump(data, outfile)
     except Exception as e:
         logger.exception("Error dumping json data")
+
+
+def post_slack_channel(channel, text):
+    data = get_slack_creds()
+    c_data = data[channel]
+    client = slack.WebClient(c_data["apitoken"])
+    client.chat_postMessage(
+            channel=c_data["channelid"],
+            text=text)
