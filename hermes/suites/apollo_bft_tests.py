@@ -34,10 +34,12 @@ import trio
 from bft import BftTestNetwork, TestConfig, with_trio
 from bft_config import Replica
 from test_skvbc import SkvbcTest
+from test_skvbc_fast_path import SkvbcFastPathTest
+from test_skvbc_view_change import SkvbcViewChangeTest
 
 from fixtures.common_fixtures import fxHermesRunSettings, fxProduct
 import hermes_util.helper as helper
-from hermes_util.skvbc.concord_skvbc_client import ConcordSkvbcClient
+from hermes_util.skvbc.concord_skvbc_client import RotatingSkvbcClient
 import hermes_util.hermes_logging as logging
 
 log = logging.getMainLogger()
@@ -47,10 +49,12 @@ productType = helper.TYPE_TEE
 
 
 def start_replica_cmd(builddir, replica_id):
+    log.info(f"Starting replica #{replica_id}")
     return ["docker", "start", f"docker_concord{replica_id + 1}_1"]
 
 
 def stop_replica_cmd(replica_id):
+    log.info(f"Stopping replica #{replica_id}")
     return ["docker", "kill", f"docker_concord{replica_id + 1}_1"]
 
 
@@ -66,8 +70,10 @@ async def bft_network():
                         stop_replica_cmd=stop_replica_cmd,
                         num_ro_replicas=0)
 
-    replicas = [Replica(id=i, ip="127.0.0.1", port=3501 + i) for i in range(config.n)]
-    clients = [ConcordSkvbcClient(port=50051 + i) for i in range(config.n)]
+    replicas = [Replica(id=i, ip="127.0.0.1", port=3501 + i, metrics_port=4501 + i)
+                for i in range(config.num_clients)]
+    concord_api_ports = [50051 + i for i in range(config.n)]
+    clients = config.num_clients * [RotatingSkvbcClient(*concord_api_ports)]
 
     bft_network = BftTestNetwork.existing(config, replicas, clients)
 
@@ -86,3 +92,34 @@ async def _test_skvbc_get_block_data(bft_network):
         already_in_trio=True
     )
     log.info("SKVBC test_get_block_data: OK.")
+
+
+def test_skvbc_fast_path(fxProduct, bft_network):
+    trio.run(_test_skvbc_fast_path, bft_network)
+
+
+async def _test_skvbc_fast_path(bft_network):
+    skvbc_fast_path_test = SkvbcFastPathTest()
+    skvbc_fast_path_test.setUp()
+    log.info("Running SKVBC read-your-writes (fast path)...")
+    await skvbc_fast_path_test.test_fast_path_read_your_write(
+        bft_network=bft_network,
+        already_in_trio=True,
+        disable_linearizability_checks=True
+    )
+    log.info("SKVBC read-your-writes (fast path): OK")
+
+
+def test_skvbc_view_change(fxProduct, bft_network):
+    trio.run(_test_skvbc_view_change, bft_network)
+
+
+async def _test_skvbc_view_change(bft_network):
+    skvbc_view_change_test = SkvbcViewChangeTest()
+    log.info("Running SKVBC view change test...")
+    await skvbc_view_change_test.test_single_vc_only_primary_down(
+        bft_network=bft_network,
+        already_in_trio=True,
+        disable_linearizability_checks=True
+    )
+    log.info("SKVBC view change test: OK")
