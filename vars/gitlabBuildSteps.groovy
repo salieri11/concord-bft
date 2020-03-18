@@ -145,10 +145,10 @@ import hudson.util.Secret
     "dockerComposeFiles": "../docker/docker-compose.yml ../docker/docker-compose-persephone.yml",
     "baseCommand": '"${python}" main.py DeployDamlTests'
   ],
-  "SDDCDeploymentOnly" : [
+  "DeploymentOnly" : [
     "enabled": false,
     "dockerComposeFiles": "../docker/docker-compose.yml ../docker/docker-compose-persephone.yml",
-    "baseCommand": 'echo "${PASSWORD}" | sudo -S "${python}" main.py HelenAPITests --blockchainLocation=sddc --test="-m deployment_only"'
+    "baseCommand": 'echo "${PASSWORD}" | sudo -S "${python}" main.py HelenAPITests --test="-m deployment_only"'
   ]
 ]
 
@@ -273,7 +273,7 @@ def call(){
       string defaultValue: "6",
              description: "Monitor replicas: Enter number of hours to monitor replicas (default 6 hrs)",
              name: "run_duration"
-      string defaultValue: "1",
+      string defaultValue: "60",
              description: "Monitor replicas: Enter number of minutes to wait between monitors (default 60 mins)",
              name: "load_interval"
     }
@@ -797,17 +797,18 @@ EOF
                       selectOnlySuites(["UiDAMLDeploy", "UiTests"])
                       runTests()
                     } else if (env.JOB_NAME.contains(long_tests_job_name)) {
-                      testSuites["SDDCDeploymentOnly"]["otherParameters"] = 
+                      env.blockchain_location = "sddc"
+                      testSuites["DeploymentOnly"]["otherParameters"] = 
                           " --blockchainType " + params.concord_type.toLowerCase() +
+                          " --blockchainLocation " + env.blockchain_location +
                           " --numReplicas " + params.num_replicas + " "
-                      selectOnlySuites(["SDDCDeploymentOnly"])
+                      selectOnlySuites(["DeploymentOnly"])
                       runTests()
 
-                      env.run_duration = params.run_duration
                       sh '''
                         echo "Running script to monitor health and status of replicas..."
                         cd ../docker ; docker-compose -f ../docker/docker-compose-persephone.yml up -d ; cd -
-                        "${python}" monitor_replicas.py --replicasConfig /tmp/replicas.json --loadInterval "${load_interval}" --runDuration "${run_duration}"
+                        "${python}" monitor_replicas.py --replicasConfig /tmp/replicas.json --loadInterval "${load_interval}" --runDuration "${run_duration}" --blockchainLocation "${blockchain_location}"
                       '''
                     }
 

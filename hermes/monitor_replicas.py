@@ -8,7 +8,8 @@
 #
 # Example: python3 monitor_replicas.py
 #  --replicas daml_committer:10.70.30.226,10.70.30.225,10.70.30.227,10.70.30.228
-#  --replicas daml_participant:10.70.30.229
+#  --replicas daml_committer:10.70.30.226,10.70.30.225,10.70.30.227,10.70.30.228
+#  --blockchainLocation <sddc/onprem>
 #  --runDuration 1
 #  --loadInterval 1
 
@@ -27,6 +28,11 @@ def main(args):
                        help="Repeated set of blockchain type:<comma separated list of IPs>")
    parser.add_argument("--replicasConfig",
                        help="If replicas are not passed via --replicas, pass in replicas.json file via this option")
+   parser.add_argument("--blockchainLocation",
+                       required=True,
+                       help="Location ({}, {}) of the blockchain being tested".format(
+                          util.helper.LOCATION_SDDC,
+                          util.helper.LOCATION_ONPREM)),
    parser.add_argument("--saveSupportLogsTo",
                        default="{}/logs_{}".format(DEFAULT_SUPPORT_LOGS_DEST,
                                                    time.strftime(
@@ -82,6 +88,7 @@ def main(args):
    if status:
       log.info("**** Successfuly instantiated health monitoring daemon on all replicas")
       if util.helper.monitor_replicas(all_replicas,
+                                      args.blockchainLocation,
                                       args.runDuration,
                                       args.loadInterval,
                                       args.saveSupportLogsTo):
