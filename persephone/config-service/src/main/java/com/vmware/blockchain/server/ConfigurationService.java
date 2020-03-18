@@ -137,8 +137,6 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
 
         log.info(request.toString());
 
-        List<String> prometheusUrls = new ArrayList<>();
-
         if (request.getServicesList().contains(ServiceType.CONCORD)
                 || request.getServicesList().contains(ServiceType.DAML_CONCORD)
                 || request.getServicesList().contains(ServiceType.HLF_CONCORD)) {
@@ -155,8 +153,6 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
                     configUtil.nodePrincipal,
                     configUtil.maxPrincipalId + 1,
                     request.getHostsList().size());
-
-            prometheusUrls.add("\"http://concord:9891/metrics\"");
         }
 
         if (request.getServicesList().contains(ServiceType.LOGGING)) {
@@ -203,7 +199,8 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
                     var telegrafConfigUtil = new TelegrafConfigUtil(telegrafConfigPath, metricsConfigPath);
                     var metricsConfigYaml = telegrafConfigUtil.getMetricsConfigYaml();
                     telegrafConfig = telegrafConfigUtil.getTelegrafConfig(request.getHostsList(),
-                            request.getProperties(), prometheusUrls);
+                            request.getProperties(),
+                            getPrometheusUrls(request.getServicesList()));
                     staticComponentList.add(ConfigurationComponent.newBuilder()
                             .setType(ServiceType.TELEGRAF)
                             .setComponentUrl(TelegrafConfigUtil.metricsConfigPath)
@@ -309,6 +306,26 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
                         Status.INTERNAL.withDescription("Could not persist configuration results")));
             }
         }
+    }
+
+    private List<String> getPrometheusUrls(List<ServiceType> servicesList) {
+        List<String> prometheusUrls = new ArrayList<>();
+
+        // TODO change to switch case once concord name is unified.
+        if (servicesList.contains(ServiceType.DAML_CONCORD)
+                || servicesList.contains(ServiceType.CONCORD)
+                || servicesList.contains(ServiceType.HLF_CONCORD)) {
+            prometheusUrls.add("\"http://concord:9891/metrics\"");
+        }
+
+        if (servicesList.contains(ServiceType.DAML_EXECUTION_ENGINE)) {
+            prometheusUrls.add("\"http://daml_execution_engine:55001/metrics\"");
+        }
+
+        if (servicesList.contains(ServiceType.DAML_LEDGER_API)) {
+            prometheusUrls.add("\"http://daml_ledger_api:55001/metrics\"");
+        }
+        return prometheusUrls;
     }
 
     private List<ConfigurationComponent> getEthereumComponent() {
