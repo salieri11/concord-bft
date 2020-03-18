@@ -55,11 +55,11 @@ public class GenericConfigUtilTest {
         expected.put(3, "NODE_UUID=TEST-NODE3\nCLIENT_GROUP_ID=CLIENT-NODE1");
 
         var actual = this.genericConfigUtil.getGenericConfig(nodePropertyList);
-        Assertions.assertThat(actual.equals(expected));
+        Assertions.assertThat(actual.equals(expected)).isTrue();
     }
 
     @Test
-    public void testClientNodeNotProvided() throws IOException {
+    public void testClientNodeNotProvided() {
         Map<Integer, String> nodeMap = new HashMap<>();
         nodeMap.put(0, "TEST-NODE0");
         nodeMap.put(1, "TEST-NODE1");
@@ -71,13 +71,13 @@ public class GenericConfigUtilTest {
                         .putAllValue(nodeMap).build());
 
         var expected = new HashMap<Integer, String>();
-        expected.put(0, "NODE_UUID=TEST-NODE0\nCLIENT_GROUP_ID=CLIENT-NODE0");
+        expected.put(0, "NODE_UUID=TEST-NODE0\nCLIENT_GROUP_ID=TEST-NODE0");
         expected.put(1, "NODE_UUID=TEST-NODE1\nCLIENT_GROUP_ID=TEST-NODE1");
         expected.put(2, "NODE_UUID=TEST-NODE2\nCLIENT_GROUP_ID=TEST-NODE2");
         expected.put(3, "NODE_UUID=TEST-NODE3\nCLIENT_GROUP_ID=TEST-NODE3");
 
         var actual = this.genericConfigUtil.getGenericConfig(nodePropertyList);
-        Assertions.assertThat(actual.equals(expected));
+        Assertions.assertThat(actual.equals(expected)).isTrue();
     }
 
     @Test
@@ -96,7 +96,7 @@ public class GenericConfigUtilTest {
 
         var actual = this.genericConfigUtil.getGenericConfig(nodePropertyList);
 
-        Assertions.assertThat(actual.isEmpty());
+        Assertions.assertThat(actual.size() == 0).isTrue();
     }
 
     @Test
@@ -109,11 +109,11 @@ public class GenericConfigUtilTest {
 
         var actual = this.genericConfigUtil.getGenericConfig(nodePropertyList);
 
-        Assertions.assertThat(actual.isEmpty());
+        Assertions.assertThat(actual.isEmpty()).isTrue();
     }
 
     @Test
     public void testPath() {
-        Assertions.assertThat(GenericConfigUtil.configPath.equals("/generic/identifiers.en"));
+        Assertions.assertThat(GenericConfigUtil.configPath.equals("/generic/identifiers.env")).isTrue();
     }
 }

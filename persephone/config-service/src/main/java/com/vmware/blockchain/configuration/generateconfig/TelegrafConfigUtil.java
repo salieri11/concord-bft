@@ -70,7 +70,7 @@ public class TelegrafConfigUtil {
                     telegrafTemplatePath, e.getLocalizedMessage());
             ClassLoader classLoader = getClass().getClassLoader();
             try {
-                File file = new File(classLoader.getResource("TelegrafConfigTemplate.config").getFile());
+                File file = new File(classLoader.getResource("TelegrafConfigTemplate.conf").getFile());
                 content = new String(Files.readAllBytes(file.toPath()));
             } catch (IOException | NullPointerException ex) {
                 log.error("Telegraf config could not be read due to: {}", ex.getLocalizedMessage());

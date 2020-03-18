@@ -42,7 +42,7 @@ public class DamlIndexDbUtilTest {
         File file = new File(classLoader.getResource("SampleDamlIndexDbConfig.txt").getFile());
         var expected = new String(Files.readAllBytes(file.toPath()));
 
-        Assertions.assertThat(actual.equals(expected));
+        Assertions.assertThat(actual.equals(expected)).isTrue();
 
     }
 
@@ -64,6 +64,6 @@ public class DamlIndexDbUtilTest {
 
     @Test
     public void testPath() {
-        Assertions.assertThat(DamlIndexDbUtil.envVarPath.equals("/daml-index-db/environment-vars"));
+        Assertions.assertThat(DamlIndexDbUtil.envVarPath.equals("/daml-index-db/environment-vars")).isTrue();
     }
 }

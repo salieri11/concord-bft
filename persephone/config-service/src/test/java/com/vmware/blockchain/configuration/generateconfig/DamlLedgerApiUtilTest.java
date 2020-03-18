@@ -48,7 +48,7 @@ public class DamlLedgerApiUtilTest {
         file = new File(classLoader.getResource("SampleDamlLedgerApiConfig.txt").getFile());
         expected = new String(Files.readAllBytes(file.toPath()));
 
-        Assertions.assertThat(actual.equals(expected));
+        Assertions.assertThat(actual.equals(expected)).isTrue();
 
     }
 
@@ -70,6 +70,6 @@ public class DamlLedgerApiUtilTest {
 
     @Test
     public void testPath() {
-        Assertions.assertThat(DamlLedgerApiUtil.envVarPath.equals("/daml-ledger-api/environment-vars"));
+        Assertions.assertThat(DamlLedgerApiUtil.envVarPath.equals("/daml-ledger-api/environment-vars")).isTrue();
     }
 }

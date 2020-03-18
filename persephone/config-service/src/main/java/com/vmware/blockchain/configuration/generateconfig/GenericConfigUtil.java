@@ -54,6 +54,7 @@ public class GenericConfigUtil {
             StringBuilder builder = new StringBuilder();
             builder.append("NODE_UUID=")
                     .append(value)
+                    .append("\n")
                     .append("CLIENT_GROUP_ID=")
                     .append(clientGroupIds.getOrDefault(node, value));
             configMap.put(node, builder.toString());
