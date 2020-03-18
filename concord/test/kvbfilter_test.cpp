@@ -63,7 +63,9 @@ class FakeStorage : public ILocalKeyValueStorageReadOnly {
       kvp = data_.at(b_id).second;
       return Status::OK();
     }
-    return Status::IllegalOperation("block id not reachable");
+    // The actual storage implementation (ReplicaImpl.cpp) expects us to handle
+    // an invalid block range; let's simulate this here.
+    ADD_FAILURE() << "Provide a valid block range";
   }
 
   Status mayHaveConflictBetween(const Sliver&, BlockId, BlockId,
@@ -337,7 +339,7 @@ TEST(kvbfilter_test, kvbfilter_block_out_of_range) {
   std::atomic_bool stop_exec = false;
   EXPECT_THROW(
       kvb_filter.ReadBlockRange(block_id, block_id, queue_out, stop_exec);
-      , KvbReadError);
+      , InvalidBlockRange);
 };
 
 TEST(kvbfilter_test, kvbfilter_end_block_greater_then_start_block) {
@@ -432,7 +434,7 @@ TEST(kvbfilter_test, kvbfilter_hash_filter_block_out_of_range) {
   BlockId block_id_end = kLastBlockId + 5;
 
   EXPECT_THROW(kvb_filter.ReadBlockRangeHash(block_id_start, block_id_end);
-               , KvbReadError);
+               , InvalidBlockRange);
 };
 
 TEST(kvbfilter_test, kvbfilter_update_for_not_daml_prefix) {

@@ -115,7 +115,10 @@ size_t KvbAppFilter::HashUpdate(const KvbUpdate update) {
 void KvbAppFilter::ReadBlockRange(BlockId block_id_start, BlockId block_id_end,
                                   spsc_queue<KvbUpdate> &queue_out,
                                   const std::atomic_bool &stop_execution) {
-  if (block_id_start > block_id_end) throw InvalidBlockRange();
+  if (block_id_start > block_id_end ||
+      block_id_end > rostorage_->getLastBlock()) {
+    throw InvalidBlockRange();
+  }
 
   BlockId block_id(block_id_start);
 
@@ -152,7 +155,10 @@ KvbStateHash KvbAppFilter::ReadBlockHash(BlockId block_id) {
 
 KvbStateHash KvbAppFilter::ReadBlockRangeHash(BlockId block_id_start,
                                               BlockId block_id_end) {
-  if (block_id_start > block_id_end) throw InvalidBlockRange();
+  if (block_id_start > block_id_end ||
+      block_id_end > rostorage_->getLastBlock()) {
+    throw InvalidBlockRange();
+  }
   BlockId block_id(block_id_start);
 
   SetOfKeyValuePairs kvb_kvs;

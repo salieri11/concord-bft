@@ -94,7 +94,7 @@ class ThinReplicaImpl {
     concord::storage::KvbStateHash kvb_hash;
     try {
       kvb_hash = kvb_filter->ReadBlockRangeHash(block_id_start, block_id_end);
-    } catch (concord::storage::KvbReadError& error) {
+    } catch (std::exception& error) {
       LOG4CPLUS_ERROR(logger_, error.what());
       std::stringstream msg;
       msg << "Reading StateHash for block " << block_id_end << " failed";
@@ -229,7 +229,7 @@ class ThinReplicaImpl {
     }
     assert(queue.empty());
 
-    // Throws exception if something went wrong
+    // Throws exception if something goes wrong
     kvb_reader.get();
   }
 
