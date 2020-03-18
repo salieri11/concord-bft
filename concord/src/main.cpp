@@ -8,6 +8,7 @@
 #include <log4cplus/configurator.h>
 #include <log4cplus/loggingmacros.h>
 #include <sys/stat.h>
+#include <MetricsServer.hpp>
 #include <boost/asio.hpp>
 #include <boost/program_options.hpp>
 #include <boost/thread.hpp>
@@ -132,6 +133,7 @@ static boost::thread_group worker_pool;
 // 50 MiBytes
 static const int kDamlServerMsgSizeMax = 50 * 1024 * 1024;
 static unique_ptr<grpc::Server> tee_grpc_server = nullptr;
+static unique_ptr<concordMetrics::Server> bft_metrics_server = nullptr;
 
 static void signalHandler(int signum) {
   try {
@@ -149,6 +151,10 @@ static void signalHandler(int signum) {
     if (tee_grpc_server) {
       LOG4CPLUS_INFO(logger, "Stopping TEE gRPC service");
       tee_grpc_server->Shutdown();
+    }
+    if (bft_metrics_server) {
+      LOG4CPLUS_INFO(logger, "Stopping BFT metrics server");
+      bft_metrics_server->Stop();
     }
   } catch (exception &e) {
     cout << "Exception in signal handler: " << e.what() << endl;
@@ -549,8 +555,25 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
       throw std::invalid_argument("Unknown communication module type" +
                                   commConfig.commType);
     }
+
+    std::shared_ptr<concordMetrics::Aggregator> bft_metrics_aggregator;
+    if (nodeConfig.hasValue<uint16_t>("bft_metrics_udp_port")) {
+      auto bft_metrics_udp_port =
+          nodeConfig.getValue<uint16_t>("bft_metrics_udp_port");
+      bft_metrics_server =
+          std::make_unique<concordMetrics::Server>(bft_metrics_udp_port);
+      bft_metrics_aggregator = bft_metrics_server->GetAggregator();
+      bft_metrics_server->Start();
+      LOG4CPLUS_INFO(logger,
+                     "Exposing BFT metrics via UDP server, listening on port "
+                         << bft_metrics_udp_port);
+    } else {
+      bft_metrics_aggregator = prometheus_for_concordbft->getAggregator();
+      LOG4CPLUS_INFO(logger, "Exposing BFT metrics via Prometheus.");
+    }
+
     ReplicaImp replica(icomm, replicaConfig, &db_adapter,
-                       prometheus_for_concordbft->getAggregator());
+                       bft_metrics_aggregator);
     replica.setReplicaStateSync(
         new ReplicaStateSyncImp(new ConcordBlockMetadata(replica)));
 
@@ -742,6 +765,10 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
 
     if (timePusher) {
       timePusher->Stop();
+    }
+
+    if (bft_metrics_server) {
+      bft_metrics_server->Stop();
     }
 
     replica.stop();

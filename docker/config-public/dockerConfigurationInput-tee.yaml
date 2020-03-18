@@ -13,6 +13,7 @@ node__TEMPLATE:
 node:
   - service_host: 0.0.0.0
     service_port: 5458
+    bft_metrics_udp_port: 4501
     tee_service_addr: 0.0.0.0:50051
     replica:
       - replica_host: concord1
@@ -28,6 +29,7 @@ node:
         client_port: 3505
   - service_host: 0.0.0.0
     service_port: 5458
+    bft_metrics_udp_port: 4501
     tee_service_addr: 0.0.0.0:50051
     replica:
       - replica_host: concord2
@@ -43,6 +45,7 @@ node:
         client_port: 3505
   - service_host: 0.0.0.0
     service_port: 5458
+    bft_metrics_udp_port: 4501
     tee_service_addr: 0.0.0.0:50051
     replica:
       - replica_host: concord3
@@ -58,6 +61,7 @@ node:
         client_port: 3505
   - service_host: 0.0.0.0
     service_port: 5458
+    bft_metrics_udp_port: 4501
     tee_service_addr: 0.0.0.0:50051
     replica:
       - replica_host: concord4
