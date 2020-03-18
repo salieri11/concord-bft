@@ -19,6 +19,7 @@ message CommitRequest {
   reserved 3; // was input_state
   string participant_id = 4;
   string correlation_id = 5;
+  string span_context = 6;
   //TODO: Add signature over the submission
 }
 

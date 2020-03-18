@@ -3,7 +3,9 @@
 #include "grpc_services.hpp"
 
 #include <opentracing/tracer.h>
+#include <sstream>
 #include <string>
+#include <strstream>
 #include "utils/concord_logging.hpp"
 
 #include "concord_storage.pb.h"
@@ -23,6 +25,27 @@ using grpc::ServerContext;
 
 using namespace std;
 
+static std::unique_ptr<opentracing::Span> CreateSpan(
+    const CommitRequest* request, log4cplus::Logger logger) {
+  if (!request->span_context().empty()) {
+    std::istringstream context_stream{request->span_context()};
+    auto parent_span_context =
+        opentracing::Tracer::Global()->Extract(context_stream);
+    if (parent_span_context.has_value()) {
+      return opentracing::Tracer::Global()->StartSpan(
+          "commit_transaction",
+          {opentracing::ChildOf(parent_span_context->get())});
+    }
+    LOG4CPLUS_DEBUG(logger, "CreateSpan: Failed to initialize parent span from"
+                                << request->span_context());
+  }
+  LOG4CPLUS_DEBUG(logger,
+                  "CreateSpan: No parent span provided, initialize a new one");
+  return opentracing::Tracer::Global()->StartSpan(
+      "commit_transaction",
+      {opentracing::SetTag{"cid", request->correlation_id()}});
+}
+
 namespace concord {
 namespace daml {
 
@@ -40,7 +63,8 @@ grpc::Status CommitServiceImpl::CommitTransaction(ServerContext* context,
   cmd.mutable_commit()->CopyFrom(*request);
 
   concord::utils::RAIIMDC mdc("cid", request->correlation_id());
-  auto span = opentracing::Tracer::Global()->StartSpan("commit_transaction");
+
+  auto span = CreateSpan(request, logger_);
 
   std::string cmd_string;
   cmd.SerializeToString(&cmd_string);
