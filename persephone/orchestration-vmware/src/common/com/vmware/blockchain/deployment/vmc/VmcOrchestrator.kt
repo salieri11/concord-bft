@@ -176,8 +176,7 @@ class VmcOrchestrator(
                                     request.configurationSessionIdentifier,
                                     request.configServiceEndpoint,
                                     request.configServiceRestEndpoint,
-                                    OutboundProxyInfo.newBuilder().build(),
-                                    info.wavefront
+                                    OutboundProxyInfo.newBuilder().build()
                             ),
                             vmProfile = request.vmProfile
                     )
