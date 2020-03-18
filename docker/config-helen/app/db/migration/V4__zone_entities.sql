@@ -1,4 +1,4 @@
-INSERT into entity(row_key, column_name, version, body, user_id, user_name) VALUES ('6adaf48a-9075-4e35-9a71-4ef1fb4ac90f', 'helen.zone', 1, '{
+INSERT into entity(row_key, column_name, version, body, user_id, user_name) VALUES ('7eef6110-68bc-11ea-906e-8c859085f3e7', 'helen.zone', 1, '{
   "name": "VMC SDDC4",
   "latitude": "45.2551139",
   "longitude": "-120.888727",
@@ -27,10 +27,10 @@ INSERT into entity(row_key, column_name, version, body, user_id, user_name) VALU
       "token": "<FLUENTD_AUTHORIZATION_BEARER>"
     }
   ]
-}'::JSONB, '51123b25-d017-4afa-8a1c-4e99badb24c6', 'khank@vmware.com') ON CONFLICT (row_key,version) DO UPDATE SET body = excluded.body;
+}'::JSONB, '51123b25-d017-4afa-8a1c-4e99badb24c6', 'svc.blockchain_1@vmware.com') ON CONFLICT (row_key,version) DO UPDATE SET body = excluded.body;
 
 
-INSERT into entity(row_key, column_name, version, body, user_id, user_name) VALUES ('623e6f81-5954-4b32-9cdb-eb5d8dd913db', 'helen.zone', 1, '{
+INSERT into entity(row_key, column_name, version, body, user_id, user_name) VALUES ('fc375f72-68be-11ea-906e-8c859085f3e7', 'helen.zone', 1, '{
   "name": "VMC SDDC3",
   "latitude": "39.028035",
   "longitude": "-77.457941",
@@ -59,4 +59,4 @@ INSERT into entity(row_key, column_name, version, body, user_id, user_name) VALU
       "token": "<FLUENTD_AUTHORIZATION_BEARER>"
     }
   ]
-}'::JSONB, '51123b25-d017-4afa-8a1c-4e99badb24c6', 'khank@vmware.com') ON CONFLICT (row_key,version) DO UPDATE SET body = excluded.body;
+}'::JSONB, '51123b25-d017-4afa-8a1c-4e99badb24c6', 'svc.blockchain_1@vmware.com') ON CONFLICT (row_key,version) DO UPDATE SET body = excluded.body;
