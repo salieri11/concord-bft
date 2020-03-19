@@ -64,6 +64,7 @@ message Data {
   uint64 block_id = 1;
   repeated KVPair data = 2;
   string correlation_id = 3;
+  bytes span_context = 4;
 }
 
 message KVPair {

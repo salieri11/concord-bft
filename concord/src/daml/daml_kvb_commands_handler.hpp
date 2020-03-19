@@ -13,6 +13,7 @@
 #include "daml_validator_client.hpp"
 #include "hash_defs.h"
 #include "sliver.hpp"
+#include "storage/kvb_key_types.h"
 #include "thin_replica/subscription_buffer.hpp"
 
 namespace concord {
@@ -29,8 +30,6 @@ class DamlKvbCommandsHandler
   std::unique_ptr<IDamlValidatorClient> validator_client_;
   prometheus::Counter& write_ops_;
   prometheus::Counter& read_ops_;
-  concordUtils::Key cid_key_ =
-      concordUtils::Key(new char[1]{storage::kKvbKeyCorrelationId}, 1);
 
  public:
   DamlKvbCommandsHandler(

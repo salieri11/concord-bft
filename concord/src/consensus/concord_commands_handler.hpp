@@ -39,11 +39,19 @@ class ConcordCommandsHandler
   // addBlock function.
   std::unique_ptr<opentracing::Span> addBlock_parent_span;
 
+  void PublishUpdatesToThinReplicaServer(
+      concordUtils::BlockId block_id,
+      concord::storage::SetOfKeyValuePairs &updates);
+
  protected:
   const concord::storage::blockchain::ILocalKeyValueStorageReadOnly &storage_;
   concord::storage::ConcordBlockMetadata metadata_storage_;
   prometheus::Family<prometheus::Counter> &command_handler_counters_;
   prometheus::Counter &written_blocks_;
+  const concordUtils::Key cid_key_ = concordUtils::Key(
+      new decltype(storage::kKvbKeyCorrelationId)[1]{
+          storage::kKvbKeyCorrelationId},
+      1);
 
  public:
   concord::storage::blockchain::IBlocksAppender &appender_;

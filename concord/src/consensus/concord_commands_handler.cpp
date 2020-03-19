@@ -9,6 +9,7 @@
 
 #include <opentracing/tracer.h>
 #include <prometheus/counter.h>
+#include <utils/open_tracing_utils.hpp>
 #include <vector>
 
 using com::vmware::concord::ErrorResponse;
@@ -369,10 +370,25 @@ concordUtils::Status ConcordCommandsHandler::addBlock(
     return status;
   }
   written_blocks_.Increment();
-  // Copy all updates to subscribers in the thin replica server
-  subscriber_list_.UpdateSubBuffers({out_block_id, amended_updates});
 
+  PublishUpdatesToThinReplicaServer(out_block_id, amended_updates);
   return status;
+}
+
+void ConcordCommandsHandler::PublishUpdatesToThinReplicaServer(
+    BlockId block_id, SetOfKeyValuePairs &updates) {
+  // DD: Since Thin Replica mechanism is supposed to be replaced with the
+  // Read-Only Replica, we don't want to extend ICommandsHandler interface with
+  // spans. Thus, we transmit span context here
+  std::string cid = "";
+  auto iter = updates.find(cid_key_);
+  if (iter != updates.end()) {
+    cid = iter->second.toString();
+  }
+  auto block_read_span = opentracing::Tracer::Global()->StartSpan(
+      "send_updates_to_thin_replica_server", {opentracing::SetTag{"cid", cid}});
+  utils::InjectSpan(block_read_span, updates);
+  subscriber_list_.UpdateSubBuffers({block_id, updates});
 }
 
 }  // namespace consensus
