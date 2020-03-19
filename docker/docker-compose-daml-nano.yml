@@ -141,3 +141,30 @@ services:
       - 5432
     ports:
       - "5432:5432"
+
+  telegraf:
+    image: vmwblockchain/telegraf:latest
+    ports:
+      - 9090:9090
+    volumes:
+      - ./daml-metrics/telegraf.conf:/etc/telegraf/telegraf.conf
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /:/hostfs:ro
+    environment:
+      - HOST_MOUNT_PREFIX=/hostfs
+      - HOST_PROC=/hostfs/proc
+    depends_on:
+      - wavefront
+      - daml_ledger_api1
+      - daml_execution_engine1
+
+  wavefront:
+    image: vmwblockchain/wavefront-proxy:latest
+    volumes:
+      - ./daml-metrics/wavefront.conf:/config/wavefront-proxy/wavefront.conf
+    environment:
+      - WAVEFRONT_PROXY_ARGS=-f /config/wavefront-proxy/wavefront.conf
+    ports:
+      - 2878:2878
+      - 14267:14267
+
