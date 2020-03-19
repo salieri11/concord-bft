@@ -141,6 +141,7 @@ import hudson.util.Secret
   "UiDAMLDeploy": [
     "enabled": false,
     "runWithGenericTests": false,
+    "runWithToTTests": false,
     "setupFunction": "deleteDatabaseFiles",
     "dockerComposeFiles": "../docker/docker-compose.yml ../docker/docker-compose-persephone.yml",
     "baseCommand": '"${python}" main.py DeployDamlTests'
