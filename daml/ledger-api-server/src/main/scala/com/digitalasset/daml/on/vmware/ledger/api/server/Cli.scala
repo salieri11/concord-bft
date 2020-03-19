@@ -4,14 +4,13 @@ package com.digitalasset.daml.on.vmware.ledger.api.server
 import java.io.File
 
 import com.digitalasset.daml.lf.data.Ref
-import com.digitalasset.ledger.api.tls.TlsConfiguration
 
 import scopt.Read
 
 object Cli {
 
-  private implicit val ledgerStringRead: Read[Ref.LedgerString] =
-    Read.stringRead.map(Ref.LedgerString.assertFromString)
+  private implicit val participantIdRead: Read[Ref.ParticipantId] =
+    Read.stringRead.map(Ref.ParticipantId.assertFromString)
 
   private def cmdArgParser(binaryName: String, description: String) =
     new scopt.OptionParser[Config](binaryName) {
@@ -45,7 +44,7 @@ object Cli {
       opt[String]("jdbc-url")
         .text(s"The JDBC URL to the postgres database used for the indexer and the index.")
         .action((u, config) => config.copy(jdbcUrl = u))
-      opt[Ref.LedgerString]("participant-id")
+      opt[Ref.ParticipantId]("participant-id")
         .optional()
         .text(s"The participant id given to all components of a ledger api server. Defaults to ${Config.default.participantId}")
         .action((p, config) => config.copy(participantId = p))

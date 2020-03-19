@@ -85,7 +85,12 @@ class KVBCValidator(registry: MetricRegistry)(implicit ec: ExecutionContext)
   // FIXME(JM): Move into common place so getLedgerInitialConditions can use it as well.
   private val defaultConfig = Configuration(
     0,
-    TimeModel(Duration.ofSeconds(1), Duration.ofSeconds(10), Duration.ofMinutes(2)).get)
+    TimeModel.reasonableDefault.copy(
+      minTransactionLatency = Duration.ofSeconds(1),
+      maxClockSkew = Duration.ofSeconds(10),
+      maxTtl = Duration.ofMinutes(2),
+    )
+  )
 
   private def buildTimestamp(ts: Time.Timestamp): com.google.protobuf.timestamp.Timestamp = {
     val instant = ts.toInstant
@@ -159,7 +164,7 @@ class KVBCValidator(registry: MetricRegistry)(implicit ec: ExecutionContext)
 
   def validateSubmission(request: ValidateRequest): Future[ValidateResponse] = catchedTimedFutureThunk(Metrics.validateTimer) {
     val replicaId = request.replicaId
-    val participantId = Ref.LedgerString.assertFromString(request.participantId)
+    val participantId = Ref.ParticipantId.assertFromString(request.participantId)
     val correlationId = request.correlationId;
 
     logger.trace(s"Validating submission, replicaId=$replicaId participantId=${request.participantId} correlationId=$correlationId")

@@ -5,7 +5,7 @@ package com.digitalasset.daml.on.vmware.common
 import org.eclipse.jetty.server.Server
 import org.eclipse.jetty.servlet.ServletContextHandler
 
-final class KVBCHttpServer {
+final class KVBCHttpServer extends AutoCloseable {
   
   // Start HTTP server to serve the metrics.
   private val server = new Server(55001)
@@ -20,4 +20,6 @@ final class KVBCHttpServer {
     server.stop()
     server.join()
   }
+
+  override def close(): Unit = stop()
 }

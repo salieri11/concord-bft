@@ -4,7 +4,7 @@ package com.digitalasset.daml.on.vmware.write.service
 
 import java.time.Duration
 
-import akka.{Done, NotUsed}
+import akka.NotUsed
 import akka.actor.ActorSystem
 import akka.stream.Materializer
 import akka.stream.scaladsl._
@@ -14,26 +14,27 @@ import com.digitalasset.daml.lf.data.Time.Timestamp
 import com.digitalasset.daml_lf_dev.DamlLf.Archive
 import com.digitalasset.grpc.adapter.AkkaExecutionSequencerPool
 import com.digitalasset.kvbc.daml_commit._
-import com.digitalasset.ledger.api.health.{HealthStatus, Healthy}
-import com.digitalasset.ledger.api.domain.PartyDetails
-
-import com.google.protobuf.ByteString
-
+import com.digitalasset.ledger.api.health.HealthStatus
 import com.daml.ledger.participant.state.v1._
 import com.daml.ledger.participant.state.kvutils._
 import org.slf4j.LoggerFactory
 
 import scala.compat.java8.FutureConverters._
 import scala.concurrent.ExecutionContext
-import scala.util.{Failure, Success}
-
-import java.util.concurrent.{CompletionStage, CompletableFuture, CompletionException}
+import java.util.concurrent.CompletionStage
 import java.util.UUID
-import io.grpc.{ConnectivityState, StatusRuntimeException, Status}
 
+import com.codahale.metrics.MetricRegistry
+import io.grpc.{ConnectivityState, Status, StatusRuntimeException}
 import com.daml.ledger.participant.state.pkvutils.Defragmenter
-
 import com.daml.ledger.participant.state.pkvutils.protobuf
+import com.digitalasset.daml.on.vmware.common.{
+  KVBCHttpServer,
+  KVBCMetricsRegistry,
+  KVBCPrometheusMetricsEndpoint,
+  SharedMetricRegistryCloseable
+}
+import com.digitalasset.resources.ResourceOwner
 
 /**
  * DAML Participant State implementation on top of VMware Blockchain.
@@ -214,7 +215,12 @@ class KVBCParticipantState(
 
         config = Configuration(
           generation = 0,
-          timeModel = TimeModel(Duration.ofSeconds(1), Duration.ofSeconds(10), Duration.ofMinutes(2)).get
+          timeModel =
+            TimeModel.reasonableDefault.copy(
+              minTransactionLatency = Duration.ofSeconds(1),
+              maxClockSkew = Duration.ofSeconds(10),
+              maxTtl = Duration.ofMinutes(2),
+            )
         ),
 
         // FIXME(JM): This in principle should be the record time of block 0,
@@ -276,19 +282,52 @@ class KVBCParticipantState(
   }
 }
 
-object KVBCParticipantState{
-  def apply (
+object KVBCParticipantState {
+  def apply(
       thisLedgerId: LedgerId, // Our ledger id.
       participantId: String,
       addresses: Array[String],
       useThinReplica: Boolean,
       maxFaultyReplicas: Short,
-      )(implicit mat: Materializer, system: ActorSystem):KVBCParticipantState =
+  )(implicit executionContext: ExecutionContext, akkaSystem: ActorSystem): KVBCParticipantState =
     new KVBCParticipantState(
+      thisLedgerId,
+      Ref.ParticipantId.assertFromString(participantId),
+      addresses,
+      useThinReplica,
+      maxFaultyReplicas)
+
+  def owner(
+      thisLedgerId: LedgerId, // Our ledger id.
+      participantId: String,
+      addresses: Array[String],
+      useThinReplica: Boolean,
+      maxFaultyReplicas: Short,
+      prometheusMetricsEndpoints: List[MetricRegistry]
+  )(
+      implicit executionContext: ExecutionContext,
+      akkaSystem: ActorSystem): ResourceOwner[KVBCParticipantState] = {
+
+    val kvMetrics = new KVBCMetricsRegistry("kvutils")
+
+    for {
+      _ <- ResourceOwner.forCloseable(() => SharedMetricRegistryCloseable(kvMetrics.registryName))
+      closeableHttpServer <- ResourceOwner.forCloseable(() => new KVBCHttpServer())
+      state = KVBCParticipantState(
         thisLedgerId,
-        Ref.LedgerString.assertFromString(participantId),
+        participantId,
         addresses,
         useThinReplica,
         maxFaultyReplicas)
-}
+      closeableEndpoint = {
+        val endPoint = KVBCPrometheusMetricsEndpoint.createEndpoint(
+          kvMetrics.registry :: prometheusMetricsEndpoints,
+          closeableHttpServer.context)
+        closeableHttpServer.start()
+        endPoint
+      }
+      _ <- ResourceOwner.forCloseable(() => closeableEndpoint)
 
+    } yield state
+  }
+}
