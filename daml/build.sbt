@@ -6,8 +6,8 @@ ThisBuild / organization     := "com.digitalasset"
 ThisBuild / organizationName := "Digital Asset, LLC"
 
 lazy val akkaVersion = "2.5.13"
-lazy val sdkVersion = "100.13.52"
-lazy val integrationKitVersion = "0.0.3"
+lazy val sdkVersion = "100.13.54"
+lazy val integrationKitVersion = "0.0.5"
 
 lazy val protobuf = "com.google.protobuf" % "protobuf-java" % "3.2.0"
 lazy val scalapb_runtime  = "com.thesamet.scalapb" %% "scalapb-runtime" % scalapb.compiler.Version.scalapbVersion % "protobuf"
@@ -121,6 +121,7 @@ lazy val write_service = (project in file("write-service"))
 
       "com.daml.ledger" %% "participant-state" % sdkVersion,
       "com.daml.ledger" %% "participant-state-kvutils" % sdkVersion,
+      "com.daml.ledger" %% "participant-state-kvutils-app" % sdkVersion,
 
       // Database support
       "org.postgresql" % "postgresql" % "42.2.6",

@@ -5,7 +5,7 @@ package com.digitalasset.daml.on.vmware.common
 import com.codahale.metrics.jvm.{GarbageCollectorMetricSet, MemoryUsageGaugeSet, ThreadStatesGaugeSet}
 import com.codahale.metrics.{MetricRegistry, SharedMetricRegistries}
 
-class KVBCMetricsRegistry(registryName: String) {
+class KVBCMetricsRegistry(private[vmware] val registryName: String) extends SharedMetricRegistryCloseable(registryName) {
   // Set the default registry
   val registry: MetricRegistry = SharedMetricRegistries.getOrCreate(registryName)
 
@@ -19,5 +19,4 @@ class KVBCMetricsRegistry(registryName: String) {
   (new ThreadStatesGaugeSet).getMetrics.forEach { (k, m) =>
     registry.register(s"jvm.threads.$k", m)
   }
-
 }
