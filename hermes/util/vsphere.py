@@ -1,3 +1,7 @@
+#########################################################################
+# Copyright 2020 VMware, Inc.  All rights reserved. -- VMware Confidential
+#########################################################################
+
 from pyVim.connect import SmartConnect, Disconnect
 from pyVmomi import vim
 
@@ -29,12 +33,14 @@ class ConnectionToSDDC:
     try:
       self.sddcName = sddcInfo["name"]
       self.publicIP = sddcInfo["publicIP"]; publicIPHyphen = self.publicIP.replace('.', '-')
-      self.hostnameVCenter = f"vcenter.sddc-{publicIPHyphen}.vmwarevmc.com"
-      self.hostnameNSX = f"nsx-{publicIPHyphen}.rp.vmwarevmc.com"
+      self.hostnameVCenter = "vcenter.sddc-{}.vmwarevmc.com".format(publicIPHyphen)
+      self.hostnameNSX = "nsx-{}.rp.vmwarevmc.com".format(publicIPHyphen)
       self.reqSession = requests.Session()
       self.orgId = sddcInfo["orgId"]
       self.sddcId = sddcInfo["sddcId"]
-      self.baseNSXT = f"https://{self.hostnameNSX}/vmc/reverse-proxy/api/orgs/{self.orgId}/sddcs/{self.sddcId}/sks-nsxt-manager"
+      self.baseNSXT = "https://{}/vmc/reverse-proxy/api/orgs/{}/sddcs/{}/sks-nsxt-manager".format(
+        self.hostnameNSX, self.orgId, self.sddcId
+      )
       self.headersNSXT = {}
       self.username = sddcInfo["username"]
       self.password = sddcInfo["password"]

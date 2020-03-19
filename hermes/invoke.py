@@ -10,7 +10,7 @@
 import argparse
 import logging
 import traceback
-from util import helper, slack, mailer
+from util import helper, slack, mailer, wavefront, racetrack
 
 log = None
 
@@ -28,9 +28,12 @@ def emailSend(args, secret):
 
 # Registry of callable standalone functions
 DISPATCH = {
+  # Communications
   "emailSend": emailSend,
   "slackDM": slackDM,
   "slackPost": slackPost,
+
+  # CI/CD Dashboard data points publish
 }
 
 

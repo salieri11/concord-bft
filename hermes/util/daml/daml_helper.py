@@ -9,13 +9,12 @@ from tempfile import NamedTemporaryFile
 if 'hermes_util' in sys.modules.keys():
    import hermes_util.daml.upload_dar as darutil
    import hermes_util.helper as helper
-   import hermes_util.hermes_logging as logging
+   import hermes_util.hermes_logging as hermes_logging
 else:
-   import util.daml.upload_dar as darutil
-   import util.helper as helper
-   import util.hermes_logging as logging
+   from . import upload_dar as darutil
+   from util import hermes_logging, helper
 
-log = logging.getMainLogger()
+log = hermes_logging.getMainLogger()
 
 TEST_TOOL_NAME = "ledger-api-test-tool-100.13.52.jar"
 TEST_DARS = ["SemanticTests.dar", "Test-dev.dar", "Test-stable.dar"]

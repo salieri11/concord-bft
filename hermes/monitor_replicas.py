@@ -18,7 +18,7 @@ import json
 import logging
 import sys
 import time
-import util.helper
+from util import helper
 
 DEFAULT_SUPPORT_LOGS_DEST="/var/log/blockchain_support"
 
@@ -83,7 +83,7 @@ def main(args):
 
    log.info("")
    log.info("************************************************************")
-   status = util.helper.sddcInstallHealthDaemon(all_replicas)
+   status = helper.installHealthDaemon(all_replicas)
    start_time = time.time()
    if status:
       log.info("**** Successfuly instantiated health monitoring daemon on all replicas")

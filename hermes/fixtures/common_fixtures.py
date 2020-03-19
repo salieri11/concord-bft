@@ -7,17 +7,16 @@ import logging
 import os
 import pytest
 import time
+import types
 from urllib.parse import urlparse
 from util.product import Product
 from rest.request import Request
 from rpc.rpc_call import RPC
-import types
-import util
-import util.helper as helper
-import util.daml.daml_helper as daml_helper
+from util import auth, helper, infra, hermes_logging, numbers_strings
+from util.daml import daml_helper
+from util.blockchain import eth as eth_helper
 
-import util.hermes_logging
-log = util.hermes_logging.getMainLogger()
+log = hermes_logging.getMainLogger()
 ConnectionFixture = collections.namedtuple("ConnectionFixture", "request, rpc")
 BlockchainFixture = collections.namedtuple("BlockchainFixture", "blockchainId, consortiumId, replicas")
 
@@ -77,10 +76,10 @@ def getExistingBlockchainDetails(logDir, hermesData):
    '''
    Return the blockchain passed in, if any.
    '''
-   blockchainId = hermesData["hermesUserConfig"]["product"][util.auth.CUSTOM_BLOCKCHAIN]
-   tokenDescriptor = util.auth.getTokenDescriptor(util.auth.ROLE_CON_ADMIN,
+   blockchainId = hermesData["hermesUserConfig"]["product"][auth.CUSTOM_BLOCKCHAIN]
+   tokenDescriptor = auth.getTokenDescriptor(auth.ROLE_CON_ADMIN,
                                                   True,
-                                                  util.auth.default_con_admin)
+                                                  auth.default_con_admin)
    conAdminRequest = Request(logDir,
                              "fxBlockchain",
                              hermesData["hermesCmdlineArgs"].reverseProxyApiBaseUrl,
@@ -99,9 +98,9 @@ def getExistingBlockchainDetails(logDir, hermesData):
 
 
 def deployToSddc(logDir, hermesData):
-   tokenDescriptor = util.auth.getTokenDescriptor(util.auth.ROLE_CON_ADMIN,
+   tokenDescriptor = auth.getTokenDescriptor(auth.ROLE_CON_ADMIN,
                                                   True,
-                                                  util.auth.default_con_admin)
+                                                  auth.default_con_admin)
    conAdminRequest = Request(logDir,
                              "fxBlockchain",
                              hermesData["hermesCmdlineArgs"].reverseProxyApiBaseUrl,
@@ -109,7 +108,7 @@ def deployToSddc(logDir, hermesData):
                              tokenDescriptor=tokenDescriptor)
    # Use an existing blockchain if present?
    # blockchains = conAdminRequest.getBlockchains()
-   suffix = util.numbers_strings.random_string_generator()
+   suffix = numbers_strings.random_string_generator()
    conName = "con_{}".format(suffix)
    conResponse = conAdminRequest.createConsortium(conName)
    conId = conResponse["consortium_id"]
@@ -140,8 +139,8 @@ def deployToSddc(logDir, hermesData):
       credentials = hermesData["hermesUserConfig"]["persephoneTests"]["provisioningService"]["concordNode"]
 
       log.info("Annotating VMs with deployment context...")
-      blockchainDetails["nodes_type"] = helper.PRETTY_TYPE_COMMITTER
-      helper.sddcGiveDeploymentContextToVM(blockchainDetails)
+      blockchainDetails["nodes_type"] = infra.PRETTY_TYPE_COMMITTER
+      infra.giveDeploymentContext(blockchainDetails)
 
       ethereum_replicas = []
       daml_committer_replicas = []
@@ -210,7 +209,7 @@ def deploy_participants(con_admin_request, blockchain_id, site_ids, credentials,
             daml_helper.verify_ledger_api_test_tool(host=public_ip, port='443')
             log.info("DAR upload and verification successful on participant {}".format(public_ip))
             private_ip = participant_entry["private_ip"]
-            vmHandle = util.helper.sddcFindVMByInternalIP(private_ip)
+            vmHandle = infra.findVMByInternalIP(private_ip)
             if vmHandle: replica_list.append({
               "ip": public_ip, 
               "replica_id": vmHandle["replicaId"] if vmHandle is not None else "None"
@@ -218,11 +217,11 @@ def deploy_participants(con_admin_request, blockchain_id, site_ids, credentials,
         log.info("All participant nodes running successfully")
         
         log.info("Annotating VMs with deployment context...")
-        helper.sddcGiveDeploymentContextToVM({
+        infra.giveDeploymentContext({
           "id": blockchain_id,
           "consortium_id": "None",
-          "blockchain_type": util.helper.TYPE_DAML,
-          "nodes_type": helper.PRETTY_TYPE_PARTICIPANT,
+          "blockchain_type": helper.TYPE_DAML,
+          "nodes_type": infra.PRETTY_TYPE_PARTICIPANT,
           "replica_list": replica_list
         })
     else:
@@ -323,17 +322,17 @@ def fxBlockchain(request, fxHermesRunSettings, fxProduct):
    hermesData = retrieveCustomCmdlineData(request)
    logDir = os.path.join(hermesData["hermesTestLogDir"], "fxBlockchain")
 
-   if not util.auth.tokens[util.auth.CUSTOM_ORG]:
-       util.auth.readUsersFromConfig(fxHermesRunSettings["hermesUserConfig"])
+   if not auth.tokens[auth.CUSTOM_ORG]:
+       auth.readUsersFromConfig(fxHermesRunSettings["hermesUserConfig"])
 
    devAdminRequest = Request(logDir,
                              "fxBlockchain",
                              hermesData["hermesCmdlineArgs"].reverseProxyApiBaseUrl,
                              hermesData["hermesUserConfig"],
-                             util.auth.internal_admin)
+                             auth.internal_admin)
 
-   if util.auth.CUSTOM_BLOCKCHAIN in hermesData["hermesUserConfig"]["product"] and \
-      hermesData["hermesUserConfig"]["product"][util.auth.CUSTOM_BLOCKCHAIN]:
+   if auth.CUSTOM_BLOCKCHAIN in hermesData["hermesUserConfig"]["product"] and \
+      hermesData["hermesUserConfig"]["product"][auth.CUSTOM_BLOCKCHAIN]:
       blockchainId, conId = getExistingBlockchainDetails(logDir, hermesData)
    elif hermesData["hermesCmdlineArgs"].blockchainLocation == "onprem":
       raise Exception("On prem deployments not supported yet.")
@@ -372,12 +371,12 @@ def fxInitializeOrgs(request):
        {
            "org": "hermes_org1",
            "user": "vmbc_test_con_admin",
-           "role": util.auth.ROLE_CON_ADMIN
+           "role": auth.ROLE_CON_ADMIN
        },
        {
            "org": "hermes_org0",
            "user": "vmbc_test_con_admin",
-           "role": util.auth.ROLE_CON_ADMIN
+           "role": auth.ROLE_CON_ADMIN
        }
    ]
 
@@ -397,8 +396,8 @@ def fxConnection(request, fxBlockchain, fxHermesRunSettings):
    longName = os.environ.get('PYTEST_CURRENT_TEST')
    shortName = longName[longName.rindex(":")+1:longName.rindex(" ")]
 
-   if not util.auth.tokens[util.auth.CUSTOM_ORG]:
-       util.auth.readUsersFromConfig(fxHermesRunSettings["hermesUserConfig"])
+   if not auth.tokens[auth.CUSTOM_ORG]:
+       auth.readUsersFromConfig(fxHermesRunSettings["hermesUserConfig"])
 
    # TODO: Always add the hermes org to the built in consortium.
    # (Today, that is only done in certain Helen API tests.)
@@ -407,13 +406,13 @@ def fxConnection(request, fxBlockchain, fxHermesRunSettings):
    if hermesData["hermesCmdlineArgs"].blockchainLocation == "onprem":
       raise Exception("On prem deployments not supported yet.")
    elif hermesData["hermesCmdlineArgs"].blockchainLocation == "sddc":
-       tokenDescriptor = util.auth.getTokenDescriptor(util.auth.ROLE_CON_ADMIN,
+       tokenDescriptor = auth.getTokenDescriptor(auth.ROLE_CON_ADMIN,
                                                       True,
-                                                      util.auth.default_con_admin)
+                                                      auth.default_con_admin)
    else:
-       tokenDescriptor = util.auth.getTokenDescriptor(util.auth.ROLE_CON_ADMIN,
+       tokenDescriptor = auth.getTokenDescriptor(auth.ROLE_CON_ADMIN,
                                                       True,
-                                                      util.auth.internal_admin)
+                                                      auth.internal_admin)
 
    request = Request(hermesData["hermesTestLogDir"],
                      shortName,
@@ -424,7 +423,7 @@ def fxConnection(request, fxBlockchain, fxHermesRunSettings):
    if fxBlockchain.blockchainId and \
       hermesData["hermesCmdlineArgs"].blockchainType == helper.TYPE_ETHEREUM:
 
-      ethrpcUrl = util.blockchain.eth.getEthrpcApiUrl(request, fxBlockchain.blockchainId)
+      ethrpcUrl = eth_helper.getEthrpcApiUrl(request, fxBlockchain.blockchainId)
       rpc = RPC(request.logDir,
                 request.testName,
                 ethrpcUrl,
