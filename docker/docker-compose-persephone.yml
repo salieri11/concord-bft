@@ -19,5 +19,5 @@ services:
     volumes:
       - ../hermes/resources/persephone/provisioning:/config:ro
   daml_test_tool:
-    image: athena-docker-local.artifactory.eng.vmware.com/daml-ledger-api-test-tool:100.13.52
+    image: athena-docker-local.artifactory.eng.vmware.com/daml-ledger-api-test-tool:100.13.54
 
