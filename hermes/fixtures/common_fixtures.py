@@ -15,6 +15,7 @@ from rpc.rpc_call import RPC
 from util import auth, helper, infra, hermes_logging, numbers_strings
 from util.daml import daml_helper
 from util.blockchain import eth as eth_helper
+import util.generate_zones_migration as migration
 
 log = hermes_logging.getMainLogger()
 ConnectionFixture = collections.namedtuple("ConnectionFixture", "request, rpc")
@@ -290,6 +291,13 @@ def fxProduct(request, fxHermesRunSettings):
              waitForStartupFunction = helper.verify_connectivity
              waitForStartupParams = {"ip": "localhost", "port": 50051}
              checkProductStatusParams = {"ip": "localhost", "port": 50051, "max_tries": 1}
+
+         # Run migration generation script before starting the product
+         log.info("Generating Helen DB migration")
+         migrationFile = fxHermesRunSettings["hermesCmdlineArgs"].migrationFile
+         if migration.build_migrations(fxHermesRunSettings["hermesUserConfig"],
+                                    fxHermesRunSettings["hermesCmdlineArgs"].blockchainLocation, migrationFile):
+            log.info("Helen DB migration generated successfully in {}".format(migrationFile))
 
          product = Product(fxHermesRunSettings["hermesCmdlineArgs"],
                            fxHermesRunSettings["hermesUserConfig"],

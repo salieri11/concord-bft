@@ -378,7 +378,12 @@
               "high": 4
             },
             "info": {
-              "type": "VSPHERE"
+              "type": "VSPHERE",
+              "labels": {
+                "name": "ONPREM SDDC",
+                "geo-latitude": "-3.0758",
+                "geo-longitude": "37.3533"
+              }
             },
             "api": {
               "address": "https://vcenter.sddc-52-62-59-206.vmwarevmc.com",
@@ -387,9 +392,6 @@
                 "passwordCredential": {
                   "username": "<ONPREM_VCENTER_USERNAME>",
                   "password": "<ONPREM_VCENTER_PASSWORD>"
-                },
-                "tokenCredential": {
-                  "token": ""
                 }
               }
             },

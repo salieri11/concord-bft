@@ -22,6 +22,8 @@ import time
 import threading
 import hashlib
 import uuid
+import socket
+import struct
 from . import numbers_strings
 from urllib.parse import urlparse, urlunparse
 if 'hermes_util' in sys.modules.keys():
@@ -36,7 +38,7 @@ else:
 log = hermes_logging_util.getMainLogger()
 docker_env_file = ".env"
 
-# The config file contains information aobut how to run things, as opposed to
+# The config file contains information about how to run things, as opposed to
 # command line parameters, which are about running tests.
 CONFIG_JSON = "resources/user_config.json"
 
@@ -68,7 +70,7 @@ KEEP_BLOCKCHAINS_NEVER = "never"
 ZONE_TYPE_ON_PREM = "ON_PREM"
 ZONE_TYPE_SDDC = "VMC_AWS"
 
-# When creating a loging destination, its type can
+# When creating a logging destination, its type can
 # be one of these:
 LOG_DESTINATION_LOG_INTELLIGENCE = "LOG_INTELLIGENCE"
 LOG_DESTINATION_LOG_INSIGHT = "LOG_INSIGHT"
@@ -76,6 +78,16 @@ LOG_DESTINATION_LOG_INSIGHT = "LOG_INSIGHT"
 # Health Reporting Daemon path
 HEALTHD_CRASH_FILE = "/var/log/replica_crashed"
 HEALTHD_LOG_PATH = "/var/log/healthd.log"
+
+# Migration related constants
+MIGRATION_FILE = "../docker/config-helen/app/db/migration/V3__zone_entities.sql"
+MIGRATION_BASE_PATH = "../docker/config-helen/app/db/migration"
+MIGRATION_USER_ID = "51123b25-d017-4afa-8a1c-4e99badb24c6"
+MIGRATION_USER_NAME = "svc.blockchain_1@vmware.com"
+
+# Application properties related constants
+PROPERTIES_TEST_FILE = "../docker/config-helen/app/profiles/application-test.properties"
+PROPERTIES_VMBC_ENABLED_VMC_ZONES = "vmbc.enabled.vmc.zones"
 
 # Where Racetrack setId (run identifier) is stored in Jenkins runs
 # default: ${WORKSPACE}/blockchain/vars/racetrack_set_id.json
@@ -210,6 +222,28 @@ def replace_key(filename, key, value):
       os.replace(f_out.name, filename)
    except Exception as e:
       log.error("Unable to update properties file: {}".format(filename))
+      raise
+
+
+def read_key(key, properties_file=PROPERTIES_TEST_FILE):
+   """
+   Method to read value for a given key in a properties file
+   :param key: Key that needs to be read
+   :param properties_file: Properties file from which key needs to be read
+   :return: Value corresponding to the key. None if key is not present
+   """
+   try:
+      with open(properties_file, 'r') as fp:
+         value = None
+         for line in fp.read().splitlines():
+            if line.startswith("{}=".format(key)):
+               value = line.split('=')[1]
+               break
+         if not value:
+            log.warn("Key {} not found in file {}".format(key, properties_file))
+         return value
+   except:
+      log.error("Unable to access/read properties file: {}".format(properties_file))
       raise
 
 
@@ -757,7 +791,7 @@ def waitForTask(request, taskId, expectSuccess=True, timeout=600):
    return (success, response)
 
 
-def loadConfigFile(args=None):
+def loadConfigFile(args=None, filepath=None):
    '''
    Given the cmdline args, loads the main Hermes config file and returns
    the config object.
@@ -767,6 +801,8 @@ def loadConfigFile(args=None):
 
    if args and args.config:
       configObject = json_helper_util.readJsonFile(args.config)
+   elif filepath:
+      configObject = json_helper_util.readJsonFile(filepath)
    elif os.path.exists(CONFIG_JSON):
       configObject = json_helper_util.readJsonFile(CONFIG_JSON)
    elif jenkinsWorkspace is not None and os.path.exists(jenkinsWorkspace + '/blockchain/hermes/' + CONFIG_JSON):
@@ -1102,3 +1138,32 @@ def installHealthDaemon(replicas):
   except Exception as e:
     log.debug(str(e))
     return False
+
+
+def ip2long(ip):
+   """
+   Covert string form of an IP address to long
+   :param ip: String form of an IP address
+   :return: Long form of an IP address
+   """
+   packed_ip = socket.inet_aton(ip)
+   return struct.unpack("!L", packed_ip)[0]
+
+
+def long2ip(iplong):
+   """
+   Convert long form of an IP address to string
+   :param iplong: Long form of an IP address
+   :return: String form of an IP address
+   """
+   packed_ip = struct.pack('!L', iplong)
+   return socket.inet_ntoa(packed_ip)
+
+
+def fetch_default_zone_ids(properties_file=PROPERTIES_TEST_FILE):
+   """
+   Fetches 'vmbc.enabled.vmc.zones` from properties file
+   :return:
+   """
+   zone_ids = read_key(key=PROPERTIES_VMBC_ENABLED_VMC_ZONES, properties_file=properties_file)
+   return zone_ids.split(',')

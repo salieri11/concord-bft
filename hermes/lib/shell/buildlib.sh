@@ -205,7 +205,8 @@ grepLogForErrors(){
                          "docker\.io.*Client\.Timeout exceeded" \
                          "curl: (56) SSL read: error:00000000:lib(0):func(0):reason(0), errno 104" \
                          "Failed to fetch.*Undetermined Error" \
-                         "download error: Caught java.io.IOException")
+                         "download error: Caught java.io.IOException" \
+                         "TLS handshake timeout")
 
     info "Looking for errors in build log file ${LOG_FILE} to see if we should retry."
 
