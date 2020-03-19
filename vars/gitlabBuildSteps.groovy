@@ -526,6 +526,7 @@ def call(){
                 string(credentialsId: 'FLUENTD_AUTHORIZATION_BEARER', variable: 'FLUENTD_AUTHORIZATION_BEARER'),
                 string(credentialsId: 'VMC_API_TOKEN', variable: 'VMC_API_TOKEN'),
                 string(credentialsId: 'WAVEFRONT_API_TOKEN', variable: 'WAVEFRONT_API_TOKEN'),
+                string(credentialsId: 'DASHBOARD_WAVEFRONT_TOKEN', variable: 'DASHBOARD_WAVEFRONT_TOKEN'),
                 string(credentialsId: 'SLACK_BOT_API_TOKEN', variable: 'SLACK_BOT_API_TOKEN'),
                 string(credentialsId: 'VMW_DA_SLACK_BOT_API_TOKEN', variable: 'VMW_DA_SLACK_BOT_API_TOKEN'),
                 usernamePassword(credentialsId: 'BINTRAY_CREDENTIALS', usernameVariable: 'BINTRAY_CONTAINER_REGISTRY_USERNAME', passwordVariable: 'BINTRAY_CONTAINER_REGISTRY_PASSWORD'),
@@ -596,6 +597,7 @@ EOF
                     sed -i -e 's/'"<VMC_API_TOKEN>"'/'"${VMC_API_TOKEN}"'/g' blockchain/hermes/resources/user_config.json
                     sed -i -e 's/'"<WAVEFRONT_API_TOKEN>"'/'"${WAVEFRONT_API_TOKEN}"'/g' blockchain/hermes/resources/user_config.json
                     sed -i -e 's/'"<WAVEFRONT_API_TOKEN>"'/'"${WAVEFRONT_API_TOKEN}"'/g' blockchain/helen/src/main/resources/db/migration/V3__zone_entities.sql
+                    sed -i -e 's/'"<DASHBOARD_WAVEFRONT_TOKEN>"'/'"${DASHBOARD_WAVEFRONT_TOKEN}"'/g' blockchain/hermes/resources/user_config.json
                     sed -i -e 's/'"<FLUENTD_AUTHORIZATION_BEARER>"'/'"${FLUENTD_AUTHORIZATION_BEARER}"'/g' blockchain/hermes/resources/user_config.json
                     sed -i -e 's/'"<FLUENTD_AUTHORIZATION_BEARER>"'/'"${FLUENTD_AUTHORIZATION_BEARER}"'/g' blockchain/helen/src/main/resources/db/migration/V3__zone_entities.sql
                     sed -i -e 's/'"<ONPREM_VCENTER_USERNAME>"'/'"${VMC_SDDC4_VC_CREDENTIALS_USERNAME}"'/g' blockchain/hermes/resources/user_config.json

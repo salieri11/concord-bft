@@ -20,8 +20,9 @@ import sys
 import tempfile
 import time
 import threading
+import hashlib
+import uuid
 from . import numbers_strings
-from . import vsphere
 from urllib.parse import urlparse, urlunparse
 if 'hermes_util' in sys.modules.keys():
    import hermes_util.daml.daml_helper as daml_helper
@@ -58,10 +59,6 @@ TYPE_DAML_PARTICIPANT = "daml_participant"
 TYPE_HLF = "hlf"
 TYPE_TEE = "tee"
 
-# Node type pretty name print for annotation
-PRETTY_TYPE_COMMITTER = "Committer" # eth/daml regular nodes are committers
-PRETTY_TYPE_PARTICIPANT = "Participant" # applicable to daml only, for now
-
 # These are command line options for --keepBlockchains.
 KEEP_BLOCKCHAINS_ALWAYS = "always"
 KEEP_BLOCKCHAINS_ON_FAILURE = "on-failure"
@@ -80,14 +77,21 @@ LOG_DESTINATION_LOG_INSIGHT = "LOG_INSIGHT"
 HEALTHD_CRASH_FILE = "/var/log/replica_crashed"
 HEALTHD_LOG_PATH = "/var/log/healthd.log"
 
-# all open infra sessions for accessing VMs & Folders on the datacenter connection
-# e.g. vm = INFRA["SDDC3"].getByIP("10.69.100.46")
-#     populated by `sddcGetConnection` (ConnectionToSDDC objects defined in vsphere.py)
-INFRA = {}
+# Jenkins namespaces; used by `getJenkinsBuildTraceId` for Jenkins trace context.
+# This future-proofs possible multi-Jenkins contexts with partners like DA/ASX/HK
+# All metrics endpoints (Racetrack/Wavefront) will have distinguishable dataset to work with
+JENKINS_NAMESPACE_MAIN = "JENKINS_VMWARE_BC_MAIN"
 
-# list of all deployed replicas by Hermes from this particular build
-#     auto populated by `sddcGiveDeploymentContextToVM` with replicaInfo
-DEPLOYED_REPLICAS = []
+# CI/CD Major Run Types
+JENKINS_RUN_MAIN_MR = { "type": "MAIN_MR", "exactly": "Main Blockchain Run on GitLab" }
+JENKINS_RUN_MASTER = { "type": "MASTER", "exactly": "Master Branch Blockchain Run on GitLab/master" }
+JENKINS_RUN_RELEASE_BRANCH = { "type": "RELEASE", "contains": ["Branch Blockchain Run on GitLab/releases"], 
+  # For example, "0.5 Branch Blockchain Run on GitLab/releases/0.5" is a release branch job name
+  # Extract meaningful variable (.e.g "0.5") as releases progress to different versions
+  "variables":[{"name": "releaseVersion", "after":"/releases/"}]
+}
+JENKINS_MRJOR_RUN_TYPES = [ JENKINS_RUN_MAIN_MR, JENKINS_RUN_MASTER, JENKINS_RUN_RELEASE_BRANCH ]
+
 
 def copy_docker_env_file(docker_env_file=docker_env_file):
    '''
@@ -755,11 +759,17 @@ def loadConfigFile(args=None):
    the config object.
    '''
    configObject = None
+   jenkinsWorkspace = os.getenv("WORKSPACE")
 
    if args and args.config:
       configObject = json_helper_util.readJsonFile(args.config)
-   else:
+   elif os.path.exists(CONFIG_JSON):
       configObject = json_helper_util.readJsonFile(CONFIG_JSON)
+   elif jenkinsWorkspace is not None and os.path.exists(jenkinsWorkspace + '/blockchain/hermes/' + CONFIG_JSON):
+      configObject = json_helper_util.readJsonFile(jenkinsWorkspace + '/blockchain/hermes/' + CONFIG_JSON)
+   else:
+      log.info("Cannot find user config source in any of the locations.")
+      return None
 
    if "ethereum" in configObject and \
       "testRoot" in configObject["ethereum"]:
@@ -911,248 +921,99 @@ def getJenkinsBuildId(jobName=None, buildNumber=None):
     configObject = getUserConfig()
     jobName = jobName if jobName is not None else configObject["metainf"]["env"]["jobName"]
     buildNumber = buildNumber if buildNumber is not None else configObject["metainf"]["env"]["buildNumber"]
+    if jobName.startswith("<"): jobName = "None"
+    if buildNumber.startswith("<"): buildNumber = "None"
     return jobName + '/' + buildNumber
   except Exception as e:
     log.debug(str(e))
-    return ""
+    return "None/None"
 
 
-
-'''
-  Helper functions relevant to Hermes infrastructure automation
-'''
-def sddcCredentialsAreGood(sddcName, sddcInfo):
-   c = sddcInfo
-   if not c["username"] or not c["password"]: 
-      log.debug("Target 'vSphere/{}' is not well-defined in user_config.json".format(sddcName))
-      return False
-   if c["username"].startswith("<") and c["username"].endswith(">"): # user_config not injected correctly with credential
-      log.debug("vSphere/{}: username credential is not injected (user_config.json)".format(sddcName))
-      return False
-   if c["password"].startswith("<") and c["password"].endswith(">"): # user_config not injected correctly with credential
-      log.debug("vSphere/{}: password credential is not injected (user_config.json)".format(sddcName))
-      return False
-   return True
-
-
-def sddcGetConnection(sddcName):
-   '''
-      Initializes vSphere connection to the target SDDC.
-      Host and Credentials are fed from `user_config.json`, for example: {
-        ...
-        "infra":{
-          "SDDC3":{
-            "name": "SDDC3",
-            "type": "vSphere",
-            "orgId": "c56e116e-c36f-4f7d-b504-f9a33955b853",
-            "sddcId": "6db19f8f-cde6-4151-88e5-a3b0d6aead6a",
-            "publicIP": "35.156.16.204",
-            "username": "<VMC_SDDC3_VC_CREDENTIALS_USERNAME>",
-            "password": "<VMC_SDDC3_VC_CREDENTIALS_PASSWORD>",
-            "vmcToken": "<VMC_API_TOKEN>",
-            "active": true
-          }
-          ...
-        }
-      }
-      where Jenkins-kept credentials brought from `withCredentials` call,
-      which get injected to `user_config.json` in `gitlabBuildSteps.groovy` 
-   '''
-   # get config from user_config.json
-   configObject = getUserConfig()
-   try:
-      if sddcName not in INFRA:
-         if sddcName not in configObject["infra"]:
-           log.debug("Cannot open session to {}, no vSphere credential in config object.".format(sddcName))
-           return None
-         
-         sddcInfo = configObject["infra"][sddcName]
-         
-         if not sddcInfo["active"]:
-           log.debug("Cannot open session to {}, this SDDC is inactive".format(sddcName))
-           return None
-
-         if not sddcCredentialsAreGood(sddcName, sddcInfo):
-           log.debug("Cannot open session to {}, credentials are bad".format(sddcName))
-           return None
-         
-         conn = vsphere.ConnectionToSDDC(sddcInfo)
-
-         if not conn.ready:
-           log.debug("Cannot open session to {}, connection is not ready".format(sddcName))
-           return None
-         
-         INFRA[sddcName] = conn
-         return conn
-      return INFRA[sddcName]
-
-   except Exception as e:
-     log.debug(str(e))
-     return None
-
-
-def sddcGetListFromConfig(configObject = None):
+def getJenkinsBuildTraceId(jobName=None, buildNumber=None):
   '''
-      Returns sddcNumber list from config object
-      (List of all SDDCs affected by Hermes testing)
-      :param configObject: (optional), if not given, auto-resolved by loadConfigFile
+    Get trace_id (UUID) from HASH(jenkinsSource + jobName + buildNumber)
+    User for metrics reporting for CI/CD Dashboard. Hash-based 
+    uuid generation guarantees, regardless of where in groovy 
+    this function was invoked from, the same traceId within the run.
   '''
-  if configObject is None:
-    configObject = getUserConfig()
-  sddcs = []
-  # Can be vSphere SDDC or other on-prem locations
-  #  e.g. Other on-prem location name with any string val
-  for sddcName in configObject["infra"]:
-    sddcs.append(sddcName)
-  return sddcs
+  ingested = JENKINS_NAMESPACE_MAIN + '/' + getJenkinsBuildId(jobName, buildNumber)
+  hash32Bytes = hashlib.sha256(ingested.encode()).hexdigest()
+  hash16Bytes = hash32Bytes[:32]
+  traceId = str(uuid.UUID(hash16Bytes))
+  return traceId
 
 
-def sddcFindReplicaVM(replicaId, sddcs = None):
+def getJenkinsBuildSpanId(traceId, setName, caseName):
   '''
-      Returns VM by the supplied replicaId
-      :param sddc: (optional), if not given, all SDDCs defined in user_config.json used
+    Get spanId (UUID) from HASH(traceId + stageId + eventId). This uses same parameters 
+    as the function in `event_recorder.py`, `record_event(stage_name, event_name)`
+    and will be used to publish events/metrics to CI/CD dashboard
+    e.g. 
+      saveTimeEvent("Gather artifacts", "Start")
+      saveTimeEvent("Gather artifacts", "End")
+      `setName` is stage or test suite name; "Gather artifacts"
+      `caseName` is usually the event name or test case name "Start" | "End" | "TestCase1"...
   '''
-  # if narrow sddcs search not given, search in all SDDCs in user_config
-  sddcs = sddcs if sddcs is not None else sddcGetListFromConfig()
-  for sddcName in sddcs:
-    if sddcGetConnection(sddcName):
-      vmHandle = INFRA[sddcName].getByNameContaining(replicaId, getAsHandle=True)
-      if vmHandle: return {"vmHandle": vmHandle, "sddc": INFRA[sddcName]}
-  log.debug("Cannot find vm with its name containing '{}' in datacenters [{}]".format(replicaId, ', '.join(sddcs)))
-  return None
+  ingested = traceId + '/' + setName + '/' + caseName
+  hash32Bytes = hashlib.sha256(ingested.encode()).hexdigest()
+  hash16Bytes = hash32Bytes[:32]
+  spandId = str(uuid.UUID(hash16Bytes))
+  return spandId
 
 
-def sddcFindVMByInternalIP(ip, sddcs = None):
+def getJenkinsJobNameAndBuildNumber():
+  buildId = getJenkinsBuildId()
+  split = buildId.split("/")
+  return { "jobName": '/'.join(split[:-1]), "buildNumber": split[-1]}
+
+
+def getJenkinsRunTypeInfo(jobName=None):
   '''
-      Returns VM by the supplied internal IP (e.g. 10.*.*.*)
-      :param sddc: (optional), if not given, all SDDCs defined in user_config.json used
+    If this Hermes process is triggered by Jenkins,
+    Get the type of Jenkins run given the job name
   '''
-  # if narrow sddcs search not given, search in all SDDCs in user_config
-  sddcs = sddcs if sddcs is not None else sddcGetListFromConfig()
-  for sddcName in sddcs:
-    if sddcGetConnection(sddcName):
-      vmHandle = INFRA[sddcName].getByInternalIP(ip, getAsHandle=True)
-      if vmHandle: return vmHandle
-  log.debug(f"Cannot find vm with internal IP '{ip}' in datacenters {sddcs}")
-  return None
+  try:
+    if jobName is None:
+      jobName = getUserConfig()["metainf"]["env"]["jobName"]
+    for runTypeInfo in JENKINS_MRJOR_RUN_TYPES:
+      runTypeInfo = json.loads(json.dumps(runTypeInfo)) # make copy for manipulation
+      # Extract variables if specified
+      # e.g. get "version": "0.5" from "0.5 Branch Blockchain Run on GitLab/releases/0.5"
+      if "variables" in runTypeInfo:
+        for extractInfo in runTypeInfo["variables"]:
+          varName = extractInfo["name"]
+          afterString = jobName
+          if "after" in extractInfo and jobName.find(extractInfo["after"]) >= 0:
+            afterString = jobName.split(extractInfo["after"])[1] # after pattern x
+          if "before" not in extractInfo: extractInfo["before"] = '/'
+          varValue = afterString.split(extractInfo["before"])[0] # but before pattern y
+          runTypeInfo[varName] = varValue # expose the extracted value as varName
+      # Exact Match
+      if "exactly" in runTypeInfo and runTypeInfo["exactly"] == jobName:
+        return runTypeInfo
+      # Contains all specified in `contains` list?
+      if "contains" in runTypeInfo:
+        containsAsSpecified = True
+        for shouldContain in runTypeInfo["contains"]:
+          if shouldContain not in jobName: containsAsSpecified = False; break
+        if containsAsSpecified: return runTypeInfo # contains all specified, return runTypeInfo
+    return None # Nothing matches, must be some other non-major run type
+  except Exception as e:
+    log.info(e); traceback.print_exc()
+    return None
 
 
-def sddcGiveDeploymentContextToVM(blockchainDetails, otherMetadata=""):
-   '''
-      Add detailed deployment context to the Hermes-deployed VMs
-      ```python
-      blockchainDetails = {
-          "id": "c035100f-22e9-4596-b9d6-5daa349db342",
-          "consortium_id": "bfaa0041-8ab2-4072-9023-4cedd0e81a78",
-          "blockchain_type": "ETHEREUM",
-          "nodes_type": "Committer" | "Participant",
-          "node_list": [ ... ], # `NOT USED`
-          "replica_list": [{
-            "ip": "52.63.165.178",
-            "url": "https://52.63.165.178:8545", # `NOT USED`
-            "cert": "", # `NOT USED`
-            "zone_id": "6adaf48a-9075-4e35-9a71-4ef1fb4ac90f", # `NOT USED`
-            "replica_id": "a193f7b8-6ec5-4802-8c2f-33cb33516c3c"
-          }, ...]
-      }
-      ```
-      TODO: user this on persephone deployment test as well
-   '''
-   # get config from user_config.json
-   try: 
-      configObject = getUserConfig()
-      sddcs = sddcGetListFromConfig(configObject)
-      jobName = configObject["metainf"]["env"]["jobName"]
-      buildNumber = configObject["metainf"]["env"]["buildNumber"]
-      jenkinsBuildId = jobName + '/' + buildNumber
-      dockerTag = configObject["metainf"]["env"]["dockerTag"]
-      pytestContext = os.getenv("PYTEST_CURRENT_TEST") if os.getenv("PYTEST_CURRENT_TEST") is not None else ""
-      runCommand = os.getenv("SUDO_COMMAND") if os.getenv("SUDO_COMMAND") is not None else ""
-
-      for replicaInfo in blockchainDetails["replica_list"]:
-        alreadyRegistered = [replica for replica in DEPLOYED_REPLICAS if replica.get("replica_id") == replicaInfo["replica_id"]]
-        if len(alreadyRegistered) > 0: continue # this replica is already registered to DEPLOYED_REPLICAS
-        DEPLOYED_REPLICAS.append(replicaInfo)
-
-        vmAndSourceSDDC = sddcFindReplicaVM(
-          replicaId = replicaInfo["replica_id"],
-          sddcs = sddcs
-          # above "sddcs": Perhaps, this can be abtracted later to "datacenters" and also support AWS/Azure/GCP/etc
-          # It would be interesting to test concord with various mixed cloud environment set-up.
-          # They all have their own version of inventory system with: instance notes, descriptions and/or tags, etc.
-        )
-        if vmAndSourceSDDC is None: continue # vm with the given replicaId is not found
-        vmHandle = vmAndSourceSDDC["vmHandle"]
-        if "realm" in vmHandle["attrMap"]: # already has context given
-          log.info("VM ({}) has deployment context annotations already\n".format(replicaInfo["ip"]))
-          continue
-        vm = vmHandle["entity"]
-        sddc = vmAndSourceSDDC["sddc"]
-        ipType = "Private" if replicaInfo["ip"].startswith("10.") else "Public"
-        notes = "{} IP: {}\nReplica ID: {}\nBlockchain: {}\nConsortium: {}\nNetwork Type: {}\nNode Type: {}\n".format(
-                ipType,
-                replicaInfo["ip"],
-                replicaInfo["replica_id"],
-                blockchainDetails["id"],
-                blockchainDetails["consortium_id"],
-                blockchainDetails["blockchain_type"],
-                blockchainDetails["nodes_type"]
-              ) + "\nDeployed By: Hermes\nJob Name: {}\nBuild Number: {}\nDocker Tag: {}\n".format(
-                # Below 3 attributes: if run locally, user_config will have default "<VAR_NAMES>", in this case use "None"
-                jobName if not jobName.startswith("<") else "None",
-                buildNumber if not buildNumber.startswith("<") else "None",
-                dockerTag if not dockerTag.startswith("<") else "None"
-              ) + "\nPytest Context: {}\n\nRun Command: {}\n\nOther Metadata: {}\n\n".format(
-                pytestContext,
-                runCommand,
-                otherMetadata
-              )
-        log.info("Annotating VM ({}) for better tracking & life-cycle management...\n{}\n\n".format(replicaInfo["ip"], notes))
-        # edit VM Notes with detailed deployment context
-        sddc.vmAnnotate(vm, notes)
-        # Add custom attributes
-        sddc.vmSetCustomAttribute(vm, "up_since", str(int(time.time()))) # UNIX timestamp in seconds
-        sddc.vmSetCustomAttribute(vm, "realm", "testing")
-        # below 3 attributes: if run locally, user_config will have default "<VAR_NAME>", in this case use ""
-        sddc.vmSetCustomAttribute(vm, "docker_tag", dockerTag if not dockerTag.startswith("<") else "")
-        sddc.vmSetCustomAttribute(vm, "jenkins_build_id", jenkinsBuildId if not jenkinsBuildId.startswith("<") else "")
-        sddc.vmSetCustomAttribute(vm, "job_name", jobName if not jobName.startswith("<") else "")
-        sddc.vmSetCustomAttribute(vm, "replica_id", replicaInfo["replica_id"])
-        sddc.vmSetCustomAttribute(vm, "blockchain_id", blockchainDetails["id"])
-        sddc.vmSetCustomAttribute(vm, "consortium_id", blockchainDetails["consortium_id"])
-        sddc.vmSetCustomAttribute(vm, "blockchain_type", blockchainDetails["blockchain_type"])
-        sddc.vmSetCustomAttribute(vm, "node_type", blockchainDetails["nodes_type"].lower())
-        sddc.vmSetCustomAttribute(vm, "other_metadata", otherMetadata)
-        if ipType == "Public":
-          sddc.vmSetCustomAttribute(vm, "public_ip", replicaInfo["ip"])
-        else:
-          sddc.vmSetCustomAttribute(vm, "private_ip", replicaInfo["ip"])
-
-
-   except Exception as e:
-      log.debug(e)
-
-
-def sddcGetVMsByAttribute(attrName, matchValue, mapBySDDC=False):
+def jenkinsRunTypeIs(runTypeInfoA):
   '''
-      Returns list of VMs (or map if mapBySDDC set to True)
-      That satisfies the supplied attribute value condition
+  If Jenkins triggered this Hermes process, check it against a known major run type.
+  Usage: helper.jenkinsRunTypeIs(helper.JENKINS_RUN_MAIN_MR) => True/False
   '''
-  sddcs = sddcGetListFromConfig()
-  vms = []
-  resultMap = {}
-  for sddcName in sddcs:
-    if sddcGetConnection(sddcName):
-      vmHandles = INFRA[sddcName].vmFilterByAttributeValue(attrName, matchValue, getAsHandle=True)
-      if mapBySDDC:
-        resultMap[sddcName] = vmHandles
-      else:
-        for vmHandle in vmHandles:
-          vms.append(vmHandle)
-  return resultMap if mapBySDDC else vms
+  runTypeInfoB = getJenkinsRunTypeInfo()
+  if not runTypeInfoA or not runTypeInfoB: return False
+  return runTypeInfoA["type"] == runTypeInfoB["type"]
 
 
-def sddcInstallHealthDaemon(replicas):
+def installHealthDaemon(replicas):
   '''
       Installs local, small-footprint health daemon on the nodes:
       {
@@ -1168,7 +1029,6 @@ def sddcInstallHealthDaemon(replicas):
     configObject = getUserConfig()
 
     # credential for SSH and SFTP
-    configObject = getUserConfig()
     credentials = configObject["persephoneTests"]["provisioningService"]["concordNode"]
     username = credentials["username"]; password = credentials["password"]
     
@@ -1187,20 +1047,20 @@ def sddcInstallHealthDaemon(replicas):
       componentsWatchList = getReplicaContainers(deployedType)
       if componentsWatchList: componentsWatchList = ','.join(componentsWatchList)
       # Load config file for healthd
-      command= (f'mkdir -p health-daemon\n'
-                f'cd health-daemon\n'
-                f'echo "'
-                  f'ip={ip}\n'
-                  f'blockchainId=test-blockchain\n' # need to be resolved as well by looking up VM properties
-                  f'blockchainType={blockchainType}\n'
-                  f'nodeType={nodeType}\n'
-                  f'buildId={jenkinsBuildId}\n'
-                  f'logFile={HEALTHD_LOG_PATH}\n'
-                  f'crashReportFile={HEALTHD_CRASH_FILE}\n'
-                  f'reportingInterval={reportingInterval}\n'
-                  f'announceInterval={announceInterval}\n'
-                  f'componentsWatchList={componentsWatchList}\n'
-                f'" > healthd.conf\n'
+      command= ('mkdir -p health-daemon\n' +
+                'cd health-daemon\n' +
+                'echo "' +
+                  'ip={}\n'.format(ip) +
+                  'blockchainId=test-blockchain\n' # need to be resolved as well by looking up VM properties
+                  'blockchainType={}\n'.format(blockchainType) +
+                  'nodeType={}\n'.format(nodeType) +
+                  'buildId={}\n'.format(jenkinsBuildId) +
+                  'logFile={}\n'.format(HEALTHD_LOG_PATH) + 
+                  'crashReportFile={}\n'.format(HEALTHD_CRASH_FILE) +
+                  'reportingInterval={}\n'.format(reportingInterval) +
+                  'announceInterval={}\n'.format(announceInterval) +
+                  'componentsWatchList={}\n'.format(componentsWatchList) +
+                '" > healthd.conf\n'
                 )
       daemonConfInstallOutput = ssh_connect(ip, username, password, command)
       log.debug("Replica: {}\nCommand: {}\nOutput: {}\n\n\n\n".format(ip, command, daemonConfInstallOutput))
@@ -1209,8 +1069,8 @@ def sddcInstallHealthDaemon(replicas):
       sftp_client(ip, username, password, os.path.join('util/healthd', "healthd.py"), destBasePath + 'healthd.py', action="upload")
       sftp_client(ip, username, password, os.path.join('util/healthd', "healthd.sh"), destBasePath + 'healthd.sh', action="upload")
       # Actually run the daemon
-      command= (f'cd health-daemon\n'
-                f'nohup bash healthd.sh > /dev/null\n')
+      command= ('cd health-daemon\n' +
+                'nohup bash healthd.sh > /dev/null\n')
       daemonStartOutput = ssh_connect(ip, username, password, command)
       log.debug("Replica: {}\nCommand: {}\nOutput: {}\n\n\n\n".format(ip, command, daemonStartOutput))
       log.info("healthd reporting daemon started on {}".format(ip))

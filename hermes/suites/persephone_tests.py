@@ -16,15 +16,14 @@ import tempfile
 import threading
 import time
 import traceback
-import util.auth
-import util.daml.daml_helper as daml_helper
-import util.helper as helper
+from util import auth, helper, infra, hermes_logging
+from util.daml import daml_helper
 from util.product import Product as Product
 from . import test_suite
 sys.path.append('lib')
 
-import util.hermes_logging
-log = util.hermes_logging.getMainLogger()
+
+log = hermes_logging.getMainLogger()
 
 
 class PersephoneTests(test_suite.TestSuite):
@@ -309,9 +308,9 @@ class PersephoneTests(test_suite.TestSuite):
       '''
       log.info("Validating ethrpc (get Block 0) on port '{}'".format(ethrpc_port))
       from rpc.rpc_call import RPC
-      tokenDescriptor = util.auth.getTokenDescriptor(util.auth.ROLE_CON_ADMIN,
+      tokenDescriptor = auth.getTokenDescriptor(auth.ROLE_CON_ADMIN,
                                                      True,
-                                                     util.auth.internal_admin)
+                                                     auth.internal_admin)
       rpc = RPC(self.args.fileRoot,
                 "verify_ethrpc_block_0",
                 "http://{}:{}".format(concord_ip, ethrpc_port),
@@ -587,18 +586,18 @@ class PersephoneTests(test_suite.TestSuite):
             for endpoint in ethrpc_endpoints:
                replica_ip = endpoint.split('//')[1].split(':')[0]
                replicas.append(replica_ip)
-               vmHandle = util.helper.sddcFindVMByInternalIP(replica_ip)
+               vmHandle = infra.findVMByInternalIP(replica_ip)
                if vmHandle: replica_list.append({
                  "ip": replica_ip,
                  "replica_id": vmHandle["replicaId"] if vmHandle is not None else "None"
                })
 
             log.info("Annotating VMs with deployment context...")
-            util.helper.sddcGiveDeploymentContextToVM({
+            infra.giveDeploymentContext({
               "id": "None",
               "consortium_id": "None",
-              "blockchain_type": concord_type if concord_type is not None else util.helper.TYPE_ETHEREUM,
-              "nodes_type": util.helper.PRETTY_TYPE_COMMITTER,
+              "blockchain_type": concord_type if concord_type is not None else helper.TYPE_ETHEREUM,
+              "nodes_type": infra.PRETTY_TYPE_COMMITTER,
               "replica_list": replica_list
             })
 

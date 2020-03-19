@@ -460,5 +460,13 @@
         }
       }
     }
+  },
+  "dashboard": {
+    "devops": {
+      "wavefront": {
+        "url": "https://vmware.wavefront.com",
+        "token": "<DASHBOARD_WAVEFRONT_TOKEN>"
+      }
+    }
   }
 }
