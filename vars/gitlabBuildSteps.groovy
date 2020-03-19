@@ -1226,18 +1226,28 @@ EOF
             ]
           ]
 
+          // Exclude 3rd party stuff; See BC-1858
+          // node_modules; avoid bundling 3000+ package.json files
+          def excludeMap = [
+            "node_modules": [
+              "pattern": "**/node_modules/**",
+            ]
+          ]
+
+          excludedPaths = ""
+          for (k in excludeMap.keySet()){
+            if (excludedPaths != "") excludedPaths += ","
+            excludedPaths += excludeMap[k]["pattern"]
+          }
+
           // Iterate through the keys, *not* the map, because of Jenkins.
           for (k in logMap.keySet()){
             paths = ""
-
             for (logType in logMap[k]["types"]){
-              if (paths != ""){
-                paths += ","
-              }
+              if (paths != "") paths += ","
               paths += logMap[k]["base"] + logType
             }
-
-            archiveArtifacts artifacts: paths, allowEmptyArchive: true
+            archiveArtifacts artifacts: paths, excludes: excludedPaths, allowEmptyArchive: true
           }
         }
 
