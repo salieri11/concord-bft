@@ -139,7 +139,7 @@ import hudson.util.Secret
     "baseCommand": 'echo "${PASSWORD}" | sudo -S "${python}" main.py LoggingTests --blockchainType daml --numReplicas 7 --blockchainLocation sddc'
   ],
   "UiDAMLDeploy": [
-    "enabled": true,
+    "enabled": false,
     "runWithGenericTests": false,
     "setupFunction": "deleteDatabaseFiles",
     "dockerComposeFiles": "../docker/docker-compose.yml ../docker/docker-compose-persephone.yml",
