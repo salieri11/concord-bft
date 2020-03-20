@@ -36,4 +36,5 @@ $API_SERVER \
   --participant-id $PARTICIPANT_ID --port 6865\
   --jdbc-url="jdbc:postgresql://$INDEXDB_HOST:$INDEXDB_PORT/$PARTICIPANT_ID?user=$INDEXDB_USER" \
   --maxInboundMessageSize=67108864 \
-  $THIN_REPLICA_SETTINGS
+  $THIN_REPLICA_SETTINGS \
+  $AUTH_SETTINGS
