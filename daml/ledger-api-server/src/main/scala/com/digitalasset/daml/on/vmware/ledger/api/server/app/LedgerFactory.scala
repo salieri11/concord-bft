@@ -8,7 +8,6 @@ import com.codahale.metrics.{MetricRegistry, SharedMetricRegistries}
 import com.daml.ledger.participant.state.kvutils.api.KeyValueParticipantState
 import com.daml.ledger.participant.state.kvutils.app.{Config, KeyValueLedger}
 import com.daml.ledger.participant.state.v1.{ReadService, WriteService}
-import com.digitalasset.api.util.TimeProvider
 import com.digitalasset.ledger.api.auth.{AuthService, AuthServiceWildcard}
 import com.digitalasset.logging.LoggingContext
 import com.digitalasset.platform.apiserver.{ApiServerConfig, TimeServiceBackend}

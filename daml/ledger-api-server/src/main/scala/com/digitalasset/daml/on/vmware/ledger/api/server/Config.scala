@@ -6,6 +6,7 @@ import java.nio.file.Path
 
 import com.daml.ledger.participant.state.v1.ParticipantId
 import com.digitalasset.api.util.TimeProvider
+import com.digitalasset.ledger.api.auth.{AuthService, AuthServiceWildcard}
 import com.digitalasset.ledger.api.tls.TlsConfiguration
 import com.digitalasset.platform.indexer.IndexerStartupMode
 
@@ -22,6 +23,7 @@ final case class Config(
     replicas: Seq[String],
     useThinReplica: Boolean,
     maxFaultyReplicas: Short,
+    authService: Option[AuthService]
 ) {
   def withTlsConfig(modify: TlsConfiguration => TlsConfiguration): Config =
     copy(tlsConfig = Some(modify(tlsConfig.getOrElse(TlsConfiguration.Empty))))
@@ -46,5 +48,6 @@ object Config {
       replicas = Seq("localhost:50051"),
       useThinReplica = false,
       maxFaultyReplicas = 1,
+      authService = Some(AuthServiceWildcard)
     )
 }

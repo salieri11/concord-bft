@@ -175,6 +175,9 @@ lazy val ledger_api_server = (project in file("ledger-api-server"))
       "ch.qos.logback" % "logback-core" % "1.2.3",
       "ch.qos.logback" % "logback-classic" % "1.2.3",
 
+      // Testing
+      "org.scalatest" %% "scalatest" % "3.0.5" % "test",
+      "org.scala-lang.modules" %% "scala-java8-compat" % "0.8.0" % "test",
     ),
   )
   .dependsOn(protos, write_service, common, trc_core, trc_native % Runtime)
