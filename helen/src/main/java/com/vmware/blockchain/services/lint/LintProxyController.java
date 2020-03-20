@@ -104,7 +104,7 @@ public class LintProxyController {
     }
 
     // If the body has a field "logQuery", fix the query.
-    private String rewriteBody(String body, String blockchainId) {
+    private String rewriteBody(String body, String consortiumId) {
         // Lint uses camelcase in json, so we use a different object mapper
         ObjectMapper mapper = new ObjectMapper();
         try {
@@ -113,7 +113,7 @@ public class LintProxyController {
             // might throw class cast exception.  Leave the body unchanged if so
             String query = (String) map.get("logQuery");
             if (query != null) {
-                String whereClause = String.format("consortium_id = '%s'", blockchainId);
+                String whereClause = String.format("consortium_id = '%s'", consortiumId);
                 SimpleSqlParser sql = new SimpleSqlParser(query);
                 sql.addWhere(whereClause);
                 map.put("logQuery", sql.toSql());
@@ -148,7 +148,7 @@ public class LintProxyController {
             }
 
             if (!authHelper.canAccessChain(UUID.fromString(blockchainId))) {
-                // logger.info(String.format("Replica %s cannot access blockchain", replicaId));
+                logger.info(String.format("User cannot access blockchain", blockchainId));
                 throw new BadRequestException(ErrorCodeType.CANNOT_ACCESS_BLOCKCHAIN);
             }
         }
