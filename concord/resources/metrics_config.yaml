@@ -3,6 +3,10 @@ concord:
     type: "counter"
     exposed: "on"
 
+  - name: "concord_trs_queue_size"
+    type: "gauge"
+    exposed: "on"
+
 concordbft:
   - name: "view"
     component: "replica"
