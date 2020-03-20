@@ -284,7 +284,7 @@
             "vsphere": {
               "resourcePool": "Compute-ResourcePool",
               "datastore": "WorkloadDatastore",
-              "folder": "HermesTesting",
+              "folder": "<DEPLOYMENT_FOLDER>",
               "network": {
                 "name": "vmware-vpn",
                 "addressAllocation": "STATIC",
@@ -342,7 +342,7 @@
             "vsphere": {
               "resourcePool": "Compute-ResourcePool",
               "datastore": "WorkloadDatastore",
-              "folder": "HermesTesting",
+              "folder": "<DEPLOYMENT_FOLDER>",
               "network": {
                 "name": "vmware-vpn",
                 "addressAllocation": "STATIC",
@@ -396,7 +396,7 @@
             "vsphere": {
               "resourcePool": "Compute-ResourcePool",
               "datastore": "WorkloadDatastore",
-              "folder": "HermesTesting",
+              "folder": "<DEPLOYMENT_FOLDER>",
               "network": {
                 "name": "vmware-vpn-4b",
                 "addressAllocation": "STATIC",

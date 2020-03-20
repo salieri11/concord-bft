@@ -613,6 +613,16 @@ EOF
                     sed -i -e 's/'"<VMW_DA_SLACK_BOT_API_TOKEN>"'/'"${VMW_DA_SLACK_BOT_API_TOKEN}"'/g' blockchain/hermes/resources/user_config.json
                   '''
 
+                  if (env.JOB_NAME.contains(long_tests_job_name)) {
+                    sh '''
+                      sed -i -e 's/'"<DEPLOYMENT_FOLDER>"'/'"HermesTesting-LongTests"'/g' blockchain/hermes/resources/user_config.json
+                    '''
+                  } else {
+                    sh '''
+                      sed -i -e 's/'"<DEPLOYMENT_FOLDER>"'/'"HermesTesting"'/g' blockchain/hermes/resources/user_config.json
+                    '''
+                  }
+
                   if (env.JOB_NAME.contains(persephone_test_job_name)) {
                     sh '''
                       # Update provisioning service application-test.properties with bintray registry for nightly runs
