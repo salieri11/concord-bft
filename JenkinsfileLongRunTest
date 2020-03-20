@@ -1,0 +1,7 @@
+node('blockchain-LongRunTest'){
+  checkout scm
+
+  def rootDir = pwd()
+  def builder = load "${rootDir}/vars/builder.groovy"
+  builder.runBuild()
+}

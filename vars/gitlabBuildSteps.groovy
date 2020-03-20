@@ -222,6 +222,8 @@ def call(){
 
   if (env.JOB_NAME.contains(memory_leak_job_name)) {
     agentLabel = "MemoryLeakTesting"
+  } else if (env.JOB_NAME.contains(long_tests_job_name)) {
+    agentLabel = "LongRunTest"
   }
 
   pipeline {
@@ -270,8 +272,8 @@ def call(){
       string defaultValue: "",
              description: "Monitor replicas: Enter a repeated set of blockchain_type:<set of replicas> (example: daml_committer:10.70.30.226,10.70.30.225,10.70.30.227,10.70.30.228 daml_participant:10.70.30.229)",
              name: "replicas_with_bc_type"
-      string defaultValue: "6",
-             description: "Monitor replicas: Enter number of hours to monitor replicas (default 6 hrs)",
+      string defaultValue: "72",
+             description: "Monitor replicas: Enter number of hours to monitor replicas (default 72 hrs)",
              name: "run_duration"
       string defaultValue: "60",
              description: "Monitor replicas: Enter number of minutes to wait between monitors (default 60 mins)",
