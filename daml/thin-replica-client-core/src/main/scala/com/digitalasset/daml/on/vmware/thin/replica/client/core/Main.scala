@@ -47,13 +47,13 @@ object Main extends App {
     keepRunning = false
     mainThread.join()
   }))
-  
+
   val u = Library.getTestUpdate
   System.out.println(u)
-  assert(isEqual(u, Some(Update(17,Array("Alice".getBytes->"Bob".getBytes),"test"))))
+  assert(isEqual(u, Some(Update(17,Array("Alice".getBytes->"Bob".getBytes),"test", "SpanContext".getBytes))))
 
-  val creatResult = Library.createTRC("example_client_id", 1, "", 
-    Array[String]("concord1:50051", "concord2:50051", "concord3:50051", "concord4:50051"))
+  val creatResult = Library.createTRC("example_client_id", 1, "",
+    Array[String]("concord1:50051", "concord2:50051", "concord3:50051", "concord4:50051"), "localhost:6831")
   assert(creatResult == true)
   System.out.println("ThinReplicaClient constructed.")
 

@@ -23,6 +23,7 @@ final case class Config(
     replicas: Seq[String],
     useThinReplica: Boolean,
     maxFaultyReplicas: Short,
+    jaegerAgentAddress: String,
     authService: Option[AuthService]
 ) {
   def withTlsConfig(modify: TlsConfiguration => TlsConfiguration): Config =
@@ -48,6 +49,7 @@ object Config {
       replicas = Seq("localhost:50051"),
       useThinReplica = false,
       maxFaultyReplicas = 1,
+      jaegerAgentAddress = "localhost:6831",
       authService = Some(AuthServiceWildcard)
     )
 }

@@ -15,6 +15,16 @@ RUN apt-get update && apt-get -y install \
     libtool \
     zlib1g-dev \
     libcurl4-openssl-dev \
+    wget \
+    libboost-atomic1.65.1 \
+    libboost-chrono1.65.1 \
+    libboost-date-time1.65.1 \
+    libboost-filesystem1.65.1 \
+    libboost-program-options1.65.1 \
+    libboost-system1.65.1 \
+    libboost-thread1.65.1 \
+    libyaml-cpp0.5v5 \
+    libyaml-cpp-dev \
     && rm -rf /var/lib/apt/lists/*
 
 RUN ln -s /usr/bin/clang-format-7 /usr/bin/clang-format
@@ -35,6 +45,17 @@ RUN make -j4 && \
     cd / && \
     rm -r log4cplus
 
+WORKDIR /
+RUN git clone https://svc.blockhain_1:Nn2NPdU6Ny9ZaYyXs3DB@gitlab.eng.vmware.com/core-build/openssl.git && \
+    cd /openssl && \
+    git checkout OpenSSL_1_1_1a && \
+    ./config && \
+    make -j4 && \
+    make test && \
+    make install && \
+    cd / && \
+    rm -r openssl
+
 # gRPC
 WORKDIR /
 RUN git clone https://github.com/grpc/grpc && \
@@ -54,6 +75,73 @@ RUN git clone https://github.com/grpc/grpc && \
     cd / && \
     rm -r grpc
 
+# thrift is a jaeger dependency
+WORKDIR /
+RUN wget http://apache.mirrors.hoobly.com/thrift/0.11.0/thrift-0.11.0.tar.gz && \
+    tar xzf thrift-0.11.0.tar.gz && \
+    cd thrift-0.11.0 && \
+    ./configure && \
+    make -j4 && \
+    make install && \
+    cd .. && \
+    rm -r thrift-0.11.0
+
+# opentracing is a jaeger dependency
+WORKDIR /
+RUN git clone https://github.com/opentracing/opentracing-cpp && \
+    cd opentracing-cpp && \
+    git checkout v1.5.0 && \
+    mkdir build && \
+    cd build && \
+    cmake .. && \
+    make -j4 && \
+    make install && \
+    cd ../.. && \
+    rm -r opentracing-cpp
+
+# json is a jaeger dependency
+WORKDIR /
+RUN git clone https://github.com/nlohmann/json && \
+    cd json && \
+    git checkout v3.7.3 && \
+    mkdir build && \
+    cd build && \
+    cmake .. && \
+    make -j4 && \
+    make install && \
+    cd ../.. && \
+    rm -r json
+
+# Jaeger build notes:
+#
+# * Jaeger wants to use the Hunter dependency manager, but this
+#   ignores the dependencies (like Boost) we have already
+#   installed. So, this build the deps manually for now.
+#
+# * By the same token, trc-lib needs a Findthrift.cmake, so we copy
+#   Jaeger's to the common cmake location.
+WORKDIR /
+RUN git clone https://github.com/jaegertracing/jaeger-client-cpp && \
+    cd jaeger-client-cpp && \
+    git checkout v0.5.0 && \
+    mkdir build && \
+    cd build && \
+    cmake -DHUNTER_ENABLED=NO -DBUILD_TESTING=NO -DBUILD_SHARED_LIBS=NO -DJAEGERTRACING_BUILD_EXAMPLES=NO .. && \
+    make -j4 && \
+    make install && \
+    cp ../cmake/Findthrift.cmake /usr/share/cmake-3.10/Modules/ && \
+    cd ../.. && \
+    rm -r jaeger-client-cpp
+
+# Jaeger really wants to find BoostConfig.cmake, not
+# FindBoost.cmake. But, this wasn't introduced until boost 1.70. This
+# doesn't matter anyway, because the jaegertracing.cmake finds
+# FindBoost.cmake first anyway. The following sed just removes the
+# search for BoostConfig.cmake.
+RUN sed -i '/boost_components/d' /usr/local/lib/cmake/jaegertracing/jaegertracingConfig.cmake
+
+ENV LD_LIBRARY_PATH /usr/local/lib
+
 # Googletest
 WORKDIR /
 RUN git clone https://github.com/google/googletest.git && \
@@ -63,7 +151,6 @@ WORKDIR /googletest/_build
 RUN cmake -DCMAKE_CXX_FLAGS="-std=c++11 -march=x86-64 -mtune=generic" .. && make -j$(nproc)
 
 # Install Prometheus-cpp
-RUN apt-get update && apt-get install -y zlib1g-dev libcurl4-openssl-dev
 WORKDIR /
 RUN git clone https://github.com/jupp0r/prometheus-cpp.git && \
     cd prometheus-cpp && \

@@ -11,6 +11,7 @@ final case class ExtraConfig(
     replicas: Seq[String],
     useThinReplica: Boolean,
     maxFaultyReplicas: Short,
+    jaegerAgentAddress: String,
     authService: Option[AuthService],
 )
 
@@ -22,6 +23,7 @@ object ExtraConfig {
     replicas = Seq("localhost:50051"),
     useThinReplica = false,
     maxFaultyReplicas = 1,
+    jaegerAgentAddress = "localhost::6831",
     authService = Some(AuthServiceWildcard)
   )
 }

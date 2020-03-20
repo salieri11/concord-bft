@@ -162,7 +162,8 @@ int main(int argc, char** argv) {
   try {
     LOG4CPLUS_INFO(logger, "Attempting to construct ThinReplicaClient...");
     trcf.reset(new ThinReplicaClientFacade("example_client_id", max_faulty,
-                                           private_key, servers));
+                                           private_key, servers,
+                                           "127.0.0.1:6831"));
     LOG4CPLUS_INFO(logger, "ThinReplicaClient constructed.");
     trcf->Subscribe("");
     LOG4CPLUS_INFO(logger, "ThinReplicaClient subscribed.");
@@ -230,7 +231,8 @@ int main(int argc, char** argv) {
       trcf.reset();
       LOG4CPLUS_INFO(logger, "Destroyed ThinReplicaClient object in use.");
       trcf.reset(new ThinReplicaClientFacade("example_client_id", max_faulty,
-                                             private_key, servers));
+                                             private_key, servers,
+                                             "127.0.0.1:6831"));
       LOG4CPLUS_INFO(logger, "New ThinReplicaClient object constructed.");
       trcf->Subscribe("", latest_block_id);
       LOG4CPLUS_INFO(

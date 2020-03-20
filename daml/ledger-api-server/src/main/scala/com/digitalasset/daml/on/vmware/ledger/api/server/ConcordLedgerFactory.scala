@@ -111,6 +111,7 @@ object ConcordLedgerFactory
         config.replicas,
         config.useThinReplica,
         config.maxFaultyReplicas,
+        config.jaegerAgentAddress,
         config.authService,
       ),
     )
@@ -135,7 +136,8 @@ object ConcordLedgerFactory
     new TRClient(participantId,
                  config.maxFaultyReplicas,
                  "",
-                 config.replicas.toArray)
+                 config.replicas.toArray,
+                 config.jaegerAgentAddress)
   }
 
   private[this] def waitForConcordToBeReady(client: KVBCClient): Unit = {

@@ -45,12 +45,13 @@ template <typename ThinReplicaServer>
 unique_ptr<ThinReplicaClientFacade>
 thin_replica_client::ConstructThinReplicaClientFacade(
     const string& client_id, uint16_t max_faulty, const string& private_key,
-    vector<pair<string, ThinReplicaServer>>& mock_servers) {
+    vector<pair<string, ThinReplicaServer>>& mock_servers,
+    const std::string& jaeger_agent) {
   unique_ptr<ThinReplicaClientFacade::Impl> impl(
       new ThinReplicaClientFacade::Impl);
   impl->trc.reset(new ThinReplicaClient(
       client_id, impl->update_queue, max_faulty, private_key,
-      mock_servers.begin(), mock_servers.end()));
+      mock_servers.begin(), mock_servers.end(), jaeger_agent));
   return unique_ptr<ThinReplicaClientFacade>(
       new ThinReplicaClientFacade(move(impl)));
 }
@@ -239,8 +240,8 @@ TEST(thin_replica_client_test, test_receive_one_initial_update) {
   }
   SetMockServerInitialState(mock_servers, stream_preparer, hasher);
 
-  unique_ptr<ThinReplicaClientFacade> trc =
-      ConstructThinReplicaClientFacade("0", 1, "", mock_servers);
+  unique_ptr<ThinReplicaClientFacade> trc = ConstructThinReplicaClientFacade(
+      "0", 1, "", mock_servers, "127.0.0.1:6831");
   trc->Subscribe("");
 
   unique_ptr<Update> update = trc->TryPop();

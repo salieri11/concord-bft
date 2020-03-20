@@ -42,6 +42,7 @@
 
 #include <grpcpp/grpcpp.h>
 #include <log4cplus/loggingmacros.h>
+#include <opentracing/span.h>
 #include <prometheus/counter.h>
 #include <prometheus/exposer.h>
 #include <prometheus/gauge.h>
@@ -239,8 +240,38 @@ class ThinReplicaClient final {
       UpdateHashType preceding_hash,
       const std::pair<std::string, std::string>& kvp) const;
 
+  void SetupTracing(const std::string& jaeger_agent);
   // Thread function to start subscription_thread_ with.
   void ReceiveUpdates();
+
+  using AgreeingSubsetMembers =
+      std::map<std::pair<uint64_t, ThinReplicaClient::UpdateHashType>,
+               std::unordered_set<size_t>>;
+  using MostAgreedBlock =
+      std::pair<uint64_t, ThinReplicaClient::UpdateHashType>;
+  using SpanPtr = std::unique_ptr<opentracing::Span>;
+  SpanPtr GetSpan(const com::vmware::concord::thin_replica::Data& data,
+                  const std::string& child_name);
+  void InjectSpan(const ThinReplicaClient::SpanPtr& span, Update& update);
+  std::pair<bool, SpanPtr> ReadBlock(
+      com::vmware::concord::thin_replica::Data& update_in,
+      AgreeingSubsetMembers& agreeing_subset_members, size_t& most_agreeing,
+      MostAgreedBlock& most_agreed_block);
+  void VerifyBlockHash(std::vector<bool>& servers_tried,
+                       AgreeingSubsetMembers& agreeing_subset_members,
+                       size_t& most_agreeing,
+                       MostAgreedBlock& most_agreed_block,
+                       SpanPtr& parent_span);
+  void VerifyBlockHashAgainstAdditionalServers(
+      std::vector<bool>& servers_tried,
+      AgreeingSubsetMembers& agreeing_subset_members, size_t& most_agreeing,
+      MostAgreedBlock& most_agreed_block, SpanPtr& parent_span);
+
+  std::pair<bool, bool> RotateDataStreamServers(
+      com::vmware::concord::thin_replica::Data& update_in,
+      bool has_verified_data, std::vector<bool>& servers_tried,
+      AgreeingSubsetMembers& agreeing_subset_members, size_t& most_agreeing,
+      MostAgreedBlock& most_agreed_block, SpanPtr& parent_span);
 
   // Helper functions to ReceiveUpdates.
   UpdateHashType ComputeUpdateDataHash(
@@ -300,11 +331,13 @@ class ThinReplicaClient final {
   //   be used by this ThinReplicaClient as the preferred order to try
   //   connecting to the servers.
   // - end_servers: End iterator corresponding to begin_servers.
+  // - jaeger_agent: ip:port of the jaeger agent
   template <class Iterator>
   ThinReplicaClient(std::string client_id,
                     std::shared_ptr<UpdateQueue> update_queue,
                     uint16_t max_faulty, const std::string& private_key,
-                    Iterator begin_servers, Iterator end_servers)
+                    Iterator begin_servers, Iterator end_servers,
+                    const std::string& jaeger_agent)
       : logger_(
             log4cplus::Logger::getInstance("com.vmware.thin_replica_client")),
         client_id_(client_id),
@@ -337,6 +370,7 @@ class ThinReplicaClient final {
             trc_requests_counters_total_.Add({{"item", "updates"}})),
         trc_queue_size_(
             trc_resources_gauges_total_.Add({{"resource", "queue_size"}})) {
+    SetupTracing(jaeger_agent);
     exposer_.RegisterCollectable(registry_);
     while (begin_servers != end_servers) {
       auto& server_info = *begin_servers;

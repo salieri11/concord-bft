@@ -21,6 +21,7 @@ struct Update {
   // Actual data for this update, structured as updates to key value pairs.
   std::vector<std::pair<std::string, std::string>> kv_pairs;
   std::string correlation_id_;
+  std::string span_context;
 };
 
 }  // namespace thin_replica_client
