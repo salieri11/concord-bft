@@ -53,7 +53,7 @@ public class WavefrontConfigUtilTest {
 
         actual.forEach((key, value) -> {
             var expect = expected.replace("$HOSTNAME", hostIps.get(key));
-            Assertions.assertThat(value.equals(expect));
+            Assertions.assertThat(value.equals(expect)).isTrue();
         });
     }
 
@@ -77,7 +77,7 @@ public class WavefrontConfigUtilTest {
 
         actual.forEach((key, value) -> {
             var expect = expected.replace("$HOSTNAME", hostIps.get(key));
-            Assertions.assertThat(value.equals(expect));
+            Assertions.assertThat(value.equals(expect)).isTrue();
         });
     }
 
@@ -87,7 +87,8 @@ public class WavefrontConfigUtilTest {
         Properties properties = Properties.newBuilder()
                 .putAllValues(Map.of(
                         NodeProperty.Name.BLOCKCHAIN_ID.toString(), "unitTest",
-                        NodeProperty.Name.WAVEFRONT_URL.toString(), "my.test.url"))
+                        NodeProperty.Name.WAVEFRONT_URL.toString(), "my.test.url",
+                        NodeProperty.Name.WAVEFRONT_TOKEN.toString(), "mytesttoken"))
                 .build();
 
         Map<Integer, String> actual = wavefrontConfigUtil.getWavefrontConfig(properties, hostIps);
@@ -98,7 +99,7 @@ public class WavefrontConfigUtilTest {
 
         actual.forEach((key, value) -> {
             var expect = expected.replace("$HOSTNAME", hostIps.get(key));
-            Assertions.assertThat(value.equals(expect));
+            Assertions.assertThat(value.equals(expect)).isTrue();
         });
     }
 
@@ -109,6 +110,7 @@ public class WavefrontConfigUtilTest {
                 .putAllValues(Map.of(
                         NodeProperty.Name.BLOCKCHAIN_ID.toString(), "unitTest",
                         NodeProperty.Name.WAVEFRONT_URL.toString(), "my.test.url",
+                        NodeProperty.Name.WAVEFRONT_TOKEN.toString(), "mytesttoken",
                         NodeProperty.Name.WAVEFRONT_PROXY_USER.toString(), "testuser",
                         NodeProperty.Name.WAVEFRONT_PROXY_PASSWORD.toString(), "testpassword"))
                 .build();
@@ -121,7 +123,7 @@ public class WavefrontConfigUtilTest {
 
         actual.forEach((key, value) -> {
             var expect = expected.replace("$HOSTNAME", hostIps.get(key));
-            Assertions.assertThat(value.equals(expect));
+            Assertions.assertThat(value.equals(expect)).isTrue();
         });
     }
 
@@ -163,6 +165,6 @@ public class WavefrontConfigUtilTest {
 
     @Test
     public void testPath() {
-        Assertions.assertThat(WavefrontConfigUtil.configPath.equals("/wavefront-proxy/wavefront.conf"));
+        Assertions.assertThat(WavefrontConfigUtil.configPath.equals("/wavefront-proxy/wavefront.conf")).isTrue();
     }
 }

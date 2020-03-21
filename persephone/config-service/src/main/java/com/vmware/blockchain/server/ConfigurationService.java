@@ -89,7 +89,7 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
     ConfigurationService(ExecutorService executor,
                          @Value("${config.template.path:ConcordConfigTemplate.yaml}")
                                  String concordConfigTemplatePath,
-                         @Value("${config.template.path:TelegrafConfigTemplate.config}")
+                         @Value("${config.template.path:TelegrafConfigTemplate.conf}")
                                  String telegrafConfigTemplatePath,
                          @Value("${config.template.path:MetricsConfig.yaml}")
                                  String metricsConfigPath,
