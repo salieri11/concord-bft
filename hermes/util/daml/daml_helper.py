@@ -19,6 +19,7 @@ log = hermes_logging.getMainLogger()
 TEST_TOOL_NAME = "ledger-api-test-tool-100.13.54.jar"
 TEST_DARS = ["SemanticTests.dar", "Test-dev.dar", "Test-stable.dar"]
 TEST_TOOL_CONTAINER = "docker_daml_test_tool_1"
+DEFAULT_DAML_TEST = "SemanticTests"
 DAML_TESTS_IGNORE_LIST=[
    "TimeIT",
    "LotsOfPartiesIT",
@@ -88,7 +89,7 @@ def get_list_of_tests(run_all_tests=False):
             if run_all_tests:
                tests.append(item.split("*")[0].strip())
             else:
-               if "*" in item:
+               if DEFAULT_DAML_TEST in item:
                   tests.append(item.split("*")[0].strip())
    else:
       raise Exception("Failed to fetch list of DAML tests")
