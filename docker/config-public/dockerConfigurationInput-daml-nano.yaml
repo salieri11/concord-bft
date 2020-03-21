@@ -18,6 +18,8 @@ node__TEMPLATE:
   time_pusher_period_ms: 1000
   bft_client_timeout_ms: 10000
   jaeger_agent: jaeger-agent:6831
+  metrics_config: /concord/config-public/metrics_config.yaml
+  prometheus_port: 9891
 node:
   - service_host: 0.0.0.0
     service_port: 5458

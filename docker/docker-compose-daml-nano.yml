@@ -23,6 +23,7 @@ services:
       - "50051:50051"
     expose:
       - 5458
+      - 9891
       - 3501/udp
       - 3502/udp
       - 3503/udp
@@ -44,6 +45,7 @@ services:
       - "50052:50051"
     expose:
       - 5458
+      - 9891
       - 3501/udp
       - 3502/udp
       - 3503/udp
@@ -65,6 +67,7 @@ services:
       - "50053:50051"
     expose:
       - 5458
+      - 9891
       - 3501/udp
       - 3502/udp
       - 3503/udp
@@ -86,6 +89,7 @@ services:
       - "50054:50051"
     expose:
       - 5458
+      - 9891
       - 3501/udp
       - 3502/udp
       - 3503/udp
@@ -143,11 +147,11 @@ services:
       - "5432:5432"
 
   telegraf:
-    image: vmwblockchain/telegraf:latest
+    image: telegraf:1.11
     ports:
       - 9090:9090
     volumes:
-      - ./daml-metrics/telegraf.conf:/etc/telegraf/telegraf.conf
+      - ./vdaml-metrics/telegraf.conf:/etc/telegraf/telegraf.conf
       - /var/run/docker.sock:/var/run/docker.sock
       - /:/hostfs:ro
     environment:
@@ -159,9 +163,9 @@ services:
       - daml_execution_engine1
 
   wavefront:
-    image: vmwblockchain/wavefront-proxy:latest
+    image: wavefronthq/proxy:5.7
     volumes:
-      - ./daml-metrics/wavefront.conf:/config/wavefront-proxy/wavefront.conf
+      - ./vdaml-metrics/wavefront.conf:/config/wavefront-proxy/wavefront.conf
     environment:
       - WAVEFRONT_PROXY_ARGS=-f /config/wavefront-proxy/wavefront.conf
     ports:
