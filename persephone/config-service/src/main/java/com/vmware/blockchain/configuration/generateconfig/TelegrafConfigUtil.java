@@ -112,6 +112,9 @@ public class TelegrafConfigUtil {
                     metricsConfigYamlPath, e.getLocalizedMessage());
             ClassLoader classLoader = getClass().getClassLoader();
             metricsConfig = yaml.load(classLoader.getResourceAsStream("MetricsConfig.yaml"));
+        } catch (Exception e) {
+            log.error("Parsing exception while reading MetricsConfig.yaml", e);
+            throw e;
         }
 
         StringWriter writer = new StringWriter();
