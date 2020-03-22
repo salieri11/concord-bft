@@ -35,9 +35,9 @@ ConcordCommandsHandler::ConcordCommandsHandler(
     std::shared_ptr<concord::utils::IPrometheusRegistry> prometheus_registry)
     : logger_(log4cplus::Logger::getInstance(
           "concord.consensus.ConcordCommandsHandler")),
-      metadata_storage_(storage),
       subscriber_list_(subscriber_list),
       storage_(storage),
+      metadata_storage_(storage),
       command_handler_counters_{prometheus_registry->createCounterFamily(
           "concord_command_handler_operation_counters_total",
           "counts how many operations the command handler has done", {})},

@@ -32,7 +32,6 @@ class ConcordCommandsHandler
       public concord::storage::blockchain::IBlocksAppender {
  private:
   log4cplus::Logger logger_;
-  concord::storage::ConcordBlockMetadata metadata_storage_;
   uint64_t executing_bft_sequence_num_;
   concord::thin_replica::SubBufferList &subscriber_list_;
 
@@ -42,6 +41,7 @@ class ConcordCommandsHandler
 
  protected:
   const concord::storage::blockchain::ILocalKeyValueStorageReadOnly &storage_;
+  concord::storage::ConcordBlockMetadata metadata_storage_;
   prometheus::Family<prometheus::Counter> &command_handler_counters_;
   prometheus::Counter &written_blocks_;
 
