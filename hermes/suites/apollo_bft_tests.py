@@ -110,6 +110,20 @@ async def _test_skvbc_fast_path(bft_network):
     log.info("SKVBC read-your-writes (fast path): OK")
 
 
+def test_skvbc_state_transfer(fxProduct, bft_network):
+    trio.run(_test_skvbc_state_transfer, bft_network)
+
+
+async def _test_skvbc_state_transfer(bft_network):
+    skvbc_test = SkvbcTest()
+    log.info("Running SKVBC state transfer test...")
+    await skvbc_test.test_state_transfer(
+        bft_network=bft_network,
+        already_in_trio=True
+    )
+    log.info("SKVBC state transfer test: OK.")
+
+
 def test_skvbc_view_change(fxProduct, bft_network):
     trio.run(_test_skvbc_view_change, bft_network)
 
