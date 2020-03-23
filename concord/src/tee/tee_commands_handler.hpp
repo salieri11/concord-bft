@@ -45,7 +45,8 @@ class TeeCommandsHandler : public concord::consensus::ConcordCommandsHandler {
       : ConcordCommandsHandler(config, node_config, ros, ba, subscriber_list,
                                prometheus_registry),
         logger_(log4cplus::Logger::getInstance("com.vmware.concord.tee")),
-        skvbc_commands_handler_(&ros, &ba, internal_logger_),
+        skvbc_commands_handler_(&ros, &ba, &metadata_storage_,
+                                internal_logger_),
         write_ops_{prometheus_registry->createCounter(
             command_handler_counters_,
             {{"layer", "TeeCommandsHandler"}, {"operation", "tee_writes"}})},
