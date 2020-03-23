@@ -186,7 +186,7 @@ TEST(utils_test, test_configuration_parser) {
 
   auto conf2 = concord::utils::ConcordBftMetricsManager::parseConfiguration(
       "resources/metrics_config.yaml");
-  ASSERT_EQ(conf2[0].name_, "concord_concordbft_view");
+  ASSERT_EQ(conf2[0].name_, "view");
   ASSERT_EQ(conf2[0].component_, "replica");
   ASSERT_EQ(conf2[0].type_, "gauge");
   ASSERT_EQ(conf2[0].exposed_, true);

@@ -109,12 +109,11 @@ std::vector<ConcordMetricConf> ConcordBftMetricsManager::parseConfiguration(
                        pair.second.as<std::string>());
       }
     }
-    out.insert(out.end(),
-               {"concord_concordbft_" + element["name"].as<std::string>(),
-                labels, element["type"].as<std::string>(),
-                element["component"].as<std::string>(),
-                element["description"].as<std::string>(),
-                element["exposed"].as<std::string>() == "on"});
+    out.insert(out.end(), {element["name"].as<std::string>(), labels,
+                           element["type"].as<std::string>(),
+                           element["component"].as<std::string>(),
+                           element["description"].as<std::string>(),
+                           element["exposed"].as<std::string>() == "on"});
   }
   return out;
 }
