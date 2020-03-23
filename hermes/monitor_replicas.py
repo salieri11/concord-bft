@@ -88,7 +88,7 @@ def main(args):
    if status:
       log.info("**** Successfuly instantiated health monitoring daemon on all replicas")
       if helper.monitor_replicas(all_replicas,
-                                      args.blockchainLocation,
+                                      args.blockchainLocation.lower(),
                                       args.runDuration,
                                       args.loadInterval,
                                       args.saveSupportLogsTo):

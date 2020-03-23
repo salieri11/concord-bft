@@ -574,7 +574,7 @@ def monitor_replicas(replicas, blockchain_location, run_duration, load_interval,
                log.info("Performing validation test...")
                for endpoint_node in replica_ips:
                   log.info("{}...".format(endpoint_node))
-                  if blockchain_location == LOCATION_SDDC:
+                  if blockchain_location.lower() == LOCATION_SDDC:
                      endpoint_port = '443'
                      log.info("Using overridden port: {}".format(endpoint_port))
                   else:
