@@ -44,8 +44,8 @@ class ImageManager():
         self.logger = utils.setup_logging()
 
     def _load_secrets(self):
-        artifactory_data = utils.get_artifactory_creds()
-        bintray_data = utils.get_bintray_creds()
+        artifactory_data = utils.get_vault_constants("artifactory")
+        bintray_data = utils.get_vault_constants("bintray")
         self._bintray_user = bintray_data["user"]
         self._bintray_password = bintray_data["key"]
         self._artifactory_user = artifactory_data["username"]
@@ -102,8 +102,8 @@ class ImageManager():
             version: version/tag
             package: package/docker image
         """
-        repo = kwargs.get("repo", common.BINTRAY_REPO)
-        subject = kwargs.get("subject", common.BINTRAY_SUBJECT)
+        repo = kwargs.get("repo", cdn.BINTRAY_REPO)
+        subject = kwargs.get("subject", cdn.BINTRAY_SUBJECT)
         data = self.bintray.get_version(subject=subject, repo=repo,
                                     package=package, version=version)
         return data["attributes"].get(improperty, None)
@@ -122,7 +122,7 @@ class ImageManager():
         for pkg in packages:
             if namespace is not None:
                 pkg = ("%s:%s" % (namespace, pkg))
-            build = self.get_bintray_image_property(common.BINTRAY_BUILD_LABEL,
+            build = self.get_bintray_image_property(cdn.BINTRAY_BUILD_LABEL,
                                     version=version, package=pkg, **kwargs)
             if isinstance(build, list) is True:
                 version_list.append("%s=%s" % (pkg, build[0]))
@@ -300,8 +300,8 @@ class ImageManager():
         """
             Delete bintray image version based on tag
         """
-        repo = kwargs.get("repo", common.BINTRAY_REPO)
-        subject = kwargs.get("subject", common.BINTRAY_SUBJECT)
+        repo = kwargs.get("repo", cdn.BINTRAY_REPO)
+        subject = kwargs.get("subject", cdn.BINTRAY_SUBJECT)
         if len(components) == 0:
             for _, val in self.components.items():
                 components.extend(val)
@@ -317,8 +317,8 @@ class ImageManager():
 
     def check_if_version_exists(self, tag, namespace="vmwblockchain",
                             components=[], **kwargs):
-        repo = kwargs.get("repo", common.BINTRAY_REPO)
-        subject = kwargs.get("subject", common.BINTRAY_SUBJECT)
+        repo = kwargs.get("repo", cdn.BINTRAY_REPO)
+        subject = kwargs.get("subject", cdn.BINTRAY_SUBJECT)
         if len(components) == 0:
             for _, val in self.components.items():
                 components.extend(val)
@@ -364,14 +364,14 @@ class ImageManager():
             given two bintray version tags for a repo and dump changelog
             between the two commits
         """
-        h_commit = self.get_bintray_image_property(common.BINTRAY_COMMIT_LABEL,
+        h_commit = self.get_bintray_image_property(cdn.BINTRAY_COMMIT_LABEL,
                                     component, version=latest)
-        l_commit = self.get_bintray_image_property(common.BINTRAY_COMMIT_LABEL,
+        l_commit = self.get_bintray_image_property(cdn.BINTRAY_COMMIT_LABEL,
                                     component, version=previous)
         self.logger.info("Latest version commit %s, Current version commit %s" %
                             h_commit[0], l_commit[0])
         changelog = utils.get_changelog(h_commit[0], l_commit[0],
-                                        common.GITLAB_DEFAULT_REPO)
+                                        cdn.GITLAB_DEFAULT_REPO)
         if outfile is not None:
             with open(outfile, "w") as filehandle:
                 filehandle.write("\n".join(changelog))
