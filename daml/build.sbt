@@ -15,7 +15,6 @@ lazy val scalapb_runtime_grpc = "com.thesamet.scalapb" %% "scalapb-runtime-grpc"
 
 resolvers in Global ++=
   Seq(
-    "Digital Asset SDK" at "https://digitalassetsdk.bintray.com/DigitalAssetSDK",
     "Digital Asset KV OEM integration kit" at "https://digitalassetsdk.bintray.com/vmware-integration-kit",
   )
 
