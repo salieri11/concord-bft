@@ -31,8 +31,8 @@ def main(args):
    parser.add_argument("--blockchainLocation",
                        required=True,
                        help="Location ({}, {}) of the blockchain being tested".format(
-                          util.helper.LOCATION_SDDC,
-                          util.helper.LOCATION_ONPREM)),
+                          helper.LOCATION_SDDC,
+                          helper.LOCATION_ONPREM)),
    parser.add_argument("--saveSupportLogsTo",
                        default="{}/logs_{}".format(DEFAULT_SUPPORT_LOGS_DEST,
                                                    time.strftime(
@@ -87,7 +87,7 @@ def main(args):
    start_time = time.time()
    if status:
       log.info("**** Successfuly instantiated health monitoring daemon on all replicas")
-      if util.helper.monitor_replicas(all_replicas,
+      if helper.monitor_replicas(all_replicas,
                                       args.blockchainLocation,
                                       args.runDuration,
                                       args.loadInterval,
