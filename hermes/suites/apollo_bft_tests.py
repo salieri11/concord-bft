@@ -35,6 +35,7 @@ from bft import BftTestNetwork, TestConfig, with_trio
 from bft_config import Replica
 from test_skvbc import SkvbcTest
 from test_skvbc_fast_path import SkvbcFastPathTest
+from test_skvbc_slow_path import SkvbcSlowPathTest
 from test_skvbc_view_change import SkvbcViewChangeTest
 
 from fixtures.common_fixtures import fxHermesRunSettings, fxProduct
@@ -101,13 +102,43 @@ def test_skvbc_fast_path(fxProduct, bft_network):
 async def _test_skvbc_fast_path(bft_network):
     skvbc_fast_path_test = SkvbcFastPathTest()
     skvbc_fast_path_test.setUp()
-    log.info("Running SKVBC read-your-writes (fast path)...")
+    log.info("Running SKVBC (fast path only)...")
     await skvbc_fast_path_test.test_fast_path_only(
         bft_network=bft_network,
         already_in_trio=True,
         disable_linearizability_checks=True
     )
-    log.info("SKVBC read-your-writes (fast path): OK")
+    log.info("SKVBC (fast path only): OK")
+
+
+def test_skvbc_slow_path(fxProduct, bft_network):
+    trio.run(_test_skvbc_slow_path, bft_network)
+
+
+async def _test_skvbc_slow_path(bft_network):
+    skvbc_slow_path_test = SkvbcSlowPathTest()
+    skvbc_slow_path_test.setUp()
+    log.info("Running SKVBC slow to fast path transition...")
+    await skvbc_slow_path_test.test_slow_to_fast_path_transition(
+        bft_network=bft_network,
+        already_in_trio=True,
+        disable_linearizability_checks=True
+    )
+    log.info("SKVBC slow to fast path transition: OK")
+
+
+def test_skvbc_checkpoint_creation(fxProduct, bft_network):
+    trio.run(_test_skvbc_checkpoint_creation, bft_network)
+
+
+async def _test_skvbc_checkpoint_creation(bft_network):
+    skvbc_test = SkvbcTest()
+    log.info("Running SKVBC checkpoint creation test...")
+    await skvbc_test.test_checkpoint_creation(
+        bft_network=bft_network,
+        already_in_trio=True
+    )
+    log.info("SKVBC checkpoint creation: OK.")
 
 
 def test_skvbc_state_transfer(fxProduct, bft_network):
@@ -137,3 +168,4 @@ async def _test_skvbc_view_change(bft_network):
         disable_linearizability_checks=True
     )
     log.info("SKVBC view change test: OK")
+
