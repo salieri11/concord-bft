@@ -335,6 +335,12 @@ def main():
   CONFIG["nodeType"] = config["nodeType"] if "nodeType" in config else ""
   CONFIG["componentsWatchList"] = config["componentsWatchList"].split(",") if "componentsWatchList" in config else []
 
+  # Simple metics monitor for near real time reports
+  # (Will be deprecated once all production components are fully equipped with metrics in July+)
+  CONFIG["wavefrontUrl"] = config["wavefrontUrl"] if "wavefrontUrl" in config else ""
+  CONFIG["wavefrontToken"] = config["wavefrontToken"] if "wavefrontToken" in config else ""
+  CONFIG["wavefrontPublishQueue"] = []
+
   # initialize logging
   setUpLogging()
   log.info("Deamon started; log location = {}; config = {}".format(CONFIG["logFile"], json.dumps(CONFIG)))
@@ -376,6 +382,33 @@ def main():
   # Agent down timestamp used to forgive agent down for n seconds
   agentDown = 0
 
+  # Wavefront publish helper function
+  def wavefrontPublish(data, trailing=""):
+    if "wavefrontBadToken" in CONFIG: return
+    data += f' source=bc.hermes.healthd bc.ip="{ip}"'
+    if blockchainId is not None: data += f' bc.id="{blockchainId}"'
+    if blockchainType is not None: data += f' bc.type="{blockchainType}"'
+    if nodeType is not None: data += f' bc.nodetype="{nodeType}"'
+    if job is not None: data += f' bc.job="{job}"'
+    if buildNumber is not None: data += f' bc.build="{buildNumber}"'
+    data = data + ((" "+trailing) if len(trailing) > 0 else "")
+    CONFIG["wavefrontPublishQueue"].append(data)
+  
+  # Wavefront publish batch flush to avoid mutiple HTTPS POST calls
+  def wavefrontPublishFlush():
+    if len(CONFIG["wavefrontPublishQueue"]) == 0: return
+    try:
+      with open("healthd_wf_batch_publish.txt", "w+") as f:
+        f.write("\n".join(CONFIG["wavefrontPublishQueue"]))
+      url = CONFIG["wavefrontUrl"] + '/report'
+      token = CONFIG["wavefrontToken"]
+      os.system(f'cat healthd_wf_batch_publish.txt | curl -H "Authorization: Bearer {token}" -F file=@- {url}')
+      CONFIG["wavefrontPublishQueue"].clear()
+    except Exception as e:
+      log.info(e)
+
+
+  # Main daemon logic
   while(True):
 
     # Get system CPU usage
@@ -437,6 +470,7 @@ def main():
       statusWasOk = False
       thisIsThePointOfFailure = True
       crashTime = int(time.time())
+      wavefrontPublish(f'bc.replica.crash 1 {crashTime}', 'bc.crashed="true" bc.crashed_components="{}"'.format(','.join(svcErroredContainers)))
 
     # This docker native call takes 2 seconds to poll resource usage polling (compare values from prev snapshot)
     # All footprints are container specific.
@@ -474,9 +508,10 @@ def main():
 
     # Announce relatively static information once in a while (reports when daemon starts, and interval'ed)
     if now - lastAnnounced >= CONFIG["announceInterval"]:
-      daemonProcessUsage = getDaemonProcessUsage()
-      daemonLogSize = int(os.path.getsize(CONFIG["logFile"]) / 1024)
+      daemonLogSize = int(os.path.getsize(CONFIG["logFile"]) / 1024.0) # in KB
       daemonLogRate = float(prevDaemonLogSize - daemonLogSize) / float(now - lastAnnounced)
+      if daemonLogSize > 30 * 1024: truncateDaemonLogs() # truncate when more than 30 MB; ~ 5-days-worth (20s interval)
+      daemonProcessUsage = getDaemonProcessUsage()
       announceData = {
         "log_size": daemonLogSize, # log output size caused by deamon 
         "log_rate": daemonLogRate if lastAnnounced > 0 else 0, # this daemon log output rate (kB/s)
@@ -496,8 +531,52 @@ def main():
     # Output metric to log file
     log.info(json.dumps(loggedData))
     
+    # Wavefront publish
+    if CONFIG["wavefrontUrl"]:
+      # publish VM footprint
+      good = 1 if reportData["status"] == "ok" else 0
+      vmCPU = reportData["cpu"]["avg"]
+      vmMEM = reportData["mem"]
+      vmDISK = reportData["disk"]
+      wavefrontPublish(f'bc.healthd.good {good} {now}', f'bc.service="VM"')
+      wavefrontPublish(f'bc.healthd.cpu {vmCPU} {now}', f'bc.service="VM"')
+      wavefrontPublish(f'bc.healthd.mem {vmMEM} {now}', f'bc.service="VM"')
+      wavefrontPublish(f'bc.healthd.disk {vmDISK} {now}', f'bc.service="VM"')
+      for i, coreCPU in enumerate(reportData["cpu"]["core"]):
+        wavefrontPublish(f'bc.healthd.cpu.{i} {coreCPU} {now}', f'bc.service="VM"')
+      # publish footprint of each container
+      for footprint in trimmedContainersFootprints:
+        svcName = footprint["name"]
+        cpu = footprint["cpu"]
+        mem = footprint["mem"]
+        log_total = footprint["log"]["total"]
+        log_rate = footprint["log"]["rate"]
+        net_in_total = footprint["net"]["in"]["total"]
+        net_in_rate = footprint["net"]["in"]["rate"]
+        net_out_total = footprint["net"]["out"]["total"]
+        net_out_rate = footprint["net"]["out"]["rate"]
+        disk_read_total = footprint["disk"]["read"]["total"]
+        disk_read_rate = footprint["disk"]["read"]["rate"]
+        disk_write_total = footprint["disk"]["write"]["total"]
+        disk_write_rate = footprint["disk"]["write"]["rate"]
+        wavefrontPublish(f'bc.healthd.cpu {cpu} {now}', f'bc.service="{svcName}"')
+        wavefrontPublish(f'bc.healthd.mem {mem} {now}', f'bc.service="{svcName}"')
+        wavefrontPublish(f'bc.healthd.log {log_total} {now}', f'bc.service="{svcName}"')
+        wavefrontPublish(f'bc.healthd.log_rate {log_rate} {now}', f'bc.service="{svcName}"')
+        wavefrontPublish(f'bc.healthd.net_in {net_in_total} {now}', f'bc.service="{svcName}"')
+        wavefrontPublish(f'bc.healthd.net_in_rate {net_in_rate} {now}', f'bc.service="{svcName}"')
+        wavefrontPublish(f'bc.healthd.net_out {net_out_total} {now}', f'bc.service="{svcName}"')
+        wavefrontPublish(f'bc.healthd.net_out_rate {net_out_rate} {now}', f'bc.service="{svcName}"')
+        wavefrontPublish(f'bc.healthd.disk_read {disk_read_total} {now}', f'bc.service="{svcName}"')
+        wavefrontPublish(f'bc.healthd.disk_read_rate {disk_read_rate} {now}', f'bc.service="{svcName}"')
+        wavefrontPublish(f'bc.healthd.disk_write {disk_write_total} {now}', f'bc.service="{svcName}"')
+        wavefrontPublish(f'bc.healthd.disk_write_rate {disk_write_rate} {now}', f'bc.service="{svcName}"')
+
     # Update check iteration count
     counter += 1
+
+    # Flush Wavefront publishes in this iteration in a single POST call
+    wavefrontPublishFlush()
 
     # Let outside procs know healthd is alive and well
     try:
@@ -523,6 +602,13 @@ def toKB(s):
   if 'M' in s: return n * 1024
   if 'k' in s or 'K' in s: return n
   return n / 1024
+
+# truncate logs by simple rotation
+def truncateDaemonLogs():
+  logPath = CONFIG["logFile"]
+  archivePath = CONFIG["logFile"] + '_old' # e.g. /var/log/healthd.log_old
+  subprocess.run(["cp", logPath, archivePath]) # overwrite on archive with current
+  with open(logPath, 'w') as f: pass # truncate current
 
 # Mark this node as crashed if haven't already
 def markNodeCrashedIfNotAlready():

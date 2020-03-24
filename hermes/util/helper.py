@@ -1031,6 +1031,8 @@ def installHealthDaemon(replicas):
     # credential for SSH and SFTP
     credentials = configObject["persephoneTests"]["provisioningService"]["concordNode"]
     username = credentials["username"]; password = credentials["password"]
+    wavefrontUrl = configObject["dashboard"]["devops"]["wavefront"]["url"]
+    wavefrontToken = configObject["dashboard"]["devops"]["wavefront"]["token"]
     
     # Daemon behavior config
     reportingInterval = 20 # seconds
@@ -1060,6 +1062,8 @@ def installHealthDaemon(replicas):
                   'reportingInterval={}\n'.format(reportingInterval) +
                   'announceInterval={}\n'.format(announceInterval) +
                   'componentsWatchList={}\n'.format(componentsWatchList) +
+                  'wavefrontUrl={}\n'.format(wavefrontUrl) +
+                  'wavefrontToken={}\n'.format(wavefrontToken) +
                 '" > healthd.conf\n'
                 )
       daemonConfInstallOutput = ssh_connect(ip, username, password, command)
