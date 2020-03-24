@@ -273,6 +273,8 @@ def call(){
       string defaultValue: "",
              description: "Monitor replicas: Enter a repeated set of blockchain_type:<set of replicas> (example: daml_committer:10.70.30.226,10.70.30.225,10.70.30.227,10.70.30.228 daml_participant:10.70.30.229)",
              name: "replicas_with_bc_type"
+      choice(choices: "SDDC\nONPREM", description: 'Monitor replicas: Choose blockchain location', name: 'blockchain_location')
+
       string defaultValue: "72",
              description: "Monitor replicas: Enter number of hours to monitor replicas (default 72 hrs)",
              name: "run_duration"
@@ -306,6 +308,7 @@ def call(){
               env.concord_ips = params.concord_ips
               env.concord_type = params.concord_type
               env.replicas_with_bc_type = params.replicas_with_bc_type
+              env.blockchain_location = params.blockchain_location
               env.run_duration = params.run_duration
               env.load_interval = params.load_interval
 
@@ -841,15 +844,13 @@ EOF
                       saveTimeEvent("Monitor health and status of replicas", "Start")
                       py_arg_replica_with_bc_type = ""
                       for (replica_set in env.replicas_with_bc_type.split()) {
-                        echo replica_set
                         py_arg_replica_with_bc_type = py_arg_replica_with_bc_type + " --replicas " + replica_set
                       }
-                      echo py_arg_replica_with_bc_type
                       env.py_arg_replica_with_bc_type = py_arg_replica_with_bc_type
                       sh '''
                         echo "Running script to monitor health and status of replicas..."
                         cd ../docker ; docker-compose -f ../docker/docker-compose-persephone.yml up -d ; cd -
-                        "${python}" monitor_replicas.py ${py_arg_replica_with_bc_type} --runDuration "${run_duration}" --loadInterval "${load_interval}" --saveSupportLogsTo "${monitor_replicas_logs}"
+                        "${python}" monitor_replicas.py ${py_arg_replica_with_bc_type} --runDuration "${run_duration}" --loadInterval "${load_interval}" --saveSupportLogsTo "${monitor_replicas_logs}" --blockchainLocation "${blockchain_location}"
                       '''
                       saveTimeEvent("Monitor health and status of replicas", "End")
                     }
