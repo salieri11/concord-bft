@@ -11,7 +11,7 @@ import util
 
 import util.hermes_logging
 log = util.hermes_logging.getMainLogger()
-INTENTIONALLY_SKIPPED_TESTS = "suites/skipped/core_vm_tests_to_skip.json"
+INTENTIONALLY_SKIPPED_TESTS = "suites/skipped/eth_core_vm_tests_to_skip.json"
 
 def pytest_addoption(parser):
     parser.addoption(
@@ -44,10 +44,10 @@ def pytest_generate_tests(metafunc):
     PyTest provides this pytest_generate_tests() hook which allows us to use
     our fixtures to create a new fixture which sets up a parametrize.
     '''
-    if "fxCoreVMTests" in metafunc.fixturenames:
-        metafunc.parametrize("fxCoreVMTests", getCoreVMTests(metafunc))
+    if "fxEthCoreVmTests" in metafunc.fixturenames:
+        metafunc.parametrize("fxEthCoreVmTests", getEthCoreVmTests(metafunc))
 
-def getCoreVMTests(metafunc):
+def getEthCoreVmTests(metafunc):
     '''
     Returns a list of file names.  Each file is a test to run.
     '''
@@ -100,7 +100,7 @@ def getCoreVMTests(metafunc):
     if not tests:
         log.error("There are no tests to run.")
 
-    log.debug("CoreVMTests is running: {}".format(tests))
+    log.debug("EthCoreVmTests is running: {}".format(tests))
     return tests
 
 def removeSkippedTests(testList, ethereumTestRoot):

@@ -14,8 +14,8 @@ import traceback
 from time import strftime, localtime, sleep
 
 import event_recorder
-from suites import (contract_compiler_tests, core_vm_tests,
-                    ext_rpc_tests, ui_e2e_deploy_daml, hlf_tests, performance_tests, persephone_tests,
+from suites import (contract_compiler_tests, eth_core_vm_tests,
+                    eth_json_rpc_tests, ui_e2e_deploy_daml, hlf_tests, performance_tests, persephone_tests,
                     pytest_suite, regression_tests, sample_dapp_tests, simple_st_test,
                     ui_tests, websocket_rpc_tests, persistency_tests)
 from util import helper, hermes_logging, html, json_helper, numbers_strings
@@ -26,10 +26,10 @@ sys.path.append("lib/persephone")
 log = None
 suiteList = [
    "ContractCompilerTests",
-   "CoreVMTests",
+   "EthCoreVmTests",
    "DamlTests",
    "EvilTimeTests",
-   "ExtendedRPCTests",
+   "EthJsonRpcTests",
    "HelenAPITests",
    "HelenRoleTests",
    "HlfTests",
@@ -41,7 +41,7 @@ suiteList = [
    "SampleDAppTests",
    "SampleSuite",
    "SimpleStateTransferTest",
-   "ThinReplicaTests",
+   "ThinReplicaServerTests",
    "TimeTests",
    "TruffleTests",
    "UiTests",
@@ -88,7 +88,7 @@ def main():
                        help="File to receive timing events.")
    parser.add_argument("--tests",
                        help="Run specific tests. Details depend on the suite " \
-                       "being run. For CoreVMTests, this is a directory or " \
+                       "being run. For EthCoreVmTests, this is a directory or " \
                        "specific file relative to the VMTests directory. e.g. " \
                        "'--tests vmArithmeticTest' or " \
                        "'--tests vmArithmeticTest/add0.json'")
@@ -333,14 +333,14 @@ def createTestSuite(args, suiteName, product):
       return sample_dapp_tests.SampleDAppTests(args, product)
    elif (suiteName == "ContractCompilerTests"):
        return contract_compiler_tests.ContractCompilerTests(args, product)
-   elif (suiteName == "CoreVMTests"):
-      return pytest_suite.PytestSuite(args, "suites/core_vm_tests.py", product)
+   elif (suiteName == "EthCoreVmTests"):
+      return pytest_suite.PytestSuite(args, "suites/eth_core_vm_tests.py", product)
    elif (suiteName == "HelenAPITests"):
       return pytest_suite.PytestSuite(args, "suites/helen/api_test.py", product)
    elif (suiteName == "HelenRoleTests"):
       return pytest_suite.PytestSuite(args, "suites/helen/roles.py", product)
-   elif (suiteName == "ExtendedRPCTests"):
-      return ext_rpc_tests.ExtendedRPCTests(args, product)
+   elif (suiteName == "EthJsonRpcTests"):
+      return eth_json_rpc_tests.EthJsonRpcTests(args, product)
    elif (suiteName == "WebSocketRPCTests"):
       return websocket_rpc_tests.WebSocketRPCTests(args, product)
    elif (suiteName == "PerformanceTests"):
@@ -367,8 +367,8 @@ def createTestSuite(args, suiteName, product):
       return pytest_suite.PytestSuite(args, "suites/daml_tests.py", product)
    elif (suiteName == "HlfTests"):
       return hlf_tests.HlfTests(args, product)
-   elif (suiteName == "ThinReplicaTests"):
-      return pytest_suite.PytestSuite(args, "suites/thin_replica_tests.py", product)
+   elif (suiteName == "ThinReplicaServerTests"):
+      return pytest_suite.PytestSuite(args, "suites/thin_replica_server_tests.py", product)
    elif (suiteName == "LoggingTests"):
       return pytest_suite.PytestSuite(args, "suites/logging_tests.py", product)
    elif (suiteName == "MetadataPersistencyTests"):

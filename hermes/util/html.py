@@ -49,7 +49,7 @@ def createHtmlRow(testName, result):
    '''
    Given a test case dictionary such as:
    "sha3_0": {
-      "info": "Log: /tmp/CoreVMTests_20180323_1406_tdcdm69z/test_logs/sha3_0",
+      "info": "Log: /tmp/EthCoreVmTests_20180323_1406_tdcdm69z/test_logs/sha3_0",
       "result": "PASS"
    }
    returns a string of HTML to add a row to a table.

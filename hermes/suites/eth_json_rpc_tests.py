@@ -2,7 +2,7 @@
 # Copyright 2018 - 2019 VMware, Inc.  All rights reserved. -- VMware Confidential
 #
 # Test the parts of the Ethereum JSON RPC API beyond what the
-# CoreVMTests cover. This checks things like web3_sha3,
+# EthCoreVmTests cover. This checks things like web3_sha3,
 # eth_clientVersion, eth_mining, ...
 #########################################################################
 import argparse
@@ -34,7 +34,7 @@ from web3 import Web3, HTTPProvider
 import util.hermes_logging
 log = util.hermes_logging.getMainLogger()
 
-class ExtendedRPCTests(test_suite.TestSuite):
+class EthJsonRpcTests(test_suite.TestSuite):
    _args = None
    _userConfig = None
    _ethereumMode = False
@@ -57,10 +57,10 @@ class ExtendedRPCTests(test_suite.TestSuite):
       )
 
       self._userConfig = util.helper.loadConfigFile(passedArgs)
-      super(ExtendedRPCTests, self).__init__(passedArgs, product)
+      super(EthJsonRpcTests, self).__init__(passedArgs, product)
 
    def getName(self):
-      return "ExtendedRPCTests"
+      return "EthJsonRpcTests"
 
    def run(self):
       ''' Runs all of the tests. '''
