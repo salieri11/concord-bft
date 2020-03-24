@@ -1,0 +1,33 @@
+# Metrics for vDAML
+#
+# Usage: docker-compose -f docker-compose-daml.yml -f docker-compose-daml-metrics.yml
+# Note: Make sure you adjust the configuration in vdaml-metrics/*
+
+version: '3'
+services:
+  telegraf:
+    image: telegraf:1.11
+    ports:
+      - 9090:9090
+    volumes:
+      - ./vdaml-metrics/telegraf.conf:/etc/telegraf/telegraf.conf
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /:/hostfs:ro
+    environment:
+      - HOST_MOUNT_PREFIX=/hostfs
+      - HOST_PROC=/hostfs/proc
+    depends_on:
+      - wavefront
+      - daml_ledger_api1
+      - daml_execution_engine1
+
+  wavefront:
+    image: wavefronthq/proxy:5.7
+    volumes:
+      - ./vdaml-metrics/wavefront.conf:/config/wavefront-proxy/wavefront.conf
+    environment:
+      - WAVEFRONT_PROXY_ARGS=-f /config/wavefront-proxy/wavefront.conf
+    ports:
+      - 2878:2878
+      - 14267:14267
+

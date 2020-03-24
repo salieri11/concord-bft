@@ -19,6 +19,7 @@ services:
       - "50051:50051"
     expose:
       - 5458
+      - 9891
       - 3501/udp
       - 3502/udp
       - 3503/udp
@@ -40,6 +41,7 @@ services:
       - "50052:50051"
     expose:
       - 5458
+      - 9891
       - 3501/udp
       - 3502/udp
       - 3503/udp
@@ -61,6 +63,7 @@ services:
       - "50053:50051"
     expose:
       - 5458
+      - 9891
       - 3501/udp
       - 3502/udp
       - 3503/udp
@@ -82,6 +85,7 @@ services:
       - "50054:50051"
     expose:
       - 5458
+      - 9891
       - 3501/udp
       - 3502/udp
       - 3503/udp
@@ -108,6 +112,7 @@ services:
       - daml_index_db1
     expose:
       - 6865
+      - 55001
     ports:
       - "6861:6865"
 
@@ -125,6 +130,7 @@ services:
       - daml_index_db2
     expose:
       - 6865
+      - 55001
     ports:
       - "6862:6865"
 
@@ -142,6 +148,7 @@ services:
       - daml_index_db3
     expose:
       - 6865
+      - 55001
     ports:
       - "6863:6865"
 
@@ -159,6 +166,7 @@ services:
       - daml_index_db4
     expose:
       - 6865
+      - 55001
     ports:
       - "6864:6865"
 
@@ -168,6 +176,7 @@ services:
       - JAVA_OPTS=-XX:+UseG1GC -Xmx4G
     expose:
       - 55000
+      - 55001
     ports:
       - "55001:55001" # metrics dashboard
 
@@ -177,6 +186,7 @@ services:
       - JAVA_OPTS=-XX:+UseG1GC -Xmx4G
     expose:
       - 55000
+      - 55001
     ports:
       - "55002:55001" # metrics dashboard
 
@@ -186,6 +196,7 @@ services:
       - JAVA_OPTS=-XX:+UseG1GC -Xmx4G
     expose:
       - 55000
+      - 55001
     ports:
       - "55003:55001" # metrics dashboard
 
@@ -195,6 +206,7 @@ services:
       - JAVA_OPTS=-XX:+UseG1GC -Xmx4G
     expose:
       - 55000
+      - 55001
     ports:
       - "55004:55001" # metrics dashboard
 
