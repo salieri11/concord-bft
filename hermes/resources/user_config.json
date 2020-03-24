@@ -457,6 +457,10 @@
         "vdaml-devops":{
           "workspace": "vmw-da",
           "channelId": "CR94YNQPQ"
+        },
+        "vmwathena": {
+          "workspace": "vmware",
+          "channelId": "G9AC1C9E0"
         }
       }
     }

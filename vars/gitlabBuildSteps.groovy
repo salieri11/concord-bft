@@ -488,7 +488,7 @@ def call(){
 
               if (env.JOB_NAME.contains(main_mr_run_job_name)) {
                 // Figure out which components have changed based on git diff
-                // From this information, you can: 
+                // From this information, you can:
                 //    1) choose to pull pre-built images, instead of building everything
                 //    2) skip component-internal unit tests of components that didn't change
                 // Output the changed components map to `blockchain/vars/affected_components.json`
@@ -817,7 +817,7 @@ EOF
                       runTests()
                     } else if (env.JOB_NAME.contains(long_tests_job_name)) {
                       env.blockchain_location = "sddc"
-                      testSuites["DeploymentOnly"]["otherParameters"] = 
+                      testSuites["DeploymentOnly"]["otherParameters"] =
                           " --blockchainType " + params.concord_type.toLowerCase() +
                           " --blockchainLocation " + env.blockchain_location +
                           " --numReplicas " + params.num_replicas + " "
@@ -1271,10 +1271,7 @@ EOF
         // And grab the time file one more time so we can know how long gathering artifacts takes.
         archiveArtifacts artifacts: env.eventsFile, allowEmptyArchive: false
 
-        echo 'Sending email notification...'
-        emailext body: "${currentBuild.currentResult}: Job ${env.JOB_NAME} build ${env.BUILD_NUMBER}\n More info at: ${env.BUILD_URL}\n\nNOTE: Any failed persephone/helen deployment would be retained for the next 1 hour, before cleanup.",
-        recipientProviders: [[$class: 'DevelopersRecipientProvider'], [$class: 'RequesterRecipientProvider']],
-        subject: "Jenkins Build ${currentBuild.currentResult}: Job ${env.JOB_NAME}"
+        sendNotifications()
 
         script{
           try{
@@ -2213,4 +2210,63 @@ void setProductVersion(){
                           version_object["build_numbers"]["minor"] + "." +
                           version_object["build_numbers"]["patch"]
   env.product_version = env.major_minor_patch + "." + env.BUILD_NUMBER
+}
+
+
+// Takes care of sending all post-run notifications.
+void sendNotifications(){
+  sendGeneralEmail()
+
+  if (currentBuild.currentResult == "FAILURE" &&
+      env.JOB_NAME.contains(env.tot_job_name)){
+    announceToTFailure()
+  }
+}
+
+
+// Sends the general email for all run types, pass or fail.
+void sendGeneralEmail(){
+  echo 'Sending email notification...'
+
+  body = "${currentBuild.currentResult}: Job ${env.JOB_NAME} build ${env.BUILD_NUMBER}\n " +
+    "More info at: ${env.BUILD_URL}\n\nNOTE: Any failed persephone/helen deployment would be " +
+    "retained for the next 1 hour, before cleanup."
+
+  subject = "Jenkins Build ${currentBuild.currentResult}: Job ${env.JOB_NAME}"
+
+  emailext body: body,
+    recipientProviders: [[$class: 'DevelopersRecipientProvider'], [$class: 'RequesterRecipientProvider']],
+    subject: subject
+}
+
+
+// When a ToT (e.g. master) run fails, notify users on Slack.
+// Regarding email, I don't have a good solution for recipients yet.
+// I am not sure if purnam-team is appropriate because of the non-engineering members.
+// Getting users from GitLab would also not use the DA folks' "digitalassets" address,
+// but maybe that's close enough.
+// Getting all users who contributed to GitLab would include users who left the team.
+void announceToTFailure(){
+  // recipients = "purnam-team@vmware.com"
+  // emailext to: recipients,
+  //          subject: subject,
+  //          body: env.run_fail_msg,
+  //          presendScript: 'msg.addHeader("X-Priority", "1 (Highest)"); msg.addHeader("Importance", "High");'
+
+  Random rnd = new Random()
+  emoji_list = [":explode:", ":exploding_head:", ":fire:", ":bangbang:", ":alert:", ":boom:", ":boom1:", ":warning:", ":skull_and_crossbones:"]
+  emoji = emoji_list[rnd.nextInt(emoji_list.size)]
+  subject = emoji + emoji + " <!here> Master run " + env.BUILD_NUMBER + " failed! " + emoji + emoji
+  env.run_fail_msg = subject + "\nBuild url: " + env.BUILD_URL
+
+  dir("blockchain/hermes"){
+    sh '''
+      . ${python_bin}/activate
+      # For testing
+      # python3 invoke.py slackDM   --param your_id@vmware.com "${run_fail_msg}"
+
+      python3 invoke.py slackPost --param vmwathena "${run_fail_msg}"
+      deactivate
+    '''
+  }
 }
