@@ -73,7 +73,7 @@ std::vector<MetricFamily> ConcordBftPrometheusCollector::collectCounters() {
   std::vector<MetricFamily> cf;
   for (auto& c : counters_) {
     cf.emplace_back(MetricFamily{
-        c.name_,
+        getMetricName(c.name_),
         c.description_,
         MetricType::Counter,
         {collect(c, aggregator_->GetCounter(c.component_, c.name_))}});
@@ -85,7 +85,7 @@ std::vector<MetricFamily> ConcordBftPrometheusCollector::collectGauges() {
   std::vector<MetricFamily> gf;
   for (auto& g : gauges_) {
     gf.emplace_back(MetricFamily{
-        g.name_,
+        getMetricName(g.name_),
         g.description_,
         MetricType::Gauge,
         {collect(g, aggregator_->GetGauge(g.component_, g.name_))}});
@@ -95,6 +95,10 @@ std::vector<MetricFamily> ConcordBftPrometheusCollector::collectGauges() {
 
 std::vector<MetricFamily> ConcordBftPrometheusCollector::collectStatuses() {
   return {};
+}
+std::string ConcordBftPrometheusCollector::getMetricName(
+    const std::string& origName) {
+  return metricNamePrefix_ + origName;
 }
 
 std::vector<ConcordMetricConf> ConcordBftMetricsManager::parseConfiguration(

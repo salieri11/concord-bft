@@ -234,11 +234,11 @@ TEST(utils_test, test_prometheus_with_concord_bft_metrics) {
   pr.scrapeRegistry(cbft.getCollector());
   for (auto& mf : cbft.getCollector()->Collect()) {
     if (mf.type == prometheus::MetricType::Counter) {
-      ASSERT_EQ(mf.name, "m1");
+      ASSERT_EQ(mf.name, "concord_concordbft_m1");
       ASSERT_EQ(mf.metric[0].counter.value, 1);
     }
     if (mf.type == prometheus::MetricType::Gauge) {
-      ASSERT_EQ(mf.name, "m2");
+      ASSERT_EQ(mf.name, "concord_concordbft_m2");
       ASSERT_EQ(mf.metric[0].gauge.value, 100);
     }
   }
