@@ -57,16 +57,22 @@ def setup_test_suite():
     os.remove(tmp_dar)
     return ThinReplica("localhost", "50051")
 
-def get_newest_block_id(thin_replica):
+def get_newest_block_id(thin_replica_list):
     """Helper
+
+    Return the newest Block ID that _ALL_ replicas have.
 
     This is super expensive because we iterate over _all_ blocks.
     Meaning, the longer the test runs the longer this function takes.
     """
-    stream = thin_replica.read_state()
-    for update in stream:
-      bid = update.block_id;
-    return bid
+    assert(type(thin_replica_list) is list)
+    bids = []
+    for tr in thin_replica_list:
+      stream = tr.read_state()
+      for update in stream:
+        bid = update.block_id;
+      bids.append(bid)
+    return min(bids)
 
 def test_basic_read_state(fxProduct, setup_test_suite):
     """Basic read state
@@ -119,7 +125,7 @@ def test_compare_all_hashes(fxProduct, setup_test_suite):
     # Food-for-thought: Should we implement our "own" hash function so that we
     # can easily re-compute the hash in the test instead of relying on C++
     # stdlib's implementation of std::hash<string>?
-    bid = get_newest_block_id(tr1)
+    bid = get_newest_block_id([tr1, tr2, tr3, tr4])
 
     hash1 = tr1.read_hash(bid).hash
     hash2 = tr2.read_hash(bid).hash
@@ -135,7 +141,7 @@ def test_hash_not_zero_if_no_state(fxProduct, setup_test_suite):
     Food-for-thought: Let's hash the block id so it is never 0?
     """
     tr = setup_test_suite
-    bid = get_newest_block_id(tr)
+    bid = get_newest_block_id([tr])
     hash = tr.read_hash(bid, key_prefix=b"WRITING_TESTS_IS_FUN").hash
     assert int(hash.hex(), 16) != 0
 
@@ -147,7 +153,7 @@ def test_compare_all_filtered_hashes(fxProduct, setup_test_suite):
     tr3 = ThinReplica("localhost", "50053")
     tr4 = ThinReplica("localhost", "50054")
 
-    bid = get_newest_block_id(tr1)
+    bid = get_newest_block_id([tr1, tr2, tr3, tr4])
 
     hash1 = tr1.read_hash(bid, b"daml").hash
     hash2 = tr2.read_hash(bid, b"daml").hash
@@ -160,7 +166,7 @@ def test_compare_filter_with_no_filter_hash(fxProduct, setup_test_suite):
     """Hashes should be different for a filtered read and a non-filtered read
     """
     tr = setup_test_suite
-    bid = get_newest_block_id(tr)
+    bid = get_newest_block_id([tr])
 
     assert tr.read_hash(bid).hash != tr.read_hash(bid, b"daml").hash
 
@@ -175,7 +181,7 @@ def test_subscribe_history_to_future(fxProduct, setup_test_suite):
     block_id = 0
 
     stream = tr.subscribe_to_updates(block_id=1, key_prefix=b"")
-    for update in itertools.islice(stream, get_newest_block_id(tr) + 10):
+    for update in itertools.islice(stream, get_newest_block_id([tr]) + 10):
         assert update.block_id == block_id + 1
         block_id += 1
 
@@ -187,7 +193,7 @@ def test_basic_subscribe_to_update_hashes(fxProduct, setup_test_suite):
     tr3 = ThinReplica("localhost", "50053")
     tr4 = ThinReplica("localhost", "50054")
 
-    bid = get_newest_block_id(tr1)
+    bid = get_newest_block_id([tr1, tr2, tr3, tr4])
 
     tr1_stream = tr1.subscribe_to_update_hashes(block_id=bid, key_prefix=b"")
     tr2_stream = tr2.subscribe_to_update_hashes(block_id=bid, key_prefix=b"")
