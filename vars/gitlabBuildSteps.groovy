@@ -45,7 +45,7 @@ import hudson.util.Secret
   "SampleDAppTests": [
     "enabled": true
   ],
-  "CoreVMTests": [
+  "EthCoreVmTests": [
     "enabled": true
   ],
   "PerformanceTests": [
@@ -61,12 +61,12 @@ import hudson.util.Secret
     "runWithGenericTests": false,
     "runWithToTTests": false
   ],
-  "ExtendedRPCTests": [
+  "EthJsonRpcTests": [
     "enabled": true
   ],
-  "ExtendedRPCTestsEthrpc": [
+  "EthJsonRpcTestsEthrpc": [
     "enabled": true,
-    "baseCommand": 'echo "${PASSWORD}" | sudo -S "${python}" main.py ExtendedRPCTests --ethrpcApiUrl https://localhost/blockchains/local/api/concord/eth'
+    "baseCommand": 'echo "${PASSWORD}" | sudo -S "${python}" main.py EthJsonRpcTests --ethrpcApiUrl https://localhost/blockchains/local/api/concord/eth'
   ],
   "RegressionTests": [
     "enabled": true,
@@ -77,7 +77,7 @@ import hudson.util.Secret
     "dockerComposeFiles": "../docker/docker-compose-daml.yml",
     "concordConfigurationInput": "/concord/config/dockerConfigurationInput-daml.yaml"
   ],
-  "ThinReplicaTests": [
+  "ThinReplicaServerTests": [
     "enabled": true,
     "dockerComposeFiles": "../docker/docker-compose-daml-nano.yml",
     "concordConfigurationInput": "/concord/config/dockerConfigurationInput-daml-nano.yaml"
@@ -116,7 +116,7 @@ import hudson.util.Secret
   "MemoryLeakTests": [
     "enabled": true,
     "suiteDir": "suites",
-    "baseCommand": 'echo "${PASSWORD}" | sudo -SE ./memory_leak_test.sh --testSuite CoreVMTests \
+    "baseCommand": 'echo "${PASSWORD}" | sudo -SE ./memory_leak_test.sh --testSuite EthCoreVmTests \
       --repeatSuiteRun 2 --tests \'vmArithmeticTest/add0.json\''
   ],
   "UiTests": [
@@ -128,7 +128,7 @@ import hudson.util.Secret
   "HelenDeployToSDDC": [
     "enabled": true,
     "dockerComposeFiles": "../docker/docker-compose.yml ../docker/docker-compose-persephone.yml",
-    "baseCommand": 'echo "${PASSWORD}" | sudo -S "${python}" main.py CoreVMTests --blockchainLocation sddc \
+    "baseCommand": 'echo "${PASSWORD}" | sudo -S "${python}" main.py EthCoreVmTests --blockchainLocation sddc \
       --tests="-k vmArithmeticTest/add0.json"'
   ],
   "LoggingTests": [
@@ -857,7 +857,7 @@ EOF
                       saveTimeEvent("Memory leak tests", "Start")
                       sh '''
                         echo "Running Entire Testsuite: Memory Leak..."
-                        cd suites ; echo "${PASSWORD}" | sudo -SE ./memory_leak_test.sh --testSuite CoreVMTests --repeatSuiteRun 6 --resultsDir "${mem_leak_test_logs}"
+                        cd suites ; echo "${PASSWORD}" | sudo -SE ./memory_leak_test.sh --testSuite EthCoreVmTests --repeatSuiteRun 6 --resultsDir "${mem_leak_test_logs}"
                       '''
                       saveTimeEvent("Memory leak tests", "End")
                     }

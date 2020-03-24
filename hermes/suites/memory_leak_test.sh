@@ -54,7 +54,7 @@ LEAK_SPIKE_BUFFER=500
 check_usage() {
     if [ "x${TEST_SUITE}" = "x" -o "x${NO_OF_RUNS}" = "x" ]
     then
-        echo "Usage: $0 --testSuite <Testsuite to run e.g CoreVMTests> --repeatSuiteRun <No. of times to repeat complete test runs>"
+        echo "Usage: $0 --testSuite <Testsuite to run e.g EthCoreVmTests> --repeatSuiteRun <No. of times to repeat complete test runs>"
         exit 1
     fi
 }

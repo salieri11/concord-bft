@@ -69,7 +69,7 @@ Non-pytest:
   and xvfbwrapper. Pip may be fussy if Python on the system was upgraded it's
   easier to use virtualenv (see below).  Try:
   `python3 -m pip install <package>` if having trouble.
-- To run the "CoreVMTests" suite, fetch the ethereum/tests project from Github:
+- To run the "EthCoreVmTests" suite, fetch the ethereum/tests project from Github:
   https://github.com/ethereum/tests
   Then adjust the path to it in resources/user_config.json.
 - For the UITests to pass you need to export your LINT_API_KEY and FLUENTD key, which can be (found here)[https://console.cloud.vmware.com/csp/gateway/portal/#/user/tokens]
@@ -87,7 +87,7 @@ Authorization Bearer <ADD-LOGINTELLIGENCE-KEY-HERE>
 
 ## Running a test suite:
 - Build the product into docker images. See (../README.md) for instructions.
-- Run `./main.py CoreVMTests`
+- Run `./main.py EthCoreVmTests`
 - Hermes will use docker-compose to launch the product. The default tag it tries to look for is
   \<component\>:latest.
 - The docker tag is defined in a file called .env.  To use a differently tagged docker image,
@@ -200,7 +200,7 @@ miner.start(2)
 
 ## Results
 - The results directory is output at the beginning of a test run.  e.g.
-  "Results directory: /tmp/CoreVMTests_20180322_1437_80ccst1i"
+  "Results directory: /tmp/EthCoreVmTests_20180322_1437_80ccst1i"
 - product_logs directory: Product logs.
 - test_logs directory: One subdirectory is created for each test.  Each of these
   should contain whatever information will help triage a failure.  For example,
@@ -220,11 +220,11 @@ miner.start(2)
 ```
   $ cat coreVMTestResults.json
   {
-      "CoreVMTests": {
+      "EthCoreVmTests": {
           "result": "PASS",
           "tests": {
               "not2": {
-                  "info": "Log: /tmp/CoreVMTests_20180322_1437_80ccst1i/test_logs/not2",
+                  "info": "Log: /tmp/EthCoreVmTests_20180322_1437_80ccst1i/test_logs/not2",
                   "result": "PASS"
               }
           }

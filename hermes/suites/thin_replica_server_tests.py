@@ -3,14 +3,14 @@
 # main.py --runConcordConfigurationGeneration
 #         --concordConfigurationInput /concord/config/dockerConfigurationInput-daml-nano.yaml
 #         --dockerComposeFile=../docker/docker-compose-daml-nano.yml
-#         ThinReplicaTests
+#         ThinReplicaServerTests
 #
 # Or manual testing via grpcurl, e.g.:
 # $ grpcurl -plaintext -d @ localhost:50051 com.vmware.concord.thin_replica.ThinReplica.ReadStateHash <<EOM
 # { "block_id" : 1337 }
 # EOM
 
-"""Test the Thin Replica mechanism"""
+"""Test the Thin Replica Server API"""
 
 import logging
 from tempfile import NamedTemporaryFile

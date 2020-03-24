@@ -125,7 +125,7 @@ cluster can provide a convenient way to trigger the creation of relevant state,
 for example:
 
 ```
-~/vmwathena_blockchain/hermes$ python3 main.py ThinReplicaTests --noLaunch
+~/vmwathena_blockchain/hermes$ python3 main.py ThinReplicaServerTests --noLaunch
 ```
 
 To run the Thin Replica Client example application in a container that can

@@ -2,7 +2,7 @@
 # Copyright 2018 - 2019 VMware, Inc.  All rights reserved. -- VMware Confidential
 #
 # Test the parts of the Ethereum JSON RPC Websocket beyond what the
-# CoreVMTests cover. This checks things like web3_sha3,
+# EthCoreVmTests cover. This checks things like web3_sha3,
 # eth_clientVersion, eth_mining, ...
 #########################################################################
 import json

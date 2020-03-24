@@ -357,8 +357,8 @@ usage: main.py [-h] [--ethereumMode] [--logLevel LOGLEVEL]
 
 positional arguments:
   suite                 Test suite name. Available suites: [
-                        'ContractCompilerTests', 'CoreVMTests',
-                        'LintTests', 'ExtendedRPCTests', 'HelenAPITests',
+                        'ContractCompilerTests', 'EthCoreVmTests',
+                        'LintTests', 'EthJsonRpcTests', 'HelenAPITests',
                         'PerformanceTests', 'RegressionTests', 'SampleDAppTests',
                         'SimpleStateTransferTest', 'TruffleTests', 'UiTests',
                         'LoggingTests']

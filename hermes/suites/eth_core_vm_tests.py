@@ -26,11 +26,11 @@ import util.hermes_logging
 log = util.hermes_logging.getMainLogger()
 TEST_SOURCE_CODE_SUFFIX = "Filler.json"
 
-def test_core_vm_tests(fxCoreVMTests, fxHermesRunSettings, fxConnection, fxBlockchain):
+def test_eth_core_vm_tests(fxEthCoreVmTests, fxHermesRunSettings, fxConnection, fxBlockchain):
    '''
-   The fxCoreVMTests fixture is set up dynamically with code in hermes/conftest.py.
+   The fxEthCoreVmTests fixture is set up dynamically with code in hermes/conftest.py.
    This function is invoked once per ethereum test file.  The path to the file is
-   in the fxCoreVMTests variable for each iteration.
+   in the fxEthCoreVmTests variable for each iteration.
    '''
    ethrpcUrl = fxHermesRunSettings["hermesCmdlineArgs"].ethrpcApiUrl
    if not ethrpcUrl:
@@ -48,17 +48,17 @@ def test_core_vm_tests(fxCoreVMTests, fxHermesRunSettings, fxConnection, fxBlock
                                                       fxBlockchain.blockchainId,
                                                       useITApprovedPort,
                                                       scheme=scheme)
-   if not isSourceCodeTestFile(fxCoreVMTests):
-      testCompiled = loadCompiledTest(fxCoreVMTests)
+   if not isSourceCodeTestFile(fxEthCoreVmTests):
+      testCompiled = loadCompiledTest(fxEthCoreVmTests)
       assert testCompiled, "Unable to load compiled test."
 
       testSource = loadTestSource(testCompiled, fxHermesRunSettings["hermesUserConfig"]["ethereum"]["testRoot"])
       assert testSource, "Unable to load test source."
 
-      testName = os.path.basename(os.path.dirname(fxCoreVMTests)) + "_" + \
-                 os.path.splitext(os.path.basename(fxCoreVMTests))[0]
+      testName = os.path.basename(os.path.dirname(fxEthCoreVmTests)) + "_" + \
+                 os.path.splitext(os.path.basename(fxEthCoreVmTests))[0]
       testLogDir = os.path.join(fxHermesRunSettings["hermesCmdlineArgs"].resultsDir, "test_logs", testName)
-      result, info = runRpcTest(fxCoreVMTests,
+      result, info = runRpcTest(fxEthCoreVmTests,
                                 testSource,
                                 testCompiled,
                                 testLogDir,
