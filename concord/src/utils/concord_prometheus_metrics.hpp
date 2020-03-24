@@ -132,6 +132,7 @@ class PrometheusRegistry : public IPrometheusRegistry {
 };
 
 class ConcordBftPrometheusCollector : public prometheus::Collectable {
+  const std::string metricNamePrefix_ = "concord_concordbft_";
   std::vector<ConcordMetricConf> counters_;
   std::vector<ConcordMetricConf> gauges_;
   std::vector<ConcordMetricConf> statuses_;
@@ -148,6 +149,8 @@ class ConcordBftPrometheusCollector : public prometheus::Collectable {
   std::vector<prometheus::MetricFamily> collectGauges();
 
   std::vector<prometheus::MetricFamily> collectStatuses();
+
+  std::string getMetricName(const std::string& origName);
 
  public:
   ConcordBftPrometheusCollector(
