@@ -6,12 +6,15 @@
 #include <grpcpp/grpcpp.h>
 #include <grpcpp/impl/codegen/status.h>
 #include <log4cplus/loggingmacros.h>
+#include <opentracing/tracer.h>
 #include <storage/kvb_key_types.h>
 #include <chrono>
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <strstream>
 #include <utils/concord_logging.hpp>
+#include <utils/open_tracing_utils.hpp>
 
 #include "blockchain/db_interfaces.h"
 #include "storage/kvb_app_filter.h"
@@ -159,11 +162,13 @@ class ThinReplicaImpl {
       const auto& update = live_updates->Pop();
       auto filtered_update = kvb_filter->FilterUpdate(update);
       auto& kv = filtered_update.second;
-      correlation_id = GetAndRemoveCidFromUpdates(kv);
+      correlation_id = ExtractCid(kv);
+      auto span = concord::utils::ExtractSpan(kv, "thin_replica_server",
+                                              logger_, correlation_id);
       try {
         if constexpr (std::is_same<
                           DataT, com::vmware::concord::thin_replica::Data>()) {
-          SendData(stream, filtered_update, correlation_id);
+          SendData(stream, filtered_update, correlation_id, span);
         } else if constexpr (std::is_same<
                                  DataT,
                                  com::vmware::concord::thin_replica::Hash>()) {
@@ -212,7 +217,7 @@ class ThinReplicaImpl {
       while (queue.pop(kvb_update)) {
         try {
           auto& kv = kvb_update.second;
-          correlation_id = GetAndRemoveCidFromUpdates(kv);
+          correlation_id = ExtractCid(kv);
           SendData(stream, kvb_update, correlation_id);
         } catch (StreamClosed& error) {
           LOG4CPLUS_WARN(logger,
@@ -320,7 +325,8 @@ class ThinReplicaImpl {
   template <typename ServerWriterT>
   void SendData(ServerWriterT* stream,
                 const concord::thin_replica::SubUpdate& update,
-                const std::string& correlation_id) {
+                const std::string& correlation_id,
+                const SpanPtr& span = nullptr) {
     com::vmware::concord::thin_replica::Data data;
     data.set_block_id(update.first);
 
@@ -330,6 +336,11 @@ class ThinReplicaImpl {
       kvp_out->set_value(value.data(), value.length());
     }
     data.set_correlation_id(correlation_id);
+    if (span) {
+      std::ostringstream context;
+      span->tracer().Inject(span->context(), context);
+      data.set_span_context(context.str());
+    }
     if (!stream->Write(data)) {
       throw StreamClosed();
     }
@@ -396,10 +407,12 @@ class ThinReplicaImpl {
   log4cplus::Logger logger_;
   const concord::storage::blockchain::ILocalKeyValueStorageReadOnly* rostorage_;
   SubBufferList& subscriber_list_;
-  concordUtils::Key cid_key_ =
-      concordUtils::Key(new char[1]{concord::storage::kKvbKeyCorrelationId}, 1);
+  const concordUtils::Key cid_key_ = concordUtils::Key(
+      new decltype(storage::kKvbKeyCorrelationId)[1]{
+          storage::kKvbKeyCorrelationId},
+      1);
 
-  std::string GetAndRemoveCidFromUpdates(concordUtils::SetOfKeyValuePairs& kv) {
+  std::string ExtractCid(concordUtils::SetOfKeyValuePairs& kv) {
     std::string ret;
     auto pos = kv.find(cid_key_);
     if (pos != kv.end()) {
