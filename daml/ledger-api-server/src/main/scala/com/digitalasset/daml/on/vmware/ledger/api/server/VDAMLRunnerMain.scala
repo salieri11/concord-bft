@@ -2,6 +2,7 @@ package com.digitalasset.daml.on.vmware.ledger.api.server
 
 import akka.actor.ActorSystem
 import akka.stream.Materializer
+import com.codahale.metrics.{MetricRegistry, SharedMetricRegistries}
 import com.daml.ledger.participant.state.kvutils.app.{Config => KVUtilsConfig}
 import com.digitalasset.daml.on.vmware.write.service.KVBCParticipantState
 import com.digitalasset.api.util.TimeProvider
@@ -19,6 +20,7 @@ import scala.concurrent.ExecutionContext
 
 object VDAMLRunnerMain {
   private[this] val logger = LoggerFactory.getLogger(this.getClass)
+  private[this] var prometheusMetrics = Set[MetricRegistry]()
 
   def main(args: Array[String]): Unit = {
     new ProgramResource(new Runner("vDAML Ledger API Server", KVBCLedgerFactory) {
@@ -66,16 +68,14 @@ object VDAMLRunnerMain {
         materializer: Materializer,
         logCtx: com.digitalasset.logging.LoggingContext
     ): ResourceOwner[KVBCParticipantState] = {
-
       implicit val akkaSystem: ActorSystem = materializer.system
-
       KVBCParticipantState.owner(
         "KVBC",
         config.participantId,
         config.extra.replicas.toArray,
         config.extra.useThinReplica,
         config.extra.maxInboundMessageSize.toShort,
-        prometheusMetricsEndpoints = List(apiServerMetricRegistry(config))
+        prometheusMetrics.toList
       )
     }
 
@@ -88,6 +88,15 @@ object VDAMLRunnerMain {
 
     override def indexerConfig(config: KVUtilsConfig[KVBCConfigExtra]): IndexerConfig =
       super.indexerConfig(config).copy(startupMode = config.extra.startupMode)
+
+    override def indexerMetricRegistry(config: KVUtilsConfig[KVBCConfigExtra]): MetricRegistry = {
+      val indexerMetricRegistry = SharedMetricRegistries.getOrCreate(s"indexer")
+      prometheusMetrics += indexerMetricRegistry
+      indexerMetricRegistry
+    }
+
+    override def apiServerMetricRegistry(config: KVUtilsConfig[KVBCConfigExtra]): MetricRegistry =
+      super.apiServerMetricRegistry(config)
 
     override def authService(config: KVUtilsConfig[KVBCConfigExtra]): AuthService =
       config.extra.authService.getOrElse(super.authService(config))

@@ -34,6 +34,9 @@ trait ConfigProvider[ExtraConfig] {
       allowExistingSchema = config.allowExistingSchemaForIndex,
     )
 
+  def indexerMetricRegistry(config: Config[ExtraConfig]): MetricRegistry =
+    SharedMetricRegistries.getOrCreate(s"indexer-${config.participantId}")
+
   def apiServerConfig(
       config: Config[ExtraConfig]): ApiServerConfig =
     ApiServerConfig(
@@ -49,11 +52,6 @@ trait ConfigProvider[ExtraConfig] {
 
   def apiServerMetricRegistry(config: Config[ExtraConfig]): MetricRegistry =
     SharedMetricRegistries.getOrCreate(s"ledger-api-server-${config.participantId}")
-
-  def indexerMetricRegistry(config: Config[ExtraConfig]): MetricRegistry =
-    // [FT] This is a temporary quick fix for the split DB metrics, already fixed in SDK's
-    //   https://github.com/digital-asset/daml/pull/5139
-    apiServerMetricRegistry(config)
 
   def commandConfig(config: Config[ExtraConfig]): CommandConfiguration =
     CommandConfiguration.default
