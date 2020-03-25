@@ -82,16 +82,18 @@ class DamlKvbCommandsHandler
   void RecordTransaction(
       const string& entryId, const kvbc::SetOfKeyValuePairs& updates,
       kvbc::BlockId current_block_id, const string& correlation_id,
+      opentracing::Span& parent_span,
       com::vmware::concord::ConcordResponse& concord_response);
 
   bool CommitPreExecutionResult(
       kvbc::BlockId current_block_id, const string& entryId,
-      string& correlation_id,
+      string& correlation_id, opentracing::Span& parent_span,
       com::vmware::concord::ConcordResponse& concord_response);
 
   void BuildPreExecutionResult(
       const kvbc::SetOfKeyValuePairs& updates, kvbc::BlockId current_block_id,
       string& correlation_id, const com::digitalasset::kvbc::Result& result,
+      opentracing::Span& parent_span,
       com::vmware::concord::ConcordResponse& concord_response) const;
 
   bool RunDamlExecution(

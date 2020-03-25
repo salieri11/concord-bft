@@ -30,6 +30,7 @@ message ValidateRequest {
   // replicas (e.g. during development)
   int64 replica_id = 6;
   string correlation_id = 7;
+  bytes span_context = 8;
 }
 
 message ProtectedKeyValuePair {
@@ -71,6 +72,7 @@ message ValidatePendingSubmissionRequest {
   int64 replica_id = 2;
   repeated KeyValuePair input_state = 3;
   string correlation_id = 4;
+  bytes span_context = 5;
 }
 
 message ValidatePendingSubmissionResponse {
