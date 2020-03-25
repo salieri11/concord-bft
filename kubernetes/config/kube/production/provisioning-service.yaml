@@ -18,9 +18,12 @@ spec:
         ports:
         - containerPort: 9002
         imagePullPolicy: Always
+        env:
+        - name: APPCONTEXT
+          value: "production"
         volumeMounts:
         - name: provision-volume
-          mountPath: /config/persephone/provisioning/
+          mountPath: /config/app/profiles/
           readOnly: true
         resources:
           requests:

@@ -34,7 +34,11 @@ resources:
     memory: 1024Mi
     cpu: 1024m
 
+provisioning-service:
+  env: "staging"
+
 configmap:
   name: fleetprod-noauth
   volumename: provision-volume
-  mountPath: /config/persephone/provisioning/
+  mountPath: /config/app/profiles/
+
