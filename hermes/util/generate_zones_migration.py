@@ -69,7 +69,7 @@ def build_migrations(user_config, zone_type, migration_file):
 
     zones_row_keys_list = write_zones(zones, zone_type, migration_file)
     zones_row_keys_str = ','.join(zones_row_keys_list)
-    helper.replace_key(helper.PROPERTIES_TEST_FILE, helper.PROPERTIES_VMBC_ENABLED_VMC_ZONES, zones_row_keys_str)
+    helper.set_props_file_value(helper.PROPERTIES_TEST_FILE, helper.PROPERTIES_VMBC_ENABLED_VMC_ZONES, zones_row_keys_str)
     return True
 
 

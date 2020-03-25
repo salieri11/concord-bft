@@ -94,8 +94,7 @@ class Product():
 
    def launchProduct(self):
       '''
-      Given the user's product config section, launch the product if not launched
-      already.
+      Launch the product if not launched already.
       Raises an exception if it cannot start.
       '''
       if self.waitForStartupFunction(**self.checkProductStatusParams):
@@ -111,6 +110,8 @@ class Product():
          # Workaround for intermittent product launch issues.
          numAttempts = 0
          launched = False
+
+         self.updateHelenTestPropertiesFile()
 
          while (not launched) and (numAttempts < self._cmdlineArgs.productLaunchAttempts):
             try:
@@ -162,6 +163,24 @@ class Product():
             return False
 
       return True
+
+   def updateHelenTestPropertiesFile(self):
+      '''
+      Make all modifications to the Helen application-test.properties
+      file that will be needed.
+      '''
+      if util.helper.service_defined(self._cmdlineArgs.dockerComposeFile, "helen"):
+         if self._cmdlineArgs.helenDeploymentComponentsVersion:
+            concordTag = self._cmdlineArgs.helenDeploymentComponentsVersion
+         else:
+            concordTag = util.helper.get_docker_env("concord_tag")
+
+         composeFiles = self._cmdlineArgs.dockerComposeFile
+         propsFile = util.helper.get_deployment_service_config_file(composeFiles, "helen")
+         propsFile = os.path.join("../docker", propsFile)
+         util.helper.set_props_file_value(propsFile,
+                                          "concord.model.specification.dockerImageBuild",
+                                          concordTag)
 
    def _isHelenInDockerCompose(self, dockerCfg):
       for service in dockerCfg['services']:
