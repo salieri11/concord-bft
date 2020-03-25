@@ -71,11 +71,10 @@ public class ConcordConfiguration {
     }
 
     // ConcordComponents for blockchains
-    private static final List<ConcordComponent.ServiceType> GENERIC_COMPONENTS = List.of(GENERIC, LOGGING,
+    private static final List<ConcordComponent.ServiceType> GENERIC_COMPONENTS = List.of(GENERIC, LOGGING, JAEGER_AGENT,
             WAVEFRONT_PROXY, TELEGRAF);
-    private static final List<ConcordComponent.ServiceType> ETHEREUM_COMPONENTS = List.of(CONCORD, JAEGER_AGENT,
-            ETHEREUM_API);
-    private static final List<ConcordComponent.ServiceType> DAML_COMPONENTS = List.of(DAML_CONCORD, JAEGER_AGENT,
+    private static final List<ConcordComponent.ServiceType> ETHEREUM_COMPONENTS = List.of(CONCORD, ETHEREUM_API);
+    private static final List<ConcordComponent.ServiceType> DAML_COMPONENTS = List.of(DAML_CONCORD,
             DAML_EXECUTION_ENGINE, DAML_INDEX_DB, DAML_LEDGER_API);
 
     //ConcordComponents for nodes
