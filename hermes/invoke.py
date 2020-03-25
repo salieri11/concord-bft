@@ -10,6 +10,8 @@
 import argparse
 import logging
 import traceback
+import json
+import os
 from util import helper, slack, mailer, wavefront, racetrack
 
 log = None
@@ -26,6 +28,17 @@ def emailSend(args, secret):
   a = prepareArgs(args)
   mailer.send(email=a[0], subject=a[1], message=a[2], senderName=a[3])
 
+def racetrackSetBegin(args, secret):
+  setId = racetrack.setStart()
+  with open(racetrack.getIdFilePath(), "w+") as f:
+    f.write(json.dumps({"setId": setId}, indent = 4))
+
+def racetrackSetEnd(args, secret):
+  with open(racetrack.getIdFilePath(), "r") as f:
+    setId = json.loads(f.read())["setId"]
+    racetrack.setEnd(setId)
+
+
 # Registry of callable standalone functions
 DISPATCH = {
   # Communications
@@ -34,6 +47,10 @@ DISPATCH = {
   "slackPost": slackPost,
 
   # CI/CD Dashboard data points publish
+
+  # CI/CD Racetrack
+  "racetrackSetBegin": racetrackSetBegin,
+  "racetrackSetEnd": racetrackSetEnd,
 }
 
 
@@ -58,8 +75,7 @@ def main():
       args.param[i] = param
     DISPATCH[args.funcName](args.param, args.credentials)
   except Exception as e:
-    log.info(e)
-    traceback.print_exc()
+    log.info(e); traceback.print_exc()
   return
 
 
@@ -71,7 +87,6 @@ def setUpLogging():
     log = logging.getLogger(__name__)
   except AttributeError:
     exit(1)
-
 
 def prepareArgs(args):
   safeArgs = [None]*32

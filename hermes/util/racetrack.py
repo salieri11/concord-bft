@@ -6,17 +6,18 @@ import traceback
 import time
 import requests
 import os
+import json
 import urllib.parse
 from . import helper, cert, hermes_logging
 log = hermes_logging.getMainLogger()
 
 BASE_PUBLISH_URL = "https://racetrack.eng.vmware.com"
 PUBLISH_USER = "svc.blockchain_1"
-PUBLISH_DEFAULT_PRODUCT = "VMware Blockchain"
-PUBLISH_DEFUALT_DESC = "Test Run for Racetrack Publish"
-PUBLISH_DEFAULT_HOST_OS = "Linux Photon OS"
+PUBLISH_DEFAULT_PRODUCT = "blockchain"
+PUBLISH_DEFAULT_HOST_OS = "Linux"
 PUBLISH_DEFAULT_SET_TYPE = "Smoke"
 REQ_SESSION = requests.Session() # keep connection alive to avoid excessive HTTPS handshakes if possible
+DEFAULT_SET_ID = { "setId" : None }
 
 
 def getTestingEnvironmentInfo():
@@ -27,68 +28,63 @@ def getTestingEnvironmentInfo():
   # Main MR run
   if helper.jenkinsRunTypeIs(helper.JENKINS_RUN_MAIN_MR):
     # Racetrack Test Results Table for Main MR
-    # https://racetrack.eng.vmware.com/resultsetlist.php?type=product&product=VMware%20Blockchain%20MR&day=today
-    runInfo = helper.getJenkinsJobNameAndBuildNumber()
+    # https://racetrack.eng.vmware.com/resultsetlist.php?type=advanced&product=blockchain&branch=MR
     return {
-      "product": "VMware Blockchain MR", 
-      "description": "Main MR run tests",
-      "buildType": "MR",
-      "branch": buildNumber # be able to sort by build number
+      "build": buildNumber,
+      "buildType": "Dev",
+      "branch": "MR",
+      "description": "MR Run GitLab",
     }
   # Master run
   elif helper.jenkinsRunTypeIs(helper.JENKINS_RUN_MASTER):
     # Racetrack Test Results Table for Master
-    # https://racetrack.eng.vmware.com/resultsetlist.php?type=product&product=VMware%20Blockchain%20Master&day=today
+    # https://racetrack.eng.vmware.com/resultsetlist.php?type=advanced&product=blockchain&branch=master
     return {
-      "product": "VMware Blockchain Master",
-      "description": "Full-coverage testing for product",
-      "buildType": "Master",
-      "branch": buildNumber # be able to sort by build number (e.g. 4821)
+      "build": buildNumber,
+      "buildType": "Candidate",
+      "branch": "master",
+      "description": "Master GitLab",
     }
   # Release branch run
   elif helper.jenkinsRunTypeIs(helper.JENKINS_RUN_RELEASE_BRANCH):
     # Racetrack Test Results Table for Master
-    # https://racetrack.eng.vmware.com/resultsetlist.php?type=product&product=VMware%20Blockchain%20Release&day=today
-    runTypeInfo = helper.getJenkinsRunTypeInfo()
+    # https://racetrack.eng.vmware.com/resultsetlist.php?type=advanced&product=blockchain&branch=release
     productVersion = os.getenv("product_version")
+    if productVersion is None: productVersion = "None"
     return {
-      "product": "VMware Blockchain Release",
-      "description": "Official release selected from release candidates",
+      "build": buildNumber,
       "buildType": "Release",
-      "branch": productVersion # be able to sort by productVersion (e.g. 0.5.0.1123, 0.6.1.1233, ...)
+      "branch": "release",
+      "description": productVersion,
     }
   else:
     # Racetrack Test Results Table for All Other Runs
-    # https://racetrack.eng.vmware.com/resultsetlist.php?type=product&product=VMware%20Blockchain&day=today
+    # https://racetrack.eng.vmware.com/resultsetlist.php?type=advanced&product=blockchain&branch=other
     return {
-      "product": "VMware Blockchain",
-      "description": "Other misc. builds",
+      "build": buildNumber,
       "buildType": "Other",
-      "branch": jobName + '/' + buildNumber # be able to sort by run unique indentifier
+      "branch": "other",
+      "description": jobName + '/' + buildNumber,
     }
 
 
-def setStart(setName, setType="Smoke"):
+def setStart(testSetType="Smoke"):
   '''
     Starts a stage or a set of tests
     https://wiki.eng.vmware.com/RacetrackWebServices#TestSetBegin  
-
-    Parameters:  
-      `setName` (str): Name of a stage or test suite
   '''
-  jenkinsBuildId = helper.getJenkinsBuildId()
-  buildNumber = jenkinsBuildId.split("/")[-1]
-  info = getTestingEnvironmentInfo() 
+  info = getTestingEnvironmentInfo()
+  product = info["product"] if "product" in info else PUBLISH_DEFAULT_PRODUCT
+  user = info["user"] if "user" in info else PUBLISH_USER
   setId = requestWithPathAndParams("/TestSetBegin.php", {
-    "BuildID" : jenkinsBuildId + '/' + setName,
-    "User": PUBLISH_USER,
-    "Product": info["product"],
+    "BuildID" : info["build"],
+    "User": user,
+    "Product": product,
     "Description": info["description"],
     "BuildType": info["buildType"],
     "Branch": info["branch"],
     "HostOS": PUBLISH_DEFAULT_HOST_OS,
-    "ServerBuildID": buildNumber,
-    "TestType": setType
+    "TestType": testSetType
   })
   return setId
   
@@ -106,27 +102,42 @@ def setEnd(setId):
   })
 
 
-def caseStart(setId, featureName, caseName, startTime=None, description=None, machineName=None, TCMSID=None, inputLanguage=None, guestOS=None):
+def caseStart(suiteName, caseName, description=None, setId=None, startTime=None, machineName=None, TCMSID=None, inputLanguage="EN", guestOS=None):
   '''
     Creates and returns caseId with supplied parameters
     https://wiki.eng.vmware.com/RacetrackWebServices#TestCaseBegin  
 
     Parameters:  
-      `setId` (str): Unique setId returned by setStart
-      `featureName` (str): The feature that is being tested
-      `caseName` (str): The name of the test case
+      `suiteName` (str): The feature that is being tested (TEST SUITE)
+      `caseName` (str): The name of the test case (TEST CASE)
+      `setId` (str): setId of this run, if unsupplied, automatically extracted where Jenkins had set it
       `startTime` (int): If not provided, Now() is used.
       `description` (str): A description of this test case (defaults to whatever was provided for Name)
       `machineName` (str): The host that the test is running against
       `TCMSID` (str): A comma-separated set of values that correspond to the Testlink Test Case Management System Id's (TCMSID) of this test case.
       `guestOS` (str): The Guest Operating System
   '''
+  # if setId is None, try to get it from setIdFile 
+  # which was created when this Jenkins run passes python init point
+  if setId is None:
+    if DEFAULT_SET_ID["setId"]:
+      setId = DEFAULT_SET_ID["setId"] # cached setId in this Jenkins run
+    elif not DEFAULT_SET_ID["errored"]:
+      try:
+        with open(getIdFilePath(), "r") as f:
+          setId = json.loads(f.read())["setId"]
+          DEFAULT_SET_ID["setId"] = setId
+      except Exception as e:
+        DEFAULT_SET_ID["errored"] = True
+        log.info(e); traceback.print_exc()
+        return None # No setId, TestCaseBegin will error; no need to go further
+      
   caseId = requestWithPathAndParams("/TestCaseBegin.php", {
     "ResultSetID" : setId,
-    "Feature": featureName,
+    "Feature": suiteName,
+    "Description": description,
     "Name": caseName,
     "StartTime": startTime,
-    "Description": description,
     "MachineName": machineName,
     "TCMSID": TCMSID,
     "InputLanguage": inputLanguage,
@@ -206,4 +217,5 @@ def requestWithPathAndParams(requestPath, params):
     log.info(e); traceback.print_exc()
     return None
 
-
+def getIdFilePath():
+  return os.getenv("WORKSPACE") + helper.RACETRACK_SET_ID_FILE

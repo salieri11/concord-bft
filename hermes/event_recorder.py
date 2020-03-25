@@ -17,11 +17,6 @@ TOTAL_TIME_KEY = "total"
 TIME_FORMAT = "%Y-%m-%d_%H-%M-%S"
 START_EVENT = "Start"
 END_EVENT = "End"
-RACETRACK_SET_ID_KEY = "racetrackSetId"
-RACETRACK_SKIP_STARTSWITH = [ # Non-test suite stages are meaningless to Racetrack
-  "Setup", "Install node dependencies", "Build", "Tests",
-  "Remove unnecessary docker artifacts", "Gather artifacts", "Clean up SDDCs"
-]
 
 def _waitForLockFile(lock_file_name):
     max_attempts = 10
@@ -104,8 +99,6 @@ def _calculate_elapsed(events):
                     wavefront.queueMetric(name=wavefront.WF_METRIC_STAGE_DURATION, value=diff.seconds, tags={
                         wavefront.WF_TAGNAME_STAGE: stage
                     }) # stage or test suite duration (line graph)
-                    if RACETRACK_SET_ID_KEY in events[stage]:
-                        racetrack.setEnd(events[stage][RACETRACK_SET_ID_KEY])
 
 
     if total_oldest and total_newest:
@@ -151,11 +144,6 @@ def record_event(stage_name=None, event_name=None, events_file=None):
 
         if not EVENTS_KEY in events[stage_name]:
             events[stage_name][EVENTS_KEY] = {}
-
-        # Racetrack, only record when it's a test suite stage
-        if event_name == START_EVENT and racetrack_record_worthy(stage_name):
-            setId = racetrack.setStart(stage_name)
-            if setId: events[stage_name][RACETRACK_SET_ID_KEY] = setId
 
         events[stage_name][EVENTS_KEY][event_name] = now_str
         _calculate_elapsed(events)
@@ -213,17 +201,6 @@ def _get_parameters(function_obj):
         argv_index += 1
 
     return params
-
-def racetrack_record_worthy(stage_name):
-    '''
-      Racetrack is only interested in TestSet/TestCase type of drill-down.
-      Stages such as Setup, artifact collection, building, docker artifacts, etc. are meaningless.
-      Skip if the stageName starts with patterns in RACETRACK_SKIP_STARTSWITH
-    '''
-    for start_pattern in RACETRACK_SKIP_STARTSWITH:
-        if stage_name.startswith(start_pattern):
-            return False
-    return True
 
 
 if __name__ == "__main__":
