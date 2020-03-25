@@ -663,6 +663,16 @@ EOF
                 '''
                 saveTimeEvent("Setup", "Finished setting up python")
               }
+              
+              // Open the run on Racetrack (Set = Run, Feature = Test Suite, Case = Individual test case)
+              withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
+                script {
+                  dir('blockchain/hermes') { // user_config.json already set; no neeed to pass jobName and buildNumber, etc.
+                    sh 'echo "${PASSWORD}" | sudo -SE "${python}" invoke.py racetrackSetBegin'
+                  }
+                }
+              }
+
             }catch(Exception ex){
               failRun()
               throw ex
@@ -1224,6 +1234,15 @@ EOF
             sh '''
               echo "${PASSWORD}" | sudo -S chown -R builder:builder .
             '''
+          }
+        }
+
+        // End the run on Racetrack (Set = Run, Feature = Test Suite, Case = Individual test case)
+        withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
+          script {
+            dir('blockchain/hermes') {
+              sh 'echo "${PASSWORD}" | sudo -SE "${python}" invoke.py racetrackSetEnd'
+            }
           }
         }
 

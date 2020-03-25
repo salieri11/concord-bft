@@ -77,6 +77,10 @@ LOG_DESTINATION_LOG_INSIGHT = "LOG_INSIGHT"
 HEALTHD_CRASH_FILE = "/var/log/replica_crashed"
 HEALTHD_LOG_PATH = "/var/log/healthd.log"
 
+# Where Racetrack setId (run identifier) is stored in Jenkins runs
+# default: ${WORKSPACE}/blockchain/vars/racetrack_set_id.json
+RACETRACK_SET_ID_FILE = "/blockchain/vars/racetrack_set_id.json"
+
 # Jenkins namespaces; used by `getJenkinsBuildTraceId` for Jenkins trace context.
 # This future-proofs possible multi-Jenkins contexts with partners like DA/ASX/HK
 # All metrics endpoints (Racetrack/Wavefront) will have distinguishable dataset to work with
