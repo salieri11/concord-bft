@@ -53,17 +53,13 @@ defaultTokenDescriptor = util.auth.getTokenDescriptor(util.auth.ROLE_CON_ADMIN,
                                                       True,
                                                       util.auth.internal_admin)
 
-# These zones are hard coded and added by the test framework until we set up zones
-# in the fixture infra.
-precreatedZones = ["7eef6110-68bc-11ea-906e-8c859085f3e7",
-                   "fc375f72-68be-11ea-906e-8c859085f3e7"]
 
 def removePrecreatedZones(zones):
    ret = []
    numRemovedZones = 0
 
    for zone in zones:
-      if zone in precreatedZones:
+      if zone in util.helper.fetch_default_zone_ids():
          numRemovedZones += 1
       else:
          ret.append(zone)

@@ -214,6 +214,10 @@ def main():
    nonLocalDeployConfig.add_argument("--numParticipants",
                        help="The number of participant/client nodes to deploy.",
                        default=1)
+   nonLocalDeployConfig.add_argument(
+                       "--migrationFile",
+                       default=helper.MIGRATION_FILE,
+                       help="Migration file to write into")
 
    args = parser.parse_args()
    parent_results_dir = args.resultsDir
