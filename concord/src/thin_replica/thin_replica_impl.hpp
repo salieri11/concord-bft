@@ -10,10 +10,12 @@
 #include <storage/kvb_key_types.h>
 #include <chrono>
 #include <memory>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <strstream>
 #include <utils/concord_logging.hpp>
+#include <utils/concord_prometheus_metrics.hpp>
 #include <utils/open_tracing_utils.hpp>
 
 #include "blockchain/db_interfaces.h"
@@ -39,11 +41,24 @@ class ThinReplicaImpl {
   ThinReplicaImpl(
       const concord::storage::blockchain::ILocalKeyValueStorageReadOnly*
           rostorage,
-      SubBufferList& subscriber_list)
+      SubBufferList& subscriber_list,
+      std::optional<std::shared_ptr<concord::utils::PrometheusRegistry>>
+          prometheus_registry = {})
       : logger_(
             log4cplus::Logger::getInstance("com.vmware.concord.thin_replica")),
         rostorage_(rostorage),
-        subscriber_list_(subscriber_list) {}
+        subscriber_list_(subscriber_list) {
+    if (prometheus_registry) {
+      prometheus_registry_ = prometheus_registry.value();
+      auto& family = prometheus_registry_->createGaugeFamily(
+          "concord_trs_queue_size",
+          "Count the updates available to the TRS for "
+          "multiple clients differentiated by the label",
+          {{"layer", "ThinReplicaServer"},
+           {"operation", "SubscribeToUpdates"}});
+      metric_queue_size_fam_ = &family;
+    }
+  }
 
   ThinReplicaImpl(const ThinReplicaImpl&) = delete;
   ThinReplicaImpl(ThinReplicaImpl&&) = delete;
@@ -137,6 +152,15 @@ class ThinReplicaImpl {
       return kvb_status;
     }
 
+    prometheus::Gauge* metric_queue_size{};
+    if (metric_queue_size_fam_) {
+      assert(prometheus_registry_);
+      auto& metric = prometheus_registry_->createGauge(
+          *metric_queue_size_fam_, {{"client", GetClientId(context)}});
+      metric.Set(0);
+      metric_queue_size = &metric;
+    }
+
     auto [subscribe_status, live_updates] = SubscribeToLiveUpdates(request);
     if (!subscribe_status.ok()) {
       return subscribe_status;
@@ -159,6 +183,9 @@ class ThinReplicaImpl {
     // Read, filter, and send live updates
     std::string correlation_id;
     while (true) {
+      if (metric_queue_size) {
+        metric_queue_size->Set(live_updates->Size());
+      }
       const auto& update = live_updates->Pop();
       auto filtered_update = kvb_filter->FilterUpdate(update);
       auto& kv = filtered_update.second;
@@ -407,6 +434,9 @@ class ThinReplicaImpl {
   log4cplus::Logger logger_;
   const concord::storage::blockchain::ILocalKeyValueStorageReadOnly* rostorage_;
   SubBufferList& subscriber_list_;
+  std::shared_ptr<concord::utils::PrometheusRegistry> prometheus_registry_{};
+  prometheus::Family<prometheus::Gauge>* metric_queue_size_fam_{};
+
   const concordUtils::Key cid_key_ = concordUtils::Key(
       new decltype(storage::kKvbKeyCorrelationId)[1]{
           storage::kKvbKeyCorrelationId},

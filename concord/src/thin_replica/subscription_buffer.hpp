@@ -92,6 +92,11 @@ class SubUpdateBuffer {
     std::lock_guard<std::mutex> lock(buffer_mutex_);
     return cb_.full();
   }
+
+  size_t Size() {
+    std::lock_guard<std::mutex> lock(buffer_mutex_);
+    return cb_.size();
+  }
 };
 
 // Thread-safe list implementation which manages subscribers' ring buffers. You
