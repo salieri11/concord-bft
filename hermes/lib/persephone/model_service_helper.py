@@ -124,7 +124,6 @@ class ModelServiceRPCHelper(RPCHelper):
                "deployment_components"][concord_type_to_deploy].keys()
 
       concord_components = []
-      components_for_this_deployment = []
       if concord_type is ModelServiceRPCHelper.CONCORD_TYPE_DAML:
          for component in deployment_components:
             if self.AGENT_ID in component and self.JAEGER_AGENT not in component:
@@ -151,10 +150,8 @@ class ModelServiceRPCHelper(RPCHelper):
                                           concord_model_pb2.ConcordComponent.DAML_EXECUTION_ENGINE,
                                           component))
             if self.JAEGER_AGENT in component:
-               if node_type is None or node_type == self.NODE_TYPE_COMMITTER:
-                  concord_components.append((
-                                          concord_model_pb2.ConcordComponent.JAEGER_AGENT,
-                                          component))
+               concord_components.append((
+                  concord_model_pb2.ConcordComponent.JAEGER_AGENT, component))
 
             if self.DAML_LEDGER_API_ID in component:
                if node_type is None or node_type == self.NODE_TYPE_PARTICIPANT:

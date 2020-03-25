@@ -235,6 +235,7 @@
             "vmwblockchain/daml-ledger-api:latest": "daml_ledger_api",
             "vmwblockchain/daml-index-db:latest": "daml_index_db",
             "vmwblockchain/wavefront-proxy:5.7": "wavefront-proxy",
+            "vmwblockchain/jaeger-agent:1.11": "jaeger-agent",
             "vmwblockchain/telegraf:1.11": "telegraf"
           },
           "hlf": {
