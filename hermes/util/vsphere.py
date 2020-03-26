@@ -49,7 +49,7 @@ class ConnectionToSDDC:
       sslContext = None # skip cert checking
       if hasattr(ssl, '_create_unverified_context'): 
         sslContext = ssl._create_unverified_context()
-      log.info("Connecting to vSphere on {}...".format(self.sddcName))
+      log.debug("Connecting to vSphere on {}...".format(self.sddcName))
       self.connection = SmartConnect(host = self.hostnameVCenter,
                                     user = self.username,
                                     pwd = self.password,
@@ -58,13 +58,13 @@ class ConnectionToSDDC:
         log.debug("Cannot connect to {} as {} ".format(self.hostnameVCenter, self.username))
       else:
         atexit.register(Disconnect, self.connection) # clean up connection
-        log.info("Successfully connected to vSphere on {}".format(self.sddcName))
+        log.debug("Successfully connected to vSphere on {}".format(self.sddcName))
         self.content = self.connection.RetrieveContent() # main content obj of vSphere
         self.services = self.connection.RetrieveServiceContent() # all managers
         self.attrByName = {}
         self.attrByKey = {}
 
-        log.info("Fetching all VMs and Folders on {}...".format(self.sddcName))
+        log.debug("Fetching all VMs and Folders on {}...".format(self.sddcName))
         self.allEntityHandlesByName = {} # by VM name
         self.allEntityHandlesByUID = {} # by VM id (e.g. vim.VirtualMachine:vm-28102)
         self.allEntityHandlesByAttribute = {} # by custom attritube and its value

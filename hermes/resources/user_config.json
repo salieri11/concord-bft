@@ -376,6 +376,60 @@
           {
             "id": {
               "low": 0,
+              "high": 3
+            },
+            "info": {
+              "type": "VSPHERE",
+              "labels": {
+                "name": "ONPREM SDDC",
+                "geo-latitude": "39.028035",
+                "geo-longitude": "-77.457941"
+              }
+            },
+            "api": {
+              "address": "https://vcenter.sddc-35-156-16-204.vmwarevmc.com",
+              "credential": {
+                "type": "NONE",
+                "passwordCredential": {
+                  "username": "<VMC_SDDC3_VC_CREDENTIALS_USERNAME>",
+                  "password": "<VMC_SDDC3_VC_CREDENTIALS_PASSWORD>"
+                }
+              }
+            },
+            "vsphere": {
+              "resourcePool": "Compute-ResourcePool",
+              "datastore": "WorkloadDatastore",
+              "folder": "<DEPLOYMENT_FOLDER>",
+              "network": {
+                "name": "vmware-vpn-3b",
+                "addressAllocation": "STATIC",
+                "gateway": 172366849,
+                "nameServers": [],
+                "subnet": 23
+              }
+            },
+            "wavefront": {
+              "url": "https://vmware.wavefront.com",
+              "token": "<WAVEFRONT_API_TOKEN>"
+            },
+            "logManagements": [
+              {
+                "destination": "LOG_INTELLIGENCE",
+                "endpoint": {
+                  "address": "https://data.mgmt.cloud.vmware.com/le-mans/v1/streams/ingestion-pipeline-stream",
+                  "credential": {
+                    "type": "BEARER",
+                    "tokenCredential": {
+                      "token": "<FLUENTD_AUTHORIZATION_BEARER>"
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "id": {
+              "low": 0,
               "high": 4
             },
             "info": {
@@ -391,8 +445,8 @@
               "credential": {
                 "type": "NONE",
                 "passwordCredential": {
-                  "username": "<ONPREM_VCENTER_USERNAME>",
-                  "password": "<ONPREM_VCENTER_PASSWORD>"
+                  "username": "<VMC_SDDC4_VC_CREDENTIALS_USERNAME>",
+                  "password": "<VMC_SDDC4_VC_CREDENTIALS_PASSWORD>"
                 }
               }
             },
