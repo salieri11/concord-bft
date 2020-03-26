@@ -125,7 +125,7 @@ import hudson.util.Secret
     "dockerComposeFiles": "../docker/docker-compose.yml ../docker/docker-compose-persephone.yml",
     "baseCommand": '"${python}" main.py UiTests'
   ],
-  "HelenDeployToSDDC": [
+  "HelenDeployEthereumToSDDC": [
     "enabled": true,
     "dockerComposeFiles": "../docker/docker-compose.yml ../docker/docker-compose-persephone.yml",
     "baseCommand": 'echo "${PASSWORD}" | sudo -S "${python}" main.py EthCoreVmTests --blockchainLocation sddc \
@@ -146,7 +146,12 @@ import hudson.util.Secret
     "dockerComposeFiles": "../docker/docker-compose.yml ../docker/docker-compose-persephone.yml",
     "baseCommand": '"${python}" main.py DeployDamlTests'
   ],
-  "DeploymentOnly" : [
+  "HelenDeployDAMLToSDDC" : [
+    "enabled": true,
+    "dockerComposeFiles": "../docker/docker-compose.yml ../docker/docker-compose-persephone.yml",
+    "baseCommand": 'echo "${PASSWORD}" | sudo -S "${python}" main.py HelenAPITests --blockchainType daml --numReplicas 7 --numParticipants 1 --blockchainLocation=sddc --tests="-m deployment_only"'
+  ],
+  "HelenDeployToSDDCTemplate" : [
     "enabled": false,
     "dockerComposeFiles": "../docker/docker-compose.yml ../docker/docker-compose-persephone.yml",
     "baseCommand": 'echo "${PASSWORD}" | sudo -S "${python}" main.py HelenAPITests --test="-m deployment_only"'
@@ -829,11 +834,11 @@ EOF
                       runTests()
                     } else if (env.JOB_NAME.contains(long_tests_job_name)) {
                       env.blockchain_location = "sddc"
-                      testSuites["DeploymentOnly"]["otherParameters"] =
+                      testSuites["HelenDeployToSDDCTemplate"]["otherParameters"] = 
                           " --blockchainType " + params.concord_type.toLowerCase() +
                           " --blockchainLocation " + env.blockchain_location +
                           " --numReplicas " + params.num_replicas + " "
-                      selectOnlySuites(["DeploymentOnly"])
+                      selectOnlySuites(["HelenDeployToSDDCTemplate"])
                       runTests()
 
                       sh '''
@@ -891,8 +896,8 @@ EOF
               echo("A failure occurred while running the tests.")
 
               // See if this suite failed due to SR 19062354609.
-              // HelenDeployToSDDC is the only one of the above which uses Persephone.
-              helen_deploy_test_log_dir = new File(env.test_log_root, "HelenDeployToSDDC").toString()
+              // HelenDeployEthereumToSDDC is the only one of the above which uses Persephone.
+              helen_deploy_test_log_dir = new File(env.test_log_root, "HelenDeployEthereumToSDDC").toString()
               handleFailedTestSuite(helen_deploy_test_log_dir)
 
               failRun()
