@@ -95,10 +95,17 @@ def _calculate_elapsed(events):
                 if event == END_EVENT and firstTimeCatchingDifference:
                     startMili = int(stage_oldest.timestamp() * 1000)
                     durationMili = diff.seconds * 1000
-                    wavefront.queueSpan(name=stage, start=startMili, duration=durationMili) # stage or test suite trace view (span)
-                    wavefront.queueMetric(name=wavefront.WF_METRIC_STAGE_DURATION, value=diff.seconds, tags={
+                    wavefront.queueSpan( # stage or test suite trace view (span)
+                      name = wavefront.WF_JENKINS_STAGE_PREFIX + stage, 
+                      start = startMili,
+                      duration = durationMili
+                    )
+                    wavefront.queueMetric( # stage or test suite duration (line graph)
+                      name = wavefront.WF_METRIC_STAGE_DURATION, 
+                      value = diff.seconds, 
+                      tags = {
                         wavefront.WF_TAGNAME_STAGE: stage
-                    }) # stage or test suite duration (line graph)
+                    })
 
 
     if total_oldest and total_newest:

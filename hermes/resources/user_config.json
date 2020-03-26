@@ -442,6 +442,10 @@
       "dockerTag": "<METAINF_ENV_DOCKER_TAG>"
     }
   },
+  "jenkins":{
+    "username": "svc.blockchain_1",
+    "token": "<JENKINS_JSON_API_KEY>"
+  },
   "communication":{
     "slack": {
       "workspaces":{

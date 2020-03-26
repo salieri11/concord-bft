@@ -104,7 +104,8 @@ JENKINS_RUN_MASTER = { "type": "MASTER", "exactly": "Master Branch Blockchain Ru
 JENKINS_RUN_RELEASE_BRANCH = { "type": "RELEASE", "contains": ["Branch Blockchain Run on GitLab/releases"], 
   # For example, "0.5 Branch Blockchain Run on GitLab/releases/0.5" is a release branch job name
   # Extract meaningful variable (.e.g "0.5") as releases progress to different versions
-  "variables":[{"name": "releaseVersion", "after":"/releases/"}]
+  "variables":[{"name": "releaseVersion", "after":"/releases/"}],
+  "format": "<RELEASE_VERSION> Branch Blockchain Run on GitLab/releases/<RELEASE_VERSION>" # full job name
 }
 JENKINS_MRJOR_RUN_TYPES = [ JENKINS_RUN_MAIN_MR, JENKINS_RUN_MASTER, JENKINS_RUN_RELEASE_BRANCH ]
 
@@ -959,13 +960,13 @@ def waitForDockerContainers(host, username, password, replicaType, timeout=600):
 def getJenkinsBuildId(jobName=None, buildNumber=None):
   try: 
     configObject = getUserConfig()
-    jobName = jobName if jobName is not None else configObject["metainf"]["env"]["jobName"]
-    buildNumber = buildNumber if buildNumber is not None else configObject["metainf"]["env"]["buildNumber"]
+    jobName = jobName if jobName else configObject["metainf"]["env"]["jobName"]
+    buildNumber = str(buildNumber) if buildNumber else configObject["metainf"]["env"]["buildNumber"]
     if jobName.startswith("<"): jobName = "None"
     if buildNumber.startswith("<"): buildNumber = "None"
     return jobName + '/' + buildNumber
   except Exception as e:
-    log.debug(str(e))
+    log.info(e); traceback.print_exc()
     return "None/None"
 
 
