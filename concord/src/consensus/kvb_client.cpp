@@ -69,9 +69,10 @@ bool KVBClient::send_request_sync(ConcordRequest &req, bool isReadOnly,
   }
 }
 
-KVBClientPool::KVBClientPool(std::vector<KVBClient *> &clients,
-                             std::chrono::milliseconds timeout,
-                             std::shared_ptr<TimePusher> time_pusher)
+KVBClientPool::KVBClientPool(
+    std::vector<KVBClient *> &clients, std::chrono::milliseconds timeout,
+    std::shared_ptr<TimePusher> time_pusher,
+    std::shared_ptr<concord::utils::IPrometheusRegistry> prometheus_registry)
     : logger_(
           log4cplus::Logger::getInstance("com.vmware.concord.KVBClientPool")),
       time_pusher_(time_pusher),
@@ -81,7 +82,19 @@ KVBClientPool::KVBClientPool(std::vector<KVBClient *> &clients,
       clients_mutex_(),
       clients_condition_(),
       wait_queue_(),
-      shutdown_{false} {
+      shutdown_{false},
+      kvbc_client_pool_requests_counters_(
+          prometheus_registry->createCounterFamily(
+              "concord_KVBClientPool_requests_counters_total",
+              "counters of requests in KVBClientPool", {})),
+      kvbc_client_pool_replies_counters_(
+          prometheus_registry->createCounterFamily(
+              "concord_KVBClientPool_replies_counters_total",
+              "counters of replies in KVBClientPool", {})),
+      kvbc_client_pool_received_requests_(prometheus_registry->createCounter(
+          kvbc_client_pool_requests_counters_, {{"action", "received"}})),
+      kvbc_client_pool_received_replies_(prometheus_registry->createCounter(
+          kvbc_client_pool_replies_counters_, {{"action", "received"}})) {
   for (auto it = clients.begin(); it < clients.end(); it++) {
     clients_.push(*it);
   }
@@ -170,10 +183,10 @@ bool KVBClientPool::send_request_sync(ConcordRequest &req, bool isReadOnly,
       clients_condition_.notify_all();
     }
   }  // scope unlocks mutex
-
+  kvbc_client_pool_received_requests_.Increment();
   bool result = client->send_request_sync(req, isReadOnly, timeout, parent_span,
                                           resp, correlation_id);
-
+  kvbc_client_pool_received_replies_.Increment();
   {
     std::unique_lock<std::mutex> clients_lock(clients_mutex_);
     clients_.push(client);

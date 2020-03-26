@@ -3,6 +3,14 @@ concord:
     type: "counter"
     exposed: "on"
 
+  - name: "concord_KVBClientPool_requests_counters_total"
+    type: "counter"
+    exposed: "on"
+
+  - name: "concord_KVBClientPool_replies_counters_total"
+    type: "counter"
+    exposed: "on"
+
 concordbft:
   - name: "view"
     component: "replica"
