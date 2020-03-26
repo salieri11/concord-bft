@@ -14,15 +14,18 @@ log = hermes_logging.getMainLogger()
 
 SENDER = { "conn": None, "queueLength": 0 }
 WF_DEFAULT_DEVOPS_SOURCE = "bc.devops.hermes"
-WF_DEFAULT_DEVOPS_APP = "bc"
-WF_DEFAULT_DEVOPS_SERVICE = "devops"
-WF_SPAN_PREFIX = "jenkins.stage."
+WF_DEFAULT_DEVOPS_APP = "Blockchain"
+WF_DEFAULT_DEVOPS_SERVICE = "Jenkins"
+WF_JENKINS_STAGE_PREFIX = "stage."
 WF_TAGNAME_JOB = "bc.job"
 WF_TAGNAME_BUILD = "bc.build"
 WF_TAGNAME_RUNTYPE = "bc.runtype"
 WF_TAGNAME_STAGE = "bc.stage"
+WF_TAGNAME_RESULT = 'bc.result'
+WF_TAGNAME_TIMESCOPE = 'bc.timescope'
 WF_METRIC_STAGE_DURATION = "bc.devops.stage.duration"
 WF_METRIC_RUN_DURATION = "bc.devops.run.duration"
+WF_METRIC_RUN_RESULT = "bc.devops.run.result"
 WF_DEFAULT_STATIC_METRIC_TAGS = {}
 WF_DEFAULT_STATIC_SPAN_TAGS = {
   # application, service, cluster, shards are MANDATORY span tags in Wavefront
@@ -69,8 +72,8 @@ def queueMetric(name, value, timestamp=None, tags={}):
     tagsStr = ' '.join(tagsStr)
 
     # output for info
-    log.info("Queueing Wavefront metric for publish: {} {} {}".format(name, value, timestamp))
-    log.info("tags: {}".format(tagsStr))
+    log.debug("Queueing Wavefront metric for publish: {} {} {}".format(name, value, timestamp))
+    log.debug("tags: {}".format(tagsStr))
 
     conn.send_metric(
       name = name,
@@ -79,14 +82,14 @@ def queueMetric(name, value, timestamp=None, tags={}):
       source = WF_DEFAULT_DEVOPS_SOURCE,
       tags = tags
     )
-    SENDER["queueLength"] = SENDER["queueLength"] + 1
+    SENDER["queueLength"] += 1
     return True
   except Exception as e:
     log.info(e); traceback.print_exc()
     return False
 
 
-def queueSpan(name, start, duration, parents=[], tags={}):
+def queueSpan(name, start, duration, traceId=None, parents=[], tags={}):
   '''
     Add span data (used for trace view) to publish queue using Wavefront SDK
   '''
@@ -97,22 +100,21 @@ def queueSpan(name, start, duration, parents=[], tags={}):
       return False
     if start is None: start = getTime() * 1000
     if duration is None: duration = 1000
-    traceId = helper.getJenkinsBuildTraceId()
+    traceId = traceId if traceId else helper.getJenkinsBuildTraceId()
     spanId = helper.getJenkinsBuildSpanId(traceId, name, "")
     runInfo = helper.getJenkinsJobNameAndBuildNumber()
-    fullpath = WF_SPAN_PREFIX + name
     tags = tagsAppend(tags, defaultTags=WF_DEFAULT_STATIC_SPAN_TAGS)
     tagsStr = []
     for tagName in tags: tagsStr.append('{}="{}"'.format(tagName, tags[tagName]))
     tagsStr = ' '.join(tagsStr)
     
     # output for info
-    log.info("Queueing Wavefront span for publish: [{}/{}] {} {} {}".format(
-      runInfo["jobName"], runInfo["buildNumber"], fullpath, start, duration))
-    log.info("traceId: {}".format(traceId))
-    log.info("spanId: {}".format(spanId))
-    log.info("parents: {}".format(parents))
-    log.info("tags: {}".format(tagsStr))
+    log.debug("Queueing Wavefront span for publish: [{}/{}] {} {} {}".format(
+      runInfo["jobName"], runInfo["buildNumber"], name, start, duration))
+    log.debug("traceId: {}".format(traceId))
+    log.debug("spanId: {}".format(spanId))
+    log.debug("parents: {}".format(parents))
+    log.debug("tags: {}".format(tagsStr))
 
     tagsInTuplesList = []
     for tagName in tags:
@@ -120,7 +122,7 @@ def queueSpan(name, start, duration, parents=[], tags={}):
       tagsInTuplesList.append((tagName, tagValue))
 
     conn.send_span(
-      name = fullpath,
+      name = name,
       start_millis = start,
       duration_millis = duration,
       source = WF_DEFAULT_DEVOPS_SOURCE,
@@ -131,7 +133,7 @@ def queueSpan(name, start, duration, parents=[], tags={}):
       follows_from = None,
       span_logs = None
     )
-    SENDER["queueLength"] = SENDER["queueLength"] + 1
+    SENDER["queueLength"] += 1
     return True
   except Exception as e:
     log.info(e)
@@ -154,8 +156,25 @@ def publish():
       return False
     conn.flush_now()
     SENDER["queueLength"] = 0
-    log.info("Published {} queued Wavefront publish items.".format(queueLength))
-    return True
+    log.debug("Published {} queued Wavefront publish items.".format(queueLength))
+    return queueLength
+  except Exception as e:
+    log.info(e); traceback.print_exc()
+    return False
+
+
+def getPublishFailureCount():
+  '''
+    Get failure count of the publish
+  '''
+  try:
+    conn = getConnection()
+    if conn is None:
+      log.info("Bad connection to Wavefront endpoint")
+      return False
+    count = int(conn.get_failure_count())
+    log.debug("Failure count is {}, for Wavefront publish items.".format(count))
+    return count
   except Exception as e:
     log.info(e); traceback.print_exc()
     return False
@@ -211,7 +230,7 @@ def tagsAppend(tags, defaultTags={}):
     Populate default tags that are used to look-up data sets which
     is then used for generating charts. 
   '''
-  result = json.loads(json.dumps(defaultTags)) # copy of default static tags
+  result = json.loads(json.dumps(defaultTags), strict=False) # copy of default static tags
   # default dynamically added tags
   info = helper.getJenkinsJobNameAndBuildNumber()
   result[WF_TAGNAME_JOB] = info["jobName"]

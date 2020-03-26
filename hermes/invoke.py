@@ -12,7 +12,8 @@ import logging
 import traceback
 import json
 import os
-from util import helper, slack, mailer, wavefront, racetrack
+import urllib
+from util import helper, slack, mailer, wavefront, racetrack, jenkins
 
 log = None
 
@@ -38,6 +39,21 @@ def racetrackSetEnd(args, secret):
     setId = json.loads(f.read())["setId"]
     racetrack.setEnd(setId)
 
+def publishRuns(args, secret):
+  a = prepareArgs(args)
+  jenkins.publishRunsRetroactively(jobName=a[0], limit=a[1], startFromBuildNumber=a[2])
+
+def publishRunsMaster(args, secret):
+  a = prepareArgs(args)
+  jenkins.publishRunsMaster(limit=a[0], startFromBuildNumber=a[1])
+
+def publishRunsReleases(args, secret):
+  a = prepareArgs(args)
+  jenkins.publishRunsReleases(releaseVersion=a[0], limit=a[1], startFromBuildNumber=a[2])
+
+def publishRunsMR(args, secret):
+  a = prepareArgs(args)
+  jenkins.publishRunsMR(limit=a[0], startFromBuildNumber=a[1])
 
 # Registry of callable standalone functions
 DISPATCH = {
@@ -47,6 +63,10 @@ DISPATCH = {
   "slackPost": slackPost,
 
   # CI/CD Dashboard data points publish
+  "publishRuns": publishRuns,
+  "publishRunsMaster": publishRunsMaster,
+  "publishRunsReleases": publishRunsReleases,
+  "publishRunsMR": publishRunsMR,
 
   # CI/CD Racetrack
   "racetrackSetBegin": racetrackSetBegin,
@@ -72,6 +92,7 @@ def main():
     for i, param in enumerate(args.param):
       while param.startswith('"') and param.endswith('"'):
         param = param[1:-1]
+      param = param.strip()
       args.param[i] = param
     DISPATCH[args.funcName](args.param, args.credentials)
   except Exception as e:
@@ -81,7 +102,7 @@ def main():
 
 def setUpLogging():
   try:
-    logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)s %(message)s',
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s',
                         datefmt='%Y-%m-%d %H:%M:%S')
     global log
     log = logging.getLogger(__name__)
@@ -89,6 +110,9 @@ def setUpLogging():
     exit(1)
 
 def prepareArgs(args):
+  '''
+    All unsupplied slots are None
+  '''
   safeArgs = [None]*32
   for i, arg in enumerate(args):
     safeArgs[i] = arg
