@@ -7,6 +7,7 @@
 
 #include <log4cplus/loggingmacros.h>
 #include <opentracing/span.h>
+#include <prometheus/counter.h>
 #include <chrono>
 #include <condition_variable>
 #include <mutex>
@@ -16,7 +17,9 @@
 #include "ClientImp.h"
 #include "KVBCInterfaces.h"
 #include "concord.pb.h"
+#include "config/configuration_manager.hpp"
 #include "time/time_pusher.hpp"
+#include "utils/concord_prometheus_metrics.hpp"
 
 namespace concord {
 
@@ -81,6 +84,12 @@ class KVBClientPool {
   // used for sending client requests.
   bool shutdown_;
 
+  // Metrics
+  prometheus::Family<prometheus::Counter> &kvbc_client_pool_requests_counters_;
+  prometheus::Family<prometheus::Counter> &kvbc_client_pool_replies_counters_;
+  prometheus::Counter &kvbc_client_pool_received_requests_;
+  prometheus::Counter &kvbc_client_pool_received_replies_;
+
  public:
   // Constructor for KVBClientPool. clients should be a vector of pointers
   // to the pointers this KVBClientPool is to manage, and time_pusher should
@@ -91,9 +100,10 @@ class KVBClientPool {
   // met. This thing that this KVBClientPool and the KVBClients in manages
   // point to should be a valid TimePusher if the time service is enabled
   // and should be a null pointer if the time service is disabled.
-  KVBClientPool(std::vector<KVBClient *> &clients,
-                std::chrono::milliseconds timeout,
-                std::shared_ptr<concord::time::TimePusher> time_pusher);
+  KVBClientPool(
+      std::vector<KVBClient *> &clients, std::chrono::milliseconds timeout,
+      std::shared_ptr<concord::time::TimePusher> time_pusher,
+      std::shared_ptr<concord::utils::IPrometheusRegistry> prometheus_registry);
   ~KVBClientPool();
 
   bool send_request_sync(com::vmware::concord::ConcordRequest &req,

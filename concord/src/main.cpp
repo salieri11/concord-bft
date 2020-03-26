@@ -696,7 +696,7 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
       clients.push_back(kvbClient);
     }
 
-    KVBClientPool pool(clients, clientTimeout, timePusher);
+    KVBClientPool pool(clients, clientTimeout, timePusher, prometheus_registry);
 
     if (timePusher) {
       timePusher->Start(&pool);
