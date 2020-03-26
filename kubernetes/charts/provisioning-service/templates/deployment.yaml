@@ -23,6 +23,9 @@ spec:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+          - name: APPCONTEXT
+            value: {{ .Values.provisioning-service.env }}
           ports:
           - containerPort: {{ .Values.service.containerPort }}
           volumeMounts:

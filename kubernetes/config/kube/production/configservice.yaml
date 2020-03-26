@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: config-service
-        image: vmware-docker-blockchainsaas.bintray.io/vmwblockchain/persephone-configuration:{{BUILDNUM}}
+        image: vmware-docker-blockchainsaas.bintray.io/vmwblockchain/persephone-configuration:0.6.0.1101
         ports:
         - containerPort: 9003
         - containerPort: 9023
@@ -99,8 +99,8 @@ metadata:
     app: cs-rest-prod
 spec:
   ports:
-  - port: 9083
-    targetPort: 9083
+  - port: 9023
+    targetPort: 9023
     name: cs-rest-prod
   selector:
     app: config-service-prod
@@ -118,4 +118,4 @@ spec:
       paths:
       - backend:
           serviceName: cs-rest-prod
-          servicePort: 9083
+          servicePort: 9023
