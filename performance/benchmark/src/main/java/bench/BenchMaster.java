@@ -1,15 +1,15 @@
 package bench;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStream;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.Constructor;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.InputStream;
-
 public class BenchMaster {
+
   private static final Logger logger = LogManager.getLogger(BenchMaster.class);
 
   @SuppressWarnings("unchecked")
@@ -25,9 +25,10 @@ public class BenchMaster {
       controller.startBenchMark();
 
     } catch (Exception e) {
-      System.out.println(e.getMessage());
-      throw e;
+      logger.info(e.getMessage());
+      System.exit(-1);
     }
     logger.info("Finished benchmark!");
+    System.exit(0);
   }
 }

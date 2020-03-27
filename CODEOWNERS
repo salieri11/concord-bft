@@ -30,7 +30,7 @@
 /helen/src/main/resources/api-doc/api.yaml @machenbach @panamika @mandeab @tfidali @mharrison @khank
 /hermes/ @rvollmar @rsg @khank
 /Jenkinsfile @rvollmar @rsg
-/performance/ @vlin @dparmar @rsg
+/performance/ @vlin @dparmar @rsg @rahulg
 /persephone/ @khank @sanchitar @rsg @panamika @mandeab
 /src/ @rvollmar @rsg
 /thin-replica-client/ @rmuschner @upshawa @andrewstone @bjay @ysherman @igolikov @tkournik
