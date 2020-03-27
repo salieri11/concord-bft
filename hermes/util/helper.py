@@ -80,7 +80,7 @@ HEALTHD_CRASH_FILE = "/var/log/replica_crashed"
 HEALTHD_LOG_PATH = "/var/log/healthd.log"
 
 # Migration related constants
-MIGRATION_FILE = "../docker/config-helen/app/db/migration/V3__zone_entities.sql"
+MIGRATION_FILE = "../docker/config-helen/app/db/migration/R__zone_entities.sql"
 MIGRATION_BASE_PATH = "../docker/config-helen/app/db/migration"
 MIGRATION_USER_ID = "51123b25-d017-4afa-8a1c-4e99badb24c6"
 MIGRATION_USER_NAME = "svc.blockchain_1@vmware.com"
