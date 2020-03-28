@@ -53,7 +53,7 @@ import io.zonky.test.db.AutoConfigureEmbeddedDatabase;
 @EnableAutoConfiguration
 @AutoConfigureEmbeddedDatabase
 @ContextConfiguration(classes = {MvcConfig.class, DbConfig.class, TestDaoConfig.class })
-public class ConsortiumServiceTests {
+public class ConsortiumServiceTest {
     @MockBean
     private UserService userService;
 
