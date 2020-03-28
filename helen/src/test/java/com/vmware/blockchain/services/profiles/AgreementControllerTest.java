@@ -59,7 +59,7 @@ import io.grpc.ManagedChannel;
 @WebMvcTest(secure = false, controllers = { AgreementController.class })
 @ContextConfiguration(classes = MvcConfig.class)
 @ComponentScan(basePackageClasses = { AgreementController.class, HelenExceptionHandler.class})
-public class AgreementControllerTests {
+public class AgreementControllerTest {
     private static final Logger logger = LogManager.getLogger(AgreementController.class);
 
     private AuthenticationContext adminAuth;
