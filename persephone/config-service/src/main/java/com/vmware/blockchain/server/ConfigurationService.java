@@ -211,7 +211,7 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
                 case WAVEFRONT_PROXY:
                     var wavefrontConfigUtil = new WavefrontConfigUtil(wavefrontConfigPath);
                     wavefrontConfig = wavefrontConfigUtil.getWavefrontConfig(request.getProperties(),
-                            request.getHostsList());
+                            request.getNodePropertiesList());
                     break;
                 default:
                     log.info("No config required for serviceType {}", serviceType);

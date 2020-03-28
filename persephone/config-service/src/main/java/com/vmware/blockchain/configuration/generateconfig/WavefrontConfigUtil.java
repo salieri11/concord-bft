@@ -42,7 +42,8 @@ public class WavefrontConfigUtil {
      * @param properties raw properties.
      * @return wavefront configuration file contents.
      */
-    public Map<Integer, String> getWavefrontConfig(Properties properties, List<String> hostIps) {
+    public Map<Integer, String> getWavefrontConfig(Properties properties,
+                                                   List<NodeProperty> nodeProperties) {
         Map<Integer, String> configMap = new HashMap<>();
         String content = "";
         try {
@@ -62,6 +63,34 @@ public class WavefrontConfigUtil {
             }
         }
 
+        Map<Integer, String> wfProxyUrls = new HashMap<>();
+        Map<Integer, String> wfProxyPorts = new HashMap<>();
+        Map<Integer, String> wfProxyUsername = new HashMap<>();
+        Map<Integer, String> wfProxyPwd = new HashMap<>();
+        Map<Integer, String> nodeIps = new HashMap<>();
+
+        nodeProperties.stream().forEach(nodeProperty -> {
+            switch (nodeProperty.getName()) {
+                case WAVEFRONT_PROXY_HOST:
+                    wfProxyUrls.putAll(nodeProperty.getValueMap());
+                    break;
+                case WAVEFRONT_PROXY_PORT:
+                    wfProxyPorts.putAll(nodeProperty.getValueMap());
+                    break;
+                case WAVEFRONT_PROXY_USER:
+                    wfProxyUsername.putAll(nodeProperty.getValueMap());
+                    break;
+                case WAVEFRONT_PROXY_PASSWORD:
+                    wfProxyPwd.putAll(nodeProperty.getValueMap());
+                    break;
+                case NODE_IP:
+                    nodeIps.putAll(nodeProperty.getValueMap());
+                    break;
+                default:
+                    log.debug("property {} not relevant for wavefront", nodeProperty.getName());
+            }
+        });
+
         content = content
                 .replace("$BLOCKCHAIN_ID",
                         properties.getValuesOrDefault(NodeProperty.Name.BLOCKCHAIN_ID.toString(), ""))
@@ -70,26 +99,24 @@ public class WavefrontConfigUtil {
                 .replace("$TOKEN",
                         properties.getValuesOrDefault(NodeProperty.Name.WAVEFRONT_TOKEN.toString(), ""));
 
-        if (properties.getValuesMap().containsKey(NodeProperty.Name.WAVEFRONT_PROXY_HOST.toString())) {
-            content = content.replace("#proxyHost=localhost",
-                    "proxyHost=" + properties.getValuesOrDefault(
-                            NodeProperty.Name.WAVEFRONT_PROXY_HOST.toString(), ""))
-                    .replace("#proxyPort=8080",
-                    "proxyPort=" + properties.getValuesOrThrow(
-                            NodeProperty.Name.WAVEFRONT_PROXY_PORT.toString()));
-            if (properties.getValuesMap().containsKey(NodeProperty.Name.WAVEFRONT_PROXY_USER.toString())) {
-                content = content.replace("#proxyUser=$USER",
-                        "proxyUser=" + properties.getValuesOrDefault(
-                                NodeProperty.Name.WAVEFRONT_PROXY_HOST.toString(), ""))
-                        .replace("#proxyPassword=$PASSWORD",
-                                "proxyPassword=" + properties.getValuesOrThrow(
-                                        NodeProperty.Name.WAVEFRONT_PROXY_PASSWORD.toString()));
+        for (Map.Entry<Integer, String> nodeIp : nodeIps.entrySet()) {
+            String hostConfigCopy = content.replace("$HOSTNAME", nodeIp.getValue());
+            if (!wfProxyUrls.isEmpty()) {
+                hostConfigCopy = hostConfigCopy.replace("#proxyHost=localhost",
+                        "proxyHost=" + wfProxyUrls.get(nodeIp.getKey()))
+                        .replace("#proxyPort=8080",
+                                "proxyPort=" + wfProxyPorts.get(nodeIp.getKey()));
+                if (!wfProxyUsername.isEmpty()) {
+                    hostConfigCopy = hostConfigCopy.replace("#proxyUser=$USER",
+                            "proxyUser=" + wfProxyUsername.get(nodeIp.getKey()))
+                            .replace("#proxyPassword=$PASSWORD",
+                                    "proxyPassword=" + wfProxyPwd.get(nodeIp.getKey()));
+                }
             }
-        }
 
-        for (int num = 0; num < hostIps.size(); num++) {
-            String hostConfigCopy = content.replace("$HOSTNAME", hostIps.get(num));
-            configMap.put(num, hostConfigCopy);
+            // TODO : negative scenarios not covered to throw exception by design. Needs impl.
+
+            configMap.put(nodeIp.getKey(), hostConfigCopy);
         }
 
         return configMap;

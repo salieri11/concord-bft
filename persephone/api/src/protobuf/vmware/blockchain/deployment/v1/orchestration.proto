@@ -184,10 +184,6 @@ message VSphereOrchestrationSiteInfo {
 message Wavefront {
     string url = 1;
     string token = 2;
-    string proxy_host = 3;
-    string proxy_port = 4;
-    string proxy_username = 5;
-    string proxy_password = 6;
 }
 
 /* [END messages] */
