@@ -78,6 +78,7 @@ import com.vmware.blockchain.deployment.v1.MessageHeader;
 import com.vmware.blockchain.deployment.v1.NodeProperty;
 import com.vmware.blockchain.deployment.v1.OrchestrationSiteIdentifier;
 import com.vmware.blockchain.deployment.v1.OrchestrationSiteInfo;
+import com.vmware.blockchain.deployment.v1.OutboundProxyInfo;
 import com.vmware.blockchain.deployment.v1.PlacementAssignment;
 import com.vmware.blockchain.deployment.v1.PlacementSpecification;
 import com.vmware.blockchain.deployment.v1.Properties;
@@ -92,7 +93,6 @@ import com.vmware.blockchain.ethereum.type.Genesis;
 
 import io.grpc.stub.ServerCallStreamObserver;
 import io.grpc.stub.StreamObserver;
-
 
 /**
  * Implementation of ConfigurationService server.
@@ -425,14 +425,22 @@ public class ProvisioningService extends ProvisioningServiceGrpc.ProvisioningSer
         List<String> nodeIps = new ArrayList<>();
         Map<Integer, String> nodeIds = new HashMap<>();
         Map<Integer, String> loggingProperties = new HashMap<>();
+        Map<Integer, String> wavefrontProxyUrl = new HashMap<>();
+        Map<Integer, String> wavefrontProxyPort = new HashMap<>();
+        Map<Integer, String> nodeIpMap = new HashMap<>();
 
         Wavefront wavefront = Wavefront.newBuilder().build();
         for (Map.Entry<PlacementAssignment.Entry,
                 Orchestrator.NetworkResourceEvent.Created> entry : privateNetworkAddressMap.entrySet()) {
             var nodeIp = entry.getValue().getAddress();
-            var siteInfo = entry.getKey().getSiteInfo();
+
             nodeIps.add(nodeIp);
             var nodeIndex = nodeIps.indexOf(nodeIp);
+
+            // TODO : nodeIps can be deprecated in favor of nodeIpMap
+            nodeIpMap.put(nodeIndex, nodeIp);
+
+            var siteInfo = entry.getKey().getSiteInfo();
             var nodeUuid = new UUID(entry.getKey().getNode().getHigh(), entry.getKey().getNode().getLow()).toString();
             nodeIds.put(nodeIndex, nodeUuid);
             loggingProperties.put(nodeIndex, getLogManagementJson(siteInfo));
@@ -440,7 +448,14 @@ public class ProvisioningService extends ProvisioningServiceGrpc.ProvisioningSer
 
             // PS: this keeps the provision open for multiple wavefront config in multiple zones,
             // however, taking only the last indeterministically. Need a design fix here.
+            // wavefront URL and Token should be same for all zones ideally.
             wavefront = getWavefront(siteInfo);
+
+            var outboundProxy = getOutboundProxy(siteInfo);
+            if (!outboundProxy.getHttpsHost().isEmpty()) {
+                wavefrontProxyUrl.put(nodeIndex, outboundProxy.getHttpsHost());
+                wavefrontProxyPort.put(nodeIndex, String.valueOf(outboundProxy.getHttpsPort()));
+            }
         }
 
         Map<String, String> properties = new HashMap<>(session.getSpecification().getProperties().getValues());
@@ -448,24 +463,23 @@ public class ProvisioningService extends ProvisioningServiceGrpc.ProvisioningSer
         properties.put(NodeProperty.Name.WAVEFRONT_URL.toString(), wavefront.getUrl());
         properties.put(NodeProperty.Name.WAVEFRONT_TOKEN.toString(), wavefront.getToken());
 
-        if (!wavefront.getProxyHost().isEmpty()) {
-            properties.put(NodeProperty.Name.WAVEFRONT_PROXY_HOST.toString(), wavefront.getProxyHost());
-        }
-        if (!wavefront.getProxyPort().isEmpty()) {
-            properties.put(NodeProperty.Name.WAVEFRONT_PROXY_PORT.toString(), wavefront.getProxyPort());
-        }
-        if (!wavefront.getProxyUsername().isEmpty()) {
-            properties.put(NodeProperty.Name.WAVEFRONT_PROXY_USER.toString(), wavefront.getProxyUsername());
-        }
-        if (!wavefront.getProxyPassword().isEmpty()) {
-            properties.put(NodeProperty.Name.WAVEFRONT_PROXY_PASSWORD.toString(), wavefront.getProxyPassword());
-        }
 
         NodeProperty nodeProperty =
                 NodeProperty.newBuilder().setName(NodeProperty.Name.NODE_ID).putAllValue(nodeIds).build();
         NodeProperty loggingProperty =
                 NodeProperty.newBuilder().setName(NodeProperty.Name.LOGGING_CONFIG).putAllValue(loggingProperties)
                         .build();
+        NodeProperty nodeIpProperty = NodeProperty.newBuilder().setName(NodeProperty.Name.NODE_IP)
+                .putAllValue(nodeIpMap).build();
+
+        List<NodeProperty> nodePropertyList = Arrays.asList(nodeProperty, nodeIpProperty, loggingProperty);
+
+        if (!wavefrontProxyUrl.isEmpty()) {
+            nodePropertyList.add(NodeProperty.newBuilder().setName(NodeProperty.Name.WAVEFRONT_PROXY_HOST)
+                            .putAllValue(wavefrontProxyUrl).build());
+            nodePropertyList.add(NodeProperty.newBuilder().setName(NodeProperty.Name.WAVEFRONT_PROXY_PORT)
+                            .putAllValue(wavefrontProxyPort).build());
+        }
 
         var request = ConfigurationServiceRequest.newBuilder()
                 .setHeader(MessageHeader.getDefaultInstance())
@@ -476,7 +490,7 @@ public class ProvisioningService extends ProvisioningServiceGrpc.ProvisioningSer
                                         .filter(x -> !x.getServiceType().equals(ConcordComponent.ServiceType.GENERIC))
                                         .map(x -> x.getServiceType()).collect(Collectors.toList()))
                 .setProperties(Properties.newBuilder().putAllValues(properties).build())
-                .addAllNodeProperties(Arrays.asList(nodeProperty, loggingProperty))
+                .addAllNodeProperties(nodePropertyList)
                 .build();
 
         ListenableFuture<ConfigurationSessionIdentifier>
@@ -502,6 +516,21 @@ public class ProvisioningService extends ProvisioningServiceGrpc.ProvisioningSer
             }
         }, executor);
         return completable;
+    }
+
+    private OutboundProxyInfo getOutboundProxy(OrchestrationSiteInfo siteInfo) {
+        OutboundProxyInfo outboundProxyInfo = OutboundProxyInfo.newBuilder().build();
+        switch (siteInfo.getType()) {
+            case VMC:
+                outboundProxyInfo = siteInfo.getVmc().getVsphere().getOutboundProxy();
+                break;
+            case VSPHERE:
+                outboundProxyInfo = siteInfo.getVsphere().getVsphere().getOutboundProxy();
+                break;
+            default:
+                break;
+        }
+        return outboundProxyInfo;
     }
 
     private Wavefront getWavefront(OrchestrationSiteInfo siteInfo) {
