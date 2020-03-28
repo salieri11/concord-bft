@@ -81,7 +81,7 @@ public class ConcordConfiguration {
     private static final List<ConcordComponent.ServiceType> DAML_PARTICIPANT_COMPONENTS = List.of(DAML_INDEX_DB,
             DAML_LEDGER_API);
     private static final List<ConcordComponent.ServiceType> DAML_COMMITTER_COMPONENTS = List.of(DAML_CONCORD,
-            JAEGER_AGENT, DAML_EXECUTION_ENGINE);
+            DAML_EXECUTION_ENGINE);
 
     public static final Map<ConcordComponent.ServiceType, String> STATIC_TAG_LIST = ImmutableMap.of(
             WAVEFRONT_PROXY, "5.7", TELEGRAF, "1.11", JAEGER_AGENT, "1.11"
