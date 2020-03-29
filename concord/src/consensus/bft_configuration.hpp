@@ -253,6 +253,9 @@ inline bool initializeSBFTConfiguration(
     repConf->debugStatisticsEnabled =
         nodeConfig.getValue<bool>("concord-bft_enable_debug_statistics");
 
+    repConf->preExecutionFeatureEnabled =
+        config.getValue<bool>("preexecution_enabled");
+
     repConf->preExecReqStatusCheckTimerMillisec = config.getValue<uint64_t>(
         "preexec_requests_status_check_period_millisec");
 
