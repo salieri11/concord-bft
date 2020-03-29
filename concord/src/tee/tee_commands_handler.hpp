@@ -13,7 +13,7 @@
 #include "concord.pb.h"
 #include "consensus/concord_commands_handler.hpp"
 #include "daml_commit.grpc.pb.h"
-#include "hash_defs.h"
+#include "kv_types.hpp"
 #include "sliver.hpp"
 #include "thin_replica/subscription_buffer.hpp"
 
@@ -38,8 +38,8 @@ class TeeCommandsHandler : public concord::consensus::ConcordCommandsHandler {
   TeeCommandsHandler(
       const concord::config::ConcordConfiguration& config,
       const concord::config::ConcordConfiguration& node_config,
-      concord::storage::blockchain::ILocalKeyValueStorageReadOnly& ros,
-      concord::storage::blockchain::IBlocksAppender& ba,
+      concord::kvbc::ILocalKeyValueStorageReadOnly& ros,
+      concord::kvbc::IBlocksAppender& ba,
       concord::thin_replica::SubBufferList& subscriber_list,
       std::shared_ptr<concord::utils::PrometheusRegistry> prometheus_registry)
       : ConcordCommandsHandler(config, node_config, ros, ba, subscriber_list,
@@ -65,7 +65,7 @@ class TeeCommandsHandler : public concord::consensus::ConcordCommandsHandler {
   bool ExecuteSkvbcRequest(const com::vmware::concord::TeeRequest& tee_request,
                            uint8_t flags,
                            com::vmware::concord::TeeResponse* tee_response);
-  void RecordTransaction(const concordUtils::SetOfKeyValuePairs& updates,
+  void RecordTransaction(const kvbc::SetOfKeyValuePairs& updates,
                          com::vmware::concord::TeeResponse* tee_response);
 };
 

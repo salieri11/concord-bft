@@ -8,8 +8,8 @@
 #include "rsa_pruning_signer.hpp"
 #include "rsa_pruning_verifier.hpp"
 
-#include "blockchain/db_interfaces.h"
 #include "config/configuration_manager.hpp"
+#include "db_interfaces.h"
 #include "kv_types.hpp"
 #include "time/time_contract.hpp"
 
@@ -66,7 +66,7 @@ class KVBPruningSM {
  public:
   // Construct by providing an interface to the storage engine, configuration
   // and tracing facilities.
-  KVBPruningSM(const storage::blockchain::ILocalKeyValueStorageReadOnly&,
+  KVBPruningSM(const kvbc::ILocalKeyValueStorageReadOnly&,
                const config::ConcordConfiguration& config,
                const config::ConcordConfiguration& node_config,
                concord::time::TimeContract*);
@@ -86,14 +86,14 @@ class KVBPruningSM {
               com::vmware::concord::ConcordResponse&, bool read_only,
               opentracing::Span& parent_span) const;
 
-  concordUtils::BlockId LatestBasedOnNumBlocks() const;
-  concordUtils::BlockId LatestBasedOnTimeRange() const;
+  kvbc::BlockId LatestBasedOnNumBlocks() const;
+  kvbc::BlockId LatestBasedOnTimeRange() const;
 
  private:
   log4cplus::Logger logger_;
   RSAPruningSigner signer_;
   RSAPruningVerifier verifier_;
-  const storage::blockchain::ILocalKeyValueStorageReadOnly& ro_storage_;
+  const kvbc::ILocalKeyValueStorageReadOnly& ro_storage_;
   concord::time::TimeContract* time_contract_{nullptr};
   bool pruning_enabled_{false};
   std::uint64_t replica_id_{0};

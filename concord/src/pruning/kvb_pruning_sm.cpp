@@ -12,14 +12,13 @@
 #include <exception>
 #include <iterator>
 
-using concordUtils::BlockId;
-
 namespace concord {
 
 using concord::time::TimeContract;
 using kvbc::BaseBlockInfo;
 using kvbc::BlockchainView;
-using storage::blockchain::ILocalKeyValueStorageReadOnly;
+using kvbc::BlockId;
+using kvbc::ILocalKeyValueStorageReadOnly;
 
 using google::protobuf::Timestamp;
 using google::protobuf::util::TimeUtil;

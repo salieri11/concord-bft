@@ -31,7 +31,8 @@ target_link_libraries(UtilsTests
         ${GTEST_LIBRARY}
         concord_utils
         pthread
-        ${CRYPTOPP_LIBRARIES})
+        ${CRYPTOPP_LIBRARIES}
+        $<TARGET_OBJECTS:logging_dev>)
 
 add_executable(SignTests
         signature_test.cpp)
@@ -42,7 +43,8 @@ target_link_libraries(SignTests
         pthread
         log4cplus
         secp256k1
-        ${CRYPTOPP_LIBRARIES})
+        ${CRYPTOPP_LIBRARIES}
+        $<TARGET_OBJECTS:logging_dev>)
 
 add_executable(ConfigTests
         config_test.cpp

@@ -3,7 +3,6 @@
 // Shim between generic KVB and Concord-specific commands handlers.
 
 #include "concord_commands_handler.hpp"
-#include "hash_defs.h"
 #include "thin_replica/subscription_buffer.hpp"
 #include "time/time_contract.hpp"
 
@@ -16,10 +15,10 @@ using com::vmware::concord::ErrorResponse;
 using com::vmware::concord::TimeRequest;
 using com::vmware::concord::TimeResponse;
 using com::vmware::concord::TimeSample;
+using concord::kvbc::BlockId;
+using concord::kvbc::SetOfKeyValuePairs;
 using concord::thin_replica::SubUpdate;
 using concord::thin_replica::SubUpdateBuffer;
-using concordUtils::BlockId;
-using concordUtils::SetOfKeyValuePairs;
 using concordUtils::Sliver;
 
 using google::protobuf::Timestamp;
@@ -30,8 +29,8 @@ namespace consensus {
 ConcordCommandsHandler::ConcordCommandsHandler(
     const concord::config::ConcordConfiguration &config,
     const concord::config::ConcordConfiguration &node_config,
-    const concord::storage::blockchain::ILocalKeyValueStorageReadOnly &storage,
-    concord::storage::blockchain::IBlocksAppender &appender,
+    const concord::kvbc::ILocalKeyValueStorageReadOnly &storage,
+    concord::kvbc::IBlocksAppender &appender,
     concord::thin_replica::SubBufferList &subscriber_list,
     std::shared_ptr<concord::utils::IPrometheusRegistry> prometheus_registry)
     : logger_(log4cplus::Logger::getInstance(
@@ -345,7 +344,7 @@ bool ConcordCommandsHandler::parseFromPreExecutionResponse(
 
 concordUtils::Status ConcordCommandsHandler::addBlock(
     const concord::storage::SetOfKeyValuePairs &updates,
-    concord::storage::blockchain::BlockId &out_block_id) {
+    concord::kvbc::BlockId &out_block_id) {
   auto add_block_span = addBlock_parent_span->tracer().StartSpan(
       "add_block", {opentracing::ChildOf(&addBlock_parent_span->context())});
   // The IBlocksAppender interface specifies that updates must be const, but we

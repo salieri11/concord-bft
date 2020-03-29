@@ -4,9 +4,8 @@
 #include <log4cplus/configurator.h>
 #include <log4cplus/hierarchy.h>
 #include <log4cplus/loggingmacros.h>
-#include "blockchain/db_adapter.h"
-#include "blockchain/db_types.h"
 #include "concord.pb.h"
+#include "db_adapter.h"
 #include "gtest/gtest.h"
 #include "hlf/chaincode_invoker.hpp"
 #include "hlf/kvb_storage.hpp"
@@ -20,19 +19,18 @@ using namespace log4cplus;
 
 using com::vmware::concord::HlfRequest;
 using concord::hlf::ChaincodeInvoker;
+using concord::kvbc::BlockId;
+using concord::kvbc::DBKeyComparator;
+using concord::kvbc::IBlocksAppender;
+using concord::kvbc::ILocalKeyValueStorageReadOnly;
+using concord::kvbc::Key;
+using concord::kvbc::SetOfKeyValuePairs;
+using concord::kvbc::Value;
 using concord::storage::IDBClient;
-using concord::storage::blockchain::DBKeyComparator;
-using concord::storage::blockchain::IBlocksAppender;
-using concord::storage::blockchain::ILocalKeyValueStorageReadOnly;
-using concord::storage::blockchain::ILocalKeyValueStorageReadOnlyIterator;
 using concord::storage::memorydb::Client;
 using concord::storage::memorydb::KeyComparator;
-using concordUtils::BlockId;
-using concordUtils::Key;
-using concordUtils::SetOfKeyValuePairs;
 using concordUtils::Sliver;
 using concordUtils::Status;
-using concordUtils::Value;
 
 namespace {
 const string kTestHlfPeerToolPath1 = "test/peer1";
@@ -74,17 +72,6 @@ class TestStorage : public ILocalKeyValueStorageReadOnly,
         << "Test should not cause mayHaveConflictBetween to be called";
     return Status::IllegalOperation(
         "mayHaveConflictBetween not supported in test");
-  }
-
-  ILocalKeyValueStorageReadOnlyIterator* getSnapIterator() const override {
-    EXPECT_TRUE(false) << "Test should not cause getSnapIterator to be called";
-    return nullptr;
-  }
-
-  Status freeSnapIterator(
-      ILocalKeyValueStorageReadOnlyIterator* iter) const override {
-    EXPECT_TRUE(false) << "Test should not cause freeSnapIterator to be called";
-    return Status::IllegalOperation("freeSnapIterator not supported in test");
   }
 
   void monitor() const override {

@@ -17,7 +17,7 @@ using std::vector;
 using concord::config::ConcordConfiguration;
 using concord::config::ConfigurationPath;
 using concord::config::ParameterSelection;
-using concordUtils::BlockId;
+using concord::kvbc::BlockId;
 using concordUtils::Sliver;
 using concordUtils::Status;
 using google::protobuf::Timestamp;
@@ -122,7 +122,7 @@ Timestamp TimeContract::SummarizeTime() {
 }
 
 // Get the list of samples.
-const unordered_map<string, TimeContract::SampleBody>
+const std::unordered_map<string, TimeContract::SampleBody>
     &TimeContract::GetSamples() {
   LoadLatestSamples();
   return *samples_;
@@ -156,7 +156,7 @@ void TimeContract::LoadLatestSamples() {
     return;
   }
 
-  samples_ = new unordered_map<string, SampleBody>();
+  samples_ = new std::unordered_map<string, SampleBody>();
 
   Sliver raw_time;
   Status read_status = storage_.get(time_samples_key_, raw_time);
@@ -249,7 +249,7 @@ void TimeContract::LoadLatestSamples() {
 }
 
 // Prepare a key/value pair for storage.
-pair<Sliver, Sliver> TimeContract::Serialize() {
+std::pair<Sliver, Sliver> TimeContract::Serialize() {
   com::vmware::concord::kvb::Time proto;
   proto.set_version(kTimeStorageVersion);
 
@@ -278,10 +278,10 @@ pair<Sliver, Sliver> TimeContract::Serialize() {
 
   changed_ = false;
 
-  return pair<Sliver, Sliver>(time_samples_key_, time_storage);
+  return std::pair<Sliver, Sliver>(time_samples_key_, time_storage);
 }
 
-pair<Sliver, Sliver> TimeContract::SerializeSummarizedTime() {
+std::pair<Sliver, Sliver> TimeContract::SerializeSummarizedTime() {
   const auto current_time = GetTime();
   const auto storage_size = current_time.ByteSize();
   Sliver storage(new char[storage_size], storage_size);

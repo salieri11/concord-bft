@@ -12,5 +12,6 @@ target_link_libraries(concord_external_client PUBLIC
     ${Boost_LIBRARIES}
     ${yaml-cpp_LIBRARIES}
     concord_utils
+    bftclient
     kvbc
     threshsign)

@@ -10,12 +10,13 @@
 #include <string>
 
 #include "block_metadata.hpp"
-#include "blockchain/db_interfaces.h"
 #include "concord_storage.pb.h"
+#include "db_interfaces.h"
+#include "sliver.hpp"
 
 namespace concord {
 namespace storage {
-using concord::storage::blockchain::ILocalKeyValueStorageReadOnly;
+using concord::kvbc::ILocalKeyValueStorageReadOnly;
 
 class ConcordStorageException : public std::exception {
  public:
@@ -34,8 +35,9 @@ class ConcordBlockMetadata : public concord::kvbc::IBlockMetadata {
     logger_ = log4cplus::Logger::getInstance(
         "concord.storage.ConcordMetadataStorage");
   }
-  virtual uint64_t getSequenceNum(const Sliver &key) const override;
-  virtual Sliver serialize(uint64_t sequence_num) const override;
+  virtual uint64_t getSequenceNum(
+      const concordUtils::Sliver &key) const override;
+  virtual concordUtils::Sliver serialize(uint64_t sequence_num) const override;
 
  protected:
   const int64_t kBlockMetadataVersion = 1;

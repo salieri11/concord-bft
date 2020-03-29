@@ -25,8 +25,6 @@
 #include "ReplicaImp.h"
 #include "api/api_acceptor.hpp"
 #include "bftengine/ReplicaConfig.hpp"
-#include "blockchain/db_adapter.h"
-#include "blockchain/db_interfaces.h"
 #include "common/concord_exception.hpp"
 #include "common/status_aggregator.hpp"
 #include "config/configuration_manager.hpp"
@@ -36,6 +34,8 @@
 #include "daml/daml_validator_client.hpp"
 #include "daml/grpc_services.hpp"
 #include "daml_commit.grpc.pb.h"
+#include "db_adapter.h"
+#include "db_interfaces.h"
 #include "ethereum/concord_evm.hpp"
 #include "ethereum/eth_kvb_commands_handler.hpp"
 #include "ethereum/eth_kvb_storage.hpp"
@@ -87,20 +87,21 @@ using concord::consensus::KVBClientPool;
 using concord::ethereum::EthKvbCommandsHandler;
 using concord::ethereum::EVM;
 using concord::ethereum::EVMInitParams;
+using concord::kvbc::BlockId;
 using concord::kvbc::ClientConfig;
+using concord::kvbc::DBAdapter;
+using concord::kvbc::DBKeyComparator;
+using concord::kvbc::IBlocksAppender;
 using concord::kvbc::IClient;
 using concord::kvbc::ICommandsHandler;
+using concord::kvbc::ILocalKeyValueStorageReadOnly;
 using concord::kvbc::IReplica;
 using concord::kvbc::ReplicaImp;
 using concord::kvbc::ReplicaStateSyncImp;
+using concord::kvbc::SetOfKeyValuePairs;
 using concord::storage::ConcordBlockMetadata;
 using concord::storage::IDBClient;
-using concord::storage::blockchain::DBAdapter;
-using concord::storage::blockchain::DBKeyComparator;
-using concord::storage::blockchain::IBlocksAppender;
-using concord::storage::blockchain::ILocalKeyValueStorageReadOnly;
-using concordUtils::BlockId;
-using concordUtils::SetOfKeyValuePairs;
+
 using concordUtils::Status;
 
 using concord::hlf::ChaincodeInvoker;
@@ -300,7 +301,7 @@ static concordUtils::Status create_daml_genesis_block(
     return concordUtils::Status::OK();
   }
   concord::daml::DamlInitParams init_params(genesis_file_path);
-  const auto &key = concordUtils::Key(
+  const auto &key = concord::kvbc::Key(
       std::string({concord::storage::kKvbKeyAdminIdentifier}));
   return replica->addBlockToIdleReplica(
       SetOfKeyValuePairs{{key, init_params.get_admin_authentication_key()}});

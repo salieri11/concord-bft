@@ -46,8 +46,8 @@
 #include <utility>
 #include <vector>
 
-#include "blockchain/db_interfaces.h"
 #include "config/configuration_manager.hpp"
+#include "db_interfaces.h"
 #include "kv_types.hpp"
 #include "storage/kvb_key_types.h"
 #include "time_exception.hpp"
@@ -71,8 +71,7 @@ class TimeContract {
   //   needs or if the configuration otherwise differs from the Time Service's
   //   expectations.
   explicit TimeContract(
-      const concord::storage::blockchain::ILocalKeyValueStorageReadOnly&
-          storage,
+      const concord::kvbc::ILocalKeyValueStorageReadOnly& storage,
       const concord::config::ConcordConfiguration& config)
       : logger_(log4cplus::Logger::getInstance("concord.time")),
         storage_(storage),
@@ -147,8 +146,7 @@ class TimeContract {
   // time of block creation. If no summarized time is set for the passed block
   // ID, the summarized time at the most recent block before it is returned.
   // Throws a TimeException if the summarized time cannot be read from storage.
-  google::protobuf::Timestamp GetSummarizedTimeAtBlock(
-      concordUtils::BlockId) const;
+  google::protobuf::Timestamp GetSummarizedTimeAtBlock(kvbc::BlockId) const;
 
   // Has the contract been updated since being loaded or since last
   // serialization?
@@ -160,11 +158,12 @@ class TimeContract {
 
   // Produce a key-value pair that encodes the state of the time contract for
   // KVB.
-  pair<concordUtils::Sliver, concordUtils::Sliver> Serialize();
+  std::pair<concordUtils::Sliver, concordUtils::Sliver> Serialize();
 
   // Produce a key-value pair that encodes the current summarized time as
   // returned by GetTime() .
-  pair<concordUtils::Sliver, concordUtils::Sliver> SerializeSummarizedTime();
+  std::pair<concordUtils::Sliver, concordUtils::Sliver>
+  SerializeSummarizedTime();
 
   // Clear all cached data.
   void Reset() {
@@ -199,7 +198,7 @@ class TimeContract {
 
  private:
   log4cplus::Logger logger_;
-  const concord::storage::blockchain::ILocalKeyValueStorageReadOnly& storage_;
+  const concord::kvbc::ILocalKeyValueStorageReadOnly& storage_;
   const concord::config::ConcordConfiguration& config_;
   std::unique_ptr<concord::time::TimeVerifier> verifier_;
   std::unordered_map<std::string, SampleBody>* samples_;

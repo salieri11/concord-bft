@@ -8,7 +8,6 @@
 #include <daml/daml_validator_client.hpp>
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "hash_defs.h"
 #include "mocks.hpp"
 
 using ::testing::_;
@@ -21,7 +20,7 @@ using ::testing::ReturnRef;
 using ::testing::SetArgPointee;
 using ::testing::SetArgReferee;
 
-using namespace concord::storage::blockchain;
+using namespace concord::kvbc;
 using namespace concord::daml;
 using namespace concordUtils;
 

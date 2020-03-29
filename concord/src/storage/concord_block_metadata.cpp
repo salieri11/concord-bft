@@ -10,6 +10,9 @@
 namespace concord {
 namespace storage {
 
+using concordUtils::Sliver;
+using concordUtils::Status;
+
 Sliver ConcordBlockMetadata::serialize(uint64_t bft_sequence_num) const {
   com::vmware::concord::kvb::BlockMetadata block_metadata_;
   block_metadata_.set_version(kBlockMetadataVersion);

@@ -242,7 +242,7 @@ void ConcordClient::SendRequestSync(const void* request,
                                     std::uint32_t reply_size, void* out_reply,
                                     std::uint32_t* out_actual_reply_size) {
   SendRequestSync(request, request_size, flags, timeout_ms, reply_size,
-                  out_reply, out_actual_reply_size, string());
+                  out_reply, out_actual_reply_size, std::string{});
 }
 
 void ConcordClient::SendRequestSync(const void* request,

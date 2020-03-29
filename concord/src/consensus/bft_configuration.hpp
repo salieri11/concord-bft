@@ -220,7 +220,7 @@ inline bool initializeSBFTConfiguration(
   uint16_t numOfPrincipals = config.getValue<uint16_t>("num_principals");
   uint16_t numOfReplicas = config.getValue<uint16_t>("num_replicas");
 
-  std::set<pair<uint16_t, const std::string>> publicKeysOfReplicas;
+  std::set<std::pair<uint16_t, const std::string>> publicKeysOfReplicas;
   if (commConfig) {
     bool res = initializeSBFTPrincipals(config, selfNumber, numOfPrincipals,
                                         numOfReplicas, commConfig,

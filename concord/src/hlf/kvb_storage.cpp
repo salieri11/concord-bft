@@ -16,12 +16,12 @@ using concord::common::EVMException;
 using concord::common::ReadOnlyModeException;
 using concord::common::zero_hash;
 
+using concord::kvbc::BlockId;
+using concord::kvbc::IBlocksAppender;
+using concord::kvbc::ILocalKeyValueStorageReadOnly;
 using concord::storage::kKvbKeyHlfBlock;
 using concord::storage::kKvbKeyHlfState;
 using concord::storage::kKvbKeyHlfTransaction;
-using concord::storage::blockchain::IBlocksAppender;
-using concord::storage::blockchain::ILocalKeyValueStorageReadOnly;
-using concordUtils::BlockId;
 
 using std::to_string;
 
@@ -66,7 +66,7 @@ const ILocalKeyValueStorageReadOnly &HlfKvbStorage::getReadOnlyStorage() {
 ////////////////////////////////////////
 // ADDRESSING
 
-Sliver HlfKvbStorage::KvbKey(uint8_t type, const string &key) const {
+Sliver HlfKvbStorage::KvbKey(uint8_t type, const std::string &key) const {
   const char *p = key.c_str();
   int length = std::strlen(p);
 
@@ -88,7 +88,7 @@ Sliver HlfKvbStorage::KvbKey(uint8_t type, const uint8_t *bytes,
   return Sliver(kvb_key, length + 1);
 }
 
-Sliver HlfKvbStorage::HlfStateKey(const string &key) const {
+Sliver HlfKvbStorage::HlfStateKey(const std::string &key) const {
   return KvbKey(kKvbKeyHlfState, key);
 }
 
@@ -135,7 +135,7 @@ Status HlfKvbStorage::AddHlfTransaction(
 
 com::vmware::concord::hlf::storage::HlfBlock HlfKvbStorage::GetHlfBlock(
     uint64_t blockNumber) {
-  concord::storage::SetOfKeyValuePairs out_blockData;
+  concord::kvbc::SetOfKeyValuePairs out_blockData;
 
   Status status = ro_storage_.getBlockData(blockNumber, out_blockData);
 
@@ -241,7 +241,7 @@ void HlfKvbStorage::reset() {
 }
 
 // HLF extent
-Status HlfKvbStorage::SetHlfState(string key, string value) {
+Status HlfKvbStorage::SetHlfState(std::string key, std::string value) {
   com::vmware::concord::hlf::storage::HlfState proto;
   proto.set_version(KHlfStateStorageVersion);
   proto.set_state(value);
@@ -269,12 +269,13 @@ uint64_t HlfKvbStorage::current_block_number() {
 }
 
 // HLF extent
-string HlfKvbStorage::GetHlfState(const string &key) {
+std::string HlfKvbStorage::GetHlfState(const std::string &key) {
   uint64_t block_number = current_block_number();
   return GetHlfState(key, block_number);
 }
 
-string HlfKvbStorage::GetHlfState(const string &key, uint64_t &block_number) {
+std::string HlfKvbStorage::GetHlfState(const std::string &key,
+                                       uint64_t &block_number) {
   Sliver kvbkey = HlfStateKey(key);
   Sliver value;
   BlockId out_block;
@@ -324,7 +325,7 @@ Status HlfKvbStorage::get(const BlockId read_version, const Sliver &key,
   return ro_storage_.get(read_version, key, value, out_block);
 }
 
-storage::SetOfKeyValuePairs HlfKvbStorage::updates_;
+kvbc::SetOfKeyValuePairs HlfKvbStorage::updates_;
 
 }  // namespace hlf
 }  // namespace concord

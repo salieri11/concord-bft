@@ -1,6 +1,7 @@
 // Copyright 2018-2019 VMware, all rights reserved
 
 #include "hlf/grpc_services.hpp"
+#include "kv_types.hpp"
 
 #include <opentracing/tracer.h>
 
@@ -45,7 +46,7 @@ grpc::Status HlfKeyValueServiceImpl::GetState(ServerContext* context,
     // the upper bound(block number)
     if (request->value() != "") {
       // convert the block number from string in unsigned long type
-      concordUtils::BlockId block_number = std::stoul(request->value());
+      kvbc::BlockId block_number = std::stoul(request->value());
       value = kvb_storage_.GetHlfState(request->key(), block_number);
     } else {
       value = kvb_storage_.GetHlfState(request->key());

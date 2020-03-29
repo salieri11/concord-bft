@@ -14,7 +14,6 @@
 #include "common/concord_log.hpp"
 #include "common/concord_types.hpp"
 #include "ethereum/eth_kvb_storage.hpp"
-#include "hash_defs.h"
 #include "utils/concord_eth_hash.hpp"
 #include "utils/concord_utils.hpp"
 #include "utils/rlp.hpp"

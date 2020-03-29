@@ -10,8 +10,9 @@
 #include <prometheus/counter.h>
 #include <utils/concord_prometheus_metrics.hpp>
 #include "KVBCInterfaces.h"
-#include "blockchain/db_interfaces.h"
 #include "concord.pb.h"
+#include "db_interfaces.h"
+#include "kv_types.hpp"
 #include "pruning/kvb_pruning_sm.hpp"
 #include "storage/concord_block_metadata.h"
 #include "thin_replica/subscription_buffer.hpp"
@@ -27,9 +28,8 @@ struct ConcordRequestContext {
   uint32_t max_response_size;
 };
 
-class ConcordCommandsHandler
-    : public concord::kvbc::ICommandsHandler,
-      public concord::storage::blockchain::IBlocksAppender {
+class ConcordCommandsHandler : public concord::kvbc::ICommandsHandler,
+                               public concord::kvbc::IBlocksAppender {
  private:
   log4cplus::Logger logger_;
   uint64_t executing_bft_sequence_num_;
@@ -39,22 +39,21 @@ class ConcordCommandsHandler
   // addBlock function.
   std::unique_ptr<opentracing::Span> addBlock_parent_span;
 
-  void PublishUpdatesToThinReplicaServer(
-      concordUtils::BlockId block_id,
-      concord::storage::SetOfKeyValuePairs &updates);
+  void PublishUpdatesToThinReplicaServer(kvbc::BlockId block_id,
+                                         kvbc::SetOfKeyValuePairs &updates);
 
  protected:
-  const concord::storage::blockchain::ILocalKeyValueStorageReadOnly &storage_;
+  const concord::kvbc::ILocalKeyValueStorageReadOnly &storage_;
   concord::storage::ConcordBlockMetadata metadata_storage_;
   prometheus::Family<prometheus::Counter> &command_handler_counters_;
   prometheus::Counter &written_blocks_;
-  const concordUtils::Key cid_key_ = concordUtils::Key(
+  const kvbc::Key cid_key_ = kvbc::Key(
       new decltype(storage::kKvbKeyCorrelationId)[1]{
           storage::kKvbKeyCorrelationId},
       1);
 
  public:
-  concord::storage::blockchain::IBlocksAppender &appender_;
+  concord::kvbc::IBlocksAppender &appender_;
   std::unique_ptr<concord::time::TimeContract> time_;
   std::unique_ptr<concord::pruning::KVBPruningSM> pruning_sm_;
 
@@ -67,9 +66,8 @@ class ConcordCommandsHandler
   ConcordCommandsHandler(
       const concord::config::ConcordConfiguration &config,
       const concord::config::ConcordConfiguration &node_config,
-      const concord::storage::blockchain::ILocalKeyValueStorageReadOnly
-          &storage,
-      concord::storage::blockchain::IBlocksAppender &appender,
+      const concord::kvbc::ILocalKeyValueStorageReadOnly &storage,
+      concord::kvbc::IBlocksAppender &appender,
       concord::thin_replica::SubBufferList &subscriber_list,
       std::shared_ptr<concord::utils::IPrometheusRegistry> prometheus_registry);
   virtual ~ConcordCommandsHandler() = default;
@@ -88,9 +86,8 @@ class ConcordCommandsHandler
   // Our concord::storage::blockchain::IBlocksAppender implementation, where we
   // can add lower-level data like time contract status, before forwarding to
   // the true appender.
-  concordUtils::Status addBlock(
-      const concord::storage::SetOfKeyValuePairs &updates,
-      concordUtils::BlockId &out_block_id) override;
+  concordUtils::Status addBlock(const kvbc::SetOfKeyValuePairs &updates,
+                                kvbc::BlockId &out_block_id) override;
 
   // Checks the pre-executed result for read/write conflicts
   bool HasPreExecutionConflicts(const com::vmware::concord::PreExecutionResult

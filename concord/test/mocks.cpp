@@ -1,9 +1,8 @@
 // Copyright 2020 VMware, all rights reserved
 
 #include <daml/daml_kvb_commands_handler.hpp>
-#include "hash_defs.h"
 
-using namespace concord::storage::blockchain;
+using namespace concord::kvbc;
 using namespace concord::daml;
 using namespace concordUtils;
 

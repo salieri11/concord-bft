@@ -18,7 +18,8 @@
 #include <utils/concord_prometheus_metrics.hpp>
 #include <utils/open_tracing_utils.hpp>
 
-#include "blockchain/db_interfaces.h"
+#include "db_interfaces.h"
+#include "kv_types.hpp"
 #include "storage/kvb_app_filter.h"
 
 #include "thin_replica.grpc.pb.h"
@@ -39,8 +40,7 @@ class ThinReplicaImpl {
 
  public:
   ThinReplicaImpl(
-      const concord::storage::blockchain::ILocalKeyValueStorageReadOnly*
-          rostorage,
+      const concord::kvbc::ILocalKeyValueStorageReadOnly* rostorage,
       SubBufferList& subscriber_list,
       std::optional<std::shared_ptr<concord::utils::PrometheusRegistry>>
           prometheus_registry = {})
@@ -79,8 +79,8 @@ class ThinReplicaImpl {
     LOG4CPLUS_DEBUG(logger_, "ReadState");
 
     // TODO: Determine oldest block available (pruning)
-    concordUtils::BlockId start = 1;
-    concordUtils::BlockId end = rostorage_->getLastBlock();
+    kvbc::BlockId start = 1;
+    kvbc::BlockId end = rostorage_->getLastBlock();
     try {
       ReadFromKvbAndSendData(logger_, stream, start, end, kvb_filter);
     } catch (std::exception& error) {
@@ -106,8 +106,8 @@ class ThinReplicaImpl {
     LOG4CPLUS_DEBUG(logger_, "ReadStateHash");
 
     // TODO: Determine oldest block available (pruning)
-    concordUtils::BlockId block_id_start = 1;
-    concordUtils::BlockId block_id_end = request->block_id();
+    kvbc::BlockId block_id_start = 1;
+    kvbc::BlockId block_id_end = request->block_id();
 
     concord::storage::KvbStateHash kvb_hash;
     try {
@@ -226,9 +226,8 @@ class ThinReplicaImpl {
  private:
   template <typename ServerWriterT>
   void ReadFromKvbAndSendData(
-      log4cplus::Logger logger, ServerWriterT* stream,
-      concordUtils::BlockId start, concordUtils::BlockId end,
-      std::shared_ptr<storage::KvbAppFilter> kvb_filter) {
+      log4cplus::Logger logger, ServerWriterT* stream, kvbc::BlockId start,
+      kvbc::BlockId end, std::shared_ptr<storage::KvbAppFilter> kvb_filter) {
     using namespace std::chrono_literals;
     boost::lockfree::spsc_queue<storage::KvbUpdate> queue{10};
     std::atomic_bool close_stream = false;
@@ -267,9 +266,8 @@ class ThinReplicaImpl {
 
   template <typename ServerWriterT>
   void ReadFromKvbAndSendHashes(
-      log4cplus::Logger logger, ServerWriterT* stream,
-      concordUtils::BlockId start, concordUtils::BlockId end,
-      std::shared_ptr<storage::KvbAppFilter> kvb_filter) {
+      log4cplus::Logger logger, ServerWriterT* stream, kvbc::BlockId start,
+      kvbc::BlockId end, std::shared_ptr<storage::KvbAppFilter> kvb_filter) {
     for (auto block_id = start; block_id <= end; ++block_id) {
       size_t hash = kvb_filter->ReadBlockHash(block_id);
       SendHash(stream, block_id, hash);
@@ -279,8 +277,7 @@ class ThinReplicaImpl {
   // Read from KVB and send to the given stream depending on the data type
   template <typename ServerWriterT, typename DataT>
   inline void ReadAndSend(log4cplus::Logger logger, ServerWriterT* stream,
-                          concordUtils::BlockId start,
-                          concordUtils::BlockId end,
+                          kvbc::BlockId start, kvbc::BlockId end,
                           std::shared_ptr<storage::KvbAppFilter> kvb_filter) {
     static_assert(
         std::is_same<DataT, com::vmware::concord::thin_replica::Data>() ||
@@ -299,11 +296,11 @@ class ThinReplicaImpl {
   // Read from KVB until we are in sync with the live updates. This function
   // returns when the next update can be taken from the given live updates.
   template <typename ServerWriterT, typename DataT>
-  void SyncAndSend(concordUtils::BlockId start,
+  void SyncAndSend(kvbc::BlockId start,
                    std::shared_ptr<SubUpdateBuffer> live_updates,
                    ServerWriterT* stream,
                    std::shared_ptr<storage::KvbAppFilter> kvb_filter) {
-    concordUtils::BlockId end = rostorage_->getLastBlock();
+    kvbc::BlockId end = rostorage_->getLastBlock();
     assert(start <= end);
 
     // Let's not wait for a live update yet due to there might be lots of
@@ -374,7 +371,7 @@ class ThinReplicaImpl {
   }
 
   template <typename ServerWriterT>
-  void SendHash(ServerWriterT* stream, concordUtils::BlockId block_id,
+  void SendHash(ServerWriterT* stream, kvbc::BlockId block_id,
                 size_t update_hash) {
     com::vmware::concord::thin_replica::Hash hash;
     hash.set_block_id(block_id);
@@ -432,17 +429,17 @@ class ThinReplicaImpl {
 
  private:
   log4cplus::Logger logger_;
-  const concord::storage::blockchain::ILocalKeyValueStorageReadOnly* rostorage_;
+  const concord::kvbc::ILocalKeyValueStorageReadOnly* rostorage_;
   SubBufferList& subscriber_list_;
   std::shared_ptr<concord::utils::PrometheusRegistry> prometheus_registry_{};
   prometheus::Family<prometheus::Gauge>* metric_queue_size_fam_{};
 
-  const concordUtils::Key cid_key_ = concordUtils::Key(
+  const kvbc::Key cid_key_ = kvbc::Key(
       new decltype(storage::kKvbKeyCorrelationId)[1]{
           storage::kKvbKeyCorrelationId},
       1);
 
-  std::string ExtractCid(concordUtils::SetOfKeyValuePairs& kv) {
+  std::string ExtractCid(kvbc::SetOfKeyValuePairs& kv) {
     std::string ret;
     auto pos = kv.find(cid_key_);
     if (pos != kv.end()) {

@@ -14,17 +14,17 @@
 #include "thin_replica/subscription_buffer.hpp"
 #include "thin_replica/thin_replica_impl.hpp"
 
-#include "blockchain/db_interfaces.h"
 #include "config/configuration_manager.hpp"
+#include "db_interfaces.h"
 #include "gtest/gtest.h"
 
 namespace {
 
-using concordUtils::BlockId;
-using concordUtils::Key;
-using concordUtils::SetOfKeyValuePairs;
+using concord::kvbc::BlockId;
+using concord::kvbc::Key;
+using concord::kvbc::SetOfKeyValuePairs;
+using concord::kvbc::Value;
 using concordUtils::Sliver;
-using concordUtils::Value;
 
 using com::vmware::concord::thin_replica::Data;
 using com::vmware::concord::thin_replica::Hash;
@@ -32,9 +32,8 @@ using com::vmware::concord::thin_replica::ReadStateHashRequest;
 using com::vmware::concord::thin_replica::ReadStateRequest;
 using com::vmware::concord::thin_replica::SubscriptionRequest;
 
-using concord::storage::blockchain::ILocalKeyValueStorageReadOnly;
-using concord::storage::blockchain::ILocalKeyValueStorageReadOnlyIterator;
-using concord::storage::blockchain::Status;
+using concord::kvbc::ILocalKeyValueStorageReadOnly;
+using concordUtils::Status;
 
 using concord::thin_replica::SubUpdateBuffer;
 
@@ -95,18 +94,6 @@ class FakeStorage : public ILocalKeyValueStorageReadOnly {
         << "mayHaveConflictBetween() should not be called by this test";
     return Status::IllegalOperation(
         "mayHaveConflictBetween() is not supported in test mode");
-  }
-
-  ILocalKeyValueStorageReadOnlyIterator* getSnapIterator() const override {
-    ADD_FAILURE() << "getSnapIterator() should not be called by this test";
-    return nullptr;
-  }
-
-  Status freeSnapIterator(
-      ILocalKeyValueStorageReadOnlyIterator*) const override {
-    ADD_FAILURE() << "freeSnapIterator() should not be called by this test";
-    return Status::IllegalOperation(
-        "freeSnapIterator() is not supported in test mode");
   }
 
   void monitor() const override {
