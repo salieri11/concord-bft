@@ -15,15 +15,15 @@ using std::map;
 using std::string;
 using std::vector;
 
-using concord::storage::blockchain::IBlocksAppender;
-using concord::storage::blockchain::ILocalKeyValueStorageReadOnly;
+using concord::kvbc::BlockId;
+using concord::kvbc::IBlocksAppender;
+using concord::kvbc::ILocalKeyValueStorageReadOnly;
+using concord::kvbc::Key;
+using concord::kvbc::KeyValuePair;
+using concord::kvbc::SetOfKeyValuePairs;
+using concord::kvbc::Value;
 using concord::time::TimeContract;
-using concordUtils::BlockId;
-using concordUtils::Key;
-using concordUtils::KeyValuePair;
-using concordUtils::SetOfKeyValuePairs;
 using concordUtils::Sliver;
-using concordUtils::Value;
 
 using com::vmware::concord::ConcordRequest;
 using com::vmware::concord::ConcordResponse;

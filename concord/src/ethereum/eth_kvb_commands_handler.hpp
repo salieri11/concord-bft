@@ -8,10 +8,10 @@
 #include <log4cplus/loggingmacros.h>
 #include <boost/program_options.hpp>
 
-#include "blockchain/db_interfaces.h"
 #include "concord.pb.h"
 #include "config/configuration_manager.hpp"
 #include "consensus/concord_commands_handler.hpp"
+#include "db_interfaces.h"
 #include "ethereum/concord_evm.hpp"
 #include "thin_replica/subscription_buffer.hpp"
 #include "time/time_contract.hpp"
@@ -34,9 +34,8 @@ class EthKvbCommandsHandler
       concord::ethereum::EVM &concevm, concord::utils::EthSign &verifier,
       const concord::config::ConcordConfiguration &config,
       const concord::config::ConcordConfiguration &nodeConfig,
-      const concord::storage::blockchain::ILocalKeyValueStorageReadOnly
-          &storage,
-      concord::storage::blockchain::IBlocksAppender &appender,
+      const concord::kvbc::ILocalKeyValueStorageReadOnly &storage,
+      concord::kvbc::IBlocksAppender &appender,
       concord::thin_replica::SubBufferList &subscriber_list,
       std::shared_ptr<concord::utils::PrometheusRegistry> prometheus_registry);
   ~EthKvbCommandsHandler();

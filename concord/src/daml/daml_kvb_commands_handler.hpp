@@ -11,7 +11,7 @@
 #include "daml_commit.grpc.pb.h"
 #include "daml_validator.grpc.pb.h"
 #include "daml_validator_client.hpp"
-#include "hash_defs.h"
+#include "db_interfaces.h"
 #include "sliver.hpp"
 #include "storage/kvb_key_types.h"
 #include "thin_replica/subscription_buffer.hpp"
@@ -35,8 +35,8 @@ class DamlKvbCommandsHandler
   DamlKvbCommandsHandler(
       const concord::config::ConcordConfiguration& config,
       const concord::config::ConcordConfiguration& node_config,
-      const concord::storage::blockchain::ILocalKeyValueStorageReadOnly& ros,
-      concord::storage::blockchain::IBlocksAppender& ba,
+      const concord::kvbc::ILocalKeyValueStorageReadOnly& ros,
+      concord::kvbc::IBlocksAppender& ba,
       concord::thin_replica::SubBufferList& subscriber_list,
       std::unique_ptr<IDamlValidatorClient> validator,
       std::shared_ptr<concord::utils::IPrometheusRegistry> prometheus_registry)
@@ -80,19 +80,18 @@ class DamlKvbCommandsHandler
       const com::vmware::concord::DamlRequest& daml_request) const;
 
   void RecordTransaction(
-      const string& entryId, const concordUtils::SetOfKeyValuePairs& updates,
-      concordUtils::BlockId current_block_id, const string& correlation_id,
+      const string& entryId, const kvbc::SetOfKeyValuePairs& updates,
+      kvbc::BlockId current_block_id, const string& correlation_id,
       com::vmware::concord::ConcordResponse& concord_response);
 
   bool CommitPreExecutionResult(
-      concordUtils::BlockId current_block_id, const string& entryId,
+      kvbc::BlockId current_block_id, const string& entryId,
       string& correlation_id,
       com::vmware::concord::ConcordResponse& concord_response);
 
   void BuildPreExecutionResult(
-      const concordUtils::SetOfKeyValuePairs& updates,
-      concordUtils::BlockId current_block_id, string& correlation_id,
-      const com::digitalasset::kvbc::Result& result,
+      const kvbc::SetOfKeyValuePairs& updates, kvbc::BlockId current_block_id,
+      string& correlation_id, const com::digitalasset::kvbc::Result& result,
       com::vmware::concord::ConcordResponse& concord_response) const;
 
   bool RunDamlExecution(
@@ -104,7 +103,7 @@ class DamlKvbCommandsHandler
 
   void GetUpdatesFromExecutionResult(
       const com::digitalasset::kvbc::Result& result, const string& entryId,
-      concordUtils::SetOfKeyValuePairs& updates) const;
+      kvbc::SetOfKeyValuePairs& updates) const;
 };
 
 }  // namespace daml

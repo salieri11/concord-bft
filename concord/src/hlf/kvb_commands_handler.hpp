@@ -9,10 +9,10 @@
 #include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>
 #include <iostream>
-#include "blockchain/db_interfaces.h"
 #include "concord.pb.h"
 #include "config/configuration_manager.hpp"
 #include "consensus/concord_commands_handler.hpp"
+#include "db_interfaces.h"
 #include "hlf/chaincode_invoker.hpp"
 #include "hlf/kvb_storage.hpp"
 #include "hlf_services.pb.h"
@@ -36,9 +36,8 @@ class HlfKvbCommandsHandler
       ChaincodeInvoker* chaincode_invoker,
       const concord::config::ConcordConfiguration& config,
       concord::config::ConcordConfiguration& node_config,
-      const concord::storage::blockchain::ILocalKeyValueStorageReadOnly&
-          ro_storage,
-      concord::storage::blockchain::IBlocksAppender& block_appender,
+      const concord::kvbc::ILocalKeyValueStorageReadOnly& ro_storage,
+      concord::kvbc::IBlocksAppender& block_appender,
       concord::thin_replica::SubBufferList& subscriber_list,
       std::shared_ptr<concord::utils::PrometheusRegistry> prometheus_registry);
 

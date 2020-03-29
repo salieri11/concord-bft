@@ -11,16 +11,16 @@
 #include <iomanip>
 #include <iostream>
 #include <string>
-#include "blockchain/db_adapter.h"
+#include "db_adapter.h"
 #include "rocksdb/client.h"
 #include "rocksdb/key_comparator.h"
 
 using namespace std;
-using concord::storage::blockchain::DBAdapter;
-using concord::storage::blockchain::DBKeyComparator;
+using concord::kvbc::BlockId;
+using concord::kvbc::DBAdapter;
+using concord::kvbc::DBKeyComparator;
 using concord::storage::rocksdb::Client;
 using concord::storage::rocksdb::KeyComparator;
-using concordUtils::BlockId;
 using concordUtils::Sliver;
 
 enum class OpType { GetBlockRaw, GetBlockDigest };
@@ -136,16 +136,10 @@ int main(int argc, char **argv) {
     return -1;
   }
 
-  bool readOnly = false;
-  if (opTypes[op] == OpType::GetBlockRaw ||
-      opTypes[op] == OpType::GetBlockDigest) {
-    readOnly = true;
-  }
-
   std::unique_ptr<DBKeyComparator> manip(new DBKeyComparator());
   std::unique_ptr<KeyComparator> comp(new KeyComparator(manip.get()));
   std::shared_ptr<Client> client(new Client(path, comp.get()));
-  std::unique_ptr<DBAdapter> adapter(new DBAdapter(client, readOnly));
+  std::unique_ptr<DBAdapter> adapter(new DBAdapter(client));
 
   switch (opTypes[op]) {
     case OpType::GetBlockDigest: {

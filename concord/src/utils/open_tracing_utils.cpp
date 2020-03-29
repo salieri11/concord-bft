@@ -11,8 +11,8 @@
 
 namespace {
 // Note: they key is not stored in the final KVB
-const concordUtils::Key kSpanContextKey =
-    concordUtils::Key(new char[2]{0x00, 0x01}, 2);
+const ::concordUtils::Sliver kSpanContextKey =
+    ::concordUtils::Sliver(new char[2]{0x00, 0x01}, 2);
 
 const std::string kCorrelationIdTag = "cid";
 }  // namespace
@@ -47,7 +47,7 @@ SpanPtr ExtractSpan(const std::string& context, const std::string& child_name,
       child_name, {opentracing::ChildOf(parent_span_context->get())});
 }
 
-SpanPtr ExtractSpan(concordUtils::SetOfKeyValuePairs& kv,
+SpanPtr ExtractSpan(const OpenTracingKeyValMap& kv,
                     const std::string& child_name, log4cplus::Logger logger,
                     const std::string& correlation_id) {
   auto res = kv.find(kSpanContextKey);
@@ -61,14 +61,13 @@ SpanPtr ExtractSpan(concordUtils::SetOfKeyValuePairs& kv,
                      correlation_id);
 }
 
-SpanPtr ExtractSpan(concordUtils::SetOfKeyValuePairs& kv,
-                    const std::string& child_name, log4cplus::Logger logger) {
+SpanPtr ExtractSpan(OpenTracingKeyValMap& kv, const std::string& child_name,
+                    log4cplus::Logger logger) {
   return ExtractSpan(kv, child_name, logger, "", false);
 }
 
-SpanPtr ExtractSpan(concordUtils::SetOfKeyValuePairs& kv,
-                    const std::string& child_name, log4cplus::Logger logger,
-                    const std::string& correlation_id,
+SpanPtr ExtractSpan(OpenTracingKeyValMap& kv, const std::string& child_name,
+                    log4cplus::Logger logger, const std::string& correlation_id,
                     bool create_span_on_failure) {
   auto res = kv.find(kSpanContextKey);
   if (res == kv.end()) {
@@ -88,7 +87,7 @@ SpanPtr ExtractSpan(concordUtils::SetOfKeyValuePairs& kv,
   return span;
 }
 
-void InjectSpan(const SpanPtr& span, concordUtils::SetOfKeyValuePairs& kv) {
+void InjectSpan(const SpanPtr& span, OpenTracingKeyValMap& kv) {
   std::ostringstream context;
   span->tracer().Inject(span->context(), context);
   kv[kSpanContextKey] = context.str();

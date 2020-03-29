@@ -89,7 +89,8 @@ target_link_libraries(ecrecover
                       concord_utils
                       log4cplus
                       secp256k1
-                      ${CRYPTOPP_LIBRARIES})
+                      ${CRYPTOPP_LIBRARIES}
+                      $<TARGET_OBJECTS:logging_dev>)
 
 add_executable(ecsign
   "ecsign.cpp")
@@ -98,7 +99,8 @@ target_link_libraries(ecsign
                       concord_utils
                       log4cplus
                       secp256k1
-                      ${CRYPTOPP_LIBRARIES})
+                      ${CRYPTOPP_LIBRARIES}
+                      $<TARGET_OBJECTS:logging_dev>)
 
 add_executable(conc_rocksdb_adp "conc_rocksdb_adp.cpp" $<TARGET_OBJECTS:logging_dev>)
 target_link_libraries(conc_rocksdb_adp concord_consensus log4cplus concordbft_storage)

@@ -4,26 +4,27 @@
 #define CONCORD_HLF_KVB_STORAGE_H_
 
 #include <log4cplus/loggingmacros.h>
-#include <vector>
-#include "blockchain/db_interfaces.h"
 #include "common/concord_types.hpp"
 #include "concord.pb.h"
 #include "concord_storage.pb.h"
-#include "hash_defs.h"
+#include "db_interfaces.h"
 #include "hlf_services.pb.h"
 #include "hlf_storage.pb.h"
+#include "kv_types.hpp"
 #include "sliver.hpp"
 #include "status.hpp"
+
+#include <string>
+#include <vector>
 
 namespace concord {
 namespace hlf {
 
 class HlfKvbStorage {
  private:
-  const concord::storage::blockchain::ILocalKeyValueStorageReadOnly&
-      ro_storage_;
-  concord::storage::blockchain::IBlocksAppender* ptr_block_appender_;
-  static concord::storage::SetOfKeyValuePairs updates_;
+  const concord::kvbc::ILocalKeyValueStorageReadOnly& ro_storage_;
+  concord::kvbc::IBlocksAppender* ptr_block_appender_;
+  static concord::kvbc::SetOfKeyValuePairs updates_;
   std::vector<com::vmware::concord::hlf::storage::HlfTransaction>
       pending_hlf_transactions_;
   log4cplus::Logger logger_;
@@ -34,22 +35,17 @@ class HlfKvbStorage {
   const std::string kStateSeparator = "%%";
 
   // read-only mode
-  HlfKvbStorage(
-      const concord::storage::blockchain::ILocalKeyValueStorageReadOnly&
-          ro_storage);
+  HlfKvbStorage(const concord::kvbc::ILocalKeyValueStorageReadOnly& ro_storage);
 
   // read-write mode
-  HlfKvbStorage(
-      const concord::storage::blockchain::ILocalKeyValueStorageReadOnly&
-          ro_storage,
-      concord::storage::blockchain::IBlocksAppender* block_appender);
+  HlfKvbStorage(const concord::kvbc::ILocalKeyValueStorageReadOnly& ro_storage,
+                concord::kvbc::IBlocksAppender* block_appender);
 
   ~HlfKvbStorage();
 
   bool is_read_only();
   uint64_t next_block_number();
-  const concord::storage::blockchain::ILocalKeyValueStorageReadOnly&
-  getReadOnlyStorage();
+  const concord::kvbc::ILocalKeyValueStorageReadOnly& getReadOnlyStorage();
 
   uint64_t current_block_number();
 
@@ -58,10 +54,10 @@ class HlfKvbStorage {
   concordUtils::Status get(const concordUtils::Sliver& key,
                            concordUtils::Sliver& out);
 
-  concordUtils::Status get(const concordUtils::BlockId read_version,
+  concordUtils::Status get(const kvbc::BlockId read_version,
                            const concordUtils::Sliver& key,
                            concordUtils::Sliver& value,
-                           concordUtils::BlockId& out_block);
+                           kvbc::BlockId& out_block);
 
   concordUtils::Sliver KvbKey(uint8_t type, const std::string& key) const;
 
@@ -76,11 +72,11 @@ class HlfKvbStorage {
 
   void put(const concordUtils::Sliver& key, const concordUtils::Sliver& value);
 
-  string GetHlfState(const std::string& key);
+  std::string GetHlfState(const std::string& key);
 
-  string GetHlfState(const std::string& key, uint64_t& block_number);
+  std::string GetHlfState(const std::string& key, uint64_t& block_number);
 
-  concordUtils::Status SetHlfState(const string key, string value);
+  concordUtils::Status SetHlfState(const std::string key, std::string value);
 
   concordUtils::Status AddHlfTransaction(
       const com::vmware::concord::HlfRequest& hlf_request);

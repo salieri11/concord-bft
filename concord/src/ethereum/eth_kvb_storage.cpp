@@ -77,10 +77,10 @@ using concord::common::ReadOnlyModeException;
 using concord::common::TransactionNotFoundException;
 using concord::common::zero_hash;
 using concord::common::operator<<;
-using concord::storage::blockchain::IBlocksAppender;
-using concord::storage::blockchain::ILocalKeyValueStorageReadOnly;
-using concordUtils::BlockId;
-using concordUtils::SetOfKeyValuePairs;
+using concord::kvbc::BlockId;
+using concord::kvbc::IBlocksAppender;
+using concord::kvbc::ILocalKeyValueStorageReadOnly;
+using concord::kvbc::SetOfKeyValuePairs;
 using concordUtils::Sliver;
 using concordUtils::Status;
 

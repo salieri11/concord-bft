@@ -6,9 +6,9 @@
 #include <grpcpp/grpcpp.h>
 #include <log4cplus/loggingmacros.h>
 
-#include "blockchain/db_interfaces.h"
 #include "consensus/kvb_client.hpp"
 #include "daml_commit.grpc.pb.h"
+#include "db_interfaces.h"
 
 namespace concord {
 namespace daml {

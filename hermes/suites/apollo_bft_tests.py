@@ -102,7 +102,7 @@ async def _test_skvbc_fast_path(bft_network):
     skvbc_fast_path_test = SkvbcFastPathTest()
     skvbc_fast_path_test.setUp()
     log.info("Running SKVBC read-your-writes (fast path)...")
-    await skvbc_fast_path_test.test_fast_path_read_your_write(
+    await skvbc_fast_path_test.test_fast_path_only(
         bft_network=bft_network,
         already_in_trio=True,
         disable_linearizability_checks=True

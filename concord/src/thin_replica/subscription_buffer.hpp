@@ -9,15 +9,13 @@
 #include <iostream>
 #include <list>
 #include <thread>
-#include "hash_defs.h"
 #include "kv_types.hpp"
 
 namespace concord {
 namespace thin_replica {
 
 // A single update from the commands handler
-typedef std::pair<concordUtils::BlockId, concordUtils::SetOfKeyValuePairs>
-    SubUpdate;
+typedef std::pair<kvbc::BlockId, kvbc::SetOfKeyValuePairs> SubUpdate;
 
 // Each subscriber creates its own ring buffer and puts it into the shared list
 // of subscriber buffers. This is a thread-safe implementation around boost's
@@ -73,12 +71,12 @@ class SubUpdateBuffer {
     cb_.erase_begin(cb_.size());
   }
 
-  concordUtils::BlockId NewestBlockId() {
+  kvbc::BlockId NewestBlockId() {
     std::lock_guard<std::mutex> lock(buffer_mutex_);
     return cb_.back().first;
   }
 
-  concordUtils::BlockId OldestBlockId() {
+  kvbc::BlockId OldestBlockId() {
     std::lock_guard<std::mutex> lock(buffer_mutex_);
     return cb_.front().first;
   }

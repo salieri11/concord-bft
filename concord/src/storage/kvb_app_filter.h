@@ -9,16 +9,17 @@
 #include <atomic>
 #include <boost/lockfree/spsc_queue.hpp>
 #include <future>
+#include <set>
 
-#include "blockchain/db_interfaces.h"
+#include "db_interfaces.h"
+#include "kv_types.hpp"
 
 namespace concord {
 namespace storage {
 
 // TODO: Move into concordUtils
 typedef size_t KvbStateHash;
-typedef std::pair<concordUtils::BlockId, concordUtils::SetOfKeyValuePairs>
-    KvbUpdate;
+typedef std::pair<kvbc::BlockId, kvbc::SetOfKeyValuePairs> KvbUpdate;
 
 class KvbReadError : public std::exception {
  public:
@@ -41,8 +42,7 @@ class KvbAppFilter {
     kCid = 1,
   };
 
-  KvbAppFilter(const concord::storage::blockchain::ILocalKeyValueStorageReadOnly
-                   *rostorage,
+  KvbAppFilter(const concord::kvbc::ILocalKeyValueStorageReadOnly *rostorage,
                const std::set<KvbAppFilter::AppType> &app_types,
                const std::string &client_id, const std::string &key_prefix)
       : logger_(log4cplus::Logger::getInstance("concord.storage.KvbFilter")),
@@ -66,25 +66,25 @@ class KvbAppFilter {
   // for consuming the elements from the queue. The function will block if the
   // queue is full and therefore, it cannot push a new key-value pair.
   // Note: single producer & single consumer queue.
-  void ReadBlockRange(concordUtils::BlockId start, concordUtils::BlockId end,
+  void ReadBlockRange(kvbc::BlockId start, kvbc::BlockId end,
                       boost::lockfree::spsc_queue<KvbUpdate> &queue_out,
                       const std::atomic_bool &stop_execution);
 
   // Compute the hash of all key-value pairs in the range of [earliest block
   // available, given block_id] based on the given KvbAppFilter::AppType.
-  KvbStateHash ReadBlockRangeHash(concordUtils::BlockId start,
-                                  concordUtils::BlockId end);
-  KvbStateHash ReadBlockHash(concordUtils::BlockId block_id);
+  KvbStateHash ReadBlockRangeHash(kvbc::BlockId start, kvbc::BlockId end);
+  KvbStateHash ReadBlockHash(kvbc::BlockId block_id);
 
  private:
   log4cplus::Logger logger_;
-  const concord::storage::blockchain::ILocalKeyValueStorageReadOnly *rostorage_;
+  const concord::kvbc::ILocalKeyValueStorageReadOnly *rostorage_;
   const std::set<KvbAppFilter::AppType> types_;
   const std::string client_id_;
   const std::string key_prefix_;
 
   // Filter the given set of key-value pairs and return the result.
-  SetOfKeyValuePairs FilterKeyValuePairs(const SetOfKeyValuePairs &kvs);
+  kvbc::SetOfKeyValuePairs FilterKeyValuePairs(
+      const kvbc::SetOfKeyValuePairs &kvs);
 };
 
 }  // namespace storage

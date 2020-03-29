@@ -14,10 +14,9 @@
 #include <daml/daml_kvb_commands_handler.hpp>
 #include <daml/daml_validator_client.hpp>
 #include <utils/concord_prometheus_metrics.hpp>
-#include "blockchain/db_interfaces.h"
-#include "hash_defs.h"
+#include "db_interfaces.h"
 
-using namespace concord::storage::blockchain;
+using namespace concord::kvbc;
 using namespace concord::daml;
 using namespace concord::utils;
 using namespace concordUtils;
@@ -56,9 +55,6 @@ class MockLocalKeyValueStorageReadOnly : public ILocalKeyValueStorageReadOnly {
   MOCK_CONST_METHOD2(getBlockData, Status(BlockId, SetOfKeyValuePairs&));
   MOCK_CONST_METHOD4(mayHaveConflictBetween,
                      Status(const Sliver&, BlockId, BlockId, bool&));
-  MOCK_CONST_METHOD0(getSnapIterator, ILocalKeyValueStorageReadOnlyIterator*());
-  MOCK_CONST_METHOD1(freeSnapIterator,
-                     Status(ILocalKeyValueStorageReadOnlyIterator*));
   MOCK_CONST_METHOD0(monitor, void());
 };
 

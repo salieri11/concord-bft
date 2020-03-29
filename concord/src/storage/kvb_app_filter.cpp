@@ -15,19 +15,17 @@
 #include "concord_storage.pb.h"
 #include "kv_types.hpp"
 #include "kvb_key_types.h"
-// TODO: SetOfKeyValuePairs needs a hash definition provided in hash_defs.h
-// It should be included in kv_types.hpp
-#include "hash_defs.h"
 
 using namespace std::chrono_literals;
 
 using boost::lockfree::spsc_queue;
 
+using concord::kvbc::BlockId;
+using concord::kvbc::Key;
+using concord::kvbc::KeyValuePair;
+using concord::kvbc::SetOfKeyValuePairs;
 using concord::storage::InvalidBlockRange;
-using concordUtils::BlockId;
-using concordUtils::Key;
-using concordUtils::KeyValuePair;
-using concordUtils::SetOfKeyValuePairs;
+using concordUtils::Sliver;
 using concordUtils::Status;
 
 using com::vmware::concord::kvb::ValueWithTrids;
@@ -102,11 +100,13 @@ KvbUpdate KvbAppFilter::FilterUpdate(const KvbUpdate &update) {
 }
 
 size_t KvbAppFilter::HashUpdate(const KvbUpdate update) {
-  size_t hash = std::hash<string>{}(std::to_string(update.first));
+  size_t hash = std::hash<std::string>{}(std::to_string(update.first));
   for (const auto &[key, value] : update.second) {
     // (key1 XOR value1) XOR (key2 XOR value2) ...
-    auto key_hash = std::hash<string>{}(string{key.data(), key.length()});
-    key_hash ^= std::hash<string>{}(string{value.data(), value.length()});
+    auto key_hash =
+        std::hash<std::string>{}(std::string{key.data(), key.length()});
+    key_hash ^=
+        std::hash<std::string>{}(std::string{value.data(), value.length()});
     hash ^= key_hash;
   }
   return hash;

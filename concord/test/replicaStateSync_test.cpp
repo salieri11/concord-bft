@@ -8,8 +8,9 @@
 #include <log4cplus/configurator.h>
 #include <log4cplus/hierarchy.h>
 #include <log4cplus/loggingmacros.h>
-#include "blockchain/block.h"
-#include "blockchain/db_adapter.h"
+#include "db_adapter.h"
+#include "db_interfaces.h"
+#include "direct_kv_block.h"
 #include "gtest/gtest.h"
 #include "replica_state_sync_imp.hpp"
 
@@ -24,22 +25,23 @@ using namespace log4cplus;
 
 using concord::kvbc::ReplicaStateSyncImp;
 using concord::storage::ConcordBlockMetadata;
-using BlockEntry = concord::storage::blockchain::block::detail::Entry;
-using BlockHeader = concord::storage::blockchain::block::detail::Header;
-using concord::storage::blockchain::DBAdapter;
-using concord::storage::blockchain::DBKeyComparator;
-using concord::storage::blockchain::DBKeyManipulator;
-using concord::storage::blockchain::IBlocksAppender;
-using concord::storage::blockchain::ILocalKeyValueStorageReadOnly;
-using concord::storage::blockchain::ILocalKeyValueStorageReadOnlyIterator;
+using BlockEntry = concord::kvbc::block::detail::Entry;
+using BlockHeader = concord::kvbc::block::detail::Header;
+using concord::kvbc::BlockId;
+using concord::kvbc::DBAdapter;
+using concord::kvbc::DBKeyComparator;
+using concord::kvbc::IBlocksAppender;
+using concord::kvbc::IDataKeyGenerator;
+using concord::kvbc::ILocalKeyValueStorageReadOnly;
+using concord::kvbc::Key;
+using concord::kvbc::KeyGenerator;
+using concord::kvbc::SetOfKeyValuePairs;
+using concord::kvbc::Value;
 using concord::storage::rocksdb::Client;
 using concord::storage::rocksdb::KeyComparator;
-using concordUtils::BlockId;
-using concordUtils::Key;
-using concordUtils::SetOfKeyValuePairs;
+
 using concordUtils::Sliver;
 using concordUtils::Status;
-using concordUtils::Value;
 
 namespace {
 
@@ -53,6 +55,7 @@ const BlockId singleBlockId = 999;
 const BlockId prevBlockId = lastBlockId - 1;
 const BlockId prevPrevBlockId = lastBlockId - 2;
 BlockId blockIdToBeRead = 0;
+std::unique_ptr<IDataKeyGenerator> keyGen{std::make_unique<KeyGenerator>()};
 
 class MockILocalKeyValueStorageReadOnly : public ILocalKeyValueStorageReadOnly {
  public:
@@ -68,13 +71,6 @@ class MockILocalKeyValueStorageReadOnly : public ILocalKeyValueStorageReadOnly {
   }
   Status mayHaveConflictBetween(const Sliver &key, BlockId fromBlock,
                                 BlockId toBlock, bool &outRes) const override {
-    return Status::OK();
-  }
-  ILocalKeyValueStorageReadOnlyIterator *getSnapIterator() const override {
-    return nullptr;
-  }
-  Status freeSnapIterator(
-      ILocalKeyValueStorageReadOnlyIterator *iter) const override {
     return Status::OK();
   }
   void monitor() const override { ; }
@@ -125,19 +121,19 @@ ConcordBlockMetadata kvbStorage(keyValueStorageMock);
 const Sliver blockMetadataInternalKey = kvbStorage.getKey();
 
 const Key lastBlockFullKey =
-    DBKeyManipulator::genDataDbKey(blockMetadataInternalKey, lastBlockId);
+    keyGen->dataKey(blockMetadataInternalKey, lastBlockId);
 const Value lastBlockValue = kvbStorage.serialize(lastSeqNum + 2);
 
 const Key prevBlockFullKey =
-    DBKeyManipulator::genDataDbKey(blockMetadataInternalKey, prevBlockId);
+    keyGen->dataKey(blockMetadataInternalKey, prevBlockId);
 const Value prevBlockValue = kvbStorage.serialize(lastSeqNum + 1);
 
 const Key prevPrevBlockFullKey =
-    DBKeyManipulator::genDataDbKey(blockMetadataInternalKey, prevPrevBlockId);
+    keyGen->dataKey(blockMetadataInternalKey, prevPrevBlockId);
 const Value prevPrevBlockValue = kvbStorage.serialize(lastSeqNum);
 
 const Key singleBlockValueFullKey =
-    DBKeyManipulator::genDataDbKey(blockMetadataInternalKey, singleBlockId);
+    keyGen->dataKey(blockMetadataInternalKey, singleBlockId);
 const Value singleBlockValue = kvbStorage.serialize(lastSeqNum);
 
 Status MockILocalKeyValueStorageReadOnly::get(const Key &key,
@@ -176,9 +172,9 @@ TEST(replicaStateSync_test, block_removed) {
   dbClient->put(prevBlockFullKey, prevBlockValue);
   dbClient->put(lastBlockFullKey, lastBlockValue);
 
-  Sliver prevPrevBlockDbKey = DBKeyManipulator::genBlockDbKey(prevPrevBlockId);
-  Sliver prevBlockDbKey = DBKeyManipulator::genBlockDbKey(prevBlockId);
-  Sliver lastBlockDbKey = DBKeyManipulator::genBlockDbKey(lastBlockId);
+  Sliver prevPrevBlockDbKey = keyGen->blockKey(prevPrevBlockId);
+  Sliver prevBlockDbKey = keyGen->blockKey(prevBlockId);
+  Sliver lastBlockDbKey = keyGen->blockKey(lastBlockId);
 
   dbClient->put(prevPrevBlockDbKey,
                 setUpBlockContent(prevPrevBlockFullKey, prevPrevBlockValue));

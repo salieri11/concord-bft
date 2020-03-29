@@ -6,6 +6,7 @@ target_link_libraries(concord_ethereum PUBLIC
   ${EVM_LIBRARIES}
   concord_common
   concord_consensus
+  kvbc
   LLVMSupport
   proto
   secp256k1

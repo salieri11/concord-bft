@@ -5,10 +5,9 @@
 #include "gtest/gtest.h"
 #include "mocks.hpp"
 
-#include "blockchain/db_adapter.h"
-#include "blockchain/db_interfaces.h"
 #include "config/configuration_manager.hpp"
-#include "hash_defs.h"
+#include "db_adapter.h"
+#include "db_interfaces.h"
 #include "memorydb/client.h"
 #include "memorydb/key_comparator.h"
 #include "pruning/kvb_pruning_sm.hpp"
@@ -38,12 +37,12 @@
 #include <vector>
 
 using namespace concord::config;
-using namespace concordUtils;
+using namespace concord::kvbc;
 using namespace concord::pruning;
 using namespace concord::storage;
-using namespace concord::storage::blockchain;
 using namespace concord::storage::memorydb;
 using namespace concord::time;
+using namespace concordUtils;
 
 using namespace com::vmware::concord;
 using google::protobuf::util::TimeUtil;
@@ -70,7 +69,7 @@ class TestStorage : public ILocalKeyValueStorageReadOnly,
   Status get(BlockId readVersion, const Sliver& key, Sliver& outValue,
              BlockId& outBlock) const override {
     outBlock = readVersion;
-    return db_.get(DBKeyManipulator::genDataDbKey(key, readVersion), outValue);
+    return db_.get(keyGen_->dataKey(key, readVersion), outValue);
   }
 
   BlockId getLastBlock() const override { return blockId_; }
@@ -89,19 +88,6 @@ class TestStorage : public ILocalKeyValueStorageReadOnly,
         "mayHaveConflictBetween() not supported in test mode");
   }
 
-  ILocalKeyValueStorageReadOnlyIterator* getSnapIterator() const override {
-    EXPECT_TRUE(false) << "getSnapIterator() should not be called by this test";
-    return nullptr;
-  }
-
-  Status freeSnapIterator(
-      ILocalKeyValueStorageReadOnlyIterator*) const override {
-    EXPECT_TRUE(false)
-        << "freeSnapIterator() should not be called by this test";
-    return Status::IllegalOperation(
-        "freeSnapIterator() not supported in test mode");
-  }
-
   void monitor() const override {
     EXPECT_TRUE(false) << "monitor() should not be called by this test";
   }
@@ -111,7 +97,7 @@ class TestStorage : public ILocalKeyValueStorageReadOnly,
     outBlockId = ++blockId_;
     for (const auto& u : updates) {
       const auto status =
-          db_.put(DBKeyManipulator::genDataDbKey(u.first, blockId_), u.second);
+          db_.put(keyGen_->dataKey(u.first, blockId_), u.second);
       if (!status.isOK()) {
         return status;
       }
@@ -122,9 +108,10 @@ class TestStorage : public ILocalKeyValueStorageReadOnly,
   void setBlockId(BlockId id) { blockId_ = id; }
 
  private:
-  KeyComparator comp{new DBKeyComparator{}};
-  Client db_{comp};
+  KeyComparator comp_{new DBKeyComparator{}};
+  Client db_{comp_};
   BlockId blockId_{LAST_BLOCK_ID};
+  std::unique_ptr<IDataKeyGenerator> keyGen_{std::make_unique<KeyGenerator>()};
 };
 
 using ReplicaIDs = std::set<std::uint64_t>;

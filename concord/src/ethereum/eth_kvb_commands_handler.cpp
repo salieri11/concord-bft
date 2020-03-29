@@ -52,8 +52,8 @@ using concord::utils::RLPBuilder;
 using concord::utils::to_evm_uint256be;
 using concord::common::operator<<;
 
-using concord::storage::blockchain::IBlocksAppender;
-using concord::storage::blockchain::ILocalKeyValueStorageReadOnly;
+using concord::kvbc::IBlocksAppender;
+using concord::kvbc::ILocalKeyValueStorageReadOnly;
 
 namespace concord {
 namespace ethereum {
@@ -62,8 +62,8 @@ EthKvbCommandsHandler::EthKvbCommandsHandler(
     EVM &concevm, EthSign &verifier,
     const concord::config::ConcordConfiguration &config,
     const concord::config::ConcordConfiguration &nodeConfig,
-    const concord::storage::blockchain::ILocalKeyValueStorageReadOnly &storage,
-    concord::storage::blockchain::IBlocksAppender &appender,
+    const concord::kvbc::ILocalKeyValueStorageReadOnly &storage,
+    concord::kvbc::IBlocksAppender &appender,
     concord::thin_replica::SubBufferList &subscriber_list,
     std::shared_ptr<concord::utils::PrometheusRegistry> prometheus_registry)
     : ConcordCommandsHandler(config, nodeConfig, storage, appender,

@@ -3,11 +3,11 @@
 #include <log4cplus/configurator.h>
 #include <log4cplus/hierarchy.h>
 #include <boost/lockfree/spsc_queue.hpp>
-#include "blockchain/db_adapter.h"
-#include "blockchain/db_interfaces.h"
 #include "config/configuration_manager.hpp"
+#include "db_adapter.h"
+#include "db_interfaces.h"
 #include "gtest/gtest.h"
-#include "hash_defs.h"
+#include "kv_types.hpp"
 #include "memorydb/client.h"
 #include "memorydb/key_comparator.h"
 #include "status.hpp"
@@ -22,21 +22,20 @@
 
 using boost::lockfree::spsc_queue;
 using com::vmware::concord::kvb::ValueWithTrids;
+using concord::kvbc::BlockId;
+using concord::kvbc::ILocalKeyValueStorageReadOnly;
+using concord::kvbc::Key;
+using concord::kvbc::Value;
 using concord::storage::InvalidBlockRange;
 using concord::storage::kKvbKeyDaml;
 using concord::storage::kKvbKeyEthBlock;
 using concord::storage::KvbAppFilter;
 using concord::storage::KvbReadError;
 using concord::storage::SetOfKeyValuePairs;
-using concord::storage::blockchain::BlockId;
-using concord::storage::blockchain::ILocalKeyValueStorageReadOnly;
-using concord::storage::blockchain::ILocalKeyValueStorageReadOnlyIterator;
-using concord::storage::blockchain::Key;
-using concord::storage::blockchain::Status;
-using concord::storage::blockchain::Value;
 using concord::storage::memorydb::Sliver;
+using concordUtils::Status;
 using std::chrono_literals::operator""ms;
-typedef std::pair<concordUtils::BlockId, concordUtils::SetOfKeyValuePairs>
+typedef std::pair<concord::kvbc::BlockId, concord::kvbc::SetOfKeyValuePairs>
     KvbUpdate;
 namespace {
 
@@ -66,6 +65,7 @@ class FakeStorage : public ILocalKeyValueStorageReadOnly {
     // The actual storage implementation (ReplicaImpl.cpp) expects us to handle
     // an invalid block range; let's simulate this here.
     ADD_FAILURE() << "Provide a valid block range";
+    return Status::InvalidArgument("Provide a valid block range");
   }
 
   Status mayHaveConflictBetween(const Sliver&, BlockId, BlockId,
@@ -74,18 +74,6 @@ class FakeStorage : public ILocalKeyValueStorageReadOnly {
         << "mayHaveConflictBetween() should not be called by this test";
     return Status::IllegalOperation(
         "mayHaveConflictBetween() not supported in test mode");
-  }
-
-  ILocalKeyValueStorageReadOnlyIterator* getSnapIterator() const override {
-    ADD_FAILURE() << "getSnapIterator() should not be called by this test";
-    return nullptr;
-  }
-
-  Status freeSnapIterator(
-      ILocalKeyValueStorageReadOnlyIterator*) const override {
-    ADD_FAILURE() << "freeSnapIterator() should not be called by this test";
-    return Status::IllegalOperation(
-        "freeSnapIterator() not supported in test mode");
   }
 
   void monitor() const override {

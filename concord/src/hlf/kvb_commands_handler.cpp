@@ -10,6 +10,7 @@
 #include "concord.pb.h"
 #include "config/configuration_manager.hpp"
 #include "consensus/concord_commands_handler.hpp"
+#include "kv_types.hpp"
 #include "time/time_contract.hpp"
 #include "utils/concord_eth_hash.hpp"
 
@@ -30,11 +31,11 @@ using concord::common::zero_hash;
 using concord::common::operator<<;
 using concord::hlf::ChaincodeInvoker;
 using concord::hlf::HlfKvbStorage;
-using concord::storage::blockchain::IBlocksAppender;
-using concord::storage::blockchain::ILocalKeyValueStorageReadOnly;
+using concord::kvbc::BlockId;
+using concord::kvbc::IBlocksAppender;
+using concord::kvbc::ILocalKeyValueStorageReadOnly;
+using concord::kvbc::SetOfKeyValuePairs;
 using concord::time::TimeContract;
-using concordUtils::BlockId;
-using concordUtils::SetOfKeyValuePairs;
 using concordUtils::Status;
 
 namespace concord {
