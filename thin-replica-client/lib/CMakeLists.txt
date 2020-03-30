@@ -19,6 +19,8 @@ add_library(proto SHARED ${PROTO_SRCS} ${PROTO_HDRS} ${GRPC_SRCS} ${GRPC_SRCS})
 target_link_libraries(proto protobuf::libprotobuf)
 install(TARGETS proto DESTINATION lib)
 
+find_package(prometheus-cpp CONFIG REQUIRED)
+
 # Build the Thin Replica Client library
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 add_library(thin_replica_client SHARED
@@ -29,6 +31,8 @@ target_link_libraries(thin_replica_client
   proto
   log4cplus
   gRPC::grpc++
+  prometheus-cpp::core
+  prometheus-cpp::pull
 )
 
 install(TARGETS thin_replica_client DESTINATION lib)

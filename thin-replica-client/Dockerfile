@@ -13,6 +13,8 @@ RUN apt-get update && apt-get -y install \
     cmake \
     git \
     libtool \
+    zlib1g-dev \
+    libcurl4-openssl-dev \
     && rm -rf /var/lib/apt/lists/*
 
 RUN ln -s /usr/bin/clang-format-7 /usr/bin/clang-format
@@ -59,6 +61,22 @@ RUN git clone https://github.com/google/googletest.git && \
     git checkout e93da23920e5b6887d6a6a291c3a59f83f5b579e
 WORKDIR /googletest/_build
 RUN cmake -DCMAKE_CXX_FLAGS="-std=c++11 -march=x86-64 -mtune=generic" .. && make -j$(nproc)
+
+# Install Prometheus-cpp
+RUN apt-get update && apt-get install -y zlib1g-dev libcurl4-openssl-dev
+WORKDIR /
+RUN git clone https://github.com/jupp0r/prometheus-cpp.git && \
+    cd prometheus-cpp && \
+    git checkout v0.8.0 && \
+    git submodule init && \
+    git submodule update && \
+    mkdir _build && \
+    cd _build && \
+    cmake -DBUILD_SHARED_LIBS=ON .. && \
+    make && \
+    make install && \
+    cd ../.. && \
+    rm -r prometheus-cpp
 
 # Copy sources
 COPY ./concord/cmake /concord/cmake

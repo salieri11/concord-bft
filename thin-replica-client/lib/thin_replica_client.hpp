@@ -42,6 +42,10 @@
 
 #include <grpcpp/grpcpp.h>
 #include <log4cplus/loggingmacros.h>
+#include <prometheus/counter.h>
+#include <prometheus/exposer.h>
+#include <prometheus/gauge.h>
+#include <prometheus/registry.h>
 #include <thread>
 
 namespace thin_replica_client {
@@ -127,6 +131,8 @@ class UpdateQueue {
   // otherwise (this may involve dynamic memory allocation at the discretion of
   // the UpdateQueue implementation).
   virtual std::unique_ptr<Update> TryPop() = 0;
+
+  virtual uint64_t Size() = 0;
 };
 
 // Basic UpdateQueue implementation provided by this library. This class can be
@@ -163,6 +169,7 @@ class BasicUpdateQueue : public UpdateQueue {
   virtual void Push(std::unique_ptr<Update> update) override;
   virtual std::unique_ptr<Update> Pop() override;
   virtual std::unique_ptr<Update> TryPop() override;
+  virtual uint64_t Size() override;
 };
 
 // Thin Replica Client implementation; used to subscribe to and stream updates
@@ -210,6 +217,13 @@ class ThinReplicaClient final {
       subscription_hash_streams_;
   std::vector<std::unique_ptr<grpc::ClientContext>> sub_hash_contexts_;
 
+  // TRC metrics
+  prometheus::Exposer exposer_;
+  std::shared_ptr<prometheus::Registry> registry_;
+  prometheus::Family<prometheus::Counter>& trc_requests_counters_total_;
+  prometheus::Family<prometheus::Gauge>& trc_resources_gauges_total_;
+  prometheus::Counter& trc_updates_counter_;
+  prometheus::Gauge& trc_queue_size_;
   // Function(s) for computing hashes as we anticipate they exist according to
   // non-faulty Thin Replica Servers.
   // XXX: We anticipate it is very possible the data type for hashes and hash
@@ -307,7 +321,23 @@ class ThinReplicaClient final {
         sub_data_context_(),
         current_data_source_(0),
         subscription_hash_streams_(),
-        sub_hash_contexts_() {
+        sub_hash_contexts_(),
+        exposer_("0.0.0.0:9891", "/metrics", 1),
+        registry_(std::make_shared<prometheus::Registry>()),
+        trc_requests_counters_total_(
+            prometheus::BuildCounter()
+                .Name("trc_requests_counters_toatal")
+                .Help("counts requests related operation")
+                .Register(*registry_)),
+        trc_resources_gauges_total_(prometheus::BuildGauge()
+                                        .Name("trc_resources_gauges_total")
+                                        .Help("values of trc resources")
+                                        .Register(*registry_)),
+        trc_updates_counter_(
+            trc_requests_counters_total_.Add({{"item", "updates"}})),
+        trc_queue_size_(
+            trc_resources_gauges_total_.Add({{"resource", "queue_size"}})) {
+    exposer_.RegisterCollectable(registry_);
     while (begin_servers != end_servers) {
       auto& server_info = *begin_servers;
       if (!(server_info.second)) {
