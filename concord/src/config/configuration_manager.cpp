@@ -3098,7 +3098,7 @@ void specifyConfiguration(ConcordConfiguration& config) {
 
   config.declareParameter(
       "pruning_enabled",
-      "A flag to indicate if pruning is enabled for the replcia. If set to "
+      "A flag to indicate if pruning is enabled for the replica. If set to "
       "false, LatestPrunableBlockRequest will return 0 as a latest block("
       "indicating no blocks can be pruned) and PruneRequest will return an "
       "error. If not specified, a value of false is assumed.");
@@ -3361,6 +3361,13 @@ void specifyConfiguration(ConcordConfiguration& config) {
                         "Time interval for dumping concord metrics to log "
                         "(600 seconds by default).");
   node.tagParameter("dump_metrics_interval_sec", privateOptionalTags);
+
+  config.declareParameter(
+      "preexecution_enabled",
+      "A flag to indicate if pre-execution feature is enabled for the replica.",
+      "false");
+  config.tagParameter("preexecution_enabled", publicDefaultableTags);
+  config.addValidator("preexecution_enabled", validateBoolean, nullptr);
 
   config.declareParameter("preexec_requests_status_check_period_millisec",
                           "Time interval for a periodic detection of timed out "
