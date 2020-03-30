@@ -8,7 +8,7 @@ add_library(concord_utils STATIC
   "concord_logging.hpp"
 )
 target_link_libraries(concord_utils secp256k1 util prometheus-cpp::core
-        prometheus-cpp::pull yaml-cpp)
+        prometheus-cpp::pull yaml-cpp jaegertracing opentracing )
 target_include_directories(concord_utils PUBLIC ${CRYPTOPP_INCLUDE_DIRS})
 
 install (FILES utils.hpp rlp.hpp concord_eth_hash.hpp concord_eth_sign.hpp
