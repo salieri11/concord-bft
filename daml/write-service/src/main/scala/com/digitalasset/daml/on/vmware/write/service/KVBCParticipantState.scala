@@ -2,13 +2,14 @@
 
 package com.digitalasset.daml.on.vmware.write.service
 
+import java.nio.BufferUnderflowException
 import java.time.Duration
 
 import akka.NotUsed
 import akka.actor.ActorSystem
 import akka.stream.Materializer
 import akka.stream.scaladsl._
-import com.digitalasset.daml.lf.data.{Ref, Time}
+import com.digitalasset.daml.lf.data.{Bytes, Ref, Time}
 import com.digitalasset.daml.lf.data.Ref.Party
 import com.digitalasset.daml.lf.data.Time.Timestamp
 import com.digitalasset.daml_lf_dev.DamlLf.Archive
@@ -28,13 +29,9 @@ import com.codahale.metrics.MetricRegistry
 import io.grpc.{ConnectivityState, Status, StatusRuntimeException}
 import com.daml.ledger.participant.state.pkvutils.Defragmenter
 import com.daml.ledger.participant.state.pkvutils.protobuf
-import com.digitalasset.daml.on.vmware.common.{
-  KVBCHttpServer,
-  KVBCMetricsRegistry,
-  KVBCPrometheusMetricsEndpoint,
-  SharedMetricRegistryCloseable
-}
+import com.digitalasset.daml.on.vmware.common.{KVBCHttpServer, KVBCMetricsRegistry, KVBCPrometheusMetricsEndpoint, SharedMetricRegistryCloseable}
 import com.digitalasset.resources.ResourceOwner
+import com.google.protobuf.ByteString
 
 /**
  * DAML Participant State implementation on top of VMware Blockchain.
@@ -192,7 +189,7 @@ class KVBCParticipantState(
       KeyValueSubmission.transactionToSubmission(
         submitterInfo,
         transactionMeta,
-        transaction)
+        transaction.assertNoRelCid(cid => s"Unexpected relative contract id: $cid"))
 
     val commandId = submission.getTransactionEntry.getSubmitterInfo.getCommandId
 
@@ -220,7 +217,8 @@ class KVBCParticipantState(
               minTransactionLatency = Duration.ofSeconds(1),
               maxClockSkew = Duration.ofSeconds(10),
               maxTtl = Duration.ofMinutes(2),
-            )
+            ),
+          Duration.ofDays(1) // Same default as SDK ledgers
         ),
 
         // FIXME(JM): This in principle should be the record time of block 0,
@@ -233,8 +231,7 @@ class KVBCParticipantState(
 
   override def stateUpdates(beginAfter: Option[Offset]): Source[(Offset, Update), NotUsed] = {
     val beginFromBlockId: Long =
-      beginAfter
-        .flatMap(_.components.headOption)
+      beginAfter.map(KVOffset.highestIndex)
         .getOrElse(beginning)
 
     logger.info(s"Initializing thin replica source, offset=${beginFromBlockId}")
@@ -270,7 +267,7 @@ class KVBCParticipantState(
           .zipWithIndex.map {
             case (update, idx) =>
               logger.info(s"Processing block, offset=${block.blockId}:$idx correlationId=${block.correlationId}")
-              Offset(Array(block.blockId, idx.toLong)) -> update
+              KVOffset.fromLong(block.blockId, idx) -> update
           }
 
       Source(updates)

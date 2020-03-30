@@ -45,6 +45,7 @@ class KVBCValidator(registry: MetricRegistry)(implicit ec: ExecutionContext)
 
   private val logger = LoggerFactory.getLogger(this.getClass)
   private val engine = Engine()
+  private val keyValueCommitting = new KeyValueCommitting(registry)
 
   private val cache: Cache[(ReplicaId, KV.DamlStateKey), KV.DamlStateValue] = {
     val cacheSizeEnv = System.getenv("KVBC_VALIDATOR_CACHE_SIZE")
@@ -89,7 +90,8 @@ class KVBCValidator(registry: MetricRegistry)(implicit ec: ExecutionContext)
       minTransactionLatency = Duration.ofSeconds(1),
       maxClockSkew = Duration.ofSeconds(10),
       maxTtl = Duration.ofMinutes(2),
-    )
+    ),
+    maxDeduplicationTime = Duration.ofDays(1) // Same default as SDK ledgers
   )
 
   private def buildTimestamp(ts: Time.Timestamp): com.google.protobuf.timestamp.Timestamp = {
@@ -134,7 +136,7 @@ class KVBCValidator(registry: MetricRegistry)(implicit ec: ExecutionContext)
     val providedInputs: StateInputs =
       request.inputState.map { kv =>
         val key =
-          KeyValueCommitting.unpackDamlStateKey(kv.key.substring(1))
+          keyValueCommitting.unpackDamlStateKey(kv.key.substring(1))
 
         key ->
           (if (kv.value.isEmpty)
@@ -220,7 +222,7 @@ class KVBCValidator(registry: MetricRegistry)(implicit ec: ExecutionContext)
   }
 
   private def packStateKey(key: KV.DamlStateKey): ByteString =
-    Constants.stateKeyPrefix.concat(KeyValueCommitting.packDamlStateKey(key))
+    Constants.stateKeyPrefix.concat(keyValueCommitting.packDamlStateKey(key))
 
   private def packFragmentKey(key: pkvutils.protobuf.LogEntryFragmentKey): ByteString =
     Constants.fragmentKeyPrefix.concat(key.toByteString)
@@ -231,7 +233,7 @@ class KVBCValidator(registry: MetricRegistry)(implicit ec: ExecutionContext)
     assert((allInputs -- pendingSubmission.inputState.keySet).isEmpty)
     val entryId = KV.DamlLogEntryId.newBuilder.setEntryId(pendingSubmission.entryId).build
 
-    val (logEntry, stateUpdates) = KeyValueCommitting.processSubmission(
+    val (logEntry, stateUpdates) = keyValueCommitting.processSubmission(
       engine = engine,
       recordTime = pendingSubmission.recordTime,
       entryId = entryId,
@@ -251,7 +253,7 @@ class KVBCValidator(registry: MetricRegistry)(implicit ec: ExecutionContext)
       },
       stateUpdates)
 
-    val result = Metrics.envelopeCloseTimer.time { () =>
+    val result: Result = Metrics.envelopeCloseTimer.time { () =>
       val outKeyPairs = stateUpdates
         .toArray
         .map { case (k, v) =>

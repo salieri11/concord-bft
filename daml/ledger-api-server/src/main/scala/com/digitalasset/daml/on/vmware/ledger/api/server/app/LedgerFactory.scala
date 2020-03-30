@@ -6,7 +6,7 @@ package com.digitalasset.daml.on.vmware.ledger.api.server.app
 import akka.stream.Materializer
 import com.codahale.metrics.{MetricRegistry, SharedMetricRegistries}
 import com.daml.ledger.participant.state.kvutils.api.KeyValueParticipantState
-import com.daml.ledger.participant.state.kvutils.app.{Config, KeyValueLedger}
+import com.daml.ledger.participant.state.kvutils.app.{Config, KeyValueLedger, ParticipantConfig}
 import com.daml.ledger.participant.state.v1.{ReadService, WriteService}
 import com.digitalasset.ledger.api.auth.{AuthService, AuthServiceWildcard}
 import com.digitalasset.logging.LoggingContext
@@ -26,32 +26,36 @@ trait ConfigProvider[ExtraConfig] {
   def manipulateConfig(config: Config[ExtraConfig]): Config[ExtraConfig] =
     config
 
-  def indexerConfig(config: Config[ExtraConfig]): IndexerConfig =
+  def indexerConfig(config: Config[ExtraConfig]): IndexerConfig = {
+    val participantConfig = ConfigProvider.getParticipant(config)
     IndexerConfig(
-      config.participantId,
-      jdbcUrl = config.serverJdbcUrl,
+      participantConfig.participantId,
+      jdbcUrl = participantConfig.serverJdbcUrl,
       startupMode = IndexerStartupMode.MigrateAndStart,
-      allowExistingSchema = config.allowExistingSchemaForIndex,
+      allowExistingSchema = participantConfig.allowExistingSchemaForIndex,
     )
-
-  def indexerMetricRegistry(config: Config[ExtraConfig]): MetricRegistry =
-    SharedMetricRegistries.getOrCreate(s"indexer-${config.participantId}")
+  }
 
   def apiServerConfig(
-      config: Config[ExtraConfig]): ApiServerConfig =
+      config: Config[ExtraConfig]): ApiServerConfig = {
+    val participantConfig = ConfigProvider.getParticipant(config)
     ApiServerConfig(
-      participantId = config.participantId,
+      participantId = participantConfig.participantId,
       archiveFiles = config.archiveFiles.map(_.toFile).toList,
-      port = config.port,
-      address = config.address,
-      jdbcUrl = config.serverJdbcUrl,
+      port = participantConfig.port,
+      address = participantConfig.address,
+      jdbcUrl = participantConfig.serverJdbcUrl,
       tlsConfig = None,
       maxInboundMessageSize = Config.DefaultMaxInboundMessageSize,
-      portFile = config.portFile,
+      portFile = participantConfig.portFile,
     )
+  }
 
-  def apiServerMetricRegistry(config: Config[ExtraConfig]): MetricRegistry =
-    SharedMetricRegistries.getOrCreate(s"ledger-api-server-${config.participantId}")
+  def metricRegistry(config: Config[ExtraConfig]): MetricRegistry = {
+    val participantConfig = ConfigProvider.getParticipant(config)
+
+    SharedMetricRegistries.getOrCreate(s"ledger-api-server-and-indexer-${participantConfig.participantId}")
+  }
 
   def commandConfig(config: Config[ExtraConfig]): CommandConfiguration =
     CommandConfiguration.default
@@ -60,6 +64,11 @@ trait ConfigProvider[ExtraConfig] {
 
   def authService(config: Config[ExtraConfig]): AuthService =
     AuthServiceWildcard
+
+}
+
+object ConfigProvider {
+  private def getParticipant(config: Config[_]): ParticipantConfig = config.participants.head
 }
 
 trait ReadServiceOwner[+RS <: ReadService, ExtraConfig] extends ConfigProvider[ExtraConfig] {
@@ -124,4 +133,5 @@ object LedgerFactory {
     override final def extraConfigParser(parser: OptionParser[Config[Unit]]): Unit =
       ()
   }
+
 }
