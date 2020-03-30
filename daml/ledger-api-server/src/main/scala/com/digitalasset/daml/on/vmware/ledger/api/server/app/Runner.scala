@@ -16,6 +16,7 @@ import com.digitalasset.ledger.api.auth.AuthService
 import com.digitalasset.logging.LoggingContext
 import com.digitalasset.logging.LoggingContext.newLoggingContext
 import com.digitalasset.platform.apiserver.StandaloneApiServer
+import com.digitalasset.platform.configuration.{CommandConfiguration, PartyConfiguration, SubmissionConfiguration}
 import com.digitalasset.platform.indexer.StandaloneIndexerServer
 import com.digitalasset.resources.ResourceOwner
 import com.digitalasset.resources.akka.AkkaResourceOwner
@@ -72,6 +73,8 @@ class Runner[T <: ReadWriteService, Extra](
       ledger: ReadWriteService)(
       implicit executionContext: ExecutionContext,
       logCtx: LoggingContext,
+      materializer: Materializer,
+      actorSystem: ActorSystem,
   ): ResourceOwner[Unit] =
     for {
       _ <- startIndexerServer(
@@ -89,11 +92,11 @@ class Runner[T <: ReadWriteService, Extra](
   private def startIndexerServer(
       config: Config[Extra],
       readService: ReadService,
-  )(implicit executionContext: ExecutionContext, logCtx: LoggingContext): ResourceOwner[Unit] =
+  )(implicit executionContext: ExecutionContext, logCtx: LoggingContext, materializer: Materializer): ResourceOwner[Unit] =
     new StandaloneIndexerServer(
       readService,
       factory.indexerConfig(config),
-      factory.indexerMetricRegistry(config),
+      factory.metricRegistry(config),
     )
 
   private def startApiServer(
@@ -101,13 +104,17 @@ class Runner[T <: ReadWriteService, Extra](
       readService: ReadService,
       writeService: WriteService,
       authService: AuthService,
-  )(implicit executionContext: ExecutionContext, logCtx: LoggingContext): ResourceOwner[Unit] =
+  )(implicit executionContext: ExecutionContext, logCtx: LoggingContext, actorSystem: ActorSystem): ResourceOwner[Unit] =
     new StandaloneApiServer(
       config = factory.apiServerConfig(config),
       readService = readService,
       writeService = writeService,
       authService = authService,
-      metrics = factory.apiServerMetricRegistry(config),
+      metrics = factory.metricRegistry(config),
       timeServiceBackend = factory.timeServiceBackend(config),
+      seeding = Some(config.seeding),
+      commandConfig = CommandConfiguration.default,
+      partyConfig = PartyConfiguration.default,
+      submissionConfig = SubmissionConfiguration.default,
     ).map(_ => ())
 }

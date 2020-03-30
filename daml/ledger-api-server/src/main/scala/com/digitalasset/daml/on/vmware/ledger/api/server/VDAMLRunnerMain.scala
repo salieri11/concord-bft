@@ -2,16 +2,17 @@ package com.digitalasset.daml.on.vmware.ledger.api.server
 
 import akka.actor.ActorSystem
 import akka.stream.Materializer
-import com.codahale.metrics.{MetricRegistry, SharedMetricRegistries}
-import com.daml.ledger.participant.state.kvutils.app.{Config => KVUtilsConfig}
+import com.codahale.metrics.MetricRegistry
+import com.daml.ledger.participant.state.kvutils.app.{ParticipantConfig, Config => KVUtilsConfig}
+import com.daml.ledger.participant.state.v1.SeedService.Seeding
 import com.digitalasset.daml.on.vmware.write.service.KVBCParticipantState
 import com.digitalasset.api.util.TimeProvider
 import com.digitalasset.daml.on.vmware.ledger.api.server.Config.DefaultMaxInboundMessageSize
 import com.digitalasset.daml.on.vmware.ledger.api.server.app.{LedgerFactory, Runner}
 import com.digitalasset.ledger.api.auth.{AuthService, AuthServiceWildcard}
-import com.digitalasset.ledger.api.tls.TlsConfiguration
 import com.digitalasset.platform.apiserver.ApiServerConfig
 import com.digitalasset.platform.indexer.{IndexerConfig, IndexerStartupMode}
+import com.digitalasset.ports.Port
 import com.digitalasset.resources.{ProgramResource, ResourceOwner}
 import org.slf4j.LoggerFactory
 import scopt.OptionParser
@@ -20,7 +21,6 @@ import scala.concurrent.ExecutionContext
 
 object VDAMLRunnerMain {
   private[this] val logger = LoggerFactory.getLogger(this.getClass)
-  private[this] var prometheusMetrics = Set[MetricRegistry]()
 
   def main(args: Array[String]): Unit = {
     new ProgramResource(new Runner("vDAML Ledger API Server", KVBCLedgerFactory) {
@@ -47,16 +47,12 @@ object VDAMLRunnerMain {
   final case class KVBCConfigExtra(
       maxInboundMessageSize: Int,
       timeProvider: TimeProvider, // enables use of non-wall-clock time in tests
-      tlsConfig: Option[TlsConfiguration],
       startupMode: IndexerStartupMode,
       replicas: Seq[String],
       useThinReplica: Boolean,
       maxFaultyReplicas: Short,
       authService: Option[AuthService],
-  ) {
-    def withTlsConfig(modify: TlsConfiguration => TlsConfiguration): KVBCConfigExtra =
-      copy(tlsConfig = Some(modify(tlsConfig.getOrElse(TlsConfiguration.Empty))))
-  }
+  )
 
   object KVBCLedgerFactory extends LedgerFactory[KVBCParticipantState, KVBCConfigExtra] {
 
@@ -71,11 +67,11 @@ object VDAMLRunnerMain {
       implicit val akkaSystem: ActorSystem = materializer.system
       KVBCParticipantState.owner(
         "KVBC",
-        config.participantId,
+        config.participants.head.participantId,
         config.extra.replicas.toArray,
         config.extra.useThinReplica,
         config.extra.maxInboundMessageSize.toShort,
-        prometheusMetrics.toList
+        List(metricRegistry(config))
       )
     }
 
@@ -83,20 +79,11 @@ object VDAMLRunnerMain {
       super
         .apiServerConfig(config)
         .copy(
-          tlsConfig = config.extra.tlsConfig,
+          tlsConfig = config.tlsConfig,
           maxInboundMessageSize = config.extra.maxInboundMessageSize)
 
     override def indexerConfig(config: KVUtilsConfig[KVBCConfigExtra]): IndexerConfig =
       super.indexerConfig(config).copy(startupMode = config.extra.startupMode)
-
-    override def indexerMetricRegistry(config: KVUtilsConfig[KVBCConfigExtra]): MetricRegistry = {
-      val indexerMetricRegistry = SharedMetricRegistries.getOrCreate(s"indexer")
-      prometheusMetrics += indexerMetricRegistry
-      indexerMetricRegistry
-    }
-
-    override def apiServerMetricRegistry(config: KVUtilsConfig[KVBCConfigExtra]): MetricRegistry =
-      super.apiServerMetricRegistry(config)
 
     override def authService(config: KVUtilsConfig[KVBCConfigExtra]): AuthService =
       config.extra.authService.getOrElse(super.authService(config))
@@ -104,7 +91,6 @@ object VDAMLRunnerMain {
     override val defaultExtraConfig: KVBCConfigExtra = KVBCConfigExtra(
       maxInboundMessageSize = DefaultMaxInboundMessageSize,
       timeProvider = TimeProvider.UTC,
-      tlsConfig = None,
       startupMode = IndexerStartupMode.MigrateAndStart,
       replicas = Seq("localhost:50051"),
       useThinReplica = false,
@@ -114,18 +100,21 @@ object VDAMLRunnerMain {
 
     private[server] def toKVUtilsAppConfig(config: Config): KVUtilsConfig[KVBCConfigExtra] =
       KVUtilsConfig(
-        config.participantId,
-        Some("0.0.0.0"),
-        config.port,
-        config.portFile,
-        config.jdbcUrl,
         Some("KVBC"),
         config.archiveFiles.map(_.toPath),
-        allowExistingSchemaForIndex = true,
+        config.tlsConfig,
+        List(ParticipantConfig(
+          config.participantId,
+          Some("0.0.0.0"),
+          Port(config.port),
+          config.portFile,
+          config.jdbcUrl,
+          allowExistingSchemaForIndex = true,
+        )),
+        seeding = Seeding.Strong,
         KVBCConfigExtra(
           config.maxInboundMessageSize,
           config.timeProvider,
-          config.tlsConfig,
           config.startupMode,
           config.replicas,
           config.useThinReplica,
