@@ -85,6 +85,9 @@ unique_ptr<Update> BasicUpdateQueue::TryPop() {
     return unique_ptr<Update>(nullptr);
   }
 }
+uint64_t thin_replica_client::BasicUpdateQueue::Size() {
+  return queue_data_.size();
+}
 
 ThinReplicaClient::UpdateHashType ThinReplicaClient::ComputeUpdateDataHash(
     const Data& data) const {
@@ -350,6 +353,8 @@ void ThinReplicaClient::ReceiveUpdates() {
         update->kv_pairs.push_back(make_pair(kvp_in.key(), kvp_in.value()));
       }
       try {
+        trc_updates_counter_.Increment();
+        trc_queue_size_.Set(update_queue_->Size());
         update_queue_->Push(move(update));
       } catch (const exception& e) {
         LOG4CPLUS_ERROR(logger_,
