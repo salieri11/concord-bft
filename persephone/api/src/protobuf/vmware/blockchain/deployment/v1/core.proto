@@ -181,6 +181,7 @@ message NodeProperty {
         WAVEFRONT_PROXY_USER = 12;
         WAVEFRONT_PROXY_PASSWORD = 13;
         CLIENT_AUTH_JWT = 14;
+        NODE_IP = 15;
     }
 
     Name name = 1;
