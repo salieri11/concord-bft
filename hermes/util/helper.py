@@ -600,6 +600,8 @@ def monitor_replicas(replicas, blockchain_location, run_duration, load_interval,
    username = credentials["username"]
    password = credentials["password"]
 
+   failed_validation_test_count = 0
+   max_failed_validation_test_attempts = run_duration/24 #tolerate 1 failed validation test every 24 hrs
    start_time = time.time()
    while ((time.time() - start_time)/3600 < run_duration):
       replica_status = None
@@ -628,7 +630,13 @@ def monitor_replicas(replicas, blockchain_location, run_duration, load_interval,
                      log.info("**** DAML test verification passed.")
                   except Exception as e:
                      log.error(e)
-                     replica_status = False
+                     failed_validation_test_count += 1
+                     log.warning("Replica validation test failed {}/{} times".format(
+                        failed_validation_test_count, max_failed_validation_test_attempts))
+                     if failed_validation_test_count >= max_failed_validation_test_attempts:
+                        replica_status = False
+                     else:
+                        log.info("Continuing to monitor...")
             elif blockchain_type == "ethereum":
                log.info("Performing validation test...")
                for endpoint_node in replica_ips:
@@ -638,7 +646,13 @@ def monitor_replicas(replicas, blockchain_location, run_duration, load_interval,
                      log.info("**** ethereum test verification passed.")
                   except Exception as e:
                      log.error(e)
-                     replica_status = False
+                     failed_validation_test_count += 1
+                     log.warning("Replica validation test failed {}/{} times".format(
+                        failed_validation_test_count, max_failed_validation_test_attempts))
+                     if failed_validation_test_count >= max_failed_validation_test_attempts:
+                        replica_status = False
+                     else:
+                        log.info("Continuing to monitor...")
 
 
       # Collect support logs incase of a failed replica
@@ -653,6 +667,17 @@ def monitor_replicas(replicas, blockchain_location, run_duration, load_interval,
       log.info("")
       log.info("sleep for {} min(s) and continue monitoring...".format(load_interval))
       time.sleep(load_interval*60)
+
+   if failed_validation_test_count > 0:
+      log.error("Replica validation test failed {}/{} time(s)".format(
+         failed_validation_test_count, max_failed_validation_test_attempts))
+      for blockchain_type, replica_ips in replicas.items():
+         log.info("Collect support bundle from all replica IPs: {}".format(
+            replica_ips))
+         create_concord_support_bundle(replica_ips, blockchain_type,
+                                       save_support_logs_to)
+      return False
+
    return True
 
 
