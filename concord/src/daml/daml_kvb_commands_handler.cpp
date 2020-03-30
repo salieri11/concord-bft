@@ -4,6 +4,7 @@
 
 #include <google/protobuf/util/time_util.h>
 #include <log4cplus/loggingmacros.h>
+#include <opentracing/tracer.h>
 #include <map>
 #include <string>
 #include "utils/concord_logging.hpp"
@@ -116,6 +117,8 @@ bool DamlKvbCommandsHandler::ExecuteCommit(
     const da_kvbc::CommitRequest& commit_req, const uint8_t flags,
     TimeContract* time, opentracing::Span& parent_span,
     ConcordResponse& concord_response) {
+  auto daml_execute_commit = parent_span.tracer().StartSpan(
+      "daml_execute_commit", {opentracing::ChildOf(&parent_span.context())});
   LOG4CPLUS_DEBUG(logger_, "Handle DAML commit command");
   bool pre_execute = flags & bftEngine::MsgFlag::PRE_PROCESS_FLAG;
   bool has_pre_executed = flags & bftEngine::MsgFlag::HAS_PRE_PROCESSED_FLAG;
@@ -139,15 +142,16 @@ bool DamlKvbCommandsHandler::ExecuteCommit(
 
   if (has_pre_executed && request_.has_pre_execution_result()) {
     return CommitPreExecutionResult(current_block_id, entryId, correlation_id,
-                                    concord_response);
+                                    *daml_execute_commit, concord_response);
   }
 
   da_kvbc::ValidateResponse response;
   da_kvbc::ValidatePendingSubmissionResponse response2;
   da_kvbc::Result result;
 
-  bool daml_execution_success = RunDamlExecution(
-      commit_req, entryId, record_time, parent_span, response, response2);
+  bool daml_execution_success =
+      RunDamlExecution(commit_req, entryId, record_time, *daml_execute_commit,
+                       response, response2);
 
   SetOfKeyValuePairs updates;
 
@@ -161,11 +165,11 @@ bool DamlKvbCommandsHandler::ExecuteCommit(
 
   if (pre_execute) {
     BuildPreExecutionResult(updates, current_block_id, correlation_id, result,
-                            concord_response);
+                            *daml_execute_commit, concord_response);
     LOG4CPLUS_DEBUG(logger_, "Done: Pre-execution of DAML command.");
   } else {
     RecordTransaction(entryId, updates, current_block_id, correlation_id,
-                      concord_response);
+                      *daml_execute_commit, concord_response);
     LOG4CPLUS_DEBUG(logger_, "Done: Handle DAML commit command.");
   }
 
@@ -177,12 +181,14 @@ bool DamlKvbCommandsHandler::RunDamlExecution(
     google::protobuf::Timestamp& record_time, opentracing::Span& parent_span,
     da_kvbc::ValidateResponse& response,
     da_kvbc::ValidatePendingSubmissionResponse& response2) {
+  auto run_daml_execution = parent_span.tracer().StartSpan(
+      "run_daml_execution", {opentracing::ChildOf(&parent_span.context())});
   bool daml_execution_success = true;
   // Send the submission for validation.
   grpc::Status status = validator_client_->ValidateSubmission(
       entryId, commit_req.submission(), record_time,
-      commit_req.participant_id(), commit_req.correlation_id(), parent_span,
-      &response);
+      commit_req.participant_id(), commit_req.correlation_id(),
+      *run_daml_execution, &response);
   if (!status.ok()) {
     LOG4CPLUS_ERROR(logger_, "Validation failed " << status.error_code() << ": "
                                                   << status.error_message());
@@ -194,6 +200,9 @@ bool DamlKvbCommandsHandler::RunDamlExecution(
       // and retry.
       std::map<string, string> input_state_entries;
       try {
+        auto get_from_storage = run_daml_execution->tracer().StartSpan(
+            "get_from_storage",
+            {opentracing::ChildOf(&run_daml_execution->context())});
         input_state_entries = GetFromStorage(response.need_state().keys());
       } catch (const std::exception& e) {
         LOG4CPLUS_ERROR(logger_, e.what());
@@ -203,7 +212,7 @@ bool DamlKvbCommandsHandler::RunDamlExecution(
       if (daml_execution_success) {
         validator_client_->ValidatePendingSubmission(
             entryId, input_state_entries, commit_req.correlation_id(),
-            parent_span, &response2);
+            *run_daml_execution, &response2);
         if (!status.ok()) {
           LOG4CPLUS_ERROR(logger_, "Validation failed "
                                        << status.error_code() << ": "
@@ -241,7 +250,10 @@ void DamlKvbCommandsHandler::GetUpdatesFromExecutionResult(
 void DamlKvbCommandsHandler::BuildPreExecutionResult(
     const SetOfKeyValuePairs& updates, BlockId current_block_id,
     string& correlation_id, const da_kvbc::Result& result,
-    ConcordResponse& concord_response) const {
+    opentracing::Span& parent_span, ConcordResponse& concord_response) const {
+  auto build_pre_execution_result = opentracing::Tracer::Global()->StartSpan(
+      "build_pre_execution_result",
+      {opentracing::ChildOf(&parent_span.context())});
   auto* pre_execution_result = concord_response.mutable_pre_execution_result();
 
   pre_execution_result->set_read_set_version(current_block_id);
@@ -274,7 +286,11 @@ void DamlKvbCommandsHandler::BuildPreExecutionResult(
 
 bool DamlKvbCommandsHandler::CommitPreExecutionResult(
     BlockId current_block_id, const string& entryId, string& correlation_id,
-    ConcordResponse& concord_response) {
+    opentracing::Span& parent_span, ConcordResponse& concord_response) {
+  auto commit_pre_execution_result_span =
+      opentracing::Tracer::Global()->StartSpan(
+          "commit_pre_execution_result_span",
+          {opentracing::ChildOf(&parent_span.context())});
   bool commit_pre_execution_result;
   SetOfKeyValuePairs updates;
   auto* pre_execution_result = request_.mutable_pre_execution_result();
@@ -296,7 +312,7 @@ bool DamlKvbCommandsHandler::CommitPreExecutionResult(
     }
 
     RecordTransaction(entryId, updates, current_block_id, correlation_id,
-                      concord_response);
+                      *commit_pre_execution_result_span, concord_response);
     LOG4CPLUS_DEBUG(
         logger_,
         "Done: Successfully validated and recorded pre-executed DAML command.");
@@ -308,7 +324,9 @@ bool DamlKvbCommandsHandler::CommitPreExecutionResult(
 void DamlKvbCommandsHandler::RecordTransaction(
     const string& entryId, const SetOfKeyValuePairs& updates,
     BlockId current_block_id, const string& correlation_id,
-    ConcordResponse& concord_response) {
+    opentracing::Span& parent_span, ConcordResponse& concord_response) {
+  auto record_transaction = opentracing::Tracer::Global()->StartSpan(
+      "record_transaction", {opentracing::ChildOf(&parent_span.context())});
   // Commit the block, if there were no conflicts.
   DamlResponse* daml_response = concord_response.mutable_daml_response();
 
