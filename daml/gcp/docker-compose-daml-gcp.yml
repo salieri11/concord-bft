@@ -118,8 +118,10 @@ services:
       - index_db
     expose:
       - 6865
+      - 55001
     ports:
       - "6861:6865"
+      - "55005:55001" # http server for prometheus metrics
 
   daml_execution_engine1:
     networks:
@@ -129,8 +131,9 @@ services:
       - JAVA_OPTS=-XX:+UseG1GC -Xmx4G
     expose:
       - 55000
+      - 55001
     ports:
-      - "55001:55001" # metrics dashboard
+      - "55001:55001" # http server for graph and prometheus metrics
 
   daml_execution_engine2:
     networks:
@@ -140,8 +143,9 @@ services:
       - JAVA_OPTS=-XX:+UseG1GC -Xmx4G
     expose:
       - 55000
+      - 55001
     ports:
-      - "55002:55001" # metrics dashboard
+      - "55002:55001" # http server for graph and prometheus metrics
 
   daml_execution_engine3:
     networks:
@@ -151,8 +155,9 @@ services:
       - JAVA_OPTS=-XX:+UseG1GC -Xmx4G
     expose:
       - 55000
+      - 55001
     ports:
-      - "55003:55001" # metrics dashboard
+      - "55003:55001" # http server for graph and prometheus metrics
 
   daml_execution_engine4:
     networks:
@@ -162,8 +167,9 @@ services:
       - JAVA_OPTS=-XX:+UseG1GC -Xmx4G
     expose:
       - 55000
+      - 55001
     ports:
-      - "55004:55001" # metrics dashboard
+      - "55004:55001" # http server for graph and prometheus metrics
 
   index_db:
     networks:
