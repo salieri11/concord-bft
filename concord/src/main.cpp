@@ -367,6 +367,42 @@ static concordUtils::Status create_ethereum_genesis_block(IReplica *replica,
   return kvbStorage.write_block(timestamp, gasLimit);
 }
 
+static concordUtils::Status create_tee_genesis_block(
+    IReplica *replica, ConcordConfiguration &nodeConfig, Logger logger) {
+  if (replica->getReadOnlyStorage().getLastBlock() > 0) {
+    LOG4CPLUS_INFO(logger, "Blocks already loaded, skipping genesis");
+    return concordUtils::Status::OK();
+  }
+
+  string genesis_string = "test execution engine genesis";
+  if (nodeConfig.hasValue<std::string>("genesis_block")) {
+    const auto &genesis_file_path =
+        nodeConfig.getValue<std::string>("genesis_block");
+    std::ifstream genesis_stream(genesis_file_path);
+    if (!genesis_stream.good()) {
+      LOG4CPLUS_WARN(logger,
+                     "Error reading genesis file at " << genesis_file_path);
+    } else {
+      nlohmann::json genesis_block;
+      genesis_stream >> genesis_block;
+      genesis_string = genesis_block.dump();
+    }
+  }
+
+  const auto &key = concord::kvbc::Key(
+      std::string({concord::storage::kKvbKeyAdminIdentifier}));
+  const auto &status = replica->addBlockToIdleReplica(
+      SetOfKeyValuePairs{{key, std::string{genesis_string}}});
+
+  if (status.isOK()) {
+    LOG4CPLUS_INFO(logger, "Successfully loaded TEE genesis block");
+  } else {
+    throw "Unable to add TEE genesis block";
+  }
+
+  return concordUtils::Status::OK();
+}
+
 /*
  * Starts a set of worker threads which will call api_service.run() method.
  * This will allow us to have multiple threads accepting tcp connections
@@ -632,6 +668,7 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
       kvb_commands_handler = unique_ptr<ICommandsHandler>(
           new TeeCommandsHandler(config, nodeConfig, replica, replica,
                                  subscriber_list, prometheus_registry));
+      create_tee_genesis_block(&replica, nodeConfig, logger);
     } else {
       assert(eth_enabled);
       kvb_commands_handler =
