@@ -129,6 +129,52 @@ class ZoneControllerTest {
                                                    + "  }]\n"
                                                    + "}";
 
+    private static final String POST_ONPREM_BODY_BAD_REQUEST = "{\n"
+                                                    + "  \"name\": \"OnPrem\",\n"
+                                                    + "  \"type\": \"ON_PREM\",\n"
+                                                    + "  \"org_id\": \"5e5ff1c8-34b9-4fa3-9924-83eb14354d4c\",\n"
+                                                    + "  \"vcenter\": {\n"
+                                                    + "    \"url\": \"www.vcenter.com\",\n"
+                                                    + "    \"username\": \"admin\",\n"
+                                                    + "    \"password\": \"password\"\n"
+                                                    + "  },\n"
+                                                    + "  \"resource_pool\": \"pool\",\n"
+                                                    + "  \"storage\": \"datastore\",\n"
+                                                    + "  \"folder\": \"folder\",\n"
+                                                    + "  \"network\": {\n"
+                                                    + "    \"name\": \"Network 1\",\n"
+                                                    + "    \"ip_pool\": [\n"
+                                                    + "      \"10.1.1.16-10.1.1.64\",\n"
+                                                    + "      \"10.1.1.100-10.1.1.200\"\n"
+                                                    + "    ],\n"
+                                                    + "    \"gateway\": \"10.1.1.1\",\n"
+                                                    + "    \"subnet\": \"24\",\n"
+                                                    + "    \"name_servers\": [\n"
+                                                    + "      \"10.1.1.3\"\n"
+                                                    + "    ]\n"
+                                                    + "  },\n"
+                                                    + "  \"outbound_proxy\": {\n"
+                                                    + "    \"http_host\": \"localhost\",\n"
+                                                    + "    \"http_port\": \"8080a\"\n"
+                                                    + "  },\n"
+                                                    + "  \"container_repo\": {\n"
+                                                    + "    \"url\": \"https://docker-repo.com\",\n"
+                                                    + "    \"username\": \"user\",\n"
+                                                    + "    \"password\": \"docker\"\n"
+                                                    + "  },\n"
+                                                    + "  \"wavefront\": {\n"
+                                                    + "    \"url\": \"https://wavefront.com\",\n"
+                                                    + "    \"token\": \"token\"\n"
+                                                    + "  },\n"
+                                                    + "  \"log_managements\": [{\n"
+                                                    + "    \"destination\": \"LOG_INSIGHT\",\n"
+                                                    + "    \"address\": \"10.78.20.10\",\n"
+                                                    + "    \"port\": 9000,\n"
+                                                    + "    \"username\": \"foo\",\n"
+                                                    + "    \"password\": \"bar\"\n"
+                                                    + "  }]\n"
+                                                    + "}";
+
     private static final String POST_ONPREM_BODY_MISSING_NAME = "{\n"
                                                     + "  \"type\": \"ON_PREM\",\n"
                                                     + "  \"org_id\": \"5e5ff1c8-34b9-4fa3-9924-83eb14354d4c\",\n"
@@ -776,6 +822,14 @@ class ZoneControllerTest {
         Assertions.assertEquals("admin", ((OnPremGetResponse) zone).getVcenter().getUsername());
         Assertions.assertNotNull(((OnPremGetResponse) zone).getOutboundProxy());
         Assertions.assertEquals("localhost", ((OnPremGetResponse) zone).getOutboundProxy().getHttpHost());
+    }
+
+    @Test
+    void testPostOnPremBadRequest() throws Exception {
+        MvcResult result = mockMvc.perform(post("/api/blockchains/zones").with(authentication(adminAuth))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(POST_ONPREM_BODY_BAD_REQUEST))
+                .andExpect(status().isBadRequest()).andReturn();
     }
 
     @Test

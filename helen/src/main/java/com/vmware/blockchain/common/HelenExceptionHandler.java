@@ -54,6 +54,7 @@ public class HelenExceptionHandler {
                     .put(MissingServletRequestParameterException.class, HttpStatus.BAD_REQUEST)
                     .put(MethodArgumentNotValidException.class, HttpStatus.BAD_REQUEST)
                     .put(UnsupportedOperationException.class, HttpStatus.METHOD_NOT_ALLOWED)
+                    .put(InvalidFormatException.class, HttpStatus.BAD_REQUEST)
                     .build();
 
 
