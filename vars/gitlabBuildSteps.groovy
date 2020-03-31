@@ -2291,7 +2291,7 @@ void announceToTFailure(){
       # For testing
       # python3 invoke.py slackDM   --param your_id@vmware.com "${run_fail_msg}"
 
-      python3 invoke.py slackPost --param vmwathena "${run_fail_msg}"
+      python3 invoke.py slackPost --param blockchain-build-fail "${run_fail_msg}"
       deactivate
     '''
   }
