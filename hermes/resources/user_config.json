@@ -522,6 +522,10 @@
         "vmwathena": {
           "workspace": "vmware",
           "channelId": "G9AC1C9E0"
+        },
+        "blockchain-build-fail": {
+          "workspace": "vmware",
+          "channelId": "C010S8DQF5Y"
         }
       }
     }
