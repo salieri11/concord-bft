@@ -532,7 +532,7 @@ class Request():
       self._endpointName = "patch_consortium"
       return self._send(verb="PATCH")
 
-   def getOrgs(self, conId):
+   def getConsortiumOrgs(self, conId):
       '''
       Given a consortium ID, get its organizations.
       '''
@@ -541,6 +541,34 @@ class Request():
       self._data = None
       self._endpointName = "get_consortium_orgs"
       return self._send()
+
+   def getOrg(self, orgId):
+      '''
+      Given an organization ID, return the organization.
+      This
+      '''
+      self._subPath = "/api/organizations/{}".format(orgId)
+      self._params = ""
+      self._data = {}
+      self._endpointName = "get_organization"
+      return self._send(verb="GET")
+
+
+   def patchOrg(self, orgId, addProperties = None, delProperties = None):
+      '''
+      Given an organization ID, add or delete properties.
+      '''
+      self._subPath = "/api/organizations/{}".format(orgId)
+      self._params = ""
+      self._data = {}
+
+      if addProperties != None:
+         self._data["add_properties"] = addProperties
+      if delProperties != None:
+         self._data["delete_properties"] = delProperties
+
+      self._endpointName = "patch_organization"
+      return self._send(verb="PATCH")
 
    def createZone(self, zoneInfo):
       '''

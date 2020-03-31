@@ -305,6 +305,18 @@ tokens = {
             "last_retrieved": 0
          }
      }
+   },
+   "hermes_api_test_org": {
+         "vmbc_test_org_admin": {
+            ROLE_ORG_ADMIN: {
+               # Name in console-stg: hermes-test-org-token
+               # Last updated: Mar. 26, 2020.
+               # Expires Sep 22, 2020.
+               "api_key": "6nwaP6VuLdezUKX0l0iCufO9GdDmCg50ifrMCzE1F6ovpogjZGY61KjYdjBV7UXo",
+               "access_token": None,
+               "last_retrieved": 0
+            }
+         }
    }
 }
 
@@ -313,6 +325,7 @@ orgs = {
    "hermes_org0": "7e162c74-ae9f-40b4-98ab-89e13f8a2b78",
    "hermes_org1": "923a2597-ba3a-4ef8-a41c-a22406379eac",
    "hermes_org2": "33878dd7-9a3f-447e-b0eb-17d5ea7d3991",
+   "hermes_api_test_org": "adc86e8a-b257-49a8-9a7f-d237570d2a4f",
    "custom_org": ""
 }
 
