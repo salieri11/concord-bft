@@ -56,9 +56,19 @@ def upload_test_tool_dars(host='localhost', port='6861'):
 
    log.info("Upload DAR files...")
    for testDar in tmpDars:
-      dar_uploaded = darutil.upload_dar(host=host, port=port, darfile=testDar)
+      dar_uploaded = False
+      max_retry_attempts = 3
+      for i in range(0, max_retry_attempts):
+         log.info("  {} (attempt {}/{})...".format(testDar, i+1, max_retry_attempts))
+         try:
+            dar_uploaded = darutil.upload_dar(host=host, port=port, darfile=testDar)
+         except Exception as e:
+            if i != max_retry_attempts:
+               log.info("Retrying...")
+         else:
+            os.remove(testDar)
+            break
       assert dar_uploaded, "Failed to upload test DAR " + testDar
-      os.remove(testDar)
 
 def get_list_of_tests(run_all_tests=False):
    '''
