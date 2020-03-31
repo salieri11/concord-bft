@@ -18,7 +18,7 @@ import threading
 import time
 import types
 from urllib.parse import urlparse
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from suites import test_suite
 from rest.request import Request
@@ -2254,7 +2254,7 @@ def test_get_consortium_orgs(fxConnection, fxInitializeOrgs):
    createResponse = req.createConsortium(conName)
    req.patchConsortium(createResponse["consortium_id"],
                        orgsToAdd=[util.auth.orgs["hermes_org1"]])
-   getOrgsResponse = req.getOrgs(createResponse["consortium_id"])
+   getOrgsResponse = req.getConsortiumOrgs(createResponse["consortium_id"])
    assert len(getOrgsResponse) == 2, "Expected 2 orgs"
 
    for org in getOrgsResponse:
@@ -2266,6 +2266,44 @@ def test_get_consortium_orgs(fxConnection, fxInitializeOrgs):
       else:
          assert org["organization_name"] == "hermes_org1"
 
+@pytest.mark.smoke
+@pytest.mark.organizations
+def test_organizations_patch(fxConnection):
+   '''
+   Patch an organization.
+   '''
+   descriptor = {
+      "org": "hermes_api_test_org",
+      "user": "vmbc_test_org_admin",
+      "role": "org_admin"
+   }
+   tokenDescriptor = util.auth.getTokenDescriptor(util.auth.ROLE_ORG_ADMIN,
+                                                  True,
+                                                  descriptor)
+
+   req = fxConnection.request.newWithToken(tokenDescriptor)
+
+   org_id = util.auth.getOrgId("hermes_api_test_org")
+
+   # We use a UUID for every run to prevent clashes between simultaneous runs.
+   # Actually we just make clashes extremely improbable.
+   # There is no certainty in this world.
+   property_key = str(uuid4())
+   property_value = str(uuid4())
+
+   add_properties = {property_key: property_value}
+   req.patchOrg(org_id, add_properties, {})
+
+   patched_org = req.getOrg(org_id)
+
+   assert patched_org["organization_properties"][property_key] == property_value
+
+   delete_properties = {property_key: ""}
+   req.patchOrg(org_id, {}, delete_properties)
+
+   patched_org = req.getOrg(org_id)
+
+   assert not(property_key in patched_org["organization_properties"])
 
 @pytest.mark.smoke
 def test_getCerts(fxConnection, fxBlockchain):

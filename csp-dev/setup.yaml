@@ -3,7 +3,7 @@ base:
   service_template_id: 0eeff270-2f7a-4d9f-b161-659fb4e61160
   service_owner_org_id: ab29b4a8-40c8-4173-ba74-15e76f8f35e0
   service_owner: admin-blockchain-dev@csp.local
-  service_owner_token: a3674390-edb6-4c93-915e-daf741909541
+  service_owner_token: 8KWCxvImhPhfPOdl9Kl4W5C3wTr9w85Kmf3GlBqiwhzMdN0i6wZgGcDf8i0czr1E
 vmbc_url: http://192.168.73.138
 create_service:
   name: MWA Test Service
