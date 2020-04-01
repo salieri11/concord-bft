@@ -658,16 +658,7 @@ EOF
               // Set up python.
               script{
                 saveTimeEvent("Setup", "Set up python")
-                env.python_bin = "/var/jenkins/workspace/venv_py37/bin"
-                env.python = env.python_bin + "/python"
-
-                sh '''
-                   # Adding websocket-client  0.56.0 to Artifactory: https://servicedesk.eng.vmware.com/servicedesk/customer/portal/12/INTSVC-549
-                   # When that is done, then start passing in -i <url to artifactory>
-                   . ${python_bin}/activate
-                   pip3 install -r blockchain/hermes/requirements.txt
-                   deactivate
-                '''
+                initializePython()
                 saveTimeEvent("Setup", "Finished setting up python")
               }
 
@@ -1231,6 +1222,12 @@ EOF
           removeContainers()
           pruneImages()
           saveTimeEvent("Remove unnecessary docker artifacts", "End")
+
+          // Just in case pipline failed before python init
+          if (!env.python) {
+            echo("Python was not initialized for this run. Initializing python...") 
+            initializePython()
+          }
         }
 
         // Files created by the docker run belong to root because they were created by the docker process.
@@ -1732,6 +1729,21 @@ void handleKnownHosts(host){
       error("Unable to retrieve the ssh key for " + host)
     }
   }
+}
+
+Boolean initializePython() {
+  if (env.python_bin) { return false } // Already initialized
+  
+  env.python_bin = "/var/jenkins/workspace/venv_py37/bin"
+  env.python = env.python_bin + "/python"
+  sh '''
+      # Adding websocket-client  0.56.0 to Artifactory: https://servicedesk.eng.vmware.com/servicedesk/customer/portal/12/INTSVC-549
+      # When that is done, then start passing in -i <url to artifactory>
+      . ${python_bin}/activate
+      pip3 install -r blockchain/hermes/requirements.txt
+      deactivate
+  '''
+  return true
 }
 
 Boolean need_persephone_tests(always_exclude_jobs){
