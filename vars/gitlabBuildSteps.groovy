@@ -1300,9 +1300,13 @@ EOF
           try{
             saveTimeEvent("Clean up SDDCs", "Start")
             sh 'echo Calling Job Cleanup-SDDC-folder to cleanup resources on SDDCs under folder HermesTesting...'
+            build job: 'Cleanup-SDDC-folder', parameters: [[$class: 'StringParameterValue', name: 'SDDC', value: 'VMware-Blockchain-SDDC-1'], [$class: 'StringParameterValue', name: 'VMFolder', value: 'HermesTesting'], [$class: 'StringParameterValue', name: 'OLDERTHAN', value: '1']]
+            build job: 'Cleanup-SDDC-folder', parameters: [[$class: 'StringParameterValue', name: 'SDDC', value: 'VMware-Blockchain-SDDC-2'], [$class: 'StringParameterValue', name: 'VMFolder', value: 'HermesTesting'], [$class: 'StringParameterValue', name: 'OLDERTHAN', value: '1']]
             build job: 'Cleanup-SDDC-folder', parameters: [[$class: 'StringParameterValue', name: 'SDDC', value: 'VMware-Blockchain-SDDC-3'], [$class: 'StringParameterValue', name: 'VMFolder', value: 'HermesTesting'], [$class: 'StringParameterValue', name: 'OLDERTHAN', value: '1']]
             build job: 'Cleanup-SDDC-folder', parameters: [[$class: 'StringParameterValue', name: 'SDDC', value: 'VMware-Blockchain-SDDC-4'], [$class: 'StringParameterValue', name: 'VMFolder', value: 'HermesTesting'], [$class: 'StringParameterValue', name: 'OLDERTHAN', value: '1']]
             // LongTests Clean up older than 168 hours (7 days)
+            build job: 'Cleanup-SDDC-folder', parameters: [[$class: 'StringParameterValue', name: 'SDDC', value: 'VMware-Blockchain-SDDC-1'], [$class: 'StringParameterValue', name: 'VMFolder', value: 'HermesTesting-LongTests'], [$class: 'StringParameterValue', name: 'OLDERTHAN', value: '168']]
+            build job: 'Cleanup-SDDC-folder', parameters: [[$class: 'StringParameterValue', name: 'SDDC', value: 'VMware-Blockchain-SDDC-2'], [$class: 'StringParameterValue', name: 'VMFolder', value: 'HermesTesting-LongTests'], [$class: 'StringParameterValue', name: 'OLDERTHAN', value: '168']]
             build job: 'Cleanup-SDDC-folder', parameters: [[$class: 'StringParameterValue', name: 'SDDC', value: 'VMware-Blockchain-SDDC-3'], [$class: 'StringParameterValue', name: 'VMFolder', value: 'HermesTesting-LongTests'], [$class: 'StringParameterValue', name: 'OLDERTHAN', value: '168']]
             build job: 'Cleanup-SDDC-folder', parameters: [[$class: 'StringParameterValue', name: 'SDDC', value: 'VMware-Blockchain-SDDC-4'], [$class: 'StringParameterValue', name: 'VMFolder', value: 'HermesTesting-LongTests'], [$class: 'StringParameterValue', name: 'OLDERTHAN', value: '168']]
             saveTimeEvent("Clean up SDDCs", "End")
