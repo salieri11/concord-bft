@@ -28,7 +28,7 @@
 /ethrpc/ @machenbach @panamika @mandeab
 /helen/ @machenbach @panamika @mandeab @khank @sanchitar @hbhavsar
 /helen/src/main/resources/api-doc/api.yaml @machenbach @panamika @mandeab @tfidali @mharrison @khank @hbhavsar
-/hermes/ @rvollmar @rsg @khank
+/hermes/ @rvollmar @rsg @khank @igolikov @andrewstone @tparvanov @ysherman @rmuschner
 /Jenkinsfile @rvollmar @rsg
 /performance/ @vlin @dparmar @rsg @rahulg
 /persephone/ @khank @sanchitar @rsg @panamika @mandeab @hbhavsar
