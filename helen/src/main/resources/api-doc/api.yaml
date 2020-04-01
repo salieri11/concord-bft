@@ -1010,11 +1010,18 @@ paths:
         content:
           application/json:
             schema:
-              type: array
-              items:
-                description: zoneIds
-                type: string
-                format: uuid
+              type: object
+              properties:
+                zoneIds:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+                  description: Zone IDs
+                clientJwt:
+                  type: string
+                  format: string
+                  description: Client JWT token
       responses:
         202:
           description: Returns the deployment task ID
