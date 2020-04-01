@@ -74,6 +74,7 @@ public class ClientController {
     @JsonIgnoreProperties(ignoreUnknown = true)
     static class ParticipantPost {
         private List<UUID> zoneIds;
+        private String clientJwt;
     }
 
     /**
@@ -240,7 +241,7 @@ public class ClientController {
     @RequestMapping(path = "/api/blockchains/{bid}/clients", method = RequestMethod.POST)
     @PreAuthorize("@authHelper.isConsortiumAdmin()")
     public ResponseEntity<BlockchainController.BlockchainTaskResponse> createParticipant(@PathVariable("bid") UUID bid,
-                                          @RequestBody ClientController.ParticipantPost body) throws Exception {
+                                          @RequestBody ParticipantPost body) throws Exception {
         Task task = new Task();
         task.setState(Task.State.RUNNING);
         task = taskService.put(task);
@@ -257,6 +258,9 @@ public class ClientController {
 
         Map<String, String> properties = new HashMap<>();
         properties.put(NodeProperty.Name.COMMITTERS.toString(), ipList);
+        if (body.clientJwt != null) {
+            properties.put(NodeProperty.Name.CLIENT_AUTH_JWT.toString(), body.clientJwt);
+        }
         var propertiesBuilder = Properties.newBuilder().putAllValues(properties).build();
 
 
