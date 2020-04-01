@@ -4,6 +4,7 @@
 import sys
 import os
 import subprocess
+import time
 from tempfile import NamedTemporaryFile
 
 if 'hermes_util' in sys.modules.keys():
@@ -63,8 +64,9 @@ def upload_test_tool_dars(host='localhost', port='6861'):
          try:
             dar_uploaded = darutil.upload_dar(host=host, port=port, darfile=testDar)
          except Exception as e:
-            if i != max_retry_attempts:
-               log.info("Retrying...")
+            if i != max_retry_attempts-1:
+               log.info("Retrying in 30 seconds...")
+               time.sleep(30)
          else:
             os.remove(testDar)
             break

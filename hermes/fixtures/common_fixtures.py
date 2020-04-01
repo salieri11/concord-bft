@@ -131,9 +131,10 @@ def deployToSddc(logDir, hermesData):
    taskId = response["task_id"]
    timeout=60*15
    success, response = helper.waitForTask(conAdminRequest, taskId, timeout=timeout)
+   blockchainId = response["resource_id"]
+   replica_dict = None
 
    if success:
-      blockchainId = response["resource_id"]
       blockchainDetails = conAdminRequest.getBlockchainDetails(blockchainId)
       log.info("Details of the deployed blockchain, in case you need to delete its resources " \
                "manually: {}".format(json.dumps(blockchainDetails, indent=4)))
@@ -142,32 +143,31 @@ def deployToSddc(logDir, hermesData):
       log.info("Annotating VMs with deployment context...")
       blockchainDetails["nodes_type"] = infra.PRETTY_TYPE_COMMITTER
       infra.giveDeploymentContext(blockchainDetails)
+      replica_details = blockchainDetails["replica_list"]
 
       ethereum_replicas = []
       daml_committer_replicas = []
       daml_participant_replicas = []
-      if blockchain_type.lower() == helper.TYPE_ETHEREUM:
-         for replica_entry in blockchainDetails["replica_list"]:
-            setUpPortForwarding(replica_entry["url"], credentials, blockchain_type, logDir)
-            host = replica_entry["ip"]
-            helper.waitForDockerContainers(host, credentials["username"], credentials["password"],
-                                           helper.TYPE_ETHEREUM)
-            ethereum_replicas.append(replica_entry)
-      elif blockchain_type.lower() == helper.TYPE_DAML:
-         for replica_entry in blockchainDetails["replica_list"]:
-            host = replica_entry["ip"]
-            helper.waitForDockerContainers(host, credentials["username"], credentials["password"],
-                                           helper.TYPE_DAML_COMMITTER)
-            daml_committer_replicas.append(replica_entry)
-            log.info("Committer node {} running successfully".format(host))
 
-         log.info("All committer nodes running successfully")
-         num_participants = int(hermesData["hermesCmdlineArgs"].numParticipants)
-         daml_participant_replicas = deploy_participants(conAdminRequest, blockchainId, siteIds, credentials,
-                                                    num_participants)
+      # Ethereum
+      if blockchain_type.lower() == helper.TYPE_ETHEREUM:
+         ethereum_replicas = [replica_entry for replica_entry in replica_details]
+         success = verify_ethereum_deployment(replica_details, credentials, blockchain_type, logDir)
+
+      # DAML
+      elif blockchain_type.lower() == helper.TYPE_DAML:
+         daml_committer_replicas = [replica_entry for replica_entry in replica_details]
+         success = verify_daml_committers_deployment(replica_details, credentials)
+
+         if success:
+            num_participants = int(hermesData["hermesCmdlineArgs"].numParticipants)
+            success, daml_participant_replicas = deploy_daml_participants(conAdminRequest, blockchainId, siteIds, credentials,
+                                                                          num_participants)
 
       replica_dict = save_replicas_to_json(blockchain_type, ethereum_replicas, daml_committer_replicas,
-                                           daml_participant_replicas)
+                                           daml_participant_replicas, logDir)
+
+   if success:
       log.info("Blockchain deployed successfully")
    else:
       raise Exception("Failed to deploy a new blockchain.")
@@ -175,15 +175,63 @@ def deployToSddc(logDir, hermesData):
    return blockchainId, conId, replica_dict
 
 
-def deploy_participants(con_admin_request, blockchain_id, site_ids, credentials, num_participants=1):
+def verify_ethereum_deployment(replica_details, credentials, blockchain_type, logDir):
     """
-    Deploys participants in the given blockchain
+    Verifies containers on Ethereum nodes are running fine
+    :param replica_details: Details of the replicas to verify for
+    :param credentials: Credentials of the VM
+    :param blockchain_type: Blockchain type
+    :param logDir: Directory of logs
+    :return: Status of verification
+    """
+    success = False
+    try:
+        for replica_entry in replica_details:
+            setUpPortForwarding(replica_entry["url"], credentials, blockchain_type, logDir)
+            host = replica_entry["ip"]
+            helper.waitForDockerContainers(host, credentials["username"], credentials["password"], helper.TYPE_ETHEREUM)
+            log.info("Ethereum node {} running successfully".format(host))
+        log.info("All Ethereum nodes running successfully")
+        success = True
+    except Exception as e:
+        log.error(e)
+        log.error("Failed to deploy Ethereum nodes")
+
+    return success
+
+
+def verify_daml_committers_deployment(replica_details, credentials):
+    """
+    Verifies containers on DAML Committer nodes are running fine
+    :param replica_details: Details of the replicas to verify for
+    :param credentials: Credentials of the VM
+    :return: Status of verification
+    """
+    success = False
+    try:
+        for replica_entry in replica_details:
+            host = replica_entry["ip"]
+            helper.waitForDockerContainers(host, credentials["username"], credentials["password"],
+                                           helper.TYPE_DAML_COMMITTER)
+            log.info("Committer node {} running successfully".format(host))
+        log.info("All committer nodes running successfully")
+        success = True
+    except Exception as e:
+        log.error(e)
+        log.error("Failed to deploy DAML committers")
+
+    return success
+
+
+def deploy_daml_participants(con_admin_request, blockchain_id, site_ids, credentials, num_participants=1):
+    """
+    Deploys participants in the given DAML blockchain
     :param con_admin_request: REST requests helper object
     :param blockchain_id: The blockchain ID for the blockchain to deploy participants in
     :param site_ids: Zone IDs to deploy in
     :param credentials: Credential information for accessing VMs after deployment
     :param num_participants: Number of participants to deploy (defaults to 1)
-    :return: List of participant IPs
+    :return: status, List of participant IPs
     """
 
     log.info("Deploying {} participants for blockchain {}".format(num_participants, blockchain_id))
@@ -193,51 +241,77 @@ def deploy_participants(con_admin_request, blockchain_id, site_ids, credentials,
     success, response = helper.waitForTask(con_admin_request, task_id)
 
     participant_replicas = []
-    replica_list = []
     if success:
         username = credentials["username"]
         password = credentials["password"]
         participant_details = con_admin_request.get_participant_details(blockchain_id)
+        participant_replicas = [participant_entry for participant_entry in participant_details]
+        try:
+            # Upload DAR and verification block
+            for participant_entry in participant_details:
+                public_ip = participant_entry["public_ip"]
+                helper.waitForDockerContainers(public_ip, username, password, helper.TYPE_DAML_PARTICIPANT)
+                log.info("Participant node {} running successfully".format(public_ip))
+                helper.add_ethrpc_port_forwarding(public_ip, username, password, dest_port=6865)
+                log.info("Starting DAR upload test on participant {}".format(public_ip))
+                daml_helper.upload_test_tool_dars(host=public_ip, port='443')
+                log.info("Starting DAR upload verification test on participant {}".format(public_ip))
+                daml_helper.verify_ledger_api_test_tool(host=public_ip, port='443')
+                log.info("DAR upload and verification successful on participant {}".format(public_ip))
+
+        except Exception as e:
+            log.error(e)
+            log.error("Failed to deploy DAML participants")
+            success = False
+
+        # Deployment context
+        give_deployment_context_participants(blockchain_id, participant_details)
+
+    return success, participant_replicas
+
+
+def give_deployment_context_participants(blockchain_id, participant_details):
+    """
+    Give deployment context of participants
+    :param blockchain_id: Blockchain ID of the blockchain
+    :param participant_details: Participant details
+    :return: None
+    """
+
+    replica_list = []
+    try:
         for participant_entry in participant_details:
             public_ip = participant_entry["public_ip"]
-            helper.waitForDockerContainers(public_ip, username, password, helper.TYPE_DAML_PARTICIPANT)
-            participant_replicas.append(participant_entry)
-            log.info("Participant node {} running successfully".format(public_ip))
-            helper.add_ethrpc_port_forwarding(public_ip, username, password, dest_port=6865)
-            log.info("Starting DAR upload test on participant {}".format(public_ip))
-            daml_helper.upload_test_tool_dars(host=public_ip, port='443')
-            log.info("Starting DAR upload verification test on participant {}".format(public_ip))
-            daml_helper.verify_ledger_api_test_tool(host=public_ip, port='443')
-            log.info("DAR upload and verification successful on participant {}".format(public_ip))
             private_ip = participant_entry["private_ip"]
-            vmHandle = infra.findVMByInternalIP(private_ip)
-            if vmHandle: replica_list.append({
-              "ip": public_ip, 
-              "replica_id": vmHandle["replicaId"] if vmHandle is not None else "None"
-            })
-        log.info("All participant nodes running successfully")
-        
+            vm_handle = infra.findVMByInternalIP(private_ip)
+            if vm_handle:
+                replica_list.append({
+                    "ip": public_ip,
+                    "replica_id": vm_handle["replicaId"] if vm_handle is not None else "None"
+                })
+
         log.info("Annotating VMs with deployment context...")
         infra.giveDeploymentContext({
-          "id": blockchain_id,
-          "consortium_id": "None",
-          "blockchain_type": helper.TYPE_DAML,
-          "nodes_type": infra.PRETTY_TYPE_PARTICIPANT,
-          "replica_list": replica_list
+            "id": blockchain_id,
+            "consortium_id": "None",
+            "blockchain_type": helper.TYPE_DAML,
+            "nodes_type": infra.PRETTY_TYPE_PARTICIPANT,
+            "replica_list": replica_list
         })
-    else:
-        raise Exception("Failed to deploy participants")
 
-    return participant_replicas
+    except Exception as e:
+        log.error(e)
 
 
-def save_replicas_to_json(blockchain_type, ethereum_replicas, daml_committer_replicas, daml_participant_replicas):
+def save_replicas_to_json(blockchain_type, ethereum_replicas, daml_committer_replicas, daml_participant_replicas,
+                          log_dir):
     """
     Saves committer and participant IPs in a json file
     :param blockchain_type: Type of blockchain. Will determine the replica dictionary structure
     :param ethereum_replicas: List of ethereum IPs
     :param daml_committer_replicas: List of DAML committer IPs
     :param daml_participant_replicas: List of DAML participant IPs
+    :param log_dir: Log directory to save replica information in
     :return: None
     """
 
@@ -249,15 +323,20 @@ def save_replicas_to_json(blockchain_type, ethereum_replicas, daml_committer_rep
         replica_dict[helper.TYPE_DAML_PARTICIPANT] = daml_participant_replicas
 
     replica_file_path = "/tmp/replicas.json"
+    replica_log_dir_path = os.path.join(log_dir, 'replicas.json')
     try:
         os.remove(replica_file_path)
+        os.remove(replica_log_dir_path)
     except OSError:
         pass
 
     with open(replica_file_path, 'w') as fp:
         json.dump(replica_dict, fp, indent=2)
 
-    log.info("Saved replicas information in {}".format(replica_file_path))
+    with open(replica_log_dir_path, 'w') as fp:
+        json.dump(replica_dict, fp, indent=2)
+
+    log.info("Saved replicas information in {} and {}".format(replica_file_path, replica_log_dir_path))
     return replica_dict
 
 
