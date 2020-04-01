@@ -87,7 +87,8 @@ class DamlKvbCommandsHandler
 
   bool CommitPreExecutionResult(
       kvbc::BlockId current_block_id, const string& entryId,
-      string& correlation_id, opentracing::Span& parent_span,
+      google::protobuf::Timestamp& record_time, string& correlation_id,
+      opentracing::Span& parent_span,
       com::vmware::concord::ConcordResponse& concord_response);
 
   void BuildPreExecutionResult(
@@ -106,6 +107,8 @@ class DamlKvbCommandsHandler
   void GetUpdatesFromExecutionResult(
       const com::digitalasset::kvbc::Result& result, const string& entryId,
       kvbc::SetOfKeyValuePairs& updates) const;
+
+  std::optional<google::protobuf::Timestamp> GetPreExecutionMaxRecordTime();
 };
 
 }  // namespace daml
