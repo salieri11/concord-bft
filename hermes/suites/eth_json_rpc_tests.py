@@ -18,6 +18,7 @@ import time
 import traceback
 
 from . import test_suite
+from suites.cases import describe
 from rpc.rpc_call import RPC
 from rest.request import Request
 from util.debug import pp as pp
@@ -149,6 +150,7 @@ class EthJsonRpcTests(test_suite.TestSuite):
                         self._userConfig)
       return testFun(rpc, request)
 
+   @describe()
    def _test_web3_sha3(self, rpc, request):
       '''
       Check that hashing works as expected.
@@ -166,6 +168,7 @@ class EthJsonRpcTests(test_suite.TestSuite):
 
       return (True, None)
 
+   @describe()
    def _test_web3_clientVersion(self, rpc, request):
       '''
       Check that we return a valid version
@@ -186,6 +189,7 @@ class EthJsonRpcTests(test_suite.TestSuite):
 
       return (True, None)
 
+   @describe()
    def _test_eth_mining(self, rpc, request):
       '''
       Check that mining status is reported correctly
@@ -200,6 +204,7 @@ class EthJsonRpcTests(test_suite.TestSuite):
 
       return (True, None)
 
+   @describe()
    def _test_rpc_modules(self, rpc, request):
       '''
       Check that available RPC modules are listed correctly
@@ -227,6 +232,7 @@ class EthJsonRpcTests(test_suite.TestSuite):
 
       return (True, None)
 
+   @describe()
    def _test_eth_gasPrice(self, rpc, request):
       '''
       Check that gas price is reported correctly
@@ -257,6 +263,7 @@ class EthJsonRpcTests(test_suite.TestSuite):
 
       return (True, None)
 
+   @describe()
    def _test_eth_syncing(self, rpc, request):
       '''
       Check that syncing state is reported correctly
@@ -272,6 +279,7 @@ class EthJsonRpcTests(test_suite.TestSuite):
 
       return (True, None)
 
+   @describe()
    def _test_eth_getTransactionByHash(self, rpc, request):
       '''
       Make sure the API is available and all expected fields are present.
@@ -317,6 +325,7 @@ class EthJsonRpcTests(test_suite.TestSuite):
 
       return (True, None)
 
+   @describe()
    def _test_eth_getTransactionCount(self, rpc, request):
       '''
       Check that transaction count is updated.
@@ -347,6 +356,7 @@ class EthJsonRpcTests(test_suite.TestSuite):
 
       return (True, None)
 
+   @describe()
    def _test_eth_getTransactionReceipt(self, rpc, request):
       '''
       Make sure the API is available and all expected fields are present.
@@ -388,6 +398,7 @@ class EthJsonRpcTests(test_suite.TestSuite):
 
       return (True, None)
 
+   @describe()
    def _test_eth_sendRawTransaction(self, rpc, request):
       '''
       Check that a raw transaction gets decoded correctly.
@@ -432,6 +443,7 @@ class EthJsonRpcTests(test_suite.TestSuite):
 
       return (True, None)
 
+   @describe()
    def _test_eth_sendRawContract(self, rpc, request):
       '''
       Check that a raw transaction can create a contract. For the contract in use,
@@ -513,6 +525,7 @@ class EthJsonRpcTests(test_suite.TestSuite):
             return (False, "Ether balance is incorrect, which means contract did not get deployed properly")
       return (True, None)
 
+   @describe()
    def _test_eth_getBlockByNumber(self, rpc, request):
       '''
       Check that blocks can be fetched by number.
@@ -567,6 +580,7 @@ class EthJsonRpcTests(test_suite.TestSuite):
 
       return (True, None)
 
+   @describe()
    def _test_eth_getStorageAt(self, rpc, request):
       '''
       here we use the Counter contract. We first deploy the Counter contract and
@@ -615,6 +629,7 @@ class EthJsonRpcTests(test_suite.TestSuite):
 
       return (True, None)
 
+   @describe()
    def _test_eth_getCode(self, rpc, request):
       contractTransaction = "0xf901628085051f4d5c0083419ce08080b9010f608060405234801561001057600080fd5b506104d260005560ea806100256000396000f30060806040526004361060525763ffffffff7c01000000000000000000000000000000000000000000000000000000006000350416634f2be91f811460575780636deebae314606b5780638ada066e14607d575b600080fd5b348015606257600080fd5b50606960a1565b005b348015607657600080fd5b50606960ac565b348015608857600080fd5b50608f60b8565b60408051918252519081900360200190f35b600080546001019055565b60008054600019019055565b600054905600a165627a7a72305820b827241483c0f1a78e00de3ba4a4cb1e67a03bf6fb9f5ecc0491712f7e0aeb8000291ca080c9884eefca39aece8d308136f3bc2b95e44bd812afc33a9d741fcacee2f874a0125e2c8cd8af9e32cdbabf525a2e69ba7ebdd16411314a9bfa1e6bf414db6122"
       expectedCode = "0x60806040526004361060525763ffffffff7c01000000000000000000000000000000000000000000000000000000006000350416634f2be91f811460575780636deebae314606b5780638ada066e14607d575b600080fd5b348015606257600080fd5b50606960a1565b005b348015607657600080fd5b50606960ac565b348015608857600080fd5b50608f60b8565b60408051918252519081900360200190f35b600080546001019055565b60008054600019019055565b600054905600a165627a7a72305820b827241483c0f1a78e00de3ba4a4cb1e67a03bf6fb9f5ecc0491712f7e0aeb800029"
@@ -640,6 +655,7 @@ class EthJsonRpcTests(test_suite.TestSuite):
 
       return (True, None)
 
+   @describe()
    def _test_eth_getLogs(self, rpc, request):
       w3 = self.getWeb3Instance()
       abi, bin = self.loadContract("SimpleEvent")
@@ -678,6 +694,7 @@ class EthJsonRpcTests(test_suite.TestSuite):
 
       return (False, "Couldn't find log in block #" + str(func_txr.blockNumber))
 
+   @describe()
    def _test_eth_getLogs_addr(self, rpc, request):
       w3 = self.getWeb3Instance()
       abi, bin = self.loadContract("SimpleEvent")
@@ -733,6 +750,7 @@ class EthJsonRpcTests(test_suite.TestSuite):
 
       return (True, None)
 
+   @describe()
    def _test_eth_getLogs_block_range(self, rpc, request):
       w3 = self.getWeb3Instance()
       abi, bin = self.loadContract("SimpleEvent")
@@ -795,6 +813,7 @@ class EthJsonRpcTests(test_suite.TestSuite):
 
       return (True, None)
 
+   @describe()
    def _test_eth_getLogs_topics(self, rpc, request):
       w3 = self.getWeb3Instance()
       abi, bin = self.loadContract("SimpleEvent")
@@ -839,6 +858,7 @@ class EthJsonRpcTests(test_suite.TestSuite):
 
       return (True, None)
 
+   @describe()
    def _test_eth_getBalance(self, rpc, request):
       addrFrom = "0x262c0d7ab5ffd4ede2199f6ea793f819e1abb019"
       addrTo = "0x5bb088f57365907b1840e45984cae028a82af934"
@@ -995,6 +1015,7 @@ class EthJsonRpcTests(test_suite.TestSuite):
 
       return True
 
+   @describe()
    def _test_block_filter(self, rpc, request):
       '''
       Check that a block filter sees updates
@@ -1009,6 +1030,7 @@ class EthJsonRpcTests(test_suite.TestSuite):
          return (False, "Expected %d blocks, but read %d from filter" %
                  (testCount, len(blocksCaught)))
 
+   @describe()
    def _test_block_filter_independence(self, rpc, request):
       '''
       Check that two block filters see updates independently.
@@ -1033,6 +1055,7 @@ class EthJsonRpcTests(test_suite.TestSuite):
          return (False, "Expected %d blocks, but read %d from filter2" %
                  (testCount2, len(blocksCaught2)))
 
+   @describe()
    def _test_block_filter_uninstall(self, rpc, request):
       '''
       Check that a filter can't be found after uninstalling it
@@ -1046,6 +1069,7 @@ class EthJsonRpcTests(test_suite.TestSuite):
       except:
          return (True, None)
 
+   @describe()
    def _test_replay_protection(self, rpc, request):
       '''
       Check that transactions with incorrect chain IDs
@@ -1094,6 +1118,7 @@ class EthJsonRpcTests(test_suite.TestSuite):
 
       return (True, "Tests successful")
 
+   @describe()
    def _test_personal_newAccount(self, rpc, request):
       '''
       Check that account is created correctly
@@ -1135,6 +1160,7 @@ class EthJsonRpcTests(test_suite.TestSuite):
 
       return (True, None)
 
+   @describe()
    def _test_fallback(self, rpc, request):
       '''
       Check that a contract's fallback function is called if the data passed in a transaction

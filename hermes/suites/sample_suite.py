@@ -2,6 +2,7 @@
 # Copyright 2019 VMware, Inc.  All rights reserved. -- VMware Confidential
 #################################################################################
 import pytest
+from suites.cases import describe
 
 
 @pytest.fixture
@@ -18,7 +19,7 @@ def sampleFixture(request):
    '''
    return {"importantNumber": 123}
 
-
+@describe("Should pass with expreesion; assert 1 + 1 = 2")
 def test_example():
    '''
    This is a basic PyTest test which just does a Python assert:
@@ -27,7 +28,7 @@ def test_example():
    '''
    assert 1 + 1 == 2, "Expected 1 + 1 to equal 2"
 
-
+@describe("testValue 123 should match the importantNumber value 123 in sampleFixture")
 def test_example_with_fixture(sampleFixture):
    '''
    This is a PyTest test with a fixture.

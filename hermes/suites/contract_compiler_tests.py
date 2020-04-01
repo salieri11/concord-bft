@@ -9,6 +9,7 @@ import os
 import traceback
 
 from . import test_suite
+from suites.cases import describe
 from rest.request import Request
 
 import util.hermes_logging
@@ -191,7 +192,7 @@ class ContractCompilerTests(test_suite.TestSuite):
 
     # Tests: expect one argument, a Request, and produce a 2-tuple
     # (bool success, string info)
-
+    @describe()
     def _test_contractCompilation(self, request):
         result = self.compile_mock_contract(request)
 
@@ -200,6 +201,7 @@ class ContractCompilerTests(test_suite.TestSuite):
         else:
             return (False, "Contract failed to compile")
 
+    @describe()
     def _test_contractCompilation040(self, request):
         # solc outputs are different for compiler versions <= 4.4 as well as <= 4.7.
         # Need to test compilation and response structure
@@ -214,6 +216,7 @@ class ContractCompilerTests(test_suite.TestSuite):
         else:
             return (False, "Contract failed to compile")
 
+    @describe()
     def _test_contractCompilationFailed(self, request):
         compilerVersion = "v0.4.17+commit.bdeb9e52"
 
@@ -228,6 +231,7 @@ class ContractCompilerTests(test_suite.TestSuite):
         else:
             return (False, "Failure when compiling contract with invalid compiler version")
 
+    @describe()
     def _test_contractVerification(self, request):
         result = self.verify_mock_contract(request)
 
@@ -236,6 +240,7 @@ class ContractCompilerTests(test_suite.TestSuite):
         else:
             return (False, "Bytecode failed to verify")
 
+    @describe()
     def _test_contractVerification0419(self, request):
         # bytecode verification is different in compiler versions from 0.4.8 and 0.4.21.
         # Need to test a compiled file in this range
@@ -247,6 +252,7 @@ class ContractCompilerTests(test_suite.TestSuite):
         else:
             return (False, "Bytecode failed to verify")
 
+    @describe()
     def _test_contractVerification040(self, request):
         # bytecode verification is different in compiler versions < 0.4.7.
         # Need to test a compiled file in this range
@@ -261,6 +267,7 @@ class ContractCompilerTests(test_suite.TestSuite):
         else:
             return (False, "Bytecode failed to verify")
 
+    @describe()
     def _test_contractVerificationFailedMismatchedContract(self, request):
         selectedContract = "DummyContract"
         result = self.verify_mock_contract(request, None, selectedContract)
@@ -270,6 +277,7 @@ class ContractCompilerTests(test_suite.TestSuite):
         else:
             return (False, "Bytecode verified with mismatched contract")
 
+    @describe()
     def _test_contractVerificationFailedMismatchedCompiler(self, request):
         compilerVersion = "v0.4.19+commit.c4cbbb05"
         result = self.verify_mock_contract(request, compilerVersion)
@@ -279,6 +287,7 @@ class ContractCompilerTests(test_suite.TestSuite):
         else:
             return (False, "Bytecode verified with mismatched compiler version")
 
+    @describe()
     def _test_contractVerificationFailedToCompile(self, request):
         compilerVersion = "v0.4.17+commit.bdeb9e52"
 
@@ -293,6 +302,7 @@ class ContractCompilerTests(test_suite.TestSuite):
         else:
             return (False, "Failure when validating contract with invalid compiler version")
 
+    @describe()
     def _test_contractCompilationFailedInvalidFile(self, request):
         try:
             self.compile_mock_contract(request, None, "")
@@ -305,6 +315,7 @@ class ContractCompilerTests(test_suite.TestSuite):
         else:
             return (False, "Failure when compiling invalid source code")
 
+    @describe()
     def _test_contractCompilationFailedInvalidCompilerVersion(self, request):
         try:
             self.compile_mock_contract(request, "test")
@@ -317,6 +328,7 @@ class ContractCompilerTests(test_suite.TestSuite):
         else:
             return (False, "Failure when compiling with invalid compiler version")
 
+    @describe()
     def _test_contractVerificationFailedInvalidFile(self, request):
         try:
             self.verify_mock_contract(request, None, None, "")
@@ -329,6 +341,7 @@ class ContractCompilerTests(test_suite.TestSuite):
         else:
             return (False, "Failure when validating invalid source code")
 
+    @describe()
     def _test_contractVerificationFailedInvalidBytecode(self, request):
         result = self.verify_mock_contract(request, None, None, None, "")
 
@@ -337,6 +350,7 @@ class ContractCompilerTests(test_suite.TestSuite):
         else:
             return (False, "Bytecode verified with invalid existing bytecode")
 
+    @describe()
     def _test_contractVerificationFailedInvalidCompilerVersion(self, request):
         try:
             self.verify_mock_contract(request, "test")

@@ -8,6 +8,7 @@ import os
 import pathlib
 import traceback
 import subprocess
+from suites.cases import describe
 
 from xvfbwrapper import Xvfb
 
@@ -77,6 +78,7 @@ class DeployDamlTests(test_suite.TestSuite):
     def _get_tests(self):
         return [("lint_e2e", self._test_lint_e2e)]
 
+    @describe()
     def _test_lint_e2e(self):
         cmd = ["npm", "run", "e2e:integration", ]
 

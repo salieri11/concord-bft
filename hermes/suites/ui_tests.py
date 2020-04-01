@@ -8,6 +8,7 @@ import os
 import pathlib
 import traceback
 import subprocess
+from suites.cases import describe
 
 from xvfbwrapper import Xvfb
 
@@ -78,6 +79,7 @@ class UiTests(test_suite.TestSuite):
                 ("ui_unit", self._test_ui_unit),
                 ("ui_e2e", self._test_ui_e2e)]
 
+    @describe("run all UI unit tests")
     def _test_ui_unit(self):
         cmd = ["npm", "run", "test:build", ]
         logFilePath = os.path.join(self._testCaseDir, "unit_tests.log")
@@ -93,6 +95,8 @@ class UiTests(test_suite.TestSuite):
 
         return True, "UI unit tests passed"
 
+
+    @describe("run UI e2e tests")
     def _test_ui_e2e(self):
         cmd = ["npm", "run", "e2e:build", ]
         logFilePath = os.path.join(self._testCaseDir, "e2e.log")
@@ -115,6 +119,8 @@ class UiTests(test_suite.TestSuite):
 
         return True, "UI E2E passed"
 
+
+    @describe("run UI lint tests")
     def _test_ui_lint(self):
         cmd = ["npm", "run", "lint", ]
         logFilePath = os.path.join(self._testLogDir, "lint.log")

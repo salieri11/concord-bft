@@ -24,6 +24,7 @@ from uuid import UUID
 
 from fixtures.common_fixtures import fxBlockchain, fxConnection, fxHermesRunSettings, fxProduct
 from suites import test_suite
+from suites.cases import describe
 from rest.request import Request
 from rpc.rpc_call import RPC
 import util.blockchain.eth
@@ -80,6 +81,8 @@ def find_faulty_clocks():
 
    return slow_sources, healthy_sources, fast_sources
 
+
+@describe()
 def test_publish_as_other(fxBlockchain):
    '''
    Make one node attempt to publish time as another, and make sure
@@ -228,6 +231,7 @@ def run_faulty_clock(faulty_time):
       time.sleep(expectedUpdatePeriodSec / 2)
 
 
+@describe()
 def test_fast_clock(fxBlockchain):
    '''
    Publish time intentionally ahead of "now", and make sure that it
@@ -244,6 +248,7 @@ def test_fast_clock(fxBlockchain):
    return run_faulty_clock(skew_function)
 
 
+@describe()
 def test_random_clock(fxBlockchain):
    '''
    Publish intentionally random time, and make sure that it doesn't

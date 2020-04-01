@@ -39,6 +39,7 @@ from test_skvbc_slow_path import SkvbcSlowPathTest
 from test_skvbc_view_change import SkvbcViewChangeTest
 
 from fixtures.common_fixtures import fxHermesRunSettings, fxProduct
+from suites.cases import describe
 import hermes_util.helper as helper
 from hermes_util.skvbc.concord_skvbc_client import RotatingSkvbcClient
 import hermes_util.hermes_logging as logging
@@ -81,6 +82,7 @@ async def bft_network():
     return bft_network
 
 
+@describe()
 def test_skvbc_get_block_data(fxProduct, bft_network):
     trio.run(_test_skvbc_get_block_data, bft_network)
 
@@ -95,6 +97,7 @@ async def _test_skvbc_get_block_data(bft_network):
     log.info("SKVBC test_get_block_data: OK.")
 
 
+@describe()
 def test_skvbc_fast_path(fxProduct, bft_network):
     trio.run(_test_skvbc_fast_path, bft_network)
 
@@ -111,6 +114,7 @@ async def _test_skvbc_fast_path(bft_network):
     log.info("SKVBC (fast path only): OK")
 
 
+@describe()
 def test_skvbc_slow_path(fxProduct, bft_network):
     trio.run(_test_skvbc_slow_path, bft_network)
 
@@ -127,6 +131,7 @@ async def _test_skvbc_slow_path(bft_network):
     log.info("SKVBC slow to fast path transition: OK")
 
 
+@describe()
 def test_skvbc_checkpoint_creation(fxProduct, bft_network):
     trio.run(_test_skvbc_checkpoint_creation, bft_network)
 
@@ -141,6 +146,7 @@ async def _test_skvbc_checkpoint_creation(bft_network):
     log.info("SKVBC checkpoint creation: OK.")
 
 
+@describe()
 def test_skvbc_state_transfer(fxProduct, bft_network):
     trio.run(_test_skvbc_state_transfer, bft_network)
 
@@ -155,6 +161,7 @@ async def _test_skvbc_state_transfer(bft_network):
     log.info("SKVBC state transfer test: OK.")
 
 
+@describe()
 def test_skvbc_view_change(fxProduct, bft_network):
     trio.run(_test_skvbc_view_change, bft_network)
 

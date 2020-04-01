@@ -7,12 +7,14 @@ import pytest
 import rest.test_methods
 import util.auth
 
+from suites.cases import describe
 from fixtures.common_fixtures import fxBlockchain, fxConnection, fxInitializeOrgs, fxHermesRunSettings, fxProduct
 
 import util.hermes_logging
 log = util.hermes_logging.getMainLogger()
 
 
+@describe()
 @pytest.mark.roles
 def test_roles_consortium_creation(fxConnection):
    '''
@@ -47,6 +49,7 @@ def test_roles_consortium_creation(fxConnection):
             rest.test_methods.validateAccessDeniedResponse(result, "/api/consortiums/")
 
 
+@describe()
 @pytest.mark.roles
 def test_role_list_consortiums(fxConnection):
    '''
@@ -108,6 +111,7 @@ def test_role_list_consortiums(fxConnection):
                assert orgACon["consortium_id"] not in conIds, "Unexpected consortium present."
 
 
+@describe()
 @pytest.mark.roles
 def test_role_consortium_get(fxConnection):
    '''
@@ -178,6 +182,7 @@ def test_role_consortium_get(fxConnection):
                                               ))
 
 
+@describe()
 @pytest.mark.roles
 def test_role_consortium_patch_users_in_org(fxConnection):
    '''
@@ -221,6 +226,7 @@ def test_role_consortium_patch_users_in_org(fxConnection):
                                               createResponse["consortium_id"]))
 
 
+@describe()
 @pytest.mark.roles
 def test_role_consortium_patch_other_admin(fxConnection):
    '''
@@ -250,6 +256,7 @@ def test_role_consortium_patch_other_admin(fxConnection):
                                   createResponse["consortium_id"]))
 
 
+@describe()
 @pytest.mark.roles
 def test_role_consortium_list_orgs_across_orgs(fxConnection, fxInitializeOrgs):
    '''
@@ -319,6 +326,7 @@ def test_role_consortium_list_orgs_across_orgs(fxConnection, fxInitializeOrgs):
                   assert getOrgsResult[0]["org_id"] in con1OrgIds, "Expected org ID {}".format(con1OrgIds)
 
 
+@describe()
 @pytest.mark.roles
 def test_role_consortium_list_orgs_across_roles(fxConnection, fxInitializeOrgs):
    '''
@@ -381,6 +389,7 @@ def test_role_consortium_list_orgs_across_roles(fxConnection, fxInitializeOrgs):
                   assert o in returnedOrgIds
 
 
+@describe()
 @pytest.mark.roles
 def test_role_list_blockchains(fxConnection):
    '''
@@ -414,6 +423,7 @@ def test_role_list_blockchains(fxConnection):
                   assert req.getBlockchains() == [], "Expected an empty list"
 
 
+@describe()
 @pytest.mark.roles
 def test_role_get_specific_blockchain(fxConnection, fxBlockchain):
    orgs = ["blockchain_service_dev", "hermes_org0"]

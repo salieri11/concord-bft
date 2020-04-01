@@ -18,6 +18,7 @@ import subprocess
 import os
 import pytest
 import itertools
+from suites.cases import describe
 
 import util.daml.upload_dar as darutil
 import util.helper as helper
@@ -74,6 +75,8 @@ def get_newest_block_id(thin_replica_list):
       bids.append(bid)
     return min(bids)
 
+
+@describe()
 def test_basic_read_state(fxProduct, setup_test_suite):
     """Basic read state
     We uploaded a DAR, hence we should be able to read the log entry
@@ -87,6 +90,8 @@ def test_basic_read_state(fxProduct, setup_test_suite):
 
     assert size >= 1
 
+
+@describe()
 def test_read_state_key_prefix(fxProduct, setup_test_suite):
     """Make sure we can filter by key_prefix
 
@@ -103,6 +108,8 @@ def test_read_state_key_prefix(fxProduct, setup_test_suite):
 
     assert size_no_filter > size_filtered
 
+
+@describe()
 def test_no_state_for_filter(fxProduct, setup_test_suite):
     """Make sure we don't leak data.
 
@@ -114,6 +121,8 @@ def test_no_state_for_filter(fxProduct, setup_test_suite):
         size += len(rsp.data)
     assert size == 0
 
+
+@describe()
 def test_compare_all_hashes(fxProduct, setup_test_suite):
     """Compare hashes from all Concord nodes at the same block id
     """
@@ -134,6 +143,8 @@ def test_compare_all_hashes(fxProduct, setup_test_suite):
 
     assert hash1 == hash2 == hash3 == hash4
 
+
+@describe()
 def test_hash_not_zero_if_no_state(fxProduct, setup_test_suite):
     """We don't compute a hash if we don't find state.
 
@@ -145,6 +156,8 @@ def test_hash_not_zero_if_no_state(fxProduct, setup_test_suite):
     hash = tr.read_hash(bid, key_prefix=b"WRITING_TESTS_IS_FUN").hash
     assert int(hash.hex(), 16) != 0
 
+
+@describe()
 def test_compare_all_filtered_hashes(fxProduct, setup_test_suite):
     """Compare hashes from all Concord nodes at the same block id
     """
@@ -162,6 +175,8 @@ def test_compare_all_filtered_hashes(fxProduct, setup_test_suite):
 
     assert hash1 == hash2 == hash3 == hash4
 
+
+@describe()
 def test_compare_filter_with_no_filter_hash(fxProduct, setup_test_suite):
     """Hashes should be different for a filtered read and a non-filtered read
     """
@@ -170,6 +185,8 @@ def test_compare_filter_with_no_filter_hash(fxProduct, setup_test_suite):
 
     assert tr.read_hash(bid).hash != tr.read_hash(bid, b"daml").hash
 
+
+@describe()
 def test_subscribe_history_to_future(fxProduct, setup_test_suite):
     """We should be able to continously receive updates
 
@@ -185,6 +202,8 @@ def test_subscribe_history_to_future(fxProduct, setup_test_suite):
         assert update.block_id == block_id + 1
         block_id += 1
 
+
+@describe()
 def test_basic_subscribe_to_update_hashes(fxProduct, setup_test_suite):
     """We should be able to continously retrieve hashes for produced updates
     """

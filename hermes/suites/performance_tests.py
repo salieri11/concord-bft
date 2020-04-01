@@ -16,6 +16,7 @@ import traceback
 import subprocess
 
 from . import test_suite
+from suites.cases import describe
 from rest.request import Request
 import util.json_helper
 
@@ -88,6 +89,7 @@ class PerformanceTests(test_suite.TestSuite):
       return [("performance_test", self._test_performance)]
 
 
+   @describe()
    def _test_performance(self, fileRoot):
       if not os.path.isdir(self._performance_submodule):
          return (False, "Performance repo {} does not Exist"

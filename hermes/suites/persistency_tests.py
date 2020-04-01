@@ -32,6 +32,7 @@ import subprocess
 from threading import Thread
 
 from . import test_suite
+from suites.cases import describe
 from rpc.rpc_call import RPC
 from util.debug import pp as pp
 from util.numbers_strings import trimHexIndicator, decToEvenHexNo0x
@@ -214,7 +215,8 @@ class MetadataPersistencyTests(test_suite.TestSuite):
              return False
       return True
 
-   def replicas_random_restart(self):
+   @describe()
+   def _test_replicas_random_restart(self):
       transactions = 1000
       contractInfo = self.deploy_test_contract()
       if "address" not in contractInfo:
@@ -279,8 +281,9 @@ class MetadataPersistencyTests(test_suite.TestSuite):
       else:      
          contractAddress = contractInfo["address"]
                  
-      
-   def primary_down_viewchange_statetransfer(self):
+   
+   @describe()
+   def _test_primary_down_viewchange_statetransfer(self):
       self.clean()
         
       transactions = 1000
@@ -327,8 +330,8 @@ class MetadataPersistencyTests(test_suite.TestSuite):
 
 
    def _get_tests(self):
-      return [("replicas_random_restart", self.replicas_random_restart),
-      ("primary_down_viewchange_statetransfer", self.primary_down_viewchange_statetransfer)]
+      return [("replicas_random_restart", self._test_replicas_random_restart),
+      ("primary_down_viewchange_statetransfer", self._test_primary_down_viewchange_statetransfer)]
 
    def run(self):
       self.launchProduct()

@@ -6,6 +6,7 @@ import logging
 import pytest
 import os
 import time
+import re
 from urllib.parse import urlparse
 
 # These are fixtures used by tests directly.
@@ -21,11 +22,40 @@ from util.numbers_strings import trimHexIndicator, stringOnlyContains
 import util
 import util.blockchain.eth
 import util.json_helper
+from suites.cases import describe
 
 import util.hermes_logging
 log = util.hermes_logging.getMainLogger()
 TEST_SOURCE_CODE_SUFFIX = "Filler.json"
 
+def dynamicReportOverride_for_test_eth_core_vm_tests(fxEthCoreVmTests, fxHermesRunSettings, fxConnection, fxBlockchain):
+  '''
+    Since eth_core_vm_tests is generative and reused, describe decorator
+    for this function will output 500+ cases to have the SAME case name.
+    This report handler will inherit the test function arguments exactly,
+    and will override the report parameters extracted from those argument
+    uniquely for every invocation of the test function.
+  '''
+  if not isSourceCodeTestFile(fxEthCoreVmTests):
+    testCompiled = loadCompiledTest(fxEthCoreVmTests)
+    if not testCompiled: return
+    testSource = loadTestSource(testCompiled, fxHermesRunSettings["hermesUserConfig"]["ethereum"]["testRoot"])
+    if not testSource: return
+    testFileName = os.path.basename(os.path.dirname(fxEthCoreVmTests)) # e.g. vmArithmeticTest
+    testName = os.path.splitext(os.path.basename(fxEthCoreVmTests))[0] # e.g. addmodDivByZero
+    caseFullName = testFileName[2:] + "_" + testName
+    # [camelCase => spaced] description based on testName
+    description = re.sub(r'((?<=[a-z])[A-Z]|(?<!\A)[A-Z](?=[a-z]))', r' \1', testName)
+    return {
+      # EthCoreVMTests have over 500+ cases; hard to scroll down.
+      # prepend 'Z_' for Racetrack to show this suite last on the table
+      "suiteName": "Z_EthCoreVmTests",
+      "caseName": caseFullName,
+      "description": description
+    }
+
+
+@describe(dynamicReportOverride=dynamicReportOverride_for_test_eth_core_vm_tests)
 def test_eth_core_vm_tests(fxEthCoreVmTests, fxHermesRunSettings, fxConnection, fxBlockchain):
    '''
    The fxEthCoreVmTests fixture is set up dynamically with code in hermes/conftest.py.

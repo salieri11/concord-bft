@@ -243,6 +243,8 @@ def main():
       if args.eventsFile:
          event_recorder.record_event(suiteName, "Start", args.eventsFile)
 
+      helper.CURRENT_SUITE_NAME = suiteName
+
       for run_count in range(1, args.repeatSuiteRun+1):
          log.info("\nTestrun: {0}/{1}".format(run_count, args.repeatSuiteRun))
          args.resultsDir = createResultsDir(suiteName,

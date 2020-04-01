@@ -21,6 +21,7 @@ from urllib.parse import urlparse
 from uuid import UUID, uuid4
 
 from suites import test_suite
+from suites.cases import describe
 from rest.request import Request
 from rpc.rpc_call import RPC
 
@@ -528,6 +529,7 @@ def validateZoneResponse(origZoneInfo, zoneResponse, orgId):
              json.dumps(newZoneResponse, sort_keys=True, indent=4))
 
 
+@describe()
 @pytest.mark.smoke
 @pytest.mark.foo
 def test_blockchains_fields(fxConnection):
@@ -540,6 +542,7 @@ def test_blockchains_fields(fxConnection):
       consortiumId = UUID(b["consortium_id"])
 
 
+@describe()
 @pytest.mark.smoke
 def test_members_fields(fxConnection):
    blockchains = fxConnection.request.getBlockchains()
@@ -566,6 +569,7 @@ def test_members_fields(fxConnection):
       assert not "rpc_cert" in m, "'rpc_cert' field should not be included if certs=true is not passed"
 
 
+@describe()
 @pytest.mark.smoke
 def test_members_rpc_url(fxConnection, fxBlockchain, fxHermesRunSettings):
    '''
@@ -601,6 +605,7 @@ def test_members_rpc_url(fxConnection, fxBlockchain, fxHermesRunSettings):
          assert "Not Found" in str(e), "Expected a 404 error about calling 'blocks'."
 
 
+@describe()
 @pytest.mark.smoke
 def test_members_hostname(fxConnection):
    '''
@@ -622,6 +627,7 @@ def test_members_hostname(fxConnection):
    assert len(hostNames) == 0, "Hosts not returned in the response: {}".format(hostNames)
 
 
+@describe()
 @pytest.mark.smoke
 def test_members_millis_since_last_message(fxConnection, fxBlockchain, fxHermesRunSettings):
    '''
@@ -684,6 +690,7 @@ def test_members_millis_since_last_message(fxConnection, fxBlockchain, fxHermesR
       product.resumeMembers(allMembers)
 
 
+@describe()
 @pytest.mark.smoke
 def test_blockList_noNextField_allBlocks(fxConnection, fxBlockchain):
    '''
@@ -700,6 +707,7 @@ def test_blockList_noNextField_allBlocks(fxConnection, fxBlockchain):
       "There should not be a 'next' field when requesting all blocks."
 
 
+@describe()
 @pytest.mark.smoke
 def test_blockList_noNextField_firstBlock(fxConnection, fxBlockchain):
    '''
@@ -710,6 +718,7 @@ def test_blockList_noNextField_firstBlock(fxConnection, fxBlockchain):
       "There should not be a 'next' field when latest is 0."
 
 
+@describe()
 @pytest.mark.smoke
 def test_newBlocks_onePage(fxConnection, fxBlockchain):
    '''
@@ -721,6 +730,7 @@ def test_newBlocks_onePage(fxConnection, fxBlockchain):
                              fxConnection.rpc, 11, 11)
 
 
+@describe()
 @pytest.mark.smoke
 def test_newBlocks_spanPages(fxConnection, fxBlockchain):
    '''
@@ -731,6 +741,7 @@ def test_newBlocks_spanPages(fxConnection, fxBlockchain):
                              fxConnection.rpc, 5, 2)
 
 
+@describe()
 @pytest.mark.smoke
 def test_pageSize_zero(fxConnection, fxBlockchain):
    util.blockchain.eth.ensureEnoughBlocksForPaging(fxConnection, fxBlockchain.blockchainId)
@@ -738,6 +749,7 @@ def test_pageSize_zero(fxConnection, fxBlockchain):
    assert len(result["blocks"]) == 0, "Expected zero blocks returned."
 
 
+@describe()
 @pytest.mark.smoke
 def test_pageSize_negative(fxConnection, fxBlockchain):
    util.blockchain.eth.ensureEnoughBlocksForPaging(fxConnection, fxBlockchain.blockchainId)
@@ -746,6 +758,7 @@ def test_pageSize_negative(fxConnection, fxBlockchain):
       "Expected {} blocks returned.".format(util.blockchain.eth.defaultBlocksInAPage)
 
 
+@describe()
 @pytest.mark.smoke
 def test_pageSize_exceedsBlockCount(fxConnection, fxBlockchain):
    util.blockchain.eth.ensureEnoughBlocksForPaging(fxConnection, fxBlockchain.blockchainId)
@@ -754,6 +767,7 @@ def test_pageSize_exceedsBlockCount(fxConnection, fxBlockchain):
    assert len(result["blocks"]) == blockCount, "Expected {} blocks returned.".format(blockCount)
 
 
+@describe()
 @pytest.mark.smoke
 def test_paging_latest_negative(fxConnection, fxBlockchain):
    util.blockchain.eth.ensureEnoughBlocksForPaging(fxConnection, fxBlockchain.blockchainId)
@@ -769,6 +783,7 @@ def test_paging_latest_negative(fxConnection, fxBlockchain):
               highestBlockNumberBefore, highestBlockNumberAfter)
 
 
+@describe()
 @pytest.mark.smoke
 def test_paging_latest_exceedsBlockCount(fxConnection, fxBlockchain):
    util.blockchain.eth.ensureEnoughBlocksForPaging(fxConnection, fxBlockchain.blockchainId)
@@ -784,11 +799,13 @@ def test_paging_latest_exceedsBlockCount(fxConnection, fxBlockchain):
               highestBlockNumberBefore, highestBlockNumberAfter)
 
 
+@describe()
 @pytest.mark.smoke
 def test_blockIndex_negative(fxConnection, fxBlockchain):
    checkInvalidIndex(fxConnection.request, fxBlockchain.blockchainId, -1, "Invalid block number or hash")
 
 
+@describe()
 @pytest.mark.smoke
 def test_blockIndex_outOfRange(fxConnection, fxBlockchain):
    latestBlockNumber = util.blockchain.eth.getLatestBlockNumber(fxConnection.request, fxBlockchain.blockchainId)
@@ -805,16 +822,19 @@ def test_blockIndex_outOfRange(fxConnection, fxBlockchain):
 #    checkInvalidIndex(fxConnection.request, fxBlockchain.blockchainId, "%5c", "Invalid block number or hash")
 
 
+@describe()
 @pytest.mark.smoke
 def test_blockIndex_atSymbol(fxConnection, fxBlockchain):
    checkInvalidIndex(fxConnection.request, fxBlockchain.blockchainId, "%40", "Invalid block number or hash")
 
 
+@describe()
 @pytest.mark.smoke
 def test_blockIndex_word(fxConnection, fxBlockchain):
    checkInvalidIndex(fxConnection.request, fxBlockchain.blockchainId, "elbow", "Invalid block number or hash")
 
 
+@describe()
 @pytest.mark.smoke
 def test_blockIndex_zero(fxConnection, fxBlockchain):
    '''
@@ -881,6 +901,7 @@ def test_blockIndex_zero(fxConnection, fxBlockchain):
       "In block 0, expected accounts {} not equal to found accounts {}".format(expectedAccounts, foundAccounts)
 
 
+@describe()
 @pytest.mark.smoke
 def test_blockIndex_basic(fxConnection, fxBlockchain):
    '''
@@ -940,6 +961,7 @@ def test_blockIndex_basic(fxConnection, fxBlockchain):
          "given when the block was added."
 
 
+@describe()
 @pytest.mark.smoke
 def test_transactionHash_basic(fxConnection, fxBlockchain):
    '''
@@ -959,6 +981,7 @@ def test_transactionHash_basic(fxConnection, fxBlockchain):
                               contractInvocationTx)
 
 
+@describe()
 @pytest.mark.smoke
 def test_transactionHash_invalid_zero(fxConnection, fxBlockchain):
    '''
@@ -968,6 +991,7 @@ def test_transactionHash_invalid_zero(fxConnection, fxBlockchain):
    assert len(invalidTx) == 0, "Invalid transaction ID should return an empty set."
 
 
+@describe()
 @pytest.mark.smoke
 def test_transactionHash_invalid_negOne(fxConnection, fxBlockchain):
    '''
@@ -977,6 +1001,7 @@ def test_transactionHash_invalid_negOne(fxConnection, fxBlockchain):
    assert len(invalidTx) == 0, "Invalid transaction ID should return an empty set."
 
 
+@describe()
 @pytest.mark.smoke
 def test_transactionHash_invalid_tooLong(fxConnection, fxBlockchain):
    '''
@@ -986,6 +1011,7 @@ def test_transactionHash_invalid_tooLong(fxConnection, fxBlockchain):
    assert len(invalidTx) == 0, "Invalid transaction ID should return an empty set."
 
 
+@describe()
 @pytest.mark.smoke
 def test_blockchains_one(fxConnection):
    '''
@@ -997,6 +1023,7 @@ def test_blockchains_one(fxConnection):
    verifyBlockchainFields(fxConnection.request, blockchain)
 
 
+@describe()
 @pytest.mark.smoke
 def test_getABlockchain_valid(fxConnection):
    '''
@@ -1007,6 +1034,7 @@ def test_getABlockchain_valid(fxConnection):
    verifyBlockchainFields(fxConnection.request, details)
 
 
+@describe()
 @pytest.mark.smoke
 def test_getABlockhain_invalid_uuid(fxConnection):
    '''
@@ -1022,7 +1050,7 @@ def test_getABlockhain_invalid_uuid(fxConnection):
    assert response["path"] == expectedPath, "Expected path {}".format(expectedPath)
 
 
-
+@describe()
 @pytest.mark.smoke
 def test_getABlockhain_invalid_uuid_format(fxConnection):
    '''
@@ -1038,6 +1066,7 @@ def test_getABlockhain_invalid_uuid_format(fxConnection):
                       "Invalid UUID string: 3")
 
 
+@describe()
 @pytest.mark.skip(reason="Need Hermes ability to stop/start the product.")
 def test_blockchains_none(fxConnection, fxHermesRunSettings):
    '''
@@ -1063,6 +1092,7 @@ def test_blockchains_none(fxConnection, fxHermesRunSettings):
    product.launchProduct()
 
 
+@describe()
 @pytest.mark.skip(reason="Waiting for blockchain deletion capability")
 def test_blockchains_multiple(fxConnection):
    '''
@@ -1078,6 +1108,7 @@ def test_blockchains_multiple(fxConnection):
    pass
 
 
+@describe()
 @pytest.mark.smoke
 def test_getContracts(fxConnection, fxBlockchain):
    '''
@@ -1113,6 +1144,7 @@ def test_getContracts(fxConnection, fxBlockchain):
       assert found, "Newly added contract not found"
 
 
+@describe()
 @pytest.mark.smoke
 def test_postContract_simple(fxConnection, fxBlockchain):
    '''
@@ -1134,6 +1166,7 @@ def test_postContract_simple(fxConnection, fxBlockchain):
    assert util.blockchain.eth.helloHex in result, "Simple uploaded contract not executed correctly."
 
 
+@describe()
 @pytest.mark.smoke
 def test_postContract_constructor(fxConnection, fxBlockchain):
    '''
@@ -1160,6 +1193,7 @@ def test_postContract_constructor(fxConnection, fxBlockchain):
    assert int(callContractResult, 16) == 10, "Constructor value was not used."
 
 
+@describe()
 @pytest.mark.smoke
 def test_postContract_optimized(fxConnection, fxBlockchain):
    '''
@@ -1197,6 +1231,7 @@ def test_postContract_optimized(fxConnection, fxBlockchain):
    assert optimizedBytecode1Run != unoptimizedBytecode, "Bytecode was not optimized"
 
 
+@describe()
 @pytest.mark.smoke
 def test_postContract_optimizeRuns(fxConnection, fxBlockchain):
    '''
@@ -1235,6 +1270,7 @@ def test_postContract_optimizeRuns(fxConnection, fxBlockchain):
       "Change in runs did not produce different optimized bytecode."
 
 
+@describe()
 @pytest.mark.smoke
 def test_postContract_multiple_first(fxConnection, fxBlockchain):
    '''
@@ -1254,6 +1290,7 @@ def test_postContract_multiple_first(fxConnection, fxBlockchain):
    assert util.blockchain.eth.howdyHex not in contract["bytecode"], "HowdyWorld! should not be in the bytecode."
 
 
+@describe()
 @pytest.mark.smoke
 def test_postContract_multiple_second(fxConnection, fxBlockchain):
    '''
@@ -1273,6 +1310,7 @@ def test_postContract_multiple_second(fxConnection, fxBlockchain):
    assert util.blockchain.eth.helloHex not in contract["bytecode"], "HelloWorld! should not be in the bytecode."
 
 
+@describe()
 @pytest.mark.smoke
 def test_postContract_noContractId(fxConnection, fxBlockchain):
    '''
@@ -1293,6 +1331,7 @@ def test_postContract_noContractId(fxConnection, fxBlockchain):
                       "/api/blockchains/{}/concord/contracts".format(fxBlockchain.blockchainId))
 
 
+@describe()
 @pytest.mark.smoke
 def test_postContract_noContractVersion(fxConnection, fxBlockchain):
    '''
@@ -1313,6 +1352,7 @@ def test_postContract_noContractVersion(fxConnection, fxBlockchain):
                       "/api/blockchains/{}/concord/contracts".format(fxBlockchain.blockchainId))
 
 
+@describe()
 @pytest.mark.smoke
 def test_postContract_noContractFrom(fxConnection, fxBlockchain):
    '''
@@ -1333,6 +1373,7 @@ def test_postContract_noContractFrom(fxConnection, fxBlockchain):
    contract = fxConnection.request.getContractVersion(fxBlockchain.blockchainId, contractId, contractVersion)
 
 
+@describe()
 @pytest.mark.smoke
 def test_postContract_noContractSource(fxConnection, fxBlockchain):
    '''
@@ -1354,6 +1395,7 @@ def test_postContract_noContractSource(fxConnection, fxBlockchain):
                       "/api/blockchains/{}/concord/contracts".format(fxBlockchain.blockchainId))
 
 
+@describe()
 @pytest.mark.smoke
 def test_postContract_noContractName(fxConnection, fxBlockchain):
    '''
@@ -1376,6 +1418,7 @@ def test_postContract_noContractName(fxConnection, fxBlockchain):
                       "/api/blockchains/{}/concord/contracts".format(fxBlockchain.blockchainId))
 
 
+@describe()
 @pytest.mark.smoke
 def test_postContract_noContractConstructorOK(fxConnection, fxBlockchain):
    '''
@@ -1399,6 +1442,7 @@ def test_postContract_noContractConstructorOK(fxConnection, fxBlockchain):
    assert util.blockchain.eth.helloHex in result, "Simple uploaded contract not executed correctly."
 
 
+@describe()
 @pytest.mark.skip(reson="What should happen?  Helen accepts it with no error.")
 def test_postContract_noContractConstructorFail(fxConnection, fxBlockchain):
    '''
@@ -1424,6 +1468,7 @@ def test_postContract_noContractConstructorFail(fxConnection, fxBlockchain):
    #   assert util.blockchain.eth.helloHex in result, "Simple uploaded contract not executed correctly."
 
 
+@describe()
 @pytest.mark.smoke
 def test_postContract_noContractCompilerVersion(fxConnection, fxBlockchain):
    '''
@@ -1446,6 +1491,7 @@ def test_postContract_noContractCompilerVersion(fxConnection, fxBlockchain):
                       "/api/blockchains/{}/concord/contracts".format(fxBlockchain.blockchainId))
 
 
+@describe()
 @pytest.mark.smoke
 def test_postContract_duplicateContractAndVersion(fxConnection, fxBlockchain):
    '''
@@ -1473,6 +1519,7 @@ def test_postContract_duplicateContractAndVersion(fxConnection, fxBlockchain):
       "Expected error message '{}', got '{}'".format(expectedMessage, contractResult["error_message"])
 
 
+@describe()
 @pytest.mark.smoke
 def test_postContract_duplicateContractNewVersion(fxConnection, fxBlockchain):
    '''
@@ -1497,6 +1544,7 @@ def test_postContract_duplicateContractNewVersion(fxConnection, fxBlockchain):
    assert util.blockchain.eth.helloHex not in contract["bytecode"], "HelloWorld! should not be in the bytecode."
 
 
+@describe()
 @pytest.mark.smoke
 def test_postContract_newContractDuplicateVersion(fxConnection, fxBlockchain):
    '''
@@ -1521,6 +1569,7 @@ def test_postContract_newContractDuplicateVersion(fxConnection, fxBlockchain):
    assert util.blockchain.eth.helloHex not in contract["bytecode"], "HelloWorld! should not be in the bytecode."
 
 
+@describe()
 @pytest.mark.smoke
 def test_getContractById_idInvalid(fxConnection, fxBlockchain):
    '''
@@ -1542,6 +1591,7 @@ def test_getContractById_idInvalid(fxConnection, fxBlockchain):
       "Path was {}, expected {}".format(result["path"], expectedPath)
 
 
+@describe()
 @pytest.mark.smoke
 def test_getContractById_oneVersion(fxConnection, fxBlockchain):
    '''
@@ -1586,6 +1636,7 @@ def test_getContractById_oneVersion(fxConnection, fxBlockchain):
                                util.blockchain.eth.helloHex)
 
 
+@describe()
 @pytest.mark.smoke
 @pytest.mark.skip(reason="BC-1817: Intermittent 'Error while calling contract' from ethrpc")
 def test_getContractById_multipleVersions(fxConnection, fxBlockchain):
@@ -1660,6 +1711,7 @@ def test_getContractById_multipleVersions(fxConnection, fxBlockchain):
                                util.blockchain.eth.howdyFunction,
                                util.blockchain.eth.howdyHex)
 
+@describe()
 @pytest.mark.smoke
 def test_getContractVersionById_oneVersion(fxConnection, fxBlockchain):
    '''
@@ -1698,6 +1750,7 @@ def test_getContractVersionById_oneVersion(fxConnection, fxBlockchain):
                                util.blockchain.eth.helloHex)
 
 
+@describe()
 @pytest.mark.smoke
 def test_getContractVersionById_firstVersion(fxConnection, fxBlockchain):
    '''
@@ -1743,6 +1796,7 @@ def test_getContractVersionById_firstVersion(fxConnection, fxBlockchain):
                                util.blockchain.eth.helloHex)
 
 
+@describe()
 @pytest.mark.smoke
 def test_getContractVersionById_lastVersion(fxConnection, fxBlockchain):
    '''
@@ -1789,6 +1843,7 @@ def test_getContractVersionById_lastVersion(fxConnection, fxBlockchain):
                                util.blockchain.eth.howdyHex)
 
 
+@describe()
 @pytest.mark.smoke
 def test_getContractVersionById_invalidVersion(fxConnection, fxBlockchain):
    '''
@@ -1817,6 +1872,7 @@ def test_getContractVersionById_invalidVersion(fxConnection, fxBlockchain):
       "Expected path {}, received {}".format(expectedPath, result["path"])
 
 
+@describe()
 @pytest.mark.smoke
 def test_getContractVersionById_invalidContract(fxConnection, fxBlockchain):
    '''
@@ -1844,6 +1900,7 @@ def test_getContractVersionById_invalidContract(fxConnection, fxBlockchain):
       "Expected path {}, received {}".format(expectedPath, result["path"])
 
 
+@describe()
 @pytest.mark.smoke
 @pytest.mark.skip(reason="Unlike blocks, tx count cannot exceed ten, so this is an invalid test. Probably.")
 def test_transactionList_noNextField_allTransactions(fxConnection, fxBlockchain):
@@ -1855,6 +1912,7 @@ def test_transactionList_noNextField_allTransactions(fxConnection, fxBlockchain)
    pass
 
 
+@describe()
 @pytest.mark.smoke
 def test_transactionList_genesisBlockTransactions(fxConnection, fxBlockchain):
    '''
@@ -1889,6 +1947,7 @@ def test_transactionList_genesisBlockTransactions(fxConnection, fxBlockchain):
       assert tx in genTxs, "Expected {} in {}.".format(tx, genTxs)
 
 
+@describe()
 @pytest.mark.smoke
 def test_transactionList_newItems_onePage(fxConnection, fxBlockchain):
    '''
@@ -1909,6 +1968,7 @@ def test_transactionList_newItems_onePage(fxConnection, fxBlockchain):
          "Expected {} in {}".format(expectedTxHash, receivedTxHashes)
 
 
+@describe()
 @pytest.mark.smoke
 def test_transactionList_spanPages(fxConnection, fxBlockchain):
    '''
@@ -1937,6 +1997,7 @@ def test_transactionList_spanPages(fxConnection, fxBlockchain):
       "Transaction list query did not return correct transactions"
 
 
+@describe()
 def _test_transactionList_pageSize_invalid(fxConnection, fxBlockchain, testCount):
    '''
    Request <count> transactions.  We get the default (10) when invalid.
@@ -1961,6 +2022,7 @@ def _test_transactionList_pageSize_invalid(fxConnection, fxBlockchain, testCount
          "Expected {} in {}".format(expectedTx, receivedTxHashes)
 
 
+@describe()
 @pytest.mark.smoke
 def test_transactionList_count(fxConnection, fxBlockchain):
    txReceipt = util.blockchain.eth.addBlocks(fxConnection.request, fxConnection.rpc, fxBlockchain.blockchainId, 1)[0]
@@ -1971,16 +2033,19 @@ def test_transactionList_count(fxConnection, fxBlockchain):
        "Trasaction list response did not follow count parameter."
 
 
+@describe()
 @pytest.mark.smoke
 def test_transactionList_pageSize_zero(fxConnection, fxBlockchain):
    _test_transactionList_pageSize_invalid(fxConnection, fxBlockchain, 0)
 
 
+@describe()
 @pytest.mark.smoke
 def test_transactionList_pageSize_negative(fxConnection, fxBlockchain):
    _test_transactionList_pageSize_invalid(fxConnection, fxBlockchain, -1)
 
 
+@describe()
 @pytest.mark.smoke
 @pytest.mark.skip(reason="Count does not exceed ten.")
 def test_transactionList_pageSize_exceedsTxCount(fxConnection):
@@ -1993,6 +2058,7 @@ def test_transactionList_pageSize_exceedsTxCount(fxConnection):
    '''
    pass
 
+@describe()
 @pytest.mark.smoke
 def test_transactionList_paging_latest_invalid(fxConnection, fxBlockchain):
    '''
@@ -2008,6 +2074,7 @@ def test_transactionList_paging_latest_invalid(fxConnection, fxBlockchain):
          "Expected error message {}".format(errorMessage)
 
 
+@describe()
 @pytest.mark.smoke
 def test_transactionList_max_size(fxConnection, fxBlockchain):
    util.blockchain.eth.addBlocks(fxConnection.request, fxConnection.rpc, fxBlockchain.blockchainId, util.blockchain.eth.defaultTxInAPage+1)
@@ -2017,6 +2084,7 @@ def test_transactionList_max_size(fxConnection, fxBlockchain):
       "Expected maximum page size to be {}".format(util.blockchain.eth.defaultTxInAPage)
 
 
+@describe()
 @pytest.mark.smoke
 def test_transactionList_fields(fxConnection, fxBlockchain):
    txReceipt = util.blockchain.eth.addBlocks(fxConnection.request, fxConnection.rpc, fxBlockchain.blockchainId, 1)[0]
@@ -2039,6 +2107,7 @@ def test_transactionList_fields(fxConnection, fxBlockchain):
    assert found, "Transaction not found."
 
 
+@describe()
 @pytest.mark.smoke
 @pytest.mark.consortiums
 def test_consortiums_add_basic(fxConnection):
@@ -2059,6 +2128,7 @@ def test_consortiums_add_basic(fxConnection):
    assert con["organization_id"] == util.auth.orgs["blockchain_dev_service_org"]
 
 
+@describe()
 @pytest.mark.smoke
 @pytest.mark.consortiums
 def test_consortiums_add_same_name(fxConnection):
@@ -2077,6 +2147,7 @@ def test_consortiums_add_same_name(fxConnection):
    assert con2["consortium_name"] == conName
 
 
+@describe()
 @pytest.mark.smoke
 @pytest.mark.consortiums
 def test_consortiums_empty_name(fxConnection):
@@ -2093,6 +2164,7 @@ def test_consortiums_empty_name(fxConnection):
         errorCode = "MethodArgumentNotValidException", testErrorMessage = False)
 
 
+@describe()
 @pytest.mark.smoke
 @pytest.mark.consortiums
 def test_consortiums_no_name(fxConnection):
@@ -2104,6 +2176,7 @@ def test_consortiums_no_name(fxConnection):
    validateBadRequest(con, "/api/consortiums/", errorCode = "MethodArgumentNotValidException", testErrorMessage = False)
 
 
+@describe()
 @pytest.mark.smoke
 @pytest.mark.consortiums
 def test_consortiums_get_all(fxConnection):
@@ -2132,6 +2205,7 @@ def test_consortiums_get_all(fxConnection):
       assert found, "Created consortium was not retrieved."
 
 
+@describe()
 @pytest.mark.smoke
 @pytest.mark.consortiums
 def test_consortiums_get_specific(fxConnection):
@@ -2149,6 +2223,7 @@ def test_consortiums_get_specific(fxConnection):
    assert savedCon == fetchedCon, "Failed to retrieve the saved consortium."
 
 
+@describe()
 @pytest.mark.smoke
 @pytest.mark.consortiums
 def test_consortiums_get_nonexistant(fxConnection):
@@ -2167,6 +2242,7 @@ def test_consortiums_get_nonexistant(fxConnection):
    assert response["path"] == expectedPath, "Expected path {}".format(expectedPath)
 
 
+@describe()
 @pytest.mark.smoke
 @pytest.mark.consortiums
 def test_consortiums_get_bad_format(fxConnection):
@@ -2184,6 +2260,7 @@ def test_consortiums_get_bad_format(fxConnection):
    assert result["path"] == "/api/consortiums/a", "Expected different path"
 
 
+@describe()
 @pytest.mark.smoke
 @pytest.mark.consortiums
 def test_patch_consortium_name(fxConnection):
@@ -2208,6 +2285,7 @@ def test_patch_consortium_name(fxConnection):
       "Expected the name to change to Fred"
 
 
+@describe()
 @pytest.mark.smoke
 @pytest.mark.consortiums
 def test_patch_consortium_add_org(fxConnection, fxInitializeOrgs):
@@ -2239,6 +2317,7 @@ def test_patch_consortium_add_org(fxConnection, fxInitializeOrgs):
          assert m["organization_name"] == "hermes_org1"
 
 
+@describe()
 @pytest.mark.smoke
 @pytest.mark.consortiums
 def test_get_consortium_orgs(fxConnection, fxInitializeOrgs):
@@ -2266,6 +2345,8 @@ def test_get_consortium_orgs(fxConnection, fxInitializeOrgs):
       else:
          assert org["organization_name"] == "hermes_org1"
 
+
+@describe()
 @pytest.mark.smoke
 @pytest.mark.organizations
 def test_organizations_patch(fxConnection):
@@ -2305,6 +2386,8 @@ def test_organizations_patch(fxConnection):
 
    assert not(property_key in patched_org["organization_properties"])
 
+
+@describe()
 @pytest.mark.smoke
 def test_getCerts(fxConnection, fxBlockchain):
    '''
@@ -2327,6 +2410,7 @@ def test_getCerts(fxConnection, fxBlockchain):
    assert foundACert, "No non-empty rpc_cert found in response"
 
 
+@describe()
 @pytest.mark.smoke
 def test_blockHash(fxConnection, fxBlockchain):
    txReceipt = util.blockchain.eth.mock_transaction(fxConnection.rpc)
@@ -2339,6 +2423,7 @@ def test_blockHash(fxConnection, fxBlockchain):
       "Block returned with block hash API doesn't match with block returned by block Number"
 
 
+@describe()
 @pytest.mark.smoke
 def test_invalidBlockHash(fxConnection, fxBlockchain):
    try:
@@ -2348,6 +2433,7 @@ def test_invalidBlockHash(fxConnection, fxBlockchain):
       pass
 
 
+@describe()
 @pytest.mark.smoke
 def test_largeReply(fxConnection, fxBlockchain):
    ### 1. Create three contracts, each 16kb in size
@@ -2382,6 +2468,7 @@ def test_largeReply(fxConnection, fxBlockchain):
       "received only %d bytes, but expected %d" % (receviedDataSum, expectedDataSum)
 
 
+@describe()
 @pytest.mark.zones
 def test_create_zone(fxConnection, fxBlockchain):
    '''
@@ -2394,6 +2481,7 @@ def test_create_zone(fxConnection, fxBlockchain):
    validateZoneResponse(zoneInfo, response, orgId)
 
 
+@describe()
 @pytest.mark.zones
 @pytest.mark.skip(reason="VB-2082")
 def test_create_zone_invalid_field(fxConnection, fxBlockchain):
@@ -2406,6 +2494,8 @@ def test_create_zone_invalid_field(fxConnection, fxBlockchain):
    response = req.createZone(zoneInfo)
    validateBadRequest(response, "/api/zones")
 
+
+@describe()
 @pytest.mark.zones
 def test_create_zone_blank_field(fxConnection, fxBlockchain):
    '''
@@ -2429,6 +2519,7 @@ def test_create_zone_blank_field(fxConnection, fxBlockchain):
    errorMessage = errorMessage)
 
 
+@describe()
 @pytest.mark.zones
 def test_create_aws_zone(fxConnection, fxBlockchain):
    '''
@@ -2441,6 +2532,7 @@ def test_create_aws_zone(fxConnection, fxBlockchain):
    validateZoneResponse(zoneInfo, response, orgId)
 
 
+@describe()
 @pytest.mark.zones
 @pytest.mark.skip(reason="VB-2154")
 def test_invalid_zone_type(fxConnection, fxBlockchain):
@@ -2454,6 +2546,7 @@ def test_invalid_zone_type(fxConnection, fxBlockchain):
    validateBadRequest(response, "/api/zones")
 
 
+@describe()
 @pytest.mark.zones
 @pytest.mark.skip(reason="VB-2089")
 def test_create_zone_missing_required_field(fxConnection, fxBlockchain):
