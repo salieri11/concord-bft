@@ -197,7 +197,9 @@ class ProvisioningServiceRPCHelper(RPCHelper):
       :param replicas: List of replicas
       :return: properties proto message
       '''
-      property_values = {"BLOCKCHAIN_ID": "testBlockchain"}
+      blockchain_id = "testBlockchain-" + str(uuid.uuid4())
+      log.info("Blockchain Id is: " + blockchain_id)
+      property_values = {"BLOCKCHAIN_ID": blockchain_id}
 
       if replicas is not None:
           replicas_with_port = map(lambda x: "{}:50051".format(x), replicas)
