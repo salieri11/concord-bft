@@ -35,7 +35,11 @@ def racetrackSetBegin(args, secret):
     f.write(json.dumps({"setId": setId}, indent = 4))
 
 def racetrackSetEnd(args, secret):
-  with open(racetrack.getIdFilePath(), "r") as f:
+  idFilePath = racetrack.getIdFilePath()
+  if not os.path.exists(idFilePath): 
+    print("Racetrack set cannot finalize; the set did not start and save the setId to file.")
+    return
+  with open(idFilePath, "r") as f:
     setId = json.loads(f.read())["setId"]
     racetrack.setEnd(setId)
 
