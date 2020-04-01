@@ -21,6 +21,7 @@ from uuid import UUID
 
 from fixtures.common_fixtures import fxBlockchain, fxConnection, fxHermesRunSettings, fxProduct
 from suites import test_suite
+from suites.cases import describe
 from rest.request import Request
 from rpc.rpc_call import RPC
 import util.blockchain.eth
@@ -133,6 +134,7 @@ def get_summary(concordContainer=None):
    return extract_time_summary_response(output)
 
 
+@describe()
 @pytest.mark.smoke
 def test_cli_get(fxBlockchain):
    '''
@@ -147,6 +149,7 @@ def test_cli_get(fxBlockchain):
    assert re.findall("summary: ([:digit:]*)", output), "Summary with time not found: {}".format(output)
 
 
+@describe()
 def test_low_load_updates(fxBlockchain):
    '''
    Try to observe time updates happening with no input being
@@ -191,6 +194,7 @@ def test_low_load_updates(fxBlockchain):
       assert startTimes[k] != newTimes[k], "All sources should have updated"
 
 
+@describe()
 def test_time_is_recent(fxBlockchain):
    '''
    Test that the latest time from the time service is "recent". We'll
@@ -224,6 +228,7 @@ def test_time_is_recent(fxBlockchain):
       "Time service should be within 2x update period of system clock"
 
 
+@describe()
 def test_time_service_in_ethereum_block(fxConnection):
    '''
    Test that the value stored as the timestamp in an ethereum block
@@ -253,6 +258,7 @@ def test_time_service_in_ethereum_block(fxConnection):
    assert blockTime <= postTxTime, "Block timestamp should be no later than post-tx check"
 
 
+@describe()
 def test_time_service_in_ethereum_code(fxConnection):
    '''
    Test that the time returned from executing a TIMESTAMP ethereum
@@ -305,7 +311,7 @@ def ensureEnoughBlocksToTest(fxConnection, minBlocksToTest):
       assert latestBlockNumber >= minBlocksToTest
    return latestBlockNumber
 
-
+@describe()
 def test_ethereum_time_does_not_reverse(fxConnection):
    '''
    Test that the timestamp in block N is always later than or equal
@@ -350,6 +356,8 @@ def test_ethereum_time_does_not_reverse(fxConnection):
    if blockNTime - firstTrueNonZeroTime < 2 * expectedUpdatePeriodSec:
       log.warn("Only {} seconds passed between first and last timestamped block".format(blockNTime - firstTrueNonZeroTime))
 
+
+@describe()
 def test_reconfigure_pusher_period(fxBlockchain):
    '''
    Test that conc_reconfig --time_pusher_period_ms can actually be used to

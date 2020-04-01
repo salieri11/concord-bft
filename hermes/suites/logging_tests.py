@@ -14,6 +14,7 @@ import requests
 import json
 import time
 
+from suites.cases import describe
 from uuid import UUID
 from datetime import datetime, timedelta
 from util.daml import daml_helper
@@ -139,6 +140,7 @@ def li_cloud_query(fxConnection, fxBlockchain):
     return _init
 
 
+@describe()
 @pytest.mark.smoke
 def test_log_insight_cloud_api(li_cloud_query):
     # Wait for logs to ingest
@@ -150,6 +152,7 @@ def test_log_insight_cloud_api(li_cloud_query):
     assert len(results) != 0
 
 
+@describe()
 @pytest.mark.smoke
 def test_log_insight_concord_log(li_cloud_query):
     parsed_logs = li_cloud_query(data={
@@ -161,6 +164,7 @@ def test_log_insight_concord_log(li_cloud_query):
     assert len(results) != 0
 
 
+@describe()
 @pytest.mark.smoke
 def test_log_insight_service_fake(li_cloud_query):
     parsed_logs = li_cloud_query(data={
@@ -172,6 +176,7 @@ def test_log_insight_service_fake(li_cloud_query):
     assert len(results) == 0
 
 
+@describe()
 @pytest.mark.smoke
 def test_log_insight_concord_message(li_cloud_query):
     parsed_logs = li_cloud_query(data={
@@ -182,6 +187,7 @@ def test_log_insight_concord_message(li_cloud_query):
     log.info('Log Query Results: {0}'.format(results))
     assert len(results) != 0
 
+@describe()
 @pytest.mark.smoke
 def test_log_insight_concord_message_negative(li_cloud_query):
     # This should not exist and return 0 logs
@@ -197,6 +203,7 @@ def test_log_insight_concord_message_negative(li_cloud_query):
 # I'll revisit these tests on the next PR BC-1511
 # Commenting out until I can deploy a client node
 #
+# @describe()
 # @pytest.mark.smoke
 # def test_log_insight_daml_api_log(li_cloud_query):
 #     parsed_logs = li_cloud_query(data={
@@ -208,6 +215,7 @@ def test_log_insight_concord_message_negative(li_cloud_query):
 #     assert len(results) != 0
 
 
+# @describe()
 # @pytest.mark.smoke
 # def test_log_insight_daml_waiting(li_cloud_query):
 #     # Deploy some DAML contracts
@@ -229,6 +237,7 @@ def test_log_insight_concord_message_negative(li_cloud_query):
 #     assert len(results) != 0
 
 
+# @describe()
 # @pytest.mark.smoke
 # def test_log_insight_daml_api_correlation(li_cloud_query):
 
@@ -241,6 +250,7 @@ def test_log_insight_concord_message_negative(li_cloud_query):
 #     assert len(results) != 0
 
 
+# @describe()
 # @pytest.mark.smoke
 # def test_log_insight_daml_index_db(li_cloud_query):
 
@@ -253,6 +263,7 @@ def test_log_insight_concord_message_negative(li_cloud_query):
 #     assert len(results) != 0
 
 
+@describe()
 @pytest.mark.smoke
 def test_log_insight_daml_execution_engine(li_cloud_query):
 
@@ -265,6 +276,7 @@ def test_log_insight_daml_execution_engine(li_cloud_query):
     assert len(results) != 0
 
 
+@describe()
 @pytest.mark.smoke
 def test_log_insight_daml_execution_engine_negative(li_cloud_query):
     # This should not exist and return 0 logs

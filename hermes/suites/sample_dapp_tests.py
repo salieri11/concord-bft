@@ -25,6 +25,7 @@ import requests
 
 from . import test_suite
 from util.auth import tokens
+from suites.cases import describe
 
 import util.hermes_logging
 log = util.hermes_logging.getMainLogger()
@@ -145,7 +146,7 @@ class SampleDAppTests(test_suite.TestSuite):
       self._concatenatedExecuteInContainer("docker rm -f", "docker ps -a | grep asset_transfer | sed 's/|/ /' | awk '{print $1}'")
 
 
-
+   @describe()
    def _test_asset_transfer(self, fileRoot):
       ''' Tests if AssetTransfer can be deployed using the docker container '''
 
@@ -197,6 +198,7 @@ class SampleDAppTests(test_suite.TestSuite):
 
       return (True, None)
 
+   @describe()
    def _test_supply_chain_and_verify_contracts(self, fileRoot):
       # Cloning the github repo
       os.environ["NODE_TLS_REJECT_UNAUTHORIZED"] = "0"

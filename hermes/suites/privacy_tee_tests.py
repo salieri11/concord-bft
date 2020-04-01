@@ -31,6 +31,7 @@ import subprocess
 import os
 import pytest
 import itertools
+from suites.cases import describe
 
 import util.helper as helper
 from util.tee.tutil import Tee
@@ -52,6 +53,7 @@ def setup_test_suite():
 def get_test_output(tee):
     return tee.run_test().test_output
 
+@describe()
 def test_basic_tee_service(fxProduct, setup_test_suite):
     """Basic TEE service 
     """
@@ -60,6 +62,7 @@ def test_basic_tee_service(fxProduct, setup_test_suite):
 
     assert "Test Execution Handler received input 'x'" == output
 
+@describe()
 def test_privacy_sanity(fxProduct, setup_test_suite):
     """Sending PrivacySanityTest 
     Test Execution Egine will generate mock transaction

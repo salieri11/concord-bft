@@ -1,31 +1,30 @@
 ###############################################################################
 # Copyright 2018-2019 VMware, Inc.  All rights reserved. -- VMware Confidential
 ###############################################################################
-from abc import ABC
-from abc import abstractmethod
 import collections
-
+import pytest
 import json
 import logging
 import os
 import random
 import web3
+
+from abc import ABC
+from abc import abstractmethod
+from enum import Enum
 from web3 import Web3, HTTPProvider
 from requests.auth import HTTPBasicAuth
 
-import util.helper
-import util.json_helper
-import util.blockchain.eth
-import rest.request
+from util import helper
+from util.blockchain import eth as eth_helper
 from util.bytecode import getPushInstruction, addBytePadding
 from util.numbers_strings import trimHexIndicator, decToEvenHexNo0x
 from util.product import Product, ProductLaunchException
 from util.auth import getAccessToken
+
 # Suppress security warnings
 import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-
-import util.hermes_logging
 
 import util.hermes_logging
 log = util.hermes_logging.getMainLogger()
@@ -51,7 +50,7 @@ class TestSuite(ABC):
       self._testLogFile = os.path.join(self._args.resultsDir, self.getName() + ".log")
       self._resultFile = os.path.join(passedArgs.resultsDir,
                                       self.getName() + ".json")
-      self._userConfig = util.helper.loadConfigFile(self._args)
+      self._userConfig = helper.loadConfigFile(self._args)
       self._ethereumMode = self._args.ethereumMode
       self._productMode = not self._ethereumMode
       self._noLaunch = self._args.noLaunch
@@ -189,7 +188,7 @@ class TestSuite(ABC):
       - Be sure replaceable values in the Persephone application-test.properties file have been replaced
         with real values.
       '''
-      if self._args.blockchainLocation != util.helper.LOCATION_LOCAL:
+      if self._args.blockchainLocation != helper.LOCATION_LOCAL:
          foundPersephoneDockerConfig = False
 
          for key in dockerCfg["services"].keys():
@@ -279,7 +278,7 @@ class TestSuite(ABC):
       if self._args.ethrpcApiUrl:
          self.ethrpcApiUrl = self._args.ethrpcApiUrl
       else:
-         self.ethrpcApiUrl = util.blockchain.eth.getEthrpcApiUrl(request, blockchainId)
+         self.ethrpcApiUrl = eth_helper.getEthrpcApiUrl(request, blockchainId)
 
    def _getAUser(self):
       '''

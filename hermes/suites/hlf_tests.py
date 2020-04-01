@@ -15,6 +15,7 @@ import subprocess
 import time
 
 from . import test_suite
+from suites.cases import describe
 from util.product import Product
 from random import randrange
 
@@ -149,6 +150,7 @@ class HlfTests(test_suite.TestSuite):
                   self._test_chaincode_fabcar_query_range_state)]
             #   ("chaincode_fabcar_upgrade", self._test_chaincode_fabcar_upgrade)]
 
+   @describe()
    def _test_chaincode_fabcar_install(self):
        '''
        Test the installation of chaincode "fabcar"
@@ -189,6 +191,7 @@ class HlfTests(test_suite.TestSuite):
 
        return (True, None)
 
+   @describe()
    def _test_consensus_ping_pong(self):
        '''
        Test the ping command for concord-hlf 
@@ -222,6 +225,7 @@ class HlfTests(test_suite.TestSuite):
 
        return (True, None)
 
+   @describe()
    def _test_chaincode_fabcar_upgrade(self):
        '''
        Test the upgrade of the chaincode "fabcar"
@@ -254,6 +258,7 @@ class HlfTests(test_suite.TestSuite):
        else:
           return (False, "Concord upgrade returned Non-zero status.")
 
+   @describe()
    def _test_chaincode_fabcar_invoke_init_ledger(self):
        '''
        Test the Invocation of the chaincode "fabcar"
@@ -297,6 +302,7 @@ class HlfTests(test_suite.TestSuite):
          else:
             return (False, "Concord invoke returned Non-zero status.")
 
+   @describe()
    def _test_chaincode_fabcar_invoke_change_car_owner(self):
        '''
        Test the Invocation of the chaincode "fabcar"
@@ -330,6 +336,7 @@ class HlfTests(test_suite.TestSuite):
           return (False, "Concord invoke returned Non-zero status.")
        return (True, None)
 
+   @describe()
    def _test_chaincode_fabcar_invoke_create_car(self):
        '''
        Test the Invocation of the chaincode "fabcar"
@@ -365,6 +372,7 @@ class HlfTests(test_suite.TestSuite):
           return (False, "Concord invoke returned Non-zero status.")
        return (True, None)
 
+   @describe()
    def _test_chaincode_query(self, query_input, expected_result=StatusOk):
        '''
        Test the Query of the chaincode "fabcar"
@@ -391,6 +399,7 @@ class HlfTests(test_suite.TestSuite):
        else:
           return (False, "Concord query returned Non-zero status.")
 
+   @describe()
    def _test_chaincode_fabcar_query_history(self):
     '''
     Test the Query History of the chaincode "fabcar"
@@ -416,6 +425,7 @@ class HlfTests(test_suite.TestSuite):
     else:
        return (False, "Concord query history returned Non-zero status.")
 
+   @describe()
    def _test_chaincode_fabcar_initial(self):
        '''
        Test the "initial" API
@@ -441,6 +451,7 @@ class HlfTests(test_suite.TestSuite):
        else:
           return (False, "Concord returned Non-zero status.")
 
+   @describe()
    def _test_chaincode_fabcar_query_range_state(self):
        '''
        Test the GetStateByRange API

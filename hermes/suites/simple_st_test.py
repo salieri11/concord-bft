@@ -41,6 +41,8 @@ import util.numbers_strings
 from rest.request import Request
 from datetime import datetime
 
+from suites.cases import describe
+
 import util.hermes_logging
 log = util.hermes_logging.getMainLogger()
 
@@ -148,7 +150,9 @@ class SimpleStateTransferTest(test_suite.TestSuite):
 
       log.info("Done sending {} transactions".format(transactions))
 
-   def _run_kill_replica_test(self):
+
+   @describe(dontReport=True)
+   def _test_kill_replica(self):
       global path
       transactions = 1000
 
@@ -181,7 +185,9 @@ class SimpleStateTransferTest(test_suite.TestSuite):
 
       return (True, "Data checked")
 
-   def _run_pause_replica_test(self):
+
+   @describe(dontReport=True)
+   def _test_pause_replica(self):
       global path
 
       res = self.product.kill_concord_replica(1)
@@ -255,8 +261,8 @@ class SimpleStateTransferTest(test_suite.TestSuite):
       return (True, "Data checked")
 
    def _get_tests(self):
-      return [("kill_replica", self._run_kill_replica_test), \
-      ("pause_replica", self._run_pause_replica_test)]
+      return [("kill_replica", self._test_kill_replica), \
+      ("pause_replica", self._test_pause_replica)]
 
    def run(self):
       self.launchProduct()

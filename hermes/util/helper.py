@@ -109,6 +109,9 @@ JENKINS_RUN_RELEASE_BRANCH = { "type": "RELEASE", "contains": ["Branch Blockchai
 }
 JENKINS_MRJOR_RUN_TYPES = [ JENKINS_RUN_MAIN_MR, JENKINS_RUN_MASTER, JENKINS_RUN_RELEASE_BRANCH ]
 
+# Current suite name set by main.py
+CURRENT_SUITE_NAME = ""
+
 
 def copy_docker_env_file(docker_env_file=docker_env_file):
    '''
@@ -1077,6 +1080,10 @@ def jenkinsRunTypeIs(runTypeInfoA):
   runTypeInfoB = getJenkinsRunTypeInfo()
   if not runTypeInfoA or not runTypeInfoB: return False
   return runTypeInfoA["type"] == runTypeInfoB["type"]
+
+
+def thisHermesIsFromJenkins():
+  return getJenkinsJobNameAndBuildNumber()["jobName"] != "None"
 
 
 def installHealthDaemon(replicas):

@@ -16,6 +16,7 @@ import os
 import traceback
 import websocket
 from . import test_suite
+from suites.cases import describe
 
 import util.hermes_logging
 log = util.hermes_logging.getMainLogger()
@@ -90,6 +91,7 @@ class WebSocketRPCTests(test_suite.TestSuite):
    def _close(self):
       _ws.close()
 
+   @describe()
    def _test_eth_getBalance(self):
       addrFrom = "0x262c0d7ab5ffd4ede2199f6ea793f819e1abb019"
       addrTo = "0x5bb088f57365907b1840e45984cae028a82af934"
@@ -116,6 +118,7 @@ class WebSocketRPCTests(test_suite.TestSuite):
 
       return (True, None)
 
+   @describe()
    def _test_eth_estimateGas(self):
       '''
       Check that gas price is reported correctly
@@ -126,6 +129,7 @@ class WebSocketRPCTests(test_suite.TestSuite):
       if int(resutl_dict['result'], 16) == 0:
          return (True, None)
 
+   @describe()
    def _test_eth_getBlockByNumber(self):
       currentBlockNumber = getBlockNumber()
       latestBlock = getBlockByNumber()
@@ -159,6 +163,7 @@ class WebSocketRPCTests(test_suite.TestSuite):
 
       return (True, None)
 
+   @describe()
    def _test_eth_getCode(self):
       contractTransaction = "0xf901628085051f4d5c0083419ce08080b9010f608060405234801561001057600080fd5b506104d260005560ea806100256000396000f30060806040526004361060525763ffffffff7c01000000000000000000000000000000000000000000000000000000006000350416634f2be91f811460575780636deebae314606b5780638ada066e14607d575b600080fd5b348015606257600080fd5b50606960a1565b005b348015607657600080fd5b50606960ac565b348015608857600080fd5b50608f60b8565b60408051918252519081900360200190f35b600080546001019055565b60008054600019019055565b600054905600a165627a7a72305820b827241483c0f1a78e00de3ba4a4cb1e67a03bf6fb9f5ecc0491712f7e0aeb8000291ca080c9884eefca39aece8d308136f3bc2b95e44bd812afc33a9d741fcacee2f874a0125e2c8cd8af9e32cdbabf525a2e69ba7ebdd16411314a9bfa1e6bf414db6122"
       expectedCode = "0x60806040526004361060525763ffffffff7c01000000000000000000000000000000000000000000000000000000006000350416634f2be91f811460575780636deebae314606b5780638ada066e14607d575b600080fd5b348015606257600080fd5b50606960a1565b005b348015607657600080fd5b50606960ac565b348015608857600080fd5b50608f60b8565b60408051918252519081900360200190f35b600080546001019055565b60008054600019019055565b600054905600a165627a7a72305820b827241483c0f1a78e00de3ba4a4cb1e67a03bf6fb9f5ecc0491712f7e0aeb800029"
@@ -182,6 +187,7 @@ class WebSocketRPCTests(test_suite.TestSuite):
 
       return (True, None)
 
+   @describe()
    def _test_eth_gasPrice(self):
       '''
       Check that gas price is reported correctly
@@ -193,6 +199,7 @@ class WebSocketRPCTests(test_suite.TestSuite):
                         "but found '{}'".format(result))
       return (True, None)
 
+   @describe()
    def _test_eth_getTransactionByHash(self):
       block = getBlockByNumber("latest")
       while not block["transactions"]:
@@ -212,6 +219,8 @@ class WebSocketRPCTests(test_suite.TestSuite):
 
       return (True, None)
 
+
+   @describe()
    def _test_eth_getTransactionCount(self):
       caller = "0x262c0d7ab5ffd4ede2199f6ea793f819e1abb019"
       previousBlockNumber = getBlockNumber()
@@ -239,6 +248,8 @@ class WebSocketRPCTests(test_suite.TestSuite):
 
       return (True, None)
 
+
+   @describe()
    def _test_eth_getTransactionReceipt(self):
       '''
       Make sure the API is available and all expected fields are present.
@@ -259,6 +270,8 @@ class WebSocketRPCTests(test_suite.TestSuite):
 
       return (True, None)
 
+
+   @describe()
    def _test_eth_mining(self):
       '''
       Check that mining status is reported correctly
@@ -269,6 +282,8 @@ class WebSocketRPCTests(test_suite.TestSuite):
 
       return (True, None)
 
+
+   @describe()
    def _test_eth_sendRawTransaction(self):
       '''
       Check that a raw transaction gets decoded correctly.
@@ -296,6 +311,8 @@ class WebSocketRPCTests(test_suite.TestSuite):
 
       return (True, None)
 
+
+   @describe()
    def _test_eth_syncing(self):
       '''
       Check that syncing state is reported correctly
@@ -307,6 +324,7 @@ class WebSocketRPCTests(test_suite.TestSuite):
 
       return (True, None)
 
+   @describe()
    def _test_rpc_modules(self):
       '''
       Check that available RPC modules are listed correctly
@@ -332,6 +350,8 @@ class WebSocketRPCTests(test_suite.TestSuite):
 
       return (True, None)
 
+
+   @describe()
    def _test_web3_sha3(self):
       '''
       Check that hashing works as expected.
@@ -349,6 +369,8 @@ class WebSocketRPCTests(test_suite.TestSuite):
 
       return (True, None)
 
+
+   @describe()
    def _test_web3_clientVersion(self):
       '''
       Check that we return a valid version

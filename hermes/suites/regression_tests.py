@@ -26,6 +26,7 @@ import util.json_helper
 from rest.request import Request
 from datetime import datetime
 from web3 import Web3
+from suites.cases import describe
 
 import util.hermes_logging
 log = util.hermes_logging.getMainLogger()
@@ -128,6 +129,7 @@ class RegressionTests(test_suite.TestSuite):
                 self._userConfig)
       return testFun(rpc)
 
+   @describe()
    def _test_nested_contract_creation(self, rpc):
       '''
       Submit a request to create a new contract which itself creates another contract
@@ -184,6 +186,7 @@ class RegressionTests(test_suite.TestSuite):
          #Skip the test if running in Ethereum mode
          return (None, None)
 
+   @describe()
    def _test_invalid_addresses(self, rpc):
       '''
       Submit transactions using bad addresses: too long, too short.
@@ -229,6 +232,7 @@ class RegressionTests(test_suite.TestSuite):
          #Skip the test if running in Ethereum mode
          return (None, None)
 
+   @describe()
    def _test_call_writer(self, rpc):
       '''
       Submit an eth_call to a contract that modifies storage. concord
@@ -285,6 +289,7 @@ class RegressionTests(test_suite.TestSuite):
          #Skip the test if running in Ethereum mode
          return (None, None)
 
+   @describe()
    def _test_large_transactions(self, rpc):
       '''
       Tests that Concord does not appear to gracelessly handle any large
@@ -436,6 +441,7 @@ class RegressionTests(test_suite.TestSuite):
          # We skip this test if running in Ethereum mode.
          return (None, None)
 
+   @describe()
    def _test_zero_exit_code(self, rpc):
       '''
       Stop a concord container, and make sure its exit code is

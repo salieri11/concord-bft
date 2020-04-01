@@ -20,6 +20,7 @@ from util import auth, helper, infra, hermes_logging
 from util.daml import daml_helper
 from util.product import Product as Product
 from . import test_suite
+from suites.cases import describe
 sys.path.append('lib')
 
 
@@ -810,6 +811,7 @@ class PersephoneTests(test_suite.TestSuite):
       return (status, msg)
 
 
+   @describe()
    def _test_create_blockchain_4_node_fixed_site(self, cluster_size=4):
       '''
       Test to create a blockchain cluster with 4 nodes on FIXED sites
@@ -843,6 +845,7 @@ class PersephoneTests(test_suite.TestSuite):
 
       return self.parse_test_status(False, "Failed to get a valid deployment session ID")
 
+   @describe()
    def _test_create_daml_blockchain_7_node_fixed_site(self, cluster_size=7):
       '''
       Test to create a blockchain cluster with 7 DAML nodes on FIXED sites
@@ -879,6 +882,7 @@ class PersephoneTests(test_suite.TestSuite):
 
       return self.parse_test_status(False, "Failed to get a valid deployment session ID")
 
+   @describe()
    def _test_create_blockchain_7_node_fixed_site(self, cluster_size=7):
       '''
       Test to create a blockchain cluster with 7 nodes on FIXED sites
@@ -969,6 +973,7 @@ class PersephoneTests(test_suite.TestSuite):
       log.info("Thread {}: Deployment Status '{}' put in request queue".format(
          thread_name, status))
 
+   @describe()
    def _test_concurrent_deployments_fixed_site(self, cluster_1_size=4,
                                                cluster_2_size=7):
       '''
@@ -1067,6 +1072,7 @@ class PersephoneTests(test_suite.TestSuite):
          name="StreamAllDeploymentEvents")
       self.background_thread.start()
 
+   @describe()
    def _test_concurrent_daml_deployments_fixed_site(self, cluster_1_size=4,
                                                cluster_2_size=7):
       '''
@@ -1116,6 +1122,7 @@ class PersephoneTests(test_suite.TestSuite):
          log.error("Concurrent Deployments: Failed")
          return (False, "Failed to deploy concurrent Clusters")
 
+   @describe()
    def _test_create_daml_blockchain_7_node_onprem(self, cluster_size=7):
       '''
       Test to create a blockchain cluster with 7 DAML nodes on-prem
@@ -1251,6 +1258,7 @@ class PersephoneTests(test_suite.TestSuite):
 
       return self.parse_test_status(False, "Failed to get a valid deployment session ID")
 
+   @describe()
    def _test_daml_committer_participant_4_node_onprem(self,
                                                       committer_nodes=4,
                                                       participant_nodes=1,
@@ -1275,6 +1283,7 @@ class PersephoneTests(test_suite.TestSuite):
 
       return status,msg
 
+   @describe()
    def _test_daml_committer_participant_7_node_onprem(self,
                                                       committer_nodes=7,
                                                       participant_nodes=1,
@@ -1299,7 +1308,7 @@ class PersephoneTests(test_suite.TestSuite):
 
       return status,msg
 
-
+   @describe()
    def _test_daml_committer_participant_deployment(self, committer_nodes=7,
                                                      participant_nodes=1,
                                                      zone_type=helper.LOCATION_SDDC):
