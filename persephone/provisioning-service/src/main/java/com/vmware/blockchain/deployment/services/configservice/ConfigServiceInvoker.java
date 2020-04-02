@@ -28,7 +28,7 @@ public class ConfigServiceInvoker {
      * Generates CS stub.
      * @return stub
      */
-    public ConfigurationServiceGrpc.ConfigurationServiceFutureStub generateConfigServiceStub() {
+    public ConfigurationServiceGrpc.ConfigurationServiceStub generateConfigServiceStub() {
         ManagedChannel channel = null;
         if (endpoint.getTransportSecurity().getType()
             == TransportSecurity.Type.NONE) {
@@ -41,6 +41,6 @@ public class ConfigServiceInvoker {
                     .forTarget(endpoint.getAddress())
                     .build();
         }
-        return ConfigurationServiceGrpc.newFutureStub(channel);
+        return ConfigurationServiceGrpc.newStub(channel);
     }
 }

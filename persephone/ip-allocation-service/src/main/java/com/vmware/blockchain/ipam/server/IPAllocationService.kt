@@ -7,7 +7,6 @@ import com.google.protobuf.ByteString
 import com.vmware.blockchain.common.NotFoundException
 import com.vmware.blockchain.dao.ConcurrentUpdateException
 import com.vmware.blockchain.dao.GenericDao
-import com.vmware.blockchain.deployment.logging.logger
 import com.vmware.blockchain.deployment.v1.Address
 import com.vmware.blockchain.deployment.v1.AllocateAddressRequest
 import com.vmware.blockchain.deployment.v1.AllocateAddressResponse
@@ -26,8 +25,9 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
-import org.springframework.beans.factory.annotation.Autowired
+import org.apache.logging.log4j.LogManager
 import org.lognet.springboot.grpc.GRpcService
+import org.springframework.beans.factory.annotation.Autowired
 import kotlin.coroutines.CoroutineContext
 import kotlin.math.min
 
@@ -83,7 +83,7 @@ class IPAllocationService @Autowired constructor(
 ) : IPAllocationServiceGrpc.IPAllocationServiceImplBase(), CoroutineScope {
 
     /** Logging instance. */
-    private val log by logger()
+    private val log = LogManager.getLogger(IPAllocationService::class.java)
 
     /** [CoroutineContext] to launch all coroutines associated with this instance. */
     override val coroutineContext: CoroutineContext

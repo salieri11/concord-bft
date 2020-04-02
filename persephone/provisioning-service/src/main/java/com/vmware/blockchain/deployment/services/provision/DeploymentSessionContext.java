@@ -6,9 +6,9 @@ package com.vmware.blockchain.deployment.services.provision;
 
 import java.util.Map;
 
-import org.jetbrains.annotations.NotNull;
+import javax.validation.constraints.NotNull;
 
-import com.vmware.blockchain.deployment.orchestration.Orchestrator;
+import com.vmware.blockchain.deployment.services.orchestration.Orchestrator;
 import com.vmware.blockchain.deployment.v1.OrchestrationSiteIdentifier;
 
 /**

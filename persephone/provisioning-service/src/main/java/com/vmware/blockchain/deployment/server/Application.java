@@ -22,8 +22,7 @@ import lombok.extern.slf4j.Slf4j;
  */
 @SpringBootApplication
 @Slf4j
-@ComponentScan({"com.vmware.blockchain.deployment.services.orchestrationsite",
-                "com.vmware.blockchain.deployment.server"})
+@ComponentScan({"com.vmware.blockchain.deployment.*"})
 public class Application {
 
     /**
