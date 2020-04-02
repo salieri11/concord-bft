@@ -20,11 +20,12 @@ function replica_ip_to_id {
   fi
 
   IP=$1
-  if [ ${IP} = $(my_ipv4) ]; then
+  if [ "${IP}" = "$(my_ipv4)" ]; then
     IP="127.0.0.1"
   fi
 
-  yq ".node[] | .replica[] | select(.replica_host==\"${IP}\") | .principal_id" ${CONFIG}
+  REPLICA_PATH=$(yq r ${CONFIG} --printMode p "node[*].replica[0].(.==${IP})")
+  yq r ${CONFIG} ${REPLICA_PATH/replica_host/principal_id}
 }
 
 

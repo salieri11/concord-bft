@@ -14,12 +14,10 @@ function replica_ips {
     exit 1
   fi
 
-  IPS=$(cat ${CONFIG} | yq ".node[] | .replica[] | .replica_host")
+  IPS=$(yq r ${CONFIG} 'node[*].replica[0].replica_host')
   for ip in ${IPS}; do
-    ip=${ip%\"}
-    ip=${ip#\"}
     if [ "${ip}" = "127.0.0.1" ]; then
-      ip=$(my_ipv4)
+      my_ipv4
     fi
     echo ${ip}
   done

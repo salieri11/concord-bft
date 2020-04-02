@@ -1,5 +1,7 @@
 #!/bin/bash
 
+source ./my-ipv4.sh
+
 function replica_id_to_ip {
   if [ -z $1 ]; then
     >&2 echo "Replica ID expected"
@@ -17,10 +19,14 @@ function replica_id_to_ip {
     exit 1
   fi
 
-  IP=$(yq ".node[] | .replica[] | select(.principal_id==$1) | .replica_host" ${CONFIG})
-  IP=${IP%\"}
-  IP=${IP#\"}
-  echo ${IP}
+  REPLICA_PATH=$(yq r ${CONFIG} --printMode p "node[*].replica[0].(.==$1)")
+  IP=$(yq r ${CONFIG} ${REPLICA_PATH/principal_id/replica_host})
+
+  if [ "${IP}" = "127.0.0.1" ]; then
+    my_ipv4
+  else
+    echo ${IP}
+  fi
 }
 
 [[ ${BASH_SOURCE[0]} = $0 ]] && replica_id_to_ip $@

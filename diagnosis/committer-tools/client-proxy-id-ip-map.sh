@@ -1,5 +1,7 @@
 #!/bin/bash
 
+source ./my-ipv4.sh
+
 if [ -z ${CONCORD_CONFIG} ]; then
   CONFIG=/config/concord/config-local/concord.config
 else
@@ -11,10 +13,12 @@ if [ ! -f ${CONFIG} ]; then
   exit 1
 fi
 
-MAPPING=$(cat ${CONFIG} | yq '.node[] | .client_proxy[] | "\(.principal_id):\(.client_host):\(.client_port)"')
-for kv in ${MAPPING}; do
-    kv=${kv%\"}
-    kv=${kv#\"}
-    kv=${kv/:/ }
-    echo ${kv}
-done
+TMP=/tmp/diagnosis
+mkdir -p ${TMP}
+
+yq r ${CONFIG} 'node[*].client_proxy[*].principal_id' > ${TMP}/ids
+yq r ${CONFIG} 'node[*].client_proxy[*].client_host' > ${TMP}/ips
+sed -i "s/127.0.0.1/$(my_ipv4)/g" ${TMP}/ips
+paste ${TMP}/ids ${TMP}/ips | sort -n
+
+rm -rf ${TMP}

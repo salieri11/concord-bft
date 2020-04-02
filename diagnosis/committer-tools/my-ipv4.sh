@@ -5,6 +5,4 @@ my_ipv4() {
   eval ${MY_IPv4}
 }
 
-if [ "${#BASH_SOURCE[@]}" -eq 1 ]; then
-  my_ipv4
-fi
+[[ ${BASH_SOURCE[0]} = $0 ]] && my_ipv4
