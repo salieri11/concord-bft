@@ -14,11 +14,8 @@
     <modules>
         <module>api</module>
         <module>agent</module>
-        <module>core</module>
         <module>config-service</module>
         <module>ip-allocation-service</module>
-        <module>orchestration</module>
-        <module>orchestration-vmware</module>
         <module>provisioning-service</module>
     </modules>
 

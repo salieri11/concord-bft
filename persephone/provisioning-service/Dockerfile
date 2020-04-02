@@ -7,9 +7,6 @@ COPY ./resources/checkstyle.xml ../resources/checkstyle.xml
 ## Copy the POM files (rarely changing).
 COPY ./pom.xml ./pom.xml
 COPY ./api/pom.xml ./api/pom.xml
-COPY ./core/pom.xml ./core/pom.xml
-COPY ./orchestration/pom.xml ./orchestration/pom.xml
-COPY ./orchestration-vmware/pom.xml ./orchestration-vmware/pom.xml
 COPY ./provisioning-service/pom.xml ./provisioning-service/pom.xml
 
 COPY ./agent/pom.xml ./agent/pom.xml
@@ -18,9 +15,6 @@ COPY ./ip-allocation-service/pom.xml ./ip-allocation-service/pom.xml
 
 ## Copy the dependent module sources.
 COPY ./api ./api
-COPY ./core ./core
-COPY ./orchestration ./orchestration
-COPY ./orchestration-vmware ./orchestration-vmware
 
 ## Copy the module sources.
 COPY ./provisioning-service  ./provisioning-service

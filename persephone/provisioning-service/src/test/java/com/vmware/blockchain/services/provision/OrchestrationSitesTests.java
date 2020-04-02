@@ -35,8 +35,7 @@ public class OrchestrationSitesTests {
     @Test
     void testBuildSiteInfo() {
         OrchestrationSiteInfo siteInfo =
-                OrchestrationSites.buildSiteInfo(originalSiteInfo, Endpoint.newBuilder().build(),
-                                                 Endpoint.newBuilder().build());
+                OrchestrationSites.buildSiteInfo(originalSiteInfo, Endpoint.newBuilder().build());
 
         Assert.assertNull(siteInfo.getType());
     }

@@ -19,10 +19,7 @@ COPY ./persephone/resources/checkstyle.xml ./persephone/resources/checkstyle.xml
 COPY ./persephone/pom.xml ./persephone/pom.xml
 COPY ./persephone/api/pom.xml ./persephone/api/pom.xml
 COPY ./persephone/config-service/pom.xml ./persephone/config-service/pom.xml
-COPY ./persephone/core/pom.xml ./persephone/core/pom.xml
 COPY ./persephone/ip-allocation-service/pom.xml ./persephone/ip-allocation-service/pom.xml
-COPY ./persephone/orchestration/pom.xml ./persephone/orchestration/pom.xml
-COPY ./persephone/orchestration-vmware/pom.xml ./persephone/orchestration-vmware/pom.xml
 COPY ./persephone/provisioning-service/pom.xml ./persephone/provisioning-service/pom.xml
 
 ## Copy the dependency-related POM files (rarely changing).

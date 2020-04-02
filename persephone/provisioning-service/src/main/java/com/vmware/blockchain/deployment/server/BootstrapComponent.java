@@ -44,16 +44,16 @@ public class BootstrapComponent {
     @Value("${provisioning.container.registry.password}")
     private String password;
 
-    Endpoint configService;
+    public Endpoint configService;
 
-    Endpoint configServiceRest;
+    public Endpoint configServiceRest;
 
-    Endpoint allocationService;
+    public Endpoint allocationService;
 
-    Endpoint containerRegistry;
+    public Endpoint containerRegistry;
 
     /**
-     * Test.
+     * Configuration input.
      */
     @PostConstruct
     public void initialize() {

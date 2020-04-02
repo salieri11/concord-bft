@@ -1,0 +1,34 @@
+#!/bin/sh
+echo -e "c0nc0rd\nc0nc0rd" | /bin/passwd
+
+{{networkSetupCommand}}
+
+sed -i 's_/usr/bin/dockerd.*_/usr/bin/dockerd {{dockerDns}} -H tcp://127.0.0.1:2375 -H unix:///var/run/docker.sock {{registrySecuritySetting}}_g' /lib/systemd/system/docker.service
+
+{{setupOutboundProxy}}
+systemctl daemon-reload
+
+mkdir -p /etc/docker
+echo '{"log-driver": "json-file", "log-opts": { "max-size": "100m", "max-file": "5"}}' > /etc/docker/daemon.json
+
+systemctl restart docker
+
+# To enable docker on boot.
+systemctl enable docker
+
+# Enable time sync
+vmware-toolbox-cmd timesync enable
+
+{{dockerLoginCommand}}
+
+# Output the node's model specification.
+mkdir -p /config/agent
+echo '{{agentConfig}}' > /config/agent/config.json
+
+# Update guest-info's network information in vSphere.
+touch /etc/vmware-tools/tools.conf
+printf '[guestinfo]\nprimary-nics=eth*\nexclude-nics=docker*,veth*' > /etc/vmware-tools/tools.conf
+/usr/bin/vmware-toolbox-cmd info update network
+
+docker run -d --name=agent --restart=always -v /config:/config -v /var/run/docker.sock:/var/run/docker.sock -p 8546:8546 {{agentImage}}
+echo 'done'
