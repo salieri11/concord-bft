@@ -72,13 +72,12 @@ SpanPtr ExtractSpan(OpenTracingKeyValMap& kv, const std::string& child_name,
   auto res = kv.find(kSpanContextKey);
   if (res == kv.end()) {
     if (create_span_on_failure) {
-      LOG4CPLUS_WARN(logger,
-                     "Update does not contain a span, creating a new one");
+      LOG4CPLUS_DEBUG(logger,
+                      "Update does not contain a span, creating a new one");
       return opentracing::Tracer::Global()->StartSpan(
           child_name, {opentracing::SetTag{kCorrelationIdTag, correlation_id}});
     } else {
-      throw std::runtime_error(
-          "Update does not contain a span, creating a new one");
+      throw std::runtime_error("Failed to find span, error: Not in updates");
     }
   }
   auto span = ExtractSpan(res->second.toString(), child_name, logger,
