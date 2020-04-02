@@ -105,6 +105,10 @@ PROPERTIES_VMBC_ENABLED_VMC_ZONES = "vmbc.enabled.vmc.zones"
 # default: ${WORKSPACE}/blockchain/vars/racetrack_set_id.json
 RACETRACK_SET_ID_FILE = "/blockchain/vars/racetrack_set_id.json"
 
+# Replicas Information
+REPLICAS_JSON_PATH = "/tmp/replicas.json"
+REPLICAS_JSON_FILE = "replicas.json"
+
 # Jenkins namespaces; used by `getJenkinsBuildTraceId` for Jenkins trace context.
 # This future-proofs possible multi-Jenkins contexts with partners like DA/ASX/HK
 # All metrics endpoints (Racetrack/Wavefront) will have distinguishable dataset to work with

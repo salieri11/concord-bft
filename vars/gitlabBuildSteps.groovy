@@ -2157,7 +2157,8 @@ void announceToTFailure(){
   //          presendScript: 'msg.addHeader("X-Priority", "1 (Highest)"); msg.addHeader("Importance", "High");'
 
   Random rnd = new Random()
-  emoji_list = [":explode:", ":exploding_head:", ":fire:", ":bangbang:", ":alert:", ":boom:", ":boom1:", ":warning:", ":skull_and_crossbones:"]
+  emoji_list = [":explode:", ":exploding_head:", ":fire:", ":bangbang:", ":alert:", ":boom:", ":boom1:", ":warning:",
+                ":skull_and_crossbones:", ":jenkins-explode:"]
   emoji = emoji_list[rnd.nextInt(emoji_list.size)]
   subject = emoji + emoji + " <!here> Master run " + env.BUILD_NUMBER + " failed! " + emoji + emoji
   env.run_fail_msg = subject + "\nBuild url: " + env.BUILD_URL
