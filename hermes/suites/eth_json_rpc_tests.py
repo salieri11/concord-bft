@@ -248,6 +248,7 @@ class EthJsonRpcTests(test_suite.TestSuite):
 
       return (True, None)
 
+   @describe()
    def _test_eth_estimateGas(self, rpc, request):
       '''
       Check that gas price is reported correctly

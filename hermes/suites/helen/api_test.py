@@ -2609,6 +2609,7 @@ def checkRequiredZoneFields(req, fullZoneObject, partialZoneObject, requiredFiel
                                  requiredFields[keyToRemove])
 
 
+@describe()
 @pytest.mark.zones
 def test_get_single_zone(fxConnection, fxBlockchain):
    '''
@@ -2623,6 +2624,7 @@ def test_get_single_zone(fxConnection, fxBlockchain):
    assert createZoneResponse == getZoneResponse, "Responses should be equal."
 
 
+@describe()
 @pytest.mark.zones
 @pytest.mark.skip(reason="VB-2090")
 def test_get_missing_zone(fxConnection, fxBlockchain):
@@ -2635,6 +2637,7 @@ def test_get_missing_zone(fxConnection, fxBlockchain):
    log.info("getZoneResponse: {}".format(getZoneResponse))
 
 
+@describe()
 @pytest.mark.zones
 def test_get_invalid_zone(fxConnection, fxBlockchain):
    '''
@@ -2650,6 +2653,7 @@ def test_get_invalid_zone(fxConnection, fxBlockchain):
                       "Invalid UUID string: 3")
 
 
+@describe()
 @pytest.mark.zones
 def test_get_all_zones(fxConnection, fxBlockchain):
    '''
@@ -2677,6 +2681,7 @@ def test_get_all_zones(fxConnection, fxBlockchain):
       assert addedZone in retrievedZones, "Zone {} not found in {}".format(addedZone, retrievedZones)
 
 
+@describe()
 @pytest.mark.zones
 @pytest.mark.skip(reason="VB-2150")
 def test_get_all_no_zones(fxConnection, fxBlockchain):
@@ -2698,6 +2703,7 @@ def test_get_all_no_zones(fxConnection, fxBlockchain):
    assert not retrievedZones, "Expected an empty list."
 
 
+@describe()
 @pytest.mark.zones
 def test_delete_some_zones(fxConnection, fxBlockchain):
    '''
@@ -2716,6 +2722,8 @@ def test_delete_some_zones(fxConnection, fxBlockchain):
    log.info("zoneIds added and deleted: {}".format(zoneIds))
    log.info("zoneIds retrieved after deletion: {}".format(allZoneIds))
 
+
+@describe()
 @pytest.mark.zones
 def test_delete_all_zones(fxConnection, fxBlockchain):
    '''
@@ -2745,6 +2753,7 @@ def test_delete_all_zones(fxConnection, fxBlockchain):
                         util.auth.getOrgId("hermes_org0"))
 
 
+@describe()
 @pytest.mark.zones
 @pytest.mark.skip(reason="VB-2090")
 def test_delete_nonexistant_node(fxConnection, fxBlockchain):
@@ -2757,6 +2766,7 @@ def test_delete_nonexistant_node(fxConnection, fxBlockchain):
    log.info("getZoneResponse: {}".format(deleteZoneResponse))
 
 
+@describe()
 @pytest.mark.zones
 def test_delete_invalid_uuid_node(fxConnection, fxBlockchain):
    '''
@@ -2771,6 +2781,7 @@ def test_delete_invalid_uuid_node(fxConnection, fxBlockchain):
                       "nested exception is java.lang.IllegalArgumentException: " \
                       "Invalid UUID string: 3")
 
+@describe()
 @pytest.mark.zones
 def test_no_log_management(fxConnection, fxBlockchain):
    '''
@@ -2784,6 +2795,7 @@ def test_no_log_management(fxConnection, fxBlockchain):
    validateZoneResponse(zoneInfo, response, orgId)
 
 
+@describe()
 @pytest.mark.zones
 def test_log_management_multiple(fxConnection, fxBlockchain):
    '''
@@ -2799,6 +2811,7 @@ def test_log_management_multiple(fxConnection, fxBlockchain):
    validateZoneResponse(zoneInfo, response, orgId)
 
 
+@describe()
 @pytest.mark.zones
 @pytest.mark.skip(reason="VB-2157")
 def test_log_management_no_destination(fxConnection, fxBlockchain):
@@ -2814,6 +2827,7 @@ def test_log_management_no_destination(fxConnection, fxBlockchain):
    # validateBadRequest(...)
 
 
+@describe()
 @pytest.mark.zones
 @pytest.mark.skip(reason="VB-2154")
 def test_log_management_wrong_destination_type(fxConnection, fxBlockchain):
@@ -2828,6 +2842,7 @@ def test_log_management_wrong_destination_type(fxConnection, fxBlockchain):
    # validateBadRequest(...)
 
 
+@describe()
 @pytest.mark.zones
 @pytest.mark.skip(reason="VB-2157")
 def test_log_management_no_address(fxConnection, fxBlockchain):
@@ -2843,6 +2858,7 @@ def test_log_management_no_address(fxConnection, fxBlockchain):
    # validateBadRequest(...)
 
 
+@describe()
 @pytest.mark.zones
 def test_log_management_wrong_address_type(fxConnection, fxBlockchain):
    '''
@@ -2858,6 +2874,7 @@ def test_log_management_wrong_address_type(fxConnection, fxBlockchain):
    validateZoneResponse(zoneInfo, response, orgId)
 
 
+@describe()
 @pytest.mark.zones
 @pytest.mark.skip(reason="VB-2157")
 def test_log_management_no_username(fxConnection, fxBlockchain):
@@ -2873,6 +2890,7 @@ def test_log_management_no_username(fxConnection, fxBlockchain):
    # validateBadRequest(...)
 
 
+@describe()
 @pytest.mark.zones
 def test_log_management_wrong_username_type(fxConnection, fxBlockchain):
    '''
@@ -2888,6 +2906,7 @@ def test_log_management_wrong_username_type(fxConnection, fxBlockchain):
    validateZoneResponse(zoneInfo, response, orgId)
 
 
+@describe()
 @pytest.mark.zones
 @pytest.mark.skip(reason="VB-2157")
 def test_log_management_no_password(fxConnection, fxBlockchain):
@@ -2903,6 +2922,7 @@ def test_log_management_no_password(fxConnection, fxBlockchain):
    # validateBadRequest(...)
 
 
+@describe()
 @pytest.mark.zones
 def test_log_management_wrong_password_type(fxConnection, fxBlockchain):
    '''
@@ -2918,6 +2938,7 @@ def test_log_management_wrong_password_type(fxConnection, fxBlockchain):
    validateZoneResponse(zoneInfo, response, orgId)
 
 
+@describe()
 @pytest.mark.zones
 @pytest.mark.skip(reason="VB-2099 (not supported yet)")
 def test_patch_zone_no_change(fxConnection, fxBlockchain):
@@ -2935,6 +2956,7 @@ def test_patch_zone_no_change(fxConnection, fxBlockchain):
       "to equal the zone creation response, '{}'".format(getResponse, createResponse)
 
 
+@describe()
 @pytest.mark.zones
 @pytest.mark.skip(reason="VB-2099 (not supported yet)")
 def test_patch_zone_change_fields(fxConnection, fxBlockchain):
@@ -2957,6 +2979,7 @@ def test_patch_zone_change_fields(fxConnection, fxBlockchain):
       "to equal the patch response, '{}'".format(getResponse, patchResponse)
 
 
+@describe()
 @pytest.mark.zones
 @pytest.mark.skip(reason="VB-2099 (not supported yet)")
 def test_patch_zone_clear_required_fields(fxConnection, fxBlockchain):
@@ -2972,6 +2995,7 @@ def test_patch_zone_clear_required_fields(fxConnection, fxBlockchain):
       "to equal the patch response, '{}'".format(getResponse, patchResponse)
 
 
+@describe()
 @pytest.mark.zones
 @pytest.mark.skip(reason="VB-2099 (not supported yet)")
 def test_patch_zone_missing_zone(fxConnection, fxBlockchain):
@@ -2979,6 +3003,7 @@ def test_patch_zone_missing_zone(fxConnection, fxBlockchain):
    req.patchZone("7d9cea53-33d3-4fe7-8cb3-7d367d2eb30b")
 
 
+@describe()
 @pytest.mark.zones
 @pytest.mark.skip(reason="VB-2099 (not supported yet)")
 def test_patch_zone_invalid_uuid(fxConnection, fxBlockchain):
@@ -2992,6 +3017,7 @@ def test_patch_zone_invalid_uuid(fxConnection, fxBlockchain):
                       "Invalid UUID string: 3")
 
 
+@describe()
 @pytest.mark.zones
 def test_missing_outbound_proxy(fxConnection, fxBlockchain):
    '''
@@ -3005,6 +3031,7 @@ def test_missing_outbound_proxy(fxConnection, fxBlockchain):
    validateZoneResponse(zoneInfo, response, orgId)
 
 
+@describe()
 @pytest.mark.zones
 def test_empty_outbound_proxy_fields(fxConnection, fxBlockchain):
    '''
@@ -3023,6 +3050,7 @@ def test_empty_outbound_proxy_fields(fxConnection, fxBlockchain):
    validateZoneResponse(zoneInfo, response, orgId)
 
 
+@describe()
 @pytest.mark.zones
 def test_empty_outbound_http_proxy(fxConnection, fxBlockchain):
    '''
@@ -3037,6 +3065,7 @@ def test_empty_outbound_http_proxy(fxConnection, fxBlockchain):
    validateZoneResponse(zoneInfo, response, orgId)
 
 
+@describe()
 @pytest.mark.zones
 def test_empty_outbound_https_proxy(fxConnection, fxBlockchain):
    '''
@@ -3051,6 +3080,7 @@ def test_empty_outbound_https_proxy(fxConnection, fxBlockchain):
    validateZoneResponse(zoneInfo, response, orgId)
 
 
+@describe()
 @pytest.mark.zones
 def test_invalid_outbound_host(fxConnection, fxBlockchain):
    '''
@@ -3065,6 +3095,7 @@ def test_invalid_outbound_host(fxConnection, fxBlockchain):
    validateZoneResponse(zoneInfo, response, orgId)
 
 
+@describe()
 @pytest.mark.zones
 @pytest.mark.skip(reason="VB-2176")
 def test_invalid_outbound_port(fxConnection, fxBlockchain):
@@ -3080,6 +3111,7 @@ def test_invalid_outbound_port(fxConnection, fxBlockchain):
    validateBadRequest(response, "/api/zones")
 
 
+@describe()
 @pytest.mark.deployment_only
 def test_daml_deployment(fxConnection, fxBlockchain, fxHermesRunSettings):
 
