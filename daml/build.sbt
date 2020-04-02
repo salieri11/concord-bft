@@ -78,7 +78,6 @@ lazy val execution_engine = (project in file("execution-engine"))
 
       "com.daml.ledger" %% "participant-state" % sdkVersion,
       "com.daml.ledger" %% "participant-state-kvutils" % sdkVersion,
-
       "com.daml.ledger.participant.state.pkvutils" % "pkvutils" % integrationKitVersion,
 
       // Akka
@@ -121,11 +120,15 @@ lazy val write_service = (project in file("write-service"))
       "com.daml.ledger" %% "participant-state" % sdkVersion,
       "com.daml.ledger" %% "participant-state-kvutils" % sdkVersion,
       "com.daml.ledger" %% "participant-state-kvutils-app" % sdkVersion,
+      "com.daml.ledger.participant.state.pkvutils" % "pkvutils" % integrationKitVersion,
+
+      "com.digitalasset.ledger-api" %% "testing-utils" % sdkVersion % Test,
+      "junit" % "junit" % "4.12" % Test,
+      "org.mockito" % "mockito-core" % "2.24.0" % Test,
+      "org.scalatest" %% "scalatest" % "3.0.8" % Test,
 
       // Database support
       "org.postgresql" % "postgresql" % "42.2.6",
-
-      "com.daml.ledger.participant.state.pkvutils" % "pkvutils" % integrationKitVersion,
 
       // Akka
       "com.typesafe.akka" %% "akka-stream" % akkaVersion,

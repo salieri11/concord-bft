@@ -6,10 +6,13 @@ import java.nio.file.{Files, Paths, StandardCopyOption}
 import java.security.KeyPairGenerator
 import java.security.interfaces.{RSAPrivateKey, RSAPublicKey}
 
-import com.digitalasset.daml.on.vmware.ledger.api.server.VDAMLRunnerMain.KVBCLedgerFactory
 import com.digitalasset.jwt.domain.DecodedJwt
 import com.digitalasset.jwt.{JwtSigner, KeyUtils, domain}
-import com.digitalasset.ledger.api.auth.{AuthService, AuthServiceJWT, ClaimPublic}
+import com.digitalasset.ledger.api.auth.{
+  AuthService,
+  AuthServiceJWT,
+  ClaimPublic
+}
 import com.sun.net.httpserver.{HttpExchange, HttpHandler, HttpServer}
 import io.grpc.Metadata
 import org.scalatest.{Assertion, AsyncWordSpec, Matchers}
@@ -58,7 +61,8 @@ class CliSpec extends AsyncWordSpec with Matchers {
       val config = Cli.parse(Array("--auth-jwt-hs256-unsafe", "someSecret"))
       config shouldBe defined
       val authService = getAuthService(config)
-      val metadata = getAuthMetadata("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwczovL2RhbWwuY29tL2xlZGdlci1hcGkiOnt9LCJleHAiOjE5MDA4MTkzODB9.kNA5SrV4HUR3BwligGSMcpOG9bPOyHVwpNYb3Ha5dPY")
+      val metadata = getAuthMetadata(
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwczovL2RhbWwuY29tL2xlZGdlci1hcGkiOnt9LCJleHAiOjE5MDA4MTkzODB9.kNA5SrV4HUR3BwligGSMcpOG9bPOyHVwpNYb3Ha5dPY")
       decodeAndCheckMetadata(authService, metadata)
     }
 
@@ -67,7 +71,8 @@ class CliSpec extends AsyncWordSpec with Matchers {
       val config = Cli.parse(Array("--auth-jwt-rs256-crt", tmpCrtFile))
       config shouldBe defined
       val authService = getAuthService(config)
-      val metadata = getAuthMetadata("eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwczovL2RhbWwuY29tL2xlZGdlci1hcGkiOnt9LCJleHAiOjE5MDA4MTkzODB9.MQye4OsqFKnDZArhNpS8uhSPaAF7NfjXFevZFPolPvUWfzYNLvhHOwX05QeA2jJfL12QWpam7nGeSxb1nIdnK1Qas95_ep04YLk1wS7M0OE9wdnvopJHaHanvDWttnybA12dCfA79vwU6bD0IwVI7Hjsm3740Y_BzlyAfX8Lye8dWI3-slcFa8_XNt16sZ3FA9oDI6T99tHkoMJeuAvHs4kQhv5UIqUWfbbxbSw_gTNM3AaeQ5vLrTlqjU6TQrogQjPzEuz83zOX-X-xUrvHloYd7Pwn2XDAWHWhHHLuXtsCbfnGestXkrMBdscNne5jlNPU16_GxfLglWdq1Mllhg")
+      val metadata = getAuthMetadata(
+        "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwczovL2RhbWwuY29tL2xlZGdlci1hcGkiOnt9LCJleHAiOjE5MDA4MTkzODB9.MQye4OsqFKnDZArhNpS8uhSPaAF7NfjXFevZFPolPvUWfzYNLvhHOwX05QeA2jJfL12QWpam7nGeSxb1nIdnK1Qas95_ep04YLk1wS7M0OE9wdnvopJHaHanvDWttnybA12dCfA79vwU6bD0IwVI7Hjsm3740Y_BzlyAfX8Lye8dWI3-slcFa8_XNt16sZ3FA9oDI6T99tHkoMJeuAvHs4kQhv5UIqUWfbbxbSw_gTNM3AaeQ5vLrTlqjU6TQrogQjPzEuz83zOX-X-xUrvHloYd7Pwn2XDAWHWhHHLuXtsCbfnGestXkrMBdscNne5jlNPU16_GxfLglWdq1Mllhg")
       decodeAndCheckMetadata(authService, metadata)
     }
 
@@ -76,7 +81,8 @@ class CliSpec extends AsyncWordSpec with Matchers {
       val config = Cli.parse(Array("--auth-jwt-es256-crt", tmpCrtFile))
       config shouldBe defined
       val authService = getAuthService(config)
-      val metadata = getAuthMetadata("eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwczovL2RhbWwuY29tL2xlZGdlci1hcGkiOnt9LCJleHAiOjE5MDA4MTkzODB9.mLwYV8-2nNEXUcwhp4m3HpIkyomJRPLwJc1hH8g56UYfjxACqXHTQngt-2mvWwPPyvrVZXd7nU3Q-JdxFrPBYA")
+      val metadata = getAuthMetadata(
+        "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwczovL2RhbWwuY29tL2xlZGdlci1hcGkiOnt9LCJleHAiOjE5MDA4MTkzODB9.mLwYV8-2nNEXUcwhp4m3HpIkyomJRPLwJc1hH8g56UYfjxACqXHTQngt-2mvWwPPyvrVZXd7nU3Q-JdxFrPBYA")
       decodeAndCheckMetadata(authService, metadata)
     }
 
@@ -85,7 +91,8 @@ class CliSpec extends AsyncWordSpec with Matchers {
       val config = Cli.parse(Array("--auth-jwt-es512-crt", tmpCrtFile))
       config shouldBe defined
       val authService = getAuthService(config)
-      val metadata = getAuthMetadata("eyJhbGciOiJFUzUxMiIsInR5cCI6IkpXVCJ9.eyJodHRwczovL2RhbWwuY29tL2xlZGdlci1hcGkiOnt9LCJleHAiOjE5MDA4MTkzODB9.AXL5BqqeEfiu-kkY_A3mBLHAa2rQtHeygITSSfhUYubcooJlvtknZtkYlTkqA-IyKGRkly29LCk395BkTXug3vbgAeTEv7DB9mXDrCU1I1Z5YTrs64lXVKii58jqhWWWSezIAZkWhkv5aHZHyy_Y7DJFecWME2qhSfBAdoPlFMs0O4FO")
+      val metadata = getAuthMetadata(
+        "eyJhbGciOiJFUzUxMiIsInR5cCI6IkpXVCJ9.eyJodHRwczovL2RhbWwuY29tL2xlZGdlci1hcGkiOnt9LCJleHAiOjE5MDA4MTkzODB9.AXL5BqqeEfiu-kkY_A3mBLHAa2rQtHeygITSSfhUYubcooJlvtknZtkYlTkqA-IyKGRkly29LCk395BkTXug3vbgAeTEv7DB9mXDrCU1I1Z5YTrs64lXVKii58jqhWWWSezIAZkWhkv5aHZHyy_Y7DJFecWME2qhSfBAdoPlFMs0O4FO")
       decodeAndCheckMetadata(authService, metadata)
     }
 
@@ -100,7 +107,8 @@ class CliSpec extends AsyncWordSpec with Matchers {
       val privateKey = keyPair.getPrivate.asInstanceOf[RSAPrivateKey]
 
       val token = generateToken("test-key-1", privateKey)
-        .fold(e => fail("Failed to generate signed token: " + e.shows), identity)
+        .fold(e => fail("Failed to generate signed token: " + e.shows),
+              identity)
 
       // Start a JWKS server and create a verifier using the JWKS server
       val jwks = KeyUtils.generateJwks(
@@ -122,8 +130,8 @@ class CliSpec extends AsyncWordSpec with Matchers {
   }
 
   private[this] def getAuthService(config: Option[Config]) = {
-    val kvUtilsAppConfig = KVBCLedgerFactory.toKVUtilsAppConfig(config.get)
-    val authService = KVBCLedgerFactory.authService(kvUtilsAppConfig)
+    val kvUtilsAppConfig = ConcordLedgerFactory.toKVUtilsAppConfig(config.get)
+    val authService = ConcordLedgerFactory.authService(kvUtilsAppConfig)
     authService
   }
 
@@ -133,8 +141,13 @@ class CliSpec extends AsyncWordSpec with Matchers {
     metadata
   }
 
-  private[this] def decodeAndCheckMetadata(authService: AuthService, metadata: Metadata): Future[Assertion] =
-    authService.decodeMetadata(metadata).toScala.map(_.claims should be(List(ClaimPublic)))
+  private[this] def decodeAndCheckMetadata(
+      authService: AuthService,
+      metadata: Metadata): Future[Assertion] =
+    authService
+      .decodeMetadata(metadata)
+      .toScala
+      .map(_.claims should be(List(ClaimPublic)))
 
   private[this] def getTmpCrtFileAbsolutePath(resourcePath: String): String = {
     val resourceURL = getClass.getResource(resourcePath)
@@ -143,14 +156,17 @@ class CliSpec extends AsyncWordSpec with Matchers {
       f.deleteOnExit()
       f.getAbsolutePath
     }
-    Files.copy(resourceURL.openStream(), Paths.get(tmpFile), StandardCopyOption.REPLACE_EXISTING)
+    Files.copy(resourceURL.openStream(),
+               Paths.get(tmpFile),
+               StandardCopyOption.REPLACE_EXISTING)
     tmpFile
   }
 
-  private[this] def generateToken(keyId: String, privateKey: RSAPrivateKey): JwtSigner.Error \/ domain.Jwt = {
+  private[this] def generateToken(
+      keyId: String,
+      privateKey: RSAPrivateKey): JwtSigner.Error \/ domain.Jwt = {
     val jwtPayload = s"""{"test": "JwksSpec"}"""
     val jwtHeader = s"""{"alg": "RS256", "typ": "JWT", "kid": "$keyId"}"""
     JwtSigner.RSA256.sign(DecodedJwt(jwtHeader, jwtPayload), privateKey)
   }
 }
-
