@@ -1233,6 +1233,15 @@ EOF
           saveTimeEvent("Remove unnecessary docker artifacts", "End")
         }
 
+        // End the run on Racetrack (Set = Run, Feature = Test Suite, Case = Individual test case)
+        withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
+          script {
+            dir('blockchain/hermes') {
+              sh 'echo "${PASSWORD}" | sudo -SE "${python}" invoke.py racetrackSetEnd'
+            }
+          }
+        }
+
         // Files created by the docker run belong to root because they were created by the docker process.
         // That will make the subsequent run unable to clean the workspace.  Just make the entire workspace dir
         // belong to builder to catch any future files.
@@ -1241,15 +1250,6 @@ EOF
             sh '''
               echo "${PASSWORD}" | sudo -S chown -R builder:builder .
             '''
-          }
-        }
-
-        // End the run on Racetrack (Set = Run, Feature = Test Suite, Case = Individual test case)
-        withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
-          script {
-            dir('blockchain/hermes') {
-              sh 'echo "${PASSWORD}" | sudo -SE "${python}" invoke.py racetrackSetEnd'
-            }
           }
         }
 
