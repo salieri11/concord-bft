@@ -307,23 +307,23 @@ def test_role_consortium_list_orgs_across_orgs(fxConnection, fxInitializeOrgs):
                req = fxConnection.request.newWithToken(tokenDescriptor, True)
 
                # Users from both orgs can get the orgs in consortium0.
-               getOrgsResult = req.getOrgs(consortium0)
-               # log.info("getOrgs(consortium0) result for org {}, user {}, role {}: {}".format(
-               #    userOrg, username, role, getOrgsResult))
-               assert len(getOrgsResult) == 2, "Expected a list of two items, not {}".format(getOrgsResult)
-               for o in getOrgsResult:
+               getConsortiumOrgsResult = req.getConsortiumOrgs(consortium0)
+               # log.info("getConsortiumOrgs(consortium0) result for org {}, user {}, role {}: {}".format(
+               #    userOrg, username, role, getConsortiumOrgsResult))
+               assert len(getConsortiumOrgsResult) == 2, "Expected a list of two items, not {}".format(getConsortiumOrgsResult)
+               for o in getConsortiumOrgsResult:
                   assert o["org_id"] in con0OrgIds
 
                # Only users from org1 can get the orgs in consortium1.
-               getOrgsResult = req.getOrgs(consortium1)
-               # log.info("getOrgs(consortium1) result for org {}, user {}, role {}: {}".format(
-               #    userOrg, username, role, getOrgsResult))
+               getConsortiumOrgsResult = req.getConsortiumOrgs(consortium1)
+               # log.info("getConsortiumOrgs(consortium1) result for org {}, user {}, role {}: {}".format(
+               #    userOrg, username, role, getConsortiumOrgsResult))
                if userOrg == "hermes_org0":
-                  rest.test_methods.validateAccessDeniedResponse(getOrgsResult,
+                  rest.test_methods.validateAccessDeniedResponse(getConsortiumOrgsResult,
                                   "/api/consortiums/{}/organizations".format(consortium1))
                elif userOrg == "hermes_org1":
-                  assert len(getOrgsResult) == 1, "Expected one item, not {}".format(getOrgsResult)
-                  assert getOrgsResult[0]["org_id"] in con1OrgIds, "Expected org ID {}".format(con1OrgIds)
+                  assert len(getConsortiumOrgsResult) == 1, "Expected one item, not {}".format(getConsortiumOrgsResult)
+                  assert getConsortiumOrgsResult[0]["org_id"] in con1OrgIds, "Expected org ID {}".format(con1OrgIds)
 
 
 @describe()
@@ -358,23 +358,23 @@ def test_role_consortium_list_orgs_across_roles(fxConnection, fxInitializeOrgs):
                "role": role
             }
             req = fxConnection.request.newWithToken(tokenDescriptor, True)
-            getOrgsResult = req.getOrgs(consortium)
+            getConsortiumOrgsResult = req.getConsortiumOrgs(consortium)
 
             if role == "no_roles":
                # VB-1274
-               # rest.test_methods.validateAccessDeniedResponse(getOrgsResult,
+               # rest.test_methods.validateAccessDeniedResponse(getConsortiumOrgsResult,
                #                              "/api/consortiums/{}/organizations".format(consortium))
                pass
             else:
                returnedOrgIds = []
 
-               log.info("getOrgs(consortium) result for org {}, user {}, role {}".format(
-                  mainOrg, username, role, getOrgsResult))
+               log.info("getConsortiumOrgs(consortium) result for org {}, user {}, role {}".format(
+                  mainOrg, username, role, getConsortiumOrgsResult))
 
-               assert len(getOrgsResult) == 2, "Expected two items, not {}".format(getOrgsResult)
+               assert len(getConsortiumOrgsResult) == 2, "Expected two items, not {}".format(getConsortiumOrgsResult)
 
                # Make sure everything returned is part of the expected list.
-               for o in getOrgsResult:
+               for o in getConsortiumOrgsResult:
                   returnedOrgIds.append(o["org_id"])
 
                   assert o["org_id"] in expectedOrgIds, "Expected {} in {}".format(o["org_id"], expectedOrgIds)
