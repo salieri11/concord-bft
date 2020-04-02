@@ -4,6 +4,7 @@ metadata:
   name: {{ include "provisioning-service.name" . }}
   labels:
     app: {{ include "provisioning-service.name" . }}
+    version: {{ .Values.image.tag }}
 spec:
   replicas: {{ .Values.replicaCount }}
   revisionHistoryLimit: 1
@@ -25,7 +26,7 @@ spec:
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           env:
           - name: APPCONTEXT
-            value: {{ .Values.provisioning-service.env }}
+            value: {{ index .Values "provisioning-service" "env" }}
           ports:
           - containerPort: {{ .Values.service.containerPort }}
           volumeMounts:

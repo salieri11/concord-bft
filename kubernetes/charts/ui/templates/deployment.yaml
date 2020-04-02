@@ -4,6 +4,7 @@ metadata:
   name: {{ include "ui.name" . }}
   labels:
     app: {{ template "ui.name" . }}
+    version: {{ .Values.image.tag }}
 spec:
   replicas: {{ .Values.replicaCount }}
   revisionHistoryLimit: 1

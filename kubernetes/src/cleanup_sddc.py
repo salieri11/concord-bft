@@ -12,6 +12,7 @@ import datetime
 import ipaddress
 import json
 import os
+import pytz
 import re
 import sys
 import tempfile
@@ -219,7 +220,8 @@ def get_dated_vms(vcobj, folder, hours):
     """
         Get vm's older than hours hrs for folder
     """
-    delta = datetime.datetime.now() - datetime.timedelta(hours=hours)
+    delta = (datetime.datetime.now(pytz.timezone("UTC")) -
+                datetime.timedelta(hours=hours))
     dated = []
     vms = vcobj.get_vms_from_folder(folder)
     for vm in vms:
@@ -229,7 +231,7 @@ def get_dated_vms(vcobj, folder, hours):
         for task in task_collector.ReadNext(50):
             if (task.name is not None and
                 task.name.info.name == "PowerOn" and task.state == "success"):
-                if task.completeTime.replace(tzinfo=None) < delta:
+                if task.completeTime.replace(tzinfo=pytz.timezone("UTC")) < delta:
                     logger.info("Cleaning up vm %s older than %s hrs" %
                           (vm.name, hours))
                     dated.append(vm)

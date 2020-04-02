@@ -288,3 +288,34 @@ def post_slack_channel(channel, text):
     client.chat_postMessage(
             channel=c_data["channelid"],
             text=text)
+
+
+def get_kube_deployment_version(env, componentapp):
+    kenv = common.KUBE_CONFIGS[env]
+    path = "'{.items[*].metadata.labels.version}'"
+    rc, rv = subproc("kubectl config use-context %s" %
+                kenv["context"])
+    if rc != 0:
+        return 1
+    cmd = ("kubectl -n %s get deployments. -l app=%s -o jsonpath=%s"
+           % (kenv["namespace"], componentapp, path))
+    rc, rv = subproc(cmd)
+    if rc == 0:
+        return rv.decode()
+    else:
+        1
+
+def get_default_concord(env, appname):
+    kenv = common.KUBE_CONFIGS[env]
+    path = "'{.items[*].metadata.labels.defaultconcord}'"
+    rc, rv = subproc("kubectl config use-context %s" %
+                kenv["context"])
+    if rc != 0:
+        return 1
+    cmd = ("kubectl -n %s get deployments. -l app=%s -o jsonpath=%s"
+           % (kenv["namespace"], appname, path))
+    rc, rv = subproc(cmd)
+    if rc == 0:
+        return rv.decode()
+    else:
+        1
