@@ -284,7 +284,11 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
                                      ClientType clientType) {
         // Fetch the first IP address in the data payload, or return 0.
         UUID replicaId = FleetUtils.toUuid(node.getId());
-        String name = node.getInfo().getIpv4Addresses().keySet().stream().findFirst().orElse("replica");
+
+        String name = node.getInfo().getIpv4Addresses().keySet().stream().findFirst()
+                .orElse(
+                        (replicaType == ReplicaType.DAML_PARTICIPANT) ? "Client" : "Replica"
+                );
         int publicIp = node.getHostInfo().getIpv4AddressMap().keySet().stream()
                                               .findFirst().orElse(0);
         int privateIp = node.getHostInfo().getIpv4AddressMap().getOrDefault(publicIp, 0);
