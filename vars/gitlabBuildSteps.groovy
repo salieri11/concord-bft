@@ -147,7 +147,7 @@ import hudson.util.Secret
     "baseCommand": '"${python}" main.py DeployDamlTests'
   ],
   "HelenDeployDAMLToSDDC" : [
-    "enabled": true,
+    "enabled": false,
     "dockerComposeFiles": "../docker/docker-compose.yml ../docker/docker-compose-persephone.yml",
     "baseCommand": 'echo "${PASSWORD}" | sudo -S "${python}" main.py HelenAPITests --blockchainType daml --numReplicas 7 --numParticipants 1 --blockchainLocation=sddc --tests="-m deployment_only"'
   ],
