@@ -49,7 +49,6 @@ import com.vmware.blockchain.services.blockchains.BlockchainService;
 import com.vmware.blockchain.services.blockchains.replicas.Replica;
 import com.vmware.blockchain.services.blockchains.replicas.ReplicaService;
 import com.vmware.blockchain.services.blockchains.zones.ZoneService;
-import com.vmware.blockchain.services.clients.Client.ClientType;
 import com.vmware.blockchain.services.configuration.ConcordConfiguration;
 import com.vmware.blockchain.services.profiles.DefaultProfiles;
 import com.vmware.blockchain.services.profiles.OrganizationService;
@@ -85,6 +84,7 @@ public class ClientController {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class ReplicaGetResponse {
+        private UUID id;
         private String publicIp;
         private String privateIp;
         private String hostName;
@@ -99,6 +99,7 @@ public class ClientController {
          * @param r Replica.
          */
         public ReplicaGetResponse(Replica r) {
+            this.id = r.getId();
             this.publicIp = r.getPublicIp();
             this.privateIp = r.getPrivateIp();
             this.hostName = r.getHostName();
@@ -107,28 +108,6 @@ public class ClientController {
             this.zoneId = r.getZoneId();
             this.replicaType = r.getReplicaType();
             this.blockchainId = r.getBlockchainId();
-        }
-    }
-
-    @Getter
-    @Setter
-    @NoArgsConstructor
-    @AllArgsConstructor
-    static class ClientGetResponse {
-        private String nodeId;
-        private String clientGroupId;
-        private String blockchainId;
-        private UUID zoneId;
-        private ClientType clientType;
-        private Replica.ReplicaType replicaType;
-
-        public ClientGetResponse(Client r) {
-            this.nodeId = r.getNodeId();
-            this.clientGroupId = r.getClientGroupId();
-            this.blockchainId = r.getBlockchainId();
-            this.zoneId = r.getZoneId();
-            this.clientType = r.getClientType();
-            this.replicaType = getReplicaType();
         }
     }
 

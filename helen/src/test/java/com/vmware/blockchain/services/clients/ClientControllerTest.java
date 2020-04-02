@@ -104,10 +104,14 @@ public class ClientControllerTest extends RuntimeException {
     static final UUID DEP_ID = UUID.fromString("67376aed-333c-4e35-b6b6-c59800752dc3");
     private static final UUID SITE_1 = UUID.fromString("84b9a0ed-c162-446a-b8c0-2e45755f3844");
     private static final UUID SITE_2 = UUID.fromString("275638a3-8860-4925-85de-c73d45cb7232");
-    private static final UUID REPLICA_1 = UUID.fromString("987ec776-679f-4428-9135-4db872a0a64b");
-    private static final UUID REPLICA_2 = UUID.fromString("2462e0bf-ccbd-4e7b-b5ee-70514d3188cf");
-    private static final UUID REPLICA_3 = UUID.fromString("e10a68e3-faa5-4ab6-a69f-53e10bc0d490");
-    private static final UUID REPLICA_4 = UUID.fromString("493b84d7-5333-4294-bba7-c56ade48cb73");
+    private static final UUID REPLICA_1 = UUID.fromString("73ba5deb-1046-48e3-a369-3982177cabed");
+    private static final UUID REPLICA_2 = UUID.fromString("d3776a28-7d37-4a75-b1d8-7832eec6badb");
+    private static final UUID REPLICA_3 = UUID.fromString("5a2e1527-f31d-4099-8c09-a320b671046b");
+    private static final UUID REPLICA_4 = UUID.fromString("3ca83dfe-62a1-4226-b31a-706a60f4dc28");
+    private static final UUID REPLICA_1_ZONE = UUID.fromString("987ec776-679f-4428-9135-4db872a0a64b");
+    private static final UUID REPLICA_2_ZONE = UUID.fromString("2462e0bf-ccbd-4e7b-b5ee-70514d3188cf");
+    private static final UUID REPLICA_3_ZONE = UUID.fromString("e10a68e3-faa5-4ab6-a69f-53e10bc0d490");
+    private static final UUID REPLICA_4_ZONE = UUID.fromString("493b84d7-5333-4294-bba7-c56ade48cb73");
 
     static final String POST_BODY_DAML_PARTICIPANT = "{"
                                                      + "    \"zone_ids\": ["
@@ -204,17 +208,21 @@ public class ClientControllerTest extends RuntimeException {
                 .type(Blockchain.BlockchainType.DAML)
                 .build();
 
-        final Replica replica1 = new Replica("publicIp", "privateIp", "hostName", "url", "cert", REPLICA_1,
+        final Replica replica1 = new Replica("publicIp", "privateIp", "hostName", "url", "cert", REPLICA_1_ZONE,
                                              Replica.ReplicaType.NONE, BC_DAML);
+        replica1.setId(REPLICA_1);
 
-        final Replica replica2 = new Replica("publicIp", "privateIp", "hostName", "url", "cert", REPLICA_2,
+        final Replica replica2 = new Replica("publicIp", "privateIp", "hostName", "url", "cert", REPLICA_2_ZONE,
                                              Replica.ReplicaType.DAML_PARTICIPANT, BC_DAML);
+        replica2.setId(REPLICA_2);
 
-        final Replica replica3 = new Replica("publicIp", "privateIp", "hostName", "url", "cert", REPLICA_3,
+        final Replica replica3 = new Replica("publicIp", "privateIp", "hostName", "url", "cert", REPLICA_3_ZONE,
                                              Replica.ReplicaType.DAML_PARTICIPANT, BC_DAML);
+        replica3.setId(REPLICA_3);
 
-        final Replica replica4 = new Replica("publicIp", "privateIp", "hostName", "url", "cert", REPLICA_4,
+        final Replica replica4 = new Replica("publicIp", "privateIp", "hostName", "url", "cert", REPLICA_4_ZONE,
                                              Replica.ReplicaType.NONE, BC_DAML);
+        replica4.setId(REPLICA_4);
 
         when(blockchainService.getReplicas(BC_DAML))
                 .thenReturn(ImmutableList.of(replica1, replica2, replica3, replica4));
@@ -306,6 +314,9 @@ public class ClientControllerTest extends RuntimeException {
                     objectMapper.readValue(body, new TypeReference<List<ClientController.ReplicaGetResponse>>() {
                     });
 
+        ImmutableList<UUID> expected = ImmutableList.of(REPLICA_2, REPLICA_3);
+        Assertions.assertEquals(expected, res.stream().map(replicaGetResponse ->
+                replicaGetResponse.getId()).collect(Collectors.toList()));
         Assertions.assertEquals(2, res.size());
         Assertions.assertEquals(Replica.ReplicaType.DAML_PARTICIPANT, res.get(0).getReplicaType());
         Assertions.assertEquals(Replica.ReplicaType.DAML_PARTICIPANT, res.get(1).getReplicaType());
