@@ -55,7 +55,7 @@ KUBE_CONFIGS = {
 	"staging":
 			{
 			"context": "bsubramanian@vmware.com:/vdp/orgs/vmbc/clusters/res01-stg-us-west-2",
-			"namespace": "vmbc-prod-saas",
+			"namespace": "vmbc-stg-saas",
 			"saas_url": "vmbc.us-west-2.vdp-stg.vmware.com",
 			},
 	"production":

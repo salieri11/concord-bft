@@ -4,6 +4,7 @@ metadata:
   name: {{ include "configservice.name" . }}
   labels:
     app: {{ template "configservice.name" . }}
+    version: {{ .Values.image.tag }}
 spec:
   replicas: {{ .Values.replicaCount }}
   revisionHistoryLimit: 1

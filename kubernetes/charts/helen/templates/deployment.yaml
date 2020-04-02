@@ -4,6 +4,8 @@ metadata:
   name: {{ include "helen.name" . }}
   labels:
     app: {{ template "helen.name" . }}
+    version: {{ .Values.image.tag }}
+    defaultconcord: {{ .Values.helen.concordbuild }}
 spec:
   replicas: {{ .Values.replicaCount }}
   revisionHistoryLimit: 1
