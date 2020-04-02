@@ -318,16 +318,20 @@ def call(){
               env.load_interval = params.load_interval
 
               // Check parameters
-              script{
-                errString = "Parameter check error: "
+              errString = "Parameter check error: "
 
-                if (params.deploy && (!env.JOB_NAME.contains(env.tot_job_name))){
-                  throw new Exception (errString + "For this branch, only do releases from the '" +
-                        env.tot_job_name + "' Jenkins job.  The build number is based on that.")
-                }
+              if (params.deploy && (!env.JOB_NAME.contains(env.tot_job_name))){
+                throw new Exception (errString + "For this branch, only do releases from the '" +
+                      env.tot_job_name + "' Jenkins job.  The build number is based on that.")
               }
 
-              // Clean the workspace
+              // chown files in case something was left behind owned by root, so we can cleanWs().
+              withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
+                sh '''
+                  echo "${PASSWORD}" | sudo -S chown -R builder:builder .
+                '''
+              }
+
               cleanWs()
 
               // Add the VMware GitLab ssh key to known_hosts.
@@ -1225,7 +1229,7 @@ EOF
 
           // Just in case pipline failed before python init
           if (!env.python) {
-            echo("Python was not initialized for this run. Initializing python...") 
+            echo("Python was not initialized for this run. Initializing python...")
             initializePython()
           }
         }
@@ -1733,7 +1737,7 @@ void handleKnownHosts(host){
 
 Boolean initializePython() {
   if (env.python_bin) { return false } // Already initialized
-  
+
   env.python_bin = "/var/jenkins/workspace/venv_py37/bin"
   env.python = env.python_bin + "/python"
   sh '''
