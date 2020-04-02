@@ -134,8 +134,8 @@ bool DamlKvbCommandsHandler::ExecuteCommit(
     record_time = time->GetTime();
     LOG4CPLUS_DEBUG(logger_, "Using time service time " << record_time);
   } else {
-    record_time = google::protobuf::util::TimeUtil::GetEpoch();
-    LOG4CPLUS_DEBUG(logger_, "Using epoch time " << record_time);
+    record_time = google::protobuf::util::TimeUtil::GetCurrentTime();
+    LOG4CPLUS_DEBUG(logger_, "Using current time " << record_time);
   }
 
   std::string correlation_id = commit_req.correlation_id();
@@ -303,7 +303,7 @@ bool DamlKvbCommandsHandler::CommitPreExecutionResult(
   auto* pre_execution_result = request_.mutable_pre_execution_result();
   auto max_record_time = GetPreExecutionMaxRecordTime();
   correlation_id = pre_execution_result->request_correlation_id();
-  if (max_record_time && record_time > max_record_time.value()) {
+  if (max_record_time.has_value() && record_time > max_record_time.value()) {
     // TODO commit a block using the timeout_writeset (future)
     LOG4CPLUS_DEBUG(logger_, "Failed to commit pre-executed command "
                                  << correlation_id << " due to timeout.");
