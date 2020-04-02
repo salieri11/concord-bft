@@ -6,6 +6,14 @@
 #    $> docker save -o committer-tools.tar committer-tools
 # 3. Copy the image to Photon an run this script
 
+# Alternative to this script you can run the tools in the container
+# $> docker load -i committer-tools.tar
+# $> docker run -it --rm -v /config:/config --network host committer-tools
+# Note:
+#   * All local config parsing tools will work
+#   * `my_ipv4` will return the docker container address instead of Photon's
+#   * All remote commands on other Committer nodes will run on Photon directly
+
 IMAGE="committer-tools.tar"
 TOOLS_DIR="committer-tools"
 
