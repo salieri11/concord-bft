@@ -611,7 +611,7 @@ class PersephoneTests(test_suite.TestSuite):
                   deployment_info["concord_username"] = concord_username
                   deployment_info["concord_password"] = concord_password
                   deployment_info["docker_containers"] = expected_docker_containers
-                  deployment_info["concord_type"] = concord_type
+                  deployment_info["concord_type"] = concord_type_to_deploy
                   deployment_info["log_dir"] = self.args.fileRoot
 
          if len(ethrpc_endpoints) == cluster_size:
@@ -1206,15 +1206,16 @@ class PersephoneTests(test_suite.TestSuite):
 
                status, msg = self.parse_test_status(status, msg,
                                              deployment_session_id=response_deployment_session_id)
-               return status, msg, replicas
+               return status, msg, replicas, response_deployment_session_id
             status, msg = self.parse_test_status(False, "Failed to fetch Deployment Events",
                                           deployment_session_id=response_deployment_session_id)
-            return status, msg, replicas
+            return status, msg, replicas, None
 
       status, msg = self.parse_test_status(False, "Failed to get a valid deployment session ID")
-      return status, msg, replicas
+      return status, msg, replicas, None
 
-   def deploy_daml_participant_node(self, cluster_size=1, replicas=None, zone_type=helper.LOCATION_SDDC):
+   def deploy_daml_participant_node(self, cluster_size=1, committers_session_id=None,
+                                    replicas=None, zone_type=helper.LOCATION_SDDC):
       '''
       Deploy DAML participant node
       :param cluster_size: No. of nodes on the cluster
@@ -1251,6 +1252,12 @@ class PersephoneTests(test_suite.TestSuite):
                                                                       response_deployment_session_id,
                                                                       concord_type=concord_type,
                                                                       node_type=node_type)
+               if not status:
+                  log.info(
+                     "Collecting support logs from committer nodes : {}".format(
+                        replicas))
+                  self.parse_test_status(status, "Support logs from committers",
+                                      deployment_session_id=committers_session_id)
                return self.parse_test_status(status, msg,
                                              deployment_session_id=response_deployment_session_id)
             return self.parse_test_status(False, "Failed to fetch Deployment Events",
@@ -1267,12 +1274,13 @@ class PersephoneTests(test_suite.TestSuite):
       Test to create DAML committer & participant nodes on-prem
       :param cluster_size: No. of concord nodes on the cluster
       '''
-      status, msg, replicas = self.deploy_daml_committer_node(
+      status, msg, replicas, committers_session_id = self.deploy_daml_committer_node(
          cluster_size=committer_nodes, zone_type=zone_type)
       if status and replicas:
          log.info("**** Committer nodes deployed Successfully\n")
          status, msg = self.deploy_daml_participant_node(
-            cluster_size=participant_nodes, replicas=replicas,
+            cluster_size=participant_nodes,
+            committers_session_id=committers_session_id, replicas=replicas,
             zone_type=zone_type)
          if status:
             log.info("**** Participant node(s) deployed Successfully\n")
@@ -1292,12 +1300,13 @@ class PersephoneTests(test_suite.TestSuite):
       Test to create DAML committer & participant nodes on-prem
       :param cluster_size: No. of concord nodes on the cluster
       '''
-      status, msg, replicas = self.deploy_daml_committer_node(
+      status, msg, replicas, committers_session_id = self.deploy_daml_committer_node(
          cluster_size=committer_nodes, zone_type=zone_type)
       if status and replicas:
          log.info("**** Committer nodes deployed Successfully\n")
          status, msg = self.deploy_daml_participant_node(
-            cluster_size=participant_nodes, replicas=replicas,
+            cluster_size=participant_nodes,
+            committers_session_id=committers_session_id, replicas=replicas,
             zone_type=zone_type)
          if status:
             log.info("**** Participant node(s) deployed Successfully\n")
@@ -1316,12 +1325,13 @@ class PersephoneTests(test_suite.TestSuite):
       Test to create DAML committer & participant nodes on-prem
       :param cluster_size: No. of concord nodes on the cluster
       '''
-      status, msg, replicas = self.deploy_daml_committer_node(
+      status, msg, replicas, committers_session_id = self.deploy_daml_committer_node(
          cluster_size=committer_nodes, zone_type=zone_type)
       if status and replicas:
          log.info("**** Committer nodes deployed Successfully\n")
          status, msg = self.deploy_daml_participant_node(
-            cluster_size=participant_nodes, replicas=replicas,
+            cluster_size=participant_nodes,
+            committers_session_id=committers_session_id, replicas=replicas,
             zone_type=zone_type)
          if status:
             log.info("**** Participant node(s) deployed Successfully\n")
