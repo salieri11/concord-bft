@@ -61,7 +61,13 @@ public class IpamClient {
         try {
             ipAllocationServiceStub.allocateAddress(requestAllocateAddress,
                                                     ReactiveStream.blockedResultObserver(promise));
-            return promise.get().getAddress();
+            Address address = promise.get().getAddress();
+            // Hack to adjust with IPAM response.
+            if (address.getValue() <= 0) {
+                throw new PersephoneException("No IP was allocated.");
+            }
+            log.info("Assigned ip {}", address.getValue());
+            return address;
         } catch (Exception e) {
             throw new PersephoneException(e, "Error Allocating ip for segment {}", networkSegmentName);
         }
