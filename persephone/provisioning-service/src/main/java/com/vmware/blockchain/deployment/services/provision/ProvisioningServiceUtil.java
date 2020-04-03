@@ -276,8 +276,7 @@ public class ProvisioningServiceUtil {
 
         return events.stream()
                 .map(event -> {
-                    // By default, do not map into a ProvisionedResource unless the event type is
-                    // matched.
+                    // By default, do not map into a ProvisionedResource unless the event type is matched.
                     ProvisionedResource resource = null;
 
                     if (event instanceof OrchestratorData.ComputeResourceEventCreated) {

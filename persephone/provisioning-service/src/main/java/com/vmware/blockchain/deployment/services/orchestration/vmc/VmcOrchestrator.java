@@ -11,6 +11,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Flow;
 
+import com.google.common.net.InetAddresses;
 import com.vmware.blockchain.deployment.services.exception.PersephoneException;
 import com.vmware.blockchain.deployment.services.orchestration.NetworkAddress;
 import com.vmware.blockchain.deployment.services.orchestration.Orchestrator;
@@ -172,7 +173,7 @@ public class VmcOrchestrator implements Orchestrator {
                 log.info("Assigned private IP {}", privateIpAddress);
                 val event = OrchestratorData.NetworkResourceEventCreated.builder()
                         .name(request.getName())
-                        .address(NetworkAddress.toIPv4Address(privateIpAddress.getValue()))
+                        .address(InetAddresses.fromInteger(privateIpAddress.getValue()).getHostAddress())
                         .publicResource(false)
                         .resource(URI.create("/" + privateIpAddress.getName()))
                         .build();

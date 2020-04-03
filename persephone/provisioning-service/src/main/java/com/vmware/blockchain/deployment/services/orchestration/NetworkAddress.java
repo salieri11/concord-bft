@@ -10,17 +10,6 @@ package com.vmware.blockchain.deployment.services.orchestration;
 public class NetworkAddress {
 
     /**
-     * Convert an [Int] to the IPv4 address it represents in canonical format.
-     *
-     * @return canonical IPv4 address as a [String].
-     */
-    public static String toIPv4Address(int input) {
-        return ((input >> 24) & 0xFF) + "." + ((input >> 16) & 0xFF) + "." + ((input >> 8) & 0xFF) + "." + (input
-                                                                                                            & 0xFF);
-    }
-
-
-    /**
      * Convert a [String] to the IPv4 address represented as an [Int]
      *
      * @return IPv4 address as a [Long].
