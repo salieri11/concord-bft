@@ -110,6 +110,12 @@ public class TelegrafConfigUtil {
             }
         });
 
+        // TODO : remove after concord name unification
+        List<ConcordComponent.ServiceType> committerList = List.of(
+                ConcordComponent.ServiceType.CONCORD,
+                ConcordComponent.ServiceType.DAML_CONCORD,
+                ConcordComponent.ServiceType.HLF_CONCORD);
+
         for (Map.Entry<Integer, String> nodeIp : nodeIps.entrySet()) {
             String hostConfigCopy = content.replace("$REPLICA", nodeIp.getValue());
 
@@ -120,6 +126,12 @@ public class TelegrafConfigUtil {
                 hostConfigCopy = hostConfigCopy
                         .replace("#$DBINPUT", indexDbAddr)
                         .replace(postgressPluginStr, postgressPlugin);
+            }
+
+            if (servicesList.stream().anyMatch(element -> committerList.contains(element))) {
+                hostConfigCopy = hostConfigCopy.replace("$VMTYPE", "committer");
+            } else {
+                hostConfigCopy = hostConfigCopy.replace("$VMTYPE", "client");
             }
             configMap.put(nodeIp.getKey(), hostConfigCopy);
         }
