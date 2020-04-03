@@ -715,21 +715,17 @@ class PersephoneTests(test_suite.TestSuite):
 
                if concord_type is self.rpc_test_helper.CONCORD_TYPE_DAML:
                   if node_type is None or node_type == self.rpc_test_helper.NODE_TYPE_PARTICIPANT:
-                     self.add_ethrpc_port_forwarding(concord_ip,
-                                                     concord_username,
-                                                     concord_password,
-                                                     dest_port=6865)
+                     src_port = 80
+                     self.add_ethrpc_port_forwarding(concord_ip, concord_username, concord_password,
+                                                     src_port=src_port, dest_port=6865)
 
-                     if helper.verify_connectivity(concord_ip, 443):
+                     if helper.verify_connectivity(concord_ip, src_port):
                         log.info("DAML Connectivity - PASS")
 
                         try:
                            log.info("dar upload/verification...")
-                           daml_helper.upload_test_tool_dars(host=concord_ip,
-                                                             port='443')
-                           daml_helper.verify_ledger_api_test_tool(
-                              host=concord_ip,
-                              port='443')
+                           daml_helper.upload_test_tool_dars(host=concord_ip, port=str(src_port))
+                           daml_helper.verify_ledger_api_test_tool(host=concord_ip, port=str(src_port))
                            log.info("dar upload/verification passed.")
                         except Exception as e:
                            log.error(e)
