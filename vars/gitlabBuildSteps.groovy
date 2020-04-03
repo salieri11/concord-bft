@@ -1064,6 +1064,20 @@ def call(){
         }
       }
 
+      stage("Start an official Performance Run"){
+        when {
+          expression {
+            env.JOB_NAME.contains(env.tot_job_name) &&
+            currentBuild.currentResult == "SUCCESS"
+          }
+        }
+        steps{
+          script{
+            startOfficialPerformanceRun()
+          }
+        }
+      }
+
       stage("Success") {
         steps {
           script{
@@ -2392,5 +2406,47 @@ EOF
         '''
       }
     }
+  }
+}
+
+// The Performance team has requested we kick off a job on their server for every successful
+// master run.  We will not wait for it or allow it to fail a run.
+void startOfficialPerformanceRun(){
+  try{
+    withCredentials([
+      usernamePassword(credentialsId: 'BLOCKCHAIN_SVC_ACCOUNT',
+                      usernameVariable: 'username',
+                      passwordVariable: 'password')
+    ]){
+      dir('blockchain/performance/scripts') {
+        echo("Starting a performance run in the Performance team's lab.")
+        // Perf team needs this file at the base of our artifacts.
+        env.performanceResultsHtmlDir = env.WORKSPACE
+        env.performanceResultsHtmlFile = "performance.html"
+        env.performanceResultsHtmlPath = env.performanceResultsHtmlDir + "/" + env.performanceResultsHtmlFile
+
+        // Leave this one down in the performance/scripts directory.
+        env.performanceResultsJsonDir = "blockchain/performance/scripts"
+        env.performanceResultsJsonFile = "performance.json"
+        env.performanceResultsJsonPath = env.performanceResultsJsonDir + "/" + env.performanceResultsJsonFile
+
+        sh '''
+          set +x
+          recipients="rvollmar,rahulg"
+          comments="Performance for build ${product_version}"
+          cmd="maestroclient.py --username \"${username}\" --password '${password}'"
+          cmd="${cmd} --recipients \"${recipients}\" --comments \\\"${comments}\\\""
+          cmd="${cmd} --bcversion ${product_version} --htmlFile \\\"${performanceResultsHtmlPath}\\\""
+          cmd="${cmd} --resultsFile \\\"${performanceResultsJsonFile}\\\""
+          eval "${python} ${cmd}"
+        '''
+      }
+      archiveArtifacts artifacts: env.performanceResultsJsonPath, allowEmptyArchive: true
+      archiveArtifacts artifacts: env.performanceResultsHtmlFile, allowEmptyArchive: true
+    }
+  }catch(Exception ex){
+    echo("Exception while starting a performance run:")
+    echo(ex.toString())
+    echo("A failure to launch the performance run will not fail a build.")
   }
 }
