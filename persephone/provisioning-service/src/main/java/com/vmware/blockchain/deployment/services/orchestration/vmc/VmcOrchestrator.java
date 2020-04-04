@@ -158,7 +158,7 @@ public class VmcOrchestrator implements Orchestrator {
 
             return new OrchestratorData.ComputeResourceEvent(request.getResource());
         }
-        throw new PersephoneException("Unable to power off VM {}", request.getResource());
+        throw new PersephoneException("Unable to power off VM: " + request.getResource());
     }
 
     @Override
