@@ -32,7 +32,6 @@ import com.vmware.blockchain.configuration.generateconfig.GenesisUtil;
 import com.vmware.blockchain.configuration.generateconfig.LoggingUtil;
 import com.vmware.blockchain.configuration.generateconfig.TelegrafConfigUtil;
 import com.vmware.blockchain.configuration.generateconfig.WavefrontConfigUtil;
-
 import com.vmware.blockchain.deployment.v1.ConcordComponent.ServiceType;
 import com.vmware.blockchain.deployment.v1.ConfigurationComponent;
 import com.vmware.blockchain.deployment.v1.ConfigurationServiceGrpc.ConfigurationServiceImplBase;
@@ -45,7 +44,6 @@ import com.vmware.blockchain.deployment.v1.IdentityComponent;
 import com.vmware.blockchain.deployment.v1.IdentityFactors;
 import com.vmware.blockchain.deployment.v1.NodeConfigurationRequest;
 import com.vmware.blockchain.deployment.v1.NodeConfigurationResponse;
-import com.vmware.blockchain.deployment.v1.NodeProperty;
 import com.vmware.blockchain.ethereum.type.Genesis;
 
 import io.grpc.Status;
@@ -167,12 +165,12 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
 
             switch (serviceType) {
                 case DAML_LEDGER_API:
-                    DamlLedgerApiUtil ledgerApiUtil = new DamlLedgerApiUtil(
-                            request.getProperties().getValuesMap().get(NodeProperty.Name.COMMITTERS.toString()));
+                    DamlLedgerApiUtil ledgerApiUtil = new DamlLedgerApiUtil();
                     staticComponentList.add(ConfigurationComponent.newBuilder()
                                                     .setType(serviceType)
                                             .setComponentUrl(DamlLedgerApiUtil.envVarPath)
-                                            .setComponent(ledgerApiUtil.generateConfig(request.getNodePropertiesList()))
+                                            .setComponent(ledgerApiUtil.generateConfig(request.getProperties(),
+                                                                                       request.getNodePropertiesList()))
                                             .setIdentityFactors(IdentityFactors.newBuilder().build())
                                             .build());
                     break;
