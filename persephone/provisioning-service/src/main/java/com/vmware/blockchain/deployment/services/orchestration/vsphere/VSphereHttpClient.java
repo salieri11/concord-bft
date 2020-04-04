@@ -116,7 +116,7 @@ public class VSphereHttpClient {
             return responseEntity.getBody().getValue().get(0).getFolder();
         }
 
-        throw new PersephoneException("Error retrieving folder {}", name);
+        throw new PersephoneException("Error retrieving folder: " + name);
     }
 
     /**
@@ -136,7 +136,7 @@ public class VSphereHttpClient {
             && !Strings.isNullOrEmpty(responseEntity.getBody().getValue().get(0).getResourcePool())) {
             return responseEntity.getBody().getValue().get(0).getResourcePool();
         }
-        throw new PersephoneException("Error retrieving resource pool {}", name);
+        throw new PersephoneException("Error retrieving resource pool: " + name);
     }
 
     /**
@@ -156,7 +156,7 @@ public class VSphereHttpClient {
             && !Strings.isNullOrEmpty(responseEntity.getBody().getValue().get(0).getDatastore())) {
             return responseEntity.getBody().getValue().get(0).getDatastore();
         }
-        throw new PersephoneException("Error retrieving datastore {}", name);
+        throw new PersephoneException("Error retrieving datastore: " + name);
     }
 
     /**
@@ -178,7 +178,7 @@ public class VSphereHttpClient {
             && !Strings.isNullOrEmpty(responseEntity.getBody().getValue().get(0).getNetwork())) {
             return responseEntity.getBody().getValue().get(0).getNetwork();
         }
-        throw new PersephoneException("Error retrieving network {}", name);
+        throw new PersephoneException("Error retrieving network: " + name);
     }
 
     /**
@@ -202,7 +202,7 @@ public class VSphereHttpClient {
             && !Strings.isNullOrEmpty(responseEntity.getBody().getValue().get(0))) {
             return responseEntity.getBody().getValue().get(0);
         }
-        throw new PersephoneException("Error retrieving library item {}", sourceId);
+        throw new PersephoneException("Error retrieving library item: " + sourceId);
     }
 
     /**
@@ -336,7 +336,7 @@ public class VSphereHttpClient {
         if (responseEntity.getStatusCode() == HttpStatus.OK) {
             return responseEntity.getBody().getValue().getState();
         }
-        throw new PersephoneException("Unable to get VM {} info", name);
+        throw new PersephoneException("Unable to get VM info: " + name);
     }
 
     /**

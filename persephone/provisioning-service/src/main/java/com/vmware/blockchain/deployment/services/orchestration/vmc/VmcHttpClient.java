@@ -90,7 +90,7 @@ public class VmcHttpClient {
                 = restTemplate.exchange(uri, HttpMethod.GET, requests, VmcOnAwsData.Sddc.class);
         if (responseEntity.getStatusCode() != HttpStatus.OK) {
             log.error(responseEntity.toString());
-            throw new PersephoneException("Unable to fetch sddc info {}", context.datacenter);
+            throw new PersephoneException("Unable to fetch sddc info: " + context.datacenter);
         }
         return responseEntity.getBody();
     }
@@ -110,7 +110,7 @@ public class VmcHttpClient {
         ResponseEntity<NsxData.PublicIp> responseEntity
                 = restTemplate.exchange(uri, HttpMethod.PUT, requests, NsxData.PublicIp.class);
         if (responseEntity.getStatusCode() != HttpStatus.OK) {
-            throw new PersephoneException("Unable to create public ip {}", name);
+            throw new PersephoneException("Unable to create public ip: " + name);
         }
         return responseEntity.getBody();
     }
@@ -127,7 +127,7 @@ public class VmcHttpClient {
         ResponseEntity<NsxData.PublicIp> responseEntity
                 = restTemplate.exchange(uri, HttpMethod.GET, requests, NsxData.PublicIp.class);
         if (responseEntity.getStatusCode() != HttpStatus.OK) {
-            throw new PersephoneException("Error fetching public ip {}", id);
+            throw new PersephoneException("Error fetching public ip: " + id);
         }
         return responseEntity.getBody();
     }
@@ -168,7 +168,7 @@ public class VmcHttpClient {
         ResponseEntity responseEntity
                 = restTemplate.exchange(uri, HttpMethod.PATCH, requests, Void.class);
         if (responseEntity.getStatusCode() != HttpStatus.OK) {
-            throw new PersephoneException("Error creating Nat rule {}", name);
+            throw new PersephoneException("Error creating Nat rule: " + name);
         }
 
         // Check get
@@ -176,7 +176,7 @@ public class VmcHttpClient {
                 restTemplate.exchange(uri, HttpMethod.GET, new HttpEntity<>(httpHeaders), NsxData.NatRule.class);
 
         if (responseEntityGet.getStatusCode() != HttpStatus.OK) {
-            throw new PersephoneException("Error getting Nat rule {}", name);
+            throw new PersephoneException("Error getting Nat rule: " + name);
         }
         return responseEntityGet.getBody();
     }

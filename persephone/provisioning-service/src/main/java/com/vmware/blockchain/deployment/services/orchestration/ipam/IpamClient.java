@@ -69,7 +69,7 @@ public class IpamClient {
             log.info("Assigned ip {}", address.getValue());
             return address;
         } catch (Exception e) {
-            throw new PersephoneException(e, "Error Allocating ip for segment {}", networkSegmentName);
+            throw new PersephoneException(e, "Error Allocating ip for segment:" + networkSegmentName);
         }
     }
 
@@ -88,7 +88,7 @@ public class IpamClient {
                                                    ReactiveStream.blockedResultObserver(promise));
             return true;
         } catch (Exception e) {
-            throw new PersephoneException(e, "Error releasing private ip {}", resource);
+            throw new PersephoneException(e, "Error releasing private ip: " +  resource);
         }
     }
 
