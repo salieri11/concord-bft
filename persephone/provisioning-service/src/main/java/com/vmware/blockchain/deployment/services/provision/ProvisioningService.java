@@ -808,7 +808,7 @@ public class ProvisioningService extends ProvisioningServiceGrpc.ProvisioningSer
                             })).toArray(CompletableFuture[]::new);
 
             CompletableFuture.allOf(nodePromises)
-                    .thenRunAsync(() -> {
+                    .thenRun(() -> {
                         // Create the updated deployment session instance.
                         var updatedSession = DeploymentSession.newBuilder(session)
                                 .setStatus(DeploymentSession.Status.SUCCESS)
@@ -818,11 +818,9 @@ public class ProvisioningService extends ProvisioningServiceGrpc.ProvisioningSer
                         deploymentLog.get(session.getId()).complete(updatedSession);
 
                         log.info("Deployment session({}) completed", session.getId());
-                    }, executor);
+                    });
         } catch (Throwable error) {
             try {
-                log.error("Error triggering work on the session", error);
-
                 log.info("Deployment session({}) failed", session.getId(), error);
 
                 var event = ProvisioningServiceUtil.newCompleteEvent(session.getId(), DeploymentSession.Status.FAILURE);
@@ -966,6 +964,8 @@ public class ProvisioningService extends ProvisioningServiceGrpc.ProvisioningSer
             Collection<OrchestratorData.OrchestrationEvent> events
     ) {
         var resources = ProvisioningServiceUtil.toProvisionedResources(session, events);
+        log.info("List of provisioned resources {}", resources);
+
         var resourceEventStream = resources.stream()
                 .map(resource -> ProvisioningServiceUtil.newResourceEvent(session.getId(), session.getStatus(),
                                                                           resource));

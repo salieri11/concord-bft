@@ -12,9 +12,9 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Flow;
 
+import com.google.common.net.InetAddresses;
 import com.vmware.blockchain.deployment.services.exception.BadRequestPersephoneException;
 import com.vmware.blockchain.deployment.services.exception.PersephoneException;
-import com.vmware.blockchain.deployment.services.orchestration.NetworkAddress;
 import com.vmware.blockchain.deployment.services.orchestration.Orchestrator;
 import com.vmware.blockchain.deployment.services.orchestration.OrchestratorData;
 import com.vmware.blockchain.deployment.services.orchestration.ipam.IpamClient;
@@ -143,37 +143,32 @@ public class VSphereOrchestrator implements Orchestrator {
     public Flow.Publisher<OrchestratorData.NetworkResourceEvent> createNetworkAddress(
             OrchestratorData.CreateNetworkResourceRequest request) {
         return publisher -> {
-            val network = info.getVsphere().getNetwork();
 
-            val privateIpAddress = ipamClient.allocatedPrivateIp(network.getName());
+            val privateIpAddress = ipamClient.allocatedPrivateIp(info.getVsphere().getNetwork().getName());
 
             if (privateIpAddress != null) {
                 log.info("Assigned private IP {}", privateIpAddress);
-
                 val event = OrchestratorData.NetworkResourceEventCreated.builder()
                         .name(request.getName())
-                        .address(NetworkAddress.toIPv4Address(privateIpAddress.getValue()))
+                        .address(InetAddresses.fromInteger(privateIpAddress.getValue()).getHostAddress())
                         .publicResource(false)
+                        .resource(URI.create("/" + privateIpAddress.getName()))
                         .build();
 
-                event.setResource(
-                        URI.create("/" + network.getAllocationServer().getAddress() + "/" + network.getName()));
-
                 publisher.onNext(event);
-
-                // If request asked for public IP provisioning as well, send an event.
-                if (request.getPublicResource()) {
-                    val publicAddressEvent = OrchestratorData.NetworkResourceEventCreated.builder()
-                            .name(request.getName())
-                            .address(NetworkAddress.toIPv4Address(privateIpAddress.getValue()))
-                            .publicResource(true)
-                            .build();
-                    publicAddressEvent.setResource(
-                            URI.create("/" + network.getAllocationServer().getAddress() + "/" + network.getName()));
-                    publisher.onNext(publicAddressEvent);
-                }
-                publisher.onComplete();
             }
+
+            // If request asked for public IP provisioning as well, send an event.
+            if (request.getPublicResource()) {
+                val publicAddressEvent = OrchestratorData.NetworkResourceEventCreated.builder()
+                        .name(request.getName())
+                        .address(InetAddresses.fromInteger(privateIpAddress.getValue()).getHostAddress())
+                        .publicResource(true)
+                        .resource(URI.create("/" + privateIpAddress.getName()))
+                        .build();
+                publisher.onNext(publicAddressEvent);
+            }
+            publisher.onComplete();
         };
     }
 
