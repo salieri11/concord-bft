@@ -16,7 +16,6 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
@@ -51,7 +50,6 @@ import com.vmware.blockchain.deployment.v1.DeploymentSpecification;
 import com.vmware.blockchain.deployment.v1.MessageHeader;
 import com.vmware.blockchain.deployment.v1.NodeProperty;
 import com.vmware.blockchain.deployment.v1.OrchestrationSiteIdentifier;
-import com.vmware.blockchain.deployment.v1.OrchestrationSiteInfo;
 import com.vmware.blockchain.deployment.v1.PlacementSpecification;
 import com.vmware.blockchain.deployment.v1.PlacementSpecification.Entry;
 import com.vmware.blockchain.deployment.v1.PlacementSpecification.Type;
@@ -110,14 +108,10 @@ public class BlockchainController {
     static class BlockchainPost {
         @NotNull(message = "Consortium ID cannot be empty")
         private UUID consortiumId;
-        @NotNull(message = "f count cannot be empty")
         @JsonProperty("f_count")
         private Integer fCount;
-        @NotNull(message = "c count cannot be empty")
         @JsonProperty("c_count")
         private Integer cCount;
-        @NotNull(message =  "Deployment type cannot be null")
-        private DeploymentType deploymentType;
         private BlockchainType blockchainType;
         private List<UUID> zoneIds;
     }
@@ -293,34 +287,21 @@ public class BlockchainController {
                                                                UUID consortiumId,
                                                                boolean deployDamlCommitter) throws Exception {
         List<Entry> list;
-        if (placementType == Type.FIXED) {
-            if (zoneIds.size() != clusterSize) {
-                logger.info("Number of zones not equal to cluster size");
-                throw new BadRequestException(ErrorCode.BAD_REQUEST);
-            }
-            list = zoneIds.stream()
-                    .map(zoneService::get)
-                    .map(z -> Entry.newBuilder()
-                            .setType(placementType)
-                            .setSite(OrchestrationSiteIdentifier.newBuilder()
-                                             .setLow(z.getId().getLeastSignificantBits())
-                                             .setHigh(z.getId().getMostSignificantBits())
-                                             .build())
-                            .setSiteInfo(toInfo(z))
-                            .build())
-                    .collect(Collectors.toList());
-        } else {
-            list = IntStream.range(0, clusterSize)
-                    .mapToObj(i -> Entry.newBuilder()
-                            .setType(placementType)
-                            .setSite(OrchestrationSiteIdentifier.newBuilder()
-                                             .setLow(1)
-                                             .setHigh(i)
-                                             .build())
-                            .setSiteInfo(OrchestrationSiteInfo.newBuilder().build())
-                            .build())
-                    .collect(Collectors.toList());
+        if (zoneIds.size() != clusterSize) {
+            logger.info("Number of zones not equal to cluster size");
+            throw new BadRequestException(ErrorCode.BAD_REQUEST);
         }
+        list = zoneIds.stream()
+                .map(zoneService::get)
+                .map(z -> Entry.newBuilder()
+                        .setType(placementType)
+                        .setSite(OrchestrationSiteIdentifier.newBuilder()
+                                .setLow(z.getId().getLeastSignificantBits())
+                                .setHigh(z.getId().getMostSignificantBits())
+                                .build())
+                        .setSiteInfo(toInfo(z))
+                        .build())
+                .collect(Collectors.toList());
 
         var blockChainType = blockchainType == null ? ConcordModelSpecification.BlockchainType.ETHEREUM
                 : enumMapForBlockchainType.get(blockchainType);
@@ -436,16 +417,13 @@ public class BlockchainController {
                 body.getBlockchainType() == null ? BlockchainType.ETHEREUM : body.getBlockchainType();
 
         /*
-        If the deployment type is FIXED
         zoneIds should not be null
         Number of zoneIds should be equal to 3F + 2C + 1
          */
-        if (body.deploymentType == FIXED) {
-            if (body.getZoneIds() == null
-                    || body.getZoneIds().size() != clusterSize) {
-                logger.info("Number of zones not equal to cluster size");
-                throw new BadRequestException(ErrorCode.BAD_REQUEST);
-            }
+        if (body.getZoneIds() == null
+                || body.getZoneIds().size() != clusterSize) {
+            logger.info("Number of zones not equal to cluster size");
+            throw new BadRequestException(ErrorCode.BAD_REQUEST);
         }
 
         DeploymentSessionIdentifier dsId;
@@ -470,7 +448,7 @@ public class BlockchainController {
 
 
         dsId = createFixedSizeCluster(client, clusterSize,
-                enumMap.get(body.deploymentType),
+                enumMap.get(FIXED),
                 body.getZoneIds(),
                 blockchainType,
                 body.consortiumId,

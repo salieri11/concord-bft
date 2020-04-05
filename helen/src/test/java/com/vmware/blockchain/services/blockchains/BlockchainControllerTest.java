@@ -86,7 +86,6 @@ import com.vmware.blockchain.services.blockchains.Blockchain.BlockchainType;
 import com.vmware.blockchain.services.blockchains.BlockchainController.BlockchainNodeEntry;
 import com.vmware.blockchain.services.blockchains.BlockchainController.BlockchainReplicaEntry;
 import com.vmware.blockchain.services.blockchains.BlockchainController.BlockchainTaskResponse;
-import com.vmware.blockchain.services.blockchains.replicas.Replica;
 import com.vmware.blockchain.services.blockchains.zones.VmcAwsZone;
 import com.vmware.blockchain.services.blockchains.zones.Zone;
 import com.vmware.blockchain.services.blockchains.zones.ZoneService;
@@ -122,62 +121,30 @@ public class BlockchainControllerTest {
     static final UUID BC2_ID = UUID.fromString("7324cb8f-0ffc-4311-b57e-4c3e1e10a3aa");
     static final UUID BC_NEW = UUID.fromString("4b8a5ec6-91ad-437d-b574-45f5b7345b96");
     static final UUID BC_DAML = UUID.fromString("fd7167b0-057d-11ea-8d71-362b9e155667");
-    static final UUID BC_DAML_GET_CLIENT = UUID.fromString("ded15efc-33e3-11ea-978f-2e728ce88125");
-    static final UUID BC_INACTIVE = UUID.fromString("0cf023a5-ef8b-48ed-8cd3-ea47f8986073");
+
     static final UUID BC_DEREGISTER = UUID.fromString("691f2038-7545-11ea-bc55-0242ac130003");
     static final UUID BC_DEREGISTER_INACTIVE = UUID.fromString("8a304abc-4964-488e-a3c6-1379e6a67229");
+
     static final UUID C2_ID = UUID.fromString("04e4f62d-5364-4363-a582-b397075b65a3");
     static final UUID C3_ID = UUID.fromString("a4b8f7ed-00b3-451e-97bc-4aa51a211288");
+
     static final UUID TASK_ID = UUID.fromString("c23ed97d-f29c-472e-9f63-cc6be883a5f5");
+
     static final UUID ORG_ID = UUID.fromString("5c373085-0cd1-47e4-b4f2-66d418f22fdf");
     static final UUID ORG2_ID = UUID.fromString("a774d0e3-b182-4330-93df-6738c8b1b2de");
+
     static final UUID DEP_ID = UUID.fromString("67376aed-333c-4e35-b6b6-c59800752dc3");
+
     private static final UUID SITE_1 = UUID.fromString("84b9a0ed-c162-446a-b8c0-2e45755f3844");
     private static final UUID SITE_2 = UUID.fromString("275638a3-8860-4925-85de-c73d45cb7232");
     private static final UUID NODE_1 = UUID.fromString("f81899ce-861f-4479-9adf-f3ad753fcaf6");
     private static final UUID NODE_2 = UUID.fromString("81a70aeb-c13c-4f36-9e98-564c1e6eccdc");
-    private static final UUID REPLICA_1 = UUID.fromString("987ec776-679f-4428-9135-4db872a0a64b");
-    private static final UUID REPLICA_2 = UUID.fromString("2462e0bf-ccbd-4e7b-b5ee-70514d3188cf");
-    private static final UUID REPLICA_3 = UUID.fromString("e10a68e3-faa5-4ab6-a69f-53e10bc0d490");
-    private static final UUID REPLICA_4 = UUID.fromString("493b84d7-5333-4294-bba7-c56ade48cb73");
-
-
-    // use consortium c2 in this, Unspecified placement
-    static final String POST_BODY_UNSP = "{"
-                                         + "    \"consortium_id\": \"04e4f62d-5364-4363-a582-b397075b65a3\","
-                                         + "    \"f_count\": 1,"
-                                         + "    \"c_count\": 0,"
-                                         + "    \"deployment_type\": \"UNSPECIFIED\"" + "}";
-
-    static final String POST_BODY_UNSP_MISSING_COUNT = "{"
-                                        + "    \"consortium_id\": \"04e4f62d-5364-4363-a582-b397075b65a3\","
-                                        + "    \"f_count\": 1,"
-                                        + "    \"deployment_type\": \"UNSPECIFIED\"" + "}";
-
-    static final String POST_BODY_MISSING_DEPLOYMENT_TYPE = "{"
-                                        + "    \"consortium_id\": \"04e4f62d-5364-4363-a582-b397075b65a3\","
-                                        + "    \"f_count\": 1,"
-                                        + "    \"c_count\": 0" + "}";
-
-    static final String POST_BODY_MANGO = "{"
-                                         + "    \"consortium_id\": \"04e4f62d-5364-4363-a582-b397075b65a3\","
-                                         + "    \"f_count\": 1,"
-                                         + "    \"c_count\": 0,"
-                                         + "    \"deployment_type\": \"MANGO\"" + "}";
-
-    static final String POST_BODY_DAML = "{"
-                                         + "    \"consortium_id\": \"04e4f62d-5364-4363-a582-b397075b65a3\","
-                                         + "    \"f_count\": 1,"
-                                         + "    \"c_count\": 0,"
-                                         + "    \"blockchain_type\": \"DAML\","
-                                         + "    \"deployment_type\": \"UNSPECIFIED\"" + "}";
 
     // Fixed placement.  three in site1, one is site 2
     static final String POST_BODY_FIXED = "{"
                                          + "    \"consortium_id\": \"04e4f62d-5364-4363-a582-b397075b65a3\","
                                          + "    \"f_count\": 1,"
                                          + "    \"c_count\": 0,"
-                                         + "    \"deployment_type\": \"FIXED\","
                                          + "    \"zone_ids\": ["
                                          + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
                                          + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
@@ -188,7 +155,6 @@ public class BlockchainControllerTest {
                                           + "    \"consortium_id\": \"04e4f62d-5364-4363-a582-b397075b65a3\","
                                           + "    \"f_count\": 1,"
                                           + "    \"c_count\": 0,"
-                                          + "    \"deployment_type\": \"FIXED\","
                                           + "    \"blockchain_type\": \"DAML\","
                                           + "    \"zone_ids\": ["
                                           + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
@@ -201,7 +167,6 @@ public class BlockchainControllerTest {
                                           + "    \"consortium_id\": \"04e4f62d-5364-4363-a582-b397075b65a3\","
                                           + "    \"f_count\": 1,"
                                           + "    \"c_count\": 0,"
-                                          + "    \"deployment_type\": \"FIXED\","
                                           + "    \"zone_ids\": ["
                                           + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
                                           + "            \"275638a3-8860-4925-85de-c73d45cb7232\","
@@ -326,12 +291,14 @@ public class BlockchainControllerTest {
                         .map(s -> new Blockchain.NodeEntry(UUID.randomUUID(), s, "", "", SITE_1))
                         .collect(Collectors.toList()))
                 .build();
+
         final Blockchain b2 = Blockchain.builder()
                 .consortium(c2.getId())
                 .nodeList(Stream.of("4", "5", "6")
                         .map(s -> new Blockchain.NodeEntry(UUID.randomUUID(), s, "", "", SITE_2))
                         .collect(Collectors.toList()))
                 .build();
+
         final Blockchain bcInactive = Blockchain.builder()
                 .consortium(consortium.getId())
                 .nodeList(Stream.of("one", "two", "three")
@@ -340,12 +307,14 @@ public class BlockchainControllerTest {
                 .state(Blockchain.BlockchainState.INACTIVE)
                 .type(BlockchainType.ETHEREUM)
                 .build();
+
         final Blockchain bn = Blockchain.builder()
                 .consortium(UUID.fromString("04e4f62d-5364-4363-a582-b397075b65a3"))
                 .nodeList(Stream.of("one", "two", "three")
                         .map(s -> new Blockchain.NodeEntry(UUID.randomUUID(), s, "http://".concat(s), "cert-".concat(s), SITE_2))
                         .collect(Collectors.toList()))
                 .build();
+
         final Blockchain bcdaml = Blockchain.builder()
                 .consortium(UUID.fromString("5a0cebc0-057e-11ea-8d71-362b9e155667"))
                 .nodeList(Stream.of("one", "two", "three")
@@ -371,24 +340,6 @@ public class BlockchainControllerTest {
                 .type(BlockchainType.ETHEREUM)
                 .build();
 
-        final Replica replica1 = new Replica("publicIp", "privateIp", "hostName", "url", "cert", REPLICA_1,
-                                             Replica.ReplicaType.NONE, BC_DAML_GET_CLIENT);
-
-        final Replica replica2 = new Replica("publicIp", "privateIp", "hostName", "url", "cert", REPLICA_2,
-                                             Replica.ReplicaType.DAML_PARTICIPANT, BC_DAML_GET_CLIENT);
-
-        final Replica replica3 = new Replica("publicIp", "privateIp", "hostName", "url", "cert", REPLICA_3,
-                                             Replica.ReplicaType.DAML_PARTICIPANT, BC_DAML_GET_CLIENT);
-
-        final Replica replica4 = new Replica("publicIp", "privateIp", "hostName", "url", "cert", REPLICA_4,
-                                             Replica.ReplicaType.NONE, BC_DAML_GET_CLIENT);
-
-        when(blockchainService.getReplicas(BC_DAML_GET_CLIENT))
-                .thenReturn(ImmutableList.of(replica1, replica2, replica3, replica4));
-
-
-        when(blockchainService.getReplicas(BC_DAML_GET_CLIENT))
-                .thenReturn(ImmutableList.of(replica1, replica2, replica3, replica4));
         when(blockchainService.listByConsortium(consortium)).thenReturn(Collections.singletonList(b));
         when(blockchainService.listByConsortium(c3)).thenReturn(Collections.emptyList());
         when(blockchainService.list()).thenReturn(ImmutableList.of(b, b2, bcInactive));
@@ -470,8 +421,6 @@ public class BlockchainControllerTest {
         // Zone returns
         when(zoneService.get(SITE_1)).thenReturn(ZoneTestUtils.getOnpremZone(SITE_1, ORG_ID));
 
-        when(zoneService.get(SITE_2)).thenReturn(new Zone(SITE_2, Zone.Type.VMC_AWS));
-
         when(organizationService.get(any(UUID.class))).thenReturn(mock(Organization.class));
 
         VmcAwsZone vmcAwsZone = new VmcAwsZone();
@@ -542,7 +491,6 @@ public class BlockchainControllerTest {
 
     @Test
     void getBlockchainUserList() throws Exception {
-        UUID cid = consortium.getId();
         MvcResult result = mockMvc.perform(get("/api/blockchains/").with(authentication(userAuth))
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk()).andReturn();
@@ -610,23 +558,9 @@ public class BlockchainControllerTest {
     void postUserAccess() throws Exception {
         mockMvc.perform(post("/api/blockchains").with(authentication(userAuth))
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(POST_BODY_UNSP)
+                .content(POST_BODY_FIXED)
                 .characterEncoding("utf-8"))
             .andExpect(status().isForbidden());
-    }
-
-    @Test
-    void createUnspecified() throws Exception {
-        ArgumentCaptor<CreateClusterRequest> captor = ArgumentCaptor.forClass(CreateClusterRequest.class);
-        mockMvc.perform(post("/api/blockchains").with(authentication(consortiumAuth))
-                                                   .contentType(MediaType.APPLICATION_JSON)
-                                                   .content(POST_BODY_UNSP).characterEncoding("utf-8"))
-                .andExpect(status().isAccepted());
-        verify(client).createCluster(captor.capture(), any(StreamObserver.class));
-        CreateClusterRequest request = captor.getValue();
-        List<PlacementSpecification.Entry> entries = request.getSpecification().getPlacement().getEntriesList();
-        Assertions.assertEquals(4, entries.size());
-        Assertions.assertTrue(entries.stream().allMatch(e -> e.getType() == PlacementSpecification.Type.UNSPECIFIED));
     }
 
     @Test
@@ -637,7 +571,7 @@ public class BlockchainControllerTest {
                                        ImmutableList.of(BC_ID), "");
         mockMvc.perform(post("/api/blockchains").with(authentication(tooManyAuth))
                                 .contentType(MediaType.APPLICATION_JSON)
-                                .content(POST_BODY_UNSP).characterEncoding("utf-8"))
+                                .content(POST_BODY_FIXED).characterEncoding("utf-8"))
                 .andExpect(status().isBadRequest());
     }
 
@@ -653,7 +587,7 @@ public class BlockchainControllerTest {
                                                           ImmutableList.of(BC_ID), "");
         mockMvc.perform(post("/api/blockchains").with(authentication(tooManyAuth))
                                 .contentType(MediaType.APPLICATION_JSON)
-                                .content(POST_BODY_UNSP).characterEncoding("utf-8"))
+                                .content(POST_BODY_FIXED).characterEncoding("utf-8"))
                 .andExpect(status().isAccepted());
     }
 
@@ -670,7 +604,7 @@ public class BlockchainControllerTest {
         mockMvc.perform(post("/api/blockchains").with(authentication(tooManyAuth)));
         mockMvc.perform(post("/api/blockchains").with(authentication(tooManyAuth))
                                 .contentType(MediaType.APPLICATION_JSON)
-                                .content(POST_BODY_UNSP).characterEncoding("utf-8"))
+                                .content(POST_BODY_FIXED).characterEncoding("utf-8"))
                 .andExpect(status().isBadRequest());
     }
 
@@ -686,7 +620,7 @@ public class BlockchainControllerTest {
                                                           ImmutableList.of(BC_ID, BC2_ID), "");
         mockMvc.perform(post("/api/blockchains").with(authentication(tooManyAuth))
                                 .contentType(MediaType.APPLICATION_JSON)
-                                .content(POST_BODY_UNSP).characterEncoding("utf-8"))
+                                .content(POST_BODY_FIXED).characterEncoding("utf-8"))
                 .andExpect(status().isAccepted());
     }
 
@@ -747,48 +681,10 @@ public class BlockchainControllerTest {
     }
 
     @Test
-    void createFixedOfTypeDaml() throws Exception {
-        ArgumentCaptor<CreateClusterRequest> captor = ArgumentCaptor.forClass(CreateClusterRequest.class);
-        mockMvc.perform(post("/api/blockchains").with(authentication(consortiumAuth))
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(POST_BODY_FIXED_WITH_TYPE).characterEncoding("utf-8"))
-                .andExpect(status().isAccepted());
-        verify(client).createCluster(captor.capture(), any(StreamObserver.class));
-        CreateClusterRequest request = captor.getValue();
-        List<PlacementSpecification.Entry> entries = request.getSpecification().getPlacement().getEntriesList();
-        Assertions.assertEquals(4, entries.size());
-        Assertions.assertTrue(entries.stream().allMatch(e -> e.getType() == PlacementSpecification.Type.FIXED));
-        Assertions.assertEquals(3, entries.stream()
-                .filter(e -> OrchestrationSiteIdentifier.newBuilder()
-                                .setLow(SITE_1.getLeastSignificantBits())
-                                .setHigh(SITE_1.getMostSignificantBits())
-                                .build()
-                        .equals(e.getSite()))
-                .count());
-        Assertions.assertEquals(1, entries.stream()
-                .filter(e -> OrchestrationSiteIdentifier.newBuilder()
-                        .setLow(SITE_2.getLeastSignificantBits())
-                        .setHigh(SITE_2.getMostSignificantBits())
-                        .build()
-                        .equals(e.getSite()))
-                .count());
-    }
-
-
-    @Test
     void creatBad() throws Exception {
         mockMvc.perform(post("/api/blockchains").with(authentication(consortiumAuth))
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(POST_BODY_BAD).characterEncoding("utf-8"))
-                .andExpect(status().isBadRequest());
-
-    }
-
-    @Test
-    void createMango() throws Exception {
-        mockMvc.perform(post("/api/blockchains").with(authentication(consortiumAuth))
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(POST_BODY_MANGO).characterEncoding("utf-8"))
                 .andExpect(status().isBadRequest());
 
     }
@@ -812,7 +708,7 @@ public class BlockchainControllerTest {
 
         MvcResult result = mockMvc.perform(post("/api/blockchains").with(authentication(consortiumAuth))
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(POST_BODY_UNSP).characterEncoding("utf-8"))
+                .content(POST_BODY_FIXED).characterEncoding("utf-8"))
             .andExpect(status().isAccepted()).andReturn();
         String body = result.getResponse().getContentAsString();
 
@@ -859,7 +755,7 @@ public class BlockchainControllerTest {
 
         MvcResult result = mockMvc.perform(post("/api/blockchains").with(authentication(consortiumAuth))
                                                    .contentType(MediaType.APPLICATION_JSON)
-                                                   .content(POST_BODY_DAML).characterEncoding("utf-8"))
+                                                   .content(POST_BODY_FIXED_WITH_TYPE).characterEncoding("utf-8"))
                 .andExpect(status().isAccepted()).andReturn();
         String body = result.getResponse().getContentAsString();
 
@@ -885,38 +781,6 @@ public class BlockchainControllerTest {
         Assertions.assertEquals(SITE_1, blockchain.getNodeList().get(0).getZoneId());
         Assertions.assertEquals(NODE_2, blockchain.getNodeList().get(1).getNodeId());
         Assertions.assertEquals(SITE_2, blockchain.getNodeList().get(1).getZoneId());
-
-    }
-
-    @Test
-    void postDamlV0() throws Exception {
-        Organization org = new Organization();
-        org.setId(ORG_ID);
-        org.setOrganizationProperties(ImmutableMap.of("DAML_V0", "enabled"));
-        when(organizationService.get(ORG_ID)).thenReturn(org);
-
-        ArgumentCaptor<CreateClusterRequest> captor = ArgumentCaptor.forClass(CreateClusterRequest.class);
-        mockMvc.perform(post("/api/blockchains/")
-                .with(authentication(adminAuth))
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(POST_BODY_FIXED_WITH_TYPE))
-                .andExpect(status().isAccepted());
-    }
-
-    @Test
-    void createUnspecifiedBadCount() throws Exception {
-        mockMvc.perform(post("/api/blockchains").with(authentication(adminAuth))
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(POST_BODY_UNSP_MISSING_COUNT).characterEncoding("utf-8"))
-                .andExpect(status().isBadRequest());
-    }
-
-    @Test
-    void createMissingDeploymentType() throws Exception {
-        mockMvc.perform(post("/api/blockchains").with(authentication(adminAuth))
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(POST_BODY_MISSING_DEPLOYMENT_TYPE).characterEncoding("utf-8"))
-                .andExpect(status().isBadRequest());
     }
 
     @Test
@@ -944,8 +808,6 @@ public class BlockchainControllerTest {
                         .toString()),
                 result.getResolvedException().getMessage());
     }
-
-
 
     ConcordNode buildNode(UUID nodeId, UUID siteId, int ip, String url) {
         ConcordNodeEndpoint endpoint = ConcordNodeEndpoint.newBuilder()

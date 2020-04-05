@@ -9,7 +9,6 @@ export class BlockchainRequestParams {
   consortium_name: string;
   f_count: number;
   c_count: number = 0;
-  deployment_type: string = 'FIXED';
   zone_ids: string[];
   blockchain_type: string;
 }

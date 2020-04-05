@@ -126,8 +126,10 @@ def deployToSddc(logDir, hermesData):
    blockchain_type = hermesData["hermesCmdlineArgs"].blockchainType
    response = conAdminRequest.createBlockchain(conId,
                                                siteIds,
-                                               blockchainType=blockchain_type.upper(),
-                                               f=f)
+                                               f,
+                                               0,
+                                               blockchain_type.upper()
+                                               )
    taskId = response["task_id"]
    timeout=60*15
    success, response = helper.waitForTask(conAdminRequest, taskId, timeout=timeout)

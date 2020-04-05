@@ -2345,6 +2345,25 @@ def test_get_consortium_orgs(fxConnection, fxInitializeOrgs):
       else:
          assert org["organization_name"] == "hermes_org1"
 
+@pytest.mark.smoke
+@pytest.mark.blockchains
+def test_invalid_blockchain_post(fxConnection):
+   '''
+   Blockchain creation test with bad parameters.
+   '''
+   req = fxConnection.request.newWithToken(defaultTokenDescriptor)
+
+   zoneList = []
+
+   for _ in range(0,4):
+      zoneInfo = createZoneObject()
+      req = createDefaultConsortiumAdminRequest(fxConnection.request)
+      response = req.createZone(zoneInfo)
+      zoneList.append(response["id"])
+
+   blockchain_task_response = req.createBlockchain("" , zoneList, 1, 0)
+
+   validateBadRequest(blockchain_task_response, "/api/blockchains", "MethodArgumentNotValidException", False)
 
 @describe()
 @pytest.mark.smoke
