@@ -19,10 +19,8 @@ import com.vmware.blockchain.deployment.v1.DeleteAddressBlockRequest
 import com.vmware.blockchain.deployment.v1.MessageHeader
 import com.vmware.blockchain.deployment.v1.ReleaseAddressRequest
 import com.vmware.blockchain.deployment.v1.ReleaseAddressResponse
-import com.vmware.blockchain.ipam.server.IPAllocationService
 import com.vmware.blockchain.protobuf.kotlinx.serialization.ByteString
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.reactive.awaitSingle
 import kotlinx.coroutines.runBlocking
 import org.assertj.core.api.Assertions
 import org.junit.jupiter.api.Test
@@ -36,18 +34,18 @@ typealias BlockStore = KeyValueStore<ResourceName, AddressBlock, MonotonicInt>
 typealias SegmentStore = KeyValueStore<ResourceName, AddressBlockSegment, MonotonicInt>
 
 /**
- * Basic functionality test of [IPAllocationService].
+ * Basic functionality test of [IPAllocationServiceOld].
  */
 class IPAllocationServiceTest {
 
     /**
-     * Create a new instance of [IPAllocationService] and return a [Triple] of the instance, the
+     * Create a new instance of [IPAllocationServiceOld] and return a [Triple] of the instance, the
      * backing address block and block segment [KeyValueStore]s.
      *
      * @return
      *   a triple of the service instance and the backing persistence stores.
      */
-    private fun newIPAllocationService(): Triple<IPAllocationService, BlockStore, SegmentStore> {
+    private fun newIPAllocationService(): Triple<IPAllocationServiceOld, BlockStore, SegmentStore> {
         val blockStore = TypedKeyValueStore(
                 ResourceName.serializer(),
                 AddressBlock.serializer(),
@@ -58,7 +56,7 @@ class IPAllocationServiceTest {
                 AddressBlockSegment.serializer(),
                 InMemoryUntypedKeyValueStore(versionSerializer = MonotonicInt.serializer())
         )
-        val allocator = IPAllocationService(Dispatchers.Default, blockStore, segmentStore)
+        val allocator = IPAllocationServiceOld(Dispatchers.Default, blockStore, segmentStore)
 
         return Triple(allocator, blockStore, segmentStore)
     }

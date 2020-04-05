@@ -6,16 +6,22 @@ COPY ./resources/checkstyle.xml ../resources/checkstyle.xml
 
 ## Copy the POM files (rarely changing).
 COPY ./pom.xml ./pom.xml
+COPY ./api/pom.xml ./api/pom.xml
+COPY ./provisioning-service/pom.xml ./provisioning-service/pom.xml
+
+COPY ./agent/pom.xml ./agent/pom.xml
+COPY ./config-service/pom.xml ./config-service/pom.xml
 COPY ./ip-allocation-service/pom.xml ./ip-allocation-service/pom.xml
 
 ## Copy the dependent module sources.
 COPY ./api ./persephone/api
 
 ## Copy the module sources.
-COPY ./ip-allocation-service ./persephone/ip-allocation-service
+RUN mvn -f pom.xml package -pl ip-allocation-service -am -B
+#COPY ./ip-allocation-service ./persephone/ip-allocation-service
 
 ## Build module with all of its dependencies.
-RUN mvn -f ip-allocation-service/pom.xml install
+#RUN mvn -f ip-allocation-service/pom.xml install
 
 # Runtime image (IP Allocation Service).
 FROM openjdk:11.0.2-jdk-slim
@@ -25,7 +31,7 @@ LABEL description="VMware Blockchain Fleet Management IP Allocation Service"
 RUN sed -i "/jdk.tls.disabledAlgorithms=/ s/=.*/=TLSv1.3, SSLv3, RC4, MD5withRSA, DH keySize < 1024, EC keySize < 224, DES40_CBC, RC4_40, 3DES_EDE_CBC/" $(readlink -f /usr/bin/java | sed "s:bin/java::")/conf/security/java.security
 
 WORKDIR /persephone/ip-allocation-service
-COPY --from=builder ./ip-allocation-service/target/persephone-ip-allocation-service*.jar ./ip-allocation-service.jar
+COPY --from=builder ./ip-allocation-service/target/ip-allocation-service*.jar ./ip-allocation-service.jar
 COPY ./resources/logging/log4j2.properties .
 
 VOLUME ["/config"]

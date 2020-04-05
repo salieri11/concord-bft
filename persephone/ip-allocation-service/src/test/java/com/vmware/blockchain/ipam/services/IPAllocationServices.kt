@@ -11,10 +11,9 @@ import com.vmware.blockchain.deployment.v1.DeleteAddressBlockRequest
 import com.vmware.blockchain.deployment.v1.DeleteAddressBlockResponse
 import com.vmware.blockchain.deployment.v1.ReleaseAddressRequest
 import com.vmware.blockchain.deployment.v1.ReleaseAddressResponse
-import com.vmware.blockchain.ipam.server.IPAllocationService
 
 /**
- * Suspendable form of [IPAllocationService.createAddressBlock].
+ * Suspendable form of [IPAllocationServiceOld.createAddressBlock].
  *
  * @param[request]
  *   request to the operation.
@@ -22,7 +21,7 @@ import com.vmware.blockchain.ipam.server.IPAllocationService
  * @return
  *   message response.
  */
-suspend fun IPAllocationService.createAddressBlock(
+suspend fun IPAllocationServiceOld.createAddressBlock(
     request: CreateAddressBlockRequest
 ): CreateAddressBlockResponse {
     val observer = CollectingStreamObserver<CreateAddressBlockResponse>()
@@ -32,7 +31,7 @@ suspend fun IPAllocationService.createAddressBlock(
 }
 
 /**
- * Suspendable form of [IPAllocationService.deleteAddressBlock].
+ * Suspendable form of [IPAllocationServiceOld.deleteAddressBlock].
  *
  * @param[request]
  *   request to the operation.
@@ -40,7 +39,7 @@ suspend fun IPAllocationService.createAddressBlock(
  * @return
  *   message response.
  */
-suspend fun IPAllocationService.deleteAddressBlock(
+suspend fun IPAllocationServiceOld.deleteAddressBlock(
     request: DeleteAddressBlockRequest
 ): DeleteAddressBlockResponse {
     val observer = CollectingStreamObserver<DeleteAddressBlockResponse>()
@@ -50,7 +49,7 @@ suspend fun IPAllocationService.deleteAddressBlock(
 }
 
 /**
- * Suspendable form of [IPAllocationService.allocateAddress].
+ * Suspendable form of [IPAllocationServiceOld.allocateAddress].
  *
  * @param[request]
  *   request to the operation.
@@ -58,7 +57,7 @@ suspend fun IPAllocationService.deleteAddressBlock(
  * @return
  *   message response.
  */
-suspend fun IPAllocationService.allocateAddress(
+suspend fun IPAllocationServiceOld.allocateAddress(
     request: AllocateAddressRequest
 ): AllocateAddressResponse {
     val observer = CollectingStreamObserver<AllocateAddressResponse>()
@@ -68,7 +67,7 @@ suspend fun IPAllocationService.allocateAddress(
 }
 
 /**
- * Suspendable form of [IPAllocationService.releaseAddress].
+ * Suspendable form of [IPAllocationServiceOld.releaseAddress].
  *
  * @param[request]
  *   request to the operation.
@@ -76,7 +75,7 @@ suspend fun IPAllocationService.allocateAddress(
  * @return
  *   message response.
  */
-suspend fun IPAllocationService.releaseAddress(
+suspend fun IPAllocationServiceOld.releaseAddress(
     request: ReleaseAddressRequest
 ): ReleaseAddressResponse {
     val observer = CollectingStreamObserver<ReleaseAddressResponse>()
