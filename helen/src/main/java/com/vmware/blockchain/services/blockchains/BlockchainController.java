@@ -31,6 +31,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -175,6 +176,7 @@ public class BlockchainController {
         private UUID id;
         private UUID consortiumId;
         private BlockchainType blockchainType;
+        private Blockchain.BlockchainState blockchainState;
         @Deprecated
         private List<BlockchainNodeEntry> nodeList;
         private List<BlockchainReplicaEntry> replicaList;
@@ -183,6 +185,7 @@ public class BlockchainController {
             this.id = b.getId();
             this.consortiumId = b.getConsortium();
             this.blockchainType = b.getType() == null ? BlockchainType.ETHEREUM : b.getType();
+            this.blockchainState = b.getState() == null ? Blockchain.BlockchainState.ACTIVE : b.getState();
             // For the moment, return both node_list and replica_list
             this.nodeList = b.getNodeList().stream().map(BlockchainNodeEntry::new).collect(Collectors.toList());
             this.replicaList = b.getNodeList().stream().map(BlockchainReplicaEntry::new).collect(Collectors.toList());
@@ -240,7 +243,10 @@ public class BlockchainController {
      */
     @RequestMapping(path = "/api/blockchains", method = RequestMethod.GET)
     @PreAuthorize("@authHelper.isUser()")
-    ResponseEntity<List<BlockchainGetResponse>> list() {
+    ResponseEntity<List<BlockchainGetResponse>> list(
+            @RequestParam(name = "all", required = false, defaultValue = "false") String all
+    ) {
+        boolean getAllBlockchains = Boolean.valueOf(all);
         List<Blockchain> chains = Collections.emptyList();
         // if we are operator, we can get all blockchains.
         if (authHelper.hasAnyAuthority(Roles.systemAdmin())) {
@@ -249,8 +255,19 @@ public class BlockchainController {
             // Otherwise, we can only see our consortium.
             chains = blockchainService.listByIds(authHelper.getAccessChains());
         }
-        List<BlockchainGetResponse> idList = chains.stream().map(BlockchainGetResponse::new)
-                .collect(Collectors.toList());
+
+        List<BlockchainGetResponse> idList;
+
+        if (!getAllBlockchains) {
+            idList = chains.stream()
+                    .filter(blockchain -> blockchain.getState() != Blockchain.BlockchainState.INACTIVE)
+                    .map(BlockchainGetResponse::new)
+                    .collect(Collectors.toList());
+        } else {
+            idList = chains.stream().map(BlockchainGetResponse::new)
+                    .collect(Collectors.toList());
+        }
+
         return new ResponseEntity<>(idList, HttpStatus.OK);
     }
 
@@ -503,24 +520,16 @@ public class BlockchainController {
     /**
      * De-register the blockchain.
      */
-    @RequestMapping(path = "/api/blockchains/{bid}", method = RequestMethod.PATCH)
+    @RequestMapping(path = "/api/blockchains/deregister/{bid}", method = RequestMethod.POST)
     @PreAuthorize("@authHelper.canUpdateChain(#bid)")
-    public ResponseEntity<BlockchainGetResponse> deRegister(@PathVariable("bid") UUID bid,
-                                                                   @RequestBody BlockchainPatch body) throws Exception {
+    public ResponseEntity<BlockchainGetResponse> deRegister(@PathVariable("bid") UUID bid) throws Exception {
         Blockchain blockchain = blockchainService.get(bid);
-        Blockchain.BlockchainState blockchainState = blockchain.getState();
-        if (blockchainState != null) {
-            if (blockchainState == Blockchain.BlockchainState.INACTIVE) {
-                logger.info("Setting state to active so the blockchains can be de-registered");
-                blockchain.setState(Blockchain.BlockchainState.ACTIVE);
-            } else {
-                logger.info("Blockchain State is active already: blockchain is de-registered");
-            }
-            logger.info("State cannot be null");
-            throw new BadRequestException(ErrorCode.BAD_REQUEST);
+        if (blockchain.getState() != Blockchain.BlockchainState.INACTIVE) {
+            blockchain.setState(Blockchain.BlockchainState.INACTIVE);
+            blockchain = blockchainService.put(blockchain);
+            return new ResponseEntity<>(new BlockchainGetResponse(blockchain), HttpStatus.ACCEPTED);
+        } else {
+            throw new BadRequestException(String.format("Blockchain %s is already de-registered.", bid.toString()));
         }
-        blockchain = blockchainService.put(blockchain);
-        return new ResponseEntity<>(new BlockchainGetResponse(blockchain), HttpStatus.ACCEPTED);
     }
-
 }

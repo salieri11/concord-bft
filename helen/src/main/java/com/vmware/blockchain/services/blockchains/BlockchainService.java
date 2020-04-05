@@ -62,6 +62,7 @@ public class BlockchainService {
                 .nodeList(nodeList)
                 .build();
         b.setId(id);
+        b.setState(Blockchain.BlockchainState.ACTIVE);
         b = genericDao.put(b, null);
         try {
             connectionPoolManager.createPool(b);
