@@ -222,6 +222,7 @@ void ReplicaImp::onMessage<ClientRequestMsg>(ClientRequestMsg *m) {
 
 void ReplicaImp::tryToSendPrePrepareMsg(bool batchingLogic) {
   Assert(isCurrentPrimary() && currentViewIsActive());
+  batchingLogic = false;
 
   if (primaryLastUsedSeqNum + 1 > lastStableSeqNum + kWorkWindowSize) return;
 

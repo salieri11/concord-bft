@@ -16,6 +16,7 @@
 #include <condition_variable>
 
 #include "ClientMsgs.hpp"
+#include "Logging4cplus.hpp"
 #include "SimpleClient.hpp"
 #include "assertUtils.hpp"
 #include "TimeUtils.hpp"
@@ -181,6 +182,7 @@ SimpleClientImp::~SimpleClientImp() {
   Assert(numberOfTransmissions_ == 0);
 }
 
+concordlogger::Logger clientLog = concordlogger::Log::getLogger("concord.bft.client");
 int SimpleClientImp::sendRequest(uint8_t flags,
                                  const char* request,
                                  uint32_t lengthOfRequest,
@@ -194,7 +196,7 @@ int SimpleClientImp::sendRequest(uint8_t flags,
   bool isPreProcessRequired = flags & PRE_PROCESS_REQ;
   const std::string msgCid = cid.empty() ? std::to_string(reqSeqNum) + "-" + std::to_string(clientId_) : cid;
   // TODO(GG): check params ...
-  LOG_DEBUG(GL,
+  LOG_DEBUG(clientLog,
             "Client " << clientId_ << " - sends request " << reqSeqNum << " (isRO=" << isReadOnly
                       << ", isPreProcess=" << isPreProcessRequired << " , request size=" << lengthOfRequest
                       << ", retransmissionMilli=" << limitOfExpectedOperationTime_.upperLimit() << " ) ");
@@ -271,7 +273,7 @@ int SimpleClientImp::sendRequest(uint8_t flags,
     uint64_t durationMilli = duration_cast<milliseconds>(getMonotonicTime() - beginTime).count();
     limitOfExpectedOperationTime_.add(durationMilli);
 
-    LOG_DEBUG_F(GL,
+    LOG_DEBUG_F(clientLog,
                 "Client %d - request %" PRIu64
                 " has committed "
                 "(isRO=%d, isPreProcess=%d, request size=%zu,  retransmissionMilli=%d) ",

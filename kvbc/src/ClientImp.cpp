@@ -39,7 +39,11 @@ Status ClientImp::start() {
   uint16_t fVal = config_.fVal;
   uint16_t cVal = config_.cVal;
   uint16_t clientId = config_.clientId;
-  bftClient_ = bftEngine::SimpleClient::createSimpleClient(comm_, clientId, fVal, cVal);
+  SimpleClientParams p;
+  p.clientInitialRetryTimeoutMilli = 10000;
+  p.clientMinRetryTimeoutMilli = 50;
+  p. clientMaxRetryTimeoutMilli = 15000;
+  bftClient_ = bftEngine::SimpleClient::createSimpleClient(comm_, clientId, fVal, cVal, p);
 
   return Status::OK();
 }

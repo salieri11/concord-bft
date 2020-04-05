@@ -481,7 +481,11 @@ Status DBAdapter::addBlockAndUpdateMultiKey(const SetOfKeyValuePairs &_kvMap, Bl
     updatedKVMap[composedKey] = it.second;
   }
   updatedKVMap[keyGen_->blockKey(_block)] = _blockRaw;
+  LOG_DEBUG(logger_,
+              "Before writing block " << _block);
   return db_->multiPut(updatedKVMap);
+  LOG_DEBUG(logger_,
+              "After writing block " << _block);
 }
 
 /**
