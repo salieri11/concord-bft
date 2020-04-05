@@ -8,7 +8,8 @@ import scala.language.implicitConversions
 final case class Update(
   blockId: Long,
   kvPairs: Array[(Array[Byte], Array[Byte])],
-  correlationId: String
+  correlationId: String,
+  spanContext: Array[Byte]
 ) {
   override def toString(): String = this.getClass.getSimpleName + 
     "(" + blockId.toString + ",[" + 
@@ -20,7 +21,7 @@ final case class Update(
 @nativeLoader("thin-replica-client-native0")
 object Library {
   @native def createTRC(clientId: String , maxFaulty: Short,
-                        privateKey: String, servers: Array[String]) : Boolean
+                        privateKey: String, servers: Array[String], jaegerAgent: String) : Boolean
   @native def subscribe(prefix: String) : Boolean
   @native def subscribe(prefix: String, blockId: Long) : Boolean
   @native def unsubscribe() : Boolean

@@ -30,6 +30,9 @@ add_library(thin_replica_client SHARED
 target_link_libraries(thin_replica_client
   proto
   log4cplus
+  jaegertracing
+  opentracing
+  thrift
   gRPC::grpc++
   prometheus-cpp::core
   prometheus-cpp::pull

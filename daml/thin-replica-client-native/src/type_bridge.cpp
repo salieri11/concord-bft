@@ -77,6 +77,13 @@ class JNIClass {
     return (env->*ctorPtr)(javaClass, javaCtor, a1, a2, a3);
   }
 
+  // Call a constructor with four arguments
+  template <typename T1, typename T2, typename T3, typename T4>
+  jobject CreateInstance(const T1& a1, const T2& a2, const T3& a3,
+                         const T4& a4) const {
+    return (env->*ctorPtr)(javaClass, javaCtor, a1, a2, a3, a4);
+  }
+
   jobjectArray CreateArray(size_t size) const {
     return env->NewObjectArray(size, javaClass, NULL);
   }
@@ -105,7 +112,7 @@ class JNIConverter {
         update(CreateClass(
             "com/digitalasset/daml/on/vmware/thin/replica/client/core/Update",
             "apply",
-            "(J[Lscala/Tuple2;Ljava/lang/String;)Lcom/digitalasset/daml/on/"
+            "(J[Lscala/Tuple2;Ljava/lang/String;[B)Lcom/digitalasset/daml/on/"
             "vmware/thin/replica/"
             "client/core/Update;")),
         stringClass(env->FindClass("java/lang/String")) {}
@@ -182,9 +189,9 @@ class JNIConverter {
     return tuple->CreateArray(size);
   }
 
-  jobject CreateUpdate(long blockId, jobject kvPairs,
-                       jstring correlationId) const {
-    return update->CreateInstance(blockId, kvPairs, correlationId);
+  jobject CreateUpdate(long blockId, jobject kvPairs, jstring correlationId,
+                       jbyteArray spanContext) const {
+    return update->CreateInstance(blockId, kvPairs, correlationId, spanContext);
   }
 };
 
@@ -221,13 +228,11 @@ class TRCFFactory {
     return ModifyAndGet([](Instance&) {});
   }
 
-  static ThinReplicaClientFacade* CreateInstance(JNIConverter* converter,
-                                                 jstring j_client_id,
-                                                 jshort j_max_faulty,
-                                                 jstring j_private_key,
-                                                 jobjectArray j_servers) {
+  static ThinReplicaClientFacade* CreateInstance(
+      JNIConverter* converter, jstring j_client_id, jshort j_max_faulty,
+      jstring j_private_key, jobjectArray j_servers, jstring j_jaeger_agent) {
     return ModifyAndGet([converter, j_client_id, j_max_faulty, j_private_key,
-                         j_servers](Instance& instance) {
+                         j_servers, j_jaeger_agent](Instance& instance) {
       if (!instance && converter) {
         string client_id = converter->ToString(j_client_id);
         string private_key = converter->ToString(j_private_key);
@@ -235,8 +240,9 @@ class TRCFFactory {
         vector<pair<string, string>> servers;
         transform(addresses.begin(), addresses.end(), back_inserter(servers),
                   [](auto& e) { return make_pair(string(), e); });
-        instance.reset(new ThinReplicaClientFacade(client_id, j_max_faulty,
-                                                   private_key, servers));
+        string jaeger_agent = converter->ToString(j_jaeger_agent);
+        instance.reset(new ThinReplicaClientFacade(
+            client_id, j_max_faulty, private_key, servers, jaeger_agent));
       }
     });
   }
@@ -244,12 +250,13 @@ class TRCFFactory {
 
 extern "C" jboolean createTRC(JNIEnv* env, jobject obj, jstring j_client_id,
                               jshort j_max_faulty, jstring j_private_key,
-                              jobjectArray j_servers) {
+                              jobjectArray j_servers, jstring j_jaeger_agent) {
   ThinReplicaClientFacade* trcf = NULL;
   try {
     JNIConverter* converter = JNIConverterFactory::CreateInstance(env);
-    trcf = TRCFFactory::CreateInstance(converter, j_client_id, j_max_faulty,
-                                       j_private_key, j_servers);
+    trcf =
+        TRCFFactory::CreateInstance(converter, j_client_id, j_max_faulty,
+                                    j_private_key, j_servers, j_jaeger_agent);
   } catch (const exception& e) {
     return JNI_FALSE;
   }
@@ -308,7 +315,9 @@ jobject processUpdate(JNIEnv* env, JNIConverter* converter,
     env->SetObjectArrayElement(kvPairs, i++, tup);
   }
   jstring correlationId = converter->CreateString(update->correlation_id_);
-  jobject u = converter->CreateUpdate(update->block_id, kvPairs, correlationId);
+  jbyteArray spanContext = converter->CreateByteArray(update->span_context);
+  jobject u = converter->CreateUpdate(update->block_id, kvPairs, correlationId,
+                                      spanContext);
   return converter->CreateOption(u);
 }
 
@@ -358,7 +367,8 @@ extern "C" jobject getTestUpdate(JNIEnv* env, jobject obj) {
   jbyteArray bob = converter->CreateByteArray("Bob");
   jobject tup = converter->CreateTuple(alice, bob);
   jstring correlationId = converter->CreateString("test");
+  jbyteArray spanContext = converter->CreateByteArray("SpanContext");
   env->SetObjectArrayElement(kvPairs, 0, tup);
-  jobject u = converter->CreateUpdate(17, kvPairs, correlationId);
+  jobject u = converter->CreateUpdate(17, kvPairs, correlationId, spanContext);
   return converter->CreateOption(u);
 }

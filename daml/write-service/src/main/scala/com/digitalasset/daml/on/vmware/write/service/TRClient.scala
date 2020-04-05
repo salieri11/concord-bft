@@ -10,12 +10,12 @@ import akka.NotUsed
 import akka.stream.scaladsl.Source
 
 class TRClient(clientId: String , maxFaulty: Short,
-               privateKey: String, servers: Array[String]) {
+               privateKey: String, servers: Array[String], jaegerAgent: String) {
   import TRClient._
 
   private val logger = LoggerFactory.getLogger(this.getClass)
 
-  val trcCreated = Library.createTRC(clientId, maxFaulty, privateKey, servers)
+  val trcCreated = Library.createTRC(clientId, maxFaulty, privateKey, servers, jaegerAgent)
   if(trcCreated)
     logger.info("Thin Replica Client created")
   else

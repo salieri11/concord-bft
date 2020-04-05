@@ -70,7 +70,8 @@ LoggerInitializer loggerInitializer;
 ThinReplicaClientFacade::ThinReplicaClientFacade(
     const std::string& client_id, uint16_t max_faulty,
     const std::string& private_key,
-    const std::vector<std::pair<std::string, std::string>>& servers)
+    const std::vector<std::pair<std::string, std::string>>& servers,
+    const std::string& jaeger_agent)
     : impl(new Impl()) {
   try {
     ChannelArguments args;
@@ -127,7 +128,7 @@ ThinReplicaClientFacade::ThinReplicaClientFacade(
 
     impl->trc.reset(new ThinReplicaClient(
         client_id, impl->update_queue, max_faulty, private_key,
-        server_stubs.begin(), server_stubs.end()));
+        server_stubs.begin(), server_stubs.end(), jaeger_agent));
   } catch (const exception& e) {
     LOG4CPLUS_ERROR(
         impl->logger,
