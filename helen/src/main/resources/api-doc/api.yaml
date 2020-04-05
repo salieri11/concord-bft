@@ -113,9 +113,6 @@ paths:
               type: object
               required:
                 - consortium_id
-                - f_count
-                - c_count
-                - deployment_type
               properties:
                 consortium_id:
                   type: string
@@ -127,12 +124,6 @@ paths:
                 c_count:
                   type: integer
                   description: Number of c replicas, cluster size will be 3f + 2c + 1
-                deployment_type:
-                  type: string
-                  enum:
-                    - FIXED
-                    - UNSPECIFIED
-                  description: FIXED or UNSPECIFIED, determines site locations
                 blockchain_type:
                   type: string
                   enum:
