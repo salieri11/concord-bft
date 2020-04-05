@@ -6,6 +6,7 @@
 // end up at KVBCommandsHandler.
 
 #include "kvb_client.hpp"
+#include "SimpleClient.hpp"
 
 #include <opentracing/tracer.h>
 #include <boost/thread.hpp>
@@ -34,7 +35,7 @@ void AddTracingContext(ConcordRequest &req, opentracing::Span &parent_span) {
  * message). Returns false if the response is empty (for example, if parsing
  * failed).
  */
-bool KVBClient::send_request_sync(ConcordRequest &req, bool isReadOnly,
+bool KVBClient::send_request_sync(ConcordRequest &req, uint8_t flags,
                                   std::chrono::milliseconds timeout,
                                   opentracing::Span &parent_span,
                                   ConcordResponse &resp,
@@ -43,7 +44,7 @@ bool KVBClient::send_request_sync(ConcordRequest &req, bool isReadOnly,
       "send_request_sync", {opentracing::ChildOf(&parent_span.context())});
   AddTracingContext(req, *span.get());
 
-  if (!isReadOnly && timePusher_) {
+  if (!(flags & bftEngine::READ_ONLY_REQ) && timePusher_) {
     timePusher_->AddTimeToCommand(req);
   }
 
@@ -53,15 +54,14 @@ bool KVBClient::send_request_sync(ConcordRequest &req, bool isReadOnly,
 
   uint32_t actualReplySize = 0;
   concordUtils::Status status = client_->invokeCommandSynch(
-      command.c_str(), command.size(), isReadOnly, timeout, OUT_BUFFER_SIZE,
+      command.c_str(), command.size(), flags, timeout, OUT_BUFFER_SIZE,
       m_outBuffer, &actualReplySize, correlation_id);
 
   if (status.isOK() && actualReplySize) {
     return resp.ParseFromArray(m_outBuffer, actualReplySize);
   } else {
-    LOG4CPLUS_ERROR(logger_, "Error invoking "
-                                 << (isReadOnly ? "read-only" : "read-write")
-                                 << " command. Status: " << status
+    LOG4CPLUS_ERROR(logger_, "Error invoking command with flags: "
+                                 << flags << " Status: " << status
                                  << " Reply size: " << actualReplySize);
     ErrorResponse *err = resp.add_error_response();
     err->set_description("Internal concord Error");
@@ -119,15 +119,15 @@ KVBClientPool::~KVBClientPool() {
   LOG4CPLUS_INFO(logger_, "Client cleanup complete");
 }
 
-bool KVBClientPool::send_request_sync(ConcordRequest &req, bool isReadOnly,
+bool KVBClientPool::send_request_sync(ConcordRequest &req, uint8_t flags,
                                       opentracing::Span &parent_span,
                                       ConcordResponse &resp,
                                       const std::string &correlation_id) {
-  return send_request_sync(req, isReadOnly, timeout_, parent_span, resp,
+  return send_request_sync(req, flags, timeout_, parent_span, resp,
                            correlation_id);
 }
 
-bool KVBClientPool::send_request_sync(ConcordRequest &req, bool isReadOnly,
+bool KVBClientPool::send_request_sync(ConcordRequest &req, uint8_t flags,
                                       std::chrono::milliseconds timeout,
                                       opentracing::Span &parent_span,
                                       ConcordResponse &resp,
@@ -184,7 +184,7 @@ bool KVBClientPool::send_request_sync(ConcordRequest &req, bool isReadOnly,
     }
   }  // scope unlocks mutex
   kvbc_client_pool_received_requests_.Increment();
-  bool result = client->send_request_sync(req, isReadOnly, timeout, parent_span,
+  bool result = client->send_request_sync(req, flags, timeout, parent_span,
                                           resp, correlation_id);
   kvbc_client_pool_received_replies_.Increment();
   {

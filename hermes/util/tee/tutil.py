@@ -23,12 +23,12 @@ class Tee:
     def __del__(self):
         self.channel.close()
 
-    def run_test(self, test_input=b""):
-        request = tproto.TestInput(test_input=test_input)
+    def run_test(self, test_input=b"", flags=0):
+        request = tproto.TestInput(test_input=test_input, flags=flags)
         return self.stub.RunTest(request, metadata=self.meta)
 
-    def skvbc_write(self, raw_skvbc_write):
-        raw_skvbc_write = tproto.RawSkvbcRequest(content=bytes(raw_skvbc_write))
+    def skvbc_write(self, raw_skvbc_write, flags=0):
+        raw_skvbc_write = tproto.RawSkvbcRequest(content=bytes(raw_skvbc_write), flags=flags)
         result = self.stub.SkvbcWrite(raw_skvbc_write, metadata=self.meta)
 
         return result.content

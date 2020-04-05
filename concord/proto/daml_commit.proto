@@ -20,6 +20,7 @@ message CommitRequest {
   string participant_id = 4;
   string correlation_id = 5;
   bytes span_context = 6;
+  uint32 flags = 7;
   //TODO: Add signature over the submission
 }
 
